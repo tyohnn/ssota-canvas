@@ -3,8 +3,8 @@ import { clerkClient } from "@clerk/nextjs/server";
 import {
   createClerkDrizzleSupabaseClient,
   createSupabaseAdminClient,
-} from "@/lib/db";
-import { users } from "@/lib/db/schema";
+} from "@/db";
+import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 // Sync current user to Supabase DB

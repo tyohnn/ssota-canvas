@@ -1,14 +1,14 @@
 "use server";
 
-import { createClerkDrizzleSupabaseClient } from "@/lib/db";
-import { nodes, workspaces, Node, NewNode } from "@/lib/db/schema";
+import { createClerkDrizzleSupabaseClient } from "@/db";
+import { nodes, nodePositions } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-// Validation schemas
+// Node creation schema
 const createNodeSchema = z.object({
-  node_type: z.enum([
+  nodeType: z.enum([
     "agent",
     "task",
     "workflow",
@@ -16,10 +16,7 @@ const createNodeSchema = z.object({
     "checklist",
     "data",
     "artifact_class",
-    "node_definition",
-    "edge_definition",
-    "column_definition",
-  ] as const),
+  ]),
   slug: z
     .string()
     .min(1)
@@ -29,11 +26,16 @@ const createNodeSchema = z.object({
       "Slug must contain only lowercase letters, numbers, and hyphens"
     ),
   name: z.string().min(1).max(100),
-  metadata: z.record(z.any()),
-  parent_node_id: z.string().uuid().optional(),
-  workspace_id: z.string().uuid(),
+  metadata: z.record(z.string(), z.any()),
+  parentNodeId: z.uuid().optional(),
+  workspaceId: z.uuid(),
+  position: z.object({
+    x: z.number().int().min(0),
+    y: z.number().int().min(0),
+  }),
 });
 
+// Node update schema
 const updateNodeSchema = z.object({
   id: z.string().uuid(),
   slug: z
@@ -46,385 +48,342 @@ const updateNodeSchema = z.object({
     )
     .optional(),
   name: z.string().min(1).max(100).optional(),
-  metadata: z.record(z.any()).optional(),
-  parent_node_id: z.string().uuid().optional(),
-});
-
-const getNodesSchema = z.object({
-  workspace_id: z.string().uuid(),
-  node_type: z
-    .enum([
-      "agent",
-      "task",
-      "workflow",
-      "artifact_template",
-      "checklist",
-      "data",
-      "artifact_class",
-      "node_definition",
-      "edge_definition",
-      "column_definition",
-    ])
+  metadata: z.record(z.string(), z.any()).optional(),
+  parentNodeId: z.string().uuid().optional(),
+  position: z
+    .object({
+      x: z.number().int().min(0),
+      y: z.number().int().min(0),
+    })
     .optional(),
-  parent_node_id: z.string().uuid().optional(),
 });
 
-// Create a new node
-export async function createNode(
-  data: z.infer<typeof createNodeSchema>
-): Promise<{ success: boolean; data?: Node; error?: string }> {
-  try {
-    // Validate input data
-    const validatedData = createNodeSchema.parse(data);
+// Node position update schema
+const updateNodePositionSchema = z.object({
+  nodeId: z.string().uuid(),
+  x: z.number().int().min(0),
+  y: z.number().int().min(0),
+});
 
-    // Get database client
+export type CreateNodeInput = z.infer<typeof createNodeSchema>;
+export type UpdateNodeInput = z.infer<typeof updateNodeSchema>;
+export type UpdateNodePositionInput = z.infer<typeof updateNodePositionSchema>;
+
+/**
+ * Create a new node with position
+ */
+export async function createNode(input: CreateNodeInput) {
+  try {
+    const validatedInput = createNodeSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    // Check if workspace exists and user has access
-    const workspace = await db.rls((tx) =>
-      tx
-        .select()
-        .from(workspaces)
-        .where(eq(workspaces.id, validatedData.workspace_id))
-        .limit(1)
-    );
-
-    if (workspace.length === 0) {
-      return { success: false, error: "Workspace not found or access denied" };
-    }
-
     // Check if slug is unique within workspace
-    const existingNode = await db.rls((tx) =>
-      tx
+    const existingNode = await db.rls(async (tx: any) => {
+      return await tx
         .select()
         .from(nodes)
         .where(
           and(
-            eq(nodes.slug, validatedData.slug),
-            eq(nodes.workspace_id, validatedData.workspace_id)
+            eq(nodes.slug, validatedInput.slug),
+            eq(nodes.workspace_id, validatedInput.workspaceId)
           )
         )
-        .limit(1)
-    );
+        .limit(1);
+    });
 
     if (existingNode.length > 0) {
-      return {
-        success: false,
-        error: "Node with this slug already exists in this workspace",
-      };
+      throw new Error("Node with this slug already exists in this workspace");
     }
 
-    // Validate parent node if provided
-    if (validatedData.parent_node_id) {
-      const parentNode = await db.rls((tx) =>
-        tx
-          .select()
-          .from(nodes)
-          .where(eq(nodes.id, validatedData.parent_node_id!))
-          .limit(1)
-      );
-
-      if (parentNode.length === 0) {
-        return { success: false, error: "Parent node not found" };
-      }
-    }
-
-    // Create the node
-    const newNode = await db.rls((tx) =>
-      tx
+    // Create node and position in transaction
+    const result = await db.rls(async (tx: any) => {
+      // Insert node
+      const [node] = await tx
         .insert(nodes)
         .values({
-          ...validatedData,
-          created_at: new Date(),
-          updated_at: new Date(),
+          node_type: validatedInput.nodeType,
+          slug: validatedInput.slug,
+          name: validatedInput.name,
+          metadata: validatedInput.metadata,
+          parent_node_id: validatedInput.parentNodeId,
+          workspace_id: validatedInput.workspaceId,
         })
-        .returning()
-    );
+        .returning();
 
-    if (newNode.length === 0) {
-      return { success: false, error: "Failed to create node" };
-    }
+      // Insert position
+      await tx.insert(nodePositions).values({
+        node_id: node.id,
+        x_position: validatedInput.position.x,
+        y_position: validatedInput.position.y,
+      });
 
-    // Revalidate canvas page
+      return node;
+    });
+
     revalidatePath("/canvas");
-
-    return { success: true, data: newNode[0] };
+    return { success: true, data: result };
   } catch (error) {
     console.error("Error creating node:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
+      error: error instanceof Error ? error.message : "Failed to create node",
     };
   }
 }
 
-// Update an existing node
-export async function updateNode(
-  data: z.infer<typeof updateNodeSchema>
-): Promise<{ success: boolean; data?: Node; error?: string }> {
+/**
+ * Get node by ID with position
+ */
+export async function getNode(nodeId: string) {
   try {
-    // Validate input data
-    const validatedData = updateNodeSchema.parse(data);
-
-    // Get database client
     const db = await createClerkDrizzleSupabaseClient();
 
-    // Check if node exists and user has access
-    const existingNode = await db.rls((tx) =>
-      tx.select().from(nodes).where(eq(nodes.id, validatedData.id)).limit(1)
-    );
-
-    if (existingNode.length === 0) {
-      return { success: false, error: "Node not found or access denied" };
-    }
-
-    const node = existingNode[0];
-
-    if (!node) {
-      return { success: false, error: "Node not found or access denied" };
-    }
-
-    // Check slug uniqueness if slug is being updated
-    if (validatedData.slug && validatedData.slug !== node.slug) {
-      const duplicateNode = await db.rls((tx) =>
-        tx
-          .select()
-          .from(nodes)
-          .where(
-            and(
-              eq(nodes.slug, validatedData.slug!),
-              eq(nodes.workspace_id, node.workspace_id),
-              eq(nodes.id, validatedData.id)
-            )
-          )
-          .limit(1)
-      );
-
-      if (duplicateNode.length > 0) {
-        return {
-          success: false,
-          error: "Node with this slug already exists in this workspace",
-        };
-      }
-    }
-
-    // Validate parent node if being updated
-    if (
-      validatedData.parent_node_id &&
-      validatedData.parent_node_id !== node.parent_node_id
-    ) {
-      // Prevent self-reference
-      if (validatedData.parent_node_id === validatedData.id) {
-        return {
-          success: false,
-          error: "Node cannot reference itself as parent",
-        };
-      }
-
-      const parentNode = await db.rls((tx) =>
-        tx
-          .select()
-          .from(nodes)
-          .where(eq(nodes.id, validatedData.parent_node_id!))
-          .limit(1)
-      );
-
-      if (parentNode.length === 0) {
-        return { success: false, error: "Parent node not found" };
-      }
-    }
-
-    // Update the node
-    const updatedNode = await db.rls((tx) =>
-      tx
-        .update(nodes)
-        .set({
-          ...validatedData,
-          updated_at: new Date(),
-        })
-        .where(eq(nodes.id, validatedData.id))
-        .returning()
-    );
-
-    if (updatedNode.length === 0) {
-      return { success: false, error: "Failed to update node" };
-    }
-
-    // Revalidate canvas page
-    revalidatePath("/canvas");
-
-    return { success: true, data: updatedNode[0] };
-  } catch (error) {
-    console.error("Error updating node:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    };
-  }
-}
-
-// Delete a node
-export async function deleteNode(
-  nodeId: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    // Validate input
-    if (!nodeId || typeof nodeId !== "string") {
-      return { success: false, error: "Invalid node ID" };
-    }
-
-    // Get database client
-    const db = await createClerkDrizzleSupabaseClient();
-
-    // Check if node exists and user has access
-    const existingNode = await db.rls((tx) =>
-      tx.select().from(nodes).where(eq(nodes.id, nodeId)).limit(1)
-    );
-
-    if (existingNode.length === 0) {
-      return { success: false, error: "Node not found or access denied" };
-    }
-
-    // Delete the node (cascade will handle related edges and positions)
-    await db.rls((tx) => tx.delete(nodes).where(eq(nodes.id, nodeId)));
-
-    // Revalidate canvas page
-    revalidatePath("/canvas");
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error deleting node:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    };
-  }
-}
-
-// Get nodes for a workspace
-export async function getNodes(
-  data: z.infer<typeof getNodesSchema>
-): Promise<{ success: boolean; data?: Node[]; error?: string }> {
-  try {
-    // Validate input data
-    const validatedData = getNodesSchema.parse(data);
-
-    // Get database client
-    const db = await createClerkDrizzleSupabaseClient();
-
-    // Check if workspace exists and user has access
-    const workspace = await db.rls((tx) =>
-      tx
-        .select()
-        .from(workspaces)
-        .where(eq(workspaces.id, validatedData.workspace_id))
-        .limit(1)
-    );
-
-    if (workspace.length === 0) {
-      return { success: false, error: "Workspace not found or access denied" };
-    }
-
-    // Build query conditions
-    const conditions = [eq(nodes.workspace_id, validatedData.workspace_id)];
-
-    if (validatedData.node_type) {
-      conditions.push(eq(nodes.node_type, validatedData.node_type));
-    }
-
-    if (validatedData.parent_node_id) {
-      conditions.push(eq(nodes.parent_node_id, validatedData.parent_node_id));
-    }
-
-    // Get nodes
-    const nodesList = await db.rls((tx) =>
-      tx
+    const result = await db.rls(async (tx: any) => {
+      const [node] = await tx
         .select()
         .from(nodes)
-        .where(and(...conditions))
-        .orderBy(desc(nodes.created_at))
-    );
+        .where(eq(nodes.id, nodeId))
+        .limit(1);
 
-    return { success: true, data: nodesList };
-  } catch (error) {
-    console.error("Error getting nodes:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    };
-  }
-}
+      if (!node) return null;
 
-// Get a single node by ID
-export async function getNode(
-  nodeId: string
-): Promise<{ success: boolean; data?: Node; error?: string }> {
-  try {
-    // Validate input
-    if (!nodeId || typeof nodeId !== "string") {
-      return { success: false, error: "Invalid node ID" };
-    }
+      const [position] = await tx
+        .select()
+        .from(nodePositions)
+        .where(eq(nodePositions.node_id, nodeId))
+        .limit(1);
 
-    // Get database client
-    const db = await createClerkDrizzleSupabaseClient();
+      return {
+        ...node,
+        position: position
+          ? { x: position.x_position, y: position.y_position }
+          : null,
+      };
+    });
 
-    // Get the node
-    const node = await db.rls((tx) =>
-      tx.select().from(nodes).where(eq(nodes.id, nodeId)).limit(1)
-    );
-
-    if (node.length === 0) {
-      return { success: false, error: "Node not found or access denied" };
-    }
-
-    return { success: true, data: node[0] };
+    return { success: true, data: result };
   } catch (error) {
     console.error("Error getting node:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
+      error: error instanceof Error ? error.message : "Failed to get node",
     };
   }
 }
 
-// Get nodes by type for a workspace
-export async function getNodesByType(
-  workspaceId: string,
-  nodeType: string
-): Promise<{ success: boolean; data?: Node[]; error?: string }> {
+/**
+ * Get all nodes for a workspace with positions
+ */
+export async function getWorkspaceNodes(workspaceId: string) {
   try {
-    // Validate input
-    if (!workspaceId || typeof workspaceId !== "string") {
-      return { success: false, error: "Invalid workspace ID" };
-    }
-
-    if (!nodeType || typeof nodeType !== "string") {
-      return { success: false, error: "Invalid node type" };
-    }
-
-    // Get database client
     const db = await createClerkDrizzleSupabaseClient();
 
-    // Get nodes by type
-    const nodesList = await db.rls((tx) =>
-      tx
+    const result = await db.rls(async (tx: any) => {
+      const nodesData = await tx
+        .select()
+        .from(nodes)
+        .where(eq(nodes.workspace_id, workspaceId))
+        .orderBy(desc(nodes.created_at));
+
+      const positionsData = await tx
+        .select()
+        .from(nodePositions)
+        .where(
+          eq(
+            nodePositions.node_id,
+            nodesData.map((n: any) => n.id)
+          )
+        );
+
+      // Create position lookup map
+      const positionMap = new Map(
+        positionsData.map((p: any) => [
+          p.node_id,
+          { x: p.x_position, y: p.y_position },
+        ])
+      );
+
+      // Combine nodes with positions
+      return nodesData.map((node: any) => ({
+        ...node,
+        position: positionMap.get(node.id) || null,
+      }));
+    });
+
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("Error getting workspace nodes:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to get workspace nodes",
+    };
+  }
+}
+
+/**
+ * Update node
+ */
+export async function updateNode(input: UpdateNodeInput) {
+  try {
+    const validatedInput = updateNodeSchema.parse(input);
+    const db = await createClerkDrizzleSupabaseClient();
+
+    // Check if slug is unique within workspace (if slug is being updated)
+    if (validatedInput.slug) {
+      const existingNode = await db.rls(async (tx: any) => {
+        return await tx
+          .select()
+          .from(nodes)
+          .where(
+            and(
+              eq(nodes.slug, validatedInput.slug!),
+              eq(nodes.id, validatedInput.id)
+            )
+          )
+          .limit(1);
+      });
+
+      if (existingNode.length > 0) {
+        throw new Error("Node with this slug already exists in this workspace");
+      }
+    }
+
+    const result = await db.rls(async (tx: any) => {
+      const updateData: any = {};
+      if (validatedInput.slug) updateData.slug = validatedInput.slug;
+      if (validatedInput.name) updateData.name = validatedInput.name;
+      if (validatedInput.metadata)
+        updateData.metadata = validatedInput.metadata;
+      if (validatedInput.parentNodeId !== undefined)
+        updateData.parent_node_id = validatedInput.parentNodeId;
+      updateData.updated_at = new Date();
+
+      const [node] = await tx
+        .update(nodes)
+        .set(updateData)
+        .where(eq(nodes.id, validatedInput.id))
+        .returning();
+
+      return node;
+    });
+
+    revalidatePath("/canvas");
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("Error updating node:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update node",
+    };
+  }
+}
+
+/**
+ * Update node position
+ */
+export async function updateNodePosition(input: UpdateNodePositionInput) {
+  try {
+    const validatedInput = updateNodePositionSchema.parse(input);
+    const db = await createClerkDrizzleSupabaseClient();
+
+    const result = await db.rls(async (tx: any) => {
+      const [position] = await tx
+        .update(nodePositions)
+        .set({
+          x_position: validatedInput.x,
+          y_position: validatedInput.y,
+        })
+        .where(eq(nodePositions.node_id, validatedInput.nodeId))
+        .returning();
+
+      return position;
+    });
+
+    revalidatePath("/canvas");
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("Error updating node position:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to update node position",
+    };
+  }
+}
+
+/**
+ * Delete node and its position
+ */
+export async function deleteNode(nodeId: string) {
+  try {
+    const db = await createClerkDrizzleSupabaseClient();
+
+    const result = await db.rls(async (tx: any) => {
+      // Delete position first (due to foreign key constraint)
+      await tx.delete(nodePositions).where(eq(nodePositions.node_id, nodeId));
+
+      // Delete node
+      const [node] = await tx
+        .delete(nodes)
+        .where(eq(nodes.id, nodeId))
+        .returning();
+
+      return node;
+    });
+
+    revalidatePath("/canvas");
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("Error deleting node:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete node",
+    };
+  }
+}
+
+/**
+ * Get nodes by type for a workspace
+ */
+export async function getNodesByType(
+  workspaceId: string,
+  nodeType:
+    | "agent"
+    | "task"
+    | "workflow"
+    | "artifact_template"
+    | "checklist"
+    | "data"
+    | "artifact_class"
+) {
+  try {
+    const db = await createClerkDrizzleSupabaseClient();
+
+    const result = await db.rls(async (tx: any) => {
+      return await tx
         .select()
         .from(nodes)
         .where(
           and(
             eq(nodes.workspace_id, workspaceId),
-            eq(nodes.node_type, nodeType as any)
+            eq(nodes.node_type, nodeType)
           )
         )
-        .orderBy(desc(nodes.created_at))
-    );
+        .orderBy(desc(nodes.created_at));
+    });
 
-    return { success: true, data: nodesList };
+    return { success: true, data: result };
   } catch (error) {
     console.error("Error getting nodes by type:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
+      error:
+        error instanceof Error ? error.message : "Failed to get nodes by type",
     };
   }
 }

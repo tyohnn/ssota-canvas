@@ -1,8 +1,8 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
-import { createSupabaseAdminClient } from "@/lib/db/admin-client";
-import { users } from "@/lib/db/schema";
+import { createSupabaseAdminClient } from "@/db/admin-client";
+import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function POST(req: Request) {
