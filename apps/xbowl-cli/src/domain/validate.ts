@@ -1,5 +1,5 @@
 import { BlockRegistry } from "./types.js";
-import { isValidSlug } from "./utils/slug.js";
+import { SLUG_RE, BlockRegistrySchema } from "@workspace/domain-contracts";
 
 export interface ValidationIssue {
   level: "error" | "warning";
@@ -8,8 +8,23 @@ export interface ValidationIssue {
   field?: string;
 }
 
+const isValidSlug = (slug: string) => SLUG_RE.test(slug);
+
 export function validateRegistry(reg: BlockRegistry): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
+
+  // Base schema validation via contracts package
+  const parsed = BlockRegistrySchema.safeParse(reg);
+  if (!parsed.success) {
+    for (const err of parsed.error.issues) {
+      issues.push({
+        level: "error",
+        message: `Schema: ${err.path.join(".")} ${err.message}`,
+      });
+    }
+    // Continue to collect more issues from custom checks
+  }
+
   const seenSlugs = new Set<string>();
   const seenIds = new Set<string>();
 
