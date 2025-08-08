@@ -5,11 +5,10 @@ import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import {
   PAGE_BLOCK_COLOR_TOKENS,
   PAGE_BLOCK_ICONS,
-  PageBlockType,
   getBlockColorClasses,
   isWorkflowMetadata,
-  type BlockMetadata,
 } from "@/domains/workflow-canvas/policy";
+import { BlockMetadata, BlockType } from "@workspace/domain-contracts";
 
 interface WorkflowBlockData extends Record<string, unknown> {
   label: string;
@@ -27,9 +26,9 @@ export const WorkflowBlock = memo(
     const slug = workflowMetadata?.slug || legacySlug || "";
     const description = workflowMetadata?.description || "";
 
-    const colorToken = PAGE_BLOCK_COLOR_TOKENS[PageBlockType.WORKFLOW];
+    const colorToken = PAGE_BLOCK_COLOR_TOKENS[BlockType.WORKFLOW];
     const colors = getBlockColorClasses(colorToken);
-    const WorkflowIcon = PAGE_BLOCK_ICONS[PageBlockType.WORKFLOW];
+    const WorkflowIcon = PAGE_BLOCK_ICONS[BlockType.WORKFLOW];
 
     return (
       <div

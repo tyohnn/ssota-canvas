@@ -1,6 +1,6 @@
 import { Edge, NewEdge } from "@/db/schema";
 import { devLog } from "@/utils/dev-logger";
-import { PageBlockType } from "./block-definition-policy";
+import { BlockType } from "@workspace/domain-contracts";
 
 /**
  * 🎯 EDGE ADDITION POLICY
@@ -31,9 +31,9 @@ export interface EdgeAdditionPolicy {
    */
   getEdgesToCreate(
     currentPageBlockId: string,
-    currentPageBlockType: PageBlockType,
+    currentPageBlockType: BlockType,
     targetBlockId: string,
-    targetBlockType: PageBlockType,
+    targetBlockType: BlockType,
     workspaceId: string
   ): NewEdge[];
 
@@ -53,18 +53,20 @@ export interface EdgeAdditionPolicy {
 export class WorkflowEdgeAdditionPolicy implements EdgeAdditionPolicy {
   getEdgesToCreate(
     currentPageBlockId: string,
-    currentPageBlockType: PageBlockType,
+    currentPageBlockType: BlockType,
     targetBlockId: string,
-    targetBlockType: PageBlockType,
+    targetBlockType: BlockType,
     workspaceId: string
   ): NewEdge[] {
     const edges: NewEdge[] = [];
 
     // 워크플로우 -> 에이전트/태스크/기본노드 (contains 관계)
     if (
-      targetBlockType === "agent" ||
-      targetBlockType === "task" ||
-      ["start", "end", "condition"].includes(targetBlockType)
+      targetBlockType === BlockType.AGENT ||
+      targetBlockType === BlockType.TASK ||
+      [BlockType.START, BlockType.END, BlockType.CONDITION].includes(
+        targetBlockType
+      )
     ) {
       edges.push({
         source_block_id: currentPageBlockId,
@@ -104,15 +106,15 @@ export class WorkflowEdgeAdditionPolicy implements EdgeAdditionPolicy {
 export class AgentEdgeAdditionPolicy implements EdgeAdditionPolicy {
   getEdgesToCreate(
     currentPageBlockId: string,
-    currentPageBlockType: PageBlockType,
+    currentPageBlockType: BlockType,
     targetBlockId: string,
-    targetBlockType: PageBlockType,
+    targetBlockType: BlockType,
     workspaceId: string
   ): NewEdge[] {
     const edges: NewEdge[] = [];
 
     switch (targetBlockType) {
-      case "task":
+      case BlockType.TASK:
         // Agent -> Task (contains)
         edges.push({
           source_block_id: currentPageBlockId,
@@ -125,7 +127,7 @@ export class AgentEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "data":
+      case BlockType.DATA:
         // Agent -> Data (accesses)
         edges.push({
           source_block_id: currentPageBlockId,
@@ -149,7 +151,7 @@ export class AgentEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "checklist":
+      case BlockType.CHECKLIST:
         // Agent -> Checklist (accesses)
         edges.push({
           source_block_id: currentPageBlockId,
@@ -174,7 +176,7 @@ export class AgentEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "artifact_template":
+      case BlockType.ARTIFACT_TEMPLATE:
         // Agent -> Template (accesses)
         edges.push({
           source_block_id: currentPageBlockId,
@@ -199,7 +201,7 @@ export class AgentEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "artifact_class":
+      case BlockType.ARTIFACT_CLASS:
         // Agent -> Artifact Class (accesses)
         edges.push({
           source_block_id: currentPageBlockId,
@@ -254,9 +256,9 @@ export class AgentEdgeAdditionPolicy implements EdgeAdditionPolicy {
 export class TaskEdgeAdditionPolicy implements EdgeAdditionPolicy {
   getEdgesToCreate(
     currentPageBlockId: string,
-    currentPageBlockType: PageBlockType,
+    currentPageBlockType: BlockType,
     targetBlockId: string,
-    targetBlockType: PageBlockType,
+    targetBlockType: BlockType,
     workspaceId: string
   ): NewEdge[] {
     devLog(
@@ -266,7 +268,7 @@ export class TaskEdgeAdditionPolicy implements EdgeAdditionPolicy {
     const edges: NewEdge[] = [];
 
     switch (targetBlockType) {
-      case "agent":
+      case BlockType.AGENT:
         // Agent -> Task (contains)
         edges.push({
           source_block_id: targetBlockId,
@@ -279,7 +281,7 @@ export class TaskEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "workflow":
+      case BlockType.WORKFLOW:
         // Workflow -> Task (contains)
         edges.push({
           source_block_id: targetBlockId,
@@ -292,7 +294,7 @@ export class TaskEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "data":
+      case BlockType.DATA:
         // Data -> Task (input)
         edges.push({
           source_block_id: targetBlockId,
@@ -316,7 +318,7 @@ export class TaskEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "checklist":
+      case BlockType.CHECKLIST:
         // Checklist -> Task (input)
         edges.push({
           source_block_id: targetBlockId,
@@ -341,7 +343,7 @@ export class TaskEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "artifact_template":
+      case BlockType.ARTIFACT_TEMPLATE:
         // Template -> Task (input)
         edges.push({
           source_block_id: targetBlockId,
@@ -366,7 +368,7 @@ export class TaskEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "artifact_class":
+      case BlockType.ARTIFACT_CLASS:
         // Task -> Artifact Class (output)
         edges.push({
           source_block_id: currentPageBlockId,
@@ -423,9 +425,9 @@ export class TaskEdgeAdditionPolicy implements EdgeAdditionPolicy {
 export class ArtifactTemplateEdgeAdditionPolicy implements EdgeAdditionPolicy {
   getEdgesToCreate(
     currentPageBlockId: string,
-    currentPageBlockType: PageBlockType,
+    currentPageBlockType: BlockType,
     targetBlockId: string,
-    targetBlockType: PageBlockType,
+    targetBlockType: BlockType,
     workspaceId: string
   ): NewEdge[] {
     devLog(
@@ -435,7 +437,7 @@ export class ArtifactTemplateEdgeAdditionPolicy implements EdgeAdditionPolicy {
     const edges: NewEdge[] = [];
 
     switch (targetBlockType) {
-      case "agent":
+      case BlockType.AGENT:
         // Template -> Agent (used_by_agent)
         edges.push({
           source_block_id: currentPageBlockId,
@@ -460,7 +462,7 @@ export class ArtifactTemplateEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "task":
+      case BlockType.TASK:
         // Template -> Task (used_by_task)
         edges.push({
           source_block_id: currentPageBlockId,
@@ -512,9 +514,9 @@ export class ArtifactTemplateEdgeAdditionPolicy implements EdgeAdditionPolicy {
 export class ArtifactClassEdgeAdditionPolicy implements EdgeAdditionPolicy {
   getEdgesToCreate(
     currentPageBlockId: string,
-    currentPageBlockType: PageBlockType,
+    currentPageBlockType: BlockType,
     targetBlockId: string,
-    targetBlockType: PageBlockType,
+    targetBlockType: BlockType,
     workspaceId: string
   ): NewEdge[] {
     devLog(
@@ -524,7 +526,7 @@ export class ArtifactClassEdgeAdditionPolicy implements EdgeAdditionPolicy {
     const edges: NewEdge[] = [];
 
     switch (targetBlockType) {
-      case "agent":
+      case BlockType.AGENT:
         // Agent -> Artifact Class (accesses)
         edges.push({
           source_block_id: targetBlockId,
@@ -549,7 +551,7 @@ export class ArtifactClassEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "task":
+      case BlockType.TASK:
         // Task -> Artifact Class (output)
         edges.push({
           source_block_id: targetBlockId,
@@ -602,9 +604,9 @@ export class ArtifactClassEdgeAdditionPolicy implements EdgeAdditionPolicy {
 export class DataEdgeAdditionPolicy implements EdgeAdditionPolicy {
   getEdgesToCreate(
     currentPageBlockId: string,
-    currentPageBlockType: PageBlockType,
+    currentPageBlockType: BlockType,
     targetBlockId: string,
-    targetBlockType: PageBlockType,
+    targetBlockType: BlockType,
     workspaceId: string
   ): NewEdge[] {
     devLog(
@@ -614,7 +616,7 @@ export class DataEdgeAdditionPolicy implements EdgeAdditionPolicy {
     const edges: NewEdge[] = [];
 
     switch (targetBlockType) {
-      case "agent":
+      case BlockType.AGENT:
         // Agent -> Data (accesses)
         edges.push({
           source_block_id: targetBlockId,
@@ -638,7 +640,7 @@ export class DataEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "task":
+      case BlockType.TASK:
         // Data -> Task (input)
         edges.push({
           source_block_id: currentPageBlockId,
@@ -688,9 +690,9 @@ export class DataEdgeAdditionPolicy implements EdgeAdditionPolicy {
 export class ChecklistEdgeAdditionPolicy implements EdgeAdditionPolicy {
   getEdgesToCreate(
     currentPageBlockId: string,
-    currentPageBlockType: PageBlockType,
+    currentPageBlockType: BlockType,
     targetBlockId: string,
-    targetBlockType: PageBlockType,
+    targetBlockType: BlockType,
     workspaceId: string
   ): NewEdge[] {
     devLog(
@@ -700,7 +702,7 @@ export class ChecklistEdgeAdditionPolicy implements EdgeAdditionPolicy {
     const edges: NewEdge[] = [];
 
     switch (targetBlockType) {
-      case "agent":
+      case BlockType.AGENT:
         // Agent -> Checklist (accesses)
         edges.push({
           source_block_id: targetBlockId,
@@ -725,7 +727,7 @@ export class ChecklistEdgeAdditionPolicy implements EdgeAdditionPolicy {
         });
         break;
 
-      case "task":
+      case BlockType.TASK:
         // Checklist -> Task (input)
         edges.push({
           source_block_id: currentPageBlockId,
@@ -775,21 +777,21 @@ export class ChecklistEdgeAdditionPolicy implements EdgeAdditionPolicy {
  * 팩토리 클래스: 페이지 타입에 따라 적절한 엣지 정책을 반환
  */
 export class EdgeAdditionPolicyFactory {
-  static getPolicy(pageBlockType: PageBlockType): EdgeAdditionPolicy {
+  static getPolicy(pageBlockType: BlockType): EdgeAdditionPolicy {
     switch (pageBlockType) {
-      case "workflow":
+      case BlockType.WORKFLOW:
         return new WorkflowEdgeAdditionPolicy();
-      case "agent":
+      case BlockType.AGENT:
         return new AgentEdgeAdditionPolicy();
-      case "task":
+      case BlockType.TASK:
         return new TaskEdgeAdditionPolicy();
-      case "artifact_template":
+      case BlockType.ARTIFACT_TEMPLATE:
         return new ArtifactTemplateEdgeAdditionPolicy();
-      case "artifact_class":
+      case BlockType.ARTIFACT_CLASS:
         return new ArtifactClassEdgeAdditionPolicy();
-      case "data":
+      case BlockType.DATA:
         return new DataEdgeAdditionPolicy();
-      case "checklist":
+      case BlockType.CHECKLIST:
         return new ChecklistEdgeAdditionPolicy();
       default:
         throw new Error(`Unknown page block type: ${pageBlockType}`);

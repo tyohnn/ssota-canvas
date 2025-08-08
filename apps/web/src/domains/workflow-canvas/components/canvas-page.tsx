@@ -12,11 +12,7 @@ import {
   CanvasProvider,
   useCanvas,
 } from "@/domains/workflow-canvas/contexts/CanvasContext";
-import {
-  Block,
-  Edge as DbEdge,
-  BlockPosition as DbBlockPosition,
-} from "@/db/schema";
+import { Edge as DbEdge, BlockPosition as DbBlockPosition } from "@/db/schema";
 import { DbBlock } from "@/domains/workflow-canvas/policy/block-definition-policy";
 import {
   ResizablePanelGroup,

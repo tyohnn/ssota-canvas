@@ -5,11 +5,10 @@ import { Handle, Node, NodeProps, Position } from "@xyflow/react";
 import {
   PAGE_BLOCK_COLOR_TOKENS,
   PAGE_BLOCK_ICONS,
-  PageBlockType,
   getBlockColorClasses,
   isDataMetadata,
-  type BlockMetadata,
 } from "@/domains/workflow-canvas/policy";
+import { BlockMetadata, BlockType } from "@workspace/domain-contracts";
 
 interface DataBlockData extends Record<string, unknown> {
   label: string;
@@ -33,9 +32,9 @@ export const DataBlock = memo(
     const filetype = dataMetadata?.filetype || "";
     const filesize = dataMetadata?.filesize || "";
 
-    const colorToken = PAGE_BLOCK_COLOR_TOKENS[PageBlockType.DATA];
+    const colorToken = PAGE_BLOCK_COLOR_TOKENS[BlockType.DATA];
     const colors = getBlockColorClasses(colorToken);
-    const DataIcon = PAGE_BLOCK_ICONS[PageBlockType.DATA];
+    const DataIcon = PAGE_BLOCK_ICONS[BlockType.DATA];
 
     return (
       <div

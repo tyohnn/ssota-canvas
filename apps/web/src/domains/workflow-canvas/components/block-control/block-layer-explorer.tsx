@@ -30,8 +30,8 @@ import { useBlockLayerExplorerHandler } from "@/domains/workflow-canvas/hooks";
 import {
   PAGE_BLOCK_ICONS,
   PAGE_BLOCK_COLOR_TOKENS,
-  PageBlockType,
 } from "@/domains/workflow-canvas/policy";
+import { BlockType } from "@workspace/domain-contracts";
 
 interface BlockLayerExplorerProps {
   className?: string;
@@ -122,7 +122,7 @@ export function BlockLayerExplorer({ className }: BlockLayerExplorerProps) {
   } = useBlockLayerExplorerHandler();
 
   // 아이콘 색상 결정 함수
-  const getIconColor = (pageType: PageBlockType) => {
+  const getIconColor = (pageType: BlockType) => {
     const colorToken = PAGE_BLOCK_COLOR_TOKENS[pageType];
     if (!colorToken) return "text-muted-foreground";
     return `text-${colorToken}-500`;
@@ -225,7 +225,7 @@ export function BlockLayerExplorer({ className }: BlockLayerExplorerProps) {
       </h3>
       <div className="space-y-1">
         {filteredItems.map((item) => {
-          const blockType = item.type as PageBlockType;
+          const blockType = item.type as BlockType;
           const IconComponent =
             PAGE_BLOCK_ICONS[blockType] || PAGE_BLOCK_ICONS.workflow;
           const isActive = false; // TODO: Implement active block tracking

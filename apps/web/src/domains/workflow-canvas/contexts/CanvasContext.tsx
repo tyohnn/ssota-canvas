@@ -7,10 +7,8 @@ import {
   Connection,
 } from "@xyflow/react";
 import { Edge as DbEdge, BlockPosition as DbBlockPosition } from "@/db/schema";
-import {
-  PageBlockType,
-  DbBlock,
-} from "@/domains/workflow-canvas/policy/block-definition-policy";
+import { DbBlock } from "@/domains/workflow-canvas/policy/block-definition-policy";
+import { BlockType } from "@workspace/domain-contracts";
 import {
   ActiveLeftTab,
   ViewportAction,
@@ -82,11 +80,11 @@ interface CanvasContextValue {
 
   // 이벤트 핸들러
   handlePageBlockSelect: (pageId: string) => void;
-  handlePageBlockCreate: (pageType: PageBlockType) => Promise<any>;
+  handlePageBlockCreate: (pageType: BlockType) => Promise<any>;
   handleBlockSelect: (blockId: string) => void;
   handleEdgeInsert: (
     targetBlockId: string,
-    targetBlockType: PageBlockType
+    targetBlockType: BlockType
   ) => Promise<void>;
   canUndo: boolean;
   canRedo: boolean;

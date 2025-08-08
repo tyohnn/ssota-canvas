@@ -13,11 +13,10 @@ import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
 import {
   PAGE_BLOCK_COLOR_TOKENS,
   PAGE_BLOCK_ICONS,
-  PageBlockType,
   getBlockColorClasses,
   isAgentMetadata,
-  type BlockMetadata,
 } from "@/domains/workflow-canvas/policy";
+import { BlockMetadata, BlockType } from "@workspace/domain-contracts";
 
 interface AgentBlockData extends Record<string, unknown> {
   label: string;
@@ -45,9 +44,9 @@ export const AgentBlock = memo(
     const focus = agentMetadata?.focus || "";
     const corePrinciples = agentMetadata?.core_principles || "";
 
-    const colorToken = PAGE_BLOCK_COLOR_TOKENS[PageBlockType.AGENT];
+    const colorToken = PAGE_BLOCK_COLOR_TOKENS[BlockType.AGENT];
     const colors = getBlockColorClasses(colorToken);
-    const AgentIcon = PAGE_BLOCK_ICONS[PageBlockType.AGENT];
+    const AgentIcon = PAGE_BLOCK_ICONS[BlockType.AGENT];
 
     return (
       <div

@@ -5,10 +5,10 @@ import { Button } from "@workspace/ui/components/button";
 import { useCanvas } from "@/domains/workflow-canvas/contexts/CanvasContext";
 import {
   PAGE_BLOCK_DATA,
-  PageBlockType,
   PageBlockData,
   getBlockColorClasses,
 } from "@/domains/workflow-canvas/policy";
+import { BlockType } from "@workspace/domain-contracts";
 
 interface PageBlockInsertPanelProps {
   className?: string;
@@ -23,7 +23,7 @@ export function PageBlockInsertPanel({ className }: PageBlockInsertPanelProps) {
 
   if (!isOpen) return null;
 
-  const handlePageBlockSelect = (type: PageBlockType) => {
+  const handlePageBlockSelect = (type: BlockType) => {
     handlePageBlockCreate(type);
     closeAllPanels();
   };

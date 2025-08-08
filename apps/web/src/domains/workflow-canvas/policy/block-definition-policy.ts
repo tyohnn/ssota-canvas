@@ -73,6 +73,12 @@ export const PAGE_BLOCK_ICONS = {
   [BlockType.CHECKLIST]: CheckSquare,
   [BlockType.DATA]: Database,
   [BlockType.ARTIFACT_CLASS]: Layers,
+  [BlockType.START]: Play,
+  [BlockType.END]: Square,
+  [BlockType.CONDITION]: Settings,
+  [BlockType.BLOCK_DEFINITION]: FileText,
+  [BlockType.EDGE_DEFINITION]: GitBranch,
+  [BlockType.COLUMN_DEFINITION]: Layers,
 };
 
 // 색상 토큰만 추출한 매핑
@@ -84,6 +90,12 @@ export const PAGE_BLOCK_COLOR_TOKENS = {
   [BlockType.CHECKLIST]: "red",
   [BlockType.DATA]: "cyan",
   [BlockType.ARTIFACT_CLASS]: "lime",
+  [BlockType.START]: "purple",
+  [BlockType.END]: "purple",
+  [BlockType.CONDITION]: "purple",
+  [BlockType.BLOCK_DEFINITION]: "purple",
+  [BlockType.EDGE_DEFINITION]: "purple",
+  [BlockType.COLUMN_DEFINITION]: "purple",
 };
 
 // Tailwind CSS 색상 유틸리티 함수들 (Purging 방지)

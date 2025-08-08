@@ -5,11 +5,10 @@ import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import {
   PAGE_BLOCK_COLOR_TOKENS,
   PAGE_BLOCK_ICONS,
-  PageBlockType,
   getBlockColorClasses,
   isChecklistMetadata,
-  type BlockMetadata,
 } from "@/domains/workflow-canvas/policy";
+import { BlockMetadata, BlockType } from "@workspace/domain-contracts";
 
 interface ChecklistNodeData extends Record<string, unknown> {
   label: string;
@@ -30,9 +29,9 @@ export const ChecklistBlock = memo(
     // Extract checklist-specific metadata
     const instructions = checklistMetadata?.instructions || "";
 
-    const colorToken = PAGE_BLOCK_COLOR_TOKENS[PageBlockType.CHECKLIST];
+    const colorToken = PAGE_BLOCK_COLOR_TOKENS[BlockType.CHECKLIST];
     const colors = getBlockColorClasses(colorToken);
-    const ChecklistIcon = PAGE_BLOCK_ICONS[PageBlockType.CHECKLIST];
+    const ChecklistIcon = PAGE_BLOCK_ICONS[BlockType.CHECKLIST];
 
     return (
       <div

@@ -30,18 +30,7 @@ export function useBlockLayerExplorerHandler() {
 
   // 워크스페이스 블록들을 타입별로 그룹화
   const pageOptions = useMemo(() => {
-    const grouped: Record<
-      Exclude<
-        BlockType,
-        | BlockType.START
-        | BlockType.END
-        | BlockType.CONDITION
-        | BlockType.BLOCK_DEFINITION
-        | BlockType.EDGE_DEFINITION
-        | BlockType.COLUMN_DEFINITION
-      >,
-      any[]
-    > = {
+    const grouped: Record<BlockType, any[]> = {
       [BlockType.WORKFLOW]: [],
       [BlockType.AGENT]: [],
       [BlockType.TASK]: [],
@@ -49,6 +38,12 @@ export function useBlockLayerExplorerHandler() {
       [BlockType.CHECKLIST]: [],
       [BlockType.DATA]: [],
       [BlockType.ARTIFACT_CLASS]: [],
+      [BlockType.START]: [],
+      [BlockType.END]: [],
+      [BlockType.CONDITION]: [],
+      [BlockType.BLOCK_DEFINITION]: [],
+      [BlockType.EDGE_DEFINITION]: [],
+      [BlockType.COLUMN_DEFINITION]: [],
     };
 
     // 블록들을 타입별로 그룹화

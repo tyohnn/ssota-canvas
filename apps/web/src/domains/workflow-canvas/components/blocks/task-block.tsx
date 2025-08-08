@@ -5,11 +5,10 @@ import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import {
   PAGE_BLOCK_COLOR_TOKENS,
   PAGE_BLOCK_ICONS,
-  PageBlockType,
   getBlockColorClasses,
   isTaskMetadata,
-  type BlockMetadata,
 } from "@/domains/workflow-canvas/policy";
+import { BlockMetadata, BlockType } from "@workspace/domain-contracts";
 
 interface TaskBlockData extends Record<string, unknown> {
   label: string;
@@ -39,9 +38,9 @@ export const TaskBlock = memo(
     // Extract task-specific metadata
     const instructions = taskMetadata?.instructions || legacyInstructions || "";
 
-    const colorToken = PAGE_BLOCK_COLOR_TOKENS[PageBlockType.TASK];
+    const colorToken = PAGE_BLOCK_COLOR_TOKENS[BlockType.TASK];
     const colors = getBlockColorClasses(colorToken);
-    const TaskIcon = PAGE_BLOCK_ICONS[PageBlockType.TASK];
+    const TaskIcon = PAGE_BLOCK_ICONS[BlockType.TASK];
 
     return (
       <div

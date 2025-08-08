@@ -1,6 +1,6 @@
 import { Node as ReactFlowBlock } from "@xyflow/react";
 import { BlockPosition as DbBlockPosition } from "@/db/schema";
-import { PageBlockType } from "./block-definition-policy";
+import { BlockType } from "@workspace/domain-contracts";
 
 /**
  * 🎯 BLOCK POSITION POLICY
@@ -42,8 +42,8 @@ export interface PositionCalculationResult {
 
 // 새 블록 위치 계산 컨텍스트
 export interface PositionCalculationContext {
-  newBlockType: PageBlockType;
-  pageBlockType: PageBlockType;
+  newBlockType: BlockType;
+  pageBlockType: BlockType;
   pageBlockId: string;
   displayBlocks: ReactFlowBlock[];
   currentBlockPositions: DbBlockPosition[];
@@ -123,10 +123,10 @@ function sortBlocksByY(
  */
 function filterBlocksByType(
   blocks: Array<{ id: string; type: string; position: Position }>,
-  excludeTypes: PageBlockType[]
+  excludeTypes: BlockType[]
 ): Array<{ id: string; type: string; position: Position }> {
   return blocks.filter(
-    (block) => !excludeTypes.includes(block.type as PageBlockType)
+    (block) => !excludeTypes.includes(block.type as BlockType)
   );
 }
 
@@ -135,10 +135,10 @@ function filterBlocksByType(
  */
 function includeBlocksByType(
   blocks: Array<{ id: string; type: string; position: Position }>,
-  includeTypes: PageBlockType[]
+  includeTypes: BlockType[]
 ): Array<{ id: string; type: string; position: Position }> {
   return blocks.filter((block) =>
-    includeTypes.includes(block.type as PageBlockType)
+    includeTypes.includes(block.type as BlockType)
   );
 }
 
@@ -147,7 +147,7 @@ function includeBlocksByType(
  */
 function findBlockByType(
   blocks: Array<{ id: string; type: string; position: Position }>,
-  blockType: PageBlockType
+  blockType: BlockType
 ): { id: string; type: string; position: Position } | null {
   return blocks.find((block) => block.type === blockType) || null;
 }
@@ -366,14 +366,11 @@ export class AgentPageBlockPositionPolicy implements BlockPositionPolicy {
     );
 
     // 에이전트 블록 찾기
-    const agentBlock = findBlockByType(
-      blocksWithPositions,
-      PageBlockType.AGENT
-    );
+    const agentBlock = findBlockByType(blocksWithPositions, BlockType.AGENT);
 
     // 에이전트 제외한 다른 블록들
     const nonAgentBlocks = filterBlocksByType(blocksWithPositions, [
-      PageBlockType.AGENT,
+      BlockType.AGENT,
     ]);
 
     // 에이전트가 없는 경우
@@ -538,7 +535,7 @@ export class TaskPageBlockPositionPolicy implements BlockPositionPolicy {
     );
 
     // 테스크 블록 찾기
-    const taskBlock = findBlockByType(blocksWithPositions, PageBlockType.TASK);
+    const taskBlock = findBlockByType(blocksWithPositions, BlockType.TASK);
 
     if (!taskBlock) {
       return {
@@ -548,12 +545,12 @@ export class TaskPageBlockPositionPolicy implements BlockPositionPolicy {
     }
 
     // Input/Output 타입 구분
-    const inputTypes: PageBlockType[] = [
-      PageBlockType.ARTIFACT_TEMPLATE,
-      PageBlockType.DATA,
-      PageBlockType.CHECKLIST,
+    const inputTypes: BlockType[] = [
+      BlockType.ARTIFACT_TEMPLATE,
+      BlockType.DATA,
+      BlockType.CHECKLIST,
     ];
-    const outputTypes: PageBlockType[] = [PageBlockType.ARTIFACT_CLASS];
+    const outputTypes: BlockType[] = [BlockType.ARTIFACT_CLASS];
 
     if (inputTypes.includes(newBlockType)) {
       // Input 블록들 처리 (좌측)
@@ -588,12 +585,12 @@ export class TaskPageBlockPositionPolicy implements BlockPositionPolicy {
       position: Position;
     }>,
     taskBlock: { id: string; type: string; position: Position },
-    newBlockType: PageBlockType
+    newBlockType: BlockType
   ): PositionCalculationResult {
-    const inputTypes: PageBlockType[] = [
-      PageBlockType.ARTIFACT_TEMPLATE,
-      PageBlockType.DATA,
-      PageBlockType.CHECKLIST,
+    const inputTypes: BlockType[] = [
+      BlockType.ARTIFACT_TEMPLATE,
+      BlockType.DATA,
+      BlockType.CHECKLIST,
     ];
 
     // 현재 input 블록들 찾기
@@ -703,9 +700,9 @@ export class TaskPageBlockPositionPolicy implements BlockPositionPolicy {
       position: Position;
     }>,
     taskBlock: { id: string; type: string; position: Position },
-    newBlockType: PageBlockType
+    newBlockType: BlockType
   ): PositionCalculationResult {
-    const outputTypes: PageBlockType[] = [PageBlockType.ARTIFACT_CLASS];
+    const outputTypes: BlockType[] = [BlockType.ARTIFACT_CLASS];
 
     // 현재 output 블록들 찾기
     const currentOutputBlocks = includeBlocksByType(
@@ -842,8 +839,8 @@ export class ResourceBlockPositionPolicy implements BlockPositionPolicy {
 
     // 에이전트와 테스크 블럭들 찾기
     const mainBlocks = includeBlocksByType(blocksWithPositions, [
-      PageBlockType.AGENT,
-      PageBlockType.TASK,
+      BlockType.AGENT,
+      BlockType.TASK,
     ]);
 
     if (mainBlocks.length === 0) {
@@ -944,14 +941,11 @@ export class ResourceBlockPositionPolicy implements BlockPositionPolicy {
     blocksWithPositions: Array<{ id: string; type: string; position: Position }>
   ): { id: string; type: string; position: Position } | null {
     // 에이전트를 우선적으로 찾기
-    const agentBlock = findBlockByType(
-      blocksWithPositions,
-      PageBlockType.AGENT
-    );
+    const agentBlock = findBlockByType(blocksWithPositions, BlockType.AGENT);
     if (agentBlock) return agentBlock;
 
     // 에이전트가 없으면 테스크 찾기
-    const taskBlock = findBlockByType(blocksWithPositions, PageBlockType.TASK);
+    const taskBlock = findBlockByType(blocksWithPositions, BlockType.TASK);
     if (taskBlock) return taskBlock;
 
     // 둘 다 없으면 null
@@ -972,22 +966,22 @@ export class BlockPositionPolicyFactory {
    * @param newBlockType 새로 추가될 블록 타입
    * @returns 해당하는 블록 위치 정책
    */
-  static getPolicy(pageBlockType: PageBlockType): BlockPositionPolicy {
+  static getPolicy(pageBlockType: BlockType): BlockPositionPolicy {
     // 페이지 타입에 따른 정책 선택
     switch (pageBlockType) {
-      case PageBlockType.WORKFLOW:
+      case BlockType.WORKFLOW:
         return new WorkspacePageBlockPositionPolicy();
 
-      case PageBlockType.AGENT:
+      case BlockType.AGENT:
         return new AgentPageBlockPositionPolicy();
 
-      case PageBlockType.TASK:
+      case BlockType.TASK:
         return new TaskPageBlockPositionPolicy();
 
-      case PageBlockType.ARTIFACT_TEMPLATE:
-      case PageBlockType.ARTIFACT_CLASS:
-      case PageBlockType.DATA:
-      case PageBlockType.CHECKLIST:
+      case BlockType.ARTIFACT_TEMPLATE:
+      case BlockType.ARTIFACT_CLASS:
+      case BlockType.DATA:
+      case BlockType.CHECKLIST:
         return new ResourceBlockPositionPolicy();
 
       default:
@@ -999,59 +993,59 @@ export class BlockPositionPolicyFactory {
   /**
    * 사용 가능한 모든 정책 타입을 반환합니다.
    */
-  static getAvailablePolicyTypes(): PageBlockType[] {
+  static getAvailablePolicyTypes(): BlockType[] {
     return [
-      PageBlockType.WORKFLOW,
-      PageBlockType.AGENT,
-      PageBlockType.TASK,
-      PageBlockType.ARTIFACT_TEMPLATE,
-      PageBlockType.ARTIFACT_CLASS,
-      PageBlockType.DATA,
-      PageBlockType.CHECKLIST,
+      BlockType.WORKFLOW,
+      BlockType.AGENT,
+      BlockType.TASK,
+      BlockType.ARTIFACT_TEMPLATE,
+      BlockType.ARTIFACT_CLASS,
+      BlockType.DATA,
+      BlockType.CHECKLIST,
     ];
   }
 
   /**
    * 특정 페이지 타입에서 지원하는 블록 타입들을 반환합니다.
    */
-  static getSupportedBlockTypes(pageBlockType: PageBlockType): PageBlockType[] {
+  static getSupportedBlockTypes(pageBlockType: BlockType): BlockType[] {
     switch (pageBlockType) {
-      case PageBlockType.WORKFLOW:
+      case BlockType.WORKFLOW:
         // 워크플로우 페이지에서는 모든 타입의 블록을 추가할 수 있음
         return [
-          PageBlockType.AGENT,
-          PageBlockType.TASK,
-          PageBlockType.ARTIFACT_TEMPLATE,
-          PageBlockType.ARTIFACT_CLASS,
-          PageBlockType.DATA,
-          PageBlockType.CHECKLIST,
+          BlockType.AGENT,
+          BlockType.TASK,
+          BlockType.ARTIFACT_TEMPLATE,
+          BlockType.ARTIFACT_CLASS,
+          BlockType.DATA,
+          BlockType.CHECKLIST,
         ];
 
-      case PageBlockType.AGENT:
+      case BlockType.AGENT:
         // 에이전트 페이지에서는 태스크와 리소스들을 추가할 수 있음
         return [
-          PageBlockType.TASK,
-          PageBlockType.ARTIFACT_TEMPLATE,
-          PageBlockType.ARTIFACT_CLASS,
-          PageBlockType.DATA,
-          PageBlockType.CHECKLIST,
+          BlockType.TASK,
+          BlockType.ARTIFACT_TEMPLATE,
+          BlockType.ARTIFACT_CLASS,
+          BlockType.DATA,
+          BlockType.CHECKLIST,
         ];
 
-      case PageBlockType.TASK:
+      case BlockType.TASK:
         // 테스크 페이지에서는 리소스들을 추가할 수 있음
         return [
-          PageBlockType.ARTIFACT_TEMPLATE,
-          PageBlockType.ARTIFACT_CLASS,
-          PageBlockType.DATA,
-          PageBlockType.CHECKLIST,
+          BlockType.ARTIFACT_TEMPLATE,
+          BlockType.ARTIFACT_CLASS,
+          BlockType.DATA,
+          BlockType.CHECKLIST,
         ];
 
-      case PageBlockType.ARTIFACT_TEMPLATE:
-      case PageBlockType.ARTIFACT_CLASS:
-      case PageBlockType.DATA:
-      case PageBlockType.CHECKLIST:
+      case BlockType.ARTIFACT_TEMPLATE:
+      case BlockType.ARTIFACT_CLASS:
+      case BlockType.DATA:
+      case BlockType.CHECKLIST:
         // 리소스 페이지에서는 에이전트나 테스크를 추가할 수 있음
-        return [PageBlockType.AGENT, PageBlockType.TASK];
+        return [BlockType.AGENT, BlockType.TASK];
 
       default:
         return [];

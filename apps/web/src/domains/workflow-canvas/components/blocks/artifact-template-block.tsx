@@ -5,11 +5,10 @@ import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import {
   PAGE_BLOCK_COLOR_TOKENS,
   PAGE_BLOCK_ICONS,
-  PageBlockType,
   getBlockColorClasses,
   isArtifactTemplateMetadata,
-  type BlockMetadata,
 } from "@/domains/workflow-canvas/policy";
+import { BlockMetadata, BlockType } from "@workspace/domain-contracts";
 
 interface ArtifactTemplateBlockData extends Record<string, unknown> {
   label: string;
@@ -35,9 +34,9 @@ export const ArtifactTemplateBlock = memo(
     const slug = templateMetadata?.identifier || legacySlug || "";
     const description = legacyDescription || "";
 
-    const colorToken = PAGE_BLOCK_COLOR_TOKENS[PageBlockType.ARTIFACT_TEMPLATE];
+    const colorToken = PAGE_BLOCK_COLOR_TOKENS[BlockType.ARTIFACT_TEMPLATE];
     const colors = getBlockColorClasses(colorToken);
-    const TemplateIcon = PAGE_BLOCK_ICONS[PageBlockType.ARTIFACT_TEMPLATE];
+    const TemplateIcon = PAGE_BLOCK_ICONS[BlockType.ARTIFACT_TEMPLATE];
 
     return (
       <div

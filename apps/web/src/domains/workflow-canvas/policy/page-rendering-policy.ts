@@ -1,11 +1,7 @@
-import { Block, Edge, BlockPosition } from "@/db/schema";
+import { Edge, BlockPosition } from "@/db/schema";
 import { DbBlock } from "@/domains/workflow-canvas/policy/block-definition-policy";
 import { Node as ReactFlowBlock, Edge as ReactFlowEdge } from "@xyflow/react";
-import {
-  PageBlockType,
-  BasicBlockType,
-} from "@/domains/workflow-canvas/policy";
-import { devLog } from "@/utils/dev-logger";
+import { BlockType } from "@workspace/domain-contracts";
 
 /**
  * 🎯 PAGE RENDERING STRATEGY
@@ -847,32 +843,30 @@ export class ChecklistPageRenderingPolicy implements PageRenderingPolicy {
  * 팩토리 클래스: 페이지 타입에 따라 적절한 전략을 반환
  */
 export class PageRenderingPolicyFactory {
-  static getPolicy(
-    pageBlockType: PageBlockType | BasicBlockType
-  ): PageRenderingPolicy {
+  static getPolicy(pageBlockType: BlockType): PageRenderingPolicy {
     // 기본 노드 타입들은 워크플로우 정책을 사용
     if (
-      pageBlockType === BasicBlockType.START ||
-      pageBlockType === BasicBlockType.END ||
-      pageBlockType === BasicBlockType.CONDITION
+      pageBlockType === BlockType.START ||
+      pageBlockType === BlockType.END ||
+      pageBlockType === BlockType.CONDITION
     ) {
       return new WorkflowPageRenderingPolicy();
     }
 
-    switch (pageBlockType as PageBlockType) {
-      case "workflow":
+    switch (pageBlockType) {
+      case BlockType.WORKFLOW:
         return new WorkflowPageRenderingPolicy();
-      case "agent":
+      case BlockType.AGENT:
         return new AgentPageRenderingPolicy();
-      case "task":
+      case BlockType.TASK:
         return new TaskPageRenderingPolicy();
-      case "artifact_template":
+      case BlockType.ARTIFACT_TEMPLATE:
         return new ArtifactTemplatePageRenderingPolicy();
-      case "artifact_class":
+      case BlockType.ARTIFACT_CLASS:
         return new ArtifactClassPageRenderingPolicy();
-      case "data":
+      case BlockType.DATA:
         return new DataPageRenderingPolicy();
-      case "checklist":
+      case BlockType.CHECKLIST:
         return new ChecklistPageRenderingPolicy();
       default:
         throw new Error(`Unknown page block type: ${pageBlockType}`);

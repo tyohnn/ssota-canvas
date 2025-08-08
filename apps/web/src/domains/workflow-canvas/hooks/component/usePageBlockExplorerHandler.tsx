@@ -8,11 +8,8 @@ import {
   ItemInstance,
 } from "@headless-tree/core";
 import { useTree } from "@headless-tree/react";
-import { Node as ReactFlowBlock } from "@xyflow/react";
-import {
-  PageBlockType,
-  PAGE_BLOCK_COLOR_TOKENS,
-} from "@/domains/workflow-canvas/policy";
+import { PAGE_BLOCK_COLOR_TOKENS } from "@/domains/workflow-canvas/policy";
+import { BlockType } from "@workspace/domain-contracts";
 import { useCanvas } from "@/domains/workflow-canvas/contexts/CanvasContext";
 
 const indent = 20;
@@ -21,7 +18,7 @@ const indent = 20;
 export interface PageItem {
   name: string;
   type: "folder" | "page";
-  pageType?: PageBlockType;
+  pageType?: BlockType;
   children?: string[];
 }
 
@@ -68,55 +65,55 @@ export function usePageBlockExplorerHandler() {
       name: "Page Types",
       type: "folder",
       children: [
-        PageBlockType.WORKFLOW,
-        PageBlockType.AGENT,
-        PageBlockType.TASK,
-        PageBlockType.ARTIFACT_TEMPLATE,
-        PageBlockType.ARTIFACT_CLASS,
-        PageBlockType.DATA,
-        PageBlockType.CHECKLIST,
+        BlockType.WORKFLOW,
+        BlockType.AGENT,
+        BlockType.TASK,
+        BlockType.ARTIFACT_TEMPLATE,
+        BlockType.ARTIFACT_CLASS,
+        BlockType.DATA,
+        BlockType.CHECKLIST,
       ],
     },
-    [PageBlockType.WORKFLOW]: {
+    [BlockType.WORKFLOW]: {
       name: "Workflow",
       type: "folder",
-      pageType: PageBlockType.WORKFLOW,
+      pageType: BlockType.WORKFLOW,
       children: [],
     },
-    [PageBlockType.AGENT]: {
+    [BlockType.AGENT]: {
       name: "Agent",
       type: "folder",
-      pageType: PageBlockType.AGENT,
+      pageType: BlockType.AGENT,
       children: [],
     },
-    [PageBlockType.TASK]: {
+    [BlockType.TASK]: {
       name: "Task",
       type: "folder",
-      pageType: PageBlockType.TASK,
+      pageType: BlockType.TASK,
       children: [],
     },
-    [PageBlockType.ARTIFACT_TEMPLATE]: {
+    [BlockType.ARTIFACT_TEMPLATE]: {
       name: "Artifact Template",
       type: "folder",
-      pageType: PageBlockType.ARTIFACT_TEMPLATE,
+      pageType: BlockType.ARTIFACT_TEMPLATE,
       children: [],
     },
-    [PageBlockType.ARTIFACT_CLASS]: {
+    [BlockType.ARTIFACT_CLASS]: {
       name: "Artifact Class",
       type: "folder",
-      pageType: PageBlockType.ARTIFACT_CLASS,
+      pageType: BlockType.ARTIFACT_CLASS,
       children: [],
     },
-    [PageBlockType.CHECKLIST]: {
+    [BlockType.CHECKLIST]: {
       name: "Checklist",
       type: "folder",
-      pageType: PageBlockType.CHECKLIST,
+      pageType: BlockType.CHECKLIST,
       children: [],
     },
-    [PageBlockType.DATA]: {
+    [BlockType.DATA]: {
       name: "Data",
       type: "folder",
-      pageType: PageBlockType.DATA,
+      pageType: BlockType.DATA,
       children: [],
     },
   });
@@ -141,26 +138,26 @@ export function usePageBlockExplorerHandler() {
         name: "Page Types",
         type: "folder",
         children: [
-          PageBlockType.WORKFLOW,
-          PageBlockType.AGENT,
-          PageBlockType.TASK,
-          PageBlockType.ARTIFACT_TEMPLATE,
-          PageBlockType.ARTIFACT_CLASS,
-          PageBlockType.DATA,
-          PageBlockType.CHECKLIST,
+          BlockType.WORKFLOW,
+          BlockType.AGENT,
+          BlockType.TASK,
+          BlockType.ARTIFACT_TEMPLATE,
+          BlockType.ARTIFACT_CLASS,
+          BlockType.DATA,
+          BlockType.CHECKLIST,
         ],
       },
     };
 
     // Initialize empty folders for each node type
     const pageTypes = [
-      PageBlockType.AGENT,
-      PageBlockType.TASK,
-      PageBlockType.WORKFLOW,
-      PageBlockType.ARTIFACT_TEMPLATE,
-      PageBlockType.CHECKLIST,
-      PageBlockType.DATA,
-      PageBlockType.ARTIFACT_CLASS,
+      BlockType.AGENT,
+      BlockType.TASK,
+      BlockType.WORKFLOW,
+      BlockType.ARTIFACT_TEMPLATE,
+      BlockType.CHECKLIST,
+      BlockType.DATA,
+      BlockType.ARTIFACT_CLASS,
     ];
     pageTypes.forEach((pageType) => {
       // 더 정교한 이름 변환 로직
@@ -191,7 +188,7 @@ export function usePageBlockExplorerHandler() {
         items[page.id] = {
           name: page.name || `${pageType} ${page.id}`,
           type: "page",
-          pageType: pageType as PageBlockType,
+          pageType: pageType as BlockType,
         };
       }
     });
@@ -269,13 +266,13 @@ export function usePageBlockExplorerHandler() {
   // 전체 확장 상태 계산 (모든 폴더가 열려있는지 확인)
   const isExpanded = useMemo(() => {
     const allFolderIds = [
-      PageBlockType.WORKFLOW,
-      PageBlockType.AGENT,
-      PageBlockType.TASK,
-      PageBlockType.ARTIFACT_TEMPLATE,
-      PageBlockType.ARTIFACT_CLASS,
-      PageBlockType.DATA,
-      PageBlockType.CHECKLIST,
+      BlockType.WORKFLOW,
+      BlockType.AGENT,
+      BlockType.TASK,
+      BlockType.ARTIFACT_TEMPLATE,
+      BlockType.ARTIFACT_CLASS,
+      BlockType.DATA,
+      BlockType.CHECKLIST,
     ];
     // 모든 폴더가 열려있을 때만 열려있는 것으로 처리
     const items = tree.getItems();
@@ -326,13 +323,13 @@ export function usePageBlockExplorerHandler() {
 
     // 현재 트리 상태를 직접 확인하여 토글 결정
     const allFolderIds = [
-      PageBlockType.WORKFLOW,
-      PageBlockType.AGENT,
-      PageBlockType.TASK,
-      PageBlockType.ARTIFACT_TEMPLATE,
-      PageBlockType.ARTIFACT_CLASS,
-      PageBlockType.DATA,
-      PageBlockType.CHECKLIST,
+      BlockType.WORKFLOW,
+      BlockType.AGENT,
+      BlockType.TASK,
+      BlockType.ARTIFACT_TEMPLATE,
+      BlockType.ARTIFACT_CLASS,
+      BlockType.DATA,
+      BlockType.CHECKLIST,
     ];
 
     const items = tree.getItems();
@@ -441,7 +438,7 @@ export function usePageBlockExplorerHandler() {
 
   // 아이콘 색상 계산
   const getIconColor = useCallback(
-    (pageType?: PageBlockType, colorToken?: string) => {
+    (pageType?: BlockType, colorToken?: string) => {
       if (!pageType || !colorToken) return "text-muted-foreground/70";
 
       switch (colorToken) {

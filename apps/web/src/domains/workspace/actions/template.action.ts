@@ -4,6 +4,7 @@ import { createBlock } from "@/domains/workflow-canvas/actions/block.action";
 import { createEdge } from "@/domains/workflow-canvas/actions/edge.action";
 import { type CreateBlockInput } from "@/domains/workflow-canvas/actions/block.action";
 import { Edge as EdgeType } from "@/db/schema";
+import { BlockType } from "@workspace/domain-contracts";
 
 export type TemplateType = "blank" | "agent" | "task" | "workflow";
 
@@ -35,7 +36,7 @@ const templates: Record<TemplateType, Template> = {
   agent: {
     blocks: [
       {
-        blockType: "agent",
+        blockType: BlockType.AGENT,
         name: "AI 에이전트",
         slug: "ai-agent",
         metadata: {
@@ -46,7 +47,7 @@ const templates: Record<TemplateType, Template> = {
         position: { x: 400, y: 300 },
       },
       {
-        blockType: "data",
+        blockType: BlockType.DATA,
         name: "데이터 소스",
         slug: "data-source",
         metadata: {
@@ -57,7 +58,7 @@ const templates: Record<TemplateType, Template> = {
         position: { x: 200, y: 200 },
       },
       {
-        blockType: "task",
+        blockType: BlockType.TASK,
         name: "에이전트 작업",
         slug: "agent-task",
         metadata: {
@@ -86,7 +87,7 @@ const templates: Record<TemplateType, Template> = {
   task: {
     blocks: [
       {
-        blockType: "task",
+        blockType: BlockType.TASK,
         name: "메인 태스크",
         slug: "main-task",
         metadata: {
@@ -98,7 +99,7 @@ const templates: Record<TemplateType, Template> = {
         position: { x: 400, y: 300 },
       },
       {
-        blockType: "checklist",
+        blockType: BlockType.CHECKLIST,
         name: "작업 체크리스트",
         slug: "task-checklist",
         metadata: {
@@ -108,7 +109,7 @@ const templates: Record<TemplateType, Template> = {
         position: { x: 200, y: 200 },
       },
       {
-        blockType: "workflow",
+        blockType: BlockType.WORKFLOW,
         name: "작업 워크플로우",
         slug: "task-workflow",
         metadata: {
@@ -136,7 +137,7 @@ const templates: Record<TemplateType, Template> = {
   workflow: {
     blocks: [
       {
-        blockType: "workflow",
+        blockType: BlockType.WORKFLOW,
         name: "메인 워크플로우",
         slug: "main-workflow",
         metadata: {
@@ -147,7 +148,7 @@ const templates: Record<TemplateType, Template> = {
         position: { x: 400, y: 300 },
       },
       {
-        blockType: "task",
+        blockType: BlockType.TASK,
         name: "시작 태스크",
         slug: "start-task",
         metadata: {
@@ -157,7 +158,7 @@ const templates: Record<TemplateType, Template> = {
         position: { x: 200, y: 200 },
       },
       {
-        blockType: "task",
+        blockType: BlockType.TASK,
         name: "처리 태스크",
         slug: "process-task",
         metadata: {
@@ -167,7 +168,7 @@ const templates: Record<TemplateType, Template> = {
         position: { x: 400, y: 200 },
       },
       {
-        blockType: "task",
+        blockType: BlockType.TASK,
         name: "완료 태스크",
         slug: "end-task",
         metadata: {
@@ -248,6 +249,7 @@ export async function createTemplateBlocks(
         targetBlockId: targetId,
         edgeType: templateEdge.edgeType as EdgeType["edge_type"],
         metadata: templateEdge.metadata || {},
+        workspaceId,
       });
 
       if (!result.success) {
