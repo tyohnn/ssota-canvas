@@ -29,15 +29,5 @@ export function createSupabaseAdminClient() {
 
   // Create drizzle instance with schema
   const adminDb = drizzle(adminClient, { schema });
-
-  return {
-    // Direct admin access (bypasses RLS)
-    admin: adminDb,
-
-    // Admin wrapper for consistency
-    rls: async <T>(fn: (tx: typeof adminDb) => Promise<T>): Promise<T> => {
-      // Admin client bypasses RLS, so just execute the function
-      return await fn(adminDb);
-    },
-  };
+  return { admin: adminDb } as const;
 }

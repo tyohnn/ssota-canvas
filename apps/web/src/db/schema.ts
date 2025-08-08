@@ -357,6 +357,92 @@ export const blockPositions = pgTable(
   ]
 ).enableRLS();
 
+// CLI Auth: Secrets table
+export const cliSecrets = pgTable(
+  "cli_secrets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    user_id: varchar("user_id", { length: 100 }).notNull(),
+    workspace_id: uuid("workspace_id").notNull(),
+    secret_hash: varchar("secret_hash", { length: 255 }).notNull(),
+    label: varchar("label", { length: 100 }).default(""),
+    last_used_at: timestamp("last_used_at", { withTimezone: true }),
+    revoked_at: timestamp("revoked_at", { withTimezone: true }),
+    created_at: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updated_at: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    sql`CREATE INDEX idx_cli_secrets_user ON cli_secrets (user_id)`,
+    sql`CREATE INDEX idx_cli_secrets_workspace ON cli_secrets (workspace_id)`,
+    // RLS: owner-based access
+    pgPolicy("Enable read/write for owners", {
+      for: "all",
+      to: authenticatedRole,
+      using: sql`user_id = current_setting('app.user_id', true)`,
+      withCheck: sql`user_id = current_setting('app.user_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// CLI Auth: One-time codes
+export const cliAuthCodesStatusEnum = pgEnum("cli_auth_code_status", [
+  "pending",
+  "approved",
+  "exchanged",
+  "expired",
+  "revoked",
+]);
+
+export const cliAuthCodes = pgTable(
+  "cli_auth_codes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    code: varchar("code", { length: 16 }).notNull().unique(),
+    user_id: varchar("user_id", { length: 100 }),
+    workspace_id: uuid("workspace_id"),
+    status: cliAuthCodesStatusEnum("status").notNull().default("pending"),
+    expires_at: timestamp("expires_at", { withTimezone: true }).notNull(),
+    approved_at: timestamp("approved_at", { withTimezone: true }),
+    exchanged_at: timestamp("exchanged_at", { withTimezone: true }),
+    secret_id: uuid("secret_id"),
+    // Attempts & rate limit support
+    attempt_count: integer("attempt_count").default(0).notNull(),
+    last_attempt_at: timestamp("last_attempt_at", { withTimezone: true }),
+    created_at: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updated_at: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    sql`CREATE INDEX idx_cli_auth_codes_code ON cli_auth_codes (code)`,
+    sql`CREATE INDEX idx_cli_auth_codes_status ON cli_auth_codes (status)`,
+    sql`CREATE INDEX idx_cli_auth_codes_expires ON cli_auth_codes (expires_at)`,
+    // RLS: allow inserts/selects by authenticated user on own codes; exchange/start handled via server (may use service role)
+    pgPolicy("Enable read for owners", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`user_id = current_setting('app.user_id', true)`,
+    }),
+    pgPolicy("Enable insert for authenticated", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`user_id = current_setting('app.user_id', true)`,
+    }),
+    pgPolicy("Approve code by assigning current user", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`user_id IS NULL OR user_id = current_setting('app.user_id', true)`,
+      withCheck: sql`user_id = current_setting('app.user_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Relations
 export const workspacesRelations = relations(workspaces, ({ many }) => ({
   blocks: many(blocks),
@@ -399,6 +485,20 @@ export const edgesRelations = relations(edges, ({ one }) => ({
   }),
 }));
 
+export const cliSecretsRelations = relations(cliSecrets, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [cliSecrets.workspace_id],
+    references: [workspaces.id],
+  }),
+}));
+
+export const cliAuthCodesRelations = relations(cliAuthCodes, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [cliAuthCodes.workspace_id],
+    references: [workspaces.id],
+  }),
+}));
+
 export const blockPositionsRelations = relations(blockPositions, ({ one }) => ({
   block: one(blocks, {
     fields: [blockPositions.block_id],
@@ -425,3 +525,7 @@ export type Edge = typeof edges.$inferSelect;
 export type NewEdge = typeof edges.$inferInsert;
 export type BlockPosition = typeof blockPositions.$inferSelect;
 export type NewBlockPosition = typeof blockPositions.$inferInsert;
+export type CliSecret = typeof cliSecrets.$inferSelect;
+export type NewCliSecret = typeof cliSecrets.$inferInsert;
+export type CliAuthCode = typeof cliAuthCodes.$inferSelect;
+export type NewCliAuthCode = typeof cliAuthCodes.$inferInsert;
