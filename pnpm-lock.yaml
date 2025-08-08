@@ -195,8 +195,8 @@ importers:
         specifier: ^5.7.3
         version: 5.7.3
       zod:
-        specifier: ^3.23.8
-        version: 3.24.2
+        specifier: ^4.0.5
+        version: 4.0.5
 
   packages/eslint-config:
     devDependencies:

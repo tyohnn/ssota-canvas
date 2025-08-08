@@ -16,11 +16,14 @@
     "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --out-dir dist",
     "dev": "tsx src/index.ts"
   },
+  "peerDependencies": {
+    "zod": "^4.0.0"
+  },
   "devDependencies": {
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
-    "zod": "^3.23.8",
+    "zod": "^4.0.5",
     "@types/node": "^22.10.2"
   }
 }

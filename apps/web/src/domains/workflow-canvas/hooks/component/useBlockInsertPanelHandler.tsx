@@ -2,11 +2,8 @@
 
 import React, { useCallback, useMemo } from "react";
 import { useCanvas } from "@/domains/workflow-canvas/contexts/CanvasContext";
-import {
-  PageBlockType,
-  BlockAdditionPolicyFactory,
-} from "@/domains/workflow-canvas/policy";
-import { DbBlock } from "@/domains/workflow-canvas/policy/block-definition-policy";
+import { BlockAdditionPolicyFactory } from "@/domains/workflow-canvas/policy";
+import { BlockType } from "@workspace/domain-contracts";
 
 export function useBlockInsertPanelHandler() {
   const {
@@ -23,7 +20,7 @@ export function useBlockInsertPanelHandler() {
   const policy = useMemo(() => {
     if (!selectedPageBlock) return null;
     return BlockAdditionPolicyFactory.getPolicy(
-      selectedPageBlock.block_type as PageBlockType
+      selectedPageBlock.block_type as BlockType
     );
   }, [selectedPageBlock]);
 
@@ -33,7 +30,7 @@ export function useBlockInsertPanelHandler() {
       return { staticBlocks: [], dynamicGroups: [] };
     }
     return policy.getGroupsWithItems(
-      selectedPageBlock.block_type as PageBlockType,
+      selectedPageBlock.block_type as BlockType,
       dbBlocks
     );
   }, [policy, selectedPageBlock, dbBlocks]);
@@ -77,7 +74,7 @@ export function useBlockInsertPanelHandler() {
         const staticBlock = staticBlocks.find((block) => block.id === blockId);
         if (staticBlock) {
           // Create static block
-          await handlePageBlockCreate(staticBlock.blockType as PageBlockType);
+          await handlePageBlockCreate(staticBlock.blockType as BlockType);
           closeAllPanels();
           return;
         }
@@ -91,8 +88,8 @@ export function useBlockInsertPanelHandler() {
         }
 
         // Handle regular page block types
-        const pageBlockType = blockId as PageBlockType;
-        if (Object.values(PageBlockType).includes(pageBlockType)) {
+        const pageBlockType = blockId as BlockType;
+        if (Object.values(BlockType).includes(pageBlockType)) {
           await handlePageBlockCreate(pageBlockType);
           closeAllPanels();
           return;
@@ -140,7 +137,7 @@ export function useBlockInsertPanelHandler() {
         return;
       }
 
-      const targetBlockType = targetBlock.block_type as PageBlockType;
+      const targetBlockType = targetBlock.block_type as BlockType;
       handleEdgeInsert(blockId, targetBlockType);
     },
     [handleEdgeInsert, selectedPageBlock, dbBlocks]

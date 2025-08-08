@@ -5,7 +5,7 @@ import {
   BlockRegistry,
   BlockMetadata,
   EdgeType,
-} from "../contracts";
+} from "@workspace/domain-contracts";
 
 export function toBlockRecord(block: DbBlock): BlockRecord {
   return {

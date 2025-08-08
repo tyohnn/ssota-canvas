@@ -27,6 +27,9 @@ export const blockTypeEnum = pgEnum("block_type", [
   "block_definition",
   "edge_definition",
   "column_definition",
+  "start",
+  "end",
+  "condition",
 ]);
 
 export const edgeTypeEnum = pgEnum("edge_type", [

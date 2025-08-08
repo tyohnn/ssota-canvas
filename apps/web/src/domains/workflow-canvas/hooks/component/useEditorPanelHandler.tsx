@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { useCanvas } from "@/domains/workflow-canvas/contexts/CanvasContext";
-import { useNodeOperations } from "@/domains/workflow-canvas/hooks/useNodeOperations";
 import {
   EditorRenderingStrategyFactory,
   EditorConfig,
@@ -14,12 +13,12 @@ import {
   getBlockName,
   getBlockSlug,
   getBlockDescription,
-  BlockMetadata,
   DbBlock,
 } from "@/domains/workflow-canvas/policy/block-definition-policy";
 import { devLog } from "@/utils/dev-logger";
 import { Edge as DbEdge } from "@/db/schema";
 import slugify from "cjk-slug";
+import { BlockMetadata } from "@workspace/domain-contracts";
 
 export type EditorTab = "configuration" | "design" | "metadata" | "relation";
 
@@ -86,12 +85,6 @@ export function useEditorPanelHandler() {
     defaultValues: {},
     mode: "onChange", // Real-time validation
   });
-
-  const {
-    updateNodeWithValidation,
-    deleteNodeWithRelationships,
-    validateNodeData,
-  } = useNodeOperations();
 
   // Get selected items from context
   const selectedBlock = useMemo(() => {
@@ -212,7 +205,7 @@ export function useEditorPanelHandler() {
 
     try {
       if (selectedBlock) {
-        await deleteNodeWithRelationships(selectedBlock.id);
+        // await deleteNodeWithRelationships(selectedBlock.id);
         await handleBlockDelete(selectedBlock.id);
       } else if (selectedEdge) {
         await handleEdgeDelete(selectedEdge.id);
@@ -224,7 +217,7 @@ export function useEditorPanelHandler() {
   }, [
     selectedBlock,
     selectedEdge,
-    deleteNodeWithRelationships,
+    // deleteNodeWithRelationships,
     handleBlockDelete,
     handleEdgeDelete,
     closeEditorPanel,

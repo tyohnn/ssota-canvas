@@ -42,8 +42,20 @@ export const ChecklistMetadataSchema = z.object({
   instructions: z.string().min(1),
 });
 
+export const ArtifactTemplateMetadataSchema = z.object({
+  identifier: z.string(),
+  displayName: z.string(),
+  outputFormat: z.string(),
+});
+
+export const ArtifactClassMetadataSchema = z.object({
+  identifier: z.string(),
+  displayName: z.string(),
+  description: z.string().optional(),
+});
+
 export const BlockRecordSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.uuid().optional(),
   block_type: z.enum([
     "agent",
     "task",
@@ -61,12 +73,14 @@ export const BlockRecordSchema = z.object({
     WorkflowMetadataSchema,
     DataMetadataSchema,
     ChecklistMetadataSchema,
-    z.record(z.unknown()),
+    ArtifactTemplateMetadataSchema,
+    ArtifactClassMetadataSchema,
+    z.record(z.string(), z.unknown()),
   ]),
 });
 
 export const EdgeRecordSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.uuid().optional(),
   edge_type: z.enum([
     "contains",
     "next",
@@ -75,15 +89,15 @@ export const EdgeRecordSchema = z.object({
     "accesses",
     "used_by",
   ] as const),
-  source_block_id: z.string().uuid(),
-  target_block_id: z.string().uuid(),
-  metadata: z.record(z.unknown()).optional(),
+  source_block_id: z.uuid(),
+  target_block_id: z.uuid(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const BlockRegistrySchema = z.object({
   version: z.string().optional(),
   workspace: z
-    .object({ id: z.string().uuid().optional(), name: z.string().optional() })
+    .object({ id: z.uuid().optional(), name: z.string().optional() })
     .optional(),
   blocks: z.array(BlockRecordSchema),
   edges: z.array(EdgeRecordSchema).optional(),

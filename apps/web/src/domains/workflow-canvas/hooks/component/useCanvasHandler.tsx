@@ -4,10 +4,8 @@ import {
   useReactFlowCanvasState,
   useCanvasUIState,
 } from "@/domains/workflow-canvas/hooks";
-import {
-  EdgeAdditionPolicyFactory,
-  PageBlockType,
-} from "@/domains/workflow-canvas/policy";
+import { EdgeAdditionPolicyFactory } from "@/domains/workflow-canvas/policy";
+import { BlockType } from "@workspace/domain-contracts";
 import { PageRenderingPolicyFactory } from "@/domains/workflow-canvas/policy";
 import {
   BlockPositionPolicyFactory,
@@ -112,7 +110,7 @@ export function useCanvasEventHandler(
 
     try {
       const policy = PageRenderingPolicyFactory.getPolicy(
-        pageType as PageBlockType
+        pageType as BlockType
       );
 
       console.log("🔍 [DISPLAY DEBUG] getBlocksAndEdges 호출 전:", {
@@ -172,7 +170,7 @@ export function useCanvasEventHandler(
   // [USER FLOW] PAGE BLOCK SELECT AT PAGE BLOCK INSERT PANEL
   // ===== 1. PAGE BLOCK CREATE =====
   const handlePageBlockCreate = useCallback(
-    async (pageType: PageBlockType) => {
+    async (pageType: BlockType) => {
       // 🚀 OPTIMISTIC UPDATE: 즉시 UI 상태 업데이트
       const optimisticBlockId = `temp-${Date.now()}`;
 
@@ -327,9 +325,9 @@ export function useCanvasEventHandler(
   const calculateNewBlockPositions = useCallback(
     async (
       activePageId: string,
-      activePageBlockType: PageBlockType,
+      activePageBlockType: BlockType,
       targetBlockId: string,
-      targetBlockType: PageBlockType,
+      targetBlockType: BlockType,
       edgesToCreate: NewEdge[]
     ): Promise<NewBlockPosition[]> => {
       const newPositions: NewBlockPosition[] = [];
@@ -360,18 +358,18 @@ export function useCanvasEventHandler(
           // Source 페이지에서 Target 블록의 위치 계산
           const sourcePagePositions = calculatePositionForBlockOnPage(
             edge.source_block_id, // 페이지 ID
-            sourceBlock.block_type as PageBlockType, // 페이지 타입
+            sourceBlock.block_type as BlockType, // 페이지 타입
             edge.target_block_id, // 배치할 블록 ID
-            targetBlock.block_type as PageBlockType // 배치할 블록 타입
+            targetBlock.block_type as BlockType // 배치할 블록 타입
           );
           newPositions.push(...sourcePagePositions);
 
           // Target 페이지에서 Source 블록의 위치 계산 (양방향인 경우)
           const targetPagePositions = calculatePositionForBlockOnPage(
             edge.target_block_id, // 페이지 ID
-            targetBlock.block_type as PageBlockType, // 페이지 타입
+            targetBlock.block_type as BlockType, // 페이지 타입
             edge.source_block_id, // 배치할 블록 ID
-            sourceBlock.block_type as PageBlockType // 배치할 블록 타입
+            sourceBlock.block_type as BlockType // 배치할 블록 타입
           );
           newPositions.push(...targetPagePositions);
         }
@@ -416,9 +414,9 @@ export function useCanvasEventHandler(
   const calculatePositionForBlockOnPage = useCallback(
     (
       pageId: string,
-      pageBlockType: PageBlockType,
+      pageBlockType: BlockType,
       blockId: string,
-      blockType: PageBlockType
+      blockType: BlockType
     ): NewBlockPosition[] => {
       const positions: NewBlockPosition[] = [];
 
@@ -478,7 +476,7 @@ export function useCanvasEventHandler(
 
   // ===== BLOCK INSERT HANDLER =====
   const handleEdgeInsert = useCallback(
-    async (targetBlockId: string, targetBlockType: PageBlockType) => {
+    async (targetBlockId: string, targetBlockType: BlockType) => {
       let optimisticEdges: DbEdge[] = [];
 
       try {
@@ -492,15 +490,15 @@ export function useCanvasEventHandler(
 
         // Get edge addition policy for current page type
         const edgePolicy = EdgeAdditionPolicyFactory.getPolicy(
-          canvasState.selectedPageBlock.block_type as PageBlockType
+          canvasState.selectedPageBlock.block_type as BlockType
         );
 
         // Get edges to create based on policy
         const edgesToCreate = edgePolicy.getEdgesToCreate(
           canvasState.selectedPageBlock.id,
-          canvasState.selectedPageBlock.block_type as PageBlockType,
+          canvasState.selectedPageBlock.block_type as BlockType,
           targetBlockId,
-          targetBlockType as PageBlockType,
+          targetBlockType as BlockType,
           workspaceId
         );
 
@@ -559,9 +557,9 @@ export function useCanvasEventHandler(
         // ===== 블록 위치 계산 및 업데이트 =====
         const newPositions = await calculateNewBlockPositions(
           canvasState.selectedPageBlock.id,
-          canvasState.selectedPageBlock.block_type as PageBlockType,
+          canvasState.selectedPageBlock.block_type as BlockType,
           targetBlockId,
-          targetBlockType as PageBlockType,
+          targetBlockType as BlockType,
           edgesToCreate
         );
 

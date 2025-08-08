@@ -1,14 +1,12 @@
-import { Node as ReactFlowBlock } from "@xyflow/react";
 import { devLog } from "@/utils/dev-logger";
 import {
-  PageBlockType,
-  BasicBlockType,
   StaticBlockDefinition,
   DynamicGroup,
   WORKFLOW_BASIC_BLOCKS,
   DYNAMIC_GROUPS,
   type DbBlock,
 } from "./block-definition-policy";
+import { BlockType } from "@workspace/domain-contracts";
 
 /**
  * 🎯 BLOCK ADDITION POLICY
@@ -38,7 +36,7 @@ export interface BlockAdditionPolicy {
    * 주어진 페이지 타입에서 추가 가능한 블록들과 그룹의 실제 아이템들을 반환
    */
   getGroupsWithItems(
-    pageBlockType: PageBlockType,
+    pageBlockType: BlockType,
     dbBlocks: DbBlock[]
   ): {
     staticBlocks: StaticBlockDefinition[];
@@ -60,7 +58,7 @@ export interface BlockAdditionPolicy {
  */
 export class WorkflowBlockAdditionPolicy implements BlockAdditionPolicy {
   getGroupsWithItems(
-    pageBlockType: PageBlockType,
+    pageBlockType: BlockType,
     dbBlocks: DbBlock[]
   ): {
     staticBlocks: StaticBlockDefinition[];
@@ -129,7 +127,7 @@ export class WorkflowBlockAdditionPolicy implements BlockAdditionPolicy {
  */
 export class AgentBlockAdditionPolicy implements BlockAdditionPolicy {
   getGroupsWithItems(
-    pageBlockType: PageBlockType,
+    pageBlockType: BlockType,
     dbBlocks: DbBlock[]
   ): {
     staticBlocks: StaticBlockDefinition[];
@@ -240,7 +238,7 @@ export class AgentBlockAdditionPolicy implements BlockAdditionPolicy {
  */
 export class TaskBlockAdditionPolicy implements BlockAdditionPolicy {
   getGroupsWithItems(
-    pageBlockType: PageBlockType,
+    pageBlockType: BlockType,
     dbBlocks: DbBlock[]
   ): {
     staticBlocks: StaticBlockDefinition[];
@@ -341,7 +339,7 @@ export class ArtifactTemplateBlockAdditionPolicy
   implements BlockAdditionPolicy
 {
   getGroupsWithItems(
-    pageBlockType: PageBlockType,
+    pageBlockType: BlockType,
     dbBlocks: DbBlock[]
   ): {
     staticBlocks: StaticBlockDefinition[];
@@ -403,7 +401,7 @@ export class ArtifactTemplateBlockAdditionPolicy
  */
 export class ArtifactClassBlockAdditionPolicy implements BlockAdditionPolicy {
   getGroupsWithItems(
-    pageBlockType: PageBlockType,
+    pageBlockType: BlockType,
     dbBlocks: DbBlock[]
   ): {
     staticBlocks: StaticBlockDefinition[];
@@ -465,7 +463,7 @@ export class ArtifactClassBlockAdditionPolicy implements BlockAdditionPolicy {
  */
 export class DataBlockAdditionPolicy implements BlockAdditionPolicy {
   getGroupsWithItems(
-    pageBlockType: PageBlockType,
+    pageBlockType: BlockType,
     dbBlocks: DbBlock[]
   ): {
     staticBlocks: StaticBlockDefinition[];
@@ -526,7 +524,7 @@ export class DataBlockAdditionPolicy implements BlockAdditionPolicy {
  */
 export class ChecklistBlockAdditionPolicy implements BlockAdditionPolicy {
   getGroupsWithItems(
-    pageBlockType: PageBlockType,
+    pageBlockType: BlockType,
     dbBlocks: DbBlock[]
   ): {
     staticBlocks: StaticBlockDefinition[];
@@ -586,32 +584,30 @@ export class ChecklistBlockAdditionPolicy implements BlockAdditionPolicy {
  * 팩토리 클래스: 페이지 타입에 따라 적절한 정책을 반환
  */
 export class BlockAdditionPolicyFactory {
-  static getPolicy(
-    pageBlockType: PageBlockType | BasicBlockType
-  ): BlockAdditionPolicy {
+  static getPolicy(pageBlockType: BlockType): BlockAdditionPolicy {
     // 기본 노드 타입들은 워크플로우 정책을 사용
     if (
-      pageBlockType === BasicBlockType.START ||
-      pageBlockType === BasicBlockType.END ||
-      pageBlockType === BasicBlockType.CONDITION
+      pageBlockType === BlockType.START ||
+      pageBlockType === BlockType.END ||
+      pageBlockType === BlockType.CONDITION
     ) {
       return new WorkflowBlockAdditionPolicy();
     }
 
-    switch (pageBlockType as PageBlockType) {
-      case "workflow":
+    switch (pageBlockType) {
+      case BlockType.WORKFLOW:
         return new WorkflowBlockAdditionPolicy();
-      case "agent":
+      case BlockType.AGENT:
         return new AgentBlockAdditionPolicy();
-      case "task":
+      case BlockType.TASK:
         return new TaskBlockAdditionPolicy();
-      case "artifact_template":
+      case BlockType.ARTIFACT_TEMPLATE:
         return new ArtifactTemplateBlockAdditionPolicy();
-      case "artifact_class":
+      case BlockType.ARTIFACT_CLASS:
         return new ArtifactClassBlockAdditionPolicy();
-      case "data":
+      case BlockType.DATA:
         return new DataBlockAdditionPolicy();
-      case "checklist":
+      case BlockType.CHECKLIST:
         return new ChecklistBlockAdditionPolicy();
       default:
         throw new Error(`Unknown page block type: ${pageBlockType}`);

@@ -11,11 +11,10 @@ import {
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { z } from "zod";
 import {
-  PageBlockType,
-  BlockMetadata,
   TypedDbBlockMap,
   DbBlock,
 } from "@/domains/workflow-canvas/policy/block-definition-policy";
+import { BlockType, BlockMetadata } from "@workspace/domain-contracts";
 import {
   EditorRenderingStrategyFactory,
   EditorBlockType,
@@ -23,7 +22,7 @@ import {
 
 // Block creation schema
 const createBlockSchema = z.object({
-  blockType: z.enum(PageBlockType),
+  blockType: z.enum(BlockType),
   slug: z
     .string()
     .min(1)
@@ -44,7 +43,7 @@ const createBlockSchema = z.object({
 
 // Page block creation schema (simplified for canvas)
 const createPageBlockSchema = z.object({
-  blockType: z.enum(PageBlockType),
+  blockType: z.enum(BlockType),
   workspaceId: z.uuid(),
 });
 
@@ -427,7 +426,7 @@ export async function deleteBlock(blockId: string) {
 /**
  * 블록 타입별 초기 메타데이터 생성
  */
-function generateInitialMetadata(blockType: PageBlockType): BlockMetadata {
+function generateInitialMetadata(blockType: BlockType): BlockMetadata {
   const strategy = EditorRenderingStrategyFactory.getStrategy(
     blockType as EditorBlockType
   );
@@ -450,7 +449,7 @@ function generateInitialMetadata(blockType: PageBlockType): BlockMetadata {
  * Create a page block (simplified block creation for canvas)
  * Generic version that returns the correct typed DbBlock based on block type
  */
-export async function createPageBlock<T extends PageBlockType>(
+export async function createPageBlock<T extends BlockType>(
   input: CreatePageBlockInput & { blockType: T }
 ): Promise<BlockActionResult<TypedDbBlockMap[T]>> {
   try {

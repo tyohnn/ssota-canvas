@@ -14,16 +14,23 @@ import {
   Settings,
 } from "lucide-react";
 import { Block } from "@/db/schema";
-import type {
-  AgentMetadata as ContractsAgentMetadata,
-  TaskMetadata as ContractsTaskMetadata,
-  WorkflowMetadata as ContractsWorkflowMetadata,
-  DataMetadata as ContractsDataMetadata,
-  ChecklistMetadata as ContractsChecklistMetadata,
-  ArtifactTemplateMetadata as ContractsArtifactTemplateMetadata,
-  ArtifactClassMetadata as ContractsArtifactClassMetadata,
-  BlockMetadata as ContractsBlockMetadata,
-} from "../contracts";
+import {
+  BlockType,
+  AgentMetadata,
+  TaskMetadata,
+  WorkflowMetadata,
+  DataMetadata,
+  ChecklistMetadata,
+  ArtifactTemplateMetadata,
+  ArtifactClassMetadata,
+  BlockMetadata,
+  StartMetadata,
+  EndMetadata,
+  ConditionMetadata,
+  BlockDefinitionMetadata,
+  EdgeDefinitionMetadata,
+  ColumnDefinitionMetadata,
+} from "@workspace/domain-contracts";
 /**
  * 🎯 BLOCK DEFINITION POLICY
  * ============================
@@ -56,41 +63,27 @@ import type {
  * - 이 파일은 블록의 기본 구조와 정의만 담당
  */
 
-export enum PageBlockType {
-  WORKFLOW = "workflow",
-  AGENT = "agent",
-  TASK = "task",
-  ARTIFACT_TEMPLATE = "artifact_template",
-  ARTIFACT_CLASS = "artifact_class",
-  DATA = "data",
-  CHECKLIST = "checklist",
-}
-
-export enum BasicBlockType {
-  START = "start",
-  END = "end",
-  CONDITION = "condition",
-}
+// PageBlockType and BasicBlockType are re-exported from contracts
 
 export const PAGE_BLOCK_ICONS = {
-  [PageBlockType.AGENT]: Bot,
-  [PageBlockType.TASK]: Cog,
-  [PageBlockType.WORKFLOW]: GitBranch,
-  [PageBlockType.ARTIFACT_TEMPLATE]: FileText,
-  [PageBlockType.CHECKLIST]: CheckSquare,
-  [PageBlockType.DATA]: Database,
-  [PageBlockType.ARTIFACT_CLASS]: Layers,
+  [BlockType.AGENT]: Bot,
+  [BlockType.TASK]: Cog,
+  [BlockType.WORKFLOW]: GitBranch,
+  [BlockType.ARTIFACT_TEMPLATE]: FileText,
+  [BlockType.CHECKLIST]: CheckSquare,
+  [BlockType.DATA]: Database,
+  [BlockType.ARTIFACT_CLASS]: Layers,
 };
 
 // 색상 토큰만 추출한 매핑
 export const PAGE_BLOCK_COLOR_TOKENS = {
-  [PageBlockType.AGENT]: "purple",
-  [PageBlockType.TASK]: "emerald",
-  [PageBlockType.WORKFLOW]: "blue",
-  [PageBlockType.ARTIFACT_TEMPLATE]: "amber",
-  [PageBlockType.CHECKLIST]: "red",
-  [PageBlockType.DATA]: "cyan",
-  [PageBlockType.ARTIFACT_CLASS]: "lime",
+  [BlockType.AGENT]: "purple",
+  [BlockType.TASK]: "emerald",
+  [BlockType.WORKFLOW]: "blue",
+  [BlockType.ARTIFACT_TEMPLATE]: "amber",
+  [BlockType.CHECKLIST]: "red",
+  [BlockType.DATA]: "cyan",
+  [BlockType.ARTIFACT_CLASS]: "lime",
 };
 
 // Tailwind CSS 색상 유틸리티 함수들 (Purging 방지)
@@ -232,7 +225,7 @@ export interface BlockData {
 
 // Page block type interface
 export interface PageBlockTypeData {
-  id: PageBlockType;
+  id: BlockType;
   label: string;
   description: string;
   icon: ComponentType;
@@ -243,59 +236,59 @@ export interface PageBlockTypeData {
 // Page block type definitions with metadata
 export const PAGE_BLOCK_TYPES: PageBlockTypeData[] = [
   {
-    id: PageBlockType.WORKFLOW,
+    id: BlockType.WORKFLOW,
     label: "Workflow",
     description: "Business process workflows",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.WORKFLOW],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.WORKFLOW],
+    icon: PAGE_BLOCK_ICONS[BlockType.WORKFLOW],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.WORKFLOW],
     pages: [],
   },
   {
-    id: PageBlockType.AGENT,
+    id: BlockType.AGENT,
     label: "Agent",
     description: "AI agents and automation",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.AGENT],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.AGENT],
+    icon: PAGE_BLOCK_ICONS[BlockType.AGENT],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.AGENT],
     pages: [],
   },
   {
-    id: PageBlockType.TASK,
+    id: BlockType.TASK,
     label: "Task",
     description: "Individual tasks and activities",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.TASK],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.TASK],
+    icon: PAGE_BLOCK_ICONS[BlockType.TASK],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.TASK],
     pages: [],
   },
   {
-    id: PageBlockType.ARTIFACT_TEMPLATE,
+    id: BlockType.ARTIFACT_TEMPLATE,
     label: "Artifact Template",
     description: "Document and output templates",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.ARTIFACT_TEMPLATE],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.ARTIFACT_TEMPLATE],
+    icon: PAGE_BLOCK_ICONS[BlockType.ARTIFACT_TEMPLATE],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.ARTIFACT_TEMPLATE],
     pages: [],
   },
   {
-    id: PageBlockType.DATA,
+    id: BlockType.DATA,
     label: "Data",
     description: "Data sources and databases",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.DATA],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.DATA],
+    icon: PAGE_BLOCK_ICONS[BlockType.DATA],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.DATA],
     pages: [],
   },
   {
-    id: PageBlockType.CHECKLIST,
+    id: BlockType.CHECKLIST,
     label: "Checklist",
     description: "Quality assurance checklists",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.CHECKLIST],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.CHECKLIST],
+    icon: PAGE_BLOCK_ICONS[BlockType.CHECKLIST],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.CHECKLIST],
     pages: [],
   },
   {
-    id: PageBlockType.ARTIFACT_CLASS,
+    id: BlockType.ARTIFACT_CLASS,
     label: "Artifact Class",
     description: "Structured artifact definitions",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.ARTIFACT_CLASS],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.ARTIFACT_CLASS],
+    icon: PAGE_BLOCK_ICONS[BlockType.ARTIFACT_CLASS],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.ARTIFACT_CLASS],
     pages: [],
   },
 ];
@@ -303,31 +296,11 @@ export const PAGE_BLOCK_TYPES: PageBlockTypeData[] = [
 /**
  * 블록 카테고리 타입
  */
-export type BlockCategory =
-  | "control"
-  | "template"
-  | "page"
-  | "dynamic"
-  | "create_new"
-  | "task"
-  | "agent"
-  | "data"
-  | "checklist"
-  | "artifact_class";
-
-/**
- * 블록 타입 정의
- */
-export type BlockType =
-  | "start"
-  | "end"
-  | "condition"
-  | "task"
-  | "agent"
-  | "data"
-  | "checklist"
-  | "artifact_template"
-  | "artifact_class";
+export enum BlockCategory {
+  CONTROL = "control",
+  TEMPLATE = "template",
+  PAGE = "page",
+}
 
 /**
  * 정적 블록 정의 인터페이스 (워크플로우 기본 블럭)
@@ -367,9 +340,9 @@ export const WORKFLOW_BASIC_BLOCKS: StaticBlockDefinition[] = [
     name: "Start",
     description: "Starting point of the workflow",
     icon: Play,
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.WORKFLOW],
-    category: "control",
-    blockType: "start",
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.WORKFLOW],
+    category: BlockCategory.CONTROL,
+    blockType: BlockType.START,
     properties: {
       label: "Start",
       position: "entry",
@@ -380,9 +353,9 @@ export const WORKFLOW_BASIC_BLOCKS: StaticBlockDefinition[] = [
     name: "End",
     description: "Ending point of the workflow",
     icon: Square,
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.WORKFLOW],
-    category: "control",
-    blockType: "end",
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.WORKFLOW],
+    category: BlockCategory.CONTROL,
+    blockType: BlockType.END,
     properties: {
       label: "End",
       position: "exit",
@@ -394,9 +367,9 @@ export const WORKFLOW_BASIC_BLOCKS: StaticBlockDefinition[] = [
     name: "Condition",
     description: "Condition setting for branching",
     icon: Settings,
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.WORKFLOW],
-    category: "control",
-    blockType: "condition",
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.WORKFLOW],
+    category: BlockCategory.CONTROL,
+    blockType: BlockType.CONDITION,
     properties: {
       label: "Condition",
       expression: "",
@@ -409,7 +382,7 @@ export const WORKFLOW_BASIC_BLOCKS: StaticBlockDefinition[] = [
  * 페이지 블록 데이터 정의 (영어)
  */
 export interface PageBlockData {
-  id: PageBlockType;
+  id: BlockType;
   title: string;
   description: string;
   icon: LucideIcon;
@@ -418,58 +391,58 @@ export interface PageBlockData {
 
 export const PAGE_BLOCK_DATA: PageBlockData[] = [
   {
-    id: PageBlockType.WORKFLOW,
+    id: BlockType.WORKFLOW,
     title: "Workflow",
     description: "Coordinate tasks and agents to implement business processes.",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.WORKFLOW],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.WORKFLOW],
+    icon: PAGE_BLOCK_ICONS[BlockType.WORKFLOW],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.WORKFLOW],
   },
   {
-    id: PageBlockType.AGENT,
+    id: BlockType.AGENT,
     title: "Agent",
     description:
       "AI agents that can perform tasks, make decisions, and interact with users.",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.AGENT],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.AGENT],
+    icon: PAGE_BLOCK_ICONS[BlockType.AGENT],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.AGENT],
   },
   {
-    id: PageBlockType.TASK,
+    id: BlockType.TASK,
     title: "Task",
     description: "Individual task items that agents or users can execute.",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.TASK],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.TASK],
+    icon: PAGE_BLOCK_ICONS[BlockType.TASK],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.TASK],
   },
   {
-    id: PageBlockType.ARTIFACT_TEMPLATE,
+    id: BlockType.ARTIFACT_TEMPLATE,
     title: "Artifact Template",
     description:
       "Templates that define the structure and format of generated outputs or documents.",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.ARTIFACT_TEMPLATE],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.ARTIFACT_TEMPLATE],
+    icon: PAGE_BLOCK_ICONS[BlockType.ARTIFACT_TEMPLATE],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.ARTIFACT_TEMPLATE],
   },
   {
-    id: PageBlockType.DATA,
+    id: BlockType.DATA,
     title: "Data",
     description:
       "Data sources, databases, and data processing components for storing, retrieving, and transforming information.",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.DATA],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.DATA],
+    icon: PAGE_BLOCK_ICONS[BlockType.DATA],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.DATA],
   },
   {
-    id: PageBlockType.CHECKLIST,
+    id: BlockType.CHECKLIST,
     title: "Checklist",
     description:
       "Interactive checklists for quality assurance, compliance verification, and step-by-step procedures.",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.CHECKLIST],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.CHECKLIST],
+    icon: PAGE_BLOCK_ICONS[BlockType.CHECKLIST],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.CHECKLIST],
   },
   {
-    id: PageBlockType.ARTIFACT_CLASS,
+    id: BlockType.ARTIFACT_CLASS,
     title: "Artifact Class",
     description:
       "Class definitions for creating structured artifacts with specific properties, methods, and behaviors.",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.ARTIFACT_CLASS],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.ARTIFACT_CLASS],
+    icon: PAGE_BLOCK_ICONS[BlockType.ARTIFACT_CLASS],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.ARTIFACT_CLASS],
   },
 ];
 
@@ -482,10 +455,10 @@ export const DYNAMIC_GROUPS: DynamicGroup[] = [
     id: "task-group",
     label: "Task",
     description: "Select from existing tasks or create new ones",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.TASK],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.TASK],
-    blockType: "task",
-    category: "task",
+    icon: PAGE_BLOCK_ICONS[BlockType.TASK],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.TASK],
+    blockType: BlockType.TASK,
+    category: BlockCategory.PAGE,
     isDynamic: true,
   },
   // Agent Group
@@ -493,10 +466,10 @@ export const DYNAMIC_GROUPS: DynamicGroup[] = [
     id: "agent-group",
     label: "Agent",
     description: "Select from existing agents or create new ones",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.AGENT],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.AGENT],
-    blockType: "agent",
-    category: "agent",
+    icon: PAGE_BLOCK_ICONS[BlockType.AGENT],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.AGENT],
+    blockType: BlockType.AGENT,
+    category: BlockCategory.PAGE,
     isDynamic: true,
   },
   // Data Group
@@ -504,10 +477,10 @@ export const DYNAMIC_GROUPS: DynamicGroup[] = [
     id: "data-group",
     label: "Data",
     description: "Select from existing data sources or create new ones",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.DATA],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.DATA],
-    blockType: "data",
-    category: "data",
+    icon: PAGE_BLOCK_ICONS[BlockType.DATA],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.DATA],
+    blockType: BlockType.DATA,
+    category: BlockCategory.PAGE,
     isDynamic: true,
   },
   // Checklist Group
@@ -515,10 +488,10 @@ export const DYNAMIC_GROUPS: DynamicGroup[] = [
     id: "checklist-group",
     label: "Checklist",
     description: "Select from existing checklists or create new ones",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.CHECKLIST],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.CHECKLIST],
-    blockType: "checklist",
-    category: "checklist",
+    icon: PAGE_BLOCK_ICONS[BlockType.CHECKLIST],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.CHECKLIST],
+    blockType: BlockType.CHECKLIST,
+    category: BlockCategory.PAGE,
     isDynamic: true,
   },
   // Template Group
@@ -526,10 +499,10 @@ export const DYNAMIC_GROUPS: DynamicGroup[] = [
     id: "template-group",
     label: "Template",
     description: "Select from existing templates or create new ones",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.ARTIFACT_TEMPLATE],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.ARTIFACT_TEMPLATE],
-    blockType: "artifact_template",
-    category: "template",
+    icon: PAGE_BLOCK_ICONS[BlockType.ARTIFACT_TEMPLATE],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.ARTIFACT_TEMPLATE],
+    blockType: BlockType.ARTIFACT_TEMPLATE,
+    category: BlockCategory.TEMPLATE,
     isDynamic: true,
   },
   // Artifact Class Group
@@ -537,74 +510,25 @@ export const DYNAMIC_GROUPS: DynamicGroup[] = [
     id: "artifact-class-group",
     label: "Artifact Class",
     description: "Select from existing artifact classes or create new ones",
-    icon: PAGE_BLOCK_ICONS[PageBlockType.ARTIFACT_CLASS],
-    color: PAGE_BLOCK_COLOR_TOKENS[PageBlockType.ARTIFACT_CLASS],
-    blockType: "artifact_class",
-    category: "artifact_class",
+    icon: PAGE_BLOCK_ICONS[BlockType.ARTIFACT_CLASS],
+    color: PAGE_BLOCK_COLOR_TOKENS[BlockType.ARTIFACT_CLASS],
+    blockType: BlockType.ARTIFACT_CLASS,
+    category: BlockCategory.TEMPLATE,
     isDynamic: true,
   },
 ];
 
 /**
- * 🎯 BLOCK METADATA TYPES
- * ========================
- *
- * 각 페이지 블록별 메타데이터 타입 정의
- * editor-rendering-policy.ts의 스키마와 일치하도록 정의
- */
-
-/**
- * Agent 블록 메타데이터 타입
- */
-export type AgentMetadata = ContractsAgentMetadata;
-
-/**
- * Task 블록 메타데이터 타입
- */
-export type TaskMetadata = ContractsTaskMetadata;
-
-/**
- * Workflow 블록 메타데이터 타입
- */
-export type WorkflowMetadata = ContractsWorkflowMetadata;
-
-/**
- * Data 블록 메타데이터 타입
- */
-export type DataMetadata = ContractsDataMetadata;
-
-/**
- * Checklist 블록 메타데이터 타입
- */
-export type ChecklistMetadata = ContractsChecklistMetadata;
-
-/**
- * Artifact Template 블록 메타데이터 타입 (향후 확장)
- */
-export type ArtifactTemplateMetadata = ContractsArtifactTemplateMetadata;
-
-/**
- * Artifact Class 블록 메타데이터 타입 (향후 확장)
- */
-export type ArtifactClassMetadata = ContractsArtifactClassMetadata;
-
-/**
- * 모든 페이지 블록 메타데이터의 합집합 타입
- * DbBlock의 metadata 필드에 사용
- */
-export type BlockMetadata = ContractsBlockMetadata;
-
-/**
  * 블록 타입별 메타데이터 타입 매핑
  */
 export type BlockMetadataMap = {
-  [PageBlockType.AGENT]: AgentMetadata;
-  [PageBlockType.TASK]: TaskMetadata;
-  [PageBlockType.WORKFLOW]: WorkflowMetadata;
-  [PageBlockType.DATA]: DataMetadata;
-  [PageBlockType.CHECKLIST]: ChecklistMetadata;
-  [PageBlockType.ARTIFACT_TEMPLATE]: ArtifactTemplateMetadata;
-  [PageBlockType.ARTIFACT_CLASS]: ArtifactClassMetadata;
+  [BlockType.AGENT]: AgentMetadata;
+  [BlockType.TASK]: TaskMetadata;
+  [BlockType.WORKFLOW]: WorkflowMetadata;
+  [BlockType.DATA]: DataMetadata;
+  [BlockType.CHECKLIST]: ChecklistMetadata;
+  [BlockType.ARTIFACT_TEMPLATE]: ArtifactTemplateMetadata;
+  [BlockType.ARTIFACT_CLASS]: ArtifactClassMetadata;
 };
 
 /**
@@ -665,9 +589,23 @@ export const isArtifactClassMetadata = (
   );
 };
 
-// export type DbEdge = Edge & {
-//   metadata: EdgeMetadata;
-// };
+export const isStartMetadata = (
+  metadata: BlockMetadata
+): metadata is StartMetadata => {
+  return "position" in metadata && metadata.position === "entry";
+};
+
+export const isEndMetadata = (
+  metadata: BlockMetadata
+): metadata is EndMetadata => {
+  return "position" in metadata && metadata.position === "exit";
+};
+
+export const isConditionMetadata = (
+  metadata: BlockMetadata
+): metadata is ConditionMetadata => {
+  return "expression" in metadata && "operator" in metadata;
+};
 
 /**
  * 🎯 HYBRID BLOCK TYPE SYSTEM
@@ -704,18 +642,36 @@ export type ArtifactTemplateDbBlock = Block & {
   metadata: ArtifactTemplateMetadata;
 };
 export type ArtifactClassDbBlock = Block & { metadata: ArtifactClassMetadata };
+export type StartDbBlock = Block & { metadata: StartMetadata };
+export type EndDbBlock = Block & { metadata: EndMetadata };
+export type ConditionDbBlock = Block & { metadata: ConditionMetadata };
+export type BlockDefinitionDbBlock = Block & {
+  metadata: BlockDefinitionMetadata;
+};
+export type EdgeDefinitionDbBlock = Block & {
+  metadata: EdgeDefinitionMetadata;
+};
+export type ColumnDefinitionDbBlock = Block & {
+  metadata: ColumnDefinitionMetadata;
+};
 
 /**
  * 블록 타입별 DbBlock 매핑
  */
 export type TypedDbBlockMap = {
-  [PageBlockType.AGENT]: AgentDbBlock;
-  [PageBlockType.TASK]: TaskDbBlock;
-  [PageBlockType.WORKFLOW]: WorkflowDbBlock;
-  [PageBlockType.DATA]: DataDbBlock;
-  [PageBlockType.CHECKLIST]: ChecklistDbBlock;
-  [PageBlockType.ARTIFACT_TEMPLATE]: ArtifactTemplateDbBlock;
-  [PageBlockType.ARTIFACT_CLASS]: ArtifactClassDbBlock;
+  [BlockType.AGENT]: AgentDbBlock;
+  [BlockType.TASK]: TaskDbBlock;
+  [BlockType.WORKFLOW]: WorkflowDbBlock;
+  [BlockType.DATA]: DataDbBlock;
+  [BlockType.CHECKLIST]: ChecklistDbBlock;
+  [BlockType.ARTIFACT_TEMPLATE]: ArtifactTemplateDbBlock;
+  [BlockType.ARTIFACT_CLASS]: ArtifactClassDbBlock;
+  [BlockType.BLOCK_DEFINITION]: BlockDefinitionDbBlock;
+  [BlockType.EDGE_DEFINITION]: EdgeDefinitionDbBlock;
+  [BlockType.COLUMN_DEFINITION]: ColumnDefinitionDbBlock;
+  [BlockType.START]: StartDbBlock;
+  [BlockType.END]: EndDbBlock;
+  [BlockType.CONDITION]: ConditionDbBlock;
 };
 
 /**
@@ -743,6 +699,12 @@ export const getTypedMetadata = (block: DbBlock): BlockMetadata | null => {
       return isArtifactTemplateMetadata(metadata) ? metadata : null;
     case "artifact_class":
       return isArtifactClassMetadata(metadata) ? metadata : null;
+    case "start":
+      return isStartMetadata(metadata) ? metadata : null;
+    case "end":
+      return isEndMetadata(metadata) ? metadata : null;
+    case "condition":
+      return isConditionMetadata(metadata) ? metadata : null;
     default:
       return null;
   }

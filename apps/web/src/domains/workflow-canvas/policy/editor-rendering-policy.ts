@@ -1,8 +1,6 @@
 import { ComponentType } from "react";
 import { z } from "zod";
 import {
-  PageBlockType,
-  BlockType,
   AgentMetadata,
   TaskMetadata,
   WorkflowMetadata,
@@ -11,14 +9,14 @@ import {
   ArtifactTemplateMetadata,
   ArtifactClassMetadata,
   BlockMetadata,
-} from "./block-definition-policy";
-import {
   AgentMetadataSchema,
   TaskMetadataSchema,
   WorkflowMetadataSchema,
   DataMetadataSchema,
   ChecklistMetadataSchema,
-} from "@/domains/workflow-canvas/contracts";
+  ArtifactTemplateMetadataSchema,
+  ArtifactClassMetadataSchema,
+} from "@workspace/domain-contracts";
 
 /**
  * 🎯 EDITOR RENDERING POLICY
@@ -144,7 +142,8 @@ export interface EditorRenderingStrategy<
   /**
    * Zod 스키마를 반환
    */
-  getZodSchema(): z.ZodSchema<any>;
+  // Avoid Zod type in signature to prevent cross-package nominal type issues
+  getZodSchema(): unknown;
 
   /**
    * 블록 메타데이터를 검증
@@ -160,121 +159,7 @@ export interface EditorRenderingStrategy<
   getDefaultMetadata(): T;
 }
 
-// Zod Schemas - 인터페이스에 맞게 정의
-export const agentSchema: z.ZodSchema<AgentMetadata> = z.object({
-  name: z
-    .string()
-    .min(2, "Agent name must be at least 2 characters")
-    .max(100, "Agent name must be less than 100 characters"),
-  slug: z.string(), // Auto-generated, but required for form
-  description: z
-    .string()
-    .max(200, "Agent description must be less than 200 characters")
-    .optional()
-    .or(z.literal("")),
-  role: z
-    .string()
-    .min(10, "Agent role must be at least 10 characters")
-    .max(200, "Agent role must be less than 200 characters"),
-  style: z
-    .string()
-    .max(200, "Style must be less than 200 characters")
-    .optional()
-    .or(z.literal("")),
-  identity: z
-    .string()
-    .max(200, "Identity must be less than 200 characters")
-    .optional()
-    .or(z.literal("")),
-  focus: z
-    .string()
-    .max(200, "Focus must be less than 200 characters")
-    .optional()
-    .or(z.literal("")),
-  core_principles: z
-    .string()
-    .max(1000, "Core principles must be less than 1000 characters")
-    .optional()
-    .or(z.literal("")),
-});
-
-export const taskSchema: z.ZodSchema<TaskMetadata> = z.object({
-  name: z
-    .string()
-    .min(1, "Task name is required")
-    .max(100, "Task name must be less than 100 characters"),
-  slug: z.string(),
-  description: z
-    .string()
-    .max(200, "Task description must be less than 200 characters")
-    .optional()
-    .or(z.literal("")),
-  instructions: z
-    .string()
-    .min(10, "Task instructions must be at least 10 characters"),
-});
-
-export const workflowSchema: z.ZodSchema<WorkflowMetadata> = z.object({
-  name: z
-    .string()
-    .min(1, "Workflow name is required")
-    .max(100, "Workflow name must be less than 100 characters"),
-  slug: z.string(),
-  description: z
-    .string()
-    .max(200, "Workflow description must be less than 200 characters")
-    .optional()
-    .or(z.literal("")),
-});
-
-export const dataSchema: z.ZodSchema<DataMetadata> = z.object({
-  name: z
-    .string()
-    .min(1, "Data name is required")
-    .max(100, "Data name must be less than 100 characters"),
-  slug: z.string(),
-  description: z
-    .string()
-    .max(200, "Data description must be less than 200 characters")
-    .optional()
-    .or(z.literal("")),
-  content: z.string().min(10, "Data content must be at least 10 characters"),
-  file: z.string().optional().or(z.literal("")),
-  filetype: z.string().optional().or(z.literal("")),
-  filesize: z.string().optional().or(z.literal("")),
-});
-
-export const checklistSchema: z.ZodSchema<ChecklistMetadata> = z.object({
-  name: z
-    .string()
-    .min(1, "Checklist name is required")
-    .max(100, "Checklist name must be less than 100 characters"),
-  slug: z.string(),
-  description: z
-    .string()
-    .max(200, "Checklist description must be less than 200 characters")
-    .optional()
-    .or(z.literal("")),
-  instructions: z
-    .string()
-    .min(10, "Checklist instructions must be at least 10 characters"),
-});
-
-// Placeholder schemas for future implementation
-export const artifactTemplateSchema: z.ZodSchema<ArtifactTemplateMetadata> =
-  z.object({
-    identifier: z.string(),
-    displayName: z.string(),
-    outputFormat: z.string(),
-  });
-
-export const artifactClassSchema: z.ZodSchema<ArtifactClassMetadata> = z.object(
-  {
-    identifier: z.string(),
-    displayName: z.string(),
-    description: z.string().optional(),
-  }
-);
+// All schemas sourced from shared contracts
 
 /**
  * 1. 에이전트 블록 에디터 전략
@@ -674,7 +559,7 @@ export class ArtifactTemplateEditorRenderingStrategy
   implements EditorRenderingStrategy<ArtifactTemplateMetadata>
 {
   getZodSchema() {
-    return artifactTemplateSchema;
+    return ArtifactTemplateMetadataSchema;
   }
 
   getEditorConfig(): EditorConfig {
@@ -1008,7 +893,7 @@ export class ArtifactClassEditorRenderingStrategy
   implements EditorRenderingStrategy<ArtifactClassMetadata>
 {
   getZodSchema() {
-    return artifactClassSchema;
+    return ArtifactClassMetadataSchema;
   }
 
   getEditorConfig(): EditorConfig {
@@ -1123,7 +1008,7 @@ export class EditorRenderingStrategyFactory {
   /**
    * 블록 타입별 Zod 스키마 가져오기
    */
-  static getZodSchema(blockType: EditorBlockType) {
+  static getZodSchema(blockType: EditorBlockType): unknown {
     const strategy = this.getStrategy(blockType);
     return strategy.getZodSchema();
   }

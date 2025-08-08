@@ -1,16 +1,16 @@
 import { useMemo, useState, useCallback } from "react";
 import { useCanvas } from "@/domains/workflow-canvas/contexts/CanvasContext";
 import {
-  PageBlockType,
   PAGE_BLOCK_TYPES,
   PAGE_BLOCK_ICONS,
 } from "@/domains/workflow-canvas/policy";
+import { BlockType } from "@workspace/domain-contracts";
 
 // Use centralized page block types and convert to groups format
 const PAGE_GROUPS = PAGE_BLOCK_TYPES.map((blockType) => ({
   label: blockType.label,
   type: blockType.id,
-  icon: PAGE_BLOCK_ICONS[blockType.id],
+  icon: PAGE_BLOCK_ICONS[blockType.id as keyof typeof PAGE_BLOCK_ICONS],
   color: blockType.color,
 }));
 
@@ -30,24 +30,35 @@ export function useBlockLayerExplorerHandler() {
 
   // 워크스페이스 블록들을 타입별로 그룹화
   const pageOptions = useMemo(() => {
-    const grouped: Record<PageBlockType, any[]> = {
-      [PageBlockType.WORKFLOW]: [],
-      [PageBlockType.AGENT]: [],
-      [PageBlockType.TASK]: [],
-      [PageBlockType.ARTIFACT_TEMPLATE]: [],
-      [PageBlockType.CHECKLIST]: [],
-      [PageBlockType.DATA]: [],
-      [PageBlockType.ARTIFACT_CLASS]: [],
+    const grouped: Record<
+      Exclude<
+        BlockType,
+        | BlockType.START
+        | BlockType.END
+        | BlockType.CONDITION
+        | BlockType.BLOCK_DEFINITION
+        | BlockType.EDGE_DEFINITION
+        | BlockType.COLUMN_DEFINITION
+      >,
+      any[]
+    > = {
+      [BlockType.WORKFLOW]: [],
+      [BlockType.AGENT]: [],
+      [BlockType.TASK]: [],
+      [BlockType.ARTIFACT_TEMPLATE]: [],
+      [BlockType.CHECKLIST]: [],
+      [BlockType.DATA]: [],
+      [BlockType.ARTIFACT_CLASS]: [],
     };
 
     // 블록들을 타입별로 그룹화
     displayBlocks.forEach((block) => {
-      const blockType = block.type as PageBlockType;
-      if (blockType && grouped[blockType]) {
+      const blockType = block.type as BlockType;
+      if (blockType && grouped[blockType as keyof typeof grouped]) {
         const blockName =
           block.data?.label || block.data?.name || `${blockType} ${block.id}`;
 
-        grouped[blockType].push({
+        grouped[blockType as keyof typeof grouped].push({
           id: block.id,
           name: blockName,
           type: blockType,

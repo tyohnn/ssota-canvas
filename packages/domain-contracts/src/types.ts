@@ -1,11 +1,18 @@
-export type BlockType =
-  | "agent"
-  | "task"
-  | "workflow"
-  | "artifact_template"
-  | "checklist"
-  | "data"
-  | "artifact_class";
+export enum BlockType {
+  WORKFLOW = "workflow",
+  AGENT = "agent",
+  TASK = "task",
+  ARTIFACT_TEMPLATE = "artifact_template",
+  ARTIFACT_CLASS = "artifact_class",
+  DATA = "data",
+  CHECKLIST = "checklist",
+  BLOCK_DEFINITION = "block_definition",
+  EDGE_DEFINITION = "edge_definition",
+  COLUMN_DEFINITION = "column_definition",
+  START = "start",
+  END = "end",
+  CONDITION = "condition",
+}
 
 export type EdgeType =
   | "contains"
@@ -68,6 +75,23 @@ export interface ArtifactClassMetadata {
   description?: string;
 }
 
+export interface StartMetadata {
+  position: "entry";
+}
+
+export interface EndMetadata {
+  position: "exit";
+}
+
+export interface ConditionMetadata {
+  expression: string;
+  operator: string;
+}
+
+export interface BlockDefinitionMetadata {}
+export interface EdgeDefinitionMetadata {}
+export interface ColumnDefinitionMetadata {}
+
 export type BlockMetadata =
   | AgentMetadata
   | TaskMetadata
@@ -76,10 +100,20 @@ export type BlockMetadata =
   | ChecklistMetadata
   | ArtifactTemplateMetadata
   | ArtifactClassMetadata
+  | BlockDefinitionMetadata
+  | EdgeDefinitionMetadata
+  | ColumnDefinitionMetadata
+  | StartMetadata
+  | EndMetadata
+  | ConditionMetadata
   | Record<string, unknown>;
 
 export interface BlockRecord {
   id?: string;
+  parent_block_id?: string;
+  workspace_id?: string;
+  created_at?: string;
+  updated_at?: string;
   block_type: BlockType;
   slug: string;
   name: string;
