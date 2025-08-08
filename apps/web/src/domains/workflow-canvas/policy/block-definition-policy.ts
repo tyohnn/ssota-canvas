@@ -14,6 +14,16 @@ import {
   Settings,
 } from "lucide-react";
 import { Block } from "@/db/schema";
+import type {
+  AgentMetadata as ContractsAgentMetadata,
+  TaskMetadata as ContractsTaskMetadata,
+  WorkflowMetadata as ContractsWorkflowMetadata,
+  DataMetadata as ContractsDataMetadata,
+  ChecklistMetadata as ContractsChecklistMetadata,
+  ArtifactTemplateMetadata as ContractsArtifactTemplateMetadata,
+  ArtifactClassMetadata as ContractsArtifactClassMetadata,
+  BlockMetadata as ContractsBlockMetadata,
+} from "../contracts";
 /**
  * 🎯 BLOCK DEFINITION POLICY
  * ============================
@@ -546,90 +556,43 @@ export const DYNAMIC_GROUPS: DynamicGroup[] = [
 /**
  * Agent 블록 메타데이터 타입
  */
-export interface AgentMetadata {
-  name: string;
-  slug: string;
-  description?: string;
-  role: string;
-  style?: string;
-  identity?: string;
-  focus?: string;
-  core_principles?: string;
-}
+export type AgentMetadata = ContractsAgentMetadata;
 
 /**
  * Task 블록 메타데이터 타입
  */
-export interface TaskMetadata {
-  name: string;
-  slug: string;
-  description?: string;
-  instructions: string;
-}
+export type TaskMetadata = ContractsTaskMetadata;
 
 /**
  * Workflow 블록 메타데이터 타입
  */
-export interface WorkflowMetadata {
-  name: string;
-  slug: string;
-  description?: string;
-}
+export type WorkflowMetadata = ContractsWorkflowMetadata;
 
 /**
  * Data 블록 메타데이터 타입
  */
-export interface DataMetadata {
-  name: string;
-  slug: string;
-  description?: string;
-  content: string;
-  file?: string;
-  filetype?: string;
-  filesize?: string;
-}
+export type DataMetadata = ContractsDataMetadata;
 
 /**
  * Checklist 블록 메타데이터 타입
  */
-export interface ChecklistMetadata {
-  name: string;
-  slug: string;
-  description?: string;
-  instructions: string;
-}
+export type ChecklistMetadata = ContractsChecklistMetadata;
 
 /**
  * Artifact Template 블록 메타데이터 타입 (향후 확장)
  */
-export interface ArtifactTemplateMetadata {
-  identifier: string;
-  displayName: string;
-  outputFormat: string;
-}
+export type ArtifactTemplateMetadata = ContractsArtifactTemplateMetadata;
 
 /**
  * Artifact Class 블록 메타데이터 타입 (향후 확장)
  */
-export interface ArtifactClassMetadata {
-  identifier: string;
-  displayName: string;
-  description?: string;
-}
+export type ArtifactClassMetadata = ContractsArtifactClassMetadata;
 
 /**
  * 모든 페이지 블록 메타데이터의 합집합 타입
  * DbBlock의 metadata 필드에 사용
  */
-export type BlockMetadata =
-  | AgentMetadata
-  | TaskMetadata
-  | WorkflowMetadata
-  | DataMetadata
-  | ChecklistMetadata
-  | ArtifactTemplateMetadata
-  | ArtifactClassMetadata
-  | Record<string, unknown>;
+export type BlockMetadata = ContractsBlockMetadata;
 
 /**
  * 블록 타입별 메타데이터 타입 매핑

@@ -12,6 +12,13 @@ import {
   ArtifactClassMetadata,
   BlockMetadata,
 } from "./block-definition-policy";
+import {
+  AgentMetadataSchema,
+  TaskMetadataSchema,
+  WorkflowMetadataSchema,
+  DataMetadataSchema,
+  ChecklistMetadataSchema,
+} from "@/domains/workflow-canvas/contracts";
 
 /**
  * 🎯 EDITOR RENDERING POLICY
@@ -276,7 +283,7 @@ export class AgentEditorRenderingStrategy
   implements EditorRenderingStrategy<AgentMetadata>
 {
   getZodSchema() {
-    return agentSchema;
+    return AgentMetadataSchema;
   }
 
   getEditorConfig(): EditorConfig {
@@ -458,7 +465,7 @@ export class TaskEditorRenderingStrategy
   implements EditorRenderingStrategy<TaskMetadata>
 {
   getZodSchema() {
-    return taskSchema;
+    return TaskMetadataSchema;
   }
 
   getEditorConfig(): EditorConfig {
@@ -573,7 +580,7 @@ export class WorkflowEditorRenderingStrategy
   implements EditorRenderingStrategy<WorkflowMetadata>
 {
   getZodSchema() {
-    return workflowSchema;
+    return WorkflowMetadataSchema;
   }
 
   getEditorConfig(): EditorConfig {
@@ -736,7 +743,7 @@ export class DataEditorRenderingStrategy
   implements EditorRenderingStrategy<DataMetadata>
 {
   getZodSchema() {
-    return dataSchema;
+    return DataMetadataSchema;
   }
 
   getEditorConfig(): EditorConfig {
@@ -885,7 +892,7 @@ export class ChecklistEditorRenderingStrategy
   implements EditorRenderingStrategy<ChecklistMetadata>
 {
   getZodSchema() {
-    return checklistSchema;
+    return ChecklistMetadataSchema;
   }
 
   getEditorConfig(): EditorConfig {

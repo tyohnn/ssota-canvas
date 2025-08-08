@@ -8,13 +8,13 @@ export { CanvasToolbar } from "./canvas-control/canvas-toolbar";
 export { CanvasStatus } from "./canvas-control/canvas-status";
 
 // Node components
-export { AgentNode } from "./blocks/agent-block";
-export { TaskNode } from "./blocks/task-block";
-export { WorkflowNode } from "./blocks/workflow-block";
-export { ArtifactTemplateNode } from "./blocks/artifact-template-block";
-export { ChecklistNode } from "./blocks/checklist-block";
-export { DataNode } from "./blocks/data-block";
-export { ArtifactClassNode } from "./blocks/artifact-class-block";
+export { AgentBlock as AgentNode } from "./blocks/agent-block";
+export { TaskBlock as TaskNode } from "./blocks/task-block";
+export { WorkflowBlock as WorkflowNode } from "./blocks/workflow-block";
+export { ArtifactTemplateBlock as ArtifactTemplateNode } from "./blocks/artifact-template-block";
+export { ChecklistBlock as ChecklistNode } from "./blocks/checklist-block";
+export { DataBlock as DataNode } from "./blocks/data-block";
+export { ArtifactClassBlock as ArtifactClassNode } from "./blocks/artifact-class-block";
 
 // Edge components
 export { CustomEdge } from "./edges/custom-edge";
