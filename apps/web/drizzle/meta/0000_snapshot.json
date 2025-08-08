@@ -1,5 +1,5 @@
 {
-  "id": "e5808e2a-6fb7-40ae-a2e1-896535c472be",
+  "id": "b8d943fb-6f4a-41a1-8936-e0d091d23dbb",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -29,7 +29,8 @@
         },
         "edge_type": {
           "name": "edge_type",
-          "type": "varchar(20)",
+          "type": "edge_type",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -86,42 +87,43 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "Enable read access for workspace members": {
-          "name": "Enable read access for workspace members",
+        "Enable read access for all users": {
+          "name": "Enable read access for all users",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
+            "anon",
             "authenticated"
           ],
-          "using": "source_node_id in (select id from nodes where workspace_id in (select id from workspaces where owner_id = (select auth.uid())))"
+          "using": "true"
         },
-        "Enable insert for workspace owners": {
-          "name": "Enable insert for workspace owners",
+        "Enable insert for workspace members": {
+          "name": "Enable insert for workspace members",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "source_node_id in (select id from nodes where workspace_id in (select id from workspaces where owner_id = (select auth.uid())))"
+          "withCheck": "\"edges\".\"source_node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))"
         },
-        "Enable update for workspace owners": {
-          "name": "Enable update for workspace owners",
+        "Enable update for workspace members": {
+          "name": "Enable update for workspace members",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "source_node_id in (select id from nodes where workspace_id in (select id from workspaces where owner_id = (select auth.uid())))",
-          "withCheck": "source_node_id in (select id from nodes where workspace_id in (select id from workspaces where owner_id = (select auth.uid())))"
+          "using": "\"edges\".\"source_node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))",
+          "withCheck": "\"edges\".\"source_node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))"
         },
-        "Enable delete for workspace owners": {
-          "name": "Enable delete for workspace owners",
+        "Enable delete for workspace members": {
+          "name": "Enable delete for workspace members",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "source_node_id in (select id from nodes where workspace_id in (select id from workspaces where owner_id = (select auth.uid())))"
+          "using": "\"edges\".\"source_node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))"
         }
       },
       "checkConstraints": {},
@@ -198,42 +200,43 @@
         }
       },
       "policies": {
-        "Enable read access for workspace members": {
-          "name": "Enable read access for workspace members",
+        "Enable read access for all users": {
+          "name": "Enable read access for all users",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
+            "anon",
             "authenticated"
           ],
-          "using": "node_id in (select id from nodes where workspace_id in (select id from workspaces where owner_id = (select auth.uid())))"
+          "using": "true"
         },
-        "Enable insert for workspace owners": {
-          "name": "Enable insert for workspace owners",
+        "Enable insert for workspace members": {
+          "name": "Enable insert for workspace members",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "node_id in (select id from nodes where workspace_id in (select id from workspaces where owner_id = (select auth.uid())))"
+          "withCheck": "\"node_positions\".\"node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))"
         },
-        "Enable update for workspace owners": {
-          "name": "Enable update for workspace owners",
+        "Enable update for workspace members": {
+          "name": "Enable update for workspace members",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "node_id in (select id from nodes where workspace_id in (select id from workspaces where owner_id = (select auth.uid())))",
-          "withCheck": "node_id in (select id from nodes where workspace_id in (select id from workspaces where owner_id = (select auth.uid())))"
+          "using": "\"node_positions\".\"node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))",
+          "withCheck": "\"node_positions\".\"node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))"
         },
-        "Enable delete for workspace owners": {
-          "name": "Enable delete for workspace owners",
+        "Enable delete for workspace members": {
+          "name": "Enable delete for workspace members",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "node_id in (select id from nodes where workspace_id in (select id from workspaces where owner_id = (select auth.uid())))"
+          "using": "\"node_positions\".\"node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))"
         }
       },
       "checkConstraints": {},
@@ -252,7 +255,8 @@
         },
         "node_type": {
           "name": "node_type",
-          "type": "varchar(20)",
+          "type": "node_type",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -303,19 +307,6 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "nodes_parent_node_id_nodes_id_fk": {
-          "name": "nodes_parent_node_id_nodes_id_fk",
-          "tableFrom": "nodes",
-          "tableTo": "nodes",
-          "columnsFrom": [
-            "parent_node_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
         "nodes_workspace_id_workspaces_id_fk": {
           "name": "nodes_workspace_id_workspaces_id_fk",
           "tableFrom": "nodes",
@@ -333,42 +324,138 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "Enable read access for workspace members": {
-          "name": "Enable read access for workspace members",
+        "Enable read access for all users": {
+          "name": "Enable read access for all users",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
+            "anon",
             "authenticated"
           ],
-          "using": "workspace_id in (select id from workspaces where owner_id = (select auth.uid()))"
+          "using": "true"
         },
-        "Enable insert for workspace owners": {
-          "name": "Enable insert for workspace owners",
+        "Enable insert for workspace members": {
+          "name": "Enable insert for workspace members",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "workspace_id in (select id from workspaces where owner_id = (select auth.uid()))"
+          "withCheck": "\"nodes\".\"workspace_id\" IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))"
         },
-        "Enable update for workspace owners": {
-          "name": "Enable update for workspace owners",
+        "Enable update for workspace members": {
+          "name": "Enable update for workspace members",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "workspace_id in (select id from workspaces where owner_id = (select auth.uid()))",
-          "withCheck": "workspace_id in (select id from workspaces where owner_id = (select auth.uid()))"
+          "using": "\"nodes\".\"workspace_id\" IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))",
+          "withCheck": "\"nodes\".\"workspace_id\" IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))"
         },
-        "Enable delete for workspace owners": {
-          "name": "Enable delete for workspace owners",
+        "Enable delete for workspace members": {
+          "name": "Enable delete for workspace members",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "workspace_id in (select id from workspaces where owner_id = (select auth.uid()))"
+          "using": "\"nodes\".\"workspace_id\" IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "Enable read access for authenticated users": {
+          "name": "Enable read access for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"users\".\"id\""
+        },
+        "Enable insert for authenticated users": {
+          "name": "Enable insert for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(select auth.uid()) = \"users\".\"id\""
+        },
+        "Enable update for users based on id": {
+          "name": "Enable update for users based on id",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"users\".\"id\"",
+          "withCheck": "(select auth.uid()) = \"users\".\"id\""
+        },
+        "Enable delete for users based on id": {
+          "name": "Enable delete for users based on id",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"users\".\"id\""
         }
       },
       "checkConstraints": {},
@@ -424,7 +511,7 @@
           "to": [
             "authenticated"
           ],
-          "using": "owner_id = (select auth.uid())"
+          "using": "true"
         },
         "Enable insert for authenticated users": {
           "name": "Enable insert for authenticated users",
@@ -433,7 +520,7 @@
           "to": [
             "authenticated"
           ],
-          "withCheck": "owner_id = (select auth.uid())"
+          "withCheck": "(select auth.uid()) = \"workspaces\".\"owner_id\""
         },
         "Enable update for workspace owners": {
           "name": "Enable update for workspace owners",
@@ -442,8 +529,8 @@
           "to": [
             "authenticated"
           ],
-          "using": "owner_id = (select auth.uid())",
-          "withCheck": "owner_id = (select auth.uid())"
+          "using": "(select auth.uid()) = \"workspaces\".\"owner_id\"",
+          "withCheck": "(select auth.uid()) = \"workspaces\".\"owner_id\""
         },
         "Enable delete for workspace owners": {
           "name": "Enable delete for workspace owners",
@@ -452,14 +539,41 @@
           "to": [
             "authenticated"
           ],
-          "using": "owner_id = (select auth.uid())"
+          "using": "(select auth.uid()) = \"workspaces\".\"owner_id\""
         }
       },
       "checkConstraints": {},
       "isRLSEnabled": true
     }
   },
-  "enums": {},
+  "enums": {
+    "public.edge_type": {
+      "name": "edge_type",
+      "schema": "public",
+      "values": [
+        "contains",
+        "next",
+        "input",
+        "output"
+      ]
+    },
+    "public.node_type": {
+      "name": "node_type",
+      "schema": "public",
+      "values": [
+        "agent",
+        "task",
+        "workflow",
+        "artifact_template",
+        "checklist",
+        "data",
+        "artifact_class",
+        "node_definition",
+        "edge_definition",
+        "column_definition"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},

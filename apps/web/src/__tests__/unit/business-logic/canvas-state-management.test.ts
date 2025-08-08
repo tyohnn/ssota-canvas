@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useCanvasState } from "@/domains/canvas/hooks/useCanvasState";
+import { useCanvasState } from "@/domains/workflow-canvas/hooks/state/useReactFlowCanvasState";
 import { testData } from "../../test-data";
 
 // Mock the actions

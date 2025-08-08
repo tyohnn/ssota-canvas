@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useNodeOperations } from "@/domains/canvas/hooks/useNodeOperations";
+import { useNodeOperations } from "@/domains/workflow-canvas/hooks/useNodeOperations";
 import { testData } from "../../test-data";
 
 // Mock the actions
@@ -103,7 +103,7 @@ describe("Node Operations Logic", () => {
 
     // Mock validation to fail
     const { NodeManagementLogic } = await import(
-      "@/domains/canvas/lib/node-management"
+      "@/domains/workflow-canvas/lib/node-management"
     );
     vi.mocked(NodeManagementLogic.validateNodeData).mockResolvedValueOnce({
       valid: false,
@@ -170,7 +170,9 @@ describe("Node Operations Logic", () => {
     const { result } = renderHook(() => useNodeOperations());
 
     // Mock action to fail
-    const { createNode } = await import("@/domains/canvas/actions/node.action");
+    const { createNode } = await import(
+      "@/domains/workflow-canvas/actions/node.action"
+    );
     vi.mocked(createNode).mockRejectedValueOnce(new Error("Database error"));
 
     // Act
@@ -233,7 +235,7 @@ describe("Node Operations Logic", () => {
 
     // Mock connection validation to fail
     const { NodeManagementLogic } = await import(
-      "@/domains/canvas/lib/node-management"
+      "@/domains/workflow-canvas/lib/node-management"
     );
     vi.mocked(NodeManagementLogic.validateNodeConnection).mockResolvedValueOnce(
       {

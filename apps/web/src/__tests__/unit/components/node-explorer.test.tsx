@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { NodeExplorer } from "@/domains/canvas/components/node-explorer";
+import { SevenNodeExplorer } from "@/domains/canvas/components/seven-node-explorer";
 import { testData } from "../../test-data";
 
 // Mock UI components and Lucide icons
@@ -95,7 +95,7 @@ vi.mock("lucide-react", () => ({
   Layers: () => <div data-testid="layers-icon">Layers</div>,
 }));
 
-describe("NodeExplorer", () => {
+describe("SevenNodeExplorer", () => {
   const mockOnNodeCreate = vi.fn();
   const defaultProps = {
     onNodeCreate: mockOnNodeCreate,
@@ -108,7 +108,7 @@ describe("NodeExplorer", () => {
 
   it("renders seven core node types organized in folders with proper structure", async () => {
     // Arrange & Act
-    render(<NodeExplorer {...defaultProps} />);
+    render(<SevenNodeExplorer {...defaultProps} />);
 
     // Assert
     expect(screen.getByText("Node Explorer")).toBeInTheDocument();
@@ -135,7 +135,7 @@ describe("NodeExplorer", () => {
 
   it("displays search functionality with proper placeholder and icon", async () => {
     // Arrange & Act
-    render(<NodeExplorer {...defaultProps} />);
+    render(<SevenNodeExplorer {...defaultProps} />);
 
     // Assert
     const searchInput = screen.getByTestId("search-input");
@@ -149,7 +149,7 @@ describe("NodeExplorer", () => {
 
   it("filters node types when search is used", async () => {
     // Arrange
-    render(<NodeExplorer {...defaultProps} />);
+    render(<SevenNodeExplorer {...defaultProps} />);
 
     // Act
     const searchInput = screen.getByTestId("search-input");
@@ -161,7 +161,7 @@ describe("NodeExplorer", () => {
 
   it("shows template lists for node types", async () => {
     // Arrange
-    render(<NodeExplorer {...defaultProps} />);
+    render(<SevenNodeExplorer {...defaultProps} />);
 
     // Act - Click on Agent tab
     const tabTriggers = screen.getAllByTestId("tabs-trigger");
@@ -181,7 +181,7 @@ describe("NodeExplorer", () => {
 
   it("handles empty search results", async () => {
     // Arrange
-    render(<NodeExplorer {...defaultProps} />);
+    render(<SevenNodeExplorer {...defaultProps} />);
 
     // Act
     const searchInput = screen.getByTestId("search-input");
@@ -193,7 +193,7 @@ describe("NodeExplorer", () => {
 
   it("renders with custom className", async () => {
     // Arrange & Act
-    render(<NodeExplorer {...defaultProps} />);
+    render(<SevenNodeExplorer {...defaultProps} />);
 
     // Assert
     const explorerElement = screen.getByTestId("tabs");
@@ -207,7 +207,7 @@ describe("NodeExplorer", () => {
 
   it("calls onNodeCreate when node creation button is clicked", async () => {
     // Arrange
-    render(<NodeExplorer {...defaultProps} />);
+    render(<SevenNodeExplorer {...defaultProps} />);
 
     // Act
     await waitFor(() => {
@@ -226,7 +226,7 @@ describe("NodeExplorer", () => {
 
   it("displays node type cards with proper structure", async () => {
     // Arrange
-    render(<NodeExplorer {...defaultProps} />);
+    render(<SevenNodeExplorer {...defaultProps} />);
 
     // Assert
     const cards = screen.getAllByTestId("card");
@@ -235,7 +235,7 @@ describe("NodeExplorer", () => {
 
   it("shows node type descriptions and metadata", async () => {
     // Arrange
-    render(<NodeExplorer {...defaultProps} />);
+    render(<SevenNodeExplorer {...defaultProps} />);
 
     // Assert
     expect(
@@ -248,7 +248,7 @@ describe("NodeExplorer", () => {
 
   it("handles tab switching correctly", async () => {
     // Arrange
-    render(<NodeExplorer {...defaultProps} />);
+    render(<SevenNodeExplorer {...defaultProps} />);
 
     // Act - Switch to Task tab
     const tabTriggers = screen.getAllByTestId("tabs-trigger");

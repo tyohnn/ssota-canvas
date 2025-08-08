@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
 import * as schema from "./schema";
-import { config } from "../config";
+import { config } from "@/config";
 
 // Database connection configuration
 const connectionString = config.database.url;
@@ -60,16 +60,20 @@ export async function createClerkDrizzleSupabaseClient() {
     rls: async <T>(fn: (tx: typeof rlsDb) => Promise<T>): Promise<T> => {
       try {
         // Set user context for this connection
+        console.log("🔐 [RLS] Setting user context:", userId);
         await rlsClient.unsafe(`SET "app.user_id" = '${userId}'`);
 
-        return await fn(rlsDb);
+        const result = await fn(rlsDb);
+        console.log("✅ [RLS] Query executed successfully");
+        return result;
       } catch (error) {
-        console.error("RLS transaction error:", error);
+        console.error("❌ [RLS] Transaction error:", error);
         throw error;
       } finally {
         try {
           // Reset context
           await rlsClient.unsafe(`RESET "app.user_id"`);
+          console.log("🔄 [RLS] User context reset");
         } catch (resetError) {
           console.error("Error resetting user context:", resetError);
         }

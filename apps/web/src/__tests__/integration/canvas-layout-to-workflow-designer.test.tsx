@@ -10,7 +10,7 @@ import {
 import { render, screen, waitFor } from "@testing-library/react";
 import { setupServer } from "msw/node";
 import { http, HttpResponse } from "msw";
-import { CanvasPage } from "@/domains/canvas/components/canvas-page";
+import { CanvasPage } from "@/domains/workflow-canvas/components/canvas-page";
 import { testData, mockResponses } from "../test-data";
 
 // Mock child components and hooks

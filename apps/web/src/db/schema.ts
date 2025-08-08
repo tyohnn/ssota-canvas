@@ -6,12 +6,17 @@ import {
   integer,
   timestamp,
   pgEnum,
+  pgPolicy,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 
+// Roles for RLS policies
+const anonRole = "anon";
+const authenticatedRole = "authenticated";
+
 // Enums
-export const nodeTypeEnum = pgEnum("node_type", [
+export const blockTypeEnum = pgEnum("block_type", [
   "agent",
   "task",
   "workflow",
@@ -19,7 +24,7 @@ export const nodeTypeEnum = pgEnum("node_type", [
   "checklist",
   "data",
   "artifact_class",
-  "node_definition",
+  "block_definition",
   "edge_definition",
   "column_definition",
 ]);
@@ -29,13 +34,15 @@ export const edgeTypeEnum = pgEnum("edge_type", [
   "next",
   "input",
   "output",
+  "accesses",
+  "used_by",
 ]);
 
 // Users table (for Clerk integration)
 export const users = pgTable(
   "users",
   {
-    id: uuid("id").primaryKey().notNull(), // Clerk user ID
+    id: varchar("id", { length: 100 }).primaryKey().notNull(), // Clerk user ID
     email: varchar("email", { length: 255 }).notNull(),
     first_name: varchar("first_name", { length: 100 }),
     last_name: varchar("last_name", { length: 100 }),
@@ -47,14 +54,30 @@ export const users = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
+  (table) => [
     // RLS Policies
-    readPolicy: sql`CREATE POLICY "Enable read access for authenticated users" ON users FOR SELECT TO authenticated USING ((select auth.uid()) = id)`,
-    insertPolicy: sql`CREATE POLICY "Enable insert for authenticated users" ON users FOR INSERT TO authenticated WITH CHECK ((select auth.uid()) = id)`,
-    updatePolicy: sql`CREATE POLICY "Enable update for users based on id" ON users FOR UPDATE TO authenticated USING ((select auth.uid()) = id) WITH CHECK ((select auth.uid()) = id)`,
-    deletePolicy: sql`CREATE POLICY "Enable delete for users based on id" ON users FOR DELETE TO authenticated USING ((select auth.uid()) = id)`,
-  })
-);
+    pgPolicy("Enable read access for authenticated users", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`current_setting('app.user_id', true) = id`,
+    }),
+    pgPolicy("Enable insert for authenticated users", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`current_setting('app.user_id', true) = id`,
+    }),
+    pgPolicy("Enable update for users based on id", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`current_setting('app.user_id', true) = id`,
+    }),
+    pgPolicy("Enable delete for users based on id", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`current_setting('app.user_id', true) = id`,
+    }),
+  ]
+).enableRLS();
 
 // Workspaces table
 export const workspaces = pgTable(
@@ -62,7 +85,9 @@ export const workspaces = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     name: varchar("name", { length: 100 }).notNull(),
-    owner_id: uuid("owner_id").notNull(), // References Clerk user ID
+    description: varchar("description", { length: 500 }).default(""),
+    owner_id: varchar("owner_id", { length: 100 }).notNull(), // References Clerk user ID
+    metadata: jsonb("metadata").default({}),
     created_at: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -70,25 +95,41 @@ export const workspaces = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
+  (table) => [
     // RLS Policies
-    readPolicy: sql`CREATE POLICY "Enable read access for workspace members" ON workspaces FOR SELECT TO authenticated USING (true)`,
-    insertPolicy: sql`CREATE POLICY "Enable insert for authenticated users" ON workspaces FOR INSERT TO authenticated WITH CHECK ((select auth.uid()) = owner_id)`,
-    updatePolicy: sql`CREATE POLICY "Enable update for workspace owners" ON workspaces FOR UPDATE TO authenticated USING ((select auth.uid()) = owner_id) WITH CHECK ((select auth.uid()) = owner_id)`,
-    deletePolicy: sql`CREATE POLICY "Enable delete for workspace owners" ON workspaces FOR DELETE TO authenticated USING ((select auth.uid()) = owner_id)`,
-  })
-);
+    pgPolicy("Enable read access for workspace owners", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`current_setting('app.user_id', true) = owner_id`,
+    }),
+    pgPolicy("Enable insert for authenticated users", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`current_setting('app.user_id', true) = owner_id`,
+    }),
+    pgPolicy("Enable update for workspace owners", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`current_setting('app.user_id', true) = owner_id`,
+    }),
+    pgPolicy("Enable delete for workspace owners", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`current_setting('app.user_id', true) = owner_id`,
+    }),
+  ]
+).enableRLS();
 
-// Nodes table - Universal Node System
-export const nodes = pgTable(
-  "nodes",
+// Blocks table - Universal Block System
+export const blocks = pgTable(
+  "blocks",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    node_type: nodeTypeEnum("node_type").notNull(),
+    block_type: blockTypeEnum("block_type").notNull(),
     slug: varchar("slug", { length: 100 }).notNull(),
     name: varchar("name", { length: 100 }).notNull(),
     metadata: jsonb("metadata").notNull(),
-    parent_node_id: uuid("parent_node_id"), // Will be self-referenced after table creation
+    parent_block_id: uuid("parent_block_id"), // Will be self-referenced after table creation
     workspace_id: uuid("workspace_id")
       .references(() => workspaces.id, { onDelete: "cascade" })
       .notNull(),
@@ -99,53 +140,86 @@ export const nodes = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
+  (table) => [
     // Indexes
-    slugWorkspaceIdx: sql`CREATE UNIQUE INDEX idx_nodes_slug_workspace_unique ON nodes (slug, workspace_id) WHERE workspace_id IS NOT NULL`,
-    typeIdx: sql`CREATE INDEX idx_nodes_type ON nodes (node_type)`,
-    parentIdx: sql`CREATE INDEX idx_nodes_parent ON nodes (parent_node_id)`,
-    workspaceIdx: sql`CREATE INDEX idx_nodes_workspace ON nodes (workspace_id)`,
-
-    // Partial indexes for specific node types
-    agentIdx: sql`CREATE INDEX idx_nodes_agent_type ON nodes (node_type) WHERE node_type = 'agent'`,
-    templateIdx: sql`CREATE INDEX idx_nodes_template_type ON nodes (node_type) WHERE node_type = 'artifact_template'`,
-    nodeDefIdx: sql`CREATE INDEX idx_nodes_node_definition_type ON nodes (node_type) WHERE node_type = 'node_definition'`,
-    edgeDefIdx: sql`CREATE INDEX idx_nodes_edge_definition_type ON nodes (node_type) WHERE node_type = 'edge_definition'`,
-    columnDefIdx: sql`CREATE INDEX idx_nodes_column_definition_type ON nodes (node_type) WHERE node_type = 'column_definition'`,
-    artifactClassIdx: sql`CREATE INDEX idx_nodes_artifact_class_type ON nodes (node_type) WHERE node_type = 'artifact_class'`,
+    sql`CREATE UNIQUE INDEX idx_blocks_slug_workspace_unique ON blocks (slug, workspace_id) WHERE workspace_id IS NOT NULL`,
+    sql`CREATE INDEX idx_blocks_type ON blocks (block_type)`,
+    sql`CREATE INDEX idx_blocks_parent ON blocks (parent_block_id)`,
+    sql`CREATE INDEX idx_blocks_workspace ON blocks (workspace_id)`,
+    sql`CREATE INDEX idx_blocks_agent_type ON blocks (block_type) WHERE block_type = 'agent'`,
+    sql`CREATE INDEX idx_blocks_template_type ON blocks (block_type) WHERE block_type = 'artifact_template'`,
+    sql`CREATE INDEX idx_blocks_block_definition_type ON blocks (block_type) WHERE block_type = 'block_definition'`,
+    sql`CREATE INDEX idx_blocks_edge_definition_type ON blocks (block_type) WHERE block_type = 'edge_definition'`,
+    sql`CREATE INDEX idx_blocks_column_definition_type ON blocks (block_type) WHERE block_type = 'column_definition'`,
+    sql`CREATE INDEX idx_blocks_artifact_class_type ON blocks (block_type) WHERE block_type = 'artifact_class'`,
 
     // Constraints
-    slugFormatConstraint: sql`ALTER TABLE nodes ADD CONSTRAINT chk_nodes_slug_format CHECK (slug ~ '^[a-z0-9-]+$')`,
-    nameLengthConstraint: sql`ALTER TABLE nodes ADD CONSTRAINT chk_nodes_name_length CHECK (char_length(name) BETWEEN 1 AND 100)`,
-    parentNodeConstraint: sql`ALTER TABLE nodes ADD CONSTRAINT fk_nodes_parent_node_id FOREIGN KEY (parent_node_id) REFERENCES nodes(id) ON DELETE SET NULL`,
-    agentMetadataConstraint: sql`ALTER TABLE nodes ADD CONSTRAINT chk_agent_metadata_required CHECK (node_type != 'agent' OR (metadata ? 'persona' AND metadata ? 'role' AND jsonb_array_length(metadata->'persona') > 0 AND jsonb_array_length(metadata->'role') > 0))`,
-    templateMetadataConstraint: sql`ALTER TABLE nodes ADD CONSTRAINT chk_template_metadata_required CHECK (node_type != 'artifact_template' OR (metadata ? 'artifact_format' AND metadata ? 'definitions' AND jsonb_array_length(metadata->'definitions') > 0))`,
-    nodeDefMetadataConstraint: sql`ALTER TABLE nodes ADD CONSTRAINT chk_node_definition_metadata_required CHECK (node_type != 'node_definition' OR (metadata ? 'ai_instruction' AND metadata ? 'design_properties' AND metadata ? 'metadata_schema'))`,
-    edgeDefMetadataConstraint: sql`ALTER TABLE nodes ADD CONSTRAINT chk_edge_definition_metadata_required CHECK (node_type != 'edge_definition' OR (metadata ? 'style_properties' AND metadata ? 'metadata_schema'))`,
-    columnDefMetadataConstraint: sql`ALTER TABLE nodes ADD CONSTRAINT chk_column_definition_metadata_required CHECK (node_type != 'column_definition' OR (metadata ? 'data_type' AND metadata ? 'validation_rules'))`,
-    artifactClassMetadataConstraint: sql`ALTER TABLE nodes ADD CONSTRAINT chk_artifact_class_metadata_required CHECK (node_type != 'artifact_class' OR (metadata ? 'source_template_id' AND metadata ? 'class_configuration'))`,
+    sql`ALTER TABLE blocks ADD CONSTRAINT chk_blocks_slug_format CHECK (slug ~ '^[a-z0-9가-힣-]+$')`,
+    sql`ALTER TABLE blocks ADD CONSTRAINT chk_blocks_name_length CHECK (char_length(name) BETWEEN 1 AND 100)`,
+    sql`ALTER TABLE blocks ADD CONSTRAINT fk_blocks_parent_block_id FOREIGN KEY (parent_block_id) REFERENCES blocks(id) ON DELETE SET NULL`,
+    sql`ALTER TABLE blocks ADD CONSTRAINT chk_agent_metadata_required CHECK (block_type != 'agent' OR (metadata ? 'persona' AND metadata ? 'role' AND jsonb_array_length(metadata->'persona') > 0 AND jsonb_array_length(metadata->'role') > 0))`,
+    sql`ALTER TABLE blocks ADD CONSTRAINT chk_template_metadata_required CHECK (block_type != 'artifact_template' OR (metadata ? 'artifact_format' AND metadata ? 'definitions' AND jsonb_array_length(metadata->'definitions') > 0))`,
+    sql`ALTER TABLE blocks ADD CONSTRAINT chk_block_definition_metadata_required CHECK (block_type != 'block_definition' OR (metadata ? 'ai_instruction' AND metadata ? 'design_properties' AND metadata ? 'metadata_schema'))`,
+    sql`ALTER TABLE blocks ADD CONSTRAINT chk_edge_definition_metadata_required CHECK (block_type != 'edge_definition' OR (metadata ? 'style_properties' AND metadata ? 'metadata_schema'))`,
+    sql`ALTER TABLE blocks ADD CONSTRAINT chk_column_definition_metadata_required CHECK (block_type != 'column_definition' OR (metadata ? 'data_type' AND metadata ? 'validation_rules'))`,
+    sql`ALTER TABLE blocks ADD CONSTRAINT chk_artifact_class_metadata_required CHECK (block_type != 'artifact_class' OR (metadata ? 'source_template_id' AND metadata ? 'class_configuration'))`,
 
     // RLS Policies
-    readPolicy: sql`CREATE POLICY "Enable read access for all users" ON nodes FOR SELECT TO anon, authenticated USING (true)`,
-    insertPolicy: sql`CREATE POLICY "Enable insert for workspace members" ON nodes FOR INSERT TO authenticated WITH CHECK (workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))`,
-    updatePolicy: sql`CREATE POLICY "Enable update for workspace members" ON nodes FOR UPDATE TO authenticated USING (workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))) WITH CHECK (workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))`,
-    deletePolicy: sql`CREATE POLICY "Enable delete for workspace members" ON nodes FOR DELETE TO authenticated USING (workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))`,
-  })
-);
+    pgPolicy("Enable read access for workspace members", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM workspaces 
+        WHERE workspaces.id = blocks.workspace_id 
+        AND workspaces.owner_id = current_setting('app.user_id', true)
+      )`,
+    }),
+    pgPolicy("Enable insert for workspace members", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM workspaces 
+        WHERE workspaces.id = blocks.workspace_id 
+        AND workspaces.owner_id = current_setting('app.user_id', true)
+      )`,
+    }),
+    pgPolicy("Enable update for workspace members", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM workspaces 
+        WHERE workspaces.id = blocks.workspace_id 
+        AND workspaces.owner_id = current_setting('app.user_id', true)
+      )`,
+    }),
+    pgPolicy("Enable delete for workspace members", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM workspaces 
+        WHERE workspaces.id = blocks.workspace_id 
+        AND workspaces.owner_id = current_setting('app.user_id', true)
+      )`,
+    }),
+  ]
+).enableRLS();
 
-// Edges table - Node relationships
+// Edges table - Block relationships
 export const edges = pgTable(
   "edges",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    source_node_id: uuid("source_node_id")
-      .references(() => nodes.id, { onDelete: "cascade" })
+    source_block_id: uuid("source_block_id")
+      .references(() => blocks.id, { onDelete: "cascade" })
       .notNull(),
-    target_node_id: uuid("target_node_id")
-      .references(() => nodes.id, { onDelete: "cascade" })
+    target_block_id: uuid("target_block_id")
+      .references(() => blocks.id, { onDelete: "cascade" })
       .notNull(),
     edge_type: edgeTypeEnum("edge_type").notNull(),
     metadata: jsonb("metadata"),
+    workspace_id: uuid("workspace_id")
+      .references(() => workspaces.id, { onDelete: "cascade" })
+      .notNull(),
     created_at: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -153,33 +227,71 @@ export const edges = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
+  (table) => [
     // Indexes
-    sourceIdx: sql`CREATE INDEX idx_edges_source ON edges (source_node_id)`,
-    targetIdx: sql`CREATE INDEX idx_edges_target ON edges (target_node_id)`,
-    typeIdx: sql`CREATE INDEX idx_edges_type ON edges (edge_type)`,
+    sql`CREATE INDEX idx_edges_source ON edges (source_block_id)`,
+    sql`CREATE INDEX idx_edges_target ON edges (target_block_id)`,
+    sql`CREATE INDEX idx_edges_type ON edges (edge_type)`,
 
     // Constraints
-    edgeTypeConstraint: sql`ALTER TABLE edges ADD CONSTRAINT chk_edges_type_valid CHECK (edge_type IN ('contains', 'next', 'input', 'output'))`,
-    noSelfRefConstraint: sql`ALTER TABLE edges ADD CONSTRAINT chk_edges_no_self_ref CHECK (source_node_id != target_node_id)`,
+    sql`ALTER TABLE edges ADD CONSTRAINT chk_edges_type_valid CHECK (edge_type IN ('contains', 'next', 'input', 'output', 'accesses', 'used_by'))`,
+    sql`ALTER TABLE edges ADD CONSTRAINT chk_edges_no_self_ref CHECK (source_block_id != target_block_id)`,
 
     // RLS Policies
-    readPolicy: sql`CREATE POLICY "Enable read access for all users" ON edges FOR SELECT TO anon, authenticated USING (true)`,
-    insertPolicy: sql`CREATE POLICY "Enable insert for workspace members" ON edges FOR INSERT TO authenticated WITH CHECK (source_node_id IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))))`,
-    updatePolicy: sql`CREATE POLICY "Enable update for workspace members" ON edges FOR UPDATE TO authenticated USING (source_node_id IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))) WITH CHECK (source_node_id IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))))`,
-    deletePolicy: sql`CREATE POLICY "Enable delete for workspace members" ON edges FOR DELETE TO authenticated USING (source_node_id IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))))`,
-  })
-);
+    pgPolicy("Enable read access for workspace members", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM blocks 
+        JOIN workspaces ON blocks.workspace_id = workspaces.id
+        WHERE blocks.id = edges.source_block_id 
+        AND workspaces.owner_id = current_setting('app.user_id', true)
+      )`,
+    }),
+    pgPolicy("Enable insert for workspace members", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM blocks 
+        JOIN workspaces ON blocks.workspace_id = workspaces.id
+        WHERE blocks.id = edges.source_block_id 
+        AND workspaces.owner_id = current_setting('app.user_id', true)
+      )`,
+    }),
+    pgPolicy("Enable update for workspace members", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM blocks 
+        JOIN workspaces ON blocks.workspace_id = workspaces.id
+        WHERE blocks.id = edges.source_block_id 
+        AND workspaces.owner_id = current_setting('app.user_id', true)
+      )`,
+    }),
+    pgPolicy("Enable delete for workspace members", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM blocks 
+        JOIN workspaces ON blocks.workspace_id = workspaces.id
+        WHERE blocks.id = edges.source_block_id 
+        AND workspaces.owner_id = current_setting('app.user_id', true)
+      )`,
+    }),
+  ]
+).enableRLS();
 
-// Node positions table - Visual layout persistence
-export const nodePositions = pgTable(
-  "node_positions",
+// Block positions table - Context-based visual layout persistence
+export const blockPositions = pgTable(
+  "block_positions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    node_id: uuid("node_id")
-      .references(() => nodes.id, { onDelete: "cascade" })
-      .notNull()
-      .unique(),
+    block_id: uuid("block_id")
+      .references(() => blocks.id, { onDelete: "cascade" })
+      .notNull(),
+    context_block_id: uuid("context_block_id") // Page context (which page the block is rendered in)
+      .references(() => blocks.id, { onDelete: "cascade" })
+      .notNull(),
     x_position: integer("x_position").notNull(),
     y_position: integer("y_position").notNull(),
     created_at: timestamp("created_at", { withTimezone: true })
@@ -189,86 +301,124 @@ export const nodePositions = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
+  (table) => [
     // Indexes
-    nodeIdx: sql`CREATE INDEX idx_node_positions_node ON node_positions (node_id)`,
+    sql`CREATE INDEX idx_block_positions_block ON block_positions (block_id)`,
+    sql`CREATE INDEX idx_block_positions_context ON block_positions (context_block_id)`,
+    sql`CREATE UNIQUE INDEX idx_block_positions_context_unique ON block_positions (block_id, context_block_id)`,
 
     // Constraints
-    positionRangeConstraint: sql`ALTER TABLE node_positions ADD CONSTRAINT chk_node_positions_range CHECK (x_position >= 0 AND y_position >= 0)`,
+    sql`ALTER TABLE block_positions ADD CONSTRAINT chk_block_positions_range CHECK (x_position >= 0 AND y_position >= 0)`,
 
     // RLS Policies
-    readPolicy: sql`CREATE POLICY "Enable read access for all users" ON node_positions FOR SELECT TO anon, authenticated USING (true)`,
-    insertPolicy: sql`CREATE POLICY "Enable insert for workspace members" ON node_positions FOR INSERT TO authenticated WITH CHECK (node_id IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))))`,
-    updatePolicy: sql`CREATE POLICY "Enable update for workspace members" ON node_positions FOR UPDATE TO authenticated USING (node_id IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))) WITH CHECK (node_id IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))))`,
-    deletePolicy: sql`CREATE POLICY "Enable delete for workspace members" ON node_positions FOR DELETE TO authenticated USING (node_id IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))))`,
-  })
-);
+    pgPolicy("Enable read access for workspace members", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM blocks 
+        JOIN workspaces ON blocks.workspace_id = workspaces.id
+        WHERE blocks.id = block_positions.block_id 
+        AND workspaces.owner_id = current_setting('app.user_id', true)
+      )`,
+    }),
+    pgPolicy("Enable insert for workspace members", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM blocks 
+        JOIN workspaces ON blocks.workspace_id = workspaces.id
+        WHERE blocks.id = block_positions.block_id 
+        AND workspaces.owner_id = current_setting('app.user_id', true)
+      )`,
+    }),
+    pgPolicy("Enable update for workspace members", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM blocks 
+        JOIN workspaces ON blocks.workspace_id = workspaces.id
+        WHERE blocks.id = block_positions.block_id 
+        AND workspaces.owner_id = current_setting('app.user_id', true)
+      )`,
+    }),
+    pgPolicy("Enable delete for workspace members", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM blocks 
+        JOIN workspaces ON blocks.workspace_id = workspaces.id
+        WHERE blocks.id = block_positions.block_id 
+        AND workspaces.owner_id = current_setting('app.user_id', true)
+      )`,
+    }),
+  ]
+).enableRLS();
 
 // Relations
 export const workspacesRelations = relations(workspaces, ({ many }) => ({
-  nodes: many(nodes),
+  blocks: many(blocks),
+  edges: many(edges),
 }));
 
-export const nodesRelations = relations(nodes, ({ one, many }) => ({
+export const blocksRelations = relations(blocks, ({ one, many }) => ({
   workspace: one(workspaces, {
-    fields: [nodes.workspace_id],
+    fields: [blocks.workspace_id],
     references: [workspaces.id],
   }),
-  parent: one(nodes, {
-    fields: [nodes.parent_node_id],
-    references: [nodes.id],
-    relationName: "nodeHierarchy",
+  parent: one(blocks, {
+    fields: [blocks.parent_block_id],
+    references: [blocks.id],
+    relationName: "blockHierarchy",
   }),
-  children: many(nodes, {
-    relationName: "nodeHierarchy",
+  children: many(blocks, {
+    relationName: "blockHierarchy",
   }),
-  sourceEdges: many(edges, { relationName: "sourceNode" }),
-  targetEdges: many(edges, { relationName: "targetNode" }),
-  position: one(nodePositions, {
-    fields: [nodes.id],
-    references: [nodePositions.node_id],
-  }),
+  sourceEdges: many(edges, { relationName: "sourceBlock" }),
+  targetEdges: many(edges, { relationName: "targetBlock" }),
+  positions: many(blockPositions, { relationName: "blockPositions" }),
+  contextPositions: many(blockPositions, { relationName: "contextPositions" }),
 }));
 
 export const edgesRelations = relations(edges, ({ one }) => ({
-  sourceNode: one(nodes, {
-    fields: [edges.source_node_id],
-    references: [nodes.id],
-    relationName: "sourceNode",
+  workspace: one(workspaces, {
+    fields: [edges.workspace_id],
+    references: [workspaces.id],
   }),
-  targetNode: one(nodes, {
-    fields: [edges.target_node_id],
-    references: [nodes.id],
-    relationName: "targetNode",
+  sourceBlock: one(blocks, {
+    fields: [edges.source_block_id],
+    references: [blocks.id],
+    relationName: "sourceBlock",
   }),
-}));
-
-export const nodePositionsRelations = relations(nodePositions, ({ one }) => ({
-  node: one(nodes, {
-    fields: [nodePositions.node_id],
-    references: [nodes.id],
+  targetBlock: one(blocks, {
+    fields: [edges.target_block_id],
+    references: [blocks.id],
+    relationName: "targetBlock",
   }),
 }));
 
-// Enable RLS on all tables
-export const enableRLS = (): ReturnType<typeof sql>[] => {
-  return [
-    sql`ALTER TABLE users ENABLE ROW LEVEL SECURITY`,
-    sql`ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY`,
-    sql`ALTER TABLE nodes ENABLE ROW LEVEL SECURITY`,
-    sql`ALTER TABLE edges ENABLE ROW LEVEL SECURITY`,
-    sql`ALTER TABLE node_positions ENABLE ROW LEVEL SECURITY`,
-  ];
-};
+export const blockPositionsRelations = relations(blockPositions, ({ one }) => ({
+  block: one(blocks, {
+    fields: [blockPositions.block_id],
+    references: [blocks.id],
+    relationName: "blockPositions",
+  }),
+  contextBlock: one(blocks, {
+    fields: [blockPositions.context_block_id],
+    references: [blocks.id],
+    relationName: "contextPositions",
+  }),
+}));
+
+// RLS is now enabled via .enableRLS() on each table
 
 // Export types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Workspace = typeof workspaces.$inferSelect;
 export type NewWorkspace = typeof workspaces.$inferInsert;
-export type Node = typeof nodes.$inferSelect;
-export type NewNode = typeof nodes.$inferInsert;
+export type Block = typeof blocks.$inferSelect;
+export type NewBlock = typeof blocks.$inferInsert;
 export type Edge = typeof edges.$inferSelect;
 export type NewEdge = typeof edges.$inferInsert;
-export type NodePosition = typeof nodePositions.$inferSelect;
-export type NewNodePosition = typeof nodePositions.$inferInsert;
+export type BlockPosition = typeof blockPositions.$inferSelect;
+export type NewBlockPosition = typeof blockPositions.$inferInsert;

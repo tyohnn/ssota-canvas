@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { CanvasPage } from "@/domains/canvas/components/canvas-page";
+import { CanvasPage } from "@/domains/workflow-canvas/components/canvas-page";
 import { testData } from "../../test-data";
 
 // Mock the hooks

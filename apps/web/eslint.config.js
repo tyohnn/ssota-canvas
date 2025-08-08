@@ -38,7 +38,7 @@ export default [
       "@typescript-eslint/prefer-reduce-type-parameter": "off", // Requires type information
       "@typescript-eslint/prefer-string-starts-ends-with": "off", // Requires type information
       "@typescript-eslint/prefer-ts-expect-error": "error",
-      "@typescript-eslint/unbound-method": "error",
+      "@typescript-eslint/unbound-method": "off", // Requires type information
       "@typescript-eslint/unified-signatures": "error",
     },
   },
