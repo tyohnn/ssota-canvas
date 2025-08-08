@@ -18,7 +18,8 @@
     "commander": "^12.1.0",
     "ora": "^8.1.1",
     "zod": "^3.23.8",
-    "@workspace/domain-contracts": "workspace:*"
+    "@workspace/domain-contracts": "workspace:*",
+    "@workspace/templates": "workspace:*"
   },
   "devDependencies": {
     "@workspace/typescript-config": "workspace:*",

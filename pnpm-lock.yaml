@@ -51,6 +51,9 @@ importers:
       '@workspace/domain-contracts':
         specifier: workspace:*
         version: link:../../packages/domain-contracts
+      '@workspace/templates':
+        specifier: workspace:*
+        version: link:../../packages/templates
       '@workspace/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -151,6 +154,9 @@ importers:
       '@workspace/domain-contracts':
         specifier: workspace:*
         version: link:../../packages/domain-contracts
+      '@workspace/templates':
+        specifier: workspace:*
+        version: link:../../packages/templates
       chalk:
         specifier: ^5.3.0
         version: 5.5.0
@@ -170,6 +176,28 @@ importers:
       '@workspace/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.20.3)(typescript@5.7.3)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.20.3
+      typescript:
+        specifier: ^5.7.3
+        version: 5.7.3
+
+  packages/component-docs:
+    dependencies:
+      '@workspace/domain-contracts':
+        specifier: workspace:*
+        version: link:../domain-contracts
+      '@workspace/templates':
+        specifier: workspace:*
+        version: link:../templates
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.16.5
       tsup:
         specifier: ^8.3.5
         version: 8.5.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.20.3)(typescript@5.7.3)
@@ -239,6 +267,21 @@ importers:
       typescript-eslint:
         specifier: ^8.24.1
         version: 8.24.1(eslint@9.20.1(jiti@2.4.2))(typescript@5.7.3)
+
+  packages/templates:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.16.5
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.20.3)(typescript@5.7.3)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.20.3
+      typescript:
+        specifier: ^5.7.3
+        version: 5.7.3
 
   packages/typescript-config: {}
 
