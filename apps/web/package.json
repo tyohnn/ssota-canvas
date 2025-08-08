@@ -28,6 +28,7 @@
     "@hookform/resolvers": "^5.1.1",
     "@supabase/supabase-js": "^2.52.0",
     "@workspace/ui": "workspace:*",
+    "@workspace/domain-contracts": "workspace:*",
     "@xyflow/react": "^12.8.2",
     "cjk-slug": "^0.3.1",
     "drizzle-orm": "^0.44.3",
