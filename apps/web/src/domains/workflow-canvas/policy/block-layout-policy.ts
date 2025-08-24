@@ -163,8 +163,8 @@ function findBlockByType(
 function calculateCenterAlignedPositions(
   targetBlocks: Array<{ id: string; type: string; position: Position }>,
   referenceY: number,
-  spacing: number = 50,
-  blockHeight: number = 100
+  spacing = 50,
+  blockHeight = 100
 ): Position[] {
   if (targetBlocks.length === 0) return [];
 

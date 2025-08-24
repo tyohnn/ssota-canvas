@@ -6,7 +6,7 @@ import {
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-} from "@workspace/ui/components/navigation-menu";
+} from "@workspace/ui/components/ui/navigation-menu";
 
 interface NavigationLinksProps {
   workspaceId?: string;

@@ -18,8 +18,8 @@ import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
-} from "@workspace/ui/components/resizable";
-import { Button } from "@workspace/ui/components/button";
+} from "@workspace/ui/components/ui/resizable";
+import { Button } from "@workspace/ui/components/ui/button";
 
 interface CanvasPageProps {
   workspaceId: string;

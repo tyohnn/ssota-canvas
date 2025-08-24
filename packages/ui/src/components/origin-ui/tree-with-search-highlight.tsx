@@ -12,8 +12,8 @@ import {
 import { useTree } from "@headless-tree/react";
 import { FolderIcon, FolderOpenIcon, SearchIcon } from "lucide-react";
 
-import { Input } from "@workspace/ui/components/input";
-import { Tree, TreeItem, TreeItemLabel } from "@workspace/ui/components/tree";
+import { Input } from "@/components/ui/input";
+import { Tree, TreeItem, TreeItemLabel } from "@/components/ui/tree";
 
 interface Item {
   name: string;

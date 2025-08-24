@@ -1,0 +1,2 @@
+ALTER TABLE "edges" ADD COLUMN "context_block_id" uuid NOT NULL;--> statement-breakpoint
+ALTER TABLE "edges" ADD CONSTRAINT "edges_context_block_id_blocks_id_fk" FOREIGN KEY ("context_block_id") REFERENCES "public"."blocks"("id") ON DELETE cascade ON UPDATE no action;

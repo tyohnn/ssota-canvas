@@ -1,5 +1,5 @@
+export type { RenderContext } from "@workspace/templates";
 export {
-  RenderContext,
   renderTemplate,
   renderTemplateStrict,
   listPlaceholders,

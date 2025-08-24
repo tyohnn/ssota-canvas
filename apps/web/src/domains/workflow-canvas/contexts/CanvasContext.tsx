@@ -43,6 +43,9 @@ interface CanvasContextValue {
   dbBlockPositions: DbBlockPosition[];
   selectedPageBlock: DbBlock | null;
 
+  // Component Definitions Cache
+  componentDefinitionsById?: Map<string, DbBlock>;
+
   // Canvas 상태 (React Flow)
   displayBlocks: ReactFlowBlock[];
   displayEdges: ReactFlowEdge[];
@@ -150,12 +153,25 @@ export function CanvasProvider({
       initialDbBlockPositions
     );
 
+  // Build component definition cache (object=component & role=definition)
+  const componentDefinitionsById = React.useMemo(() => {
+    const defs = (canvasState.dbBlocks || []).filter((b) => {
+      const object = (b as any)?.object;
+      const role = (b.metadata as any)?.role;
+      return object === "component" && role === "definition";
+    });
+    return new Map(defs.map((d) => [d.id, d]));
+  }, [canvasState.dbBlocks]);
+
   const contextValue: CanvasContextValue = {
     // DB 상태 (Single Source of Truth)
     dbBlocks: canvasState.dbBlocks,
     dbEdges: canvasState.dbEdges,
     dbBlockPositions: canvasState.dbBlockPositions,
     selectedPageBlock: canvasState.selectedPageBlock,
+
+    // component definitions cache
+    componentDefinitionsById,
 
     // Canvas 상태 (reactFlowCanvasState 가져오기)
     displayBlocks: reactFlowCanvasState.displayBlocks,

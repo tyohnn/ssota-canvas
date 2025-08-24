@@ -1,17 +1,17 @@
-import { useId } from "react"
-import { RiGatsbyLine, RiNextjsLine, RiReactjsLine } from "@remixicon/react"
+import { useId } from "react";
+import { RiGatsbyLine, RiNextjsLine, RiReactjsLine } from "@remixicon/react";
 
-import { Label } from "@workspace/ui/components/label"
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components/select"
+} from "@/components/ui/select";
 
 export default function Component() {
-  const id = useId()
+  const id = useId();
   return (
     <div className="*:not-first:mt-2">
       <Label htmlFor={id}>Options with icon and right indicator</Label>
@@ -38,5 +38,5 @@ export default function Component() {
         </SelectContent>
       </Select>
     </div>
-  )
+  );
 }

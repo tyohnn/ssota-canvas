@@ -1,0 +1,1 @@
+ALTER TABLE "workspaces" ALTER COLUMN "icon_name" SET DEFAULT 'presentation';

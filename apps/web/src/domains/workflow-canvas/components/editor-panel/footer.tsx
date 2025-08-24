@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 import { Save, Loader2 } from "lucide-react";
-import { Button } from "@workspace/ui/components/button";
+import { Button } from "@workspace/ui/components/ui/button";
 import { useEditorPanelContext } from "./context";
-import { toast } from "@workspace/ui/components/sonner";
+import { toast } from "@workspace/ui/components/ui/sonner";
 
 export function EditorPanelFooter() {
   const { state, handlers, handleCloseEditorWithCentering } =

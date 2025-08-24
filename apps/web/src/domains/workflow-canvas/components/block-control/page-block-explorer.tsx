@@ -8,16 +8,16 @@ import {
   Plus,
   Search,
 } from "lucide-react";
-import { Button } from "@workspace/ui/components/button";
-import { Input } from "@workspace/ui/components/input";
-import { Separator } from "@workspace/ui/components/separator";
-import { Skeleton } from "@workspace/ui/components/skeleton";
-import { Tree, TreeItem } from "@workspace/ui/components/origin-ui/tree";
+import { Button } from "@workspace/ui/components/ui/button";
+import { Input } from "@workspace/ui/components/ui/input";
+import { Separator } from "@workspace/ui/components/ui/separator";
+import { Skeleton } from "@workspace/ui/components/ui/skeleton";
+import { Tree, TreeItem } from "@workspace/ui/components/ui/tree";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-} from "@workspace/ui/components/tooltip";
+} from "@workspace/ui/components/ui/tooltip";
 import { PAGE_BLOCK_ICONS } from "@/domains/workflow-canvas/policy";
 import {
   usePageBlockExplorerHandler,

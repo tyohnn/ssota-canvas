@@ -3,13 +3,13 @@
 import React from "react";
 import { PageBlockExplorer } from "./page-block-explorer";
 import { BlockLayerExplorer } from "./block-layer-explorer";
-import { Separator } from "@workspace/ui/components/separator";
+import { Separator } from "@workspace/ui/components/ui/separator";
 import {
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-} from "@workspace/ui/components/tabs";
+} from "@workspace/ui/components/ui/tabs";
 import { useCanvas } from "@/domains/workflow-canvas/contexts/CanvasContext";
 import { ActiveLeftTab } from "@/domains/workflow-canvas/hooks/state/useCanvasUIState";
 

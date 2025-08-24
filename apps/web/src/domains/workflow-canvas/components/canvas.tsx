@@ -39,7 +39,7 @@ import {
 } from "./edges";
 import { CanvasStatus } from "./canvas-control/canvas-status";
 import { Plus } from "lucide-react";
-import { Button } from "@workspace/ui/components/button";
+import { Button } from "@workspace/ui/components/ui/button";
 import { useCanvas } from "../contexts/CanvasContext";
 
 function ViewportController() {
@@ -67,7 +67,7 @@ function ViewportController() {
       if (reactFlowNodes.length > 0) {
         // 매칭 확인
         let matchedCount = 0;
-        let unmatchedDisplayBlocks: string[] = [];
+        const unmatchedDisplayBlocks: string[] = [];
 
         if (viewportAction === "center") {
           displayBlocks.forEach((block) => {

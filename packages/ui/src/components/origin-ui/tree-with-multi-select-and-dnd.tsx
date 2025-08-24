@@ -17,7 +17,7 @@ import {
   TreeDragLine,
   TreeItem,
   TreeItemLabel,
-} from "@workspace/ui/components/origin-ui/tree";
+} from "@/components/ui/tree";
 
 interface Item {
   name: string;
@@ -70,17 +70,20 @@ export default function Component() {
     isItemFolder: (item) => (item.getItemData()?.children?.length ?? 0) > 0,
     canReorder: true,
     onDrop: createOnDropHandler((parentItem, newChildrenIds) => {
-      setItems((prevItems) => ({
-        ...prevItems,
-        [parentItem.getId()]: {
-          ...prevItems[parentItem.getId()],
+      setItems((prevItems) => {
+        const parentId = parentItem.getId();
+        const current = prevItems[parentId];
+        const next: Record<string, Item> = { ...prevItems };
+        next[parentId] = {
+          name: current?.name ?? "",
           children: newChildrenIds,
-        },
-      }));
+        };
+        return next;
+      });
     }),
     dataLoader: {
-      getItem: (itemId) => items[itemId],
-      getChildren: (itemId) => items[itemId].children ?? [],
+      getItem: (itemId) => items[itemId]!,
+      getChildren: (itemId) => items[itemId]?.children ?? [],
     },
     features: [
       syncDataLoaderFeature,

@@ -4,7 +4,7 @@ import React from "react";
 import { useEditorPanelContext } from "../context";
 import { FormGroup } from "@/domains/workflow-canvas/policy/editor-rendering-policy";
 import { FormFieldRenderer } from "./form-field-renderer";
-import { Separator } from "@workspace/ui/components/separator";
+import { Separator } from "@workspace/ui/components/ui/separator";
 
 export function ConfigurationTab() {
   const { state, handlers } = useEditorPanelContext();

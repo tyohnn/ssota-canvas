@@ -2,17 +2,17 @@
 
 import React from "react";
 import { Controller } from "react-hook-form";
-import { Label } from "@workspace/ui/components/label";
-import { Input } from "@workspace/ui/components/input";
-import { Textarea } from "@workspace/ui/components/textarea";
+import { Label } from "@workspace/ui/components/ui/label";
+import { Input } from "@workspace/ui/components/ui/input";
+import { Textarea } from "@workspace/ui/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components/select";
-import { Checkbox } from "@workspace/ui/components/checkbox";
+} from "@workspace/ui/components/ui/select";
+import { Checkbox } from "@workspace/ui/components/ui/checkbox";
 
 interface FormFieldRendererProps {
   field: any;

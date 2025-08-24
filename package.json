@@ -14,6 +14,8 @@
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "prettier": "^3.5.1",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.5.0",
     "turbo": "^2.4.2",
     "typescript": "5.7.3"
   },
@@ -22,6 +24,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@dagrejs/dagre": "^1.1.5"
+    "@dagrejs/dagre": "^1.1.5",
+    "date-fns": "^4.1.0"
   }
 }

@@ -92,6 +92,15 @@ export interface BlockDefinitionMetadata {}
 export interface EdgeDefinitionMetadata {}
 export interface ColumnDefinitionMetadata {}
 
+export interface TwitterPreviewMetadata {
+  url?: string;
+  theme?: "light" | "dark";
+  title?: string;
+  description?: string;
+  image?: string;
+  siteName?: string;
+}
+
 export type BlockMetadata =
   | AgentMetadata
   | TaskMetadata
@@ -106,6 +115,7 @@ export type BlockMetadata =
   | StartMetadata
   | EndMetadata
   | ConditionMetadata
+  | TwitterPreviewMetadata
   | Record<string, unknown>;
 
 export interface BlockRecord {

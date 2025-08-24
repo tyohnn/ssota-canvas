@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Button } from "@workspace/ui/components/button";
+import { Button } from "@workspace/ui/components/ui/button";
 import { useCanvas } from "@/domains/workflow-canvas/contexts/CanvasContext";
 import {
   PAGE_BLOCK_DATA,

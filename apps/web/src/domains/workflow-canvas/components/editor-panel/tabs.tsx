@@ -7,7 +7,7 @@ import {
   TabsList,
   TabsTrigger,
   TabsContent,
-} from "@workspace/ui/components/tabs";
+} from "@workspace/ui/components/ui/tabs";
 import { Settings, Palette, GitBranch, Database } from "lucide-react";
 import { ConfigurationTab } from "./tabs/configuration-tab";
 import { DesignTab } from "./tabs/design-tab";

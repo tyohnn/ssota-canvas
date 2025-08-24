@@ -19,6 +19,7 @@ import {
   EditorRenderingStrategyFactory,
   EditorBlockType,
 } from "@/domains/workflow-canvas/policy/editor-rendering-policy";
+import { ActionResult } from "@/lib/action-result";
 
 // Block creation schema
 const createBlockSchema = z.object({
@@ -112,16 +113,7 @@ export type UpdateBlockPositionInput = z.infer<
 
 // Extended types for frontend consumption
 
-// API Response types
-export type BlockActionResult<T = any> =
-  | {
-      success: true;
-      data: T;
-    }
-  | {
-      success: false;
-      error: string;
-    };
+// API Response types unified under ActionResult<T>
 
 /**
  * Create a new block with position
@@ -228,7 +220,7 @@ export async function getBlock(blockId: string) {
  */
 export async function getWorkspaceBlocks(
   workspaceId: string
-): Promise<BlockActionResult<DbBlock[]>> {
+): Promise<ActionResult<DbBlock[]>> {
   try {
     const db = await createClerkDrizzleSupabaseClient();
 
@@ -260,7 +252,7 @@ export async function getWorkspaceBlocks(
  */
 export async function getWorkspaceBlockPositions(
   workspaceId: string
-): Promise<BlockActionResult<BlockPosition[]>> {
+): Promise<ActionResult<BlockPosition[]>> {
   try {
     const db = await createClerkDrizzleSupabaseClient();
 
@@ -451,7 +443,7 @@ function generateInitialMetadata(blockType: BlockType): BlockMetadata {
  */
 export async function createPageBlock<T extends BlockType>(
   input: CreatePageBlockInput & { blockType: T }
-): Promise<BlockActionResult<TypedDbBlockMap[T]>> {
+): Promise<ActionResult<TypedDbBlockMap[T]>> {
   try {
     const validatedInput = createPageBlockSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
@@ -528,7 +520,7 @@ export async function createBlockPosition(input: CreateBlockPositionInput) {
  */
 export async function batchUpdateBlockPositions(
   input: BatchUpdateBlockPositionsInput
-): Promise<BlockActionResult<DbBlockPosition[]>> {
+): Promise<ActionResult<DbBlockPosition[]>> {
   try {
     const validatedInput = batchUpdateBlockPositionsSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
@@ -603,7 +595,7 @@ export async function updateContextBlockPosition(
   contextBlockId: string,
   x: number,
   y: number
-): Promise<BlockActionResult<DbBlockPosition>> {
+): Promise<ActionResult<DbBlockPosition>> {
   try {
     const db = await createClerkDrizzleSupabaseClient();
 

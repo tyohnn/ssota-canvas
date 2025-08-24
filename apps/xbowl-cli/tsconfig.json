@@ -2,14 +2,18 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "@workspace/typescript-config/base.json",
   "compilerOptions": {
-    "outDir": "dist",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2022",
     "types": ["node"],
     "rootDir": "src",
-    "noEmit": false
+    "outDir": "dist",
+    "noEmit": false,
+    "baseUrl": ".",
+    "paths": {
+      "@workspace/templates": ["../../packages/templates/src/index.ts"]
+    }
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src", "src/**/*.ts"],
   "exclude": ["dist", "node_modules"]
 }

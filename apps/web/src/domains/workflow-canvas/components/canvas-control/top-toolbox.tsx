@@ -14,14 +14,14 @@ import {
   Layers,
 } from "lucide-react";
 
-import { Button } from "@workspace/ui/components/button";
-import { Separator } from "@workspace/ui/components/separator";
-import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/ui/button";
+import { Separator } from "@workspace/ui/components/ui/separator";
+import { Badge } from "@workspace/ui/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@workspace/ui/components/tooltip";
+} from "@workspace/ui/components/ui/tooltip";
 import { useCanvas } from "@/domains/workflow-canvas/contexts/CanvasContext";
 import {
   PAGE_BLOCK_ICONS,

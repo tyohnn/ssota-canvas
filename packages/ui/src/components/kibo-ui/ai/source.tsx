@@ -6,8 +6,8 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@workspace/ui/components/collapsible";
-import { cn } from "@workspace/ui/lib/utils";
+} from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 export type AISourcesProps = ComponentProps<"div">;
 

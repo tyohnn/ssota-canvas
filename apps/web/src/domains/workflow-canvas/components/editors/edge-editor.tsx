@@ -1,24 +1,24 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Input } from "@workspace/ui/components/input";
-import { Label } from "@workspace/ui/components/label";
-import { Textarea } from "@workspace/ui/components/textarea";
+import { Input } from "@workspace/ui/components/ui/input";
+import { Label } from "@workspace/ui/components/ui/label";
+import { Textarea } from "@workspace/ui/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components/select";
-import { Badge } from "@workspace/ui/components/badge";
-import { Button } from "@workspace/ui/components/button";
+} from "@workspace/ui/components/ui/select";
+import { Badge } from "@workspace/ui/components/ui/badge";
+import { Button } from "@workspace/ui/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@workspace/ui/components/card";
+} from "@workspace/ui/components/ui/card";
 
 interface EdgeEditorProps {
   edge: any;

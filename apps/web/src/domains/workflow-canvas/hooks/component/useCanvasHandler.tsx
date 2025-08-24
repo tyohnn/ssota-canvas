@@ -11,7 +11,7 @@ import {
   BlockPositionPolicyFactory,
   PositionCalculationContext,
 } from "@/domains/workflow-canvas/policy/block-layout-policy";
-import { toast } from "@workspace/ui/components/sonner";
+import { toast } from "@workspace/ui/components/ui/sonner";
 import {
   Block,
   Edge as DbEdge,
@@ -188,8 +188,12 @@ export function useCanvasEventHandler(
           metadata: {}, // 기본 메타데이터는 서버에서 생성됨
           workspace_id: workspaceId,
           parent_block_id: null,
+          object: "page",
+          icon_name: "file",
+          order: 1000,
           created_at: new Date(),
           updated_at: new Date(),
+          deleted_at: null,
         };
 
         // 즉시 상태 업데이트 (Optimistic)
@@ -235,6 +239,7 @@ export function useCanvasEventHandler(
           y_position: 0,
           created_at: new Date(),
           updated_at: new Date(),
+          deleted_at: null,
         };
 
         // Optimistic 위치 정보 추가
@@ -311,12 +316,19 @@ export function useCanvasEventHandler(
         );
 
         if (blockExists) {
-          uiState.setViewportAction("select"); // 뷰포트 액션 설정 -> ViewportController.useEffect[displayBlocks, viewportAction] 트리거 -> viewport 업데이트 -> 선택된 블록 좌측 배치
-          uiState.setShowEditorPanelState(true);
+          // If editor is open, shift focus to the right of the selected block
+          // If editor is closed, center arrangement
+          uiState.setViewportAction(
+            uiState.showEditorPanel ? "select" : "center"
+          );
         }
       }
     }
-  }, [reactFlowCanvasState.selectedBlocks]);
+  }, [
+    reactFlowCanvasState.selectedBlocks,
+    reactFlowCanvasState.displayBlocks,
+    uiState.showEditorPanel,
+  ]);
 
   // ======================================= //
 
@@ -530,7 +542,7 @@ export function useCanvasEventHandler(
             const result = await createEdge({
               sourceBlockId: edge.source_block_id,
               targetBlockId: edge.target_block_id,
-              edgeType: edge.edge_type,
+              edgeType: edge.edge_type as any,
               metadata: edge.metadata as Record<string, any> | undefined,
               workspaceId: edge.workspace_id,
             });
@@ -615,6 +627,7 @@ export function useCanvasEventHandler(
                   y_position: pos.y_position,
                   created_at: new Date(),
                   updated_at: new Date(),
+                  deleted_at: null,
                 });
               }
             });

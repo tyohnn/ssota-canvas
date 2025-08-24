@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useCallback } from "react";
-import { Button } from "@workspace/ui/components/button";
-import { Input } from "@workspace/ui/components/input";
-import { Separator } from "@workspace/ui/components/separator";
+import { Button } from "@workspace/ui/components/ui/button";
+import { Input } from "@workspace/ui/components/ui/input";
+import { Separator } from "@workspace/ui/components/ui/separator";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-} from "@workspace/ui/components/tooltip";
+} from "@workspace/ui/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -18,7 +18,7 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components/select";
+} from "@workspace/ui/components/ui/select";
 import {
   Eye,
   EyeOff,

@@ -5,12 +5,12 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@workspace/ui/components/collapsible";
+} from "@/components/ui/collapsible";
 import { ChevronDownIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
-import { cn } from "@workspace/ui/lib/utils";
-import { AIResponse } from "@workspace/ui/components/kibo-ui/ai/response";
+import { cn } from "@/lib/utils";
+import { AIResponse } from "@/components/kibo-ui/ai/response";
 
 type AIReasoningContextValue = {
   isStreaming: boolean;

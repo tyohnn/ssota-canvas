@@ -4,11 +4,7 @@ import React from "react";
 import { hotkeysCoreFeature, syncDataLoaderFeature } from "@headless-tree/core";
 import { useTree } from "@headless-tree/react";
 
-import {
-  Tree,
-  TreeItem,
-  TreeItemLabel,
-} from "@workspace/ui/components/origin-ui/tree";
+import { Tree, TreeItem, TreeItemLabel } from "@/components/origin-ui/tree";
 
 interface Item {
   name: string;
@@ -57,8 +53,8 @@ export default function Component() {
     getItemName: (item) => item.getItemData().name,
     isItemFolder: (item) => (item.getItemData()?.children?.length ?? 0) > 0,
     dataLoader: {
-      getItem: (itemId) => items[itemId],
-      getChildren: (itemId) => items[itemId].children ?? [],
+      getItem: (itemId) => items[itemId]!,
+      getChildren: (itemId) => items[itemId]?.children ?? [],
     },
     features: [syncDataLoaderFeature, hotkeysCoreFeature],
   });

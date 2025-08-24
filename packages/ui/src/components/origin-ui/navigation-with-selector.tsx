@@ -1,39 +1,39 @@
-import { ChevronsUpDown } from "lucide-react"
-import { Select as SelectPrimitive } from "radix-ui"
+import { ChevronsUpDown } from "lucide-react";
+import { Select as SelectPrimitive } from "radix-ui";
 
-import SettingsMenu from "@workspace/ui/components/navbar-components/settings-menu"
-import UserMenu from "@workspace/ui/components/navbar-components/user-menu"
+import SettingsMenu from "@/components/navbar-components/settings-menu";
+import UserMenu from "@/components/navbar-components/user-menu";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbSeparator,
-} from "@workspace/ui/components/breadcrumb"
-import { Button } from "@workspace/ui/components/button"
+} from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-} from "@workspace/ui/components/navigation-menu"
+} from "@/components/ui/navigation-menu";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@workspace/ui/components/popover"
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectValue,
-} from "@workspace/ui/components/select"
+} from "@/components/ui/select";
 
 // Navigation links array to be used in both desktop and mobile menus
 const navigationLinks = [
   { href: "#", label: "Dashboard" },
   { href: "#", label: "Docs" },
   { href: "#", label: "API reference" },
-]
+];
 
 export default function Component() {
   return (
@@ -170,5 +170,5 @@ export default function Component() {
         </div>
       </div>
     </header>
-  )
+  );
 }

@@ -1,21 +1,33 @@
-import { Suspense } from "react";
-import { DashboardHeader } from "./components/dashboard-header";
-import { DashboardHeaderSkeleton } from "./components/dashboard-header-skeleton";
-import { MainContentSkeleton } from "./components/main-content-skeleton";
+import { Geist, Geist_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 
-export default function DashboardLayout({
+import "@workspace/ui/styles/globals.css";
+import { Providers } from "../provider";
+
+const fontSans = Geist({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const fontMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+});
+
+export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <div className="h-screen flex flex-col">
-      <Suspense fallback={<DashboardHeaderSkeleton />}>
-        <DashboardHeader />
-      </Suspense>
-      <main className="flex-1 overflow-hidden flex flex-col">
-        <Suspense fallback={<MainContentSkeleton />}>{children}</Suspense>
-      </main>
-    </div>
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning className="h-svh">
+        <body
+          className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased h-full overflow-hidden overscroll-none`}
+        >
+          <Providers>{children}</Providers>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

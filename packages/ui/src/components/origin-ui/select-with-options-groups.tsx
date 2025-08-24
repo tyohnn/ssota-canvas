@@ -1,6 +1,6 @@
-import { useId } from "react"
+import { useId } from "react";
 
-import { Label } from "@workspace/ui/components/label"
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -9,10 +9,10 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components/select"
+} from "@/components/ui/select";
 
 export default function Component() {
-  const id = useId()
+  const id = useId();
   return (
     <div className="*:not-first:mt-2">
       <Label htmlFor={id}>Select with options groups</Label>
@@ -36,5 +36,5 @@ export default function Component() {
         </SelectContent>
       </Select>
     </div>
-  )
+  );
 }

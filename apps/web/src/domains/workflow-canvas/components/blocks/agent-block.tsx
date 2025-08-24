@@ -3,14 +3,6 @@
 import React, { memo } from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
-import { Badge } from "@workspace/ui/components/badge";
-import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
-import {
   PAGE_BLOCK_COLOR_TOKENS,
   PAGE_BLOCK_ICONS,
   getBlockColorClasses,

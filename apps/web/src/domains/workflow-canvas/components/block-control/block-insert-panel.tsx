@@ -1,19 +1,19 @@
 "use client";
 
 import React from "react";
-import { Button } from "@workspace/ui/components/button";
-import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/ui/button";
+import { Badge } from "@workspace/ui/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@workspace/ui/components/tooltip";
+} from "@workspace/ui/components/ui/tooltip";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-} from "@workspace/ui/components/hover-card";
+} from "@workspace/ui/components/ui/hover-card";
 import { X, Info, Plus } from "lucide-react";
 import { useBlockInsertPanelHandler } from "@/domains/workflow-canvas/hooks";
 import {

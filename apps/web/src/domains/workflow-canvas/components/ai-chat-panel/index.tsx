@@ -34,8 +34,8 @@ import {
   AIToolResult,
   type AIToolStatus,
 } from "@workspace/ui/components/kibo-ui/ai/tool";
-import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { Button } from "@workspace/ui/components/button";
+import { ScrollArea } from "@workspace/ui/components/ui/scroll-area";
+import { Button } from "@workspace/ui/components/ui/button";
 import { MessageSquare, X, PlusIcon, MicIcon, GlobeIcon } from "lucide-react";
 
 interface ChatMessage {
@@ -447,7 +447,9 @@ export function AIChatPanel({ className }: AIChatPanelProps) {
         <AIInput onSubmit={handleSubmit}>
           <AIInputTextarea
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              setInputValue(e.target.value)
+            }
             placeholder="Ask about your workflow canvas..."
             disabled={isStreaming}
             maxHeight={100}

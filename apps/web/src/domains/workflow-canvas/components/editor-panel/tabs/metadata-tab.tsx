@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useEditorPanelContext } from "../context";
-import { Label } from "@workspace/ui/components/label";
+import { Label } from "@workspace/ui/components/ui/label";
 import { Block, Edge } from "@/db/schema";
 
 // 타입 가드 함수들

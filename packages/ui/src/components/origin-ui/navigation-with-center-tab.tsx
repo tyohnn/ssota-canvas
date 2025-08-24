@@ -1,10 +1,10 @@
-import { SparklesIcon, UploadIcon } from "lucide-react"
+import { SparklesIcon, UploadIcon } from "lucide-react";
 
-import AppToggle from "@workspace/ui/components/navbar-components/app-toggle"
-import TeamSwitcher from "@workspace/ui/components/navbar-components/team-switcher"
-import { Button } from "@workspace/ui/components/button"
+import AppToggle from "@/components/navbar-components/app-toggle";
+import TeamSwitcher from "@/components/navbar-components/team-switcher";
+import { Button } from "@/components/ui/button";
 
-const teams = ["Acme Inc.", "Origin UI", "Junon"]
+const teams = ["Acme Inc.", "Origin UI", "Junon"];
 
 export default function Component() {
   return (
@@ -12,7 +12,7 @@ export default function Component() {
       <div className="flex h-16 items-center justify-between gap-4">
         {/* Left side */}
         <div className="flex flex-1 items-center gap-2">
-          <TeamSwitcher teams={teams} defaultTeam={teams[0]} />
+          <TeamSwitcher teams={teams} defaultTeam={teams[0]!} />
         </div>
         {/* Middle area */}
         <AppToggle />
@@ -41,5 +41,5 @@ export default function Component() {
         </div>
       </div>
     </header>
-  )
+  );
 }

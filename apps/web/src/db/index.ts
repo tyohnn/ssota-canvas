@@ -1,8 +1,10 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
+import { sql } from "drizzle-orm";
 import * as schema from "./schema";
 import { config } from "@/config";
+import { devLog } from "@/utils/dev-logger";
 
 // Database connection configuration
 const connectionString = config.database.url;
@@ -23,7 +25,7 @@ const client = postgres(connectionString, {
   },
 });
 
-// Create drizzle instance
+// Create drizzle instance (shared pool)
 export const db = drizzle(client, { schema });
 
 // Create RLS-enabled database client for Clerk
@@ -34,54 +36,24 @@ export async function createClerkDrizzleSupabaseClient() {
     throw new Error("Authentication required");
   }
 
-  // Create postgres connection with user context
-  const rlsClient = postgres(connectionString, {
-    // Set user context for RLS
-    prepare: false,
-    // Add user context to connection
-    connection: {
-      application_name: `xbowl-${userId}`,
-    },
-    // Connection timeout settings
-    connect_timeout: 10,
-    idle_timeout: 20,
-    max: 10,
-    // SSL settings for Supabase
-    ssl: {
-      rejectUnauthorized: false,
-    },
-  });
-
-  // Create drizzle instance with schema
-  const rlsDb = drizzle(rlsClient, { schema });
-
-  // Return RLS wrapper
+  // Facade returning an RLS helper backed by the shared pool + transaction-scoped SET LOCAL
   return {
-    rls: async <T>(fn: (tx: typeof rlsDb) => Promise<T>): Promise<T> => {
+    rls: async <T>(fn: (tx: typeof db) => Promise<T>): Promise<T> => {
       try {
-        // Set user context for this connection
-        console.log("🔐 [RLS] Setting user context:", userId);
-        await rlsClient.unsafe(`SET "app.user_id" = '${userId}'`);
-
-        const result = await fn(rlsDb);
-        console.log("✅ [RLS] Query executed successfully");
-        return result;
+        return await db.transaction(async (tx) => {
+          // devLog("🔐 [RLS] Setting user context (SET LOCAL):", { userId });
+          // SET LOCAL is scoped to the current transaction only
+          await tx.execute(sql.raw(`SET LOCAL "app.user_id" = '${userId}'`));
+          const result = await fn(tx as any);
+          // devLog("✅ [RLS] Query executed successfully");
+          return result;
+        });
       } catch (error) {
-        console.error("❌ [RLS] Transaction error:", error);
+        // devLog("❌ [RLS] Transaction error:", { error });
         throw error;
-      } finally {
-        try {
-          // Reset context
-          await rlsClient.unsafe(`RESET "app.user_id"`);
-          console.log("🔄 [RLS] User context reset");
-        } catch (resetError) {
-          console.error("Error resetting user context:", resetError);
-        }
       }
     },
-
-    // Direct access (use with caution)
-    direct: rlsDb,
+    direct: db,
   };
 }
 

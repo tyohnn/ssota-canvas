@@ -7,16 +7,16 @@ import type {
   KeyboardEventHandler,
 } from "react";
 import { Children, useCallback, useEffect, useRef } from "react";
-import { Button } from "@workspace/ui/components/button";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components/select";
-import { Textarea } from "@workspace/ui/components/textarea";
-import { cn } from "@workspace/ui/lib/utils";
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 type UseAutoResizeTextareaProps = {
   minHeight: number;
