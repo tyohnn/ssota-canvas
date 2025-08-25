@@ -125,6 +125,14 @@ export function useUiLayoutHandler(initial?: Partial<UiLayoutState>) {
     dispatch({ type: "CLOSE_ALL_PANELS" });
   }, []);
 
+  const toggleBlockInsertPanel = useCallback(() => {
+    if (state.showBlockInsertPanel) {
+      dispatch({ type: "CLOSE_BLOCK_INSERT" });
+    } else {
+      dispatch({ type: "OPEN_BLOCK_INSERT" });
+    }
+  }, [state.showBlockInsertPanel]);
+
   return useMemo(
     () => ({
       state,
@@ -141,6 +149,7 @@ export function useUiLayoutHandler(initial?: Partial<UiLayoutState>) {
       closePageBlockInsertPanel,
       openBlockInsertPanel,
       closeBlockInsertPanel,
+      toggleBlockInsertPanel,
       openEditorPanel,
       closeEditorPanel,
       closeAllPanels,
@@ -152,6 +161,7 @@ export function useUiLayoutHandler(initial?: Partial<UiLayoutState>) {
       closePageBlockInsertPanel,
       openBlockInsertPanel,
       closeBlockInsertPanel,
+      toggleBlockInsertPanel,
       openEditorPanel,
       closeEditorPanel,
       closeAllPanels,

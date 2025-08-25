@@ -1,0 +1,920 @@
+{
+  "template": {
+    "id": "service-architecture-template-v2",
+    "name": "Service Architecture Document",
+    "version": "2.0",
+    "description": "Service architecture for Xbowl platform with detailed technology stack and PaaS service nodes",
+    "output": {
+      "format": "flow",
+      "filename": "service-architecture.json",
+      "schema": "FlowTemplateContent"
+    }
+  },
+  "metadata": {
+    "projectName": "xbowl",
+    "projectVersion": "1.0.0",
+    "createdAt": "2025-01-27T10:00:00Z",
+    "updatedAt": "2025-01-27T10:00:00Z",
+    "totalSystemComponents": 8,
+    "totalTechnologyStacks": 12,
+    "totalPaaSServices": 4,
+    "totalServiceInteractions": 12,
+    "totalArchitectureLayers": 4,
+    "technologyStack": {
+      "frontend": [
+        "React 19",
+        "Next.js 15",
+        "TypeScript 5",
+        "React Flow",
+        "Tailwind CSS",
+        "shadcn/ui",
+        "Milkdown",
+        "React Hook Form"
+      ],
+      "backend": [
+        "Next.js 15 Server Actions",
+        "Supabase",
+        "Drizzle ORM",
+        "Zod"
+      ],
+      "authentication": ["Clerk"],
+      "ai": ["Vercel AI SDK", "OpenAI API"],
+      "deployment": ["Vercel"]
+    },
+    "architectureLayers": [
+      "presentation",
+      "application",
+      "domain",
+      "infrastructure"
+    ],
+    "performanceRequirements": {
+      "responseTime": "< 2 seconds",
+      "throughput": "1000+ concurrent users",
+      "availability": "99.9% uptime",
+      "canvasPerformance": "10+ nodes smoothly",
+      "workflowStartTime": "< 5 seconds"
+    },
+    "securityRequirements": {
+      "authentication": "OAuth 2.0 with Clerk",
+      "authorization": "Row Level Security (RLS)",
+      "dataEncryption": "AES-256 encryption at rest",
+      "apiSecurity": "JWT tokens with refresh"
+    },
+    "scalabilityRequirements": {
+      "horizontalScaling": "Auto-scaling on Vercel",
+      "databaseScaling": "Supabase auto-scaling",
+      "caching": "Redis for session management",
+      "cdn": "Vercel Edge Network"
+    },
+    "owner": "Xbowl System Architect",
+    "reviewDate": "2025-01-27"
+  },
+  "nodes": [
+    {
+      "id": "react-19-framework",
+      "type": "technology-stack",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "name": "React 19",
+        "stackType": "frontend-framework",
+        "version": "19.0.0",
+        "responsibilities": [
+          "Component-based UI development",
+          "State management with hooks",
+          "Virtual DOM rendering",
+          "Event handling and lifecycle management"
+        ],
+        "performance": {
+          "bundleSize": "~45KB gzipped",
+          "renderTime": "< 16ms for 60fps",
+          "memoryUsage": "Optimized with concurrent features"
+        },
+        "integration": [
+          "Next.js 15 App Router",
+          "React Flow for canvas",
+          "shadcn/ui components"
+        ],
+        "responsibleTeam": "Frontend Team"
+      }
+    },
+    {
+      "id": "nextjs-15-framework",
+      "type": "technology-stack",
+      "position": { "x": 300, "y": 100 },
+      "data": {
+        "name": "Next.js 15",
+        "stackType": "fullstack-framework",
+        "version": "15.0.0",
+        "responsibilities": [
+          "Server-side rendering and static generation",
+          "App Router for file-based routing",
+          "Server Actions for backend logic",
+          "API routes and middleware",
+          "Build optimization and bundling"
+        ],
+        "performance": {
+          "buildTime": "< 30 seconds",
+          "coldStart": "< 1 second",
+          "hotReload": "< 500ms"
+        },
+        "integration": [
+          "React 19",
+          "TypeScript 5",
+          "Supabase",
+          "Vercel deployment"
+        ],
+        "responsibleTeam": "Fullstack Team"
+      }
+    },
+    {
+      "id": "typescript-5-language",
+      "type": "technology-stack",
+      "position": { "x": 500, "y": 100 },
+      "data": {
+        "name": "TypeScript 5",
+        "stackType": "programming-language",
+        "version": "5.0.0",
+        "responsibilities": [
+          "Type safety and static analysis",
+          "IntelliSense and developer experience",
+          "Compile-time error checking",
+          "Interface and type definitions"
+        ],
+        "performance": {
+          "compileTime": "< 5 seconds",
+          "typeChecking": "Incremental compilation",
+          "bundleSize": "Zero runtime overhead"
+        },
+        "integration": [
+          "React 19",
+          "Next.js 15",
+          "Drizzle ORM",
+          "Zod validation"
+        ],
+        "responsibleTeam": "Fullstack Team"
+      }
+    },
+    {
+      "id": "react-flow-library",
+      "type": "technology-stack",
+      "position": { "x": 100, "y": 300 },
+      "data": {
+        "name": "React Flow",
+        "stackType": "ui-library",
+        "version": "11.0.0",
+        "responsibilities": [
+          "Visual canvas and workflow design",
+          "Drag-and-drop node manipulation",
+          "Edge connections and routing",
+          "Real-time collaboration features",
+          "Custom node rendering"
+        ],
+        "performance": {
+          "nodeRendering": "10+ nodes smoothly",
+          "interactionLatency": "< 100ms",
+          "memoryUsage": "Optimized for large graphs"
+        },
+        "integration": [
+          "React 19",
+          "Universal Node System",
+          "Real-time updates"
+        ],
+        "responsibleTeam": "Frontend Team"
+      }
+    },
+    {
+      "id": "tailwind-css-framework",
+      "type": "technology-stack",
+      "position": { "x": 300, "y": 300 },
+      "data": {
+        "name": "Tailwind CSS",
+        "stackType": "styling-framework",
+        "version": "3.4.0",
+        "responsibilities": [
+          "Utility-first CSS framework",
+          "Responsive design utilities",
+          "Custom design system",
+          "Dark mode support"
+        ],
+        "performance": {
+          "bundleSize": "Purged unused styles",
+          "renderTime": "Optimized CSS-in-JS",
+          "cacheEfficiency": "Long-term caching"
+        },
+        "integration": [
+          "shadcn/ui components",
+          "Next.js 15",
+          "Custom design tokens"
+        ],
+        "responsibleTeam": "Frontend Team"
+      }
+    },
+    {
+      "id": "shadcn-ui-library",
+      "type": "technology-stack",
+      "position": { "x": 500, "y": 300 },
+      "data": {
+        "name": "shadcn/ui",
+        "stackType": "ui-library",
+        "version": "0.0.0",
+        "responsibilities": [
+          "Pre-built React components",
+          "Consistent design system",
+          "Accessibility compliance",
+          "Customizable theming"
+        ],
+        "performance": {
+          "componentSize": "Tree-shakable imports",
+          "renderTime": "Optimized components",
+          "bundleSize": "Only imported components"
+        },
+        "integration": ["Tailwind CSS", "React 19", "Radix UI primitives"],
+        "responsibleTeam": "Frontend Team"
+      }
+    },
+    {
+      "id": "supabase-platform",
+      "type": "paas-service",
+      "position": { "x": 100, "y": 500 },
+      "data": {
+        "name": "Supabase",
+        "serviceType": "backend-as-a-service",
+        "features": [
+          "PostgreSQL database",
+          "Real-time subscriptions",
+          "Row Level Security (RLS)",
+          "Edge Functions",
+          "Storage service",
+          "Authentication integration"
+        ],
+        "performance": {
+          "queryTime": "< 100ms",
+          "realtimeLatency": "< 50ms",
+          "availability": "99.9% uptime"
+        },
+        "scalability": {
+          "autoScaling": "Automatic scaling",
+          "connectionPooling": "Built-in connection management",
+          "readReplicas": "Available for scaling"
+        },
+        "integration": [
+          "Drizzle ORM",
+          "Clerk authentication",
+          "Next.js Server Actions"
+        ],
+        "responsibleTeam": "Backend Team"
+      }
+    },
+    {
+      "id": "drizzle-orm",
+      "type": "technology-stack",
+      "position": { "x": 300, "y": 500 },
+      "data": {
+        "name": "Drizzle ORM",
+        "stackType": "database-orm",
+        "version": "0.29.0",
+        "responsibilities": [
+          "Type-safe database operations",
+          "Schema management and migrations",
+          "Query building and optimization",
+          "Connection pooling"
+        ],
+        "performance": {
+          "queryTime": "< 50ms",
+          "memoryUsage": "Efficient query execution",
+          "bundleSize": "Tree-shakable"
+        },
+        "integration": [
+          "Supabase PostgreSQL",
+          "TypeScript 5",
+          "Next.js Server Actions"
+        ],
+        "responsibleTeam": "Backend Team"
+      }
+    },
+    {
+      "id": "clerk-platform",
+      "type": "paas-service",
+      "position": { "x": 500, "y": 500 },
+      "data": {
+        "name": "Clerk",
+        "serviceType": "authentication-service",
+        "features": [
+          "OAuth 2.0 authentication",
+          "Multi-factor authentication",
+          "User management",
+          "Session management",
+          "Social login providers"
+        ],
+        "performance": {
+          "loginTime": "< 2 seconds",
+          "sessionValidation": "< 100ms",
+          "availability": "99.9% uptime"
+        },
+        "scalability": {
+          "userCapacity": "Unlimited users",
+          "sessionScaling": "Automatic scaling",
+          "globalDistribution": "Edge locations"
+        },
+        "integration": ["Next.js 15", "Supabase RLS", "JWT tokens"],
+        "responsibleTeam": "Backend Team"
+      }
+    },
+    {
+      "id": "vercel-ai-sdk",
+      "type": "technology-stack",
+      "position": { "x": 100, "y": 700 },
+      "data": {
+        "name": "Vercel AI SDK",
+        "stackType": "ai-sdk",
+        "version": "3.0.0",
+        "responsibilities": [
+          "AI service integration",
+          "Streaming responses",
+          "Agent orchestration",
+          "Prompt management"
+        ],
+        "performance": {
+          "responseTime": "< 30 seconds",
+          "streamingLatency": "< 100ms",
+          "tokenEfficiency": "Optimized token usage"
+        },
+        "integration": [
+          "OpenAI API",
+          "Next.js Server Actions",
+          "Universal Node System"
+        ],
+        "responsibleTeam": "AI Team"
+      }
+    },
+    {
+      "id": "openai-platform",
+      "type": "paas-service",
+      "position": { "x": 300, "y": 700 },
+      "data": {
+        "name": "OpenAI API",
+        "serviceType": "ai-service",
+        "features": [
+          "GPT-4 and GPT-3.5 models",
+          "Function calling",
+          "Streaming responses",
+          "Fine-tuning capabilities"
+        ],
+        "performance": {
+          "responseTime": "< 30 seconds",
+          "tokenLimit": "128K context window",
+          "availability": "99.9% uptime"
+        },
+        "scalability": {
+          "rateLimits": "Configurable limits",
+          "modelScaling": "Multiple model options",
+          "globalAccess": "Worldwide availability"
+        },
+        "integration": [
+          "Vercel AI SDK",
+          "Agent workflows",
+          "Natural language processing"
+        ],
+        "responsibleTeam": "AI Team"
+      }
+    },
+    {
+      "id": "vercel-platform",
+      "type": "paas-service",
+      "position": { "x": 500, "y": 700 },
+      "data": {
+        "name": "Vercel",
+        "serviceType": "deployment-platform",
+        "features": [
+          "Global edge deployment",
+          "Automatic scaling",
+          "Edge Functions",
+          "CDN and caching",
+          "Analytics and monitoring"
+        ],
+        "performance": {
+          "deploymentTime": "< 2 minutes",
+          "coldStart": "< 1 second",
+          "globalLatency": "< 100ms"
+        },
+        "scalability": {
+          "autoScaling": "Automatic scaling",
+          "edgeLocations": "Global distribution",
+          "bandwidth": "Unlimited bandwidth"
+        },
+        "integration": ["Next.js 15", "Supabase", "Clerk", "OpenAI API"],
+        "responsibleTeam": "DevOps Team"
+      }
+    },
+    {
+      "id": "frontend-app",
+      "type": "system-component",
+      "position": { "x": 200, "y": 900 },
+      "data": {
+        "name": "Frontend Application",
+        "componentType": "frontend",
+        "technology": [
+          "React 19",
+          "Next.js 15",
+          "TypeScript 5",
+          "React Flow",
+          "Tailwind CSS",
+          "shadcn/ui"
+        ],
+        "responsibilities": [
+          "Dual Canvas System (Design/Execution modes)",
+          "Universal Node System interface",
+          "Real-time workflow visualization",
+          "User authentication UI",
+          "Responsive design and accessibility"
+        ],
+        "performance": {
+          "initialLoad": "< 2 seconds",
+          "canvasRendering": "10+ nodes smoothly",
+          "interactionLatency": "< 100ms"
+        },
+        "security": {
+          "authentication": "Clerk integration",
+          "authorization": "Role-based access",
+          "inputValidation": "Zod schemas"
+        },
+        "scalability": {
+          "codeSplitting": "Dynamic imports",
+          "caching": "Service worker",
+          "optimization": "Bundle optimization"
+        },
+        "responsibleTeam": "Frontend Team"
+      }
+    },
+    {
+      "id": "backend-api",
+      "type": "system-component",
+      "position": { "x": 400, "y": 900 },
+      "data": {
+        "name": "Backend API",
+        "componentType": "backend",
+        "technology": [
+          "Next.js 15 Server Actions",
+          "Supabase",
+          "Drizzle ORM",
+          "TypeScript 5"
+        ],
+        "responsibilities": [
+          "Universal Node CRUD operations",
+          "Workflow execution orchestration",
+          "AI agent management",
+          "Real-time data synchronization",
+          "Authentication and authorization"
+        ],
+        "performance": {
+          "apiResponse": "< 500ms",
+          "databaseQueries": "< 100ms",
+          "concurrentUsers": "1000+"
+        },
+        "security": {
+          "authentication": "Clerk JWT tokens",
+          "authorization": "Supabase RLS",
+          "inputValidation": "Zod schemas",
+          "rateLimiting": "API rate limits"
+        },
+        "scalability": {
+          "serverless": "Vercel functions",
+          "database": "Supabase scaling",
+          "caching": "Redis integration"
+        },
+        "responsibleTeam": "Backend Team"
+      }
+    },
+    {
+      "id": "ai-agent-system",
+      "type": "system-component",
+      "position": { "x": 600, "y": 900 },
+      "data": {
+        "name": "AI Agent System",
+        "componentType": "backend",
+        "technology": ["Vercel AI SDK", "OpenAI API", "Next.js Server Actions"],
+        "responsibilities": [
+          "Agent orchestration and execution",
+          "Natural language processing",
+          "Workflow logic handling",
+          "Progressive node generation",
+          "Artifact-based communication"
+        ],
+        "performance": {
+          "agentResponse": "< 30 seconds",
+          "nodeGeneration": "Real-time streaming",
+          "concurrentAgents": "10+ per workflow"
+        },
+        "security": {
+          "apiKeyManagement": "Secure key storage",
+          "inputSanitization": "Prompt validation",
+          "outputFiltering": "Content moderation"
+        },
+        "scalability": {
+          "tokenManagement": "Efficient usage",
+          "modelScaling": "Multiple model support",
+          "queueManagement": "Workflow queuing"
+        },
+        "responsibleTeam": "AI Team"
+      }
+    },
+    {
+      "id": "database-system",
+      "type": "system-component",
+      "position": { "x": 200, "y": 1100 },
+      "data": {
+        "name": "Database System",
+        "componentType": "database",
+        "technology": [
+          "Supabase PostgreSQL",
+          "Drizzle ORM",
+          "Row Level Security"
+        ],
+        "responsibilities": [
+          "Universal Node storage",
+          "User data management",
+          "Workflow persistence",
+          "Real-time subscriptions",
+          "Data relationships"
+        ],
+        "performance": {
+          "queryTime": "< 100ms",
+          "connectionPool": "100+ connections",
+          "storageCapacity": "Unlimited with Supabase"
+        },
+        "security": {
+          "encryption": "AES-256 at rest",
+          "accessControl": "Row Level Security",
+          "backup": "Automatic backups"
+        },
+        "scalability": {
+          "autoScaling": "Supabase scaling",
+          "readReplicas": "Available",
+          "partitioning": "Automatic"
+        },
+        "responsibleTeam": "Backend Team"
+      }
+    },
+    {
+      "id": "authentication-service",
+      "type": "system-component",
+      "position": { "x": 400, "y": 1100 },
+      "data": {
+        "name": "Authentication Service",
+        "componentType": "external-service",
+        "technology": ["Clerk", "OAuth 2.0", "JWT tokens"],
+        "responsibilities": [
+          "User authentication",
+          "Session management",
+          "Multi-factor authentication",
+          "Social login integration",
+          "User profile management"
+        ],
+        "performance": {
+          "loginTime": "< 2 seconds",
+          "sessionValidation": "< 100ms",
+          "userCapacity": "Unlimited users"
+        },
+        "security": {
+          "encryption": "TLS 1.3",
+          "tokenSecurity": "JWT with refresh",
+          "mfa": "Multi-factor support"
+        },
+        "scalability": {
+          "globalDistribution": "Edge locations",
+          "autoScaling": "Automatic",
+          "sessionScaling": "Unlimited sessions"
+        },
+        "responsibleTeam": "Backend Team"
+      }
+    },
+    {
+      "id": "realtime-service",
+      "type": "system-component",
+      "position": { "x": 600, "y": 1100 },
+      "data": {
+        "name": "Real-time Service",
+        "componentType": "infrastructure",
+        "technology": [
+          "Supabase Realtime",
+          "WebSocket connections",
+          "Edge Functions"
+        ],
+        "responsibilities": [
+          "Live workflow updates",
+          "Collaborative editing",
+          "Node generation streaming",
+          "User presence tracking",
+          "Real-time notifications"
+        ],
+        "performance": {
+          "latency": "< 50ms",
+          "connections": "1000+ concurrent",
+          "messageThroughput": "1000+ messages/sec"
+        },
+        "security": {
+          "connectionAuth": "JWT validation",
+          "channelSecurity": "Encrypted channels",
+          "rateLimiting": "Message rate limits"
+        },
+        "scalability": {
+          "autoScaling": "Supabase scaling",
+          "globalDistribution": "Edge locations",
+          "connectionPooling": "Automatic"
+        },
+        "responsibleTeam": "Backend Team"
+      }
+    },
+    {
+      "id": "deployment-platform",
+      "type": "system-component",
+      "position": { "x": 400, "y": 1300 },
+      "data": {
+        "name": "Deployment Platform",
+        "componentType": "infrastructure",
+        "technology": [
+          "Vercel",
+          "Edge Functions",
+          "CDN",
+          "Global distribution"
+        ],
+        "responsibilities": [
+          "Application hosting",
+          "Global edge deployment",
+          "Automatic scaling",
+          "Performance optimization",
+          "Monitoring and analytics"
+        ],
+        "performance": {
+          "deploymentTime": "< 2 minutes",
+          "coldStart": "< 1 second",
+          "globalLatency": "< 100ms"
+        },
+        "security": {
+          "ssl": "Automatic SSL",
+          "ddos": "DDoS protection",
+          "monitoring": "Security monitoring"
+        },
+        "scalability": {
+          "autoScaling": "Automatic scaling",
+          "edgeLocations": "Global distribution",
+          "bandwidth": "Unlimited"
+        },
+        "responsibleTeam": "DevOps Team"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "react-nextjs-integration",
+      "type": "technology-integration",
+      "source": "react-19-framework",
+      "target": "nextjs-15-framework",
+      "data": {
+        "name": "React-Next.js Integration",
+        "integrationType": "framework-integration",
+        "integrationLevel": "tight",
+        "dependencies": ["App Router", "Server Components"],
+        "features": ["SSR", "SSG", "ISR"],
+        "owner": "Fullstack Team"
+      }
+    },
+    {
+      "id": "nextjs-typescript-integration",
+      "type": "technology-integration",
+      "source": "nextjs-15-framework",
+      "target": "typescript-5-language",
+      "data": {
+        "name": "Next.js-TypeScript Integration",
+        "integrationType": "language-integration",
+        "integrationLevel": "tight",
+        "dependencies": ["Type checking", "IntelliSense"],
+        "features": ["Type safety", "Compile-time errors"],
+        "owner": "Fullstack Team"
+      }
+    },
+    {
+      "id": "react-flow-integration",
+      "type": "technology-integration",
+      "source": "react-flow-library",
+      "target": "react-19-framework",
+      "data": {
+        "name": "React Flow Integration",
+        "integrationType": "library-integration",
+        "integrationLevel": "tight",
+        "dependencies": ["React hooks", "Canvas API"],
+        "features": ["Drag-and-drop", "Real-time updates"],
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "tailwind-shadcn-integration",
+      "type": "technology-integration",
+      "source": "tailwind-css-framework",
+      "target": "shadcn-ui-library",
+      "data": {
+        "name": "Tailwind-shadcn/ui Integration",
+        "integrationType": "styling-integration",
+        "integrationLevel": "tight",
+        "dependencies": ["Utility classes", "Design tokens"],
+        "features": ["Consistent styling", "Theme system"],
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "supabase-drizzle-integration",
+      "type": "technology-integration",
+      "source": "supabase-platform",
+      "target": "drizzle-orm",
+      "data": {
+        "name": "Supabase-Drizzle Integration",
+        "integrationType": "database-integration",
+        "integrationLevel": "tight",
+        "dependencies": ["PostgreSQL", "Connection pooling"],
+        "features": ["Type-safe queries", "Migrations"],
+        "owner": "Backend Team"
+      }
+    },
+    {
+      "id": "vercel-ai-openai-integration",
+      "type": "technology-integration",
+      "source": "vercel-ai-sdk",
+      "target": "openai-platform",
+      "data": {
+        "name": "Vercel AI-OpenAI Integration",
+        "integrationType": "ai-integration",
+        "integrationLevel": "tight",
+        "dependencies": ["API keys", "Streaming"],
+        "features": ["Function calling", "Response streaming"],
+        "owner": "AI Team"
+      }
+    },
+    {
+      "id": "nextjs-vercel-deployment",
+      "type": "deployment-integration",
+      "source": "nextjs-15-framework",
+      "target": "vercel-platform",
+      "data": {
+        "name": "Next.js-Vercel Deployment",
+        "integrationType": "deployment",
+        "integrationLevel": "tight",
+        "deploymentFeatures": ["Edge Functions", "Global CDN"],
+        "performance": "Optimized for Next.js",
+        "owner": "DevOps Team"
+      }
+    },
+    {
+      "id": "frontend-backend-api",
+      "type": "service-interaction",
+      "source": "frontend-app",
+      "target": "backend-api",
+      "data": {
+        "name": "Frontend-Backend API Communication",
+        "interactionType": "api-call",
+        "protocol": "HTTP/HTTPS",
+        "apiSpec": "Next.js Server Actions",
+        "dataFlow": "JSON payloads",
+        "performance": "< 500ms response time",
+        "monitoring": "Request/response logging"
+      }
+    },
+    {
+      "id": "backend-ai-integration",
+      "type": "service-interaction",
+      "source": "backend-api",
+      "target": "ai-agent-system",
+      "data": {
+        "name": "Backend-AI Agent Integration",
+        "interactionType": "ai-integration",
+        "protocol": "HTTP/HTTPS",
+        "apiSpec": "Vercel AI SDK",
+        "dataFlow": "Streaming responses",
+        "performance": "< 30 seconds for responses",
+        "monitoring": "Token usage tracking"
+      }
+    },
+    {
+      "id": "backend-database-query",
+      "type": "service-interaction",
+      "source": "backend-api",
+      "target": "database-system",
+      "data": {
+        "name": "Backend-Database Query",
+        "interactionType": "database-query",
+        "protocol": "PostgreSQL",
+        "apiSpec": "Drizzle ORM",
+        "dataFlow": "SQL queries",
+        "performance": "< 100ms query time",
+        "monitoring": "Query performance metrics"
+      }
+    },
+    {
+      "id": "backend-auth-integration",
+      "type": "service-interaction",
+      "source": "backend-api",
+      "target": "authentication-service",
+      "data": {
+        "name": "Backend-Authentication Integration",
+        "interactionType": "auth-integration",
+        "protocol": "OAuth 2.0",
+        "apiSpec": "Clerk API",
+        "dataFlow": "JWT tokens",
+        "performance": "< 100ms validation",
+        "monitoring": "Authentication events"
+      }
+    },
+    {
+      "id": "frontend-realtime-integration",
+      "type": "service-interaction",
+      "source": "frontend-app",
+      "target": "realtime-service",
+      "data": {
+        "name": "Frontend-Real-time Integration",
+        "interactionType": "realtime-integration",
+        "protocol": "WebSocket",
+        "apiSpec": "Supabase Realtime",
+        "dataFlow": "Real-time events",
+        "performance": "< 50ms latency",
+        "monitoring": "Connection status"
+      }
+    },
+    {
+      "id": "presentation-application-layer",
+      "type": "architecture-layer",
+      "source": "frontend-app",
+      "target": "backend-api",
+      "data": {
+        "name": "Presentation-Application Layer",
+        "layerType": "presentation",
+        "responsibilities": [
+          "User interface rendering",
+          "Client-side state management",
+          "User interaction handling"
+        ],
+        "interfaces": ["REST API", "Server Actions"],
+        "security": ["Authentication", "Authorization"]
+      }
+    },
+    {
+      "id": "application-domain-layer",
+      "type": "architecture-layer",
+      "source": "backend-api",
+      "target": "ai-agent-system",
+      "data": {
+        "name": "Application-Domain Layer",
+        "layerType": "application",
+        "responsibilities": [
+          "Business logic orchestration",
+          "Workflow management",
+          "Agent coordination"
+        ],
+        "interfaces": ["AI SDK", "Agent APIs"],
+        "security": ["API key management", "Input validation"]
+      }
+    },
+    {
+      "id": "domain-infrastructure-layer",
+      "type": "architecture-layer",
+      "source": "ai-agent-system",
+      "target": "database-system",
+      "data": {
+        "name": "Domain-Infrastructure Layer",
+        "layerType": "domain",
+        "responsibilities": [
+          "Data persistence",
+          "Node storage",
+          "Relationship management"
+        ],
+        "interfaces": ["ORM", "Database schema"],
+        "security": ["Row Level Security", "Data encryption"]
+      }
+    },
+    {
+      "id": "infrastructure-platform-layer",
+      "type": "architecture-layer",
+      "source": "database-system",
+      "target": "deployment-platform",
+      "data": {
+        "name": "Infrastructure-Platform Layer",
+        "layerType": "infrastructure",
+        "responsibilities": [
+          "Platform services",
+          "Deployment management",
+          "Performance optimization"
+        ],
+        "interfaces": ["Platform APIs", "Service integrations"],
+        "security": ["Platform security", "Access controls"]
+      }
+    }
+  ],
+  "layout": {
+    "type": "hierarchical",
+    "options": {
+      "direction": "TB",
+      "spacing": 120,
+      "nodeSpacing": 100,
+      "rankSpacing": 200,
+      "padding": 60
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "template": {
+    "id": "wireframe-template-v1",
+    "name": "Wireframe Document",
+    "version": "1.0",
+    "description": "Wireframe for User Profile Page - User account management and preferences interface"
+  },
+  "metadata": {
+    "pageName": "User Profile",
+    "pageType": "Profile",
+    "version": "1.0",
+    "createdAt": "2025-01-22T00:00:00Z",
+    "updatedAt": "2025-01-22T00:00:00Z",
+    "totalStates": 4,
+    "totalComponents": 12,
+    "stateTypes": ["default", "loading", "error", "editing"],
+    "responsiveBreakpoints": ["mobile", "tablet", "desktop"],
+    "accessibilityLevel": "WCAG 2.1 AA",
+    "owner": "Platform Team",
+    "reviewDate": "2025-02-22T00:00:00Z"
+  },
+  "nodes": [
+    {
+      "id": "user-profile-default",
+      "type": "page-state",
+      "position": { "x": 400, "y": 200 },
+      "metadata": {
+        "name": "User Profile Default State",
+        "description": "User profile page in default state with profile information and settings",
+        "type": "webview",
+        "content": "<div style='background: #f5f5f5; padding: 20px; min-height: 100vh; font-family: Arial, sans-serif;'><header style='background: #e0e0e0; padding: 20px; margin-bottom: 20px; border-radius: 8px;'><h1 style='margin: 0; color: #333;'>Account Settings</h1></header><div style='display: grid; grid-template-columns: 1fr 2fr; gap: 20px;'><aside style='background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #bdbdbd; height: fit-content;'><div style='text-align: center; margin-bottom: 20px;'><div style='width: 80px; height: 80px; background: #2196F3; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; margin: 0 auto 10px;'>👤</div><h3 style='margin: 0; color: #333;'>John Doe</h3><p style='margin: 5px 0 0 0; color: #666;'>john.doe@example.com</p></div><nav style='space-y: 5px;'><button style='width: 100%; padding: 10px; background: #e3f2fd; color: #2196F3; border: none; border-radius: 4px; text-align: left; cursor: pointer; font-weight: bold;'>Profile</button><button style='width: 100%; padding: 10px; background: #f5f5f5; color: #333; border: none; border-radius: 4px; text-align: left; cursor: pointer;'>Security</button><button style='width: 100%; padding: 10px; background: #f5f5f5; color: #333; border: none; border-radius: 4px; text-align: left; cursor: pointer;'>Billing</button><button style='width: 100%; padding: 10px; background: #f5f5f5; color: #333; border: none; border-radius: 4px; text-align: left; cursor: pointer;'>Notifications</button><button style='width: 100%; padding: 10px; background: #f5f5f5; color: #333; border: none; border-radius: 4px; text-align: left; cursor: pointer;'>API Keys</button></nav></aside><main style='background: #ffffff; padding: 30px; border-radius: 8px; border: 1px solid #bdbdbd;'><h2 style='margin: 0 0 25px 0; color: #333;'>Profile Information</h2><form style='space-y: 20px;'><div style='display: grid; grid-template-columns: 1fr 1fr; gap: 20px;'><div><label style='display: block; margin-bottom: 8px; color: #333; font-weight: bold;'>First Name</label><input type='text' value='John' style='width: 100%; padding: 10px; border: 1px solid #bdbdbd; border-radius: 4px;'></div><div><label style='display: block; margin-bottom: 8px; color: #333; font-weight: bold;'>Last Name</label><input type='text' value='Doe' style='width: 100%; padding: 10px; border: 1px solid #bdbdbd; border-radius: 4px;'></div></div><div><label style='display: block; margin-bottom: 8px; color: #333; font-weight: bold;'>Email Address</label><input type='email' value='john.doe@example.com' style='width: 100%; padding: 10px; border: 1px solid #bdbdbd; border-radius: 4px;'></div><div><label style='display: block; margin-bottom: 8px; color: #333; font-weight: bold;'>Company</label><input type='text' value='TechCorp Inc.' style='width: 100%; padding: 10px; border: 1px solid #bdbdbd; border-radius: 4px;'></div><div><label style='display: block; margin-bottom: 8px; color: #333; font-weight: bold;'>Job Title</label><input type='text' value='Senior Developer' style='width: 100%; padding: 10px; border: 1px solid #bdbdbd; border-radius: 4px;'></div><div><label style='display: block; margin-bottom: 8px; color: #333; font-weight: bold;'>Bio</label><textarea style='width: 100%; padding: 10px; border: 1px solid #bdbdbd; border-radius: 4px; height: 80px; resize: vertical;'>AI enthusiast and workflow automation expert. Passionate about building efficient solutions.</textarea></div><div style='display: flex; gap: 15px; justify-content: flex-end;'><button type='button' style='padding: 12px 24px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer;'>Cancel</button><button type='submit' style='padding: 12px 24px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;'>Save Changes</button></div></form></main></div><div style='background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #bdbdbd; margin-top: 20px;'><h3 style='margin: 0 0 15px 0; color: #333;'>Usage Statistics</h3><div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;'><div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 4px;'><div style='font-size: 24px; font-weight: bold; color: #2196F3;'>12</div><div style='color: #666; font-size: 14px;'>Active Workflows</div></div><div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 4px;'><div style='font-size: 24px; font-weight: bold; color: #4CAF50;'>247</div><div style='color: #666; font-size: 14px;'>Executions This Month</div></div><div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 4px;'><div style='font-size: 24px; font-weight: bold; color: #FF9800;'>3</div><div style='color: #666; font-size: 14px;'>Templates Created</div></div><div style='text-align: center; padding: 15px; background: #f8f9fa; border-radius: 4px;'><div style='font-size: 24px; font-weight: bold; color: #9C27B0;'>$89</div><div style='color: #666; font-size: 14px;'>Marketplace Earnings</div></div></div></div></div>",
+        "pageName": "User Profile",
+        "state": "default",
+        "stateColor": "#f5f5f5",
+        "layout": "Header, sidebar navigation, main profile form, usage statistics",
+        "components": [
+          "ProfileForm",
+          "AccountSettings",
+          "BillingPanel",
+          "UsageStats"
+        ],
+        "responsive": {
+          "mobile": "stacked",
+          "tablet": "side-by-side",
+          "desktop": "two-panel"
+        },
+        "accessibility": "WCAG 2.1 AA",
+        "owner": "Platform Team"
+      }
+    }
+  ],
+  "edges": [],
+  "layout": {
+    "type": "hierarchical",
+    "options": {
+      "direction": "TB",
+      "spacing": 60,
+      "nodeSpacing": 40,
+      "rankSpacing": 120,
+      "padding": 30
+    }
+  }
+}

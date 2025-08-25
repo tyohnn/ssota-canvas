@@ -3,21 +3,8 @@
 import { useCallback, useRef } from "react";
 import type { BlockPosition, Block, Edge } from "@/db/schema";
 import { listPageBlockPositions } from "@/domains/canvas/actions/block-position.action";
+import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { devLog } from "@/utils/dev-logger";
-
-export interface UsePagePositionCacheOptions {
-  setPagePositions: (pageId: string, positions: BlockPosition[]) => void;
-  accessPage: (pageId: string) => void;
-  clearPageCache: (pageId: string) => void;
-  getPositionsForContext: (pageId: string) => BlockPosition[];
-  upsertBlocks?: (blocks: Block[]) => void;
-  // Edge cache support
-  edgesById?: Record<string, Edge>;
-  setContextEdges?: (pageId: string, edges: Edge[]) => void;
-  accessContextEdges?: (pageId: string) => void;
-  clearContextEdges?: (pageId: string) => void;
-  getEdgesForContext?: (pageId: string) => Edge[];
-}
 
 export interface UsePagePositionCacheResult {
   // Unified cache interface
@@ -38,21 +25,17 @@ export interface UsePagePositionCacheResult {
   computeAndCachePageEdges: (pageId: string) => Edge[];
 }
 
-export function usePagePositionCache(
-  options: UsePagePositionCacheOptions
-): UsePagePositionCacheResult {
+export function usePagePositionCache(): UsePagePositionCacheResult {
+  const data = useCanvasData();
+  
   const {
     setPagePositions,
-    accessPage,
-    clearPageCache,
     getPositionsForContext,
     upsertBlocks,
     edgesById,
     setContextEdges,
-    accessContextEdges,
-    clearContextEdges,
     getEdgesForContext,
-  } = options;
+  } = data;
 
   // 로딩 중인 페이지 추적
   const loadingPages = useRef<Set<string>>(new Set());
@@ -185,7 +168,7 @@ export function usePagePositionCache(
 
         // edges 계산 및 캐시 (positions 로드 후)
         let edges: Edge[] = [];
-        if (positions.length > 0 && edgesById && setContextEdges) {
+        if (positions.length > 0 && edgesById) {
           edges = computeAndCachePageEdges(pageId);
         }
 

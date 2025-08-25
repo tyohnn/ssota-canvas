@@ -1,0 +1,98 @@
+{
+  "template": {
+    "id": "wireframe-template-v1",
+    "name": "Wireframe Document",
+    "version": "1.0",
+    "description": "Wireframe for Workflows List Page - Complete list of user's workflows with search, filter, and management options"
+  },
+  "metadata": {
+    "pageName": "Workflows List",
+    "pageType": "List",
+    "version": "1.0",
+    "createdAt": "2025-01-22T00:00:00Z",
+    "updatedAt": "2025-01-22T00:00:00Z",
+    "totalStates": 4,
+    "totalComponents": 12,
+    "stateTypes": ["default", "loading", "error", "empty"],
+    "responsiveBreakpoints": ["mobile", "tablet", "desktop"],
+    "accessibilityLevel": "WCAG 2.1 AA",
+    "owner": "UX Team",
+    "reviewDate": "2025-02-22T00:00:00Z"
+  },
+  "nodes": [
+    {
+      "id": "workflows-list-default",
+      "type": "page-state",
+      "position": { "x": 400, "y": 200 },
+      "metadata": {
+        "name": "Workflows List Default State",
+        "description": "Workflows list page in default state with search, filters, and workflow grid",
+        "type": "webview",
+        "content": "<div style='background: #f5f5f5; padding: 20px; min-height: 100vh; font-family: Arial, sans-serif;'><header style='background: #e0e0e0; padding: 20px; margin-bottom: 20px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;'><h1 style='margin: 0; color: #333;'>My Workflows</h1><button style='padding: 12px 24px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;'>Create New Workflow</button></header><div style='background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #bdbdbd; margin-bottom: 20px;'><div style='display: flex; gap: 15px; margin-bottom: 15px;'><input type='text' placeholder='Search workflows...' style='flex: 1; padding: 10px; border: 1px solid #bdbdbd; border-radius: 4px;'><select style='padding: 10px; border: 1px solid #bdbdbd; border-radius: 4px;'><option>All Status</option><option>Active</option><option>Completed</option><option>Draft</option></select><select style='padding: 10px; border: 1px solid #bdbdbd; border-radius: 4px;'><option>Sort by: Recent</option><option>Name</option><option>Status</option><option>Created</option></select></div><div style='display: flex; gap: 10px;'><button style='padding: 8px 16px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer;'>Bulk Actions</button><button style='padding: 8px 16px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer;'>Export</button></div></div><div style='display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;'><div style='background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #bdbdbd;'><div style='display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;'><h3 style='margin: 0; color: #333;'>Data Analysis Workflow</h3><span style='padding: 4px 8px; background: #4CAF50; color: white; border-radius: 4px; font-size: 12px;'>Active</span></div><p style='margin: 0 0 15px 0; color: #666;'>Automated data processing and analysis pipeline</p><div style='display: flex; justify-content: space-between; align-items: center;'><span style='color: #666; font-size: 14px;'>Updated 2 hours ago</span><div style='display: flex; gap: 5px;'><button style='padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;'>Edit</button><button style='padding: 6px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer; font-size: 12px;'>More</button></div></div></div><div style='background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #bdbdbd;'><div style='display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;'><h3 style='margin: 0; color: #333;'>Content Generation</h3><span style='padding: 4px 8px; background: #FF9800; color: white; border-radius: 4px; font-size: 12px;'>Running</span></div><p style='margin: 0 0 15px 0; color: #666;'>AI-powered content creation workflow</p><div style='display: flex; justify-content: space-between; align-items: center;'><span style='color: #666; font-size: 14px;'>Running for 45 minutes</span><div style='display: flex; gap: 5px;'><button style='padding: 6px 12px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;'>Stop</button><button style='padding: 6px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer; font-size: 12px;'>More</button></div></div></div><div style='background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #bdbdbd;'><div style='display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;'><h3 style='margin: 0; color: #333;'>Email Automation</h3><span style='padding: 4px 8px; background: #9E9E9E; color: white; border-radius: 4px; font-size: 12px;'>Draft</span></div><p style='margin: 0 0 15px 0; color: #666;'>Automated email marketing campaign workflow</p><div style='display: flex; justify-content: space-between; align-items: center;'><span style='color: #666; font-size: 14px;'>Created yesterday</span><div style='display: flex; gap: 5px;'><button style='padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;'>Edit</button><button style='padding: 6px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer; font-size: 12px;'>More</button></div></div></div></div><div style='display: flex; justify-content: center; margin-top: 30px;'><div style='display: flex; gap: 10px;'><button style='padding: 8px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer;'>Previous</button><button style='padding: 8px 12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;'>1</button><button style='padding: 8px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer;'>2</button><button style='padding: 8px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer;'>3</button><button style='padding: 8px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer;'>Next</button></div></div></div>",
+        "pageName": "Workflows List",
+        "state": "default",
+        "stateColor": "#f5f5f5",
+        "layout": "Header with create button, search and filter controls, workflow grid, pagination",
+        "components": [
+          "SearchBar",
+          "FilterPanel",
+          "WorkflowGrid",
+          "BulkActions",
+          "Pagination"
+        ],
+        "responsive": {
+          "mobile": "stacked",
+          "tablet": "side-by-side",
+          "desktop": "grid"
+        },
+        "accessibility": "WCAG 2.1 AA",
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "workflows-list-empty",
+      "type": "page-state",
+      "position": { "x": 400, "y": 400 },
+      "metadata": {
+        "name": "Workflows List Empty State",
+        "description": "Workflows list page in empty state for users with no workflows",
+        "type": "webview",
+        "content": "<div style='background: #f5f5f5; padding: 20px; min-height: 100vh; font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center;'><div style='background: #ffffff; padding: 40px; border-radius: 8px; border: 1px solid #bdbdbd; text-align: center; max-width: 500px;'><div style='font-size: 48px; color: #2196F3; margin-bottom: 20px;'>📋</div><h2 style='margin: 0 0 15px 0; color: #333;'>No Workflows Yet</h2><p style='margin: 0 0 25px 0; color: #666; line-height: 1.5;'>You haven't created any workflows yet. Start building your first AI-powered workflow to automate your tasks.</p><div style='display: flex; gap: 10px; justify-content: center;'><button style='padding: 12px 24px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;'>Create First Workflow</button><button style='padding: 12px 24px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;'>Browse Templates</button></div></div></div>",
+        "pageName": "Workflows List",
+        "state": "empty",
+        "stateColor": "#e3f2fd",
+        "layout": "Centered empty state with call-to-action buttons",
+        "components": ["EmptyStateMessage", "ActionButtons"],
+        "responsive": {
+          "mobile": "stacked",
+          "tablet": "centered",
+          "desktop": "centered"
+        },
+        "accessibility": "WCAG 2.1 AA",
+        "owner": "UX Team"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-default-empty",
+      "source": "workflows-list-default",
+      "target": "workflows-list-empty",
+      "type": "related-state",
+      "metadata": {
+        "relationship": "Alternative",
+        "description": "Default state has empty state as alternative for users with no workflows"
+      }
+    }
+  ],
+  "layout": {
+    "type": "hierarchical",
+    "options": {
+      "direction": "TB",
+      "spacing": 60,
+      "nodeSpacing": 40,
+      "rankSpacing": 120,
+      "padding": 30
+    }
+  }
+}

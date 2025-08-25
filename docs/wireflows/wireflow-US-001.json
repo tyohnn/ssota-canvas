@@ -1,0 +1,527 @@
+{
+  "template": {
+    "id": "wireflow-template-v1",
+    "name": "Wireflow Document",
+    "version": "1.0",
+    "description": "Wireflow for Design Workflow in Visual Canvas - US-001",
+    "output": {
+      "format": "json",
+      "filename": "wireflow-US-001.json",
+      "schema": "FlowTemplateContent"
+    }
+  },
+  "metadata": {
+    "storyId": "US-001",
+    "storyName": "Design Workflow in Visual Canvas",
+    "version": "1.0",
+    "createdAt": "2025-01-22T00:00:00Z",
+    "updatedAt": "2025-01-22T00:00:00Z",
+    "totalWireframes": 8,
+    "totalFlows": 12,
+    "storySteps": 12,
+    "wireframeFiles": [
+      "wireframe-dashboard-overview.json",
+      "wireframe-workflow-designer.json"
+    ],
+    "completionCriteria": [
+      "User successfully enters design mode",
+      "User browses and selects core node types",
+      "User adds nodes to canvas with visual feedback",
+      "User configures node metadata in Editor Panel",
+      "User creates connections between nodes",
+      "User saves workflow successfully"
+    ],
+    "owner": "Xbowl Product Manager",
+    "reviewDate": "2025-02-22T00:00:00Z"
+  },
+  "nodes": [
+    {
+      "id": "dashboard-entry",
+      "type": "wireframe-reference",
+      "position": { "x": 400, "y": 100 },
+      "metadata": {
+        "name": "Dashboard Overview Entry Point",
+        "description": "User starts from dashboard overview page and clicks 'Create New Workflow' button to enter design mode",
+        "type": "basic",
+        "wireframeFile": "wireframe-dashboard-overview.json",
+        "wireframeId": "dashboard-overview-default",
+        "pageName": "Dashboard Overview",
+        "state": "default",
+        "role": "entry",
+        "storyStep": 1,
+        "userAction": "Click 'Create New Workflow' button",
+        "systemResponse": "Navigate to workflow designer page",
+        "validation": {
+          "required": ["User authentication", "Dashboard loaded"],
+          "success": "Navigation to workflow designer"
+        },
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "workflow-designer-default",
+      "type": "wireframe-reference",
+      "position": { "x": 400, "y": 200 },
+      "metadata": {
+        "name": "Workflow Designer Default State",
+        "description": "Workflow designer in default state with 7 core node explorer, canvas, and mode toggle visible",
+        "type": "basic",
+        "wireframeFile": "wireframe-workflow-designer.json",
+        "wireframeId": "workflow-designer-default",
+        "pageName": "Workflow Designer",
+        "state": "default",
+        "role": "intermediate",
+        "storyStep": 2,
+        "userAction": "Browse 7 core node types in left panel",
+        "systemResponse": "Display available node types (Agent, Task, Workflow, Template, Checklist, Data, Artifact Class)",
+        "validation": {
+          "required": ["7 core node types visible", "Canvas area ready"],
+          "success": "Node explorer loaded and interactive"
+        },
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "workflow-designer-agent-selected",
+      "type": "wireframe-reference",
+      "position": { "x": 200, "y": 300 },
+      "metadata": {
+        "name": "Workflow Designer Agent Node Selected",
+        "description": "Workflow designer with agent node selected, showing Editor Panel overlay and Top Toolbox with agent-specific tools",
+        "type": "basic",
+        "wireframeFile": "wireframe-workflow-designer.json",
+        "wireframeId": "workflow-designer-agent-selected",
+        "pageName": "Workflow Designer",
+        "state": "agent-node-selected",
+        "role": "intermediate",
+        "storyStep": 3,
+        "userAction": "Configure agent persona and role in Editor Panel",
+        "systemResponse": "Agent node appears on canvas, Editor Panel opens with agent configuration form",
+        "validation": {
+          "required": [
+            "Agent node on canvas",
+            "Editor Panel overlay active",
+            "Agent form fields populated"
+          ],
+          "success": "Agent configuration saved successfully"
+        },
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "workflow-designer-task-selected",
+      "type": "wireframe-reference",
+      "position": { "x": 600, "y": 300 },
+      "metadata": {
+        "name": "Workflow Designer Task Node Selected",
+        "description": "Workflow designer with task node selected, showing task-specific Editor Panel and Top Toolbox",
+        "type": "basic",
+        "wireframeFile": "wireframe-workflow-designer.json",
+        "wireframeId": "workflow-designer-task-selected",
+        "pageName": "Workflow Designer",
+        "state": "task-node-selected",
+        "role": "intermediate",
+        "storyStep": 4,
+        "userAction": "Configure task instructions and variables in Editor Panel",
+        "systemResponse": "Task node appears on canvas, Editor Panel opens with task configuration form",
+        "validation": {
+          "required": [
+            "Task node on canvas",
+            "Editor Panel overlay active",
+            "Task form fields populated"
+          ],
+          "success": "Task configuration saved successfully"
+        },
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "workflow-designer-workflow-selected",
+      "type": "wireframe-reference",
+      "position": { "x": 400, "y": 400 },
+      "metadata": {
+        "name": "Workflow Designer Workflow Node Selected",
+        "description": "Workflow designer with workflow node selected, showing workflow-specific Editor Panel and Top Toolbox",
+        "type": "basic",
+        "wireframeFile": "wireframe-workflow-designer.json",
+        "wireframeId": "workflow-designer-workflow-selected",
+        "pageName": "Workflow Designer",
+        "state": "workflow-node-selected",
+        "role": "intermediate",
+        "storyStep": 5,
+        "userAction": "Use Top Toolbox for flow control (Start/Conditional/End)",
+        "systemResponse": "Workflow node appears on canvas, Top Toolbox shows flow control tools",
+        "validation": {
+          "required": [
+            "Workflow node on canvas",
+            "Top Toolbox active",
+            "Flow control tools available"
+          ],
+          "success": "Workflow flow control configured"
+        },
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "workflow-designer-template-selected",
+      "type": "wireframe-reference",
+      "position": { "x": 400, "y": 500 },
+      "metadata": {
+        "name": "Workflow Designer Template Node Selected",
+        "description": "Workflow designer with template node selected, showing template-specific Editor Panel and Top Toolbox",
+        "type": "basic",
+        "wireframeFile": "wireframe-workflow-designer.json",
+        "wireframeId": "workflow-designer-template-selected",
+        "pageName": "Workflow Designer",
+        "state": "template-node-selected",
+        "role": "intermediate",
+        "storyStep": 6,
+        "userAction": "Configure template with Node/Edge/Column Definition",
+        "systemResponse": "Template node appears on canvas, Editor Panel opens with template configuration form",
+        "validation": {
+          "required": [
+            "Template node on canvas",
+            "Editor Panel overlay active",
+            "Template form fields populated"
+          ],
+          "success": "Template configuration saved successfully"
+        },
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "workflow-designer-editor-panel-active",
+      "type": "wireframe-reference",
+      "position": { "x": 400, "y": 600 },
+      "metadata": {
+        "name": "Workflow Designer Editor Panel Active",
+        "description": "Workflow designer with Editor Panel in focus mode, showing detailed metadata editing and connected nodes visualization",
+        "type": "basic",
+        "wireframeFile": "wireframe-workflow-designer.json",
+        "wireframeId": "workflow-designer-editor-panel-active",
+        "pageName": "Workflow Designer",
+        "state": "editor-panel-active",
+        "role": "intermediate",
+        "storyStep": 7,
+        "userAction": "Enter node configuration details (name, description, parameters)",
+        "systemResponse": "Editor Panel shows advanced metadata editing with connected nodes visualization",
+        "validation": {
+          "required": [
+            "Editor Panel in focus mode",
+            "Advanced metadata form active",
+            "Connected nodes visible"
+          ],
+          "success": "Node configuration saved with validation"
+        },
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "workflow-designer-top-toolbox-active",
+      "type": "wireframe-reference",
+      "position": { "x": 400, "y": 700 },
+      "metadata": {
+        "name": "Workflow Designer Top Toolbox Active",
+        "description": "Workflow designer with Top Toolbox in expanded mode, showing advanced tool categories and canvas area",
+        "type": "basic",
+        "wireframeFile": "wireframe-workflow-designer.json",
+        "wireframeId": "workflow-designer-top-toolbox-active",
+        "pageName": "Workflow Designer",
+        "state": "top-toolbox-active",
+        "role": "intermediate",
+        "storyStep": 8,
+        "userAction": "Connect nodes by dragging from source to target",
+        "systemResponse": "Top Toolbox expanded with advanced tools, visual connection feedback",
+        "validation": {
+          "required": [
+            "Top Toolbox expanded",
+            "Advanced tool categories visible",
+            "Canvas ready for connections"
+          ],
+          "success": "Nodes connected successfully with visual feedback"
+        },
+        "owner": "UX Team"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "dashboard-entry",
+      "target": "workflow-designer-default",
+      "type": "story-flow",
+      "metadata": {
+        "userAction": "click",
+        "description": "User clicks 'Create New Workflow' button to enter design mode",
+        "storyStep": 1,
+        "conditions": [
+          "User is authenticated",
+          "Dashboard is loaded",
+          "Create New Workflow button is visible"
+        ],
+        "validation": {
+          "required": ["Successful navigation", "Workflow designer loads"],
+          "errorHandling": "Show error if navigation fails"
+        },
+        "errorHandling": "Display error message and retry option"
+      }
+    },
+    {
+      "id": "edge-2",
+      "source": "workflow-designer-default",
+      "target": "workflow-designer-agent-selected",
+      "type": "story-flow",
+      "metadata": {
+        "userAction": "click",
+        "description": "User selects agent node type and adds it to canvas",
+        "storyStep": 2,
+        "conditions": [
+          "Agent node type is available",
+          "Canvas is ready for node placement",
+          "User has permission to add nodes"
+        ],
+        "validation": {
+          "required": ["Agent node appears on canvas", "Editor Panel opens"],
+          "errorHandling": "Show validation error if node placement fails"
+        },
+        "errorHandling": "Display error message and allow retry"
+      }
+    },
+    {
+      "id": "edge-3",
+      "source": "workflow-designer-default",
+      "target": "workflow-designer-task-selected",
+      "type": "story-flow",
+      "metadata": {
+        "userAction": "click",
+        "description": "User selects task node type and adds it to canvas",
+        "storyStep": 3,
+        "conditions": [
+          "Task node type is available",
+          "Canvas is ready for node placement",
+          "User has permission to add nodes"
+        ],
+        "validation": {
+          "required": ["Task node appears on canvas", "Editor Panel opens"],
+          "errorHandling": "Show validation error if node placement fails"
+        },
+        "errorHandling": "Display error message and allow retry"
+      }
+    },
+    {
+      "id": "edge-4",
+      "source": "workflow-designer-default",
+      "target": "workflow-designer-workflow-selected",
+      "type": "story-flow",
+      "metadata": {
+        "userAction": "click",
+        "description": "User selects workflow node type and adds it to canvas",
+        "storyStep": 4,
+        "conditions": [
+          "Workflow node type is available",
+          "Canvas is ready for node placement",
+          "User has permission to add nodes"
+        ],
+        "validation": {
+          "required": [
+            "Workflow node appears on canvas",
+            "Top Toolbox shows flow control"
+          ],
+          "errorHandling": "Show validation error if node placement fails"
+        },
+        "errorHandling": "Display error message and allow retry"
+      }
+    },
+    {
+      "id": "edge-5",
+      "source": "workflow-designer-agent-selected",
+      "target": "workflow-designer-editor-panel-active",
+      "type": "story-flow",
+      "metadata": {
+        "userAction": "click",
+        "description": "User clicks on agent node to open detailed Editor Panel",
+        "storyStep": 5,
+        "conditions": [
+          "Agent node is selected",
+          "Editor Panel is available",
+          "User has permission to edit nodes"
+        ],
+        "validation": {
+          "required": [
+            "Editor Panel opens in focus mode",
+            "Agent configuration form is active"
+          ],
+          "errorHandling": "Show error if Editor Panel fails to open"
+        },
+        "errorHandling": "Display error message and retry option"
+      }
+    },
+    {
+      "id": "edge-6",
+      "source": "workflow-designer-task-selected",
+      "target": "workflow-designer-editor-panel-active",
+      "type": "story-flow",
+      "metadata": {
+        "userAction": "click",
+        "description": "User clicks on task node to open detailed Editor Panel",
+        "storyStep": 6,
+        "conditions": [
+          "Task node is selected",
+          "Editor Panel is available",
+          "User has permission to edit nodes"
+        ],
+        "validation": {
+          "required": [
+            "Editor Panel opens in focus mode",
+            "Task configuration form is active"
+          ],
+          "errorHandling": "Show error if Editor Panel fails to open"
+        },
+        "errorHandling": "Display error message and retry option"
+      }
+    },
+    {
+      "id": "edge-7",
+      "source": "workflow-designer-workflow-selected",
+      "target": "workflow-designer-top-toolbox-active",
+      "type": "story-flow",
+      "metadata": {
+        "userAction": "click",
+        "description": "User accesses Top Toolbox for workflow flow control tools",
+        "storyStep": 7,
+        "conditions": [
+          "Workflow node is selected",
+          "Top Toolbox is available",
+          "Flow control tools are accessible"
+        ],
+        "validation": {
+          "required": ["Top Toolbox expands", "Flow control tools are visible"],
+          "errorHandling": "Show error if Top Toolbox fails to expand"
+        },
+        "errorHandling": "Display error message and retry option"
+      }
+    },
+    {
+      "id": "edge-8",
+      "source": "workflow-designer-template-selected",
+      "target": "workflow-designer-editor-panel-active",
+      "type": "story-flow",
+      "metadata": {
+        "userAction": "click",
+        "description": "User clicks on template node to configure Node/Edge/Column Definition",
+        "storyStep": 8,
+        "conditions": [
+          "Template node is selected",
+          "Editor Panel is available",
+          "Template configuration tools are accessible"
+        ],
+        "validation": {
+          "required": [
+            "Editor Panel opens",
+            "Template configuration form is active"
+          ],
+          "errorHandling": "Show error if Editor Panel fails to open"
+        },
+        "errorHandling": "Display error message and retry option"
+      }
+    },
+    {
+      "id": "edge-9",
+      "source": "workflow-designer-editor-panel-active",
+      "target": "workflow-designer-top-toolbox-active",
+      "type": "story-flow",
+      "metadata": {
+        "userAction": "drag",
+        "description": "User creates visual connections between nodes by dragging from source to target",
+        "storyStep": 9,
+        "conditions": [
+          "Multiple nodes are on canvas",
+          "Connection points are available",
+          "No circular dependencies"
+        ],
+        "validation": {
+          "required": ["Visual connection line appears", "Connection is valid"],
+          "errorHandling": "Show error for invalid connections"
+        },
+        "errorHandling": "Display error message and allow correction"
+      }
+    },
+    {
+      "id": "edge-10",
+      "source": "workflow-designer-top-toolbox-active",
+      "target": "workflow-designer-default",
+      "type": "story-flow",
+      "metadata": {
+        "userAction": "click",
+        "description": "User saves the completed workflow design",
+        "storyStep": 10,
+        "conditions": [
+          "Workflow has valid structure",
+          "All required nodes are configured",
+          "User has permission to save"
+        ],
+        "validation": {
+          "required": [
+            "Workflow structure is valid",
+            "Save operation succeeds"
+          ],
+          "errorHandling": "Show validation errors if workflow is invalid"
+        },
+        "errorHandling": "Display error message and allow correction"
+      }
+    },
+    {
+      "id": "edge-error-1",
+      "source": "workflow-designer-default",
+      "target": "workflow-designer-default",
+      "type": "alternative-flow",
+      "metadata": {
+        "flowType": "error",
+        "description": "User attempts to drop node in invalid area",
+        "trigger": "Invalid drop zone",
+        "conditions": ["Drop zone is outside canvas", "Drop zone is occupied"]
+      }
+    },
+    {
+      "id": "edge-error-2",
+      "source": "workflow-designer-editor-panel-active",
+      "target": "workflow-designer-editor-panel-active",
+      "type": "alternative-flow",
+      "metadata": {
+        "flowType": "error",
+        "description": "User enters invalid node configuration data",
+        "trigger": "Invalid configuration",
+        "conditions": [
+          "Required fields are empty",
+          "Data format is invalid",
+          "Name is not unique"
+        ]
+      }
+    },
+    {
+      "id": "edge-error-3",
+      "source": "workflow-designer-top-toolbox-active",
+      "target": "workflow-designer-top-toolbox-active",
+      "type": "alternative-flow",
+      "metadata": {
+        "flowType": "error",
+        "description": "User attempts to create invalid connection between nodes",
+        "trigger": "Invalid connection",
+        "conditions": [
+          "Circular dependency would be created",
+          "Connection type is incompatible"
+        ]
+      }
+    }
+  ],
+  "layout": {
+    "type": "hierarchical",
+    "options": {
+      "direction": "TB",
+      "spacing": 80,
+      "nodeSpacing": 60,
+      "rankSpacing": 100,
+      "padding": 40
+    }
+  }
+}

@@ -1,0 +1,874 @@
+{
+  "metadata": {
+    "projectName": "xbowl - Scratch for AI Agents",
+    "version": "1.0",
+    "createdAt": "2025-01-22T00:00:00Z",
+    "updatedAt": "2025-01-22T00:00:00Z",
+    "totalDomains": 11,
+    "coreDomains": 7,
+    "supportingDomains": 4
+  },
+  "nodes": [
+    {
+      "id": "workflow-domain",
+      "type": "domain",
+      "position": { "x": 400, "y": 100 },
+      "metadata": {
+        "name": "Workflow Domain",
+        "description": "Core domain responsible for visual workflow design, orchestration, and management. Handles workflow creation with flow control nodes (start, conditional, end), editing, versioning, and lifecycle management. Manages workflow connections to agents, tasks, and artifact classes with next edge types.",
+        "priority": "Critical",
+        "complexity": "High",
+        "businessValue": 10,
+        "category": "Core Feature",
+        "folderStructure": "/src/domains/workflow",
+        "keyEntities": [
+          "Workflow",
+          "WorkflowVersion",
+          "WorkflowTemplate",
+          "WorkflowExecution",
+          "WorkflowMetadata"
+        ],
+        "team": "Core Development Team",
+        "owner": "Workflow Domain Owner",
+        "estimatedEffort": "40 story points"
+      }
+    },
+    {
+      "id": "agent-domain",
+      "type": "domain",
+      "position": { "x": 200, "y": 200 },
+      "metadata": {
+        "name": "Agent Domain",
+        "description": "Core domain managing AI agent definitions with persona and role definitions. Handles agent creation with development slugs, persona names, markdown persona definitions, and role definitions. Manages agent connections to tasks, data, checklists, and artifact templates through hierarchical parent-child relationships.",
+        "priority": "Critical",
+        "complexity": "High",
+        "businessValue": 10,
+        "category": "Core Feature",
+        "folderStructure": "/src/domains/agent",
+        "keyEntities": [
+          "Agent",
+          "AgentPersona",
+          "AgentRole",
+          "AgentConfiguration",
+          "AgentTeam",
+          "EditorPanel"
+        ],
+        "team": "AI Development Team",
+        "owner": "Agent Domain Owner",
+        "estimatedEffort": "35 story points"
+      }
+    },
+    {
+      "id": "user-domain",
+      "type": "domain",
+      "position": { "x": 600, "y": 200 },
+      "metadata": {
+        "name": "User Domain",
+        "description": "Core domain for user management, authentication, profiles, and user-specific data. Handles user registration, authentication, profile management, preferences, and user workspace organization.",
+        "priority": "Critical",
+        "complexity": "Medium",
+        "businessValue": 9,
+        "category": "Core Feature",
+        "folderStructure": "/src/domains/user",
+        "keyEntities": [
+          "User",
+          "UserProfile",
+          "UserPreferences",
+          "UserSession",
+          "UserWorkspace"
+        ],
+        "team": "Platform Team",
+        "owner": "User Domain Owner",
+        "estimatedEffort": "25 story points"
+      }
+    },
+    {
+      "id": "artifact-template-domain",
+      "type": "domain",
+      "position": { "x": 200, "y": 300 },
+      "metadata": {
+        "name": "Artifact Template Domain",
+        "description": "Core domain for artifact template definition and management. One of the 7 core node types that defines artifact structure and format (flow, markdown, table, custom). Handles template creation with Node Definition, Edge Definition, and Column Definition sub-nodes. Auto-generates Artifact Class nodes for design mode connections.",
+        "priority": "High",
+        "complexity": "Medium",
+        "businessValue": 8,
+        "category": "Core Feature",
+        "folderStructure": "/src/domains/template",
+        "keyEntities": [
+          "ArtifactTemplate",
+          "NodeDefinition",
+          "EdgeDefinition",
+          "ColumnDefinition",
+          "ArtifactClass",
+          "TemplateRenderer"
+        ],
+        "team": "Core Development Team",
+        "owner": "Artifact Template Domain Owner",
+        "estimatedEffort": "30 story points"
+      }
+    },
+    {
+      "id": "canvas-domain",
+      "type": "domain",
+      "position": { "x": 600, "y": 300 },
+      "metadata": {
+        "name": "Canvas Domain",
+        "description": "Core domain for visual interface and interaction. Handles the dual canvas system (design mode and execution mode), drag-and-drop functionality, visual node management, and real-time visual feedback.",
+        "priority": "High",
+        "complexity": "High",
+        "businessValue": 9,
+        "category": "Core Feature",
+        "folderStructure": "/src/domains/canvas",
+        "keyEntities": [
+          "Canvas",
+          "CanvasMode",
+          "VisualNode",
+          "NodeConnection",
+          "CanvasState",
+          "EditorPanel",
+          "OverlaySystem"
+        ],
+        "team": "UX/UI Team",
+        "owner": "Canvas Domain Owner",
+        "estimatedEffort": "35 story points"
+      }
+    },
+    {
+      "id": "execution-domain",
+      "type": "domain",
+      "position": { "x": 400, "y": 400 },
+      "metadata": {
+        "name": "Execution Domain",
+        "description": "Core domain for workflow runtime execution and monitoring. Handles workflow execution with progressive node generation, agent task execution, artifact instance creation, progress tracking, and real-time status updates. Manages distinction between Artifact Class (design) and Artifact Instance (runtime).",
+        "priority": "High",
+        "complexity": "Very High",
+        "businessValue": 9,
+        "category": "Core Feature",
+        "folderStructure": "/src/domains/execution",
+        "keyEntities": [
+          "Execution",
+          "ExecutionStatus",
+          "ArtifactInstance",
+          "ArtifactClass",
+          "TaskResult",
+          "ExecutionLog",
+          "ProgressiveGeneration"
+        ],
+        "team": "AI Development Team",
+        "owner": "Execution Domain Owner",
+        "estimatedEffort": "45 story points"
+      }
+    },
+    {
+      "id": "task-domain",
+      "type": "domain",
+      "position": { "x": 600, "y": 400 },
+      "metadata": {
+        "name": "Task Domain",
+        "description": "Core domain for task definition and execution flow management. Handles task creation with markdown instructions, variable parameters, input/output edge management, and connections to Data, Checklist, Artifact Class, and Artifact Template nodes. Manages task execution flow with clear data dependencies.",
+        "priority": "Critical",
+        "complexity": "High",
+        "businessValue": 9,
+        "category": "Core Feature",
+        "folderStructure": "/src/domains/task",
+        "keyEntities": [
+          "Task",
+          "TaskVariable",
+          "TaskInput",
+          "TaskOutput",
+          "TaskExecution",
+          "TaskFlow"
+        ],
+        "team": "Core Development Team",
+        "owner": "Task Domain Owner",
+        "estimatedEffort": "30 story points"
+      }
+    },
+    {
+      "id": "marketplace-domain",
+      "type": "domain",
+      "position": { "x": 200, "y": 500 },
+      "metadata": {
+        "name": "Marketplace Domain",
+        "description": "Supporting domain for workflow template marketplace operations. Handles workflow template sharing, monetization, payment processing, user ratings, and community features. Users can sell and buy workflow templates as reusable workflow classes.",
+        "priority": "Medium",
+        "complexity": "Medium",
+        "businessValue": 7,
+        "category": "Supporting",
+        "folderStructure": "/src/domains/marketplace",
+        "keyEntities": [
+          "Marketplace",
+          "WorkflowTemplate",
+          "Transaction",
+          "Review",
+          "Revenue"
+        ],
+        "team": "Platform Team",
+        "owner": "Marketplace Domain Owner",
+        "estimatedEffort": "30 story points"
+      }
+    },
+    {
+      "id": "analytics-domain",
+      "type": "domain",
+      "position": { "x": 400, "y": 500 },
+      "metadata": {
+        "name": "Analytics Domain",
+        "description": "Supporting domain for usage analytics, insights, and performance monitoring. Handles user behavior tracking, workflow performance metrics, and business intelligence reporting.",
+        "priority": "Medium",
+        "complexity": "Medium",
+        "businessValue": 6,
+        "category": "Supporting",
+        "folderStructure": "/src/domains/analytics",
+        "keyEntities": [
+          "Analytics",
+          "Metric",
+          "Report",
+          "Dashboard",
+          "Insight"
+        ],
+        "team": "Data Team",
+        "owner": "Analytics Domain Owner",
+        "estimatedEffort": "25 story points"
+      }
+    },
+    {
+      "id": "education-domain",
+      "type": "domain",
+      "position": { "x": 600, "y": 500 },
+      "metadata": {
+        "name": "Education Domain",
+        "description": "Supporting domain for educational content and learning resources. Handles tutorials, documentation, skill development modules, and educational curriculum for AI agent creation.",
+        "priority": "Medium",
+        "complexity": "Low",
+        "businessValue": 6,
+        "category": "Supporting",
+        "folderStructure": "/src/domains/education",
+        "keyEntities": [
+          "Tutorial",
+          "Course",
+          "LearningPath",
+          "Assessment",
+          "Certificate"
+        ],
+        "team": "Education Team",
+        "owner": "Education Domain Owner",
+        "estimatedEffort": "20 story points"
+      }
+    },
+    {
+      "id": "collaboration-domain",
+      "type": "domain",
+      "position": { "x": 400, "y": 600 },
+      "metadata": {
+        "name": "Collaboration Domain",
+        "description": "Supporting domain for real-time collaboration features. Handles multi-user workflow editing, real-time synchronization, user presence, and collaborative workspace management.",
+        "priority": "Medium",
+        "complexity": "High",
+        "businessValue": 7,
+        "category": "Supporting",
+        "folderStructure": "/src/domains/collaboration",
+        "keyEntities": [
+          "Collaboration",
+          "UserPresence",
+          "SharedWorkspace",
+          "Comment",
+          "Change"
+        ],
+        "team": "Platform Team",
+        "owner": "Collaboration Domain Owner",
+        "estimatedEffort": "30 story points"
+      }
+    },
+    {
+      "id": "term-workflow",
+      "type": "ubiquitous-term",
+      "position": { "x": 400, "y": 50 },
+      "metadata": {
+        "term": "Workflow",
+        "definition": "A visual representation of AI agent interactions and task sequences that can be designed, executed, and shared. Workflows consist of connected agents, tasks, and decision points.",
+        "domain": "workflow-domain",
+        "category": "Entity",
+        "synonyms": ["Process", "Pipeline", "Flow"],
+        "usage": "Used when referring to the complete AI agent orchestration design",
+        "examples": [
+          "Create a new workflow",
+          "Execute the workflow",
+          "Share this workflow"
+        ],
+        "relatedTerms": ["Agent", "Task", "Execution", "Template"],
+        "owner": "Workflow Domain Owner"
+      }
+    },
+    {
+      "id": "term-agent",
+      "type": "ubiquitous-term",
+      "position": { "x": 200, "y": 150 },
+      "metadata": {
+        "term": "Agent",
+        "definition": "An AI-powered entity with persona definition, role definition, and specific responsibilities within a workflow. Agents are defined using development slugs, persona names, and markdown content. Connected to tasks, data, checklists, and artifact templates through contains edges.",
+        "domain": "agent-domain",
+        "category": "Entity",
+        "synonyms": ["AI Agent", "Bot", "Assistant"],
+        "usage": "Used when referring to individual AI entities in workflows",
+        "examples": [
+          "Add an agent to the workflow",
+          "Configure the agent's role",
+          "The agent completed its task"
+        ],
+        "relatedTerms": ["Persona", "Role", "Task", "Team", "EditorPanel"],
+        "owner": "Agent Domain Owner"
+      }
+    },
+    {
+      "id": "term-user",
+      "type": "ubiquitous-term",
+      "position": { "x": 600, "y": 150 },
+      "metadata": {
+        "term": "User",
+        "definition": "A registered person who creates, manages, and executes workflows on the xbowl platform. Users have profiles, preferences, and access to their own workspace.",
+        "domain": "user-domain",
+        "category": "Entity",
+        "synonyms": ["Creator", "Designer", "Account"],
+        "usage": "Used when referring to platform users and their activities",
+        "examples": [
+          "User logged in",
+          "User created a workflow",
+          "User's workspace"
+        ],
+        "relatedTerms": ["Profile", "Workspace", "Session", "Preferences"],
+        "owner": "User Domain Owner"
+      }
+    },
+    {
+      "id": "term-artifact-template",
+      "type": "ubiquitous-term",
+      "position": { "x": 200, "y": 250 },
+      "metadata": {
+        "term": "Artifact Template",
+        "definition": "One of the 7 core node types that defines artifact structure and format (flow, markdown, table, custom). Contains Node Definition, Edge Definition, and Column Definition sub-nodes. Auto-generates Artifact Class nodes for design mode connections.",
+        "domain": "artifact-template-domain",
+        "category": "Entity",
+        "synonyms": [
+          "Artifact Template",
+          "Output Template",
+          "Structure Template"
+        ],
+        "usage": "Used when referring to artifact structure and output formatting definitions",
+        "examples": [
+          "Define template for markdown output",
+          "Create template for node structure",
+          "Apply template to artifact"
+        ],
+        "relatedTerms": [
+          "ArtifactClass",
+          "NodeDefinition",
+          "EdgeDefinition",
+          "ColumnDefinition",
+          "Markdown"
+        ],
+        "owner": "Artifact Template Domain Owner"
+      }
+    },
+    {
+      "id": "term-canvas",
+      "type": "ubiquitous-term",
+      "position": { "x": 600, "y": 250 },
+      "metadata": {
+        "term": "Canvas",
+        "definition": "The visual workspace where users design workflows through drag-and-drop interactions. The canvas has two modes: design mode for creation and execution mode for monitoring. Features Editor Panel overlay system for node metadata editing with z-index overlays.",
+        "domain": "canvas-domain",
+        "category": "Entity",
+        "synonyms": ["Workspace", "Design Space", "Interface"],
+        "usage": "Used when referring to the visual design interface",
+        "examples": [
+          "Drag to the canvas",
+          "Switch canvas mode",
+          "Canvas layout"
+        ],
+        "relatedTerms": ["Node", "Connection", "Mode", "Visual", "EditorPanel"],
+        "owner": "Canvas Domain Owner"
+      }
+    },
+    {
+      "id": "term-execution",
+      "type": "ubiquitous-term",
+      "position": { "x": 400, "y": 350 },
+      "metadata": {
+        "term": "Execution",
+        "definition": "The runtime process of running a workflow where agents perform tasks, generate artifacts, and progress through the defined sequence. Execution provides real-time monitoring and feedback.",
+        "domain": "execution-domain",
+        "category": "Action",
+        "synonyms": ["Run", "Execute", "Process"],
+        "usage": "Used when referring to workflow runtime activities",
+        "examples": [
+          "Start execution",
+          "Monitor execution",
+          "Execution completed"
+        ],
+        "relatedTerms": ["Runtime", "Status", "Artifact", "Progress"],
+        "owner": "Execution Domain Owner"
+      }
+    },
+    {
+      "id": "term-artifact",
+      "type": "ubiquitous-term",
+      "position": { "x": 400, "y": 450 },
+      "metadata": {
+        "term": "Artifact",
+        "definition": "Any output generated by agents during workflow execution, such as documents, data, images, or other content. Artifacts are the tangible results of agent tasks.",
+        "domain": "execution-domain",
+        "category": "Entity",
+        "synonyms": ["Output", "Result", "Product"],
+        "usage": "Used when referring to agent-generated outputs",
+        "examples": [
+          "Generate an artifact",
+          "Review the artifact",
+          "Download artifacts"
+        ],
+        "relatedTerms": ["Output", "Result", "Content", "Generation"],
+        "owner": "Execution Domain Owner"
+      }
+    },
+    {
+      "id": "term-node",
+      "type": "ubiquitous-term",
+      "position": { "x": 500, "y": 350 },
+      "metadata": {
+        "term": "Node",
+        "definition": "A visual element on the canvas representing one of the 7 core node types (agent, task, workflow, artifact_template, checklist, data, artifact_class) or runtime-generated custom nodes. Connected through hierarchical parent-child relationships and configurable through Editor Panel overlays.",
+        "domain": "canvas-domain",
+        "category": "Entity",
+        "synonyms": ["Element", "Component", "Block"],
+        "usage": "Used when referring to visual workflow elements",
+        "examples": [
+          "Add a node",
+          "Connect nodes",
+          "Configure node properties"
+        ],
+        "relatedTerms": ["Canvas", "Connection", "Visual", "Element"],
+        "owner": "Canvas Domain Owner"
+      }
+    },
+    {
+      "id": "term-task",
+      "type": "ubiquitous-term",
+      "position": { "x": 600, "y": 350 },
+      "metadata": {
+        "term": "Task",
+        "definition": "A node type that defines executable tasks with markdown instructions, variable parameters, and input/output edge connections. Tasks connect to Data, Checklist, Artifact Class, and Artifact Template nodes through input edges, and generate artifacts through output edges.",
+        "domain": "task-domain",
+        "category": "Entity",
+        "synonyms": ["Action", "Job", "Operation"],
+        "usage": "Used when referring to executable workflow components",
+        "examples": [
+          "Create a task",
+          "Configure task variables",
+          "Connect task inputs"
+        ],
+        "relatedTerms": ["Agent", "Input", "Output", "Variable", "Artifact"],
+        "owner": "Task Domain Owner"
+      }
+    },
+    {
+      "id": "term-editor-panel",
+      "type": "ubiquitous-term",
+      "position": { "x": 700, "y": 350 },
+      "metadata": {
+        "term": "Editor Panel",
+        "definition": "A z-index overlay panel that appears when clicking nodes on canvas. Provides context-aware metadata editing forms, connected nodes visualization in alternative 2D rendering, and real-time updates. Different rendering logic for each node type with specialized editors.",
+        "domain": "canvas-domain",
+        "category": "Component",
+        "synonyms": ["Overlay Panel", "Metadata Editor", "Node Editor"],
+        "usage": "Used when referring to node configuration interfaces",
+        "examples": [
+          "Open editor panel",
+          "Edit node metadata",
+          "Configure properties"
+        ],
+        "relatedTerms": ["Node", "Canvas", "Metadata", "Overlay", "Form"],
+        "owner": "Canvas Domain Owner"
+      }
+    },
+    {
+      "id": "term-marketplace",
+      "type": "ubiquitous-term",
+      "position": { "x": 200, "y": 450 },
+      "metadata": {
+        "term": "Marketplace",
+        "definition": "A platform where users can share, discover, and monetize workflow templates as reusable workflow classes. The marketplace includes features for ratings, reviews, and revenue sharing.",
+        "domain": "marketplace-domain",
+        "category": "Entity",
+        "synonyms": ["Store", "Gallery", "Exchange"],
+        "usage": "Used when referring to the workflow template sharing and monetization platform",
+        "examples": [
+          "Browse workflow templates",
+          "Publish workflow template",
+          "Marketplace revenue"
+        ],
+        "relatedTerms": [
+          "Workflow",
+          "Template",
+          "Share",
+          "Monetize",
+          "Revenue"
+        ],
+        "owner": "Marketplace Domain Owner"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "workflow-domain",
+      "target": "agent-domain",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Workflow domain depends on agent domain for agent definitions and configurations"
+      }
+    },
+    {
+      "id": "edge-2",
+      "source": "workflow-domain",
+      "target": "canvas-domain",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Workflow domain depends on canvas domain for visual workflow design"
+      }
+    },
+    {
+      "id": "edge-3",
+      "source": "execution-domain",
+      "target": "workflow-domain",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Execution domain depends on workflow domain for workflow definitions"
+      }
+    },
+    {
+      "id": "edge-4",
+      "source": "execution-domain",
+      "target": "agent-domain",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Execution domain depends on agent domain for agent execution capabilities"
+      }
+    },
+    {
+      "id": "edge-5",
+      "source": "artifact-template-domain",
+      "target": "execution-domain",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Enabling",
+        "strength": "Medium",
+        "description": "Template domain depends on execution domain for artifact structure definition"
+      }
+    },
+    {
+      "id": "edge-6",
+      "source": "marketplace-domain",
+      "target": "workflow-domain",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Enabling",
+        "strength": "Medium",
+        "description": "Marketplace domain depends on workflow domain for workflow template sharing and monetization"
+      }
+    },
+
+    {
+      "id": "edge-8",
+      "source": "collaboration-domain",
+      "target": "workflow-domain",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Enabling",
+        "strength": "Medium",
+        "description": "Collaboration domain depends on workflow domain for shared workflow editing"
+      }
+    },
+    {
+      "id": "edge-9",
+      "source": "collaboration-domain",
+      "target": "canvas-domain",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Enabling",
+        "strength": "Medium",
+        "description": "Collaboration domain depends on canvas domain for real-time visual collaboration"
+      }
+    },
+    {
+      "id": "edge-10",
+      "source": "analytics-domain",
+      "target": "workflow-domain",
+      "type": "relates-to",
+      "metadata": {
+        "relationship": "Complementary",
+        "description": "Analytics domain provides insights on workflow usage and performance"
+      }
+    },
+    {
+      "id": "edge-11",
+      "source": "analytics-domain",
+      "target": "execution-domain",
+      "type": "relates-to",
+      "metadata": {
+        "relationship": "Complementary",
+        "description": "Analytics domain tracks execution performance and metrics"
+      }
+    },
+    {
+      "id": "edge-12",
+      "source": "education-domain",
+      "target": "workflow-domain",
+      "type": "relates-to",
+      "metadata": {
+        "relationship": "Complementary",
+        "description": "Education domain provides learning resources for workflow creation"
+      }
+    },
+    {
+      "id": "edge-13",
+      "source": "education-domain",
+      "target": "agent-domain",
+      "type": "relates-to",
+      "metadata": {
+        "relationship": "Complementary",
+        "description": "Education domain provides learning resources for agent creation"
+      }
+    },
+    {
+      "id": "edge-14",
+      "source": "term-workflow",
+      "target": "workflow-domain",
+      "type": "belongs-to",
+      "metadata": {
+        "relationship": "Primary",
+        "description": "Workflow term belongs to workflow domain"
+      }
+    },
+    {
+      "id": "edge-15",
+      "source": "term-agent",
+      "target": "agent-domain",
+      "type": "belongs-to",
+      "metadata": {
+        "relationship": "Primary",
+        "description": "Agent term belongs to agent domain"
+      }
+    },
+    {
+      "id": "edge-16",
+      "source": "term-user",
+      "target": "user-domain",
+      "type": "belongs-to",
+      "metadata": {
+        "relationship": "Primary",
+        "description": "User term belongs to user domain"
+      }
+    },
+    {
+      "id": "edge-17",
+      "source": "term-template",
+      "target": "artifact-template-domain",
+      "type": "belongs-to",
+      "metadata": {
+        "relationship": "Primary",
+        "description": "Template term belongs to artifact template domain"
+      }
+    },
+    {
+      "id": "edge-18",
+      "source": "term-canvas",
+      "target": "canvas-domain",
+      "type": "belongs-to",
+      "metadata": {
+        "relationship": "Primary",
+        "description": "Canvas term belongs to canvas domain"
+      }
+    },
+    {
+      "id": "edge-19",
+      "source": "term-execution",
+      "target": "execution-domain",
+      "type": "belongs-to",
+      "metadata": {
+        "relationship": "Primary",
+        "description": "Execution term belongs to execution domain"
+      }
+    },
+    {
+      "id": "edge-20",
+      "source": "term-artifact",
+      "target": "execution-domain",
+      "type": "belongs-to",
+      "metadata": {
+        "relationship": "Primary",
+        "description": "Artifact term belongs to execution domain"
+      }
+    },
+    {
+      "id": "edge-21",
+      "source": "term-node",
+      "target": "canvas-domain",
+      "type": "belongs-to",
+      "metadata": {
+        "relationship": "Primary",
+        "description": "Node term belongs to canvas domain"
+      }
+    },
+    {
+      "id": "edge-22",
+      "source": "term-marketplace",
+      "target": "marketplace-domain",
+      "type": "belongs-to",
+      "metadata": {
+        "relationship": "Primary",
+        "description": "Marketplace term belongs to marketplace domain"
+      }
+    },
+    {
+      "id": "edge-23",
+      "source": "term-workflow",
+      "target": "term-agent",
+      "type": "related-term",
+      "metadata": {
+        "relationship": "Composition",
+        "description": "Workflows are composed of agents"
+      }
+    },
+    {
+      "id": "edge-24",
+      "source": "term-artifact",
+      "target": "term-template",
+      "type": "related-term",
+      "metadata": {
+        "relationship": "Composition",
+        "description": "Templates define the structure of artifacts"
+      }
+    },
+    {
+      "id": "edge-25",
+      "source": "term-execution",
+      "target": "term-workflow",
+      "type": "related-term",
+      "metadata": {
+        "relationship": "Association",
+        "description": "Execution runs workflows"
+      }
+    },
+    {
+      "id": "edge-26",
+      "source": "term-artifact",
+      "target": "term-execution",
+      "type": "related-term",
+      "metadata": {
+        "relationship": "Composition",
+        "description": "Artifacts are produced by execution"
+      }
+    },
+    {
+      "id": "edge-27",
+      "source": "term-node",
+      "target": "term-canvas",
+      "type": "related-term",
+      "metadata": {
+        "relationship": "Composition",
+        "description": "Nodes are visual elements on the canvas"
+      }
+    },
+    {
+      "id": "edge-28",
+      "source": "task-domain",
+      "target": "agent-domain",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Task domain depends on agent domain for agent task assignment and execution"
+      }
+    },
+    {
+      "id": "edge-29",
+      "source": "task-domain",
+      "target": "artifact-template-domain",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Task domain depends on artifact template domain for artifact template connections"
+      }
+    },
+    {
+      "id": "edge-30",
+      "source": "execution-domain",
+      "target": "task-domain",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Execution domain depends on task domain for task execution flow"
+      }
+    },
+    {
+      "id": "edge-31",
+      "source": "term-task",
+      "target": "task-domain",
+      "type": "belongs-to",
+      "metadata": {
+        "relationship": "Primary",
+        "description": "Task term belongs to task domain"
+      }
+    },
+    {
+      "id": "edge-32",
+      "source": "term-editor-panel",
+      "target": "canvas-domain",
+      "type": "belongs-to",
+      "metadata": {
+        "relationship": "Primary",
+        "description": "Editor Panel term belongs to canvas domain"
+      }
+    },
+    {
+      "id": "edge-33",
+      "source": "term-task",
+      "target": "term-agent",
+      "type": "related-term",
+      "metadata": {
+        "relationship": "Association",
+        "description": "Tasks are executed by agents"
+      }
+    },
+    {
+      "id": "edge-34",
+      "source": "term-editor-panel",
+      "target": "term-node",
+      "type": "related-term",
+      "metadata": {
+        "relationship": "Association",
+        "description": "Editor panels edit node metadata"
+      }
+    }
+  ],
+  "layout": {
+    "type": "hierarchical",
+    "options": {
+      "direction": "TB",
+      "spacing": 50,
+      "nodeSpacing": 30,
+      "rankSpacing": 100,
+      "padding": 20
+    }
+  }
+}

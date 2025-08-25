@@ -10,6 +10,7 @@ import { useUiLayout } from "@/domains/canvas/contexts/UiLayoutContext";
 import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
 import { useEditorControlContext } from "@/domains/canvas/contexts/EditorControlContext";
 import { PropertySection } from "./property-section";
+import { StyleSection } from "./style-section";
 import {
   Expand,
   Share2,
@@ -32,7 +33,7 @@ interface EditorPanelProps {
 
 /**
  * Editor Panel - positioned relative to ResizablePanel
- * Notion-like interface with PropertySection
+ * Notion-like interface with StyleSection and PropertySection
  */
 export function EditorPanel({ className }: EditorPanelProps) {
   const { blocksById } = useCanvasData();
@@ -289,8 +290,13 @@ export function EditorPanel({ className }: EditorPanelProps) {
             />
           </div>
 
-          {/* Property Section */}
+          {/* Style Section */}
           <div className="border-b px-1">
+            <StyleSection />
+          </div>
+
+          {/* Property Section */}
+          <div className="px-1">
             <PropertySection />
           </div>
 

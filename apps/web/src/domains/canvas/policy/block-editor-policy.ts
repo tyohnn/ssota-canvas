@@ -914,28 +914,33 @@ export function addUserSchemaField(
   block: Block,
   field: SchemaField
 ): { metadata: DefaultMetadata } {
-  const metadata = (block.metadata || {}) as DefaultMetadata;
-  const schema = metadata.schema || { fields: [] };
-  const data = metadata.data || {};
+  const metadata = block.metadata as DefaultMetadata;
+  const schema = metadata?.schema || { fields: [] };
 
-  // Add field to schema
+  // Add the new field to the schema
   const updatedSchema = {
     ...schema,
     fields: [...schema.fields, field],
-  };
-
-  // Initialize field value in data
-  const updatedData = {
-    ...data,
-    [field.id]: field.default ?? null,
   };
 
   return {
     metadata: {
       ...metadata,
       schema: updatedSchema,
-      data: updatedData,
     },
+  };
+}
+
+// 필드를 속성과 스타일로 분리하는 유틸리티 함수
+export function separateFieldsByType(fields: EditorField[]): {
+  propertyFields: EditorField[];
+  styleFields: EditorField[];
+} {
+  const styleFieldKeys = ['shape', 'color', 'fontSize', 'weight', 'size'];
+  
+  return {
+    propertyFields: fields.filter(field => !styleFieldKeys.includes(field.key)),
+    styleFields: fields.filter(field => styleFieldKeys.includes(field.key))
   };
 }
 

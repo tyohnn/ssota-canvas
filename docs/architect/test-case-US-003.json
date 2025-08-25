@@ -1,0 +1,1191 @@
+{
+  "template": {
+    "id": "test-case-template-v1",
+    "name": "Test Case Outline Document",
+    "version": "1.0",
+    "description": "Test case outline with unit test nodes and integration test edges for Xbowl user stories",
+    "output": {
+      "format": "flow",
+      "filename": "test-case-US-003.json",
+      "schema": "FlowTemplateContent"
+    }
+  },
+  "metadata": {
+    "storyId": "US-003",
+    "storyName": "Create Artifact Template with Node/Edge/Column Definition",
+    "pageId": "canvas",
+    "createdAt": "2025-01-22T00:00:00Z",
+    "updatedAt": "2025-01-22T00:00:00Z",
+    "totalComponentTests": 25,
+    "totalBusinessLogicTests": 3,
+    "totalIntegrationTests": 6,
+    "totalTestHierarchies": 3,
+    "testCoverage": {
+      "userFlowCoverage": "100%",
+      "componentCoverage": "100%",
+      "integrationCoverage": "85%",
+      "errorScenarioCoverage": "90%"
+    },
+    "testExecutionOrder": "sequential",
+    "testDataRequirements": [
+      "Mock workspace data and user permissions",
+      "Mock node types and explorer data",
+      "Mock canvas state and node data",
+      "Mock template metadata and definition data",
+      "Mock validation rules and business constraints",
+      "Mock natural language processing data",
+      "Mock form data and validation responses",
+      "Mock error scenarios and recovery data"
+    ],
+    "teamAssignments": [
+      {
+        "team": "Frontend Team",
+        "tests": [
+          "Component rendering and interaction tests",
+          "Integration tests between UI components"
+        ],
+        "responsible": "Frontend Developer"
+      },
+      {
+        "team": "Backend Team",
+        "tests": [
+          "Business logic tests",
+          "Server component tests",
+          "API integration tests"
+        ],
+        "responsible": "Backend Developer"
+      }
+    ],
+    "owner": "Xbowl System Architect",
+    "reviewDate": "2025-02-22T00:00:00Z"
+  },
+  "nodes": [
+    {
+      "id": "test-canvas-layout-authentication",
+      "type": "component-test",
+      "position": { "x": 100, "y": 100 },
+      "metadata": {
+        "name": "Canvas Layout Authentication Test",
+        "description": "Test CanvasLayout component authentication and workspace access validation",
+        "type": "basic",
+        "componentUnderTest": "CanvasLayout",
+        "componentType": "server-component",
+        "userAction": "Access canvas page",
+        "expectedBehavior": "Validate user authentication and workspace permissions, redirect to login if unauthorized",
+        "testScenarios": [
+          "Authenticated user with valid workspace access - should render canvas layout",
+          "Unauthenticated user - should redirect to login page",
+          "Authenticated user without workspace access - should show access denied error",
+          "Expired session - should redirect to login with session expired message"
+        ],
+        "testData": {
+          "input": "User session data, workspace permissions",
+          "expectedOutput": "Layout rendered or redirect response",
+          "mockData": "Mock authentication service, mock workspace service"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": [],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-canvas-layout-error-handling",
+      "type": "component-test",
+      "position": { "x": 100, "y": 200 },
+      "metadata": {
+        "name": "Canvas Layout Error Handling Test",
+        "description": "Test CanvasLayout component error handling for workspace access issues",
+        "type": "error",
+        "componentUnderTest": "CanvasLayout",
+        "componentType": "server-component",
+        "userAction": "Access canvas page with workspace errors",
+        "expectedBehavior": "Display appropriate error messages for workspace access issues",
+        "testScenarios": [
+          "Workspace not found - should show workspace not found error",
+          "Database connection error - should show technical error message",
+          "Permission denied - should show access denied message",
+          "Network timeout - should show timeout error with retry option"
+        ],
+        "testData": {
+          "input": "Error conditions, workspace data",
+          "expectedOutput": "Error messages and error states",
+          "mockData": "Mock error responses, mock workspace service errors"
+        },
+        "testType": "component",
+        "priority": "medium",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-canvas-layout-authentication"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-workflow-designer-page-rendering",
+      "type": "component-test",
+      "position": { "x": 100, "y": 300 },
+      "metadata": {
+        "name": "Workflow Designer Page Rendering Test",
+        "description": "Test WorkflowDesignerPage component rendering with workspace data and user preferences",
+        "type": "basic",
+        "componentUnderTest": "WorkflowDesignerPage",
+        "componentType": "server-component",
+        "userAction": "Access workflow designer page",
+        "expectedBehavior": "Render workflow designer interface with dual canvas system and editor panel overlay",
+        "testScenarios": [
+          "Valid workspace data - should render complete workflow designer interface",
+          "Empty workspace - should render empty canvas with welcome message",
+          "User preferences loaded - should apply user-specific settings and layout",
+          "Existing workflow state - should restore previous workflow state"
+        ],
+        "testData": {
+          "input": "Workspace data, user preferences, existing workflow state",
+          "expectedOutput": "Rendered workflow designer page with all components",
+          "mockData": "Mock workspace service, mock user preferences, mock workflow state"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-canvas-layout-authentication"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-workflow-designer-page-data-fetching",
+      "type": "component-test",
+      "position": { "x": 100, "y": 400 },
+      "metadata": {
+        "name": "Workflow Designer Page Data Fetching Test",
+        "description": "Test WorkflowDesignerPage component data fetching and loading states",
+        "type": "basic",
+        "componentUnderTest": "WorkflowDesignerPage",
+        "componentType": "server-component",
+        "userAction": "Load workflow designer page data",
+        "expectedBehavior": "Fetch workspace data, user preferences, and existing workflow state with proper loading states",
+        "testScenarios": [
+          "Data fetching success - should show loading state then render content",
+          "Data fetching failure - should show error message with retry option",
+          "Partial data success - should render available data with fallbacks",
+          "Slow network - should show loading indicators and handle timeouts"
+        ],
+        "testData": {
+          "input": "Data fetching requests, network conditions",
+          "expectedOutput": "Loading states, rendered content, or error messages",
+          "mockData": "Mock API responses, mock network conditions, mock loading states"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-workflow-designer-page-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-node-management-logic-crud",
+      "type": "component-test",
+      "position": { "x": 100, "y": 500 },
+      "metadata": {
+        "name": "Node Management Logic CRUD Test",
+        "description": "Test NodeManagementLogic component CRUD operations for node creation, validation, and management",
+        "type": "basic",
+        "componentUnderTest": "NodeManagementLogic",
+        "componentType": "server-component",
+        "userAction": "Perform node CRUD operations",
+        "expectedBehavior": "Handle node creation, updates, deletion, and validation with proper business logic",
+        "testScenarios": [
+          "Create new node - should validate node type and create with unique ID",
+          "Update existing node - should validate changes and update metadata",
+          "Delete node - should check dependencies and remove safely",
+          "Validate node metadata - should check slug uniqueness and schema validation"
+        ],
+        "testData": {
+          "input": "Node CRUD operations, validation rules, metadata",
+          "expectedOutput": "Node operations results, validation responses",
+          "mockData": "Mock node data, mock validation rules, mock database operations"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-workflow-designer-page-data-fetching"],
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-node-management-logic-validation",
+      "type": "component-test",
+      "position": { "x": 100, "y": 600 },
+      "metadata": {
+        "name": "Node Management Logic Validation Test",
+        "description": "Test NodeManagementLogic component validation rules and error handling",
+        "type": "validation",
+        "componentUnderTest": "NodeManagementLogic",
+        "componentType": "server-component",
+        "userAction": "Validate node operations",
+        "expectedBehavior": "Apply validation rules for node type, slug uniqueness, and metadata schema",
+        "testScenarios": [
+          "Valid node type - should accept valid node types",
+          "Invalid node type - should reject invalid node types with error message",
+          "Duplicate slug - should reject duplicate slugs with uniqueness error",
+          "Invalid metadata - should reject invalid metadata with schema validation error"
+        ],
+        "testData": {
+          "input": "Node validation requests, validation rules",
+          "expectedOutput": "Validation results, error messages",
+          "mockData": "Mock validation rules, mock node data, mock error responses"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-node-management-logic-crud"],
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-agent-creation-logic-nlp",
+      "type": "component-test",
+      "position": { "x": 100, "y": 700 },
+      "metadata": {
+        "name": "Agent Creation Logic NLP Test",
+        "description": "Test AgentCreationLogic component natural language processing and metadata translation",
+        "type": "basic",
+        "componentUnderTest": "AgentCreationLogic",
+        "componentType": "server-component",
+        "userAction": "Create agent with natural language input",
+        "expectedBehavior": "Process natural language inputs and translate them into structured agent metadata",
+        "testScenarios": [
+          "Valid natural language input - should extract agent persona and role",
+          "Incomplete natural language input - should request additional information",
+          "Ambiguous natural language input - should provide clarification options",
+          "Invalid natural language input - should show error with suggestions"
+        ],
+        "testData": {
+          "input": "Natural language agent descriptions, processing configuration",
+          "expectedOutput": "Structured agent metadata, processing results",
+          "mockData": "Mock NLP service, mock agent templates, mock processing results"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-node-management-logic-validation"],
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-agent-creation-logic-validation",
+      "type": "component-test",
+      "position": { "x": 100, "y": 800 },
+      "metadata": {
+        "name": "Agent Creation Logic Validation Test",
+        "description": "Test AgentCreationLogic component validation for agent slug uniqueness and persona validation",
+        "type": "validation",
+        "componentUnderTest": "AgentCreationLogic",
+        "componentType": "server-component",
+        "userAction": "Validate agent creation data",
+        "expectedBehavior": "Validate agent slug uniqueness, persona validation, and role definition validation",
+        "testScenarios": [
+          "Valid agent data - should accept valid agent configuration",
+          "Duplicate agent slug - should reject with uniqueness error",
+          "Invalid persona - should reject with persona validation error",
+          "Invalid role definition - should reject with role validation error"
+        ],
+        "testData": {
+          "input": "Agent validation requests, validation rules",
+          "expectedOutput": "Validation results, error messages",
+          "mockData": "Mock validation rules, mock agent data, mock error responses"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-agent-creation-logic-nlp"],
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-template-creation-logic-definition",
+      "type": "component-test",
+      "position": { "x": 100, "y": 900 },
+      "metadata": {
+        "name": "Template Creation Logic Definition Test",
+        "description": "Test TemplateCreationLogic component definition management and styling configuration",
+        "type": "basic",
+        "componentUnderTest": "TemplateCreationLogic",
+        "componentType": "server-component",
+        "userAction": "Create artifact template with definitions",
+        "expectedBehavior": "Handle template creation with definition management and styling configuration",
+        "testScenarios": [
+          "Create template with node definition - should validate and create node definition",
+          "Create template with edge definition - should validate and create edge definition",
+          "Create template with column definition - should validate and create column definition",
+          "Create template with styling - should apply and validate styling configuration"
+        ],
+        "testData": {
+          "input": "Template creation data, definition metadata, styling configuration",
+          "expectedOutput": "Template creation results, definition validation",
+          "mockData": "Mock template data, mock definition schemas, mock styling rules"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-agent-creation-logic-validation"],
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-template-creation-logic-validation",
+      "type": "component-test",
+      "position": { "x": 100, "y": 1000 },
+      "metadata": {
+        "name": "Template Creation Logic Validation Test",
+        "description": "Test TemplateCreationLogic component validation for template slug uniqueness and definition validation",
+        "type": "validation",
+        "componentUnderTest": "TemplateCreationLogic",
+        "componentType": "server-component",
+        "userAction": "Validate template creation data",
+        "expectedBehavior": "Validate template slug uniqueness, definition validation, and styling validation",
+        "testScenarios": [
+          "Valid template data - should accept valid template configuration",
+          "Duplicate template slug - should reject with uniqueness error",
+          "Invalid definition - should reject with definition validation error",
+          "Invalid styling - should reject with styling validation error"
+        ],
+        "testData": {
+          "input": "Template validation requests, validation rules",
+          "expectedOutput": "Validation results, error messages",
+          "mockData": "Mock validation rules, mock template data, mock error responses"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-template-creation-logic-definition"],
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-seven-core-node-explorer-rendering",
+      "type": "component-test",
+      "position": { "x": 300, "y": 100 },
+      "metadata": {
+        "name": "Seven Core Node Explorer Rendering Test",
+        "description": "Test SevenCoreNodeExplorer component rendering with 7 core node types organized in folders",
+        "type": "basic",
+        "componentUnderTest": "SevenCoreNodeExplorer",
+        "componentType": "client-component",
+        "userAction": "View node explorer panel",
+        "expectedBehavior": "Display 7 core node types organized in folders for user exploration",
+        "testScenarios": [
+          "Valid node types data - should render all 7 core node types in organized folders",
+          "Empty node types data - should show empty state with message",
+          "Folder expansion - should expand/collapse folders on click",
+          "Node type selection - should highlight selected node type and enable drag"
+        ],
+        "testData": {
+          "input": "Node types data, folder structure, selection state",
+          "expectedOutput": "Rendered explorer panel with node types and folders",
+          "mockData": "Mock node types data, mock folder structure, mock selection state"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-workflow-designer-page-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-seven-core-node-explorer-interactions",
+      "type": "component-test",
+      "position": { "x": 300, "y": 200 },
+      "metadata": {
+        "name": "Seven Core Node Explorer Interactions Test",
+        "description": "Test SevenCoreNodeExplorer component interactions including folder expand/collapse and node selection",
+        "type": "interaction",
+        "componentUnderTest": "SevenCoreNodeExplorer",
+        "componentType": "client-component",
+        "userAction": "Interact with node explorer",
+        "expectedBehavior": "Handle folder expand/collapse, node type selection, and drag and drop initiation",
+        "testScenarios": [
+          "Folder expand - should expand folder and show child nodes",
+          "Folder collapse - should collapse folder and hide child nodes",
+          "Node selection - should highlight selected node and update selection state",
+          "Drag initiation - should initiate drag operation for selected node type"
+        ],
+        "testData": {
+          "input": "User interactions, folder state, selection state",
+          "expectedOutput": "Updated UI state, selection changes, drag events",
+          "mockData": "Mock user events, mock state updates, mock drag events"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-seven-core-node-explorer-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-react-flow-canvas-rendering",
+      "type": "component-test",
+      "position": { "x": 500, "y": 100 },
+      "metadata": {
+        "name": "React Flow Canvas Rendering Test",
+        "description": "Test ReactFlowCanvas component rendering with React Flow for visual workflow creation",
+        "type": "basic",
+        "componentUnderTest": "ReactFlowCanvas",
+        "componentType": "client-component",
+        "userAction": "View workflow canvas",
+        "expectedBehavior": "Render main canvas area using React Flow for visual workflow creation and node manipulation",
+        "testScenarios": [
+          "Empty canvas - should render empty canvas with grid background",
+          "Canvas with nodes - should render nodes at correct positions",
+          "Canvas with edges - should render edges connecting nodes",
+          "Canvas state - should maintain canvas state and restore on reload"
+        ],
+        "testData": {
+          "input": "Canvas state, node data, edge data",
+          "expectedOutput": "Rendered canvas with nodes and edges",
+          "mockData": "Mock canvas state, mock node data, mock edge data"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-workflow-designer-page-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-react-flow-canvas-interactions",
+      "type": "component-test",
+      "position": { "x": 500, "y": 200 },
+      "metadata": {
+        "name": "React Flow Canvas Interactions Test",
+        "description": "Test ReactFlowCanvas component interactions including node dragging and canvas operations",
+        "type": "interaction",
+        "componentUnderTest": "ReactFlowCanvas",
+        "componentType": "client-component",
+        "userAction": "Interact with canvas",
+        "expectedBehavior": "Handle node dragging, connection creation, canvas panning and zooming",
+        "testScenarios": [
+          "Node dragging - should allow dragging nodes to new positions",
+          "Connection creation - should create edges between compatible nodes",
+          "Canvas panning - should allow panning canvas view",
+          "Canvas zooming - should allow zooming in and out of canvas"
+        ],
+        "testData": {
+          "input": "User interactions, canvas operations",
+          "expectedOutput": "Updated canvas state, node positions, connections",
+          "mockData": "Mock user events, mock canvas operations, mock state updates"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-react-flow-canvas-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-editor-panel-overlay-rendering",
+      "type": "component-test",
+      "position": { "x": 500, "y": 300 },
+      "metadata": {
+        "name": "Editor Panel Overlay Rendering Test",
+        "description": "Test EditorPanelOverlay component rendering as z-index overlay for context-aware node metadata editing",
+        "type": "basic",
+        "componentUnderTest": "EditorPanelOverlay",
+        "componentType": "client-component",
+        "userAction": "Open editor panel for node editing",
+        "expectedBehavior": "Render z-index overlay panel for context-aware node metadata editing with connected nodes visualization",
+        "testScenarios": [
+          "Panel opening - should open overlay panel with correct z-index",
+          "Panel with node data - should display node metadata form",
+          "Connected nodes visualization - should show connected nodes",
+          "Panel positioning - should position panel correctly relative to selected node"
+        ],
+        "testData": {
+          "input": "Node metadata, panel configuration, connected nodes data",
+          "expectedOutput": "Rendered overlay panel with form and visualization",
+          "mockData": "Mock node metadata, mock panel config, mock connected nodes"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-react-flow-canvas-interactions"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-editor-panel-overlay-form",
+      "type": "component-test",
+      "position": { "x": 500, "y": 400 },
+      "metadata": {
+        "name": "Editor Panel Overlay Form Test",
+        "description": "Test EditorPanelOverlay component form input handling and validation",
+        "type": "form",
+        "componentUnderTest": "EditorPanelOverlay",
+        "componentType": "client-component",
+        "userAction": "Edit node metadata in form",
+        "expectedBehavior": "Handle form input handling, panel open/close, and form validation",
+        "testScenarios": [
+          "Form input handling - should handle text, select, and checkbox inputs",
+          "Real-time validation - should validate inputs as user types",
+          "Form submission - should submit form data and close panel",
+          "Form cancellation - should discard changes and close panel"
+        ],
+        "testData": {
+          "input": "Form inputs, validation rules, submission data",
+          "expectedOutput": "Form state updates, validation results, submission events",
+          "mockData": "Mock form data, mock validation rules, mock submission handlers"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-editor-panel-overlay-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-top-toolbox-panel-rendering",
+      "type": "component-test",
+      "position": { "x": 300, "y": 300 },
+      "metadata": {
+        "name": "Top Toolbox Panel Rendering Test",
+        "description": "Test TopToolboxPanel component rendering with workflow flow control tools and dynamic template-specific tools",
+        "type": "basic",
+        "componentUnderTest": "TopToolboxPanel",
+        "componentType": "client-component",
+        "userAction": "View top toolbox panel",
+        "expectedBehavior": "Render top toolbar panel providing workflow flow control tools and dynamic template-specific tools",
+        "testScenarios": [
+          "Basic tools rendering - should render workflow control tools",
+          "Dynamic template tools - should show template-specific tools when template selected",
+          "Tool availability - should show/hide tools based on context",
+          "Tool organization - should organize tools in logical groups"
+        ],
+        "testData": {
+          "input": "Available tools, template context, mode state",
+          "expectedOutput": "Rendered toolbar with appropriate tools",
+          "mockData": "Mock tool configurations, mock template context, mock mode state"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-workflow-designer-page-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-top-toolbox-panel-interactions",
+      "type": "component-test",
+      "position": { "x": 300, "y": 400 },
+      "metadata": {
+        "name": "Top Toolbox Panel Interactions Test",
+        "description": "Test TopToolboxPanel component interactions including tool selection and dynamic tool updates",
+        "type": "interaction",
+        "componentUnderTest": "TopToolboxPanel",
+        "componentType": "client-component",
+        "userAction": "Interact with toolbox tools",
+        "expectedBehavior": "Handle tool selection, workflow node addition, mode switching, and dynamic tool updates",
+        "testScenarios": [
+          "Tool selection - should highlight selected tool and trigger action",
+          "Workflow node addition - should add selected node type to canvas",
+          "Mode switching - should switch between design and preview modes",
+          "Dynamic tool updates - should update available tools based on context"
+        ],
+        "testData": {
+          "input": "Tool interactions, mode changes, context updates",
+          "expectedOutput": "Tool state changes, mode transitions, dynamic updates",
+          "mockData": "Mock tool events, mock mode handlers, mock context updates"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-top-toolbox-panel-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-template-node-display-rendering",
+      "type": "component-test",
+      "position": { "x": 700, "y": 100 },
+      "metadata": {
+        "name": "Template Node Display Rendering Test",
+        "description": "Test TemplateNodeDisplay component rendering for artifact template nodes on canvas",
+        "type": "basic",
+        "componentUnderTest": "TemplateNodeDisplay",
+        "componentType": "client-component",
+        "userAction": "View template node on canvas",
+        "expectedBehavior": "Display artifact template nodes on canvas with definition visualization",
+        "testScenarios": [
+          "Template node rendering - should render template node with proper styling",
+          "Definition visualization - should show node, edge, and column definitions",
+          "Node selection - should highlight selected template node",
+          "Definition count display - should show number of definitions"
+        ],
+        "testData": {
+          "input": "Template metadata, definition data, node state",
+          "expectedOutput": "Rendered template node with definition visualization",
+          "mockData": "Mock template metadata, mock definition data, mock node state"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-react-flow-canvas-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-template-metadata-editor-rendering",
+      "type": "component-test",
+      "position": { "x": 700, "y": 200 },
+      "metadata": {
+        "name": "Template Metadata Editor Rendering Test",
+        "description": "Test TemplateMetadataEditor component rendering for editing template metadata",
+        "type": "basic",
+        "componentUnderTest": "TemplateMetadataEditor",
+        "componentType": "client-component",
+        "userAction": "Edit template metadata",
+        "expectedBehavior": "Render form component for editing template metadata including slug, name, format, and styling",
+        "testScenarios": [
+          "Form rendering - should render form with template metadata fields",
+          "Field population - should populate fields with existing template data",
+          "Validation display - should show validation errors for invalid inputs",
+          "Styling configuration - should show styling configuration options"
+        ],
+        "testData": {
+          "input": "Template metadata, form configuration, validation rules",
+          "expectedOutput": "Rendered form with template metadata fields",
+          "mockData": "Mock template metadata, mock form config, mock validation rules"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-editor-panel-overlay-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-template-metadata-editor-form",
+      "type": "component-test",
+      "position": { "x": 700, "y": 300 },
+      "metadata": {
+        "name": "Template Metadata Editor Form Test",
+        "description": "Test TemplateMetadataEditor component form input handling and validation",
+        "type": "form",
+        "componentUnderTest": "TemplateMetadataEditor",
+        "componentType": "client-component",
+        "userAction": "Input template metadata in form",
+        "expectedBehavior": "Handle form input handling, real-time validation, and styling configuration",
+        "testScenarios": [
+          "Slug input - should validate slug format and uniqueness",
+          "Name input - should validate name length and format",
+          "Format selection - should validate format type selection",
+          "Styling configuration - should validate styling properties"
+        ],
+        "testData": {
+          "input": "Form inputs, validation rules, styling configuration",
+          "expectedOutput": "Form state updates, validation results, styling updates",
+          "mockData": "Mock form data, mock validation rules, mock styling config"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-template-metadata-editor-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-definition-manager-rendering",
+      "type": "component-test",
+      "position": { "x": 700, "y": 400 },
+      "metadata": {
+        "name": "Definition Manager Rendering Test",
+        "description": "Test DefinitionManager component rendering for managing Node, Edge, and Column definitions",
+        "type": "basic",
+        "componentUnderTest": "DefinitionManager",
+        "componentType": "client-component",
+        "userAction": "View definition manager",
+        "expectedBehavior": "Render component for managing Node, Edge, and Column definitions within artifact templates",
+        "testScenarios": [
+          "Definition list rendering - should show list of existing definitions",
+          "Definition type tabs - should show tabs for Node, Edge, and Column definitions",
+          "Add definition button - should show add button for each definition type",
+          "Definition relationships - should show relationships between definitions"
+        ],
+        "testData": {
+          "input": "Definition data, template context, relationship data",
+          "expectedOutput": "Rendered definition manager with definition list and controls",
+          "mockData": "Mock definition data, mock template context, mock relationship data"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-template-metadata-editor-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-node-definition-editor-rendering",
+      "type": "component-test",
+      "position": { "x": 700, "y": 500 },
+      "metadata": {
+        "name": "Node Definition Editor Rendering Test",
+        "description": "Test NodeDefinitionEditor component rendering for editing node definition metadata",
+        "type": "basic",
+        "componentUnderTest": "NodeDefinitionEditor",
+        "componentType": "client-component",
+        "userAction": "Edit node definition",
+        "expectedBehavior": "Render form component for editing node definition metadata including AI instructions and design properties",
+        "testScenarios": [
+          "Form rendering - should render form with node definition fields",
+          "AI instruction editor - should show AI instruction text area",
+          "Design properties - should show design property configuration options",
+          "Validation display - should show validation errors for invalid inputs"
+        ],
+        "testData": {
+          "input": "Node definition data, form configuration, validation rules",
+          "expectedOutput": "Rendered form with node definition fields",
+          "mockData": "Mock node definition data, mock form config, mock validation rules"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-definition-manager-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-edge-definition-editor-rendering",
+      "type": "component-test",
+      "position": { "x": 700, "y": 600 },
+      "metadata": {
+        "name": "Edge Definition Editor Rendering Test",
+        "description": "Test EdgeDefinitionEditor component rendering for editing edge definition metadata",
+        "type": "basic",
+        "componentUnderTest": "EdgeDefinitionEditor",
+        "componentType": "client-component",
+        "userAction": "Edit edge definition",
+        "expectedBehavior": "Render form component for editing edge definition metadata including style properties and relationships",
+        "testScenarios": [
+          "Form rendering - should render form with edge definition fields",
+          "Style properties - should show style property configuration options",
+          "Relationship definition - should show relationship type selection",
+          "Validation display - should show validation errors for invalid inputs"
+        ],
+        "testData": {
+          "input": "Edge definition data, form configuration, validation rules",
+          "expectedOutput": "Rendered form with edge definition fields",
+          "mockData": "Mock edge definition data, mock form config, mock validation rules"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-definition-manager-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-column-definition-editor-rendering",
+      "type": "component-test",
+      "position": { "x": 700, "y": 700 },
+      "metadata": {
+        "name": "Column Definition Editor Rendering Test",
+        "description": "Test ColumnDefinitionEditor component rendering for editing column definition metadata",
+        "type": "basic",
+        "componentUnderTest": "ColumnDefinitionEditor",
+        "componentType": "client-component",
+        "userAction": "Edit column definition",
+        "expectedBehavior": "Render form component for editing column definition metadata including data types and validation rules",
+        "testScenarios": [
+          "Form rendering - should render form with column definition fields",
+          "Data type selection - should show data type selection options",
+          "Validation rules - should show validation rule configuration",
+          "Validation display - should show validation errors for invalid inputs"
+        ],
+        "testData": {
+          "input": "Column definition data, form configuration, validation rules",
+          "expectedOutput": "Rendered form with column definition fields",
+          "mockData": "Mock column definition data, mock form config, mock validation rules"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-definition-manager-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-template-style-editor-rendering",
+      "type": "component-test",
+      "position": { "x": 700, "y": 800 },
+      "metadata": {
+        "name": "Template Style Editor Rendering Test",
+        "description": "Test TemplateStyleEditor component rendering for customizing template visual style",
+        "type": "basic",
+        "componentUnderTest": "TemplateStyleEditor",
+        "componentType": "client-component",
+        "userAction": "Customize template style",
+        "expectedBehavior": "Render component for customizing template visual style including layout and styling properties",
+        "testScenarios": [
+          "Layout configuration - should show layout direction and spacing options",
+          "Visual style options - should show background color and border style options",
+          "Style preview - should show live preview of style changes",
+          "Style validation - should validate style properties and show errors"
+        ],
+        "testData": {
+          "input": "Template style data, layout configuration, visual properties",
+          "expectedOutput": "Rendered style editor with configuration options and preview",
+          "mockData": "Mock style data, mock layout config, mock visual properties"
+        },
+        "testType": "component",
+        "priority": "medium",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-template-metadata-editor-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-node-management-business-logic",
+      "type": "business-logic-test",
+      "position": { "x": 900, "y": 100 },
+      "metadata": {
+        "name": "Node Management Business Logic Test",
+        "description": "Test NodeManagementLogic business logic for node CRUD operations and validation",
+        "type": "basic",
+        "businessLogic": "NodeManagementLogic",
+        "logicType": "validation",
+        "userAction": "Perform node management operations",
+        "expectedBehavior": "Handle node creation, updates, deletion, and validation with proper business rules",
+        "testScenarios": [
+          "Node creation validation - should validate node type and metadata before creation",
+          "Node update validation - should validate changes and check dependencies",
+          "Node deletion validation - should check for dependent nodes before deletion",
+          "Slug uniqueness validation - should ensure unique slugs across workspace"
+        ],
+        "testData": {
+          "input": "Node operations, validation rules, business constraints",
+          "expectedOutput": "Validation results, operation success/failure, business rule enforcement",
+          "mockData": "Mock node data, mock validation rules, mock business constraints"
+        },
+        "testType": "business-logic",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-node-management-logic-crud"],
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-agent-creation-business-logic",
+      "type": "business-logic-test",
+      "position": { "x": 900, "y": 200 },
+      "metadata": {
+        "name": "Agent Creation Business Logic Test",
+        "description": "Test AgentCreationLogic business logic for natural language processing and agent validation",
+        "type": "basic",
+        "businessLogic": "AgentCreationLogic",
+        "logicType": "transformation",
+        "userAction": "Create agent with natural language input",
+        "expectedBehavior": "Process natural language inputs and translate them into structured agent metadata with validation",
+        "testScenarios": [
+          "Natural language processing - should extract agent persona and role from text",
+          "Agent metadata translation - should convert NLP results to structured metadata",
+          "Agent validation - should validate agent configuration against business rules",
+          "Duplicate agent detection - should check for existing agents with similar roles"
+        ],
+        "testData": {
+          "input": "Natural language descriptions, processing rules, validation constraints",
+          "expectedOutput": "Structured agent metadata, validation results, processing status",
+          "mockData": "Mock NLP inputs, mock processing rules, mock validation constraints"
+        },
+        "testType": "business-logic",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-agent-creation-logic-nlp"],
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-template-creation-business-logic",
+      "type": "business-logic-test",
+      "position": { "x": 900, "y": 300 },
+      "metadata": {
+        "name": "Template Creation Business Logic Test",
+        "description": "Test TemplateCreationLogic business logic for template creation and definition management",
+        "type": "basic",
+        "businessLogic": "TemplateCreationLogic",
+        "logicType": "validation",
+        "userAction": "Create artifact template with definitions",
+        "expectedBehavior": "Handle template creation with definition management and styling configuration validation",
+        "testScenarios": [
+          "Template validation - should validate template metadata and structure",
+          "Definition validation - should validate node, edge, and column definitions",
+          "Relationship validation - should validate relationships between definitions",
+          "Styling validation - should validate styling configuration and constraints"
+        ],
+        "testData": {
+          "input": "Template creation data, definition schemas, validation rules",
+          "expectedOutput": "Template validation results, definition validation, creation status",
+          "mockData": "Mock template data, mock definition schemas, mock validation rules"
+        },
+        "testType": "business-logic",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-template-creation-logic-definition"],
+        "owner": "Backend Developer"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "test-canvas-to-explorer-integration",
+      "source": "test-workflow-designer-page-rendering",
+      "target": "test-seven-core-node-explorer-rendering",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Canvas to Explorer Integration Test",
+        "description": "Test integration between workflow designer page and node explorer",
+        "testType": "integration",
+        "userFlow": "Access canvas and view node explorer",
+        "testScenario": "happy-path",
+        "componentInteraction": "WorkflowDesignerPage renders SevenCoreNodeExplorer with node types data",
+        "dataFlow": "Workspace data flows from page to explorer, node selection events flow back",
+        "expectedIntegrationBehavior": "Explorer should display node types and handle selection events properly",
+        "testData": {
+          "input": "Workspace data, node types configuration",
+          "expectedOutput": "Rendered explorer with functional node selection",
+          "mockServices": "Mock workspace service, mock node types service"
+        },
+        "executionOrder": 1,
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "10min",
+        "dependencies": [],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-explorer-to-canvas-integration",
+      "source": "test-seven-core-node-explorer-interactions",
+      "target": "test-react-flow-canvas-interactions",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Explorer to Canvas Integration Test",
+        "description": "Test integration between node explorer and canvas for drag and drop operations",
+        "testType": "integration",
+        "userFlow": "Drag node from explorer to canvas",
+        "testScenario": "happy-path",
+        "componentInteraction": "SevenCoreNodeExplorer initiates drag, ReactFlowCanvas handles drop",
+        "dataFlow": "Node type data flows from explorer to canvas, canvas updates with new node",
+        "expectedIntegrationBehavior": "Canvas should accept dropped nodes and create them at drop location",
+        "testData": {
+          "input": "Node type selection, drag events, drop coordinates",
+          "expectedOutput": "New node created on canvas at drop location",
+          "mockServices": "Mock drag events, mock canvas state management"
+        },
+        "executionOrder": 2,
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "10min",
+        "dependencies": ["test-canvas-to-explorer-integration"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-canvas-to-editor-integration",
+      "source": "test-react-flow-canvas-interactions",
+      "target": "test-editor-panel-overlay-rendering",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Canvas to Editor Integration Test",
+        "description": "Test integration between canvas node selection and editor panel opening",
+        "testType": "integration",
+        "userFlow": "Select node on canvas to open editor",
+        "testScenario": "happy-path",
+        "componentInteraction": "ReactFlowCanvas triggers node selection, EditorPanelOverlay opens with node data",
+        "dataFlow": "Node selection event flows from canvas to editor, node metadata flows to editor",
+        "expectedIntegrationBehavior": "Editor panel should open with correct node metadata and form fields",
+        "testData": {
+          "input": "Node selection event, node metadata",
+          "expectedOutput": "Editor panel opened with populated form fields",
+          "mockServices": "Mock node selection events, mock node metadata service"
+        },
+        "executionOrder": 3,
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "10min",
+        "dependencies": ["test-explorer-to-canvas-integration"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-editor-to-metadata-integration",
+      "source": "test-editor-panel-overlay-form",
+      "target": "test-template-metadata-editor-form",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Editor to Metadata Integration Test",
+        "description": "Test integration between editor panel and template metadata editor",
+        "testType": "integration",
+        "userFlow": "Configure template metadata in editor panel",
+        "testScenario": "happy-path",
+        "componentInteraction": "EditorPanelOverlay opens TemplateMetadataEditor for template configuration",
+        "dataFlow": "Template node data flows to metadata editor, form data flows back to editor",
+        "expectedIntegrationBehavior": "Metadata editor should open with template data and handle form submission",
+        "testData": {
+          "input": "Template node data, form configuration",
+          "expectedOutput": "Metadata editor with populated fields and validation",
+          "mockServices": "Mock template data service, mock form validation service"
+        },
+        "executionOrder": 4,
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "10min",
+        "dependencies": ["test-canvas-to-editor-integration"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-metadata-to-definition-integration",
+      "source": "test-template-metadata-editor-form",
+      "target": "test-definition-manager-rendering",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Metadata to Definition Integration Test",
+        "description": "Test integration between template metadata editor and definition manager",
+        "testType": "integration",
+        "userFlow": "Add definitions to template after metadata configuration",
+        "testScenario": "happy-path",
+        "componentInteraction": "TemplateMetadataEditor triggers DefinitionManager to show definition tools",
+        "dataFlow": "Template metadata flows to definition manager, definition data flows back",
+        "expectedIntegrationBehavior": "Definition manager should show definition tools and handle definition creation",
+        "testData": {
+          "input": "Template metadata, definition configuration",
+          "expectedOutput": "Definition manager with available definition tools",
+          "mockServices": "Mock definition service, mock template context service"
+        },
+        "executionOrder": 5,
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "10min",
+        "dependencies": ["test-editor-to-metadata-integration"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-definition-to-editor-integration",
+      "source": "test-definition-manager-rendering",
+      "target": "test-node-definition-editor-rendering",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Definition to Editor Integration Test",
+        "description": "Test integration between definition manager and node definition editor",
+        "testType": "integration",
+        "userFlow": "Create node definition in template",
+        "testScenario": "happy-path",
+        "componentInteraction": "DefinitionManager opens NodeDefinitionEditor for node definition creation",
+        "dataFlow": "Definition context flows to editor, definition data flows back to manager",
+        "expectedIntegrationBehavior": "Node definition editor should open and handle definition creation",
+        "testData": {
+          "input": "Definition context, node definition data",
+          "expectedOutput": "Node definition editor with form fields and validation",
+          "mockServices": "Mock definition context service, mock node definition service"
+        },
+        "executionOrder": 6,
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "10min",
+        "dependencies": ["test-metadata-to-definition-integration"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-component-to-business-logic-hierarchy",
+      "source": "test-node-management-logic-crud",
+      "target": "test-node-management-business-logic",
+      "type": "test-hierarchy",
+      "metadata": {
+        "name": "Component to Business Logic Hierarchy Test",
+        "description": "Test hierarchy relationship between node management component and business logic",
+        "dependencyType": "depends-on",
+        "relationship": "Component test depends on business logic test for validation",
+        "executionOrder": 1,
+        "dataSharing": "Node operations data and validation results",
+        "errorPropagation": "Business logic errors should propagate to component test",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-agent-component-to-business-logic-hierarchy",
+      "source": "test-agent-creation-logic-nlp",
+      "target": "test-agent-creation-business-logic",
+      "type": "test-hierarchy",
+      "metadata": {
+        "name": "Agent Component to Business Logic Hierarchy Test",
+        "description": "Test hierarchy relationship between agent creation component and business logic",
+        "dependencyType": "depends-on",
+        "relationship": "Component test depends on business logic test for NLP processing",
+        "executionOrder": 2,
+        "dataSharing": "Natural language inputs and processed metadata",
+        "errorPropagation": "NLP processing errors should propagate to component test",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-template-component-to-business-logic-hierarchy",
+      "source": "test-template-creation-logic-definition",
+      "target": "test-template-creation-business-logic",
+      "type": "test-hierarchy",
+      "metadata": {
+        "name": "Template Component to Business Logic Hierarchy Test",
+        "description": "Test hierarchy relationship between template creation component and business logic",
+        "dependencyType": "depends-on",
+        "relationship": "Component test depends on business logic test for template validation",
+        "executionOrder": 3,
+        "dataSharing": "Template creation data and validation results",
+        "errorPropagation": "Template validation errors should propagate to component test",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "owner": "Backend Developer"
+      }
+    }
+  ],
+  "layout": {
+    "type": "hierarchical",
+    "options": {
+      "direction": "TB",
+      "spacing": 80,
+      "nodeSpacing": 60,
+      "rankSpacing": 120,
+      "padding": 40
+    }
+  }
+}

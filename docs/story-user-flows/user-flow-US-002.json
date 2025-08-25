@@ -1,0 +1,617 @@
+{
+  "template": {
+    "id": "user-flow-template-v1",
+    "name": "User Flow Document",
+    "version": "1.0",
+    "description": "User flow for US-002: Create Agent with Natural Language - enabling non-technical users to describe AI agents using plain English",
+    "output": {
+      "format": "json",
+      "filename": "user-flow-US-002.json",
+      "schema": "FlowTemplateContent"
+    }
+  },
+  "metadata": {
+    "storyId": "US-002",
+    "storyName": "Create Agent with Natural Language",
+    "version": "1.0",
+    "createdAt": "2025-01-22T00:00:00Z",
+    "updatedAt": "2025-01-22T00:00:00Z",
+    "totalSteps": 15,
+    "decisionPoints": 8,
+    "errorStates": 6,
+    "successStates": 3,
+    "totalGroups": 4,
+    "functionalGroups": 1,
+    "journeyGroups": 1,
+    "errorGroups": 1,
+    "alternativeGroups": 1,
+    "owner": "Xbowl Product Manager",
+    "reviewDate": "2025-02-22T00:00:00Z"
+  },
+  "nodes": [
+    {
+      "id": "start-agent-creation",
+      "type": "start",
+      "position": { "x": 400, "y": 100 },
+      "metadata": {
+        "name": "Start Agent Creation",
+        "description": "User initiates agent creation process through workflow designer or create button",
+        "userContext": "Non-technical user wanting to create AI agent",
+        "entryPoint": "Workflow designer interface or Create Agent button"
+      }
+    },
+    {
+      "id": "enter-agent-identifier",
+      "type": "action",
+      "position": { "x": 400, "y": 200 },
+      "metadata": {
+        "name": "Enter Agent Identifier",
+        "description": "User enters unique agent development slug",
+        "actionType": "Input",
+        "target": "Agent slug text field",
+        "inputData": {
+          "agentSlug": "marketing-specialist"
+        },
+        "validation": [
+          "Alphanumeric + hyphens only",
+          "Unique within workspace",
+          "Required field"
+        ]
+      }
+    },
+    {
+      "id": "validate-agent-identifier",
+      "type": "system-response",
+      "position": { "x": 400, "y": 300 },
+      "metadata": {
+        "name": "Validate Agent Identifier",
+        "description": "System validates agent slug format and uniqueness",
+        "responseType": "Validation",
+        "message": "Agent identifier validated successfully",
+        "processingTime": "1-2 seconds"
+      }
+    },
+    {
+      "id": "enter-display-name",
+      "type": "action",
+      "position": { "x": 400, "y": 400 },
+      "metadata": {
+        "name": "Enter Display Name",
+        "description": "User enters human-readable display name",
+        "actionType": "Input",
+        "target": "Display name text field",
+        "inputData": {
+          "displayName": "Marketing Specialist Agent"
+        },
+        "validation": ["1-100 characters", "Required field"]
+      }
+    },
+    {
+      "id": "enter-persona-description",
+      "type": "action",
+      "position": { "x": 400, "y": 500 },
+      "metadata": {
+        "name": "Enter Persona Description",
+        "description": "User enters detailed agent persona in rich text field",
+        "actionType": "Input",
+        "target": "Persona description rich text editor",
+        "inputData": {
+          "personaDefinition": "A creative and analytical marketing professional with deep understanding of consumer behavior and brand strategy. Enthusiastic about data-driven insights and storytelling."
+        },
+        "validation": [
+          "Minimum 50 characters",
+          "Meaningful description",
+          "Required field"
+        ]
+      }
+    },
+    {
+      "id": "enter-role-definition",
+      "type": "action",
+      "position": { "x": 400, "y": 600 },
+      "metadata": {
+        "name": "Enter Role Definition",
+        "description": "User enters agent role and responsibilities",
+        "actionType": "Input",
+        "target": "Role definition rich text editor",
+        "inputData": {
+          "roleDefinition": "Responsible for developing marketing strategies, creating campaign content, analyzing market trends, and generating marketing artifacts."
+        },
+        "validation": [
+          "Minimum 30 characters",
+          "Clear responsibilities",
+          "Required field"
+        ]
+      }
+    },
+    {
+      "id": "create-agent-button",
+      "type": "action",
+      "position": { "x": 400, "y": 700 },
+      "metadata": {
+        "name": "Click Create Agent",
+        "description": "User clicks create agent button to process inputs",
+        "actionType": "Click",
+        "target": "Create Agent button",
+        "validation": ["All required fields completed", "Validation passed"]
+      }
+    },
+    {
+      "id": "system-translation",
+      "type": "system-response",
+      "position": { "x": 400, "y": 800 },
+      "metadata": {
+        "name": "System Translation and Validation",
+        "description": "System processes natural language into structured metadata",
+        "responseType": "Processing",
+        "message": "Processing agent creation...",
+        "processingTime": "3-5 seconds"
+      }
+    },
+    {
+      "id": "agent-node-created",
+      "type": "system-response",
+      "position": { "x": 400, "y": 900 },
+      "metadata": {
+        "name": "Agent Node Created",
+        "description": "Agent node successfully created in Universal Node System",
+        "responseType": "Success",
+        "message": "Agent created successfully!",
+        "data": {
+          "agentId": "agent-123",
+          "nodeType": "agent",
+          "metadata": "Complete agent metadata"
+        }
+      }
+    },
+    {
+      "id": "agent-on-canvas",
+      "type": "page",
+      "position": { "x": 400, "y": 1000 },
+      "metadata": {
+        "name": "Agent Node on Canvas",
+        "description": "Agent node appears on canvas with proper styling",
+        "pageType": "Canvas",
+        "url": "/workflow-designer",
+        "components": ["AgentNode", "Canvas", "NodeConnections"],
+        "accessibility": "WCAG 2.1 AA"
+      }
+    },
+    {
+      "id": "open-editor-panel",
+      "type": "action",
+      "position": { "x": 400, "y": 1100 },
+      "metadata": {
+        "name": "Open Editor Panel",
+        "description": "User clicks agent node to open Editor Panel overlay",
+        "actionType": "Click",
+        "target": "Agent node on canvas",
+        "validation": ["Agent node selected", "Editor Panel available"]
+      }
+    },
+    {
+      "id": "editor-panel-overlay",
+      "type": "page",
+      "position": { "x": 400, "y": 1200 },
+      "metadata": {
+        "name": "Editor Panel Overlay",
+        "description": "Z-index overlay with agent metadata editing forms",
+        "pageType": "Overlay",
+        "components": [
+          "AgentMetadataForm",
+          "ConnectedNodesView",
+          "Alternative2DRendering"
+        ],
+        "accessibility": "WCAG 2.1 AA"
+      }
+    },
+    {
+      "id": "edit-agent-metadata",
+      "type": "action",
+      "position": { "x": 400, "y": 1300 },
+      "metadata": {
+        "name": "Edit Agent Metadata",
+        "description": "User edits agent persona or role through Editor Panel",
+        "actionType": "Input",
+        "target": "Agent metadata forms in Editor Panel",
+        "inputData": {
+          "updatedPersona": "Enhanced persona description",
+          "updatedRole": "Enhanced role definition"
+        },
+        "validation": ["Maintain validation rules", "Real-time validation"]
+      }
+    },
+    {
+      "id": "agent-creation-complete",
+      "type": "success",
+      "position": { "x": 400, "y": 1400 },
+      "metadata": {
+        "name": "Agent Creation Complete",
+        "description": "Agent successfully created and configured",
+        "successMessage": "Agent created and ready for workflow integration!",
+        "nextSteps": [
+          "Add tasks to agent",
+          "Connect agent to workflow",
+          "Configure agent tools"
+        ],
+        "completionCriteria": "Agent node created with complete metadata and Editor Panel access"
+      }
+    },
+    {
+      "id": "validation-failure",
+      "type": "error",
+      "position": { "x": 600, "y": 700 },
+      "metadata": {
+        "name": "Validation Failure",
+        "description": "Agent metadata validation fails",
+        "errorType": "Validation",
+        "errorCode": "VAL_AGENT_001",
+        "errorMessage": "Please correct the validation errors and try again",
+        "recoveryActions": [
+          "Review error messages",
+          "Correct input fields",
+          "Retry creation"
+        ],
+        "severity": "Medium"
+      }
+    },
+    {
+      "id": "duplicate-identifier",
+      "type": "error",
+      "position": { "x": 600, "y": 200 },
+      "metadata": {
+        "name": "Duplicate Agent Identifier",
+        "description": "Agent slug already exists in workspace",
+        "errorType": "Validation",
+        "errorCode": "VAL_AGENT_002",
+        "errorMessage": "Agent identifier already exists. Please choose a different name.",
+        "recoveryActions": [
+          "Choose different identifier",
+          "Modify existing agent",
+          "Use suggested alternatives"
+        ],
+        "severity": "Low"
+      }
+    },
+    {
+      "id": "incomplete-persona",
+      "type": "error",
+      "position": { "x": 600, "y": 500 },
+      "metadata": {
+        "name": "Incomplete Persona Definition",
+        "description": "Persona description too short or unclear",
+        "errorType": "Validation",
+        "errorCode": "VAL_AGENT_003",
+        "errorMessage": "Persona description must be at least 50 characters and provide meaningful details.",
+        "recoveryActions": [
+          "Expand persona description",
+          "Add more character details",
+          "Include behavioral patterns"
+        ],
+        "severity": "Medium"
+      }
+    },
+    {
+      "id": "incomplete-role",
+      "type": "error",
+      "position": { "x": 600, "y": 600 },
+      "metadata": {
+        "name": "Incomplete Role Definition",
+        "description": "Role definition too short or unclear",
+        "errorType": "Validation",
+        "errorCode": "VAL_AGENT_004",
+        "errorMessage": "Role definition must be at least 30 characters and clearly define responsibilities.",
+        "recoveryActions": [
+          "Expand role definition",
+          "Add specific responsibilities",
+          "Include capabilities"
+        ],
+        "severity": "Medium"
+      }
+    },
+    {
+      "id": "editor-panel-failure",
+      "type": "error",
+      "position": { "x": 600, "y": 1100 },
+      "metadata": {
+        "name": "Editor Panel Access Failure",
+        "description": "Editor Panel cannot be opened for agent node",
+        "errorType": "System",
+        "errorCode": "SYS_EDITOR_001",
+        "errorMessage": "Unable to open Editor Panel. Please try refreshing the interface.",
+        "recoveryActions": [
+          "Refresh interface",
+          "Try alternative access",
+          "Contact support"
+        ],
+        "severity": "High"
+      }
+    },
+    {
+      "id": "canvas-integration-failure",
+      "type": "error",
+      "position": { "x": 600, "y": 1000 },
+      "metadata": {
+        "name": "Canvas Integration Failure",
+        "description": "Agent node cannot be displayed on canvas",
+        "errorType": "System",
+        "errorCode": "SYS_CANVAS_001",
+        "errorMessage": "Unable to display agent on canvas. Please try refreshing the view.",
+        "recoveryActions": [
+          "Refresh canvas",
+          "Try different view mode",
+          "Access through alternative interface"
+        ],
+        "severity": "High"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "start-agent-creation",
+      "target": "enter-agent-identifier",
+      "type": "next",
+      "metadata": {
+        "condition": "User navigates to agent creation",
+        "description": "User accesses agent creation interface"
+      }
+    },
+    {
+      "id": "edge-2",
+      "source": "enter-agent-identifier",
+      "target": "validate-agent-identifier",
+      "type": "next",
+      "metadata": {
+        "condition": "Agent identifier entered",
+        "description": "System validates agent identifier"
+      }
+    },
+    {
+      "id": "edge-3",
+      "source": "validate-agent-identifier",
+      "target": "enter-display-name",
+      "type": "next",
+      "metadata": {
+        "condition": "Validation successful",
+        "description": "User proceeds to enter display name"
+      }
+    },
+    {
+      "id": "edge-4",
+      "source": "enter-display-name",
+      "target": "enter-persona-description",
+      "type": "next",
+      "metadata": {
+        "condition": "Display name entered",
+        "description": "User proceeds to enter persona description"
+      }
+    },
+    {
+      "id": "edge-5",
+      "source": "enter-persona-description",
+      "target": "enter-role-definition",
+      "type": "next",
+      "metadata": {
+        "condition": "Persona description entered",
+        "description": "User proceeds to enter role definition"
+      }
+    },
+    {
+      "id": "edge-6",
+      "source": "enter-role-definition",
+      "target": "create-agent-button",
+      "type": "next",
+      "metadata": {
+        "condition": "Role definition entered",
+        "description": "User clicks create agent button"
+      }
+    },
+    {
+      "id": "edge-7",
+      "source": "create-agent-button",
+      "target": "system-translation",
+      "type": "next",
+      "metadata": {
+        "condition": "All validation passed",
+        "description": "System processes natural language inputs"
+      }
+    },
+    {
+      "id": "edge-8",
+      "source": "system-translation",
+      "target": "agent-node-created",
+      "type": "next",
+      "metadata": {
+        "condition": "Translation successful",
+        "description": "Agent node created in system"
+      }
+    },
+    {
+      "id": "edge-9",
+      "source": "agent-node-created",
+      "target": "agent-on-canvas",
+      "type": "next",
+      "metadata": {
+        "condition": "Node creation successful",
+        "description": "Agent appears on canvas"
+      }
+    },
+    {
+      "id": "edge-10",
+      "source": "agent-on-canvas",
+      "target": "open-editor-panel",
+      "type": "next",
+      "metadata": {
+        "condition": "User clicks agent node",
+        "description": "Editor Panel opens for agent"
+      }
+    },
+    {
+      "id": "edge-11",
+      "source": "open-editor-panel",
+      "target": "editor-panel-overlay",
+      "type": "next",
+      "metadata": {
+        "condition": "Editor Panel opens successfully",
+        "description": "Editor Panel overlay displayed"
+      }
+    },
+    {
+      "id": "edge-12",
+      "source": "editor-panel-overlay",
+      "target": "edit-agent-metadata",
+      "type": "next",
+      "metadata": {
+        "condition": "Editor Panel accessible",
+        "description": "User can edit agent metadata"
+      }
+    },
+    {
+      "id": "edge-13",
+      "source": "edit-agent-metadata",
+      "target": "agent-creation-complete",
+      "type": "next",
+      "metadata": {
+        "condition": "Metadata editing successful",
+        "description": "Agent creation process complete"
+      }
+    },
+    {
+      "id": "edge-14",
+      "source": "enter-agent-identifier",
+      "target": "duplicate-identifier",
+      "type": "error",
+      "metadata": {
+        "errorCondition": "Agent slug already exists",
+        "description": "Duplicate identifier error"
+      }
+    },
+    {
+      "id": "edge-15",
+      "source": "duplicate-identifier",
+      "target": "enter-agent-identifier",
+      "type": "retry",
+      "metadata": {
+        "retryCondition": "User chooses different identifier",
+        "maxRetries": 3,
+        "description": "Retry with new identifier"
+      }
+    },
+    {
+      "id": "edge-16",
+      "source": "enter-persona-description",
+      "target": "incomplete-persona",
+      "type": "error",
+      "metadata": {
+        "errorCondition": "Persona description too short",
+        "description": "Incomplete persona error"
+      }
+    },
+    {
+      "id": "edge-17",
+      "source": "incomplete-persona",
+      "target": "enter-persona-description",
+      "type": "retry",
+      "metadata": {
+        "retryCondition": "User expands persona description",
+        "maxRetries": 3,
+        "description": "Retry with enhanced persona"
+      }
+    },
+    {
+      "id": "edge-18",
+      "source": "enter-role-definition",
+      "target": "incomplete-role",
+      "type": "error",
+      "metadata": {
+        "errorCondition": "Role definition too short",
+        "description": "Incomplete role error"
+      }
+    },
+    {
+      "id": "edge-19",
+      "source": "incomplete-role",
+      "target": "enter-role-definition",
+      "type": "retry",
+      "metadata": {
+        "retryCondition": "User expands role definition",
+        "maxRetries": 3,
+        "description": "Retry with enhanced role"
+      }
+    },
+    {
+      "id": "edge-20",
+      "source": "create-agent-button",
+      "target": "validation-failure",
+      "type": "error",
+      "metadata": {
+        "errorCondition": "Validation fails on any field",
+        "description": "General validation failure"
+      }
+    },
+    {
+      "id": "edge-21",
+      "source": "validation-failure",
+      "target": "enter-agent-identifier",
+      "type": "retry",
+      "metadata": {
+        "retryCondition": "User corrects validation errors",
+        "maxRetries": 5,
+        "description": "Retry after correcting errors"
+      }
+    },
+    {
+      "id": "edge-22",
+      "source": "open-editor-panel",
+      "target": "editor-panel-failure",
+      "type": "error",
+      "metadata": {
+        "errorCondition": "Editor Panel cannot open",
+        "description": "Editor Panel access failure"
+      }
+    },
+    {
+      "id": "edge-23",
+      "source": "editor-panel-failure",
+      "target": "open-editor-panel",
+      "type": "retry",
+      "metadata": {
+        "retryCondition": "User refreshes interface",
+        "maxRetries": 2,
+        "description": "Retry after interface refresh"
+      }
+    },
+    {
+      "id": "edge-24",
+      "source": "agent-node-created",
+      "target": "canvas-integration-failure",
+      "type": "error",
+      "metadata": {
+        "errorCondition": "Agent cannot appear on canvas",
+        "description": "Canvas integration failure"
+      }
+    },
+    {
+      "id": "edge-25",
+      "source": "canvas-integration-failure",
+      "target": "agent-on-canvas",
+      "type": "retry",
+      "metadata": {
+        "retryCondition": "User refreshes canvas",
+        "maxRetries": 2,
+        "description": "Retry after canvas refresh"
+      }
+    }
+  ],
+  "layout": {
+    "type": "hierarchical",
+    "options": {
+      "direction": "TB",
+      "spacing": 80,
+      "nodeSpacing": 60,
+      "rankSpacing": 150,
+      "padding": 40
+    }
+  }
+}

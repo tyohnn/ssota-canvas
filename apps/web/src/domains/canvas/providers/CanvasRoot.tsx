@@ -208,11 +208,22 @@ export function CanvasRoot({
       nodeIds: selectionStore.state.nodeIds,
       edgeId: selectionStore.state.edgeId,
       canvasMode: selectionStore.canvasMode,
+      
+      // 드래그 선택 관련 상태
+      dragSelection: selectionStore.state.dragSelection,
+      
       selectPage: selectionStore.selectPage,
       selectComponent: selectionStore.selectComponent,
       setNodeSelection: selectionStore.setNodeSelection,
       selectEdge: selectionStore.selectEdge,
       clearAll: selectionStore.clearAll,
+      
+      // 드래그 선택 관련 메서드들
+      startDragSelection: selectionStore.startDragSelection,
+      updateDragSelection: selectionStore.updateDragSelection,
+      endDragSelection: selectionStore.endDragSelection,
+      setCtrlPressed: selectionStore.setCtrlPressed,
+      setTempSelectedIds: selectionStore.setTempSelectedIds,
     }),
     [
       selectionStore.state.pageId,
@@ -220,11 +231,17 @@ export function CanvasRoot({
       selectionStore.state.nodeIds,
       selectionStore.state.edgeId,
       selectionStore.canvasMode,
+      selectionStore.state.dragSelection,
       selectionStore.selectPage,
       selectionStore.selectComponent,
       selectionStore.setNodeSelection,
       selectionStore.selectEdge,
       selectionStore.clearAll,
+      selectionStore.startDragSelection,
+      selectionStore.updateDragSelection,
+      selectionStore.endDragSelection,
+      selectionStore.setCtrlPressed,
+      selectionStore.setTempSelectedIds,
     ]
   );
 

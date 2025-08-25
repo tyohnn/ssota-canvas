@@ -1,0 +1,554 @@
+{
+  "template": {
+    "name": "Component Layer Template",
+    "version": "1.0.0",
+    "description": "Component layer structure for authentication domain - User Authentication and Session Management (US-004)",
+    "output": {
+      "format": "json",
+      "filename": "component-layer-auth.json",
+      "schema": "FlowTemplateContent"
+    }
+  },
+  "metadata": {
+    "lastUpdated": "2025-01-22T00:00:00Z",
+    "storyId": "US-004",
+    "domain": "auth-domain",
+    "totalServerComponents": 4,
+    "totalClientComponents": 8,
+    "totalComponentGroups": 3,
+    "totalDataFlows": 6,
+    "totalRelationships": 15,
+    "responsible": "Frontend Team",
+    "status": "draft"
+  },
+  "nodes": [
+    {
+      "id": "root-layout",
+      "type": "server-component",
+      "position": { "x": 400, "y": 100 },
+      "metadata": {
+        "name": "RootLayout",
+        "description": "Root layout component with HTML and body tags, global styles, and providers",
+        "componentType": "layout",
+        "dataFetching": "Global application state and theme configuration",
+        "validation": "Application initialization and provider setup",
+        "errorHandling": "Global error boundaries and fallback UI",
+        "responsible": "Frontend Team",
+        "filePath": "app/layout.tsx"
+      }
+    },
+    {
+      "id": "auth-layout",
+      "type": "server-component",
+      "position": { "x": 400, "y": 250 },
+      "metadata": {
+        "name": "AuthLayout",
+        "description": "Authentication layout component for sign-in and sign-up pages",
+        "componentType": "layout",
+        "dataFetching": "Authentication state and redirect logic",
+        "validation": "User authentication status and route protection",
+        "errorHandling": "Authentication errors and redirect handling",
+        "responsible": "Frontend Team",
+        "filePath": "app/(auth)/layout.tsx"
+      }
+    },
+    {
+      "id": "sign-in-page",
+      "type": "server-component",
+      "position": { "x": 200, "y": 250 },
+      "metadata": {
+        "name": "SignInPage",
+        "description": "Sign in page component with authentication form and validation",
+        "componentType": "page",
+        "dataFetching": "Authentication configuration and redirect URLs",
+        "validation": "Form validation and authentication state",
+        "errorHandling": "Authentication failures and error display",
+        "responsible": "Frontend Team",
+        "filePath": "app/(auth)/sign-in/page.tsx"
+      }
+    },
+    {
+      "id": "sign-up-page",
+      "type": "server-component",
+      "position": { "x": 600, "y": 250 },
+      "metadata": {
+        "name": "SignUpPage",
+        "description": "Sign up page component with registration form and validation",
+        "componentType": "page",
+        "dataFetching": "Registration configuration and terms of service",
+        "validation": "Form validation and email uniqueness check",
+        "errorHandling": "Registration failures and validation errors",
+        "responsible": "Frontend Team",
+        "filePath": "app/(auth)/sign-up/page.tsx"
+      }
+    },
+    {
+      "id": "sign-in-form",
+      "type": "client-component",
+      "position": { "x": 200, "y": 400 },
+      "metadata": {
+        "name": "SignInForm",
+        "description": "Sign in form component with email, password, and remember me functionality",
+        "componentType": "ui-component",
+        "stateManagement": "useState for form fields, useReducer for validation state",
+        "interactions": "Form input handling, real-time validation, authentication submission",
+        "validation": "Email format validation, password validation, required field checking",
+        "responsive": "Responsive form layout with mobile-friendly input controls",
+        "responsible": "Frontend Team",
+        "filePath": "app/(auth)/sign-in/components/SignInForm.tsx"
+      }
+    },
+    {
+      "id": "sign-up-form",
+      "type": "client-component",
+      "position": { "x": 600, "y": 400 },
+      "metadata": {
+        "name": "SignUpForm",
+        "description": "Sign up form component with email, password, and terms acceptance",
+        "componentType": "ui-component",
+        "stateManagement": "useState for form fields, useReducer for validation state",
+        "interactions": "Form input handling, real-time validation, registration submission",
+        "validation": "Email format validation, strong password validation, terms acceptance",
+        "responsive": "Responsive form layout with password strength indicator",
+        "responsible": "Frontend Team",
+        "filePath": "app/(auth)/sign-up/components/SignUpForm.tsx"
+      }
+    },
+    {
+      "id": "auth-provider",
+      "type": "client-component",
+      "position": { "x": 800, "y": 250 },
+      "metadata": {
+        "name": "AuthProvider",
+        "description": "Authentication provider component for managing auth state across the app",
+        "componentType": "ui-component",
+        "stateManagement": "useContext for auth state, useReducer for auth actions",
+        "interactions": "Authentication state management, user session handling",
+        "validation": "Auth state validation, session validation",
+        "responsive": "Auth context provider with global state management",
+        "responsible": "Frontend Team",
+        "filePath": "app/providers/AuthProvider.tsx"
+      }
+    },
+    {
+      "id": "session-manager",
+      "type": "client-component",
+      "position": { "x": 800, "y": 400 },
+      "metadata": {
+        "name": "SessionManager",
+        "description": "Component for managing user session state and expiration",
+        "componentType": "ui-component",
+        "stateManagement": "useState for session state, useReducer for timeout state",
+        "interactions": "Session monitoring, timeout warnings, session extension",
+        "validation": "Session validity, timeout validation",
+        "responsive": "Session status display with timeout notifications",
+        "responsible": "Frontend Team",
+        "filePath": "app/(auth)/components/SessionManager.tsx"
+      }
+    },
+    {
+      "id": "error-boundary",
+      "type": "client-component",
+      "position": { "x": 800, "y": 550 },
+      "metadata": {
+        "name": "ErrorBoundary",
+        "description": "Error boundary component for handling authentication errors",
+        "componentType": "ui-component",
+        "stateManagement": "useState for error state, useReducer for error handling",
+        "interactions": "Error display, error recovery, fallback UI",
+        "validation": "Error validation, error boundary validation",
+        "responsive": "Responsive error display with recovery options",
+        "responsible": "Frontend Team",
+        "filePath": "app/components/ErrorBoundary.tsx"
+      }
+    },
+    {
+      "id": "loading-spinner",
+      "type": "client-component",
+      "position": { "x": 800, "y": 700 },
+      "metadata": {
+        "name": "LoadingSpinner",
+        "description": "Loading spinner component for authentication loading states",
+        "componentType": "ui-component",
+        "stateManagement": "useState for loading state, useReducer for progress state",
+        "interactions": "Loading display, progress indication, timeout handling",
+        "validation": "Loading state validation, timeout validation",
+        "responsive": "Responsive loading display with progress indicators",
+        "responsible": "Frontend Team",
+        "filePath": "app/components/LoadingSpinner.tsx"
+      }
+    },
+    {
+      "id": "use-auth",
+      "type": "client-component",
+      "position": { "x": 1000, "y": 250 },
+      "metadata": {
+        "name": "useAuth",
+        "description": "Custom hook for authentication state management and operations",
+        "componentType": "hook",
+        "stateManagement": "useState for auth state, useReducer for auth actions",
+        "interactions": "Sign in, sign up, sign out, session management",
+        "validation": "Auth state validation, session validation",
+        "responsible": "Frontend Team",
+        "filePath": "app/hooks/useAuth.ts"
+      }
+    },
+    {
+      "id": "use-session",
+      "type": "client-component",
+      "position": { "x": 1000, "y": 400 },
+      "metadata": {
+        "name": "useSession",
+        "description": "Custom hook for session management and timeout handling",
+        "componentType": "hook",
+        "stateManagement": "useState for session state, useReducer for timeout state",
+        "interactions": "Session monitoring, timeout warnings, session extension",
+        "validation": "Session validation, timeout validation",
+        "responsible": "Frontend Team",
+        "filePath": "app/hooks/useSession.ts"
+      }
+    },
+    {
+      "id": "auth-components-group",
+      "type": "component-group",
+      "position": { "x": 400, "y": 200 },
+      "metadata": {
+        "name": "Authentication Components",
+        "description": "Authentication-related components including sign-in, sign-up, and session management",
+        "groupType": "feature",
+        "responsible": "Frontend Team"
+      }
+    },
+    {
+      "id": "session-components-group",
+      "type": "component-group",
+      "position": { "x": 800, "y": 350 },
+      "metadata": {
+        "name": "Session Components",
+        "description": "Session management components including session monitoring and timeout handling",
+        "groupType": "feature",
+        "responsible": "Frontend Team"
+      }
+    },
+    {
+      "id": "utility-components-group",
+      "type": "component-group",
+      "position": { "x": 800, "y": 600 },
+      "metadata": {
+        "name": "Utility Components",
+        "description": "Utility components including error boundaries, loading spinners, and providers",
+        "groupType": "feature",
+        "responsible": "Frontend Team"
+      }
+    },
+    {
+      "id": "auth-data-flow",
+      "type": "data-flow",
+      "position": { "x": 400, "y": 150 },
+      "metadata": {
+        "name": "Authentication Data Flow",
+        "description": "Data flow for authentication including sign-in, sign-up, and session creation",
+        "dataType": "Authentication data and session information",
+        "direction": "bidirectional",
+        "method": "API calls, form submission, and state management"
+      }
+    },
+    {
+      "id": "session-data-flow",
+      "type": "data-flow",
+      "position": { "x": 800, "y": 150 },
+      "metadata": {
+        "name": "Session Data Flow",
+        "description": "Data flow for session management including validation and timeout handling",
+        "dataType": "Session data and timeout information",
+        "direction": "bidirectional",
+        "method": "Session validation, timeout monitoring, and state updates"
+      }
+    },
+    {
+      "id": "form-validation-data-flow",
+      "type": "data-flow",
+      "position": { "x": 200, "y": 150 },
+      "metadata": {
+        "name": "Form Validation Data Flow",
+        "description": "Data flow for form validation including real-time validation and error handling",
+        "dataType": "Form data and validation state",
+        "direction": "client-to-client",
+        "method": "Form state management and validation hooks"
+      }
+    },
+    {
+      "id": "error-handling-data-flow",
+      "type": "data-flow",
+      "position": { "x": 800, "y": 300 },
+      "metadata": {
+        "name": "Error Handling Data Flow",
+        "description": "Data flow for error handling including error boundaries and recovery",
+        "dataType": "Error state and recovery information",
+        "direction": "client-to-client",
+        "method": "Error state management and recovery handling"
+      }
+    },
+    {
+      "id": "loading-data-flow",
+      "type": "data-flow",
+      "position": { "x": 800, "y": 450 },
+      "metadata": {
+        "name": "Loading Data Flow",
+        "description": "Data flow for loading states including progress indication and timeout handling",
+        "dataType": "Loading state and progress information",
+        "direction": "client-to-client",
+        "method": "Loading state management and progress tracking"
+      }
+    },
+    {
+      "id": "global-state-data-flow",
+      "type": "data-flow",
+      "position": { "x": 400, "y": 50 },
+      "metadata": {
+        "name": "Global State Data Flow",
+        "description": "Data flow for global application state including providers and context",
+        "dataType": "Global state and context information",
+        "direction": "bidirectional",
+        "method": "Context providers and global state management"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "root-layout",
+      "target": "auth-layout",
+      "type": "contains",
+      "metadata": {
+        "relationship": "conditional",
+        "props": "authentication routes, global providers, error boundaries"
+      }
+    },
+    {
+      "id": "edge-2",
+      "source": "auth-layout",
+      "target": "sign-in-page",
+      "type": "contains",
+      "metadata": {
+        "relationship": "direct",
+        "props": "authentication context, redirect logic, error handling"
+      }
+    },
+    {
+      "id": "edge-3",
+      "source": "auth-layout",
+      "target": "sign-up-page",
+      "type": "contains",
+      "metadata": {
+        "relationship": "direct",
+        "props": "registration context, validation logic, error handling"
+      }
+    },
+    {
+      "id": "edge-4",
+      "source": "sign-in-page",
+      "target": "sign-in-form",
+      "type": "renders",
+      "metadata": {
+        "condition": "Sign in page loaded",
+        "props": "authentication configuration, validation rules, error handling"
+      }
+    },
+    {
+      "id": "edge-5",
+      "source": "sign-up-page",
+      "target": "sign-up-form",
+      "type": "renders",
+      "metadata": {
+        "condition": "Sign up page loaded",
+        "props": "registration configuration, validation rules, terms of service"
+      }
+    },
+    {
+      "id": "edge-6",
+      "source": "root-layout",
+      "target": "auth-provider",
+      "type": "contains",
+      "metadata": {
+        "relationship": "direct",
+        "props": "authentication context, global state management"
+      }
+    },
+    {
+      "id": "edge-7",
+      "source": "root-layout",
+      "target": "error-boundary",
+      "type": "contains",
+      "metadata": {
+        "relationship": "direct",
+        "props": "error handling, fallback UI, recovery options"
+      }
+    },
+    {
+      "id": "edge-8",
+      "source": "root-layout",
+      "target": "loading-spinner",
+      "type": "contains",
+      "metadata": {
+        "relationship": "conditional",
+        "props": "loading states, progress indication, timeout handling"
+      }
+    },
+    {
+      "id": "edge-9",
+      "source": "sign-in-form",
+      "target": "use-auth",
+      "type": "manages",
+      "metadata": {
+        "managementType": "state",
+        "scope": "local"
+      }
+    },
+    {
+      "id": "edge-10",
+      "source": "sign-up-form",
+      "target": "use-auth",
+      "type": "manages",
+      "metadata": {
+        "managementType": "state",
+        "scope": "local"
+      }
+    },
+    {
+      "id": "edge-11",
+      "source": "session-manager",
+      "target": "use-session",
+      "type": "manages",
+      "metadata": {
+        "managementType": "state",
+        "scope": "local"
+      }
+    },
+    {
+      "id": "edge-12",
+      "source": "auth-provider",
+      "target": "use-auth",
+      "type": "provides",
+      "metadata": {
+        "communicationType": "context",
+        "direction": "bidirectional"
+      }
+    },
+    {
+      "id": "edge-13",
+      "source": "sign-in-form",
+      "target": "sign-up-form",
+      "type": "communicates-with",
+      "metadata": {
+        "communicationType": "navigation",
+        "direction": "unidirectional"
+      }
+    },
+    {
+      "id": "edge-14",
+      "source": "auth-provider",
+      "target": "session-manager",
+      "type": "communicates-with",
+      "metadata": {
+        "communicationType": "event",
+        "direction": "bidirectional"
+      }
+    },
+    {
+      "id": "edge-15",
+      "source": "error-boundary",
+      "target": "loading-spinner",
+      "type": "communicates-with",
+      "metadata": {
+        "communicationType": "event",
+        "direction": "unidirectional"
+      }
+    }
+  ],
+  "renderingSchema": {
+    "nodeRendering": {
+      "server-component": {
+        "shape": "rectangle",
+        "borderWidth": 2,
+        "borderColor": "#1976D2",
+        "backgroundColor": "#E3F2FD",
+        "textColor": "#0D47A1",
+        "fontSize": 12,
+        "padding": 8
+      },
+      "client-component": {
+        "shape": "rectangle",
+        "borderWidth": 2,
+        "borderColor": "#388E3C",
+        "backgroundColor": "#E8F5E8",
+        "textColor": "#1B5E20",
+        "fontSize": 12,
+        "padding": 8
+      },
+      "component-group": {
+        "shape": "rectangle",
+        "borderWidth": 3,
+        "borderColor": "#7B1FA2",
+        "backgroundColor": "#F3E5F5",
+        "textColor": "#4A148C",
+        "fontSize": 14,
+        "padding": 12,
+        "borderStyle": "dashed"
+      },
+      "data-flow": {
+        "shape": "diamond",
+        "borderWidth": 2,
+        "borderColor": "#FF9800",
+        "backgroundColor": "#FFF3E0",
+        "textColor": "#E65100",
+        "fontSize": 11,
+        "padding": 6
+      }
+    },
+    "edgeRendering": {
+      "contains": {
+        "style": "solid",
+        "color": "#1976D2",
+        "width": 2,
+        "arrowHead": "triangle"
+      },
+      "renders": {
+        "style": "solid",
+        "color": "#388E3C",
+        "width": 2,
+        "arrowHead": "triangle"
+      },
+      "manages": {
+        "style": "solid",
+        "color": "#7B1FA2",
+        "width": 2,
+        "arrowHead": "diamond"
+      },
+      "depends-on": {
+        "style": "dashed",
+        "color": "#FF9800",
+        "width": 2,
+        "arrowHead": "triangle"
+      },
+      "communicates-with": {
+        "style": "solid",
+        "color": "#E91E63",
+        "width": 2,
+        "arrowHead": "circle"
+      },
+      "provides": {
+        "style": "solid",
+        "color": "#9C27B0",
+        "width": 2,
+        "arrowHead": "diamond"
+      }
+    },
+    "layout": {
+      "algorithm": "hierarchical",
+      "direction": "top-to-bottom",
+      "spacing": 50,
+      "groupSpacing": 100
+    }
+  }
+}

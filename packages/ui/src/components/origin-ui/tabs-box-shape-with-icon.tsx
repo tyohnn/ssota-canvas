@@ -1,7 +1,12 @@
-import { BoxIcon, HouseIcon, PanelsTopLeftIcon } from "lucide-react";
+import { BoxIcon, HouseIcon, PanelsTopLeftIcon } from "lucide-react"
 
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
 
 export default function Component() {
   return (
@@ -60,5 +65,5 @@ export default function Component() {
         </p>
       </TabsContent>
     </Tabs>
-  );
+  )
 }

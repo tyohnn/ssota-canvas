@@ -4,17 +4,14 @@ import React, { createContext, useContext } from "react";
 
 export type CanvasMode = "page" | "component";
 
+
 export type CanvasSelectionContextValue = {
   pageId: string | null;
   componentId: string | null;
-  nodeIds: string[];
-  edgeId: string | null;
   canvasMode: CanvasMode;
+  
   selectPage: (id: string | null) => void;
   selectComponent: (id: string | null) => void;
-  setNodeSelection: (ids: string[]) => void;
-  selectEdge: (id: string | null) => void;
-  clearAll: () => void;
 };
 
 const CanvasSelectionContext =

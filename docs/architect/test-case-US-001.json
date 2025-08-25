@@ -1,0 +1,1126 @@
+{
+  "template": {
+    "id": "test-case-template-v1",
+    "name": "Test Case Outline Document",
+    "version": "1.0",
+    "description": "Test case outline with unit test nodes and integration test edges for Xbowl user stories",
+    "output": {
+      "format": "flow",
+      "filename": "test-case-US-001.json",
+      "schema": "FlowTemplateContent"
+    }
+  },
+  "metadata": {
+    "storyId": "US-001",
+    "storyName": "Design Workflow in Visual Canvas with Component-Based Architecture",
+    "pageId": "workflow-designer-page",
+    "createdAt": "2025-01-22T00:00:00Z",
+    "updatedAt": "2025-01-22T00:00:00Z",
+    "totalComponentTests": 19,
+    "totalBusinessLogicTests": 10,
+    "totalIntegrationTests": 15,
+    "totalTestHierarchies": 8,
+    "testCoverage": {
+      "userFlowCoverage": "100%",
+      "componentCoverage": "100%",
+      "integrationCoverage": "100%",
+      "errorScenarioCoverage": "100%"
+    },
+    "testExecutionOrder": "sequential",
+    "testDataRequirements": [
+      "User authentication data",
+      "Workspace data",
+      "Component type definitions",
+      "Active component state data",
+      "Component canvas switching data",
+      "Component metadata",
+      "Connection validation rules",
+      "Workflow save data"
+    ],
+    "teamAssignments": [
+      "Frontend Team - Component tests",
+      "Backend Team - Business logic tests",
+      "QA Team - Integration tests"
+    ],
+    "owner": "Xbowl System Architect",
+    "reviewDate": "2025-02-22T00:00:00Z"
+  },
+  "nodes": [
+    {
+      "id": "test-canvas-layout-rendering",
+      "type": "component-test",
+      "position": { "x": 100, "y": 100 },
+      "metadata": {
+        "name": "Canvas Layout Rendering Test",
+        "description": "Test that the canvas layout component renders correctly with proper structure and navigation",
+        "type": "basic",
+        "componentUnderTest": "CanvasLayout",
+        "componentType": "server-component",
+        "userAction": "User enters design mode and accesses canvas",
+        "expectedBehavior": "Canvas layout renders with proper structure, navigation, and workspace validation",
+        "testScenarios": [
+          "Normal scenario - Authenticated user accesses canvas",
+          "Error scenario - Unauthorized user redirected to login",
+          "Edge case - Workspace access issues show appropriate error"
+        ],
+        "testData": {
+          "input": "User authentication data, workspace permissions",
+          "expectedOutput": "Properly structured canvas layout with navigation",
+          "mockData": "Mock user data, workspace data, permission data"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": [],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-workflow-designer-page-loading",
+      "type": "component-test",
+      "position": { "x": 300, "y": 100 },
+      "metadata": {
+        "name": "Workflow Designer Page Loading Test",
+        "description": "Test that the workflow designer page loads correctly with workspace data and user preferences",
+        "type": "basic",
+        "componentUnderTest": "WorkflowDesignerPage",
+        "componentType": "server-component",
+        "userAction": "User accesses workflow designer page",
+        "expectedBehavior": "Page loads with workspace data, user preferences, and existing workflow state",
+        "testScenarios": [
+          "Normal scenario - Page loads with existing workflow data",
+          "Error scenario - Data fetching failures show loading states",
+          "Edge case - Empty workspace shows appropriate empty state"
+        ],
+        "testData": {
+          "input": "Workspace data, user preferences, workflow state",
+          "expectedOutput": "Fully loaded workflow designer interface",
+          "mockData": "Mock workspace data, user preferences, workflow state"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-canvas-layout-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-seven-core-node-explorer-rendering",
+      "type": "component-test",
+      "position": { "x": 500, "y": 100 },
+      "metadata": {
+        "name": "Seven Core Node Explorer Rendering Test",
+        "description": "Test that the seven core node explorer renders correctly with organized folder structure and active state management",
+        "type": "basic",
+        "componentUnderTest": "SevenCoreNodeExplorer",
+        "componentType": "client-component",
+        "userAction": "User explores available component types in left panel and selects components",
+        "expectedBehavior": "Explorer displays 7 core component types organized in folders with active state highlighting and component selection",
+        "testScenarios": [
+          "Normal scenario - All 7 component types displayed in organized folders with active state",
+          "Error scenario - Invalid component type data shows error state",
+          "Edge case - Empty component types show appropriate empty state",
+          "Active state scenario - Selected component highlighted with background color",
+          "Component switching scenario - Active state changes when different component selected"
+        ],
+        "testData": {
+          "input": "Component type definitions, folder structure data, active component state",
+          "expectedOutput": "Properly organized component explorer with active state highlighting",
+          "mockData": "Mock component type data, folder structure, active state, selection state"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-workflow-designer-page-loading"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-widget-selector-functionality",
+      "type": "component-test",
+      "position": { "x": 700, "y": 100 },
+      "metadata": {
+        "name": "Widget Selector Functionality Test",
+        "description": "Test that the widget selector opens and allows user to select desired widgets for canvas",
+        "type": "basic",
+        "componentUnderTest": "WidgetSelector",
+        "componentType": "client-component",
+        "userAction": "User clicks plus button and selects widget from selector",
+        "expectedBehavior": "Widget selector opens with available widgets, user can select and drag widgets to canvas",
+        "testScenarios": [
+          "Normal scenario - Widget selector opens and displays available widgets",
+          "Error scenario - Invalid widget selection shows validation error",
+          "Edge case - No available widgets shows empty state"
+        ],
+        "testData": {
+          "input": "Selected node type, widget categories, user selection",
+          "expectedOutput": "Widget added to canvas with proper positioning",
+          "mockData": "Mock widget data, category data, selection state"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-seven-core-node-explorer-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-react-flow-canvas-node-creation",
+      "type": "component-test",
+      "position": { "x": 900, "y": 100 },
+      "metadata": {
+        "name": "React Flow Canvas Component-Specific Rendering Test",
+        "description": "Test that the React Flow canvas renders component-specific nodes and switches between component canvases",
+        "type": "basic",
+        "componentUnderTest": "ReactFlowCanvas",
+        "componentType": "client-component",
+        "userAction": "User selects different components and views component-specific canvases",
+        "expectedBehavior": "Canvas displays only nodes and edges relevant to the selected component with proper component switching",
+        "testScenarios": [
+          "Normal scenario - Component-specific nodes rendered on canvas",
+          "Error scenario - Invalid component selection shows error message",
+          "Edge case - Empty component shows appropriate empty canvas",
+          "Component switching scenario - Canvas switches between different component views",
+          "State preservation scenario - Component canvas state preserved during switching"
+        ],
+        "testData": {
+          "input": "Component selection, component-specific node data, canvas state",
+          "expectedOutput": "Component-specific canvas with focused node rendering",
+          "mockData": "Mock component data, component-specific nodes, canvas state"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-widget-selector-functionality"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-editor-panel-overlay-opening",
+      "type": "component-test",
+      "position": { "x": 1100, "y": 100 },
+      "metadata": {
+        "name": "Editor Panel Overlay Opening Test",
+        "description": "Test that the editor panel overlay opens when node is selected for configuration",
+        "type": "basic",
+        "componentUnderTest": "EditorPanelOverlay",
+        "componentType": "client-component",
+        "userAction": "User clicks node to open editor panel for metadata editing",
+        "expectedBehavior": "Editor panel overlay opens with context-aware forms and connected nodes visualization",
+        "testScenarios": [
+          "Normal scenario - Editor panel opens with proper context",
+          "Error scenario - Invalid node selection shows error",
+          "Edge case - Multiple nodes selected shows appropriate interface"
+        ],
+        "testData": {
+          "input": "Selected node data, node metadata, context information",
+          "expectedOutput": "Open editor panel with proper form context",
+          "mockData": "Mock node data, metadata, context data"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-react-flow-canvas-node-creation"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-node-metadata-editor-form",
+      "type": "component-test",
+      "position": { "x": 1300, "y": 100 },
+      "metadata": {
+        "name": "Node Metadata Editor Form Test",
+        "description": "Test that the node metadata editor form handles user input and validation correctly",
+        "type": "basic",
+        "componentUnderTest": "NodeMetadataEditor",
+        "componentType": "client-component",
+        "userAction": "User enters configuration details for the node (name, description, parameters)",
+        "expectedBehavior": "Form accepts user input, validates data, and provides real-time feedback",
+        "testScenarios": [
+          "Normal scenario - Valid configuration data accepted and saved",
+          "Error scenario - Invalid configuration shows validation errors",
+          "Edge case - Required fields validation works correctly"
+        ],
+        "testData": {
+          "input": "Node name, description, parameters, validation rules",
+          "expectedOutput": "Validated and saved node metadata",
+          "mockData": "Mock form data, validation rules, save handlers"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-editor-panel-overlay-opening"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-top-toolbox-panel-functionality",
+      "type": "component-test",
+      "position": { "x": 1500, "y": 100 },
+      "metadata": {
+        "name": "Top Toolbox Panel Functionality Test",
+        "description": "Test that the top toolbox panel provides workflow flow control tools and dynamic template-specific tools",
+        "type": "basic",
+        "componentUnderTest": "TopToolboxPanel",
+        "componentType": "client-component",
+        "userAction": "User accesses Top Toolbox to add Start/Conditional/End nodes for workflow flow control",
+        "expectedBehavior": "Toolbox displays available tools, allows tool selection, and adds workflow nodes to canvas",
+        "testScenarios": [
+          "Normal scenario - Toolbox displays available flow control tools",
+          "Error scenario - Invalid tool selection shows error",
+          "Edge case - Dynamic tools update based on context"
+        ],
+        "testData": {
+          "input": "Available tools, workflow node types, dynamic tool configuration",
+          "expectedOutput": "Selected tools added to canvas with proper functionality",
+          "mockData": "Mock tool data, workflow node types, dynamic configuration"
+        },
+        "testType": "component",
+        "priority": "medium",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-node-metadata-editor-form"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-mode-toggle-functionality",
+      "type": "component-test",
+      "position": { "x": 1700, "y": 100 },
+      "metadata": {
+        "name": "Mode Toggle Functionality Test",
+        "description": "Test that the mode toggle component switches between different canvas interaction modes",
+        "type": "basic",
+        "componentUnderTest": "ModeToggle",
+        "componentType": "client-component",
+        "userAction": "User switches between design, preview, and execute modes",
+        "expectedBehavior": "Mode toggle switches between modes, updates UI accordingly, and provides keyboard shortcuts",
+        "testScenarios": [
+          "Normal scenario - Mode switching works correctly with UI updates",
+          "Error scenario - Invalid mode transition shows error",
+          "Edge case - Keyboard shortcuts work for mode switching"
+        ],
+        "testData": {
+          "input": "Current mode, available modes, mode transition rules",
+          "expectedOutput": "Successfully switched mode with updated UI",
+          "mockData": "Mock mode data, transition rules, UI state"
+        },
+        "testType": "component",
+        "priority": "medium",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-top-toolbox-panel-functionality"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-react-flow-canvas-connection-creation",
+      "type": "component-test",
+      "position": { "x": 1900, "y": 100 },
+      "metadata": {
+        "name": "React Flow Canvas Connection Creation Test",
+        "description": "Test that the React Flow canvas allows users to create visual connections between nodes",
+        "type": "basic",
+        "componentUnderTest": "ReactFlowCanvas",
+        "componentType": "client-component",
+        "userAction": "User creates visual connections between nodes by dragging from source to target",
+        "expectedBehavior": "Visual connection line created between nodes with proper validation and styling",
+        "testScenarios": [
+          "Normal scenario - Valid connection created between compatible nodes",
+          "Error scenario - Invalid connection shows error message",
+          "Edge case - Circular dependency prevention works correctly"
+        ],
+        "testData": {
+          "input": "Source node ID, target node ID, connection validation rules",
+          "expectedOutput": "Visual connection line with proper styling and validation",
+          "mockData": "Mock node data, connection rules, validation state"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-mode-toggle-functionality"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-connected-nodes-visualization",
+      "type": "component-test",
+      "position": { "x": 2100, "y": 100 },
+      "metadata": {
+        "name": "Connected Nodes Visualization Test",
+        "description": "Test that the connected nodes visualization shows relationships in the editor panel",
+        "type": "basic",
+        "componentUnderTest": "ConnectedNodesVisualization",
+        "componentType": "client-component",
+        "userAction": "User views connected nodes and their relationships in editor panel",
+        "expectedBehavior": "Visualization displays connected nodes and their relationships with proper highlighting",
+        "testScenarios": [
+          "Normal scenario - Connected nodes displayed with proper relationships",
+          "Error scenario - Invalid relationships show error state",
+          "Edge case - Large number of connections handled properly"
+        ],
+        "testData": {
+          "input": "Node relationships, connection data, visualization state",
+          "expectedOutput": "Proper visualization of connected nodes and relationships",
+          "mockData": "Mock relationship data, connection data, visualization state"
+        },
+        "testType": "component",
+        "priority": "medium",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-react-flow-canvas-connection-creation"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-workflow-save-functionality",
+      "type": "component-test",
+      "position": { "x": 2300, "y": 100 },
+      "metadata": {
+        "name": "Workflow Save Functionality Test",
+        "description": "Test that the workflow save functionality works correctly with proper validation",
+        "type": "basic",
+        "componentUnderTest": "WorkflowDesignerPage",
+        "componentType": "server-component",
+        "userAction": "User saves the completed workflow design",
+        "expectedBehavior": "Workflow saved successfully with proper validation and user feedback",
+        "testScenarios": [
+          "Normal scenario - Valid workflow saved successfully",
+          "Error scenario - Invalid workflow structure shows validation error",
+          "Edge case - Network issues handled gracefully"
+        ],
+        "testData": {
+          "input": "Workflow name, description, node structure, connection data",
+          "expectedOutput": "Successfully saved workflow with confirmation",
+          "mockData": "Mock workflow data, validation rules, save handlers"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-connected-nodes-visualization"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-active-component-state-management",
+      "type": "component-test",
+      "position": { "x": 2500, "y": 100 },
+      "metadata": {
+        "name": "Active Component State Management Test",
+        "description": "Test that the active component state is properly managed and synchronized across components",
+        "type": "basic",
+        "componentUnderTest": "ActiveComponentStateManager",
+        "componentType": "client-component",
+        "userAction": "User selects different components and observes state synchronization",
+        "expectedBehavior": "Active component state synchronized across explorer, canvas, and toolbar with proper visual feedback",
+        "testScenarios": [
+          "Normal scenario - Active component state synchronized across all components",
+          "Error scenario - Invalid component selection handled gracefully",
+          "Edge case - Multiple rapid component switches handled properly",
+          "Visual feedback scenario - Active component highlighted with background color",
+          "Toolbar display scenario - Active component name displayed in toolbar"
+        ],
+        "testData": {
+          "input": "Component selection events, active component state data",
+          "expectedOutput": "Synchronized active component state with visual feedback",
+          "mockData": "Mock component selection events, active state data, visual feedback state"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-seven-core-node-explorer-rendering"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-component-canvas-switching",
+      "type": "component-test",
+      "position": { "x": 2700, "y": 100 },
+      "metadata": {
+        "name": "Component Canvas Switching Test",
+        "description": "Test that component canvas switching works correctly with state preservation",
+        "type": "basic",
+        "componentUnderTest": "ComponentCanvasSwitcher",
+        "componentType": "client-component",
+        "userAction": "User switches between different component canvases",
+        "expectedBehavior": "Canvas switches between component views with proper state preservation and visual transitions",
+        "testScenarios": [
+          "Normal scenario - Canvas switches between component views successfully",
+          "Error scenario - Invalid component canvas shows error state",
+          "Edge case - Empty component canvas handled properly",
+          "State preservation scenario - Component canvas state preserved during switching",
+          "Visual transition scenario - Smooth transitions between component canvases"
+        ],
+        "testData": {
+          "input": "Component switching events, component canvas state data",
+          "expectedOutput": "Switched component canvas with preserved state",
+          "mockData": "Mock component switching events, canvas state data, transition state"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-active-component-state-management"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-add-component-workflow",
+      "type": "component-test",
+      "position": { "x": 2900, "y": 100 },
+      "metadata": {
+        "name": "Add Component Workflow Test",
+        "description": "Test that the add component workflow follows the explorer-first approach with proper active state assignment",
+        "type": "basic",
+        "componentUnderTest": "SevenCoreNodeExplorer",
+        "componentType": "client-component",
+        "userAction": "User adds new components and observes the workflow",
+        "expectedBehavior": "New components added to explorer first, become active, and canvas displays only the new component",
+        "testScenarios": [
+          "Normal scenario - New component added to explorer and becomes active",
+          "Error scenario - Invalid component creation handled gracefully",
+          "Edge case - Multiple component additions handled properly",
+          "Active state assignment scenario - New component becomes active automatically",
+          "Canvas isolation scenario - Canvas displays only the newly created component"
+        ],
+        "testData": {
+          "input": "Component creation events, component type data, active state data",
+          "expectedOutput": "New component in explorer with active state and focused canvas",
+          "mockData": "Mock component creation events, component data, active state data"
+        },
+        "testType": "component",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-component-canvas-switching"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-node-management-logic",
+      "type": "business-logic-test",
+      "position": { "x": 100, "y": 300 },
+      "metadata": {
+        "name": "Node Management Logic Test",
+        "description": "Test that the node management logic handles node creation, validation, and management operations correctly",
+        "type": "basic",
+        "businessLogic": "NodeManagementLogic",
+        "logicType": "validation",
+        "userAction": "User creates and configures nodes on canvas",
+        "expectedBehavior": "Node management logic validates node types, ensures slug uniqueness, and processes metadata correctly",
+        "testScenarios": [
+          "Normal scenario - Valid node creation and configuration",
+          "Error scenario - Invalid node type validation fails",
+          "Edge case - Duplicate slug detection works correctly"
+        ],
+        "testData": {
+          "input": "Node type, slug, metadata, validation rules",
+          "expectedOutput": "Validated node data with proper metadata",
+          "mockData": "Mock node data, validation rules, metadata schema"
+        },
+        "testType": "business-logic",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-node-metadata-editor-form"],
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-node-validation-logic",
+      "type": "business-logic-test",
+      "position": { "x": 300, "y": 300 },
+      "metadata": {
+        "name": "Node Validation Logic Test",
+        "description": "Test that the node validation logic validates node metadata and configuration correctly",
+        "type": "basic",
+        "businessLogic": "NodeManagementLogic",
+        "logicType": "validation",
+        "userAction": "User enters node configuration data",
+        "expectedBehavior": "Validation logic checks required fields, format validation, and uniqueness constraints",
+        "testScenarios": [
+          "Normal scenario - Valid node configuration passes validation",
+          "Error scenario - Invalid configuration fails validation with proper errors",
+          "Edge case - Boundary value validation works correctly"
+        ],
+        "testData": {
+          "input": "Node configuration data, validation rules, constraints",
+          "expectedOutput": "Validation results with success/error messages",
+          "mockData": "Mock validation rules, constraint data, error messages"
+        },
+        "testType": "business-logic",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-node-management-logic"],
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-connection-validation-logic",
+      "type": "business-logic-test",
+      "position": { "x": 500, "y": 300 },
+      "metadata": {
+        "name": "Connection Validation Logic Test",
+        "description": "Test that the connection validation logic validates node connections and prevents circular dependencies",
+        "type": "basic",
+        "businessLogic": "NodeManagementLogic",
+        "logicType": "validation",
+        "userAction": "User creates connections between nodes",
+        "expectedBehavior": "Connection validation ensures valid connections and prevents circular dependencies",
+        "testScenarios": [
+          "Normal scenario - Valid connection passes validation",
+          "Error scenario - Circular dependency detection works correctly",
+          "Edge case - Complex connection patterns validated properly"
+        ],
+        "testData": {
+          "input": "Source node, target node, connection rules, dependency graph",
+          "expectedOutput": "Connection validation results with success/error messages",
+          "mockData": "Mock connection rules, dependency data, validation state"
+        },
+        "testType": "business-logic",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-connection-validation-logic"],
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-workflow-save-logic",
+      "type": "business-logic-test",
+      "position": { "x": 700, "y": 300 },
+      "metadata": {
+        "name": "Workflow Save Logic Test",
+        "description": "Test that the workflow save logic validates workflow structure and saves correctly",
+        "type": "basic",
+        "businessLogic": "NodeManagementLogic",
+        "logicType": "validation",
+        "userAction": "User saves the completed workflow design",
+        "expectedBehavior": "Workflow save logic validates workflow structure, ensures data integrity, and saves to database",
+        "testScenarios": [
+          "Normal scenario - Valid workflow structure saved successfully",
+          "Error scenario - Invalid workflow structure fails validation",
+          "Edge case - Large workflow data handled efficiently"
+        ],
+        "testData": {
+          "input": "Workflow structure, node data, connection data, validation rules",
+          "expectedOutput": "Saved workflow with proper data integrity",
+          "mockData": "Mock workflow data, validation rules, database operations"
+        },
+        "testType": "business-logic",
+        "priority": "high",
+        "responsibleTeam": "Backend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-workflow-save-functionality"],
+        "owner": "Backend Developer"
+      }
+    },
+    {
+      "id": "test-canvas-state-management-logic",
+      "type": "business-logic-test",
+      "position": { "x": 900, "y": 300 },
+      "metadata": {
+        "name": "Canvas State Management Logic Test",
+        "description": "Test that the canvas state management logic handles state updates and operations correctly",
+        "type": "basic",
+        "businessLogic": "useCanvasState",
+        "logicType": "transformation",
+        "userAction": "User performs various canvas operations (add, edit, delete nodes)",
+        "expectedBehavior": "Canvas state management handles state updates, undo/redo operations, and maintains consistency",
+        "testScenarios": [
+          "Normal scenario - State updates work correctly for all operations",
+          "Error scenario - Invalid state operations handled gracefully",
+          "Edge case - Undo/redo functionality works correctly"
+        ],
+        "testData": {
+          "input": "Canvas operations, state updates, undo/redo data",
+          "expectedOutput": "Consistent canvas state with proper history",
+          "mockData": "Mock state data, operation history, undo/redo stack"
+        },
+        "testType": "business-logic",
+        "priority": "medium",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-react-flow-canvas-node-creation"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-node-operations-logic",
+      "type": "business-logic-test",
+      "position": { "x": 1100, "y": 300 },
+      "metadata": {
+        "name": "Node Operations Logic Test",
+        "description": "Test that the node operations logic handles CRUD operations and validation correctly",
+        "type": "basic",
+        "businessLogic": "useNodeOperations",
+        "logicType": "service-call",
+        "userAction": "User performs node CRUD operations (create, read, update, delete)",
+        "expectedBehavior": "Node operations logic handles CRUD operations, validation, and error handling correctly",
+        "testScenarios": [
+          "Normal scenario - All CRUD operations work correctly",
+          "Error scenario - Invalid operations handled with proper errors",
+          "Edge case - Concurrent operations handled safely"
+        ],
+        "testData": {
+          "input": "Node CRUD operations, validation rules, error conditions",
+          "expectedOutput": "Successful operations with proper validation",
+          "mockData": "Mock node data, CRUD handlers, validation state"
+        },
+        "testType": "business-logic",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-node-management-logic"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-active-component-state-logic",
+      "type": "business-logic-test",
+      "position": { "x": 1300, "y": 300 },
+      "metadata": {
+        "name": "Active Component State Logic Test",
+        "description": "Test that the active component state logic manages component state and synchronization correctly",
+        "type": "basic",
+        "businessLogic": "ActiveComponentStateManager",
+        "logicType": "state-management",
+        "userAction": "User selects different components and observes state management",
+        "expectedBehavior": "Active component state logic manages state synchronization and visual feedback correctly",
+        "testScenarios": [
+          "Normal scenario - Active component state managed correctly",
+          "Error scenario - Invalid component selection handled gracefully",
+          "Edge case - State conflicts resolved properly",
+          "Synchronization scenario - State synchronized across all components",
+          "Visual feedback scenario - Visual indicators updated correctly"
+        ],
+        "testData": {
+          "input": "Component selection events, state synchronization data, visual feedback data",
+          "expectedOutput": "Properly managed active component state with synchronization",
+          "mockData": "Mock component selection events, state data, visual feedback data"
+        },
+        "testType": "business-logic",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-active-component-state-management"],
+        "owner": "Frontend Developer"
+      }
+    },
+    {
+      "id": "test-component-canvas-switching-logic",
+      "type": "business-logic-test",
+      "position": { "x": 1500, "y": 300 },
+      "metadata": {
+        "name": "Component Canvas Switching Logic Test",
+        "description": "Test that the component canvas switching logic handles canvas transitions and state preservation correctly",
+        "type": "basic",
+        "businessLogic": "ComponentCanvasSwitcher",
+        "logicType": "state-management",
+        "userAction": "User switches between component canvases",
+        "expectedBehavior": "Component canvas switching logic handles transitions and state preservation correctly",
+        "testScenarios": [
+          "Normal scenario - Canvas switching works correctly",
+          "Error scenario - Invalid canvas transitions handled gracefully",
+          "Edge case - State preservation works during rapid switching",
+          "Transition scenario - Smooth transitions between component canvases",
+          "State preservation scenario - Component state preserved during switching"
+        ],
+        "testData": {
+          "input": "Component switching events, canvas state data, transition data",
+          "expectedOutput": "Successful canvas switching with state preservation",
+          "mockData": "Mock switching events, canvas state data, transition state"
+        },
+        "testType": "business-logic",
+        "priority": "high",
+        "responsibleTeam": "Frontend Team",
+        "estimatedDuration": "5min",
+        "dependencies": ["test-component-canvas-switching"],
+        "owner": "Frontend Developer"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "test-canvas-layout-to-workflow-designer-integration",
+      "source": "test-canvas-layout-rendering",
+      "target": "test-workflow-designer-page-loading",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Canvas Layout to Workflow Designer Integration Test",
+        "description": "Test integration between canvas layout and workflow designer page loading",
+        "testType": "integration",
+        "userFlow": "User enters design mode and accesses workflow designer",
+        "testScenario": "happy-path",
+        "componentInteraction": "Canvas layout provides workspace data and user permissions to workflow designer",
+        "dataFlow": "Workspace data and user permissions flow from layout to page component",
+        "expectedIntegrationBehavior": "Seamless transition from layout to page with proper data passing",
+        "testData": {
+          "input": "User authentication, workspace permissions, layout context",
+          "expectedOutput": "Properly loaded workflow designer with workspace data",
+          "mockServices": "Mock authentication service, workspace service"
+        },
+        "executionOrder": 1,
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "estimatedDuration": "10min",
+        "dependencies": [],
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-workflow-designer-to-explorer-integration",
+      "source": "test-workflow-designer-page-loading",
+      "target": "test-seven-core-node-explorer-rendering",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Workflow Designer to Node Explorer Integration Test",
+        "description": "Test integration between workflow designer page and seven core node explorer",
+        "testType": "integration",
+        "userFlow": "User explores available node types in left panel",
+        "testScenario": "happy-path",
+        "componentInteraction": "Workflow designer provides node type data and configuration to explorer",
+        "dataFlow": "Node type definitions and folder structure flow from page to explorer component",
+        "expectedIntegrationBehavior": "Explorer displays node types correctly with proper organization",
+        "testData": {
+          "input": "Node type definitions, folder structure, explorer configuration",
+          "expectedOutput": "Properly organized node explorer with all 7 core types",
+          "mockServices": "Mock node type service, configuration service"
+        },
+        "executionOrder": 2,
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "estimatedDuration": "10min",
+        "dependencies": ["test-canvas-layout-to-workflow-designer-integration"],
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-explorer-to-widget-selector-integration",
+      "source": "test-seven-core-node-explorer-rendering",
+      "target": "test-widget-selector-functionality",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Node Explorer to Widget Selector Integration Test",
+        "description": "Test integration between node explorer and widget selector",
+        "testType": "integration",
+        "userFlow": "User clicks plus button and selects widget from selector",
+        "testScenario": "happy-path",
+        "componentInteraction": "Explorer provides selected node type to widget selector",
+        "dataFlow": "Selected node type and widget categories flow from explorer to selector",
+        "expectedIntegrationBehavior": "Widget selector opens with correct widgets for selected node type",
+        "testData": {
+          "input": "Selected node type, widget categories, selection state",
+          "expectedOutput": "Widget selector with appropriate widgets for node type",
+          "mockServices": "Mock widget service, category service"
+        },
+        "executionOrder": 3,
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "estimatedDuration": "10min",
+        "dependencies": ["test-workflow-designer-to-explorer-integration"],
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-widget-selector-to-canvas-integration",
+      "source": "test-widget-selector-functionality",
+      "target": "test-react-flow-canvas-node-creation",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Widget Selector to Canvas Integration Test",
+        "description": "Test integration between widget selector and React Flow canvas for node creation",
+        "testType": "integration",
+        "userFlow": "User drops selected widget onto canvas area",
+        "testScenario": "happy-path",
+        "componentInteraction": "Widget selector provides widget data to canvas for node creation",
+        "dataFlow": "Widget data and drop position flow from selector to canvas",
+        "expectedIntegrationBehavior": "Canvas creates visual node with proper styling and positioning",
+        "testData": {
+          "input": "Widget data, drop position, canvas state",
+          "expectedOutput": "Visual node on canvas with proper styling and position",
+          "mockServices": "Mock canvas service, positioning service"
+        },
+        "executionOrder": 4,
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "estimatedDuration": "10min",
+        "dependencies": ["test-explorer-to-widget-selector-integration"],
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-canvas-to-editor-panel-integration",
+      "source": "test-react-flow-canvas-node-creation",
+      "target": "test-editor-panel-overlay-opening",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Canvas to Editor Panel Integration Test",
+        "description": "Test integration between React Flow canvas and editor panel overlay",
+        "testType": "integration",
+        "userFlow": "User clicks node to open editor panel for metadata editing",
+        "testScenario": "happy-path",
+        "componentInteraction": "Canvas provides selected node data to editor panel",
+        "dataFlow": "Selected node data and metadata flow from canvas to editor panel",
+        "expectedIntegrationBehavior": "Editor panel opens with proper context and node data",
+        "testData": {
+          "input": "Selected node data, node metadata, context information",
+          "expectedOutput": "Open editor panel with proper form context",
+          "mockServices": "Mock editor service, context service"
+        },
+        "executionOrder": 5,
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "estimatedDuration": "10min",
+        "dependencies": ["test-widget-selector-to-canvas-integration"],
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-hierarchy-canvas-layout-depends-on",
+      "source": "test-canvas-layout-rendering",
+      "target": "test-workflow-designer-page-loading",
+      "type": "test-hierarchy",
+      "metadata": {
+        "name": "Canvas Layout Depends On Test",
+        "description": "Workflow designer page loading depends on canvas layout rendering",
+        "dependencyType": "depends-on",
+        "relationship": "Canvas layout must render successfully before workflow designer page can load",
+        "executionOrder": 1,
+        "dataSharing": "Workspace data and user permissions shared from layout to page",
+        "errorPropagation": "Layout errors prevent page loading and show appropriate error messages",
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-hierarchy-workflow-designer-depends-on",
+      "source": "test-workflow-designer-page-loading",
+      "target": "test-seven-core-node-explorer-rendering",
+      "type": "test-hierarchy",
+      "metadata": {
+        "name": "Workflow Designer Depends On Test",
+        "description": "Node explorer rendering depends on workflow designer page loading",
+        "dependencyType": "depends-on",
+        "relationship": "Workflow designer page must load successfully before node explorer can render",
+        "executionOrder": 2,
+        "dataSharing": "Node type definitions and configuration shared from page to explorer",
+        "errorPropagation": "Page loading errors prevent explorer rendering and show appropriate error messages",
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-hierarchy-node-explorer-depends-on",
+      "source": "test-seven-core-node-explorer-rendering",
+      "target": "test-widget-selector-functionality",
+      "type": "test-hierarchy",
+      "metadata": {
+        "name": "Node Explorer Depends On Test",
+        "description": "Widget selector functionality depends on node explorer rendering",
+        "dependencyType": "depends-on",
+        "relationship": "Node explorer must render successfully before widget selector can function",
+        "executionOrder": 3,
+        "dataSharing": "Selected node type and widget categories shared from explorer to selector",
+        "errorPropagation": "Explorer rendering errors prevent widget selector functionality",
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-hierarchy-metadata-editor-depends-on-logic",
+      "source": "test-node-metadata-editor-form",
+      "target": "test-node-validation-logic",
+      "type": "test-hierarchy",
+      "metadata": {
+        "name": "Metadata Editor Depends On Logic Test",
+        "description": "Node metadata editor form depends on node validation logic",
+        "dependencyType": "depends-on",
+        "relationship": "Metadata editor form must use node validation logic for form validation",
+        "executionOrder": 4,
+        "dataSharing": "Form data and validation rules shared between editor and validation logic",
+        "errorPropagation": "Validation logic errors prevent form submission and show validation messages",
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-hierarchy-canvas-depends-on-operations",
+      "source": "test-react-flow-canvas-node-creation",
+      "target": "test-node-operations-logic",
+      "type": "test-hierarchy",
+      "metadata": {
+        "name": "Canvas Depends On Operations Test",
+        "description": "React Flow canvas node creation depends on node operations logic",
+        "dependencyType": "depends-on",
+        "relationship": "Canvas node creation must use node operations logic for CRUD operations",
+        "executionOrder": 5,
+        "dataSharing": "Node data and operation state shared between canvas and operations logic",
+        "errorPropagation": "Operations logic errors prevent node creation and show error messages",
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-hierarchy-connection-depends-on-validation",
+      "source": "test-react-flow-canvas-connection-creation",
+      "target": "test-connection-validation-logic",
+      "type": "test-hierarchy",
+      "metadata": {
+        "name": "Connection Depends On Validation Test",
+        "description": "Canvas connection creation depends on connection validation logic",
+        "dependencyType": "depends-on",
+        "relationship": "Canvas connection creation must use connection validation logic for validation",
+        "executionOrder": 6,
+        "dataSharing": "Connection data and validation rules shared between canvas and validation logic",
+        "errorPropagation": "Validation logic errors prevent connection creation and show error messages",
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-hierarchy-save-depends-on-logic",
+      "source": "test-workflow-save-functionality",
+      "target": "test-workflow-save-logic",
+      "type": "test-hierarchy",
+      "metadata": {
+        "name": "Save Depends On Logic Test",
+        "description": "Workflow save functionality depends on workflow save logic",
+        "dependencyType": "depends-on",
+        "relationship": "Workflow save functionality must use workflow save logic for validation and persistence",
+        "executionOrder": 7,
+        "dataSharing": "Workflow data and validation rules shared between save functionality and save logic",
+        "errorPropagation": "Save logic errors prevent workflow saving and show error messages",
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-hierarchy-canvas-state-depends-on-logic",
+      "source": "test-react-flow-canvas-node-creation",
+      "target": "test-canvas-state-management-logic",
+      "type": "test-hierarchy",
+      "metadata": {
+        "name": "Canvas State Depends On Logic Test",
+        "description": "Canvas node creation depends on canvas state management logic",
+        "dependencyType": "depends-on",
+        "relationship": "Canvas node creation must use canvas state management logic for state updates",
+        "executionOrder": 8,
+        "dataSharing": "Canvas state and operation data shared between canvas and state management logic",
+        "errorPropagation": "State management logic errors prevent node creation and show error messages",
+        "priority": "medium",
+        "responsibleTeam": "QA Team",
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-integration-explorer-to-active-state",
+      "source": "test-seven-core-node-explorer-rendering",
+      "target": "test-active-component-state-management",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Explorer to Active State Integration Test",
+        "description": "Test integration between node explorer and active component state management",
+        "testType": "integration",
+        "userFlow": "User selects components in explorer and observes active state management",
+        "testScenario": "happy-path",
+        "componentInteraction": "Explorer provides component selection events to active state manager",
+        "dataFlow": "Component selection events and active state data flow between explorer and state manager",
+        "expectedIntegrationBehavior": "Active component state properly managed and synchronized across components",
+        "testData": {
+          "input": "Component selection events, active state data, synchronization events",
+          "expectedOutput": "Properly synchronized active component state with visual feedback",
+          "mockServices": "Mock component selection service, active state service"
+        },
+        "executionOrder": 9,
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "estimatedDuration": "10min",
+        "dependencies": ["test-workflow-designer-to-explorer-integration"],
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-integration-active-state-to-canvas",
+      "source": "test-active-component-state-management",
+      "target": "test-component-canvas-switching",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Active State to Canvas Integration Test",
+        "description": "Test integration between active component state management and canvas switching",
+        "testType": "integration",
+        "userFlow": "User observes canvas switching based on active component state",
+        "testScenario": "happy-path",
+        "componentInteraction": "Active state manager provides state changes to canvas switcher",
+        "dataFlow": "Active component state and switching events flow between state manager and canvas switcher",
+        "expectedIntegrationBehavior": "Canvas switches properly based on active component state with state preservation",
+        "testData": {
+          "input": "Active component state changes, canvas switching events, state preservation data",
+          "expectedOutput": "Successful canvas switching with proper state preservation",
+          "mockServices": "Mock active state service, canvas switching service"
+        },
+        "executionOrder": 10,
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "estimatedDuration": "10min",
+        "dependencies": ["test-integration-explorer-to-active-state"],
+        "owner": "QA Engineer"
+      }
+    },
+    {
+      "id": "test-integration-add-component-workflow",
+      "source": "test-add-component-workflow",
+      "target": "test-active-component-state-management",
+      "type": "integration-test",
+      "metadata": {
+        "name": "Add Component Workflow Integration Test",
+        "description": "Test integration of the complete add component workflow",
+        "testType": "integration",
+        "userFlow": "User adds new components and observes complete workflow",
+        "testScenario": "happy-path",
+        "componentInteraction": "Component creation triggers active state management and canvas switching",
+        "dataFlow": "Component creation events, active state data, and canvas switching events flow through the system",
+        "expectedIntegrationBehavior": "Complete add component workflow works seamlessly with proper state management",
+        "testData": {
+          "input": "Component creation events, active state management, canvas switching events",
+          "expectedOutput": "Complete add component workflow with proper state management",
+          "mockServices": "Mock component creation service, active state service, canvas switching service"
+        },
+        "executionOrder": 11,
+        "priority": "high",
+        "responsibleTeam": "QA Team",
+        "estimatedDuration": "10min",
+        "dependencies": ["test-integration-active-state-to-canvas"],
+        "owner": "QA Engineer"
+      }
+    }
+  ],
+  "layout": {
+    "type": "hierarchical",
+    "options": {
+      "direction": "TB",
+      "spacing": 80,
+      "nodeSpacing": 60,
+      "rankSpacing": 120,
+      "padding": 40
+    }
+  }
+}

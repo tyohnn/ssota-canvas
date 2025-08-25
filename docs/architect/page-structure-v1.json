@@ -1,0 +1,767 @@
+{
+  "template": {
+    "id": "page-structure-template-v1",
+    "name": "Page Structure Document",
+    "version": "1.0",
+    "description": "Next.js App Router page structure for Xbowl user stories US-01 through US-05 with dual canvas system, authentication, and workflow management",
+    "output": {
+      "format": "flow",
+      "filename": "page-structure-v1.json",
+      "schema": "FlowTemplateContent"
+    }
+  },
+  "metadata": {
+    "version": "v1",
+    "storyId": "US-001,US-002,US-003,US-004,US-005",
+    "storyName": "Design Workflow, Create Agent, Execute Workflow, Authenticate, Create Artifact Template",
+    "createdAt": "2025-01-22T00:00:00Z",
+    "updatedAt": "2025-01-22T00:00:00Z",
+    "totalPages": 13,
+    "totalLayouts": 4,
+    "totalRouteGroups": 3,
+    "totalSpecialFiles": 9,
+    "appDirectory": "app",
+    "baseUrl": "/",
+    "routingStrategy": "app-router",
+    "owner": "Xbowl System Architect",
+    "reviewDate": "2025-02-22T00:00:00Z"
+  },
+  "nodes": [
+    {
+      "id": "root-layout",
+      "type": "layout-component",
+      "position": { "x": 400, "y": 100 },
+      "metadata": {
+        "name": "Root Layout",
+        "description": "Root layout with HTML and body tags, global styles, and providers",
+        "type": "basic",
+        "filePath": "app/layout.tsx",
+        "layoutType": "root",
+        "layoutLevel": 0,
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "auth-route-group",
+      "type": "route-group",
+      "position": { "x": 200, "y": 200 },
+      "metadata": {
+        "name": "Authentication Route Group",
+        "description": "Route group for authentication pages with minimal layout",
+        "type": "basic",
+        "folderPath": "app/(auth)",
+        "groupName": "(auth)",
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "auth-layout",
+      "type": "layout-component",
+      "position": { "x": 200, "y": 300 },
+      "metadata": {
+        "name": "Auth Layout",
+        "description": "Minimal layout for authentication pages without header/footer",
+        "type": "basic",
+        "filePath": "app/(auth)/layout.tsx",
+        "layoutType": "nested",
+        "layoutLevel": 1,
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "sign-in-page",
+      "type": "page-component",
+      "position": { "x": 100, "y": 400 },
+      "metadata": {
+        "name": "Sign In Page",
+        "description": "User sign in form with email and password authentication",
+        "type": "basic",
+        "filePath": "app/(auth)/sign-in/page.tsx",
+        "routePath": "/sign-in",
+        "componentType": "page",
+        "rendering": "static",
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "sign-up-page",
+      "type": "page-component",
+      "position": { "x": 300, "y": 400 },
+      "metadata": {
+        "name": "Sign Up Page",
+        "description": "User registration form with email, password, and terms acceptance",
+        "type": "basic",
+        "filePath": "app/(auth)/sign-up/page.tsx",
+        "routePath": "/sign-up",
+        "componentType": "page",
+        "rendering": "static",
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "dashboard-route-group",
+      "type": "route-group",
+      "position": { "x": 600, "y": 200 },
+      "metadata": {
+        "name": "Dashboard Route Group",
+        "description": "Route group for dashboard and main application pages",
+        "type": "basic",
+        "folderPath": "app/(dashboard)",
+        "groupName": "(dashboard)",
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "dashboard-layout",
+      "type": "layout-component",
+      "position": { "x": 600, "y": 300 },
+      "metadata": {
+        "name": "Dashboard Layout",
+        "description": "Main dashboard layout with navigation, sidebar, and content area",
+        "type": "basic",
+        "filePath": "app/(dashboard)/layout.tsx",
+        "layoutType": "nested",
+        "layoutLevel": 1,
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "dashboard-overview-page",
+      "type": "page-component",
+      "position": { "x": 500, "y": 400 },
+      "metadata": {
+        "name": "Dashboard Overview Page",
+        "description": "Main dashboard with user stats, recent workflows, and quick actions",
+        "type": "basic",
+        "filePath": "app/(dashboard)/dashboard/page.tsx",
+        "routePath": "/dashboard",
+        "componentType": "page",
+        "rendering": "dynamic",
+        "searchParams": ["filter", "sort"],
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "workflows-list-page",
+      "type": "page-component",
+      "position": { "x": 700, "y": 400 },
+      "metadata": {
+        "name": "Workflows List Page",
+        "description": "Complete list of user's workflows with search, filter, and management options",
+        "type": "basic",
+        "filePath": "app/(dashboard)/workflows/page.tsx",
+        "routePath": "/workflows",
+        "componentType": "page",
+        "rendering": "dynamic",
+        "searchParams": ["search", "filter", "sort", "page"],
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "workflow-designer-page",
+      "type": "page-component",
+      "position": { "x": 600, "y": 500 },
+      "metadata": {
+        "name": "Workflow Designer Page",
+        "description": "Visual workflow creation interface with dual canvas system and 7 core node types",
+        "type": "basic",
+        "filePath": "app/(dashboard)/canvas/page.tsx",
+        "routePath": "/canvas",
+        "componentType": "page",
+        "rendering": "dynamic",
+        "searchParams": ["mode", "workflowId"],
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "workflow-create-wizard-page",
+      "type": "page-component",
+      "position": { "x": 500, "y": 600 },
+      "metadata": {
+        "name": "Workflow Create Wizard Page",
+        "description": "Step-by-step workflow creation wizard with template selection",
+        "type": "basic",
+        "filePath": "app/(dashboard)/canvas/create/page.tsx",
+        "routePath": "/canvas/create",
+        "componentType": "page",
+        "rendering": "dynamic",
+        "searchParams": ["template"],
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "workflow-execution-page",
+      "type": "page-component",
+      "position": { "x": 700, "y": 600 },
+      "metadata": {
+        "name": "Workflow Execution Page",
+        "description": "Workflow execution interface with real-time progress monitoring",
+        "type": "basic",
+        "filePath": "app/(dashboard)/canvas/execute/page.tsx",
+        "routePath": "/canvas/execute",
+        "componentType": "page",
+        "rendering": "dynamic",
+        "searchParams": ["workflowId", "mode"],
+        "owner": "UX Team"
+      }
+    },
+
+    {
+      "id": "settings-page",
+      "type": "page-component",
+      "position": { "x": 700, "y": 800 },
+      "metadata": {
+        "name": "Settings Page",
+        "description": "User settings and preferences management",
+        "type": "basic",
+        "filePath": "app/(dashboard)/settings/page.tsx",
+        "routePath": "/settings",
+        "componentType": "page",
+        "rendering": "dynamic",
+        "owner": "UX Team"
+      }
+    },
+    {
+      "id": "landing-page",
+      "type": "page-component",
+      "position": { "x": 400, "y": 200 },
+      "metadata": {
+        "name": "Landing Page",
+        "description": "Public landing page with marketing content and sign-up call-to-action",
+        "type": "basic",
+        "filePath": "app/page.tsx",
+        "routePath": "/",
+        "componentType": "page",
+        "rendering": "static",
+        "owner": "Marketing Team"
+      }
+    },
+    {
+      "id": "global-loading",
+      "type": "special-file",
+      "position": { "x": 100, "y": 100 },
+      "metadata": {
+        "name": "Global Loading",
+        "description": "Global loading component for route transitions",
+        "type": "basic",
+        "filePath": "app/loading.tsx",
+        "fileType": "loading",
+        "scope": "global",
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "global-error",
+      "type": "special-file",
+      "position": { "x": 100, "y": 200 },
+      "metadata": {
+        "name": "Global Error",
+        "description": "Global error boundary for handling application errors",
+        "type": "basic",
+        "filePath": "app/global-error.tsx",
+        "fileType": "global-error",
+        "scope": "global",
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "not-found",
+      "type": "special-file",
+      "position": { "x": 100, "y": 300 },
+      "metadata": {
+        "name": "Not Found",
+        "description": "404 page for handling non-existent routes",
+        "type": "basic",
+        "filePath": "app/not-found.tsx",
+        "fileType": "not-found",
+        "scope": "global",
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "auth-loading",
+      "type": "special-file",
+      "position": { "x": 200, "y": 100 },
+      "metadata": {
+        "name": "Auth Loading",
+        "description": "Loading component for authentication pages",
+        "type": "basic",
+        "filePath": "app/(auth)/loading.tsx",
+        "fileType": "loading",
+        "scope": "route",
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "auth-error",
+      "type": "special-file",
+      "position": { "x": 200, "y": 200 },
+      "metadata": {
+        "name": "Auth Error",
+        "description": "Error component for authentication pages",
+        "type": "basic",
+        "filePath": "app/(auth)/error.tsx",
+        "fileType": "error",
+        "scope": "route",
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "dashboard-loading",
+      "type": "special-file",
+      "position": { "x": 600, "y": 100 },
+      "metadata": {
+        "name": "Dashboard Loading",
+        "description": "Loading component for dashboard pages",
+        "type": "basic",
+        "filePath": "app/(dashboard)/loading.tsx",
+        "fileType": "loading",
+        "scope": "route",
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "dashboard-error",
+      "type": "special-file",
+      "position": { "x": 600, "y": 200 },
+      "metadata": {
+        "name": "Dashboard Error",
+        "description": "Error component for dashboard pages",
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "canvas-loading",
+      "type": "special-file",
+      "position": { "x": 600, "y": 400 },
+      "metadata": {
+        "name": "Canvas Loading",
+        "description": "Loading component for canvas pages",
+        "type": "basic",
+        "filePath": "app/(dashboard)/canvas/loading.tsx",
+        "fileType": "loading",
+        "scope": "route",
+        "owner": "Frontend Team"
+      }
+    },
+    {
+      "id": "canvas-error",
+      "type": "special-file",
+      "position": { "x": 600, "y": 500 },
+      "metadata": {
+        "name": "Canvas Error",
+        "description": "Error component for canvas pages",
+        "type": "basic",
+        "filePath": "app/(dashboard)/canvas/error.tsx",
+        "fileType": "error",
+        "scope": "route",
+        "owner": "Frontend Team"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "root-nests-auth",
+      "source": "root-layout",
+      "target": "auth-layout",
+      "type": "nests",
+      "metadata": {
+        "nestingType": "direct",
+        "description": "Root layout nests auth layout for authentication pages"
+      }
+    },
+    {
+      "id": "root-nests-dashboard",
+      "source": "root-layout",
+      "target": "dashboard-layout",
+      "type": "nests",
+      "metadata": {
+        "nestingType": "direct",
+        "description": "Root layout nests dashboard layout for main application pages"
+      }
+    },
+    {
+      "id": "root-nests-landing",
+      "source": "root-layout",
+      "target": "landing-page",
+      "type": "nests",
+      "metadata": {
+        "nestingType": "direct",
+        "description": "Root layout nests landing page"
+      }
+    },
+    {
+      "id": "auth-group-contains-layout",
+      "source": "auth-route-group",
+      "target": "auth-layout",
+      "type": "contains",
+      "metadata": {
+        "containmentType": "direct",
+        "description": "Auth route group contains auth layout"
+      }
+    },
+    {
+      "id": "auth-group-contains-signin",
+      "source": "auth-route-group",
+      "target": "sign-in-page",
+      "type": "contains",
+      "metadata": {
+        "containmentType": "direct",
+        "description": "Auth route group contains sign in page"
+      }
+    },
+    {
+      "id": "auth-group-contains-signup",
+      "source": "auth-route-group",
+      "target": "sign-up-page",
+      "type": "contains",
+      "metadata": {
+        "containmentType": "direct",
+        "description": "Auth route group contains sign up page"
+      }
+    },
+    {
+      "id": "auth-layout-nests-signin",
+      "source": "auth-layout",
+      "target": "sign-in-page",
+      "type": "nests",
+      "metadata": {
+        "nestingType": "direct",
+        "description": "Auth layout nests sign in page"
+      }
+    },
+    {
+      "id": "auth-layout-nests-signup",
+      "source": "auth-layout",
+      "target": "sign-up-page",
+      "type": "nests",
+      "metadata": {
+        "nestingType": "direct",
+        "description": "Auth layout nests sign up page"
+      }
+    },
+    {
+      "id": "dashboard-group-contains-layout",
+      "source": "dashboard-route-group",
+      "target": "dashboard-layout",
+      "type": "contains",
+      "metadata": {
+        "containmentType": "direct",
+        "description": "Dashboard route group contains dashboard layout"
+      }
+    },
+    {
+      "id": "dashboard-group-contains-overview",
+      "source": "dashboard-route-group",
+      "target": "dashboard-overview-page",
+      "type": "contains",
+      "metadata": {
+        "containmentType": "direct",
+        "description": "Dashboard route group contains dashboard overview page"
+      }
+    },
+    {
+      "id": "dashboard-group-contains-workflows",
+      "source": "dashboard-route-group",
+      "target": "workflows-list-page",
+      "type": "contains",
+      "metadata": {
+        "containmentType": "direct",
+        "description": "Dashboard route group contains workflows list page"
+      }
+    },
+    {
+      "id": "dashboard-group-contains-canvas",
+      "source": "dashboard-route-group",
+      "target": "workflow-designer-page",
+      "type": "contains",
+      "metadata": {
+        "containmentType": "direct",
+        "description": "Dashboard route group contains workflow designer page"
+      }
+    },
+    {
+      "id": "dashboard-group-contains-create-wizard",
+      "source": "dashboard-route-group",
+      "target": "workflow-create-wizard-page",
+      "type": "contains",
+      "metadata": {
+        "containmentType": "direct",
+        "description": "Dashboard route group contains workflow create wizard page"
+      }
+    },
+    {
+      "id": "dashboard-group-contains-execution",
+      "source": "dashboard-route-group",
+      "target": "workflow-execution-page",
+      "type": "contains",
+      "metadata": {
+        "containmentType": "direct",
+        "description": "Dashboard route group contains workflow execution page"
+      }
+    },
+
+    {
+      "id": "dashboard-group-contains-settings",
+      "source": "dashboard-route-group",
+      "target": "settings-page",
+      "type": "contains",
+      "metadata": {
+        "containmentType": "direct",
+        "description": "Dashboard route group contains settings page"
+      }
+    },
+    {
+      "id": "dashboard-layout-nests-overview",
+      "source": "dashboard-layout",
+      "target": "dashboard-overview-page",
+      "type": "nests",
+      "metadata": {
+        "nestingType": "direct",
+        "description": "Dashboard layout nests dashboard overview page"
+      }
+    },
+    {
+      "id": "dashboard-layout-nests-workflows",
+      "source": "dashboard-layout",
+      "target": "workflows-list-page",
+      "type": "nests",
+      "metadata": {
+        "nestingType": "direct",
+        "description": "Dashboard layout nests workflows list page"
+      }
+    },
+    {
+      "id": "dashboard-layout-nests-canvas",
+      "source": "dashboard-layout",
+      "target": "workflow-designer-page",
+      "type": "nests",
+      "metadata": {
+        "nestingType": "direct",
+        "description": "Dashboard layout nests workflow designer page"
+      }
+    },
+    {
+      "id": "dashboard-layout-nests-create-wizard",
+      "source": "dashboard-layout",
+      "target": "workflow-create-wizard-page",
+      "type": "nests",
+      "metadata": {
+        "nestingType": "direct",
+        "description": "Dashboard layout nests workflow create wizard page"
+      }
+    },
+    {
+      "id": "dashboard-layout-nests-execution",
+      "source": "dashboard-layout",
+      "target": "workflow-execution-page",
+      "type": "nests",
+      "metadata": {
+        "nestingType": "direct",
+        "description": "Dashboard layout nests workflow execution page"
+      }
+    },
+
+    {
+      "id": "dashboard-layout-nests-settings",
+      "source": "dashboard-layout",
+      "target": "settings-page",
+      "type": "nests",
+      "metadata": {
+        "nestingType": "direct",
+        "description": "Dashboard layout nests settings page"
+      }
+    },
+    {
+      "id": "landing-navigates-signup",
+      "source": "landing-page",
+      "target": "sign-up-page",
+      "type": "navigates-to",
+      "metadata": {
+        "navigationType": "link",
+        "description": "Landing page links to sign up page"
+      }
+    },
+    {
+      "id": "landing-navigates-signin",
+      "source": "landing-page",
+      "target": "sign-in-page",
+      "type": "navigates-to",
+      "metadata": {
+        "navigationType": "link",
+        "description": "Landing page links to sign in page"
+      }
+    },
+    {
+      "id": "signin-navigates-dashboard",
+      "source": "sign-in-page",
+      "target": "dashboard-overview-page",
+      "type": "navigates-to",
+      "metadata": {
+        "navigationType": "redirect",
+        "description": "Successful sign in redirects to dashboard"
+      }
+    },
+    {
+      "id": "signup-navigates-dashboard",
+      "source": "sign-up-page",
+      "target": "dashboard-overview-page",
+      "type": "navigates-to",
+      "metadata": {
+        "navigationType": "redirect",
+        "description": "Successful sign up redirects to dashboard"
+      }
+    },
+    {
+      "id": "dashboard-navigates-workflows",
+      "source": "dashboard-overview-page",
+      "target": "workflows-list-page",
+      "type": "navigates-to",
+      "metadata": {
+        "navigationType": "link",
+        "description": "Dashboard links to workflows list"
+      }
+    },
+    {
+      "id": "dashboard-navigates-canvas",
+      "source": "dashboard-overview-page",
+      "target": "workflow-designer-page",
+      "type": "navigates-to",
+      "metadata": {
+        "navigationType": "link",
+        "description": "Dashboard links to workflow designer"
+      }
+    },
+    {
+      "id": "workflows-navigates-create-wizard",
+      "source": "workflows-list-page",
+      "target": "workflow-create-wizard-page",
+      "type": "navigates-to",
+      "metadata": {
+        "navigationType": "link",
+        "description": "Workflows list links to create wizard"
+      }
+    },
+    {
+      "id": "workflows-navigates-canvas",
+      "source": "workflows-list-page",
+      "target": "workflow-designer-page",
+      "type": "navigates-to",
+      "metadata": {
+        "navigationType": "link",
+        "description": "Workflows list links to workflow designer"
+      }
+    },
+    {
+      "id": "canvas-navigates-execution",
+      "source": "workflow-designer-page",
+      "target": "workflow-execution-page",
+      "type": "navigates-to",
+      "metadata": {
+        "navigationType": "programmatic",
+        "description": "Workflow designer programmatically navigates to execution"
+      }
+    },
+
+    {
+      "id": "global-loading-handles-all",
+      "source": "global-loading",
+      "target": "root-layout",
+      "type": "handles",
+      "metadata": {
+        "handlingType": "loading",
+        "description": "Global loading handles all route transitions"
+      }
+    },
+    {
+      "id": "global-error-handles-all",
+      "source": "global-error",
+      "target": "root-layout",
+      "type": "handles",
+      "metadata": {
+        "handlingType": "error",
+        "description": "Global error handles all application errors"
+      }
+    },
+    {
+      "id": "not-found-handles-invalid-routes",
+      "source": "not-found",
+      "target": "root-layout",
+      "type": "handles",
+      "metadata": {
+        "handlingType": "not-found",
+        "description": "Not found handles invalid routes"
+      }
+    },
+    {
+      "id": "auth-loading-handles-auth",
+      "source": "auth-loading",
+      "target": "auth-layout",
+      "type": "handles",
+      "metadata": {
+        "handlingType": "loading",
+        "description": "Auth loading handles authentication page transitions"
+      }
+    },
+    {
+      "id": "auth-error-handles-auth",
+      "source": "auth-error",
+      "target": "auth-layout",
+      "type": "handles",
+      "metadata": {
+        "handlingType": "error",
+        "description": "Auth error handles authentication page errors"
+      }
+    },
+    {
+      "id": "dashboard-loading-handles-dashboard",
+      "source": "dashboard-loading",
+      "target": "dashboard-layout",
+      "type": "handles",
+      "metadata": {
+        "handlingType": "loading",
+        "description": "Dashboard loading handles dashboard page transitions"
+      }
+    },
+    {
+      "id": "dashboard-error-handles-dashboard",
+      "source": "dashboard-error",
+      "target": "dashboard-layout",
+      "type": "handles",
+      "metadata": {
+        "handlingType": "error",
+        "description": "Dashboard error handles dashboard page errors"
+      }
+    },
+    {
+      "id": "canvas-loading-handles-canvas",
+      "source": "canvas-loading",
+      "target": "workflow-designer-page",
+      "type": "handles",
+      "metadata": {
+        "handlingType": "loading",
+        "description": "Canvas loading handles canvas page transitions"
+      }
+    },
+    {
+      "id": "canvas-error-handles-canvas",
+      "source": "canvas-error",
+      "target": "workflow-designer-page",
+      "type": "handles",
+      "metadata": {
+        "handlingType": "error",
+        "description": "Canvas error handles canvas page errors"
+      }
+    }
+  ],
+  "layout": {
+    "type": "hierarchical",
+    "options": {
+      "direction": "TB",
+      "spacing": 80,
+      "nodeSpacing": 60,
+      "rankSpacing": 120,
+      "padding": 40
+    }
+  }
+}

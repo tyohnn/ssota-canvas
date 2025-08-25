@@ -2,25 +2,22 @@ import React, {
   useState,
   useCallback,
   useEffect,
-  startTransition,
 } from "react";
 import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
 import { useUiLayout } from "@/domains/canvas/contexts/UiLayoutContext";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useReactFlowCanvasControl } from "@/domains/canvas/hooks/useReactFlowCanvasControl";
 
 export interface UseEditorControlResult {
   toggleEditor: (blockId?: string) => void;
   togglePageEditor: () => void;
   closeEditor: () => void;
   openEditor: (blockId: string) => void;
+  clearSelection: () => void;
   manualToggle: boolean;
 }
 
 export function useEditorControl(): UseEditorControlResult {
   const sel = useCanvasSelection();
   const ui = useUiLayout();
-  const data = useCanvasData();
   const [manualToggle, setManualToggle] = useState(false);
 
   // 에디터 토글 (열기/닫기)
@@ -73,14 +70,18 @@ export function useEditorControl(): UseEditorControlResult {
     sel.setNodeSelection,
   ]);
 
-  // 에디터 닫기 (ESC 키와 동일한 로직: 선택 해제 + fitView 애니메이션)
+  // 에디터 닫기 (첫 번째 단계: 에디터만 닫기)
   const closeEditor = useCallback(() => {
     ui.closeEditorPanel();
     setManualToggle(true);
-    // ESC 키와 동일한 로직: 선택 해제 + fitView 애니메이션
+    // 선택 해제는 하지 않음 - 두 번째 단계에서 처리
+  }, [ui.closeEditorPanel]);
+
+  // 선택 해제 (두 번째 단계: 선택까지 해제)
+  const clearSelection = useCallback(() => {
     sel.setNodeSelection([]);
-    // fitView 애니메이션은 react-flow-renderer에서 자동으로 처리됨
-  }, [ui.closeEditorPanel, sel.setNodeSelection]);
+    setManualToggle(false);
+  }, [sel.setNodeSelection]);
 
   // 에디터 열기
   const openEditor = useCallback(
@@ -150,6 +151,7 @@ export function useEditorControl(): UseEditorControlResult {
     togglePageEditor,
     closeEditor,
     openEditor,
+    clearSelection,
     manualToggle,
   };
 }

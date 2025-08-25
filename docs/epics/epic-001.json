@@ -1,0 +1,619 @@
+{
+  "metadata": {
+    "projectName": "xbowl - Scratch for AI Agents",
+    "epicName": "Platform Foundation & MVP Development",
+    "version": "1.0",
+    "createdAt": "2025-01-22T00:00:00Z",
+    "updatedAt": "2025-01-22T00:00:00Z",
+    "status": "In Progress",
+    "template": "epic-template-v1"
+  },
+  "nodes": [
+    {
+      "id": "epic-overview-1",
+      "type": "epic-overview",
+      "position": { "x": 400, "y": 100 },
+      "metadata": {
+        "name": "Platform Foundation & MVP Development",
+        "description": "Build the core dual canvas system with Editor Panel overlay system, implement universal node architecture with 7 core node types (agent, task, workflow, artifact_template, checklist, data, artifact_class), implement natural language agent persona/role definition, and create workflow design capabilities with task input/output edges. Launch MVP with comprehensive node metadata schema within 1 week development sprint to establish the foundation for all subsequent initiatives.",
+        "timeline": "8 weeks (2 months)",
+        "businessValue": 10,
+        "priority": "Critical",
+        "owner": "CTO"
+      }
+    },
+    {
+      "id": "feature-1",
+      "type": "feature",
+      "position": { "x": 100, "y": 300 },
+      "metadata": {
+        "name": "Dual Canvas System",
+        "description": "Implement a dual canvas system with Design Mode for workflow building and Execution Mode for workflow runtime monitoring. Design Mode includes left panel (Explorer), center panel (React Flow Canvas), and Editor Panel overlay system (z-index overlay for node metadata editing). Execution Mode includes left panel (Nodes), center panel (Canvas), and right panel (Interaction) with progressive node generation.",
+        "complexity": "Complex",
+        "effort": "1 week (1 sprint)",
+        "businessValue": 10,
+        "dependencies": []
+      }
+    },
+    {
+      "id": "feature-2",
+      "type": "feature",
+      "position": { "x": 300, "y": 300 },
+      "metadata": {
+        "name": "Universal Node System",
+        "description": "Implement a Notion-inspired universal node system where everything is a node. Include 7 core system-defined nodes (agent, task, workflow, artifact_template, checklist, data, artifact_class) with hierarchical parent-child relationships. Support template-driven customization with sub-node definitions (Node Definition, Edge Definition, Column Definition) and auto-generated Artifact Class nodes.",
+        "complexity": "Complex",
+        "effort": "1 week (1 sprint)",
+        "businessValue": 10,
+        "dependencies": ["Dual Canvas System"]
+      }
+    },
+    {
+      "id": "feature-3",
+      "type": "feature",
+      "position": { "x": 500, "y": 300 },
+      "metadata": {
+        "name": "Natural Language Agent Definition",
+        "description": "Enable users to describe agent personas/roles, task markdown instructions, and workflows in plain English/Korean through text input fields. Automatically translate natural language descriptions into structured metadata schemas (persona_definition, role_definition, task variables) without requiring coding knowledge.",
+        "complexity": "Medium",
+        "effort": "1 week (1 sprint)",
+        "businessValue": 9,
+        "dependencies": ["Universal Node System"]
+      }
+    },
+    {
+      "id": "feature-4",
+      "type": "feature",
+      "position": { "x": 700, "y": 300 },
+      "metadata": {
+        "name": "Progressive Node Generation",
+        "description": "Implement real-time node creation with immediate visual feedback during workflow execution. Nodes should appear on canvas as they're generated according to template definitions, with progressive relationship visualization and immediate interaction capabilities.",
+        "complexity": "Complex",
+        "effort": "1 week (1 sprint)",
+        "businessValue": 9,
+        "dependencies": [
+          "Universal Node System",
+          "Natural Language Agent Definition"
+        ]
+      }
+    },
+    {
+      "id": "feature-5",
+      "type": "feature",
+      "position": { "x": 100, "y": 500 },
+      "metadata": {
+        "name": "Workflow Design & Configuration",
+        "description": "Enable design and configuration of workflows with 2-3 agents, providing visual workflow building capabilities. Support task input/output edge design, artifact template configuration, and workflow validation with preview capabilities for workflow structure.",
+        "complexity": "Medium",
+        "effort": "1 week (1 sprint)",
+        "businessValue": 9,
+        "dependencies": [
+          "Natural Language Agent Definition",
+          "Progressive Node Generation"
+        ]
+      }
+    },
+    {
+      "id": "feature-6",
+      "type": "feature",
+      "position": { "x": 300, "y": 500 },
+      "metadata": {
+        "name": "User Authentication",
+        "description": "Implement basic signup/login functionality using Clerk authentication. Provide user-specific workflow and artifact storage with session management for workflow instances.",
+        "complexity": "Simple",
+        "effort": "1 week (1 sprint)",
+        "businessValue": 8,
+        "dependencies": []
+      }
+    },
+    {
+      "id": "feature-7",
+      "type": "feature",
+      "position": { "x": 500, "y": 500 },
+      "metadata": {
+        "name": "Drag-and-Drop Interface",
+        "description": "Implement intuitive drag-and-drop functionality for placing nodes on the canvas and creating visual connections between workflow components. Support visual node-relationship connections with immediate feedback.",
+        "complexity": "Medium",
+        "effort": "1 week (1 sprint)",
+        "businessValue": 8,
+        "dependencies": ["Dual Canvas System"]
+      }
+    },
+    {
+      "id": "feature-8",
+      "type": "feature",
+      "position": { "x": 700, "y": 500 },
+      "metadata": {
+        "name": "Editor Panel Overlay System",
+        "description": "Implement z-index overlay editor panels that appear when clicking nodes on canvas. Provide context-aware metadata editing forms for different node types (Agent: persona/role, Task: markdown/variables, etc.) with connected nodes visualization and real-time updates.",
+        "complexity": "Complex",
+        "effort": "1 week (1 sprint)",
+        "businessValue": 9,
+        "dependencies": ["Dual Canvas System", "Universal Node System"]
+      }
+    },
+    {
+      "id": "feature-9",
+      "type": "feature",
+      "position": { "x": 100, "y": 700 },
+      "metadata": {
+        "name": "Task Input/Output Edge System",
+        "description": "Implement input and output edge types for task nodes enabling connections to Data, Checklist, Artifact Class, and Artifact Template nodes. Support clear data flow dependencies and artifact generation chains with validation.",
+        "complexity": "Medium",
+        "effort": "1 week (1 sprint)",
+        "businessValue": 9,
+        "dependencies": ["Universal Node System"]
+      }
+    },
+    {
+      "id": "US-001",
+      "type": "user-story",
+      "position": { "x": 100, "y": 700 },
+      "metadata": {
+        "title": "Design Workflow in Visual Canvas",
+        "asA": "non-technical user",
+        "iWant": "design AI agent workflows using a visual drag-and-drop interface",
+        "soThat": "I can create complex AI workflows without writing code",
+        "acceptanceCriteria": [
+          "User can click nodes from left panel to center canvas",
+          "User can connect nodes with visual lines",
+          "User can click nodes to open Editor Panel overlay",
+          "User can configure node metadata in Editor Panel",
+          "Canvas provides immediate visual feedback",
+          "Workflow can be saved and loaded",
+          "Different canvas toolboxes by node type created (Workflow: Start, Conditional, End / Task: Input, Output Edge / Template: Node, Edge, Column Definition Node)",
+          "Different Editor Panel overlay by node type created (Agent: Persona, Role, Task: Markdown, Variables, Workflow: Workflow, Task: Task, Template: Node, Edge, Column Definition Node)"
+        ],
+        "storyPoints": 5,
+        "priority": "Critical"
+      }
+    },
+    {
+      "id": "US-002",
+      "type": "user-story",
+      "position": { "x": 300, "y": 700 },
+      "metadata": {
+        "title": "Create Agent with Natural Language",
+        "asA": "non-technical user",
+        "iWant": "describe AI agents using plain English",
+        "soThat": "I can create AI agents without technical knowledge",
+        "acceptanceCriteria": [
+          "User can enter agent persona description in text field",
+          "User can enter agent role definition in text field",
+          "System translates descriptions to structured metadata",
+          "Agent appears as node on canvas",
+          "User can edit agent persona/role in Editor Panel",
+          "System validates agent metadata schema"
+        ],
+        "storyPoints": 3,
+        "priority": "Critical"
+      }
+    },
+    {
+      "id": "US-003",
+      "type": "user-story",
+      "position": { "x": 500, "y": 700 },
+      "metadata": {
+        "title": "Create Artifact Template with Node/Edge/Column Definition",
+        "asA": "non-technical user",
+        "iWant": "use Node/Edge/Column Definition to create Artifact Template",
+        "soThat": "I can create Artifact Template without technical knowledge",
+        "acceptanceCriteria": [
+          "User can drag Node/Edge/Column Definition from top toolbar",
+          "User can configure Node/Edge/Column Definition in Editor Panel",
+          "User can configure style of Node/Edge/Column Definition in Editor Panel"
+        ],
+        "storyPoints": 5,
+        "priority": "Critical"
+      }
+    },
+    {
+      "id": "US-004",
+      "type": "user-story",
+      "position": { "x": 700, "y": 700 },
+      "metadata": {
+        "title": "Authenticate and Access Personal Workflows",
+        "asA": "registered user",
+        "iWant": "sign in and access my saved workflows",
+        "soThat": "I can securely manage my AI agent projects",
+        "acceptanceCriteria": [
+          "User can register with email/password",
+          "User can sign in securely",
+          "User can view saved workflows",
+          "User can create new workflows",
+          "Session management works correctly"
+        ],
+        "storyPoints": 2,
+        "priority": "High"
+      }
+    },
+
+    {
+      "id": "technical-req-1",
+      "type": "technical-requirement",
+      "position": { "x": 100, "y": 900 },
+      "metadata": {
+        "name": "React Flow Canvas Performance",
+        "description": "Optimize React Flow canvas to handle 10+ nodes smoothly with real-time updates and responsive interactions",
+        "type": "Performance",
+        "priority": "High",
+        "constraints": [
+          "Canvas must render within 2 seconds",
+          "Support for 50+ nodes without lag",
+          "Real-time updates without blocking UI"
+        ],
+        "dependencies": ["React Flow Library", "State Management"]
+      }
+    },
+    {
+      "id": "technical-req-2",
+      "type": "technical-requirement",
+      "position": { "x": 300, "y": 900 },
+      "metadata": {
+        "name": "Universal Node Data Model",
+        "description": "Design and implement unified data model where all workflow components are represented as nodes with consistent metadata schema",
+        "type": "Architecture",
+        "priority": "Critical",
+        "constraints": [
+          "Must support hierarchical relationships",
+          "Extensible node type system",
+          "Consistent metadata schema"
+        ],
+        "dependencies": ["Database Schema", "API Design"]
+      }
+    },
+    {
+      "id": "technical-req-3",
+      "type": "technical-requirement",
+      "position": { "x": 500, "y": 900 },
+      "metadata": {
+        "name": "Natural Language Processing",
+        "description": "Implement NLP pipeline to translate natural language descriptions into structured AI agent configurations",
+        "type": "Integration",
+        "priority": "High",
+        "constraints": [
+          "Support English and Korean languages",
+          "Real-time processing under 5 seconds",
+          "Accurate agent configuration generation"
+        ],
+        "dependencies": ["AI/ML Service", "Language Models"]
+      }
+    },
+    {
+      "id": "technical-req-4",
+      "type": "technical-requirement",
+      "position": { "x": 700, "y": 900 },
+      "metadata": {
+        "name": "Clerk Authentication Integration",
+        "description": "Integrate Clerk authentication service for secure user management and session handling",
+        "type": "Security",
+        "priority": "High",
+        "constraints": [
+          "OAuth 2.0 compliance",
+          "Secure session management",
+          "User data protection"
+        ],
+        "dependencies": ["Clerk SDK", "Backend API"]
+      }
+    },
+    {
+      "id": "milestone-1",
+      "type": "milestone",
+      "position": { "x": 400, "y": 1100 },
+      "metadata": {
+        "name": "MVP Launch",
+        "description": "Launch MVP with dual canvas system, universal node architecture, and workflow design capabilities",
+        "date": "2025-07-29",
+        "deliverables": [
+          "Dual Canvas System (Design & Execution modes)",
+          "Universal Node System with 7 core node types",
+          "Natural Language Agent Definition",
+          "User Authentication System",
+          "Drag-and-Drop Interface",
+          "Progressive Node Generation"
+        ],
+        "successCriteria": [
+          "Users can create AI agent workflows visually",
+          "Natural language agent creation works",
+          "Authentication system is secure and functional",
+          "Platform handles 10+ concurrent users"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "feature-1",
+      "target": "epic-overview-1",
+      "type": "implements",
+      "metadata": {
+        "description": "Dual Canvas System implements the epic objective of visual workflow design"
+      }
+    },
+    {
+      "id": "edge-2",
+      "source": "feature-2",
+      "target": "epic-overview-1",
+      "type": "implements",
+      "metadata": {
+        "description": "Universal Node System implements the epic objective of unified data architecture"
+      }
+    },
+    {
+      "id": "edge-3",
+      "source": "feature-3",
+      "target": "epic-overview-1",
+      "type": "implements",
+      "metadata": {
+        "description": "Natural Language Agent Definition implements the epic objective of democratized AI agent creation"
+      }
+    },
+    {
+      "id": "edge-4",
+      "source": "feature-4",
+      "target": "epic-overview-1",
+      "type": "implements",
+      "metadata": {
+        "description": "Progressive Node Generation implements the epic objective of real-time workflow feedback"
+      }
+    },
+    {
+      "id": "edge-5",
+      "source": "feature-5",
+      "target": "epic-overview-1",
+      "type": "implements",
+      "metadata": {
+        "description": "Workflow Design & Configuration implements the epic objective of functional AI agent workflow design"
+      }
+    },
+    {
+      "id": "edge-6",
+      "source": "feature-6",
+      "target": "epic-overview-1",
+      "type": "implements",
+      "metadata": {
+        "description": "User Authentication implements the epic objective of secure user management"
+      }
+    },
+    {
+      "id": "edge-7",
+      "source": "feature-7",
+      "target": "epic-overview-1",
+      "type": "implements",
+      "metadata": {
+        "description": "Drag-and-Drop Interface implements the epic objective of intuitive user experience"
+      }
+    },
+    {
+      "id": "edge-7-3",
+      "source": "feature-10",
+      "target": "epic-overview-1",
+      "type": "implements",
+      "metadata": {
+        "description": "Scratch-like Visual Interface implements the epic objective of intuitive user experience for MVP"
+      }
+    },
+    {
+      "id": "edge-8",
+      "source": "feature-2",
+      "target": "feature-1",
+      "type": "depends-on",
+      "metadata": {
+        "description": "Universal Node System depends on Dual Canvas System for visual representation",
+        "type": "Technical"
+      }
+    },
+    {
+      "id": "edge-9",
+      "source": "feature-3",
+      "target": "feature-2",
+      "type": "depends-on",
+      "metadata": {
+        "description": "Natural Language Agent Definition depends on Universal Node System for node creation",
+        "type": "Technical"
+      }
+    },
+    {
+      "id": "edge-10",
+      "source": "feature-4",
+      "target": "feature-2",
+      "type": "depends-on",
+      "metadata": {
+        "description": "Progressive Node Generation depends on Universal Node System for node management",
+        "type": "Technical"
+      }
+    },
+    {
+      "id": "edge-11",
+      "source": "feature-4",
+      "target": "feature-3",
+      "type": "depends-on",
+      "metadata": {
+        "description": "Progressive Node Generation depends on Natural Language Agent Definition for agent creation",
+        "type": "Technical"
+      }
+    },
+    {
+      "id": "edge-12",
+      "source": "feature-5",
+      "target": "feature-3",
+      "type": "depends-on",
+      "metadata": {
+        "description": "Basic Workflow Execution depends on Natural Language Agent Definition for agent configuration",
+        "type": "Technical"
+      }
+    },
+    {
+      "id": "edge-13",
+      "source": "feature-5",
+      "target": "feature-4",
+      "type": "depends-on",
+      "metadata": {
+        "description": "Basic Workflow Execution depends on Progressive Node Generation for real-time feedback",
+        "type": "Technical"
+      }
+    },
+    {
+      "id": "edge-14",
+      "source": "feature-7",
+      "target": "feature-1",
+      "type": "depends-on",
+      "metadata": {
+        "description": "Drag-and-Drop Interface depends on Dual Canvas System for canvas implementation",
+        "type": "Technical"
+      }
+    },
+    {
+      "id": "edge-14-4",
+      "source": "feature-10",
+      "target": "feature-1",
+      "type": "depends-on",
+      "metadata": {
+        "description": "Scratch-like Visual Interface depends on Dual Canvas System for visual foundation",
+        "type": "Technical"
+      }
+    },
+    {
+      "id": "edge-14-5",
+      "source": "feature-10",
+      "target": "feature-8",
+      "type": "depends-on",
+      "metadata": {
+        "description": "Scratch-like Visual Interface depends on Editor Panel Overlay System for block configuration",
+        "type": "Technical"
+      }
+    },
+    {
+      "id": "edge-15",
+      "source": "user-story-1",
+      "target": "feature-1",
+      "type": "implements",
+      "metadata": {
+        "description": "Design Workflow story implements Dual Canvas System feature"
+      }
+    },
+    {
+      "id": "edge-16",
+      "source": "user-story-2",
+      "target": "feature-3",
+      "type": "implements",
+      "metadata": {
+        "description": "Create Agent story implements Natural Language Agent Definition feature"
+      }
+    },
+
+    {
+      "id": "edge-18",
+      "source": "user-story-4",
+      "target": "feature-6",
+      "type": "implements",
+      "metadata": {
+        "description": "Authenticate story implements User Authentication feature"
+      }
+    },
+    {
+      "id": "edge-18-3",
+      "source": "user-story-7",
+      "target": "feature-10",
+      "type": "implements",
+      "metadata": {
+        "description": "Create Workflows with Visual Blocks story implements Scratch-like Visual Interface feature"
+      }
+    },
+    {
+      "id": "edge-19",
+      "source": "technical-req-1",
+      "target": "feature-1",
+      "type": "implements",
+      "metadata": {
+        "description": "React Flow Performance requirement implements Dual Canvas System"
+      }
+    },
+    {
+      "id": "edge-20",
+      "source": "technical-req-2",
+      "target": "feature-2",
+      "type": "implements",
+      "metadata": {
+        "description": "Universal Node Data Model requirement implements Universal Node System"
+      }
+    },
+    {
+      "id": "edge-21",
+      "source": "technical-req-3",
+      "target": "feature-3",
+      "type": "implements",
+      "metadata": {
+        "description": "NLP requirement implements Natural Language Agent Definition"
+      }
+    },
+    {
+      "id": "edge-22",
+      "source": "technical-req-4",
+      "target": "feature-6",
+      "type": "implements",
+      "metadata": {
+        "description": "Clerk Authentication requirement implements User Authentication"
+      }
+    },
+    {
+      "id": "edge-23",
+      "source": "milestone-1",
+      "target": "epic-overview-1",
+      "type": "leads-to",
+      "metadata": {
+        "description": "MVP Launch milestone leads to epic completion"
+      }
+    }
+  ],
+  "layout": {
+    "type": "hierarchical",
+    "options": {
+      "direction": "TB",
+      "spacing": 50,
+      "nodeSpacing": 30,
+      "rankSpacing": 100,
+      "padding": 30
+    }
+  },
+  "renderingSchema": {
+    "layout": "hierarchical",
+    "direction": "TB",
+    "spacing": 50,
+    "nodeSpacing": 30,
+    "groupSpacing": 100,
+    "groups": [
+      {
+        "id": "overview",
+        "name": "Epic Overview",
+        "color": "#E8F5E8",
+        "nodes": ["epic-overview"]
+      },
+      {
+        "id": "features",
+        "name": "Features",
+        "color": "#E3F2FD",
+        "nodes": ["feature"]
+      },
+      {
+        "id": "stories",
+        "name": "User Stories",
+        "color": "#FFF3E0",
+        "nodes": ["user-story"]
+      },
+      {
+        "id": "technical",
+        "name": "Technical Requirements",
+        "color": "#F3E5F5",
+        "nodes": ["technical-requirement"]
+      },
+      {
+        "id": "milestones",
+        "name": "Milestones",
+        "color": "#FFEBEE",
+        "nodes": ["milestone"]
+      }
+    ]
+  }
+}

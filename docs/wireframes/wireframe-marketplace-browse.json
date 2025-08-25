@@ -1,0 +1,64 @@
+{
+  "template": {
+    "id": "wireframe-template-v1",
+    "name": "Wireframe Document",
+    "version": "1.0",
+    "description": "Wireframe for Marketplace Browse Page - Template discovery and browsing interface with search and filter options"
+  },
+  "metadata": {
+    "pageName": "Marketplace Browse",
+    "pageType": "Marketplace",
+    "version": "1.0",
+    "createdAt": "2025-01-22T00:00:00Z",
+    "updatedAt": "2025-01-22T00:00:00Z",
+    "totalStates": 4,
+    "totalComponents": 14,
+    "stateTypes": ["default", "loading", "error", "empty"],
+    "responsiveBreakpoints": ["mobile", "tablet", "desktop"],
+    "accessibilityLevel": "WCAG 2.1 AA",
+    "owner": "Platform Team",
+    "reviewDate": "2025-02-22T00:00:00Z"
+  },
+  "nodes": [
+    {
+      "id": "marketplace-browse-default",
+      "type": "page-state",
+      "position": { "x": 400, "y": 200 },
+      "metadata": {
+        "name": "Marketplace Browse Default State",
+        "description": "Marketplace browse page in default state with search, filters, and template grid",
+        "type": "webview",
+        "content": "<div style='background: #f5f5f5; padding: 20px; min-height: 100vh; font-family: Arial, sans-serif;'><header style='background: #e0e0e0; padding: 20px; margin-bottom: 20px; border-radius: 8px;'><h1 style='margin: 0 0 10px 0; color: #333;'>Template Marketplace</h1><p style='margin: 0; color: #666;'>Discover and purchase AI workflow templates</p></header><div style='background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #bdbdbd; margin-bottom: 20px;'><div style='display: flex; gap: 15px; margin-bottom: 15px;'><input type='text' placeholder='Search templates...' style='flex: 1; padding: 10px; border: 1px solid #bdbdbd; border-radius: 4px;'><select style='padding: 10px; border: 1px solid #bdbdbd; border-radius: 4px;'><option>All Categories</option><option>Data Analysis</option><option>Content Creation</option><option>Automation</option><option>Marketing</option></select><select style='padding: 10px; border: 1px solid #bdbdbd; border-radius: 4px;'><option>Sort by: Popular</option><option>Newest</option><option>Price: Low to High</option><option>Price: High to Low</option><option>Rating</option></select></div><div style='display: flex; gap: 10px; flex-wrap: wrap;'><button style='padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;'>All</button><button style='padding: 6px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer; font-size: 12px;'>Free</button><button style='padding: 6px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer; font-size: 12px;'>Premium</button><button style='padding: 6px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer; font-size: 12px;'>Featured</button></div></div><div style='display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;'><div style='background: #ffffff; border-radius: 8px; border: 1px solid #bdbdbd; overflow: hidden;'><div style='height: 160px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 48px;'>📊</div><div style='padding: 15px;'><div style='display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;'><h3 style='margin: 0; color: #333; font-size: 16px;'>Data Analysis Suite</h3><span style='padding: 2px 6px; background: #4CAF50; color: white; border-radius: 3px; font-size: 10px;'>Free</span></div><p style='margin: 0 0 10px 0; color: #666; font-size: 14px; line-height: 1.4;'>Comprehensive data analysis workflow with visualization and reporting</p><div style='display: flex; justify-content: space-between; align-items: center;'><div style='display: flex; align-items: center; gap: 5px;'><span style='color: #FF9800;'>★★★★☆</span><span style='color: #666; font-size: 12px;'>(24)</span></div><button style='padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;'>View Details</button></div></div></div><div style='background: #ffffff; border-radius: 8px; border: 1px solid #bdbdbd; overflow: hidden;'><div style='height: 160px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 48px;'>✍️</div><div style='padding: 15px;'><div style='display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;'><h3 style='margin: 0; color: #333; font-size: 16px;'>Content Generator Pro</h3><span style='padding: 2px 6px; background: #FF9800; color: white; border-radius: 3px; font-size: 10px;'>$29</span></div><p style='margin: 0 0 10px 0; color: #666; font-size: 14px; line-height: 1.4;'>AI-powered content creation for blogs, social media, and marketing</p><div style='display: flex; justify-content: space-between; align-items: center;'><div style='display: flex; align-items: center; gap: 5px;'><span style='color: #FF9800;'>★★★★★</span><span style='color: #666; font-size: 12px;'>(156)</span></div><button style='padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;'>View Details</button></div></div></div><div style='background: #ffffff; border-radius: 8px; border: 1px solid #bdbdbd; overflow: hidden;'><div style='height: 160px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 48px;'>🤖</div><div style='padding: 15px;'><div style='display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;'><h3 style='margin: 0; color: #333; font-size: 16px;'>Email Automation</h3><span style='padding: 2px 6px; background: #9C27B0; color: white; border-radius: 3px; font-size: 10px;'>$19</span></div><p style='margin: 0 0 10px 0; color: #666; font-size: 14px; line-height: 1.4;'>Automated email marketing campaigns with personalization</p><div style='display: flex; justify-content: space-between; align-items: center;'><div style='display: flex; align-items: center; gap: 5px;'><span style='color: #FF9800;'>★★★★☆</span><span style='color: #666; font-size: 12px;'>(89)</span></div><button style='padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;'>View Details</button></div></div></div><div style='background: #ffffff; border-radius: 8px; border: 1px solid #bdbdbd; overflow: hidden;'><div style='height: 160px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 48px;'>📈</div><div style='padding: 15px;'><div style='display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;'><h3 style='margin: 0; color: #333; font-size: 16px;'>Sales Analytics</h3><span style='padding: 2px 6px; background: #4CAF50; color: white; border-radius: 3px; font-size: 10px;'>Free</span></div><p style='margin: 0 0 10px 0; color: #666; font-size: 14px; line-height: 1.4;'>Sales performance tracking and predictive analytics</p><div style='display: flex; justify-content: space-between; align-items: center;'><div style='display: flex; align-items: center; gap: 5px;'><span style='color: #FF9800;'>★★★★☆</span><span style='color: #666; font-size: 12px;'>(67)</span></div><button style='padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;'>View Details</button></div></div></div></div><div style='display: flex; justify-content: center; margin-top: 30px;'><div style='display: flex; gap: 10px;'><button style='padding: 8px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer;'>Previous</button><button style='padding: 8px 12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;'>1</button><button style='padding: 8px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer;'>2</button><button style='padding: 8px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer;'>3</button><button style='padding: 8px 12px; background: #f5f5f5; color: #333; border: 1px solid #bdbdbd; border-radius: 4px; cursor: pointer;'>Next</button></div></div></div>",
+        "pageName": "Marketplace Browse",
+        "state": "default",
+        "stateColor": "#f5f5f5",
+        "layout": "Header with description, search and filter controls, template grid with cards, pagination",
+        "components": [
+          "SearchBar",
+          "CategoryFilters",
+          "TemplateGrid",
+          "SortingOptions",
+          "Pagination"
+        ],
+        "responsive": {
+          "mobile": "stacked",
+          "tablet": "side-by-side",
+          "desktop": "grid"
+        },
+        "accessibility": "WCAG 2.1 AA",
+        "owner": "Platform Team"
+      }
+    }
+  ],
+  "edges": [],
+  "layout": {
+    "type": "hierarchical",
+    "options": {
+      "direction": "TB",
+      "spacing": 60,
+      "nodeSpacing": 40,
+      "rankSpacing": 120,
+      "padding": 30
+    }
+  }
+}

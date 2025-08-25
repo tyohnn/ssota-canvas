@@ -38,18 +38,18 @@ export function CanvasPageContent({ workspaceId }: CanvasPageContentProps) {
               <ViewRenderer />
 
               {/* Side Explorer - 좌측에 고정 */}
-              <SideExplorer />
+              {/* <SideExplorer /> */}
 
               {/* Block Insert Panel - 좌측에 배치 */}
               <BlockInsertPanel />
 
               {/* Editor Panel - 우측에 배치 */}
-              <EditorPanel />
+              {/* <EditorPanel /> */}
             </div>
           </ResizablePanel>
 
           {/* SSOT Debug Panel */}
-          {/* <ResizableHandle />
+          <ResizableHandle />
           <ResizablePanel
             id="ssot-debug-panel"
             order={1}
@@ -59,7 +59,7 @@ export function CanvasPageContent({ workspaceId }: CanvasPageContentProps) {
             className="flex flex-col"
           >
             <SSOTDebugPanel />
-          </ResizablePanel> */}
+          </ResizablePanel>
         </ResizablePanelGroup>
       </ViewProvider>
     </div>

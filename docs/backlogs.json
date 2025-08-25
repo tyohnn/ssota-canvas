@@ -1,0 +1,704 @@
+{
+  "metadata": {
+    "projectName": "xbowl - Scratch for AI Agents",
+    "version": "1.0",
+    "createdAt": "2025-07-22T10:00:00Z",
+    "updatedAt": "2025-07-22T10:00:00Z",
+    "businessObjectives": [
+      "Democratize AI agent orchestration through visual programming",
+      "Enable anyone to create AI agent teams as easily as Scratch programming",
+      "Achieve 10,000 active users creating AI agent workflows by October 22, 2025",
+      "Capture 5% of visual programming/automation tool market within 18 months",
+      "Achieve $1M ARR within 1 year"
+    ],
+    "targetUsers": [
+      "AI Developers and Vibecoding Developers",
+      "Service Providers and Agencies",
+      "Content Creators and Educators",
+      "Business Users seeking workflow automation"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "FR-001",
+      "type": "functional-requirement",
+      "position": { "x": 100, "y": 100 },
+      "metadata": {
+        "id": "FR-001",
+        "name": "Dual Canvas System",
+        "description": "Implement a dual canvas system with Design Mode for workflow building and Execution Mode for workflow runtime monitoring. Design Mode includes left panel (Explorer), center panel (React Flow Canvas), and right panel (Editor Panel overlay). Execution Mode includes left panel (Nodes), center panel (Canvas), and right panel (Interaction). Editor Panel overlay provides z-index metadata editing for selected nodes.",
+        "priority": "Critical",
+        "complexity": "High",
+        "businessValue": 10,
+        "userPersona": "All User Types",
+        "userBenefit": "Intuitive visual interface for both designing and monitoring AI agent workflows",
+        "dependencies": [],
+        "estimatedEffort": "40 hours",
+        "category": "Core Feature"
+      }
+    },
+    {
+      "id": "FR-002",
+      "type": "functional-requirement",
+      "position": { "x": 100, "y": 250 },
+      "metadata": {
+        "id": "FR-002",
+        "name": "Universal Node System",
+        "description": "Implement a Notion-inspired universal node system where everything is a node. Include 7 core system-defined nodes (agent, task, workflow, artifact_template, checklist, data, artifact_class) and runtime-generated nodes (page, component, data_model, custom types). Support hierarchical parent-child relationships and template-driven customization with auto-generated Artifact Class nodes.",
+        "priority": "Critical",
+        "complexity": "High",
+        "businessValue": 10,
+        "userPersona": "All User Types",
+        "userBenefit": "Unified data model providing consistency, extensibility, and simplicity across all workflow components",
+        "dependencies": ["FR-001"],
+        "estimatedEffort": "60 hours",
+        "category": "Core Feature"
+      }
+    },
+    {
+      "id": "FR-003",
+      "type": "functional-requirement",
+      "position": { "x": 100, "y": 400 },
+      "metadata": {
+        "id": "FR-003",
+        "name": "Natural Language Agent Definition",
+        "description": "Enable users to describe agents with persona definitions and role definitions, tasks with markdown instructions and variable parameters, and workflows in plain English/Korean through text input fields. Automatically translate natural language descriptions into executable AI agent configurations without requiring coding knowledge.",
+        "priority": "Critical",
+        "complexity": "Medium",
+        "businessValue": 9,
+        "userPersona": "Non-Technical Users",
+        "userBenefit": "Create AI agents without any programming knowledge using natural language",
+        "dependencies": ["FR-002"],
+        "estimatedEffort": "30 hours",
+        "category": "Core Feature"
+      }
+    },
+    {
+      "id": "FR-004",
+      "type": "functional-requirement",
+      "position": { "x": 100, "y": 550 },
+      "metadata": {
+        "id": "FR-004",
+        "name": "Progressive Node Generation",
+        "description": "Implement real-time node creation with immediate visual feedback during workflow execution. Nodes should appear on canvas as they're generated according to template definitions, with progressive relationship visualization and immediate interaction capabilities.",
+        "priority": "Critical",
+        "complexity": "High",
+        "businessValue": 9,
+        "userPersona": "All User Types",
+        "userBenefit": "Real-time visual feedback showing workflow progress and immediate ability to interact with generated content",
+        "dependencies": ["FR-002", "FR-003"],
+        "estimatedEffort": "50 hours",
+        "category": "Core Feature"
+      }
+    },
+    {
+      "id": "FR-005",
+      "type": "functional-requirement",
+      "position": { "x": 100, "y": 700 },
+      "metadata": {
+        "id": "FR-005",
+        "name": "Basic Workflow Execution",
+        "description": "Enable execution of simple workflows with 2-3 agents, providing real-time status updates and progress visualization. Support task execution with input/output edges, artifact generation and handoff between agents, with human review and editing capabilities between workflow steps through Editor Panel overlay system.",
+        "priority": "Critical",
+        "complexity": "Medium",
+        "businessValue": 9,
+        "userPersona": "All User Types",
+        "userBenefit": "Execute AI agent workflows and monitor progress in real-time with ability to intervene when needed",
+        "dependencies": ["FR-003", "FR-004"],
+        "estimatedEffort": "35 hours",
+        "category": "Core Feature"
+      }
+    },
+    {
+      "id": "FR-006",
+      "type": "functional-requirement",
+      "position": { "x": 100, "y": 850 },
+      "metadata": {
+        "id": "FR-006",
+        "name": "User Authentication",
+        "description": "Implement basic signup/login functionality using Clerk authentication. Provide user-specific workflow and artifact storage with session management for workflow instances.",
+        "priority": "Critical",
+        "complexity": "Low",
+        "businessValue": 8,
+        "userPersona": "All User Types",
+        "userBenefit": "Secure access to personalized features and workflow storage",
+        "dependencies": [],
+        "estimatedEffort": "15 hours",
+        "category": "Core Feature"
+      }
+    },
+    {
+      "id": "FR-007",
+      "type": "functional-requirement",
+      "position": { "x": 400, "y": 100 },
+      "metadata": {
+        "id": "FR-007",
+        "name": "Artifact Template System",
+        "description": "Create reusable artifact templates for common workflow patterns with support for flow, markdown, table, and custom formats. Enable users to define custom node types through template Node Definition and Edge Definition sub-nodes. Auto-generate Artifact Class nodes from templates for design mode connections.",
+        "priority": "High",
+        "complexity": "Medium",
+        "businessValue": 7,
+        "userPersona": "Advanced Users",
+        "userBenefit": "Reuse successful artifact templates and create custom node types with visual designers for specific use cases",
+        "dependencies": ["FR-002"],
+        "estimatedEffort": "25 hours",
+        "category": "Enhancement"
+      }
+    },
+    {
+      "id": "FR-008",
+      "type": "functional-requirement",
+      "position": { "x": 400, "y": 250 },
+      "metadata": {
+        "id": "FR-008",
+        "name": "Artifact Management",
+        "description": "Implement artifact management system for generated content (markdown, React Flow, etc.). Provide human review and editing capabilities between workflow steps with version control and export functionality.",
+        "priority": "High",
+        "complexity": "Medium",
+        "businessValue": 7,
+        "userPersona": "All User Types",
+        "userBenefit": "Review, edit, and manage generated artifacts with full control over workflow outputs",
+        "dependencies": ["FR-004", "FR-005"],
+        "estimatedEffort": "30 hours",
+        "category": "Enhancement"
+      }
+    },
+    {
+      "id": "FR-009",
+      "type": "functional-requirement",
+      "position": { "x": 400, "y": 400 },
+      "metadata": {
+        "id": "FR-009",
+        "name": "Drag-and-Drop Interface",
+        "description": "Implement intuitive drag-and-drop functionality for placing nodes on the canvas and creating visual connections between workflow components. Support visual node-relationship connections with immediate feedback.",
+        "priority": "High",
+        "complexity": "Medium",
+        "businessValue": 8,
+        "userPersona": "Non-Technical Users",
+        "userBenefit": "Intuitive visual workflow design without requiring technical knowledge",
+        "dependencies": ["FR-001"],
+        "estimatedEffort": "25 hours",
+        "category": "Core Feature"
+      }
+    },
+    {
+      "id": "FR-010",
+      "type": "functional-requirement",
+      "position": { "x": 400, "y": 550 },
+      "metadata": {
+        "id": "FR-010",
+        "name": "Multi-Language Support",
+        "description": "Support natural language agent definition in both English and Korean languages. Provide localized interface elements and documentation for Korean users.",
+        "priority": "Medium",
+        "complexity": "Low",
+        "businessValue": 6,
+        "userPersona": "Korean Users",
+        "userBenefit": "Create AI agents using native language without language barriers",
+        "dependencies": ["FR-003"],
+        "estimatedEffort": "20 hours",
+        "category": "Enhancement"
+      }
+    },
+    {
+      "id": "FR-011",
+      "type": "functional-requirement",
+      "position": { "x": 400, "y": 700 },
+      "metadata": {
+        "id": "FR-011",
+        "name": "Real-Time Collaboration",
+        "description": "Enable multiple users to collaborate on workflow design and execution in real-time. Provide conflict resolution and user presence indicators for collaborative workflow development.",
+        "priority": "Medium",
+        "complexity": "High",
+        "businessValue": 6,
+        "userPersona": "Team Users",
+        "userBenefit": "Collaborate with team members on AI workflow design and execution",
+        "dependencies": ["FR-001", "FR-006"],
+        "estimatedEffort": "40 hours",
+        "category": "Enhancement"
+      }
+    },
+    {
+      "id": "FR-012",
+      "type": "functional-requirement",
+      "position": { "x": 400, "y": 850 },
+      "metadata": {
+        "id": "FR-012",
+        "name": "Workflow Export/Import",
+        "description": "Enable users to export workflows as JSON files and import existing workflows. Support workflow sharing and template distribution through file-based exchange.",
+        "priority": "Medium",
+        "complexity": "Low",
+        "businessValue": 5,
+        "userPersona": "Advanced Users",
+        "userBenefit": "Share workflows with others and backup/restore workflow configurations",
+        "dependencies": ["FR-007"],
+        "estimatedEffort": "15 hours",
+        "category": "Enhancement"
+      }
+    },
+    {
+      "id": "FR-013",
+      "type": "functional-requirement",
+      "position": { "x": 700, "y": 100 },
+      "metadata": {
+        "id": "FR-013",
+        "name": "Performance Optimization",
+        "description": "Optimize canvas performance to handle 10+ nodes smoothly and ensure workflow execution starts within 5 seconds. Implement efficient rendering and state management for complex workflows.",
+        "priority": "High",
+        "complexity": "Medium",
+        "businessValue": 7,
+        "userPersona": "All User Types",
+        "userBenefit": "Smooth performance even with complex workflows and large numbers of nodes",
+        "dependencies": ["FR-001", "FR-004"],
+        "estimatedEffort": "30 hours",
+        "category": "Enhancement"
+      }
+    },
+    {
+      "id": "FR-014",
+      "type": "functional-requirement",
+      "position": { "x": 700, "y": 250 },
+      "metadata": {
+        "id": "FR-014",
+        "name": "Error Handling and Validation",
+        "description": "Implement comprehensive error handling for natural language processing, workflow execution, and node generation. Provide clear error messages and validation feedback to users.",
+        "priority": "High",
+        "complexity": "Medium",
+        "businessValue": 6,
+        "userPersona": "All User Types",
+        "userBenefit": "Clear feedback when errors occur and guidance on how to resolve issues",
+        "dependencies": ["FR-003", "FR-005"],
+        "estimatedEffort": "25 hours",
+        "category": "Enhancement"
+      }
+    },
+    {
+      "id": "FR-015",
+      "type": "functional-requirement",
+      "position": { "x": 700, "y": 400 },
+      "metadata": {
+        "id": "FR-015",
+        "name": "Mobile Responsive Design",
+        "description": "Ensure the platform works well on mobile devices with responsive design. Optimize touch interactions and canvas navigation for mobile users.",
+        "priority": "Medium",
+        "complexity": "Medium",
+        "businessValue": 5,
+        "userPersona": "Mobile Users",
+        "userBenefit": "Access and use the platform from mobile devices with optimized experience",
+        "dependencies": ["FR-001"],
+        "estimatedEffort": "35 hours",
+        "category": "Enhancement"
+      }
+    },
+    {
+      "id": "FR-016",
+      "type": "functional-requirement",
+      "position": { "x": 700, "y": 550 },
+      "metadata": {
+        "id": "FR-016",
+        "name": "Editor Panel Overlay System",
+        "description": "Implement z-index overlay editor panels that appear when clicking nodes on canvas. Provide context-aware metadata editing forms, connected nodes visualization in alternative 2D rendering, and real-time updates. Support different rendering logic for each node type with specialized editors for Node Definition, Edge Definition, and Column Definition sub-nodes.",
+        "priority": "Critical",
+        "complexity": "High",
+        "businessValue": 9,
+        "userPersona": "All User Types",
+        "userBenefit": "Intuitive node metadata editing with specialized interfaces for different node types and immediate visual feedback",
+        "dependencies": ["FR-001", "FR-002"],
+        "estimatedEffort": "45 hours",
+        "category": "Core Feature"
+      }
+    },
+    {
+      "id": "FR-017",
+      "type": "functional-requirement",
+      "position": { "x": 700, "y": 700 },
+      "metadata": {
+        "id": "FR-017",
+        "name": "Task Input/Output Edge System",
+        "description": "Implement input and output edge types for task nodes enabling connections to Data, Checklist, Artifact Class, and Artifact Template nodes. Support task execution flow with clear data dependencies and artifact generation chains. Distinguish between Artifact Class (design mode) and Artifact Instance (execution mode) connections.",
+        "priority": "Critical",
+        "complexity": "Medium",
+        "businessValue": 9,
+        "userPersona": "All User Types",
+        "userBenefit": "Clear task data flow with input dependencies and output artifacts enabling complex workflow orchestration",
+        "dependencies": ["FR-002", "FR-005"],
+        "estimatedEffort": "30 hours",
+        "category": "Core Feature"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-001",
+      "source": "FR-002",
+      "target": "FR-001",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Universal Node System depends on Dual Canvas System for visual representation"
+      }
+    },
+    {
+      "id": "edge-002",
+      "source": "FR-003",
+      "target": "FR-002",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Natural Language Agent Definition depends on Universal Node System for node creation"
+      }
+    },
+    {
+      "id": "edge-003",
+      "source": "FR-004",
+      "target": "FR-002",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Progressive Node Generation depends on Universal Node System for node management"
+      }
+    },
+    {
+      "id": "edge-004",
+      "source": "FR-004",
+      "target": "FR-003",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Progressive Node Generation depends on Natural Language Agent Definition for agent creation"
+      }
+    },
+    {
+      "id": "edge-005",
+      "source": "FR-005",
+      "target": "FR-003",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Basic Workflow Execution depends on Natural Language Agent Definition for agent configuration"
+      }
+    },
+    {
+      "id": "edge-006",
+      "source": "FR-005",
+      "target": "FR-004",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Basic Workflow Execution depends on Progressive Node Generation for real-time feedback"
+      }
+    },
+    {
+      "id": "edge-007",
+      "source": "FR-007",
+      "target": "FR-002",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Artifact Template System depends on Universal Node System for node type definitions and auto-generation of Artifact Class nodes"
+      }
+    },
+    {
+      "id": "edge-008",
+      "source": "FR-008",
+      "target": "FR-004",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Artifact Management depends on Progressive Node Generation for artifact creation"
+      }
+    },
+    {
+      "id": "edge-009",
+      "source": "FR-008",
+      "target": "FR-005",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Artifact Management depends on Basic Workflow Execution for workflow outputs"
+      }
+    },
+    {
+      "id": "edge-010",
+      "source": "FR-009",
+      "target": "FR-001",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Drag-and-Drop Interface depends on Dual Canvas System for canvas implementation"
+      }
+    },
+    {
+      "id": "edge-011",
+      "source": "FR-010",
+      "target": "FR-003",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Multi-Language Support depends on Natural Language Agent Definition for language processing"
+      }
+    },
+    {
+      "id": "edge-012",
+      "source": "FR-011",
+      "target": "FR-001",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Real-Time Collaboration depends on Dual Canvas System for shared canvas"
+      }
+    },
+    {
+      "id": "edge-013",
+      "source": "FR-011",
+      "target": "FR-006",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Real-Time Collaboration depends on User Authentication for user identification"
+      }
+    },
+    {
+      "id": "edge-014",
+      "source": "FR-012",
+      "target": "FR-007",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Workflow Export/Import depends on Artifact Template System for template handling"
+      }
+    },
+    {
+      "id": "edge-015",
+      "source": "FR-013",
+      "target": "FR-001",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Performance Optimization depends on Dual Canvas System for canvas optimization"
+      }
+    },
+    {
+      "id": "edge-016",
+      "source": "FR-013",
+      "target": "FR-004",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Performance Optimization depends on Progressive Node Generation for rendering optimization"
+      }
+    },
+    {
+      "id": "edge-017",
+      "source": "FR-014",
+      "target": "FR-003",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Error Handling and Validation depends on Natural Language Agent Definition for validation"
+      }
+    },
+    {
+      "id": "edge-018",
+      "source": "FR-014",
+      "target": "FR-005",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Error Handling and Validation depends on Basic Workflow Execution for execution error handling"
+      }
+    },
+    {
+      "id": "edge-019",
+      "source": "FR-015",
+      "target": "FR-001",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Mobile Responsive Design depends on Dual Canvas System for mobile canvas adaptation"
+      }
+    },
+    {
+      "id": "edge-020",
+      "source": "FR-007",
+      "target": "FR-002",
+      "type": "implements",
+      "metadata": {
+        "implementationType": "Direct",
+        "description": "Artifact Template System directly implements Universal Node System's extensibility features with Node Definition and Edge Definition sub-nodes"
+      }
+    },
+    {
+      "id": "edge-021",
+      "source": "FR-008",
+      "target": "FR-004",
+      "type": "implements",
+      "metadata": {
+        "implementationType": "Direct",
+        "description": "Artifact Management directly implements Progressive Node Generation's output handling"
+      }
+    },
+    {
+      "id": "edge-022",
+      "source": "FR-009",
+      "target": "FR-001",
+      "type": "implements",
+      "metadata": {
+        "implementationType": "Direct",
+        "description": "Drag-and-Drop Interface directly implements Dual Canvas System's interaction capabilities"
+      }
+    },
+    {
+      "id": "edge-023",
+      "source": "FR-013",
+      "target": "FR-001",
+      "type": "implements",
+      "metadata": {
+        "implementationType": "Direct",
+        "description": "Performance Optimization directly implements Dual Canvas System's rendering efficiency"
+      }
+    },
+    {
+      "id": "edge-024",
+      "source": "FR-014",
+      "target": "FR-003",
+      "type": "implements",
+      "metadata": {
+        "implementationType": "Direct",
+        "description": "Error Handling and Validation directly implements Natural Language Agent Definition's validation requirements"
+      }
+    },
+    {
+      "id": "edge-025",
+      "source": "FR-015",
+      "target": "FR-001",
+      "type": "implements",
+      "metadata": {
+        "implementationType": "Direct",
+        "description": "Mobile Responsive Design directly implements Dual Canvas System's accessibility requirements"
+      }
+    },
+    {
+      "id": "edge-026",
+      "source": "FR-007",
+      "target": "FR-012",
+      "type": "relates-to",
+      "metadata": {
+        "relationship": "Complementary",
+        "description": "Artifact Template System and Workflow Export/Import work together to enable workflow sharing"
+      }
+    },
+    {
+      "id": "edge-027",
+      "source": "FR-010",
+      "target": "FR-003",
+      "type": "relates-to",
+      "metadata": {
+        "relationship": "Complementary",
+        "description": "Multi-Language Support enhances Natural Language Agent Definition's accessibility"
+      }
+    },
+    {
+      "id": "edge-028",
+      "source": "FR-011",
+      "target": "FR-006",
+      "type": "relates-to",
+      "metadata": {
+        "relationship": "Complementary",
+        "description": "Real-Time Collaboration enhances User Authentication's team capabilities"
+      }
+    },
+    {
+      "id": "edge-029",
+      "source": "FR-016",
+      "target": "FR-001",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Editor Panel Overlay System depends on Dual Canvas System for canvas integration"
+      }
+    },
+    {
+      "id": "edge-030",
+      "source": "FR-016",
+      "target": "FR-002",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Editor Panel Overlay System depends on Universal Node System for node metadata editing"
+      }
+    },
+    {
+      "id": "edge-031",
+      "source": "FR-017",
+      "target": "FR-002",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Task Input/Output Edge System depends on Universal Node System for edge management"
+      }
+    },
+    {
+      "id": "edge-032",
+      "source": "FR-017",
+      "target": "FR-005",
+      "type": "depends-on",
+      "metadata": {
+        "type": "Blocking",
+        "strength": "Strong",
+        "description": "Task Input/Output Edge System depends on Basic Workflow Execution for task flow implementation"
+      }
+    },
+    {
+      "id": "edge-033",
+      "source": "FR-016",
+      "target": "FR-001",
+      "type": "implements",
+      "metadata": {
+        "implementationType": "Direct",
+        "description": "Editor Panel Overlay System directly implements Dual Canvas System's metadata editing capabilities"
+      }
+    },
+    {
+      "id": "edge-034",
+      "source": "FR-017",
+      "target": "FR-002",
+      "type": "implements",
+      "metadata": {
+        "implementationType": "Direct",
+        "description": "Task Input/Output Edge System directly implements Universal Node System's edge relationship management"
+      }
+    }
+  ],
+  "layout": {
+    "type": "hierarchical",
+    "options": {
+      "direction": "TB",
+      "spacing": 50,
+      "nodeSpacing": 30,
+      "rankSpacing": 100,
+      "padding": 20
+    }
+  }
+}

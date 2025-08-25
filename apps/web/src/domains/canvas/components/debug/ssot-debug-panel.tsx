@@ -615,6 +615,39 @@ export function SSOTDebugPanel() {
 
             <Separator />
 
+            {/* Drag Selection */}
+            <DebugSection title="Drag Selection" count={6}>
+              <DebugItem
+                label="Is Dragging"
+                value={sel.dragSelection?.isDragging || false}
+                type="boolean"
+              />
+              <DebugItem
+                label="Is Ctrl Pressed"
+                value={sel.dragSelection?.isCtrlPressed || false}
+                type="boolean"
+              />
+              <DebugItem
+                label="Selection Box"
+                value={sel.dragSelection?.selectionBox || null}
+              />
+              <DebugItem
+                label="Temp Selected IDs"
+                value={sel.dragSelection?.tempSelectedIds || []}
+              />
+              <DebugItem
+                label="Drag Selection State"
+                value={sel.dragSelection || null}
+              />
+              <DebugAccordionItem
+                label="Full Drag Selection Object"
+                value={sel.dragSelection || null}
+                defaultOpen={false}
+              />
+            </DebugSection>
+
+            <Separator />
+
             {/* UI State */}
             <DebugSection title="UI State" count={3}>
               <DebugItem

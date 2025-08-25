@@ -51,6 +51,22 @@ export function BlockInsertPanel({ className }: Props) {
     }
   }, [showBlockInsertPanel]);
 
+  // ESC 키로 패널 닫기
+  useEffect(() => {
+    if (!showBlockInsertPanel) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeBlockInsertPanel();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
+  }, [showBlockInsertPanel, closeBlockInsertPanel]);
+
   if (!shouldRender) return null;
 
   const policy = getBlockAdditionPolicy(
