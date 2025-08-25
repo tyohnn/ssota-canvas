@@ -1,11 +1,8 @@
 "use client";
 
 import React from "react";
-import { Button } from "@workspace/ui/components/ui/button";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
-import { useUiLayout } from "@/domains/canvas/contexts/UiLayoutContext";
-import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
+import { useSingleNodeSelection } from "@/domains/react-flow-canvas/contexts/SelectionContext";
 import {
   getMergedFields,
   addUserSchemaField,
@@ -14,6 +11,7 @@ import {
 } from "@/domains/canvas/policy/block-editor-policy";
 import { PropertyInput } from "./property-input/property-input";
 import { PropertyAddPopover } from "./property-add-popover";
+import { ensureSchemaInitialized } from "@/domains/canvas/policy/block-editor-policy";
 
 interface PropertySectionProps {
   className?: string;
@@ -22,25 +20,13 @@ interface PropertySectionProps {
 export function PropertySection({ className }: PropertySectionProps) {
   const { blocksById, upsertBlock, getComponentDefinitionById } =
     useCanvasData();
-  const { pageId, nodeIds } = useCanvasSelection();
-  const { selectedBlockIdForEditor } = useUiLayout();
+  const { selectedNodeId } = useSingleNodeSelection();
 
-  // Get workspace ID from the first block (assuming all blocks have the same workspace)
-  const workspaceId =
-    (Object.values(blocksById)[0]?.workspace_id as string) || "";
-
-  const { updateBlock } = useCanvasCommandsContext();
-
-  const activeBlockId =
-    selectedBlockIdForEditor || (nodeIds && nodeIds[0] ? nodeIds[0] : pageId);
-  const block = activeBlockId ? blocksById[activeBlockId] : null;
+  const block = selectedNodeId ? blocksById[selectedNodeId] : null;
 
   // Ensure schema is initialized and persist if needed
   React.useEffect(() => {
     if (!block) return;
-    const {
-      ensureSchemaInitialized,
-    } = require("@/domains/canvas/policy/block-editor-policy");
     const { metadata, changed } = ensureSchemaInitialized(block);
     if (changed) {
       upsertBlock({ ...block, metadata });

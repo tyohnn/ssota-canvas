@@ -4,8 +4,9 @@ import React from "react";
 import type { Block } from "@/db/schema";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
-import { useUiLayout } from "@/domains/canvas/contexts/UiLayoutContext";
-import { useEditorControlContext } from "@/domains/canvas/contexts/EditorControlContext";
+import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
+import { useSelectionCommands } from "@/domains/react-flow-canvas/contexts/SelectionContext";
+
 
 // Layer-specific file icon renderer
 function getLayerFileIcon(type: string | undefined, className: string) {
@@ -110,10 +111,11 @@ export interface UseLayerExplorerTreeResult {
 export function useLayerExplorerTree(): UseLayerExplorerTreeResult {
   // Use refactored contexts for data and selection
   const { blocksById, getPositionsForContext } = useCanvasData();
-  const { pageId, componentId, nodeIds, setNodeSelection } =
-    useCanvasSelection();
-  const ui = useUiLayout();
-  const { openEditor } = useEditorControlContext();
+  const { pageId, componentId } = useCanvasSelection();
+
+  const { selectNodes } = useSelectionCommands();
+  const panel = usePanel();
+
 
   // ===== 데이터 처리 =====
   /** 현재 컨텍스트에 포함된 레이어 블록만 필터링 */
@@ -149,11 +151,11 @@ export function useLayerExplorerTree(): UseLayerExplorerTreeResult {
   const handleSelect = React.useCallback(
     (id: string) => {
       // Set node selection for React Flow
-      setNodeSelection([id]);
+      selectNodes([id]);
       // Open editor panel for the selected block
-      openEditor(id);
+      panel.openEditorPanel();
     },
-    [setNodeSelection, openEditor]
+    [selectNodes, panel]
   );
 
   /** 레이어 블록 드래그앤드롭 이동 처리 - 비활성화 */
@@ -184,7 +186,7 @@ export function useLayerExplorerTree(): UseLayerExplorerTreeResult {
   return {
     // ===== 데이터 =====
     layerBlocks,
-    selectedNodeIds: nodeIds,
+    selectedNodeIds: [],
 
     // ===== ExplorerTree용 변환 함수들 =====
     getId: (block: Block) => block.id,

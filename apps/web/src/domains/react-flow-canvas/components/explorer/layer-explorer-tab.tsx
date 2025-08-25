@@ -11,7 +11,7 @@ import {
   TooltipContent,
 } from "@workspace/ui/components/ui/tooltip";
 import { Search, Plus } from "lucide-react";
-import ExplorerTree from "@/domains/canvas/explorer/explorer-tree";
+import ExplorerTree from "@/domains/react-flow-canvas/explorer/explorer-tree";
 import { useLayerExplorerTree } from "./handlers/useLayerExplorerTree";
 
 export function LayerExplorerTab() {

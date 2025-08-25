@@ -3,7 +3,6 @@
 import React from "react";
 import { Button } from "@workspace/ui/components/ui/button";
 import { Input } from "@workspace/ui/components/ui/input";
-import { Checkbox } from "@workspace/ui/components/ui/checkbox";
 import { Separator } from "@workspace/ui/components/ui/separator";
 import {
   Popover,

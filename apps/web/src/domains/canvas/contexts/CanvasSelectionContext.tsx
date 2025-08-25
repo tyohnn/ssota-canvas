@@ -9,7 +9,6 @@ export type CanvasSelectionContextValue = {
   pageId: string | null;
   componentId: string | null;
   canvasMode: CanvasMode;
-  
   selectPage: (id: string | null) => void;
   selectComponent: (id: string | null) => void;
 };

@@ -53,7 +53,7 @@ function MyCanvas() {
     enableDragSelection: true,
   };
 
-  const events = {
+  const domainCallbacks = {
     onNodeClick: (node, event) => {
       // 도메인별 선택 로직
     },
@@ -63,7 +63,7 @@ function MyCanvas() {
   };
 
   return (
-    <ReactFlowCanvasProvider config={config} events={events}>
+    <ReactFlowCanvasProvider config={config} domainCallbacks={domainCallbacks}>
       <ReactFlowCanvasRenderer />
     </ReactFlowCanvasProvider>
   );
@@ -94,7 +94,7 @@ export function CanvasPage() {
     enableDragSelection: true,
   };
 
-  const events = {
+  const domainCallbacks = {
     onNodeClick: (node, event) => {
       // Canvas 도메인 선택 상태 업데이트
       sel.setNodeSelection([node.id]);
@@ -106,7 +106,7 @@ export function CanvasPage() {
   };
 
   return (
-    <ReactFlowCanvasProvider config={config} events={events}>
+    <ReactFlowCanvasProvider config={config} domainCallbacks={domainCallbacks}>
       <ReactFlowCanvasRenderer />
     </ReactFlowCanvasProvider>
   );
@@ -128,7 +128,7 @@ export function WorkflowCanvas() {
     enableDragSelection: true,
   };
 
-  const events = {
+  const domainCallbacks = {
     onNodeClick: (node, event) => {
       // Workflow 도메인 선택 로직
     },
@@ -138,7 +138,7 @@ export function WorkflowCanvas() {
   };
 
   return (
-    <ReactFlowCanvasProvider config={config} events={events}>
+    <ReactFlowCanvasProvider config={config} domainCallbacks={domainCallbacks}>
       <ReactFlowCanvasRenderer />
     </ReactFlowCanvasProvider>
   );

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
-import { useUiLayout } from "@/domains/canvas/contexts/UiLayoutContext";
+import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
 import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
 import {
   getBlockAdditionPolicy,
@@ -20,12 +20,12 @@ type Props = { className?: string };
 export function BlockInsertPanel({ className }: Props) {
   const data = useCanvasData();
   const sel = useCanvasSelection();
-  const ui = useUiLayout();
+  const panel = usePanel();
   const commands = useCanvasCommandsContext();
 
   // Get selected page block from data
   const selectedPageBlock = sel.pageId ? data.blocksById[sel.pageId] : null;
-  const { closeBlockInsertPanel, showBlockInsertPanel } = ui;
+  const { closeBlockInsertPanel, showBlockInsertPanel } = panel;
 
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);

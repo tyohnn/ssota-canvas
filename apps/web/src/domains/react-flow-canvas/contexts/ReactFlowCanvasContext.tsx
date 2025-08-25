@@ -7,7 +7,7 @@ import type {
   ReactFlowCanvasContextValue,
   ReactFlowCanvasState,
   ReactFlowCanvasCommands,
-  ReactFlowCanvasEvents,
+  CanvasDomainCallbacks,
   ReactFlowCanvasConfig,
 } from "../types/react-flow-types";
 import type { DragSelectionState } from "../types/selection-types";
@@ -33,13 +33,13 @@ const ReactFlowCanvasContext = createContext<ReactFlowCanvasContextValue | null>
 export function ReactFlowCanvasProvider({
   children,
   config,
-  events,
+  domainCallbacks,
   initialNodes = [],
   initialEdges = [],
 }: {
   children: React.ReactNode;
   config: ReactFlowCanvasConfig;
-  events?: Partial<ReactFlowCanvasEvents>;
+  domainCallbacks?: Partial<CanvasDomainCallbacks>;
   initialNodes?: Node[];
   initialEdges?: Edge[];
 }) {
@@ -119,7 +119,7 @@ export function ReactFlowCanvasProvider({
   const contextValue: ReactFlowCanvasContextValue = {
     state,
     commands,
-    events: events || {},
+    domainCallbacks: domainCallbacks || {},
     config,
     rfInstance,
     setRfInstance,

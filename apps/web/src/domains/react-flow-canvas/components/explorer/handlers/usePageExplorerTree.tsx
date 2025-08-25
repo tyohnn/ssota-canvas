@@ -6,6 +6,7 @@ import type { Block } from "@/db/schema";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
 import { updateBlock } from "@/domains/canvas/actions/block.action";
+import { useSelectionCommands } from "@/domains/react-flow-canvas/contexts/SelectionContext";
 
 // Page-specific file icon renderer
 function getPageFileIcon(blockType: string | undefined, className: string) {
@@ -113,6 +114,7 @@ export interface UsePageExplorerTreeResult {
 export function usePageExplorerTree(): UsePageExplorerTreeResult {
   const { blocksById, updateBlock: updateBlockSSOT } = useCanvasData();
   const { pageId, selectPage } = useCanvasSelection();
+  const { clearSelection } = useSelectionCommands();
 
   // ===== 데이터 처리 =====
   /** 페이지 객체만 필터링 (object === "page"인 블록들만) */
@@ -126,9 +128,11 @@ export function usePageExplorerTree(): UsePageExplorerTreeResult {
     (id: string) => {
       if (id !== "root") {
         selectPage(id);
+        // 페이지 선택 시 React Flow 선택 상태 초기화
+        clearSelection();
       }
     },
-    [selectPage]
+    [selectPage, clearSelection]
   );
 
   /** 페이지 블록 드래그앤드롭 이동 처리

@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { Button } from "@workspace/ui/components/ui/button";
-import { Input } from "@workspace/ui/components/ui/input";
 import {
   Popover,
   PopoverContent,

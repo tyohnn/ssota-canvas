@@ -1,5 +1,3 @@
-import { CanvasToolMode } from "@/domains/react-flow-canvas/components/canvas-toolbar";
-import { ComponentCanvasToolMode } from "@/domains/react-flow-canvas/components/component-canvas-toolbar";
 import type { Node, Edge, ReactFlowInstance } from "@xyflow/react";
 
 // React Flow Canvas 도메인의 핵심 타입들
@@ -31,8 +29,8 @@ export interface ReactFlowCanvasState {
   // 빈 상태 (뷰포트와 툴 모드는 ControlContext로 이동)
 }
 
-// React Flow Canvas 이벤트
-export interface ReactFlowCanvasEvents {
+// Canvas 도메인 콜백 (React Flow Canvas에서 Canvas 도메인으로 전달)
+export interface CanvasDomainCallbacks {
   // 노드 이벤트
   onNodeClick?: (node: Node, event: React.MouseEvent) => void;
   onNodeDoubleClick?: (node: Node, event: React.MouseEvent) => void;
@@ -78,26 +76,6 @@ export interface ReactFlowCanvasEvents {
   // 키보드 이벤트
   onEscape?: () => void;
   onClearSelection?: () => void;
-  
-  // 툴바 렌더링 플래그
-  renderCanvasToolbar?: boolean;
-  renderComponentToolbar?: boolean;
-  renderViewToolbar?: boolean;
-  
-  // Canvas 툴바 콜백들
-  isAddOpen?: boolean;
-  toggleAdd?: () => void;
-  isEditOpen?: boolean;
-  toggleEdit?: () => void;
-  isPageSelected?: boolean;
-  isPageEditorOpen?: boolean;
-  
-  // Component 툴바 콜백들
-  onBackToPage?: () => void;
-  componentName?: string | null;
-  
-  // Context 메뉴
-  renderContextMenu?: (menuState: { id: string; x: number; y: number } | null) => React.ReactNode;
 }
 
 // React Flow Canvas 명령
@@ -110,8 +88,6 @@ export interface ReactFlowCanvasCommands {
   // 엣지 명령
   updateEdgeData: (edgeId: string, data: any) => void;
   deleteEdges: (edgeIds: string[]) => void;
-  
-
   
   // 뷰포트 명령
   fitView: (options?: { padding?: number; duration?: number }) => void;
@@ -126,8 +102,8 @@ export interface ReactFlowCanvasContextValue {
   // 명령
   commands: ReactFlowCanvasCommands;
   
-  // 이벤트
-  events: ReactFlowCanvasEvents;
+  // Canvas 도메인 콜백
+  domainCallbacks: CanvasDomainCallbacks;
   
   // 설정
   config: ReactFlowCanvasConfig;

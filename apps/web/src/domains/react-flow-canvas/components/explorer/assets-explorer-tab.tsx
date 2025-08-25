@@ -2,8 +2,8 @@
 
 import React from "react";
 import type { Block } from "@/db/schema";
-import ExplorerTree from "@/domains/canvas/explorer/explorer-tree";
-import { useAssetsExplorerTree } from "@/domains/canvas/components/explorer/handlers/useAssetsExplorerTree";
+import ExplorerTree from "@/domains/react-flow-canvas/explorer/explorer-tree";
+import { useAssetsExplorerTree } from "@/domains/react-flow-canvas/components/explorer/handlers/useAssetsExplorerTree";
 import { Button } from "@workspace/ui/components/ui/button";
 import { Plus } from "lucide-react";
 import {

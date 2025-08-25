@@ -15,8 +15,6 @@ import { useSelectionStore } from "../stores/selection.store";
 import { CanvasDataProvider } from "../contexts/CanvasDataContext";
 import { CanvasSelectionProvider } from "../contexts/CanvasSelectionContext";
 import { CanvasCommandsProvider } from "../contexts/CanvasCommandsContext";
-import { UiLayoutProvider } from "../contexts/UiLayoutContext";
-import { EditorControlProvider } from "../contexts/EditorControlContext";
 
 interface CanvasRootProps {
   workspaceId: string;
@@ -248,25 +246,21 @@ export function CanvasRoot({
   return (
     <CanvasDataProvider value={dataValue}>
       <CanvasSelectionProvider value={selectionValue}>
-        <UiLayoutProvider>
-          <EditorControlProvider>
-            <CanvasCommandsProvider
-              workspaceId={workspaceId}
-              blocksById={blocksStore.state.byId}
-              upsertBlock={blocksStore.upsertBlock}
-              updateBlock={blocksStore.updateBlock}
-              removeBlock={blocksStore.removeBlock}
-              rekeyBlock={blocksStore.rekeyBlock}
-              selectPage={selectionStore.selectPage}
-              updateContextPositions={positionsStore.updateContextPositions}
-              setPagePositions={positionsStore.setPagePositions}
-              replaceBlockIdInContext={positionsStore.replaceBlockIdInContext}
-              setNodeSelection={selectionStore.setNodeSelection}
-            >
-              {children}
-            </CanvasCommandsProvider>
-          </EditorControlProvider>
-        </UiLayoutProvider>
+        <CanvasCommandsProvider
+          workspaceId={workspaceId}
+          blocksById={blocksStore.state.byId}
+          upsertBlock={blocksStore.upsertBlock}
+          updateBlock={blocksStore.updateBlock}
+          removeBlock={blocksStore.removeBlock}
+          rekeyBlock={blocksStore.rekeyBlock}
+          selectPage={selectionStore.selectPage}
+          updateContextPositions={positionsStore.updateContextPositions}
+          setPagePositions={positionsStore.setPagePositions}
+          replaceBlockIdInContext={positionsStore.replaceBlockIdInContext}
+          setNodeSelection={selectionStore.setNodeSelection}
+        >
+          {children}
+        </CanvasCommandsProvider>
       </CanvasSelectionProvider>
     </CanvasDataProvider>
   );

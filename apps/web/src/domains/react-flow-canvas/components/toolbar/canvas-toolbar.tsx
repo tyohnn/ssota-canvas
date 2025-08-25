@@ -21,34 +21,46 @@ import {
   // Image,
   // Link,
 } from "lucide-react";
+import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
+import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
+import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
 
 export type CanvasToolMode = "select" | "hand";
 
 interface CanvasToolbarProps {
   mode: CanvasToolMode;
   setMode: (mode: CanvasToolMode) => void;
-  isAddOpen: boolean;
-  toggleAdd: () => void;
-  isEditOpen: boolean;
-  toggleEdit: () => void;
   onFitToView?: () => void;
-  // 페이지 편집 전용 props 추가
-  isPageSelected?: boolean;
-  isPageEditorOpen?: boolean;
 }
 
 export function CanvasToolbar({
   mode,
   setMode,
-  isAddOpen,
-  toggleAdd,
-  isEditOpen,
-  toggleEdit,
   onFitToView,
-  // 페이지 편집 전용 props 추가
-  isPageSelected = false,
-  isPageEditorOpen = false,
 }: CanvasToolbarProps) {
+  // Canvas 도메인 컨텍스트 사용
+  const panel = usePanel();
+  const { pageId } = useCanvasSelection();
+  const { blocksById } = useCanvasData();
+  
+  // 페이지 선택 상태 계산
+  const selectedPageBlock = pageId ? blocksById[pageId] : null;
+  const isPageSelected = !!selectedPageBlock;
+  const isPageEditorOpen = panel.showEditorPanel && pageId;
+  
+  // 편집 패널 상태
+  const isEditOpen = panel.showEditorPanel;
+  const toggleEdit = () => {
+    if (isEditOpen) {
+      panel.closeEditorPanel();
+    } else {
+      panel.openEditorPanel();
+    }
+  };
+  
+  // 블록 삽입 패널 상태
+  const isAddOpen = panel.showBlockInsertPanel;
+  const toggleAdd = panel.toggleBlockInsertPanel;
   // Keyboard event handler
   const handleKeyDown = React.useCallback((event: KeyboardEvent) => {
     // Only handle if not typing in an input field

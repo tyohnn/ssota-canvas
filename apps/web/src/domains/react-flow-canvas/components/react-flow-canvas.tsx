@@ -10,9 +10,11 @@ import { useReactFlowCanvas } from "../contexts/ReactFlowCanvasContext";
 import { SelectionBox } from "./selection-box";
 import { useReactFlowHandler } from "../handlers/useReactFlowHandler";
 import { useReactFlowCanvasControl } from "../hooks/useReactFlowCanvasControl";
-import { CanvasToolbar } from "./canvas-toolbar";
-import { ComponentCanvasToolbar } from "./component-canvas-toolbar";
-import { CanvasViewToolbar } from "./canvas-view-toolbar";
+import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
+import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
+import { CanvasToolbar } from "./toolbar/canvas-toolbar";
+import { ComponentCanvasToolbar } from "./toolbar/component-canvas-toolbar";
+import { CanvasViewToolbar } from "./toolbar/canvas-view-toolbar";
 import { SelectionStatus } from "./selection-status";
 import {
   BasicTextNode,
@@ -30,7 +32,17 @@ import {
  * ReactFlow 컴포넌트 - SelectionProvider 안에서 사용
  */
 export function ReactFlowCanvas() {
-  const { state, config, events } = useReactFlowCanvas();
+  const { state, config, domainCallbacks } = useReactFlowCanvas();
+  
+  // Canvas 도메인 컨텍스트 사용
+  const { canvasMode, pageId, componentId } = useCanvasSelection();
+  const { blocksById } = useCanvasData();
+  
+  // 툴바 렌더링 조건 계산
+  const selectedPageBlock = pageId ? blocksById[pageId] : null;
+  const selectedComponentBlock = componentId ? blocksById[componentId] : null;
+  const shouldShowCanvasToolbar = canvasMode === "page" && selectedPageBlock;
+  const shouldShowComponentToolbar = canvasMode === "component" && selectedComponentBlock;
 
   // 노드 타입 정의 - React Flow Canvas 도메인에서 직접 관리
   const nodeTypes = {
@@ -53,7 +65,9 @@ export function ReactFlowCanvas() {
     toolMode,
     setToolMode,
     showMiniMap,
+    setShowMiniMap,
     zoomPercent,
+    setZoomPercent,
     panOnDrag,
     nodesDraggable,
     elementsSelectable,
@@ -68,20 +82,6 @@ export function ReactFlowCanvas() {
     handlePaneMouseUp,
     focusOnNode,
   } = useReactFlowCanvasControl({
-    onEscape: () => {
-      // ESC 키 처리를 Canvas 도메인으로 위임
-      events.onEscape?.();
-    },
-    onClearSelection: () => {
-      // 선택 해제를 Canvas 도메인으로 위임
-      events.onClearSelection?.();
-    },
-    onDragSelectionStart: events.onDragSelectionStart,
-    onDragSelectionUpdate: events.onDragSelectionUpdate,
-    onDragSelectionEnd: events.onDragSelectionEnd,
-    onCtrlKeyChange: (pressed) => {
-      console.log('Ctrl key changed:', pressed);
-    },
     // React Flow 설정 전달
     config
   });
@@ -138,38 +138,26 @@ export function ReactFlowCanvas() {
       <SelectionStatus />
       
       {/* Canvas 툴바들 */}
-      {events.renderCanvasToolbar && (
+      {shouldShowCanvasToolbar && (
         <CanvasToolbar
           mode={toolMode === 'connect' ? 'select' : toolMode as 'select' | 'hand'}
           setMode={(mode: 'select' | 'hand') => setToolMode(mode)}
-          isAddOpen={events.isAddOpen || false}
-          toggleAdd={events.toggleAdd || (() => {})}
-          isEditOpen={events.isEditOpen || false}
-          toggleEdit={events.toggleEdit || (() => {})}
           onFitToView={handleFitToView}
-          isPageSelected={events.isPageSelected || false}
-          isPageEditorOpen={events.isPageEditorOpen || false}
         />
       )}
-      {events.renderComponentToolbar && (
+      {shouldShowComponentToolbar && (
         <ComponentCanvasToolbar
-          onBackToPage={events.onBackToPage || (() => {})}
-          isEditOpen={events.isEditOpen || false}
-          toggleEdit={events.toggleEdit || (() => {})}
-          componentName={events.componentName || null}
           toolMode={toolMode === 'connect' ? 'select' : toolMode as 'select' | 'hand'}
           setToolMode={(mode: 'select' | 'hand') => setToolMode(mode)}
           onFitToView={handleFitToView}
         />
       )}
-      {events.renderViewToolbar && (
-        <CanvasViewToolbar
-          showMiniMap={showMiniMap}
-          toggleMiniMap={toggleMiniMap}
-          zoomPercent={zoomPercent}
-          onZoomPercentChange={onZoomPercentChange}
-        />
-      )}
+      <CanvasViewToolbar
+        showMiniMap={showMiniMap}
+        toggleMiniMap={toggleMiniMap}
+        zoomPercent={zoomPercent}
+        onZoomPercentChange={onZoomPercentChange}
+      />
       
       {/* UI 컴포넌트들 */}
       {/* {config.showControls && <Controls />} */}

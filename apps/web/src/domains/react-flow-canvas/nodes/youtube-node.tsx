@@ -4,7 +4,7 @@ import React from "react";
 import type { NodeProps } from "@xyflow/react";
 import { NodeChrome } from "./node-chrome";
 import { MediaPlayer, MediaProvider, Poster } from "@vidstack/react";
-import { VideoLayout } from "@/domains/canvas/components/vidstack/layouts/video-layout";
+import { VideoLayout } from "@/domains/react-flow-canvas/nodes/vidstack/layouts/video-layout";
 import "@vidstack/react/player/styles/base.css";
 
 type YoutubeNodeData = {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
 import type { Block } from "@/db/schema";
 import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
@@ -26,7 +25,6 @@ export function useSchemaFieldEditor(args: {
   field: EditorField;
 }) {
   const { block, field } = args;
-  const data = useCanvasData();
   const commands = useCanvasCommandsContext();
 
   const metadata = (block.metadata || {}) as DefaultMetadata;

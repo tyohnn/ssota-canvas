@@ -33,7 +33,7 @@ export interface UseReactFlowHandlerOptions {
 }
 
 export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): UseReactFlowHandlerResult {
-  const { commands, events } = useReactFlowCanvas();
+  const { commands, domainCallbacks } = useReactFlowCanvas();
   const { selectNodes, selectEdges, clearSelection } = useSelectionCommands();
   const { selectedNodeIds } = useSelectionState();
   const { focusOnNode } = options;
@@ -50,14 +50,14 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
       let newSelectedIds: string[];
       
       if (isMultiSelect) {
-              // Ctrl/Cmd 키가 눌려있으면 다중 선택 처리
-      if (selectedNodeIds.includes(node.id)) {
-        // 이미 선택된 노드면 선택 해제
-        newSelectedIds = selectedNodeIds.filter(id => id !== node.id);
-      } else {
-        // 선택되지 않은 노드면 추가
-        newSelectedIds = [...selectedNodeIds, node.id];
-      }
+        // Ctrl/Cmd 키가 눌려있으면 다중 선택 처리
+        if (selectedNodeIds.includes(node.id)) {
+          // 이미 선택된 노드면 선택 해제
+          newSelectedIds = selectedNodeIds.filter(id => id !== node.id);
+        } else {
+          // 선택되지 않은 노드면 추가
+          newSelectedIds = [...selectedNodeIds, node.id];
+        }
       } else {
         // Ctrl/Cmd 키가 눌려있지 않으면 단일 선택
         newSelectedIds = [node.id];
@@ -67,9 +67,9 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
       selectNodes(newSelectedIds);
       
       // 2️⃣ Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
-      events.onNodeClick?.(node, evt);
+      domainCallbacks.onNodeClick?.(node, evt);
     },
-    [events, selectNodes, selectedNodeIds, focusOnNode]
+    [domainCallbacks, selectNodes, selectedNodeIds, focusOnNode]
   );
 
   // 엣지 클릭: Optimistic UI + Canvas 도메인 콜백
@@ -79,9 +79,9 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
       selectEdges([edge.id]);
       
       // 2️⃣ Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
-      events.onEdgeClick?.(edge, evt);
+      domainCallbacks.onEdgeClick?.(edge, evt);
     },
-    [events, selectEdges]
+    [domainCallbacks, selectEdges]
   );
 
   // 캔버스 클릭: Optimistic UI + Canvas 도메인 콜백
@@ -90,8 +90,8 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
     clearSelection();
     
     // 2️⃣ Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
-    events.onPaneClick?.(new MouseEvent('click') as any);
-  }, [events, clearSelection]);
+    domainCallbacks.onPaneClick?.(new MouseEvent('click') as any);
+  }, [domainCallbacks, clearSelection]);
 
   // 노드 연결: Optimistic UI + Canvas 도메인 콜백
   const onConnect = useCallback<OnConnect>((connection: Connection) => {
@@ -107,8 +107,8 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
     }
     
     // 2️⃣ Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
-    events.onConnect?.(connection);
-  }, [events]);
+    domainCallbacks.onConnect?.(connection);
+  }, [domainCallbacks]);
 
   // 노드 드래그 시작: Optimistic UI + Canvas 도메인 콜백
   const onNodeDragStart = useCallback((event: React.MouseEvent, node: ReactFlowNode) => {
@@ -118,8 +118,8 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
     }
     
     // 2️⃣ Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
-    events.onNodeDragStart?.(node, event);
-      }, [events, commands, selectedNodeIds]);
+    domainCallbacks.onNodeDragStart?.(node, event);
+      }, [domainCallbacks, commands, selectedNodeIds]);
 
   // 노드 드래그 종료: Optimistic UI + Canvas 도메인 콜백
   const onNodeDragStop = useCallback(
@@ -128,16 +128,16 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
       commands.updateNodePosition(node.id, node.position);
       
       // 2️⃣ Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
-      await events.onNodeDragStop?.(node, evt);
+      await domainCallbacks.onNodeDragStop?.(node, evt);
     },
-    [events, commands]
+    [domainCallbacks, commands]
   );
 
   // 노드 더블클릭: Canvas 도메인 콜백 + 포커싱
   const onNodeDoubleClick = useCallback(
     (evt: React.MouseEvent, node: ReactFlowNode) => {
       // Canvas 도메인 콜백 실행 (에디터 패널 열기)
-      events.onNodeDoubleClick?.(node, evt);
+      domainCallbacks.onNodeDoubleClick?.(node, evt);
       
       // 노드 포커싱 (에디터 열 때)
       if (focusOnNode) {
@@ -146,16 +146,16 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
         }, 100);
       }
     },
-    [events, focusOnNode]
+    [domainCallbacks, focusOnNode]
   );
 
   // 엣지 더블클릭: Canvas 도메인 콜백만 (UI 변경 없음)
   const onEdgeDoubleClick = useCallback(
     (evt: React.MouseEvent, edge: ReactFlowEdge) => {
       // Canvas 도메인 콜백 실행
-      events.onEdgeDoubleClick?.(edge, evt);
+      domainCallbacks.onEdgeDoubleClick?.(edge, evt);
     },
-    [events]
+    [domainCallbacks]
   );
 
   // 노드 삭제: Optimistic UI + Canvas 도메인 콜백
@@ -188,13 +188,13 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
   
   // 연결 시작: Canvas 도메인 콜백만
   const onConnectStart = useCallback(() => {
-    events.onConnectStart?.(new MouseEvent('connectstart') as any);
-  }, [events]);
+    domainCallbacks.onConnectStart?.(new MouseEvent('connectstart') as any);
+  }, [domainCallbacks]);
   
   // 연결 종료: Canvas 도메인 콜백만
   const onConnectEnd = useCallback(() => {
-    events.onConnectEnd?.(new MouseEvent('connectend') as any);
-  }, [events]);
+    domainCallbacks.onConnectEnd?.(new MouseEvent('connectend') as any);
+  }, [domainCallbacks]);
 
   // 선택 변경: SelectionContext 상태 업데이트
   const onSelectionChange = useCallback(

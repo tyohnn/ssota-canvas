@@ -1,10 +1,11 @@
 "use client";
 
 import React from "react";
-import { SideExplorer } from "@/domains/canvas/components/explorer/side-explorer";
+import { SideExplorer } from "@/domains/react-flow-canvas/components/explorer/side-explorer";
 import { EditorPanel } from "./editor/editor-panel";
 import { ReactFlowCanvas } from "./react-flow-canvas";
 import { RootProvider } from "../providers/root-provider";
+import { BlockInsertPanel } from "./block-insert-panel";
 
 /**
  * React Flow Canvas 메인 렌더러
@@ -17,6 +18,7 @@ export function ReactFlowCanvasRenderer() {
         <SideExplorer />
         <EditorPanel />
         <ReactFlowCanvas />
+        <BlockInsertPanel />
       </RootProvider>
     </div>
   );

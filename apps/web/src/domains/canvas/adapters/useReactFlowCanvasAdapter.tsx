@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import type { Block, BlockPosition, Edge as DbEdge } from "@/db/schema";
-import type { ReactFlowCanvasEvents } from "@/domains/react-flow-canvas/types/react-flow-types";
+import type { CanvasDomainCallbacks } from "@/domains/react-flow-canvas/types/react-flow-types";
 import { buildNodeDefinition } from "@/domains/canvas/policy/block-rendering-policy";
 import {
   isComponentInstance,
@@ -20,15 +20,8 @@ export interface CanvasDomainState {
   positionsArray: BlockPosition[];
   edgesArray: DbEdge[];
   contextId: string | null;
-  
-  // 선택 상태 (에디터/다른 컴포넌트에서 사용)
-  selectedNodeIds: string[];
-  selectedEdgeIds: string[];
-  
-  // UI 상태
+  // Canvas 모드
   canvasMode: "page" | "component";
-  showEditorPanel: boolean;
-  showBlockInsertPanel: boolean;
 }
 
 // Canvas 도메인 명령 인터페이스
@@ -41,41 +34,8 @@ export interface CanvasDomainCommands {
   updateNodeData: (nodeId: string, data: Record<string, unknown>) => Promise<{ ok: boolean; error?: string }>;
   deleteBlock: (blockId: string) => Promise<{ ok: boolean; error?: string }>;
   
-  // 선택 관리 (에디터/다른 컴포넌트에서 사용)
-  setNodeSelection: (nodeIds: string[]) => void;
-  selectEdge: (edgeId: string | null) => void;
-  
-  // UI 관리
-  openBlockInsertPanel: () => void;
-  closeBlockInsertPanel: () => void;
-  openEditorPanel: () => void;
-  closeEditorPanel: () => void;
-  togglePageEditor: () => void;
-  toggleEditor: (blockId: string) => void;
+  // 컴포넌트 선택
   selectComponent: (componentId: string | null) => void;
-}
-
-// Canvas 도메인 UI 렌더링 설정 인터페이스
-export interface CanvasDomainUIRenderers {
-  // 툴바 렌더링 플래그들
-  renderCanvasToolbar?: boolean;
-  renderComponentToolbar?: boolean;
-  renderViewToolbar?: boolean;
-  
-  // Canvas 툴바 콜백들
-  isAddOpen?: boolean;
-  toggleAdd?: () => void;
-  isEditOpen?: boolean;
-  toggleEdit?: () => void;
-  isPageSelected?: boolean;
-  isPageEditorOpen?: boolean;
-  
-  // Component 툴바 콜백들
-  onBackToPage?: () => void;
-  componentName?: string | null;
-  
-  // Context 메뉴
-  renderContextMenu?: (menuState: { id: string; x: number; y: number } | null) => React.ReactNode;
 }
 
 // 블록을 React Flow 노드로 변환하는 함수 타입
@@ -83,8 +43,7 @@ export type BlockToNodeTransformer = (
   blocksById: Record<string, Block>,
   positions: BlockPosition[],
   contextId: string | null,
-  edges: DbEdge[],
-  selectedNodeIds: string[]
+  edges: DbEdge[]
 ) => { nodes: Node[]; edges: Edge[] };
 
 // Canvas 도메인 어댑터 옵션
@@ -94,24 +53,19 @@ export interface UseReactFlowCanvasAdapterOptions {
   
   // Canvas 도메인 명령
   domainCommands: CanvasDomainCommands;
-  
-  // UI 렌더링 콜백들
-  uiRenderers: CanvasDomainUIRenderers;
 }
 
 // React Flow Canvas 상태 (어댑터 출력)
 export interface ReactFlowCanvasState {
   nodes: Node[];
   edges: Edge[];
-  selectedNodeIds: string[];
-  selectedEdgeIds: string[];
 }
 
 
 // 어댑터 결과
 export interface UseReactFlowCanvasAdapterResult {
   reactFlowState: ReactFlowCanvasState;
-  reactFlowEvents: ReactFlowCanvasEvents;
+  reactFlowEvents: CanvasDomainCallbacks;
 }
 
 /**
@@ -123,7 +77,6 @@ export function useReactFlowCanvasAdapter(
   const {
     domainState,
     domainCommands,
-    uiRenderers,
   } = options;
 
   // 블록 → React Flow 노드 변환 함수
@@ -131,8 +84,7 @@ export function useReactFlowCanvasAdapter(
     blocksById: Record<string, Block>,
     positions: BlockPosition[],
     contextId: string | null,
-    edges: DbEdge[],
-    selectedNodeIds: string[]
+    edges: DbEdge[]
   ) => {
     if (!contextId) return { nodes: [], edges: [] };
 
@@ -167,7 +119,7 @@ export function useReactFlowCanvasAdapter(
         const w = (data as any)?.width as number | undefined;
         const h = (data as any)?.height as number | undefined;
 
-        // Add component-specific metadata and selection state to node data
+        // Add component-specific metadata to node data
         const enhancedData = {
           ...data,
           __isComponentInstance: isComponentInstance(block),
@@ -176,8 +128,6 @@ export function useReactFlowCanvasAdapter(
             block,
             componentDefinitionsById
           ),
-          // 선택 상태를 data에 포함 (NodeChrome에서 사용)
-          selected: selectedNodeIds.includes(block.id as string),
         };
 
         return {
@@ -229,15 +179,12 @@ export function useReactFlowCanvasAdapter(
       domainState.blocksById,
       domainState.positionsArray,
       domainState.contextId,
-      domainState.edgesArray,
-      domainState.selectedNodeIds
+      domainState.edgesArray
     );
 
     return {
       nodes,
       edges,
-      selectedNodeIds: domainState.selectedNodeIds,
-      selectedEdgeIds: domainState.selectedEdgeIds,
     };
   }, [
     domainState.blocksById,
@@ -251,98 +198,10 @@ export function useReactFlowCanvasAdapter(
   // ============================================================================
   
   // 개별 이벤트 콜백들을 useCallback으로 정의
-  const onNodeClick = useCallback((node: Node, event: React.MouseEvent) => {
-    // Ctrl/Cmd 키 확인 (Mac에서는 metaKey, 다른 OS에서는 ctrlKey)
-    const isMultiSelect = event.metaKey || event.ctrlKey;
-    
-    let newSelectedIds: string[];
-    
-    if (isMultiSelect) {
-      // Ctrl/Cmd 키가 눌려있으면 다중 선택 처리
-      if (domainState.selectedNodeIds.includes(node.id)) {
-        // 이미 선택된 노드면 선택 해제
-        newSelectedIds = domainState.selectedNodeIds.filter(id => id !== node.id);
-      } else {
-        // 선택되지 않은 노드면 추가
-        newSelectedIds = [...domainState.selectedNodeIds, node.id];
-      }
-    } else {
-      // Ctrl/Cmd 키가 눌려있지 않으면 단일 선택
-      newSelectedIds = [node.id];
-    }
-    
-    domainCommands.setNodeSelection(newSelectedIds);
-  }, [domainCommands.setNodeSelection, domainState.selectedNodeIds]);
-
-  const onNodeDoubleClick = useCallback((node: Node, event: React.MouseEvent) => {
-    domainCommands.toggleEditor(node.id);
-    // 포커싱은 useReactFlowCanvasControl에서 처리됨
-  }, [domainCommands.toggleEditor]);
-
-  const onNodeDragStart = useCallback((node: Node, event: React.MouseEvent) => {
-    if (!domainState.selectedNodeIds.includes(node.id)) {
-      domainCommands.setNodeSelection([node.id]);
-    }
-  }, [domainCommands.setNodeSelection, domainState.selectedNodeIds]);
-
-  const onNodeDragStop = useCallback(async (node: Node, event: React.MouseEvent) => {
-    await domainCommands.updateNodePosition(node.id, node.position);
-  }, [domainCommands.updateNodePosition]);
-
-  const onEdgeClick = useCallback((edge: Edge, event: React.MouseEvent) => {
-    domainCommands.selectEdge(edge.id || null);
-  }, [domainCommands.selectEdge]);
-
-  const onEdgeDoubleClick = useCallback((edge: Edge, event: React.MouseEvent) => {
-    // TODO: 엣지 편집 구현
-    console.log('Edit edge:', edge.id);
-  }, []);
-
-  const onPaneClick = useCallback((event: React.MouseEvent) => {
-    // 선택 해제
-    domainCommands.setNodeSelection([]);
-    domainCommands.selectEdge(null);
-    
-    // 에디터 패널이 열려있으면 닫기
-    if (domainState.showEditorPanel) {
-      domainCommands.closeEditorPanel();
-    }
-  }, [domainCommands.setNodeSelection, domainCommands.selectEdge, domainCommands.closeEditorPanel, domainState.showEditorPanel]);
-
-  const onPaneContextMenu = useCallback((event: React.MouseEvent) => {
-    event.preventDefault();
-    // TODO: 컨텍스트 메뉴 구현
-  }, []);
-
-  const onSelectionChange = useCallback((selectedNodes: Node[], selectedEdges: Edge[]) => {
-    const nodeIds = selectedNodes.map(node => node.id);
-    const edgeIds = selectedEdges.map(edge => edge.id);
-    
-    domainCommands.setNodeSelection(nodeIds);
-    if (edgeIds.length > 0) {
-      domainCommands.selectEdge(edgeIds[0] || null);
-    } else {
-      domainCommands.selectEdge(null);
-    }
-  }, [domainCommands.setNodeSelection, domainCommands.selectEdge]);
-
-  const onDragSelectionStart = useCallback((startPos: { x: number; y: number }) => {
-    console.log('Drag selection start:', startPos);
-  }, []);
-
-  const onDragSelectionUpdate = useCallback((currentPos: { x: number; y: number }) => {
-    console.log('Drag selection update:', currentPos);
-  }, []);
-
-  const onDragSelectionEnd = useCallback((selectedNodeIds: string[]) => {
-    if (selectedNodeIds.length > 0) {
-      domainCommands.setNodeSelection(selectedNodeIds);
-    }
-  }, [domainCommands.setNodeSelection]);
-
   const onConnect = useCallback((connection: any) => {
-    // TODO: 엣지 연결 구현
+    // TODO: 엣지 연결 구현 - Phase 2에서 완성 예정
     console.log('Connect:', connection);
+    // domainCommands.createEdge?.(connection.source, connection.target, connection.type);
   }, []);
 
   const onConnectStart = useCallback((event: React.MouseEvent) => {
@@ -355,44 +214,13 @@ export function useReactFlowCanvasAdapter(
     console.log('Connect end');
   }, []);
 
-  const onMove = useCallback((event: any, viewport: any) => {
-    // TODO: 뷰포트 이동 처리
-    console.log('Move:', viewport);
-  }, []);
-
-  const onMoveStart = useCallback((event: any, viewport: any) => {
-    // TODO: 뷰포트 이동 시작 처리
-    console.log('Move start');
-  }, []);
-
-  const onMoveEnd = useCallback((event: any, viewport: any) => {
-    // TODO: 뷰포트 이동 종료 처리
-    console.log('Move end');
-  }, []);
-
-  const onZoom = useCallback((event: any, viewport: any) => {
-    // TODO: 줌 처리
-    console.log('Zoom:', viewport);
-  }, []);
-
-  const onZoomStart = useCallback((event: any, viewport: any) => {
-    // TODO: 줌 시작 처리
-    console.log('Zoom start');
-  }, []);
-
-  const onZoomEnd = useCallback((event: any, viewport: any) => {
-    // TODO: 줌 종료 처리
-    console.log('Zoom end');
-  }, []);
-
   const onNodeDimensionsChange = useCallback((changes: any[]) => {
+    // React Flow 내부에서 상태를 관리하므로 모든 크기 변경을 DB에 저장
     const sizeUpdates: { id: string; width: number; height: number }[] = [];
     for (const ch of changes || []) {
       if (ch?.type !== "dimensions" || !ch?.dimensions) continue;
       const w = (ch as any).dimensions?.width;
       const h = (ch as any).dimensions?.height;
-      const resizing = (ch as any).resizing as boolean | undefined;
-      if (resizing !== false) continue; // persist at end of resize
       if (typeof w === "number" && typeof h === "number") {
         sizeUpdates.push({
           id: ch.id,
@@ -425,13 +253,10 @@ export function useReactFlowCanvasAdapter(
   }, [domainCommands.updateNodeData]);
 
   const onNodePositionChange = useCallback((changes: any[]) => {
+    // React Flow 내부에서 상태를 관리하므로 모든 위치 변경을 DB에 저장
     const posUpdates: { id: string; x: number; y: number }[] = [];
     for (const ch of changes || []) {
       if (ch?.type === "position") {
-        const dragging = (ch as any).dragging as boolean | undefined;
-        // 드래그 중이거나 드래그 종료 시에는 처리하지 않음 (onNodeDragStop에서 처리)
-        if (dragging !== undefined) continue;
-
         const pos = (ch as any).position as { x?: number; y?: number } | undefined;
         if (pos && typeof pos.x === "number" && typeof pos.y === "number") {
           if (Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
@@ -447,112 +272,24 @@ export function useReactFlowCanvasAdapter(
     }
   }, [domainCommands.updateNodePosition]);
 
-  // 툴바 렌더링 플래그들 - 직접 전달
-  const renderCanvasToolbar = uiRenderers.renderCanvasToolbar;
-  const renderComponentToolbar = uiRenderers.renderComponentToolbar;
-  const renderViewToolbar = uiRenderers.renderViewToolbar;
-  const renderContextMenu = uiRenderers.renderContextMenu;
-
-  // 키보드 이벤트 핸들러들
-  const onEscape = useCallback(() => {
-    // 에디터 패널이 열려있으면 닫기
-    if (domainState.showEditorPanel) {
-      domainCommands.closeEditorPanel();
-    } else {
-      // 에디터가 닫혀있으면 선택 해제
-      domainCommands.setNodeSelection([]);
-      domainCommands.selectEdge(null);
-    }
-  }, [domainState.showEditorPanel, domainCommands.closeEditorPanel, domainCommands.setNodeSelection, domainCommands.selectEdge]);
-
-  const onClearSelection = useCallback(() => {
-    domainCommands.setNodeSelection([]);
-    domainCommands.selectEdge(null);
-  }, [domainCommands.setNodeSelection, domainCommands.selectEdge]);
-
   // 이벤트 객체 조합
-  const reactFlowEvents = useMemo((): ReactFlowCanvasEvents => {
+  const reactFlowEvents = useMemo((): CanvasDomainCallbacks => {
     return {
       // 이벤트 핸들러들
-      onNodeClick,
-      onNodeDoubleClick,
-      onNodeDragStart,
-      onNodeDragStop,
-      onEdgeClick,
-      onEdgeDoubleClick,
-      onPaneClick,
-      onPaneContextMenu,
-      onSelectionChange,
-      onDragSelectionStart,
-      onDragSelectionUpdate,
-      onDragSelectionEnd,
       onConnect,
       onConnectStart,
       onConnectEnd,
-      onMove,
-      onMoveStart,
-      onMoveEnd,
-      onZoom,
-      onZoomStart,
-      onZoomEnd,
       onNodeDimensionsChange,
       onNodeDataChange,
       onNodePositionChange,
-      onEscape,
-      onClearSelection,
-      
-      // 툴바 렌더링 플래그들
-      renderCanvasToolbar,
-      renderComponentToolbar,
-      renderViewToolbar,
-      
-      // Canvas 툴바 콜백들
-      isAddOpen: uiRenderers.isAddOpen,
-      toggleAdd: uiRenderers.toggleAdd,
-      isEditOpen: uiRenderers.isEditOpen,
-      toggleEdit: uiRenderers.toggleEdit,
-      isPageSelected: uiRenderers.isPageSelected,
-      isPageEditorOpen: uiRenderers.isPageEditorOpen,
-      
-      // Component 툴바 콜백들
-      onBackToPage: uiRenderers.onBackToPage,
-      componentName: uiRenderers.componentName,
-      
-      // Context 메뉴
-      renderContextMenu,
     };
   }, [
-    onNodeClick,
-    onNodeDoubleClick,
-    onNodeDragStart,
-    onNodeDragStop,
-    onEdgeClick,
-    onEdgeDoubleClick,
-    onPaneClick,
-    onPaneContextMenu,
-    onSelectionChange,
-    onDragSelectionStart,
-    onDragSelectionUpdate,
-    onDragSelectionEnd,
     onConnect,
     onConnectStart,
     onConnectEnd,
-    onMove,
-    onMoveStart,
-    onMoveEnd,
-    onZoom,
-    onZoomStart,
-    onZoomEnd,
     onNodeDimensionsChange,
     onNodeDataChange,
     onNodePositionChange,
-    onEscape,
-    onClearSelection,
-    renderCanvasToolbar,
-    renderComponentToolbar,
-    renderViewToolbar,
-    renderContextMenu,
-    uiRenderers,
   ]);
 
   return {

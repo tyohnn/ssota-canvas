@@ -27,47 +27,49 @@ import {
 } from "lucide-react";
 import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
 import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
-import { useUiLayout } from "@/domains/canvas/contexts/UiLayoutContext";
+import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
+import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
 
 export type ComponentCanvasToolMode = "select" | "hand";
 
 type ComponentCanvasToolbarProps = {
-  onBackToPage: () => void;
-  isEditOpen: boolean;
-  toggleEdit: () => void;
-  componentName?: string | null;
   toolMode: ComponentCanvasToolMode;
   setToolMode: (mode: ComponentCanvasToolMode) => void;
   onFitToView?: () => void;
 };
 
 export function ComponentCanvasToolbar({
-  onBackToPage,
-  isEditOpen,
-  toggleEdit,
-  componentName,
   toolMode,
   setToolMode,
   onFitToView,
 }: ComponentCanvasToolbarProps) {
   const commands = useCanvasCommandsContext();
   const sel = useCanvasSelection();
-  const ui = useUiLayout();
+  const panel = usePanel();
+  const { blocksById } = useCanvasData();
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
+
+  // 컴포넌트 정보 계산
+  const selectedComponentBlock = sel.componentId ? blocksById[sel.componentId] : null;
+  const componentName = selectedComponentBlock?.name || null;
+  const isEditOpen = panel.showEditorPanel;
+  const toggleEdit = () => {
+    if (isEditOpen) {
+      panel.closeEditorPanel();
+    } else {
+      panel.openEditorPanel();
+    }
+  };
 
   // Enhanced back to page handler
   const handleBackToPage = () => {
     // Close editor panel
-    ui.closeEditorPanel();
+    panel.closeEditorPanel();
     // Clear selected component
     sel.selectComponent(null);
-    // Clear node selection to prevent editor from reopening
-    sel.setNodeSelection([]);
     // Switch to layer tab
-    ui.setActiveLeftTab("layers");
-    // Call the original onBackToPage
-    onBackToPage();
+    panel.setActiveExplorerTab("layers");
   };
 
   // Keyboard event handler
@@ -117,8 +119,8 @@ export function ComponentCanvasToolbar({
     setIsDeleting(true);
 
     // Optimistic UI 업데이트 (즉시 실행)
-    ui.closeEditorPanel();
-    ui.setActiveLeftTab("layers");
+    panel.closeEditorPanel();
+    // ui.setActiveLeftTab("layers"); // Canvas 도메인에서 처리됨
     setShowDeleteModal(false);
 
     try {

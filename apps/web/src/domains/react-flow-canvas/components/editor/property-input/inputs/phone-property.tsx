@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { Input } from "@workspace/ui/components/ui/input";
 import { Button } from "@workspace/ui/components/ui/button";
-import { Phone } from "lucide-react";
 import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
 import type { Block } from "@/db/schema";
 import { getValue } from "../object-path";

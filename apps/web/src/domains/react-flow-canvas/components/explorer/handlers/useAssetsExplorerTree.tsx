@@ -4,8 +4,8 @@ import React from "react";
 import type { Block } from "@/db/schema";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
-import { useUiLayout } from "@/domains/canvas/contexts/UiLayoutContext";
-import { useEditorControlContext } from "@/domains/canvas/contexts/EditorControlContext";
+import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
+import { useSelectionCommands } from "@/domains/react-flow-canvas/contexts/SelectionContext";
 
 function getAssetIcon(type: string | undefined, className: string) {
   switch (type) {
@@ -35,8 +35,8 @@ export function useAssetsExplorerTree() {
   }, [componentId]);
 
   // Use refactored UI layout state
-  const { setActiveLeftTab } = useUiLayout();
-  const { openEditor } = useEditorControlContext();
+  const panel = usePanel();
+  const { clearSelection } = useSelectionCommands();
 
   // Get component blocks with their positions
   const assetBlocks = React.useMemo(() => {
@@ -59,11 +59,12 @@ export function useAssetsExplorerTree() {
 
   const handleSelect = React.useCallback(
     (id: string) => {
-      setActiveLeftTab("assets");
+      panel.setActiveExplorerTab("assets");
       selectComponent(id);
-      openEditor(id);
+      // 컴포넌트 선택 시 React Flow 선택 상태 초기화
+      clearSelection();
     },
-    [setActiveLeftTab, selectComponent, openEditor]
+    [panel, selectComponent, clearSelection]
   );
 
   return {

@@ -62,7 +62,7 @@ export function WorkflowCanvas() {
 
   return (
     <div className="h-full w-full">
-      <ReactFlowCanvasProvider config={config} events={events}>
+              <ReactFlowCanvasProvider config={config} domainCallbacks={events}>
         <ReactFlowCanvasRenderer />
       </ReactFlowCanvasProvider>
     </div>

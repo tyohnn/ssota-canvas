@@ -14,8 +14,8 @@ import {
   TooltipContent,
 } from "@workspace/ui/components/ui/tooltip";
 import { Search, Plus } from "lucide-react";
-import ExplorerTree from "@/domains/canvas/explorer/explorer-tree";
-import { usePageExplorerTree } from "@/domains/canvas/components/explorer/handlers/usePageExplorerTree";
+import ExplorerTree from "@/domains/react-flow-canvas/explorer/explorer-tree";
+import { usePageExplorerTree } from "@/domains/react-flow-canvas/components/explorer/handlers/usePageExplorerTree";
 
 export function PageExplorerTab() {
   const data = useCanvasData();

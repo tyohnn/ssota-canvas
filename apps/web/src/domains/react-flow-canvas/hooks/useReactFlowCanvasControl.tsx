@@ -8,14 +8,6 @@ import { useSelectionState, useSelectionCommands } from "../contexts/SelectionCo
 import type { ReactFlowCanvasConfig } from "../types/react-flow-types";
 
 export interface UseReactFlowCanvasControlOptions {
-  onEscape?: () => void; // ESC 키 핸들러 추가
-  onClearSelection?: () => void; // 선택 해제 핸들러 추가
-  // 드래그 선택 관련 콜백들 (React Flow에서 처리)
-  onDragSelectionStart?: (startPos: { x: number; y: number }) => void;
-  onDragSelectionUpdate?: (currentPos: { x: number; y: number }) => void;
-  onDragSelectionEnd?: (selectedNodeIds: string[]) => void; // 드래그 선택 완료 시 선택된 노드들
-  // Ctrl/Cmd 키 상태 콜백
-  onCtrlKeyChange?: (pressed: boolean) => void;
   // React Flow 설정
   config?: ReactFlowCanvasConfig;
 }
@@ -27,9 +19,9 @@ export interface UseReactFlowCanvasControlResult {
 
   // View toolbar state
   showMiniMap: boolean;
-  setShowMiniMap: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowMiniMap: (show: boolean) => void;
   zoomPercent: number;
-  setZoomPercent: React.Dispatch<React.SetStateAction<number>>;
+  setZoomPercent: (percent: number) => void;
 
   // Interaction flags
   panOnDrag: number[];
@@ -60,24 +52,14 @@ export interface UseReactFlowCanvasControlResult {
 export function useReactFlowCanvasControl(
   options: UseReactFlowCanvasControlOptions = {}
 ): UseReactFlowCanvasControlResult {
-  const { commands, rfInstance, setRfInstance, nodes } = useReactFlowCanvas();
-  const { toolMode } = useControlState();
-  const { setToolMode } = useControlCommands();
+  const { rfInstance, setRfInstance, nodes } = useReactFlowCanvas();
+  const { toolMode, showMiniMap, zoomPercent } = useControlState();
+  const { setToolMode, setShowMiniMap, setZoomPercent } = useControlCommands();
   const { selectedNodeIds, dragSelection } = useSelectionState();
-  const { selectNodes } = useSelectionCommands();
+  const { selectNodes, setDragSelection } = useSelectionCommands();
   const {
-    onEscape,
-    onClearSelection,
-    onDragSelectionStart,
-    onDragSelectionUpdate,
-    onDragSelectionEnd,
-    onCtrlKeyChange,
     config,
   } = options;
-
-  // View toolbar state: minimap and zoom
-  const [showMiniMap, setShowMiniMap] = React.useState<boolean>(config?.showMiniMap ?? true);
-  const [zoomPercent, setZoomPercent] = React.useState<number>(100);
 
   // React Flow interaction flags based on tool mode and config
   const panOnDrag = config?.panOnDrag || (toolMode === "hand" ? [0, 1, 2] : [1, 2]);
@@ -147,10 +129,6 @@ export function useReactFlowCanvasControl(
 
       // Ctrl/Cmd 키 감지 (Mac에서는 metaKey, 다른 OS에서는 ctrlKey)
       const isMeta = event.metaKey || event.ctrlKey;
-      
-      if (isMeta) {
-        onCtrlKeyChange?.(true);
-      }
 
       // Ignore system shortcuts but allow Shift
       if (event.ctrlKey || event.metaKey || event.altKey) {
@@ -176,12 +154,9 @@ export function useReactFlowCanvasControl(
         case "Escape":
           event.preventDefault();
           event.stopPropagation();
-          if (onEscape) {
-            // 첫 번째 ESC: 에디터만 닫기
-            onEscape();
-          } else if (selectedNodeIds.length > 0) {
-            // 두 번째 ESC: 선택 해제 (병렬 처리)
-            onClearSelection?.();
+          if (selectedNodeIds.length > 0) {
+            // 선택 해제
+            selectNodes([]);
           }
           break;
       }
@@ -190,10 +165,6 @@ export function useReactFlowCanvasControl(
     const handleKeyUp = (event: KeyboardEvent) => {
       // Ctrl/Cmd 키 해제 감지 (Mac에서는 metaKey, 다른 OS에서는 ctrlKey)
       const isMeta = event.metaKey || event.ctrlKey;
-      
-      if (!isMeta) {
-        onCtrlKeyChange?.(false);
-      }
     };
 
     // Use capture phase to ensure we get the event before React Flow
@@ -205,12 +176,11 @@ export function useReactFlowCanvasControl(
     };
   }, [
     handleFitToView,
-    onEscape,
-    onClearSelection,
-    onCtrlKeyChange,
   ]);
 
-  const toggleMiniMap = React.useCallback(() => setShowMiniMap((v) => !v), []);
+  const toggleMiniMap = React.useCallback(() => {
+    setShowMiniMap(!showMiniMap);
+  }, [showMiniMap, setShowMiniMap]);
 
   const onZoomPercentChange = React.useCallback(
     (percent: number) => {
@@ -228,7 +198,7 @@ export function useReactFlowCanvasControl(
         } catch {}
       }
     },
-    [rfInstance, config?.minZoom, config?.maxZoom]
+    [rfInstance, config?.minZoom, config?.maxZoom, setZoomPercent]
   );
 
   // React Flow event handlers
@@ -253,35 +223,79 @@ export function useReactFlowCanvasControl(
     try {
       const z = (viewport as any)?.zoom;
       if (typeof z === "number" && !Number.isNaN(z)) {
-        setZoomPercent((prev) => {
-          const next = Math.round(z * 100);
-          return prev === next ? prev : next;
-        });
+        const next = Math.round(z * 100);
+        if (zoomPercent !== next) {
+          setZoomPercent(next);
+        }
       }
     } catch {}
-  }, []);
+  }, [zoomPercent, setZoomPercent]);
 
   // 드래그 선택 이벤트 핸들러들
   const handlePaneMouseDown = React.useCallback(
     (event: React.MouseEvent) => {
       // 드래그 선택 시작
-      onDragSelectionStart?.({ x: event.clientX, y: event.clientY });
+      setDragSelection({
+        isDragging: true,
+        selectionBox: {
+          start: { x: event.clientX, y: event.clientY },
+          current: { x: event.clientX, y: event.clientY },
+        },
+        isCtrlPressed: event.ctrlKey || event.metaKey,
+        tempSelectedIds: [],
+      });
     },
-    [onDragSelectionStart]
+    [setDragSelection]
   );
 
   const handlePaneMouseMove = React.useCallback(
     (event: React.MouseEvent) => {
-      onDragSelectionUpdate?.({ x: event.clientX, y: event.clientY });
+      if (dragSelection?.isDragging && dragSelection?.selectionBox) {
+        // 드래그 선택 업데이트
+        setDragSelection({
+          selectionBox: {
+            ...dragSelection.selectionBox,
+            current: { x: event.clientX, y: event.clientY },
+          },
+        });
+        
+        // 선택 박스 내의 노드들을 계산
+        const selectionBox = dragSelection.selectionBox;
+        const tempSelectedIds = nodes
+          .filter((node: any) => {
+            const nodeRect = {
+              left: node.position.x,
+              top: node.position.y,
+              right: node.position.x + ((node.data as any)?.width || 150),
+              bottom: node.position.y + ((node.data as any)?.height || 100),
+            };
+            
+            const boxRect = {
+              left: Math.min(selectionBox.start.x, selectionBox.current.x),
+              top: Math.min(selectionBox.start.y, selectionBox.current.y),
+              right: Math.max(selectionBox.start.x, selectionBox.current.x),
+              bottom: Math.max(selectionBox.start.y, selectionBox.current.y),
+            };
+            
+            return (
+              nodeRect.left < boxRect.right &&
+              nodeRect.right > boxRect.left &&
+              nodeRect.top < boxRect.bottom &&
+              nodeRect.bottom > boxRect.top
+            );
+          })
+          .map((node: any) => node.id);
+        
+        setDragSelection({ tempSelectedIds });
+      }
     },
-    [onDragSelectionUpdate]
+    [dragSelection, nodes, setDragSelection]
   );
 
   const handlePaneMouseUp = React.useCallback(
     (event: React.MouseEvent) => {
       // 드래그 선택 완료 시 실제 선택 로직 처리
       if (dragSelection?.isDragging && dragSelection?.selectionBox) {
-        // 선택 박스 내의 노드들을 계산 (React Flow에서 처리)
         const tempSelectedIds = dragSelection.tempSelectedIds || [];
         
         if (tempSelectedIds.length > 0) {
@@ -295,15 +309,19 @@ export function useReactFlowCanvasControl(
             newSelectedIds = tempSelectedIds;
           }
           
-          // 1️⃣ RF 노드 즉시 업데이트 (Optimistic UI)
+          // 선택 업데이트
           selectNodes(newSelectedIds);
-          
-          // 2️⃣ 드래그 선택 완료 콜백 호출 (Canvas 도메인으로 위임)
-          onDragSelectionEnd?.(newSelectedIds);
         }
+        
+        // 드래그 선택 상태 초기화
+        setDragSelection({
+          isDragging: false,
+          selectionBox: null,
+          tempSelectedIds: [],
+        });
       }
     },
-    [onDragSelectionEnd, dragSelection, selectedNodeIds, selectNodes]
+    [dragSelection, selectedNodeIds, selectNodes, setDragSelection]
   );
 
   return {

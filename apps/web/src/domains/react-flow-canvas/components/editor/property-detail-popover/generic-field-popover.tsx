@@ -7,7 +7,6 @@ import { Separator } from "@workspace/ui/components/ui/separator";
 import { Copy, Trash2 } from "lucide-react";
 import type { Block } from "@/db/schema";
 import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import type {
   DefaultMetadata,
   UserSchemaField,

@@ -10,17 +10,23 @@ export interface ControlState {
     zoom: number;
   };
   toolMode: 'select' | 'hand' | 'connect';
+  showMiniMap: boolean;
+  zoomPercent: number;
 }
 
 // 액션 타입
 type ControlAction =
   | { type: 'SET_VIEWPORT'; payload: { x: number; y: number; zoom: number } }
-  | { type: 'SET_TOOL_MODE'; payload: 'select' | 'hand' | 'connect' };
+  | { type: 'SET_TOOL_MODE'; payload: 'select' | 'hand' | 'connect' }
+  | { type: 'SET_SHOW_MINIMAP'; payload: boolean }
+  | { type: 'SET_ZOOM_PERCENT'; payload: number };
 
 // 초기 상태
 const initialState: ControlState = {
   viewport: { x: 0, y: 0, zoom: 1 },
   toolMode: 'select',
+  showMiniMap: true,
+  zoomPercent: 100,
 };
 
 // 리듀서
@@ -35,6 +41,12 @@ function controlReducer(
     case 'SET_TOOL_MODE':
       return { ...state, toolMode: action.payload };
     
+    case 'SET_SHOW_MINIMAP':
+      return { ...state, showMiniMap: action.payload };
+    
+    case 'SET_ZOOM_PERCENT':
+      return { ...state, zoomPercent: action.payload };
+    
     default:
       return state;
   }
@@ -46,6 +58,8 @@ interface ControlContextValue {
   commands: {
     setViewport: (viewport: { x: number; y: number; zoom: number }) => void;
     setToolMode: (mode: 'select' | 'hand' | 'connect') => void;
+    setShowMiniMap: (show: boolean) => void;
+    setZoomPercent: (percent: number) => void;
   };
 }
 
@@ -63,6 +77,14 @@ export function ControlProvider({ children }: { children: React.ReactNode }) {
 
     setToolMode: useCallback((mode: 'select' | 'hand' | 'connect') => {
       dispatch({ type: 'SET_TOOL_MODE', payload: mode });
+    }, []),
+
+    setShowMiniMap: useCallback((show: boolean) => {
+      dispatch({ type: 'SET_SHOW_MINIMAP', payload: show });
+    }, []),
+
+    setZoomPercent: useCallback((percent: number) => {
+      dispatch({ type: 'SET_ZOOM_PERCENT', payload: percent });
     }, []),
   };
 
