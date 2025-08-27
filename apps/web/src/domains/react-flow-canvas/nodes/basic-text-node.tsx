@@ -2,9 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { NodeProps } from "@xyflow/react";
-import { useReactFlow } from "@xyflow/react";
 import { NodeChrome } from "./node-chrome";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
 import {
   Popover,
@@ -17,9 +15,13 @@ import {
   ShapePolicy,
   type ColorKey,
 } from "@/domains/canvas/policy/shape-policy";
+import { useBasicTextNodeUpdater } from "../utils/node-updater";
+import { useSelectionCommands } from "../contexts/SelectionContext";
 
 export type BasicTextNodeData = {
   label?: string;
+  block?: any; // Block data containing metadata
+  // Legacy properties for backward compatibility (will be removed)
   color?: ColorKey;
   weight?: "normal" | "bold" | "bolder";
   fontSize?: "12px" | "14px" | "16px" | "18px" | "20px";
@@ -35,25 +37,20 @@ export function BasicTextNode({
   height: nodeH,
 }: NodeProps) {
   const d = (data || {}) as BasicTextNodeData;
-  const rf = useReactFlow();
-  const dataCtx = useCanvasData();
   const commands = useCanvasCommandsContext();
+  const { updateColor, updateFontSize, updateLabel, updateSize } = useBasicTextNodeUpdater();
+  const selectionCommands = useSelectionCommands();
 
-  const getBlockById = useCallback(
-    (blockId: string) => dataCtx.blocksById[blockId],
-    [dataCtx.blocksById]
-  );
-
-  // Get block data and extract metadata
-  const block = getBlockById(id);
+  // Get metadata from block data (same as shape-node.tsx)
+  const block = data?.block as any;
   const metadata = (block?.metadata || {}) as any;
-  const nodeUi = metadata.node_ui || {};
+  const nodeUi = (metadata?.node_ui || {}) as any;
 
-  // Extract values from metadata with fallbacks
-  const label = d.label ?? block?.name ?? id;
+  // Extract values from metadata with fallbacks (same as shape-node.tsx)
+  const label = d.label ?? data?.name ?? id;
 
-  // Color handling with validation and HEX mapping
-  const rawColor = d.color ?? nodeUi.color ?? ShapePolicy.getDefaultColor();
+  // Color handling with validation and HEX mapping (same as shape-node.tsx)
+  const rawColor = nodeUi?.color ?? ShapePolicy.getDefaultColor();
   const availableColors = ShapePolicy.getColorOptions().map((c) => c.value);
 
   // If rawColor is a HEX value, map it to closest ColorKey
@@ -64,23 +61,19 @@ export function BasicTextNode({
       : ShapePolicy.getDefaultColor();
 
   const weight = "bold"; // 항상 bold로 고정
-  const fontSize = d.fontSize ?? nodeUi.fontSize ?? "32px";
-  const width = Math.max(80, (nodeW as number) ?? d.width ?? 160);
-  const height = Math.max(40, (nodeH as number) ?? d.height ?? 64);
+  const fontSize = nodeUi?.fontSize ?? "32px";
+  
+  // React Flow props가 최우선, 그 다음 metadata, 마지막 기본값 (same as shape-node.tsx)
+  const width = Math.max(80, (nodeW as number) || nodeUi?.size?.width || 160);
+  const height = Math.max(40, (nodeH as number) || nodeUi?.size?.height || 64);
+  
+
 
   // Capture initial (base) size for proportional font scaling
   const baseSizeRef = useRef<{ w: number; h: number } | null>(null);
   if (!baseSizeRef.current) {
-    const baseW =
-      (nodeUi?.size?.width as number | undefined) ??
-      (d.width as number | undefined) ??
-      (typeof nodeW === "number" ? (nodeW as number) : undefined) ??
-      160;
-    const baseH =
-      (nodeUi?.size?.height as number | undefined) ??
-      (d.height as number | undefined) ??
-      (typeof nodeH === "number" ? (nodeH as number) : undefined) ??
-      64;
+    const baseW = nodeUi?.size?.width || 160;
+    const baseH = nodeUi?.size?.height || 64;
     baseSizeRef.current = { w: Math.max(1, baseW), h: Math.max(1, baseH) };
   }
 
@@ -116,8 +109,7 @@ export function BasicTextNode({
       if (!measureRef.current) return;
 
       // Get current font size from metadata to ensure we use the latest value
-      const currentBlock = getBlockById(id);
-      const currentMetadata = (currentBlock?.metadata || {}) as any;
+      const currentMetadata = (block?.metadata || {}) as any;
       const currentNodeUi = currentMetadata.node_ui || {};
       const currentFontSize = currentNodeUi.fontSize ?? fontSize;
       const currentWeight = currentNodeUi.weight ?? weight;
@@ -158,24 +150,10 @@ export function BasicTextNode({
       // Update the last size reference
       lastSizeRef.current = { width: newWidth, height: newHeight };
 
-      // Update node size in React Flow
-      rf.setNodes((nodes) =>
-        nodes.map((n) =>
-          n.id === id
-            ? {
-                ...n,
-                style: {
-                  ...n.style,
-                  width: newWidth,
-                  height: newHeight,
-                },
-              }
-            : n
-        )
-      );
+      // Update node size in React Flow using utility
+      updateSize(id, { width: newWidth, height: newHeight });
 
       // Update metadata
-      const block = getBlockById(id);
       if (block) {
         const metadata = (block.metadata || {}) as any;
         const nodeUi = metadata.node_ui || {};
@@ -190,164 +168,154 @@ export function BasicTextNode({
           },
         };
 
-        commands.updateBlock(block.id, {
+        commands.updateBlock(id, {
           metadata: updatedMetadata as any,
         });
       }
     },
-    [id, fontSize, weight, rf, getBlockById, commands, parsePx]
+    [id, fontSize, weight, commands, parsePx, updateSize, block]
   );
 
   const setColor = useCallback(
     async (nextColor: ColorKey) => {
-      // Update UI immediately (optimistic)
-      rf.setNodes((nodes) =>
-        nodes.map((n) =>
-          n.id === id
-            ? { ...n, data: { ...(n.data || {}), color: nextColor } }
-            : n
-        )
-      );
-
+      if (!block) {
+        console.error("Block not found for node:", id);
+        return;
+      }
+      
+      // Optimistic UI update using utility
+      updateColor(id, nextColor);
+      
       // Update block metadata via commands
-      const block = getBlockById(id);
-      if (block) {
-        const metadata = (block.metadata || {}) as any;
-        const nodeUi = metadata.node_ui || {};
-        const updatedMetadata = {
-          ...metadata,
-          node_ui: {
-            ...nodeUi,
-            color: nextColor,
-          },
-        };
+      const metadata = (block?.metadata || {}) as any;
+      const nodeUi = (metadata?.node_ui || {}) as any;
+      const updatedMetadata = {
+        ...metadata,
+        node_ui: {
+          ...nodeUi,
+          color: nextColor,
+        },
+      };
 
-        const result = await commands.updateBlock(block.id, {
-          metadata: updatedMetadata as any,
-        });
+      const result = await commands.updateBlock(id, {
+        metadata: updatedMetadata as any,
+      });
 
-        if (!result.ok) {
-          console.error("Failed to update block color:", result.error);
-        }
+      if (!result.ok) {
+        console.error("Failed to update block color:", result.error);
       }
     },
-    [id, getBlockById, commands]
+    [id, block, commands, updateColor]
   );
 
   const setLabel = useCallback(
     async (nextLabel: string) => {
-      // Update UI immediately (optimistic)
-      rf.setNodes((nodes) =>
-        nodes.map((n) =>
-          n.id === id
-            ? { ...n, data: { ...(n.data || {}), label: nextLabel } }
-            : n
-        )
-      );
-
+      if (!block) {
+        console.error("Block not found for node:", id);
+        return;
+      }
+      
+      // Optimistic UI update
+      updateLabel(id, nextLabel);
+      
       // Update block name via commands
-      const block = getBlockById(id);
-      if (block) {
-        const result = await commands.updateBlock(block.id, {
-          name: nextLabel,
-        });
+      const result = await commands.updateBlock(id, {
+        name: nextLabel,
+      });
 
-        if (!result.ok) {
-          console.error("Failed to update block label:", result.error);
-        }
+      if (!result.ok) {
+        console.error("Failed to update block label:", result.error);
       }
     },
-    [id, rf, getBlockById, commands]
+    [id, block, commands, updateLabel]
   );
 
 
   const setFontSize = useCallback(
     async (nextFontSize: NonNullable<BasicTextNodeData["fontSize"]>) => {
-      // Update UI immediately (optimistic)
-      rf.setNodes((nodes) =>
-        nodes.map((n) =>
-          n.id === id
-            ? { ...n, data: { ...(n.data || {}), fontSize: nextFontSize } }
-            : n
-        )
-      );
-
+      if (!block) {
+        console.error("Block not found for node:", id);
+        return;
+      }
+      
+      // Optimistic UI update using utility
+      updateFontSize(id, nextFontSize);
+      
       // Update block metadata via commands
-      const block = getBlockById(id);
-      if (block) {
-        const metadata = (block.metadata || {}) as any;
-        const nodeUi = metadata.node_ui || {};
-        const updatedMetadata = {
-          ...metadata,
-          node_ui: {
-            ...nodeUi,
-            fontSize: nextFontSize,
-          },
-        };
+      const metadata = (block?.metadata || {}) as any;
+      const nodeUi = (metadata?.node_ui || {}) as any;
+      const updatedMetadata = {
+        ...metadata,
+        node_ui: {
+          ...nodeUi,
+          fontSize: nextFontSize,
+        },
+      };
 
-        const result = await commands.updateBlock(block.id, {
-          metadata: updatedMetadata as any,
-        });
+      const result = await commands.updateBlock(id, {
+        metadata: updatedMetadata as any,
+      });
 
-        if (!result.ok) {
-          console.error("Failed to update block fontSize:", result.error);
-        }
+      if (!result.ok) {
+        console.error("Failed to update block fontSize:", result.error);
       }
     },
-    [id, rf, getBlockById, commands]
+    [id, block, commands, updateFontSize]
   );
 
   // Handle node resize to update metadata with debouncing
   const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleResize = useCallback(
-    async (event: any, data: { width: number; height: number }) => {
+    async (event: any, resizeData: { width: number; height: number }) => {
       // Clear existing timeout
       if (resizeTimeoutRef.current) {
         clearTimeout(resizeTimeoutRef.current);
       }
 
       // Update lastSizeRef immediately to prevent infinite loops
-      lastSizeRef.current = { width: data.width, height: data.height };
+      lastSizeRef.current = { width: resizeData.width, height: resizeData.height };
 
       // Debounce the DB update
       resizeTimeoutRef.current = setTimeout(async () => {
+        if (!block) {
+          console.error("Block not found for node:", id);
+          return;
+        }
+        
         // Update block metadata with new size
-        const block = getBlockById(id);
-        if (block) {
-          const metadata = (block.metadata || {}) as any;
-          const nodeUi = metadata.node_ui || {};
-          const updatedMetadata = {
-            ...metadata,
-            node_ui: {
-              ...nodeUi,
-              size: {
-                width: data.width,
-                height: data.height,
-              },
+        const metadata = (block?.metadata || {}) as any;
+        const nodeUi = (metadata?.node_ui || {}) as any;
+        const updatedMetadata = {
+          ...metadata,
+          node_ui: {
+            ...nodeUi,
+            size: {
+              width: resizeData.width,
+              height: resizeData.height,
             },
-          };
+          },
+        };
 
-          const result = await commands.updateBlock(block.id, {
-            metadata: updatedMetadata as any,
-          });
+        const result = await commands.updateBlock(id, {
+          metadata: updatedMetadata as any,
+        });
 
-          if (!result.ok) {
-            console.error("Failed to update block size:", result.error);
-          }
+        if (!result.ok) {
+          console.error("Failed to update block size:", result.error);
         }
       }, 300); // 300ms debounce delay
     },
-    [id, getBlockById, commands]
+    [id, block, commands]
   );
 
   const commitEdit = useCallback(() => {
-    const next = draftLabel.trim();
-    if (next.length > 0 && next !== label) {
-      setLabel(next);
-      // Auto-resize node to fit text
-      measureAndUpdateSize(next);
-    }
+    const next = (draftLabel as string).trim();
+          if (next.length > 0 && next !== label) {
+        setLabel(next);
+        // Auto-resize node to fit text
+        measureAndUpdateSize(next as string);
+      }
   }, [draftLabel, setLabel, label, measureAndUpdateSize]);
 
   // Smooth auto-resize for textarea and grow node height if needed
@@ -366,7 +334,7 @@ export function BasicTextNode({
   // Auto-size node when first created
   useEffect(() => {
     if (label && label !== "Text") {
-      measureAndUpdateSize(label);
+      measureAndUpdateSize(label as string);
     }
   }, [label]); // Removed fontSize, weight, measureAndUpdateSize from dependencies to prevent infinite loops
 
@@ -381,7 +349,7 @@ export function BasicTextNode({
     if ((fontSizeChanged || weightChanged) && label && label !== "Text") {
       // Small delay to ensure the optimistic update has been applied
       const timeoutId = setTimeout(() => {
-        measureAndUpdateSize(label);
+        measureAndUpdateSize(label as string);
       }, 50);
 
       // Update refs
@@ -507,12 +475,12 @@ export function BasicTextNode({
       resizerColor={ShapePolicy.getHexColor(color)}
       onResize={handleResize}
     >
-      {/* Inline label input - only active when selected */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      {/* Inline label - text when not selected, textarea when selected */}
+      <div className="absolute inset-0 flex items-center justify-center">
         {selected ? (
           <textarea
             ref={inputRef}
-            value={draftLabel}
+            value={draftLabel as string}
             onChange={(e) => setDraftLabel(e.currentTarget.value)}
             onBlur={() => commitEdit()}
             onKeyDown={(e) => {
@@ -524,27 +492,29 @@ export function BasicTextNode({
               }
             }}
             onInput={autoResize}
-            className="pointer-events-auto h-auto min-h-[1.4em] w-full resize-none overflow-hidden rounded bg-transparent px-1 py-1 leading-tight text-center outline-none placeholder:text-foreground/40 focus:ring-0 whitespace-pre-wrap break-words"
+            className="w-full resize-none overflow-hidden rounded bg-transparent text-center outline-none placeholder:text-foreground/40 focus:ring-0 whitespace-pre-wrap break-words p-3 leading-[1.4] min-h-[1.4em] box-border m-0"
             style={{
               fontSize: `${scaledFontPx}px`,
               fontWeight: weight,
               color: ShapePolicy.getTextColor(color),
               appearance: "none" as any,
               border: 0,
+              height: `${height}px`,
             }}
             placeholder="Text"
             rows={1}
           />
         ) : (
           <div
-            className="pointer-events-none h-auto min-h-[1.4em] w-full px-1 py-1 leading-tight text-center whitespace-pre-wrap break-words"
+            className="w-full text-center whitespace-pre-wrap break-words select-none flex items-center justify-center p-3 leading-[1.4] min-h-[1.4em] box-border m-0"
             style={{
               fontSize: `${scaledFontPx}px`,
               fontWeight: weight,
               color: ShapePolicy.getTextColor(color),
+              height: `${height}px`,
             }}
           >
-            {label || "Text"}
+            {draftLabel as string || "Text"}
           </div>
         )}
       </div>

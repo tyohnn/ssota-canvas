@@ -8,6 +8,7 @@ import {
   Position,
   useReactFlow,
   NodeToolbar,
+  useKeyPress,
 } from "@xyflow/react";
 import { Button } from "@workspace/ui/components/ui/button";
 import {
@@ -28,7 +29,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
 import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
 import { useReactFlowCanvasControl } from "@/domains/react-flow-canvas/hooks/useReactFlowCanvasControl";
@@ -65,6 +65,8 @@ type NodeChromeProps = {
   keepAspectRatio?: boolean;
   // 리사이즈 이벤트 핸들러
   onResize?: (event: any, data: { width: number; height: number }) => void;
+  // 드래그 가능 여부 (기본값: true)
+  draggable?: boolean;
 };
 
 export function NodeChrome({
@@ -80,6 +82,7 @@ export function NodeChrome({
   resizerColor = "#94a3b8",
   keepAspectRatio = false,
   onResize,
+  draggable = true,
 }: NodeChromeProps) {
   const panel = usePanel();
   // React Flow selected prop이 우선, SelectionContext는 드래그 선택 상태만 사용
@@ -88,7 +91,6 @@ export function NodeChrome({
   const { canvasMode } = useCanvasSelection();
   
   const rf = useReactFlow();
-  const data = useCanvasData();
   const commands = useCanvasCommandsContext();
   const { focusOnNode } = useReactFlowCanvasControl();
   
@@ -101,9 +103,9 @@ export function NodeChrome({
   // 컴포넌트 모드인지 확인 (현재 선택된 컴포넌트가 있는지)
   const isComponentMode = canvasMode === "component";
 
-  // 현재 블록이 컴포넌트 인스턴스인지 확인
-  const currentBlock = data.blocksById[id];
-  const isInstance = currentBlock ? isComponentInstance(currentBlock) : false;
+  // 현재 블록이 컴포넌트 인스턴스인지 확인 (props로 전달받은 데이터 사용)
+  // TODO: 컴포넌트 인스턴스 확인 로직을 props나 다른 방법으로 처리
+  const isInstance = false; // 임시로 false로 설정
 
   
   // 툴바 표시 조건: React Flow selected prop이 true이고 단일 선택일 때
@@ -136,6 +138,16 @@ export function NodeChrome({
   // 드래그 중 임시 선택 상태
   const isTempSelected = dragSelection.tempSelectedIds.includes(id);
 
+  // ESC 키 감지
+  const escapePressed = useKeyPress('Escape');
+
+  // ESC 키를 눌렀을 때 선택 해제
+  React.useEffect(() => {
+    if (escapePressed && selected) {
+      selectionCommands.clearSelection();
+    }
+  }, [escapePressed, selected, selectionCommands]);
+
   // node handlers
   const handleDelete = useCallback(async () => {
     // Optimistic: 즉시 에디터 닫기
@@ -165,12 +177,7 @@ export function NodeChrome({
   );
 
   const handleCreateComponent = useCallback(async () => {
-    const src = data.blocksById[id];
-    if (!src) {
-      console.error("Block not found:", id);
-      return;
-    }
-
+    // 블록 정보는 commands에서 처리하도록 수정
     const result = await commands.promoteBlockToComponentDefinition(id);
 
     if (result.ok) {
@@ -178,7 +185,7 @@ export function NodeChrome({
     } else {
       // TODO: 사용자에게 에러 알림 (토스트 등)
     }
-  }, [id, data.blocksById, commands, panel.setActiveExplorerTab]);
+  }, [id, commands, panel.setActiveExplorerTab]);
 
   const handleDetachComponent = useCallback(async () => {
     const result = await commands.detachComponentInstance(id);
@@ -206,80 +213,67 @@ export function NodeChrome({
     }
   }, [id, selectionCommands, panel.openEditorPanel, panel.closeEditorPanel, isDetailsButtonActive, focusOnNode]);
 
+  // 키보드 단축키 처리
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    const target = e.target as HTMLElement | null;
+    const tag = (target?.tagName || "").toLowerCase();
+    const isEditable =
+      target?.isContentEditable ||
+      tag === "input" ||
+      tag === "textarea" ||
+      tag === "select";
+    
+    if (isEditable) return;
+
+    const isMeta = e.metaKey || e.ctrlKey;
+
+    // Edit: Cmd/Ctrl+E
+    if (isMeta && (e.key === "e" || e.key === "E")) {
+      e.preventDefault();
+      handleEdit();
+      return;
+    }
+
+    // Duplicate: Cmd/Ctrl+D
+    if (isMeta && (e.key === "d" || e.key === "D")) {
+      e.preventDefault();
+      handleDuplicate();
+      return;
+    }
+
+    // Create Component: Shift+Cmd/Ctrl+C
+    if (isMeta && e.shiftKey && (e.key === "c" || e.key === "C")) {
+      e.preventDefault();
+      handleCreateComponent();
+      return;
+    }
+
+    // Delete: Backspace or Delete
+    if (e.key === "Backspace" || e.key === "Delete") {
+      e.preventDefault();
+      handleDelete();
+      return;
+    }
+  }, [handleEdit, handleDuplicate, handleCreateComponent, handleDelete]);
+
+  // 키보드 이벤트 리스너 등록
   React.useEffect(() => {
     // 컴포넌트 모드에서는 키보드 단축키 비활성화
     if (!selected || isComponentMode) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const tag = (target?.tagName || "").toLowerCase();
-      const isEditable =
-        target?.isContentEditable ||
-        tag === "input" ||
-        tag === "textarea" ||
-        tag === "select";
-      if (isEditable) return;
-
-      const isMeta = e.metaKey || e.ctrlKey;
-
-      // Edit: Cmd/Ctrl+E
-      if (isMeta && (e.key === "e" || e.key === "E")) {
-        e.preventDefault();
-        handleEdit();
-        return;
-      }
-
-      // Duplicate: Cmd/Ctrl+D
-      if (isMeta && (e.key === "d" || e.key === "D")) {
-        e.preventDefault();
-        handleDuplicate();
-        return;
-      }
-
-      // Create Component: Shift+Cmd/Ctrl+C
-      if (isMeta && e.shiftKey && (e.key === "c" || e.key === "C")) {
-        e.preventDefault();
-        handleCreateComponent();
-        return;
-      }
-
-      // Delete: Backspace or Delete
-      if (e.key === "Backspace" || e.key === "Delete") {
-        e.preventDefault();
-        handleDelete();
-        return;
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [
-    selected,
-    isComponentMode,
-    id,
-    handleEdit,
-    handleDuplicate,
-    handleCreateComponent,
-    handleDelete,
-  ]);
-
-  // 시각적 피드백 우선순위: tempSelected > selected > dragBox
-  const visualState = React.useMemo(() => {
-    if (isTempSelected) return 'temp-selected';
-    if (selected) return 'selected';
-    if (isInDragBox) return 'drag-box';
-    return 'none';
-  }, [isTempSelected, selected, isInDragBox]);
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selected, isComponentMode, handleKeyDown]);
 
   return (
     <div
       ref={nodeRef}
-      className={`relative flex items-center justify-center ${
-        visualState === 'drag-box' ? 'ring-2 ring-blue-400 bg-blue-50 bg-opacity-30' : ''
-      } ${
-        visualState === 'selected' ? 'ring-2 ring-blue-500 bg-blue-100 bg-opacity-50' : ''
-      } ${
-        visualState === 'temp-selected' ? 'ring-4 ring-blue-600 bg-blue-200 bg-opacity-70 shadow-lg' : ''
-      }`}
-      style={{ width, height }}
+      className="relative flex items-center justify-center"
+      style={{ 
+        width, 
+        height,
+        cursor: draggable ? 'grab' : 'default',
+      }}
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();

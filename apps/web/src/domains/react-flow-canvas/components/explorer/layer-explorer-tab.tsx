@@ -1,9 +1,8 @@
 "use client";
 
 import React from "react";
-import type { Block } from "@/db/schema";
-import { Separator } from "@workspace/ui/components/ui/separator";
 import { Button } from "@workspace/ui/components/ui/button";
+import type { Node } from "@xyflow/react";
 import { Input } from "@workspace/ui/components/ui/input";
 import {
   Tooltip,
@@ -34,10 +33,10 @@ export function LayerExplorerTab() {
   // 검색 필터링
   const filteredBlocks = React.useMemo(() => {
     if (!searchValue) return layerBlocks;
-    return layerBlocks.filter((block) =>
-      block.name.toLowerCase().includes(searchValue.toLowerCase())
+    return layerBlocks.filter((node) =>
+      getName(node).toLowerCase().includes(searchValue.toLowerCase())
     );
-  }, [layerBlocks, searchValue]);
+  }, [layerBlocks, searchValue, getName]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -90,7 +89,7 @@ export function LayerExplorerTab() {
           </div>
         </div>
         <div className="flex-1 min-h-0 z-0 overflow-auto">
-          <ExplorerTree<Block>
+          <ExplorerTree<Node>
             sourceData={filteredBlocks}
             getId={getId}
             getName={getName}

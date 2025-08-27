@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
-import { useUiLayout } from "@/domains/canvas/contexts/UiLayoutContext";
 import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
 import { useOrganizationContext } from "@/domains/dashboard/context/OrganizationCotext";
 import { Button } from "@workspace/ui/components/ui/button";
@@ -30,7 +29,6 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
   const router = useRouter();
   const data = useCanvasData();
   const sel = useCanvasSelection();
-  const ui = useUiLayout();
   const commands = useCanvasCommandsContext();
   const { activeOrganization, orgWorkspaces } = useOrganizationContext();
 

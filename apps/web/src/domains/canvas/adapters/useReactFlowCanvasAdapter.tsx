@@ -86,6 +86,14 @@ export function useReactFlowCanvasAdapter(
     contextId: string | null,
     edges: DbEdge[]
   ) => {
+    console.log("🔄 blockToNodeTransformer called", {
+      contextId,
+      blocksCount: Object.keys(blocksById).length,
+      positionsCount: positions.length,
+      edgesCount: edges.length,
+      timestamp: new Date().toISOString()
+    });
+    
     if (!contextId) return { nodes: [], edges: [] };
 
     // Extract component definitions from all blocks
@@ -138,10 +146,8 @@ export function useReactFlowCanvasAdapter(
             y: Number(p.y_position) || 0,
           },
           data: enhancedData,
-          style:
-            typeof w === "number" && typeof h === "number"
-              ? { width: w, height: h }
-              : undefined,
+          width: w,
+          height: h,
         } as Node;
       })
       .filter(Boolean) as Node[];
@@ -174,6 +180,14 @@ export function useReactFlowCanvasAdapter(
   // 1. React Flow Canvas 상태 변환
   // ============================================================================
   const reactFlowState = useMemo((): ReactFlowCanvasState => {
+    console.log("🔄 useReactFlowCanvasAdapter - reactFlowState recalculating", {
+      blocksCount: Object.keys(domainState.blocksById).length,
+      positionsCount: domainState.positionsArray.length,
+      edgesCount: domainState.edgesArray.length,
+      contextId: domainState.contextId,
+      timestamp: new Date().toISOString()
+    });
+    
     // 블록을 React Flow 노드로 변환
     const { nodes, edges } = blockToNodeTransformer(
       domainState.blocksById,
@@ -181,6 +195,12 @@ export function useReactFlowCanvasAdapter(
       domainState.contextId,
       domainState.edgesArray
     );
+
+    console.log("🔄 useReactFlowCanvasAdapter - transformed nodes/edges", {
+      nodesCount: nodes.length,
+      edgesCount: edges.length,
+      nodeIds: nodes.map(n => n.id)
+    });
 
     return {
       nodes,
@@ -214,63 +234,17 @@ export function useReactFlowCanvasAdapter(
     console.log('Connect end');
   }, []);
 
-  const onNodeDimensionsChange = useCallback((changes: any[]) => {
-    // React Flow 내부에서 상태를 관리하므로 모든 크기 변경을 DB에 저장
-    const sizeUpdates: { id: string; width: number; height: number }[] = [];
-    for (const ch of changes || []) {
-      if (ch?.type !== "dimensions" || !ch?.dimensions) continue;
-      const w = (ch as any).dimensions?.width;
-      const h = (ch as any).dimensions?.height;
-      if (typeof w === "number" && typeof h === "number") {
-        sizeUpdates.push({
-          id: ch.id,
-          width: Math.round(w),
-          height: Math.round(h),
-        });
-      }
-    }
-    if (sizeUpdates.length > 0) {
-      sizeUpdates.forEach(({ id, width, height }) => {
-        domainCommands.updateNodeSize?.(id, { width, height });
-      });
-    }
-  }, [domainCommands.updateNodeSize]);
 
-  const onNodeDataChange = useCallback((changes: any[]) => {
-    const dataUpdates: { id: string; data: Record<string, unknown> }[] = [];
-    for (const ch of changes || []) {
-      if (ch?.type === "data" && ch?.data) {
-        dataUpdates.push({ id: ch.id, data: ch.data });
-      } else if (ch?.type === "replace" && (ch as any).item?.data) {
-        dataUpdates.push({ id: ch.id, data: (ch as any).item.data });
-      }
-    }
-    if (dataUpdates.length > 0) {
-      dataUpdates.forEach(({ id, data: d }) => {
-        domainCommands.updateNodeData?.(id, d);
-      });
-    }
-  }, [domainCommands.updateNodeData]);
 
-  const onNodePositionChange = useCallback((changes: any[]) => {
-    // React Flow 내부에서 상태를 관리하므로 모든 위치 변경을 DB에 저장
-    const posUpdates: { id: string; x: number; y: number }[] = [];
-    for (const ch of changes || []) {
-      if (ch?.type === "position") {
-        const pos = (ch as any).position as { x?: number; y?: number } | undefined;
-        if (pos && typeof pos.x === "number" && typeof pos.y === "number") {
-          if (Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
-            posUpdates.push({ id: ch.id, x: pos.x, y: pos.y });
-          }
-        }
-      }
-    }
-    if (posUpdates.length > 0) {
-      posUpdates.forEach(({ id, x, y }) => {
-        domainCommands.updateNodePosition?.(id, { x, y });
-      });
-    }
-  }, [domainCommands.updateNodePosition]);
+
+  const onNodeDragStop = useCallback(
+    async (node: any, event: React.MouseEvent) => {
+      // 드래그 종료 시 포지션 업데이트
+      console.log('Node drag stopped:', node.id, node.position);
+      await domainCommands.updateNodePosition?.(node.id, node.position);
+    },
+    [domainCommands.updateNodePosition]
+  );
 
   // 이벤트 객체 조합
   const reactFlowEvents = useMemo((): CanvasDomainCallbacks => {
@@ -279,17 +253,13 @@ export function useReactFlowCanvasAdapter(
       onConnect,
       onConnectStart,
       onConnectEnd,
-      onNodeDimensionsChange,
-      onNodeDataChange,
-      onNodePositionChange,
+      onNodeDragStop,
     };
   }, [
     onConnect,
     onConnectStart,
     onConnectEnd,
-    onNodeDimensionsChange,
-    onNodeDataChange,
-    onNodePositionChange,
+    onNodeDragStop,
   ]);
 
   return {
@@ -305,6 +275,13 @@ function buildComponentAwareNodeDefinition(
   block: Block,
   componentDefinitionsById: Record<string, ComponentDefinition>
 ): { nodeType: string; data: Record<string, unknown> } {
+  console.log("🔄 buildComponentAwareNodeDefinition", {
+    blockId: block.id,
+    blockType: block.block_type,
+    nodeUi: (block.metadata as any)?.node_ui,
+    timestamp: new Date().toISOString()
+  });
+  
   // Use the standard node building logic first with component definitions
   const { nodeType, data } = buildNodeDefinition(
     block,

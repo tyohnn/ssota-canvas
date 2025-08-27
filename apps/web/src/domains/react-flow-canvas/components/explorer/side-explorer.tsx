@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import { useUiLayout } from "@/domains/canvas/contexts/UiLayoutContext";
-import { Separator } from "@workspace/ui/components/ui/separator";
+import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
 import {
   Tabs,
   TabsList,
@@ -22,7 +21,7 @@ import { LayerExplorerTab } from "./layer-explorer-tab";
 import { AssetsExplorerTab } from "./assets-explorer-tab";
 
 export function SideExplorer() {
-  const ui = useUiLayout();
+  const panel = usePanel();
   const [isExpanded, setIsExpanded] = React.useState(true);
   const [isHoverExpanded, setIsHoverExpanded] = React.useState(false);
   const [isHoverAreaVisible, setIsHoverAreaVisible] = React.useState(false);
@@ -105,8 +104,8 @@ export function SideExplorer() {
       >
         <div className="w-full h-full bg-background/70 backdrop-blur-md shadow-2xl rounded-lg flex flex-col border border-border/50">
           <Tabs
-            value={ui.activeLeftTab}
-            onValueChange={(value) => ui.setActiveLeftTab(value as any)}
+            value={panel.activeExplorerTab}
+            onValueChange={(value) => panel.setActiveExplorerTab(value as any)}
             className="flex flex-col h-full"
           >
             <div className="px-2 pt-3 pb-1">

@@ -11,6 +11,8 @@ export type PanelState = {
   showBlockInsertPanel: boolean;
   // editor
   showEditorPanel: boolean;
+  // debug
+  showDebugPanel: boolean;
 };
 
 export type PanelAction =
@@ -22,6 +24,9 @@ export type PanelAction =
   // editor
   | { type: "OPEN_EDITOR" }
   | { type: "CLOSE_EDITOR" }
+  // debug
+  | { type: "OPEN_DEBUG" }
+  | { type: "CLOSE_DEBUG" }
   // all
   | { type: "CLOSE_ALL_PANELS" };
 
@@ -29,6 +34,7 @@ const initialState: PanelState = {
   activeExplorerTab: "pages",
   showBlockInsertPanel: false,
   showEditorPanel: false,
+  showDebugPanel: false,
 };
 
 function reducer(state: PanelState, action: PanelAction): PanelState {
@@ -59,11 +65,26 @@ function reducer(state: PanelState, action: PanelAction): PanelState {
         showEditorPanel: false
       };
 
+    case "OPEN_DEBUG":
+      return {
+        ...state,
+        showBlockInsertPanel: false,
+        showEditorPanel: false,
+        showDebugPanel: true,
+      };
+
+    case "CLOSE_DEBUG":
+      return {
+        ...state,
+        showDebugPanel: false
+      };
+
     case "CLOSE_ALL_PANELS":
       return {
         ...state,
         showBlockInsertPanel: false,
         showEditorPanel: false,
+        showDebugPanel: false,
       };
 
     default:
@@ -102,6 +123,14 @@ export function usePanelHandler(initial?: Partial<PanelState>) {
     dispatch({ type: "CLOSE_ALL_PANELS" });
   }, []);
 
+  const openDebugPanel = useCallback(() => {
+    dispatch({ type: "OPEN_DEBUG" });
+  }, []);
+
+  const closeDebugPanel = useCallback(() => {
+    dispatch({ type: "CLOSE_DEBUG" });
+  }, []);
+
   const toggleBlockInsertPanel = useCallback(() => {
     if (state.showBlockInsertPanel) {
       dispatch({ type: "CLOSE_BLOCK_INSERT" });
@@ -118,6 +147,7 @@ export function usePanelHandler(initial?: Partial<PanelState>) {
       activeExplorerTab: state.activeExplorerTab,
       showBlockInsertPanel: state.showBlockInsertPanel,
       showEditorPanel: state.showEditorPanel,
+      showDebugPanel: state.showDebugPanel,
       // actions
       setActiveExplorerTab,
       openBlockInsertPanel,
@@ -125,6 +155,8 @@ export function usePanelHandler(initial?: Partial<PanelState>) {
       toggleBlockInsertPanel,
       openEditorPanel,
       closeEditorPanel,
+      openDebugPanel,
+      closeDebugPanel,
       closeAllPanels,
     }),
     [
@@ -135,6 +167,8 @@ export function usePanelHandler(initial?: Partial<PanelState>) {
       toggleBlockInsertPanel,
       openEditorPanel,
       closeEditorPanel,
+      openDebugPanel,
+      closeDebugPanel,
       closeAllPanels,
     ]
   );

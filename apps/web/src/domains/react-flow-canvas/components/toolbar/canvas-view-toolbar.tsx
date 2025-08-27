@@ -10,8 +10,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@workspace/ui/components/ui/tooltip";
-import { Map } from "lucide-react";
+import { Map, Bug } from "lucide-react";
 import { MiniMap } from "@xyflow/react";
+import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
 
 interface CanvasViewToolbarProps {
   showMiniMap: boolean;
@@ -26,6 +27,7 @@ export function CanvasViewToolbar({
   zoomPercent,
   onZoomPercentChange,
 }: CanvasViewToolbarProps) {
+  const { showDebugPanel, openDebugPanel, closeDebugPanel } = usePanel();
   return (
     <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2">
       {/* MiniMap positioned above the toolbar */}
@@ -53,6 +55,22 @@ export function CanvasViewToolbar({
         </div>
 
         <TooltipProvider>
+          {/* Debug panel toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={showDebugPanel ? "default" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0 rounded-md"
+                onClick={showDebugPanel ? closeDebugPanel : openDebugPanel}
+                aria-label="Toggle Debug Panel"
+              >
+                <Bug className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">Debug Panel</TooltipContent>
+          </Tooltip>
+
           {/* MiniMap toggle - rightmost position */}
           <Tooltip>
             <TooltipTrigger asChild>

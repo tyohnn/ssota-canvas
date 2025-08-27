@@ -258,6 +258,8 @@ export function CanvasRoot({
           setPagePositions={positionsStore.setPagePositions}
           replaceBlockIdInContext={positionsStore.replaceBlockIdInContext}
           setNodeSelection={selectionStore.setNodeSelection}
+          positionsByPage={positionsStore.positionsByPage}
+          removePositionForBlockInContext={positionsStore.removePositionForBlockInContext}
         >
           {children}
         </CanvasCommandsProvider>

@@ -24,24 +24,25 @@ import {
 import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
+import { useControlState, useControlCommands } from "@/domains/react-flow-canvas/contexts/ControlContext";
 
 export type CanvasToolMode = "select" | "hand";
 
 interface CanvasToolbarProps {
-  mode: CanvasToolMode;
-  setMode: (mode: CanvasToolMode) => void;
   onFitToView?: () => void;
 }
 
 export function CanvasToolbar({
-  mode,
-  setMode,
   onFitToView,
 }: CanvasToolbarProps) {
   // Canvas 도메인 컨텍스트 사용
   const panel = usePanel();
   const { pageId } = useCanvasSelection();
   const { blocksById } = useCanvasData();
+  
+  // React Flow Canvas 도메인 컨텍스트 사용
+  const { toolMode } = useControlState();
+  const { setToolMode } = useControlCommands();
   
   // 페이지 선택 상태 계산
   const selectedPageBlock = pageId ? blocksById[pageId] : null;
@@ -81,12 +82,12 @@ export function CanvasToolbar({
       case "KeyV":
         event.preventDefault();
         event.stopPropagation();
-        setMode("select");
+        setToolMode("select");
         break;
       case "KeyH":
         event.preventDefault();
         event.stopPropagation();
-        setMode("hand");
+        setToolMode("hand");
         break;
       case "KeyF":
         event.preventDefault();
@@ -94,7 +95,7 @@ export function CanvasToolbar({
         onFitToView?.();
         break;
     }
-  }, [setMode, onFitToView]);
+  }, [setToolMode, onFitToView]);
 
   React.useEffect(() => {
     const handleKeyDownWrapper = (event: KeyboardEvent) => {
@@ -114,10 +115,10 @@ export function CanvasToolbar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={mode === "select" ? "default" : "ghost"}
+                variant={toolMode === "select" ? "default" : "ghost"}
                 size="sm"
                 className="h-8 w-8 p-0 rounded-md"
-                onClick={() => setMode("select")}
+                onClick={() => setToolMode("select")}
               >
                 <MousePointer className="h-4 w-4" />
               </Button>
@@ -131,10 +132,10 @@ export function CanvasToolbar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={mode === "hand" ? "default" : "ghost"}
+                variant={toolMode === "hand" ? "default" : "ghost"}
                 size="sm"
                 className="h-8 w-8 p-0 rounded-md"
-                onClick={() => setMode("hand")}
+                onClick={() => setToolMode("hand")}
               >
                 <Hand className="h-4 w-4" />
               </Button>

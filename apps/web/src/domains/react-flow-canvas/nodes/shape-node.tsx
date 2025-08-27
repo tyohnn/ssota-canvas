@@ -11,8 +11,8 @@ import type { NodeProps } from "@xyflow/react";
 import { Position, useReactFlow } from "@xyflow/react";
 // import { NodeContextMenu } from "./node-context-menu";
 import { NodeChrome } from "./node-chrome";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
+import { useNodeSelection, useSelectionCommands } from "../contexts/SelectionContext";
 import {
   Popover,
   PopoverContent,
@@ -26,13 +26,16 @@ import {
   type ColorKey,
   type ShapeKey,
 } from "@/domains/canvas/policy/shape-policy";
+import { useShapeNodeUpdater } from "../utils/node-updater";
 
 export type ShapeNodeData = {
   label?: string;
-  color?: ColorKey; // fill color using policy color keys
-  shape?: ShapeKey; // shape using policy shape keys
-  weight?: "normal" | "bold" | "bolder"; // font weight
-  fontSize?: "12px" | "14px" | "16px" | "18px" | "20px"; // font size
+  block?: any; // Block data containing metadata
+  // Legacy properties for backward compatibility (will be removed)
+  color?: ColorKey;
+  shape?: ShapeKey;
+  weight?: "normal" | "bold" | "bolder";
+  fontSize?: "12px" | "14px" | "16px" | "18px" | "20px";
   width?: number;
   height?: number;
 };
@@ -133,25 +136,24 @@ export function ShapeNode({
 }: NodeProps) {
   const d = (data || {}) as ShapeNodeData;
   const rf = useReactFlow();
-  const dataCtx = useCanvasData();
   const commands = useCanvasCommandsContext();
+  const selectionCommands = useSelectionCommands();
+  const { updateColor, updateShape, updateFontSize, updateSize } = useShapeNodeUpdater();
+  
+  // Local state for text editing mode
+  const [isEditing, setIsEditing] = useState(false);
 
-  const getBlockById = useCallback(
-    (blockId: string) => dataCtx.blocksById[blockId],
-    [dataCtx.blocksById]
-  );
-
-  // Get block data and extract metadata
-  const block = getBlockById(id);
+  // Get metadata from block data
+  const block = data?.block as any;
   const metadata = (block?.metadata || {}) as any;
-  const nodeUi = metadata.node_ui || {};
+  const nodeUi = (metadata?.node_ui || {}) as any;
 
   // Extract values from metadata with fallbacks
-  const label = d.label ?? block?.name ?? id;
-  const shape = d.shape ?? nodeUi.shape ?? ShapePolicy.getDefaultShape();
+  const label = d.label ?? data?.name ?? id;
+  const shape = nodeUi?.shape ?? ShapePolicy.getDefaultShape();
 
   // Color handling with validation and HEX mapping
-  const rawColor = d.color ?? nodeUi.color ?? ShapePolicy.getDefaultColor();
+  const rawColor = nodeUi?.color ?? ShapePolicy.getDefaultColor();
   const availableColors = ShapePolicy.getColorOptions().map((c) => c.value);
 
   // If rawColor is a HEX value, map it to closest ColorKey
@@ -165,9 +167,13 @@ export function ShapeNode({
   const [draftLabel, setDraftLabel] = useState(label);
 
   const weight = "bold"; // 항상 bold로 고정
-  const fontSize = d.fontSize ?? nodeUi.fontSize ?? "32px";
-  const width = Math.max(80, (nodeW as number) ?? d.width ?? 160);
-  const height = Math.max(40, (nodeH as number) ?? d.height ?? 64);
+  const fontSize = nodeUi?.fontSize ?? "32px";
+  
+  // React Flow props가 최우선, 그 다음 metadata, 마지막 기본값
+  const width = Math.max(80, (nodeW as number) || nodeUi?.size?.width || 160);
+  const height = Math.max(40, (nodeH as number) || nodeUi?.size?.height || 64);
+  
+
   
   // Shape 노드 패딩
   const padding = 16;
@@ -178,163 +184,222 @@ export function ShapeNode({
 
   const setColor = useCallback(
     async (nextColor: ColorKey) => {
-      // Update UI immediately (optimistic)
-      rf.setNodes((nodes) =>
-        nodes.map((n) =>
-          n.id === id
-            ? { ...n, data: { ...(n.data || {}), color: nextColor } }
-            : n
-        )
-      );
-
+      if (!block) {
+        console.error("Block not found for node:", id);
+        return;
+      }
+      
+      // Optimistic UI update using utility
+      updateColor(id, nextColor);
+      
       // Update block metadata via commands
-      const block = getBlockById(id);
-      if (block) {
-        const metadata = (block.metadata || {}) as any;
-        const nodeUi = metadata.node_ui || {};
-        const updatedMetadata = {
-          ...metadata,
-          node_ui: {
-            ...nodeUi,
-            color: nextColor,
-          },
-        };
+      const metadata = (block?.metadata || {}) as any;
+      const nodeUi = (metadata?.node_ui || {}) as any;
+      const updatedMetadata = {
+        ...metadata,
+        node_ui: {
+          ...nodeUi,
+          color: nextColor,
+        },
+      };
 
-        const result = await commands.updateBlock(block.id, {
-          metadata: updatedMetadata as any,
-        });
+      const result = await commands.updateBlock(id, {
+        metadata: updatedMetadata as any,
+      });
 
-        if (!result.ok) {
-          console.error("Failed to update block color:", result.error);
-        } else {
-          console.log("Successfully updated block color:", {
-            blockId: block.id,
-            color: nextColor,
-          });
-        }
+      if (!result.ok) {
+        console.error("Failed to update block color:", result.error);
       }
     },
-    [id, getBlockById, commands]
+    [id, block, commands, updateColor]
   );
 
   const setLabel = useCallback(
     async (nextLabel: string) => {
+      if (!block) {
+        console.error("Block not found for node:", id);
+        return;
+      }
+      
+      // Optimistic UI update
+      rf.setNodes((nodes) =>
+        nodes.map((n) =>
+          n.id === id
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  label: nextLabel,
+                  block: {
+                    ...(n.data.block as any),
+                    name: nextLabel,
+                  },
+                },
+              }
+            : n
+        )
+      );
+      
       // Update block name via commands
-      const block = getBlockById(id);
-      if (block) {
-        const result = await commands.updateBlock(block.id, {
-          name: nextLabel,
-        });
+      const result = await commands.updateBlock(id, {
+        name: nextLabel,
+      });
 
-        if (!result.ok) {
-          console.error("Failed to update block label:", result.error);
-        }
+      if (!result.ok) {
+        console.error("Failed to update block label:", result.error);
       }
     },
-    [id, getBlockById, commands]
+    [id, block, commands, rf]
   );
 
   const setShape = useCallback(
     async (nextShape: ShapeKey) => {
+      if (!block) {
+        console.error("Block not found for node:", id);
+        return;
+      }
+      
+      // Optimistic UI update using utility
+      updateShape(id, nextShape);
+      
       // Update block metadata via commands
-      const block = getBlockById(id);
-      if (block) {
-        const metadata = (block.metadata || {}) as any;
-        const nodeUi = metadata.node_ui || {};
-        const updatedMetadata = {
-          ...metadata,
-          node_ui: {
-            ...nodeUi,
-            shape: nextShape,
-          },
-        };
+      const metadata = (block?.metadata || {}) as any;
+      const nodeUi = (metadata?.node_ui || {}) as any;
+      const updatedMetadata = {
+        ...metadata,
+        node_ui: {
+          ...nodeUi,
+          shape: nextShape,
+        },
+      };
 
-        const result = await commands.updateBlock(block.id, {
-          metadata: updatedMetadata as any,
-        });
+      const result = await commands.updateBlock(id, {
+        metadata: updatedMetadata as any,
+      });
 
-        if (!result.ok) {
-          console.error("Failed to update block shape:", result.error);
-        }
+      if (!result.ok) {
+        console.error("Failed to update block shape:", result.error);
       }
     },
-    [id, getBlockById, commands]
+    [id, block, commands, updateShape]
   );
 
 
 
   const setFontSize = useCallback(
-    async (nextFontSize: NonNullable<ShapeNodeData["fontSize"]>) => {
+    async (nextFontSize: "24px" | "32px" | "48px") => {
+      if (!block) {
+        console.error("Block not found for node:", id);
+        return;
+      }
+      
+      // Optimistic UI update using utility
+      updateFontSize(id, nextFontSize);
+      
       // Update block metadata via commands
-      const block = getBlockById(id);
-      if (block) {
-        const metadata = (block.metadata || {}) as any;
-        const nodeUi = metadata.node_ui || {};
-        const updatedMetadata = {
-          ...metadata,
-          node_ui: {
-            ...nodeUi,
-            fontSize: nextFontSize,
-          },
-        };
+      const metadata = (block?.metadata || {}) as any;
+      const nodeUi = (metadata?.node_ui || {}) as any;
+      const updatedMetadata = {
+        ...metadata,
+        node_ui: {
+          ...nodeUi,
+          fontSize: nextFontSize,
+        },
+      };
 
-        const result = await commands.updateBlock(block.id, {
-          metadata: updatedMetadata as any,
-        });
+      const result = await commands.updateBlock(id, {
+        metadata: updatedMetadata as any,
+      });
 
-        if (!result.ok) {
-          console.error("Failed to update block fontSize:", result.error);
-        }
+      if (!result.ok) {
+        console.error("Failed to update block fontSize:", result.error);
       }
     },
-    [id, getBlockById, commands]
+    [id, block, commands, updateFontSize]
   );
 
   // Handle node resize to update metadata with debouncing
   const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleResize = useCallback(
-    async (event: any, data: { width: number; height: number }) => {
+    async (event: any, resizeData: { width: number; height: number }) => {
       // Clear existing timeout
       if (resizeTimeoutRef.current) {
         clearTimeout(resizeTimeoutRef.current);
       }
 
+      // Optimistic UI update for resize using utility
+      updateSize(id, {
+        width: resizeData.width,
+        height: resizeData.height,
+      });
+      
       // Debounce the DB update
       resizeTimeoutRef.current = setTimeout(async () => {
+        if (!block) {
+          console.error("Block not found for node:", id);
+          return;
+        }
+        
         // Update block metadata with new size
-        const block = getBlockById(id);
-        if (block) {
-          const metadata = (block.metadata || {}) as any;
-          const nodeUi = metadata.node_ui || {};
-          const updatedMetadata = {
-            ...metadata,
-            node_ui: {
-              ...nodeUi,
-              size: {
-                width: data.width,
-                height: data.height,
-              },
+        const metadata = (block?.metadata || {}) as any;
+        const nodeUi = (metadata?.node_ui || {}) as any;
+        const updatedMetadata = {
+          ...metadata,
+          node_ui: {
+            ...nodeUi,
+            size: {
+              width: resizeData.width,
+              height: resizeData.height,
             },
-          };
+          },
+        };
 
-          const result = await commands.updateBlock(block.id, {
-            metadata: updatedMetadata as any,
-          });
+        const result = await commands.updateBlock(id, {
+          metadata: updatedMetadata as any,
+        });
 
-          if (!result.ok) {
-            console.error("Failed to update block size:", result.error);
-          }
+        if (!result.ok) {
+          console.error("Failed to update block size:", result.error);
         }
       }, 300); // 300ms debounce delay
     },
-    [id, getBlockById, commands]
+    [id, block, commands, rf]
   );
 
   const commitEdit = useCallback(() => {
-    const next = draftLabel.trim();
+    const next = (draftLabel as string).trim();
     if (next.length > 0 && next !== label) setLabel(next);
+    setIsEditing(false);
   }, [draftLabel, setLabel, label]);
+
+  const handleTextAreaClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (selected) {
+      setIsEditing(true);
+    }
+  }, [selected]);
+
+  const handleTextAreaFocus = useCallback(() => {
+    setIsEditing(true);
+  }, []);
+
+  const handleTextAreaBlur = useCallback(() => {
+    setIsEditing(false);
+  }, []);
+
+  const handleEscape = useCallback((e: React.KeyboardEvent) => {
+    e.stopPropagation();
+    if (isEditing) {
+      // 1단계: 편집 모드 해제
+      setIsEditing(false);
+      setDraftLabel(label);
+      (e.target as HTMLTextAreaElement).blur();
+    } else if (selected) {
+      // 2단계: 선택 해제
+      selectionCommands.selectNodes([]);
+    }
+  }, [isEditing, label, selected, selectionCommands]);
 
 
 
@@ -366,6 +431,7 @@ export function ShapeNode({
           align="center"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="flex gap-1">
             {ShapePolicy.getShapeOptions().map((shapeOption) => (
@@ -408,6 +474,7 @@ export function ShapeNode({
           align="center"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="flex gap-1">
             {[
@@ -456,6 +523,7 @@ export function ShapeNode({
           align="center"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="flex gap-1.5">
             {ShapePolicy.getColorOptions().map((colorOption) => (
@@ -491,39 +559,53 @@ export function ShapeNode({
       toolbarItems={toolbarItems}
       resizerColor={ShapePolicy.getBorderColor(color)}
       onResize={handleResize}
+      draggable={!isEditing}
     >
       <Shape
         shape={shape}
         color={color}
         width={width}
         height={height}
-        label={label}
+        label={label as string}
         selected={selected}
       />
 
-      {/* Inline label input - always visible, centered */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <Textarea
-          value={draftLabel}
-          onChange={(e) => setDraftLabel(e.target.value)}
-          onBlur={commitEdit}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) commitEdit();
-            if (e.key === "Escape") {
-              setDraftLabel(label);
-              (e.target as HTMLTextAreaElement).blur();
-            }
-          }}
-          className="pointer-events-auto w-[calc(100%-24px)] resize-none text-center border-0 bg-transparent shadow-none focus-visible:ring-0 placeholder:text-foreground/40"
-          style={{
-            fontSize: fontSize,
-            fontWeight: weight,
-            color: ShapePolicy.getTextColor(color),
-            maxHeight: `${height - padding}px`,
-          }}
-          placeholder="Label"
-        />
+      {/* Inline label - text when not selected, textarea when selected */}
+      <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+        {selected ? (
+          <textarea
+            value={draftLabel as string}
+            onChange={(e) => setDraftLabel(e.target.value)}
+            onBlur={commitEdit}
+            onClick={handleTextAreaClick}
+            onFocus={handleTextAreaFocus}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) commitEdit();
+              if (e.key === "Escape") handleEscape(e);
+            }}
+            className="w-[calc(100%-24px)] resize-none text-center border-0 bg-transparent shadow-none focus-visible:ring-0 placeholder:text-foreground/40 p-3 leading-[1.4] min-h-[1.4em] box-border m-0 outline-none"
+            style={{
+              fontSize: String(fontSize),
+              fontWeight: String(weight),
+              color: ShapePolicy.getTextColor(color),
+              height: `${height - padding}px`,
+            }}
+            placeholder="Label"
+          />
+        ) : (
+          <div
+            className="w-[calc(100%-24px)] text-center select-none whitespace-pre-wrap break-words flex items-center justify-center p-3 leading-[1.4] min-h-[1.4em] box-border m-0"
+            style={{
+              fontSize: String(fontSize),
+              fontWeight: String(weight),
+              color: ShapePolicy.getTextColor(color),
+              height: `${height - padding}px`,
+            }}
+          >
+            {draftLabel as string || "Label"}
+          </div>
+        )}
       </div>
     </NodeChrome>
   );

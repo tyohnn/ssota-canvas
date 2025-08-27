@@ -58,6 +58,14 @@ function selectionReducer(
 ): SelectionState {
   switch (action.type) {
     case 'SET_SELECTED_NODES':
+      console.log('🔄 SelectionContext reducer: SET_SELECTED_NODES', {
+        payload: action.payload,
+        newState: {
+          selectedNodeIds: action.payload,
+          selectedSingleNodeId: action.payload.length === 1 ? action.payload[0] || null : null,
+          nodeSelectionMode: action.payload.length === 0 ? 'none' : action.payload.length === 1 ? 'single' : 'multi',
+        }
+      });
       return {
         ...state,
         selectedNodeIds: action.payload,
@@ -141,6 +149,7 @@ export function SelectionProvider({
   // 선택 명령들
   const commands: SelectionCommands = {
     selectNodes: useCallback((nodeIds: string[]) => {
+      console.log('🎯 SelectionContext.selectNodes called with:', nodeIds);
       dispatch({ type: 'SET_SELECTED_NODES', payload: nodeIds });
     }, []),
 

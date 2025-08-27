@@ -13,8 +13,8 @@ export function SelectionStatus() {
   if (count === 0) return null;
   
   return (
-    <div className="absolute top-4 right-4 z-50 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
-      {count} 노드 선택됨 ({mode})
+    <div className="absolute top-4 right-4 z-50 bg-primary text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+      Selected {count} 
     </div>
   );
 }

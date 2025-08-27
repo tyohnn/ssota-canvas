@@ -4,10 +4,11 @@ import React from "react";
 import {
   ReactFlow,
   Background,
+  SelectionMode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useReactFlowCanvas } from "../contexts/ReactFlowCanvasContext";
-import { SelectionBox } from "./selection-box";
+
 import { useReactFlowHandler } from "../handlers/useReactFlowHandler";
 import { useReactFlowCanvasControl } from "../hooks/useReactFlowCanvasControl";
 import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
@@ -65,9 +66,7 @@ export function ReactFlowCanvas() {
     toolMode,
     setToolMode,
     showMiniMap,
-    setShowMiniMap,
     zoomPercent,
-    setZoomPercent,
     panOnDrag,
     nodesDraggable,
     elementsSelectable,
@@ -77,9 +76,6 @@ export function ReactFlowCanvas() {
     onZoomPercentChange,
     onInit,
     onMove,
-    handlePaneMouseDown,
-    handlePaneMouseMove,
-    handlePaneMouseUp,
     focusOnNode,
   } = useReactFlowCanvasControl({
     // React Flow 설정 전달
@@ -92,76 +88,72 @@ export function ReactFlowCanvas() {
   });
 
   return (
-    <ReactFlow
-      // React Flow Hooks 상태 사용
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
+    <div className={`w-full h-full ${toolMode === "hand" ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}>
+      <ReactFlow
+        // React Flow Hooks 상태 사용
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        
+        // 기본 설정
+        nodeTypes={nodeTypes}
+        fitView={config.fitView ?? true}
+        minZoom={config.minZoom ?? 0.1}
+        maxZoom={config.maxZoom ?? 2}
+        
+        // 상호작용 설정
+        nodesDraggable={nodesDraggable}
+        elementsSelectable={elementsSelectable}
+        selectionOnDrag={selectionOnDrag} // Select 모드일 때만 드래그 선택 활성화
+        selectionMode={"partial" as SelectionMode} // 부분적으로 겹치는 노드도 선택
+        panOnDrag={panOnDrag}
       
-      // 기본 설정
-      nodeTypes={nodeTypes}
-      fitView={config.fitView ?? true}
-      minZoom={config.minZoom ?? 0.1}
-      maxZoom={config.maxZoom ?? 2}
-      
-      // 상호작용 설정
-      nodesDraggable={nodesDraggable}
-      elementsSelectable={elementsSelectable}
-      selectionOnDrag={selectionOnDrag}
-      panOnDrag={panOnDrag as any}
-      
-      // 이벤트 핸들러
-      onInit={onInit}
-      onNodeClick={handlers.onNodeClick}
-      onNodeDoubleClick={handlers.onNodeDoubleClick}
-      onNodeDragStart={handlers.onNodeDragStart}
-      onNodeDragStop={handlers.onNodeDragStop}
-      onEdgeClick={handlers.onEdgeClick}
-      onEdgeDoubleClick={handlers.onEdgeDoubleClick}
-      onPaneClick={handlers.onPaneClick}
-      onNodesDelete={handlers.onNodesDelete}
-      onEdgesDelete={handlers.onEdgesDelete}
-      onConnect={handlers.onConnect}
-      onConnectStart={handlers.onConnectStart}
-      onConnectEnd={handlers.onConnectEnd}
-      onSelectionChange={handlers.onSelectionChange}
-      onMove={onMove}
-      onMouseDown={handlePaneMouseDown}
-      onMouseMove={handlePaneMouseMove}
-      onMouseUp={handlePaneMouseUp}
-    >
-      {/* 선택 박스 UI */}
-      <SelectionBox />
-      
-      {/* 선택된 노드 수 표시 */}
-      <SelectionStatus />
-      
-      {/* Canvas 툴바들 */}
-      {shouldShowCanvasToolbar && (
-        <CanvasToolbar
-          mode={toolMode === 'connect' ? 'select' : toolMode as 'select' | 'hand'}
-          setMode={(mode: 'select' | 'hand') => setToolMode(mode)}
-          onFitToView={handleFitToView}
+        // 이벤트 핸들러
+        onInit={onInit}
+        onNodeClick={handlers.onNodeClick}
+        onNodeDoubleClick={handlers.onNodeDoubleClick}
+        onNodeDragStart={handlers.onNodeDragStart}
+        onNodeDragStop={handlers.onNodeDragStop}
+        onEdgeClick={handlers.onEdgeClick}
+        onEdgeDoubleClick={handlers.onEdgeDoubleClick}
+        onPaneClick={handlers.onPaneClick}
+        onNodesDelete={handlers.onNodesDelete}
+        onEdgesDelete={handlers.onEdgesDelete}
+        onConnect={handlers.onConnect}
+        onConnectStart={handlers.onConnectStart}
+        onConnectEnd={handlers.onConnectEnd}
+        onSelectionChange={handlers.onSelectionChange}
+        onSelectionDragStart={handlers.onSelectionDragStart}
+        onSelectionDrag={handlers.onSelectionDrag}
+        onSelectionDragStop={handlers.onSelectionDragStop}
+        onMove={onMove}
+      >
+        {/* 선택된 노드 수 표시 */}
+        <SelectionStatus />
+        
+        {/* Canvas 툴바들 */}
+        {shouldShowCanvasToolbar && (
+          <CanvasToolbar onFitToView={handleFitToView} />
+        )}
+        {shouldShowComponentToolbar && (
+          <ComponentCanvasToolbar
+            toolMode={toolMode === 'connect' ? 'select' : toolMode as 'select' | 'hand'}
+            setToolMode={(mode: 'select' | 'hand') => setToolMode(mode)}
+            onFitToView={handleFitToView}
+          />
+        )}
+        <CanvasViewToolbar
+          showMiniMap={showMiniMap}
+          toggleMiniMap={toggleMiniMap}
+          zoomPercent={zoomPercent}
+          onZoomPercentChange={onZoomPercentChange}
         />
-      )}
-      {shouldShowComponentToolbar && (
-        <ComponentCanvasToolbar
-          toolMode={toolMode === 'connect' ? 'select' : toolMode as 'select' | 'hand'}
-          setToolMode={(mode: 'select' | 'hand') => setToolMode(mode)}
-          onFitToView={handleFitToView}
-        />
-      )}
-      <CanvasViewToolbar
-        showMiniMap={showMiniMap}
-        toggleMiniMap={toggleMiniMap}
-        zoomPercent={zoomPercent}
-        onZoomPercentChange={onZoomPercentChange}
-      />
-      
-      {/* UI 컴포넌트들 */}
-      {/* {config.showControls && <Controls />} */}
-      {config.showBackground && <Background />}
-    </ReactFlow>
+        
+        {/* UI 컴포넌트들 */}
+        {/* {config.showControls && <Controls />} */}
+        {config.showBackground && <Background />}
+      </ReactFlow>
+    </div>
   );
 }

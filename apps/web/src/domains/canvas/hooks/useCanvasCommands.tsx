@@ -13,7 +13,6 @@ import { restoreBlockPosition as restoreBlockPositionAction } from "@/domains/ca
 import { batchUpdateBlockPositions } from "@/domains/canvas/actions/block-position.action";
 import { isFailure } from "@/lib/action-result";
 import { updateBlock as updateBlockAction } from "@/domains/canvas/actions/block.action";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
 import {
   generateComponentDefinitionTemplate,
@@ -47,6 +46,8 @@ export function useCanvasCommands({
   updateContextPositions,
   replaceBlockIdInContext,
   setNodeSelection,
+  positionsByPage,
+  removePositionForBlockInContext,
 }: {
   workspaceId: string;
   blocksById: Record<string, Block>;
@@ -66,10 +67,11 @@ export function useCanvasCommands({
     toId: string
   ) => void;
   setNodeSelection: (ids: string[]) => void;
+  positionsByPage: Record<string, any>;
+  removePositionForBlockInContext: (contextId: string, blockId: string) => void;
 }) {
-  const data = useCanvasData();
   const sel = useCanvasSelection();
-  const { positionsByPage, removePositionForBlockInContext } = data;
+  // positionsByPage와 removePositionForBlockInContext는 매개변수로 받도록 수정
 
   // Create new page (optimistic → reconcile)
   const createNewPage = useCallback(async (): Promise<CreateStatus> => {
@@ -325,13 +327,13 @@ export function useCanvasCommands({
       }
 
       // 롤백을 위한 원본 상태 저장
-      const originalBlock = { ...block };
+      // const originalBlock = { ...block };
 
-      // 1단계: Optimistic Update (즉시 UI 반영)
-      updateBlock(blockId, {
-        ...updates,
-        updated_at: new Date(),
-      });
+      // // 1단계: Optimistic Update (즉시 UI 반영) - 테스트를 위해 주석 처리
+      // updateBlock(blockId, {
+      //   ...updates,
+      //   updated_at: new Date(),
+      // });
 
       // 2단계: DB 동기화 (백그라운드)
       try {
@@ -353,15 +355,15 @@ export function useCanvasCommands({
 
         if (isFailure(result)) {
           console.error("Failed to update block:", result.error);
-          // 실패 시 Optimistic Update 롤백
-          updateBlock(blockId, originalBlock);
+          // 실패 시 Optimistic Update 롤백 - 테스트를 위해 주석 처리
+          // updateBlock(blockId, originalBlock);
           return { ok: false, error: String(result.error) };
         }
         return { ok: true };
       } catch (error) {
         console.error("Failed to update block in DB:", error);
-        // 에러 시 Optimistic Update 롤백
-        updateBlock(blockId, originalBlock);
+        // 에러 시 Optimistic Update 롤백 - 테스트를 위해 주석 처리
+        // updateBlock(blockId, originalBlock);
         return { ok: false, error: String(error) };
       }
     },
@@ -393,10 +395,10 @@ export function useCanvasCommands({
       const clampedX = Math.max(-10000, Math.min(10000, normalizedX));
       const clampedY = Math.max(-10000, Math.min(10000, normalizedY));
 
-      // 1단계: Optimistic Update (즉시 UI 반영)
-      updateContextPositions(contextId, [
-        { id: nodeId, x: clampedX, y: clampedY },
-      ]);
+      // 1단계: Optimistic Update (즉시 UI 반영) - 테스트를 위해 주석 처리
+      // updateContextPositions(contextId, [
+      //   { id: nodeId, x: clampedX, y: clampedY },
+      // ]);
 
       // 2단계: DB 동기화 (백그라운드)
       try {
@@ -518,7 +520,7 @@ export function useCanvasCommands({
       // 위치 정보도 복제 (오프셋 적용)
       const sourcePositions = positionsByPage[contextId]?.positions || [];
       const sourcePosition = sourcePositions.find(
-        (p) => (p.block_id as string) === blockId
+        (p: any) => (p.block_id as string) === blockId
       );
 
       // 기본 위치 설정 (원본 위치가 없거나 오프셋 적용)

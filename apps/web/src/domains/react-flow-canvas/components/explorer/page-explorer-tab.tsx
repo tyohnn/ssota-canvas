@@ -2,10 +2,7 @@
 
 import React from "react";
 import type { Block } from "@/db/schema";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
 import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
-import { Separator } from "@workspace/ui/components/ui/separator";
 import { Button } from "@workspace/ui/components/ui/button";
 import { Input } from "@workspace/ui/components/ui/input";
 import {
@@ -18,8 +15,6 @@ import ExplorerTree from "@/domains/react-flow-canvas/explorer/explorer-tree";
 import { usePageExplorerTree } from "@/domains/react-flow-canvas/components/explorer/handlers/usePageExplorerTree";
 
 export function PageExplorerTab() {
-  const data = useCanvasData();
-  const sel = useCanvasSelection();
   const commands = useCanvasCommandsContext();
   const [searchValue, setSearchValue] = React.useState("");
 

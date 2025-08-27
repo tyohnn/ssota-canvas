@@ -170,6 +170,8 @@ export type BlockMetadata<T = {}> = DefaultMetadata & T;
 export type NodeDefinition = {
   nodeType: string;
   data: Record<string, unknown>;
+  width?: number;
+  height?: number;
 };
 
 export interface BlockRenderingPolicy {
@@ -192,14 +194,11 @@ class ShapeRenderingPolicy implements BlockRenderingPolicy {
       nodeType: "shape",
       data: {
         label,
-        color: ui.color,
-        shape: ui.shape,
-        width: ui.size?.width,
-        height: ui.size?.height,
-        weight: ui.weight,
-        fontSize: ui.fontSize,
         block,
       },
+      // React Flow의 width/height props로 전달
+      width: ui.size?.width,
+      height: ui.size?.height,
     };
   }
 }
@@ -219,13 +218,10 @@ class BasicTextRenderingPolicy implements BlockRenderingPolicy {
       nodeType: "basic_text",
       data: {
         label,
-        color: ui.color,
-        width: ui.size?.width,
-        height: ui.size?.height,
-        weight: ui.weight,
-        fontSize: ui.fontSize,
         block,
       },
+      width: ui.size?.width,
+      height: ui.size?.height,
     };
   }
 }
@@ -238,7 +234,6 @@ class ImageRenderingPolicy implements BlockRenderingPolicy {
   }
   buildNode(block: Block): NodeDefinition {
     const md = (block.metadata || {}) as Record<string, any>;
-    const ui = (md.node_ui || {}) as Record<string, any>;
     const label =
       (block as any).name || (block as any).slug || (block.id as string);
     return {
@@ -247,8 +242,6 @@ class ImageRenderingPolicy implements BlockRenderingPolicy {
         label,
         src: md.image?.src || md.src,
         alt: md.image?.alt || label,
-        width: ui?.size?.width,
-        height: ui?.size?.height,
         block,
       },
     };
@@ -262,7 +255,6 @@ class WebViewRenderingPolicy implements BlockRenderingPolicy {
   }
   buildNode(block: Block): NodeDefinition {
     const md = (block.metadata || {}) as Record<string, any>;
-    const ui = (md.node_ui || {}) as Record<string, any>;
     const label =
       (block as any).name || (block as any).slug || (block.id as string);
     return {
@@ -270,8 +262,6 @@ class WebViewRenderingPolicy implements BlockRenderingPolicy {
       data: {
         label,
         url: md.webview?.url || md.url,
-        width: ui?.size?.width,
-        height: ui?.size?.height,
         block,
       },
     };
@@ -284,7 +274,6 @@ class TwitterPreviewRenderingPolicy implements BlockRenderingPolicy {
   }
   buildNode(block: Block): NodeDefinition {
     const md = (block.metadata || {}) as TwitterPreviewMetadata;
-    const ui = (md.node_ui || {}) as TwitterPreviewNodeUI;
     const label = block.name || block.slug || block.id;
     const tw = md.twitter || {};
     return {
@@ -295,8 +284,6 @@ class TwitterPreviewRenderingPolicy implements BlockRenderingPolicy {
         title: tw.title,
         description: tw.description,
         html: (tw as any)?.html,
-        width: ui?.size?.width,
-        height: ui?.size?.height,
         block,
       },
     };
@@ -309,7 +296,6 @@ class VideoRenderingPolicy implements BlockRenderingPolicy {
   }
   buildNode(block: Block): NodeDefinition {
     const md = (block.metadata || {}) as VideoMetadata;
-    const ui = (md.node_ui || {}) as VideoNodeUI;
     const vd = (md.video || {}) as Record<string, any>;
     const label =
       (block as any).name || (block as any).slug || (block.id as string);
@@ -322,8 +308,6 @@ class VideoRenderingPolicy implements BlockRenderingPolicy {
         loop: vd.loop,
         muted: vd.muted,
         controls: vd.controls,
-        width: ui?.size?.width,
-        height: ui?.size?.height,
         block,
       },
     };
@@ -337,7 +321,6 @@ class MathFormulaRenderingPolicy implements BlockRenderingPolicy {
   }
   buildNode(block: Block): NodeDefinition {
     const md = (block.metadata || {}) as Record<string, any>;
-    const ui = (md.node_ui || {}) as Record<string, any>;
     const label =
       (block as any).name || (block as any).slug || (block.id as string);
     return {
@@ -346,8 +329,6 @@ class MathFormulaRenderingPolicy implements BlockRenderingPolicy {
         label,
         latex: md.math?.latex,
         displayMode: md.math?.displayMode,
-        width: ui?.size?.width,
-        height: ui?.size?.height,
         block,
       },
     };
@@ -361,7 +342,6 @@ class FileRenderingPolicy implements BlockRenderingPolicy {
   }
   buildNode(block: Block): NodeDefinition {
     const md = (block.metadata || {}) as Record<string, any>;
-    const ui = (md.node_ui || {}) as Record<string, any>;
     const label =
       (block as any).name || (block as any).slug || (block.id as string);
     return {
@@ -370,8 +350,6 @@ class FileRenderingPolicy implements BlockRenderingPolicy {
         label,
         name: md.file?.name || label,
         url: md.file?.url,
-        width: ui?.size?.width,
-        height: ui?.size?.height,
         block,
       },
     };
@@ -428,16 +406,6 @@ export function buildNodeDefinition(
     // Apply resolved style to node data
     const enhancedData = {
       ...baseNode.data,
-      // Apply size from resolved style
-      width: (resolvedStyle as any)?.size?.width || baseNode.data.width,
-      height: (resolvedStyle as any)?.size?.height || baseNode.data.height,
-      // Apply color from resolved style
-      color: (resolvedStyle as any)?.color || baseNode.data.color,
-      // Apply shape from resolved style (for shape nodes)
-      shape: (resolvedStyle as any)?.shape || baseNode.data.shape,
-      // Apply other style properties
-      weight: (resolvedStyle as any)?.weight || baseNode.data.weight,
-      fontSize: (resolvedStyle as any)?.fontSize || baseNode.data.fontSize,
       // Mark as component instance
       __isComponentInstance: true,
       __componentId: block.metadata.component_id,
@@ -448,6 +416,9 @@ export function buildNodeDefinition(
     return {
       ...baseNode,
       data: enhancedData,
+      // Apply size from resolved style
+      width: (resolvedStyle as any)?.size?.width || baseNode.width,
+      height: (resolvedStyle as any)?.size?.height || baseNode.height,
     };
   }
 

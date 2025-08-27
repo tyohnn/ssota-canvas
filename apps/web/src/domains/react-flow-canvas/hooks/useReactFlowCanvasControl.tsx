@@ -2,10 +2,12 @@
 
 import React from "react";
 import type { ReactFlowInstance, Node } from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
 import { useReactFlowCanvas } from "../contexts/ReactFlowCanvasContext";
 import { useControlState, useControlCommands } from "../contexts/ControlContext";
 import { useSelectionState, useSelectionCommands } from "../contexts/SelectionContext";
 import type { ReactFlowCanvasConfig } from "../types/react-flow-types";
+import { updateNodesSelection } from "../utils/node-updater";
 
 export interface UseReactFlowCanvasControlOptions {
   // React Flow 설정
@@ -39,11 +41,6 @@ export interface UseReactFlowCanvasControlResult {
   // React Flow event handlers
   onInit: (inst: ReactFlowInstance) => void;
   onMove: (event: any, viewport: any) => void;
-
-  // 드래그 선택 이벤트 핸들러들
-  handlePaneMouseDown: (event: React.MouseEvent) => void;
-  handlePaneMouseMove: (event: React.MouseEvent) => void;
-  handlePaneMouseUp: (event: React.MouseEvent) => void;
   
   // 노드 포커싱 함수
   focusOnNode: (nodeId: string) => void;
@@ -52,20 +49,21 @@ export interface UseReactFlowCanvasControlResult {
 export function useReactFlowCanvasControl(
   options: UseReactFlowCanvasControlOptions = {}
 ): UseReactFlowCanvasControlResult {
-  const { rfInstance, setRfInstance, nodes } = useReactFlowCanvas();
+  const { rfInstance, setRfInstance, nodes, domainCallbacks } = useReactFlowCanvas();
+  const rf = useReactFlow();
   const { toolMode, showMiniMap, zoomPercent } = useControlState();
   const { setToolMode, setShowMiniMap, setZoomPercent } = useControlCommands();
-  const { selectedNodeIds, dragSelection } = useSelectionState();
-  const { selectNodes, setDragSelection } = useSelectionCommands();
+  const { selectedNodeIds } = useSelectionState();
+  const { clearSelection, selectNodes } = useSelectionCommands();
   const {
     config,
   } = options;
 
   // React Flow interaction flags based on tool mode and config
-  const panOnDrag = config?.panOnDrag || (toolMode === "hand" ? [0, 1, 2] : [1, 2]);
-  const nodesDraggable = config?.nodesDraggable ?? (toolMode !== "hand");
-  const elementsSelectable = config?.elementsSelectable ?? (toolMode !== "hand");
-  const selectionOnDrag = config?.selectionOnDrag ?? false;
+  const panOnDrag = toolMode === "hand" ? [0, 1, 2] : [1, 2]; // Hand 모드일 때 모든 마우스 버튼으로 pan 가능
+  const nodesDraggable = toolMode !== "hand"; // Hand 모드일 때 노드 드래그 비활성화
+  const elementsSelectable = toolMode !== "hand"; // Hand 모드일 때 선택 비활성화
+  const selectionOnDrag = toolMode === "select"; // Select 모드일 때만 드래그 선택 활성화
 
   // Fit to view handlers
   const handleFitToView = React.useCallback(() => {
@@ -231,98 +229,7 @@ export function useReactFlowCanvasControl(
     } catch {}
   }, [zoomPercent, setZoomPercent]);
 
-  // 드래그 선택 이벤트 핸들러들
-  const handlePaneMouseDown = React.useCallback(
-    (event: React.MouseEvent) => {
-      // 드래그 선택 시작
-      setDragSelection({
-        isDragging: true,
-        selectionBox: {
-          start: { x: event.clientX, y: event.clientY },
-          current: { x: event.clientX, y: event.clientY },
-        },
-        isCtrlPressed: event.ctrlKey || event.metaKey,
-        tempSelectedIds: [],
-      });
-    },
-    [setDragSelection]
-  );
 
-  const handlePaneMouseMove = React.useCallback(
-    (event: React.MouseEvent) => {
-      if (dragSelection?.isDragging && dragSelection?.selectionBox) {
-        // 드래그 선택 업데이트
-        setDragSelection({
-          selectionBox: {
-            ...dragSelection.selectionBox,
-            current: { x: event.clientX, y: event.clientY },
-          },
-        });
-        
-        // 선택 박스 내의 노드들을 계산
-        const selectionBox = dragSelection.selectionBox;
-        const tempSelectedIds = nodes
-          .filter((node: any) => {
-            const nodeRect = {
-              left: node.position.x,
-              top: node.position.y,
-              right: node.position.x + ((node.data as any)?.width || 150),
-              bottom: node.position.y + ((node.data as any)?.height || 100),
-            };
-            
-            const boxRect = {
-              left: Math.min(selectionBox.start.x, selectionBox.current.x),
-              top: Math.min(selectionBox.start.y, selectionBox.current.y),
-              right: Math.max(selectionBox.start.x, selectionBox.current.x),
-              bottom: Math.max(selectionBox.start.y, selectionBox.current.y),
-            };
-            
-            return (
-              nodeRect.left < boxRect.right &&
-              nodeRect.right > boxRect.left &&
-              nodeRect.top < boxRect.bottom &&
-              nodeRect.bottom > boxRect.top
-            );
-          })
-          .map((node: any) => node.id);
-        
-        setDragSelection({ tempSelectedIds });
-      }
-    },
-    [dragSelection, nodes, setDragSelection]
-  );
-
-  const handlePaneMouseUp = React.useCallback(
-    (event: React.MouseEvent) => {
-      // 드래그 선택 완료 시 실제 선택 로직 처리
-      if (dragSelection?.isDragging && dragSelection?.selectionBox) {
-        const tempSelectedIds = dragSelection.tempSelectedIds || [];
-        
-        if (tempSelectedIds.length > 0) {
-          let newSelectedIds: string[];
-          
-          if (dragSelection?.isCtrlPressed) {
-            // Ctrl/Cmd 키가 눌려있으면 기존 선택에 추가
-            newSelectedIds = [...new Set([...selectedNodeIds, ...tempSelectedIds])];
-          } else {
-            // Ctrl/Cmd 키가 눌려있지 않으면 기존 선택을 교체
-            newSelectedIds = tempSelectedIds;
-          }
-          
-          // 선택 업데이트
-          selectNodes(newSelectedIds);
-        }
-        
-        // 드래그 선택 상태 초기화
-        setDragSelection({
-          isDragging: false,
-          selectionBox: null,
-          tempSelectedIds: [],
-        });
-      }
-    },
-    [dragSelection, selectedNodeIds, selectNodes, setDragSelection]
-  );
 
   return {
     // Tool mode state
@@ -351,11 +258,6 @@ export function useReactFlowCanvasControl(
     // React Flow event handlers
     onInit,
     onMove,
-
-    // 드래그 선택 이벤트 핸들러들
-    handlePaneMouseDown,
-    handlePaneMouseMove,
-    handlePaneMouseUp,
     
     // 노드 포커싱 함수
     focusOnNode,

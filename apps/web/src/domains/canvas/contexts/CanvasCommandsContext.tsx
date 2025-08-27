@@ -29,6 +29,8 @@ export function CanvasCommandsProvider({
   updateContextPositions,
   replaceBlockIdInContext,
   setNodeSelection,
+  positionsByPage,
+  removePositionForBlockInContext,
   children,
 }: {
   workspaceId: string;
@@ -49,6 +51,8 @@ export function CanvasCommandsProvider({
     toId: string
   ) => void;
   setNodeSelection: (ids: string[]) => void;
+  positionsByPage: Record<string, any>;
+  removePositionForBlockInContext: (contextId: string, blockId: string) => void;
   children: React.ReactNode;
 }) {
   const commands = useCanvasCommands({
@@ -63,6 +67,8 @@ export function CanvasCommandsProvider({
     updateContextPositions,
     replaceBlockIdInContext,
     setNodeSelection,
+    positionsByPage,
+    removePositionForBlockInContext,
   });
 
   return (

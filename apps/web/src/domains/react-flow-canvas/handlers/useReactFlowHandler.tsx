@@ -15,7 +15,7 @@ export type UseReactFlowHandlerResult = {
   onEdgesChange: (changes: any[]) => void;
   onNodeClick: (evt: React.MouseEvent, node: ReactFlowNode) => void;
   onEdgeClick: (evt: React.MouseEvent, edge: ReactFlowEdge) => void;
-  onPaneClick: () => void;
+  onPaneClick: (event: React.MouseEvent) => void;
   onConnect: OnConnect;
   onNodeDragStart: (event: React.MouseEvent, node: ReactFlowNode) => void;
   onNodeDragStop: (evt: React.MouseEvent, node: ReactFlowNode) => void;
@@ -26,6 +26,9 @@ export type UseReactFlowHandlerResult = {
   onConnectStart: () => void;
   onConnectEnd: () => void;
   onSelectionChange: (params: { nodes: ReactFlowNode[]; edges: ReactFlowEdge[] }) => void;
+  onSelectionDragStart: (event: React.MouseEvent) => void;
+  onSelectionDrag: (event: React.MouseEvent) => void;
+  onSelectionDragStop: (event: React.MouseEvent) => void;
 };
 
 export interface UseReactFlowHandlerOptions {
@@ -38,60 +41,47 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
   const { selectedNodeIds } = useSelectionState();
   const { focusOnNode } = options;
   
-  // 노드 클릭: Optimistic UI + Canvas 도메인 콜백
+  // 노드 클릭: React Flow 내장 선택 처리 + Canvas 도메인 콜백
   const onNodeClick = useCallback(
     (evt: React.MouseEvent, node: ReactFlowNode) => {
       evt.preventDefault();
       evt.stopPropagation();
       
-      // Ctrl/Cmd 키 확인 (Mac에서는 metaKey, 다른 OS에서는 ctrlKey)
-      const isMultiSelect = evt.metaKey || evt.ctrlKey;
+      console.log('🖱️ Node clicked:', { nodeId: node.id });
       
-      let newSelectedIds: string[];
+      // React Flow가 자동으로 선택 상태를 처리하므로 추가 로직 불필요
+      // onSelectionChange에서 SelectionContext와 동기화됨
       
-      if (isMultiSelect) {
-        // Ctrl/Cmd 키가 눌려있으면 다중 선택 처리
-        if (selectedNodeIds.includes(node.id)) {
-          // 이미 선택된 노드면 선택 해제
-          newSelectedIds = selectedNodeIds.filter(id => id !== node.id);
-        } else {
-          // 선택되지 않은 노드면 추가
-          newSelectedIds = [...selectedNodeIds, node.id];
-        }
-      } else {
-        // Ctrl/Cmd 키가 눌려있지 않으면 단일 선택
-        newSelectedIds = [node.id];
-      }
-      
-      // 1️⃣ Optimistic UI: RF 노드 선택 상태 즉시 업데이트
-      selectNodes(newSelectedIds);
-      
-      // 2️⃣ Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
+      // Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
       domainCallbacks.onNodeClick?.(node, evt);
     },
-    [domainCallbacks, selectNodes, selectedNodeIds, focusOnNode]
+    [domainCallbacks, focusOnNode]
   );
 
-  // 엣지 클릭: Optimistic UI + Canvas 도메인 콜백
+  // 엣지 클릭: React Flow 내장 선택 처리 + Canvas 도메인 콜백
   const onEdgeClick = useCallback(
     (evt: React.MouseEvent, edge: ReactFlowEdge) => {
-      // 1️⃣ Optimistic UI: RF 엣지 선택 상태 즉시 업데이트
-      selectEdges([edge.id]);
+      console.log('🖱️ Edge clicked:', { edgeId: edge.id });
       
-      // 2️⃣ Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
+      // React Flow가 자동으로 선택 상태를 처리하므로 추가 로직 불필요
+      // onSelectionChange에서 SelectionContext와 동기화됨
+      
+      // Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
       domainCallbacks.onEdgeClick?.(edge, evt);
     },
-    [domainCallbacks, selectEdges]
+    [domainCallbacks]
   );
 
-  // 캔버스 클릭: Optimistic UI + Canvas 도메인 콜백
-  const onPaneClick = useCallback(() => {
-    // 1️⃣ Optimistic UI: RF 선택 상태 즉시 해제
-    clearSelection();
+  // 캔버스 클릭: React Flow 내장 선택 처리 + Canvas 도메인 콜백
+  const onPaneClick = useCallback((event: React.MouseEvent) => {
+    console.log('🖱️ Pane clicked - clearing selection');
     
-    // 2️⃣ Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
-    domainCallbacks.onPaneClick?.(new MouseEvent('click') as any);
-  }, [domainCallbacks, clearSelection]);
+    // React Flow가 자동으로 선택 해제를 처리하므로 추가 로직 불필요
+    // onSelectionChange에서 SelectionContext와 동기화됨
+    
+    // Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
+    domainCallbacks.onPaneClick?.(event);
+  }, [domainCallbacks]);
 
   // 노드 연결: Optimistic UI + Canvas 도메인 콜백
   const onConnect = useCallback<OnConnect>((connection: Connection) => {
@@ -110,16 +100,16 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
     domainCallbacks.onConnect?.(connection);
   }, [domainCallbacks]);
 
-  // 노드 드래그 시작: Optimistic UI + Canvas 도메인 콜백
+  // 노드 드래그 시작: React Flow 내장 선택 처리 + Canvas 도메인 콜백
   const onNodeDragStart = useCallback((event: React.MouseEvent, node: ReactFlowNode) => {
-    // 1️⃣ Optimistic UI: RF 노드 선택 상태 즉시 업데이트
-    if (!selectedNodeIds.includes(node.id)) {
-      selectNodes([node.id]);
-    }
+    console.log('🖱️ Node drag started:', { nodeId: node.id });
     
-    // 2️⃣ Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
+    // React Flow가 자동으로 선택 상태를 처리하므로 추가 로직 불필요
+    // onSelectionChange에서 SelectionContext와 동기화됨
+    
+    // Canvas 도메인 콜백 실행 (SSOT/DB 업데이트)
     domainCallbacks.onNodeDragStart?.(node, event);
-      }, [domainCallbacks, commands, selectedNodeIds]);
+  }, [domainCallbacks, commands]);
 
   // 노드 드래그 종료: Optimistic UI + Canvas 도메인 콜백
   const onNodeDragStop = useCallback(
@@ -196,12 +186,14 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
     domainCallbacks.onConnectEnd?.(new MouseEvent('connectend') as any);
   }, [domainCallbacks]);
 
-  // 선택 변경: SelectionContext 상태 업데이트
+  // 선택 변경: React Flow 내장 이벤트를 사용하여 SelectionContext 동기화
   const onSelectionChange = useCallback(
     ({ nodes, edges }: { nodes: ReactFlowNode[]; edges: ReactFlowEdge[] }) => {
-      // 선택된 노드 ID들 추출
+      // React Flow의 내장 선택 상태를 SelectionContext와 동기화
       const selectedNodeIds = nodes.map(node => node.id);
       const selectedEdgeIds = edges.map(edge => edge.id);
+      
+      console.log('🔄 React Flow selection changed:', { selectedNodeIds, selectedEdgeIds });
       
       // SelectionContext 상태 업데이트
       if (selectedNodeIds.length > 0 || selectedEdgeIds.length > 0) {
@@ -212,6 +204,32 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
       }
     },
     [selectNodes, selectEdges, clearSelection]
+  );
+
+  // 드래그 선택 시작: React Flow 내장 이벤트
+  const onSelectionDragStart = useCallback(
+    (event: React.MouseEvent) => {
+      console.log('🎯 Selection drag started');
+      // React Flow가 자동으로 처리하므로 추가 로직 불필요
+    },
+    []
+  );
+
+  // 드래그 선택 중: React Flow 내장 이벤트
+  const onSelectionDrag = useCallback(
+    (event: React.MouseEvent) => {
+      // React Flow가 자동으로 처리하므로 추가 로직 불필요
+    },
+    []
+  );
+
+  // 드래그 선택 종료: React Flow 내장 이벤트
+  const onSelectionDragStop = useCallback(
+    (event: React.MouseEvent) => {
+      console.log('✅ Selection drag stopped');
+      // React Flow가 자동으로 처리하므로 추가 로직 불필요
+    },
+    []
   );
 
   // 노드 변경: React Flow 내부 처리 (ReactFlowCanvasCommands에서 처리)
@@ -249,6 +267,9 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
       onConnectStart,
       onConnectEnd,
       onSelectionChange,
+      onSelectionDragStart,
+      onSelectionDrag,
+      onSelectionDragStop,
     }),
     [
       onNodesChange,
@@ -266,6 +287,9 @@ export function useReactFlowHandler(options: UseReactFlowHandlerOptions = {}): U
       onConnectStart,
       onConnectEnd,
       onSelectionChange,
+      onSelectionDragStart,
+      onSelectionDrag,
+      onSelectionDragStop,
     ]
   );
 

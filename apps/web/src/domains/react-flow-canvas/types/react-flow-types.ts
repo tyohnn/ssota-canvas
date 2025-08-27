@@ -68,11 +68,6 @@ export interface CanvasDomainCallbacks {
   onZoomStart?: (event: any, viewport: any) => void;
   onZoomEnd?: (event: any, viewport: any) => void;
   
-  // 노드 변경 이벤트 (Canvas 도메인 동기화용)
-  onNodeDimensionsChange?: (changes: any[]) => void;
-  onNodeDataChange?: (changes: any[]) => void;
-  onNodePositionChange?: (changes: any[]) => void;
-  
   // 키보드 이벤트
   onEscape?: () => void;
   onClearSelection?: () => void;

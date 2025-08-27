@@ -2,8 +2,8 @@
 
 import React from "react";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useUiLayout } from "@/domains/canvas/contexts/UiLayoutContext";
 import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
+import { useSelectionState } from "@/domains/react-flow-canvas/contexts/SelectionContext";
 import {
   getMergedFields,
   separateFieldsByType,
@@ -26,10 +26,11 @@ interface StyleSectionProps {
 
 export function StyleSection({ className }: StyleSectionProps) {
   const { blocksById, getComponentDefinitionById } = useCanvasData();
-  const { selectedBlockIdForEditor } = useUiLayout();
   const { resetInstanceStyle } = useCanvasCommandsContext();
+  const { selectedNodeIds } = useSelectionState();
 
-  const activeBlockId = selectedBlockIdForEditor;
+  // React Flow에서 선택된 노드 ID를 사용하거나, 에디터 패널에서 선택된 블록 ID 사용
+  const activeBlockId = selectedNodeIds.length > 0 ? selectedNodeIds[0] : null;
   const block = activeBlockId ? blocksById[activeBlockId] : null;
 
   // 컴포넌트 정보 확인
