@@ -17,7 +17,7 @@ import {
   FileText,
   Plus,
 } from "lucide-react";
-import { useViewContext } from "@/domains/canvas/contexts/ViewContext";
+import { useViewContext } from "@/domains/canvas/contexts/CanvasViewContext";
 
 type IconType = typeof Layout;
 

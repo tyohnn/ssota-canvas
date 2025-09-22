@@ -10,20 +10,13 @@ import {
   SelectContent,
   SelectItem,
 } from "@workspace/ui/components/ui/select";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type { Block } from "@/db/schema";
-import { getValue } from "../object-path";
-import { useBlockPropertyUpdate } from "../useBlockPropertyUpdate";
+import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
 import {
   ShapePolicy,
   type ShapeKey,
-} from "@/domains/canvas/policy/shape-policy";
-import { RotateCcw } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@workspace/ui/components/ui/tooltip";
+} from "@/domains/blocks/policy/shape-policy";
+import { SchemaField } from "@/domains/blocks/types/common.node";
+import { Node } from "@xyflow/react";
 
 const defaultShapes = ShapePolicy.getShapeOptions();
 
@@ -42,25 +35,17 @@ const ShapeIcon = ({
 };
 
 export function ShapeProperty({
-  block,
+  value,
   field,
-  isOverridden = false,
-  effectiveValue,
-  onReset,
+  node,
 }: {
-  block: Block;
-  field: EditorField;
-  isOverridden?: boolean;
-  effectiveValue?: any;
-  onReset?: () => void;
+  value: string;
+  field: SchemaField;
+  node: Node;
 }) {
-  const { updateMetadata } = useBlockPropertyUpdate(block);
+  const { updateField } = useNodeFieldUpdate();
   const [isEditing, setIsEditing] = useState(false);
-
-  const value =
-    (effectiveValue !== undefined
-      ? effectiveValue
-      : getValue(block?.metadata || {}, field.path)) ?? ("rect" as string);
+  
   const options =
     field.options && field.options.length > 0 ? field.options : defaultShapes;
 
@@ -76,7 +61,7 @@ export function ShapeProperty({
   const handleSelectChange = (newValue: string) => {
     setIsEditing(false);
     if (newValue !== value) {
-      updateMetadata(field.path, newValue);
+      updateField(node, field.path, newValue);
     }
   };
 
@@ -116,23 +101,6 @@ export function ShapeProperty({
             ))}
           </SelectContent>
         </Select>
-        {isOverridden && onReset && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 hover:bg-orange-100"
-                onClick={onReset}
-              >
-                <RotateCcw className="h-3 w-3 text-orange-600" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Reset to component definition</p>
-            </TooltipContent>
-          </Tooltip>
-        )}
       </div>
     );
   }
@@ -141,7 +109,7 @@ export function ShapeProperty({
     <div className="flex items-center gap-1">
       <Button
         variant="ghost"
-        className={`flex-1 h-7 px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50 ${isOverridden ? "border-orange-200 bg-orange-50" : ""}`}
+        className={`flex-1 h-7 px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50`}
         onClick={handleLabelClick}
       >
         <Badge className={`gap-1.5 h-5 ${currentColor} ${currentTextColor}`}>
@@ -151,23 +119,6 @@ export function ShapeProperty({
           </span>
         </Badge>
       </Button>
-      {isOverridden && onReset && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 hover:bg-orange-100"
-              onClick={onReset}
-            >
-              <RotateCcw className="h-3 w-3 text-orange-600" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Reset to component definition</p>
-          </TooltipContent>
-        </Tooltip>
-      )}
     </div>
   );
 }

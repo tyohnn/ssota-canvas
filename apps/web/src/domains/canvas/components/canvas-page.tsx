@@ -5,9 +5,8 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@workspace/ui/components/ui/resizable";
-import { ViewProvider } from "@/domains/canvas/contexts/ViewContext";
+import { ViewProvider } from "@/domains/canvas/contexts/CanvasViewContext";
 import { ViewRenderer } from "@/domains/canvas/components/canvas/view-renderer";
-import { BlockInsertPanel } from "@/domains/react-flow-canvas/components/block-insert-panel";
 import { CanvasHeader } from "@/domains/canvas/components/canvas/canvas-header";
 
 interface CanvasPageContentProps {

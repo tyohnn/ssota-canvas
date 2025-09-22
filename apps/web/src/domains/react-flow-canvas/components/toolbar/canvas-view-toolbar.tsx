@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { useReactFlow } from "@xyflow/react";
 import { Button } from "@workspace/ui/components/ui/button";
 import { Label } from "@workspace/ui/components/ui/label";
 import { Slider } from "@workspace/ui/components/ui/slider";
@@ -13,21 +14,39 @@ import {
 import { Map, Bug } from "lucide-react";
 import { MiniMap } from "@xyflow/react";
 import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
+import { useControlState, useControlCommands } from "@/domains/react-flow-canvas/contexts/ControlContext";
 
-interface CanvasViewToolbarProps {
-  showMiniMap: boolean;
-  toggleMiniMap: () => void;
-  zoomPercent: number; // 10 - 200
-  onZoomPercentChange: (percent: number) => void;
-}
-
-export function CanvasViewToolbar({
-  showMiniMap,
-  toggleMiniMap,
-  zoomPercent,
-  onZoomPercentChange,
-}: CanvasViewToolbarProps) {
+export function CanvasViewToolbar() {
+  const reactFlow = useReactFlow();
+  const { showMiniMap } = useControlState();
+  const { setShowMiniMap } = useControlCommands();
   const { showDebugPanel, openDebugPanel, closeDebugPanel } = usePanel();
+  
+  const [zoomPercent, setZoomPercent] = useState(100);
+
+  // 현재 줌 레벨을 퍼센트로 변환
+  const updateZoomPercent = useCallback(() => {
+    const currentZoom = reactFlow.getZoom();
+    setZoomPercent(Math.round(currentZoom * 100));
+  }, [reactFlow]);
+
+  // 줌 레벨 변경 시 퍼센트 업데이트
+  useEffect(() => {
+    updateZoomPercent();
+  }, [updateZoomPercent]);
+
+  // 슬라이더로 줌 변경
+  const handleZoomChange = useCallback((percent: number) => {
+    const zoomLevel = percent / 100;
+    reactFlow.zoomTo(zoomLevel, { duration: 200 });
+    setZoomPercent(percent);
+  }, [reactFlow]);
+
+  // 미니맵 토글
+  const toggleMiniMap = useCallback(() => {
+    setShowMiniMap(!showMiniMap);
+  }, [showMiniMap, setShowMiniMap]);
+
   return (
     <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2">
       {/* MiniMap positioned above the toolbar */}
@@ -44,7 +63,7 @@ export function CanvasViewToolbar({
             <Slider
               className="grow"
               value={[zoomPercent]}
-              onValueChange={(value) => onZoomPercentChange(value[0] as number)}
+              onValueChange={(value) => handleZoomChange(value[0] as number)}
               min={10}
               max={200}
               step={5}

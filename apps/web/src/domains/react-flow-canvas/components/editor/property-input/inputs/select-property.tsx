@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Node } from "@xyflow/react";
 import { Button } from "@workspace/ui/components/ui/button";
 import { Badge } from "@workspace/ui/components/ui/badge";
 import {
@@ -10,14 +11,12 @@ import {
   SelectContent,
   SelectItem,
 } from "@workspace/ui/components/ui/select";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type { Block } from "@/db/schema";
-import { getValue } from "../object-path";
-import { useBlockPropertyUpdate } from "../useBlockPropertyUpdate";
 import {
   ShapePolicy,
   type ColorKey,
-} from "@/domains/canvas/policy/shape-policy";
+} from "@/domains/blocks/policy/shape-policy";
+import { SchemaField } from "@/domains/blocks/types/common.node";
+import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
 
 const getBadgeStyle = (color: string) => {
   // Use the policy for color-based styling
@@ -50,16 +49,18 @@ const getBadgeStyleObject = (color: string) => {
 };
 
 export function SelectProperty({
-  block,
+  data,
   field,
+  node,
 }: {
-  block: Block;
-  field: EditorField;
+  data: string;
+  field: SchemaField;
+  node: Node;
 }) {
-  const { updateMetadata } = useBlockPropertyUpdate(block);
+  const { updateField } = useNodeFieldUpdate();
   const [isEditing, setIsEditing] = useState(false);
 
-  const value = (getValue(block?.metadata || {}, field.path) ?? "") as string;
+  const value = data || "";
   const options = (field.options || []) as Array<{
     label: string;
     value: string;
@@ -74,7 +75,7 @@ export function SelectProperty({
   const handleSelectChange = (newValue: string) => {
     setIsEditing(false);
     if (newValue !== value) {
-      updateMetadata(field.path, newValue);
+      updateField(node, field.path, newValue);
     }
   };
 
@@ -102,18 +103,13 @@ export function SelectProperty({
                 <span className="text-xs">{currentOption.label}</span>
               </Badge>
             ) : (
-              <Badge
-                className="gap-1.5 h-5"
-                style={getBadgeStyleObject("gray")}
-              >
-                <span className="text-xs">
-                  {field.placeholder || "Select..."}
-                </span>
-              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {field.placeholder || "Select option"}
+              </span>
             )}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent className="[&_*[role=option]]:ps-2 [&_*[role=option]]:pe-8 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:end-2">
+        <SelectContent>
           {options.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               <Badge
@@ -132,7 +128,7 @@ export function SelectProperty({
   return (
     <Button
       variant="ghost"
-      className="w-full h-7 px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50 select-none cursor-pointer"
+      className="w-full h-auto min-h-7 px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50 cursor-pointer"
       onClick={handleLabelClick}
     >
       {currentOption ? (
@@ -143,9 +139,9 @@ export function SelectProperty({
           <span className="text-xs">{currentOption.label}</span>
         </Badge>
       ) : (
-        <Badge className="gap-1.5 h-5" style={getBadgeStyleObject("gray")}>
-          <span className="text-xs">{field.placeholder || "Select..."}</span>
-        </Badge>
+        <span className="text-xs text-muted-foreground">
+          {field.placeholder || "Click to select"}
+        </span>
       )}
     </Button>
   );

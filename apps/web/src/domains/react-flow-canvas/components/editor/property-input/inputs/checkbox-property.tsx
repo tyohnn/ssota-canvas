@@ -1,24 +1,24 @@
 "use client";
 
 import React from "react";
+import { Node } from "@xyflow/react";
 import { Checkbox } from "@workspace/ui/components/ui/checkbox";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type { Block } from "@/db/schema";
-import { getValue } from "../object-path";
-import { useBlockPropertyUpdate } from "../useBlockPropertyUpdate";
+import { SchemaField } from "@/domains/blocks/types/common.node";
+import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
 
 export function CheckboxProperty({
-  block,
+  data,
   field,
+  node,
 }: {
-  block: Block;
-  field: EditorField;
+  data: boolean;
+  field: SchemaField;
+  node: Node;
 }) {
-  const { updateMetadata } = useBlockPropertyUpdate(block);
-  const checked = !!getValue(block?.metadata || {}, field.path);
+  const { updateField } = useNodeFieldUpdate();
 
   const handleDivClick = () => {
-    updateMetadata(field.path, !checked);
+    updateField(node, field.path, !data);
   };
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
@@ -35,12 +35,12 @@ export function CheckboxProperty({
         className="flex items-center justify-center"
       >
         <Checkbox
-          checked={checked}
-          onCheckedChange={(val) => updateMetadata(field.path, !!val)}
+          checked={!!data}
+          onCheckedChange={(val) => updateField(node, field.path, !!val)}
           className="mr-2"
         />
       </div>
-      <span className="text-muted-foreground">{field.label || field.key}</span>
+      <span className="text-muted-foreground">{field.id}</span>
     </div>
   );
 }

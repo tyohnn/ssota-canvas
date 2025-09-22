@@ -2,7 +2,7 @@
 
 import React from "react";
 import type { Block } from "@/db/schema";
-import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
+import { useCanvasPageCommandsContext } from "@/domains/canvas/contexts/CanvasPageCommandsContext";
 import { Button } from "@workspace/ui/components/ui/button";
 import { Input } from "@workspace/ui/components/ui/input";
 import {
@@ -15,7 +15,7 @@ import ExplorerTree from "@/domains/react-flow-canvas/explorer/explorer-tree";
 import { usePageExplorerTree } from "@/domains/react-flow-canvas/components/explorer/handlers/usePageExplorerTree";
 
 export function PageExplorerTab() {
-  const commands = useCanvasCommandsContext();
+  const commands = useCanvasPageCommandsContext();
   const [searchValue, setSearchValue] = React.useState("");
 
   const {
@@ -35,7 +35,7 @@ export function PageExplorerTab() {
   const filteredBlocks = React.useMemo(() => {
     if (!searchValue) return pageBlocks;
     return pageBlocks.filter((block) =>
-      block.name.toLowerCase().includes(searchValue.toLowerCase())
+      block.title.toLowerCase().includes(searchValue.toLowerCase())
     );
   }, [pageBlocks, searchValue]);
 

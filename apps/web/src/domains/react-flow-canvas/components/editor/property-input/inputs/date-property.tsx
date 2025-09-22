@@ -25,29 +25,29 @@ import {
   startOfYear,
 } from "date-fns";
 import { cn } from "@workspace/ui/lib/utils";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type { Block } from "@/db/schema";
-import { getValue } from "../object-path";
-import { useBlockPropertyUpdate } from "../useBlockPropertyUpdate";
+import { SchemaField } from "@/domains/blocks/types/common.node";
+import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
+import { Node } from "@xyflow/react";
 
 // Local type definitions
 type CaptionLabelProps = React.HTMLAttributes<HTMLSpanElement>;
 type MonthGridProps = React.TableHTMLAttributes<HTMLTableElement>;
 
 export function DateProperty({
-  block,
+  data,
   field,
+  node,
 }: {
-  block: Block;
-  field: EditorField;
+  data: string | undefined;
+  field: SchemaField;
+  node: Node;
 }) {
-  const { updateMetadata } = useBlockPropertyUpdate(block);
+  const { updateField } = useNodeFieldUpdate();
+  const value = data || "";
   const [isOpen, setIsOpen] = useState(false);
   const [month, setMonth] = useState(new Date());
   const [isYearView, setIsYearView] = useState(false);
 
-  const raw = getValue(block?.metadata || {}, field.path);
-  const value = typeof raw === "string" ? raw : "";
   const date = value ? new Date(value) : undefined;
 
   const startDate = new Date(1980, 6);
@@ -61,9 +61,9 @@ export function DateProperty({
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
       const dateString = selectedDate.toISOString().split("T")[0]; // YYYY-MM-DD format
-      updateMetadata(field.path, dateString);
+      updateField(node, field.path, dateString);
     } else {
-      updateMetadata(field.path, "");
+      updateField(node, field.path, "");
     }
     setIsOpen(false);
   };

@@ -1,13 +1,10 @@
 import React, { Suspense } from "react";
 import { CanvasPageContent } from "@/domains/canvas/components/canvas-page";
-import { Block, BlockPosition, Edge } from "@/db/schema";
+import { Block } from "@/db/schema";
 import {
   listWorkspacePageBlocks,
-  listWorkspacePageBlockPositions,
   listWorkspaceComponentBlocks,
-  listWorkspaceComponentBlockPositions,
 } from "@/domains/canvas/actions/block.action";
-import { listWorkspaceEdges } from "@/domains/canvas/actions/edge.action";
 import { Skeleton } from "@workspace/ui/components/ui/skeleton";
 import { CanvasRoot } from "@/domains/canvas/providers/CanvasRoot";
 
@@ -38,17 +35,6 @@ export default async function CanvasPageRoute({
     componentBlocksRes.success ? componentBlocksRes.data : []
   ) as Block[];
 
-  // Combine all blocks (pages + components)
-  const blocks = [...pageBlocks, ...componentBlocks];
-
-  // Do not preload all positions on initial load; will be lazy-loaded per page
-  const blockPositions: BlockPosition[] = [];
-  // Note: First page will be auto-selected on mount inside CanvasRoot to trigger page position caching.
-
-  // Fetch edges from DB
-  const edgesRes = await listWorkspaceEdges({ workspaceId: workspaceId! });
-  const edges = (edgesRes.success ? edgesRes.data : []) as Edge[];
-
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <div className="flex-1 min-h-0 overflow-auto overscroll-contain">
@@ -56,9 +42,8 @@ export default async function CanvasPageRoute({
           <Suspense fallback={<CanvasSkeleton />}>
             <CanvasRoot
               workspaceId={workspaceId!}
-              initialBlocks={blocks}
-              initialBlockPositions={blockPositions}
-              initialEdges={edges}
+              initialPageBlocks={pageBlocks}
+              initialComponentBlocks={componentBlocks}
             >
               <CanvasPageContent workspaceId={workspaceId!} />
             </CanvasRoot>

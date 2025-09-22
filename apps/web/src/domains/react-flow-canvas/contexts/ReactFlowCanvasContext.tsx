@@ -1,30 +1,43 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useCallback } from "react";
-import type { Node, Edge, ReactFlowInstance } from "@xyflow/react";
-import { useNodesState, useEdgesState } from "@xyflow/react";
-import type {
-  ReactFlowCanvasContextValue,
-  ReactFlowCanvasState,
-  ReactFlowCanvasCommands,
-  CanvasDomainCallbacks,
-  ReactFlowCanvasConfig,
-} from "../types/react-flow-types";
-import type { DragSelectionState } from "../types/selection-types";
+import React, { createContext, useContext, useEffect } from "react";
+import { useNodesState, useEdgesState, type Node, type Edge, OnEdgesChange, OnNodesChange } from "@xyflow/react";
+import { BlockType } from "@/db/schema";
 
-// 초기 상태
-const initialState: ReactFlowCanvasState = {};
-
-// 액션 타입
-type ReactFlowCanvasAction = never;
-
-// 리듀서
-function reactFlowCanvasReducer(
-  state: ReactFlowCanvasState,
-  action: ReactFlowCanvasAction
-): ReactFlowCanvasState {
-  return state;
+export interface ReactFlowCanvasConfig {
+  // 기본 설정
+  nodeTypes?: Record<BlockType, React.ComponentType<any>>;
+  minZoom?: number;
+  maxZoom?: number;
+  fitView?: boolean;
+  
+  // 상호작용 설정
+  nodesDraggable?: boolean;
+  elementsSelectable?: boolean;
+  selectionOnDrag?: boolean;
+  panOnDrag?: number[];
+  
+  // 선택 설정
+  enableMultiSelection?: boolean;
+  enableDragSelection?: boolean;
+  
+  // UI 설정
+  showControls?: boolean;
+  showMiniMap?: boolean;
+  showBackground?: boolean;
 }
+// React Flow Canvas 컨텍스트
+export interface ReactFlowCanvasContextValue {
+  // 설정
+  config: ReactFlowCanvasConfig;
+  
+  // React Flow 내장 상태
+  nodes: Node[];
+  edges: Edge[];
+  onNodesChange: OnNodesChange<Node>;
+  onEdgesChange: OnEdgesChange<Edge>;
+}
+
 
 // 컨텍스트 생성
 const ReactFlowCanvasContext = createContext<ReactFlowCanvasContextValue | null>(null);
@@ -33,96 +46,29 @@ const ReactFlowCanvasContext = createContext<ReactFlowCanvasContextValue | null>
 export function ReactFlowCanvasProvider({
   children,
   config,
-  domainCallbacks,
   initialNodes = [],
   initialEdges = [],
 }: {
   children: React.ReactNode;
   config: ReactFlowCanvasConfig;
-  domainCallbacks?: Partial<CanvasDomainCallbacks>;
   initialNodes?: Node[];
   initialEdges?: Edge[];
 }) {
-  const [state, dispatch] = useReducer(reactFlowCanvasReducer, initialState);
-  const [rfInstance, setRfInstance] = React.useState<ReactFlowInstance | null>(null);
-
   // React Flow 내장 상태 관리 사용
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // 노드/엣지 상태 동기화
-  React.useEffect(() => {
+  // initialNodes와 initialEdges가 변경될 때마다 상태 업데이트
+  useEffect(() => {
     setNodes(initialNodes);
   }, [initialNodes, setNodes]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setEdges(initialEdges);
   }, [initialEdges, setEdges]);
 
-  // 명령들
-  const commands: ReactFlowCanvasCommands = {
-    updateNodePosition: useCallback((nodeId: string, position: { x: number; y: number }) => {
-      // React Flow 내장 상태 직접 업데이트
-      setNodes((nds) =>
-        nds.map((node) =>
-          node.id === nodeId ? { ...node, position } : node
-        )
-      );
-    }, [setNodes]),
-
-    updateNodeData: useCallback((nodeId: string, data: any) => {
-      // React Flow 내장 상태 직접 업데이트
-      setNodes((nds) =>
-        nds.map((node) =>
-          node.id === nodeId
-            ? { ...node, data: { ...node.data, ...data } }
-            : node
-        )
-      );
-    }, [setNodes]),
-
-    deleteNodes: useCallback((nodeIds: string[]) => {
-      // React Flow 내장 상태 직접 업데이트
-      setNodes((nds) => nds.filter((node) => !nodeIds.includes(node.id)));
-    }, [setNodes]),
-
-    updateEdgeData: useCallback((edgeId: string, data: any) => {
-      // React Flow 내장 상태 직접 업데이트
-      setEdges((eds) =>
-        eds.map((edge) =>
-          edge.id === edgeId
-            ? { ...edge, data: { ...edge.data, ...data } }
-            : edge
-        )
-      );
-    }, [setEdges]),
-
-    deleteEdges: useCallback((edgeIds: string[]) => {
-      // React Flow 내장 상태 직접 업데이트
-      setEdges((eds) => eds.filter((edge) => !edgeIds.includes(edge.id)));
-    }, [setEdges]),
-
-    fitView: useCallback((options?: { padding?: number; duration?: number }) => {
-      if (rfInstance?.fitView) {
-        rfInstance.fitView(options);
-      }
-    }, [rfInstance]),
-
-    zoomTo: useCallback((zoom: number) => {
-      if (rfInstance?.setViewport) {
-        const currentViewport = rfInstance.getViewport();
-        rfInstance.setViewport({ ...currentViewport, zoom });
-      }
-    }, [rfInstance]),
-  };
-
   const contextValue: ReactFlowCanvasContextValue = {
-    state,
-    commands,
-    domainCallbacks: domainCallbacks || {},
     config,
-    rfInstance,
-    setRfInstance,
     // React Flow 내장 상태 노출
     nodes,
     edges,
@@ -147,3 +93,4 @@ export function useReactFlowCanvas() {
   }
   return context;
 }
+

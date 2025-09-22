@@ -4,29 +4,19 @@ import React, { createContext, useContext, useReducer, useCallback } from "react
 
 // 상태 타입
 export interface ControlState {
-  viewport: {
-    x: number;
-    y: number;
-    zoom: number;
-  };
   toolMode: 'select' | 'hand' | 'connect';
   showMiniMap: boolean;
-  zoomPercent: number;
 }
 
 // 액션 타입
 type ControlAction =
-  | { type: 'SET_VIEWPORT'; payload: { x: number; y: number; zoom: number } }
   | { type: 'SET_TOOL_MODE'; payload: 'select' | 'hand' | 'connect' }
-  | { type: 'SET_SHOW_MINIMAP'; payload: boolean }
-  | { type: 'SET_ZOOM_PERCENT'; payload: number };
+  | { type: 'SET_SHOW_MINIMAP'; payload: boolean };
 
 // 초기 상태
 const initialState: ControlState = {
-  viewport: { x: 0, y: 0, zoom: 1 },
   toolMode: 'select',
   showMiniMap: true,
-  zoomPercent: 100,
 };
 
 // 리듀서
@@ -35,17 +25,11 @@ function controlReducer(
   action: ControlAction
 ): ControlState {
   switch (action.type) {
-    case 'SET_VIEWPORT':
-      return { ...state, viewport: action.payload };
-    
     case 'SET_TOOL_MODE':
       return { ...state, toolMode: action.payload };
     
     case 'SET_SHOW_MINIMAP':
       return { ...state, showMiniMap: action.payload };
-    
-    case 'SET_ZOOM_PERCENT':
-      return { ...state, zoomPercent: action.payload };
     
     default:
       return state;
@@ -56,10 +40,8 @@ function controlReducer(
 interface ControlContextValue {
   state: ControlState;
   commands: {
-    setViewport: (viewport: { x: number; y: number; zoom: number }) => void;
     setToolMode: (mode: 'select' | 'hand' | 'connect') => void;
     setShowMiniMap: (show: boolean) => void;
-    setZoomPercent: (percent: number) => void;
   };
 }
 
@@ -71,20 +53,12 @@ export function ControlProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(controlReducer, initialState);
 
   const commands = {
-    setViewport: useCallback((viewport: { x: number; y: number; zoom: number }) => {
-      dispatch({ type: 'SET_VIEWPORT', payload: viewport });
-    }, []),
-
     setToolMode: useCallback((mode: 'select' | 'hand' | 'connect') => {
       dispatch({ type: 'SET_TOOL_MODE', payload: mode });
     }, []),
 
     setShowMiniMap: useCallback((show: boolean) => {
       dispatch({ type: 'SET_SHOW_MINIMAP', payload: show });
-    }, []),
-
-    setZoomPercent: useCallback((percent: number) => {
-      dispatch({ type: 'SET_ZOOM_PERCENT', payload: percent });
     }, []),
   };
 

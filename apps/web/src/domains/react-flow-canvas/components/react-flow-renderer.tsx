@@ -8,23 +8,46 @@ import { RootProvider } from "../providers/root-provider";
 import { BlockInsertPanel } from "./block-insert-panel";
 import { ReactFlowDebugPanel } from "./debug/react-flow-debug-panel";
 import { usePanel } from "../contexts/PanelContext";
+import { ReactFlowCommandsProvider } from "../contexts/ReactFlowCommandsContext";
+import { useReactFlowNodeSelection } from "../contexts/ReactFlowSelectionContext";
+import { ReactFlowCanvasConfig } from "../contexts/ReactFlowCanvasContext";
+import { Node, Edge } from "@xyflow/react";
 
 /**
  * React Flow Canvas 메인 렌더러
  * Provider 구조와 기본 레이아웃만 관리
  */
-export function ReactFlowCanvasRenderer() {
+export function ReactFlowCanvasRenderer({
+  config,
+  defaultNodes,
+  defaultEdges,
+}: {
+  config: ReactFlowCanvasConfig;
+  defaultNodes: Node[];
+  defaultEdges: Edge[];
+}) {
   return (
     <div className="h-full w-full">
       <RootProvider>
-        <SideExplorer />
-        <EditorPanel />
-        <ReactFlowCanvas />
-        <BlockInsertPanel />
-        <DebugPanelWrapper />
+        <ReactFlowCommandsProvider>
+          <SideExplorer />
+          <EditorPanelWrapper />
+          <ReactFlowCanvas config={config} defaultNodes={defaultNodes} defaultEdges={defaultEdges} />
+          <BlockInsertPanel />
+          <DebugPanelWrapper />
+        </ReactFlowCommandsProvider>
       </RootProvider>
     </div>
   );
+}
+
+function EditorPanelWrapper() {
+  const { showEditorPanel } = usePanel();
+  const { isSingleSelected } = useReactFlowNodeSelection();
+  
+  if (!showEditorPanel || !isSingleSelected) return null;
+  
+  return <EditorPanel />;
 }
 
 function DebugPanelWrapper() {

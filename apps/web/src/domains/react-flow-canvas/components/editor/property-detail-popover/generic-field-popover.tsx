@@ -1,97 +1,79 @@
 "use client";
 
-import React from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@workspace/ui/components/ui/input";
+import { Label } from "@workspace/ui/components/ui/label";
 import { Button } from "@workspace/ui/components/ui/button";
 import { Separator } from "@workspace/ui/components/ui/separator";
 import { Copy, Trash2 } from "lucide-react";
-import type { Block } from "@/db/schema";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type {
-  DefaultMetadata,
-  UserSchemaField,
-} from "@/domains/canvas/policy/block-rendering-policy";
+import {
+  SchemaField,
+} from "@/domains/blocks/types";
 import { useSchemaFieldEditor } from "./useSchemaFieldEditor";
+import { Node } from "@xyflow/react";
 
 export function GenericFieldPopover({
-  block,
+  node,
   field,
-  onClose,
 }: {
-  block: Block;
-  field: EditorField;
-  onClose?: () => void;
+  node: Node;
+  field: SchemaField;
 }) {
-  const metadata = (block.metadata || {}) as DefaultMetadata;
-  const userFields = metadata.schema?.fields || [];
-  const userField = userFields.find((f) => f.id === field.key);
-  const isPredefined = !!(userField as any)?.config?.predefined;
+  const { saveLabel, deleteField, duplicateField } =
+    useSchemaFieldEditor({ node, field });
 
-  const [label, setLabel] = React.useState<string>(field.label || "");
+  const [label, setLabel] = useState(field.label || "");
 
-  const { saveLabel, deleteField, duplicateField } = useSchemaFieldEditor({
-    block,
-    field,
-  });
+  // Auto-save label changes
+  useEffect(() => {
+    if (label !== field.label) {
+      saveLabel(label);
+    }
+  }, [label, field.label, saveLabel]);
 
-  const handleSaveLabel = () => {
-    if (isPredefined) return;
-    void saveLabel(label);
+  const handleDelete = async () => {
+    await deleteField();
   };
 
-  const handleDelete = () => {
-    if (isPredefined) return;
-    void deleteField();
-    onClose?.();
-  };
-
-  const handleDuplicate = () => {
-    void duplicateField({ label: label || field.label });
+  const handleDuplicate = async () => {
+    await duplicateField({ label });
   };
 
   return (
-    <div className="p-1">
-      <div className="p-2">
+    <div className="p-4 space-y-4">
+      <div className="space-y-2">
+        <Label className="text-xs font-medium text-muted-foreground mb-1 select-none" htmlFor={field.id}>Label</Label>
         <Input
+          name={field.id}
           value={label}
-          onChange={(e) => setLabel(e.currentTarget.value)}
-          onBlur={handleSaveLabel}
-          disabled={isPredefined}
-          placeholder="Field label"
-          className="h-7 text-xs"
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Enter field label"
+          className="h-7"
         />
-        {isPredefined && (
-          <div className="text-xs text-muted-foreground mt-1">
-            Built-in field label
-          </div>
-        )}
       </div>
 
-      <Separator />
+      <Separator className="bg-border/50"/>
 
-      <div className="space-y-1 mt-2">
+      <div className="flex gap-2">
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="w-full justify-start h-8 px-2"
           onClick={handleDuplicate}
+          className="flex-1 h-7 px-2 text-xs"
         >
-          <Copy className="w-3.5 h-3.5 mr-2" />
+          <Copy className="w-3 h-3 mr-1" />
           Duplicate
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="w-full justify-start h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
           onClick={handleDelete}
-          disabled={isPredefined}
+          className="flex-1 h-7 px-2 text-xs text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
         >
-          <Trash2 className="w-3.5 h-3.5 mr-2" />
+          <Trash2 className="w-3 h-3 mr-1" />
           Delete
         </Button>
       </div>
     </div>
   );
 }
-
-export default GenericFieldPopover;

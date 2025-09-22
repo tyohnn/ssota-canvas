@@ -1,269 +1,31 @@
 "use client";
 
-import React, { useMemo } from "react";
-import type { Block, BlockPosition, Edge } from "@/db/schema";
-import {
-  extractComponentDefinitions,
-  extractComponentInstances,
-  type ComponentDefinition,
-  type ComponentInstance,
-} from "../types/component";
-import { useBlocksStore } from "../stores/blocks.store";
-import { usePositionsStore } from "../stores/positions.store";
-import { useEdgesStore } from "../stores/edges.store";
-import { useSelectionStore } from "../stores/selection.store";
+import React from "react";
+import type { Block } from "@/db/schema";
 import { CanvasDataProvider } from "../contexts/CanvasDataContext";
-import { CanvasSelectionProvider } from "../contexts/CanvasSelectionContext";
-import { CanvasCommandsProvider } from "../contexts/CanvasCommandsContext";
+import { CanvasPageCommandsProvider } from "../contexts/CanvasPageCommandsContext";
 
 interface CanvasRootProps {
   workspaceId: string;
-  initialBlocks: Block[];
-  initialBlockPositions: BlockPosition[];
-  initialEdges: Edge[];
+  initialPageBlocks: Block[];
+  initialComponentBlocks: Block[];
   children: React.ReactNode;
 }
 
 export function CanvasRoot({
   workspaceId,
-  initialBlocks,
-  initialBlockPositions,
-  initialEdges,
+  initialPageBlocks,
+  initialComponentBlocks,
   children,
 }: CanvasRootProps) {
-  // Initialize all stores
-  const blocksStore = useBlocksStore(initialBlocks);
-  const positionsStore = usePositionsStore();
-  const edgesStore = useEdgesStore(initialEdges);
-  const selectionStore = useSelectionStore();
-
-  // Optionally seed cache with initial positions if provided (kept but safe if empty)
-  React.useEffect(() => {
-    if (!initialBlockPositions?.length) return;
-    const positionsByContext = initialBlockPositions.reduce(
-      (acc, pos) => {
-        const contextId = pos.context_block_id as string;
-        if (!acc[contextId]) acc[contextId] = [];
-        acc[contextId].push(pos);
-        return acc;
-      },
-      {} as Record<string, BlockPosition[]>
-    );
-    Object.entries(positionsByContext).forEach(([contextId, positions]) => {
-      positionsStore.setPagePositions(contextId, positions);
-    });
-  }, [initialBlockPositions, positionsStore.setPagePositions]);
-
-  // Auto-select first page on mount if none selected
-  React.useEffect(() => {
-    if (selectionStore.state.pageId) return;
-    const firstPage = Object.values(blocksStore.state.byId).find(
-      (b) => (b.object as any) === "page"
-    );
-    if (firstPage?.id) {
-      selectionStore.selectPage(firstPage.id as string);
-    }
-  }, [
-    selectionStore.state.pageId,
-    blocksStore.state.byId,
-    selectionStore.selectPage,
-  ]);
-
-  // Component-related memoized data
-  const componentData = useMemo(() => {
-    const blocks = Object.values(blocksStore.state.byId);
-    const definitions = extractComponentDefinitions(blocks);
-    const instances = extractComponentInstances(blocks);
-
-    const componentDefinitionsById = definitions.reduce(
-      (acc, def) => {
-        acc[def.id] = def;
-        return acc;
-      },
-      {} as Record<string, ComponentDefinition>
-    );
-
-    const componentInstancesById = instances.reduce(
-      (acc, inst) => {
-        acc[inst.id] = inst;
-        return acc;
-      },
-      {} as Record<string, ComponentInstance>
-    );
-
-    return {
-      componentDefinitionsById,
-      componentInstancesById,
-      getComponentDefinitionById: (id: string) =>
-        componentDefinitionsById[id] || null,
-      listComponentDefinitionsByIds: (ids: string[]) =>
-        ids
-          .map((id) => componentDefinitionsById[id])
-          .filter(Boolean) as ComponentDefinition[],
-      getInstancesForDefinition: (definitionId: string) =>
-        instances.filter((inst) => inst.metadata.component_id === definitionId),
-      getAllComponentDefinitions: () => definitions,
-      getAllComponentInstances: () => instances,
-      getDefinitionForInstance: (instanceId: string) => {
-        const instance = componentInstancesById[instanceId];
-        return instance
-          ? componentDefinitionsById[instance.metadata.component_id]
-          : undefined;
-      },
-    };
-  }, [blocksStore.state.byId]);
-
-  // Prepare data context value
-  const dataValue = useMemo(
-    () => ({
-      blocksById: blocksStore.state.byId,
-      positionsByPage: positionsStore.positionsByPage,
-      edgesById: edgesStore.state.byId,
-
-      // Component Queries
-      ...componentData,
-      upsertBlock: blocksStore.upsertBlock,
-      updateBlock: blocksStore.updateBlock,
-      upsertBlocks: blocksStore.upsertBlocks,
-      removeBlock: blocksStore.removeBlock,
-      rekeyBlock: blocksStore.rekeyBlock,
-
-      // Component Mutations
-      upsertComponentDefinition: (definition: ComponentDefinition) => {
-        blocksStore.upsertBlock(definition as Block);
-      },
-      upsertComponentInstance: (instance: ComponentInstance) => {
-        blocksStore.upsertBlock(instance as Block);
-      },
-      removeComponentDefinition: (id: string) => {
-        blocksStore.removeBlock(id);
-      },
-      removeComponentInstance: (id: string) => {
-        blocksStore.removeBlock(id);
-      },
-      updateComponentDefinition: (
-        id: string,
-        updates: Partial<ComponentDefinition>
-      ) => {
-        blocksStore.updateBlock(id, updates as Partial<Block>);
-      },
-      updateComponentInstance: (
-        id: string,
-        updates: Partial<ComponentInstance>
-      ) => {
-        blocksStore.updateBlock(id, updates as Partial<Block>);
-      },
-      updateContextPositions: positionsStore.updateContextPositions,
-      setPagePositions: positionsStore.setPagePositions,
-      accessPage: positionsStore.accessPage,
-      getPositionsForContext: positionsStore.getPositionsForContext,
-      clearPageCache: positionsStore.clearPageCache,
-      replaceBlockIdInContext: positionsStore.replaceBlockIdInContext,
-      removePositionForBlockInContext:
-        positionsStore.removePositionForBlockInContext,
-      upsertEdge: edgesStore.upsertEdge,
-      upsertEdges: edgesStore.upsertEdges,
-      removeEdge: edgesStore.removeEdge,
-      // Edge context cache
-      setContextEdges: edgesStore.setContextEdges,
-      clearContextEdges: edgesStore.clearContextEdges,
-      accessContextEdges: edgesStore.accessContextEdges,
-      getEdgesForContext: edgesStore.getEdgesForContext,
-    }),
-    [
-      componentData,
-      blocksStore.state.byId,
-      blocksStore.upsertBlock,
-      blocksStore.updateBlock,
-      blocksStore.upsertBlocks,
-      blocksStore.removeBlock,
-      blocksStore.rekeyBlock,
-      positionsStore.positionsByPage,
-      positionsStore.updateContextPositions,
-      positionsStore.setPagePositions,
-      positionsStore.accessPage,
-      positionsStore.getPositionsForContext,
-      positionsStore.clearPageCache,
-      positionsStore.replaceBlockIdInContext,
-      positionsStore.removePositionForBlockInContext,
-      edgesStore.state.byId,
-      edgesStore.upsertEdge,
-      edgesStore.upsertEdges,
-      edgesStore.removeEdge,
-      // Edge context cache
-      edgesStore.setContextEdges,
-      edgesStore.clearContextEdges,
-      edgesStore.accessContextEdges,
-      edgesStore.getEdgesForContext,
-    ]
-  );
-
-  // Prepare selection context value
-  const selectionValue = useMemo(
-    () => ({
-      pageId: selectionStore.state.pageId,
-      componentId: selectionStore.state.componentId,
-      nodeIds: selectionStore.state.nodeIds,
-      edgeId: selectionStore.state.edgeId,
-      canvasMode: selectionStore.canvasMode,
-      
-      // 드래그 선택 관련 상태
-      dragSelection: selectionStore.state.dragSelection,
-      
-      selectPage: selectionStore.selectPage,
-      selectComponent: selectionStore.selectComponent,
-      setNodeSelection: selectionStore.setNodeSelection,
-      selectEdge: selectionStore.selectEdge,
-      clearAll: selectionStore.clearAll,
-      
-      // 드래그 선택 관련 메서드들
-      startDragSelection: selectionStore.startDragSelection,
-      updateDragSelection: selectionStore.updateDragSelection,
-      endDragSelection: selectionStore.endDragSelection,
-      setCtrlPressed: selectionStore.setCtrlPressed,
-      setTempSelectedIds: selectionStore.setTempSelectedIds,
-    }),
-    [
-      selectionStore.state.pageId,
-      selectionStore.state.componentId,
-      selectionStore.state.nodeIds,
-      selectionStore.state.edgeId,
-      selectionStore.canvasMode,
-      selectionStore.state.dragSelection,
-      selectionStore.selectPage,
-      selectionStore.selectComponent,
-      selectionStore.setNodeSelection,
-      selectionStore.selectEdge,
-      selectionStore.clearAll,
-      selectionStore.startDragSelection,
-      selectionStore.updateDragSelection,
-      selectionStore.endDragSelection,
-      selectionStore.setCtrlPressed,
-      selectionStore.setTempSelectedIds,
-    ]
-  );
-
   return (
-    <CanvasDataProvider value={dataValue}>
-      <CanvasSelectionProvider value={selectionValue}>
-        <CanvasCommandsProvider
-          workspaceId={workspaceId}
-          blocksById={blocksStore.state.byId}
-          upsertBlock={blocksStore.upsertBlock}
-          updateBlock={blocksStore.updateBlock}
-          removeBlock={blocksStore.removeBlock}
-          rekeyBlock={blocksStore.rekeyBlock}
-          selectPage={selectionStore.selectPage}
-          updateContextPositions={positionsStore.updateContextPositions}
-          setPagePositions={positionsStore.setPagePositions}
-          replaceBlockIdInContext={positionsStore.replaceBlockIdInContext}
-          setNodeSelection={selectionStore.setNodeSelection}
-          positionsByPage={positionsStore.positionsByPage}
-          removePositionForBlockInContext={positionsStore.removePositionForBlockInContext}
-        >
-          {children}
-        </CanvasCommandsProvider>
-      </CanvasSelectionProvider>
+    <CanvasDataProvider
+      initialPageBlocks={initialPageBlocks}
+      initialComponentBlocks={initialComponentBlocks}
+    >
+      <CanvasPageCommandsProvider workspaceId={workspaceId}>
+        {children}
+      </CanvasPageCommandsProvider>
     </CanvasDataProvider>
   );
 }

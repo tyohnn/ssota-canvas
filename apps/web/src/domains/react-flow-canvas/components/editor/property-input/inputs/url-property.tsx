@@ -1,26 +1,25 @@
 "use client";
 
 import React, { useState } from "react";
+import { Node } from "@xyflow/react";
 import { Input } from "@workspace/ui/components/ui/input";
 import { Button } from "@workspace/ui/components/ui/button";
-import { Link } from "lucide-react";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type { Block } from "@/db/schema";
-import { getValue } from "../object-path";
-import { useBlockPropertyUpdate } from "../useBlockPropertyUpdate";
+import { SchemaField } from "@/domains/blocks/types/common.node";
+import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
 
 export function UrlProperty({
-  block,
+  data,
   field,
+  node,
 }: {
-  block: Block;
-  field: EditorField;
+  data: string | undefined;
+  field: SchemaField;
+  node: Node;
 }) {
-  const { updateMetadata } = useBlockPropertyUpdate(block);
+  const { updateField } = useNodeFieldUpdate();
+  const value = data || "";
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState("");
-
-  const value = (getValue(block?.metadata || {}, field.path) ?? "") as string;
 
   const isValidUrl = (url: string) => {
     try {
@@ -43,7 +42,7 @@ export function UrlProperty({
   const handleInputBlur = () => {
     setIsEditing(false);
     if (inputValue !== value) {
-      updateMetadata(field.path, inputValue);
+      updateField(node, field.path, inputValue);
     }
   };
 
@@ -51,7 +50,7 @@ export function UrlProperty({
     if (e.key === "Enter") {
       setIsEditing(false);
       if (inputValue !== value) {
-        updateMetadata(field.path, inputValue);
+        updateField(node, field.path, inputValue);
       }
     } else if (e.key === "Escape") {
       setIsEditing(false);
@@ -62,9 +61,8 @@ export function UrlProperty({
   if (isEditing) {
     return (
       <Input
-        className="h-7 px-2 py-1 text-xs"
-        type="url"
-        placeholder={field.placeholder || "https://"}
+        className="h-7 text-xs"
+        placeholder={field.placeholder}
         value={inputValue}
         onChange={handleInputChange}
         onBlur={handleInputBlur}
@@ -77,10 +75,14 @@ export function UrlProperty({
   return (
     <Button
       variant="ghost"
-      className="w-full h-7 px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50 text-muted-foreground select-none cursor-pointer"
+      className="w-full h-auto min-h-7 px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50 cursor-pointer"
       onClick={handleLabelClick}
     >
-      {value || "Click to edit"}
+      {value || (
+        <span className="text-muted-foreground">
+          {field.placeholder || "Click to edit URL"}
+        </span>
+      )}
     </Button>
   );
 }

@@ -3,9 +3,9 @@
 import React from "react";
 import type { Block } from "@/db/schema";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
 import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
-import { useSelectionCommands } from "@/domains/react-flow-canvas/contexts/SelectionContext";
+import { useReactFlowSelectionCommands } from "@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext";
+import { useReactFlowCanvasControl } from "@/domains/react-flow-canvas/handlers/useReactFlowCanvasControlHandler";
 
 function getAssetIcon(type: string | undefined, className: string) {
   switch (type) {
@@ -17,66 +17,35 @@ function getAssetIcon(type: string | undefined, className: string) {
 }
 
 export function useAssetsExplorerTree() {
-  // Use refactored contexts for data and selection
-  const { blocksById, getPositionsForContext } = useCanvasData();
-  const { componentId, selectComponent } = useCanvasSelection();
+  // Canvas Data Context
+  const { componentBlocks, selectedComponentBlock, selectComponent } = useCanvasData();
 
-  // Debug: Log componentId changes
-  React.useEffect(() => {
-    console.log("useAssetsExplorerTree - componentId changed:", componentId);
-  }, [componentId]);
-
-  // Debug: Log selectedComponentId being returned
-  React.useEffect(() => {
-    console.log(
-      "useAssetsExplorerTree - selectedComponentId being returned:",
-      componentId
-    );
-  }, [componentId]);
-
-  // Use refactored UI layout state
+  // React Flow Canvas Context
   const panel = usePanel();
-  const { clearSelection } = useSelectionCommands();
-
-  // Get component blocks with their positions
-  const assetBlocks = React.useMemo(() => {
-    const componentBlocks = Object.values(blocksById).filter(
-      (b) => b.object === ("component" as any)
-    );
-
-    // For each component, check if it has positions (self-referential positions)
-    return componentBlocks.map((block) => {
-      const positions = getPositionsForContext(block.id);
-      const hasPositions = positions && positions.length > 0;
-
-      return {
-        ...block,
-        hasPositions,
-        positionCount: hasPositions ? positions.length : 0,
-      };
-    });
-  }, [blocksById, getPositionsForContext]);
+  const { selectNodes } = useReactFlowSelectionCommands();
+  const { focusOnNode } = useReactFlowCanvasControl();
 
   const handleSelect = React.useCallback(
     (id: string) => {
       panel.setActiveExplorerTab("assets");
-      selectComponent(id);
-      // 컴포넌트 선택 시 React Flow 선택 상태 초기화
-      clearSelection();
+      selectComponent(id); // 캔버스 도메인의 컴포넌트를 선택하고 상단 헤더 업데이트
+      selectNodes([id]); // 리액트 플로우의 설렉션을 업데이트하고, 에디터 패널 업데이트
+      
+      // 자동 이동 기능
+      setTimeout(() => {
+        focusOnNode(id);
+        panel.openEditorPanel();
+      }, 100);
     },
-    [panel, selectComponent, clearSelection]
+    [panel, selectComponent]
   );
 
   return {
-    assetBlocks,
-    selectedComponentId: componentId,
+    assetBlocks: componentBlocks,
+    selectedComponentId: selectedComponentBlock?.id,
     getId: (b: Block) => b.id,
-    getName: (
-      b: Block & { hasPositions?: boolean; positionCount?: number }
-    ) => {
-      return b.name;
-    },
-    getParentId: (_b: Block) => null,
+    getName: (b: Block) => b.title,
+    getParentId: (b: Block) => b.parent_block_id,
     getOrder: (b: Block) => b.order,
     getType: (b: Block) => b.block_type,
     renderFileIcon: getAssetIcon,

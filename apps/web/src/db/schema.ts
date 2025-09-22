@@ -30,7 +30,9 @@ export const blockTypeEnum = pgEnum("block_type", [
   "start",
   "end",
   "condition",
+  // 위는 레거시
   "page",
+  "text",
   "basic_text",
   "shape",
   "image",
@@ -201,7 +203,7 @@ export const blocks = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     block_type: blockTypeEnum("block_type").notNull(),
     slug: text("slug").notNull(),
-    name: text("name").notNull(),
+    title: text("title").notNull(),
     metadata: jsonb("metadata").notNull(),
     object: objectTypeEnum("object"),
     icon_name: text("icon_name").default("file"),
@@ -235,7 +237,7 @@ export const blocks = pgTable(
 
     // Constraints
     sql`ALTER TABLE blocks ADD CONSTRAINT chk_blocks_slug_format CHECK (slug ~ '^[a-z0-9가-힣-]+$')`,
-    sql`ALTER TABLE blocks ADD CONSTRAINT chk_blocks_name_length CHECK (char_length(name) BETWEEN 1 AND 100)`,
+    sql`ALTER TABLE blocks ADD CONSTRAINT chk_blocks_title_length CHECK (char_length(title) BETWEEN 1 AND 100)`,
     sql`ALTER TABLE blocks ADD CONSTRAINT fk_blocks_parent_block_id FOREIGN KEY (parent_block_id) REFERENCES blocks(id) ON DELETE SET NULL`,
     sql`ALTER TABLE blocks ADD CONSTRAINT chk_agent_metadata_required CHECK (block_type != 'agent' OR (metadata ? 'persona' AND metadata ? 'role' AND jsonb_array_length(metadata->'persona') > 0 AND jsonb_array_length(metadata->'role') > 0))`,
     sql`ALTER TABLE blocks ADD CONSTRAINT chk_template_metadata_required CHECK (block_type != 'artifact_template' OR (metadata ? 'artifact_format' AND metadata ? 'definitions' AND jsonb_array_length(metadata->'definitions') > 0))`,

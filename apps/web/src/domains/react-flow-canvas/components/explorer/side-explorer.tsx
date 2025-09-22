@@ -92,12 +92,12 @@ export function SideExplorer() {
       <div
         className={`transition-all h-full duration-300 ease-in-out ${
           isActuallyExpanded
-            ? "w-64 opacity-100 translate-x-0"
-            : "w-0 opacity-0 -translate-x-4"
+            ? "w-64 opacity-100 translate-x-0 blur-none"
+            : "w-0 opacity-50 -translate-x-4 blur-md"
         }`}
         style={{
           transition:
-            "opacity 200ms ease-in-out, width 300ms ease-in-out, transform 300ms ease-in-out",
+            "opacity 200ms ease-out-in, width 400ms ease-out-in, transform 200ms ease-out-in, filter 200ms ease-out-in",
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

@@ -27,21 +27,22 @@ import {
   Phone,
   EyeOff,
 } from "lucide-react";
-import type {
-  EditorFieldType,
-  UserSchemaField,
-} from "@/domains/canvas/policy/block-rendering-policy";
-import { createSlug } from "@/lib/regex";
+import {
+  NodeUI,
+  SchemaField,
+} from "@/domains/blocks/types";
+import { SchemaFieldType } from "@/domains/blocks/types/common.node";
+import { createUniqueFieldId } from "@/lib/regex";
+import { extractUserDefinedSchema, generateDefaultSchemaFieldByType, getDefaultValueByFieldType } from "@/domains/react-flow-canvas/policy/node-form-schema-policy";
+import { useReactFlowCommandsContext } from "@/domains/react-flow-canvas/contexts/ReactFlowCommandsContext";
+import { useReactFlowNodeSelection } from "@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext";
 
 type PropertyAddPopoverProps = {
-  className?: string;
-  buttonVariant?: "ghost" | "outline" | "default" | "secondary";
-  buttonClassName?: string;
-  onAdd: (field: UserSchemaField) => void;
+  pathSection: "formData" | "nodeUI";
 };
 
 const FIELD_TYPES: {
-  type: EditorFieldType;
+  type: SchemaFieldType;
   label: string;
   icon: React.ReactNode;
 }[] = [
@@ -67,64 +68,95 @@ const FIELD_TYPES: {
 ];
 
 export function PropertyAddPopover({
-  className,
-  buttonVariant = "ghost",
-  buttonClassName,
-  onAdd,
+  pathSection,
 }: PropertyAddPopoverProps) {
   const [open, setOpen] = React.useState(false);
   const [label, setLabel] = React.useState("");
-  const [required, setRequired] = React.useState(false);
-  const [placeholder, setPlaceholder] = React.useState("");
-  const [optionsStr, setOptionsStr] = React.useState("");
   const labelInputRef = React.useRef<HTMLInputElement>(null);
+  const { nodeCommands } = useReactFlowCommandsContext();
+  const { selectedSingleNodeData } = useReactFlowNodeSelection();
 
-  const handleAdd = (type: EditorFieldType) => {
+  const handleAdd = async (type: SchemaFieldType) => {
+    if (!selectedSingleNodeData) return;
+
     if (!label.trim()) {
       labelInputRef.current?.focus();
       return;
     }
 
-    const id = createSlug(label);
-    const base: UserSchemaField = {
-      id,
-      label: label || "Untitled",
-      type,
-      validation: required ? { required: true } : undefined,
-      placeholder: placeholder || undefined,
-    };
+    // 기본 SchemaField 생성
+    const baseField = generateDefaultSchemaFieldByType(type, label, pathSection);
 
-    if (type === "select" || type === "multi-select" || type === "status") {
-      const parsed = (optionsStr || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map((opt) => ({ label: opt, value: opt }));
-      (base as UserSchemaField).options = parsed.length ? parsed : undefined;
+    
+    if (pathSection === "formData") {
+      // Property Section: formData와 formSchema 업데이트
+      const currentFormData = (selectedSingleNodeData.data.formData as Record<string, unknown>) || {};
+      const currentSchema = (selectedSingleNodeData.data.formSchema as any) || { fields: [] };
+      
+      // 기존 필드 ID들을 추출하여 중복 확인
+      const existingFieldIds = (currentSchema.fields || []).map((field: SchemaField) => field.id);
+      
+      // 고유한 필드 ID 생성
+      const uniqueFieldId = createUniqueFieldId(label, existingFieldIds);
+      
+      // 고유한 ID로 baseField 업데이트
+      const updatedBaseField = { ...baseField, id: uniqueFieldId, path: [baseField.path[0], uniqueFieldId] };
+      
+      // 새로운 필드를 formSchema에 추가
+      const updatedSchema = {
+        ...currentSchema,
+        fields: [...(currentSchema.fields || []), updatedBaseField]
+      };
+      
+      // 필드 타입에 따른 기본값 설정
+      const defaultValue = getDefaultValueByFieldType(updatedBaseField.type, updatedBaseField.options);
+      
+      // formSchema와 formData 동시 업데이트
+      const result = await nodeCommands.updateNodeData(selectedSingleNodeData, {
+        formSchema: updatedSchema,
+        formData: {
+          ...currentFormData,
+          [updatedBaseField.id]: defaultValue
+        }
+      });
+      
+      if (!result.ok) {
+        console.error("Failed to add new form field:", result.error);
+      }
+    } else if (pathSection === "nodeUI") {
+      // Style Section: nodeUI 업데이트
+      const currentNodeUI = (selectedSingleNodeData.data.nodeUI as NodeUI) || {};
+      
+      // 필드 타입에 따른 기본값 설정
+      const defaultValue = getDefaultValueByFieldType(baseField.type, baseField.options);
+      
+      // nodeUI 업데이트
+      const result = await nodeCommands.updateNodeData(selectedSingleNodeData, {
+        nodeUI: {
+          ...currentNodeUI,
+          [baseField.id]: defaultValue
+        }
+      });
+      
+      if (!result.ok) {
+        console.error("Failed to add new style field:", result.error);
+      }
     }
-
-    onAdd(base);
+    
     setOpen(false);
-    // reset lightweight states for next open
     setLabel("");
-    setRequired(false);
-    setPlaceholder("");
-    setOptionsStr("");
   };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant={buttonVariant}
+          variant="ghost"
           size="sm"
-          className={
-            buttonClassName ||
-            "w-fit justify-start text-muted-foreground hover:text-foreground"
-          }
+          className="w-fit justify-start text-muted-foreground hover:text-foreground"
         >
           <Plus className="w-4 h-4 mr-2" />
-          속성 추가
+            Add Property
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[350px] p-0" align="start">
@@ -136,14 +168,14 @@ export function PropertyAddPopover({
             placeholder="Enter field label"
           />
 
-          <Separator />
+          {/* <Separator className="border-border"/> */}
 
           <div className="grid grid-cols-2 gap-2">
             {FIELD_TYPES.map((ft) => (
               <button
                 key={ft.type}
                 type="button"
-                className="flex items-center gap-2 rounded-md border px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                className="flex items-center gap-2 rounded-md border px-2 py-2 text-sm hover:bg-accent/50 hover:text-accent-foreground"
                 onClick={() => handleAdd(ft.type)}
               >
                 <span className="shrink-0 text-muted-foreground">

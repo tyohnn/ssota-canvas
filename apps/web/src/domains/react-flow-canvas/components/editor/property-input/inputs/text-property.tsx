@@ -1,26 +1,26 @@
 "use client";
 
 import React, { useState } from "react";
+import { Node } from "@xyflow/react";
 import { Input } from "@workspace/ui/components/ui/input";
 import { Textarea } from "@workspace/ui/components/ui/textarea";
-import { Button } from "@workspace/ui/components/ui/button";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type { Block } from "@/db/schema";
-import { getValue } from "../object-path";
-import { useBlockPropertyUpdate } from "../useBlockPropertyUpdate";
+import { SchemaField } from "@/domains/blocks/types/common.node";
+import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
 
 export function TextProperty({
-  block,
+  data,
   field,
+  node,
 }: {
-  block: Block;
-  field: EditorField;
+  data: string | undefined;
+  field: SchemaField;
+  node: Node;
 }) {
-  const { updateMetadata } = useBlockPropertyUpdate(block);
+  const { updateField } = useNodeFieldUpdate();
+  const value = data || "";
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState("");
 
-  const value = (getValue(block?.metadata || {}, field.path) ?? "") as string;
   const isMultiLine = value.includes("\n");
 
   const handleLabelClick = () => {
@@ -39,7 +39,7 @@ export function TextProperty({
   const handleInputBlur = () => {
     setIsEditing(false);
     if (inputValue !== value) {
-      updateMetadata(field.path, inputValue);
+      updateField(node, field.path, inputValue);
     }
   };
 
@@ -64,7 +64,7 @@ export function TextProperty({
         // Enter: 저장
         setIsEditing(false);
         if (inputValue !== value) {
-          updateMetadata(field.path, inputValue);
+          updateField(node, field.path, inputValue);
         }
       }
     } else if (e.key === "Escape") {
@@ -85,7 +85,7 @@ export function TextProperty({
         e.preventDefault();
         setIsEditing(false);
         if (inputValue !== value) {
-          updateMetadata(field.path, inputValue);
+          updateField(node, field.path, inputValue);
         }
       }
     } else if (e.key === "Escape") {
@@ -108,34 +108,42 @@ export function TextProperty({
           autoFocus
         />
       );
+    } else {
+      return (
+        <Input
+          className="text-xs"
+          placeholder={field.placeholder}
+          value={inputValue}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
+          onKeyDown={handleInputKeyDown}
+          autoFocus
+        />
+      );
     }
+  }
 
+  if (isMultiLine) {
     return (
-      <Input
-        className="h-7 px-2 py-1 text-xs"
-        placeholder={field.placeholder}
-        value={inputValue}
-        onChange={handleInputChange}
-        onBlur={handleInputBlur}
-        onKeyDown={handleInputKeyDown}
-        autoFocus
-      />
+      <div
+        className="text-xs min-h-[60px] p-2 border border-transparent hover:border-border rounded cursor-text"
+        onClick={handleLabelClick}
+      >
+        {value || (
+          <span className="text-muted-foreground">{field.placeholder}</span>
+        )}
+      </div>
     );
   }
 
-  const displayValue = value || "Click to edit";
-  const displayText = isMultiLine
-    ? value.split("\n").slice(0, 2).join("\n") +
-      (value.split("\n").length > 2 ? "..." : "")
-    : displayValue;
-
   return (
-    <Button
-      variant="ghost"
-      className="w-full h-auto min-h-7 px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50 whitespace-pre-wrap text-muted-foreground select-none cursor-pointer"
+    <div
+      className="text-xs p-2 border border-transparent hover:border-border rounded cursor-text"
       onClick={handleLabelClick}
     >
-      {displayText}
-    </Button>
+      {value || (
+        <span className="text-muted-foreground">{field.placeholder}</span>
+      )}
+    </div>
   );
 }

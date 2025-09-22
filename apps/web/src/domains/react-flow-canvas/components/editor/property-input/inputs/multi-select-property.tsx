@@ -1,10 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type { Block } from "@/db/schema";
-import { getValue } from "../object-path";
-import { useBlockPropertyUpdate } from "../useBlockPropertyUpdate";
 import MultipleSelector, {
   type Option as MultiOption,
 } from "@workspace/ui/components/ui/multiselect";
@@ -13,7 +9,10 @@ import { Badge } from "@workspace/ui/components/ui/badge";
 import {
   ShapePolicy,
   type ColorKey,
-} from "@/domains/canvas/policy/shape-policy";
+} from "@/domains/blocks/policy/shape-policy";
+import { SchemaField } from "@/domains/blocks/types/common.node";
+import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
+import { Node } from "@xyflow/react";
 
 const getBadgeStyle = (color: string) => {
   // Use the policy for color-based styling
@@ -29,18 +28,16 @@ const getBadgeStyle = (color: string) => {
 };
 
 export function MultiSelectProperty({
-  block,
+  data,
   field,
+  node,
 }: {
-  block: Block;
-  field: EditorField;
+  data: string[];
+  field: SchemaField;
+  node: Node;
 }) {
-  const { updateMetadata } = useBlockPropertyUpdate(block);
-
-  const currentRaw = getValue(block?.metadata || {}, field.path);
-  const currentValues: string[] = Array.isArray(currentRaw)
-    ? (currentRaw as string[])
-    : [];
+  const { updateField } = useNodeFieldUpdate();
+  const currentValues: string[] = data || [];
 
   const allOptions: MultiOption[] = useMemo(
     () =>
@@ -79,7 +76,8 @@ export function MultiSelectProperty({
 
   const handleChange = (next: MultiOption[]) => {
     setSelected(next);
-    updateMetadata(
+    updateField(
+      node,
       field.path,
       next.map((n) => n.value)
     );
@@ -92,7 +90,7 @@ export function MultiSelectProperty({
   };
 
   const handleBlur: React.FocusEventHandler<HTMLDivElement> = (e) => {
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
       setIsEditing(false);
     }
   };
@@ -134,11 +132,11 @@ export function MultiSelectProperty({
       onBlur={handleBlur}
     >
       <MultipleSelector
-        value={selected.map((opt) => ({
+        value={selected.map((opt: MultiOption) => ({
           ...opt,
           label: opt.label,
           value: opt.value,
-          color: (opt as any).color,
+          color: opt.color as ColorKey,
         }))}
         defaultOptions={allOptions}
         onChange={handleChange}

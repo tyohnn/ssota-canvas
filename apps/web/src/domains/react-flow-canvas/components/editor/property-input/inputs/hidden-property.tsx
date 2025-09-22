@@ -1,30 +1,28 @@
 "use client";
 
 import React from "react";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type { Block } from "@/db/schema";
-import { getValue } from "../object-path";
-import { useBlockPropertyUpdate } from "../useBlockPropertyUpdate";
+import { SchemaField } from "@/domains/blocks/types/common.node";
+import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
+import { Node } from "@xyflow/react";
 
 export function HiddenProperty({
-  block,
+  data,
   field,
+  node,
 }: {
-  block: Block;
-  field: EditorField;
+  data: unknown;
+  field: SchemaField;
+  node: Node;
 }) {
-  const { updateMetadata } = useBlockPropertyUpdate(block);
-  const value = getValue(block?.metadata || {}, field.path);
+  const { updateField } = useNodeFieldUpdate();
 
-  // Hidden 필드는 UI에 표시되지 않지만 값은 저장됩니다
-  // 필요한 경우 프로그래밍적으로 값을 설정할 수 있습니다
-  React.useEffect(() => {
-    // 기본값이 설정되어 있지 않다면 설정
-    if (value === undefined && field.placeholder) {
-      updateMetadata(field.path, field.placeholder);
-    }
-  }, [field.path, field.placeholder, updateMetadata, value]);
+  const handleChange = (value: unknown) => {
+    updateField(node, field.path, value);
+  };
 
-  // UI에는 아무것도 렌더링하지 않음
-  return null;
+  return (
+    <div className="w-full h-7 px-2 py-1 text-sm flex items-center">
+      <span className="text-muted-foreground">{field.id}</span>
+    </div>
+  );
 }

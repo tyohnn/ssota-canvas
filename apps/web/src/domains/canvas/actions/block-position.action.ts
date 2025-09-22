@@ -58,6 +58,12 @@ export type ListPageBlockPositionsInput = z.infer<
   typeof listPageBlockPositionsSchema
 >;
 
+// Combined block and position type for optimized data transfer
+export type BlockWithPosition = {
+  block: Block;
+  position: BlockPosition;
+};
+
 /**
  * Create a new block position
  */
@@ -279,13 +285,13 @@ export async function restoreBlockPosition(
  */
 export async function listPageBlockPositions(
   input: ListPageBlockPositionsInput
-): Promise<ActionResult<{ positions: BlockPosition[]; blocks: Block[] }>> {
+): Promise<ActionResult<{ blocksWithPositions: BlockWithPosition[] }>> {
   try {
     const { pageId } = listPageBlockPositionsSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
     const result = await db.rls(async (tx) => {
-      // Join positions with blocks to get both position and block data
+      // Join positions with blocks to get combined data
       const joinedResult = await tx
         .select({
           position: blockPositions,
@@ -302,16 +308,13 @@ export async function listPageBlockPositions(
         )
         .orderBy(blockPositions.created_at);
 
-      // Separate positions and blocks
-      const positions: BlockPosition[] = [];
-      const blockData: Block[] = [];
+      // Map to BlockWithPosition objects
+      const blocksWithPositions: BlockWithPosition[] = joinedResult.map((row) => ({
+        block: row.block as Block,
+        position: row.position as BlockPosition,
+      }));
 
-      joinedResult.forEach((row) => {
-        positions.push(row.position as BlockPosition);
-        blockData.push(row.block as Block);
-      });
-
-      return { positions, blocks: blockData };
+      return { blocksWithPositions };
     });
 
     return ok(result);

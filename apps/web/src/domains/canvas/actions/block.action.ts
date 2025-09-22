@@ -23,18 +23,20 @@ const ObjectEnum = z.enum(objectTypeEnum.enumValues);
 const createBlockSchema = z.object({
   blockType: BlockTypeEnum,
   slug: z
-    .string()
-    .min(1)
-    .max(100)
-    .regex(
-      SLUG_RE,
-      "Slug must contain only lowercase letters, numbers, hyphens, or Korean characters"
-    ),
-  name: z.string().min(1).max(100),
-  metadata: z.record(z.string(), z.any()),
-  object: ObjectEnum.optional(),
-  parentBlockId: z.uuid().nullable().optional(),
+  .string()
+  .min(1)
+  .max(100)
+  .regex(
+    SLUG_RE,
+    "Slug must contain only lowercase letters, numbers, hyphens, or Korean characters"
+  ),
+  title: z.string().min(1),
   workspaceId: z.uuid(),
+  parentBlockId: z.uuid().nullable().optional(),
+  object: ObjectEnum.optional(),
+  order: z.number().optional(),
+  icon_name: z.string().optional(),
+  metadata: z.record(z.string(), z.any()),
 });
 export type CreateBlockInput = z.infer<typeof createBlockSchema>;
 
@@ -50,11 +52,14 @@ const updateBlockSchema = z.object({
       "Slug must contain only lowercase letters, numbers, hyphens, or Korean characters"
     )
     .optional(),
-  name: z.string().min(1).max(100).optional(),
-  metadata: z.record(z.string(), z.any()).optional(),
-  object: ObjectEnum.optional(),
+  title: z.string().min(1).optional(),
+  workspaceId: z.uuid().optional(),
   parentBlockId: z.uuid().nullable().optional(),
+  object: ObjectEnum.optional(),
   order: z.number().optional(),
+  icon_name: z.string().optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
+  deleted_at: z.date().optional(),
 });
 export type UpdateBlockInput = z.infer<typeof updateBlockSchema>;
 
@@ -150,7 +155,7 @@ export async function createBlock(
         .values({
           block_type: validated.blockType,
           slug: validated.slug,
-          name: validated.name,
+          title: validated.title,
           metadata: validated.metadata,
           object: validated.object,
           parent_block_id: validated.parentBlockId ?? undefined,
@@ -243,13 +248,14 @@ export async function updateBlock(
     const updated = await db.rls(async (tx) => {
       const updateData: Partial<Block> = {};
       if (validated.slug) updateData.slug = validated.slug;
-      if (validated.name) updateData.name = validated.name;
+      if (validated.title) updateData.title = validated.title;
       if (validated.metadata) updateData.metadata = validated.metadata;
       if (validated.object !== undefined)
         updateData.object = validated.object as any;
       if (validated.parentBlockId !== undefined)
         updateData.parent_block_id = validated.parentBlockId;
       if (validated.order !== undefined) updateData.order = validated.order;
+      if (validated.deleted_at) updateData.deleted_at = validated.deleted_at;
       updateData.updated_at = new Date();
 
       const [row] = await tx

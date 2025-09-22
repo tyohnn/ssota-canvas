@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Block } from "@/db/schema";
 import { Button } from "@workspace/ui/components/ui/button";
 import { Input } from "@workspace/ui/components/ui/input";
 import { Badge } from "@workspace/ui/components/ui/badge";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
-import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
+import { useReactFlowCommandsContext } from "@/domains/react-flow-canvas/contexts/ReactFlowCommandsContext";
 import { PropertySection } from "./property-section";
 import { StyleSection } from "./style-section";
 import {
@@ -17,18 +17,23 @@ import {
   Component,
   Unlink,
 } from "lucide-react";
-import {
-  isComponentInstance,
-  isComponentDefinition,
-  type ComponentDefinition,
-  type ComponentInstance,
-} from "@/domains/canvas/types/component";
-
 import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
-import { useSelectionCommands, useNodeSelection } from "@/domains/react-flow-canvas/contexts/SelectionContext";
+import { useReactFlowSelectionCommands, useReactFlowNodeSelection } from "@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext";
+import { ComponentInstanceData } from "@/domains/block-components/types/component.types";
+import { FormSchema, SchemaField } from "@/domains/blocks/types/common.node";
+import { OverrideFlags } from "@/domains/block-components/types/component-override.types";
+import { separateFieldsByType } from "../../policy/node-form-schema-policy";
 
 interface EditorPanelProps {
   className?: string;
+}
+
+export interface ComponentInfo {
+  type: "instance" | "definition";
+  definitionId: string;
+  definition: Block | undefined;
+  overrides?: OverrideFlags;
+  instanceId?: string;
 }
 
 /**
@@ -37,81 +42,90 @@ interface EditorPanelProps {
  */
 export function EditorPanel({ className }: EditorPanelProps) {
   // from canvas domain
-  const { blocksById } = useCanvasData();
-  const { selectComponent, canvasMode } = useCanvasSelection();
-  const { updateBlock, detachComponentInstance } = useCanvasCommandsContext();
+  const data = useCanvasData();
+  const { canvasMode, selectComponent } = data;
+  
   // from react-flow-canvas domain
   const panel = usePanel();
-  const { selectedSingleNodeId, selectedSingleNodeData, isSingleSelected } = useNodeSelection();
-  const selectionCommands = useSelectionCommands();
-
-  // 렌더링 중 상태 업데이트 방지: useEffect 사용
-  React.useEffect(() => {
-    if (!isSingleSelected) {
-      panel.closeEditorPanel();
-    }
-  }, [isSingleSelected, panel.closeEditorPanel]);
-
-
-  const block = selectedSingleNodeId ? blocksById[selectedSingleNodeId] : null;
-
-
+  const selectionCommands = useReactFlowSelectionCommands();
+  const { selectedSingleNodeData } = useReactFlowNodeSelection();
+  const { nodeCommands } = useReactFlowCommandsContext();
+  
   // editor panel state
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
   const [title, setTitle] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  const componentInfo: ComponentInfo | null = useMemo(() => {
+    if (!selectedSingleNodeData) return null;
 
-  // 컴포넌트 모드인지 확인
-  const isComponentMode = canvasMode === "component";
+    const nodeData = selectedSingleNodeData.data;
+    if (!nodeData) return null;
+    
+    const isNodeInstance = Boolean(nodeData.instanceData);
+    const isNodeDefinition = nodeData.object === 'component' && Boolean(nodeData.componentData);
 
-  // 컴포넌트 정보 확인
-  const componentInfo = React.useMemo(() => {
-    if (!block) return null;
-
-    if (isComponentInstance(block)) {
-      const componentId = block.metadata.component_id as string;
-      const definition = blocksById[componentId] as ComponentDefinition;
+    // React Flow 노드 데이터에서 컴포넌트 정보 확인
+    if (isNodeInstance) {
+      const definitionId = (nodeData.instanceData as ComponentInstanceData).componentId;
+      const definition = data.getComponentBlockById(definitionId);
+      const overrides = (nodeData.instanceData as ComponentInstanceData).overrides;
 
       return {
         type: "instance" as const,
-        instance: block,
+        definitionId,
         definition,
-        hasStyleOverrides: !!(
-          block.metadata.node_ui &&
-          Object.keys(block.metadata.node_ui).length > 0
-        ),
+        overrides,
+        instanceId: selectedSingleNodeData.id,
       };
     }
 
-    if (isComponentDefinition(block)) {
+    if (isNodeDefinition) {
+      const definition = data.getComponentBlockById(selectedSingleNodeData.id);
       return {
         type: "definition" as const,
-        definition: block,
+        definitionId: selectedSingleNodeData.id,
+        definition,
       };
     }
 
     return null;
-  }, [block, blocksById]);
+  }, [selectedSingleNodeData]);
 
-  // 제목 상태 동기화
+  const fields = useMemo<{ 
+    styleFields: SchemaField[],
+    propertyFields: SchemaField[] 
+  }>(() => {
+    const formSchema = selectedSingleNodeData?.data.formSchema as FormSchema;
+
+    const visibleFields = formSchema.fields.filter((field) => field.type !== "hidden");
+    
+    // 스타일 필드만 추출
+    const { styleFields, propertyFields } = separateFieldsByType(visibleFields);
+
+    return { styleFields, propertyFields };
+  }, [selectedSingleNodeData]);
+
+
+  // 제목 상태 동기화 - React Flow 노드 ID 사용
   useEffect(() => {
-    if (block) {
-      setTitle(block.name);
+    if (selectedSingleNodeData) {
+      setTitle(selectedSingleNodeData.data.title as string);
     }
-  }, [block?.name]);
+  }, [selectedSingleNodeData]);
 
   // 편집 완료
   const handleTitleSave = async () => {
-    if (block && title.trim() !== block.name) {
+    if (selectedSingleNodeData && title.trim()) {
       const newTitle = title.trim();
 
-      const result = await updateBlock(block.id, { name: newTitle });
+      const result = await nodeCommands.updateNodeData(selectedSingleNodeData, { title: newTitle });
 
       if (!result.ok) {
         console.error("Failed to update block:", result.error);
         // Reset title to original value on error
-        setTitle(block.name);
+        setTitle(`Node ${selectedSingleNodeData.id.slice(0, 8)}`);
       }
     }
   };
@@ -121,7 +135,7 @@ export function EditorPanel({ className }: EditorPanelProps) {
     if (e.key === "Enter") {
       handleTitleSave();
     } else if (e.key === "Escape") {
-      setTitle(block?.name || "");
+      setTitle(selectedSingleNodeData?.data.title as string);
     }
   };
 
@@ -229,29 +243,26 @@ export function EditorPanel({ className }: EditorPanelProps) {
                           size="sm"
                           className="h-6 px-2 text-xs"
                           onClick={() => {
-                            // 컴포넌트 모드로 전환하고 정의 블록 선택
-                            selectComponent(componentInfo.definition!.id);
-                            selectionCommands.selectNodes([componentInfo.definition!.id]);
+                            selectComponent(componentInfo.definitionId); // Canvas Domain
+                            selectionCommands.selectNodes([componentInfo.definitionId]); // React Flow Canvas Domain
                           }}
                         >
-                          {componentInfo.definition.name}
+                          {componentInfo.definition.title}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-6 w-6 p-0"
                           onClick={async () => {
-                            if (componentInfo.instance) {
-                              const result = await detachComponentInstance(
-                                componentInfo.instance.id
-                              );
-                              if (!result.ok) {
-                                console.error(
-                                  "Failed to detach component:",
-                                  result.error
-                                );
-                              }
-                            }
+                            // const result = await detachComponentInstance(
+                            //   selectedSingleNodeId
+                            // );
+                            // if (!result.ok) {
+                            //   console.error(
+                            //     "Failed to detach component:",
+                            //     result.error
+                            //   );
+                            // }
                           }}
                         >
                           <Unlink className="w-3 h-3" />
@@ -274,7 +285,7 @@ export function EditorPanel({ className }: EditorPanelProps) {
               </div>
             )}
             {/* Regular Component Mode Badge */}
-            {isComponentMode && !componentInfo && (
+            {canvasMode === "component" && !componentInfo && (
               <div className="mb-2">
                 <Badge variant="secondary" className="text-xs">
                   Component
@@ -295,12 +306,23 @@ export function EditorPanel({ className }: EditorPanelProps) {
 
           {/* Style Section */}
           <div className="border-b px-1">
-            <StyleSection />
+            <StyleSection
+              formData={{
+                ...(selectedSingleNodeData?.data.formData as Record<string, unknown> || {}),
+                ...(selectedSingleNodeData?.data.nodeUI as Record<string, unknown> || {})
+              }}
+              schemaFields={fields.styleFields}
+              componentInfo={componentInfo}
+            />
           </div>
 
           {/* Property Section */}
           <div className="px-1">
-            <PropertySection />
+            <PropertySection
+              formData={selectedSingleNodeData?.data.formData as Record<string, unknown>}
+              schemaFields={fields.propertyFields}
+              componentInfo={componentInfo}
+            />
           </div>
 
           {/* Comments Section */}

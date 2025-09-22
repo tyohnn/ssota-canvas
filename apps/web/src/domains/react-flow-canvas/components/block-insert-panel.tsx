@@ -1,35 +1,67 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useReactFlow } from "@xyflow/react";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
 import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
-import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
-import {
-  getBlockAdditionPolicy,
-  getDefaultBlockTemplate,
-} from "@/domains/canvas/policy/block-addition-policy";
+import { useReactFlowCommandsContext } from "@/domains/react-flow-canvas/contexts/ReactFlowCommandsContext";
+import { getBlockAdditionPolicy } from "@/domains/react-flow-canvas/policy/node-addition-policy";
 import { Button } from "@workspace/ui/components/ui/button";
 import { Card } from "@workspace/ui/components/ui/card";
 import { Badge } from "@workspace/ui/components/ui/badge";
 import { Input } from "@workspace/ui/components/ui/input";
 import { ChevronsRight, Blocks, Search, Plus, Component } from "lucide-react";
+import { DynamicIcon } from "lucide-react/dynamic";
+import { BlockOption } from "@/domains/react-flow-canvas/policy/node-addition-policy";
 
-type Props = { className?: string };
-
-export function BlockInsertPanel({ className }: Props) {
+export function BlockInsertPanel() {
   const data = useCanvasData();
-  const sel = useCanvasSelection();
   const panel = usePanel();
-  const commands = useCanvasCommandsContext();
+  const commands = useReactFlowCommandsContext();
+  const reactFlow = useReactFlow();
 
   // Get selected page block from data
-  const selectedPageBlock = sel.pageId ? data.blocksById[sel.pageId] : null;
+  const { selectedPageBlock, componentBlocks } = data;
   const { closeBlockInsertPanel, showBlockInsertPanel } = panel;
 
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Handle block insertion
+  const handleBlockInsert = async (blockOption: BlockOption) => {
+    const lastNode = reactFlow.getNodes().at(-1);
+    let newNodePosition = { x: 0, y: 0 };
+    if (lastNode) {
+      const lastNodePosition = lastNode.position;
+      newNodePosition = {
+        x: lastNodePosition.x + 200,
+        y: lastNodePosition.y + 200,
+      };
+    }
+    
+    const pageId = selectedPageBlock?.id as string | undefined;
+    if (!pageId) return;
+
+    if (blockOption.isComponent) {
+      // Create component instance
+      await commands.componentCommands.createComponentInstance(
+        blockOption.id,
+        newNodePosition,
+        blockOption.title
+      );
+    } else {
+      // Create regular block
+      const res = await commands.nodeCommands.createNode(
+        pageId,
+        blockOption.kind,
+        newNodePosition
+      );
+      console.log("createNode res", res);
+    }
+    closeBlockInsertPanel();
+  };
+
 
   useEffect(() => {
     if (showBlockInsertPanel) {
@@ -51,6 +83,7 @@ export function BlockInsertPanel({ className }: Props) {
     }
   }, [showBlockInsertPanel]);
 
+
   // ESC 키로 패널 닫기
   useEffect(() => {
     if (!showBlockInsertPanel) return;
@@ -67,41 +100,46 @@ export function BlockInsertPanel({ className }: Props) {
     return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [showBlockInsertPanel, closeBlockInsertPanel]);
 
+
   if (!shouldRender) return null;
 
-  const policy = getBlockAdditionPolicy(
+  const availableBlockOptions = getBlockAdditionPolicy(
     selectedPageBlock,
-    Object.values(data.blocksById)
+    componentBlocks
   );
 
   // Filter blocks based on search query
-  const filteredBlocks = policy.blocks.filter(
-    (block) =>
-      block.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (block.description &&
-        block.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredBlocks = availableBlockOptions.filter(
+    (blockOption) =>
+      blockOption.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (blockOption.description &&
+        blockOption.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // Group blocks by category
   const groupedBlocks = filteredBlocks.reduce(
-    (acc, block) => {
-      const category = block.isComponent
+    (acc, blockOption) => {
+      const category = blockOption.isComponent
         ? "Components"
-        : getBlockCategory(block.kind);
+        : getBlockCategory(blockOption.kind);
       if (!acc[category]) {
         acc[category] = [];
       }
-      acc[category].push(block);
+      acc[category].push(blockOption);
       return acc;
     },
-    {} as Record<string, typeof policy.blocks>
+    {} as Record<string, typeof availableBlockOptions>
   );
 
   return (
     <div
       className={`absolute bottom-0 right-0 z-50 w-[400px] h-[90%] bg-background/95 backdrop-blur-md border-l border-t border-border shadow-2xl rounded-tl-lg transition-all duration-300 ease-out ${
-        isAnimating ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
-      } ${className || ""}`}
+        isAnimating ? "translate-x-0 opacity-100 blur-none" : "translate-x-full opacity-0 blur-md"
+      }`}
+      style={{
+        transition:
+          "opacity 200ms ease-out-in, transform 200ms ease-out-in, filter 200ms ease-out-in",
+      }}
     >
       <div className="flex h-full flex-col">
         {/* Header */}
@@ -118,7 +156,7 @@ export function BlockInsertPanel({ className }: Props) {
               </Button>
               <div className="flex items-center gap-2">
                 <Blocks className="h-4 w-4 text-muted-foreground" />
-                <h2 className="text-sm font-semibold">{policy.title}</h2>
+                <h2 className="text-sm font-semibold">Add Block</h2>
               </div>
             </div>
             <Badge variant="secondary" className="text-xs">
@@ -142,7 +180,7 @@ export function BlockInsertPanel({ className }: Props) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          {Object.entries(groupedBlocks).map(([category, blocks]) => (
+          {Object.entries(groupedBlocks).map(([category, blockOptions]) => (
             <div
               key={category}
               className="p-4 border-b border-border/30 last:border-b-0"
@@ -153,33 +191,16 @@ export function BlockInsertPanel({ className }: Props) {
                 </h3>
               </div>
               <div className="grid grid-cols-1 gap-2">
-                {blocks.map((block) => (
+                {blockOptions.map((blockOption) => (
                   <Card
-                    key={block.id}
+                    key={blockOption.id}
                     className="group cursor-pointer border border-border/50 hover:border-border hover:bg-muted/30 transition-all duration-200 p-3 hover:shadow-sm"
-                    onClick={async () => {
-                      const pageId = selectedPageBlock?.id as
-                        | string
-                        | undefined;
-                      if (!pageId) return;
-
-                      if (block.isComponent && block.componentDefinition) {
-                        // Create component instance
-                        await commands.createInstanceInPage(
-                          pageId,
-                          block.componentDefinition.id
-                        );
-                      } else {
-                        // Create regular block
-                        await commands.createBlockInPage(pageId, block.kind);
-                      }
-                      closeBlockInsertPanel();
-                    }}
+                    onClick={() => handleBlockInsert(blockOption)}
                     draggable
                     onDragStart={(e) => {
                       e.dataTransfer.setData(
                         "application/x-canvas-kind",
-                        block.kind
+                        blockOption.kind
                       );
                       e.dataTransfer.effectAllowed = "move";
                     }}
@@ -188,15 +209,15 @@ export function BlockInsertPanel({ className }: Props) {
                       {/* Icon */}
                       <div
                         className={`flex-shrink-0 w-8 h-8 rounded-md ${
-                          block.isComponent
+                          blockOption.isComponent
                             ? "bg-gradient-to-br from-purple-100 to-purple-50 border border-purple-200"
                             : "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
                         } flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}
                       >
-                        {block.isComponent ? (
+                        {blockOption.isComponent ? (
                           <Component className="h-4 w-4 text-purple-600" />
                         ) : (
-                          <BlockIcon kind={block.kind} />
+                          <DynamicIcon name={(blockOption.icon_name || "HelpCircle") as any} className="h-4 w-4 text-primary" />
                         )}
                       </div>
 
@@ -204,9 +225,9 @@ export function BlockInsertPanel({ className }: Props) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="text-sm font-medium truncate">
-                            {block.name}
+                            {blockOption.title}
                           </h4>
-                          {block.isComponent && (
+                          {blockOption.isComponent && (
                             <Badge
                               variant="secondary"
                               className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700"
@@ -215,19 +236,10 @@ export function BlockInsertPanel({ className }: Props) {
                               Component
                             </Badge>
                           )}
-                          {!block.isComponent &&
-                            block.kind === "basic_text" && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs px-1.5 py-0.5"
-                              >
-                                Text
-                              </Badge>
-                            )}
                         </div>
-                        {block.description && (
+                        {blockOption.description && (
                           <p className="text-xs text-muted-foreground leading-relaxed">
-                            {block.description}
+                            {blockOption.description}
                           </p>
                         )}
                       </div>
@@ -267,6 +279,7 @@ export function BlockInsertPanel({ className }: Props) {
 // Helper function to get block category
 function getBlockCategory(kind: string): string {
   switch (kind) {
+    case "text":
     case "basic_text":
     case "shape":
       return "Basic Elements";
@@ -286,30 +299,4 @@ function getBlockCategory(kind: string): string {
   }
 }
 
-// Block icon component
-function BlockIcon({ kind }: { kind: string }) {
-  const iconClass = "h-4 w-4 text-primary";
 
-  switch (kind) {
-    case "basic_text":
-      return <span className={`${iconClass} font-bold`}>T</span>;
-    case "shape":
-      return <span className={`${iconClass} font-bold`}>□</span>;
-    case "image":
-      return <span className={`${iconClass} font-bold`}>🖼</span>;
-    case "video":
-      return <span className={`${iconClass} font-bold`}>🎥</span>;
-    case "webview":
-      return <span className={`${iconClass} font-bold`}>🌐</span>;
-    case "youtube":
-      return <span className={`${iconClass} font-bold`}>📺</span>;
-    case "twitter_preview":
-      return <span className={`${iconClass} font-bold`}>🐦</span>;
-    case "math_formula":
-      return <span className={`${iconClass} font-bold`}>∑</span>;
-    case "file":
-      return <span className={`${iconClass} font-bold`}>📄</span>;
-    default:
-      return <span className={`${iconClass} font-bold`}>◆</span>;
-  }
-}

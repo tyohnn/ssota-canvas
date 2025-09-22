@@ -1,31 +1,29 @@
 "use client";
 
 import React, { useState } from "react";
+import { Node } from "@xyflow/react";
 import { Input } from "@workspace/ui/components/ui/input";
 import { Button } from "@workspace/ui/components/ui/button";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type { Block } from "@/db/schema";
-import { getValue } from "../object-path";
-import { useBlockPropertyUpdate } from "../useBlockPropertyUpdate";
+import { SchemaField } from "@/domains/blocks/types/common.node";
+import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
 
 export function NumberProperty({
-  block,
+  data,
   field,
+  node,
 }: {
-  block: Block;
-  field: EditorField;
+  data: number | string | undefined;
+  field: SchemaField;
+  node: Node;
 }) {
-  const { updateMetadata } = useBlockPropertyUpdate(block);
+  const { updateField } = useNodeFieldUpdate();
+  const value = data || "";
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState("");
 
-  const value = (getValue(block?.metadata || {}, field.path) ?? "") as
-    | number
-    | string;
-
   const handleLabelClick = () => {
     setIsEditing(true);
-    setInputValue(String(value ?? ""));
+    setInputValue(String(value));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,30 +32,31 @@ export function NumberProperty({
 
   const handleInputBlur = () => {
     setIsEditing(false);
-    const parsed = inputValue === "" ? null : Number(inputValue);
-    if (parsed !== value) {
-      updateMetadata(field.path, parsed);
+    const numValue = parseFloat(inputValue);
+    if (!isNaN(numValue) && numValue !== value && node) {
+      updateField(node, field.path, numValue);
     }
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       setIsEditing(false);
-      const parsed = inputValue === "" ? null : Number(inputValue);
-      if (parsed !== value) {
-        updateMetadata(field.path, parsed);
+      const numValue = parseFloat(inputValue);
+      if (!isNaN(numValue) && numValue !== value && node) {
+        updateField(node, field.path, numValue);
       }
     } else if (e.key === "Escape") {
       setIsEditing(false);
-      setInputValue(String(value ?? ""));
+      setInputValue(String(value));
     }
   };
 
   if (isEditing) {
     return (
       <Input
-        className="h-7 px-2 py-1 text-xs"
+        className="h-7 text-xs"
         type="number"
+        placeholder={field.placeholder}
         value={inputValue}
         onChange={handleInputChange}
         onBlur={handleInputBlur}
@@ -70,12 +69,14 @@ export function NumberProperty({
   return (
     <Button
       variant="ghost"
-      className="w-full h-7 px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50 text-muted-foreground select-none cursor-pointer"
+      className="w-full h-auto min-h-7 px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50 cursor-pointer"
       onClick={handleLabelClick}
     >
-      {value !== null && value !== ""
-        ? String(value)
-        : field.placeholder || "Click to edit"}
+      {value || (
+        <span className="text-muted-foreground">
+          {field.placeholder || "Click to edit number"}
+        </span>
+      )}
     </Button>
   );
 }

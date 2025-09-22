@@ -1,0 +1,1 @@
+ALTER TYPE "public"."block_type" ADD VALUE 'text' BEFORE 'basic_text';

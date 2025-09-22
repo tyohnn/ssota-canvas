@@ -4,9 +4,8 @@ import React from "react";
 import { Atom, FileText, File, Blocks } from "lucide-react";
 import type { Block } from "@/db/schema";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
 import { updateBlock } from "@/domains/canvas/actions/block.action";
-import { useSelectionCommands } from "@/domains/react-flow-canvas/contexts/SelectionContext";
+import { useReactFlowSelectionCommands } from "@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext";
 
 // Page-specific file icon renderer
 function getPageFileIcon(blockType: string | undefined, className: string) {
@@ -69,58 +68,11 @@ export interface UsePageExplorerTreeResult {
   }) => Promise<void>;
 }
 
-/**
- * 페이지 익스플로러 트리를 위한 커스텀 훅
- *
- * 이 훅은 페이지 블록들을 트리 구조로 표시하기 위한 모든 비즈니스 로직을 제공합니다.
- * ExplorerTree 컴포넌트와 함께 사용하여 페이지 계층 구조를 시각화하고 관리할 수 있습니다.
- *
- * @returns UsePageExplorerTreeResult - 페이지 익스플로러에 필요한 모든 데이터와 함수들
- *
- * @example
- * ```tsx
- * function PageExplorer() {
- *   const {
- *     pageBlocks,
- *     selectedPageBlock,
- *     getId,
- *     getName,
- *     getParentId,
- *     getOrder,
- *     getType,
- *     renderFileIcon,
- *     handleSelect,
- *     handleMove,
- *   } = usePageExplorerTree();
- *
- *   return (
- *     <ExplorerTree<Block>
- *       items={pageBlocks}
- *       getId={getId}
- *       getName={getName}
- *       getParentId={getParentId}
- *       getOrder={getOrder}
- *       getType={getType}
- *       renderFileIcon={renderFileIcon}
- *       rootName="Pages"
- *       selectedId={selectedPageBlock?.id}
- *       onSelect={handleSelect}
- *       onMove={handleMove}
- *     />
- *   );
- * }
- * ```
- */
-export function usePageExplorerTree(): UsePageExplorerTreeResult {
-  const { blocksById, updateBlock: updateBlockSSOT } = useCanvasData();
-  const { pageId, selectPage } = useCanvasSelection();
-  const { clearSelection } = useSelectionCommands();
 
-  // ===== 데이터 처리 =====
-  /** 페이지 객체만 필터링 (object === "page"인 블록들만) */
-  const pageBlocks = React.useMemo(() => {
-    return Object.values(blocksById).filter((block) => block.object === "page");
-  }, [blocksById]);
+export function usePageExplorerTree(): UsePageExplorerTreeResult {
+  const { pageBlocks, selectedPageBlock, selectPage, updatePageBlock } = useCanvasData();
+  const { clearSelection } = useReactFlowSelectionCommands();
+
 
   // ===== 이벤트 핸들러 =====
   /** 페이지 블록 선택 처리 - root가 아닌 경우에만 선택 */
@@ -163,7 +115,7 @@ export function usePageExplorerTree(): UsePageExplorerTreeResult {
       const originalBlock = { ...item };
 
       // 1단계: Optimistic Update (즉시 UI 반영)
-      updateBlockSSOT(itemId, {
+      updatePageBlock(itemId, {
         parent_block_id: parentId,
         order: newOrder,
         updated_at: new Date(),
@@ -180,25 +132,25 @@ export function usePageExplorerTree(): UsePageExplorerTreeResult {
         if (!result.success) {
           console.error("Failed to update block:", result.error);
           // 실패 시 Optimistic Update 롤백
-          updateBlockSSOT(itemId, originalBlock);
+          updatePageBlock(itemId, originalBlock);
         }
       } catch (error) {
         console.error("Failed to update block in DB:", error);
         // 에러 시 Optimistic Update 롤백
-        updateBlockSSOT(itemId, originalBlock);
+        updatePageBlock(itemId, originalBlock);
       }
     },
-    [updateBlockSSOT]
+    [updatePageBlock]
   );
 
   return {
     // ===== 데이터 =====
     pageBlocks,
-    selectedPageBlock: pageId ? (blocksById[pageId] as Block) || null : null,
+    selectedPageBlock,
 
     // ===== ExplorerTree용 변환 함수들 =====
     getId: (block: Block) => block.id,
-    getName: (block: Block) => block.name,
+    getName: (block: Block) => block.title,
     getParentId: (block: Block) => block.parent_block_id,
     getOrder: (block: Block) => block.order,
     getType: (block: Block) => block.block_type,

@@ -1,15 +1,7 @@
 "use client";
 
 import React from "react";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type { Block } from "@/db/schema";
-import {
-  isComponentInstance,
-  getEffectiveFieldValue,
-  isFieldOverridden,
-} from "@/domains/canvas/types/component";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
+import { useNodeFieldUpdate } from "./useNodeFormDataUpdate";
 import {
   Calendar,
   Star,
@@ -23,6 +15,7 @@ import {
   CheckSquare,
   Link,
   Type,
+  RotateCcw,
 } from "lucide-react";
 
 // Import all input components
@@ -42,51 +35,39 @@ import {
   PhoneProperty,
   HiddenProperty,
 } from "./inputs";
+import { FileItem } from "./inputs/file-property";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@workspace/ui/components/ui/popover";
-import GenericFieldPopover from "../property-detail-popover/generic-field-popover";
-import SelectLikeFieldPopover from "../property-detail-popover/select-like-field-popover";
-import StatusFieldPopover from "../property-detail-popover/status-field-popover";
+import { Button } from "@workspace/ui/components/ui/button";
+import { GenericFieldPopover } from "../property-detail-popover/generic-field-popover";
+import { SelectLikeFieldPopover } from "../property-detail-popover/select-like-field-popover";
+import { StatusFieldPopover } from "../property-detail-popover/status-field-popover";
+import { SchemaField } from "@/domains/blocks/types/common.node";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@workspace/ui/components/ui/tooltip";
+import { useReactFlowNodeSelection } from "@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext";
+
 
 interface PropertyInputProps {
-  block: Block;
-  field: EditorField;
+  field: SchemaField;
+  data: unknown;
+  isOverridden?: boolean;
 }
 
-export function PropertyInput({ block, field }: PropertyInputProps) {
-  const { getComponentDefinitionById } = useCanvasData();
-  const { resetInstanceField } = useCanvasCommandsContext();
-
-  // Check if this is a component instance and get override info
-  const isInstance = isComponentInstance(block);
-  const definition = isInstance
-    ? getComponentDefinitionById(block.metadata.component_id)
-    : null;
-
-  // ✅ 인스턴스 필드가 읽기 전용인지 확인
-  const isReadOnly = isInstance && field.config?.readonly;
-
-  // ✅ Node UI 필드는 항상 override 감지 가능
-  const isNodeUIField =
-    field.path && field.path.length > 1 && field.path[0] === "node_ui";
-  const shouldCheckOverride =
-    isInstance && definition && (!isReadOnly || isNodeUIField);
-
-  const isOverridden = shouldCheckOverride
-    ? isFieldOverridden(block, definition, field.path)
-    : false;
-
-  // Calculate effective value for component instances
-  const effectiveValue =
-    isInstance && definition
-      ? getEffectiveFieldValue(block, definition, field.path)
-      : undefined;
+export function PropertyInput({
+  field,
+  data,
+  isOverridden,
+}: PropertyInputProps) {
+  const { selectedSingleNode } = useReactFlowNodeSelection();
+  const node = selectedSingleNode;
+  if (!node) return null;
+  const { resetField } = useNodeFieldUpdate();
 
   const getFieldIcon = () => {
-    switch (field.type as string) {
+    switch (field.type) {
       case "text":
         return <Type className="w-4 h-4 text-muted-foreground" />;
       case "select":
@@ -121,66 +102,127 @@ export function PropertyInput({ block, field }: PropertyInputProps) {
   };
 
   const renderFieldInput = () => {
-    switch (field.type as string) {
+    switch (field.type) {
       case "text":
-        return <TextProperty block={block} field={field} />;
+        return (
+          <TextProperty 
+            field={field} 
+            data={data as string | undefined} 
+            node={node}
+          />
+        );
       case "select":
-        return <SelectProperty block={block} field={field} />;
+        return (
+          <SelectProperty 
+            field={field} 
+            data={data as string}
+            node={node}
+          />
+        );
       case "status":
-        return <StatusProperty block={block} field={field} />;
+        return (
+          <StatusProperty 
+            field={field} 
+            value={data as string} 
+            node={node}
+          />
+        );
       case "checkbox":
-        return <CheckboxProperty block={block} field={field} />;
+        return (
+          <CheckboxProperty 
+            field={field} 
+            data={data as boolean} 
+            node={node}
+          />
+        );
       case "url":
-        return <UrlProperty block={block} field={field} />;
+        return (
+          <UrlProperty 
+            field={field} 
+            data={data as string | undefined} 
+            node={node}
+          />
+        );
       case "number":
-        return <NumberProperty block={block} field={field} />;
+        return (
+          <NumberProperty 
+            field={field} 
+            data={data as number | string | undefined} 
+            node={node}
+          />
+        );
       case "color":
         return (
           <ColorProperty
-            block={block}
             field={field}
-            isOverridden={isOverridden}
-            effectiveValue={effectiveValue}
-            onReset={
-              isOverridden
-                ? () => {
-                    // Reset this specific field to definition value
-                    resetInstanceField(block.id, field.path);
-                  }
-                : undefined
-            }
+            data={data as string | undefined}
+            node={node}
           />
         );
       case "shape":
         return (
           <ShapeProperty
-            block={block}
             field={field}
-            isOverridden={isOverridden}
-            effectiveValue={effectiveValue}
-            onReset={
-              isOverridden
-                ? () => {
-                    resetInstanceField(block.id, field.path);
-                  }
-                : undefined
-            }
+            value={data as string}
+            node={node}
           />
         );
       case "date":
-        return <DateProperty block={block} field={field} />;
+          return (
+          <DateProperty 
+            field={field} 
+            data={data as string | undefined} 
+            node={node}
+          />
+        );
       case "multi-select":
-        return <MultiSelectProperty block={block} field={field} />;
+        return (
+          <MultiSelectProperty 
+            field={field} 
+            data={data as string[]} 
+            node={node}
+          />
+        );
       case "file":
-        return <FileProperty block={block} field={field} />;
+        return (
+          <FileProperty 
+            field={field} 
+            data={data as FileItem[]} 
+            node={node}
+          />
+        );
       case "email":
-        return <EmailProperty block={block} field={field} />;
+        return (
+          <EmailProperty 
+            field={field} 
+            data={data as string | undefined} 
+            node={node}
+          />
+        );
       case "phone":
-        return <PhoneProperty block={block} field={field} />;
+        return (
+          <PhoneProperty 
+            field={field} 
+            data={data as string | undefined} 
+            node={node}
+          />
+        );
       case "hidden":
-        return <HiddenProperty block={block} field={field} />;
+        return (
+          <HiddenProperty 
+            field={field} 
+            data={data} 
+            node={node}
+          />
+        );
       default:
-        return <TextProperty block={block} field={field} />;
+        return (
+          <TextProperty 
+            field={field} 
+            data={data as string | undefined} 
+            node={node}
+          />
+        );
     }
   };
 
@@ -191,7 +233,7 @@ export function PropertyInput({ block, field }: PropertyInputProps) {
   const isPredefined = field.config?.predefined;
 
   return (
-    <div className="grid grid-cols-[auto_1fr] items-center gap-2 py-1 px-3 rounded-md">
+    <div className={`grid grid-cols-[auto_1fr_auto] items-center gap-2 py-1 px-3 rounded-md${isOverridden ? "border-orange-200 bg-orange-50" : ""}`}>
       {isPredefined ? (
         <div className="flex items-center gap-2 min-w-[140px] select-none rounded-md px-1 py-1">
           {getFieldIcon()}
@@ -210,18 +252,37 @@ export function PropertyInput({ block, field }: PropertyInputProps) {
               </span>
             </button>
           </PopoverTrigger>
-          <PopoverContent align="start" className="p-0">
+          <PopoverContent side="right" align="center" className="p-0">
             {field.type === "status" ? (
-              <StatusFieldPopover block={block} field={field} />
+              <StatusFieldPopover field={field} node={node} />
             ) : isSelectLike ? (
-              <SelectLikeFieldPopover block={block} field={field} />
+              <SelectLikeFieldPopover field={field} node={node} />
             ) : (
-              <GenericFieldPopover block={block} field={field} />
+              <GenericFieldPopover field={field} node={node} />
             )}
           </PopoverContent>
         </Popover>
       )}
       <div className="flex-1 min-w-0">{renderFieldInput()}</div>
+      
+      {/* Reset button for overridden fields */}
+      {isOverridden && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 hover:bg-orange-100"
+              onClick={() => resetField(node, field)}
+            >
+              <RotateCcw className="h-3 w-3 text-orange-600" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Reset to component</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
     </div>
   );
 }

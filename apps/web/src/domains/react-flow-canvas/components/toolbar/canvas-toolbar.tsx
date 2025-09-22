@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useReactFlow } from "@xyflow/react";
 import { Button } from "@workspace/ui/components/ui/button";
 import {
   Tooltip,
@@ -21,33 +22,26 @@ import {
   // Image,
   // Link,
 } from "lucide-react";
-import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
 import { useControlState, useControlCommands } from "@/domains/react-flow-canvas/contexts/ControlContext";
 
 export type CanvasToolMode = "select" | "hand";
 
-interface CanvasToolbarProps {
-  onFitToView?: () => void;
-}
-
-export function CanvasToolbar({
-  onFitToView,
-}: CanvasToolbarProps) {
+export function CanvasToolbar() {
+  const reactFlow = useReactFlow();
+  
   // Canvas 도메인 컨텍스트 사용
   const panel = usePanel();
-  const { pageId } = useCanvasSelection();
-  const { blocksById } = useCanvasData();
+  const { selectedPageBlock } = useCanvasData();
   
   // React Flow Canvas 도메인 컨텍스트 사용
   const { toolMode } = useControlState();
   const { setToolMode } = useControlCommands();
   
   // 페이지 선택 상태 계산
-  const selectedPageBlock = pageId ? blocksById[pageId] : null;
   const isPageSelected = !!selectedPageBlock;
-  const isPageEditorOpen = panel.showEditorPanel && pageId;
+  const isPageEditorOpen = panel.showEditorPanel && selectedPageBlock;
   
   // 편집 패널 상태
   const isEditOpen = panel.showEditorPanel;
@@ -62,6 +56,12 @@ export function CanvasToolbar({
   // 블록 삽입 패널 상태
   const isAddOpen = panel.showBlockInsertPanel;
   const toggleAdd = panel.toggleBlockInsertPanel;
+
+  // Fit to View 함수
+  const handleFitToView = React.useCallback(() => {
+    reactFlow.fitView({ duration: 200, padding: 0.1 });
+  }, [reactFlow]);
+
   // Keyboard event handler
   const handleKeyDown = React.useCallback((event: KeyboardEvent) => {
     // Only handle if not typing in an input field
@@ -92,10 +92,10 @@ export function CanvasToolbar({
       case "KeyF":
         event.preventDefault();
         event.stopPropagation();
-        onFitToView?.();
+        handleFitToView();
         break;
     }
-  }, [setToolMode, onFitToView]);
+  }, [setToolMode, handleFitToView]);
 
   React.useEffect(() => {
     const handleKeyDownWrapper = (event: KeyboardEvent) => {
@@ -150,7 +150,7 @@ export function CanvasToolbar({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onFitToView}
+                onClick={handleFitToView}
                 className="h-8 w-8 p-0 rounded-md"
               >
                 <Maximize className="h-4 w-4" />

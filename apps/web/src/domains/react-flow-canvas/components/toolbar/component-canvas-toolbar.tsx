@@ -1,10 +1,11 @@
 "use client";
 
 import React from "react";
+import { useReactFlow } from "@xyflow/react";
 import { Button } from "@workspace/ui/components/ui/button";
 import {
   Tooltip,
-  TooltipContent,
+  TooltipContent, 
   TooltipProvider,
   TooltipTrigger,
 } from "@workspace/ui/components/ui/tooltip";
@@ -25,34 +26,26 @@ import {
   Maximize,
   Trash2,
 } from "lucide-react";
-import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
-import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
+import { useReactFlowCommandsContext } from "@/domains/react-flow-canvas/contexts/ReactFlowCommandsContext";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
 import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
+import { useControlState, useControlCommands } from "@/domains/react-flow-canvas/contexts/ControlContext";
+import { useReactFlowNodeSelection, useReactFlowSelectionCommands } from "@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext";
 
-export type ComponentCanvasToolMode = "select" | "hand";
-
-type ComponentCanvasToolbarProps = {
-  toolMode: ComponentCanvasToolMode;
-  setToolMode: (mode: ComponentCanvasToolMode) => void;
-  onFitToView?: () => void;
-};
-
-export function ComponentCanvasToolbar({
-  toolMode,
-  setToolMode,
-  onFitToView,
-}: ComponentCanvasToolbarProps) {
-  const commands = useCanvasCommandsContext();
-  const sel = useCanvasSelection();
+export function ComponentCanvasToolbar() {
+  const reactFlow = useReactFlow();
+  const { selectedComponentBlock, selectComponent, selectedComponentId } = useCanvasData();
+  const commands = useReactFlowCommandsContext();
   const panel = usePanel();
-  const { blocksById } = useCanvasData();
+  const { toolMode } = useControlState();
+  const { setToolMode } = useControlCommands();
+  const { clearSelection, selectNodes } = useReactFlowSelectionCommands();
+  const { selectedSingleNode } = useReactFlowNodeSelection();
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
 
   // 컴포넌트 정보 계산
-  const selectedComponentBlock = sel.componentId ? blocksById[sel.componentId] : null;
-  const componentName = selectedComponentBlock?.name || null;
+  const componentName = selectedComponentBlock?.title || null;
   const isEditOpen = panel.showEditorPanel;
   const toggleEdit = () => {
     if (isEditOpen) {
@@ -62,12 +55,23 @@ export function ComponentCanvasToolbar({
     }
   };
 
+  // Fit to View 함수
+  const handleFitToView = React.useCallback(() => {
+    reactFlow.fitView({ duration: 200, padding: 0.1 });
+  }, [reactFlow]);
+
   // Enhanced back to page handler
   const handleBackToPage = () => {
+    // Canvas Data Context
+    selectComponent(null);
+    
+    // React Flow Canvas Context
+    clearSelection();
+
     // Close editor panel
     panel.closeEditorPanel();
+
     // Clear selected component
-    sel.selectComponent(null);
     // Switch to layer tab
     panel.setActiveExplorerTab("layers");
   };
@@ -103,7 +107,7 @@ export function ComponentCanvasToolbar({
         case "KeyF":
           event.preventDefault();
           event.stopPropagation();
-          onFitToView?.();
+          handleFitToView();
           break;
       }
     };
@@ -111,28 +115,43 @@ export function ComponentCanvasToolbar({
     // Use capture phase to ensure we get the event before React Flow
     document.addEventListener("keydown", handleKeyDown, true);
     return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [setToolMode, onFitToView]);
+  }, [setToolMode, handleFitToView, selectedComponentId]);
+
+  
+  const optimisticRollback = (currentSelectedComponentId: string) => {
+    selectComponent(currentSelectedComponentId);
+    selectNodes([currentSelectedComponentId]);
+    panel.openEditorPanel();
+    panel.setActiveExplorerTab("assets");
+  };
 
   const handleDelete = async () => {
-    if (!sel.componentId) return;
-
+    if (!selectedSingleNode) return;
+    const currentSelectedComponentId = selectedSingleNode.id;
     setIsDeleting(true);
 
     // Optimistic UI 업데이트 (즉시 실행)
+    // Canvas Data Context
+    selectComponent(null);
+
+    // React Flow Canvas Context
+    clearSelection();
     panel.closeEditorPanel();
-    // ui.setActiveLeftTab("layers"); // Canvas 도메인에서 처리됨
+    panel.setActiveExplorerTab("layers");
     setShowDeleteModal(false);
 
     try {
-      const result = await commands.deleteComponent(sel.componentId);
+      const result = await commands.deleteComponent(selectedSingleNode);
       if (!result.ok) {
         console.error("Failed to delete component:", result.error);
         // TODO: 사용자에게 에러 알림 (토스트 등)
-        // UI 롤백은 deleteComponent 내부에서 이미 처리됨 (selectComponent(null))
+        optimisticRollback(currentSelectedComponentId);
+      } else {
+        console.log("✅ Component deleted successfully:", result.data);
       }
     } catch (error) {
       console.error("Failed to delete component:", error);
-      // UI 롤백은 deleteComponent 내부에서 이미 처리됨
+      optimisticRollback(currentSelectedComponentId);
     } finally {
       setIsDeleting(false);
     }
@@ -198,7 +217,7 @@ export function ComponentCanvasToolbar({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={onFitToView}
+                  onClick={handleFitToView}
                   className="h-8 w-8 p-0 rounded-md"
                 >
                   <Maximize className="h-4 w-4" />

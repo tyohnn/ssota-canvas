@@ -6,46 +6,31 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@workspace/ui/components/ui/popover";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type { Block } from "@/db/schema";
-import { getValue } from "../object-path";
-import { useBlockPropertyUpdate } from "../useBlockPropertyUpdate";
+} from "@workspace/ui/components/ui/popover"; 
 import {
   ShapePolicy,
   type ColorKey,
-} from "@/domains/canvas/policy/shape-policy";
-import { RotateCcw } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@workspace/ui/components/ui/tooltip";
+} from "@/domains/blocks/policy/shape-policy";
+import { SchemaField } from "@/domains/blocks/types/common.node";
+import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
+import { Node } from "@xyflow/react";
 
 const predefinedColors = ShapePolicy.getColorOptions();
 
 export function ColorProperty({
-  block,
+  data,
   field,
-  isOverridden = false,
-  effectiveValue,
-  onReset,
+  node,
 }: {
-  block: Block;
-  field: EditorField;
-  isOverridden?: boolean;
-  effectiveValue?: any;
-  onReset?: () => void;
+  data: string | undefined;
+  field: SchemaField;
+  node: Node;
 }) {
-  const { updateMetadata } = useBlockPropertyUpdate(block);
+  const { updateField } = useNodeFieldUpdate();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
-
-  const rawValue =
-    (effectiveValue !== undefined
-      ? effectiveValue
-      : getValue(block?.metadata || {}, field.path)) ??
-    (ShapePolicy.getDefaultColor() as string);
+  
+  const rawValue = data || "";
   const value = rawValue.startsWith("#")
     ? ShapePolicy.getClosestColorKey(rawValue)
     : rawValue;
@@ -59,7 +44,7 @@ export function ColorProperty({
 
   const handleColorChange = (newColor: string) => {
     setInputValue(newColor);
-    updateMetadata(field.path, newColor);
+    updateField(node, field.path, newColor);
     setIsOpen(false);
   };
 
@@ -70,13 +55,13 @@ export function ColorProperty({
   const handleCustomColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newColor = e.currentTarget.value;
     setInputValue(newColor);
-    updateMetadata(field.path, newColor);
+    updateField(node, field.path, newColor);
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       if (inputValue !== value) {
-        updateMetadata(field.path, inputValue);
+        updateField(node, field.path, inputValue);
       }
       setIsOpen(false);
     } else if (e.key === "Escape") {
@@ -95,7 +80,7 @@ export function ColorProperty({
               isOpen
                 ? "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-ring ring-ring/50 ring-[3px]"
                 : ""
-            } ${isOverridden ? "border-orange-200 bg-orange-50" : ""}`}
+            }`}
           >
             <div className="flex items-center gap-2">
               <div
@@ -118,67 +103,22 @@ export function ColorProperty({
             <div>
               <h4 className="text-sm font-medium mb-2">Preset</h4>
               <div className="grid grid-cols-5 gap-1">
-                {predefinedColors.map((colorOption) => (
+                {predefinedColors.map((color) => (
                   <button
-                    key={colorOption.value}
-                    title={colorOption.label}
-                    onClick={() => handleColorChange(colorOption.value)}
+                    key={color.value}
+                    title={color.label}
+                    onClick={() => handleColorChange(color.value)}
                     style={{
-                      backgroundColor: ShapePolicy.getHexColor(
-                        colorOption.value as ColorKey
-                      ),
+                      backgroundColor: ShapePolicy.getHexColor(color.value as ColorKey),
                     }}
                     className="h-8 w-8 rounded ring-1 ring-black/10 transition hover:scale-110"
                   />
                 ))}
               </div>
             </div>
-
-            {/* Color Picker - Temporarily disabled */}
-            {/* <div>
-            <h4 className="text-sm font-medium mb-2">Custom Color</h4>
-            <div className="flex items-center gap-2">
-              <Input
-                className="h-8 w-16 p-1"
-                type="color"
-                value={inputValue}
-                onChange={handleCustomColorChange}
-              />
-              <Input
-                className="h-8 px-2 py-1 text-xs flex-1"
-                value={inputValue}
-                onChange={handleInputChange}
-                onKeyDown={handleInputKeyDown}
-                placeholder={
-                  field.placeholder ||
-                  ColorShapePolicy.getHexColor(
-                    ColorShapePolicy.getDefaultColor()
-                  )
-                }
-                autoFocus
-              />
-            </div>
-          </div> */}
           </div>
         </PopoverContent>
       </Popover>
-      {isOverridden && onReset && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 hover:bg-orange-100"
-              onClick={onReset}
-            >
-              <RotateCcw className="h-3 w-3 text-orange-600" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Reset to component definition</p>
-          </TooltipContent>
-        </Tooltip>
-      )}
     </div>
   );
 }

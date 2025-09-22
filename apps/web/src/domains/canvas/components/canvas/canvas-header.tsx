@@ -3,8 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
-import { useCanvasCommandsContext } from "@/domains/canvas/contexts/CanvasCommandsContext";
+import { useCanvasPageCommandsContext } from "@/domains/canvas/contexts/CanvasPageCommandsContext";
 import { useOrganizationContext } from "@/domains/dashboard/context/OrganizationCotext";
 import { Button } from "@workspace/ui/components/ui/button";
 import { Input } from "@workspace/ui/components/ui/input";
@@ -28,19 +27,18 @@ interface CanvasHeaderProps {
 export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
   const router = useRouter();
   const data = useCanvasData();
-  const sel = useCanvasSelection();
-  const commands = useCanvasCommandsContext();
-  const { activeOrganization, orgWorkspaces } = useOrganizationContext();
+  const commands = useCanvasPageCommandsContext();
+  const { activeOrganization, orgWorkspaces, setActiveWorkspace } = useOrganizationContext();
 
   // Get workspace and selected page data
   const activeWorkspace = orgWorkspaces.find((ws) => ws.id === workspaceId);
-  const selectedPageBlock = sel.pageId ? data.blocksById[sel.pageId] : null;
-  const selectedComponentBlock = sel.componentId
-    ? data.blocksById[sel.componentId]
-    : null;
 
-  // Get canvas mode from selection context
-  const { canvasMode } = sel;
+  React.useEffect(() => {
+    setActiveWorkspace(activeWorkspace ?? null);
+  }, []);
+
+  // Get canvas mode and selected blocks from context
+  const { canvasMode, selectedPageId, selectedPageBlock, selectedComponentBlock } = data;
 
   // Title editing state
   const [isEditing, setIsEditing] = useState(false);
@@ -50,9 +48,9 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
   // Sync title state
   useEffect(() => {
     if (selectedPageBlock) {
-      setTitle(selectedPageBlock.name);
+        setTitle(selectedPageBlock.title);
     }
-  }, [selectedPageBlock?.name]);
+  }, [selectedPageBlock]);
 
   // Navigation handlers
   const handleLogoClick = () => {
@@ -65,20 +63,20 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
   const handleTitleClick = () => {
     if (selectedPageBlock) {
       setIsEditing(true);
-      setTitle(selectedPageBlock.name);
+      setTitle(selectedPageBlock.title);
     }
   };
 
   const handleTitleSave = async () => {
-    if (selectedPageBlock && title.trim() !== selectedPageBlock.name) {
+    if (selectedPageId && selectedPageBlock && title.trim() !== selectedPageBlock?.title) {
       const newTitle = title.trim();
-      const result = await commands.updateBlock(selectedPageBlock.id, {
-        name: newTitle,
+      const result = await commands.updatePage(selectedPageId, {
+        title: newTitle,
       });
 
       if (!result.ok) {
         console.error("Failed to update block:", result.error);
-        setTitle(selectedPageBlock.name);
+        setTitle(selectedPageBlock.title);
       }
     }
     setIsEditing(false);
@@ -88,7 +86,8 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
     if (e.key === "Enter") {
       handleTitleSave();
     } else if (e.key === "Escape") {
-      setTitle(selectedPageBlock?.name || "");
+      if (!selectedPageBlock) return;
+      setTitle(selectedPageBlock.title);
       setIsEditing(false);
     }
   };
@@ -173,7 +172,7 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
                           }
                           className="h-3 w-3 mr-1 text-muted-foreground"
                         />
-                        {selectedPageBlock.name}
+                        {selectedPageBlock.title}
                       </Button>
                     )}
                     <ViewSwitcher />
@@ -185,7 +184,7 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
                     <BreadcrumbItem>
                       <span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground select-none">
                         <DynamicIcon name="blocks" className="h-4 w-4" />
-                        {selectedComponentBlock.name}
+                        {selectedComponentBlock.title}
                       </span>
                     </BreadcrumbItem>
                   </>

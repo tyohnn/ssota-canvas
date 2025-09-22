@@ -2,7 +2,7 @@
 
 import React from "react";
 import { ReactFlowProvider } from "@xyflow/react";
-import { SelectionProvider } from "../contexts/SelectionContext";
+import { ReactFlowSelectionProvider } from "../contexts/ReactFlowSelectionContext";
 import { PanelProvider } from "../contexts/PanelContext";
 import { ControlProvider } from "../contexts/ControlContext";
 
@@ -18,11 +18,11 @@ export function RootProvider({ children }: RootProviderProps) {
   return (
     <ReactFlowProvider>
       <ControlProvider>
-        <SelectionProvider>
+        <ReactFlowSelectionProvider>
           <PanelProvider>
             {children}
           </PanelProvider>
-        </SelectionProvider>
+        </ReactFlowSelectionProvider>
       </ControlProvider>
     </ReactFlowProvider>
   );

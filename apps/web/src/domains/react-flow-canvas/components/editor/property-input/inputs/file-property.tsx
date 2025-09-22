@@ -10,14 +10,12 @@ import {
   PopoverTrigger,
 } from "@workspace/ui/components/ui/popover";
 import { ScrollArea } from "@workspace/ui/components/ui/scroll-area";
-import { Separator } from "@workspace/ui/components/ui/separator";
-import { Upload, X, File, Plus } from "lucide-react";
-import type { EditorField } from "@/domains/canvas/policy/block-editor-policy";
-import type { Block } from "@/db/schema";
-import { getValue } from "../object-path";
-import { useBlockPropertyUpdate } from "../useBlockPropertyUpdate";
+import {  X, Plus } from "lucide-react";
+import { SchemaField } from "@/domains/blocks/types/common.node";
+import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
+import { Node } from "@xyflow/react";
 
-interface FileItem {
+export interface FileItem {
   id: string;
   name: string;
   size: number;
@@ -26,18 +24,19 @@ interface FileItem {
 }
 
 export function FileProperty({
-  block,
+  data,
   field,
+  node,
 }: {
-  block: Block;
-  field: EditorField;
+  data: FileItem[];
+  field: SchemaField;
+  node: Node;
 }) {
-  const { updateMetadata } = useBlockPropertyUpdate(block);
+  const { updateField } = useNodeFieldUpdate();
   const [isOpen, setIsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const files = (getValue(block?.metadata || {}, field.path) ??
-    []) as FileItem[];
+  const files = data || []
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = Array.from(event.target.files || []);
@@ -50,7 +49,7 @@ export function FileProperty({
     }));
 
     const updatedFiles = [...files, ...newFiles];
-    updateMetadata(field.path, updatedFiles);
+    updateField(node, field.path, updatedFiles);
 
     // Reset input
     if (fileInputRef.current) {
@@ -60,7 +59,7 @@ export function FileProperty({
 
   const handleRemoveFile = (fileId: string) => {
     const updatedFiles = files.filter((file) => file.id !== fileId);
-    updateMetadata(field.path, updatedFiles);
+    updateField(node, field.path, updatedFiles);
   };
 
   const formatFileSize = (bytes: number) => {

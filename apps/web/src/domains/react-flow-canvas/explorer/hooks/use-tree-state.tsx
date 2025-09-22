@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import type { TreeUIProps, UseTreeStateResult } from "../types";
 
 export function useTreeState<TSourceData>(

@@ -1,14 +1,11 @@
 "use client";
 
 import React from "react";
-import type { Block } from "@/db/schema";
 import type { Node } from "@xyflow/react";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useCanvasSelection } from "@/domains/canvas/contexts/CanvasSelectionContext";
+import { useReactFlow } from "@xyflow/react";
 import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
-import { useSelectionCommands, useSelectionState } from "@/domains/react-flow-canvas/contexts/SelectionContext";
-import { useReactFlowCanvas } from "@/domains/react-flow-canvas/contexts/ReactFlowCanvasContext";
-import { useReactFlowCanvasControl } from "@/domains/react-flow-canvas/hooks/useReactFlowCanvasControl";
+import { useReactFlowSelectionCommands, useReactFlowSelectionState } from "@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext";
+import { useReactFlowCanvasControl } from "@/domains/react-flow-canvas/handlers/useReactFlowCanvasControlHandler";
 
 
 // Layer-specific file icon renderer
@@ -65,57 +62,12 @@ export interface UseLayerExplorerTreeResult {
   canDrop: (dragItemIds: string[], targetItemId: string) => boolean;
 }
 
-/**
- * 레이어 익스플로러 트리를 위한 커스텀 훅
- *
- * 이 훅은 레이어 블록들을 트리 구조로 표시하기 위한 모든 비즈니스 로직을 제공합니다.
- * ExplorerTree 컴포넌트와 함께 사용하여 레이어 계층 구조를 시각화할 수 있습니다.
- * 레이어에서는 드래그앤드롭이 비활성화되어 있습니다.
- *
- * @returns UseLayerExplorerTreeResult - 레이어 익스플로러에 필요한 모든 데이터와 함수들
- *
- * @example
- * ```tsx
- * function LayerExplorer() {
- *   const {
- *     layerBlocks,
- *     selectedNodeIds,
- *     getId,
- *     getName,
- *     getParentId,
- *     getOrder,
- *     getType,
- *     renderFileIcon,
- *     handleSelect,
- *     handleMove,
- *     canDrop,
- *   } = useLayerExplorerTree();
- *
- *   return (
- *     <ExplorerTree<Block>
- *       sourceData={layerBlocks}
- *       getId={getId}
- *       getName={getName}
- *       getParentId={getParentId}
- *       getOrder={getOrder}
- *       getType={getType}
- *       renderFileIcon={renderFileIcon}
- *       rootName="Layers"
- *       selectedId={selectedNodeIds[0]}
- *       onSelect={handleSelect}
- *       onMove={handleMove}
- *       canDrop={canDrop}
- *       disableFolderStructure={true}
- *     />
- *   );
- * }
- * ```
- */
 export function useLayerExplorerTree(): UseLayerExplorerTreeResult {
   // React Flow 상태 연결
-  const { nodes } = useReactFlowCanvas();
-  const { selectedNodeIds } = useSelectionState();
-  const { selectNodes } = useSelectionCommands();
+  const reactFlow = useReactFlow();
+  const nodes = reactFlow.getNodes();
+  const { selectedNodeIds } = useReactFlowSelectionState();
+  const { selectNodes } = useReactFlowSelectionCommands();
   const { focusOnNode } = useReactFlowCanvasControl();
   const panel = usePanel();
 
@@ -175,10 +127,10 @@ export function useLayerExplorerTree(): UseLayerExplorerTreeResult {
 
     // ===== ExplorerTree용 변환 함수들 =====
     getId: (node: Node) => node.id,
-    getName: (node: Node) => (node.data?.label as string) || (node.data?.name as string) || node.id,
-    getParentId: (node: Node) => (node.data?.block as any)?.parent_block_id || null,
-    getOrder: (node: Node) => (node.data?.block as any)?.order || 0,
-    getType: (node: Node) => node.type || 'unknown',
+    getName: (node: Node) => node.data.title as string,
+    getParentId: (node: Node) => node.data.parent_block_id as string,
+    getOrder: (node: Node) => node.data.order as number,
+    getType: (node: Node) => node.data.block_type as string,
     renderFileIcon: getLayerFileIcon,
 
     // ===== 이벤트 핸들러 =====
