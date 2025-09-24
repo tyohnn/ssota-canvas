@@ -63,7 +63,7 @@ footer = """
 ### CHANGELOG Generation Process
 
 #### Automatic Generation (From Commits)
-- **Tool**: Uses \`git-cliff\` for automatic CHANGELOG generation
+- **Tool**: Uses 'git-cliff' for automatic CHANGELOG generation
 - **Trigger**: Every push to main or sprint branches
 - **Source**: Parses commit messages with conventional commit format
 - **Output**: Automatically updates CHANGELOG.md with new entries
@@ -88,7 +88,3 @@ footer = """
 - Record architectural decisions
 - Update design rationale
 """
-
-[remote.github]
-owner = "paxhumana-ai"
-repo = "ssota"
