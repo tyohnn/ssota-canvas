@@ -7,12 +7,16 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\" \"apps/*/src/**/*.{ts,tsx,js,jsx}\" \"packages/*/src/**/*.{ts,tsx,js,jsx}\"",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "changelog": "git-cliff --verbose",
+    "changelog:check": "git-cliff --verbose --check",
+    "changelog:preview": "git-cliff --verbose --bump"
   },
   "devDependencies": {
     "@types/node": "^24.2.0",
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
+    "git-cliff": "^2.4.0",
     "prettier": "^3.5.1",
     "rimraf": "^6.0.1",
     "tsup": "^8.5.0",

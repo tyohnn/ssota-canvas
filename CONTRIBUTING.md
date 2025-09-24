@@ -537,6 +537,147 @@ organizational features in other platforms.
 - [x] Story acceptance criteria met
 ```
 
+## CHANGELOG Workflow
+
+This project uses automated CHANGELOG generation to maintain accurate project history and track the collaboration between senior developers, junior developers, and AI agents.
+
+### How CHANGELOG Works
+
+#### **Automatic Generation (git-cliff)**
+- **Trigger**: Every push to main/dev/sprint branches
+- **Source**: Parses conventional commit messages
+- **Output**: Automatically categorizes and formats entries in CHANGELOG.md
+- **Tool**: Uses `git-cliff` with custom configuration
+
+#### **Manual Context Addition (Senior Developers)**
+- **Sprint Goals**: Document architectural decisions and design intent
+- **Review Results**: Record senior developer review findings
+- **Design Rationale**: Explain why certain approaches were chosen
+- **Performance Notes**: Important technical considerations
+
+### CHANGELOG Generation Process
+
+#### **1. Sprint Planning Phase**
+```bash
+# Senior developer adds sprint context
+echo "## [1.1.0-sprint-1] - $(date +%Y-%m-%d)" >> CHANGELOG.md
+echo "### 🎯 Sprint Goals" >> CHANGELOG.md
+echo "- Event Storming → DDD → Implementation workflow" >> CHANGELOG.md
+echo "- Agile sprint planning integration" >> CHANGELOG.md
+```
+
+#### **2. Development Phase (Automatic)**
+```bash
+# Junior/AI implement features
+git commit -m "feat: implement Organization entity with validation
+
+Organization entity lacked proper domain modeling and validation rules,
+causing inconsistent data handling across the application.
+
+- **Technical Implementation**: Created Organization class with value objects
+- **Design Decisions**: Applied DDD patterns for domain integrity
+- **Alternatives**: Considered ORM entities but chose pure domain objects
+
+Impact: Ensures data consistency and enables better testing strategies."
+
+# Automatic CHANGELOG update on push:
+# ✨ Features
+# - implement Organization entity with validation
+```
+
+#### **3. Review Phase (Senior Developer)**
+```bash
+# Senior developer adds review results
+echo "### 🔍 Senior Review Results" >> CHANGELOG.md
+echo "- Domain modeling accuracy: 95%" >> CHANGELOG.md
+echo "- Performance optimization: Implemented" >> CHANGELOG.md
+echo "- Architecture consistency: Approved" >> CHANGELOG.md
+```
+
+### Available Commands
+
+#### **Development Commands**
+```bash
+# Generate CHANGELOG from commits
+pnpm changelog
+
+# Check for new changes to add to CHANGELOG
+pnpm changelog:check
+
+# Preview what would be added to CHANGELOG
+pnpm changelog:preview
+```
+
+#### **GitHub Actions Integration**
+- **Automatic Updates**: CHANGELOG.md is automatically updated on every push
+- **PR Comments**: PRs receive CHANGELOG preview comments
+- **Quality Gates**: Ensures conventional commit format compliance
+
+### Role-Based Responsibilities
+
+#### **Junior Developers & AI Agents**
+- ✅ **No CHANGELOG maintenance required**
+- ✅ **Focus purely on implementation quality**
+- ✅ **All work automatically tracked via commit messages**
+- ✅ **Work appears in automatic generation**
+
+#### **Senior Developers**
+- ✅ **Add sprint planning context and goals**
+- ✅ **Document architectural decisions and rationale**
+- ✅ **Record review findings and feedback**
+- ✅ **Monitor project evolution and patterns**
+
+### Example Generated Output
+
+```markdown
+## [1.1.0-sprint-1] - 2024-01-15
+
+### ✨ Features
+- implement Organization entity with validation
+- add user authentication system
+- create workspace management interface
+
+### 🐛 Bug Fixes
+- resolve memory leak in canvas rendering
+- patch XSS vulnerability in component editor
+
+### ♻️ Refactoring
+- extract block positioning logic into service layer
+- separate business logic from UI components
+
+### 📚 Documentation
+- update architecture documentation with DDD patterns
+- create comprehensive commit convention guide
+
+### 🔍 Senior Review Results
+- Domain modeling accuracy: 95%
+- Code quality: Meets standards
+- Performance: Optimized
+- Architecture: Event Storming → DDD alignment confirmed
+```
+
+### Benefits
+
+#### **For Junior Developers & AI**
+- **Zero Overhead**: No manual documentation required
+- **Focus on Code**: Concentrate purely on implementation
+- **Automatic Recognition**: All contributions properly attributed
+- **Learning Tool**: See how work fits into larger project context
+
+#### **For Senior Developers**
+- **Design Tracking**: Maintain record of architectural decisions
+- **Quality Monitoring**: Track implementation accuracy over time
+- **Process Improvement**: Identify patterns and improvement opportunities
+- **Knowledge Transfer**: Create comprehensive project history
+
+#### **For Project Management**
+- **Complete Audit Trail**: Full history of all changes and decisions
+- **Quality Metrics**: Track implementation quality and consistency
+- **Release Planning**: Accurate information for release notes
+- **Team Learning**: Living documentation of project evolution
+
+---
+
 ## Development Setup
 
 [Add your development setup instructions here]

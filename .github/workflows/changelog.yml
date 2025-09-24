@@ -1,0 +1,90 @@
+name: Generate CHANGELOG
+
+on:
+  push:
+    branches: [ main, dev, sprint-* ]
+  pull_request:
+    branches: [ main, dev, sprint-* ]
+    types: [ opened, synchronize, reopened, closed ]
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate CHANGELOG
+        id: git-cliff
+        uses: tj-actions/git-cliff@v2
+        with:
+          configuration: cliff.toml
+          args: --verbose --latest --strip header
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: Update CHANGELOG.md
+        if: github.event_name == 'push'
+        run: |
+          # Add new entries to existing CHANGELOG.md
+          echo "$(cat CHANGELOG.md)" > CHANGELOG.md.new
+          mv CHANGELOG.md.new CHANGELOG.md
+
+      - name: Commit CHANGELOG changes
+        if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG
+
+          Automatic CHANGELOG update from commit messages.
+
+          - Technical Implementation: Generated using git-cliff
+          - Design Decisions: Based on conventional commit format
+          - Alternatives: Manual updates considered but chose automation
+
+          Impact: Ensures consistent and accurate project documentation."
+
+      - name: Push changes
+        if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected == 'true'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+
+      - name: Comment PR with CHANGELOG preview
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Read the current CHANGELOG.md
+            let changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+
+            // Get the first few lines to show in PR comment
+            const lines = changelog.split('\n').slice(0, 50);
+            const preview = lines.join('\n');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 📋 CHANGELOG Preview
+
+              This PR will generate the following CHANGELOG entries:
+
+              \`\`\`markdown
+              ${preview}
+              \`\`\`
+
+              **Note**: Full CHANGELOG will be updated when PR is merged to main/dev branches.`
+            });
