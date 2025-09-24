@@ -1,5 +1,5 @@
-import type { Node as ReactFlowNode } from "@xyflow/react";
-import type { Block, BlockPosition, BlockType } from "@/db/schema";
+import type { Node as ReactFlowNode } from '@xyflow/react';
+import type { Block, BlockPosition, BlockType } from '@/db/schema';
 import {
   isComponentInstance,
   isComponentDefinition,
@@ -7,34 +7,39 @@ import {
   type ComponentInstance,
   ComponentDefinitionMetadata,
   ComponentInstanceMetadata,
-  type OverrideFlags
-} from "@/domains/block-components";
+  type OverrideFlags,
+} from '@/domains/block-components';
 import type {
   // Common Types
   DefaultMetadata,
   FormSchema,
   NodeUI,
-} from "@/domains/blocks/types";
-import { generateDefaultFormSchemaByType } from "./node-form-schema-policy";
+} from '@/domains/blocks/types';
+import { generateDefaultFormSchemaByType } from './node-form-schema-policy';
 
 /**
  * Merge default schema with database schema
  * Default fields come first, then user-defined fields
  */
-function mergeFormSchemas(blockType: BlockType, dbSchema: FormSchema): FormSchema {
+function mergeFormSchemas(
+  blockType: BlockType,
+  dbSchema: FormSchema
+): FormSchema {
   const defaultSchema = generateDefaultFormSchemaByType(blockType);
   const dbFields = dbSchema?.fields || [];
-  
+
   // 필드 ID로 중복 제거 (기본 스키마가 우선)
-  const defaultFieldIds = new Set(defaultSchema.fields?.map((f: any) => f.id) || []);
+  const defaultFieldIds = new Set(
+    defaultSchema.fields?.map((f: any) => f.id) || []
+  );
   const userFields = dbFields.filter((f: any) => !defaultFieldIds.has(f.id));
-  
+
   return {
     fields: [
       // default field가 먼저 렌더링
       ...(defaultSchema.fields || []),
-      ...userFields
-    ]
+      ...userFields,
+    ],
   };
 }
 
@@ -50,21 +55,21 @@ function mergeComponentInstanceSchemas(
   // 1. 기본 스키마 (노드 타입별)
   const defaultSchema = generateDefaultFormSchemaByType(blockType);
   const defaultFields = defaultSchema.fields || [];
-  
+
   // 2. 컴포넌트 정의 스키마 (DB에서)
   const definitionMetadata = definition.metadata as ComponentDefinitionMetadata;
   const definitionSchema = definitionMetadata.formSchema || { fields: [] };
   const definitionFields = definitionSchema.fields || [];
-  
+
   // 3. 인스턴스 스키마 (DB에서)
   const instanceMetadata = instance.metadata as ComponentInstanceMetadata;
   const instanceSchema = instanceMetadata.formSchema || { fields: [] };
   const instanceFields = instanceSchema.fields || [];
-  
+
   // 필드 ID로 중복 제거 (우선순위: 기본 < 정의 < 인스턴스)
   const allFieldIds = new Set<string>();
   const mergedFields: any[] = [];
-  
+
   // 기본 스키마 필드 추가
   defaultFields.forEach((field: any) => {
     if (!allFieldIds.has(field.id)) {
@@ -72,7 +77,7 @@ function mergeComponentInstanceSchemas(
       allFieldIds.add(field.id);
     }
   });
-  
+
   // 컴포넌트 정의 스키마 필드 추가 (기본 스키마와 중복되지 않는 것만)
   definitionFields.forEach((field: any) => {
     if (!allFieldIds.has(field.id)) {
@@ -82,13 +87,13 @@ function mergeComponentInstanceSchemas(
         ...field,
         config: {
           ...field.config,
-          predefined: true
-        }
+          predefined: true,
+        },
       });
       allFieldIds.add(field.id);
     }
   });
-  
+
   // 인스턴스 스키마 필드 추가 (기본/정의 스키마와 중복되지 않는 것만)
   instanceFields.forEach((field: any) => {
     if (!allFieldIds.has(field.id)) {
@@ -96,9 +101,9 @@ function mergeComponentInstanceSchemas(
       allFieldIds.add(field.id);
     }
   });
-  
+
   return {
-    fields: mergedFields
+    fields: mergedFields,
   };
 }
 
@@ -112,20 +117,28 @@ function resolveInstanceNodeStyle(
 ): NodeUI {
   const instanceMetadata = instance.metadata as ComponentInstanceMetadata;
   const definitionMetadata = definition.metadata as ComponentDefinitionMetadata;
-  
+
   // 컴포넌트 정의의 nodeUI를 기본값으로 사용
   const baseStyle = definitionMetadata.nodeUI || {};
   const resolvedStyle = { ...baseStyle };
-  
+
   // OverrideFlags에 있는 필드만 실제로 오버라이드
-  const overriddenFields = (instanceMetadata.instanceData.overrides as OverrideFlags)?.nodeUI || [];
-  
+  const overriddenFields =
+    (instanceMetadata.instanceData.overrides as OverrideFlags)?.nodeUI || [];
+
   overriddenFields.forEach((fieldName: string) => {
     if (instanceMetadata.nodeUI?.[fieldName] !== undefined) {
-      (resolvedStyle as any)[fieldName] = (instanceMetadata.nodeUI as any)[fieldName];
+      (resolvedStyle as any)[fieldName] = (instanceMetadata.nodeUI as any)[
+        fieldName
+      ];
     }
   });
-  
+
+  console.log('🎨 [Style Resolve] Final resolved style', {
+    instanceId: instance.id,
+    resolvedStyle: resolvedStyle,
+  });
+
   return resolvedStyle as NodeUI;
 }
 
@@ -137,30 +150,51 @@ function resolveInstanceFormData(
   instance: ComponentInstance,
   definition: ComponentDefinition
 ): Record<string, unknown> {
+  console.log('📊 [Data Resolve] Starting resolveInstanceFormData', {
+    instanceId: instance.id,
+    definitionId: definition.id,
+  });
+
   const instanceMetadata = instance.metadata as ComponentInstanceMetadata;
   const definitionMetadata = definition.metadata as ComponentDefinitionMetadata;
-  
+
   // 컴포넌트 정의의 formData를 기본값으로 사용
   const baseData = definitionMetadata.formData || {};
   const resolvedData = { ...baseData };
-  
+
+  console.log('📊 [Data Resolve] Base data from definition', {
+    instanceId: instance.id,
+    baseData: baseData,
+    definitionFormData: definitionMetadata.formData,
+  });
+
   // OverrideFlags에 있는 필드만 실제로 오버라이드
-  const overriddenFields = (instanceMetadata.instanceData.overrides as OverrideFlags)?.formData || [];
-  
+  const overriddenFields =
+    (instanceMetadata.instanceData.overrides as OverrideFlags)?.formData || [];
+
+  console.log('📊 [Data Resolve] Override fields', {
+    instanceId: instance.id,
+    overriddenFields: overriddenFields,
+    instanceFormData: instanceMetadata.formData,
+  });
+
   overriddenFields.forEach((fieldName: string) => {
     if (instanceMetadata.formData?.[fieldName] !== undefined) {
       resolvedData[fieldName] = (instanceMetadata.formData as any)[fieldName];
     }
   });
-  
+
+  console.log('📊 [Data Resolve] Final resolved data', {
+    instanceId: instance.id,
+    resolvedData: resolvedData,
+  });
+
   return resolvedData;
 }
-
 
 // ============================================================================
 // React Flow Node Building Functions
 // ============================================================================
-
 
 /**
  * Build React Flow node for component instance with override logic
@@ -170,11 +204,32 @@ export function buildComponentInstanceNode(
   position: BlockPosition,
   componentDefinitionsById: Record<string, ComponentDefinition>
 ): ReactFlowNode {
+  console.log('🚀 [Node Build] Starting buildComponentInstanceNode', {
+    instanceId: instance.id,
+    instanceTitle: instance.title,
+    blockType: instance.block_type,
+  });
+
   const metadata = instance.metadata as ComponentInstanceMetadata;
-  const definition = componentDefinitionsById[metadata.instanceData.componentId];
+  const definition =
+    componentDefinitionsById[metadata.instanceData.componentId];
+
+  console.log('🔍 [Node Build] Component definition lookup', {
+    instanceId: instance.id,
+    componentId: metadata.instanceData.componentId,
+    definitionFound: !!definition,
+    definitionId: definition?.id,
+    definitionTitle: definition?.title,
+    availableDefinitions: Object.keys(componentDefinitionsById),
+    definitionMetadata: definition?.metadata,
+  });
 
   if (!definition) {
-    throw new Error(`Component definition not found for instance: ${instance.id}`);
+    console.warn(
+      `Component definition not found for instance: ${instance.id}. Falling back to regular node.`
+    );
+    // 컴포넌트 정의를 찾을 수 없는 경우 일반 블록으로 처리
+    return buildRegularNode(instance, position);
   }
 
   // 3단계 스키마 병합: 기본 스키마 + 컴포넌트 정의 스키마 + 인스턴스 스키마
@@ -184,11 +239,22 @@ export function buildComponentInstanceNode(
     instance
   );
 
+  console.log('📊 [Node Build] Schema merge completed', {
+    instanceId: instance.id,
+    mergedSchemaFieldsCount: mergedSchema.fields.length,
+  });
+
   // Apply override logic with new nodeUI and formData override detection
   const resolvedStyle = resolveInstanceNodeStyle(instance, definition);
   const resolvedData = resolveInstanceFormData(instance, definition);
 
-  return {
+  console.log('🎨 [Node Build] Style and data resolved', {
+    instanceId: instance.id,
+    resolvedStyle: resolvedStyle,
+    resolvedDataKeys: Object.keys(resolvedData),
+  });
+
+  const finalNode = {
     id: instance.id,
     type: instance.block_type,
     position: {
@@ -215,6 +281,21 @@ export function buildComponentInstanceNode(
     width: resolvedStyle.size.width,
     // height: resolvedStyle.size.height,
   } as ReactFlowNode;
+
+  console.log('🎯 [Node Build] Final React Flow node created', {
+    instanceId: instance.id,
+    finalFormSchemaFieldsCount: (finalNode.data.formSchema as any).fields
+      .length,
+    finalFormSchemaFieldIds: (finalNode.data.formSchema as any).fields.map(
+      (f: any) => f.id
+    ),
+    finalFormDataKeys: Object.keys(
+      finalNode.data.formData as Record<string, unknown>
+    ),
+    finalNodeUI: finalNode.data.nodeUI,
+  });
+
+  return finalNode;
 }
 
 /**
@@ -227,7 +308,10 @@ export function buildComponentDefinitionNode(
   const metadata = definition.metadata as ComponentDefinitionMetadata;
 
   // 공통 함수로 스키마 병합 (컴포넌트 정의도 기본 스키마를 가질 수 있음)
-  const mergedSchema = mergeFormSchemas(definition.block_type, metadata.formSchema);
+  const mergedSchema = mergeFormSchemas(
+    definition.block_type,
+    metadata.formSchema
+  );
 
   return {
     id: definition.id,
@@ -264,10 +348,10 @@ export function buildRegularNode(
   position: BlockPosition
 ): ReactFlowNode {
   const metadata = block.metadata as DefaultMetadata;
-  
+
   // 공통 함수로 스키마 병합
   const mergedSchema = mergeFormSchemas(block.block_type, metadata.formSchema);
-  
+
   return {
     id: block.id,
     type: block.block_type,
@@ -304,17 +388,25 @@ export function transformBlockToReactFlowNode(
   try {
     // Handle different block types
     if (isComponentInstance(block)) {
-      return buildComponentInstanceNode(block, position, componentDefinitionsById);
+      return buildComponentInstanceNode(
+        block,
+        position,
+        componentDefinitionsById
+      );
     }
-    
+
     if (isComponentDefinition(block)) {
       return buildComponentDefinitionNode(block, position);
     }
-    
+
     // Regular block
     return buildRegularNode(block, position);
   } catch (error) {
-    console.error('Failed to transform block to React Flow node:', error, block);
+    console.error(
+      'Failed to transform block to React Flow node:',
+      error,
+      block
+    );
     throw error;
   }
 }

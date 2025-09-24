@@ -1,8 +1,8 @@
-"use server";
+'use server';
 
-import { z } from "zod";
-import { and, desc, eq, sql } from "drizzle-orm";
-import { createClerkDrizzleSupabaseClient } from "@/db";
+import { z } from 'zod';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import { createClerkDrizzleSupabaseClient } from '@/db';
 import {
   blocks,
   blockTypeEnum,
@@ -11,9 +11,10 @@ import {
   type NewBlock,
   blockPositions,
   type BlockPosition,
-} from "@/db/schema";
-import { ActionResult, ok, err } from "@/lib/action-result";
-import { SLUG_RE } from "@/lib/regex";
+} from '@/db/schema';
+import { ActionResult, ok, err } from '@/lib/action-result';
+import { SLUG_RE } from '@/lib/regex';
+import { devLog, devError, devWarn, startTimer } from '@/utils/dev-logger';
 
 // zod enums aligned to db enums (runtime from schema)
 const BlockTypeEnum = z.enum(blockTypeEnum.enumValues);
@@ -23,13 +24,13 @@ const ObjectEnum = z.enum(objectTypeEnum.enumValues);
 const createBlockSchema = z.object({
   blockType: BlockTypeEnum,
   slug: z
-  .string()
-  .min(1)
-  .max(100)
-  .regex(
-    SLUG_RE,
-    "Slug must contain only lowercase letters, numbers, hyphens, or Korean characters"
-  ),
+    .string()
+    .min(1)
+    .max(100)
+    .regex(
+      SLUG_RE,
+      'Slug must contain only lowercase letters, numbers, hyphens, or Korean characters'
+    ),
   title: z.string().min(1),
   workspaceId: z.uuid(),
   parentBlockId: z.uuid().nullable().optional(),
@@ -49,7 +50,7 @@ const updateBlockSchema = z.object({
     .max(100)
     .regex(
       SLUG_RE,
-      "Slug must contain only lowercase letters, numbers, hyphens, or Korean characters"
+      'Slug must contain only lowercase letters, numbers, hyphens, or Korean characters'
     )
     .optional(),
   title: z.string().min(1).optional(),
@@ -126,12 +127,22 @@ export type ListWorkspaceComponentBlockPositionsInput = z.infer<
 export async function createBlock(
   input: CreateBlockInput
 ): Promise<ActionResult<Block>> {
+  const timer = startTimer('Server Block Creation');
+
   try {
+    devLog('🏗️ [Server] Creating block', {
+      blockType: input.blockType,
+      title: input.title,
+      workspaceId: input.workspaceId,
+      object: input.object,
+      metadataSize: JSON.stringify(input.metadata).length,
+    });
+
     const validated = createBlockSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
     // Enforce slug uniqueness within workspace
-    const existing = await db.rls(async (tx) => {
+    const existing = await db.rls(async tx => {
       return await tx
         .select({ id: blocks.id })
         .from(blocks)
@@ -144,12 +155,16 @@ export async function createBlock(
         .limit(1);
     });
     if (existing.length > 0) {
-      return err("Block with this slug already exists in this workspace", {
-        code: "DUPLICATE_SLUG",
+      devWarn('⚠️ [Server] Duplicate slug detected', {
+        slug: validated.slug,
+        workspaceId: validated.workspaceId,
+      });
+      return err('Block with this slug already exists in this workspace', {
+        code: 'DUPLICATE_SLUG',
       });
     }
 
-    const inserted = await db.rls(async (tx) => {
+    const inserted = await db.rls(async tx => {
       const [created] = await tx
         .insert(blocks)
         .values({
@@ -165,9 +180,21 @@ export async function createBlock(
       return created as Block;
     });
 
+    timer.log('Database insert completed');
+
+    devLog('✅ [Server] Block created successfully', {
+      blockId: inserted.id,
+      blockType: inserted.block_type,
+      title: inserted.title,
+      object: inserted.object,
+      totalTime: timer.end(),
+    });
+
     return ok(inserted);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to create block";
+    timer.end();
+    devError('❌ [Server] Failed to create block', e);
+    const message = e instanceof Error ? e.message : 'Failed to create block';
     return err(message);
   }
 }
@@ -182,7 +209,7 @@ export async function getBlockById(
     const { id } = getBlockSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const result = await db.rls(async (tx) => {
+    const result = await db.rls(async tx => {
       const [row] = await tx
         .select()
         .from(blocks)
@@ -193,7 +220,7 @@ export async function getBlockById(
 
     return ok(result);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to get block";
+    const message = e instanceof Error ? e.message : 'Failed to get block';
     return err(message);
   }
 }
@@ -205,11 +232,19 @@ export async function updateBlock(
   input: UpdateBlockInput
 ): Promise<ActionResult<Block>> {
   try {
+    devLog('🔄 [Server] Updating block', {
+      blockId: input.id,
+      title: input.title,
+      object: input.object,
+      hasMetadata: !!input.metadata,
+      metadataSize: input.metadata ? JSON.stringify(input.metadata).length : 0,
+    });
+
     const validated = updateBlockSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
     // Load current block to know workspace for uniqueness check
-    const current = await db.rls(async (tx) => {
+    const current = await db.rls(async tx => {
       const [row] = await tx
         .select({
           id: blocks.id,
@@ -219,13 +254,13 @@ export async function updateBlock(
         .from(blocks)
         .where(eq(blocks.id, validated.id))
         .limit(1);
-      return row as Pick<Block, "id" | "workspace_id" | "slug"> | undefined;
+      return row as Pick<Block, 'id' | 'workspace_id' | 'slug'> | undefined;
     });
 
-    if (!current) return err("Block not found", { code: "NOT_FOUND" });
+    if (!current) return err('Block not found', { code: 'NOT_FOUND' });
 
     if (validated.slug && validated.slug !== current.slug) {
-      const conflict = await db.rls(async (tx) => {
+      const conflict = await db.rls(async tx => {
         return await tx
           .select({ id: blocks.id })
           .from(blocks)
@@ -239,13 +274,13 @@ export async function updateBlock(
           .limit(1);
       });
       if (conflict.length > 0) {
-        return err("Block with this slug already exists in this workspace", {
-          code: "DUPLICATE_SLUG",
+        return err('Block with this slug already exists in this workspace', {
+          code: 'DUPLICATE_SLUG',
         });
       }
     }
 
-    const updated = await db.rls(async (tx) => {
+    const updated = await db.rls(async tx => {
       const updateData: Partial<Block> = {};
       if (validated.slug) updateData.slug = validated.slug;
       if (validated.title) updateData.title = validated.title;
@@ -268,7 +303,7 @@ export async function updateBlock(
 
     return ok(updated);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to update block";
+    const message = e instanceof Error ? e.message : 'Failed to update block';
     return err(message);
   }
 }
@@ -283,7 +318,7 @@ export async function deleteBlock(
     const { id } = getBlockSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const deleted = await db.rls(async (tx) => {
+    const deleted = await db.rls(async tx => {
       const [row] = await tx
         .update(blocks)
         .set({
@@ -296,12 +331,12 @@ export async function deleteBlock(
     });
 
     if (!deleted) {
-      return err("Block not found", { code: "NOT_FOUND" });
+      return err('Block not found', { code: 'NOT_FOUND' });
     }
 
     return ok(deleted);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to delete block";
+    const message = e instanceof Error ? e.message : 'Failed to delete block';
     return err(message);
   }
 }
@@ -316,7 +351,7 @@ export async function restoreBlock(
     const { id } = getBlockSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const restored = await db.rls(async (tx) => {
+    const restored = await db.rls(async tx => {
       const [row] = await tx
         .update(blocks)
         .set({
@@ -329,12 +364,12 @@ export async function restoreBlock(
     });
 
     if (!restored) {
-      return err("Block not found", { code: "NOT_FOUND" });
+      return err('Block not found', { code: 'NOT_FOUND' });
     }
 
     return ok(restored);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to restore block";
+    const message = e instanceof Error ? e.message : 'Failed to restore block';
     return err(message);
   }
 }
@@ -349,7 +384,7 @@ export async function listWorkspaceBlocks(
     const { workspaceId } = listWorkspaceBlocksSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const list = await db.rls(async (tx) => {
+    const list = await db.rls(async tx => {
       const rows = await tx
         .select()
         .from(blocks)
@@ -365,7 +400,7 @@ export async function listWorkspaceBlocks(
 
     return ok(list);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to list blocks";
+    const message = e instanceof Error ? e.message : 'Failed to list blocks';
     return err(message);
   }
 }
@@ -380,7 +415,7 @@ export async function listSoftDeletedBlocks(
     const { workspaceId } = listWorkspaceBlocksSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const list = await db.rls(async (tx) => {
+    const list = await db.rls(async tx => {
       const rows = await tx
         .select()
         .from(blocks)
@@ -397,7 +432,7 @@ export async function listSoftDeletedBlocks(
     return ok(list);
   } catch (e) {
     const message =
-      e instanceof Error ? e.message : "Failed to list soft-deleted blocks";
+      e instanceof Error ? e.message : 'Failed to list soft-deleted blocks';
     return err(message);
   }
 }
@@ -412,7 +447,7 @@ export async function listBlocksByType(
     const { workspaceId, blockType } = listBlocksByTypeSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const list = await db.rls(async (tx) => {
+    const list = await db.rls(async tx => {
       const rows = await tx
         .select()
         .from(blocks)
@@ -430,7 +465,7 @@ export async function listBlocksByType(
     return ok(list);
   } catch (e) {
     const message =
-      e instanceof Error ? e.message : "Failed to list blocks by type";
+      e instanceof Error ? e.message : 'Failed to list blocks by type';
     return err(message);
   }
 }
@@ -445,14 +480,14 @@ export async function listWorkspacePageBlocks(
     const { workspaceId } = listWorkspacePageBlocksSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const list = await db.rls(async (tx) => {
+    const list = await db.rls(async tx => {
       const rows = await tx
         .select()
         .from(blocks)
         .where(
           and(
             eq(blocks.workspace_id, workspaceId),
-            eq(blocks.object, "page"),
+            eq(blocks.object, 'page'),
             sql`blocks.deleted_at IS NULL`
           )
         )
@@ -463,7 +498,7 @@ export async function listWorkspacePageBlocks(
     return ok(list);
   } catch (e) {
     const message =
-      e instanceof Error ? e.message : "Failed to list workspace page blocks";
+      e instanceof Error ? e.message : 'Failed to list workspace page blocks';
     return err(message);
   }
 }
@@ -478,14 +513,14 @@ export async function listWorkspaceComponentBlocks(
     const { workspaceId } = listWorkspaceComponentBlocksSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const list = await db.rls(async (tx) => {
+    const list = await db.rls(async tx => {
       const rows = await tx
         .select()
         .from(blocks)
         .where(
           and(
             eq(blocks.workspace_id, workspaceId),
-            eq(blocks.object, "component"),
+            eq(blocks.object, 'component'),
             sql`blocks.deleted_at IS NULL`
           )
         )
@@ -498,7 +533,7 @@ export async function listWorkspaceComponentBlocks(
     const message =
       e instanceof Error
         ? e.message
-        : "Failed to list workspace component blocks";
+        : 'Failed to list workspace component blocks';
     return err(message);
   }
 }
@@ -513,7 +548,7 @@ export async function listWorkspaceBlockPositions(
     const { workspaceId } = listWorkspaceBlockPositionsSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const rows = await db.rls(async (tx) => {
+    const rows = await db.rls(async tx => {
       // Join through blocks to filter by workspaceId
       const result = (await tx
         .select({ pos: blockPositions })
@@ -521,7 +556,7 @@ export async function listWorkspaceBlockPositions(
         .innerJoin(blocks, eq(blockPositions.block_id, blocks.id))
         .where(eq(blocks.workspace_id, workspaceId))
         .orderBy(blockPositions.created_at)) as { pos: BlockPosition }[];
-      return result.map((r) => r.pos);
+      return result.map(r => r.pos);
     });
 
     return ok(rows);
@@ -529,7 +564,7 @@ export async function listWorkspaceBlockPositions(
     const message =
       e instanceof Error
         ? e.message
-        : "Failed to list block positions for workspace";
+        : 'Failed to list block positions for workspace';
     return err(message);
   }
 }
@@ -544,17 +579,17 @@ export async function listWorkspacePageBlockPositions(
     const { workspaceId } = listWorkspacePageBlockPositionsSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const rows = await db.rls(async (tx) => {
+    const rows = await db.rls(async tx => {
       // Join through blocks to filter by workspaceId and object=page
       const result = (await tx
         .select({ pos: blockPositions })
         .from(blockPositions)
         .innerJoin(blocks, eq(blockPositions.block_id, blocks.id))
         .where(
-          and(eq(blocks.workspace_id, workspaceId), eq(blocks.object, "page"))
+          and(eq(blocks.workspace_id, workspaceId), eq(blocks.object, 'page'))
         )
         .orderBy(blockPositions.created_at)) as { pos: BlockPosition }[];
-      return result.map((r) => r.pos);
+      return result.map(r => r.pos);
     });
 
     return ok(rows);
@@ -562,7 +597,7 @@ export async function listWorkspacePageBlockPositions(
     const message =
       e instanceof Error
         ? e.message
-        : "Failed to list page block positions for workspace";
+        : 'Failed to list page block positions for workspace';
     return err(message);
   }
 }
@@ -578,7 +613,7 @@ export async function listWorkspaceComponentBlockPositions(
       listWorkspaceComponentBlockPositionsSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const rows = await db.rls(async (tx) => {
+    const rows = await db.rls(async tx => {
       // Join through blocks to filter by workspaceId and object=component
       const result = (await tx
         .select({ pos: blockPositions })
@@ -587,11 +622,11 @@ export async function listWorkspaceComponentBlockPositions(
         .where(
           and(
             eq(blocks.workspace_id, workspaceId),
-            eq(blocks.object, "component")
+            eq(blocks.object, 'component')
           )
         )
         .orderBy(blockPositions.created_at)) as { pos: BlockPosition }[];
-      return result.map((r) => r.pos);
+      return result.map(r => r.pos);
     });
 
     return ok(rows);
@@ -599,7 +634,7 @@ export async function listWorkspaceComponentBlockPositions(
     const message =
       e instanceof Error
         ? e.message
-        : "Failed to list component block positions for workspace";
+        : 'Failed to list component block positions for workspace';
     return err(message);
   }
 }

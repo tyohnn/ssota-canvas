@@ -1,6 +1,6 @@
-import type { Block } from "@/db/schema";
-import type { DefaultMetadata, FormSchema } from "@/domains/blocks/types";
-import type { OverrideFlags } from "./component-override.types";
+import type { Block } from '@/db/schema';
+import type { DefaultMetadata, FormSchema } from '@/domains/blocks/types';
+import type { OverrideFlags } from './component-override.types';
 
 // Component Definition - template that defines the style and schema
 export type ComponentDefinitionData = {
@@ -10,12 +10,12 @@ export type ComponentDefinitionData = {
 };
 
 export type ComponentDefinitionMetadata = DefaultMetadata & {
-  role: "definition";
+  role: 'definition';
   componentData: ComponentDefinitionData;
 };
 
 export type ComponentDefinition = Block & {
-  object: "component";
+  object: 'component';
   metadata: ComponentDefinitionMetadata;
 };
 
@@ -25,35 +25,37 @@ export type ComponentInstanceData = {
 };
 
 export type ComponentInstanceMetadata = DefaultMetadata & {
-  role: "instance";
+  role: 'instance';
   instanceData: ComponentInstanceData;
 };
 
 export type ComponentInstance = Block & {
-  object: "block"; // 일반 블록과 동일하게 유지
+  object: 'block'; // 일반 블록과 동일하게 유지
   metadata: ComponentInstanceMetadata;
 };
 
 // Union type for component metadata
-export type ComponentMetadata = ComponentDefinitionMetadata | ComponentInstanceMetadata;
+export type ComponentMetadata =
+  | ComponentDefinitionMetadata
+  | ComponentInstanceMetadata;
 
 // Type guards
 export function isComponentDefinition(
   block: Block
 ): block is ComponentDefinition {
   const metadata = block.metadata as ComponentMetadata;
-  return block.object === "component" && metadata?.role === "definition";
+  return block.object === 'component' && metadata?.role === 'definition';
 }
 
 export function isComponentInstance(block: Block): block is ComponentInstance {
   const metadata = block.metadata as ComponentMetadata;
   return (
-    block.object === "block" && // 일반 블록과 동일
-    metadata?.role === "instance" &&
-    typeof metadata?.component_id === "string"
+    block.object === 'block' && // 일반 블록과 동일
+    metadata?.role === 'instance' &&
+    metadata?.instanceData &&
+    typeof (metadata.instanceData as any)?.componentId === 'string'
   );
 }
-
 
 // ============================================================================
 // 가상 데이터 예시 (주석 처리)

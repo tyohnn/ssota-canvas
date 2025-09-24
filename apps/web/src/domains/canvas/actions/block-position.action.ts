@@ -1,17 +1,18 @@
-"use server";
+'use server';
 
-import { z } from "zod";
-import { and, eq } from "drizzle-orm";
-import { createClerkDrizzleSupabaseClient } from "@/db";
+import { z } from 'zod';
+import { and, eq } from 'drizzle-orm';
+import { createClerkDrizzleSupabaseClient } from '@/db';
 import {
   blockPositions,
   type BlockPosition,
   type NewBlockPosition,
   blocks,
   type Block,
-} from "@/db/schema";
-import { ActionResult, ok, err } from "@/lib/action-result";
-import { sql } from "drizzle-orm";
+} from '@/db/schema';
+import { ActionResult, ok, err } from '@/lib/action-result';
+import { sql } from 'drizzle-orm';
+import { devLog, devError, devWarn } from '@/utils/dev-logger';
 
 // Create block position schema
 const createBlockPositionSchema = z.object({
@@ -71,10 +72,16 @@ export async function createBlockPosition(
   input: CreateBlockPositionInput
 ): Promise<ActionResult<BlockPosition>> {
   try {
+    devLog('📍 [Server] Creating block position', {
+      blockId: input.blockId,
+      contextBlockId: input.contextBlockId,
+      position: { x: input.x, y: input.y },
+    });
+
     const validated = createBlockPositionSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const inserted = await db.rls(async (tx) => {
+    const inserted = await db.rls(async tx => {
       const [created] = await tx
         .insert(blockPositions)
         .values({
@@ -87,10 +94,18 @@ export async function createBlockPosition(
       return created as BlockPosition;
     });
 
+    devLog('✅ [Server] Block position created successfully', {
+      positionId: inserted.id,
+      blockId: inserted.block_id,
+      contextBlockId: inserted.context_block_id,
+      position: { x: inserted.x_position, y: inserted.y_position },
+    });
+
     return ok(inserted);
   } catch (e) {
+    devError('❌ [Server] Failed to create block position', e);
     const message =
-      e instanceof Error ? e.message : "Failed to create block position";
+      e instanceof Error ? e.message : 'Failed to create block position';
     return err(message);
   }
 }
@@ -105,7 +120,7 @@ export async function updateBlockPosition(
     const validated = updateBlockPositionSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const updated = await db.rls(async (tx) => {
+    const updated = await db.rls(async tx => {
       const [row] = await tx
         .update(blockPositions)
         .set({
@@ -124,13 +139,13 @@ export async function updateBlockPosition(
     });
 
     if (!updated) {
-      return err("Block position not found", { code: "NOT_FOUND" });
+      return err('Block position not found', { code: 'NOT_FOUND' });
     }
 
     return ok(updated);
   } catch (e) {
     const message =
-      e instanceof Error ? e.message : "Failed to update block position";
+      e instanceof Error ? e.message : 'Failed to update block position';
     return err(message);
   }
 }
@@ -145,8 +160,8 @@ export async function batchUpdateBlockPositions(
     const validated = batchUpdateBlockPositionsSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const results = await db.rls(async (tx) => {
-      const updatePromises = validated.positions.map(async (pos) => {
+    const results = await db.rls(async tx => {
+      const updatePromises = validated.positions.map(async pos => {
         // Check if position exists
         const [existingPosition] = await tx
           .select()
@@ -197,7 +212,7 @@ export async function batchUpdateBlockPositions(
     return ok(results);
   } catch (e) {
     const message =
-      e instanceof Error ? e.message : "Failed to batch update block positions";
+      e instanceof Error ? e.message : 'Failed to batch update block positions';
     return err(message);
   }
 }
@@ -212,7 +227,7 @@ export async function deleteBlockPosition(
   try {
     const db = await createClerkDrizzleSupabaseClient();
 
-    const deleted = await db.rls(async (tx) => {
+    const deleted = await db.rls(async tx => {
       const [row] = await tx
         .update(blockPositions)
         .set({
@@ -230,13 +245,13 @@ export async function deleteBlockPosition(
     });
 
     if (!deleted) {
-      return err("Block position not found", { code: "NOT_FOUND" });
+      return err('Block position not found', { code: 'NOT_FOUND' });
     }
 
     return ok(deleted);
   } catch (e) {
     const message =
-      e instanceof Error ? e.message : "Failed to delete block position";
+      e instanceof Error ? e.message : 'Failed to delete block position';
     return err(message);
   }
 }
@@ -251,7 +266,7 @@ export async function restoreBlockPosition(
   try {
     const db = await createClerkDrizzleSupabaseClient();
 
-    const restored = await db.rls(async (tx) => {
+    const restored = await db.rls(async tx => {
       const [row] = await tx
         .update(blockPositions)
         .set({
@@ -269,13 +284,13 @@ export async function restoreBlockPosition(
     });
 
     if (!restored) {
-      return err("Block position not found", { code: "NOT_FOUND" });
+      return err('Block position not found', { code: 'NOT_FOUND' });
     }
 
     return ok(restored);
   } catch (e) {
     const message =
-      e instanceof Error ? e.message : "Failed to restore block position";
+      e instanceof Error ? e.message : 'Failed to restore block position';
     return err(message);
   }
 }
@@ -290,7 +305,7 @@ export async function listPageBlockPositions(
     const { pageId } = listPageBlockPositionsSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const result = await db.rls(async (tx) => {
+    const result = await db.rls(async tx => {
       // Join positions with blocks to get combined data
       const joinedResult = await tx
         .select({
@@ -309,10 +324,12 @@ export async function listPageBlockPositions(
         .orderBy(blockPositions.created_at);
 
       // Map to BlockWithPosition objects
-      const blocksWithPositions: BlockWithPosition[] = joinedResult.map((row) => ({
-        block: row.block as Block,
-        position: row.position as BlockPosition,
-      }));
+      const blocksWithPositions: BlockWithPosition[] = joinedResult.map(
+        row => ({
+          block: row.block as Block,
+          position: row.position as BlockPosition,
+        })
+      );
 
       return { blocksWithPositions };
     });
@@ -320,7 +337,7 @@ export async function listPageBlockPositions(
     return ok(result);
   } catch (e) {
     const message =
-      e instanceof Error ? e.message : "Failed to list page block positions";
+      e instanceof Error ? e.message : 'Failed to list page block positions';
     return err(message);
   }
 }

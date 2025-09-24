@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef, useMemo } from "react";
-import { Block } from "@/db/schema";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Input } from "@workspace/ui/components/ui/input";
-import { Badge } from "@workspace/ui/components/ui/badge";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useReactFlowCommandsContext } from "@/domains/react-flow-canvas/contexts/ReactFlowCommandsContext";
-import { PropertySection } from "./property-section";
-import { StyleSection } from "./style-section";
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Block } from '@/db/schema';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Input } from '@workspace/ui/components/ui/input';
+import { Badge } from '@workspace/ui/components/ui/badge';
+import { useCanvasData } from '@/domains/canvas/contexts/CanvasDataContext';
+import { useReactFlowCommandsContext } from '@/domains/react-flow-canvas/contexts/ReactFlowCommandsContext';
+import { PropertySection } from './property-section';
+import { StyleSection } from './style-section';
 import {
   Expand,
   Share2,
@@ -16,20 +16,23 @@ import {
   ChevronsRight,
   Component,
   Unlink,
-} from "lucide-react";
-import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
-import { useReactFlowSelectionCommands, useReactFlowNodeSelection } from "@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext";
-import { ComponentInstanceData } from "@/domains/block-components/types/component.types";
-import { FormSchema, SchemaField } from "@/domains/blocks/types/common.node";
-import { OverrideFlags } from "@/domains/block-components/types/component-override.types";
-import { separateFieldsByType } from "../../policy/node-form-schema-policy";
+} from 'lucide-react';
+import { usePanel } from '@/domains/react-flow-canvas/contexts/PanelContext';
+import {
+  useReactFlowSelectionCommands,
+  useReactFlowNodeSelection,
+} from '@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext';
+import { ComponentInstanceData } from '@/domains/block-components/types/component.types';
+import { FormSchema, SchemaField } from '@/domains/blocks/types/common.node';
+import { OverrideFlags } from '@/domains/block-components/types/component-override.types';
+import { separateFieldsByType } from '../../policy/node-form-schema-policy';
 
 interface EditorPanelProps {
   className?: string;
 }
 
 export interface ComponentInfo {
-  type: "instance" | "definition";
+  type: 'instance' | 'definition';
   definitionId: string;
   definition: Block | undefined;
   overrides?: OverrideFlags;
@@ -44,36 +47,39 @@ export function EditorPanel({ className }: EditorPanelProps) {
   // from canvas domain
   const data = useCanvasData();
   const { canvasMode, selectComponent } = data;
-  
+
   // from react-flow-canvas domain
   const panel = usePanel();
   const selectionCommands = useReactFlowSelectionCommands();
   const { selectedSingleNodeData } = useReactFlowNodeSelection();
   const { nodeCommands } = useReactFlowCommandsContext();
-  
+
   // editor panel state
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
   const componentInfo: ComponentInfo | null = useMemo(() => {
     if (!selectedSingleNodeData) return null;
 
     const nodeData = selectedSingleNodeData.data;
     if (!nodeData) return null;
-    
+
     const isNodeInstance = Boolean(nodeData.instanceData);
-    const isNodeDefinition = nodeData.object === 'component' && Boolean(nodeData.componentData);
+    const isNodeDefinition =
+      nodeData.object === 'component' && Boolean(nodeData.componentData);
 
     // React Flow 노드 데이터에서 컴포넌트 정보 확인
     if (isNodeInstance) {
-      const definitionId = (nodeData.instanceData as ComponentInstanceData).componentId;
+      const definitionId = (nodeData.instanceData as ComponentInstanceData)
+        .componentId;
       const definition = data.getComponentBlockById(definitionId);
-      const overrides = (nodeData.instanceData as ComponentInstanceData).overrides;
+      const overrides = (nodeData.instanceData as ComponentInstanceData)
+        .overrides;
 
       return {
-        type: "instance" as const,
+        type: 'instance' as const,
         definitionId,
         definition,
         overrides,
@@ -84,7 +90,7 @@ export function EditorPanel({ className }: EditorPanelProps) {
     if (isNodeDefinition) {
       const definition = data.getComponentBlockById(selectedSingleNodeData.id);
       return {
-        type: "definition" as const,
+        type: 'definition' as const,
         definitionId: selectedSingleNodeData.id,
         definition,
       };
@@ -93,20 +99,26 @@ export function EditorPanel({ className }: EditorPanelProps) {
     return null;
   }, [selectedSingleNodeData]);
 
-  const fields = useMemo<{ 
-    styleFields: SchemaField[],
-    propertyFields: SchemaField[] 
+  const fields = useMemo<{
+    styleFields: SchemaField[];
+    propertyFields: SchemaField[];
   }>(() => {
     const formSchema = selectedSingleNodeData?.data.formSchema as FormSchema;
 
-    const visibleFields = formSchema.fields.filter((field) => field.type !== "hidden");
-    
+    // formSchema가 없거나 fields가 없으면 빈 배열 반환
+    if (!formSchema || !formSchema.fields) {
+      return { styleFields: [], propertyFields: [] };
+    }
+
+    const visibleFields = formSchema.fields.filter(
+      field => field.type !== 'hidden'
+    );
+
     // 스타일 필드만 추출
     const { styleFields, propertyFields } = separateFieldsByType(visibleFields);
 
     return { styleFields, propertyFields };
   }, [selectedSingleNodeData]);
-
 
   // 제목 상태 동기화 - React Flow 노드 ID 사용
   useEffect(() => {
@@ -120,10 +132,12 @@ export function EditorPanel({ className }: EditorPanelProps) {
     if (selectedSingleNodeData && title.trim()) {
       const newTitle = title.trim();
 
-      const result = await nodeCommands.updateNodeData(selectedSingleNodeData, { title: newTitle });
+      const result = await nodeCommands.updateNodeData(selectedSingleNodeData, {
+        title: newTitle,
+      });
 
       if (!result.ok) {
-        console.error("Failed to update block:", result.error);
+        console.error('Failed to update block:', result.error);
         // Reset title to original value on error
         setTitle(`Node ${selectedSingleNodeData.id.slice(0, 8)}`);
       }
@@ -132,9 +146,9 @@ export function EditorPanel({ className }: EditorPanelProps) {
 
   // Enter 키로 저장
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       handleTitleSave();
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setTitle(selectedSingleNodeData?.data.title as string);
     }
   };
@@ -169,8 +183,8 @@ export function EditorPanel({ className }: EditorPanelProps) {
   return (
     <div
       className={`absolute bottom-0 right-0 z-50 w-[45%] h-[90%] bg-background/70 backdrop-blur-md border-l border-t border-border shadow-2xl rounded-tl-lg transition-all duration-300 ease-out ${
-        isAnimating ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
-      } ${className || ""}`}
+        isAnimating ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+      } ${className || ''}`}
     >
       <div className="flex flex-col h-full">
         {/* Modal Header */}
@@ -189,7 +203,7 @@ export function EditorPanel({ className }: EditorPanelProps) {
               variant="ghost"
               className="h-6 w-6"
               onClick={() => {
-                console.log("Expand modal");
+                console.log('Expand modal');
               }}
             >
               <Expand className="w-4 h-4" />
@@ -202,7 +216,7 @@ export function EditorPanel({ className }: EditorPanelProps) {
               variant="ghost"
               className="h-6 w-6"
               onClick={() => {
-                console.log("Share");
+                console.log('Share');
               }}
             >
               <Share2 className="w-4 h-4" />
@@ -212,7 +226,7 @@ export function EditorPanel({ className }: EditorPanelProps) {
               variant="ghost"
               className="h-6 w-6"
               onClick={() => {
-                console.log("More options");
+                console.log('More options');
               }}
             >
               <MoreHorizontal className="w-4 h-4" />
@@ -227,7 +241,7 @@ export function EditorPanel({ className }: EditorPanelProps) {
             {/* Component Info */}
             {componentInfo && (
               <div className="mb-3 space-y-2">
-                {componentInfo.type === "instance" && (
+                {componentInfo.type === 'instance' && (
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="secondary"
@@ -244,7 +258,9 @@ export function EditorPanel({ className }: EditorPanelProps) {
                           className="h-6 px-2 text-xs"
                           onClick={() => {
                             selectComponent(componentInfo.definitionId); // Canvas Domain
-                            selectionCommands.selectNodes([componentInfo.definitionId]); // React Flow Canvas Domain
+                            selectionCommands.selectNodes([
+                              componentInfo.definitionId,
+                            ]); // React Flow Canvas Domain
                           }}
                         >
                           {componentInfo.definition.title}
@@ -271,7 +287,7 @@ export function EditorPanel({ className }: EditorPanelProps) {
                     )}
                   </div>
                 )}
-                {componentInfo.type === "definition" && (
+                {componentInfo.type === 'definition' && (
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="default"
@@ -285,7 +301,7 @@ export function EditorPanel({ className }: EditorPanelProps) {
               </div>
             )}
             {/* Regular Component Mode Badge */}
-            {canvasMode === "component" && !componentInfo && (
+            {canvasMode === 'component' && !componentInfo && (
               <div className="mb-2">
                 <Badge variant="secondary" className="text-xs">
                   Component
@@ -295,7 +311,7 @@ export function EditorPanel({ className }: EditorPanelProps) {
             <Input
               ref={inputRef}
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={e => setTitle(e.target.value)}
               onKeyDown={handleKeyDown}
               onBlur={handleBlur}
               className="h-10 px-0 text-2xl md:text-3xl font-semibold border-none bg-transparent focus-visible:ring-0 shadow-none"
@@ -308,8 +324,14 @@ export function EditorPanel({ className }: EditorPanelProps) {
           <div className="border-b px-1">
             <StyleSection
               formData={{
-                ...(selectedSingleNodeData?.data.formData as Record<string, unknown> || {}),
-                ...(selectedSingleNodeData?.data.nodeUI as Record<string, unknown> || {})
+                ...((selectedSingleNodeData?.data.formData as Record<
+                  string,
+                  unknown
+                >) || {}),
+                ...((selectedSingleNodeData?.data.nodeUI as Record<
+                  string,
+                  unknown
+                >) || {}),
               }}
               schemaFields={fields.styleFields}
               componentInfo={componentInfo}
@@ -319,7 +341,9 @@ export function EditorPanel({ className }: EditorPanelProps) {
           {/* Property Section */}
           <div className="px-1">
             <PropertySection
-              formData={selectedSingleNodeData?.data.formData as Record<string, unknown>}
+              formData={
+                selectedSingleNodeData?.data.formData as Record<string, unknown>
+              }
               schemaFields={fields.propertyFields}
               componentInfo={componentInfo}
             />

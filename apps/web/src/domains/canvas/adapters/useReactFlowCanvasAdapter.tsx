@@ -1,19 +1,22 @@
-"use client";
+'use client';
 
-import { useCallback, useMemo } from "react";
-import type { Node as ReactFlowNode, Edge as ReactFlowEdge } from "@xyflow/react";
-import type { Block, BlockPosition, Edge as DbEdge } from "@/db/schema";
-import type { BlockWithPosition } from "@/domains/canvas/actions/block-position.action";
-import { 
+import { useCallback, useMemo } from 'react';
+import type {
+  Node as ReactFlowNode,
+  Edge as ReactFlowEdge,
+} from '@xyflow/react';
+import type { Block, BlockPosition, Edge as DbEdge } from '@/db/schema';
+import type { BlockWithPosition } from '@/domains/canvas/actions/block-position.action';
+import {
   transformBlockToReactFlowNode,
-} from "@/domains/react-flow-canvas/policy/node-rendering-policy";
+  buildRegularNode,
+} from '@/domains/react-flow-canvas/policy/node-rendering-policy';
 import {
   isComponentInstance,
   extractComponentDefinitions,
   type ComponentDefinition,
-} from "@/domains/block-components";
-import type { CanvasDataContextValue } from "../contexts/CanvasDataContext";
-
+} from '@/domains/block-components';
+import type { CanvasDataContextValue } from '../contexts/CanvasDataContext';
 
 // React Flow Canvas 상태 (어댑터 출력)
 export interface ReactFlowCanvasState {
@@ -34,77 +37,93 @@ export interface UseReactFlowCanvasAdapterResult {
  * Canvas 도메인을 React Flow Canvas와 연결하는 어댑터
  */
 export function useReactFlowCanvasAdapter(): UseReactFlowCanvasAdapterResult {
-  const getReactFlowState = useCallback((
-    blocksWithPositions: BlockWithPosition[],
-    edges: DbEdge[],
-    canvasData: CanvasDataContextValue
-  ): ReactFlowCanvasState => {
-    // Extract component definitions optimized by Canvas Mode
-    let componentDefinitions: ComponentDefinition[];
-    
-    if (canvasData.canvasMode === "component") {
-      // Component mode: Load all definitions for comprehensive editing
-      componentDefinitions = extractComponentDefinitions(canvasData.componentBlocks);
-    } else {
-      // Page mode: Only load definitions needed by current blocks
-      const requiredDefinitionIds = new Set<string>();
-      blocksWithPositions.forEach(({ block }) => {
-        if (isComponentInstance(block)) {
-          requiredDefinitionIds.add(block.metadata.instanceData.componentId);
-        }
-      });
-      
-      componentDefinitions = extractComponentDefinitions(canvasData.componentBlocks)
-        .filter(def => requiredDefinitionIds.has(def.id));
-    }
+  const getReactFlowState = useCallback(
+    (
+      blocksWithPositions: BlockWithPosition[],
+      edges: DbEdge[],
+      canvasData: CanvasDataContextValue
+    ): ReactFlowCanvasState => {
+      // Extract component definitions optimized by Canvas Mode
+      let componentDefinitions: ComponentDefinition[];
 
-    const componentDefinitionsById = componentDefinitions.reduce(
-      (map, def) => {
-        map[def.id] = def;
-        return map;
-      },
-      {} as Record<string, ComponentDefinition>
-    );
+      if (canvasData.canvasMode === 'component') {
+        // Component mode: Load all definitions for comprehensive editing
+        componentDefinitions = extractComponentDefinitions(
+          canvasData.componentBlocks
+        );
+      } else {
+        // Page mode: Only load definitions needed by current blocks
+        const requiredDefinitionIds = new Set<string>();
+        blocksWithPositions.forEach(({ block }) => {
+          if (isComponentInstance(block)) {
+            requiredDefinitionIds.add(block.metadata.instanceData.componentId);
+          }
+        });
 
-    if (blocksWithPositions.length === 0) {
-      return { nodes: [], edges: [] };
-    }
+        componentDefinitions = extractComponentDefinitions(
+          canvasData.componentBlocks
+        ).filter(def => requiredDefinitionIds.has(def.id));
+      }
 
-    // Transform blocks with positions to React Flow nodes using the optimized transformer
-    const nodes: ReactFlowNode[] = blocksWithPositions
-      .map(({ block, position }) => 
-        transformBlockToReactFlowNode(block, position, componentDefinitionsById)
-      )
-      .filter(Boolean);
-
-    // Build edges
-    const nodeIdSet = new Set(nodes.map((n) => n.id));
-    const rfEdges: ReactFlowEdge[] = (edges || [])
-      .filter((e) => !!e.source_block_id && !!e.target_block_id)
-      // Scope edges to current page: both endpoints must exist in page nodes
-      .filter(
-        (e) =>
-          nodeIdSet.has(e.source_block_id as string) &&
-          nodeIdSet.has(e.target_block_id as string)
-      )
-      .map((e) => ({
-        id: e.id as string,
-        source: e.source_block_id as string,
-        target: e.target_block_id as string,
-        type: (e.edge_type as string) || "default",
-        data: {
-          relationship_type: e.edge_type as string,
-          ...((e.metadata as any) || {}),
+      const componentDefinitionsById = componentDefinitions.reduce(
+        (map, def) => {
+          map[def.id] = def;
+          return map;
         },
-      }));
+        {} as Record<string, ComponentDefinition>
+      );
 
-    return { nodes, edges: rfEdges };
-  }, []);
+      if (blocksWithPositions.length === 0) {
+        return { nodes: [], edges: [] };
+      }
+
+      // Transform blocks with positions to React Flow nodes using the optimized transformer
+      const nodes: ReactFlowNode[] = blocksWithPositions
+        .map(({ block, position }) => {
+          try {
+            return transformBlockToReactFlowNode(
+              block,
+              position,
+              componentDefinitionsById
+            );
+          } catch (error) {
+            console.warn(`Failed to transform block ${block.id}: ${error}`);
+            // 컴포넌트 인스턴스이지만 정의를 찾을 수 없는 경우 일반 블록으로 처리
+            if (isComponentInstance(block)) {
+              return buildRegularNode(block, position);
+            }
+            return null;
+          }
+        })
+        .filter((node): node is ReactFlowNode => node !== null);
+
+      // Build edges
+      const nodeIdSet = new Set(nodes.map(n => n.id));
+      const rfEdges: ReactFlowEdge[] = (edges || [])
+        .filter(e => !!e.source_block_id && !!e.target_block_id)
+        // Scope edges to current page: both endpoints must exist in page nodes
+        .filter(
+          e =>
+            nodeIdSet.has(e.source_block_id as string) &&
+            nodeIdSet.has(e.target_block_id as string)
+        )
+        .map(e => ({
+          id: e.id as string,
+          source: e.source_block_id as string,
+          target: e.target_block_id as string,
+          type: (e.edge_type as string) || 'default',
+          data: {
+            relationship_type: e.edge_type as string,
+            ...((e.metadata as any) || {}),
+          },
+        }));
+
+      return { nodes, edges: rfEdges };
+    },
+    []
+  );
 
   return {
     getReactFlowState,
   };
 }
-
-
-

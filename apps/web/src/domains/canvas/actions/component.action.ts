@@ -1,476 +1,642 @@
-"use server";
+'use server';
 
-import { actionWrapper } from "@/lib/action-result";
-import { getWorkspace } from "@/auth/permissions";
-import { db } from "@/db";
-import { blocks, type Block } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { z } from 'zod';
+import { and, eq, sql } from 'drizzle-orm';
+import { createClerkDrizzleSupabaseClient } from '@/db';
+import { blocks, type Block, type NewBlock } from '@/db/schema';
+import { ActionResult, ok, err } from '@/lib/action-result';
 import {
   isComponentDefinition,
   isComponentInstance,
-  validateComponentDefinition,
-  validateComponentInstance,
   type ComponentDefinition,
   type ComponentInstance,
-} from "@/domains/canvas/types/component";
+  type ComponentDefinitionMetadata,
+  type ComponentInstanceMetadata,
+} from '@/domains/block-components';
+import { devLog, devError, devWarn, startTimer } from '@/utils/dev-logger';
 
-export type CreateComponentDefinitionParams = {
-  workspaceId: string;
-  blockType: string;
-  name: string;
-  slug?: string;
-  componentKey: string;
-  componentCategory?: string;
-  description?: string;
-  nodeUI: Record<string, any>;
-  schema?: Record<string, any>;
-};
+// ============================================================================
+// Input Schemas
+// ============================================================================
 
-export type CreateComponentInstanceParams = {
-  workspaceId: string;
-  blockType: string;
-  name: string;
-  slug?: string;
-  componentId: string;
-  data?: Record<string, any>;
-  nodeUI?: Record<string, any>; // style overrides
-};
+const createComponentDefinitionSchema = z.object({
+  workspaceId: z.uuid(),
+  blockType: z.string(),
+  title: z.string().min(1),
+  slug: z.string().optional(),
+  componentKey: z.string().optional(),
+  componentCategory: z.string().optional(),
+  description: z.string().optional(),
+  nodeUI: z.record(z.string(), z.any()).optional(),
+  schema: z.record(z.string(), z.any()).optional(),
+});
 
-export type UpdateComponentDefinitionParams = {
-  id: string;
-  name?: string;
-  componentKey?: string;
-  componentCategory?: string;
-  description?: string;
-  nodeUI?: Record<string, any>;
-  schema?: Record<string, any>;
-};
+const createComponentInstanceSchema = z.object({
+  workspaceId: z.uuid(),
+  blockType: z.string(),
+  title: z.string().min(1),
+  slug: z.string().optional(),
+  componentId: z.uuid(),
+  data: z.record(z.string(), z.any()).optional(),
+  nodeUI: z.record(z.string(), z.any()).optional(),
+});
 
-export type UpdateComponentInstanceParams = {
-  id: string;
-  name?: string;
-  data?: Record<string, any>;
-  nodeUI?: Record<string, any>; // style overrides
-};
+const updateComponentDefinitionSchema = z.object({
+  id: z.uuid(),
+  title: z.string().min(1).optional(),
+  componentKey: z.string().optional(),
+  componentCategory: z.string().optional(),
+  description: z.string().optional(),
+  nodeUI: z.record(z.string(), z.any()).optional(),
+  schema: z.record(z.string(), z.any()).optional(),
+});
+
+const updateComponentInstanceSchema = z.object({
+  id: z.uuid(),
+  title: z.string().min(1).optional(),
+  data: z.record(z.string(), z.any()).optional(),
+  nodeUI: z.record(z.string(), z.any()).optional(),
+});
+
+const deleteComponentDefinitionSchema = z.object({
+  id: z.uuid(),
+  deleteInstances: z.boolean().optional(),
+});
+
+const getComponentDefinitionsSchema = z.object({
+  workspaceId: z.uuid(),
+});
+
+const getComponentInstancesSchema = z.object({
+  workspaceId: z.uuid(),
+  definitionId: z.uuid(),
+});
+
+// ============================================================================
+// Type Exports
+// ============================================================================
+
+export type CreateComponentDefinitionInput = z.infer<
+  typeof createComponentDefinitionSchema
+>;
+export type CreateComponentInstanceInput = z.infer<
+  typeof createComponentInstanceSchema
+>;
+export type UpdateComponentDefinitionInput = z.infer<
+  typeof updateComponentDefinitionSchema
+>;
+export type UpdateComponentInstanceInput = z.infer<
+  typeof updateComponentInstanceSchema
+>;
+export type DeleteComponentDefinitionInput = z.infer<
+  typeof deleteComponentDefinitionSchema
+>;
+export type GetComponentDefinitionsInput = z.infer<
+  typeof getComponentDefinitionsSchema
+>;
+export type GetComponentInstancesInput = z.infer<
+  typeof getComponentInstancesSchema
+>;
+
+// ============================================================================
+// Component Definition Actions
+// ============================================================================
 
 /**
  * Create a new component definition
  */
-export const createComponentDefinition = actionWrapper(
-  async (params: CreateComponentDefinitionParams) => {
-    const workspace = await getWorkspace(params.workspaceId);
-    if (!workspace) {
-      throw new Error("Workspace not found");
-    }
+export async function createComponentDefinition(
+  input: CreateComponentDefinitionInput
+): Promise<ActionResult<ComponentDefinition>> {
+  const timer = startTimer('Server Component Definition Creation');
 
-    const metadata = {
-      role: "definition",
-      component_key: params.componentKey,
-      component_category: params.componentCategory || "custom",
-      description: params.description,
-      node_ui: params.nodeUI,
-      schema: params.schema,
+  try {
+    devLog('🏗️ [Server] Creating component definition', {
+      workspaceId: input.workspaceId,
+      blockType: input.blockType,
+      title: input.title,
+      componentKey: input.componentKey,
+      componentCategory: input.componentCategory,
+    });
+
+    const validated = createComponentDefinitionSchema.parse(input);
+    const db = await createClerkDrizzleSupabaseClient();
+
+    const metadata: ComponentDefinitionMetadata = {
+      role: 'definition',
+      formData: {},
+      formSchema: { fields: [] },
+      nodeUI: { size: { width: 150, height: 100 } },
+      componentData: {
+        componentKey: validated.componentKey,
+        description: validated.description,
+        connectedInstanceIds: [],
+      },
     };
 
     const newBlock = {
-      workspace_id: params.workspaceId,
-      object: "component" as const,
-      block_type: params.blockType as any,
-      name: params.name,
-      slug: params.slug || params.name.toLowerCase().replace(/\s+/g, "-"),
-      icon_name: "component",
+      workspace_id: validated.workspaceId,
+      object: 'component' as const,
+      block_type: validated.blockType as any,
+      title: validated.title,
+      slug:
+        validated.slug || validated.title.toLowerCase().replace(/\s+/g, '-'),
+      icon_name: 'component',
       metadata,
       order: 0,
       parent_block_id: null,
-    };
+    } satisfies Partial<NewBlock>;
 
-    const [created] = await db.insert(blocks).values(newBlock).returning();
+    const inserted = await db.rls(async tx => {
+      const [created] = await tx.insert(blocks).values(newBlock).returning();
+      return created as Block;
+    });
 
-    // Validate the created component definition
-    if (!isComponentDefinition(created)) {
-      throw new Error("Failed to create valid component definition");
-    }
+    timer.log('Database insert completed');
 
-    const validation = validateComponentDefinition(created);
-    if (!validation.valid) {
-      throw new Error(
-        `Invalid component definition: ${validation.errors.join(", ")}`
-      );
-    }
+    devLog('✅ [Server] Component definition created successfully', {
+      componentId: inserted.id,
+      componentKey: validated.componentKey,
+      componentCategory: validated.componentCategory,
+      totalTime: timer.end(),
+    });
 
-    return created;
+    return ok(inserted as ComponentDefinition);
+  } catch (e) {
+    timer.end();
+    devError('❌ [Server] Failed to create component definition', e);
+    const message =
+      e instanceof Error ? e.message : 'Failed to create component definition';
+    return err(message);
   }
-);
+}
 
 /**
  * Create a new component instance
  */
-export const createComponentInstance = actionWrapper(
-  async (params: CreateComponentInstanceParams) => {
-    const workspace = await getWorkspace(params.workspaceId);
-    if (!workspace) {
-      throw new Error("Workspace not found");
-    }
+export async function createComponentInstance(
+  input: CreateComponentInstanceInput
+): Promise<ActionResult<ComponentInstance>> {
+  const timer = startTimer('Server Component Instance Creation');
+
+  try {
+    devLog('🏗️ [Server] Creating component instance', {
+      workspaceId: input.workspaceId,
+      blockType: input.blockType,
+      title: input.title,
+      componentId: input.componentId,
+    });
+
+    const validated = createComponentInstanceSchema.parse(input);
+    const db = await createClerkDrizzleSupabaseClient();
 
     // Verify the component definition exists
-    const definition = await db
-      .select()
-      .from(blocks)
-      .where(
-        and(
-          eq(blocks.id, params.componentId),
-          eq(blocks.workspace_id, params.workspaceId),
-          eq(blocks.object, "component")
+    const definition = await db.rls(async tx => {
+      const [row] = await tx
+        .select()
+        .from(blocks)
+        .where(
+          and(
+            eq(blocks.id, validated.componentId),
+            eq(blocks.workspace_id, validated.workspaceId),
+            eq(blocks.object, 'component')
+          )
         )
-      )
-      .limit(1);
+        .limit(1);
+      return row as Block | undefined;
+    });
 
-    if (definition.length === 0) {
-      throw new Error("Component definition not found");
+    if (!definition) {
+      devError('❌ [Server] Component definition not found', {
+        componentId: validated.componentId,
+      });
+      return err('Component definition not found');
     }
 
-    const componentDef = definition[0];
-    if (!isComponentDefinition(componentDef)) {
-      throw new Error("Referenced block is not a component definition");
+    if (!isComponentDefinition(definition)) {
+      devError('❌ [Server] Referenced block is not a component definition', {
+        componentId: validated.componentId,
+      });
+      return err('Referenced block is not a component definition');
     }
 
-    const metadata = {
-      role: "instance",
-      component_id: params.componentId,
-      data: params.data || {},
-      ...(params.nodeUI && { node_ui: params.nodeUI }),
+    const metadata: ComponentInstanceMetadata = {
+      role: 'instance',
+      formData: validated.data || {},
+      formSchema: { fields: [] },
+      nodeUI: (validated.nodeUI as any) || {
+        size: { width: 150, height: 100 },
+      },
+      instanceData: {
+        componentId: validated.componentId,
+        overrides: {
+          nodeUI: [],
+          formData: [],
+          formSchema: [],
+        },
+      },
     };
 
     const newBlock = {
-      workspace_id: params.workspaceId,
-      object: "component" as const,
-      block_type: params.blockType as any,
-      name: params.name,
-      slug: params.slug || params.name.toLowerCase().replace(/\s+/g, "-"),
-      icon_name: componentDef.icon_name || "component",
+      workspace_id: validated.workspaceId,
+      object: 'block' as const,
+      block_type: validated.blockType as any,
+      title: validated.title,
+      slug:
+        validated.slug || validated.title.toLowerCase().replace(/\s+/g, '-'),
+      icon_name: 'component',
       metadata,
       order: 0,
       parent_block_id: null,
-    };
+    } satisfies Partial<NewBlock>;
 
-    const [created] = await db.insert(blocks).values(newBlock).returning();
+    const inserted = await db.rls(async tx => {
+      const [created] = await tx.insert(blocks).values(newBlock).returning();
+      return created as Block;
+    });
 
-    // Validate the created component instance
-    if (!isComponentInstance(created)) {
-      throw new Error("Failed to create valid component instance");
-    }
+    timer.log('Database insert completed');
 
-    const validation = validateComponentInstance(created, componentDef);
-    if (!validation.valid) {
-      throw new Error(
-        `Invalid component instance: ${validation.errors.join(", ")}`
-      );
-    }
+    devLog('✅ [Server] Component instance created successfully', {
+      instanceId: inserted.id,
+      componentId: validated.componentId,
+      totalTime: timer.end(),
+    });
 
-    return created;
+    return ok(inserted as ComponentInstance);
+  } catch (e) {
+    timer.end();
+    devError('❌ [Server] Failed to create component instance', e);
+    const message =
+      e instanceof Error ? e.message : 'Failed to create component instance';
+    return err(message);
   }
-);
+}
 
 /**
  * Update a component definition
  */
-export const updateComponentDefinition = actionWrapper(
-  async (params: UpdateComponentDefinitionParams) => {
+export async function updateComponentDefinition(
+  input: UpdateComponentDefinitionInput
+): Promise<ActionResult<ComponentDefinition>> {
+  try {
+    devLog('🔄 [Server] Updating component definition', {
+      definitionId: input.id,
+      title: input.title,
+      componentKey: input.componentKey,
+    });
+
+    const validated = updateComponentDefinitionSchema.parse(input);
+    const db = await createClerkDrizzleSupabaseClient();
+
     // Get the existing component definition
-    const existing = await db
-      .select()
-      .from(blocks)
-      .where(eq(blocks.id, params.id))
-      .limit(1);
+    const existing = await db.rls(async tx => {
+      const [row] = await tx
+        .select()
+        .from(blocks)
+        .where(eq(blocks.id, validated.id))
+        .limit(1);
+      return row as Block | undefined;
+    });
 
-    if (existing.length === 0) {
-      throw new Error("Component definition not found");
+    if (!existing) {
+      return err('Component definition not found');
     }
 
-    const existingBlock = existing[0];
-    if (!isComponentDefinition(existingBlock)) {
-      throw new Error("Block is not a component definition");
-    }
-
-    // Verify workspace access
-    const workspace = await getWorkspace(existingBlock.workspace_id);
-    if (!workspace) {
-      throw new Error("Workspace not found");
+    if (!isComponentDefinition(existing)) {
+      return err('Block is not a component definition');
     }
 
     // Prepare update data
     const updates: Partial<Block> = {};
 
-    if (params.name !== undefined) {
-      updates.name = params.name;
+    if (validated.title !== undefined) {
+      updates.title = validated.title;
     }
 
-    const metadataUpdates: Record<string, any> = { ...existingBlock.metadata };
+    const metadataUpdates: Record<string, any> = { ...existing.metadata };
 
-    if (params.componentKey !== undefined) {
-      metadataUpdates.component_key = params.componentKey;
+    if (validated.componentKey !== undefined) {
+      metadataUpdates.componentData = {
+        ...metadataUpdates.componentData,
+        componentKey: validated.componentKey,
+      };
     }
 
-    if (params.componentCategory !== undefined) {
-      metadataUpdates.component_category = params.componentCategory;
+    if (validated.componentCategory !== undefined) {
+      metadataUpdates.componentData = {
+        ...metadataUpdates.componentData,
+        componentCategory: validated.componentCategory,
+      };
     }
 
-    if (params.description !== undefined) {
-      metadataUpdates.description = params.description;
+    if (validated.description !== undefined) {
+      metadataUpdates.componentData = {
+        ...metadataUpdates.componentData,
+        description: validated.description,
+      };
     }
 
-    if (params.nodeUI !== undefined) {
-      metadataUpdates.node_ui = params.nodeUI;
+    if (validated.nodeUI !== undefined) {
+      metadataUpdates.nodeUI = validated.nodeUI;
     }
 
-    if (params.schema !== undefined) {
-      metadataUpdates.schema = params.schema;
+    if (validated.schema !== undefined) {
+      metadataUpdates.formSchema = validated.schema;
     }
 
     updates.metadata = metadataUpdates;
     updates.updated_at = new Date();
 
-    const [updated] = await db
-      .update(blocks)
-      .set(updates)
-      .where(eq(blocks.id, params.id))
-      .returning();
+    const updated = await db.rls(async tx => {
+      const [row] = await tx
+        .update(blocks)
+        .set(updates)
+        .where(eq(blocks.id, validated.id))
+        .returning();
+      return row as Block;
+    });
 
-    // Validate the updated component definition
-    const validation = validateComponentDefinition(updated);
-    if (!validation.valid) {
-      throw new Error(
-        `Invalid component definition after update: ${validation.errors.join(", ")}`
-      );
-    }
+    devLog('✅ [Server] Component definition updated successfully', {
+      definitionId: updated.id,
+    });
 
-    return updated;
+    return ok(updated as ComponentDefinition);
+  } catch (e) {
+    devError('❌ [Server] Failed to update component definition', e);
+    const message =
+      e instanceof Error ? e.message : 'Failed to update component definition';
+    return err(message);
   }
-);
+}
 
 /**
  * Update a component instance
  */
-export const updateComponentInstance = actionWrapper(
-  async (params: UpdateComponentInstanceParams) => {
+export async function updateComponentInstance(
+  input: UpdateComponentInstanceInput
+): Promise<ActionResult<ComponentInstance>> {
+  try {
+    devLog('🔄 [Server] Updating component instance', {
+      instanceId: input.id,
+      title: input.title,
+    });
+
+    const validated = updateComponentInstanceSchema.parse(input);
+    const db = await createClerkDrizzleSupabaseClient();
+
     // Get the existing component instance
-    const existing = await db
-      .select()
-      .from(blocks)
-      .where(eq(blocks.id, params.id))
-      .limit(1);
+    const existing = await db.rls(async tx => {
+      const [row] = await tx
+        .select()
+        .from(blocks)
+        .where(eq(blocks.id, validated.id))
+        .limit(1);
+      return row as Block | undefined;
+    });
 
-    if (existing.length === 0) {
-      throw new Error("Component instance not found");
+    if (!existing) {
+      return err('Component instance not found');
     }
 
-    const existingBlock = existing[0];
-    if (!isComponentInstance(existingBlock)) {
-      throw new Error("Block is not a component instance");
+    if (!isComponentInstance(existing)) {
+      return err('Block is not a component instance');
     }
-
-    // Verify workspace access
-    const workspace = await getWorkspace(existingBlock.workspace_id);
-    if (!workspace) {
-      throw new Error("Workspace not found");
-    }
-
-    // Get the component definition for validation
-    const definition = await db
-      .select()
-      .from(blocks)
-      .where(
-        and(
-          eq(blocks.id, existingBlock.metadata.component_id as string),
-          eq(blocks.workspace_id, existingBlock.workspace_id)
-        )
-      )
-      .limit(1);
-
-    if (definition.length === 0) {
-      throw new Error("Component definition not found");
-    }
-
-    const componentDef = definition[0] as ComponentDefinition;
 
     // Prepare update data
     const updates: Partial<Block> = {};
 
-    if (params.name !== undefined) {
-      updates.name = params.name;
+    if (validated.title !== undefined) {
+      updates.title = validated.title;
     }
 
-    const metadataUpdates: Record<string, any> = { ...existingBlock.metadata };
+    const metadataUpdates: Record<string, any> = { ...existing.metadata };
 
-    if (params.data !== undefined) {
-      metadataUpdates.data = params.data;
+    if (validated.data !== undefined) {
+      metadataUpdates.formData = validated.data;
     }
 
-    if (params.nodeUI !== undefined) {
-      if (Object.keys(params.nodeUI).length === 0) {
+    if (validated.nodeUI !== undefined) {
+      if (Object.keys(validated.nodeUI).length === 0) {
         // Remove style overrides
-        delete metadataUpdates.node_ui;
+        delete metadataUpdates.nodeUI;
       } else {
-        metadataUpdates.node_ui = params.nodeUI;
+        metadataUpdates.nodeUI = validated.nodeUI;
       }
     }
 
     updates.metadata = metadataUpdates;
     updates.updated_at = new Date();
 
-    const [updated] = await db
-      .update(blocks)
-      .set(updates)
-      .where(eq(blocks.id, params.id))
-      .returning();
+    const updated = await db.rls(async tx => {
+      const [row] = await tx
+        .update(blocks)
+        .set(updates)
+        .where(eq(blocks.id, validated.id))
+        .returning();
+      return row as Block;
+    });
 
-    // Validate the updated component instance
-    const validation = validateComponentInstance(updated, componentDef);
-    if (!validation.valid) {
-      throw new Error(
-        `Invalid component instance after update: ${validation.errors.join(", ")}`
-      );
-    }
+    devLog('✅ [Server] Component instance updated successfully', {
+      instanceId: updated.id,
+    });
 
-    return updated;
+    return ok(updated as ComponentInstance);
+  } catch (e) {
+    devError('❌ [Server] Failed to update component instance', e);
+    const message =
+      e instanceof Error ? e.message : 'Failed to update component instance';
+    return err(message);
   }
-);
+}
 
 /**
  * Delete a component definition and optionally its instances
  */
-export const deleteComponentDefinition = actionWrapper(
-  async (params: { id: string; deleteInstances?: boolean }) => {
+export async function deleteComponentDefinition(
+  input: DeleteComponentDefinitionInput
+): Promise<ActionResult<Block>> {
+  try {
+    devLog('🗑️ [Server] Deleting component definition', {
+      definitionId: input.id,
+      deleteInstances: input.deleteInstances,
+    });
+
+    const validated = deleteComponentDefinitionSchema.parse(input);
+    const db = await createClerkDrizzleSupabaseClient();
+
     // Get the existing component definition
-    const existing = await db
-      .select()
-      .from(blocks)
-      .where(eq(blocks.id, params.id))
-      .limit(1);
+    const existing = await db.rls(async tx => {
+      const [row] = await tx
+        .select()
+        .from(blocks)
+        .where(eq(blocks.id, validated.id))
+        .limit(1);
+      return row as Block | undefined;
+    });
 
-    if (existing.length === 0) {
-      throw new Error("Component definition not found");
+    if (!existing) {
+      return err('Component definition not found');
     }
 
-    const existingBlock = existing[0];
-    if (!isComponentDefinition(existingBlock)) {
-      throw new Error("Block is not a component definition");
+    if (!isComponentDefinition(existing)) {
+      return err('Block is not a component definition');
     }
 
-    // Verify workspace access
-    const workspace = await getWorkspace(existingBlock.workspace_id);
-    if (!workspace) {
-      throw new Error("Workspace not found");
-    }
-
-    if (params.deleteInstances) {
+    if (validated.deleteInstances) {
       // Delete all instances of this component
-      await db
+      await db.rls(async tx => {
+        await tx
+          .update(blocks)
+          .set({
+            deleted_at: new Date(),
+            updated_at: new Date(),
+          })
+          .where(
+            and(
+              eq(blocks.workspace_id, existing.workspace_id),
+              eq(blocks.object, 'block')
+              // Note: We'd need to use a JSON query to check metadata.instanceData.componentId
+              // For now, this is a simplified version
+            )
+          );
+      });
+    }
+
+    // Delete the definition
+    const deleted = await db.rls(async tx => {
+      const [row] = await tx
         .update(blocks)
         .set({
           deleted_at: new Date(),
           updated_at: new Date(),
         })
-        .where(
-          and(
-            eq(blocks.workspace_id, existingBlock.workspace_id),
-            eq(blocks.object, "component")
-            // Note: We'd need to use a JSON query to check metadata.component_id
-            // For now, this is a simplified version
-          )
-        );
-    }
+        .where(eq(blocks.id, validated.id))
+        .returning();
+      return row as Block;
+    });
 
-    // Delete the definition
-    const [deleted] = await db
-      .update(blocks)
-      .set({
-        deleted_at: new Date(),
-        updated_at: new Date(),
-      })
-      .where(eq(blocks.id, params.id))
-      .returning();
+    devLog('✅ [Server] Component definition deleted successfully', {
+      definitionId: deleted.id,
+    });
 
-    return deleted;
+    return ok(deleted);
+  } catch (e) {
+    devError('❌ [Server] Failed to delete component definition', e);
+    const message =
+      e instanceof Error ? e.message : 'Failed to delete component definition';
+    return err(message);
   }
-);
+}
 
 /**
  * Get all component definitions in a workspace
  */
-export const getComponentDefinitions = actionWrapper(
-  async (params: { workspaceId: string }) => {
-    const workspace = await getWorkspace(params.workspaceId);
-    if (!workspace) {
-      throw new Error("Workspace not found");
-    }
+export async function getComponentDefinitions(
+  input: GetComponentDefinitionsInput
+): Promise<ActionResult<ComponentDefinition[]>> {
+  try {
+    const validated = getComponentDefinitionsSchema.parse(input);
+    const db = await createClerkDrizzleSupabaseClient();
 
-    const definitions = await db
-      .select()
-      .from(blocks)
-      .where(
-        and(
-          eq(blocks.workspace_id, params.workspaceId),
-          eq(blocks.object, "component"),
-          eq(blocks.deleted_at, null)
-        )
-      );
+    const definitions = await db.rls(async tx => {
+      const rows = await tx
+        .select()
+        .from(blocks)
+        .where(
+          and(
+            eq(blocks.workspace_id, validated.workspaceId),
+            eq(blocks.object, 'component'),
+            sql`${blocks.deleted_at} IS NULL`
+          )
+        );
+      return rows as Block[];
+    });
 
     // Filter to only component definitions
-    return definitions.filter(isComponentDefinition);
+    const componentDefinitions = definitions.filter(isComponentDefinition);
+
+    devLog('✅ [Server] Component definitions retrieved', {
+      count: componentDefinitions.length,
+      workspaceId: validated.workspaceId,
+    });
+
+    return ok(componentDefinitions);
+  } catch (e) {
+    devError('❌ [Server] Failed to get component definitions', e);
+    const message =
+      e instanceof Error ? e.message : 'Failed to get component definitions';
+    return err(message);
   }
-);
+}
 
 /**
  * Get all instances of a specific component definition
  */
-export const getComponentInstances = actionWrapper(
-  async (params: { workspaceId: string; definitionId: string }) => {
-    const workspace = await getWorkspace(params.workspaceId);
-    if (!workspace) {
-      throw new Error("Workspace not found");
-    }
+export async function getComponentInstances(
+  input: GetComponentInstancesInput
+): Promise<ActionResult<ComponentInstance[]>> {
+  try {
+    const validated = getComponentInstancesSchema.parse(input);
+    const db = await createClerkDrizzleSupabaseClient();
 
     // Verify the definition exists
-    const definition = await db
-      .select()
-      .from(blocks)
-      .where(
-        and(
-          eq(blocks.id, params.definitionId),
-          eq(blocks.workspace_id, params.workspaceId),
-          eq(blocks.object, "component")
+    const definition = await db.rls(async tx => {
+      const [row] = await tx
+        .select()
+        .from(blocks)
+        .where(
+          and(
+            eq(blocks.id, validated.definitionId),
+            eq(blocks.workspace_id, validated.workspaceId),
+            eq(blocks.object, 'component')
+          )
         )
-      )
-      .limit(1);
+        .limit(1);
+      return row as Block | undefined;
+    });
 
-    if (definition.length === 0) {
-      throw new Error("Component definition not found");
+    if (!definition) {
+      return err('Component definition not found');
     }
 
-    if (!isComponentDefinition(definition[0])) {
-      throw new Error("Block is not a component definition");
+    if (!isComponentDefinition(definition)) {
+      return err('Block is not a component definition');
     }
 
     // Get all blocks in the workspace that are component instances
-    const allBlocks = await db
-      .select()
-      .from(blocks)
-      .where(
-        and(
-          eq(blocks.workspace_id, params.workspaceId),
-          eq(blocks.object, "component"),
-          eq(blocks.deleted_at, null)
-        )
-      );
+    const allBlocks = await db.rls(async tx => {
+      const rows = await tx
+        .select()
+        .from(blocks)
+        .where(
+          and(
+            eq(blocks.workspace_id, validated.workspaceId),
+            eq(blocks.object, 'block'),
+            sql`${blocks.deleted_at} IS NULL`
+          )
+        );
+      return rows as Block[];
+    });
 
     // Filter to instances of this specific definition
-    return allBlocks.filter((block): block is ComponentInstance => {
+    const instances = allBlocks.filter((block): block is ComponentInstance => {
       return (
         isComponentInstance(block) &&
-        block.metadata.component_id === params.definitionId
+        block.metadata.instanceData?.componentId === validated.definitionId
       );
     });
-  }
-);
 
+    devLog('✅ [Server] Component instances retrieved', {
+      count: instances.length,
+      definitionId: validated.definitionId,
+    });
+
+    return ok(instances);
+  } catch (e) {
+    devError('❌ [Server] Failed to get component instances', e);
+    const message =
+      e instanceof Error ? e.message : 'Failed to get component instances';
+    return err(message);
+  }
+}

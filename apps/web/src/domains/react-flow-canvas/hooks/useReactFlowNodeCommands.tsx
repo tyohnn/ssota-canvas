@@ -517,17 +517,26 @@ export function useReactFlowNodeCommands() {
           data: newData,
         });
 
-        const extractedFormSchema = extractUserDefinedSchema(
-          node.type as BlockType,
-          newData.formSchema as FormSchema
-        );
+        // 컴포넌트 인스턴스인지 확인
+        const isInstance = newData.role === 'instance' && newData.instanceData;
+
+        // 컴포넌트 인스턴스가 아닌 경우에만 formSchema 추출
+        const extractedFormSchema = !isInstance
+          ? extractUserDefinedSchema(
+              node.type as BlockType,
+              newData.formSchema as FormSchema
+            )
+          : undefined;
 
         const { formData, formSchema, nodeUI, ...topLevelUpdates } = updates;
 
         // 2. Prepare optimized database update payload using utility function
         const existingMetadata = {
           formData: newData.formData || {},
-          formSchema: extractedFormSchema || { fields: [] },
+          // 컴포넌트 인스턴스인 경우 기존 formSchema 유지 (빈 배열)
+          formSchema: !isInstance
+            ? extractedFormSchema || { fields: [] }
+            : { fields: [] },
           nodeUI: newData.nodeUI || {},
           componentData: newData.componentData,
           pageData: newData.pageData,
@@ -544,7 +553,7 @@ export function useReactFlowNodeCommands() {
           ['formData', 'formSchema', 'nodeUI'], // metadata fields
           existingMetadata // 올바른 existing metadata for merging and preserving structure
         );
-        console.log(dbUpdatePayload);
+
         // 3. Sync to database with optimized payload
         const dbResult = await updateBlockAction({
           ...dbUpdatePayload,
