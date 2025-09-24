@@ -258,6 +258,35 @@ Impact: Better.
 4. **Release Notes**: Can be automatically generated from commit messages
 5. **Analytics**: Enables tracking of development patterns and impact
 
+## AI Collaboration Guidelines
+
+When working with AI assistants for commit message generation, please follow these guidelines:
+
+### For AI Assistants:
+1. **Study Previous Patterns**: Before suggesting commit messages, review the recent commit history to understand the established patterns and conventions used in this project.
+
+2. **Analyze Existing Messages**: Look at the last 5-15 commits to identify:
+   - Common commit types used (feat, fix, refactor, etc.)
+   - Typical scope patterns (component names, modules)
+   - Level of detail in problem statements
+   - Impact measurement approaches
+
+3. **Follow Established Conventions**: Match the style, tone, and level of detail found in recent commits rather than using generic templates.
+
+4. **Domain Context Awareness**: Consider the specific domain context of changes:
+   - For user-facing features: Focus on user experience improvements
+   - For developer tools: Emphasize development productivity gains
+   - For infrastructure: Highlight reliability and performance benefits
+
+### Example AI Interaction:
+```
+AI: "I notice your recent commits use detailed problem statements from the user perspective and specific impact metrics. For this authentication feature, would you like me to draft a message following that pattern?"
+
+Developer: "Yes, please analyze the recent feat commits and suggest a message for the OAuth integration."
+```
+
+This approach ensures AI-generated commit messages maintain consistency with human-written messages and respect the project's established conventions.
+
 ---
 
 ## Pull Request Guidelines
