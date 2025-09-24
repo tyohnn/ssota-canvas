@@ -2,10 +2,10 @@ name: Generate CHANGELOG
 
 on:
   push:
-    branches: [ main, dev, sprint-* ]
+    branches: [main, dev, sprint-*]
   pull_request:
-    branches: [ main, dev, sprint-* ]
-    types: [ opened, synchronize, reopened, closed ]
+    branches: [main, dev, sprint-*]
+    types: [opened, synchronize, reopened, closed]
 
 jobs:
   changelog:
