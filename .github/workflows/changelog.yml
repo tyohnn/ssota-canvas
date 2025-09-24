@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate CHANGELOG
         id: git-cliff
@@ -73,7 +73,7 @@ jobs:
           Impact: Ensures consistent and accurate project documentation."
           echo "✅ CHANGELOG commit created"
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push changes
         if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected == 'true'
@@ -82,7 +82,7 @@ jobs:
           git push origin ${{ github.ref_name }}
           echo "✅ Changes pushed successfully"
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log skip reason
         if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected != 'true'
