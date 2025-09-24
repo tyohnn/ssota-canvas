@@ -287,16 +287,255 @@ Developer: "Yes, please analyze the recent feat commits and suggest a message fo
 
 This approach ensures AI-generated commit messages maintain consistency with human-written messages and respect the project's established conventions.
 
+## Branch Strategy
+
+We follow an Agile-based branching strategy that aligns with our sprint and story structure. This ensures clean development workflows and proper code review processes.
+
+### Branch Structure
+
+```
+main
+└── sprint-{number} (Sprint Branch)
+    ├── story-{story-id}-{description} (Story Branch)
+    │   ├── subtask-{component}-{description} (Subtask Commit)
+    │   ├── subtask-{component}-{description} (Subtask Commit)
+    │   └── subtask-{component}-{description} (Subtask Commit)
+    ├── story-{story-id}-{description} (Story Branch)
+    └── story-{story-id}-{description} (Story Branch)
+```
+
+### Branch Naming Convention
+
+#### Sprint Branches
+```
+sprint-1 (Current Sprint Working Branch)
+sprint-2 (Next Sprint Preparation Branch)
+```
+
+#### Story Branches
+```
+story-WS-1.1-org-management
+story-WS-1.2-workspace-creation
+story-WS-1.3-clerk-integration
+```
+
+**Format**: `story-{epic-code}-{story-number}-{kebab-case-description}`
+
+### Branch Lifecycle
+
+1. **Create Sprint Branch**
+   ```bash
+   git checkout main
+   git checkout -b sprint-1
+   ```
+
+2. **Create Story Branch**
+   ```bash
+   git checkout sprint-1
+   git checkout -b story-WS-1.1-org-management
+   ```
+
+3. **Subtask Development and Commit**
+   ```bash
+   # Commit for each completed subtask (following the commit convention above)
+   git commit -m "feat: implement Organization entity with validation..."
+   ```
+
+4. **Create Pull Request After Story Completion**
+   ```bash
+   # After completing work on the story branch
+   git push origin story-WS-1.1-org-management
+
+   # Create Pull Request on GitHub
+   # - Target: sprint-1 branch
+   # - Write using PR template
+   # - Request senior developer review
+   ```
+
+5. **Merge After Senior Developer Code Review and Approval**
+   ```bash
+   # Merged only after senior developer approval
+   # - Verify all checklist items are completed
+   # - Confirm tests pass
+   # - Review code quality
+   # - Auto-merge to Sprint branch
+   ```
+
+### Best Practices
+
+- **Branch Lifespan**: Complete within 1-3 days
+- **Commit Unit**: Commit for each completed subtask
+- **Merge Process**: Always merge through PR with senior developer review
+- **Branch Cleanup**: Set automatic branch deletion after PR merge
+- **Conflict Resolution**: Resolve conflicts in story branch before creating PR
+
+### Subtask-Driven Development
+
+Our development process is driven by subtasks defined in the sprint stories. Each commit should correspond to a completed subtask, ensuring granular progress tracking and easier debugging.
+
+#### Subtask to Commit Mapping
+
+Each story contains multiple subtasks that become individual commits:
+
+```bash
+# Story WS-1.1: Organization Management
+# Backend Domain
+- [x] Implement Organization Entity
+- [x] Implement Organization Aggregate
+- [x] Implement CreateOrganization Command Handler
+
+# Database & Repository
+- [x] Create organizations table
+- [x] Implement OrganizationRepository
+
+# API & Server Action
+- [x] Implement createOrganizationAction
+- [x] Implement Clerk webhook handler
+```
+
+#### Commit Message Structure for Subtasks
+
+```bash
+feat: implement Organization entity with validation
+
+Organization entity lacked proper domain modeling and validation rules,
+causing inconsistent data handling across the application. This implementation
+adds comprehensive entity with business rules and validation.
+
+- **Technical Implementation**: Created Organization class with value objects
+- **Design Decisions**: Applied DDD patterns for domain integrity
+- **Alternatives**: Considered ORM entities but chose pure domain objects
+
+Impact: Ensures data consistency and enables better testing strategies.
+```
+
+#### Progress Tracking Benefits
+
+1. **Granular Tracking**: Each subtask completion is visible in git history
+2. **Easier Rollbacks**: Can rollback to specific subtask state if needed
+3. **Clear Accountability**: Each developer knows exactly what they worked on
+4. **Better Code Review**: Reviewers can see logical progression of work
+5. **Debugging**: Easy to trace which subtask introduced issues
+
 ---
 
 ## Pull Request Guidelines
 
-When submitting a pull request, please ensure:
+All pull requests require senior developer code review before merging. PR descriptions should reference the relevant stories in `docs/event-storming/agile-planning/` and follow a structured format similar to our commit message conventions.
 
-1. **Tests**: Add tests for new functionality
-2. **Documentation**: Update relevant documentation
-3. **Linting**: Ensure all linting checks pass
-4. **Review**: Request review from appropriate team members
+### PR Format
+
+```
+[Story Reference] <type>: <description>
+
+## Problem Statement
+<problem statement from domain perspective>
+
+## Solution Approach
+- **Technical Implementation**: Describe the specific changes made
+- **Design Decisions**: Explain why certain approaches were chosen
+- **Alternatives**: Mention other options considered
+
+## Impact
+<quantified expected benefits>
+
+## Related Stories
+- Link to relevant story documents in agile-planning
+- Reference specific acceptance criteria implemented
+
+## Testing
+- Unit tests added/coverage
+- Integration tests included
+- E2E tests performed
+
+## Checklist
+- [ ] Code reviewed by senior developer
+- [ ] All tests pass
+- [ ] Documentation updated
+- [ ] Linting checks pass
+- [ ] Story acceptance criteria met
+```
+
+### Code Review Process
+
+1. **Create Story Branch**: Develop on story-specific branches
+2. **Complete All Subtasks**: Ensure all related subtasks are committed
+3. **Self-Review**: Review your own code before creating PR
+4. **Create Pull Request**: Push branch and create PR targeting sprint branch
+5. **Request Review**: Tag senior developers for mandatory review
+6. **Address Feedback**: Incorporate review feedback and update PR
+7. **Final Approval**: Get approval from at least one senior developer
+8. **Auto-merge**: PR is automatically merged after approval
+
+### Referencing Agile Planning Documents
+
+PR descriptions must reference the relevant story documents:
+
+```bash
+## Related Stories
+- [WS-1.1 Organization Management](docs/event-storming/agile-planning/stories/workspace-structure/sprint-1-stories.md#story-ws-11-organization-management-8pts-)
+- Acceptance Criteria: Create organization from Clerk ✅
+- Acceptance Criteria: Sync organization members ✅
+- Acceptance Criteria: Update organization settings ✅
+
+## Implementation Details
+This PR implements the complete Organization Management story as defined
+in the sprint planning document, including all backend domain logic,
+database schema, API endpoints, and frontend components.
+```
+
+### Best Practices
+
+#### ✅ Do
+- Reference specific story IDs and acceptance criteria
+- Link to the exact section in agile-planning documents
+- Mention which subtasks were completed
+- Include testing results and coverage metrics
+- Tag senior developers for review
+
+#### ❌ Don't
+- Submit PRs without referencing the story document
+- Create PRs that span multiple unrelated stories
+- Skip the senior developer review process
+- Write generic descriptions without domain context
+
+### Example PR Description
+
+```bash
+[WS-1.1] feat: implement Organization Management system
+
+## Problem Statement
+Users were unable to create and manage organizations, leading to
+scattered workspace access and difficulty in team collaboration.
+The lack of organization structure made it impossible to manage
+workspace permissions and member access systematically.
+
+## Solution Approach
+- **Technical Implementation**: Created Organization aggregate with event sourcing
+- **Design Decisions**: Chose event sourcing for audit trail and debugging capabilities
+- **Alternatives**: Considered simple CRUD but chose DDD for better domain modeling
+
+## Impact
+Enables systematic team collaboration with proper access controls,
+expected to improve team productivity by 35% based on similar
+organizational features in other platforms.
+
+## Related Stories
+- [WS-1.1 Organization Management](docs/event-storming/agile-planning/stories/workspace-structure/sprint-1-stories.md#story-ws-11-organization-management-8pts-)
+- All acceptance criteria implemented and tested
+
+## Testing
+- Unit test coverage: 85% for Organization domain
+- Integration tests: 12 scenarios covering all command handlers
+- E2E tests: Complete organization creation and member sync flow
+
+## Checklist
+- [x] Code reviewed by senior developer
+- [x] All tests pass (unit: 95%, integration: 88%)
+- [x] Documentation updated with new domain models
+- [x] Linting checks pass
+- [x] Story acceptance criteria met
+```
 
 ## Development Setup
 
