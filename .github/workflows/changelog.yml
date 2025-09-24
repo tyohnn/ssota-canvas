@@ -51,13 +51,15 @@ jobs:
           - Alternatives: Manual updates considered but chose automation
 
           Impact: Ensures consistent and accurate project documentation."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push changes
         if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected == 'true'
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+        run: |
+          git push origin ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Comment PR with CHANGELOG preview
         if: github.event_name == 'pull_request'
