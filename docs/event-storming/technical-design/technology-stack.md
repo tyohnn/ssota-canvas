@@ -378,7 +378,7 @@ describe('Block Entity', () => {
 ```json
 // package.json
 {
-  "name": "xbowl",
+  "name": "ssota",
   "private": true,
   "scripts": {
     "dev": "turbo run dev",

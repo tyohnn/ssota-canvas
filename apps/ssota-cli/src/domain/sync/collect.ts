@@ -1,5 +1,5 @@
-import * as path from "path";
-import { promises as fs } from "fs";
+import * as path from 'path';
+import { promises as fs } from 'fs';
 
 export interface CollectResult {
   total: number;
@@ -7,7 +7,7 @@ export interface CollectResult {
 }
 
 export async function collectArtifacts(cwd: string): Promise<CollectResult> {
-  const base = path.join(cwd, ".xbowl/artifacts");
+  const base = path.join(cwd, '.ssota/artifacts');
   const byClass: Record<string, number> = {};
   let total = 0;
   try {
@@ -16,7 +16,7 @@ export async function collectArtifacts(cwd: string): Promise<CollectResult> {
       if (!cls.isDirectory()) continue;
       const dir = path.join(base, cls.name);
       const files = await fs.readdir(dir, { withFileTypes: true });
-      const count = files.filter((f) => f.isFile()).length;
+      const count = files.filter(f => f.isFile()).length;
       if (count > 0) byClass[cls.name] = count;
       total += count;
     }

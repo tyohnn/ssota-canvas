@@ -1,5 +1,5 @@
-import * as path from "path";
-import { pathExists, readJson, writeJson } from "./fs.js";
+import * as path from 'path';
+import { pathExists, readJson, writeJson } from './fs.js';
 
 export interface XbowlState {
   lastSyncAt: string | null;
@@ -14,12 +14,12 @@ const DEFAULT_STATE: XbowlState = {
 };
 
 export async function loadState(cwd: string): Promise<XbowlState> {
-  const file = path.join(cwd, ".xbowl/state.json");
+  const file = path.join(cwd, '.ssota/state.json');
   if (!(await pathExists(file))) return { ...DEFAULT_STATE };
   return await readJson<XbowlState>(file);
 }
 
 export async function saveState(cwd: string, state: XbowlState): Promise<void> {
-  const file = path.join(cwd, ".xbowl/state.json");
+  const file = path.join(cwd, '.ssota/state.json');
   await writeJson(file, state);
 }

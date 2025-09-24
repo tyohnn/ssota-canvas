@@ -1,11 +1,11 @@
-import { Button } from "@workspace/ui/components/ui/button";
-import Link from "next/link";
-import RotatingBracket from "./landing/RotatingBracket";
+import { Button } from '@workspace/ui/components/ui/button';
+import Link from 'next/link';
+import RotatingBracket from './landing/RotatingBracket';
 
 function PlaceholderBox({ className }: { className?: string }) {
   return (
     <div
-      className={`w-full h-full border-2 border-dashed border-gray-300 rounded-md bg-gray-50 ${className ?? ""}`}
+      className={`w-full h-full border-2 border-dashed border-gray-300 rounded-md bg-gray-50 ${className ?? ''}`}
     />
   );
 }
@@ -20,7 +20,7 @@ function Section({
   id?: string;
 }) {
   return (
-    <section id={id} className={`py-20 md:py-32 ${className ?? ""}`}>
+    <section id={id} className={`py-20 md:py-32 ${className ?? ''}`}>
       {children}
     </section>
   );
@@ -28,17 +28,17 @@ function Section({
 
 export default function Landing() {
   const rotating = [
-    "vibe coder",
-    "Cursor",
-    "Claude Code",
-    "Content Creator",
-    "Founder",
-    "Indie Hacker",
-    "Student",
-    "Agency",
+    'vibe coder',
+    'Cursor',
+    'Claude Code',
+    'Content Creator',
+    'Founder',
+    'Indie Hacker',
+    'Student',
+    'Agency',
   ];
 
-  const heroTabs = ["Vibe Coder", "Content", "Learning"];
+  const heroTabs = ['Vibe Coder', 'Content', 'Learning'];
 
   return (
     <div className="min-h-svh w-full">
@@ -83,7 +83,7 @@ export default function Landing() {
           <div className="mt-12">
             <div className="flex items-center justify-between gap-4">
               <div className="flex flex-wrap gap-2">
-                {heroTabs.map((t) => (
+                {heroTabs.map(t => (
                   <button
                     key={t}
                     className={`text-sm px-3 py-1.5 rounded-md border transition-colors bg-white text-gray-700 border-gray-300`}
@@ -121,7 +121,7 @@ export default function Landing() {
               Workspace-native 2D intelligence
             </h2>
             <p className="text-gray-600">
-              Bring your 2D work artifacts into a visual canvas. xbowl
+              Bring your 2D work artifacts into a visual canvas. ssota
               understands structures and relationships across documents, and
               generates new canvases, tables, kanbans, or markdown views on
               demand—grounded in your workspace.
@@ -129,10 +129,10 @@ export default function Landing() {
           </div>
           <div className="mt-10 grid md:grid-cols-3 gap-6">
             {[
-              "Ingest any 2D artifact",
-              "Understand relationships",
-              "Generate to spec",
-            ].map((title) => (
+              'Ingest any 2D artifact',
+              'Understand relationships',
+              'Generate to spec',
+            ].map(title => (
               <div key={title} className="p-6 border rounded-lg bg-white/50">
                 <div className="w-10 h-10 mb-4">
                   <PlaceholderBox />
@@ -154,8 +154,8 @@ export default function Landing() {
             Ingest · Understand · Generate · Organize · Evolve
           </h2>
           <div className="grid md:grid-cols-5 gap-6">
-            {["Ingest", "Understand", "Generate", "Organize", "Evolve"].map(
-              (p) => (
+            {['Ingest', 'Understand', 'Generate', 'Organize', 'Evolve'].map(
+              p => (
                 <div key={p} className="p-6 border rounded-lg bg-white">
                   <div className="w-8 h-8 mb-3">
                     <PlaceholderBox />
@@ -238,7 +238,7 @@ export default function Landing() {
             One use case: AI that understands your workspace
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {["Vibe Coder", "Content Marketer", "Learning"].map((persona) => (
+            {['Vibe Coder', 'Content Marketer', 'Learning'].map(persona => (
               <div key={persona} className="p-6 border rounded-lg">
                 <h3 className="font-semibold mb-2">{persona} workspace</h3>
                 <p className="text-sm text-gray-600 mb-4">
@@ -279,7 +279,7 @@ export default function Landing() {
               <li>
                 Multiple views from the same source; policy-driven rendering
               </li>
-              <li>CLI/SDK (xbowl-cli) for sync and templating (rolling out)</li>
+              <li>CLI/SDK (ssota-cli) for sync and templating (rolling out)</li>
             </ul>
           </div>
           <div className="w-full">
@@ -361,7 +361,7 @@ export default function Landing() {
             Start free. Scale by usage.
           </h2>
           <div className="grid md:grid-cols-4 gap-6">
-            {["Free", "Pro", "Business", "Enterprise"].map((plan) => (
+            {['Free', 'Pro', 'Business', 'Enterprise'].map(plan => (
               <div key={plan} className="p-6 border rounded-lg">
                 <h3 className="text-xl font-semibold mb-2">{plan}</h3>
                 <ul className="text-sm text-gray-700 space-y-1">
@@ -370,7 +370,7 @@ export default function Landing() {
                   <li>Feature placeholder</li>
                 </ul>
                 <div className="mt-4">
-                  <Button variant={plan === "Free" ? "default" : "outline"}>
+                  <Button variant={plan === 'Free' ? 'default' : 'outline'}>
                     Choose
                   </Button>
                 </div>
@@ -386,11 +386,11 @@ export default function Landing() {
           <h2 className="text-3xl font-bold mb-6">FAQs</h2>
           <div className="space-y-4">
             {[
-              "Do I need to build agent workflows to use xbowl?",
-              "What types of documents can xbowl understand?",
-              "How does xbowl represent my documents?",
-              "How do I export results?",
-            ].map((q) => (
+              'Do I need to build agent workflows to use ssota?',
+              'What types of documents can ssota understand?',
+              'How does ssota represent my documents?',
+              'How do I export results?',
+            ].map(q => (
               <details key={q} className="border rounded-md p-4 bg-white/50">
                 <summary className="font-medium cursor-pointer">{q}</summary>
                 <p className="mt-2 text-sm text-gray-700">

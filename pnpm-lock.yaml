@@ -185,7 +185,7 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@20.17.19)(jsdom@25.0.1)(lightningcss@1.29.1)(msw@2.10.4(@types/node@20.17.19)(typescript@5.7.3))
 
-  apps/xbowl-cli:
+  apps/ssota-cli:
     dependencies:
       '@workspace/domain-contracts':
         specifier: workspace:*

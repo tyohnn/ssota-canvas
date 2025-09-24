@@ -1,17 +1,15 @@
-import { db, cliSecrets } from "@/db";
-import { eq } from "drizzle-orm";
+import { db, cliSecrets } from '@/db';
+import { eq } from 'drizzle-orm';
 
 export async function requireCliAuth(headers: Headers) {
-  const secret = headers.get("x-xbowl-cli-key");
+  const secret = headers.get('x-ssota-cli-key');
   if (!secret) return null;
 
   const enc = new TextEncoder();
   const hashArray = Array.from(
-    new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(secret)))
+    new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(secret)))
   );
-  const hashHex = hashArray
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
   const [row] = await db
     .select()

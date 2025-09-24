@@ -1,5 +1,5 @@
-import * as path from "path";
-import { pathExists, readJson } from "./fs.js";
+import * as path from 'path';
+import { pathExists, readJson } from './fs.js';
 
 export interface TemplatesConfig {
   requiredPhrases?: string[];
@@ -37,35 +37,35 @@ export interface XbowlConfig {
 }
 
 const DEFAULT_CONFIG: XbowlConfig = {
-  $schema: "https://schema.xbowl.dev/config",
-  version: "1",
+  $schema: 'https://schema.ssota.dev/config',
+  version: '1',
   paths: {
-    claudeAgents: ".claude/agents",
-    claudeCommands: ".claude/commands",
-    data: ".xbowl/data",
-    artifacts: ".xbowl/artifacts",
-    templates: ".xbowl/templates",
+    claudeAgents: '.claude/agents',
+    claudeCommands: '.claude/commands',
+    data: '.ssota/data',
+    artifacts: '.ssota/artifacts',
+    templates: '.ssota/templates',
   },
   sync: {
     trackGenerated: true,
     commitGenerated: true,
-    include: ["agents", "tasks", "workflows", "data", "artifact_class"],
+    include: ['agents', 'tasks', 'workflows', 'data', 'artifact_class'],
     exclude: [],
   },
   templates: {
     requiredPhrases: [
-      "Always consider user needs first",
-      "Validate assumptions with data",
+      'Always consider user needs first',
+      'Validate assumptions with data',
     ],
     securityWarnings: [
-      "Never expose sensitive data in outputs",
-      "Validate all user inputs",
+      'Never expose sensitive data in outputs',
+      'Validate all user inputs',
     ],
   },
 };
 
 export async function loadConfig(cwd: string): Promise<XbowlConfig> {
-  const file = path.join(cwd, ".xbowl", "config.json");
+  const file = path.join(cwd, '.ssota', 'config.json');
   if (!(await pathExists(file))) return DEFAULT_CONFIG;
   const user = await readJson<XbowlConfig>(file);
   return {

@@ -62,5 +62,5 @@ description: Load {{name}} into context
 model: haiku
 ---
 
-Load data file from .xbowl/data/{{slug}}{{ext}} and use it in subsequent tasks.
+Load data file from .ssota/data/{{slug}}{{ext}} and use it in subsequent tasks.
 `;

@@ -1,14 +1,14 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import * as schema from "./schema";
-import { config } from "../config";
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from './schema';
+import { config } from '../config';
 
 // Supabase Admin Client - bypasses RLS
 export function createSupabaseAdminClient() {
   const connectionString = config.database.url;
 
   if (!connectionString) {
-    throw new Error("DATABASE_URL environment variable is required");
+    throw new Error('DATABASE_URL environment variable is required');
   }
 
   // Create postgres connection with admin privileges
@@ -23,7 +23,7 @@ export function createSupabaseAdminClient() {
     },
     // Admin connection settings
     connection: {
-      application_name: "xbowl-admin",
+      application_name: 'ssota-admin',
     },
   });
 

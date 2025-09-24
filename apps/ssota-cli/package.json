@@ -1,10 +1,10 @@
 {
-  "name": "@xbowl/cli",
+  "name": "@ssota/cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "xbowl": "dist/index.js"
+    "ssota": "dist/index.js"
   },
   "scripts": {
     "dev": "tsx src/index.ts",

@@ -11,8 +11,8 @@
 | Environment | Purpose | Database | Domain | Branch |
 |-------------|---------|----------|---------|--------|
 | **Development** | Local development | Local PostgreSQL | `localhost:3000` | `main` |
-| **Staging** | Feature testing | Supabase Staging | `staging.xbowl.app` | `develop` |
-| **Production** | Live application | Supabase Production | `xbowl.app` | `main` |
+| **Staging** | Feature testing | Supabase Staging | `staging.ssota.app` | `develop` |
+| **Production** | Live application | Supabase Production | `ssota.app` | `main` |
 
 ### Environment Configuration
 
@@ -511,7 +511,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```bash
 # Vercel Environment Variables
 NODE_ENV=staging
-NEXT_PUBLIC_APP_URL=https://staging.xbowl.app
+NEXT_PUBLIC_APP_URL=https://staging.ssota.app
 
 # Database
 DATABASE_URL=postgresql://staging-db.supabase.co:5432/postgres
@@ -533,7 +533,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```bash
 # Vercel Environment Variables
 NODE_ENV=production
-NEXT_PUBLIC_APP_URL=https://xbowl.app
+NEXT_PUBLIC_APP_URL=https://ssota.app
 
 # Database
 DATABASE_URL=postgresql://prod-db.supabase.co:5432/postgres

@@ -35,6 +35,6 @@ npm-debug.log*
 .DS_Store
 *.pem
 
-.xbowl/
+.ssota/
 .vscode/
 .claude/
