@@ -90,13 +90,5 @@ footer = """
 """
 
 [remote.github]
-owner = "your-org"
-repo = "xbowl"
-
-[remote.gitlab]
-owner = "your-org"
-repo = "xbowl"
-
-[remote.gitea]
-owner = "your-org"
-repo = "xbowl"
+owner = "paxhumana-ai"
+repo = "ssota"

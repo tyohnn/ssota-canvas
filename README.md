@@ -1,4 +1,4 @@
-# Xbowl - DDD-Based Workspace Management System
+# SSOTA - DDD-Based Workspace Management System
 
 An event storming driven, domain-driven design (DDD) workspace management system built with modern web technologies and agile development practices.
 
