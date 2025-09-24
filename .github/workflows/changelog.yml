@@ -25,7 +25,8 @@ jobs:
         id: git-cliff
         uses: tj-actions/git-cliff@v2
         with:
-          args: --config cliff.toml --verbose --latest --strip header
+          configuration: cliff.toml
+          args: --verbose --latest --strip header
         env:
           OUTPUT: CHANGELOG.md
 
