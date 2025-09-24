@@ -21,6 +21,18 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Generate CHANGELOG
         id: git-cliff
         uses: tj-actions/git-cliff@v2
@@ -35,18 +47,18 @@ jobs:
           echo "🔍 Checking if CHANGELOG was modified..."
           echo "Git cliff output:"
           cat CHANGELOG.md || echo "No CHANGELOG.md generated"
-          
+
           echo ""
           echo "📊 Git status after changelog generation:"
           git status --porcelain
-          
+
           echo ""
           echo "🔄 Change detection status: ${{ steps.git-cliff.outputs.change_detected }}"
-          
+
           # Force regenerate CHANGELOG to include all recent commits
           echo "🔄 Force regenerating CHANGELOG with all commits..."
           pnpm exec git-cliff --config cliff.toml --unreleased --strip header > CHANGELOG_NEW.md
-          
+
           if ! cmp -s CHANGELOG.md CHANGELOG_NEW.md 2>/dev/null; then
             echo "✅ CHANGELOG content differs - updating file"
             mv CHANGELOG_NEW.md CHANGELOG.md
