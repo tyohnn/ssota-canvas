@@ -20,6 +20,7 @@
 - *(web)* Fix node exports and wire shared zod schemas; unify metadata types to contracts [Phase C]
 - Implement automated CHANGELOG generation system
 - Implement automated CHANGELOG generation system
+- Finalize alpha release structure
 
 ### 🐛 Bug Fixes
 
@@ -39,6 +40,7 @@
 - Update CHANGELOG.md with comprehensive project history
 - Update CHANGELOG.md with latest commit history
 - Document versioning workflow and release tagging
+- Update CHANGELOG
 
 ### 🔧 Maintenance
 
