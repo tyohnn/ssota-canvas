@@ -490,3 +490,4 @@ interface PageArchivedEvent {
 **다음 Sprint 준비**: Visual Canvas Domain Sprint 3 구현을 위한 Workspace Structure 연동 테스트 및 문서화
 
 
+

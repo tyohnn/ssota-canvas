@@ -232,3 +232,4 @@ clerk_sync_queue (id, event_type, clerk_data, status, processed_at)
 이 Epic은 **모든 다른 도메인의 기반**이 되는 핵심 시스템으로, 안정적이고 확장 가능한 워크스페이스 관리 시스템을 구축하는 것이 목표입니다.
 
 
+
