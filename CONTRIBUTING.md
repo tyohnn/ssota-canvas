@@ -28,7 +28,10 @@ feat: add user authentication system
 
 Users were unable to securely access their personal workspaces,
 leading to data privacy concerns and limited personalization features.
-This implementation adds OAuth2 integration with role-based access control.
+
+- **Technical Implementation**: Added OAuth2 integration with JWT tokens
+- **Design Decisions**: Chose OAuth2 over custom auth for industry standards compliance
+- **Alternatives**: Considered SAML but chose OAuth2 for broader ecosystem support
 
 Impact: Improves user retention by 25% and enables personalized experiences.
 ```
@@ -37,8 +40,11 @@ Impact: Improves user retention by 25% and enables personalized experiences.
 feat(install): add React Query for server state management
 
 Frontend developers were experiencing performance issues due to
-unnecessary API calls and lack of caching mechanisms. This addition
-provides intelligent data fetching and caching capabilities.
+unnecessary API calls and lack of caching mechanisms.
+
+- **Technical Implementation**: Installed and configured React Query v4
+- **Design Decisions**: Chose React Query over SWR for its optimistic updates support
+- **Alternatives**: Considered Apollo Client but selected React Query for its simplicity
 
 Impact: Reduces API calls by 40% and improves app responsiveness.
 ```
@@ -51,8 +57,10 @@ fix: resolve memory leak in canvas rendering
 
 Users experienced application crashes after extended use of the
 visual canvas, particularly when working with large diagrams.
-The issue was caused by improper event listener cleanup in the
-rendering engine.
+
+- **Technical Implementation**: Added proper cleanup for event listeners in useEffect
+- **Design Decisions**: Implemented cleanup in component unmount and dependency changes
+- **Alternatives**: Considered using WeakMap but chose explicit cleanup for clarity
 
 Impact: Eliminates crashes and improves stability for long sessions.
 ```
@@ -62,7 +70,10 @@ fix(security): patch XSS vulnerability in component editor
 
 External contributors could inject malicious scripts through the
 component property editor, potentially compromising user data.
-This fix implements input sanitization and validation.
+
+- **Technical Implementation**: Added DOMPurify sanitization for all user inputs
+- **Design Decisions**: Implemented whitelist-based validation approach
+- **Alternatives**: Considered CSP headers but chose input sanitization for flexibility
 
 Impact: Protects user data and maintains platform security compliance.
 ```
@@ -74,8 +85,11 @@ Code restructuring without changing functionality
 refactor: extract block positioning logic into service layer
 
 The canvas component contained 200+ lines of positioning logic,
-making it difficult for developers to maintain and test. This
-refactoring separates concerns into dedicated service classes.
+making it difficult for developers to maintain and test.
+
+- **Technical Implementation**: Created BlockPositioningService class with coordinate calculations
+- **Design Decisions**: Used dependency injection pattern for testability
+- **Alternatives**: Considered mixins but chose composition for better separation of concerns
 
 Impact: Improves code maintainability and reduces bug introduction risk.
 ```
@@ -85,7 +99,10 @@ refactor(extract): separate business logic from UI components
 
 Domain logic was tightly coupled with React components, causing
 issues when reusing business rules across different interfaces.
-This separates pure business logic into dedicated modules.
+
+- **Technical Implementation**: Created domain services layer with pure functions
+- **Design Decisions**: Applied clean architecture principles for separation of concerns
+- **Alternatives**: Considered custom hooks but chose services for better testability
 
 Impact: Enables code reuse and simplifies testing strategies.
 ```
@@ -97,8 +114,11 @@ Test additions and improvements
 test: add integration tests for canvas workflow engine
 
 The team lacked confidence when deploying canvas-related changes
-due to insufficient test coverage. These tests cover critical
-workflow execution paths and edge cases.
+due to insufficient test coverage.
+
+- **Technical Implementation**: Created integration test suite using Jest and Testing Library
+- **Design Decisions**: Focused on critical workflow paths and edge cases
+- **Alternatives**: Considered unit tests only but chose integration for better coverage
 
 Impact: Increases deployment confidence and reduces production incidents.
 ```
@@ -110,8 +130,11 @@ Documentation updates and improvements
 docs: update architecture documentation with DDD patterns
 
 New team members struggled to understand the domain-driven design
-implementation, leading to inconsistent code patterns. This update
-provides clear architectural guidance and examples.
+implementation, leading to inconsistent code patterns.
+
+- **Technical Implementation**: Added comprehensive DDD architecture guide with diagrams
+- **Design Decisions**: Included practical examples and common anti-patterns
+- **Alternatives**: Considered video format but chose written docs for searchable reference
 
 Impact: Reduces onboarding time by 50% and ensures consistent implementations.
 ```
@@ -123,8 +146,11 @@ Code formatting and style improvements
 style: fix ESLint errors and formatting issues
 
 The codebase had accumulated linting errors that were blocking
-the CI pipeline, preventing smooth development workflow. This
-commit resolves all formatting inconsistencies.
+the CI pipeline, preventing smooth development workflow.
+
+- **Technical Implementation**: Ran ESLint autofix and Prettier formatting
+- **Design Decisions**: Applied consistent import ordering and removed unused variables
+- **Alternatives**: Manual fixes considered but chose automated tools for consistency
 
 Impact: Enables clean CI builds and consistent code quality.
 ```
@@ -136,8 +162,11 @@ Performance optimizations
 perf: optimize database queries in workflow execution
 
 Workflow executions were timing out under moderate load due to
-inefficient database queries. This optimization adds proper indexing
-and query optimization techniques.
+inefficient database queries.
+
+- **Technical Implementation**: Added composite indexes and optimized query execution plans
+- **Design Decisions**: Implemented query result caching for frequently accessed data
+- **Alternatives**: Considered read replicas but chose query optimization for cost efficiency
 
 Impact: Improves system throughput by 60% under load.
 ```
@@ -149,8 +178,11 @@ Tool and configuration changes
 ci: update GitHub Actions workflow for deployment
 
 The current deployment process was manual and error-prone,
-causing delays in releases. This automates the deployment pipeline
-with proper testing and rollback capabilities.
+causing delays in releases.
+
+- **Technical Implementation**: Created automated deployment workflow with testing stages
+- **Design Decisions**: Implemented blue-green deployment strategy for zero-downtime
+- **Alternatives**: Considered Jenkins but chose GitHub Actions for better integration
 
 Impact: Reduces deployment time from 2 hours to 15 minutes.
 ```
@@ -179,9 +211,9 @@ Write from the **domain perspective** considering who is affected:
 - How does this impact business metrics?
 
 #### 3. Solution Approach (Required)
-- Describe the technical implementation
-- Explain the design decisions
-- Mention alternatives considered (if relevant)
+- **Technical Implementation**: Describe the specific changes made
+- **Design Decisions**: Explain why certain approaches were chosen
+- **Alternatives**: Mention other options considered and why they were discarded
 
 #### 4. Impact (Required)
 Quantify the expected benefits:
@@ -198,12 +230,11 @@ feat(canvas): implement collaborative editing for visual workflows
 
 Design teams needed real-time collaboration capabilities to work
 together on complex workflow diagrams, but were limited to
-async reviews and manual conflict resolution. This feature adds
-operational transform-based real-time editing with conflict resolution.
+async reviews and manual conflict resolution.
 
-The implementation uses WebSocket connections for real-time updates
-and operational transformation to handle concurrent edits. Users can
-now see each other's cursors and changes in real-time.
+- **Technical Implementation**: Added WebSocket infrastructure with operational transformation
+- **Design Decisions**: Chose OT over CRDT for better handling of complex diagram structures
+- **Alternatives**: Considered Google Docs-style collaboration but chose custom OT for domain-specific needs
 
 Impact: Enables 3x faster design iteration cycles and supports
 distributed team collaboration, expected to improve team productivity
