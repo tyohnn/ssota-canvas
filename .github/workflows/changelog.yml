@@ -29,6 +29,25 @@ jobs:
         env:
           OUTPUT: CHANGELOG.md
 
+      - name: Check CHANGELOG changes
+        run: |
+          echo "🔍 Checking if CHANGELOG was modified..."
+          echo "Git cliff output:"
+          cat CHANGELOG.md || echo "No CHANGELOG.md generated"
+
+          echo ""
+          echo "📊 Git status after changelog generation:"
+          git status --porcelain
+
+          echo ""
+          echo "🔄 Change detection status: ${{ steps.git-cliff.outputs.change_detected }}"
+
+          if [ -n "$(git status --porcelain CHANGELOG.md)" ]; then
+            echo "✅ CHANGELOG.md has changes - will proceed with commit"
+          else
+            echo "ℹ️ No changes detected in CHANGELOG.md"
+          fi
+
       - name: Update CHANGELOG.md
         if: github.event_name == 'push'
         run: |
@@ -39,6 +58,7 @@ jobs:
       - name: Commit CHANGELOG changes
         if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected == 'true'
         run: |
+          echo "💾 Committing CHANGELOG changes..."
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add CHANGELOG.md
@@ -51,15 +71,28 @@ jobs:
           - Alternatives: Manual updates considered but chose automation
 
           Impact: Ensures consistent and accurate project documentation."
+          echo "✅ CHANGELOG commit created"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push changes
         if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected == 'true'
         run: |
+          echo "🚀 Pushing CHANGELOG changes to ${{ github.ref_name }}..."
           git push origin ${{ github.ref_name }}
+          echo "✅ Changes pushed successfully"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log skip reason
+        if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected != 'true'
+        run: |
+          echo "⏭️ Skipping CHANGELOG commit - no changes detected"
+          echo "Change detection result: '${{ steps.git-cliff.outputs.change_detected }}'"
+          echo "This usually means:"
+          echo "  - No new conventional commits since last tag/release"
+          echo "  - Generated CHANGELOG content is identical to existing file"
+          echo "  - Commits don't match any configured commit_parsers patterns"
 
       - name: Comment PR with CHANGELOG preview
         if: github.event_name == 'pull_request'
