@@ -21,18 +21,6 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'pnpm'
-
-      - name: Enable pnpm
-        run: corepack enable
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
       - name: Generate CHANGELOG
         id: git-cliff
         uses: tj-actions/git-cliff@v2
@@ -40,34 +28,6 @@ jobs:
           args: --verbose --unreleased --strip header
         env:
           OUTPUT: CHANGELOG.md
-
-      - name: Check CHANGELOG changes
-        id: check-changes
-        run: |
-          echo "🔍 Checking if CHANGELOG was modified..."
-          echo "Git cliff output:"
-          cat CHANGELOG.md || echo "No CHANGELOG.md generated"
-
-          echo ""
-          echo "📊 Git status after changelog generation:"
-          git status --porcelain
-
-          echo ""
-          echo "🔄 Change detection status: ${{ steps.git-cliff.outputs.change_detected }}"
-
-          # Force regenerate CHANGELOG to include all recent commits
-          echo "🔄 Force regenerating CHANGELOG with all commits..."
-          pnpm exec git-cliff --config cliff.toml --unreleased --strip header > CHANGELOG_NEW.md
-
-          if ! cmp -s CHANGELOG.md CHANGELOG_NEW.md 2>/dev/null; then
-            echo "✅ CHANGELOG content differs - updating file"
-            mv CHANGELOG_NEW.md CHANGELOG.md
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-          else
-            echo "ℹ️ No differences found in CHANGELOG content"
-            rm -f CHANGELOG_NEW.md
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-          fi
 
       - name: Update CHANGELOG.md
         if: github.event_name == 'push'
@@ -77,7 +37,7 @@ jobs:
           mv CHANGELOG.md.new CHANGELOG.md
 
       - name: Commit CHANGELOG changes
-        if: github.event_name == 'push' && steps.check-changes.outputs.has_changes == 'true'
+        if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected == 'true'
         run: |
           echo "💾 Committing CHANGELOG changes..."
           git config --local user.email "action@github.com"
@@ -97,7 +57,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push changes
-        if: github.event_name == 'push' && steps.check-changes.outputs.has_changes == 'true'
+        if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected == 'true'
         run: |
           echo "🚀 Pushing CHANGELOG changes to ${{ github.ref_name }}..."
           git push origin ${{ github.ref_name }}
@@ -106,7 +66,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log skip reason
-        if: github.event_name == 'push' && steps.check-changes.outputs.has_changes != 'true'
+        if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected != 'true'
         run: |
           echo "⏭️ Skipping CHANGELOG commit - no changes detected"
           echo "Change detection result: '${{ steps.git-cliff.outputs.change_detected }}'"
