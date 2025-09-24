@@ -4,6 +4,10 @@
 
 Process Model에서 식별된 System을 Aggregate로 전환하고, Visual Canvas Domain의 Bounded Context를 정의합니다.
 
+### 🟪 External System 처리
+- **React Flow Library**: External System으로 유지 (Aggregate로 전환하지 않음)
+- **Anti-Corruption Layer**: 도메인과 React Flow 간의 변환 계층 구현
+
 ---
 
 ## 🟨 Aggregate 식별
@@ -241,11 +245,32 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Visual Canvas
 - Canvas Aggregate
 - Edge Aggregate  
 - Viewport Aggregate
+- BlockType Aggregate
 - Group Aggregate
+
+**External System Integration**:
+- **React Flow Library**: Anti-Corruption Layer를 통한 통합
+  - CanvasAdapter 인터페이스로 추상화
+  - Translator로 데이터 구조 변환
+  - 도메인 이벤트 ↔ React Flow 콜백 매핑
 
 ---
 
 ## 🔀 다른 Context와의 경계
+
+### Workspace Structure Context와의 경계
+
+**언어적 차이**:
+| Visual Canvas Context | Workspace Structure Context |
+|---------------------|---------------------------|
+| "캔버스를 초기화한다" | "페이지를 생성한다" |
+| "블럭을 생성한다" | "페이지 권한을 확인한다" |
+| "Page Block을 임베드한다" | "페이지 계층을 관리한다" |
+
+**통합 이벤트**:
+- `Page Created` → `Canvas Initialized`
+- `Page Deleted` → `Canvas Cleanup Required`
+- `Page Moved` → `Canvas Context Updated`
 
 ### Component Context와의 경계
 
@@ -296,6 +321,8 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Visual Canvas
      ┌──────────────────────────────────────┐
      │        Integration Events             │
      ├──────────────────────────────────────┤
+     │ • Canvas Initialized                  │
+     │ • Canvas Cleanup Required             │
      │ • Block Created                       │
      │ • Block Property Changed              │
      │ • Block Position Changed              │
@@ -305,9 +332,15 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Visual Canvas
         ┌───────────┘         └───────────┐
         ▼                                 ▼
 ┌─────────────────┐             ┌──────────────────┐
-│ Component       │             │ Data View        │
-│ Context         │             │ Context          │
-└─────────────────┘             └──────────────────┘
+│ Workspace       │             │ Component        │
+│ Structure       │             │ Context          │
+│ Context         │             └──────────────────┘
+└─────────────────┘                      │
+        │                                ▼
+        └──────────────────┐   ┌──────────────────┐
+                           ▼   │ Data View        │
+                           │   │ Context          │
+                           │   └──────────────────┘
 ```
 
 ---
@@ -409,7 +442,7 @@ class CanvasCoordinator {
     private queryHandler: CanvasQueryHandler
   ) {}
 
-  async initializeCanvas(pageId: PageId): Promise<void> {
+  async initializeCanvas(pageId: PageId): Promise<DomainEvent[]> {
     // 1. 페이지의 모든 블럭과 엣지 로드 (Read Model 활용)
     const pageData = await this.queryHandler.getPageBlocksView(pageId)
     
@@ -419,24 +452,24 @@ class CanvasCoordinator {
     // 3. 로드된 블럭 정보 설정
     canvas.setLoadedBlocks(pageData.blocks.map(b => b.blockId))
     
-    // 4. 이벤트 발행
-    await this.eventBus.publish([
+    // 4. Domain Events 반환 (Server Action에서 처리)
+    return [
       new CanvasInitialized(pageId),
       new PageBlocksLoaded(pageId, pageData.blocks.length)
-    ])
+    ]
   }
 
   async createAndMountBlock(
     command: CreateBlockCommand
-  ): Promise<void> {
+  ): Promise<DomainEvent[]> {
     // 1. Block 생성
     const block = Block.create(command)
     
     // 2. 페이지에 마운트
     block.mountToPage(command.pageId, command.position)
     
-    // 3. 이벤트 발행
-    await this.eventBus.publish(block.getEvents())
+    // 3. Domain Events 반환 (Server Action에서 처리)
+    return block.getEvents()
   }
 }
 ```
@@ -489,6 +522,53 @@ interface ComponentInstanceRequested {
 
 ---
 
+## 🛡️ Anti-Corruption Layer Design
+
+### CanvasAdapter Interface
+외부 캔버스 라이브러리와의 통합을 추상화하는 인터페이스:
+
+```typescript
+interface CanvasAdapter {
+  // 초기화 및 데이터 로드
+  initialize(container: HTMLElement): void;
+  loadBlocks(blocks: Block[], positions: BlockPosition[]): void;
+  loadEdges(edges: Edge[]): void;
+  
+  // 이벤트 핸들러 등록
+  onBlockMove(handler: (blockId: string, position: Position) => void): void;
+  onBlockSelect(handler: (blockIds: string[]) => void): void;
+  onEdgeCreate(handler: (source: string, target: string) => void): void;
+  
+  // 명령 실행
+  executeCommand(command: CanvasCommand): void;
+}
+```
+
+### Translation Layer
+도메인 모델과 React Flow 데이터 구조 간 변환:
+
+```typescript
+interface DomainToCanvasTranslator {
+  translateBlock(block: Block, position: BlockPosition): CanvasNode;
+  translateEdge(edge: Edge): CanvasEdge;
+}
+
+interface CanvasToCommandTranslator {
+  translateNodeChange(change: NodeChange): DomainCommand;
+  translateConnection(connection: Connection): CreateEdgeCommand;
+}
+```
+
+### Benefits
+1. **도메인 순수성**: React Flow API가 도메인에 침투하지 않음
+2. **테스트 용이성**: Mock Adapter로 단위 테스트 가능
+3. **교체 가능성**: React Flow → 다른 라이브러리 쉽게 전환
+4. **성능 최적화**: 변환 로직 중앙 집중화
+
+자세한 ACL 설계는 [Anti-Corruption Layer 문서](./anti-corruption-layer.md) 참조
+
+---
+
 ## ✅ 검증 체크리스트
 
 - [ ] 각 Aggregate가 명확한 경계와 책임을 가지는가?
@@ -496,6 +576,7 @@ interface ComponentInstanceRequested {
 - [ ] Context 간 통합이 느슨하게 결합되어 있는가?
 - [ ] 언어적 경계가 명확하게 구분되는가?
 - [ ] 이벤트가 도메인 언어를 사용하는가?
+- [ ] External System(React Flow)이 ACL로 적절히 격리되었는가?
 
 ---
 

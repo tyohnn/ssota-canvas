@@ -3,6 +3,49 @@
 ## 🎯 Process Modeling Overview
 Visual Canvas Domain의 핵심 프로세스를 Command → Policy → System → Event 패턴으로 정의
 
+### 🟪 External System: React Flow
+Visual Canvas는 React Flow 라이브러리를 렌더링 엔진으로 사용합니다:
+- **역할**: 캔버스 상태 관리, 노드/엣지 렌더링, 상호작용 처리
+- **SSOT**: React Flow가 캔버스의 Single Source of Truth
+- **통합**: DB ↔ React Flow 간 데이터 변환 필요
+
+---
+
+## 📍 Process 0: 캔버스 초기화 및 데이터 로딩
+
+### Scenario: Workspace Structure Domain의 Page 이벤트에 반응하여 캔버스 초기화
+
+```
+🔗 Cross-Domain Event: "Page Created" from Workspace Structure Domain
+👤 사용자: "페이지를 열어서 기존 작업을 이어가고 싶어"
+```
+
+**Command**: 캔버스 초기화 (Initialize Canvas)
+- pageId: currentPageId
+- viewportSettings: { zoom, x, y }
+
+**Read Model** (필요 정보):
+- 페이지의 모든 블럭 데이터
+- 블럭별 페이지 포지션
+- 엣지 데이터
+- 사용자 뷰포트 설정
+
+**Policy**: Cross-Domain 이벤트 처리 + DB → React Flow 변환 규칙
+- "Workspace Structure Domain의 Page Created → Canvas 초기화"
+- "Workspace Structure Domain의 Page Deleted → Canvas 정리"
+- "DB의 Block 엔티티를 React Flow Node로 변환"
+- "DB의 BlockPosition을 Node position으로 매핑"
+- "DB의 Edge를 React Flow Edge로 변환"
+- "메타데이터는 Node.data에 보존"
+
+**System**: React Flow Library (External)
+
+**Events**:
+1. 캔버스 데이터가 로드되었다 (Canvas Data Loaded)
+2. 블럭이 노드로 변환되었다 (Blocks Transformed to Nodes)
+3. React Flow가 초기화되었다 (React Flow Initialized)
+4. 캔버스가 렌더링되었다 (Canvas Rendered)
+
 ---
 
 ## 📍 Process 1: 블럭 생성 및 배치
@@ -29,12 +72,13 @@ Visual Canvas Domain의 핵심 프로세스를 Command → Policy → System →
 - "초기 크기는 블럭 타입의 기본값을 적용한다"
 - "텍스트 블럭의 사이징 규칙은 '너비만 조정'이다"
 
-**System**: Block Manager
+**System**: Block Manager → React Flow Library
 
 **Events**:
 1. 텍스트 블럭이 생성되었다 (Text Block Created)
 2. 블럭이 페이지에 마운트되었다 (Block Mounted to Page)
 3. 블럭의 기본 속성이 설정되었다 (Block Default Property Set)
+4. React Flow 노드가 추가되었다 (React Flow Node Added)
 
 ---
 
@@ -52,24 +96,24 @@ Visual Canvas Domain의 핵심 프로세스를 Command → Policy → System →
 - pageId: currentPageId
 
 **Read Model**:
-- 블럭의 현재 위치
-- 페이지 내 다른 블럭들의 위치
+- React Flow의 현재 노드 상태
+- 페이지 내 다른 노드들의 위치
 - 스냅 임계값 설정 (예: 5px)
 - 그리드 설정
 
-**Policy**: 스마트 가이드 자동 활성화
-- "블럭이 이동 중일 때 근처 블럭과의 정렬선을 표시한다"
+**Policy**: React Flow 콜백 핸들러를 통한 제어
+- "React Flow의 onNodeDrag 이벤트 처리"
+- "스마트 가이드는 커스텀 레이어로 구현"
 - "임계값 내에 있으면 자동 스냅한다"
 - "거리 측정값을 실시간 표시한다"
 
-**System**: Canvas Renderer
+**System**: React Flow Library (onNodeDrag, onNodeDragStop)
 
 **Events**:
-1. 블럭 드래그가 시작되었다 (Block Drag Started)
+1. React Flow 노드 드래그가 시작되었다 (RF Node Drag Started)
 2. 스냅 가이드라인이 표시되었다 (Snap Guidelines Shown)
-3. 블럭이 가이드라인에 스냅되었다 (Block Snapped to Guideline)
-4. 블럭 간 거리가 표시되었다 (Distance Between Blocks Shown)
-5. 블럭의 페이지별 위치가 확정되었다 (Block Position Confirmed on Page)
+3. React Flow 노드가 이동되었다 (RF Node Position Changed)
+4. 블럭 위치가 DB에 동기화되었다 (Block Position Synced to DB)
 
 ---
 
@@ -194,12 +238,13 @@ Visual Canvas Domain의 핵심 프로세스를 Command → Policy → System →
 - "엣지는 페이지별로 독립적"
 - "블럭 삭제 시 연결된 엣지도 자동 삭제"
 
-**System**: Edge Manager
+**System**: React Flow Library (onConnect callback)
 
 **Events**:
-1. 엣지가 생성되었다 (Edge Created)
-2. 엣지 레이블이 설정되었다 (Edge Label Set)
-3. 엣지 경로가 계산되었다 (Edge Path Calculated)
+1. React Flow 연결이 생성되었다 (RF Connection Created)
+2. 엣지가 DB에 저장되었다 (Edge Saved to DB)
+3. 엣지 레이블이 설정되었다 (Edge Label Set)
+4. React Flow가 엣지를 렌더링했다 (RF Edge Rendered)
 
 ---
 
@@ -224,10 +269,10 @@ Visual Canvas Domain의 핵심 프로세스를 Command → Policy → System →
 - "여백 20px 확보"
 - "최소 줌 10%, 최대 줌 500%"
 
-**System**: Viewport Controller
+**System**: React Flow Library (fitView API)
 
 **Events**:
-1. 캔버스가 화면에 맞춰졌다 (Canvas Fit to Screen)
+1. React Flow fitView가 호출되었다 (RF fitView Called)
 2. 줌 레벨이 조정되었다 (Zoom Level Adjusted)
 3. 뷰포트가 중앙 정렬되었다 (Viewport Centered)
 
@@ -270,11 +315,96 @@ Visual Canvas Domain의 핵심 프로세스를 Command → Policy → System →
 
 ---
 
+## 🔄 React Flow Integration Patterns
+
+### DB ↔ React Flow 데이터 동기화
+
+#### 1. 초기 로딩 (DB → React Flow)
+```typescript
+// Process: Canvas Initialization
+DB Blocks → Transform Policy → React Flow Nodes
+DB Edges → Transform Policy → React Flow Edges
+DB Positions → Map to Node.position
+```
+
+#### 2. 사용자 상호작용 (React Flow → DB)
+```typescript
+// Process: User Interaction
+React Flow Event → Callback Handler → Domain Command → DB Update
+- onNodeDrag → Move Block Command → Update BlockPosition
+- onConnect → Create Edge Command → Insert Edge
+- onNodesDelete → Delete Block Command → Soft Delete
+```
+
+#### 3. 실시간 동기화 고려사항
+- **Optimistic UI**: React Flow 즉시 업데이트 → DB 비동기 동기화
+- **Debouncing**: 드래그 중 과도한 DB 업데이트 방지
+- **Batch Updates**: 여러 변경사항 묶어서 처리
+- **Conflict Resolution**: 다중 사용자 환경에서 충돌 처리
+
+### React Flow 콜백 핸들러 매핑
+
+| React Flow Event | Domain Command | DB Operation |
+|-----------------|----------------|--------------|
+| onNodesChange | UpdateBlockPosition | Update block_positions |
+| onEdgesChange | UpdateEdgeRouting | Update edges |
+| onConnect | CreateEdge | Insert edge |
+| onNodeDoubleClick | StartContentEditing | - |
+| onSelectionChange | UpdateSelection | - |
+| onInit | InitializeCanvas | Select all data |
+
+### 커스텀 기능 구현 위치
+
+1. **React Flow 내부**
+   - 스마트 가이드 (Custom Node Layer)
+   - 거리 측정 표시 (Custom SVG Overlay)
+   - 다중 선택 박스 (Selection Box)
+
+2. **React Flow 외부**
+   - 속성 패널 (별도 React 컴포넌트)
+   - 타입 변경 UI (Context Menu)
+   - 실행취소/재실행 (Command Pattern)
+
+---
+
+## 🔄 Cross-Domain Integration Patterns
+
+### Workspace Structure → Visual Canvas
+
+#### 1. Page Lifecycle Integration
+```typescript
+// Workspace Structure Domain Events → Visual Canvas Reactions
+'Page Created' → Initialize Canvas (Process 0)
+'Page Deleted' → Cleanup Canvas Data
+'Page Moved' → Update Canvas Context
+```
+
+#### 2. Permission Integration
+```typescript
+// Permission checks flow through Workspace Structure
+- Canvas access requires Workspace membership
+- Block editing requires Page edit permission
+- Cross-page operations require workspace permission
+```
+
+#### 3. Navigation Integration
+```typescript
+// Page Reference as Block Type (handled by Visual Canvas)
+'Page Block' → Embed another page's canvas view
+- Page Block renders another page as read-only
+- Click to navigate between pages
+- Maintains visual connection between related pages
+```
+
+---
+
 ## 🚀 Next Steps
 
 이제 Visual Canvas Domain의 Process Model이 완성되었습니다.
 
 다음 단계:
-1. **Software Design**: System을 Aggregate로 전환
+1. **Software Design**: System을 Aggregate로 전환 (React Flow는 External System으로 유지)
 2. **Bounded Context 식별**: 언어 경계 확인
-3. **Integration Points**: 다른 도메인과의 연결점 정의
+3. **Integration Points**: Workspace Structure Domain과의 연결점 정의
+4. **Anti-Corruption Layer**: DB ↔ React Flow 변환 레이어 설계
+5. **Cross-Domain Event Handling**: Page 생성/삭제 이벤트 처리 구현

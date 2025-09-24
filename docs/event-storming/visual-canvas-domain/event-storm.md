@@ -136,10 +136,11 @@
 - 캔버스가 패닝되었다 (Canvas Panned)
 - 캔버스가 특정 블럭으로 포커스되었다 (Canvas Focused on Block)
 
-### 페이지 뷰 관리 (Page View Management)
-- 캔버스 뷰가 열렸다 (Canvas View Opened)
-  - *페이지의 기본 뷰*
-- 페이지의 기본 뷰가 설정되었다 (Page Default View Set)
+### 캔버스 초기화 (Canvas Initialization)
+- 캔버스가 초기화되었다 (Canvas Initialized)
+  - *Workspace Structure Domain의 Page Created 이벤트에 반응*
+- 페이지 블럭 데이터가 로드되었다 (Page Blocks Loaded)
+  - *기존 페이지 진입 시 블럭/엣지 데이터 로딩*
 
 ---
 
@@ -159,9 +160,9 @@
    - 영향: 데이터 일관성
 
 ### 우선순위: 중간
-4. **페이지별 독립적 렌더링**
-   - 문제: 같은 블럭이 여러 페이지에서 다른 위치/크기/엣지 관리
-   - 영향: 상태 관리 복잡도 증가
+4. **Cross-Domain 이벤트 동기화**
+   - 문제: Workspace Structure Domain의 Page 생성/삭제와 Canvas 초기화/정리 동기화
+   - 영향: 페이지 삭제 시 캔버스 데이터 정리 누락 가능성
 
 5. **이벤트 과다 발생**
    - 문제: 드래그 중 수많은 "이동 중" 이벤트 발생
