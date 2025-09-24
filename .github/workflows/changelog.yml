@@ -25,6 +25,7 @@ jobs:
         id: git-cliff
         uses: tj-actions/git-cliff@v2
         with:
+          output: CHANGELOG.md
           args: --verbose --unreleased --strip header
         env:
           OUTPUT: CHANGELOG.md
