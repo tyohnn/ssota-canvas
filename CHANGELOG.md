@@ -27,7 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(web)* Add @workspace/domain-contracts dependency [Phase C start]
 - *(web)* Fix node exports and wire shared zod schemas; unify metadata types to contracts [Phase C]
 - Implement automated CHANGELOG generation system
-- Implement automated CHANGELOG generation system
 
 ### 🐛 Bug Fixes
 
@@ -49,6 +48,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🔧 Maintenance
 
-- Ignore settings
 - Ignore settings
 - Unnecessary file deletion
