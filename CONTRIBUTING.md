@@ -671,10 +671,50 @@ pnpm changelog:preview
 - **Knowledge Transfer**: Create comprehensive project history
 
 #### **For Project Management**
-- **Complete Audit Trail**: Full history of all changes and decisions
-- **Quality Metrics**: Track implementation quality and consistency
+- **Complete History**: Full audit trail of all changes and decisions
+- **Quality Metrics**: Track implementation quality over time
 - **Release Planning**: Accurate information for release notes
 - **Team Learning**: Living documentation of project evolution
+
+---
+
+## Versioning & Release Tags
+
+We use semantic versioning with sprint-specific suffixes to coordinate releases and automate GitHub release publishing.
+
+### Naming Convention
+- `v<major>.<minor>.<patch>-sprint-<number>` for sprint completions (e.g., `v0.1.0-sprint-1`)
+- `v<major>.<minor>.<patch>` for production-ready releases (e.g., `v1.0.0`)
+- Increment:
+  - **Major**: backwards-incompatible changes
+  - **Minor**: new features (typically each sprint)
+  - **Patch**: bug fixes only
+
+### When to Create a Tag
+1. All stories for the sprint are complete and merged into `main`
+2. CHANGELOG contains the latest `Unreleased` entries (automatically maintained)
+3. Senior developer approves the release readiness
+
+### How to Create & Push a Tag
+```bash
+# 1. Ensure main is up to date
+git checkout main
+git pull
+
+# 2. Review CHANGELOG
+git cliff --current --strip header | cat
+
+# 3. Create an annotated tag with release notes summary
+git tag -a v0.1.0-sprint-1 -m "Sprint 1 complete: Organization Management, Workspace Creation, Clerk Integration"
+
+# 4. Push the tag
+git push origin v0.1.0-sprint-1
+```
+
+### Automated Release Publishing
+- Pushing a tag that matches `v*` triggers `.github/workflows/release.yml`
+- The workflow generates release notes from the tagged CHANGELOG section
+- A GitHub Release is published automatically with the generated notes
 
 ---
 
