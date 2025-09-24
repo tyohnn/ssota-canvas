@@ -21,24 +21,31 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install git-cliff
+        run: |
+          wget -q https://github.com/orhun/git-cliff/releases/download/v2.10.1/git-cliff-2.10.1-x86_64-unknown-linux-musl.tar.gz
+          tar -xzf git-cliff-2.10.1-x86_64-unknown-linux-musl.tar.gz
+          chmod +x git-cliff-2.10.1/git-cliff
+          sudo mv git-cliff-2.10.1/git-cliff /usr/local/bin/
+
       - name: Generate CHANGELOG
         id: git-cliff
-        uses: tj-actions/git-cliff@v2
-        with:
-          output: CHANGELOG.md
-          args: --verbose --unreleased --strip header
-        env:
-          OUTPUT: CHANGELOG.md
-
-      - name: Update CHANGELOG.md
-        if: github.event_name == 'push'
         run: |
-          # Add new entries to existing CHANGELOG.md
-          echo "$(cat CHANGELOG.md)" > CHANGELOG.md.new
-          mv CHANGELOG.md.new CHANGELOG.md
+          echo "🔍 Generating CHANGELOG..."
+          git cliff --config cliff.toml --unreleased --strip header > CHANGELOG_NEW.md
+          
+          if ! cmp -s CHANGELOG.md CHANGELOG_NEW.md 2>/dev/null; then
+            echo "✅ CHANGELOG has changes"
+            mv CHANGELOG_NEW.md CHANGELOG.md
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "ℹ️ No changes in CHANGELOG"
+            rm -f CHANGELOG_NEW.md
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Commit CHANGELOG changes
-        if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected == 'true'
+        if: github.event_name == 'push' && steps.git-cliff.outputs.has_changes == 'true'
         run: |
           echo "💾 Committing CHANGELOG changes..."
           git config --local user.email "action@github.com"
@@ -58,7 +65,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push changes
-        if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected == 'true'
+        if: github.event_name == 'push' && steps.git-cliff.outputs.has_changes == 'true'
         run: |
           echo "🚀 Pushing CHANGELOG changes to ${{ github.ref_name }}..."
           git push origin ${{ github.ref_name }}
@@ -67,10 +74,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log skip reason
-        if: github.event_name == 'push' && steps.git-cliff.outputs.change_detected != 'true'
+        if: github.event_name == 'push' && steps.git-cliff.outputs.has_changes != 'true'
         run: |
           echo "⏭️ Skipping CHANGELOG commit - no changes detected"
-          echo "Change detection result: '${{ steps.git-cliff.outputs.change_detected }}'"
+          echo "Change detection result: '${{ steps.git-cliff.outputs.has_changes }}'"
           echo "This usually means:"
           echo "  - No new conventional commits since last tag/release"
           echo "  - Generated CHANGELOG content is identical to existing file"
