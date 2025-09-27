@@ -269,7 +269,7 @@ Event Storming → DDD → Technical Design → Agile Planning → Implementatio
 ## 📁 문서 구조
 
 ```
-docs/event-storming/agile-planning/
+docs/agile-planning/
 ├── 00-development-roadmap.md        # 전체 로드맵 (이 파일)
 ├── 01-workspace-structure-epic.md   # Phase 1: Workspace Structure Epic & Stories  
 ├── 02-visual-canvas-epic.md         # Phase 2: Visual Canvas Epic & Stories

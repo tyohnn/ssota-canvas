@@ -421,7 +421,7 @@ Impact: Ensures data consistency and enables better testing strategies.
 
 ## Pull Request Guidelines
 
-All pull requests require senior developer code review before merging. PR descriptions should reference the relevant stories in `docs/event-storming/agile-planning/` and follow a structured format similar to our commit message conventions.
+All pull requests require senior developer code review before merging. PR descriptions should reference the relevant stories in `docs/agile-planning/` and follow a structured format similar to our commit message conventions.
 
 ### PR Format
 
@@ -473,7 +473,7 @@ PR descriptions must reference the relevant story documents:
 
 ```bash
 ## Related Stories
-- [WS-1.1 Organization Management](docs/event-storming/agile-planning/stories/workspace-structure/sprint-1-stories.md#story-ws-11-organization-management-8pts-)
+- [WS-1.1 Organization Management](docs/agile-planning/stories/workspace-structure/sprint-1-stories.md#story-ws-11-organization-management-8pts-)
 - Acceptance Criteria: Create organization from Clerk ✅
 - Acceptance Criteria: Sync organization members ✅
 - Acceptance Criteria: Update organization settings ✅
@@ -521,7 +521,7 @@ expected to improve team productivity by 35% based on similar
 organizational features in other platforms.
 
 ## Related Stories
-- [WS-1.1 Organization Management](docs/event-storming/agile-planning/stories/workspace-structure/sprint-1-stories.md#story-ws-11-organization-management-8pts-)
+- [WS-1.1 Organization Management](docs/agile-planning/stories/workspace-structure/sprint-1-stories.md#story-ws-11-organization-management-8pts-)
 - All acceptance criteria implemented and tested
 
 ## Testing

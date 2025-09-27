@@ -8,7 +8,7 @@ Event Storming과 DDD 설계 후, 구현 전에 필요한 기술적 결정사항
 
 ```
 docs/
-├── event-storming/           
+├── event-domain-design/                # 이벤트 스토밍 → DDD 설계 문서
 │   ├── visual-canvas-domain/
 │   │   ├── event-storm.md              # 비즈니스 이벤트 탐색
 │   │   ├── process-model.md            # 프로세스 모델링
@@ -28,15 +28,10 @@ docs/
 │           ├── api-specification.md
 │           └── sync-strategy.md
 │
-├── technical-design/                   # 전체 시스템 기술 설계
-│   ├── architecture-overview.md        # 전체 아키텍처
-│   ├── technology-stack.md             # 기술 스택 선택
-│   │   ├── nextjs-patterns.md         # Next.js 패턴
-│   │   ├── server-actions-guide.md     # Server Actions 가이드
-│   │   ├── clerk-auth-integration.md   # Clerk 인증
-│   │   ├── supabase-setup.md          # Supabase 설정
-│   │   └── drizzle-orm-patterns.md    # Drizzle ORM 패턴
-│   │
+├── project-technical-design/           # 기술 설계 문서
+│   ├── architecture-overview.md        # 전체 아키텍처 개요
+│   ├── technology-stack.md             # 기술 스택
+│   ├── unified-database-schema.md      # 통합 DB 스키마
 │   ├── infrastructure/
 │   │   ├── deployment-strategy.md      # 배포 전략
 │   │   ├── monitoring-setup.md         # 모니터링

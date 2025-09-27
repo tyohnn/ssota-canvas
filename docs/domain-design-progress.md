@@ -29,28 +29,28 @@ Event Storming → DDD → Technical Design → Agile Planning 설계 진행 상
 **비즈니스 가치**: 쏘타의 핵심 차별화 요소 - 무한 캔버스에서의 자유로운 시각적 작업
 
 #### 설계 진행 상황
-- [x] **Event Storming**: `docs/event-storming/visual-canvas-domain/event-storm.md`
+- [x] **Event Storming**: `docs/event-domain-design/visual-canvas-domain/event-storm.md`
   - 핵심 이벤트 27개 정의
   - Hotspots 8개 식별 (React Flow 통합, 성능 최적화 등)
   - Opportunities 6개 발견 (Smart Guides, 실시간 협업 등)
 
-- [x] **Process Model**: `docs/event-storming/visual-canvas-domain/process-model.md`
+- [x] **Process Model**: `docs/event-domain-design/visual-canvas-domain/process-model.md`
   - 8개 핵심 프로세스 정의 (Command → Policy → System → Event)
   - React Flow Library 통합 설계
   - External System 매핑 완료
 
-- [x] **Software Design**: `docs/event-storming/visual-canvas-domain/software-design.md`
+- [x] **Software Design**: `docs/event-domain-design/visual-canvas-domain/software-design.md`
   - 4개 Aggregate 정의 (Canvas, Block, Edge, CanvasView)
   - Anti-Corruption Layer for React Flow 설계
   - Domain Events 및 Commands 명세
 
 - [x] **Technical Design**:
-  - [x] Database Schema: `docs/event-storming/visual-canvas-domain/technical-design/database-schema.md`
-  - [x] API Specification: `docs/event-storming/visual-canvas-domain/technical-design/api-specification.md`
-  - [x] Anti-Corruption Layer: `docs/event-storming/visual-canvas-domain/anti-corruption-layer.md`
-  - [x] ACL Implementation Guide: `docs/event-storming/visual-canvas-domain/acl-implementation-guide.md`
+  - [x] Database Schema: `docs/event-domain-design/visual-canvas-domain/project-technical-design/database-schema.md`
+  - [x] API Specification: `docs/event-domain-design/visual-canvas-domain/project-technical-design/api-specification.md`
+  - [x] Anti-Corruption Layer: `docs/event-domain-design/visual-canvas-domain/anti-corruption-layer.md`
+  - [x] ACL Implementation Guide: `docs/event-domain-design/visual-canvas-domain/acl-implementation-guide.md`
 
-- [x] **Agile Planning**: `docs/event-storming/agile-planning/01-visual-canvas-epic.md`
+- [x] **Agile Planning**: `docs/agile-planning/01-visual-canvas-epic.md`
   - 3개 Epic 정의 (Foundation, Advanced Features, Integration)
   - 6개 Sprint Story 상세 설계
   - Sub-tasks 및 Definition of Done 포함
@@ -66,26 +66,26 @@ Event Storming → DDD → Technical Design → Agile Planning 설계 진행 상
 **비즈니스 가치**: 재사용 가능한 컴포넌트를 통한 생산성 향상
 
 #### 설계 진행 상황
-- [x] **Event Storming**: `docs/event-storming/component-system-domain/event-storm.md`
+- [x] **Event Storming**: `docs/event-domain-design/component-system-domain/event-storm.md`
   - 핵심 이벤트 15개 정의
   - 개별 인스턴스 분리 시나리오 추가
   - Hotspots 6개 식별 (인스턴스 분리 복잡성 등)
 
-- [x] **Process Model**: `docs/event-storming/component-system-domain/process-model.md`
+- [x] **Process Model**: `docs/event-domain-design/component-system-domain/process-model.md`
   - 7개 핵심 프로세스 정의
   - 컴포넌트 라이프사이클 관리
   - 인스턴스 분리 프로세스 포함
 
-- [x] **Software Design**: `docs/event-storming/component-system-domain/software-design.md`
+- [x] **Software Design**: `docs/event-domain-design/component-system-domain/software-design.md`
   - 3개 Aggregate 정의 (ComponentDefinition, ComponentLifecycle, ComponentInstance)
   - Visual Canvas 통합 이벤트 정의
   - EventBus 제거 완료
 
 - [x] **Technical Design**:
-  - [x] Database Schema: `docs/event-storming/component-system-domain/technical-design/database-schema.md`
-  - [x] API Specification: `docs/event-storming/component-system-domain/technical-design/api-specification.md`
+  - [x] Database Schema: `docs/event-domain-design/component-system-domain/project-technical-design/database-schema.md`
+  - [x] API Specification: `docs/event-domain-design/component-system-domain/project-technical-design/api-specification.md`
 
-- [x] **Agile Planning**: `docs/event-storming/agile-planning/02-component-system-epic.md`
+- [x] **Agile Planning**: `docs/agile-planning/02-component-system-epic.md`
   - 3개 Epic 정의
   - 6개 Sprint Story 상세 설계
   - Sub-tasks 및 Definition of Done 포함
@@ -150,26 +150,26 @@ Event Storming → DDD → Technical Design → Agile Planning 설계 진행 상
 **비즈니스 가치**: 작업 공간의 체계적인 관리
 
 #### 설계 진행 상황
-- [x] **Event Storming**: `docs/event-storming/workspace-structure-domain/event-storm.md`
+- [x] **Event Storming**: `docs/event-domain-design/workspace-structure-domain/event-storm.md`
   - 핵심 이벤트 25개 정의
   - Clerk 통합 전략 설계
   - Page Reference 로직 제거 (Visual Canvas로 이관)
 
-- [x] **Process Model**: `docs/event-storming/workspace-structure-domain/process-model.md`
+- [x] **Process Model**: `docs/event-domain-design/workspace-structure-domain/process-model.md`
   - 7개 핵심 프로세스 정의
   - Clerk Webhook 처리 설계
   - Page 이동 시 권한 검증 로직
 
-- [x] **Software Design**: `docs/event-storming/workspace-structure-domain/software-design.md`
+- [x] **Software Design**: `docs/event-domain-design/workspace-structure-domain/software-design.md`
   - 4개 Aggregate 정의 (Organization, Workspace, PageHierarchy, PageLifecycle)
   - Clerk Anti-Corruption Layer 설계
   - EventBus 제거 완료
 
 - [x] **Technical Design**:
-  - [x] Database Schema: `docs/event-storming/workspace-structure-domain/technical-design/database-schema.md`
-  - [x] API Specification: `docs/event-storming/workspace-structure-domain/technical-design/api-specification.md`
+  - [x] Database Schema: `docs/event-domain-design/workspace-structure-domain/project-technical-design/database-schema.md`
+  - [x] API Specification: `docs/event-domain-design/workspace-structure-domain/project-technical-design/api-specification.md`
 
-- [x] **Agile Planning**: `docs/event-storming/agile-planning/01-workspace-structure-epic.md`
+- [x] **Agile Planning**: `docs/agile-planning/01-workspace-structure-epic.md`
   - 2개 Sprint Story 상세 설계
   - Sub-tasks 및 Definition of Done 포함
 
@@ -184,7 +184,7 @@ Event Storming → DDD → Technical Design → Agile Planning 설계 진행 상
 **비즈니스 가치**: 재사용 가능한 템플릿을 통한 빠른 시작
 
 #### 설계 진행 상황
-- [x] **Event Storming**: `docs/event-storming/template-management-domain/event-storm.md`
+- [x] **Event Storming**: `docs/event-domain-design/template-management-domain/event-storm.md`
   - 기본 이벤트 8개 정의
   - Workspace Structure에서 분리 완료
 
@@ -201,7 +201,7 @@ Event Storming → DDD → Technical Design → Agile Planning 설계 진행 상
 **비즈니스 가치**: 필수적이지만 차별화 요소는 아닌 표준 기능
 
 #### 설계 진행 상황
-- [x] **Event Storming**: `docs/event-storming/collaboration-access-control-domain/event-storm.md`
+- [x] **Event Storming**: `docs/event-domain-design/collaboration-access-control-domain/event-storm.md`
   - 기본 이벤트 12개 정의
   - Workspace Structure에서 분리 완료
 
@@ -239,7 +239,7 @@ Event Storming → DDD → Technical Design → Agile Planning 설계 진행 상
 ## 🔄 Integration & Cross-Domain Design
 
 ### 완료된 통합 설계
-- [x] **Visual Canvas ↔ Component System**: `docs/event-storming/integration/visual-canvas-component-integration.md`
+- [x] **Visual Canvas ↔ Component System**: `docs/event-domain-design/integration/visual-canvas-component-integration.md`
   - 통합 이벤트 12개 정의
   - Anti-Corruption Layer 설계
   - Saga Pattern 및 Eventual Consistency 전략
