@@ -346,10 +346,7 @@ Epic 004: 컴포넌트 블록 시스템
 git checkout dev
 git pull origin dev
 
-# 2. Annual Roadmap 브랜치 생성
-git checkout -b docs/annual-roadmap-2025
-
-# 3. Annual Roadmap 작업
+# 2. Annual Roadmap 작업
 # - 연간 목표 설정
 # - 분기별 Initiative 계획
 # - 마일스톤 및 성공 지표 설정
@@ -386,16 +383,10 @@ git commit -m "docs(annual-roadmap): add success metrics and review process
 - Quarterly review and adjustment process"
 ```
 
-### GitHub에 푸시 및 PR 생성
+### GitHub에 푸시
 ```bash
-# 1. 브랜치를 GitHub에 푸시
-git push origin docs/annual-roadmap-2025
-
-# 2. GitHub에서 Pull Request 생성
-# - 제목: "Annual Roadmap 2025"
-# - 설명: 2025년 연간 로드맵 및 분기별 Initiative 계획
-# - 리뷰어: PM, PO, 시니어 개발자, 경영진
-# - 라벨: annual-roadmap, planning, strategy
+# 1. dev 브랜치에 직접 푸시
+git push origin dev
 ```
 
 ### PR 리뷰 체크리스트

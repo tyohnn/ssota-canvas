@@ -313,10 +313,7 @@ Initiative 설정이 완료되었다고 판단할 수 있는 기준:
 git checkout dev
 git pull origin dev
 
-# 2. Initiative 브랜치 생성
-git checkout -b init/001-visual-platform
-
-# 3. 작업 시작
+# 2. Initiative 계획 작업
 # - Initiative 문서 작성
 # - 비즈니스 가치 분석
 # - Epic 목록 작성
@@ -354,16 +351,10 @@ git commit -m "docs(initiative): add epic list and dependencies
 - Define epic dependencies and sequence"
 ```
 
-### GitHub에 푸시 및 PR 생성
+### GitHub에 푸시
 ```bash
-# 1. 브랜치를 GitHub에 푸시
-git push origin init/001-visual-platform
-
-# 2. GitHub에서 Pull Request 생성
-# - 제목: "Initiative 001: Visual Platform Setup"
-# - 설명: Initiative 설정 및 계획 수립
-# - 리뷰어: PO, 기획자, 시니어 개발자
-# - 라벨: initiative, planning, documentation
+# 1. dev 브랜치에 직접 푸시
+git push origin dev
 ```
 
 ### PR 리뷰 체크리스트
@@ -380,14 +371,9 @@ git push origin init/001-visual-platform
 - [ ] 시니어 개발자가 기술적 실현 가능성을 승인
 - [ ] 경영진이 비즈니스 가치를 승인
 
-### PR 병합 후 정리
+### 다음 단계 준비
 ```bash
-# 1. PR 병합 후 로컬에서 정리
-git checkout dev
-git pull origin dev
-git branch -d init/001-visual-platform
-
-# 2. 다음 단계 준비
+# 1. 다음 단계 준비
 # - Event Storming 일정 수립
 # - Epic 계획 수립 시작
 # - 팀 공유 및 승인 완료

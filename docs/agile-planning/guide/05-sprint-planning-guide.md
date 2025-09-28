@@ -388,18 +388,13 @@ Sprint 계획이 완료되었다고 판단할 수 있는 기준:
 
 ## 🔧 Git 워크플로우
 
-### 브랜치 생성 및 작업
+### 작업 및 커밋
 ```bash
-# 1. Epic 브랜치에서 최신 상태로 업데이트
-git checkout epic/001-user-management
-git pull origin epic/001-user-management
+# 1. dev 브랜치에서 최신 상태로 업데이트
+git checkout dev
+git pull origin dev
 
-# 2. Sprint 브랜치 생성 (Documentation 또는 Implementation)
-git checkout -b sprint/01-user-auth-system
-# 또는
-git checkout -b sprint/02-organization-management
-
-# 3. Sprint 계획 작업
+# 2. Sprint 계획 작업
 # - Sprint 목표 설정
 # - Story 선택 및 우선순위 설정
 # - 팀 용량 계산 및 일정 계획
@@ -437,16 +432,10 @@ git commit -m "docs(sprint): add team capacity and schedule planning
 - Daily standup and weekly checkpoints"
 ```
 
-### GitHub에 푸시 및 PR 생성
+### GitHub에 푸시
 ```bash
-# 1. 브랜치를 GitHub에 푸시
-git push origin sprint/01-user-auth-system
-
-# 2. GitHub에서 Pull Request 생성
-# - 제목: "Sprint 01: User Authentication System"
-# - 설명: Sprint 계획 및 Story 할당
-# - 리뷰어: PM, 시니어 개발자, 팀 리드
-# - 라벨: sprint, planning, user-management
+# 1. dev 브랜치에 직접 푸시
+git push origin dev
 ```
 
 ### PR 리뷰 체크리스트
@@ -463,14 +452,9 @@ git push origin sprint/01-user-auth-system
 - [ ] 팀 리드가 팀 용량과 일정을 승인
 - [ ] 모든 팀원이 Sprint 계획에 동의
 
-### PR 병합 후 정리
+### Sprint 실행 준비
 ```bash
-# 1. PR 병합 후 로컬에서 정리
-git checkout epic/001-user-management
-git pull origin epic/001-user-management
-git branch -d sprint/01-user-auth-system
-
-# 2. Sprint 실행 준비
+# 1. Sprint 실행 준비
 # - 팀원들에게 Sprint 계획 공유
 # - 일일 스탠드업 일정 확정
 # - 진행 상황 추적 도구 설정

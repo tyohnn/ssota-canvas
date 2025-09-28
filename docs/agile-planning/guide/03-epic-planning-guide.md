@@ -329,16 +329,13 @@ Epic 계획이 완료되었다고 판단할 수 있는 기준:
 
 ## 🔧 Git 워크플로우
 
-### 브랜치 생성 및 작업
+### 작업 및 커밋
 ```bash
-# 1. Initiative 브랜치에서 최신 상태로 업데이트
-git checkout init/001-core-whiteboard-block-system
-git pull origin init/001-core-whiteboard-block-system
+# 1. dev 브랜치에서 최신 상태로 업데이트
+git checkout dev
+git pull origin dev
 
-# 2. Epic 브랜치 생성
-git checkout -b epic/001-user-management
-
-# 3. Epic 계획 작업
+# 2. Epic 계획 작업
 # - Epic Goal 및 Success Criteria 정의
 # - 포함될 Story 목록 작성
 # - 기술적 고려사항 정의
@@ -375,16 +372,10 @@ git commit -m "docs(epic): add technical considerations and architecture
 - Database schema and performance optimization"
 ```
 
-### GitHub에 푸시 및 PR 생성
+### GitHub에 푸시
 ```bash
-# 1. 브랜치를 GitHub에 푸시
-git push origin epic/001-workspace-structure
-
-# 2. GitHub에서 Pull Request 생성
-# - 제목: "Epic 001: Workspace Structure Domain"
-# - 설명: Epic 계획 및 Story 정의
-# - 리뷰어: PO, 기획자, 시니어 개발자, 도메인 전문가
-# - 라벨: epic, planning, workspace-structure
+# 1. dev 브랜치에 직접 푸시
+git push origin dev
 ```
 
 ### PR 리뷰 체크리스트
@@ -401,14 +392,9 @@ git push origin epic/001-workspace-structure
 - [ ] 시니어 개발자가 기술적 실현 가능성을 승인
 - [ ] 도메인 전문가가 비즈니스 요구사항 정확성을 승인
 
-### PR 병합 후 정리
+### 다음 단계 준비
 ```bash
-# 1. PR 병합 후 로컬에서 정리
-git checkout init/001-core-whiteboard-block-system
-git pull origin init/001-core-whiteboard-block-system
-git branch -d epic/001-user-management
-
-# 2. 다음 단계 준비
+# 1. 다음 단계 준비
 # - Story 정의 시작
 # - Sprint 계획 수립
 # - 개발팀 리소스 할당

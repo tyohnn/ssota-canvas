@@ -333,16 +333,13 @@ date
 
 ## 🔧 Git 워크플로우
 
-### 브랜치 생성 및 작업
+### 작업 및 커밋
 ```bash
 # 1. dev 브랜치에서 최신 상태로 업데이트
 git checkout dev
 git pull origin dev
 
-# 2. Project Vision 브랜치 생성
-git checkout -b docs/project-vision
-
-# 3. Project Vision 작업
+# 2. Project Vision 작업
 # - 프로젝트 비전 정의
 # - 3년 전략적 목표 수립
 # - 핵심 가치 제안 정의
@@ -370,20 +367,14 @@ git commit -m "docs(project-vision): add success metrics and KPIs
 - Add quarterly and annual review processes"
 ```
 
-### GitHub에 푸시 및 PR 생성
+### GitHub에 푸시
 ```bash
-# 1. 브랜치를 GitHub에 푸시
-git push origin docs/project-vision
-
-# 2. GitHub에서 Pull Request 생성
-# - 제목: "Project Vision & Strategy Document"
-# - 설명: 프로젝트 비전 및 3년 전략 수립
-# - 리뷰어: CEO, CTO, PO, 경영진
-# - 라벨: project-vision, strategy, documentation
+# 1. dev 브랜치에 직접 푸시
+git push origin dev
 ```
 
-### PR 리뷰 체크리스트
-**리뷰어가 확인할 사항:**
+### 문서 검증 체크리스트
+**완성도 검증:**
 - [ ] **비전 명확성**: 프로젝트 비전이 명확하고 영감을 주는가?
 - [ ] **전략 일관성**: 3년 전략이 논리적으로 연결되어 있는가?
 - [ ] **가치 제안**: 핵심 가치 제안이 구체적이고 차별화되는가?
@@ -395,19 +386,6 @@ git push origin docs/project-vision
 - [ ] CTO가 기술 전략의 실현 가능성을 승인
 - [ ] PO가 제품 전략과의 일치성을 승인
 - [ ] 경영진이 비즈니스 가치를 승인
-
-### PR 병합 후 정리
-```bash
-# 1. PR 병합 후 로컬에서 정리
-git checkout dev
-git pull origin dev
-git branch -d docs/project-vision
-
-# 2. 다음 단계 준비
-# - Annual Roadmap 작성 시작
-# - Initiative 계획 수립 준비
-# - 팀 전체에 비전 공유
-```
 
 ---
 
