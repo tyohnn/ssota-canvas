@@ -1,16 +1,17 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import { auth } from "@clerk/nextjs/server";
-import { sql } from "drizzle-orm";
-import * as schema from "./schema";
-import { config } from "@/config";
-import { devLog } from "@/utils/dev-logger";
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { auth } from '@clerk/nextjs/server';
+import { sql } from 'drizzle-orm';
+import * as schema from './schema';
+import * as devSchema from './dev-schema';
+import { config } from '@/config';
+import { devLog } from '@/utils/dev-logger';
 
-// Database connection configuration
+const isDevelopment = process.env.NODE_ENV === 'development';
 const connectionString = config.database.url;
 
 if (!connectionString) {
-  throw new Error("DATABASE_URL environment variable is required");
+  throw new Error('DATABASE_URL environment variable is required');
 }
 
 // Create postgres connection
@@ -25,22 +26,24 @@ const client = postgres(connectionString, {
   },
 });
 
-// Create drizzle instance (shared pool)
-export const db = drizzle(client, { schema });
+// Create drizzle instance with environment-based schema
+export const db = drizzle(client, {
+  schema: isDevelopment ? devSchema : schema,
+});
 
 // Create RLS-enabled database client for Clerk
 export async function createClerkDrizzleSupabaseClient() {
   const { userId } = await auth();
 
   if (!userId) {
-    throw new Error("Authentication required");
+    throw new Error('Authentication required');
   }
 
   // Facade returning an RLS helper backed by the shared pool + transaction-scoped SET LOCAL
   return {
     rls: async <T>(fn: (tx: typeof db) => Promise<T>): Promise<T> => {
       try {
-        return await db.transaction(async (tx) => {
+        return await db.transaction(async tx => {
           // devLog("🔐 [RLS] Setting user context (SET LOCAL):", { userId });
           // SET LOCAL is scoped to the current transaction only
           await tx.execute(sql.raw(`SET LOCAL "app.user_id" = '${userId}'`));
@@ -62,7 +65,7 @@ export async function createSimpleClient() {
   const { userId } = await auth();
 
   if (!userId) {
-    throw new Error("Authentication required");
+    throw new Error('Authentication required');
   }
 
   // Use the same client but without RLS
@@ -76,7 +79,7 @@ export async function createSimpleClient() {
 }
 
 // Export schema for migrations
-export * from "./schema";
+// export * from './schema';
 
 // Export admin client
-export { createSupabaseAdminClient } from "./admin-client";
+export { createSupabaseAdminClient } from './admin-client';

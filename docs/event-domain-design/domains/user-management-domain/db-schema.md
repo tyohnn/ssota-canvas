@@ -230,6 +230,226 @@ COMMENT ON COLUMN memberships.deleted_at IS '소프트 삭제 시간';
 
 ---
 
+## 🔒 Row Level Security (RLS) Policies
+
+### 1. RLS 활성화
+
+```sql
+-- 모든 테이블에 RLS 활성화
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE memberships ENABLE ROW LEVEL SECURITY;
+```
+
+### 2. Users 테이블 RLS 정책
+
+```sql
+-- 사용자는 자신의 정보와 같은 조직 멤버들의 정보에 접근 가능
+CREATE POLICY "users_select_policy" ON users
+  FOR SELECT TO authenticated
+  USING (
+    -- 자신의 정보는 항상 접근 가능
+    id = (SELECT current_setting('app.user_id', true))::uuid
+    OR
+    -- 같은 조직의 멤버 정보는 접근 가능 (소프트 삭제 제외)
+    EXISTS (
+      SELECT 1 FROM memberships m1
+      JOIN memberships m2 ON m1.organization_id = m2.organization_id
+      WHERE m1.user_id = (SELECT current_setting('app.user_id', true))::uuid
+        AND m2.user_id = users.id
+        AND m1.status = 'active'
+        AND m2.status = 'active'
+        AND m1.deleted_at IS NULL
+        AND m2.deleted_at IS NULL
+        AND users.deleted_at IS NULL
+    )
+  );
+
+-- 사용자는 자신의 정보만 생성 가능
+CREATE POLICY "users_insert_policy" ON users
+  FOR INSERT TO authenticated
+  WITH CHECK (id = (SELECT current_setting('app.user_id', true))::uuid);
+
+-- 사용자는 자신의 정보만 수정 가능
+CREATE POLICY "users_update_policy" ON users
+  FOR UPDATE TO authenticated
+  USING (id = (SELECT current_setting('app.user_id', true))::uuid)
+  WITH CHECK (id = (SELECT current_setting('app.user_id', true))::uuid);
+
+-- 사용자는 자신의 정보만 삭제 가능 (소프트 삭제)
+CREATE POLICY "users_delete_policy" ON users
+  FOR UPDATE TO authenticated
+  USING (id = (SELECT current_setting('app.user_id', true))::uuid);
+```
+
+### 3. Organizations 테이블 RLS 정책
+
+```sql
+-- 조직 멤버들만 조직 정보에 접근 가능
+CREATE POLICY "organizations_select_policy" ON organizations
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM memberships
+      WHERE memberships.organization_id = organizations.id
+        AND memberships.user_id = (SELECT current_setting('app.user_id', true))::uuid
+        AND memberships.status = 'active'
+        AND memberships.deleted_at IS NULL
+        AND organizations.deleted_at IS NULL
+    )
+  );
+
+-- 인증된 사용자는 조직 생성 가능 (소유자로 설정)
+CREATE POLICY "organizations_insert_policy" ON organizations
+  FOR INSERT TO authenticated
+  WITH CHECK (owner_id = (SELECT current_setting('app.user_id', true))::uuid);
+
+-- 조직 소유자만 조직 정보 수정 가능
+CREATE POLICY "organizations_update_policy" ON organizations
+  FOR UPDATE TO authenticated
+  USING (
+    owner_id = (SELECT current_setting('app.user_id', true))::uuid
+    AND deleted_at IS NULL
+  )
+  WITH CHECK (
+    owner_id = (SELECT current_setting('app.user_id', true))::uuid
+    AND deleted_at IS NULL
+  );
+
+-- 조직 소유자만 조직 삭제 가능 (소프트 삭제)
+CREATE POLICY "organizations_delete_policy" ON organizations
+  FOR UPDATE TO authenticated
+  USING (
+    owner_id = (SELECT current_setting('app.user_id', true))::uuid
+    AND NOT is_default -- 기본 조직은 삭제 불가
+  );
+```
+
+### 4. Memberships 테이블 RLS 정책
+
+```sql
+-- 멤버십 조회 정책 (단순화 - 모든 멤버십 조회 가능)
+CREATE POLICY "memberships_select_policy" ON memberships
+  FOR SELECT TO authenticated
+  USING (
+    -- 같은 조직의 멤버라면 모든 멤버십 정보 조회 가능
+    EXISTS (
+      SELECT 1 FROM memberships user_membership
+      WHERE user_membership.organization_id = memberships.organization_id
+        AND user_membership.user_id = (SELECT current_setting('app.user_id', true))::uuid
+        AND user_membership.status = 'active'
+        AND user_membership.deleted_at IS NULL
+    )
+    OR
+    -- 초대받은 이메일과 현재 사용자 이메일이 일치하는 경우 (초대 수락용)
+    (status = 'pending' AND invitee_email = (
+      SELECT email FROM users 
+      WHERE id = (SELECT current_setting('app.user_id', true))::uuid
+    ))
+    OR
+    -- 자신의 멤버십은 항상 접근 가능 (조직을 떠난 경우에도)
+    user_id = (SELECT current_setting('app.user_id', true))::uuid
+  );
+
+-- 멤버십 생성 정책 (초대)
+CREATE POLICY "memberships_insert_policy" ON memberships
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    -- 조직의 owner/admin만 멤버 초대 가능
+    EXISTS (
+      SELECT 1 FROM memberships inviter_membership
+      WHERE inviter_membership.organization_id = memberships.organization_id
+        AND inviter_membership.user_id = (SELECT current_setting('app.user_id', true))::uuid
+        AND inviter_membership.role IN ('owner', 'admin')
+        AND inviter_membership.status = 'active'
+        AND inviter_membership.deleted_at IS NULL
+    )
+    OR
+    -- 자신의 멤버십 생성 (조직 생성 시)
+    user_id = (SELECT current_setting('app.user_id', true))::uuid
+  );
+
+-- 멤버십 수정 정책 (단순화)
+CREATE POLICY "memberships_update_policy" ON memberships
+  FOR UPDATE TO authenticated
+  USING (
+    -- 자신의 멤버십 수정 (초대 수락/거절)
+    user_id = (SELECT current_setting('app.user_id', true))::uuid
+    OR
+    -- 조직의 owner/admin은 모든 멤버십 수정 가능
+    EXISTS (
+      SELECT 1 FROM memberships admin_membership
+      WHERE admin_membership.organization_id = memberships.organization_id
+        AND admin_membership.user_id = (SELECT current_setting('app.user_id', true))::uuid
+        AND admin_membership.role IN ('owner', 'admin')
+        AND admin_membership.status = 'active'
+        AND admin_membership.deleted_at IS NULL
+    )
+    OR
+    -- 초대받은 이메일과 현재 사용자 이메일이 일치하는 경우 (초대 수락)
+    (status = 'pending' AND invitee_email = (
+      SELECT email FROM users 
+      WHERE id = (SELECT current_setting('app.user_id', true))::uuid
+    ))
+  )
+  WITH CHECK (
+    -- 수정 후에도 동일한 조건 적용
+    user_id = (SELECT current_setting('app.user_id', true))::uuid
+    OR
+    EXISTS (
+      SELECT 1 FROM memberships admin_membership
+      WHERE admin_membership.organization_id = memberships.organization_id
+        AND admin_membership.user_id = (SELECT current_setting('app.user_id', true))::uuid
+        AND admin_membership.role IN ('owner', 'admin')
+        AND admin_membership.status = 'active'
+        AND admin_membership.deleted_at IS NULL
+    )
+  );
+
+-- 멤버십 삭제 정책 (멤버 제거)
+CREATE POLICY "memberships_delete_policy" ON memberships
+  FOR UPDATE TO authenticated
+  USING (
+    -- 조직 owner/admin은 멤버 제거 가능 (자신 제외)
+    EXISTS (
+      SELECT 1 FROM memberships admin_membership
+      WHERE admin_membership.organization_id = memberships.organization_id
+        AND admin_membership.user_id = (SELECT current_setting('app.user_id', true))::uuid
+        AND admin_membership.role IN ('owner', 'admin')
+        AND admin_membership.status = 'active'
+        AND admin_membership.deleted_at IS NULL
+        AND memberships.user_id != (SELECT current_setting('app.user_id', true))::uuid
+    )
+    OR
+    -- 자신의 멤버십 제거 (조직 탈퇴, 단 owner는 불가)
+    (user_id = (SELECT current_setting('app.user_id', true))::uuid 
+     AND role != 'owner')
+  );
+```
+
+### 5. RLS 성능 최적화 인덱스
+
+```sql
+-- RLS 정책 성능 최적화를 위한 인덱스 (단순화된 정책에 맞춤)
+CREATE INDEX idx_memberships_user_org_active_rls ON memberships(user_id, organization_id, status) 
+    WHERE status = 'active' AND deleted_at IS NULL;
+
+CREATE INDEX idx_memberships_org_admin_rls ON memberships(organization_id, role, status) 
+    WHERE role IN ('owner', 'admin') AND status = 'active' AND deleted_at IS NULL;
+
+CREATE INDEX idx_memberships_pending_email_rls ON memberships(invitee_email, status) 
+    WHERE status = 'pending' AND deleted_at IS NULL;
+
+CREATE INDEX idx_users_email_active_rls ON users(email) 
+    WHERE deleted_at IS NULL;
+
+-- 멤버십 조회 최적화 (같은 조직 멤버 확인용)
+CREATE INDEX idx_memberships_org_user_status_rls ON memberships(organization_id, user_id, status) 
+    WHERE status = 'active' AND deleted_at IS NULL;
+```
+
+---
+
 ## 🔒 Basic Data Integrity Constraints
 
 ### 1. 기본 데이터 무결성 제약조건
