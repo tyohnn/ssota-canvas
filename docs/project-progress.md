@@ -11,6 +11,7 @@ Event Storming → DDD → Technical Design → Agile Planning 설계 진행 상
 | **Visual Canvas** | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | **완료** |
 | **Component System** | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | **완료** |
 | **Workspace Structure** | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | **완료** |
+| **User Management** | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | ❌ Pending | **80%** |
 | **Smart Properties** | ❌ Pending | ❌ Pending | ❌ Pending | ❌ Pending | ❌ Pending | **0%** |
 | **Data Organization** | ❌ Pending | ❌ Pending | ❌ Pending | ❌ Pending | ❌ Pending | **0%** |
 | **AI Enhancement** | ❌ Pending | ❌ Pending | ❌ Pending | ❌ Pending | ❌ Pending | **0%** |
@@ -19,7 +20,7 @@ Event Storming → DDD → Technical Design → Agile Planning 설계 진행 상
 | **History & Version Control** | ❌ Pending | ❌ Pending | ❌ Pending | ❌ Pending | ❌ Pending | **0%** |
 | **External Integration** | ❌ Pending | ❌ Pending | ❌ Pending | ❌ Pending | ❌ Pending | **0%** |
 
-**전체 진행률: 55% (3/10 도메인 완료)**
+**전체 진행률: 58% (3/11 도메인 완료, 1개 도메인 80% 진행)**
 
 ---
 
@@ -180,7 +181,40 @@ Event Storming → DDD → Technical Design → Agile Planning 설계 진행 상
 
 ---
 
-### 7. Template Management Domain 🟡 **25% 완료**
+### 7. User Management Domain 🟡 **80% 완료**
+**비즈니스 가치**: 사용자 및 조직 관리의 기반 시스템
+
+#### 설계 진행 상황
+- [x] **Event Storming**: `docs/event-domain-design/user-management-domain/event-storm.md`
+  - 핵심 이벤트 17개 정의
+  - Clerk 통합 전략 설계
+  - 30일 소프트 삭제 정책 포함
+
+- [x] **Process Model**: `docs/event-domain-design/user-management-domain/process-model.md`
+  - 7개 핵심 프로세스 정의
+  - Clerk Webhook 동기화 설계
+  - 조직 소유권 이전 및 멤버 관리 프로세스
+
+- [x] **Software Design**: `docs/event-domain-design/user-management-domain/software-design.md`
+  - 3개 Aggregate 정의 (User, Organization, Membership)
+  - Clerk Anti-Corruption Layer 설계
+  - Read Models 및 Context Map 완료
+
+- [x] **Technical Design**:
+  - [ ] Database Schema: 대기 중
+  - [ ] API Specification: 대기 중
+  - [x] Technical Specification: `docs/event-domain-design/user-management-domain/technical-specification.md`
+
+- [ ] **Agile Planning**: ❌ **대기 중**
+
+#### 주요 설계 결정사항
+- **Clerk 완전 통합**: User/Organization 동기화 시스템
+- **30일 소프트 삭제**: 조직 삭제 시 복구 가능 기간 제공
+- **3-tier 역할 시스템**: Owner, Admin, Member 권한 구조
+
+---
+
+### 8. Template Management Domain 🟡 **25% 완료**
 **비즈니스 가치**: 재사용 가능한 템플릿을 통한 빠른 시작
 
 #### 설계 진행 상황
@@ -258,17 +292,18 @@ Event Storming → DDD → Technical Design → Agile Planning 설계 진행 상
 2. **Workspace Structure Agile Planning** ✅ 완성
 
 ### 단기 진행 (Phase 2)
-3. **Smart Properties Domain** 전체 설계
-4. **Template Management Domain** Process Model → Software Design
+3. **User Management Domain** Technical Specification 완료
+4. **Smart Properties Domain** 전체 설계
+5. **Template Management Domain** Process Model → Software Design
 
 ### 중기 진행 (Phase 3)
-5. **Data Organization Domain** 전체 설계
-6. **Collaboration & Access Control Domain** Process Model → Software Design
+6. **Data Organization Domain** 전체 설계
+7. **Collaboration & Access Control Domain** Process Model → Software Design
 
 ### 장기 진행 (Phase 4)
-7. **AI Enhancement Domain** 전체 설계
-8. **History & Version Control Domain** 전체 설계
-9. **External Integration Domain** 전체 설계
+8. **AI Enhancement Domain** 전체 설계
+9. **History & Version Control Domain** 전체 설계
+10. **External Integration Domain** 전체 설계
 
 ---
 
@@ -290,7 +325,8 @@ Event Storming → DDD → Technical Design → Agile Planning 설계 진행 상
 ## 🎯 현재 상태 요약
 
 **완전히 완료된 도메인**: 3개 (Visual Canvas, Component System, Workspace Structure)  
+**80% 완료된 도메인**: 1개 (User Management)  
 **25% 완료된 도메인**: 2개 (Template Management, Collaboration & Access Control)  
 **미진행 도메인**: 5개 (Smart Properties, Data Organization, AI Enhancement, History, External Integration)
 
-**다음 우선순위**: Sprint 0 Foundation Setup → Smart Properties 전체 설계 → Template Management Process Model
+**다음 우선순위**: User Management Technical Specification 완료 → Smart Properties 전체 설계 → Template Management Process Model
