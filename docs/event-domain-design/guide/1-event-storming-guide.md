@@ -29,15 +29,36 @@ Event Storming은 **도메인 이해의 기초**를 만드는 단계로, Process
 
 ## 🛠️ 작업 시작 전 Git 브랜치 준비하기
 
+### 단계별 브랜치 생성 과정
+
 ```bash
-# 1. 최신 스프린트 브랜치로 이동 후 동기화
-git checkout sprint-<number>
-git pull origin sprint-<number>
+# Step 0: 현재 날짜 확인
+date
 
-# 2. Event Storming 브랜치 생성
-git checkout -b event-storm-<domain-name>
+# Step 1: dev 브랜치에서 최신 상태로 업데이트
+git checkout dev
+git pull origin dev
 
-# 예시: git checkout -b event-storm-workspace-structure
+# Step 2: Initiative 브랜치 생성 (이미 있다면 체크아웃)
+git checkout -b init/001-core-whiteboard-block-system
+# 또는 기존 브랜치: git checkout init/001-core-whiteboard-block-system
+
+# Step 3: Initiative 브랜치에서 Domain 브랜치 생성
+git checkout -b domain/001-user-management
+
+# Step 4: Domain 브랜치에서 작업 시작
+```
+
+### 브랜치 구조
+```
+dev (메인 브랜치)
+└── init/001-core-whiteboard-block-system (Initiative 브랜치)
+    ├── domain/001-user-management (Domain 1 브랜치)
+    ├── domain/002-workspace-structure (Domain 2 브랜치)
+    ├── domain/003-visual-canvas (Domain 3 브랜치)
+    ├── domain/004-block-system (Domain 4 브랜치)
+    ├── domain/005-component-system (Domain 5 브랜치)
+    └── domain/006-ai-integration (Domain 6 브랜치)
 ```
 
 ---
@@ -272,7 +293,23 @@ git commit -m "docs(event-storm): define <domain-name> domain events and boundar
 - Prepare foundation for process modeling"
 
 # GitHub에 푸시 및 PR 생성
-git push origin event-storm-<domain-name>
+git push origin domain/001-user-management
+
+# PR 생성 시:
+# - Base 브랜치: init/001-core-whiteboard-block-system
+# - Compare 브랜치: domain/001-user-management
+# - 제목: "Domain 001: User Management Event Storming"
+# - 설명: Domain 1 (사용자 관리) Event Storming 결과
+```
+
+### Domain 완료 후 Initiative 브랜치로 병합
+```bash
+# Domain 작업 완료 후 Initiative 브랜치로 병합
+git checkout init/001-core-whiteboard-block-system
+git merge domain/001-user-management
+
+# Initiative에서 dev로 최종 PR 생성
+git push origin init/001-core-whiteboard-block-system
 ```
 
 ### 4.3 PR 리뷰 체크리스트

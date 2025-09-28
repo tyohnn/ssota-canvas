@@ -39,10 +39,10 @@ date
 
 | 브랜치 유형 | 접두사 | 포함 작업 | 예시 |
 |------------|--------|-----------|------|
-| **Initiative** | `init/` | Initiative 계획, 비즈니스 가치 정의, Epic 목록 작성 | `init/001-visual-platform` |
+| **Initiative** | `init/` | Initiative 계획, 비즈니스 가치 정의, 도메인 분류 | `init/001-visual-platform` |
+| **Domain** | `domain/` | Event Storming, Process Model, Software Design, Technical Spec 작성 | `domain/001-user-management` |
 | **Epic** | `epic/` | Epic 계획, Story 목록 작성, 기술적 고려사항 정의 | `epic/001-workspace-structure` |
 | **Story** | `story/` | Story 정의, Acceptance Criteria 작성, Sub-tasks 정의 | `story/001-workspace-creation` |
-| **Documentation** | `docs/` | Event Storming, Process Model, Software Design, Technical Spec 작성 | `docs/epic-001/process-model` |
 | **Feature** | `feature/` | 실제 코드 개발, 테스트 작성, 기능 구현 | `feature/story-001/workspace-creation` |
 | **Bugfix** | `bugfix/` | 버그 수정, 테스트 케이스 추가, 문서 업데이트 | `bugfix/workspace-creation-error` |
 | **Hotfix** | `hotfix/` | 긴급 수정, 보안 패치, 프로덕션 배포 | `hotfix/security-vulnerability` |
@@ -51,22 +51,31 @@ date
 
 **넘버링 규칙:**
 1. **Initiative**: `init/001-[이름]`, `init/002-[이름]`
-2. **Epic**: `epic/001-[도메인명]`, `epic/002-[도메인명]`
-3. **Story**: `story/001-[기능명]`, `story/002-[기능명]`
-4. **Documentation**: `docs/[epic-번호]/[문서유형]`
+2. **Domain**: `domain/001-[도메인명]`, `domain/002-[도메인명]`
+3. **Epic**: `epic/001-[도메인명]`, `epic/002-[도메인명]`
+4. **Story**: `story/001-[기능명]`, `story/002-[기능명]`
 5. **Feature**: `feature/[story-번호]/[기능명]`
 
 **예시:**
 ```
 init/001-visual-platform
+domain/001-user-management
+domain/002-workspace-structure
 epic/001-workspace-structure
 epic/002-visual-canvas
 story/001-workspace-creation
 story/002-workspace-management
-docs/epic-001/process-model
-docs/epic-001/software-design
 feature/story-001/workspace-creation
 feature/story-002/workspace-management
+```
+
+**브랜치 계층 구조:**
+```
+init/001-visual-platform (Initiative 브랜치)
+├── domain/001-user-management (Domain 브랜치)
+├── domain/002-workspace-structure (Domain 브랜치)
+├── domain/003-visual-canvas (Domain 브랜치)
+└── ... (다른 Domain들)
 ```
 
 ### 1.3 각 브랜치 유형별 구체적 작업 내용
@@ -75,7 +84,7 @@ feature/story-002/workspace-management
 **포함 작업:**
 - Initiative 목표 및 성공 지표 정의
 - 비즈니스 가치 및 ROI 분석
-- 포함될 Epic 목록 작성
+- 도메인/기능 영역 분류
 - 의존성 및 리스크 분석
 - 마일스톤 및 완료 기준 설정
 
@@ -84,8 +93,35 @@ feature/story-002/workspace-management
 init/001-visual-platform
 ├── initiative-001-visual-platform.md (Initiative 문서)
 ├── business-value-analysis.md (비즈니스 가치 분석)
-├── epic-list.md (포함 Epic 목록)
+├── domain-classification.md (도메인 분류)
 └── milestone-plan.md (마일스톤 계획)
+```
+
+#### Domain 브랜치 (`domain/`)
+**포함 작업:**
+- Event Storming 워크샵 진행 및 결과 정리
+- Process Model 작성
+- Software Design 문서 작성
+- Technical Specification 작성
+- API 명세 및 데이터베이스 스키마 정의
+
+**예시 작업:**
+```
+domain/001-user-management
+├── event-storm.md (Event Storming 결과)
+├── process-model.md (Process Model)
+├── software-design.md (Software Design)
+├── technical-spec.md (Technical Specification)
+└── api-spec.md (API 명세)
+```
+
+**브랜치 생성 순서:**
+```bash
+# 1. Initiative 브랜치에서 시작
+git checkout init/001-visual-platform
+
+# 2. Domain 브랜치 생성
+git checkout -b domain/001-user-management
 ```
 
 #### Epic 브랜치 (`epic/`)
