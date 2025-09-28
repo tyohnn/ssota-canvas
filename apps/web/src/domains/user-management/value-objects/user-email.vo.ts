@@ -5,12 +5,17 @@ export class UserEmail {
 
   constructor(value: string) {
     if (!this.isValidEmail(value)) {
-      throw new UserManagementError('INVALID_EMAIL_FORMAT', 'Invalid email format');
+      throw new UserManagementError(
+        'INVALID_EMAIL_FORMAT',
+        'Invalid email format'
+      );
     }
     this._value = value;
   }
 
-  get value() { return this._value; }
+  get value() {
+    return this._value;
+  }
 
   private isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -22,6 +27,7 @@ export class UserEmail {
   }
 
   getDomain(): string {
-    return this.value.split('@')[1];
+    const parts = this.value.split('@');
+    return parts.length > 1 ? parts[1] : '';
   }
 }

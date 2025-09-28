@@ -42,7 +42,7 @@ describe('UserManagementService Integration', () => {
 
       const result = await service.syncUserFromClerk(clerkUserId);
 
-      expect(result.isSuccess()).toBe(true);
+      expect(result.success).toBe(true);
       expect(saveSpy).toHaveBeenCalled();
       expect(findByClerkIdSpy).toHaveBeenCalledWith(clerkUserId);
     });
@@ -83,7 +83,7 @@ describe('UserManagementService Integration', () => {
 
       const result = await service.syncUserFromClerk(clerkUserId);
 
-      expect(result.isSuccess()).toBe(true);
+      expect(result.success).toBe(true);
       expect(saveSpy).toHaveBeenCalled();
       expect(findByClerkIdSpy).toHaveBeenCalledWith(clerkUserId);
     });
@@ -96,8 +96,10 @@ describe('UserManagementService Integration', () => {
 
       const result = await service.syncUserFromClerk(clerkUserId);
 
-      expect(result.isError()).toBe(true);
-      expect(result.error.code).toBe('USER_NOT_FOUND');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.code).toBe('USER_NOT_FOUND');
+      }
     });
 
     it('should return error when Clerk service fails', async () => {
@@ -108,8 +110,10 @@ describe('UserManagementService Integration', () => {
 
       const result = await service.syncUserFromClerk(clerkUserId);
 
-      expect(result.isError()).toBe(true);
-      expect(result.error.code).toBe('CLERK_SYNC_FAILED');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.code).toBe('CLERK_SYNC_FAILED');
+      }
     });
   });
 
@@ -132,11 +136,13 @@ describe('UserManagementService Integration', () => {
 
       const result = await service.syncClerkUser(command);
 
-      expect(result.isSuccess()).toBe(true);
+      expect(result.success).toBe(true);
       expect(saveSpy).toHaveBeenCalled();
-      expect(result.value.clerkId).toBe('clerk_123');
-      expect(result.value.email).toBe('test@example.com');
-      expect(result.value.status).toBe('active');
+      if (result.success) {
+        expect(result.data.clerkId).toBe('clerk_123');
+        expect(result.data.email).toBe('test@example.com');
+        expect(result.data.status).toBe('active');
+      }
     });
 
     it('should handle user deletion event', async () => {
@@ -163,7 +169,7 @@ describe('UserManagementService Integration', () => {
 
       const result = await service.syncClerkUser(command);
 
-      expect(result.isSuccess()).toBe(true);
+      expect(result.success).toBe(true);
       expect(existingUser.entity.softDelete).toHaveBeenCalled();
       expect(saveSpy).toHaveBeenCalled();
     });

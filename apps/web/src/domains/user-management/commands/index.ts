@@ -8,7 +8,7 @@ export interface SyncClerkUserCommand {
   lastName?: string;
   imageUrl?: string;
   status: 'active' | 'soft_deleted' | 'permanently_deleted';
-  metadata: Record<string, any>;
+  metadata?: Record<string, any>;
   webhookType: 'user.created' | 'user.updated' | 'user.deleted';
 }
 

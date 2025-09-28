@@ -45,9 +45,9 @@ export function unwrap<T, E = string>(result: ActionResult<T, E>): T {
   if (isSuccess(result)) return result.data;
   // Convert error payload to a readable message if possible
   const message =
-    typeof result.error === "string"
+    typeof result.error === 'string'
       ? result.error
-      : ((result.error as any)?.message ?? "Unknown error");
+      : ((result.error as any)?.message ?? 'Unknown error');
   throw new Error(message);
 }
 
@@ -66,15 +66,15 @@ export async function fromPromise<T, E = string>(
 }
 
 export function normalizeError(e: unknown): string {
-  if (typeof e === "string") return e;
-  if (e && typeof e === "object") {
+  if (typeof e === 'string') return e;
+  if (e && typeof e === 'object') {
     const anyE = e as any;
-    if (anyE?.message && typeof anyE.message === "string") return anyE.message;
+    if (anyE?.message && typeof anyE.message === 'string') return anyE.message;
     try {
       return JSON.stringify(anyE);
     } catch {
-      return "Unknown error";
+      return 'Unknown error';
     }
   }
-  return "Unknown error";
+  return 'Unknown error';
 }

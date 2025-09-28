@@ -35,15 +35,17 @@ describe('Clerk Webhook E2E', () => {
         }
       });
 
-      // Replace the handler's dependencies
-      // Mock the handler functions
-      const originalVerifyClerkWebhook = (await import('../../infrastructure/clerk-webhook.handler')).verifyClerkWebhook;
-      const originalSyncClerkUserAction = (await import('../actions/user-management.actions')).syncClerkUserAction;
-
-      // Replace the handler's dependencies
+      // Mock the handler functions using dynamic imports
       const handlerModule = await import('../../infrastructure/clerk-webhook.handler');
+        const actionsModule = await import('../../actions/user-management.actions');
+
+      // Store original functions
+      const originalVerifyClerkWebhook = handlerModule.verifyClerkWebhook;
+      const originalSyncClerkUserAction = actionsModule.syncClerkUserAction;
+
+      // Replace functions
       handlerModule.verifyClerkWebhook = verifyClerkWebhook;
-      handlerModule.syncClerkUserAction = mockSyncAction;
+      actionsModule.syncClerkUserAction = mockSyncAction;
 
       const result = await handleClerkWebhook(mockWebhookPayload, mockHeaders);
 
@@ -90,14 +92,13 @@ describe('Clerk Webhook E2E', () => {
         }
       });
 
-      // Mock the handler functions
-      const originalVerifyClerkWebhook = (await import('../../infrastructure/clerk-webhook.handler')).verifyClerkWebhook;
-      const originalSyncClerkUserAction = (await import('../actions/user-management.actions')).syncClerkUserAction;
-
-      // Replace the handler's dependencies
+      // Mock the handler functions using dynamic imports
       const handlerModule = await import('../../infrastructure/clerk-webhook.handler');
+        const actionsModule = await import('../../actions/user-management.actions');
+
+      // Replace functions
       handlerModule.verifyClerkWebhook = verifyClerkWebhook;
-      handlerModule.syncClerkUserAction = mockSyncAction;
+      actionsModule.syncClerkUserAction = mockSyncAction;
 
       const result = await handleClerkWebhook(mockWebhookPayload, mockHeaders);
 
@@ -140,14 +141,13 @@ describe('Clerk Webhook E2E', () => {
         }
       });
 
-      // Mock the handler functions
-      const originalVerifyClerkWebhook = (await import('../../infrastructure/clerk-webhook.handler')).verifyClerkWebhook;
-      const originalSyncClerkUserAction = (await import('../actions/user-management.actions')).syncClerkUserAction;
-
-      // Replace the handler's dependencies
+      // Mock the handler functions using dynamic imports
       const handlerModule = await import('../../infrastructure/clerk-webhook.handler');
+        const actionsModule = await import('../../actions/user-management.actions');
+
+      // Replace functions
       handlerModule.verifyClerkWebhook = verifyClerkWebhook;
-      handlerModule.syncClerkUserAction = mockSyncAction;
+      actionsModule.syncClerkUserAction = mockSyncAction;
 
       const result = await handleClerkWebhook(mockWebhookPayload, mockHeaders);
 
@@ -181,8 +181,9 @@ describe('Clerk Webhook E2E', () => {
 
       const verifyClerkWebhook = vi.fn().mockResolvedValue(false);
 
-      const originalHandler = require('../../infrastructure/clerk-webhook.handler');
-      originalHandler.verifyClerkWebhook = verifyClerkWebhook;
+      // Mock the handler functions
+      const handlerModule = await import('../../infrastructure/clerk-webhook.handler');
+      handlerModule.verifyClerkWebhook = verifyClerkWebhook;
 
       await expect(handleClerkWebhook(mockWebhookPayload, mockHeaders))
         .rejects.toThrow('Unauthorized webhook request');
@@ -209,14 +210,13 @@ describe('Clerk Webhook E2E', () => {
         error: { code: 'USER_NOT_FOUND', message: 'User not found in Clerk' }
       });
 
-      // Mock the handler functions
-      const originalVerifyClerkWebhook = (await import('../../infrastructure/clerk-webhook.handler')).verifyClerkWebhook;
-      const originalSyncClerkUserAction = (await import('../actions/user-management.actions')).syncClerkUserAction;
-
-      // Replace the handler's dependencies
+      // Mock the handler functions using dynamic imports
       const handlerModule = await import('../../infrastructure/clerk-webhook.handler');
+        const actionsModule = await import('../../actions/user-management.actions');
+
+      // Replace functions
       handlerModule.verifyClerkWebhook = verifyClerkWebhook;
-      handlerModule.syncClerkUserAction = mockSyncAction;
+      actionsModule.syncClerkUserAction = mockSyncAction;
 
       await expect(handleClerkWebhook(mockWebhookPayload, mockHeaders))
         .rejects.toThrow('Failed to sync user');

@@ -1,17 +1,21 @@
-"use server";
+'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
+import { Webhook } from 'svix';
 import { z } from 'zod';
-import { UserManagementService, ClerkService } from '../services/user-management.service';
+import {
+  UserManagementService,
+  ClerkService,
+} from '../services/user-management.service';
 import { DrizzleUserRepository } from '../repositories/user.repository';
 import { SyncClerkUserCommand } from '../commands';
 import { ClerkUserSyncedEvent } from '../events';
-import { Result } from '@/lib/action-result';
+import { ActionResult, ok, err } from '@/lib/action-result';
 import { UserManagementError } from '../errors/user-management.error';
 
 export async function syncUserFromClerkAction(
   clerkUserId: string
-): Promise<Result<any, UserManagementError>> {
+): Promise<ActionResult<any, UserManagementError>> {
   // 인증 확인
   const { userId } = await auth();
   if (!userId) {
@@ -20,19 +24,53 @@ export async function syncUserFromClerkAction(
 
   // Repository와 Service 초기화
   const userRepository = new DrizzleUserRepository();
-  const clerkService = new ClerkService({
+  const clerkService: ClerkService = {
     getUser: async (id: string) => {
-      // 실제 Clerk 클라이언트를 사용하는 구현이 들어갈 자리
-      // 현재는 mock 데이터 반환
-      return {
-        id,
-        emailAddresses: [{ emailAddress: 'test@example.com' }],
-        firstName: 'Test',
-        lastName: 'User',
-        imageUrl: null
-      };
-    }
-  });
+      try {
+        const user = await currentUser();
+        if (!user || user.id !== id) {
+          return null;
+        }
+        return {
+          id: user.id,
+          emailAddresses: user.emailAddresses.map(addr => ({
+            emailAddress: addr.emailAddress,
+          })),
+          firstName: user.firstName,
+          lastName: user.lastName,
+          imageUrl: user.imageUrl,
+        };
+      } catch (error) {
+        console.error('Failed to get user from Clerk:', error);
+        return null;
+      }
+    },
+    verifyWebhook: async (payload: any, headers: Record<string, string>) => {
+      try {
+        const svix_id = headers['svix-id'];
+        const svix_timestamp = headers['svix-timestamp'];
+        const svix_signature = headers['svix-signature'];
+
+        if (!svix_id || !svix_timestamp || !svix_signature) {
+          return false;
+        }
+
+        const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET || '');
+        const body = JSON.stringify(payload);
+
+        wh.verify(body, {
+          'svix-id': svix_id,
+          'svix-timestamp': svix_timestamp,
+          'svix-signature': svix_signature,
+        });
+
+        return true;
+      } catch (error) {
+        console.error('Webhook verification failed:', error);
+        return false;
+      }
+    },
+  };
 
   const service = new UserManagementService(userRepository, clerkService);
 
@@ -41,7 +79,7 @@ export async function syncUserFromClerkAction(
 
 export async function syncClerkUserAction(
   input: SyncClerkUserCommand
-): Promise<Result<ClerkUserSyncedEvent, UserManagementError>> {
+): Promise<ActionResult<ClerkUserSyncedEvent, UserManagementError>> {
   // 인증 확인
   const { userId } = await auth();
   if (!userId) {
@@ -51,31 +89,62 @@ export async function syncClerkUserAction(
   // Input validation
   const schema = z.object({
     clerkId: z.string().min(1),
-    email: z.string().email(),
+    email: z.string(),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     imageUrl: z.string().optional(),
     status: z.enum(['active', 'soft_deleted', 'permanently_deleted']),
-    metadata: z.record(z.any()).optional(),
-    webhookType: z.enum(['user.created', 'user.updated', 'user.deleted'])
+    metadata: z.record(z.any(), z.any()).optional(),
+    webhookType: z.enum(['user.created', 'user.updated', 'user.deleted']),
   });
 
   const validatedInput = schema.parse(input);
 
   // Repository와 Service 초기화
   const userRepository = new DrizzleUserRepository();
-  const clerkService = new ClerkService({
+  const clerkService: ClerkService = {
     getUser: async (id: string) => {
-      // 실제 Clerk 클라이언트를 사용하는 구현이 들어갈 자리
-      return {
-        id,
-        emailAddresses: [{ emailAddress: validatedInput.email }],
-        firstName: validatedInput.firstName,
-        lastName: validatedInput.lastName,
-        imageUrl: validatedInput.imageUrl
-      };
-    }
-  });
+      try {
+        // 실제 Clerk SDK를 사용하여 사용자 정보를 조회하지 않고,
+        // Webhook에서 받은 데이터를 그대로 사용 (이미 검증됨)
+        return {
+          id,
+          emailAddresses: [{ emailAddress: validatedInput.email }],
+          firstName: validatedInput.firstName,
+          lastName: validatedInput.lastName,
+          imageUrl: validatedInput.imageUrl,
+        };
+      } catch (error) {
+        console.error('Failed to process user data:', error);
+        return null;
+      }
+    },
+    verifyWebhook: async (payload: any, headers: Record<string, string>) => {
+      try {
+        const svix_id = headers['svix-id'];
+        const svix_timestamp = headers['svix-timestamp'];
+        const svix_signature = headers['svix-signature'];
+
+        if (!svix_id || !svix_timestamp || !svix_signature) {
+          return false;
+        }
+
+        const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET || '');
+        const body = JSON.stringify(payload);
+
+        wh.verify(body, {
+          'svix-id': svix_id,
+          'svix-timestamp': svix_timestamp,
+          'svix-signature': svix_signature,
+        });
+
+        return true;
+      } catch (error) {
+        console.error('Webhook verification failed:', error);
+        return false;
+      }
+    },
+  };
 
   const service = new UserManagementService(userRepository, clerkService);
 
