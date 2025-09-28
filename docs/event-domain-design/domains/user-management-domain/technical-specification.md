@@ -840,6 +840,48 @@ export interface InviteUserToOrganizationCommand {
   inviteeEmail: string;
   role: MembershipRole;
 }
+
+export interface TransferOrganizationOwnershipCommand {
+  organizationId: string;
+  currentOwnerId: string;
+  newOwnerId: string;
+}
+
+export interface DeleteOrganizationCommand {
+  organizationId: string;
+  deletedBy: string;
+  confirmationName: string;
+}
+
+export interface RestoreOrganizationCommand {
+  organizationId: string;
+  restoredBy: string;
+}
+
+export interface ChangeMemberRoleCommand {
+  membershipId: string;
+  newRole: MembershipRole;
+  changedBy: string;
+}
+
+export interface RemoveMemberCommand {
+  membershipId: string;
+  removedBy: string;
+}
+
+export interface CancelInvitationCommand {
+  invitationId: string;
+  cancelledBy: string;
+}
+
+export interface AcceptInvitationCommand {
+  invitationId: string;
+  userId: string;
+}
+
+export interface RejectInvitationCommand {
+  invitationId: string;
+}
 ```
 
 #### Events
@@ -1262,6 +1304,183 @@ export class UserManagementService {
     }
   }
 
+  async transferOrganizationOwnership(
+    organizationId: string,
+    currentOwnerId: string,
+    newOwnerId: string
+  ): Promise<Result<void, UserManagementError>> {
+    try {
+      // 1. 조직 조회
+      const organization = await this.organizationRepository.findById(new OrganizationId(organizationId));
+      if (!organization) {
+        return Result.error(new UserManagementError('ORGANIZATION_NOT_FOUND', 'Organization not found'));
+      }
+
+      // 2. 새 소유자 확인
+      const newOwner = await this.userRepository.findById(new UserId(newOwnerId));
+      if (!newOwner) {
+        return Result.error(new UserManagementError('USER_NOT_FOUND', 'New owner not found'));
+      }
+
+      // 3. 소유권 이전 실행
+      const event = organization.transferOwnership(new UserId(newOwnerId), new UserId(currentOwnerId));
+      await this.organizationRepository.save(organization);
+
+      return Result.success(undefined);
+    } catch (error) {
+      if (error instanceof UserManagementError) {
+        return Result.error(error);
+      }
+      return Result.error(new UserManagementError('OWNERSHIP_TRANSFER_FAILED', 'Failed to transfer ownership', { error }));
+    }
+  }
+
+  async deleteOrganization(
+    organizationId: string,
+    deletedBy: string,
+    confirmationName: string
+  ): Promise<Result<void, UserManagementError>> {
+    try {
+      // 1. 조직 조회
+      const organization = await this.organizationRepository.findById(new OrganizationId(organizationId));
+      if (!organization) {
+        return Result.error(new UserManagementError('ORGANIZATION_NOT_FOUND', 'Organization not found'));
+      }
+
+      // 2. 조직 이름 확인 (안전장치)
+      if (organization.entity.name !== confirmationName) {
+        return Result.error(new UserManagementError('ORGANIZATION_NAME_MISMATCH', 'Organization name does not match'));
+      }
+
+      // 3. 소프트 삭제 실행
+      const event = organization.softDelete(new UserId(deletedBy));
+      await this.organizationRepository.save(organization);
+
+      // 4. Clerk에서도 조직 삭제
+      await this.clerkService.deleteOrganization(organization.entity.clerkId);
+
+      return Result.success(undefined);
+    } catch (error) {
+      if (error instanceof UserManagementError) {
+        return Result.error(error);
+      }
+      return Result.error(new UserManagementError('ORGANIZATION_DELETION_FAILED', 'Failed to delete organization', { error }));
+    }
+  }
+
+  async restoreOrganization(
+    organizationId: string,
+    restoredBy: string
+  ): Promise<Result<void, UserManagementError>> {
+    try {
+      // 1. 조직 조회
+      const organization = await this.organizationRepository.findById(new OrganizationId(organizationId));
+      if (!organization) {
+        return Result.error(new UserManagementError('ORGANIZATION_NOT_FOUND', 'Organization not found'));
+      }
+
+      // 2. 복구 실행
+      const event = organization.restoreOrganization(new UserId(restoredBy));
+      await this.organizationRepository.save(organization);
+
+      return Result.success(undefined);
+    } catch (error) {
+      if (error instanceof UserManagementError) {
+        return Result.error(error);
+      }
+      return Result.error(new UserManagementError('ORGANIZATION_RESTORE_FAILED', 'Failed to restore organization', { error }));
+    }
+  }
+
+  async changeMemberRole(
+    membershipId: string,
+    newRole: MembershipRole,
+    changedBy: string
+  ): Promise<Result<void, UserManagementError>> {
+    try {
+      // 1. 멤버십 조회
+      const membership = await this.membershipRepository.findById(new MembershipId(membershipId));
+      if (!membership) {
+        return Result.error(new UserManagementError('MEMBERSHIP_NOT_FOUND', 'Membership not found'));
+      }
+
+      // 2. 역할 변경 실행
+      const event = membership.changeRole(newRole, new UserId(changedBy));
+      await this.membershipRepository.save(membership);
+
+      // 3. Clerk에서도 역할 업데이트
+      await this.clerkService.updateMemberRole(
+        membership.organizationId.value,
+        membership.userId!.value,
+        newRole
+      );
+
+      return Result.success(undefined);
+    } catch (error) {
+      if (error instanceof UserManagementError) {
+        return Result.error(error);
+      }
+      return Result.error(new UserManagementError('ROLE_CHANGE_FAILED', 'Failed to change member role', { error }));
+    }
+  }
+
+  async removeMember(
+    membershipId: string,
+    removedBy: string
+  ): Promise<Result<void, UserManagementError>> {
+    try {
+      // 1. 멤버십 조회
+      const membership = await this.membershipRepository.findById(new MembershipId(membershipId));
+      if (!membership) {
+        return Result.error(new UserManagementError('MEMBERSHIP_NOT_FOUND', 'Membership not found'));
+      }
+
+      // 2. 멤버 제거 실행
+      const event = membership.remove(new UserId(removedBy));
+      await this.membershipRepository.save(membership);
+
+      // 3. Clerk에서도 멤버 제거
+      await this.clerkService.removeMember(
+        membership.organizationId.value,
+        membership.userId!.value
+      );
+
+      return Result.success(undefined);
+    } catch (error) {
+      if (error instanceof UserManagementError) {
+        return Result.error(error);
+      }
+      return Result.error(new UserManagementError('MEMBER_REMOVAL_FAILED', 'Failed to remove member', { error }));
+    }
+  }
+
+  async cancelInvitation(
+    invitationId: string,
+    cancelledBy: string
+  ): Promise<Result<void, UserManagementError>> {
+    try {
+      // 1. 초대 조회
+      const membership = await this.membershipRepository.findById(new MembershipId(invitationId));
+      if (!membership) {
+        return Result.error(new UserManagementError('INVITATION_NOT_FOUND', 'Invitation not found'));
+      }
+
+      // 2. 초대 취소 실행
+      const event = membership.cancelInvitation(new UserId(cancelledBy));
+      await this.membershipRepository.save(membership);
+
+      // 3. Clerk에서도 초대 취소
+      await this.clerkService.cancelInvitation(invitationId);
+
+      return Result.success(undefined);
+    } catch (error) {
+      if (error instanceof UserManagementError) {
+        return Result.error(error);
+      }
+      return Result.error(new UserManagementError('INVITATION_CANCEL_FAILED', 'Failed to cancel invitation', { error }));
+    }
+  }
+
   private async createDefaultOrganization(user: UserAggregate): Promise<void> {
     // 기본 조직 생성 로직
     const orgName = `${user.entity.name}'s Organization`;
@@ -1275,7 +1494,7 @@ export class UserManagementService {
     });
 
     // 내부 조직 생성
-    const organization = OrganizationAggregate.create(
+    const organization = OrganizationAggregate.createDefault(
       orgName,
       orgSlug,
       clerkOrg.id,
@@ -1283,6 +1502,23 @@ export class UserManagementService {
     );
     
     await this.organizationRepository.save(organization);
+
+    // 기본 멤버십 생성
+    const membership = new Membership(
+      MembershipId.generate(),
+      organization.id,
+      user.id,
+      'owner',
+      null, // 기본 조직은 초대가 아님
+      null, // 초대 시간 없음
+      new Date(), // 즉시 가입
+      'active',
+      new Date(),
+      new Date()
+    );
+
+    const membershipAggregate = new MembershipAggregate(membership, organization.entity, user.entity);
+    await this.membershipRepository.save(membershipAggregate);
   }
 }
 ```
@@ -1677,6 +1913,189 @@ export class UserOrganizationViewRepository {
 }
 ```
 
+#### OrganizationMemberView
+```typescript
+// apps/web/src/domains/user-management/read-models/organization-member.view.ts
+export interface OrganizationMemberView {
+  organizationId: string;
+  organizationName: string;
+  members: MemberDetail[];
+  pendingInvitations: InvitationDetail[];
+  totalMemberCount: number;
+}
+
+export interface MemberDetail {
+  userId: string;
+  email: string;
+  name: string;
+  role: MembershipRole;
+  joinedAt: Date;
+  lastActiveAt?: Date;
+}
+
+export interface InvitationDetail {
+  invitationId: string;
+  email: string;
+  role: MembershipRole;
+  invitedBy: string;
+  invitedAt: Date;
+  expiresAt: Date;
+}
+
+export interface OrganizationSummary {
+  id: string;
+  name: string;
+  role: MembershipRole;
+  memberCount: number;
+  isDefault: boolean;
+}
+
+export class OrganizationMemberViewRepository {
+  constructor(private db: Database) {}
+
+  async getByOrganizationId(organizationId: string): Promise<OrganizationMemberView | null> {
+    // 조직 정보 조회
+    const orgResult = await this.db
+      .select({
+        id: organizations.id,
+        name: organizations.name
+      })
+      .from(organizations)
+      .where(and(
+        eq(organizations.id, organizationId),
+        isNull(organizations.deletedAt)
+      ));
+
+    if (orgResult.length === 0) return null;
+
+    const organization = orgResult[0];
+
+    // 활성 멤버 조회
+    const memberResult = await this.db
+      .select({
+        userId: users.id,
+        userEmail: users.email,
+        userName: users.name,
+        membershipRole: memberships.role,
+        joinedAt: memberships.joinedAt,
+        lastActiveAt: users.lastLoginAt
+      })
+      .from(memberships)
+      .leftJoin(users, eq(memberships.userId, users.id))
+      .where(and(
+        eq(memberships.organizationId, organizationId),
+        eq(memberships.status, 'active'),
+        isNull(memberships.deletedAt),
+        isNull(users.deletedAt)
+      ))
+      .orderBy(memberships.joinedAt);
+
+    // 대기 중인 초대 조회
+    const invitationResult = await this.db
+      .select({
+        invitationId: memberships.id,
+        inviteeEmail: memberships.inviteeEmail,
+        role: memberships.role,
+        invitedBy: inviterUsers.name,
+        invitedAt: memberships.invitedAt
+      })
+      .from(memberships)
+      .leftJoin(inviterUsers, eq(memberships.invitedBy, inviterUsers.id))
+      .where(and(
+        eq(memberships.organizationId, organizationId),
+        eq(memberships.status, 'pending'),
+        isNull(memberships.deletedAt)
+      ))
+      .orderBy(memberships.invitedAt);
+
+    const members: MemberDetail[] = memberResult.map(m => ({
+      userId: m.userId,
+      email: m.userEmail,
+      name: m.userName,
+      role: m.membershipRole,
+      joinedAt: m.joinedAt!,
+      lastActiveAt: m.lastActiveAt
+    }));
+
+    const pendingInvitations: InvitationDetail[] = invitationResult.map(i => ({
+      invitationId: i.invitationId,
+      email: i.inviteeEmail!,
+      role: i.role,
+      invitedBy: i.invitedBy || 'Unknown',
+      invitedAt: i.invitedAt!,
+      expiresAt: new Date(i.invitedAt!.getTime() + 30 * 24 * 60 * 60 * 1000) // 30일 후
+    }));
+
+    return {
+      organizationId: organization.id,
+      organizationName: organization.name,
+      members,
+      pendingInvitations,
+      totalMemberCount: members.length
+    };
+  }
+
+  async getMembersByRole(organizationId: string, role: MembershipRole): Promise<MemberDetail[]> {
+    const result = await this.db
+      .select({
+        userId: users.id,
+        userEmail: users.email,
+        userName: users.name,
+        membershipRole: memberships.role,
+        joinedAt: memberships.joinedAt,
+        lastActiveAt: users.lastLoginAt
+      })
+      .from(memberships)
+      .leftJoin(users, eq(memberships.userId, users.id))
+      .where(and(
+        eq(memberships.organizationId, organizationId),
+        eq(memberships.role, role),
+        eq(memberships.status, 'active'),
+        isNull(memberships.deletedAt),
+        isNull(users.deletedAt)
+      ))
+      .orderBy(memberships.joinedAt);
+
+    return result.map(m => ({
+      userId: m.userId,
+      email: m.userEmail,
+      name: m.userName,
+      role: m.membershipRole,
+      joinedAt: m.joinedAt!,
+      lastActiveAt: m.lastActiveAt
+    }));
+  }
+
+  async getPendingInvitations(organizationId: string): Promise<InvitationDetail[]> {
+    const result = await this.db
+      .select({
+        invitationId: memberships.id,
+        inviteeEmail: memberships.inviteeEmail,
+        role: memberships.role,
+        invitedBy: inviterUsers.name,
+        invitedAt: memberships.invitedAt
+      })
+      .from(memberships)
+      .leftJoin(inviterUsers, eq(memberships.invitedBy, inviterUsers.id))
+      .where(and(
+        eq(memberships.organizationId, organizationId),
+        eq(memberships.status, 'pending'),
+        isNull(memberships.deletedAt)
+      ))
+      .orderBy(memberships.invitedAt);
+
+    return result.map(i => ({
+      invitationId: i.invitationId,
+      email: i.inviteeEmail!,
+      role: i.role,
+      invitedBy: i.invitedBy || 'Unknown',
+      invitedAt: i.invitedAt!,
+      expiresAt: new Date(i.invitedAt!.getTime() + 30 * 24 * 60 * 60 * 1000)
+    }));
+  }
+}
+```
+
 ---
 
 ## 🌐 Anti-Corruption Layer & Server Actions
@@ -1712,6 +2131,49 @@ export class ClerkService {
     return this.mapClerkInvitation(invitation);
   }
 
+  async createOrganization(params: {
+    name: string;
+    slug: string;
+    createdBy: string;
+  }): Promise<ClerkOrganization> {
+    const organization = await this.clerkClient.organizations.createOrganization({
+      name: params.name,
+      slug: params.slug,
+      createdBy: params.createdBy
+    });
+
+    return this.mapClerkOrganization(organization);
+  }
+
+  async deleteOrganization(clerkOrgId: string): Promise<void> {
+    await this.clerkClient.organizations.deleteOrganization(clerkOrgId);
+  }
+
+  async updateMemberRole(
+    organizationId: string,
+    userId: string,
+    role: string
+  ): Promise<void> {
+    await this.clerkClient.organizations.updateOrganizationMembership({
+      organizationId,
+      userId,
+      role
+    });
+  }
+
+  async removeMember(organizationId: string, userId: string): Promise<void> {
+    await this.clerkClient.organizations.deleteOrganizationMembership({
+      organizationId,
+      userId
+    });
+  }
+
+  async cancelInvitation(invitationId: string): Promise<void> {
+    await this.clerkClient.organizations.revokeOrganizationInvitation({
+      invitationId
+    });
+  }
+
   private mapClerkUser(clerkUser: any): ClerkUser {
     return {
       id: clerkUser.id,
@@ -1730,6 +2192,16 @@ export class ClerkService {
       status: invitation.status
     };
   }
+
+  private mapClerkOrganization(clerkOrg: any): ClerkOrganization {
+    return {
+      id: clerkOrg.id,
+      name: clerkOrg.name,
+      slug: clerkOrg.slug,
+      createdBy: clerkOrg.createdBy
+    };
+  }
+}
 }
 ```
 
