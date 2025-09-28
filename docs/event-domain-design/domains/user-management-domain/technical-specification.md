@@ -99,6 +99,67 @@ export class OrganizationSlug {
 
 ### 2. Entities 구현
 
+#### Value Object IDs
+```typescript
+// apps/web/src/domains/user-management/value-objects/ids.vo.ts
+export class UserId {
+  constructor(private readonly value: string) {
+    if (!value || value.trim().length === 0) {
+      throw new UserManagementError('INVALID_USER_ID', 'User ID cannot be empty');
+    }
+  }
+
+  get value() { return this.value; }
+
+  equals(other: UserId): boolean {
+    return this.value === other.value;
+  }
+
+  static generate(): UserId {
+    return new UserId(crypto.randomUUID());
+  }
+}
+
+export class OrganizationId {
+  constructor(private readonly value: string) {
+    if (!value || value.trim().length === 0) {
+      throw new UserManagementError('INVALID_ORGANIZATION_ID', 'Organization ID cannot be empty');
+    }
+  }
+
+  get value() { return this.value; }
+
+  equals(other: OrganizationId): boolean {
+    return this.value === other.value;
+  }
+
+  static generate(): OrganizationId {
+    return new OrganizationId(crypto.randomUUID());
+  }
+}
+
+export class MembershipId {
+  constructor(private readonly value: string) {
+    if (!value || value.trim().length === 0) {
+      throw new UserManagementError('INVALID_MEMBERSHIP_ID', 'Membership ID cannot be empty');
+    }
+  }
+
+  get value() { return this.value; }
+
+  equals(other: MembershipId): boolean {
+    return this.value === other.value;
+  }
+
+  static generate(): MembershipId {
+    return new MembershipId(crypto.randomUUID());
+  }
+}
+
+export type MembershipRole = 'owner' | 'admin' | 'member';
+export type MembershipStatus = 'pending' | 'active' | 'removed';
+```
+
 #### User Entity
 ```typescript
 // apps/web/src/domains/user-management/entities/user.entity.ts
@@ -154,6 +215,180 @@ export class User {
     }
     this._deletedAt = null;
     this._updatedAt = new Date();
+  }
+}
+```
+
+#### Organization Entity
+```typescript
+// apps/web/src/domains/user-management/entities/organization.entity.ts
+export class Organization {
+  constructor(
+    public readonly id: OrganizationId,
+    public readonly clerkId: string,
+    private _name: string,
+    private _slug: OrganizationSlug,
+    private _ownerId: UserId,
+    private _isDefault: boolean,
+    public readonly createdAt: Date,
+    private _updatedAt: Date,
+    private _deletedAt: Date | null = null
+  ) {}
+
+  // Getters
+  get name() { return this._name; }
+  get slug() { return this._slug; }
+  get ownerId() { return this._ownerId; }
+  get isDefault() { return this._isDefault; }
+  get updatedAt() { return this._updatedAt; }
+  get deletedAt() { return this._deletedAt; }
+  get isDeleted() { return this._deletedAt !== null; }
+
+  // 상태 변경 메서드
+  updateName(name: string): void {
+    if (this.isDeleted) {
+      throw new UserManagementError('ORGANIZATION_DELETED', 'Cannot update deleted organization');
+    }
+    this._name = name;
+    this._updatedAt = new Date();
+  }
+
+  updateSlug(slug: OrganizationSlug): void {
+    if (this.isDeleted) {
+      throw new UserManagementError('ORGANIZATION_DELETED', 'Cannot update deleted organization');
+    }
+    this._slug = slug;
+    this._updatedAt = new Date();
+  }
+
+  transferOwnership(newOwnerId: UserId): void {
+    if (this.isDeleted) {
+      throw new UserManagementError('ORGANIZATION_DELETED', 'Cannot transfer ownership of deleted organization');
+    }
+    if (this._isDefault) {
+      throw new UserManagementError('CANNOT_TRANSFER_DEFAULT', 'Cannot transfer ownership of default organization');
+    }
+    this._ownerId = newOwnerId;
+    this._updatedAt = new Date();
+  }
+
+  softDelete(): void {
+    if (this.isDeleted) {
+      throw new UserManagementError('ORGANIZATION_ALREADY_DELETED', 'Organization is already deleted');
+    }
+    if (this._isDefault) {
+      throw new UserManagementError('CANNOT_DELETE_DEFAULT', 'Cannot delete default organization');
+    }
+    this._deletedAt = new Date();
+    this._updatedAt = new Date();
+  }
+
+  restore(): void {
+    if (!this.isDeleted) {
+      throw new UserManagementError('ORGANIZATION_NOT_DELETED', 'Organization is not deleted');
+    }
+    this._deletedAt = null;
+    this._updatedAt = new Date();
+  }
+
+  // 30일 후 완전 삭제 여부 확인
+  canBePermanentlyDeleted(): boolean {
+    if (!this.isDeleted) return false;
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    return this._deletedAt! < thirtyDaysAgo;
+  }
+}
+```
+
+#### Membership Entity
+```typescript
+// apps/web/src/domains/user-management/entities/membership.entity.ts
+export class Membership {
+  constructor(
+    public readonly id: MembershipId,
+    public readonly organizationId: OrganizationId,
+    private _userId: UserId | null,
+    private _role: MembershipRole,
+    private _invitedBy: UserId | null,
+    private _invitedAt: Date | null,
+    private _joinedAt: Date | null,
+    private _status: MembershipStatus,
+    public readonly createdAt: Date,
+    private _updatedAt: Date,
+    private _deletedAt: Date | null = null,
+    private _inviteeEmail?: UserEmail
+  ) {}
+
+  // Getters
+  get userId() { return this._userId; }
+  get role() { return this._role; }
+  get invitedBy() { return this._invitedBy; }
+  get invitedAt() { return this._invitedAt; }
+  get joinedAt() { return this._joinedAt; }
+  get status() { return this._status; }
+  get updatedAt() { return this._updatedAt; }
+  get deletedAt() { return this._deletedAt; }
+  get isDeleted() { return this._deletedAt !== null; }
+  get inviteeEmail() { return this._inviteeEmail; }
+  get isDefault() { return this._role === 'owner'; } // 기본 조직에서는 owner가 default
+
+  // 상태 변경 메서드
+  accept(userId: UserId): void {
+    if (this._status !== 'pending') {
+      throw new UserManagementError('INVITATION_NOT_PENDING', 'Invitation is not pending');
+    }
+    if (this.isExpired()) {
+      throw new UserManagementError('INVITATION_EXPIRED', 'Invitation has expired');
+    }
+    this._userId = userId;
+    this._joinedAt = new Date();
+    this._status = 'active';
+    this._updatedAt = new Date();
+  }
+
+  reject(): void {
+    if (this._status !== 'pending') {
+      throw new UserManagementError('INVITATION_NOT_PENDING', 'Invitation is not pending');
+    }
+    this._status = 'removed';
+    this._updatedAt = new Date();
+  }
+
+  changeRole(newRole: MembershipRole): void {
+    if (this._status !== 'active') {
+      throw new UserManagementError('MEMBERSHIP_NOT_ACTIVE', 'Cannot change role of inactive membership');
+    }
+    this._role = newRole;
+    this._updatedAt = new Date();
+  }
+
+  remove(): void {
+    if (this.isDeleted) {
+      throw new UserManagementError('MEMBERSHIP_ALREADY_DELETED', 'Membership is already deleted');
+    }
+    this._status = 'removed';
+    this._deletedAt = new Date();
+    this._updatedAt = new Date();
+  }
+
+  cancel(): void {
+    if (this._status !== 'pending') {
+      throw new UserManagementError('INVITATION_NOT_PENDING', 'Can only cancel pending invitations');
+    }
+    this._status = 'removed';
+    this._deletedAt = new Date();
+    this._updatedAt = new Date();
+  }
+
+  // 비즈니스 규칙 검증
+  isExpired(): boolean {
+    if (!this._invitedAt || this._status !== 'pending') return false;
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    return this._invitedAt < thirtyDaysAgo;
+  }
+
+  canInviteMembers(): boolean {
+    return this._status === 'active' && (this._role === 'owner' || this._role === 'admin');
   }
 }
 ```
@@ -358,6 +593,49 @@ export class OrganizationAggregate {
     );
   }
 
+  restoreOrganization(restoredBy: UserId): OrganizationRestoredEvent {
+    if (!this.organization.ownerId.equals(restoredBy)) {
+      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Only owner can restore organization');
+    }
+
+    if (!this.organization.isDeleted) {
+      throw new UserManagementError('ORGANIZATION_NOT_DELETED', 'Organization is not deleted');
+    }
+
+    if (this.organization.canBePermanentlyDeleted()) {
+      throw new UserManagementError('ORGANIZATION_PERMANENTLY_DELETED', 'Organization cannot be restored after 30 days');
+    }
+
+    this.organization.restore();
+
+    return new OrganizationRestoredEvent(
+      this.organization.id,
+      this.organization.name,
+      restoredBy
+    );
+  }
+
+  handleClerkOrganizationDeletion(clerkOrgId: string): OrganizationClerkDeletedEvent {
+    if (this.organization.clerkId !== clerkOrgId) {
+      throw new UserManagementError('CLERK_ID_MISMATCH', 'Clerk organization ID does not match');
+    }
+
+    // Clerk에서 삭제된 조직은 강제로 소프트 삭제
+    this.organization.softDelete();
+    
+    // 모든 멤버십 비활성화
+    this.memberships.forEach(membership => {
+      if (!membership.isDeleted) {
+        membership.remove();
+      }
+    });
+
+    return new OrganizationClerkDeletedEvent(
+      this.organization.id,
+      clerkOrgId
+    );
+  }
+
   // 비즈니스 규칙 검증
   canBeDeletedBy(userId: UserId): boolean {
     return this.organization.ownerId.equals(userId) && !this.organization.isDefault;
@@ -493,6 +771,30 @@ export class MembershipAggregate {
     );
   }
 
+  cancelInvitation(cancelledBy: UserId): InvitationCancelledEvent {
+    // 권한 검증: Owner, Admin, 또는 초대한 사람만 취소 가능
+    const canCancel = this.organization.ownerId.equals(cancelledBy) ||
+                     this.membership.invitedBy?.equals(cancelledBy) ||
+                     this.membership.role === 'admin';
+    
+    if (!canCancel) {
+      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Cannot cancel this invitation');
+    }
+
+    if (this.membership.status !== 'pending') {
+      throw new UserManagementError('INVITATION_NOT_PENDING', 'Can only cancel pending invitations');
+    }
+
+    this.membership.cancel();
+    
+    return new InvitationCancelledEvent(
+      this.membership.id,
+      this.membership.organizationId,
+      this.membership.inviteeEmail!,
+      cancelledBy
+    );
+  }
+
   // 비즈니스 규칙 검증
   canInviteMembers(): boolean {
     return this.membership.role === 'owner' || this.membership.role === 'admin';
@@ -571,6 +873,232 @@ export class UserInvitedToOrganizationEvent {
     public readonly timestamp: Date = new Date()
   ) {}
 }
+
+// Organization Events
+export class OrganizationUpdatedEvent {
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly name: string,
+    public readonly slug: OrganizationSlug,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class ClerkOrganizationSyncedEvent {
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly clerkId: string,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class DefaultOrganizationCreatedEvent {
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly ownerId: UserId,
+    public readonly name: string,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class OwnershipTransferRequestedEvent {
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly currentOwnerId: UserId,
+    public readonly newOwnerId: UserId,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class OwnershipTransferredEvent {
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly previousOwnerId: UserId,
+    public readonly newOwnerId: UserId,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class NewOwnerPromotedEvent {
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly userId: UserId,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class PreviousOwnerDemotedEvent {
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly userId: UserId,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class OrganizationDeletionRequestedEvent {
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly requestedBy: UserId,
+    public readonly organizationName: string,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class OrganizationSoftDeletedEvent {
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly organizationName: string,
+    public readonly deletedBy: UserId,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class OrganizationRestoredEvent {
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly organizationName: string,
+    public readonly restoredBy: UserId,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class PermanentDeletionScheduledEvent {
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly scheduledDate: Date,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class OrganizationClerkDeletedEvent {
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly clerkId: string,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+// Membership Events
+export class MemberInvitationSentEvent {
+  constructor(
+    public readonly invitationId: MembershipId,
+    public readonly organizationId: OrganizationId,
+    public readonly inviteeEmail: UserEmail,
+    public readonly inviterUserId: UserId,
+    public readonly role: MembershipRole,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class ClerkInvitationLinkGeneratedEvent {
+  constructor(
+    public readonly invitationId: MembershipId,
+    public readonly clerkInvitationId: string,
+    public readonly invitationUrl: string,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class InvitationAcceptedEvent {
+  constructor(
+    public readonly invitationId: MembershipId,
+    public readonly organizationId: OrganizationId,
+    public readonly userId: UserId,
+    public readonly role: MembershipRole,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class InvitationRejectedEvent {
+  constructor(
+    public readonly invitationId: MembershipId,
+    public readonly organizationId: OrganizationId,
+    public readonly inviteeEmail: UserEmail,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class NewMemberAddedEvent {
+  constructor(
+    public readonly membershipId: MembershipId,
+    public readonly organizationId: OrganizationId,
+    public readonly userId: UserId,
+    public readonly role: MembershipRole,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class MemberRoleAssignedEvent {
+  constructor(
+    public readonly membershipId: MembershipId,
+    public readonly organizationId: OrganizationId,
+    public readonly userId: UserId,
+    public readonly role: MembershipRole,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class MemberPromotedToAdminEvent {
+  constructor(
+    public readonly membershipId: MembershipId,
+    public readonly organizationId: OrganizationId,
+    public readonly userId: UserId,
+    public readonly promotedBy: UserId,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class AdminDemotedToMemberEvent {
+  constructor(
+    public readonly membershipId: MembershipId,
+    public readonly organizationId: OrganizationId,
+    public readonly userId: UserId,
+    public readonly demotedBy: UserId,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class MemberRoleChangedEvent {
+  constructor(
+    public readonly membershipId: MembershipId,
+    public readonly organizationId: OrganizationId,
+    public readonly userId: UserId,
+    public readonly oldRole: MembershipRole,
+    public readonly newRole: MembershipRole,
+    public readonly changedBy: UserId,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class MemberRemovedEvent {
+  constructor(
+    public readonly membershipId: MembershipId,
+    public readonly organizationId: OrganizationId,
+    public readonly userId: UserId,
+    public readonly removedBy: UserId,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class InvitationExpiredEvent {
+  constructor(
+    public readonly invitationId: MembershipId,
+    public readonly organizationId: OrganizationId,
+    public readonly inviteeEmail: UserEmail,
+    public readonly expiredAt: Date,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class InvitationCancelledEvent {
+  constructor(
+    public readonly invitationId: MembershipId,
+    public readonly organizationId: OrganizationId,
+    public readonly inviteeEmail: UserEmail,
+    public readonly cancelledBy: UserId,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
 ```
 
 ### 5. Error Types 구현
@@ -592,26 +1120,62 @@ export type UserManagementErrorCode =
   | 'USER_NOT_FOUND'
   | 'USER_ALREADY_EXISTS'
   | 'USER_DELETED'
+  | 'USER_ALREADY_DELETED'
+  | 'USER_NOT_DELETED'
   | 'ORGANIZATION_NOT_FOUND'
+  | 'ORGANIZATION_DELETED'
+  | 'ORGANIZATION_ALREADY_DELETED'
+  | 'ORGANIZATION_NOT_DELETED'
+  | 'ORGANIZATION_PERMANENTLY_DELETED'
   | 'INVALID_EMAIL_FORMAT'
   | 'INVALID_SLUG_FORMAT'
+  | 'INVALID_USER_ID'
+  | 'INVALID_ORGANIZATION_ID'
+  | 'INVALID_MEMBERSHIP_ID'
   | 'MEMBERSHIP_ALREADY_EXISTS'
+  | 'MEMBERSHIP_NOT_ACTIVE'
+  | 'MEMBERSHIP_ALREADY_DELETED'
   | 'INSUFFICIENT_PERMISSIONS'
   | 'INVITATION_EXPIRED'
-  | 'CLERK_SYNC_FAILED';
+  | 'INVITATION_NOT_PENDING'
+  | 'CANNOT_TRANSFER_DEFAULT'
+  | 'CANNOT_DELETE_DEFAULT'
+  | 'CANNOT_CHANGE_OWN_ROLE'
+  | 'CANNOT_REMOVE_SELF'
+  | 'USER_NOT_MEMBER'
+  | 'CLERK_SYNC_FAILED'
+  | 'CLERK_ID_MISMATCH';
 
 // 사용자 메시지 매핑
 export const USER_MANAGEMENT_ERROR_MESSAGES: Record<UserManagementErrorCode, string> = {
   USER_NOT_FOUND: '사용자를 찾을 수 없습니다.',
   USER_ALREADY_EXISTS: '이미 존재하는 사용자입니다.',
   USER_DELETED: '삭제된 사용자입니다.',
+  USER_ALREADY_DELETED: '이미 삭제된 사용자입니다.',
+  USER_NOT_DELETED: '삭제되지 않은 사용자입니다.',
   ORGANIZATION_NOT_FOUND: '조직을 찾을 수 없습니다.',
+  ORGANIZATION_DELETED: '삭제된 조직입니다.',
+  ORGANIZATION_ALREADY_DELETED: '이미 삭제된 조직입니다.',
+  ORGANIZATION_NOT_DELETED: '삭제되지 않은 조직입니다.',
+  ORGANIZATION_PERMANENTLY_DELETED: '영구 삭제된 조직은 복구할 수 없습니다.',
   INVALID_EMAIL_FORMAT: '올바른 이메일 형식이 아닙니다.',
   INVALID_SLUG_FORMAT: '올바른 슬러그 형식이 아닙니다.',
+  INVALID_USER_ID: '올바르지 않은 사용자 ID입니다.',
+  INVALID_ORGANIZATION_ID: '올바르지 않은 조직 ID입니다.',
+  INVALID_MEMBERSHIP_ID: '올바르지 않은 멤버십 ID입니다.',
   MEMBERSHIP_ALREADY_EXISTS: '이미 조직의 멤버입니다.',
+  MEMBERSHIP_NOT_ACTIVE: '활성화되지 않은 멤버십입니다.',
+  MEMBERSHIP_ALREADY_DELETED: '이미 삭제된 멤버십입니다.',
   INSUFFICIENT_PERMISSIONS: '권한이 부족합니다.',
   INVITATION_EXPIRED: '초대 링크가 만료되었습니다.',
-  CLERK_SYNC_FAILED: '외부 인증 시스템과 동기화에 실패했습니다.'
+  INVITATION_NOT_PENDING: '대기 중인 초대가 아닙니다.',
+  CANNOT_TRANSFER_DEFAULT: '기본 조직의 소유권은 이전할 수 없습니다.',
+  CANNOT_DELETE_DEFAULT: '기본 조직은 삭제할 수 없습니다.',
+  CANNOT_CHANGE_OWN_ROLE: '자신의 역할은 변경할 수 없습니다.',
+  CANNOT_REMOVE_SELF: '자신을 조직에서 제거할 수 없습니다.',
+  USER_NOT_MEMBER: '조직의 멤버가 아닙니다.',
+  CLERK_SYNC_FAILED: '외부 인증 시스템과 동기화에 실패했습니다.',
+  CLERK_ID_MISMATCH: 'Clerk ID가 일치하지 않습니다.'
 };
 ```
 
