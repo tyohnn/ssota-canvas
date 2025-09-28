@@ -291,32 +291,55 @@ export function UserManagementProvider({ children }: UserManagementProviderProps
     error: null,
   });
 
-  // 초기 데이터 로드
+  // Clerk 사용자 상태 감지 및 초기 데이터 로드
   useEffect(() => {
-    loadInitialData();
+    // Clerk의 useUser() 훅을 통해 사용자 상태 감지
+    // 이 부분은 실제 구현 시 Clerk의 useUser 훅을 사용해야 함
+    const checkUserAndLoadData = async () => {
+      try {
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        
+        // Clerk 사용자 정보 확인 (실제 구현에서는 useUser() 사용)
+        // const { user } = useUser();
+        // if (!user) return;
+        
+        const userOrganizationView = await getUserOrganizationViewAction();
+        
+        setState(prev => ({
+          ...prev,
+          userOrganizationView: userOrganizationView,
+          currentUser: userOrganizationView?.user || null,
+          organizations: userOrganizationView?.organizations || [],
+          isLoading: false,
+        }));
+      } catch (error) {
+        setState(prev => ({
+          ...prev,
+          error: error instanceof Error ? error.message : '데이터 로드에 실패했습니다',
+          isLoading: false,
+        }));
+      }
+    };
+
+    checkUserAndLoadData();
   }, []);
 
-  const loadInitialData = async () => {
-    try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
-      const userOrganizationView = await getUserOrganizationViewAction();
-      
-      setState(prev => ({
-        ...prev,
-        userOrganizationView: userOrganizationView,
-        currentUser: userOrganizationView?.user || null,
-        organizations: userOrganizationView?.organizations || [],
-        isLoading: false,
-      }));
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : '데이터 로드에 실패했습니다',
-        isLoading: false,
-      }));
-    }
-  };
+  // Clerk 사용자 변경 감지 (실제 구현에서는 useUser() 의존성 추가)
+  useEffect(() => {
+    // const { user } = useUser();
+    // if (user) {
+    //   // 사용자 로그인 시 데이터 새로고침
+    //   loadInitialData();
+    // } else {
+    //   // 사용자 로그아웃 시 상태 초기화
+    //   setState(prev => ({
+    //     ...prev,
+    //     currentUser: null,
+    //     organizations: [],
+    //     userOrganizationView: null,
+    //   }));
+    // }
+  }, []);
 
   const actions: UserManagementActions = {
     loginUser: async (clerkUserId, email, sessionId, loginMethod) => {
@@ -489,72 +512,147 @@ export function UserManagementProvider({ children }: UserManagementProviderProps
 
 ### 3.1 Server Actions 정의
 
-**파일 위치**: `src/server-actions/user-management/login-user.action.ts`
+**파일 위치**: `src/server-actions/user-management/get-user-organization-view.action.ts`
 
 ```typescript
 "use server";
 
 import { Result } from '@/lib/result';
-import { LoginUserCommand } from '@/domains/user-management/commands/login-user.command';
 import { UserManagementService } from '@/domains/user-management/services/user-management.service';
 import { UserManagementRepository } from '@/domains/user-management/repositories/user-management.repository';
-import { AuthService } from '@/lib/auth.service';
+import { createDbClient } from '@/lib/database';
+import { UserManagementError } from '@/domains/user-management/errors/user-management.errors';
+import { auth } from '@clerk/nextjs/server';
+
+export async function getUserOrganizationViewAction(): Promise<Result<any, UserManagementError>> {
+  try {
+    // 1. Clerk 인증 확인
+    const { userId } = await auth();
+    if (!userId) {
+      return Result.fail(UserManagementError.UNAUTHORIZED);
+    }
+
+    // 2. 의존성 주입
+    const userManagementService = new UserManagementService(
+      new UserManagementRepository(await createDbClient())
+    );
+
+    // 3. 사용자 조직 View 조회
+    const userOrganizationView = await userManagementService.getUserOrganizationView(userId);
+
+    return Result.ok(userOrganizationView);
+
+  } catch (error) {
+    console.error('Error in getUserOrganizationViewAction:', error);
+    return Result.fail(UserManagementError.INTERNAL_ERROR);
+  }
+}
+```
+
+**파일 위치**: `src/server-actions/user-management/create-organization.action.ts`
+
+```typescript
+"use server";
+
+import { Result } from '@/lib/result';
+import { CreateOrganizationCommand } from '@/domains/user-management/commands/create-organization.command';
+import { UserManagementService } from '@/domains/user-management/services/user-management.service';
+import { UserManagementRepository } from '@/domains/user-management/repositories/user-management.repository';
 import { createDbClient } from '@/lib/database';
 import { revalidatePath } from 'next/cache';
 import { UserManagementError } from '@/domains/user-management/errors/user-management.errors';
+import { auth } from '@clerk/nextjs/server';
 
-export async function loginUserAction(
-  input: { clerkUserId: string; email: string; sessionId: string; loginMethod: 'email' | 'oauth' | 'sso' }
-): Promise<Result<{ success: boolean; user: any }, UserManagementError>> {
+export async function createOrganizationAction(
+  input: { name: string; slug?: string }
+): Promise<Result<{ success: boolean; organization: any }, UserManagementError>> {
   try {
-    // 1. Input 검증
-    if (!input.clerkUserId || !input.email || !input.sessionId) {
+    // 1. Clerk 인증 확인
+    const { userId } = await auth();
+    if (!userId) {
+      return Result.fail(UserManagementError.UNAUTHORIZED);
+    }
+
+    // 2. Input 검증
+    if (!input.name?.trim()) {
       return Result.fail(UserManagementError.INVALID_INPUT);
     }
 
-    // 2. 의존성 주입 (DI Container 패턴)
+    // 3. 의존성 주입
     const userManagementService = new UserManagementService(
-      new UserManagementRepository(await createDbClient()),
-      new AuthService()
+      new UserManagementRepository(await createDbClient())
     );
 
-    // 3. Command 생성
-    const command = new LoginUserCommand(
-      input.clerkUserId,
-      input.email,
-      input.sessionId,
-      input.loginMethod,
+    // 4. Command 생성
+    const command = new CreateOrganizationCommand(
+      input.name,
+      input.slug || input.name.toLowerCase().replace(/\s+/g, '-'),
+      userId,
       new Date()
     );
 
-    // 4. 도메인 로직 실행
-    const events = await userManagementService.loginUser(command);
-
-    // 5. 크로스-도메인 이벤트 처리
-    await processCrossDomainEvents(events);
+    // 5. 도메인 로직 실행
+    const events = await userManagementService.createOrganization(command);
 
     // 6. 관련 페이지 재검증
     revalidatePath('/dashboard');
     revalidatePath('/organizations');
     
     // 7. 성공 응답
-    return Result.ok({ success: true, user: events[0].user });
+    return Result.ok({ 
+      success: true, 
+      organization: events[0].organization 
+    });
 
   } catch (error) {
-    // 8. 에러 분류 및 처리
-    if (error instanceof AuthenticationError) {
-      return Result.fail(UserManagementError.UNAUTHORIZED);
-    }
-    if (error instanceof AuthorizationError) {
-      return Result.fail(UserManagementError.FORBIDDEN);
-    }
-    if (error instanceof BusinessRuleError) {
-      return Result.fail(UserManagementError.BUSINESS_RULE_VIOLATION);
-    }
-
-    // 시스템 에러 로깅
-    console.error('Unexpected error in loginUserAction:', error);
+    console.error('Error in createOrganizationAction:', error);
     return Result.fail(UserManagementError.INTERNAL_ERROR);
+  }
+}
+```
+
+### 3.2 Clerk Webhook 연동 개선
+
+**기존 Webhook 개선**: `src/app/api/webhooks/clerk/route.ts`에 추가
+
+```typescript
+// 기존 handleUserCreated 함수 개선
+async function handleUserCreated(userData: any) {
+  try {
+    console.log("Handling user.created:", userData);
+
+    // 1. Supabase에 사용자 생성
+    const adminDb = createSupabaseAdminClient();
+    await adminDb.rls((tx) =>
+      tx.insert(users).values({
+        id: userData.id,
+        email: userData.email_addresses[0]?.email_address || "",
+        first_name: userData.first_name || "",
+        last_name: userData.last_name || "",
+        clerk_id: userData.id, // Clerk ID 추가
+        status: 'active', // 상태 추가
+        metadata: userData.public_metadata || {}, // 메타데이터 추가
+      })
+    );
+
+    // 2. 기본 조직 자동 생성 (UserManagementService 사용)
+    const userManagementService = new UserManagementService(
+      new UserManagementRepository(adminDb)
+    );
+    
+    const createDefaultOrgCommand = new CreateOrganizationCommand(
+      `${userData.first_name || 'User'}'s Organization`,
+      `${userData.id}-default`,
+      userData.id,
+      true, // isDefault = true
+      new Date()
+    );
+    
+    await userManagementService.createOrganization(createDefaultOrgCommand);
+
+    console.log("User and default organization created:", userData.id);
+  } catch (error) {
+    console.error("Error creating user and default organization:", error);
   }
 }
 ```
@@ -957,75 +1055,308 @@ export function OrganizationSelector({ value, onValueChange, placeholder }: Orga
 
 ### 6.1 Provider 설정
 
-**파일 위치**: `src/app/layout.tsx`
+**파일 위치**: `src/app/provider.tsx` (기존 Providers에 추가)
 
 ```typescript
-import { UserManagementProvider } from '@/contexts/userManagementProvider';
-// 다른 도메인 Provider들도 import
+"use client";
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+import { TooltipProvider } from "@workspace/ui/components/ui/tooltip";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { Toaster } from "@workspace/ui/components/ui/sonner";
+import { UserManagementProvider } from '@/contexts/userManagementProvider';
+import { WorkspaceProvider } from '@/contexts/workspaceProvider';
+
+export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko">
-      <body>
-        {/* 의존성 순서에 따라 Provider 중첩 배치 */}
-        <AuthProvider>
-          <UserManagementProvider>
-            <WorkspaceProvider>
-              {children}
-            </WorkspaceProvider>
-          </UserManagementProvider>
-        </AuthProvider>
-      </body>
-    </html>
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <TooltipProvider>
+        {/* Clerk는 이미 layout.tsx에서 ClerkProvider로 감싸져 있음 */}
+        <UserManagementProvider>
+          <WorkspaceProvider>
+            {children}
+            <Toaster position="top-center" richColors closeButton />
+          </WorkspaceProvider>
+        </UserManagementProvider>
+      </TooltipProvider>
+    </NextThemesProvider>
   );
 }
 ```
 
-### 6.2 페이지에서 사용
+### 6.2 Clerk 통합 고려사항
 
-**파일 위치**: `src/app/organizations/page.tsx`
+**기존 Clerk 설정 활용**:
+- `ClerkProvider`는 이미 `layout.tsx`에서 설정됨
+- Webhook은 `/api/webhooks/clerk/route.ts`에서 처리
+- 사용자 데이터는 Clerk → Supabase로 자동 동기화됨
+
+**UserManagementProvider에서 Clerk 연동**:
+```typescript
+// UserManagementProvider에서 Clerk 상태 감지
+useEffect(() => {
+  const { user } = useUser();
+  
+  if (user) {
+    // Clerk 사용자 정보를 기반으로 UserManagement 상태 초기화
+    loadUserData(user.id, user.emailAddresses[0].emailAddress);
+  }
+}, [user]);
+```
+
+### 6.3 사이드바 컴포넌트 구현
+
+**파일 위치**: `src/components/user-management/Sidebar.tsx`
 
 ```typescript
 "use client";
 
 import { useUserManagement } from '@/domains/user-management/hooks/use-user-management';
-import { OrganizationList } from '@/components/user-management/OrganizationList';
-import { OrganizationForm } from '@/components/user-management/OrganizationForm';
-import { OrganizationSelector } from '@/components/user-management/OrganizationSelector';
+import { OrganizationSelector } from './OrganizationSelector';
+import { WorkspaceSelector } from './WorkspaceSelector';
+import { SettingsModal } from './SettingsModal';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Settings, Plus, Users } from 'lucide-react';
+import { useState } from 'react';
 
-export default function OrganizationsPage() {
-  const { isLoading, error } = useUserManagement();
+export function Sidebar() {
+  const { currentUser, organizations, userOrganizationView } = useUserManagement();
+  const [showSettings, setShowSettings] = useState(false);
 
-  if (isLoading) {
-    return <div>로딩 중...</div>;
-  }
-
-  if (error) {
-    return <div>오류: {error}</div>;
+  if (!currentUser) {
+    return null;
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-8">조직 관리</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div>
-          <h2 className="text-lg font-semibold mb-4">조직 선택</h2>
-          <OrganizationSelector onValueChange={(value) => console.log(value)} />
-        </div>
-        
-        <div>
-          <h2 className="text-lg font-semibold mb-4">새 조직 생성</h2>
-          <OrganizationForm />
+    <div className="w-64 h-full bg-white border-r border-gray-200 flex flex-col">
+      {/* 사용자 프로필 섹션 */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+            {currentUser.name?.charAt(0) || 'U'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {currentUser.name}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+              {currentUser.email}
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* 조직 선택기 */}
+      <div className="p-4 border-b border-gray-200">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+          조직
+        </h3>
+        <OrganizationSelector 
+          value={userOrganizationView?.currentOrganization?.id}
+          onValueChange={(orgId) => {
+            // 조직 전환 로직
+            console.log('조직 전환:', orgId);
+          }}
+        />
+      </div>
+
+      {/* 워크스페이스 선택기 */}
+      <div className="p-4 border-b border-gray-200">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+          워크스페이스
+        </h3>
+        <WorkspaceSelector />
+      </div>
+
+      {/* 액션 버튼들 */}
+      <div className="p-4 space-y-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full justify-start"
+          onClick={() => setShowSettings(true)}
+        >
+          <Settings className="w-4 h-4 mr-2" />
+          설정
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full justify-start"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          새 워크스페이스
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full justify-start"
+        >
+          <Users className="w-4 h-4 mr-2" />
+          멤버 관리
+        </Button>
+      </div>
+
+      {/* 설정 모달 */}
+      <SettingsModal 
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
+    </div>
+  );
+}
+```
+
+### 6.4 워크스페이스 선택기 컴포넌트
+
+**파일 위치**: `src/components/user-management/WorkspaceSelector.tsx`
+
+```typescript
+"use client";
+
+import { useUserManagement } from '@/domains/user-management/hooks/use-user-management';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@workspace/ui/components/ui/select';
+import { Loader2, Plus } from 'lucide-react';
+import { useState } from 'react';
+
+export function WorkspaceSelector() {
+  const { userOrganizationView, isLoading } = useUserManagement();
+  const [selectedWorkspace, setSelectedWorkspace] = useState<string>('');
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="text-sm text-gray-500">로딩 중...</span>
+      </div>
+    );
+  }
+
+  const currentOrganization = userOrganizationView?.currentOrganization;
+  const workspaces = currentOrganization?.workspaces || [];
+
+  return (
+    <div className="space-y-2">
+      <Select value={selectedWorkspace} onValueChange={setSelectedWorkspace}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="워크스페이스 선택" />
+        </SelectTrigger>
+        <SelectContent>
+          {workspaces.map(workspace => (
+            <SelectItem key={workspace.id} value={workspace.id}>
+              {workspace.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       
-      <div className="mt-8">
-        <OrganizationList />
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="w-full justify-start text-gray-600"
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        새 워크스페이스
+      </Button>
+    </div>
+  );
+}
+```
+
+### 6.5 설정 모달 컴포넌트
+
+**파일 위치**: `src/components/user-management/SettingsModal.tsx`
+
+```typescript
+"use client";
+
+import { useUserManagement } from '@/domains/user-management/hooks/use-user-management';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@workspace/ui/components/ui/dialog';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Input } from '@workspace/ui/components/ui/input';
+import { Label } from '@workspace/ui/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@workspace/ui/components/ui/tabs';
+import { OrganizationForm } from './OrganizationForm';
+import { MemberManagement } from './MemberManagement';
+
+interface SettingsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const { currentUser, userOrganizationView } = useUserManagement();
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>설정</DialogTitle>
+        </DialogHeader>
+        
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="profile">프로필</TabsTrigger>
+            <TabsTrigger value="organization">조직</TabsTrigger>
+            <TabsTrigger value="members">멤버</TabsTrigger>
+            <TabsTrigger value="workspaces">워크스페이스</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="profile" className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">이름</Label>
+              <Input id="name" defaultValue={currentUser?.name || ''} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">이메일</Label>
+              <Input id="email" defaultValue={currentUser?.email || ''} disabled />
+            </div>
+            <Button>프로필 저장</Button>
+          </TabsContent>
+          
+          <TabsContent value="organization" className="space-y-4">
+            <OrganizationForm />
+          </TabsContent>
+          
+          <TabsContent value="members" className="space-y-4">
+            <MemberManagement />
+          </TabsContent>
+          
+          <TabsContent value="workspaces" className="space-y-4">
+            <div className="text-center text-gray-500 py-8">
+              워크스페이스 관리 기능
+            </div>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+### 6.6 메인 레이아웃에서 사이드바 통합
+
+**파일 위치**: `src/app/r/[orgSlug]/workspace/page.tsx` (기존 페이지 수정)
+
+```typescript
+import { Sidebar } from '@/components/user-management/Sidebar';
+import { CanvasPageContent } from "@/domains/canvas/components/canvas-page";
+
+export default function WorkspacePage() {
+  return (
+    <div className="flex h-full">
+      {/* 사이드바 */}
+      <Sidebar />
+      
+      {/* 메인 콘텐츠 영역 */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <CanvasPageContent />
       </div>
     </div>
   );

@@ -55,6 +55,8 @@
 - **조직 관리**: 조직 생성/수정/삭제, 소유권 이전, 기본 조직 자동 생성
 - **멤버십 관리**: 이메일 초대, 역할 변경, 멤버 제거, 초대 상태 관리
 - **권한 시스템**: 3-tier 권한 (Owner/Admin/Member) 및 접근 제어
+- **사이드바 UI**: 조직 스위처, 워크스페이스 선택기, 설정 모달
+- **프론트엔드 통합**: React Context, Custom Hook, Server Actions 연동
 
 ### 지원 기능
 - **Clerk 동기화**: Webhook 기반 실시간 데이터 동기화
@@ -67,6 +69,8 @@
 - **Supabase 동기화**: 실시간 데이터베이스 동기화
 - **Webhook 처리**: Clerk 이벤트 실시간 처리
 - **Anti-Corruption Layer**: Clerk과 도메인 모델 간 변환 계층
+- **프론트엔드 아키텍처**: React Context + Custom Hook + Server Actions 패턴
+- **UI 컴포넌트**: 사이드바, 조직 선택기, 설정 모달, 멤버 관리 UI
 
 ## 🚫 제외 범위
 - **고급 권한 시스템**: 4-tier 이상의 복잡한 권한 구조 (향후 확장)
@@ -122,6 +126,7 @@
 - [Software Design](../event-domain-design/domains/user-management-domain/software-design.md)
 - [Technical Specification](../event-domain-design/domains/user-management-domain/technical-specification.md)
 - [Database Schema](../event-domain-design/domains/user-management-domain/db-schema.md)
+- [Frontend Specification](../event-domain-design/domains/user-management-domain/frontend-specification.md)
 
 ---
 

@@ -155,10 +155,12 @@ CREATE INDEX idx_memberships_expires_at ON memberships (expires_at);
 - [ ] 에러 처리 및 사용자 피드백
 
 ### Frontend
-- [ ] 멤버 초대 폼 UI 컴포넌트
-- [ ] 초대된 멤버 목록 표시
-- [ ] 초대 상태 표시 (대기 중, 수락됨, 거절됨)
-- [ ] 초대 진행 상태 표시
+- [ ] **멤버 초대 폼**: `MemberInvitationForm` 컴포넌트 구현
+- [ ] **초대된 멤버 목록**: `MemberManagement` 컴포넌트에서 초대 목록 표시
+- [ ] **초대 상태 표시**: 초대 목록에서 상태별 표시 (대기 중, 수락됨, 거절됨)
+- [ ] **초대 진행 상태**: 초대 전송 시 로딩 상태 및 피드백
+- [ ] **설정 모달 통합**: 멤버 탭에서 초대 기능 제공
+- [ ] **React Context 연동**: `useUserManagement()` Hook을 통한 초대 관리
 
 ### Integration Task
 - [ ] Clerk 초대 API 연동

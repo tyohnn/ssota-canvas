@@ -5,6 +5,7 @@
 **기간**: 2025-09-29 ~ 2025-10-13 (2주)
 **팀**: 개발팀 3명 (Frontend 1명, Backend 2명)
 **용량**: 120시간 (3명 × 10일 × 4시간)
+**프론트엔드 포커스**: React Context, Custom Hook, 사이드바 UI, 설정 모달
 
 ## 📋 포함 Story
 
@@ -29,9 +30,10 @@
 **예상 완료일**: 2025-10-03 (Week 1)
 
 ### Story UM-005: 조직 컨텍스트 전환 (5pts)
-**목표**: 사용자가 소유/소속 조직 간 전환할 수 있는 UI 구현
+**목표**: 사용자가 소유/소속 조직 간 전환할 수 있는 사이드바 UI 구현
 **담당자**: Frontend Developer
 **예상 완료일**: 2025-10-07 (Week 2)
+**프론트엔드 작업**: OrganizationSelector 컴포넌트, React Context 연동
 
 ### Story UM-006: 조직 CRUD 관리 (8pts)
 **목표**: 조직 생성, 조회, 수정, 삭제 기능 구현
@@ -62,11 +64,13 @@
 **목표**: 이메일을 통한 멤버 초대 및 Clerk 연동 기능 구현
 **담당자**: Backend Developer B
 **예상 완료일**: 2025-10-13 (Week 2)
+**프론트엔드 작업**: MemberInvitationForm, 설정 모달 통합
 
 ### Story UM-012: 초대 수락/거부 (5pts)
 **목표**: 초대 링크를 통한 수락/거부 처리 기능 구현
 **담당자**: Frontend Developer
 **예상 완료일**: 2025-10-13 (Week 2)
+**프론트엔드 작업**: 초대 수락/거부 페이지, React Context 연동
 
 ### Story UM-013: 멤버 역할 변경 (5pts)
 **목표**: 멤버 역할 변경 및 권한 관리 기능 구현
@@ -82,6 +86,7 @@
 **목표**: 초대 취소 및 재전송 기능 구현
 **담당자**: Frontend Developer
 **예상 완료일**: 2025-10-13 (Week 2)
+**프론트엔드 작업**: 초대 관리 UI, MemberManagement 컴포넌트
 
 ## 📅 Sprint 일정
 
@@ -150,21 +155,22 @@
 ## 📊 진행 상황 추적
 
 ### 일일 체크포인트
-- [ ] **월요일 (09-29)**: Sprint 킥오프 완료, Story UM-001 시작
-- [ ] **화요일 (09-30)**: Story UM-001 50% 진행, Story UM-002 시작
-- [ ] **수요일 (10-01)**: Story UM-002 50% 진행, Story UM-003 시작
-- [ ] **목요일 (10-02)**: Story UM-002 완료, Story UM-003 50% 진행
-- [ ] **금요일 (10-03)**: Story UM-001, UM-003, UM-004 완료
+- [ ] **월요일 (09-29)**: Sprint 킥오프 완료, Story UM-001 시작, 프론트엔드 환경 설정
+- [ ] **화요일 (09-30)**: Story UM-001 50% 진행, Story UM-002 시작, React Context 구조 설계
+- [ ] **수요일 (10-01)**: Story UM-002 50% 진행, Story UM-003 시작, Custom Hook 패턴 구현
+- [ ] **목요일 (10-02)**: Story UM-002 완료, Story UM-003 50% 진행, 사이드바 UI 설계
+- [ ] **금요일 (10-03)**: Story UM-001, UM-003, UM-004 완료, OrganizationSelector 컴포넌트 구현
 
 ### 주간 체크포인트
-- [ ] **Week 1 종료 (10-03)**: 핵심 인증 시스템 완료
-- [ ] **Week 2 종료 (10-13)**: 전체 User Management 기능 완료
+- [ ] **Week 1 종료 (10-03)**: 핵심 인증 시스템 완료, 사이드바 기본 구조 완성
+- [ ] **Week 2 종료 (10-13)**: 전체 User Management 기능 완료, 설정 모달 및 멤버 관리 UI 완성
 
 ## 📁 관련 문서
 - [Epic 문서](../epics/epic-001-user-management.md)
 - [Story 문서](../stories/user-management/)
 - [Technical Specification](../../event-domain-design/domains/user-management-domain/technical-specification.md)
 - [Database Schema](../../event-domain-design/domains/user-management-domain/db-schema.md)
+- [Frontend Specification](../../event-domain-design/domains/user-management-domain/frontend-specification.md)
 
 ## 🚀 Sprint 실행 준비
 
@@ -176,6 +182,8 @@
 
 ### 환경 준비
 - [ ] **개발 환경**: Next.js, TypeScript, Drizzle ORM
+- [ ] **프론트엔드 환경**: React 18, Context API, Custom Hook 패턴
+- [ ] **UI 라이브러리**: @workspace/ui 컴포넌트, Lucide React 아이콘
 - [ ] **테스트 환경**: Jest, Playwright, Supabase Test DB
 - [ ] **배포 환경**: Vercel 배포 파이프라인
 - [ ] **모니터링**: Clerk Dashboard, Supabase Dashboard
@@ -193,6 +201,8 @@
 - **데이터 일관성**: Clerk와 Supabase 간 데이터 동기화
 - **에러 처리**: 사용자 친화적인 에러 메시지 및 복구 방안
 - **성능 최적화**: 응답 시간 및 사용자 경험 개선
+- **프론트엔드 아키텍처**: React Context + Custom Hook 패턴 구현
+- **사이드바 UI**: 조직 스위처, 워크스페이스 선택기, 설정 모달 통합
 
 ### 팀 협업 성공 요소
 - **명확한 역할 분담**: 각 Story별 담당자 및 의존성 관리

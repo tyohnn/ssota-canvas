@@ -190,15 +190,18 @@ WHERE m.status = 'active' AND o.deleted_at IS NULL;
 - [ ] 에러 처리 및 사용자 피드백
 
 ### Frontend
-- [ ] 조직 전환 드롭다운 UI 컴포넌트
-- [ ] 조직 목록 표시 컴포넌트
-- [ ] 현재 조직 컨텍스트 표시
-- [ ] 조직 전환 시 로딩 상태 처리
+- [ ] **사이드바 조직 선택기**: `OrganizationSelector` 컴포넌트 구현
+- [ ] **조직 목록 표시**: 사용자 소유/소속 조직 목록 UI
+- [ ] **현재 조직 컨텍스트**: 헤더/사이드바에 현재 조직 표시
+- [ ] **조직 전환 로딩**: 전환 시 스피너 및 상태 관리
+- [ ] **React Context 연동**: `UserManagementContext`를 통한 상태 관리
+- [ ] **낙관적 업데이트**: 즉시 UI 반영 후 서버 검증
 
 ### Integration Task
-- [ ] React Context를 통한 조직 컨텍스트 관리
-- [ ] 조직 전환 시 UI 상태 업데이트
-- [ ] 조직 전환 시 다른 도메인 컨텍스트 연동
+- [ ] **UserManagementProvider**: 조직 컨텍스트 상태 관리
+- [ ] **Custom Hook**: `useUserManagement()` Hook을 통한 조직 전환
+- [ ] **Server Actions 연동**: `selectOrganizationAction` 호출
+- [ ] **다른 도메인 연동**: 워크스페이스, 프로젝트 컨텍스트 업데이트
 
 ### E2E & Observability
 - [ ] 조직 전환 E2E 테스트
