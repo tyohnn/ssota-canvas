@@ -396,4 +396,66 @@ Process Model이 완료되면 다음 단계를 진행할 수 있습니다:
 
 ---
 
+## 📊 8단계. 프로젝트 진행 상황 업데이트
+
+### 8.1 project-progress.md 업데이트
+
+**목표**: Process Model 완료 상태를 프로젝트 전체 진행 상황에 반영
+
+**작업 과정**:
+```bash
+# 1. 현재 날짜 확인
+date
+
+# 2. project-progress.md 파일 열기
+# docs/project-progress.md
+```
+
+**업데이트 내용**:
+1. **Overall Progress Overview 테이블 업데이트**:
+   ```markdown
+   | [Domain Name] | ✅ Complete | ✅ Complete | ❌ Pending | ❌ Pending | ❌ Pending | **40%** |
+   ```
+
+2. **해당 도메인 섹션 업데이트**:
+   ```markdown
+   ### [N]. [Domain Name] Domain 🟡 **40% 완료**
+   
+   #### 설계 진행 상황
+   - [x] **Event Storming**: `docs/event-domain-design/[domain-name]/event-storm.md`
+     - 핵심 이벤트 [N]개 정의
+     - Hotspots [N]개 식별
+     - Opportunities [N]개 발견
+   
+   - [x] **Process Model**: `docs/event-domain-design/[domain-name]/process-model.md`
+     - [N]개 핵심 프로세스 정의
+     - Command → Policy → System → Event 패턴 적용
+     - External System 매핑 완료
+   
+   - [ ] **Software Design**: ❌ **대기 중**
+   - [ ] **Technical Design**: ❌ **대기 중**
+   - [ ] **Agile Planning**: ❌ **대기 중**
+   ```
+
+3. **전체 진행률 업데이트**:
+   - 해당 도메인의 진행률을 25% → 40%로 업데이트
+   - Next Steps 섹션에서 해당 도메인을 Software Design 단계로 이동
+
+### 8.2 Git 커밋
+
+```bash
+# 변경사항 커밋
+git add docs/event-domain-design/[domain-name]/process-model.md docs/project-progress.md
+git commit -m "feat(process-model): complete [Domain Name] domain process model
+
+- Define [N] core processes with Command → Policy → System → Event pattern
+- Map external system integrations
+- Update project progress to 40% for [Domain Name] domain"
+
+# 브랜치 푸시
+git push origin domain/[번호]-[domain-name]
+```
+
+---
+
 이 가이드를 따라하면 Event Storm 결과를 바탕으로 체계적이고 완성도 높은 Process Model을 정의할 수 있습니다! 🚀

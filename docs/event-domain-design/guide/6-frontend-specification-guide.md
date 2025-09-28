@@ -364,4 +364,79 @@ Software Design (도메인 모델)
 
 ---
 
+---
+
+## 📊 8단계. 프로젝트 진행 상황 업데이트
+
+### 8.1 project-progress.md 업데이트
+
+**목표**: Frontend Specification 완료 상태를 프로젝트 전체 진행 상황에 반영
+
+**작업 과정**:
+```bash
+# 1. 현재 날짜 확인
+date
+
+# 2. project-progress.md 파일 열기
+# docs/project-progress.md
+```
+
+**업데이트 내용**:
+1. **Overall Progress Overview 테이블 업데이트**:
+   ```markdown
+   | [Domain Name] | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | **100%** |
+   ```
+
+2. **해당 도메인 섹션 업데이트**:
+   ```markdown
+   ### [N]. [Domain Name] Domain ✅ **완료**
+   
+   #### 설계 진행 상황
+   - [x] **Event Storming**: `docs/event-domain-design/[domain-name]/event-storm.md`
+   - [x] **Process Model**: `docs/event-domain-design/[domain-name]/process-model.md`
+   - [x] **Software Design**: `docs/event-domain-design/[domain-name]/software-design.md`
+   - [x] **Technical Design**:
+     - [x] Database Schema: `docs/event-domain-design/[domain-name]/project-technical-design/database-schema.md`
+     - [x] API Specification: `docs/event-domain-design/[domain-name]/project-technical-design/api-specification.md`
+     - [x] Technical Specification: `docs/event-domain-design/[domain-name]/technical-specification.md`
+   - [x] **Frontend Specification**: `docs/event-domain-design/[domain-name]/frontend-specification.md`
+     - React Context 및 Hook 설계
+     - Server Actions 연동 패턴
+     - 컴포넌트 구조 및 통합 방법
+   ```
+
+3. **전체 진행률 업데이트**:
+   - 해당 도메인의 진행률을 80% → 100%로 업데이트
+   - 완료된 도메인 수 증가에 따른 전체 백분율 재계산
+   - Next Steps 섹션에서 해당 도메인을 완료 상태로 이동
+
+### 8.2 Git 커밋
+
+```bash
+# 변경사항 커밋
+git add docs/event-domain-design/[domain-name]/frontend-specification.md docs/project-progress.md
+git commit -m "feat(frontend-spec): complete [Domain Name] domain frontend specification
+
+- Define React Context and Hook patterns
+- Add Server Actions integration strategy  
+- Include component structure and app-level integration
+- Update project progress to 100% for [Domain Name] domain"
+
+# 브랜치 푸시
+git push origin domain/[번호]-[domain-name]
+
+# PR 생성 (도메인 완료)
+gh pr create --title "feat: complete [Domain Name] domain design" \
+  --body "Complete all design phases for [Domain Name] domain:
+- Event Storming
+- Process Model  
+- Software Design
+- Technical Specification
+- Frontend Specification
+
+Ready for implementation phase."
+```
+
+---
+
 이 Frontend Specification 가이드는 **Software Design에서 정의된 도메인 모델을 React 프론트엔드에서 어떻게 활용할지에 대한 프로세스 중심 가이드**입니다. 각 도메인마다 일관된 패턴으로 프론트엔드를 구현할 수 있도록 설계되었습니다.

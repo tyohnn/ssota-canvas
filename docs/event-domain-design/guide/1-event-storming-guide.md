@@ -392,4 +392,62 @@ Event Storming이 완료되면 다음 단계를 진행할 수 있습니다:
 
 ---
 
+## 📊 8단계. 프로젝트 진행 상황 업데이트
+
+### 8.1 project-progress.md 업데이트
+
+**목표**: Event Storming 완료 상태를 프로젝트 전체 진행 상황에 반영
+
+**작업 과정**:
+```bash
+# 1. 현재 날짜 확인
+date
+
+# 2. project-progress.md 파일 열기
+# docs/project-progress.md
+```
+
+**업데이트 내용**:
+1. **Overall Progress Overview 테이블 업데이트**:
+   ```markdown
+   | [Domain Name] | ✅ Complete | ❌ Pending | ❌ Pending | ❌ Pending | ❌ Pending | **25%** |
+   ```
+
+2. **해당 도메인 섹션 업데이트**:
+   ```markdown
+   ### [N]. [Domain Name] Domain 🟡 **25% 완료**
+   
+   #### 설계 진행 상황
+   - [x] **Event Storming**: `docs/event-domain-design/[domain-name]/event-storm.md`
+     - 핵심 이벤트 [N]개 정의
+     - Hotspots [N]개 식별
+     - Opportunities [N]개 발견
+   
+   - [ ] **Process Model**: ❌ **대기 중**
+   - [ ] **Software Design**: ❌ **대기 중**
+   - [ ] **Technical Design**: ❌ **대기 중**
+   - [ ] **Agile Planning**: ❌ **대기 중**
+   ```
+
+3. **전체 진행률 업데이트**:
+   - 완료된 도메인 수 증가에 따른 백분율 재계산
+   - Next Steps 섹션에서 해당 도메인을 다음 단계로 이동
+
+### 8.2 Git 커밋
+
+```bash
+# 변경사항 커밋
+git add docs/event-domain-design/[domain-name]/event-storm.md docs/project-progress.md
+git commit -m "feat(event-storming): complete [Domain Name] domain event storming
+
+- Define [N] core events and [N] commands
+- Identify [N] hotspots and [N] opportunities  
+- Update project progress to 25% for [Domain Name] domain"
+
+# 브랜치 푸시
+git push origin domain/[번호]-[domain-name]
+```
+
+---
+
 이 가이드를 따라하면 체계적이고 완성도 높은 Event Storming 결과를 얻을 수 있습니다! 🚀

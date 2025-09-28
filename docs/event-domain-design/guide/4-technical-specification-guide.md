@@ -155,4 +155,65 @@ Software Design에 정의된 순서대로 템플릿 섹션을 채워 넣습니�
 - 해당 도메인의 `software-design.md`
 - 관련 API Specification 문서
 
+---
+
+## 📊 9단계. 프로젝트 진행 상황 업데이트
+
+### 9.1 project-progress.md 업데이트
+
+**목표**: Technical Specification 완료 상태를 프로젝트 전체 진행 상황에 반영
+
+**작업 과정**:
+```bash
+# 1. 현재 날짜 확인
+date
+
+# 2. project-progress.md 파일 열기
+# docs/project-progress.md
+```
+
+**업데이트 내용**:
+1. **Overall Progress Overview 테이블 업데이트**:
+   ```markdown
+   | [Domain Name] | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | ❌ Pending | **80%** |
+   ```
+
+2. **해당 도메인 섹션 업데이트**:
+   ```markdown
+   ### [N]. [Domain Name] Domain 🟡 **80% 완료**
+   
+   #### 설계 진행 상황
+   - [x] **Event Storming**: `docs/event-domain-design/[domain-name]/event-storm.md`
+   - [x] **Process Model**: `docs/event-domain-design/[domain-name]/process-model.md`
+   - [x] **Software Design**: `docs/event-domain-design/[domain-name]/software-design.md`
+   - [x] **Technical Design**:
+     - [x] Database Schema: `docs/event-domain-design/[domain-name]/project-technical-design/database-schema.md`
+     - [x] API Specification: `docs/event-domain-design/[domain-name]/project-technical-design/api-specification.md`
+     - [x] Technical Specification: `docs/event-domain-design/[domain-name]/technical-specification.md`
+   
+   - [ ] **Agile Planning**: ❌ **대기 중**
+   ```
+
+3. **전체 진행률 업데이트**:
+   - 해당 도메인의 진행률을 60% → 80%로 업데이트
+   - Next Steps 섹션에서 해당 도메인을 Agile Planning 단계로 이동
+
+### 9.2 Git 커밋
+
+```bash
+# 변경사항 커밋
+git add docs/event-domain-design/[domain-name]/technical-specification.md docs/project-progress.md
+git commit -m "feat(technical-spec): complete [Domain Name] domain technical specification
+
+- Define implementation details for all DDD components
+- Add service layer and repository patterns
+- Include server actions and UI integration strategy
+- Update project progress to 80% for [Domain Name] domain"
+
+# 브랜치 푸시
+git push origin domain/[번호]-[domain-name]
+```
+
+---
+
 이 순서를 따르면, Software Design에서 정의한 아키텍처를 실제 코드로 구현하기 위한 Technical Specification을 빠짐없이 작성할 수 있습니다. 필요 시 시니어 개발자와 함께 리뷰하며 보완하세요.
