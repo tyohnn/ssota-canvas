@@ -85,46 +85,62 @@ date
 
 ## 📋 Step 2: Initiative 범위 정의
 
-### 2.1 포함될 Epic 식별 (희미하고 느낌적인 수준)
+### 2.1 도메인/기능 영역 분류
 ```
-❓ 질문: "이 Initiative를 달성하기 위해 어떤 주요 기능들이 필요한가?"
+❓ 질문: "이 Initiative를 달성하기 위해 어떤 도메인/기능 영역들이 필요한가?"
 ```
 
-**Epic 식별 과정:**
+**도메인 식별 과정:**
 1. **사용자 여정 매핑**: 사용자가 목표를 달성하기까지 거치는 단계들
-2. **기능 그룹핑**: 관련된 기능들을 논리적으로 묶기
-3. **의존성 분석**: 어떤 기능이 다른 기능에 의존하는지 파악
+2. **기능 영역 그룹핑**: 관련된 기능들을 도메인별로 논리적으로 묶기
+3. **도메인 간 관계 분석**: 어떤 도메인이 다른 도메인에 의존하는지 파악
+4. **Event Storming 순서 계획**: 도메인별 Event Storming 진행 순서 결정
 
-**⚠️ 중요: Epic 정의 수준**
-Initiative 단계에서는 Epic을 **희미하고 느낌적인 수준**으로만 정의합니다:
-- **목적**: Initiative의 대략적인 방향성과 범위만 제시
-- **수준**: "이런 것들을 만들 예정" 정도의 개념적 정의
-- **상세도**: Event Storming 전에 방향성만 잡는 수준
+**⚠️ 중요: 도메인 정의 수준**
+Initiative 단계에서는 도메인/기능 영역을 **개념적 수준**에서만 정의합니다:
+- **목적**: Event Storming을 위한 도메인 경계 설정
+- **수준**: 각 도메인의 대략적인 책임과 역할 정의
+- **상세도**: Event Storming에서 구체적인 모델링을 위한 가이드라인 제공
 
-**희미한 Epic 정의 예시:**
+**도메인/기능 영역 정의 예시:**
 ```
-Initiative: "통합 시각적 디자인 플랫폼 구축"
+Initiative: "AI 통합 화이트보드 플랫폼 구축"
 
-Epic 1: 워크스페이스 관리
-- 사용자가 프로젝트를 조직화할 수 있는 기반 기능
-- 대략적인 방향: 프로젝트 생성, 폴더 구조, 기본 관리 기능
+Domain 1: 사용자 관리 도메인 (User Management Domain)
+- 책임: 사용자 인증, 조직 관리, 권한 제어
+- 핵심 개념: User, Organization, Permission, Role
+- Event Storming 우선순위: 1순위 (기반 도메인)
 
-Epic 2: 시각적 캔버스  
-- 사용자가 디자인 요소를 배치하고 편집하는 화이트보드
-- 대략적인 방향: 드래그 앤 드롭, 기본 편집, 요소 배치
+Domain 2: 워크스페이스 구조 도메인 (Workspace Structure Domain)
+- 책임: 워크스페이스, 페이지, 폴더 구조 관리
+- 핵심 개념: Workspace, Page, Folder, Navigation
+- Event Storming 우선순위: 2순위 (사용자 관리 의존)
 
-Epic 3: 컴포넌트 시스템
-- 재사용 가능한 디자인 요소 관리 시스템
-- 대략적인 방향: 컴포넌트 생성, 인스턴스 생성, 속성 관리
+Domain 3: 시각적 캔버스 도메인 (Visual Canvas Domain)
+- 책임: 화이트보드 엔진, 캔버스 조작, 화면 렌더링
+- 핵심 개념: Canvas, Viewport, Zoom, Selection
+- Event Storming 우선순위: 3순위 (워크스페이스 구조 의존)
 
-Epic 4: 통합 및 고급 기능
-- 도메인 간 연동 및 고급 협업 기능
-- 대략적인 방향: 공유, 협업, 외부 도구 연동
+Domain 4: 블록 시스템 도메인 (Block System Domain)
+- 책임: 블록 생성/편집/삭제, 블록 타입 관리, 속성 시스템
+- 핵심 개념: Block, BlockType, Property, Content
+- Event Storming 우선순위: 4순위 (시각적 캔버스 의존)
+
+Domain 5: 컴포넌트 시스템 도메인 (Component System Domain)
+- 책임: 컴포넌트 정의, 인스턴스 관리, 보기 모드 변환
+- 핵심 개념: Component, Instance, ViewMode, Template
+- Event Storming 우선순위: 5순위 (블록 시스템 의존)
+
+Domain 6: AI 통합 도메인 (AI Integration Domain)
+- 책임: AI API 연동, AI 요청/응답 처리, AI 기능 제공
+- 핵심 개념: AIRequest, AIResponse, AIAgent, AITool
+- Event Storming 우선순위: 6순위 (모든 도메인과 연동)
 ```
 
-**구체화는 Event Storming에서:**
-- 위 Epic들은 Event Storming을 통해 Command-Event-Aggregate로 구체화
-- 실제 도메인 모델링과 Bounded Context 정의는 Event Storming 단계에서 진행
+**Epic은 Event Storming 이후에 정의:**
+- 각 도메인별 Event Storming 완료 후 구체적인 Epic 도출
+- Command-Event-Aggregate 기반으로 실행 가능한 Epic 정의
+- 도메인 간 통합 Epic도 필요시 추가
 
 ### 2.2 제외 범위 명확화
 ```
@@ -164,12 +180,23 @@ Epic 4: 통합 및 고급 기능
 - [KPI 1]: [목표값] ([측정 방법])
 - [KPI 2]: [목표값] ([측정 방법])
 
-## 📋 포함 Epic (희미하고 느낌적인 수준)
-1. **Epic 1**: [Epic 제목] - [대략적인 기능 방향성 설명]
-2. **Epic 2**: [Epic 제목] - [대략적인 기능 방향성 설명] 
-3. **Epic 3**: [Epic 제목] - [대략적인 기능 방향성 설명]
+## 🏛️ 도메인/기능 영역 분류
+### Domain 1: [도메인명] ([영문명])
+- **책임**: [도메인의 주요 책임과 역할]
+- **핵심 개념**: [주요 엔티티, 값 객체 후보들]
+- **Event Storming 우선순위**: [순위] ([의존성 이유])
 
-**참고**: Epic의 구체적인 정의는 Event Storming 이후 Epic Planning에서 진행
+### Domain 2: [도메인명] ([영문명])
+- **책임**: [도메인의 주요 책임과 역할]
+- **핵심 개념**: [주요 엔티티, 값 객체 후보들]
+- **Event Storming 우선순위**: [순위] ([의존성 이유])
+
+### Domain 3: [도메인명] ([영문명])
+- **책임**: [도메인의 주요 책임과 역할]
+- **핵심 개념**: [주요 엔티티, 값 객체 후보들]
+- **Event Storming 우선순위**: [순위] ([의존성 이유])
+
+**참고**: Epic의 구체적인 정의는 각 도메인별 Event Storming 이후 Epic Planning에서 진행
 
 ## 🚫 제외 범위
 - [제외 기능 1]: [제외 이유]
@@ -227,27 +254,33 @@ Epic 4: 통합 및 고급 기능
 ## 📋 Step 5: 다음 단계 준비
 
 ### 5.1 Event Storming 준비 (중요한 다음 단계)
-Initiative에서 정의한 **희미한 Epic들을 구체화**하기 위해 Event Storming을 진행합니다.
+Initiative에서 정의한 **도메인/기능 영역들을 구체화**하기 위해 도메인별 Event Storming을 진행합니다.
 
 **Event Storming의 목적:**
-- Initiative의 희미한 Epic들을 Command-Event-Aggregate로 구체화
+- Initiative의 도메인/기능 영역을 Command-Event-Aggregate로 구체화
 - Bounded Context 정의 및 도메인 모델링
-- 실행 가능한 Epic으로 발전시키기
+- 각 도메인별 실행 가능한 Epic 도출
 
 **준비 사항:**
-- [ ] 각 Epic별 Event Storming 일정 수립
-- [ ] 참가자 확정 (도메인 전문가, 개발자, 기획자)
+- [ ] 각 도메인별 Event Storming 일정 수립 (우선순위 순서대로)
+- [ ] 도메인별 참가자 확정 (도메인 전문가, 개발자, 기획자)
 - [ ] Event Storming 도구 및 환경 준비
-- [ ] 사전 자료 준비 (Initiative 문서, 희미한 Epic 목록)
-- [ ] Initiative에서 정의한 희미한 Epic들 검토
+- [ ] 사전 자료 준비 (Initiative 문서, 도메인/기능 영역 분류)
+- [ ] 도메인 간 의존성 맵핑 완료
+
+**도메인별 Event Storming 순서:**
+1. **기반 도메인**: 다른 도메인이 의존하는 기본 도메인
+2. **핵심 도메인**: 비즈니스 가치를 직접 창출하는 도메인  
+3. **지원 도메인**: 핵심 도메인을 보조하는 도메인
+4. **통합 도메인**: 도메인 간 연동을 담당하는 도메인
 
 **프로세스 플로우:**
 ```
-Initiative 설정 (희미한 Epic) 
+Initiative 설정 (도메인/기능 영역 분류) 
     ↓
-Event Storming (도메인 분석)
+도메인별 Event Storming (우선순위 순서)
     ↓  
-Epic Planning (구체적 Epic 정의)
+Epic Planning (도메인별 구체적 Epic 정의)
     ↓
 Story Definition (실행 가능한 Story)
 ```
@@ -265,9 +298,10 @@ Initiative 설정이 완료되었다고 판단할 수 있는 기준:
 
 - [ ] **명확한 비즈니스 목표**: 한 줄로 표현 가능한 핵심 목표
 - [ ] **측정 가능한 성공 지표**: 구체적이고 달성 가능한 KPI
-- [ ] **논리적 Epic 구성**: 목표 달성을 위한 필수 Epic들 식별
+- [ ] **논리적 도메인 분류**: 목표 달성을 위한 필수 도메인/기능 영역 식별
+- [ ] **도메인 간 의존성 정의**: 각 도메인의 우선순위와 의존관계 명확화
 - [ ] **이해관계자 승인**: 모든 관련자들의 승인 확보
-- [ ] **다음 단계 준비**: Event Storming을 위한 준비 완료
+- [ ] **Event Storming 준비**: 도메인별 Event Storming을 위한 준비 완료
 
 ---
 
@@ -363,7 +397,6 @@ git branch -d init/001-visual-platform
 
 ## 📚 관련 문서
 
-- [Event Storming 가이드](./02-event-storming-guide.md)
 - [Epic 계획 가이드](./03-epic-planning-guide.md)
 - [Story 정의 가이드](./04-story-definition-guide.md)
 

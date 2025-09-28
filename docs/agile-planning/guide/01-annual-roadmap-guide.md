@@ -444,7 +444,7 @@ Annual Roadmap 작성이 완료되었다고 판단할 수 있는 기준:
 
 - [Project Vision 가이드](./00-project-vision-guide.md)
 - [Initiative 설정 가이드](./02-initiative-setup-guide.md)
-- [Epic 계획 가이드](./04-epic-planning-guide.md)
+- [Epic 계획 가이드](./03-epic-planning-guide.md)
 
 ---
 

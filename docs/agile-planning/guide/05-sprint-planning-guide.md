@@ -365,9 +365,9 @@ Sprint 계획이 완료되었다고 판단할 수 있는 기준:
 
 ## 📚 관련 문서
 
+- [Epic 계획 가이드](./03-epic-planning-guide.md)
 - [Story 정의 가이드](./04-story-definition-guide.md)
 - [브랜치 넘버링 가이드](./06-branch-numbering-guide.md)
-- [Epic 계획 가이드](./03-epic-planning-guide.md)
 
 ---
 

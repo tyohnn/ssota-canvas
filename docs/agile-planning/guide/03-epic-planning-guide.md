@@ -307,7 +307,6 @@ Epic 계획이 완료되었다고 판단할 수 있는 기준:
 
 ## 📚 관련 문서
 
-- [Event Storming 가이드](./02-event-storming-guide.md)
 - [Story 정의 가이드](./04-story-definition-guide.md)
 - [Sprint 계획 가이드](./05-sprint-planning-guide.md)
 
