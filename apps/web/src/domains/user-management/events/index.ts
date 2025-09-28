@@ -28,3 +28,21 @@ export class ClerkUserSyncedEvent {
     public readonly timestamp: Date = new Date()
   ) {}
 }
+
+export class UserLoggedInEvent {
+  constructor(
+    public readonly userId: UserId,
+    public readonly clerkUserId: string,
+    public readonly sessionId: string,
+    public readonly loginMethod: string,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class UserLoggedOutEvent {
+  constructor(
+    public readonly userId: UserId,
+    public readonly sessionId: string,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}

@@ -37,10 +37,18 @@ export type UserManagementErrorCode =
   | 'CANNOT_REMOVE_SELF'
   | 'USER_NOT_MEMBER'
   | 'CLERK_SYNC_FAILED'
-  | 'CLERK_ID_MISMATCH';
+  | 'CLERK_ID_MISMATCH'
+  | 'AUTH_REQUIRED'
+  | 'AUTH_FAILED'
+  | 'LOGIN_FAILED'
+  | 'LOGOUT_FAILED'
+  | 'USER_SYNC_FAILED';
 
 // 사용자 메시지 매핑
-export const USER_MANAGEMENT_ERROR_MESSAGES: Record<UserManagementErrorCode, string> = {
+export const USER_MANAGEMENT_ERROR_MESSAGES: Record<
+  UserManagementErrorCode,
+  string
+> = {
   USER_NOT_FOUND: '사용자를 찾을 수 없습니다.',
   USER_ALREADY_EXISTS: '이미 존재하는 사용자입니다.',
   USER_DELETED: '삭제된 사용자입니다.',
@@ -68,5 +76,10 @@ export const USER_MANAGEMENT_ERROR_MESSAGES: Record<UserManagementErrorCode, str
   CANNOT_REMOVE_SELF: '자신을 조직에서 제거할 수 없습니다.',
   USER_NOT_MEMBER: '조직의 멤버가 아닙니다.',
   CLERK_SYNC_FAILED: '외부 인증 시스템과 동기화에 실패했습니다.',
-  CLERK_ID_MISMATCH: 'Clerk ID가 일치하지 않습니다.'
+  CLERK_ID_MISMATCH: 'Clerk ID가 일치하지 않습니다.',
+  AUTH_REQUIRED: '인증이 필요합니다.',
+  AUTH_FAILED: '인증에 실패했습니다.',
+  LOGIN_FAILED: '로그인에 실패했습니다.',
+  LOGOUT_FAILED: '로그아웃에 실패했습니다.',
+  USER_SYNC_FAILED: '사용자 동기화에 실패했습니다.',
 };

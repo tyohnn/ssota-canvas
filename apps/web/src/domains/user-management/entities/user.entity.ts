@@ -55,4 +55,8 @@ export class User {
     this._deletedAt = null;
     this._updatedAt = new Date();
   }
+
+  updateLastLogin(): void {
+    this._updatedAt = new Date();
+  }
 }

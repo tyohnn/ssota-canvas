@@ -2,7 +2,7 @@ import { User } from '../entities/user.entity';
 import { UserId } from '../value-objects/user-id.vo';
 import { UserEmail } from '../value-objects/user-email.vo';
 import { UserManagementError } from '../errors/user-management.error';
-import { UserCreatedEvent, UserUpdatedEvent } from '../events';
+import { UserCreatedEvent, UserUpdatedEvent, UserLoggedInEvent, UserLoggedOutEvent } from '../events';
 
 export class UserAggregate {
   constructor(
@@ -54,6 +54,27 @@ export class UserAggregate {
 
   getDefaultOrganization(): any | null {
     return this.memberships.find((m: any) => m.isDefault && !m.isDeleted) || null;
+  }
+
+  // Command Handlers
+  loginUser(clerkUserId: string, sessionId: string, loginMethod: string): UserLoggedInEvent {
+    if (this.user.isDeleted) {
+      throw new UserManagementError('USER_DELETED', 'Cannot login with deleted user account');
+    }
+
+    // 사용자 마지막 로그인 시간 업데이트
+    this.user.updateLastLogin();
+
+    return new UserLoggedInEvent(
+      this.user.id,
+      clerkUserId,
+      sessionId,
+      loginMethod
+    );
+  }
+
+  logoutUser(sessionId: string): UserLoggedOutEvent {
+    return new UserLoggedOutEvent(this.user.id, sessionId);
   }
 
   // Getters

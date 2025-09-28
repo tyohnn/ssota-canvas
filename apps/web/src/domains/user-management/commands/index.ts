@@ -12,6 +12,20 @@ export interface SyncClerkUserCommand {
   webhookType: 'user.created' | 'user.updated' | 'user.deleted';
 }
 
+export interface LoginUserCommand {
+  clerkUserId: string;
+  email: string;
+  sessionId: string;
+  loginMethod: 'email' | 'oauth' | 'sso';
+  timestamp: Date;
+}
+
+export interface LogoutUserCommand {
+  userId: string;
+  sessionId: string;
+  timestamp: Date;
+}
+
 export interface CreateUserFromClerkCommand {
   clerkUserId: string;
   email: string;

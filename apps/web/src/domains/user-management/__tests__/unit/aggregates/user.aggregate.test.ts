@@ -2,7 +2,8 @@ import { UserAggregate } from '../../../aggregates/user.aggregate';
 import { User } from '../../../entities/user.entity';
 import { UserId } from '../../../value-objects/user-id.vo';
 import { UserEmail } from '../../../value-objects/user-email.vo';
-import { UserCreatedEvent, UserUpdatedEvent } from '../../../events';
+import { UserCreatedEvent, UserUpdatedEvent, UserLoggedInEvent, UserLoggedOutEvent } from '../../../events';
+import { UserManagementError } from '../../../errors/user-management.error';
 
 describe('UserAggregate', () => {
   describe('createFromClerkUser', () => {
@@ -101,6 +102,74 @@ describe('UserAggregate', () => {
       expect(aggregate.entity.email.value).toBe('new@example.com');
       expect(aggregate.entity.name).toBe('Jane Smith');
       expect(aggregate.entity.avatarUrl).toBe('https://example.com/new-avatar.jpg');
+    });
+  });
+
+  describe('loginUser', () => {
+    let aggregate: UserAggregate;
+
+    beforeEach(() => {
+      const user = new User(
+        UserId.generate(),
+        'clerk_123',
+        new UserEmail('test@example.com'),
+        'John Doe',
+        'https://example.com/avatar.jpg',
+        new Date(),
+        new Date()
+      );
+      aggregate = new UserAggregate(user);
+    });
+
+    it('should create UserLoggedInEvent for valid user', () => {
+      const clerkUserId = 'clerk_123';
+      const sessionId = 'session_123';
+      const loginMethod = 'email';
+
+      const event = aggregate.loginUser(clerkUserId, sessionId, loginMethod);
+
+      expect(event).toBeInstanceOf(UserLoggedInEvent);
+      expect(event.userId).toBe(aggregate.id);
+      expect(event.clerkUserId).toBe(clerkUserId);
+      expect(event.sessionId).toBe(sessionId);
+      expect(event.loginMethod).toBe(loginMethod);
+      expect(event.timestamp).toBeInstanceOf(Date);
+    });
+
+    it('should throw error when user is deleted', () => {
+      aggregate.entity.softDelete();
+
+      expect(() => {
+        aggregate.loginUser('clerk_123', 'session_123', 'email');
+      }).toThrow(UserManagementError);
+    });
+  });
+
+  describe('logoutUser', () => {
+    let aggregate: UserAggregate;
+
+    beforeEach(() => {
+      const user = new User(
+        UserId.generate(),
+        'clerk_123',
+        new UserEmail('test@example.com'),
+        'John Doe',
+        'https://example.com/avatar.jpg',
+        new Date(),
+        new Date()
+      );
+      aggregate = new UserAggregate(user);
+    });
+
+    it('should create UserLoggedOutEvent', () => {
+      const sessionId = 'session_123';
+
+      const event = aggregate.logoutUser(sessionId);
+
+      expect(event).toBeInstanceOf(UserLoggedOutEvent);
+      expect(event.userId).toBe(aggregate.id);
+      expect(event.sessionId).toBe(sessionId);
+      expect(event.timestamp).toBeInstanceOf(Date);
     });
   });
 

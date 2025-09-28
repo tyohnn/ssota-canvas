@@ -2,8 +2,16 @@ import { UserAggregate } from '../aggregates/user.aggregate';
 import { UserRepository } from '../repositories/user.repository';
 import { UserId } from '../value-objects/user-id.vo';
 import { UserEmail } from '../value-objects/user-email.vo';
-import { SyncClerkUserCommand } from '../commands';
-import { ClerkUserSyncedEvent } from '../events';
+import {
+  SyncClerkUserCommand,
+  LoginUserCommand,
+  LogoutUserCommand,
+} from '../commands';
+import {
+  ClerkUserSyncedEvent,
+  UserLoggedInEvent,
+  UserLoggedOutEvent,
+} from '../events';
 import { UserManagementError } from '../errors/user-management.error';
 import { ActionResult, ok, err } from '@/lib/action-result';
 
@@ -128,6 +136,94 @@ export class UserManagementService {
           'Failed to sync user from Clerk',
           { originalError: errorMessage }
         )
+      );
+    }
+  }
+
+  async loginUser(
+    command: LoginUserCommand
+  ): Promise<ActionResult<UserLoggedInEvent, UserManagementError>> {
+    try {
+      // 1. Clerk 인증 상태 검증
+      const clerkUser = await this.clerkService.getUser(command.clerkUserId);
+      if (!clerkUser) {
+        return err(
+          new UserManagementError('AUTH_FAILED', 'Invalid Clerk authentication')
+        );
+      }
+
+      // 2. 사용자 조회 또는 생성
+      let userAggregate = await this.userRepository.findByClerkId(
+        command.clerkUserId
+      );
+      if (!userAggregate) {
+        // 사용자가 존재하지 않으면 Clerk에서 동기화
+        const syncResult = await this.syncUserFromClerk(command.clerkUserId);
+        if (!syncResult.success) {
+          return err(
+            new UserManagementError(
+              'USER_SYNC_FAILED',
+              'Failed to sync user from Clerk'
+            )
+          );
+        }
+        userAggregate = syncResult.data;
+      }
+
+      // 3. 로그인 처리
+      const event = userAggregate.loginUser(
+        command.clerkUserId,
+        command.sessionId,
+        command.loginMethod
+      );
+
+      // 4. 세션 정보 업데이트 (필요시)
+      // TODO: 세션 정보를 별도 저장소에 저장
+
+      return ok(event);
+    } catch (error) {
+      if (error instanceof UserManagementError) {
+        return err(error);
+      }
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      return err(
+        new UserManagementError('LOGIN_FAILED', 'Failed to login user', {
+          originalError: errorMessage,
+        })
+      );
+    }
+  }
+
+  async logoutUser(
+    command: LogoutUserCommand
+  ): Promise<ActionResult<UserLoggedOutEvent, UserManagementError>> {
+    try {
+      // 1. 사용자 조회
+      const userAggregate = await this.userRepository.findById(
+        new UserId(command.userId)
+      );
+      if (!userAggregate) {
+        return err(new UserManagementError('USER_NOT_FOUND', 'User not found'));
+      }
+
+      // 2. 로그아웃 처리
+      const event = userAggregate.logoutUser(command.sessionId);
+
+      // 3. 세션 무효화 (필요시)
+      // TODO: 세션 정보를 별도 저장소에서 제거
+
+      return ok(event);
+    } catch (error) {
+      if (error instanceof UserManagementError) {
+        return err(error);
+      }
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      return err(
+        new UserManagementError('LOGOUT_FAILED', 'Failed to logout user', {
+          originalError: errorMessage,
+        })
       );
     }
   }
