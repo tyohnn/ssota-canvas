@@ -43,3 +43,8 @@
 - Add frontend specification of user management domain
 - Add frontend plan
 - Ready for user management domain implementation
+- Update CHANGELOG
+
+### 🔧 Maintenance
+
+- Update background agent snapshot
