@@ -9,3 +9,5 @@
 - Refactor planning & event storming guide
 - Add domain branch rule
 - Add frontend specification guide and read model view
+- Add updating progress task at guide
+- Update CHANGELOG
