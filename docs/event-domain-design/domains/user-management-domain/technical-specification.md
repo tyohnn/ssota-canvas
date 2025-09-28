@@ -224,6 +224,295 @@ export class UserAggregate {
 }
 ```
 
+#### OrganizationAggregate
+```typescript
+// apps/web/src/domains/user-management/aggregates/organization.aggregate.ts
+export class OrganizationAggregate {
+  constructor(
+    private organization: Organization,
+    private memberships: Membership[] = []
+  ) {}
+
+  // Command 처리
+  static create(
+    name: string,
+    slug: OrganizationSlug,
+    clerkId: string,
+    ownerId: UserId
+  ): OrganizationAggregate {
+    const organization = new Organization(
+      OrganizationId.generate(),
+      clerkId,
+      name,
+      slug,
+      ownerId,
+      false, // isDefault
+      new Date(),
+      new Date()
+    );
+    return new OrganizationAggregate(organization);
+  }
+
+  static createDefault(
+    name: string,
+    slug: OrganizationSlug,
+    clerkId: string,
+    ownerId: UserId
+  ): OrganizationAggregate {
+    const organization = new Organization(
+      OrganizationId.generate(),
+      clerkId,
+      name,
+      slug,
+      ownerId,
+      true, // isDefault
+      new Date(),
+      new Date()
+    );
+    return new OrganizationAggregate(organization);
+  }
+
+  updateFromClerkOrganization(clerkOrg: ClerkOrganization): OrganizationUpdatedEvent {
+    const hasChanges = 
+      this.organization.name !== clerkOrg.name ||
+      this.organization.slug.value !== clerkOrg.slug;
+
+    if (hasChanges) {
+      this.organization.updateName(clerkOrg.name);
+      this.organization.updateSlug(new OrganizationSlug(clerkOrg.slug));
+      return new OrganizationUpdatedEvent(
+        this.organization.id,
+        this.organization.name,
+        this.organization.slug
+      );
+    }
+
+    return new OrganizationUpdatedEvent(
+      this.organization.id,
+      this.organization.name,
+      this.organization.slug
+    );
+  }
+
+  transferOwnership(newOwnerId: UserId, currentOwnerId: UserId): OwnershipTransferredEvent {
+    if (!this.organization.ownerId.equals(currentOwnerId)) {
+      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Only current owner can transfer ownership');
+    }
+
+    if (this.organization.isDefault) {
+      throw new UserManagementError('CANNOT_TRANSFER_DEFAULT', 'Cannot transfer ownership of default organization');
+    }
+
+    // 새 소유자 멤버십 확인
+    const newOwnerMembership = this.memberships.find(m => 
+      m.userId.equals(newOwnerId) && !m.isDeleted
+    );
+
+    if (!newOwnerMembership) {
+      throw new UserManagementError('USER_NOT_MEMBER', 'New owner must be a member of the organization');
+    }
+
+    // 소유권 이전
+    this.organization.transferOwnership(newOwnerId);
+    
+    // 기존 소유자를 Admin으로 변경
+    const currentOwnerMembership = this.memberships.find(m => 
+      m.userId.equals(currentOwnerId) && !m.isDeleted
+    );
+    if (currentOwnerMembership) {
+      currentOwnerMembership.changeRole('admin');
+    }
+
+    // 새 소유자를 Owner로 변경
+    newOwnerMembership.changeRole('owner');
+
+    return new OwnershipTransferredEvent(
+      this.organization.id,
+      currentOwnerId,
+      newOwnerId
+    );
+  }
+
+  softDelete(deletedBy: UserId): OrganizationSoftDeletedEvent {
+    if (!this.organization.ownerId.equals(deletedBy)) {
+      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Only owner can delete organization');
+    }
+
+    if (this.organization.isDefault) {
+      throw new UserManagementError('CANNOT_DELETE_DEFAULT', 'Cannot delete default organization');
+    }
+
+    this.organization.softDelete();
+    
+    // 모든 멤버십 비활성화
+    this.memberships.forEach(membership => {
+      if (!membership.isDeleted) {
+        membership.remove();
+      }
+    });
+
+    return new OrganizationSoftDeletedEvent(
+      this.organization.id,
+      this.organization.name,
+      deletedBy
+    );
+  }
+
+  // 비즈니스 규칙 검증
+  canBeDeletedBy(userId: UserId): boolean {
+    return this.organization.ownerId.equals(userId) && !this.organization.isDefault;
+  }
+
+  getActiveMembers(): Membership[] {
+    return this.memberships.filter(m => !m.isDeleted);
+  }
+
+  getMemberCount(): number {
+    return this.getActiveMembers().length;
+  }
+
+  // Getters
+  get id() { return this.organization.id; }
+  get entity() { return this.organization; }
+  get ownerId() { return this.organization.ownerId; }
+  get isDefault() { return this.organization.isDefault; }
+}
+```
+
+#### MembershipAggregate
+```typescript
+// apps/web/src/domains/user-management/aggregates/membership.aggregate.ts
+export class MembershipAggregate {
+  constructor(
+    private membership: Membership,
+    private organization: Organization,
+    private user: User
+  ) {}
+
+  // Command 처리
+  static invite(
+    organizationId: OrganizationId,
+    inviteeEmail: UserEmail,
+    inviterId: UserId,
+    role: MembershipRole
+  ): MembershipAggregate {
+    const membership = new Membership(
+      MembershipId.generate(),
+      organizationId,
+      null, // userId는 초대 수락 시 설정
+      role,
+      inviterId,
+      new Date(), // invitedAt
+      null, // joinedAt
+      'pending', // status
+      new Date(),
+      new Date()
+    );
+
+    return new MembershipAggregate(membership, organization, user);
+  }
+
+  acceptInvitation(userId: UserId): InvitationAcceptedEvent {
+    if (this.membership.status !== 'pending') {
+      throw new UserManagementError('INVITATION_NOT_PENDING', 'Invitation is not pending');
+    }
+
+    if (this.membership.isExpired()) {
+      throw new UserManagementError('INVITATION_EXPIRED', 'Invitation has expired');
+    }
+
+    this.membership.accept(userId);
+    
+    return new InvitationAcceptedEvent(
+      this.membership.id,
+      this.membership.organizationId,
+      userId,
+      this.membership.role
+    );
+  }
+
+  rejectInvitation(): InvitationRejectedEvent {
+    if (this.membership.status !== 'pending') {
+      throw new UserManagementError('INVITATION_NOT_PENDING', 'Invitation is not pending');
+    }
+
+    this.membership.reject();
+    
+    return new InvitationRejectedEvent(
+      this.membership.id,
+      this.membership.organizationId,
+      this.membership.inviteeEmail
+    );
+  }
+
+  changeRole(newRole: MembershipRole, changedBy: UserId): MemberRoleChangedEvent {
+    // 권한 검증: Owner만 역할 변경 가능
+    if (!this.organization.ownerId.equals(changedBy)) {
+      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Only owner can change member roles');
+    }
+
+    // Owner는 자신의 역할을 변경할 수 없음
+    if (this.membership.userId?.equals(changedBy) && newRole !== 'owner') {
+      throw new UserManagementError('CANNOT_CHANGE_OWN_ROLE', 'Owner cannot change their own role');
+    }
+
+    const oldRole = this.membership.role;
+    this.membership.changeRole(newRole);
+    
+    return new MemberRoleChangedEvent(
+      this.membership.id,
+      this.membership.organizationId,
+      this.membership.userId!,
+      oldRole,
+      newRole,
+      changedBy
+    );
+  }
+
+  remove(removedBy: UserId): MemberRemovedEvent {
+    // 권한 검증: Owner 또는 Admin만 멤버 제거 가능
+    const canRemove = this.organization.ownerId.equals(removedBy) || 
+                     this.membership.role === 'admin';
+    
+    if (!canRemove) {
+      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Insufficient permissions to remove member');
+    }
+
+    // Owner는 자신을 제거할 수 없음
+    if (this.membership.userId?.equals(removedBy)) {
+      throw new UserManagementError('CANNOT_REMOVE_SELF', 'Cannot remove yourself from organization');
+    }
+
+    this.membership.remove();
+    
+    return new MemberRemovedEvent(
+      this.membership.id,
+      this.membership.organizationId,
+      this.membership.userId!,
+      removedBy
+    );
+  }
+
+  // 비즈니스 규칙 검증
+  canInviteMembers(): boolean {
+    return this.membership.role === 'owner' || this.membership.role === 'admin';
+  }
+
+  isExpired(): boolean {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    return this.membership.invitedAt < thirtyDaysAgo;
+  }
+
+  // Getters
+  get id() { return this.membership.id; }
+  get entity() { return this.membership; }
+  get organizationId() { return this.membership.organizationId; }
+  get userId() { return this.membership.userId; }
+  get role() { return this.membership.role; }
+  get status() { return this.membership.status; }
+}
+```
+
 ### 4. Commands & Events 구현
 
 #### Commands
@@ -505,6 +794,240 @@ export class DrizzleUserRepository implements UserRepository {
 
   private mapToAggregate(result: any[]): UserAggregate {
     // DB 결과를 UserAggregate로 변환하는 로직
+    // ...
+  }
+}
+```
+
+#### OrganizationRepository
+```typescript
+// apps/web/src/domains/user-management/repositories/organization.repository.ts
+export interface OrganizationRepository {
+  findById(id: OrganizationId): Promise<OrganizationAggregate | null>;
+  findByClerkId(clerkId: string): Promise<OrganizationAggregate | null>;
+  findByOwnerId(ownerId: UserId): Promise<OrganizationAggregate[]>;
+  findBySlug(slug: OrganizationSlug): Promise<OrganizationAggregate | null>;
+  save(organization: OrganizationAggregate): Promise<void>;
+  delete(id: OrganizationId): Promise<void>;
+  findSoftDeleted(): Promise<OrganizationAggregate[]>;
+}
+
+export class DrizzleOrganizationRepository implements OrganizationRepository {
+  constructor(private db: Database) {}
+
+  async findById(id: OrganizationId): Promise<OrganizationAggregate | null> {
+    const result = await this.db
+      .select()
+      .from(organizations)
+      .leftJoin(memberships, eq(organizations.id, memberships.organizationId))
+      .leftJoin(users, eq(memberships.userId, users.id))
+      .where(eq(organizations.id, id.value));
+
+    if (result.length === 0) return null;
+
+    return this.mapToAggregate(result);
+  }
+
+  async findByClerkId(clerkId: string): Promise<OrganizationAggregate | null> {
+    const result = await this.db
+      .select()
+      .from(organizations)
+      .leftJoin(memberships, eq(organizations.id, memberships.organizationId))
+      .leftJoin(users, eq(memberships.userId, users.id))
+      .where(eq(organizations.clerkId, clerkId));
+
+    if (result.length === 0) return null;
+
+    return this.mapToAggregate(result);
+  }
+
+  async findByOwnerId(ownerId: UserId): Promise<OrganizationAggregate[]> {
+    const result = await this.db
+      .select()
+      .from(organizations)
+      .leftJoin(memberships, eq(organizations.id, memberships.organizationId))
+      .leftJoin(users, eq(memberships.userId, users.id))
+      .where(eq(organizations.ownerId, ownerId.value));
+
+    return this.mapToAggregates(result);
+  }
+
+  async save(organizationAggregate: OrganizationAggregate): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      // Organization 저장
+      await tx
+        .insert(organizations)
+        .values({
+          id: organizationAggregate.id.value,
+          clerkId: organizationAggregate.entity.clerkId,
+          name: organizationAggregate.entity.name,
+          slug: organizationAggregate.entity.slug.value,
+          ownerId: organizationAggregate.entity.ownerId.value,
+          isDefault: organizationAggregate.entity.isDefault,
+          createdAt: organizationAggregate.entity.createdAt,
+          updatedAt: organizationAggregate.entity.updatedAt,
+          deletedAt: organizationAggregate.entity.deletedAt
+        })
+        .onConflictDoUpdate({
+          target: organizations.id,
+          set: {
+            name: organizationAggregate.entity.name,
+            slug: organizationAggregate.entity.slug.value,
+            ownerId: organizationAggregate.entity.ownerId.value,
+            updatedAt: organizationAggregate.entity.updatedAt,
+            deletedAt: organizationAggregate.entity.deletedAt
+          }
+        });
+
+      // Memberships 저장
+      for (const membership of organizationAggregate.getActiveMembers()) {
+        await tx
+          .insert(memberships)
+          .values({
+            id: membership.id.value,
+            organizationId: membership.organizationId.value,
+            userId: membership.userId?.value,
+            role: membership.role,
+            invitedBy: membership.invitedBy?.value,
+            invitedAt: membership.invitedAt,
+            joinedAt: membership.joinedAt,
+            status: membership.status,
+            createdAt: membership.createdAt,
+            updatedAt: membership.updatedAt,
+            deletedAt: membership.deletedAt
+          })
+          .onConflictDoUpdate({
+            target: memberships.id,
+            set: {
+              role: membership.role,
+              status: membership.status,
+              updatedAt: membership.updatedAt,
+              deletedAt: membership.deletedAt
+            }
+          });
+      }
+    });
+  }
+
+  private mapToAggregate(result: any[]): OrganizationAggregate {
+    // DB 결과를 OrganizationAggregate로 변환하는 로직
+    // ...
+  }
+
+  private mapToAggregates(result: any[]): OrganizationAggregate[] {
+    // DB 결과를 OrganizationAggregate 배열로 변환하는 로직
+    // ...
+  }
+}
+```
+
+#### MembershipRepository
+```typescript
+// apps/web/src/domains/user-management/repositories/membership.repository.ts
+export interface MembershipRepository {
+  findById(id: MembershipId): Promise<MembershipAggregate | null>;
+  findByUserAndOrganization(userId: UserId, organizationId: OrganizationId): Promise<MembershipAggregate | null>;
+  findByOrganization(organizationId: OrganizationId): Promise<MembershipAggregate[]>;
+  findByUser(userId: UserId): Promise<MembershipAggregate[]>;
+  findByInviteeEmail(email: UserEmail): Promise<MembershipAggregate[]>;
+  save(membership: MembershipAggregate): Promise<void>;
+  delete(id: MembershipId): Promise<void>;
+  findPendingInvitations(): Promise<MembershipAggregate[]>;
+}
+
+export class DrizzleMembershipRepository implements MembershipRepository {
+  constructor(private db: Database) {}
+
+  async findById(id: MembershipId): Promise<MembershipAggregate | null> {
+    const result = await this.db
+      .select()
+      .from(memberships)
+      .leftJoin(organizations, eq(memberships.organizationId, organizations.id))
+      .leftJoin(users, eq(memberships.userId, users.id))
+      .where(eq(memberships.id, id.value));
+
+    if (result.length === 0) return null;
+
+    return this.mapToAggregate(result[0]);
+  }
+
+  async findByUserAndOrganization(
+    userId: UserId, 
+    organizationId: OrganizationId
+  ): Promise<MembershipAggregate | null> {
+    const result = await this.db
+      .select()
+      .from(memberships)
+      .leftJoin(organizations, eq(memberships.organizationId, organizations.id))
+      .leftJoin(users, eq(memberships.userId, users.id))
+      .where(and(
+        eq(memberships.userId, userId.value),
+        eq(memberships.organizationId, organizationId.value),
+        isNull(memberships.deletedAt)
+      ));
+
+    if (result.length === 0) return null;
+
+    return this.mapToAggregate(result[0]);
+  }
+
+  async findByOrganization(organizationId: OrganizationId): Promise<MembershipAggregate[]> {
+    const result = await this.db
+      .select()
+      .from(memberships)
+      .leftJoin(organizations, eq(memberships.organizationId, organizations.id))
+      .leftJoin(users, eq(memberships.userId, users.id))
+      .where(and(
+        eq(memberships.organizationId, organizationId.value),
+        isNull(memberships.deletedAt)
+      ));
+
+    return result.map(row => this.mapToAggregate(row));
+  }
+
+  async findByUser(userId: UserId): Promise<MembershipAggregate[]> {
+    const result = await this.db
+      .select()
+      .from(memberships)
+      .leftJoin(organizations, eq(memberships.organizationId, organizations.id))
+      .leftJoin(users, eq(memberships.userId, users.id))
+      .where(and(
+        eq(memberships.userId, userId.value),
+        isNull(memberships.deletedAt)
+      ));
+
+    return result.map(row => this.mapToAggregate(row));
+  }
+
+  async save(membershipAggregate: MembershipAggregate): Promise<void> {
+    await this.db
+      .insert(memberships)
+      .values({
+        id: membershipAggregate.id.value,
+        organizationId: membershipAggregate.organizationId.value,
+        userId: membershipAggregate.userId?.value,
+        role: membershipAggregate.role,
+        invitedBy: membershipAggregate.entity.invitedBy?.value,
+        invitedAt: membershipAggregate.entity.invitedAt,
+        joinedAt: membershipAggregate.entity.joinedAt,
+        status: membershipAggregate.status,
+        createdAt: membershipAggregate.entity.createdAt,
+        updatedAt: membershipAggregate.entity.updatedAt,
+        deletedAt: membershipAggregate.entity.deletedAt
+      })
+      .onConflictDoUpdate({
+        target: memberships.id,
+        set: {
+          role: membershipAggregate.role,
+          status: membershipAggregate.status,
+          updatedAt: membershipAggregate.entity.updatedAt,
+          deletedAt: membershipAggregate.entity.deletedAt
+        }
+      });
+  }
+
+  private mapToAggregate(result: any): MembershipAggregate {
+    // DB 결과를 MembershipAggregate로 변환하는 로직
     // ...
   }
 }
