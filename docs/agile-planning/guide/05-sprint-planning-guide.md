@@ -390,14 +390,14 @@ Sprint 계획이 완료되었다고 판단할 수 있는 기준:
 
 ### 브랜치 생성 및 작업
 ```bash
-# 1. 메인 브랜치에서 최신 상태로 업데이트
-git checkout dev
-git pull origin dev
+# 1. Epic 브랜치에서 최신 상태로 업데이트
+git checkout epic/001-user-management
+git pull origin epic/001-user-management
 
 # 2. Sprint 브랜치 생성 (Documentation 또는 Implementation)
-git checkout -b sprint/01-documentation-workspace
+git checkout -b sprint/01-user-auth-system
 # 또는
-git checkout -b sprint/02-implementation-workspace
+git checkout -b sprint/02-organization-management
 
 # 3. Sprint 계획 작업
 # - Sprint 목표 설정
@@ -410,7 +410,7 @@ git checkout -b sprint/02-implementation-workspace
 ```bash
 # Sprint 계획 문서 작성
 git add .
-git commit -m "docs(sprint): add sprint-01-documentation-workspace plan
+git commit -m "docs(sprint): add sprint-01-user-auth-system plan
 
 - Set sprint goal and success criteria
 - Select stories and set priorities
@@ -421,10 +421,10 @@ git commit -m "docs(sprint): add sprint-01-documentation-workspace plan
 git add .
 git commit -m "docs(sprint): add story selection and prioritization
 
-- Story DOC-001: Event Storming (40pts)
-- Story DOC-002: Process Model (30pts)
-- Story DOC-003: Software Design (30pts)
-- Story DOC-004: Technical Spec (20pts)
+- Story UM-001: Clerk User Sync (8pts)
+- Story UM-002: User Login/Logout (5pts)
+- Story UM-003: User Session Management (5pts)
+- Story UM-004: Default Organization Creation (8pts)
 - Set story priorities and dependencies"
 
 # 팀 용량 및 일정 계획
@@ -440,13 +440,13 @@ git commit -m "docs(sprint): add team capacity and schedule planning
 ### GitHub에 푸시 및 PR 생성
 ```bash
 # 1. 브랜치를 GitHub에 푸시
-git push origin sprint/01-documentation-workspace
+git push origin sprint/01-user-auth-system
 
 # 2. GitHub에서 Pull Request 생성
-# - 제목: "Sprint 01: Workspace Structure Documentation"
+# - 제목: "Sprint 01: User Authentication System"
 # - 설명: Sprint 계획 및 Story 할당
 # - 리뷰어: PM, 시니어 개발자, 팀 리드
-# - 라벨: sprint, planning, documentation
+# - 라벨: sprint, planning, user-management
 ```
 
 ### PR 리뷰 체크리스트
@@ -466,9 +466,9 @@ git push origin sprint/01-documentation-workspace
 ### PR 병합 후 정리
 ```bash
 # 1. PR 병합 후 로컬에서 정리
-git checkout dev
-git pull origin dev
-git branch -d sprint/01-documentation-workspace
+git checkout epic/001-user-management
+git pull origin epic/001-user-management
+git branch -d sprint/01-user-auth-system
 
 # 2. Sprint 실행 준비
 # - 팀원들에게 Sprint 계획 공유

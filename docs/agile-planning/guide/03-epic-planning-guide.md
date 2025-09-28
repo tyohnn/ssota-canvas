@@ -331,12 +331,12 @@ Epic 계획이 완료되었다고 판단할 수 있는 기준:
 
 ### 브랜치 생성 및 작업
 ```bash
-# 1. 메인 브랜치에서 최신 상태로 업데이트
-git checkout dev
-git pull origin dev
+# 1. Initiative 브랜치에서 최신 상태로 업데이트
+git checkout init/001-core-whiteboard-block-system
+git pull origin init/001-core-whiteboard-block-system
 
 # 2. Epic 브랜치 생성
-git checkout -b epic/001-workspace-structure
+git checkout -b epic/001-user-management
 
 # 3. Epic 계획 작업
 # - Epic Goal 및 Success Criteria 정의
@@ -404,9 +404,9 @@ git push origin epic/001-workspace-structure
 ### PR 병합 후 정리
 ```bash
 # 1. PR 병합 후 로컬에서 정리
-git checkout dev
-git pull origin dev
-git branch -d epic/001-workspace-structure
+git checkout init/001-core-whiteboard-block-system
+git pull origin init/001-core-whiteboard-block-system
+git branch -d epic/001-user-management
 
 # 2. 다음 단계 준비
 # - Story 정의 시작

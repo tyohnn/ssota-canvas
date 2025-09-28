@@ -458,12 +458,12 @@ Story 정의가 완료되었다고 판단할 수 있는 기준:
 
 ### 브랜치 생성 및 작업
 ```bash
-# 1. 메인 브랜치에서 최신 상태로 업데이트
-git checkout dev
-git pull origin dev
+# 1. Epic 브랜치에서 최신 상태로 업데이트
+git checkout epic/001-user-management
+git pull origin epic/001-user-management
 
 # 2. Story 브랜치 생성
-git checkout -b story/001-workspace-creation
+git checkout -b story/001-clerk-user-sync
 
 # 3. Story 정의 작업
 # - User Story 및 Acceptance Criteria 작성
@@ -505,13 +505,13 @@ git commit -m "docs(story): add command-event mapping and technical details
 ### GitHub에 푸시 및 PR 생성
 ```bash
 # 1. 브랜치를 GitHub에 푸시
-git push origin story/001-workspace-creation
+git push origin story/001-clerk-user-sync
 
 # 2. GitHub에서 Pull Request 생성
-# - 제목: "Story 001: Workspace Creation"
+# - 제목: "Story 001: Clerk User Sync"
 # - 설명: Story 정의 및 구현 세부사항
 # - 리뷰어: 시니어 개발자, 주니어 개발자, QA, 기획자
-# - 라벨: story, workspace-creation, implementation
+# - 라벨: story, user-management, implementation
 ```
 
 ### PR 리뷰 체크리스트
@@ -531,9 +531,9 @@ git push origin story/001-workspace-creation
 ### PR 병합 후 정리
 ```bash
 # 1. PR 병합 후 로컬에서 정리
-git checkout dev
-git pull origin dev
-git branch -d story/001-workspace-creation
+git checkout epic/001-user-management
+git pull origin epic/001-user-management
+git branch -d story/001-clerk-user-sync
 
 # 2. 다음 단계 준비
 # - Sprint 계획 수립
