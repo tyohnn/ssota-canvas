@@ -230,284 +230,293 @@ COMMENT ON COLUMN memberships.deleted_at IS '소프트 삭제 시간';
 
 ---
 
-## 🔒 Business Rules & Constraints
+## 🔒 Basic Data Integrity Constraints
 
-### 1. 조직 소유권 규칙
+### 1. 기본 데이터 무결성 제약조건
 
 ```sql
--- 각 조직은 정확히 하나의 Owner를 가져야 함
-CREATE OR REPLACE FUNCTION check_single_owner_per_organization()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Owner 역할 변경 시 검증
-    IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') AND NEW.role = 'owner' THEN
-        -- 같은 조직에 다른 Owner가 있는지 확인
-        IF EXISTS (
-            SELECT 1 FROM memberships 
-            WHERE organization_id = NEW.organization_id 
-            AND role = 'owner' 
-            AND status = 'active'
-            AND deleted_at IS NULL 
-            AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::UUID)
-        ) THEN
-            RAISE EXCEPTION 'Organization can have only one owner';
-        END IF;
-    END IF;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- 기본적인 데이터 타입 및 형식 검증만 DB에서 처리
+-- 복잡한 비즈니스 로직은 도메인 Aggregate에서 처리
 
-CREATE TRIGGER trigger_single_owner_per_organization
-    BEFORE INSERT OR UPDATE ON memberships
-    FOR EACH ROW EXECUTE FUNCTION check_single_owner_per_organization();
+-- 이메일 형식 검증
+ALTER TABLE users ADD CONSTRAINT users_email_format 
+    CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+
+-- 슬러그 형식 검증
+ALTER TABLE organizations ADD CONSTRAINT organizations_slug_format 
+    CHECK (slug ~* '^[a-z0-9-]+$' AND LENGTH(slug) >= 3 AND LENGTH(slug) <= 50);
+
+-- 역할 값 검증
+ALTER TABLE memberships ADD CONSTRAINT memberships_role_check 
+    CHECK (role IN ('owner', 'admin', 'member'));
+
+-- 상태 값 검증
+ALTER TABLE memberships ADD CONSTRAINT memberships_status_check 
+    CHECK (status IN ('pending', 'active', 'removed'));
 ```
 
-### 2. 기본 조직 규칙
+### 2. 외래키 제약조건 (데이터 무결성)
 
 ```sql
--- 각 사용자는 정확히 하나의 기본 조직을 가져야 함
-CREATE OR REPLACE FUNCTION check_single_default_organization_per_user()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- 기본 조직 생성/변경 시 검증
-    IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') AND NEW.is_default = TRUE THEN
-        -- 같은 소유자의 다른 기본 조직이 있는지 확인
-        IF EXISTS (
-            SELECT 1 FROM organizations 
-            WHERE owner_id = NEW.owner_id 
-            AND is_default = TRUE 
-            AND deleted_at IS NULL 
-            AND id != NEW.id
-        ) THEN
-            RAISE EXCEPTION 'User can have only one default organization';
-        END IF;
-    END IF;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- 기본적인 참조 무결성만 보장
+-- 비즈니스 로직은 도메인에서 처리
 
-CREATE TRIGGER trigger_single_default_organization_per_user
-    BEFORE INSERT OR UPDATE ON organizations
-    FOR EACH ROW EXECUTE FUNCTION check_single_default_organization_per_user();
+-- 조직 소유자는 반드시 존재해야 함
+ALTER TABLE organizations ADD CONSTRAINT fk_organizations_owner 
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE RESTRICT;
+
+-- 멤버십의 조직은 반드시 존재해야 함
+ALTER TABLE memberships ADD CONSTRAINT fk_memberships_organization 
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE;
+
+-- 멤버십의 사용자는 반드시 존재해야 함 (NULL 허용 - 초대 대기 중)
+ALTER TABLE memberships ADD CONSTRAINT fk_memberships_user 
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+-- 초대한 사용자는 반드시 존재해야 함 (NULL 허용)
+ALTER TABLE memberships ADD CONSTRAINT fk_memberships_invited_by 
+    FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE SET NULL;
 ```
 
-### 3. 초대 만료 규칙
+### 3. 유틸리티 함수 (도메인 서비스에서 활용)
 
 ```sql
--- 30일 후 초대 자동 만료
-CREATE OR REPLACE FUNCTION expire_old_invitations()
-RETURNS void AS $$
+-- 초대 만료 확인 (도메인 서비스에서 호출)
+CREATE OR REPLACE FUNCTION is_invitation_expired(invited_at TIMESTAMPTZ)
+RETURNS BOOLEAN AS $$
 BEGIN
-    UPDATE memberships 
-    SET status = 'removed', 
-        deleted_at = NOW(),
-        updated_at = NOW()
-    WHERE status = 'pending' 
-    AND invited_at < NOW() - INTERVAL '30 days'
-    AND deleted_at IS NULL;
+    RETURN invited_at < NOW() - INTERVAL '30 days';
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql STABLE;
 
--- 매일 자정에 실행되는 크론 작업 (Supabase Edge Functions 또는 외부 스케줄러 필요)
-```
-
-### 4. 소프트 삭제 정리 규칙
-
-```sql
--- 30일 후 완전 삭제
+-- 소프트 삭제된 레코드 정리 (스케줄러에서 호출)
 CREATE OR REPLACE FUNCTION cleanup_soft_deleted_records()
 RETURNS void AS $$
 BEGIN
-    -- 사용자 완전 삭제
-    DELETE FROM users 
-    WHERE deleted_at IS NOT NULL 
-    AND deleted_at < NOW() - INTERVAL '30 days';
-    
-    -- 조직 완전 삭제
-    DELETE FROM organizations 
-    WHERE deleted_at IS NOT NULL 
-    AND deleted_at < NOW() - INTERVAL '30 days';
-    
-    -- 멤버십 완전 삭제
-    DELETE FROM memberships 
-    WHERE deleted_at IS NOT NULL 
-    AND deleted_at < NOW() - INTERVAL '30 days';
+    -- 30일 후 완전 삭제
+    DELETE FROM users WHERE deleted_at < NOW() - INTERVAL '30 days';
+    DELETE FROM organizations WHERE deleted_at < NOW() - INTERVAL '30 days';
+    DELETE FROM memberships WHERE deleted_at < NOW() - INTERVAL '30 days';
 END;
 $$ LANGUAGE plpgsql;
+```
+
+### 4. 비즈니스 로직은 도메인에서 처리
+
+```typescript
+// 도메인 Aggregate에서 비즈니스 규칙 처리
+export class OrganizationAggregate {
+  transferOwnership(newOwnerId: UserId, currentOwnerId: UserId): OwnershipTransferredEvent {
+    // 1. 소유권 이전 권한 검증 (도메인 로직)
+    if (!this.organization.ownerId.equals(currentOwnerId)) {
+      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Only current owner can transfer ownership');
+    }
+    
+    // 2. 기본 조직 소유권 이전 방지 (도메인 로직)
+    if (this.organization.isDefault) {
+      throw new UserManagementError('CANNOT_TRANSFER_DEFAULT', 'Cannot transfer ownership of default organization');
+    }
+    
+    // 3. 새 소유자 멤버십 확인 (도메인 로직)
+    const newOwnerMembership = this.memberships.find(m => 
+      m.userId.equals(newOwnerId) && !m.isDeleted
+    );
+    if (!newOwnerMembership) {
+      throw new UserManagementError('USER_NOT_MEMBER', 'New owner must be a member of the organization');
+    }
+    
+    // 4. 비즈니스 로직 실행
+    this.organization.transferOwnership(newOwnerId);
+    return new OwnershipTransferredEvent(...);
+  }
+}
 ```
 
 ---
 
-## 📊 Read Model Optimized Views
+## 📊 Basic Join Views (Performance Optimized)
 
-### 1. UserOrganizationView
-
-사용자의 조직 목록과 컨텍스트 정보를 위한 뷰입니다.
+### 1. 단순한 조인 뷰 (비즈니스 로직 제외)
 
 ```sql
-CREATE OR REPLACE VIEW user_organization_view AS
+-- 사용자-조직 기본 조인 뷰 (성능 최적화)
+CREATE OR REPLACE VIEW user_organizations_basic AS
 SELECT 
     u.id as user_id,
     u.name as user_name,
     u.email as user_email,
     u.avatar_url as user_avatar_url,
     u.last_login_at,
-    
-    -- 조직 정보 (JSON 배열로 집계)
-    COALESCE(
-        JSON_AGG(
-            JSON_BUILD_OBJECT(
-                'id', o.id,
-                'name', o.name,
-                'slug', o.slug,
-                'role', m.role,
-                'isDefault', o.is_default,
-                'memberCount', org_stats.member_count
-            ) ORDER BY o.is_default DESC, m.joined_at ASC
-        ) FILTER (WHERE o.id IS NOT NULL), 
-        '[]'::json
-    ) as organizations,
-    
-    -- 현재 조직 ID (기본 조직)
-    default_org.id as current_organization_id
-
+    o.id as organization_id,
+    o.name as organization_name,
+    o.slug as organization_slug,
+    o.is_default,
+    m.role as membership_role,
+    m.joined_at,
+    m.status as membership_status
 FROM users u
 LEFT JOIN memberships m ON u.id = m.user_id 
     AND m.status = 'active' 
     AND m.deleted_at IS NULL
 LEFT JOIN organizations o ON m.organization_id = o.id 
     AND o.deleted_at IS NULL
-LEFT JOIN organizations default_org ON u.id = default_org.owner_id 
-    AND default_org.is_default = TRUE 
-    AND default_org.deleted_at IS NULL
-LEFT JOIN (
-    -- 조직별 멤버 수 계산
-    SELECT 
-        organization_id,
-        COUNT(*) as member_count
-    FROM memberships 
-    WHERE status = 'active' AND deleted_at IS NULL
-    GROUP BY organization_id
-) org_stats ON o.id = org_stats.organization_id
+WHERE u.deleted_at IS NULL;
 
-WHERE u.deleted_at IS NULL
-GROUP BY u.id, u.name, u.email, u.avatar_url, u.last_login_at, default_org.id;
-
--- 인덱스 최적화
-CREATE INDEX idx_user_org_view_user_id ON memberships(user_id, status) 
-    WHERE status = 'active' AND deleted_at IS NULL;
-```
-
-### 2. OrganizationMemberView
-
-조직의 멤버 목록과 초대 상태를 위한 뷰입니다.
-
-```sql
-CREATE OR REPLACE VIEW organization_member_view AS
+-- 조직-멤버 기본 조인 뷰 (성능 최적화)
+CREATE OR REPLACE VIEW organization_members_basic AS
 SELECT 
     o.id as organization_id,
     o.name as organization_name,
-    
-    -- 활성 멤버 (JSON 배열)
-    COALESCE(
-        JSON_AGG(
-            JSON_BUILD_OBJECT(
-                'userId', u.id,
-                'email', u.email,
-                'name', u.name,
-                'role', m.role,
-                'joinedAt', m.joined_at,
-                'lastActiveAt', u.last_login_at
-            ) ORDER BY m.role = 'owner' DESC, m.role = 'admin' DESC, m.joined_at ASC
-        ) FILTER (WHERE m.status = 'active' AND m.deleted_at IS NULL), 
-        '[]'::json
-    ) as members,
-    
-    -- 대기 중인 초대 (JSON 배열)
-    COALESCE(
-        JSON_AGG(
-            JSON_BUILD_OBJECT(
-                'invitationId', pending.id,
-                'email', pending.invitee_email,
-                'role', pending.role,
-                'invitedBy', inviter.name,
-                'invitedAt', pending.invited_at,
-                'expiresAt', pending.invited_at + INTERVAL '30 days'
-            ) ORDER BY pending.invited_at DESC
-        ) FILTER (WHERE pending.status = 'pending' AND pending.deleted_at IS NULL), 
-        '[]'::json
-    ) as pending_invitations,
-    
-    -- 총 멤버 수
-    COUNT(*) FILTER (WHERE m.status = 'active' AND m.deleted_at IS NULL) as total_member_count
-
+    o.slug as organization_slug,
+    o.owner_id,
+    u.id as user_id,
+    u.name as user_name,
+    u.email as user_email,
+    u.avatar_url as user_avatar_url,
+    m.role as membership_role,
+    m.joined_at,
+    m.status as membership_status,
+    m.invited_by,
+    m.invitee_email,
+    m.invited_at
 FROM organizations o
 LEFT JOIN memberships m ON o.id = m.organization_id
 LEFT JOIN users u ON m.user_id = u.id AND u.deleted_at IS NULL
-LEFT JOIN memberships pending ON o.id = pending.organization_id 
-    AND pending.status = 'pending' 
-    AND pending.deleted_at IS NULL
-LEFT JOIN users inviter ON pending.invited_by = inviter.id
+WHERE o.deleted_at IS NULL;
 
-WHERE o.deleted_at IS NULL
-GROUP BY o.id, o.name;
-
--- 인덱스 최적화
-CREATE INDEX idx_org_member_view_org_id ON memberships(organization_id, status) 
+-- 성능 최적화 인덱스
+CREATE INDEX idx_user_org_basic_user_id ON memberships(user_id, status) 
+    WHERE status = 'active' AND deleted_at IS NULL;
+CREATE INDEX idx_org_member_basic_org_id ON memberships(organization_id, status) 
     WHERE deleted_at IS NULL;
+```
+
+### 2. 복잡한 Read Model은 도메인 서비스에서 처리
+
+```typescript
+// 도메인 서비스에서 비즈니스 로직과 함께 Read Model 구성
+export class UserOrganizationViewService {
+  constructor(
+    private userRepository: UserRepository,
+    private organizationRepository: OrganizationRepository,
+    private membershipRepository: MembershipRepository
+  ) {}
+
+  async getUserOrganizations(userId: UserId): Promise<UserOrganizationView> {
+    // 1. 기본 데이터 조회 (DB 뷰 활용)
+    const basicData = await this.db.query(`
+      SELECT * FROM user_organizations_basic 
+      WHERE user_id = $1
+    `, [userId.value]);
+
+    // 2. 도메인 로직으로 데이터 가공
+    const user = basicData[0];
+    const organizations = this.groupOrganizationsByUser(basicData);
+    const currentOrganizationId = this.getCurrentOrganizationId(organizations);
+
+    // 3. 비즈니스 규칙 적용 (권한 검증 등)
+    const enrichedOrganizations = await this.enrichWithBusinessLogic(organizations);
+
+    return {
+      user: {
+        id: user.user_id,
+        name: user.user_name,
+        email: user.user_email,
+        avatarUrl: user.user_avatar_url
+      },
+      organizations: enrichedOrganizations,
+      currentOrganizationId
+    };
+  }
+
+  private async enrichWithBusinessLogic(organizations: any[]): Promise<any[]> {
+    // 비즈니스 로직으로 데이터 보강
+    return organizations.map(org => ({
+      ...org,
+      memberCount: await this.getMemberCount(org.organization_id),
+      permissions: await this.getUserPermissions(org.organization_id),
+      // 기타 비즈니스 로직...
+    }));
+  }
+}
 ```
 
 ---
 
 ## 🚀 Performance Optimization
 
-### 1. 파티셔닝 전략 (대규모 확장 시)
+### 1. 핵심 인덱스 전략
 
 ```sql
--- 멤버십 테이블을 조직 ID로 파티셔닝 (1M+ 레코드 시 고려)
+-- 사용자 조회 최적화
+CREATE INDEX idx_users_clerk_id_active ON users(clerk_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_users_email_active ON users(email) WHERE deleted_at IS NULL;
+
+-- 조직 조회 최적화  
+CREATE INDEX idx_organizations_owner_active ON organizations(owner_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_organizations_slug_active ON organizations(slug) WHERE deleted_at IS NULL;
+
+-- 멤버십 조회 최적화
+CREATE INDEX idx_memberships_user_org_active ON memberships(user_id, organization_id) 
+    WHERE status = 'active' AND deleted_at IS NULL;
+CREATE INDEX idx_memberships_org_status ON memberships(organization_id, status) 
+    WHERE deleted_at IS NULL;
+CREATE INDEX idx_memberships_invitee_email ON memberships(invitee_email) 
+    WHERE status = 'pending' AND deleted_at IS NULL;
+```
+
+### 2. 쿼리 성능 최적화
+
+```sql
+-- 자주 사용되는 집계 쿼리 최적화
+CREATE INDEX idx_memberships_org_role_count ON memberships(organization_id, role, status) 
+    WHERE deleted_at IS NULL;
+
+-- 초대 만료 확인 최적화
+CREATE INDEX idx_memberships_pending_expired ON memberships(invited_at) 
+    WHERE status = 'pending' AND deleted_at IS NULL;
+```
+
+### 3. 도메인 서비스에서 캐싱 전략
+
+```typescript
+// 도메인 서비스에서 캐싱 구현
+export class UserOrganizationViewService {
+  private cache = new Map<string, UserOrganizationView>();
+
+  async getUserOrganizations(userId: UserId): Promise<UserOrganizationView> {
+    // 1. 캐시 확인
+    const cacheKey = `user_org_${userId.value}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached && this.isCacheValid(cached)) {
+      return cached;
+    }
+
+    // 2. DB에서 조회
+    const result = await this.fetchFromDatabase(userId);
+    
+    // 3. 캐시 저장
+    this.cache.set(cacheKey, result);
+    
+    return result;
+  }
+
+  private isCacheValid(data: UserOrganizationView): boolean {
+    // 5분 캐시 유효성 검사
+    return Date.now() - data.cachedAt < 5 * 60 * 1000;
+  }
+}
+```
+
+### 4. 대규모 확장 시 고려사항
+
+```sql
+-- 파티셔닝 전략 (1M+ 레코드 시)
 -- CREATE TABLE memberships_partitioned (LIKE memberships) 
 -- PARTITION BY HASH (organization_id);
-```
 
-### 2. 캐싱 전략
-
-```sql
--- 자주 조회되는 데이터를 위한 Materialized View
-CREATE MATERIALIZED VIEW user_organization_summary AS
-SELECT 
-    u.id as user_id,
-    COUNT(m.id) as organization_count,
-    MAX(m.joined_at) as last_joined_at,
-    BOOL_OR(m.role = 'owner') as has_owned_organizations
-FROM users u
-LEFT JOIN memberships m ON u.id = m.user_id 
-    AND m.status = 'active' 
-    AND m.deleted_at IS NULL
-WHERE u.deleted_at IS NULL
-GROUP BY u.id;
-
--- 매시간 갱신
-CREATE INDEX idx_user_org_summary_user_id ON user_organization_summary(user_id);
-```
-
-### 3. 쿼리 최적화
-
-```sql
--- 조직별 멤버 수 빠른 조회를 위한 함수
-CREATE OR REPLACE FUNCTION get_organization_member_count(org_id UUID)
-RETURNS INTEGER AS $$
-BEGIN
-    RETURN (
-        SELECT COUNT(*)::INTEGER
-        FROM memberships 
-        WHERE organization_id = org_id 
-        AND status = 'active' 
-        AND deleted_at IS NULL
-    );
-END;
-$$ LANGUAGE plpgsql STABLE;
+-- 읽기 전용 복제본 활용
+-- 도메인 서비스에서 읽기/쓰기 분리
 ```
 
 ---
@@ -600,22 +609,29 @@ LIMIT 10;
 
 ## ✅ 검증 체크리스트
 
+### 계층별 책임 분리
+- [x] **DB는 기본 데이터 무결성만 담당**: Foreign Key, NOT NULL, 타입 검증
+- [x] **복잡한 비즈니스 로직은 도메인에서 처리**: 소유권 이전, 권한 검증 등
+- [x] **Read Model은 도메인 서비스에서 구성**: DB 뷰는 단순 조인만
+- [x] **중복 제거**: 동일한 로직이 DB와 도메인에 중복되지 않음
+
 ### 스키마 무결성
-- [ ] 모든 Foreign Key 제약조건이 올바르게 설정되었는가?
-- [ ] Business Rule이 데이터베이스 제약조건으로 구현되었는가?
-- [ ] 소프트 삭제 패턴이 모든 테이블에 일관되게 적용되었는가?
-- [ ] Clerk ID 동기화를 위한 인덱스가 설정되었는가?
+- [x] **기본 데이터 무결성**: Foreign Key, NOT NULL, 타입 검증
+- [x] **소프트 삭제 패턴**: 모든 테이블에 `deleted_at` 컬럼
+- [x] **Clerk 동기화 지원**: `clerk_id` 인덱스 및 제약조건
+- [x] **데이터 형식 검증**: 이메일, 슬러그 형식 등
 
 ### 성능 최적화
-- [ ] Read Model 쿼리에 필요한 인덱스가 모두 생성되었는가?
-- [ ] 복합 인덱스가 쿼리 패턴에 맞게 설계되었는가?
-- [ ] Partial Index가 적절히 활용되었는가?
-- [ ] View가 성능을 고려하여 설계되었는가?
+- [x] **핵심 쿼리 인덱스**: 사용자, 조직, 멤버십 조회 최적화
+- [x] **Partial Index 활용**: 소프트 삭제된 레코드 제외
+- [x] **단순한 DB 뷰**: 복잡한 비즈니스 로직 제외
+- [x] **도메인 서비스 캐싱**: 애플리케이션 레벨 성능 최적화
 
-### 확장성
-- [ ] UUID를 사용하여 분산 환경에서 확장 가능한가?
-- [ ] 파티셔닝 전략이 고려되었는가?
-- [ ] 캐싱 전략이 수립되었는가?
+### 아키텍처 일관성
+- [x] **DDD 원칙 준수**: Aggregate 경계와 DB 스키마 일치
+- [x] **단일 책임**: 각 계층이 명확한 역할 분담
+- [x] **테스트 용이성**: 비즈니스 로직이 도메인에 집중
+- [x] **유지보수성**: 중복 없는 깔끔한 구조
 
 ---
 
