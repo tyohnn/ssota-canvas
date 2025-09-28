@@ -172,15 +172,43 @@ CREATE INDEX idx_memberships_invited_at ON memberships (invited_at);
 - [ ] 에러 처리 및 사용자 피드백
 
 ### Frontend
-- [ ] 초대 취소 UI 컴포넌트
-- [ ] 초대 재전송 UI 컴포넌트
-- [ ] 초대 상태 표시 (대기 중, 취소됨, 만료됨)
-- [ ] 초대 취소/재전송 진행 상태 표시
+- [ ] **초대 취소 UI 컴포넌트**: `InvitationCancelDialog` 컴포넌트 구현
+  - `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle` UI 컴포넌트 활용
+  - 취소할 초대 정보 표시 (이메일, 역할, 초대일시)
+  - 취소 사유 입력 필드 (선택사항)
+  - 취소 확인 체크박스 ("정말로 취소하겠습니다")
+- [ ] **초대 재전송 UI 컴포넌트**: `InvitationRetryDialog` 컴포넌트 구현
+  - 재전송할 초대 정보 표시 (이메일, 역할)
+  - 새로운 초대 메시지 입력 필드 (선택사항)
+  - 재전송 확인 버튼 (`Button` 컴포넌트)
+  - 이전 초대 취소 후 새 초대 생성 안내
+- [ ] **초대 상태 표시**: 초대 목록에서 상태별 표시 (대기 중, 취소됨, 만료됨)
+  - `Badge` 컴포넌트로 상태별 색상 구분
+  - 대기 중: 노란색 (pending)
+  - 취소됨: 빨간색 (cancelled)
+  - 만료됨: 회색 (expired)
+  - 수락됨: 초록색 (accepted)
+  - 거절됨: 빨간색 (rejected)
+- [ ] **초대 취소/재전송 진행 상태 표시**: 처리 중 상태 관리
+  - `Loader2` 아이콘으로 로딩 상태 표시
+  - `useTransition` Hook으로 pending 상태 관리
+  - 처리 중 다이얼로그 버튼 비활성화
+  - 성공/실패 토스트 알림 (`toast.success`, `toast.error`)
 
 ### Integration Task
-- [ ] Clerk 초대 취소 API 연동
-- [ ] 초대 취소 시 Clerk 동기화
-- [ ] 초대 재전송 시 Clerk 동기화
+- [ ] **React Context 연동**: `useUserManagement()` Hook을 통한 초대 관리
+  - `cancelInvitation`, `retryInvitation` 액션 구현
+  - 초대 취소/재전송 후 초대 목록 새로고침
+  - Context 상태와 UI 동기화
+- [ ] **설정 모달 통합**: 멤버 관리 탭에서 초대 관리 기능 제공
+  - `SettingsModal`의 "멤버" 탭에 취소/재전송 버튼 추가
+  - 초대 목록에서 각 초대별 취소/재전송 액션 버튼
+  - 권한에 따른 버튼 표시/숨김 (Owner/Admin만 관리 가능)
+  - 상태별 버튼 활성화/비활성화 (대기 중만 취소/재전송 가능)
+- [ ] **Clerk 초대 취소 API 연동**
+  - 초대 취소 시 Clerk 동기화
+  - 초대 재전송 시 Clerk 동기화
+  - 초대 링크 무효화 및 새 링크 생성
 
 ### E2E & Observability
 - [ ] 초대 취소/재전송 E2E 테스트

@@ -143,15 +143,42 @@ CREATE INDEX idx_memberships_user_id ON memberships (user_id);
 - [ ] 에러 처리 및 사용자 피드백
 
 ### Frontend
-- [ ] 멤버 제거 UI 컴포넌트
-- [ ] 멤버 제거 확인 다이얼로그
-- [ ] 멤버 제거 진행 상태 표시
-- [ ] 멤버 제거 후 상태 업데이트
+- [ ] **멤버 제거 UI 컴포넌트**: `MemberRemovalDialog` 컴포넌트 구현
+  - `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle` UI 컴포넌트 활용
+  - 제거할 멤버 정보 표시 (이름, 이메일, 역할)
+  - 제거 사유 입력 필드 (선택사항)
+  - 제거 확인 체크박스 ("정말로 제거하겠습니다")
+- [ ] **멤버 제거 확인 다이얼로그**: 제거 전 확인 UI
+  - `AlertDialog`, `AlertDialogContent`, `AlertDialogHeader` 활용
+  - 제거 대상 멤버 정보 요약 표시
+  - "정말로 이 멤버를 제거하시겠습니까?" 확인 메시지
+  - 제거 시 주의사항 안내 (워크스페이스 접근 권한 상실 등)
+  - 취소/제거 버튼 (`Button` 컴포넌트, 제거 버튼은 빨간색)
+- [ ] **멤버 제거 진행 상태 표시**: 제거 처리 중 상태 관리
+  - `Loader2` 아이콘으로 로딩 상태 표시
+  - `useTransition` Hook으로 pending 상태 관리
+  - 제거 중 다이얼로그 버튼 비활성화
+  - 성공/실패 토스트 알림 (`toast.success`, `toast.error`)
+- [ ] **멤버 제거 후 상태 업데이트**: 제거 완료 후 UI 업데이트
+  - 멤버 목록에서 제거된 멤버 즉시 제거
+  - `useOptimistic` Hook으로 낙관적 업데이트
+  - 제거 실패 시 이전 상태로 롤백
+  - 멤버 수 카운터 업데이트
 
 ### Integration Task
-- [ ] Clerk 멤버 제거 API 연동
-- [ ] 멤버 제거 시 Clerk 동기화
-- [ ] 멤버 제거 시 워크스페이스 접근 권한 해제
+- [ ] **React Context 연동**: `useUserManagement()` Hook을 통한 멤버 제거
+  - `removeMember` 액션으로 멤버 제거 처리
+  - 제거 후 멤버 목록 새로고침
+  - Context 상태와 UI 동기화
+- [ ] **설정 모달 통합**: 멤버 관리 탭에서 제거 기능 제공
+  - `SettingsModal`의 "멤버" 탭에 제거 버튼 추가
+  - 멤버 목록에서 각 멤버별 제거 액션 버튼
+  - 권한에 따른 버튼 표시/숨김 (Owner/Admin만 제거 가능)
+  - Owner 제거 버튼 비활성화
+- [ ] **Clerk 멤버 제거 API 연동**
+  - 멤버 제거 시 Clerk 동기화
+  - 멤버 제거 시 워크스페이스 접근 권한 해제
+  - 제거된 멤버의 세션 무효화
 
 ### E2E & Observability
 - [ ] 멤버 제거 E2E 테스트

@@ -156,11 +156,37 @@ CREATE INDEX idx_memberships_expires_at ON memberships (expires_at);
 
 ### Frontend
 - [ ] **멤버 초대 폼**: `MemberInvitationForm` 컴포넌트 구현
+  - `Input`, `Label`, `Button` UI 컴포넌트 활용
+  - 이메일 입력 필드 (유효성 검증 포함)
+  - 역할 선택 드롭다운 (Admin/Member)
+  - 폼 제출 시 로딩 상태 표시
+  - 초대 성공/실패 토스트 알림 (`toast.success`, `toast.error`)
 - [ ] **초대된 멤버 목록**: `MemberManagement` 컴포넌트에서 초대 목록 표시
+  - 초대 목록 테이블/카드 형태로 표시
+  - 초대된 이메일, 역할, 초대일시 표시
+  - 초대 상태별 색상 구분 (Badge 컴포넌트 활용)
+  - 초대 취소/재전송 액션 버튼
 - [ ] **초대 상태 표시**: 초대 목록에서 상태별 표시 (대기 중, 수락됨, 거절됨)
+  - `Badge` 컴포넌트로 상태별 색상 구분
+  - 대기 중: 노란색 (pending)
+  - 수락됨: 초록색 (accepted)
+  - 거절됨: 빨간색 (rejected)
+  - 만료됨: 회색 (expired)
 - [ ] **초대 진행 상태**: 초대 전송 시 로딩 상태 및 피드백
+  - `Loader2` 아이콘으로 로딩 상태 표시
+  - `useTransition` Hook으로 pending 상태 관리
+  - 초대 전송 중 폼 비활성화
+  - 초대 성공 시 폼 초기화
 - [ ] **설정 모달 통합**: 멤버 탭에서 초대 기능 제공
+  - `SettingsModal` 컴포넌트의 "멤버" 탭에 통합
+  - `Tabs`, `TabsContent`, `TabsList`, `TabsTrigger` UI 컴포넌트 활용
+  - 초대 폼과 멤버 목록을 탭으로 구분
+  - 모달 내에서 초대 관리 기능 제공
 - [ ] **React Context 연동**: `useUserManagement()` Hook을 통한 초대 관리
+  - `inviteMember` 액션으로 초대 전송
+  - `isInvitingMember` 상태로 로딩 관리
+  - `organizationMemberView`로 초대 목록 조회
+  - Context 상태와 UI 동기화
 
 ### Integration Task
 - [ ] Clerk 초대 API 연동

@@ -191,17 +191,47 @@ WHERE m.status = 'active' AND o.deleted_at IS NULL;
 
 ### Frontend
 - [ ] **사이드바 조직 선택기**: `OrganizationSelector` 컴포넌트 구현
+  - `Select`, `SelectContent`, `SelectItem`, `SelectTrigger`, `SelectValue` UI 컴포넌트 활용
+  - 조직 목록 드롭다운으로 표시
+  - 현재 선택된 조직 하이라이트 표시
+  - 조직 전환 시 즉시 UI 반영
 - [ ] **조직 목록 표시**: 사용자 소유/소속 조직 목록 UI
+  - 조직명, 역할(Owner/Admin/Member) 표시
+  - 기본 조직 표시 (Badge 컴포넌트 활용)
+  - 조직 멤버 수 표시
 - [ ] **현재 조직 컨텍스트**: 헤더/사이드바에 현재 조직 표시
+  - 사이드바 상단에 현재 조직명 표시
+  - 조직 전환 시 헤더 정보 업데이트
 - [ ] **조직 전환 로딩**: 전환 시 스피너 및 상태 관리
+  - `Loader2` 아이콘으로 로딩 상태 표시
+  - `useTransition` Hook으로 pending 상태 관리
+  - 전환 중 조직 선택기 비활성화
 - [ ] **React Context 연동**: `UserManagementContext`를 통한 상태 관리
+  - `useUserManagement()` Hook으로 조직 데이터 접근
+  - `selectOrganization` 액션으로 조직 전환 처리
+  - Context 상태와 UI 동기화
 - [ ] **낙관적 업데이트**: 즉시 UI 반영 후 서버 검증
+  - `useOptimistic` Hook으로 즉시 UI 업데이트
+  - 서버 응답 후 실제 데이터로 동기화
+  - 실패 시 이전 상태로 롤백
 
 ### Integration Task
 - [ ] **UserManagementProvider**: 조직 컨텍스트 상태 관리
+  - Provider에서 `userOrganizationView` 상태 관리
+  - 조직 전환 시 Context 상태 업데이트
+  - 초기 로드 시 기본 조직 자동 설정
 - [ ] **Custom Hook**: `useUserManagement()` Hook을 통한 조직 전환
+  - 조직 목록 조회 (`organizations`)
+  - 현재 조직 정보 (`currentOrganization`)
+  - 조직 전환 액션 (`selectOrganization`)
 - [ ] **Server Actions 연동**: `selectOrganizationAction` 호출
+  - `selectOrganizationAction` Server Action 구현
+  - 조직 전환 권한 검증
+  - 전환 성공 시 관련 페이지 재검증 (`revalidatePath`)
 - [ ] **다른 도메인 연동**: 워크스페이스, 프로젝트 컨텍스트 업데이트
+  - 워크스페이스 선택기 연동 (`WorkspaceSelector`)
+  - 조직 전환 시 워크스페이스 목록 업데이트
+  - 프로젝트 컨텍스트 초기화
 
 ### E2E & Observability
 - [ ] 조직 전환 E2E 테스트

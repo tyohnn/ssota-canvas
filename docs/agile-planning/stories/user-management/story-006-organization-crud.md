@@ -182,15 +182,50 @@ CREATE INDEX idx_organizations_is_default ON organizations (is_default);
 - [ ] 에러 처리 및 사용자 피드백
 
 ### Frontend
-- [ ] 조직 생성 폼 UI 컴포넌트
-- [ ] 조직 정보 수정 UI 컴포넌트
-- [ ] 조직 정보 조회 UI 컴포넌트
-- [ ] 조직 목록 표시 컴포넌트
+- [ ] **조직 생성 폼 UI 컴포넌트**: `OrganizationForm` 컴포넌트 구현
+  - `Input`, `Label`, `Button` UI 컴포넌트 활용
+  - 조직명 입력 필드 (필수, 유효성 검증 포함)
+  - 조직 설명 입력 필드 (선택사항)
+  - 슬러그 입력 필드 (자동 생성 가능, 중복 검증)
+  - 폼 제출 시 로딩 상태 표시
+  - 생성 성공/실패 토스트 알림 (`toast.success`, `toast.error`)
+- [ ] **조직 정보 수정 UI 컴포넌트**: `OrganizationEditForm` 컴포넌트 구현
+  - 기존 조직 정보로 폼 초기화
+  - 수정 가능한 필드만 편집 가능
+  - 변경 사항 저장 버튼
+  - 수정 권한 검증 (Owner/Admin만 수정 가능)
+- [ ] **조직 정보 조회 UI 컴포넌트**: `OrganizationInfo` 컴포넌트 구현
+  - 조직명, 설명, 슬러그 표시
+  - 조직 멤버 수 표시
+  - 조직 생성일 표시
+  - 소유자 정보 표시
+  - 읽기 전용 모드로 정보 표시
+- [ ] **조직 목록 표시 컴포넌트**: `OrganizationList` 컴포넌트 구현
+  - 조직 목록을 카드/테이블 형태로 표시
+  - 각 조직의 기본 정보 표시 (이름, 멤버 수, 생성일)
+  - 기본 조직 표시 (Badge 컴포넌트 활용)
+  - 조직별 액션 버튼 (편집, 삭제, 설정)
+  - 권한에 따른 버튼 표시/숨김
 
 ### Integration Task
-- [ ] Clerk 조직 생성 API 연동
-- [ ] 조직 생성 시 Clerk 동기화
-- [ ] 조직 정보 수정 시 Clerk 동기화
+- [ ] **React Context 연동**: `useUserManagement()` Hook을 통한 조직 관리
+  - `createOrganization`, `updateOrganization` 액션 구현
+  - 조직 생성/수정 후 조직 목록 새로고침
+  - Context 상태와 UI 동기화
+- [ ] **설정 모달 통합**: 조직 관리 탭에서 CRUD 기능 제공
+  - `SettingsModal`의 "조직" 탭에 조직 관리 기능 통합
+  - 조직 생성 버튼 및 폼
+  - 조직 목록 표시 및 편집 기능
+  - 권한에 따른 기능 표시/숨김
+- [ ] **낙관적 업데이트**: 즉시 UI 반영 후 서버 검증
+  - `useOptimistic` Hook으로 즉시 UI 업데이트
+  - 조직 생성 시 목록에 즉시 추가
+  - 서버 응답 후 실제 데이터로 동기화
+  - 실패 시 이전 상태로 롤백
+- [ ] **Clerk 조직 생성 API 연동**
+  - 조직 생성 시 Clerk 동기화
+  - 조직 정보 수정 시 Clerk 동기화
+  - Clerk 조직 ID와 Supabase 조직 연결
 
 ### E2E & Observability
 - [ ] 조직 생성/수정 E2E 테스트

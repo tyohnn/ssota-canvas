@@ -187,15 +187,41 @@ $$ LANGUAGE plpgsql;
 - [ ] 에러 처리 및 사용자 피드백
 
 ### Frontend
-- [ ] 초대 수락/거절 UI 컴포넌트
-- [ ] 초대 상태 표시
-- [ ] 초대 만료 알림
-- [ ] 초대 처리 진행 상태 표시
+- [ ] **초대 수락/거절 UI 컴포넌트**: `InvitationAcceptRejectPage` 컴포넌트 구현
+  - 초대 정보 표시 (조직명, 초대자, 역할)
+  - 수락/거절 버튼 (`Button` 컴포넌트 활용)
+  - 초대 만료일 표시
+  - 조직 정보 미리보기
+- [ ] **초대 상태 표시**: 초대 처리 결과 표시
+  - `Badge` 컴포넌트로 상태별 색상 구분
+  - 수락됨: 초록색 (accepted)
+  - 거절됨: 빨간색 (rejected)
+  - 만료됨: 회색 (expired)
+  - 처리 완료 후 안내 메시지 표시
+- [ ] **초대 만료 알림**: 만료된 초대 처리
+  - 만료된 초대 링크 접근 시 경고 메시지
+  - "초대가 만료되었습니다" 안내
+  - 새로운 초대 요청 링크 제공
+  - `Alert` 컴포넌트로 경고 표시
+- [ ] **초대 처리 진행 상태 표시**: 수락/거절 처리 중 상태 관리
+  - `Loader2` 아이콘으로 로딩 상태 표시
+  - `useTransition` Hook으로 pending 상태 관리
+  - 처리 중 버튼 비활성화
+  - 처리 완료 후 리다이렉트 또는 상태 업데이트
 
 ### Integration Task
-- [ ] Clerk 초대 처리 API 연동
-- [ ] 초대 수락 시 Clerk 동기화
-- [ ] 초대 거절 시 상태 업데이트
+- [ ] **React Context 연동**: `useUserManagement()` Hook을 통한 초대 처리
+  - `acceptInvitation`, `rejectInvitation` 액션 구현
+  - 초대 처리 후 사용자 조직 목록 새로고침
+  - Context 상태와 UI 동기화
+- [ ] **페이지 라우팅**: 초대 링크 처리
+  - `/invitation/[invitationId]` 페이지 구현
+  - 초대 ID로 초대 정보 조회
+  - 처리 완료 후 대시보드로 리다이렉트
+- [ ] **Clerk 초대 처리 API 연동**
+  - 초대 수락 시 Clerk 동기화
+  - 초대 거절 시 상태 업데이트
+  - Clerk 사용자 생성 및 조직 연결
 
 ### E2E & Observability
 - [ ] 초대 수락/거절 E2E 테스트

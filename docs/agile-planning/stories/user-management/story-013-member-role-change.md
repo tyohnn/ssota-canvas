@@ -140,15 +140,41 @@ CREATE INDEX idx_memberships_user_id ON memberships (user_id);
 - [ ] 에러 처리 및 사용자 피드백
 
 ### Frontend
-- [ ] 멤버 역할 변경 UI 컴포넌트
-- [ ] 멤버 역할 표시
-- [ ] 역할 변경 확인 다이얼로그
-- [ ] 역할 변경 진행 상태 표시
+- [ ] **멤버 역할 변경 UI 컴포넌트**: `MemberRoleChangeDialog` 컴포넌트 구현
+  - `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle` UI 컴포넌트 활용
+  - 현재 역할 표시 (Badge 컴포넌트)
+  - 새로운 역할 선택 드롭다운 (Admin/Member)
+  - 변경 사유 입력 필드 (선택사항)
+- [ ] **멤버 역할 표시**: 멤버 목록에서 역할 표시
+  - `Badge` 컴포넌트로 역할별 색상 구분
+  - Owner: 금색 (default)
+  - Admin: 파란색 (secondary)
+  - Member: 회색 (outline)
+  - 멤버 목록 테이블/카드에 역할 표시
+- [ ] **역할 변경 확인 다이얼로그**: 변경 전 확인 UI
+  - `AlertDialog`, `AlertDialogContent`, `AlertDialogHeader` 활용
+  - 변경 내용 요약 표시 (현재 역할 → 새 역할)
+  - "정말로 역할을 변경하시겠습니까?" 확인 메시지
+  - 취소/확인 버튼 (`Button` 컴포넌트)
+- [ ] **역할 변경 진행 상태 표시**: 변경 처리 중 상태 관리
+  - `Loader2` 아이콘으로 로딩 상태 표시
+  - `useTransition` Hook으로 pending 상태 관리
+  - 변경 중 다이얼로그 버튼 비활성화
+  - 성공/실패 토스트 알림 (`toast.success`, `toast.error`)
 
 ### Integration Task
-- [ ] Clerk 멤버 역할 변경 API 연동
-- [ ] 역할 변경 시 Clerk 동기화
-- [ ] 역할 변경 시 다른 도메인 컨텍스트 연동
+- [ ] **React Context 연동**: `useUserManagement()` Hook을 통한 역할 변경
+  - `changeMemberRole` 액션으로 역할 변경 처리
+  - 역할 변경 후 멤버 목록 새로고침
+  - Context 상태와 UI 동기화
+- [ ] **설정 모달 통합**: 멤버 관리 탭에서 역할 변경 기능 제공
+  - `SettingsModal`의 "멤버" 탭에 역할 변경 버튼 추가
+  - 멤버 목록에서 각 멤버별 역할 변경 액션 버튼
+  - 권한에 따른 버튼 표시/숨김 (Owner만 변경 가능)
+- [ ] **Clerk 멤버 역할 변경 API 연동**
+  - 역할 변경 시 Clerk 동기화
+  - 역할 변경 시 다른 도메인 컨텍스트 연동
+  - 권한 변경 후 워크스페이스 접근 권한 업데이트
 
 ### E2E & Observability
 - [ ] 멤버 역할 변경 E2E 테스트
