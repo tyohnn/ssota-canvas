@@ -87,6 +87,12 @@ Software Design에 정의된 순서대로 템플릿 섹션을 채워 넣습니�
 - 낙관적 잠금·트랜잭션이 필요한 시나리오 기술
 - 성능 최적화를 위한 인덱스 및 캐싱 전략
 
+### 4.3 Read Models 구현
+- **복잡한 조회 로직**: 여러 Aggregate를 조합한 View 쿼리 설계
+- **Database Views vs Repository 조합**: 성능과 유지보수성 고려한 선택
+- **캐싱 전략**: Redis, 메모리 캐시 등을 활용한 성능 최적화
+- **실시간 업데이트**: 도메인 이벤트 기반 Read Model 갱신 방법
+
 ---
 
 ## 5단계. 외부 연동과 Server Actions 설계
