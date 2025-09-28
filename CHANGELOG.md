@@ -11,3 +11,5 @@
 - Add frontend specification guide and read model view
 - Add updating progress task at guide
 - Update CHANGELOG
+- Update CHANGELOG
+- Edit branch policy
