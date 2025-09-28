@@ -66,18 +66,27 @@ export const users = pgTable(
   'users',
   {
     id: text('id').primaryKey().notNull(), // Clerk user ID
-    email: text('email').notNull(),
+    clerk_id: text('clerk_id').unique().notNull(), // Clerk user ID (중복 필드지만 Story UM-001 요구사항)
+    email: text('email').unique().notNull(),
     first_name: text('first_name'),
     last_name: text('last_name'),
     image_url: text('image_url'),
+    status: text('status').notNull().default('active'), // 'active', 'soft_deleted', 'permanently_deleted'
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
+    deleted_at: timestamp('deleted_at', { withTimezone: true }),
   },
   table => [
+    // Indexes (성능 최적화)
+    sql`CREATE INDEX idx_users_clerk_id ON users (clerk_id)`,
+    sql`CREATE INDEX idx_users_email ON users (email)`,
+    sql`CREATE INDEX idx_users_status ON users (status)`,
+    sql`CREATE INDEX idx_users_deleted_at ON users (deleted_at)`,
+
     // RLS (owner-only, optimized evaluation)
     pgPolicy('Enable read access for authenticated users', {
       for: 'select',

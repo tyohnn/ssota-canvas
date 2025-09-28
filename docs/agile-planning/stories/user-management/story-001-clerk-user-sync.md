@@ -129,50 +129,50 @@ CREATE INDEX idx_users_status ON users (status);
 ## 📋 Sub-tasks
 
 ### Backend Domain
-- [ ] `UserAggregate`에 `syncClerkUser` Command Handler 구현
-- [ ] `ClerkUserSyncedEvent` 도메인 이벤트 정의
-- [ ] `UserManagementService`에 `syncClerkUser` 메서드 추가
-- [ ] `ClerkACL` (Anti-Corruption Layer)에 Clerk Webhook 데이터 매핑 로직 구현
+- [x] `UserAggregate`에 `syncClerkUser` Command Handler 구현
+- [x] `ClerkUserSyncedEvent` 도메인 이벤트 정의
+- [x] `UserManagementService`에 `syncClerkUser` 메서드 추가
+- [x] `ClerkACL` (Anti-Corruption Layer)에 Clerk Webhook 데이터 매핑 로직 구현
 
 ### Database & Repository
-- [ ] `users` 테이블에 `clerk_id`, `status`, `deleted_at` 필드 추가/업데이트
-- [ ] `UserRepository`에 `findByClerkId`, `softDelete` 메서드 구현
-- [ ] `users` 테이블에 `clerk_id` 및 `email` 인덱스 설정
+- [x] `users` 테이블에 `clerk_id`, `status`, `deleted_at` 필드 추가/업데이트
+- [x] `UserRepository`에 `findByClerkId`, `softDelete` 메서드 구현
+- [x] `users` 테이블에 `clerk_id` 및 `email` 인덱스 설정
 
 ### API & Server Action
-- [ ] `syncClerkUserAction` Server Action 구현
-- [ ] Clerk Webhook으로부터의 요청 검증 및 보안 처리
-- [ ] 에러 처리 및 로깅 로직 구현
+- [x] `syncClerkUserAction` Server Action 구현
+- [x] Clerk Webhook으로부터의 요청 검증 및 보안 처리
+- [x] 에러 처리 및 로깅 로직 구현
 
 ### Frontend
 - [ ] (해당 없음 - 백엔드 동기화 로직)
 
 ### Integration Task
-- [ ] Clerk Webhook 설정 및 엔드포인트 연결
-- [ ] Clerk API를 통한 사용자 정보 조회/검증 로직 (필요 시)
+- [x] Clerk Webhook 설정 및 엔드포인트 연결
+- [x] Clerk API를 통한 사용자 정보 조회/검증 로직 (필요 시)
 
 ### E2E & Observability
-- [ ] Clerk 사용자 생성/업데이트/삭제 시 Supabase DB 동기화 E2E 테스트
-- [ ] 동기화 실패 시 재시도 및 알림 로직 테스트
-- [ ] 동기화 관련 에러 모니터링 설정
+- [x] Clerk 사용자 생성/업데이트/삭제 시 Supabase DB 동기화 E2E 테스트
+- [x] 동기화 실패 시 재시도 및 알림 로직 테스트
+- [x] 동기화 관련 에러 모니터링 설정
 
 ## 🎯 Definition of Done
 
 ### 기능적 완료
-- [ ] Clerk 사용자 생성/업데이트/삭제 시 Supabase DB에 정확히 동기화
-- [ ] 동기화 실패 시 재시도 로직 정상 동작 및 알림 전송
+- [x] Clerk 사용자 생성/업데이트/삭제 시 Supabase DB에 정확히 동기화
+- [x] 동기화 실패 시 재시도 로직 정상 동작 및 알림 전송
 - [ ] 기본 조직 자동 생성 로직 정상 동작
 
 ### 기술적 완료
-- [ ] `UserAggregate` 및 관련 도메인 로직 단위 테스트 커버리지 80% 이상
-- [ ] `syncClerkUserAction` Server Action 통합 테스트 통과
-- [ ] 코드 리뷰 완료 및 컨벤션 준수
-- [ ] 데이터베이스 스키마 변경 사항 반영 및 검증
+- [x] `UserAggregate` 및 관련 도메인 로직 단위 테스트 커버리지 80% 이상
+- [x] `syncClerkUserAction` Server Action 통합 테스트 통과
+- [x] 코드 리뷰 완료 및 컨벤션 준수
+- [x] 데이터베이스 스키마 변경 사항 반영 및 검증
 
 ### 품질 완료
-- [ ] 동기화 과정에서 데이터 불일치 발생하지 않음
-- [ ] Clerk Webhook 보안 요구사항 충족
-- [ ] 동기화 성능 요구사항 충족 (예: 1초 이내)
+- [x] 동기화 과정에서 데이터 불일치 발생하지 않음
+- [x] Clerk Webhook 보안 요구사항 충족
+- [x] 동기화 성능 요구사항 충족 (예: 1초 이내)
 
 ## 🔗 의존성
 **선행 Story**: 없음 (기반 동기화 시스템)

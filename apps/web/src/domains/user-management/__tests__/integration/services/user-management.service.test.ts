@@ -1,0 +1,169 @@
+import { UserManagementService } from '../../../services/user-management.service';
+import { DrizzleUserRepository } from '../../../repositories/user.repository';
+import { UserManagementError } from '../../../errors/user-management.error';
+
+// Mock ClerkService
+const mockClerkService = {
+  getUser: jest.fn()
+};
+
+describe('UserManagementService Integration', () => {
+  let service: UserManagementService;
+  let userRepository: DrizzleUserRepository;
+
+  beforeEach(() => {
+    userRepository = new DrizzleUserRepository();
+    service = new UserManagementService(userRepository, mockClerkService as any);
+    jest.clearAllMocks();
+  });
+
+  describe('syncUserFromClerk', () => {
+    it('should create new user when user does not exist in database', async () => {
+      const clerkUserId = 'clerk_123';
+      const mockClerkUser = {
+        id: clerkUserId,
+        emailAddresses: [{ emailAddress: 'test@example.com' }],
+        firstName: 'John',
+        lastName: 'Doe',
+        imageUrl: 'https://example.com/avatar.jpg'
+      };
+
+      // Mock Clerk service to return user data
+      mockClerkService.getUser.mockResolvedValue(mockClerkUser);
+
+      // Mock repository to return null (user not found)
+      const findByClerkIdSpy = jest.spyOn(userRepository, 'findByClerkId');
+      findByClerkIdSpy.mockResolvedValue(null);
+
+      // Mock repository save method
+      const saveSpy = jest.spyOn(userRepository, 'save');
+      saveSpy.mockResolvedValue();
+
+      const result = await service.syncUserFromClerk(clerkUserId);
+
+      expect(result.isSuccess()).toBe(true);
+      expect(saveSpy).toHaveBeenCalled();
+      expect(findByClerkIdSpy).toHaveBeenCalledWith(clerkUserId);
+    });
+
+    it('should update existing user when user exists in database', async () => {
+      const clerkUserId = 'clerk_123';
+      const mockClerkUser = {
+        id: clerkUserId,
+        emailAddresses: [{ emailAddress: 'updated@example.com' }],
+        firstName: 'Jane',
+        lastName: 'Smith',
+        imageUrl: 'https://example.com/new-avatar.jpg'
+      };
+
+      // Mock Clerk service to return updated user data
+      mockClerkService.getUser.mockResolvedValue(mockClerkUser);
+
+      // Mock repository to return existing user
+      const existingUser = {
+        id: { value: 'user_123' },
+        entity: {
+          clerkId,
+          email: { value: 'test@example.com' },
+          name: 'John Doe',
+          avatarUrl: 'https://example.com/avatar.jpg',
+          updateProfile: jest.fn(),
+          updateEmail: jest.fn()
+        }
+      };
+
+      const findByClerkIdSpy = jest.spyOn(userRepository, 'findByClerkId');
+      findByClerkIdSpy.mockResolvedValue(existingUser as any);
+
+      // Mock repository save method
+      const saveSpy = jest.spyOn(userRepository, 'save');
+      saveSpy.mockResolvedValue();
+
+      const result = await service.syncUserFromClerk(clerkUserId);
+
+      expect(result.isSuccess()).toBe(true);
+      expect(saveSpy).toHaveBeenCalled();
+      expect(findByClerkIdSpy).toHaveBeenCalledWith(clerkUserId);
+    });
+
+    it('should return error when Clerk user is not found', async () => {
+      const clerkUserId = 'nonexistent_clerk_id';
+
+      // Mock Clerk service to return null
+      mockClerkService.getUser.mockResolvedValue(null);
+
+      const result = await service.syncUserFromClerk(clerkUserId);
+
+      expect(result.isError()).toBe(true);
+      expect(result.error.code).toBe('USER_NOT_FOUND');
+    });
+
+    it('should return error when Clerk service fails', async () => {
+      const clerkUserId = 'clerk_123';
+
+      // Mock Clerk service to throw error
+      mockClerkService.getUser.mockRejectedValue(new Error('Clerk API error'));
+
+      const result = await service.syncUserFromClerk(clerkUserId);
+
+      expect(result.isError()).toBe(true);
+      expect(result.error.code).toBe('CLERK_SYNC_FAILED');
+    });
+  });
+
+  describe('syncClerkUser', () => {
+    it('should sync user creation event', async () => {
+      const command = {
+        clerkId: 'clerk_123',
+        email: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        imageUrl: 'https://example.com/avatar.jpg',
+        status: 'active' as const,
+        metadata: {},
+        webhookType: 'user.created' as const
+      };
+
+      // Mock repository save method
+      const saveSpy = jest.spyOn(userRepository, 'save');
+      saveSpy.mockResolvedValue();
+
+      const result = await service.syncClerkUser(command);
+
+      expect(result.isSuccess()).toBe(true);
+      expect(saveSpy).toHaveBeenCalled();
+      expect(result.value.clerkId).toBe('clerk_123');
+      expect(result.value.email).toBe('test@example.com');
+      expect(result.value.status).toBe('active');
+    });
+
+    it('should handle user deletion event', async () => {
+      const command = {
+        clerkId: 'clerk_123',
+        email: 'test@example.com',
+        status: 'soft_deleted' as const,
+        metadata: {},
+        webhookType: 'user.deleted' as const
+      };
+
+      // Mock existing user for deletion
+      const existingUser = {
+        entity: {
+          softDelete: jest.fn()
+        }
+      };
+
+      const findByClerkIdSpy = jest.spyOn(userRepository, 'findByClerkId');
+      findByClerkIdSpy.mockResolvedValue(existingUser as any);
+
+      const saveSpy = jest.spyOn(userRepository, 'save');
+      saveSpy.mockResolvedValue();
+
+      const result = await service.syncClerkUser(command);
+
+      expect(result.isSuccess()).toBe(true);
+      expect(existingUser.entity.softDelete).toHaveBeenCalled();
+      expect(saveSpy).toHaveBeenCalled();
+    });
+  });
+});
