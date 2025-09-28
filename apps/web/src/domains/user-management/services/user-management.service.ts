@@ -41,7 +41,8 @@ export class UserManagementService {
         return Result.success(newUser);
       }
     } catch (error) {
-      return Result.error(new UserManagementError('CLERK_SYNC_FAILED', 'Failed to sync user from Clerk', { error }));
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return Result.error(new UserManagementError('CLERK_SYNC_FAILED', 'Failed to sync user from Clerk', { originalError: errorMessage }));
     }
   }
 
@@ -98,7 +99,8 @@ export class UserManagementService {
       if (error instanceof UserManagementError) {
         return Result.error(error);
       }
-      return Result.error(new UserManagementError('CLERK_SYNC_FAILED', 'Failed to sync user from Clerk', { error }));
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return Result.error(new UserManagementError('CLERK_SYNC_FAILED', 'Failed to sync user from Clerk', { originalError: errorMessage }));
     }
   }
 }

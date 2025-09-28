@@ -34,8 +34,7 @@ describe('UserManagementService Integration', () => {
       mockClerkService.getUser.mockResolvedValue(mockClerkUser);
 
       // Mock repository to return null (user not found)
-      const findByClerkIdSpy = vi.spyOn(userRepository, 'findByClerkId');
-      findByClerkIdSpy.mockResolvedValue(null);
+      const findByClerkIdSpy = vi.spyOn(userRepository, 'findByClerkId').mockResolvedValue(null);
 
       // Mock repository save method
       const saveSpy = vi.spyOn(userRepository, 'save');
@@ -62,6 +61,7 @@ describe('UserManagementService Integration', () => {
       mockClerkService.getUser.mockResolvedValue(mockClerkUser);
 
       // Mock repository to return existing user
+      const clerkId = 'clerk_123';
       const existingUser = {
         id: { value: 'user_123' },
         entity: {
@@ -69,8 +69,8 @@ describe('UserManagementService Integration', () => {
           email: { value: 'test@example.com' },
           name: 'John Doe',
           avatarUrl: 'https://example.com/avatar.jpg',
-          updateProfile: jest.fn(),
-          updateEmail: jest.fn()
+          updateProfile: vi.fn(),
+          updateEmail: vi.fn()
         }
       };
 
@@ -127,7 +127,7 @@ describe('UserManagementService Integration', () => {
       };
 
       // Mock repository save method
-      const saveSpy = jest.spyOn(userRepository, 'save');
+      const saveSpy = vi.spyOn(userRepository, 'save');
       saveSpy.mockResolvedValue();
 
       const result = await service.syncClerkUser(command);
@@ -151,14 +151,14 @@ describe('UserManagementService Integration', () => {
       // Mock existing user for deletion
       const existingUser = {
         entity: {
-          softDelete: jest.fn()
+          softDelete: vi.fn()
         }
       };
 
-      const findByClerkIdSpy = jest.spyOn(userRepository, 'findByClerkId');
+      const findByClerkIdSpy = vi.spyOn(userRepository, 'findByClerkId');
       findByClerkIdSpy.mockResolvedValue(existingUser as any);
 
-      const saveSpy = jest.spyOn(userRepository, 'save');
+      const saveSpy = vi.spyOn(userRepository, 'save');
       saveSpy.mockResolvedValue();
 
       const result = await service.syncClerkUser(command);
