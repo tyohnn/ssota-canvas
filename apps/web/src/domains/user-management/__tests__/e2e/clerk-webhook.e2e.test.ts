@@ -1,3 +1,4 @@
+import { vi, describe, it, expect } from 'vitest';
 import { handleClerkWebhook } from '../../infrastructure/clerk-webhook.handler';
 
 describe('Clerk Webhook E2E', () => {
@@ -21,10 +22,10 @@ describe('Clerk Webhook E2E', () => {
       };
 
       // Mock the webhook verification
-      const verifyClerkWebhook = jest.fn().mockResolvedValue(true);
+      const verifyClerkWebhook = vi.fn().mockResolvedValue(true);
 
       // Mock the sync action to return success
-      const mockSyncAction = jest.fn().mockResolvedValue({
+      const mockSyncAction = vi.fn().mockResolvedValue({
         isSuccess: () => true,
         value: {
           userId: 'user_123',
@@ -73,8 +74,8 @@ describe('Clerk Webhook E2E', () => {
         'svix-signature': 'mock_signature'
       };
 
-      const verifyClerkWebhook = jest.fn().mockResolvedValue(true);
-      const mockSyncAction = jest.fn().mockResolvedValue({
+      const verifyClerkWebhook = vi.fn().mockResolvedValue(true);
+      const mockSyncAction = vi.fn().mockResolvedValue({
         isSuccess: () => true,
         value: {
           userId: 'user_123',
@@ -118,8 +119,8 @@ describe('Clerk Webhook E2E', () => {
         'svix-signature': 'mock_signature'
       };
 
-      const verifyClerkWebhook = jest.fn().mockResolvedValue(true);
-      const mockSyncAction = jest.fn().mockResolvedValue({
+      const verifyClerkWebhook = vi.fn().mockResolvedValue(true);
+      const mockSyncAction = vi.fn().mockResolvedValue({
         isSuccess: () => true,
         value: {
           userId: 'user_123',
@@ -163,7 +164,7 @@ describe('Clerk Webhook E2E', () => {
         'svix-signature': 'invalid_signature'
       };
 
-      const verifyClerkWebhook = jest.fn().mockResolvedValue(false);
+      const verifyClerkWebhook = vi.fn().mockResolvedValue(false);
 
       const originalHandler = require('../../infrastructure/clerk-webhook.handler');
       originalHandler.verifyClerkWebhook = verifyClerkWebhook;
@@ -187,8 +188,8 @@ describe('Clerk Webhook E2E', () => {
         'svix-signature': 'mock_signature'
       };
 
-      const verifyClerkWebhook = jest.fn().mockResolvedValue(true);
-      const mockSyncAction = jest.fn().mockResolvedValue({
+      const verifyClerkWebhook = vi.fn().mockResolvedValue(true);
+      const mockSyncAction = vi.fn().mockResolvedValue({
         isError: () => true,
         error: { code: 'USER_NOT_FOUND', message: 'User not found in Clerk' }
       });

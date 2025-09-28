@@ -1,6 +1,7 @@
 import { UserAggregate } from '../aggregates/user.aggregate';
 import { UserId } from '../value-objects/user-id.vo';
 import { UserEmail } from '../value-objects/user-email.vo';
+import { User } from '../entities/user.entity';
 import { createClerkDrizzleSupabaseClient } from '@/db';
 import { users } from '@/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
@@ -139,11 +140,7 @@ export class DrizzleUserRepository implements UserRepository {
     return new UserAggregate(user, []);
   }
 
-  private mapToUserEntity(row: any) {
-    const { User } } = require('../entities/user.entity');
-    const { UserId } = require('../value-objects/user-id.vo');
-    const { UserEmail } = require('../value-objects/user-email.vo');
-
+  private mapToUserEntity(row: any): User {
     return new User(
       new UserId(row.id),
       row.clerkId,

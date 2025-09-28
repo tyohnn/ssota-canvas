@@ -2,9 +2,11 @@ import { UserManagementService } from '../../../services/user-management.service
 import { DrizzleUserRepository } from '../../../repositories/user.repository';
 import { UserManagementError } from '../../../errors/user-management.error';
 
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+
 // Mock ClerkService
 const mockClerkService = {
-  getUser: jest.fn()
+  getUser: vi.fn()
 };
 
 describe('UserManagementService Integration', () => {
@@ -14,7 +16,7 @@ describe('UserManagementService Integration', () => {
   beforeEach(() => {
     userRepository = new DrizzleUserRepository();
     service = new UserManagementService(userRepository, mockClerkService as any);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('syncUserFromClerk', () => {
@@ -32,11 +34,11 @@ describe('UserManagementService Integration', () => {
       mockClerkService.getUser.mockResolvedValue(mockClerkUser);
 
       // Mock repository to return null (user not found)
-      const findByClerkIdSpy = jest.spyOn(userRepository, 'findByClerkId');
+      const findByClerkIdSpy = vi.spyOn(userRepository, 'findByClerkId');
       findByClerkIdSpy.mockResolvedValue(null);
 
       // Mock repository save method
-      const saveSpy = jest.spyOn(userRepository, 'save');
+      const saveSpy = vi.spyOn(userRepository, 'save');
       saveSpy.mockResolvedValue();
 
       const result = await service.syncUserFromClerk(clerkUserId);
@@ -72,11 +74,11 @@ describe('UserManagementService Integration', () => {
         }
       };
 
-      const findByClerkIdSpy = jest.spyOn(userRepository, 'findByClerkId');
+      const findByClerkIdSpy = vi.spyOn(userRepository, 'findByClerkId');
       findByClerkIdSpy.mockResolvedValue(existingUser as any);
 
       // Mock repository save method
-      const saveSpy = jest.spyOn(userRepository, 'save');
+      const saveSpy = vi.spyOn(userRepository, 'save');
       saveSpy.mockResolvedValue();
 
       const result = await service.syncUserFromClerk(clerkUserId);
