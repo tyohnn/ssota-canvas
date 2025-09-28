@@ -1,5 +1,17 @@
 ## [unreleased]
 
+### ♻️ Refactoring
+
+- *(db-schema)* Implement layered responsibility separation
+
+### ✨ Features
+
+- *(technical-spec)* Complete User Management domain technical specification
+- *(technical-spec)* Add missing Organization and Membership aggregates
+- *(technical-spec)* Add missing entities, events, and error codes
+- *(technical-spec)* Complete missing service methods, read models, and commands
+- *(user-management)* Add comprehensive database schema
+
 ### 📚 Documentation
 
 - Update CHANGELOG
@@ -13,3 +25,12 @@
 - Update CHANGELOG
 - Update CHANGELOG
 - Edit branch policy
+- Update CHANGELOG
+- *(event-storm)* Complete user management domain event storming
+- *(process-model)* Complete user management domain process model
+- *(user-management)* Complete software design of user management domain
+- *(event-storm)* Complete user management domain event storming
+- *(process-model)* Complete user management domain process model
+- *(user-management)* Complete software design of user management domain
+- *(progress)* Update User Management Domain to 95% completion
+- *(epic)* Add epic-001-user-management document
