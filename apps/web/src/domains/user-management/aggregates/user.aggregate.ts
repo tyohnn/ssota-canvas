@@ -1,13 +1,14 @@
 import { User } from '../entities/user.entity';
-import { UserId } from '../value-objects/user-id.vo';
-import { UserEmail } from '../value-objects/user-email.vo';
+import { Membership } from '../entities/membership.entity';
+import { UserId, OrganizationId } from '../value-objects/ids.vo';
 import { UserManagementError } from '../errors/user-management.error';
-import { UserCreatedEvent, UserUpdatedEvent, UserLoggedInEvent, UserLoggedOutEvent } from '../events';
+import { UserCreatedEvent, UserUpdatedEvent, UserLoggedInEvent, UserLoggedOutEvent, OrganizationSelectedByUserEvent, OrganizationContextSetEvent } from '../events';
 
 export class UserAggregate {
   constructor(
     private user: User,
-    private memberships: any[] = [] // Membership entities will be added later
+    private memberships: Membership[] = [],
+    private currentOrganizationId?: OrganizationId
   ) {}
 
   // Command 처리
@@ -44,19 +45,55 @@ export class UserAggregate {
     return new UserCreatedEvent(this.user.id, this.user.email, this.user.name);
   }
 
-  // 비즈니스 규칙 검증
-  canJoinOrganization(organizationId: any): boolean {
-    if (this.user.isDeleted) return false;
-    return !this.memberships.some((m: any) =>
+  // Command Handlers
+  selectOrganization(organizationId: OrganizationId): OrganizationSelectedByUserEvent {
+    // 사용자의 조직 멤버십 검증
+    const membership = this.memberships.find(m =>
       m.organizationId.equals(organizationId) && !m.isDeleted
+    );
+
+    if (!membership) {
+      throw new UserManagementError('USER_NOT_MEMBER', 'User is not a member of this organization');
+    }
+
+    if (membership.status !== 'active') {
+      throw new UserManagementError('MEMBERSHIP_NOT_ACTIVE', 'Membership is not active');
+    }
+
+    // 현재 조직 업데이트
+    this.currentOrganizationId = organizationId;
+
+    return new OrganizationSelectedByUserEvent(
+      this.user.id,
+      organizationId,
+      'Organization Name', // TODO: 실제 조직명 조회
+      membership.role
     );
   }
 
-  getDefaultOrganization(): any | null {
-    return this.memberships.find((m: any) => m.isDefault && !m.isDeleted) || null;
+  setOrganizationContext(organizationId: OrganizationId): OrganizationContextSetEvent {
+    // 조직 멤버십 검증
+    const membership = this.memberships.find(m =>
+      m.organizationId.equals(organizationId) && !m.isDeleted
+    );
+
+    if (!membership) {
+      throw new UserManagementError('USER_NOT_MEMBER', 'User is not a member of this organization');
+    }
+
+    // 기본 조직인 경우 자동으로 설정
+    if (membership.isDefault) {
+      this.currentOrganizationId = organizationId;
+    }
+
+    return new OrganizationContextSetEvent(
+      this.user.id,
+      organizationId,
+      'Organization Name', // TODO: 실제 조직명 조회
+      membership.role
+    );
   }
 
-  // Command Handlers
   loginUser(clerkUserId: string, sessionId: string, loginMethod: string): UserLoggedInEvent {
     if (this.user.isDeleted) {
       throw new UserManagementError('USER_DELETED', 'Cannot login with deleted user account');
@@ -77,10 +114,26 @@ export class UserAggregate {
     return new UserLoggedOutEvent(this.user.id, sessionId);
   }
 
+  // 비즈니스 규칙 검증
+  canJoinOrganization(organizationId: OrganizationId): boolean {
+    if (this.user.isDeleted) return false;
+    return !this.memberships.some(m =>
+      m.organizationId.equals(organizationId) && !m.isDeleted
+    );
+  }
+
+  getDefaultOrganization(): Membership | null {
+    return this.memberships.find(m => m.isDefault && !m.isDeleted) || null;
+  }
+
+  getCurrentOrganization(): OrganizationId | undefined {
+    return this.currentOrganizationId;
+  }
+
   // Getters
   get id() { return this.user.id; }
   get entity() { return this.user; }
   get activeMemberships() {
-    return this.memberships.filter((m: any) => !m.isDeleted);
+    return this.memberships.filter(m => !m.isDeleted);
   }
 }

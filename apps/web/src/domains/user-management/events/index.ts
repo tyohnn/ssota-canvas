@@ -47,6 +47,27 @@ export class UserLoggedOutEvent {
   ) {}
 }
 
+// Organization Context Events
+export class OrganizationSelectedByUserEvent {
+  constructor(
+    public readonly userId: UserId,
+    public readonly organizationId: OrganizationId,
+    public readonly organizationName: string,
+    public readonly userRole: MembershipRole,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class OrganizationContextSetEvent {
+  constructor(
+    public readonly userId: UserId,
+    public readonly organizationId: OrganizationId,
+    public readonly organizationName: string,
+    public readonly userRole: MembershipRole,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
 // Organization Events
 export class DefaultOrganizationCreatedEvent {
   constructor(
