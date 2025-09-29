@@ -2,6 +2,7 @@
 
 import { useUserManagement } from '../hooks/use-user-management';
 import { OrganizationSelector } from './OrganizationSelector';
+import { SettingsModal } from './SettingsModal';
 import { Button } from '@workspace/ui/components/ui/button';
 import { Settings, Plus, Users } from 'lucide-react';
 import { useState } from 'react';
@@ -77,6 +78,12 @@ export function Sidebar() {
           멤버 관리
         </Button>
       </div>
+
+      {/* 설정 모달 */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 }
