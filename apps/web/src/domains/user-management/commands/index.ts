@@ -1,6 +1,6 @@
-import { UserId } from '../value-objects/user-id.vo';
-import { UserEmail } from '../value-objects/user-email.vo';
+import { UserId, OrganizationId, MembershipId, UserEmail, MembershipRole } from '../value-objects/ids.vo';
 
+// User Commands
 export interface SyncClerkUserCommand {
   clerkId: string;
   email: string;
@@ -38,4 +38,90 @@ export interface UpdateUserFromClerkCommand {
   email: string;
   name: string;
   avatarUrl: string | null;
+}
+
+// Organization Commands
+export interface CreateDefaultOrganizationCommand {
+  userId: UserId;
+  userEmail: string;
+  userName: string;
+  clerkUserId: string;
+  timestamp: Date;
+}
+
+export interface CreateOrganizationCommand {
+  name: string;
+  description?: string;
+  slug?: string;
+  createdBy: UserId;
+  timestamp: Date;
+}
+
+export interface UpdateOrganizationCommand {
+  organizationId: OrganizationId;
+  name?: string;
+  description?: string;
+  slug?: string;
+  updatedBy: UserId;
+  timestamp: Date;
+}
+
+export interface DeleteOrganizationCommand {
+  organizationId: OrganizationId;
+  organizationName: string;
+  deletedBy: UserId;
+  timestamp: Date;
+}
+
+export interface RestoreOrganizationCommand {
+  organizationId: OrganizationId;
+  restoredBy: UserId;
+  timestamp: Date;
+}
+
+export interface TransferOrganizationOwnershipCommand {
+  organizationId: OrganizationId;
+  currentOwnerId: UserId;
+  newOwnerId: UserId;
+  confirmationCode: string;
+  timestamp: Date;
+}
+
+// Membership Commands
+export interface InviteUserToOrganizationCommand {
+  organizationId: OrganizationId;
+  inviteeEmail: UserEmail;
+  inviterId: UserId;
+  role: MembershipRole;
+  timestamp: Date;
+}
+
+export interface AcceptInvitationCommand {
+  invitationId: MembershipId;
+  userId: UserId;
+  timestamp: Date;
+}
+
+export interface RejectInvitationCommand {
+  invitationId: MembershipId;
+  timestamp: Date;
+}
+
+export interface ChangeMemberRoleCommand {
+  membershipId: MembershipId;
+  newRole: MembershipRole;
+  changedBy: UserId;
+  timestamp: Date;
+}
+
+export interface RemoveMemberCommand {
+  membershipId: MembershipId;
+  removedBy: UserId;
+  timestamp: Date;
+}
+
+export interface CancelInvitationCommand {
+  invitationId: MembershipId;
+  cancelledBy: UserId;
+  timestamp: Date;
 }
