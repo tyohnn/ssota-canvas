@@ -4,14 +4,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 // utils
 import { createClient } from '@/utils/supabase/server';
-// actions
-
 // components
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { GalleryVerticalEnd } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { OAuthButtons } from '@/components/auth/oauth-signin';
 // constants
 import { appDefaultUrl, loginErrorMessage } from '../constant';
