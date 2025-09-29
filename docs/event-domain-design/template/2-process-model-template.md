@@ -1,7 +1,14 @@
 # [Domain Name] Domain - Process Model
 
 ## 🎯 Process Modeling Overview
-[Domain Name] Domain의 핵심 프로세스를 Command → Policy → System → Event 패턴으로 정의
+[Domain Name] Domain의 핵심 프로세스를 실제 상호작용 순서에 따라 정의
+
+### 🔄 시퀀스 기반 상호작용 순서
+각 시나리오는 여러 시퀀스로 구성되며, 이벤트에 의해 다음 시퀀스가 트리거됩니다:
+
+**Event** → **Policy** → **Read Model** → **Command** → **System** → **Event** → **Policy** → ...
+
+1. **Event** (이전 시퀀스의 결과) → 2. **Policy** (이벤트에 따른 정책 적용) → 3. **Read Model** (시스템에서 사용자에게 제공하는 정보) → 4. **Command** (사용자가 입력하는 정보) → 5. **System** (처리 시스템) → 6. **Event** (결과 이벤트)
 
 ### 🟪 External System: [External System Name]
 [Domain Name]은 [External System Name]을 [용도/역할] 시스템으로 사용합니다:
@@ -11,31 +18,36 @@
 
 ---
 
-## 📍 Process 0: [External System] 동기화
+## 📍 Scenario 0: [External System] 동기화
 
-### Scenario: [External System]에서 [Entity] 생성/변경 시 자동 동기화
+### Sequence 1: [External System]에서 [Entity] 생성/변경 시 자동 동기화
+
+**Trigger Event**: [External System] Webhook 수신
 
 ```
 🔗 [External System] Webhook: "[Entity]가 생성/변경되었어"
 ```
 
-**Command**: [Entity] 동기화 (Sync [Entity] from [External System])
-- [externalEntityId]: [external_id_format]
-- [entityData]: { [field1], [field2], [field3] }
-- webhookType: "[entity].created" | "[entity].updated"
+**Policy**: 
+- "Whenever [External System] Webhook 수신됨, then always [Entity] 동기화 처리하기"
+- "Whenever 동기화 실패됨, then immediately 재시도 스케줄링하기"
 
-**Read Model** (필요 정보):
-- [External System] [Entity] 데이터
-- 기존 동기화 상태
-- 실패 이력 및 재시도 횟수
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 동기화 상태 표시
+- 동기화 진행률 표시
+- 동기화 결과 메시지
+- 동기화 오류 알림
 
-**Policy**: [External System] → DB 동기화 규칙
-- "[External System] [Entity] 생성 시 우리 DB에 [Entity] 레코드 생성"
-- "[External System] [Entity] 업데이트 시 기존 레코드 갱신"
-- "동기화 실패 시 [N]회까지 재시도"
-- "[Time]초 내 재시도하며 exponential backoff 적용"
+**Command**: [Entity] 동기화 요청 (사용자가 입력하는 정보)
+- [External System]에서 받은 [Entity] 데이터
+- 동기화 시점 정보
+- 동기화 유형 정보
+- 동기화 확인
 
 **System**: [External System] Webhook Handler → Database
+- 비즈니스 로직: 동기화 규칙 검증, 데이터 무결성 확인, 충돌 해결
+- 검증 로직: Webhook 서명 검증, 데이터 형식 검증, 중복 처리 방지
+- 처리 로직: 데이터 변환, 트랜잭션 처리, 오류 복구
 
 **Events**:
 1. [External System] [Entity] 정보가 동기화되었다 ([Entity] Synced from [External System])
@@ -43,35 +55,64 @@
 3. 동기화가 실패했다 ([Entity] Sync Failed)
 4. 재시도가 예약되었다 (Sync Retry Scheduled)
 
+### Sequence 2: [다음 시퀀스명] (선택사항)
+
+**Trigger Event**: [이전 시퀀스의 특정 이벤트]
+
+**Policy**: 
+- "Whenever [이전 시퀀스의 특정 이벤트], then always [다음 액션]"
+- "If [조건], then [조건부 반응]"
+
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- [시스템이 보여주는 정보]
+- [사용자 선택 옵션]
+
+**Command**: [명령명] (사용자가 입력하는 정보)
+- [사용자 입력 정보]
+- [사용자 선택]
+
+**System**: [처리 시스템] (웹) - Frontend에서 처리되는 경우
+- 비즈니스 로직: [프론트엔드 비즈니스 규칙들]
+- 검증 로직: [클라이언트 사이드 검증 규칙들]
+- 처리 로직: [UI 상태 관리, 사용자 경험 로직]
+
+**Events**:
+1. [결과 이벤트 1]
+2. [결과 이벤트 2]
+
 ---
 
-## 📍 Process 1: [Core Entity] 생성
+## 📍 Scenario 1: [Core Entity] 생성 및 관리
 
-### Scenario: 사용자가 새로운 [Core Entity]를 생성
+### Sequence 1: 사용자가 새로운 [Core Entity]를 생성
+
+**Trigger Event**: 사용자 생성 요청
 
 ```
 👤 사용자: "[Core Entity] 생성 관련 구체적 요구사항"
 ```
 
-**Command**: [Core Entity] 생성 (Create [Core Entity])
-- [parentEntityId]: current[ParentEntity]
-- [field1]: "[Example Value]"
-- [field2]: "[Example Description]"
-- [templateId]?: template_xxx (선택사항)
+**Policy**: 
+- "Whenever [Core Entity] 생성 요청됨, then always 권한 검증하기"
+- "If 템플릿 선택됨, then 템플릿 구조 복사하기"
+- "Whenever [Core Entity] 생성 완료됨, then always 기본 설정 적용하기"
 
-**Read Model** (필요 정보):
-- 사용자의 [Parent Entity] 권한
-- 선택된 템플릿 정보 (있는 경우)
-- [Parent Entity]의 [Core Entity] 개수
-- 플랜별 제한사항
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- [Core Entity] 생성 폼
+- 템플릿 선택 옵션 (있는 경우)
+- 생성 진행 상태 표시
+- 생성 완료 메시지
 
-**Policy**: [Core Entity] 생성 규칙
-- "[Parent Entity]의 [Role1], [Role2], [Role3]만 [Core Entity] 생성 가능"
-- "[Plan Type] 플랜에서는 [Parent Entity]당 [N]개 [Core Entity] 제한"
-- "템플릿 선택 시 템플릿의 [Related Structure] 자동 복사"
-- "빈 [Core Entity] 생성 시 [Default Content] 자동 생성"
+**Command**: [Core Entity] 생성 요청 (사용자가 입력하는 정보)
+- [Core Entity] 제목/이름
+- [Core Entity] 설명
+- 템플릿 선택 (있는 경우)
+- 생성 확인
 
 **System**: [Core Entity] Manager
+- 비즈니스 로직: 권한 검증, 템플릿 복사 규칙, 기본 설정 적용
+- 검증 로직: 사용자 권한 확인, 플랜 제한 검증, 중복 생성 방지
+- 처리 로직: [Core Entity] 생성, 템플릿 적용, 기본 데이터 초기화
 
 **Events**:
 1. [Core Entity]가 생성되었다 ([Core Entity] Created)
@@ -79,27 +120,40 @@
 3. 생성자가 [Owner Role] 권한으로 설정되었다 (Creator Set as [Owner Role])
 4. 템플릿 [Related Entities]가 복사되었다 (Template [Related Entities] Copied) *템플릿 사용 시*
 
+### Sequence 2: [Core Entity] 생성 후 후속 처리 (선택사항)
+
+**Trigger Event**: [Core Entity]가 생성되었다
+
+**Policy**: 신규 [Core Entity] 후속 처리 규칙
+- "신규 [Core Entity] 생성 시 튜토리얼 진행 옵션 제공"
+- "기존 사용자인 경우 바로 메인 화면으로 이동"
+
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 튜토리얼 시작 버튼
+- 튜토리얼 건너뛰기 옵션
+- [Core Entity] 관리 가이드
+
+**Command**: 튜토리얼 처리 (사용자가 입력하는 정보)
+- 튜토리얼 시작 선택
+- 튜토리얼 건너뛰기 선택
+
+**System**: (웹) - Frontend
+
+**Events**:
+1. 튜토리얼이 시작됨
+2. 튜토리얼을 건너뛰었음
+
 ---
 
-## 📍 Process 2: [Child Entity] 생성 및 중첩
+## 📍 Scenario 2: [Child Entity] 생성 및 중첩
 
-### Scenario: 사용자가 [Parent Entity] 내에 새 [Child Entity]를 생성
+### Sequence 1: 사용자가 [Parent Entity] 내에 새 [Child Entity]를 생성
+
+**Trigger Event**: [Child Entity] 생성 요청
 
 ```
 👤 사용자: "[Child Entity] 생성 관련 구체적 요구사항"
 ```
-
-**Command**: [Child Entity] 생성 (Create [Child Entity])
-- [parentEntityId]: current[ParentEntity]
-- [parentChildId]?: parent[Child] (폴더 역할)
-- [field1]: "[Example Title]"
-- position: insertIndex
-
-**Read Model** (필요 정보):
-- [Parent Entity] 접근 권한
-- 부모 [Child Entity]의 중첩 깊이
-- 같은 레벨의 기존 [Child Entity] 목록
-- [Child Entity] 순서 정보
 
 **Policy**: [Child Entity] 계층 구조 규칙
 - "[Parent Entity]의 [Role1], [Role2]만 [Child Entity] 생성 가능"
@@ -107,6 +161,19 @@
 - "[Folder Concept] = [Child Entity]이므로 모든 [Child Entity]는 [Content]을 포함할 수 있음"
 - "같은 부모 하위에서 제목 중복 허용"
 - "순서는 생성 시점 기준 마지막 위치"
+
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- [Child Entity] 생성 폼
+- [Parent Entity] 접근 권한 표시
+- 부모 [Child Entity]의 중첩 깊이 표시
+- 같은 레벨의 기존 [Child Entity] 목록
+- [Child Entity] 순서 정보
+
+**Command**: [Child Entity] 생성 요청 (사용자가 입력하는 정보)
+- [field1]: "[Example Title]"
+- [parentChildId]?: parent[Child] (폴더 역할)
+- position: insertIndex
+- 생성 확인
 
 **System**: [Child Entity] Manager
 
@@ -118,31 +185,34 @@
 
 ---
 
-## 📍 Process 3: [Child Entity] 이동 (핵심 프로세스)
+## 📍 Scenario 3: [Child Entity] 이동 (핵심 프로세스)
 
-### Scenario: 사용자가 [Child Entity]를 다른 [Parent Entity]로 이동
+### Sequence 1: 사용자가 [Child Entity]를 다른 [Parent Entity]로 이동
+
+**Trigger Event**: [Child Entity] 이동 요청
 
 ```
 👤 사용자: "[Child Entity] 이동 관련 구체적 요구사항"
 ```
-
-**Command**: [Child Entity] 이동 (Move [Child Entity] to [Parent Entity])
-- [childEntityId]: target[Child]
-- [targetParentEntityId]: destination[Parent]
-- [newParentChildId]?: newParent
-- keepReferences: boolean
-
-**Read Model** (필요 정보):
-- 원본 [Parent Entity] 권한 ([Required Role] 이상)
-- 대상 [Parent Entity] 권한 ([Required Role] 이상)
-- [Child Entity]의 모든 하위 [Child Entity] 목록
-- [Child Entity] 내 [Related Content] 존재 여부
 
 **Policy**: [Child Entity] 이동 시 권한 및 구조 관리 (핵심)
 - "양쪽 [Parent Entity] 모두 [Required Role] 권한 필요"
 - "이동 시 하위 [Child Entity]들도 함께 이동"
 - "순환 참조 방지: 자기 자신을 부모로 설정 불가"
 - "[Child Entity] 내 [Related Content]는 [Related Domain]에서 처리"
+
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- [Child Entity] 이동 폼
+- 원본 [Parent Entity] 권한 표시 ([Required Role] 이상)
+- 대상 [Parent Entity] 권한 표시 ([Required Role] 이상)
+- [Child Entity]의 모든 하위 [Child Entity] 목록
+- [Child Entity] 내 [Related Content] 존재 여부 표시
+
+**Command**: [Child Entity] 이동 요청 (사용자가 입력하는 정보)
+- [childEntityId]: target[Child]
+- [targetParentEntityId]: destination[Parent]
+- [newParentChildId]?: newParent
+- 이동 확인
 
 **System**: [Child Entity] Migration Manager
 
@@ -154,29 +224,33 @@
 
 ---
 
-## 📍 Process 4: [Child Entity] 중첩 및 순서 변경
+## 📍 Scenario 4: [Child Entity] 중첩 및 순서 변경
 
-### Scenario: 사용자가 [Child Entity] 구조를 재정리
+### Sequence 1: 사용자가 [Child Entity] 구조를 재정리
+
+**Trigger Event**: [Child Entity] 구조 변경 요청
 
 ```
 👤 사용자: "[Child Entity] 구조 재정리 관련 구체적 요구사항"
 ```
-
-**Command**: [Child Entity] 구조 변경 (Restructure [Child Entity])
-- [childEntityId]: target[Child]
-- newParentId?: newParent
-- newPosition: targetIndex
-
-**Read Model** (필요 정보):
-- 현재 [Child Entity] 계층구조
-- 이동 대상 위치의 기존 [Child Entity] 목록
-- [Child Entity]의 모든 하위 [Child Entity] 목록
 
 **Policy**: 구조 변경 제약사항
 - "순환 참조 방지: 하위 [Child Entity]를 상위로 이동 불가"
 - "폴더([Child Entity])를 자기 자신의 하위로 이동 불가"
 - "깊이 제한: [N]레벨 초과 시 경고"
 - "위치 조정 시 다른 [Child Entity]들의 순서 자동 재정렬"
+
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- [Child Entity] 구조 변경 폼
+- 현재 [Child Entity] 계층구조 표시
+- 이동 대상 위치의 기존 [Child Entity] 목록
+- [Child Entity]의 모든 하위 [Child Entity] 목록
+
+**Command**: [Child Entity] 구조 변경 요청 (사용자가 입력하는 정보)
+- [childEntityId]: target[Child]
+- newParentId?: newParent
+- newPosition: targetIndex
+- 구조 변경 확인
 
 **System**: [Child Entity] Hierarchy Manager
 
@@ -188,23 +262,15 @@
 
 ---
 
-## 📍 Process 5: [Child Entity] 삭제 및 복구
+## 📍 Scenario 5: [Child Entity] 삭제 및 복구
 
-### Scenario: 사용자가 [Child Entity]를 삭제하고 나중에 복구
+### Sequence 1: 사용자가 [Child Entity]를 삭제
+
+**Trigger Event**: [Child Entity] 삭제 요청
 
 ```
 👤 사용자: "[Child Entity] 삭제 관련 요구사항"
-나중에: "[Child Entity] 복구 관련 요구사항"
 ```
-
-**Command**: [Child Entity] 삭제 (Delete [Child Entity])
-- [childEntityId]: target[Child]
-- deleteType: "soft" | "permanent"
-
-**Read Model** (필요 정보):
-- [Child Entity]의 하위 [Child Entity] 목록
-- [Child Entity] 내 [Related Content] 존재 여부
-- 삭제 권한 확인
 
 **Policy**: 계층적 삭제 규칙
 - "[Role1], [Role2]만 삭제 가능"
@@ -213,6 +279,17 @@
 - "[N]일 후 완전 삭제 (배치 작업)"
 - "[Child Entity] 내 [Related Content]는 [Related Domain]에서 처리"
 
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- [Child Entity] 삭제 폼
+- [Child Entity]의 하위 [Child Entity] 목록 표시
+- [Child Entity] 내 [Related Content] 존재 여부 표시
+- 삭제 권한 확인 표시
+
+**Command**: [Child Entity] 삭제 요청 (사용자가 입력하는 정보)
+- [childEntityId]: target[Child]
+- deleteType: "soft" | "permanent"
+- 삭제 확인
+
 **System**: [Child Entity] Deletion Manager
 
 **Events**:
@@ -220,33 +297,41 @@
 2. 하위 [Child Entity]들이 함께 삭제되었다 (Child [Child Entity] Deleted)
 3. 삭제 일정이 예약되었다 (Deletion Scheduled)
 
-**복구 Command**: [Child Entity] 복구 (Restore [Child Entity])
-- [childEntityId]: deleted[Child]
+### Sequence 2: [Child Entity] 복구
 
-**복구 Events**:
+**Trigger Event**: [Child Entity] 복구 요청
+
+**Policy**: 복구 규칙
+- "소프트 삭제된 [Child Entity]만 복구 가능"
+- "복구 시 하위 [Child Entity]들도 함께 복구"
+- "복구 후 원래 위치로 복원"
+
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 삭제된 [Child Entity] 목록
+- 복구 가능한 [Child Entity] 표시
+- 복구 확인 메시지
+
+**Command**: [Child Entity] 복구 요청 (사용자가 입력하는 정보)
+- [childEntityId]: deleted[Child]
+- 복구 확인
+
+**System**: [Child Entity] Restoration Manager
+
+**Events**:
 1. [Child Entity]가 [Soft Delete Container]에서 복구되었다 ([Child Entity] Restored from [Soft Delete Container])
 2. 하위 [Child Entity]들이 함께 복구되었다 (Child [Child Entity] Restored)
 
 ---
 
-## 📍 Process 6: [Parent Entity] 삭제 (Danger Zone)
+## 📍 Scenario 6: [Parent Entity] 삭제 (Danger Zone)
 
-### Scenario: [Parent Entity] Owner가 [Parent Entity]를 완전 삭제
+### Sequence 1: [Parent Entity] Owner가 [Parent Entity]를 완전 삭제
+
+**Trigger Event**: [Parent Entity] 삭제 요청
 
 ```
 👤 Owner: "[Parent Entity] 완전 삭제 관련 요구사항"
 ```
-
-**Command**: [Parent Entity] 삭제 (Delete [Parent Entity])
-- [parentEntityId]: target[Parent]
-- confirmationText: [parentEntityName]
-- permanentDelete: boolean
-
-**Read Model** (필요 정보):
-- [Parent Entity]의 모든 [Child Entity] 목록
-- [Parent Entity] 멤버 목록
-- 관련된 [Related Content] 총량
-- 삭제 권한 확인 (Owner만)
 
 **Policy**: [Parent Entity] 삭제 규칙 (Danger Zone)
 - "Owner만 삭제 가능"
@@ -254,6 +339,18 @@
 - "모든 하위 [Child Entity]와 [Related Content] 함께 삭제"
 - "소프트 삭제 후 [N]일 보관"
 - "멤버들에게 삭제 알림 발송"
+
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- [Parent Entity] 삭제 폼
+- [Parent Entity]의 모든 [Child Entity] 목록
+- [Parent Entity] 멤버 목록
+- 관련된 [Related Content] 총량 표시
+- 삭제 권한 확인 표시 (Owner만)
+
+**Command**: [Parent Entity] 삭제 요청 (사용자가 입력하는 정보)
+- [parentEntityId]: target[Parent]
+- confirmationText: [parentEntityName]
+- 삭제 최종 확인
 
 **System**: [Parent Entity] Deletion Manager
 
@@ -266,28 +363,31 @@
 
 ---
 
-## 📍 Process 7: [Top Level Entity] 삭제 경고
+## 📍 Scenario 7: [Top Level Entity] 삭제 경고
 
-### Scenario: [External System]에서 [Top Level Entity]이 삭제됨
+### Sequence 1: [External System]에서 [Top Level Entity]이 삭제됨
+
+**Trigger Event**: [External System] Webhook 수신
 
 ```
 🔗 [External System] Webhook: "[Top Level Entity]이 삭제되었어"
 ```
-
-**Command**: [Top Level Entity] 삭제 처리 (Handle [Top Level Entity] Deletion)
-- [externalTopLevelEntityId]: deleted[TopLevelEntity]Id
-- deletionTimestamp: timestamp
-
-**Read Model** (필요 정보):
-- [Top Level Entity]의 모든 [Parent Entity] 목록
-- [Top Level Entity] 멤버 목록
-- 삭제된 [Top Level Entity] 정보
 
 **Policy**: [Top Level Entity] 삭제 시 보존 규칙
 - "[Top Level Entity] 삭제 시 [Parent Entity]는 보존"
 - "orphaned 상태로 전환하고 경고 표시"
 - "Owner에게 [Top Level Entity] 재생성 또는 데이터 이전 안내"
 - "[N]일 후 데이터 완전 삭제 경고"
+
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- [Top Level Entity] 삭제 경고 메시지
+- [Top Level Entity]의 모든 [Parent Entity] 목록
+- [Top Level Entity] 멤버 목록
+- 삭제된 [Top Level Entity] 정보
+
+**Command**: [Top Level Entity] 삭제 처리 요청 (사용자가 입력하는 정보)
+- [externalTopLevelEntityId]: deleted[TopLevelEntity]Id
+- 삭제 처리 확인
 
 **System**: [Top Level Entity] Cleanup Manager
 
@@ -364,8 +464,8 @@
 - **기타**: [추가 참가자]
 
 **워크샵 결과물**:
-- [ ] 모든 핵심 사용자 여정이 Process로 정의됨
-- [ ] Command-Policy-System-Event 패턴이 일관되게 적용됨
+- [ ] 모든 핵심 사용자 여정이 시나리오로 정의됨
+- [ ] Event → Policy → Read Model → Command → System → Event 순서가 일관되게 적용됨
 - [ ] External System과의 통합점이 명확히 정의됨
 - [ ] 비즈니스 규칙(Policy)이 구체적으로 명시됨
 - [ ] Software Design 작성을 위한 충분한 정보 확보

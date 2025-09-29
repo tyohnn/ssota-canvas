@@ -1,128 +1,256 @@
 # User Management Domain - Process Model
 
 ## 🎯 Process Modeling Overview
-User Management Domain의 핵심 프로세스를 Command → Policy → System → Event 패턴으로 정의
+User Management Domain의 핵심 시나리오를 실제 상호작용 순서에 따라 정의
 
-### 🟪 External System: Clerk
-User Management Domain은 Clerk을 인증 및 조직 관리 시스템으로 사용합니다:
-- **역할**: 사용자 인증, 세션 관리, 조직 생성/관리, 멤버 초대 처리
-- **SSOT**: Clerk이 User, Organization, Invitation의 Single Source of Truth
-- **통합**: Clerk Webhook ↔ Supabase DB 간 실시간 동기화 필요
+### 🔄 시퀀스 기반 상호작용 순서
+각 시나리오는 여러 시퀀스로 구성되며, 이벤트에 의해 다음 시퀀스가 트리거됩니다:
+
+**Event** → **Policy** → **Read Model** → **Command** → **System** → **Event** → **Policy** → ...
+
+1. **Event** (이전 시퀀스의 결과) → 2. **Policy** (이벤트에 따른 정책 적용) → 3. **Read Model** (시스템에서 사용자에게 제공하는 정보) → 4. **Command** (사용자가 입력하는 정보) → 5. **System** (처리 시스템) → 6. **Event** (결과 이벤트)
+
+### 🟪 External System: Supabase Auth
+User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니다:
+- **역할**: 사용자 인증, 세션 관리, 자동 토큰 갱신
+- **SSOT**: Supabase Auth가 User의 Single Source of Truth
+- **통합**: Supabase Auth ↔ public.profiles 테이블 간 실시간 동기화 필요
 
 ---
 
-## 📍 Process 0: Clerk 데이터 동기화
+## 📍 Scenario 0: 유저 가입 및 온보딩
 
-### Scenario: Clerk에서 User/Organization 생성/변경 시 자동 동기화
+### Sequence 1: 방문자가 구글 로그인으로 서비스에 가입
+
+- 방문자와 유저의 차이: 방문자는 서비스에 가입한 자와 가입되지 않은 자를 일컬음. 유저는 방문자 중 서비스에 가입한 자를 의미
+- 가입 = Sign up
+
+**Entry Point**: 로그인 페이지 이동함
 
 ```
-🔗 Clerk Webhook: "사용자가 등록되었어" / "조직이 생성되었어"
+👤 사용자: "구글 계정으로 로그인해서 서비스에 가입하고 싶어"
 ```
 
-**Command**: Clerk 데이터 동기화 (Sync Data from Clerk)
-- clerkId: usr_xxx | org_xxx
-- entityType: "user" | "organization"
-- entityData: { id, email, name, metadata }
-- webhookType: "user.created" | "user.updated" | "organization.created" | "organization.updated"
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 로그인 방식
+- 서비스 후기 확인
+- 개인정보 처리방침 및 이용약관 (자동 동의)
 
-**Read Model** (필요 정보):
-- Clerk 엔티티 데이터 (Webhook payload)
-- 기존 동기화 상태 (Supabase 레코드)
-- 실패 이력 및 재시도 횟수
-- 관련 멤버십 정보 (조직의 경우)
+**Command**: 구글 로그인 선택
 
-**Policy**: Clerk → Supabase 동기화 규칙
-- "Clerk User 생성 시 Supabase에 User 레코드 생성 + 기본 조직 자동 생성"
-- "Clerk Organization 생성 시 Supabase에 Organization 레코드 생성"
-- "동기화 실패 시 3회까지 재시도"
-- "5초 내 재시도하며 exponential backoff 적용 (5s → 25s → 125s)"
-- "사용자 등록 시 기본 조직 소유자 권한 자동 부여"
-
-**System**: Clerk Webhook Handler → Supabase Database
+**System**: Google OAuth
+- 구글 로그인 창과 OAuth 로직 진행
+- 구글에서 처리
 
 **Events**:
-1. Clerk 사용자 정보가 동기화되었다 (Clerk User Synced to Supabase)
-2. Clerk 조직 정보가 동기화되었다 (Clerk Organization Synced to Supabase)
-3. 기본 조직이 생성되었다 (Default Organization Created)
-4. 사용자가 조직 소유자로 설정되었다 (User Set as Organization Owner)
-5. 동기화가 실패했다 (Clerk Data Sync Failed)
-6. 재시도가 예약되었다 (Sync Retry Scheduled)
+- 구글 OAuth 코드 전달받음 (구글 로그인 성공)
 
----
+**Policy**:
+- "Whenever 구글 OAuth 코드 전달됨, then always 유저 가입 처리하기"
 
-## 📍 Process 1: 사용자 로그인 및 조직 선택
+**Command**: 유저 가입 처리하기
+- 구글 인증 코드
 
-### Scenario: 사용자가 로그인하고 작업할 조직을 선택
-
-```
-👤 사용자: "로그인해서 내 조직들을 확인하고 작업할 조직을 선택하고 싶어"
-```
-
-**Command**: 사용자 로그인 (User Login)
-- email: user@example.com
-- authMethod: "email" | "oauth" | "sso"
-- clerkSessionId: sess_xxx
-
-**Read Model** (필요 정보):
-- 사용자의 Clerk 인증 상태
-- 사용자가 소유한 조직 목록
-- 사용자가 멤버인 조직 목록
-- 마지막 선택한 조직 정보
-
-**Policy**: 로그인 및 조직 선택 규칙
-- "Clerk 인증 성공 시에만 로그인 허용"
-- "로그인 시 소유 조직과 멤버 조직 목록 자동 조회"
-- "기본 조직이 없는 경우 자동 생성"
-- "마지막 선택 조직이 있으면 자동 선택, 없으면 기본 조직 선택"
-- "조직 선택 시 해당 조직의 컨텍스트로 전환"
-
-**System**: Authentication Manager → Organization Context Manager
+**System**: User Authentication System  → Supabase Database
+- "구글 인증 코드 성공 시에만 Supabase 유저 생성" (Supabase Auth System 처리)
+- "기존 프로필이 있는지 확인 후 없으면 프로필 생성"
+- "프로필 생성 실패 시 즉시 재시도 (동기 처리)"
+- "기본 조직 자동 생성 (유저가 소유자)"
 
 **Events**:
-1. 사용자가 로그인함 (User Logged In)
-2. 사용자 세션이 생성됨 (User Session Created)
-3. 소유 조직 목록이 조회됨 (Owned Organizations Retrieved)
-4. 소속 조직 목록이 조회됨 (Member Organizations Retrieved)
-5. 사용자가 조직을 선택함 (Organization Selected by User)
-6. 조직 컨텍스트가 설정됨 (Organization Context Set)
+1. 유저 가입 완료됨 (User Registration Completed)
+2. 유저 가입 실패함 (User Registration Failed)
+
+**Policy**:
+- "Whenever 사용자 등록 처리 완료됨 with Onboarding Policy (Search Query로 처리), then always 온보딩 진행하기"
+- "Whenever 사용자 등록 처리 실패함, then immediately 오류 화면 표시하기"
+
+**Read Model** (온보딩 관련 추가 정보):
+- 온보딩 시작 버튼
+- 온보딩 건너뛰기 옵션
+- 사용자 가이드 및 튜토리얼 안내
+
+**Command**: 온보딩 진행하기
+
+**System**: 프론트엔드
+
+**Events**:
+- 온보딩이 완료됨
+
+
+### Sequence 2: User Authentication System 내부 처리 과정
+
+**Trigger Event**: 유저 가입 처리 시작됨
+
+```
+🔧 시스템: "User Authentication Manager 내부에서 구글 인증부터 계정 생성까지 처리"
+```
+
+**Policy**: Google OAuth Code Policy
+- "Whenever 사용자 등록 처리 시작됨 with Google OAuth Code Policy, then always Supabase Auth에서 유저 생성하기"
+
+**Command**: Supabase 유저 생성하기
+
+**System**: Supabase Auth System (*Event 연결하는 ACL 필요)
+
+**Event**: Supabase 유저 생성됨
 
 ---
 
-## 📍 Process 2: 멤버 초대 및 수락
+**Policy**:
+- "Whenever 유저 생성됨, then always 프로필 생성하기"
 
-### Scenario: 조직 관리자가 새 멤버를 초대하고 초대받은 사용자가 수락
+**Read Model** (내부 처리 2단계):
+- 구글 계정 정보
+- 기존 프로필 조회 결과
+- 프로필 생성 상태
+
+**Command**: 프로필 생성 처리하기
+
+**System**: Profile System
+- id는 고유한 uuid로 처리
+- 구글 계정 정보에서 name 가지고 와서 이름 설정
+
+**Event**: 유저 프로필이 생성됨 (User Profile Created)
+
+---
+
+**Policy**:
+- "Whenever 유저 프로필이 생성됨, then always 기본 조직 생성하기"
+
+**Command**: 기본 조직 생성하기
+
+**System**: Organization System
+- 이미 기본 조직이 존재하는지 체크
+- org_ 첨자가 붙은 id로 설정
+- 동일한 id가 존재하는지 확인
+- 유저를 소유자로 설정
+
+**Event**: 기본 조직이 생성됨 (Default Organization Created)
+
+---
+
+**Policy**: 
+- "Whenever 기본 조직이 생성됨, then always 사용자 등록 처리 완료됨"
+
+**Events** (최종 결과):
+- 유저 가입 완료됨 (User Registration Completed)
+- 유저 가입 실패함 (User Registration Failed)
+
+---
+
+## 📍 Scenario 1: 조직 조회 및 선택
+
+### Sequence 1: 로그인된 유저와 관련된 조직 (소유, 소속) 모두 조회하기
+
+**Trigger Event**: 로그인이 완료됨
+
+```
+🔧 시스템: "로그인된 유저와 관련된 조직을 모두 조회해야해"
+```
+
+**Policy**: Dashboard Policy
+- "Whenever 로그인이 완료됨 with Dashboard Policy, then always 유저 관련 조직을 조회하기"
+
+**Command**: 유저 관련 조직을 조회하기
+- 유저 세션
+
+**System**: Organization System
+- 유저가 소유한 조직 조회
+- 유저가 소속된 조직 조회
+- 유저의 조직 권한도 함께 로드
+
+**Events**:
+- 유저 관련 조직이 조회됨 (Related Organization Retrieved)
+
+---
+
+**Policy**: Initial Selection Policy
+- "Whenever 유저 관련 조직 로드됨 with Initial Selection Policy, then always 초기 조직을 선택하기"
+
+**Command**: 초기 조직을 선택하기
+
+**System**: 프론트엔드
+- 이전 선택된 조직 정보 쿠키에서 확인
+- 해당 조직 정보가 있으면 선택
+- 없으면 첫번째 소유 조직 선택
+
+**Events**:
+- 초기 조직이 선택됨
+
+---
+
+**Policy**: Dashboard Policy
+- "Whenever 초기 조직 선택됨 with Dashboard Policy, then always 페이지 조회하기"
+
+(이어서 페이지 도메인에서 진행해야 함)
+
+
+### Sequence 2: User Authentication System 내부 처리 과정
+
+```
+👤 사용자: "현재 보고 있는 조직을 변경하고 싶어."
+```
+
+**Read Model**:
+- 조회된 조직 리스트
+
+**Command**: 조직 선택하기
+
+**System**: 프론트엔드
+
+**Events**:
+- 조직 선택됨
+
+---
+
+**Policy**: Dashboard Policy
+- "Whenever 조직 선택됨 with Dashboard Policy, then always 페이지 조회하기"
+
+(이 이후 과정은 페이지 도메인에서 진행해야 함)
+
+2025-09-29
+-----------------
+
+
+## 📍 Scenario 2: 멤버 초대 및 수락
+
+### Sequence 1: 조직 관리자가 새 멤버를 초대하고 초대받은 사용자가 수락
+
+**Trigger Event**: 조직 컨텍스트가 설정됨
 
 ```
 👤 조직 관리자: "새 팀원을 우리 조직에 초대하고 싶어"
 👤 초대받은 사용자: "초대 링크를 받았는데 조직에 참여하고 싶어"
 ```
 
-**Command**: 멤버 초대 (Invite Member)
-- organizationId: currentOrganization
-- inviteeEmail: "newmember@example.com"
-- role: "admin" | "member"
-- inviterUserId: currentUser
-
-**Read Model** (필요 정보):
-- 현재 사용자의 조직 권한 (Owner/Admin 확인)
-- 초대할 이메일의 기존 멤버십 상태
-- 조직의 멤버 수 제한
-- 기존 초대 상태 (중복 초대 방지)
-
 **Policy**: 멤버 초대 규칙
-- "Owner와 Admin만 멤버 초대 가능"
+- "소유자와 관리자만 멤버 초대 가능"
 - "이미 조직 멤버인 사용자는 초대 불가"
 - "동일 이메일에 대한 중복 초대 방지 (기존 초대 취소 후 새 초대)"
 - "초대 링크는 30일간 유효"
 - "초대 수락 시 이메일 검증 필수"
-- "초대받은 사용자가 Clerk에 미등록 시 회원가입 유도"
+- "초대받은 사용자가 플랫폼에 미등록 시 회원가입 유도"
 
-**System**: Invitation Manager → Clerk API → Email Service
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 멤버 초대 폼 (이메일 입력 필드, 역할 선택 드롭다운)
+- 조직 멤버 목록 (현재 멤버들 표시)
+- 초대 가능한 역할 옵션 (관리자/멤버)
+- 초대 메시지 입력 필드 (선택사항)
+- 초대 진행 상태 표시
+
+**Command**: 멤버 초대 요청 (사용자가 입력하는 정보)
+- 초대할 이메일 주소
+- 부여할 역할 (관리자/멤버)
+- 초대 메시지 (선택사항)
+- 초대 보내기 확인
+
+**System**: Invitation Manager → Email Service
 
 **Events**:
 1. 이메일로 멤버 초대가 전송됨 (Member Invitation Sent via Email)
-2. Clerk 초대 링크가 생성됨 (Clerk Invitation Link Generated)
-3. 초대 정보가 Supabase에 저장됨 (Invitation Info Stored in Supabase)
+2. 초대 링크가 생성됨 (Invitation Link Generated)
+3. 초대 정보가 저장됨 (Invitation Info Stored)
 4. 초대받은 사용자가 링크를 클릭함 (Invitation Link Clicked)
 5. 초대가 수락됨 (Invitation Accepted)
 6. 새 멤버가 조직에 추가됨 (New Member Added to Organization)
@@ -130,36 +258,39 @@ User Management Domain은 Clerk을 인증 및 조직 관리 시스템으로 사�
 
 ---
 
-## 📍 Process 3: 조직 소유권 이전 (핵심 프로세스)
+## 📍 Scenario 3: 조직 소유권 이전 (핵심 시나리오)
 
-### Scenario: 조직 소유자가 다른 멤버에게 소유권을 이전
+### Sequence 1: 조직 소유자가 다른 멤버에게 소유권을 이전
+
+**Trigger Event**: 사용자 권한이 확인됨
 
 ```
 👤 현재 소유자: "조직 소유권을 다른 멤버에게 넘기고 싶어"
 👤 새 소유자: "조직 소유권을 받아서 관리하고 싶어"
 ```
 
-**Command**: 조직 소유권 이전 (Transfer Organization Ownership)
-- organizationId: currentOrganization
-- currentOwnerId: currentOwner
-- newOwnerId: targetMember
-- confirmationCode: "TRANSFER_OWNERSHIP"
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 조직 멤버 목록 (소유권 이전 가능한 멤버들)
+- 소유권 이전 안내 메시지 및 주의사항
+- 확인 코드 입력 필드
+- 이전 사유 입력 필드 (선택사항)
+- 소유권 이전 진행 상태 표시
 
-**Read Model** (필요 정보):
-- 현재 사용자의 Owner 권한 확인
-- 새 소유자의 조직 멤버십 상태 (Admin/Member)
-- 조직 내 모든 워크스페이스 및 데이터
-- 진행 중인 초대 및 멤버 관리 작업
+**Command**: 소유권 이전 요청 (사용자가 입력하는 정보)
+- 이전할 대상 멤버 선택
+- 확인 코드 입력
+- 이전 사유 (선택사항)
+- 소유권 이전 확인
 
 **Policy**: 소유권 이전 규칙 (핵심)
-- "현재 Owner만 소유권 이전 가능"
+- "현재 소유자만 소유권 이전 가능"
 - "새 소유자는 반드시 기존 조직 멤버여야 함"
 - "소유권 이전 시 확인 코드 입력 필수"
-- "이전 즉시 새 소유자는 Owner 권한, 기존 소유자는 Admin 권한으로 변경"
+- "이전 즉시 새 소유자는 소유자 권한, 기존 소유자는 관리자 권한으로 변경"
 - "모든 워크스페이스 소유권도 함께 이전"
 - "진행 중인 초대는 새 소유자 명의로 변경"
 
-**System**: Ownership Transfer Manager → Clerk API
+**System**: Ownership Transfer Manager → Database
 
 **Events**:
 1. 소유권 이전이 요청되었다 (Ownership Transfer Requested)
@@ -171,34 +302,37 @@ User Management Domain은 Clerk을 인증 및 조직 관리 시스템으로 사�
 
 ---
 
-## 📍 Process 4: 멤버 역할 변경 및 관리
+## 📍 Scenario 4: 멤버 역할 변경 및 관리
 
-### Scenario: 조직 관리자가 멤버의 역할을 변경하거나 멤버를 제거
+### Sequence 1: 조직 관리자가 멤버의 역할을 변경하거나 멤버를 제거
+
+**Trigger Event**: 새 멤버가 조직에 추가됨
 
 ```
 👤 조직 관리자: "팀원의 권한을 Admin으로 승격시키고 싶어"
 👤 조직 관리자: "더 이상 필요없는 멤버를 조직에서 제거하고 싶어"
 ```
 
-**Command**: 멤버 역할 변경 (Change Member Role)
-- organizationId: currentOrganization
-- targetMemberId: targetUser
-- newRole: "admin" | "member"
-- changedByUserId: currentUser
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 조직 멤버 목록 (역할 변경 가능한 멤버들)
+- 역할 변경 안내 메시지 및 주의사항
+- 역할 옵션 (관리자/멤버)
+- 변경 사유 입력 필드 (선택사항)
+- 역할 변경 진행 상태 표시
 
-**Read Model** (필요 정보):
-- 현재 사용자의 조직 권한 (Owner/Admin 확인)
-- 대상 멤버의 현재 역할
-- 조직 내 Admin 수 (Admin 강등 시 확인)
-- 대상 멤버의 워크스페이스 소유 현황
+**Command**: 멤버 역할 변경 요청 (사용자가 입력하는 정보)
+- 변경할 대상 멤버 선택
+- 새로운 역할 선택 (관리자/멤버)
+- 변경 사유 (선택사항)
+- 역할 변경 확인
 
 **Policy**: 멤버 역할 관리 규칙
-- "Owner만 멤버 역할 변경 가능"
-- "Owner 역할은 소유권 이전을 통해서만 변경 가능"
-- "조직에 Admin 제한 수는 없음"
-- "Member → Admin 승격 시 즉시 적용"
+- "소유자만 멤버 역할 변경 가능"
+- "소유자 역할은 소유권 이전을 통해서만 변경 가능"
+- "조직에 관리자 제한 수는 없음"
+- "멤버 → 관리자 승격 시 즉시 적용"
 
-**System**: Member Role Manager → Clerk API
+**System**: Member Role Manager → Database
 
 **Events**:
 1. 멤버 역할 변경이 요청되었다 (Member Role Change Requested)
@@ -209,35 +343,38 @@ User Management Domain은 Clerk을 인증 및 조직 관리 시스템으로 사�
 
 ---
 
-## 📍 Process 5: 멤버 제거
+## 📍 Scenario 5: 멤버 제거
 
-### Scenario: 조직 관리자가 멤버를 조직에서 제거
+### Sequence 1: 조직 관리자가 멤버를 조직에서 제거
+
+**Trigger Event**: 멤버 역할 변경이 완료됨
 
 ```
 👤 조직 관리자: "더 이상 필요없는 멤버를 조직에서 제거하고 싶어"
 👤 멤버 본인: "이 조직을 떠나고 싶어"
 ```
 
-**Command**: 멤버 제거 (Remove Member from Organization)
-- organizationId: currentOrganization
-- targetMemberId: targetUser
-- removedByUserId: currentUser
-- removalReason: "admin_removal" | "self_leave"
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 조직 멤버 목록 (제거 가능한 멤버들)
+- 멤버 제거 안내 메시지 및 주의사항
+- 제거 사유 선택 옵션 (관리자 제거/본인 탈퇴)
+- 제거 확인 체크박스
+- 멤버 제거 진행 상태 표시
 
-**Read Model** (필요 정보):
-- 현재 사용자의 조직 권한 (Owner/Admin 확인)
-- 대상 멤버의 현재 역할
-- 대상 멤버가 소유한 워크스페이스 목록
-- 진행 중인 초대 및 작업
+**Command**: 멤버 제거 요청 (사용자가 입력하는 정보)
+- 제거할 대상 멤버 선택
+- 제거 사유 선택 (관리자 제거/본인 탈퇴)
+- 제거 확인 체크박스
+- 멤버 제거 확인
 
 **Policy**: 멤버 제거 규칙
-- "Owner만 다른 멤버 제거 가능"
-- "Owner는 제거 불가 (소유권 이전 후에만 가능)"
-- "모든 멤버는 본인이 조직을 떠날 수 있음 (Owner 제외)"
-- "제거된 멤버의 개인 워크스페이스는 조직 Owner에게 이전"
+- "소유자만 다른 멤버 제거 가능"
+- "소유자는 제거 불가 (소유권 이전 후에만 가능)"
+- "모든 멤버는 본인이 조직을 떠날 수 있음 (소유자 제외)"
+- "제거된 멤버의 개인 워크스페이스는 조직 소유자에게 이전"
 - "제거 시 모든 초대 및 세션 무효화"
 
-**System**: Member Removal Manager → Clerk API
+**System**: Member Removal Manager → Database
 
 **Events**:
 1. 멤버 제거가 요청되었다 (Member Removal Requested)
@@ -248,28 +385,31 @@ User Management Domain은 Clerk을 인증 및 조직 관리 시스템으로 사�
 
 ---
 
-## 📍 Process 6: 조직 삭제 (Danger Zone)
+## 📍 Scenario 6: 조직 삭제 (Danger Zone)
 
-### Scenario: 조직 Owner가 조직을 완전 삭제
+### Sequence 1: 조직 Owner가 조직을 완전 삭제
+
+**Trigger Event**: 멤버 제거가 완료됨
 
 ```
 👤 Owner: "더 이상 필요없는 조직을 완전히 삭제하고 싶어"
 ```
 
-**Command**: 조직 삭제 (Delete Organization)
-- organizationId: targetOrganization
-- confirmationText: organizationName
-- deleteType: "soft" | "permanent"
-- deletedByUserId: currentOwner
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 삭제 가능한 조직 목록
+- 조직 삭제 안내 메시지 및 주의사항
+- 삭제 유형 선택 옵션 (소프트 삭제/완전 삭제)
+- 조직 이름 확인 입력 필드
+- 조직 삭제 진행 상태 표시
 
-**Read Model** (필요 정보):
-- 조직의 모든 워크스페이스 목록
-- 조직 멤버 목록 (Owner 포함)
-- 관련된 모든 데이터 총량
-- 삭제 권한 확인 (Owner만)
+**Command**: 조직 삭제 요청 (사용자가 입력하는 정보)
+- 삭제할 조직 선택
+- 조직 이름 확인 입력
+- 삭제 유형 선택 (소프트 삭제/완전 삭제)
+- 조직 삭제 확인
 
 **Policy**: 조직 삭제 규칙 (Danger Zone)
-- "Owner만 삭제 가능"
+- "소유자만 삭제 가능"
 - "정확한 조직 이름 입력 필수"
 - "모든 워크스페이스와 관련 데이터 함께 삭제"
 - "소프트 삭제 후 30일 보관"
@@ -277,7 +417,7 @@ User Management Domain은 Clerk을 인증 및 조직 관리 시스템으로 사�
 - "멤버들에게 삭제 알림 발송"
 - "기본 조직은 삭제 불가 (사용자 계정과 연동)"
 
-**System**: Organization Deletion Manager → Clerk API
+**System**: Organization Deletion Manager → Database
 
 **Events**:
 1. 조직 삭제가 요청되었다 (Organization Deletion Requested)
@@ -289,35 +429,38 @@ User Management Domain은 Clerk을 인증 및 조직 관리 시스템으로 사�
 
 ---
 
-## 📍 Process 7: Clerk 사용자 삭제 처리
+## 📍 Scenario 7: 사용자 계정 삭제 처리
 
-### Scenario: Clerk에서 사용자가 삭제됨 (계정 탈퇴)
+### Sequence 1: 사용자가 계정을 삭제함 (계정 탈퇴)
+
+**Trigger Event**: 조직이 소프트 삭제됨
 
 ```
-🔗 Clerk Webhook: "사용자가 계정을 삭제했어"
+👤 사용자: "계정을 완전히 삭제하고 싶어"
 ```
 
-**Command**: Clerk 사용자 삭제 처리 (Handle Clerk User Deletion)
-- clerkUserId: deletedUserId
-- deletionTimestamp: timestamp
-- deletionReason: "user_requested" | "admin_action"
-
-**Read Model** (필요 정보):
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 계정 삭제 안내 메시지 및 주의사항
 - 사용자의 모든 조직 소유권 목록
 - 사용자의 모든 조직 멤버십 목록
-- 삭제된 사용자 정보
-- 관련 워크스페이스 및 데이터
+- 관련 워크스페이스 및 데이터 목록
+- 계정 삭제 확인 체크박스
 
-**Policy**: Clerk 사용자 삭제 시 보존 규칙
+**Command**: 사용자 계정 삭제 요청 (사용자가 입력하는 정보)
+- 계정 삭제 사유 선택 (사용자 요청/관리자 조치)
+- 계정 삭제 확인 체크박스
+- 계정 삭제 최종 확인
+
+**Policy**: 사용자 계정 삭제 시 보존 규칙
 - "사용자 삭제 시 소유 조직은 보존하되 orphaned 상태로 전환"
 - "기본 조직의 경우 30일 후 완전 삭제 경고"
 - "다른 조직의 멤버십은 즉시 제거"
-- "기본 조직이 아닌 소유 조직이 있으면 삭제 불가 / 다른 Admin에게 소유권 이전해야 가능"
+- "기본 조직이 아닌 소유 조직이 있으면 삭제 불가 / 다른 관리자에게 소유권 이전해야 가능"
 
 **System**: User Deletion Cleanup Manager
 
 **Events**:
-1. Clerk 사용자가 삭제되었다 (Clerk User Deleted)
+1. 사용자 계정이 삭제되었다 (User Account Deleted)
 2. 사용자 삭제 경고가 표시되었다 (User Deletion Warning Shown)
 3. 소유 조직들이 orphaned 상태로 전환되었다 (Owned Organizations Orphaned)
 4. 멤버십들이 제거되었다 (Memberships Removed)
@@ -327,34 +470,35 @@ User Management Domain은 Clerk을 인증 및 조직 관리 시스템으로 사�
 
 ## 💡 핵심 Policy 정리
 
-### Clerk 동기화 관련
-1. **실시간 동기화**: Webhook을 통한 즉시 동기화
-2. **장애 복구**: 3회 재시도 + exponential backoff (5s → 25s → 125s)
-3. **데이터 보존**: Clerk 사용자 삭제 시에도 30일 유예
+### 사용자 인증 및 등록 관련
+1. **구글 로그인 전용**: 구글 OAuth를 통한 유일한 로그인 방식
+2. **자동 프로필 생성**: 구글 계정 정보를 기반으로 프로필 자동 생성
+3. **장애 복구**: 계정 생성 실패 시 3회 재시도 + exponential backoff (5s → 25s → 125s)
+4. **데이터 보존**: 사용자 계정 삭제 시에도 30일 유예
 
 ### 조직 및 멤버십 관리 관련
-4. **기본 조직 자동 생성**: 사용자 등록 시 개인 조직 자동 생성
-5. **3단계 역할 시스템**: Owner > Admin > Member 권한 체계
-6. **소유권 이전**: Owner 역할은 이전을 통해서만 변경 가능
+5. **기본 조직 자동 생성**: 사용자 등록 시 개인 조직 자동 생성
+6. **3단계 역할 시스템**: 소유자 > 관리자 > 멤버 권한 체계
+7. **소유권 이전**: 소유자 역할은 이전을 통해서만 변경 가능
 
 ### 초대 및 멤버 관리 관련 (핵심)
-7. **권한 기반 초대**: Owner와 Admin만 멤버 초대 가능
-8. **이메일 검증**: 초대 수락 시 이메일 주소 검증 필수
-9. **30일 초대 유효기간**: 초대 링크 30일 후 자동 만료
+8. **권한 기반 초대**: 소유자와 관리자만 멤버 초대 가능
+9. **이메일 검증**: 초대 수락 시 이메일 주소 검증 필수
+10. **30일 초대 유효기간**: 초대 링크 30일 후 자동 만료
 
 ### 삭제 및 보안
-10. **소프트 삭제**: 30일 유예 기간 제공
-11. **계층적 삭제**: 조직 삭제 시 하위 요소 함께 처리
-12. **Danger Zone**: 조직 삭제는 이름 확인 + Owner 권한 필수
+11. **소프트 삭제**: 30일 유예 기간 제공
+12. **계층적 삭제**: 조직 삭제 시 하위 요소 함께 처리
+13. **Danger Zone**: 조직 삭제는 이름 확인 + 소유자 권한 필수
 
 ---
 
 ## 🔧 기술 권장사항
 
-### Clerk Webhook 처리
-- **Queue System**: 대량 동기화 시 Queue 활용 (Supabase Queue 사용)
+### Supabase Auth 통합 처리
+- **Queue System**: 대량 사용자 등록 시 Queue 활용 (Supabase Queue 사용)
 - **Idempotency**: 중복 요청 방지를 위한 idempotency key
-- **Monitoring**: 동기화 실패율 모니터링 및 알림
+- **Monitoring**: 계정 생성 실패율 모니터링 및 알림
 
 ### 조직 및 멤버십 최적화
 - **Background Jobs**: 조직 삭제 등 무거운 작업은 백그라운드 처리 (추후)
@@ -364,6 +508,7 @@ User Management Domain은 Clerk을 인증 및 조직 관리 시스템으로 사�
 - **Caching**: 조직 멤버 목록 및 권한 정보 캐싱
 - **Database Indexing**: 조직-멤버 관계 쿼리 최적화를 위한 복합 인덱스
 - **Session Management**: 조직 컨텍스트 세션 최적화
+- **Auto-Refresh**: 세션 자동 갱신을 위한 백그라운드 처리
 
 ---
 
@@ -372,10 +517,10 @@ User Management Domain은 Clerk을 인증 및 조직 관리 시스템으로 사�
 이제 User Management Domain의 Process Model이 완성되었습니다.
 
 다음 단계:
-1. **Software Design**: System을 Aggregate로 전환 (Clerk은 External System으로 유지)
+1. **Software Design**: System을 Aggregate로 전환 (Supabase Auth는 External System으로 유지)
 2. **Bounded Context 식별**: User, Organization, Membership 경계 확인
 3. **Integration Points**: Workspace Structure Domain과의 연결점 정의
-4. **Anti-Corruption Layer**: Clerk ↔ Supabase 변환 레이어 설계
+4. **Anti-Corruption Layer**: Supabase Auth ↔ Database 변환 레이어 설계
 
 ---
 
@@ -388,10 +533,11 @@ User Management Domain은 Clerk을 인증 및 조직 관리 시스템으로 사�
 - **PM**: 프로젝트 매니저 (프로세스 정의)
 
 **워크샵 결과물**:
-- [x] 모든 핵심 사용자 여정이 Process로 정의됨 (7개 프로세스)
-- [x] Command-Policy-System-Event 패턴이 일관되게 적용됨
-- [x] Clerk과의 통합점이 명확히 정의됨 (Webhook, API)
-- [x] 비즈니스 규칙(Policy)이 구체적으로 명시됨 (12개 핵심 정책)
+- [x] 모든 핵심 사용자 여정이 시나리오로 정의됨 (7개 시나리오)
+- [x] Event → Policy → Read Model → Command → System → Event 순서가 일관되게 적용됨
+- [x] System 블랙박스 내부 처리 과정 세분화 (User Authentication Manager 상세 분석)
+- [x] Supabase Auth와의 통합점이 명확히 정의됨 (OAuth, Database, Session Management)
+- [x] 비즈니스 규칙(Policy)이 구체적으로 명시됨 (14개 핵심 정책)
 - [x] Software Design 작성을 위한 충분한 정보 확보
 
 ---

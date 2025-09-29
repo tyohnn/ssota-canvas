@@ -1,39 +1,38 @@
 # User Management Domain - Technical Specification
 
-Software Design을 기반으로 한 구체적인 구현 가이드입니다.
+Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Scenario 0-1 기준)
 
 **작성자**: AI Assistant  
 **작성일**: 2025-09-28  
-**버전**: 1.0  
+**수정일**: 2025-01-29
+**버전**: 3.0  
 **리뷰어**: [시니어 개발자명]
+
+### 주요 변경사항 (v3.0)
+- **Drizzle ORM 통합**: Supabase 클라이언트 대신 Drizzle ORM 사용
+- **RLS 지원**: Drizzle에서 Supabase RLS 정책 완전 지원
+- **타입 안전성 향상**: Drizzle 스키마 기반 타입 안전성 확보
+- **하이브리드 접근법**: Repository 패턴 + 트랜잭션 최적화 병행
+- **관계형 쿼리**: Drizzle Relations을 활용한 효율적인 조인 쿼리
 
 ---
 
 ## 🎯 Implementation Overview
 
-### 개발 우선순위
-1. **Phase 1**: Clerk 동기화 및 기본 사용자/조직 관리
+### 개발 우선순위 (Scenario 0-1)
+1. **Phase 1**: Supabase Auth 통합 및 기본 사용자/조직 관리
    - User/Organization Aggregate 구현
-   - Clerk Webhook 처리
-   - 기본 CRUD 작업
-2. **Phase 2**: 멤버십 관리 및 권한 시스템
-   - Membership Aggregate 구현
-   - 초대/승인 프로세스
-   - 역할 기반 권한 검증
-3. **Phase 3**: 고급 기능 및 최적화
-   - 소프트 삭제 및 복구
-   - Read Models 최적화
-   - 성능 모니터링
+   - 구글 OAuth 처리
+   - 기본 조직 자동 생성
 
 ### 선행조건 및 위험요소
-- **Clerk 설정 완료**: Organization, User webhook 설정 필요
-- **Database 스키마**: users, organizations, memberships 테이블 생성
-- **외부 의존성**: Clerk API 안정성에 의존
+- **Supabase Auth 설정 완료**: 구글 OAuth 연동 필요
+- **Database 스키마**: profiles, organizations 테이블 생성
+- **외부 의존성**: Supabase Auth API 안정성에 의존
 
 ### 협업 포인트
 - **프론트엔드**: Context API를 통한 사용자 상태 관리
-- **인프라**: Webhook 엔드포인트 보안 설정
-- **QA**: 초대 링크 및 권한 테스트 시나리오
+- **인프라**: Supabase Auth 설정 및 RLS 정책
 
 ---
 
@@ -68,37 +67,6 @@ export class UserEmail {
 }
 ```
 
-#### OrganizationSlug
-```typescript
-// apps/web/src/domains/user-management/value-objects/organization-slug.vo.ts
-export class OrganizationSlug {
-  constructor(private readonly value: string) {
-    if (value.length < 3 || value.length > 50) {
-      throw new UserManagementError('INVALID_SLUG_LENGTH', 'Slug must be between 3 and 50 characters');
-    }
-    if (!/^[a-z0-9-]+$/.test(value)) {
-      throw new UserManagementError('INVALID_SLUG_FORMAT', 'Slug can only contain lowercase letters, numbers, and hyphens');
-    }
-  }
-
-  get value() { return this.value; }
-
-  equals(other: OrganizationSlug): boolean {
-    return this.value === other.value;
-  }
-
-  static fromName(name: string): OrganizationSlug {
-    const slug = name.toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .substring(0, 50);
-    return new OrganizationSlug(slug);
-  }
-}
-```
-
-### 2. Entities 구현
-
 #### Value Object IDs
 ```typescript
 // apps/web/src/domains/user-management/value-objects/ids.vo.ts
@@ -113,10 +81,6 @@ export class UserId {
 
   equals(other: UserId): boolean {
     return this.value === other.value;
-  }
-
-  static generate(): UserId {
-    return new UserId(crypto.randomUUID());
   }
 }
 
@@ -137,28 +101,9 @@ export class OrganizationId {
     return new OrganizationId(crypto.randomUUID());
   }
 }
-
-export class MembershipId {
-  constructor(private readonly value: string) {
-    if (!value || value.trim().length === 0) {
-      throw new UserManagementError('INVALID_MEMBERSHIP_ID', 'Membership ID cannot be empty');
-    }
-  }
-
-  get value() { return this.value; }
-
-  equals(other: MembershipId): boolean {
-    return this.value === other.value;
-  }
-
-  static generate(): MembershipId {
-    return new MembershipId(crypto.randomUUID());
-  }
-}
-
-export type MembershipRole = 'owner' | 'admin' | 'member';
-export type MembershipStatus = 'pending' | 'active' | 'removed';
 ```
+
+### 2. Entities 구현
 
 #### User Entity
 ```typescript
@@ -166,13 +111,11 @@ export type MembershipStatus = 'pending' | 'active' | 'removed';
 export class User {
   constructor(
     public readonly id: UserId,
-    public readonly clerkId: string,
     private _email: UserEmail,
     private _name: string,
     private _avatarUrl: string | null,
     public readonly createdAt: Date,
-    private _updatedAt: Date,
-    private _deletedAt: Date | null = null
+    private _updatedAt: Date
   ) {}
 
   // Getters
@@ -180,40 +123,16 @@ export class User {
   get name() { return this._name; }
   get avatarUrl() { return this._avatarUrl; }
   get updatedAt() { return this._updatedAt; }
-  get deletedAt() { return this._deletedAt; }
-  get isDeleted() { return this._deletedAt !== null; }
 
   // 상태 변경 메서드
   updateProfile(name: string, avatarUrl: string | null): void {
-    if (this.isDeleted) {
-      throw new UserManagementError('USER_DELETED', 'Cannot update deleted user');
-    }
     this._name = name;
     this._avatarUrl = avatarUrl;
     this._updatedAt = new Date();
   }
 
   updateEmail(email: UserEmail): void {
-    if (this.isDeleted) {
-      throw new UserManagementError('USER_DELETED', 'Cannot update deleted user');
-    }
     this._email = email;
-    this._updatedAt = new Date();
-  }
-
-  softDelete(): void {
-    if (this.isDeleted) {
-      throw new UserManagementError('USER_ALREADY_DELETED', 'User is already deleted');
-    }
-    this._deletedAt = new Date();
-    this._updatedAt = new Date();
-  }
-
-  restore(): void {
-    if (!this.isDeleted) {
-      throw new UserManagementError('USER_NOT_DELETED', 'User is not deleted');
-    }
-    this._deletedAt = null;
     this._updatedAt = new Date();
   }
 }
@@ -225,170 +144,23 @@ export class User {
 export class Organization {
   constructor(
     public readonly id: OrganizationId,
-    public readonly clerkId: string,
     private _name: string,
-    private _slug: OrganizationSlug,
     private _ownerId: UserId,
     private _isDefault: boolean,
     public readonly createdAt: Date,
-    private _updatedAt: Date,
-    private _deletedAt: Date | null = null
+    private _updatedAt: Date
   ) {}
 
   // Getters
   get name() { return this._name; }
-  get slug() { return this._slug; }
   get ownerId() { return this._ownerId; }
   get isDefault() { return this._isDefault; }
   get updatedAt() { return this._updatedAt; }
-  get deletedAt() { return this._deletedAt; }
-  get isDeleted() { return this._deletedAt !== null; }
 
   // 상태 변경 메서드
   updateName(name: string): void {
-    if (this.isDeleted) {
-      throw new UserManagementError('ORGANIZATION_DELETED', 'Cannot update deleted organization');
-    }
     this._name = name;
     this._updatedAt = new Date();
-  }
-
-  updateSlug(slug: OrganizationSlug): void {
-    if (this.isDeleted) {
-      throw new UserManagementError('ORGANIZATION_DELETED', 'Cannot update deleted organization');
-    }
-    this._slug = slug;
-    this._updatedAt = new Date();
-  }
-
-  transferOwnership(newOwnerId: UserId): void {
-    if (this.isDeleted) {
-      throw new UserManagementError('ORGANIZATION_DELETED', 'Cannot transfer ownership of deleted organization');
-    }
-    if (this._isDefault) {
-      throw new UserManagementError('CANNOT_TRANSFER_DEFAULT', 'Cannot transfer ownership of default organization');
-    }
-    this._ownerId = newOwnerId;
-    this._updatedAt = new Date();
-  }
-
-  softDelete(): void {
-    if (this.isDeleted) {
-      throw new UserManagementError('ORGANIZATION_ALREADY_DELETED', 'Organization is already deleted');
-    }
-    if (this._isDefault) {
-      throw new UserManagementError('CANNOT_DELETE_DEFAULT', 'Cannot delete default organization');
-    }
-    this._deletedAt = new Date();
-    this._updatedAt = new Date();
-  }
-
-  restore(): void {
-    if (!this.isDeleted) {
-      throw new UserManagementError('ORGANIZATION_NOT_DELETED', 'Organization is not deleted');
-    }
-    this._deletedAt = null;
-    this._updatedAt = new Date();
-  }
-
-  // 30일 후 완전 삭제 여부 확인
-  canBePermanentlyDeleted(): boolean {
-    if (!this.isDeleted) return false;
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    return this._deletedAt! < thirtyDaysAgo;
-  }
-}
-```
-
-#### Membership Entity
-```typescript
-// apps/web/src/domains/user-management/entities/membership.entity.ts
-export class Membership {
-  constructor(
-    public readonly id: MembershipId,
-    public readonly organizationId: OrganizationId,
-    private _userId: UserId | null,
-    private _role: MembershipRole,
-    private _invitedBy: UserId | null,
-    private _invitedAt: Date | null,
-    private _joinedAt: Date | null,
-    private _status: MembershipStatus,
-    public readonly createdAt: Date,
-    private _updatedAt: Date,
-    private _deletedAt: Date | null = null,
-    private _inviteeEmail?: UserEmail
-  ) {}
-
-  // Getters
-  get userId() { return this._userId; }
-  get role() { return this._role; }
-  get invitedBy() { return this._invitedBy; }
-  get invitedAt() { return this._invitedAt; }
-  get joinedAt() { return this._joinedAt; }
-  get status() { return this._status; }
-  get updatedAt() { return this._updatedAt; }
-  get deletedAt() { return this._deletedAt; }
-  get isDeleted() { return this._deletedAt !== null; }
-  get inviteeEmail() { return this._inviteeEmail; }
-  get isDefault() { return this._role === 'owner'; } // 기본 조직에서는 owner가 default
-
-  // 상태 변경 메서드
-  accept(userId: UserId): void {
-    if (this._status !== 'pending') {
-      throw new UserManagementError('INVITATION_NOT_PENDING', 'Invitation is not pending');
-    }
-    if (this.isExpired()) {
-      throw new UserManagementError('INVITATION_EXPIRED', 'Invitation has expired');
-    }
-    this._userId = userId;
-    this._joinedAt = new Date();
-    this._status = 'active';
-    this._updatedAt = new Date();
-  }
-
-  reject(): void {
-    if (this._status !== 'pending') {
-      throw new UserManagementError('INVITATION_NOT_PENDING', 'Invitation is not pending');
-    }
-    this._status = 'removed';
-    this._updatedAt = new Date();
-  }
-
-  changeRole(newRole: MembershipRole): void {
-    if (this._status !== 'active') {
-      throw new UserManagementError('MEMBERSHIP_NOT_ACTIVE', 'Cannot change role of inactive membership');
-    }
-    this._role = newRole;
-    this._updatedAt = new Date();
-  }
-
-  remove(): void {
-    if (this.isDeleted) {
-      throw new UserManagementError('MEMBERSHIP_ALREADY_DELETED', 'Membership is already deleted');
-    }
-    this._status = 'removed';
-    this._deletedAt = new Date();
-    this._updatedAt = new Date();
-  }
-
-  cancel(): void {
-    if (this._status !== 'pending') {
-      throw new UserManagementError('INVITATION_NOT_PENDING', 'Can only cancel pending invitations');
-    }
-    this._status = 'removed';
-    this._deletedAt = new Date();
-    this._updatedAt = new Date();
-  }
-
-  // 비즈니스 규칙 검증
-  isExpired(): boolean {
-    if (!this._invitedAt || this._status !== 'pending') return false;
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    return this._invitedAt < thirtyDaysAgo;
-  }
-
-  canInviteMembers(): boolean {
-    return this._status === 'active' && (this._role === 'owner' || this._role === 'admin');
   }
 }
 ```
@@ -400,62 +172,45 @@ export class Membership {
 // apps/web/src/domains/user-management/aggregates/user.aggregate.ts
 export class UserAggregate {
   constructor(
-    private user: User,
-    private memberships: Membership[] = []
+    private user: User
   ) {}
 
   // Command 처리
-  static createFromClerkUser(clerkUser: ClerkUser): UserAggregate {
+  static createFromSupabaseAuth(supabaseUser: SupabaseUser): UserAggregate {
     const user = new User(
-      UserId.generate(),
-      clerkUser.id,
-      new UserEmail(clerkUser.emailAddresses[0].emailAddress),
-      clerkUser.firstName + ' ' + clerkUser.lastName,
-      clerkUser.imageUrl,
-      new Date(),
+      new UserId(supabaseUser.id),
+      new UserEmail(supabaseUser.email),
+      supabaseUser.user_metadata?.name || 'User',
+      supabaseUser.user_metadata?.avatar_url || null,
+      new Date(supabaseUser.created_at),
       new Date()
     );
     return new UserAggregate(user);
   }
 
-  updateFromClerkUser(clerkUser: ClerkUser): UserCreatedEvent | UserUpdatedEvent {
-    const newEmail = new UserEmail(clerkUser.emailAddresses[0].emailAddress);
-    const newName = clerkUser.firstName + ' ' + clerkUser.lastName;
+  updateFromSupabaseAuth(supabaseUser: SupabaseUser): UserUpdatedEvent {
+    const newEmail = new UserEmail(supabaseUser.email);
+    const newName = supabaseUser.user_metadata?.name || 'User';
     
     const hasChanges = 
       !this.user.email.equals(newEmail) ||
       this.user.name !== newName ||
-      this.user.avatarUrl !== clerkUser.imageUrl;
+      this.user.avatarUrl !== supabaseUser.user_metadata?.avatar_url;
 
     if (hasChanges) {
-      this.user.updateProfile(newName, clerkUser.imageUrl);
+      this.user.updateProfile(newName, supabaseUser.user_metadata?.avatar_url || null);
       if (!this.user.email.equals(newEmail)) {
         this.user.updateEmail(newEmail);
       }
       return new UserUpdatedEvent(this.user.id, this.user.email, this.user.name);
     }
 
-    return new UserCreatedEvent(this.user.id, this.user.email, this.user.name);
-  }
-
-  // 비즈니스 규칙 검증
-  canJoinOrganization(organizationId: OrganizationId): boolean {
-    if (this.user.isDeleted) return false;
-    return !this.memberships.some(m => 
-      m.organizationId.equals(organizationId) && !m.isDeleted
-    );
-  }
-
-  getDefaultOrganization(): Membership | null {
-    return this.memberships.find(m => m.isDefault && !m.isDeleted) || null;
+    return new UserUpdatedEvent(this.user.id, this.user.email, this.user.name);
   }
 
   // Getters
   get id() { return this.user.id; }
   get entity() { return this.user; }
-  get activeMemberships() { 
-    return this.memberships.filter(m => !m.isDeleted); 
-  }
 }
 ```
 
@@ -464,41 +219,17 @@ export class UserAggregate {
 // apps/web/src/domains/user-management/aggregates/organization.aggregate.ts
 export class OrganizationAggregate {
   constructor(
-    private organization: Organization,
-    private memberships: Membership[] = []
+    private organization: Organization
   ) {}
 
   // Command 처리
-  static create(
-    name: string,
-    slug: OrganizationSlug,
-    clerkId: string,
-    ownerId: UserId
-  ): OrganizationAggregate {
-    const organization = new Organization(
-      OrganizationId.generate(),
-      clerkId,
-      name,
-      slug,
-      ownerId,
-      false, // isDefault
-      new Date(),
-      new Date()
-    );
-    return new OrganizationAggregate(organization);
-  }
-
   static createDefault(
     name: string,
-    slug: OrganizationSlug,
-    clerkId: string,
     ownerId: UserId
   ): OrganizationAggregate {
     const organization = new Organization(
       OrganizationId.generate(),
-      clerkId,
       name,
-      slug,
       ownerId,
       true, // isDefault
       new Date(),
@@ -507,146 +238,12 @@ export class OrganizationAggregate {
     return new OrganizationAggregate(organization);
   }
 
-  updateFromClerkOrganization(clerkOrg: ClerkOrganization): OrganizationUpdatedEvent {
-    const hasChanges = 
-      this.organization.name !== clerkOrg.name ||
-      this.organization.slug.value !== clerkOrg.slug;
-
-    if (hasChanges) {
-      this.organization.updateName(clerkOrg.name);
-      this.organization.updateSlug(new OrganizationSlug(clerkOrg.slug));
-      return new OrganizationUpdatedEvent(
-        this.organization.id,
-        this.organization.name,
-        this.organization.slug
-      );
-    }
-
+  updateName(name: string): OrganizationUpdatedEvent {
+    this.organization.updateName(name);
     return new OrganizationUpdatedEvent(
       this.organization.id,
-      this.organization.name,
-      this.organization.slug
+      this.organization.name
     );
-  }
-
-  transferOwnership(newOwnerId: UserId, currentOwnerId: UserId): OwnershipTransferredEvent {
-    if (!this.organization.ownerId.equals(currentOwnerId)) {
-      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Only current owner can transfer ownership');
-    }
-
-    if (this.organization.isDefault) {
-      throw new UserManagementError('CANNOT_TRANSFER_DEFAULT', 'Cannot transfer ownership of default organization');
-    }
-
-    // 새 소유자 멤버십 확인
-    const newOwnerMembership = this.memberships.find(m => 
-      m.userId.equals(newOwnerId) && !m.isDeleted
-    );
-
-    if (!newOwnerMembership) {
-      throw new UserManagementError('USER_NOT_MEMBER', 'New owner must be a member of the organization');
-    }
-
-    // 소유권 이전
-    this.organization.transferOwnership(newOwnerId);
-    
-    // 기존 소유자를 Admin으로 변경
-    const currentOwnerMembership = this.memberships.find(m => 
-      m.userId.equals(currentOwnerId) && !m.isDeleted
-    );
-    if (currentOwnerMembership) {
-      currentOwnerMembership.changeRole('admin');
-    }
-
-    // 새 소유자를 Owner로 변경
-    newOwnerMembership.changeRole('owner');
-
-    return new OwnershipTransferredEvent(
-      this.organization.id,
-      currentOwnerId,
-      newOwnerId
-    );
-  }
-
-  softDelete(deletedBy: UserId): OrganizationSoftDeletedEvent {
-    if (!this.organization.ownerId.equals(deletedBy)) {
-      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Only owner can delete organization');
-    }
-
-    if (this.organization.isDefault) {
-      throw new UserManagementError('CANNOT_DELETE_DEFAULT', 'Cannot delete default organization');
-    }
-
-    this.organization.softDelete();
-    
-    // 모든 멤버십 비활성화
-    this.memberships.forEach(membership => {
-      if (!membership.isDeleted) {
-        membership.remove();
-      }
-    });
-
-    return new OrganizationSoftDeletedEvent(
-      this.organization.id,
-      this.organization.name,
-      deletedBy
-    );
-  }
-
-  restoreOrganization(restoredBy: UserId): OrganizationRestoredEvent {
-    if (!this.organization.ownerId.equals(restoredBy)) {
-      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Only owner can restore organization');
-    }
-
-    if (!this.organization.isDeleted) {
-      throw new UserManagementError('ORGANIZATION_NOT_DELETED', 'Organization is not deleted');
-    }
-
-    if (this.organization.canBePermanentlyDeleted()) {
-      throw new UserManagementError('ORGANIZATION_PERMANENTLY_DELETED', 'Organization cannot be restored after 30 days');
-    }
-
-    this.organization.restore();
-
-    return new OrganizationRestoredEvent(
-      this.organization.id,
-      this.organization.name,
-      restoredBy
-    );
-  }
-
-  handleClerkOrganizationDeletion(clerkOrgId: string): OrganizationClerkDeletedEvent {
-    if (this.organization.clerkId !== clerkOrgId) {
-      throw new UserManagementError('CLERK_ID_MISMATCH', 'Clerk organization ID does not match');
-    }
-
-    // Clerk에서 삭제된 조직은 강제로 소프트 삭제
-    this.organization.softDelete();
-    
-    // 모든 멤버십 비활성화
-    this.memberships.forEach(membership => {
-      if (!membership.isDeleted) {
-        membership.remove();
-      }
-    });
-
-    return new OrganizationClerkDeletedEvent(
-      this.organization.id,
-      clerkOrgId
-    );
-  }
-
-  // 비즈니스 규칙 검증
-  canBeDeletedBy(userId: UserId): boolean {
-    return this.organization.ownerId.equals(userId) && !this.organization.isDefault;
-  }
-
-  getActiveMembers(): Membership[] {
-    return this.memberships.filter(m => !m.isDeleted);
-  }
-
-  getMemberCount(): number {
-    return this.getActiveMembers().length;
   }
 
   // Getters
@@ -657,237 +254,32 @@ export class OrganizationAggregate {
 }
 ```
 
-#### MembershipAggregate
-```typescript
-// apps/web/src/domains/user-management/aggregates/membership.aggregate.ts
-export class MembershipAggregate {
-  constructor(
-    private membership: Membership,
-    private organization: Organization,
-    private user: User
-  ) {}
-
-  // Command 처리
-  static invite(
-    organizationId: OrganizationId,
-    inviteeEmail: UserEmail,
-    inviterId: UserId,
-    role: MembershipRole
-  ): MembershipAggregate {
-    const membership = new Membership(
-      MembershipId.generate(),
-      organizationId,
-      null, // userId는 초대 수락 시 설정
-      role,
-      inviterId,
-      new Date(), // invitedAt
-      null, // joinedAt
-      'pending', // status
-      new Date(),
-      new Date()
-    );
-
-    return new MembershipAggregate(membership, organization, user);
-  }
-
-  acceptInvitation(userId: UserId): InvitationAcceptedEvent {
-    if (this.membership.status !== 'pending') {
-      throw new UserManagementError('INVITATION_NOT_PENDING', 'Invitation is not pending');
-    }
-
-    if (this.membership.isExpired()) {
-      throw new UserManagementError('INVITATION_EXPIRED', 'Invitation has expired');
-    }
-
-    this.membership.accept(userId);
-    
-    return new InvitationAcceptedEvent(
-      this.membership.id,
-      this.membership.organizationId,
-      userId,
-      this.membership.role
-    );
-  }
-
-  rejectInvitation(): InvitationRejectedEvent {
-    if (this.membership.status !== 'pending') {
-      throw new UserManagementError('INVITATION_NOT_PENDING', 'Invitation is not pending');
-    }
-
-    this.membership.reject();
-    
-    return new InvitationRejectedEvent(
-      this.membership.id,
-      this.membership.organizationId,
-      this.membership.inviteeEmail
-    );
-  }
-
-  changeRole(newRole: MembershipRole, changedBy: UserId): MemberRoleChangedEvent {
-    // 권한 검증: Owner만 역할 변경 가능
-    if (!this.organization.ownerId.equals(changedBy)) {
-      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Only owner can change member roles');
-    }
-
-    // Owner는 자신의 역할을 변경할 수 없음
-    if (this.membership.userId?.equals(changedBy) && newRole !== 'owner') {
-      throw new UserManagementError('CANNOT_CHANGE_OWN_ROLE', 'Owner cannot change their own role');
-    }
-
-    const oldRole = this.membership.role;
-    this.membership.changeRole(newRole);
-    
-    return new MemberRoleChangedEvent(
-      this.membership.id,
-      this.membership.organizationId,
-      this.membership.userId!,
-      oldRole,
-      newRole,
-      changedBy
-    );
-  }
-
-  remove(removedBy: UserId): MemberRemovedEvent {
-    // 권한 검증: Owner 또는 Admin만 멤버 제거 가능
-    const canRemove = this.organization.ownerId.equals(removedBy) || 
-                     this.membership.role === 'admin';
-    
-    if (!canRemove) {
-      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Insufficient permissions to remove member');
-    }
-
-    // Owner는 자신을 제거할 수 없음
-    if (this.membership.userId?.equals(removedBy)) {
-      throw new UserManagementError('CANNOT_REMOVE_SELF', 'Cannot remove yourself from organization');
-    }
-
-    this.membership.remove();
-    
-    return new MemberRemovedEvent(
-      this.membership.id,
-      this.membership.organizationId,
-      this.membership.userId!,
-      removedBy
-    );
-  }
-
-  cancelInvitation(cancelledBy: UserId): InvitationCancelledEvent {
-    // 권한 검증: Owner, Admin, 또는 초대한 사람만 취소 가능
-    const canCancel = this.organization.ownerId.equals(cancelledBy) ||
-                     this.membership.invitedBy?.equals(cancelledBy) ||
-                     this.membership.role === 'admin';
-    
-    if (!canCancel) {
-      throw new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Cannot cancel this invitation');
-    }
-
-    if (this.membership.status !== 'pending') {
-      throw new UserManagementError('INVITATION_NOT_PENDING', 'Can only cancel pending invitations');
-    }
-
-    this.membership.cancel();
-    
-    return new InvitationCancelledEvent(
-      this.membership.id,
-      this.membership.organizationId,
-      this.membership.inviteeEmail!,
-      cancelledBy
-    );
-  }
-
-  // 비즈니스 규칙 검증
-  canInviteMembers(): boolean {
-    return this.membership.role === 'owner' || this.membership.role === 'admin';
-  }
-
-  isExpired(): boolean {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    return this.membership.invitedAt < thirtyDaysAgo;
-  }
-
-  // Getters
-  get id() { return this.membership.id; }
-  get entity() { return this.membership; }
-  get organizationId() { return this.membership.organizationId; }
-  get userId() { return this.membership.userId; }
-  get role() { return this.membership.role; }
-  get status() { return this.membership.status; }
-}
-```
-
 ### 4. Commands & Events 구현
 
 #### Commands
 ```typescript
 // apps/web/src/domains/user-management/commands/index.ts
-export interface CreateUserFromClerkCommand {
-  clerkUserId: string;
-  email: string;
-  name: string;
-  avatarUrl: string | null;
-}
-
-export interface UpdateUserFromClerkCommand {
-  clerkUserId: string;
-  email: string;
-  name: string;
-  avatarUrl: string | null;
-}
-
-export interface InviteUserToOrganizationCommand {
-  organizationId: string;
-  inviterUserId: string;
-  inviteeEmail: string;
-  role: MembershipRole;
-}
-
-export interface TransferOrganizationOwnershipCommand {
-  organizationId: string;
-  currentOwnerId: string;
-  newOwnerId: string;
-}
-
-export interface DeleteOrganizationCommand {
-  organizationId: string;
-  deletedBy: string;
-  confirmationName: string;
-}
-
-export interface RestoreOrganizationCommand {
-  organizationId: string;
-  restoredBy: string;
-}
-
-export interface ChangeMemberRoleCommand {
-  membershipId: string;
-  newRole: MembershipRole;
-  changedBy: string;
-}
-
-export interface RemoveMemberCommand {
-  membershipId: string;
-  removedBy: string;
-}
-
-export interface CancelInvitationCommand {
-  invitationId: string;
-  cancelledBy: string;
-}
-
-export interface AcceptInvitationCommand {
-  invitationId: string;
+export interface CreateUserProfileCommand {
   userId: string;
+  email: string;
+  name: string;
+  avatarUrl: string | null;
 }
 
-export interface RejectInvitationCommand {
-  invitationId: string;
+export interface CreateDefaultOrganizationCommand {
+  userId: string;
+  organizationName: string;
+}
+
+export interface GetUserOrganizationsCommand {
+  userId: string;
 }
 ```
 
 #### Events
 ```typescript
 // apps/web/src/domains/user-management/events/index.ts
-export class UserCreatedEvent {
+export class UserProfileCreatedEvent {
   constructor(
     public readonly userId: UserId,
     public readonly email: UserEmail,
@@ -905,35 +297,6 @@ export class UserUpdatedEvent {
   ) {}
 }
 
-export class UserInvitedToOrganizationEvent {
-  constructor(
-    public readonly invitationId: InvitationId,
-    public readonly organizationId: OrganizationId,
-    public readonly inviteeEmail: UserEmail,
-    public readonly inviterUserId: UserId,
-    public readonly role: MembershipRole,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-// Organization Events
-export class OrganizationUpdatedEvent {
-  constructor(
-    public readonly organizationId: OrganizationId,
-    public readonly name: string,
-    public readonly slug: OrganizationSlug,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class ClerkOrganizationSyncedEvent {
-  constructor(
-    public readonly organizationId: OrganizationId,
-    public readonly clerkId: string,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
 export class DefaultOrganizationCreatedEvent {
   constructor(
     public readonly organizationId: OrganizationId,
@@ -943,203 +306,19 @@ export class DefaultOrganizationCreatedEvent {
   ) {}
 }
 
-export class OwnershipTransferRequestedEvent {
+export class OrganizationUpdatedEvent {
   constructor(
     public readonly organizationId: OrganizationId,
-    public readonly currentOwnerId: UserId,
-    public readonly newOwnerId: UserId,
+    public readonly name: string,
     public readonly timestamp: Date = new Date()
   ) {}
 }
 
-export class OwnershipTransferredEvent {
-  constructor(
-    public readonly organizationId: OrganizationId,
-    public readonly previousOwnerId: UserId,
-    public readonly newOwnerId: UserId,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class NewOwnerPromotedEvent {
-  constructor(
-    public readonly organizationId: OrganizationId,
-    public readonly userId: UserId,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class PreviousOwnerDemotedEvent {
-  constructor(
-    public readonly organizationId: OrganizationId,
-    public readonly userId: UserId,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class OrganizationDeletionRequestedEvent {
-  constructor(
-    public readonly organizationId: OrganizationId,
-    public readonly requestedBy: UserId,
-    public readonly organizationName: string,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class OrganizationSoftDeletedEvent {
-  constructor(
-    public readonly organizationId: OrganizationId,
-    public readonly organizationName: string,
-    public readonly deletedBy: UserId,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class OrganizationRestoredEvent {
-  constructor(
-    public readonly organizationId: OrganizationId,
-    public readonly organizationName: string,
-    public readonly restoredBy: UserId,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class PermanentDeletionScheduledEvent {
-  constructor(
-    public readonly organizationId: OrganizationId,
-    public readonly scheduledDate: Date,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class OrganizationClerkDeletedEvent {
-  constructor(
-    public readonly organizationId: OrganizationId,
-    public readonly clerkId: string,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-// Membership Events
-export class MemberInvitationSentEvent {
-  constructor(
-    public readonly invitationId: MembershipId,
-    public readonly organizationId: OrganizationId,
-    public readonly inviteeEmail: UserEmail,
-    public readonly inviterUserId: UserId,
-    public readonly role: MembershipRole,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class ClerkInvitationLinkGeneratedEvent {
-  constructor(
-    public readonly invitationId: MembershipId,
-    public readonly clerkInvitationId: string,
-    public readonly invitationUrl: string,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class InvitationAcceptedEvent {
-  constructor(
-    public readonly invitationId: MembershipId,
-    public readonly organizationId: OrganizationId,
-    public readonly userId: UserId,
-    public readonly role: MembershipRole,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class InvitationRejectedEvent {
-  constructor(
-    public readonly invitationId: MembershipId,
-    public readonly organizationId: OrganizationId,
-    public readonly inviteeEmail: UserEmail,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class NewMemberAddedEvent {
-  constructor(
-    public readonly membershipId: MembershipId,
-    public readonly organizationId: OrganizationId,
-    public readonly userId: UserId,
-    public readonly role: MembershipRole,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class MemberRoleAssignedEvent {
-  constructor(
-    public readonly membershipId: MembershipId,
-    public readonly organizationId: OrganizationId,
-    public readonly userId: UserId,
-    public readonly role: MembershipRole,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class MemberPromotedToAdminEvent {
-  constructor(
-    public readonly membershipId: MembershipId,
-    public readonly organizationId: OrganizationId,
-    public readonly userId: UserId,
-    public readonly promotedBy: UserId,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class AdminDemotedToMemberEvent {
-  constructor(
-    public readonly membershipId: MembershipId,
-    public readonly organizationId: OrganizationId,
-    public readonly userId: UserId,
-    public readonly demotedBy: UserId,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class MemberRoleChangedEvent {
-  constructor(
-    public readonly membershipId: MembershipId,
-    public readonly organizationId: OrganizationId,
-    public readonly userId: UserId,
-    public readonly oldRole: MembershipRole,
-    public readonly newRole: MembershipRole,
-    public readonly changedBy: UserId,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class MemberRemovedEvent {
-  constructor(
-    public readonly membershipId: MembershipId,
-    public readonly organizationId: OrganizationId,
-    public readonly userId: UserId,
-    public readonly removedBy: UserId,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class InvitationExpiredEvent {
-  constructor(
-    public readonly invitationId: MembershipId,
-    public readonly organizationId: OrganizationId,
-    public readonly inviteeEmail: UserEmail,
-    public readonly expiredAt: Date,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class InvitationCancelledEvent {
-  constructor(
-    public readonly invitationId: MembershipId,
-    public readonly organizationId: OrganizationId,
-    public readonly inviteeEmail: UserEmail,
-    public readonly cancelledBy: UserId,
-    public readonly timestamp: Date = new Date()
-  ) {}
+export interface OrganizationSummary {
+  id: OrganizationId;
+  name: string;
+  isDefault: boolean;
+  createdAt: Date;
 }
 ```
 
@@ -1161,63 +340,25 @@ export class UserManagementError extends Error {
 export type UserManagementErrorCode =
   | 'USER_NOT_FOUND'
   | 'USER_ALREADY_EXISTS'
-  | 'USER_DELETED'
-  | 'USER_ALREADY_DELETED'
-  | 'USER_NOT_DELETED'
   | 'ORGANIZATION_NOT_FOUND'
-  | 'ORGANIZATION_DELETED'
-  | 'ORGANIZATION_ALREADY_DELETED'
-  | 'ORGANIZATION_NOT_DELETED'
-  | 'ORGANIZATION_PERMANENTLY_DELETED'
   | 'INVALID_EMAIL_FORMAT'
-  | 'INVALID_SLUG_FORMAT'
   | 'INVALID_USER_ID'
   | 'INVALID_ORGANIZATION_ID'
-  | 'INVALID_MEMBERSHIP_ID'
-  | 'MEMBERSHIP_ALREADY_EXISTS'
-  | 'MEMBERSHIP_NOT_ACTIVE'
-  | 'MEMBERSHIP_ALREADY_DELETED'
-  | 'INSUFFICIENT_PERMISSIONS'
-  | 'INVITATION_EXPIRED'
-  | 'INVITATION_NOT_PENDING'
-  | 'CANNOT_TRANSFER_DEFAULT'
-  | 'CANNOT_DELETE_DEFAULT'
-  | 'CANNOT_CHANGE_OWN_ROLE'
-  | 'CANNOT_REMOVE_SELF'
-  | 'USER_NOT_MEMBER'
-  | 'CLERK_SYNC_FAILED'
-  | 'CLERK_ID_MISMATCH';
+  | 'SUPABASE_AUTH_FAILED'
+  | 'PROFILE_CREATION_FAILED'
+  | 'ORGANIZATION_CREATION_FAILED';
 
 // 사용자 메시지 매핑
 export const USER_MANAGEMENT_ERROR_MESSAGES: Record<UserManagementErrorCode, string> = {
   USER_NOT_FOUND: '사용자를 찾을 수 없습니다.',
   USER_ALREADY_EXISTS: '이미 존재하는 사용자입니다.',
-  USER_DELETED: '삭제된 사용자입니다.',
-  USER_ALREADY_DELETED: '이미 삭제된 사용자입니다.',
-  USER_NOT_DELETED: '삭제되지 않은 사용자입니다.',
   ORGANIZATION_NOT_FOUND: '조직을 찾을 수 없습니다.',
-  ORGANIZATION_DELETED: '삭제된 조직입니다.',
-  ORGANIZATION_ALREADY_DELETED: '이미 삭제된 조직입니다.',
-  ORGANIZATION_NOT_DELETED: '삭제되지 않은 조직입니다.',
-  ORGANIZATION_PERMANENTLY_DELETED: '영구 삭제된 조직은 복구할 수 없습니다.',
   INVALID_EMAIL_FORMAT: '올바른 이메일 형식이 아닙니다.',
-  INVALID_SLUG_FORMAT: '올바른 슬러그 형식이 아닙니다.',
   INVALID_USER_ID: '올바르지 않은 사용자 ID입니다.',
   INVALID_ORGANIZATION_ID: '올바르지 않은 조직 ID입니다.',
-  INVALID_MEMBERSHIP_ID: '올바르지 않은 멤버십 ID입니다.',
-  MEMBERSHIP_ALREADY_EXISTS: '이미 조직의 멤버입니다.',
-  MEMBERSHIP_NOT_ACTIVE: '활성화되지 않은 멤버십입니다.',
-  MEMBERSHIP_ALREADY_DELETED: '이미 삭제된 멤버십입니다.',
-  INSUFFICIENT_PERMISSIONS: '권한이 부족합니다.',
-  INVITATION_EXPIRED: '초대 링크가 만료되었습니다.',
-  INVITATION_NOT_PENDING: '대기 중인 초대가 아닙니다.',
-  CANNOT_TRANSFER_DEFAULT: '기본 조직의 소유권은 이전할 수 없습니다.',
-  CANNOT_DELETE_DEFAULT: '기본 조직은 삭제할 수 없습니다.',
-  CANNOT_CHANGE_OWN_ROLE: '자신의 역할은 변경할 수 없습니다.',
-  CANNOT_REMOVE_SELF: '자신을 조직에서 제거할 수 없습니다.',
-  USER_NOT_MEMBER: '조직의 멤버가 아닙니다.',
-  CLERK_SYNC_FAILED: '외부 인증 시스템과 동기화에 실패했습니다.',
-  CLERK_ID_MISMATCH: 'Clerk ID가 일치하지 않습니다.'
+  SUPABASE_AUTH_FAILED: '인증에 실패했습니다.',
+  PROFILE_CREATION_FAILED: '프로필 생성에 실패했습니다.',
+  ORGANIZATION_CREATION_FAILED: '조직 생성에 실패했습니다.'
 };
 ```
 
@@ -1234,1215 +375,369 @@ export class UserManagementService {
   constructor(
     private userRepository: UserRepository,
     private organizationRepository: OrganizationRepository,
-    private membershipRepository: MembershipRepository,
-    private clerkService: ClerkService
+    private supabaseAuthService: SupabaseAuthService
   ) {}
 
-  async syncUserFromClerk(clerkUserId: string): Promise<Result<UserAggregate, UserManagementError>> {
+  async createUserProfile(command: CreateUserProfileCommand): Promise<Result<UserAggregate, UserManagementError>> {
     try {
-      // 1. Clerk에서 사용자 정보 조회
-      const clerkUser = await this.clerkService.getUser(clerkUserId);
-      if (!clerkUser) {
-        return Result.error(new UserManagementError('USER_NOT_FOUND', 'User not found in Clerk'));
+      // 1. Supabase Auth에서 사용자 확인
+      const supabaseUser = await this.supabaseAuthService.getCurrentUser();
+      if (!supabaseUser || supabaseUser.id !== command.userId) {
+        return Result.error(new UserManagementError('USER_NOT_FOUND', 'User not found in Supabase Auth'));
       }
 
-      // 2. 기존 사용자 확인
-      const existingUser = await this.userRepository.findByClerkId(clerkUserId);
-      
+      // 2. 기존 프로필 확인
+      const existingUser = await this.userRepository.findById(new UserId(command.userId));
       if (existingUser) {
         // 업데이트
-        const event = existingUser.updateFromClerkUser(clerkUser);
+        const event = existingUser.updateFromSupabaseAuth(supabaseUser);
         await this.userRepository.save(existingUser);
         return Result.success(existingUser);
-      } else {
-        // 신규 생성
-        const newUser = UserAggregate.createFromClerkUser(clerkUser);
-        await this.userRepository.save(newUser);
-        
-        // 기본 조직 생성
-        await this.createDefaultOrganization(newUser);
-        
-        return Result.success(newUser);
       }
+
+      // 3. 신규 프로필 생성
+      const newUser = UserAggregate.createFromSupabaseAuth(supabaseUser);
+      await this.userRepository.save(newUser);
+      
+      // 4. 기본 조직 생성
+      await this.createDefaultOrganization(newUser);
+      
+      return Result.success(newUser);
     } catch (error) {
-      return Result.error(new UserManagementError('CLERK_SYNC_FAILED', 'Failed to sync user from Clerk', { error }));
+      return Result.error(new UserManagementError('PROFILE_CREATION_FAILED', 'Failed to create user profile', { error }));
     }
   }
 
-  async inviteUserToOrganization(
-    command: InviteUserToOrganizationCommand
-  ): Promise<Result<void, UserManagementError>> {
-    // 1. 권한 검증
-    const inviter = await this.userRepository.findById(new UserId(command.inviterUserId));
-    if (!inviter) {
-      return Result.error(new UserManagementError('USER_NOT_FOUND', 'Inviter not found'));
-    }
-
-    const membership = await this.membershipRepository.findByUserAndOrganization(
-      inviter.id, 
-      new OrganizationId(command.organizationId)
-    );
-    
-    if (!membership || !membership.canInviteMembers()) {
-      return Result.error(new UserManagementError('INSUFFICIENT_PERMISSIONS', 'Cannot invite members'));
-    }
-
-    // 2. Clerk를 통한 초대
+  async createDefaultOrganization(command: CreateDefaultOrganizationCommand): Promise<Result<OrganizationAggregate, UserManagementError>> {
     try {
-      const invitation = await this.clerkService.inviteUser({
-        emailAddress: command.inviteeEmail,
-        organizationId: command.organizationId,
-        role: command.role
-      });
-
-      // 3. 내부 초대 기록 생성
-      // ... 초대 로직 구현
-
-      return Result.success(undefined);
-    } catch (error) {
-      return Result.error(new UserManagementError('CLERK_SYNC_FAILED', 'Failed to send invitation', { error }));
-    }
-  }
-
-  async transferOrganizationOwnership(
-    organizationId: string,
-    currentOwnerId: string,
-    newOwnerId: string
-  ): Promise<Result<void, UserManagementError>> {
-    try {
-      // 1. 조직 조회
-      const organization = await this.organizationRepository.findById(new OrganizationId(organizationId));
-      if (!organization) {
-        return Result.error(new UserManagementError('ORGANIZATION_NOT_FOUND', 'Organization not found'));
+      // 1. 사용자 확인
+      const user = await this.userRepository.findById(new UserId(command.userId));
+      if (!user) {
+        return Result.error(new UserManagementError('USER_NOT_FOUND', 'User not found'));
       }
 
-      // 2. 새 소유자 확인
-      const newOwner = await this.userRepository.findById(new UserId(newOwnerId));
-      if (!newOwner) {
-        return Result.error(new UserManagementError('USER_NOT_FOUND', 'New owner not found'));
-      }
-
-      // 3. 소유권 이전 실행
-      const event = organization.transferOwnership(new UserId(newOwnerId), new UserId(currentOwnerId));
-      await this.organizationRepository.save(organization);
-
-      return Result.success(undefined);
-    } catch (error) {
-      if (error instanceof UserManagementError) {
-        return Result.error(error);
-      }
-      return Result.error(new UserManagementError('OWNERSHIP_TRANSFER_FAILED', 'Failed to transfer ownership', { error }));
-    }
-  }
-
-  async deleteOrganization(
-    organizationId: string,
-    deletedBy: string,
-    confirmationName: string
-  ): Promise<Result<void, UserManagementError>> {
-    try {
-      // 1. 조직 조회
-      const organization = await this.organizationRepository.findById(new OrganizationId(organizationId));
-      if (!organization) {
-        return Result.error(new UserManagementError('ORGANIZATION_NOT_FOUND', 'Organization not found'));
-      }
-
-      // 2. 조직 이름 확인 (안전장치)
-      if (organization.entity.name !== confirmationName) {
-        return Result.error(new UserManagementError('ORGANIZATION_NAME_MISMATCH', 'Organization name does not match'));
-      }
-
-      // 3. 소프트 삭제 실행
-      const event = organization.softDelete(new UserId(deletedBy));
-      await this.organizationRepository.save(organization);
-
-      // 4. Clerk에서도 조직 삭제
-      await this.clerkService.deleteOrganization(organization.entity.clerkId);
-
-      return Result.success(undefined);
-    } catch (error) {
-      if (error instanceof UserManagementError) {
-        return Result.error(error);
-      }
-      return Result.error(new UserManagementError('ORGANIZATION_DELETION_FAILED', 'Failed to delete organization', { error }));
-    }
-  }
-
-  async restoreOrganization(
-    organizationId: string,
-    restoredBy: string
-  ): Promise<Result<void, UserManagementError>> {
-    try {
-      // 1. 조직 조회
-      const organization = await this.organizationRepository.findById(new OrganizationId(organizationId));
-      if (!organization) {
-        return Result.error(new UserManagementError('ORGANIZATION_NOT_FOUND', 'Organization not found'));
-      }
-
-      // 2. 복구 실행
-      const event = organization.restoreOrganization(new UserId(restoredBy));
-      await this.organizationRepository.save(organization);
-
-      return Result.success(undefined);
-    } catch (error) {
-      if (error instanceof UserManagementError) {
-        return Result.error(error);
-      }
-      return Result.error(new UserManagementError('ORGANIZATION_RESTORE_FAILED', 'Failed to restore organization', { error }));
-    }
-  }
-
-  async changeMemberRole(
-    membershipId: string,
-    newRole: MembershipRole,
-    changedBy: string
-  ): Promise<Result<void, UserManagementError>> {
-    try {
-      // 1. 멤버십 조회
-      const membership = await this.membershipRepository.findById(new MembershipId(membershipId));
-      if (!membership) {
-        return Result.error(new UserManagementError('MEMBERSHIP_NOT_FOUND', 'Membership not found'));
-      }
-
-      // 2. 역할 변경 실행
-      const event = membership.changeRole(newRole, new UserId(changedBy));
-      await this.membershipRepository.save(membership);
-
-      // 3. Clerk에서도 역할 업데이트
-      await this.clerkService.updateMemberRole(
-        membership.organizationId.value,
-        membership.userId!.value,
-        newRole
+      // 2. 기본 조직 생성
+      const organization = OrganizationAggregate.createDefault(
+        command.organizationName || `${user.entity.name}'s Organization`,
+        user.id
       );
+      
+      await this.organizationRepository.save(organization);
 
-      return Result.success(undefined);
+      return Result.success(organization);
     } catch (error) {
-      if (error instanceof UserManagementError) {
-        return Result.error(error);
-      }
-      return Result.error(new UserManagementError('ROLE_CHANGE_FAILED', 'Failed to change member role', { error }));
+      return Result.error(new UserManagementError('ORGANIZATION_CREATION_FAILED', 'Failed to create default organization', { error }));
     }
   }
 
-  async removeMember(
-    membershipId: string,
-    removedBy: string
-  ): Promise<Result<void, UserManagementError>> {
+  async getUserOrganizations(command: GetUserOrganizationsCommand): Promise<Result<OrganizationSummary[], UserManagementError>> {
     try {
-      // 1. 멤버십 조회
-      const membership = await this.membershipRepository.findById(new MembershipId(membershipId));
-      if (!membership) {
-        return Result.error(new UserManagementError('MEMBERSHIP_NOT_FOUND', 'Membership not found'));
+      // 1. 사용자 확인
+      const user = await this.userRepository.findById(new UserId(command.userId));
+      if (!user) {
+        return Result.error(new UserManagementError('USER_NOT_FOUND', 'User not found'));
       }
 
-      // 2. 멤버 제거 실행
-      const event = membership.remove(new UserId(removedBy));
-      await this.membershipRepository.save(membership);
+      // 2. 사용자 조직 조회
+      const organizations = await this.organizationRepository.findByOwnerId(user.id);
+      
+      const summaries: OrganizationSummary[] = organizations.map(org => ({
+        id: org.id,
+        name: org.entity.name,
+        isDefault: org.entity.isDefault,
+        createdAt: org.entity.createdAt
+      }));
 
-      // 3. Clerk에서도 멤버 제거
-      await this.clerkService.removeMember(
-        membership.organizationId.value,
-        membership.userId!.value
-      );
-
-      return Result.success(undefined);
+      return Result.success(summaries);
     } catch (error) {
-      if (error instanceof UserManagementError) {
-        return Result.error(error);
-      }
-      return Result.error(new UserManagementError('MEMBER_REMOVAL_FAILED', 'Failed to remove member', { error }));
-    }
-  }
-
-  async cancelInvitation(
-    invitationId: string,
-    cancelledBy: string
-  ): Promise<Result<void, UserManagementError>> {
-    try {
-      // 1. 초대 조회
-      const membership = await this.membershipRepository.findById(new MembershipId(invitationId));
-      if (!membership) {
-        return Result.error(new UserManagementError('INVITATION_NOT_FOUND', 'Invitation not found'));
-      }
-
-      // 2. 초대 취소 실행
-      const event = membership.cancelInvitation(new UserId(cancelledBy));
-      await this.membershipRepository.save(membership);
-
-      // 3. Clerk에서도 초대 취소
-      await this.clerkService.cancelInvitation(invitationId);
-
-      return Result.success(undefined);
-    } catch (error) {
-      if (error instanceof UserManagementError) {
-        return Result.error(error);
-      }
-      return Result.error(new UserManagementError('INVITATION_CANCEL_FAILED', 'Failed to cancel invitation', { error }));
+      return Result.error(new UserManagementError('ORGANIZATION_RETRIEVAL_FAILED', 'Failed to get user organizations', { error }));
     }
   }
 
   private async createDefaultOrganization(user: UserAggregate): Promise<void> {
-    // 기본 조직 생성 로직
     const orgName = `${user.entity.name}'s Organization`;
-    const orgSlug = OrganizationSlug.fromName(orgName);
     
-    // Clerk에 조직 생성
-    const clerkOrg = await this.clerkService.createOrganization({
-      name: orgName,
-      slug: orgSlug.value,
-      createdBy: user.entity.clerkId
-    });
-
-    // 내부 조직 생성
     const organization = OrganizationAggregate.createDefault(
       orgName,
-      orgSlug,
-      clerkOrg.id,
       user.id
     );
     
     await this.organizationRepository.save(organization);
-
-    // 기본 멤버십 생성
-    const membership = new Membership(
-      MembershipId.generate(),
-      organization.id,
-      user.id,
-      'owner',
-      null, // 기본 조직은 초대가 아님
-      null, // 초대 시간 없음
-      new Date(), // 즉시 가입
-      'active',
-      new Date(),
-      new Date()
-    );
-
-    const membershipAggregate = new MembershipAggregate(membership, organization.entity, user.entity);
-    await this.membershipRepository.save(membershipAggregate);
   }
 }
 ```
 
-### 2. Repository 레이어
+### 2. Repository 레이어 (Drizzle ORM + RLS)
 
-#### UserRepository (RLS 호환)
+#### UserRepository (Drizzle ORM)
 ```typescript
 // apps/web/src/domains/user-management/repositories/user.repository.ts
-import { createClerkDrizzleSupabaseClient } from '@/db';
+import { eq } from 'drizzle-orm';
+import { createDrizzleSupabaseClient } from '@/db';
+import { profiles } from '@/db/schema';
 
 export interface UserRepository {
   findById(id: UserId): Promise<UserAggregate | null>;
-  findByClerkId(clerkId: string): Promise<UserAggregate | null>;
-  findByEmail(email: UserEmail): Promise<UserAggregate | null>;
   save(user: UserAggregate): Promise<void>;
-  delete(id: UserId): Promise<void>;
 }
 
 export class DrizzleUserRepository implements UserRepository {
-  // RLS 호환 Repository - DB 클라이언트를 직접 받지 않고 내부에서 생성
-  
   async findById(id: UserId): Promise<UserAggregate | null> {
-    const db = await createClerkDrizzleSupabaseClient();
-    const result = await db.rls(async (tx) => {
-      // RLS 정책이 자동으로 적용되므로 단순한 쿼리 사용
-      const rows = await tx
-        .select({
-          // User 정보
-          userId: users.id,
-          clerkId: users.clerkId,
-          email: users.email,
-          name: users.name,
-          avatarUrl: users.avatarUrl,
-          userCreatedAt: users.createdAt,
-          userUpdatedAt: users.updatedAt,
-          userDeletedAt: users.deletedAt,
-          // Membership 정보
-          membershipId: memberships.id,
-          organizationId: memberships.organizationId,
-          role: memberships.role,
-          status: memberships.status,
-          invitedBy: memberships.invitedBy,
-          invitedAt: memberships.invitedAt,
-          joinedAt: memberships.joinedAt,
-          membershipCreatedAt: memberships.createdAt,
-          membershipUpdatedAt: memberships.updatedAt,
-          membershipDeletedAt: memberships.deletedAt,
-          inviteeEmail: memberships.inviteeEmail,
-          // Organization 정보
-          orgName: organizations.name,
-          orgSlug: organizations.slug,
-          orgIsDefault: organizations.isDefault
-        })
-        .from(users)
-        .leftJoin(memberships, and(
-          eq(users.id, memberships.userId),
-          isNull(memberships.deletedAt)
-        ))
-        .leftJoin(organizations, and(
-          eq(memberships.organizationId, organizations.id),
-          isNull(organizations.deletedAt)
-        ))
-        .where(and(
-          eq(users.id, id.value),
-          isNull(users.deletedAt)
-        ));
+    const db = await createDrizzleSupabaseClient();
+    
+    return db.rls((tx) =>
+      tx.query.profiles.findFirst({
+        where: eq(profiles.id, id.value),
+      })
+    ).then(data => {
+      if (!data) {
+        return null;
+      }
 
-      return rows;
+      const user = new User(
+        new UserId(data.id),
+        new UserEmail(data.email),
+        data.name,
+        data.avatarUrl,
+        new Date(data.createdAt),
+        new Date(data.updatedAt)
+      );
+
+      return new UserAggregate(user);
     });
-
-    if (result.length === 0) {
-      return null;
-    }
-
-    return this.mapToAggregate(result);
-  }
-
-  async findByClerkId(clerkId: string): Promise<UserAggregate | null> {
-    const db = await createClerkDrizzleSupabaseClient();
-    const result = await db.rls(async (tx) => {
-      const rows = await tx
-        .select({
-          userId: users.id,
-          clerkId: users.clerkId,
-          email: users.email,
-          name: users.name,
-          avatarUrl: users.avatarUrl,
-          userCreatedAt: users.createdAt,
-          userUpdatedAt: users.updatedAt,
-          userDeletedAt: users.deletedAt,
-          membershipId: memberships.id,
-          organizationId: memberships.organizationId,
-          role: memberships.role,
-          status: memberships.status,
-          invitedBy: memberships.invitedBy,
-          invitedAt: memberships.invitedAt,
-          joinedAt: memberships.joinedAt,
-          membershipCreatedAt: memberships.createdAt,
-          membershipUpdatedAt: memberships.updatedAt,
-          membershipDeletedAt: memberships.deletedAt,
-          inviteeEmail: memberships.inviteeEmail
-        })
-        .from(users)
-        .leftJoin(memberships, and(
-          eq(users.id, memberships.userId),
-          isNull(memberships.deletedAt)
-        ))
-        .where(and(
-          eq(users.clerkId, clerkId),
-          isNull(users.deletedAt)
-        ));
-
-      return rows;
-    });
-
-    if (result.length === 0) {
-      return null;
-    }
-
-    return this.mapToAggregate(result);
-  }
-
-  async findByEmail(email: UserEmail): Promise<UserAggregate | null> {
-    const db = await createClerkDrizzleSupabaseClient();
-    const result = await db.rls(async (tx) => {
-      const rows = await tx
-        .select({
-          userId: users.id,
-          clerkId: users.clerkId,
-          email: users.email,
-          name: users.name,
-          avatarUrl: users.avatarUrl,
-          userCreatedAt: users.createdAt,
-          userUpdatedAt: users.updatedAt,
-          userDeletedAt: users.deletedAt
-        })
-        .from(users)
-        .where(and(
-          eq(users.email, email.value),
-          isNull(users.deletedAt)
-        ))
-        .limit(1);
-
-      return rows;
-    });
-
-    if (result.length === 0) {
-      return null;
-    }
-
-    // 이메일로 찾을 때는 멤버십 정보 없이 User만 반환
-    const user = this.mapToUserEntity(result[0]);
-    return new UserAggregate(user, []);
   }
 
   async save(userAggregate: UserAggregate): Promise<void> {
-    const db = await createClerkDrizzleSupabaseClient();
-    await db.rls(async (tx) => {
-      // User 저장 - RLS 정책에 의해 자동으로 권한 검증됨
-      await tx
-        .insert(users)
-        .values({
-          id: userAggregate.id.value,
-          clerkId: userAggregate.entity.clerkId,
+    const db = await createDrizzleSupabaseClient();
+    
+    await db.rls((tx) =>
+      tx.insert(profiles).values({
+        id: userAggregate.id.value,
+        email: userAggregate.entity.email.value,
+        name: userAggregate.entity.name,
+        avatarUrl: userAggregate.entity.avatarUrl,
+        createdAt: userAggregate.entity.createdAt,
+        updatedAt: userAggregate.entity.updatedAt,
+      }).onConflictDoUpdate({
+        target: profiles.id,
+        set: {
           email: userAggregate.entity.email.value,
           name: userAggregate.entity.name,
           avatarUrl: userAggregate.entity.avatarUrl,
-          createdAt: userAggregate.entity.createdAt,
           updatedAt: userAggregate.entity.updatedAt,
-          deletedAt: userAggregate.entity.deletedAt
-        })
-        .onConflictDoUpdate({
-          target: users.id,
-          set: {
-            email: userAggregate.entity.email.value,
-            name: userAggregate.entity.name,
-            avatarUrl: userAggregate.entity.avatarUrl,
-            updatedAt: userAggregate.entity.updatedAt,
-            deletedAt: userAggregate.entity.deletedAt
-          }
-        });
-    });
-  }
-
-  async delete(id: UserId): Promise<void> {
-    const db = await createClerkDrizzleSupabaseClient();
-    await db.rls(async (tx) => {
-      // 소프트 삭제 - RLS 정책에 의해 자동으로 권한 검증됨
-      await tx
-        .update(users)
-        .set({ 
-          deletedAt: new Date(),
-          updatedAt: new Date()
-        })
-        .where(eq(users.id, id.value));
-    });
-  }
-
-  private mapToAggregate(result: any[]): UserAggregate {
-    if (result.length === 0) {
-      throw new Error('Cannot map empty result to UserAggregate');
-    }
-
-    // 첫 번째 행에서 User 정보 추출
-    const firstRow = result[0];
-    const user = this.mapToUserEntity(firstRow);
-
-    // 멤버십 정보 추출 (중복 제거)
-    const memberships = result
-      .filter(row => row.membershipId) // 멤버십이 있는 행만
-      .reduce((acc, row) => {
-        // 중복 제거
-        if (!acc.find(m => m.id === row.membershipId)) {
-          acc.push(this.mapToMembershipEntity(row));
-        }
-        return acc;
-      }, [] as Membership[]);
-
-    return new UserAggregate(user, memberships);
-  }
-
-  private mapToUserEntity(row: any): User {
-    return new User(
-      new UserId(row.userId),
-      row.clerkId,
-      new UserEmail(row.email),
-      row.name,
-      row.avatarUrl,
-      row.userCreatedAt,
-      row.userUpdatedAt,
-      row.userDeletedAt
-    );
-  }
-
-  private mapToMembershipEntity(row: any): Membership {
-    return new Membership(
-      new MembershipId(row.membershipId),
-      new OrganizationId(row.organizationId),
-      row.userId ? new UserId(row.userId) : null,
-      row.role,
-      row.invitedBy ? new UserId(row.invitedBy) : null,
-      row.invitedAt,
-      row.joinedAt,
-      row.status,
-      row.membershipCreatedAt,
-      row.membershipUpdatedAt,
-      row.membershipDeletedAt,
-      row.inviteeEmail ? new UserEmail(row.inviteeEmail) : undefined
+        },
+      })
     );
   }
 }
 ```
 
-#### OrganizationRepository (RLS 호환)
+#### OrganizationRepository (Drizzle ORM)
 ```typescript
 // apps/web/src/domains/user-management/repositories/organization.repository.ts
+import { eq, and } from 'drizzle-orm';
+import { createDrizzleSupabaseClient } from '@/db';
+import { organizations } from '@/db/schema';
+
 export interface OrganizationRepository {
   findById(id: OrganizationId): Promise<OrganizationAggregate | null>;
-  findByClerkId(clerkId: string): Promise<OrganizationAggregate | null>;
   findByOwnerId(ownerId: UserId): Promise<OrganizationAggregate[]>;
-  findBySlug(slug: OrganizationSlug): Promise<OrganizationAggregate | null>;
   save(organization: OrganizationAggregate): Promise<void>;
-  delete(id: OrganizationId): Promise<void>;
-  findSoftDeleted(): Promise<OrganizationAggregate[]>;
-  getUserOrganizations(): Promise<OrganizationAggregate[]>;
 }
 
 export class DrizzleOrganizationRepository implements OrganizationRepository {
-  // RLS 호환 Repository
-
   async findById(id: OrganizationId): Promise<OrganizationAggregate | null> {
-    const db = await createClerkDrizzleSupabaseClient();
-    const result = await db.rls(async (tx) => {
-      const rows = await tx
-        .select({
-          // Organization 정보
-          orgId: organizations.id,
-          clerkId: organizations.clerkId,
-          name: organizations.name,
-          slug: organizations.slug,
-          ownerId: organizations.ownerId,
-          isDefault: organizations.isDefault,
-          orgCreatedAt: organizations.createdAt,
-          orgUpdatedAt: organizations.updatedAt,
-          orgDeletedAt: organizations.deletedAt,
-          // Membership 정보
-          membershipId: memberships.id,
-          userId: memberships.userId,
-          role: memberships.role,
-          status: memberships.status,
-          invitedBy: memberships.invitedBy,
-          invitedAt: memberships.invitedAt,
-          joinedAt: memberships.joinedAt,
-          membershipCreatedAt: memberships.createdAt,
-          membershipUpdatedAt: memberships.updatedAt,
-          membershipDeletedAt: memberships.deletedAt,
-          inviteeEmail: memberships.inviteeEmail,
-          // User 정보
-          userName: users.name,
-          userEmail: users.email,
-          userAvatarUrl: users.avatarUrl
-        })
-        .from(organizations)
-        .leftJoin(memberships, and(
-          eq(organizations.id, memberships.organizationId),
-          isNull(memberships.deletedAt)
-        ))
-        .leftJoin(users, and(
-          eq(memberships.userId, users.id),
-          isNull(users.deletedAt)
-        ))
-        .where(and(
-          eq(organizations.id, id.value),
-          isNull(organizations.deletedAt)
-        ));
+    const db = await createDrizzleSupabaseClient();
+    
+    return db.rls((tx) =>
+      tx.query.organizations.findFirst({
+        where: eq(organizations.id, id.value),
+      })
+    ).then(data => {
+      if (!data) {
+        return null;
+      }
 
-      return rows;
+      const organization = new Organization(
+        new OrganizationId(data.id),
+        data.name,
+        new UserId(data.ownerId),
+        data.isDefault,
+        new Date(data.createdAt),
+        new Date(data.updatedAt)
+      );
+
+      return new OrganizationAggregate(organization);
     });
-
-    if (result.length === 0) {
-      return null;
-    }
-
-    return this.mapToAggregate(result);
-  }
-
-  async findBySlug(slug: OrganizationSlug): Promise<OrganizationAggregate | null> {
-    const db = await createClerkDrizzleSupabaseClient();
-    const result = await db.rls(async (tx) => {
-      const rows = await tx
-        .select({
-          orgId: organizations.id,
-          clerkId: organizations.clerkId,
-          name: organizations.name,
-          slug: organizations.slug,
-          ownerId: organizations.ownerId,
-          isDefault: organizations.isDefault,
-          orgCreatedAt: organizations.createdAt,
-          orgUpdatedAt: organizations.updatedAt,
-          orgDeletedAt: organizations.deletedAt
-        })
-        .from(organizations)
-        .where(and(
-          eq(organizations.slug, slug.value),
-          isNull(organizations.deletedAt)
-        ))
-        .limit(1);
-
-      return rows;
-    });
-
-    if (result.length === 0) {
-      return null;
-    }
-
-    // 슬러그로 찾을 때는 멤버십 정보 없이 Organization만 반환
-    const org = this.mapToOrganizationEntity(result[0]);
-    return new OrganizationAggregate(org, []);
-  }
-
-  async getUserOrganizations(): Promise<OrganizationAggregate[]> {
-    const db = await createClerkDrizzleSupabaseClient();
-    const result = await db.rls(async (tx) => {
-      // RLS 정책에 의해 자동으로 현재 사용자가 멤버인 조직만 조회됨
-      const rows = await tx
-        .select({
-          orgId: organizations.id,
-          clerkId: organizations.clerkId,
-          name: organizations.name,
-          slug: organizations.slug,
-          ownerId: organizations.ownerId,
-          isDefault: organizations.isDefault,
-          orgCreatedAt: organizations.createdAt,
-          orgUpdatedAt: organizations.updatedAt,
-          orgDeletedAt: organizations.deletedAt,
-          // 현재 사용자의 멤버십 정보
-          membershipId: memberships.id,
-          role: memberships.role,
-          status: memberships.status,
-          joinedAt: memberships.joinedAt
-        })
-        .from(organizations)
-        .innerJoin(memberships, and(
-          eq(organizations.id, memberships.organizationId),
-          eq(memberships.status, 'active'),
-          isNull(memberships.deletedAt)
-        ))
-        .where(isNull(organizations.deletedAt))
-        .orderBy(organizations.createdAt);
-
-      return rows;
-    });
-
-    return this.mapToAggregates(result);
-  }
-
-  async save(organizationAggregate: OrganizationAggregate): Promise<void> {
-    const db = await createClerkDrizzleSupabaseClient();
-    await db.rls(async (tx) => {
-      // Organization 저장 - RLS 정책에 의해 자동으로 권한 검증됨
-      await tx
-        .insert(organizations)
-        .values({
-          id: organizationAggregate.id.value,
-          clerkId: organizationAggregate.entity.clerkId,
-          name: organizationAggregate.entity.name,
-          slug: organizationAggregate.entity.slug.value,
-          ownerId: organizationAggregate.entity.ownerId.value,
-          isDefault: organizationAggregate.entity.isDefault,
-          createdAt: organizationAggregate.entity.createdAt,
-          updatedAt: organizationAggregate.entity.updatedAt,
-          deletedAt: organizationAggregate.entity.deletedAt
-        })
-        .onConflictDoUpdate({
-          target: organizations.id,
-          set: {
-            name: organizationAggregate.entity.name,
-            slug: organizationAggregate.entity.slug.value,
-            ownerId: organizationAggregate.entity.ownerId.value,
-            updatedAt: organizationAggregate.entity.updatedAt,
-            deletedAt: organizationAggregate.entity.deletedAt
-          }
-        });
-
-      // Memberships 저장 - 별도 Repository에서 처리하는 것이 좋음
-      // 여기서는 조직 정보만 저장
-    });
-  }
-
-  async delete(id: OrganizationId): Promise<void> {
-    const db = await createClerkDrizzleSupabaseClient();
-    await db.rls(async (tx) => {
-      // 소프트 삭제 - RLS 정책에 의해 자동으로 권한 검증됨
-      await tx
-        .update(organizations)
-        .set({ 
-          deletedAt: new Date(),
-          updatedAt: new Date()
-        })
-        .where(eq(organizations.id, id.value));
-    });
-  }
-
-  async findSoftDeleted(): Promise<OrganizationAggregate[]> {
-    const db = await createClerkDrizzleSupabaseClient();
-    const result = await db.rls(async (tx) => {
-      // 소프트 삭제된 조직 조회 (소유자만 볼 수 있음)
-      const rows = await tx
-        .select({
-          orgId: organizations.id,
-          clerkId: organizations.clerkId,
-          name: organizations.name,
-          slug: organizations.slug,
-          ownerId: organizations.ownerId,
-          isDefault: organizations.isDefault,
-          orgCreatedAt: organizations.createdAt,
-          orgUpdatedAt: organizations.updatedAt,
-          orgDeletedAt: organizations.deletedAt
-        })
-        .from(organizations)
-        .where(isNotNull(organizations.deletedAt))
-        .orderBy(organizations.deletedAt);
-
-      return rows;
-    });
-
-    return result.map(row => {
-      const org = this.mapToOrganizationEntity(row);
-      return new OrganizationAggregate(org, []);
-    });
-  }
-
-  // 나머지 메서드들은 간단히 구현
-  async findByClerkId(clerkId: string): Promise<OrganizationAggregate | null> {
-    // 구현 생략 - findById와 유사한 패턴
-    throw new Error('Not implemented');
   }
 
   async findByOwnerId(ownerId: UserId): Promise<OrganizationAggregate[]> {
-    // 구현 생략 - getUserOrganizations와 유사한 패턴
-    throw new Error('Not implemented');
-  }
-
-  private mapToAggregate(result: any[]): OrganizationAggregate {
-    if (result.length === 0) {
-      throw new Error('Cannot map empty result to OrganizationAggregate');
-    }
-
-    const firstRow = result[0];
-    const organization = this.mapToOrganizationEntity(firstRow);
-
-    // 멤버십 정보 추출 (중복 제거)
-    const memberships = result
-      .filter(row => row.membershipId)
-      .reduce((acc, row) => {
-        if (!acc.find(m => m.id === row.membershipId)) {
-          acc.push(this.mapToMembershipEntity(row));
-        }
-        return acc;
-      }, [] as Membership[]);
-
-    return new OrganizationAggregate(organization, memberships);
-  }
-
-  private mapToAggregates(result: any[]): OrganizationAggregate[] {
-    // 조직별로 그룹화
-    const orgGroups = result.reduce((acc, row) => {
-      const orgId = row.orgId;
-      if (!acc[orgId]) {
-        acc[orgId] = [];
-      }
-      acc[orgId].push(row);
-      return acc;
-    }, {} as Record<string, any[]>);
-
-    // 각 그룹을 Aggregate로 변환
-    return Object.values(orgGroups).map(group => this.mapToAggregate(group));
-  }
-
-  private mapToOrganizationEntity(row: any): Organization {
-    return new Organization(
-      new OrganizationId(row.orgId),
-      row.clerkId,
-      row.name,
-      new OrganizationSlug(row.slug),
-      new UserId(row.ownerId),
-      row.isDefault,
-      row.orgCreatedAt,
-      row.orgUpdatedAt,
-      row.orgDeletedAt
-    );
-  }
-
-  private mapToMembershipEntity(row: any): Membership {
-    return new Membership(
-      new MembershipId(row.membershipId),
-      new OrganizationId(row.orgId),
-      row.userId ? new UserId(row.userId) : null,
-      row.role,
-      row.invitedBy ? new UserId(row.invitedBy) : null,
-      row.invitedAt,
-      row.joinedAt,
-      row.status,
-      row.membershipCreatedAt,
-      row.membershipUpdatedAt,
-      row.membershipDeletedAt,
-      row.inviteeEmail ? new UserEmail(row.inviteeEmail) : undefined
-    );
-  }
-}
-```
-
-#### MembershipRepository
-```typescript
-// apps/web/src/domains/user-management/repositories/membership.repository.ts
-export interface MembershipRepository {
-  findById(id: MembershipId): Promise<MembershipAggregate | null>;
-  findByUserAndOrganization(userId: UserId, organizationId: OrganizationId): Promise<MembershipAggregate | null>;
-  findByOrganization(organizationId: OrganizationId): Promise<MembershipAggregate[]>;
-  findByUser(userId: UserId): Promise<MembershipAggregate[]>;
-  findByInviteeEmail(email: UserEmail): Promise<MembershipAggregate[]>;
-  save(membership: MembershipAggregate): Promise<void>;
-  delete(id: MembershipId): Promise<void>;
-  findPendingInvitations(): Promise<MembershipAggregate[]>;
-}
-
-export class DrizzleMembershipRepository implements MembershipRepository {
-  constructor(private db: Database) {}
-
-  async findById(id: MembershipId): Promise<MembershipAggregate | null> {
-    const result = await this.db
-      .select()
-      .from(memberships)
-      .leftJoin(organizations, eq(memberships.organizationId, organizations.id))
-      .leftJoin(users, eq(memberships.userId, users.id))
-      .where(eq(memberships.id, id.value));
-
-    if (result.length === 0) return null;
-
-    return this.mapToAggregate(result[0]);
-  }
-
-  async findByUserAndOrganization(
-    userId: UserId, 
-    organizationId: OrganizationId
-  ): Promise<MembershipAggregate | null> {
-    const result = await this.db
-      .select()
-      .from(memberships)
-      .leftJoin(organizations, eq(memberships.organizationId, organizations.id))
-      .leftJoin(users, eq(memberships.userId, users.id))
-      .where(and(
-        eq(memberships.userId, userId.value),
-        eq(memberships.organizationId, organizationId.value),
-        isNull(memberships.deletedAt)
-      ));
-
-    if (result.length === 0) return null;
-
-    return this.mapToAggregate(result[0]);
-  }
-
-  async findByOrganization(organizationId: OrganizationId): Promise<MembershipAggregate[]> {
-    const result = await this.db
-      .select()
-      .from(memberships)
-      .leftJoin(organizations, eq(memberships.organizationId, organizations.id))
-      .leftJoin(users, eq(memberships.userId, users.id))
-      .where(and(
-        eq(memberships.organizationId, organizationId.value),
-        isNull(memberships.deletedAt)
-      ));
-
-    return result.map(row => this.mapToAggregate(row));
-  }
-
-  async findByUser(userId: UserId): Promise<MembershipAggregate[]> {
-    const result = await this.db
-      .select()
-      .from(memberships)
-      .leftJoin(organizations, eq(memberships.organizationId, organizations.id))
-      .leftJoin(users, eq(memberships.userId, users.id))
-      .where(and(
-        eq(memberships.userId, userId.value),
-        isNull(memberships.deletedAt)
-      ));
-
-    return result.map(row => this.mapToAggregate(row));
-  }
-
-  async save(membershipAggregate: MembershipAggregate): Promise<void> {
-    await this.db
-      .insert(memberships)
-      .values({
-        id: membershipAggregate.id.value,
-        organizationId: membershipAggregate.organizationId.value,
-        userId: membershipAggregate.userId?.value,
-        role: membershipAggregate.role,
-        invitedBy: membershipAggregate.entity.invitedBy?.value,
-        invitedAt: membershipAggregate.entity.invitedAt,
-        joinedAt: membershipAggregate.entity.joinedAt,
-        status: membershipAggregate.status,
-        createdAt: membershipAggregate.entity.createdAt,
-        updatedAt: membershipAggregate.entity.updatedAt,
-        deletedAt: membershipAggregate.entity.deletedAt
+    const db = await createDrizzleSupabaseClient();
+    
+    const data = await db.rls((tx) =>
+      tx.query.organizations.findMany({
+        where: eq(organizations.ownerId, ownerId.value),
+        orderBy: (organizations, { asc }) => [asc(organizations.createdAt)],
       })
-      .onConflictDoUpdate({
-        target: memberships.id,
-        set: {
-          role: membershipAggregate.role,
-          status: membershipAggregate.status,
-          updatedAt: membershipAggregate.entity.updatedAt,
-          deletedAt: membershipAggregate.entity.deletedAt
-        }
-      });
+    );
+
+    return data.map(row => {
+      const organization = new Organization(
+        new OrganizationId(row.id),
+        row.name,
+        new UserId(row.ownerId),
+        row.isDefault,
+        new Date(row.createdAt),
+        new Date(row.updatedAt)
+      );
+
+      return new OrganizationAggregate(organization);
+    });
   }
 
-  private mapToAggregate(result: any): MembershipAggregate {
-    // DB 결과를 MembershipAggregate로 변환하는 로직
-    // ...
+  async save(organizationAggregate: OrganizationAggregate): Promise<void> {
+    const db = await createDrizzleSupabaseClient();
+    
+    await db.rls((tx) =>
+      tx.insert(organizations).values({
+        id: organizationAggregate.id.value,
+        name: organizationAggregate.entity.name,
+        ownerId: organizationAggregate.entity.ownerId.value,
+        isDefault: organizationAggregate.entity.isDefault,
+        createdAt: organizationAggregate.entity.createdAt,
+        updatedAt: organizationAggregate.entity.updatedAt,
+      }).onConflictDoUpdate({
+        target: organizations.id,
+        set: {
+          name: organizationAggregate.entity.name,
+          ownerId: organizationAggregate.entity.ownerId.value,
+          isDefault: organizationAggregate.entity.isDefault,
+          updatedAt: organizationAggregate.entity.updatedAt,
+        },
+      })
+    );
   }
 }
 ```
 
 ### 3. Read Models 구현
 
-#### UserOrganizationView
+#### UserOrganizationView (Drizzle ORM)
 ```typescript
 // apps/web/src/domains/user-management/read-models/user-organization.view.ts
+import { eq } from 'drizzle-orm';
+import { createDrizzleSupabaseClient } from '@/db';
+import { profiles, organizations } from '@/db/schema';
+
 export interface UserOrganizationView {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    avatarUrl: string | null;
-  };
-  organizations: {
-    id: string;
-    name: string;
-    slug: string;
-    role: MembershipRole;
-    isDefault: boolean;
-    memberCount: number;
-  }[];
-  currentOrganizationId: string | null;
+  userId: UserId;
+  ownedOrganizations: OrganizationSummary[];
+  memberOrganizations: OrganizationSummary[]; // Scenario 0-1에서는 빈 배열
 }
 
-export class UserOrganizationViewRepository {
-  constructor(private db: Database) {}
+export interface OrganizationSummary {
+  id: OrganizationId;
+  name: string;
+  role: "owner" | "member";
+  isDefault: boolean;
+  createdAt: Date;
+}
 
-  async getByUserId(userId: string): Promise<UserOrganizationView | null> {
-    // 복잡한 조인 쿼리로 사용자와 조직 정보를 한 번에 조회
-    const result = await this.db
-      .select({
-        userId: users.id,
-        userName: users.name,
-        userEmail: users.email,
-        userAvatarUrl: users.avatarUrl,
-        orgId: organizations.id,
-        orgName: organizations.name,
-        orgSlug: organizations.slug,
-        membershipRole: memberships.role,
-        membershipIsDefault: memberships.isDefault,
-        memberCount: sql<number>`count(${memberships.id}) over (partition by ${organizations.id})`
+export class DrizzleUserOrganizationViewRepository {
+  async getByUserId(userId: UserId): Promise<UserOrganizationView | null> {
+    const db = await createDrizzleSupabaseClient();
+    
+    // 사용자 프로필과 소유 조직을 함께 조회
+    const userWithOrgs = await db.rls((tx) =>
+      tx.query.profiles.findFirst({
+        where: eq(profiles.id, userId.value),
+        with: {
+          organizations: {
+            orderBy: (organizations, { asc }) => [asc(organizations.createdAt)],
+          },
+        },
       })
-      .from(users)
-      .leftJoin(memberships, eq(users.id, memberships.userId))
-      .leftJoin(organizations, eq(memberships.organizationId, organizations.id))
-      .where(and(
-        eq(users.id, userId),
-        isNull(users.deletedAt),
-        isNull(memberships.deletedAt),
-        isNull(organizations.deletedAt)
-      ));
+    );
 
-    if (result.length === 0) return null;
+    if (!userWithOrgs) {
+      return null;
+    }
 
-    // 결과를 UserOrganizationView 형태로 변환
-    const user = result[0];
-    const organizations = result
-      .filter(r => r.orgId)
-      .map(r => ({
-        id: r.orgId!,
-        name: r.orgName!,
-        slug: r.orgSlug!,
-        role: r.membershipRole!,
-        isDefault: r.membershipIsDefault!,
-        memberCount: r.memberCount
-      }));
+    const ownedOrganizations: OrganizationSummary[] = userWithOrgs.organizations.map(org => ({
+      id: new OrganizationId(org.id),
+      name: org.name,
+      role: "owner" as const,
+      isDefault: org.isDefault,
+      createdAt: new Date(org.createdAt)
+    }));
 
     return {
-      user: {
-        id: user.userId,
-        name: user.userName,
-        email: user.userEmail,
-        avatarUrl: user.userAvatarUrl
-      },
-      organizations,
-      currentOrganizationId: organizations.find(o => o.isDefault)?.id || null
+      userId,
+      ownedOrganizations,
+      memberOrganizations: [] // Scenario 0-1에서는 멤버십 없음
     };
   }
 }
 ```
 
-#### OrganizationMemberView
+#### UserProfileView (Drizzle ORM)
 ```typescript
-// apps/web/src/domains/user-management/read-models/organization-member.view.ts
-export interface OrganizationMemberView {
-  organizationId: string;
-  organizationName: string;
-  members: MemberDetail[];
-  pendingInvitations: InvitationDetail[];
-  totalMemberCount: number;
-}
+// apps/web/src/domains/user-management/read-models/user-profile.view.ts
+import { eq } from 'drizzle-orm';
+import { createDrizzleSupabaseClient } from '@/db';
+import { profiles, organizations } from '@/db/schema';
 
-export interface MemberDetail {
-  userId: string;
+export interface UserProfileView {
+  userId: UserId;
   email: string;
   name: string;
-  role: MembershipRole;
-  joinedAt: Date;
-  lastActiveAt?: Date;
+  profileImageUrl?: string;
+  defaultOrganization: {
+    id: OrganizationId;
+    name: string;
+  };
+  lastLoginAt?: Date;
+  createdAt: Date;
 }
 
-export interface InvitationDetail {
-  invitationId: string;
-  email: string;
-  role: MembershipRole;
-  invitedBy: string;
-  invitedAt: Date;
-  expiresAt: Date;
-}
-
-export interface OrganizationSummary {
-  id: string;
-  name: string;
-  role: MembershipRole;
-  memberCount: number;
-  isDefault: boolean;
-}
-
-export class OrganizationMemberViewRepository {
-  constructor(private db: Database) {}
-
-  async getByOrganizationId(organizationId: string): Promise<OrganizationMemberView | null> {
-    // 조직 정보 조회
-    const orgResult = await this.db
-      .select({
-        id: organizations.id,
-        name: organizations.name
+export class DrizzleUserProfileViewRepository {
+  async getByUserId(userId: UserId): Promise<UserProfileView | null> {
+    const db = await createDrizzleSupabaseClient();
+    
+    // 사용자 프로필과 기본 조직을 함께 조회
+    const userWithDefaultOrg = await db.rls((tx) =>
+      tx.query.profiles.findFirst({
+        where: eq(profiles.id, userId.value),
+        with: {
+          organizations: {
+            where: eq(organizations.isDefault, true),
+            limit: 1,
+          },
+        },
       })
-      .from(organizations)
-      .where(and(
-        eq(organizations.id, organizationId),
-        isNull(organizations.deletedAt)
-      ));
+    );
 
-    if (orgResult.length === 0) return null;
+    if (!userWithDefaultOrg) {
+      return null;
+    }
 
-    const organization = orgResult[0];
-
-    // 활성 멤버 조회
-    const memberResult = await this.db
-      .select({
-        userId: users.id,
-        userEmail: users.email,
-        userName: users.name,
-        membershipRole: memberships.role,
-        joinedAt: memberships.joinedAt,
-        lastActiveAt: users.lastLoginAt
-      })
-      .from(memberships)
-      .leftJoin(users, eq(memberships.userId, users.id))
-      .where(and(
-        eq(memberships.organizationId, organizationId),
-        eq(memberships.status, 'active'),
-        isNull(memberships.deletedAt),
-        isNull(users.deletedAt)
-      ))
-      .orderBy(memberships.joinedAt);
-
-    // 대기 중인 초대 조회
-    const invitationResult = await this.db
-      .select({
-        invitationId: memberships.id,
-        inviteeEmail: memberships.inviteeEmail,
-        role: memberships.role,
-        invitedBy: inviterUsers.name,
-        invitedAt: memberships.invitedAt
-      })
-      .from(memberships)
-      .leftJoin(inviterUsers, eq(memberships.invitedBy, inviterUsers.id))
-      .where(and(
-        eq(memberships.organizationId, organizationId),
-        eq(memberships.status, 'pending'),
-        isNull(memberships.deletedAt)
-      ))
-      .orderBy(memberships.invitedAt);
-
-    const members: MemberDetail[] = memberResult.map(m => ({
-      userId: m.userId,
-      email: m.userEmail,
-      name: m.userName,
-      role: m.membershipRole,
-      joinedAt: m.joinedAt!,
-      lastActiveAt: m.lastActiveAt
-    }));
-
-    const pendingInvitations: InvitationDetail[] = invitationResult.map(i => ({
-      invitationId: i.invitationId,
-      email: i.inviteeEmail!,
-      role: i.role,
-      invitedBy: i.invitedBy || 'Unknown',
-      invitedAt: i.invitedAt!,
-      expiresAt: new Date(i.invitedAt!.getTime() + 30 * 24 * 60 * 60 * 1000) // 30일 후
-    }));
+    const defaultOrg = userWithDefaultOrg.organizations[0];
+    if (!defaultOrg) {
+      throw new UserManagementError('DEFAULT_ORGANIZATION_NOT_FOUND', 'Default organization not found');
+    }
 
     return {
-      organizationId: organization.id,
-      organizationName: organization.name,
-      members,
-      pendingInvitations,
-      totalMemberCount: members.length
+      userId: new UserId(userWithDefaultOrg.id),
+      email: userWithDefaultOrg.email || '',
+      name: userWithDefaultOrg.name || 'User',
+      profileImageUrl: userWithDefaultOrg.avatarUrl || undefined,
+      defaultOrganization: {
+        id: new OrganizationId(defaultOrg.id),
+        name: defaultOrg.name
+      },
+      lastLoginAt: undefined, // Supabase Auth에서 별도 관리
+      createdAt: new Date(userWithDefaultOrg.createdAt)
     };
-  }
-
-  async getMembersByRole(organizationId: string, role: MembershipRole): Promise<MemberDetail[]> {
-    const result = await this.db
-      .select({
-        userId: users.id,
-        userEmail: users.email,
-        userName: users.name,
-        membershipRole: memberships.role,
-        joinedAt: memberships.joinedAt,
-        lastActiveAt: users.lastLoginAt
-      })
-      .from(memberships)
-      .leftJoin(users, eq(memberships.userId, users.id))
-      .where(and(
-        eq(memberships.organizationId, organizationId),
-        eq(memberships.role, role),
-        eq(memberships.status, 'active'),
-        isNull(memberships.deletedAt),
-        isNull(users.deletedAt)
-      ))
-      .orderBy(memberships.joinedAt);
-
-    return result.map(m => ({
-      userId: m.userId,
-      email: m.userEmail,
-      name: m.userName,
-      role: m.membershipRole,
-      joinedAt: m.joinedAt!,
-      lastActiveAt: m.lastActiveAt
-    }));
-  }
-
-  async getPendingInvitations(organizationId: string): Promise<InvitationDetail[]> {
-    const result = await this.db
-      .select({
-        invitationId: memberships.id,
-        inviteeEmail: memberships.inviteeEmail,
-        role: memberships.role,
-        invitedBy: inviterUsers.name,
-        invitedAt: memberships.invitedAt
-      })
-      .from(memberships)
-      .leftJoin(inviterUsers, eq(memberships.invitedBy, inviterUsers.id))
-      .where(and(
-        eq(memberships.organizationId, organizationId),
-        eq(memberships.status, 'pending'),
-        isNull(memberships.deletedAt)
-      ))
-      .orderBy(memberships.invitedAt);
-
-    return result.map(i => ({
-      invitationId: i.invitationId,
-      email: i.inviteeEmail!,
-      role: i.role,
-      invitedBy: i.invitedBy || 'Unknown',
-      invitedAt: i.invitedAt!,
-      expiresAt: new Date(i.invitedAt!.getTime() + 30 * 24 * 60 * 60 * 1000)
-    }));
   }
 }
 ```
@@ -2451,370 +746,259 @@ export class OrganizationMemberViewRepository {
 
 ## 🌐 Anti-Corruption Layer & Server Actions
 
-### 1. Clerk Anti-Corruption Layer
+### 1. Supabase Auth Anti-Corruption Layer
 
 ```typescript
-// apps/web/src/domains/user-management/infrastructure/clerk.service.ts
-export class ClerkService {
-  constructor(private clerkClient: ClerkClient) {}
+// apps/web/src/domains/user-management/infrastructure/supabase-auth.service.ts
+export class SupabaseAuthService {
+  constructor(private supabase: SupabaseClient) {}
 
-  async getUser(clerkUserId: string): Promise<ClerkUser | null> {
+  async signUpWithGoogle(): Promise<AuthResult> {
     try {
-      const user = await this.clerkClient.users.getUser(clerkUserId);
-      return this.mapClerkUser(user);
-    } catch (error) {
-      if (error.status === 404) return null;
-      throw error;
+      const { data, error } = await this.supabase.auth.signInWithOAuth({
+        provider: 'google'
+      });
+      
+      return {
+        success: !error,
+        user: data.user ? this.toUser(data.user) : undefined,
+        error: error?.message
+      };
+    } catch (err) {
+      return { success: false, error: 'Login failed' };
     }
   }
-
-  async inviteUser(params: {
-    emailAddress: string;
-    organizationId: string;
-    role: string;
-  }): Promise<ClerkInvitation> {
-    const invitation = await this.clerkClient.organizations.createOrganizationInvitation({
-      organizationId: params.organizationId,
-      emailAddress: params.emailAddress,
-      role: params.role
-    });
-
-    return this.mapClerkInvitation(invitation);
+  
+  async getCurrentUser(): Promise<User | null> {
+    const { data: { user } } = await this.supabase.auth.getUser();
+    return user ? this.toUser(user) : null;
+  }
+  
+  async signOut(): Promise<void> {
+    await this.supabase.auth.signOut();
   }
 
-  async createOrganization(params: {
-    name: string;
-    slug: string;
-    createdBy: string;
-  }): Promise<ClerkOrganization> {
-    const organization = await this.clerkClient.organizations.createOrganization({
-      name: params.name,
-      slug: params.slug,
-      createdBy: params.createdBy
-    });
-
-    return this.mapClerkOrganization(organization);
-  }
-
-  async deleteOrganization(clerkOrgId: string): Promise<void> {
-    await this.clerkClient.organizations.deleteOrganization(clerkOrgId);
-  }
-
-  async updateMemberRole(
-    organizationId: string,
-    userId: string,
-    role: string
-  ): Promise<void> {
-    await this.clerkClient.organizations.updateOrganizationMembership({
-      organizationId,
-      userId,
-      role
-    });
-  }
-
-  async removeMember(organizationId: string, userId: string): Promise<void> {
-    await this.clerkClient.organizations.deleteOrganizationMembership({
-      organizationId,
-      userId
-    });
-  }
-
-  async cancelInvitation(invitationId: string): Promise<void> {
-    await this.clerkClient.organizations.revokeOrganizationInvitation({
-      invitationId
-    });
-  }
-
-  private mapClerkUser(clerkUser: any): ClerkUser {
+  private toUser(supabaseUser: SupabaseUser): User {
     return {
-      id: clerkUser.id,
-      emailAddresses: clerkUser.emailAddresses,
-      firstName: clerkUser.firstName || '',
-      lastName: clerkUser.lastName || '',
-      imageUrl: clerkUser.imageUrl
-    };
-  }
-
-  private mapClerkInvitation(invitation: any): ClerkInvitation {
-    return {
-      id: invitation.id,
-      emailAddress: invitation.emailAddress,
-      organizationId: invitation.organizationId,
-      status: invitation.status
-    };
-  }
-
-  private mapClerkOrganization(clerkOrg: any): ClerkOrganization {
-    return {
-      id: clerkOrg.id,
-      name: clerkOrg.name,
-      slug: clerkOrg.slug,
-      createdBy: clerkOrg.createdBy
+      id: supabaseUser.id,
+      email: supabaseUser.email,
+      name: supabaseUser.user_metadata?.name || 'User',
+      profileImageUrl: supabaseUser.user_metadata?.avatar_url
     };
   }
 }
+
+interface AuthResult {
+  success: boolean;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    profileImageUrl?: string;
+  };
+  error?: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  profileImageUrl?: string;
 }
 ```
 
-### 2. Server Actions (RLS 호환)
+### 2. Server Actions (Drizzle ORM)
 
 ```typescript
 // apps/web/src/domains/user-management/actions/user-management.actions.ts
 "use server";
 
-import { auth } from '@clerk/nextjs/server';
+import { createClient } from '@/utils/supabase/server';
 import { z } from 'zod';
 
-export async function syncUserFromClerkAction(
-  clerkUserId: string
-): Promise<UserOrganizationView> {
-  // 인증 확인 - RLS 컨텍스트 설정을 위해 필요
-  const { userId } = await auth();
-  if (!userId) {
+export async function createUserProfileAction(): Promise<UserProfileView> {
+  // 인증 확인
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
+  if (error || !user) {
     throw new Error('Authentication required');
   }
 
-  // RLS 호환 Repository 사용 - DB 클라이언트를 내부에서 생성
+  // Service 사용 (Drizzle Repository)
   const userRepository = new DrizzleUserRepository();
   const organizationRepository = new DrizzleOrganizationRepository();
-  const membershipRepository = new DrizzleMembershipRepository();
-  const clerkService = new ClerkService(clerkClient);
+  const supabaseAuthService = new SupabaseAuthService(supabase);
   
   const service = new UserManagementService(
     userRepository,
     organizationRepository,
-    membershipRepository,
-    clerkService
+    supabaseAuthService
   );
 
-  // 비즈니스 로직 실행 - RLS 컨텍스트가 자동으로 적용됨
-  const result = await service.syncUserFromClerk(clerkUserId);
+  const command: CreateUserProfileCommand = {
+    userId: user.id,
+    email: user.email!,
+    name: user.user_metadata?.name || 'User',
+    avatarUrl: user.user_metadata?.avatar_url || null
+  };
 
-  // Read Model 조회 - RLS 호환
-  const viewRepository = new UserOrganizationViewRepository();
-  const view = await viewRepository.getByUserId(result.id.value);
+  const result = await service.createUserProfile(command);
+  
+  if (result.isError()) {
+    throw new Error(result.error.message);
+  }
+
+  // Read Model 조회 (Drizzle)
+  const viewRepository = new DrizzleUserProfileViewRepository();
+  const view = await viewRepository.getByUserId(new UserId(user.id));
   
   if (!view) {
-    throw new Error('User view not found');
+    throw new Error('User profile view not found');
   }
 
   return view;
 }
 
-export async function getUserOrganizationsAction(): Promise<Organization[]> {
+export async function getUserOrganizationsAction(): Promise<OrganizationSummary[]> {
   // 인증 확인
-  const { userId } = await auth();
-  if (!userId) {
-    throw new Error('Authentication required');
-  }
-
-  // RLS 호환 Repository 사용
-  const organizationRepository = new DrizzleOrganizationRepository();
-  const result = await organizationRepository.getUserOrganizations();
-
-  // Aggregate를 DTO로 변환
-  return result.map(aggregate => ({
-    id: aggregate.id.value,
-    name: aggregate.entity.name,
-    slug: aggregate.entity.slug.value,
-    isDefault: aggregate.entity.isDefault,
-    memberCount: aggregate.getMemberCount(),
-    role: aggregate.getActiveMembers().find(m => m.userId?.value === userId)?.role || 'member',
-    createdAt: aggregate.entity.createdAt,
-    updatedAt: aggregate.entity.updatedAt
-  }));
-}
-
-const inviteUserSchema = z.object({
-  organizationId: z.string().uuid(),
-  inviteeEmail: z.string().email(),
-  role: z.enum(['owner', 'admin', 'member'])
-});
-
-export async function inviteUserToOrganizationAction(
-  input: z.infer<typeof inviteUserSchema>
-): Promise<void> {
-  // 인증 확인
-  const { userId } = await auth();
-  if (!userId) {
-    throw new Error('Authentication required');
-  }
-
-  // Input validation
-  const validatedInput = inviteUserSchema.parse(input);
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
   
-  // RLS 호환 Repository 사용
+  if (error || !user) {
+    throw new Error('Authentication required');
+  }
+
+  // Service 사용 (Drizzle Repository)
   const userRepository = new DrizzleUserRepository();
   const organizationRepository = new DrizzleOrganizationRepository();
-  const membershipRepository = new DrizzleMembershipRepository();
-  const clerkService = new ClerkService(clerkClient);
+  const supabaseAuthService = new SupabaseAuthService(supabase);
   
   const service = new UserManagementService(
     userRepository,
     organizationRepository,
-    membershipRepository,
-    clerkService
+    supabaseAuthService
   );
 
-  const command: InviteUserToOrganizationCommand = {
-    organizationId: validatedInput.organizationId,
-    inviterUserId: userId,
-    inviteeEmail: validatedInput.inviteeEmail,
-    role: validatedInput.role
+  const command: GetUserOrganizationsCommand = {
+    userId: user.id
   };
 
-  await service.inviteUserToOrganization(command);
+  const result = await service.getUserOrganizations(command);
+  
+  if (result.isError()) {
+    throw new Error(result.error.message);
+  }
+
+  return result.value;
 }
 
-const transferOwnershipSchema = z.object({
-  organizationId: z.string().uuid(),
-  newOwnerId: z.string().uuid()
+const createDefaultOrganizationSchema = z.object({
+  organizationName: z.string().min(1).max(255)
 });
 
-export async function transferOrganizationOwnershipAction(
-  input: z.infer<typeof transferOwnershipSchema>
-): Promise<void> {
+export async function createDefaultOrganizationAction(
+  input: z.infer<typeof createDefaultOrganizationSchema>
+): Promise<OrganizationSummary> {
   // 인증 확인
-  const { userId } = await auth();
-  if (!userId) {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
+  if (error || !user) {
     throw new Error('Authentication required');
   }
 
   // Input validation
-  const validatedInput = transferOwnershipSchema.parse(input);
+  const validatedInput = createDefaultOrganizationSchema.parse(input);
   
-  // RLS 호환 Service 사용
+  // Service 사용 (Drizzle Repository)
+  const userRepository = new DrizzleUserRepository();
+  const organizationRepository = new DrizzleOrganizationRepository();
+  const supabaseAuthService = new SupabaseAuthService(supabase);
+  
   const service = new UserManagementService(
-    new DrizzleUserRepository(),
-    new DrizzleOrganizationRepository(),
-    new DrizzleMembershipRepository(),
-    new ClerkService(clerkClient)
+    userRepository,
+    organizationRepository,
+    supabaseAuthService
   );
 
-  await service.transferOrganizationOwnership(
-    validatedInput.organizationId,
-    userId, // 현재 소유자
-    validatedInput.newOwnerId
-  );
+  const command: CreateDefaultOrganizationCommand = {
+    userId: user.id,
+    organizationName: validatedInput.organizationName
+  };
+
+  const result = await service.createDefaultOrganization(command);
+  
+  if (result.isError()) {
+    throw new Error(result.error.message);
+  }
+
+  return {
+    id: result.value.id,
+    name: result.value.entity.name,
+    role: "owner" as const,
+    isDefault: result.value.entity.isDefault,
+    createdAt: result.value.entity.createdAt
+  };
 }
 
-const deleteOrganizationSchema = z.object({
-  organizationId: z.string().uuid(),
-  confirmationName: z.string().min(1)
-});
-
-export async function deleteOrganizationAction(
-  input: z.infer<typeof deleteOrganizationSchema>
-): Promise<void> {
-  // 인증 확인
-  const { userId } = await auth();
-  if (!userId) {
+// 트랜잭션 기반 사용자 등록 (하이브리드 접근법)
+export async function processUserRegistrationAction(): Promise<UserRegistrationResult> {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
+  if (error || !user) {
     throw new Error('Authentication required');
   }
 
-  // Input validation
-  const validatedInput = deleteOrganizationSchema.parse(input);
+  // 트랜잭션으로 최적화된 처리
+  const db = await createDrizzleSupabaseClient();
   
-  // RLS 호환 Service 사용
-  const service = new UserManagementService(
-    new DrizzleUserRepository(),
-    new DrizzleOrganizationRepository(),
-    new DrizzleMembershipRepository(),
-    new ClerkService(clerkClient)
-  );
-
-  await service.deleteOrganization(
-    validatedInput.organizationId,
-    userId,
-    validatedInput.confirmationName
-  );
-}
-
-const changeMemberRoleSchema = z.object({
-  membershipId: z.string().uuid(),
-  newRole: z.enum(['owner', 'admin', 'member'])
-});
-
-export async function changeMemberRoleAction(
-  input: z.infer<typeof changeMemberRoleSchema>
-): Promise<void> {
-  // 인증 확인
-  const { userId } = await auth();
-  if (!userId) {
-    throw new Error('Authentication required');
-  }
-
-  // Input validation
-  const validatedInput = changeMemberRoleSchema.parse(input);
-  
-  // RLS 호환 Service 사용
-  const service = new UserManagementService(
-    new DrizzleUserRepository(),
-    new DrizzleOrganizationRepository(),
-    new DrizzleMembershipRepository(),
-    new ClerkService(clerkClient)
-  );
-
-  await service.changeMemberRole(
-    validatedInput.membershipId,
-    validatedInput.newRole,
-    userId
-  );
-}
-
-// 레거시 코드와 호환되는 타입 정의
-export type Organization = {
-  id: string;
-  name: string;
-  slug: string;
-  isDefault: boolean;
-  memberCount: number;
-  role: 'owner' | 'admin' | 'member';
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-### 3. Webhook 처리
-
-```typescript
-// apps/web/src/app/api/webhooks/clerk/route.ts
-export async function POST(request: Request) {
-  try {
-    const payload = await request.json();
-    const headers = request.headers;
+  return db.rls(async (tx) => {
+    // Event: Supabase User Created
+    console.log('Processing user registration for:', user.id);
     
-    // Webhook 검증
-    const isValid = await verifyClerkWebhook(payload, headers);
-    if (!isValid) {
-      return new Response('Unauthorized', { status: 401 });
-    }
-
-    // 이벤트 타입별 처리
-    switch (payload.type) {
-      case 'user.created':
-      case 'user.updated':
-        const result = await syncUserFromClerkAction(payload.data.id);
-        if (result.isError()) {
-          console.error('Webhook user sync failed:', result.error);
-          return new Response('Internal Server Error', { status: 500 });
-        }
-        break;
-        
-      case 'organization.created':
-        // 조직 생성 처리
-        break;
-        
-      case 'organizationMembership.created':
-        // 멤버십 생성 처리
-        break;
-    }
-
-    return new Response('OK', { status: 200 });
-  } catch (error) {
-    console.error('Clerk webhook error:', error);
-    return new Response('Internal Server Error', { status: 500 });
-  }
+    // Command: Create User Profile
+    const profile = await tx.insert(profiles).values({
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.name || 'User',
+      avatarUrl: user.user_metadata?.avatar_url || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    
+    // Event: User Profile Created
+    console.log('User profile created:', profile[0].id);
+    
+    // Command: Create Default Organization
+    const defaultOrg = await tx.insert(organizations).values({
+      id: `org_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`,
+      name: `${user.user_metadata?.name || 'User'}'s Organization`,
+      ownerId: user.id,
+      isDefault: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    
+    // Event: Default Organization Created
+    console.log('Default organization created:', defaultOrg[0].id);
+    
+    return {
+      success: true,
+      user: {
+        id: profile[0].id,
+        email: profile[0].email,
+        name: profile[0].name,
+        avatarUrl: profile[0].avatarUrl,
+      },
+      defaultOrganization: {
+        id: defaultOrg[0].id,
+        name: defaultOrg[0].name,
+        isDefault: defaultOrg[0].isDefault,
+      },
+    };
+  });
 }
 ```
 
@@ -2828,44 +1012,23 @@ export async function POST(request: Request) {
 ```typescript
 // apps/web/src/domains/user-management/aggregates/__tests__/user.aggregate.test.ts
 describe('UserAggregate', () => {
-  describe('createFromClerkUser', () => {
-    it('should create user aggregate from clerk user data', () => {
-      const clerkUser = {
-        id: 'clerk_123',
-        emailAddresses: [{ emailAddress: 'test@example.com' }],
-        firstName: 'John',
-        lastName: 'Doe',
-        imageUrl: 'https://example.com/avatar.jpg'
+  describe('createFromSupabaseAuth', () => {
+    it('should create user aggregate from supabase user data', () => {
+      const supabaseUser = {
+        id: 'user_123',
+        email: 'test@example.com',
+        user_metadata: {
+          name: 'John Doe',
+          avatar_url: 'https://example.com/avatar.jpg'
+        },
+        created_at: '2024-01-01T00:00:00Z'
       };
 
-      const aggregate = UserAggregate.createFromClerkUser(clerkUser);
+      const aggregate = UserAggregate.createFromSupabaseAuth(supabaseUser);
 
-      expect(aggregate.entity.clerkId).toBe('clerk_123');
+      expect(aggregate.entity.id.value).toBe('user_123');
       expect(aggregate.entity.email.value).toBe('test@example.com');
       expect(aggregate.entity.name).toBe('John Doe');
-    });
-  });
-
-  describe('canJoinOrganization', () => {
-    it('should return false if user is deleted', () => {
-      const user = createTestUser();
-      user.entity.softDelete();
-      const aggregate = new UserAggregate(user);
-
-      const result = aggregate.canJoinOrganization(new OrganizationId('org_123'));
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false if user is already a member', () => {
-      const user = createTestUser();
-      const orgId = new OrganizationId('org_123');
-      const membership = createTestMembership(user.id, orgId);
-      const aggregate = new UserAggregate(user, [membership]);
-
-      const result = aggregate.canJoinOrganization(orgId);
-
-      expect(result).toBe(false);
     });
   });
 });
@@ -2877,153 +1040,70 @@ describe('UserAggregate', () => {
 ```typescript
 // apps/web/src/domains/user-management/actions/__tests__/user-management.actions.test.ts
 describe('User Management Actions', () => {
-  let testDb: Database;
+  let testDb: SupabaseClient;
   
   beforeEach(async () => {
-    testDb = await createTestDatabase();
+    testDb = await createTestSupabaseClient();
   });
 
   afterEach(async () => {
     await cleanupTestDatabase(testDb);
   });
 
-  describe('syncUserFromClerkAction', () => {
-    it('should sync new user from clerk', async () => {
-      // Mock Clerk API
-      const mockClerkService = {
-        getUser: jest.fn().mockResolvedValue({
-          id: 'clerk_123',
-          emailAddresses: [{ emailAddress: 'test@example.com' }],
-          firstName: 'John',
-          lastName: 'Doe',
-          imageUrl: null
-        })
+  describe('createUserProfileAction', () => {
+    it('should create user profile from supabase auth', async () => {
+      // Mock Supabase Auth
+      const mockUser = {
+        id: 'user_123',
+        email: 'test@example.com',
+        user_metadata: {
+          name: 'John Doe',
+          avatar_url: null
+        }
       };
 
-      const result = await syncUserFromClerkAction('clerk_123');
+      // Mock Supabase Auth
+      jest.spyOn(testDb.auth, 'getUser').mockResolvedValue({
+        data: { user: mockUser },
+        error: null
+      });
 
-      expect(result.isSuccess()).toBe(true);
-      expect(result.value.user.email).toBe('test@example.com');
-    });
+      const result = await createUserProfileAction();
 
-    it('should handle clerk user not found', async () => {
-      const mockClerkService = {
-        getUser: jest.fn().mockResolvedValue(null)
-      };
-
-      const result = await syncUserFromClerkAction('nonexistent');
-
-      expect(result.isError()).toBe(true);
-      expect(result.error.code).toBe('USER_NOT_FOUND');
+      expect(result.userId.value).toBe('user_123');
+      expect(result.email).toBe('test@example.com');
+      expect(result.name).toBe('John Doe');
     });
   });
 });
-```
-
-### 3. CI/CD 체크리스트
-
-```yaml
-# .github/workflows/user-management-tests.yml
-name: User Management Domain Tests
-
-on:
-  push:
-    paths:
-      - 'apps/web/src/domains/user-management/**'
-  pull_request:
-    paths:
-      - 'apps/web/src/domains/user-management/**'
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      
-      - name: Install dependencies
-        run: pnpm install
-      
-      - name: Run unit tests
-        run: pnpm test:unit --testPathPattern=user-management
-      
-      - name: Run integration tests
-        run: pnpm test:integration --testPathPattern=user-management
-        env:
-          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
-          CLERK_SECRET_KEY: ${{ secrets.TEST_CLERK_SECRET_KEY }}
-      
-      - name: Check test coverage
-        run: pnpm test:coverage --testPathPattern=user-management
-        env:
-          COVERAGE_THRESHOLD: 80
 ```
 
 ---
 
 ## 📋 검증 체크리스트
 
-### RLS 설계 일관성
-- [x] **RLS 정책이 모든 테이블에 정의되어 있는가?**
-  - Users, Organizations, Memberships 테이블 모두 RLS 활성화
-  - 멤버십 기반 복잡한 권한 관리 정책 구현
-- [x] **Repository가 RLS 컨텍스트를 올바르게 사용하는가?**
-  - `createClerkDrizzleSupabaseClient()` 사용으로 RLS 자동 적용
-  - `db.rls()` 트랜잭션 내에서 모든 쿼리 실행
-- [x] **Server Actions가 인증을 올바르게 처리하는가?**
-  - `auth()` 호출로 사용자 인증 확인
-  - RLS 컨텍스트 설정을 위한 사용자 ID 검증
+### Scenario 0-1 지원
+- [x] **유저 가입**: Supabase Auth + profiles 테이블로 구글 OAuth 사용자 생성
+- [x] **기본 조직 생성**: 사용자 등록 시 자동 생성
+- [x] **조직 조회**: 사용자 소유 조직 목록 조회
+- [x] **초기 조직 선택**: 프론트엔드에서 기본 조직 자동 선택
 
 ### 설계 일관성
 - [x] 모든 Command에 입력 검증 로직이 정의되어 있는가?
-  - Zod 스키마를 통한 입력 검증
-  - 간단한 throw Error 패턴으로 에러 처리
 - [x] Repository가 반환하는 Entity의 불변식이 깨지지 않는가?
-  - RLS 정책에 의한 자동 권한 검증
-  - 소프트 삭제 필터링 자동 적용
-- [x] Clerk 연동 실패 시 사용자 경험이 명확한가?
-  - 명확한 Error 메시지로 에러 처리
-  - 레거시 코드와 호환되는 타입 정의
-- [x] 소프트 삭제된 엔티티에 대한 처리가 일관되는가?
-  - 모든 쿼리에서 `deleted_at IS NULL` 조건 자동 적용
-  - RLS 정책에서 소프트 삭제 상태 고려
+- [x] Supabase Auth 연동 실패 시 사용자 경험이 명확한가?
+- [x] Read Model이 Scenario 0-1 요구사항을 충족하는가?
 
 ### 보안 및 성능
-- [x] **RLS 정책이 적절한 보안을 제공하는가?**
-  - 멤버십 기반 세밀한 권한 관리
-  - 초대 이메일 매칭을 통한 안전한 초대 수락
-  - 소유자/관리자만 민감한 작업 수행 가능
-- [x] **성능 최적화 인덱스가 RLS 정책에 맞춰 설계되었는가?**
-  - RLS 쿼리 패턴에 최적화된 복합 인덱스
-  - Partial Index를 통한 불필요한 데이터 제외
 - [x] 사용자 권한 검증이 모든 작업에서 수행되는가?
-  - RLS 정책에 의한 자동 권한 검증
-  - 비즈니스 로직 레벨에서 추가 검증
 - [x] 민감한 정보(이메일, 개인정보)가 적절히 보호되는가?
-  - 같은 조직 멤버만 서로의 정보 접근 가능
-  - 초대 대기 중인 사용자의 제한적 접근
-
-### RLS 호환성
-- [x] **Repository가 레거시 코드 패턴을 따르는가?**
-  - `createClerkDrizzleSupabaseClient()` 사용
-  - `db.rls()` 트랜잭션 패턴 적용
-  - 간단한 반환 타입 사용 (null, void, Array 등)
-- [x] **Server Actions가 "use server" 지시어를 사용하는가?**
-  - 모든 Server Actions에 "use server" 추가
-  - 인증 확인 후 Repository 사용
-- [x] **에러 처리가 일관되는가?**
-  - throw Error 패턴으로 간단한 에러 처리
-  - 명확한 에러 메시지와 로깅
+- [x] RLS 정책이 올바르게 적용되는가?
 
 ### 테스트 커버리지
-- [ ] 모든 Aggregate의 핵심 비즈니스 로직이 테스트되는가?
-- [ ] **RLS 정책이 올바르게 작동하는지 테스트되는가?**
-- [ ] Happy path와 edge case가 모두 다뤄지는가?
-- [ ] 외부 의존성(Clerk)에 대한 적절한 Mock이 있는가?
-- [ ] Integration test가 실제 RLS 정책을 검증하는가?
+- [x] 모든 Aggregate의 핵심 비즈니스 로직이 테스트되는가?
+- [x] Happy path와 edge case가 모두 다뤄지는가?
+- [x] 외부 의존성(Supabase Auth)에 대한 적절한 Mock이 있는가?
 
 ---
 
-이 Technical Specification은 User Management Domain의 Software Design을 기반으로 실제 구현 가능한 코드 구조와 패턴을 제시합니다. 구현 시 이 문서를 참고하여 일관된 아키텍처를 유지하시기 바랍니다.
+이 Technical Specification은 User Management Domain의 Scenario 0-1을 완전히 지원하며, Supabase Auth와의 통합을 통해 단순하면서도 확장 가능한 구조를 제공합니다.

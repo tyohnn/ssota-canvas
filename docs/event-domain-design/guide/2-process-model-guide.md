@@ -2,7 +2,7 @@
 
 이 문서는 **Event Storming 결과**를 바탕으로 **Process Model**을 정의하고 **process-model.md 문서 작성**까지, 의사결정 참여자들이 순서대로 따라할 수 있는 **Process Model 전용 프로세스**를 설명합니다.
 
-> 시작 전, `docs/event-domain-design/template/process-model-template.md` 파일을 복사해 도메인 전용 `process-model.md` 초안을 생성한 뒤, 아래 단계에 따라 내용을 채워 넣으세요.
+> 시작 전, `docs/event-domain-design/template/2-process-model-template.md` 파일을 복사해 도메인 전용 `process-model.md` 초안을 생성한 뒤, 아래 단계에 따라 내용을 채워 넣으세요.
 
 ---
 
@@ -17,13 +17,20 @@ graph TD
     E --> F[다음 단계: Software Design]
     
     A1[event-storm.md 검토, 핵심 여정 선정] --> A
-    B1[Command-Policy-System-Event 패턴 적용] --> B
+    B1[Event → Policy → Read Model → Command → System → Event 순서 적용] --> B
     C1[External System 분리, 비즈니스 규칙 정의] --> C
     D1[구조화된 문서 작성] --> D
     E1[시니어개발자/도메인전문가 리뷰] --> E
 ```
 
 Process Model은 **Event Storm의 추상적 이벤트**를 **구체적 시스템 프로세스**로 전환하는 핵심 단계입니다.
+
+### 🔄 시퀀스 기반 상호작용 순서
+Process Model은 시나리오와 시퀀스로 구성되며, 이벤트에 의해 다음 시퀀스가 트리거됩니다:
+
+**Event** → **Policy** → **Read Model** → **Command** → **System** → **Event** → **Policy** → ...
+
+1. **Event** (이전 시퀀스의 결과) → 2. **Policy** (이벤트에 따른 정책 적용) → 3. **Read Model** (시스템에서 사용자에게 제공하는 정보) → 4. **Command** (사용자가 입력하는 정보) → 5. **System** (처리 시스템) → 6. **Event** (결과 이벤트)
 
 ---
 
@@ -71,14 +78,14 @@ cat docs/event-domain-design/domains/<domain-name>/event-storm.md
 4. **다른 도메인과의 연결점이 되는 프로세스**
 
 #### 일반적인 선정 가이드:
-- **5-7개 핵심 프로세스** 선정 (너무 많으면 복잡해짐)
+- **5-7개 핵심 시나리오** 선정 (너무 많으면 복잡해짐)
 - **사용자 여정의 시작부터 끝까지** 커버
 - **External System 동기화** 프로세스는 필수 포함
 
 ### 1.3 템플릿 파일 준비
 ```bash
 # Process Model 템플릿 복사 (아직 없다면)
-cp docs/event-domain-design/template/process-model-template.md docs/event-domain-design/domains/<domain-name>/process-model.md
+cp docs/event-domain-design/template/2-process-model-template.md docs/event-domain-design/domains/<domain-name>/process-model.md
 ```
 
 ---
@@ -127,64 +134,421 @@ cp docs/event-domain-design/template/process-model-template.md docs/event-domain
 - 통합: Webhook을 통한 실시간 동기화
 ```
 
-### 2.3 Phase 2: 핵심 프로세스별 Command 정의 (60분)
+### 2.3 Phase 2: 핵심 시나리오별 시퀀스 정의 (60분)
 
-**목표**: Event Storm의 이벤트들을 트리거하는 구체적인 Command 정의
+**목표**: 실제 사용자 여정을 시나리오와 시퀀스로 나누어 Event → Policy → Read Model → Command → System → Event 패턴으로 정의
 
 #### 진행 방법:
-1. **선정된 핵심 프로세스 순서대로 진행**
-2. **각 프로세스의 시작점(사용자 액션) 식별**
-3. **Command 파라미터 구체화**
-4. **Read Model 요구사항 정의**
+1. **선정된 핵심 시나리오 순서대로 진행**
+2. **각 시나리오의 시작점(초기 트리거) 식별**
+3. **시퀀스별 Trigger Event 정의**
+4. **Event에 따른 Policy 적용 규칙 정의**
+5. **Policy에 따른 Read Model 결정**
+6. **사용자 Command 정의**
+7. **System 처리 단위 정의**
+8. **Event 결과 정의 및 다음 시퀀스 트리거 확인**
 
-#### Command 정의 패턴:
-```markdown
-**Command**: [Action Name] ([Technical Command Name])
-- parameter1: [Type and Description]
-- parameter2: [Type and Description]
-- optionalParam?: [Optional Parameter]
+#### 시나리오 vs 시퀀스 구분:
+- **시나리오**: 하나의 완전한 사용자 여정 (예: "사용자 등록 및 온보딩")
+- **시퀀스**: 시나리오 내의 개별 단계 (예: "구글 로그인", "튜토리얼 진행") 또는 시스템 내부의 구체적인 처리 과정
 
-**Read Model** (필요 정보):
-- [조회해야 할 정보 1]
-- [조회해야 할 정보 2]
-- [권한/제약 확인 정보]
+#### 🔄 복합 시퀀스 패턴
+
+##### 1) 시퀀스 내 Event-Policy 반복 패턴
+**언제 사용**: 하나의 Command가 여러 단계로 나뉘어 처리될 때
+
+**구조**:
+```
+Event → Policy → Read Model → Command → System → Event
+                                                    ↓
+                  Policy → Read Model → Command → System → Event  
+                                                    ↓
+                  Policy → Read Model → Command → System → Event
 ```
 
-#### 작성 가이드:
-- **명령형 동사**: "워크스페이스 생성", "페이지 이동"
-- **구체적 파라미터**: 실제 구현에서 필요한 모든 정보 포함
-- **Read Model**: Command 실행 전에 확인/조회해야 할 모든 정보
+**예시**:
+```markdown
+**Events**: 구글 OAuth 코드 전달받음  
+**Policy**: "Whenever 구글 OAuth 코드 전달됨, then always 유저 등록 처리하기"
+**Command**: 유저 등록 처리 시작
+**System**: User Authentication System
+**Events**: 유저 등록 처리 완료됨 / 유저 등록 처리 실패함
 
-### 2.4 Phase 3: Policy 및 System 정의 (60분)
+**Policy**: "Whenever 유저 등록 처리 완료됨, then always 온보딩 옵션 제공하기"
+**Read Model**: 온보딩 시작 버튼, 온보딩 건너뛰기 옵션
+**Command**: 온보딩 선택
+**System**: (웹) - Frontend
+**Events**: 온보딩 완료됨
+```
 
-**목표**: 비즈니스 규칙(Policy)과 처리 시스템(System) 정의
+##### 2) 시스템 내부 처리 세분화
+**언제 사용**: System의 내부 로직이 복잡하고 단계별 검증이 필요할 때
 
-#### Policy 정의:
-비즈니스에서 **반드시 지켜야 하는 규칙**들을 구체적으로 명시
+**별도 Sequence로 분리하여 상세 처리 과정 표현**:
+```markdown
+### Sequence 2: User Authentication System 내부 처리 과정
+
+**Trigger Event**: 유저 등록 처리 시작됨
+
+**Policy**: "Whenever 유저 등록 처리 시작됨, then always Supabase Auth으로 유저 생성하기"
+**Command**: 유저 생성 시작
+**System**: Supabase Auth System (외부시스템)
+**Event**: 유저 생성됨
+
+**Policy**: "Whenever 유저 생성됨, then always 프로필 생성하기"
+**Read Model**: 구글 계정 정보, 기존 프로필 조회 결과
+**Command**: 프로필 생성 처리
+**System**: Profile System
+**Event**: 사용자 프로필이 생성됨
+
+**Policy**: "Whenever 사용자 프로필이 생성됨, then always 기본 조직 생성하기"
+**Read Model**: 조직 생성 상태, 기본 조직 설정 정보
+**Command**: 기본 조직 생성
+**System**: Organization Manager
+**Event**: 기본 조직이 생성됨
+
+**Events** (최종 결과):
+1. 사용자 등록 처리 완료됨
+2. 사용자 등록 처리 실패함
+```
+
+#### 👀 관점별 시퀀스 작성 기준
+
+##### 사용자/비즈니스 관점 시퀀스
+- **특징**: 사용자가 실제 경험하는 여정, 비즈니스 의사결정자가 이해해야 하는 흐름
+- **System 처리**: 블랙박스로 처리 (내부 로직 노출하지 않음)
+- **목적**: 사용자 여정과 비즈니스 가치 중심
+
+**예시**:
+```markdown
+### Sequence 1: 방문자가 구글 로그인으로 플랫폼에 가입 및 온보딩
+
+**Trigger Event**: 로그인 페이지 이동함
+
+```
+👤 사용자: "구글 계정으로 로그인해서 플랫폼에 가입하고 싶어"
+```
+
+**Read Model**: 로그인 방식 선택, 서비스 후기 확인
+**Command**: 구글 로그인 선택
+**System**: Google OAuth (블랙박스)
+**Events**: 구글 OAuth 코드 전달받음
+```
+
+##### 시스템 내부 관점 시퀀스  
+- **특징**: 개발자가 구현해야 하는 상세 처리 과정, 시스템 간 연동 및 데이터 처리 흐름
+- **System 처리**: 모듈화된 블랙박스의 내부 로직을 상세히 표현
+- **목적**: Software Design으로 연결되는 기술적 세부사항
+
+**예시**:
+```markdown
+### Sequence 2: User Authentication System 내부 처리 과정
+
+**Trigger Event**: 유저 등록 처리 시작됨
+
+```
+🔧 시스템: "User Authentication System 내부에서 구글 코드 인증부터 기본 데이터 생성까지 처리"
+```
+
+**Policy**: "Whenever 유저 등록 처리 시작됨, then always Supabase Auth으로 유저 생성하기"
+**Command**: 유저 생성 시작
+**System**: Supabase Auth System (외부시스템)
+**Event**: 유저 생성됨
+```
+
+##### 블랙박스 시퀀스 분리 기준
+
+**언제 별도 시퀀스로 분리해야 하는가?**
+
+1. **내부 시스템의 경우** (우리가 정의해야 하는 블랙박스):
+   - ✅ System의 처리 단계가 3개 이상인 경우
+   - ✅ 에러 처리나 재시도 로직이 복잡한 경우  
+   - ✅ 여러 하위 시스템으로 구성된 경우
+   - ✅ 비즈니스 로직이 복잡하고 단계별 검증이 필요한 경우
+
+2. **외부 시스템의 경우** (다른 팀이 정의하는 블랙박스):
+   - ❌ 외부 시스템 내부 로직은 정의하지 않음
+   - ✅ 외부 시스템과의 인터페이스만 정의
+   - ✅ Webhook, API 호출, 이벤트 기반 통합만 표현
+
+**분리 예시**:
+```markdown
+❌ 외부 시스템 내부 분리 (불필요):
+### Sequence 3: Google OAuth 내부 처리 과정  # Google이 정의하는 블랙박스
+
+✅ 내부 시스템 분리 (필요):
+### Sequence 2: User Authentication System 내부 처리 과정  # 우리가 정의하는 블랙박스
+```
+#### 이벤트의 종류:
+- 내부 서비스에서 발생하는 이벤트 (중요)
+- 웹에서 발생하는 이벤트 (중요)
+- 외부 시스템에서 발생하는 이벤트
+
+#### 프론트엔드 전용 처리 가이드:
+- **System**: `(웹) - Frontend`로 명시
+- **Event**: 사용자 관점의 이벤트로 처리 (예: "튜토리얼이 끝났다")
+- 백엔드 처리 여부와 관계없이 사용자 여정에서 중요한 이벤트는 모두 포함
+
+#### 시퀀스 연결 예시:
+```
+Scenario 0: 사용자 등록 및 온보딩
+├── Sequence 1: 구글 로그인으로 플랫폼 등록
+│   └── Event: "로그인이 완료됨"
+├── Sequence 2: 신규 사용자 튜토리얼 처리 (Event 기반 시작)
+│   ├── Policy: "Whenever 로그인이 완료됨, then always 신규 사용자인지 확인하기"
+│   ├── Read Model: 튜토리얼 시작/건너뛰기 옵션 표시
+│   ├── Command: "튜토리얼 시작" 또는 "튜토리얼 건너뛰기"
+│   ├── System: (웹) - 프론트엔드에서 처리
+│   └── Event: "튜토리얼이 끝났다" 또는 "튜토리얼을 건너뛰었다"
+└── Sequence 3: 메인 화면 진입 (Event 기반 시작)
+```
+
+#### 시퀀스 정의 패턴:
+```markdown
+### Sequence N: [시퀀스명]
+
+**Trigger Event**: [이전 시퀀스의 특정 이벤트 또는 초기 트리거]
+
+**Policy**: 
+- "Whenever [특정 이벤트], then always [자동 반응 액션]"
+- "Whenever [조건부 이벤트], then [조건에 따른 반응]"
+
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- [시스템이 보여주는 정보 1]
+- [시스템이 보여주는 정보 2]
+- [사용자 선택 옵션들]
+- [진행 상태 표시]
+
+**Command**: [Action Name] ([Technical Command Name])
+- [사용자가 입력하는 정보 1]
+- [사용자가 입력하는 정보 2]
+- [사용자 선택 옵션]
+- [확인/제출 정보]
+
+**System**: [System Name] Manager (또는 (웹) - Frontend)
+- 비즈니스 로직: [구체적인 비즈니스 규칙들]
+- 검증 로직: [입력 데이터 검증 규칙들]
+- 처리 로직: [핵심 비즈니스 처리 과정]
+
+**Events**:
+1. [Event 1] ([Technical Event Name])
+2. [Event 2] ([Technical Event Name])
+```
+
+#### 시퀀스 작성 가이드:
+- **Trigger Event**: 이전 시퀀스의 특정 이벤트 또는 초기 사용자 액션
+- **Policy**: 이벤트에 대한 자동 반응 규칙 ("Whenever X, then Y" 패턴)
+- **Read Model**: 시스템이 사용자에게 보여주는 정보 (폼, 목록, 상태 표시 등)
+- **Command**: 사용자가 실제로 입력하거나 선택하는 정보 (폼 데이터, 선택 옵션 등)
+- **System**: 처리 시스템 (비즈니스 로직 포함, 백엔드 시스템 또는 Frontend)
+- **Events**: Command 실행 결과로 발생하는 구체적인 이벤트들
+
+### 2.4 Phase 3: 상호작용 순서 검증 및 정리 (60분)
+
+**목표**: 정의된 상호작용 순서의 일관성과 완전성 검증
+
+#### 검증 포인트:
+1. **순서 일관성**: 모든 시나리오가 Event → Policy → Read Model → Command → System → Event 순서를 따르는지 확인
+2. **완전성**: 각 단계별로 필요한 정보가 모두 포함되었는지 확인
+3. **실용성**: 실제 구현팀이 이해할 수 있을 정도로 구체적인지 확인
+
+#### Policy 검증:
+이벤트에 대한 **자동 반응 규칙**이 "Whenever-then" 패턴으로 명확히 정의되었는지 확인
 
 ```markdown
-**Policy**: [Policy Category Name]
-- "[구체적이고 검증 가능한 비즈니스 규칙 1]"
-- "[구체적이고 검증 가능한 비즈니스 규칙 2]"
-- "[예외 상황에 대한 처리 규칙]"
+**Policy**: 
+- "Whenever [특정 이벤트], then always [자동 반응 액션]"
+- "Whenever [조건부 이벤트], then [조건에 따른 반응]"
+- "Whenever [이벤트], then immediately [즉시 반응]"
 ```
 
 #### Policy 작성 가이드:
-- **검증 가능**: 코드로 구현 가능한 구체적 조건
-- **비즈니스 중심**: 기술적 제약이 아닌 비즈니스 요구사항
-- **예외 처리**: 규칙 위반 시 어떻게 처리할지 명시
+- **이벤트 기반**: 특정 이벤트 발생 시 자동으로 트리거되는 규칙
+- **Whenever-then 패턴**: "Whenever X, then Y" 형태로 작성
+- **자동화**: 사용자 개입 없이 시스템이 자동으로 실행하는 규칙
+- **비즈니스 정책이 아님**: 비즈니스 로직, 정책을 의미하는 것이 아닌, 프로세스의 규칙을 의미
 
-#### System 정의:
-Command를 실행하고 Event를 발생시키는 **책임 단위** 정의
+#### ⚡ Event 직후 Policy 삽입 패턴
+
+**패턴 구조**:
+```
+System → **Event** → **Policy** (즉시 반응) → Read Model → Command → System
+```
+
+**사용 시기**:
+- Event 발생 즉시 다음 단계가 자동으로 트리거되어야 할 때
+- 사용자 개입 없이 시스템이 연속 처리해야 할 때
+- Event와 다음 Command 사이에 Policy 검증이 필요한 때
+
+**작성 예시**:
+```markdown
+**System**: Google OAuth
+**Events**: 구글 OAuth 코드 전달받음
+
+**Policy**: "Whenever 구글 OAuth 코드 전달됨, then always 유저 등록 처리하기"
+**Command**: 유저 등록 처리 시작
+**System**: User Authentication System
+**Events**: 유저 등록 처리 완료됨 / 유저 등록 처리 실패함
+
+**Policy**: "Whenever 유저 등록 처리 완료됨, then always 온보딩 옵션 제공하기"
+**Read Model**: 온보딩 시작 버튼, 온보딩 건너뛰기 옵션
+**Command**: 온보딩 선택
+```
+
+**주의사항**:
+- Event 직후 Policy는 반드시 "Whenever [Event], then always [Action]" 패턴 사용
+- Policy가 단순히 다음 단계를 트리거하는 역할이어야 함
+- 복잡한 비즈니스 로직은 System 내부에 정의
+
+#### Policy 키워드 활용법:
+
+**1. Whenever** - 특정 이벤트 발생 시
+- "Whenever [이벤트], then [반응]"
+- 예: "Whenever 사용자가 로그인됨, then 항상 세션 토큰 생성하기"
+
+**2. If** - 조건부 이벤트 발생 시
+- "If [조건], then [반응]"
+- 예: "If 신규 사용자임, then 온보딩 프로세스 시작하기"
+
+**3. Then** - 반응 액션 연결
+- "Whenever/If [조건], then [액션]"
+- 예: "Whenever 결제 완료됨, then 주문 상태 업데이트하기"
+
+**4. Always** - 항상 실행되는 규칙
+- "Whenever [이벤트], then always [반응]"
+- 예: "Whenever 로그인 시도됨, then always 로그 기록하기"
+
+**5. Immediately** - 즉시 실행되는 규칙
+- "Whenever [이벤트], then immediately [반응]"
+- 예: "Whenever 시스템 오류 발생함, then immediately 관리자에게 알림 보내기"
+
+#### Policy 작성 예시:
+```markdown
+**Policy**:
+- "Whenever 구글 로그인 인증됨, then always 사용자 등록 처리하기"
+- "If 기존 사용자임, then 메인 화면으로 이동하기"
+- "Whenever 사용자 등록 실패함, then immediately 오류 로그 기록하기"
+- "Whenever 조직 생성됨, then always 기본 설정 적용하기"
+```
+
+#### System 검증:
+Command를 실행하고 Event를 발생시키는 **책임 단위**가 명확히 정의되었는지 확인
 
 ```markdown
 **System**: [System Name] Manager
+- 비즈니스 로직: [구체적인 비즈니스 규칙들]
+- 검증 로직: [입력 데이터 검증 규칙들]
+- 처리 로직: [핵심 비즈니스 처리 과정]
 ```
 
 #### System 정의 가이드:
 - **단일 책임**: 하나의 명확한 비즈니스 책임
+- **비즈니스 로직 포함**: 검증, 처리, 규칙 적용 등 모든 비즈니스 로직
 - **Manager 패턴**: "[Entity] Manager" 형태로 명명
-- **Software Design의 Aggregate 후보**: System이 Aggregate가 됨
+- **Software Design의 Aggregate 후보**: System이 Aggregate가 됨 (단일 도메인) 또는 Service Layer가 됨 (다중 도메인)
+
+#### 🔧 System 세부 비즈니스 로직 작성법
+
+**기본 구조**:
+```markdown
+**System**: [System Name] Manager (또는 (웹) - Frontend)
+- [구체적인 처리 규칙 1]
+- [구체적인 처리 규칙 2]
+- [데이터 검증 및 변환 로직]
+- [에러 처리 및 재시도 로직]
+```
+
+**작성 예시**:
+
+##### 1) 외부 시스템 연동
+```markdown
+**System**: User Authentication System → Supabase Database
+- "구글 인증 코드 성공 시에만 Supabase 사용자 저장" (Supabase Auth System 처리)
+- "기존 프로필이 있는지 확인 후 없으면 프로필 생성"
+- "프로필 생성 실패 시 즉시 재시도 (동기 처리)"
+- "기본 조직 자동 생성 (사용자가 소유자)"
+```
+
+##### 2) 내부 시스템 처리
+```markdown
+**System**: Profile System
+- id는 고유한 uuid로 처리
+- 구글 계정 정보에서 name, email 가지고 와서 설정
+- 중복 이메일 검증 및 처리
+- 프로필 이미지 URL 저장 (구글 프로필 이미지)
+```
+
+##### 3) 조직 관리 시스템
+```markdown
+**System**: Organization Manager
+- org_ 접두사가 붙은 id로 설정
+- 동일한 id가 존재하는지 확인
+- 사용자를 소유자로 설정
+- 기본 조직 설정 (이름: "[사용자명]의 조직")
+```
+
+##### 4) 프론트엔드 처리
+```markdown
+**System**: (웹) - Frontend
+- 온보딩 튜토리얼 단계별 진행
+- 사용자 선택에 따른 라우팅 처리
+- 진행 상태 저장 및 복원
+```
+
+**작성 원칙**:
+- **구체적**: "데이터 검증하기" ❌ → "중복 이메일 검증 및 처리" ✅
+- **기술적 세부사항**: 구현팀이 이해할 수 있는 수준의 구체성
+- **비즈니스 규칙**: 도메인 전문가가 검증할 수 있는 비즈니스 로직
+- **에러 처리**: 실패 시나리오와 재시도 로직 포함
+
+#### 👤🔧 사용자 여정 설명 패턴
+
+**목적**: 각 시퀀스의 관점을 명확히 하고 이해하기 쉽게 만들기
+
+**패턴 구조**:
+```markdown
+**Trigger Event**: [이벤트명]
+
+```
+👤 사용자: "[사용자의 의도나 목표를 자연어로 표현]"
+```
+
+또는
+
+```
+🔧 시스템: "[시스템이 수행해야 할 작업을 기술적 관점에서 표현]"
+```
+```
+
+**사용자 관점 설명 (👤)**:
+- **언제 사용**: 사용자/비즈니스 관점 시퀀스
+- **내용**: 사용자의 의도, 목표, 고민사항을 자연어로 표현
+- **목적**: 비즈니스 이해관계자가 사용자 경험을 이해할 수 있도록
+
+**예시**:
+```markdown
+```
+👤 사용자: "구글 계정으로 로그인해서 플랫폼에 가입하고 싶어"
+```
+```
+
+**시스템 관점 설명 (🔧)**:
+- **언제 사용**: 시스템 내부 관점 시퀀스
+- **내용**: 시스템이 수행해야 할 작업을 기술적 관점에서 표현
+- **목적**: 개발자가 구현해야 할 시스템 동작을 명확히 이해할 수 있도록
+
+**예시**:
+```markdown
+```
+🔧 시스템: "User Authentication System 내부에서 구글 코드 인증부터 기본 데이터 생성까지 처리"
+```
+```
+
+**작성 가이드**:
+- **자연스러운 언어**: 기술 용어보다는 이해하기 쉬운 표현 사용
+- **구체적 목표**: 추상적인 표현보다는 구체적인 목표나 작업 내용
+- **관점 일관성**: 한 시퀀스 내에서는 동일한 관점 유지
+- **선택적 사용**: 모든 시퀀스에 필수는 아니지만, 복잡한 시퀀스에는 권장
 
 ---
 
@@ -195,20 +559,22 @@ Command를 실행하고 Event를 발생시키는 **책임 단위** 정의
 복사한 템플릿을 기반으로 다음 순서로 작성합니다:
 
 #### 1. 🎯 Process Modeling Overview
-- 도메인의 핵심 프로세스 개요
+- 도메인의 핵심 시나리오 개요
 - External System과의 관계 명시
+- 시퀀스 기반 상호작용 패턴 설명
 
 #### 2. 🟪 External System 정의
 - 워크샵에서 정의된 외부 시스템들
 - 각 시스템의 역할, SSOT, 통합 방식
 
-#### 3. 📍 Process 0: External System 동기화
-- 외부 시스템과의 동기화 프로세스 (보통 Process 0으로 작성)
+#### 3. 📍 Scenario 0: External System 동기화
+- 외부 시스템과의 동기화 시나리오 (보통 Scenario 0으로 작성)
 - Webhook 처리, 재시도 로직 등
+- 여러 시퀀스로 구성된 상호작용 흐름
 
-#### 4. 📍 Process 1~N: 핵심 비즈니스 프로세스
-- 워크샵에서 정의된 각 프로세스
-- Command → Policy → System → Event 패턴 일관 적용
+#### 4. 📍 Scenario 1~N: 핵심 비즈니스 시나리오
+- 워크샵에서 정의된 각 시나리오
+- Event → Policy → Read Model → Command → System → Event 순서 일관 적용
 
 #### 5. 💡 핵심 Policy 정리
 - 워크샵에서 정의된 모든 Policy들을 카테고리별로 요약
@@ -221,42 +587,62 @@ Command를 실행하고 Event를 발생시키는 **책임 단위** 정의
 각 프로세스는 다음 구조를 일관되게 따릅니다:
 
 ```markdown
-## 📍 Process N: [프로세스명]
+## 📍 Scenario N: [시나리오명]
 
-### Scenario: [사용자 상황 설명]
-```
-👤 사용자: "구체적인 요구사항이나 상황 설명"
-```
+### Sequence 1: [첫 번째 시퀀스명]
 
-**Command**: [명령명] ([Technical Command Name])
-- parameter1: value1
-- parameter2: value2
-
-**Read Model** (필요 정보):
-- 조회/확인해야 할 정보들
+**Trigger Event**: [초기 트리거 또는 사용자 액션]
 
 **Policy**: [정책명]
 - "구체적인 비즈니스 규칙 1"
 - "구체적인 비즈니스 규칙 2"
 
-**System**: [System Name]
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 시스템이 보여주는 정보들
+- 사용자 선택 옵션들
+- 진행 상태 표시
+
+**Command**: [명령명] ([Technical Command Name])
+- 사용자가 입력하는 정보들
+- 사용자 선택 옵션들
+- 확인/제출 정보
+
+**System**: [System Name] Manager (또는 (웹) - Frontend)
 
 **Events**:
 1. [Event 1] ([Technical Event Name])
 2. [Event 2] ([Technical Event Name])
+
+### Sequence 2: [두 번째 시퀀스명] (선택사항)
+
+**Trigger Event**: [이전 시퀀스의 특정 이벤트]
+
+[동일한 구조 반복...]
 ```
+
+### 시퀀스 기반 상호작용 설명:
+1. **Event**: 이전 시퀀스의 결과 또는 초기 트리거
+2. **Policy**: 이벤트에 따라 적용되는 프로세스 규칙 (다음 단계 결정)
+3. **Read Model**: 시스템이 사용자에게 보여주는 정보 (폼, 목록, 상태 등)
+4. **Command**: 사용자가 실제로 입력하거나 선택하는 정보
+5. **System**: Command를 처리하는 시스템 (백엔드 또는 Frontend)
+6. **Event**: System 처리 결과로 발생하는 이벤트들 (다음 시퀀스 트리거)
 
 ### 3.3 품질 검증 체크리스트
 
 #### 일관성 검증:
-- [ ] 모든 Process가 동일한 구조로 작성되었는가?
-- [ ] Command-Policy-System-Event 패턴이 일관되게 적용되었는가?
-- [ ] Event Storm의 주요 이벤트들이 모두 Process에 반영되었는가?
+- [ ] 모든 Scenario가 동일한 구조로 작성되었는가?
+- [ ] Event → Policy → Read Model → Command → System → Event 순서가 일관되게 적용되었는가?
+- [ ] 각 시퀀스의 Trigger Event가 명확히 정의되었는가?
+- [ ] 시퀀스 간 Event 연결이 올바르게 구성되었는가?
+- [ ] Event Storm의 주요 이벤트들이 모두 시나리오에 반영되었는가?
 
 #### 완전성 검증:
-- [ ] 선정된 핵심 프로세스가 모두 문서화되었는가?
+- [ ] 선정된 핵심 시나리오가 모두 문서화되었는가?
+- [ ] 각 시나리오 내의 주요 시퀀스가 모두 포함되었는가?
 - [ ] External System과의 통합점이 명확히 정의되었는가?
 - [ ] Policy가 구체적이고 검증 가능하게 작성되었는가?
+- [ ] 프론트엔드 전용 처리도 적절히 포함되었는가?
 
 #### 실용성 검증:
 - [ ] Software Design 작성을 위한 충분한 정보가 있는가?
@@ -325,8 +711,8 @@ git push origin process-model-<domain-name>
 다음 모든 조건이 충족되어야 Process Model이 완료된 것으로 간주합니다:
 
 ### 워크샵 완료 기준:
-- [ ] 핵심 사용자 여정 5-7개가 Process로 정의됨
-- [ ] Command-Policy-System-Event 패턴이 일관되게 적용됨
+- [ ] 핵심 사용자 여정 5-7개가 시나리오로 정의됨
+- [ ] Event → Policy → Read Model → Command → System → Event 패턴이 일관되게 적용됨
 - [ ] External System과의 통합점이 명확히 정의됨
 - [ ] 비즈니스 규칙(Policy)이 구체적으로 명시됨
 
@@ -368,7 +754,7 @@ Process Model이 완료되면 다음 단계를 진행할 수 있습니다:
 - [Software Design 작성 가이드](./1-software-design-guide.md)
 
 ### 템플릿 파일:
-- [Process Model 템플릿](../template/process-model-template.md)
+- [Process Model 템플릿](../template/2-process-model-template.md)
 
 ### 예시 문서:
 - [Workspace Structure Domain 예시](../domains/workspace-structure-domain/process-model.md)
@@ -378,9 +764,9 @@ Process Model이 완료되면 다음 단계를 진행할 수 있습니다:
 ## 💡 성공을 위한 핵심 팁
 
 ### 워크샵 성공 팁:
-- **시니어개발자 주도**: 시스템 설계 관점에서 프로세스를 구체화
+- **시니어개발자 주도**: 시스템 설계 관점에서 시나리오를 구체화
 - **도메인전문가와의 긴밀한 협업**: 비즈니스 규칙의 정확성 확보
-- **일관된 패턴 적용**: Command-Policy-System-Event 패턴을 모든 프로세스에 일관되게 적용
+- **일관된 패턴 적용**: Event → Policy → Read Model → Command → System → Event 패턴을 모든 시나리오에 일관되게 적용
 - **External System 우선 처리**: 복잡한 통합 부분을 먼저 해결
 
 ### 문서화 성공 팁:
@@ -428,8 +814,8 @@ date
      - Opportunities [N]개 발견
    
    - [x] **Process Model**: `docs/event-domain-design/[domain-name]/process-model.md`
-     - [N]개 핵심 프로세스 정의
-     - Command → Policy → System → Event 패턴 적용
+     - [N]개 핵심 시나리오 정의
+     - Event → Policy → Read Model → Command → System → Event 패턴 적용
      - External System 매핑 완료
    
    - [ ] **Software Design**: ❌ **대기 중**
@@ -448,7 +834,7 @@ date
 git add docs/event-domain-design/[domain-name]/process-model.md docs/project-progress.md
 git commit -m "feat(process-model): complete [Domain Name] domain process model
 
-- Define [N] core processes with Command → Policy → System → Event pattern
+- Define [N] core scenarios with Event → Policy → Read Model → Command → System → Event pattern
 - Map external system integrations
 - Update project progress to 40% for [Domain Name] domain"
 
