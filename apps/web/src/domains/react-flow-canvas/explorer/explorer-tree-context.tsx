@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext } from "react";
-import type { ExplorerTreeContextValue } from "./types";
+import React, { createContext, useContext } from 'react';
+import type { ExplorerTreeContextValue } from './types';
 
 // Context 생성
 const ExplorerTreeContext = createContext<ExplorerTreeContextValue<any> | null>(
@@ -33,7 +33,7 @@ export function useExplorerTreeContext<
   const context = useContext(ExplorerTreeContext);
   if (!context) {
     throw new Error(
-      "useExplorerTreeContext must be used within an ExplorerTreeProvider"
+      'useExplorerTreeContext must be used within an ExplorerTreeProvider'
     );
   }
   return context as ExplorerTreeContextValue<TSourceData>;

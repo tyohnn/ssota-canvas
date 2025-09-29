@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,14 +10,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from "@workspace/ui/components/ui/dropdown-menu";
+} from '@workspace/ui/components/ui/dropdown-menu';
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@workspace/ui/components/ui/sidebar";
-import { ChevronDown, Plus } from "lucide-react";
-import { useOrganizationContext } from "@/domains/dashboard/context/OrganizationCotext";
+} from '@workspace/ui/components/ui/sidebar';
+import { ChevronDown, Plus } from 'lucide-react';
+import { useOrganizationContext } from '@/domains/dashboard/context/OrganizationCotext';
 
 export function OrganizationSwitcher() {
   const router = useRouter();

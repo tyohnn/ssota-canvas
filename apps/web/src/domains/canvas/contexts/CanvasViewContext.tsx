@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import type { ViewDefinition } from "@/domains/canvas/policy/view-policy";
+import React from 'react';
+import { useCanvasData } from '@/domains/canvas/contexts/CanvasDataContext';
+import type { ViewDefinition } from '@/domains/canvas/policy/view-policy';
 import {
   getAvailableViews,
   resolveInitialViewId,
   findViewDefinition,
-} from "@/domains/canvas/policy/view-policy";
+} from '@/domains/canvas/policy/view-policy';
 
 export type ViewContextValue = {
   currentViewId: string; // "canvas" or a definition id
@@ -23,9 +23,11 @@ const ViewContext = React.createContext<ViewContextValue | undefined>(
 export function ViewProvider({ children }: { children: React.ReactNode }) {
   const data = useCanvasData();
 
-  const selectedPageBlock = data.selectedPageId ? data.getPageBlockById(data.selectedPageId) : null;
+  const selectedPageBlock = data.selectedPageId
+    ? data.getPageBlockById(data.selectedPageId)
+    : null;
 
-  const [currentViewId, setCurrentViewId] = React.useState<string>("canvas");
+  const [currentViewId, setCurrentViewId] = React.useState<string>('canvas');
   const [availableViews, setAvailableViews] = React.useState<ViewDefinition[]>(
     []
   );
@@ -36,8 +38,8 @@ export function ViewProvider({ children }: { children: React.ReactNode }) {
     setAvailableViews(defs);
 
     // Decide initial/current view
-    setCurrentViewId((prev) => {
-      if (prev && defs.some((d) => d.id === prev)) {
+    setCurrentViewId(prev => {
+      if (prev && defs.some(d => d.id === prev)) {
         return prev; // keep existing if still valid
       }
       return resolveInitialViewId(selectedPageBlock);
@@ -63,6 +65,6 @@ export function ViewProvider({ children }: { children: React.ReactNode }) {
 
 export function useViewContext(): ViewContextValue {
   const ctx = React.useContext(ViewContext);
-  if (!ctx) throw new Error("useViewContext must be used within ViewProvider");
+  if (!ctx) throw new Error('useViewContext must be used within ViewProvider');
   return ctx;
 }

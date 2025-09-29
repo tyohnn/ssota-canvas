@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Button } from "@workspace/ui/components/ui/button";
+import React from 'react';
+import { Button } from '@workspace/ui/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@workspace/ui/components/ui/dropdown-menu";
+} from '@workspace/ui/components/ui/dropdown-menu';
 import {
   Layout,
   Table,
@@ -16,20 +16,20 @@ import {
   ChevronsUpDown,
   FileText,
   Plus,
-} from "lucide-react";
-import { useViewContext } from "@/domains/canvas/contexts/CanvasViewContext";
+} from 'lucide-react';
+import { useViewContext } from '@/domains/canvas/contexts/CanvasViewContext';
 
 type IconType = typeof Layout;
 
 function iconForViewType(type: string): IconType {
   switch (type) {
-    case "canvas":
+    case 'canvas':
       return Layout;
-    case "table":
+    case 'table':
       return Table;
-    case "kanban":
+    case 'kanban':
       return Kanban;
-    case "markdown":
+    case 'markdown':
       return FileText;
     default:
       return Layout;
@@ -41,13 +41,13 @@ export function ViewSwitcher() {
     useViewContext();
 
   const currentLabel =
-    currentViewId === "canvas"
-      ? "Canvas"
-      : currentViewDef?.name || currentViewDef?.id || "Canvas";
+    currentViewId === 'canvas'
+      ? 'Canvas'
+      : currentViewDef?.name || currentViewDef?.id || 'Canvas';
   const CurrentIcon =
-    currentViewId === "canvas"
+    currentViewId === 'canvas'
       ? Layout
-      : iconForViewType(currentViewDef?.type || "canvas");
+      : iconForViewType(currentViewDef?.type || 'canvas');
 
   return (
     <DropdownMenu>
@@ -64,13 +64,13 @@ export function ViewSwitcher() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem
-          onSelect={() => switchView("canvas")}
+          onSelect={() => switchView('canvas')}
           className="flex items-center gap-2"
         >
           <Layout className="h-3 w-3" />
           Canvas
         </DropdownMenuItem>
-        {availableViews.map((view) => {
+        {availableViews.map(view => {
           const ViewIcon = iconForViewType(view.type);
           return (
             <DropdownMenuItem

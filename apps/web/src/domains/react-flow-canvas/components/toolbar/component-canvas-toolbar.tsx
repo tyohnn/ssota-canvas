@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useReactFlow } from "@xyflow/react";
-import { Button } from "@workspace/ui/components/ui/button";
+import React from 'react';
+import { useReactFlow } from '@xyflow/react';
+import { Button } from '@workspace/ui/components/ui/button';
 import {
   Tooltip,
-  TooltipContent, 
+  TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@workspace/ui/components/ui/tooltip";
-import { Separator } from "@workspace/ui/components/ui/separator";
+} from '@workspace/ui/components/ui/tooltip';
+import { Separator } from '@workspace/ui/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@workspace/ui/components/ui/dialog";
+} from '@workspace/ui/components/ui/dialog';
 import {
   Edit3,
   ArrowLeft,
@@ -25,16 +25,23 @@ import {
   Hand,
   Maximize,
   Trash2,
-} from "lucide-react";
-import { useReactFlowCommandsContext } from "@/domains/react-flow-canvas/contexts/ReactFlowCommandsContext";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
-import { useControlState, useControlCommands } from "@/domains/react-flow-canvas/contexts/ControlContext";
-import { useReactFlowNodeSelection, useReactFlowSelectionCommands } from "@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext";
+} from 'lucide-react';
+import { useReactFlowCommandsContext } from '@/domains/react-flow-canvas/contexts/ReactFlowCommandsContext';
+import { useCanvasData } from '@/domains/canvas/contexts/CanvasDataContext';
+import { usePanel } from '@/domains/react-flow-canvas/contexts/PanelContext';
+import {
+  useControlState,
+  useControlCommands,
+} from '@/domains/react-flow-canvas/contexts/ControlContext';
+import {
+  useReactFlowNodeSelection,
+  useReactFlowSelectionCommands,
+} from '@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext';
 
 export function ComponentCanvasToolbar() {
   const reactFlow = useReactFlow();
-  const { selectedComponentBlock, selectComponent, selectedComponentId } = useCanvasData();
+  const { selectedComponentBlock, selectComponent, selectedComponentId } =
+    useCanvasData();
   const commands = useReactFlowCommandsContext();
   const panel = usePanel();
   const { toolMode } = useControlState();
@@ -64,7 +71,7 @@ export function ComponentCanvasToolbar() {
   const handleBackToPage = () => {
     // Canvas Data Context
     selectComponent(null);
-    
+
     // React Flow Canvas Context
     clearSelection();
 
@@ -73,7 +80,7 @@ export function ComponentCanvasToolbar() {
 
     // Clear selected component
     // Switch to layer tab
-    panel.setActiveExplorerTab("layers");
+    panel.setActiveExplorerTab('layers');
   };
 
   // Keyboard event handler
@@ -94,17 +101,17 @@ export function ComponentCanvasToolbar() {
       }
 
       switch (event.code) {
-        case "KeyV":
+        case 'KeyV':
           event.preventDefault();
           event.stopPropagation();
-          setToolMode("select");
+          setToolMode('select');
           break;
-        case "KeyH":
+        case 'KeyH':
           event.preventDefault();
           event.stopPropagation();
-          setToolMode("hand");
+          setToolMode('hand');
           break;
-        case "KeyF":
+        case 'KeyF':
           event.preventDefault();
           event.stopPropagation();
           handleFitToView();
@@ -113,16 +120,15 @@ export function ComponentCanvasToolbar() {
     };
 
     // Use capture phase to ensure we get the event before React Flow
-    document.addEventListener("keydown", handleKeyDown, true);
-    return () => document.removeEventListener("keydown", handleKeyDown, true);
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [setToolMode, handleFitToView, selectedComponentId]);
 
-  
   const optimisticRollback = (currentSelectedComponentId: string) => {
     selectComponent(currentSelectedComponentId);
     selectNodes([currentSelectedComponentId]);
     panel.openEditorPanel();
-    panel.setActiveExplorerTab("assets");
+    panel.setActiveExplorerTab('assets');
   };
 
   const handleDelete = async () => {
@@ -137,20 +143,20 @@ export function ComponentCanvasToolbar() {
     // React Flow Canvas Context
     clearSelection();
     panel.closeEditorPanel();
-    panel.setActiveExplorerTab("layers");
+    panel.setActiveExplorerTab('layers');
     setShowDeleteModal(false);
 
     try {
       const result = await commands.deleteComponent(selectedSingleNode);
       if (!result.ok) {
-        console.error("Failed to delete component:", result.error);
+        console.error('Failed to delete component:', result.error);
         // TODO: 사용자에게 에러 알림 (토스트 등)
         optimisticRollback(currentSelectedComponentId);
       } else {
-        console.log("✅ Component deleted successfully:", result.data);
+        console.log('✅ Component deleted successfully:', result.data);
       }
     } catch (error) {
-      console.error("Failed to delete component:", error);
+      console.error('Failed to delete component:', error);
       optimisticRollback(currentSelectedComponentId);
     } finally {
       setIsDeleting(false);
@@ -181,10 +187,10 @@ export function ComponentCanvasToolbar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={toolMode === "select" ? "default" : "ghost"}
+                  variant={toolMode === 'select' ? 'default' : 'ghost'}
                   size="sm"
                   className="h-8 w-8 p-0 rounded-md"
-                  onClick={() => setToolMode("select")}
+                  onClick={() => setToolMode('select')}
                 >
                   <MousePointer className="h-4 w-4" />
                 </Button>
@@ -198,10 +204,10 @@ export function ComponentCanvasToolbar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={toolMode === "hand" ? "default" : "ghost"}
+                  variant={toolMode === 'hand' ? 'default' : 'ghost'}
                   size="sm"
                   className="h-8 w-8 p-0 rounded-md"
-                  onClick={() => setToolMode("hand")}
+                  onClick={() => setToolMode('hand')}
                 >
                   <Hand className="h-4 w-4" />
                 </Button>
@@ -237,7 +243,7 @@ export function ComponentCanvasToolbar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={isEditOpen ? "default" : "ghost"}
+                  variant={isEditOpen ? 'default' : 'ghost'}
                   size="sm"
                   onClick={toggleEdit}
                   className="h-8 w-8 p-0 rounded-md"
@@ -298,7 +304,7 @@ export function ComponentCanvasToolbar() {
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
           </DialogFooter>
         </DialogContent>

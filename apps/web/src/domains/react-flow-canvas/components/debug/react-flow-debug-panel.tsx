@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useReactFlow } from "@xyflow/react";
-import { useReactFlowSelection } from "@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
-import { Badge } from "@workspace/ui/components/ui/badge";
-import { ScrollArea } from "@workspace/ui/components/ui/scroll-area";
-import { Separator } from "@workspace/ui/components/ui/separator";
-import { Button } from "@workspace/ui/components/ui/button";
+import React from 'react';
+import { useReactFlow } from '@xyflow/react';
+import { useReactFlowSelection } from '@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext';
+import { useCanvasData } from '@/domains/canvas/contexts/CanvasDataContext';
+import { usePanel } from '@/domains/react-flow-canvas/contexts/PanelContext';
+import { Badge } from '@workspace/ui/components/ui/badge';
+import { ScrollArea } from '@workspace/ui/components/ui/scroll-area';
+import { Separator } from '@workspace/ui/components/ui/separator';
+import { Button } from '@workspace/ui/components/ui/button';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@workspace/ui/components/ui/accordion";
-import { RefreshCw, Copy } from "lucide-react";
+} from '@workspace/ui/components/ui/accordion';
+import { RefreshCw, Copy } from 'lucide-react';
 
 interface DebugSectionProps {
   title: string;
@@ -44,17 +44,17 @@ function DebugSection({ title, children, count }: DebugSectionProps) {
 interface DebugItemProps {
   label: string;
   value: any;
-  type?: "string" | "number" | "boolean" | "object" | "array";
+  type?: 'string' | 'number' | 'boolean' | 'object' | 'array';
 }
 
 function DebugItem({ label, value, type }: DebugItemProps) {
   const formatValue = (val: any): string => {
-    if (val === null) return "null";
-    if (val === undefined) return "undefined";
-    if (typeof val === "string") return `"${val}"`;
-    if (typeof val === "number" || typeof val === "boolean") return String(val);
+    if (val === null) return 'null';
+    if (val === undefined) return 'undefined';
+    if (typeof val === 'string') return `"${val}"`;
+    if (typeof val === 'number' || typeof val === 'boolean') return String(val);
     if (Array.isArray(val)) return `[${val.length} items]`;
-    if (typeof val === "object") {
+    if (typeof val === 'object') {
       const keys = Object.keys(val);
       if (keys.length <= 3) {
         return `{${keys.map(k => `${k}: ${val[k]}`).join(', ')}}`;
@@ -65,9 +65,10 @@ function DebugItem({ label, value, type }: DebugItemProps) {
   };
 
   const copyToClipboard = () => {
-    const textToCopy = typeof value === 'object' 
-      ? JSON.stringify(value, null, 2) 
-      : String(value);
+    const textToCopy =
+      typeof value === 'object'
+        ? JSON.stringify(value, null, 2)
+        : String(value);
     navigator.clipboard.writeText(textToCopy);
   };
 
@@ -110,12 +111,12 @@ function DebugAccordionItem({
   defaultOpen = false,
 }: DebugAccordionItemProps) {
   const formatValue = (val: any): string => {
-    if (val === null) return "null";
-    if (val === undefined) return "undefined";
-    if (typeof val === "string") return `"${val}"`;
-    if (typeof val === "number" || typeof val === "boolean") return String(val);
+    if (val === null) return 'null';
+    if (val === undefined) return 'undefined';
+    if (typeof val === 'string') return `"${val}"`;
+    if (typeof val === 'number' || typeof val === 'boolean') return String(val);
     if (Array.isArray(val)) return `[${val.length} items]`;
-    if (typeof val === "object") {
+    if (typeof val === 'object') {
       const keys = Object.keys(val);
       return `{${keys.length} keys}`;
     }
@@ -146,7 +147,9 @@ function DebugAccordionItem({
                 variant="ghost"
                 size="sm"
                 className="h-6 w-6 p-0 hover:bg-muted"
-                onClick={() => navigator.clipboard.writeText(JSON.stringify(value, null, 2))}
+                onClick={() =>
+                  navigator.clipboard.writeText(JSON.stringify(value, null, 2))
+                }
                 title="Copy to clipboard"
               >
                 <Copy className="h-3 w-3" />
@@ -165,16 +168,16 @@ function DebugAccordionItem({
 export function ReactFlowDebugPanel() {
   const rf = useReactFlow();
   const { state: selectionState } = useReactFlowSelection();
-  const { 
-    canvasMode, 
-    selectedPageId, 
+  const {
+    canvasMode,
+    selectedPageId,
     selectedPageBlock,
     selectedComponentId,
     getPageBlockById,
-    getComponentBlockById
+    getComponentBlockById,
   } = useCanvasData();
   const panelState = usePanel();
-  
+
   const [lastUpdate, setLastUpdate] = React.useState(Date.now());
 
   const refresh = () => {
@@ -184,10 +187,12 @@ export function ReactFlowDebugPanel() {
   // Get selected node data
   const selectedNodeId = selectionState.selectedSingleNodeId;
   const selectedNode = selectedNodeId ? rf.getNode(selectedNodeId) : null;
-  
+
   // Get block and component data
   const selectedBlock = selectedPageBlock;
-  const selectedComponent = selectedComponentId ? getComponentBlockById(selectedComponentId) : null;
+  const selectedComponent = selectedComponentId
+    ? getComponentBlockById(selectedComponentId)
+    : null;
 
   // Get all React Flow nodes
   const allNodes = rf.getNodes();
@@ -220,21 +225,18 @@ export function ReactFlowDebugPanel() {
           <div className="p-3 space-y-4">
             {/* Canvas Data */}
             <DebugSection title="Canvas Data" count={4}>
-              <DebugItem 
-                label="Canvas Mode" 
-                value={canvasMode} 
+              <DebugItem label="Canvas Mode" value={canvasMode} />
+              <DebugItem
+                label="Selected Page ID"
+                value={selectedPageId || 'None'}
               />
-              <DebugItem 
-                label="Selected Page ID" 
-                value={selectedPageId || "None"} 
+              <DebugItem
+                label="Selected Block ID"
+                value={selectedPageBlock?.id || 'None'}
               />
-              <DebugItem 
-                label="Selected Block ID" 
-                value={selectedPageBlock?.id || "None"} 
-              />
-              <DebugItem 
-                label="Selected Component ID" 
-                value={selectedComponentId || "None"} 
+              <DebugItem
+                label="Selected Component ID"
+                value={selectedComponentId || 'None'}
               />
             </DebugSection>
 
@@ -242,18 +244,15 @@ export function ReactFlowDebugPanel() {
 
             {/* Selected Block */}
             <DebugSection title="Selected Block" count={3}>
-              <DebugItem 
-                label="Block Exists" 
-                value={!!selectedBlock} 
-                type="boolean" 
+              <DebugItem
+                label="Block Exists"
+                value={!!selectedBlock}
+                type="boolean"
               />
-              <DebugItem 
-                label="Block ID" 
-                value={selectedBlock?.id || "None"} 
-              />
-              <DebugItem 
-                label="Block Type" 
-                value={selectedBlock?.block_type || "None"} 
+              <DebugItem label="Block ID" value={selectedBlock?.id || 'None'} />
+              <DebugItem
+                label="Block Type"
+                value={selectedBlock?.block_type || 'None'}
               />
               <DebugAccordionItem
                 label="Full Block Object"
@@ -265,18 +264,18 @@ export function ReactFlowDebugPanel() {
 
             {/* Selected Component */}
             <DebugSection title="Selected Component" count={3}>
-              <DebugItem 
-                label="Component Exists" 
-                value={!!selectedComponent} 
-                type="boolean" 
+              <DebugItem
+                label="Component Exists"
+                value={!!selectedComponent}
+                type="boolean"
               />
-              <DebugItem 
-                label="Component ID" 
-                value={selectedComponent?.id || "None"} 
+              <DebugItem
+                label="Component ID"
+                value={selectedComponent?.id || 'None'}
               />
-              <DebugItem 
-                label="Component Title" 
-                value={selectedComponent?.title || "None"} 
+              <DebugItem
+                label="Component Title"
+                value={selectedComponent?.title || 'None'}
               />
               <DebugAccordionItem
                 label="Full Component Object"
@@ -288,19 +287,19 @@ export function ReactFlowDebugPanel() {
 
             {/* React Flow Nodes */}
             <DebugSection title="React Flow Nodes" count={allNodes.length}>
-              <DebugItem 
-                label="Total Nodes" 
-                value={allNodes.length} 
-                type="number" 
+              <DebugItem
+                label="Total Nodes"
+                value={allNodes.length}
+                type="number"
               />
-              <DebugItem 
-                label="Selected Node ID" 
-                value={selectedNodeId || "None"} 
+              <DebugItem
+                label="Selected Node ID"
+                value={selectedNodeId || 'None'}
               />
-              <DebugItem 
-                label="Selected Node Exists" 
-                value={!!selectedNode} 
-                type="boolean" 
+              <DebugItem
+                label="Selected Node Exists"
+                value={!!selectedNode}
+                type="boolean"
               />
               <DebugAccordionItem
                 label="All React Flow Nodes"
@@ -312,23 +311,31 @@ export function ReactFlowDebugPanel() {
 
             {/* Selected Node Details */}
             <DebugSection title="Selected Node Details" count={4}>
-              <DebugItem 
-                label="Node Type" 
-                value={selectedNode?.type || "None"} 
+              <DebugItem
+                label="Node Type"
+                value={selectedNode?.type || 'None'}
               />
-              <DebugItem 
-                label="Node Position" 
-                value={selectedNode ? {
-                  x: selectedNode.position.x,
-                  y: selectedNode.position.y,
-                } : null} 
+              <DebugItem
+                label="Node Position"
+                value={
+                  selectedNode
+                    ? {
+                        x: selectedNode.position.x,
+                        y: selectedNode.position.y,
+                      }
+                    : null
+                }
               />
-              <DebugItem 
-                label="Node Dimensions" 
-                value={selectedNode ? {
-                  width: selectedNode.width,
-                  height: selectedNode.height,
-                } : null} 
+              <DebugItem
+                label="Node Dimensions"
+                value={
+                  selectedNode
+                    ? {
+                        width: selectedNode.width,
+                        height: selectedNode.height,
+                      }
+                    : null
+                }
               />
               <DebugAccordionItem
                 label="Full Selected Node"
@@ -340,15 +347,15 @@ export function ReactFlowDebugPanel() {
 
             {/* Selection State */}
             <DebugSection title="Selection State" count={3}>
-              <DebugItem 
-                label="Selected Node Count" 
-                value={selectionState.selectedNodeIds.length} 
-                type="number" 
+              <DebugItem
+                label="Selected Node Count"
+                value={selectionState.selectedNodeIds.length}
+                type="number"
               />
-              <DebugItem 
-                label="Selected Edge Count" 
-                value={selectionState.selectedEdgeIds.length} 
-                type="number" 
+              <DebugItem
+                label="Selected Edge Count"
+                value={selectionState.selectedEdgeIds.length}
+                type="number"
               />
               <DebugAccordionItem
                 label="Selected Node IDs"
@@ -360,24 +367,24 @@ export function ReactFlowDebugPanel() {
 
             {/* Panel State */}
             <DebugSection title="Panel State" count={4}>
-              <DebugItem 
-                label="Active Explorer Tab" 
-                value={panelState.activeExplorerTab} 
+              <DebugItem
+                label="Active Explorer Tab"
+                value={panelState.activeExplorerTab}
               />
-              <DebugItem 
-                label="Show Block Insert Panel" 
-                value={panelState.showBlockInsertPanel} 
-                type="boolean" 
+              <DebugItem
+                label="Show Block Insert Panel"
+                value={panelState.showBlockInsertPanel}
+                type="boolean"
               />
-              <DebugItem 
-                label="Show Editor Panel" 
-                value={panelState.showEditorPanel} 
-                type="boolean" 
+              <DebugItem
+                label="Show Editor Panel"
+                value={panelState.showEditorPanel}
+                type="boolean"
               />
-              <DebugItem 
-                label="Show Debug Panel" 
-                value={panelState.showDebugPanel} 
-                type="boolean" 
+              <DebugItem
+                label="Show Debug Panel"
+                value={panelState.showDebugPanel}
+                type="boolean"
               />
             </DebugSection>
           </div>

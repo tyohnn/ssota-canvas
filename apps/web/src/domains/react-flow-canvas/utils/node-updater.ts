@@ -1,4 +1,4 @@
-import { type Node } from "@xyflow/react";
+import { type Node } from '@xyflow/react';
 
 /**
  * React Flow 노드 업데이트 유틸리티 함수들
@@ -10,10 +10,8 @@ export const updateNodeData = (
   nodeId: string,
   dataUpdate: any
 ): Node[] => {
-  return nodes.map((n) =>
-    n.id === nodeId
-      ? { ...n, data: { ...n.data, ...dataUpdate } }
-      : n
+  return nodes.map(n =>
+    n.id === nodeId ? { ...n, data: { ...n.data, ...dataUpdate } } : n
   );
 };
 
@@ -23,7 +21,7 @@ export const updateNodeBlockMetadata = (
   nodeId: string,
   metadataUpdate: any
 ): Node[] => {
-  return nodes.map((n) =>
+  return nodes.map(n =>
     n.id === nodeId
       ? {
           ...n,
@@ -48,7 +46,7 @@ export const updateNodeUIMetadata = (
   nodeId: string,
   uiUpdate: any
 ): Node[] => {
-  return nodes.map((n) =>
+  return nodes.map(n =>
     n.id === nodeId
       ? {
           ...n,
@@ -76,9 +74,7 @@ export const updateNodeProperty = (
   nodeId: string,
   propertyUpdate: any
 ): Node[] => {
-  return nodes.map((n) =>
-    n.id === nodeId ? { ...n, ...propertyUpdate } : n
-  );
+  return nodes.map(n => (n.id === nodeId ? { ...n, ...propertyUpdate } : n));
 };
 
 export const updateNodeLabel = (
@@ -94,7 +90,7 @@ export const updateNodesSelection = (
   nodes: Node[],
   selectedNodeIds: string[]
 ): Node[] => {
-  return nodes.map((n) => ({
+  return nodes.map(n => ({
     ...n,
     selected: selectedNodeIds.includes(n.id),
   }));

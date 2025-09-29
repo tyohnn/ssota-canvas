@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React, { useMemo } from "react";
-import { Folder, FolderOpen } from "lucide-react";
-import { Button } from "@workspace/ui/components/ui/button";
-import { TreeItemLabel } from "@workspace/ui/components/ui/tree";
-import { useExplorerTreeContext } from "../explorer-tree-context";
+import React, { useMemo } from 'react';
+import { Folder, FolderOpen } from 'lucide-react';
+import { Button } from '@workspace/ui/components/ui/button';
+import { TreeItemLabel } from '@workspace/ui/components/ui/tree';
+import { useExplorerTreeContext } from '../explorer-tree-context';
 
 interface TreeItemContentProps {
   item: any; // Headless Tree item type
@@ -39,7 +39,7 @@ export function TreeItemContent({
       variant="ghost"
       size="sm"
       className="min-h-6 flex flex-1 min-w-0 items-center justify-start gap-1.5 overflow-hidden rounded-sm px-0.5 py-1 text-left cursor-pointer has-[>svg]:px-2 bg-transparent"
-      onDoubleClick={(e) => {
+      onDoubleClick={e => {
         e.stopPropagation();
         e.preventDefault();
       }}
@@ -59,7 +59,7 @@ export function TreeItemContent({
         ) : renderFileIcon ? (
           renderFileIcon(
             item.getItemData()?.itemType,
-            "text-muted-foreground pointer-events-none size-3.5"
+            'text-muted-foreground pointer-events-none size-3.5'
           )
         ) : null}
         <span className="truncate text-xs">{currentName}</span>

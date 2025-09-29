@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
-import React from "react";
-import type { Block } from "@/db/schema";
-import { useCanvasPageCommandsContext } from "@/domains/canvas/contexts/CanvasPageCommandsContext";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Input } from "@workspace/ui/components/ui/input";
+import React from 'react';
+import type { Block } from '@/db/schema';
+import { useCanvasPageCommandsContext } from '@/domains/canvas/contexts/CanvasPageCommandsContext';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Input } from '@workspace/ui/components/ui/input';
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-} from "@workspace/ui/components/ui/tooltip";
-import { Search, Plus } from "lucide-react";
-import ExplorerTree from "@/domains/react-flow-canvas/explorer/explorer-tree";
-import { usePageExplorerTree } from "@/domains/react-flow-canvas/components/explorer/handlers/usePageExplorerTree";
+} from '@workspace/ui/components/ui/tooltip';
+import { Search, Plus } from 'lucide-react';
+import ExplorerTree from '@/domains/react-flow-canvas/explorer/explorer-tree';
+import { usePageExplorerTree } from '@/domains/react-flow-canvas/components/explorer/handlers/usePageExplorerTree';
 
 export function PageExplorerTab() {
   const commands = useCanvasPageCommandsContext();
-  const [searchValue, setSearchValue] = React.useState("");
+  const [searchValue, setSearchValue] = React.useState('');
 
   const {
     pageBlocks,
@@ -34,7 +34,7 @@ export function PageExplorerTab() {
   // 검색 필터링
   const filteredBlocks = React.useMemo(() => {
     if (!searchValue) return pageBlocks;
-    return pageBlocks.filter((block) =>
+    return pageBlocks.filter(block =>
       block.title.toLowerCase().includes(searchValue.toLowerCase())
     );
   }, [pageBlocks, searchValue]);
@@ -48,7 +48,7 @@ export function PageExplorerTab() {
             <Input
               className="peer ps-8 h-7 md:text-[12px] placeholder:text-[12px] placeholder:text-muted-foreground/70 focus:border-muted-foreground/30 bg-transparent border-border"
               value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
+              onChange={e => setSearchValue(e.target.value)}
               type="search"
               placeholder="Search pages..."
             />

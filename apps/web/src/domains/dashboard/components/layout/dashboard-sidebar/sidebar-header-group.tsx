@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,14 +8,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@workspace/ui/components/ui/dialog";
+} from '@workspace/ui/components/ui/dialog';
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@workspace/ui/components/ui/sidebar";
-import { Home, Inbox, Search } from "lucide-react";
-import { useOrganizationContext } from "@/domains/dashboard/context/OrganizationCotext";
+} from '@workspace/ui/components/ui/sidebar';
+import { Home, Inbox, Search } from 'lucide-react';
+import { useOrganizationContext } from '@/domains/dashboard/context/OrganizationCotext';
 
 export function SidebarHeaderGroup() {
   const { activeOrganization } = useOrganizationContext();

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useEffect } from "react";
-import { AssistiveTreeDescription, useTree } from "@headless-tree/react";
+import React, { useEffect } from 'react';
+import { AssistiveTreeDescription, useTree } from '@headless-tree/react';
 import {
   createOnDropHandler,
   dragAndDropFeature,
@@ -9,11 +9,11 @@ import {
   keyboardDragAndDropFeature,
   selectionFeature,
   syncDataLoaderFeature,
-} from "@headless-tree/core";
-import { Tree, TreeDragLine } from "@workspace/ui/components/ui/tree";
-import type { ExplorerTreeItem } from "../types";
-import { useExplorerTreeContext } from "../explorer-tree-context";
-import { TreeItemRenderer } from "./tree-item-renderer";
+} from '@headless-tree/core';
+import { Tree, TreeDragLine } from '@workspace/ui/components/ui/tree';
+import type { ExplorerTreeItem } from '../types';
+import { useExplorerTreeContext } from '../explorer-tree-context';
+import { TreeItemRenderer } from './tree-item-renderer';
 
 interface TreeContainerProps {}
 
@@ -38,28 +38,28 @@ function TreeContainerInner({}: TreeContainerProps) {
 
   const tree = useTree<ExplorerTreeItem>({
     initialState: {
-      expandedItems: expandedAll ? Object.keys(treeData) : ["root"],
+      expandedItems: expandedAll ? Object.keys(treeData) : ['root'],
       selectedItems: selectedId ? [selectedId] : [],
     },
     indent,
-    rootItemId: "root",
-    getItemName: (item) => item.getItemData()?.name ?? "Unknown",
+    rootItemId: 'root',
+    getItemName: item => item.getItemData()?.name ?? 'Unknown',
     isItemFolder: () => true,
     canReorder: true,
     canDrop: (dragItems, target) => {
       const targetId = target.item.getId();
-      const dragIds = dragItems.map((it) => it.getId());
+      const dragIds = dragItems.map(it => it.getId());
       return canDrop ? canDrop(dragIds, targetId) : Boolean(targetId);
     },
     onDrop: createOnDropHandler((parentItem, newChildrenIds) => {
       const parentId = parentItem.getId();
       newChildrenIds.forEach((childId, index) => {
-        if (childId === "root") return;
-        const newParentId = parentId === "root" ? null : parentId;
+        if (childId === 'root') return;
+        const newParentId = parentId === 'root' ? null : parentId;
 
         const movedItem = idToItem.get(childId);
         const siblings = sourceData.filter(
-          (item) => getParentId(item) === newParentId
+          item => getParentId(item) === newParentId
         );
         const newOrder = calculateNewOrder(index, siblings);
 
@@ -102,7 +102,7 @@ function TreeContainerInner({}: TreeContainerProps) {
     <Tree className="relative" indent={indent} tree={tree}>
       <AssistiveTreeDescription tree={tree} />
       <TreeDragLine />
-      {treeItems.map((item) => (
+      {treeItems.map(item => (
         <TreeItemRenderer key={item.getId()} item={item} />
       ))}
     </Tree>

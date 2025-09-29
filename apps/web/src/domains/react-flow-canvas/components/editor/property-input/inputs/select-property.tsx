@@ -1,50 +1,50 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { Node } from "@xyflow/react";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Badge } from "@workspace/ui/components/ui/badge";
+import React, { useState } from 'react';
+import { Node } from '@xyflow/react';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Badge } from '@workspace/ui/components/ui/badge';
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@workspace/ui/components/ui/select";
+} from '@workspace/ui/components/ui/select';
 import {
   ShapePolicy,
   type ColorKey,
-} from "@/domains/blocks/policy/shape-policy";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
+} from '@/domains/blocks/policy/shape-policy';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
 
 const getBadgeStyle = (color: string) => {
   // Use the policy for color-based styling
   if (
     Object.values(ShapePolicy.getColorOptions()).some(
-      (opt) => opt.value === color
+      opt => opt.value === color
     )
   ) {
     return ShapePolicy.getBadgeStyle(color as ColorKey);
   }
   // Fallback for non-policy colors
-  return "bg-gray-100 border-gray-200 text-gray-700";
+  return 'bg-gray-100 border-gray-200 text-gray-700';
 };
 
 const getBadgeStyleObject = (color: string) => {
   // Use the policy for color-based styling
   if (
     Object.values(ShapePolicy.getColorOptions()).some(
-      (opt) => opt.value === color
+      opt => opt.value === color
     )
   ) {
     return ShapePolicy.getBadgeStyleObject(color as ColorKey);
   }
   // Fallback for non-policy colors
   return {
-    backgroundColor: "#F3F4F6",
-    borderColor: "#E5E7EB",
-    color: "#374151",
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+    color: '#374151',
   };
 };
 
@@ -60,13 +60,13 @@ export function SelectProperty({
   const { updateField } = useNodeFieldUpdate();
   const [isEditing, setIsEditing] = useState(false);
 
-  const value = data || "";
+  const value = data || '';
   const options = (field.options || []) as Array<{
     label: string;
     value: string;
     color?: string;
   }>;
-  const currentOption = options.find((opt) => opt.value === value);
+  const currentOption = options.find(opt => opt.value === value);
 
   const handleLabelClick = () => {
     setIsEditing(true);
@@ -98,23 +98,23 @@ export function SelectProperty({
             {currentOption ? (
               <Badge
                 className="gap-1.5 h-5"
-                style={getBadgeStyleObject(currentOption.color || "gray")}
+                style={getBadgeStyleObject(currentOption.color || 'gray')}
               >
                 <span className="text-xs">{currentOption.label}</span>
               </Badge>
             ) : (
               <span className="text-xs text-muted-foreground">
-                {field.placeholder || "Select option"}
+                {field.placeholder || 'Select option'}
               </span>
             )}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {options.map((option) => (
+          {options.map(option => (
             <SelectItem key={option.value} value={option.value}>
               <Badge
                 className="gap-1.5 h-5"
-                style={getBadgeStyleObject(option.color || "gray")}
+                style={getBadgeStyleObject(option.color || 'gray')}
               >
                 <span className="text-xs">{option.label}</span>
               </Badge>
@@ -134,13 +134,13 @@ export function SelectProperty({
       {currentOption ? (
         <Badge
           className="gap-1.5 h-5"
-          style={getBadgeStyleObject(currentOption.color || "gray")}
+          style={getBadgeStyleObject(currentOption.color || 'gray')}
         >
           <span className="text-xs">{currentOption.label}</span>
         </Badge>
       ) : (
         <span className="text-xs text-muted-foreground">
-          {field.placeholder || "Click to select"}
+          {field.placeholder || 'Click to select'}
         </span>
       )}
     </Button>

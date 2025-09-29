@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useReactFlow } from "@xyflow/react";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
-import { useReactFlowCommandsContext } from "@/domains/react-flow-canvas/contexts/ReactFlowCommandsContext";
-import { getBlockAdditionPolicy } from "@/domains/react-flow-canvas/policy/node-addition-policy";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Card } from "@workspace/ui/components/ui/card";
-import { Badge } from "@workspace/ui/components/ui/badge";
-import { Input } from "@workspace/ui/components/ui/input";
-import { ChevronsRight, Blocks, Search, Plus, Component } from "lucide-react";
-import { DynamicIcon } from "lucide-react/dynamic";
-import { BlockOption } from "@/domains/react-flow-canvas/policy/node-addition-policy";
+import React, { useState, useEffect } from 'react';
+import { useReactFlow } from '@xyflow/react';
+import { useCanvasData } from '@/domains/canvas/contexts/CanvasDataContext';
+import { usePanel } from '@/domains/react-flow-canvas/contexts/PanelContext';
+import { useReactFlowCommandsContext } from '@/domains/react-flow-canvas/contexts/ReactFlowCommandsContext';
+import { getBlockAdditionPolicy } from '@/domains/react-flow-canvas/policy/node-addition-policy';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Card } from '@workspace/ui/components/ui/card';
+import { Badge } from '@workspace/ui/components/ui/badge';
+import { Input } from '@workspace/ui/components/ui/input';
+import { ChevronsRight, Blocks, Search, Plus, Component } from 'lucide-react';
+import { DynamicIcon } from 'lucide-react/dynamic';
+import { BlockOption } from '@/domains/react-flow-canvas/policy/node-addition-policy';
 
 export function BlockInsertPanel() {
   const data = useCanvasData();
@@ -26,7 +26,7 @@ export function BlockInsertPanel() {
 
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Handle block insertion
   const handleBlockInsert = async (blockOption: BlockOption) => {
@@ -39,7 +39,7 @@ export function BlockInsertPanel() {
         y: lastNodePosition.y + 200,
       };
     }
-    
+
     const pageId = selectedPageBlock?.id as string | undefined;
     if (!pageId) return;
 
@@ -57,11 +57,10 @@ export function BlockInsertPanel() {
         blockOption.kind,
         newNodePosition
       );
-      console.log("createNode res", res);
+      console.log('createNode res', res);
     }
     closeBlockInsertPanel();
   };
-
 
   useEffect(() => {
     if (showBlockInsertPanel) {
@@ -83,23 +82,21 @@ export function BlockInsertPanel() {
     }
   }, [showBlockInsertPanel]);
 
-
   // ESC 키로 패널 닫기
   useEffect(() => {
     if (!showBlockInsertPanel) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
         closeBlockInsertPanel();
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown, true);
-    return () => document.removeEventListener("keydown", handleKeyDown, true);
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [showBlockInsertPanel, closeBlockInsertPanel]);
-
 
   if (!shouldRender) return null;
 
@@ -110,17 +107,19 @@ export function BlockInsertPanel() {
 
   // Filter blocks based on search query
   const filteredBlocks = availableBlockOptions.filter(
-    (blockOption) =>
+    blockOption =>
       blockOption.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (blockOption.description &&
-        blockOption.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        blockOption.description
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()))
   );
 
   // Group blocks by category
   const groupedBlocks = filteredBlocks.reduce(
     (acc, blockOption) => {
       const category = blockOption.isComponent
-        ? "Components"
+        ? 'Components'
         : getBlockCategory(blockOption.kind);
       if (!acc[category]) {
         acc[category] = [];
@@ -134,11 +133,13 @@ export function BlockInsertPanel() {
   return (
     <div
       className={`absolute bottom-0 right-0 z-50 w-[400px] h-[90%] bg-background/95 backdrop-blur-md border-l border-t border-border shadow-2xl rounded-tl-lg transition-all duration-300 ease-out ${
-        isAnimating ? "translate-x-0 opacity-100 blur-none" : "translate-x-full opacity-0 blur-md"
+        isAnimating
+          ? 'translate-x-0 opacity-100 blur-none'
+          : 'translate-x-full opacity-0 blur-md'
       }`}
       style={{
         transition:
-          "opacity 200ms ease-out-in, transform 200ms ease-out-in, filter 200ms ease-out-in",
+          'opacity 200ms ease-out-in, transform 200ms ease-out-in, filter 200ms ease-out-in',
       }}
     >
       <div className="flex h-full flex-col">
@@ -171,7 +172,7 @@ export function BlockInsertPanel() {
               <Input
                 placeholder="Search blocks..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 className="pl-9 h-9 text-sm bg-muted/50 border-border/50 focus:bg-background"
               />
             </div>
@@ -191,18 +192,18 @@ export function BlockInsertPanel() {
                 </h3>
               </div>
               <div className="grid grid-cols-1 gap-2">
-                {blockOptions.map((blockOption) => (
+                {blockOptions.map(blockOption => (
                   <Card
                     key={blockOption.id}
                     className="group cursor-pointer border border-border/50 hover:border-border hover:bg-muted/30 transition-all duration-200 p-3 hover:shadow-sm"
                     onClick={() => handleBlockInsert(blockOption)}
                     draggable
-                    onDragStart={(e) => {
+                    onDragStart={e => {
                       e.dataTransfer.setData(
-                        "application/x-canvas-kind",
+                        'application/x-canvas-kind',
                         blockOption.kind
                       );
-                      e.dataTransfer.effectAllowed = "move";
+                      e.dataTransfer.effectAllowed = 'move';
                     }}
                   >
                     <div className="flex items-start gap-3">
@@ -210,14 +211,19 @@ export function BlockInsertPanel() {
                       <div
                         className={`flex-shrink-0 w-8 h-8 rounded-md ${
                           blockOption.isComponent
-                            ? "bg-gradient-to-br from-purple-100 to-purple-50 border border-purple-200"
-                            : "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+                            ? 'bg-gradient-to-br from-purple-100 to-purple-50 border border-purple-200'
+                            : 'bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20'
                         } flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}
                       >
                         {blockOption.isComponent ? (
                           <Component className="h-4 w-4 text-purple-600" />
                         ) : (
-                          <DynamicIcon name={(blockOption.icon_name || "HelpCircle") as any} className="h-4 w-4 text-primary" />
+                          <DynamicIcon
+                            name={
+                              (blockOption.icon_name || 'HelpCircle') as any
+                            }
+                            className="h-4 w-4 text-primary"
+                          />
                         )}
                       </div>
 
@@ -279,24 +285,22 @@ export function BlockInsertPanel() {
 // Helper function to get block category
 function getBlockCategory(kind: string): string {
   switch (kind) {
-    case "text":
-    case "basic_text":
-    case "shape":
-      return "Basic Elements";
-    case "image":
-    case "video":
-    case "youtube":
-      return "Media";
-    case "webview":
-    case "twitter_preview":
-      return "Embedded Content";
-    case "math_formula":
-      return "Advanced";
-    case "file":
-      return "Files";
+    case 'text':
+    case 'basic_text':
+    case 'shape':
+      return 'Basic Elements';
+    case 'image':
+    case 'video':
+    case 'youtube':
+      return 'Media';
+    case 'webview':
+    case 'twitter_preview':
+      return 'Embedded Content';
+    case 'math_formula':
+      return 'Advanced';
+    case 'file':
+      return 'Files';
     default:
-      return "Other";
+      return 'Other';
   }
 }
-
-

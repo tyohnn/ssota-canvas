@@ -1,4 +1,4 @@
-import { Skeleton } from "@workspace/ui/components/ui/skeleton";
+import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 export function OrgWorkspacesSkeleton() {
   return (
     <>

@@ -1,11 +1,16 @@
-"use client";
+'use client';
 
-import React from "react";
-import type { Node } from "@xyflow/react";
-import { useReactFlow } from "@xyflow/react";
-import { useControlState, useControlCommands } from "../contexts/ControlContext";
-import { useReactFlowSelectionState, useReactFlowSelectionCommands } from "../contexts/ReactFlowSelectionContext";
-
+import React from 'react';
+import type { Node } from '@xyflow/react';
+import { useReactFlow } from '@xyflow/react';
+import {
+  useControlState,
+  useControlCommands,
+} from '../contexts/ControlContext';
+import {
+  useReactFlowSelectionState,
+  useReactFlowSelectionCommands,
+} from '../contexts/ReactFlowSelectionContext';
 
 export interface UseReactFlowCanvasControlResult {
   // Tool mode state
@@ -30,7 +35,7 @@ export interface UseReactFlowCanvasControlResult {
 
   // React Flow event handlers
   onMove: (event: any, viewport: any) => void;
-  
+
   // 노드 포커싱 함수
   focusOnNode: (nodeId: string) => void;
 }
@@ -44,10 +49,10 @@ export function useReactFlowCanvasControl(): UseReactFlowCanvasControlResult {
   const { selectNodes } = useReactFlowSelectionCommands();
 
   // React Flow interaction flags based on tool mode and config
-  const panOnDrag = toolMode === "hand" ? [0, 1, 2] : [1, 2]; // Hand 모드일 때 모든 마우스 버튼으로 pan 가능
-  const nodesDraggable = toolMode !== "hand"; // Hand 모드일 때 노드 드래그 비활성화
-  const elementsSelectable = toolMode !== "hand"; // Hand 모드일 때 선택 비활성화
-  const selectionOnDrag = toolMode === "select"; // Select 모드일 때만 드래그 선택 활성화
+  const panOnDrag = toolMode === 'hand' ? [0, 1, 2] : [1, 2]; // Hand 모드일 때 모든 마우스 버튼으로 pan 가능
+  const nodesDraggable = toolMode !== 'hand'; // Hand 모드일 때 노드 드래그 비활성화
+  const elementsSelectable = toolMode !== 'hand'; // Hand 모드일 때 선택 비활성화
+  const selectionOnDrag = toolMode === 'select'; // Select 모드일 때만 드래그 선택 활성화
 
   // Fit to view handlers
   const handleFitToView = React.useCallback(() => {
@@ -78,7 +83,7 @@ export function useReactFlowCanvasControl(): UseReactFlowCanvasControlResult {
         const nodeHeight = (node.data as any)?.height || 100;
         const centerX = node.position.x + nodeWidth / 2 + 350;
         const centerY = node.position.y + nodeHeight / 2 + 100;
-        
+
         // setCenter를 사용하여 노드 중심으로 뷰포트 이동
         reactFlow.setCenter(centerX, centerY, { duration: 800, zoom: 0.7 });
       }
@@ -107,22 +112,22 @@ export function useReactFlowCanvasControl(): UseReactFlowCanvasControlResult {
       }
 
       switch (event.code) {
-        case "KeyV":
+        case 'KeyV':
           event.preventDefault();
           event.stopPropagation();
-          setToolMode("select");
+          setToolMode('select');
           break;
-        case "KeyH":
+        case 'KeyH':
           event.preventDefault();
           event.stopPropagation();
-          setToolMode("hand");
+          setToolMode('hand');
           break;
-        case "KeyF":
+        case 'KeyF':
           event.preventDefault();
           event.stopPropagation();
           handleFitToView();
           break;
-        case "Escape":
+        case 'Escape':
           event.preventDefault();
           event.stopPropagation();
           if (selectedNodeIds.length > 0) {
@@ -139,23 +144,17 @@ export function useReactFlowCanvasControl(): UseReactFlowCanvasControlResult {
     };
 
     // Use capture phase to ensure we get the event before React Flow
-    document.addEventListener("keydown", handleKeyDown, true);
-    document.addEventListener("keyup", handleKeyUp, true);
+    document.addEventListener('keydown', handleKeyDown, true);
+    document.addEventListener('keyup', handleKeyUp, true);
     return () => {
-      document.removeEventListener("keydown", handleKeyDown, true);
-      document.removeEventListener("keyup", handleKeyUp, true);
+      document.removeEventListener('keydown', handleKeyDown, true);
+      document.removeEventListener('keyup', handleKeyUp, true);
     };
-  }, [
-    handleFitToView,
-    selectedNodeIds,
-    selectNodes,
-    setToolMode,
-  ]);
+  }, [handleFitToView, selectedNodeIds, selectNodes, setToolMode]);
 
   const toggleMiniMap = React.useCallback(() => {
     setShowMiniMap(!showMiniMap);
   }, [showMiniMap, setShowMiniMap]);
-
 
   const onMove = React.useCallback((event: any, viewport: any) => {
     // 뷰포트 이동 이벤트 처리 (필요시 추가)
@@ -184,7 +183,7 @@ export function useReactFlowCanvasControl(): UseReactFlowCanvasControlResult {
 
     // React Flow event handlers
     onMove,
-    
+
     // 노드 포커싱 함수
     focusOnNode,
   };

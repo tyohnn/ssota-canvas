@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
-import { ReactFlowProvider } from "@xyflow/react";
-import { ReactFlowSelectionProvider } from "../contexts/ReactFlowSelectionContext";
-import { PanelProvider } from "../contexts/PanelContext";
-import { ControlProvider } from "../contexts/ControlContext";
+import React from 'react';
+import { ReactFlowProvider } from '@xyflow/react';
+import { ReactFlowSelectionProvider } from '../contexts/ReactFlowSelectionContext';
+import { PanelProvider } from '../contexts/PanelContext';
+import { ControlProvider } from '../contexts/ControlContext';
 
 interface RootProviderProps {
   children: React.ReactNode;
@@ -19,9 +19,7 @@ export function RootProvider({ children }: RootProviderProps) {
     <ReactFlowProvider>
       <ControlProvider>
         <ReactFlowSelectionProvider>
-          <PanelProvider>
-            {children}
-          </PanelProvider>
+          <PanelProvider>{children}</PanelProvider>
         </ReactFlowSelectionProvider>
       </ControlProvider>
     </ReactFlowProvider>

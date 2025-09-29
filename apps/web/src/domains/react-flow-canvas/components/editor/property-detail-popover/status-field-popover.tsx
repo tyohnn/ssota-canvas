@@ -1,48 +1,45 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
-import { Input } from "@workspace/ui/components/ui/input";
-import { Label } from "@workspace/ui/components/ui/label";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Badge } from "@workspace/ui/components/ui/badge";
-import { Separator } from "@workspace/ui/components/ui/separator";
+import { useState, useEffect, useRef } from 'react';
+import { Input } from '@workspace/ui/components/ui/input';
+import { Label } from '@workspace/ui/components/ui/label';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Badge } from '@workspace/ui/components/ui/badge';
+import { Separator } from '@workspace/ui/components/ui/separator';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@workspace/ui/components/ui/popover";
-import { Plus, Trash2, Copy, Edit3, Check } from "lucide-react";
-import {
-  SchemaField,
-  SchemaFieldOption,
-} from "@/domains/blocks/types";
-import { createShortId } from "@/lib/regex";
-import { useSchemaFieldEditor } from "./useSchemaFieldEditor";
+} from '@workspace/ui/components/ui/popover';
+import { Plus, Trash2, Copy, Edit3, Check } from 'lucide-react';
+import { SchemaField, SchemaFieldOption } from '@/domains/blocks/types';
+import { createShortId } from '@/lib/regex';
+import { useSchemaFieldEditor } from './useSchemaFieldEditor';
 import {
   ShapePolicy,
   type ColorKey,
-} from "@/domains/blocks/policy/shape-policy";
-import { Node } from "@xyflow/react";
+} from '@/domains/blocks/policy/shape-policy';
+import { Node } from '@xyflow/react';
 
 // Status groups with default options
 const statusGroups = {
   todo: {
-    label: "To Do",
-    color: "bg-gray-100 border-gray-300 text-gray-900",
-    dotColor: "bg-gray-500",
-    defaultOptions: [{ label: "Draft", value: "draft" }],
+    label: 'To Do',
+    color: 'bg-gray-100 border-gray-300 text-gray-900',
+    dotColor: 'bg-gray-500',
+    defaultOptions: [{ label: 'Draft', value: 'draft' }],
   },
   inProgress: {
-    label: "In Progress",
-    color: "bg-blue-100 border-blue-300 text-blue-900",
-    dotColor: "bg-blue-500",
-    defaultOptions: [{ label: "In Progress", value: "in_progress" }],
+    label: 'In Progress',
+    color: 'bg-blue-100 border-blue-300 text-blue-900',
+    dotColor: 'bg-blue-500',
+    defaultOptions: [{ label: 'In Progress', value: 'in_progress' }],
   },
   done: {
-    label: "Complete",
-    color: "bg-emerald-100 border-emerald-300 text-emerald-900",
-    dotColor: "bg-emerald-500",
-    defaultOptions: [{ label: "Complete", value: "complete" }],
+    label: 'Complete',
+    color: 'bg-emerald-100 border-emerald-300 text-emerald-900',
+    dotColor: 'bg-emerald-500',
+    defaultOptions: [{ label: 'Complete', value: 'complete' }],
   },
 };
 
@@ -65,7 +62,7 @@ function OptionEditPopoverContent({
   onDuplicate: (option: SchemaFieldOption) => void;
 }) {
   const [label, setLabel] = useState(option.label);
-  const [color, setColor] = useState(option.color || "gray");
+  const [color, setColor] = useState(option.color || 'gray');
 
   // Auto-save label changes
   useEffect(() => {
@@ -87,32 +84,44 @@ function OptionEditPopoverContent({
     <div className="w-full space-y-4">
       {/* Label Input */}
       <div className="space-y-2">
-        <Label className="text-xs font-medium text-muted-foreground mb-1 select-none" htmlFor={name}>Option Label</Label>
+        <Label
+          className="text-xs font-medium text-muted-foreground mb-1 select-none"
+          htmlFor={name}
+        >
+          Option Label
+        </Label>
         <Input
           name={name}
           value={label}
-          onChange={(e) => setLabel(e.target.value)}
+          onChange={e => setLabel(e.target.value)}
           placeholder="Enter option label"
           className="h-7"
         />
       </div>
 
-      <Separator className="bg-border/50"/>
+      <Separator className="bg-border/50" />
 
       {/* Color Selection */}
       <div className="space-y-2">
-        <Label className="text-xs font-medium text-muted-foreground mb-1 select-none" htmlFor={name}>Color</Label>
+        <Label
+          className="text-xs font-medium text-muted-foreground mb-1 select-none"
+          htmlFor={name}
+        >
+          Color
+        </Label>
         <div className="space-y-0.5">
-          {colorOptions.map((colorOpt) => {
+          {colorOptions.map(colorOpt => {
             const isSelected = color === colorOpt.value;
-            const colorDef = ShapePolicy.getColorDefinition(colorOpt.value as ColorKey);
+            const colorDef = ShapePolicy.getColorDefinition(
+              colorOpt.value as ColorKey
+            );
             return (
               <Button
                 key={colorOpt.value}
                 variant="ghost"
                 size="sm"
                 className={`w-full justify-start h-8 px-2 hover:bg-muted/50 transition-all duration-200 ${
-                  isSelected ? "bg-accent/50" : ""
+                  isSelected ? 'bg-accent/50' : ''
                 }`}
                 onClick={() => setColor(colorOpt.value)}
               >
@@ -123,7 +132,9 @@ function OptionEditPopoverContent({
                     border: `1px solid ${colorDef.badge.border}`,
                   }}
                 />
-                <span className="text-xs flex-1 text-left">{colorOpt.label}</span>
+                <span className="text-xs flex-1 text-left">
+                  {colorOpt.label}
+                </span>
                 {isSelected && (
                   <Check className="w-3 h-3 text-primary ml-auto" />
                 )}
@@ -133,7 +144,7 @@ function OptionEditPopoverContent({
         </div>
       </div>
 
-      <Separator className="bg-border/50"/>
+      <Separator className="bg-border/50" />
 
       {/* Actions */}
       <div className="flex gap-2">
@@ -174,13 +185,17 @@ export function StatusFieldPopover({
   const { saveLabel, deleteField, duplicateField, commitOptions } =
     useSchemaFieldEditor({ node, field });
 
-  const [label, setLabel] = useState(field.label || "");
+  const [label, setLabel] = useState(field.label || '');
   const [options, setOptions] = useState<SchemaFieldOption[]>(
     field.options || []
   );
-  const [editingOptionIndex, setEditingOptionIndex] = useState<number | null>(null);
-  const [addingOptionGroup, setAddingOptionGroup] = useState<string | null>(null);
-  const [newOptionLabel, setNewOptionLabel] = useState("");
+  const [editingOptionIndex, setEditingOptionIndex] = useState<number | null>(
+    null
+  );
+  const [addingOptionGroup, setAddingOptionGroup] = useState<string | null>(
+    null
+  );
+  const [newOptionLabel, setNewOptionLabel] = useState('');
   const inputRef = useRef<HTMLDivElement>(null);
 
   // Auto-save label changes
@@ -193,9 +208,12 @@ export function StatusFieldPopover({
   // Handle clicking outside input area to cancel
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(event.target as Element)) {
+      if (
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Element)
+      ) {
         setAddingOptionGroup(null);
-        setNewOptionLabel("");
+        setNewOptionLabel('');
       }
     };
 
@@ -218,15 +236,15 @@ export function StatusFieldPopover({
 
   const addOption = (group: string) => {
     setAddingOptionGroup(group);
-    setNewOptionLabel("");
+    setNewOptionLabel('');
   };
 
   const handleNewOptionInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && newOptionLabel.trim() && addingOptionGroup) {
+    if (e.key === 'Enter' && newOptionLabel.trim() && addingOptionGroup) {
       createNewOption(addingOptionGroup);
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setAddingOptionGroup(null);
-      setNewOptionLabel("");
+      setNewOptionLabel('');
     }
   };
 
@@ -234,14 +252,14 @@ export function StatusFieldPopover({
     const newOption: SchemaFieldOption = {
       label: newOptionLabel,
       value: createShortId(),
-      color: "gray",
+      color: 'gray',
       group: group,
     };
     const newOptions = [...options, newOption];
     setOptions(newOptions);
     commitOptions(newOptions);
     setAddingOptionGroup(null);
-    setNewOptionLabel("");
+    setNewOptionLabel('');
   };
 
   const duplicateOption = (optionToDuplicate: SchemaFieldOption) => {
@@ -272,37 +290,46 @@ export function StatusFieldPopover({
 
   // Group options by their group property
   const groupedOptions = {
-    todo: options.filter(opt => opt.group === "todo"),
-    inProgress: options.filter(opt => opt.group === "inProgress"),
-    done: options.filter(opt => opt.group === "done"),
+    todo: options.filter(opt => opt.group === 'todo'),
+    inProgress: options.filter(opt => opt.group === 'inProgress'),
+    done: options.filter(opt => opt.group === 'done'),
   };
 
   return (
     <div className="p-4 space-y-4">
       <div>
-        <Label className="text-xs font-medium text-muted-foreground mb-1 select-none" htmlFor={field.id}>Label</Label>
+        <Label
+          className="text-xs font-medium text-muted-foreground mb-1 select-none"
+          htmlFor={field.id}
+        >
+          Label
+        </Label>
         <Input
           name={field.id}
           value={label}
-          onChange={(e) => setLabel(e.target.value)}
+          onChange={e => setLabel(e.target.value)}
           placeholder="Enter field label"
           className="h-7"
         />
       </div>
 
-      <Separator className="bg-border/50"/>
+      <Separator className="bg-border/50" />
 
       <div className="space-y-2">
-        <Label className="text-xs font-medium text-muted-foreground mb-1 select-none">Status Options</Label>
-        
+        <Label className="text-xs font-medium text-muted-foreground mb-1 select-none">
+          Status Options
+        </Label>
+
         {/* Todo Group */}
         <div>
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium text-muted-foreground">{statusGroups.todo.label}</Label>
+            <Label className="text-xs font-medium text-muted-foreground">
+              {statusGroups.todo.label}
+            </Label>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => addOption("todo")}
+              onClick={() => addOption('todo')}
               className="p-0 hover:bg-accent/50 h-6 w-6"
             >
               <Plus className="!h-3 !w-3 !text-muted-foreground" />
@@ -310,11 +337,11 @@ export function StatusFieldPopover({
           </div>
 
           {/* New Option Input for Todo */}
-          {addingOptionGroup === "todo" && (
+          {addingOptionGroup === 'todo' && (
             <div ref={inputRef} className="space-y-2">
               <Input
                 value={newOptionLabel}
-                onChange={(e) => setNewOptionLabel(e.target.value)}
+                onChange={e => setNewOptionLabel(e.target.value)}
                 placeholder="Enter option label and press Enter"
                 className="h-7"
                 onKeyDown={handleNewOptionInput}
@@ -323,7 +350,7 @@ export function StatusFieldPopover({
             </div>
           )}
 
-                     {/* Todo Options */}
+          {/* Todo Options */}
           <div className="space-y-1">
             {groupedOptions.todo.map((option, index) => {
               const actualIndex = options.findIndex(opt => opt === option);
@@ -331,18 +358,24 @@ export function StatusFieldPopover({
                 <Popover
                   key={`todo-${index}`}
                   open={editingOptionIndex === actualIndex}
-                  onOpenChange={(open) => open ? setEditingOptionIndex(actualIndex) : setEditingOptionIndex(null)}
+                  onOpenChange={open =>
+                    open
+                      ? setEditingOptionIndex(actualIndex)
+                      : setEditingOptionIndex(null)
+                  }
                 >
                   <PopoverTrigger asChild>
-                    <div className={`flex items-center justify-between p-1.5 rounded-md transition-colors cursor-pointer group ${
-                      editingOptionIndex === actualIndex 
-                        ? "bg-accent/50" 
-                        : "hover:bg-muted/50"
-                    }`}>
-                      <Badge 
-                        variant="secondary" 
+                    <div
+                      className={`flex items-center justify-between p-1.5 rounded-md transition-colors cursor-pointer group ${
+                        editingOptionIndex === actualIndex
+                          ? 'bg-accent/50'
+                          : 'hover:bg-muted/50'
+                      }`}
+                    >
+                      <Badge
+                        variant="secondary"
                         className={`text-xs h-5 px-2 py-0.5 ${
-                          option.color 
+                          option.color
                             ? `${ShapePolicy.getTailwindBgColor(option.color as ColorKey)} ${ShapePolicy.getTailwindBorderColor(option.color as ColorKey)} ${ShapePolicy.getTailwindTextColor(option.color as ColorKey)}`
                             : ''
                         }`}
@@ -352,11 +385,15 @@ export function StatusFieldPopover({
                       <Edit3 className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </PopoverTrigger>
-                  <PopoverContent align="start" side="right" className="w-56 p-2">
+                  <PopoverContent
+                    align="start"
+                    side="right"
+                    className="w-56 p-2"
+                  >
                     <OptionEditPopoverContent
-                      name={field.id + "-option-" + actualIndex}
+                      name={field.id + '-option-' + actualIndex}
                       option={option}
-                      onUpdate={(updates) => updateOption(actualIndex, updates)}
+                      onUpdate={updates => updateOption(actualIndex, updates)}
                       onDelete={() => removeOption(actualIndex)}
                       onClose={() => setEditingOptionIndex(null)}
                       onDuplicate={duplicateOption}
@@ -368,14 +405,16 @@ export function StatusFieldPopover({
           </div>
         </div>
 
-         {/* In Progress Group */}
+        {/* In Progress Group */}
         <div>
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium text-muted-foreground">{statusGroups.inProgress.label}</Label>
+            <Label className="text-xs font-medium text-muted-foreground">
+              {statusGroups.inProgress.label}
+            </Label>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => addOption("inProgress")}
+              onClick={() => addOption('inProgress')}
               className="p-0 hover:bg-accent/50 h-6 w-6"
             >
               <Plus className="!h-3 !w-3 !text-muted-foreground" />
@@ -383,11 +422,11 @@ export function StatusFieldPopover({
           </div>
 
           {/* New Option Input for In Progress */}
-          {addingOptionGroup === "inProgress" && (
+          {addingOptionGroup === 'inProgress' && (
             <div ref={inputRef} className="space-y-2">
               <Input
                 value={newOptionLabel}
-                onChange={(e) => setNewOptionLabel(e.target.value)}
+                onChange={e => setNewOptionLabel(e.target.value)}
                 placeholder="Enter option label and press Enter"
                 className="h-7"
                 onKeyDown={handleNewOptionInput}
@@ -404,18 +443,24 @@ export function StatusFieldPopover({
                 <Popover
                   key={`inProgress-${index}`}
                   open={editingOptionIndex === actualIndex}
-                  onOpenChange={(open) => open ? setEditingOptionIndex(actualIndex) : setEditingOptionIndex(null)}
+                  onOpenChange={open =>
+                    open
+                      ? setEditingOptionIndex(actualIndex)
+                      : setEditingOptionIndex(null)
+                  }
                 >
                   <PopoverTrigger asChild>
-                    <div className={`flex items-center justify-between p-1.5 rounded-md transition-colors cursor-pointer group ${
-                      editingOptionIndex === actualIndex 
-                        ? "bg-accent/50" 
-                        : "hover:bg-muted/50"
-                    }`}>
-                      <Badge 
-                        variant="secondary" 
+                    <div
+                      className={`flex items-center justify-between p-1.5 rounded-md transition-colors cursor-pointer group ${
+                        editingOptionIndex === actualIndex
+                          ? 'bg-accent/50'
+                          : 'hover:bg-muted/50'
+                      }`}
+                    >
+                      <Badge
+                        variant="secondary"
                         className={`text-xs h-5 px-2 py-0.5 ${
-                          option.color 
+                          option.color
                             ? `${ShapePolicy.getTailwindBgColor(option.color as ColorKey)} ${ShapePolicy.getTailwindBorderColor(option.color as ColorKey)} ${ShapePolicy.getTailwindTextColor(option.color as ColorKey)}`
                             : ''
                         }`}
@@ -425,11 +470,15 @@ export function StatusFieldPopover({
                       <Edit3 className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </PopoverTrigger>
-                  <PopoverContent align="start" side="right" className="w-56 p-2">
+                  <PopoverContent
+                    align="start"
+                    side="right"
+                    className="w-56 p-2"
+                  >
                     <OptionEditPopoverContent
-                      name={field.id + "-option-" + actualIndex}
+                      name={field.id + '-option-' + actualIndex}
                       option={option}
-                      onUpdate={(updates) => updateOption(actualIndex, updates)}
+                      onUpdate={updates => updateOption(actualIndex, updates)}
                       onDelete={() => removeOption(actualIndex)}
                       onClose={() => setEditingOptionIndex(null)}
                       onDuplicate={duplicateOption}
@@ -441,14 +490,16 @@ export function StatusFieldPopover({
           </div>
         </div>
 
-         {/* Done Group */}
+        {/* Done Group */}
         <div>
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium text-muted-foreground">{statusGroups.done.label}</Label>
+            <Label className="text-xs font-medium text-muted-foreground">
+              {statusGroups.done.label}
+            </Label>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => addOption("done")}
+              onClick={() => addOption('done')}
               className="p-0 hover:bg-accent/50 h-6 w-6"
             >
               <Plus className="!h-3 !w-3 !text-muted-foreground" />
@@ -456,11 +507,11 @@ export function StatusFieldPopover({
           </div>
 
           {/* New Option Input for Done */}
-          {addingOptionGroup === "done" && (
+          {addingOptionGroup === 'done' && (
             <div ref={inputRef} className="space-y-2">
               <Input
                 value={newOptionLabel}
-                onChange={(e) => setNewOptionLabel(e.target.value)}
+                onChange={e => setNewOptionLabel(e.target.value)}
                 placeholder="Enter option label and press Enter"
                 className="h-7"
                 onKeyDown={handleNewOptionInput}
@@ -477,18 +528,24 @@ export function StatusFieldPopover({
                 <Popover
                   key={`done-${index}`}
                   open={editingOptionIndex === actualIndex}
-                  onOpenChange={(open) => open ? setEditingOptionIndex(actualIndex) : setEditingOptionIndex(null)}
+                  onOpenChange={open =>
+                    open
+                      ? setEditingOptionIndex(actualIndex)
+                      : setEditingOptionIndex(null)
+                  }
                 >
                   <PopoverTrigger asChild>
-                    <div className={`flex items-center justify-between p-1.5 rounded-md transition-colors cursor-pointer group ${
-                      editingOptionIndex === actualIndex 
-                        ? "bg-accent/50" 
-                        : "hover:bg-muted/50"
-                    }`}>
-                      <Badge 
-                        variant="secondary" 
+                    <div
+                      className={`flex items-center justify-between p-1.5 rounded-md transition-colors cursor-pointer group ${
+                        editingOptionIndex === actualIndex
+                          ? 'bg-accent/50'
+                          : 'hover:bg-muted/50'
+                      }`}
+                    >
+                      <Badge
+                        variant="secondary"
                         className={`text-xs h-5 px-2 py-0.5 ${
-                          option.color 
+                          option.color
                             ? `${ShapePolicy.getTailwindBgColor(option.color as ColorKey)} ${ShapePolicy.getTailwindBorderColor(option.color as ColorKey)} ${ShapePolicy.getTailwindTextColor(option.color as ColorKey)}`
                             : ''
                         }`}
@@ -498,11 +555,15 @@ export function StatusFieldPopover({
                       <Edit3 className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </PopoverTrigger>
-                  <PopoverContent align="start" side="right" className="w-56 p-2">
+                  <PopoverContent
+                    align="start"
+                    side="right"
+                    className="w-56 p-2"
+                  >
                     <OptionEditPopoverContent
-                      name={field.id + "-option-" + actualIndex}
+                      name={field.id + '-option-' + actualIndex}
                       option={option}
-                      onUpdate={(updates) => updateOption(actualIndex, updates)}
+                      onUpdate={updates => updateOption(actualIndex, updates)}
                       onDelete={() => removeOption(actualIndex)}
                       onClose={() => setEditingOptionIndex(null)}
                       onDuplicate={duplicateOption}
@@ -515,7 +576,7 @@ export function StatusFieldPopover({
         </div>
       </div>
 
-      <Separator className="bg-border/50"/>
+      <Separator className="bg-border/50" />
 
       <div className="flex gap-2">
         <Button

@@ -1,8 +1,15 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useEffect } from "react";
-import { useNodesState, useEdgesState, type Node, type Edge, OnEdgesChange, OnNodesChange } from "@xyflow/react";
-import { BlockType } from "@/db/schema";
+import React, { createContext, useContext, useEffect } from 'react';
+import {
+  useNodesState,
+  useEdgesState,
+  type Node,
+  type Edge,
+  OnEdgesChange,
+  OnNodesChange,
+} from '@xyflow/react';
+import { BlockType } from '@/db/schema';
 
 export interface ReactFlowCanvasConfig {
   // 기본 설정
@@ -10,17 +17,17 @@ export interface ReactFlowCanvasConfig {
   minZoom?: number;
   maxZoom?: number;
   fitView?: boolean;
-  
+
   // 상호작용 설정
   nodesDraggable?: boolean;
   elementsSelectable?: boolean;
   selectionOnDrag?: boolean;
   panOnDrag?: number[];
-  
+
   // 선택 설정
   enableMultiSelection?: boolean;
   enableDragSelection?: boolean;
-  
+
   // UI 설정
   showControls?: boolean;
   showMiniMap?: boolean;
@@ -30,7 +37,7 @@ export interface ReactFlowCanvasConfig {
 export interface ReactFlowCanvasContextValue {
   // 설정
   config: ReactFlowCanvasConfig;
-  
+
   // React Flow 내장 상태
   nodes: Node[];
   edges: Edge[];
@@ -38,9 +45,9 @@ export interface ReactFlowCanvasContextValue {
   onEdgesChange: OnEdgesChange<Edge>;
 }
 
-
 // 컨텍스트 생성
-const ReactFlowCanvasContext = createContext<ReactFlowCanvasContextValue | null>(null);
+const ReactFlowCanvasContext =
+  createContext<ReactFlowCanvasContextValue | null>(null);
 
 // 프로바이더 컴포넌트
 export function ReactFlowCanvasProvider({
@@ -88,9 +95,8 @@ export function useReactFlowCanvas() {
   const context = useContext(ReactFlowCanvasContext);
   if (!context) {
     throw new Error(
-      "useReactFlowCanvas must be used within ReactFlowCanvasProvider"
+      'useReactFlowCanvas must be used within ReactFlowCanvasProvider'
     );
   }
   return context;
 }
-

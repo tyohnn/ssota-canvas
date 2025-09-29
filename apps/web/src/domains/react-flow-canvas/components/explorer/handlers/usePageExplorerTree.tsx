@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Atom, FileText, File, Blocks } from "lucide-react";
-import type { Block } from "@/db/schema";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { updateBlock } from "@/domains/canvas/actions/block.action";
-import { useReactFlowSelectionCommands } from "@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext";
+import React from 'react';
+import { Atom, FileText, File, Blocks } from 'lucide-react';
+import type { Block } from '@/db/schema';
+import { useCanvasData } from '@/domains/canvas/contexts/CanvasDataContext';
+import { updateBlock } from '@/domains/canvas/actions/block.action';
+import { useReactFlowSelectionCommands } from '@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext';
 
 // Page-specific file icon renderer
 function getPageFileIcon(blockType: string | undefined, className: string) {
   switch (blockType) {
-    case "page":
+    case 'page':
       return <FileText className={className} />;
-    case "component":
+    case 'component':
       return <Atom className={className} />;
-    case "block":
+    case 'block':
       return <Blocks className={className} />;
     default:
       return <File className={className} />;
@@ -68,17 +68,16 @@ export interface UsePageExplorerTreeResult {
   }) => Promise<void>;
 }
 
-
 export function usePageExplorerTree(): UsePageExplorerTreeResult {
-  const { pageBlocks, selectedPageBlock, selectPage, updatePageBlock } = useCanvasData();
+  const { pageBlocks, selectedPageBlock, selectPage, updatePageBlock } =
+    useCanvasData();
   const { clearSelection } = useReactFlowSelectionCommands();
-
 
   // ===== 이벤트 핸들러 =====
   /** 페이지 블록 선택 처리 - root가 아닌 경우에만 선택 */
   const handleSelect = React.useCallback(
     (id: string) => {
-      if (id !== "root") {
+      if (id !== 'root') {
         selectPage(id);
         // 페이지 선택 시 React Flow 선택 상태 초기화
         clearSelection();
@@ -130,12 +129,12 @@ export function usePageExplorerTree(): UsePageExplorerTreeResult {
         });
 
         if (!result.success) {
-          console.error("Failed to update block:", result.error);
+          console.error('Failed to update block:', result.error);
           // 실패 시 Optimistic Update 롤백
           updatePageBlock(itemId, originalBlock);
         }
       } catch (error) {
-        console.error("Failed to update block in DB:", error);
+        console.error('Failed to update block in DB:', error);
         // 에러 시 Optimistic Update 롤백
         updatePageBlock(itemId, originalBlock);
       }

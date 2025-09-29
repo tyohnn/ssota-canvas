@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
 /**
  * Common types and interfaces for React Flow Canvas commands
  */
 
-export type CreateStatus = { 
-  ok: boolean; 
-  error?: string; 
+export type CreateStatus = {
+  ok: boolean;
+  error?: string;
   data?: any;
 };
 
@@ -39,11 +39,11 @@ export type NodeUIData = {
 
 export type ComponentDefinition = {
   id: string;
-  type: "component-definition";
+  type: 'component-definition';
   position: NodePosition;
   data: NodeData & {
     metadata: {
-      role: "definition";
+      role: 'definition';
       schema: any;
       [key: string]: any;
     };
@@ -52,11 +52,11 @@ export type ComponentDefinition = {
 
 export type ComponentInstance = {
   id: string;
-  type: "component-instance";
+  type: 'component-instance';
   position: NodePosition;
   data: NodeData & {
     metadata: {
-      role: "instance";
+      role: 'instance';
       component_id: string;
       schema: any;
       [key: string]: any;
@@ -71,7 +71,7 @@ export type ComponentInstance = {
 export function useReactFlowBlockCommands() {
   // This is a base hook that can be extended
   // Specific implementations will be in separate files
-  
+
   return {
     // Base functionality can be added here
   };

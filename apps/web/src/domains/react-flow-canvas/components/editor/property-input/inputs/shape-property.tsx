@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Badge } from "@workspace/ui/components/ui/badge";
+import React, { useState } from 'react';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Badge } from '@workspace/ui/components/ui/badge';
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@workspace/ui/components/ui/select";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
+} from '@workspace/ui/components/ui/select';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
 import {
   ShapePolicy,
   type ShapeKey,
-} from "@/domains/blocks/policy/shape-policy";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { Node } from "@xyflow/react";
+} from '@/domains/blocks/policy/shape-policy';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { Node } from '@xyflow/react';
 
 const defaultShapes = ShapePolicy.getShapeOptions();
 
 const ShapeIcon = ({
   shape,
-  size = "h-4 w-4",
+  size = 'h-4 w-4',
 }: {
   shape: string;
   size?: string;
@@ -45,14 +45,14 @@ export function ShapeProperty({
 }) {
   const { updateField } = useNodeFieldUpdate();
   const [isEditing, setIsEditing] = useState(false);
-  
+
   const options =
     field.options && field.options.length > 0 ? field.options : defaultShapes;
 
-  const currentShape = options.find((opt) => opt.value === value) || options[0];
+  const currentShape = options.find(opt => opt.value === value) || options[0];
   // Use gray color for shape badges (consistent styling)
-  const currentColor = "bg-gray-100 border-gray-300";
-  const currentTextColor = "text-gray-700";
+  const currentColor = 'bg-gray-100 border-gray-300';
+  const currentTextColor = 'text-gray-700';
 
   const handleLabelClick = () => {
     setIsEditing(true);
@@ -91,7 +91,7 @@ export function ShapeProperty({
             </SelectValue>
           </SelectTrigger>
           <SelectContent className="[&_*[role=option]>span>svg]:text-muted-foreground/80 [&_*[role=option]]:ps-2 [&_*[role=option]]:pe-8 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:end-2 [&_*[role=option]>span]:flex [&_*[role=option]>span]:items-center [&_*[role=option]>span]:gap-2 [&_*[role=option]>span>svg]:shrink-0">
-            {options.map((option) => (
+            {options.map(option => (
               <SelectItem key={option.value} value={option.value}>
                 <Badge className="gap-1.5 h-5 bg-gray-100 border-gray-300 text-gray-700">
                   <ShapeIcon shape={option.value} size="h-3 w-3" />
@@ -115,7 +115,7 @@ export function ShapeProperty({
         <Badge className={`gap-1.5 h-5 ${currentColor} ${currentTextColor}`}>
           <ShapeIcon shape={value} size="h-3 w-3" />
           <span>
-            {currentShape?.label || field.placeholder || "Select shape"}
+            {currentShape?.label || field.placeholder || 'Select shape'}
           </span>
         </Badge>
       </Button>

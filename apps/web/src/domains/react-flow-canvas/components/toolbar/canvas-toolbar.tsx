@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useReactFlow } from "@xyflow/react";
-import { Button } from "@workspace/ui/components/ui/button";
+import React from 'react';
+import { useReactFlow } from '@xyflow/react';
+import { Button } from '@workspace/ui/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@workspace/ui/components/ui/tooltip";
-import { Separator } from "@workspace/ui/components/ui/separator";
+} from '@workspace/ui/components/ui/tooltip';
+import { Separator } from '@workspace/ui/components/ui/separator';
 import {
   Edit3,
   Plus,
@@ -21,28 +21,31 @@ import {
   // Type,
   // Image,
   // Link,
-} from "lucide-react";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
-import { useControlState, useControlCommands } from "@/domains/react-flow-canvas/contexts/ControlContext";
+} from 'lucide-react';
+import { useCanvasData } from '@/domains/canvas/contexts/CanvasDataContext';
+import { usePanel } from '@/domains/react-flow-canvas/contexts/PanelContext';
+import {
+  useControlState,
+  useControlCommands,
+} from '@/domains/react-flow-canvas/contexts/ControlContext';
 
-export type CanvasToolMode = "select" | "hand";
+export type CanvasToolMode = 'select' | 'hand';
 
 export function CanvasToolbar() {
   const reactFlow = useReactFlow();
-  
+
   // Canvas 도메인 컨텍스트 사용
   const panel = usePanel();
   const { selectedPageBlock } = useCanvasData();
-  
+
   // React Flow Canvas 도메인 컨텍스트 사용
   const { toolMode } = useControlState();
   const { setToolMode } = useControlCommands();
-  
+
   // 페이지 선택 상태 계산
   const isPageSelected = !!selectedPageBlock;
   const isPageEditorOpen = panel.showEditorPanel && selectedPageBlock;
-  
+
   // 편집 패널 상태
   const isEditOpen = panel.showEditorPanel;
   const toggleEdit = () => {
@@ -52,7 +55,7 @@ export function CanvasToolbar() {
       panel.openEditorPanel();
     }
   };
-  
+
   // 블록 삽입 패널 상태
   const isAddOpen = panel.showBlockInsertPanel;
   const toggleAdd = panel.toggleBlockInsertPanel;
@@ -63,48 +66,52 @@ export function CanvasToolbar() {
   }, [reactFlow]);
 
   // Keyboard event handler
-  const handleKeyDown = React.useCallback((event: KeyboardEvent) => {
-    // Only handle if not typing in an input field
-    if (
-      event.target instanceof HTMLInputElement ||
-      event.target instanceof HTMLTextAreaElement ||
-      (event.target as HTMLElement | null)?.isContentEditable
-    ) {
-      return;
-    }
+  const handleKeyDown = React.useCallback(
+    (event: KeyboardEvent) => {
+      // Only handle if not typing in an input field
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        (event.target as HTMLElement | null)?.isContentEditable
+      ) {
+        return;
+      }
 
-    // Ignore system shortcuts but allow Shift
-    if (event.ctrlKey || event.metaKey || event.altKey) {
-      return;
-    }
+      // Ignore system shortcuts but allow Shift
+      if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
 
-    switch (event.code) {
-      case "KeyV":
-        event.preventDefault();
-        event.stopPropagation();
-        setToolMode("select");
-        break;
-      case "KeyH":
-        event.preventDefault();
-        event.stopPropagation();
-        setToolMode("hand");
-        break;
-      case "KeyF":
-        event.preventDefault();
-        event.stopPropagation();
-        handleFitToView();
-        break;
-    }
-  }, [setToolMode, handleFitToView]);
+      switch (event.code) {
+        case 'KeyV':
+          event.preventDefault();
+          event.stopPropagation();
+          setToolMode('select');
+          break;
+        case 'KeyH':
+          event.preventDefault();
+          event.stopPropagation();
+          setToolMode('hand');
+          break;
+        case 'KeyF':
+          event.preventDefault();
+          event.stopPropagation();
+          handleFitToView();
+          break;
+      }
+    },
+    [setToolMode, handleFitToView]
+  );
 
   React.useEffect(() => {
     const handleKeyDownWrapper = (event: KeyboardEvent) => {
       handleKeyDown(event);
     };
-    
+
     // Use capture phase to ensure we get the event before React Flow
-    document.addEventListener("keydown", handleKeyDownWrapper, true);
-    return () => document.removeEventListener("keydown", handleKeyDownWrapper, true);
+    document.addEventListener('keydown', handleKeyDownWrapper, true);
+    return () =>
+      document.removeEventListener('keydown', handleKeyDownWrapper, true);
   }, [handleKeyDown]);
 
   return (
@@ -115,10 +122,10 @@ export function CanvasToolbar() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={toolMode === "select" ? "default" : "ghost"}
+                variant={toolMode === 'select' ? 'default' : 'ghost'}
                 size="sm"
                 className="h-8 w-8 p-0 rounded-md"
-                onClick={() => setToolMode("select")}
+                onClick={() => setToolMode('select')}
               >
                 <MousePointer className="h-4 w-4" />
               </Button>
@@ -132,10 +139,10 @@ export function CanvasToolbar() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={toolMode === "hand" ? "default" : "ghost"}
+                variant={toolMode === 'hand' ? 'default' : 'ghost'}
                 size="sm"
                 className="h-8 w-8 p-0 rounded-md"
-                onClick={() => setToolMode("hand")}
+                onClick={() => setToolMode('hand')}
               >
                 <Hand className="h-4 w-4" />
               </Button>
@@ -170,7 +177,7 @@ export function CanvasToolbar() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={isAddOpen ? "default" : "ghost"}
+                variant={isAddOpen ? 'default' : 'ghost'}
                 size="sm"
                 onClick={toggleAdd}
                 className="h-8 w-8 p-0 rounded-md"
@@ -188,7 +195,7 @@ export function CanvasToolbar() {
             <TooltipTrigger asChild>
               <Button
                 variant={
-                  isPageSelected && isPageEditorOpen ? "default" : "ghost"
+                  isPageSelected && isPageEditorOpen ? 'default' : 'ghost'
                 }
                 size="sm"
                 onClick={toggleEdit}

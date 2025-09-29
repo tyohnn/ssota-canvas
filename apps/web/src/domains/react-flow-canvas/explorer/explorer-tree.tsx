@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useTreeData, useTreeActions, useTreeState } from "./hooks";
-import { ExplorerTreeProvider } from "./explorer-tree-context";
-import { TreeContainer } from "./components";
-import type { TreeDataProps, TreeActionProps, TreeUIProps } from "./types";
+import React from 'react';
+import { useTreeData, useTreeActions, useTreeState } from './hooks';
+import { ExplorerTreeProvider } from './explorer-tree-context';
+import { TreeContainer } from './components';
+import type { TreeDataProps, TreeActionProps, TreeUIProps } from './types';
 
 export interface ExplorerTreeProps<TSourceData>
   extends TreeDataProps<TSourceData>,
@@ -22,7 +22,7 @@ export default function ExplorerTree<TSourceData>(
     getOrder,
     getType,
     renderFileIcon,
-    rootName = "Pages",
+    rootName = 'Pages',
     indent = 20,
     expandedAll,
     selectedId,

@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { Suspense } from "react";
-import { DynamicIcon, type IconName } from "lucide-react/dynamic";
-import { Skeleton } from "@workspace/ui/components/ui/skeleton";
+import { Suspense } from 'react';
+import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
+import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import {
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@workspace/ui/components/ui/sidebar";
-import { useOrganizationContext } from "@/domains/dashboard/context/OrganizationCotext";
+} from '@workspace/ui/components/ui/sidebar';
+import { useOrganizationContext } from '@/domains/dashboard/context/OrganizationCotext';
 
 export function OrgWorkspacesMenu() {
   const { activeWorkspace, orgWorkspaces, activeOrganization } =
@@ -15,7 +15,7 @@ export function OrgWorkspacesMenu() {
 
   return (
     <>
-      {orgWorkspaces.map((ws) => {
+      {orgWorkspaces.map(ws => {
         const isActive = activeWorkspace?.id === ws.id;
         return (
           <SidebarMenuItem key={ws.id}>
@@ -37,7 +37,7 @@ export function OrgWorkspacesMenu() {
                   >
                     <DynamicIcon
                       className="size-4"
-                      name={((ws.icon_name as string) || "blocks") as IconName}
+                      name={((ws.icon_name as string) || 'blocks') as IconName}
                     />
                   </Suspense>
                 </span>

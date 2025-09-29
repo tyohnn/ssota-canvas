@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
-} from "@workspace/ui/components/ui/breadcrumb";
-import { Separator } from "@workspace/ui/components/ui/separator";
-import { SidebarTrigger } from "@workspace/ui/components/ui/sidebar";
-import { useOrganizationContext } from "@/domains/dashboard/context/OrganizationCotext";
+} from '@workspace/ui/components/ui/breadcrumb';
+import { Separator } from '@workspace/ui/components/ui/separator';
+import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
+import { useOrganizationContext } from '@/domains/dashboard/context/OrganizationCotext';
 
 export function DashboardHeader() {
   const { activeOrganization } = useOrganizationContext();

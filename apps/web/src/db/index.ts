@@ -1,4 +1,4 @@
-import 'dotenv/config';
+// dotenv/config removed - Next.js handles environment variables automatically
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { sql } from 'drizzle-orm';

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
-import type { ViewDefinition } from "@/domains/canvas/policy/view-policy";
+import React from 'react';
+import type { ViewDefinition } from '@/domains/canvas/policy/view-policy';
 
 export function MarkdownView({ view }: { view: ViewDefinition }) {
-  const template = String(view.config?.template || "# {{name}}\n\n");
+  const template = String(view.config?.template || '# {{name}}\n\n');
 
   // Minimal placeholder; real impl would render from selected page data
   return (

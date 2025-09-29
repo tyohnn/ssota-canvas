@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useCallback, useMemo } from "react";
-import { useReactFlowCommandsContext } from "@/domains/react-flow-canvas/contexts/ReactFlowCommandsContext";
-import type { Node } from "@xyflow/react";
+import { useCallback, useMemo } from 'react';
+import { useReactFlowCommandsContext } from '@/domains/react-flow-canvas/contexts/ReactFlowCommandsContext';
+import type { Node } from '@xyflow/react';
 import {
   SchemaField,
   FormSchema,
   SchemaFieldOption,
   SchemaFieldType,
-} from "@/domains/blocks/types";
-import { createSlug } from "@/lib/regex";
+} from '@/domains/blocks/types';
+import { createSlug } from '@/lib/regex';
 
 type DuplicateParams = {
   label?: string;
@@ -21,7 +21,7 @@ function updateFormSchemaField(
   node: Node,
   fieldId: string,
   updates: Partial<SchemaField>
-): { 
+): {
   formSchema: FormSchema;
   formData: Record<string, unknown>;
 } {
@@ -31,7 +31,7 @@ function updateFormSchemaField(
   // Update field in schema
   const updatedSchema = {
     ...schema,
-    fields: (schema.fields as SchemaField[]).map((f) =>
+    fields: (schema.fields as SchemaField[]).map(f =>
       f.id === fieldId ? { ...f, ...updates } : f
     ),
   };
@@ -52,14 +52,16 @@ function updateFormSchemaField(
 function removeFormSchemaField(
   node: Node,
   fieldId: string
-): { 
+): {
   formSchema: FormSchema;
-  formData: Record<string, unknown> ;
+  formData: Record<string, unknown>;
 } {
   const schema = (node.data.formSchema as FormSchema) || { fields: [] };
   const data = (node.data.formData as Record<string, unknown>) || {};
 
-  const target = (schema.fields as SchemaField[]).find((f: SchemaField) => f.id === fieldId);
+  const target = (schema.fields as SchemaField[]).find(
+    (f: SchemaField) => f.id === fieldId
+  );
   if (target?.config?.predefined) {
     return { formSchema: schema, formData: data }; // do not remove predefined fields
   }
@@ -67,7 +69,9 @@ function removeFormSchemaField(
   // Remove field from schema
   const updatedSchema = {
     ...schema,
-    fields: (schema.fields as SchemaField[]).filter((f: SchemaField) => f.id !== fieldId),
+    fields: (schema.fields as SchemaField[]).filter(
+      (f: SchemaField) => f.id !== fieldId
+    ),
   };
 
   // Remove field value from data
@@ -95,31 +99,30 @@ function addFormSchemaField(
   };
 }
 
-export function useSchemaFieldEditor(args: {
-  node: Node;
-  field: SchemaField;
-}) {
+export function useSchemaFieldEditor(args: { node: Node; field: SchemaField }) {
   const { node, field } = args;
   const commands = useReactFlowCommandsContext();
 
   const formFields = (node.data.formSchema as FormSchema)?.fields || [];
   const formField = useMemo(
     () =>
-      formFields.find((f: SchemaField) => f.id === field.id) as SchemaField | undefined,
+      formFields.find((f: SchemaField) => f.id === field.id) as
+        | SchemaField
+        | undefined,
     [formFields, field.id]
   );
   const isPredefined = !!formField?.config?.predefined;
 
   const persistNodeData = useCallback(
-    async (updates: { 
-      formSchema?: FormSchema; 
-      formData?: Record<string, unknown> 
+    async (updates: {
+      formSchema?: FormSchema;
+      formData?: Record<string, unknown>;
     }) => {
       // 모든 노드 타입(일반, 컴포넌트 정의, 컴포넌트 인스턴스)에 대해 동일한 updateNodeData 사용
       const result = await commands.nodeCommands.updateNodeData(node, updates);
 
       if (!result.ok) {
-        console.error("Failed to update node:", result.error);
+        console.error('Failed to update node:', result.error);
       }
     },
     [node, commands]

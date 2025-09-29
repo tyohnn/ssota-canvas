@@ -1,16 +1,16 @@
-"use server";
+'use server';
 
-import { z } from "zod";
-import { createClerkDrizzleSupabaseClient } from "@/db";
-import { workspaces } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
+import { z } from 'zod';
+import { createClerkDrizzleSupabaseClient } from '@/db/clerk-client';
+import { workspaces } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { auth } from '@clerk/nextjs/server';
 
 // 워크스페이스 생성 입력 스키마
 const createWorkspaceSchema = z.object({
-  name: z.string().min(1, "워크스페이스 이름은 필수입니다"),
+  name: z.string().min(1, '워크스페이스 이름은 필수입니다'),
   description: z.string().optional(),
-  template: z.enum(["blank", "agent", "task", "workflow"]).default("blank"),
+  template: z.enum(['blank', 'agent', 'task', 'workflow']).default('blank'),
 });
 
 export type CreateWorkspaceInput = z.infer<typeof createWorkspaceSchema>;
@@ -34,7 +34,7 @@ export async function getUserWorkspaces(): Promise<
 > {
   try {
     const db = await createClerkDrizzleSupabaseClient();
-    const result = await db.rls(async (tx) => {
+    const result = await db.rls(async tx => {
       return await tx
         .select({
           id: workspaces.id,
@@ -51,11 +51,11 @@ export async function getUserWorkspaces(): Promise<
 
     return { success: true, data: result };
   } catch (error) {
-    console.error("Error getting user workspaces:", error);
+    console.error('Error getting user workspaces:', error);
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Failed to get workspaces",
+        error instanceof Error ? error.message : 'Failed to get workspaces',
     };
   }
 }
@@ -73,17 +73,17 @@ export async function createWorkspace(
     if (!userId) {
       return {
         success: false,
-        error: "인증이 필요합니다",
+        error: '인증이 필요합니다',
       };
     }
 
     const db = await createClerkDrizzleSupabaseClient();
-    const result = await db.rls(async (tx) => {
+    const result = await db.rls(async tx => {
       const [workspace] = await tx
         .insert(workspaces)
         .values({
           name: input.name,
-          description: input.description || "",
+          description: input.description || '',
           owner_id: userId, // Clerk 사용자 ID를 명시적으로 설정
           metadata: {},
         })
@@ -102,11 +102,11 @@ export async function createWorkspace(
 
     return { success: true, data: result };
   } catch (error) {
-    console.error("Error creating workspace:", error);
+    console.error('Error creating workspace:', error);
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Failed to create workspace",
+        error instanceof Error ? error.message : 'Failed to create workspace',
     };
   }
 }
@@ -119,17 +119,17 @@ export async function deleteWorkspace(
 ): Promise<WorkspaceActionResult<void>> {
   try {
     const db = await createClerkDrizzleSupabaseClient();
-    await db.rls(async (tx) => {
+    await db.rls(async tx => {
       await tx.delete(workspaces).where(eq(workspaces.id, workspaceId));
     });
 
     return { success: true, data: undefined };
   } catch (error) {
-    console.error("Error deleting workspace:", error);
+    console.error('Error deleting workspace:', error);
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Failed to delete workspace",
+        error instanceof Error ? error.message : 'Failed to delete workspace',
     };
   }
 }
@@ -147,7 +147,7 @@ export async function getWorkspaceById(workspaceId: string): Promise<
 > {
   try {
     const db = await createClerkDrizzleSupabaseClient();
-    const result = await db.rls(async (tx) => {
+    const result = await db.rls(async tx => {
       const rows = await tx
         .select({
           id: workspaces.id,
@@ -163,10 +163,10 @@ export async function getWorkspaceById(workspaceId: string): Promise<
 
     return { success: true, data: result };
   } catch (error) {
-    console.error("Error getting workspace:", error);
+    console.error('Error getting workspace:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to get workspace",
+      error: error instanceof Error ? error.message : 'Failed to get workspace',
     };
   }
 }
@@ -180,7 +180,7 @@ export async function updateWorkspace(
 ): Promise<WorkspaceActionResult<any>> {
   try {
     const db = await createClerkDrizzleSupabaseClient();
-    const result = await db.rls(async (tx) => {
+    const result = await db.rls(async tx => {
       const [workspace] = await tx
         .update(workspaces)
         .set({
@@ -204,11 +204,11 @@ export async function updateWorkspace(
 
     return { success: true, data: result };
   } catch (error) {
-    console.error("Error updating workspace:", error);
+    console.error('Error updating workspace:', error);
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Failed to update workspace",
+        error instanceof Error ? error.message : 'Failed to update workspace',
     };
   }
 }

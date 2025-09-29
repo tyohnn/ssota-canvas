@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 
 export type OrgSummary = {
   id: string;
@@ -23,10 +23,10 @@ export type OrganizationState = {
 };
 
 export type OrganizationAction =
-  | { type: "SET_ACTIVE_ORGANIZATION"; payload: OrgSummary | null }
-  | { type: "SET_ACTIVE_WORKSPACE"; payload: WorkspaceSummary | null }
-  | { type: "SET_USER_ORGANIZATIONS"; payload: OrgSummary[] }
-  | { type: "SET_ORG_WORKSPACES"; payload: WorkspaceSummary[] };
+  | { type: 'SET_ACTIVE_ORGANIZATION'; payload: OrgSummary | null }
+  | { type: 'SET_ACTIVE_WORKSPACE'; payload: WorkspaceSummary | null }
+  | { type: 'SET_USER_ORGANIZATIONS'; payload: OrgSummary[] }
+  | { type: 'SET_ORG_WORKSPACES'; payload: WorkspaceSummary[] };
 
 const initialState: OrganizationState = {
   activeOrganization: null,
@@ -40,19 +40,19 @@ function organizationReducer(
   action: OrganizationAction
 ): OrganizationState {
   switch (action.type) {
-    case "SET_ACTIVE_ORGANIZATION": {
+    case 'SET_ACTIVE_ORGANIZATION': {
       return {
         ...state,
         activeOrganization: action.payload,
       };
     }
-    case "SET_ACTIVE_WORKSPACE": {
+    case 'SET_ACTIVE_WORKSPACE': {
       return { ...state, activeWorkspace: action.payload };
     }
-    case "SET_USER_ORGANIZATIONS": {
+    case 'SET_USER_ORGANIZATIONS': {
       return { ...state, userOrganizations: action.payload };
     }
-    case "SET_ORG_WORKSPACES": {
+    case 'SET_ORG_WORKSPACES': {
       return { ...state, orgWorkspaces: action.payload };
     }
     default:
@@ -73,22 +73,22 @@ export function useOrganizationState(preloaded?: Partial<OrganizationState>): {
   });
 
   const setActiveOrganization = React.useCallback((org: OrgSummary | null) => {
-    dispatch({ type: "SET_ACTIVE_ORGANIZATION", payload: org });
+    dispatch({ type: 'SET_ACTIVE_ORGANIZATION', payload: org });
   }, []);
 
   const setActiveWorkspace = React.useCallback(
     (ws: WorkspaceSummary | null) => {
-      dispatch({ type: "SET_ACTIVE_WORKSPACE", payload: ws });
+      dispatch({ type: 'SET_ACTIVE_WORKSPACE', payload: ws });
     },
     []
   );
 
   const setUserOrganizations = React.useCallback((orgs: OrgSummary[]) => {
-    dispatch({ type: "SET_USER_ORGANIZATIONS", payload: orgs });
+    dispatch({ type: 'SET_USER_ORGANIZATIONS', payload: orgs });
   }, []);
 
   const setOrgWorkspaces = React.useCallback((ws: WorkspaceSummary[]) => {
-    dispatch({ type: "SET_ORG_WORKSPACES", payload: ws });
+    dispatch({ type: 'SET_ORG_WORKSPACES', payload: ws });
   }, []);
 
   return {

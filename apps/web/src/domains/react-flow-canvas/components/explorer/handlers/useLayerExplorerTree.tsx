@@ -1,21 +1,23 @@
-"use client";
+'use client';
 
-import React from "react";
-import type { Node } from "@xyflow/react";
-import { useReactFlow } from "@xyflow/react";
-import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
-import { useReactFlowSelectionCommands, useReactFlowSelectionState } from "@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext";
-import { useReactFlowCanvasControl } from "@/domains/react-flow-canvas/handlers/useReactFlowCanvasControlHandler";
-
+import React from 'react';
+import type { Node } from '@xyflow/react';
+import { useReactFlow } from '@xyflow/react';
+import { usePanel } from '@/domains/react-flow-canvas/contexts/PanelContext';
+import {
+  useReactFlowSelectionCommands,
+  useReactFlowSelectionState,
+} from '@/domains/react-flow-canvas/contexts/ReactFlowSelectionContext';
+import { useReactFlowCanvasControl } from '@/domains/react-flow-canvas/handlers/useReactFlowCanvasControlHandler';
 
 // Layer-specific file icon renderer
 function getLayerFileIcon(type: string | undefined, className: string) {
   switch (type) {
-    case "component":
+    case 'component':
       return <div className={`${className} bg-blue-500 rounded-sm ml-1`} />;
-    case "block":
+    case 'block':
       return <div className={`${className} bg-green-500 rounded-sm ml-1`} />;
-    case "container":
+    case 'container':
       return <div className={`${className} bg-purple-500 rounded-sm ml-1`} />;
     default:
       return <div className={`${className} bg-gray-500 rounded-sm ml-1`} />;
@@ -83,12 +85,12 @@ export function useLayerExplorerTree(): UseLayerExplorerTreeResult {
     (id: string) => {
       // React Flow 선택 상태 업데이트
       selectNodes([id]);
-      
+
       // 선택된 노드로 포커스
       setTimeout(() => {
         focusOnNode(id);
       }, 100);
-      
+
       // 에디터 패널 열기
       panel.openEditorPanel();
     },

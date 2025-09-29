@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import React from "react";
-import type { Block } from "@/db/schema";
-import ExplorerTree from "@/domains/react-flow-canvas/explorer/explorer-tree";
-import { useAssetsExplorerTree } from "@/domains/react-flow-canvas/components/explorer/handlers/useAssetsExplorerTree";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Plus } from "lucide-react";
+import React from 'react';
+import type { Block } from '@/db/schema';
+import ExplorerTree from '@/domains/react-flow-canvas/explorer/explorer-tree';
+import { useAssetsExplorerTree } from '@/domains/react-flow-canvas/components/explorer/handlers/useAssetsExplorerTree';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Plus } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@workspace/ui/components/ui/tooltip";
+} from '@workspace/ui/components/ui/tooltip';
 
 export function AssetsExplorerTab() {
   const {

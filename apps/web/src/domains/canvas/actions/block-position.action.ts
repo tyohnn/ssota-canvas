@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
-import { createClerkDrizzleSupabaseClient } from '@/db';
+import { createClerkDrizzleSupabaseClient } from '@/db/clerk-client';
 import {
   blockPositions,
   type BlockPosition,

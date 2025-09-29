@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { Input } from "@workspace/ui/components/ui/input";
-import { Button } from "@workspace/ui/components/ui/button";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
-import { Node } from "@xyflow/react";
+import React, { useState } from 'react';
+import { Input } from '@workspace/ui/components/ui/input';
+import { Button } from '@workspace/ui/components/ui/button';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
+import { Node } from '@xyflow/react';
 
 export function PhoneProperty({
   data,
@@ -17,19 +17,19 @@ export function PhoneProperty({
   node: Node;
 }) {
   const { updateField } = useNodeFieldUpdate();
-  const value = data || "";
+  const value = data || '';
   const [isEditing, setIsEditing] = useState(false);
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState('');
 
   const isValidPhone = (phone: string) => {
     // 한국 전화번호 형식: 010-1234-5678, 02-123-4567, 031-123-4567 등
     const phoneRegex = /^(\d{2,3})-?(\d{3,4})-?(\d{4})$/;
-    return phoneRegex.test(phone.replace(/\s/g, ""));
+    return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
   const formatPhoneNumber = (input: string) => {
     // 숫자만 추출
-    const numbers = input.replace(/\D/g, "");
+    const numbers = input.replace(/\D/g, '');
 
     // 한국 전화번호 형식에 맞게 포맷팅
     if (numbers.length <= 3) {
@@ -58,12 +58,12 @@ export function PhoneProperty({
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       setIsEditing(false);
       if (inputValue !== value) {
         updateField(node, field.path, inputValue);
       }
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setIsEditing(false);
       setInputValue(value);
     }
@@ -92,7 +92,7 @@ export function PhoneProperty({
     >
       {value || (
         <span className="text-muted-foreground">
-          {field.placeholder || "Click to edit phone"}
+          {field.placeholder || 'Click to edit phone'}
         </span>
       )}
     </Button>

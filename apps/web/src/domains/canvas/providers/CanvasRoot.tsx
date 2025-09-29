@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React from "react";
-import type { Block } from "@/db/schema";
-import { CanvasDataProvider } from "../contexts/CanvasDataContext";
-import { CanvasPageCommandsProvider } from "../contexts/CanvasPageCommandsContext";
+import React from 'react';
+import type { Block } from '@/db/schema';
+import { CanvasDataProvider } from '../contexts/CanvasDataContext';
+import { CanvasPageCommandsProvider } from '../contexts/CanvasPageCommandsContext';
 
 interface CanvasRootProps {
   workspaceId: string;
@@ -21,7 +21,8 @@ export function CanvasRoot({
   return (
     <CanvasDataProvider
       initialPageBlocks={initialPageBlocks}
-      initialComponentBlocks={initialComponentBlocks}
+      // initialComponentBlocks={initialComponentBlocks}
+      initialComponentBlocks={[]}
     >
       <CanvasPageCommandsProvider workspaceId={workspaceId}>
         {children}

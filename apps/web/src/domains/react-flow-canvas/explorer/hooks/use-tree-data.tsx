@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo } from 'react';
 import type {
   TreeDataProps,
   UseTreeDataResult,
   ExplorerTreeItem,
-} from "../types";
+} from '../types';
 
 export function useTreeData<TSourceData>(
   params: TreeDataProps<TSourceData>
@@ -36,7 +36,7 @@ export function useTreeData<TSourceData>(
         const sibling = siblings[index];
         if (!sibling) return 1000 + index * 1000;
         const ord = getOrder ? getOrder(sibling) : undefined;
-        return typeof ord === "number" && !Number.isNaN(ord)
+        return typeof ord === 'number' && !Number.isNaN(ord)
           ? ord
           : 1000 + index * 1000;
       };
@@ -127,8 +127,8 @@ export function useTreeData<TSourceData>(
     // 4단계: 루트 노드 생성
     const sortedRootItems = sortChildren(rootItems);
     nodeMap.root = {
-      id: "root",
-      name: "Pages",
+      id: 'root',
+      name: 'Pages',
       isFolder: true,
       children: sortedRootItems,
     };
@@ -150,7 +150,7 @@ export function useTreeData<TSourceData>(
   );
 
   const hasRootChildren = (treeData.root?.children?.length ?? 0) > 0;
-  const rootChildrenKey = (treeData.root?.children ?? []).join(",");
+  const rootChildrenKey = (treeData.root?.children ?? []).join(',');
 
   return {
     treeData,

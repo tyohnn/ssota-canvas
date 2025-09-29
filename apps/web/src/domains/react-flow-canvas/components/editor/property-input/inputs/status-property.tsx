@@ -1,40 +1,43 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { Node } from "@xyflow/react";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Badge } from "@workspace/ui/components/ui/badge";
+import React, { useState } from 'react';
+import { Node } from '@xyflow/react';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Badge } from '@workspace/ui/components/ui/badge';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@workspace/ui/components/ui/popover";
+} from '@workspace/ui/components/ui/popover';
 import {
   ShapePolicy,
   type ColorKey,
-} from "@/domains/blocks/policy/shape-policy";
-import { SchemaField, SchemaFieldOption } from "@/domains/blocks/types/common.node";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
+} from '@/domains/blocks/policy/shape-policy';
+import {
+  SchemaField,
+  SchemaFieldOption,
+} from '@/domains/blocks/types/common.node';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
 
 // Status groups with default options
 const statusGroups = {
   todo: {
-    label: "To Do",
-    color: "bg-gray-100 border-gray-300 text-gray-900",
-    dotColor: "bg-gray-500",
-    defaultOptions: [{ label: "Draft", value: "draft" }],
+    label: 'To Do',
+    color: 'bg-gray-100 border-gray-300 text-gray-900',
+    dotColor: 'bg-gray-500',
+    defaultOptions: [{ label: 'Draft', value: 'draft' }],
   },
   inProgress: {
-    label: "In Progress",
-    color: "bg-blue-100 border-blue-300 text-blue-900",
-    dotColor: "bg-blue-500",
-    defaultOptions: [{ label: "In Progress", value: "in_progress" }],
+    label: 'In Progress',
+    color: 'bg-blue-100 border-blue-300 text-blue-900',
+    dotColor: 'bg-blue-500',
+    defaultOptions: [{ label: 'In Progress', value: 'in_progress' }],
   },
   done: {
-    label: "Complete",
-    color: "bg-emerald-100 border-emerald-300 text-emerald-900",
-    dotColor: "bg-emerald-500",
-    defaultOptions: [{ label: "Complete", value: "complete" }],
+    label: 'Complete',
+    color: 'bg-emerald-100 border-emerald-300 text-emerald-900',
+    dotColor: 'bg-emerald-500',
+    defaultOptions: [{ label: 'Complete', value: 'complete' }],
   },
 };
 
@@ -48,7 +51,7 @@ const getBadgeStyle = (color: string) => {
     return ShapePolicy.getBadgeStyle(color as ColorKey);
   }
   // Fallback for non-policy colors
-  return "bg-gray-100 border-gray-200 text-gray-700";
+  return 'bg-gray-100 border-gray-200 text-gray-700';
 };
 
 const getBadgeStyleObject = (color: string) => {
@@ -62,9 +65,9 @@ const getBadgeStyleObject = (color: string) => {
   }
   // Fallback for non-policy colors
   return {
-    backgroundColor: "#F3F4F6",
-    borderColor: "#E5E7EB",
-    color: "#374151",
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+    color: '#374151',
   };
 };
 
@@ -77,7 +80,7 @@ export function StatusProperty({
   field: SchemaField;
   node: Node;
 }) {
-    const { updateField } = useNodeFieldUpdate();
+  const { updateField } = useNodeFieldUpdate();
   const [isOpen, setIsOpen] = useState(false);
 
   // Get options from field (includes both default and user-defined with colors)
@@ -85,14 +88,14 @@ export function StatusProperty({
 
   // Define default options with colors for fallback
   const defaultOptionsWithColors = [
-    { label: "Draft", value: "draft", group: "todo", color: "gray" },
+    { label: 'Draft', value: 'draft', group: 'todo', color: 'gray' },
     {
-      label: "In Progress",
-      value: "in_progress",
-      group: "inProgress",
-      color: "blue",
+      label: 'In Progress',
+      value: 'in_progress',
+      group: 'inProgress',
+      color: 'blue',
     },
-    { label: "Complete", value: "complete", group: "done", color: "green" },
+    { label: 'Complete', value: 'complete', group: 'done', color: 'green' },
   ];
 
   // Use field options if available, otherwise use defaults
@@ -101,9 +104,11 @@ export function StatusProperty({
 
   // Group options by their status type
   const groupedOptions = {
-    todo: allOptions.filter((opt: SchemaFieldOption) => opt.group === "todo"),
-    inProgress: allOptions.filter((opt: SchemaFieldOption) => opt.group === "inProgress"),
-    done: allOptions.filter((opt: SchemaFieldOption) => opt.group === "done"),
+    todo: allOptions.filter((opt: SchemaFieldOption) => opt.group === 'todo'),
+    inProgress: allOptions.filter(
+      (opt: SchemaFieldOption) => opt.group === 'inProgress'
+    ),
+    done: allOptions.filter((opt: SchemaFieldOption) => opt.group === 'done'),
   };
 
   const currentOption =
@@ -123,10 +128,10 @@ export function StatusProperty({
           className="w-full h-7 px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50 select-none cursor-pointer"
         >
           <Badge
-            className={`gap-1.5 h-5 ${getBadgeStyle((currentOption as SchemaFieldOption)?.color || "gray")}`}
+            className={`gap-1.5 h-5 ${getBadgeStyle((currentOption as SchemaFieldOption)?.color || 'gray')}`}
           >
             <span className="text-xs">
-              {currentOption?.label || "상태 선택"}
+              {currentOption?.label || '상태 선택'}
             </span>
           </Badge>
         </Button>
@@ -148,12 +153,12 @@ export function StatusProperty({
                       variant="ghost"
                       size="sm"
                       className={`w-full justify-start h-8 px-2 ${
-                        value === option.value ? "bg-accent" : ""
+                        value === option.value ? 'bg-accent' : ''
                       }`}
                       onClick={() => handleStatusSelect(option.value)}
                     >
                       <Badge
-                        className={`gap-1.5 h-5 ${getBadgeStyle((option as SchemaFieldOption)?.color || "gray")}`}
+                        className={`gap-1.5 h-5 ${getBadgeStyle((option as SchemaFieldOption)?.color || 'gray')}`}
                       >
                         <span className="text-xs">{option.label}</span>
                       </Badge>

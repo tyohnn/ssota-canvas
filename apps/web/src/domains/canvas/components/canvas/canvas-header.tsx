@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import React, { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { useCanvasPageCommandsContext } from "@/domains/canvas/contexts/CanvasPageCommandsContext";
-import { useOrganizationContext } from "@/domains/dashboard/context/OrganizationCotext";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Input } from "@workspace/ui/components/ui/input";
+import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCanvasData } from '@/domains/canvas/contexts/CanvasDataContext';
+import { useCanvasPageCommandsContext } from '@/domains/canvas/contexts/CanvasPageCommandsContext';
+import { useOrganizationContext } from '@/domains/dashboard/context/OrganizationCotext';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Input } from '@workspace/ui/components/ui/input';
 
 import {
   Breadcrumb,
@@ -14,11 +14,11 @@ import {
   BreadcrumbList,
   BreadcrumbLink,
   BreadcrumbSeparator,
-} from "@workspace/ui/components/ui/breadcrumb";
-import { Separator } from "@workspace/ui/components/ui/separator";
-import { ArrowLeft } from "lucide-react";
-import { DynamicIcon, type IconName } from "lucide-react/dynamic";
-import { ViewSwitcher } from "./view-switcher";
+} from '@workspace/ui/components/ui/breadcrumb';
+import { Separator } from '@workspace/ui/components/ui/separator';
+import { ArrowLeft } from 'lucide-react';
+import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
+import { ViewSwitcher } from './view-switcher';
 
 interface CanvasHeaderProps {
   workspaceId: string;
@@ -28,27 +28,33 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
   const router = useRouter();
   const data = useCanvasData();
   const commands = useCanvasPageCommandsContext();
-  const { activeOrganization, orgWorkspaces, setActiveWorkspace } = useOrganizationContext();
+  const { activeOrganization, orgWorkspaces, setActiveWorkspace } =
+    useOrganizationContext();
 
   // Get workspace and selected page data
-  const activeWorkspace = orgWorkspaces.find((ws) => ws.id === workspaceId);
+  const activeWorkspace = orgWorkspaces.find(ws => ws.id === workspaceId);
 
   React.useEffect(() => {
     setActiveWorkspace(activeWorkspace ?? null);
   }, []);
 
   // Get canvas mode and selected blocks from context
-  const { canvasMode, selectedPageId, selectedPageBlock, selectedComponentBlock } = data;
+  const {
+    canvasMode,
+    selectedPageId,
+    selectedPageBlock,
+    selectedComponentBlock,
+  } = data;
 
   // Title editing state
   const [isEditing, setIsEditing] = useState(false);
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Sync title state
   useEffect(() => {
     if (selectedPageBlock) {
-        setTitle(selectedPageBlock.title);
+      setTitle(selectedPageBlock.title);
     }
   }, [selectedPageBlock]);
 
@@ -68,14 +74,18 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
   };
 
   const handleTitleSave = async () => {
-    if (selectedPageId && selectedPageBlock && title.trim() !== selectedPageBlock?.title) {
+    if (
+      selectedPageId &&
+      selectedPageBlock &&
+      title.trim() !== selectedPageBlock?.title
+    ) {
       const newTitle = title.trim();
       const result = await commands.updatePage(selectedPageId, {
         title: newTitle,
       });
 
       if (!result.ok) {
-        console.error("Failed to update block:", result.error);
+        console.error('Failed to update block:', result.error);
         setTitle(selectedPageBlock.title);
       }
     }
@@ -83,9 +93,9 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       handleTitleSave();
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       if (!selectedPageBlock) return;
       setTitle(selectedPageBlock.title);
       setIsEditing(false);
@@ -104,9 +114,9 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
     }
   }, [isEditing]);
 
-  const workspaceTitle = activeWorkspace?.name || "Workspace";
+  const workspaceTitle = activeWorkspace?.name || 'Workspace';
   const workspaceIconName = ((activeWorkspace?.icon_name as string) ||
-    "presentation") as IconName;
+    'presentation') as IconName;
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-2 bg-background/60 backdrop-blur-md">
@@ -153,7 +163,7 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
                       <Input
                         ref={inputRef}
                         value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        onChange={e => setTitle(e.target.value)}
                         onKeyDown={handleKeyDown}
                         onBlur={handleBlur}
                         className="h-6 px-2 text-sm border-none bg-transparent focus-visible:ring-1 focus-visible:ring-ring"
@@ -168,7 +178,7 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
                       >
                         <DynamicIcon
                           name={
-                            (selectedPageBlock.icon_name || "file") as IconName
+                            (selectedPageBlock.icon_name || 'file') as IconName
                           }
                           className="h-3 w-3 mr-1 text-muted-foreground"
                         />
@@ -178,7 +188,7 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
                     <ViewSwitcher />
                   </div>
                 </BreadcrumbItem>
-                {canvasMode === "component" && selectedComponentBlock && (
+                {canvasMode === 'component' && selectedComponentBlock && (
                   <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>

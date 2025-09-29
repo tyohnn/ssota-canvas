@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   OrgSummary,
   WorkspaceSummary,
   useOrganizationState,
-} from "@/domains/dashboard/hooks/state/useOrganizationState";
+} from '@/domains/dashboard/hooks/state/useOrganizationState';
 
 type OrganizationContextValue = {
   activeOrganization: OrgSummary | null;
@@ -23,7 +23,7 @@ export function useOrganizationContext(): OrganizationContextValue {
   const ctx = React.useContext(OrganizationContext);
   if (!ctx) {
     throw new Error(
-      "useOrganizationContext must be used within OrganizationProvider"
+      'useOrganizationContext must be used within OrganizationProvider'
     );
   }
   return ctx;

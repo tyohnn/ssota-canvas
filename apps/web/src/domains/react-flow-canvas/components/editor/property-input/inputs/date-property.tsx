@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import React, { useEffect, useRef, useState } from "react";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Calendar } from "@workspace/ui/components/ui/calendar";
-import { CalendarIcon, ChevronDownIcon } from "lucide-react";
+import React, { useEffect, useRef, useState } from 'react';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Calendar } from '@workspace/ui/components/ui/calendar';
+import { CalendarIcon, ChevronDownIcon } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@workspace/ui/components/ui/popover";
+} from '@workspace/ui/components/ui/popover';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@workspace/ui/components/ui/collapsible";
-import { ScrollArea } from "@workspace/ui/components/ui/scroll-area";
+} from '@workspace/ui/components/ui/collapsible';
+import { ScrollArea } from '@workspace/ui/components/ui/scroll-area';
 import {
   eachMonthOfInterval,
   eachYearOfInterval,
@@ -23,11 +23,11 @@ import {
   isAfter,
   isBefore,
   startOfYear,
-} from "date-fns";
-import { cn } from "@workspace/ui/lib/utils";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
-import { Node } from "@xyflow/react";
+} from 'date-fns';
+import { cn } from '@workspace/ui/lib/utils';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
+import { Node } from '@xyflow/react';
 
 // Local type definitions
 type CaptionLabelProps = React.HTMLAttributes<HTMLSpanElement>;
@@ -43,7 +43,7 @@ export function DateProperty({
   node: Node;
 }) {
   const { updateField } = useNodeFieldUpdate();
-  const value = data || "";
+  const value = data || '';
   const [isOpen, setIsOpen] = useState(false);
   const [month, setMonth] = useState(new Date());
   const [isYearView, setIsYearView] = useState(false);
@@ -60,10 +60,10 @@ export function DateProperty({
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
-      const dateString = selectedDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+      const dateString = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
       updateField(node, field.path, dateString);
     } else {
-      updateField(node, field.path, "");
+      updateField(node, field.path, '');
     }
     setIsOpen(false);
   };
@@ -80,12 +80,12 @@ export function DateProperty({
           variant="ghost"
           className={`w-full h-7 px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50 transition-[color,box-shadow] select-none cursor-pointer ${
             isOpen
-              ? "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-ring ring-ring/50 ring-[3px]"
-              : ""
+              ? 'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-ring ring-ring/50 ring-[3px]'
+              : ''
           }`}
         >
-          <span className={cn("truncate", !date && "text-muted-foreground")}>
-            {date ? format(date, "PPP") : field.placeholder || "Pick a date"}
+          <span className={cn('truncate', !date && 'text-muted-foreground')}>
+            {date ? format(date, 'PPP') : field.placeholder || 'Pick a date'}
           </span>
           <CalendarIcon
             size={16}
@@ -106,8 +106,8 @@ export function DateProperty({
           endMonth={endDate}
           className="overflow-hidden rounded-md border border-border p-2 min-h-[280px]"
           classNames={{
-            month_caption: "ms-2.5 me-20 justify-start",
-            nav: "flex items-center gap-1 w-full absolute top-0 inset-x-0 justify-end",
+            month_caption: 'ms-2.5 me-20 justify-start',
+            nav: 'flex items-center gap-1 w-full absolute top-0 inset-x-0 justify-end',
           }}
           components={{
             CaptionLabel: (props: CaptionLabelProps) => (
@@ -173,7 +173,7 @@ function MonthGrid({
   useEffect(() => {
     if (isYearView && currentYearRef.current && scrollAreaRef.current) {
       const viewport = scrollAreaRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]"
+        '[data-radix-scroll-area-viewport]'
       ) as HTMLElement;
       if (viewport) {
         const yearTop = currentYearRef.current.offsetTop;
@@ -191,7 +191,7 @@ function MonthGrid({
       {isYearView && (
         <div className="bg-background absolute inset-0 z-20 -mx-2 -mb-2">
           <ScrollArea ref={scrollAreaRef} className="h-full">
-            {years.map((year) => {
+            {years.map(year => {
               const months = eachMonthOfInterval({
                 start: startOfYear(year),
                 end: endOfYear(year),
@@ -208,7 +208,7 @@ function MonthGrid({
                     open={isCurrentYear}
                   >
                     <div className="grid grid-cols-3 gap-2">
-                      {months.map((month) => {
+                      {months.map(month => {
                         const isDisabled =
                           isBefore(month, startDate) || isAfter(month, endDate);
                         const isCurrentMonth =
@@ -221,13 +221,13 @@ function MonthGrid({
                             ref={
                               isCurrentMonth ? currentMonthButtonRef : undefined
                             }
-                            variant={isCurrentMonth ? "default" : "outline"}
+                            variant={isCurrentMonth ? 'default' : 'outline'}
                             size="sm"
                             className="h-7"
                             disabled={isDisabled}
                             onClick={() => onMonthSelect(month)}
                           >
-                            {format(month, "MMM")}
+                            {format(month, 'MMM')}
                           </Button>
                         );
                       })}
@@ -256,8 +256,8 @@ function CaptionLabel({
       className="data-[state=open]:text-muted-foreground/80 -ms-2 flex items-center gap-2 text-sm font-medium hover:bg-transparent [&[data-state=open]>svg]:rotate-180"
       variant="ghost"
       size="sm"
-      onClick={() => setIsYearView((prev) => !prev)}
-      data-state={isYearView ? "open" : "closed"}
+      onClick={() => setIsYearView(prev => !prev)}
+      data-state={isYearView ? 'open' : 'closed'}
     >
       {children}
       <ChevronDownIcon

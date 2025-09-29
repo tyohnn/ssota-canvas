@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Button } from "@workspace/ui/components/ui/button";
-import type { Node } from "@xyflow/react";
-import { Input } from "@workspace/ui/components/ui/input";
+import React from 'react';
+import { Button } from '@workspace/ui/components/ui/button';
+import type { Node } from '@xyflow/react';
+import { Input } from '@workspace/ui/components/ui/input';
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-} from "@workspace/ui/components/ui/tooltip";
-import { Search, Plus } from "lucide-react";
-import ExplorerTree from "@/domains/react-flow-canvas/explorer/explorer-tree";
-import { useLayerExplorerTree } from "./handlers/useLayerExplorerTree";
+} from '@workspace/ui/components/ui/tooltip';
+import { Search, Plus } from 'lucide-react';
+import ExplorerTree from '@/domains/react-flow-canvas/explorer/explorer-tree';
+import { useLayerExplorerTree } from './handlers/useLayerExplorerTree';
 
 export function LayerExplorerTab() {
-  const [searchValue, setSearchValue] = React.useState("");
+  const [searchValue, setSearchValue] = React.useState('');
 
   const {
     layerBlocks,
@@ -33,7 +33,7 @@ export function LayerExplorerTab() {
   // 검색 필터링
   const filteredBlocks = React.useMemo(() => {
     if (!searchValue) return layerBlocks;
-    return layerBlocks.filter((node) =>
+    return layerBlocks.filter(node =>
       getName(node).toLowerCase().includes(searchValue.toLowerCase())
     );
   }, [layerBlocks, searchValue, getName]);
@@ -47,7 +47,7 @@ export function LayerExplorerTab() {
             <Input
               className="peer ps-8 h-7 md:text-[12px] placeholder:text-[12px] placeholder:text-muted-foreground/70 focus:border-muted-foreground/30 bg-transparent border-border"
               value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
+              onChange={e => setSearchValue(e.target.value)}
               type="search"
               placeholder="Search layers..."
             />

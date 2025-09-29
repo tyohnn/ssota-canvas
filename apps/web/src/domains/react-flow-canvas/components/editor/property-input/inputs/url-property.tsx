@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { Node } from "@xyflow/react";
-import { Input } from "@workspace/ui/components/ui/input";
-import { Button } from "@workspace/ui/components/ui/button";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
+import React, { useState } from 'react';
+import { Node } from '@xyflow/react';
+import { Input } from '@workspace/ui/components/ui/input';
+import { Button } from '@workspace/ui/components/ui/button';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
 
 export function UrlProperty({
   data,
@@ -17,9 +17,9 @@ export function UrlProperty({
   node: Node;
 }) {
   const { updateField } = useNodeFieldUpdate();
-  const value = data || "";
+  const value = data || '';
   const [isEditing, setIsEditing] = useState(false);
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState('');
 
   const isValidUrl = (url: string) => {
     try {
@@ -47,12 +47,12 @@ export function UrlProperty({
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       setIsEditing(false);
       if (inputValue !== value) {
         updateField(node, field.path, inputValue);
       }
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setIsEditing(false);
       setInputValue(value);
     }
@@ -80,7 +80,7 @@ export function UrlProperty({
     >
       {value || (
         <span className="text-muted-foreground">
-          {field.placeholder || "Click to edit URL"}
+          {field.placeholder || 'Click to edit URL'}
         </span>
       )}
     </Button>
