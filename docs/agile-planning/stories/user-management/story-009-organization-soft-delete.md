@@ -134,25 +134,25 @@ CREATE INDEX idx_organizations_deleted_at ON organizations (deleted_at);
 ## 📋 Sub-tasks
 
 ### Backend Domain
-- [ ] `OrganizationAggregate`에 `deleteOrganization` Command Handler 구현
-- [ ] `OrganizationDeletionRequestedEvent`, `OrganizationSoftDeletedEvent`, `PermanentDeletionScheduledEvent` 도메인 이벤트 정의
-- [ ] `OrganizationManagementService`에 조직 삭제 메서드 추가
-- [ ] 조직 삭제 권한 검증 로직 구현
+- [x] `OrganizationAggregate`에 `deleteOrganization` Command Handler 구현
+- [x] `OrganizationDeletionRequestedEvent`, `OrganizationSoftDeletedEvent`, `PermanentDeletionScheduledEvent` 도메인 이벤트 정의
+- [x] `OrganizationManagementService`에 조직 삭제 메서드 추가
+- [x] 조직 삭제 권한 검증 로직 구현
 
 ### Database & Repository
-- [ ] `OrganizationRepository`에 소프트 삭제 메서드 구현
-- [ ] 조직 삭제 시 트랜잭션 처리
+- [x] `OrganizationRepository`에 소프트 삭제 메서드 구현
+- [x] 조직 삭제 시 트랜잭션 처리
 
 ### API & Server Action
-- [ ] `deleteOrganizationAction` Server Action 구현
-- [ ] 조직 삭제 권한 검증 로직
-- [ ] 에러 처리 및 사용자 피드백
+- [x] `deleteOrganizationAction` Server Action 구현
+- [x] 조직 삭제 권한 검증 로직
+- [x] 에러 처리 및 사용자 피드백
 
 ### Frontend
-- [ ] 조직 삭제 확인 UI 컴포넌트
-- [ ] 조직 이름 입력 폼
-- [ ] 조직 삭제 진행 상태 표시
-- [ ] 조직 삭제 경고 메시지
+- [x] 조직 삭제 확인 UI 컴포넌트
+- [x] 조직 이름 입력 폼
+- [x] 조직 삭제 진행 상태 표시
+- [x] 조직 삭제 경고 메시지
 
 ### Integration Task
 - [ ] Clerk 조직 삭제 API 연동

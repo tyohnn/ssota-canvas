@@ -164,35 +164,35 @@ CREATE INDEX idx_memberships_is_default ON memberships (is_default);
 ## 📋 Sub-tasks
 
 ### Backend Domain
-- [ ] `OrganizationAggregate`에 `createDefaultOrganization` Command Handler 구현
-- [ ] `MembershipAggregate`에 `createOwnerMembership` Command Handler 구현
-- [ ] `DefaultOrganizationCreatedEvent`, `NewMemberAddedToOrganizationEvent` 도메인 이벤트 정의
-- [ ] `OrganizationManagementService`에 기본 조직 생성 메서드 추가
-- [ ] `MembershipManagementService`에 Owner 멤버십 생성 메서드 추가
+- [x] `OrganizationAggregate`에 `createDefaultOrganization` Command Handler 구현
+- [x] `MembershipAggregate`에 `createOwnerMembership` Command Handler 구현
+- [x] `DefaultOrganizationCreatedEvent`, `NewMemberAddedToOrganizationEvent` 도메인 이벤트 정의
+- [x] `OrganizationManagementService`에 기본 조직 생성 메서드 추가
+- [x] `MembershipManagementService`에 Owner 멤버십 생성 메서드 추가
 
 ### Database & Repository
-- [ ] `organizations`, `memberships` 테이블 생성
-- [ ] `OrganizationRepository`, `MembershipRepository` 구현
-- [ ] 기본 조직 중복 생성 방지 로직 구현
+- [x] `organizations`, `memberships` 테이블 생성
+- [x] `OrganizationRepository`, `MembershipRepository` 구현
+- [x] 기본 조직 중복 생성 방지 로직 구현
 
 ### API & Server Action
-- [ ] `createDefaultOrganizationAction` Server Action 구현
-- [ ] 기본 조직 생성 실패 시 재시도 로직
-- [ ] 에러 처리 및 로깅
+- [x] `createDefaultOrganizationAction` Server Action 구현
+- [x] 기본 조직 생성 실패 시 재시도 로직
+- [x] 에러 처리 및 로깅
 
 ### Frontend
-- [ ] (해당 없음 - 백엔드 자동 생성 로직)
+- [x] (해당 없음 - 백엔드 자동 생성 로직)
 
 ### Integration Task
-- [ ] Clerk 사용자 등록 이벤트와 연동
-- [ ] 기본 조직 생성 트리거 설정
-- [ ] 실패 시 알림 시스템 연동
+- [x] Clerk 사용자 등록 이벤트와 연동
+- [x] 기본 조직 생성 트리거 설정
+- [x] 실패 시 알림 시스템 연동
 
 ### E2E & Observability
-- [ ] 사용자 등록 → 기본 조직 생성 E2E 테스트
-- [ ] 기본 조직 중복 생성 방지 테스트
-- [ ] 기본 조직 생성 실패 시 재시도 테스트
-- [ ] 기본 조직 생성 모니터링 설정
+- [x] 사용자 등록 → 기본 조직 생성 E2E 테스트
+- [x] 기본 조직 중복 생성 방지 테스트
+- [x] 기본 조직 생성 실패 시 재시도 테스트
+- [x] 기본 조직 생성 모니터링 설정
 
 ## 🎯 Definition of Done
 

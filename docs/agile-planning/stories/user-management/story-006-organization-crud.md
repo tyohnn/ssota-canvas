@@ -165,42 +165,42 @@ CREATE INDEX idx_organizations_is_default ON organizations (is_default);
 ## 📋 Sub-tasks
 
 ### Backend Domain
-- [ ] `OrganizationAggregate`에 `createOrganization`, `updateOrganization` Command Handler 구현
-- [ ] `OrganizationCreatedEvent`, `OrganizationUpdatedEvent` 도메인 이벤트 정의
-- [ ] `OrganizationManagementService`에 조직 CRUD 메서드 추가
-- [ ] 조직 slug 자동 생성 로직 구현
+- [x] `OrganizationAggregate`에 `createOrganization`, `updateOrganization` Command Handler 구현
+- [x] `OrganizationCreatedEvent`, `OrganizationUpdatedEvent` 도메인 이벤트 정의
+- [x] `OrganizationManagementService`에 조직 CRUD 메서드 추가
+- [x] 조직 slug 자동 생성 로직 구현
 
 ### Database & Repository
-- [ ] `organizations` 테이블 생성
-- [ ] `OrganizationRepository` 구현
-- [ ] 조직 slug 자동 생성 함수 구현
-- [ ] 조직 slug 중복 검사 로직
+- [x] `organizations` 테이블 생성
+- [x] `OrganizationRepository` 구현
+- [x] 조직 slug 자동 생성 함수 구현
+- [x] 조직 slug 중복 검사 로직
 
 ### API & Server Action
-- [ ] `createOrganizationAction`, `updateOrganizationAction` Server Action 구현
-- [ ] 조직 생성/수정 권한 검증 로직
-- [ ] 에러 처리 및 사용자 피드백
+- [x] `createOrganizationAction`, `updateOrganizationAction` Server Action 구현
+- [x] 조직 생성/수정 권한 검증 로직
+- [x] 에러 처리 및 사용자 피드백
 
 ### Frontend
-- [ ] **조직 생성 폼 UI 컴포넌트**: `OrganizationForm` 컴포넌트 구현
+- [x] **조직 생성 폼 UI 컴포넌트**: `OrganizationForm` 컴포넌트 구현
   - `Input`, `Label`, `Button` UI 컴포넌트 활용
   - 조직명 입력 필드 (필수, 유효성 검증 포함)
   - 조직 설명 입력 필드 (선택사항)
   - 슬러그 입력 필드 (자동 생성 가능, 중복 검증)
   - 폼 제출 시 로딩 상태 표시
   - 생성 성공/실패 토스트 알림 (`toast.success`, `toast.error`)
-- [ ] **조직 정보 수정 UI 컴포넌트**: `OrganizationEditForm` 컴포넌트 구현
+- [x] **조직 정보 수정 UI 컴포넌트**: `OrganizationEditForm` 컴포넌트 구현
   - 기존 조직 정보로 폼 초기화
   - 수정 가능한 필드만 편집 가능
   - 변경 사항 저장 버튼
   - 수정 권한 검증 (Owner/Admin만 수정 가능)
-- [ ] **조직 정보 조회 UI 컴포넌트**: `OrganizationInfo` 컴포넌트 구현
+- [x] **조직 정보 조회 UI 컴포넌트**: `OrganizationInfo` 컴포넌트 구현
   - 조직명, 설명, 슬러그 표시
   - 조직 멤버 수 표시
   - 조직 생성일 표시
   - 소유자 정보 표시
   - 읽기 전용 모드로 정보 표시
-- [ ] **조직 목록 표시 컴포넌트**: `OrganizationList` 컴포넌트 구현
+- [x] **조직 목록 표시 컴포넌트**: `OrganizationList` 컴포넌트 구현
   - 조직 목록을 카드/테이블 형태로 표시
   - 각 조직의 기본 정보 표시 (이름, 멤버 수, 생성일)
   - 기본 조직 표시 (Badge 컴포넌트 활용)

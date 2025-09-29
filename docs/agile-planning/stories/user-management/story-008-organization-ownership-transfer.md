@@ -151,26 +151,26 @@ CREATE TABLE memberships (
 ## 📋 Sub-tasks
 
 ### Backend Domain
-- [ ] `OrganizationAggregate`에 `transferOwnership` Command Handler 구현
-- [ ] `OwnershipTransferRequestedEvent`, `NewOwnerPromotedEvent`, `PreviousOwnerDemotedToAdminEvent` 도메인 이벤트 정의
-- [ ] `OrganizationManagementService`에 소유권 이전 메서드 추가
-- [ ] `MembershipManagementService`에 역할 변경 메서드 추가
+- [x] `OrganizationAggregate`에 `transferOwnership` Command Handler 구현
+- [x] `OwnershipTransferRequestedEvent`, `NewOwnerPromotedEvent`, `PreviousOwnerDemotedToAdminEvent` 도메인 이벤트 정의
+- [x] `OrganizationManagementService`에 소유권 이전 메서드 추가
+- [x] `MembershipManagementService`에 역할 변경 메서드 추가
 
 ### Database & Repository
-- [ ] `OrganizationRepository`에 소유권 이전 메서드 구현
-- [ ] `MembershipRepository`에 역할 변경 메서드 구현
-- [ ] 소유권 이전 시 트랜잭션 처리
+- [x] `OrganizationRepository`에 소유권 이전 메서드 구현
+- [x] `MembershipRepository`에 역할 변경 메서드 구현
+- [x] 소유권 이전 시 트랜잭션 처리
 
 ### API & Server Action
-- [ ] `transferOwnershipAction` Server Action 구현
-- [ ] 소유권 이전 권한 검증 로직
-- [ ] 에러 처리 및 사용자 피드백
+- [x] `transferOwnershipAction` Server Action 구현
+- [x] 소유권 이전 권한 검증 로직
+- [x] 에러 처리 및 사용자 피드백
 
 ### Frontend
-- [ ] 소유권 이전 UI 컴포넌트
-- [ ] 대상 멤버 선택 드롭다운
-- [ ] 확인 코드 입력 폼
-- [ ] 소유권 이전 진행 상태 표시
+- [x] 소유권 이전 UI 컴포넌트
+- [x] 대상 멤버 선택 드롭다운
+- [x] 확인 코드 입력 폼
+- [x] 소유권 이전 진행 상태 표시
 
 ### Integration Task
 - [ ] Clerk 조직 소유권 이전 API 연동

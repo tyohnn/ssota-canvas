@@ -117,26 +117,26 @@ CREATE INDEX idx_organizations_deleted_at ON organizations (deleted_at);
 ## 📋 Sub-tasks
 
 ### Backend Domain
-- [ ] `OrganizationAggregate`에 `restoreOrganization` Command Handler 구현
-- [ ] `OrganizationRestoredEvent` 도메인 이벤트 정의
-- [ ] `OrganizationManagementService`에 조직 복구 메서드 추가
-- [ ] 조직 복구 권한 검증 로직 구현
+- [x] `OrganizationAggregate`에 `restoreOrganization` Command Handler 구현
+- [x] `OrganizationRestoredEvent` 도메인 이벤트 정의
+- [x] `OrganizationManagementService`에 조직 복구 메서드 추가
+- [x] 조직 복구 권한 검증 로직 구현
 
 ### Database & Repository
-- [ ] `OrganizationRepository`에 복구 관련 메서드 구현
-- [ ] `get_restorable_organizations` 함수 구현
-- [ ] 조직 복구 시 트랜잭션 처리
+- [x] `OrganizationRepository`에 복구 관련 메서드 구현
+- [x] `get_restorable_organizations` 함수 구현
+- [x] 조직 복구 시 트랜잭션 처리
 
 ### API & Server Action
-- [ ] `restoreOrganizationAction` Server Action 구현
-- [ ] 조직 복구 권한 검증 로직
-- [ ] 에러 처리 및 사용자 피드백
+- [x] `restoreOrganizationAction` Server Action 구현
+- [x] 조직 복구 권한 검증 로직
+- [x] 에러 처리 및 사용자 피드백
 
 ### Frontend
-- [ ] 조직 복구 UI 컴포넌트
-- [ ] 복구 가능한 조직 목록 표시
-- [ ] 조직 복구 확인 다이얼로그
-- [ ] 복구 진행 상태 표시
+- [x] 조직 복구 UI 컴포넌트
+- [x] 복구 가능한 조직 목록 표시
+- [x] 조직 복구 확인 다이얼로그
+- [x] 복구 진행 상태 표시
 
 ### Integration Task
 - [ ] Clerk 조직 복구 API 연동
