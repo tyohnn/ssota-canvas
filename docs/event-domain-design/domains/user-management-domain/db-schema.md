@@ -296,59 +296,6 @@ CREATE INDEX idx_organizations_default_true ON organizations(is_default) WHERE i
 CREATE INDEX idx_organizations_owner_created ON organizations(owner_id, created_at DESC);
 ```
 
----
-
-## 💻 Drizzle ORM 연동 방법
-
-### View를 Drizzle Schema로 정의
-
-```typescript
-// schema/views.ts
-import { pgView, uuid, text, boolean, timestamp } from 'drizzle-orm/pg-core';
-
-export const userOrganizationView = pgView("user_organization_view", {
-  userId: uuid("user_id"),
-  userName: text("user_name"),
-  userAvatarUrl: text("user_avatar_url"),
-  organizationId: text("organization_id"), // TEXT 타입으로 변경됨
-  organizationName: text("organization_name"),
-  isDefault: boolean("is_default"),
-  organizationCreatedAt: timestamp("organization_created_at", { withTimezone: true }),
-});
-
-export const publicProfiles = pgView("public_profiles", {
-  id: uuid("id"),
-  name: text("name"),
-  avatarUrl: text("avatar_url"),
-  createdAt: timestamp("created_at", { withTimezone: true }),
-});
-```
-
-### 서버에서 사용하기
-
-```typescript
-// services/organization.service.ts
-import { db } from '@/db';
-import { userOrganizationView, publicProfiles } from '@/schema/views';
-import { eq } from 'drizzle-orm';
-
-// 사용자 조직 목록 조회
-export async function getUserOrganizations(userId: string) {
-  return await db
-    .select()
-    .from(userOrganizationView)
-    .where(eq(userOrganizationView.userId, userId));
-}
-
-// 공개 프로필 검색 (이메일 초대용)
-export async function searchPublicProfiles(searchQuery: string) {
-  return await db
-    .select()
-    .from(publicProfiles)
-    .where(ilike(publicProfiles.name, `%${searchQuery}%`));
-}
-```
-
 ## 📋 Maintenance & Monitoring
 
 ### 1. 정기 점검 쿼리
