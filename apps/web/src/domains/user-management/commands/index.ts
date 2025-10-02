@@ -15,3 +15,8 @@ export interface CreateDefaultOrganizationCommand {
 export interface GetUserOrganizationsCommand {
   userId: string;
 }
+
+export interface SelectOrganizationCommand {
+  userId: string;
+  organizationId: string;
+}

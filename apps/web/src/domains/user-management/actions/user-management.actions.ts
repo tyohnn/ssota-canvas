@@ -9,6 +9,7 @@ import { profiles, organizations } from '@/db/schema';
 
 import { DrizzleUserRepository } from '../repositories/implementations/drizzle-user.repository';
 import { DrizzleOrganizationRepository } from '../repositories/implementations/drizzle-organization.repository';
+import { DrizzleOrganizationContextRepository } from '../repositories/implementations/drizzle-organization-context.repository';
 import { SupabaseAuthService } from '../anti-corruption-layers/supabase-auth-acl';
 import { UserManagementService } from '../services/user-management.service';
 import { DrizzleUserProfileViewRepository } from '../read-models/user-profile.view';
@@ -16,6 +17,7 @@ import {
   CreateUserProfileCommand,
   GetUserOrganizationsCommand,
   CreateDefaultOrganizationCommand,
+  SelectOrganizationCommand,
 } from '../commands';
 import { UserId } from '../value-objects/ids.vo';
 import { UserProfileView } from '../read-models/user-profile.view';
@@ -42,6 +44,7 @@ export async function createUserProfileAction(): Promise<UserProfileView> {
     const service = new UserManagementService(
       userRepository,
       organizationRepository,
+      new DrizzleOrganizationContextRepository(),
       supabaseAuthService
     );
 
@@ -98,6 +101,7 @@ export async function getUserOrganizationsAction(): Promise<
     const service = new UserManagementService(
       userRepository,
       organizationRepository,
+      new DrizzleOrganizationContextRepository(),
       supabaseAuthService
     );
 
@@ -150,6 +154,7 @@ export async function createDefaultOrganizationAction(
     const service = new UserManagementService(
       userRepository,
       organizationRepository,
+      new DrizzleOrganizationContextRepository(),
       supabaseAuthService
     );
 
@@ -214,11 +219,13 @@ export async function processUserRegistrationAction(): Promise<UserRegistrationR
     // 2. 의존성 주입 (Repository 패턴 준수)
     const userRepository = new DrizzleUserRepository();
     const organizationRepository = new DrizzleOrganizationRepository();
+    const organizationContextRepository = new DrizzleOrganizationContextRepository();
     const supabaseAuthService = new SupabaseAuthService(supabase);
 
     const service = new UserManagementService(
       userRepository,
       organizationRepository,
+      organizationContextRepository,
       supabaseAuthService
     );
 
@@ -268,6 +275,68 @@ export async function processUserRegistrationAction(): Promise<UserRegistrationR
     };
   } catch (error) {
     console.error('Error in processUserRegistrationAction:', error);
+    throw error;
+  }
+}
+
+const selectOrganizationSchema = z.object({
+  organizationId: z.string().min(1),
+});
+
+export async function selectOrganizationAction(
+  input: z.infer<typeof selectOrganizationSchema>
+): Promise<{ success: boolean; organizationId: string }> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      throw new Error('Authentication required');
+    }
+
+    // 2. Input validation
+    const validatedInput = selectOrganizationSchema.parse(input);
+
+    // 3. Service 사용 (Repository 패턴)
+    const userRepository = new DrizzleUserRepository();
+    const organizationRepository = new DrizzleOrganizationRepository();
+    const organizationContextRepository = new DrizzleOrganizationContextRepository();
+    const supabaseAuthService = new SupabaseAuthService(supabase);
+
+    const service = new UserManagementService(
+      userRepository,
+      organizationRepository,
+      organizationContextRepository,
+      supabaseAuthService
+    );
+
+    // 4. Command 생성
+    const command: SelectOrganizationCommand = {
+      userId: user.id,
+      organizationId: validatedInput.organizationId,
+    };
+
+    // 5. 도메인 로직 실행
+    const result = await service.selectOrganization(command);
+
+    if (result.isError()) {
+      throw new Error(result.error.message);
+    }
+
+    // 6. 관련 페이지 재검증
+    revalidatePath('/dashboard');
+    revalidatePath('/organizations');
+
+    return {
+      success: true,
+      organizationId: result.value.selectedOrganizationId.value,
+    };
+  } catch (error) {
+    console.error('Error in selectOrganizationAction:', error);
     throw error;
   }
 }

@@ -3,18 +3,25 @@ import {
   SidebarProvider,
 } from "@workspace/ui/components/ui/sidebar";
 import { DashboardSidebar } from "@/domains/dashboard/components/layout";
+import { OrganizationProvider } from "@/domains/user-management/frontend/contexts/organization-context";
+import { getUserOrganizationsAction } from "@/domains/user-management/actions/user-management.actions";
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Story 004에서 구현된 액션을 사용하여 초기 데이터 제공
+  const organizations = await getUserOrganizationsAction();
+  
   return (
-    <SidebarProvider>
-      <DashboardSidebar />
-      <SidebarInset className="overflow-hidden overscroll-none h-svh">
-        {children}
-      </SidebarInset>
-    </SidebarProvider>
+    <OrganizationProvider initialOrganizations={organizations}>
+      <SidebarProvider>
+        <DashboardSidebar />
+        <SidebarInset className="overflow-hidden overscroll-none h-svh">
+          {children}
+        </SidebarInset>
+      </SidebarProvider>
+    </OrganizationProvider>
   );
 }

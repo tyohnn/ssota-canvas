@@ -46,6 +46,28 @@ export class OrganizationUpdatedEvent {
   ) {}
 }
 
+export class OrganizationContextSelectedEvent {
+  readonly type = 'OrganizationContextSelected';
+
+  constructor(
+    public readonly userId: UserId,
+    public readonly organizationId: OrganizationId,
+    public readonly selectedAt: Date,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class OrganizationContextUpdatedEvent {
+  readonly type = 'OrganizationContextUpdated';
+
+  constructor(
+    public readonly contextId: string,
+    public readonly organizationId: OrganizationId,
+    public readonly selectedAt: Date,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
 export interface OrganizationSummary {
   id: OrganizationId;
   name: string;

@@ -109,9 +109,76 @@ export const profilesRelations = relations(profiles, ({ one, many }) => ({
   ownedOrganizations: many(organizations),
 }));
 
-export const organizationsRelations = relations(organizations, ({ one }) => ({
-  owner: one(profiles, {
-    fields: [organizations.owner_id],
-    references: [profiles.id],
-  }),
-}));
+export const organizationContexts = pgTable(
+  'organization_contexts',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(
+        () => `ctx_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`
+      ),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    selected_organization_id: text('selected_organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    selected_at: timestamp('selected_at').defaultNow().notNull(),
+    created_at: timestamp('created_at').defaultNow().notNull(),
+    updated_at: timestamp('updated_at').defaultNow().notNull(),
+  },
+  table => [
+    unique('organization_contexts_unique_user').on(table.user_id),
+    pgPolicy('Enable read access for all users', {
+      for: 'select',
+      to: [anonRole, authenticatedRole],
+      using: sql`true`,
+    }),
+    pgPolicy('Enable insert for authenticated users only', {
+      for: 'insert',
+      to: authenticatedRole,
+      withCheck: sql`(select auth.uid()) = user_id`,
+    }),
+    pgPolicy('Enable update for users based on user_id', {
+      for: 'update',
+      to: authenticatedRole,
+      using: sql`(select auth.uid()) = user_id`,
+      withCheck: sql`(select auth.uid()) = user_id`,
+    }),
+    pgPolicy('Enable delete for users based on user_id', {
+      for: 'delete',
+      to: authenticatedRole,
+      using: sql`(select auth.uid()) = user_id`,
+    }),
+  ]
+).enableRLS();
+
+export const organizationContextsRelations = relations(
+  organizationContexts,
+  ({ one }) => ({
+    user: one(profiles, {
+      fields: [organizationContexts.user_id],
+      references: [profiles.id],
+    }),
+    selectedOrganization: one(organizations, {
+      fields: [organizationContexts.selected_organization_id],
+      references: [organizations.id],
+    }),
+  })
+);
+
+export const organizationsRelations = relations(
+  organizations,
+  ({ one, many }) => ({
+    owner: one(profiles, {
+      fields: [organizations.owner_id],
+      references: [profiles.id],
+    }),
+    contexts: many(organizationContexts),
+  })
+);
+
+export type Profile = typeof profiles.$inferSelect;
+export type NewProfile = typeof profiles.$inferInsert;
+export type Organization = typeof organizations.$inferSelect;
+export type NewOrganization = typeof organizations.$inferInsert;
