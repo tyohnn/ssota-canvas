@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Organization } from '../organization.entity';
 import { OrganizationId, UserId } from '../../value-objects/ids.vo';
+import { OrganizationType } from '../../types';
 
 describe('Organization Entity', () => {
   let organizationId: OrganizationId;
@@ -13,6 +14,7 @@ describe('Organization Entity', () => {
     organization = new Organization(
       organizationId,
       'Test Organization',
+      'personal', // organizationType
       ownerId,
       true, // isDefault
       new Date('2024-01-01T00:00:00Z'),
@@ -25,10 +27,32 @@ describe('Organization Entity', () => {
       // When & Then
       expect(organization.id).toBe(organizationId);
       expect(organization.name).toBe('Test Organization');
+      expect(organization.organizationType).toBe('personal');
       expect(organization.ownerId).toBe(ownerId);
       expect(organization.isDefault).toBe(true);
       expect(organization.createdAt).toEqual(new Date('2024-01-01T00:00:00Z'));
       expect(organization.updatedAt).toEqual(new Date('2024-01-01T00:00:00Z'));
+    });
+
+    it('다양한 조직 타입으로 생성되어야 한다', () => {
+      // Given
+      const types: OrganizationType[] = ['personal', 'education', 'startup', 'agency', 'company', 'n/a'];
+
+      types.forEach(type => {
+        // When
+        const org = new Organization(
+          OrganizationId.generate(),
+          `Test ${type} Org`,
+          type,
+          ownerId,
+          false,
+          new Date(),
+          new Date()
+        );
+
+        // Then
+        expect(org.organizationType).toBe(type);
+      });
     });
 
     it('isDefault 플래그가 올바르게 설정되어야 한다', () => {
@@ -36,6 +60,7 @@ describe('Organization Entity', () => {
       const nonDefaultOrg = new Organization(
         OrganizationId.generate(),
         'Non-Default Org',
+        'company',
         ownerId,
         false, // isDefault
         new Date('2024-01-01T00:00:00Z'),
@@ -55,6 +80,7 @@ describe('Organization Entity', () => {
       const newOrg = new Organization(
         OrganizationId.generate(),
         'New Org',
+        'startup',
         ownerId,
         false,
         now,
@@ -131,6 +157,17 @@ describe('Organization Entity', () => {
       
       // Then
       expect(organization.id).toBe(originalId);
+    });
+
+    it('organizationType은 변경할 수 없어야 한다', () => {
+      // Given
+      const originalType = organization.organizationType;
+
+      // When
+      organization.updateName('New Name');
+      
+      // Then
+      expect(organization.organizationType).toBe(originalType);
     });
 
     it('ownerId는 변경할 수 없어야 한다', () => {

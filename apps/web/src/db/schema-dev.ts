@@ -16,6 +16,14 @@ import { users } from './external-schema';
 
 // Enums
 export const userTypeEnum = pgEnum('user_type', ['ADMIN', 'GENERAL']);
+export const organizationTypeEnum = pgEnum('organization_type', [
+  'personal',
+  'education',
+  'startup',
+  'agency',
+  'company',
+  'n/a',
+]);
 
 export const profiles = pgTable(
   'profiles',
@@ -66,6 +74,9 @@ export const organizations = pgTable(
         () => `org_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`
       ),
     name: text('name').notNull(),
+    organization_type: organizationTypeEnum('organization_type')
+      .notNull()
+      .default('n/a'),
     owner_id: uuid('owner_id')
       .notNull()
       .references(() => profiles.user_id, { onDelete: 'cascade' }),
@@ -121,3 +132,6 @@ export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
 export type Organization = typeof organizations.$inferSelect;
 export type NewOrganization = typeof organizations.$inferInsert;
+
+// Organization Type 추론
+export type OrganizationType = (typeof organizationTypeEnum.enumValues)[number];

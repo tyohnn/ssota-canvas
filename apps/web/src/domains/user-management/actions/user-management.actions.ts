@@ -16,10 +16,15 @@ import {
   CreateUserProfileCommand,
   GetUserOrganizationsCommand,
   CreateDefaultOrganizationCommand,
+  CreateNewOrganizationCommand,
 } from '../shared/commands';
 import { UserId } from '../shared/value-objects/ids.vo';
 import { UserProfileView } from '../backend/read-models/user-profile.view';
-import { OrganizationSummary } from '../shared/dtos';
+import {
+  OrganizationSummary,
+  CreateOrganizationRequest,
+  CreateOrganizationResult,
+} from '../shared/dtos';
 
 export async function createUserProfileAction(): Promise<UserProfileView> {
   try {
@@ -122,6 +127,19 @@ const createDefaultOrganizationSchema = z.object({
   organizationName: z.string().min(1).max(255),
 });
 
+const createNewOrganizationSchema = z.object({
+  name: z
+    .string()
+    .min(1, '조직명은 필수입니다')
+    .max(255, '조직명은 255자를 초과할 수 없습니다'),
+  organizationType: z.enum(
+    ['personal', 'education', 'startup', 'agency', 'company', 'n/a'],
+    {
+      message: '올바른 조직 타입을 선택해주세요',
+    }
+  ),
+});
+
 export async function createDefaultOrganizationAction(
   input: z.infer<typeof createDefaultOrganizationSchema>
 ): Promise<OrganizationSummary> {
@@ -177,6 +195,88 @@ export async function createDefaultOrganizationAction(
     };
   } catch (error) {
     throw error;
+  }
+}
+
+export async function createNewOrganizationAction(
+  input: CreateOrganizationRequest
+): Promise<CreateOrganizationResult> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      return {
+        success: false,
+        error: 'Authentication required',
+      };
+    }
+
+    // 2. Input validation
+    const validationResult = createNewOrganizationSchema.safeParse(input);
+    if (!validationResult.success) {
+      return {
+        success: false,
+        error: validationResult.error.issues[0]?.message || 'Invalid input',
+      };
+    }
+
+    const validatedInput = validationResult.data;
+
+    // 3. Service 사용 (Drizzle Repository)
+    const userRepository = new DrizzleUserRepository();
+    const organizationRepository = new DrizzleOrganizationRepository();
+    const supabaseAuthService = new SupabaseAuthService(supabase);
+
+    const service = new UserManagementService(
+      userRepository,
+      organizationRepository,
+      supabaseAuthService
+    );
+
+    // 4. Command 생성
+    const command: CreateNewOrganizationCommand = {
+      name: validatedInput.name,
+      organizationType: validatedInput.organizationType,
+      ownerId: user.id,
+    };
+
+    // 5. 도메인 로직 실행
+    const result = await service.createNewOrganization(command);
+
+    if (result.isError()) {
+      return {
+        success: false,
+        error: result.error.message,
+      };
+    }
+
+    // 6. 관련 페이지 재검증
+    revalidatePath('/dashboard');
+    revalidatePath('/organizations');
+
+    return {
+      success: true,
+      organization: {
+        id: result.value.id,
+        name: result.value.name,
+        organizationType: result.value.organizationType!,
+        isDefault: result.value.isDefault,
+        createdAt: result.value.createdAt,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to create organization',
+    };
   }
 }
 

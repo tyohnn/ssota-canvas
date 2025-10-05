@@ -2,6 +2,7 @@
 
 import { OrganizationId, UserId } from '../value-objects/ids.vo';
 import { UserEmail } from '../value-objects/user-email.vo';
+import { OrganizationType } from '../types';
 
 export class UserProfileCreatedEvent {
   readonly type = 'UserProfileCreated';
@@ -32,6 +33,19 @@ export class DefaultOrganizationCreatedEvent {
     public readonly organizationId: OrganizationId,
     public readonly ownerId: UserId,
     public readonly name: string,
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class NewOrganizationCreatedEvent {
+  readonly type = 'NewOrganizationCreated';
+
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly name: string,
+    public readonly organizationType: OrganizationType,
+    public readonly ownerId: UserId,
+    public readonly isDefault: boolean,
     public readonly timestamp: Date = new Date()
   ) {}
 }

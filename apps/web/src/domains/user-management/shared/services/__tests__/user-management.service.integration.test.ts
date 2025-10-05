@@ -8,7 +8,7 @@ import { OrganizationAggregate } from '../../aggregates/organization.aggregate';
 import { UserId, OrganizationId } from '../../value-objects/ids.vo';
 import { UserEmail } from '../../value-objects/user-email.vo';
 import { UserManagementError } from '../../errors/user-management.error';
-import { Result } from '../../types';
+import { Result } from '@/utils/result';
 import {
   CreateUserProfileCommand,
   CreateDefaultOrganizationCommand,

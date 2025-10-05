@@ -2,6 +2,7 @@
 
 import { Organization } from '../entities/organization.entity';
 import { OrganizationId, UserId } from '../value-objects/ids.vo';
+import { OrganizationType } from '../types';
 import {
   DefaultOrganizationCreatedEvent,
   OrganizationUpdatedEvent,
@@ -15,8 +16,26 @@ export class OrganizationAggregate {
     const organization = new Organization(
       OrganizationId.generate(),
       name,
+      'personal', // 기본 조직은 개인 타입
       ownerId,
       true, // isDefault
+      new Date(),
+      new Date()
+    );
+    return new OrganizationAggregate(organization);
+  }
+
+  static createNew(
+    name: string,
+    organizationType: OrganizationType,
+    ownerId: UserId
+  ): OrganizationAggregate {
+    const organization = new Organization(
+      OrganizationId.generate(),
+      name,
+      organizationType,
+      ownerId,
+      false, // isDefault - 새로운 조직은 기본 조직이 아님
       new Date(),
       new Date()
     );

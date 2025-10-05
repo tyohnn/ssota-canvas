@@ -1,11 +1,16 @@
 // apps/web/src/domains/user-management/frontend/hooks/use-organization.ts
 
 import { useOrganization as useOrganizationContext } from '../contexts/organization-context';
-import { OrganizationSummary } from '../../shared/dtos';
+import {
+  OrganizationSummary,
+  CreateOrganizationRequest,
+  CreateOrganizationResult,
+} from '../../shared/dtos';
 
 /**
  * 조직 관련 비즈니스 로직을 위한 커스텀 훅
  * Story 005: 조직 선택 및 컨텍스트 관리
+ * Story 006: 조직 생성 기능 추가
  */
 
 export function useOrganization() {

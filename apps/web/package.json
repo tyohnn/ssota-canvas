@@ -30,7 +30,7 @@
     "@clerk/nextjs": "^6.25.4",
     "@headless-tree/core": "^1.2.1",
     "@headless-tree/react": "^1.2.1",
-    "@hookform/resolvers": "^5.1.1",
+    "@hookform/resolvers": "^5.2.2",
     "@milkdown/crepe": "^7.15.3",
     "@milkdown/kit": "^7.15.3",
     "@milkdown/react": "^7.15.3",
@@ -60,7 +60,7 @@
     "react-tweet": "^3.2.2",
     "shiki": "^3.8.1",
     "svix": "^1.69.0",
-    "zod": "^4.0.17"
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",

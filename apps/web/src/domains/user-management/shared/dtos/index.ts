@@ -4,6 +4,8 @@
 // These are plain objects that can be serialized across the Next.js boundary
 // Used in Server Actions and Client Components
 
+import { OrganizationType } from '../types';
+
 // User-related DTOs
 export interface UserProfileView {
   userId: string; // Serialized from UserId
@@ -22,6 +24,7 @@ export interface UserProfileView {
 export interface OrganizationSummary {
   id: string; // Serialized from OrganizationId
   name: string;
+  organizationType?: OrganizationType; // 조직 타입 (선택적)
   isDefault: boolean;
   role?: 'owner' | 'admin' | 'member';
   createdAt: string; // ISO 8601 string (serialized from Date)
@@ -29,13 +32,19 @@ export interface OrganizationSummary {
 
 export interface CreateOrganizationRequest {
   name: string;
-  description?: string;
+  organizationType: OrganizationType;
 }
 
-export interface UpdateOrganizationRequest {
-  id: string;
-  name?: string;
-  description?: string;
+export interface CreateOrganizationResult {
+  success: boolean;
+  organization?: {
+    id: string;
+    name: string;
+    organizationType: OrganizationType;
+    isDefault: boolean;
+    createdAt: string;
+  };
+  error?: string;
 }
 
 // Action Response DTOs

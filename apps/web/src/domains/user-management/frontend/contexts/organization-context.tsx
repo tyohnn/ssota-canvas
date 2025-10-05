@@ -7,8 +7,15 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react';
-import { getUserOrganizationsAction } from '../../actions/user-management.actions';
-import { OrganizationSummary } from '../../shared/dtos';
+import {
+  getUserOrganizationsAction,
+  createNewOrganizationAction,
+} from '../../actions/user-management.actions';
+import {
+  OrganizationSummary,
+  CreateOrganizationRequest,
+  CreateOrganizationResult,
+} from '../../shared/dtos';
 import {
   getCookieValue,
   setCookieValue,
@@ -25,6 +32,9 @@ interface OrganizationContextType {
   // 액션
   selectOrganization: (organizationId: string) => void;
   refreshOrganizations: () => Promise<void>;
+  createOrganization: (
+    data: CreateOrganizationRequest
+  ) => Promise<CreateOrganizationResult>;
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(
@@ -121,6 +131,46 @@ export function OrganizationProvider({
     }
   };
 
+  const createOrganization = async (
+    data: CreateOrganizationRequest
+  ): Promise<CreateOrganizationResult> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await createNewOrganizationAction(data);
+
+      if (result.success && result.organization) {
+        // 새로 생성된 조직을 목록에 추가
+        const newOrganization: OrganizationSummary = {
+          id: result.organization.id,
+          name: result.organization.name,
+          organizationType: result.organization.organizationType,
+          isDefault: result.organization.isDefault,
+          role: 'owner',
+          createdAt: result.organization.createdAt,
+        };
+
+        setOrganizations(prev => [...prev, newOrganization]);
+
+        // 생성된 조직을 자동으로 선택
+        selectOrganization(newOrganization.id);
+      }
+
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : '조직 생성에 실패했습니다.';
+      setError(errorMessage);
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value: OrganizationContextType = {
     organizations,
     selectedOrganizationId,
@@ -128,6 +178,7 @@ export function OrganizationProvider({
     error,
     selectOrganization,
     refreshOrganizations,
+    createOrganization,
   };
 
   return (

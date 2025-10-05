@@ -26,6 +26,7 @@ export class DrizzleOrganizationRepository implements OrganizationRepository {
     const organization = new Organization(
       new OrganizationId(data.id),
       data.name,
+      data.organization_type,
       new UserId(data.owner_id),
       data.is_default ?? false,
       new Date(data.created_at),
@@ -51,6 +52,7 @@ export class DrizzleOrganizationRepository implements OrganizationRepository {
       const organization = new Organization(
         new OrganizationId(row.id),
         row.name,
+        row.organization_type,
         new UserId(row.owner_id),
         row.is_default ?? false,
         new Date(row.created_at),

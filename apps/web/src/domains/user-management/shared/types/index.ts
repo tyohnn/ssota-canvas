@@ -1,39 +1,20 @@
 // apps/web/src/domains/user-management/types/index.ts
 
-// Result 타입 (함수형 에러 처리)
-export class Result<T, E extends Error> {
-  private constructor(
-    private readonly _value?: T,
-    private readonly _error?: E
-  ) {}
+// Organization Types (정적 정의)
+export type OrganizationType =
+  | 'personal'
+  | 'education'
+  | 'startup'
+  | 'agency'
+  | 'company'
+  | 'n/a';
 
-  static success<T, E extends Error>(value: T): Result<T, E> {
-    return new Result<T, E>(value, undefined);
-  }
-
-  static error<T, E extends Error>(error: E): Result<T, E> {
-    return new Result<T, E>(undefined, error);
-  }
-
-  isSuccess(): boolean {
-    return this._error === undefined;
-  }
-
-  isError(): boolean {
-    return this._error !== undefined;
-  }
-
-  get value(): T {
-    if (this._error) {
-      throw new Error('Cannot get value from error result');
-    }
-    return this._value!;
-  }
-
-  get error(): E {
-    if (!this._error) {
-      throw new Error('Cannot get error from success result');
-    }
-    return this._error;
-  }
-}
+// Organization Type Labels (한국어)
+export const ORGANIZATION_TYPE_LABELS: Record<OrganizationType, string> = {
+  personal: '개인',
+  education: '교육',
+  startup: '스타트업',
+  agency: '에이전시',
+  company: '컴퍼니',
+  'n/a': 'N/A',
+} as const;

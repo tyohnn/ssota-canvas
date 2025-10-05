@@ -70,7 +70,7 @@ import { UserAggregate } from '../shared/aggregates/user.aggregate';
 import { OrganizationAggregate } from '../shared/aggregates/organization.aggregate';
 import { UserId } from '../shared/value-objects/ids.vo';
 import { UserManagementError } from '../shared/errors/user-management.error';
-import { Result } from '../shared/types';
+import { Result } from '@/utils/result';
 
 describe('Server Actions Integration Tests', () => {
   let mockUser: UserAggregate;

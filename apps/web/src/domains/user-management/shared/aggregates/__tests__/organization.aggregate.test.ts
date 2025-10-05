@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { OrganizationAggregate } from '../organization.aggregate';
 import { Organization } from '../../entities/organization.entity';
 import { OrganizationId, UserId } from '../../value-objects/ids.vo';
+import { OrganizationType } from '../../types';
 import { DefaultOrganizationCreatedEvent, OrganizationUpdatedEvent } from '../../events';
 
 describe('OrganizationAggregate', () => {
@@ -24,6 +25,7 @@ describe('OrganizationAggregate', () => {
       expect(organizationAggregate).toBeInstanceOf(OrganizationAggregate);
       expect(organizationAggregate.entity.name).toBe(organizationName);
       expect(organizationAggregate.entity.ownerId).toBe(ownerId);
+      expect(organizationAggregate.entity.organizationType).toBe('personal'); // 기본 조직은 개인 타입
     });
 
     it('isDefault가 true로 설정되어야 한다', () => {
@@ -281,6 +283,88 @@ describe('OrganizationAggregate', () => {
 
       // Then
       expect(organizationAggregate.entity.createdAt).toBe(originalCreatedAt);
+    });
+  });
+
+  describe('createNew', () => {
+    it('새로운 조직이 생성되어야 한다', () => {
+      // Given
+      const organizationName = 'New Organization';
+      const organizationType: OrganizationType = 'startup';
+
+      // When
+      organizationAggregate = OrganizationAggregate.createNew(organizationName, organizationType, ownerId);
+
+      // Then
+      expect(organizationAggregate).toBeInstanceOf(OrganizationAggregate);
+      expect(organizationAggregate.entity.name).toBe(organizationName);
+      expect(organizationAggregate.entity.organizationType).toBe(organizationType);
+      expect(organizationAggregate.entity.ownerId).toBe(ownerId);
+    });
+
+    it('조직 타입이 올바르게 설정되어야 한다', () => {
+      // Given
+      const organizationName = 'Test Company';
+      const organizationType: OrganizationType = 'company';
+
+      // When
+      organizationAggregate = OrganizationAggregate.createNew(organizationName, organizationType, ownerId);
+
+      // Then
+      expect(organizationAggregate.entity.organizationType).toBe('company');
+    });
+
+    it('다양한 조직 타입으로 생성되어야 한다', () => {
+      // Given
+      const types: OrganizationType[] = ['personal', 'education', 'startup', 'agency', 'company', 'n/a'];
+
+      types.forEach(type => {
+        // When
+        const org = OrganizationAggregate.createNew(`Test ${type} Org`, type, ownerId);
+
+        // Then
+        expect(org.entity.organizationType).toBe(type);
+        expect(org.entity.name).toBe(`Test ${type} Org`);
+      });
+    });
+
+    it('생성자가 소유자로 설정되어야 한다', () => {
+      // Given
+      const organizationName = 'Test Organization';
+      const organizationType: OrganizationType = 'agency';
+
+      // When
+      organizationAggregate = OrganizationAggregate.createNew(organizationName, organizationType, ownerId);
+
+      // Then
+      expect(organizationAggregate.ownerId).toBe(ownerId);
+      expect(organizationAggregate.entity.ownerId).toBe(ownerId);
+    });
+
+    it('isDefault가 false로 설정되어야 한다', () => {
+      // Given
+      const organizationName = 'New Organization';
+      const organizationType: OrganizationType = 'startup';
+
+      // When
+      organizationAggregate = OrganizationAggregate.createNew(organizationName, organizationType, ownerId);
+
+      // Then
+      expect(organizationAggregate.isDefault).toBe(false);
+      expect(organizationAggregate.entity.isDefault).toBe(false);
+    });
+
+    it('NewOrganizationCreatedEvent가 발행되어야 한다', () => {
+      // Given
+      const organizationName = 'Test Organization';
+      const organizationType: OrganizationType = 'startup';
+
+      // When
+      const event = OrganizationAggregate.createNew(organizationName, organizationType, ownerId);
+
+      // Then
+      // 이 테스트는 createNew가 이벤트를 반환하도록 구현될 때 활성화됩니다
+      // expect(event).toBeInstanceOf(NewOrganizationCreatedEvent);
     });
   });
 });

@@ -7,10 +7,11 @@ import { UserAggregate } from '../../shared/aggregates/user.aggregate';
 import { OrganizationAggregate } from '../../shared/aggregates/organization.aggregate';
 import { UserId } from '../../shared/value-objects/ids.vo';
 import { UserManagementError } from '../../shared/errors/user-management.error';
-import { Result } from '../../shared/types';
+import { Result } from '../../../../utils/result';
 import {
   CreateUserProfileCommand,
   CreateDefaultOrganizationCommand,
+  CreateNewOrganizationCommand,
   GetUserOrganizationsCommand,
 } from '../../shared/commands';
 import { OrganizationSummary } from '../../shared/dtos';
@@ -147,7 +148,9 @@ export class UserManagementService {
       const summaries: OrganizationSummary[] = organizations.map(org => ({
         id: org.id.value, // Serialize OrganizationId to string
         name: org.entity.name,
+        organizationType: org.entity.organizationType,
         isDefault: org.entity.isDefault,
+        role: 'owner', // 현재는 소유자만 조회
         createdAt: org.entity.createdAt.toISOString(), // Serialize Date to ISO string
       }));
 
@@ -157,6 +160,69 @@ export class UserManagementService {
         new UserManagementError(
           'ORGANIZATION_RETRIEVAL_FAILED',
           'Failed to get user organizations',
+          { error }
+        )
+      );
+    }
+  }
+
+  async createNewOrganization(
+    command: CreateNewOrganizationCommand
+  ): Promise<Result<OrganizationSummary, UserManagementError>> {
+    try {
+      // 1. 사용자 인증 확인
+      const supabaseUser = await this.supabaseAuthService.getCurrentUser();
+      if (!supabaseUser || supabaseUser.id !== command.ownerId) {
+        return Result.error(
+          new UserManagementError('USER_NOT_FOUND', 'Authentication required')
+        );
+      }
+
+      // 2. 조직 이름 중복 검사
+      const existingOrganizations =
+        await this.organizationRepository.findByOwnerId(
+          new UserId(command.ownerId)
+        );
+
+      const duplicateOrg = existingOrganizations.find(
+        org => org.entity.name.toLowerCase() === command.name.toLowerCase()
+      );
+
+      if (duplicateOrg) {
+        return Result.error(
+          new UserManagementError(
+            'ORGANIZATION_NAME_DUPLICATE',
+            'Organization with this name already exists'
+          )
+        );
+      }
+
+      // 3. 새로운 조직 생성
+      const newOrganization = OrganizationAggregate.createNew(
+        command.name,
+        command.organizationType,
+        new UserId(command.ownerId)
+      );
+
+      // 4. 조직 저장
+      await this.organizationRepository.save(newOrganization);
+
+      // 5. DTO로 변환하여 반환
+      const organizationSummary: OrganizationSummary = {
+        id: newOrganization.id.value,
+        name: newOrganization.entity.name,
+        organizationType: newOrganization.entity.organizationType,
+        isDefault: newOrganization.entity.isDefault,
+        role: 'owner',
+        createdAt: newOrganization.entity.createdAt.toISOString(),
+      };
+
+      return Result.success(organizationSummary);
+    } catch (error) {
+      return Result.error(
+        new UserManagementError(
+          'ORGANIZATION_CREATION_FAILED',
+          'Failed to create new organization',
           { error }
         )
       );

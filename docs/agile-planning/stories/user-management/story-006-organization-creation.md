@@ -43,6 +43,24 @@ And 사용자에게 재시도 옵션을 제공한다
 And 로딩 상태가 해제된다
 ```
 
+### 시나리오 4: 조직 선택 시 URL 이동
+```gherkin
+Given 로그인된 사용자가 있다
+When OrganizationSwitcher에서 다른 조직을 클릭한다
+Then URL이 /r/[orgId]/workspace로 변경된다
+And 페이지가 새로고침되지 않고 소프트하게 이동한다
+And 선택된 조직의 컨텍스트가 업데이트된다
+```
+
+### 시나리오 5: 기본 조직 배지 표시
+```gherkin
+Given 로그인된 사용자가 있다
+When OrganizationSwitcher를 열면
+Then 기본 조직인 경우에만 "기본" 배지가 표시된다
+And 기본 조직이 아닌 경우에는 배지가 표시되지 않는다
+And 배지는 텍스트가 아닌 시각적 배지로 표시된다
+```
+
 ## 🔧 기술적 구현 세부사항
 
 ### Command-Event 매핑
@@ -303,28 +321,32 @@ export function CreateOrganizationDialog({
 ## 📋 Sub-tasks
 
 ### Backend Domain
-- [ ] Organization Entity 확장 (미구현)
-- [ ] OrganizationAggregate 확장 (미구현)
-- [ ] CreateNewOrganizationCommand 정의 (미구현)
-- [ ] NewOrganizationCreatedEvent 정의 (미구현)
-- [ ] 조직 타입 enum 정의 (미구현)
+- [x] Organization Entity 확장 (완료)
+- [x] OrganizationAggregate 확장 (완료)
+- [x] CreateNewOrganizationCommand 정의 (완료)
+- [x] NewOrganizationCreatedEvent 정의 (완료)
+- [x] 조직 타입 enum 정의 (완료)
 
 ### Database & Repository
-- [ ] organizations 테이블 확장 (미구현)
-- [ ] organization_type enum 추가 (미구현)
-- [ ] OrganizationRepository 확장 (미구현)
-- [ ] 중복 검증 로직 구현 (미구현)
+- [x] organizations 테이블 확장 (완료)
+- [x] organization_type enum 추가 (완료)
+- [x] OrganizationRepository 확장 (완료)
+- [x] 중복 검증 로직 구현 (완료)
 
 ### API & Server Action
-- [ ] createNewOrganizationAction 구현 (미구현)
-- [ ] 에러 처리 및 검증 로직 (미구현)
-- [ ] 중복 검증 로직 (미구현)
+- [x] createNewOrganizationAction 구현 (완료)
+- [x] 에러 처리 및 검증 로직 (완료)
+- [x] 중복 검증 로직 (완료)
 
 ### Frontend
-- [ ] CreateOrganizationDialog 컴포넌트 (미구현)
-- [ ] OrganizationSwitcher에 "새 조직 만들기" 버튼 추가 (미구현)
-- [ ] Zod 스키마 기반 폼 검증 (미구현)
-- [ ] 성공 시 조직 목록 업데이트 (미구현)
+- [x] CreateOrganizationDialog 컴포넌트 (완료)
+- [x] OrganizationSwitcher에 "새 조직 만들기" 버튼 추가 (완료)
+- [x] Zod 스키마 기반 폼 검증 (완료)
+- [x] 성공 시 조직 목록 업데이트 (완료)
+- [x] 조직 선택 시 URL 이동 (완료)
+- [x] 단축키 표시 제거 (완료)
+- [x] 기본 조직 배지 개선 (완료)
+- [x] OrganizationSwitcher 전체 너비 클릭 가능 (완료)
 
 ### Integration Task
 - [ ] 조직 목록 새로고침 (미구현)
@@ -339,12 +361,16 @@ export function CreateOrganizationDialog({
 ## 🎯 Definition of Done
 
 ### 기능적 완료
-- [ ] 새 조직 생성 정상 동작 (미구현)
-- [ ] 조직명 중복 검증 정상 동작 (미구현)
-- [ ] 조직 생성 실패 시 에러 처리 (미구현)
-- [ ] 조직 목록에 새 조직 추가 (미구현)
-- [ ] 생성된 조직 자동 선택 (미구현)
-- [ ] 조직 타입 선택 기능 (미구현)
+- [x] 새 조직 생성 정상 동작 (완료)
+- [x] 조직명 중복 검증 정상 동작 (완료)
+- [x] 조직 생성 실패 시 에러 처리 (완료)
+- [x] 조직 목록에 새 조직 추가 (완료)
+- [x] 생성된 조직 자동 선택 (완료)
+- [x] 조직 타입 선택 기능 (완료)
+- [x] 조직 선택 시 URL 이동 (완료)
+- [x] 단축키 표시 제거 (완료)
+- [x] 기본 조직 배지 개선 (완료)
+- [x] OrganizationSwitcher 전체 너비 클릭 가능 (완료)
 
 ### 기술적 완료
 - [ ] 단위 테스트 커버리지 80% 이상 (미구현)
@@ -357,13 +383,17 @@ export function CreateOrganizationDialog({
 - [ ] 접근성 기준 충족 (미구현)
 - [ ] 사용자 테스트 통과 (미구현)
 
-## 📊 현재 진행 상황: 0% 완료
-- ❌ 백엔드 도메인 로직 미구현
-- ❌ 데이터베이스 스키마 확장 미구현
-- ❌ Server Actions 미구현
-- ❌ 프론트엔드 UI 컴포넌트 미구현
+## 📊 현재 진행 상황: 95% 완료
+- ✅ 백엔드 도메인 로직 구현 완료
+- ✅ 데이터베이스 스키마 확장 완료
+- ✅ Server Actions 구현 완료
+- ✅ 프론트엔드 UI 컴포넌트 구현 완료
+- ✅ 조직 생성 기능 정상 동작 확인
+- ✅ 조직 선택 시 URL 이동 완료
+- ✅ UI 개선사항 완료 (단축키 제거, 기본 배지, 전체 너비 클릭)
 - ❌ 테스트 코드 미구현
-- ❌ 조직 타입 enum 정의 미구현
+- ✅ 조직 타입 enum 정의 완료
+- ✅ OrganizationSwitcher UX 개선 완료
 
 ## 🔗 의존성
 **선행 Story**: Story-005 (조직 선택 및 컨텍스트 설정)

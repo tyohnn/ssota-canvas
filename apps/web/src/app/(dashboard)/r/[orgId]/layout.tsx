@@ -11,18 +11,18 @@ export default async function DashboardLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgId: string }>;
 }) {
   // Story 004에서 구현된 액션을 사용하여 초기 데이터 제공
   const organizations = await getUserOrganizationsAction();
-  const { orgSlug } = await params;
+  const { orgId } = await params;
 
   // URL 파라미터로 전달된 orgSlug를 우선하여 선택
   const selectedOrgId =
     organizations.find(
       org =>
         // TODO: org.slug 필드가 필요하지만 현재는 name으로 임시 처리
-        org.name.toLowerCase().replace(/\s+/g, '-') === orgSlug.toLowerCase()
+        org.id === orgId
     )?.id || null;
 
   return (
