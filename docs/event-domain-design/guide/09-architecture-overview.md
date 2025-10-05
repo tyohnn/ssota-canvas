@@ -1,4 +1,23 @@
-# Architecture Overview & Implementation Summary
+# Architecture Overview - 전체 아키텍처 개요
+
+> 이 문서는 **DDD + CQRS + Repository Pattern** 기반의 전체 아키텍처를 설명합니다.  
+> 각 레이어의 책임, 데이터 플로우, 적용된 패턴을 이해하기 위한 개요 문서입니다.
+
+---
+
+## 🎯 참조 가이드
+
+| 주제 | 문서 |
+|------|------|
+| Event Storming | `1-event-storming-guide.md` |
+| Process Model | `2-process-model-guide.md` |
+| Software Design | `3-software-design-guide.md` |
+| Testing Strategy | `3.5-testing-strategy-guide.md` |
+| Technical Specification | `4-technical-specification-guide.md` |
+| TDD Implementation | `5-tdd-implementation-guide.md` |
+| Frontend Specification | `6-frontend-specification-guide.md` |
+
+---
 
 ## 🏗️ 전체 아키텍처 다이어그램
 
@@ -228,9 +247,12 @@ sequenceDiagram
 - **의존성 격리**: Supabase 변경이 도메인에 미치는 영향 최소화
 
 ### 5. **DTO Pattern**
+> 상세 내용은 `05-code-conventions.md`의 DTO 직렬화 컨벤션 섹션 참조 ⭐️
+
 - **직렬화 경계**: Server Actions와 클라이언트 간 데이터 교환
 - **타입 안전성**: Next.js 직렬화 제약 내에서 타입 보장
-- **캡슐화**: 도메인 객체의 내부 구조 은닉
+- **관심사 분리**: Domain Events ≠ DTOs (폴더 분리)
+- **CQRS 적용**: Read Models를 DTO로 정의
 
 ---
 
@@ -269,9 +291,12 @@ sequenceDiagram
 - **Invalidation**: 데이터 변경 시 적절한 무효화
 
 ### 3. **직렬화 최적화**
+> 상세 내용은 `05-code-conventions.md`의 DTO 직렬화 컨벤션 섹션 참조 ⭐️
+
 - **ISO 문자열**: Date → String 변환 표준화
 - **Plain Objects**: 클래스 대신 인터페이스 사용
 - **최소 데이터**: 필요한 필드만 전송
+- **직렬화 레이어**: Repository/Service에서 한 번만 수행
 
 ---
 
@@ -295,24 +320,6 @@ sequenceDiagram
 - [x] **폴더 구조**: 직관적이고 명확한 파일 조직
 - [x] **네이밍**: 의도를 명확히 드러내는 이름
 
----
-
-## 🚀 확장 계획
-
-### Short Term (시나리오 2+)
-- [ ] **조직 멤버십**: 사용자가 여러 조직에 소속 가능
-- [ ] **권한 관리**: 역할 기반 접근 제어 (RBAC)
-- [ ] **조직 설정**: 조직별 커스터마이징
-
-### Medium Term
-- [ ] **이벤트 소싱**: 시간에 따른 상태 변화 추적
-- [ ] **분산 이벤트**: 도메인 간 이벤트 발행/구독
-- [ ] **실시간 동기화**: WebSocket 기반 실시간 업데이트
-
-### Long Term
-- [ ] **마이크로서비스**: 도메인별 독립적인 서비스
-- [ ] **이벤트 스토어**: CQRS Event Store 도입
-- [ ] **폴리글랏**: 각 도메인별 최적 언어/프레임워크
 
 ---
 

@@ -15,8 +15,10 @@
     "test:coverage": "vitest --coverage",
     "test:unit": "vitest --testPathPattern=unit",
     "test:integration": "vitest --testPathPattern=integration",
-    "test:us001": "tsx src/__tests__/run-tests.ts",
-    "test:all": "pnpm test:us001",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:all": "pnpm test && pnpm test:e2e",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
@@ -61,6 +63,7 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",

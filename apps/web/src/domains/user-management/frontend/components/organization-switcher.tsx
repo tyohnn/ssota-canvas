@@ -23,6 +23,17 @@ export function OrganizationSwitcher() {
   const router = useRouter();
   const { organizations, selectedOrganization, selectOrganization } =
     useOrganization();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Prevent hydration mismatch by showing a consistent state until mounted
+  const displayName = mounted ? selectedOrganization?.name : '조직 선택';
+  const displayInitial = mounted
+    ? selectedOrganization?.name?.charAt(0)?.toUpperCase() || 'O'
+    : 'O';
 
   return (
     <SidebarMenu>
@@ -32,12 +43,10 @@ export function OrganizationSwitcher() {
             <SidebarMenuButton className="w-fit px-1.5">
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-5 items-center justify-center rounded-md">
                 <span className="text-[10px] font-semibold">
-                  {selectedOrganization?.name?.charAt(0)?.toUpperCase() || 'O'}
+                  {displayInitial}
                 </span>
               </div>
-              <span className="truncate font-medium">
-                {selectedOrganization?.name || '조직 선택'}
-              </span>
+              <span className="truncate font-medium">{displayName}</span>
               <ChevronDown className="opacity-50" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
