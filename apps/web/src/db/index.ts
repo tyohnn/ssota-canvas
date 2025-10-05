@@ -79,18 +79,25 @@ export function createDrizzle(
           -- auth.uid()
           select set_config('request.jwt.claim.sub', '${sql.raw(
             token.sub ?? ''
-          )}', TRUE);												
+          )}', TRUE);
           -- set local role
           set local role ${sql.raw(token.role ?? 'anon')};
           `);
-            return await transaction(tx);
+            const result = await transaction(tx);
+            return result;
+          } catch (error) {
+            throw error;
           } finally {
-            await tx.execute(sql`
-            -- reset
-            select set_config('request.jwt.claims', NULL, TRUE);
-            select set_config('request.jwt.claim.sub', NULL, TRUE);
-            reset role;
-            `);
+            try {
+              await tx.execute(sql`
+              -- reset
+              select set_config('request.jwt.claims', NULL, TRUE);
+              select set_config('request.jwt.claim.sub', NULL, TRUE);
+              reset role;
+              `);
+            } catch (resetError) {
+              // Don't throw in finally block if transaction already failed
+            }
           }
         },
         ...rest

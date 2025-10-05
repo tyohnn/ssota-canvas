@@ -15,11 +15,11 @@ import {
 } from '@workspace/ui/components/ui/sidebar';
 import {
   SidebarHeaderGroup,
-  OrganizationSwitcher,
   SidebarFooterSettings,
   OrgWorkspacesSkeleton,
   OrgWorkspacesMenu,
 } from './dashboard-sidebar/index';
+import { OrganizationSwitcher } from '@/domains/user-management/frontend/components/organization-switcher';
 import { MessageCircleQuestion, Plus, RefreshCw, Blocks } from 'lucide-react';
 
 export function DashboardSidebar() {

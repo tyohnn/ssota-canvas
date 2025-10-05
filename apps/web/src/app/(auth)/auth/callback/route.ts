@@ -18,7 +18,8 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
 
   // if "next" is in param, use it as the redirect URL
-  let next = searchParams.get('next') ?? appDefaultUrl;
+  // 새로운 사용자는 온보딩 페이지로, 기존 사용자는 원래 목적지로
+  let next = searchParams.get('next') ?? '/onboarding';
 
   if (code) {
     const supabase = await createClient();
@@ -32,14 +33,8 @@ export async function GET(request: Request) {
       );
     }
 
-    // 🎯 User Management Domain: 로그인 성공 후 프로필 및 기본 조직 생성
-    try {
-      const result = await processUserRegistrationAction();
-      console.log('User registration completed:', result);
-    } catch (error) {
-      // 프로필이 이미 있는 경우 무시 (재로그인 시)
-      console.log('User registration skipped (already exists):', error);
-    }
+    // 🎯 User Management Domain: 온보딩 페이지에서 프로필 생성 처리
+    // 클라이언트 사이드에서 쿠키가 완전히 설정된 후 실행하도록 온보딩 페이지로 리다이렉트
 
     // 리다이렉트
     const forwardedHost = request.headers.get('x-forwarded-host'); // original origin before load balancer

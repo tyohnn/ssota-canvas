@@ -9,10 +9,13 @@ import {
 } from '@workspace/ui/components/ui/breadcrumb';
 import { Separator } from '@workspace/ui/components/ui/separator';
 import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
-import { useOrganizationContext } from '@/domains/dashboard/context/OrganizationCotext';
+import { useOrganization } from '@/domains/user-management/frontend/contexts/organization-context';
 
 export function DashboardHeader() {
-  const { activeOrganization } = useOrganizationContext();
+  const { organizations, selectedOrganizationId } = useOrganization();
+  const activeOrganization = organizations.find(
+    org => org.id === selectedOrganizationId
+  );
   const headerTitle = activeOrganization?.name;
 
   return (

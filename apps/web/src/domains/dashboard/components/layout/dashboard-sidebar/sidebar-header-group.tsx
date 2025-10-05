@@ -15,10 +15,13 @@ import {
   SidebarMenuItem,
 } from '@workspace/ui/components/ui/sidebar';
 import { Home, Inbox, Search } from 'lucide-react';
-import { useOrganizationContext } from '@/domains/dashboard/context/OrganizationCotext';
+import { useOrganization } from '@/domains/user-management/frontend/contexts/organization-context';
 
 export function SidebarHeaderGroup() {
-  const { activeOrganization } = useOrganizationContext();
+  const { organizations, selectedOrganizationId } = useOrganization();
+  const activeOrganization = organizations.find(
+    org => org.id === selectedOrganizationId
+  );
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [isInboxOpen, setIsInboxOpen] = React.useState(false);
 
@@ -30,7 +33,7 @@ export function SidebarHeaderGroup() {
           className="text-muted-foreground"
           tooltip="Home"
         >
-          <a href={`/${activeOrganization?.slug}`}>
+          <a href={`/r/${activeOrganization?.id}`}>
             <Home />
             <span>Home</span>
           </a>
