@@ -2,8 +2,8 @@
 
 ## 🎯 Story 개요
 **User Story**: As a 로그인된 사용자 I want to 새로운 조직을 생성할 수 있어야 so that 팀과 함께 작업할 수 있다
-**Story Points**: 3
-**우선순위**: Medium
+**Story Points**: 5
+**우선순위**: High
 **Epic**: Epic-001 User Management
 
 ## 📋 수용 기준 (Acceptance Criteria)
@@ -11,31 +11,36 @@
 ### 시나리오 1: 새 조직 생성
 ```gherkin
 Given 로그인된 사용자가 있다
-When 새 조직 생성 폼을 작성한다
-And 조직명을 입력한다
-And 조직 생성 버튼을 클릭한다
+When OrganizationSwitcher에서 "새 조직 만들기"를 클릭한다
+And CreateOrganizationDialog에서 조직명을 입력한다
+And 조직 타입을 선택한다
+And "생성" 버튼을 클릭한다
 Then 새 조직이 생성된다
 And 사용자가 조직의 소유자로 설정된다
-And 조직 생성 완료 이벤트가 발생한다
+And NewOrganizationCreatedEvent가 발생한다
 And 조직 목록에 새 조직이 추가된다
+And 생성된 조직이 자동으로 선택된다
 ```
 
 ### 시나리오 2: 조직명 중복 검증
 ```gherkin
 Given 로그인된 사용자가 있다
-When 이미 존재하는 조직명으로 새 조직을 생성한다
-Then 중복 조직명 오류 메시지가 표시된다
+When CreateOrganizationDialog에서 이미 존재하는 조직명을 입력한다
+And "생성" 버튼을 클릭한다
+Then "조직명이 이미 존재합니다" 오류 메시지가 표시된다
 And 조직 생성이 취소된다
+And Dialog가 닫히지 않고 폼이 유지된다
 And 사용자에게 다른 이름을 입력하도록 안내한다
 ```
 
 ### 시나리오 3: 조직 생성 실패
 ```gherkin
 Given 로그인된 사용자가 있다
-When 조직 생성 중 오류가 발생한다
-Then 오류 메시지가 표시된다
+When CreateOrganizationDialog에서 조직 생성 중 서버 오류가 발생한다
+Then "조직 생성에 실패했습니다" 오류 메시지가 표시된다
+And Dialog가 닫히지 않고 폼 데이터가 보존된다
 And 사용자에게 재시도 옵션을 제공한다
-And 폼 데이터가 보존된다
+And 로딩 상태가 해제된다
 ```
 
 ## 🔧 기술적 구현 세부사항
@@ -43,38 +48,31 @@ And 폼 데이터가 보존된다
 ### Command-Event 매핑
 ```typescript
 // Command
-interface CreateOrganizationCommand {
+interface CreateNewOrganizationCommand {
   name: string;
-  slug?: string;
-  ownerId: string;
+  organizationType: OrganizationType;
+  ownerId: UserId;
 }
 
 // Event
-interface OrganizationCreatedEvent {
-  organizationId: string;
+interface NewOrganizationCreatedEvent {
+  organizationId: OrganizationId;
   name: string;
-  slug: string;
-  ownerId: string;
+  organizationType: OrganizationType;
+  ownerId: UserId;
+  isDefault: boolean;
   timestamp: Date;
 }
 
 // Aggregate
 class OrganizationAggregate {
-  static create(
-    name: string,
-    slug: string,
-    ownerId: UserId
-  ): OrganizationAggregate {
-    const organization = new Organization(
-      OrganizationId.generate(),
-      name,
-      slug,
-      ownerId,
-      false, // isDefault = false
-      new Date(),
-      new Date()
-    );
-    return new OrganizationAggregate(organization);
+  createNew(command: CreateNewOrganizationCommand): NewOrganizationCreatedEvent {
+    // 비즈니스 로직
+    // 1. 조직명 중복 검사
+    // 2. 조직 타입 유효성 검사
+    // 3. UUID 기반 조직 ID 생성
+    // 4. 사용자를 소유자로 설정
+    // 5. 기본 설정 적용
   }
 }
 ```
@@ -84,7 +82,7 @@ class OrganizationAggregate {
 interface OrganizationRepository {
   save(organization: OrganizationAggregate): Promise<void>;
   findByName(name: string, ownerId: UserId): Promise<OrganizationAggregate | null>;
-  findBySlug(slug: string): Promise<OrganizationAggregate | null>;
+  findById(id: OrganizationId): Promise<OrganizationAggregate | null>;
 }
 
 class DrizzleOrganizationRepository implements OrganizationRepository {
@@ -105,7 +103,7 @@ class DrizzleOrganizationRepository implements OrganizationRepository {
     const organization = new Organization(
       new OrganizationId(data.id),
       data.name,
-      data.slug,
+      data.organizationType,
       new UserId(data.ownerId),
       data.isDefault,
       new Date(data.createdAt),
@@ -119,91 +117,110 @@ class DrizzleOrganizationRepository implements OrganizationRepository {
 
 ### Server Actions
 ```typescript
-export async function createOrganizationAction(
-  input: { name: string; slug?: string }
-): Promise<OrganizationSummary> {
+export async function createNewOrganizationAction(
+  input: CreateOrganizationRequest
+): Promise<CreateOrganizationResult> {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   
   if (error || !user) {
-    throw new Error('Authentication required');
+    return {
+      success: false,
+      error: 'Authentication required'
+    };
   }
 
-  // 1. Input 검증
-  if (!input.name?.trim()) {
-    throw new Error('Organization name is required');
+  try {
+    // 1. Input 검증
+    if (!input.name?.trim()) {
+      return {
+        success: false,
+        error: 'Organization name is required'
+      };
+    }
+
+    // 2. 중복 검증
+    const organizationRepository = new DrizzleOrganizationRepository();
+    const existingOrg = await organizationRepository.findByName(
+      input.name,
+      new UserId(user.id)
+    );
+    
+    if (existingOrg) {
+      return {
+        success: false,
+        error: 'Organization with this name already exists'
+      };
+    }
+
+    // 3. 조직 생성
+    const command = new CreateNewOrganizationCommand(
+      input.name,
+      input.organizationType,
+      new UserId(user.id)
+    );
+    
+    const organization = OrganizationAggregate.createNew(command);
+    await organizationRepository.save(organization);
+
+    // 4. 관련 페이지 재검증
+    revalidatePath('/dashboard');
+    revalidatePath('/organizations');
+
+    return {
+      success: true,
+      organization: {
+        id: organization.id.value,
+        name: organization.entity.name,
+        organizationType: organization.entity.organizationType,
+        isDefault: organization.entity.isDefault,
+        createdAt: organization.entity.createdAt.toISOString()
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create organization'
+    };
   }
-
-  // 2. 중복 검증
-  const organizationRepository = new DrizzleOrganizationRepository();
-  const existingOrg = await organizationRepository.findByName(
-    input.name,
-    new UserId(user.id)
-  );
-  
-  if (existingOrg) {
-    throw new Error('Organization with this name already exists');
-  }
-
-  // 3. 슬러그 생성
-  const slug = input.slug || input.name.toLowerCase().replace(/\s+/g, '-');
-
-  // 4. 조직 생성
-  const organization = OrganizationAggregate.create(
-    input.name,
-    slug,
-    new UserId(user.id)
-  );
-  
-  await organizationRepository.save(organization);
-
-  // 5. 관련 페이지 재검증
-  revalidatePath('/dashboard');
-  revalidatePath('/organizations');
-
-  return {
-    id: organization.id,
-    name: organization.entity.name,
-    slug: organization.entity.slug,
-    memberCount: 1,
-    isDefault: organization.entity.isDefault,
-    isSelected: false,
-    role: "owner" as const,
-    createdAt: organization.entity.createdAt
-  };
 }
 ```
 
-### Frontend Form
+### Frontend Components
 ```typescript
-// OrganizationForm.tsx
-export function OrganizationForm({ onSuccess }: { onSuccess?: () => void }) {
-  const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
+// CreateOrganizationDialog.tsx
+export function CreateOrganizationDialog({ 
+  open, 
+  onOpenChange 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void; 
+}) {
+  const { createOrganization } = useOrganization();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name.trim()) {
-      setError('Organization name is required');
-      return;
+  const form = useForm<CreateOrganizationRequest>({
+    resolver: zodResolver(createOrganizationSchema),
+    defaultValues: {
+      name: '',
+      organizationType: 'personal'
     }
+  });
 
+  const handleSubmit = async (data: CreateOrganizationRequest) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await createOrganizationAction({ name, slug });
+      const result = await createOrganization(data);
       
       if (result.success) {
         toast.success('Organization created successfully');
-        setName('');
-        setSlug('');
-        onSuccess?.();
+        form.reset();
+        onOpenChange(false);
       } else {
-        setError(result.error);
+        setError(result.error || 'Failed to create organization');
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to create organization');
@@ -213,38 +230,72 @@ export function OrganizationForm({ onSuccess }: { onSuccess?: () => void }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="name">Organization Name</Label>
-        <Input
-          id="name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Enter organization name"
-          required
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="slug">Slug (optional)</Label>
-        <Input
-          id="slug"
-          type="text"
-          value={slug}
-          onChange={(e) => setSlug(e.target.value)}
-          placeholder="organization-slug"
-        />
-      </div>
-      
-      {error && (
-        <div className="text-red-500 text-sm">{error}</div>
-      )}
-      
-      <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? 'Creating...' : 'Create Organization'}
-      </Button>
-    </form>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>새 조직 만들기</DialogTitle>
+          <DialogDescription>
+            새로운 조직을 생성하여 팀과 함께 작업을 시작하세요.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>조직명</FormLabel>
+                  <FormControl>
+                    <Input placeholder="조직명을 입력하세요" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="organizationType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>조직 타입</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="조직 타입을 선택하세요" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.entries(ORGANIZATION_TYPE_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {error && (
+              <div className="text-red-500 text-sm">{error}</div>
+            )}
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                취소
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? '생성 중...' : '생성'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }
 ```
@@ -254,22 +305,25 @@ export function OrganizationForm({ onSuccess }: { onSuccess?: () => void }) {
 ### Backend Domain
 - [ ] Organization Entity 확장 (미구현)
 - [ ] OrganizationAggregate 확장 (미구현)
-- [ ] CreateOrganizationCommand 정의 (미구현)
-- [ ] OrganizationCreatedEvent 정의 (미구현)
+- [ ] CreateNewOrganizationCommand 정의 (미구현)
+- [ ] NewOrganizationCreatedEvent 정의 (미구현)
+- [ ] 조직 타입 enum 정의 (미구현)
 
 ### Database & Repository
 - [ ] organizations 테이블 확장 (미구현)
+- [ ] organization_type enum 추가 (미구현)
 - [ ] OrganizationRepository 확장 (미구현)
 - [ ] 중복 검증 로직 구현 (미구현)
 
 ### API & Server Action
-- [ ] createOrganizationAction 구현 (미구현)
+- [ ] createNewOrganizationAction 구현 (미구현)
 - [ ] 에러 처리 및 검증 로직 (미구현)
 - [ ] 중복 검증 로직 (미구현)
 
 ### Frontend
-- [ ] 조직 생성 폼 컴포넌트 (미구현)
-- [ ] 폼 검증 및 에러 처리 (미구현)
+- [ ] CreateOrganizationDialog 컴포넌트 (미구현)
+- [ ] OrganizationSwitcher에 "새 조직 만들기" 버튼 추가 (미구현)
+- [ ] Zod 스키마 기반 폼 검증 (미구현)
 - [ ] 성공 시 조직 목록 업데이트 (미구현)
 
 ### Integration Task
@@ -289,6 +343,8 @@ export function OrganizationForm({ onSuccess }: { onSuccess?: () => void }) {
 - [ ] 조직명 중복 검증 정상 동작 (미구현)
 - [ ] 조직 생성 실패 시 에러 처리 (미구현)
 - [ ] 조직 목록에 새 조직 추가 (미구현)
+- [ ] 생성된 조직 자동 선택 (미구현)
+- [ ] 조직 타입 선택 기능 (미구현)
 
 ### 기술적 완료
 - [ ] 단위 테스트 커버리지 80% 이상 (미구현)
@@ -307,6 +363,7 @@ export function OrganizationForm({ onSuccess }: { onSuccess?: () => void }) {
 - ❌ Server Actions 미구현
 - ❌ 프론트엔드 UI 컴포넌트 미구현
 - ❌ 테스트 코드 미구현
+- ❌ 조직 타입 enum 정의 미구현
 
 ## 🔗 의존성
 **선행 Story**: Story-005 (조직 선택 및 컨텍스트 설정)
@@ -315,5 +372,8 @@ export function OrganizationForm({ onSuccess }: { onSuccess?: () => void }) {
 
 ## 📁 관련 문서
 - [Epic 문서](../../epics/epic-001-user-management.md)
-- [Process Model](../../../event-domain-design/domains/user-management-domain/process-model.md)
-- [Technical Specification](../../../event-domain-design/domains/user-management-domain/technical-specification.md)
+- [Process Model](../../../event-domain-design/domains/user-management-domain/02-process-model.md)
+- [Software Design](../../../event-domain-design/domains/user-management-domain/03-software-design.md)
+- [Technical Specification](../../../event-domain-design/domains/user-management-domain/05-technical-specification.md)
+- [Frontend Specification](../../../event-domain-design/domains/user-management-domain/07-frontend-specification.md)
+- [Database Schema](../../../event-domain-design/domains/user-management-domain/06-db-schema.md)
