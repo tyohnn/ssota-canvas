@@ -44,6 +44,7 @@
 - Add frontend plan
 - Ready for user management domain implementation
 - Update CHANGELOG
+- Update CHANGELOG
 
 ### 🔧 Maintenance
 
