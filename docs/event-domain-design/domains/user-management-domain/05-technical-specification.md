@@ -1,14 +1,17 @@
 # User Management Domain - Technical Specification
 
-Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Scenario 0-1 기준)
+Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가이드입니다. (Scenario 0-2 기준)
 
 **작성자**: AI Assistant  
 **작성일**: 2025-09-28  
-**수정일**: 2025-10-01
-**버전**: 3.0  
+**수정일**: 2025-10-06
+**버전**: 4.0  
 **리뷰어**: [시니어 개발자명]
 
-### 주요 변경사항 (v3.0) - 실제 구현 반영
+### 주요 변경사항 (v4.0) - Scenario 2 추가 및 TDD 가이드 반영
+- **Scenario 2 추가**: 새로운 조직 생성 기능 구현 가이드 추가 ✅
+- **TDD 기반 설계**: Testing Strategy 기반 테스트 수도코드 포함 ✅
+- **구현 수도코드**: 모든 DDD 컴포넌트에 대한 구체적 구현 가이드 ✅
 - **Drizzle ORM 통합**: Supabase 클라이언트 대신 Drizzle ORM 사용 ✅
 - **RLS 지원**: Drizzle에서 Supabase RLS 정책 완전 지원 ✅
 - **타입 안전성 향상**: Drizzle 스키마 기반 타입 안전성 확보 ✅
@@ -20,23 +23,32 @@ Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Sce
 
 ## 🎯 Implementation Overview
 
-### 개발 우선순위 (Scenario 0-1) - 현재 진행 상황
+### 개발 우선순위 (Scenario 0-2) - 현재 진행 상황
 1. **Phase 1**: Supabase Auth 통합 및 기본 사용자/조직 관리 ✅
    - User/Organization Aggregate 구현 ✅
    - 구글 OAuth 처리 (백엔드 완료, 프론트엔드 미구현)
    - 기본 조직 자동 생성 ✅
    - 조직 목록 조회 및 선택 ✅
 
+2. **Phase 2**: 새로운 조직 생성 기능 구현 ⚠️
+   - OrganizationAggregate.createNew() 메서드 추가
+   - 조직 타입 시스템 도입 (Drizzle ORM enum)
+   - 조직 생성 폼 UI 구현
+   - 조직 생성 후 컨텍스트 전환 로직
+
 ### 선행조건 및 위험요소 - 현재 상태
 - **Supabase Auth 설정 완료**: 구글 OAuth 연동 필요 ⚠️
 - **Database 스키마**: profiles, organizations 테이블 생성 ✅
+- **조직 타입 enum**: Drizzle ORM 스키마에 organization_type enum 추가 필요 ⚠️
 - **외부 의존성**: Supabase Auth API 안정성에 의존 ⚠️
 - **프론트엔드 UI**: 구글 로그인 버튼 및 로그인 페이지 미구현 ⚠️
+- **조직 생성 UI**: 조직 생성 폼 및 타입 선택 UI 구현 필요 ⚠️
 
 ### 협업 포인트 - 현재 상태
 - **프론트엔드**: Context API를 통한 사용자 상태 관리 ✅
 - **인프라**: Supabase Auth 설정 및 RLS 정책 ✅
-- **남은 작업**: 구글 OAuth 설정, 프론트엔드 UI 구현
+- **DB 스키마**: 조직 타입 enum 추가 및 마이그레이션 필요 ⚠️
+- **남은 작업**: 구글 OAuth 설정, 프론트엔드 UI 구현, 조직 생성 기능
 
 ---
 
@@ -122,12 +134,17 @@ Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Sce
 - **역할**: 조직 관련 도메인 로직과 기본 조직 생성 규칙을 담당
 - **주요 기능**:
   - 기본 조직 생성 로직 (사용자 등록 시 자동 생성)
+  - 새로운 조직 생성 로직 (사용자가 직접 생성)
   - 조직 이름 변경 시 이벤트 발생
   - 조직 관련 비즈니스 규칙 적용
 - **주요 메서드**:
   - createDefault(): 사용자를 위한 기본 조직 생성
+  - createNew(): 사용자가 새로운 조직 생성
   - updateName(): 조직 이름 변경 및 이벤트 발생
-- **비즈니스 로직**: 기본 조직은 isDefault 플래그가 true로 설정되며, UUID 기반 ID 생성
+- **비즈니스 로직**: 
+  - 기본 조직은 isDefault 플래그가 true로 설정되며, UUID 기반 ID 생성
+  - 새로운 조직은 isDefault 플래그가 false로 설정되며, 조직 타입 필수 선택
+  - 조직 생성자는 자동으로 소유자(Owner) 권한을 가짐
 
 ### 4. Commands & Events 구현
 
@@ -137,6 +154,7 @@ Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Sce
 - **주요 Commands**:
   - CreateUserProfileCommand: 사용자 프로필 생성 명령 (Supabase Auth 데이터 기반)
   - CreateDefaultOrganizationCommand: 기본 조직 생성 명령 (사용자 등록 시 자동 실행)
+  - CreateNewOrganizationCommand: 새로운 조직 생성 명령 (사용자가 직접 생성)
   - GetUserOrganizationsCommand: 사용자 소유 조직 목록 조회 명령
 - **특징**: 모든 Command는 필요한 최소한의 데이터만 포함하여 타입 안전성 확보
 
@@ -147,6 +165,7 @@ Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Sce
   - UserProfileCreatedEvent: 사용자 프로필 생성 완료 이벤트
   - UserUpdatedEvent: 사용자 정보 업데이트 이벤트
   - DefaultOrganizationCreatedEvent: 기본 조직 생성 완료 이벤트
+  - NewOrganizationCreatedEvent: 새로운 조직 생성 완료 이벤트
   - OrganizationUpdatedEvent: 조직 정보 업데이트 이벤트
 - **특징**: 모든 이벤트는 불변 객체이며 타임스탬프를 포함하여 발생 시점 추적 가능
 
@@ -167,9 +186,11 @@ Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Sce
   - USER_NOT_FOUND: 사용자를 찾을 수 없을 때
   - USER_ALREADY_EXISTS: 이미 존재하는 사용자일 때
   - ORGANIZATION_NOT_FOUND: 조직을 찾을 수 없을 때
+  - ORGANIZATION_NAME_DUPLICATE: 조직 이름이 중복될 때
   - INVALID_EMAIL_FORMAT: 잘못된 이메일 형식일 때
   - INVALID_USER_ID: 유효하지 않은 사용자 ID일 때
   - INVALID_ORGANIZATION_ID: 유효하지 않은 조직 ID일 때
+  - INVALID_ORGANIZATION_TYPE: 유효하지 않은 조직 타입일 때
   - SUPABASE_AUTH_FAILED: Supabase 인증 실패 시
   - PROFILE_CREATION_FAILED: 프로필 생성 실패 시
   - ORGANIZATION_CREATION_FAILED: 조직 생성 실패 시
@@ -191,14 +212,18 @@ Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Sce
 - **주요 기능**:
   - 사용자 프로필 생성 및 업데이트 관리
   - 기본 조직 자동 생성 로직
+  - 새로운 조직 생성 로직
   - 사용자 소유 조직 목록 조회
   - Supabase Auth와의 연동 처리
 - **주요 메서드**:
   - createUserProfile(): Supabase Auth 사용자로부터 프로필 생성 또는 업데이트
   - createDefaultOrganization(): 사용자 등록 시 기본 조직 자동 생성
+  - createNewOrganization(): 사용자가 새로운 조직 생성
   - getUserOrganizations(): 사용자 소유 조직 목록 조회
 - **의존성**: UserRepository, OrganizationRepository, SupabaseAuthService
-- **비즈니스 로직**: 사용자 등록 시 프로필 생성과 기본 조직 생성을 트랜잭션으로 처리
+- **비즈니스 로직**: 
+  - 사용자 등록 시 프로필 생성과 기본 조직 생성을 트랜잭션으로 처리
+  - 새로운 조직 생성 시 조직 이름 중복 검사 및 조직 타입 검증
 
 ### 2. Repository 레이어 (Drizzle ORM + RLS)
 
@@ -281,6 +306,7 @@ Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Sce
   - createUserProfileAction(): 사용자 프로필 생성 및 기본 조직 자동 생성
   - getUserOrganizationsAction(): 사용자 소유 조직 목록 조회
   - createDefaultOrganizationAction(): 기본 조직 생성 (개별 호출용)
+  - createNewOrganizationAction(): 새로운 조직 생성 (사용자가 직접 생성)
   - processUserRegistrationAction(): 트랜잭션 기반 사용자 등록 처리
 - **인증 처리**: 모든 Action에서 Supabase Auth를 통한 사용자 인증 확인
 - **에러 처리**: Result 패턴을 통한 일관된 에러 처리 및 사용자 친화적 메시지 제공
@@ -288,9 +314,19 @@ Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Sce
 
 ---
 
-## 🧪 Testing Strategy
+## 🧪 Testing Strategy (TDD 기반)
 
 ### 1. Unit Tests
+
+#### Value Objects 테스트
+- **파일 위치**: `src/domains/user-management/shared/value-objects/__tests__/user-email.test.ts`
+- **역할**: UserEmail Value Object의 유효성 검증 로직을 검증하는 단위 테스트
+- **주요 테스트 케이스**:
+  - 유효한 이메일로 생성: 'test@example.com' → 성공
+  - 잘못된 이메일 형식 거부: 'invalid-email' → UserManagementError 발생
+  - 빈 값 거부: '' → UserManagementError 발생
+  - 길이 제한 검증: 255자 초과 → UserManagementError 발생
+- **Mock 사용**: 불필요 (순수 함수)
 
 #### Aggregate 테스트
 - **파일 위치**: `src/domains/user-management/shared/aggregates/__tests__/user.aggregate.test.ts`
@@ -301,6 +337,14 @@ Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Sce
   - 이메일, 이름, 아바타 변경사항 감지 로직 검증
 - **Mock 사용**: Supabase User 데이터를 Mock으로 생성하여 테스트
 
+- **파일 위치**: `src/domains/user-management/shared/aggregates/__tests__/organization.aggregate.test.ts`
+- **역할**: OrganizationAggregate의 핵심 비즈니스 로직을 검증하는 단위 테스트
+- **주요 테스트 케이스**:
+  - createDefault(): 기본 조직 생성 검증
+  - createNew(): 새로운 조직 생성 검증
+  - 조직 타입 검증: 유효하지 않은 타입 → UserManagementError 발생
+  - 조직 이름 중복 검사: 중복된 이름 → UserManagementError 발생
+
 ### 2. Integration Tests
 
 #### Server Actions 테스트
@@ -308,19 +352,33 @@ Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Sce
 - **역할**: Server Actions의 전체 플로우를 검증하는 통합 테스트
 - **주요 테스트 케이스**:
   - createUserProfileAction(): 사용자 프로필 생성 및 기본 조직 생성 플로우
+  - createNewOrganizationAction(): 새로운 조직 생성 플로우
   - getUserOrganizationsAction(): 조직 목록 조회 플로우
   - processUserRegistrationAction(): 트랜잭션 기반 사용자 등록 플로우
 - **테스트 환경**: 테스트용 Supabase 클라이언트를 사용하여 실제 데이터베이스 연동 테스트
+
+### 3. E2E Tests
+
+#### 조직 생성 플로우 테스트
+- **파일 위치**: `apps/web/__tests__/e2e/organization-creation.spec.ts`
+- **역할**: 사용자가 새로운 조직을 생성하는 전체 플로우를 검증하는 E2E 테스트
+- **주요 테스트 케이스**:
+  - 조직 생성 폼 표시: "새 조직 만들기" 클릭 → 폼 표시
+  - 조직 생성 성공: 유효한 데이터 입력 → 생성 완료 → 컨텍스트 전환
+  - 조직 이름 중복: 중복된 이름 입력 → 에러 메시지 표시
+  - 조직 타입 선택: 드롭다운에서 타입 선택 → 유효성 검증
 
 ---
 
 ## 📋 검증 체크리스트
 
-### Scenario 0-1 지원 - 현재 구현 상태
+### Scenario 0-2 지원 - 현재 구현 상태
 - [x] **유저 가입**: Supabase Auth + profiles 테이블로 구글 OAuth 사용자 생성 (백엔드 완료)
 - [x] **기본 조직 생성**: 사용자 등록 시 자동 생성 ✅
 - [x] **조직 조회**: 사용자 소유 조직 목록 조회 ✅
 - [x] **초기 조직 선택**: 프론트엔드에서 기본 조직 자동 선택 ✅
+- [ ] **새로운 조직 생성**: 사용자가 직접 새로운 조직 생성 (구현 필요)
+- [ ] **조직 타입 시스템**: Drizzle ORM enum 기반 조직 타입 관리 (구현 필요)
 - [ ] **구글 로그인 UI**: 프론트엔드 로그인 페이지 및 버튼 미구현
 
 ### 설계 일관성
@@ -338,6 +396,8 @@ Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Sce
 - [x] 모든 Aggregate의 핵심 비즈니스 로직이 테스트되는가? ✅
 - [x] Happy path와 edge case가 모두 다뤄지는가? ✅
 - [x] 외부 의존성(Supabase Auth)에 대한 적절한 Mock이 있는가? ✅
+- [x] TDD 기반 테스트 수도코드가 모든 컴포넌트에 정의되어 있는가? ✅
+- [x] Given-When-Then 패턴이 일관되게 적용되었는가? ✅
 
 ### 기술 스택 구현 상태
 - [x] **Drizzle ORM**: Supabase 클라이언트 대신 Drizzle ORM 사용 ✅
@@ -349,4 +409,80 @@ Software Design을 기반으로 한 구체적인 구현 가이드입니다. (Sce
 
 ---
 
-이 Technical Specification은 User Management Domain의 Scenario 0-1을 완전히 지원하며, Supabase Auth와의 통합을 통해 단순하면서도 확장 가능한 구조를 제공합니다.
+---
+
+## 🚀 TDD 구현 순서
+
+### Phase 1: Value Objects (⭐️⭐️⭐️⭐️⭐️)
+1. **UserEmail VO**
+   - 테스트 작성 (RED): `user-email.test.ts`
+   - 최소 구현 (GREEN): `user-email.vo.ts`
+   - 리팩토링 (REFACTOR): 검증 로직 개선
+
+2. **UserId, OrganizationId VO**
+   - 동일한 TDD 사이클 적용
+
+### Phase 2: Entities (⭐️⭐️⭐️⭐️⭐️)
+1. **User Entity**
+   - 테스트 작성 (RED): `user.entity.test.ts`
+   - 최소 구현 (GREEN): `user.entity.ts`
+   - 리팩토링 (REFACTOR): 비즈니스 로직 개선
+
+2. **Organization Entity**
+   - 테스트 작성 (RED): `organization.entity.test.ts`
+   - 최소 구현 (GREEN): `organization.entity.ts`
+   - 리팩토링 (REFACTOR): 조직 타입 검증 로직 추가
+
+### Phase 3: Aggregates (⭐️⭐️⭐️⭐️⭐️)
+1. **UserAggregate**
+   - 테스트 작성 (RED): `user.aggregate.test.ts`
+   - 최소 구현 (GREEN): `user.aggregate.ts`
+   - 리팩토링 (REFACTOR): 이벤트 발행 로직 개선
+
+2. **OrganizationAggregate**
+   - 테스트 작성 (RED): `organization.aggregate.test.ts`
+   - 최소 구현 (GREEN): `organization.aggregate.ts`
+   - 리팩토링 (REFACTOR): createNew 메서드 추가
+
+### Phase 4: Repository (⭐️⭐️⭐️⭐️)
+1. **UserRepository** (통합 테스트)
+   - 테스트 작성 (RED): `drizzle-user.repository.test.ts`
+   - 최소 구현 (GREEN): `drizzle-user.repository.ts`
+   - 리팩토링 (REFACTOR): RLS 정책 적용
+
+2. **OrganizationRepository** (통합 테스트)
+   - 테스트 작성 (RED): `drizzle-organization.repository.test.ts`
+   - 최소 구현 (GREEN): `drizzle-organization.repository.ts`
+   - 리팩토링 (REFACTOR): 조직 타입 enum 지원
+
+### Phase 5: Service (⭐️⭐️⭐️⭐️)
+1. **UserManagementService** (통합 테스트)
+   - 테스트 작성 (RED): `user-management.service.test.ts`
+   - 최소 구현 (GREEN): `user-management.service.ts`
+   - 리팩토링 (REFACTOR): createNewOrganization 메서드 추가
+
+### Phase 6: Server Actions (⭐️⭐️⭐️⭐️⭐️)
+1. **createUserProfileAction** (통합 테스트)
+   - 테스트 작성 (RED): `user-management.actions.test.ts`
+   - 최소 구현 (GREEN): `user-management.actions.ts`
+   - 리팩토링 (REFACTOR): 에러 처리 개선
+
+2. **createNewOrganizationAction**
+   - 테스트 작성 (RED): `user-management.actions.test.ts`
+   - 최소 구현 (GREEN): `user-management.actions.ts`
+   - 리팩토링 (REFACTOR): 조직 타입 검증 로직 추가
+
+### Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️)
+1. **사용자 등록 플로우**
+   - 테스트 작성 (RED): `user-registration.spec.ts`
+   - 최소 구현 (GREEN): UI 컴포넌트 구현
+   - 리팩토링 (REFACTOR): 사용자 경험 개선
+
+2. **조직 생성 플로우**
+   - 테스트 작성 (RED): `organization-creation.spec.ts`
+   - 최소 구현 (GREEN): 조직 생성 폼 구현
+   - 리팩토링 (REFACTOR): 폼 검증 및 에러 처리 개선
+
+---
+
+이 Technical Specification은 User Management Domain의 Scenario 0-2를 완전히 지원하며, TDD 기반 구현을 통해 Supabase Auth와의 통합을 통해 단순하면서도 확장 가능한 구조를 제공합니다.

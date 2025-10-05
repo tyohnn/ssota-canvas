@@ -165,6 +165,14 @@ describe('OrganizationAggregate', () => {
     it('DefaultOrganizationCreatedEvent가 발행되어야 한다')
   })
   
+  describe('createNew', () => {
+    it('새로운 조직이 생성되어야 한다')
+    it('조직 타입이 올바르게 설정되어야 한다')
+    it('생성자가 소유자로 설정되어야 한다')
+    it('isDefault가 false로 설정되어야 한다')
+    it('NewOrganizationCreatedEvent가 발행되어야 한다')
+  })
+  
   describe('updateName', () => {
     it('조직 이름이 변경되어야 한다')
     it('OrganizationUpdatedEvent가 발행되어야 한다')
@@ -173,7 +181,7 @@ describe('OrganizationAggregate', () => {
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**Process Model 매핑**: Scenario 0 - Sequence 2
+**Process Model 매핑**: Scenario 0 - Sequence 2, Scenario 2 - Sequence 1
 
 ---
 
@@ -247,6 +255,13 @@ describe('UserManagementService Integration Tests', () => {
     it('이미 기본 조직이 있으면 예외를 발생시켜야 한다')
   })
   
+  describe('createNewOrganization', () => {
+    it('새로운 조직을 생성해야 한다')
+    it('조직 타입이 올바르게 설정되어야 한다')
+    it('생성자를 소유자로 설정해야 한다')
+    it('조직 생성 후 컨텍스트를 전환해야 한다')
+  })
+  
   describe('getUserOrganizations', () => {
     it('사용자 소유 조직 목록을 조회해야 한다')
     it('빈 목록도 올바르게 반환해야 한다')
@@ -255,7 +270,7 @@ describe('UserManagementService Integration Tests', () => {
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️  
-**Process Model 매핑**: Scenario 0 & Scenario 1 전체 플로우
+**Process Model 매핑**: Scenario 0, Scenario 1, Scenario 2 전체 플로우
 
 ---
 
@@ -280,6 +295,14 @@ describe('Server Actions Integration Tests', () => {
   describe('getUserOrganizationsAction', () => {
     it('사용자 소유 조직 목록을 조회해야 한다')
     it('미인증 사용자는 거부해야 한다')
+  })
+  
+  describe('createNewOrganizationAction', () => {
+    it('인증된 사용자의 새로운 조직을 생성해야 한다')
+    it('미인증 사용자는 거부해야 한다')
+    it('조직 이름과 타입이 올바르게 설정되어야 한다')
+    it('성공 시 Result.ok를 반환해야 한다')
+    it('실패 시 Result.err를 반환해야 한다')
   })
 })
 ```
@@ -361,9 +384,46 @@ test('로그인 후 조직 선택 플로우', async ({ page }) => {
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️  
 **Process Model 매핑**: Scenario 1 전체
 
+### 3. 새로운 조직 생성 플로우 (Scenario 2)
+
+```typescript
+test('새로운 조직 생성 전체 플로우', async ({ page }) => {
+  // Given: 이미 등록된 사용자로 로그인
+  await loginAsTestUser(page);
+  
+  // When: 대시보드 접근
+  await page.goto('/dashboard');
+  
+  // When: "새 조직 만들기" 버튼 클릭
+  await page.click('[data-testid="create-organization-button"]');
+  
+  // Then: 조직 생성 폼이 표시됨
+  await expect(page.locator('[data-testid="organization-form"]')).toBeVisible();
+  
+  // When: 조직 정보 입력
+  await page.fill('[data-testid="organization-name-input"]', '새로운 프로젝트');
+  await page.selectOption('[data-testid="organization-type-select"]', 'startup');
+  
+  // When: 생성 버튼 클릭
+  await page.click('[data-testid="create-organization-submit"]');
+  
+  // Then: 조직 생성 완료 알림 표시
+  await expect(page.locator('[data-testid="success-message"]')).toBeVisible();
+  
+  // Then: 새 조직으로 컨텍스트 전환됨
+  await expect(page.locator('[data-testid="selected-organization"]')).toContainText('새로운 프로젝트');
+  
+  // Then: 조직 목록에 새 조직이 추가됨
+  await expect(page.locator('[data-testid="organization-list"]')).toContainText('새로운 프로젝트');
+})
+```
+
+**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️  
+**Process Model 매핑**: Scenario 2 전체
+
 ---
 
-### 3. 에러 시나리오
+### 4. 에러 시나리오
 
 ```typescript
 test('프로필 생성 실패 시 에러 메시지 표시', async ({ page }) => {
@@ -435,6 +495,16 @@ test('프로필 생성 실패 시 에러 메시지 표시', async ({ page }) => 
 | Event: 유저 관련 조직이 조회됨 | Integration | 조직 목록 조회 검증 |
 | Command: 초기 조직을 선택하기 | E2E | 프론트엔드 Context 초기화 |
 | Event: 초기 조직이 선택됨 | E2E | 선택된 조직 UI 표시 검증 |
+
+### Scenario 2: 새로운 조직 생성
+
+| Process Model 요소 | 테스트 종류 | 테스트 케이스 |
+|-------------------|------------|-------------|
+| Command: 새로운 조직 생성하기 | Unit | OrganizationAggregate.createNew() |
+| System: Organization System | Unit | 조직 생성 비즈니스 로직 |
+| Event: 새로운 조직이 생성됨 | Unit | NewOrganizationCreatedEvent 발행 검증 |
+| 전체 플로우 | Integration | createNewOrganizationAction() |
+| 사용자 경험 | E2E | 조직 생성 폼 → 생성 완료 → 컨텍스트 전환 |
 
 ---
 

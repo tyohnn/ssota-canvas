@@ -89,11 +89,13 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, User Manageme
 
 #### Commands
 - Create Default Organization // 사용자 등록 시 기본 조직 생성
+- Create New Organization // 사용자가 새로운 조직 생성
 - Retrieve User Organizations // 유저 관련 조직 (소유, 소속) 조회
 - Update Organization // 조직 정보 수정
 
 #### Events
 - Default Organization Created // 기본 조직이 생성됨
+- New Organization Created // 새로운 조직이 생성됨
 - Related Organizations Retrieved // 유저 관련 조직이 조회됨
 - Initial Organization Selected // 초기 조직이 선택됨
 - Organization Selected // 조직이 선택됨
@@ -103,17 +105,23 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, User Manageme
 - 기본 조직은 삭제할 수 없음
 - 조직 ID는 org_ 접두사를 가져야 함
 - 동일한 조직 ID가 중복될 수 없음
+- 조직 생성 시 반드시 조직 타입을 선택해야 함
+- 조직 생성자는 자동으로 소유자(Owner) 권한을 가짐
 
 #### 속성 - 실제 구현
 ```typescript
 {
   id: OrganizationId,           // UUID 기반 ID (org_ 접두사)
   name: string,                 // 조직 이름
+  organizationType: OrganizationType, // 조직 타입 (개인, 교육, 스타트업, 에이전시, 컴퍼니, N/A)
   ownerId: UserId,              // 조직 소유자 ID (profiles.id와 연결)
   isDefault: boolean,           // 기본 조직 여부
   createdAt: Date,              // 생성 시간
   updatedAt: Date               // 수정 시간
 }
+
+// 조직 타입 정의
+type OrganizationType = 'personal' | 'education' | 'startup' | 'agency' | 'company' | 'n/a';
 ```
 
 ---
@@ -254,6 +262,18 @@ External System Integration:
 - **대안**: 사용자가 직접 조직 생성, 조직 없이 사용자만 생성
 - **결정 이유**: 사용자 경험 향상, 즉시 사용 가능한 환경 제공
 
+### 4. 조직 타입 시스템 도입
+- **문제**: 조직 생성 시 어떤 정보를 수집할지, 조직을 어떻게 분류할지
+- **해결**: 6가지 조직 타입 선택 시스템 (개인, 교육, 스타트업, 에이전시, 컴퍼니, N/A)
+- **대안**: 자유형 텍스트 입력, 태그 시스템, 조직 타입 없이 운영
+- **결정 이유**: 향후 맞춤형 기능 제공, 사용 패턴 분석, 온보딩 개인화
+
+### 5. 단순화된 조직 생성 프로세스
+- **문제**: 조직 생성 시 필요한 필수/선택 정보의 범위
+- **해결**: 조직 이름과 타입만 필수로 하는 최소한의 정보 수집
+- **대안**: 상세 정보 모두 수집, 단계적 정보 입력, 설명 필드 포함
+- **결정 이유**: 사용자 진입 장벽 최소화, 빠른 조직 생성, 나중에 수정 가능
+
 ---
 
 ## 📖 Read Models (Query Side)
@@ -271,6 +291,7 @@ interface UserOrganizationView {
 interface OrganizationSummary {
   id: OrganizationId;               // 조직 ID
   name: string;                     // 조직 이름
+  organizationType: OrganizationType; // 조직 타입
   role: "owner" | "member";         // 사용자 역할
   isDefault: boolean;               // 기본 조직 여부
   createdAt: Date;                  // 생성 시간
@@ -334,6 +355,58 @@ const organizations = await getUserOrganizationsAction();
 - 기본 조직 정보 중복 제거 (UserOrganizationView에서 참조)
 - 초기 렌더링 최적화 (SSR 데이터 활용)
 
+### OrganizationCreationView
+**목적**: Scenario 2에서 "새로운 조직 생성" 시 필요한 최소한의 서버 정보 제공
+
+```typescript
+interface OrganizationCreationView {
+  // 미래 확장을 위한 공간 (현재는 사용하지 않음)
+  constraints?: {
+    maxOrganizationsPerUser?: number;    // 향후 요금제 기능용
+    // allowedTypesForUser?: OrganizationType[]; // 조직 타입은 고정이므로 불필요
+  };
+}
+
+// 조직 타입은 Drizzle ORM 스키마에서 enum으로 정의하고 타입으로 사용
+// DB Schema: CREATE TYPE organization_type AS ENUM ('personal', 'education', 'startup', 'agency', 'company', 'n/a');
+// TypeScript: type OrganizationType = Database['public']['Enums']['organization_type'];
+
+// 클라이언트에서는 타입만 import하고, 라벨은 별도 매핑
+const ORGANIZATION_TYPE_LABELS: Record<OrganizationType, string> = {
+  personal: '개인',
+  education: '교육',
+  startup: '스타트업',
+  agency: '에이전시',
+  company: '컴퍼니',
+  'n/a': 'N/A'
+} as const;
+
+// 폼 검증은 프론트엔드에서 Zod로 관리
+// (여기서는 정의하지 않음)
+```
+
+**Process Model 매핑**:
+- **"조직 생성 폼 표시하기"** → 클라이언트에서 고정 데이터 사용
+- **"조직 타입 선택 필드"** → `ORGANIZATION_TYPES` (클라이언트 상수)
+- **"조직 생성 권한 확인"** → 현재는 모든 인증 사용자 허용
+
+**Query Handler 책임**:
+- 현재: 특별한 제약사항 없음 (모든 인증 사용자 생성 가능)
+- 향후: 요금제별 제한 로직 추가 예정
+
+**사용 방식**:
+```typescript
+// 현재는 서버 호출 없이 바로 생성 가능
+const result = await createNewOrganizationAction({
+  name: formData.name,
+  organizationType: formData.organizationType
+});
+
+// 향후 요금제 기능 추가 시:
+// const constraints = await getOrganizationCreationViewAction();
+// if (userOrgCount >= constraints.maxOrganizationsPerUser) { ... }
+```
+
 ---
 
 ## 🤝 Service 레이어의 역할
@@ -343,11 +416,13 @@ Service 레이어는 여러 Aggregate와 외부 시스템을 한 자리에서 �
 - **업무 시나리오 연결**: 
   - 유저 등록 시 Supabase Auth에서 사용자를 생성하고, User Aggregate에서 프로필을 생성한 뒤, Organization Aggregate에서 기본 조직을 만들고 소유자 권한을 부여합니다.
   - 로그인 완료 시 Organization Aggregate에서 유저 관련 조직을 조회하고, 프론트엔드에서 초기 조직을 선택하여 컨텍스트를 설정합니다.
+  - 새로운 조직 생성 시 Organization Aggregate에서 조직을 생성하고, 자동으로 생성자를 소유자로 설정한 뒤, 조직 목록을 갱신하고 새 조직으로 컨텍스트를 전환합니다.
 
 - **규칙 준수 확인**: 
   - 구글 OAuth 인증 성공 시에만 사용자 계정 생성
   - 기본 조직 생성 시 org_ 접두사와 중복 검사
   - 조직 선택 시 유저의 소유/소속 조직인지 권한 확인
+  - 새로운 조직 생성 시 필수 필드(이름, 타입) 검증 및 생성자 권한 확인
 
 - **외부 파트너 연동**: 
   - Supabase Auth API 호출 실패 시 사용자에게 적절한 오류 메시지 제공
@@ -363,6 +438,8 @@ Service 레이어는 여러 Aggregate와 외부 시스템을 한 자리에서 �
   - 온보딩 시 즉시 UI 업데이트로 진행 상태 표시
   - 조직 전환 시 즉시 컨텍스트 업데이트 후 백그라운드에서 데이터 동기화
   - 로그인 시 마지막 선택 조직으로 자동 컨텍스트 설정
+  - 새로운 조직 생성 시 즉시 조직 목록 갱신 및 자동 컨텍스트 전환
+  - 조직 타입 선택을 통한 맞춤형 온보딩 경험 제공
 
 ---
 

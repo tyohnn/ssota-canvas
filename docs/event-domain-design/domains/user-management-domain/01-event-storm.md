@@ -45,7 +45,7 @@
 - 기본 조직이 생성됨 (Default Organization Created)
 - 유저 가입 완료됨 (User Registration Completed)
 - 유저 가입 실패함 (User Registration Failed)
-- 온보딩이 완료됨 (프론트엔드)
+- 온보딩이 완료됨 (프론트엔드) (Onboarding Completed)
 
 ### 사용자 & 세션 Events
 - Supabase Auth에서 처리
@@ -55,8 +55,9 @@
 
 ### 조직 관리 Events
 - 유저 관련 조직이 조회됨 (Related Organization Retrieved)
-- 초기 조직이 선택됨 (프론트엔드)
-- 유저가 조직을 선택함 (프론트엔드)
+- 초기 조직이 선택됨 (프론트엔드) (Default Organization Selected)
+- 유저가 조직을 선택함 (프론트엔드) (Organization Selected)
+- 새로운 조직이 생성됨 (New Organization Created)
 2025-09-29
 -----
 
@@ -101,7 +102,11 @@
 - **초기 조직을 선택하기** (프론트엔드) → 초기 조직이 선택됨
 - **조직 선택하기** (유저) → 조직 선택됨
 
-#### 기존 Commands (Scenario 2-7)
+#### Scenario 2: 새로운 조직 생성 Commands  
+- **새로운 조직 생성하기** (유저) → 새로운 조직이 생성됨
+- **조직 생성 처리하기** (Organization System) → 조직 생성이 완료됨
+
+#### 기존 Commands (Scenario 3-8)
 - **멤버 초대하기** (조직 소유자/관리자) → 이메일로 멤버 초대가 전송됨
 - **초대 링크 생성하기** (플랫폼 시스템) → 초대 링크가 생성됨
 - **초대 정보 저장하기** (시스템) → 초대 정보가 저장됨

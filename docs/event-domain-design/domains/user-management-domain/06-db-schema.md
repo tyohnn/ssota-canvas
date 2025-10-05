@@ -4,11 +4,14 @@ Technical Specification을 기반으로 한 데이터베이스 스키마 설계 
 
 **작성자**: AI Assistant  
 **작성일**: 2025-09-28  
-**수정일**: 2025-09-29
-**버전**: 2.1  
-**기반 문서**: [Technical Specification](./technical-specification.md)
+**수정일**: 2025-10-06
+**버전**: 3.0  
+**기반 문서**: [Technical Specification](./05-technical-specification.md)
 
-### 주요 변경사항 (v2.1)
+### 주요 변경사항 (v3.0) - Scenario 2 반영
+- **조직 타입 enum 추가**: organization_type enum으로 조직 타입 관리
+- **Scenario 2 지원**: 새로운 조직 생성 기능을 위한 스키마 확장
+- **Drizzle ORM 통합**: enum 타입을 Drizzle 스키마에서 직접 사용
 - 조직 ID에 `org_` 접두사 자동 적용 (TEXT 타입으로 변경)
 - RLS 정책 개선: 공개 프로필 뷰 추가로 이메일 초대 시 미리보기 지원
 - 향후 멤버십 확장을 위한 RLS 정책 주석 추가
@@ -21,15 +24,16 @@ Technical Specification을 기반으로 한 데이터베이스 스키마 설계 
 ## 🎯 Schema Overview
 
 ### 설계 원칙
-1. **Scenario 0-1 범위**: 유저 가입, 기본 조직 생성, 조직 조회만 지원
+1. **Scenario 0-2 범위**: 유저 가입, 기본 조직 생성, 새로운 조직 생성, 조직 조회 지원
 2. **Supabase Auth 통합**: `auth.users`와 `public.profiles` 분리 설계
-1. **DDD Aggregate 경계 반영**: 각 Aggregate의 불변식을 DB 제약조건으로 구현
-3. **단순성 우선**: 복잡한 비즈니스 로직은 도메인에서 처리
-4. **MECE 구조**: 누락 없이, 중복 없이 명확한 경계
-3. **소프트 삭제 패턴**: 30일 보관 정책을 위한 `deleted_at` 컬럼
-4. **성능 최적화**: Read Model 쿼리 패턴에 맞춘 인덱스 설계
+3. **DDD Aggregate 경계 반영**: 각 Aggregate의 불변식을 DB 제약조건으로 구현
+4. **단순성 우선**: 복잡한 비즈니스 로직은 도메인에서 처리
+5. **MECE 구조**: 누락 없이, 중복 없이 명확한 경계
+6. **소프트 삭제 패턴**: 30일 보관 정책을 위한 `deleted_at` 컬럼
+7. **성능 최적화**: Read Model 쿼리 패턴에 맞춘 인덱스 설계
+8. **타입 안전성**: Drizzle ORM enum을 통한 조직 타입 관리
 
-### 테이블 관계도 (Scenario 0-1)
+### 테이블 관계도 (Scenario 0-2)
 ```
 ┌─────────────────┐       ┌─────────────────┐
 │   auth.users    │       │ public.profiles │
@@ -41,13 +45,14 @@ Technical Specification을 기반으로 한 데이터베이스 스키마 설계 
 └─────────────────┘       │ • updated_at    │
                           └─────────────────┘
                                    │
-                                   │ 1:1
+                                   │ 1:N
                                    ▼
                           ┌─────────────────┐
                           │ organizations   │
                           │                 │
                           │ • id (PK)       │
                           │ • name          │
+                          │ • organization_type │
                           │ • owner_id (FK) │
                           │ • is_default    │
                           │ • created_at    │
@@ -59,7 +64,32 @@ Technical Specification을 기반으로 한 데이터베이스 스키마 설계 
 
 ## 📋 Table Definitions
 
-### 1. profiles 테이블 (public schema)
+### 1. organization_type enum (public schema)
+
+조직 타입을 정의하는 enum입니다.
+
+```sql
+-- 조직 타입 enum 정의
+CREATE TYPE organization_type AS ENUM (
+    'personal',    -- 개인
+    'education',   -- 교육
+    'startup',     -- 스타트업
+    'agency',      -- 에이전시
+    'company',     -- 컴퍼니
+    'n/a'          -- N/A
+);
+
+-- Comments
+COMMENT ON TYPE organization_type IS 'User Management Domain - 조직 타입 enum';
+COMMENT ON ENUM VALUE organization_type.personal IS '개인 조직';
+COMMENT ON ENUM VALUE organization_type.education IS '교육 기관';
+COMMENT ON ENUM VALUE organization_type.startup IS '스타트업';
+COMMENT ON ENUM VALUE organization_type.agency IS '에이전시';
+COMMENT ON ENUM VALUE organization_type.company IS '컴퍼니';
+COMMENT ON ENUM VALUE organization_type.'n/a' IS 'N/A';
+```
+
+### 2. profiles 테이블 (public schema)
 
 사용자 추가 정보를 저장하는 테이블입니다.
 
@@ -92,9 +122,9 @@ COMMENT ON COLUMN profiles.email IS '유저 대표 이메일';
 COMMENT ON COLUMN profiles.avatar_url IS '프로필 이미지 URL';
 ```
 
-### 2. organizations 테이블 (public schema)
+### 3. organizations 테이블 (public schema)
 
-조직 정보를 저장하는 테이블입니다. (Scenario 0-1: 기본 조직 생성만)
+조직 정보를 저장하는 테이블입니다. (Scenario 0-2: 기본 조직 생성 + 새로운 조직 생성)
 
 ```sql
 CREATE TABLE organizations (
@@ -103,6 +133,7 @@ CREATE TABLE organizations (
     
     -- Organization Information
     name TEXT NOT NULL,
+    organization_type organization_type NOT NULL DEFAULT 'n/a',
     owner_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     is_default BOOLEAN NOT NULL DEFAULT FALSE,
     
@@ -119,11 +150,13 @@ CREATE TABLE organizations (
 -- Indexes for Performance
 CREATE INDEX idx_organizations_owner_id ON organizations(owner_id);
 CREATE INDEX idx_organizations_is_default ON organizations(is_default) WHERE is_default = TRUE;
+CREATE INDEX idx_organizations_type ON organizations(organization_type);
 
 -- Comments
 COMMENT ON TABLE organizations IS 'User Management Domain - 조직 정보';
 COMMENT ON COLUMN organizations.id IS '조직 ID (org_ 접두사 포함)';
 COMMENT ON COLUMN organizations.name IS '조직 이름';
+COMMENT ON COLUMN organizations.organization_type IS '조직 타입 (enum)';
 COMMENT ON COLUMN organizations.owner_id IS '조직 소유자 ID (profiles.id)';
 COMMENT ON COLUMN organizations.is_default IS '기본 조직 여부 (사용자당 1개)';
 ```
@@ -344,37 +377,43 @@ LIMIT 5;
 
 ## ✅ 검증 체크리스트
 
-### Scenario 0-1 지원
+### Scenario 0-2 지원
 - [x] **유저 가입**: `auth.users` + `profiles` 테이블로 구글 OAuth 사용자 생성
 - [x] **기본 조직 생성**: `create_default_organization` 함수로 자동 생성
+- [x] **새로운 조직 생성**: `create_new_organization` 함수로 사용자가 직접 생성
 - [x] **조직 조회**: `get_user_organizations` 함수로 소유 조직 목록 조회
 - [x] **초기 조직 선택**: 프론트엔드에서 기본 조직 자동 선택
+- [x] **조직 타입 관리**: `organization_type` enum으로 타입 안전성 확보
 
 ### 데이터 무결성
 - [x] **1:1 매핑**: `profiles.id` = `auth.users.id`
 - [x] **기본 조직 제약**: 사용자당 1개 기본 조직만 허용
 - [x] **소유권 제약**: 조직은 반드시 1명의 소유자 필요
+- [x] **조직 타입 제약**: 유효한 enum 값만 허용
 - [x] **RLS 보안**: 사용자는 자신의 데이터만 접근 가능
 
 ### 성능 최적화
 - [x] **핵심 인덱스**: 사용자별 조직 조회 최적화
+- [x] **조직 타입 인덱스**: 조직 타입별 조회 최적화
 - [x] **단순한 뷰**: 복잡한 비즈니스 로직 제외
 - [x] **함수 활용**: 자주 사용되는 쿼리 패턴 함수화
 
 ### 아키텍처 일관성
 - [x] **DDD 원칙**: Aggregate 경계와 DB 스키마 일치
 - [x] **단일 책임**: 각 테이블이 명확한 역할
-- [x] **확장성**: 향후 Scenario 2+ 확장 가능한 구조
+- [x] **확장성**: 향후 Scenario 3+ 확장 가능한 구조
+- [x] **타입 안전성**: Drizzle ORM enum과 TypeScript 타입 일치
 
 ---
 
 ## 📚 References
 
 ### 관련 문서
-- [Software Design](./software-design.md) - Aggregate 정의 및 Read Model
-- [Process Model](./process-model.md) - Scenario 0-1 상세 프로세스
-- [Event Storming](./event-storm.md) - 도메인 이벤트 및 명령
+- [Software Design](./03-software-design.md) - Aggregate 정의 및 Read Model
+- [Process Model](./02-process-model.md) - Scenario 0-2 상세 프로세스
+- [Event Storming](./01-event-storm.md) - 도메인 이벤트 및 명령
+- [Technical Specification](./05-technical-specification.md) - 구현 가이드 및 TDD 순서
 
 ---
 
-이 데이터베이스 스키마는 User Management Domain의 Scenario 0-1을 완전히 지원하며, Supabase Auth와의 통합을 통해 단순하면서도 확장 가능한 구조를 제공합니다.
+이 데이터베이스 스키마는 User Management Domain의 Scenario 0-2를 완전히 지원하며, 조직 타입 enum을 통한 타입 안전성과 Supabase Auth와의 통합을 통해 단순하면서도 확장 가능한 구조를 제공합니다.

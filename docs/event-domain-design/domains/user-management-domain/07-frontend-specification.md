@@ -16,8 +16,9 @@
 - ✅ **Phase 1**: DTO 타입 및 Context 구현 완료
 - ✅ **Phase 2**: Server Actions 및 Hook 구현 완료  
 - ✅ **Phase 3**: 기본 컴포넌트 구현 완료
-- 📋 **Phase 4**: 조직 생성/수정/삭제 (Story 006 예정)
-- 📋 **Phase 5**: 멤버 초대/관리 (Story 007 예정)
+- 🔄 **Phase 4**: 조직 생성 Dialog 및 폼 구현 (진행 중)
+- 📋 **Phase 5**: 조직 수정/삭제 (Story 006 예정)
+- 📋 **Phase 6**: 멤버 초대/관리 (Story 007 예정)
 
 ---
 
@@ -79,11 +80,36 @@ export interface UserRegistrationResult {
 }
 ```
 
+#### 새로 추가된 DTO 타입들 (Phase 4)
+
+##### CreateOrganizationRequest DTO
+```typescript
+export interface CreateOrganizationRequest {
+  name: string;
+  organizationType: 'personal' | 'education' | 'startup' | 'agency' | 'company' | 'n/a';
+}
+```
+
+##### CreateOrganizationResult DTO
+```typescript
+export interface CreateOrganizationResult {
+  success: boolean;
+  organization: {
+    id: string;
+    name: string;
+    organizationType: string;
+    isDefault: boolean;
+    createdAt: string;
+  };
+  error?: string;
+}
+```
+
 #### 미구현 항목 (Story 006-007 이후)
 - **MembershipSummary**: 멤버십 정보 표시용
 - **OrganizationWithMembers**: 멤버 정보를 포함한 조직 정보
 - **UserOrganizationView**: 복합 조회를 위한 뷰 모델
-- **폼 입력 타입들**: OrganizationFormInput, InviteMemberFormInput
+- **폼 입력 타입들**: InviteMemberFormInput
 
 ### 1.2 CQRS Read/Write 분리
 
@@ -120,6 +146,7 @@ interface OrganizationContextType {
   // 액션
   selectOrganization: (organizationId: string) => void;
   refreshOrganizations: () => Promise<void>;
+  createOrganization: (data: CreateOrganizationRequest) => Promise<CreateOrganizationResult>;
 }
 ```
 
@@ -153,6 +180,7 @@ interface OrganizationProviderProps {
 #### 핵심 로직
 - **refreshOrganizations**: Server Action을 호출하여 조직 목록 조회 및 상태 업데이트
 - **selectOrganization**: 조직 선택 시 상태 업데이트 및 쿠키 저장
+- **createOrganization**: 새로운 조직 생성 및 목록 갱신, 생성된 조직 자동 선택
 - **초기 선택 로직**: URL 파라미터 > 쿠키 > 기본 조직 순서로 자동 선택
 
 #### 쿠키 관리 (cookie-helpers.ts)
@@ -160,8 +188,13 @@ interface OrganizationProviderProps {
 - **setCookieValue**: 선택된 조직 ID를 쿠키에 저장
 - **ORGANIZATION_COOKIE_KEYS**: 쿠키 키 상수 관리
 
+#### 새로 추가된 기능 (Phase 4)
+- **조직 생성**: createOrganization 메서드로 새로운 조직 생성
+- **자동 선택**: 생성된 조직을 자동으로 선택하여 컨텍스트 전환
+- **에러 처리**: 조직 생성 실패 시 에러 상태 관리
+
 #### 미구현 항목 (Story 006-007 이후)
-- **조직 생성/수정/삭제**: 조직 관리 액션들
+- **조직 수정/삭제**: 조직 관리 액션들
 - **멤버 관리**: 멤버 초대 및 관리 기능
 - **사용자 정보 관리**: 별도 Context에서 관리 예정
 
@@ -229,6 +262,13 @@ export async function [액션명]Action(
 - **로직**: 프로필 생성과 기본 조직 생성을 트랜잭션으로 처리
 - **반환**: UserRegistrationResult DTO
 
+##### createNewOrganizationAction (새로 추가)
+- **역할**: 사용자가 새로운 조직을 생성하는 Server Action
+- **인증**: Supabase Auth를 통한 사용자 인증 확인
+- **로직**: 조직 이름 중복 검사, 조직 타입 검증, 새로운 조직 생성
+- **반환**: CreateOrganizationResult DTO
+- **입력**: CreateOrganizationRequest (name, organizationType)
+
 #### 핵심 원칙 (08-code-conventions.md)
 - **DTO 반환**: Domain Objects를 직렬화하여 반환
 - **Command 객체**: Software Design의 Command를 그대로 활용
@@ -236,8 +276,11 @@ export async function [액션명]Action(
 - **에러 전파**: try-catch로 에러를 catch하고 throw로 전파
 - **revalidatePath**: 데이터 변경 시 관련 페이지 재검증
 
+#### 새로 추가된 Server Action (Phase 4)
+- **createNewOrganizationAction**: 새로운 조직 생성 액션 구현 완료
+
 #### 미구현 항목 (Story 006-007 이후)
-- **조직 생성/수정/삭제**: 조직 관리 액션들
+- **조직 수정/삭제**: 조직 관리 액션들
 - **멤버 초대/관리**: 멤버 관리 액션들
 
 ### 3.2 에러 처리 (08-code-conventions.md 준수)
@@ -290,6 +333,7 @@ export async function [액션명]Action(
 ##### 제공하는 액션
 - **refreshOrganizations**: 조직 목록 조회
 - **selectOrganization**: 조직 선택
+- **createOrganization**: 새로운 조직 생성 (Phase 4 추가)
 
 ##### 유틸리티 함수
 - **canSelectOrganization**: 조직 선택 가능 여부 확인
@@ -297,9 +341,14 @@ export async function [액션명]Action(
 - **findOrganizationByName**: 이름으로 조직 찾기
 - **ownedOrganizations**: 소유한 조직 목록
 
+#### 새로 추가된 기능 (Phase 4)
+- **조직 생성**: createOrganization 메서드로 새로운 조직 생성
+- **자동 선택**: 생성된 조직을 자동으로 선택하여 컨텍스트 전환
+- **에러 처리**: 조직 생성 실패 시 에러 상태 관리
+
 #### 미구현 항목 (Story 006-007 이후)
 - **낙관적 업데이트**: useOptimistic 미사용, 직접 상태 관리
-- **복잡한 액션들**: 조직 생성, 수정, 삭제 등 미구현
+- **복잡한 액션들**: 조직 수정, 삭제 등 미구현
 - **멤버 관리**: 멤버 초대 및 관리 기능
 
 ## 🧩 5. React Components 구현 (08-code-conventions.md 준수)
@@ -322,9 +371,10 @@ export async function [액션명]Action(
 ##### OrganizationSwitcher
 - **위치**: `src/domains/user-management/frontend/components/organization-switcher.tsx`
 - **역할**: 조직 선택을 위한 드롭다운 컴포넌트
-- **기능**: 조직 목록 표시, 조직 선택, 로딩 상태 처리
+- **기능**: 조직 목록 표시, 조직 선택, "새 조직 만들기" 버튼, 로딩 상태 처리
 - **사용 Hook**: useOrganization Hook 사용
 - **UI**: shadcn/ui의 DropdownMenu 컴포넌트 사용
+- **새 기능**: "Add Organization" 버튼으로 CreateOrganizationDialog 열기
 
 ##### DashboardSidebar
 - **위치**: `src/domains/user-management/frontend/components/dashboard-sidebar.tsx`
@@ -332,9 +382,25 @@ export async function [액션명]Action(
 - **기능**: OrganizationSwitcher 통합, 네비게이션 메뉴 제공
 - **구성**: 조직 선택기, 워크스페이스 선택기, 설정 버튼 등
 
+#### 새로 추가된 컴포넌트 (Phase 4)
+
+##### CreateOrganizationDialog
+- **위치**: `src/domains/user-management/frontend/components/create-organization-dialog.tsx`
+- **역할**: 새로운 조직 생성을 위한 Dialog 컴포넌트
+- **기능**: 
+  - shadcn/ui Dialog 컴포넌트 사용
+  - 조직명 입력 필드 (필수)
+  - 조직 타입 선택 드롭다운 (personal, education, startup, agency, company, n/a)
+  - 폼 검증 (Zod 스키마 사용)
+  - 제출 시 createOrganization Hook 호출
+  - 성공 시 Dialog 닫기 및 조직 목록 갱신
+  - 에러 상태 표시
+- **사용 Hook**: useOrganization Hook 사용
+- **UI**: shadcn/ui의 Dialog, Form, Input, Select 컴포넌트 사용
+
 #### 미구현 컴포넌트들 (Story 006-007 이후)
 - **OrganizationList**: 조직 목록 표시 컴포넌트
-- **OrganizationForm**: 조직 생성/편집 폼 컴포넌트
+- **OrganizationEditForm**: 조직 편집 폼 컴포넌트
 - **SettingsModal**: 설정 모달 컴포넌트
 - **MemberManagement**: 멤버 관리 컴포넌트
 
@@ -355,12 +421,40 @@ export function OrganizationSwitcher() {
   // Hook에서 제공하는 상태와 액션을 직접 사용
   // Context에 직접 접근하지 않음
 }
+
+// CreateOrganizationDialog에서 useOrganization Hook 사용
+export function CreateOrganizationDialog({ open, onOpenChange }: DialogProps) {
+  const { createOrganization, isLoading, error } = useOrganization();
+  
+  const handleSubmit = async (data: CreateOrganizationRequest) => {
+    const result = await createOrganization(data);
+    if (result.success) {
+      onOpenChange(false); // Dialog 닫기
+    }
+  };
+  
+  // Hook에서 제공하는 액션과 상태를 직접 사용
+}
 ```
 
-### 5.3 미구현 컴포넌트들 (Story 006-007 이후)
+### 5.3 폼 검증 및 에러 처리 (Phase 4)
 
-#### OrganizationForm
-- **역할**: 조직 생성/편집을 위한 폼 컴포넌트
+#### CreateOrganizationDialog 폼 검증
+- **Zod 스키마**: 조직명 필수 입력, 조직 타입 선택 필수
+- **실시간 검증**: 입력 중 즉시 피드백 제공
+- **에러 메시지**: 사용자 친화적인 한국어 에러 메시지
+- **로딩 상태**: 제출 중 버튼 비활성화 및 스피너 표시
+
+#### 에러 처리 패턴
+- **서버 에러**: 조직명 중복, 권한 부족 등
+- **네트워크 에러**: 연결 실패, 타임아웃 등
+- **검증 에러**: 입력 형식 오류, 필수 필드 누락 등
+- **사용자 피드백**: Toast 알림 또는 인라인 에러 메시지
+
+### 5.4 미구현 컴포넌트들 (Story 006-007 이후)
+
+#### OrganizationEditForm
+- **역할**: 조직 편집을 위한 폼 컴포넌트
 - **유효성 검사**: 조직명 필수 입력, 중복 이름 검사
 - **제출 처리**: Server Action 호출 및 성공/실패 처리
 - **로딩 상태**: 제출 중 로딩 상태 표시
@@ -433,6 +527,7 @@ export function OrganizationSwitcher() {
 - [x] **Date 직렬화**: ISO 문자열로 변환 완료
 - [x] **Value Object 직렬화**: string으로 변환 완료
 - [x] **Next.js Server Actions 직렬화 제약 준수**: 완료
+- [ ] **CreateOrganizationRequest/Result**: 조직 생성용 DTO 추가 예정
 - [ ] **복잡한 Read Models**: Story 006-007 이후 구현 예정
 
 ### 7.2 Context 구현 완료 확인
@@ -440,6 +535,7 @@ export function OrganizationSwitcher() {
 - [x] **DTO 배열과 선택된 엔티티 상태 관리**: 완료
 - [x] **쿠키 기반 영속성**: 선택된 조직 ID 쿠키 저장/복원 구현 완료
 - [x] **초기 데이터 로드 로직**: Provider 마운트 시 자동 조회 구현 완료
+- [ ] **조직 생성 액션**: createOrganization 메서드 추가 예정
 - [ ] **사용자 Context**: 별도 사용자 정보 관리 Context 미구현
 
 ### 7.3 Server Actions 구현 완료 확인
@@ -448,7 +544,8 @@ export function OrganizationSwitcher() {
 - [x] **Command 객체 활용**: 입력 구조화 완료
 - [x] **DTO 직렬화**: Service Layer에서 DTO 반환 완료
 - [x] **revalidatePath**: 관련 페이지 재검증 완료
-- [ ] **조직 관리**: 조직 생성/수정/삭제 액션 미구현 (Story 006)
+- [ ] **조직 생성**: createNewOrganizationAction 구현 예정
+- [ ] **조직 수정/삭제**: 조직 관리 액션 미구현 (Story 006)
 - [ ] **멤버 관리**: 멤버 초대/관리 액션 미구현 (Story 007)
 
 ### 7.4 Hook 구현 완료 확인
@@ -456,15 +553,18 @@ export function OrganizationSwitcher() {
 - [x] **비즈니스 로직 메서드**: 조직 관련 편의 함수들 구현 완료
 - [x] **선택된 엔티티, 기본 엔티티 등 유틸리티**: 완료
 - [x] **에러 상태 처리**: 적절히 처리 완료
+- [ ] **조직 생성 액션**: createOrganization 메서드 추가 예정
 - [ ] **낙관적 업데이트**: useOptimistic 미사용, 직접 상태 관리
-- [ ] **복잡한 액션**: 조직 생성, 수정, 삭제 등 미구현
+- [ ] **복잡한 액션**: 조직 수정, 삭제 등 미구현
 
 ### 7.5 컴포넌트 연동 완료 확인
 - [x] **Hook 사용**: 컴포넌트에서 useOrganization Hook 사용
 - [x] **Switcher 컴포넌트**: OrganizationSwitcher 드롭다운 구현 완료
 - [x] **로딩 상태와 에러 상태 처리**: 적절히 처리 완료
 - [x] **빈 상태 처리**: 포함 완료
-- [ ] **폼 컴포넌트**: OrganizationForm, SettingsModal 미구현
+- [ ] **조직 생성 Dialog**: CreateOrganizationDialog 구현 예정
+- [ ] **폼 검증**: Zod 스키마 기반 검증 구현 예정
+- [ ] **폼 컴포넌트**: OrganizationEditForm, SettingsModal 미구현
 - [ ] **목록 컴포넌트**: OrganizationList, MemberManagement 미구현
 
 ### 7.6 앱 통합 완료 확인
@@ -548,6 +648,7 @@ src/
 │       │   └── use-organization.ts
 │       ├── components/             # UI 컴포넌트
 │       │   ├── organization-switcher.tsx
+│       │   ├── create-organization-dialog.tsx
 │       │   ├── dashboard-sidebar.tsx
 │       │   └── sidebar-components/  # 사이드바 하위 컴포넌트들
 │       │       ├── sidebar-header-group.tsx
@@ -566,16 +667,18 @@ src/
 4. ✅ **Custom Hook**: useOrganization Hook 구현 완료
 5. ✅ **React Components**: OrganizationSwitcher, DashboardSidebar 구현 완료
 6. ✅ **앱 통합**: Provider 설정, 쿠키 기반 영속성 완료
-7. ⚠️ **구글 OAuth**: Supabase Auth 구글 OAuth 연동 필요
-8. ⚠️ **로그인 UI**: 프론트엔드 로그인 페이지 구현 필요
-9. 📋 **Story 006**: 조직 생성/수정/삭제 기능 구현 예정
-10. 📋 **Story 007**: 멤버 초대/관리 기능 구현 예정
+7. 📋 **조직 생성 Dialog**: CreateOrganizationDialog 구현 예정 (Phase 4)
+8. ⚠️ **구글 OAuth**: Supabase Auth 구글 OAuth 연동 필요
+9. ⚠️ **로그인 UI**: 프론트엔드 로그인 페이지 구현 필요
+10. 📋 **Story 006**: 조직 수정/삭제 기능 구현 예정
+11. 📋 **Story 007**: 멤버 초대/관리 기능 구현 예정
 
 ### 8.5 다음 단계 우선순위
 1. **즉시**: Supabase Auth 구글 OAuth 설정
 2. **즉시**: 프론트엔드 로그인 페이지 구현
-3. **다음 스프린트**: Story 006 (조직 관리) 구현
-4. **다음 스프린트**: Story 007 (멤버 초대) 구현
+3. **다음**: Phase 4 (조직 생성 Dialog) 구현
+4. **다음 스프린트**: Story 006 (조직 수정/삭제) 구현
+5. **다음 스프린트**: Story 007 (멤버 초대) 구현
 
 ---
 
