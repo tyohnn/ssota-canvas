@@ -7,21 +7,25 @@
 
 export function getCookieValue(name: string): string | null {
   if (typeof document === 'undefined') return null;
-  
+
   const cookies = document.cookie.split(';');
   const cookie = cookies.find(c => c.trim().startsWith(`${name}=`));
-  return cookie ? cookie.split('=')[1] : null;
+  return cookie ? cookie.split('=')[1] || null : null;
 }
 
-export function setCookieValue(name: string, value: string, maxAge: number = 86400): void {
+export function setCookieValue(
+  name: string,
+  value: string,
+  maxAge: number = 86400
+): void {
   if (typeof document === 'undefined') return;
-  
+
   document.cookie = `${name}=${value}; path=/; max-age=${maxAge}`;
 }
 
 export function removeCookieValue(name: string): void {
   if (typeof document === 'undefined') return;
-  
+
   document.cookie = `${name}=; path=/; max-age=0`;
 }
 

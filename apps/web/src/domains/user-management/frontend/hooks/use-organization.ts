@@ -1,7 +1,7 @@
 // apps/web/src/domains/user-management/frontend/hooks/use-organization.ts
 
 import { useOrganization as useOrganizationContext } from '../contexts/organization-context';
-import { OrganizationSummary } from '../../events';
+import { OrganizationSummary } from '../../shared/dtos';
 
 /**
  * 조직 관련 비즈니스 로직을 위한 커스텀 훅
@@ -10,10 +10,10 @@ import { OrganizationSummary } from '../../events';
 
 export function useOrganization() {
   const context = useOrganizationContext();
-  
+
   // 현재 선택된 조직 정보
   const selectedOrganization = context.organizations.find(
-    org => org.id.value === context.selectedOrganizationId
+    org => org.id === context.selectedOrganizationId
   );
 
   // 기본 조직 정보
@@ -21,25 +21,27 @@ export function useOrganization() {
 
   // 조직 선택 가능 여부
   const canSelectOrganization = (organizationId: string): boolean => {
-    return context.organizations.some(org => org.id.value === organizationId);
+    return context.organizations.some(org => org.id === organizationId);
   };
 
   // 조직이 기본 조직인지 확인
   const isDefaultOrganization = (organizationId: string): boolean => {
-    const org = context.organizations.find(org => org.id.value === organizationId);
+    const org = context.organizations.find(org => org.id === organizationId);
     return org?.isDefault ?? false;
   };
 
   // 조직 이름으로 검색
-  const findOrganizationByName = (name: string): OrganizationSummary | undefined => {
-    return context.organizations.find(org => 
+  const findOrganizationByName = (
+    name: string
+  ): OrganizationSummary | undefined => {
+    return context.organizations.find(org =>
       org.name.toLowerCase().includes(name.toLowerCase())
     );
   };
 
   // 소유한 조직만 필터링
-  const ownedOrganizations = context.organizations.filter(org => 
-    org.role === 'owner'
+  const ownedOrganizations = context.organizations.filter(
+    org => org.role === 'owner'
   );
 
   return {

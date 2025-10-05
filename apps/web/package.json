@@ -22,8 +22,7 @@
     "db:studio": "drizzle-kit studio",
     "db:dev:generate": "NODE_ENV=development drizzle-kit generate",
     "db:dev:migrate": "NODE_ENV=development drizzle-kit migrate",
-    "db:dev:studio": "NODE_ENV=development drizzle-kit studio",
-    "db:dev:push": "NODE_ENV=development drizzle-kit push"
+    "db:dev:studio": "NODE_ENV=development drizzle-kit studio"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.25.4",
