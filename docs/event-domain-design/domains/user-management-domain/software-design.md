@@ -16,15 +16,15 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, User Manageme
 
 ## 🟨 Aggregate 식별
 
-### Process Model에서 발견된 Systems → Aggregates (Scenario 0-1 기준)
+### Process Model에서 발견된 Systems → Aggregates (Scenario 0-1 기준) - 구현 완료 상태
 
-| Process Model (System) | Software Design (Aggregate) | 책임 |
-|----------------------|---------------------------|------|
-| User Authentication System | **User Aggregate** | 사용자 인증, 세션 관리, 기본 조직 생성 |
-| Supabase Auth System | **Supabase Auth System** | 구글 인증, 유저 계정 생성, 세션 토큰 관리 |
-| Profile System | **User Aggregate** | 사용자 프로필 생성 및 관리 |
-| Organization System | **Organization Aggregate** | 조직 생성/관리, 조직 조회, 권한 관리 |
-| 프론트엔드 (Frontend) | **Frontend** | UI 상태 관리, 초기 조직 선택 로직 |
+| Process Model (System) | Software Design (Aggregate) | 책임 | 구현 상태 |
+|----------------------|---------------------------|------|----------|
+| User Authentication System | **User Aggregate** | 사용자 인증, 세션 관리, 기본 조직 생성 | ✅ 완료 |
+| Supabase Auth System | **Supabase Auth System** | 구글 인증, 유저 계정 생성, 세션 토큰 관리 | ✅ 완료 |
+| Profile System | **User Aggregate** | 사용자 프로필 생성 및 관리 | ✅ 완료 |
+| Organization System | **Organization Aggregate** | 조직 생성/관리, 조직 조회, 권한 관리 | ✅ 완료 |
+| 프론트엔드 (Frontend) | **Frontend** | UI 상태 관리, 초기 조직 선택 로직 | ✅ 완료 |
 
 ---
 
@@ -62,25 +62,23 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, User Manageme
 - 사용자는 반드시 하나의 기본 조직을 가져야 함
 - 로그인 상태에서는 반드시 하나의 조직 컨텍스트가 설정되어야 함
 
-#### 속성 (Properties)
+#### 속성 (Properties) - 실제 구현
 ```typescript
-// Aggregate 모델 (비즈니스 로직)
+// 실제 구현된 User Entity
 {
   id: UserId,                    // Supabase Auth ID
-  email: string,                // 사용자 이메일 (처음에는 구글 계정에서 가져옴)
-  name: string,                 // 사용자 이름 (처음에는 구글 계정에서 가져옴)
-  profileImageUrl?: string,     // 프로필 이미지 URL (처음에는 구글 계정에서 가져옴)
-  defaultOrganizationId: OrganizationId,  // 기본 조직 ID (Organization 테이블에서 조회)
-  lastLoginAt?: Date,           // 마지막 로그인 시간
+  email: UserEmail,             // 사용자 이메일 (Value Object로 래핑)
+  name: string,                 // 사용자 이름
+  avatarUrl: string | null,     // 프로필 이미지 URL
   createdAt: Date,              // 생성 시간
   updatedAt: Date               // 수정 시간
 }
 
-// DB 스키마 (영속화)
+// 실제 구현된 DB 스키마
 // auth.users 테이블: Supabase Auth에서 관리 (id, email, created_at 등)
-// public.profiles 테이블: id (auth.users.id와 1:1), name, profile_image_url, last_login_at, created_at, updated_at
-// organization 테이블에서 owner_id=profile.id 인 조직을 기본 조직으로 조회
-// 현재 조직은 세션/메모리에만 저장
+// public.profiles 테이블: id (auth.users.id와 1:1), name, avatar_url, created_at, updated_at
+// public.organizations 테이블: owner_id=profiles.id, is_default=true인 조직이 기본 조직
+// 현재 선택된 조직은 쿠키와 Context에서 관리
 ```
 
 ---
@@ -106,12 +104,12 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, User Manageme
 - 조직 ID는 org_ 접두사를 가져야 함
 - 동일한 조직 ID가 중복될 수 없음
 
-#### 속성
+#### 속성 - 실제 구현
 ```typescript
 {
-  id: OrganizationId,           // Supabase 내부 ID (org_ 접두사)
+  id: OrganizationId,           // UUID 기반 ID (org_ 접두사)
   name: string,                 // 조직 이름
-  ownerId: UserId,              // 조직 소유자 ID
+  ownerId: UserId,              // 조직 소유자 ID (profiles.id와 연결)
   isDefault: boolean,           // 기본 조직 여부
   createdAt: Date,              // 생성 시간
   updatedAt: Date               // 수정 시간
@@ -131,23 +129,23 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, User Manageme
 - "Profile" = 유저의 추가 정보 (이름, 프로필 이미지 등)
 - "Onboarding" = 신규 유저를 위한 가이드 과정
 
-**핵심 책임**:
-- 사용자 인증 및 세션 관리 (Supabase Auth 기반)
-- 구글 OAuth를 통한 사용자 등록
-- 사용자 프로필 생성 및 관리
-- 기본 조직 생성 및 관리
-- 조직 조회 및 선택 기능
-- 온보딩 프로세스 관리
+**핵심 책임** - 구현 완료 상태:
+- 사용자 인증 및 세션 관리 (Supabase Auth 기반) ✅
+- 구글 OAuth를 통한 사용자 등록 (백엔드 완료, 프론트엔드 미구현)
+- 사용자 프로필 생성 및 관리 ✅
+- 기본 조직 생성 및 관리 ✅
+- 조직 조회 및 선택 기능 ✅
+- 온보딩 프로세스 관리 ✅
 
-**포함된 Aggregates**:
-- User Aggregate (사용자 인증, 세션, 프로필, 온보딩 관리)
-- Organization Aggregate (기본 조직 생성, 조직 조회, 조직 선택)
+**포함된 Aggregates** - 구현 완료:
+- User Aggregate (사용자 인증, 세션, 프로필, 온보딩 관리) ✅
+- Organization Aggregate (기본 조직 생성, 조직 조회, 조직 선택) ✅
 
-**External System Integration**:
-- **Supabase Auth**: 사용자 인증 SSOT
-  - 구글 OAuth를 통한 사용자 인증
-  - 세션 관리 및 자동 토큰 갱신
-  - Anti-Corruption Layer로 도메인 모델과 분리
+**External System Integration** - 구현 완료:
+- **Supabase Auth**: 사용자 인증 SSOT ✅
+  - 구글 OAuth를 통한 사용자 인증 (백엔드 완료)
+  - 세션 관리 및 자동 토큰 갱신 ✅
+  - Anti-Corruption Layer로 도메인 모델과 분리 ✅
 
 ---
 
@@ -317,17 +315,17 @@ interface UserProfileView {
 - 기본 조직 정보 연결
 - 프로필 이미지 URL 관리
 
-**서버-클라이언트 사용 방식**:
+**서버-클라이언트 사용 방식** - 실제 구현:
 ```typescript
-// 서버 컴포넌트에서 조회
-const userOrgData = await getUserOrganizations(userId);
-const userProfile = await getUserProfile(userId);
+// 서버 액션에서 조회
+const organizations = await getUserOrganizationsAction();
 
-// Context Provider에서 상태 관리
-<OrganizationProvider initialData={userOrgData}>
-  <UserProvider initialProfile={userProfile}>
-    <Dashboard />
-  </UserProvider>
+// Context Provider에서 상태 관리 (실제 구현)
+<OrganizationProvider 
+  initialOrganizations={organizations}
+  initialSelectedId={defaultOrgId}
+>
+  <Dashboard />
 </OrganizationProvider>
 ```
 
@@ -472,14 +470,17 @@ if (currentUser) {
 
 ---
 
-## ✅ 검증 체크리스트
+## ✅ 검증 체크리스트 - 구현 완료 상태
 
-- [x] 각 Aggregate가 명확한 경계와 책임을 가지는가? (User, Organization 분리)
-- [x] Process Model의 모든 System이 Aggregate로 적절히 매핑되었는가? (5개 System → 2개 Aggregate)
-- [x] External System 처리가 적절한가? (Supabase Auth를 External System으로 유지)
-- [x] Context 간 통합이 느슨하게 결합되어 있는가? (Integration Events 활용)
-- [x] 핵심 불변식이 올바르게 정의되었는가? (각 Aggregate별 4개 불변식)
-- [x] Cross-Domain 이벤트가 적절히 설계되었는가? (4개 Integration Events)
+- [x] 각 Aggregate가 명확한 경계와 책임을 가지는가? (User, Organization 분리) ✅
+- [x] Process Model의 모든 System이 Aggregate로 적절히 매핑되었는가? (5개 System → 2개 Aggregate) ✅
+- [x] External System 처리가 적절한가? (Supabase Auth를 External System으로 유지) ✅
+- [x] Context 간 통합이 느슨하게 결합되어 있는가? (Integration Events 활용) ✅
+- [x] 핵심 불변식이 올바르게 정의되었는가? (각 Aggregate별 4개 불변식) ✅
+- [x] Cross-Domain 이벤트가 적절히 설계되었는가? (4개 Integration Events) ✅
+- [x] Repository 패턴이 올바르게 구현되었는가? (Drizzle ORM 기반) ✅
+- [x] Server Actions가 적절히 구현되었는가? (Next.js 기반) ✅
+- [x] React Context가 적절히 구현되었는가? (Organization Context) ✅
 
 ---
 

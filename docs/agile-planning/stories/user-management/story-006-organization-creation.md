@@ -252,54 +252,61 @@ export function OrganizationForm({ onSuccess }: { onSuccess?: () => void }) {
 ## 📋 Sub-tasks
 
 ### Backend Domain
-- [ ] Organization Entity 확장
-- [ ] OrganizationAggregate 확장
-- [ ] CreateOrganizationCommand 정의
-- [ ] OrganizationCreatedEvent 정의
+- [ ] Organization Entity 확장 (미구현)
+- [ ] OrganizationAggregate 확장 (미구현)
+- [ ] CreateOrganizationCommand 정의 (미구현)
+- [ ] OrganizationCreatedEvent 정의 (미구현)
 
 ### Database & Repository
-- [ ] organizations 테이블 확장
-- [ ] OrganizationRepository 확장
-- [ ] 중복 검증 로직 구현
+- [ ] organizations 테이블 확장 (미구현)
+- [ ] OrganizationRepository 확장 (미구현)
+- [ ] 중복 검증 로직 구현 (미구현)
 
 ### API & Server Action
-- [ ] createOrganizationAction 구현
-- [ ] 에러 처리 및 검증 로직
-- [ ] 중복 검증 로직
+- [ ] createOrganizationAction 구현 (미구현)
+- [ ] 에러 처리 및 검증 로직 (미구현)
+- [ ] 중복 검증 로직 (미구현)
 
 ### Frontend
-- [ ] 조직 생성 폼 컴포넌트
-- [ ] 폼 검증 및 에러 처리
-- [ ] 성공 시 조직 목록 업데이트
+- [ ] 조직 생성 폼 컴포넌트 (미구현)
+- [ ] 폼 검증 및 에러 처리 (미구현)
+- [ ] 성공 시 조직 목록 업데이트 (미구현)
 
 ### Integration Task
-- [ ] 조직 목록 새로고침
-- [ ] 이벤트 발행 및 구독
-- [ ] 권한 검증
+- [ ] 조직 목록 새로고침 (미구현)
+- [ ] 이벤트 발행 및 구독 (미구현)
+- [ ] 권한 검증 (미구현)
 
 ### E2E & Observability
-- [ ] 조직 생성 E2E 테스트
-- [ ] 에러 모니터링 설정
-- [ ] 성능 모니터링 설정
+- [ ] 조직 생성 E2E 테스트 (미구현)
+- [ ] 에러 모니터링 설정 (미구현)
+- [ ] 성능 모니터링 설정 (미구현)
 
 ## 🎯 Definition of Done
 
 ### 기능적 완료
-- [ ] 새 조직 생성 정상 동작
-- [ ] 조직명 중복 검증 정상 동작
-- [ ] 조직 생성 실패 시 에러 처리
-- [ ] 조직 목록에 새 조직 추가
+- [ ] 새 조직 생성 정상 동작 (미구현)
+- [ ] 조직명 중복 검증 정상 동작 (미구현)
+- [ ] 조직 생성 실패 시 에러 처리 (미구현)
+- [ ] 조직 목록에 새 조직 추가 (미구현)
 
 ### 기술적 완료
-- [ ] 단위 테스트 커버리지 80% 이상
-- [ ] E2E 테스트 통과
-- [ ] 코드 리뷰 완료
-- [ ] 성능 요구사항 충족
+- [ ] 단위 테스트 커버리지 80% 이상 (미구현)
+- [ ] E2E 테스트 통과 (미구현)
+- [ ] 코드 리뷰 완료 (미구현)
+- [ ] 성능 요구사항 충족 (미구현)
 
 ### 품질 완료
-- [ ] 보안 취약점 0개
-- [ ] 접근성 기준 충족
-- [ ] 사용자 테스트 통과
+- [ ] 보안 취약점 0개 (미구현)
+- [ ] 접근성 기준 충족 (미구현)
+- [ ] 사용자 테스트 통과 (미구현)
+
+## 📊 현재 진행 상황: 0% 완료
+- ❌ 백엔드 도메인 로직 미구현
+- ❌ 데이터베이스 스키마 확장 미구현
+- ❌ Server Actions 미구현
+- ❌ 프론트엔드 UI 컴포넌트 미구현
+- ❌ 테스트 코드 미구현
 
 ## 🔗 의존성
 **선행 Story**: Story-005 (조직 선택 및 컨텍스트 설정)

@@ -246,55 +246,63 @@ CREATE POLICY "Users can view own memberships" ON memberships
 ## 📋 Sub-tasks
 
 ### Backend Domain
-- [ ] InvitationAggregate 구현
-- [ ] InviteMemberCommand 정의
-- [ ] MemberInvitedEvent 정의
-- [ ] 초대 만료 처리 로직
+- [ ] InvitationAggregate 구현 (미구현)
+- [ ] InviteMemberCommand 정의 (미구현)
+- [ ] MemberInvitedEvent 정의 (미구현)
+- [ ] 초대 만료 처리 로직 (미구현)
 
 ### Database & Repository
-- [ ] invitations 테이블 생성
-- [ ] memberships 테이블 생성
-- [ ] InvitationRepository 구현
-- [ ] MembershipRepository 구현
+- [ ] invitations 테이블 생성 (미구현)
+- [ ] memberships 테이블 생성 (미구현)
+- [ ] InvitationRepository 구현 (미구현)
+- [ ] MembershipRepository 구현 (미구현)
 
 ### API & Server Action
-- [ ] inviteMemberAction 구현
-- [ ] acceptInvitationAction 구현
-- [ ] 에러 처리 및 검증 로직
+- [ ] inviteMemberAction 구현 (미구현)
+- [ ] acceptInvitationAction 구현 (미구현)
+- [ ] 에러 처리 및 검증 로직 (미구현)
 
 ### Frontend
-- [ ] 멤버 초대 폼 컴포넌트
-- [ ] 초대 수락 페이지
-- [ ] 초대 상태 관리
+- [ ] 멤버 초대 폼 컴포넌트 (미구현)
+- [ ] 초대 수락 페이지 (미구현)
+- [ ] 초대 상태 관리 (미구현)
 
 ### Integration Task
-- [ ] 이메일 서비스 연동
-- [ ] 초대 링크 생성
-- [ ] 권한 검증
+- [ ] 이메일 서비스 연동 (미구현)
+- [ ] 초대 링크 생성 (미구현)
+- [ ] 권한 검증 (미구현)
 
 ### E2E & Observability
-- [ ] 멤버 초대 E2E 테스트
-- [ ] 에러 모니터링 설정
-- [ ] 성능 모니터링 설정
+- [ ] 멤버 초대 E2E 테스트 (미구현)
+- [ ] 에러 모니터링 설정 (미구현)
+- [ ] 성능 모니터링 설정 (미구현)
 
 ## 🎯 Definition of Done
 
 ### 기능적 완료
-- [ ] 멤버 초대 정상 동작
-- [ ] 중복 초대 방지 정상 동작
-- [ ] 초대 수락 정상 동작
-- [ ] 초대 만료 처리 정상 동작
+- [ ] 멤버 초대 정상 동작 (미구현)
+- [ ] 중복 초대 방지 정상 동작 (미구현)
+- [ ] 초대 수락 정상 동작 (미구현)
+- [ ] 초대 만료 처리 정상 동작 (미구현)
 
 ### 기술적 완료
-- [ ] 단위 테스트 커버리지 80% 이상
-- [ ] E2E 테스트 통과
-- [ ] 코드 리뷰 완료
-- [ ] 성능 요구사항 충족
+- [ ] 단위 테스트 커버리지 80% 이상 (미구현)
+- [ ] E2E 테스트 통과 (미구현)
+- [ ] 코드 리뷰 완료 (미구현)
+- [ ] 성능 요구사항 충족 (미구현)
 
 ### 품질 완료
-- [ ] 보안 취약점 0개
-- [ ] 접근성 기준 충족
-- [ ] 사용자 테스트 통과
+- [ ] 보안 취약점 0개 (미구현)
+- [ ] 접근성 기준 충족 (미구현)
+- [ ] 사용자 테스트 통과 (미구현)
+
+## 📊 현재 진행 상황: 0% 완료
+- ❌ 백엔드 도메인 로직 미구현
+- ❌ 데이터베이스 스키마 미구현
+- ❌ Server Actions 미구현
+- ❌ 프론트엔드 UI 컴포넌트 미구현
+- ❌ 이메일 서비스 연동 미구현
+- ❌ 테스트 코드 미구현
 
 ## 🔗 의존성
 **선행 Story**: Story-006 (조직 생성)
