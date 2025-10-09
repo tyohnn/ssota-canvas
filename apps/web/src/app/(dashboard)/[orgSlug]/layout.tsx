@@ -11,6 +11,13 @@ import {
 } from '@/domains/dashboard/actions/organization.action';
 import { redirect } from 'next/navigation';
 
+/**
+ * Wraps the provided children in an OrganizationProvider initialized from the organization identified by the given params.
+ *
+ * @param children - React nodes to render inside the layout
+ * @param params - A promise resolving to an object containing `orgSlug`, used to load the organization context
+ * @returns A React element rendering OrganizationProvider with the resolved organization, the user's organizations, and the organization's workspaces, containing `children`
+ */
 export default async function DashboardLayout({
   children,
   params,

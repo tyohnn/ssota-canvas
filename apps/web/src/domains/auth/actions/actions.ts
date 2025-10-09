@@ -47,7 +47,16 @@ import {
 //   cookieJar.set('lastSignedInMethod', 'email');
 
 //   redirect(appDefaultUrl);
-// }
+/**
+ * Initiates a magic-link email sign-in and redirects the user based on the outcome.
+ *
+ * Attempts to sign in the email provided in `formData` using a magic link. If the email is not
+ * associated with an account, redirects to the login page with a user-not-found message. On any
+ * other sign-in error, redirects to the login page with a generic login error message. On success,
+ * sets a `lastSignedInMethod` cookie to `"magicLink"` and redirects to the application's default URL.
+ *
+ * @param formData - A FormData object containing an `email` field with the user's email address
+ */
 
 export async function signInWithMagicLink(formData: FormData) {
   const supabase = await createClient();
@@ -107,7 +116,9 @@ export async function signInWithMagicLink(formData: FormData) {
 //   cookieJar.set('lastSignedInMethod', 'email');
 
 //   redirect(emailVerificationUrl); // email-verification 으로 이동
-// }
+/**
+ * Signs out the current user and redirects to the login page.
+ */
 
 export async function signOutAction() {
   const supabase = await createClient();
@@ -115,6 +126,13 @@ export async function signOutAction() {
   redirect('/login');
 }
 
+/**
+ * Initiates an OAuth sign-in with the specified provider and redirects the user to the provider's authorization URL.
+ *
+ * @param provider - The OAuth provider identifier to use for sign-in (for example, `'google'` or `'github'`).
+ * @param enrollmentCode - Optional enrollment code to append to the authentication callback URL as `enrollment_code`.
+ * @returns A redirect response to the OAuth provider's authorization URL on success, or a redirect to the login page with an error message on failure.
+ */
 export async function oAuthSignIn(
   provider: Provider,
   enrollmentCode?: string | null

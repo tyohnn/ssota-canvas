@@ -29,6 +29,12 @@ import {
   UserProfile,
 } from '../shared/dtos';
 
+/**
+ * Fetches the list of organizations the currently authenticated user belongs to.
+ *
+ * @returns An array of OrganizationSummary objects representing organizations accessible to the user.
+ * @throws When authentication is missing or invalid, or when the domain service returns an error.
+ */
 export async function getUserOrganizationsAction(): Promise<
   OrganizationSummary[]
 > {
@@ -86,6 +92,12 @@ const createDefaultOrganizationSchema = z.object({
   organizationName: z.string().min(1).max(255),
 });
 
+/**
+ * Creates a default organization for the authenticated user.
+ *
+ * @param input - Object validated against `createDefaultOrganizationSchema` containing `organizationName`.
+ * @returns An `OrganizationSummary` for the newly created organization; `id` is a string and `createdAt` is an ISO timestamp.
+ */
 export async function createDefaultOrganizationAction(
   input: z.infer<typeof createDefaultOrganizationSchema>
 ): Promise<OrganizationSummary> {
@@ -151,6 +163,12 @@ const createNewOrganizationSchema = z.object({
   ),
 });
 
+/**
+ * Creates a new organization owned by the currently authenticated user.
+ *
+ * @param input - Request payload containing the new organization's `name` and `organizationType`. `name` must be 1–255 characters; `organizationType` must be one of: `personal`, `education`, `startup`, `agency`, `company`, `n/a`.
+ * @returns An object with `success: true` and an `organization` record (`id`, `name`, `organizationType`, `isDefault`, `createdAt`) on success; otherwise `success: false` and an `error` message describing the failure.
+ */
 export async function createNewOrganizationAction(
   input: CreateOrganizationRequest
 ): Promise<CreateOrganizationResult> {
@@ -226,7 +244,14 @@ export async function createNewOrganizationAction(
   }
 }
 
-// Invite Member Action
+/**
+ * Requests an invitation for a user to join an organization.
+ *
+ * Creates an invitation and related notification, then revalidates dashboard and organization pages.
+ *
+ * @param input - The invitation request containing the target organization id, invitee email, and role to assign
+ * @throws When the caller is not authenticated or the domain service returns an error
+ */
 export async function inviteMemberAction(
   input: InviteMemberRequest
 ): Promise<void> {
@@ -297,7 +322,12 @@ export async function inviteMemberAction(
   }
 }
 
-// Respond to Invitation Action
+/**
+ * Handles a user's response to an organization invitation by accepting or rejecting it.
+ *
+ * @param input - Request object containing `invitationId` and `accept` (true to accept, false to reject)
+ * @throws Error when authentication is required or when the domain operation (accept/reject) fails
+ */
 export async function respondToInvitationAction(
   input: RespondToInvitationRequest
 ): Promise<void> {
@@ -370,7 +400,12 @@ export async function respondToInvitationAction(
   }
 }
 
-// Get Organization Members Action
+/**
+ * Retrieves the member view for the specified organization as seen by the current authenticated user.
+ *
+ * @param organizationId - The ID of the organization to fetch members for.
+ * @returns The OrganizationMemberView for the specified organization, scoped to the requesting user.
+ */
 export async function getOrganizationMembersAction(
   organizationId: string
 ): Promise<OrganizationMemberView> {
@@ -399,7 +434,13 @@ export async function getOrganizationMembersAction(
   }
 }
 
-// Search User by Email Action
+/**
+ * Finds user profiles that match the given email address.
+ *
+ * @param email - The email address to search for.
+ * @returns An array of `UserProfile` objects matching the email; empty if none found.
+ * @throws Error If authentication is required or the repository lookup fails.
+ */
 export async function searchUserByEmailAction(
   email: string
 ): Promise<UserProfile[]> {

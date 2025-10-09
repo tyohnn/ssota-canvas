@@ -6,6 +6,15 @@ import { DashboardSidebar } from '@/domains/dashboard/components/layout';
 import { OrganizationProvider } from '@/domains/organization-management/frontend/contexts/organization-context';
 import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
 
+/**
+ * Layout component that fetches the current user's organizations and renders the dashboard chrome.
+ *
+ * Fetches user organizations and provides them to OrganizationProvider, then renders the sidebar and
+ * places `children` into the inset content area.
+ *
+ * @param children - The page content to render inside the dashboard inset
+ * @returns The layout element containing OrganizationProvider, SidebarProvider, DashboardSidebar, and the inset with `children`
+ */
 export default async function DashboardLayout({
   children,
 }: {

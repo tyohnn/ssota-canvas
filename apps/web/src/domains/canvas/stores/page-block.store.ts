@@ -23,6 +23,20 @@ const initialState: PageBlockState = {
   lastUpdatedAt: null,
 };
 
+/**
+ * Update the pageBlocks state based on the provided action.
+ *
+ * Supports the following action behaviors:
+ * - SET: replace the entire `pageBlocks` array.
+ * - ADD: append a new block or shallow-merge with an existing block that shares the same `id`.
+ * - REMOVE: remove the block with the specified `id`.
+ * - UPDATE: shallow-merge `updates` into the block with the specified `id`.
+ * - REPLACE_ID: for the block with `fromId`, apply optional `updates` and set its `id` to `toId`.
+ *
+ * @param state - The current PageBlockState to update.
+ * @param action - The action describing the change to apply.
+ * @returns The new PageBlockState. For handled actions, `lastUpdatedAt` is set to the current time; for unknown action types, the original `state` is returned unchanged.
+ */
 function reducer(state: PageBlockState, action: Action): PageBlockState {
   switch (action.type) {
     case 'SET': {
@@ -76,6 +90,20 @@ function reducer(state: PageBlockState, action: Action): PageBlockState {
   }
 }
 
+/**
+ * Creates a client-side store for managing an array of page Blocks and a last-updated timestamp.
+ *
+ * @param initial - Optional initial array of `Block` items to seed the store.
+ * @returns An object with the store state and actions:
+ * - `pageBlocks`: the current `Block[]`.
+ * - `lastUpdatedAt`: timestamp (milliseconds) of the last mutation, or `null` if never updated.
+ * - `getPageBlockById(id)`: returns the `Block` with the given `id` or `undefined`.
+ * - `setPageBlocks(pageBlocks)`: replaces all page blocks.
+ * - `addPageBlock(pageBlock)`: adds a block or merges with an existing block of the same `id`.
+ * - `removePageBlock(id)`: removes the block with the given `id`.
+ * - `updatePageBlock(id, updates)`: applies shallow updates to the block with the given `id`.
+ * - `replacePageBlockId(fromId, toId, updates?)`: replaces a block's `id`, optionally applying shallow updates.
+ */
 export function usePageBlockStore(initial?: Block[]) {
   const [state, dispatch] = useReducer(reducer, initialState);
 

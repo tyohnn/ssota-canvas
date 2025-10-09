@@ -3,6 +3,12 @@
 import React from 'react';
 import type { ViewDefinition } from '@/domains/canvas/policy/view-policy';
 
+/**
+ * Renders a simple markdown-like preview showing the view's name and its template.
+ *
+ * @param view - The view definition to display; uses `view.config?.template` if present, otherwise a default placeholder template.
+ * @returns A JSX element containing the view name and the template text.
+ */
 export function MarkdownView({ view }: { view: ViewDefinition }) {
   const template = String(view.config?.template || '# {{name}}\n\n');
 

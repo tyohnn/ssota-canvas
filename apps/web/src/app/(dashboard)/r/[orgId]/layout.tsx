@@ -7,6 +7,16 @@ import { OrganizationProvider } from '@/domains/organization-management/frontend
 import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
 import { redirect } from 'next/navigation';
 
+/**
+ * Layout for dashboard routes scoped to a specific organization.
+ *
+ * Performs organization lookup using the current user's organizations and the `orgId` route parameter,
+ * and redirects to `/unauthorized` when the user is not authenticated or not authorized for the requested organization.
+ *
+ * @param children - The page content to render inside the dashboard layout.
+ * @param params - A promise that resolves to route parameters; expected to contain `orgId`.
+ * @returns A React element that wraps `children` with organization context and sidebar layout.
+ */
 export default async function DashboardLayout({
   children,
   params,

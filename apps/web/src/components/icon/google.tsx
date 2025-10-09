@@ -1,3 +1,8 @@
+/**
+ * Renders the Google logo as a 24x24 SVG icon.
+ *
+ * @returns A JSX element containing a 24x24 SVG composed of four colored paths and a clip path
+ */
 export function Google() {
   return (
     <svg

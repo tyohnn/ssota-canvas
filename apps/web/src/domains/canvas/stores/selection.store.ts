@@ -24,6 +24,13 @@ const initial: SelectionState = {
   selectedComponentBlock: null,
 };
 
+/**
+ * Apply a selection-related action to the current selection state and produce the next state.
+ *
+ * @param state - The current selection state to transition from.
+ * @param action - The action describing the selection change (select a page, select a component, or clear all selections).
+ * @returns The updated SelectionState after the action is applied.
+ */
 function reducer(state: SelectionState, action: Action): SelectionState {
   switch (action.type) {
     case 'SELECT_PAGE':
@@ -37,6 +44,16 @@ function reducer(state: SelectionState, action: Action): SelectionState {
   }
 }
 
+/**
+ * Provides selection state and actions for managing selected pages and components in the canvas.
+ *
+ * @returns An object containing:
+ * - `state` — the current selection state (`selectedPageId`, `selectedComponentId`, `selectedPageBlock`, `selectedComponentBlock`).
+ * - `canvasMode` — `'component'` when a component is selected, otherwise `'page'`.
+ * - `selectPage` — function to set or clear the selected page by id (`id: string | null`).
+ * - `selectComponent` — function to set or clear the selected component by id (`id: string | null`).
+ * - `clearAll` — function to reset all selection fields to `null`.
+ */
 export function useSelectionStore() {
   const [state, dispatch] = useReducer(reducer, initial);
 

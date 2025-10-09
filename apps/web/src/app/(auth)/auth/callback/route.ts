@@ -13,6 +13,15 @@ import {
 // user-management actions
 import { processUserRegistrationAction } from '@/domains/user-management/actions/user-management.actions';
 
+/**
+ * Handle the Supabase OAuth callback by exchanging the authorization code for a session and redirecting the user.
+ *
+ * On success, redirects the user to the destination specified by the `next` query parameter (or `/onboarding` by default).
+ * On missing or failed code exchange, redirects the user to the login page with an error message.
+ *
+ * @param request - Incoming request containing the OAuth `code` query parameter and optional `next` query parameter. The `x-forwarded-host` header, if present, is used to reconstruct the redirect URL in production behind a load balancer.
+ * @returns A NextResponse that redirects to the onboarding or original destination on successful session exchange, or redirects to the login page with an error message on failure.
+ */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');

@@ -35,6 +35,19 @@ const initialState: OrganizationState = {
   orgWorkspaces: [],
 };
 
+/**
+ * Update organization-related state by applying the provided action.
+ *
+ * Applies the action's payload to the corresponding field of the organization state:
+ * - 'SET_ACTIVE_ORGANIZATION' updates `activeOrganization`
+ * - 'SET_ACTIVE_WORKSPACE' updates `activeWorkspace`
+ * - 'SET_USER_ORGANIZATIONS' updates `userOrganizations`
+ * - 'SET_ORG_WORKSPACES' updates `orgWorkspaces`
+ *
+ * @param state - The current organization state
+ * @param action - The action describing which state slice to update and its payload
+ * @returns The new OrganizationState with the action's payload applied to the appropriate field
+ */
 function organizationReducer(
   state: OrganizationState,
   action: OrganizationAction
@@ -60,6 +73,17 @@ function organizationReducer(
   }
 }
 
+/**
+ * Manages organization and workspace state with setters for each piece of the state.
+ *
+ * @param preloaded - Partial initial state to merge with the default initial organization state
+ * @returns An object containing:
+ *  - `state`: the current OrganizationState,
+ *  - `setActiveOrganization`: sets the active organization or `null`,
+ *  - `setActiveWorkspace`: sets the active workspace or `null`,
+ *  - `setUserOrganizations`: replaces the user's organization list,
+ *  - `setOrgWorkspaces`: replaces the organization's workspace list
+ */
 export function useOrganizationState(preloaded?: Partial<OrganizationState>): {
   state: OrganizationState;
   setActiveOrganization: (org: OrgSummary | null) => void;

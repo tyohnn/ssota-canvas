@@ -13,6 +13,14 @@ import {
   loginUrl,
 } from '../../constant';
 
+/**
+ * Handles email verification callbacks by verifying the Supabase email OTP and redirecting the user based on the result.
+ *
+ * Verifies the `token_hash` and `type` query parameters with Supabase; on successful verification redirects the client to the resolved `next` URL (respecting local vs. proxied hosts), otherwise redirects to the login page with an encoded error message.
+ *
+ * @param request - The incoming NextRequest containing URL and headers
+ * @returns A redirect response: to the resolved `next` destination on successful verification, or to the login page with an encoded error message on failure
+ */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const token_hash = searchParams.get('token_hash');

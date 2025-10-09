@@ -20,6 +20,18 @@ interface InboxPanelProps {
   ) => Promise<void>;
 }
 
+/**
+ * Render the right-side inbox sheet that displays notifications and related controls.
+ *
+ * Renders a Sheet containing a header with the unread count and a content area that
+ * shows a loading indicator, an error message, an empty state, or a scrollable list
+ * of notifications. Each notification is rendered via NotificationItem and receives
+ * callbacks to mark it as read and optionally to respond to invitations.
+ *
+ * @param onInvitationRespond - Optional callback invoked when responding to an invitation;
+ *   receives the invitation ID and a boolean `accept`, and returns a Promise that resolves when the response is handled.
+ * @returns A React element containing the inbox sheet with header, state handling (loading, error, empty), and the notifications list.
+ */
 export function InboxPanel({
   open,
   onOpenChange,

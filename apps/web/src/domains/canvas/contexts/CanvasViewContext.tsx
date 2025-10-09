@@ -20,6 +20,16 @@ const ViewContext = React.createContext<ViewContextValue | undefined>(
   undefined
 );
 
+/**
+ * Provides a React context that tracks and controls the currently selected canvas view.
+ *
+ * Recomputes available view definitions when the selected page changes, ensures the
+ * active view id remains valid (keeps it if still available or resolves an initial id),
+ * and exposes the current view id, its resolved definition, the list of available views,
+ * and a function to switch the active view.
+ *
+ * @returns A React provider element that supplies the view context to its children.
+ */
 export function ViewProvider({ children }: { children: React.ReactNode }) {
   const data = useCanvasData();
 
@@ -63,6 +73,12 @@ export function ViewProvider({ children }: { children: React.ReactNode }) {
   return <ViewContext.Provider value={value}>{children}</ViewContext.Provider>;
 }
 
+/**
+ * Provides access to the current canvas view context value.
+ *
+ * @returns The current ViewContextValue containing `currentViewId`, `currentViewDef`, `availableViews`, and `switchView`.
+ * @throws Error if called outside of a ViewProvider
+ */
 export function useViewContext(): ViewContextValue {
   const ctx = React.useContext(ViewContext);
   if (!ctx) throw new Error('useViewContext must be used within ViewProvider');

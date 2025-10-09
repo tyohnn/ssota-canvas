@@ -55,6 +55,12 @@ export type CanvasDataContextValue = {
 
 const CanvasDataContext = createContext<CanvasDataContextValue | null>(null);
 
+/**
+ * Accesses the current CanvasDataContext value for the calling component.
+ *
+ * @returns The current CanvasDataContextValue.
+ * @throws If called outside a CanvasDataProvider.
+ */
 export function useCanvasData(): CanvasDataContextValue {
   const ctx = useContext(CanvasDataContext);
   if (!ctx)
@@ -62,6 +68,17 @@ export function useCanvasData(): CanvasDataContextValue {
   return ctx;
 }
 
+/**
+ * Provides canvas-related state and actions to descendant components via CanvasDataContext.
+ *
+ * Initializes page, component, and selection stores, auto-selects the first page if none is selected,
+ * and exposes page/component queries, mutations, and selection state through the context value.
+ *
+ * @param initialPageBlocks - Initial list of page blocks to populate the page block store
+ * @param initialComponentBlocks - Initial list of component definitions to populate the component block store
+ * @param children - React nodes rendered inside the provider
+ * @returns The provider element that supplies CanvasDataContext to its descendants
+ */
 export function CanvasDataProvider({
   initialPageBlocks,
   initialComponentBlocks,

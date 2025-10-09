@@ -27,7 +27,9 @@ export type WorkspaceActionResult<T = any> =
     };
 
 /**
- * 사용자의 모든 워크스페이스를 가져옵니다
+ * Fetches all workspaces accessible to the authenticated user.
+ *
+ * @returns `{ success: true, data: Array<{ id: string; name: string; description: string | null; owner_id: string | null; metadata: any; created_at: string; updated_at: string; }>} ` on success; `{ success: false, error: string }` on failure.
  */
 export async function getUserWorkspaces(): Promise<
   WorkspaceActionResult<any[]>
@@ -61,7 +63,12 @@ export async function getUserWorkspaces(): Promise<
 }
 
 /**
- * 새로운 워크스페이스를 생성합니다
+ * Create a new workspace for the current authenticated user.
+ *
+ * If the caller is not authenticated, the function returns a failure result with an authentication error.
+ *
+ * @param input - Fields for the new workspace (e.g., `name`, optional `description`, `template`)
+ * @returns On success, `{ success: true, data }` where `data` is the created workspace record including `id`, `name`, `description`, `owner_id`, `metadata`, `created_at`, and `updated_at`. On failure, `{ success: false, error }` with a descriptive error message.
  */
 export async function createWorkspace(
   input: CreateWorkspaceInput
@@ -112,7 +119,10 @@ export async function createWorkspace(
 }
 
 /**
- * 워크스페이스를 삭제합니다
+ * Delete a workspace by its ID.
+ *
+ * @param workspaceId - The ID of the workspace to delete.
+ * @returns An object with `success: true` and `data: undefined` if deletion succeeded, or `success: false` and an `error` message if it failed.
  */
 export async function deleteWorkspace(
   workspaceId: string
@@ -135,7 +145,10 @@ export async function deleteWorkspace(
 }
 
 /**
- * 워크스페이스 단건 조회
+ * Retrieve a single workspace by its ID.
+ *
+ * @param workspaceId - The ID of the workspace to retrieve.
+ * @returns The workspace's selected fields (`id`, `name`, `organization_id`, `icon_name`) if found, `null` otherwise.
  */
 export async function getWorkspaceById(workspaceId: string): Promise<
   WorkspaceActionResult<{
@@ -172,7 +185,11 @@ export async function getWorkspaceById(workspaceId: string): Promise<
 }
 
 /**
- * 워크스페이스 정보를 업데이트합니다
+ * Update a workspace's name and description by its ID.
+ *
+ * @param workspaceId - The ID of the workspace to update
+ * @param updates - Partial workspace fields to apply (name and description are used)
+ * @returns The updated workspace object containing `id`, `name`, `description`, `owner_id`, `metadata`, `created_at`, and `updated_at` on success; when the operation fails the returned value will be an error message within the `WorkspaceActionResult` failure shape
  */
 export async function updateWorkspace(
   workspaceId: string,

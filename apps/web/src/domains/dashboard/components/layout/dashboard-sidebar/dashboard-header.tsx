@@ -11,6 +11,11 @@ import { Separator } from '@workspace/ui/components/ui/separator';
 import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
 import { useOrganization } from '@/domains/organization-management/frontend/contexts/organization-context';
 
+/**
+ * Header for the dashboard that displays the selected organization's name.
+ *
+ * @returns A JSX header element containing a sidebar trigger, vertical separator, and breadcrumb titled with the selected organization's name followed by "'s Dashboard".
+ */
 export function DashboardHeader() {
   const { organizations, selectedOrganizationId } = useOrganization();
   const activeOrganization = organizations.find(

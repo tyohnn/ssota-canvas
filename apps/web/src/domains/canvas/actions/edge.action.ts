@@ -31,6 +31,12 @@ export type GetEdgeInput = z.infer<typeof getEdgeSchema>;
 const listEdgesSchema = z.object({ workspaceId: z.uuid() });
 export type ListEdgesInput = z.infer<typeof listEdgesSchema>;
 
+/**
+ * Create a new Edge record from validated input and return the created row.
+ *
+ * @param input - Data required to create the edge: `sourceBlockId`, `targetBlockId`, `edgeType`, optional `metadata`, and `workspaceId`
+ * @returns An ActionResult containing the created `Edge` in `ok`, or an `err` with an error message on failure
+ */
 export async function createEdge(
   input: CreateEdgeInput
 ): Promise<ActionResult<Edge>> {
@@ -59,6 +65,12 @@ export async function createEdge(
   }
 }
 
+/**
+ * Updates an existing Edge record with the provided fields.
+ *
+ * @param input - Object containing the Edge `id` and updatable fields (`edgeType`, `metadata`).
+ * @returns The updated `Edge` wrapped in an `ok` ActionResult on success, or an `err` ActionResult with an error message on failure.
+ */
 export async function updateEdge(
   input: UpdateEdgeInput
 ): Promise<ActionResult<Edge>> {
@@ -88,6 +100,12 @@ export async function updateEdge(
   }
 }
 
+/**
+ * Deletes an Edge by id and returns the removed record.
+ *
+ * @param input - Object containing the `id` of the Edge to delete
+ * @returns The deleted `Edge` wrapped in an `ok` ActionResult, or an `err` ActionResult with an error message on failure
+ */
 export async function deleteEdge(
   input: GetEdgeInput
 ): Promise<ActionResult<Edge>> {
@@ -107,6 +125,12 @@ export async function deleteEdge(
   }
 }
 
+/**
+ * Retrieves all edges belonging to a workspace, ordered by creation time (newest first).
+ *
+ * @param input - Input object containing `workspaceId` (UUID) used to filter edges.
+ * @returns An array of `Edge` records for the workspace, ordered by `created_at` descending.
+ */
 export async function listWorkspaceEdges(
   input: ListEdgesInput
 ): Promise<ActionResult<Edge[]>> {

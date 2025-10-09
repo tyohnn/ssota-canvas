@@ -19,6 +19,12 @@ type OrganizationContextValue = {
 const OrganizationContext =
   React.createContext<OrganizationContextValue | null>(null);
 
+/**
+ * Retrieve the current organization context value.
+ *
+ * @returns The current OrganizationContextValue.
+ * @throws Error if called outside of an OrganizationProvider.
+ */
 export function useOrganizationContext(): OrganizationContextValue {
   const ctx = React.useContext(OrganizationContext);
   if (!ctx) {

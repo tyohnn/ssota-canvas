@@ -21,6 +21,13 @@ export type OrgWorkspace = {
   icon_name?: string | null;
 };
 
+/**
+ * Retrieve all organizations accessible to the current user.
+ *
+ * Each organization includes `id`, `name`, `slug`, `created_at`, and `updated_at`.
+ *
+ * @returns An ActionResult containing an array of organizations with fields `id`, `name`, `slug`, `created_at`, and `updated_at` on success; otherwise an error message.
+ */
 export async function getUserOrganizations(): Promise<
   ActionResult<Organization[]>
 > {
@@ -47,6 +54,12 @@ export async function getUserOrganizations(): Promise<
   }
 }
 
+/**
+ * Fetches an organization by its slug.
+ *
+ * @param slug - The unique slug identifier of the organization to retrieve
+ * @returns An ActionResult containing the matching organization record, or `null` if no organization has the provided slug
+ */
 export async function getOrganizationBySlug(
   slug: string
 ): Promise<ActionResult<Organization | null>> {
@@ -76,6 +89,12 @@ export async function getOrganizationBySlug(
   }
 }
 
+/**
+ * Fetches all workspaces that belong to the specified organization.
+ *
+ * @param orgId - The organization ID (UUID) used to filter workspaces
+ * @returns An ActionResult whose `ok` case contains an array of `OrgWorkspace` for the organization, or whose `err` case contains an error message
+ */
 export async function getWorkspacesByOrganizationId(
   orgId: string
 ): Promise<ActionResult<OrgWorkspace[]>> {
@@ -109,6 +128,18 @@ const updateWorkspaceIconSchema = z.object({
   iconName: z.string().regex(/^[a-z0-9-]+$/),
 });
 
+/**
+ * Update a workspace's icon name.
+ *
+ * Validates the provided input and updates the workspace's `icon_name` in the database.
+ * If the update does not return a row, returns an object using the provided `workspaceId`
+ * and `iconName` as a fallback.
+ *
+ * @param input - Object containing update parameters
+ * @param input.workspaceId - The UUID of the workspace to update
+ * @param input.iconName - The new icon name (must match /^[a-z0-9-]+$/)
+ * @returns An ActionResult with the updated workspace `{ id, icon_name }` on success; an error message on failure.
+ */
 export async function updateWorkspaceIcon(input: {
   workspaceId: string;
   iconName: string;

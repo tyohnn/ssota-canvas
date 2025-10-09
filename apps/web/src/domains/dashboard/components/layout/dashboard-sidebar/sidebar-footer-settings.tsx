@@ -14,6 +14,11 @@ import {
 } from '@workspace/ui/components/ui/sidebar';
 import { Settings2 } from 'lucide-react';
 
+/**
+ * Renders a sidebar menu item that opens a modal dialog for workspace preferences and app settings.
+ *
+ * @returns A React element containing a sidebar item with a button that triggers a "Settings" dialog.
+ */
 export function SidebarFooterSettings() {
   const [open, setOpen] = React.useState(false);
 

@@ -7,6 +7,12 @@ const CanvasPageCommandsContext = createContext<ReturnType<
   typeof useCanvasPageCommands
 > | null>(null);
 
+/**
+ * Retrieves the canvas page commands context for the current React tree.
+ *
+ * @returns The context value containing canvas page command utilities and state.
+ * @throws Error if called outside of a CanvasPageCommandsProvider.
+ */
 export function useCanvasPageCommandsContext() {
   const ctx = useContext(CanvasPageCommandsContext);
   if (!ctx)

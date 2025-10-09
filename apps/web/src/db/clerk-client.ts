@@ -35,7 +35,14 @@ export const db = drizzle(client, {
   schema: isDevelopment ? devSchema : schema,
 });
 
-// Create RLS-enabled database client for Clerk
+/**
+ * Create a Clerk-authenticated Drizzle client that provides a transaction-scoped RLS helper.
+ *
+ * @returns An object with:
+ *  - `rls`: a function that runs a provided callback inside a database transaction after applying a transaction-local `app.user_id` context so Row-Level Security policies apply to that transaction.
+ *  - `direct`: the base Drizzle database instance (no RLS context applied).
+ * @throws Error when there is no authenticated user.
+ */
 export async function createClerkDrizzleSupabaseClient() {
   const { userId } = await auth();
 
@@ -64,7 +71,14 @@ export async function createClerkDrizzleSupabaseClient() {
   };
 }
 
-// Alternative: Simple client without RLS for testing
+/**
+ * Create a simple Drizzle client bound to the current authenticated user without applying row-level security.
+ *
+ * @returns An object containing:
+ * - `rls`: a helper that executes a provided function with the base `db` instance (no RLS context).
+ * - `direct`: the base `db` instance for direct queries.
+ * @throws Error when there is no authenticated user (`userId` is missing).
+ */
 export async function createSimpleClient() {
   const { userId } = await auth();
 
@@ -85,7 +99,12 @@ export async function createSimpleClient() {
 // Export schema for migrations
 // export * from './schema';
 
-// Export admin client
+/**
+ * Creates an administrative Drizzle client connected to the configured Postgres database.
+ *
+ * @returns An object with `admin`, a Drizzle instance bound to an admin Postgres connection using the selected schema.
+ * @throws If the `DATABASE_URL` environment variable is not set.
+ */
 export function createSupabaseAdminClient() {
   const connectionString = config.database.url;
 

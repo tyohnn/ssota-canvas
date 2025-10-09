@@ -6,6 +6,13 @@ import { processUserRegistrationAction } from '@/domains/user-management/actions
 
 type OnboardingStatus = 'loading' | 'success' | 'error';
 
+/**
+ * Renders the onboarding page that initiates user profile and default organization setup and presents loading, success, or error states.
+ *
+ * The component starts the setup process when mounted, displays progress while creating the profile, shows a success message and redirects to the home page on completion, and displays an error with a retry option if setup fails.
+ *
+ * @returns The onboarding React element that manages and displays the setup flow.
+ */
 export default function OnboardingPage() {
   const [status, setStatus] = useState<OnboardingStatus>('loading');
   const [error, setError] = useState<string | null>(null);

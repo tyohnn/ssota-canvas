@@ -3,6 +3,11 @@ import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { WorkspaceList } from '@/domains/dashboard/components/workspace-list';
 import { DashboardHeader } from '@/domains/dashboard/components/layout/dashboard-sidebar/dashboard-header';
 
+/**
+ * Render the dashboard page layout with a centered content container and a Suspense-wrapped area that shows skeleton placeholders while content is loading.
+ *
+ * @returns The dashboard page JSX element containing the layout and a Suspense fallback of Skeleton placeholders.
+ */
 export default function DashboardPage() {
   return (
     <div className="flex h-full flex-col overflow-hidden">

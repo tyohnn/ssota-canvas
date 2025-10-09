@@ -9,6 +9,11 @@ interface InboxButtonProps {
   onClick: () => void;
 }
 
+/**
+ * Render an inbox button that displays the current unread notification count.
+ *
+ * @returns A button element containing a bell icon and, when `unreadCount > 0`, a destructive badge showing the unread count (displays `"9+"` when greater than 9).
+ */
 export function InboxButton({ onClick }: InboxButtonProps) {
   const { unreadCount } = useNotification();
 

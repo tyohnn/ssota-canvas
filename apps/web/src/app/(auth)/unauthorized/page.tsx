@@ -11,6 +11,11 @@ import {
 } from '@/components/ui/card';
 import { ShieldAlert } from 'lucide-react';
 
+/**
+ * Displays an unauthorized access page with controls to return to the previous page or go to the login page.
+ *
+ * @returns A React element rendering a centered card with an alert icon, explanatory text, a "돌아가기" button that navigates back, and a "로그인 페이지로 이동" button that navigates to `/login`.
+ */
 export default function UnauthorizedPage() {
   const router = useRouter();
 

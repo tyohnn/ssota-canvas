@@ -14,6 +14,12 @@ const fontMono = Geist_Mono({
   variable: '--font-mono',
 });
 
+/**
+ * Root HTML layout for the application that applies global fonts, mounts analytics and speed-insights, and wraps page content with app providers.
+ *
+ * @param children - Page content to render inside the Providers wrapper.
+ * @returns The complete HTML structure used as the application's root layout.
+ */
 export default function LayoutTemplate({
   children,
 }: Readonly<{

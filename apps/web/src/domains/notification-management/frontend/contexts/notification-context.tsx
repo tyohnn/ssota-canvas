@@ -26,6 +26,16 @@ const NotificationContext = createContext<NotificationContextType | undefined>(
   undefined
 );
 
+/**
+ * Provides notification state and actions to descendant components via NotificationContext.
+ *
+ * Maintains the current list of notifications, unread count, loading state, and error message.
+ * Exposes `refreshNotifications` to reload notifications from the server and `markAsRead`
+ * to mark a notification as read (updates UI optimistically and falls back to server state on failure).
+ *
+ * @param children - Child elements that will have access to the notification context
+ * @returns The NotificationContext provider element wrapping `children`
+ */
 export function NotificationProvider({
   children,
 }: {
@@ -92,6 +102,12 @@ export function NotificationProvider({
   );
 }
 
+/**
+ * Access the notification context value for components nested inside NotificationProvider.
+ *
+ * @returns The context object containing `notifications`, `unreadCount`, `isLoading`, `error`, `refreshNotifications`, and `markAsRead`.
+ * @throws Error if called outside of a `NotificationProvider`
+ */
 export function useNotificationContext() {
   const context = useContext(NotificationContext);
   if (!context) {

@@ -10,6 +10,14 @@ import { OAuthButtons } from '@/components/auth/oauth-signin';
 // constants
 import { appDefaultUrl, loginErrorMessage } from '@/domains/auth/constant';
 
+/**
+ * Render the login page with OAuth sign-in options or redirect authenticated users to the app default URL.
+ *
+ * Reads the last signed-in method from cookies and checks the current user session; if a user exists, a redirect is performed.
+ *
+ * @param props.searchParams - A promise resolving to an object that may contain a `message` string to display on the page (e.g., an error message).
+ * @returns The login page as a JSX element.
+ */
 export default async function login(props: {
   searchParams: Promise<{ message: string }>;
 }) {

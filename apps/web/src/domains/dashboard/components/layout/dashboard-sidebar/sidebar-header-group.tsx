@@ -17,6 +17,13 @@ import {
 import { Home, Inbox, Search } from 'lucide-react';
 import { useOrganization } from '@/domains/organization-management/frontend/contexts/organization-context';
 
+/**
+ * Renders the sidebar header group containing Home, Search, and Inbox controls.
+ *
+ * Renders a Home link (targeting /r/{activeOrganization?.id}), a Search button that opens a search dialog, and an Inbox button that opens an inbox dialog. The component derives the active organization from the organization context and manages local open state for the dialogs.
+ *
+ * @returns A React element containing the sidebar header group with Home, Search, and Inbox controls.
+ */
 export function SidebarHeaderGroup() {
   const { organizations, selectedOrganizationId } = useOrganization();
   const activeOrganization = organizations.find(

@@ -22,6 +22,15 @@ import {
 import { OrganizationSwitcher } from '@/domains/organization-management/frontend/components/organization/organization-switcher';
 import { MessageCircleQuestion, Plus, RefreshCw, Blocks } from 'lucide-react';
 
+/**
+ * Render the dashboard's left-hand sidebar with workspace controls, navigation, and utility actions.
+ *
+ * The sidebar includes an organization switcher (with a loading fallback), a "Workspaces" group with
+ * an add action and a workspace menu (with a loading fallback), footer links for templates, updates,
+ * and help, plus a rail element.
+ *
+ * @returns A JSX element representing the dashboard sidebar layout
+ */
 export function DashboardSidebar() {
   return (
     <Sidebar className="border-r-0 p-0">

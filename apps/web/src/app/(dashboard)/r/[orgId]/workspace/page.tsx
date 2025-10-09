@@ -1,3 +1,8 @@
+/**
+ * Render a centered workspace dashboard page with a Korean heading and subtitle.
+ *
+ * @returns A JSX element containing a centered heading "대시보드" and subtitle "워크스페이스 페이지입니다." with layout and typography utility classes.
+ */
 export default function WorkspacePage() {
   return (
     <div className="flex items-center justify-center h-full">

@@ -16,6 +16,16 @@ interface NotificationItemProps {
   ) => Promise<void>;
 }
 
+/**
+ * Renders a single notification item with UI for marking it as read and, when applicable, accepting or declining invitations.
+ *
+ * Displays title, message, relative timestamp, an unread indicator/NEW badge, and a hover action to mark as read. If the notification is an unread invitation, shows Accept and Decline buttons that call the provided invitation handler and then optimistically mark the notification as read.
+ *
+ * @param notification - Data for the notification to render.
+ * @param onMarkAsRead - Callback invoked with the notification id to mark it as read.
+ * @param onInvitationRespond - Optional callback invoked with the related invitation id and a boolean `accept` decision when responding to an invitation.
+ * @returns The notification list item as a JSX element.
+ */
 export function NotificationItem({
   notification,
   onMarkAsRead,

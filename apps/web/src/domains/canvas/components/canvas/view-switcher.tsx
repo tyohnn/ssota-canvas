@@ -21,6 +21,12 @@ import { useViewContext } from '@/domains/canvas/contexts/CanvasViewContext';
 
 type IconType = typeof Layout;
 
+/**
+ * Selects the Lucide icon component that represents a given view type.
+ *
+ * @param type - The view type identifier. Recognized values: 'canvas', 'table', 'kanban', 'markdown'. Unrecognized values use the canvas (Layout) icon.
+ * @returns The corresponding icon component: `Layout` for 'canvas' (also used as fallback), `Table` for 'table', `Kanban` for 'kanban', and `FileText` for 'markdown'.
+ */
 function iconForViewType(type: string): IconType {
   switch (type) {
     case 'canvas':
@@ -36,6 +42,16 @@ function iconForViewType(type: string): IconType {
   }
 }
 
+/**
+ * Renders a dropdown that lets the user switch between workspace views.
+ *
+ * The trigger shows the current view's icon and label. The menu contains a
+ * "Canvas" entry followed by one item per entry in `availableViews`; selecting
+ * an item calls `switchView` with that view's id. A final "Add view" item is
+ * rendered as a visual placeholder and has no selection handler.
+ *
+ * @returns The dropdown menu JSX element for switching views
+ */
 export function ViewSwitcher() {
   const { currentViewId, currentViewDef, availableViews, switchView } =
     useViewContext();

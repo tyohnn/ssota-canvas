@@ -15,6 +15,12 @@ import {
   CreateInvitationNotificationRequest,
 } from '../shared/dtos';
 
+/**
+ * Create an invitation notification for a user and revalidate related cache paths.
+ *
+ * @param input - Payload containing `userId`, `invitationId`, `organizationName`, `inviterName`, and `role`
+ * @throws Error when the notification service reports a failure; the error message contains the failure reason
+ */
 export async function createInvitationNotificationAction(
   input: CreateInvitationNotificationRequest
 ): Promise<void> {
@@ -43,6 +49,13 @@ export async function createInvitationNotificationAction(
   }
 }
 
+/**
+ * Marks a notification as read for the currently authenticated user.
+ *
+ * @param notificationId - The ID of the notification to mark as read
+ * @throws Error - If the request is unauthenticated (message: "Authentication required")
+ * @throws Error - If the notification cannot be marked as read (service-provided error message)
+ */
 export async function markNotificationAsReadAction(
   notificationId: string
 ): Promise<void> {
@@ -77,6 +90,12 @@ export async function markNotificationAsReadAction(
   }
 }
 
+/**
+ * Retrieves the authenticated user's notifications.
+ *
+ * @returns The user's notifications as a `UserNotificationView`.
+ * @throws Error when authentication fails ("Authentication required") or when the notification service returns an error.
+ */
 export async function getUserNotificationsAction(): Promise<UserNotificationView> {
   try {
     const supabase = await createClient();

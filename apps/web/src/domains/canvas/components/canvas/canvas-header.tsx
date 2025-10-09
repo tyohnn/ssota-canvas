@@ -24,6 +24,14 @@ interface CanvasHeaderProps {
   workspaceId: string;
 }
 
+/**
+ * Render the canvas header for a workspace, including navigation, breadcrumb, and editable page title.
+ *
+ * On mount, sets the active workspace to the workspace matching `workspaceId` or `null` if not found.
+ *
+ * @param workspaceId - The workspace ID to activate and display in the breadcrumb
+ * @returns The header element containing the logo, workspace breadcrumb, current page title (editable), and view switcher
+ */
 export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
   const router = useRouter();
   const data = useCanvasData();

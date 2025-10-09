@@ -1,4 +1,12 @@
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
+/**
+ * Renders five horizontally arranged skeleton placeholders for organization workspaces.
+ *
+ * Each placeholder row contains a small square skeleton and a flexible rectangular skeleton,
+ * providing a compact loading state for a list of workspaces.
+ *
+ * @returns A React fragment containing five skeleton rows used as placeholders while workspace data loads.
+ */
 export function OrgWorkspacesSkeleton() {
   return (
     <>

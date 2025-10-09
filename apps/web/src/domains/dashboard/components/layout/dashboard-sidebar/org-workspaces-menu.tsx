@@ -9,6 +9,13 @@ import {
 } from '@workspace/ui/components/ui/sidebar';
 import { useOrganization } from '@/domains/organization-management/frontend/contexts/organization-context';
 
+/**
+ * Renders a list of workspace menu items for the currently selected organization.
+ *
+ * Each workspace is rendered as a SidebarMenuItem containing a link, an icon (loaded via Suspense with a Skeleton fallback), and the workspace name. If the organization has no workspaces, the component renders an empty fragment.
+ *
+ * @returns A JSX fragment containing the workspace menu items for the selected organization
+ */
 export function OrgWorkspacesMenu() {
   const { organizations, selectedOrganizationId } = useOrganization();
   const activeOrganization = organizations.find(

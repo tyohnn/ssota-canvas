@@ -19,6 +19,13 @@ import {
 import { ChevronDown, Plus } from 'lucide-react';
 import { useOrganization } from '@/domains/organization-management/frontend/hooks/use-organization';
 
+/**
+ * Renders a sidebar dropdown that displays available organizations and lets the user select or add one.
+ *
+ * Selecting an organization updates the active organization via the useOrganization hook; routing to the selected organization's path is prepared but not executed.
+ *
+ * @returns A SidebarMenu containing a button that opens a dropdown list of organizations with items to select an organization or add a new one.
+ */
 export function OrganizationSwitcher() {
   const router = useRouter();
   const { organizations, selectedOrganization, selectOrganization } =

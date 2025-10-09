@@ -12,6 +12,16 @@ export type FetchedTweetData = {
   raw?: any;
 };
 
+/**
+ * Fetches and normalizes tweet data for the given tweet identifier.
+ *
+ * Retrieves tweet details from the upstream API and returns an object with
+ * selected fields (author name, author username, text, creation timestamp,
+ * extracted photo URLs, and the raw API response).
+ *
+ * @param id - The tweet identifier to fetch.
+ * @returns The normalized tweet data including `id`, `authorName`, `authorUsername`, `text`, `createdAt`, `images` (array of `media_url_https` strings for photo media), and `raw` (original API response); `null` if `id` is falsy, the tweet cannot be fetched, or an error occurs.
+ */
 export async function fetchTweetDataAction(
   id: string
 ): Promise<FetchedTweetData | null> {

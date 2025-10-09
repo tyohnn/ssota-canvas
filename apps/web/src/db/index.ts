@@ -64,6 +64,16 @@ type SupabaseToken = {
   role?: string;
 };
 
+/**
+ * Create a Drizzle wrapper that exposes a privileged admin handle and an RLS-aware transactional executor.
+ *
+ * @param token - Supabase-style JWT claims used to populate session-local auth state (`request.jwt.claims`, `request.jwt.claim.sub`) and to determine the local role for the RLS transaction.
+ * @param admin - Privileged Postgres client instance for non-RLS/admin operations.
+ * @param client - Postgres client instance used to run row-level-security (RLS) transactions.
+ * @returns An object with:
+ *   - `admin`: the provided admin database instance.
+ *   - `rls`: a function that runs a supplied transaction callback inside a database transaction with session-local JWT claims, subject, and role set from `token`; it returns the callback's result and attempts to reset session state in a finally-safe manner (reset errors are swallowed).
+ */
 export function createDrizzle(
   token: SupabaseToken,
   {
@@ -120,6 +130,12 @@ export function createDrizzle(
   };
 }
 
+/**
+ * Parse a JWT-like token string and extract its payload as a SupabaseToken.
+ *
+ * @param token - A JWT or JWT-like access token (three dot-separated parts).
+ * @returns The token payload parsed as a `SupabaseToken`, or an empty object if the token is missing, malformed, or cannot be decoded.
+ */
 function decode(token: string): SupabaseToken {
   if (!token) return {};
   const parts = token.split('.');
@@ -133,6 +149,11 @@ function decode(token: string): SupabaseToken {
   }
 }
 
+/**
+ * Create a Drizzle-enabled database client configured with the current Supabase session token.
+ *
+ * @returns An object with `admin` (the admin Drizzle database) and `rls` (a function that runs a transaction with the session's RLS claims and role applied)
+ */
 export async function createDrizzleSupabaseClient() {
   const supabase = await createClient();
   const {

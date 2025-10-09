@@ -21,6 +21,16 @@ export type LoadPageDataStatus = {
   data?: { blocksWithPositions: BlockWithPosition[] };
 };
 
+/**
+ * Provides page-level canvas command helpers for the given workspace.
+ *
+ * @param workspaceId - The workspace identifier whose pages these commands operate on.
+ * @returns An object with stable command functions:
+ *  - loadPageData: loads block positions for a page and returns load status.
+ *  - createNewPage: creates a new page (optimistic, reconciles with server) and returns creation status.
+ *  - updatePage: applies optimistic updates to a page and synchronizes changes with the server.
+ *  - deletePage: removes a page optimistically and reconciles deletion with the server.
+ */
 export function useCanvasPageCommands(workspaceId: string) {
   const canvasData = useCanvasData();
 
