@@ -65,8 +65,10 @@
 - Apply story implementation changes
 - Add structing discussion
 - Update CHANGELOG
+- Add snapshot collaboration discussion
 - Add organization creation dialog spec to frontend spec
 - *(story)* Update story-006-organization-creation to match latest design
+- Update CHANGELOG
 
 ### 🔧 Maintenance
 
