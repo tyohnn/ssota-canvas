@@ -6,12 +6,3 @@ export interface CreateUserProfileCommand {
   name: string;
   avatarUrl: string | null;
 }
-
-export interface CreateDefaultOrganizationCommand {
-  userId: string;
-  organizationName: string;
-}
-
-export interface GetUserOrganizationsCommand {
-  userId: string;
-}

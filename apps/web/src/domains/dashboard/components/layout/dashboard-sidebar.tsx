@@ -19,7 +19,7 @@ import {
   OrgWorkspacesSkeleton,
   OrgWorkspacesMenu,
 } from './dashboard-sidebar/index';
-import { OrganizationSwitcher } from '@/domains/user-management/frontend/components/organization-switcher';
+import { OrganizationSwitcher } from '@/domains/organization-management/frontend/components/organization/organization-switcher';
 import { MessageCircleQuestion, Plus, RefreshCw, Blocks } from 'lucide-react';
 
 export function DashboardSidebar() {

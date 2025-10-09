@@ -325,10 +325,16 @@ Scenario 0: 사용자 등록 및 온보딩
 - [사용자 선택 옵션]
 - [확인/제출 정보]
 
-**System**: [System Name] Manager (또는 (웹) - Frontend)
+**System**: [System Name] System | [Domain] - [System Name] System | [External System] System | (웹) - Frontend
 - 비즈니스 로직: [구체적인 비즈니스 규칙들]
 - 검증 로직: [입력 데이터 검증 규칙들]
 - 처리 로직: [핵심 비즈니스 처리 과정]
+
+**System 명명 예시**:
+- `User Manager` (내부 도메인)
+- `Workspace-Management - Page Manager` (외부 도메인)
+- `Supabase Auth System` (서드파티)
+- `(웹) - Frontend` (프론트엔드)
 
 **Events**:
 1. [Event 1] ([Technical Event Name])
@@ -447,11 +453,40 @@ Command를 실행하고 Event를 발생시키는 **책임 단위**가 명확히 
 - **Manager 패턴**: "[Entity] Manager" 형태로 명명
 - **Software Design의 Aggregate 후보**: System이 Aggregate가 됨 (단일 도메인) 또는 Service Layer가 됨 (다중 도메인)
 
+#### 🌐 System 유형별 명명 규칙:
+
+##### 1) 내부 도메인 시스템 (우리가 구현하는 시스템)
+```markdown
+**System**: [Entity] System
+- 예: User System, Organization System, Profile System
+- 특징: 우리 도메인 내부의 비즈니스 로직을 담당
+```
+
+##### 2) 외부 도메인 시스템 (다른 도메인의 시스템)
+```markdown
+**System**: [Domain] - [Entity] System
+- 예: User-Management - User System, Workspace-Management - Page System
+- 특징: 다른 도메인의 시스템과의 명확한 구분
+```
+
+##### 3) 외부 시스템 (서드파티)
+```markdown
+**System**: [External System Name] System
+- 예: Supabase Auth System, Google OAuth System, Clerk System
+- 특징: 완전히 외부의 서드파티 시스템
+```
+
+##### 4) 프론트엔드 시스템
+```markdown
+**System**: (웹) - Frontend
+- 특징: 사용자 인터페이스 처리
+```
+
 #### 🔧 System 세부 비즈니스 로직 작성법
 
 **기본 구조**:
 ```markdown
-**System**: [System Name] Manager (또는 (웹) - Frontend)
+**System**: [System Name] System (또는 (웹) - Frontend)
 - [구체적인 처리 규칙 1]
 - [구체적인 처리 규칙 2]
 - [데이터 검증 및 변환 로직]
@@ -460,34 +495,31 @@ Command를 실행하고 Event를 발생시키는 **책임 단위**가 명확히 
 
 **작성 예시**:
 
-##### 1) 외부 시스템 연동
+##### 1) 내부 도메인 시스템 (우리 도메인)
 ```markdown
-**System**: User Authentication System → Supabase Database
-- "구글 인증 코드 성공 시에만 Supabase 사용자 저장" (Supabase Auth System 처리)
+**System**: User System
 - "기존 프로필이 있는지 확인 후 없으면 프로필 생성"
 - "프로필 생성 실패 시 즉시 재시도 (동기 처리)"
 - "기본 조직 자동 생성 (사용자가 소유자)"
 ```
 
-##### 2) 내부 시스템 처리
+##### 2) 외부 도메인 시스템 (다른 도메인)
 ```markdown
-**System**: Profile System
-- id는 고유한 uuid로 처리
-- 구글 계정 정보에서 name, email 가지고 와서 설정
-- 중복 이메일 검증 및 처리
-- 프로필 이미지 URL 저장 (구글 프로필 이미지)
+**System**: Workspace-System - Page System
+- "페이지 생성 시 사용자 권한 검증"
+- "페이지 이동 시 부모-자식 관계 업데이트"
+- "페이지 삭제 시 하위 페이지들 처리"
 ```
 
-##### 3) 조직 관리 시스템
+##### 3) 외부 시스템 (서드파티)
 ```markdown
-**System**: Organization Manager
-- org_ 접두사가 붙은 id로 설정
-- 동일한 id가 존재하는지 확인
-- 사용자를 소유자로 설정
-- 기본 조직 설정 (이름: "[사용자명]의 조직")
+**System**: Supabase Auth System
+- "구글 인증 코드 성공 시에만 Supabase 사용자 저장"
+- "인증 토큰 생성 및 관리"
+- "사용자 세션 상태 관리"
 ```
 
-##### 4) 프론트엔드 처리
+##### 4) 프론트엔드 시스템
 ```markdown
 **System**: (웹) - Frontend
 - 온보딩 튜토리얼 단계별 진행

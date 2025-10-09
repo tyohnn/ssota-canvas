@@ -7,7 +7,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@workspace/ui/components/ui/sidebar';
-import { useOrganization } from '@/domains/user-management/frontend/contexts/organization-context';
+import { useOrganization } from '@/domains/organization-management/frontend/contexts/organization-context';
 
 export function OrgWorkspacesMenu() {
   const { organizations, selectedOrganizationId } = useOrganization();

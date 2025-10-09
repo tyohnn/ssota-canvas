@@ -1,6 +1,6 @@
 // apps/web/src/domains/user-management/events/index.ts
 
-import { OrganizationId, UserId } from '../value-objects/ids.vo';
+import { UserId } from '../value-objects/ids.vo';
 import { UserEmail } from '../value-objects/user-email.vo';
 
 export class UserProfileCreatedEvent {
@@ -20,27 +20,6 @@ export class UserUpdatedEvent {
   constructor(
     public readonly userId: UserId,
     public readonly email: UserEmail,
-    public readonly name: string,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class DefaultOrganizationCreatedEvent {
-  readonly type = 'DefaultOrganizationCreated';
-
-  constructor(
-    public readonly organizationId: OrganizationId,
-    public readonly ownerId: UserId,
-    public readonly name: string,
-    public readonly timestamp: Date = new Date()
-  ) {}
-}
-
-export class OrganizationUpdatedEvent {
-  readonly type = 'OrganizationUpdated';
-
-  constructor(
-    public readonly organizationId: OrganizationId,
     public readonly name: string,
     public readonly timestamp: Date = new Date()
   ) {}

@@ -767,7 +767,218 @@ export type Database = {
   };
   public: {
     Tables: {
-      [_ in never]: never;
+      invitations: {
+        Row: {
+          created_at: string;
+          id: string;
+          invitee_email: string;
+          invitee_user_id: string | null;
+          inviter_user_id: string;
+          organization_id: string;
+          responded_at: string | null;
+          role: Database['public']['Enums']['member_role'];
+          status: Database['public']['Enums']['invitation_status'];
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          invitee_email: string;
+          invitee_user_id?: string | null;
+          inviter_user_id: string;
+          organization_id: string;
+          responded_at?: string | null;
+          role?: Database['public']['Enums']['member_role'];
+          status?: Database['public']['Enums']['invitation_status'];
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          invitee_email?: string;
+          invitee_user_id?: string | null;
+          inviter_user_id?: string;
+          organization_id?: string;
+          responded_at?: string | null;
+          role?: Database['public']['Enums']['member_role'];
+          status?: Database['public']['Enums']['invitation_status'];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'invitations_invitee_user_id_profiles_user_id_fk';
+            columns: ['invitee_user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'invitations_inviter_user_id_profiles_user_id_fk';
+            columns: ['inviter_user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'invitations_organization_id_organizations_id_fk';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      notifications: {
+        Row: {
+          created_at: string;
+          id: string;
+          is_read: boolean;
+          message: string;
+          read_at: string | null;
+          related_id: string | null;
+          title: string;
+          type: Database['public']['Enums']['notification_type'];
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          is_read?: boolean;
+          message: string;
+          read_at?: string | null;
+          related_id?: string | null;
+          title: string;
+          type: Database['public']['Enums']['notification_type'];
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          is_read?: boolean;
+          message?: string;
+          read_at?: string | null;
+          related_id?: string | null;
+          title?: string;
+          type?: Database['public']['Enums']['notification_type'];
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'notifications_user_id_profiles_user_id_fk';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['user_id'];
+          },
+        ];
+      };
+      organization_members: {
+        Row: {
+          id: string;
+          joined_at: string;
+          organization_id: string;
+          role: Database['public']['Enums']['member_role'];
+          user_id: string;
+        };
+        Insert: {
+          id?: string;
+          joined_at?: string;
+          organization_id: string;
+          role?: Database['public']['Enums']['member_role'];
+          user_id: string;
+        };
+        Update: {
+          id?: string;
+          joined_at?: string;
+          organization_id?: string;
+          role?: Database['public']['Enums']['member_role'];
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'organization_members_organization_id_organizations_id_fk';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'organization_members_user_id_profiles_user_id_fk';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['user_id'];
+          },
+        ];
+      };
+      organizations: {
+        Row: {
+          created_at: string;
+          id: string;
+          is_default: boolean;
+          name: string;
+          organization_type: Database['public']['Enums']['organization_type'];
+          owner_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id: string;
+          is_default?: boolean;
+          name: string;
+          organization_type?: Database['public']['Enums']['organization_type'];
+          owner_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          is_default?: boolean;
+          name?: string;
+          organization_type?: Database['public']['Enums']['organization_type'];
+          owner_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'organizations_owner_id_profiles_user_id_fk';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['user_id'];
+          },
+        ];
+      };
+      profiles: {
+        Row: {
+          avatar_url: string | null;
+          created_at: string;
+          email: string;
+          id: string;
+          name: string | null;
+          updated_at: string;
+          user_id: string;
+          user_type: Database['public']['Enums']['user_type'];
+        };
+        Insert: {
+          avatar_url?: string | null;
+          created_at?: string;
+          email: string;
+          id?: string;
+          name?: string | null;
+          updated_at?: string;
+          user_id: string;
+          user_type?: Database['public']['Enums']['user_type'];
+        };
+        Update: {
+          avatar_url?: string | null;
+          created_at?: string;
+          email?: string;
+          id?: string;
+          name?: string | null;
+          updated_at?: string;
+          user_id?: string;
+          user_type?: Database['public']['Enums']['user_type'];
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -776,7 +987,17 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
-      [_ in never]: never;
+      invitation_status: 'pending' | 'accepted' | 'rejected' | 'expired';
+      member_role: 'owner' | 'admin' | 'member';
+      notification_type: 'invitation' | 'system' | 'announcement';
+      organization_type:
+        | 'personal'
+        | 'education'
+        | 'startup'
+        | 'agency'
+        | 'company'
+        | 'n/a';
+      user_type: 'ADMIN' | 'GENERAL';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -923,6 +1144,19 @@ export const Constants = {
     },
   },
   public: {
-    Enums: {},
+    Enums: {
+      invitation_status: ['pending', 'accepted', 'rejected', 'expired'],
+      member_role: ['owner', 'admin', 'member'],
+      notification_type: ['invitation', 'system', 'announcement'],
+      organization_type: [
+        'personal',
+        'education',
+        'startup',
+        'agency',
+        'company',
+        'n/a',
+      ],
+      user_type: ['ADMIN', 'GENERAL'],
+    },
   },
 } as const;
