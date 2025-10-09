@@ -4,6 +4,8 @@
 
 - *(db-schema)* Implement layered responsibility separation
 - Ready for refactor
+- Remove clerk & redesign
+- Restructure domain folder
 
 ### ✨ Features
 
@@ -13,6 +15,19 @@
 - *(technical-spec)* Complete missing service methods, read models, and commands
 - *(user-management)* Add comprehensive database schema
 - Setup development db
+- Add vercel package
+- Copy and paste supabase auth template
+- Add supabase auth login
+- *(auth)* Integrate Google OAuth callback with user registration flow
+- *(user-management)* Implement user profile creation with domain entities and repositories
+- *(user-management)* Implement default organization creation with domain entities and repositories
+- *(user-management)* Implement organization list retrieval with read models and events
+- *(user-management)* Implement user management service and server actions with AI automation patterns
+- *(user-management)* Implement organization selection with frontend context and cookie persistence
+- *(user-management)* Connect Frontend
+- GitHub Pages에 Playwright 리포트 자동 배포 설정
+- Complete organization creation feature and UI improvements
+- (story5) member invitation logic
 
 ### 📚 Documentation
 
@@ -45,7 +60,24 @@
 - Ready for user management domain implementation
 - Update CHANGELOG
 - Update CHANGELOG
+- Add story
+- Add story
+- Apply story implementation changes
+- Add structing discussion
+- Update CHANGELOG
+- Add organization creation dialog spec to frontend spec
+- *(story)* Update story-006-organization-creation to match latest design
 
 ### 🔧 Maintenance
 
 - Update background agent snapshot
+- Set dev db and supabase auth
+- Set node version to 22
+- Clean file
+- Prettier
+- Set dev db
+- Remove unused apis
+
+### 🧪 Testing
+
+- Complete sprint1-2 implementation
