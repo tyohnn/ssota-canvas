@@ -55,7 +55,7 @@ User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니�
 - "구글 인증 코드 성공 시에만 Supabase 유저 생성" (Supabase Auth System 처리)
 - "기존 프로필이 있는지 확인 후 없으면 프로필 생성"
 - "프로필 생성 실패 시 즉시 재시도 (동기 처리)"
-- "기본 조직 자동 생성 (유저가 소유자)"
+- "기본 조직 자동 생성 (유저가 소유자)" → **Organization System 커맨드 실행**
 
 **Events**:
 1. 유저 가입 완료됨 (User Registration Completed)
@@ -120,7 +120,7 @@ User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니�
 
 **Command**: 기본 조직 생성하기
 
-**System**: Organization System
+**System**: Organization Management Domain
 - 이미 기본 조직이 존재하는지 체크
 - org_ 첨자가 붙은 id로 설정
 - 동일한 id가 존재하는지 확인
@@ -213,277 +213,13 @@ User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니�
 -----------------
 
 
-## 📍 Scenario 2: 새로운 조직 생성
-
-### Sequence 1: 사용자가 새로운 조직을 생성하고 소유자가 됨
-
-**Trigger Event**: 조직 목록 화면에서 "새 조직 만들기" 선택함
-
-```
-👤 사용자: "새로운 프로젝트를 위해 별도의 조직을 만들고 싶어"
-```
-
-**Policy**: 
-- "Whenever 새 조직 만들기가 선택됨, then always 조직 생성 폼을 표시하기"
-
-**Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 조직 생성 폼 (조직 이름 입력 필드, 조직 타입 선택 필드(개인, 교육, 스타트업, 에이전시, 컴퍼니, N/A))
-- 조직 생성 진행 상태 표시
-- 생성 취소 옵션
-
-**Command**: 새로운 조직 생성 요청 (사용자가 입력하는 정보)
-- 조직 이름 (필수)
-- 조직 타입 (필수)
-- 조직 생성 확인
-
-**System**: Organization System
-- 모든 인증된 사용자의 조직 생성 권한 확인
-- 새로운 UUID 기반 조직 ID 생성
-- 사용자를 조직 소유자로 자동 설정
-- 조직 기본 설정 자동 적용 (멤버 초대 권한, 워크스페이스 생성 권한 등)
-- 조직 데이터베이스 저장
-
-**Events**:
-1. 새로운 조직이 생성됨 (New Organization Created)
-
----
-
-**Policy**: 
-- "Whenever 조직 생성이 완료됨, then always 조직 목록을 갱신하고 새 조직으로 컨텍스트 전환하기"
-
-**Read Model** (조직 생성 완료 후):
-- 업데이트된 조직 목록 (새 조직 포함)
-- 새로운 조직으로 자동 선택된 상태
-- 조직 생성 완료 알림
-
-**Events**:
-- 조직 컨텍스트가 새 조직으로 전환됨
-
----
-2025-10-06
------------------
-
-## 📍 Scenario 3: 멤버 초대 및 수락
-
-### Sequence 1: 조직 관리자가 새 멤버를 초대하고 초대받은 사용자가 수락
-
-**Trigger Event**: 조직 컨텍스트가 설정됨
-
-```
-👤 조직 관리자: "새 팀원을 우리 조직에 초대하고 싶어"
-👤 초대받은 사용자: "초대 링크를 받았는데 조직에 참여하고 싶어"
-```
-
-**Policy**: 멤버 초대 규칙
-- "소유자와 관리자만 멤버 초대 가능"
-- "이미 조직 멤버인 사용자는 초대 불가"
-- "동일 이메일에 대한 중복 초대 방지 (기존 초대 취소 후 새 초대)"
-- "초대 링크는 30일간 유효"
-- "초대 수락 시 이메일 검증 필수"
-- "초대받은 사용자가 플랫폼에 미등록 시 회원가입 유도"
-
-**Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 멤버 초대 폼 (이메일 입력 필드, 역할 선택 드롭다운)
-- 조직 멤버 목록 (현재 멤버들 표시)
-- 초대 가능한 역할 옵션 (관리자/멤버)
-- 초대 메시지 입력 필드 (선택사항)
-- 초대 진행 상태 표시
-
-**Command**: 멤버 초대 요청 (사용자가 입력하는 정보)
-- 초대할 이메일 주소
-- 부여할 역할 (관리자/멤버)
-- 초대 메시지 (선택사항)
-- 초대 보내기 확인
-
-**System**: Invitation Manager → Email Service
-
-**Events**:
-1. 이메일로 멤버 초대가 전송됨 (Member Invitation Sent via Email)
-2. 초대 링크가 생성됨 (Invitation Link Generated)
-3. 초대 정보가 저장됨 (Invitation Info Stored)
-4. 초대받은 사용자가 링크를 클릭함 (Invitation Link Clicked)
-5. 초대가 수락됨 (Invitation Accepted)
-6. 새 멤버가 조직에 추가됨 (New Member Added to Organization)
-7. 멤버 역할이 설정됨 (Member Role Assigned)
-
----
-
-## 📍 Scenario 4: 조직 소유권 이전 (핵심 시나리오)
-
-### Sequence 1: 조직 소유자가 다른 멤버에게 소유권을 이전
-
-**Trigger Event**: 사용자 권한이 확인됨
-
-```
-👤 현재 소유자: "조직 소유권을 다른 멤버에게 넘기고 싶어"
-👤 새 소유자: "조직 소유권을 받아서 관리하고 싶어"
-```
-
-**Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 조직 멤버 목록 (소유권 이전 가능한 멤버들)
-- 소유권 이전 안내 메시지 및 주의사항
-- 확인 코드 입력 필드
-- 이전 사유 입력 필드 (선택사항)
-- 소유권 이전 진행 상태 표시
-
-**Command**: 소유권 이전 요청 (사용자가 입력하는 정보)
-- 이전할 대상 멤버 선택
-- 확인 코드 입력
-- 이전 사유 (선택사항)
-- 소유권 이전 확인
-
-**Policy**: 소유권 이전 규칙 (핵심)
-- "현재 소유자만 소유권 이전 가능"
-- "새 소유자는 반드시 기존 조직 멤버여야 함"
-- "소유권 이전 시 확인 코드 입력 필수"
-- "이전 즉시 새 소유자는 소유자 권한, 기존 소유자는 관리자 권한으로 변경"
-- "모든 워크스페이스 소유권도 함께 이전"
-- "진행 중인 초대는 새 소유자 명의로 변경"
-
-**System**: Ownership Transfer Manager → Database
-
-**Events**:
-1. 소유권 이전이 요청되었다 (Ownership Transfer Requested)
-2. 이전 확인이 완료되었다 (Transfer Confirmation Completed)
-3. 새 소유자가 Owner 권한으로 승격되었다 (New Owner Promoted)
-4. 기존 소유자가 Admin 권한으로 변경되었다 (Previous Owner Demoted to Admin)
-5. 워크스페이스 소유권이 이전되었다 (Workspace Ownership Transferred)
-6. 소유권 이전이 완료되었다 (Ownership Transfer Completed)
-
----
-
-## 📍 Scenario 5: 멤버 역할 변경 및 관리
-
-### Sequence 1: 조직 관리자가 멤버의 역할을 변경하거나 멤버를 제거
-
-**Trigger Event**: 새 멤버가 조직에 추가됨
-
-```
-👤 조직 관리자: "팀원의 권한을 Admin으로 승격시키고 싶어"
-👤 조직 관리자: "더 이상 필요없는 멤버를 조직에서 제거하고 싶어"
-```
-
-**Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 조직 멤버 목록 (역할 변경 가능한 멤버들)
-- 역할 변경 안내 메시지 및 주의사항
-- 역할 옵션 (관리자/멤버)
-- 변경 사유 입력 필드 (선택사항)
-- 역할 변경 진행 상태 표시
-
-**Command**: 멤버 역할 변경 요청 (사용자가 입력하는 정보)
-- 변경할 대상 멤버 선택
-- 새로운 역할 선택 (관리자/멤버)
-- 변경 사유 (선택사항)
-- 역할 변경 확인
-
-**Policy**: 멤버 역할 관리 규칙
-- "소유자만 멤버 역할 변경 가능"
-- "소유자 역할은 소유권 이전을 통해서만 변경 가능"
-- "조직에 관리자 제한 수는 없음"
-- "멤버 → 관리자 승격 시 즉시 적용"
-
-**System**: Member Role Manager → Database
-
-**Events**:
-1. 멤버 역할 변경이 요청되었다 (Member Role Change Requested)
-2. 멤버가 Admin으로 승격되었다 (Member Promoted to Admin)
-3. Admin이 Member로 강등되었다 (Admin Demoted to Member)
-4. 워크스페이스 소유권이 재할당되었다 (Workspace Ownership Reassigned)
-5. 멤버 역할 변경이 완료되었다 (Member Role Change Completed)
-
----
-
-## 📍 Scenario 6: 멤버 제거
-
-### Sequence 1: 조직 관리자가 멤버를 조직에서 제거
-
-**Trigger Event**: 멤버 역할 변경이 완료됨
-
-```
-👤 조직 관리자: "더 이상 필요없는 멤버를 조직에서 제거하고 싶어"
-👤 멤버 본인: "이 조직을 떠나고 싶어"
-```
-
-**Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 조직 멤버 목록 (제거 가능한 멤버들)
-- 멤버 제거 안내 메시지 및 주의사항
-- 제거 사유 선택 옵션 (관리자 제거/본인 탈퇴)
-- 제거 확인 체크박스
-- 멤버 제거 진행 상태 표시
-
-**Command**: 멤버 제거 요청 (사용자가 입력하는 정보)
-- 제거할 대상 멤버 선택
-- 제거 사유 선택 (관리자 제거/본인 탈퇴)
-- 제거 확인 체크박스
-- 멤버 제거 확인
-
-**Policy**: 멤버 제거 규칙
-- "소유자만 다른 멤버 제거 가능"
-- "소유자는 제거 불가 (소유권 이전 후에만 가능)"
-- "모든 멤버는 본인이 조직을 떠날 수 있음 (소유자 제외)"
-- "제거된 멤버의 개인 워크스페이스는 조직 소유자에게 이전"
-- "제거 시 모든 초대 및 세션 무효화"
-
-**System**: Member Removal Manager → Database
-
-**Events**:
-1. 멤버 제거가 요청되었다 (Member Removal Requested)
-2. 멤버 워크스페이스가 Owner에게 이전되었다 (Member Workspaces Transferred to Owner)
-3. 멤버가 조직에서 제거되었다 (Member Removed from Organization)
-4. 멤버 세션이 무효화되었다 (Member Sessions Invalidated)
-5. 멤버 제거가 완료되었다 (Member Removal Completed)
-
----
-
-## 📍 Scenario 7: 조직 삭제 (Danger Zone)
-
-### Sequence 1: 조직 Owner가 조직을 완전 삭제
-
-**Trigger Event**: 멤버 제거가 완료됨
-
-```
-👤 Owner: "더 이상 필요없는 조직을 완전히 삭제하고 싶어"
-```
-
-**Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 삭제 가능한 조직 목록
-- 조직 삭제 안내 메시지 및 주의사항
-- 삭제 유형 선택 옵션 (소프트 삭제/완전 삭제)
-- 조직 이름 확인 입력 필드
-- 조직 삭제 진행 상태 표시
-
-**Command**: 조직 삭제 요청 (사용자가 입력하는 정보)
-- 삭제할 조직 선택
-- 조직 이름 확인 입력
-- 삭제 유형 선택 (소프트 삭제/완전 삭제)
-- 조직 삭제 확인
-
-**Policy**: 조직 삭제 규칙 (Danger Zone)
-- "소유자만 삭제 가능"
-- "정확한 조직 이름 입력 필수"
-- "모든 워크스페이스와 관련 데이터 함께 삭제"
-- "소프트 삭제 후 30일 보관"
-- "30일 후 완전 삭제 (영구 삭제)"
-- "멤버들에게 삭제 알림 발송"
-- "기본 조직은 삭제 불가 (사용자 계정과 연동)"
-
-**System**: Organization Deletion Manager → Database
-
-**Events**:
-1. 조직 삭제가 요청되었다 (Organization Deletion Requested)
-2. 삭제 확인이 완료되었다 (Deletion Confirmed)
-3. 모든 워크스페이스가 삭제되었다 (All Workspaces Deleted)
-4. 모든 멤버가 제거되었다 (All Members Removed)
-5. 조직이 소프트 삭제되었다 (Organization Soft Deleted)
-6. 완전 삭제가 예약되었다 (Permanent Deletion Scheduled)
-
 ---
 
 ## 📍 Scenario 8: 사용자 계정 삭제 처리
 
 ### Sequence 1: 사용자가 계정을 삭제함 (계정 탈퇴)
 
-**Trigger Event**: 조직이 소프트 삭제됨
+**Trigger Event**: 사용자가 계정 삭제 요청함
 
 ```
 👤 사용자: "계정을 완전히 삭제하고 싶어"
@@ -527,21 +263,9 @@ User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니�
 4. **데이터 보존**: 사용자 계정 삭제 시에도 30일 유예
 
 ### 조직 및 멤버십 관리 관련
-5. **기본 조직 자동 생성**: 사용자 등록 시 개인 조직 자동 생성
-6. **새로운 조직 생성**: 모든 인증된 사용자는 새 조직을 생성할 수 있음
-7. **조직 이름 고유성**: 조직 이름은 플랫폼 내에서 고유해야 함
-8. **3단계 역할 시스템**: 소유자 > 관리자 > 멤버 권한 체계
-9. **소유권 이전**: 소유자 역할은 이전을 통해서만 변경 가능
-
-### 초대 및 멤버 관리 관련 (핵심)
-10. **권한 기반 초대**: 소유자와 관리자만 멤버 초대 가능
-11. **이메일 검증**: 초대 수락 시 이메일 주소 검증 필수
-12. **30일 초대 유효기간**: 초대 링크 30일 후 자동 만료
-
-### 삭제 및 보안
-13. **소프트 삭제**: 30일 유예 기간 제공
-14. **계층적 삭제**: 조직 삭제 시 하위 요소 함께 처리
-15. **Danger Zone**: 조직 삭제는 이름 확인 + 소유자 권한 필수
+5. **기본 조직 자동 생성**: 사용자 등록 시 개인 조직 자동 생성 (Organization Management Domain 커맨드 실행)
+6. **조직 조회**: 사용자 관련 조직 조회는 Organization Management Domain에서 처리
+7. **계정 삭제**: 사용자 계정 삭제 시 소유 조직은 Organization Management Domain에서 처리
 
 ---
 
@@ -552,14 +276,10 @@ User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니�
 - **Idempotency**: 중복 요청 방지를 위한 idempotency key
 - **Monitoring**: 계정 생성 실패율 모니터링 및 알림
 
-### 조직 및 멤버십 최적화
-- **Background Jobs**: 조직 삭제 등 무거운 작업은 백그라운드 처리 (추후)
-- **Progress Tracking**: 소유권 이전 등 진행률 실시간 표시 (추후)
-
 ### 성능 최적화
-- **Caching**: 조직 멤버 목록 및 권한 정보 캐싱
-- **Database Indexing**: 조직-멤버 관계 쿼리 최적화를 위한 복합 인덱스
-- **Session Management**: 조직 컨텍스트 세션 최적화
+- **Caching**: 사용자 프로필 정보 캐싱
+- **Database Indexing**: 사용자-프로필 관계 쿼리 최적화를 위한 복합 인덱스
+- **Session Management**: 사용자 세션 최적화
 - **Auto-Refresh**: 세션 자동 갱신을 위한 백그라운드 처리
 
 ---
@@ -570,8 +290,8 @@ User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니�
 
 다음 단계:
 1. **Software Design**: System을 Aggregate로 전환 (Supabase Auth는 External System으로 유지)
-2. **Bounded Context 식별**: User, Organization, Membership 경계 확인
-3. **Integration Points**: Workspace Structure Domain과의 연결점 정의
+2. **Bounded Context 식별**: User, Profile 경계 확인
+3. **Integration Points**: Organization Management Domain과의 연결점 정의
 4. **Anti-Corruption Layer**: Supabase Auth ↔ Database 변환 레이어 설계
 
 ---
@@ -585,11 +305,11 @@ User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니�
 - **PM**: 프로젝트 매니저 (프로세스 정의)
 
 **워크샵 결과물**:
-- [x] 모든 핵심 사용자 여정이 시나리오로 정의됨 (7개 시나리오)
+- [x] 모든 핵심 사용자 여정이 시나리오로 정의됨 (3개 시나리오)
 - [x] Event → Policy → Read Model → Command → System → Event 순서가 일관되게 적용됨
 - [x] System 블랙박스 내부 처리 과정 세분화 (User Authentication Manager 상세 분석)
 - [x] Supabase Auth와의 통합점이 명확히 정의됨 (OAuth, Database, Session Management)
-- [x] 비즈니스 규칙(Policy)이 구체적으로 명시됨 (14개 핵심 정책)
+- [x] 비즈니스 규칙(Policy)이 구체적으로 명시됨 (7개 핵심 정책)
 - [x] Software Design 작성을 위한 충분한 정보 확보
 
 ---

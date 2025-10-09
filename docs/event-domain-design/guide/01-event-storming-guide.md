@@ -179,6 +179,20 @@ cp docs/event-domain-design/template/event-storm-template.md docs/event-domain-d
 
 **목표**: Bounded Context의 경계를 찾아 색상으로 구분
 
+#### 🎯 Domain vs Bounded Context 개념 정리
+
+**Domain (도메인)**:
+- **정의**: 비즈니스 영역 자체 (예: "사용자 관리", "조직 관리")
+- **범위**: 넓음 - 여러 Bounded Context를 포함할 수 있음
+- **목적**: 문제 영역 식별
+
+**Bounded Context (경계 컨텍스트)**:
+- **정의**: 동일한 도메인 모델이 유효한 경계
+- **범위**: 좁음 - 명확한 시스템 경계
+- **목적**: 해결 방안 구현 경계
+
+**관계**: `Domain > Bounded Context > System`
+
 #### 진행 방법:
 1. **관련 이벤트들을 그룹핑**: 논리적으로 연결된 이벤트들 묶기
 2. **경계선 그리기**: 각 그룹을 색상으로 구분
@@ -189,11 +203,37 @@ cp docs/event-domain-design/template/event-storm-template.md docs/event-domain-d
 - **강한 응집성**: 내부 요소들이 밀접하게 연결
 - **약한 결합성**: 다른 Context와의 의존성 최소화
 
-#### 예시:
+#### 실제 예시:
+
+**User Management Domain** 안의 여러 Bounded Context:
+```
+[User Authentication Context]  [Profile Management Context]  [Organization Context]
+[로그인됨] → [프로필생성됨] → [조직생성됨] → [멤버추가됨]
+```
+
+**전체 시스템의 Context 구조**:
 ```
 [조직 관리 Context]     [워크스페이스 Context]     [페이지 구조 Context]
 [조직생성됨] → [멤버추가됨] → [워크스페이스생성됨] → [페이지생성됨]
 ```
+
+#### 🔍 Context 식별 시 주의사항:
+
+1. **하나의 Context에 여러 시스템이 포함될 수 있음**:
+   ```
+   User Authentication Context
+   ├── Supabase Auth System (외부)
+   ├── User Registration System (내부)
+   └── Profile Creation System (내부)
+   ```
+
+2. **Context ≠ System**:
+   - **Context**: 도메인 모델의 경계
+   - **System**: 실제 구현 단위
+
+3. **Context 내부에서 일관된 언어 사용**:
+   - 같은 개념이라도 다른 Context에서는 다르게 해석될 수 있음
+   - 예: "User"는 Authentication Context에서는 "인증된 사용자", Profile Context에서는 "프로필 소유자"
 
 ---
 

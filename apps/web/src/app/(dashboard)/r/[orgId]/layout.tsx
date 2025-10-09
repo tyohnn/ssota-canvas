@@ -2,9 +2,10 @@ import {
   SidebarInset,
   SidebarProvider,
 } from '@workspace/ui/components/ui/sidebar';
-import { DashboardSidebar } from '@/domains/user-management/frontend/components/dashboard-sidebar';
-import { OrganizationProvider } from '@/domains/user-management/frontend/contexts/organization-context';
-import { getUserOrganizationsAction } from '@/domains/user-management/actions/user-management.actions';
+import { DashboardSidebar } from '@/domains/organization-management/frontend/components/sidebar/dashboard-sidebar';
+import { OrganizationProvider } from '@/domains/organization-management/frontend/contexts/organization-context';
+import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({
   children,
@@ -13,22 +14,40 @@ export default async function DashboardLayout({
   children: React.ReactNode;
   params: Promise<{ orgId: string }>;
 }) {
-  // Story 004에서 구현된 액션을 사용하여 초기 데이터 제공
-  const organizations = await getUserOrganizationsAction();
   const { orgId } = await params;
 
-  // URL 파라미터로 전달된 orgSlug를 우선하여 선택
-  const selectedOrgId =
-    organizations.find(
-      org =>
-        // TODO: org.slug 필드가 필요하지만 현재는 name으로 임시 처리
-        org.id === orgId
-    )?.id || null;
+  // Story 004에서 구현된 액션을 사용하여 초기 데이터 제공
+  let organizations;
+  try {
+    organizations = await getUserOrganizationsAction();
+  } catch (error) {
+    console.error('[/r/[orgId]/layout] Error fetching organizations:', error);
+
+    // 인증 오류만 unauthorized 페이지로 리다이렉트
+    if (error instanceof Error && error.message === 'Authentication required') {
+      redirect('/unauthorized');
+    }
+
+    // 다른 에러는 다시 throw
+    throw error;
+  }
+
+  // URL 파라미터로 전달된 orgId로 조직 찾기
+  const selectedOrganization = organizations.find(org => org.id === orgId);
+
+  // 권한 검증: 조직을 찾지 못하면 unauthorized
+  if (!selectedOrganization) {
+    console.error('[/r/[orgId]/layout] Organization access denied:', {
+      requestedOrgId: orgId,
+      availableOrgIds: organizations.map(o => o.id),
+    });
+    redirect('/unauthorized');
+  }
 
   return (
     <OrganizationProvider
       initialOrganizations={organizations}
-      initialSelectedId={selectedOrgId}
+      initialSelectedId={selectedOrganization.id}
     >
       <SidebarProvider>
         <DashboardSidebar />

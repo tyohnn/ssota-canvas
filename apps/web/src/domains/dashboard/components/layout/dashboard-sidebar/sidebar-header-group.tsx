@@ -15,7 +15,7 @@ import {
   SidebarMenuItem,
 } from '@workspace/ui/components/ui/sidebar';
 import { Home, Inbox, Search } from 'lucide-react';
-import { useOrganization } from '@/domains/user-management/frontend/contexts/organization-context';
+import { useOrganization } from '@/domains/organization-management/frontend/contexts/organization-context';
 
 export function SidebarHeaderGroup() {
   const { organizations, selectedOrganizationId } = useOrganization();

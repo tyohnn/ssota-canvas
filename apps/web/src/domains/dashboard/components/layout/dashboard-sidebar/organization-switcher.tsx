@@ -17,7 +17,7 @@ import {
   SidebarMenuItem,
 } from '@workspace/ui/components/ui/sidebar';
 import { ChevronDown, Plus } from 'lucide-react';
-import { useOrganization } from '@/domains/user-management/frontend/hooks/use-organization';
+import { useOrganization } from '@/domains/organization-management/frontend/hooks/use-organization';
 
 export function OrganizationSwitcher() {
   const router = useRouter();

@@ -60,26 +60,18 @@ vi.mock('next/cache', () => ({
 }));
 
 // Now import the actions after mocking dependencies
-import { 
+import {
   createUserProfileAction,
   getUserOrganizationsAction,
-  createDefaultOrganizationAction,
-  processUserRegistrationAction
 } from '../actions/user-management.actions';
 import { UserAggregate } from '../shared/aggregates/user.aggregate';
-import { OrganizationAggregate } from '../shared/aggregates/organization.aggregate';
-import { UserId } from '../shared/value-objects/ids.vo';
 import { UserManagementError } from '../shared/errors/user-management.error';
 import { Result } from '@/utils/result';
 
 describe('Server Actions Integration Tests', () => {
   let mockUser: UserAggregate;
-  let mockOrganization: OrganizationAggregate;
-  let userId: UserId;
 
   beforeEach(() => {
-    userId = new UserId('test-user-id');
-    
     // Create mock user aggregate
     const mockSupabaseUser = {
       id: 'test-user-id',
@@ -95,7 +87,6 @@ describe('Server Actions Integration Tests', () => {
     };
 
     mockUser = UserAggregate.createFromSupabaseAuth(mockSupabaseUser as any);
-    mockOrganization = OrganizationAggregate.createDefault('Test Organization', userId);
   });
 
   afterEach(() => {

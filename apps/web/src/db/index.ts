@@ -14,21 +14,35 @@ if (!config.database.url) {
   throw new Error('DATABASE_URL is not set in environment variables.');
 }
 
-// Create admin client for direct database access
-const adminClient = postgres(config.database.url, {
+// 🔧 Connection Pool 설정
+// Development: 작은 풀 크기 (HMR로 인한 누적 방지)
+// Production: 적절한 풀 크기
+const connectionConfig = {
   prepare: false,
+  max: isDevelopment ? 3 : 10, // Dev: 3, Prod: 10
+  idle_timeout: 20,
+  connect_timeout: 10,
   ssl: {
     rejectUnauthorized: false,
   },
-});
+};
 
-// Create RLS client for user-scoped operations
-const rlsClient = postgres(config.database.url, {
-  prepare: false,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
+// 🔑 Singleton 패턴: Next.js HMR에서도 클라이언트 재사용
+// globalThis 사용으로 모듈 reload 시에도 동일 인스턴스 유지
+const globalForDb = globalThis as unknown as {
+  adminClient: postgres.Sql | undefined;
+  rlsClient: postgres.Sql | undefined;
+};
+
+// Create admin client for direct database access (Singleton)
+const adminClient =
+  globalForDb.adminClient ?? postgres(config.database.url, connectionConfig);
+if (isDevelopment) globalForDb.adminClient = adminClient;
+
+// Create RLS client for user-scoped operations (Singleton)
+const rlsClient =
+  globalForDb.rlsClient ?? postgres(config.database.url, connectionConfig);
+if (isDevelopment) globalForDb.rlsClient = rlsClient;
 
 // Create drizzle instances with environment-based schema
 export const adminDb = drizzle(adminClient, {

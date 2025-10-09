@@ -14,18 +14,18 @@ Software Design을 기반으로 한 테스트 전략 문서입니다.
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ E2E Tests (10%)                                             │
-│ - 사용자 시나리오: 구글 로그인 → 프로필 생성 → 조직 선택    │
+│ - 사용자 시나리오: 구글 로그인 → 프로필 생성 → 온보딩 완료    │
 │ - 목표: 1-2개 핵심 시나리오                                 │
 ├─────────────────────────────────────────────────────────────┤
 │ Integration Tests (20%)                                     │
 │ - Service + Repository + Database                           │
 │ - Server Actions 전체 플로우                                │
-│ - 목표: 5-8개 통합 시나리오                                 │
+│ - 목표: 3-5개 통합 시나리오                                 │
 ├─────────────────────────────────────────────────────────────┤
 │ Unit Tests (70%)                                            │
 │ - Value Objects, Entities, Aggregates                       │
 │ - 비즈니스 로직 격리 테스트                                 │
-│ - 목표: 20-30개 단위 테스트                                 │
+│ - 목표: 15-20개 단위 테스트                                 │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -60,7 +60,7 @@ describe('UserEmail Value Object', () => {
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️ (최고)  
 **이유**: Value Object는 도메인의 기초이며 변경 가능성 낮음
 
-#### UserId, OrganizationId VO
+#### UserId VO
 ```typescript
 describe('UserId Value Object', () => {
   describe('생성자', () => {
@@ -71,13 +71,6 @@ describe('UserId Value Object', () => {
   
   describe('equals', () => {
     it('동일한 ID는 같다고 판단되어야 한다')
-  })
-})
-
-describe('OrganizationId Value Object', () => {
-  describe('생성', () => {
-    it('UUID 기반으로 생성되어야 한다')
-    it('생성된 ID는 유효한 형식이어야 한다')
   })
 })
 ```
@@ -107,23 +100,11 @@ describe('User Entity', () => {
     it('유효하지 않은 이메일은 거부해야 한다')
     it('updatedAt이 갱신되어야 한다')
   })
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
-
-#### Organization Entity
-```typescript
-describe('Organization Entity', () => {
-  describe('생성', () => {
-    it('모든 필수 속성으로 생성되어야 한다')
-    it('isDefault 플래그가 올바르게 설정되어야 한다')
-  })
   
-  describe('updateName', () => {
-    it('조직 이름을 업데이트해야 한다')
-    it('빈 이름은 허용하지 않아야 한다')
-    it('updatedAt이 갱신되어야 한다')
+  describe('deleteAccount', () => {
+    it('계정 삭제 시 상태가 변경되어야 한다')
+    it('삭제된 계정은 수정할 수 없어야 한다')
+    it('UserAccountDeletedEvent가 발행되어야 한다')
   })
 })
 ```
@@ -149,39 +130,23 @@ describe('UserAggregate', () => {
     it('UserUpdatedEvent가 발행되어야 한다')
     it('변경사항이 없으면 null을 반환해야 한다')
   })
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**Process Model 매핑**: Scenario 0 - Sequence 2
-
-#### OrganizationAggregate
-```typescript
-describe('OrganizationAggregate', () => {
-  describe('createDefault', () => {
-    it('사용자를 위한 기본 조직이 생성되어야 한다')
-    it('isDefault가 true로 설정되어야 한다')
-    it('소유자가 올바르게 설정되어야 한다')
-    it('DefaultOrganizationCreatedEvent가 발행되어야 한다')
+  
+  describe('processOnboarding', () => {
+    it('온보딩을 완료해야 한다')
+    it('OnboardingCompletedEvent가 발행되어야 한다')
+    it('이미 완료된 온보딩은 중복 처리되지 않아야 한다')
   })
   
-  describe('createNew', () => {
-    it('새로운 조직이 생성되어야 한다')
-    it('조직 타입이 올바르게 설정되어야 한다')
-    it('생성자가 소유자로 설정되어야 한다')
-    it('isDefault가 false로 설정되어야 한다')
-    it('NewOrganizationCreatedEvent가 발행되어야 한다')
-  })
-  
-  describe('updateName', () => {
-    it('조직 이름이 변경되어야 한다')
-    it('OrganizationUpdatedEvent가 발행되어야 한다')
+  describe('deleteUserAccount', () => {
+    it('사용자 계정을 삭제해야 한다')
+    it('UserAccountDeletedEvent가 발행되어야 한다')
+    it('삭제된 계정은 복구할 수 없어야 한다')
   })
 })
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**Process Model 매핑**: Scenario 0 - Sequence 2, Scenario 2 - Sequence 1
+**Process Model 매핑**: Scenario 0, Scenario 8
 
 ---
 
@@ -213,29 +178,17 @@ describe('UserRepository Integration Tests', () => {
     it('이메일로 사용자를 찾아야 한다')
     it('대소문자 구분 없이 찾아야 한다')
   })
+  
+  describe('delete', () => {
+    it('사용자 계정을 삭제해야 한다')
+    it('삭제된 사용자는 조회되지 않아야 한다')
+    it('관련 데이터도 함께 정리되어야 한다')
+  })
 })
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️  
 **테스트 환경**: 테스트용 Supabase 인스턴스 또는 로컬 PostgreSQL
-
-#### OrganizationRepository
-```typescript
-describe('OrganizationRepository Integration Tests', () => {
-  describe('save', () => {
-    it('조직을 데이터베이스에 저장해야 한다')
-    it('중복 ID는 거부해야 한다')
-  })
-  
-  describe('findByOwnerId', () => {
-    it('소유자의 모든 조직을 조회해야 한다')
-    it('생성일 순으로 정렬되어야 한다')
-    it('다른 소유자의 조직은 조회되지 않아야 한다')
-  })
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️
 
 ---
 
@@ -250,27 +203,27 @@ describe('UserManagementService Integration Tests', () => {
     it('프로필 생성 실패 시 적절한 에러를 반환해야 한다')
   })
   
-  describe('createDefaultOrganization', () => {
-    it('사용자를 위한 기본 조직을 생성해야 한다')
-    it('이미 기본 조직이 있으면 예외를 발생시켜야 한다')
+  describe('processOnboarding', () => {
+    it('온보딩을 완료해야 한다')
+    it('온보딩 상태를 업데이트해야 한다')
+    it('이미 완료된 온보딩은 중복 처리되지 않아야 한다')
   })
   
-  describe('createNewOrganization', () => {
-    it('새로운 조직을 생성해야 한다')
-    it('조직 타입이 올바르게 설정되어야 한다')
-    it('생성자를 소유자로 설정해야 한다')
-    it('조직 생성 후 컨텍스트를 전환해야 한다')
+  describe('deleteUserAccount', () => {
+    it('사용자 계정을 삭제해야 한다')
+    it('관련 프로필 데이터를 정리해야 한다')
+    it('Organization Management Domain으로 삭제 이벤트를 발행해야 한다')
   })
   
-  describe('getUserOrganizations', () => {
-    it('사용자 소유 조직 목록을 조회해야 한다')
-    it('빈 목록도 올바르게 반환해야 한다')
+  describe('getUserProfile', () => {
+    it('사용자 프로필을 조회해야 한다')
+    it('존재하지 않는 사용자는 null을 반환해야 한다')
   })
 })
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️  
-**Process Model 매핑**: Scenario 0, Scenario 1, Scenario 2 전체 플로우
+**Process Model 매핑**: Scenario 0, Scenario 8 전체 플로우
 
 ---
 
@@ -287,22 +240,22 @@ describe('Server Actions Integration Tests', () => {
   })
   
   describe('processUserRegistrationAction', () => {
-    it('트랜잭션으로 프로필과 조직을 생성해야 한다')
+    it('트랜잭션으로 프로필을 생성해야 한다')
     it('프로필 생성 실패 시 롤백되어야 한다')
-    it('조직 생성 실패 시 롤백되어야 한다')
+    it('Organization Management Domain으로 기본 조직 생성 요청을 보내야 한다')
   })
   
-  describe('getUserOrganizationsAction', () => {
-    it('사용자 소유 조직 목록을 조회해야 한다')
+  describe('processOnboardingAction', () => {
+    it('온보딩을 완료해야 한다')
     it('미인증 사용자는 거부해야 한다')
-  })
-  
-  describe('createNewOrganizationAction', () => {
-    it('인증된 사용자의 새로운 조직을 생성해야 한다')
-    it('미인증 사용자는 거부해야 한다')
-    it('조직 이름과 타입이 올바르게 설정되어야 한다')
     it('성공 시 Result.ok를 반환해야 한다')
-    it('실패 시 Result.err를 반환해야 한다')
+  })
+  
+  describe('deleteUserAccountAction', () => {
+    it('사용자 계정을 삭제해야 한다')
+    it('미인증 사용자는 거부해야 한다')
+    it('Organization Management Domain으로 삭제 이벤트를 발행해야 한다')
+    it('성공 시 Result.ok를 반환해야 한다')
   })
 })
 ```
@@ -353,75 +306,48 @@ test('구글 OAuth를 통한 신규 사용자 등록 전체 플로우', async ({
 
 ---
 
-### 2. 조직 선택 플로우 (Scenario 1)
+### 2. Organization 관련 플로우 (Organization Management Domain으로 이동)
+
+**참고**: 조직 조회, 선택, 생성, 멤버 초대 등 모든 Organization 관련 E2E 테스트는 Organization Management Domain의 Testing Strategy를 참조하세요.
+- **문서 위치**: `../organization-management-domain/04-testing-strategy.md`
+- **테스트 파일**: `apps/web/src/__tests__/e2e/organization-*.spec.ts`
+- **User Management의 역할**: User 등록 시 기본 조직 생성 요청만 발행
+
+### 3. 사용자 계정 삭제 플로우 (Scenario 8)
 
 ```typescript
-test('로그인 후 조직 선택 플로우', async ({ page }) => {
+test('사용자 계정 삭제 전체 플로우', async ({ page }) => {
   // Given: 이미 등록된 사용자로 로그인
   await loginAsTestUser(page);
   
-  // When: 대시보드 접근
-  await page.goto('/dashboard');
+  // When: 계정 설정 페이지 접근
+  await page.goto('/settings/account');
   
-  // Then: 조직 목록이 로드됨
-  await expect(page.locator('[data-testid="organization-list"]')).toBeVisible();
+  // When: 계정 삭제 버튼 클릭
+  await page.click('[data-testid="delete-account-button"]');
   
-  // Then: 기본 조직이 자동 선택됨
-  const selectedOrg = page.locator('[data-testid="selected-organization"]');
-  await expect(selectedOrg).toContainText('기본 조직');
+  // Then: 삭제 확인 다이얼로그 표시
+  await expect(page.locator('[data-testid="delete-confirmation-dialog"]')).toBeVisible();
   
-  // When: 다른 조직 선택
-  await page.click('[data-testid="organization-item-2"]');
+  // When: 삭제 확인
+  await page.fill('[data-testid="delete-confirmation-input"]', 'DELETE');
+  await page.click('[data-testid="confirm-delete-button"]');
   
-  // Then: 선택된 조직이 변경됨
-  await expect(selectedOrg).not.toContainText('기본 조직');
+  // Then: 삭제 완료 메시지 표시
+  await expect(page.locator('[data-testid="deletion-success"]')).toBeVisible();
   
-  // Then: 페이지가 새로운 조직 컨텍스트로 업데이트됨
-  await expect(page).toHaveURL(/orgId=[^&]+/);
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️  
-**Process Model 매핑**: Scenario 1 전체
-
-### 3. 새로운 조직 생성 플로우 (Scenario 2)
-
-```typescript
-test('새로운 조직 생성 전체 플로우', async ({ page }) => {
-  // Given: 이미 등록된 사용자로 로그인
-  await loginAsTestUser(page);
+  // Then: 로그인 페이지로 리다이렉트
+  await expect(page).toHaveURL('/login');
   
-  // When: 대시보드 접근
-  await page.goto('/dashboard');
-  
-  // When: "새 조직 만들기" 버튼 클릭
-  await page.click('[data-testid="create-organization-button"]');
-  
-  // Then: 조직 생성 폼이 표시됨
-  await expect(page.locator('[data-testid="organization-form"]')).toBeVisible();
-  
-  // When: 조직 정보 입력
-  await page.fill('[data-testid="organization-name-input"]', '새로운 프로젝트');
-  await page.selectOption('[data-testid="organization-type-select"]', 'startup');
-  
-  // When: 생성 버튼 클릭
-  await page.click('[data-testid="create-organization-submit"]');
-  
-  // Then: 조직 생성 완료 알림 표시
-  await expect(page.locator('[data-testid="success-message"]')).toBeVisible();
-  
-  // Then: 새 조직으로 컨텍스트 전환됨
-  await expect(page.locator('[data-testid="selected-organization"]')).toContainText('새로운 프로젝트');
-  
-  // Then: 조직 목록에 새 조직이 추가됨
-  await expect(page.locator('[data-testid="organization-list"]')).toContainText('새로운 프로젝트');
+  // Then: 삭제된 계정으로 로그인 시도 시 실패
+  await page.goto('/login');
+  await page.click('[data-testid="google-login-button"]');
+  await expect(page.locator('[data-testid="error-message"]')).toBeVisible();
 })
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**Process Model 매핑**: Scenario 2 전체
-
----
+**Process Model 매핑**: Scenario 8 전체
 
 ### 4. 에러 시나리오
 
@@ -438,6 +364,21 @@ test('프로필 생성 실패 시 에러 메시지 표시', async ({ page }) => 
   await expect(page.locator('[data-testid="error-message"]')).toBeVisible();
   await expect(page.locator('[data-testid="error-message"]')).toContainText(
     '로그인에 실패했습니다'
+  );
+})
+
+test('계정 삭제 실패 시 에러 메시지 표시', async ({ page }) => {
+  // Given: 이미 등록된 사용자로 로그인
+  await loginAsTestUser(page);
+  
+  // When: 계정 삭제 시도 (소유 조직이 있는 경우)
+  await page.goto('/settings/account');
+  await page.click('[data-testid="delete-account-button"]');
+  
+  // Then: 삭제 불가 메시지 표시
+  await expect(page.locator('[data-testid="deletion-blocked"]')).toBeVisible();
+  await expect(page.locator('[data-testid="deletion-blocked"]')).toContainText(
+    '소유한 조직이 있어서 계정을 삭제할 수 없습니다'
   );
 })
 ```
@@ -481,30 +422,27 @@ test('프로필 생성 실패 시 에러 메시지 표시', async ({ page }) => 
 | Command: 유저 가입 처리하기 | Unit | UserAggregate.createFromSupabaseAuth() |
 | System: Profile System | Unit | UserAggregate 프로필 생성 로직 |
 | Event: 유저 프로필이 생성됨 | Unit | UserProfileCreatedEvent 발행 검증 |
-| System: Organization System | Unit | OrganizationAggregate.createDefault() |
-| Event: 기본 조직이 생성됨 | Unit | DefaultOrganizationCreatedEvent 발행 검증 |
+| Command: 온보딩 진행하기 | Unit | UserAggregate.processOnboarding() |
+| Event: 온보딩이 완료됨 | Unit | OnboardingCompletedEvent 발행 검증 |
 | 전체 플로우 | Integration | processUserRegistrationAction() |
-| 사용자 경험 | E2E | 구글 로그인 → 프로필 생성 → 조직 선택 |
+| 사용자 경험 | E2E | 구글 로그인 → 프로필 생성 → 온보딩 완료 |
 
-### Scenario 1: 조직 조회 및 선택
+### Organization 관련 테스트 (Organization Management Domain으로 이동)
 
-| Process Model 요소 | 테스트 종류 | 테스트 케이스 |
-|-------------------|------------|-------------|
-| Command: 유저 관련 조직을 조회하기 | Integration | getUserOrganizationsAction() |
-| System: Organization System | Unit | OrganizationRepository.findByOwnerId() |
-| Event: 유저 관련 조직이 조회됨 | Integration | 조직 목록 조회 검증 |
-| Command: 초기 조직을 선택하기 | E2E | 프론트엔드 Context 초기화 |
-| Event: 초기 조직이 선택됨 | E2E | 선택된 조직 UI 표시 검증 |
+**참고**: 조직 조회, 선택, 생성, 멤버 관리 등 모든 Organization 관련 테스트는 Organization Management Domain의 Testing Strategy를 참조하세요.
+- **문서 위치**: `../organization-management-domain/04-testing-strategy.md`
+- **책임**: Organization Management Domain에서 완전히 관리
+- **User Management Domain의 역할**: `processUserRegistrationAction`에서 기본 조직 생성 요청만 발행
 
-### Scenario 2: 새로운 조직 생성
+### Scenario 8: 사용자 계정 삭제
 
 | Process Model 요소 | 테스트 종류 | 테스트 케이스 |
 |-------------------|------------|-------------|
-| Command: 새로운 조직 생성하기 | Unit | OrganizationAggregate.createNew() |
-| System: Organization System | Unit | 조직 생성 비즈니스 로직 |
-| Event: 새로운 조직이 생성됨 | Unit | NewOrganizationCreatedEvent 발행 검증 |
-| 전체 플로우 | Integration | createNewOrganizationAction() |
-| 사용자 경험 | E2E | 조직 생성 폼 → 생성 완료 → 컨텍스트 전환 |
+| Command: 사용자 계정 삭제 요청 | Unit | UserAggregate.deleteUserAccount() |
+| System: User Deletion Cleanup Manager | Unit | 계정 삭제 비즈니스 로직 |
+| Event: 사용자 계정이 삭제됨 | Unit | UserAccountDeletedEvent 발행 검증 |
+| 전체 플로우 | Integration | deleteUserAccountAction() |
+| 사용자 경험 | E2E | 계정 삭제 → 확인 → 로그아웃 |
 
 ---
 
@@ -545,8 +483,6 @@ export class UserEmail {
 
 // 실행: PASS (기존 테스트 통과 + 새 테스트 추가)
 ```
-
----
 
 ## 🛠️ 테스트 도구 및 설정
 
@@ -611,4 +547,3 @@ export class UserEmail {
 ---
 
 이 Testing Strategy를 따라 높은 품질의 User Management Domain을 구현할 수 있습니다! 🎉
-

@@ -9,7 +9,7 @@ import {
 } from '@workspace/ui/components/ui/breadcrumb';
 import { Separator } from '@workspace/ui/components/ui/separator';
 import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
-import { useOrganization } from '@/domains/user-management/frontend/contexts/organization-context';
+import { useOrganization } from '@/domains/organization-management/frontend/contexts/organization-context';
 
 export function DashboardHeader() {
   const { organizations, selectedOrganizationId } = useOrganization();

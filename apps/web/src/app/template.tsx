@@ -21,7 +21,10 @@ export default function LayoutTemplate({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${fontSans.variable} ${fontMono.variable} font-sans`}>
+      <body
+        className={`${fontSans.variable} ${fontMono.variable} font-sans`}
+        suppressHydrationWarning
+      >
         <SpeedInsights />
         <Analytics />
         <Providers>{children}</Providers>

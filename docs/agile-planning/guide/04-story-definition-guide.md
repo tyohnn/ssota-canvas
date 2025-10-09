@@ -109,80 +109,40 @@ Feature: 워크스페이스 생성
     And 사용자에게 워크스페이스 접근 권한이 부여된다
 ```
 
-### 2.3 Command-Event 매핑
+### 2.3 도메인 식별 및 참조 설정
 
-**Command-Event 정의:**
-1. **Command 식별**: 사용자나 시스템이 내리는 명령
-2. **Event 식별**: Command 실행 결과로 발생하는 사건
-3. **Aggregate 식별**: Command를 처리하는 도메인 객체
-4. **불변식 정의**: Aggregate의 비즈니스 규칙
+**도메인 식별:**
+1. **관련 도메인 파악**: Story가 영향을 주는 도메인들 식별
+2. **주 도메인 결정**: Story의 주요 책임을 가진 도메인 선정
+3. **통합 도메인 파악**: 연동이 필요한 다른 도메인들 식별
+4. **참조 문서 확인**: 각 도메인의 Technical Specification, Database Schema, Frontend Specification 확인
 
-**Command-Event 템플릿:**
-```typescript
-// Command
-interface [CommandName]Command {
-  [필드1]: [타입]
-  [필드2]: [타입]
-  // ...
-}
-
-// Event
-interface [EventName]Event {
-  [필드1]: [타입]
-  [필드2]: [타입]
-  // ...
-}
-
-// Aggregate
-class [AggregateName] {
-  // Command Handler
-  [commandName](command: [CommandName]Command): [EventName]Event {
-    // 비즈니스 로직
-  }
-}
-```
-
-**예시:**
-```typescript
-// Command
-interface CreateWorkspaceCommand {
-  organizationId: string
-  name: string
-  description?: string
-  createdBy: string
-}
-
-// Event
-interface WorkspaceCreatedEvent {
-  workspaceId: string
-  organizationId: string
-  name: string
-  createdBy: string
-  timestamp: Date
-}
-
-// Aggregate
-class Workspace {
-  createWorkspace(command: CreateWorkspaceCommand): WorkspaceCreatedEvent {
-    // 비즈니스 로직
-  }
-}
-```
+**도메인 식별 예시:**
+- **주 도메인**: Organization Management Domain (초대 생성, 멤버 관리)
+- **통합 도메인**: Notification Management Domain (알림 생성), User Management Domain (프로필 조회)
+- **참조 문서**: 
+  - Technical Specification (구현 가이드)
+  - Database Schema (테이블 구조)
+  - Frontend Specification (UI 컴포넌트)
+  - Software Design (Aggregate, Command, Event 정의)
+  - Testing Strategy (테스트 전략)
 
 ---
 
 ## 📋 Step 3: Story 문서 작성
 
-### 3.1 Story 문서 템플릿
+### 3.1 Story 문서 템플릿 (간결한 버전)
 
 ```markdown
 # Story [ID]: [Story 제목]
 
 ## 🎯 Story 개요
 **User Story**: As a [사용자] I want to [기능] so that [가치]
-**Story Points**: [포인트]
-**우선순위**: [High/Medium/Low]
-**Epic**: [연관 Epic]
+
+**Story Points**: [포인트]  
+**우선순위**: [High/Medium/Low]  
+**Epic**: [연관 Epic]  
+**Domain**: [관련 도메인들]
 
 ## 📋 수용 기준 (Acceptance Criteria)
 
@@ -202,115 +162,103 @@ Then [예상 결과]
 And [추가 조건]
 ```
 
-## 🔧 기술적 구현 세부사항
+## 📋 개발 Task (도메인별)
 
-### Command-Event 매핑
-```typescript
-// Command
-interface [CommandName]Command {
-  [필드1]: [타입]
-  [필드2]: [타입]
-}
+### [Domain Name 1]
+**참조 문서**: [Technical Specification](링크), [Database Schema](링크), [Frontend Specification](링크)
 
-// Event
-interface [EventName]Event {
-  [필드1]: [타입]
-  [필드2]: [타입]
-}
+#### Backend Implementation
+- [ ] [Aggregate명] 구현 (핵심 로직)
+- [ ] [Entity명] 구현
+- [ ] [ValueObject명] 구현
+- [ ] Commands 정의 ([Command1], [Command2])
+- [ ] Events 정의 ([Event1], [Event2])
+- [ ] Repository 구현
 
-// Aggregate
-class [AggregateName] {
-  [commandName](command: [CommandName]Command): [EventName]Event {
-    // 비즈니스 로직
-  }
-}
-```
+#### Database
+- [ ] [테이블명] 테이블 생성 (Drizzle migration)
+- [ ] [enum명] enum 생성
+- [ ] RLS 정책 적용
 
-### Repository 메서드
-```typescript
-interface [AggregateName]Repository {
-  save([aggregate]: [AggregateName]): Promise<void>
-  findById(id: [IdType]): Promise<[AggregateName] | null>
-  // ...
-}
-```
+#### Server Actions
+- [ ] [action1]Action (간단한 설명)
+- [ ] [action2]Action (간단한 설명)
 
-### Server Actions
-```typescript
-async function [actionName]Action(input: [InputType]): Promise<[ResultType]>
-```
+#### Frontend
+- [ ] [Component1] 컴포넌트 (간단한 설명)
+- [ ] [Component2] 컴포넌트 (간단한 설명)
+- [ ] [Context명] 및 [Hook명]
 
-### Database Schema
-```sql
-CREATE TABLE [table_name] (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  [field1] [type] NOT NULL,
-  [field2] [type],
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-```
+---
 
-## 📋 Sub-tasks
+### [Domain Name 2] (통합 도메인인 경우)
+**참조 문서**: [Technical Specification](링크), [Database Schema](링크), [Frontend Specification](링크)
 
-### Backend Domain
-- [ ] [AggregateName] Entity 구현
-- [ ] [AggregateName] Aggregate 구현
-- [ ] [CommandName] Command Handler
-- [ ] [EventName] Domain Event 정의
+#### Backend Implementation
+- [ ] ...
 
-### Database & Repository
-- [ ] [table_name] 테이블 생성
-- [ ] [AggregateName]Repository 구현
-- [ ] 데이터베이스 인덱스 설정
+---
 
-### API & Server Action
-- [ ] [actionName]Action 구현
-- [ ] 에러 처리 및 검증 로직
-- [ ] API 엔드포인트 구현
-
-### Frontend
-- [ ] [기능명] UI 컴포넌트
-- [ ] 상태 관리 연동
-- [ ] 에러 처리 및 사용자 피드백
-
-### Integration Task
-- [ ] 외부 시스템 연동
+### 도메인 간 통합
+- [ ] Domain1 → Domain2 연동
 - [ ] 권한 검증 로직
-- [ ] 이벤트 발행 및 구독
+- [ ] 기타 통합 로직
 
-### E2E & Observability
-- [ ] [기능명] E2E 테스트
-- [ ] 에러 모니터링 설정
-- [ ] 성능 모니터링 설정
+---
+
+### Testing & Quality
+- [ ] Unit Tests ([테스트 대상])
+- [ ] Integration Tests ([테스트 범위])
+- [ ] E2E Tests ([전체 플로우])
+- [ ] 성능 테스트 ([성능 목표])
 
 ## 🎯 Definition of Done
 
-### 기능적 완료
-- [ ] [기능 1] 정상 동작
-- [ ] [기능 2] 정상 동작
-- [ ] 에러 케이스 처리
+### 기능 완료
+- [ ] 모든 시나리오가 정상 동작함
+- [ ] [핵심 기능] 정상 동작
+- [ ] UI/UX가 Frontend Specification을 준수함
 
-### 기술적 완료
+### 기술 완료
 - [ ] 단위 테스트 커버리지 80% 이상
-- [ ] E2E 테스트 통과
+- [ ] Integration Tests 통과
+- [ ] E2E Tests 통과
 - [ ] 코드 리뷰 완료
 - [ ] 성능 요구사항 충족
 
 ### 품질 완료
-- [ ] 보안 취약점 0개
+- [ ] RLS 정책 적용 완료
+- [ ] 권한 검증 로직 구현 완료
 - [ ] 접근성 기준 충족
-- [ ] 사용자 테스트 통과
+- [ ] 보안 취약점 0개
+
+## 📊 진행 상황
+**현재**: 0% 완료 (설계 완료, 구현 대기 중)
 
 ## 🔗 의존성
-**선행 Story**: [이 Story를 위해 먼저 완료되어야 하는 Story]
-**후행 Story**: [이 Story 완료 후 진행할 Story]
-**외부 의존성**: [외부 시스템, 팀, 리소스]
+- **선행 Story**: [Story-ID]
+- **후행 Story**: [Story-ID]
+- **도메인 의존성**: [Domain1 ↔ Domain2]
 
 ## 📁 관련 문서
-- [Epic 문서](../epics/epic-[번호]-[도메인명].md)
-- [Process Model](../event-domain-design/domains/[domain]/process-model.md)
-- [Software Design](../event-domain-design/domains/[domain]/software-design.md)
+
+### Domain Documentation
+**[Domain Name 1]**:
+- [Process Model](링크) - [Scenario 번호]
+- [Software Design](링크) - [Aggregate명]
+- [Testing Strategy](링크) - [Scenario 테스트 전략]
+- [Technical Specification](링크) - 구현 가이드
+- [Database Schema](링크) - [테이블명들]
+- [Frontend Specification](링크) - [UI 컴포넌트들]
+
+**[Domain Name 2]**:
+- [Software Design](링크)
+- [Technical Specification](링크)
+- [Database Schema](링크)
+- [Frontend Specification](링크)
+
+### Agile Planning
+- [Epic 문서](링크)
 ```
 
 ### 3.2 문서 작성 체크리스트
@@ -318,9 +266,42 @@ CREATE TABLE [table_name] (
 **완성도 검증:**
 - [ ] User Story가 사용자 관점에서 명확한가?
 - [ ] Acceptance Criteria가 구체적이고 테스트 가능한가?
-- [ ] Command-Event 매핑이 명확한가?
-- [ ] Sub-tasks가 구현 가능한 수준으로 분해되었는가?
+- [ ] 관련 도메인이 명확히 식별되었는가?
+- [ ] 도메인별 참조 문서가 올바르게 링크되었는가?
+- [ ] Task가 도메인별로 명확히 분류되었는가?
 - [ ] Definition of Done이 명확한가?
+
+### 3.3 Story 작성 원칙
+
+**DO (해야 할 것):**
+- ✅ **도메인 식별**: Story가 영향을 주는 도메인을 명확히 표시
+- ✅ **참조 문서 링크**: Technical Specification, Database Schema, Frontend Specification 링크
+- ✅ **Task 중심**: "무엇을" 개발할지 명확히 나열
+- ✅ **간결성**: 핵심 Task만 나열, 상세 구현은 도메인 문서 참조
+- ✅ **도메인 분리**: 도메인별로 Task 그룹화
+- ✅ **테스트 포함**: Testing & Quality Task 포함
+
+**DON'T (하지 말아야 할 것):**
+- ❌ **코드 블록 과다**: TypeScript, SQL 코드 블록은 최소화 (도메인 문서에 존재)
+- ❌ **중복 정보**: 도메인 문서에 이미 있는 상세 구현 내용 중복 작성
+- ❌ **과도한 세부사항**: Command/Event 인터페이스 전체 코드 작성
+- ❌ **Repository 구현 코드**: Repository 메서드 시그니처는 Technical Spec 참조
+- ❌ **Server Action 구현 코드**: Server Action 로직은 Technical Spec 참조
+
+### 3.4 코드 vs 참조 가이드라인
+
+**Story 문서에 포함할 것:**
+- ✅ Gherkin 시나리오 (수용 기준)
+- ✅ Task 체크리스트
+- ✅ 도메인별 참조 문서 링크
+- ✅ Definition of Done
+
+**도메인 문서에 위임할 것:**
+- 📚 Technical Specification: Aggregate, Command, Event, Repository 구현 코드
+- 📚 Database Schema: 테이블 DDL, RLS 정책, 인덱스
+- 📚 Frontend Specification: Component 구현, Hook, Context 코드
+- 📚 Software Design: Aggregate 정의, 불변식, Read Model
+- 📚 Testing Strategy: 테스트 수도코드, Given-When-Then 패턴
 
 ---
 
@@ -423,10 +404,12 @@ CREATE TABLE [table_name] (
 Story 정의가 완료되었다고 판단할 수 있는 기준:
 
 - [ ] **명확한 User Story**: 사용자 관점에서 명확한 목표
-- [ ] **구체적인 Acceptance Criteria**: 테스트 가능한 완료 조건
-- [ ] **명확한 Command-Event 매핑**: 기술적 구현 방향 제시
-- [ ] **구현 가능한 Sub-tasks**: 개발자가 실행 가능한 작업 단위
-- [ ] **명확한 Definition of Done**: 완료 여부를 판단할 수 있는 기준
+- [ ] **구체적인 Acceptance Criteria**: 테스트 가능한 완료 조건 (Gherkin 형식)
+- [ ] **도메인 식별**: 관련 도메인이 명확히 식별됨
+- [ ] **참조 문서 링크**: 각 도메인의 Technical Spec, DB Schema, Frontend Spec 링크 완료
+- [ ] **도메인별 Task 분류**: Backend, Database, Server Actions, Frontend로 Task 그룹화
+- [ ] **통합 Task 정의**: 도메인 간 통합 로직 Task 정의
+- [ ] **명확한 Definition of Done**: 기능/기술/품질 완료 기준
 - [ ] **개발팀 승인**: 모든 개발팀원의 이해 및 승인
 
 ---
@@ -443,14 +426,70 @@ Story 정의가 완료되었다고 판단할 수 있는 기준:
 
 ### 성공적인 Story 정의를 위한 팁
 - **사용자 관점 유지**: 기술적 세부사항보다는 사용자 가치에 집중
-- **적절한 크기**: 너무 크거나 작지 않은 적절한 범위 설정
+- **적절한 크기**: 너무 크거나 작지 않은 적절한 범위 설정 (1-3일)
 - **의존성 관리**: 다른 Story와의 의존성을 미리 파악하고 관리
 - **개발팀 참여**: 개발팀의 의견을 적극 수렴하여 현실적인 계획 수립
+- **도메인 문서 활용**: Technical Specification을 먼저 확인하고 Task 추출
+- **참조 중심**: 상세 구현은 도메인 문서를 참조하도록 링크만 제공
 
 ### 주의사항
-- **과도한 세분화 피하기**: Sub-task 수준의 과도한 세분화는 피하기
+- **코드 블록 최소화**: Story 문서는 "무엇을" 개발할지만 명시, "어떻게"는 도메인 문서 참조
+- **중복 정보 제거**: Technical Specification에 이미 있는 코드를 Story에 중복 작성하지 않기
+- **도메인 경계 명확**: 여러 도메인이 관련된 경우 도메인별로 Task를 명확히 분리
+- **과도한 세분화 피하기**: Task는 구현 가능한 수준으로만 분해
 - **기술적 제약 고려**: 현재 기술 수준과 리소스를 고려한 현실적 계획
 - **변경 관리**: Story 변경 시 영향 범위 분석 및 관련자 공유
+
+### 실전 예시
+
+#### ❌ 잘못된 Story 작성 (코드 과다)
+```markdown
+## 기술적 구현 세부사항
+
+### Command-Event 매핑
+```typescript
+// 300줄의 TypeScript 코드...
+interface CreateWorkspaceCommand { ... }
+class WorkspaceAggregate { ... }
+```
+
+### Repository 구현
+```typescript
+// 200줄의 Repository 코드...
+class DrizzleWorkspaceRepository { ... }
+```
+
+### Database Schema
+```sql
+-- 150줄의 SQL DDL...
+CREATE TABLE workspaces ( ... );
+```
+```
+
+#### ✅ 올바른 Story 작성 (Task 중심 + 참조)
+```markdown
+## 📋 개발 Task (도메인별)
+
+### Workspace Management Domain
+**참조 문서**: [Technical Specification](링크), [Database Schema](링크)
+
+#### Backend Implementation
+- [ ] WorkspaceAggregate 구현 (생성, 수정, 삭제 로직)
+- [ ] Workspace Entity 구현
+- [ ] WorkspaceRepository 구현
+
+#### Database
+- [ ] workspaces 테이블 생성 (Drizzle migration)
+- [ ] RLS 정책 적용
+
+#### Server Actions
+- [ ] createWorkspaceAction
+- [ ] updateWorkspaceAction
+```
+
+**차이점:**
+- ❌ 잘못된 예시: 650줄 (코드 중복, 유지보수 어려움)
+- ✅ 올바른 예시: 150줄 (간결, 도메인 문서 참조, 유지보수 용이)
 
 ---
 
@@ -473,30 +512,30 @@ git pull origin dev
 ```bash
 # Story 문서 작성
 git add .
-git commit -m "docs(story): add story-001-workspace-creation document
+git commit -m "docs(story): add story-007-member-invitation document
 
 - Define user story and acceptance criteria
-- Set story points and priority
-- List technical implementation details
-- Define sub-tasks and definition of done"
+- Identify related domains (Organization, Notification)
+- List domain-specific tasks with reference links
+- Define definition of done and dependencies"
 
 # Acceptance Criteria 작성
 git add .
 git commit -m "docs(story): add acceptance criteria and scenarios
 
-- Gherkin format acceptance criteria
-- Given-When-Then scenarios
-- Edge cases and error handling
-- Performance and quality requirements"
+- Gherkin format acceptance criteria (4 scenarios)
+- Given-When-Then scenarios for invite flow
+- Edge cases (duplicate invite, permissions)
+- Domain integration requirements"
 
-# Command-Event 매핑 정의
+# Task 분류 및 참조 추가
 git add .
-git commit -m "docs(story): add command-event mapping and technical details
+git commit -m "docs(story): organize tasks by domain with references
 
-- CreateWorkspaceCommand definition
-- WorkspaceCreatedEvent definition
-- Aggregate and Repository interfaces
-- Database schema and API specifications"
+- Organize tasks by Organization and Notification domains
+- Add reference links to Technical Spec, DB Schema, Frontend Spec
+- Define integration tasks between domains
+- Add testing and quality tasks"
 ```
 
 ### GitHub에 푸시
@@ -509,13 +548,15 @@ git push origin dev
 **리뷰어가 확인할 사항:**
 - [ ] **User Story 명확성**: 사용자 관점에서 명확한 목표인가?
 - [ ] **Acceptance Criteria 완전성**: 테스트 가능한 완료 조건이 정의되었는가?
-- [ ] **Command-Event 매핑**: 기술적 구현 방향이 명확한가?
-- [ ] **Sub-tasks 적절성**: 개발자가 실행 가능한 작업 단위인가?
+- [ ] **도메인 식별**: 관련 도메인이 명확히 식별되었는가?
+- [ ] **참조 문서 링크**: Technical Spec, DB Schema, Frontend Spec 링크가 올바른가?
+- [ ] **Task 분류**: 도메인별로 Task가 명확히 분류되었는가?
+- [ ] **코드 최소화**: 불필요한 코드 블록이 없는가? (도메인 문서 참조로 대체)
 - [ ] **Definition of Done**: 완료 여부를 판단할 수 있는 기준이 있는가?
 
 **승인 기준:**
-- [ ] 시니어 개발자가 기술적 실현 가능성을 승인
-- [ ] 주니어 개발자가 구현 난이도를 승인
+- [ ] 시니어 개발자가 기술적 실현 가능성 및 도메인 설계를 승인
+- [ ] 주니어 개발자가 Task의 명확성과 구현 난이도를 승인
 - [ ] QA가 테스트 가능성을 승인
 - [ ] 기획자가 사용자 가치를 승인
 

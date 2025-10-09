@@ -8,17 +8,14 @@
 ## 🎯 Frontend Implementation Overview
 
 ### 구현 범위
-- **도메인**: User Management (사용자 인증 및 조직 관리)
-- **주요 기능**: 사용자 프로필 생성, 조직 관리, 조직 선택 및 상태 관리
-- **UI 컴포넌트**: 조직 선택기, 대시보드 사이드바, 쿠키 기반 상태 영속성
+- **도메인**: User Management (사용자 인증 및 프로필 관리)
+- **주요 기능**: 사용자 프로필 생성, 온보딩, 사용자 계정 삭제
+- **UI 컴포넌트**: 사용자 프로필 표시, 로그인 UI, 계정 설정
 
 ### 현재 구현 상태
-- ✅ **Phase 1**: DTO 타입 및 Context 구현 완료
-- ✅ **Phase 2**: Server Actions 및 Hook 구현 완료  
-- ✅ **Phase 3**: 기본 컴포넌트 구현 완료
-- ✅ **Phase 4**: 조직 생성 Dialog 및 폼 구현 완료
-- 📋 **Phase 5**: 조직 수정/삭제 (Story 006 예정)
-- 📋 **Phase 6**: 멤버 초대/관리 (Story 007 예정)
+- ✅ **Phase 1**: 사용자 인증 및 프로필 생성 구현 완료 (Scenario 0)
+- ✅ **Phase 2**: 온보딩 프로세스 구현 완료 (Scenario 0)  
+- 📋 **Phase 3**: 사용자 계정 삭제 구현 예정 (Scenario 8)
 
 ---
 
@@ -51,17 +48,6 @@ export interface UserProfileView {
 }
 ```
 
-##### OrganizationSummary DTO
-```typescript
-export interface OrganizationSummary {
-  id: string; // Serialized from OrganizationId
-  name: string;
-  isDefault: boolean;
-  role?: 'owner' | 'admin' | 'member';
-  createdAt: string; // ISO 8601 string (serialized from Date)
-}
-```
-
 ##### UserRegistrationResult DTO
 ```typescript
 export interface UserRegistrationResult {
@@ -80,47 +66,19 @@ export interface UserRegistrationResult {
 }
 ```
 
-#### 새로 추가된 DTO 타입들 (Phase 4)
-
-##### CreateOrganizationRequest DTO
-```typescript
-export interface CreateOrganizationRequest {
-  name: string;
-  organizationType: 'personal' | 'education' | 'startup' | 'agency' | 'company' | 'n/a';
-}
-```
-
-##### CreateOrganizationResult DTO
-```typescript
-export interface CreateOrganizationResult {
-  success: boolean;
-  organization: {
-    id: string;
-    name: string;
-    organizationType: string;
-    isDefault: boolean;
-    createdAt: string;
-  };
-  error?: string;
-}
-```
-
-#### 미구현 항목 (Story 006-007 이후)
-- **MembershipSummary**: 멤버십 정보 표시용
-- **OrganizationWithMembers**: 멤버 정보를 포함한 조직 정보
-- **UserOrganizationView**: 복합 조회를 위한 뷰 모델
-- **폼 입력 타입들**: InviteMemberFormInput
+#### 미구현 항목 (Scenario 8)
+- **계정 삭제 관련 DTO**: Scenario 8 구현 시 추가 예정
 
 ### 1.2 CQRS Read/Write 분리
 
 #### Write Side (Domain Objects)
-- **Value Objects**: `UserId`, `OrganizationId`, `UserEmail` (클래스)
-- **Entities**: `User`, `Organization` (클래스)
-- **Aggregates**: `UserAggregate`, `OrganizationAggregate` (클래스)
+- **Value Objects**: `UserId`, `UserEmail` (클래스)
+- **Entities**: `User` (클래스)
+- **Aggregates**: `UserAggregate` (클래스)
 - **비즈니스 로직 & 불변식 검증**
 
 #### Read Side (DTOs)
-- **Read Models**: `UserProfileView`, `OrganizationSummary` (interface, plain object)
+- **Read Models**: `UserProfileView`, `UserRegistrationResult` (interface, plain object)
 - **데이터 투영 & 최적화된 조회**
 
 #### Next.js Server Actions Boundary
@@ -132,74 +90,52 @@ export interface CreateOrganizationResult {
 
 ### 2.1 Context 타입 정의
 
-**파일 위치**: `src/domains/user-management/frontend/contexts/organization-context.tsx`
+**파일 위치**: `src/domains/user-management/frontend/contexts/user-context.tsx`
 
 #### Context State 인터페이스
 ```typescript
-interface OrganizationContextType {
+interface UserContextType {
   // 상태
-  organizations: OrganizationSummary[];
-  selectedOrganizationId: string | null;
+  user: UserProfileView | null;
   isLoading: boolean;
   error: string | null;
 
   // 액션
-  selectOrganization: (organizationId: string) => void;
-  refreshOrganizations: () => Promise<void>;
-  createOrganization: (data: CreateOrganizationRequest) => Promise<CreateOrganizationResult>;
+  refreshUser: () => Promise<void>;
+  updateUserProfile: (data: UpdateUserProfileRequest) => Promise<void>;
 }
 ```
 
 #### Context Provider Props
 ```typescript
-interface OrganizationProviderProps {
+interface UserProviderProps {
   children: ReactNode;
-  initialOrganizations?: OrganizationSummary[];
-  initialSelectedId?: string | null;
+  initialUser?: UserProfileView | null;
 }
 ```
 
 #### Context 설계 원칙 (08-code-conventions.md)
-- **단일 책임**: 하나의 도메인에 대한 상태 관리
+- **단일 책임**: 사용자 프로필 및 인증 상태 관리
 - **상태 분리**: 로컬 상태와 전역 상태 구분
-- **액션 제공**: CRUD 작업을 위한 메소드
+- **액션 제공**: 사용자 프로필 CRUD 작업을 위한 메소드
 - **에러 처리**: 사용자 친화적 에러 메시지
 - **성능 최적화**: useCallback, useMemo 활용
-- **쿠키 연동**: 상태 지속성을 위한 쿠키 저장
 
 ### 2.2 Provider 구현
 
-**파일 위치**: `src/domains/user-management/frontend/contexts/organization-context.tsx`
+**파일 위치**: `src/domains/user-management/frontend/contexts/user-context.tsx`
 
 #### 주요 기능
-- **상태 관리**: useState를 사용한 organizations, selectedOrganizationId, isLoading, error 상태 관리
-- **쿠키 연동**: 선택된 조직 ID를 쿠키에 저장하고 복원
-- **초기 데이터 로드**: Provider 마운트 시 조직 목록 자동 조회
+- **상태 관리**: useState를 사용한 user, isLoading, error 상태 관리
+- **초기 데이터 로드**: Provider 마운트 시 사용자 프로필 자동 조회
 - **에러 처리**: API 호출 실패 시 에러 상태 설정
 
 #### 핵심 로직
-- **refreshOrganizations**: Server Action을 호출하여 조직 목록 조회 및 상태 업데이트
-- **selectOrganization**: 조직 선택 시 상태 업데이트 및 쿠키 저장
-- **createOrganization**: 새로운 조직 생성 및 목록 갱신, 생성된 조직 자동 선택
-- **초기 선택 로직**: URL 파라미터 > 쿠키 > 기본 조직 순서로 자동 선택
+- **refreshUser**: Server Action을 호출하여 사용자 프로필 조회 및 상태 업데이트
+- **updateUserProfile**: 사용자 프로필 수정 및 상태 갱신
 
-#### 쿠키 관리 (cookie-helpers.ts)
-- **getCookieValue**: 쿠키에서 조직 ID 읽기
-- **setCookieValue**: 선택된 조직 ID를 쿠키에 저장
-- **ORGANIZATION_COOKIE_KEYS**: 쿠키 키 상수 관리
-
-#### 새로 추가된 기능 (Phase 4)
-- **조직 생성**: createOrganization 메서드로 새로운 조직 생성
-- **자동 선택**: 생성된 조직을 자동으로 선택하여 컨텍스트 전환
-- **에러 처리**: 조직 생성 실패 시 에러 상태 관리
-- **CreateOrganizationDialog**: shadcn/ui Dialog를 사용한 조직 생성 폼
-- **Zod 스키마 검증**: 클라이언트 사이드 폼 검증
-- **Toast 알림**: 성공/실패 시 사용자 피드백
-
-#### 미구현 항목 (Story 006-007 이후)
-- **조직 수정/삭제**: 조직 관리 액션들
-- **멤버 관리**: 멤버 초대 및 관리 기능
-- **사용자 정보 관리**: 별도 Context에서 관리 예정
+#### 미구현 항목 (Scenario 8)
+- **계정 삭제**: deleteUserAccount 메서드 추가 예정
 
 ## ⚡ 3. Server Actions 구현 (08-code-conventions.md 준수)
 
@@ -220,9 +156,8 @@ export async function [액션명]Action(
 
     // 2. 의존성 주입 (Repository, Service)
     const userRepository = new DrizzleUserRepository();
-    const organizationRepository = new DrizzleOrganizationRepository();
     const supabaseAuthService = new SupabaseAuthService(supabase);
-    const service = new UserManagementService(userRepository, organizationRepository, supabaseAuthService);
+    const service = new UserManagementService(userRepository, supabaseAuthService);
 
     // 3. Command 생성
     const command: [CommandType] = { /* ... */ };
@@ -241,36 +176,32 @@ export async function [액션명]Action(
 
 #### 실제 구현된 Server Actions
 
-##### getUserOrganizationsAction
-- **역할**: 사용자의 조직 목록을 조회하는 Server Action
-- **인증**: Supabase Auth를 통한 사용자 인증 확인
-- **로직**: UserManagementService를 통해 사용자 조직 목록 조회
-- **반환**: OrganizationSummary[] 배열 (DTO 직렬화됨)
-
 ##### createUserProfileAction  
 - **역할**: 사용자 프로필을 생성하는 Server Action
 - **인증**: Supabase Auth를 통한 사용자 인증 확인
 - **로직**: Supabase 사용자 정보를 기반으로 프로필 생성
 - **반환**: UserProfileView DTO
 
-##### createDefaultOrganizationAction
-- **역할**: 사용자를 위한 기본 조직을 생성하는 Server Action
-- **인증**: Supabase Auth를 통한 사용자 인증 확인
-- **로직**: 사용자 이름 기반으로 기본 조직 생성
-- **반환**: OrganizationSummary DTO (직렬화됨)
-
 ##### processUserRegistrationAction
-- **역할**: 사용자 등록 프로세스를 처리하는 Server Action
+- **역할**: 사용자 등록 프로세스를 처리하는 Server Action (Scenario 0)
 - **인증**: Supabase Auth를 통한 사용자 인증 확인
-- **로직**: 프로필 생성과 기본 조직 생성을 트랜잭션으로 처리
+- **로직**: 
+  - 프로필 생성
+  - Organization Management Domain에 기본 조직 생성 요청
+  - 트랜잭션으로 처리
 - **반환**: UserRegistrationResult DTO
 
-##### createNewOrganizationAction (새로 추가)
-- **역할**: 사용자가 새로운 조직을 생성하는 Server Action
+##### getUserProfileAction
+- **역할**: 사용자 프로필을 조회하는 Server Action
 - **인증**: Supabase Auth를 통한 사용자 인증 확인
-- **로직**: 조직 이름 중복 검사, 조직 타입 검증, 새로운 조직 생성
-- **반환**: CreateOrganizationResult DTO
-- **입력**: CreateOrganizationRequest (name, organizationType)
+- **로직**: 사용자 ID로 프로필 조회
+- **반환**: UserProfileView DTO
+
+##### updateUserProfileAction
+- **역할**: 사용자 프로필을 수정하는 Server Action
+- **인증**: Supabase Auth를 통한 사용자 인증 확인
+- **로직**: 사용자 이름, 프로필 이미지 등 수정
+- **반환**: UserProfileView DTO
 
 #### 핵심 원칙 (08-code-conventions.md)
 - **DTO 반환**: Domain Objects를 직렬화하여 반환
@@ -279,12 +210,8 @@ export async function [액션명]Action(
 - **에러 전파**: try-catch로 에러를 catch하고 throw로 전파
 - **revalidatePath**: 데이터 변경 시 관련 페이지 재검증
 
-#### 새로 추가된 Server Action (Phase 4)
-- **createNewOrganizationAction**: 새로운 조직 생성 액션 구현 완료
-
-#### 미구현 항목 (Story 006-007 이후)
-- **조직 수정/삭제**: 조직 관리 액션들
-- **멤버 초대/관리**: 멤버 관리 액션들
+#### 미구현 항목 (Scenario 8)
+- **deleteUserAccountAction**: 사용자 계정 삭제 액션
 
 ### 3.2 에러 처리 (08-code-conventions.md 준수)
 
@@ -309,7 +236,7 @@ export async function [액션명]Action(
 
 ### 4.1 Hook 구조
 
-**파일 위치**: `src/domains/user-management/frontend/hooks/use-organization.ts`
+**파일 위치**: `src/domains/user-management/frontend/hooks/use-user.ts`
 
 #### Hook 설계 원칙 (08-code-conventions.md)
 - **Context 확장**: 기존 Context 기능을 활용
@@ -318,41 +245,31 @@ export async function [액션명]Action(
 - **에러 처리**: 로컬 에러와 전역 에러 구분
 - **성능 최적화**: useMemo, useCallback 활용
 
-#### 실제 구현된 useOrganization Hook
+#### 실제 구현된 useUser Hook
 
 ##### 주요 기능
-- **Context 연동**: OrganizationContext를 사용하여 조직 관련 상태와 액션에 접근
-- **상태 제공**: organizations, selectedOrganization, isLoading, error 상태 제공
-- **액션 제공**: refreshOrganizations, selectOrganization 액션 제공
-- **유틸리티 함수**: 조직 관련 편의 함수들 제공
+- **Context 연동**: UserContext를 사용하여 사용자 관련 상태와 액션에 접근
+- **상태 제공**: user, isLoading, error 상태 제공
+- **액션 제공**: refreshUser, updateUserProfile 액션 제공
+- **유틸리티 함수**: 사용자 관련 편의 함수들 제공
 
 ##### 제공하는 상태
-- **organizations**: OrganizationSummary[] - 조직 목록
-- **selectedOrganization**: OrganizationSummary | null - 선택된 조직
-- **defaultOrganization**: OrganizationSummary | null - 기본 조직
+- **user**: UserProfileView | null - 사용자 프로필
 - **isLoading**: boolean - 로딩 상태
 - **error**: string | null - 에러 상태
+- **isAuthenticated**: boolean - 인증 여부
 
 ##### 제공하는 액션
-- **refreshOrganizations**: 조직 목록 조회
-- **selectOrganization**: 조직 선택
-- **createOrganization**: 새로운 조직 생성 (Phase 4 추가)
+- **refreshUser**: 사용자 프로필 조회
+- **updateUserProfile**: 사용자 프로필 수정
 
 ##### 유틸리티 함수
-- **canSelectOrganization**: 조직 선택 가능 여부 확인
-- **isDefaultOrganization**: 기본 조직 여부 확인
-- **findOrganizationByName**: 이름으로 조직 찾기
-- **ownedOrganizations**: 소유한 조직 목록
+- **isOnboardingCompleted**: 온보딩 완료 여부 확인
+- **hasDefaultOrganization**: 기본 조직 존재 여부 확인
 
-#### 새로 추가된 기능 (Phase 4)
-- **조직 생성**: createOrganization 메서드로 새로운 조직 생성
-- **자동 선택**: 생성된 조직을 자동으로 선택하여 컨텍스트 전환
-- **에러 처리**: 조직 생성 실패 시 에러 상태 관리
-
-#### 미구현 항목 (Story 006-007 이후)
-- **낙관적 업데이트**: useOptimistic 미사용, 직접 상태 관리
-- **복잡한 액션들**: 조직 수정, 삭제 등 미구현
-- **멤버 관리**: 멤버 초대 및 관리 기능
+#### 미구현 항목 (Scenario 8)
+- **deleteUserAccount**: 사용자 계정 삭제 메서드
+- **계정 삭제 확인**: 계정 삭제 전 확인 로직
 
 ## 🧩 5. React Components 구현 (08-code-conventions.md 준수)
 
@@ -371,41 +288,41 @@ export async function [액션명]Action(
 
 #### 실제 구현된 컴포넌트들
 
-##### OrganizationSwitcher
-- **위치**: `src/domains/user-management/frontend/components/organization-switcher.tsx`
-- **역할**: 조직 선택을 위한 드롭다운 컴포넌트
-- **기능**: 조직 목록 표시, 조직 선택, "새 조직 만들기" 버튼, 로딩 상태 처리
-- **사용 Hook**: useOrganization Hook 사용
-- **UI**: shadcn/ui의 DropdownMenu 컴포넌트 사용
-- **새 기능**: "Add Organization" 버튼으로 CreateOrganizationDialog 열기
-
-##### DashboardSidebar
-- **위치**: `src/domains/user-management/frontend/components/dashboard-sidebar.tsx`
-- **역할**: 메인 대시보드의 사이드바 컴포넌트
-- **기능**: OrganizationSwitcher 통합, 네비게이션 메뉴 제공
-- **구성**: 조직 선택기, 워크스페이스 선택기, 설정 버튼 등
-
-#### 새로 추가된 컴포넌트 (Phase 4)
-
-##### CreateOrganizationDialog
-- **위치**: `src/domains/user-management/frontend/components/create-organization-dialog.tsx`
-- **역할**: 새로운 조직 생성을 위한 Dialog 컴포넌트
+##### UserProfileCard
+- **위치**: `src/domains/user-management/frontend/components/user-profile-card.tsx`
+- **역할**: 사용자 프로필 정보를 표시하는 카드 컴포넌트
 - **기능**: 
-  - shadcn/ui Dialog 컴포넌트 사용
-  - 조직명 입력 필드 (필수)
-  - 조직 타입 선택 드롭다운 (personal, education, startup, agency, company, n/a)
-  - 폼 검증 (Zod 스키마 사용)
-  - 제출 시 createOrganization Hook 호출
-  - 성공 시 Dialog 닫기 및 조직 목록 갱신
-  - 에러 상태 표시
-- **사용 Hook**: useOrganization Hook 사용
-- **UI**: shadcn/ui의 Dialog, Form, Input, Select 컴포넌트 사용
+  - 프로필 이미지, 이름, 이메일 표시
+  - 프로필 수정 버튼
+  - 로딩 상태 처리
+- **사용 Hook**: useUser Hook 사용
+- **UI**: shadcn/ui의 Card, Avatar 컴포넌트 사용
 
-#### 미구현 컴포넌트들 (Story 006-007 이후)
-- **OrganizationList**: 조직 목록 표시 컴포넌트
-- **OrganizationEditForm**: 조직 편집 폼 컴포넌트
-- **SettingsModal**: 설정 모달 컴포넌트
-- **MemberManagement**: 멤버 관리 컴포넌트
+##### UserProfileEditForm
+- **위치**: `src/domains/user-management/frontend/components/user-profile-edit-form.tsx`
+- **역할**: 사용자 프로필 편집 폼 컴포넌트
+- **기능**: 
+  - 이름 수정 입력 필드
+  - 프로필 이미지 업로드
+  - 폼 검증 (Zod 스키마 사용)
+  - 제출 시 updateUserProfile Hook 호출
+  - 성공 시 프로필 갱신
+  - 에러 상태 표시
+- **사용 Hook**: useUser Hook 사용
+- **UI**: shadcn/ui의 Form, Input, Button 컴포넌트 사용
+
+##### OAuthButtons
+- **위치**: `src/domains/user-management/frontend/components/oauth-buttons.tsx`
+- **역할**: OAuth 로그인 버튼 컴포넌트
+- **기능**: 
+  - 구글 로그인 버튼
+  - OAuth 연동 처리
+  - 로딩 상태 표시
+- **UI**: shadcn/ui의 Button 컴포넌트 사용
+
+#### 미구현 컴포넌트들 (Scenario 8)
+- **AccountDeletionDialog**: 계정 삭제 확인 다이얼로그
+- **AccountSettings**: 계정 설정 폼
 
 ### 5.2 Hook 사용 패턴
 
@@ -417,60 +334,52 @@ export async function [액션명]Action(
 
 #### 실제 구현 예시
 ```typescript
-// OrganizationSwitcher에서 useOrganization Hook 사용
-export function OrganizationSwitcher() {
-  const { organizations, selectedOrganization, selectOrganization } = useOrganization();
+// UserProfileCard에서 useUser Hook 사용
+export function UserProfileCard() {
+  const { user, isLoading, error } = useUser();
   
-  // Hook에서 제공하는 상태와 액션을 직접 사용
+  // Hook에서 제공하는 상태를 직접 사용
   // Context에 직접 접근하지 않음
 }
 
-// CreateOrganizationDialog에서 useOrganization Hook 사용
-export function CreateOrganizationDialog({ open, onOpenChange }: DialogProps) {
-  const { createOrganization, isLoading, error } = useOrganization();
+// UserProfileEditForm에서 useUser Hook 사용
+export function UserProfileEditForm() {
+  const { user, updateUserProfile, isLoading, error } = useUser();
   
-  const handleSubmit = async (data: CreateOrganizationRequest) => {
-    const result = await createOrganization(data);
-    if (result.success) {
-      onOpenChange(false); // Dialog 닫기
-    }
+  const handleSubmit = async (data: UpdateUserProfileRequest) => {
+    await updateUserProfile(data);
   };
   
   // Hook에서 제공하는 액션과 상태를 직접 사용
 }
 ```
 
-### 5.3 폼 검증 및 에러 처리 (Phase 4)
+### 5.3 폼 검증 및 에러 처리
 
-#### CreateOrganizationDialog 폼 검증
-- **Zod 스키마**: 조직명 필수 입력, 조직 타입 선택 필수
+#### UserProfileEditForm 폼 검증
+- **Zod 스키마**: 이름 필수 입력, 이미지 URL 형식 검증
 - **실시간 검증**: 입력 중 즉시 피드백 제공
 - **에러 메시지**: 사용자 친화적인 한국어 에러 메시지
 - **로딩 상태**: 제출 중 버튼 비활성화 및 스피너 표시
 
 #### 에러 처리 패턴
-- **서버 에러**: 조직명 중복, 권한 부족 등
+- **서버 에러**: 프로필 수정 실패, 권한 부족 등
 - **네트워크 에러**: 연결 실패, 타임아웃 등
 - **검증 에러**: 입력 형식 오류, 필수 필드 누락 등
 - **사용자 피드백**: Toast 알림 또는 인라인 에러 메시지
 
-### 5.4 미구현 컴포넌트들 (Story 006-007 이후)
+### 5.4 미구현 컴포넌트들 (Scenario 8)
 
-#### OrganizationEditForm
-- **역할**: 조직 편집을 위한 폼 컴포넌트
-- **유효성 검사**: 조직명 필수 입력, 중복 이름 검사
+#### AccountDeletionDialog
+- **역할**: 계정 삭제 확인 다이얼로그
+- **유효성 검사**: "DELETE" 문자열 입력 확인
 - **제출 처리**: Server Action 호출 및 성공/실패 처리
 - **로딩 상태**: 제출 중 로딩 상태 표시
 
-#### OrganizationList
-- **역할**: 조직 목록 표시 컴포넌트
-- **기능**: 조직 목록 표시, 검색, 필터링
-- **상태 관리**: useOrganization Hook 활용
-
-#### MemberManagement
-- **역할**: 멤버 관리 컴포넌트
-- **기능**: 멤버 초대, 권한 관리, 멤버 제거
-- **상태 관리**: 별도 Hook 필요 (useMemberManagement)
+#### AccountSettings
+- **역할**: 계정 설정 폼 컴포넌트
+- **기능**: 계정 정보 표시, 계정 삭제 버튼
+- **상태 관리**: useUser Hook 활용
 
 ## 🔗 6. 앱 레벨 통합 (08-code-conventions.md 준수)
 
@@ -484,44 +393,23 @@ export function CreateOrganizationDialog({ open, onOpenChange }: DialogProps) {
 - **각 도메인 Provider는 독립적으로 동작**
 
 #### 실제 구현된 Provider 구조
-- **OrganizationProvider**: 조직 관련 상태 관리를 위한 Provider
+- **UserProvider**: 사용자 프로필 및 인증 상태 관리를 위한 Provider
 - **Supabase Auth**: Supabase Auth를 통한 사용자 인증
-- **쿠키 관리**: 선택된 조직 ID를 쿠키에 저장하고 복원
 
 #### 초기 데이터 전달 (08-code-conventions.md)
 - **Server Components에서 Server Actions 호출**
 - **초기 데이터를 Provider에 props로 전달**
 - **클라이언트에서 추가 로딩 최소화**
 
-### 6.2 쿠키 기반 영속성
+### 6.2 미구현 항목 (Scenario 8)
 
-#### 쿠키 관리 (cookie-helpers.ts)
-- **getCookieValue**: 쿠키에서 조직 ID 읽기
-- **setCookieValue**: 선택된 조직 ID를 쿠키에 저장
-- **ORGANIZATION_COOKIE_KEYS**: 쿠키 키 상수 관리
+#### 계정 삭제 UI
+- **상태**: 계정 설정 페이지 미구현
+- **기능**: 계정 삭제 버튼, 확인 다이얼로그
 
-#### 상태 지속성 원칙
-- **선택된 엔티티 상태를 쿠키로 저장**
-- **새로고침 시에도 선택 상태 유지**
-- **URL 파라미터와 쿠키 우선순위 관리**
-
-### 6.3 미구현 항목 (Story 006-007 이후)
-
-#### 워크스페이스 선택기
-- **상태**: 워크스페이스 도메인에서 구현 예정
-- **기능**: 조직 내 워크스페이스 선택 및 생성
-
-#### 설정 모달
-- **상태**: 향후 구현 예정
-- **기능**: 프로필, 조직, 멤버, 워크스페이스 설정 관리
-
-#### 구글 OAuth 설정
-- **상태**: Supabase에서 구글 OAuth 연동 필요
-- **기능**: Supabase Auth를 통한 구글 로그인
-
-#### 로그인 페이지
-- **상태**: 프론트엔드 로그인 UI 미구현
-- **기능**: 사용자 인증 및 리다이렉트 처리
+#### 온보딩 UI
+- **상태**: 온보딩 페이지 미구현
+- **기능**: 사용자 온보딩 프로세스 안내
 
 ## 📊 7. 구현 완료 체크리스트 (08-code-conventions.md 기준)
 
@@ -530,16 +418,15 @@ export function CreateOrganizationDialog({ open, onOpenChange }: DialogProps) {
 - [x] **Date 직렬화**: ISO 문자열로 변환 완료
 - [x] **Value Object 직렬화**: string으로 변환 완료
 - [x] **Next.js Server Actions 직렬화 제약 준수**: 완료
-- [x] **CreateOrganizationRequest/Result**: 조직 생성용 DTO 추가 완료
-- [ ] **복잡한 Read Models**: Story 006-007 이후 구현 예정
+- [x] **UserProfileView**: 사용자 프로필용 DTO 추가 완료
+- [x] **UserRegistrationResult**: 사용자 등록용 DTO 추가 완료
+- [ ] **계정 삭제 관련 DTO**: Scenario 8 구현 시 추가 예정
 
 ### 7.2 Context 구현 완료 확인
-- [x] **도메인별 독립적인 Context**: OrganizationContext 구현 완료
-- [x] **DTO 배열과 선택된 엔티티 상태 관리**: 완료
-- [x] **쿠키 기반 영속성**: 선택된 조직 ID 쿠키 저장/복원 구현 완료
+- [x] **도메인별 독립적인 Context**: UserContext 구현 완료
+- [x] **사용자 프로필 상태 관리**: 완료
 - [x] **초기 데이터 로드 로직**: Provider 마운트 시 자동 조회 구현 완료
-- [x] **조직 생성 액션**: createOrganization 메서드 추가 완료
-- [ ] **사용자 Context**: 별도 사용자 정보 관리 Context 미구현
+- [ ] **계정 삭제 액션**: deleteUserAccount 메서드 추가 예정
 
 ### 7.3 Server Actions 구현 완료 확인
 - [x] **Supabase Auth 인증 확인**: 모든 액션에서 구현 완료
@@ -547,36 +434,37 @@ export function CreateOrganizationDialog({ open, onOpenChange }: DialogProps) {
 - [x] **Command 객체 활용**: 입력 구조화 완료
 - [x] **DTO 직렬화**: Service Layer에서 DTO 반환 완료
 - [x] **revalidatePath**: 관련 페이지 재검증 완료
-- [x] **조직 생성**: createNewOrganizationAction 구현 완료
-- [ ] **조직 수정/삭제**: 조직 관리 액션 미구현 (Story 006)
-- [ ] **멤버 관리**: 멤버 초대/관리 액션 미구현 (Story 007)
+- [x] **프로필 생성**: createUserProfileAction 구현 완료
+- [x] **프로필 조회**: getUserProfileAction 구현 완료
+- [x] **프로필 수정**: updateUserProfileAction 구현 완료
+- [x] **사용자 등록**: processUserRegistrationAction 구현 완료
+- [ ] **계정 삭제**: deleteUserAccountAction 미구현 (Scenario 8)
 
 ### 7.4 Hook 구현 완료 확인
-- [x] **Context 추상화**: useOrganization Hook 구현 완료
-- [x] **비즈니스 로직 메서드**: 조직 관련 편의 함수들 구현 완료
-- [x] **선택된 엔티티, 기본 엔티티 등 유틸리티**: 완료
+- [x] **Context 추상화**: useUser Hook 구현 완료
+- [x] **비즈니스 로직 메서드**: 사용자 관련 편의 함수들 구현 완료
+- [x] **유틸리티 함수**: 온보딩 확인, 인증 여부 등 구현 완료
 - [x] **에러 상태 처리**: 적절히 처리 완료
-- [x] **조직 생성 액션**: createOrganization 메서드 추가 완료
-- [ ] **낙관적 업데이트**: useOptimistic 미사용, 직접 상태 관리
-- [ ] **복잡한 액션**: 조직 수정, 삭제 등 미구현
+- [ ] **계정 삭제 메서드**: deleteUserAccount 미구현
 
 ### 7.5 컴포넌트 연동 완료 확인
-- [x] **Hook 사용**: 컴포넌트에서 useOrganization Hook 사용
-- [x] **Switcher 컴포넌트**: OrganizationSwitcher 드롭다운 구현 완료
+- [x] **Hook 사용**: 컴포넌트에서 useUser Hook 사용
+- [x] **프로필 카드**: UserProfileCard 구현 완료
+- [x] **프로필 수정 폼**: UserProfileEditForm 구현 완료
 - [x] **로딩 상태와 에러 상태 처리**: 적절히 처리 완료
-- [x] **빈 상태 처리**: 포함 완료
-- [x] **조직 생성 Dialog**: CreateOrganizationDialog 구현 완료
+- [x] **OAuth 버튼**: OAuthButtons 구현 완료
 - [x] **폼 검증**: Zod 스키마 기반 검증 구현 완료
-- [ ] **폼 컴포넌트**: OrganizationEditForm, SettingsModal 미구현
-- [ ] **목록 컴포넌트**: OrganizationList, MemberManagement 미구현
+- [ ] **계정 삭제 Dialog**: AccountDeletionDialog 미구현
+- [ ] **계정 설정**: AccountSettings 미구현
 
 ### 7.6 앱 통합 완료 확인
 - [x] **Provider 중첩 순서**: 적절한 순서로 배치 완료
 - [x] **초기 데이터**: Server Components에서 전달 완료
-- [x] **쿠키 기반 영속성**: 올바르게 작동 완료
 - [x] **페이지별 Hook 사용**: 필요한 Hook만 선택적으로 사용 완료
-- [ ] **구글 OAuth**: Supabase Auth 구글 OAuth 연동 필요
-- [ ] **로그인 UI**: 프론트엔드 로그인 페이지 미구현
+- [x] **UserProvider**: 사용자 상태 Provider 통합 완료
+- [x] **구글 OAuth**: Supabase Auth 구글 OAuth 연동 완료
+- [x] **로그인 UI**: 프론트엔드 로그인 페이지 구현 완료
+- [ ] **계정 삭제 UI**: 계정 설정 페이지 미구현
 
 ## 📚 8. 관련 문서 및 참조
 
@@ -607,11 +495,10 @@ export function CreateOrganizationDialog({ open, onOpenChange }: DialogProps) {
 - **Next.js 14**: App Router, Server Actions ✅
 - **React 18**: Context API, useState, useEffect ✅
 - **TypeScript**: DTO 인터페이스, Value Objects, Entity 클래스 ✅
-- **UI 라이브러리**: shadcn/ui 컴포넌트 (DropdownMenu, Sidebar 등) ✅
+- **UI 라이브러리**: shadcn/ui 컴포넌트 (Card, Form, Button 등) ✅
 - **상태 관리**: React Context + Custom Hooks 패턴 ✅
 - **인증**: Supabase Auth ✅
 - **ORM**: Drizzle ORM + Supabase ✅
-- **쿠키 관리**: cookie-helpers.ts 유틸리티 ✅
 
 ### 8.3 실제 폴더 구조 (08-code-conventions.md 준수)
 ```
@@ -620,68 +507,79 @@ src/
 │   ├── shared/                     # 공유 도메인 객체들
 │   │   ├── entities/               # Entity 클래스들
 │   │   │   ├── user.entity.ts
-│   │   │   └── organization.entity.ts
+│   │   │   └── __tests__/
+│   │   │       └── user.test.ts
 │   │   ├── value-objects/          # Value Objects
-│   │   │   ├── ids.vo.ts
-│   │   │   └── user-email.vo.ts
+│   │   │   ├── ids.vo.ts           (UserId만)
+│   │   │   ├── user-email.vo.ts
+│   │   │   └── __tests__/
+│   │   │       ├── ids.test.ts
+│   │   │       └── user-email.test.ts
 │   │   ├── aggregates/             # Aggregate 클래스들
 │   │   │   ├── user.aggregate.ts
-│   │   │   └── organization.aggregate.ts
+│   │   │   └── __tests__/
+│   │   │       └── user.aggregate.test.ts
 │   │   ├── dtos/                   # DTO 타입들 (직렬화 가능)
-│   │   │   └── index.ts
+│   │   │   └── index.ts            (UserProfileView만)
 │   │   ├── commands/               # Command 인터페이스들
-│   │   │   └── index.ts
+│   │   │   └── index.ts            (CreateUserProfileCommand만)
 │   │   ├── events/                 # Event 클래스들
-│   │   │   └── index.ts
+│   │   │   └── index.ts            (UserProfileCreated, UserUpdated만)
 │   │   ├── errors/                 # 에러 타입
 │   │   │   └── user-management.error.ts
 │   │   └── types/                  # 공통 타입들
-│   │       └── index.ts
+│   │       └── index.ts            (현재 비어있음)
 │   ├── backend/                    # 백엔드 레이어
 │   │   ├── services/               # 서비스 클래스들
+│   │   │   └── user-management.service.ts
 │   │   ├── repositories/           # 리포지토리 구현체들
+│   │   │   ├── interfaces/
+│   │   │   │   └── user.repository.interface.ts
+│   │   │   └── implementations/
+│   │   │       ├── drizzle-user.repository.ts
+│   │   │       └── __tests__/
+│   │   │           └── drizzle-user.repository.test.ts
 │   │   ├── anti-corruption-layers/ # ACL 클래스들
+│   │   │   ├── supabase-auth-acl.ts
+│   │   │   └── __tests__/
+│   │   │       └── supabase-auth-acl.test.ts
 │   │   └── read-models/            # Read Model 클래스들
-│   ├── actions/                    # Server Actions
-│   │   └── user-management.actions.ts
-│   └── frontend/                   # 프론트엔드 레이어
-│       ├── contexts/               # React Context
-│       │   └── organization-context.tsx
-│       ├── hooks/                  # Custom Hooks
-│       │   └── use-organization.ts
-│       ├── components/             # UI 컴포넌트
-│       │   ├── organization-switcher.tsx
-│       │   ├── create-organization-dialog.tsx
-│       │   ├── dashboard-sidebar.tsx
-│       │   └── sidebar-components/  # 사이드바 하위 컴포넌트들
-│       │       ├── sidebar-header-group.tsx
-│       │       ├── sidebar-footer-settings.tsx
-│       │       ├── org-workspaces-menu.tsx
-│       │       ├── org-workspaces-skeleton.tsx
-│       │       └── index.ts
-│       └── utils/                  # 유틸리티 함수들
-│           └── cookie-helpers.ts
+│   │       └── user-profile.view.ts
+│   └── actions/                    # Server Actions
+│       └── user-management.actions.ts
+│
+│   # 주요 변경사항: frontend 폴더가 organization-management로 이동됨
+│   # Organization 관련 UI는 organization-management domain에서 관리
 ```
 
 ### 8.4 현재 구현 상태 (08-code-conventions.md 기준)
-1. ✅ **DTO 직렬화**: Plain Object, ISO 문자열, Value Object 직렬화 완료
-2. ✅ **React Context**: OrganizationContext 구현 완료
-3. ✅ **Server Actions**: 표준 패턴 준수, DTO 반환 완료
-4. ✅ **Custom Hook**: useOrganization Hook 구현 완료
-5. ✅ **React Components**: OrganizationSwitcher, DashboardSidebar 구현 완료
-6. ✅ **앱 통합**: Provider 설정, 쿠키 기반 영속성 완료
-7. ✅ **조직 생성 Dialog**: CreateOrganizationDialog 구현 완료 (Phase 4)
-8. ⚠️ **구글 OAuth**: Supabase Auth 구글 OAuth 연동 필요
-9. ⚠️ **로그인 UI**: 프론트엔드 로그인 페이지 구현 필요
-10. 📋 **Story 006**: 조직 수정/삭제 기능 구현 예정
-11. 📋 **Story 007**: 멤버 초대/관리 기능 구현 예정
+
+#### 도메인 분리 현황
+- ✅ **Organization 관련 기능 분리**: Organization Management Domain으로 완전히 이동
+  - Frontend 레이어 (contexts, hooks, components, utils) → organization-management
+  - Organization Entity, Aggregate, Repository → organization-management
+  - Organization-related DTOs, Commands, Events → organization-management
+  
+#### User Management Domain 현재 상태
+1. ✅ **DTO 직렬화**: Plain Object, ISO 문자열, Value Object 직렬화 완료 (UserProfileView만)
+2. ✅ **Server Actions**: 표준 패턴 준수, DTO 반환 완료 (User 관련만)
+3. ✅ **구글 OAuth**: Supabase Auth 구글 OAuth 연동 완료
+4. ✅ **로그인 UI**: 프론트엔드 로그인 페이지 구현 완료 (Organization Management에서 제공)
+5. 📋 **Scenario 0**: 사용자 등록 및 온보딩 완료
+6. 📋 **Scenario 8**: 사용자 계정 삭제 구현 예정
+
+#### Frontend 레이어 참고사항
+- **조직 관련 UI**: Organization Management Domain의 frontend 레이어 참조
+  - `@/domains/organization-management/frontend/components/*`
+  - `@/domains/organization-management/frontend/contexts/*`
+  - `@/domains/organization-management/frontend/hooks/*`
+- **User 관련 UI**: 향후 구현 시 user-management domain에 frontend 폴더 추가 예정
 
 ### 8.5 다음 단계 우선순위
-1. **즉시**: Supabase Auth 구글 OAuth 설정
-2. **즉시**: 프론트엔드 로그인 페이지 구현
-3. **완료**: Phase 4 (조직 생성 Dialog) 구현 완료
-4. **다음 스프린트**: Story 006 (조직 수정/삭제) 구현
-5. **다음 스프린트**: Story 007 (멤버 초대) 구현
+1. **완료**: Scenario 0 (사용자 등록 및 온보딩) 구현 완료
+2. **완료**: 구글 OAuth 연동 및 로그인 UI 구현 완료
+3. **다음 스프린트**: Scenario 8 (사용자 계정 삭제) 구현
+4. **다음 스프린트**: 온보딩 UI 개선
 
 ---
 
