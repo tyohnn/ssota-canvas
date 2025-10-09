@@ -28,6 +28,7 @@
 - GitHub Pages에 Playwright 리포트 자동 배포 설정
 - Complete organization creation feature and UI improvements
 - (story5) member invitation logic
+- *(organization-management)* Add member role update with fine policy
 
 ### 📚 Documentation
 
@@ -68,6 +69,7 @@
 - Add snapshot collaboration discussion
 - Add organization creation dialog spec to frontend spec
 - *(story)* Update story-006-organization-creation to match latest design
+- Update CHANGELOG
 - Update CHANGELOG
 
 ### 🔧 Maintenance
