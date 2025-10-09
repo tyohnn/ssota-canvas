@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext } from "react";
-import { useCanvasPageCommands } from "../hooks/useCanvasPageCommands";
+import React, { createContext, useContext } from 'react';
+import { useCanvasPageCommands } from '../hooks/useCanvasPageCommands';
 
 const CanvasPageCommandsContext = createContext<ReturnType<
   typeof useCanvasPageCommands
@@ -11,7 +11,7 @@ export function useCanvasPageCommandsContext() {
   const ctx = useContext(CanvasPageCommandsContext);
   if (!ctx)
     throw new Error(
-      "useCanvasPageCommandsContext must be used within a CanvasPageCommandsProvider"
+      'useCanvasPageCommandsContext must be used within a CanvasPageCommandsProvider'
     );
   return ctx;
 }

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,18 +10,32 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from "@workspace/ui/components/ui/dropdown-menu";
+} from '@workspace/ui/components/ui/dropdown-menu';
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@workspace/ui/components/ui/sidebar";
-import { ChevronDown, Plus } from "lucide-react";
-import { useOrganizationContext } from "@/domains/dashboard/context/OrganizationCotext";
+} from '@workspace/ui/components/ui/sidebar';
+import { ChevronDown, Plus } from 'lucide-react';
+import { useOrganization } from '@/domains/organization-management/frontend/hooks/use-organization';
 
 export function OrganizationSwitcher() {
   const router = useRouter();
-  const { activeOrganization, userOrganizations } = useOrganizationContext();
+  const { organizations, selectedOrganization, selectOrganization } =
+    useOrganization();
+
+  const handleOrganizationSelect = (organizationId: string) => {
+    selectOrganization(organizationId);
+
+    // 선택된 조직으로 라우팅 (r/ 경로 사용)
+    const selectedOrg = organizations.find(
+      org => org.id.value === organizationId
+    );
+    if (selectedOrg) {
+      // TODO: 조직 slug를 사용한 라우팅 구현 필요
+      // router.push(`/r/${selectedOrg.slug}`);
+    }
+  };
 
   return (
     <SidebarMenu>
@@ -31,11 +45,11 @@ export function OrganizationSwitcher() {
             <SidebarMenuButton className="w-fit px-1.5">
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-5 items-center justify-center rounded-md">
                 <span className="text-[10px] font-semibold">
-                  {activeOrganization?.name.charAt(0)}
+                  {selectedOrganization?.name.charAt(0) || 'O'}
                 </span>
               </div>
               <span className="truncate font-medium">
-                {activeOrganization?.name}
+                {selectedOrganization?.name || '조직 선택'}
               </span>
               <ChevronDown className="opacity-50" />
             </SidebarMenuButton>
@@ -49,10 +63,10 @@ export function OrganizationSwitcher() {
             <DropdownMenuLabel className="text-muted-foreground text-xs">
               Organizations
             </DropdownMenuLabel>
-            {userOrganizations.map((org, index) => (
+            {organizations.map((org, index) => (
               <DropdownMenuItem
-                key={org.id}
-                onClick={() => router.push(`/${org.slug}`)}
+                key={org.id.value}
+                onClick={() => handleOrganizationSelect(org.id.value)}
                 className="gap-2 p-2"
               >
                 <div className="flex size-6 items-center justify-center rounded-xs border">
@@ -60,7 +74,14 @@ export function OrganizationSwitcher() {
                     {org.name.charAt(0)}
                   </span>
                 </div>
-                {org.name}
+                <div className="flex flex-col">
+                  <span>{org.name}</span>
+                  {org.isDefault && (
+                    <span className="text-xs text-muted-foreground">
+                      (기본)
+                    </span>
+                  )}
+                </div>
                 <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
               </DropdownMenuItem>
             ))}

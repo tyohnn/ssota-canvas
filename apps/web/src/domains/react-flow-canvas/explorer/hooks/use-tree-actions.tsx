@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React, { useCallback } from "react";
-import type { FeatureImplementation } from "@headless-tree/core";
-import type { TreeActionProps, UseTreeActionsResult } from "../types";
+import React, { useCallback } from 'react';
+import type { FeatureImplementation } from '@headless-tree/core';
+import type { TreeActionProps, UseTreeActionsResult } from '../types';
 
 export function useTreeActions<TSourceData>(
   params: TreeActionProps<TSourceData>
@@ -28,7 +28,7 @@ export function useTreeActions<TSourceData>(
           }
           item.setFocused();
           const id = item.getId();
-          if (id !== "root") onSelect?.(id);
+          if (id !== 'root') onSelect?.(id);
         },
       }),
     },

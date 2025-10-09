@@ -1,62 +1,73 @@
-"use client";
+'use client';
 
-import { useCallback } from "react";
-import type { Block, BlockPosition } from "@/db/schema";
-import { generateUUID } from "@/utils/uuid";
-import { createBlock as createBlockAction } from "@/domains/canvas/actions/block.action";
-import { updateBlock as updateBlockAction } from "@/domains/canvas/actions/block.action";
-import { deleteBlock as deleteBlockAction } from "@/domains/canvas/actions/block.action";
-import { listPageBlockPositions, type BlockWithPosition } from "@/domains/canvas/actions/block-position.action";
-import { isFailure } from "@/lib/action-result";
-import { useCanvasData } from "@/domains/canvas/contexts/CanvasDataContext";
-import { PageBlockMetadata } from "@/domains/blocks/types/page.node";
+import { useCallback } from 'react';
+import type { Block, BlockPosition } from '@/db/schema';
+import { generateUUID } from '@/utils/uuid';
+import { createBlock as createBlockAction } from '@/domains/canvas/actions/block.action';
+import { updateBlock as updateBlockAction } from '@/domains/canvas/actions/block.action';
+import { deleteBlock as deleteBlockAction } from '@/domains/canvas/actions/block.action';
+import {
+  listPageBlockPositions,
+  type BlockWithPosition,
+} from '@/domains/canvas/actions/block-position.action';
+import { isFailure } from '@/lib/action-result';
+import { useCanvasData } from '@/domains/canvas/contexts/CanvasDataContext';
+import { PageBlockMetadata } from '@/domains/blocks/types/page.node';
 
 export type CreateStatus = { ok: boolean; error?: string };
-export type LoadPageDataStatus = { ok: boolean; error?: string; data?: { blocksWithPositions: BlockWithPosition[] } };
+export type LoadPageDataStatus = {
+  ok: boolean;
+  error?: string;
+  data?: { blocksWithPositions: BlockWithPosition[] };
+};
 
 export function useCanvasPageCommands(workspaceId: string) {
   const canvasData = useCanvasData();
 
   // Load page data when page is selected
-  const loadPageData = useCallback(async (pageId: string): Promise<LoadPageDataStatus> => {
-    try {
-      const result = await listPageBlockPositions({ pageId });
+  const loadPageData = useCallback(
+    async (pageId: string): Promise<LoadPageDataStatus> => {
+      try {
+        const result = await listPageBlockPositions({ pageId });
 
-      if (!result.success) {
-        throw new Error(result.error || "Failed to load page positions");
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to load page positions');
+        }
+
+        const { blocksWithPositions } = result.data || {
+          blocksWithPositions: [],
+        };
+
+        return {
+          ok: true,
+          data: { blocksWithPositions },
+        };
+      } catch (error) {
+        console.error('Failed to load page data:', error);
+        return { ok: false, error: String(error) };
       }
-
-      const { blocksWithPositions } = result.data || {
-        blocksWithPositions: [],
-      };
-
-      return { 
-        ok: true, 
-        data: { blocksWithPositions } 
-      };
-    } catch (error) {
-      console.error("Failed to load page data:", error);
-      return { ok: false, error: String(error) };
-    }
-  }, []);
+    },
+    []
+  );
 
   // Create new page (optimistic → reconcile)
   const createNewPage = useCallback(async (): Promise<CreateStatus> => {
     const optimisticId = generateUUID();
     const now = new Date();
-    
+
     // Store the first page before adding new page (for rollback)
-    const firstPageBeforeAdd = canvasData.pageBlocks.length > 0 ? canvasData.pageBlocks[0] : null;
-    
+    const firstPageBeforeAdd =
+      canvasData.pageBlocks.length > 0 ? canvasData.pageBlocks[0] : null;
+
     const newPage: Block = {
       id: optimisticId,
       slug: `new-page-${Date.now()}`,
-      title: "새 페이지",
-      block_type: "page",
+      title: '새 페이지',
+      block_type: 'page',
       parent_block_id: null,
       workspace_id: workspaceId,
-      object: "page",
-      icon_name: "file",
+      object: 'page',
+      icon_name: 'file',
       order: 1000,
       metadata: {
         formData: {},
@@ -66,18 +77,18 @@ export function useCanvasPageCommands(workspaceId: string) {
         },
         pageData: {
           views: {
-            default: "canvas",
+            default: 'canvas',
             definitions: [],
           },
           allowed_component_ids: [],
           allowed_edge_types: [],
-        }
+        },
       },
       created_at: now,
       updated_at: now,
       deleted_at: null,
     };
-    
+
     // Optimistic update
     canvasData.addPageBlock(newPage);
     canvasData.selectPage(optimisticId);
@@ -87,7 +98,7 @@ export function useCanvasPageCommands(workspaceId: string) {
       title: newPage.title,
       workspaceId,
       parentBlockId: newPage.parent_block_id ?? undefined,
-      object: newPage.object ?? "page",
+      object: newPage.object ?? 'page',
       blockType: newPage.block_type,
       metadata: newPage.metadata as PageBlockMetadata,
     });
@@ -106,20 +117,16 @@ export function useCanvasPageCommands(workspaceId: string) {
 
     const dbBlock = res.data;
     // Rekey optimistic block
-    canvasData.replacePageBlockId(
-      optimisticId,
-      dbBlock.id,
-      {
-        id: dbBlock.id,
-        created_at: new Date(dbBlock.created_at),
-        updated_at: new Date(dbBlock.updated_at),
-        slug: dbBlock.slug,
-        title: dbBlock.title,
-        metadata: dbBlock.metadata as PageBlockMetadata,
-        order: dbBlock.order,
-        parent_block_id: dbBlock.parent_block_id,
-      }
-    );
+    canvasData.replacePageBlockId(optimisticId, dbBlock.id, {
+      id: dbBlock.id,
+      created_at: new Date(dbBlock.created_at),
+      updated_at: new Date(dbBlock.updated_at),
+      slug: dbBlock.slug,
+      title: dbBlock.title,
+      metadata: dbBlock.metadata as PageBlockMetadata,
+      order: dbBlock.order,
+      parent_block_id: dbBlock.parent_block_id,
+    });
     canvasData.selectPage(dbBlock.id);
     return { ok: true };
   }, [workspaceId, canvasData]);
@@ -130,7 +137,7 @@ export function useCanvasPageCommands(workspaceId: string) {
       // Get current page data for rollback using getPageBlockById
       const currentPage = canvasData.getPageBlockById(pageId);
       if (!currentPage) {
-        return { ok: false, error: "Page not found" };
+        return { ok: false, error: 'Page not found' };
       }
 
       // Optimistic update
@@ -157,14 +164,14 @@ export function useCanvasPageCommands(workspaceId: string) {
         });
 
         if (isFailure(result)) {
-          console.error("Failed to update page:", result.error);
+          console.error('Failed to update page:', result.error);
           // Rollback optimistic update
           canvasData.updatePageBlock(pageId, currentPage);
           return { ok: false, error: String(result.error) };
         }
         return { ok: true };
       } catch (error) {
-        console.error("Failed to update page in DB:", error);
+        console.error('Failed to update page in DB:', error);
         // Rollback optimistic update
         canvasData.updatePageBlock(pageId, currentPage);
         return { ok: false, error: String(error) };
@@ -179,12 +186,17 @@ export function useCanvasPageCommands(workspaceId: string) {
       // Get current page data for rollback using getPageBlockById
       const currentPage = canvasData.getPageBlockById(pageId);
       if (!currentPage) {
-        return { ok: false, error: "Page not found" };
+        return { ok: false, error: 'Page not found' };
       }
 
       // Find the page to select after deletion (before removing current page)
-      const remainingPagesAfterDelete = canvasData.pageBlocks.filter(page => page.id !== pageId);
-      const pageToSelectAfterDelete = remainingPagesAfterDelete.length > 0 ? remainingPagesAfterDelete[0] : null;
+      const remainingPagesAfterDelete = canvasData.pageBlocks.filter(
+        page => page.id !== pageId
+      );
+      const pageToSelectAfterDelete =
+        remainingPagesAfterDelete.length > 0
+          ? remainingPagesAfterDelete[0]
+          : null;
 
       // Optimistic update - Remove page and select next page
       canvasData.removePageBlock(pageId);
@@ -198,7 +210,7 @@ export function useCanvasPageCommands(workspaceId: string) {
       try {
         const result = await deleteBlockAction({ id: pageId });
         if (isFailure(result)) {
-          console.error("Failed to delete page:", result.error);
+          console.error('Failed to delete page:', result.error);
           // Rollback - Add back page and restore original selection
           canvasData.addPageBlock(currentPage);
           canvasData.selectPage(pageId);
@@ -207,7 +219,7 @@ export function useCanvasPageCommands(workspaceId: string) {
 
         return { ok: true };
       } catch (error) {
-        console.error("Failed to delete page in DB:", error);
+        console.error('Failed to delete page in DB:', error);
         // Rollback - Add back page and restore original selection
         canvasData.addPageBlock(currentPage);
         canvasData.selectPage(pageId);

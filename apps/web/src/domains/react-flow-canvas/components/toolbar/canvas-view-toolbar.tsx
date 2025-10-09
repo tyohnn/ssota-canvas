@@ -1,27 +1,30 @@
-"use client";
+'use client';
 
-import React, { useCallback, useEffect, useState } from "react";
-import { useReactFlow } from "@xyflow/react";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Label } from "@workspace/ui/components/ui/label";
-import { Slider } from "@workspace/ui/components/ui/slider";
+import React, { useCallback, useEffect, useState } from 'react';
+import { useReactFlow } from '@xyflow/react';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Label } from '@workspace/ui/components/ui/label';
+import { Slider } from '@workspace/ui/components/ui/slider';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@workspace/ui/components/ui/tooltip";
-import { Map, Bug } from "lucide-react";
-import { MiniMap } from "@xyflow/react";
-import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
-import { useControlState, useControlCommands } from "@/domains/react-flow-canvas/contexts/ControlContext";
+} from '@workspace/ui/components/ui/tooltip';
+import { Map, Bug } from 'lucide-react';
+import { MiniMap } from '@xyflow/react';
+import { usePanel } from '@/domains/react-flow-canvas/contexts/PanelContext';
+import {
+  useControlState,
+  useControlCommands,
+} from '@/domains/react-flow-canvas/contexts/ControlContext';
 
 export function CanvasViewToolbar() {
   const reactFlow = useReactFlow();
   const { showMiniMap } = useControlState();
   const { setShowMiniMap } = useControlCommands();
   const { showDebugPanel, openDebugPanel, closeDebugPanel } = usePanel();
-  
+
   const [zoomPercent, setZoomPercent] = useState(100);
 
   // 현재 줌 레벨을 퍼센트로 변환
@@ -36,11 +39,14 @@ export function CanvasViewToolbar() {
   }, [updateZoomPercent]);
 
   // 슬라이더로 줌 변경
-  const handleZoomChange = useCallback((percent: number) => {
-    const zoomLevel = percent / 100;
-    reactFlow.zoomTo(zoomLevel, { duration: 200 });
-    setZoomPercent(percent);
-  }, [reactFlow]);
+  const handleZoomChange = useCallback(
+    (percent: number) => {
+      const zoomLevel = percent / 100;
+      reactFlow.zoomTo(zoomLevel, { duration: 200 });
+      setZoomPercent(percent);
+    },
+    [reactFlow]
+  );
 
   // 미니맵 토글
   const toggleMiniMap = useCallback(() => {
@@ -63,7 +69,7 @@ export function CanvasViewToolbar() {
             <Slider
               className="grow"
               value={[zoomPercent]}
-              onValueChange={(value) => handleZoomChange(value[0] as number)}
+              onValueChange={value => handleZoomChange(value[0] as number)}
               min={10}
               max={200}
               step={5}
@@ -78,7 +84,7 @@ export function CanvasViewToolbar() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={showDebugPanel ? "default" : "ghost"}
+                variant={showDebugPanel ? 'default' : 'ghost'}
                 size="sm"
                 className="h-8 w-8 p-0 rounded-md"
                 onClick={showDebugPanel ? closeDebugPanel : openDebugPanel}
@@ -94,7 +100,7 @@ export function CanvasViewToolbar() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={showMiniMap ? "default" : "ghost"}
+                variant={showMiniMap ? 'default' : 'ghost'}
                 size="sm"
                 className="h-8 w-8 p-0 rounded-md"
                 onClick={toggleMiniMap}

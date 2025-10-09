@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { PropertyInput } from "./property-input/property-input";
-import { Badge } from "@workspace/ui/components/ui/badge";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { ComponentInfo } from "./editor-panel";
+import { PropertyInput } from './property-input/property-input';
+import { Badge } from '@workspace/ui/components/ui/badge';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { ComponentInfo } from './editor-panel';
 
 interface StyleSectionProps {
   formData: Record<string, unknown> | undefined;
@@ -11,20 +11,20 @@ interface StyleSectionProps {
   componentInfo: ComponentInfo | null;
 }
 
-export function StyleSection({ 
+export function StyleSection({
   formData,
   schemaFields,
   componentInfo,
 }: StyleSectionProps) {
-  
   const renderStyleField = (field: SchemaField) => {
     // formData가 undefined인 경우 빈 객체 사용
     const safeFormData = formData || {};
     const data = safeFormData[field.id];
     // componentInfo가 null인 경우 overrides도 null로 처리
-    const isOverridden = componentInfo?.overrides?.nodeUI?.includes(field.id) || false;
+    const isOverridden =
+      componentInfo?.overrides?.nodeUI?.includes(field.id) || false;
     return (
-      <PropertyInput 
+      <PropertyInput
         key={field.id}
         field={field}
         data={data}
@@ -49,7 +49,7 @@ export function StyleSection({
       {/* Component Info */}
       {componentInfo && (
         <div className="px-3 py-2 space-y-2">
-          {componentInfo.type === "instance" && (
+          {componentInfo.type === 'instance' && (
             <div className="flex items-center gap-2">
               <Badge
                 variant="secondary"
@@ -59,7 +59,7 @@ export function StyleSection({
               </Badge>
             </div>
           )}
-          {componentInfo.type === "definition" && (
+          {componentInfo.type === 'definition' && (
             <div className="flex items-center gap-2">
               <Badge
                 variant="default"

@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { Node } from "@xyflow/react";
-import { Input } from "@workspace/ui/components/ui/input";
-import { Textarea } from "@workspace/ui/components/ui/textarea";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
+import React, { useState } from 'react';
+import { Node } from '@xyflow/react';
+import { Input } from '@workspace/ui/components/ui/input';
+import { Textarea } from '@workspace/ui/components/ui/textarea';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
 
 export function TextProperty({
   data,
@@ -17,11 +17,11 @@ export function TextProperty({
   node: Node;
 }) {
   const { updateField } = useNodeFieldUpdate();
-  const value = data || "";
+  const value = data || '';
   const [isEditing, setIsEditing] = useState(false);
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState('');
 
-  const isMultiLine = value.includes("\n");
+  const isMultiLine = value.includes('\n');
 
   const handleLabelClick = () => {
     setIsEditing(true);
@@ -44,13 +44,13 @@ export function TextProperty({
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       if (e.shiftKey) {
         // Shift+Enter: 줄바꿈 추가
         const cursorPosition = e.currentTarget.selectionStart ?? 0;
         const newValue =
           inputValue.slice(0, cursorPosition) +
-          "\n" +
+          '\n' +
           inputValue.slice(cursorPosition);
         setInputValue(newValue);
         // 커서 위치 조정
@@ -67,7 +67,7 @@ export function TextProperty({
           updateField(node, field.path, inputValue);
         }
       }
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setIsEditing(false);
       setInputValue(value);
     }
@@ -76,7 +76,7 @@ export function TextProperty({
   const handleTextareaKeyDown = (
     e: React.KeyboardEvent<HTMLTextAreaElement>
   ) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       if (e.shiftKey) {
         // Shift+Enter: 줄바꿈 추가 (기본 동작)
         return;
@@ -88,18 +88,18 @@ export function TextProperty({
           updateField(node, field.path, inputValue);
         }
       }
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setIsEditing(false);
       setInputValue(value);
     }
   };
 
   if (isEditing) {
-    if (isMultiLine || inputValue.includes("\n")) {
+    if (isMultiLine || inputValue.includes('\n')) {
       return (
         <Textarea
           className="resize-none text-xs min-h-[60px]"
-          rows={Math.max(2, inputValue.split("\n").length)}
+          rows={Math.max(2, inputValue.split('\n').length)}
           placeholder={field.placeholder}
           value={inputValue}
           onChange={handleTextareaChange}

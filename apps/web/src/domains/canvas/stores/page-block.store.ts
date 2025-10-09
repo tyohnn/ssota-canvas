@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useCallback, useMemo, useReducer } from "react";
-import type { Block } from "@/db/schema";
+import { useCallback, useMemo, useReducer } from 'react';
+import type { Block } from '@/db/schema';
 
 export type PageBlockState = {
   pageBlocks: Block[];
@@ -9,11 +9,14 @@ export type PageBlockState = {
 };
 
 type Action =
-  | { type: "SET"; payload: { pageBlocks: Block[] } }
-  | { type: "ADD"; payload: { pageBlock: Block } }
-  | { type: "REMOVE"; payload: { id: string } }
-  | { type: "UPDATE"; payload: { id: string; updates: Partial<Block> } }
-  | { type: "REPLACE_ID"; payload: { fromId: string; toId: string; updates?: Partial<Block> } };
+  | { type: 'SET'; payload: { pageBlocks: Block[] } }
+  | { type: 'ADD'; payload: { pageBlock: Block } }
+  | { type: 'REMOVE'; payload: { id: string } }
+  | { type: 'UPDATE'; payload: { id: string; updates: Partial<Block> } }
+  | {
+      type: 'REPLACE_ID';
+      payload: { fromId: string; toId: string; updates?: Partial<Block> };
+    };
 
 const initialState: PageBlockState = {
   pageBlocks: [],
@@ -22,49 +25,50 @@ const initialState: PageBlockState = {
 
 function reducer(state: PageBlockState, action: Action): PageBlockState {
   switch (action.type) {
-    case "SET": {
-      return { 
-        pageBlocks: action.payload.pageBlocks, 
-        lastUpdatedAt: Date.now() 
+    case 'SET': {
+      return {
+        pageBlocks: action.payload.pageBlocks,
+        lastUpdatedAt: Date.now(),
       };
     }
-    case "ADD": {
-      const existingIndex = state.pageBlocks.findIndex(b => b.id === action.payload.pageBlock.id);
+    case 'ADD': {
+      const existingIndex = state.pageBlocks.findIndex(
+        b => b.id === action.payload.pageBlock.id
+      );
       if (existingIndex >= 0) {
         const newPageBlocks = [...state.pageBlocks];
-        newPageBlocks[existingIndex] = { ...newPageBlocks[existingIndex], ...action.payload.pageBlock };
+        newPageBlocks[existingIndex] = {
+          ...newPageBlocks[existingIndex],
+          ...action.payload.pageBlock,
+        };
         return { pageBlocks: newPageBlocks, lastUpdatedAt: Date.now() };
       }
-      return { 
-        pageBlocks: [...state.pageBlocks, action.payload.pageBlock], 
-        lastUpdatedAt: Date.now() 
-      };
-    }
-    case "REMOVE": {
-      return { 
-        pageBlocks: state.pageBlocks.filter(b => b.id !== action.payload.id), 
-        lastUpdatedAt: Date.now() 
-      };
-    }
-    case "UPDATE": {
       return {
-        pageBlocks: state.pageBlocks.map(b => 
-          b.id === action.payload.id 
-            ? { ...b, ...action.payload.updates }
-            : b
-        ),
-        lastUpdatedAt: Date.now()
+        pageBlocks: [...state.pageBlocks, action.payload.pageBlock],
+        lastUpdatedAt: Date.now(),
       };
     }
-    case "REPLACE_ID": {
+    case 'REMOVE': {
+      return {
+        pageBlocks: state.pageBlocks.filter(b => b.id !== action.payload.id),
+        lastUpdatedAt: Date.now(),
+      };
+    }
+    case 'UPDATE': {
+      return {
+        pageBlocks: state.pageBlocks.map(b =>
+          b.id === action.payload.id ? { ...b, ...action.payload.updates } : b
+        ),
+        lastUpdatedAt: Date.now(),
+      };
+    }
+    case 'REPLACE_ID': {
       const { fromId, toId, updates } = action.payload;
       return {
-        pageBlocks: state.pageBlocks.map(b => 
-          b.id === fromId 
-            ? { ...b, ...(updates || {}), id: toId }
-            : b
+        pageBlocks: state.pageBlocks.map(b =>
+          b.id === fromId ? { ...b, ...(updates || {}), id: toId } : b
         ),
-        lastUpdatedAt: Date.now()
+        lastUpdatedAt: Date.now(),
       };
     }
     default:
@@ -76,29 +80,29 @@ export function usePageBlockStore(initial?: Block[]) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const setPageBlocks = useCallback(
-    (pageBlocks: Block[]) => dispatch({ type: "SET", payload: { pageBlocks } }),
+    (pageBlocks: Block[]) => dispatch({ type: 'SET', payload: { pageBlocks } }),
     []
   );
-  
+
   const addPageBlock = useCallback(
-    (pageBlock: Block) => dispatch({ type: "ADD", payload: { pageBlock } }),
+    (pageBlock: Block) => dispatch({ type: 'ADD', payload: { pageBlock } }),
     []
   );
-  
+
   const removePageBlock = useCallback(
-    (id: string) => dispatch({ type: "REMOVE", payload: { id } }),
+    (id: string) => dispatch({ type: 'REMOVE', payload: { id } }),
     []
   );
-  
+
   const updatePageBlock = useCallback(
     (id: string, updates: Partial<Block>) =>
-      dispatch({ type: "UPDATE", payload: { id, updates } }),
+      dispatch({ type: 'UPDATE', payload: { id, updates } }),
     []
   );
 
   const replacePageBlockId = useCallback(
     (fromId: string, toId: string, updates?: Partial<Block>) =>
-      dispatch({ type: "REPLACE_ID", payload: { fromId, toId, updates } }),
+      dispatch({ type: 'REPLACE_ID', payload: { fromId, toId, updates } }),
     []
   );
 

@@ -1,28 +1,25 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
-import { Input } from "@workspace/ui/components/ui/input";
-import { Label } from "@workspace/ui/components/ui/label";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Badge } from "@workspace/ui/components/ui/badge";
-import { Separator } from "@workspace/ui/components/ui/separator";
+import { useState, useEffect, useRef } from 'react';
+import { Input } from '@workspace/ui/components/ui/input';
+import { Label } from '@workspace/ui/components/ui/label';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Badge } from '@workspace/ui/components/ui/badge';
+import { Separator } from '@workspace/ui/components/ui/separator';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@workspace/ui/components/ui/popover";
-import { Plus, Trash2, Copy, Edit3, Check } from "lucide-react";
-import {
-  SchemaField,
-  SchemaFieldOption,
-} from "@/domains/blocks/types";
-import { createShortId } from "@/lib/regex";
-import { useSchemaFieldEditor } from "./useSchemaFieldEditor";
+} from '@workspace/ui/components/ui/popover';
+import { Plus, Trash2, Copy, Edit3, Check } from 'lucide-react';
+import { SchemaField, SchemaFieldOption } from '@/domains/blocks/types';
+import { createShortId } from '@/lib/regex';
+import { useSchemaFieldEditor } from './useSchemaFieldEditor';
 import {
   ShapePolicy,
   type ColorKey,
-} from "@/domains/blocks/policy/shape-policy";
-import { Node } from "@xyflow/react";
+} from '@/domains/blocks/policy/shape-policy';
+import { Node } from '@xyflow/react';
 
 // Shared Popover Content Component
 function OptionEditPopoverContent({
@@ -43,7 +40,7 @@ function OptionEditPopoverContent({
   onDuplicate: (option: SchemaFieldOption) => void;
 }) {
   const [label, setLabel] = useState(option.label);
-  const [color, setColor] = useState(option.color || "gray");
+  const [color, setColor] = useState(option.color || 'gray');
 
   // Auto-save label changes
   useEffect(() => {
@@ -65,32 +62,44 @@ function OptionEditPopoverContent({
     <div className="w-full space-y-4">
       {/* Label Input */}
       <div className="space-y-2">
-        <Label className="text-xs font-medium text-muted-foreground mb-1 select-none" htmlFor={name}>Option Label</Label>
+        <Label
+          className="text-xs font-medium text-muted-foreground mb-1 select-none"
+          htmlFor={name}
+        >
+          Option Label
+        </Label>
         <Input
           name={name}
           value={label}
-          onChange={(e) => setLabel(e.target.value)}
+          onChange={e => setLabel(e.target.value)}
           placeholder="Enter option label"
           className="h-7"
         />
       </div>
 
-      <Separator className="bg-border/50"/>
+      <Separator className="bg-border/50" />
 
       {/* Color Selection */}
       <div className="space-y-2">
-        <Label className="text-xs font-medium text-muted-foreground mb-1 select-none" htmlFor={name}>Color</Label>
+        <Label
+          className="text-xs font-medium text-muted-foreground mb-1 select-none"
+          htmlFor={name}
+        >
+          Color
+        </Label>
         <div className="space-y-0.5">
-          {colorOptions.map((colorOpt) => {
+          {colorOptions.map(colorOpt => {
             const isSelected = color === colorOpt.value;
-            const colorDef = ShapePolicy.getColorDefinition(colorOpt.value as ColorKey);
+            const colorDef = ShapePolicy.getColorDefinition(
+              colorOpt.value as ColorKey
+            );
             return (
               <Button
                 key={colorOpt.value}
                 variant="ghost"
                 size="sm"
                 className={`w-full justify-start h-8 px-2 hover:bg-muted/50 transition-all duration-200 ${
-                  isSelected ? "bg-accent/50" : ""
+                  isSelected ? 'bg-accent/50' : ''
                 }`}
                 onClick={() => setColor(colorOpt.value)}
               >
@@ -101,7 +110,9 @@ function OptionEditPopoverContent({
                     border: `1px solid ${colorDef.badge.border}`,
                   }}
                 />
-                <span className="text-xs flex-1 text-left">{colorOpt.label}</span>
+                <span className="text-xs flex-1 text-left">
+                  {colorOpt.label}
+                </span>
                 {isSelected && (
                   <Check className="w-3 h-3 text-primary ml-auto" />
                 )}
@@ -111,7 +122,7 @@ function OptionEditPopoverContent({
         </div>
       </div>
 
-      <Separator className="bg-border/50"/>
+      <Separator className="bg-border/50" />
 
       {/* Actions */}
       <div className="flex gap-2">
@@ -152,14 +163,16 @@ export function SelectLikeFieldPopover({
   const { saveLabel, deleteField, duplicateField, commitOptions } =
     useSchemaFieldEditor({ node, field });
 
-  const [label, setLabel] = useState(field.label || "");
+  const [label, setLabel] = useState(field.label || '');
   const [options, setOptions] = useState<SchemaFieldOption[]>(
     field.options || []
   );
-  const [editingOptionIndex, setEditingOptionIndex] = useState<number | null>(null);
+  const [editingOptionIndex, setEditingOptionIndex] = useState<number | null>(
+    null
+  );
   const [isAddPopoverOpen, setIsAddPopoverOpen] = useState(false);
   const [isAddingOption, setIsAddingOption] = useState(false);
-  const [newOptionLabel, setNewOptionLabel] = useState("");
+  const [newOptionLabel, setNewOptionLabel] = useState('');
   const inputRef = useRef<HTMLDivElement>(null);
 
   // Auto-save label changes
@@ -188,16 +201,16 @@ export function SelectLikeFieldPopover({
 
   const addOption = () => {
     setIsAddingOption(true);
-    setNewOptionLabel("");
+    setNewOptionLabel('');
   };
 
   const handleNewOptionInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && newOptionLabel.trim()) {
+    if (e.key === 'Enter' && newOptionLabel.trim()) {
       setIsAddingOption(false);
       setIsAddPopoverOpen(true);
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setIsAddingOption(false);
-      setNewOptionLabel("");
+      setNewOptionLabel('');
     }
   };
 
@@ -205,13 +218,13 @@ export function SelectLikeFieldPopover({
     const newOption: SchemaFieldOption = {
       label: optionData.label || newOptionLabel,
       value: createShortId(), // 8자 이내 랜덤값 사용
-      color: optionData.color || "gray",
+      color: optionData.color || 'gray',
     };
     const newOptions = [...options, newOption];
     setOptions(newOptions);
     commitOptions(newOptions);
     setIsAddPopoverOpen(false);
-    setNewOptionLabel("");
+    setNewOptionLabel('');
   };
 
   const duplicateOption = (optionToDuplicate: SchemaFieldOption) => {
@@ -226,7 +239,11 @@ export function SelectLikeFieldPopover({
   };
 
   const updateOption = (index: number, updates: Partial<SchemaFieldOption>) => {
-    console.log('updateOption called with:', { index, updates, currentOptions: options });
+    console.log('updateOption called with:', {
+      index,
+      updates,
+      currentOptions: options,
+    });
     const newOptions = [...options];
     if (newOptions[index]) {
       newOptions[index] = { ...newOptions[index], ...updates };
@@ -242,26 +259,30 @@ export function SelectLikeFieldPopover({
   };
 
   const getColorOptions = (): SchemaFieldOption[] => {
-    return Object.entries(ShapePolicy.getColorOptions()).map(([key, color]) => ({
-      label: key,
-      value: key,
-      color: key,
-    }));
+    return Object.entries(ShapePolicy.getColorOptions()).map(
+      ([key, color]) => ({
+        label: key,
+        value: key,
+        color: key,
+      })
+    );
   };
 
   const getShapeOptions = (): SchemaFieldOption[] => {
-    return Object.entries(ShapePolicy.getShapeOptions()).map(([key, shape]) => ({
-      label: shape.label,
-      value: key,
-    }));
+    return Object.entries(ShapePolicy.getShapeOptions()).map(
+      ([key, shape]) => ({
+        label: shape.label,
+        value: key,
+      })
+    );
   };
 
   // Predefined options for specific field types
   const getPredefinedOptions = () => {
-    if (field.type === "color") {
+    if (field.type === 'color') {
       return getColorOptions();
     }
-    if (field.type === "shape") {
+    if (field.type === 'shape') {
       return getShapeOptions();
     }
     return [];
@@ -272,9 +293,12 @@ export function SelectLikeFieldPopover({
   // Handle clicking outside input area to cancel
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(event.target as Element)) {
+      if (
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Element)
+      ) {
         setIsAddingOption(false);
-        setNewOptionLabel("");
+        setNewOptionLabel('');
       }
     };
 
@@ -290,21 +314,31 @@ export function SelectLikeFieldPopover({
   return (
     <div className="p-4 space-y-4">
       <div className="space-y-2">
-        <Label className="text-xs font-medium text-muted-foreground mb-1 select-none" htmlFor={field.id}>Label</Label>
+        <Label
+          className="text-xs font-medium text-muted-foreground mb-1 select-none"
+          htmlFor={field.id}
+        >
+          Label
+        </Label>
         <Input
           name={field.id}
           value={label}
-          onChange={(e) => setLabel(e.target.value)}
+          onChange={e => setLabel(e.target.value)}
           placeholder="Enter field label"
           className="h-7"
         />
       </div>
 
-      <Separator className="bg-border/50"/>
+      <Separator className="bg-border/50" />
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-xs font-medium text-muted-foreground mb-1 select-none" htmlFor={field.id}>Options</Label>
+          <Label
+            className="text-xs font-medium text-muted-foreground mb-1 select-none"
+            htmlFor={field.id}
+          >
+            Options
+          </Label>
           <Button
             variant="ghost"
             size="sm"
@@ -320,7 +354,7 @@ export function SelectLikeFieldPopover({
           <div ref={inputRef} className="space-y-2">
             <Input
               value={newOptionLabel}
-              onChange={(e) => setNewOptionLabel(e.target.value)}
+              onChange={e => setNewOptionLabel(e.target.value)}
               placeholder="Enter option label and press Enter"
               className="h-7"
               onKeyDown={handleNewOptionInput}
@@ -333,8 +367,8 @@ export function SelectLikeFieldPopover({
         <Popover open={isAddPopoverOpen} onOpenChange={setIsAddPopoverOpen}>
           <PopoverContent align="start" side="right" className="w-48">
             <OptionEditPopoverContent
-              name={field.id + "-option-add"}
-              option={{ label: newOptionLabel, value: "", color: "gray" }}
+              name={field.id + '-option-add'}
+              option={{ label: newOptionLabel, value: '', color: 'gray' }}
               onUpdate={createNewOption}
               onDelete={() => {}}
               onClose={() => setIsAddPopoverOpen(false)}
@@ -350,18 +384,24 @@ export function SelectLikeFieldPopover({
             <Popover
               key={index}
               open={editingOptionIndex === index}
-              onOpenChange={(open) => open ? setEditingOptionIndex(index) : setEditingOptionIndex(null)}
+              onOpenChange={open =>
+                open
+                  ? setEditingOptionIndex(index)
+                  : setEditingOptionIndex(null)
+              }
             >
               <PopoverTrigger asChild>
-                <div className={`flex items-center justify-between p-1.5 rounded-md transition-colors cursor-pointer group ${
-                  editingOptionIndex === index 
-                    ? "bg-accent/50" 
-                    : "hover:bg-muted/50"
-                }`}>
-                  <Badge 
-                    variant="secondary" 
+                <div
+                  className={`flex items-center justify-between p-1.5 rounded-md transition-colors cursor-pointer group ${
+                    editingOptionIndex === index
+                      ? 'bg-accent/50'
+                      : 'hover:bg-muted/50'
+                  }`}
+                >
+                  <Badge
+                    variant="secondary"
                     className={`text-xs h-5 px-2 py-0.5 ${
-                      option.color 
+                      option.color
                         ? `${ShapePolicy.getTailwindBgColor(option.color as ColorKey)} ${ShapePolicy.getTailwindBorderColor(option.color as ColorKey)} ${ShapePolicy.getTailwindTextColor(option.color as ColorKey)}`
                         : ''
                     }`}
@@ -373,9 +413,9 @@ export function SelectLikeFieldPopover({
               </PopoverTrigger>
               <PopoverContent align="start" side="right" className="w-56 p-2">
                 <OptionEditPopoverContent
-                  name={field.id + "-option-" + index}
+                  name={field.id + '-option-' + index}
                   option={option}
-                  onUpdate={(updates) => updateOption(index, updates)}
+                  onUpdate={updates => updateOption(index, updates)}
                   onDelete={() => removeOption(index)}
                   onClose={() => setEditingOptionIndex(null)}
                   onDuplicate={duplicateOption}
@@ -391,7 +431,7 @@ export function SelectLikeFieldPopover({
         </div>
       </div>
 
-      <Separator className="bg-border/50"/>
+      <Separator className="bg-border/50" />
 
       <div className="flex gap-2">
         <Button

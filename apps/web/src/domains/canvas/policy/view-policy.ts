@@ -1,6 +1,6 @@
-import type { Block } from "@/db/schema";
+import type { Block } from '@/db/schema';
 
-export type ViewType = "canvas" | "table" | "kanban" | "markdown";
+export type ViewType = 'canvas' | 'table' | 'kanban' | 'markdown';
 
 export type ViewConfig = {
   // table
@@ -30,10 +30,10 @@ export type PageViewsMetadata = {
 function isViewDefinition(value: any): value is ViewDefinition {
   return (
     value &&
-    typeof value === "object" &&
-    typeof value.id === "string" &&
-    typeof value.name === "string" &&
-    typeof value.type === "string"
+    typeof value === 'object' &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.type === 'string'
   );
 }
 
@@ -48,11 +48,11 @@ export function extractPageViewsMetadata(
 
   const definitions: ViewDefinition[] = definitionsRaw
     .filter(isViewDefinition)
-    .map((v) => ({ ...v }))
+    .map(v => ({ ...v }))
     .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
   const result: PageViewsMetadata = {
-    default: typeof views?.default === "string" ? views.default : undefined,
+    default: typeof views?.default === 'string' ? views.default : undefined,
     definitions,
   };
   return result;
@@ -71,13 +71,13 @@ export function resolveInitialViewId(
   const { default: def, definitions } = extractPageViewsMetadata(pageBlock);
   const defs = definitions ?? [];
   if (defs.length > 0) {
-    if (def && defs.some((v) => v.id === def)) {
+    if (def && defs.some(v => v.id === def)) {
       return def;
     }
-    return defs[0]?.id || "canvas";
+    return defs[0]?.id || 'canvas';
   }
   // No definitions → default to canvas
-  return "canvas";
+  return 'canvas';
 }
 
 export function findViewDefinition(
@@ -86,6 +86,6 @@ export function findViewDefinition(
 ): ViewDefinition | null {
   if (!pageBlock) return null;
   const defs = getAvailableViews(pageBlock);
-  const def = defs.find((d) => d.id === viewId);
+  const def = defs.find(d => d.id === viewId);
   return def || null;
 }

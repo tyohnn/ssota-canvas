@@ -10,6 +10,26 @@ export function devLog(message: string, data?: Record<string, any>): void {
 }
 
 /**
+ * Production event logging with sampling (10% rate)
+ * Use for important business events only
+ * - Invitation created/accepted
+ * - Organization created/deleted
+ * - Ownership transferred
+ */
+export function eventLog(message: string, data?: Record<string, any>): void {
+  // Development: Always log
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[EVENT] ${message}`, data ? data : '');
+    return;
+  }
+
+  // Production: 10% sampling
+  if (Math.random() < 0.1) {
+    console.log(`[EVENT] ${message}`, data ? data : '');
+  }
+}
+
+/**
  * Development-only error logging utility
  * Only outputs error logs when NODE_ENV is 'development'
  */

@@ -1,30 +1,30 @@
-"use client";
+'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MultipleSelector, {
   type Option as MultiOption,
-} from "@workspace/ui/components/ui/multiselect";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Badge } from "@workspace/ui/components/ui/badge";
+} from '@workspace/ui/components/ui/multiselect';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Badge } from '@workspace/ui/components/ui/badge';
 import {
   ShapePolicy,
   type ColorKey,
-} from "@/domains/blocks/policy/shape-policy";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
-import { Node } from "@xyflow/react";
+} from '@/domains/blocks/policy/shape-policy';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
+import { Node } from '@xyflow/react';
 
 const getBadgeStyle = (color: string) => {
   // Use the policy for color-based styling
   if (
     Object.values(ShapePolicy.getColorOptions()).some(
-      (opt) => opt.value === color
+      opt => opt.value === color
     )
   ) {
     return ShapePolicy.getBadgeStyle(color as ColorKey);
   }
   // Fallback for non-policy colors
-  return "bg-gray-100 border-gray-200 text-gray-700";
+  return 'bg-gray-100 border-gray-200 text-gray-700';
 };
 
 export function MultiSelectProperty({
@@ -41,7 +41,7 @@ export function MultiSelectProperty({
 
   const allOptions: MultiOption[] = useMemo(
     () =>
-      (field.options || []).map((o) => ({
+      (field.options || []).map(o => ({
         value: String(o.value),
         label: o.label,
         color: (o as any).color,
@@ -50,7 +50,7 @@ export function MultiSelectProperty({
   );
 
   const deriveSelected = () =>
-    allOptions.filter((opt) => currentValues.includes(opt.value));
+    allOptions.filter(opt => currentValues.includes(opt.value));
 
   const [isEditing, setIsEditing] = useState(false);
   const [selected, setSelected] = useState<MultiOption[]>(deriveSelected());
@@ -60,14 +60,14 @@ export function MultiSelectProperty({
     // Keep local state in sync when metadata/options change outside
     setSelected(deriveSelected());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentValues.join("|"), field.options]);
+  }, [currentValues.join('|'), field.options]);
 
   const handleOpen = () => {
     setSelected(deriveSelected());
     setIsEditing(true);
     // Auto-focus the input after a short delay to trigger dropdown
     setTimeout(() => {
-      const input = containerRef.current?.querySelector("input");
+      const input = containerRef.current?.querySelector('input');
       if (input) {
         input.focus();
       }
@@ -79,17 +79,17 @@ export function MultiSelectProperty({
     updateField(
       node,
       field.path,
-      next.map((n) => n.value)
+      next.map(n => n.value)
     );
   };
 
-  const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
-    if (e.key === "Escape") {
+  const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = e => {
+    if (e.key === 'Escape') {
       setIsEditing(false);
     }
   };
 
-  const handleBlur: React.FocusEventHandler<HTMLDivElement> = (e) => {
+  const handleBlur: React.FocusEventHandler<HTMLDivElement> = e => {
     if (!e.currentTarget.contains(e.relatedTarget)) {
       setIsEditing(false);
     }
@@ -105,10 +105,10 @@ export function MultiSelectProperty({
       >
         {hasSelection ? (
           <div className="flex flex-wrap items-center gap-1.5">
-            {selected.map((opt) => (
+            {selected.map(opt => (
               <Badge
                 key={opt.value}
-                className={`h-5 px-1.5 text-xs font-medium ${getBadgeStyle((opt as any).color || "gray")}`}
+                className={`h-5 px-1.5 text-xs font-medium ${getBadgeStyle((opt as any).color || 'gray')}`}
               >
                 {opt.label}
               </Badge>
@@ -116,7 +116,7 @@ export function MultiSelectProperty({
           </div>
         ) : (
           <span className="text-muted-foreground">
-            {field.placeholder || "Select options"}
+            {field.placeholder || 'Select options'}
           </span>
         )}
       </Button>
@@ -140,8 +140,8 @@ export function MultiSelectProperty({
         }))}
         defaultOptions={allOptions}
         onChange={handleChange}
-        placeholder={field.placeholder || "Select options"}
-        commandProps={{ label: field.label || "Select" }}
+        placeholder={field.placeholder || 'Select options'}
+        commandProps={{ label: field.label || 'Select' }}
         hideClearAllButton
         hidePlaceholderWhenSelected
         emptyIndicator={<p className="text-center text-sm">No results found</p>}

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
-import { TreeItem } from "@workspace/ui/components/ui/tree";
-import { useExplorerTreeContext } from "../explorer-tree-context";
-import { TreeControls } from "./tree-controls";
-import { TreeItemContent } from "./tree-item-content";
+import React from 'react';
+import { TreeItem } from '@workspace/ui/components/ui/tree';
+import { useExplorerTreeContext } from '../explorer-tree-context';
+import { TreeControls } from './tree-controls';
+import { TreeItemContent } from './tree-item-content';
 
 interface TreeItemRendererProps {
   item: any; // Headless Tree item type

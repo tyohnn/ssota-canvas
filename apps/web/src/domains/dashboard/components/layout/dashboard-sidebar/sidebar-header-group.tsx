@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,17 +8,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@workspace/ui/components/ui/dialog";
+} from '@workspace/ui/components/ui/dialog';
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@workspace/ui/components/ui/sidebar";
-import { Home, Inbox, Search } from "lucide-react";
-import { useOrganizationContext } from "@/domains/dashboard/context/OrganizationCotext";
+} from '@workspace/ui/components/ui/sidebar';
+import { Home, Inbox, Search } from 'lucide-react';
+import { useOrganization } from '@/domains/organization-management/frontend/contexts/organization-context';
 
 export function SidebarHeaderGroup() {
-  const { activeOrganization } = useOrganizationContext();
+  const { organizations, selectedOrganizationId } = useOrganization();
+  const activeOrganization = organizations.find(
+    org => org.id === selectedOrganizationId
+  );
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [isInboxOpen, setIsInboxOpen] = React.useState(false);
 
@@ -30,7 +33,7 @@ export function SidebarHeaderGroup() {
           className="text-muted-foreground"
           tooltip="Home"
         >
-          <a href={`/${activeOrganization?.slug}`}>
+          <a href={`/r/${activeOrganization?.id}`}>
             <Home />
             <span>Home</span>
           </a>

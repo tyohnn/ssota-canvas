@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { PropertyInput } from "./property-input/property-input";
-import { PropertyAddPopover } from "./property-add-popover";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { ComponentInfo } from "./editor-panel";
+import { PropertyInput } from './property-input/property-input';
+import { PropertyAddPopover } from './property-add-popover';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { ComponentInfo } from './editor-panel';
 
 interface PropertySectionProps {
   formData: Record<string, unknown>;
@@ -16,19 +16,19 @@ export function PropertySection({
   schemaFields,
   componentInfo,
 }: PropertySectionProps) {
-
   // 여기서는 이미 일반 블럭과 인스턴스 블럭, 컴포넌트 블럭 등을 모두 resolve 한 상태로 넘어왔음. 그냥 렌더링 하면 됨
   const renderPropertyField = (field: SchemaField) => {
     console.log(formData);
     const data = formData[field.id];
 
     // 필드가 오버라이드되었는지 확인 (formData 카테고리 기준)
-    const isOverridden = componentInfo?.overrides?.formData?.includes(field.id) || false;
-    
+    const isOverridden =
+      componentInfo?.overrides?.formData?.includes(field.id) || false;
+
     return (
-      <PropertyInput 
-        key={field.id} 
-        field={field} 
+      <PropertyInput
+        key={field.id}
+        field={field}
         data={data}
         isOverridden={isOverridden}
       />

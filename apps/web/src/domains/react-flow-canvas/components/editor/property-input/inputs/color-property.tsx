@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { Button } from "@workspace/ui/components/ui/button";
+import React, { useState } from 'react';
+import { Button } from '@workspace/ui/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@workspace/ui/components/ui/popover"; 
+} from '@workspace/ui/components/ui/popover';
 import {
   ShapePolicy,
   type ColorKey,
-} from "@/domains/blocks/policy/shape-policy";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
-import { Node } from "@xyflow/react";
+} from '@/domains/blocks/policy/shape-policy';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
+import { Node } from '@xyflow/react';
 
 const predefinedColors = ShapePolicy.getColorOptions();
 
@@ -28,10 +28,10 @@ export function ColorProperty({
 }) {
   const { updateField } = useNodeFieldUpdate();
   const [isOpen, setIsOpen] = useState(false);
-  const [inputValue, setInputValue] = useState("");
-  
-  const rawValue = data || "";
-  const value = rawValue.startsWith("#")
+  const [inputValue, setInputValue] = useState('');
+
+  const rawValue = data || '';
+  const value = rawValue.startsWith('#')
     ? ShapePolicy.getClosestColorKey(rawValue)
     : rawValue;
 
@@ -59,12 +59,12 @@ export function ColorProperty({
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       if (inputValue !== value) {
         updateField(node, field.path, inputValue);
       }
       setIsOpen(false);
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setInputValue(value);
       setIsOpen(false);
     }
@@ -78,8 +78,8 @@ export function ColorProperty({
             variant="ghost"
             className={`flex-1 h-7 px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50 transition-[color,box-shadow] select-none cursor-pointer ${
               isOpen
-                ? "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-ring ring-ring/50 ring-[3px]"
-                : ""
+                ? 'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-ring ring-ring/50 ring-[3px]'
+                : ''
             }`}
           >
             <div className="flex items-center gap-2">
@@ -92,7 +92,7 @@ export function ColorProperty({
               <span>
                 {ShapePolicy.getColorDefinition(value as ColorKey)?.label ||
                   field.placeholder ||
-                  "Select color"}
+                  'Select color'}
               </span>
             </div>
           </Button>
@@ -103,13 +103,15 @@ export function ColorProperty({
             <div>
               <h4 className="text-sm font-medium mb-2">Preset</h4>
               <div className="grid grid-cols-5 gap-1">
-                {predefinedColors.map((color) => (
+                {predefinedColors.map(color => (
                   <button
                     key={color.value}
                     title={color.label}
                     onClick={() => handleColorChange(color.value)}
                     style={{
-                      backgroundColor: ShapePolicy.getHexColor(color.value as ColorKey),
+                      backgroundColor: ShapePolicy.getHexColor(
+                        color.value as ColorKey
+                      ),
                     }}
                     className="h-8 w-8 rounded ring-1 ring-black/10 transition hover:scale-110"
                   />

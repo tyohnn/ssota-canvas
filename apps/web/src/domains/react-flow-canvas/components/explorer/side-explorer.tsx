@@ -1,24 +1,24 @@
-"use client";
+'use client';
 
-import React from "react";
-import { usePanel } from "@/domains/react-flow-canvas/contexts/PanelContext";
+import React from 'react';
+import { usePanel } from '@/domains/react-flow-canvas/contexts/PanelContext';
 import {
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-} from "@workspace/ui/components/ui/tabs";
+} from '@workspace/ui/components/ui/tabs';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@workspace/ui/components/ui/tooltip";
-import { Button } from "@workspace/ui/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { PageExplorerTab } from "./page-explorer-tab";
-import { LayerExplorerTab } from "./layer-explorer-tab";
-import { AssetsExplorerTab } from "./assets-explorer-tab";
+} from '@workspace/ui/components/ui/tooltip';
+import { Button } from '@workspace/ui/components/ui/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { PageExplorerTab } from './page-explorer-tab';
+import { LayerExplorerTab } from './layer-explorer-tab';
+import { AssetsExplorerTab } from './assets-explorer-tab';
 
 export function SideExplorer() {
   const panel = usePanel();
@@ -80,8 +80,8 @@ export function SideExplorer() {
         <div
           className={`absolute left-0 top-0 w-4 h-full z-50 transition-all duration-200 ${
             isHoverAreaVisible && !isHoverExpanded
-              ? "bg-blue-500/20 border-r border-blue-500/40"
-              : "bg-transparent"
+              ? 'bg-blue-500/20 border-r border-blue-500/40'
+              : 'bg-transparent'
           }`}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
@@ -92,12 +92,12 @@ export function SideExplorer() {
       <div
         className={`transition-all h-full duration-300 ease-in-out ${
           isActuallyExpanded
-            ? "w-64 opacity-100 translate-x-0 blur-none"
-            : "w-0 opacity-50 -translate-x-4 blur-md"
+            ? 'w-64 opacity-100 translate-x-0 blur-none'
+            : 'w-0 opacity-50 -translate-x-4 blur-md'
         }`}
         style={{
           transition:
-            "opacity 200ms ease-out-in, width 400ms ease-out-in, transform 200ms ease-out-in, filter 200ms ease-out-in",
+            'opacity 200ms ease-out-in, width 400ms ease-out-in, transform 200ms ease-out-in, filter 200ms ease-out-in',
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -105,7 +105,7 @@ export function SideExplorer() {
         <div className="w-full h-full bg-background/70 backdrop-blur-md shadow-2xl rounded-lg flex flex-col border border-border/50">
           <Tabs
             value={panel.activeExplorerTab}
-            onValueChange={(value) => panel.setActiveExplorerTab(value as any)}
+            onValueChange={value => panel.setActiveExplorerTab(value as any)}
             className="flex flex-col h-full"
           >
             <div className="px-2 pt-3 pb-1">
@@ -172,7 +172,7 @@ export function SideExplorer() {
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              <p>{isExpanded ? "Collapse Explorer" : "Expand Explorer"}</p>
+              <p>{isExpanded ? 'Collapse Explorer' : 'Expand Explorer'}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

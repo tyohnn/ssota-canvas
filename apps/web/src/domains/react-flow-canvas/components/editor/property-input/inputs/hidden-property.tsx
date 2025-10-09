@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React from "react";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
-import { Node } from "@xyflow/react";
+import React from 'react';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
+import { Node } from '@xyflow/react';
 
 export function HiddenProperty({
   data,

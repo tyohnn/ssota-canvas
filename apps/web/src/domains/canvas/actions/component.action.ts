@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { and, eq, sql } from 'drizzle-orm';
-import { createClerkDrizzleSupabaseClient } from '@/db';
+import { createClerkDrizzleSupabaseClient } from '@/db/clerk-client';
 import { blocks, type Block, type NewBlock } from '@/db/schema';
 import { ActionResult, ok, err } from '@/lib/action-result';
 import {

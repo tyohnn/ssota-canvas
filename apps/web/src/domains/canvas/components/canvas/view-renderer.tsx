@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useViewContext } from "@/domains/canvas/contexts/CanvasViewContext";
-import { IntegratedReactFlowCanvas } from "@/domains/canvas/components/canvas/integrated-react-flow-canvas";
-import { TableView } from "@/domains/canvas/components/views/table-view";
-import { KanbanView } from "@/domains/canvas/components/views/kanban-view";
-import { MarkdownView } from "@/domains/canvas/components/views/markdown-view";
+import React from 'react';
+import { useViewContext } from '@/domains/canvas/contexts/CanvasViewContext';
+import { IntegratedReactFlowCanvas } from '@/domains/canvas/components/canvas/integrated-react-flow-canvas';
+import { TableView } from '@/domains/canvas/components/views/table-view';
+import { KanbanView } from '@/domains/canvas/components/views/kanban-view';
+import { MarkdownView } from '@/domains/canvas/components/views/markdown-view';
 
 export function ViewRenderer() {
   const { currentViewId, currentViewDef } = useViewContext();
 
-  if (currentViewId === "canvas") {
+  if (currentViewId === 'canvas') {
     return <IntegratedReactFlowCanvas />;
   }
 
@@ -20,11 +20,11 @@ export function ViewRenderer() {
   }
 
   switch (currentViewDef.type) {
-    case "table":
+    case 'table':
       return <TableView view={currentViewDef} />;
-    case "kanban":
+    case 'kanban':
       return <KanbanView view={currentViewDef} />;
-    case "markdown":
+    case 'markdown':
       return <MarkdownView view={currentViewDef} />;
     default:
       return <IntegratedReactFlowCanvas />;

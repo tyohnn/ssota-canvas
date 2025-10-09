@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Node } from "@xyflow/react";
-import { Checkbox } from "@workspace/ui/components/ui/checkbox";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
+import React from 'react';
+import { Node } from '@xyflow/react';
+import { Checkbox } from '@workspace/ui/components/ui/checkbox';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
 
 export function CheckboxProperty({
   data,
@@ -36,7 +36,7 @@ export function CheckboxProperty({
       >
         <Checkbox
           checked={!!data}
-          onCheckedChange={(val) => updateField(node, field.path, !!val)}
+          onCheckedChange={val => updateField(node, field.path, !!val)}
           className="mr-2"
         />
       </div>

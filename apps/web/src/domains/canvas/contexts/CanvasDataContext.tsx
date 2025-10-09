@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useMemo, useEffect } from "react";
-import type { Block } from "@/db/schema";
-import { usePageBlockStore } from "@/domains/canvas/stores/page-block.store";
-import { useComponentBlockStore } from "@/domains/block-components/stores/component-block.store";
-import { useSelectionStore } from "@/domains/canvas/stores/selection.store";
-import type { ComponentDefinition } from "@/domains/block-components/types/component.types";
-import { cosineDistance } from "drizzle-orm";
+import React, { createContext, useContext, useMemo, useEffect } from 'react';
+import type { Block } from '@/db/schema';
+import { usePageBlockStore } from '@/domains/canvas/stores/page-block.store';
+import { useComponentBlockStore } from '@/domains/block-components/stores/component-block.store';
+import { useSelectionStore } from '@/domains/canvas/stores/selection.store';
+import type { ComponentDefinition } from '@/domains/block-components/types/component.types';
+import { cosineDistance } from 'drizzle-orm';
 
 export type CanvasDataContextValue = {
   // Page Block Queries
@@ -24,20 +24,31 @@ export type CanvasDataContextValue = {
   addPageBlock: (pageBlock: Block) => void;
   removePageBlock: (id: string) => void;
   updatePageBlock: (id: string, updates: Partial<Block>) => void;
-  replacePageBlockId: (fromId: string, toId: string, updates?: Partial<Block>) => void;
+  replacePageBlockId: (
+    fromId: string,
+    toId: string,
+    updates?: Partial<Block>
+  ) => void;
 
   // Component Block Mutations
   setComponentBlocks: (componentBlocks: ComponentDefinition[]) => void;
   addComponentBlock: (componentBlock: ComponentDefinition) => void;
   removeComponentBlock: (id: string) => void;
-  updateComponentBlock: (id: string, updates: Partial<ComponentDefinition>) => void;
-  replaceComponentBlockId: (fromId: string, toId: string, updates?: Partial<ComponentDefinition>) => void;
+  updateComponentBlock: (
+    id: string,
+    updates: Partial<ComponentDefinition>
+  ) => void;
+  replaceComponentBlockId: (
+    fromId: string,
+    toId: string,
+    updates?: Partial<ComponentDefinition>
+  ) => void;
 
   // Selection
   selectedPageId: string | null;
   selectedComponentId: string | null;
   contextBlockId: string | null;
-  canvasMode: "page" | "component";
+  canvasMode: 'page' | 'component';
   selectPage: (id: string | null) => void;
   selectComponent: (id: string | null) => void;
 };
@@ -47,7 +58,7 @@ const CanvasDataContext = createContext<CanvasDataContextValue | null>(null);
 export function useCanvasData(): CanvasDataContextValue {
   const ctx = useContext(CanvasDataContext);
   if (!ctx)
-    throw new Error("useCanvasData must be used within a CanvasDataProvider");
+    throw new Error('useCanvasData must be used within a CanvasDataProvider');
   return ctx;
 }
 
@@ -69,30 +80,33 @@ export function CanvasDataProvider({
   useEffect(() => {
     if (selectionStore.state.selectedPageId) return;
     const firstPage = pageBlockStore.pageBlocks.find(
-      (b) => (b.object as any) === "page"
+      b => (b.object as any) === 'page'
     );
     if (firstPage?.id) {
       selectionStore.selectPage(firstPage.id as string);
     }
-  }, [
-    pageBlockStore.pageBlocks,
-    selectionStore.selectPage,
-  ]);
+  }, [pageBlockStore.pageBlocks, selectionStore.selectPage]);
 
   // Build context value
   const contextValue = useMemo(() => {
     const pageBlocks = pageBlockStore.pageBlocks;
     const componentBlocks = componentBlockStore.componentBlocks;
-    
+
     // Get selected blocks
-    const selectedPageBlock = selectionStore.state.selectedPageId 
-      ? pageBlockStore.getPageBlockById(selectionStore.state.selectedPageId) || null
+    const selectedPageBlock = selectionStore.state.selectedPageId
+      ? pageBlockStore.getPageBlockById(selectionStore.state.selectedPageId) ||
+        null
       : null;
     const selectedComponentBlock = selectionStore.state.selectedComponentId
-      ? componentBlockStore.getComponentBlockById(selectionStore.state.selectedComponentId) || null
+      ? componentBlockStore.getComponentBlockById(
+          selectionStore.state.selectedComponentId
+        ) || null
       : null;
-    
-    const contextBlockId = selectionStore.state.selectedComponentId || selectionStore.state.selectedPageId || null;
+
+    const contextBlockId =
+      selectionStore.state.selectedComponentId ||
+      selectionStore.state.selectedPageId ||
+      null;
 
     return {
       // Page Block Queries

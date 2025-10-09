@@ -1,6 +1,6 @@
-"use server";
+'use server';
 
-import { getTweet } from "react-tweet/api";
+import { getTweet } from 'react-tweet/api';
 
 export type FetchedTweetData = {
   id?: string;
@@ -33,7 +33,7 @@ export async function fetchTweetDataAction(
       ? media
           .filter(
             (m: any) =>
-              m?.type === "photo" && typeof m?.media_url_https === "string"
+              m?.type === 'photo' && typeof m?.media_url_https === 'string'
           )
           .map((m: any) => m.media_url_https as string)
       : [];
@@ -41,7 +41,7 @@ export async function fetchTweetDataAction(
       id,
       authorName,
       authorUsername,
-      text: typeof text === "string" ? text : undefined,
+      text: typeof text === 'string' ? text : undefined,
       createdAt,
       images,
       raw: data,

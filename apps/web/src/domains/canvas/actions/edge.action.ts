@@ -1,10 +1,10 @@
-"use server";
+'use server';
 
-import { z } from "zod";
-import { and, desc, eq } from "drizzle-orm";
-import { createClerkDrizzleSupabaseClient } from "@/db";
-import { edges, type Edge, type NewEdge, edgeTypeEnum } from "@/db/schema";
-import { ActionResult, ok, err } from "@/lib/action-result";
+import { z } from 'zod';
+import { and, desc, eq } from 'drizzle-orm';
+import { createClerkDrizzleSupabaseClient } from '@/db/clerk-client';
+import { edges, type Edge, type NewEdge, edgeTypeEnum } from '@/db/schema';
+import { ActionResult, ok, err } from '@/lib/action-result';
 
 // Schemas aligned to DB
 const EdgeTypeEnum = z.enum(edgeTypeEnum.enumValues);
@@ -38,7 +38,7 @@ export async function createEdge(
     const validated = createEdgeSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const inserted = await db.rls(async (tx) => {
+    const inserted = await db.rls(async tx => {
       const [created] = await tx
         .insert(edges)
         .values({
@@ -54,7 +54,7 @@ export async function createEdge(
 
     return ok(inserted);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to create edge";
+    const message = e instanceof Error ? e.message : 'Failed to create edge';
     return err(message);
   }
 }
@@ -66,7 +66,7 @@ export async function updateEdge(
     const validated = updateEdgeSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const updated = await db.rls(async (tx) => {
+    const updated = await db.rls(async tx => {
       const updateData: Partial<Edge> = {};
       if (validated.edgeType)
         (updateData as any).edge_type = validated.edgeType;
@@ -83,7 +83,7 @@ export async function updateEdge(
 
     return ok(updated);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to update edge";
+    const message = e instanceof Error ? e.message : 'Failed to update edge';
     return err(message);
   }
 }
@@ -95,14 +95,14 @@ export async function deleteEdge(
     const { id } = getEdgeSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const deleted = await db.rls(async (tx) => {
+    const deleted = await db.rls(async tx => {
       const [row] = await tx.delete(edges).where(eq(edges.id, id)).returning();
       return row as Edge;
     });
 
     return ok(deleted);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to delete edge";
+    const message = e instanceof Error ? e.message : 'Failed to delete edge';
     return err(message);
   }
 }
@@ -114,7 +114,7 @@ export async function listWorkspaceEdges(
     const { workspaceId } = listEdgesSchema.parse(input);
     const db = await createClerkDrizzleSupabaseClient();
 
-    const rows = await db.rls(async (tx) => {
+    const rows = await db.rls(async tx => {
       return (await tx
         .select()
         .from(edges)
@@ -125,7 +125,7 @@ export async function listWorkspaceEdges(
     return ok(rows);
   } catch (e) {
     const message =
-      e instanceof Error ? e.message : "Failed to list edges for workspace";
+      e instanceof Error ? e.message : 'Failed to list edges for workspace';
     return err(message);
   }
 }

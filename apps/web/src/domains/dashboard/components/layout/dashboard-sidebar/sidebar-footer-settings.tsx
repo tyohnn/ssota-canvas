@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@workspace/ui/components/ui/dialog";
+} from '@workspace/ui/components/ui/dialog';
 import {
   SidebarMenuItem,
   SidebarMenuButton,
-} from "@workspace/ui/components/ui/sidebar";
-import { Settings2 } from "lucide-react";
+} from '@workspace/ui/components/ui/sidebar';
+import { Settings2 } from 'lucide-react';
 
 export function SidebarFooterSettings() {
   const [open, setOpen] = React.useState(false);

@@ -102,6 +102,49 @@ export const users = pgTable(
   ]
 ).enableRLS();
 
+// Profiles table (for Supabase integration)
+export const profiles = pgTable(
+  'profiles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    user_id: text('user_id').notNull().unique(),
+    email: text('email').notNull(),
+    first_name: text('first_name'),
+    last_name: text('last_name'),
+    image_url: text('image_url'),
+    metadata: jsonb('metadata').default({}),
+    created_at: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  table => [
+    // RLS (owner-only, optimized evaluation)
+    pgPolicy('Enable read access for authenticated users', {
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`(SELECT current_setting('app.user_id', true)) = user_id`,
+    }),
+    pgPolicy('Enable insert for authenticated users', {
+      for: 'insert',
+      to: authenticatedRole,
+      withCheck: sql`(SELECT current_setting('app.user_id', true)) = user_id`,
+    }),
+    pgPolicy('Enable update for users based on user_id', {
+      for: 'update',
+      to: authenticatedRole,
+      using: sql`(SELECT current_setting('app.user_id', true)) = user_id`,
+    }),
+    pgPolicy('Enable delete for users based on user_id', {
+      for: 'delete',
+      to: authenticatedRole,
+      using: sql`(SELECT current_setting('app.user_id', true)) = user_id`,
+    }),
+  ]
+).enableRLS();
+
 // Organizations table
 export const organizations = pgTable(
   'organizations',

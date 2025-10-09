@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Editor, rootCtx } from "@milkdown/kit/core";
-import { commonmark } from "@milkdown/kit/preset/commonmark";
-import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
-import { nord } from "@milkdown/theme-nord";
+import React from 'react';
+import { Editor, rootCtx } from '@milkdown/kit/core';
+import { commonmark } from '@milkdown/kit/preset/commonmark';
+import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/react';
+import { nord } from '@milkdown/theme-nord';
 // import "@milkdown/theme-nord/style.css";
-import { block, BlockProvider } from "@milkdown/kit/plugin/block";
+import { block, BlockProvider } from '@milkdown/kit/plugin/block';
 
 const MilkdownEditor: React.FC = () => {
   const blockPluginView = (ctx: any) => (view: any) => {
@@ -25,14 +25,14 @@ const MilkdownEditor: React.FC = () => {
     };
   };
 
-  useEditor((root) =>
+  useEditor(root =>
     Editor.make()
       .config(nord)
-      .config((ctx) => {
+      .config(ctx => {
         ctx.set(rootCtx, root);
         // Bind block view
         // https://milkdown.dev/docs/api/plugin-block
-         
+
         (ctx as any).set(block.key, {
           view: blockPluginView(ctx),
         });

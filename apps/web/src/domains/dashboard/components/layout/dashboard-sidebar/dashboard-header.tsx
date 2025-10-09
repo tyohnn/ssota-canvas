@@ -1,18 +1,21 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
-} from "@workspace/ui/components/ui/breadcrumb";
-import { Separator } from "@workspace/ui/components/ui/separator";
-import { SidebarTrigger } from "@workspace/ui/components/ui/sidebar";
-import { useOrganizationContext } from "@/domains/dashboard/context/OrganizationCotext";
+} from '@workspace/ui/components/ui/breadcrumb';
+import { Separator } from '@workspace/ui/components/ui/separator';
+import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
+import { useOrganization } from '@/domains/organization-management/frontend/contexts/organization-context';
 
 export function DashboardHeader() {
-  const { activeOrganization } = useOrganizationContext();
+  const { organizations, selectedOrganizationId } = useOrganization();
+  const activeOrganization = organizations.find(
+    org => org.id === selectedOrganizationId
+  );
   const headerTitle = activeOrganization?.name;
 
   return (

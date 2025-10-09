@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import type { TreeUIProps, UseTreeStateResult } from "../types";
+import type { TreeUIProps, UseTreeStateResult } from '../types';
 
 export function useTreeState<TSourceData>(
   params: TreeUIProps<TSourceData>

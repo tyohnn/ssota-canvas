@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import React, { useState, useRef } from "react";
-import { Input } from "@workspace/ui/components/ui/input";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Badge } from "@workspace/ui/components/ui/badge";
+import React, { useState, useRef } from 'react';
+import { Input } from '@workspace/ui/components/ui/input';
+import { Button } from '@workspace/ui/components/ui/button';
+import { Badge } from '@workspace/ui/components/ui/badge';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@workspace/ui/components/ui/popover";
-import { ScrollArea } from "@workspace/ui/components/ui/scroll-area";
-import {  X, Plus } from "lucide-react";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
-import { Node } from "@xyflow/react";
+} from '@workspace/ui/components/ui/popover';
+import { ScrollArea } from '@workspace/ui/components/ui/scroll-area';
+import { X, Plus } from 'lucide-react';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
+import { Node } from '@xyflow/react';
 
 export interface FileItem {
   id: string;
@@ -36,12 +36,12 @@ export function FileProperty({
   const [isOpen, setIsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const files = data || []
+  const files = data || [];
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = Array.from(event.target.files || []);
 
-    const newFiles: FileItem[] = uploadedFiles.map((file) => ({
+    const newFiles: FileItem[] = uploadedFiles.map(file => ({
       id: crypto.randomUUID(),
       name: file.name,
       size: file.size,
@@ -53,31 +53,31 @@ export function FileProperty({
 
     // Reset input
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
 
   const handleRemoveFile = (fileId: string) => {
-    const updatedFiles = files.filter((file) => file.id !== fileId);
+    const updatedFiles = files.filter(file => file.id !== fileId);
     updateField(node, field.path, updatedFiles);
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
+    if (bytes === 0) return '0 Bytes';
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const getFileIcon = (type: string) => {
-    if (type.startsWith("image/")) return "🖼️";
-    if (type.startsWith("video/")) return "🎥";
-    if (type.startsWith("audio/")) return "🎵";
-    if (type.includes("pdf")) return "📄";
-    if (type.includes("word") || type.includes("document")) return "📝";
-    if (type.includes("excel") || type.includes("spreadsheet")) return "📊";
-    return "📁";
+    if (type.startsWith('image/')) return '🖼️';
+    if (type.startsWith('video/')) return '🎥';
+    if (type.startsWith('audio/')) return '🎵';
+    if (type.includes('pdf')) return '📄';
+    if (type.includes('word') || type.includes('document')) return '📝';
+    if (type.includes('excel') || type.includes('spreadsheet')) return '📊';
+    return '📁';
   };
 
   return (
@@ -87,13 +87,13 @@ export function FileProperty({
           variant="ghost"
           className={`w-full h-auto min-h-[32px] px-2 py-1 text-sm justify-start font-normal text-left hover:bg-muted/50 text-muted-foreground transition-[color,box-shadow] select-none cursor-pointer ${
             isOpen
-              ? "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-ring ring-ring/50 ring-[3px]"
-              : ""
+              ? 'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-ring ring-ring/50 ring-[3px]'
+              : ''
           }`}
         >
           <div className="flex flex-wrap gap-1 items-center w-full">
             {files.length > 0 ? (
-              files.map((file) => (
+              files.map(file => (
                 <Badge
                   key={file.id}
                   variant="secondary"
@@ -113,7 +113,7 @@ export function FileProperty({
           {files.length > 0 && (
             <ScrollArea className="max-h-60 mb-3">
               <div className="space-y-2">
-                {files.map((file) => (
+                {files.map(file => (
                   <div
                     key={file.id}
                     className="flex items-center justify-between p-2 rounded-md border"

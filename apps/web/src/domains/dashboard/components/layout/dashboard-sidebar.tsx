@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense } from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -12,15 +12,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@workspace/ui/components/ui/sidebar";
+} from '@workspace/ui/components/ui/sidebar';
 import {
   SidebarHeaderGroup,
-  OrganizationSwitcher,
   SidebarFooterSettings,
   OrgWorkspacesSkeleton,
   OrgWorkspacesMenu,
-} from "./dashboard-sidebar/index";
-import { MessageCircleQuestion, Plus, RefreshCw, Blocks } from "lucide-react";
+} from './dashboard-sidebar/index';
+import { OrganizationSwitcher } from '@/domains/organization-management/frontend/components/organization/organization-switcher';
+import { MessageCircleQuestion, Plus, RefreshCw, Blocks } from 'lucide-react';
 
 export function DashboardSidebar() {
   return (

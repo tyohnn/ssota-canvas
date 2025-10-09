@@ -1,7 +1,12 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useReducer, useCallback } from "react";
-import { useNodesData, useReactFlow } from "@xyflow/react";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useCallback,
+} from 'react';
+import { useNodesData, useReactFlow } from '@xyflow/react';
 
 // 선택 모드 타입
 export type SelectionMode = 'none' | 'single' | 'multi';
@@ -12,7 +17,7 @@ export interface SelectionState {
   selectedNodeIds: string[];
   selectedSingleNodeId: string | null;
   nodeSelectionMode: SelectionMode;
-  
+
   // 엣지 선택 상태
   selectedEdgeIds: string[];
   selectedSingleEdgeId: string | null;
@@ -31,7 +36,7 @@ const initialSelectionState: SelectionState = {
   selectedNodeIds: [],
   selectedSingleNodeId: null,
   nodeSelectionMode: 'none',
-  
+
   // 엣지 선택 상태
   selectedEdgeIds: [],
   selectedSingleEdgeId: null,
@@ -48,16 +53,28 @@ function selectionReducer(
       return {
         ...state,
         selectedNodeIds: action.payload,
-        selectedSingleNodeId: action.payload.length === 1 ? action.payload[0] || null : null,
-        nodeSelectionMode: action.payload.length === 0 ? 'none' : action.payload.length === 1 ? 'single' : 'multi',
+        selectedSingleNodeId:
+          action.payload.length === 1 ? action.payload[0] || null : null,
+        nodeSelectionMode:
+          action.payload.length === 0
+            ? 'none'
+            : action.payload.length === 1
+              ? 'single'
+              : 'multi',
       };
-    
+
     case 'SET_SELECTED_EDGES':
       return {
         ...state,
         selectedEdgeIds: action.payload,
-        selectedSingleEdgeId: action.payload.length === 1 ? action.payload[0] || null : null,
-        edgeSelectionMode: action.payload.length === 0 ? 'none' : action.payload.length === 1 ? 'single' : 'multi',
+        selectedSingleEdgeId:
+          action.payload.length === 1 ? action.payload[0] || null : null,
+        edgeSelectionMode:
+          action.payload.length === 0
+            ? 'none'
+            : action.payload.length === 1
+              ? 'single'
+              : 'multi',
       };
     case 'CLEAR_SELECTION':
       return {
@@ -69,7 +86,7 @@ function selectionReducer(
         selectedSingleEdgeId: null,
         edgeSelectionMode: 'none',
       };
-    
+
     default:
       return state;
   }
@@ -93,7 +110,9 @@ export interface SelectionContextValue {
 }
 
 // 컨텍스트 생성
-const ReactFlowSelectionContext = createContext<SelectionContextValue | null>(null);
+const ReactFlowSelectionContext = createContext<SelectionContextValue | null>(
+  null
+);
 
 // 프로바이더 컴포넌트
 export function ReactFlowSelectionProvider({
@@ -125,42 +144,60 @@ export function ReactFlowSelectionProvider({
       dispatch({ type: 'CLEAR_SELECTION' });
     }, []),
 
-    addToSelection: useCallback((nodeIds: string[]) => {
-      const newSelection = [...state.selectedNodeIds];
-      nodeIds.forEach(id => {
-        if (!newSelection.includes(id)) {
-          newSelection.push(id);
+    addToSelection: useCallback(
+      (nodeIds: string[]) => {
+        const newSelection = [...state.selectedNodeIds];
+        nodeIds.forEach(id => {
+          if (!newSelection.includes(id)) {
+            newSelection.push(id);
+          }
+        });
+        dispatch({ type: 'SET_SELECTED_NODES', payload: newSelection });
+      },
+      [state.selectedNodeIds]
+    ),
+
+    removeFromSelection: useCallback(
+      (nodeIds: string[]) => {
+        const newSelection = state.selectedNodeIds.filter(
+          id => !nodeIds.includes(id)
+        );
+        dispatch({ type: 'SET_SELECTED_NODES', payload: newSelection });
+      },
+      [state.selectedNodeIds]
+    ),
+
+    toggleNodeSelection: useCallback(
+      (nodeId: string) => {
+        const isSelected = state.selectedNodeIds.includes(nodeId);
+        if (isSelected) {
+          const newSelection = state.selectedNodeIds.filter(
+            id => id !== nodeId
+          );
+          dispatch({ type: 'SET_SELECTED_NODES', payload: newSelection });
+        } else {
+          const newSelection = [...state.selectedNodeIds, nodeId];
+          dispatch({ type: 'SET_SELECTED_NODES', payload: newSelection });
         }
-      });
-      dispatch({ type: 'SET_SELECTED_NODES', payload: newSelection });
-    }, [state.selectedNodeIds]),
+      },
+      [state.selectedNodeIds]
+    ),
 
-    removeFromSelection: useCallback((nodeIds: string[]) => {
-      const newSelection = state.selectedNodeIds.filter(id => !nodeIds.includes(id));
-      dispatch({ type: 'SET_SELECTED_NODES', payload: newSelection });
-    }, [state.selectedNodeIds]),
-
-    toggleNodeSelection: useCallback((nodeId: string) => {
-      const isSelected = state.selectedNodeIds.includes(nodeId);
-      if (isSelected) {
-        const newSelection = state.selectedNodeIds.filter(id => id !== nodeId);
-        dispatch({ type: 'SET_SELECTED_NODES', payload: newSelection });
-      } else {
-        const newSelection = [...state.selectedNodeIds, nodeId];
-        dispatch({ type: 'SET_SELECTED_NODES', payload: newSelection });
-      }
-    }, [state.selectedNodeIds]),
-
-    toggleEdgeSelection: useCallback((edgeId: string) => {
-      const isSelected = state.selectedEdgeIds.includes(edgeId);
-      if (isSelected) {
-        const newSelection = state.selectedEdgeIds.filter(id => id !== edgeId);
-        dispatch({ type: 'SET_SELECTED_EDGES', payload: newSelection });
-      } else {
-        const newSelection = [...state.selectedEdgeIds, edgeId];
-        dispatch({ type: 'SET_SELECTED_EDGES', payload: newSelection });
-      }
-    }, [state.selectedEdgeIds]),
+    toggleEdgeSelection: useCallback(
+      (edgeId: string) => {
+        const isSelected = state.selectedEdgeIds.includes(edgeId);
+        if (isSelected) {
+          const newSelection = state.selectedEdgeIds.filter(
+            id => id !== edgeId
+          );
+          dispatch({ type: 'SET_SELECTED_EDGES', payload: newSelection });
+        } else {
+          const newSelection = [...state.selectedEdgeIds, edgeId];
+          dispatch({ type: 'SET_SELECTED_EDGES', payload: newSelection });
+        }
+      },
+      [state.selectedEdgeIds]
+    ),
   };
 
   const contextValue: SelectionContextValue = {
@@ -180,7 +217,7 @@ export function useReactFlowSelection() {
   const context = useContext(ReactFlowSelectionContext);
   if (!context) {
     throw new Error(
-      "useSelection must be used within ReactFlowSelectionProvider"
+      'useSelection must be used within ReactFlowSelectionProvider'
     );
   }
   return context;
@@ -202,11 +239,11 @@ export function useReactFlowSelectionCommands() {
 export function useReactFlowNodeSelection() {
   const reactFlow = useReactFlow();
   const { state } = useReactFlowSelection();
-  
+
   // 단일 노드가 선택된 경우 해당 노드의 데이터 가져오기
   const singleNodeData = useNodesData(state.selectedSingleNodeId || '');
   const singleNode = reactFlow.getNode(state.selectedSingleNodeId || '');
-  
+
   return {
     selectedNodeIds: state.selectedNodeIds,
     selectedSingleNode: singleNode,

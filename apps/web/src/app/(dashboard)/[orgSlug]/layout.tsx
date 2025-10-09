@@ -1,15 +1,15 @@
 import {
   SidebarInset,
   SidebarProvider,
-} from "@workspace/ui/components/ui/sidebar";
-import { OrganizationProvider } from "@/domains/dashboard/context/OrganizationCotext";
-import { DashboardSidebar } from "@/domains/dashboard/components/layout";
+} from '@workspace/ui/components/ui/sidebar';
+import { OrganizationProvider } from '@/domains/dashboard/context/OrganizationCotext';
+import { DashboardSidebar } from '@/domains/dashboard/components/layout';
 import {
   getOrganizationBySlug,
   getUserOrganizations,
   getWorkspacesByOrganizationId,
-} from "@/domains/dashboard/actions/organization.action";
-import { redirect } from "next/navigation";
+} from '@/domains/dashboard/actions/organization.action';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({
   children,
@@ -19,19 +19,33 @@ export default async function DashboardLayout({
   params: Promise<{ orgSlug: string }>;
 }) {
   const { orgSlug } = await params;
-  const orgRes = await getOrganizationBySlug(orgSlug);
-  const organization = orgRes.success ? orgRes.data : null;
 
-  if (!organization) {
-    redirect("/");
+  let orgRes;
+  let userOrgsRes;
+  let orgWorkspacesRes;
+
+  try {
+    orgRes = await getOrganizationBySlug(orgSlug);
+    const organization = orgRes.success ? orgRes.data : null;
+
+    if (!organization) {
+      redirect('/');
+    }
+
+    userOrgsRes = await getUserOrganizations();
+    orgWorkspacesRes = await getWorkspacesByOrganizationId(organization?.id);
+  } catch (error) {
+    // 인증 오류만 unauthorized 페이지로 리다이렉트
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      redirect('/unauthorized');
+    }
+
+    // 다른 에러는 다시 throw
+    throw error;
   }
 
-  const userOrgsRes = await getUserOrganizations();
+  const organization = orgRes.success ? orgRes.data : null;
   const userOrganizations = userOrgsRes.success ? userOrgsRes.data : [];
-
-  const orgWorkspacesRes = await getWorkspacesByOrganizationId(
-    organization?.id
-  );
   const orgWorkspaces = orgWorkspacesRes.success ? orgWorkspacesRes.data : [];
 
   const initialOrg = organization

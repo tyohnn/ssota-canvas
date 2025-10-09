@@ -1,6 +1,11 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useReducer, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useCallback,
+} from 'react';
 
 // 상태 타입
 export interface ControlState {
@@ -27,10 +32,10 @@ function controlReducer(
   switch (action.type) {
     case 'SET_TOOL_MODE':
       return { ...state, toolMode: action.payload };
-    
+
     case 'SET_SHOW_MINIMAP':
       return { ...state, showMiniMap: action.payload };
-    
+
     default:
       return state;
   }

@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
 import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
-} from "@workspace/ui/components/ui/resizable";
-import { ViewProvider } from "@/domains/canvas/contexts/CanvasViewContext";
-import { ViewRenderer } from "@/domains/canvas/components/canvas/view-renderer";
-import { CanvasHeader } from "@/domains/canvas/components/canvas/canvas-header";
+} from '@workspace/ui/components/ui/resizable';
+import { ViewProvider } from '@/domains/canvas/contexts/CanvasViewContext';
+import { ViewRenderer } from '@/domains/canvas/components/canvas/view-renderer';
+import { CanvasHeader } from '@/domains/canvas/components/canvas/canvas-header';
 
 interface CanvasPageContentProps {
   workspaceId: string;

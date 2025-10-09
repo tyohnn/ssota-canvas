@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { Node } from "@xyflow/react";
-import { Input } from "@workspace/ui/components/ui/input";
-import { Button } from "@workspace/ui/components/ui/button";
-import { SchemaField } from "@/domains/blocks/types/common.node";
-import { useNodeFieldUpdate } from "../useNodeFormDataUpdate";
+import React, { useState } from 'react';
+import { Node } from '@xyflow/react';
+import { Input } from '@workspace/ui/components/ui/input';
+import { Button } from '@workspace/ui/components/ui/button';
+import { SchemaField } from '@/domains/blocks/types/common.node';
+import { useNodeFieldUpdate } from '../useNodeFormDataUpdate';
 
 export function NumberProperty({
   data,
@@ -17,9 +17,9 @@ export function NumberProperty({
   node: Node;
 }) {
   const { updateField } = useNodeFieldUpdate();
-  const value = data || "";
+  const value = data || '';
   const [isEditing, setIsEditing] = useState(false);
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState('');
 
   const handleLabelClick = () => {
     setIsEditing(true);
@@ -39,13 +39,13 @@ export function NumberProperty({
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       setIsEditing(false);
       const numValue = parseFloat(inputValue);
       if (!isNaN(numValue) && numValue !== value && node) {
         updateField(node, field.path, numValue);
       }
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setIsEditing(false);
       setInputValue(String(value));
     }
@@ -74,7 +74,7 @@ export function NumberProperty({
     >
       {value || (
         <span className="text-muted-foreground">
-          {field.placeholder || "Click to edit number"}
+          {field.placeholder || 'Click to edit number'}
         </span>
       )}
     </Button>
