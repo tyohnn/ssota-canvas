@@ -7,7 +7,10 @@ import {
   DefaultOrganizationCreatedEvent,
   NewOrganizationCreatedEvent,
   OrganizationUpdatedEvent,
+  MemberPromotedToAdminEvent,
+  AdminDemotedToMemberEvent,
 } from '../events';
+import { OrganizationManagementError } from '../errors/organization-management.error';
 
 export class OrganizationAggregate {
   constructor(private organization: Organization) {}
@@ -53,6 +56,78 @@ export class OrganizationAggregate {
 
   transferOwnership(newOwnerId: UserId): void {
     this.organization.transferOwnership(newOwnerId);
+  }
+
+  changeMemberRole(
+    targetUserId: UserId,
+    currentUserId: UserId,
+    currentUserRole: 'owner' | 'admin' | 'member',
+    targetMemberRole: 'owner' | 'admin' | 'member',
+    newRole: 'admin' | 'member'
+  ): MemberPromotedToAdminEvent | AdminDemotedToMemberEvent {
+    // 1. 권한 검증: 일반 멤버는 역할 변경 권한 없음
+    if (currentUserRole === 'member') {
+      throw new OrganizationManagementError(
+        'INSUFFICIENT_PERMISSIONS',
+        'Member does not have permission to change roles'
+      );
+    }
+
+    // 2. 소유자 역할 변경 방지
+    if (targetMemberRole === 'owner') {
+      throw new OrganizationManagementError(
+        'CANNOT_CHANGE_OWNER_ROLE',
+        'Owner role can only be changed through ownership transfer'
+      );
+    }
+
+    // 3. 자기 자신 역할 변경 방지
+    if (targetUserId.equals(currentUserId)) {
+      throw new OrganizationManagementError(
+        'CANNOT_CHANGE_OWN_ROLE',
+        'Cannot change your own role'
+      );
+    }
+
+    // 4. 현재 역할과 동일한 역할로 변경 방지
+    if (targetMemberRole === newRole) {
+      throw new OrganizationManagementError(
+        'ROLE_ALREADY_ASSIGNED',
+        `User already has ${newRole} role`
+      );
+    }
+
+    // 5. 관리자는 관리자를 강등할 수 없음
+    if (currentUserRole === 'admin' && targetMemberRole === 'admin') {
+      throw new OrganizationManagementError(
+        'ADMIN_CANNOT_DEMOTE_ADMIN',
+        'Admin cannot demote another admin'
+      );
+    }
+
+    // 6. 이벤트 발행
+    if (targetMemberRole === 'member' && newRole === 'admin') {
+      // 멤버 → 관리자 승격
+      return new MemberPromotedToAdminEvent(
+        this.organization.id,
+        targetUserId,
+        currentUserId,
+        newRole
+      );
+    } else if (targetMemberRole === 'admin' && newRole === 'member') {
+      // 관리자 → 멤버 강등
+      return new AdminDemotedToMemberEvent(
+        this.organization.id,
+        targetUserId,
+        currentUserId,
+        newRole
+      );
+    } else {
+      throw new OrganizationManagementError(
+        'INVALID_ROLE_CHANGE',
+        'Invalid role change combination'
+      );
+    }
   }
 
   // Getters

@@ -108,14 +108,21 @@ export class DrizzleOrganizationMemberRepository
   ): Promise<MemberRole | null> {
     const db = await createDrizzleSupabaseClient();
 
-    const data = await db.rls(tx =>
-      tx.query.organizationMembers.findFirst({
-        where: and(
+    // Layered Security: adminDb 사용
+    // 이유: Service Layer에서 이미 권한 체크 완료 (Owner/Admin만 다른 멤버 조회)
+    // RLS는 self-only이므로 adminDb로 우회 필요
+    const [data] = await db.admin
+      .select({
+        role: organizationMembers.role,
+      })
+      .from(organizationMembers)
+      .where(
+        and(
           eq(organizationMembers.organization_id, organizationId.value),
           eq(organizationMembers.user_id, userId.value)
-        ),
-      })
-    );
+        )
+      )
+      .limit(1);
 
     if (!data) {
       return null;

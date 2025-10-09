@@ -4,6 +4,7 @@ import { Organization } from '../../entities/organization.entity';
 import { OrganizationId, UserId } from '../../value-objects/ids.vo';
 import { OrganizationType } from '../../types';
 import { DefaultOrganizationCreatedEvent, OrganizationUpdatedEvent } from '../../events';
+import { OrganizationManagementError } from '../../errors/organization-management.error';
 
 describe('OrganizationAggregate', () => {
   let ownerId: UserId;
@@ -365,6 +366,245 @@ describe('OrganizationAggregate', () => {
       // Then
       // 이 테스트는 createNew가 이벤트를 반환하도록 구현될 때 활성화됩니다
       // expect(event).toBeInstanceOf(NewOrganizationCreatedEvent);
+    });
+  });
+
+  describe('changeMemberRole (Scenario 3)', () => {
+    let targetUserId: UserId;
+    let currentUserId: UserId;
+
+    beforeEach(() => {
+      organizationAggregate = OrganizationAggregate.createDefault('Test Organization', ownerId);
+      targetUserId = new UserId('target_user_123');
+      currentUserId = new UserId('current_user_456');
+    });
+
+    it('소유자가 멤버를 관리자로 승격해야 한다', () => {
+      // Given: 소유자가 멤버를 관리자로 승격
+      const currentUserRole = 'owner' as const;
+      const targetMemberRole = 'member' as const;
+      const newRole = 'admin' as const;
+
+      // When
+      const event = organizationAggregate.changeMemberRole(
+        targetUserId,
+        currentUserId,
+        currentUserRole,
+        targetMemberRole,
+        newRole
+      );
+
+      // Then
+      expect(event).toBeDefined();
+      expect(event.type).toBe('MemberPromotedToAdmin');
+      expect(event.targetUserId.equals(targetUserId)).toBe(true);
+      expect(event.newRole).toBe('admin');
+    });
+
+    it('소유자가 관리자를 멤버로 강등해야 한다', () => {
+      // Given: 소유자가 관리자를 멤버로 강등
+      const currentUserRole = 'owner' as const;
+      const targetMemberRole = 'admin' as const;
+      const newRole = 'member' as const;
+
+      // When
+      const event = organizationAggregate.changeMemberRole(
+        targetUserId,
+        currentUserId,
+        currentUserRole,
+        targetMemberRole,
+        newRole
+      );
+
+      // Then
+      expect(event).toBeDefined();
+      expect(event.type).toBe('AdminDemotedToMember');
+      expect(event.targetUserId.equals(targetUserId)).toBe(true);
+      expect(event.newRole).toBe('member');
+    });
+
+    it('관리자가 멤버를 관리자로 승격해야 한다', () => {
+      // Given: 관리자가 멤버를 관리자로 승격
+      const currentUserRole = 'admin' as const;
+      const targetMemberRole = 'member' as const;
+      const newRole = 'admin' as const;
+
+      // When
+      const event = organizationAggregate.changeMemberRole(
+        targetUserId,
+        currentUserId,
+        currentUserRole,
+        targetMemberRole,
+        newRole
+      );
+
+      // Then
+      expect(event).toBeDefined();
+      expect(event.type).toBe('MemberPromotedToAdmin');
+    });
+
+    it('관리자는 관리자를 강등할 수 없어야 한다', () => {
+      // Given: 관리자가 다른 관리자를 강등 시도
+      const currentUserRole = 'admin' as const;
+      const targetMemberRole = 'admin' as const;
+      const newRole = 'member' as const;
+
+      // When & Then
+      try {
+        organizationAggregate.changeMemberRole(
+          targetUserId,
+          currentUserId,
+          currentUserRole,
+          targetMemberRole,
+          newRole
+        );
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(OrganizationManagementError);
+        expect((error as OrganizationManagementError).code).toBe('ADMIN_CANNOT_DEMOTE_ADMIN');
+      }
+    });
+
+    it('소유자 역할은 변경할 수 없어야 한다', () => {
+      // Given: 소유자 역할을 변경 시도
+      const currentUserRole = 'admin' as const;
+      const targetMemberRole = 'owner' as const;
+      const newRole = 'admin' as const;
+
+      // When & Then
+      try {
+        organizationAggregate.changeMemberRole(
+          targetUserId,
+          currentUserId,
+          currentUserRole,
+          targetMemberRole,
+          newRole
+        );
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(OrganizationManagementError);
+        expect((error as OrganizationManagementError).code).toBe('CANNOT_CHANGE_OWNER_ROLE');
+      }
+    });
+
+    it('소유자는 자신의 역할을 변경할 수 없어야 한다', () => {
+      // Given: 소유자가 자신의 역할 변경 시도
+      const currentUserRole = 'owner' as const;
+      const targetMemberRole = 'owner' as const;
+      const newRole = 'admin' as const;
+      const sameUserId = ownerId; // currentUserId와 targetUserId가 같음
+
+      // When & Then
+      try {
+        organizationAggregate.changeMemberRole(
+          sameUserId,
+          sameUserId,
+          currentUserRole,
+          targetMemberRole,
+          newRole
+        );
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(OrganizationManagementError);
+        // 소유자 역할 변경이 먼저 체크되므로 CANNOT_CHANGE_OWNER_ROLE이 발생
+        expect((error as OrganizationManagementError).code).toBe('CANNOT_CHANGE_OWNER_ROLE');
+      }
+    });
+
+    it('현재 역할과 동일한 역할로 변경할 수 없어야 한다', () => {
+      // Given: 동일한 역할로 변경 시도
+      const currentUserRole = 'owner' as const;
+      const targetMemberRole = 'admin' as const;
+      const newRole = 'admin' as const; // 현재 역할과 동일
+
+      // When & Then
+      try {
+        organizationAggregate.changeMemberRole(
+          targetUserId,
+          currentUserId,
+          currentUserRole,
+          targetMemberRole,
+          newRole
+        );
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(OrganizationManagementError);
+        expect((error as OrganizationManagementError).code).toBe('ROLE_ALREADY_ASSIGNED');
+      }
+    });
+
+    it('일반 멤버는 역할 변경 권한이 없어야 한다', () => {
+      // Given: 일반 멤버가 역할 변경 시도
+      const currentUserRole = 'member' as const;
+      const targetMemberRole = 'member' as const;
+      const newRole = 'admin' as const;
+
+      // When & Then
+      try {
+        organizationAggregate.changeMemberRole(
+          targetUserId,
+          currentUserId,
+          currentUserRole,
+          targetMemberRole,
+          newRole
+        );
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(OrganizationManagementError);
+        expect((error as OrganizationManagementError).code).toBe('INSUFFICIENT_PERMISSIONS');
+      }
+    });
+
+    it('MemberPromotedToAdminEvent가 발행되어야 한다', () => {
+      // Given
+      const currentUserRole = 'owner' as const;
+      const targetMemberRole = 'member' as const;
+      const newRole = 'admin' as const;
+
+      // When
+      const event = organizationAggregate.changeMemberRole(
+        targetUserId,
+        currentUserId,
+        currentUserRole,
+        targetMemberRole,
+        newRole
+      );
+
+      // Then
+      expect(event.type).toBe('MemberPromotedToAdmin');
+      expect(event.organizationId.equals(organizationAggregate.id)).toBe(true);
+      expect(event.targetUserId.equals(targetUserId)).toBe(true);
+      if (event.type === 'MemberPromotedToAdmin') {
+        expect(event.promotedBy.equals(currentUserId)).toBe(true);
+      }
+      expect(event.newRole).toBe('admin');
+      expect(event.timestamp).toBeInstanceOf(Date);
+    });
+
+    it('AdminDemotedToMemberEvent가 발행되어야 한다', () => {
+      // Given
+      const currentUserRole = 'owner' as const;
+      const targetMemberRole = 'admin' as const;
+      const newRole = 'member' as const;
+
+      // When
+      const event = organizationAggregate.changeMemberRole(
+        targetUserId,
+        currentUserId,
+        currentUserRole,
+        targetMemberRole,
+        newRole
+      );
+
+      // Then
+      expect(event.type).toBe('AdminDemotedToMember');
+      expect(event.organizationId.equals(organizationAggregate.id)).toBe(true);
+      expect(event.targetUserId.equals(targetUserId)).toBe(true);
+      if (event.type === 'AdminDemotedToMember') {
+        expect(event.demotedBy.equals(currentUserId)).toBe(true);
+      }
+      expect(event.newRole).toBe('member');
+      expect(event.timestamp).toBeInstanceOf(Date);
     });
   });
 });

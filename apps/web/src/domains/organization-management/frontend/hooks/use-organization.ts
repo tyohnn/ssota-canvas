@@ -1,4 +1,5 @@
 // apps/web/src/domains/organization-management/frontend/hooks/use-organization.ts
+'use client';
 
 import { useOrganization as useOrganizationContext } from '../contexts/organization-context';
 import {

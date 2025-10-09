@@ -171,43 +171,59 @@ Organization Management Domain은 User Management Domain과 통합됩니다:
 2025-10-07
 ---
 
-## 📍 Scenario 3: 멤버 역할 변경 및 관리
+## 📍 Scenario 3: 멤버 역할 변경
 
 ### Sequence 1: 조직 관리자가 멤버의 역할을 변경
 
-**Trigger Event**: 새 멤버가 조직에 추가됨
+**Trigger Event**: 멤버 관리 화면에서 역할 변경 버튼을 클릭함
 
 ```
-👤 조직 관리자: "팀원의 권한을 Admin으로 승격시키고 싶어"
+👤 조직 관리자 (소유자/어드민): "팀원의 권한을 Admin으로 승격시키고 싶어"
+👤 조직 관리자 (소유자): "어드민의 권한을 Member로 강등시키고 싶어"
 ```
+
+**Policy**: 
+- "Whenever 역할 변경 버튼이 클릭됨, then always 역할 선택 옵션을 표시하기"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 조직 멤버 목록 (역할 변경 가능한 멤버들)
-- 역할 변경 안내 메시지 및 주의사항
-- 역할 옵션 (관리자/멤버)
-- 변경 사유 입력 필드 (선택사항)
-- 역할 변경 진행 상태 표시
+- 선택된 멤버의 현재 역할 정보
+- 역할 선택 옵션 (관리자/멤버) → 현재 역할은 체크 표시
 
-**Command**: 멤버 역할 변경 요청 (사용자가 입력하는 정보)
-- 변경할 대상 멤버 선택
+**Command**: 역할 옵션 선택하기
 - 새로운 역할 선택 (관리자/멤버)
-- 변경 사유 (선택사항)
-- 역할 변경 확인
 
-**Policy**: 멤버 역할 관리 규칙
-- "소유자만 멤버 역할 변경 가능"
-- "소유자 역할은 소유권 이전을 통해서만 변경 가능"
-- "조직에 관리자 제한 수는 없음"
-- "멤버 → 관리자 승격 시 즉시 적용"
-
-**System**: Member Role Manager → Database
+**System**: Organization System
+- 현재 유저가 역할 변경 권한이 있는지 확인
+- 변경 대상 멤버가 소유자가 아닌지 확인 (소유자는 역할 버튼 선택 불가)
+- 현재 역할과 새 역할이 다른지 검증 (같은 옵션에는 체크 표시가 있고, 선택되지 않음)
+- 소유자만 어드민을 멤버로 다운그레이드 가능 여부 확인 (멤버를 어드민으로 업그레이드 가능)
+- 어드민은 멤버를 어드민으로 업그레이드만 가능 여부 확인
 
 **Events**:
-1. 멤버 역할 변경이 요청되었다 (Member Role Change Requested)
-2. 멤버가 Admin으로 승격되었다 (Member Promoted to Admin)
-3. Admin이 Member로 강등되었다 (Admin Demoted to Member)
-4. 워크스페이스 소유권이 재할당되었다 (Workspace Ownership Reassigned)
-5. 멤버 역할 변경이 완료되었다 (Member Role Change Completed)
+1. 역할 옵션이 선택됨 (Role Option Selected) (프론트엔드)
+
+---
+
+**Policy**: 
+- "Whenever 역할 옵션이 선택됨, then if 어드민을 멤버로 다운그레이드하면, then 다운그레이드 확인 다이얼로그 띄우기"
+- "Whenever 역할 옵션이 선택됨, then if 멤버를 어드민으로 업그레이드하면, then 업그레이드 확인 다이얼로그 띄우기"
+
+**Read Model** (역할 변경 확인 다이얼로그):
+- 선택된 멤버 정보 (이름, 이메일)
+- 현재 역할 → 새 역할 표시
+- 역할 변경에 따른 권한 변경 안내 메시지
+- 확인/취소 버튼
+
+**Command**: 역할 변경 확인
+- 역할 변경 확인 또는 취소
+
+**System**: Organization System
+- 멤버 역할 데이터베이스 업데이트
+- 멤버 권한 캐시 무효화
+
+**Events**:
+1. 멤버가 Admin으로 승격되었다 (Member Promoted to Admin)
+2. Admin이 Member로 강등되었다 (Admin Demoted to Member)
 
 ---
 

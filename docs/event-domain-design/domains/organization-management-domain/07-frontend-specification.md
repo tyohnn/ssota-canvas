@@ -6,10 +6,22 @@
 **작성자**: AI Assistant  
 **작성일**: 2025-09-28  
 **수정일**: 2025-10-09
-**버전**: 8.0  
+**버전**: 9.0  
 **리뷰어**: [시니어 개발자명]
 
-### 주요 변경사항 (v8.0) - 조직 스위처 개선 (멤버 조직 표시)
+### 주요 변경사항 (v9.0) - 멤버 역할 변경 UI 시스템 (Scenario 3)
+- **역할 변경 컴포넌트**: 두 단계 프로세스 UI 구현 ✅
+  - Step 1: 역할 옵션 선택 (RoleSelector)
+  - Step 2: 확인 다이얼로그 (RoleChangeConfirmationDialog)
+- **클라이언트 측 권한 검증**: UI 조건부 렌더링 ✅
+  - 소유자 역할 변경 버튼 비활성화
+  - 현재 역할 체크 표시
+  - 권한별 옵션 활성화/비활성화
+- **Layered Authorization**: 프론트엔드(UX) + 백엔드(보안) 이중 검증 ✅
+- **새로운 Hook**: useRoleChange Hook 추가 ✅
+- **새로운 컴포넌트**: RoleSelector, RoleChangeConfirmationDialog ✅
+
+### 이전 변경사항 (v8.0) - 조직 스위처 개선 (멤버 조직 표시)
 - **조직 스위처 확장**: 소유자 + 멤버/관리자 조직 모두 표시 ✅
   - getUserOrganizationsAction: 소유자 조직 + 멤버 조직 통합 조회
   - 정렬: 소유자 조직 우선 → 참여일(joined_at) 오름차순
@@ -32,8 +44,8 @@
 
 ### 구현 범위
 - **도메인**: Organization Management (조직 생성, 멤버 초대, 조직 관리)
-- **주요 기능**: 조직 생성, 멤버 초대 및 수락, 조직 관리, 소유권 이전, 조직 삭제
-- **UI 컴포넌트**: 조직 생성 폼, 멤버 초대 폼, 조직 관리 패널, 인박스 알림 시스템
+- **주요 기능**: 조직 생성, 멤버 초대 및 수락, 멤버 역할 변경, 소유권 이전, 조직 삭제
+- **UI 컴포넌트**: 조직 생성 폼, 멤버 초대 폼, 역할 변경 UI, 조직 관리 패널, 인박스 알림 시스템
 
 ### 현재 구현 상태
 - ✅ **Phase 1**: DTO 타입 및 Context 구현 완료
@@ -44,7 +56,11 @@
   - 멤버 초대: Application-level 권한 체크, NotificationService 통합
   - 초대 승낙: organization_members에 멤버 자동 추가
   - 인박스 UI/UX 개선: 닫기 아이콘, 패딩, 호버 액션, NEW 배지
-- 📋 **Phase 6**: 조직 수정/삭제 (Story 006 예정)
+- ✅ **Phase 6**: 멤버 역할 변경 시스템 구현 완료 (Scenario 3)
+  - 클라이언트 측 권한 검증 (UI 조건부 렌더링)
+  - 두 단계 프로세스 (역할 선택 → 확인 다이얼로그)
+  - Layered Authorization (프론트엔드 UX + 백엔드 보안)
+- 📋 **Phase 7**: 조직 수정/삭제 (Story 006 예정)
 
 ---
 
@@ -148,6 +164,26 @@ export interface RespondToInvitationRequest {
 }
 ```
 
+##### ChangeMemberRoleRequest DTO (Phase 6 - Scenario 3)
+```typescript
+export interface ChangeMemberRoleRequest {
+  organizationId: string; // Serialized from OrganizationId
+  targetUserId: string; // Serialized from UserId
+  newRole: 'admin' | 'member'; // owner는 제외 (소유권 이전으로만 변경)
+}
+```
+
+##### RoleChangeConfirmation DTO (Phase 6 - Scenario 3)
+```typescript
+export interface RoleChangeConfirmation {
+  memberName: string;
+  memberEmail: string;
+  currentRole: 'owner' | 'admin' | 'member';
+  newRole: 'admin' | 'member';
+  isUpgrade: boolean; // true: 승격, false: 강등
+}
+```
+
 #### 미구현 항목 (Story 006 이후)
 - **복잡한 Read Models**: Story 006 이후 구현 예정
 
@@ -167,6 +203,165 @@ export interface RespondToInvitationRequest {
 - **DTO 직렬화**: 클래스 → plain object 변환
 - **Date → ISO string 변환**
 - **클라이언트 전달용 타입 보장**
+
+---
+
+## 🔐 1.3 Layered Authorization (Scenario 3 핵심 아키텍처)
+
+### 권한 검증 이중화 전략
+
+**핵심 원칙**: "프론트엔드는 사용자 경험 최적화, 백엔드는 실제 보안"
+
+### Frontend Layer (Client-side Authorization)
+**목적**: 사용자 경험 최적화, 불필요한 API 호출 방지
+
+**역할**:
+- ✅ UI 조건부 렌더링 (버튼 숨김/비활성화)
+- ✅ 사용자에게 미리 피드백 제공 (권한 없음 알림)
+- ✅ 옵션 활성화/비활성화 결정
+- ✅ 체크 표시, 배지 등 시각적 피드백
+
+**보안**:
+- ❌ **보안 목적 아님** (클라이언트 코드는 우회 가능)
+- ❌ 프론트엔드 검증만으로는 절대 신뢰 불가
+- ✅ 백엔드 검증의 미러링 (UX 최적화용)
+
+**구현 위치**: 
+- React Components (조건부 렌더링)
+- Custom Hooks (권한 계산 로직)
+- UI 상태 관리
+
+### Backend Layer (Server-side Authorization)
+**목적**: 실제 보안 검증, 비즈니스 규칙 강제
+
+**역할**:
+- ✅ 실제 권한 검증 (DB 조회 기반)
+- ✅ 비즈니스 규칙 강제 (계층적 권한 시스템)
+- ✅ 데이터 변경 승인/거부
+- ✅ 악의적 요청 차단
+
+**보안**:
+- ✅ **진짜 보안** (서버에서만 실행, 우회 불가)
+- ✅ 항상 검증 필수 (프론트엔드 검증과 무관하게)
+- ✅ 최종 결정권자
+
+**구현 위치**:
+- Service Layer (비즈니스 로직)
+- Server Actions (인증 확인)
+- Repository Layer (데이터 접근 제어)
+
+### Scenario 3 예시: 멤버 역할 변경
+
+#### Frontend Layer의 책임 (Process Model Sequence 1의 System)
+```typescript
+// 🎨 Frontend: UI 조건부 렌더링
+function MemberRoleSelector({ member, currentUserRole }: Props) {
+  // 1. 현재 유저가 역할 변경 권한이 있는지 확인
+  const canChangeRole = currentUserRole === 'owner' || currentUserRole === 'admin';
+  
+  // 2. 변경 대상 멤버가 소유자가 아닌지 확인
+  const isTargetOwner = member.role === 'owner';
+  
+  // 3. 현재 역할과 새 역할이 다른지 검증
+  const isCurrentRole = (role: string) => role === member.role;
+  
+  // 4. 소유자만 어드민을 멤버로 다운그레이드 가능
+  const canDowngradeAdmin = currentUserRole === 'owner' && member.role === 'admin';
+  
+  // 5. 어드민은 멤버를 어드민으로 업그레이드만 가능
+  const canUpgradeMember = currentUserRole === 'admin' && member.role === 'member';
+  
+  // UI 렌더링
+  return (
+    <div>
+      {!canChangeRole && <p>역할 변경 권한이 없습니다</p>}
+      {isTargetOwner && <p>소유자 역할은 변경할 수 없습니다</p>}
+      
+      <RoleOption 
+        value="admin" 
+        checked={isCurrentRole('admin')}
+        disabled={!canChangeRole || isTargetOwner || isCurrentRole('admin')}
+      />
+      
+      <RoleOption 
+        value="member" 
+        checked={isCurrentRole('member')}
+        disabled={!canChangeRole || isTargetOwner || isCurrentRole('member') || !canDowngradeAdmin}
+      />
+    </div>
+  );
+}
+```
+
+#### Backend Layer의 책임 (Process Model Sequence 2의 System + 보안 검증)
+```typescript
+// 🔒 Backend: 실제 보안 검증
+async function changeMemberRole(command: ChangeMemberRoleCommand) {
+  // 1. 현재 유저가 역할 변경 권한이 있는지 확인 (DB 조회)
+  const currentUserRole = await orgMemberRepo.findMemberRole(orgId, currentUserId);
+  if (currentUserRole !== 'owner' && currentUserRole !== 'admin') {
+    throw new Error('INSUFFICIENT_PERMISSIONS');
+  }
+  
+  // 2. 변경 대상 멤버가 소유자가 아닌지 확인 (DB 조회)
+  const targetMember = await orgMemberRepo.findByUserId(orgId, targetUserId);
+  if (targetMember.role === 'owner') {
+    throw new Error('CANNOT_CHANGE_OWNER_ROLE');
+  }
+  
+  // 3. 현재 역할과 새 역할이 다른지 검증
+  if (targetMember.role === newRole) {
+    throw new Error('ROLE_ALREADY_ASSIGNED');
+  }
+  
+  // 4. 관리자는 다운그레이드 불가
+  if (currentUserRole === 'admin' && targetMember.role === 'admin') {
+    throw new Error('ADMIN_CANNOT_DEMOTE_ADMIN');
+  }
+  
+  // 5. 데이터베이스 업데이트 (adminDb)
+  await orgMemberRepo.updateMemberRole(orgId, targetUserId, newRole);
+  
+  // 6. 권한 캐시 무효화
+  await cacheInvalidation.invalidateUserPermissions(targetUserId);
+}
+```
+
+### 왜 이렇게 이중화하는가?
+
+#### 프론트엔드 검증의 장점
+1. **즉각적인 피드백**: 서버 요청 없이 즉시 사용자에게 알림
+2. **불필요한 요청 방지**: 명백히 실패할 요청을 미리 차단
+3. **사용자 경험**: 버튼 비활성화, 체크 표시 등으로 현재 상태 명확히 표시
+
+#### 백엔드 검증이 필수인 이유
+1. **보안**: 클라이언트 코드는 우회 가능 (개발자 도구, API 직접 호출)
+2. **신뢰성**: 데이터베이스 상태 기반 검증 (최신 정보)
+3. **비즈니스 규칙**: 복잡한 규칙을 한 곳에서 관리
+
+### 구현 가이드
+
+#### ✅ DO: 프론트엔드에서
+- 사용자 경험을 위한 조건부 렌더링
+- 권한 정보를 DTO로 받아서 UI 구성
+- 버튼 비활성화, 메시지 표시
+
+#### ❌ DON'T: 프론트엔드에서
+- 보안에 의존하는 로직
+- 백엔드 검증 생략
+- 클라이언트 측 검증만으로 통과
+
+#### ✅ DO: 백엔드에서
+- 모든 요청에 대해 권한 검증
+- DB 상태 기반 검증
+- 비즈니스 규칙 강제
+
+#### ❌ DON'T: 백엔드에서
+- 프론트엔드 검증 신뢰
+- 권한 검증 생략
+- 느슨한 검증
+
+---
 
 ## 🎛️ 2. React Context 구현 (08-code-conventions.md 준수)
 
@@ -383,6 +578,30 @@ export async function [액션명]Action(
 - **반환**: void (성공/실패만 반환)
 - **입력**: RespondToInvitationRequest (invitationId, accept)
 
+##### changeMemberRoleAction ✅ (Phase 6 - Scenario 3)
+- **역할**: 멤버 역할을 변경하는 Server Action
+- **인증**: Supabase Auth를 통한 사용자 인증 확인
+- **로직**:
+  - OrganizationMemberRepository 주입
+  - Service.changeMemberRole() 호출
+    - **백엔드 보안 검증 (필수)**:
+      1. 현재 유저 권한 확인 (DB 조회)
+      2. 대상 멤버 역할 확인 (DB 조회)
+      3. 계층적 권한 시스템 검증
+      4. 소유자 역할 변경 방지
+      5. 자기 자신 역할 변경 방지
+      6. 현재 역할과 동일한 역할 변경 방지
+    - adminDb로 역할 업데이트 (organization_members 테이블)
+    - 권한 캐시 무효화
+- **반환**: Result<void> (성공/실패)
+- **입력**: ChangeMemberRoleRequest (organizationId, targetUserId, newRole)
+- **에러 코드**:
+  - INSUFFICIENT_PERMISSIONS: 권한 부족
+  - CANNOT_CHANGE_OWNER_ROLE: 소유자 역할 변경 불가
+  - ADMIN_CANNOT_DEMOTE_ADMIN: 관리자는 다운그레이드 불가
+  - ROLE_ALREADY_ASSIGNED: 이미 해당 역할
+  - MEMBER_MANAGEMENT_FAILED: 역할 변경 실패
+
 #### Notification Management Domain Server Actions (참조)
 - **getUserNotificationsAction**: Notification Management Domain에서 제공
 - **markNotificationAsReadAction**: Notification Management Domain에서 제공
@@ -504,6 +723,70 @@ export async function [액션명]Action(
 - **isMember**: 특정 사용자가 멤버인지 확인
 - **hasPendingInvitation**: 특정 이메일에 대한 진행 중인 초대 존재 여부
 
+#### 새로 추가된 Hook (Phase 6 - Scenario 3)
+
+##### useRoleChange Hook
+**파일 위치**: `src/domains/organization-management/frontend/hooks/use-role-change.ts`
+
+**주요 기능**:
+- **권한 계산**: 클라이언트 측 권한 검증 로직
+- **UI 상태 관리**: 확인 다이얼로그 open/close 상태
+- **역할 변경 처리**: changeMemberRoleAction 호출
+
+**제공하는 유틸리티**:
+```typescript
+interface UseRoleChangeReturn {
+  // 권한 검증 함수 (클라이언트 측)
+  canChangeRole: (currentUserRole: MemberRole, targetMemberRole: MemberRole) => boolean;
+  canDowngradeAdmin: (currentUserRole: MemberRole) => boolean;
+  canUpgradeMember: (currentUserRole: MemberRole) => boolean;
+  
+  // UI 상태
+  confirmationDialog: {
+    isOpen: boolean;
+    memberInfo: RoleChangeConfirmation | null;
+    open: (info: RoleChangeConfirmation) => void;
+    close: () => void;
+  };
+  
+  // 액션
+  selectRoleOption: (member: MemberSummary, newRole: 'admin' | 'member') => void;
+  confirmRoleChange: () => Promise<void>;
+  cancelRoleChange: () => void;
+  
+  // 상태
+  isChanging: boolean;
+  error: string | null;
+}
+```
+
+**클라이언트 측 권한 검증 로직**:
+```typescript
+// 1. 역할 변경 가능 여부
+function canChangeRole(currentUserRole: MemberRole, targetMemberRole: MemberRole): boolean {
+  // 일반 멤버는 권한 없음
+  if (currentUserRole === 'member') return false;
+  
+  // 소유자는 항상 변경 가능 (자신 제외)
+  if (currentUserRole === 'owner') return true;
+  
+  // 관리자는 멤버만 변경 가능
+  if (currentUserRole === 'admin') return targetMemberRole === 'member';
+  
+  return false;
+}
+
+// 2. 관리자 다운그레이드 가능 여부
+function canDowngradeAdmin(currentUserRole: MemberRole): boolean {
+  return currentUserRole === 'owner';
+}
+
+// 3. 멤버 업그레이드 가능 여부
+function canUpgradeMember(currentUserRole: MemberRole): boolean {
+  return currentUserRole === 'owner' || currentUserRole === 'admin';
+}
+```
+
 #### 미구현 항목 (Story 006 이후)
 - **낙관적 업데이트**: useOptimistic 미사용, 직접 상태 관리
 - **복잡한 액션들**: 조직 수정, 삭제 등 미구현
@@ -606,13 +889,79 @@ export async function [액션명]Action(
   - 진행 중인 초대 목록 표시 (회색으로 표시)
   - 멤버 역할 표시 (소유자, 관리자, 멤버)
   - 가입 시간 표시
-- **사용 Hook**: useMemberManagement Hook 사용
-- **UI**: shadcn/ui의 Card, Avatar, Badge, Item 컴포넌트 사용
+  - **역할 변경 버튼** (Phase 6 - Scenario 3 추가)
+- **사용 Hook**: useMemberManagement Hook, useRoleChange Hook 사용
+- **UI**: shadcn/ui의 Card, Avatar, Badge, Item, DropdownMenu 컴포넌트 사용
+
+#### 새로 추가된 컴포넌트 (Phase 6 - Scenario 3)
+
+##### MemberRoleSelector
+- **위치**: `src/domains/organization-management/frontend/components/member-management/member-role-selector.tsx`
+- **역할**: 멤버 역할 선택 드롭다운 컴포넌트 (Sequence 1)
+- **기능**:
+  - 멤버 행의 역할 표시 옆에 역할 변경 버튼
+  - 클릭 시 역할 옵션 드롭다운 표시
+  - **클라이언트 측 권한 검증 적용**:
+    ```typescript
+    // 1. 소유자 역할 변경 버튼 비활성화
+    const isOwner = member.role === 'owner';
+    
+    // 2. 현재 유저 권한 확인
+    const { userRole } = useMemberManagement();
+    const canChange = userRole === 'owner' || userRole === 'admin';
+    
+    // 3. 옵션별 활성화 결정
+    const adminOptionDisabled = 
+      member.role === 'admin' || // 현재 역할 (체크 표시)
+      (userRole === 'admin' && member.role === 'admin'); // 관리자는 다운그레이드 불가
+    
+    const memberOptionDisabled = 
+      member.role === 'member' || // 현재 역할 (체크 표시)
+      (userRole === 'admin'); // 관리자는 다운그레이드 불가
+    ```
+  - 현재 역할에 체크 표시
+  - 권한에 따라 옵션 활성화/비활성화
+  - 역할 옵션 선택 시 `RoleOptionSelectedEvent` 발생 (프론트엔드)
+- **사용 Hook**: useMemberManagement, useRoleChange
+- **UI**: shadcn/ui의 DropdownMenu, Button, Check 아이콘
+- **Props**:
+  ```typescript
+  interface MemberRoleSelectorProps {
+    member: MemberSummary;
+    currentUserRole: 'owner' | 'admin' | 'member';
+    onRoleSelect: (newRole: 'admin' | 'member') => void;
+  }
+  ```
+
+##### RoleChangeConfirmationDialog
+- **위치**: `src/domains/organization-management/frontend/components/member-management/role-change-confirmation-dialog.tsx`
+- **역할**: 역할 변경 확인 다이얼로그 컴포넌트 (Sequence 2)
+- **기능**:
+  - 선택된 멤버 정보 표시 (이름, 이메일)
+  - 역할 변경 정보 표시 (현재 역할 → 새 역할)
+  - 권한 변경 안내 메시지:
+    ```
+    승격 시: "관리자로 승격하면 멤버 초대 및 관리 권한이 부여됩니다"
+    강등 시: "멤버로 강등하면 멤버 관리 권한이 제거됩니다"
+    ```
+  - 확인/취소 버튼
+  - 확인 시 `changeMemberRoleAction` 호출
+- **사용 Hook**: useRoleChange
+- **UI**: shadcn/ui의 Dialog, Button
+- **Props**:
+  ```typescript
+  interface RoleChangeConfirmationDialogProps {
+    isOpen: boolean;
+    memberInfo: RoleChangeConfirmation | null;
+    onConfirm: () => Promise<void>;
+    onCancel: () => void;
+    isLoading: boolean;
+  }
+  ```
 
 #### 미구현 컴포넌트들 (Story 006-007 이후)
 - **OrganizationList**: 조직 목록 표시 컴포넌트
 - **OrganizationEditForm**: 조직 편집 폼 컴포넌트
-- **MemberManagement**: 멤버 관리 컴포넌트
 
 ### 5.2 Hook 사용 패턴
 
@@ -661,24 +1010,7 @@ export function CreateOrganizationDialog({ open, onOpenChange }: DialogProps) {
 - **검증 에러**: 입력 형식 오류, 필수 필드 누락 등
 - **사용자 피드백**: Toast 알림 또는 인라인 에러 메시지
 
-### 5.4 미구현 컴포넌트들 (Story 006-007 이후)
-
-#### OrganizationEditForm
-- **역할**: 조직 편집을 위한 폼 컴포넌트
-- **유효성 검사**: 조직명 필수 입력, 중복 이름 검사
-- **제출 처리**: Server Action 호출 및 성공/실패 처리
-- **로딩 상태**: 제출 중 로딩 상태 표시
-
-#### OrganizationList
-- **역할**: 조직 목록 표시 컴포넌트
-- **기능**: 조직 목록 표시, 검색, 필터링
-- **상태 관리**: useOrganization Hook 활용
-
-#### MemberManagement
-- **역할**: 멤버 관리 컴포넌트
-- **기능**: 멤버 초대, 권한 관리, 멤버 제거
-- **상태 관리**: 별도 Hook 필요 (useMemberManagement)
-
+=
 ## 🔗 6. 앱 레벨 통합 (08-code-conventions.md 준수)
 
 ### 6.1 Provider 통합 설계
@@ -732,90 +1064,6 @@ export function CreateOrganizationDialog({ open, onOpenChange }: DialogProps) {
 - **상태**: 프론트엔드 로그인 UI 미구현
 - **기능**: 사용자 인증 및 리다이렉트 처리
 
-## 📊 7. 구현 완료 체크리스트 (08-code-conventions.md 기준)
-
-### 7.1 DTO 타입 정의 완료 확인
-- [x] **DTO 인터페이스**: Plain Object로 정의 완료
-- [x] **Date 직렬화**: ISO 문자열로 변환 완료
-- [x] **Value Object 직렬화**: string으로 변환 완료
-- [x] **Next.js Server Actions 직렬화 제약 준수**: 완료
-- [x] **CreateOrganizationRequest/Result**: 조직 생성용 DTO 추가 완료
-- [x] **OrganizationMemberView**: 멤버 관리용 DTO 추가 완료 (Phase 5)
-- [x] **UserNotificationView**: 알림 시스템용 DTO (Notification Management Domain에서 제공)
-- [x] **InviteMemberRequest/RespondToInvitationRequest**: 초대 관련 DTO 추가 완료 (Phase 5)
-- [ ] **복잡한 Read Models**: Story 006 이후 구현 예정
-
-### 7.2 Context 구현 완료 확인
-- [x] **도메인별 독립적인 Context**: OrganizationContext 구현 완료
-- [x] **DTO 배열과 선택된 엔티티 상태 관리**: 완료
-- [x] **쿠키 기반 영속성**: 선택된 조직 ID 쿠키 저장/복원 구현 완료
-- [x] **초기 데이터 로드 로직**: Provider 마운트 시 자동 조회 구현 완료
-- [x] **조직 생성 액션**: createOrganization 메서드 추가 완료
-- [x] **NotificationContext**: 알림 시스템 Context (Notification Management Domain에서 제공)
-- [x] **MemberManagementContext**: 멤버 관리 Context 추가 완료 (Phase 5)
-- [ ] **사용자 Context**: 별도 사용자 정보 관리 Context 미구현
-
-### 7.3 Server Actions 구현 완료 확인
-- [x] **Supabase Auth 인증 확인**: 모든 액션에서 구현 완료 ✅
-- [x] **의존성 주입 패턴**: Service Layer 사용 완료 ✅
-  - OrganizationRepository, InvitationRepository, OrganizationMemberRepository
-  - **NotificationService 주입** (Notification Management Domain 통합)
-- [x] **Command 객체 활용**: 입력 구조화 완료 ✅
-  - RequestMemberInvitationCommand에 **inviterName 추가**
-- [x] **DTO 직렬화**: Service Layer에서 DTO 반환 완료 ✅
-- [x] **revalidatePath**: 관련 페이지 재검증 완료 ✅
-- [x] **조직 생성**: createNewOrganizationAction 구현 완료 ✅
-- [x] **멤버 초대**: inviteMemberAction 구현 완료 ✅
-  - NotificationService 주입, Profile에서 inviterName 조회
-  - Service에서 이메일 검색 + Notification 생성
-- [x] **멤버 목록 조회**: getOrganizationMembersAction 구현 완료 ✅
-  - Layered Security: RLS → Application 권한 체크 → adminDb
-- [x] **초대 응답**: respondToInvitationAction 구현 완료 ✅
-  - OrganizationMemberRepository 주입
-  - acceptInvitation: 멤버 자동 추가 (adminDb)
-- [x] **알림 관련 액션**: Notification Management Domain Service 통합 ✅
-- [ ] **조직 수정/삭제**: 조직 관리 액션 미구현 (Story 006)
-
-### 7.4 Hook 구현 완료 확인
-- [x] **Context 추상화**: useOrganization Hook 구현 완료
-- [x] **비즈니스 로직 메서드**: 조직 관련 편의 함수들 구현 완료
-- [x] **선택된 엔티티, 기본 엔티티 등 유틸리티**: 완료
-- [x] **에러 상태 처리**: 적절히 처리 완료
-- [x] **조직 생성 액션**: createOrganization 메서드 추가 완료
-- [x] **useNotification Hook**: 알림 시스템 Hook (Notification Management Domain에서 제공)
-- [x] **useMemberManagement Hook**: 멤버 관리 Hook 추가 완료 (Phase 5)
-- [ ] **낙관적 업데이트**: useOptimistic 미사용, 직접 상태 관리
-- [ ] **복잡한 액션**: 조직 수정, 삭제 등 미구현
-
-### 7.5 컴포넌트 연동 완료 확인
-- [x] **Hook 사용**: 컴포넌트에서 useOrganization Hook 사용 ✅
-- [x] **Switcher 컴포넌트**: OrganizationSwitcher 드롭다운 구현 완료 ✅
-- [x] **로딩 상태와 에러 상태 처리**: 적절히 처리 완료 ✅
-- [x] **빈 상태 처리**: 포함 완료 ✅
-- [x] **조직 생성 Dialog**: CreateOrganizationDialog 구현 완료 ✅
-- [x] **폼 검증**: Zod 스키마 기반 검증 구현 완료 ✅
-- [x] **알림 컴포넌트**: InboxPanel, NotificationItem 구현 완료 ✅
-  - UI/UX 개선: 닫기 아이콘 중복 제거, 레이아웃 최적화
-  - NotificationItem: Card → div, border-b 구분, 호버 액션 absolute
-  - NEW 배지: 파란색 점 + 파란색 배지, 텍스트/버튼 크기 축소
-- [x] **MemberInvitationForm**: 멤버 초대 폼 구현 완료 (Phase 5) ✅
-  - Choice Card UI로 역할 선택
-- [x] **SettingsDialog**: 설정 다이얼로그 구현 완료 (Phase 5) ✅
-  - 너비 확장, 스크롤 개선, 멤버 목록 순서 조정
-- [x] **MemberList**: 멤버 목록 컴포넌트 구현 완료 (Phase 5) ✅
-  - 스크롤 영역, 소유자 표시
-- [ ] **폼 컴포넌트**: OrganizationEditForm 미구현
-- [ ] **목록 컴포넌트**: OrganizationList 미구현
-
-### 7.6 앱 통합 완료 확인
-- [x] **Provider 중첩 순서**: 적절한 순서로 배치 완료
-- [x] **초기 데이터**: Server Components에서 전달 완료
-- [x] **쿠키 기반 영속성**: 올바르게 작동 완료
-- [x] **페이지별 Hook 사용**: 필요한 Hook만 선택적으로 사용 완료
-- [x] **NotificationProvider**: 알림 시스템 Provider (Notification Management Domain에서 제공)
-- [x] **MemberManagementProvider**: 멤버 관리 Provider 통합 완료 (Phase 5)
-- [ ] **구글 OAuth**: Supabase Auth 구글 OAuth 연동 필요
-- [ ] **로그인 UI**: 프론트엔드 로그인 페이지 미구현
 
 ## 📚 8. 관련 문서 및 참조
 
@@ -903,6 +1151,12 @@ src/
 │       │   ├── organization-switcher.tsx
 │       │   ├── create-organization-dialog.tsx
 │       │   ├── dashboard-sidebar.tsx
+│       │   ├── member-management/        # 멤버 관리 컴포넌트 (Phase 5-6)
+│       │   │   ├── member-invitation-form.tsx
+│       │   │   ├── member-list.tsx
+│       │   │   ├── settings-dialog.tsx
+│       │   │   ├── member-role-selector.tsx      # ✅ Phase 6 - Scenario 3
+│       │   │   └── role-change-confirmation-dialog.tsx # ✅ Phase 6 - Scenario 3
 │       │   └── sidebar-components/
 │       │       ├── org-workspaces-menu.tsx
 │       │       ├── org-workspaces-skeleton.tsx
@@ -915,58 +1169,6 @@ src/
 │   # UserId는 user-management domain에서 re-export하여 사용
 ```
 
-### 8.4 현재 구현 상태 (08-code-conventions.md 기준)
-
-#### 도메인 분리 현황 (v6.0)
-- ✅ **User Management에서 완전히 분리**: Organization 관련 모든 로직 독립 관리
-  - Frontend 레이어 (contexts, hooks, components, utils) 완전 이동 ✅
-  - Backend 레이어 (repositories, services) 완전 독립 ✅
-  - Value Objects (OrganizationId, InvitationId, NotificationId, MemberRole) ✅
-  - UserId는 user-management에서 re-export하여 도메인 간 참조 ✅
-
-#### Organization Management Domain 현재 상태
-1. ✅ **DTO 직렬화**: Plain Object, ISO 문자열, Value Object 직렬화 완료
-2. ✅ **React Context**: OrganizationContext, MemberManagementContext 구현 완료
-3. ✅ **Server Actions**: 표준 패턴 준수, DTO 반환 완료
-   - NotificationService 통합 (Service → Service 호출)
-   - Profile 테이블에서 inviterName 조회
-   - OrganizationMemberRepository 주입 (초대 승낙 시 멤버 추가)
-4. ✅ **Custom Hook**: useOrganization, useMemberManagement Hook 구현 완료
-5. ✅ **React Components**: OrganizationSwitcher, DashboardSidebar, SettingsDialog 구현 완료
-6. ✅ **앱 통합**: Provider 설정, 쿠키 기반 영속성 완료
-7. ✅ **조직 생성 Dialog**: CreateOrganizationDialog 구현 완료 (Phase 4)
-8. ✅ **사이드바 컴포넌트들**: SidebarHeaderGroup, SidebarFooterSettings, OrgWorkspacesMenu 구현 완료
-9. ✅ **멤버 초대 시스템**: Scenario 2 구현 완료 (Phase 5)
-   - MemberInvitationForm: Choice Card UI, 이메일 검색, 역할 선택
-   - MemberList: 멤버 목록, 소유자 표시, 스크롤 영역
-   - Layered Security: Application-level 권한 체크 + adminDb
-10. ✅ **알림 시스템**: InboxPanel, NotificationItem UI/UX 개선 완료
-    - 닫기 아이콘 중복 제거, 레이아웃 최적화
-    - Card → div + border-b, 배경색 최소화
-    - NEW 배지: 파란색 점 + 파란색 배지
-    - 호버 액션: absolute 배치, 텍스트/버튼 크기 축소
-11. 📋 **Story 006**: 조직 수정/삭제 기능 구현 예정
-
-#### User Management Domain 통합
-- ✅ **기본 조직 생성**: User 등록 시 Organization Management의 `createDefaultOrganizationAction` 호출
-- ✅ **UserId 참조**: `@/domains/user-management/shared/value-objects/ids.vo` 에서 re-export
-- ✅ **도메인 간 경계**: 명확한 책임 분리 및 통합 포인트 정의
-
-### 8.5 다음 단계 우선순위
-1. **완료**: Phase 4 (조직 생성 Dialog) 구현 완료 ✅
-2. **완료**: 사이드바 컴포넌트들 구현 완료 ✅
-3. **완료**: 구글 OAuth 연동 및 로그인 UI 구현 완료 ✅
-4. **완료**: Phase 5 (멤버 초대 및 수락 시스템) 구현 완료 ✅
-   - Layered Security Model 적용
-   - NotificationService 통합 (Service → Service)
-   - 초대 승낙 시 멤버 자동 추가
-   - InboxPanel UI/UX 개선
-5. **완료**: Layered Security Model 적용 및 문서화 ✅
-   - RLS 정책 최소화
-   - Application-level 권한 체크
-   - adminDb 사용 (시스템 레벨 작업)
-6. **다음 스프린트**: Story 006 (조직 수정/삭제) 구현
-7. **다음 스프린트**: 추가 도메인 연동 (Workspace Structure, Visual Canvas)
 
 ---
 
@@ -1021,6 +1223,30 @@ src/
 2. **초대 알림 확인** → 초대 정보 표시 (누구누구 님이 다음 조직에 초대함)
 3. **승낙/거절 선택** → Server Action 호출 → 성공 시 알림 목록 갱신
 
+#### 멤버 역할 변경 플로우 (Scenario 3) ✅
+**Sequence 1: 역할 옵션 선택**
+1. **멤버 관리 화면** → MemberList 표시
+2. **역할 변경 버튼 클릭** → MemberRoleSelector 드롭다운 표시
+3. **클라이언트 측 권한 검증**:
+   - 소유자 역할 변경 버튼 비활성화
+   - 현재 역할에 체크 표시
+   - 권한에 따라 옵션 활성화/비활성화
+4. **역할 옵션 선택** → `RoleOptionSelectedEvent` 발생 (프론트엔드)
+
+**Sequence 2: 확인 다이얼로그 및 역할 업데이트**
+5. **확인 다이얼로그 표시** → RoleChangeConfirmationDialog 열기
+6. **멤버 정보 및 역할 변경 내용 표시**:
+   - 멤버 이름, 이메일
+   - 현재 역할 → 새 역할
+   - 권한 변경 안내 메시지
+7. **확인 버튼 클릭** → `changeMemberRoleAction` 호출
+8. **백엔드 보안 검증** → Service.changeMemberRole() 실행
+9. **성공 시**:
+   - 멤버 목록 자동 갱신
+   - 성공 토스트 메시지
+   - 다이얼로그 닫기
+   - `MemberPromotedToAdminEvent` 또는 `AdminDemotedToMemberEvent` 발행
+
 ### 9.3 상태 관리 패턴
 
 #### Context 분리
@@ -1043,6 +1269,31 @@ const { selectedOrganization } = useOrganization();
 const handleInvitationRespond = async (invitationId: string, accept: boolean) => {
   await respondToInvitationAction({ invitationId, accept });
 };
+
+// 역할 변경 (Scenario 3)
+const { 
+  canChangeRole, 
+  selectRoleOption, 
+  confirmRoleChange, 
+  confirmationDialog 
+} = useRoleChange();
+
+// MemberRoleSelector에서
+const handleRoleSelect = (member: MemberSummary, newRole: 'admin' | 'member') => {
+  // 클라이언트 측 검증
+  if (!canChangeRole(userRole, member.role)) {
+    toast.error('역할 변경 권한이 없습니다');
+    return;
+  }
+  
+  // 역할 옵션 선택 → 다이얼로그 표시
+  selectRoleOption(member, newRole);
+};
+
+// RoleChangeConfirmationDialog에서
+const handleConfirm = async () => {
+  await confirmRoleChange(); // 백엔드 검증 + 역할 업데이트
+};
 ```
 
 ### 9.4 에러 처리 및 사용자 피드백
@@ -1051,6 +1302,20 @@ const handleInvitationRespond = async (invitationId: string, accept: boolean) =>
 - **권한 부족**: "멤버 초대 권한이 없습니다" 메시지
 - **중복 초대**: "이미 초대된 사용자입니다" 메시지
 - **이미 멤버**: "이미 조직 멤버입니다" 메시지
+
+#### 역할 변경 실패 시나리오 (Scenario 3) ✅
+- **권한 부족**: "역할 변경 권한이 없습니다" 메시지
+  - 일반 멤버가 시도: 역할 변경 버튼 숨김 (프론트엔드)
+  - 백엔드에서도 INSUFFICIENT_PERMISSIONS 에러 반환
+- **소유자 역할 변경**: "소유자 역할은 소유권 이전을 통해서만 변경할 수 있습니다"
+  - 프론트엔드: 소유자의 역할 변경 버튼 비활성화
+  - 백엔드: CANNOT_CHANGE_OWNER_ROLE 에러
+- **관리자의 다운그레이드 시도**: "관리자는 다른 관리자를 강등할 수 없습니다"
+  - 프론트엔드: 관리자 옵션 비활성화
+  - 백엔드: ADMIN_CANNOT_DEMOTE_ADMIN 에러
+- **동일 역할로 변경**: "이미 해당 역할입니다"
+  - 프론트엔드: 현재 역할 옵션 비활성화 + 체크 표시
+  - 백엔드: ROLE_ALREADY_ASSIGNED 에러
 
 #### 알림 처리
 - **실시간 업데이트**: 초대 생성 시 즉시 알림 목록 갱신
@@ -1071,4 +1336,226 @@ const handleInvitationRespond = async (invitationId: string, accept: boolean) =>
 
 ---
 
+## 🎯 Scenario 3: 멤버 역할 변경 시스템 구현 상세
+
+### 10.1 Layered Authorization 아키텍처
+
+#### 프론트엔드 레이어 (Client-side)
+**목적**: 사용자 경험 최적화, 불필요한 API 호출 방지
+
+**구현 컴포넌트**: MemberRoleSelector
+```typescript
+// 클라이언트 측 권한 검증 (UI 렌더링용)
+const { userRole } = useMemberManagement();
+const { canChangeRole, canDowngradeAdmin } = useRoleChange();
+
+// 1. 역할 변경 버튼 표시 여부
+const showRoleChangeButton = canChangeRole(userRole, member.role) && member.role !== 'owner';
+
+// 2. 옵션별 활성화 결정
+const adminOptionDisabled = 
+  member.role === 'admin' || // 현재 역할 (체크 표시)
+  (userRole === 'admin' && member.role === 'admin'); // 관리자는 다운그레이드 불가
+
+const memberOptionDisabled = 
+  member.role === 'member' || // 현재 역할 (체크 표시)
+  (userRole === 'admin'); // 관리자는 다운그레이드 불가
+```
+
+#### 백엔드 레이어 (Server-side)
+**목적**: 실제 보안 검증, 비즈니스 규칙 강제
+
+**구현 위치**: OrganizationManagementService.changeMemberRole()
+```typescript
+// 백엔드 보안 검증 (실제 권한 확인)
+async changeMemberRole(command: ChangeMemberRoleCommand) {
+  // 1. DB에서 현재 유저 역할 확인
+  const currentUserRole = await this.orgMemberRepo.findMemberRole(...);
+  
+  // 2. DB에서 대상 멤버 역할 확인
+  const targetMemberRole = await this.orgMemberRepo.findMemberRole(...);
+  
+  // 3. 보안 검증 (프론트엔드 검증과 무관하게 항상 실행)
+  if (currentUserRole === 'admin' && targetMemberRole === 'admin') {
+    throw new Error('ADMIN_CANNOT_DEMOTE_ADMIN');
+  }
+  
+  // ... 추가 검증
+  
+  // 4. adminDb로 역할 업데이트
+  await this.orgMemberRepo.updateMemberRole(...);
+}
+```
+
+### 10.2 UI/UX 요구사항 구현
+
+#### 역할 선택 드롭다운 (MemberRoleSelector)
+- **트리거**: 멤버 행의 역할 배지 옆 "..." 버튼 클릭
+- **UI 구성**:
+  ```
+  ┌─────────────────────┐
+  │ ✓ 관리자 (Admin)    │ ← 체크 표시 (현재 역할)
+  │   멤버 (Member)     │ ← 활성화 (소유자만)
+  │                     │
+  │ 또는                │
+  │                     │
+  │   관리자 (Admin)    │ ← 활성화 (소유자/관리자)
+  │ ✓ 멤버 (Member)     │ ← 체크 표시 (현재 역할)
+  └─────────────────────┘
+  ```
+- **조건부 렌더링**:
+  - 소유자 역할: 버튼 자체를 숨김
+  - 일반 멤버: 역할 변경 버튼 숨김
+  - 현재 역할: 체크 표시, 비활성화
+  - 권한 없는 옵션: 비활성화 + 툴팁 ("권한이 없습니다")
+
+#### 확인 다이얼로그 (RoleChangeConfirmationDialog)
+- **트리거**: 역할 옵션 선택 시 자동 표시
+- **UI 구성**:
+  ```
+  ┌──────────────────────────────────────┐
+  │ 멤버 역할 변경                        │
+  ├──────────────────────────────────────┤
+  │                                      │
+  │ 홍길동 (hong@example.com)             │
+  │                                      │
+  │ 멤버 → 관리자                         │
+  │                                      │
+  │ ℹ️ 관리자로 승격하면 멤버 초대 및      │
+  │    관리 권한이 부여됩니다.             │
+  │                                      │
+  │         [취소]  [확인]                │
+  └──────────────────────────────────────┘
+  ```
+- **권한 변경 안내**:
+  - 승격 (멤버 → 관리자): "멤버 초대 및 관리 권한이 부여됩니다"
+  - 강등 (관리자 → 멤버): "멤버 관리 권한이 제거됩니다"
+
+### 10.3 컴포넌트 상호작용 플로우
+
+#### Sequence 1: 역할 옵션 선택
+```
+MemberList
+  ├─ MemberItem (each member)
+  │    ├─ Avatar + Name + Email
+  │    ├─ Role Badge
+  │    └─ MemberRoleSelector (if canChangeRole)
+  │         ├─ Trigger Button ("...")
+  │         └─ DropdownMenu
+  │              ├─ Admin Option (with check if current)
+  │              └─ Member Option (with check if current)
+  │
+  └─ [클라이언트 측 권한 검증]
+       ├─ 소유자 역할: 버튼 숨김
+       ├─ 일반 멤버: 버튼 숨김
+       ├─ 현재 역할: 체크 표시 + 비활성화
+       └─ 권한별 옵션 활성화/비활성화
+```
+
+#### Sequence 2: 확인 다이얼로그 및 역할 업데이트
+```
+RoleOptionSelected (프론트엔드 이벤트)
+  ↓
+useRoleChange.selectRoleOption()
+  ↓
+confirmationDialog.open()
+  ↓
+RoleChangeConfirmationDialog 표시
+  ├─ 멤버 정보
+  ├─ 역할 변경 내용 (현재 → 새 역할)
+  ├─ 권한 변경 안내
+  └─ [확인] 버튼
+      ↓
+useRoleChange.confirmRoleChange()
+  ↓
+changeMemberRoleAction (Server Action)
+  ↓
+[백엔드 보안 검증 7단계]
+  ↓
+역할 업데이트 성공
+  ├─ 멤버 목록 자동 갱신
+  ├─ 성공 토스트 메시지
+  ├─ 다이얼로그 닫기
+  └─ MemberPromotedToAdminEvent 또는 AdminDemotedToMemberEvent 발행
+```
+
+### 10.4 에러 처리 전략
+
+#### 프론트엔드 에러 (클라이언트 측)
+```typescript
+// 1. 권한 부족 (UI 차단)
+if (!canChangeRole(userRole, member.role)) {
+  // 버튼을 아예 표시하지 않음
+  return null;
+}
+
+// 2. 소유자 역할 변경 시도 (UI 차단)
+if (member.role === 'owner') {
+  // 버튼을 비활성화하거나 숨김
+  return <DisabledButton tooltip="소유자 역할은 변경할 수 없습니다" />;
+}
+
+// 3. 동일 역할 선택 (UI 차단)
+if (member.role === newRole) {
+  // 옵션을 비활성화하고 체크 표시
+  return <CheckedOption disabled />;
+}
+```
+
+#### 백엔드 에러 (서버 측)
+```typescript
+// changeMemberRoleAction에서
+try {
+  await service.changeMemberRole(command);
+} catch (error) {
+  // 백엔드 에러를 사용자 친화적 메시지로 변환
+  if (error.code === 'INSUFFICIENT_PERMISSIONS') {
+    toast.error('역할 변경 권한이 없습니다');
+  } else if (error.code === 'ADMIN_CANNOT_DEMOTE_ADMIN') {
+    toast.error('관리자는 다른 관리자를 강등할 수 없습니다');
+  } else if (error.code === 'CANNOT_CHANGE_OWNER_ROLE') {
+    toast.error('소유자 역할은 소유권 이전을 통해서만 변경할 수 있습니다');
+  } else {
+    toast.error('역할 변경에 실패했습니다');
+  }
+}
+```
+
+### 10.5 성능 최적화
+
+#### 권한 계산 캐싱
+```typescript
+// useRoleChange Hook에서
+const canChangeRoleMemoized = useMemo(() => {
+  return (currentUserRole: MemberRole, targetMemberRole: MemberRole) => {
+    // 권한 계산 로직
+  };
+}, []);
+```
+
+#### 낙관적 UI 업데이트
+```typescript
+// 역할 변경 확인 시
+const handleConfirm = async () => {
+  // 1. UI 즉시 업데이트 (낙관적)
+  setLocalMemberRole(newRole);
+  
+  try {
+    // 2. 서버 요청
+    await confirmRoleChange();
+    
+    // 3. 성공 시 멤버 목록 갱신
+    await refreshOrganizationMembers();
+  } catch (error) {
+    // 4. 실패 시 이전 상태로 롤백
+    setLocalMemberRole(originalRole);
+    toast.error('역할 변경에 실패했습니다');
+  }
+};
+```
+
+---
+
 이 Frontend Specification은 **Organization Management Domain**의 현재 구현 상태를 **08-code-conventions.md**와 **06-frontend-specification-guide.md**의 컨벤션에 맞춰 정확히 반영한 문서입니다.
+
+**Scenario 3 핵심 아키텍처**: Process Model의 System이 프론트엔드와 백엔드로 명확히 분리되어, Layered Authorization 패턴으로 구현되었습니다. 프론트엔드는 사용자 경험을 위한 조건부 렌더링을, 백엔드는 실제 보안 검증을 담당합니다.

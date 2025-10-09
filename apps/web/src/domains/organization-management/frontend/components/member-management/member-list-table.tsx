@@ -18,7 +18,32 @@ import {
 import { Badge } from '@workspace/ui/components/ui/badge';
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { useMemberManagement } from '../../hooks/use-member-management';
+import { useRoleChange } from '../../hooks/use-role-change';
+import { MemberRoleSelector } from './member-role-selector';
+import { RoleChangeConfirmationDialog } from './role-change-confirmation-dialog';
 import { cn } from '@workspace/ui/lib/utils';
+
+const getRoleIcon = (role: 'owner' | 'admin' | 'member') => {
+  switch (role) {
+    case 'owner':
+      return <Crown className="h-4 w-4" />;
+    case 'admin':
+      return <Shield className="h-4 w-4" />;
+    case 'member':
+      return <User className="h-4 w-4" />;
+  }
+};
+
+const getRoleLabel = (role: 'owner' | 'admin' | 'member') => {
+  switch (role) {
+    case 'owner':
+      return '소유자';
+    case 'admin':
+      return '관리자';
+    case 'member':
+      return '멤버';
+  }
+};
 
 type MemberRow = {
   id: string;
@@ -33,41 +58,24 @@ type MemberRow = {
 };
 
 export function MemberListTable() {
-  const { getCurrentMembers, getPendingInvitations, isLoading } =
-    useMemberManagement();
+  const {
+    getCurrentMembers,
+    getPendingInvitations,
+    isLoading,
+    organizationMembers,
+    refreshOrganizationMembers,
+  } = useMemberManagement();
 
-  const getRoleIcon = (role: 'owner' | 'admin' | 'member') => {
-    switch (role) {
-      case 'owner':
-        return <Crown className="h-4 w-4" />;
-      case 'admin':
-        return <Shield className="h-4 w-4" />;
-      case 'member':
-        return <User className="h-4 w-4" />;
-    }
-  };
+  const {
+    selectRoleOption,
+    confirmRoleChange,
+    cancelRoleChange,
+    confirmationDialog,
+    isChanging,
+  } = useRoleChange();
 
-  const getRoleLabel = (role: 'owner' | 'admin' | 'member') => {
-    switch (role) {
-      case 'owner':
-        return '소유자';
-      case 'admin':
-        return '관리자';
-      case 'member':
-        return '멤버';
-    }
-  };
-
-  const getRoleBadgeVariant = (role: 'owner' | 'admin' | 'member') => {
-    switch (role) {
-      case 'owner':
-        return 'default' as const;
-      case 'admin':
-        return 'secondary' as const;
-      case 'member':
-        return 'outline' as const;
-    }
-  };
+  // 현재 사용자 역할 가져오기
+  const userRole = organizationMembers?.userRole || 'member';
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -140,6 +148,13 @@ export function MemberListTable() {
     );
   }
 
+  // 역할 변경 성공 핸들러
+  const handleRoleChangeSuccess = async () => {
+    if (organizationMembers?.organizationId) {
+      await refreshOrganizationMembers(organizationMembers.organizationId);
+    }
+  };
+
   return (
     <div>
       {allRows.length === 0 ? (
@@ -197,17 +212,41 @@ export function MemberListTable() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        row.type === 'pending'
-                          ? 'outline'
-                          : getRoleBadgeVariant(row.role)
-                      }
-                      className="flex items-center gap-1 w-fit"
-                    >
-                      {getRoleIcon(row.role)}
-                      <span>{getRoleLabel(row.role)}</span>
-                    </Badge>
+                    {row.type === 'member' && row.userId ? (
+                      <MemberRoleSelector
+                        member={{
+                          userId: row.userId,
+                          name: row.name,
+                          email: row.email,
+                          profileImageUrl: row.profileImageUrl,
+                          role: row.role,
+                          joinedAt: '', // Not needed for role selector
+                        }}
+                        currentUserRole={userRole}
+                        onRoleSelect={newRole =>
+                          selectRoleOption(
+                            {
+                              userId: row.userId!,
+                              name: row.name,
+                              email: row.email,
+                              profileImageUrl: row.profileImageUrl,
+                              role: row.role,
+                              joinedAt: '',
+                            },
+                            newRole,
+                            userRole
+                          )
+                        }
+                      />
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="flex items-center gap-1 w-fit opacity-60"
+                      >
+                        {getRoleIcon(row.role)}
+                        <span>{getRoleLabel(row.role)}</span>
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -226,6 +265,32 @@ export function MemberListTable() {
           </Table>
         </div>
       )}
+
+      {/* 역할 변경 확인 다이얼로그 */}
+      <RoleChangeConfirmationDialog
+        isOpen={confirmationDialog.isOpen}
+        memberInfo={confirmationDialog.memberInfo}
+        onConfirm={async () => {
+          if (
+            organizationMembers?.organizationId &&
+            confirmationDialog.memberInfo
+          ) {
+            // memberInfo에서 userId를 찾아야 합니다
+            const targetMember = getCurrentMembers.find(
+              m => m.email === confirmationDialog.memberInfo?.memberEmail
+            );
+            if (targetMember) {
+              await confirmRoleChange(
+                organizationMembers.organizationId,
+                targetMember.userId,
+                handleRoleChangeSuccess
+              );
+            }
+          }
+        }}
+        onCancel={cancelRoleChange}
+        isLoading={isChanging}
+      />
     </div>
   );
 }

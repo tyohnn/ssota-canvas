@@ -11,35 +11,55 @@ import { OrganizationId, UserId } from '../../../shared/value-objects/ids.vo';
 
 export class DrizzleOrganizationRepository implements OrganizationRepository {
   /**
-   * 조직 조회 (ID 기반)
+   * 조직 조회 (ID 기반) - RLS 적용
    *
-   * @param id - 조직 ID
-   * @param useAdmin - true면 Admin DB 사용 (Application 레벨 권한 검증 완료 후), false면 RLS 사용 (Owner 체크)
-   * @returns 조직 Aggregate 또는 null
+   * 🔒 보안: RLS 정책으로 Owner만 조회 가능
    */
-  async findById(
-    id: OrganizationId,
-    useAdmin: boolean = false
-  ): Promise<OrganizationAggregate | null> {
-    let data: DBOrganization | undefined;
+  async findById(id: OrganizationId): Promise<OrganizationAggregate | null> {
+    const db = await createDrizzleSupabaseClient();
 
-    if (useAdmin) {
-      // Admin DB: Application 레벨에서 권한 검증이 완료된 경우 (멤버/어드민 조회)
-      const rows = await adminDb
-        .select()
-        .from(organizations)
-        .where(eq(organizations.id, id.value))
-        .limit(1);
-      data = rows[0];
-    } else {
-      // RLS DB: Owner만 조회 가능 (RLS policy로 보안)
-      const db = await createDrizzleSupabaseClient();
-      data = await db.rls(tx =>
-        tx.query.organizations.findFirst({
-          where: eq(organizations.id, id.value),
-        })
-      );
+    // RLS DB: Owner만 조회 가능 (RLS policy로 보안)
+    const data = await db.rls(tx =>
+      tx.query.organizations.findFirst({
+        where: eq(organizations.id, id.value),
+      })
+    );
+
+    if (!data) {
+      return null;
     }
+
+    const organization = new Organization(
+      new OrganizationId(data.id),
+      data.name,
+      data.organization_type,
+      new UserId(data.owner_id),
+      data.is_default ?? false,
+      new Date(data.created_at),
+      new Date(data.updated_at)
+    );
+
+    return new OrganizationAggregate(organization);
+  }
+
+  /**
+   * 조직 조회 (ID 기반) - Admin DB 사용
+   *
+   * ⚠️ 주의: Service Layer에서 권한 체크 완료 후에만 호출!
+   * 사용 시나리오:
+   * - Admin이 멤버 초대 시 (Service에서 Admin 권한 확인 후)
+   * - Admin이 역할 변경 시 (Service에서 Admin 권한 확인 후)
+   * - 멤버십 확인 후 조직 조회 (getUserOrganizations)
+   */
+  async findByIdAsAdmin(
+    id: OrganizationId
+  ): Promise<OrganizationAggregate | null> {
+    // Admin DB: Application 레벨에서 권한 검증이 완료된 경우
+    const [data] = await adminDb
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, id.value))
+      .limit(1);
 
     if (!data) {
       return null;

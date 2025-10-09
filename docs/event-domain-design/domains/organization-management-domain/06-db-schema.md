@@ -5,10 +5,19 @@ Technical Specification을 기반으로 한 데이터베이스 스키마 설계 
 **작성자**: AI Assistant  
 **작성일**: 2025-09-28  
 **수정일**: 2025-10-09
-**버전**: 7.0  
+**버전**: 8.0  
 **기반 문서**: [Technical Specification](./05-technical-specification.md)
 
-### 주요 변경사항 (v7.0) - schema-dev.ts 동기화 및 불일치 경고
+### 주요 변경사항 (v8.0) - 멤버 역할 변경 시스템 스키마 문서화 (Scenario 3)
+- **member_role enum 주석 강화**: 계층적 권한 시스템 설명 추가 ✅
+  - owner: 모든 멤버 역할 변경 가능
+  - admin: 멤버 승격만 가능
+  - member: 역할 변경 권한 없음
+- **organization_members.role 주석 추가**: 계층적 권한 시스템 적용 명시 ✅
+- **데이터 무결성 체크리스트**: 역할 변경 권한 제약사항 추가 ✅
+- **검증 체크리스트**: Scenario 3 멤버 역할 변경 구현 완료 표시 ✅
+
+### 이전 변경사항 (v7.0) - schema-dev.ts 동기화 및 불일치 경고
 - **⚠️ 중요**: organizations.id는 UUID 유지 (schema-dev.ts의 TEXT 형식은 오류)
 - **organization_members 구조**: id UUID 추가, created_at/updated_at 필드 제거 (⚠️ audit 필드 복원 필요)
 - **invitations 구조**: expires_at 필드 제거 (⚠️ 만료 로직을 위해 복원 필요)
@@ -132,10 +141,10 @@ CREATE TYPE member_role AS ENUM (
 );
 
 -- Comments
-COMMENT ON TYPE member_role IS 'Organization Management Domain - 조직 내 멤버 역할 enum';
-COMMENT ON ENUM VALUE member_role.owner IS '조직 소유자 (모든 권한)';
-COMMENT ON ENUM VALUE member_role.admin IS '조직 관리자 (멤버 관리 권한)';
-COMMENT ON ENUM VALUE member_role.member IS '일반 멤버 (기본 사용 권한)';
+COMMENT ON TYPE member_role IS 'Organization Management Domain - 조직 내 멤버 역할 enum (계층적 권한 시스템 - Scenario 3)';
+COMMENT ON ENUM VALUE member_role.owner IS '조직 소유자 (모든 권한, 역할 변경: 모든 멤버 역할 변경 가능)';
+COMMENT ON ENUM VALUE member_role.admin IS '조직 관리자 (멤버 관리 권한, 역할 변경: 멤버 승격만 가능)';
+COMMENT ON ENUM VALUE member_role.member IS '일반 멤버 (기본 사용 권한, 역할 변경 권한 없음)';
 ```
 
 ### 3. invitation_status enum (public schema)
@@ -641,6 +650,11 @@ ORDER BY idx_scan DESC;
 - [x] **멤버십 관리**: Layered Security Model 적용 ✅
   - Application-level: Service에서 Owner/Admin 권한 체크
   - Repository: adminDb 사용 (addMember, removeMember, updateMemberRole)
+- [x] **멤버 역할 변경 (Scenario 3)**: 계층적 권한 시스템 구현 ✅
+  - member_role enum으로 역할 타입 안전성 확보
+  - updateMemberRole 메서드로 역할 업데이트 (adminDb)
+  - 소유자/관리자별 역할 변경 권한 구분
+  - 권한 캐시 무효화 지원
 - [x] **권한 기반 접근**: RLS (최소 권한) + Application (복잡한 로직) ✅
 - [x] **알림 시스템**: NotificationService 통합 (adminDb로 다른 사용자 알림 생성) ✅
 - [ ] **소유권 이전**: 조직 소유자 변경 및 멤버 역할 업데이트 (Phase 4)
@@ -650,7 +664,11 @@ ORDER BY idx_scan DESC;
 - [x] **기본 조직 제약**: 사용자당 1개 기본 조직만 허용
 - [x] **소유권 제약**: 조직은 반드시 1명의 소유자 필요
 - [x] **조직 타입 제약**: 유효한 enum 값만 허용
-- [x] **멤버 역할 제약**: 유효한 member_role enum 값만 허용
+- [x] **멤버 역할 제약**: 유효한 member_role enum 값만 허용 (owner, admin, member)
+- [x] **역할 변경 권한 제약 (Scenario 3)**: Application-level에서 계층적 권한 시스템 검증
+  - 소유자 역할 변경 불가 (소유권 이전을 통해서만)
+  - 관리자는 멤버 승격만 가능, 강등 불가
+  - 소유자만 관리자 강등 가능
 - [x] **초대 상태 제약**: 유효한 invitation_status enum 값만 허용
 - [x] **중복 초대 방지**: 동일 조직-이메일에 대한 pending 초대 중복 불가
 - [x] **멤버십 중복 방지**: 동일 조직-사용자에 대한 멤버십 중복 불가

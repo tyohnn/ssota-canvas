@@ -221,9 +221,15 @@ describe('OrganizationAggregate', () => {
   })
   
   describe('changeMemberRole', () => {
-    it('멤버 역할을 변경해야 한다')
-    it('유효한 역할만 허용해야 한다')
-    it('MemberRoleChangedEvent가 발행되어야 한다')
+    it('소유자가 멤버를 관리자로 승격해야 한다')
+    it('소유자가 관리자를 멤버로 강등해야 한다')
+    it('관리자가 멤버를 관리자로 승격해야 한다')
+    it('관리자는 관리자를 강등할 수 없어야 한다')
+    it('소유자 역할은 변경할 수 없어야 한다')
+    it('소유자는 자신의 역할을 변경할 수 없어야 한다')
+    it('현재 역할과 동일한 역할로 변경할 수 없어야 한다')
+    it('MemberPromotedToAdminEvent가 발행되어야 한다')
+    it('AdminDemotedToMemberEvent가 발행되어야 한다')
   })
   
   describe('removeMember', () => {
@@ -392,8 +398,12 @@ describe('OrganizationManagementService Integration Tests', () => {
   })
   
   describe('changeMemberRole', () => {
-    it('멤버 역할을 변경해야 한다')
-    it('권한이 없는 사용자는 거부해야 한다')
+    it('소유자가 멤버 역할을 변경해야 한다')
+    it('관리자가 멤버를 관리자로 승격해야 한다')
+    it('관리자가 관리자를 강등 시도 시 거부해야 한다')
+    it('일반 멤버의 역할 변경 시도는 거부해야 한다')
+    it('소유자 역할 변경 시도는 거부해야 한다')
+    it('역할 변경 후 권한 캐시를 무효화해야 한다')
   })
   
   describe('removeMember', () => {
@@ -461,9 +471,15 @@ describe('Server Actions Integration Tests', () => {
   })
   
   describe('changeMemberRoleAction', () => {
-    it('멤버 역할을 변경해야 한다')
-    it('권한이 없는 사용자는 거부해야 한다')
-    it('유효한 역할만 허용해야 한다')
+    it('인증된 소유자가 멤버 역할을 변경해야 한다')
+    it('인증된 관리자가 멤버를 관리자로 승격해야 한다')
+    it('관리자의 다운그레이드 시도는 소유자만 가능해야 한다')
+    it('미인증 사용자는 거부해야 한다')
+    it('일반 멤버의 역할 변경 시도는 거부해야 한다')
+    it('소유자 역할 변경 시도는 거부해야 한다')
+    it('유효하지 않은 역할은 거부해야 한다')
+    it('성공 시 Result.ok를 반환해야 한다')
+    it('실패 시 Result.err를 반환해야 한다')
   })
   
   describe('removeMemberAction', () => {
@@ -599,7 +615,7 @@ test('초대받은 사용자가 초대를 수락하는 전체 플로우', async 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️  
 **Process Model 매핑**: Scenario 2 - Sequence 2
 
-### 3. 조직 소유권 이전 플로우 (Scenario 3)
+### 3. 조직 소유권 이전 플로우 (Scenario 5)
 
 ```typescript
 test('조직 소유권 이전 전체 플로우', async ({ page }) => {
@@ -634,28 +650,38 @@ test('조직 소유권 이전 전체 플로우', async ({ page }) => {
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️  
-**Process Model 매핑**: Scenario 3 전체
+**Process Model 매핑**: Scenario 5 전체
 
-### 4. 멤버 역할 변경 플로우 (Scenario 4)
+### 4. 멤버 역할 변경 플로우 (Scenario 3)
 
+#### Sequence 1: 역할 옵션 선택 및 확인 다이얼로그
 ```typescript
-test('멤버 역할 변경 전체 플로우', async ({ page }) => {
-  // Given: 조직 관리자로 로그인
-  await loginAsOrganizationAdmin(page);
+test('소유자가 멤버를 관리자로 승격하는 전체 플로우', async ({ page }) => {
+  // Given: 조직 소유자로 로그인
+  await loginAsOrganizationOwner(page);
   
-  // When: 멤버 관리 페이지 접근
+  // When: 멤버 관리 화면 접근
   await page.goto('/organization/members');
   
-  // When: 멤버 역할 변경 버튼 클릭
+  // Then: 멤버 목록이 표시됨
+  await expect(page.locator('[data-testid="member-list"]')).toBeVisible();
+  
+  // When: 멤버의 역할 변경 버튼 클릭
   await page.click('[data-testid="change-role-button-member1"]');
   
-  // Then: 역할 변경 폼이 표시됨
-  await expect(page.locator('[data-testid="role-change-form"]')).toBeVisible();
+  // Then: 역할 선택 옵션이 표시됨
+  await expect(page.locator('[data-testid="role-options"]')).toBeVisible();
+  await expect(page.locator('[data-testid="current-role-checked"]')).toBeVisible();
   
-  // When: 새 역할 선택
-  await page.selectOption('[data-testid="new-role-select"]', 'admin');
+  // When: 관리자 역할 옵션 선택
+  await page.click('[data-testid="role-option-admin"]');
   
-  // When: 변경 확인
+  // Then: 업그레이드 확인 다이얼로그 표시
+  await expect(page.locator('[data-testid="upgrade-confirmation-dialog"]')).toBeVisible();
+  await expect(page.locator('[data-testid="role-change-info"]')).toContainText('멤버 → 관리자');
+  await expect(page.locator('[data-testid="permission-change-info"]')).toBeVisible();
+  
+  // When: 확인 버튼 클릭
   await page.click('[data-testid="confirm-role-change"]');
   
   // Then: 역할 변경 완료 메시지 표시
@@ -664,12 +690,65 @@ test('멤버 역할 변경 전체 플로우', async ({ page }) => {
   // Then: 멤버 목록에서 역할이 업데이트됨
   await expect(page.locator('[data-testid="member-role-member1"]')).toContainText('Admin');
 })
+
+test('소유자가 관리자를 멤버로 강등하는 전체 플로우', async ({ page }) => {
+  // Given: 조직 소유자로 로그인
+  await loginAsOrganizationOwner(page);
+  
+  // When: 멤버 관리 화면 접근
+  await page.goto('/organization/members');
+  
+  // When: 관리자의 역할 변경 버튼 클릭
+  await page.click('[data-testid="change-role-button-admin1"]');
+  
+  // Then: 역할 선택 옵션이 표시됨
+  await expect(page.locator('[data-testid="role-options"]')).toBeVisible();
+  
+  // When: 멤버 역할 옵션 선택
+  await page.click('[data-testid="role-option-member"]');
+  
+  // Then: 다운그레이드 확인 다이얼로그 표시
+  await expect(page.locator('[data-testid="downgrade-confirmation-dialog"]')).toBeVisible();
+  await expect(page.locator('[data-testid="role-change-info"]')).toContainText('관리자 → 멤버');
+  
+  // When: 확인 버튼 클릭
+  await page.click('[data-testid="confirm-role-change"]');
+  
+  // Then: 역할 변경 완료 메시지 표시
+  await expect(page.locator('[data-testid="role-change-success"]')).toBeVisible();
+  
+  // Then: 멤버 목록에서 역할이 업데이트됨
+  await expect(page.locator('[data-testid="member-role-admin1"]')).toContainText('Member');
+})
+
+test('관리자가 멤버를 관리자로 승격하는 플로우', async ({ page }) => {
+  // Given: 조직 관리자로 로그인
+  await loginAsOrganizationAdmin(page);
+  
+  // When: 멤버 관리 화면 접근
+  await page.goto('/organization/members');
+  
+  // When: 멤버의 역할 변경 버튼 클릭
+  await page.click('[data-testid="change-role-button-member1"]');
+  
+  // When: 관리자 역할 옵션 선택
+  await page.click('[data-testid="role-option-admin"]');
+  
+  // Then: 업그레이드 확인 다이얼로그 표시
+  await expect(page.locator('[data-testid="upgrade-confirmation-dialog"]')).toBeVisible();
+  
+  // When: 확인 버튼 클릭
+  await page.click('[data-testid="confirm-role-change"]');
+  
+  // Then: 역할 변경 완료
+  await expect(page.locator('[data-testid="role-change-success"]')).toBeVisible();
+})
 ```
 
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️  
-**Process Model 매핑**: Scenario 4 전체
+**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️  
+**Process Model 매핑**: Scenario 3 전체 (두 단계 프로세스)
 
-### 5. 멤버 제거 플로우 (Scenario 5)
+### 5. 멤버 제거 플로우 (Scenario 4)
 
 ```typescript
 test('멤버 제거 전체 플로우', async ({ page }) => {
@@ -698,7 +777,7 @@ test('멤버 제거 전체 플로우', async ({ page }) => {
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️  
-**Process Model 매핑**: Scenario 5 전체
+**Process Model 매핑**: Scenario 4 전체
 
 ### 6. 조직 삭제 플로우 (Scenario 6)
 
@@ -774,6 +853,44 @@ test('기본 조직 삭제 시도 시 에러 메시지 표시', async ({ page })
     '기본 조직은 삭제할 수 없습니다'
   );
 })
+
+test('관리자가 다른 관리자 강등 시도 시 에러 표시 (Scenario 3)', async ({ page }) => {
+  // Given: 조직 관리자로 로그인
+  await loginAsOrganizationAdmin(page);
+  
+  // When: 다른 관리자의 역할 변경 시도
+  await page.goto('/organization/members');
+  await page.click('[data-testid="change-role-button-admin2"]');
+  await page.click('[data-testid="role-option-member"]');
+  
+  // Then: 권한 없음 에러 메시지 표시
+  await expect(page.locator('[data-testid="permission-denied-error"]')).toBeVisible();
+  await expect(page.locator('[data-testid="permission-denied-error"]')).toContainText(
+    '관리자는 다른 관리자를 강등할 수 없습니다'
+  );
+})
+
+test('소유자 역할 변경 시도 시 에러 표시 (Scenario 3)', async ({ page }) => {
+  // Given: 조직 관리자로 로그인
+  await loginAsOrganizationAdmin(page);
+  
+  // When: 소유자의 역할 변경 시도
+  await page.goto('/organization/members');
+  
+  // Then: 소유자의 역할 변경 버튼이 비활성화됨
+  await expect(page.locator('[data-testid="change-role-button-owner"]')).toBeDisabled();
+})
+
+test('일반 멤버의 역할 변경 시도 시 에러 표시 (Scenario 3)', async ({ page }) => {
+  // Given: 일반 멤버로 로그인
+  await loginAsRegularMember(page);
+  
+  // When: 멤버 관리 페이지 접근
+  await page.goto('/organization/members');
+  
+  // Then: 역할 변경 버튼이 보이지 않음
+  await expect(page.locator('[data-testid^="change-role-button-"]')).not.toBeVisible();
+})
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️
@@ -836,7 +953,40 @@ test('기본 조직 삭제 시도 시 에러 메시지 표시', async ({ page })
 | 전체 플로우 | Integration | inviteMemberAction(), respondToInvitationAction() |
 | 사용자 경험 | E2E | 멤버 초대 → 알림 생성 → 초대 수락/거절 |
 
-### Scenario 3: 조직 소유권 이전
+### Scenario 3: 멤버 역할 변경
+
+| Process Model 요소 | 테스트 종류 | 테스트 케이스 |
+|-------------------|------------|-------------|
+| **Sequence 1: 역할 옵션 선택** | | |
+| Trigger Event: 역할 변경 버튼 클릭 | E2E | 역할 변경 버튼 클릭 UI 테스트 |
+| Policy: 역할 선택 옵션 표시 | E2E | 역할 선택 옵션 표시 검증 |
+| Command: 역할 옵션 선택하기 | Unit | OrganizationAggregate 권한 검증 로직 |
+| System: Organization System (권한 검증) | Unit | 계층적 권한 시스템 로직 테스트 |
+| Event: 역할 옵션이 선택됨 (프론트엔드) | E2E | RoleOptionSelectedEvent 발행 검증 |
+| **Sequence 2: 확인 다이얼로그 및 역할 업데이트** | | |
+| Policy: 확인 다이얼로그 표시 | E2E | 다이얼로그 표시 검증 |
+| Command: 역할 변경 확인 | Unit | OrganizationAggregate.changeMemberRole() |
+| System: Organization System (역할 업데이트) | Unit | 역할 변경 비즈니스 로직, 캐시 무효화 |
+| Event: 멤버가 Admin으로 승격됨 | Unit | MemberPromotedToAdminEvent 발행 검증 |
+| Event: Admin이 Member로 강등됨 | Unit | AdminDemotedToMemberEvent 발행 검증 |
+| 전체 플로우 | Integration | changeMemberRoleAction() |
+| 사용자 경험 | E2E | 역할 옵션 선택 → 확인 다이얼로그 → 역할 업데이트 |
+| **에러 케이스** | | |
+| 관리자의 다운그레이드 시도 (관리자) | Unit, E2E | 권한 거부 검증 |
+| 소유자 역할 변경 시도 | Unit, E2E | 역할 변경 불가 검증 |
+| 일반 멤버의 역할 변경 시도 | Unit, E2E | 권한 거부 검증 |
+
+### Scenario 4: 멤버 제거
+
+| Process Model 요소 | 테스트 종류 | 테스트 케이스 |
+|-------------------|------------|-------------|
+| Command: 멤버 제거하기 | Unit | OrganizationAggregate.removeMember() |
+| System: Member Removal System | Unit | 멤버 제거 비즈니스 로직 |
+| Event: 멤버가 제거됨 | Unit | MemberRemovedFromOrganizationEvent 발행 검증 |
+| 전체 플로우 | Integration | removeMemberAction() |
+| 사용자 경험 | E2E | 멤버 제거 → 확인 → 조직에서 제외 |
+
+### Scenario 5: 조직 소유권 이전
 
 | Process Model 요소 | 테스트 종류 | 테스트 케이스 |
 |-------------------|------------|-------------|
@@ -846,26 +996,6 @@ test('기본 조직 삭제 시도 시 에러 메시지 표시', async ({ page })
 | Event: 소유권이 이전됨 | Unit | OrganizationOwnershipTransferredEvent 발행 검증 |
 | 전체 플로우 | Integration | transferOwnershipAction() |
 | 사용자 경험 | E2E | 소유권 이전 → 확인 → 권한 변경 |
-
-### Scenario 4: 멤버 역할 변경
-
-| Process Model 요소 | 테스트 종류 | 테스트 케이스 |
-|-------------------|------------|-------------|
-| Command: 멤버 역할 변경하기 | Unit | OrganizationAggregate.changeMemberRole() |
-| System: Role Management System | Unit | 역할 변경 비즈니스 로직 |
-| Event: 멤버 역할이 변경됨 | Unit | MemberRoleChangedEvent 발행 검증 |
-| 전체 플로우 | Integration | changeMemberRoleAction() |
-| 사용자 경험 | E2E | 역할 변경 → 확인 → 권한 업데이트 |
-
-### Scenario 5: 멤버 제거
-
-| Process Model 요소 | 테스트 종류 | 테스트 케이스 |
-|-------------------|------------|-------------|
-| Command: 멤버 제거하기 | Unit | OrganizationAggregate.removeMember() |
-| System: Member Removal System | Unit | 멤버 제거 비즈니스 로직 |
-| Event: 멤버가 제거됨 | Unit | MemberRemovedFromOrganizationEvent 발행 검증 |
-| 전체 플로우 | Integration | removeMemberAction() |
-| 사용자 경험 | E2E | 멤버 제거 → 확인 → 조직에서 제외 |
 
 ### Scenario 6: 조직 삭제
 

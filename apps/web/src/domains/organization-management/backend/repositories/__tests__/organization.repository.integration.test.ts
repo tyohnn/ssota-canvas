@@ -40,6 +40,12 @@ class MockOrganizationRepository implements OrganizationRepository {
     return null;
   }
 
+  async findByIdAsAdmin(id: OrganizationId): Promise<OrganizationAggregate | null> {
+    // Mock implementation that calls Supabase client
+    this.supabase.from();
+    return null;
+  }
+
   async findByOwnerId(ownerId: UserId): Promise<OrganizationAggregate[]> {
     // Mock implementation that calls Supabase client
     this.supabase.from();

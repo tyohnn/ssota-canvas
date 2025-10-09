@@ -121,6 +121,30 @@ export class MemberRoleChangedEvent {
   ) {}
 }
 
+export class MemberPromotedToAdminEvent {
+  readonly type = 'MemberPromotedToAdmin';
+
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly targetUserId: UserId,
+    public readonly promotedBy: UserId,
+    public readonly newRole: 'admin' | 'member',
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
+export class AdminDemotedToMemberEvent {
+  readonly type = 'AdminDemotedToMember';
+
+  constructor(
+    public readonly organizationId: OrganizationId,
+    public readonly targetUserId: UserId,
+    public readonly demotedBy: UserId,
+    public readonly newRole: 'admin' | 'member',
+    public readonly timestamp: Date = new Date()
+  ) {}
+}
+
 export class MemberRemovedFromOrganizationEvent {
   readonly type = 'MemberRemovedFromOrganization';
 

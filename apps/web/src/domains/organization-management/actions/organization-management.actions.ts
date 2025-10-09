@@ -18,6 +18,7 @@ import {
   RequestMemberInvitationCommand,
   AcceptInvitationCommand,
   RejectInvitationCommand,
+  ChangeMemberRoleCommand,
 } from '../shared/commands';
 import {
   OrganizationSummary,
@@ -106,7 +107,13 @@ export async function createDefaultOrganizationAction(
 
     // 3. Service 사용 (Drizzle Repository)
     const organizationRepository = new DrizzleOrganizationRepository();
-    const service = new OrganizationManagementService(organizationRepository);
+    const organizationMemberRepository =
+      new DrizzleOrganizationMemberRepository();
+    const service = new OrganizationManagementService(
+      organizationRepository,
+      undefined, // invitationRepository
+      organizationMemberRepository
+    );
 
     // 4. Command 생성
     const command: CreateDefaultOrganizationCommand = {
@@ -182,7 +189,13 @@ export async function createNewOrganizationAction(
 
     // 3. Service 사용 (Drizzle Repository)
     const organizationRepository = new DrizzleOrganizationRepository();
-    const service = new OrganizationManagementService(organizationRepository);
+    const organizationMemberRepository =
+      new DrizzleOrganizationMemberRepository();
+    const service = new OrganizationManagementService(
+      organizationRepository,
+      undefined, // invitationRepository
+      organizationMemberRepository
+    );
 
     // 4. Command 생성
     const command: CreateNewOrganizationCommand = {
@@ -421,6 +434,73 @@ export async function searchUserByEmailAction(
 
     return userProfiles;
   } catch (error) {
+    throw error;
+  }
+}
+
+// Change Member Role Action (Scenario 3)
+export async function changeMemberRoleAction(data: {
+  organizationId: string;
+  targetUserId: string;
+  newRole: 'admin' | 'member';
+}): Promise<void> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      throw new Error('Authentication required');
+    }
+
+    // 2. 의존성 주입 (Repository, Service)
+    const organizationRepository = new DrizzleOrganizationRepository();
+    const invitationRepository = new DrizzleInvitationRepository();
+    const organizationMemberRepository =
+      new DrizzleOrganizationMemberRepository();
+    const notificationRepository = new DrizzleNotificationRepository();
+    const notificationService = new NotificationService(notificationRepository);
+
+    const service = new OrganizationManagementService(
+      organizationRepository,
+      invitationRepository,
+      organizationMemberRepository,
+      notificationService
+    );
+
+    // 3. Command 생성
+    const command: ChangeMemberRoleCommand = {
+      organizationId: data.organizationId,
+      userId: data.targetUserId,
+      newRole: data.newRole,
+      requesterId: user.id,
+    };
+
+    // 4. 도메인 로직 실행
+    const result = await service.changeMemberRole(command);
+
+    if (result.isError()) {
+      console.error('[changeMemberRoleAction] Failed:', {
+        code: result.error.code,
+        message: result.error.message,
+      });
+      throw new Error(result.error.message);
+    }
+
+    // 5. 관련 페이지 재검증
+    revalidatePath('/dashboard');
+    revalidatePath(`/organization/${data.organizationId}/members`);
+
+    console.log('[changeMemberRoleAction] Success:', {
+      eventType: result.value.type,
+      targetUserId: data.targetUserId,
+      newRole: data.newRole,
+    });
+  } catch (error) {
+    console.error('[changeMemberRoleAction] Error:', error);
     throw error;
   }
 }

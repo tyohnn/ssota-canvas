@@ -20,6 +20,7 @@ import {
   RequestMemberInvitationCommand,
   AcceptInvitationCommand,
   RejectInvitationCommand,
+  ChangeMemberRoleCommand,
 } from '../../shared/commands';
 import { OrganizationSummary } from '../../shared/dtos';
 import { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
@@ -37,13 +38,26 @@ export class OrganizationManagementService {
     command: CreateDefaultOrganizationCommand
   ): Promise<Result<OrganizationAggregate, OrganizationManagementError>> {
     try {
+      const userId = new UserId(command.userId);
+
       // 기본 조직 생성
       const organization = OrganizationAggregate.createDefault(
         command.organizationName,
-        new UserId(command.userId)
+        userId
       );
 
+      // 조직 저장
       await this.organizationRepository.save(organization);
+
+      // ✨ 소유자를 organization_members 테이블에 추가
+      if (this.organizationMemberRepository) {
+        await this.organizationMemberRepository.addMember({
+          organizationId: organization.id,
+          userId: userId,
+          role: new MemberRole('owner'),
+          joinedAt: new Date(),
+        });
+      }
 
       return Result.success(organization);
     } catch (error) {
@@ -98,10 +112,9 @@ export class OrganizationManagementService {
             continue;
           }
 
-          // 조직 상세 정보 조회 (Admin DB 사용 - Application 레벨 권한 검증 완료)
-          const org = await this.organizationRepository.findById(
-            memberInfo.organizationId,
-            true // useAdmin = true (멤버십이 확인된 경우이므로 안전)
+          // 조직 상세 정보 조회 (Admin DB 사용 - 멤버십 확인 완료)
+          const org = await this.organizationRepository.findByIdAsAdmin(
+            memberInfo.organizationId
           );
 
           if (org) {
@@ -170,15 +183,27 @@ export class OrganizationManagementService {
         );
       }
 
+      const ownerId = new UserId(command.ownerId);
+
       // 새로운 조직 생성
       const newOrganization = OrganizationAggregate.createNew(
         command.name,
         command.organizationType,
-        new UserId(command.ownerId)
+        ownerId
       );
 
       // 조직 저장
       await this.organizationRepository.save(newOrganization);
+
+      // ✨ 소유자를 organization_members 테이블에 추가
+      if (this.organizationMemberRepository) {
+        await this.organizationMemberRepository.addMember({
+          organizationId: newOrganization.id,
+          userId: ownerId,
+          role: new MemberRole('owner'),
+          joinedAt: new Date(),
+        });
+      }
 
       // DTO로 변환하여 반환
       const organizationSummary: OrganizationSummary = {
@@ -219,8 +244,8 @@ export class OrganizationManagementService {
         organizationId: command.organizationId,
       });
 
-      // 1. 조직 확인
-      const organization = await this.organizationRepository.findById(
+      // 1. 조직 확인 (Admin DB - Admin도 초대 가능하므로)
+      const organization = await this.organizationRepository.findByIdAsAdmin(
         new OrganizationId(command.organizationId)
       );
 
@@ -516,6 +541,159 @@ export class OrganizationManagementService {
         new OrganizationManagementError(
           'INVITATION_CREATION_FAILED',
           'Failed to reject invitation',
+          { error }
+        )
+      );
+    }
+  }
+
+  async changeMemberRole(
+    command: ChangeMemberRoleCommand
+  ): Promise<
+    Result<
+      { type: 'MemberPromotedToAdmin' | 'AdminDemotedToMember' },
+      OrganizationManagementError
+    >
+  > {
+    if (!this.organizationMemberRepository) {
+      return Result.error(
+        new OrganizationManagementError(
+          'MEMBER_MANAGEMENT_FAILED',
+          'Organization member repository not initialized'
+        )
+      );
+    }
+
+    try {
+      const organizationId = new OrganizationId(command.organizationId);
+      const targetUserId = new UserId(command.userId);
+      const currentUserId = new UserId(command.requesterId);
+      const newRole = new MemberRole(command.newRole);
+
+      // Step 1: 조직 조회 (Admin DB - Admin도 역할 변경 가능하므로)
+      const organization =
+        await this.organizationRepository.findByIdAsAdmin(organizationId);
+      if (!organization) {
+        return Result.error(
+          new OrganizationManagementError(
+            'ORGANIZATION_NOT_FOUND',
+            'Organization not found'
+          )
+        );
+      }
+
+      // Step 2: 현재 사용자 권한 확인 (organization_members에서 조회)
+      const currentUserMemberRole =
+        await this.organizationMemberRepository.findMemberRole(
+          organizationId,
+          currentUserId
+        );
+
+      if (!currentUserMemberRole) {
+        return Result.error(
+          new OrganizationManagementError(
+            'INSUFFICIENT_PERMISSIONS',
+            'User is not a member of this organization'
+          )
+        );
+      }
+
+      const currentUserRole = currentUserMemberRole.value as
+        | 'owner'
+        | 'admin'
+        | 'member';
+
+      if (currentUserRole === 'member') {
+        return Result.error(
+          new OrganizationManagementError(
+            'INSUFFICIENT_PERMISSIONS',
+            'Member does not have permission to change roles'
+          )
+        );
+      }
+
+      // Step 3: 대상 멤버 역할 조회 및 검증 (organization_members에서 조회)
+      const targetMemberMemberRole =
+        await this.organizationMemberRepository.findMemberRole(
+          organizationId,
+          targetUserId
+        );
+
+      if (!targetMemberMemberRole) {
+        return Result.error(
+          new OrganizationManagementError(
+            'MEMBER_MANAGEMENT_FAILED',
+            'Target user is not a member of this organization'
+          )
+        );
+      }
+
+      const targetMemberRole = targetMemberMemberRole.value as
+        | 'owner'
+        | 'admin'
+        | 'member';
+
+      // Step 3-1: 관리자가 관리자를 강등하려는 경우 명시적으로 체크 (Service Layer)
+      if (
+        currentUserRole === 'admin' &&
+        targetMemberRole === 'admin' &&
+        newRole.value === 'member'
+      ) {
+        return Result.error(
+          new OrganizationManagementError(
+            'ADMIN_CANNOT_DEMOTE_ADMIN',
+            'Admin cannot demote another admin'
+          )
+        );
+      }
+
+      // Step 4: 계층적 권한 시스템 검증 (OrganizationAggregate로 위임)
+      // OrganizationAggregate의 changeMemberRole 메서드 호출
+      // 이 메서드는 다음을 검증합니다:
+      // - 소유자 역할 변경 방지
+      // - 자기 자신 역할 변경 방지
+      // - 현재 역할과 동일한 역할로 변경 방지
+      // - 관리자는 관리자를 강등할 수 없음
+      const event = organization.changeMemberRole(
+        targetUserId,
+        currentUserId,
+        currentUserRole,
+        targetMemberRole,
+        newRole.value as 'admin' | 'member'
+      );
+
+      // Step 5: adminDb로 역할 업데이트 (organization_members 테이블)
+      await this.organizationMemberRepository.updateMemberRole(
+        organizationId,
+        targetUserId,
+        newRole
+      );
+
+      // Step 6: 권한 캐시 무효화 (즉시 권한 반영)
+      // TODO: 권한 캐시 무효화 로직 구현 (향후 캐시 시스템 도입 시)
+
+      // 핵심 이벤트 로그
+      eventLog('[changeMemberRole] Success', {
+        organizationId: organizationId.value,
+        targetUserId: targetUserId.value,
+        currentUserId: currentUserId.value,
+        oldRole: targetMemberRole,
+        newRole: newRole.value,
+        eventType: event.type,
+      });
+
+      return Result.success({ type: event.type });
+    } catch (error) {
+      // OrganizationAggregate에서 발생한 에러는 그대로 전파
+      if (error instanceof OrganizationManagementError) {
+        return Result.error(error);
+      }
+
+      console.error('[changeMemberRole] Unexpected error:', error);
+      return Result.error(
+        new OrganizationManagementError(
+          'MEMBER_MANAGEMENT_FAILED',
+          'Failed to change member role',
           { error }
         )
       );

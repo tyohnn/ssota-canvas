@@ -19,6 +19,7 @@ describe('OrganizationManagementService', () => {
     mockOrgRepository = {
       save: vi.fn<OrganizationRepository['save']>(),
       findById: vi.fn<OrganizationRepository['findById']>(),
+      findByIdAsAdmin: vi.fn<OrganizationRepository['findByIdAsAdmin']>(),
       findByOwnerId: vi.fn<OrganizationRepository['findByOwnerId']>(),
       delete: vi.fn<OrganizationRepository['delete']>(),
     } as Mocked<OrganizationRepository>;
@@ -65,7 +66,7 @@ describe('OrganizationManagementService', () => {
         inviterUserId
       );
 
-      mockOrgRepository.findById.mockResolvedValueOnce(mockOrg);
+      mockOrgRepository.findByIdAsAdmin.mockResolvedValueOnce(mockOrg);
       mockInvitationRepository.findByInviteeEmail.mockResolvedValueOnce(null);
       // searchUserProfileByEmail mock 추가
       vi.mocked(mockMemberRepository.searchUserProfileByEmail).mockResolvedValueOnce([
@@ -98,7 +99,7 @@ describe('OrganizationManagementService', () => {
 
     it('존재하지 않는 조직은 에러를 반환해야 한다', async () => {
       // Given
-      mockOrgRepository.findById.mockResolvedValueOnce(null);
+      mockOrgRepository.findByIdAsAdmin.mockResolvedValueOnce(null);
 
       const command = {
         organizationId: OrganizationId.generate().value,
@@ -134,7 +135,7 @@ describe('OrganizationManagementService', () => {
         new MemberRole('admin')
       );
 
-      mockOrgRepository.findById.mockResolvedValueOnce(mockOrg);
+      mockOrgRepository.findByIdAsAdmin.mockResolvedValueOnce(mockOrg);
       mockInvitationRepository.findByInviteeEmail.mockResolvedValueOnce(
         existingInvitation
       );
@@ -311,7 +312,7 @@ describe('OrganizationManagementService', () => {
       ]);
 
       // 조직 상세 조회
-      vi.mocked(mockOrgRepository.findById)
+      vi.mocked(mockOrgRepository.findByIdAsAdmin)
         .mockResolvedValueOnce(org1)
         .mockResolvedValueOnce(org2);
 
@@ -349,7 +350,7 @@ describe('OrganizationManagementService', () => {
         },
       ]);
 
-      vi.mocked(mockOrgRepository.findById).mockResolvedValueOnce(memberOrg);
+      vi.mocked(mockOrgRepository.findByIdAsAdmin).mockResolvedValueOnce(memberOrg);
 
       const command = { userId: userId.value };
 
@@ -427,7 +428,7 @@ describe('OrganizationManagementService', () => {
         },
       ]);
 
-      vi.mocked(mockOrgRepository.findById)
+      vi.mocked(mockOrgRepository.findByIdAsAdmin)
         .mockResolvedValueOnce(memberOrg2)
         .mockResolvedValueOnce(memberOrg1);
 

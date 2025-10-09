@@ -5,10 +5,20 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 **작성자**: AI Assistant  
 **작성일**: 2025-09-28  
 **수정일**: 2025-10-09
-**버전**: 8.0  
+**버전**: 9.0  
 **리뷰어**: [시니어 개발자명]
 
-### 주요 변경사항 (v8.0) - 조직 목록 조회 개선 (소유자 + 멤버 조직)
+### 주요 변경사항 (v9.0) - 멤버 역할 변경 시스템 구현 (Scenario 3)
+- **계층적 역할 변경 권한 시스템**: 소유자/관리자별 역할 변경 권한 구분 ✅
+  - 소유자: 모든 역할 변경 가능 (관리자 → 멤버 강등 포함)
+  - 관리자: 멤버 → 관리자 승격만 가능, 다운그레이드 불가
+  - 일반 멤버: 역할 변경 권한 없음
+- **역할 변경 보호 규칙**: 소유자 역할 변경 방지, 자기 자신 역할 변경 방지 ✅
+- **두 단계 프로세스**: 역할 옵션 선택 → 확인 다이얼로그 → 역할 업데이트 ✅
+- **새로운 Events**: RoleOptionSelectedEvent, MemberPromotedToAdminEvent, AdminDemotedToMemberEvent ✅
+- **권한 캐시 무효화**: 역할 변경 후 즉시 권한 반영 ✅
+
+### 이전 변경사항 (v8.0) - 조직 목록 조회 개선 (소유자 + 멤버 조직)
 - **멤버 조직 조회 지원**: 소유자 조직 + 멤버/관리자로 속한 조직 모두 표시 ✅
   - OrganizationMemberRepository: `findByUserId()` 메서드 추가
   - 사용자가 멤버로 속한 모든 조직의 멤버십 정보 조회 (RLS)
@@ -73,10 +83,13 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
    - Layered Security: RLS 최소화 + adminDb 사용 ✅
 
 4. **Phase 4**: 조직 관리 시스템 구현 🚧
-   - 소유권 이전 기능
-   - 멤버 역할 변경 기능
-   - 멤버 제거 기능
-   - 조직 삭제 기능
+   - [x] **멤버 역할 변경 기능 (Scenario 3)** ✅
+     - 계층적 권한 시스템 구현 (소유자/관리자 역할별 권한)
+     - 두 단계 프로세스 (역할 옵션 선택 → 확인 다이얼로그)
+     - 권한 캐시 무효화 로직
+   - [ ] 소유권 이전 기능
+   - [ ] 멤버 제거 기능
+   - [ ] 조직 삭제 기능
 
 ### 선행조건 및 위험요소 - 현재 상태
 - **Database 스키마**: organizations, invitations, organization_members, notifications 테이블 생성 완료 ✅
@@ -262,7 +275,9 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
   - InvitationAcceptedEvent: 초대 승낙 완료 이벤트
   - InvitationRejectedEvent: 초대 거절 완료 이벤트
   - NewMemberAddedToOrganizationEvent: 새 멤버 조직 추가 완료 이벤트
-  - MemberRoleChangedEvent: 멤버 역할 변경 완료 이벤트
+  - RoleOptionSelectedEvent: 역할 옵션 선택 완료 이벤트 (프론트엔드) - Scenario 3
+  - MemberPromotedToAdminEvent: 멤버가 관리자로 승격 완료 이벤트 - Scenario 3
+  - AdminDemotedToMemberEvent: 관리자가 멤버로 강등 완료 이벤트 - Scenario 3
   - MemberRemovedFromOrganizationEvent: 멤버 제거 완료 이벤트
   - OrganizationOwnershipTransferredEvent: 소유권 이전 완료 이벤트
   - OrganizationDeletedEvent: 조직 삭제 완료 이벤트
@@ -331,7 +346,18 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
   - acceptInvitation(): 초대 승낙 처리 (멤버 추가 포함)
   - rejectInvitation(): 초대 거절 처리
   - getOrganizationMembers(): 조직 멤버 목록 조회
-  - changeMemberRole(): 멤버 역할 변경
+  - **changeMemberRole(): 멤버 역할 변경 (Scenario 3)** ✅
+    - **Step 1**: 현재 사용자 권한 확인 (소유자/관리자만 가능)
+    - **Step 2**: 대상 멤버 역할 조회 및 검증
+    - **Step 3**: 계층적 권한 시스템 검증
+      - 소유자: 모든 역할 변경 가능 (관리자 → 멤버 강등 포함)
+      - 관리자: 멤버 → 관리자 승격만 가능, 다운그레이드 불가
+      - 일반 멤버: 역할 변경 권한 없음
+    - **Step 4**: 소유자 역할 변경 방지 (소유권 이전을 통해서만 변경)
+    - **Step 5**: 현재 역할과 동일한 역할로 변경 방지
+    - **Step 6**: adminDb로 역할 업데이트 (organization_members 테이블)
+    - **Step 7**: 권한 캐시 무효화 (즉시 권한 반영)
+    - **Events**: MemberPromotedToAdminEvent 또는 AdminDemotedToMemberEvent 발행
   - removeMember(): 멤버 제거
   - transferOwnership(): 소유권 이전
   - deleteOrganization(): 조직 삭제
@@ -346,6 +372,11 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
   - 초대 시 이메일로 사용자 검색하여 inviteeUserId 저장 (가입된 사용자만 알림 생성)
   - 초대 승낙 시 organization_members 테이블에 멤버 추가 (adminDb 사용)
   - Notification 생성을 Service Layer에서 처리 (NotificationService 호출)
+  - **멤버 역할 변경 시 계층적 권한 시스템 적용 (Scenario 3)** ✅
+    - 소유자: 모든 역할 변경 가능 (관리자 강등 포함)
+    - 관리자: 멤버 승격만 가능, 관리자 강등 불가
+    - 소유자 역할 변경 방지, 자기 자신 역할 변경 방지
+    - adminDb 사용하여 역할 업데이트, 권한 캐시 무효화
   - 소유권 이전 시 기존 소유자 권한 변경 및 새 소유자 설정
 
 ### 2. Repository 레이어 (Drizzle ORM + RLS)
@@ -439,7 +470,12 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
   - inviteMemberAction(): 멤버 초대 처리 (권한 검증 포함, Notification Domain 연동)
   - getOrganizationMembersAction(): 조직 멤버 목록 조회
   - respondToInvitationAction(): 초대 응답 처리 (승낙/거절, Notification Domain 연동)
-  - changeMemberRoleAction(): 멤버 역할 변경
+  - **changeMemberRoleAction(): 멤버 역할 변경 (Scenario 3)** ✅
+    - 입력: organizationId, targetUserId, newRole
+    - 인증: 현재 사용자 확인 (Supabase Auth)
+    - 권한 검증: Service.changeMemberRole()에서 계층적 권한 시스템 검증
+    - 응답: Result<MemberPromotedToAdminEvent | AdminDemotedToMemberEvent>
+    - 에러: INSUFFICIENT_PERMISSIONS, INVALID_MEMBER_ROLE, MEMBER_MANAGEMENT_FAILED
   - removeMemberAction(): 멤버 제거
   - transferOwnershipAction(): 소유권 이전
   - deleteOrganizationAction(): 조직 삭제
@@ -483,6 +519,12 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
   - Application-level: Service에서 Owner/Admin 권한 체크
   - Repository: adminDb 사용 (addMember, removeMember, updateMemberRole)
   - RLS: 최소 권한 (self only)
+- [x] **멤버 역할 변경 (Scenario 3)**: 계층적 권한 시스템 구현 완료 ✅
+  - 소유자: 모든 역할 변경 가능 (관리자 강등 포함)
+  - 관리자: 멤버 승격만 가능, 관리자 강등 불가
+  - 소유자 역할 변경 방지, 자기 자신 역할 변경 방지
+  - adminDb 사용하여 역할 업데이트
+  - 권한 캐시 무효화 (즉시 권한 반영)
 - [ ] **소유권 이전**: 조직 소유권 이전 기능 (Phase 4 예정)
 - [ ] **조직 삭제**: 조직 삭제 및 관련 데이터 정리 (Phase 4 예정)
 
