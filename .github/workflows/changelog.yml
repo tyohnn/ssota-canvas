@@ -1,14 +1,19 @@
 name: Generate CHANGELOG
 
 on:
+  # main 브랜치에만 직접 push 허용 (release용)
   push:
-    branches: [main, dev, sprint-*]
+    branches: [main]
+
+  # PR이 merge될 때 changelog 생성
   pull_request:
-    branches: [main, dev, sprint-*]
-    types: [opened, synchronize, reopened, closed]
+    branches: [main, dev]
+    types: [closed]
 
 jobs:
   changelog:
+    # PR이 merge되었을 때만 실행
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -44,7 +49,7 @@ jobs:
           fi
 
       - name: Commit CHANGELOG changes
-        if: github.event_name == 'push' && steps.git-cliff.outputs.has_changes == 'true'
+        if: steps.git-cliff.outputs.has_changes == 'true'
         run: |
           echo "💾 Committing CHANGELOG changes..."
           git config --local user.email "action@github.com"
@@ -64,16 +69,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push changes
-        if: github.event_name == 'push' && steps.git-cliff.outputs.has_changes == 'true'
+        if: steps.git-cliff.outputs.has_changes == 'true'
         run: |
-          echo "🚀 Pushing CHANGELOG changes to ${{ github.ref_name }}..."
-          git push origin ${{ github.ref_name }}
+          # PR merge인 경우 base 브랜치로 push, 일반 push인 경우 현재 브랜치로 push
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+            echo "🚀 Pushing CHANGELOG to base branch: $TARGET_BRANCH..."
+            git push origin HEAD:$TARGET_BRANCH
+          else
+            echo "🚀 Pushing CHANGELOG to ${{ github.ref_name }}..."
+            git push origin ${{ github.ref_name }}
+          fi
           echo "✅ Changes pushed successfully"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log skip reason
-        if: github.event_name == 'push' && steps.git-cliff.outputs.has_changes != 'true'
+        if: steps.git-cliff.outputs.has_changes != 'true'
         run: |
           echo "⏭️ Skipping CHANGELOG commit - no changes detected"
           echo "Change detection result: '${{ steps.git-cliff.outputs.has_changes }}'"
@@ -82,31 +94,12 @@ jobs:
           echo "  - Generated CHANGELOG content is identical to existing file"
           echo "  - Commits don't match any configured commit_parsers patterns"
 
-      - name: Comment PR with CHANGELOG preview
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-
-            // Read the current CHANGELOG.md
-            let changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
-
-            // Get the first few lines to show in PR comment
-            const lines = changelog.split('\n').slice(0, 50);
-            const preview = lines.join('\n');
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## 📋 CHANGELOG Preview
-
-              This PR will generate the following CHANGELOG entries:
-
-              \`\`\`markdown
-              ${preview}
-              \`\`\`
-
-              **Note**: Full CHANGELOG will be updated when PR is merged to main/dev branches.`
-            });
+      - name: Log success
+        if: steps.git-cliff.outputs.has_changes == 'true'
+        run: |
+          echo "✅ CHANGELOG successfully updated and pushed!"
+          echo "Event: ${{ github.event_name }}"
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "PR: ${{ github.event.pull_request.title }}"
+            echo "Base branch: ${{ github.event.pull_request.base.ref }}"
+          fi

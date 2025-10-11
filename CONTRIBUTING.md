@@ -2,6 +2,38 @@
 
 Thank you for your interest in contributing to Xbowl! This document outlines our contribution guidelines and commit message conventions.
 
+## 🌿 Branch Strategy
+
+We follow a **Story-based Feature Branch Workflow**. Each Story gets its own branch for independent development and PR review.
+
+📖 **Detailed Guide**: See [docs/BRANCH_STRATEGY.md](./docs/BRANCH_STRATEGY.md)
+
+### Quick Start
+
+```bash
+# 1. Create feature branch from dev
+git checkout dev
+git pull origin dev
+git checkout -b feature/ORG-XXX-description
+
+# 2. Work and commit (conventional commits)
+git commit -m "feat(org): add feature"
+
+# 3. Push to feature branch
+git push origin feature/ORG-XXX-description
+
+# 4. Create PR to dev
+# → CHANGELOG auto-generated on merge!
+```
+
+### Branch Naming
+- `feature/ORG-XXX-*`: Organization stories
+- `feature/USER-XXX-*`: User management stories
+- `bugfix/ORG-XXX-*`: Bug fixes
+- `docs/*`: Documentation updates
+
+---
+
 ## Commit Message Convention
 
 We follow a structured commit message format inspired by Airbnb's style with additional impact information. This helps maintain a clear project history and makes code reviews more efficient.
