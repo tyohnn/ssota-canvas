@@ -1,6 +1,15 @@
-# [Domain Name] - Software Design
+# Software Design: [Domain Name] Domain
 
-Event Storming과 Process Model을 기반으로 한 DDD 설계 문서입니다.
+## 🎯 개요
+
+**도메인**: [Domain Name]  
+**작성자**: 시니어개발자 + PO
+**작성일**: YYYY-MM-DD  
+**버전**: v1.0
+
+**Process Model 참조**: `02-process-model.md`  
+**Event Storming 참조**: `01-event-storm.md`  
+**다음 단계**: `04-testing-strategy.md`
 
 ---
 

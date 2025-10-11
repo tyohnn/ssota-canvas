@@ -1,70 +1,123 @@
-# Technical Specification 가이드라인
+# Technical Specification 작성 가이드
 
-이 문서는 **Software Design**과 **Testing Strategy** 문서를 입력으로 받아, 주니어 개발자가 순서대로 따라 할 수 있는 **Technical Specification 작성 프로세스**를 설명합니다. 최종 산출물은 `4. technical-specification.md`이며, **TDD 기반 실제 구현 작업**의 기준점이 됩니다.
+이 문서는 **Testing Strategy 결과**를 바탕으로 **Technical Specification**을 정의하고 **technical-specification.md 문서 작성**까지, 의사결정 참여자들이 순서대로 따라할 수 있는 **Technical Specification 전용 프로세스**를 설명합니다.
 
-> 시작 전, `docs/event-domain-design/template/4-technical-specification-template.md` 파일을 복사해 도메인 전용 초안을 만들고, 세부 규칙은 `docs/event-domain-design/guide/code-conventions.md`를 참고하세요.
-
----
-
-## 🎯 작성 시점 및 목적
-
-**작성 시점**: Testing Strategy 완료 후, 실제 구현 시작 전  
-**목적**: 
-- 구현 수도코드 작성
-- **테스트 수도코드 작성** ⭐️
-- TDD 사이클 적용을 위한 구현 순서 명시
+> 시작 전, `docs/event-domain-design/template/technical-specification-template.md` 파일을 복사해 도메인 전용 `technical-specification.md` 초안을 생성한 뒤, 아래 단계에 따라 내용을 채워 넣으세요.
 
 ---
 
-## 🔁 전체 프로세스 한눈에 보기
+## 🔁 Technical Specification 프로세스 한눈에 보기
 
 ```mermaid
 graph TD
-    A[Software Design 문서] --> B[Testing Strategy 문서]
-    B --> C[템플릿 복사]
-    C --> D[Implementation Overview 작성]
-    D --> E[DDD 컴포넌트 구현 + 테스트 수도코드]
-    E --> F[Service · Repository · 외부 연동 계획]
-    F --> G[Server Actions & UI 전략]
-    G --> H[TDD 구현 순서 정의]
-    H --> I[검증 및 리뷰]
+    A[Testing Strategy 결과 분석] --> B[Technical Specification 워크샵]
+    B --> C[구현 명세 작성]
+    C --> D[technical-specification.md 문서화]
+    D --> E[문서 검증 및 리뷰]
+    E --> F[다음 단계: TDD 구현]
+    
+    A1[testing-strategy.md 검토, 테스트 케이스 확인] --> A
+    B1[구현 수도코드, 테스트 수도코드 작성] --> B
+    C1[TDD 구현 순서, 도구 설정] --> C
+    D1[구조화된 문서 작성] --> D
+    E1[시니어개발자 리뷰] --> E
+```
+
+Technical Specification은 **Testing Strategy를 기반으로 실제 구현 가능한 수도코드**를 작성하는 핵심 단계입니다.
+
+---
+
+## Phase 1: Testing Strategy 결과 분석 (담당: 시니어개발자)
+
+### 1.1 사전 준비 - 완료된 Testing Strategy 확인
+
+#### 필수 전제 조건:
+- [ ] testing-strategy.md 문서가 완성되어 있음
+- [ ] Testing Strategy 워크샵이 완료되어 QA의 승인을 받음
+- [ ] 모든 테스트 케이스가 정의되어 있음
+- [ ] 커버리지 목표가 명확히 설정되어 있음
+
+#### Testing Strategy 결과물 검토:
+```bash
+# Testing Strategy 문서 확인
+cat docs/event-domain-design/domains/<domain-name>/testing-strategy.md
+
+# 주요 확인 포인트:
+# - Process Model → Test 매핑
+# - Unit/Integration/E2E 테스트 케이스
+# - 커버리지 목표
+# - TDD 사이클 정의
+```
+
+### 1.2 테스트 케이스 목록 추출
+
+#### 테스트 우선순위별 분류:
+Testing Strategy에서 정의한 테스트 케이스를 우선순위별로 분류합니다.
+
+**분류 기준**:
+- **⭐️⭐️⭐️⭐️⭐️**: 핵심 기능, 반드시 구현
+- **⭐️⭐️⭐️⭐️**: 중요 기능, 우선 구현
+- **⭐️⭐️⭐️**: 보조 기능, 선택적 구현
+
+#### 예시 결과:
+```markdown
+| Component | Test Case | 우선순위 | 구현 순서 |
+| --------- | --------- | -------- | --------- |
+| UserEmail VO | 유효한 이메일로 생성 | ⭐️⭐️⭐️⭐️⭐️ | Phase 1 |
+| User Entity | 프로필 업데이트 | ⭐️⭐️⭐️⭐️⭐️ | Phase 2 |
+| UserAggregate | createFromSupabaseAuth() | ⭐️⭐️⭐️⭐️⭐️ | Phase 3 |
+```
+
+### 1.3 Software Design 재검토
+
+#### Software Design 검토:
+```bash
+# Software Design 문서 확인
+cat docs/event-domain-design/domains/<domain-name>/software-design.md
+
+# 주요 확인 포인트:
+# - Aggregate 상세 정의
+# - Command와 Event
+# - Invariant
+# - ACL 설계
+```
+
+### 1.4 템플릿 파일 준비
+```bash
+# Technical Specification 템플릿 복사 (아직 없다면)
+cp docs/event-domain-design/template/technical-specification-template.md docs/event-domain-design/domains/<domain-name>/technical-specification.md
 ```
 
 ---
 
-## 1단계. 준비하기
+## Phase 2: Technical Specification 워크샵 진행 (담당: 시니어개발자 + 주니어개발자)
 
-1. **필수 문서 확인**
-   - Software Design 문서 (aggregate, command, event 정의)
-   - **Testing Strategy 문서** (테스트 케이스, 우선순위) ⭐️
-   - API Specification 문서 (외부 계약)
-   - 코드 컨벤션 가이드
-2. **템플릿 복사**
-   - `4-technical-specification-template.md` → `domains/<domain>/4. technical-specification.md`
-3. **문서 정보 기입**
-   - 도메인명, 작성자, 작성일, 버전, 리뷰어 등 기본 정보 입력
+### 2.1 워크샵 참여자 및 구조
 
-**핵심**: Testing Strategy에서 정의한 테스트 케이스를 Technical Specification에서 수도코드로 구체화합니다.
+#### 필수 참여자:
+- **주니어 개발자** (리드): 수도코드 작성 및 TDD 구현 준비
+- **시니어 개발자** (멘토): 설계 검증 및 코드 리뷰
 
----
+#### 권장 참여자:
+- **다른 주니어 개발자**: 페어 프로그래밍 및 학습
 
-## 2단계. Implementation Overview 작성
+#### 워크샵 시간 배분 (3-4시간):
+```
+- Phase 1: DDD 컴포넌트 수도코드 작성 (90-120분)
+- Phase 2: Service/Repository/ACL 수도코드 작성 (60-90분)
+- Phase 3: TDD 구현 순서 정의 (30분)
+- 휴식 및 정리 (15-30분)
+```
 
-템플릿의 `Implementation Overview` 섹션을 활용해 개발 우선순위를 정리합니다.
+### 2.2 Phase 1: DDD 컴포넌트 수도코드 작성 (90-120분)
 
-- **Phase별 목표**: 핵심 기능 → 고급 기능 → 통합/최적화 순으로 구체화
-- **선행조건 및 위험요소**: 공통 컴포넌트, 외부 연동 일정, 데이터 마이그레이션 여부 등
-- **협업 포인트**: 다른 팀(디자인, QA, 인프라)과 공유해야 할 사항 기록
+**목표**: Testing Strategy의 테스트 케이스를 기반으로 구현 수도코드를 작성합니다.
 
----
+**핵심 원칙**: 각 컴포넌트마다 **구현 수도코드**를 작성하고, 테스트는 Testing Strategy에서 정의한 케이스를 참조합니다.
 
-## 3단계. DDD 컴포넌트 구현 + 테스트 수도코드 작성
+#### Part 1: Value Objects (30분)
 
-**핵심**: 각 컴포넌트마다 **"구현 수도코드"**와 **"테스트 수도코드"**를 함께 작성합니다.
-
-### 3.1 Value Objects
-
-#### 구현 수도코드
+**구현 수도코드 예시**:
 ```typescript
 class UserEmail {
   private value: string;
@@ -83,36 +136,14 @@ class UserEmail {
 }
 ```
 
-#### 테스트 수도코드 ⭐️
-```typescript
-describe('UserEmail Value Object', () => {
-  describe('생성자', () => {
-    it('유효한 이메일로 생성', () => {
-      // Given: 'test@example.com'
-      // When: new UserEmail(email)
-      // Then: userEmail.value === email
-    })
-    
-    it('잘못된 이메일 형식 거부', () => {
-      // Given: 'invalid-email'
-      // When: new UserEmail(email)
-      // Then: UserManagementError 발생
-    })
-  })
-})
-```
-
 **작성 포인트**:
-- Testing Strategy의 테스트 케이스를 참조
-- Given-When-Then 패턴 사용
 - 검증 규칙: 길이, 포맷, 허용 문자 등 상세 조건
 - 예외 처리: 비즈니스 규칙 위반 시 던질 에러 타입
+- **테스트는 Testing Strategy 참조**: testing-strategy.md의 Value Objects 테스트 케이스를 따름
 
----
+#### Part 2: Entities (30분)
 
-### 3.2 Entities
-
-#### 구현 수도코드
+**구현 수도코드 예시**:
 ```typescript
 class User {
   constructor(
@@ -130,35 +161,14 @@ class User {
 }
 ```
 
-#### 테스트 수도코드 ⭐️
-```typescript
-describe('User Entity', () => {
-  describe('updateProfile', () => {
-    it('프로필 업데이트 시 updatedAt 갱신', () => {
-      // Given: user, originalUpdatedAt
-      // When: user.updateProfile('New Name', 'avatar.jpg')
-      // Then: user.updatedAt > originalUpdatedAt
-    })
-    
-    it('createdAt은 변경되지 않음', () => {
-      // Given: user, originalCreatedAt
-      // When: user.updateProfile(...)
-      // Then: user.createdAt === originalCreatedAt
-    })
-  })
-})
-```
-
 **작성 포인트**:
 - 생성자 파라미터와 불변 필드 구분
 - 상태 변경 메서드와 호출 조건 (권한, 상태 체크 등)
-- 비즈니스 규칙이 테스트로 검증 가능하도록 작성
+- **테스트는 Testing Strategy 참조**: testing-strategy.md의 Entities 테스트 케이스를 따름
 
----
+#### Part 3: Aggregates (30-40분)
 
-### 3.3 Aggregates
-
-#### 구현 수도코드
+**구현 수도코드 예시**:
 ```typescript
 class UserAggregate {
   private _user: User;
@@ -180,42 +190,15 @@ class UserAggregate {
 }
 ```
 
-#### 테스트 수도코드 ⭐️
-```typescript
-describe('UserAggregate', () => {
-  describe('createFromSupabaseAuth', () => {
-    it('유효한 Supabase User로부터 생성', () => {
-      // Given: validSupabaseUser
-      // When: UserAggregate.createFromSupabaseAuth(supabaseUser)
-      // Then: aggregate.user.email.value === supabaseUser.email
-    })
-    
-    it('이메일 없으면 예외 발생', () => {
-      // Given: supabaseUser without email
-      // When: UserAggregate.createFromSupabaseAuth(supabaseUser)
-      // Then: UserManagementError 발생
-    })
-    
-    it('UserProfileCreatedEvent 발행', () => {
-      // Given: validSupabaseUser
-      // When: aggregate = UserAggregate.createFromSupabaseAuth(...)
-      // Then: aggregate.getUncommittedEvents() contains UserProfileCreatedEvent
-    })
-  })
-})
-```
-
 **작성 포인트**:
 - 처리하는 Command, 발생시키는 Event를 표로 정리
 - Invariant 검증 흐름을 단계별 또는 의사 코드로 작성
 - 이벤트 발행 시점 명시
-- Testing Strategy의 Process Model 매핑 참조
+- **테스트는 Testing Strategy 참조**: testing-strategy.md의 Aggregates 테스트 케이스와 Process Model 매핑을 따름
 
----
+#### Part 4: Commands & Events (10-20분)
 
-### 3.4 Commands & Events
-
-#### 구현 수도코드
+**구현 수도코드 예시**:
 ```typescript
 // Command
 interface CreateUserProfileCommand {
@@ -232,27 +215,15 @@ class UserProfileCreatedEvent implements DomainEvent {
 }
 ```
 
-#### 테스트 수도코드 ⭐️
-```typescript
-describe('UserProfileCreatedEvent', () => {
-  it('이벤트 생성 및 속성 검증', () => {
-    // Given: userId, email, occurredAt
-    // When: event = new UserProfileCreatedEvent(...)
-    // Then: event.userId, event.email, event.occurredAt 검증
-  })
-})
-```
-
 **작성 포인트**:
 - 입력 스키마(zod 등)와 도메인 Command 변환 과정 설명
 - Event payload 구조와 타입 상수 정의
 - Cross-Domain 사용 여부, 이벤트 처리 우선순위 메모
+- **테스트는 Testing Strategy 참조**: testing-strategy.md의 Commands & Events 테스트 케이스를 따름
 
----
+#### Part 5: Error Types (10분)
 
-### 3.5 Error Types
-
-#### 구현 수도코드
+**구현 수도코드 예시**:
 ```typescript
 class UserManagementError extends Error {
   constructor(
@@ -270,29 +241,19 @@ type UserManagementErrorCode =
   | 'SUPABASE_AUTH_FAILED';
 ```
 
-#### 테스트 수도코드 ⭐️
-```typescript
-describe('UserManagementError', () => {
-  it('에러 코드와 메시지로 생성', () => {
-    // Given: code, message
-    // When: error = new UserManagementError(code, message)
-    // Then: error.code, error.message 검증
-  })
-})
-```
-
 **작성 포인트**:
 - BusinessRuleError, SystemError 등 에러 계층 구조
 - 사용자에게 노출될 메시지/코드 매핑
 - 로깅 및 모니터링 정책
+- **테스트는 Testing Strategy 참조**: testing-strategy.md의 Error Types 테스트 케이스를 따름
 
----
+### 2.3 Phase 2: Service/Repository/ACL 수도코드 작성 (60-90분)
 
-## 4단계. Service · Repository 계획 + 테스트 수도코드
+**목표**: 인프라 레이어와 서비스 레이어의 구현 수도코드를 작성합니다.
 
-### 4.1 Service 레이어
+#### Part 1: Service 레이어 (25-30분)
 
-#### 구현 수도코드
+**구현 수도코드 예시**:
 ```typescript
 class UserManagementService {
   async createUserProfile(supabaseUser: SupabaseUser): Promise<Result<UserId>> {
@@ -305,36 +266,15 @@ class UserManagementService {
 }
 ```
 
-#### 테스트 수도코드 ⭐️
-```typescript
-describe('UserManagementService Integration Tests', () => {
-  describe('createUserProfile', () => {
-    it('Supabase User로부터 프로필 생성', async () => {
-      // Given: validSupabaseUser, mockRepository
-      // When: result = await service.createUserProfile(supabaseUser)
-      // Then: result.isOk === true, repository.save 호출됨
-    })
-    
-    it('프로필 생성 실패 시 에러 반환', async () => {
-      // Given: invalidSupabaseUser
-      // When: result = await service.createUserProfile(supabaseUser)
-      // Then: result.isErr === true
-    })
-  })
-})
-```
-
 **작성 포인트**:
 - 여러 Aggregate를 조율하는 비즈니스 시나리오를 단계별로 작성
 - 권한/요금제/정책 검증 지점을 서술
 - 실패 시 롤백, 사용자 안내 메시지, 재시도 전략
-- Testing Strategy의 통합 테스트 케이스 참조
+- **테스트는 Testing Strategy 참조**: testing-strategy.md의 Service 통합 테스트 케이스를 따름
 
----
+#### Part 2: Repository 레이어 (20-25분)
 
-### 4.2 Repository 레이어
-
-#### 구현 수도코드
+**구현 수도코드 예시**:
 ```typescript
 interface UserRepository {
   save(user: UserAggregate): Promise<void>;
@@ -351,40 +291,33 @@ class DrizzleUserRepository implements UserRepository {
 }
 ```
 
-#### 테스트 수도코드 ⭐️
-```typescript
-describe('UserRepository Integration Tests', () => {
-  beforeEach(async () => {
-    await cleanDatabase();
-  })
-  
-  describe('save', () => {
-    it('사용자를 데이터베이스에 저장', async () => {
-      // Given: userAggregate
-      // When: await repository.save(user)
-      // Then: DB에 저장됨, findById로 조회 가능
-    })
-    
-    it('RLS 정책 적용', async () => {
-      // Given: user, different authenticated user
-      // When: await repository.save(user)
-      // Then: RLS 정책에 따라 접근 제어됨
-    })
-  })
-})
-```
-
 **작성 포인트**:
 - 메서드 시그니처, 반환 타입, 예외 상황 정의
 - 낙관적 잠금·트랜잭션이 필요한 시나리오 기술
 - 성능 최적화를 위한 인덱스 및 캐싱 전략
-- Testing Strategy의 Repository 테스트 케이스 참조
+- **테스트는 Testing Strategy 참조**: testing-strategy.md의 Repository 통합 테스트 케이스를 따름
 
----
+#### Part 3: ACL (Anti-Corruption Layer) (15-20분)
 
-### 4.3 Read Models 구현
+**구현 수도코드 예시**:
+```typescript
+class ClerkOrganizationAdapter {
+  toDomainOrganization(clerkOrg: ClerkOrganization): Organization {
+    // 1. Clerk Organization → 도메인 모델 변환
+    // 2. 유효성 검증
+    // 3. Organization 엔티티 반환
+  }
+}
+```
 
-#### 구현 수도코드
+**작성 포인트**:
+- 외부 API 응답을 도메인 모델로 변환하는 규칙
+- Webhook 수신 → 변환 → 도메인 이벤트 생성 흐름
+- **테스트는 Testing Strategy 참조**: testing-strategy.md의 ACL 테스트 케이스를 따름
+
+#### Part 4: Read Models (10-15분)
+
+**구현 수도코드 예시**:
 ```typescript
 interface UserOrganizationView {
   userId: UserId;
@@ -400,123 +333,77 @@ async function getUserOrganizationView(userId: UserId): Promise<UserOrganization
 }
 ```
 
-#### 테스트 수도코드 ⭐️
-```typescript
-describe('UserOrganizationView', () => {
-  it('사용자 소유 조직 목록 조회', async () => {
-    // Given: userId, 3개 조직 존재
-    // When: view = await getUserOrganizationView(userId)
-    // Then: view.ownedOrganizations.length === 3
-  })
-})
-```
-
 **작성 포인트**:
 - **복잡한 조회 로직**: 여러 Aggregate를 조합한 View 쿼리 설계
 - **Database Views vs Repository 조합**: 성능과 유지보수성 고려한 선택
 - **캐싱 전략**: Redis, 메모리 캐시 등을 활용한 성능 최적화
 - **실시간 업데이트**: 도메인 이벤트 기반 Read Model 갱신 방법
+- **테스트는 Testing Strategy 참조**: testing-strategy.md의 Read Models 테스트 케이스를 따름
 
----
+### 2.4 Phase 3: Server Actions 수도코드 작성 (30분)
 
-## 5단계. 외부 연동과 Server Actions 설계 + 테스트 수도코드
+**목표**: Server Actions와 Cross-Domain 이벤트 처리의 구현 수도코드를 작성합니다.
 
-### 5.1 Anti-Corruption Layer
+#### Part 1: Server Actions (20-25분)
 
-#### 구현 수도코드
+**구현 수도코드 예시**:
 ```typescript
-class SupabaseAuthACL {
-  toDomainUser(supabaseUser: SupabaseUser): User {
-    // 1. Supabase User → 도메인 모델 변환
-    // 2. 유효성 검증
-    // 3. User 엔티티 반환
-  }
-}
-```
-
-#### 테스트 수도코드 ⭐️
-```typescript
-describe('SupabaseAuthACL', () => {
-  it('Supabase User를 도메인 User로 변환', () => {
-    // Given: supabaseUser
-    // When: user = acl.toDomainUser(supabaseUser)
-    // Then: user.email.value === supabaseUser.email
-  })
-})
-```
-
-**작성 포인트**:
-- 외부 API 응답을 도메인 모델로 변환하는 규칙
-- Webhook 수신 → 변환 → 도메인 이벤트 생성 흐름
-
----
-
-### 5.2 Server Actions
-
-#### 구현 수도코드
-```typescript
-async function createUserProfileAction(): Promise<Result<{ userId: string }>> {
-  // 1. 인증 확인 (getUser())
-  // 2. 입력 검증
-  // 3. UserManagementService.createUserProfile() 호출
-  // 4. Result 반환
-}
-```
-
-#### 테스트 수도코드 ⭐️
-```typescript
-describe('createUserProfileAction Integration Tests', () => {
-  it('인증된 사용자의 프로필 생성', async () => {
-    // Given: authenticated user
-    // When: result = await createUserProfileAction()
-    // Then: result.isOk === true, result.data.userId 존재
-  })
-  
-  it('미인증 사용자는 거부', async () => {
-    // Given: unauthenticated user
-    // When: result = await createUserProfileAction()
-    // Then: result.isErr === true, error.code === 'UNAUTHORIZED'
-  })
-})
-```
-
-**작성 포인트**:
-- 입력 검증 → 도메인 서비스 호출 → 이벤트 처리 → 응답 매핑 순서
-- 에러 유형별 사용자 메시지와 HTTP 응답 전략
-- Testing Strategy의 Server Actions 테스트 케이스 참조
-
----
-
-### 5.3 Cross-Domain 이벤트 처리
-
-#### 구현 수도코드
-```typescript
-function registerEventHandlers() {
-  eventBus.subscribe('UserProfileCreated', async (event) => {
-    // 1. 이벤트 수신
-    // 2. 다른 도메인 서비스 호출
-    // 3. 결과 처리
-  });
+async function createUserProfileAction(supabaseUser: SupabaseUser): Promise<Result<UserDTO>> {
+  // 1. Supabase Auth 인증 확인
+  // 2. 의존성 주입 (Repository, Service)
+  // 3. Command 생성
+  // 4. 도메인 로직 실행
+  // 5. DTO 직렬화 및 반환
 }
 ```
 
 **작성 포인트**:
-- `processCrossDomainEvents`에 등록할 핸들러와 처리 책임
+- Supabase Auth를 통한 사용자 인증 확인
+- 의존성 주입 패턴으로 Service Layer 활용
+- Command 객체 생성 및 Service 메서드 호출
+- 도메인 모델 → DTO 직렬화 (Value Object → string, Date → ISO string)
+- Next.js 캐시 무효화 (revalidatePath)
+- **테스트는 Testing Strategy 참조**: testing-strategy.md의 Server Actions 통합 테스트 케이스를 따름
 
 ---
 
-## 6단계. UI & Hook 전략
+## Phase 3: technical-specification.md 문서 작성 (담당: 주니어개발자)
 
-1. **React Hooks**
-   - `useOptimistic`, `useTransition` 등 사용 여부와 이유
-   - 낙관적 업데이트의 롤백 로직
-2. **UI Component 연동**
-   - Server Action과 Form/Component 연결 구조
-   - 로딩/에러 상태 표시, 접근성 고려 사항
+### 3.1 문서 구조 및 작성 순서
 
----
+복사한 템플릿을 기반으로 다음 순서로 작성합니다:
 
-## 7단계. TDD 구현 순서 정의
+#### 1. 📊 Implementation Overview
+- 도메인 구현 개요
+- Testing Strategy와의 연결점
+- TDD 구현 순서 요약
+
+#### 2. 🧩 DDD Components
+- Value Objects 수도코드 (구현 + 테스트)
+- Entities 수도코드 (구현 + 테스트)
+- Aggregates 수도코드 (구현 + 테스트)
+- Commands & Events 수도코드
+- Error Types 수도코드
+
+#### 3. 🔧 Infrastructure Layer
+- Repository 수도코드 (구현 + 테스트)
+- ACL 수도코드 (구현 + 테스트)
+- Read Models 수도코드
+
+#### 4. 🚀 Application Layer
+- Service 수도코드 (구현 + 테스트)
+- Server Actions 수도코드 (구현 + 테스트)
+- Cross-Domain 이벤트 처리
+
+#### 5. 🎨 UI & Hook 전략
+- React Hooks 사용 전략
+- UI Component 연동 패턴
+
+#### 6. 📋 TDD 구현 순서
+- Phase별 구현 순서
+- 커버리지 목표 달성 전략
+
+### 3.2 TDD 구현 순서 정의
 
 **목표**: Testing Strategy를 바탕으로 실제 TDD 구현 순서를 명시합니다.
 
@@ -610,138 +497,110 @@ $ cat docs/event-domain-design/domains/[domain]/3.5.\ testing-strategy.md
 
 ---
 
-## 8단계. 검증 및 리뷰
+## Phase 4: 문서 검증 및 리뷰 (담당: 전체 참여자)
 
-### 8.1 문서 완성도 확인
+### 4.1 리뷰 단계별 체크포인트
 
-- [ ] Software Design과 1:1 매핑되는가?
-- [ ] **Testing Strategy와 일관성이 있는가?** ⭐️
-- [ ] 모든 컴포넌트에 구현 수도코드가 있는가?
-- [ ] **모든 컴포넌트에 테스트 수도코드가 있는가?** ⭐️
-- [ ] TDD 구현 순서가 명확한가?
-
-### 8.2 설계 품질 확인
-
+#### 시니어개발자 리뷰:
+- [ ] 구현 수도코드가 Software Design을 올바르게 반영하는가?
+- [ ] 테스트 수도코드가 Testing Strategy를 따르는가?
+- [ ] TDD 구현 순서가 합리적인가?
+- [ ] 코드 컨벤션을 준수하는가?
 - [ ] 모든 Command에 입력 검증 로직이 정의되어 있는가?
 - [ ] Repository가 반환하는 Entity의 불변식이 깨지지 않는가?
-- [ ] 외부 연동 실패 시 사용자 경험이 명확한가?
-- [ ] **테스트가 happy path와 edge case를 모두 다루는가?** ⭐️
 
-### 8.3 TDD 준비 확인
-
-- [ ] Testing Strategy의 우선순위가 반영되었는가?
-- [ ] 각 Phase별 TDD 사이클이 명확한가?
-- [ ] 커버리지 목표가 달성 가능한가?
+#### 주니어개발자 리뷰:
+- [ ] 수도코드를 이해하고 구현할 수 있는가?
+- [ ] TDD 사이클 적용 방법이 명확한가?
+- [ ] 테스트 작성 방법이 구체적인가?
 - [ ] Given-When-Then 패턴이 일관되게 적용되었는가?
 
-### 8.4 코드 컨벤션 확인
+#### 도메인전문가 리뷰:
+- [ ] 비즈니스 로직이 정확히 반영되었는가?
+- [ ] Invariant 검증이 충분한가?
+- [ ] 예외 상황이 적절히 고려되었는가?
 
-- [ ] 네이밍 규칙을 준수하는가?
-- [ ] 폴더 구조가 DDD 레이어와 일치하는가?
-- [ ] 성능·보안·장애 대응 전략이 명시되어 있는가?
+### 4.2 Testing Strategy ↔ Technical Specification 일관성 검증
 
----
-
-## 📚 추가 참고 문서
-
-### 필수 참고 문서
-- **`3. software-design.md`**: Aggregate, Context 정의
-- **`3.5. testing-strategy.md`**: 테스트 케이스, 우선순위 ⭐️
-- `4-technical-specification-template.md`: 작성 템플릿
-- `code-conventions.md`: 코드 컨벤션
-
-### 선택 참고 문서
-- API Specification 문서 (외부 계약)
-- Database Schema 문서 (테이블 설계)
+#### 필수 검증 포인트:
+- [ ] Testing Strategy의 모든 테스트 케이스가 수도코드로 작성되었는가?
+- [ ] 우선순위가 TDD 구현 순서에 반영되었는가?
+- [ ] 커버리지 목표가 명확히 정의되었는가?
+- [ ] 테스트가 happy path와 edge case를 모두 다루는가?
 
 ---
 
-## 📊 9단계. 프로젝트 진행 상황 업데이트
+## ✅ Technical Specification 완료 기준
 
-### 9.1 project-progress.md 업데이트
+다음 모든 조건이 충족되어야 Technical Specification이 완료된 것으로 간주합니다:
 
-**목표**: Technical Specification 완료 상태를 프로젝트 전체 진행 상황에 반영
+### 워크샵 완료 기준:
+- [ ] 모든 DDD 컴포넌트의 구현 수도코드 작성 완료
+- [ ] 모든 DDD 컴포넌트의 테스트 수도코드 작성 완료
+- [ ] TDD 구현 순서 정의 완료
+- [ ] 커버리지 목표 달성 전략 수립 완료
 
-**작업 과정**:
-```bash
-# 1. 현재 날짜 확인
-date
-
-# 2. project-progress.md 파일 열기
-# docs/project-progress.md
-```
-
-**업데이트 내용**:
-1. **Overall Progress Overview 테이블 업데이트**:
-   ```markdown
-   | [Domain Name] | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | ❌ Pending | **80%** |
-   ```
-
-2. **해당 도메인 섹션 업데이트**:
-   ```markdown
-   ### [N]. [Domain Name] Domain 🟡 **80% 완료**
-   
-   #### 설계 진행 상황
-   - [x] **Event Storming**: `docs/event-domain-design/[domain-name]/event-storm.md`
-   - [x] **Process Model**: `docs/event-domain-design/[domain-name]/process-model.md`
-   - [x] **Software Design**: `docs/event-domain-design/[domain-name]/software-design.md`
-   - [x] **Technical Design**:
-     - [x] Database Schema: `docs/event-domain-design/[domain-name]/project-technical-design/database-schema.md`
-     - [x] API Specification: `docs/event-domain-design/[domain-name]/project-technical-design/api-specification.md`
-     - [x] Technical Specification: `docs/event-domain-design/[domain-name]/technical-specification.md`
-   
-   - [ ] **Agile Planning**: ❌ **대기 중**
-   ```
-
-3. **전체 진행률 업데이트**:
-   - 해당 도메인의 진행률을 60% → 80%로 업데이트
-   - Next Steps 섹션에서 해당 도메인을 Agile Planning 단계로 이동
-
-### 9.2 Git 커밋
-
-```bash
-# 변경사항 커밋
-git add docs/event-domain-design/domains/[domain-name]/4.\ technical-specification.md docs/project-progress.md
-git commit -m "docs(technical-spec): complete [Domain Name] technical specification with TDD approach
-
-- Define implementation pseudocode for all DDD components
-- Add test pseudocode with Given-When-Then pattern
-- Define TDD implementation order with priorities
-- Include service layer and repository patterns
-- Update project progress to 80% for [Domain Name] domain"
-
-# 브랜치 푸시
-git push origin domain/[번호]-[domain-name]
-```
+### 문서 완료 기준:
+- [ ] technical-specification.md의 모든 필수 섹션이 작성됨
+- [ ] Testing Strategy와의 일관성이 확인됨
+- [ ] 시니어개발자의 검증 완료
+- [ ] TDD 구현을 위한 충분한 정보 확보
+- [ ] Git에 체계적으로 커밋되고 PR이 승인됨
 
 ---
 
-## 💡 핵심 포인트 정리
+## 🚀 다음 단계: TDD 구현으로 연결
 
-### Technical Specification의 역할 변화
+Technical Specification이 완료되면 다음 단계를 진행할 수 있습니다:
 
-**기존 (Before TDD)**:
-- 구현 방법만 정의
-- 테스트는 나중에 고려
+### TDD 구현 준비:
+1. **TDD Implementation 가이드 참조**: `docs/event-domain-design/guide/07-tdd-implementation-guide.md`
+2. **RED-GREEN-REFACTOR 사이클 적용**: Technical Specification의 수도코드를 실제 코드로 구현
+3. **워크샵 참여자 유지**: 주니어개발자 (시니어개발자 멘토링)
 
-**현재 (After TDD)** ⭐️:
-- 구현 수도코드 + 테스트 수도코드 함께 작성
-- Testing Strategy 기반 우선순위 적용
-- TDD 사이클 명시 (RED-GREEN-REFACTOR)
-- Given-When-Then 패턴 일관 적용
+### 연결 정보:
+- **입력**: 완성된 technical-specification.md + testing-strategy.md
+- **출력**: 실제 구현 코드 + 테스트 코드
+- **다음 담당자**: 주니어개발자 (시니어개발자 코드 리뷰)
 
-### 작성 순서
-
-```
-1. Software Design (3단계) 완료
-2. Testing Strategy (3.5단계) 완료 ⭐️
-3. Technical Specification (4단계) 작성
-   - Testing Strategy 참조
-   - 구현 + 테스트 수도코드 함께 작성
-   - TDD 구현 순서 정의
-4. 실제 TDD 구현 (5단계)
-```
+### TDD 구현에서 진행될 사항:
+- **RED 단계**: 테스트 먼저 작성 (실패 확인)
+- **GREEN 단계**: 최소 구현 (테스트 통과)
+- **REFACTOR 단계**: 코드 개선 (테스트 유지)
+- **커버리지 확인**: Testing Strategy의 목표 달성
 
 ---
 
-이 가이드를 따르면, Software Design과 Testing Strategy를 기반으로 **TDD 친화적인 Technical Specification**을 작성할 수 있습니다. 실제 구현 시 이 문서를 참고하여 **테스트 먼저 → 구현 → 리팩토링** 사이클을 적용하세요! 🚀
+## 📚 관련 문서 및 템플릿
+
+### 참조 가이드:
+- [Testing Strategy 가이드](./04-testing-strategy-guide.md)
+- [TDD Implementation 가이드](./07-tdd-implementation-guide.md)
+
+### 템플릿 파일:
+- [Technical Specification 템플릿](../template/technical-specification-template.md)
+
+### 예시 문서:
+- [User Management Domain 예시](../domains/user-management-domain/technical-specification.md)
+
+---
+
+## 💡 성공을 위한 핵심 팁
+
+### 워크샵 성공 팁:
+- **주니어개발자 주도**: 실제 구현 준비를 위한 수도코드 작성
+- **시니어개발자 멘토링**: 설계 검증 및 코드 리뷰
+- **Testing Strategy 기반**: 모든 수도코드는 테스트와 함께 작성
+- **구체적 수도코드**: 실제 구현 가능한 수준의 구체성
+
+### 문서화 성공 팁:
+- **테스트 우선**: 테스트 수도코드를 먼저 작성하고 구현 수도코드 작성
+- **Given-When-Then 패턴**: 모든 테스트에 일관되게 적용
+- **Testing Strategy 연결성**: Testing Strategy의 결과와 일관성 유지
+- **실용적 수도코드**: 주니어개발자가 이해할 수 있는 수준
+
+### 주의사항:
+- **테스트 없는 구현 금지**: 모든 구현 수도코드에 테스트 수도코드 필수
+- **과도한 세부사항 지양**: 수도코드 레벨 유지 (실제 코드 X)
+- **TDD 사이클 준수**: RED-GREEN-REFACTOR 순서 명확히
+- **커버리지 목표 명시**: Testing Strategy의 목표를 달성할 수 있는 전략

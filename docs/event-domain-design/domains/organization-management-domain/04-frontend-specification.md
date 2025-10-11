@@ -43,24 +43,29 @@
 ## 🎯 Frontend Implementation Overview
 
 ### 구현 범위
-- **도메인**: Organization Management (조직 생성, 멤버 초대, 조직 관리)
-- **주요 기능**: 조직 생성, 멤버 초대 및 수락, 멤버 역할 변경, 소유권 이전, 조직 삭제
-- **UI 컴포넌트**: 조직 생성 폼, 멤버 초대 폼, 역할 변경 UI, 조직 관리 패널, 인박스 알림 시스템
+- **도메인**: Organization Management (조직 조회, 생성, 멤버 초대, 조직 관리)
+- **주요 기능**: 조직 조회/선택, 조직 생성, 멤버 초대 및 수락, 멤버 역할 변경, 소유권 이전, 조직 삭제
+- **UI 컴포넌트**: 조직 선택 UI, 조직 생성 폼, 멤버 초대 폼, 역할 변경 UI, 조직 관리 패널, 인박스 알림 시스템
+- **User Management 연동**: 유저 가입 완료 시 조직 조회 및 초기 선택 자동 실행
 
 ### 현재 구현 상태
+- ✅ **Phase 0**: 조직 조회 및 선택 시스템 구현 완료 (Scenario 0)
+  - 유저 관련 조직 조회 (소유 + 멤버 조직)
+  - 초기 조직 자동 선택 (쿠키 > 기본 조직 > 첫 번째 소유 조직)
+  - OrganizationSwitcher 드롭다운 구현
+  - 조직 컨텍스트 전환 및 쿠키 관리
 - ✅ **Phase 1**: DTO 타입 및 Context 구현 완료
 - ✅ **Phase 2**: Server Actions 및 Hook 구현 완료  
 - ✅ **Phase 3**: 기본 컴포넌트 구현 완료
-- ✅ **Phase 4**: 조직 생성 Dialog 및 폼 구현 완료
+- ✅ **Phase 4**: 조직 생성 Dialog 및 폼 구현 완료 (Scenario 1)
 - ✅ **Phase 5**: 멤버 초대 및 수락 시스템 구현 완료 (Scenario 2)
   - 멤버 초대: Application-level 권한 체크, NotificationService 통합
   - 초대 승낙: organization_members에 멤버 자동 추가
   - 인박스 UI/UX 개선: 닫기 아이콘, 패딩, 호버 액션, NEW 배지
 - ✅ **Phase 6**: 멤버 역할 변경 시스템 구현 완료 (Scenario 3)
   - 클라이언트 측 권한 검증 (UI 조건부 렌더링)
-  - 두 단계 프로세스 (역할 선택 → 확인 다이얼로그)
   - Layered Authorization (프론트엔드 UX + 백엔드 보안)
-- 📋 **Phase 7**: 조직 수정/삭제 (Story 006 예정)
+- 📋 **Phase 7**: 멤버 제거 (Scenario 4), 소유권 이전 (Scenario 5), 조직 삭제 (Scenario 6) 예정
 
 ---
 

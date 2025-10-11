@@ -1,50 +1,120 @@
-# Frontend Specification 가이드
+# Frontend Specification 작성 가이드
 
-이 문서는 **Software Design**에서 정의된 도메인 모델을 **React/Next.js 프론트엔드**에서 어떻게 연동하고 활용할지에 대한 **프로세스 가이드**입니다. 
+이 문서는 **User Flow 결과**를 바탕으로 **Frontend Specification**을 정의하고 **frontend-specification.md 문서 작성**까지, 의사결정 참여자들이 순서대로 따라할 수 있는 **Frontend Specification 전용 프로세스**를 설명합니다.
 
-주니어 개발자가 도메인별로 일관된 프론트엔드 구조를 만들 수 있도록 단계별 과정을 제시합니다.
-
----
-
-## 🎯 Frontend Specification Overview
-
-### 목적
-- Software Design의 Aggregate, Command, Event를 프론트엔드에서 어떻게 활용할지 정의
-- 도메인별로 일관된 React Context 및 Hook 구조 설계 방법 제시
-- Server Actions와 클라이언트 상태 관리 연동 패턴 정의
-
-### 핵심 원칙
-- **타입 재사용**: Software Design의 타입을 클라이언트에서 그대로 활용
-- **도메인 분리**: 각 도메인별로 독립적인 Context/Hook 구조
-- **Result 패턴**: Technical Specification과 동일한 에러 처리 방식
-- **낙관적 업데이트**: 사용자 경험 향상을 위한 즉시 UI 반영
-- **의존성 주입**: Server Actions에서 Service Layer 활용
+> 시작 전, `docs/event-domain-design/template/frontend-specification-template.md` 파일을 복사해 도메인 전용 `frontend-specification.md` 초안을 생성한 뒤, 아래 단계에 따라 내용을 채워 넣으세요.
 
 ---
 
-## 🛠️ 작업 시작 전 준비사항
+## 🔁 Frontend Specification 프로세스 한눈에 보기
 
-### 필수 조건
-- Software Design 문서가 완료되어 있어야 함
-- Technical Specification 템플릿의 패턴 숙지 필요
-- 해당 도메인의 Aggregate, Command, Event 정의 완료
+```mermaid
+graph TD
+    A[User Flow 결과 분석] --> B[Frontend Specification 워크샵]
+    B --> C[프론트엔드 명세 작성]
+    C --> D[frontend-specification.md 문서화]
+    D --> E[문서 검증 및 리뷰]
+    E --> F[다음 단계: TDD 구현]
+    
+    A1[user-flow.md 검토, UI 요소 추출] --> A
+    B1[DTO 설계, Context/Hooks 설계, Server Actions 연동] --> B
+    C1[컴포넌트 연동, 앱 통합] --> C
+    D1[구조화된 문서 작성] --> D
+    E1[프론트엔드 개발자 리뷰] --> E
+```
 
-### Git 브랜치 준비
+Frontend Specification은 **User Flow의 화면 흐름을 실제 구현 가능한 React 구조**로 전환하는 핵심 단계입니다.
+
+---
+
+## Phase 1: User Flow 결과 분석 (담당: 프론트엔드 개발자)
+
+### 1.1 사전 준비 - 완료된 User Flow 확인
+
+#### 필수 전제 조건:
+- [ ] user-flow.md 문서가 완성되어 있음
+- [ ] User Flow 워크샵이 완료되어 UX/UI 디자이너의 승인을 받음
+- [ ] 모든 화면 흐름이 정의되어 있음
+- [ ] UI 요소와 인터랙션이 명확히 정의되어 있음
+
+#### User Flow 결과물 검토:
 ```bash
-# 최신 도메인 브랜치로 이동 후 동기화
-git checkout domain/[도메인번호]-[도메인명]
-git pull origin domain/[도메인번호]-[도메인명]
+# User Flow 문서 확인
+cat docs/event-domain-design/domains/<domain-name>/user-flow.md
+
+# 주요 확인 포인트:
+# - 화면별 UI 요소
+# - 사용자 인터랙션
+# - 권한별 UI 차이
+# - 반응형 고려사항
+```
+
+### 1.2 UI 요소 및 상태 추출
+
+#### UI 요소 목록화:
+User Flow에 정의된 모든 UI 요소를 추출하고 분류합니다.
+
+**추출 항목**:
+- **컴포넌트**: 재사용 가능한 UI 컴포넌트
+- **상태**: 관리해야 할 클라이언트 상태
+- **액션**: 사용자 인터랙션
+- **데이터 흐름**: Server Actions와의 연동 지점
+
+#### 예시 결과:
+```markdown
+| UI 요소 | 상태 | Server Action | 비고 |
+| ------- | ---- | ------------- | ---- |
+| OrganizationSwitcher | selectedOrgId | getOrganizations | 드롭다운 |
+| MemberList | members[] | getMembers | 목록 표시 |
+| InviteForm | email, role | inviteMember | 폼 제출 |
+```
+
+### 1.3 Software Design 검토
+
+#### Software Design 확인:
+```bash
+# Software Design 문서 확인 (Backend 산출물)
+cat docs/event-domain-design/domains/<domain-name>/software-design.md
+
+# 주요 확인 포인트:
+# - Aggregate 정의 (DTO 변환 기준)
+# - Command와 Event (Server Actions 기반)
+# - Read Models (조회 데이터 구조)
+```
+
+### 1.4 템플릿 파일 준비
+```bash
+# Frontend Specification 템플릿 복사 (아직 없다면)
+cp docs/event-domain-design/template/frontend-specification-template.md docs/event-domain-design/domains/<domain-name>/frontend-specification.md
 ```
 
 ---
 
-## 1단계. 도메인 타입 연동 설계
+## Phase 2: Frontend Specification 워크샵 진행 (담당: 프론트엔드 개발자)
 
-### 1.1 DTO 기반 타입 구조 정의
+### 2.1 워크샵 참여자 및 구조
+
+#### 필수 참여자:
+- **프론트엔드 개발자** (리드): React Context/Hooks 설계 및 Server Actions 연동
+- **UX/UI 디자이너**: UI 요소 검증 및 사용자 경험 확인
+
+#### 권장 참여자:
+- **백엔드 개발자**: Software Design 및 Server Actions 인터페이스 확인
+- **시니어 개발자**: 아키텍처 검증
+
+#### 워크샵 시간 배분 (3-4시간):
+```
+- Phase 1: DTO 및 타입 설계 (40-50분)
+- Phase 2: Context 및 Hooks 설계 (60-80분)
+- Phase 3: Server Actions 연동 및 컴포넌트 설계 (60-80분)
+- 휴식 및 정리 (15-30분)
+```
+
+### 2.2 Phase 1: DTO 및 타입 설계 (40-50분)
 
 **목표**: Software Design의 Aggregate를 DTO로 직렬화하여 프론트엔드에서 활용
 
-**작업 과정**:
+#### 진행 방법:
 1. **DTO 타입 파일 생성**: `src/domains/[도메인명]/shared/dtos/index.ts`
    - Next.js Server Actions 직렬화를 위한 Plain Object 인터페이스
    - Domain Objects → DTO 변환을 위한 타입 정의
@@ -101,11 +171,11 @@ src/domains/[도메인명]/
 - `OrganizationSummary`: 조직 요약 정보 (드롭다운, 사이드바 등)
 - `CreateOrganizationRequest`: 조직 생성 요청 (폼 입력 등)
 
----
+### 2.3 Phase 2: Context 및 Hooks 설계 (60-80분)
 
-## 2단계. React Context 설계
+**목표**: 도메인별로 독립적인 React Context를 만들어 DTO 상태와 액션을 관리
 
-### 2.1 Context 구조 설계
+#### Part 1: Context 구조 설계 (30-40분)
 
 **목표**: 도메인별로 독립적인 Context를 만들어 DTO 상태와 액션을 관리
 
@@ -139,11 +209,11 @@ src/domains/[도메인명]/
 - Server Actions 호출 시 에러 처리
 - 선택 우선순위: URL 파라미터 > 쿠키 > 기본값
 
----
+### 2.4 Phase 3: Server Actions 연동 및 컴포넌트 설계 (60-80분)
 
-## 3단계. Server Actions 연동 설계
+**목표**: Server Actions 연동과 UI 컴포넌트 구조를 설계합니다.
 
-### 3.1 Server Actions 구조 설계
+#### Part 1: Server Actions 연동 (30-40분)
 
 **목표**: Technical Specification 패턴을 따라 Server Actions를 구현하여 DTO 반환
 
@@ -204,11 +274,7 @@ export async function [액션명]Action(
 - **에러 전파**: try-catch로 에러를 catch하고 throw로 전파
 - **revalidatePath**: 데이터 변경 시 관련 페이지 재검증
 
----
-
-## 4단계. Custom Hook 설계
-
-### 4.1 Hook 구조 설계
+#### Part 2: Custom Hooks 설계 (20-30분)
 
 **목표**: Context를 사용하는 Custom Hook을 만들어 컴포넌트에서 쉽게 사용
 
@@ -243,11 +309,7 @@ export async function [액션명]Action(
 - Provider 내부에서만 사용 가능하도록 에러 처리
 - 타입 안전성 보장
 
----
-
-## 5단계. 컴포넌트 연동 설계
-
-### 5.1 컴포넌트 구조 설계
+#### Part 3: 컴포넌트 연동 (10-20분)
 
 **목표**: Hook을 사용하여 도메인 로직과 UI를 분리한 컴포넌트 구현
 
@@ -287,9 +349,43 @@ export async function [액션명]Action(
 
 ---
 
-## 6단계. 앱 레벨 통합 설계
+## Phase 3: frontend-specification.md 문서 작성 (담당: 프론트엔드 개발자)
 
-### 6.1 Provider 통합 설계
+### 3.1 문서 구조 및 작성 순서
+
+복사한 템플릿을 기반으로 다음 순서로 작성합니다:
+
+#### 1. 📊 Frontend Specification Overview
+- 프론트엔드 구현 개요
+- User Flow와의 연결점
+- 핵심 설계 원칙
+
+#### 2. 📦 DTO 및 타입 정의
+- DTO 인터페이스
+- 직렬화 규칙
+- Result 패턴
+
+#### 3. 🎯 React Context 설계
+- Context 구조
+- State와 Actions 인터페이스
+- Provider 패턴
+
+#### 4. 🪝 Custom Hooks 설계
+- Hook 구조 및 메서드
+- 비즈니스 로직 유틸리티
+
+#### 5. 🎨 UI 컴포넌트 설계
+- 컴포넌트 구조
+- Switcher/List/Form 패턴
+
+#### 6. 🔗 앱 레벨 통합
+- Provider 중첩 순서
+- 초기 데이터 전달
+- 쿠키 영속성
+
+### 3.2 앱 레벨 통합 설계
+
+#### Provider 통합 패턴:
 
 **목표**: 앱 전체에서 도메인 Context들을 사용할 수 있도록 Provider 설정
 
@@ -303,31 +399,130 @@ export async function [액션명]Action(
    - 전역 상태는 Provider를 통해 공유
    - 페이지별로 필요한 도메인 Hook만 import
 
-### 6.2 통합 설계 가이드라인
 
-**Provider 중첩 순서**:
-- 의존성이 적은 도메인부터 상위에 배치
-- 인증 관련 Provider는 가장 상위에 배치
-- 각 도메인 Provider는 독립적으로 동작
+### 3.3 품질 검증 체크리스트
 
-**초기 데이터 전달**:
-- Server Components에서 Server Actions 호출
-- 초기 데이터를 Provider에 props로 전달
-- 클라이언트에서 추가 로딩 최소화
+#### 일관성 검증:
+- [ ] User Flow의 모든 화면이 컴포넌트로 매핑되었는가?
+- [ ] Software Design의 Aggregate가 DTO로 직렬화되었는가?
+- [ ] 모든 DTO가 Plain Object로 정의되었는가?
 
-**페이지별 사용 패턴**:
-- 필요한 도메인 Hook만 선택적으로 사용
-- 로딩 상태와 에러 상태를 적절히 처리
-- 권한에 따른 조건부 렌더링 적용
+#### 완전성 검증:
+- [ ] 모든 도메인에 Context와 Hook이 정의되었는가?
+- [ ] Server Actions가 모든 Command를 처리하는가?
+- [ ] 에러 처리와 로딩 상태가 적절히 정의되었는가?
 
-**쿠키 기반 영속성**:
-- 선택된 엔티티 상태를 쿠키로 저장
-- 새로고침 시에도 선택 상태 유지
-- URL 파라미터와 쿠키 우선순위 관리
+#### 실용성 검증:
+- [ ] 컴포넌트가 도메인 로직과 UI를 적절히 분리하는가?
+- [ ] 쿠키 기반 영속성이 올바르게 작동하는가?
+- [ ] Provider 중첩 순서가 의존성을 고려하는가?
 
 ---
 
-## 💡 핵심 설계 패턴 정리
+## Phase 4: 문서 검증 및 리뷰 (담당: 전체 참여자)
+
+### 4.1 리뷰 단계별 체크포인트
+
+#### 프론트엔드 개발자 리뷰:
+- [ ] React Context 설계가 적절한가?
+- [ ] DTO 직렬화가 올바른가?
+- [ ] Server Actions 연동이 명확한가?
+- [ ] 컴포넌트 구조가 합리적인가?
+
+#### UX/UI 디자이너 리뷰:
+- [ ] User Flow의 모든 화면이 포함되었는가?
+- [ ] 사용자 경험이 적절히 고려되었는가?
+- [ ] 로딩 상태와 에러 처리가 UX 친화적인가?
+
+#### 백엔드 개발자 리뷰:
+- [ ] Software Design과의 일관성이 있는가?
+- [ ] Server Actions 인터페이스가 올바른가?
+- [ ] DTO가 Backend 계약을 준수하는가?
+
+### 4.2 User Flow ↔ Frontend Specification 일관성 검증
+
+#### 필수 검증 포인트:
+- [ ] User Flow의 모든 화면이 컴포넌트로 구현되었는가?
+- [ ] UI 요소가 모두 React 컴포넌트로 매핑되었는가?
+- [ ] 사용자 인터랙션이 Hook 메서드로 정의되었는가?
+- [ ] 동일한 도메인 언어가 일관되게 사용되고 있는가?
+
+---
+
+## ✅ Frontend Specification 완료 기준
+
+다음 모든 조건이 충족되어야 Frontend Specification이 완료된 것으로 간주합니다:
+
+### 워크샵 완료 기준:
+- [ ] DTO 및 타입 정의 완료
+- [ ] Context 및 Hooks 설계 완료
+- [ ] Server Actions 연동 설계 완료
+- [ ] 컴포넌트 구조 정의 완료
+
+### 문서 완료 기준:
+- [ ] frontend-specification.md의 모든 필수 섹션이 작성됨
+- [ ] User Flow와의 일관성이 확인됨
+- [ ] 프론트엔드 개발자의 검증 완료
+- [ ] TDD 구현을 위한 충분한 정보 확보
+- [ ] Git에 체계적으로 커밋되고 PR이 승인됨
+
+---
+
+## 🚀 다음 단계: TDD 구현으로 연결
+
+Frontend Specification이 완료되면 다음 단계를 진행할 수 있습니다:
+
+### TDD 구현 준비:
+1. **TDD Implementation 가이드 참조**: `docs/event-domain-design/guide/07-tdd-implementation-guide.md`
+2. **RED-GREEN-REFACTOR 사이클 적용**: Frontend Specification을 실제 코드로 구현
+3. **워크샵 참여자 유지**: 프론트엔드 개발자
+
+### 연결 정보:
+- **입력**: 완성된 frontend-specification.md + user-flow.md
+- **출력**: 실제 프론트엔드 코드 (Context, Hooks, Components)
+- **다음 담당자**: 프론트엔드 개발자
+
+### TDD 구현에서 진행될 사항:
+- **Context 구현**: 상태 관리 및 Provider 설정
+- **Hooks 구현**: Custom Hooks 및 비즈니스 로직
+- **컴포넌트 구현**: UI 컴포넌트 및 인터랙션
+- **테스트 작성**: React Testing Library로 컴포넌트 테스트
+
+---
+
+## 📚 관련 문서 및 템플릿
+
+### 참조 가이드:
+- [User Flow 가이드](./03-user-flow-guide.md)
+- [TDD Implementation 가이드](./07-tdd-implementation-guide.md)
+
+### 템플릿 파일:
+- [Frontend Specification 템플릿](../template/frontend-specification-template.md)
+
+### 예시 문서:
+- [Organization Management Domain 예시](../domains/organization-management-domain/frontend-specification.md)
+
+---
+
+## 💡 성공을 위한 핵심 팁
+
+### 워크샵 성공 팁:
+- **프론트엔드 개발자 주도**: React 패턴과 Next.js 최적화 관점에서 설계
+- **User Flow 기반**: 모든 UI 요소를 User Flow에서 도출
+- **DTO 직렬화**: Plain Object만 사용하여 Next.js 호환성 보장
+- **도메인 분리**: 각 도메인별로 독립적인 Context/Hook 구조
+
+### 문서화 성공 팁:
+- **구체적 타입 정의**: DTO 인터페이스를 명확히 정의
+- **명확한 상태 관리**: Context의 State와 Actions를 분리
+- **User Flow 연결성**: User Flow의 결과와 일관성 유지
+- **실용적 패턴**: 재사용 가능한 컴포넌트 패턴 적용
+
+### 주의사항:
+- **직렬화 제약**: Date, 클래스, 함수 등 직렬화 불가능한 타입 사용 금지
+- **Context 과다 사용 지양**: 도메인별로만 Context 생성
+- **Hook 추상화**: 컴포넌트에서 직접 Context 접근 금지
+- **Server Actions 의존성 주입**: Service Layer 활용 필수
 
 ### 7.1 전체 아키텍처 플로우
 
@@ -421,86 +616,11 @@ Software Design (도메인 모델)
 - [Code Conventions](./08-code-conventions.md) - DTO 직렬화 컨벤션
 
 ### 기술 스택 가이드
-- Next.js 14 (App Router, Server Actions, revalidatePath)
-- React 18 (Context API, useState, useEffect)
-- TypeScript (인터페이스, 타입 정의)
+- Next.js 15 (App Router, Server Actions, revalidatePath)
+- React 19 (Context API, useState, useEffect)
+- TypeScript 5 (인터페이스, 타입 정의)
 - Supabase (인증, 데이터베이스)
 - Drizzle ORM (타입 안전한 쿼리)
-
----
-
----
-
-## 📊 8단계. 프로젝트 진행 상황 업데이트
-
-### 8.1 project-progress.md 업데이트
-
-**목표**: Frontend Specification 완료 상태를 프로젝트 전체 진행 상황에 반영
-
-**작업 과정**:
-```bash
-# 1. 현재 날짜 확인
-date
-
-# 2. project-progress.md 파일 열기
-# docs/project-progress.md
-```
-
-**업데이트 내용**:
-1. **Overall Progress Overview 테이블 업데이트**:
-   ```markdown
-   | [Domain Name] | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | **100%** |
-   ```
-
-2. **해당 도메인 섹션 업데이트**:
-   ```markdown
-   ### [N]. [Domain Name] Domain ✅ **완료**
-   
-   #### 설계 진행 상황
-   - [x] **Event Storming**: `docs/event-domain-design/[domain-name]/event-storm.md`
-   - [x] **Process Model**: `docs/event-domain-design/[domain-name]/process-model.md`
-   - [x] **Software Design**: `docs/event-domain-design/[domain-name]/software-design.md`
-   - [x] **Technical Design**:
-     - [x] Database Schema: `docs/event-domain-design/[domain-name]/project-technical-design/database-schema.md`
-     - [x] API Specification: `docs/event-domain-design/[domain-name]/project-technical-design/api-specification.md`
-     - [x] Technical Specification: `docs/event-domain-design/[domain-name]/technical-specification.md`
-   - [x] **Frontend Specification**: `docs/event-domain-design/[domain-name]/frontend-specification.md`
-     - React Context 및 Hook 설계
-     - Server Actions 연동 패턴
-     - 컴포넌트 구조 및 통합 방법
-   ```
-
-3. **전체 진행률 업데이트**:
-   - 해당 도메인의 진행률을 80% → 100%로 업데이트
-   - 완료된 도메인 수 증가에 따른 전체 백분율 재계산
-   - Next Steps 섹션에서 해당 도메인을 완료 상태로 이동
-
-### 8.2 Git 커밋
-
-```bash
-# 변경사항 커밋
-git add docs/event-domain-design/[domain-name]/frontend-specification.md docs/project-progress.md
-git commit -m "feat(frontend-spec): complete [Domain Name] domain frontend specification
-
-- Define React Context and Hook patterns
-- Add Server Actions integration strategy  
-- Include component structure and app-level integration
-- Update project progress to 100% for [Domain Name] domain"
-
-# 브랜치 푸시
-git push origin domain/[번호]-[domain-name]
-
-# PR 생성 (도메인 완료)
-gh pr create --title "feat: complete [Domain Name] domain design" \
-  --body "Complete all design phases for [Domain Name] domain:
-- Event Storming
-- Process Model  
-- Software Design
-- Technical Specification
-- Frontend Specification
-
-Ready for implementation phase."
-```
 
 ---
 

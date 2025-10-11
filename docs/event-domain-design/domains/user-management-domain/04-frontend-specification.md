@@ -10,12 +10,14 @@
 ### 구현 범위
 - **도메인**: User Management (사용자 인증 및 프로필 관리)
 - **주요 기능**: 사용자 프로필 생성, 온보딩, 사용자 계정 삭제
-- **UI 컴포넌트**: 사용자 프로필 표시, 로그인 UI, 계정 설정
+- **UI 컴포넌트**: 로그인 UI (OAuth 버튼), 온보딩 화면, 사용자 프로필 카드
+- **제외 범위**: 조직 조회/선택 (Organization Management Domain에서 처리)
 
 ### 현재 구현 상태
-- ✅ **Phase 1**: 사용자 인증 및 프로필 생성 구현 완료 (Scenario 0)
-- ✅ **Phase 2**: 온보딩 프로세스 구현 완료 (Scenario 0)  
-- 📋 **Phase 3**: 사용자 계정 삭제 구현 예정 (Scenario 8)
+- ✅ **Phase 1**: 사용자 인증 및 프로필 생성 구현 완료 (Scenario 1)
+- ✅ **Phase 2**: 온보딩 프로세스 구현 완료 (Scenario 1)  
+- 📋 **Phase 3**: 사용자 계정 삭제 구현 예정 (Scenario 2)
+- ℹ️ **조직 관련**: Organization Management Domain 참조
 
 ---
 

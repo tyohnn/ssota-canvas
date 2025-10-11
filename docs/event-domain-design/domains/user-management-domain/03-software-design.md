@@ -12,11 +12,15 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, User Manageme
 - **Supabase Auth**: External System으로 유지 (사용자 인증의 SSOT)
 - **Anti-Corruption Layer**: Supabase Auth API와 도메인 모델 간의 변환 계층 구현
 
+### 🔗 Domain Integration
+- **Organization Management Domain**: 기본 조직 생성, 계정 삭제 시 조직 처리
+- **조직 조회/선택**: Organization Management Domain에서 처리 (Scenario 0)
+
 ---
 
 ## 🟨 Aggregate 식별
 
-### Process Model에서 발견된 Systems → Aggregates (Scenario 0, 1, 8 기준)
+### Process Model에서 발견된 Systems → Aggregates (Scenario 1, 2 기준)
 
 | Process Model (System) | Software Design (Aggregate) | 책임 | 구현 상태 |
 |----------------------|---------------------------|------|----------|

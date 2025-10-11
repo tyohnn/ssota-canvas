@@ -1,37 +1,74 @@
-# [Domain Name] - Testing Strategy
+# Testing Strategy: [Domain Name] Domain
 
-Software Design을 기반으로 한 테스트 전략 문서입니다.
+## 🎯 개요
 
-**작성 시점**: Software Design 완료 후, Technical Specification 작성 전  
-**목적**: 구현하기 전에 "무엇을 어떻게 테스트할지" 명확히 정의
+**도메인**: [Domain Name]  
+**작성자**: 시니어개발자 + QA  
+**작성일**: YYYY-MM-DD  
+**버전**: v1.0
+
+**Software Design 참조**: `03-software-design.md`  
+**Process Model 참조**: `02-process-model.md`  
+**다음 단계**: `05-technical-specification.md`
 
 ---
 
-## 🎯 Testing Strategy Overview
+> **가이드 참조**: `docs/event-domain-design/guide/04-testing-strategy-guide.md`  
+> **작성 시점**: Software Design 완료 후, Technical Specification 작성 전  
+> **목적**: 구현하기 전에 "무엇을 어떻게 테스트할지" 명확히 정의
 
-### 테스트 레벨별 목표
+---
+
+## 📊 Testing Strategy Overview
+
+### 도메인 테스트 전략 요약
+
+[이 도메인의 테스트 전략을 간략히 설명]
+
+### Process Model 연결점
+
+- **입력**: `02-process-model.md` - [주요 시나리오 N개]
+- **입력**: `03-software-design.md` - [주요 Aggregate M개]
+- **출력**: Unit/Integration/E2E 테스트 케이스
+
+### 커버리지 목표 요약
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ E2E Tests (10%)                                             │
-│ - 사용자 시나리오: [주요 시나리오 1~2개]                    │
-│ - 목표: [N]개 핵심 시나리오                                 │
-├─────────────────────────────────────────────────────────────┤
-│ Integration Tests (20%)                                     │
-│ - Service + Repository + Database                           │
-│ - Server Actions 전체 플로우                                │
-│ - 목표: [N]개 통합 시나리오                                 │
-├─────────────────────────────────────────────────────────────┤
-│ Unit Tests (70%)                                            │
-│ - Value Objects, Entities, Aggregates                       │
-│ - 비즈니스 로직 격리 테스트                                 │
-│ - 목표: [N]개 단위 테스트                                   │
-└─────────────────────────────────────────────────────────────┘
+전체 코드 커버리지: [85]% 이상
+- Unit Tests:       70%  ([20-30]개)
+- Integration Tests: 20%  ([5-8]개)
+- E2E Tests:        10%  ([1-2]개)
 ```
+
+---
+
+## 🗺️ Process Model → Test 매핑
+
+> **가이드 참조**: Phase 2.2 - Process Model → Test 매핑
+
+### Scenario 0: [시나리오 이름]
+
+| Process Model 요소 | 테스트 종류 | 테스트 케이스 | 우선순위 |
+|-------------------|------------|-------------|---------|
+| Command: [명령명] | Unit | [Aggregate].[메서드명]() | ⭐️⭐️⭐️⭐️⭐️ |
+| System: [시스템명] | Unit | [Aggregate] [로직 설명] | ⭐️⭐️⭐️⭐️ |
+| Event: [이벤트명] | Unit | [Event] 발행 검증 | ⭐️⭐️⭐️ |
+| 전체 플로우 | Integration | [Service/Action].[메서드명]() | ⭐️⭐️⭐️⭐️⭐️ |
+| 사용자 경험 | E2E | [시나리오 설명] | ⭐️⭐️⭐️⭐️⭐️ |
+
+### Scenario 1: [시나리오 이름]
+
+| Process Model 요소 | 테스트 종류 | 테스트 케이스 | 우선순위 |
+|-------------------|------------|-------------|---------|
+| Command: [명령명] | Unit | [Aggregate].[메서드명]() | ⭐️⭐️⭐️⭐️⭐️ |
+| System: [시스템명] | Integration | [Repository].[메서드명]() | ⭐️⭐️⭐️⭐️ |
+| Event: [이벤트명] | Integration | [검증 방법] | ⭐️⭐️⭐️ |
 
 ---
 
 ## 🧪 Unit Tests 전략
+
+> **가이드 참조**: Phase 3.2 - Unit Tests 전략 작성
 
 ### 1. Value Objects 테스트
 
@@ -148,6 +185,8 @@ describe('[Aggregate2]', () => {
 
 ## 🔗 Integration Tests 전략
 
+> **가이드 참조**: Phase 3.3 - Integration Tests 전략 작성
+
 ### 1. Repository 통합 테스트
 
 #### [Repository1]
@@ -237,6 +276,8 @@ describe('Server Actions Integration Tests', () => {
 
 ## 🎭 E2E Tests 전략
 
+> **가이드 참조**: Phase 3.4 - E2E Tests 전략 작성
+
 ### 1. [주요 시나리오 1] (Scenario [N])
 
 ```typescript
@@ -309,59 +350,67 @@ test('[에러 시나리오 설명]', async ({ page }) => {
 
 ---
 
-## 📊 커버리지 목표
+## 📈 커버리지 목표 및 TDD 사이클
 
-### 레이어별 커버리지
+> **가이드 참조**: Phase 3.5 - 커버리지 목표 및 TDD 사이클 작성
+
+### 레이어별 커버리지 목표
 
 | 레이어 | 목표 커버리지 | 우선순위 |
 |--------|--------------|---------|
-| Value Objects | [%] 이상 | ⭐️⭐️⭐️⭐️⭐️ |
-| Entities | [%] 이상 | ⭐️⭐️⭐️⭐️⭐️ |
-| Aggregates | [%] 이상 | ⭐️⭐️⭐️⭐️⭐️ |
-| Services | [%] 이상 | ⭐️⭐️⭐️⭐️ |
-| Repositories | [%] 이상 | ⭐️⭐️⭐️⭐️ |
-| Server Actions | [%] 이상 | ⭐️⭐️⭐️⭐️⭐️ |
-| UI Components | [%] 이상 | ⭐️⭐️⭐️ |
+| Value Objects | 95% 이상 | ⭐️⭐️⭐️⭐️⭐️ |
+| Entities | 95% 이상 | ⭐️⭐️⭐️⭐️⭐️ |
+| Aggregates | 90% 이상 | ⭐️⭐️⭐️⭐️⭐️ |
+| Services | 85% 이상 | ⭐️⭐️⭐️⭐️ |
+| Repositories | 80% 이상 | ⭐️⭐️⭐️⭐️ |
+| Server Actions | 85% 이상 | ⭐️⭐️⭐️⭐️⭐️ |
+| UI Components | 70% 이상 | ⭐️⭐️⭐️ |
 
-### 전체 목표
+### 전체 커버리지 목표
 
 ```
-전체 코드 커버리지: [%] 이상
-- Branches: [%] 이상
-- Functions: [%] 이상
-- Lines: [%] 이상
-- Statements: [%] 이상
+전체 코드 커버리지: 85% 이상
+- Branches: 80% 이상
+- Functions: 85% 이상
+- Lines: 85% 이상
+- Statements: 85% 이상
 ```
 
----
+### TDD 구현 순서
 
-## 🎯 Process Model → Test 매핑
+```markdown
+### Phase 1: Value Objects (⭐️⭐️⭐️⭐️⭐️)
+1. [ValueObject1] VO → RED-GREEN-REFACTOR
+2. [ValueObject2] VO
+3. [ValueObject3] VO
 
-### Scenario [N]: [시나리오 이름]
+### Phase 2: Entities (⭐️⭐️⭐️⭐️⭐️)
+1. [Entity1] Entity
+2. [Entity2] Entity
 
-| Process Model 요소 | 테스트 종류 | 테스트 케이스 |
-|-------------------|------------|-------------|
-| Command: [명령명] | Unit | [Aggregate].[메서드명]() |
-| System: [시스템명] | Unit | [Aggregate] [로직 설명] |
-| Event: [이벤트명] | Unit | [Event] 발행 검증 |
-| 전체 플로우 | Integration | [Service/Action].[메서드명]() |
-| 사용자 경험 | E2E | [시나리오 설명] |
+### Phase 3: Aggregates (⭐️⭐️⭐️⭐️⭐️)
+1. [Aggregate1]
+2. [Aggregate2]
 
-### Scenario [M]: [시나리오 이름]
+### Phase 4: Repository (⭐️⭐️⭐️⭐️)
+1. [Repository1] (통합 테스트)
+2. [Repository2] (통합 테스트)
 
-| Process Model 요소 | 테스트 종류 | 테스트 케이스 |
-|-------------------|------------|-------------|
-| Command: [명령명] | Integration | [Repository].[메서드명]() |
-| System: [시스템명] | Unit | [Aggregate].[메서드명]() |
-| Event: [이벤트명] | Integration | [검증 방법] |
-| Command: [명령명2] | E2E | [UI 검증] |
-| Event: [이벤트명2] | E2E | [최종 상태 검증] |
+### Phase 5: Service (⭐️⭐️⭐️⭐️)
+1. [Service1] (통합 테스트)
 
----
+### Phase 6: Server Actions (⭐️⭐️⭐️⭐️⭐️)
+1. [action1]Action (통합 테스트)
+2. [action2]Action (통합 테스트)
 
-## 🔄 TDD 사이클 적용
+### Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️)
+1. [주요 시나리오 1]
+2. [주요 시나리오 2]
+```
 
-### [대표 Value Object] 구현 예시
+### TDD 사이클 예시
+
+**[대표 Value Object] 구현 예시**:
 
 ```typescript
 // 1. RED: 테스트 먼저 작성
@@ -400,41 +449,47 @@ export class [ValueObject] {
 
 ---
 
-## 🛠️ 테스트 도구 및 설정
+## ⚙️ 테스트 도구 및 설정
+
+> **가이드 참조**: Phase 3.6 - 테스트 도구 및 설정 정리
 
 ### Unit & Integration Tests
 - **프레임워크**: Vitest
 - **Assertion**: expect (Vitest 내장)
 - **Mock**: vi (Vitest 내장)
 - **커버리지**: v8
+- **설정 파일**: `vitest.config.ts`
 
 ### E2E Tests
 - **프레임워크**: Playwright
 - **브라우저**: Chromium, Firefox, WebKit
 - **스크린샷**: 실패 시 자동 캡처
 - **비디오**: 실패 시 자동 녹화
+- **설정 파일**: `playwright.config.ts`
 
 ### 테스트 데이터베이스
 - **로컬**: PostgreSQL (Docker)
 - **CI/CD**: Supabase 테스트 인스턴스
-- **정리 전략**: 각 테스트 후 데이터 완전 삭제
+- **정리 전략**: 각 테스트 후 데이터 완전 삭제 (`cleanDatabase()`)
 
 ---
 
 ## ✅ 검증 체크리스트
 
-### 테스트 작성 전
+> **가이드 참조**: Phase 3.7 - 품질 검증 체크리스트
+
+### 일관성 검증
 - [ ] Process Model의 모든 시나리오가 테스트 케이스로 매핑되었는가?
 - [ ] Software Design의 모든 Aggregate가 테스트 계획에 포함되었는가?
 - [ ] 핵심 불변식이 테스트로 검증 가능한가?
 
-### 테스트 작성 후
+### 완전성 검증
 - [ ] 모든 Happy Path가 커버되는가?
 - [ ] 주요 에러 시나리오가 테스트되는가?
 - [ ] 경계값 테스트가 포함되어 있는가?
-- [ ] 커버리지 목표를 달성했는가?
+- [ ] 커버리지 목표를 달성할 수 있는가?
 
-### 테스트 품질
+### 실용성 검증
 - [ ] 테스트는 독립적으로 실행 가능한가?
 - [ ] 테스트는 빠르게 실행되는가? (Unit < 100ms, Integration < 1s)
 - [ ] 테스트는 반복 실행해도 동일한 결과를 내는가?
@@ -442,25 +497,34 @@ export class [ValueObject] {
 
 ---
 
-## 📚 다음 단계
+## 🚀 다음 단계
 
 이 Testing Strategy 문서를 기반으로 다음 문서를 작성하세요:
 
-1. **Technical Specification** (4단계)
-   - 각 클래스별 수도코드
-   - **테스트 수도코드 포함** ✅
-   - 구현 가이드라인
+### Technical Specification (05단계)
+- **가이드**: `guide/05-technical-specification-guide.md`
+- **산출물**: `05-technical-specification.md`
+- **내용**:
+  - 각 컴포넌트별 구현 수도코드
+  - **테스트 수도코드 (Given-When-Then)** ⭐️
+  - TDD 구현 순서 정의
 
-2. **실제 구현** (5단계)
-   - TDD 사이클로 구현
-   - 테스트 먼저 → 구현 → 리팩토링
+### TDD Implementation (07단계)
+- **가이드**: `guide/07-tdd-implementation-guide.md`
+- **산출물**: 실제 코드 + 테스트 코드
+- **내용**:
+  - RED-GREEN-REFACTOR 사이클 적용
+  - 커버리지 목표 달성
+  - 코드 리뷰
 
-3. **테스트 결과 문서** (6단계)
-   - 커버리지 리포트
-   - 실패한 테스트 분석
-   - 개선 방향
+---
+
+**문서 작성 완료 후**:
+- [ ] 시니어개발자 리뷰 완료
+- [ ] QA 리뷰 완료 (있는 경우)
+- [ ] Git 커밋 및 PR 생성
+- [ ] 다음 단계(Technical Specification) 준비
 
 ---
 
 이 Testing Strategy를 따라 높은 품질의 [Domain Name]을 구현할 수 있습니다! 🎉
-

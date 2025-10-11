@@ -1,6 +1,6 @@
 # User Management Domain - Technical Specification
 
-Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가이드입니다. (Scenario 0, 1, 8 기준)
+Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가이드입니다. (Scenario 1, 2 기준)
 
 **작성자**: AI Assistant  
 **작성일**: 2025-09-28  
@@ -29,7 +29,7 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 
 ## 🎯 Implementation Overview
 
-### 개발 우선순위 (Scenario 0, 8) - 현재 진행 상황
+### 개발 우선순위 (Scenario 1, 2) - 현재 진행 상황
 1. **Phase 1**: Supabase Auth 통합 및 기본 사용자 관리 ✅
    - User Aggregate 구현 ✅
    - 구글 OAuth 처리 ✅
@@ -41,6 +41,7 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
    - User Management는 순수하게 User 관련 로직만 관리 ✅
    - 도메인 간 명확한 경계 설정 ✅
    - 기본 조직 생성은 Organization Management Domain에 위임 ✅
+   - 조직 조회/선택은 Organization Management Domain으로 이관 ✅
 
 3. **Phase 3**: 사용자 계정 삭제 시스템 구현 🚧
    - UserAggregate 계정 삭제 처리
@@ -323,14 +324,15 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 
 ## 📋 검증 체크리스트
 
-### Scenario 0, 1, 8 지원 - 현재 구현 상태
-- [x] **유저 가입**: Supabase Auth + profiles 테이블로 구글 OAuth 사용자 생성 (백엔드 완료)
+### Scenario 1, 2 지원 - 현재 구현 상태
+- [x] **유저 가입**: Supabase Auth + profiles 테이블로 구글 OAuth 사용자 생성 ✅
 - [x] **프로필 생성**: 사용자 프로필 생성 및 관리 ✅
 - [x] **온보딩**: 온보딩 프로세스 관리 ✅
-- [x] **조직 조회**: Organization Management Domain과의 통합 ✅
-- [x] **구글 로그인 UI**: 프론트엔드 로그인 페이지 및 버튼 미구현 ✅
+- [x] **기본 조직 생성**: Organization Management Domain으로 위임 ✅
+- [x] **구글 로그인 UI**: 프론트엔드 OAuth 버튼 및 온보딩 화면 구현 ✅
 - [ ] **계정 삭제**: 사용자 계정 삭제 및 데이터 정리 (구현 필요)
 - [ ] **Organization Management Domain 통합**: 사용자 삭제 시 조직 처리 (구현 필요)
+- ℹ️ **조직 조회/선택**: Organization Management Domain Scenario 0 참조
 
 ### 설계 일관성
 - [x] 모든 Command에 입력 검증 로직이 정의되어 있는가? ✅
