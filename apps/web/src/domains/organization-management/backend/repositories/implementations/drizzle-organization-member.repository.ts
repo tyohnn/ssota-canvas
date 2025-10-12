@@ -1,6 +1,6 @@
 // apps/web/src/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository.ts
 
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ilike } from 'drizzle-orm';
 import { createDrizzleSupabaseClient } from '@/db';
 import {
   organizationMembers,
@@ -334,6 +334,48 @@ export class DrizzleOrganizationMemberRepository
         .where(eq(profiles.email, email))
         .limit(10)
     );
+
+    return searchResults.map((profile: (typeof searchResults)[0]) => ({
+      userId: profile.userId,
+      email: profile.email,
+      name: profile.name || profile.email,
+      profileImageUrl: profile.avatarUrl || '',
+    }));
+  }
+
+  /**
+   * Organization 멤버 중 이메일로 검색 (효율적)
+   *
+   * @param organizationId - Organization ID
+   * @param emailQuery - 검색할 이메일 (부분 매칭)
+   * @returns Organization 멤버 UserProfile 배열
+   */
+  async searchOrganizationMembersByEmail(
+    organizationId: string,
+    emailQuery: string
+  ): Promise<UserProfile[]> {
+    const db = await createDrizzleSupabaseClient();
+
+    // Organization 멤버 + Profile 정보를 JOIN하여 한 번에 조회
+    // Admin DB 사용 (Application 레벨에서 권한 체크 완료 전제)
+    const searchResults = await db.admin
+      .select({
+        userId: organizationMembers.user_id,
+        email: profiles.email,
+        name: profiles.name,
+        avatarUrl: profiles.avatar_url,
+      })
+      .from(organizationMembers)
+      .innerJoin(profiles, eq(organizationMembers.user_id, profiles.user_id))
+      .where(
+        and(
+          eq(organizationMembers.organization_id, organizationId),
+          // ILIKE는 PostgreSQL의 case-insensitive LIKE
+          // 이메일에 쿼리 문자열 포함 여부 검색 (부분 매칭)
+          ilike(profiles.email, `%${emailQuery}%`)
+        )
+      )
+      .limit(10);
 
     return searchResults.map((profile: (typeof searchResults)[0]) => ({
       userId: profile.userId,

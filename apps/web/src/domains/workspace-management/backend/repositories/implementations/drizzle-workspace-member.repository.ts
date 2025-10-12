@@ -2,9 +2,12 @@
 
 import { eq, and } from 'drizzle-orm';
 import { createDrizzleSupabaseClient, adminDb } from '@/db';
-import { workspaceMembers } from '@/db/schema-dev';
+import { workspaceMembers, profiles } from '@/db/schema-dev';
 import type { WorkspaceMember as DBWorkspaceMember } from '@/db/schema-dev';
-import { WorkspaceMemberRepository } from '../interfaces/workspace-member.repository.interface';
+import {
+  WorkspaceMemberRepository,
+  WorkspaceMemberInfo,
+} from '../interfaces/workspace-member.repository.interface';
 import { WorkspaceId } from '../../../shared/value-objects/workspace-id.vo';
 
 export class DrizzleWorkspaceMemberRepository
@@ -33,6 +36,38 @@ export class DrizzleWorkspaceMemberRepository
       .limit(1);
 
     return result.length > 0;
+  }
+
+  /**
+   * Workspace 멤버 목록 조회 (Profile JOIN)
+   *
+   * @param workspaceId - Workspace ID
+   * @returns Workspace 멤버 정보 배열
+   */
+  async findByWorkspaceId(
+    workspaceId: WorkspaceId
+  ): Promise<WorkspaceMemberInfo[]> {
+    // Admin DB 사용 (Application 레벨에서 권한 확인 후)
+    const members = await adminDb
+      .select({
+        userId: workspaceMembers.user_id,
+        joinedAt: workspaceMembers.joined_at,
+        name: profiles.name,
+        email: profiles.email,
+        avatarUrl: profiles.avatar_url,
+      })
+      .from(workspaceMembers)
+      .innerJoin(profiles, eq(workspaceMembers.user_id, profiles.user_id))
+      .where(eq(workspaceMembers.workspace_id, workspaceId.value))
+      .orderBy(workspaceMembers.joined_at);
+
+    return members.map(member => ({
+      userId: member.userId,
+      name: member.name || member.email,
+      email: member.email,
+      profileImageUrl: member.avatarUrl || null,
+      joinedAt: member.joinedAt,
+    }));
   }
 
   /**

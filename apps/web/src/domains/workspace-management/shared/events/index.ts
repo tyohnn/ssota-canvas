@@ -107,6 +107,38 @@ export interface PageAccessDeniedEvent {
   occurredAt: Date;
 }
 
+// Workspace Invitation Events (Scenario 3)
+export interface WorkspaceMemberInvitationCreatedEvent {
+  type: 'WorkspaceMemberInvitationCreated';
+  invitationId: string;
+  workspaceId: string;
+  invitedUserId: string;
+  invitedBy: string;
+  occurredAt: Date;
+}
+
+export interface WorkspaceInvitationAcceptedEvent {
+  type: 'WorkspaceInvitationAccepted';
+  invitationId: string;
+  workspaceId: string;
+  userId: string;
+  occurredAt: Date;
+}
+
+export interface MemberAddedToWorkspaceEvent {
+  type: 'MemberAddedToWorkspace';
+  workspaceId: string;
+  userId: string;
+  occurredAt: Date;
+}
+
+export interface WorkspaceInvitationRejectedEvent {
+  type: 'WorkspaceInvitationRejected';
+  invitationId: string;
+  userId: string;
+  occurredAt: Date;
+}
+
 // Union type for all domain events
 export type WorkspaceManagementDomainEvent =
   | WorkspaceCreatedEvent
@@ -120,4 +152,8 @@ export type WorkspaceManagementDomainEvent =
   | PageDeletedEvent
   | PageTreeLoadedEvent
   | PageAccessVerifiedEvent
-  | PageAccessDeniedEvent;
+  | PageAccessDeniedEvent
+  | WorkspaceMemberInvitationCreatedEvent
+  | WorkspaceInvitationAcceptedEvent
+  | MemberAddedToWorkspaceEvent
+  | WorkspaceInvitationRejectedEvent;

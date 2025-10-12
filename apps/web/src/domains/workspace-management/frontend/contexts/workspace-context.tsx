@@ -17,10 +17,22 @@ import {
   type CreateWorkspaceRequest,
   type UpdateWorkspaceInfoRequest,
   type CreateWorkspaceResponse,
+  type InviteWorkspaceMemberRequest,
+  type InviteWorkspaceMemberResponse,
+  type ProcessInvitationRequest,
+  type SearchOrganizationMembersRequest,
+  type OrganizationMemberSearchResultDTO,
+  type GetWorkspaceMembersRequest,
+  type WorkspaceMemberView,
 } from '@/domains/workspace-management/shared/dtos';
 import {
   createWorkspaceAction,
   updateWorkspaceInfoAction,
+  inviteWorkspaceMemberAction,
+  searchOrganizationMembersAction,
+  acceptWorkspaceInvitationAction,
+  rejectWorkspaceInvitationAction,
+  getWorkspaceMembersAction,
 } from '@/domains/workspace-management/actions/workspace-management.actions';
 
 /**
@@ -49,6 +61,21 @@ interface WorkspaceContextValue {
   updateWorkspaceInfo: (
     request: UpdateWorkspaceInfoRequest
   ) => Promise<boolean>;
+
+  // Scenario 3: Workspace 멤버 초대 및 수락/거절
+  inviteMembers: (
+    workspaceId: string,
+    emails: string[]
+  ) => Promise<number | null>;
+  searchOrganizationMembers: (
+    workspaceId: string,
+    query: string
+  ) => Promise<OrganizationMemberSearchResultDTO[]>;
+  acceptInvitation: (invitationId: string) => Promise<boolean>;
+  rejectInvitation: (invitationId: string) => Promise<boolean>;
+  getWorkspaceMembers: (
+    workspaceId: string
+  ) => Promise<WorkspaceMemberView | null>;
 
   // 계산된 속성
   selectedPage: PageTreeNodeDTO | null;
@@ -362,11 +389,18 @@ export function WorkspaceProvider({
 
           return true;
         } else {
+          // 사용자 친화적인 에러 메시지
+          const errorMessages: Record<string, string> = {
+            NOT_WORKSPACE_MEMBER: '워크스페이스 멤버만 수정할 수 있습니다',
+            NOT_ORG_ADMIN: '조직 관리자 권한이 필요합니다',
+            WORKSPACE_NOT_FOUND: '워크스페이스를 찾을 수 없습니다',
+            UNAUTHORIZED: '로그인이 필요합니다',
+          };
           const errorMessage =
             'error' in result
-              ? result.error
+              ? errorMessages[result.error] || result.error
               : '워크스페이스 수정에 실패했습니다';
-          toast.error(errorMessage);
+          toast.error('수정 실패', { description: errorMessage });
           return false;
         }
       } catch (err) {
@@ -402,6 +436,134 @@ export function WorkspaceProvider({
     return workspaces.find(ws => ws.isDefault) || null;
   }, [workspaces]);
 
+  // Scenario 3: 멤버 초대
+  const inviteMembers = useCallback(
+    async (workspaceId: string, emails: string[]): Promise<number | null> => {
+      try {
+        const result = await inviteWorkspaceMemberAction({
+          workspaceId,
+          memberEmails: emails,
+        });
+
+        if (!result.success) {
+          // 사용자 친화적인 에러 메시지
+          const errorMessages: Record<string, string> = {
+            NOT_ORG_ADMIN: '조직 관리자만 멤버를 초대할 수 있습니다',
+            NOT_WORKSPACE_MEMBER: '워크스페이스 멤버만 초대할 수 있습니다',
+            WORKSPACE_NOT_FOUND: '워크스페이스를 찾을 수 없습니다',
+            UNAUTHORIZED: '로그인이 필요합니다',
+            INVALID_INPUT: '초대할 멤버를 선택해주세요',
+          };
+          const errorMessage =
+            errorMessages[result.error] || '멤버 초대에 실패했습니다';
+          toast.error('초대 실패', { description: errorMessage });
+          return null;
+        }
+
+        toast.success(`${result.data.invitedCount}명 초대 완료`);
+        return result.data.invitedCount;
+      } catch (error) {
+        console.error('[inviteMembers] Error:', error);
+        toast.error('초대 중 오류가 발생했습니다');
+        return null;
+      }
+    },
+    []
+  );
+
+  // Scenario 3: 조직 멤버 검색
+  const searchOrganizationMembers = useCallback(
+    async (
+      workspaceId: string,
+      query: string
+    ): Promise<OrganizationMemberSearchResultDTO[]> => {
+      try {
+        const result = await searchOrganizationMembersAction({
+          workspaceId,
+          query,
+        });
+
+        if (!result.success) {
+          console.error('[searchOrganizationMembers] Error:', result.error);
+          return [];
+        }
+
+        return result.data;
+      } catch (error) {
+        console.error('[searchOrganizationMembers] Error:', error);
+        return [];
+      }
+    },
+    []
+  );
+
+  // Scenario 3: 초대 수락
+  const acceptInvitation = useCallback(
+    async (invitationId: string): Promise<boolean> => {
+      try {
+        const result = await acceptWorkspaceInvitationAction({ invitationId });
+
+        if (!result.success) {
+          toast.error(`초대 수락 실패: ${result.error}`);
+          return false;
+        }
+
+        toast.success('Workspace 초대를 수락했습니다');
+        await refreshWorkspacePages();
+        return true;
+      } catch (error) {
+        console.error('[acceptInvitation] Error:', error);
+        toast.error('초대 수락 중 오류가 발생했습니다');
+        return false;
+      }
+    },
+    [refreshWorkspacePages]
+  );
+
+  // Scenario 3: 초대 거절
+  const rejectInvitation = useCallback(
+    async (invitationId: string): Promise<boolean> => {
+      try {
+        const result = await rejectWorkspaceInvitationAction({ invitationId });
+
+        if (!result.success) {
+          toast.error(`초대 거절 실패: ${result.error}`);
+          return false;
+        }
+
+        toast.success('Workspace 초대를 거절했습니다');
+        return true;
+      } catch (error) {
+        console.error('[rejectInvitation] Error:', error);
+        toast.error('초대 거절 중 오류가 발생했습니다');
+        return false;
+      }
+    },
+    []
+  );
+
+  // Scenario 3: Workspace 멤버 목록 조회
+  const getWorkspaceMembers = useCallback(
+    async (workspaceId: string): Promise<WorkspaceMemberView | null> => {
+      try {
+        const result = await getWorkspaceMembersAction({ workspaceId });
+
+        if (!result.success) {
+          console.error('[getWorkspaceMembers] Error:', result.error);
+          toast.error('멤버 목록을 불러오는데 실패했습니다');
+          return null;
+        }
+
+        return result.data;
+      } catch (error) {
+        console.error('[getWorkspaceMembers] Error:', error);
+        toast.error('멤버 목록 조회 중 오류가 발생했습니다');
+        return null;
+      }
+    },
+    []
+  );
+
   const value: WorkspaceContextValue = {
     // 기본 상태
     workspaces,
@@ -421,6 +583,13 @@ export function WorkspaceProvider({
     // Scenario 2
     createWorkspace,
     updateWorkspaceInfo,
+
+    // Scenario 3
+    inviteMembers,
+    searchOrganizationMembers,
+    acceptInvitation,
+    rejectInvitation,
+    getWorkspaceMembers,
 
     // 계산된 속성
     selectedPage,

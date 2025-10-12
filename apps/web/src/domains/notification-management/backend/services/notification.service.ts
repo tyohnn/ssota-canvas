@@ -10,6 +10,7 @@ import {
 import { Result } from '@/utils/result';
 import {
   CreateInvitationNotificationCommand,
+  CreateWorkspaceInvitationNotificationCommand,
   MarkNotificationAsReadCommand,
   GetUserNotificationsCommand,
 } from '../../shared/commands';
@@ -44,6 +45,41 @@ export class NotificationService {
       console.error('[NotificationService] Failed:', error);
       return Result.error(
         new Error('Failed to create invitation notification')
+      );
+    }
+  }
+
+  async createWorkspaceInvitationNotification(
+    command: CreateWorkspaceInvitationNotificationCommand
+  ): Promise<Result<NotificationAggregate, Error>> {
+    try {
+      const notification =
+        NotificationAggregate.createWorkspaceInvitationNotification(
+          new UserId(command.userId),
+          command.workspaceInvitationId,
+          command.workspaceName,
+          command.workspaceDescription,
+          command.inviterName,
+          command.organizationName
+        );
+
+      await this.notificationRepository.save(notification);
+
+      // 핵심 이벤트 로그 (Production: 10% 샘플링)
+      eventLog('[NotificationService] Workspace Invitation Created', {
+        notificationId: notification.id.value,
+        userId: command.userId,
+        workspaceInvitationId: command.workspaceInvitationId,
+      });
+
+      return Result.success(notification);
+    } catch (error) {
+      console.error(
+        '[NotificationService] Workspace Invitation Failed:',
+        error
+      );
+      return Result.error(
+        new Error('Failed to create workspace invitation notification')
       );
     }
   }

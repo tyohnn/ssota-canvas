@@ -39,6 +39,7 @@ export const invitationStatusEnum = pgEnum('invitation_status', [
 ]);
 export const notificationTypeEnum = pgEnum('notification_type', [
   'invitation',
+  'workspace-invitation',
   'system',
   'announcement',
 ]);
@@ -610,6 +611,76 @@ export const pageFavorites = pgTable(
   })
 ).enableRLS();
 
+// Workspace Invitations Table
+// 🔐 RLS Strategy: Invited user or inviter can access
+// - SELECT: Invited user or inviter
+// - INSERT: Inviter only (Application checks Admin permission before calling)
+// - UPDATE: Invited user only (for accepting/rejecting)
+// - DELETE: Inviter only (for canceling invitation)
+export const workspaceInvitations = pgTable(
+  'workspace_invitations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspace_id: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    invited_user_id: uuid('invited_user_id')
+      .notNull()
+      .references(() => profiles.user_id, { onDelete: 'cascade' }),
+    invited_by: uuid('invited_by')
+      .notNull()
+      .references(() => profiles.user_id, { onDelete: 'cascade' }),
+    status: invitationStatusEnum('status').default('pending').notNull(),
+    notification_id: uuid('notification_id'), // Soft reference to Notification Domain
+    created_at: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    processed_at: timestamp('processed_at', { withTimezone: true }),
+  },
+  table => ({
+    // Indexes
+    userStatusIdx: index('idx_workspace_invitations_user').on(
+      table.invited_user_id,
+      table.status
+    ),
+    workspaceStatusIdx: index('idx_workspace_invitations_workspace').on(
+      table.workspace_id,
+      table.status
+    ),
+
+    // Unique constraint: prevent duplicate pending invitations
+    uniquePendingIdx: index('idx_workspace_invitations_unique_pending')
+      .on(table.workspace_id, table.invited_user_id, table.status)
+      .where(sql`status = 'pending'`),
+
+    // RLS Policies
+    // SELECT: Invited user or inviter
+    selectPolicy: pgPolicy('Enable read for invited user or inviter', {
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`invited_user_id = (select auth.uid()) OR invited_by = (select auth.uid())`,
+    }),
+    // INSERT: Inviter only
+    insertPolicy: pgPolicy('Enable insert for inviter', {
+      for: 'insert',
+      to: authenticatedRole,
+      withCheck: sql`invited_by = (select auth.uid())`,
+    }),
+    // UPDATE: Invited user only
+    updatePolicy: pgPolicy('Enable update for invited user', {
+      for: 'update',
+      to: authenticatedRole,
+      using: sql`invited_user_id = (select auth.uid())`,
+    }),
+    // DELETE: Inviter only
+    deletePolicy: pgPolicy('Enable delete for inviter', {
+      for: 'delete',
+      to: authenticatedRole,
+      using: sql`invited_by = (select auth.uid())`,
+    }),
+  })
+).enableRLS();
+
 export const organizationsRelations = relations(
   organizations,
   ({ one, many }) => ({
@@ -671,6 +742,7 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   }),
   pages: many(pages),
   members: many(workspaceMembers),
+  invitations: many(workspaceInvitations),
 }));
 
 export const pagesRelations = relations(pages, ({ one, many }) => ({
@@ -718,6 +790,26 @@ export const pageFavoritesRelations = relations(pageFavorites, ({ one }) => ({
   }),
 }));
 
+export const workspaceInvitationsRelations = relations(
+  workspaceInvitations,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [workspaceInvitations.workspace_id],
+      references: [workspaces.id],
+    }),
+    invitedUser: one(profiles, {
+      fields: [workspaceInvitations.invited_user_id],
+      references: [profiles.user_id],
+      relationName: 'workspaceInvitedUser',
+    }),
+    inviter: one(profiles, {
+      fields: [workspaceInvitations.invited_by],
+      references: [profiles.user_id],
+      relationName: 'workspaceInviter',
+    }),
+  })
+);
+
 export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
 export type Organization = typeof organizations.$inferSelect;
@@ -738,6 +830,8 @@ export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
 export type NewWorkspaceMember = typeof workspaceMembers.$inferInsert;
 export type PageFavorite = typeof pageFavorites.$inferSelect;
 export type NewPageFavorite = typeof pageFavorites.$inferInsert;
+export type WorkspaceInvitation = typeof workspaceInvitations.$inferSelect;
+export type NewWorkspaceInvitation = typeof workspaceInvitations.$inferInsert;
 
 // Enum Types
 export type OrganizationType = (typeof organizationTypeEnum.enumValues)[number];

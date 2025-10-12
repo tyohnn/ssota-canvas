@@ -18,6 +18,7 @@ import {
 import { MoreHorizontal, Settings, UserPlus, Trash2 } from 'lucide-react';
 import type { WorkspaceWithPagesDTO } from '@/domains/workspace-management/shared/dtos';
 import { WorkspaceSettingsDialog } from './workspace-settings-dialog';
+import { InviteMemberDialog } from './invite-member-dialog';
 import { useWorkspace } from '../../hooks/use-workspace';
 
 interface WorkspaceContextMenuProps {
@@ -32,10 +33,12 @@ interface WorkspaceContextMenuProps {
  * - Default Workspace 특별 처리
  */
 export function WorkspaceContextMenu({ workspace }: WorkspaceContextMenuProps) {
-  const { canInviteMembers } = useWorkspace();
   const [showSettings, setShowSettings] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+
+  // TODO: 권한 체크 로직 (조직 Admin + Workspace 멤버)
+  const canInviteMembers = true; // 임시로 true
 
   return (
     <>
@@ -57,10 +60,10 @@ export function WorkspaceContextMenu({ workspace }: WorkspaceContextMenuProps) {
             워크스페이스 설정
           </DropdownMenuItem>
 
-          {canInviteMembers(workspace.workspaceId) && (
+          {canInviteMembers && (
             <DropdownMenuItem onClick={() => setShowInvite(true)}>
               <UserPlus className="mr-2 h-4 w-4" />
-              멤버 추가
+              멤버 초대
             </DropdownMenuItem>
           )}
 
@@ -97,7 +100,14 @@ export function WorkspaceContextMenu({ workspace }: WorkspaceContextMenuProps) {
         onOpenChange={setShowSettings}
       />
 
-      {/* TODO: InviteMemberDialog */}
+      {/* InviteMemberDialog (Scenario 3) */}
+      <InviteMemberDialog
+        workspaceId={workspace.workspaceId}
+        workspaceName={workspace.name}
+        open={showInvite}
+        onOpenChange={setShowInvite}
+      />
+
       {/* TODO: ArchiveWorkspaceDialog */}
     </>
   );

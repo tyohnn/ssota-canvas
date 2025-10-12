@@ -1,11 +1,17 @@
 import { Workspace } from '../entities/workspace.entity';
+import { WorkspaceInvitation } from '../entities/workspace-invitation.entity';
 import { WorkspaceId } from '../value-objects/workspace-id.vo';
+import { WorkspaceInvitationId } from '../value-objects/workspace-invitation-id.vo';
 import { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
 import {
   WorkspaceCreatedEvent,
   WorkspaceMembershipVerifiedEvent,
   WorkspaceManagementDomainEvent,
 } from '../events';
+import {
+  createWorkspaceManagementError,
+  WorkspaceManagementError,
+} from '../errors/workspace-management.error';
 import type {
   CreateDefaultWorkspaceCommand,
   CreateWorkspaceCommand,
@@ -171,6 +177,134 @@ export class WorkspaceAggregate {
     });
 
     return hasAccess;
+  }
+
+  /**
+   * Workspace 멤버 초대 (Scenario 3)
+   *
+   * @param invitedUserId - 초대받을 사용자 ID
+   * @param inviterUserId - 초대하는 사용자 ID
+   * @param isInviterAdmin - 초대자가 조직 Admin인지
+   * @param isInviterWorkspaceMember - 초대자가 Workspace 멤버인지
+   * @param isAlreadyMember - 이미 멤버인지
+   * @returns WorkspaceInvitation Entity
+   */
+  inviteMember(
+    invitedUserId: string,
+    inviterUserId: string,
+    isInviterAdmin: boolean,
+    isInviterWorkspaceMember: boolean,
+    isAlreadyMember: boolean
+  ): WorkspaceInvitation {
+    // 1. 권한 검증: 조직 Admin + Workspace 멤버만 초대 가능
+    if (!isInviterAdmin || !isInviterWorkspaceMember) {
+      throw createWorkspaceManagementError('INSUFFICIENT_PERMISSIONS');
+    }
+
+    // 2. 중복 초대 방지: 이미 멤버인 경우
+    if (isAlreadyMember) {
+      throw createWorkspaceManagementError('ALREADY_WORKSPACE_MEMBER');
+    }
+
+    // 3. WorkspaceInvitation Entity 생성
+    const invitationId = new WorkspaceInvitationId(crypto.randomUUID());
+    const invitation = new WorkspaceInvitation(
+      invitationId,
+      this._workspace.workspaceId,
+      invitedUserId,
+      inviterUserId,
+      'pending',
+      null,
+      new Date(),
+      null
+    );
+
+    // 4. WorkspaceMemberInvitationCreated 이벤트 발행
+    this.addEvent({
+      type: 'WorkspaceMemberInvitationCreated',
+      invitationId: invitationId.value,
+      workspaceId: this._workspace.workspaceId.value,
+      invitedUserId,
+      invitedBy: inviterUserId,
+      occurredAt: new Date(),
+    });
+
+    return invitation;
+  }
+
+  /**
+   * Workspace 초대 수락 (Scenario 3)
+   *
+   * @param invitationId - 초대 ID
+   * @param userId - 수락하는 사용자 ID
+   * @param isInvitee - 본인이 초대받은 사람인지
+   * @param isAlreadyProcessed - 이미 처리된 초대인지
+   */
+  acceptInvitation(
+    invitationId: string,
+    userId: string,
+    isInvitee: boolean,
+    isAlreadyProcessed: boolean
+  ): void {
+    // 1. 권한 검증: 초대받은 본인만 수락 가능
+    if (!isInvitee) {
+      throw createWorkspaceManagementError('NOT_INVITATION_TARGET');
+    }
+
+    // 2. 중복 처리 방지: 이미 처리된 초대
+    if (isAlreadyProcessed) {
+      throw createWorkspaceManagementError('INVITATION_ALREADY_PROCESSED');
+    }
+
+    // 3. WorkspaceInvitationAccepted 이벤트 발행
+    this.addEvent({
+      type: 'WorkspaceInvitationAccepted',
+      invitationId,
+      workspaceId: this._workspace.workspaceId.value,
+      userId,
+      occurredAt: new Date(),
+    });
+
+    // 4. MemberAddedToWorkspace 이벤트 발행
+    this.addEvent({
+      type: 'MemberAddedToWorkspace',
+      workspaceId: this._workspace.workspaceId.value,
+      userId,
+      occurredAt: new Date(),
+    });
+  }
+
+  /**
+   * Workspace 초대 거절 (Scenario 3)
+   *
+   * @param invitationId - 초대 ID
+   * @param userId - 거절하는 사용자 ID
+   * @param isInvitee - 본인이 초대받은 사람인지
+   * @param isAlreadyProcessed - 이미 처리된 초대인지
+   */
+  rejectInvitation(
+    invitationId: string,
+    userId: string,
+    isInvitee: boolean,
+    isAlreadyProcessed: boolean
+  ): void {
+    // 1. 권한 검증: 초대받은 본인만 거절 가능
+    if (!isInvitee) {
+      throw createWorkspaceManagementError('NOT_INVITATION_TARGET');
+    }
+
+    // 2. 중복 처리 방지: 이미 처리된 초대
+    if (isAlreadyProcessed) {
+      throw createWorkspaceManagementError('INVITATION_ALREADY_PROCESSED');
+    }
+
+    // 3. WorkspaceInvitationRejected 이벤트 발행
+    this.addEvent({
+      type: 'WorkspaceInvitationRejected',
+      invitationId,
+      userId,
+      occurredAt: new Date(),
+    });
   }
 
   /**

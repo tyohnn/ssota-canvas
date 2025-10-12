@@ -5,7 +5,8 @@
 **도메인**: Workspace Management  
 **작성자**: 주니어개발자 + 시니어개발자 (멘토링)  
 **작성일**: 2025-10-11  
-**버전**: v1.0
+**최종 수정**: 2025-10-12  
+**버전**: v1.1
 
 **Testing Strategy 참조**: `04-testing-strategy.md`  
 **Software Design 참조**: `03-software-design.md`  
@@ -1133,6 +1134,235 @@ class OrganizationWorkspacePageViewService {
 
 ---
 
+#### WorkspaceMemberRepository (확장)
+
+**Scenario 3 관련 추가 메서드**:
+
+##### findByWorkspaceId
+```typescript
+/**
+ * Workspace의 모든 멤버 조회 (프로필 포함)
+ * 
+ * 목적: Workspace 설정 모달 → 멤버 탭에서 멤버 목록 표시
+ * 구현: INNER JOIN (workspace_members ⟕ profiles)
+ * 성능: 단일 쿼리로 처리, N+1 문제 방지
+ */
+async findByWorkspaceId(workspaceId: WorkspaceId): Promise<WorkspaceMemberInfo[]>
+
+interface WorkspaceMemberInfo {
+  userId: string;
+  name: string;
+  email: string;
+  profileImageUrl: string | null;
+  joinedAt: Date;
+}
+```
+
+**구현 수도코드**:
+```typescript
+async findByWorkspaceId(workspaceId: WorkspaceId): Promise<WorkspaceMemberInfo[]> {
+  // 1. adminDb.select({
+  //      userId: workspaceMembers.user_id,
+  //      joinedAt: workspaceMembers.joined_at,
+  //      name: profiles.name,
+  //      email: profiles.email,
+  //      avatarUrl: profiles.avatar_url
+  //    })
+  //    .from(workspaceMembers)
+  //    .innerJoin(profiles, eq(workspaceMembers.user_id, profiles.user_id))
+  //    .where(eq(workspaceMembers.workspace_id, workspaceId.value))
+  //    .orderBy(workspaceMembers.joined_at)
+  // 2. DB 모델 → WorkspaceMemberInfo 변환
+  // 3. return WorkspaceMemberInfo[]
+}
+```
+
+---
+
+#### WorkspaceInvitationRepository
+
+- **파일 위치**: `src/domains/workspace-management/backend/repositories/workspace-invitation.repository.ts`
+- **역할**: Workspace 초대 데이터 영속성 관리
+
+**Scenario 3 관련 메서드**:
+
+##### findPendingByWorkspaceWithProfiles
+```typescript
+/**
+ * Workspace의 pending 초대 목록 조회 (프로필 포함)
+ * 
+ * 목적: Workspace 설정 모달 → 멤버 탭에서 대기 중인 초대 표시
+ * 구현: INNER JOIN (workspace_invitations ⟕ profiles)
+ * 성능: 단일 쿼리로 처리, N+1 문제 방지
+ */
+async findPendingByWorkspaceWithProfiles(
+  workspaceId: WorkspaceId
+): Promise<WorkspaceInvitationWithProfiles[]>
+
+interface WorkspaceInvitationWithProfiles {
+  id: WorkspaceInvitationId;
+  workspaceId: WorkspaceId;
+  invitedUserId: string;
+  invitedUserName: string;
+  invitedUserEmail: string;
+  invitedBy: string;
+  inviterName: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'expired';
+  createdAt: Date;
+  processedAt: Date | null;
+}
+```
+
+**구현 수도코드**:
+```typescript
+async findPendingByWorkspaceWithProfiles(
+  workspaceId: WorkspaceId
+): Promise<WorkspaceInvitationWithProfiles[]> {
+  // 1. adminDb.select({...})
+  //    .from(workspaceInvitations)
+  //    .innerJoin(profiles, eq(workspaceInvitations.invited_user_id, profiles.user_id))
+  //    .where(and(
+  //      eq(workspaceInvitations.workspace_id, workspaceId.value),
+  //      eq(workspaceInvitations.status, 'pending')
+  //    ))
+  //    .orderBy(workspaceInvitations.created_at)
+  // 2. 각 결과에 대해 inviter 프로필 조회
+  // 3. DB 모델 → WorkspaceInvitationWithProfiles 변환
+  // 4. return WorkspaceInvitationWithProfiles[]
+}
+```
+
+##### findInvitation
+```typescript
+/**
+ * 특정 사용자의 특정 상태 초대 조회
+ * 
+ * 목적: hasPendingInvitation 플래그 설정
+ * 사용처: searchOrganizationMembersAction
+ */
+async findInvitation(
+  workspaceId: WorkspaceId,
+  userId: string,
+  status: 'pending' | 'accepted' | 'rejected'
+): Promise<WorkspaceInvitation | null>
+```
+
+**구현 수도코드**:
+```typescript
+async findInvitation(
+  workspaceId: WorkspaceId,
+  userId: string,
+  status: 'pending' | 'accepted' | 'rejected'
+): Promise<WorkspaceInvitation | null> {
+  // 1. adminDb.select()
+  //    .from(workspaceInvitations)
+  //    .where(and(
+  //      eq(workspaceInvitations.workspace_id, workspaceId.value),
+  //      eq(workspaceInvitations.invited_user_id, userId),
+  //      eq(workspaceInvitations.status, status)
+  //    ))
+  //    .limit(1)
+  // 2. DB 모델 → WorkspaceInvitation Entity 변환
+  // 3. return WorkspaceInvitation | null
+}
+```
+
+---
+
+#### OrganizationMemberRepository (외부 도메인)
+
+**Scenario 3 관련 메서드**:
+
+##### searchOrganizationMembersByEmail
+```typescript
+/**
+ * 조직 멤버를 이메일로 효율적으로 검색
+ * 
+ * 목적: 멤버 초대 시 실시간 이메일 검색
+ * 구현: INNER JOIN (organization_members ⟕ profiles)
+ * 성능 최적화: 
+ *   - JOIN 쿼리로 N+1 문제 방지
+ *   - ilike로 대소문자 구분 없는 부분 매칭
+ *   - 최대 10개 결과 반환
+ */
+async searchOrganizationMembersByEmail(
+  organizationId: string,
+  emailQuery: string
+): Promise<UserProfile[]>
+
+interface UserProfile {
+  userId: string;
+  email: string;
+  name: string | null;
+  profileImageUrl: string | null;
+}
+```
+
+**구현 수도코드**:
+```typescript
+async searchOrganizationMembersByEmail(
+  organizationId: string,
+  emailQuery: string
+): Promise<UserProfile[]> {
+  // 1. adminDb.select({
+  //      userId: organizationMembers.user_id,
+  //      email: profiles.email,
+  //      name: profiles.name,
+  //      avatarUrl: profiles.avatar_url
+  //    })
+  //    .from(organizationMembers)
+  //    .innerJoin(profiles, eq(organizationMembers.user_id, profiles.user_id))
+  //    .where(and(
+  //      eq(organizationMembers.organization_id, organizationId),
+  //      ilike(profiles.email, `%${emailQuery}%`)  // 대소문자 무시 부분 매칭
+  //    ))
+  //    .limit(10)
+  // 2. DB 모델 → UserProfile 변환
+  // 3. return UserProfile[]
+}
+```
+
+**성능 특징**:
+- 단일 JOIN 쿼리로 처리 (N+1 문제 없음)
+- `ilike` 연산자로 대소문자 구분 없는 검색
+- 최대 10개 결과로 제한 (UI 성능)
+
+---
+
+#### OrganizationRepository (외부 도메인)
+
+**Scenario 3 관련 메서드**:
+
+##### getOrganizationName
+```typescript
+/**
+ * 조직 이름 조회 (간단한 정보용)
+ * 
+ * 목적: 알림 메시지에 조직 이름 포함
+ * 구현: 이름만 SELECT (전체 Aggregate 불필요)
+ * 사용처: WorkspaceManagementService.inviteWorkspaceMembers
+ */
+async getOrganizationName(id: OrganizationId): Promise<string | null>
+```
+
+**구현 수도코드**:
+```typescript
+async getOrganizationName(id: OrganizationId): Promise<string | null> {
+  // 1. adminDb.select({ name: organizations.name })
+  //    .from(organizations)
+  //    .where(eq(organizations.id, id.value))
+  //    .limit(1)
+  // 2. return data?.name ?? null
+}
+```
+
+**특징**:
+- 가벼운 조회 (이름만)
+- Repository Pattern 준수
+- Service Layer에서 권한 확인 후 호출
+
+---
+
 #### PageFavoriteRepository
 
 - **파일 위치**: `src/domains/workspace-management/backend/repositories/page-favorite.repository.ts`
@@ -1188,6 +1418,81 @@ class DrizzlePageFavoriteRepository implements IPageFavoriteRepository {
 
 ---
 
+## 📦 DTOs (Data Transfer Objects)
+
+> **가이드 참조**: DTOs는 클라이언트와 서버 간 데이터 전송 형식을 정의합니다.
+
+### Scenario 3: 멤버 초대 관련 DTOs
+
+#### OrganizationMemberSearchResultDTO
+```typescript
+/**
+ * 조직 멤버 검색 결과 DTO
+ * 
+ * 용도: 멤버 초대 시 이메일 검색 결과 표시
+ * Server Action: searchOrganizationMembersAction
+ */
+interface OrganizationMemberSearchResultDTO {
+  userId: string;
+  email: string;
+  name: string | null;
+  avatarUrl: string | null;
+  isAlreadyMember: boolean;        // Workspace 멤버 여부
+  hasPendingInvitation: boolean;   // 대기 중인 초대 여부
+}
+```
+
+**사용처**:
+- `searchOrganizationMembersAction` 반환값
+- InviteMemberDialog 컴포넌트에서 프로필 프리뷰 카드 렌더링
+- UI에서 선택 가능 여부 판단 (isAlreadyMember, hasPendingInvitation)
+
+**플래그 설정 로직**:
+- `isAlreadyMember`: `WorkspaceMemberRepository.isMember()` 결과
+- `hasPendingInvitation`: `WorkspaceInvitationRepository.findInvitation(status='pending')` 결과
+
+---
+
+#### WorkspaceMemberView
+```typescript
+/**
+ * Workspace 멤버 목록 통합 뷰 DTO
+ * 
+ * 용도: Workspace 설정 모달 → 멤버 탭에서 표시
+ * Server Action: getWorkspaceMembersAction
+ */
+interface WorkspaceMemberView {
+  workspaceId: string;
+  workspaceName: string;
+  currentMembers: WorkspaceMemberDTO[];
+  pendingInvitations: WorkspaceInvitationPendingDTO[];
+}
+
+interface WorkspaceMemberDTO {
+  userId: string;
+  name: string;
+  email: string;
+  profileImageUrl: string | null;
+  joinedAt: string; // ISO 8601
+}
+
+interface WorkspaceInvitationPendingDTO {
+  id: string;
+  invitedUserId: string;
+  invitedUserName: string;
+  invitedUserEmail: string;
+  inviterName: string;
+  createdAt: string; // ISO 8601
+}
+```
+
+**사용처**:
+- `getWorkspaceMembersAction` 반환값
+- WorkspaceMemberListTable 컴포넌트에서 테이블 렌더링
+- 현재 멤버 섹션 + 대기 중인 초대 섹션 분리 표시
+
+---
+
 ## 🚀 Application Layer
 
 > **가이드 참조**: Phase 2.3, 2.4 - Service 및 Server Actions 수도코드
@@ -1202,8 +1507,10 @@ class DrizzlePageFavoriteRepository implements IPageFavoriteRepository {
   - WorkspaceRepository
   - PageRepository
   - WorkspaceMemberRepository
+  - WorkspaceInvitationRepository (Scenario 3)
   - PageFavoriteRepository
   - OrganizationMemberRepository (Organization Domain)
+  - OrganizationRepository (Organization Domain - 조직 정보 조회)
   - NotificationService (Notification Domain)
 - **주요 메서드**:
   - **Scenario 1**:
@@ -1353,39 +1660,68 @@ class WorkspaceManagementService {
       return Result.err('NOT_WORKSPACE_MEMBER');
     }
     
-    // 4. 각 이메일에 대해 초대 처리 (트랜잭션)
+    // 4. 알림 메시지용 정보 조회
+    // 4-1. 초대한 사람 프로필 조회
+    const inviterProfile = await this.orgMemberRepo.searchUserProfileByEmail(userId);
+    const inviterName = inviterProfile[0]?.name || '관리자';
+    
+    // 4-2. 조직 이름 조회 (Repository Pattern 준수)
+    const organizationName = await this.orgRepo.getOrganizationName(workspace.organizationId) 
+      || 'Unknown Organization';
+    
+    // 5. 각 이메일에 대해 초대 처리
     let invitedCount = 0;
-    await db.transaction(async (tx) => {
-      for (const email of memberEmails) {
-        // 5. 이메일로 조직 멤버 검색
-        const targetUser = await this.orgMemberRepo.findByEmail(workspace.organizationId, email);
-        if (!targetUser) continue; // 조직 멤버 아니면 건너뜀
+    for (const email of memberEmails) {
+      try {
+        // 6. 이메일로 조직 멤버 검색
+        const targetUser = await this.orgMemberRepo.searchUserProfileByEmail(email);
+        if (!targetUser || targetUser.length === 0) continue;
         
-        // 6. 이미 Workspace 멤버인지 확인
-        const isAlreadyMember = await this.workspaceMemberRepo.isMember(workspaceId, targetUser.id);
-        if (isAlreadyMember) continue; // 이미 멤버면 건너뜀
+        // 7. 이미 Workspace 멤버인지 확인
+        const isAlreadyMember = await this.workspaceMemberRepo.isMember(workspaceId, targetUser[0].userId);
+        if (isAlreadyMember) continue;
         
-        // 7. 초대 생성
-        workspaceAgg.inviteMember(targetUser.id, userId, true, true, false);
+        // 8. 이미 pending 초대가 있는지 확인
+        const hasPendingInvitation = await this.invitationRepo.findInvitation(
+          workspaceId, targetUser[0].userId, 'pending'
+        );
+        if (hasPendingInvitation) continue;
         
-        // 8. Notification Domain 통합: 알림 생성 (동기)
-        const notificationResult = await this.notificationService.createInvitationNotification({
-          type: 'WORKSPACE_INVITATION',
-          workspaceId: workspaceId.toString(),
-          invitedUserId: targetUser.id,
-          invitedBy: userId.toString()
-        });
+        // 9. 초대 생성 (Aggregate를 통한 도메인 로직)
+        const invitation = workspaceAgg.inviteMember(
+          targetUser[0].userId, 
+          userId, 
+          true, // isInviterAdmin
+          true, // isInviterWorkspaceMember
+          false // isAlreadyMember
+        );
         
-        // 9. 알림 생성 실패 시 전체 롤백
-        if (notificationResult.isErr) {
-          throw new Error('NOTIFICATION_SERVICE_UNAVAILABLE');
+        // 10. 초대 저장
+        await this.invitationRepo.save(invitation);
+        
+        // 11. Notification Domain 통합: 알림 생성 (Graceful Degradation)
+        try {
+          await this.notificationService.createWorkspaceInvitationNotification({
+            userId: targetUser[0].userId,
+            workspaceInvitationId: invitation.id.value,
+            workspaceName: workspace.name,
+            workspaceDescription: workspace.description,
+            inviterName,
+            organizationName
+          });
+        } catch (notificationError) {
+          // 알림 실패는 로그만 (초대는 유지)
+          console.error('Failed to send notification:', notificationError);
         }
         
         invitedCount++;
+      } catch (error) {
+        // 개별 초대 실패는 건너뜀
+        console.error(`Failed to invite ${email}:`, error);
       }
-    });
+    }
     
-    // 10. Result.ok 반환 (초대한 멤버 수)
+    // 12. Result.ok 반환 (초대한 멤버 수)
     return Result.ok(invitedCount);
   }
   
@@ -1812,6 +2148,129 @@ async function inviteWorkspaceMemberAction(
 
 ---
 
+#### searchOrganizationMembersAction (Scenario 3)
+
+- **역할**: 조직 멤버 이메일 검색 (실시간)
+- **입력**: { workspaceId: string, query: string }
+- **출력**: Result<OrganizationMemberSearchResultDTO[]>
+
+**구현 수도코드**:
+```typescript
+'use server';
+
+async function searchOrganizationMembersAction(
+  workspaceId: string,
+  query: string
+): Promise<Result<OrganizationMemberSearchResultDTO[]>> {
+  // 1. 인증 확인
+  const user = await getAuthUser();
+  if (!user) return Result.err('UNAUTHORIZED');
+  
+  // 2. Workspace 조회 (Organization ID 확인용)
+  const workspace = await workspaceRepo.findById(new WorkspaceId(workspaceId));
+  if (!workspace) return Result.err('WORKSPACE_NOT_FOUND');
+  
+  // 3. Organization 멤버 검색 (효율적 JOIN 쿼리)
+  const organizationMembers = await orgMemberRepo.searchOrganizationMembersByEmail(
+    workspace.organizationId.value,
+    query
+  );
+  
+  // 4. 각 멤버에 대해 상태 플래그 설정
+  const results: OrganizationMemberSearchResultDTO[] = [];
+  for (const member of organizationMembers) {
+    // 4-1. Workspace 멤버 여부 확인
+    const isAlreadyMember = await workspaceMemberRepo.isMember(
+      new WorkspaceId(workspaceId),
+      member.userId
+    );
+    
+    // 4-2. Pending 초대 여부 확인
+    const hasPendingInvitation = await invitationRepo.findInvitation(
+      new WorkspaceId(workspaceId),
+      member.userId,
+      'pending'
+    ) !== null;
+    
+    results.push({
+      ...member,
+      isAlreadyMember,
+      hasPendingInvitation
+    });
+  }
+  
+  // 5. Result 반환
+  return Result.ok(results);
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: searchOrganizationMembersAction (8개 테스트)
+
+---
+
+#### getWorkspaceMembersAction (Scenario 3)
+
+- **역할**: Workspace 멤버 및 초대 목록 조회
+- **입력**: { workspaceId: string }
+- **출력**: Result<WorkspaceMemberView>
+
+**구현 수도코드**:
+```typescript
+'use server';
+
+async function getWorkspaceMembersAction(
+  workspaceId: string
+): Promise<Result<WorkspaceMemberView>> {
+  // 1. 인증 확인
+  const user = await getAuthUser();
+  if (!user) return Result.err('UNAUTHORIZED');
+  
+  // 2. Workspace 조회
+  const workspace = await workspaceRepo.findById(new WorkspaceId(workspaceId));
+  if (!workspace) return Result.err('WORKSPACE_NOT_FOUND');
+  
+  // 3. 멤버 목록 조회 (프로필 JOIN)
+  const members = await workspaceMemberRepo.findByWorkspaceId(
+    new WorkspaceId(workspaceId)
+  );
+  
+  // 4. 대기 중인 초대 목록 조회 (프로필 JOIN)
+  const pendingInvitations = await invitationRepo.findPendingByWorkspaceWithProfiles(
+    new WorkspaceId(workspaceId)
+  );
+  
+  // 5. DTO 변환
+  const memberView: WorkspaceMemberView = {
+    workspaceId,
+    workspaceName: workspace.name,
+    currentMembers: members.map(m => ({
+      userId: m.userId,
+      name: m.name,
+      email: m.email,
+      profileImageUrl: m.profileImageUrl,
+      joinedAt: m.joinedAt.toISOString()
+    })),
+    pendingInvitations: pendingInvitations.map(inv => ({
+      id: inv.id.value,
+      invitedUserId: inv.invitedUserId,
+      invitedUserName: inv.invitedUserName,
+      invitedUserEmail: inv.invitedUserEmail,
+      inviterName: inv.inviterName,
+      createdAt: inv.createdAt.toISOString()
+    }))
+  };
+  
+  // 6. Result 반환
+  return Result.ok(memberView);
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: getWorkspaceMembersAction (6개 테스트)
+
+---
+
 #### acceptWorkspaceInvitationAction (Scenario 3)
 
 - **역할**: Workspace 초대 수락
@@ -2173,6 +2632,32 @@ export default async function OrganizationWorkspacePage({
 - Phase 6 (Server Actions): 10-12시간
 - Phase 7 (E2E): 6-8시간
 - **총**: 약 45-55시간
+
+---
+
+## 📋 문서 변경 이력
+
+### v1.1 (2025-10-12)
+- Scenario 3 관련 상세 구현 추가:
+  - **DTOs**: OrganizationMemberSearchResultDTO, WorkspaceMemberView 정의
+  - **Repository 메서드**:
+    - WorkspaceMemberRepository.findByWorkspaceId() (프로필 JOIN)
+    - WorkspaceInvitationRepository.findPendingByWorkspaceWithProfiles() (프로필 JOIN)
+    - WorkspaceInvitationRepository.findInvitation() (상태 필터링)
+    - OrganizationMemberRepository.searchOrganizationMembersByEmail() (효율적 검색)
+    - OrganizationRepository.getOrganizationName() (간단한 조회)
+  - **Server Actions**: 
+    - searchOrganizationMembersAction() (이메일 검색 + 상태 플래그)
+    - getWorkspaceMembersAction() (멤버 목록 + 초대 목록)
+  - **Service Layer**: inviteWorkspaceMember 메서드 상세 로직 (조직 이름 조회 포함)
+  - **성능 최적화**: JOIN 쿼리로 N+1 문제 방지, ilike로 대소문자 무시 검색
+
+### v1.0 (2025-10-11)
+- 초안 작성
+- Scenario 0~5 DDD 컴포넌트 수도코드 작성
+- Value Objects, Entities, Aggregates 정의
+- Repository, Service, Server Actions 수도코드
+- UI & Hook 전략 정의
 
 ---
 

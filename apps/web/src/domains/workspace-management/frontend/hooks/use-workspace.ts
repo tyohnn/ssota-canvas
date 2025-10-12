@@ -140,6 +140,13 @@ export function useWorkspace() {
     createWorkspace: context.createWorkspace,
     updateWorkspaceInfo: context.updateWorkspaceInfo,
 
+    // Actions (Scenario 3)
+    inviteMembers: context.inviteMembers,
+    searchOrganizationMembers: context.searchOrganizationMembers,
+    acceptInvitation: context.acceptInvitation,
+    rejectInvitation: context.rejectInvitation,
+    getWorkspaceMembers: context.getWorkspaceMembers,
+
     // 계산된 속성
     selectedPage: context.selectedPage,
     selectedWorkspace: context.selectedWorkspace,

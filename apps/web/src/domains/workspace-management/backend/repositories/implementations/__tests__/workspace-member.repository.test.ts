@@ -167,6 +167,66 @@ describe('WorkspaceMemberRepository Integration Tests', () => {
     });
   });
 
+  describe('findByWorkspaceId', () => {
+    it('Workspace의 모든 멤버를 프로필과 함께 조회해야 한다', async () => {
+      // Given: 2명의 멤버 추가
+      await memberRepository.addMember(testWorkspaceId, testUserId.value);
+      await memberRepository.addMember(testWorkspaceId, otherUserId);
+
+      // When
+      const members = await memberRepository.findByWorkspaceId(testWorkspaceId);
+
+      // Then
+      expect(members).toHaveLength(2);
+      expect(members.every(m => m.userId)).toBe(true);
+      expect(members.every(m => m.email)).toBe(true);
+      expect(members.every(m => m.name)).toBe(true);
+      expect(members.every(m => m.joinedAt)).toBe(true);
+    });
+
+    it('멤버가 없으면 빈 배열을 반환해야 한다', async () => {
+      // Given: 멤버 추가 안함
+
+      // When
+      const members = await memberRepository.findByWorkspaceId(testWorkspaceId);
+
+      // Then
+      expect(members).toHaveLength(0);
+    });
+
+    it('joined_at 기준으로 정렬되어야 한다', async () => {
+      // Given: 2명의 멤버를 시간차를 두고 추가
+      await memberRepository.addMember(testWorkspaceId, testUserId.value);
+      
+      // 1초 대기
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      await memberRepository.addMember(testWorkspaceId, otherUserId);
+
+      // When
+      const members = await memberRepository.findByWorkspaceId(testWorkspaceId);
+
+      // Then
+      expect(members).toHaveLength(2);
+      expect(members[0]!.userId).toBe(testUserId.value); // 먼저 추가된 멤버
+      expect(members[1]!.userId).toBe(otherUserId); // 나중에 추가된 멤버
+    });
+
+    it('Profile 정보가 JOIN되어야 한다', async () => {
+      // Given
+      await memberRepository.addMember(testWorkspaceId, testUserId.value);
+
+      // When
+      const members = await memberRepository.findByWorkspaceId(testWorkspaceId);
+
+      // Then: Profile 정보 확인
+      expect(members[0]).toBeDefined();
+      expect(members[0]!.email).toBeTruthy();
+      expect(members[0]!.name).toBeTruthy();
+      // profileImageUrl은 nullable
+    });
+  });
+
   describe('권한 확인 (organization_members에서 조회)', () => {
     it('권한은 workspace_members가 아닌 organization_members.role에서 관리', async () => {
       // Given: Workspace 멤버 추가 (role 없이)

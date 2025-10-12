@@ -2,6 +2,14 @@
 
 import { WorkspaceId } from '../../../shared/value-objects/workspace-id.vo';
 
+export interface WorkspaceMemberInfo {
+  userId: string;
+  name: string;
+  email: string;
+  profileImageUrl: string | null;
+  joinedAt: Date;
+}
+
 /**
  * Workspace Member Repository Interface
  *
@@ -17,6 +25,14 @@ export interface WorkspaceMemberRepository {
    * @returns 멤버 여부 (초대 여부)
    */
   isMember(workspaceId: WorkspaceId, userId: string): Promise<boolean>;
+
+  /**
+   * Workspace 멤버 목록 조회 (Profile JOIN)
+   *
+   * @param workspaceId - Workspace ID
+   * @returns Workspace 멤버 정보 배열
+   */
+  findByWorkspaceId(workspaceId: WorkspaceId): Promise<WorkspaceMemberInfo[]>;
 
   /**
    * Workspace 멤버 추가 (초대)

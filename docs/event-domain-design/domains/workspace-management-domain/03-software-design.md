@@ -375,23 +375,12 @@ Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업�
 
 **역할**: Workspace 및 Page Aggregate를 조율하고, Organization Domain과 통합
 
-**주요 Server Actions** (Scenario 1~5):
-- **Scenario 1**:
-  - `getOrganizationWorkspacePageViewAction(orgId, userId, cookiePageId?)`: 조직 Workspace-Page 목록 조회
-  - `verifyPageAccessAction(orgId, workspaceId, pageId, userId)`: 페이지 접근 권한 검증
-- **Scenario 2**:
-  - `createWorkspaceAction(orgId, name, description, icon, userId)`: 새 Workspace 생성
-  - `updateWorkspaceInfoAction(workspaceId, name, description, icon, userId)`: Workspace 정보 수정
-- **Scenario 3**:
-  - `inviteWorkspaceMemberAction(workspaceId, memberEmails, userId)`: Workspace 멤버 초대
-  - `acceptWorkspaceInvitationAction(invitationId, userId)`: 초대 수락
-  - `rejectWorkspaceInvitationAction(invitationId, userId)`: 초대 거절
-- **Scenario 4**:
-  - `createPageAction(workspaceId, parentId, userId)`: 새 페이지 생성
-  - `movePageAction(pageId, newParentId, userId)`: 페이지 이동
-  - `updatePageInfoAction(pageId, title, icon, userId)`: 페이지 제목/아이콘 수정
-- **Scenario 5**:
-  - `togglePageFavoriteAction(pageId, userId)`: 즐겨찾기 토글
+**주요 책임** (Scenario 1~5):
+- **Scenario 1**: 조직의 Workspace-Page 통합 조회 및 권한 검증
+- **Scenario 2**: Workspace 생명주기 관리 (생성, 수정), 멤버 조회
+- **Scenario 3**: Workspace 멤버 초대 및 수락/거절 프로세스
+- **Scenario 4**: Page 생명주기 관리 (생성, 이동, 수정)
+- **Scenario 5**: Page 즐겨찾기 관리
 
 **업무 시나리오 연결** (Scenario 1):
 - 사용자가 조직 페이지(`/r/[orgId]/workspace`)에 접근하면:
@@ -477,7 +466,10 @@ Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업�
 
 #### Sequence 1: Workspace 멤버 초대
 - Admin이 "멤버 초대" 버튼 클릭:
-  1. **Client Component**가 **Server Action** 호출: `inviteWorkspaceMemberAction(workspaceId, memberEmails, userId)`
+  1. **Client Component**가 **Server Action** 호출:
+     - 이메일 검색: 조직 멤버 중 이메일로 검색 (실시간)
+     - 멤버 선택: 프로필 프리뷰 및 상태 확인 (이미 멤버/초대 중)
+     - 초대 발송: 선택된 멤버들에게 초대
   2. **Server Action**이 **Service** 호출:
      - Organization Domain Repository 호출: 조직 Admin 권한 확인
      - Admin이 아니면 → 권한 없음 에러 반환
@@ -485,7 +477,7 @@ Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업�
      - Workspace 멤버가 아니면 → 권한 없음 에러 반환
      - 이메일로 조직 멤버 검색 (프로필 조회)
      - 조직 멤버가 아니면 → 초대 불가 에러 반환
-     - 이미 Workspace 멤버인지 확인 (중복 방지)
+     - 이미 Workspace 멤버 또는 pending 초대 있으면 → 중복 방지
      - 초대 생성 (각 대상마다)
      - Notification Domain 통합: 각 대상에게 알림 발송 (동기)
      - WorkspaceMemberInvitationCreated, InvitationNotificationSent 이벤트 발행
@@ -510,18 +502,19 @@ Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업�
 
 **규칙 준수 확인** (Scenario 3):
 - ✅ 조직 Admin이면서 Workspace 멤버만 초대 가능
-- ✅ 이메일로 조직 멤버 검색 (프로필 조회)
-- ✅ 이미 Workspace 멤버인 경우 초대 불가 (중복 방지)
+- ✅ 이메일로 조직 멤버 검색 (효율적 쿼리)
+- ✅ 이미 Workspace 멤버 또는 pending 초대 있으면 중복 방지
 - ✅ 초대받은 본인만 수락/거절 가능
-- ✅ 초대와 알림 생성은 동기 처리 (함께 성공/실패)
+- ✅ 초대와 알림 생성은 동기 처리
 - ✅ 수락/거절 후 현재 페이지 유지
 
 **외부 파트너 연동** (Scenario 3):
+- **Organization Domain**: 동기 호출로 조직 멤버 검색 및 권한 확인
+  - Repository 주입: 조직 멤버 검색, 권한 조회
+  - 통합 방식: Service Layer 직접 호출
 - **Notification Domain**: 동기 호출로 알림 생성 및 업데이트
-  - Service 주입: `notificationService.createInvitationNotification(...)` (알림 생성)
-  - Service 주입: `notificationService.updateNotificationStatus(...)` (알림 업데이트)
-  - 성공: 알림 생성/업데이트 완료
-  - 실패: 전체 작업 취소 (초대도 롤백)
+  - Service 주입: 알림 생성 및 상태 업데이트
+  - 실패 전략: Graceful Degradation (초대는 생성되고 알림만 실패)
 
 ---
 
@@ -771,8 +764,9 @@ Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업�
 2. **Workspace 정보 수정 응답 시간**: 정보 업데이트 및 이벤트 발행 시간 < 200ms
 
 **Scenario 3**:
-1. **멤버 초대 시간**: 초대 생성 + 알림 발송 완료 시간 < 500ms
-2. **초대 수락 시간**: 멤버 추가 + 알림 업데이트 완료 시간 < 300ms
+1. **멤버 검색 응답 시간**: 이메일 검색 결과 반환 시간 < 200ms
+2. **멤버 초대 시간**: 초대 생성 + 알림 발송 완료 시간 < 500ms
+3. **초대 수락 시간**: 멤버 추가 + 알림 업데이트 완료 시간 < 300ms
 
 **Scenario 4**:
 1. **페이지 생성 시간**: 페이지 생성 + depth 계산 완료 시간 < 200ms

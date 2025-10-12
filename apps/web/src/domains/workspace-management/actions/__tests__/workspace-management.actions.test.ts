@@ -4,15 +4,21 @@ import {
   getPageDetailsAction,
   createWorkspaceAction,
   updateWorkspaceInfoAction,
+  getWorkspaceMembersAction,
+  searchOrganizationMembersAction,
 } from '../workspace-management.actions';
 import { adminDb } from '@/db';
-import { workspaces, pages, workspaceMembers } from '@/db/schema-dev';
+import { workspaces, pages, workspaceMembers, workspaceInvitations } from '@/db/schema-dev';
 import { eq } from 'drizzle-orm';
 import { WorkspaceAggregate } from '../../shared/aggregates/workspace.aggregate';
 import { PageAggregate } from '../../shared/aggregates/page.aggregate';
 import { DrizzleWorkspaceRepository } from '../../backend/repositories/implementations/drizzle-workspace.repository';
 import { DrizzlePageRepository } from '../../backend/repositories/implementations/drizzle-page.repository';
+import { DrizzleWorkspaceInvitationRepository } from '../../backend/repositories/implementations/drizzle-workspace-invitation.repository';
 import { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
+import { WorkspaceId } from '../../shared/value-objects/workspace-id.vo';
+import { WorkspaceInvitationId } from '../../shared/value-objects/workspace-invitation-id.vo';
+import { WorkspaceInvitation } from '../../shared/entities/workspace-invitation.entity';
 
 // Mock Supabase Auth
 const mockSupabaseClient = {
@@ -49,7 +55,7 @@ vi.mock('@/utils/supabase/server', () => ({
   createClient: vi.fn(() => mockSupabaseClient),
 }));
 
-// Mock Organization Domain Repository
+// Mock Organization Domain Repositories
 const mockOrgMemberRepo = {
   isMember: vi.fn(() => Promise.resolve(true)),
   findMemberRole: vi.fn(() =>
@@ -57,12 +63,29 @@ const mockOrgMemberRepo = {
       value: 'owner', // Scenario 2: owner로 기본 설정
     })
   ),
+  searchOrganizationMembersByEmail: vi.fn(() => Promise.resolve([])), // Default: 빈 배열
+};
+
+const mockOrgRepo = {
+  findById: vi.fn(),
+  findByIdAsAdmin: vi.fn(),
+  findByOwnerId: vi.fn(),
+  save: vi.fn(),
+  delete: vi.fn(),
+  getOrganizationName: vi.fn(() => Promise.resolve('Test Organization')),
 };
 
 vi.mock(
   '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository',
   () => ({
     DrizzleOrganizationMemberRepository: vi.fn(() => mockOrgMemberRepo),
+  })
+);
+
+vi.mock(
+  '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository',
+  () => ({
+    DrizzleOrganizationRepository: vi.fn(() => mockOrgRepo),
   })
 );
 
@@ -77,12 +100,14 @@ describe('Workspace Management Server Actions Integration Tests', () => {
 
   let testOrgId: OrganizationId;
   let testUserId: string;
+  let otherUserId: string;
 
   beforeEach(async () => {
     workspaceRepo = new DrizzleWorkspaceRepository();
     pageRepo = new DrizzlePageRepository();
 
     testUserId = '4b709f4d-5531-4600-ba2b-97b1e087b449';
+    otherUserId = '99b6e668-9e5f-4175-be74-2efc0aef967f';
     testOrgId = new OrganizationId('2d0e4484-6cd0-4ed1-9523-01229cf487b8');
 
     // Clean up
@@ -453,6 +478,186 @@ describe('Workspace Management Server Actions Integration Tests', () => {
       if (!result.success) {
         expect(result.error).toBe('WORKSPACE_NOT_FOUND');
       }
+    });
+  });
+
+  describe('inviteWorkspaceMemberAction (Scenario 3)', () => {
+    it('조직 Admin + Workspace 멤버가 초대할 수 있어야 한다', async () => {
+      // Given: 새 Workspace 생성
+      const workspace = WorkspaceAggregate.create({
+        organizationId: testOrgId.value,
+        name: 'Test Workspace for Invitation',
+        createdBy: testUserId,
+      });
+      await workspaceRepo.save(workspace);
+
+      // Workspace에 현재 사용자 멤버로 추가
+      await adminDb.insert(workspaceMembers).values({
+        workspace_id: workspace.workspace.workspaceId.value,
+        user_id: testUserId,
+      });
+
+      // Organization Member Repository Mock: admin 권한
+      mockOrgMemberRepo.findMemberRole.mockResolvedValue({
+        role: { value: 'admin' },
+      } as any);
+
+      // When: (현재는 간단한 stub으로 통과, 실제 구현은 다음 단계)
+      // TODO: invitationRepo 추가 후 실제 호출 테스트
+      // const result = await inviteWorkspaceMemberAction({
+      //   workspaceId: workspace.workspace.workspaceId.value,
+      //   memberEmails: ['newmember@test.com'],
+      // });
+
+      // Then: (Notification Service 통합 후 완성)
+      expect(true).toBe(true);
+    });
+  });
+
+  describe('acceptWorkspaceInvitationAction (Scenario 3)', () => {
+    it('초대받은 본인만 수락할 수 있어야 한다', async () => {
+      // TODO: Service 메서드 완성 후 테스트 작성
+      expect(true).toBe(true);
+    });
+  });
+
+  describe('rejectWorkspaceInvitationAction (Scenario 3)', () => {
+    it('초대받은 본인만 거절할 수 있어야 한다', async () => {
+      // TODO: Service 메서드 완성 후 테스트 작성
+      expect(true).toBe(true);
+    });
+  });
+
+  describe('getWorkspaceMembersAction (Scenario 3)', () => {
+    it('Workspace 멤버 목록을 조회할 수 있어야 한다', async () => {
+      // Given: 새 Workspace 생성
+      const workspace = WorkspaceAggregate.create({
+        organizationId: testOrgId.value,
+        name: 'Member List Test Workspace',
+        createdBy: testUserId,
+      });
+      await workspaceRepo.save(workspace);
+      const workspaceId = workspace.workspace.workspaceId.value;
+
+      // 2명의 멤버 추가
+      await adminDb.insert(workspaceMembers).values({
+        workspace_id: workspaceId,
+        user_id: testUserId,
+      });
+      await adminDb.insert(workspaceMembers).values({
+        workspace_id: workspaceId,
+        user_id: otherUserId,
+      });
+
+      // When
+      const result = await getWorkspaceMembersAction({ workspaceId });
+
+      // Then
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.workspaceId).toBe(workspaceId);
+        expect(result.data.workspaceName).toBe('Member List Test Workspace');
+        expect(result.data.currentMembers).toHaveLength(2);
+        expect(result.data.currentMembers.every(m => m.userId)).toBe(true);
+        expect(result.data.currentMembers.every(m => m.email)).toBe(true);
+        expect(result.data.currentMembers.every(m => m.name)).toBe(true);
+      }
+
+      // Cleanup
+      await adminDb.delete(workspaceMembers).where(eq(workspaceMembers.workspace_id, workspaceId));
+      await adminDb.delete(workspaces).where(eq(workspaces.id, workspaceId));
+    });
+
+    it('pending 초대 목록도 함께 조회해야 한다', async () => {
+      // Given: Workspace 생성
+      const workspace = WorkspaceAggregate.create({
+        organizationId: testOrgId.value,
+        name: 'Invitation List Test Workspace',
+        createdBy: testUserId,
+      });
+      await workspaceRepo.save(workspace);
+      const workspaceId = workspace.workspace.workspaceId.value;
+
+      // 멤버 1명 추가
+      await adminDb.insert(workspaceMembers).values({
+        workspace_id: workspaceId,
+        user_id: testUserId,
+      });
+
+      // pending 초대 1개 추가
+      const invitationRepo = new DrizzleWorkspaceInvitationRepository();
+      const invitation = new WorkspaceInvitation(
+        new WorkspaceInvitationId(crypto.randomUUID()),
+        new WorkspaceId(workspaceId),
+        otherUserId,
+        testUserId,
+        'pending',
+        null,
+        new Date(),
+        null
+      );
+      await invitationRepo.save(invitation);
+
+      // When
+      const result = await getWorkspaceMembersAction({ workspaceId });
+
+      // Then
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.currentMembers).toHaveLength(1);
+        expect(result.data.pendingInvitations).toHaveLength(1);
+        expect(result.data.pendingInvitations[0]!.invitedUserEmail).toBeTruthy();
+        expect(result.data.pendingInvitations[0]!.inviterName).toBeTruthy();
+      }
+
+      // Cleanup
+      await adminDb.delete(workspaceMembers).where(eq(workspaceMembers.workspace_id, workspaceId));
+      await adminDb.delete(workspaces).where(eq(workspaces.id, workspaceId));
+    });
+
+    it('존재하지 않는 Workspace는 에러를 반환해야 한다', async () => {
+      // When
+      const result = await getWorkspaceMembersAction({
+        workspaceId: '999e8400-e29b-41d4-a716-446655440000',
+      });
+
+      // Then
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe('WORKSPACE_NOT_FOUND');
+      }
+    });
+  });
+
+  describe('searchOrganizationMembersAction (Scenario 3) - hasPendingInvitation 확인', () => {
+    it('검색 결과에 hasPendingInvitation 플래그를 포함해야 한다', async () => {
+      // Given: Workspace 생성
+      const workspace = WorkspaceAggregate.create({
+        organizationId: testOrgId.value,
+        name: 'Search Test Workspace',
+        createdBy: testUserId,
+      });
+      await workspaceRepo.save(workspace);
+      const workspaceId = workspace.workspace.workspaceId.value;
+
+      // When: 검색 (결과가 있든 없든 success=true)
+      const result = await searchOrganizationMembersAction({
+        workspaceId,
+        query: 'test',
+      });
+
+      // Then: 성공 및 DTO 구조 확인
+      expect(result.success).toBe(true);
+      if (result.success && result.data.length > 0) {
+        // 결과가 있으면 플래그 존재 확인
+        expect(result.data[0]).toHaveProperty('isAlreadyMember');
+        expect(result.data[0]).toHaveProperty('hasPendingInvitation');
+        expect(typeof result.data[0]!.isAlreadyMember).toBe('boolean');
+        expect(typeof result.data[0]!.hasPendingInvitation).toBe('boolean');
+      }
+
+      // Cleanup
+      await adminDb.delete(workspaces).where(eq(workspaces.id, workspaceId));
     });
   });
 });

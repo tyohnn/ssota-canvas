@@ -19,9 +19,19 @@ export type WorkspaceManagementErrorCode =
   | 'CIRCULAR_REFERENCE_DETECTED'
   | 'INVALID_PAGE_DEPTH'
 
+  // Invitation 관련 에러 (Scenario 3)
+  | 'INVITATION_NOT_FOUND'
+  | 'INVALID_WORKSPACE_INVITATION_ID'
+  | 'ALREADY_WORKSPACE_MEMBER'
+  | 'INVITATION_ALREADY_PROCESSED'
+  | 'NOT_INVITATION_TARGET'
+  | 'NOT_ORG_MEMBER_FOR_INVITATION'
+
   // 권한 관련 에러
   | 'NOT_ORG_MEMBER'
   | 'NOT_WORKSPACE_MEMBER'
+  | 'NOT_ORG_ADMIN'
+  | 'NOT_ORG_OWNER'
   | 'UNAUTHORIZED_ACCESS'
   | 'INSUFFICIENT_PERMISSIONS'
 
@@ -29,6 +39,7 @@ export type WorkspaceManagementErrorCode =
   | 'DATABASE_CONNECTION_FAILED'
   | 'EXTERNAL_SERVICE_UNAVAILABLE'
   | 'NETWORK_ERROR'
+  | 'NOTIFICATION_SERVICE_UNAVAILABLE'
 
   // 입력 검증 에러
   | 'INVALID_INPUT'
@@ -71,9 +82,19 @@ export const ERROR_MESSAGES: Record<WorkspaceManagementErrorCode, string> = {
   CIRCULAR_REFERENCE_DETECTED: '순환 참조가 발생합니다',
   INVALID_PAGE_DEPTH: '유효하지 않은 페이지 깊이입니다',
 
+  // Invitation (Scenario 3)
+  INVITATION_NOT_FOUND: '초대를 찾을 수 없습니다',
+  INVALID_WORKSPACE_INVITATION_ID: '유효하지 않은 초대 ID 형식입니다',
+  ALREADY_WORKSPACE_MEMBER: '이미 Workspace 멤버입니다',
+  INVITATION_ALREADY_PROCESSED: '이미 처리된 초대입니다',
+  NOT_INVITATION_TARGET: '본인의 초대만 처리할 수 있습니다',
+  NOT_ORG_MEMBER_FOR_INVITATION: '조직 멤버만 초대할 수 있습니다',
+
   // 권한
   NOT_ORG_MEMBER: '조직 멤버가 아닙니다',
   NOT_WORKSPACE_MEMBER: 'Workspace에 초대되지 않았습니다',
+  NOT_ORG_ADMIN: '조직 관리자 권한이 필요합니다',
+  NOT_ORG_OWNER: '조직 소유자 권한이 필요합니다',
   UNAUTHORIZED_ACCESS: '접근 권한이 없습니다',
   INSUFFICIENT_PERMISSIONS: '권한이 부족합니다',
 
@@ -81,6 +102,7 @@ export const ERROR_MESSAGES: Record<WorkspaceManagementErrorCode, string> = {
   DATABASE_CONNECTION_FAILED: '데이터베이스 연결에 실패했습니다',
   EXTERNAL_SERVICE_UNAVAILABLE: '외부 서비스를 사용할 수 없습니다',
   NETWORK_ERROR: '네트워크 오류가 발생했습니다',
+  NOTIFICATION_SERVICE_UNAVAILABLE: '알림 서비스를 사용할 수 없습니다',
 
   // 입력 검증
   INVALID_INPUT: '입력값이 유효하지 않습니다',

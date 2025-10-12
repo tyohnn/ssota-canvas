@@ -5,7 +5,8 @@
 **도메인**: Workspace Management  
 **작성자**: 프론트엔드개발자 + UX/UI 디자이너  
 **작성일**: 2025-10-11  
-**버전**: v2.0
+**최종 수정**: 2025-10-12  
+**버전**: v2.1
 
 **User Flow 참조**: `03-user-flow.md`  
 **Software Design 참조**: `03-software-design.md`  
@@ -210,6 +211,37 @@ Workspace Management Domain의 Scenario 0~5를 구현하기 위한 React 프론�
 
 ---
 
+#### SearchOrganizationMembersRequest (Scenario 3)
+
+- **파일 위치**: `src/domains/workspace-management/shared/dtos/index.ts`
+- **역할**: 조직 멤버 검색 요청 DTO
+- **주요 속성**:
+  - workspaceId: string
+  - query: string (이메일 검색어)
+- **특징**: 
+  - 실시간 검색용 (debounce 적용)
+  - 최대 10개 결과 반환
+
+**사용 위치**:
+- InviteMemberDialog: 이메일 검색 시
+
+---
+
+#### GetWorkspaceMembersRequest (Scenario 3)
+
+- **파일 위치**: `src/domains/workspace-management/shared/dtos/index.ts`
+- **역할**: Workspace 멤버 목록 조회 요청 DTO
+- **주요 속성**:
+  - workspaceId: string
+- **특징**: 
+  - 현재 멤버 + 대기 중인 초대 통합 조회
+  - Members 탭 데이터 로드용
+
+**사용 위치**:
+- WorkspaceMembersTab: 멤버 데이터 로드 시
+
+---
+
 #### ProcessInvitationRequest (Scenario 3)
 
 - **파일 위치**: `src/domains/workspace-management/shared/dtos/index.ts`
@@ -313,13 +345,75 @@ Workspace Management Domain의 Scenario 0~5를 구현하기 위한 React 프론�
 - **주요 속성**:
   - userId: string
   - email: string
-  - name: string
-  - avatarUrl?: string
+  - name: string | null
+  - avatarUrl?: string | null
   - isAlreadyMember: boolean (이미 Workspace 멤버 여부)
-- **특징**: 이메일 검색 시 실시간 조회
+  - hasPendingInvitation: boolean (대기 중인 초대 여부)
+- **특징**: 
+  - 이메일 검색 시 실시간 조회
+  - 상태 플래그로 선택 가능 여부 판단
 
 **사용 위치**:
 - InviteMemberDialog: 검색 결과 목록
+- MemberProfileCard: 상태 플래그 표시
+
+---
+
+#### WorkspaceMemberView (Scenario 3)
+
+- **파일 위치**: `src/domains/workspace-management/shared/dtos/index.ts`
+- **역할**: Workspace 멤버 목록 통합 뷰 DTO
+- **주요 속성**:
+  - workspaceId: string
+  - workspaceName: string
+  - currentMembers: WorkspaceMemberDTO[] (현재 멤버 목록)
+  - pendingInvitations: WorkspaceInvitationPendingDTO[] (대기 중인 초대 목록)
+- **특징**: 
+  - 현재 멤버와 초대 목록을 하나의 뷰로 통합
+  - Members 탭에서 사용
+
+**사용 위치**:
+- WorkspaceMembersTab: 멤버 데이터 로드
+- getWorkspaceMembersAction: 반환 타입
+
+---
+
+#### WorkspaceMemberDTO (Scenario 3)
+
+- **파일 위치**: `src/domains/workspace-management/shared/dtos/index.ts`
+- **역할**: Workspace 멤버 정보 DTO
+- **주요 속성**:
+  - userId: string
+  - name: string
+  - email: string
+  - profileImageUrl: string | null
+  - joinedAt: string (ISO 8601)
+- **특징**: 
+  - 프로필 정보 포함
+  - 참여 날짜 포함
+
+**사용 위치**:
+- WorkspaceMemberListTable: 멤버 테이블 렌더링
+
+---
+
+#### WorkspaceInvitationPendingDTO (Scenario 3)
+
+- **파일 위치**: `src/domains/workspace-management/shared/dtos/index.ts`
+- **역할**: 대기 중인 Workspace 초대 정보 DTO
+- **주요 속성**:
+  - id: string (초대 ID)
+  - invitedUserId: string
+  - invitedUserName: string
+  - invitedUserEmail: string
+  - inviterName: string
+  - createdAt: string (ISO 8601)
+- **특징**: 
+  - 초대받은 사람 + 초대한 사람 정보 포함
+  - 프로필 정보 포함 (JOIN 쿼리 결과)
+
+**사용 위치**:
+- WorkspaceInvitationListTable: 초대 테이블 렌더링
 
 ---
 
@@ -353,6 +447,7 @@ Workspace Management Domain의 Scenario 0~5를 구현하기 위한 React 프론�
   - **Scenario 3**:
     - **inviteMembers**(workspaceId, emails): 멤버 초대
     - **searchOrganizationMembers**(workspaceId, query): 조직 멤버 검색
+    - **getWorkspaceMembers**(workspaceId): Workspace 멤버 및 초대 목록 조회
     - **acceptInvitation**(invitationId): 초대 수락
     - **rejectInvitation**(invitationId): 초대 거절
   - **Scenario 4**:
@@ -495,7 +590,18 @@ Workspace Management Domain의 Scenario 0~5를 구현하기 위한 React 프론�
       // 1. debounce 300ms
       // 2. searchOrganizationMembersAction({ workspaceId, query }) 호출
       // 3. OrganizationMemberSearchResultDTO[] 반환
-      // 4. 이미 Workspace 멤버인 경우 isAlreadyMember=true 표시
+      // 4. isAlreadyMember, hasPendingInvitation 플래그 포함
+    };
+    ```
+  
+  - **getWorkspaceMembers 액션** (Scenario 3):
+    ```typescript
+    const getWorkspaceMembers = async (workspaceId: string) => {
+      // 1. isLoading = true
+      // 2. getWorkspaceMembersAction(workspaceId) 호출
+      // 3. WorkspaceMemberView 반환 (currentMembers + pendingInvitations)
+      // 4. 에러 처리
+      // 5. isLoading = false
     };
     ```
   
@@ -646,6 +752,7 @@ Workspace Management Domain의 Scenario 0~5를 구현하기 위한 React 프론�
   - **Scenario 3**:
     - inviteMembers(workspaceId, emails): Promise\<void\>
     - searchOrganizationMembers(workspaceId, query): Promise\<OrganizationMemberSearchResultDTO[]\>
+    - getWorkspaceMembers(workspaceId): Promise\<WorkspaceMemberView\>
     - acceptInvitation(invitationId): Promise\<void\>
     - rejectInvitation(invitationId): Promise\<void\>
   - **Scenario 4**:
@@ -759,6 +866,7 @@ Workspace Management Domain의 Scenario 0~5를 구현하기 위한 React 프론�
     // Actions (Scenario 3)
     inviteMembers,
     searchOrganizationMembers,
+    getWorkspaceMembers,
     acceptInvitation,
     rejectInvitation,
     
@@ -1685,10 +1793,100 @@ page-tree/
 
 ---
 
-#### WorkspaceSettingsDialog
+#### WorkspaceSettingsDialog (탭 구조)
 
 - **파일 위치**: `src/domains/workspace-management/frontend/components/workspace/workspace-settings-dialog.tsx`
-- **역할**: Workspace 정보 수정 모달 (User Flow Screen 4)
+- **역할**: Workspace 설정 및 멤버 관리 통합 모달 (User Flow Screen 4)
+- **주요 기능**:
+  - **탭 구조**: Settings 탭 + Members 탭
+  - **Settings 탭**: Workspace 정보 수정
+  - **Members 탭**: 멤버 목록 + 초대 목록 표시
+  - 탭 상태 관리 (useState)
+  - 좌측 탭 네비게이션 (Sheet 구조)
+
+- **사용 Hook**: useWorkspace()
+
+- **Props**:
+  - workspace: WorkspaceWithPagesDTO
+  - open: boolean
+  - onOpenChange: (open: boolean) => void
+
+- **UI 라이브러리**:
+  - shadcn/ui Sheet (대형 모달용), Tabs, TabsList, TabsTrigger, TabsContent
+  - react-hook-form, zod (Settings 탭)
+  - Table, Avatar, Badge (Members 탭)
+
+- **탭 타입 정의**:
+  ```typescript
+  type SettingsTab = 'general' | 'members';
+  ```
+
+- **구조**:
+  ```tsx
+  Sheet (side="right", className="w-[800px]")
+    SheetHeader
+      SheetTitle: "워크스페이스 설정"
+      SheetDescription: workspace.name
+    
+    SheetContent (flex)
+      {/* 좌측: 탭 네비게이션 */}
+      <div className="w-48 border-r">
+        <nav className="flex flex-col gap-1">
+          <Button
+            variant={activeTab === 'general' ? 'secondary' : 'ghost'}
+            onClick={() => setActiveTab('general')}
+          >
+            <Settings className="mr-2 size-4" />
+            설정
+          </Button>
+          <Button
+            variant={activeTab === 'members' ? 'secondary' : 'ghost'}
+            onClick={() => setActiveTab('members')}
+          >
+            <Users className="mr-2 size-4" />
+            멤버
+          </Button>
+        </nav>
+      </div>
+      
+      {/* 우측: 탭 컨텐츠 */}
+      <div className="flex-1 overflow-auto">
+        {activeTab === 'general' && (
+          <WorkspaceSettingsForm workspace={workspace} />
+        )}
+        
+        {activeTab === 'members' && (
+          <WorkspaceMembersTab workspaceId={workspace.workspaceId} />
+        )}
+      </div>
+  ```
+
+- **로직 흐름**:
+  ```
+  1. useState: activeTab 관리 ('general' | 'members')
+  2. useEffect: open 변경 시 activeTab 초기화 → 'general'
+  3. 탭 클릭 → setActiveTab 호출
+  4. 각 탭별 컴포넌트 렌더링
+  ```
+
+- **상태 관리**:
+  - activeTab: SettingsTab (탭 상태)
+
+- **특징**:
+  - Sheet 컴포넌트로 대형 모달 (800px)
+  - 좌측 네비게이션 탭 (버튼 스타일)
+  - 우측 컨텐츠 영역 (스크롤 가능)
+  - 탭별 독립적인 컴포넌트 분리
+
+**사용 위치**:
+- WorkspaceContextMenu: "워크스페이스 설정" 클릭 시
+
+---
+
+#### WorkspaceSettingsForm (Settings 탭 내용)
+
+- **파일 위치**: `src/domains/workspace-management/frontend/components/workspace/workspace-settings-form.tsx`
+- **역할**: Workspace 정보 수정 폼 (Settings 탭 내부)
 - **주요 기능**:
   - 기존 정보 미리 채우기 (defaultValues)
   - 변경사항 감지 (form.formState.isDirty)
@@ -1699,54 +1897,318 @@ page-tree/
 
 - **Props**:
   - workspace: WorkspaceWithPagesDTO
-  - open: boolean
-  - onOpenChange: (open: boolean) => void
 
 - **폼 검증**:
   - react-hook-form + zod 사용
   - createWorkspaceSchema.partial() (부분 업데이트)
 
 - **구조**:
-  ```
-  Dialog
-    DialogHeader: "워크스페이스 설정"
-    
-    Form (react-hook-form)
-      - FormField (name, description, icon)
-      - CreateWorkspaceDialog와 동일한 필드
-      - 기존 값 미리 채움 (defaultValues)
-      
-      DialogFooter
-        - Button (취소)
-        - Button (저장): disabled={!isDirty || isSubmitting}
+  ```tsx
+  <div className="space-y-6">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <div className="space-y-4">
+          {/* FormField (name, description, icon) */}
+          {/* CreateWorkspaceDialog와 동일한 필드 */}
+          {/* 기존 값 미리 채움 (defaultValues) */}
+        </div>
+        
+        <div className="flex justify-end gap-2 mt-6">
+          <Button type="submit" disabled={!isDirty || isSubmitting}>
+            {isSubmitting ? "저장 중..." : "저장"}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  </div>
   ```
 
 - **로직 흐름**:
   ```
-  1. useEffect: open 변경 시 form.reset(workspace 정보)
+  1. useEffect: workspace prop 변경 시 form.reset(workspace 정보)
   2. 폼 제출 → handleSubmit
   3. updateWorkspaceInfo({ workspaceId, ...data })
-  4. 성공: toast, 모달 닫기
-  5. 실패: toast.error, 모달 유지
+  4. 성공:
+     - toast.success("워크스페이스 정보가 업데이트되었습니다")
+     - form.reset(values) (isDirty → false, 저장된 값으로 재설정)
+     - 모달 유지 (다른 탭으로 전환 가능)
+  5. 실패: toast.error (모달 유지)
   ```
 
 - **특징**:
   - form.formState.isDirty로 변경사항 감지
   - useEffect로 workspace prop 변경 시 폼 재설정
   - 부분 업데이트 지원 (변경된 필드만 전송)
+  - **저장 후 모달 유지** (Settings → Members 탭 전환 워크플로우 지원)
+  - form.reset(values)로 저장된 값을 새로운 기준점으로 설정
+
+---
+
+#### WorkspaceMembersTab (Members 탭 내용)
+
+- **파일 위치**: `src/domains/workspace-management/frontend/components/workspace/workspace-members-tab.tsx`
+- **역할**: Workspace 멤버 및 초대 목록 표시 (Members 탭 내부)
+- **주요 기능**:
+  - 현재 멤버 테이블 표시
+  - 대기 중인 초대 테이블 표시
+  - "멤버 초대" 버튼
+  - 멤버 데이터 로드 (useEffect)
+
+- **사용 Hook**: useWorkspace()
+
+- **Props**:
+  - workspaceId: string
+
+- **UI 라이브러리**:
+  - shadcn/ui Button, Separator, ScrollArea, Skeleton
+
+- **구조**:
+  ```tsx
+  <div className="space-y-6">
+    {/* 헤더: 멤버 초대 버튼 */}
+    <div className="flex items-center justify-between">
+      <div>
+        <h3 className="text-lg font-medium">워크스페이스 멤버</h3>
+        <p className="text-sm text-muted-foreground">
+          멤버를 관리하고 새로운 멤버를 초대하세요
+        </p>
+      </div>
+      {canInviteMembers(workspaceId) && (
+        <Button onClick={() => setShowInviteDialog(true)}>
+          <UserPlus className="mr-2 size-4" />
+          멤버 초대
+        </Button>
+      )}
+    </div>
+    
+    {/* 현재 멤버 섹션 */}
+    <div>
+      <h4 className="text-sm font-medium mb-3">현재 멤버</h4>
+      {isLoadingMembers ? (
+        <WorkspaceMemberListSkeleton />
+      ) : (
+        <WorkspaceMemberListTable members={memberData?.currentMembers || []} />
+      )}
+    </div>
+    
+    <Separator />
+    
+    {/* 대기 중인 초대 섹션 */}
+    <div>
+      <h4 className="text-sm font-medium mb-3">대기 중인 초대</h4>
+      {isLoadingMembers ? (
+        <WorkspaceInvitationListSkeleton />
+      ) : memberData?.pendingInvitations.length === 0 ? (
+        <p className="text-sm text-muted-foreground">대기 중인 초대가 없습니다</p>
+      ) : (
+        <WorkspaceInvitationListTable 
+          invitations={memberData?.pendingInvitations || []} 
+        />
+      )}
+    </div>
+    
+    {/* 멤버 초대 다이얼로그 */}
+    <InviteMemberDialog
+      workspaceId={workspaceId}
+      open={showInviteDialog}
+      onOpenChange={setShowInviteDialog}
+      onSuccess={handleInviteSuccess}
+    />
+  </div>
+  ```
+
+- **로직 흐름**:
+  ```
+  1. useEffect: 컴포넌트 마운트 시 멤버 데이터 로드
+     - getWorkspaceMembers(workspaceId) 호출
+  2. 멤버 초대 버튼 클릭 → setShowInviteDialog(true)
+  3. 초대 성공 시 → handleInviteSuccess
+     - getWorkspaceMembers(workspaceId) 재호출 (데이터 갱신)
+  4. 멤버 목록, 초대 목록 테이블 렌더링
+  ```
+
+- **상태 관리**:
+  - showInviteDialog: boolean (초대 다이얼로그 표시 여부)
+  - memberData: WorkspaceMemberView | null (멤버 데이터)
+  - isLoadingMembers: boolean (로딩 상태)
+
+- **특징**:
+  - 현재 멤버 + 초대 목록 분리 표시
+  - 빈 상태 처리 (초대 없음)
+  - 로딩 상태 Skeleton
+  - 초대 성공 시 자동 갱신
+  - canInviteMembers 권한 확인
 
 **사용 위치**:
-- WorkspaceContextMenu: "워크스페이스 설정" 클릭 시
+- WorkspaceSettingsDialog: Members 탭 컨텐츠
+
+---
+
+#### WorkspaceMemberListTable
+
+- **파일 위치**: `src/domains/workspace-management/frontend/components/workspace/workspace-member-list-table.tsx`
+- **역할**: 현재 Workspace 멤버 목록을 테이블로 표시
+- **주요 기능**:
+  - 멤버 프로필 표시 (Avatar, 이름, 이메일)
+  - 참여 날짜 표시
+  - 빈 상태 처리
+
+- **Props**:
+  - members: WorkspaceMemberDTO[]
+
+- **UI 라이브러리**:
+  - shadcn/ui Table, Avatar, ScrollArea
+
+- **구조**:
+  ```tsx
+  <ScrollArea className="h-[300px]">
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>멤버</TableHead>
+          <TableHead>이메일</TableHead>
+          <TableHead>참여 날짜</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {members.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={3} className="text-center text-muted-foreground">
+              멤버가 없습니다
+            </TableCell>
+          </TableRow>
+        ) : (
+          members.map(member => (
+            <TableRow key={member.userId}>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <Avatar className="size-8">
+                    <AvatarImage src={member.profileImageUrl || undefined} />
+                    <AvatarFallback>
+                      {getInitials(member.name || member.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium">{member.name || '이름 없음'}</span>
+                </div>
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {member.email}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatDate(member.joinedAt)}
+              </TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  </ScrollArea>
+  ```
+
+- **특징**:
+  - Avatar + 이름 + 이메일 표시
+  - 참여 날짜 포맷팅 (상대 시간)
+  - ScrollArea로 스크롤 가능 (최대 300px)
+  - 빈 상태 메시지
+  - getInitials 유틸리티 (이름 첫 글자 추출)
+
+**사용 위치**:
+- WorkspaceMembersTab: 현재 멤버 섹션
+
+---
+
+#### WorkspaceInvitationListTable
+
+- **파일 위치**: `src/domains/workspace-management/frontend/components/workspace/workspace-invitation-list-table.tsx`
+- **역할**: 대기 중인 Workspace 초대 목록을 테이블로 표시
+- **주요 기능**:
+  - 초대받은 사용자 프로필 표시
+  - 초대한 사람 표시
+  - 초대 날짜 표시
+  - "초대 중" Badge 표시
+
+- **Props**:
+  - invitations: WorkspaceInvitationPendingDTO[]
+
+- **UI 라이브러리**:
+  - shadcn/ui Table, Avatar, Badge, ScrollArea
+
+- **구조**:
+  ```tsx
+  <ScrollArea className="h-[300px]">
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>초대받은 멤버</TableHead>
+          <TableHead>이메일</TableHead>
+          <TableHead>초대한 사람</TableHead>
+          <TableHead>초대 날짜</TableHead>
+          <TableHead>상태</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {invitations.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={5} className="text-center text-muted-foreground">
+              대기 중인 초대가 없습니다
+            </TableCell>
+          </TableRow>
+        ) : (
+          invitations.map(invitation => (
+            <TableRow key={invitation.id}>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <Avatar className="size-8">
+                    <AvatarFallback>
+                      {getInitials(invitation.invitedUserName || invitation.invitedUserEmail)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium">
+                    {invitation.invitedUserName || '이름 없음'}
+                  </span>
+                </div>
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {invitation.invitedUserEmail}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {invitation.inviterName}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatDate(invitation.createdAt)}
+              </TableCell>
+              <TableCell>
+                <Badge variant="secondary">초대 중</Badge>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  </ScrollArea>
+  ```
+
+- **특징**:
+  - 초대받은 사람 + 초대한 사람 정보 표시
+  - Badge로 "초대 중" 상태 표시
+  - ScrollArea로 스크롤 가능 (최대 300px)
+  - 빈 상태 메시지
+  - formatDate 유틸리티 (상대 시간)
+
+**사용 위치**:
+- WorkspaceMembersTab: 대기 중인 초대 섹션
 
 ---
 
 #### WorkspaceContextMenu
 
-- **파일 위치**: `src/domains/workspace-management/frontend/components/workspace-context-menu.tsx`
+- **파일 위치**: `src/domains/workspace-management/frontend/components/workspace/workspace-context-menu.tsx`
 - **역할**: Workspace 헤더 삼점 메뉴 (User Flow 공통 컨텍스트 메뉴)
 - **주요 기능**:
   - 권한별 메뉴 항목 필터링
   - Default Workspace 특별 처리 (보관 비활성화)
+  - 워크스페이스 설정 모달 열기
+  - 멤버 초대 다이얼로그 직접 열기 (빠른 접근)
 
 - **사용 Hook**: useWorkspace()
 
@@ -1754,7 +2216,7 @@ page-tree/
   - workspace: WorkspaceWithPagesDTO
 
 - **UI 라이브러리**:
-  - shadcn/ui DropdownMenu
+  - shadcn/ui DropdownMenu, Tooltip
 
 - **구조**:
   ```tsx
@@ -1766,21 +2228,24 @@ page-tree/
     </DropdownMenuTrigger>
     
     <DropdownMenuContent>
-      <DropdownMenuItem onClick={openSettings}>
+      {/* 워크스페이스 설정 (탭 구조 모달) */}
+      <DropdownMenuItem onClick={() => setShowSettingsDialog(true)}>
         <Settings className="mr-2 size-4" />
         워크스페이스 설정
       </DropdownMenuItem>
       
+      {/* 멤버 초대 (직접 다이얼로그) */}
       {canInviteMembers(workspace.workspaceId) && (
-        <DropdownMenuItem onClick={openInvite}>
+        <DropdownMenuItem onClick={() => setShowInviteDialog(true)}>
           <UserPlus className="mr-2 size-4" />
-          멤버 추가
+          멤버 초대
         </DropdownMenuItem>
       )}
       
+      {/* 워크스페이스 보관 */}
       {userRole === 'owner' && (
         <DropdownMenuItem
-          onClick={openArchive}
+          onClick={handleArchive}
           disabled={workspace.isDefault}
           className="text-destructive"
         >
@@ -1791,12 +2256,47 @@ page-tree/
       )}
     </DropdownMenuContent>
   </DropdownMenu>
+  
+  {/* 워크스페이스 설정 모달 (탭 구조) */}
+  <WorkspaceSettingsDialog
+    workspace={workspace}
+    open={showSettingsDialog}
+    onOpenChange={setShowSettingsDialog}
+  />
+  
+  {/* 멤버 초대 다이얼로그 (빠른 접근) */}
+  <InviteMemberDialog
+    workspaceId={workspace.workspaceId}
+    open={showInviteDialog}
+    onOpenChange={setShowInviteDialog}
+  />
   ```
+
+- **로직 흐름**:
+  ```
+  1. 워크스페이스 설정 클릭 → setShowSettingsDialog(true)
+     - WorkspaceSettingsDialog 열림 (탭 구조)
+     - 기본 탭: Settings
+  
+  2. 멤버 초대 클릭 → setShowInviteDialog(true)
+     - InviteMemberDialog 직접 열림
+     - 빠른 접근 경로 제공
+  
+  3. 워크스페이스 보관 클릭 → handleArchive
+     - AlertDialog 확인 후 삭제 처리
+  ```
+
+- **상태 관리**:
+  - showSettingsDialog: boolean (설정 모달 표시 여부)
+  - showInviteDialog: boolean (초대 다이얼로그 표시 여부)
 
 - **특징**:
   - 권한별 메뉴 항목 조건부 렌더링
   - Default Workspace는 보관 비활성화
-  - 각 메뉴 항목이 해당 모달 열기
+  - 두 가지 멤버 초대 경로:
+    - 경로 1: 설정 → Members 탭 → 멤버 초대 버튼
+    - 경로 2: 컨텍스트 메뉴 → 멤버 초대 (빠른 접근)
+  - 각 다이얼로그 독립적으로 관리
 
 **사용 위치**:
 - WorkspaceItem: Workspace 헤더 우측
@@ -1809,12 +2309,14 @@ page-tree/
 
 #### InviteMemberDialog
 
-- **파일 위치**: `src/domains/workspace-management/frontend/components/invitation/invite-member-dialog.tsx`
-- **역할**: Workspace 멤버 초대 모달 (User Flow Screen 1) - Dialog 래퍼만 담당
+- **파일 위치**: `src/domains/workspace-management/frontend/components/workspace/invite-member-dialog.tsx`
+- **역할**: Workspace 멤버 초대 모달 (User Flow Screen 1)
 - **주요 기능**:
-  - Dialog 열기/닫기 관리
-  - 성공 시 콜백 처리
-  - InviteMemberForm 컴포넌트 래핑
+  - 이메일 실시간 검색 (debounce 300ms)
+  - 프로필 프리뷰 카드 표시
+  - 상태 플래그 표시 (이미 멤버/초대 중/선택 가능)
+  - 선택된 멤버 Badge 표시
+  - 다중 선택 지원
 
 - **Props**:
   - workspaceId: string
@@ -1823,138 +2325,217 @@ page-tree/
   - onSuccess?: () => void
 
 - **UI 라이브러리**:
-  - shadcn/ui Dialog
-
-- **구조** (Organization 패턴: Dialog + Form 분리):
-  ```
-  Dialog
-    DialogHeader
-      DialogTitle: "Workspace에 멤버 초대"
-      DialogDescription: 설명 텍스트
-    
-    InviteMemberForm
-      - workspaceId 전달
-      - onSuccess 콜백
-  ```
-
-- **특징**:
-  - Dialog와 Form 분리 (Organization 패턴)
-  - InviteMemberForm에 실제 로직 위임
-  - 성공 시 onSuccess 콜백 + Dialog 닫기
-
----
-
-#### InviteMemberForm
-
-- **파일 위치**: `src/domains/workspace-management/frontend/components/invitation/invite-member-form.tsx`
-- **역할**: 멤버 초대 폼 (실제 로직 담당)
-- **주요 기능**:
-  - 이메일 실시간 검색 (debounce 300ms)
-  - 조직 멤버 필터링
-  - 다중 선택 (Checkbox)
-  - 이미 멤버 표시
-  - Server Action 호출
-
-- **사용 Hook**: useWorkspace(), useDebounce()
-
-- **Props**:
-  - workspaceId: string
-  - onSuccess: () => void
-
-- **UI 라이브러리**:
-  - shadcn/ui Input, Command, Checkbox, ScrollArea, Avatar, Button
+  - shadcn/ui Dialog, Input, ScrollArea, Card, Avatar, Badge, Button
 
 - **구조**:
-  ```
-  Container (space-y-4)
-    검색 필드
-      - Label: "멤버 검색 (이메일)"
-      - Input: Search 아이콘, placeholder, className="pl-9"
+  ```tsx
+  Dialog (className="max-w-2xl")
+    DialogHeader
+      DialogTitle: "워크스페이스에 멤버 초대"
+      DialogDescription: "조직 멤버를 검색하여 워크스페이스에 초대하세요"
     
-    검색 결과 (ScrollArea, h-[200px])
-      - isSearching: MemberSearchSkeleton
-      - 결과 없음: 안내 메시지
-      - 결과 있음: MemberItem 목록
-        - Checkbox 선택
-        - Avatar + 이름 + 이메일
-        - isAlreadyMember: 비활성화 + 안내
-    
-    선택된 멤버 카운트
-      - "선택된 멤버: N명"
-    
-    액션 버튼
-      - Button (취소)
-      - Button (초대): disabled={length === 0 || isSubmitting}
+    DialogContent
+      {/* 이메일 검색 필드 */}
+      <div className="space-y-2">
+        <Label>멤버 검색 (이메일)</Label>
+        <div className="relative">
+          <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+          <Input
+            placeholder="이메일로 검색..."
+            value={emailQuery}
+            onChange={(e) => setEmailQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
+      
+      {/* 검색 결과 - 프로필 프리뷰 카드 */}
+      <div className="space-y-2">
+        <Label>검색 결과</Label>
+        <ScrollArea className="h-[200px] border rounded-md p-2">
+          {isSearching ? (
+            <MemberSearchSkeleton />
+          ) : searchResults.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-8">
+              {emailQuery ? '검색 결과가 없습니다' : '이메일을 입력하여 멤버를 검색하세요'}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {searchResults.map(member => (
+                <MemberProfileCard
+                  key={member.userId}
+                  member={member}
+                  selected={selectedMemberIds.includes(member.userId)}
+                  disabled={member.isAlreadyMember || member.hasPendingInvitation}
+                  onSelect={() => handleMemberSelect(member)}
+                />
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+      
+      {/* 선택된 멤버 Badge 목록 */}
+      {selectedMembers.length > 0 && (
+        <div className="space-y-2">
+          <Label>초대할 멤버 ({selectedMembers.length}명)</Label>
+          <div className="flex flex-wrap gap-2 p-3 border rounded-md min-h-[60px]">
+            {selectedMembers.map(member => (
+              <Badge
+                key={member.userId}
+                variant="secondary"
+                className="gap-1 pr-1"
+              >
+                <Avatar className="size-4">
+                  <AvatarFallback className="text-[8px]">
+                    {getInitials(member.name || member.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <span>{member.name || member.email}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="size-4 p-0 hover:bg-transparent"
+                  onClick={() => handleRemoveMember(member.userId)}
+                >
+                  <X className="size-3" />
+                </Button>
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+      
+    DialogFooter
+      <Button variant="outline" onClick={() => onOpenChange(false)}>
+        취소
+      </Button>
+      <Button
+        onClick={handleInvite}
+        disabled={selectedMembers.length === 0 || isSubmitting}
+      >
+        {isSubmitting ? "초대 중..." : `${selectedMembers.length}명 초대하기`}
+      </Button>
   ```
 
 - **로직 흐름**:
   ```
-  1. searchQuery 입력 → useDebounce(300ms)
+  1. emailQuery 입력 → useDebounce(300ms)
   2. debouncedQuery 변경 → useEffect 트리거
   3. searchOrganizationMembers(workspaceId, query) 호출
   4. searchResults 업데이트
-  5. Checkbox 클릭 → toggleMember(userId)
-  6. 초대 버튼 → handleInvite
+  5. 카드 클릭 → handleMemberSelect
+     - disabled 확인 (isAlreadyMember || hasPendingInvitation)
+     - 이미 선택됨: 선택 해제
+     - 새로 선택: selectedMembers에 추가
+  6. Badge X 버튼 → handleRemoveMember
+     - selectedMembers에서 제거
+  7. 초대 버튼 → handleInvite
      - 선택된 이메일 추출
      - inviteMembers(workspaceId, emails)
-     - 성공: toast, 상태 초기화, onSuccess()
+     - 성공: toast, 상태 초기화, onSuccess(), Dialog 닫기
      - 실패: toast.error
   ```
 
 - **상태 관리**:
-  - searchQuery: string
-  - searchResults: OrganizationMemberSearchResultDTO[]
-  - selectedMembers: string[] (userId 배열)
-  - isSearching: boolean
-  - isSubmitting: boolean
+  - emailQuery: string (검색어)
+  - debouncedQuery: string (debounced 검색어)
+  - searchResults: OrganizationMemberSearchResultDTO[] (검색 결과)
+  - selectedMembers: OrganizationMemberSearchResultDTO[] (선택된 멤버)
+  - selectedMemberIds: string[] (선택된 멤버 ID, 빠른 조회용)
+  - isSearching: boolean (검색 중)
+  - isSubmitting: boolean (초대 중)
 
 - **특징**:
-  - useDebounce로 검색 최적화
+  - useDebounce로 검색 최적화 (300ms)
   - 실시간 검색 (useEffect)
-  - 다중 선택 (Checkbox 배열)
-  - 이미 멤버 필터링 (isAlreadyMember)
+  - 프로필 프리뷰 카드 (MemberProfileCard)
+  - 상태 플래그 (이미 멤버/초대 중/선택 가능)
+  - Badge로 선택된 멤버 표시
+  - X 버튼으로 선택 해제
+  - 선택된 멤버 수 표시
+  - 빈 상태 처리
 
 **사용 위치**:
-- WorkspaceContextMenu: "멤버 추가" 클릭 시
+- WorkspaceContextMenu: "멤버 초대" 클릭 시
+- WorkspaceMembersTab: "멤버 초대" 버튼 클릭 시
 
 ---
 
-#### MemberItem
+#### MemberProfileCard
 
-- **파일 위치**: `src/domains/workspace-management/frontend/components/member-item.tsx`
-- **역할**: 검색 결과 멤버 아이템
+- **파일 위치**: `src/domains/workspace-management/frontend/components/workspace/member-profile-card.tsx`
+- **역할**: 멤버 검색 결과 프로필 프리뷰 카드
 - **주요 기능**:
   - Avatar + 이름 + 이메일 표시
-  - Checkbox 선택
-  - 이미 멤버 표시
+  - 상태 플래그 표시 (이미 멤버/초대 중/선택 가능)
+  - 클릭으로 선택/해제
+  - disabled 상태 처리
 
 - **Props**:
   - member: OrganizationMemberSearchResultDTO
   - selected: boolean
-  - onToggle: () => void
   - disabled: boolean
+  - onSelect: () => void
+
+- **UI 라이브러리**:
+  - shadcn/ui Card, Avatar, Badge
 
 - **구조**:
+  ```tsx
+  <Card
+    className={cn(
+      "p-3 cursor-pointer transition-colors",
+      selected && "border-primary bg-primary/5",
+      disabled && "opacity-50 cursor-not-allowed"
+    )}
+    onClick={!disabled ? onSelect : undefined}
+  >
+    <div className="flex items-center gap-3">
+      <Avatar className="size-10">
+        <AvatarImage src={member.avatarUrl || undefined} />
+        <AvatarFallback>
+          {getInitials(member.name || member.email)}
+        </AvatarFallback>
+      </Avatar>
+      
+      <div className="flex-1 min-w-0">
+        <p className="font-medium truncate">
+          {member.name || '이름 없음'}
+        </p>
+        <p className="text-sm text-muted-foreground truncate">
+          {member.email}
+        </p>
+      </div>
+      
+      <div>
+        {member.isAlreadyMember ? (
+          <Badge variant="outline">이미 멤버입니다</Badge>
+        ) : member.hasPendingInvitation ? (
+          <Badge variant="secondary">초대 중</Badge>
+        ) : selected ? (
+          <Badge variant="default">선택됨</Badge>
+        ) : (
+          <Badge variant="outline" className="text-muted-foreground">
+            선택 가능
+          </Badge>
+        )}
+      </div>
+    </div>
+  </Card>
   ```
-  Container (flex, gap-3, p-2, hover:bg-accent)
-    Checkbox
-      - checked={selected}
-      - onCheckedChange={onToggle}
-      - disabled={disabled}
-    
-    Avatar
-      - AvatarImage: src={avatarUrl}
-      - AvatarFallback: 이니셜 (getInitials)
-    
-    정보 영역 (flex-1)
-      - 이름 (font-medium)
-      - 이메일 (text-xs, muted)
-      - isAlreadyMember: "이미 멤버입니다" (text-xs, muted)
-    
-    disabled 시
-      - Tooltip + Info 아이콘
-      - 내용: "이미 이 Workspace의 멤버입니다"
-  ```
+
+- **특징**:
+  - Card 컴포넌트로 프로필 프리뷰
+  - 클릭으로 선택/해제 (Checkbox 대신)
+  - 상태별 Badge 표시:
+    - `isAlreadyMember`: "이미 멤버입니다" (outline)
+    - `hasPendingInvitation`: "초대 중" (secondary)
+    - `selected`: "선택됨" (default)
+    - 기본: "선택 가능" (outline, muted)
+  - disabled 시 opacity 감소 + cursor-not-allowed
+  - 선택 시 border-primary + 배경 강조
+  - truncate로 긴 텍스트 처리
 
 **사용 위치**:
 - InviteMemberDialog: 검색 결과 목록
@@ -2430,15 +3011,39 @@ async function [actionName]Action(
 
 #### searchOrganizationMembersAction
 
-- **입력**: { workspaceId: string, query: string }
-- **출력**: OrganizationMemberSearchResultDTO[]
+- **입력**: SearchOrganizationMembersRequest (workspaceId: string, query: string)
+- **출력**: Result<OrganizationMemberSearchResultDTO[]>
+- **로직**:
+  1. 인증 확인
+  2. Workspace 조회 (Organization ID 확인용)
+  3. Organization 멤버 검색 (효율적 JOIN 쿼리)
+  4. 각 멤버에 대해 상태 플래그 설정:
+     - isAlreadyMember: Workspace 멤버 여부 확인
+     - hasPendingInvitation: 대기 중인 초대 여부 확인
+  5. 검색 결과 반환
+- **캐시**: 없음 (조회만)
+- **성능**: JOIN 쿼리로 N+1 문제 방지
+
+---
+
+#### getWorkspaceMembersAction
+
+- **입력**: GetWorkspaceMembersRequest (workspaceId: string)
+- **출력**: Result<WorkspaceMemberView>
 - **로직**:
   1. 인증 확인
   2. Workspace 조회
-  3. 조직 멤버 검색 (이메일 기반)
-  4. 이미 Workspace 멤버인지 확인 (isAlreadyMember)
-  5. 검색 결과 반환
+  3. 멤버 목록 조회 (프로필 JOIN)
+  4. 대기 중인 초대 목록 조회 (프로필 JOIN)
+  5. WorkspaceMemberView DTO 반환
 - **캐시**: 없음 (조회만)
+- **성능**: JOIN 쿼리로 N+1 문제 방지
+
+**사용 위치**:
+- WorkspaceMembersTab: 멤버 데이터 로드 시
+- WorkspaceContext: getWorkspaceMembers 액션
+
+---
 
 #### acceptWorkspaceInvitationAction
 
@@ -2680,10 +3285,12 @@ export function setPageCollapsed(pageId: string, collapsed: boolean): void {
 ### 예상 구현 시간
 - Context + Hook: 6-8시간
 - Scenario 1 컴포넌트: 10-12시간
-- Scenario 2-5 컴포넌트: 12-15시간
-- Server Actions: 8-10시간
-- 테스트 작성: 10-12시간
-- **총**: 약 46-57시간
+- Scenario 2 컴포넌트: 8-10시간
+- Scenario 3 컴포넌트: 12-15시간 (탭 구조 + 테이블 + 검색)
+- Scenario 4-5 컴포넌트: 8-10시간
+- Server Actions: 10-12시간
+- 테스트 작성: 12-15시간
+- **총**: 약 66-82시간
 
 ---
 
@@ -2717,6 +3324,11 @@ src/domains/workspace-management/
 │   │       ├── ProcessInvitationRequest               # Scenario 3
 │   │       ├── InvitationSummaryDTO                   # Scenario 3
 │   │       ├── OrganizationMemberSearchResultDTO      # Scenario 3
+│   │       ├── SearchOrganizationMembersRequest       # Scenario 3
+│   │       ├── GetWorkspaceMembersRequest             # Scenario 3
+│   │       ├── WorkspaceMemberView                    # Scenario 3
+│   │       ├── WorkspaceMemberDTO                     # Scenario 3
+│   │       ├── WorkspaceInvitationPendingDTO          # Scenario 3
 │   │       ├── CreatePageRequest                      # Scenario 4
 │   │       ├── MovePageRequest                        # Scenario 4
 │   │       └── UpdatePageInfoRequest                  # Scenario 4
@@ -2751,12 +3363,14 @@ src/domains/workspace-management/
 │   │   │   └── access-denied-page.tsx                 # 권한 없음 페이지
 │   │   ├── workspace/
 │   │   │   ├── create-workspace-dialog.tsx            # Workspace 생성 모달 (Scenario 2)
-│   │   │   ├── workspace-settings-dialog.tsx          # Workspace 설정 모달 (Scenario 2)
-│   │   │   └── workspace-context-menu.tsx             # 삼점 메뉴 (공통)
-│   │   ├── invitation/
-│   │   │   ├── invite-member-dialog.tsx               # 멤버 초대 Dialog 래퍼 (Scenario 3)
-│   │   │   ├── invite-member-form.tsx                 # 멤버 초대 Form (실제 로직)
-│   │   │   ├── member-item.tsx                        # 검색 결과 멤버 아이템
+│   │   │   ├── workspace-settings-dialog.tsx          # Workspace 설정 탭 모달 (Scenario 2, 3)
+│   │   │   ├── workspace-settings-form.tsx            # Settings 탭 폼 (Scenario 2)
+│   │   │   ├── workspace-members-tab.tsx              # Members 탭 컨텐츠 (Scenario 3)
+│   │   │   ├── workspace-member-list-table.tsx        # 현재 멤버 테이블 (Scenario 3)
+│   │   │   ├── workspace-invitation-list-table.tsx    # 대기 초대 테이블 (Scenario 3)
+│   │   │   ├── workspace-context-menu.tsx             # 삼점 메뉴 (공통)
+│   │   │   ├── invite-member-dialog.tsx               # 멤버 초대 모달 (Scenario 3)
+│   │   │   ├── member-profile-card.tsx                # 검색 결과 프로필 카드 (Scenario 3)
 │   │   │   ├── member-search-skeleton.tsx             # 검색 로딩 Skeleton
 │   │   │   └── invitation-detail-dialog.tsx           # 초대 상세 모달 (Scenario 3)
 │   │   └── shared/
@@ -2785,6 +3399,37 @@ src/domains/workspace-management/
 
 ## 📋 문서 변경 이력
 
+### v2.1 (2025-10-12) - **탭 구조 설정 모달 + 멤버 테이블**
+- **Workspace 설정 모달 개선**:
+  - **탭 구조 도입**: Settings 탭 + Members 탭
+  - **Settings 탭**: Workspace 정보 수정 폼 (WorkspaceSettingsForm)
+  - **Members 탭**: 멤버 목록 + 초대 목록 + 초대 버튼 (WorkspaceMembersTab)
+  - Sheet 컴포넌트로 대형 모달 (800px)
+  - 좌측 탭 네비게이션 (버튼 스타일)
+  
+- **멤버 관리 컴포넌트 추가** (5개):
+  - **WorkspaceSettingsForm**: Settings 탭 폼 분리
+  - **WorkspaceMembersTab**: Members 탭 컨텐츠 (멤버 데이터 로드)
+  - **WorkspaceMemberListTable**: 현재 멤버 테이블 (Avatar, 이름, 이메일, 참여 날짜)
+  - **WorkspaceInvitationListTable**: 대기 중인 초대 테이블 (초대받은 사람, 초대한 사람, Badge)
+  - **MemberProfileCard**: 검색 결과 프로필 프리뷰 카드 (상태 플래그, 클릭 선택)
+  
+- **멤버 초대 UX 개선**:
+  - 프로필 프리뷰 카드로 변경 (Checkbox → Card 클릭)
+  - 상태별 Badge 표시 (이미 멤버/초대 중/선택됨/선택 가능)
+  - 선택된 멤버 Badge 목록 (X 버튼으로 제거)
+  - disabled 상태 시각화 (opacity, cursor-not-allowed)
+  
+- **Context Actions 확장**:
+  - **getWorkspaceMembers**(workspaceId): WorkspaceMemberView 조회
+  - WorkspaceMembersTab에서 멤버 데이터 로드 시 사용
+  
+- **DTO 사용**:
+  - **WorkspaceMemberView**: 멤버 목록 + 초대 목록 통합 뷰
+  - **WorkspaceMemberDTO**: 현재 멤버 정보
+  - **WorkspaceInvitationPendingDTO**: 대기 중인 초대 정보
+  - **OrganizationMemberSearchResultDTO**: isAlreadyMember, hasPendingInvitation 플래그 포함
+
 ### v2.0 (2025-10-11) - **Scenario 2~5 확장 + Organization 패턴 적용**
 - **DTO 확장** (5개 → 13개):
   - Request DTOs (7개): CreateWorkspace, UpdateWorkspaceInfo, InviteWorkspaceMember, ProcessInvitation, CreatePage, MovePage, UpdatePageInfo
@@ -2804,7 +3449,7 @@ src/domains/workspace-management/
 - **컴포넌트 추가** (7개 → 20개) - **수도코드 수준**:
   - **Scenario 1**: WorkspaceHeader (레거시 재사용, Breadcrumb)
   - **Scenario 2**: CreateWorkspaceDialog, WorkspaceSettingsDialog, WorkspaceContextMenu
-  - **Scenario 3**: InviteMemberDialog, InviteMemberForm, MemberItem, InvitationDetailDialog
+  - **Scenario 3**: InviteMemberDialog, MemberProfileCard, InvitationDetailDialog
   - **Scenario 4**: PageTreeWithActions, PageHeader (인라인 편집)
   - **Scenario 5**: PageHeader (Star 아이콘 통합)
   - **공통**: IconPicker, WorkspaceIcon
@@ -2813,13 +3458,11 @@ src/domains/workspace-management/
   - ✅ react-hook-form + zod 유효성 검증
   - ✅ shadcn/ui Form 컴포넌트 (FormField, FormItem, FormLabel, FormControl, FormMessage)
   - ✅ toast 피드백 (sonner)
-  - ✅ Dialog + Form 분리 패턴 (InviteMemberDialog)
   - ✅ isSubmitting 상태 관리
   - ✅ DialogDescription 추가
   
 - **폴더 구조 재정리**:
-  - sidebar/, page-tree/, page-viewer/, workspace/, invitation/, shared/ 디렉토리로 분리
-  - InviteMemberForm 분리 (Dialog + Form 패턴)
+  - sidebar/, page-tree/, page-viewer/, workspace/ 디렉토리로 분리
   - 총 12개 Server Actions 정의
   
 - **Provider Props 확장**:
@@ -2851,18 +3494,18 @@ src/domains/workspace-management/
 ## 📊 구현 범위 요약
 
 ### 완료된 설계:
-- ✅ **13개 DTO**: 
-  - Request (7개): CreateWorkspace, UpdateWorkspaceInfo, InviteWorkspaceMember, ProcessInvitation, CreatePage, MovePage, UpdatePageInfo
+- ✅ **18개 DTO**: 
+  - Request (9개): CreateWorkspace, UpdateWorkspaceInfo, InviteWorkspaceMember, ProcessInvitation, SearchOrganizationMembers, GetWorkspaceMembers, CreatePage, MovePage, UpdatePageInfo
   - Response (3개): CreateWorkspaceResponse, InvitationSummary, OrganizationMemberSearchResult
-  - View (3개): OrganizationWorkspacePageView, WorkspaceWithPages, PageTreeNode
-- ✅ **1개 Context**: WorkspaceContext (15개 Actions)
-- ✅ **1개 Hook**: useWorkspace (15개 Actions + 8개 유틸리티)
-- ✅ **20개 컴포넌트** (수도코드 수준):
+  - View (6개): OrganizationWorkspacePageView, WorkspaceWithPages, PageTreeNode, WorkspaceMemberView, WorkspaceMemberDTO, WorkspaceInvitationPendingDTO
+- ✅ **1개 Context**: WorkspaceContext (16개 Actions)
+- ✅ **1개 Hook**: useWorkspace (16개 Actions + 8개 유틸리티)
+- ✅ **25개 컴포넌트** (수도코드 수준):
   - 사이드바: 4개 (WorkspaceSidebarContent, FavoritePageList, WorkspacePageTree, WorkspaceItem)
   - PageTree: 7개 (PageTree, PageTreeItem, PageTreeControls, PageTreeWithActions, usePageTreeData, types, utils)
   - PageViewer: 4개 (PageViewer, WorkspaceHeader, PageHeader, AccessDeniedPage)
-  - Workspace 관리: 3개 (CreateWorkspaceDialog, WorkspaceSettingsDialog, WorkspaceContextMenu)
-  - 초대 관리: 4개 (InviteMemberDialog, InviteMemberForm, MemberItem, InvitationDetailDialog)
+  - Workspace 관리: 8개 (CreateWorkspaceDialog, WorkspaceSettingsDialog, WorkspaceSettingsForm, WorkspaceMembersTab, WorkspaceMemberListTable, WorkspaceInvitationListTable, WorkspaceContextMenu, InviteMemberDialog)
+  - 초대 관리: 2개 (MemberProfileCard, InvitationDetailDialog)
   - 공통: 2개 (IconPicker, WorkspaceIcon)
 - ✅ **12개 Server Actions**: Scenario별 2/2/4/3/1개
 - ✅ **1개 공통 Hook**: useDebounce
@@ -2874,7 +3517,11 @@ src/domains/workspace-management/
 - ⚡ Optimistic update로 UX 향상 (Page 관리, 즐겨찾기)
 - 🔄 Notification Domain 통합 (초대 알림)
 - 📱 반응형 고려 (데스크톱, 태블릿, 모바일)
-- 🎨 Organization 패턴 적용 (react-hook-form + zod + toast + Dialog/Form 분리)
+- 🎨 Organization 패턴 적용 (react-hook-form + zod + toast)
+- 📋 탭 구조 설정 모달 (Settings + Members)
+- 📊 멤버 관리 테이블 (현재 멤버 + 대기 초대)
+- 🔍 실시간 멤버 검색 (프로필 프리뷰 + 상태 플래그)
+- 🏷️ Badge 기반 멤버 선택 (X 버튼으로 제거)
 - 📝 수도코드 수준 작성 (가이드 준수, TDD 구현 대비)
 
 ---

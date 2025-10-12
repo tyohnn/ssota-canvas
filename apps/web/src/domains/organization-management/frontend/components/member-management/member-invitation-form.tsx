@@ -41,7 +41,7 @@ export function MemberInvitationForm({
   onSuccess,
 }: MemberInvitationFormProps) {
   const [email, setEmail] = useState('');
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<UserProfile[]>([]);
   const [role, setRole] = useState<'admin' | 'member'>('admin');
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -91,19 +91,25 @@ export function MemberInvitationForm({
       return;
     }
 
-    setSelectedUser(user);
+    // 중복 체크
+    if (selectedUsers.some(u => u.userId === user.userId)) {
+      toast.error('이미 선택된 사용자입니다');
+      return;
+    }
+
+    setSelectedUsers(prev => [...prev, user]);
     setEmail('');
     setSearchResults([]);
   };
 
-  const handleRemoveUser = () => {
-    setSelectedUser(null);
+  const handleRemoveUser = (userId: string) => {
+    setSelectedUsers(prev => prev.filter(u => u.userId !== userId));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedUser) {
+    if (selectedUsers.length === 0) {
       toast.error('사용자를 선택해주세요');
       return;
     }
@@ -117,18 +123,21 @@ export function MemberInvitationForm({
 
     setIsSubmitting(true);
     try {
-      await inviteMemberAction({
-        organizationId,
-        inviteeEmail: selectedUser.email,
-        role,
-      });
+      // 여러 명 초대 (순차 처리)
+      for (const user of selectedUsers) {
+        await inviteMemberAction({
+          organizationId,
+          inviteeEmail: user.email,
+          role,
+        });
+      }
 
       toast.success('초대 완료', {
-        description: `${selectedUser.name}님에게 초대를 보냈습니다.`,
+        description: `${selectedUsers.length}명에게 초대를 보냈습니다.`,
       });
 
       // 폼 초기화
-      setSelectedUser(null);
+      setSelectedUsers([]);
       setRole('admin');
       onSuccess?.();
     } catch (error) {
@@ -156,18 +165,22 @@ export function MemberInvitationForm({
             value={email}
             onChange={e => setEmail(e.target.value)}
             className="pl-9"
-            disabled={!!selectedUser}
+            disabled={isSubmitting}
           />
         </div>
 
-        {/* 검색 결과 */}
-        {searchResults.length > 0 && !selectedUser && (
-          <Card className="mt-2 p-2">
+        {/* 검색 결과 미리보기 */}
+        {searchResults.length > 0 && (
+          <Card className="mt-2 p-2 max-h-[200px] overflow-y-auto">
             <div className="space-y-1">
               {searchResults.map(user => {
                 const isAlreadyMember = isMember(user.email);
                 const isPending = hasPendingInvitation(user.email);
-                const isDisabled = isAlreadyMember || isPending;
+                const isAlreadySelected = selectedUsers.some(
+                  u => u.userId === user.userId
+                );
+                const isDisabled =
+                  isAlreadyMember || isPending || isAlreadySelected;
 
                 return (
                   <button
@@ -200,6 +213,11 @@ export function MemberInvitationForm({
                         초대 중
                       </Badge>
                     )}
+                    {isAlreadySelected && (
+                      <Badge variant="outline" className="text-xs">
+                        선택됨
+                      </Badge>
+                    )}
                   </button>
                 );
               })}
@@ -210,34 +228,39 @@ export function MemberInvitationForm({
         {isSearching && (
           <p className="text-sm text-muted-foreground">검색 중...</p>
         )}
-
-        {/* 선택된 사용자 */}
-        {selectedUser && (
-          <div className="flex items-center gap-2 p-2 bg-accent rounded-md">
-            <Avatar className="h-8 w-8">
-              <AvatarImage
-                src={selectedUser.profileImageUrl}
-                alt={selectedUser.name}
-              />
-              <AvatarFallback>{selectedUser.name[0]}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <p className="text-sm font-medium">{selectedUser.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {selectedUser.email}
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={handleRemoveUser}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
       </div>
+
+      {/* 선택된 멤버 목록 (Badge) - Workspace 스타일 */}
+      {selectedUsers.length > 0 && (
+        <div className="space-y-2">
+          <Label>초대할 멤버 ({selectedUsers.length}명)</Label>
+          <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-muted/30">
+            {selectedUsers.map(user => (
+              <Badge
+                key={user.userId}
+                variant="secondary"
+                className="flex items-center gap-1 py-1.5 pr-1"
+              >
+                <Avatar className="h-4 w-4 mr-1">
+                  <AvatarImage src={user.profileImageUrl} />
+                  <AvatarFallback className="text-[8px]">
+                    {user.name[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs">{user.name}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveUser(user.userId)}
+                  className="ml-1 hover:bg-muted rounded-full p-0.5"
+                  disabled={isSubmitting}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
 
       <FieldGroup>
         <FieldSet>
@@ -286,9 +309,9 @@ export function MemberInvitationForm({
       <Button
         type="submit"
         className="w-full"
-        disabled={!selectedUser || isSubmitting}
+        disabled={selectedUsers.length === 0 || isSubmitting}
       >
-        {isSubmitting ? '초대 중...' : '초대 보내기'}
+        {isSubmitting ? '초대 중...' : `${selectedUsers.length}명 초대 보내기`}
       </Button>
     </form>
   );

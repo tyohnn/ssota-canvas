@@ -123,6 +123,77 @@ export interface AccessDeniedDTO {
   workspaceName?: string;
 }
 
+// Scenario 3: Workspace 멤버 초대 및 수락/거절
+export interface InviteWorkspaceMemberRequest {
+  workspaceId: string;
+  memberEmails: string[];
+}
+
+export interface InviteWorkspaceMemberResponse {
+  invitedCount: number;
+}
+
+export interface ProcessInvitationRequest {
+  invitationId: string;
+}
+
+export interface InvitationSummaryDTO {
+  invitationId: string;
+  workspaceId: string;
+  workspaceName: string;
+  workspaceIcon: string | null;
+  workspaceDescription: string | null;
+  invitedBy: string; // 이름
+  organizationName: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'expired';
+  createdAt: string; // ISO string
+}
+
+export interface OrganizationMemberSearchResultDTO {
+  userId: string;
+  email: string;
+  name: string | null;
+  avatarUrl: string | null;
+  isAlreadyMember: boolean;
+  hasPendingInvitation: boolean;
+}
+
+export interface SearchOrganizationMembersRequest {
+  workspaceId: string;
+  query: string;
+}
+
+/**
+ * Workspace 멤버 목록 조회
+ */
+export interface GetWorkspaceMembersRequest {
+  workspaceId: string;
+}
+
+export interface WorkspaceMemberDTO {
+  userId: string;
+  name: string;
+  email: string;
+  profileImageUrl: string | null;
+  joinedAt: string; // ISO 8601
+}
+
+export interface WorkspaceInvitationPendingDTO {
+  id: string;
+  invitedUserId: string;
+  invitedUserName: string;
+  invitedUserEmail: string;
+  inviterName: string;
+  createdAt: string; // ISO 8601
+}
+
+export interface WorkspaceMemberView {
+  workspaceId: string;
+  workspaceName: string;
+  currentMembers: WorkspaceMemberDTO[];
+  pendingInvitations: WorkspaceInvitationPendingDTO[];
+}
+
 // ────────────────────────────────────────────────────────────
 // Server Action Result Type
 // ────────────────────────────────────────────────────────────

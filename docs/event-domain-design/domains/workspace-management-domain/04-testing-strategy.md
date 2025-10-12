@@ -5,7 +5,8 @@
 **도메인**: Workspace Management  
 **작성자**: 시니어개발자 + QA  
 **작성일**: 2025-10-11  
-**버전**: v1.0
+**최종 수정**: 2025-10-12  
+**버전**: v1.1
 
 **Software Design 참조**: `03-software-design.md`  
 **Process Model 참조**: `02-process-model.md`  
@@ -106,16 +107,19 @@ Workspace Management Domain은 **조직 내 작업 공간과 페이지 구조 �
 | Command: AcceptWorkspaceInvitation | Unit | Workspace Aggregate.acceptInvitation() | ⭐️⭐️⭐️⭐️⭐️ |
 | Command: RejectWorkspaceInvitation | Unit | Workspace Aggregate.rejectInvitation() | ⭐️⭐️⭐️⭐️ |
 | System: Workspace System | Unit | 멤버 초대 및 권한 검증 로직 | ⭐️⭐️⭐️⭐️⭐️ |
+| System: Organization Domain | Integration | 조직 멤버 검색 (효율적 쿼리) | ⭐️⭐️⭐️⭐️⭐️ |
 | System: Notification Domain | Integration | 알림 발송 및 업데이트 통합 | ⭐️⭐️⭐️⭐️⭐️ |
 | Event: WorkspaceMemberInvitationCreated | Unit | WorkspaceMemberInvitationCreated 이벤트 발행 | ⭐️⭐️⭐️⭐️ |
 | Event: InvitationNotificationSent | Integration | Notification Domain 통합 검증 | ⭐️⭐️⭐️⭐️⭐️ |
 | Event: WorkspaceInvitationAccepted | Unit | WorkspaceInvitationAccepted 이벤트 발행 | ⭐️⭐️⭐️⭐️ |
 | Event: MemberAddedToWorkspace | Unit | MemberAddedToWorkspace 이벤트 발행 | ⭐️⭐️⭐️⭐️ |
-| 전체 플로우 (Seq 1) | Integration | inviteWorkspaceMemberAction() | ⭐️⭐️⭐️⭐️⭐️ |
+| 전체 플로우 (Seq 1 - 검색) | Integration | searchOrganizationMembersAction() | ⭐️⭐️⭐️⭐️⭐️ |
+| 전체 플로우 (Seq 1 - 초대) | Integration | inviteWorkspaceMemberAction() | ⭐️⭐️⭐️⭐️⭐️ |
 | 전체 플로우 (Seq 2 - 수락) | Integration | acceptWorkspaceInvitationAction() | ⭐️⭐️⭐️⭐️⭐️ |
 | 전체 플로우 (Seq 2 - 거절) | Integration | rejectWorkspaceInvitationAction() | ⭐️⭐️⭐️⭐️ |
-| 사용자 경험 (Happy Path) | E2E | 멤버 초대 → 알림 받음 → 수락 → Workspace 접근 | ⭐️⭐️⭐️⭐️⭐️ |
-| 사용자 경험 (Error Path) | E2E | 이미 멤버인 경우 → 초대 불가 표시 | ⭐️⭐️⭐️⭐️ |
+| Repository 검증 (멤버 목록) | Integration | getWorkspaceMembersAction() | ⭐️⭐️⭐️⭐️ |
+| 사용자 경험 (Happy Path) | E2E | 멤버 검색 → 선택 → 초대 → 알림 → 수락 | ⭐️⭐️⭐️⭐️⭐️ |
+| 사용자 경험 (Error Path) | E2E | 이미 멤버/초대 중 → 선택 불가 표시 | ⭐️⭐️⭐️⭐️ |
 
 ---
 
@@ -651,396 +655,6 @@ describe('권한 검증 통합 테스트', () => {
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️  
 **예상 테스트 수**: 6개
 
----
-
-## 🎭 E2E Tests 전략
-
-> **가이드 참조**: Phase 3.4 - E2E Tests 전략 작성
-
-### Scenario 1 E2E 테스트 시나리오
-
-#### E2E Test 1: Happy Path - 조직 링크 접근 → 페이지 열기
-```typescript
-test('[Scenario 1-1] 조직 멤버가 조직 링크로 접근하여 Workspace-Page 목록 확인 및 페이지 선택', async ({ page }) => {
-  // Given: 조직 멤버로 로그인됨
-  await loginAsUser('member@test.com', 'password123');
-  
-  // When: 조직 페이지로 접근
-  await page.goto('/r/org123/workspace');
-  
-  // Then: 사이드바에 Workspace-Page 목록이 표시되어야 함
-  await expect(page.locator('[data-testid="workspace-sidebar"]')).toBeVisible();
-  await expect(page.locator('[data-testid="workspace-default"]')).toContainText('Default Workspace');
-  await expect(page.locator('[data-testid="workspace-list"]')).toBeVisible();
-  
-  // And: Default Workspace가 최상단에 있어야 함
-  const firstWorkspace = page.locator('[data-testid^="workspace-"]').first();
-  await expect(firstWorkspace).toContainText('Default Workspace');
-  
-  // When: Page를 클릭
-  await page.click('[data-testid="page-welcome"]');
-  
-  // Then: 페이지가 로드되어야 함
-  await expect(page).toHaveURL(/\/workspace\/ws456\/page\/page789$/);
-  await expect(page.locator('[data-testid="page-title"]')).toContainText('Welcome');
-  await expect(page.locator('[data-testid="canvas"]')).toBeVisible();
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
-
----
-
-#### E2E Test 2: Error Path - 권한 없음
-```typescript
-test('[Scenario 1-2] 조직 멤버가 초대되지 않은 Workspace의 페이지 접근 시 권한 없음 페이지 표시', async ({ page }) => {
-  // Given: 조직 멤버이지만 특정 Workspace에 초대되지 않음
-  await loginAsUser('member@test.com', 'password123');
-  
-  // When: 초대되지 않은 Workspace의 페이지 직접 URL 접근
-  await page.goto('/r/org123/workspace/ws-private/page/page999');
-  
-  // Then: 권한 없음 페이지가 표시되어야 함
-  await expect(page.locator('[data-testid="access-denied"]')).toBeVisible();
-  await expect(page.locator('text=이 페이지에 접근할 수 없습니다')).toBeVisible();
-  await expect(page.locator('text=Workspace에 초대되지 않았습니다')).toBeVisible();
-  
-  // And: 초대 요청 버튼이 있어야 함
-  await expect(page.locator('[data-testid="request-access-btn"]')).toBeVisible();
-  
-  // And: 사이드바에서는 해당 Workspace가 보여야 함 (조직 멤버이므로)
-  await expect(page.locator('[data-testid="workspace-private"]')).toBeVisible();
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
-
----
-
-#### E2E Test 3: Edge Case - 쿠키 Fallback
-```typescript
-test('[Scenario 1-3] 쿠키에 저장된 최근 방문 페이지로 자동 이동', async ({ page, context }) => {
-  // Given: 로그인하고 쿠키에 최근 방문 페이지 저장됨
-  await loginAsUser('member@test.com', 'password123');
-  await context.addCookies([{
-    name: 'recent_page_id',
-    value: 'page123',
-    domain: 'localhost',
-    path: '/'
-  }]);
-  
-  // When: 조직 페이지 접근
-  await page.goto('/r/org123/workspace');
-  
-  // Then: 쿠키에 저장된 페이지로 자동 리다이렉트되어야 함
-  await expect(page).toHaveURL(/\/page\/page123$/);
-})
-
-test('[Scenario 1-4] 쿠키 페이지가 유효하지 않으면 Default Workspace 첫 페이지로 Fallback', async ({ page, context }) => {
-  // Given: 로그인하고 쿠키에 삭제된 페이지 ID 저장됨
-  await loginAsUser('member@test.com', 'password123');
-  await context.addCookies([{
-    name: 'recent_page_id',
-    value: 'deleted-page-999',
-    domain: 'localhost',
-    path: '/'
-  }]);
-  
-  // When: 조직 페이지 접근
-  await page.goto('/r/org123/workspace');
-  
-  // Then: Default Workspace의 첫 번째 페이지로 리다이렉트되어야 함
-  await expect(page).toHaveURL(/\/workspace\/ws-default\/page\//);
-  await expect(page.locator('[data-testid="workspace-sidebar"]')).toContainText('Default Workspace');
-  
-  // And: 에러 메시지 없이 자연스럽게 Fallback되어야 함
-  await expect(page.locator('[data-testid="error-message"]')).not.toBeVisible();
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️
-
----
-
-#### E2E Test 4: Error Path - 조직 멤버 아님
-```typescript
-test('[Scenario 1-5] 조직 멤버가 아닌 사용자는 접근 거부', async ({ page }) => {
-  // Given: 다른 조직의 멤버로 로그인
-  await loginAsUser('other@test.com', 'password123');
-  
-  // When: 권한 없는 조직 페이지 접근
-  await page.goto('/r/org123/workspace');
-  
-  // Then: 403 Forbidden 또는 권한 없음 페이지 표시
-  await expect(page.locator('[data-testid="forbidden"]')).toBeVisible();
-  await expect(page.locator('text=조직 멤버가 아닙니다')).toBeVisible();
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
-
----
-
-### Scenario 2 E2E 테스트 시나리오
-
-#### E2E Test 5: Workspace 생성 및 첫 페이지 이동
-```typescript
-test('[Scenario 2-1] 조직 소유자가 Workspace를 생성하고 첫 페이지로 이동', async ({ page }) => {
-  // Given: 조직 소유자로 로그인
-  await loginAsOwner('owner@test.com', 'password123');
-  await page.goto('/r/org123/workspace/ws-default/page/page1');
-  
-  // When: Workspaces 섹션 헤더의 + 버튼 클릭
-  await page.click('[data-testid="workspace-create-btn"]');
-  
-  // Then: Workspace 생성 모달이 열려야 함
-  await expect(page.locator('[data-testid="workspace-create-modal"]')).toBeVisible();
-  
-  // When: 이름 입력 및 생성 버튼 클릭
-  await page.fill('[data-testid="workspace-name-input"]', '마케팅 팀');
-  await page.fill('[data-testid="workspace-description-input"]', '마케팅 관련 작업 공간');
-  await page.click('[data-testid="workspace-create-submit"]');
-  
-  // Then: 생성된 첫 페이지로 이동해야 함
-  await expect(page).toHaveURL(/\/workspace\/[^/]+\/page\/[^/]+$/);
-  await expect(page.locator('[data-testid="page-title"]')).toContainText('Untitled');
-  
-  // And: 사이드바에 새 Workspace가 표시되어야 함
-  await expect(page.locator('text=마케팅 팀')).toBeVisible();
-  
-  // And: Success Toast가 표시되어야 함
-  await expect(page.locator('text=워크스페이스가 생성되었습니다')).toBeVisible();
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
-
----
-
-#### E2E Test 6: Workspace 정보 수정
-```typescript
-test('[Scenario 2-2] Workspace 멤버가 Workspace 정보를 수정', async ({ page }) => {
-  // Given: Workspace 멤버로 로그인
-  await loginAsMember('member@test.com', 'password123');
-  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
-  
-  // When: Workspace 삼점 메뉴 → "워크스페이스 설정" 클릭
-  await page.click('[data-testid="workspace-menu-ws-marketing"]');
-  await page.click('[data-testid="workspace-settings-btn"]');
-  
-  // Then: 설정 모달이 열려야 함
-  await expect(page.locator('[data-testid="workspace-settings-modal"]')).toBeVisible();
-  
-  // When: 이름 수정 및 저장
-  await page.fill('[data-testid="workspace-name-input"]', '마케팅팀 (수정됨)');
-  await page.click('[data-testid="workspace-settings-submit"]');
-  
-  // Then: Success Toast가 표시되어야 함
-  await expect(page.locator('text=워크스페이스 정보가 업데이트되었습니다')).toBeVisible();
-  
-  // And: 사이드바 Workspace 이름이 업데이트되어야 함
-  await expect(page.locator('text=마케팅팀 (수정됨)')).toBeVisible();
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️
-
----
-
-### Scenario 3 E2E 테스트 시나리오
-
-#### E2E Test 7: Workspace 멤버 초대 및 수락
-```typescript
-test('[Scenario 3-1] Admin이 멤버를 초대하고 멤버가 수락', async ({ page, context }) => {
-  // Given: 조직 Admin + Workspace 멤버로 로그인
-  await loginAsAdmin('admin@test.com', 'password123');
-  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
-  
-  // When: Workspace 삼점 메뉴 → "멤버 추가" 클릭
-  await page.click('[data-testid="workspace-menu-ws-marketing"]');
-  await page.click('[data-testid="workspace-invite-btn"]');
-  
-  // Then: 멤버 초대 모달이 열려야 함
-  await expect(page.locator('[data-testid="workspace-invite-modal"]')).toBeVisible();
-  
-  // When: 이메일 검색 및 멤버 선택
-  await page.fill('[data-testid="member-search-input"]', 'member@test.com');
-  await page.waitForSelector('[data-testid="member-search-result-member@test.com"]');
-  await page.click('[data-testid="member-checkbox-member@test.com"]');
-  await page.click('[data-testid="invite-submit"]');
-  
-  // Then: Success Toast가 표시되어야 함
-  await expect(page.locator('text=1명에게 초대를 보냈습니다')).toBeVisible();
-  
-  // ===== 초대받은 멤버가 수락 =====
-  
-  // Given: 초대받은 멤버로 로그인 (새 컨텍스트)
-  await loginAsUser('member@test.com', 'password123');
-  
-  // When: 알림 센터 열기
-  await page.click('[data-testid="notification-bell"]');
-  
-  // Then: Workspace 초대 알림이 표시되어야 함
-  await expect(page.locator('text=마케팅 팀 Workspace에 초대되었습니다')).toBeVisible();
-  
-  // When: 초대 상세 보기 → 수락
-  await page.click('[data-testid="notification-view-btn"]');
-  await page.click('[data-testid="invitation-accept-btn"]');
-  
-  // Then: Success Toast가 표시되어야 함
-  await expect(page.locator('text=Workspace에 참여했습니다')).toBeVisible();
-  
-  // And: 사이드바에 새 Workspace가 추가되어야 함
-  await expect(page.locator('text=마케팅 팀')).toBeVisible();
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
-
----
-
-#### E2E Test 8: 이미 멤버인 경우 초대 불가
-```typescript
-test('[Scenario 3-2] 이미 Workspace 멤버인 경우 초대 불가 표시', async ({ page }) => {
-  // Given: 조직 Admin + Workspace 멤버로 로그인
-  await loginAsAdmin('admin@test.com', 'password123');
-  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
-  
-  // When: 멤버 초대 모달 열기 및 이메일 검색
-  await page.click('[data-testid="workspace-menu-ws-marketing"]');
-  await page.click('[data-testid="workspace-invite-btn"]');
-  await page.fill('[data-testid="member-search-input"]', 'existing@test.com');
-  
-  // Then: 검색 결과에 "이미 멤버입니다" 표시
-  await expect(page.locator('[data-testid="member-search-result-existing@test.com"]')).toBeVisible();
-  await expect(page.locator('text=이미 멤버입니다')).toBeVisible();
-  
-  // And: Checkbox 비활성화
-  await expect(page.locator('[data-testid="member-checkbox-existing@test.com"]')).toBeDisabled();
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️
-
----
-
-### Scenario 4 E2E 테스트 시나리오
-
-#### E2E Test 9: 페이지 생성 및 제목 편집
-```typescript
-test('[Scenario 4-1] 멤버가 페이지를 생성하고 제목을 편집', async ({ page }) => {
-  // Given: Workspace 멤버로 로그인
-  await loginAsMember('member@test.com', 'password123');
-  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
-  
-  // When: Workspace 옆 + 버튼 클릭 (최상위 페이지 생성)
-  await page.click('[data-testid="page-create-btn-ws-marketing"]');
-  
-  // Then: 새 페이지가 사이드바에 표시되어야 함 (편집 모드)
-  await expect(page.locator('[data-testid^="page-"][data-editing="true"]')).toBeVisible();
-  await expect(page.locator('[data-testid="page-title-input"]')).toBeFocused();
-  
-  // When: 제목 입력 및 Enter
-  await page.fill('[data-testid="page-title-input"]', '새 캠페인 계획');
-  await page.press('[data-testid="page-title-input"]', 'Enter');
-  
-  // Then: 제목이 업데이트되어야 함
-  await expect(page.locator('text=새 캠페인 계획')).toBeVisible();
-  
-  // And: 메인 영역에 새 페이지가 로드되어야 함
-  await expect(page.locator('[data-testid="page-title"]')).toContainText('새 캠페인 계획');
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
-
----
-
-#### E2E Test 10: 페이지 드래그 앤 드롭 이동
-```typescript
-test('[Scenario 4-2] 멤버가 페이지를 드래그하여 다른 위치로 이동', async ({ page }) => {
-  // Given: Workspace 멤버로 로그인 및 페이지 있음
-  await loginAsMember('member@test.com', 'password123');
-  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
-  
-  // When: 페이지를 드래그하여 다른 페이지 하위로 이동
-  await page.dragAndDrop(
-    '[data-testid="page-item-page2"]',
-    '[data-testid="page-drop-zone-page3"]'
-  );
-  
-  // Then: 페이지가 새 위치로 이동되어야 함 (낙관적 업데이트)
-  const page2Parent = page.locator('[data-testid="page-item-page2"]').locator('..');
-  await expect(page2Parent).toHaveAttribute('data-parent-id', 'page3');
-  
-  // And: 계층 구조가 시각적으로 업데이트되어야 함 (들여쓰기)
-  await expect(page.locator('[data-testid="page-item-page2"]')).toHaveCSS('padding-left', /16px|1rem/);
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
-
----
-
-#### E2E Test 11: 순환 참조 이동 실패
-```typescript
-test('[Scenario 4-3] 순환 참조 발생 시 이동 실패 및 복원', async ({ page }) => {
-  // Given: Workspace 멤버로 로그인 및 계층 구조 있음
-  await loginAsMember('member@test.com', 'password123');
-  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
-  
-  // When: 부모 페이지를 자신의 하위 페이지 아래로 이동 시도
-  await page.dragAndDrop(
-    '[data-testid="page-item-parent"]',
-    '[data-testid="page-drop-zone-child"]'
-  );
-  
-  // Then: 에러 Toast가 표시되어야 함
-  await expect(page.locator('text=페이지를 이동할 수 없습니다')).toBeVisible();
-  
-  // And: 페이지가 원래 위치로 복원되어야 함
-  const parentItem = page.locator('[data-testid="page-item-parent"]');
-  await expect(parentItem).toHaveAttribute('data-parent-id', 'original-parent');
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
-
----
-
-### Scenario 5 E2E 테스트 시나리오
-
-#### E2E Test 12: 즐겨찾기 토글 및 사이드바 업데이트
-```typescript
-test('[Scenario 5-1] 멤버가 페이지를 즐겨찾기에 추가 및 제거', async ({ page }) => {
-  // Given: Workspace 멤버로 로그인
-  await loginAsMember('member@test.com', 'password123');
-  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
-  
-  // When: 페이지 헤더의 별 아이콘 클릭 (추가)
-  await page.click('[data-testid="page-favorite-icon"]');
-  
-  // Then: 별 아이콘이 채워진 상태로 변경되어야 함 (⭐)
-  await expect(page.locator('[data-testid="page-favorite-icon"]')).toHaveAttribute('data-favorited', 'true');
-  
-  // And: 사이드바 즐겨찾기 섹션에 페이지가 추가되어야 함
-  await expect(page.locator('[data-testid="favorites-section"]').locator('text=page1 제목')).toBeVisible();
-  
-  // When: 다시 별 아이콘 클릭 (제거)
-  await page.click('[data-testid="page-favorite-icon"]');
-  
-  // Then: 별 아이콘이 빈 상태로 변경되어야 함 (☆)
-  await expect(page.locator('[data-testid="page-favorite-icon"]')).toHaveAttribute('data-favorited', 'false');
-  
-  // And: 사이드바 즐겨찾기 섹션에서 페이지가 제거되어야 함
-  await expect(page.locator('[data-testid="favorites-section"]').locator('text=page1 제목')).not.toBeVisible();
-})
-```
-
-**테스트 우선순위**: ⭐️⭐️⭐️⭐️
-
----
-
 ## 📈 커버리지 목표 및 TDD 사이클
 
 > **가이드 참조**: Phase 3.5 - 커버리지 목표 및 TDD 사이클 작성
@@ -1309,6 +923,26 @@ async move(pageId: string, newParentId: string): Promise<void> {
 - [Software Design 문서](./03-software-design.md)
 - Organization Management Domain:
   - [Testing Strategy](../organization-management-domain/04-testing-strategy.md) - 참고 패턴
+
+---
+
+## 📋 문서 변경 이력
+
+### v1.1 (2025-10-12)
+- Scenario 3 테스트 케이스 확장:
+  - 조직 멤버 검색 통합 테스트 추가
+  - searchOrganizationMembersAction() 테스트 추가
+  - getWorkspaceMembersAction() 테스트 추가
+  - E2E 테스트 상세화:
+    - 멤버 검색 및 상태 플래그 확인 (이미 멤버/초대 중/선택 가능)
+    - 선택된 멤버 Badge 표시 확인
+
+### v1.0 (2025-10-11)
+- 초안 작성
+- Scenario 0~5 테스트 전략 정의
+- Unit/Integration/E2E 테스트 케이스 매핑
+- TDD 구현 순서 정의
+- 커버리지 목표 설정 (85% 이상)
 
 ---
 

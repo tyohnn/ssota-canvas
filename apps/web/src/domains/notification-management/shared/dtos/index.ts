@@ -26,3 +26,12 @@ export interface CreateInvitationNotificationRequest {
   inviterName: string;
   role: string;
 }
+
+export interface CreateWorkspaceInvitationNotificationRequest {
+  userId: string;
+  workspaceInvitationId: string;
+  workspaceName: string;
+  workspaceDescription: string | null;
+  inviterName: string;
+  organizationName: string;
+}

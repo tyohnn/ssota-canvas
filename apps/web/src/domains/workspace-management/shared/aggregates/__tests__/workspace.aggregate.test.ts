@@ -441,5 +441,308 @@ describe('Workspace Aggregate', () => {
       );
     });
   });
+
+  describe('inviteMember (Command 처리) - Scenario 3', () => {
+    it('조직 Admin + Workspace 멤버가 초대할 수 있어야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+      const invitedUserId = 'user-789';
+      const inviterUserId = createdBy;
+
+      // When
+      const invitation = aggregate.inviteMember(
+        invitedUserId,
+        inviterUserId,
+        true,  // isInviterAdmin
+        true,  // isInviterWorkspaceMember
+        false  // isAlreadyMember
+      );
+
+      // Then
+      expect(invitation).toBeDefined();
+      expect(invitation.invitedUserId).toBe(invitedUserId);
+      expect(invitation.invitedBy).toBe(inviterUserId);
+      expect(invitation.status).toBe('pending');
+    });
+
+    it('조직 Admin이 아니면 초대할 수 없다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+
+      // When & Then
+      expect(() =>
+        aggregate.inviteMember(
+          'user-789',
+          'member-999',
+          false, // isInviterAdmin = false
+          true,
+          false
+        )
+      ).toThrow(WorkspaceManagementError);
+      expect(() =>
+        aggregate.inviteMember(
+          'user-789',
+          'member-999',
+          false,
+          true,
+          false
+        )
+      ).toThrow('권한이 부족합니다');
+    });
+
+    it('Workspace 멤버가 아니면 초대할 수 없다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+
+      // When & Then
+      expect(() =>
+        aggregate.inviteMember(
+          'user-789',
+          'admin-999',
+          true,
+          false, // isInviterWorkspaceMember = false
+          false
+        )
+      ).toThrow(WorkspaceManagementError);
+    });
+
+    it('이미 Workspace 멤버인 경우 예외를 발생시켜야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+
+      // When & Then
+      expect(() =>
+        aggregate.inviteMember(
+          'user-789',
+          createdBy,
+          true,
+          true,
+          true // isAlreadyMember = true
+        )
+      ).toThrow(WorkspaceManagementError);
+      expect(() =>
+        aggregate.inviteMember(
+          'user-789',
+          createdBy,
+          true,
+          true,
+          true
+        )
+      ).toThrow('이미 Workspace 멤버입니다');
+    });
+
+    it('WorkspaceMemberInvitationCreated 이벤트가 발행되어야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+      aggregate.getUncommittedEvents(); // Clear events
+
+      // When
+      aggregate.inviteMember('user-789', createdBy, true, true, false);
+      const events = aggregate.getUncommittedEvents();
+
+      // Then
+      expect(events).toHaveLength(1);
+      expect(events[0]!.type).toBe('WorkspaceMemberInvitationCreated');
+    });
+  });
+
+  describe('acceptInvitation (Command 처리) - Scenario 3', () => {
+    it('초대받은 본인만 수락할 수 있어야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+      const invitationId = '770e8400-e29b-41d4-a716-446655440000';
+      const userId = 'user-789';
+
+      // When
+      aggregate.acceptInvitation(
+        invitationId,
+        userId,
+        true,  // isInvitee
+        false  // isAlreadyProcessed
+      );
+      const events = aggregate.getUncommittedEvents();
+
+      // Then
+      const acceptedEvent = events.find(e => e.type === 'WorkspaceInvitationAccepted');
+      expect(acceptedEvent).toBeDefined();
+    });
+
+    it('본인이 아니면 초대를 수락할 수 없다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+
+      // When & Then
+      expect(() =>
+        aggregate.acceptInvitation(
+          '770e8400-e29b-41d4-a716-446655440000',
+          'other-user',
+          false, // isInvitee = false
+          false
+        )
+      ).toThrow(WorkspaceManagementError);
+      expect(() =>
+        aggregate.acceptInvitation(
+          '770e8400-e29b-41d4-a716-446655440000',
+          'other-user',
+          false,
+          false
+        )
+      ).toThrow('본인의 초대만 처리할 수 있습니다');
+    });
+
+    it('이미 처리된 초대는 예외를 발생시켜야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+
+      // When & Then
+      expect(() =>
+        aggregate.acceptInvitation(
+          '770e8400-e29b-41d4-a716-446655440000',
+          'user-789',
+          true,
+          true // isAlreadyProcessed = true
+        )
+      ).toThrow(WorkspaceManagementError);
+      expect(() =>
+        aggregate.acceptInvitation(
+          '770e8400-e29b-41d4-a716-446655440000',
+          'user-789',
+          true,
+          true
+        )
+      ).toThrow('이미 처리된 초대입니다');
+    });
+
+    it('WorkspaceInvitationAccepted, MemberAddedToWorkspace 이벤트가 발행되어야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+      aggregate.getUncommittedEvents(); // Clear events
+
+      // When
+      aggregate.acceptInvitation(
+        '770e8400-e29b-41d4-a716-446655440000',
+        'user-789',
+        true,
+        false
+      );
+      const events = aggregate.getUncommittedEvents();
+
+      // Then
+      expect(events.length).toBeGreaterThanOrEqual(2);
+      expect(events.some(e => e.type === 'WorkspaceInvitationAccepted')).toBe(true);
+      expect(events.some(e => e.type === 'MemberAddedToWorkspace')).toBe(true);
+    });
+  });
+
+  describe('rejectInvitation (Command 처리) - Scenario 3', () => {
+    it('초대받은 본인만 거절할 수 있어야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+      const invitationId = '770e8400-e29b-41d4-a716-446655440000';
+      const userId = 'user-789';
+
+      // When
+      aggregate.rejectInvitation(invitationId, userId, true, false);
+      const events = aggregate.getUncommittedEvents();
+
+      // Then
+      const rejectedEvent = events.find(e => e.type === 'WorkspaceInvitationRejected');
+      expect(rejectedEvent).toBeDefined();
+    });
+
+    it('본인이 아니면 초대를 거절할 수 없다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+
+      // When & Then
+      expect(() =>
+        aggregate.rejectInvitation(
+          '770e8400-e29b-41d4-a716-446655440000',
+          'other-user',
+          false, // isInvitee = false
+          false
+        )
+      ).toThrow(WorkspaceManagementError);
+    });
+
+    it('WorkspaceInvitationRejected 이벤트가 발행되어야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+      aggregate.getUncommittedEvents(); // Clear events
+
+      // When
+      aggregate.rejectInvitation(
+        '770e8400-e29b-41d4-a716-446655440000',
+        'user-789',
+        true,
+        false
+      );
+      const events = aggregate.getUncommittedEvents();
+
+      // Then
+      expect(events).toHaveLength(1);
+      expect(events[0]!.type).toBe('WorkspaceInvitationRejected');
+    });
+  });
 });
 

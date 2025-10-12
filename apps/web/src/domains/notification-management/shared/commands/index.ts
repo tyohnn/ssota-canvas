@@ -8,6 +8,15 @@ export interface CreateInvitationNotificationCommand {
   role: string;
 }
 
+export interface CreateWorkspaceInvitationNotificationCommand {
+  userId: string;
+  workspaceInvitationId: string;
+  workspaceName: string;
+  workspaceDescription: string | null;
+  inviterName: string;
+  organizationName: string;
+}
+
 export interface MarkNotificationAsReadCommand {
   notificationId: string;
   userId: string;
