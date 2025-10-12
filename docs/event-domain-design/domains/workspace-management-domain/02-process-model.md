@@ -109,20 +109,17 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - 생성자 ID (조직 소유자)
 
 **System**: Organization-Management - Organization System
-- **서비스 주입**: Workspace Domain의 `WorkspaceService` 주입
-- **동기 처리**: 하나의 트랜잭션 내에서 순차 처리
-- **트랜잭션 경계**: 
-  1. Organization 생성
-  2. → Workspace Service 호출: Default Workspace 생성 (is_default=true, deletable=false)
-  3. → Workspace Service 내부에서 Page Service 호출: Welcome 페이지 생성
-- **재시도 로직**: 
-  - Workspace/Page 생성 실패 시 즉시 재시도 (최대 3회)
-  - 최종 실패 시 전체 트랜잭션 롤백 (Organization 생성도 취소)
-  - 사용자에게 "조직 생성 실패, 다시 시도해주세요" 안내
+- **비즈니스 로직**: 
+  - 조직 생성 시 Default Workspace 자동 생성
+  - Default Workspace는 삭제 불가로 설정
+  - Welcome 페이지를 초기 페이지로 생성
 - **검증 로직**:
-  - 조직 ID 유효성 확인
   - 조직 소유자 권한 확인
   - Default Workspace 중복 방지 (조직당 하나만)
+- **처리 로직**:
+  - Organization 생성 → Default Workspace 생성 → Welcome 페이지 생성 순서로 처리
+  - 생성 실패 시 재시도
+  - 최종 실패 시 Organization 생성 취소 및 사용자에게 안내
 
 **Events**:
 1. Default Workspace가 생성됨 (Default Workspace Created)
@@ -160,26 +157,19 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - 선택한 Page ID
 - Page가 속한 Workspace ID
 
-**System**: (웹) - Frontend + Workspace System (Server Component)
-- **Server Component (데이터 로드)**:
-  1. URL에서 orgId 추출
-  2. 사용자 세션 확인
-  3. Organization Domain API: 사용자가 조직 멤버인지 확인
-     - 멤버 아니면 → 권한 없음 페이지 표시
-  4. 해당 조직의 모든 Workspace 조회 (초대 여부 무관)
-  5. 각 Workspace의 Page 트리 조회
-  6. 쿠키에서 최근 방문 Page ID 읽기
-  7. 최근 방문 Page 유효성 검증 (존재 여부, 조직 일치)
-     - 유효하지 않으면 → Default Workspace의 첫 번째 Page로 Fallback
-  8. 데이터 반환: Workspace-Page 목록 + 자동 선택할 Page ID
-- **Frontend (페이지 선택 및 권한 체크)**:
-  1. Workspace-Page 트리 렌더링
-  2. 자동 선택된 페이지로 라우팅 (쿠키 또는 Fallback)
-  3. **사용자가 다른 페이지 클릭 시**:
-     - 클릭한 페이지의 URL 생성: `/r/[orgId]/workspace/[workspaceId]/page/[pageId]`
-     - 현재 Workspace가 아닌 다른 Workspace의 페이지여도 이동 가능
-     - Server Component에서 권한 체크 (다음 시퀀스)
-  4. 쿠키에 선택한 페이지 ID 저장 (최근 방문)
+**System**: Workspace System
+- **비즈니스 로직**:
+  - 조직 멤버는 모든 Workspace-Page 목록 조회 가능
+  - 최근 방문한 페이지를 기억하여 자동 선택
+  - 최근 방문 페이지가 없거나 유효하지 않으면 Default Workspace의 첫 페이지로 안내
+- **검증 로직**:
+  - 조직 멤버십 확인 (멤버 아니면 권한 없음 표시)
+  - 최근 방문 페이지 유효성 확인 (존재 여부, 조직 일치)
+- **처리 로직**:
+  - 조직의 모든 Workspace 조회
+  - 각 Workspace의 Page 트리 조회
+  - 최근 방문 페이지 또는 Fallback 페이지로 자동 이동
+  - 사용자가 페이지 선택 시 해당 페이지로 이동 및 기억
 
 **Events**:
 1. 조직 Workspace-Page 목록이 로드됨 (Organization Workspace-Page List Loaded)
@@ -211,24 +201,20 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - Organization ID
 - 사용자 ID (세션에서)
 
-**System**: Workspace System (Server Component)
-- **권한 검증 로직** (Server Component 최상단):
-  1. URL에서 orgId, workspaceId, pageId 추출
-  2. 사용자 세션 확인
-  3. Organization Domain API: 사용자가 조직 멤버인지 확인
-     - 조직 멤버 아니면 → 403 Forbidden
-  4. **Workspace 멤버십 확인**:
-     - Default Workspace인 경우 → 조직 멤버이면 자동 허용
-     - 일반 Workspace인 경우 → Workspace 멤버십 테이블 조회
-       - 초대받지 않았으면 → **권한 없음 페이지 표시**
-  5. 페이지가 해당 Workspace에 속하는지 확인
-     - 다른 Workspace 페이지면 → 400 Bad Request
-  6. 권한 통과 시 → 페이지 상세 데이터 로드
-  7. 세션 기간 동안 권한 정보 캐싱
-- **에러 처리**:
-  - 조직 멤버 아님 → 403 Forbidden
-  - Workspace 초대 안됨 → 권한 없음 페이지 표시
-  - 페이지 없음 → 404 Not Found
+**System**: Workspace System
+- **비즈니스 로직**:
+  - Default Workspace는 조직 멤버 자동 접근
+  - 일반 Workspace는 초대받은 멤버만 접근
+  - 페이지는 소속 Workspace 멤버만 조회 가능
+- **검증 로직**:
+  - 조직 멤버십 확인
+  - Workspace 멤버십 확인 (Default는 자동 통과)
+  - 페이지가 해당 Workspace에 속하는지 확인
+- **처리 로직**:
+  - 권한 있으면 페이지 상세 정보 로드
+  - 조직 멤버 아니면 접근 거부
+  - Workspace 초대 안 받았으면 권한 없음 안내
+  - 페이지 없으면 오류 표시
 
 **Events**:
 1. 사용자 페이지 접근 권한이 검증됨 (User Page Access Verified) - 성공 시
@@ -247,7 +233,7 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 👤 조직 소유자: "팀별로 작업 공간을 분리하고 싶어서 새 Workspace를 만들고 싶어"
 ```
 
-**Policy**: "Whenever 새 Workspace 만들기 클릭됨, then always 조직 소유자 권한 확인하기"
+**Policy**: "Whenever 새 Workspace 만들기 클릭됨, then always 생성 폼 보여주기"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
 - Workspace 생성 폼
@@ -263,28 +249,22 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - Workspace 아이콘 (선택, 이모지 또는 이미지 URL)
 - 조직 ID
 
-**System**: Workspace System (Server Action) + Frontend
-- **권한 검증** (Server Action 최상단):
-  1. 사용자 세션 확인
-  2. Organization Domain API 호출: 사용자가 조직 소유자인지 확인
-  3. 조직 소유자가 아니면 → 403 Forbidden, "권한이 없습니다" 에러
-- **입력 검증**:
-  - Workspace 이름: 빈 문자열 불가, 1-100자
-  - Workspace 설명: 최대 500자
-  - Workspace 아이콘: 유효한 이모지 또는 URL
-  - 조직 ID: 유효한 조직인지 확인
-- **Workspace 생성 로직** (트랜잭션):
-  1. Workspace 레코드 생성 (is_default=false, deletable=true)
-  2. 조직 소유자를 Workspace 멤버로 자동 추가 (역할: Owner)
-  3. Page Service 호출: 초기 "Untitled" 페이지 생성
-  4. 트랜잭션 커밋
-  5. 생성된 Workspace ID와 Page ID 반환
-- **Frontend 처리** (Server Action 성공 후):
-  1. 라우팅: `/r/[orgId]/workspace/[workspaceId]/page/[pageId]` (생성된 첫 페이지)
-  2. 쿠키 업데이트: 최근 방문 페이지 ID 저장
-  3. 성공 메시지 표시: "Workspace가 생성되었습니다" 토스트
-- **에러 처리**:
-  - 생성 실패 시 롤백 및 에러 메시지 반환
+**System**: Workspace System
+- **비즈니스 로직**:
+  - 조직 소유자만 Workspace 생성 가능
+  - Workspace 생성 시 조직 소유자를 멤버로 자동 추가
+  - 초기 "Untitled" 페이지 자동 생성
+  - 생성 후 첫 페이지로 자동 이동
+- **검증 로직**:
+  - 조직 소유자 권한 확인 (아니면 권한 없음 에러)
+  - Workspace 이름 입력 확인
+  - 조직 유효성 확인
+- **처리 로직**:
+  - Workspace 생성 (일반 Workspace, 삭제 가능)
+  - 생성자를 멤버로 추가
+  - 초기 페이지 생성
+  - 생성된 첫 페이지로 이동 및 기억
+  - 성공 메시지 표시
 
 **Events**:
 1. 새 Workspace가 생성됨 (New Workspace Created)
@@ -292,6 +272,56 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 3. 조직 소유자가 Workspace 멤버로 추가됨 (Organization Owner Added to Workspace)
 4. 생성된 페이지로 이동됨 (Navigated to New Page)
 5. 최근 방문 페이지가 쿠키에 저장됨 (Recent Page Saved to Cookie)
+
+---
+
+### Sequence 2: Workspace 멤버가 Workspace 이름, 설명, 아이콘 수정
+
+**Trigger Event**: Workspace 멤버가 Workspace 설정 메뉴 클릭
+
+```
+👤 Workspace 멤버: "Workspace 정보를 업데이트해서 더 명확하게 표현하고 싶어"
+```
+
+**Policy**: "Whenever Workspace 설정 메뉴 클릭됨, then always Workspace 정보 수정 폼 보여주기"
+
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 현재 Workspace 정보 표시
+  - 현재 이름 (편집 가능)
+  - 현재 설명 (편집 가능)
+  - 현재 아이콘 (편집 가능)
+- Workspace 정보 입력 필드
+  - Workspace 이름 입력 (필수)
+  - Workspace 설명 입력 (선택)
+  - Workspace 아이콘 선택 (선택, 이모지 피커)
+- *UI Hint: 설정 모달 또는 인라인 편집*
+
+**Command**: Workspace 정보 수정 요청
+- 새 Workspace 이름 (선택)
+- 새 Workspace 설명 (선택)
+- 새 Workspace 아이콘 (선택)
+- 수정 확인
+
+**System**: Workspace System
+- **비즈니스 로직**:
+  - Workspace 멤버만 정보 수정 가능
+  - 이름, 설명, 아이콘 개별 또는 동시 수정 가능
+  - Default Workspace도 수정 가능 (삭제만 불가)
+- **검증 로직**:
+  - Workspace 멤버십 확인
+  - Workspace 유효성 확인
+  - 이름 입력 확인 (빈 문자열 불가)
+- **처리 로직**:
+  - 이름 수정 시 이름 업데이트
+  - 설명 수정 시 설명 업데이트
+  - 아이콘 수정 시 아이콘 업데이트
+  - 수정 시간 자동 갱신
+  - 수정 실패 시 에러 표시
+
+**Events**:
+1. Workspace 이름이 변경됨 (Workspace Name Changed) - 이름 수정 시
+2. Workspace 설명이 변경됨 (Workspace Description Changed) - 설명 수정 시
+3. Workspace 아이콘이 변경됨 (Workspace Icon Changed) - 아이콘 수정 시
 
 ---
 
@@ -305,44 +335,41 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 👤 Admin: "팀 멤버들을 이 Workspace에 초대해서 함께 작업하고 싶어"
 ```
 
-**Policy**: "Whenever 멤버 초대 버튼 클릭됨, then always Admin 권한 확인하기"
+**Policy**: "Whenever 멤버 초대 버튼 클릭됨, then always 초대 가능한 조직 멤버 목록 보여주기"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 조직 멤버 목록 (Organization Domain에서 조회)
-  - 멤버 이름, 이메일, 현재 역할
+- 현재 Workspace 멤버 목록 (이름, 이메일, 가입일)
+- 멤버 초대 입력 필드:
+  - 이메일 주소 입력 (자동 검색 기능)
+  - 조직 멤버 검색 결과 표시
   - 이미 Workspace 멤버인 경우: "이미 멤버입니다" 표시 (선택 불가)
-  - Workspace 멤버가 아닌 경우: 체크박스 활성화
 - 초대 대상 선택 (다중 선택 가능)
-- 권한 안내: "조직 Admin 또는 Workspace Admin만 멤버를 초대할 수 있습니다"
-- *UI Hint: 모달 또는 사이드 패널, 멤버 선택 체크박스 목록*
+- 권한 안내: "조직 Admin이면서 Workspace 멤버만 초대할 수 있습니다"
+- *UI Hint: 모달 또는 사이드 패널, 이메일 검색 + 멤버 선택 목록*
 
 **Command**: Workspace 멤버 초대 요청
-- Workspace ID
-- 초대할 멤버 ID 목록 (다중 선택)
-- 초대 메시지 (선택, 최대 200자)
+- 초대할 멤버 이메일 입력 또는 선택 (다중 선택)
+- 초대 확인
 
-**System**: Workspace System (Server Action)
-- **권한 검증** (Server Action 최상단):
-  1. 사용자 세션 확인
-  2. Organization Domain API 호출: 사용자가 조직 Admin인지 확인
-  3. Workspace 멤버십 확인: 사용자가 이 Workspace의 멤버인지 확인
-  4. 권한 없으면 → 403 Forbidden
-- **입력 검증**:
-  - Workspace ID: 유효한 Workspace인지 확인
-  - 초대 대상: 모두 조직 멤버인지 확인
-  - 중복 체크: 이미 Workspace 멤버인 사용자 제외
-  - 초대 메시지: 최대 200자
-- **초대 생성 로직** (트랜잭션):
-  1. 각 대상에 대해 Workspace 초대 레코드 생성 (status: pending)
-  2. Notification Service 주입: 각 대상에게 초대 알림 생성
-  3. 트랜잭션 커밋
-- **에러 처리**:
-  - Notification 생성 실패 시 전체 롤백
-  - 일부 대상 초대 실패 시 성공한 것만 처리 (부분 성공)
+**System**: Workspace System
+- **비즈니스 로직**:
+  - 조직 Admin이면서 Workspace 멤버만 다른 조직 멤버를 초대 가능
+  - 이메일로 조직 멤버 검색 (프로필 조회)
+  - 초대와 알림 생성은 함께 처리 (동기)
+  - 이미 Workspace 멤버인 경우 초대 불가
+- **검증 로직**:
+  - 조직 Admin 권한 확인
+  - Workspace 멤버십 확인
+  - 이메일로 사용자 검색 및 조직 멤버 확인
+  - 중복 초대 방지 (이미 멤버인 경우 제외)
+- **처리 로직**:
+  - 각 대상에게 초대 생성
+  - Notification Domain 통합: 각 대상에게 알림 발송
+  - 초대 또는 알림 생성 실패 시 전체 취소
 
 **Events**:
-1. Workspace 멤버 초대가 요청됨 (Workspace Member Invitation Requested)
-2. Workspace 초대 알림이 생성됨 (Workspace Invitation Notification Created, Notification Domain 통합)
+1. Workspace 멤버 초대가 생성됨 (Workspace Member Invitation Created)
+2. 초대 알림이 발송됨 (Invitation Notification Sent, Notification Domain 통합)
 
 ---
 
@@ -359,38 +386,36 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
 - 초대 정보
   - Workspace 이름, 아이콘, 설명
-  - 초대한 사람 (Admin 이름)
-  - 초대 메시지 (있는 경우)
+  - 초대한 사람 이름
   - 조직 정보
-- 수락/거절 버튼
+- 수락/거절 선택
 - *UI Hint: 알림 상세 모달 또는 전용 페이지*
 
 **Command**: 초대 수락 또는 거절
-- 초대 ID
-- 수락 여부 (true/false)
+- 수락 또는 거절 선택
+- 선택 확인
 
-**System**: Workspace System (Server Action)
-- **권한 검증**:
-  1. 사용자 세션 확인
-  2. 초대 대상이 현재 사용자인지 확인
-  3. 초대 상태가 pending인지 확인 (이미 처리된 초대는 불가)
-- **수락 처리 로직** (트랜잭션):
-  1. 초대 상태 업데이트: pending → accepted
-  2. Workspace 멤버십 레코드 생성 (역할: Member)
-  3. Notification Service 주입: 알림 상태 업데이트 (읽음 처리)
-  4. 트랜잭션 커밋
-- **거절 처리 로직** (트랜잭션):
-  1. 초대 상태 업데이트: pending → rejected
-  2. Notification Service 주입: 알림 상태 업데이트 (읽음 처리)
-  3. 트랜잭션 커밋
-- **에러 처리**:
-  - 이미 처리된 초대: "이미 처리된 초대입니다" 에러
-  - Notification 업데이트 실패 시 전체 롤백
+**System**: Workspace System
+- **비즈니스 로직**:
+  - 초대받은 본인만 수락/거절 가능
+  - 수락 시 Workspace 멤버로 추가
+  - 거절 시 초대만 종료
+  - 초대 처리와 알림 업데이트는 함께 처리 (동기)
+  - 수락/거절 후 현재 페이지 유지 (이동 없음)
+- **검증 로직**:
+  - 초대 대상이 본인인지 확인
+  - 이미 처리된 초대인지 확인
+- **처리 로직**:
+  - **수락 시**: 초대 완료 → Workspace 멤버로 추가 → 알림 업데이트
+  - **거절 시**: 초대 종료 → 알림 업데이트
+  - Notification Domain 통합: 알림 상태 업데이트
+  - 알림 업데이트 실패 시 전체 취소
 
 **Events**:
 1. Workspace 초대가 수락됨 (Workspace Invitation Accepted) - 수락 시
 2. 멤버가 Workspace에 추가됨 (Member Added to Workspace) - 수락 시
 3. Workspace 초대가 거절됨 (Workspace Invitation Rejected) - 거절 시
+4. 알림이 업데이트됨 (Notification Updated, Notification Domain 통합)
 
 ---
 
@@ -404,7 +429,7 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 👤 멤버: "새로운 작업을 시작하려고 하는데 빈 페이지를 만들고 싶어"
 ```
 
-**Policy**: "Whenever 새 페이지 만들기 클릭됨, then always Workspace 멤버 권한 확인하기"
+**Policy**: "Whenever 새 페이지 만들기 클릭됨, then always 페이지 생성 위치 선택 보여주기"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
 - 페이지 생성 위치 선택
@@ -415,39 +440,28 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - *UI Hint: 인라인 생성 또는 간단한 폼*
 
 **Command**: 페이지 생성 요청
-- Workspace ID
-- 부모 페이지 ID (선택, null이면 최상위)
-- 페이지 제목 (기본값: "Untitled")
-- 페이지 아이콘 (선택, 기본값 제공)
+- 생성 위치 선택 (최상위 또는 특정 페이지 하위)
+- 페이지 생성 확인
 
-**System**: Page System (Server Action)
-- **권한 검증**:
-  1. 사용자 세션 확인
-  2. Workspace 멤버십 확인 (Scenario 1의 검증 로직 재사용)
-  3. 멤버가 아니면 → 403 Forbidden
-- **입력 검증**:
-  - Workspace ID: 유효한 Workspace인지 확인
-  - 부모 페이지 ID: 같은 Workspace에 속하는지 확인
-  - 페이지 제목: 최대 200자
-- **페이지 생성 로직**:
-  1. Page 레코드 생성
-     - workspace_id: Workspace ID
-     - parent_id: 부모 페이지 ID (null이면 최상위)
-     - title: "Untitled"
-     - icon: 기본 아이콘
-     - order: 같은 레벨 내 마지막 순서 + 1
-     - created_by: 현재 사용자 ID
-  2. 빈 캔버스 초기화 (Block System 미구현, 빈 상태로만 생성)
-  3. Breadcrumb 경로 계산 및 저장 (Materialized Path 패턴)
-  4. 트랜잭션 커밋
-- **에러 처리**:
-  - 부모 페이지가 삭제된 경우: "유효하지 않은 부모 페이지입니다" 에러
-  - 생성 실패 시 롤백
+**System**: Page System
+- **비즈니스 로직**:
+  - Workspace 멤버만 페이지 생성 가능
+  - 최상위 또는 특정 페이지의 하위로 생성
+  - 기본 제목 "Untitled", 기본 아이콘 📄 자동 설정
+  - 빈 캔버스로 초기화 (Block System 미구현)
+- **검증 로직**:
+  - Workspace 멤버십 확인
+  - 부모 페이지가 같은 Workspace에 속하는지 확인
+  - 부모 페이지가 삭제되지 않았는지 확인
+- **처리 로직**:
+  - 페이지 생성
+  - 같은 레벨 내 순서 자동 배정
+  - 계층 구조 자동 관리
+  - 생성 실패 시 에러 표시
 
 **Events**:
 1. 새 페이지가 생성됨 (New Page Created)
 2. 빈 캔버스가 초기화됨 (Empty Canvas Initialized, Block System 미구현)
-3. 페이지 경로가 업데이트됨 (Page Path Updated)
 
 ---
 
@@ -459,7 +473,7 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 👤 멤버: "페이지 구조를 정리하고 싶어서 페이지를 다른 위치로 옮기고 싶어"
 ```
 
-**Policy**: "Whenever 페이지 이동 시작됨, then always 순환 참조 방지 확인하기"
+**Policy**: "Whenever 페이지 이동 시작됨, then always 이동 가능 여부 확인하기"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
 - 페이지 계층 구조 (트리 형태)
@@ -468,38 +482,31 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - *UI Hint: 드래그 앤 드롭 인터랙션, 드롭 가능 영역 하이라이트*
 
 **Command**: 페이지 이동 요청
-- 이동할 페이지 ID
-- 새 부모 페이지 ID (null이면 최상위)
-- 새 순서 (같은 레벨 내 위치)
+- 이동할 페이지 선택
+- 새 위치 선택 (최상위 또는 다른 페이지 하위)
+- 이동 확인
 
-**System**: Page System (Server Action)
-- **권한 검증**:
-  1. 사용자 세션 확인
-  2. Workspace 멤버십 확인
-  3. 멤버가 아니면 → 403 Forbidden
-- **입력 검증**:
-  - 페이지 ID: 유효한 페이지인지 확인
-  - 새 부모 페이지 ID: 같은 Workspace에 속하는지 확인
-  - **순환 참조 방지**: 
-    - 새 부모가 이동할 페이지의 하위가 아닌지 확인
-    - Materialized Path로 ancestor 체크
-    - 순환 참조 발견 시 → 400 Bad Request, "순환 참조가 발생합니다" 에러
-- **페이지 이동 로직** (트랜잭션):
-  1. 페이지 parent_id 업데이트
-  2. 페이지 order 업데이트 (새 위치)
-  3. 같은 레벨의 다른 페이지들 order 재정렬
-  4. Breadcrumb 경로 재계산 (Materialized Path 업데이트)
-  5. 하위 페이지들의 경로도 재귀적으로 업데이트
-  6. 트랜잭션 커밋
-- **에러 처리**:
-  - 순환 참조: "순환 참조가 발생합니다" (허용하지 않음)
-  - 이동 실패 시 롤백
+**System**: Page System
+- **비즈니스 로직**:
+  - Workspace 멤버만 페이지 이동 가능
+  - 페이지를 최상위 또는 다른 페이지 하위로 이동
+  - 순환 참조 가능 (자기 자신의 하위로는 이동 가능)
+  - 같은 레벨 내 순서 자동 재정렬
+  - 하위 페이지들도 함께 이동
+- **검증 로직**:
+  - Workspace 멤버십 확인
+  - 새 부모 페이지가 같은 Workspace에 속하는지 확인
+  - 순환 참조 방지 (새 부모가 이동할 페이지의 하위가 아닌지 확인)
+- **처리 로직**:
+  - 부모 페이지 변경
+  - 같은 레벨 내 순서 재정렬
+  - 계층 구조 자동 업데이트
+  - 순환 참조 발견 시 이동 거부 및 에러 표시
 
 **Events**:
 1. 페이지가 다른 페이지의 하위로 이동됨 (Page Moved to Child) - 부모 변경 시
 2. 페이지가 최상위로 이동됨 (Page Moved to Root) - 최상위로 이동 시
 3. 페이지 순서가 변경됨 (Page Order Changed)
-4. 페이지 경로가 업데이트됨 (Page Path Updated)
 
 ---
 
@@ -520,27 +527,24 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - *UI Hint: 인라인 편집, 이모지 피커*
 
 **Command**: 페이지 정보 수정 요청
-- 페이지 ID
-- 새 제목 (선택, 최대 200자)
-- 새 아이콘 (선택, 이모지 또는 이미지 URL)
+- 새 제목 입력 (선택)
+- 새 아이콘 선택 (선택)
+- 수정 확인
 
-**System**: Page System (Server Action)
-- **권한 검증**:
-  1. 사용자 세션 확인
-  2. Workspace 멤버십 확인
-  3. 멤버가 아니면 → 403 Forbidden
-- **입력 검증**:
-  - 페이지 ID: 유효한 페이지인지 확인
-  - 새 제목: 빈 문자열 불가, 최대 200자
-  - 새 아이콘: 유효한 이모지 또는 URL
-- **수정 로직**:
-  1. 제목 수정 시 → title 필드 업데이트
-  2. 아이콘 수정 시 → icon 필드 업데이트
-  3. updated_at 타임스탬프 갱신
-  4. 트랜잭션 커밋
-- **에러 처리**:
-  - 빈 제목: "제목은 필수입니다" 에러
-  - 수정 실패 시 롤백
+**System**: Page System
+- **비즈니스 로직**:
+  - Workspace 멤버만 페이지 수정 가능
+  - 제목과 아이콘 개별 또는 동시 수정 가능
+  - 제목은 빈 값 불가
+- **검증 로직**:
+  - Workspace 멤버십 확인
+  - 페이지 유효성 확인
+  - 제목 입력 확인 (빈 문자열 불가)
+- **처리 로직**:
+  - 제목 수정 시 제목 업데이트
+  - 아이콘 수정 시 아이콘 업데이트
+  - 수정 시간 자동 갱신
+  - 수정 실패 시 에러 표시
 
 **Events**:
 1. 페이지 제목이 설정됨 (Page Title Set) - 제목 수정 시
@@ -548,7 +552,9 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 
 ---
 
-### Sequence 4: 멤버가 페이지를 즐겨찾기에 추가/제거
+## 📍 Scenario 5: 멤버가 페이지를 즐겨찾기에 추가/제거
+
+### Sequence 1: 멤버가 페이지 즐겨찾기 토글
 
 **Trigger Event**: 멤버가 페이지 즐겨찾기 아이콘 클릭
 
@@ -556,33 +562,31 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 👤 멤버: "자주 사용하는 페이지를 즐겨찾기에 추가해서 빠르게 접근하고 싶어"
 ```
 
-**Policy**: "Whenever 즐겨찾기 아이콘 클릭됨, then always 현재 즐겨찾기 상태 토글하기"
+**Policy**: "Whenever 즐겨찾기 아이콘 클릭됨, then always 즐겨찾기 상태 토글하기"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 페이지 즐겨찾기 상태 (별 아이콘 색상으로 표시)
+- 페이지 즐겨찾기 상태 표시
   - 즐겨찾기 추가됨: ⭐ (노란색)
   - 즐겨찾기 없음: ☆ (회색)
 - 즐겨찾기 페이지 목록 (사이드바 상단)
 - *UI Hint: 별 아이콘, 즐겨찾기 섹션*
 
 **Command**: 즐겨찾기 토글 요청
-- 페이지 ID
-- 현재 즐겨찾기 상태 (추가/제거)
+- 페이지 선택
+- 즐겨찾기 추가 또는 제거
 
-**System**: Page System (Server Action)
-- **권한 검증**:
-  1. 사용자 세션 확인
-  2. Workspace 멤버십 확인
-  3. 멤버가 아니면 → 403 Forbidden
-- **입력 검증**:
-  - 페이지 ID: 유효한 페이지인지 확인
-- **즐겨찾기 토글 로직**:
-  1. 사용자별 즐겨찾기 레코드 조회 (user_id + page_id)
-  2. 레코드 존재 → 삭제 (즐겨찾기 제거)
-  3. 레코드 없음 → 생성 (즐겨찾기 추가)
-  4. 트랜잭션 커밋
-- **에러 처리**:
-  - 토글 실패 시 롤백
+**System**: Page System
+- **비즈니스 로직**:
+  - Workspace 멤버만 즐겨찾기 관리 가능
+  - 즐겨찾기는 개인별로 관리 (다른 멤버와 공유되지 않음)
+  - 이미 즐겨찾기면 제거, 아니면 추가 (토글)
+- **검증 로직**:
+  - Workspace 멤버십 확인
+  - 페이지 유효성 확인
+- **처리 로직**:
+  - 현재 즐겨찾기 상태 확인
+  - 즐겨찾기 추가 또는 제거
+  - 사이드바 즐겨찾기 목록 자동 갱신
 
 **Events**:
 1. 페이지가 즐겨찾기에 추가됨 (Page Added to Favorites) - 추가 시
@@ -590,7 +594,7 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 
 ---
 
-## 📍 Scenario 5: 멤버가 Page 복제 (Post-MVP, Block System 통합 후)
+## 📍 Scenario 6: 멤버가 Page 복제 (Post-MVP, Block System 통합 후)
 
 ### Sequence 1: 멤버가 페이지 복제 시작
 
@@ -649,7 +653,7 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 
 ---
 
-## 📍 Scenario 6: 멤버가 Page 삭제 및 복구
+## 📍 Scenario 7: 멤버가 Page 삭제 및 복구
 
 ### Sequence 1: 멤버가 페이지 삭제 (휴지통으로 이동)
 
@@ -669,29 +673,27 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - *UI Hint: 확인 다이얼로그, 경고 메시지*
 
 **Command**: 페이지 삭제 요청
-- 페이지 ID
+- 페이지 선택
 - 삭제 확인
 
-**System**: Page System (Server Action)
-- **권한 검증**:
-  1. 사용자 세션 확인
-  2. Workspace 멤버십 확인
-  3. 멤버가 아니면 → 403 Forbidden
-- **입력 검증**:
-  - 페이지 ID: 유효한 페이지인지 확인
+**System**: Page System
+- **비즈니스 로직**:
+  - Workspace 멤버만 페이지 삭제 가능
+  - 삭제 시 휴지통으로 이동 (30일 보관)
+  - 하위 페이지들도 함께 삭제
+  - 삭제 전 위치 정보 기억 (복구 시 사용)
+- **검증 로직**:
+  - Workspace 멤버십 확인
+  - 페이지 유효성 확인
   - 이미 삭제된 페이지인지 확인
-- **소프트 삭제 로직** (트랜잭션):
-  1. 페이지 deleted_at 타임스탬프 설정 (현재 시간)
-  2. 하위 페이지들 재귀적으로 deleted_at 설정 (계층 구조 유지)
-  3. 삭제 전 부모 정보 백업 (복구 시 사용)
-  4. 트랜잭션 커밋
-- **에러 처리**:
-  - 삭제 실패 시 롤백
+- **처리 로직**:
+  - 페이지를 휴지통으로 이동
+  - 하위 페이지들도 함께 이동 (계층 구조 유지)
+  - 삭제 실패 시 에러 표시
 
 **Events**:
-1. 페이지 삭제가 요청됨 (Page Deletion Requested)
-2. 페이지가 휴지통으로 이동됨 (Page Moved to Trash)
-3. 하위 페이지들이 함께 휴지통으로 이동됨 (Child Pages Moved to Trash Together) - 하위 페이지 있는 경우
+1. 페이지가 휴지통으로 이동됨 (Page Moved to Trash)
+2. 하위 페이지들이 함께 휴지통으로 이동됨 (Child Pages Moved to Trash Together) - 하위 페이지 있는 경우
 
 ---
 
@@ -716,35 +718,30 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - *UI Hint: 휴지통 목록, 복구 버튼*
 
 **Command**: 페이지 복구 요청
-- 페이지 ID
+- 페이지 선택
 - 복구 확인
 
-**System**: Page System (Server Action)
-- **권한 검증**:
-  1. 사용자 세션 확인
-  2. Workspace 멤버십 확인
-  3. 멤버가 아니면 → 403 Forbidden
-- **입력 검증**:
-  - 페이지 ID: 유효한 페이지인지 확인
-  - deleted_at이 설정되어 있는지 확인 (삭제된 페이지만 복구 가능)
-  - 30일 경과 여부 확인 (경과 시 복구 불가)
-- **복구 로직** (트랜잭션):
-  1. 페이지 deleted_at 필드 null로 설정
-  2. 원래 부모 정보 복원 (백업된 parent_id 사용)
-  3. 하위 페이지들 재귀적으로 deleted_at null 설정 (계층 구조 복원)
-  4. Breadcrumb 경로 재계산
-  5. 트랜잭션 커밋
-- **원래 위치 복구 불가 시**:
-  - 원래 부모 페이지가 삭제된 경우 → 최상위로 복구
-  - 사용자에게 "원래 위치로 복구할 수 없어 최상위로 복구되었습니다" 안내
-- **에러 처리**:
-  - 30일 경과: "복구 기간이 만료되었습니다" 에러
-  - 복구 실패 시 롤백
+**System**: Page System
+- **비즈니스 로직**:
+  - Workspace 멤버만 페이지 복구 가능
+  - 30일 이내만 복구 가능
+  - 원래 위치로 복구 (부모 페이지 정보 복원)
+  - 원래 부모가 삭제된 경우 최상위로 복구
+  - 하위 페이지들도 함께 복구
+- **검증 로직**:
+  - Workspace 멤버십 확인
+  - 삭제된 페이지인지 확인
+  - 30일 경과 여부 확인
+- **처리 로직**:
+  - 페이지 복구
+  - 원래 위치 정보 복원
+  - 하위 페이지들도 함께 복구 (계층 구조 복원)
+  - 원래 위치 복구 불가 시 최상위로 복구 및 안내
+  - 30일 경과 시 복구 불가 에러 표시
 
 **Events**:
 1. 페이지가 휴지통에서 복구됨 (Page Restored from Trash)
 2. 하위 페이지들이 함께 복구됨 (Child Pages Restored Together) - 하위 페이지 있는 경우
-3. 페이지 경로가 업데이트됨 (Page Path Updated)
 
 ---
 
@@ -766,26 +763,23 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - *UI Hint: 위험 확인 다이얼로그, 빨간색 버튼*
 
 **Command**: 휴지통 비우기 요청
-- Workspace ID
-- 최종 확인 (텍스트 입력: "CONFIRM")
+- 최종 확인
 
-**System**: Page System (Server Action)
-- **권한 검증**:
-  1. 사용자 세션 확인
-  2. Workspace 멤버십 확인
-  3. 멤버가 아니면 → 403 Forbidden
-- **입력 검증**:
-  - Workspace ID: 유효한 Workspace인지 확인
-  - 최종 확인: "CONFIRM" 텍스트 일치 확인
-- **영구 삭제 로직** (트랜잭션):
-  1. 해당 Workspace의 deleted_at이 설정된 모든 페이지 조회
-  2. 각 페이지에 대해:
-     - Block System 호출: 캔버스 블록 완전 삭제 요청 (미래)
-     - Page 레코드 완전 삭제 (DB에서 제거)
-  3. 트랜잭션 커밋
-- **에러 처리**:
-  - Block 삭제 실패 시에도 Page는 삭제 (Block은 고아 레코드로 남음, 추후 정리)
-  - 삭제 실패 시 롤백
+**System**: Page System
+- **비즈니스 로직**:
+  - Workspace 멤버만 휴지통 비우기 가능
+  - 휴지통의 모든 페이지 완전 삭제 (되돌릴 수 없음)
+  - 캔버스 블록도 함께 삭제 (Block System 통합, 미래)
+  - 최종 확인 필수
+- **검증 로직**:
+  - Workspace 멤버십 확인
+  - Workspace 유효성 확인
+  - 최종 확인 입력 검증
+- **처리 로직**:
+  - 휴지통의 모든 페이지 조회
+  - 각 페이지 완전 삭제 (데이터베이스에서 제거)
+  - Block System 통합: 캔버스 블록 완전 삭제 (미래)
+  - 삭제 실패 시 에러 표시
 
 **Events**:
 1. 휴지통이 비워짐 (Trash Emptied)
@@ -807,25 +801,21 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 > N/A (백그라운드 시스템 작업, 사용자에게 직접 보여지는 정보 없음)
 
 **Command**: 30일 경과 페이지 삭제 (자동 실행)
-- 현재 날짜
-- 삭제 기준: deleted_at < (현재 날짜 - 30일)
+> N/A (시스템 자동 실행, 사용자 입력 없음)
 
-**System**: Page System (Batch Job)
-- **30일 경과 페이지 조회**:
-  - deleted_at < (현재 날짜 - 30일) 조건으로 페이지 조회
+**System**: Page System (배치 작업)
+- **비즈니스 로직**:
+  - 매일 자동으로 30일 경과한 삭제 페이지 완전 삭제
   - 모든 Workspace의 페이지 포함
-- **영구 삭제 로직** (각 페이지별 트랜잭션):
-  1. 페이지 조회
-  2. Block System 호출: 캔버스 블록 완전 삭제 요청 (미래)
-  3. Page 레코드 완전 삭제 (DB에서 제거)
-  4. 트랜잭션 커밋
-  5. 다음 페이지 처리
-- **에러 처리**:
-  - 개별 페이지 삭제 실패 시 로그 기록 후 다음 페이지 계속 처리
-  - Block 삭제 실패 시에도 Page는 삭제
-- **로깅**:
-  - 삭제된 페이지 수 기록
-  - 실패한 페이지 ID 및 에러 로그
+  - 캔버스 블록도 함께 삭제 (Block System 통합, 미래)
+- **검증 로직**:
+  - 30일 경과 여부 확인 (삭제 후 30일 초과)
+- **처리 로직**:
+  - 30일 경과한 페이지 조회
+  - 각 페이지 완전 삭제 (데이터베이스에서 제거)
+  - Block System 통합: 캔버스 블록 완전 삭제 (미래)
+  - 개별 실패 시 다음 페이지 계속 처리
+  - 삭제 결과 로그 기록
 
 **Events**:
 1. 페이지가 완전히 삭제됨 (Page Permanently Deleted) - 각 페이지마다
@@ -833,7 +823,7 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 
 ---
 
-## 📍 Scenario 7: 조직 소유자가 Workspace 삭제 및 복구
+## 📍 Scenario 8: 조직 소유자가 Workspace 삭제 및 복구
 
 ### Sequence 1: 조직 소유자가 Workspace 삭제 (휴지통으로 이동)
 
@@ -854,33 +844,30 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - *UI Hint: 확인 다이얼로그, 위험 경고 메시지*
 
 **Command**: Workspace 삭제 요청
-- Workspace ID
+- Workspace 선택
 - 삭제 확인
 
-**System**: Workspace System (Server Action)
-- **권한 검증**:
-  1. 사용자 세션 확인
-  2. Organization Domain API 호출: 사용자가 조직 소유자인지 확인
-  3. 조직 소유자가 아니면 → 403 Forbidden
-- **입력 검증**:
-  - Workspace ID: 유효한 Workspace인지 확인
-  - **Default Workspace 체크**: is_default 플래그 확인
-    - is_default=true이면 → 400 Bad Request, "기본 워크스페이스는 삭제할 수 없습니다" 에러
+**System**: Workspace System
+- **비즈니스 로직**:
+  - 조직 소유자만 Workspace 삭제 가능
+  - Default Workspace는 삭제 불가
+  - 삭제 시 휴지통으로 이동 (30일 보관)
+  - 모든 페이지도 함께 삭제 (숨김 처리)
+  - 멤버십 정보는 유지 (복구 시 사용)
+- **검증 로직**:
+  - 조직 소유자 권한 확인
+  - Workspace 유효성 확인
+  - Default Workspace 여부 확인 (삭제 불가)
   - 이미 삭제된 Workspace인지 확인
-- **소프트 삭제 로직** (트랜잭션):
-  1. Workspace deleted_at 타임스탬프 설정 (현재 시간)
-  2. 해당 Workspace의 모든 페이지 deleted_at 설정 (숨김 처리)
-  3. 페이지 계층 구조 유지 (복구 시 사용)
-  4. Workspace 멤버십 레코드 유지 (복구 시 사용)
-  5. 트랜잭션 커밋
-- **에러 처리**:
-  - Default Workspace 삭제 시도: "기본 워크스페이스는 삭제할 수 없습니다" 에러
-  - 삭제 실패 시 롤백
+- **처리 로직**:
+  - Workspace를 휴지통으로 이동
+  - 모든 페이지 숨김 (계층 구조 유지)
+  - Default Workspace 삭제 시도 시 거부 및 에러 표시
+  - 삭제 실패 시 에러 표시
 
 **Events**:
-1. Workspace 삭제가 요청됨 (Workspace Deletion Requested)
-2. Workspace가 휴지통으로 이동됨 (Workspace Moved to Trash)
-3. Workspace 내 모든 페이지가 숨겨짐 (All Pages in Workspace Hidden)
+1. Workspace가 휴지통으로 이동됨 (Workspace Moved to Trash)
+2. Workspace 내 모든 페이지가 숨겨짐 (All Pages in Workspace Hidden)
 
 ---
 
@@ -905,27 +892,24 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - *UI Hint: 휴지통 목록, 복구 버튼*
 
 **Command**: Workspace 복구 요청
-- Workspace ID
+- Workspace 선택
 - 복구 확인
 
-**System**: Workspace System (Server Action)
-- **권한 검증**:
-  1. 사용자 세션 확인
-  2. Organization Domain API 호출: 사용자가 조직 소유자인지 확인
-  3. 조직 소유자가 아니면 → 403 Forbidden
-- **입력 검증**:
-  - Workspace ID: 유효한 Workspace인지 확인
-  - deleted_at이 설정되어 있는지 확인 (삭제된 Workspace만 복구 가능)
-  - 30일 경과 여부 확인 (경과 시 복구 불가)
-- **복구 로직** (트랜잭션):
-  1. Workspace deleted_at 필드 null로 설정
-  2. 해당 Workspace의 모든 페이지 deleted_at null 설정 (복원)
-  3. 페이지 계층 구조 복원
-  4. Workspace 멤버십 복원 (이미 유지되어 있음)
-  5. 트랜잭션 커밋
-- **에러 처리**:
-  - 30일 경과: "복구 기간이 만료되었습니다" 에러
-  - 복구 실패 시 롤백
+**System**: Workspace System
+- **비즈니스 로직**:
+  - 조직 소유자만 Workspace 복구 가능
+  - 30일 이내만 복구 가능
+  - 모든 페이지도 함께 복구
+  - 멤버십 정보 자동 복원
+- **검증 로직**:
+  - 조직 소유자 권한 확인
+  - 삭제된 Workspace인지 확인
+  - 30일 경과 여부 확인
+- **처리 로직**:
+  - Workspace 복구
+  - 모든 페이지 복원 (계층 구조 복원)
+  - 멤버십 정보 복원
+  - 30일 경과 시 복구 불가 에러 표시
 
 **Events**:
 1. Workspace가 휴지통에서 복구됨 (Workspace Restored from Trash)
@@ -947,30 +931,24 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 > N/A (백그라운드 시스템 작업, 사용자에게 직접 보여지는 정보 없음)
 
 **Command**: 30일 경과 Workspace 삭제 (자동 실행)
-- 현재 날짜
-- 삭제 기준: deleted_at < (현재 날짜 - 30일)
+> N/A (시스템 자동 실행, 사용자 입력 없음)
 
-**System**: Workspace System (Batch Job)
-- **30일 경과 Workspace 조회**:
-  - deleted_at < (현재 날짜 - 30일) 조건으로 Workspace 조회
+**System**: Workspace System (배치 작업)
+- **비즈니스 로직**:
+  - 매일 자동으로 30일 경과한 삭제 Workspace 완전 삭제
   - 모든 조직의 Workspace 포함
-- **영구 삭제 로직** (각 Workspace별 트랜잭션):
-  1. Workspace 조회
-  2. 해당 Workspace의 모든 페이지 조회
-  3. 각 페이지에 대해:
-     - Block System 호출: 캔버스 블록 완전 삭제 요청 (미래)
-     - Page 레코드 완전 삭제 (DB에서 제거)
-  4. Workspace 멤버십 레코드 완전 삭제
-  5. Workspace 레코드 완전 삭제 (DB에서 제거)
-  6. 트랜잭션 커밋
-  7. 다음 Workspace 처리
-- **에러 처리**:
-  - 개별 Workspace 삭제 실패 시 로그 기록 후 다음 Workspace 계속 처리
-  - Block 삭제 실패 시에도 Page/Workspace는 삭제
-- **로깅**:
-  - 삭제된 Workspace 수 기록
-  - 삭제된 페이지 수 기록
-  - 실패한 Workspace ID 및 에러 로그
+  - 모든 페이지와 캔버스 블록도 함께 삭제
+  - 멤버십 정보도 함께 삭제
+- **검증 로직**:
+  - 30일 경과 여부 확인 (삭제 후 30일 초과)
+- **처리 로직**:
+  - 30일 경과한 Workspace 조회
+  - 각 Workspace의 모든 페이지 완전 삭제
+  - Block System 통합: 캔버스 블록 완전 삭제 (미래)
+  - Workspace 멤버십 정보 삭제
+  - Workspace 완전 삭제 (데이터베이스에서 제거)
+  - 개별 실패 시 다음 Workspace 계속 처리
+  - 삭제 결과 로그 기록
 
 **Events**:
 1. Workspace가 완전히 삭제됨 (Workspace Permanently Deleted) - 각 Workspace마다
@@ -991,8 +969,8 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - "Whenever 쿠키 페이지 유효하지 않음, then always Default Workspace 첫 페이지로 Fallback하기"
 
 ### Page 관련 Policy
-- "Whenever 새 페이지 만들기 클릭됨, then always Workspace 멤버 권한 확인하기"
-- "Whenever 페이지 이동 시작됨, then always 순환 참조 방지 확인하기" (Materialized Path로 ancestor 체크)
+- "Whenever 새 페이지 만들기 클릭됨, then always 페이지 생성 위치 선택 보여주기"
+- "Whenever 페이지 이동 시작됨, then always 이동 가능 여부 확인하기"
 - "Whenever 페이지 삭제 선택됨, then always 하위 페이지 확인하기"
 - "Whenever 페이지 복제 선택됨, then always 하위 페이지는 제외하기"
 
@@ -1002,66 +980,53 @@ Workspace Management Domain은 다음 외부 도메인들과 통합됩니다:
 - "Whenever 초대 알림 확인됨, then always 초대 상세 정보 표시하기"
 
 ### 삭제 및 복구 Policy
-- "Whenever 페이지/Workspace 삭제 선택됨, then always 소프트 삭제로 처리하기" (deleted_at 설정)
+- "Whenever 페이지/Workspace 삭제 선택됨, then always 휴지통으로 이동하기" (30일 보관)
 - "Whenever 삭제된 항목이 30일 경과됨, then always 배치 작업으로 완전 삭제하기"
 - "Whenever 페이지/Workspace 복구 선택됨, then always 30일 경과 여부 확인하기"
 
 ### 권한 및 접근 제어 Policy
-- "Whenever Server Component/Action 진입됨, then always 최상단에서 권한 검증하기"
-- "Whenever 권한 검증 실패됨, then always 403 Forbidden 반환하기"
-- "Whenever Organization Domain API 장애 발생됨, then always 접근 거부하기" (Fail-safe)
+- "Whenever 시스템 진입됨, then always 권한 먼저 검증하기"
+- "Whenever 권한 검증 실패됨, then always 접근 거부하기"
+- "Whenever Organization Domain 장애 발생됨, then always 접근 거부하기" (Fail-safe)
 
 ### External System 통합 Policy
-- "Whenever Workspace 생성 실패됨, then immediately 재시도하기" (최대 3회)
+- "Whenever Workspace 생성 실패됨, then immediately 재시도하기"
 - "Whenever 최종 재시도 실패됨, then always Organization 생성 중단하기"
-- "Whenever Notification 생성 실패됨, then always 전체 트랜잭션 롤백하기"
+- "Whenever Notification 생성 실패됨, then always 전체 작업 취소하기"
 
 ---
 
-## 🔧 기술 권장사항
+## 🔧 구현 권장사항
 
-### 권한 검증 전략
-- **Server Component 최상단**: 페이지 진입 시 권한 검증 (Middleware 역할)
-- **Server Action 최상단**: 모든 Action에서 권한 먼저 검증
-- **Organization Domain API**: 조직 멤버십 및 역할 확인
-- **캐싱**: 세션 기간 동안 권한 정보 캐시 (성능 최적화)
+### 권한 검증
+- 모든 시스템 진입 시 권한 먼저 확인
+- Organization Domain과 통합하여 조직 멤버십 및 역할 확인
+- 권한 정보는 세션 동안 캐시하여 성능 최적화
 
-### 트랜잭션 관리
-- **동기 처리**: Organization → Workspace → Page 생성은 하나의 트랜잭션
-- **서비스 주입**: 도메인 간 서비스 직접 주입 (Workspace Service → Page Service)
-- **실패 재시도**: Workspace/Page 생성 실패 시 즉시 재시도 (최대 3회)
-- **롤백 정책**: 최종 실패 시 전체 트랜잭션 롤백
+### 도메인 간 통합
+- Organization → Workspace → Page 생성은 순차적으로 함께 처리
+- Notification Domain과 동기 통합 (초대와 알림 함께 생성)
+- 외부 도메인 호출 실패 시 전체 작업 취소
 
 ### Page 계층 구조 관리
-- **Materialized Path 패턴** 권장:
-  - 경로를 문자열로 저장 (예: `/1/5/23/45`)
-  - 조회는 빠름 (LIKE 쿼리)
-  - 이동 시 경로 업데이트 필요 (하위 페이지 재귀 업데이트)
-- **순환 참조 방지**: Materialized Path로 ancestor 체크
-- **Breadcrumb**: 경로 문자열로 즉시 계산 가능
+- 페이지는 무한 중첩 가능
+- 순환 참조 허용 (자기 자신의 하위로도 이동 가능)
+- 하위 페이지들도 부모와 함께 이동
 
-### 소프트 삭제 및 배치 작업
-- **소프트 삭제**: deleted_at 타임스탬프만 설정 (즉시 처리)
-- **배치 작업**: 매일 실행, 30일 경과 항목 자동 삭제
-- **스케줄러**: Cron Job 또는 Scheduled Task 사용
-- **로깅**: 삭제 작업 결과 로그 기록
+### 삭제 및 복구
+- 삭제 시 휴지통으로 이동 (30일 보관)
+- 30일 경과 후 자동으로 완전 삭제 (배치 작업)
+- 복구 시 원래 위치로 복원 (불가능하면 최상위)
 
-### 쿠키 관리
-- **최근 방문 페이지**: 브라우저 쿠키에만 저장 (DB 저장 X)
-- **서버 검증**: 쿠키 페이지 ID 유효성 서버에서 확인
-- **Fallback**: 유효하지 않으면 Default Workspace의 첫 번째 페이지로 자동 이동
-- **보안**: HttpOnly, Secure 플래그 설정
-
-### External System 통합
-- **동기 처리**: Organization/Notification Service 주입하여 동기 호출
-- **트랜잭션 경계**: 외부 도메인 호출도 같은 트랜잭션에 포함
-- **실패 처리**: 외부 서비스 실패 시 전체 롤백
+### 최근 방문 페이지 관리
+- 브라우저 쿠키에만 저장 (데이터베이스 저장 안 함)
+- 서버에서 쿠키 유효성 검증
+- 유효하지 않으면 Default Workspace의 첫 페이지로 안내
 
 ### 성능 최적화
-- **권한 캐싱**: 세션 기간 동안 권한 정보 캐시
-- **페이지 목록 로드**: 필요한 데이터만 선택적으로 조회
-- **Lazy Loading**: 하위 페이지는 필요할 때만 로드 (선택사항)
-- **Materialized Path**: 빠른 계층 구조 조회
+- 권한 정보 캐시
+- 필요한 데이터만 선택적 조회
+- 하위 페이지는 필요할 때만 로드 (선택사항)
 
 ---
 

@@ -54,27 +54,30 @@ Organization (조직)
 ### Workspace 생성 & 초기화 Events
 - Default Workspace가 생성됨 (Default Workspace Created) ← **Organization Domain에서 트리거**
 - Workspace 초기 페이지가 생성됨 (Workspace Initial Page Created)
+- 조직 생성이 완료됨 (Organization Creation Completed)
 - 새 Workspace가 생성됨 (New Workspace Created)
+- 조직 소유자가 Workspace 멤버로 추가됨 (Organization Owner Added to Workspace)
+- 생성된 페이지로 이동됨 (Navigated to New Page)
 - Workspace 이름이 설정됨 (Workspace Name Set)
 - Workspace 설명이 설정됨 (Workspace Description Set)
 - Workspace 아이콘이 설정됨 (Workspace Icon Set)
 
 ### Workspace 접근 & 권한 Events
-- 사용자가 조직 경로로 접근함 (프론트엔드) (User Accessed Organization Path)
-- 조직 Workspace-페이지 목록이 로드됨 (서버 시스템) (Organization Workspace-Page List Loaded)
-- 페이지가 선택됨 (프론트엔드) (Page Selected)
-- 사용자 페이지 접근 권한이 검증됨 (서버 시스템) (User Page Access Verified)
-- 페이지 접근이 거부됨 (서버 시스템) (Page Access Denied)
-- 페이지 상세 정보가 로드됨 (Page Details Loaded)
+- 사용자가 조직 경로로 접근함 (User Accessed Organization Path)
+- 조직 Workspace-페이지 목록이 로드됨 (Organization Workspace-Page List Loaded)
+- 페이지가 선택됨 (Page Selected)
 - 최근 방문 페이지가 쿠키에 저장됨 (Recent Page Saved to Cookie)
+- 사용자 페이지 접근 권한이 검증됨 (User Page Access Verified)
+- 페이지 접근이 거부됨 (Page Access Denied)
+- 페이지 상세 정보가 로드됨 (Page Details Loaded)
 
 ### Workspace 멤버십 관리 Events
-- Workspace 멤버 초대가 요청됨 (Workspace Member Invitation Requested)
-- Workspace 초대 알림이 생성됨 (Workspace Invitation Notification Created)
+- Workspace 멤버 초대가 생성됨 (Workspace Member Invitation Created)
+- 초대 알림이 발송됨 (Invitation Notification Sent)
 - Workspace 초대가 수락됨 (Workspace Invitation Accepted)
-- Workspace 초대가 거절됨 (Workspace Invitation Rejected)
 - 멤버가 Workspace에 추가됨 (Member Added to Workspace)
-- 멤버가 Workspace에서 제거됨 (Member Removed from Workspace)
+- Workspace 초대가 거절됨 (Workspace Invitation Rejected)
+- 알림이 업데이트됨 (Notification Updated)
 
 ### Page 생명주기 Events
 - 새 페이지가 생성됨 (New Page Created)
@@ -92,7 +95,6 @@ Organization (조직)
 - 페이지가 다른 페이지의 하위로 이동됨 (Page Moved to Child)
 - 페이지가 최상위로 이동됨 (Page Moved to Root)
 - 페이지 순서가 변경됨 (Page Order Changed)
-- 페이지 경로가 업데이트됨 (Page Path Updated)
 
 ### Workspace 설정 변경 Events
 - Workspace 이름이 변경됨 (Workspace Name Changed)
@@ -100,22 +102,22 @@ Organization (조직)
 - Workspace 아이콘이 변경됨 (Workspace Icon Changed)
 
 ### Page 삭제 & 복구 Events
-- 페이지 삭제가 요청됨 (Page Deletion Requested)
 - 페이지가 휴지통으로 이동됨 (Page Moved to Trash)
 - 하위 페이지들이 함께 휴지통으로 이동됨 (Child Pages Moved to Trash Together)
 - 페이지가 휴지통에서 복구됨 (Page Restored from Trash)
 - 하위 페이지들이 함께 복구됨 (Child Pages Restored Together)
 - 휴지통이 비워짐 (Trash Emptied)
 - 페이지가 완전히 삭제됨 (Page Permanently Deleted)
+- 배치 삭제 작업이 완료됨 (Batch Deletion Job Completed)
 
 ### Workspace 삭제 & 복구 Events
-- Workspace 삭제가 요청됨 (Workspace Deletion Requested)
 - Workspace가 휴지통으로 이동됨 (Workspace Moved to Trash)
 - Workspace 내 모든 페이지가 숨겨짐 (All Pages in Workspace Hidden)
 - Workspace가 휴지통에서 복구됨 (Workspace Restored from Trash)
 - Workspace 내 모든 페이지가 복원됨 (All Pages in Workspace Restored)
 - Workspace가 완전히 삭제됨 (Workspace Permanently Deleted)
 - Workspace 관련 데이터가 정리됨 (Workspace Related Data Cleaned Up)
+- 배치 삭제 작업이 완료됨 (Batch Deletion Job Completed)
 
 ---
 
@@ -134,37 +136,49 @@ Organization (조직)
 - **시스템이 페이지 접근 권한 검증하기** (Server System) → 사용자 페이지 접근 권한이 검증됨 또는 페이지 접근이 거부됨
 - **시스템이 페이지 상세 로드하기** (System) → 페이지 상세 정보가 로드됨
 
-#### Scenario 2: 조직 소유자가 새 Workspace 생성
+#### Scenario 2: 조직 소유자가 새 Workspace 생성 및 수정
 - **조직 소유자가 Workspace 생성하기** (Organization Owner) → 새 Workspace가 생성됨
-- **조직 소유자가 Workspace 정보 입력하기** (Organization Owner) → Workspace 이름/설명/아이콘이 설정됨
 - **시스템이 초기 페이지 생성하기** (System) → Workspace 초기 페이지가 생성됨
+- **시스템이 조직 소유자를 Workspace 멤버로 추가하기** (System) → 조직 소유자가 Workspace 멤버로 추가됨
+- **시스템이 생성된 페이지로 이동하기** (System) → 생성된 페이지로 이동됨
+- **시스템이 최근 방문 페이지 저장하기** (System) → 최근 방문 페이지가 쿠키에 저장됨
+- **Workspace 멤버가 Workspace 이름 수정하기** (Workspace Member) → Workspace 이름이 변경됨
+- **Workspace 멤버가 Workspace 설명 수정하기** (Workspace Member) → Workspace 설명이 변경됨
+- **Workspace 멤버가 Workspace 아이콘 수정하기** (Workspace Member) → Workspace 아이콘이 변경됨
 
 #### Scenario 3: Admin이 Workspace에 멤버 초대
-- **Admin이 멤버 초대 요청하기** (Organization Admin) → Workspace 멤버 초대가 요청됨
-- **시스템이 초대 알림 생성하기** (Notification System) → Workspace 초대 알림이 생성됨
-- **초대받은 사용자가 초대 수락/거절하기** (Invited User) → Workspace 초대가 수락됨/거절됨
+- **Admin이 멤버 초대하기** (Organization Admin) → Workspace 멤버 초대가 생성됨
+- **시스템이 초대 알림 발송하기** (Notification System) → 초대 알림이 발송됨
+- **초대받은 사용자가 초대 수락하기** (Invited User) → Workspace 초대가 수락됨
 - **시스템이 멤버 추가하기** (System) → 멤버가 Workspace에 추가됨
+- **초대받은 사용자가 초대 거절하기** (Invited User) → Workspace 초대가 거절됨
+- **시스템이 알림 업데이트하기** (Notification System) → 알림이 업데이트됨
 
-#### Scenario 4: 멤버가 Page 생성 및 관리
+#### Scenario 4: 멤버가 Page 생성 및 계층 구조 관리
 - **멤버가 새 페이지 생성하기** (Workspace Member) → 새 페이지가 생성됨
 - **시스템이 빈 캔버스 초기화하기** (System) → 빈 캔버스가 초기화됨
-- **멤버가 페이지 제목/아이콘 설정하기** (Workspace Member) → 페이지 제목/아이콘이 설정됨
-- **멤버가 페이지 복제하기** (Workspace Member) → 페이지가 복제됨
-
-#### Scenario 5: 멤버가 Page 계층 구조 관리
 - **멤버가 페이지를 하위로 이동하기** (Workspace Member) → 페이지가 다른 페이지의 하위로 이동됨
 - **멤버가 페이지를 최상위로 이동하기** (Workspace Member) → 페이지가 최상위로 이동됨
 - **멤버가 페이지 순서 변경하기** (Workspace Member) → 페이지 순서가 변경됨
-- **시스템이 페이지 경로 업데이트하기** (System) → 페이지 경로가 업데이트됨
+- **멤버가 페이지 제목/아이콘 설정하기** (Workspace Member) → 페이지 제목/아이콘이 설정됨
 
-#### Scenario 6: 멤버가 Page 삭제 및 복구
+#### Scenario 5: 멤버가 페이지를 즐겨찾기에 추가/제거
+- **멤버가 페이지를 즐겨찾기에 추가하기** (Workspace Member) → 페이지가 즐겨찾기에 추가됨
+- **멤버가 페이지를 즐겨찾기에서 제거하기** (Workspace Member) → 페이지가 즐겨찾기에서 제거됨
+
+#### Scenario 6: 멤버가 Page 복제 (Post-MVP, Block System 통합 후)
+- **멤버가 페이지 복제하기** (Workspace Member) → 페이지가 복제됨
+- **시스템이 복제된 페이지 생성하기** (System) → 복제된 페이지가 생성됨
+- **시스템이 블록 복제 작업 큐에 추가하기** (Block System) → 블록 복제 작업이 큐에 추가됨
+
+#### Scenario 7: 멤버가 Page 삭제 및 복구
 - **멤버가 페이지 삭제하기** (Workspace Member) → 페이지가 휴지통으로 이동됨
 - **시스템이 하위 페이지 함께 이동하기** (System) → 하위 페이지들이 함께 휴지통으로 이동됨
 - **멤버가 페이지 복구하기** (Workspace Member) → 페이지가 휴지통에서 복구됨
 - **멤버가 휴지통 비우기** (Workspace Member) → 휴지통이 비워짐
 - **배치 작업이 30일 후 완전 삭제하기** (Batch Job) → 페이지가 완전히 삭제됨
 
-#### Scenario 7: 조직 소유자가 Workspace 삭제 및 복구
+#### Scenario 8: 조직 소유자가 Workspace 삭제 및 복구
 - **조직 소유자가 Workspace 삭제하기** (Organization Owner) → Workspace가 휴지통으로 이동됨
 - **시스템이 모든 페이지 숨기기** (System) → Workspace 내 모든 페이지가 숨겨짐
 - **조직 소유자가 Workspace 복구하기** (Organization Owner) → Workspace가 휴지통에서 복구됨
@@ -281,23 +295,23 @@ Organization (조직)
 1. **Page 계층 구조 무한 중첩 성능 문제**
    - 문제: Page가 무한 중첩 가능하면 깊이가 매우 깊어질 수 있음 (실제 사용자는 보통 5단계 이내)
    - 영향: 
-     - Breadcrumb 계산 시 재귀 쿼리 성능 저하
-     - 페이지 이동 시 경로 업데이트 오래 걸림
+     - 트리 조회 시 재귀 쿼리 성능 저하
+     - 페이지 이동 시 하위 페이지 업데이트 필요
      - 하위 페이지 삭제 시 모든 자식 찾기 복잡
    - 해결: 
-     - **Materialized Path 패턴**: 경로를 문자열로 저장 (예: `/1/5/23/45`). 조회는 빠르지만 이동 시 업데이트 비용 있음.
-     - **Closure Table 패턴**: 모든 ancestor-descendant 관계를 별도 테이블에 저장. 조회/이동 모두 빠르지만 저장 공간 많이 사용.
-     - **현재 판단**: 일단 정리만 해놓고 실제 성능 문제 발생 시 대응. 대부분 유저는 5단계 이내 사용 예상.
+     - **Parent ID + depth 캐시 패턴**: 부모 ID만 저장하고 depth를 캐시. 이동 시 간단하지만 트리 조회는 재귀 CTE 사용.
+     - **PostgreSQL 재귀 CTE**: 트리 조회 성능 충분
+     - **현재 판단**: Parent ID + depth 캐시 패턴 채택. 대부분 유저는 5단계 이내 사용 예상.
 
 2. **Workspace 접근 권한 검증 성능**
    - 문제: 모든 요청마다 "사용자가 이 Workspace에 접근 가능한가?" 확인 필요
    - 영향: 
-     - 서버 사이드 렌더링 시 권한 체크 병목
-     - 조직-워크스페이스-멤버십 테이블 JOIN 필요
+     - 서버 사이드 권한 체크 병목
+     - 조직-워크스페이스-멤버십 확인 필요
    - 해결: 
-     - **Server Component 최상단 권한 체크**: `page.tsx` 맨 상단에서 처리, 통과 시 나머지 로직 신뢰
-     - **Server Action 앞단 권한 체크**: 각 Server Action 가장 앞에서 권한 먼저 검증
-     - **일종의 Middleware**: 프론트엔드는 믿을 수 없으니 서버 사이드에서 이중 체크
+     - **권한 먼저 검증**: 시스템 진입 시 권한 먼저 확인
+     - **세션 캐시**: 권한 정보 캐시하여 성능 최적화
+     - **Layered Security**: RLS + Application 레벨 이중 체크
 
 3. **Default Workspace 삭제 방지 로직**
    - 문제: 시스템 정책으로 Default Workspace는 삭제 불가하지만, 방어 로직 필요
@@ -305,28 +319,28 @@ Organization (조직)
      - 실수로 Default Workspace 삭제 시 조직 전체 문제
      - 복구 프로세스 복잡
    - 해결: 
-     - **비즈니스 정책 SSOT**: DB 제약 조건보다는 서버 사이드 비즈니스 로직으로 관리 선호
-     - **Server Action 체크**: 삭제 요청 시 `is_default` 플래그 확인 후 거부
-     - **프론트엔드 UI**: 삭제 버튼 숨김 또는 비활성화
+     - **비즈니스 정책**: Application 레벨에서 Default Workspace 삭제 거부
+     - **Entity 불변식**: Workspace Entity에서 deletable 플래그 검증
+     - **UI 방어**: 삭제 버튼 비활성화
 
 ### 우선순위: 중간
 
-4. **Page 이동 시 순환 참조 방지**
+4. **Page 이동 시 순환 참조**
    - 문제: Page A를 Page A의 하위 페이지로 이동하려는 경우
-   - 영향: 무한 루프, 시스템 오류
+   - 영향: 순환 구조 발생 가능
    - 해결: 
-     - **허용**: 단순히 parent_id만 바뀌는 것이므로 큰 문제 없음
-     - **프론트엔드 제한**: 드래그 앤 드롭 시 자기 자신으로 이동 불가 UI 처리
+     - **허용**: 비즈니스 정책상 순환 참조 허용
+     - **UI 안내**: 드래그 앤 드롭 시 이동 가능 영역 표시
 
 5. **Workspace 삭제 시 데이터 정리 복잡성**
    - 문제: Workspace 삭제 시 연관된 모든 Page, 하위 Page, Block(미래) 정리 필요
    - 영향: 
-     - 트랜잭션 복잡
+     - 처리 복잡
      - 삭제 시간 오래 걸림
      - 다른 도메인(Block System)과의 동기화 필요
    - 해결: 
-     - **소프트 삭제**: 즉시 처리 (상태만 변경, `deleted_at` 타임스탬프)
-     - **배치 작업**: 30일 후 완전 삭제 (스케줄러로 자동 실행)
+     - **휴지통 이동**: 즉시 처리 (30일 보관)
+     - **배치 작업**: 30일 후 완전 삭제 (자동 실행)
 
 6. **Page 복제 시 캔버스 내용 복제 성능**
    - 문제: Page 복제 시 Block System의 수많은 블록 복제 필요 (미래)
@@ -412,28 +426,28 @@ Organization (조직)
 - Q: 조직 멤버는 모든 Workspace-페이지 목록을 볼 수 있지만, 초대되지 않은 Workspace의 페이지 접근은 어떻게 제한할 것인가?
 
 ### 2. Page 계층 구조 관리 (핵심)
-- Q: Page 무한 중첩을 어떻게 효율적으로 저장하고 조회할 것인가? (Materialized Path vs Closure Table)
-- Q: Page 이동 시 순환 참조를 방지할 필요가 있는가? (비즈니스 정책 확정)
-- Q: Breadcrumb 경로를 실시간으로 계산할 것인가, 미리 저장할 것인가?
-- Q: Page 순서 변경 시 어떤 정렬 알고리즘을 사용할 것인가? (정수 순서 vs Fractional Indexing)
+- Q: Page 무한 중첩을 어떻게 효율적으로 저장하고 조회할 것인가? (Parent ID + depth 캐시)
+- Q: Page 이동 시 순환 참조를 방지할 필요가 있는가? (허용하기로 결정)
+- Q: 트리 구조는 어떻게 조회할 것인가? (PostgreSQL 재귀 CTE)
+- Q: Page 순서 변경 시 어떤 정렬 알고리즘을 사용할 것인가? (정수 순서)
 
 ### 3. Workspace 멤버십 관리
-- Q: Workspace 초대 알림은 Notification Domain과 어떻게 통합할 것인가? (이벤트 발행? API 호출?)
-- Q: 이미 멤버인 사용자를 다시 초대하면 어떻게 처리할 것인가? (무시? 에러?)
-- Q: Workspace에서 멤버 제거 시 해당 멤버가 작업 중인 페이지는 어떻게 되는가?
-- Q: Default Workspace에서 멤버 제거가 가능한가? (조직 멤버이면 자동 접근이므로 불가?)
+- Q: Workspace 초대 알림은 Notification Domain과 어떻게 통합할 것인가? (Service 주입, 동기 처리)
+- Q: 이미 멤버인 사용자를 다시 초대하면 어떻게 처리할 것인가? (UI에서 선택 불가, 중복 방지)
+- Q: Workspace에서 멤버 제거 시 해당 멤버가 작업 중인 페이지는 어떻게 되는가? (유지)
+- Q: Default Workspace에서 멤버 제거가 가능한가? (조직 멤버이면 자동 접근이므로 불가)
 
 ### 4. Page & Workspace 삭제 및 복구
-- Q: 페이지 삭제 시 하위 페이지들도 함께 삭제되는가? (Cascade Delete 정책)
-- Q: 휴지통에서 복구 시 원래 위치(parent_id)를 기억하는가, 아니면 최상위로 복구되는가?
-- Q: 30일 후 완전 삭제를 어떻게 트리거할 것인가? (Cron Job? Scheduled Task?)
-- Q: Workspace 삭제 시 Block System Domain에 어떻게 알릴 것인가? (미래, 이벤트 발행)
-- Q: 휴지통 비우기는 개별 페이지 삭제인가, 전체 일괄 삭제인가?
+- Q: 페이지 삭제 시 하위 페이지들도 함께 삭제되는가? (Yes, 함께 삭제)
+- Q: 휴지통에서 복구 시 원래 위치를 기억하는가? (Yes, 원래 위치 복원. 불가능하면 최상위)
+- Q: 30일 후 완전 삭제를 어떻게 트리거할 것인가? (배치 작업)
+- Q: Workspace 삭제 시 Block System Domain에 어떻게 알릴 것인가? (미래, 동기 호출)
+- Q: 휴지통 비우기는 전체 일괄 삭제인가? (Yes, 전체 삭제)
 
 ### 5. 외부 도메인 통합
-- Q: Organization Domain에서 멤버 목록을 어떻게 가져올 것인가? (Server Action 호출? DB 직접 조회?)
+- Q: Organization Domain에서 멤버 목록을 어떻게 가져올 것인가? (Organization Domain API)
 - Q: Page 복제 시 Block System과 어떻게 통신할 것인가? (미래, 비동기 처리)
-- Q: Notification Domain에 초대 알림 생성을 어떻게 요청할 것인가? (이벤트 기반? API 호출?)
+- Q: Notification Domain에 초대 알림 생성을 어떻게 요청할 것인가? (Service 주입, 동기 처리)
 
 ### 6. 성능 및 최적화
 - Q: Workspace 페이지 목록 조회 시 페이지네이션이 필요한가? (무한 스크롤? 페이지 번호?)

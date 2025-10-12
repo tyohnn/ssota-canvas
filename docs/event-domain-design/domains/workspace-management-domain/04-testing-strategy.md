@@ -27,17 +27,17 @@ Workspace Management Domain은 **조직 내 작업 공간과 페이지 구조 �
 
 ### Process Model 연결점
 
-- **입력**: `02-process-model.md` - 7개 시나리오 (Scenario 1까지 진행 중)
+- **입력**: `02-process-model.md` - 8개 시나리오 (Scenario 0~5, 7~8 완료, Scenario 6은 Post-MVP)
 - **입력**: `03-software-design.md` - 2개 Aggregate (Workspace, Page)
-- **출력**: Unit/Integration/E2E 테스트 케이스
+- **출력**: Unit/Integration/E2E 테스트 케이스 (Scenario 0~5 완료)
 
-### 커버리지 목표 요약 (Scenario 1 기준)
+### 커버리지 목표 요약 (Scenario 0~5)
 
 ```
 전체 코드 커버리지: 85% 이상
-- Unit Tests:       65%  (60개 예상)
-- Integration Tests: 25%  (50개 예상)
-- E2E Tests:        10%  (5개 예상)
+- Unit Tests:       65%  (130개 예상)
+- Integration Tests: 25%  (80개 예상)
+- E2E Tests:        10%  (12개 예상)
 ```
 
 ---
@@ -76,6 +76,80 @@ Workspace Management Domain은 **조직 내 작업 공간과 페이지 구조 �
 | 사용자 경험 (Happy Path) | E2E | 조직 링크 접근 → 사이드바 → 페이지 열기 | ⭐️⭐️⭐️⭐️⭐️ |
 | 사용자 경험 (Error Path) | E2E | 초대되지 않은 Workspace 페이지 접근 → 권한 없음 | ⭐️⭐️⭐️⭐️⭐️ |
 | 사용자 경험 (Edge Case) | E2E | 쿠키 Fallback → Default 첫 페이지 | ⭐️⭐️⭐️⭐️ |
+
+---
+
+### Scenario 2: 조직 소유자가 새 Workspace 생성 및 수정
+
+| Process Model 요소 | 테스트 종류 | 테스트 케이스 | 우선순위 |
+|-------------------|------------|-------------|---------|
+| Command: CreateWorkspace | Unit | Workspace Aggregate.create() | ⭐️⭐️⭐️⭐️⭐️ |
+| Command: UpdateWorkspaceInfo | Unit | Workspace Aggregate.updateInfo() | ⭐️⭐️⭐️⭐️ |
+| System: Workspace System | Unit | Workspace 생성 및 정보 수정 로직 | ⭐️⭐️⭐️⭐️⭐️ |
+| System: Page System | Unit | 초기 "Untitled" 페이지 생성 | ⭐️⭐️⭐️⭐️⭐️ |
+| Event: WorkspaceCreated | Unit | WorkspaceCreated 이벤트 발행 검증 | ⭐️⭐️⭐️⭐️ |
+| Event: WorkspaceNameChanged | Unit | WorkspaceNameChanged 이벤트 발행 검증 | ⭐️⭐️⭐️ |
+| Event: WorkspaceDescriptionChanged | Unit | WorkspaceDescriptionChanged 이벤트 발행 검증 | ⭐️⭐️⭐️ |
+| Event: WorkspaceIconChanged | Unit | WorkspaceIconChanged 이벤트 발행 검증 | ⭐️⭐️⭐️ |
+| 전체 플로우 (Seq 1) | Integration | createWorkspaceAction() | ⭐️⭐️⭐️⭐️⭐️ |
+| 전체 플로우 (Seq 2) | Integration | updateWorkspaceInfoAction() | ⭐️⭐️⭐️⭐️ |
+| 사용자 경험 (Happy Path) | E2E | Workspace 생성 → 첫 페이지 이동 | ⭐️⭐️⭐️⭐️⭐️ |
+| 사용자 경험 (Error Path) | E2E | 조직 소유자 아님 → 생성 버튼 숨김 | ⭐️⭐️⭐️⭐️ |
+
+---
+
+### Scenario 3: Admin이 Workspace에 멤버 초대 및 수락/거절
+
+| Process Model 요소 | 테스트 종류 | 테스트 케이스 | 우선순위 |
+|-------------------|------------|-------------|---------|
+| Command: InviteWorkspaceMember | Unit | Workspace Aggregate.inviteMember() | ⭐️⭐️⭐️⭐️⭐️ |
+| Command: AcceptWorkspaceInvitation | Unit | Workspace Aggregate.acceptInvitation() | ⭐️⭐️⭐️⭐️⭐️ |
+| Command: RejectWorkspaceInvitation | Unit | Workspace Aggregate.rejectInvitation() | ⭐️⭐️⭐️⭐️ |
+| System: Workspace System | Unit | 멤버 초대 및 권한 검증 로직 | ⭐️⭐️⭐️⭐️⭐️ |
+| System: Notification Domain | Integration | 알림 발송 및 업데이트 통합 | ⭐️⭐️⭐️⭐️⭐️ |
+| Event: WorkspaceMemberInvitationCreated | Unit | WorkspaceMemberInvitationCreated 이벤트 발행 | ⭐️⭐️⭐️⭐️ |
+| Event: InvitationNotificationSent | Integration | Notification Domain 통합 검증 | ⭐️⭐️⭐️⭐️⭐️ |
+| Event: WorkspaceInvitationAccepted | Unit | WorkspaceInvitationAccepted 이벤트 발행 | ⭐️⭐️⭐️⭐️ |
+| Event: MemberAddedToWorkspace | Unit | MemberAddedToWorkspace 이벤트 발행 | ⭐️⭐️⭐️⭐️ |
+| 전체 플로우 (Seq 1) | Integration | inviteWorkspaceMemberAction() | ⭐️⭐️⭐️⭐️⭐️ |
+| 전체 플로우 (Seq 2 - 수락) | Integration | acceptWorkspaceInvitationAction() | ⭐️⭐️⭐️⭐️⭐️ |
+| 전체 플로우 (Seq 2 - 거절) | Integration | rejectWorkspaceInvitationAction() | ⭐️⭐️⭐️⭐️ |
+| 사용자 경험 (Happy Path) | E2E | 멤버 초대 → 알림 받음 → 수락 → Workspace 접근 | ⭐️⭐️⭐️⭐️⭐️ |
+| 사용자 경험 (Error Path) | E2E | 이미 멤버인 경우 → 초대 불가 표시 | ⭐️⭐️⭐️⭐️ |
+
+---
+
+### Scenario 4: 멤버가 Page 생성 및 계층 구조 관리
+
+| Process Model 요소 | 테스트 종류 | 테스트 케이스 | 우선순위 |
+|-------------------|------------|-------------|---------|
+| Command: CreatePage | Unit | Page Aggregate.create() | ⭐️⭐️⭐️⭐️⭐️ |
+| Command: MovePage | Unit | Page Aggregate.move() | ⭐️⭐️⭐️⭐️⭐️ |
+| Command: UpdatePageInfo | Unit | Page Aggregate.updateInfo() | ⭐️⭐️⭐️⭐️ |
+| System: Page System | Unit | 페이지 생성/이동/수정 로직 | ⭐️⭐️⭐️⭐️⭐️ |
+| Policy: 순환 참조 감지 | Unit | 순환 참조 검증 로직 | ⭐️⭐️⭐️⭐️⭐️ |
+| Event: NewPageCreated | Unit | NewPageCreated 이벤트 발행 | ⭐️⭐️⭐️⭐️ |
+| Event: PageMovedToChild | Unit | PageMovedToChild 이벤트 발행 | ⭐️⭐️⭐️⭐️ |
+| Event: PageTitleSet | Unit | PageTitleSet 이벤트 발행 | ⭐️⭐️⭐️ |
+| Event: PageIconSet | Unit | PageIconSet 이벤트 발행 | ⭐️⭐️⭐️ |
+| 전체 플로우 (Seq 1) | Integration | createPageAction() | ⭐️⭐️⭐️⭐️⭐️ |
+| 전체 플로우 (Seq 2) | Integration | movePageAction() | ⭐️⭐️⭐️⭐️⭐️ |
+| 전체 플로우 (Seq 3) | Integration | updatePageInfoAction() | ⭐️⭐️⭐️⭐️ |
+| 사용자 경험 (Happy Path) | E2E | 페이지 생성 → 드래그 이동 → 제목 편집 | ⭐️⭐️⭐️⭐️⭐️ |
+| 사용자 경험 (Error Path) | E2E | 순환 참조 → 이동 실패 → 원래 위치 복원 | ⭐️⭐️⭐️⭐️⭐️ |
+
+---
+
+### Scenario 5: 멤버가 페이지를 즐겨찾기에 추가/제거
+
+| Process Model 요소 | 테스트 종류 | 테스트 케이스 | 우선순위 |
+|-------------------|------------|-------------|---------|
+| Command: ToggleFavorite | Unit | Page Aggregate.toggleFavorite() | ⭐️⭐️⭐️⭐️⭐️ |
+| System: Page System | Unit | 즐겨찾기 토글 로직 | ⭐️⭐️⭐️⭐️ |
+| Event: PageAddedToFavorites | Unit | PageAddedToFavorites 이벤트 발행 | ⭐️⭐️⭐️ |
+| Event: PageRemovedFromFavorites | Unit | PageRemovedFromFavorites 이벤트 발행 | ⭐️⭐️⭐️ |
+| 전체 플로우 | Integration | togglePageFavoriteAction() | ⭐️⭐️⭐️⭐️⭐️ |
+| 사용자 경험 (Happy Path) | E2E | 별 아이콘 클릭 → 즐겨찾기 추가 → 사이드바 업데이트 | ⭐️⭐️⭐️⭐️ |
 
 ---
 
@@ -181,7 +255,7 @@ describe('Page Entity', () => {
 #### Workspace Aggregate
 ```typescript
 describe('Workspace Aggregate', () => {
-  describe('createDefault (팩토리 메서드)', () => {
+  describe('createDefault (팩토리 메서드) - Scenario 0', () => {
     it('유효한 Organization ID로 Default Workspace를 생성해야 한다')
     it('is_default=true로 설정되어야 한다')
     it('deletable=false로 설정되어야 한다')
@@ -189,21 +263,54 @@ describe('Workspace Aggregate', () => {
     it('잘못된 Organization ID에 대해 예외를 발생시켜야 한다')
   })
   
-  describe('create (팩토리 메서드)', () => {
+  describe('create (팩토리 메서드) - Scenario 2', () => {
     it('유효한 데이터로 일반 Workspace를 생성해야 한다')
     it('is_default=false로 설정되어야 한다')
     it('deletable=true로 설정되어야 한다')
+    it('이름은 빈 문자열일 수 없다')
+    it('이름은 100자를 초과할 수 없다')
+    it('설명은 500자를 초과할 수 없다')
     it('WorkspaceCreated 이벤트가 발행되어야 한다')
   })
   
-  describe('verifyMembership (Command 처리)', () => {
+  describe('updateInfo (Command 처리) - Scenario 2', () => {
+    it('이름/설명/아이콘을 업데이트해야 한다')
+    it('이름만 업데이트해도 WorkspaceNameChanged 이벤트가 발행되어야 한다')
+    it('설명만 업데이트해도 WorkspaceDescriptionChanged 이벤트가 발행되어야 한다')
+    it('아이콘만 업데이트해도 WorkspaceIconChanged 이벤트가 발행되어야 한다')
+    it('여러 필드 동시 업데이트 시 각각의 이벤트가 발행되어야 한다')
+    it('이름이 빈 문자열이면 예외를 발생시켜야 한다')
+    it('updated_at 타임스탬프가 갱신되어야 한다')
+  })
+  
+  describe('verifyMembership (Command 처리) - Scenario 1', () => {
     it('Default Workspace는 조직 멤버면 항상 true를 반환해야 한다')
     it('일반 Workspace는 멤버십 테이블을 조회해야 한다')
     it('멤버십 없으면 false를 반환해야 한다')
     it('WorkspaceMembershipVerified 이벤트가 발행되어야 한다')
   })
   
-  describe('loadList (Query 처리)', () => {
+  describe('inviteMember (Command 처리) - Scenario 3', () => {
+    it('조직 Admin + Workspace 멤버가 초대할 수 있어야 한다')
+    it('조직 멤버가 아니면 초대할 수 없다')
+    it('이미 Workspace 멤버인 경우 예외를 발생시켜야 한다')
+    it('WorkspaceMemberInvitationCreated 이벤트가 발행되어야 한다')
+  })
+  
+  describe('acceptInvitation (Command 처리) - Scenario 3', () => {
+    it('초대받은 본인만 수락할 수 있어야 한다')
+    it('수락 시 Workspace 멤버로 추가되어야 한다')
+    it('이미 처리된 초대는 예외를 발생시켜야 한다')
+    it('WorkspaceInvitationAccepted, MemberAddedToWorkspace 이벤트가 발행되어야 한다')
+  })
+  
+  describe('rejectInvitation (Command 처리) - Scenario 3', () => {
+    it('초대받은 본인만 거절할 수 있어야 한다')
+    it('거절 시 멤버로 추가되지 않아야 한다')
+    it('WorkspaceInvitationRejected 이벤트가 발행되어야 한다')
+  })
+  
+  describe('loadList (Query 처리) - Scenario 1', () => {
     it('조직의 모든 Workspace를 조회해야 한다')
     it('Default Workspace가 첫 번째로 정렬되어야 한다')
     it('삭제된 Workspace는 제외해야 한다 (deleted_at != null)')
@@ -214,28 +321,34 @@ describe('Workspace Aggregate', () => {
     it('Workspace는 반드시 하나의 Organization에 속해야 한다')
     it('Default Workspace는 삭제 불가여야 한다')
     it('organizationId가 null이면 예외를 발생시켜야 한다')
+    it('Workspace 이름은 빈 문자열일 수 없다')
+    it('조직 소유자만 Workspace 생성 가능')
+    it('Workspace 멤버만 정보 수정 가능')
   })
 })
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**예상 테스트 수**: 15개
+**예상 테스트 수**: 35개 (Scenario 2, 3 추가)
 
 ---
 
 #### Page Aggregate
 ```typescript
 describe('Page Aggregate', () => {
-  describe('create (팩토리 메서드)', () => {
+  describe('create (팩토리 메서드) - Scenario 4', () => {
     it('유효한 데이터로 Page를 생성해야 한다')
     it('parentId가 null이면 최상위 페이지로 생성되어야 한다 (depth=0)')
     it('parentId가 있으면 하위 페이지로 생성되어야 한다')
     it('depth가 자동 계산되어야 한다 (부모 depth + 1)')
     it('부모 페이지가 존재하지 않으면 예외를 발생시켜야 한다')
-    it('PageCreated 이벤트가 발행되어야 한다')
+    it('기본 제목 "Untitled"로 생성되어야 한다')
+    it('기본 아이콘 📄로 생성되어야 한다')
+    it('같은 레벨 내 순서가 자동 배정되어야 한다')
+    it('PageCreated, EmptyCanvasInitialized 이벤트가 발행되어야 한다')
   })
   
-  describe('loadTree (Query 처리)', () => {
+  describe('loadTree (Query 처리) - Scenario 1', () => {
     it('Workspace의 모든 페이지를 트리 구조로 반환해야 한다 (재귀 CTE)')
     it('최상위 페이지와 하위 페이지를 올바르게 계층화해야 한다')
     it('depth 순서로 정렬되어야 한다 (0 → 1 → 2 → ...)')
@@ -244,14 +357,33 @@ describe('Page Aggregate', () => {
     it('PageTreeLoaded 이벤트가 발행되어야 한다')
   })
   
-  describe('move (Page 이동)', () => {
+  describe('move (Page 이동) - Scenario 4', () => {
     it('parent_id를 변경해야 한다')
     it('depth를 재계산해야 한다 (새 부모 depth + 1)')
+    it('최상위로 이동 시 parent_id=null, depth=0이어야 한다')
     it('순환 참조를 감지하고 예외를 발생시켜야 한다 (재귀 조회로 ancestor 체크)')
     it('하위 페이지들의 depth도 재귀적으로 업데이트해야 한다')
+    it('같은 레벨 내 순서가 자동 재정렬되어야 한다')
+    it('PageMovedToChild 또는 PageMovedToRoot 이벤트가 발행되어야 한다')
   })
   
-  describe('verifyAccess (Command 처리)', () => {
+  describe('updateInfo (Command 처리) - Scenario 4', () => {
+    it('제목을 업데이트해야 한다')
+    it('아이콘을 업데이트해야 한다')
+    it('제목과 아이콘을 동시에 업데이트해야 한다')
+    it('제목이 빈 문자열이면 예외를 발생시켜야 한다')
+    it('제목이 200자를 초과하면 예외를 발생시켜야 한다')
+    it('PageTitleSet 또는 PageIconSet 이벤트가 발행되어야 한다')
+  })
+  
+  describe('toggleFavorite (Command 처리) - Scenario 5', () => {
+    it('즐겨찾기가 아니면 추가해야 한다')
+    it('즐겨찾기이면 제거해야 한다')
+    it('PageAddedToFavorites 또는 PageRemovedFromFavorites 이벤트가 발행되어야 한다')
+    it('즐겨찾기는 개인별로 관리되어야 한다 (다른 사용자와 독립적)')
+  })
+  
+  describe('verifyAccess (Command 처리) - Scenario 1', () => {
     it('Workspace 멤버면 접근 허용해야 한다')
     it('Workspace 멤버 아니면 접근 거부해야 한다')
     it('PageAccessVerified 또는 PageAccessDenied 이벤트가 발행되어야 한다')
@@ -262,12 +394,14 @@ describe('Page Aggregate', () => {
     it('순환 참조가 발생하면 예외를 발생시켜야 한다')
     it('workspaceId가 null이면 예외를 발생시켜야 한다')
     it('depth가 음수면 예외를 발생시켜야 한다')
+    it('제목은 빈 문자열일 수 없다')
+    it('Workspace 멤버만 페이지 생성/수정/이동 가능')
   })
 })
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**예상 테스트 수**: 14개
+**예상 테스트 수**: 35개 (Scenario 4, 5 추가)
 
 ---
 
@@ -399,22 +533,28 @@ describe('WorkspaceMemberRepository Integration Tests', () => {
   })
   
   describe('isMember', () => {
-    it('Workspace 멤버면 true를 반환해야 한다')
-    it('Workspace 멤버 아니면 false를 반환해야 한다')
-    it('삭제된 멤버십은 false를 반환해야 한다')
+    it('Workspace에 초대된 멤버면 true를 반환해야 한다')
+    it('Workspace에 초대되지 않은 멤버면 false를 반환해야 한다')
     it('RLS 정책이 적용되어야 한다')
   })
   
   describe('addMember', () => {
-    it('Workspace에 멤버를 추가해야 한다')
-    it('중복 멤버십은 거부해야 한다')
+    it('Workspace에 멤버를 초대해야 한다 (role 없이)')
+    it('중복 초대는 거부해야 한다')
     it('adminDb를 사용해야 한다 (RLS 우회)')
+  })
+  
+  describe('권한 확인', () => {
+    it('권한은 organization_members.role에서 조회해야 한다')
+    it('Workspace member + 조직 owner = 편집/삭제 권한')
+    it('Workspace member + 조직 admin = 편집 권한만')
+    it('Workspace member + 조직 member = 조회 권한만')
   })
 })
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️  
-**예상 테스트 수**: 7개
+**예상 테스트 수**: 9개 (권한 테스트 추가)
 
 ---
 
@@ -641,27 +781,287 @@ test('[Scenario 1-5] 조직 멤버가 아닌 사용자는 접근 거부', async 
 
 ---
 
+### Scenario 2 E2E 테스트 시나리오
+
+#### E2E Test 5: Workspace 생성 및 첫 페이지 이동
+```typescript
+test('[Scenario 2-1] 조직 소유자가 Workspace를 생성하고 첫 페이지로 이동', async ({ page }) => {
+  // Given: 조직 소유자로 로그인
+  await loginAsOwner('owner@test.com', 'password123');
+  await page.goto('/r/org123/workspace/ws-default/page/page1');
+  
+  // When: Workspaces 섹션 헤더의 + 버튼 클릭
+  await page.click('[data-testid="workspace-create-btn"]');
+  
+  // Then: Workspace 생성 모달이 열려야 함
+  await expect(page.locator('[data-testid="workspace-create-modal"]')).toBeVisible();
+  
+  // When: 이름 입력 및 생성 버튼 클릭
+  await page.fill('[data-testid="workspace-name-input"]', '마케팅 팀');
+  await page.fill('[data-testid="workspace-description-input"]', '마케팅 관련 작업 공간');
+  await page.click('[data-testid="workspace-create-submit"]');
+  
+  // Then: 생성된 첫 페이지로 이동해야 함
+  await expect(page).toHaveURL(/\/workspace\/[^/]+\/page\/[^/]+$/);
+  await expect(page.locator('[data-testid="page-title"]')).toContainText('Untitled');
+  
+  // And: 사이드바에 새 Workspace가 표시되어야 함
+  await expect(page.locator('text=마케팅 팀')).toBeVisible();
+  
+  // And: Success Toast가 표시되어야 함
+  await expect(page.locator('text=워크스페이스가 생성되었습니다')).toBeVisible();
+})
+```
+
+**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
+
+---
+
+#### E2E Test 6: Workspace 정보 수정
+```typescript
+test('[Scenario 2-2] Workspace 멤버가 Workspace 정보를 수정', async ({ page }) => {
+  // Given: Workspace 멤버로 로그인
+  await loginAsMember('member@test.com', 'password123');
+  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
+  
+  // When: Workspace 삼점 메뉴 → "워크스페이스 설정" 클릭
+  await page.click('[data-testid="workspace-menu-ws-marketing"]');
+  await page.click('[data-testid="workspace-settings-btn"]');
+  
+  // Then: 설정 모달이 열려야 함
+  await expect(page.locator('[data-testid="workspace-settings-modal"]')).toBeVisible();
+  
+  // When: 이름 수정 및 저장
+  await page.fill('[data-testid="workspace-name-input"]', '마케팅팀 (수정됨)');
+  await page.click('[data-testid="workspace-settings-submit"]');
+  
+  // Then: Success Toast가 표시되어야 함
+  await expect(page.locator('text=워크스페이스 정보가 업데이트되었습니다')).toBeVisible();
+  
+  // And: 사이드바 Workspace 이름이 업데이트되어야 함
+  await expect(page.locator('text=마케팅팀 (수정됨)')).toBeVisible();
+})
+```
+
+**테스트 우선순위**: ⭐️⭐️⭐️⭐️
+
+---
+
+### Scenario 3 E2E 테스트 시나리오
+
+#### E2E Test 7: Workspace 멤버 초대 및 수락
+```typescript
+test('[Scenario 3-1] Admin이 멤버를 초대하고 멤버가 수락', async ({ page, context }) => {
+  // Given: 조직 Admin + Workspace 멤버로 로그인
+  await loginAsAdmin('admin@test.com', 'password123');
+  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
+  
+  // When: Workspace 삼점 메뉴 → "멤버 추가" 클릭
+  await page.click('[data-testid="workspace-menu-ws-marketing"]');
+  await page.click('[data-testid="workspace-invite-btn"]');
+  
+  // Then: 멤버 초대 모달이 열려야 함
+  await expect(page.locator('[data-testid="workspace-invite-modal"]')).toBeVisible();
+  
+  // When: 이메일 검색 및 멤버 선택
+  await page.fill('[data-testid="member-search-input"]', 'member@test.com');
+  await page.waitForSelector('[data-testid="member-search-result-member@test.com"]');
+  await page.click('[data-testid="member-checkbox-member@test.com"]');
+  await page.click('[data-testid="invite-submit"]');
+  
+  // Then: Success Toast가 표시되어야 함
+  await expect(page.locator('text=1명에게 초대를 보냈습니다')).toBeVisible();
+  
+  // ===== 초대받은 멤버가 수락 =====
+  
+  // Given: 초대받은 멤버로 로그인 (새 컨텍스트)
+  await loginAsUser('member@test.com', 'password123');
+  
+  // When: 알림 센터 열기
+  await page.click('[data-testid="notification-bell"]');
+  
+  // Then: Workspace 초대 알림이 표시되어야 함
+  await expect(page.locator('text=마케팅 팀 Workspace에 초대되었습니다')).toBeVisible();
+  
+  // When: 초대 상세 보기 → 수락
+  await page.click('[data-testid="notification-view-btn"]');
+  await page.click('[data-testid="invitation-accept-btn"]');
+  
+  // Then: Success Toast가 표시되어야 함
+  await expect(page.locator('text=Workspace에 참여했습니다')).toBeVisible();
+  
+  // And: 사이드바에 새 Workspace가 추가되어야 함
+  await expect(page.locator('text=마케팅 팀')).toBeVisible();
+})
+```
+
+**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
+
+---
+
+#### E2E Test 8: 이미 멤버인 경우 초대 불가
+```typescript
+test('[Scenario 3-2] 이미 Workspace 멤버인 경우 초대 불가 표시', async ({ page }) => {
+  // Given: 조직 Admin + Workspace 멤버로 로그인
+  await loginAsAdmin('admin@test.com', 'password123');
+  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
+  
+  // When: 멤버 초대 모달 열기 및 이메일 검색
+  await page.click('[data-testid="workspace-menu-ws-marketing"]');
+  await page.click('[data-testid="workspace-invite-btn"]');
+  await page.fill('[data-testid="member-search-input"]', 'existing@test.com');
+  
+  // Then: 검색 결과에 "이미 멤버입니다" 표시
+  await expect(page.locator('[data-testid="member-search-result-existing@test.com"]')).toBeVisible();
+  await expect(page.locator('text=이미 멤버입니다')).toBeVisible();
+  
+  // And: Checkbox 비활성화
+  await expect(page.locator('[data-testid="member-checkbox-existing@test.com"]')).toBeDisabled();
+})
+```
+
+**테스트 우선순위**: ⭐️⭐️⭐️⭐️
+
+---
+
+### Scenario 4 E2E 테스트 시나리오
+
+#### E2E Test 9: 페이지 생성 및 제목 편집
+```typescript
+test('[Scenario 4-1] 멤버가 페이지를 생성하고 제목을 편집', async ({ page }) => {
+  // Given: Workspace 멤버로 로그인
+  await loginAsMember('member@test.com', 'password123');
+  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
+  
+  // When: Workspace 옆 + 버튼 클릭 (최상위 페이지 생성)
+  await page.click('[data-testid="page-create-btn-ws-marketing"]');
+  
+  // Then: 새 페이지가 사이드바에 표시되어야 함 (편집 모드)
+  await expect(page.locator('[data-testid^="page-"][data-editing="true"]')).toBeVisible();
+  await expect(page.locator('[data-testid="page-title-input"]')).toBeFocused();
+  
+  // When: 제목 입력 및 Enter
+  await page.fill('[data-testid="page-title-input"]', '새 캠페인 계획');
+  await page.press('[data-testid="page-title-input"]', 'Enter');
+  
+  // Then: 제목이 업데이트되어야 함
+  await expect(page.locator('text=새 캠페인 계획')).toBeVisible();
+  
+  // And: 메인 영역에 새 페이지가 로드되어야 함
+  await expect(page.locator('[data-testid="page-title"]')).toContainText('새 캠페인 계획');
+})
+```
+
+**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
+
+---
+
+#### E2E Test 10: 페이지 드래그 앤 드롭 이동
+```typescript
+test('[Scenario 4-2] 멤버가 페이지를 드래그하여 다른 위치로 이동', async ({ page }) => {
+  // Given: Workspace 멤버로 로그인 및 페이지 있음
+  await loginAsMember('member@test.com', 'password123');
+  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
+  
+  // When: 페이지를 드래그하여 다른 페이지 하위로 이동
+  await page.dragAndDrop(
+    '[data-testid="page-item-page2"]',
+    '[data-testid="page-drop-zone-page3"]'
+  );
+  
+  // Then: 페이지가 새 위치로 이동되어야 함 (낙관적 업데이트)
+  const page2Parent = page.locator('[data-testid="page-item-page2"]').locator('..');
+  await expect(page2Parent).toHaveAttribute('data-parent-id', 'page3');
+  
+  // And: 계층 구조가 시각적으로 업데이트되어야 함 (들여쓰기)
+  await expect(page.locator('[data-testid="page-item-page2"]')).toHaveCSS('padding-left', /16px|1rem/);
+})
+```
+
+**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
+
+---
+
+#### E2E Test 11: 순환 참조 이동 실패
+```typescript
+test('[Scenario 4-3] 순환 참조 발생 시 이동 실패 및 복원', async ({ page }) => {
+  // Given: Workspace 멤버로 로그인 및 계층 구조 있음
+  await loginAsMember('member@test.com', 'password123');
+  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
+  
+  // When: 부모 페이지를 자신의 하위 페이지 아래로 이동 시도
+  await page.dragAndDrop(
+    '[data-testid="page-item-parent"]',
+    '[data-testid="page-drop-zone-child"]'
+  );
+  
+  // Then: 에러 Toast가 표시되어야 함
+  await expect(page.locator('text=페이지를 이동할 수 없습니다')).toBeVisible();
+  
+  // And: 페이지가 원래 위치로 복원되어야 함
+  const parentItem = page.locator('[data-testid="page-item-parent"]');
+  await expect(parentItem).toHaveAttribute('data-parent-id', 'original-parent');
+})
+```
+
+**테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️
+
+---
+
+### Scenario 5 E2E 테스트 시나리오
+
+#### E2E Test 12: 즐겨찾기 토글 및 사이드바 업데이트
+```typescript
+test('[Scenario 5-1] 멤버가 페이지를 즐겨찾기에 추가 및 제거', async ({ page }) => {
+  // Given: Workspace 멤버로 로그인
+  await loginAsMember('member@test.com', 'password123');
+  await page.goto('/r/org123/workspace/ws-marketing/page/page1');
+  
+  // When: 페이지 헤더의 별 아이콘 클릭 (추가)
+  await page.click('[data-testid="page-favorite-icon"]');
+  
+  // Then: 별 아이콘이 채워진 상태로 변경되어야 함 (⭐)
+  await expect(page.locator('[data-testid="page-favorite-icon"]')).toHaveAttribute('data-favorited', 'true');
+  
+  // And: 사이드바 즐겨찾기 섹션에 페이지가 추가되어야 함
+  await expect(page.locator('[data-testid="favorites-section"]').locator('text=page1 제목')).toBeVisible();
+  
+  // When: 다시 별 아이콘 클릭 (제거)
+  await page.click('[data-testid="page-favorite-icon"]');
+  
+  // Then: 별 아이콘이 빈 상태로 변경되어야 함 (☆)
+  await expect(page.locator('[data-testid="page-favorite-icon"]')).toHaveAttribute('data-favorited', 'false');
+  
+  // And: 사이드바 즐겨찾기 섹션에서 페이지가 제거되어야 함
+  await expect(page.locator('[data-testid="favorites-section"]').locator('text=page1 제목')).not.toBeVisible();
+})
+```
+
+**테스트 우선순위**: ⭐️⭐️⭐️⭐️
+
+---
+
 ## 📈 커버리지 목표 및 TDD 사이클
 
 > **가이드 참조**: Phase 3.5 - 커버리지 목표 및 TDD 사이클 작성
 
-### 레이어별 커버리지 목표 (Scenario 1)
+### 레이어별 커버리지 목표 (Scenario 0~5)
 
 | 레이어 | 목표 커버리지 | 우선순위 | 예상 테스트 수 |
 |--------|--------------|---------|---------------|
-| **Value Objects** | 95% 이상 | ⭐️⭐️⭐️⭐️ | 6개 (PagePath 삭제) |
-| **Entities** | 95% 이상 | ⭐️⭐️⭐️⭐️⭐️ | 12개 (depth 계산 로직 추가) |
-| **Aggregates** | 90% 이상 | ⭐️⭐️⭐️⭐️⭐️ | 29개 (Workspace 15 + Page 14) |
+| **Value Objects** | 95% 이상 | ⭐️⭐️⭐️⭐️ | 6개 |
+| **Entities** | 95% 이상 | ⭐️⭐️⭐️⭐️⭐️ | 12개 |
+| **Aggregates** | 90% 이상 | ⭐️⭐️⭐️⭐️⭐️ | 70개 (Workspace 35 + Page 35) |
 | **Read Model Service** | 85% 이상 | ⭐️⭐️⭐️⭐️⭐️ | 13개 |
-| **Repositories** | 80% 이상 | ⭐️⭐️⭐️⭐️ | 26개 (총 3개 Repository) |
-| **Server Actions** | 85% 이상 | ⭐️⭐️⭐️⭐️⭐️ | 24개 (총 2개 Action) |
-| **E2E Tests** | 5개 시나리오 | ⭐️⭐️⭐️⭐️⭐️ | 5개 |
+| **Repositories** | 80% 이상 | ⭐️⭐️⭐️⭐️ | 31개 (총 3개 Repository) |
+| **Server Actions** | 85% 이상 | ⭐️⭐️⭐️⭐️⭐️ | 77개 (총 9개 Action) |
+| **E2E Tests** | 주요 시나리오 | ⭐️⭐️⭐️⭐️⭐️ | 12개 |
 
-**총 예상 테스트 수**: ~117개 (Scenario 1만, PagePath 삭제 + Page Entity/Aggregate depth 로직 추가)
+**총 예상 테스트 수**: ~221개 (Scenario 0~5 완료)
 
 ---
 
-### TDD 구현 순서 (Scenario 1)
+### TDD 구현 순서 (Scenario 0~5)
 
 #### Phase 1: Value Objects (⭐️⭐️⭐️⭐️)
 ```
@@ -669,7 +1069,7 @@ test('[Scenario 1-5] 조직 멤버가 아닌 사용자는 접근 거부', async 
 2. PageId VO → RED-GREEN-REFACTOR
 ```
 
-**예상 시간**: 1-2시간 (PagePath 삭제로 단순화)
+**예상 시간**: 1-2시간
 
 ---
 
@@ -679,28 +1079,31 @@ test('[Scenario 1-5] 조직 멤버가 아닌 사용자는 접근 거부', async 
    - create, update 메서드
    - is_default, deletable 속성
 2. Page Entity → RED-GREEN-REFACTOR
-   - create, move 메서드
+   - create, move, updateInfo 메서드
    - calculateDepth 메서드 (부모 depth + 1)
    - 순환 참조 체크 로직
 ```
 
-**예상 시간**: 3-4시간
+**예상 시간**: 4-5시간
 
 ---
 
 #### Phase 3: Aggregates (⭐️⭐️⭐️⭐️⭐️)
 ```
-1. Workspace Aggregate → RED-GREEN-REFACTOR
+1. Workspace Aggregate → RED-GREEN-REFACTOR (Scenario 0, 1, 2, 3)
    - createDefault, create 팩토리 메서드
-   - verifyMembership Command 처리
-   - loadList Query 처리
-2. Page Aggregate → RED-GREEN-REFACTOR
+   - updateInfo Command 처리
+   - inviteMember, acceptInvitation, rejectInvitation Command 처리
+   - verifyMembership, loadList Query 처리
+   
+2. Page Aggregate → RED-GREEN-REFACTOR (Scenario 1, 4, 5)
    - create 팩토리 메서드
-   - loadTree Query 처리
-   - verifyAccess Command 처리
+   - move, updateInfo Command 처리
+   - toggleFavorite Command 처리
+   - loadTree, verifyAccess Query 처리
 ```
 
-**예상 시간**: 5-6시간
+**예상 시간**: 10-12시간
 
 ---
 
@@ -718,39 +1121,58 @@ test('[Scenario 1-5] 조직 멤버가 아닌 사용자는 접근 거부', async 
 #### Phase 5: Repositories (⭐️⭐️⭐️⭐️) - Integration Tests
 ```
 1. WorkspaceRepository (Integration Test)
-   - findByOrganizationId, save, findById
+   - findByOrganizationId, save, findById, update
 2. PageRepository (Integration Test)
-   - findTreeByWorkspaceId, save, findById
+   - findTreeByWorkspaceId, save, findById, updateDepth, findAncestors
 3. WorkspaceMemberRepository (Integration Test)
-   - isMember, addMember
+   - isMember, addMember, findInvitation
+4. PageFavoriteRepository (Integration Test)
+   - isFavorite, toggle
 ```
 
-**예상 시간**: 4-5시간
+**예상 시간**: 6-8시간
 
 ---
 
 #### Phase 6: Server Actions (⭐️⭐️⭐️⭐️⭐️) - Integration Tests
 ```
-1. getOrganizationWorkspacePageViewAction (Integration Test)
-   - 조직 멤버 접근, 권한 없음, 쿠키 자동 선택, 인증 검증
-2. verifyPageAccessAction (Integration Test)
-   - 페이지 접근 권한 검증, 순차 검증, 에러 처리, 인증 검증
+1. Scenario 1: getOrganizationWorkspacePageViewAction, verifyPageAccessAction
+2. Scenario 2: createWorkspaceAction, updateWorkspaceInfoAction
+3. Scenario 3: inviteWorkspaceMemberAction, acceptWorkspaceInvitationAction, rejectWorkspaceInvitationAction
+4. Scenario 4: createPageAction, movePageAction, updatePageInfoAction
+5. Scenario 5: togglePageFavoriteAction
 ```
 
-**예상 시간**: 4-5시간
+**예상 시간**: 10-12시간
 
 ---
 
 #### Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️)
 ```
+Scenario 1:
 1. Happy Path: 조직 접근 → 페이지 선택
-2. Error Path 1: 초대 안된 Workspace 접근
-3. Edge Case 1: 쿠키 자동 선택
-4. Edge Case 2: 쿠키 Fallback
-5. Error Path 2: 조직 멤버 아님
+2. Error Path: 초대 안된 Workspace 접근
+3. Edge Case: 쿠키 자동 선택, 쿠키 Fallback
+4. Error Path: 조직 멤버 아님
+
+Scenario 2:
+5. Happy Path: Workspace 생성 → 첫 페이지 이동
+6. Happy Path: Workspace 정보 수정
+
+Scenario 3:
+7. Happy Path: 멤버 초대 → 수락 → Workspace 접근
+8. Error Path: 이미 멤버인 경우 초대 불가
+
+Scenario 4:
+9. Happy Path: 페이지 생성 → 제목 편집
+10. Happy Path: 페이지 드래그 이동
+11. Error Path: 순환 참조 이동 실패
+
+Scenario 5:
+12. Happy Path: 즐겨찾기 토글 → 사이드바 업데이트
 ```
 
-**예상 시간**: 3-4시간
+**예상 시간**: 6-8시간
 
 ---
 
@@ -869,12 +1291,13 @@ async move(pageId: string, newParentId: string): Promise<void> {
 
 ---
 
-## 📊 성과 측정 지표 (Scenario 1)
+## 📊 성과 측정 지표 (Scenario 0~5)
 
 1. **테스트 커버리지**: 전체 85% 이상 달성
-2. **테스트 실행 시간**: Unit Tests < 5초, Integration Tests < 30초, E2E Tests < 2분
+2. **테스트 실행 시간**: Unit Tests < 10초, Integration Tests < 60초, E2E Tests < 5분
 3. **테스트 안정성**: Flaky Test 비율 < 1%
 4. **버그 발견율**: 테스트에서 발견된 버그 비율 > 80% (프로덕션 배포 전)
+5. **TDD 준수율**: 코드 작성 전 테스트 작성 비율 > 90%
 
 ---
 
@@ -889,5 +1312,5 @@ async move(pageId: string, newParentId: string): Promise<void> {
 
 ---
 
-*이 Testing Strategy 문서는 Workspace Management Domain의 TDD 구현을 위한 완전한 테스트 계획입니다. (Scenario 1까지 완료, 나머지 Scenario 진행 중)*
+*이 Testing Strategy 문서는 Workspace Management Domain의 TDD 구현을 위한 완전한 테스트 계획입니다. (Scenario 0~5 완료, Scenario 6은 Post-MVP, Scenario 7~8은 별도 진행 예정)*
 

@@ -27,20 +27,27 @@ Workspace Management Domain은 **Parent ID + depth 캐시 패턴**을 사용하�
 
 ### 관련 문서
 
-- **Testing Strategy**: `04-testing-strategy.md` - 117개 테스트 케이스 정의
+- **Testing Strategy**: `04-testing-strategy.md` - 221개 테스트 케이스 정의 (Scenario 0~5)
 - **Software Design**: `03-software-design.md` - 2개 Aggregate (Workspace, Page)
-- **Database Schema**: `06-db-schema.md` - 테이블 스키마 및 RLS 정책
+- **Database Schema**: `06-db-schema.md` - 4개 테이블 (workspaces, pages, workspace_members, page_favorites)
+- **User Flow**: `03-user-flow.md` - 5개 Scenario의 화면 흐름
 
-### 구현 우선순위 요약
+### 구현 우선순위 요약 (Scenario 0~5)
 
 ```markdown
 Phase 1: Value Objects (⭐️⭐️⭐️⭐️) - 2개 (WorkspaceId, PageId)
-Phase 2: Entities (⭐️⭐️⭐️⭐️⭐️) - 2개 (Workspace, Page - depth 계산 로직 포함)
+Phase 2: Entities (⭐️⭐️⭐️⭐️⭐️) - 2개 (Workspace, Page)
+  - Workspace: create, updateInfo
+  - Page: create, move, updateInfo, calculateDepth
 Phase 3: Aggregates (⭐️⭐️⭐️⭐️⭐️) - 2개 (Workspace, Page)
+  - Workspace: 35개 테스트 (생성, 수정, 초대, 수락, 거절)
+  - Page: 35개 테스트 (생성, 이동, 수정, 즐겨찾기)
 Phase 4: Read Model Service (⭐️⭐️⭐️⭐️⭐️) - 1개 (OrganizationWorkspacePageView)
-Phase 5: Repositories (⭐️⭐️⭐️⭐️) - 3개 (Workspace, Page - 재귀 CTE 핵심, WorkspaceMember)
-Phase 6: Server Actions (⭐️⭐️⭐️⭐️⭐️) - 2개 (getOrganizationWorkspacePageView, verifyPageAccess)
-Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 5개 시나리오
+Phase 5: Repositories (⭐️⭐️⭐️⭐️) - 4개
+  - WorkspaceRepository, PageRepository (재귀 CTE), WorkspaceMemberRepository, PageFavoriteRepository
+Phase 6: Server Actions (⭐️⭐️⭐️⭐️⭐️) - 9개
+  - Scenario 1: 2개, Scenario 2: 2개, Scenario 3: 3개, Scenario 4: 3개, Scenario 5: 1개
+Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 12개 시나리오
 ```
 
 ---
@@ -281,19 +288,26 @@ class Page {
 - **파일 위치**: `src/domains/workspace-management/backend/aggregates/workspace.aggregate.ts`
 - **역할**: Workspace 관련 도메인 로직과 일관성 경계를 담당하는 Aggregate Root
 - **주요 기능**:
-  - Workspace 생성 (Default/일반)
-  - Workspace 멤버십 검증
-  - Workspace 목록 조회
+  - Workspace 생성 (Default/일반) - Scenario 0, 2
+  - Workspace 정보 수정 - Scenario 2
+  - Workspace 멤버십 검증 - Scenario 1
+  - Workspace 멤버 초대/수락/거절 - Scenario 3
   - 도메인 이벤트 발생 및 관리
 - **주요 메서드**:
-  - createDefault(orgId, createdBy): Default Workspace 생성 및 WorkspaceCreated 발행
+  - createDefault(orgId, createdBy): Default Workspace 생성
   - create(orgId, name, description, icon, createdBy): 일반 Workspace 생성
-  - verifyMembership(workspaceId, userId, isOrgMember): Workspace 멤버십 검증
-  - getUncommittedEvents(): 발행된 이벤트 목록 반환
+  - updateInfo(name, description, icon): Workspace 정보 수정
+  - inviteMember(userId): 멤버 초대
+  - acceptInvitation(invitationId, userId): 초대 수락
+  - rejectInvitation(invitationId, userId): 초대 거절
+  - verifyMembership(workspaceId, userId, isOrgMember): 멤버십 검증
 - **불변식(Invariants)**:
   - Workspace는 반드시 하나의 Organization에 속함
-  - Default Workspace는 삭제 불가 (deletable=false)
-  - 조직 멤버는 Default Workspace 자동 접근
+  - Default Workspace는 삭제 불가
+  - 조직 소유자만 Workspace 생성 가능
+  - Workspace 멤버만 정보 수정 가능
+  - 조직 Admin + Workspace 멤버만 초대 가능
+  - 이미 멤버인 경우 초대 불가
 
 **구현 수도코드**:
 ```typescript
@@ -301,16 +315,19 @@ class WorkspaceAggregate {
   private _workspace: Workspace;
   private _events: DomainEvent[] = [];
   
+  // Scenario 0: Default Workspace 생성
   static createDefault(
     organizationId: OrganizationId,
     createdBy: UserId
   ): WorkspaceAggregate {
     // 1. WorkspaceId 생성 (UUID)
-    // 2. Workspace Entity 생성 (isDefault=true, deletable=false)
-    // 3. WorkspaceCreated 이벤트 생성 및 추가
-    // 4. WorkspaceAggregate 반환
+    // 2. 기본 이름 설정 (조직명과 동일)
+    // 3. Workspace Entity 생성 (isDefault=true, deletable=false)
+    // 4. WorkspaceCreated 이벤트 생성 및 추가
+    // 5. WorkspaceAggregate 반환
   }
   
+  // Scenario 2: 일반 Workspace 생성
   static create(
     organizationId: OrganizationId,
     name: string,
@@ -319,12 +336,77 @@ class WorkspaceAggregate {
     createdBy: UserId
   ): WorkspaceAggregate {
     // 1. WorkspaceId 생성
-    // 2. 이름 검증 (1-100자)
-    // 3. Workspace Entity 생성 (isDefault=false, deletable=true)
-    // 4. WorkspaceCreated 이벤트 생성 및 추가
-    // 5. WorkspaceAggregate 반환
+    // 2. 이름 검증 (1-100자, 빈 문자열 불가)
+    // 3. 설명 검증 (최대 500자)
+    // 4. Workspace Entity 생성 (isDefault=false, deletable=true)
+    // 5. WorkspaceCreated 이벤트 생성 및 추가
+    // 6. WorkspaceAggregate 반환
   }
   
+  // Scenario 2: Workspace 정보 수정
+  updateInfo(
+    name: string | undefined,
+    description: string | null | undefined,
+    icon: string | null | undefined
+  ): void {
+    // 1. 이름이 제공되면 검증 및 업데이트
+    //    - 1-100자 검증
+    //    - WorkspaceNameChanged 이벤트 발행
+    // 2. 설명이 제공되면 검증 및 업데이트
+    //    - 최대 500자 검증
+    //    - WorkspaceDescriptionChanged 이벤트 발행
+    // 3. 아이콘이 제공되면 업데이트
+    //    - WorkspaceIconChanged 이벤트 발행
+    // 4. Workspace Entity의 updatedAt 갱신
+  }
+  
+  // Scenario 3: Workspace 멤버 초대
+  inviteMember(
+    invitedUserId: UserId,
+    invitedByUserId: UserId,
+    isInviterAdmin: boolean,
+    isInviterWorkspaceMember: boolean,
+    isAlreadyMember: boolean
+  ): void {
+    // 1. 권한 검증:
+    //    - isInviterAdmin && isInviterWorkspaceMember === true 확인
+    //    - false이면 InsufficientPermissionError 발생
+    // 2. 중복 초대 방지:
+    //    - isAlreadyMember === true이면 AlreadyMemberError 발생
+    // 3. 초대 생성 (invitation 엔티티 또는 이벤트만)
+    // 4. WorkspaceMemberInvitationCreated 이벤트 발행
+  }
+  
+  // Scenario 3: 초대 수락
+  acceptInvitation(
+    invitationId: string,
+    userId: UserId,
+    isInvitee: boolean,
+    isAlreadyProcessed: boolean
+  ): void {
+    // 1. 권한 검증:
+    //    - isInvitee === true 확인 (본인만 수락)
+    // 2. 중복 처리 방지:
+    //    - isAlreadyProcessed === true이면 AlreadyProcessedError 발생
+    // 3. 초대 완료 처리
+    // 4. WorkspaceInvitationAccepted 이벤트 발행
+    // 5. MemberAddedToWorkspace 이벤트 발행
+  }
+  
+  // Scenario 3: 초대 거절
+  rejectInvitation(
+    invitationId: string,
+    userId: UserId,
+    isInvitee: boolean,
+    isAlreadyProcessed: boolean
+  ): void {
+    // 1. 권한 검증: isInvitee === true 확인
+    // 2. 중복 처리 방지: isAlreadyProcessed === true이면 Error
+    // 3. 초대 종료 처리
+    // 4. WorkspaceInvitationRejected 이벤트 발행
+  }
+  
+  // Scenario 1: Workspace 멤버십 검증
   verifyMembership(workspaceId: WorkspaceId, userId: UserId, isOrgMember: boolean): boolean {
     // 1. Workspace가 Default이면:
     //    - isOrgMember === true이면 → return true (자동 접근)
@@ -342,8 +424,8 @@ class WorkspaceAggregate {
 ```
 
 **우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**Testing Strategy 참조**: 섹션 3 - Aggregates 테스트  
-**Process Model 매핑**: Scenario 0, Scenario 1 - Sequence 2
+**Testing Strategy 참조**: 섹션 3 - Workspace Aggregate 테스트 (35개)  
+**Process Model 매핑**: Scenario 0, 1, 2, 3
 
 ---
 
@@ -352,18 +434,24 @@ class WorkspaceAggregate {
 - **파일 위치**: `src/domains/workspace-management/backend/aggregates/page.aggregate.ts`
 - **역할**: Page 관련 도메인 로직과 계층 구조를 담당하는 Aggregate Root
 - **주요 기능**:
-  - Page 생성 (depth 자동 계산)
-  - Page 트리 조회 (재귀 CTE)
-  - Page 이동 (순환 참조 방지)
-  - 도메인 이벤트 발생 및 관리
+  - Page 생성 (depth 자동 계산) - Scenario 0, 2, 4
+  - Page 이동 (순환 참조 가능) - Scenario 4
+  - Page 정보 수정 (제목, 아이콘) - Scenario 4
+  - Page 즐겨찾기 토글 - Scenario 5
+  - Page 트리 조회 (재귀 CTE) - Scenario 1
+  - Page 접근 권한 검증 - Scenario 1
 - **주요 메서드**:
-  - create(workspaceId, parentId, title, icon, createdBy, parentPage): Page 생성 및 depth 계산
-  - move(pageId, newParentId, newParentPage, ancestors): Page 이동 및 순환 참조 체크
-  - verifyAccess(pageId, userId, isWorkspaceMember): Page 접근 권한 검증
+  - create(workspaceId, parentId, title, icon, createdBy, parentPage): Page 생성
+  - move(pageId, newParentId, newParentPage, ancestors): Page 이동
+  - updateInfo(title, icon): Page 제목/아이콘 수정
+  - toggleFavorite(userId, isFavorited): 즐겨찾기 토글
+  - verifyAccess(userId, isWorkspaceMember): 접근 권한 검증
 - **불변식(Invariants)**:
   - Page는 반드시 하나의 Workspace에 속함
   - 순환 참조 불가
   - depth는 0 이상
+  - 제목은 빈 문자열 불가
+  - Workspace 멤버만 생성/수정/이동 가능
 
 **구현 수도코드**:
 ```typescript
@@ -371,56 +459,87 @@ class PageAggregate {
   private _page: Page;
   private _events: DomainEvent[] = [];
   
-  static async create(
+  // Scenario 4: Page 생성
+  static create(
     workspaceId: WorkspaceId,
     parentId: PageId | null,
     title: string,
     icon: string | null,
     createdBy: UserId,
-    parentPage: Page | null  // parent를 미리 조회해서 전달
-  ): Promise<PageAggregate> {
+    parentPage: Page | null
+  ): PageAggregate {
     // 1. PageId 생성 (UUID)
-    // 2. depth 계산
+    // 2. 제목 검증 (기본값 "Untitled" 또는 입력값, 최대 200자)
+    // 3. depth 계산
     //    - parentId === null → depth = 0
     //    - parentId !== null → depth = parentPage.depth + 1
-    // 3. parentId가 있는데 parentPage가 null이면 → Error
-    // 4. order 계산 (같은 레벨 내 마지막 + 1)
-    // 5. Page Entity 생성
-    // 6. PageCreated 이벤트 생성 및 추가
-    // 7. PageAggregate 반환
+    // 4. parentId가 있는데 parentPage가 null이면 → PageNotFoundError
+    // 5. order 계산 (같은 레벨 내 마지막 + 1)
+    // 6. Page Entity 생성
+    // 7. PageCreated 이벤트 발행
+    // 8. EmptyCanvasInitialized 이벤트 발행
+    // 9. PageAggregate 반환
   }
   
-  async move(
-    pageId: PageId,
+  // Scenario 4: Page 이동
+  move(
     newParentId: PageId | null,
     newParentPage: Page | null,
-    ancestors: Page[]  // newParentId의 모든 조상 (재귀 CTE로 조회)
-  ): Promise<void> {
-    // 1. **순환 참조 체크**: ancestors 중에 pageId가 있는지 확인
+    ancestors: Page[]
+  ): void {
+    // 1. **순환 참조 체크**: ancestors 중에 this._page.pageId가 있는지 확인
     //    - 있으면 → CircularReferenceError 발생
     // 2. 새 depth 계산
     //    - newParentId === null → newDepth = 0
     //    - newParentId !== null → newDepth = newParentPage.depth + 1
-    // 3. Page Entity의 moveToParent() 호출
-    // 4. PageMoved 이벤트 생성 및 추가
-    // 5. **하위 페이지 depth 업데이트 이벤트** 발행 (Repository에서 처리)
+    // 3. Page Entity의 moveToParent(newParentId, newDepth) 호출
+    // 4. PageMovedToChild 또는 PageMovedToRoot 이벤트 발행
+    // 5. PageOrderChanged 이벤트 발행 (같은 레벨 순서 재정렬)
   }
   
-  verifyAccess(pageId: PageId, userId: UserId, isWorkspaceMember: boolean): boolean {
+  // Scenario 4: Page 정보 수정
+  updateInfo(
+    title: string | undefined,
+    icon: string | null | undefined
+  ): void {
+    // 1. 제목이 제공되면:
+    //    - 빈 문자열 검증
+    //    - 최대 200자 검증
+    //    - Page Entity의 updateTitle() 호출
+    //    - PageTitleSet 이벤트 발행
+    // 2. 아이콘이 제공되면:
+    //    - Page Entity의 updateIcon() 호출
+    //    - PageIconSet 이벤트 발행
+  }
+  
+  // Scenario 5: 즐겨찾기 토글
+  toggleFavorite(userId: UserId, isFavorited: boolean): boolean {
+    // 1. 현재 상태 확인 (isFavorited)
+    // 2. isFavorited === false이면:
+    //    - PageAddedToFavorites 이벤트 발행
+    //    - return true (새 상태)
+    // 3. isFavorited === true이면:
+    //    - PageRemovedFromFavorites 이벤트 발행
+    //    - return false (새 상태)
+  }
+  
+  // Scenario 1: Page 접근 권한 검증
+  verifyAccess(userId: UserId, isWorkspaceMember: boolean): boolean {
     // 1. isWorkspaceMember === true이면 → return true
     // 2. isWorkspaceMember === false이면 → return false
     // 3. PageAccessVerified 또는 PageAccessDenied 이벤트 발행
   }
   
   getUncommittedEvents(): DomainEvent[] {
-    return this._events;
+    // 1. this._events 반환
+    // 2. this._events = [] (이벤트 클리어)
   }
 }
 ```
 
 **우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**Testing Strategy 참조**: 섹션 3 - Aggregates 테스트  
-**Process Model 매핑**: Scenario 1 - Sequence 1, Scenario 4 (Page 이동)
+**Testing Strategy 참조**: 섹션 3 - Page Aggregate 테스트 (35개)  
+**Process Model 매핑**: Scenario 1, 4, 5
 
 ---
 
@@ -431,12 +550,15 @@ class PageAggregate {
 - **파일 위치**: `src/domains/workspace-management/shared/commands/index.ts`
 
 ```typescript
-// Workspace Commands
+// ===== Workspace Commands =====
+
+// Scenario 0
 interface CreateDefaultWorkspaceCommand {
   organizationId: string;
   createdBy: string;
 }
 
+// Scenario 2
 interface CreateWorkspaceCommand {
   organizationId: string;
   name: string;
@@ -445,18 +567,56 @@ interface CreateWorkspaceCommand {
   createdBy: string;
 }
 
-// Page Commands
+interface UpdateWorkspaceInfoCommand {
+  workspaceId: string;
+  name?: string;
+  description?: string | null;
+  icon?: string | null;
+}
+
+// Scenario 3
+interface InviteWorkspaceMemberCommand {
+  workspaceId: string;
+  memberEmails: string[];
+  invitedBy: string;
+}
+
+interface AcceptWorkspaceInvitationCommand {
+  invitationId: string;
+  userId: string;
+}
+
+interface RejectWorkspaceInvitationCommand {
+  invitationId: string;
+  userId: string;
+}
+
+// ===== Page Commands =====
+
+// Scenario 4
 interface CreatePageCommand {
   workspaceId: string;
   parentId?: string;
-  title: string;
-  icon?: string;
+  title?: string; // 기본값 "Untitled"
+  icon?: string;  // 기본값 📄
   createdBy: string;
 }
 
 interface MovePageCommand {
   pageId: string;
   newParentId?: string;
+}
+
+interface UpdatePageInfoCommand {
+  pageId: string;
+  title?: string;
+  icon?: string | null;
+}
+
+// Scenario 5
+interface TogglePageFavoriteCommand {
+  pageId: string;
+  userId: string;
 }
 ```
 
@@ -467,15 +627,81 @@ interface MovePageCommand {
 - **파일 위치**: `src/domains/workspace-management/shared/events/index.ts`
 
 ```typescript
-// Workspace Events
+// ===== Workspace Events =====
+
+// Scenario 0, 2
 interface WorkspaceCreatedEvent {
   type: 'WorkspaceCreated';
   workspaceId: string;
   organizationId: string;
+  name: string;
   isDefault: boolean;
   occurredAt: Date;
 }
 
+// Scenario 2
+interface WorkspaceNameChangedEvent {
+  type: 'WorkspaceNameChanged';
+  workspaceId: string;
+  oldName: string;
+  newName: string;
+  occurredAt: Date;
+}
+
+interface WorkspaceDescriptionChangedEvent {
+  type: 'WorkspaceDescriptionChanged';
+  workspaceId: string;
+  newDescription: string | null;
+  occurredAt: Date;
+}
+
+interface WorkspaceIconChangedEvent {
+  type: 'WorkspaceIconChanged';
+  workspaceId: string;
+  newIcon: string | null;
+  occurredAt: Date;
+}
+
+// Scenario 3
+interface WorkspaceMemberInvitationCreatedEvent {
+  type: 'WorkspaceMemberInvitationCreated';
+  invitationId: string;
+  workspaceId: string;
+  invitedUserId: string;
+  invitedBy: string;
+  occurredAt: Date;
+}
+
+interface InvitationNotificationSentEvent {
+  type: 'InvitationNotificationSent';
+  invitationId: string;
+  notificationId: string;
+  occurredAt: Date;
+}
+
+interface WorkspaceInvitationAcceptedEvent {
+  type: 'WorkspaceInvitationAccepted';
+  invitationId: string;
+  workspaceId: string;
+  userId: string;
+  occurredAt: Date;
+}
+
+interface MemberAddedToWorkspaceEvent {
+  type: 'MemberAddedToWorkspace';
+  workspaceId: string;
+  userId: string;
+  occurredAt: Date;
+}
+
+interface WorkspaceInvitationRejectedEvent {
+  type: 'WorkspaceInvitationRejected';
+  invitationId: string;
+  userId: string;
+  occurredAt: Date;
+}
+
+// Scenario 1
 interface WorkspaceListLoadedEvent {
   type: 'WorkspaceListLoaded';
   organizationId: string;
@@ -483,22 +709,86 @@ interface WorkspaceListLoadedEvent {
   occurredAt: Date;
 }
 
-// Page Events
+// ===== Page Events =====
+
+// Scenario 0, 2, 4
 interface PageCreatedEvent {
   type: 'PageCreated';
   pageId: string;
   workspaceId: string;
   parentId?: string;
   depth: number;
+  title: string;
   occurredAt: Date;
 }
 
-interface PageMovedEvent {
-  type: 'PageMoved';
+interface EmptyCanvasInitializedEvent {
+  type: 'EmptyCanvasInitialized';
+  pageId: string;
+  occurredAt: Date;
+}
+
+// Scenario 4
+interface PageMovedToChildEvent {
+  type: 'PageMovedToChild';
   pageId: string;
   oldParentId?: string;
-  newParentId?: string;
+  newParentId: string;
   newDepth: number;
+  occurredAt: Date;
+}
+
+interface PageMovedToRootEvent {
+  type: 'PageMovedToRoot';
+  pageId: string;
+  oldParentId?: string;
+  newDepth: number;
+  occurredAt: Date;
+}
+
+interface PageOrderChangedEvent {
+  type: 'PageOrderChanged';
+  pageId: string;
+  oldOrder: number;
+  newOrder: number;
+  occurredAt: Date;
+}
+
+interface PageTitleSetEvent {
+  type: 'PageTitleSet';
+  pageId: string;
+  oldTitle: string;
+  newTitle: string;
+  occurredAt: Date;
+}
+
+interface PageIconSetEvent {
+  type: 'PageIconSet';
+  pageId: string;
+  newIcon: string | null;
+  occurredAt: Date;
+}
+
+// Scenario 5
+interface PageAddedToFavoritesEvent {
+  type: 'PageAddedToFavorites';
+  pageId: string;
+  userId: string;
+  occurredAt: Date;
+}
+
+interface PageRemovedFromFavoritesEvent {
+  type: 'PageRemovedFromFavorites';
+  pageId: string;
+  userId: string;
+  occurredAt: Date;
+}
+
+// Scenario 1
+interface PageTreeLoadedEvent {
+  type: 'PageTreeLoaded';
+  workspaceId: string;
+  pageCount: number;
   occurredAt: Date;
 }
 
@@ -532,27 +822,71 @@ class WorkspaceManagementError extends Error {
 }
 
 type WorkspaceManagementErrorCode = 
+  // Workspace Errors
   | 'WORKSPACE_NOT_FOUND'
-  | 'PAGE_NOT_FOUND'
   | 'INVALID_WORKSPACE_NAME'
+  | 'WORKSPACE_NAME_TOO_LONG'
+  | 'WORKSPACE_DESCRIPTION_TOO_LONG'
   | 'DEFAULT_WORKSPACE_NOT_DELETABLE'
+  
+  // Page Errors
+  | 'PAGE_NOT_FOUND'
+  | 'INVALID_PAGE_TITLE'
+  | 'PAGE_TITLE_TOO_LONG'
   | 'CIRCULAR_REFERENCE_DETECTED'
+  
+  // Permission Errors
   | 'NOT_ORG_MEMBER'
   | 'NOT_WORKSPACE_MEMBER'
+  | 'NOT_ORG_ADMIN'
+  | 'NOT_ORG_OWNER'
+  | 'INSUFFICIENT_PERMISSION'
   | 'UNAUTHORIZED_ACCESS'
-  | 'DATABASE_CONNECTION_FAILED';
+  
+  // Invitation Errors
+  | 'INVITATION_NOT_FOUND'
+  | 'ALREADY_WORKSPACE_MEMBER'
+  | 'INVITATION_ALREADY_PROCESSED'
+  | 'NOT_INVITATION_TARGET'
+  | 'NOT_ORG_MEMBER_FOR_INVITATION'
+  
+  // System Errors
+  | 'DATABASE_CONNECTION_FAILED'
+  | 'NOTIFICATION_SERVICE_UNAVAILABLE';
 
 // 에러 메시지 매핑
 const ERROR_MESSAGES: Record<WorkspaceManagementErrorCode, string> = {
+  // Workspace Errors
   WORKSPACE_NOT_FOUND: 'Workspace를 찾을 수 없습니다',
-  PAGE_NOT_FOUND: '페이지를 찾을 수 없습니다',
   INVALID_WORKSPACE_NAME: 'Workspace 이름이 유효하지 않습니다',
+  WORKSPACE_NAME_TOO_LONG: 'Workspace 이름은 100자 이내로 입력해주세요',
+  WORKSPACE_DESCRIPTION_TOO_LONG: 'Workspace 설명은 500자 이내로 입력해주세요',
   DEFAULT_WORKSPACE_NOT_DELETABLE: '기본 워크스페이스는 삭제할 수 없습니다',
+  
+  // Page Errors
+  PAGE_NOT_FOUND: '페이지를 찾을 수 없습니다',
+  INVALID_PAGE_TITLE: '페이지 제목이 유효하지 않습니다',
+  PAGE_TITLE_TOO_LONG: '페이지 제목은 200자 이내로 입력해주세요',
   CIRCULAR_REFERENCE_DETECTED: '순환 참조가 발생합니다',
+  
+  // Permission Errors
   NOT_ORG_MEMBER: '조직 멤버가 아닙니다',
   NOT_WORKSPACE_MEMBER: 'Workspace에 초대되지 않았습니다',
+  NOT_ORG_ADMIN: '조직 관리자 권한이 필요합니다',
+  NOT_ORG_OWNER: '조직 소유자 권한이 필요합니다',
+  INSUFFICIENT_PERMISSION: '권한이 부족합니다',
   UNAUTHORIZED_ACCESS: '접근 권한이 없습니다',
-  DATABASE_CONNECTION_FAILED: '데이터베이스 연결에 실패했습니다'
+  
+  // Invitation Errors
+  INVITATION_NOT_FOUND: '초대를 찾을 수 없습니다',
+  ALREADY_WORKSPACE_MEMBER: '이미 Workspace 멤버입니다',
+  INVITATION_ALREADY_PROCESSED: '이미 처리된 초대입니다',
+  NOT_INVITATION_TARGET: '본인의 초대만 처리할 수 있습니다',
+  NOT_ORG_MEMBER_FOR_INVITATION: '조직 멤버만 초대할 수 있습니다',
+  
+  // System Errors
+  DATABASE_CONNECTION_FAILED: '데이터베이스 연결에 실패했습니다',
+  NOTIFICATION_SERVICE_UNAVAILABLE: '알림 서비스를 사용할 수 없습니다'
 };
 ```
 
@@ -709,29 +1043,34 @@ class DrizzlePageRepository implements IPageRepository {
 #### WorkspaceMemberRepository
 
 - **파일 위치**: `src/domains/workspace-management/backend/repositories/workspace-member.repository.ts`
-- **역할**: Workspace 멤버십 데이터 영속성
+- **역할**: Workspace 멤버십 데이터 영속성 (초대 여부만 저장)
 - **주요 메서드**:
-  - isMember(workspaceId: WorkspaceId, userId: UserId): Promise<boolean>
-  - addMember(workspaceId: WorkspaceId, userId: UserId, role: string): Promise<void>
-  - removeMember(workspaceId: WorkspaceId, userId: UserId): Promise<void>
+  - isMember(workspaceId: WorkspaceId, userId: string): Promise<boolean>
+  - addMember(workspaceId: WorkspaceId, userId: string): Promise<void>
+  - removeMember(workspaceId: WorkspaceId, userId: string): Promise<void>
 - **DB 연동**: Drizzle ORM
 - **RLS 정책**: Self only (Application-level에서 adminDb 사용)
+- **권한 관리**: role은 organization_members에서 조회
 
 **구현 수도코드**:
 ```typescript
 class DrizzleWorkspaceMemberRepository {
-  async isMember(workspaceId: WorkspaceId, userId: UserId): Promise<boolean> {
+  async isMember(workspaceId: WorkspaceId, userId: string): Promise<boolean> {
     // 1. db.select().from(workspaceMembers)
     //    .where(and(
     //      eq(workspaceMembers.workspaceId, workspaceId.toString()),
-    //      eq(workspaceMembers.userId, userId.toString())
+    //      eq(workspaceMembers.userId, userId)
     //    ))
     // 2. return result.length > 0
   }
   
-  async addMember(workspaceId: WorkspaceId, userId: UserId, role: string): Promise<void> {
-    // 1. adminDb.insert(workspaceMembers).values({...})
-    //    (Service에서 권한 체크 후 호출)
+  async addMember(workspaceId: WorkspaceId, userId: string): Promise<void> {
+    // 1. adminDb.insert(workspaceMembers).values({
+    //      workspaceId: workspaceId.toString(),
+    //      userId,
+    //      // role 필드 제거 (organization_members에서 관리)
+    //    })
+    //    (Service에서 조직 권한 체크 후 호출)
   }
 }
 ```
@@ -794,6 +1133,61 @@ class OrganizationWorkspacePageViewService {
 
 ---
 
+#### PageFavoriteRepository
+
+- **파일 위치**: `src/domains/workspace-management/backend/repositories/page-favorite.repository.ts`
+- **역할**: 사용자별 페이지 즐겨찾기 데이터 관리
+- **주요 메서드**:
+  - isFavorite(pageId: PageId, userId: string): Promise<boolean>
+  - toggle(pageId: PageId, userId: string): Promise<boolean> - 추가/제거 토글
+  - findByUserId(userId: string): Promise<Page[]> - 사용자의 모든 즐겨찾기 조회
+- **DB 연동**: Drizzle ORM
+- **RLS 정책**: Self only (개인 데이터)
+
+**구현 수도코드**:
+```typescript
+interface IPageFavoriteRepository {
+  isFavorite(pageId: PageId, userId: string): Promise<boolean>;
+  toggle(pageId: PageId, userId: string): Promise<boolean>;
+  findByUserId(userId: string): Promise<Page[]>;
+}
+
+class DrizzlePageFavoriteRepository implements IPageFavoriteRepository {
+  async isFavorite(pageId: PageId, userId: string): Promise<boolean> {
+    // 1. db.select().from(pageFavorites)
+    //    .where(and(
+    //      eq(pageFavorites.pageId, pageId.toString()),
+    //      eq(pageFavorites.userId, userId)
+    //    ))
+    // 2. return result.length > 0
+  }
+  
+  async toggle(pageId: PageId, userId: string): Promise<boolean> {
+    // 1. 현재 상태 확인 (isFavorite)
+    // 2. isFavorite === false이면:
+    //    - db.insert(pageFavorites).values({ pageId, userId })
+    //    - return true
+    // 3. isFavorite === true이면:
+    //    - db.delete(pageFavorites).where(and(...))
+    //    - return false
+  }
+  
+  async findByUserId(userId: string): Promise<Page[]> {
+    // 1. db.select().from(pageFavorites)
+    //    .innerJoin(pages, eq(pages.id, pageFavorites.pageId))
+    //    .where(eq(pageFavorites.userId, userId))
+    //    .orderBy(desc(pageFavorites.favoritedAt))
+    // 2. DB 모델 → Page Entity 변환
+    // 3. return Page[]
+  }
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: 섹션 4.1 - Repository 통합 테스트
+
+---
+
 ## 🚀 Application Layer
 
 > **가이드 참조**: Phase 2.3, 2.4 - Service 및 Server Actions 수도코드
@@ -808,11 +1202,27 @@ class OrganizationWorkspacePageViewService {
   - WorkspaceRepository
   - PageRepository
   - WorkspaceMemberRepository
+  - PageFavoriteRepository
   - OrganizationMemberRepository (Organization Domain)
+  - NotificationService (Notification Domain)
 - **주요 메서드**:
-  - getOrganizationWorkspacePageView(orgId, userId, cookiePageId): OrganizationWorkspacePageView 조회
-  - verifyPageAccess(orgId, workspaceId, pageId, userId): Page 접근 권한 검증
-- **트랜잭션**: 필요 시 사용
+  - **Scenario 1**:
+    - getOrganizationWorkspacePageView(orgId, userId, cookiePageId): Workspace-Page 목록 조회
+    - verifyPageAccess(orgId, workspaceId, pageId, userId): Page 접근 권한 검증
+  - **Scenario 2**:
+    - createWorkspace(orgId, name, description, icon, userId): Workspace 생성
+    - updateWorkspaceInfo(workspaceId, name, description, icon, userId): Workspace 정보 수정
+  - **Scenario 3**:
+    - inviteWorkspaceMember(workspaceId, memberEmails, userId): 멤버 초대
+    - acceptWorkspaceInvitation(invitationId, userId): 초대 수락
+    - rejectWorkspaceInvitation(invitationId, userId): 초대 거절
+  - **Scenario 4**:
+    - createPage(workspaceId, parentId, userId): Page 생성
+    - movePage(pageId, newParentId, userId): Page 이동
+    - updatePageInfo(pageId, title, icon, userId): Page 정보 수정
+  - **Scenario 5**:
+    - togglePageFavorite(pageId, userId): 즐겨찾기 토글
+- **트랜잭션**: Workspace 생성 + Page 생성, 초대 + 알림 발송
 
 **구현 수도코드**:
 ```typescript
@@ -821,60 +1231,86 @@ class WorkspaceManagementService {
     private workspaceRepo: IWorkspaceRepository,
     private pageRepo: IPageRepository,
     private workspaceMemberRepo: IWorkspaceMemberRepository,
-    private orgMemberRepo: IOrganizationMemberRepository  // Organization Domain
+    private pageFavoriteRepo: IPageFavoriteRepository,
+    private orgMemberRepo: IOrganizationMemberRepository,
+    private notificationService: INotificationService
   ) {}
   
+  // ===== Scenario 1: Workspace-Page 목록 조회 =====
   async getOrganizationWorkspacePageView(
     orgId: OrganizationId,
     userId: UserId,
     cookiePageId?: string
   ): Promise<Result<OrganizationWorkspacePageView>> {
-    // 1. 조직 멤버십 확인
-    const isOrgMember = await this.orgMemberRepo.isMember(orgId, userId);
-    if (!isOrgMember) {
-      return Result.err('NOT_ORG_MEMBER');
-    }
-    
-    // 2. Workspace 목록 조회
-    const workspaces = await this.workspaceRepo.findByOrganizationId(orgId);
-    
-    // 3. 각 Workspace의 Page 트리 조회
-    const workspacesWithPages = await Promise.all(
-      workspaces.map(async (ws) => ({
-        ...ws,
-        pageTree: await this.pageRepo.findTreeByWorkspaceId(ws.workspaceId)
-      }))
-    );
-    
-    // 4. 쿠키 검증 및 Fallback
-    let selectedPageId = cookiePageId;
-    if (cookiePageId) {
-      const cookiePage = await this.pageRepo.findById(new PageId(cookiePageId));
-      if (!cookiePage || cookiePage.workspaceId.toString() !== orgId.toString()) {
-        selectedPageId = this.findDefaultFirstPage(workspacesWithPages);
-      }
-    } else {
-      selectedPageId = this.findDefaultFirstPage(workspacesWithPages);
-    }
-    
-    // 5. OrganizationWorkspacePageView 반환
-    return Result.ok({
-      organizationId: orgId.toString(),
-      workspaces: workspacesWithPages,
-      selectedPageId
-    });
+    // (기존 로직 유지)
   }
   
   async verifyPageAccess(
     orgId: OrganizationId,
     workspaceId: WorkspaceId,
     pageId: PageId,
+    userId: string
+  ): Promise<Result<{ page: Page; userRole: string }>> {
+    // (기존 로직 유지)
+  }
+  
+  // ===== Scenario 2: Workspace 생성 및 수정 =====
+  async createWorkspace(
+    orgId: OrganizationId,
+    name: string,
+    description: string | null,
+    icon: string | null,
     userId: UserId
-  ): Promise<Result<Page>> {
-    // 1. 조직 멤버십 확인 (Fail-fast)
-    const isOrgMember = await this.orgMemberRepo.isMember(orgId, userId);
-    if (!isOrgMember) {
-      return Result.err('NOT_ORG_MEMBER');
+  ): Promise<Result<{ workspaceId: string; firstPageId: string }>> {
+    // 1. 조직 소유자 권한 확인
+    const orgMember = await this.orgMemberRepo.findMemberRole(orgId, userId);
+    if (!orgMember || orgMember.role !== 'owner') {
+      return Result.err('NOT_ORG_OWNER');
+    }
+    
+    // 2. Workspace Aggregate 생성
+    const workspaceAgg = WorkspaceAggregate.create(orgId, name, description, icon, userId);
+    
+    // 3. 트랜잭션 시작
+    await db.transaction(async (tx) => {
+      // 4. Workspace 저장
+      await this.workspaceRepo.save(workspaceAgg);
+      
+      // 5. 조직 소유자를 Workspace 멤버로 추가
+      await this.workspaceMemberRepo.addMember(workspaceAgg.workspaceId, userId);
+      
+      // 6. 초기 "Untitled" 페이지 생성
+      const pageAgg = PageAggregate.create(
+        workspaceAgg.workspaceId,
+        null, // 최상위
+        'Untitled',
+        '📄',
+        userId,
+        null
+      );
+      await this.pageRepo.save(pageAgg);
+      
+      // 7. 트랜잭션 커밋
+    });
+    
+    // 8. Result.ok 반환 (workspaceId, firstPageId)
+    return Result.ok({
+      workspaceId: workspaceAgg.workspaceId.toString(),
+      firstPageId: pageAgg.pageId.toString()
+    });
+  }
+  
+  async updateWorkspaceInfo(
+    workspaceId: WorkspaceId,
+    name: string | undefined,
+    description: string | null | undefined,
+    icon: string | null | undefined,
+    userId: UserId
+  ): Promise<Result<void>> {
+    // 1. Workspace 멤버십 확인
+    const isMember = await this.workspaceMemberRepo.isMember(workspaceId, userId);
+    if (!isMember) {
+      return Result.err('NOT_WORKSPACE_MEMBER');
     }
     
     // 2. Workspace 조회
@@ -883,29 +1319,276 @@ class WorkspaceManagementService {
       return Result.err('WORKSPACE_NOT_FOUND');
     }
     
+    // 3. Workspace Aggregate의 updateInfo() 호출
+    workspaceAgg.updateInfo(name, description, icon);
+    
+    // 4. Workspace 저장
+    await this.workspaceRepo.save(workspaceAgg);
+    
+    // 5. Result.ok 반환
+    return Result.ok();
+  }
+  
+  // ===== Scenario 3: Workspace 멤버 초대 =====
+  async inviteWorkspaceMember(
+    workspaceId: WorkspaceId,
+    memberEmails: string[],
+    userId: UserId
+  ): Promise<Result<number>> {
+    // 1. Workspace 조회
+    const workspace = await this.workspaceRepo.findById(workspaceId);
+    if (!workspace) {
+      return Result.err('WORKSPACE_NOT_FOUND');
+    }
+    
+    // 2. 조직 Admin 권한 확인
+    const orgMember = await this.orgMemberRepo.findMemberRole(workspace.organizationId, userId);
+    if (!orgMember || (orgMember.role !== 'admin' && orgMember.role !== 'owner')) {
+      return Result.err('NOT_ORG_ADMIN');
+    }
+    
     // 3. Workspace 멤버십 확인
-    if (workspace.isDefault) {
-      // Default Workspace는 조직 멤버 자동 접근
-    } else {
-      const isWorkspaceMember = await this.workspaceMemberRepo.isMember(workspaceId, userId);
-      if (!isWorkspaceMember) {
-        return Result.err('NOT_WORKSPACE_MEMBER');
+    const isWorkspaceMember = await this.workspaceMemberRepo.isMember(workspaceId, userId);
+    if (!isWorkspaceMember) {
+      return Result.err('NOT_WORKSPACE_MEMBER');
+    }
+    
+    // 4. 각 이메일에 대해 초대 처리 (트랜잭션)
+    let invitedCount = 0;
+    await db.transaction(async (tx) => {
+      for (const email of memberEmails) {
+        // 5. 이메일로 조직 멤버 검색
+        const targetUser = await this.orgMemberRepo.findByEmail(workspace.organizationId, email);
+        if (!targetUser) continue; // 조직 멤버 아니면 건너뜀
+        
+        // 6. 이미 Workspace 멤버인지 확인
+        const isAlreadyMember = await this.workspaceMemberRepo.isMember(workspaceId, targetUser.id);
+        if (isAlreadyMember) continue; // 이미 멤버면 건너뜀
+        
+        // 7. 초대 생성
+        workspaceAgg.inviteMember(targetUser.id, userId, true, true, false);
+        
+        // 8. Notification Domain 통합: 알림 생성 (동기)
+        const notificationResult = await this.notificationService.createInvitationNotification({
+          type: 'WORKSPACE_INVITATION',
+          workspaceId: workspaceId.toString(),
+          invitedUserId: targetUser.id,
+          invitedBy: userId.toString()
+        });
+        
+        // 9. 알림 생성 실패 시 전체 롤백
+        if (notificationResult.isErr) {
+          throw new Error('NOTIFICATION_SERVICE_UNAVAILABLE');
+        }
+        
+        invitedCount++;
+      }
+    });
+    
+    // 10. Result.ok 반환 (초대한 멤버 수)
+    return Result.ok(invitedCount);
+  }
+  
+  async acceptWorkspaceInvitation(
+    invitationId: string,
+    userId: UserId
+  ): Promise<Result<void>> {
+    // 1. 초대 조회
+    const invitation = await this.findInvitation(invitationId);
+    if (!invitation) {
+      return Result.err('INVITATION_NOT_FOUND');
+    }
+    
+    // 2. 본인의 초대인지 확인
+    if (invitation.invitedUserId !== userId.toString()) {
+      return Result.err('NOT_INVITATION_TARGET');
+    }
+    
+    // 3. 이미 처리되었는지 확인
+    if (invitation.status !== 'PENDING') {
+      return Result.err('INVITATION_ALREADY_PROCESSED');
+    }
+    
+    // 4. 트랜잭션 시작
+    await db.transaction(async (tx) => {
+      // 5. Workspace Aggregate의 acceptInvitation() 호출
+      workspaceAgg.acceptInvitation(invitationId, userId, true, false);
+      
+      // 6. Workspace 멤버로 추가 (adminDb 사용)
+      await this.workspaceMemberRepo.addMember(invitation.workspaceId, userId);
+      
+      // 7. Notification Domain 통합: 알림 업데이트 (동기)
+      await this.notificationService.updateNotificationStatus(invitation.notificationId, 'ACCEPTED');
+    });
+    
+    // 8. Result.ok 반환
+    return Result.ok();
+  }
+  
+  async rejectWorkspaceInvitation(
+    invitationId: string,
+    userId: UserId
+  ): Promise<Result<void>> {
+    // (acceptInvitation과 유사, 거절 처리)
+    // 1-3: 동일
+    // 4. Workspace Aggregate의 rejectInvitation() 호출
+    // 5. Notification Domain: 알림 업데이트 (REJECTED)
+    // 6. Result.ok 반환
+  }
+  
+  // ===== Scenario 4: Page 생성 및 관리 =====
+  async createPage(
+    workspaceId: WorkspaceId,
+    parentId: PageId | null,
+    userId: UserId
+  ): Promise<Result<string>> {
+    // 1. Workspace 멤버십 확인
+    const isMember = await this.workspaceMemberRepo.isMember(workspaceId, userId);
+    if (!isMember) {
+      return Result.err('NOT_WORKSPACE_MEMBER');
+    }
+    
+    // 2. 부모 페이지 조회 (parentId가 있는 경우)
+    let parentPage: Page | null = null;
+    if (parentId) {
+      parentPage = await this.pageRepo.findById(parentId);
+      if (!parentPage) {
+        return Result.err('PAGE_NOT_FOUND');
+      }
+      
+      // 3. 부모 페이지가 같은 Workspace에 속하는지 확인
+      if (parentPage.workspaceId.toString() !== workspaceId.toString()) {
+        return Result.err('BAD_REQUEST');
       }
     }
     
-    // 4. Page 조회
+    // 4. Page Aggregate 생성
+    const pageAgg = PageAggregate.create(
+      workspaceId,
+      parentId,
+      'Untitled', // 기본 제목
+      '📄',       // 기본 아이콘
+      userId,
+      parentPage
+    );
+    
+    // 5. Page 저장
+    await this.pageRepo.save(pageAgg);
+    
+    // 6. Result.ok 반환 (pageId)
+    return Result.ok(pageAgg.pageId.toString());
+  }
+  
+  async movePage(
+    pageId: PageId,
+    newParentId: PageId | null,
+    userId: UserId
+  ): Promise<Result<void>> {
+    // 1. Page 조회
     const page = await this.pageRepo.findById(pageId);
     if (!page) {
       return Result.err('PAGE_NOT_FOUND');
     }
     
-    // 5. Page가 해당 Workspace에 속하는지 확인
-    if (page.workspaceId.toString() !== workspaceId.toString()) {
-      return Result.err('BAD_REQUEST');
+    // 2. Workspace 멤버십 확인
+    const isMember = await this.workspaceMemberRepo.isMember(page.workspaceId, userId);
+    if (!isMember) {
+      return Result.err('NOT_WORKSPACE_MEMBER');
     }
     
-    // 6. Result.ok(page) 반환
-    return Result.ok(page);
+    // 3. 새 부모 페이지 조회 (newParentId가 있는 경우)
+    let newParentPage: Page | null = null;
+    if (newParentId) {
+      newParentPage = await this.pageRepo.findById(newParentId);
+      if (!newParentPage) {
+        return Result.err('PAGE_NOT_FOUND');
+      }
+      
+      // 4. 새 부모가 같은 Workspace에 속하는지 확인
+      if (newParentPage.workspaceId.toString() !== page.workspaceId.toString()) {
+        return Result.err('BAD_REQUEST');
+      }
+      
+      // 5. 순환 참조 체크: 재귀 CTE로 ancestors 조회
+      const ancestors = await this.pageRepo.findAncestors(newParentId);
+      const isCircular = ancestors.some(a => a.pageId.toString() === pageId.toString());
+      if (isCircular) {
+        return Result.err('CIRCULAR_REFERENCE_DETECTED');
+      }
+    }
+    
+    // 6. Page Aggregate의 move() 호출
+    pageAgg.move(newParentId, newParentPage, ancestors);
+    
+    // 7. Page 저장 (parent_id, depth 업데이트)
+    await this.pageRepo.save(pageAgg);
+    
+    // 8. 하위 페이지들 depth 재귀 업데이트
+    const depthDelta = page.depth - pageAgg.page.depth;
+    if (depthDelta !== 0) {
+      await this.pageRepo.updateChildrenDepth(pageId, depthDelta);
+    }
+    
+    // 9. Result.ok 반환
+    return Result.ok();
+  }
+  
+  async updatePageInfo(
+    pageId: PageId,
+    title: string | undefined,
+    icon: string | null | undefined,
+    userId: UserId
+  ): Promise<Result<void>> {
+    // 1. Page 조회
+    const page = await this.pageRepo.findById(pageId);
+    if (!page) {
+      return Result.err('PAGE_NOT_FOUND');
+    }
+    
+    // 2. Workspace 멤버십 확인
+    const isMember = await this.workspaceMemberRepo.isMember(page.workspaceId, userId);
+    if (!isMember) {
+      return Result.err('NOT_WORKSPACE_MEMBER');
+    }
+    
+    // 3. Page Aggregate의 updateInfo() 호출
+    pageAgg.updateInfo(title, icon);
+    
+    // 4. Page 저장
+    await this.pageRepo.save(pageAgg);
+    
+    // 5. Result.ok 반환
+    return Result.ok();
+  }
+  
+  // ===== Scenario 5: 즐겨찾기 토글 =====
+  async togglePageFavorite(
+    pageId: PageId,
+    userId: UserId
+  ): Promise<Result<boolean>> {
+    // 1. Page 조회
+    const page = await this.pageRepo.findById(pageId);
+    if (!page) {
+      return Result.err('PAGE_NOT_FOUND');
+    }
+    
+    // 2. Workspace 멤버십 확인
+    const isMember = await this.workspaceMemberRepo.isMember(page.workspaceId, userId);
+    if (!isMember) {
+      return Result.err('NOT_WORKSPACE_MEMBER');
+    }
+    
+    // 3. 현재 즐겨찾기 상태 확인
+    const isFavorited = await this.pageFavoriteRepo.isFavorite(pageId, userId);
+    
+    // 4. Page Aggregate의 toggleFavorite() 호출
+    const newState = pageAgg.toggleFavorite(userId, isFavorited);
+    
+    // 5. Repository에서 토글 처리
+    await this.pageFavoriteRepo.toggle(pageId, userId);
+    
+    // 6. Result.ok 반환 (새 상태)
+    return Result.ok(newState);
   }
 }
 ```
@@ -917,13 +1600,18 @@ class WorkspaceManagementService {
 
 ### 2. Server Actions 수도코드
 
-#### getOrganizationWorkspacePageViewAction
-
 - **파일 위치**: `src/domains/workspace-management/actions/workspace-management.actions.ts`
-- **역할**: 조직 Workspace-Page 목록을 조회하는 Server Action
+- **공통 패턴**:
+  - Supabase Auth 기반 사용자 인증
+  - Service Layer 의존성 주입
+  - Result pattern 사용 (Result.ok / Result.err)
+  - 도메인 모델 → DTO 직렬화
+
+#### getOrganizationWorkspacePageViewAction (Scenario 1)
+
+- **역할**: 조직 Workspace-Page 목록 조회
 - **입력**: { orgId: string, cookiePageId?: string }
 - **출력**: Result<OrganizationWorkspacePageViewDTO>
-- **인증**: Supabase Auth 기반 사용자 인증 필수
 
 **구현 수도코드**:
 ```typescript
@@ -933,75 +1621,33 @@ async function getOrganizationWorkspacePageViewAction(
   orgId: string,
   cookiePageId?: string
 ): Promise<Result<OrganizationWorkspacePageViewDTO>> {
-  // 1. Supabase Auth 인증 확인
+  // 1. 인증 확인
   const user = await getAuthUser();
-  if (!user) {
-    return Result.err('UNAUTHORIZED');
-  }
+  if (!user) return Result.err('UNAUTHORIZED');
   
-  // 2. 의존성 주입
-  const service = new WorkspaceManagementService(
-    workspaceRepo,
-    pageRepo,
-    workspaceMemberRepo,
-    orgMemberRepo
-  );
-  
-  // 3. Command 생성
-  const command = {
-    organizationId: new OrganizationId(orgId),
-    userId: new UserId(user.id),
-    cookiePageId
-  };
-  
-  // 4. Service 호출
+  // 2. Service 호출
   const result = await service.getOrganizationWorkspacePageView(
-    command.organizationId,
-    command.userId,
-    command.cookiePageId
+    new OrganizationId(orgId),
+    new UserId(user.id),
+    cookiePageId
   );
   
-  // 5. 도메인 모델 → DTO 직렬화
+  // 3. DTO 직렬화
   if (result.isOk) {
     return Result.ok(toDTO(result.value));
-  } else {
-    return Result.err(result.error);
   }
-}
-
-// DTO 변환
-function toDTO(view: OrganizationWorkspacePageView): OrganizationWorkspacePageViewDTO {
-  // Value Object → string 변환
-  // Date → ISO string 변환
-  return {
-    organizationId: view.organizationId,
-    workspaces: view.workspaces.map(ws => ({
-      workspaceId: ws.workspaceId.toString(),
-      name: ws.name,
-      icon: ws.icon,
-      isDefault: ws.isDefault,
-      pageTree: ws.pageTree.map(p => ({
-        id: p.pageId.toString(),
-        title: p.title,
-        icon: p.icon,
-        depth: p.depth,
-        children: [] // 재귀 변환
-      }))
-    })),
-    selectedPageId: view.selectedPageId
-  };
+  return Result.err(result.error);
 }
 ```
 
 **우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**Testing Strategy 참조**: 섹션 4.2 - Server Actions 통합 테스트
+**Testing Strategy 참조**: getOrganizationWorkspacePageViewAction (12개 테스트)
 
 ---
 
-#### verifyPageAccessAction
+#### verifyPageAccessAction (Scenario 1)
 
-- **파일 위치**: `src/domains/workspace-management/actions/workspace-management.actions.ts`
-- **역할**: 페이지 접근 권한을 검증하는 Server Action
+- **역할**: 페이지 접근 권한 검증
 - **입력**: { orgId: string, workspaceId: string, pageId: string }
 - **출력**: Result<PageDTO>
 
@@ -1016,85 +1662,474 @@ async function verifyPageAccessAction(
 ): Promise<Result<PageDTO>> {
   // 1. 인증 확인
   const user = await getAuthUser();
-  if (!user) {
-    return Result.err('UNAUTHORIZED');
-  }
+  if (!user) return Result.err('UNAUTHORIZED');
   
-  // 2. Service 호출
+  // 2. Service 호출 (순차 권한 검증)
   const result = await service.verifyPageAccess(
     new OrganizationId(orgId),
     new WorkspaceId(workspaceId),
     new PageId(pageId),
-    new UserId(user.id)
+    user.id
   );
   
   // 3. DTO 직렬화
   if (result.isOk) {
-    return Result.ok({
-      id: result.value.pageId.toString(),
-      workspaceId: result.value.workspaceId.toString(),
-      title: result.value.title,
-      icon: result.value.icon,
-      depth: result.value.depth,
-      parentId: result.value.parentId?.toString(),
-      createdAt: result.value.createdAt.toISOString(),
-      updatedAt: result.value.updatedAt.toISOString()
-    });
-  } else {
-    return Result.err(result.error);
+    return Result.ok(toPageDTO(result.value.page));
   }
+  return Result.err(result.error);
 }
 ```
 
 **우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**Testing Strategy 참조**: 섹션 4.2 - verifyPageAccessAction
+**Testing Strategy 참조**: verifyPageAccessAction (12개 테스트)
+
+---
+
+#### createWorkspaceAction (Scenario 2)
+
+- **역할**: 새 Workspace 생성
+- **입력**: { orgId: string, name: string, description?: string, icon?: string }
+- **출력**: Result<{ workspaceId: string; firstPageId: string }>
+
+**구현 수도코드**:
+```typescript
+'use server';
+
+async function createWorkspaceAction(
+  orgId: string,
+  name: string,
+  description?: string,
+  icon?: string
+): Promise<Result<{ workspaceId: string; firstPageId: string }>> {
+  // 1. 인증 확인
+  const user = await getAuthUser();
+  if (!user) return Result.err('UNAUTHORIZED');
+  
+  // 2. 입력 검증
+  if (!name || name.trim().length === 0) {
+    return Result.err('INVALID_WORKSPACE_NAME');
+  }
+  
+  // 3. Service 호출 (트랜잭션: Workspace + 초기 Page 생성)
+  const result = await service.createWorkspace(
+    new OrganizationId(orgId),
+    name,
+    description || null,
+    icon || null,
+    new UserId(user.id)
+  );
+  
+  // 4. Result 반환
+  return result;
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: createWorkspaceAction (11개 테스트)
+
+---
+
+#### updateWorkspaceInfoAction (Scenario 2)
+
+- **역할**: Workspace 정보 수정
+- **입력**: { workspaceId: string, name?: string, description?: string, icon?: string }
+- **출력**: Result<void>
+
+**구현 수도코드**:
+```typescript
+'use server';
+
+async function updateWorkspaceInfoAction(
+  workspaceId: string,
+  name?: string,
+  description?: string | null,
+  icon?: string | null
+): Promise<Result<void>> {
+  // 1. 인증 확인
+  const user = await getAuthUser();
+  if (!user) return Result.err('UNAUTHORIZED');
+  
+  // 2. Service 호출
+  const result = await service.updateWorkspaceInfo(
+    new WorkspaceId(workspaceId),
+    name,
+    description,
+    icon,
+    new UserId(user.id)
+  );
+  
+  // 3. 캐시 무효화 (Next.js)
+  if (result.isOk) {
+    revalidatePath(`/r/${orgId}`);
+  }
+  
+  return result;
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: updateWorkspaceInfoAction (11개 테스트)
+
+---
+
+#### inviteWorkspaceMemberAction (Scenario 3)
+
+- **역할**: Workspace 멤버 초대
+- **입력**: { workspaceId: string, memberEmails: string[] }
+- **출력**: Result<number>
+
+**구현 수도코드**:
+```typescript
+'use server';
+
+async function inviteWorkspaceMemberAction(
+  workspaceId: string,
+  memberEmails: string[]
+): Promise<Result<number>> {
+  // 1. 인증 확인
+  const user = await getAuthUser();
+  if (!user) return Result.err('UNAUTHORIZED');
+  
+  // 2. 입력 검증
+  if (!memberEmails || memberEmails.length === 0) {
+    return Result.err('INVALID_INPUT');
+  }
+  
+  // 3. Service 호출 (트랜잭션: 초대 + 알림 발송)
+  const result = await service.inviteWorkspaceMember(
+    new WorkspaceId(workspaceId),
+    memberEmails,
+    new UserId(user.id)
+  );
+  
+  // 4. Result 반환 (초대한 멤버 수)
+  return result;
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: inviteWorkspaceMemberAction (13개 테스트)
+
+---
+
+#### acceptWorkspaceInvitationAction (Scenario 3)
+
+- **역할**: Workspace 초대 수락
+- **입력**: { invitationId: string }
+- **출력**: Result<void>
+
+**구현 수도코드**:
+```typescript
+'use server';
+
+async function acceptWorkspaceInvitationAction(
+  invitationId: string
+): Promise<Result<void>> {
+  // 1. 인증 확인
+  const user = await getAuthUser();
+  if (!user) return Result.err('UNAUTHORIZED');
+  
+  // 2. Service 호출 (트랜잭션: 멤버 추가 + 알림 업데이트)
+  const result = await service.acceptWorkspaceInvitation(
+    invitationId,
+    new UserId(user.id)
+  );
+  
+  // 3. 캐시 무효화 (사이드바 Workspace 목록 갱신)
+  if (result.isOk) {
+    revalidatePath(`/r`); // 모든 조직 페이지 갱신
+  }
+  
+  return result;
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: acceptWorkspaceInvitationAction (8개 테스트)
+
+---
+
+#### rejectWorkspaceInvitationAction (Scenario 3)
+
+- **역할**: Workspace 초대 거절
+- **입력**: { invitationId: string }
+- **출력**: Result<void>
+
+**구현 수도코드**:
+```typescript
+'use server';
+
+async function rejectWorkspaceInvitationAction(
+  invitationId: string
+): Promise<Result<void>> {
+  // 1. 인증 확인
+  const user = await getAuthUser();
+  if (!user) return Result.err('UNAUTHORIZED');
+  
+  // 2. Service 호출 (알림 업데이트만)
+  const result = await service.rejectWorkspaceInvitation(
+    invitationId,
+    new UserId(user.id)
+  );
+  
+  return result;
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: rejectWorkspaceInvitationAction (6개 테스트)
+
+---
+
+#### createPageAction (Scenario 4)
+
+- **역할**: 새 Page 생성
+- **입력**: { workspaceId: string, parentId?: string }
+- **출력**: Result<string> (pageId)
+
+**구현 수도코드**:
+```typescript
+'use server';
+
+async function createPageAction(
+  workspaceId: string,
+  parentId?: string
+): Promise<Result<string>> {
+  // 1. 인증 확인
+  const user = await getAuthUser();
+  if (!user) return Result.err('UNAUTHORIZED');
+  
+  // 2. Service 호출
+  const result = await service.createPage(
+    new WorkspaceId(workspaceId),
+    parentId ? new PageId(parentId) : null,
+    new UserId(user.id)
+  );
+  
+  // 3. 캐시 무효화 (사이드바 페이지 목록 갱신)
+  if (result.isOk) {
+    revalidatePath(`/r/[orgId]/workspace/${workspaceId}`);
+  }
+  
+  return result;
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: createPageAction (9개 테스트)
+
+---
+
+#### movePageAction (Scenario 4)
+
+- **역할**: Page 이동
+- **입력**: { pageId: string, newParentId?: string }
+- **출력**: Result<void>
+
+**구현 수도코드**:
+```typescript
+'use server';
+
+async function movePageAction(
+  pageId: string,
+  newParentId?: string
+): Promise<Result<void>> {
+  // 1. 인증 확인
+  const user = await getAuthUser();
+  if (!user) return Result.err('UNAUTHORIZED');
+  
+  // 2. Service 호출 (순환 참조 체크 포함)
+  const result = await service.movePage(
+    new PageId(pageId),
+    newParentId ? new PageId(newParentId) : null,
+    new UserId(user.id)
+  );
+  
+  // 3. 캐시 무효화 (사이드바 페이지 목록 갱신)
+  if (result.isOk) {
+    revalidatePath(`/r/[orgId]`);
+  }
+  
+  return result;
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: movePageAction (9개 테스트)
+
+---
+
+#### updatePageInfoAction (Scenario 4)
+
+- **역할**: Page 제목/아이콘 수정
+- **입력**: { pageId: string, title?: string, icon?: string }
+- **출력**: Result<void>
+
+**구현 수도코드**:
+```typescript
+'use server';
+
+async function updatePageInfoAction(
+  pageId: string,
+  title?: string,
+  icon?: string | null
+): Promise<Result<void>> {
+  // 1. 인증 확인
+  const user = await getAuthUser();
+  if (!user) return Result.err('UNAUTHORIZED');
+  
+  // 2. Service 호출
+  const result = await service.updatePageInfo(
+    new PageId(pageId),
+    title,
+    icon,
+    new UserId(user.id)
+  );
+  
+  // 3. 캐시 무효화 (사이드바 페이지 목록 갱신)
+  if (result.isOk) {
+    revalidatePath(`/r/[orgId]`);
+  }
+  
+  return result;
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: updatePageInfoAction (7개 테스트)
+
+---
+
+#### togglePageFavoriteAction (Scenario 5)
+
+- **역할**: Page 즐겨찾기 토글
+- **입력**: { pageId: string }
+- **출력**: Result<boolean> (새 상태)
+
+**구현 수도코드**:
+```typescript
+'use server';
+
+async function togglePageFavoriteAction(
+  pageId: string
+): Promise<Result<boolean>> {
+  // 1. 인증 확인
+  const user = await getAuthUser();
+  if (!user) return Result.err('UNAUTHORIZED');
+  
+  // 2. Service 호출
+  const result = await service.togglePageFavorite(
+    new PageId(pageId),
+    new UserId(user.id)
+  );
+  
+  // 3. 캐시 무효화 (사이드바 즐겨찾기 섹션 갱신)
+  if (result.isOk) {
+    revalidatePath(`/r/[orgId]`);
+  }
+  
+  // 4. Result 반환 (true: 추가됨, false: 제거됨)
+  return result;
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: togglePageFavoriteAction (7개 테스트)
 
 ---
 
 ## 🎨 UI & Hook 전략
 
-### React Hooks 사용
+### React Hooks 사용 (Scenario 1~5)
 
-**사용할 Hook** (Scenario 1):
-- `useOptimistic`: 페이지 생성 시 낙관적 업데이트
-- `useTransition`: Server Action 호출 시 로딩 상태
-- (쿠키는 직접 관리, Hook 불필요)
+**사용할 Hook**:
+- **Scenario 1**: `useTransition` (페이지 로딩 상태)
+- **Scenario 2**: `useTransition` (Workspace 생성/수정 로딩)
+- **Scenario 3**: `useTransition` (초대 발송/수락 로딩)
+- **Scenario 4**: `useOptimistic` (페이지 생성/이동/수정 낙관적 업데이트), `useTransition`
+- **Scenario 5**: `useOptimistic` (즐겨찾기 토글 낙관적 업데이트)
 
-**Server Action 연결**:
+**낙관적 업데이트 패턴** (Scenario 4, 5):
 ```typescript
-// Server Component에서 호출
-export default async function OrganizationWorkspacePage({ params }: { params: { orgId: string } }) {
-  // 1. 쿠키에서 페이지 ID 읽기
-  const cookiePageId = cookies().get('recent_page_id')?.value;
+// Client Component
+function PageTree({ initialPages }: { initialPages: PageDTO[] }) {
+  const [optimisticPages, addOptimisticPage] = useOptimistic(
+    initialPages,
+    (state, newPage: PageDTO) => [...state, newPage]
+  );
+  
+  async function handleCreatePage(parentId?: string) {
+    // 1. 낙관적 업데이트 (즉시 UI 반영)
+    const tempPage = { id: 'temp-' + Date.now(), title: 'Untitled', ... };
+    addOptimisticPage(tempPage);
+    
+    // 2. Server Action 호출
+    const result = await createPageAction(workspaceId, parentId);
+    
+    // 3. 실패 시 롤백 (revalidatePath로 자동 처리)
+    if (result.isErr) {
+      toast.error('페이지 생성에 실패했습니다');
+      // Next.js가 자동으로 서버 데이터로 롤백
+    }
+  }
+  
+  return <PageTreeList pages={optimisticPages} onCreate={handleCreatePage} />;
+}
+```
+
+**Server Component 패턴** (Scenario 1):
+```typescript
+// Server Component
+export default async function OrganizationWorkspacePage({ 
+  params 
+}: { 
+  params: { orgId: string } 
+}) {
+  // 1. 쿠키 읽기
+  const cookiePageId = cookies().get(`recent-page-${params.orgId}`)?.value;
   
   // 2. Server Action 호출
-  const result = await getOrganizationWorkspacePageViewAction(params.orgId, cookiePageId);
+  const result = await getOrganizationWorkspacePageViewAction(
+    params.orgId, 
+    cookiePageId
+  );
   
-  // 3. 결과 처리
+  // 3. 에러 처리
   if (result.isErr) {
-    return <AccessDenied message={result.error} />;
+    if (result.error === 'NOT_ORG_MEMBER') {
+      return <Forbidden message="조직 멤버가 아닙니다" />;
+    }
+    return <ErrorPage message="오류가 발생했습니다" />;
   }
   
   // 4. 렌더링
-  return <WorkspaceSidebar data={result.value} />;
+  return (
+    <WorkspaceLayout>
+      <WorkspaceSidebar data={result.value} />
+      <PageViewer selectedPageId={result.value.selectedPageId} />
+    </WorkspaceLayout>
+  );
 }
 ```
 
 ---
 
-## ✅ 검증 체크리스트 (Scenario 1)
+## ✅ 검증 체크리스트 (Scenario 0~5)
 
 ### 구현 수도코드 검증
-- [x] Software Design의 Workspace/Page Aggregate가 수도코드로 작성되었는가?
+- [x] Software Design의 Workspace/Page Aggregate가 Scenario 0~5로 확장되었는가?
 - [x] 모든 DDD 컴포넌트에 구현 수도코드가 있는가?
-- [x] Infrastructure Layer (Repository, Read Model)가 정의되었는가?
-- [x] Application Layer (Service, Server Actions)가 정의되었는가?
+- [x] Infrastructure Layer (4개 Repository, Read Model)가 정의되었는가?
+- [x] Application Layer (Service, 9개 Server Actions)가 정의되었는가?
+- [x] Commands & Events가 Scenario 0~5 전체를 포함하는가?
+- [x] Error Types가 모든 에러 케이스를 포함하는가?
 
 ### 설계 일관성 검증
-- [x] Testing Strategy와 매핑되는 컴포넌트들이 명시되었는가?
-- [x] Process Model의 시나리오와 연결되었는가?
-- [x] Database Schema와 일치하는가?
+- [x] Testing Strategy (221개 테스트)와 매핑되는가?
+- [x] Process Model의 Scenario 0~5와 연결되었는가?
+- [x] Database Schema (4개 테이블)와 일치하는가?
 - [x] 각 컴포넌트의 우선순위가 표시되었는가?
+- [x] Notification Domain 통합이 정의되었는가? (Scenario 3)
 
 ---
 
@@ -1110,12 +2145,36 @@ export default async function OrganizationWorkspacePage({ params }: { params: { 
 ---
 
 **구현 전 체크리스트**:
-- [ ] Testing Strategy (`04-testing-strategy.md`) 숙지
+- [ ] Testing Strategy (`04-testing-strategy.md`) 숙지 (221개 테스트)
 - [ ] Software Design (`03-software-design.md`) 검토
-- [ ] Database Schema (`06-db-schema.md`) 확인
-- [ ] 구현 우선순위 및 우선순위 확인
+- [ ] Database Schema (`06-db-schema.md`) 확인 (4개 테이블)
+- [ ] User Flow (`03-user-flow.md`) 검토 (UI 패턴 이해)
+- [ ] TDD 구현 순서 확인 (Phase 1~7)
 
 ---
 
-*이 Technical Specification을 따라 **Workspace Management Domain (Scenario 1)**을 구현할 수 있습니다!* 🚀
+## 📊 구현 범위 요약 (Scenario 0~5)
+
+### 완료 예정 구현:
+- ✅ **2개 Value Objects**: WorkspaceId, PageId
+- ✅ **2개 Entities**: Workspace, Page
+- ✅ **2개 Aggregates**: Workspace (35개 테스트), Page (35개 테스트)
+- ✅ **1개 Read Model**: OrganizationWorkspacePageView
+- ✅ **4개 Repositories**: Workspace, Page, WorkspaceMember, PageFavorite
+- ✅ **1개 Service**: WorkspaceManagementService (9개 메서드)
+- ✅ **9개 Server Actions**: Scenario별 2/2/3/3/1개
+- ✅ **12개 E2E Tests**: 핵심 사용자 플로우
+
+### 예상 구현 시간:
+- Phase 1-2 (VO, Entity): 4-5시간
+- Phase 3 (Aggregate): 10-12시간
+- Phase 4 (Read Model): 3-4시간
+- Phase 5 (Repository): 6-8시간
+- Phase 6 (Server Actions): 10-12시간
+- Phase 7 (E2E): 6-8시간
+- **총**: 약 45-55시간
+
+---
+
+*이 Technical Specification을 따라 **Workspace Management Domain (Scenario 0~5)**을 구현할 수 있습니다!* 🚀
 

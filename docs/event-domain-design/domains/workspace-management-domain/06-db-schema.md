@@ -21,21 +21,29 @@
 
 ---
 
-### 주요 변경사항 (v1.0)
-- **초기 스키마 설계**: Workspace, Page, Workspace Member 테이블 생성
-- **Parent ID + depth 패턴**: Materialized Path 대신 단순한 Adjacency List + depth 캐시 채택
-- **재귀 CTE 최적화**: depth, order 인덱스로 트리 조회 최적화
-- **RLS 정책**: Layered Security Model 적용
+### 주요 변경사항
+
+**v1.1 (2025-10-11)**:
+- Scenario 2~5 지원 추가
+- `workspace_invitations` 테이블 추가 (Scenario 3)
+- `page_favorites` 테이블 RLS 정책 추가 (Scenario 5)
+- 관련 인덱스 최적화
+
+**v1.0 (2025-10-11)**:
+- 초기 스키마 설계: Workspace, Page, Workspace Member 테이블 생성
+- Parent ID + depth 패턴: Materialized Path 대신 단순한 Adjacency List + depth 캐시 채택
+- 재귀 CTE 최적화: depth, order 인덱스로 트리 조회 최적화
+- RLS 정책: Layered Security Model 적용
 
 ---
 
 ## 🎯 Schema Overview
 
 ### 설계 원칙
-1. **Scenario 범위**: Scenario 0-1 (Default Workspace 생성, 조직 접근 및 페이지 조회)
+1. **Scenario 범위**: Scenario 0~5 (Workspace 생성/수정, 멤버 초대, Page 관리, 즐겨찾기)
 2. **DDD Aggregate 경계 반영**: Workspace Aggregate, Page Aggregate의 불변식을 DB 제약조건으로 구현
 3. **단순성 우선**: Materialized Path 대신 Parent ID로 단순화, depth만 캐시
-4. **MECE 구조**: Workspace-Page 계층, 멤버십 분리
+4. **MECE 구조**: Workspace-Page 계층, 멤버십, 초대, 즐겨찾기 분리
 5. **성능 최적화**: 재귀 CTE를 위한 depth, order 인덱스 설계
 6. **타입 안전성**: Drizzle ORM을 통한 타입 안전성 확보
 7. **권한 기반 접근**: RLS 정책 + Application-level 권한 체크
@@ -60,17 +68,26 @@
 └──────────┬──────────────┘
            │ 1:N
            ▼
-┌─────────────────────────┐       ┌─────────────────────────┐
-│  pages                  │       │  workspace_members      │
-│  • id (PK)              │       │  • workspace_id (FK)    │
-│  • workspace_id (FK)    │       │  • user_id (FK)         │
-│  • parent_id (FK, Self) │◄──┐   │  • role                 │
-│  • title                │   │   └─────────────────────────┘
-│  • depth (캐시)         │   │
-│  • order                │   │
-└─────────────────────────┘   │
-                              │
-                  Self-referencing (계층 구조)
+┌─────────────────────────┐       ┌──────────────────────────┐
+│  pages                  │       │  workspace_members       │
+│  • id (PK)              │       │  • workspace_id (FK)     │
+│  • workspace_id (FK)    │       │  • user_id (FK)          │
+│  • parent_id (FK, Self) │◄──┐   └──────────────────────────┘
+│  • title                │   │
+│  • depth (캐시)         │   │   ┌──────────────────────────┐
+│  • order                │   │   │  workspace_invitations   │
+└──────────┬──────────────┘   │   │  • id (PK)               │
+           │                  │   │  • workspace_id (FK)     │
+           │                  │   │  • invited_user_id (FK)  │
+           │                  │   │  • status                │
+           │                  │   └──────────────────────────┘
+           │ 1:N              │
+           ▼                  │   ┌──────────────────────────┐
+┌─────────────────────────┐   │   │  page_favorites          │
+│  page_favorites         │   │   │  • page_id (FK)          │
+│  • page_id (FK)         │───┘   │  • user_id (FK)          │
+│  • user_id (FK)         │       └──────────────────────────┘
+└─────────────────────────┘
 ```
 
 ---
@@ -99,7 +116,7 @@ CREATE TABLE workspaces (
     deletable BOOLEAN NOT NULL DEFAULT true,
     
     -- Audit Fields
-    created_by UUID NOT NULL REFERENCES auth.users(id),
+    created_by UUID NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ, -- 소프트 삭제
@@ -127,7 +144,7 @@ COMMENT ON COLUMN workspaces.description IS 'Workspace 설명 (최대 500자)';
 COMMENT ON COLUMN workspaces.icon IS 'Workspace 아이콘 (이모지 또는 URL)';
 COMMENT ON COLUMN workspaces.is_default IS 'Default Workspace 여부 (조직당 1개)';
 COMMENT ON COLUMN workspaces.deletable IS '삭제 가능 여부 (Default는 false)';
-COMMENT ON COLUMN workspaces.created_by IS '생성자 ID';
+COMMENT ON COLUMN workspaces.created_by IS '생성자 ID (profiles.user_id 참조)';
 COMMENT ON COLUMN workspaces.created_at IS '생성 시각';
 COMMENT ON COLUMN workspaces.updated_at IS '수정 시각';
 COMMENT ON COLUMN workspaces.deleted_at IS '삭제 시각 (소프트 삭제, 30일 후 완전 삭제)';
@@ -162,7 +179,7 @@ CREATE TABLE pages (
     depth INTEGER NOT NULL DEFAULT 0,   -- 계층 깊이 (캐시, 0=최상위)
     
     -- Audit Fields
-    created_by UUID NOT NULL REFERENCES auth.users(id),
+    created_by UUID NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ, -- 소프트 삭제
@@ -194,7 +211,7 @@ COMMENT ON COLUMN pages.title IS '페이지 제목 (1-200자)';
 COMMENT ON COLUMN pages.icon IS '페이지 아이콘 (이모지 또는 URL)';
 COMMENT ON COLUMN pages."order" IS '같은 레벨 내 정렬 순서';
 COMMENT ON COLUMN pages.depth IS '계층 깊이 (캐시, 0=최상위, 부모 depth + 1)';
-COMMENT ON COLUMN pages.created_by IS '생성자 ID';
+COMMENT ON COLUMN pages.created_by IS '생성자 ID (profiles.user_id 참조)';
 COMMENT ON COLUMN pages.created_at IS '생성 시각';
 COMMENT ON COLUMN pages.updated_at IS '수정 시각';
 COMMENT ON COLUMN pages.deleted_at IS '삭제 시각 (소프트 삭제, 30일 후 완전 삭제)';
@@ -217,19 +234,13 @@ Workspace 멤버십을 관리하는 테이블
 CREATE TABLE workspace_members (
     -- Composite Primary Key
     workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    
-    -- Member Fields
-    role TEXT NOT NULL DEFAULT 'member', -- 'owner', 'admin', 'member'
+    user_id UUID NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
     
     -- Audit Fields
     joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
     -- Primary Key
-    PRIMARY KEY (workspace_id, user_id),
-    
-    -- Constraints
-    CONSTRAINT workspace_members_role_check CHECK (role IN ('owner', 'admin', 'member'))
+    PRIMARY KEY (workspace_id, user_id)
 );
 
 -- Indexes for Performance
@@ -237,21 +248,74 @@ CREATE INDEX idx_workspace_members_user_id ON workspace_members(user_id);
 CREATE INDEX idx_workspace_members_workspace_id ON workspace_members(workspace_id);
 
 -- Comments
-COMMENT ON TABLE workspace_members IS 'Workspace Management Domain - Workspace 멤버십';
+COMMENT ON TABLE workspace_members IS 'Workspace Management Domain - Workspace 멤버십 (초대 여부만 저장)';
 COMMENT ON COLUMN workspace_members.workspace_id IS 'Workspace ID';
-COMMENT ON COLUMN workspace_members.user_id IS '멤버 사용자 ID';
-COMMENT ON COLUMN workspace_members.role IS '멤버 역할 (owner/admin/member)';
+COMMENT ON COLUMN workspace_members.user_id IS '멤버 사용자 ID (profiles.user_id 참조)';
 COMMENT ON COLUMN workspace_members.joined_at IS 'Workspace 참여 시각';
 ```
 
 > **💡 설계 노트**  
 > - **Composite PK**: (workspace_id, user_id)로 중복 방지
 > - **Default Workspace**: 별도 멤버십 레코드 없음 (조직 멤버 자동 접근)
-> - **Role 체크 제약**: 유효한 role 값만 허용
+> - **권한 단일화**: role은 organization_members에서 관리 (중복 제거)
+>   - Workspace 권한 확인 시 organization_members.role 조회
+>   - 데이터 일관성 보장 (단일 출처)
+>   - 조직 권한 변경 시 모든 Workspace에 자동 반영
 
 ---
 
-### 4. page_favorites 테이블 (public schema)
+### 4. workspace_invitations 테이블 (public schema)
+
+Workspace 멤버 초대 프로세스를 관리하는 테이블
+
+```sql
+CREATE TABLE workspace_invitations (
+    -- Primary Key
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Foreign Keys
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    invited_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    invited_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    
+    -- Invitation Info
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'ACCEPTED', 'REJECTED')),
+    notification_id UUID, -- Notification Domain 참조 (soft reference)
+    
+    -- Audit Fields
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    processed_at TIMESTAMPTZ, -- 수락/거절 처리 시각
+    
+    -- Constraints
+    CONSTRAINT workspace_invitations_unique_pending UNIQUE (workspace_id, invited_user_id, status)
+        WHERE status = 'PENDING' -- 같은 사용자에게 중복 초대 방지
+);
+
+-- Indexes for Performance
+CREATE INDEX idx_workspace_invitations_user ON workspace_invitations(invited_user_id, status);
+CREATE INDEX idx_workspace_invitations_workspace ON workspace_invitations(workspace_id, status);
+
+-- Comments
+COMMENT ON TABLE workspace_invitations IS 'Workspace Management Domain - Workspace 멤버 초대';
+COMMENT ON COLUMN workspace_invitations.id IS '초대 고유 식별자';
+COMMENT ON COLUMN workspace_invitations.workspace_id IS 'Workspace ID';
+COMMENT ON COLUMN workspace_invitations.invited_user_id IS '초대받은 사용자 ID';
+COMMENT ON COLUMN workspace_invitations.invited_by IS '초대한 사용자 ID';
+COMMENT ON COLUMN workspace_invitations.status IS '초대 상태 (PENDING, ACCEPTED, REJECTED)';
+COMMENT ON COLUMN workspace_invitations.notification_id IS '알림 ID (Notification Domain 참조)';
+COMMENT ON COLUMN workspace_invitations.created_at IS '초대 생성 시각';
+COMMENT ON COLUMN workspace_invitations.processed_at IS '초대 처리 시각 (수락/거절)';
+```
+
+> **💡 설계 노트**  
+> - **Unique 제약**: 같은 사용자에게 중복 PENDING 초대 방지 (Partial Unique Index)
+> - **Soft Reference**: notification_id는 외래키 아님 (도메인 간 느슨한 결합)
+> - **Status 관리**: PENDING → ACCEPTED/REJECTED 단방향 전환
+> - **Notification Domain 통합**: 초대 생성 시 알림 생성 (동기), notification_id 저장
+
+---
+
+### 5. page_favorites 테이블 (public schema)
 
 사용자별 페이지 즐겨찾기를 관리하는 테이블
 
@@ -259,7 +323,7 @@ COMMENT ON COLUMN workspace_members.joined_at IS 'Workspace 참여 시각';
 CREATE TABLE page_favorites (
     -- Composite Primary Key
     page_id UUID NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
     
     -- Audit Fields
     favorited_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -274,7 +338,7 @@ CREATE INDEX idx_page_favorites_user_id ON page_favorites(user_id);
 -- Comments
 COMMENT ON TABLE page_favorites IS 'Workspace Management Domain - 사용자별 즐겨찾기 페이지';
 COMMENT ON COLUMN page_favorites.page_id IS 'Page ID';
-COMMENT ON COLUMN page_favorites.user_id IS '사용자 ID';
+COMMENT ON COLUMN page_favorites.user_id IS '사용자 ID (profiles.user_id 참조)';
 COMMENT ON COLUMN page_favorites.favorited_at IS '즐겨찾기 추가 시각';
 ```
 
@@ -305,6 +369,7 @@ COMMENT ON COLUMN page_favorites.favorited_at IS '즐겨찾기 추가 시각';
 ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workspace_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workspace_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE page_favorites ENABLE ROW LEVEL SECURITY;
 ```
 
@@ -438,24 +503,23 @@ CREATE POLICY "Enable delete for self" ON workspace_members
 **Application-level 권한 처리 예시**:
 ```typescript
 // WorkspaceManagementService.inviteMember()
-// Step 1: Application-level 권한 체크 - 자신의 멤버십 조회
-const myMembership = await db.rls.select().from(workspaceMembers)
+// Step 1: Application-level 권한 체크 - 조직 멤버십에서 역할 확인
+const myOrgMembership = await db.rls.select().from(organizationMembers)
   .where(and(
-    eq(workspaceMembers.workspaceId, workspaceId),
-    eq(workspaceMembers.userId, currentUserId)
+    eq(organizationMembers.organizationId, orgId),
+    eq(organizationMembers.userId, currentUserId)
   ));
 
-// Step 2: Admin 권한 확인
-if (!myMembership || (myMembership.role !== 'admin' && myMembership.role !== 'owner')) {
+// Step 2: Admin 권한 확인 (조직 레벨에서)
+if (!myOrgMembership || (myOrgMembership.role !== 'admin' && myOrgMembership.role !== 'owner')) {
   return Result.err('INSUFFICIENT_PERMISSION');
 }
 
-// Step 3: adminDb로 멤버 추가 (RLS 우회)
+// Step 3: adminDb로 Workspace 멤버 추가 (RLS 우회)
 await db.admin.insert(workspaceMembers).values({
   workspaceId,
   userId: invitedUserId,
-  role: 'member',
-  invitedBy: currentUserId
+  // role은 organization_members에서 관리됨
 });
 
 return Result.ok();
@@ -463,7 +527,62 @@ return Result.ok();
 
 ---
 
-### 6. page_favorites 테이블 RLS 정책
+### 6. workspace_invitations 테이블 RLS 정책
+
+```sql
+-- 조회: 본인이 초대받은 것 또는 본인이 초대한 것만
+-- Note: 초대 생성은 Application에서 Admin 권한 체크 후 adminDb 사용
+
+-- SELECT: 본인 관련 초대만
+CREATE POLICY "Enable read for invited user or inviter" ON workspace_invitations
+    FOR SELECT TO authenticated
+    USING (
+        invited_user_id = (SELECT auth.uid()) 
+        OR invited_by = (SELECT auth.uid())
+    );
+
+-- INSERT: 생성자만 (Application에서 Admin 체크 후 adminDb 사용)
+CREATE POLICY "Enable insert for inviter" ON workspace_invitations
+    FOR INSERT TO authenticated
+    WITH CHECK (invited_by = (SELECT auth.uid()));
+
+-- UPDATE: 초대받은 본인만 (수락/거절)
+CREATE POLICY "Enable update for invited user" ON workspace_invitations
+    FOR UPDATE TO authenticated
+    USING (invited_user_id = (SELECT auth.uid()));
+
+-- DELETE: 초대한 본인만 (취소)
+CREATE POLICY "Enable delete for inviter" ON workspace_invitations
+    FOR DELETE TO authenticated
+    USING (invited_by = (SELECT auth.uid()));
+```
+
+**Application-level 권한 처리 예시**:
+```typescript
+// WorkspaceManagementService.inviteWorkspaceMember()
+// Step 1: 조직 Admin + Workspace 멤버 권한 확인
+const orgMember = await orgMemberRepo.findMemberRole(orgId, currentUserId);
+if (!orgMember || (orgMember.role !== 'admin' && orgMember.role !== 'owner')) {
+  return Result.err('NOT_ORG_ADMIN');
+}
+
+const isWorkspaceMember = await workspaceMemberRepo.isMember(workspaceId, currentUserId);
+if (!isWorkspaceMember) {
+  return Result.err('NOT_WORKSPACE_MEMBER');
+}
+
+// Step 2: adminDb로 초대 생성 (RLS 우회)
+await db.admin.insert(workspaceInvitations).values({
+  workspaceId,
+  invitedUserId,
+  invitedBy: currentUserId,
+  status: 'PENDING'
+});
+```
+
+---
+
+### 7. page_favorites 테이블 RLS 정책
 
 ```sql
 -- 모든 작업: Self only
@@ -527,8 +646,26 @@ CREATE POLICY "Enable delete for self" ON page_favorites
 **권한 체크 Flow**:
 ```
 Request → Authentication → Application-level 권한 체크 → adminDb 사용 → Response
-                            (조직/Workspace 멤버십,      (RLS 우회)
-                             Admin 권한 등)
+                            (조직 멤버십 확인,           (RLS 우회)
+                             Workspace 초대 여부,
+                             조직 role로 권한 판단)
+```
+
+**권한 판단 로직**:
+```typescript
+// Step 1: 조직 멤버십 확인
+const orgMember = await orgMemberRepo.findByUserId(orgId, userId);
+if (!orgMember) return Result.err('NOT_ORG_MEMBER');
+
+// Step 2: Workspace 초대 여부 확인 (Default는 자동 허용)
+if (!workspace.isDefault) {
+  const isInvited = await workspaceMemberRepo.isMember(workspaceId, userId);
+  if (!isInvited) return Result.err('NOT_WORKSPACE_MEMBER');
+}
+
+// Step 3: 권한 확인 (조직 role 사용)
+const canEdit = orgMember.role === 'owner' || orgMember.role === 'admin';
+const canDelete = orgMember.role === 'owner';
 ```
 
 ---
@@ -753,6 +890,10 @@ WHERE ws.id IS NULL
 ### Scenario 지원
 - [x] **Scenario 0**: Organization 생성 시 Default Workspace + 초기 페이지 생성
 - [x] **Scenario 1**: 조직 접근 → Workspace-Page 목록 조회 → 페이지 선택
+- [x] **Scenario 2**: Workspace 생성 (초기 페이지 자동 생성) + Workspace 정보 수정
+- [x] **Scenario 3**: Workspace 멤버 초대/수락/거절 (Notification Domain 통합)
+- [x] **Scenario 4**: Page 생성/이동/수정 (순환 참조 방지, depth 자동 계산)
+- [x] **Scenario 5**: Page 즐겨찾기 토글 (개인별 관리)
 - [x] **권한 검증**: 조직 멤버십 + Workspace 멤버십 순차 확인
 - [x] **쿠키 Fallback**: 최근 방문 페이지 검증 및 Default Fallback
 
@@ -761,10 +902,13 @@ WHERE ws.id IS NULL
 - [x] **조직당 1개 Default**: Partial Unique Index로 보장
 - [x] **Parent-Child 제약**: Self-referencing FK
 - [x] **depth 일관성**: depth=0이면 parent_id IS NULL
-- [x] **FK 관계**: 모든 외래키가 올바르게 설정됨
-- [x] **Unique 제약**: (workspace_id, user_id) 중복 방지
-- [x] **Check 제약**: 이름 길이, depth 음수 방지
-- [x] **RLS 보안**: Layered Security Model 적용
+- [x] **FK 관계**: 모든 외래키가 올바르게 설정됨 (5개 테이블)
+- [x] **Unique 제약**: 
+  - workspace_members: (workspace_id, user_id) 중복 방지
+  - workspace_invitations: (workspace_id, invited_user_id, status) PENDING 중복 방지
+  - page_favorites: (page_id, user_id) 중복 방지
+- [x] **Check 제약**: 이름 길이, 설명 길이, depth 음수 방지, status 값 제한
+- [x] **RLS 보안**: Layered Security Model 적용 (5개 테이블)
 
 ### 성능 최적화
 - [x] **핵심 인덱스**: 조직별 Workspace, Workspace별 Page 조회
@@ -814,5 +958,16 @@ WHERE ws.id IS NULL
 
 ---
 
-이 데이터베이스 스키마는 Workspace Management Domain의 **Scenario 0-1**을 완전히 지원하며, **Parent ID + depth 캐시 패턴**으로 단순하면서도 충분한 성능을 제공합니다. DDD 원칙과 성능 최적화, 보안을 모두 고려한 설계로 확장 가능하고 유지보수하기 쉬운 구조를 제공합니다.
+---
+
+이 데이터베이스 스키마는 Workspace Management Domain의 **Scenario 0~5**를 완전히 지원하며, **Parent ID + depth 캐시 패턴**으로 단순하면서도 충분한 성능을 제공합니다.
+
+### 주요 특징:
+- ✅ **5개 테이블**: workspaces, pages, workspace_members, workspace_invitations, page_favorites
+- ✅ **재귀 CTE 최적화**: depth, order 인덱스로 트리 조회 성능 확보
+- ✅ **Layered Security**: RLS (Self-only) + Application-level 권한 체크
+- ✅ **Notification 통합**: workspace_invitations.notification_id로 느슨한 결합
+- ✅ **DDD 불변식 반영**: DB 제약조건으로 비즈니스 규칙 보장
+
+DDD 원칙과 성능 최적화, 보안을 모두 고려한 설계로 확장 가능하고 유지보수하기 쉬운 구조를 제공합니다.
 

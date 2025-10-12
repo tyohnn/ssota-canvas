@@ -101,84 +101,99 @@ Feature: 즐겨찾기 섹션에서 페이지 선택
 - [Frontend Specification](../../event-domain-design/domains/workspace-management-domain/04-frontend-specification.md)
 
 #### Backend Implementation
-- [ ] **Workspace Aggregate** 구현
-  - [ ] Workspace Entity 구현 (id, name, icon, description, isDefault)
-  - [ ] WorkspaceId Value Object 구현
-  - [ ] WorkspaceRepository 인터페이스 정의
+- [x] **Workspace Aggregate** 구현
+  - [x] Workspace Entity 구현 (id, name, icon, description, isDefault)
+  - [x] WorkspaceId Value Object 구현
+  - [x] WorkspaceAggregate 구현 (createDefault, create, verifyMembership)
+  - [x] WorkspaceRepository 인터페이스 정의
   
-- [ ] **Page Aggregate** 구현
-  - [ ] Page Entity 구현 (id, title, icon, parentId, order)
-  - [ ] PageId Value Object 구현
-  - [ ] Materialized Path 로직 구현
-  - [ ] PageRepository 인터페이스 정의
+- [x] **Page Aggregate** 구현
+  - [x] Page Entity 구현 (id, title, icon, parentId, depth, order)
+  - [x] PageId Value Object 구현
+  - [x] Parent ID + depth 캐시 패턴 구현
+  - [x] PageAggregate 구현 (create, verifyAccess)
+  - [x] PageRepository 인터페이스 정의
 
-- [ ] **Read Model Service** 구현
-  - [ ] OrganizationWorkspacePageView Read Model 구현
-  - [ ] WorkspaceManagementService 구현 (권한 검증 + 데이터 조율)
-  - [ ] 쿠키 기반 최근 방문 페이지 검증 로직
+- [x] **Read Model Service** 구현
+  - [x] OrganizationWorkspacePageView Read Model 구현
+  - [x] WorkspaceManagementService 구현 (권한 검증 + 데이터 조율)
+  - [x] 쿠키 기반 최근 방문 페이지 검증 로직
 
-- [ ] **Repository 구현**
-  - [ ] DrizzleWorkspaceRepository 구현 (Workspace 조회)
-  - [ ] DrizzlePageRepository 구현 (Page 트리 조회)
+- [x] **Repository 구현**
+  - [x] DrizzleWorkspaceRepository 구현 (Workspace 조회, Default 우선 정렬)
+  - [x] DrizzlePageRepository 구현 (Page 트리 조회, 재귀 CTE)
+  - [x] DrizzleWorkspaceMemberRepository 구현 (초대 여부 확인)
 
 #### Database
-- [ ] **Drizzle Schema 정의**
-  - [ ] workspaces 테이블 스키마 (드리즐 스키마 파일)
-  - [ ] pages 테이블 스키마 (materialized_path, parent_id, order)
-  - [ ] workspace_membership_status enum
+- [x] **Drizzle Schema 정의**
+  - [x] workspaces 테이블 스키마 (드리즐 스키마 파일)
+  - [x] pages 테이블 스키마 (parent_id, depth, order)
+  - [x] workspace_members 테이블 (초대 여부만, role은 organization에서 관리)
+  - [x] page_favorites 테이블
   
-- [ ] **Drizzle Migration 생성**
-  - [ ] workspaces 테이블 migration
-  - [ ] pages 테이블 migration
-  - [ ] 인덱스 생성 (workspace_id, materialized_path, parent_id, order)
+- [x] **Drizzle Migration 생성**
+  - [x] workspaces 테이블 migration
+  - [x] pages 테이블 migration
+  - [x] workspace_members 테이블 migration
+  - [x] page_favorites 테이블 migration
+  - [x] 인덱스 생성 (workspace_id, parent_id, depth, order)
 
-- [ ] **RLS 정책 적용**
-  - [ ] workspaces 테이블 RLS (조직 멤버만 조회 가능)
-  - [ ] pages 테이블 RLS (Workspace 멤버십 기반)
+- [x] **RLS 정책 적용**
+  - [x] workspaces 테이블 RLS (생성자만, Application에서 adminDb 사용)
+  - [x] pages 테이블 RLS (생성자만, Application에서 adminDb 사용)
+  - [x] workspace_members 테이블 RLS (Self only)
+  - [x] page_favorites 테이블 RLS (Self only)
 
 #### Server Actions
-- [ ] **getWorkspacePagesAction**
-  - 조직의 모든 Workspace-Page 데이터 조회
-  - 권한 검증 (조직 멤버십)
-  - 쿠키 기반 최근 방문 페이지 선택
+- [x] **getOrganizationWorkspacePageViewAction**
+  - [x] 조직의 모든 Workspace-Page 데이터 조회
+  - [x] 권한 검증 (조직 멤버십)
+  - [x] 쿠키 기반 최근 방문 페이지 선택 및 Fallback
+  - [x] Domain Entity → DTO 변환 (buildPageTreeDTO)
   
-- [ ] **getPageDetailsAction**
-  - 페이지 상세 정보 조회
-  - 권한 검증 (Workspace 멤버십)
-  - AccessDeniedDTO 반환 (권한 없을 시)
+- [x] **getPageDetailsAction**
+  - [x] 페이지 상세 정보 조회
+  - [x] 권한 검증 (조직 멤버십 + Workspace 초대 여부)
+  - [x] PageAccessResultDTO 반환
+  - [x] 에러 처리 (PAGE_NOT_FOUND, NOT_WORKSPACE_MEMBER)
 
 #### Frontend
-- [ ] **WorkspaceContext 구현**
-  - useState로 workspaces, selectedPageId, expandedWorkspaces, expandedPages 관리
-  - useEffect로 로컬스토리지 초기화
-  - selectPage, toggleWorkspace, togglePage 액션
+- [x] **WorkspaceContext 구현**
+  - [x] useState로 workspaces, selectedPageId, expandedWorkspaces, expandedPages 관리
+  - [x] useEffect로 로컬스토리지 초기화 (expandedWorkspaces, expandedPages)
+  - [x] selectPage, toggleWorkspace, togglePage 액션
+  - [x] 쿠키 저장 (`recent-page-${orgId}`)
   
-- [ ] **useWorkspace Hook 구현**
-  - Context 소비 및 유틸리티 메서드 제공
-  - favoritePages, selectedPage, selectedWorkspace computed 값
+- [x] **useWorkspace Hook 구현**
+  - [x] Context 소비 및 유틸리티 메서드 제공
+  - [x] favoritePages, selectedPage, selectedWorkspace computed 값
   
-- [ ] **사이드바 컴포넌트 구현**
-  - [ ] WorkspaceSidebarContent (SidebarGroup 래퍼)
-  - [ ] FavoritePageList (즐겨찾기 섹션)
-  - [ ] WorkspacePageTree (Workspace 섹션)
-  - [ ] WorkspaceItem (개별 Workspace)
+- [x] **사이드바 컴포넌트 구현**
+  - [x] WorkspaceSidebarContent (SidebarGroup 래퍼)
+  - [x] FavoritePageList (즐겨찾기 섹션)
+  - [x] WorkspacePageTree (Workspace 섹션)
+  - [x] WorkspaceItem (개별 Workspace, Collapsible)
   
-- [ ] **PageTree 컴포넌트 구현** (전용 설계)
-  - [ ] page-tree.tsx (메인, @headless-tree/core 통합)
-  - [ ] page-tree-context.tsx (Context)
-  - [ ] page-tree-item.tsx (개별 페이지 렌더러)
-  - [ ] page-tree-controls.tsx (Chevron 컨트롤)
-  - [ ] use-page-tree-data.tsx (트리 데이터 변환)
-  - [ ] utils.ts (flattenPageTree 유틸리티)
+- [x] **PageTree 컴포넌트 구현** (@headless-tree/core 기반)
+  - [x] page-tree.tsx (@headless-tree/core 통합, useTree)
+  - [x] page-tree-item.tsx (TreeItem 래퍼)
+  - [x] page-tree-controls.tsx (Chevron 컨트롤)
+  - [x] use-page-tree-data.tsx (트리 데이터 변환)
+  - [x] types.ts (PageTreeItem, PageTreeProps)
+  - [x] utils.ts (flattenPageTree)
+  - [x] WorkspaceContext 통합 (선택/펼치기 상태 동기화)
   
-- [ ] **페이지 뷰어 컴포넌트**
-  - [ ] PageViewer (메인 영역)
-  - [ ] PageHeader (페이지 제목 및 메타)
-  - [ ] AccessDeniedPage (권한 없음 화면)
+- [x] **페이지 뷰어 컴포넌트**
+  - [x] PageViewer (메인 영역)
+  - [x] PageHeader (페이지 제목 및 메타)
+  - [x] AccessDeniedPage (권한 없음 화면)
+  - [x] PageSkeleton (로딩 상태)
   
-- [ ] **유틸리티 함수**
-  - [ ] Cookie Helpers (setCookie, getCookie, deleteCookie)
-  - [ ] Storage Helpers (로컬스토리지 접기/펼치기 상태)
+- [x] **통합 및 라우팅**
+  - [x] `/r/[orgId]/layout.tsx` - WorkspaceProvider 통합
+  - [x] `/r/[orgId]/workspace/page.tsx` - PageViewer 렌더링
+  - [x] DashboardSidebar - WorkspaceSidebarContent 통합
+  - [x] 쿠키 기반 최근 방문 페이지 로드 (Server Component)
 
 ---
 
@@ -197,8 +212,9 @@ Feature: 즐겨찾기 섹션에서 페이지 선택
 ### 도메인 간 통합
 
 - [ ] **권한 검증 레이어** 구현
-  - Organization 멤버십 확인 → Workspace 멤버십 확인 (순차적)
+  - Organization 멤버십 확인 → Workspace 초대 여부 확인 (순차적)
   - Default Workspace는 조직 멤버 자동 허용
+  - **권한은 조직 role에서 관리** (workspace_members는 초대 여부만)
   
 - [ ] **쿠키 및 로컬스토리지 통합**
   - 쿠키: recent-page-${orgId} (최근 방문 페이지)
@@ -208,16 +224,40 @@ Feature: 즐겨찾기 섹션에서 페이지 선택
 
 ### Testing & Quality
 
-- [ ] **Unit Tests**
-  - [ ] Workspace Aggregate 테스트 (생성, 불변식)
-  - [ ] Page Aggregate 테스트 (Materialized Path 로직)
-  - [ ] WorkspaceManagementService 테스트 (권한 검증 로직)
-  - [ ] Repository 테스트 (Workspace, Page 조회)
+- [x] **Unit Tests**
+  - [x] WorkspaceId, PageId Value Objects 테스트 (12개)
+  - [x] Workspace Entity 테스트 (15개)
+  - [x] Page Entity 테스트 (depth 계산 포함, 24개)
+  - [x] Workspace Aggregate 테스트 (16개)
+  - [x] Page Aggregate 테스트 (12개)
+  - **총 79개 Unit 테스트 통과 ✅**
   
-- [ ] **Integration Tests**
-  - [ ] getWorkspacePagesAction 테스트 (권한별 시나리오)
-  - [ ] getPageDetailsAction 테스트 (권한 검증)
-  - [ ] 쿠키 기반 최근 방문 페이지 Fallback 테스트
+- [x] **Repository Integration Tests**
+  - [x] WorkspaceRepository 테스트 (DB 통합, 10개)
+    - save (Create/Update), findById, findByOrganizationId
+    - Soft delete, Default Workspace 우선 정렬 검증
+  - [x] PageRepository 테스트 (재귀 CTE, 16개)
+    - save, findById, findTreeByWorkspaceId (재귀 CTE ⭐)
+    - findAncestors (순환 참조 체크), updateDepth, updateChildrenDepth
+    - 5단계 이상 계층 조회 검증
+  - [x] WorkspaceMemberRepository 테스트 (7개)
+    - isMember, addMember (onConflictDoNothing), removeMember
+    - 권한은 organization_members.role에서 관리 검증
+  - **총 33개 Repository Integration 테스트 통과 ✅**
+  
+- [x] **Service Integration Tests**
+  - [x] WorkspaceManagementService 테스트 (11개)
+    - getOrganizationWorkspacePageView (쿠키 검증, Fallback)
+    - verifyPageAccess (조직 멤버십, Workspace 초대 여부)
+    - Default vs 일반 Workspace 권한 차이 검증
+  - **총 11개 Service Integration 테스트 통과 ✅**
+  
+- [x] **Server Actions Integration Tests**
+  - [x] getOrganizationWorkspacePageViewAction 테스트 (3개)
+    - 조직 멤버 조회, 쿠키 검증, Fallback
+  - [x] getPageDetailsAction 테스트 (2개)
+    - 페이지 상세 조회, 권한 검증, 에러 처리
+  - **총 5개 Server Actions Integration 테스트 통과 ✅**
   
 - [ ] **Frontend Tests**
   - [ ] WorkspaceContext 테스트 (상태 관리)
@@ -267,12 +307,32 @@ Feature: 즐겨찾기 섹션에서 페이지 선택
 
 ## 📊 진행 상황
 
-**현재**: 0% 완료 (설계 완료, 구현 대기 중)
+**현재**: 95% 완료 🎉
+- ✅ DB Schema & Migration 완료
+- ✅ Value Objects 완료 (12 tests)
+- ✅ Entities 완료 (39 tests)
+- ✅ Aggregates 완료 (28 tests)
+- ✅ Repositories 완료 (33 tests, 재귀 CTE 검증!)
+- ✅ Service 완료 (11 tests, 권한 검증 로직!)
+- ✅ Server Actions 완료 (5 tests, DTO 변환!)
+- ✅ Frontend 완료 (Context, Sidebar, PageTree, PageViewer)
+- 🔄 **현재**: 최종 검증 및 E2E Tests
+
+**총 테스트**: 128개 통과 ✅ (Unit: 79 + Integration: 49)
+
+**구현 완료**:
+- Backend: Value Objects → Entities → Aggregates → Repositories → Service → Server Actions
+- Frontend: Context → Hooks → Components (Sidebar, PageTree [@headless-tree/core], PageViewer)
+- Integration: Layout + Routes + DashboardSidebar
+- PageTree: @headless-tree/core 기반 (ExplorerTree 패턴 적용, 키보드 내비게이션 자동 지원)
+- **Schema 일관성**: 모든 외래 키를 `profiles.user_id` 참조로 통일 (Organization Management 패턴)
+- **UI 디자인**: ExplorerTree 레거시 디자인 적용 (TreeControls + TreeItemContent 패턴, 정교한 스타일링)
 
 **예상 일정**:
-- Day 1: Backend 구현 (Aggregate, Repository, Service, Server Actions)
-- Day 2: Database 구현 (Schema, Migration, RLS) + Frontend 구현 시작 (Context, Hook, PageTree)
-- Day 3: Frontend 구현 완료 (컴포넌트) + 테스트 (Unit, Integration, E2E)
+- Day 1: ✅ DB Schema + Value Objects + Entities + Aggregates + Repositories
+- Day 2: ✅ Service + Server Actions + Frontend 완료! 🎉
+- Day 3: E2E Tests + 최종 검증 + 문서화
+- Day 4: 코드 리뷰 + 배포 준비
 
 ---
 

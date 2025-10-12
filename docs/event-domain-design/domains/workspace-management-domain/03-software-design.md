@@ -36,30 +36,51 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Workspace Man
 
 ---
 
-## 📦 Aggregate 상세 정의 (Scenario 1 기준)
+## 📦 Aggregate 상세 정의 (Scenario 1~3 기준)
 
 ### 1. Workspace Aggregate
 
 **핵심 개념**: "조직 내 작업 공간을 관리하고, Workspace별 멤버 접근을 제어하는 Aggregate"
 
-#### Commands (받는 명령) - Scenario 1
-- CreateDefaultWorkspace (Scenario 0에서 사용)
-- CreateWorkspace (Scenario 2에서 사용)
-- VerifyWorkspaceMembership (페이지 접근 시 권한 확인)
-- FindByOrganizationId (조직의 모든 Workspace 조회)
+#### Commands (받는 명령) - Scenario 0~3
+- **CreateDefaultWorkspace** (Scenario 0) - Default Workspace 자동 생성
+- **CreateWorkspace** (Scenario 2) - 새 Workspace 생성
+- **UpdateWorkspaceInfo** (Scenario 2) - Workspace 이름/설명/아이콘 수정
+- **InviteWorkspaceMember** (Scenario 3) - Workspace 멤버 초대
+- **AcceptWorkspaceInvitation** (Scenario 3) - 초대 수락
+- **RejectWorkspaceInvitation** (Scenario 3) - 초대 거절
+- **VerifyWorkspaceMembership** (Scenario 1) - 페이지 접근 시 권한 확인
+- **FindByOrganizationId** (Scenario 1) - 조직의 모든 Workspace 조회
 
-#### Events (발생 이벤트) - Scenario 1
-- WorkspaceCreated (Workspace 생성됨)
-- WorkspaceListLoaded (Workspace 목록 로드됨)
-- WorkspaceMembershipVerified (Workspace 멤버십 검증됨)
-- WorkspaceAccessDenied (Workspace 접근 거부됨)
+#### Events (발생 이벤트) - Scenario 0~3
+- **WorkspaceCreated** (Scenario 0, 2) - Workspace 생성됨
+- **WorkspaceListLoaded** (Scenario 1) - Workspace 목록 로드됨
+- **WorkspaceMembershipVerified** (Scenario 1) - Workspace 멤버십 검증됨
+- **WorkspaceAccessDenied** (Scenario 1) - Workspace 접근 거부됨
+- **WorkspaceNameChanged** (Scenario 2) - Workspace 이름 변경됨
+- **WorkspaceDescriptionChanged** (Scenario 2) - Workspace 설명 변경됨
+- **WorkspaceIconChanged** (Scenario 2) - Workspace 아이콘 변경됨
+- **WorkspaceMemberInvitationCreated** (Scenario 3) - 멤버 초대 생성됨
+- **InvitationNotificationSent** (Scenario 3) - 초대 알림 발송됨
+- **WorkspaceInvitationAccepted** (Scenario 3) - 초대 수락됨
+- **MemberAddedToWorkspace** (Scenario 3) - 멤버 추가됨
+- **WorkspaceInvitationRejected** (Scenario 3) - 초대 거절됨
+- **NotificationUpdated** (Scenario 3) - 알림 업데이트됨
 
 #### 핵심 불변식 (Invariants)
 - Workspace는 반드시 하나의 Organization에 속해야 함
 - Default Workspace는 삭제 불가 (is_default=true)
 - 조직 소유자만 Workspace 생성 가능
+- Workspace 멤버만 Workspace 정보 수정 가능 (이름, 설명, 아이콘)
+- 조직 Admin이면서 Workspace 멤버만 다른 조직 멤버를 초대 가능
+- 초대받은 본인만 초대 수락/거절 가능
+- 이미 Workspace 멤버인 경우 초대 불가 (중복 방지)
 - Default Workspace는 조직 멤버가 자동으로 접근 가능
 - 일반 Workspace는 초대된 멤버만 접근 가능
+- Workspace 이름은 빈 문자열 불가
+- **권한은 조직 레벨에서 관리** (workspace_members는 초대 여부만 저장)
+  - Workspace 편집/삭제 권한 = organization_members.role 기준
+  - 데이터 일관성 보장 (단일 출처)
 
 #### 속성 (Properties)
 ```typescript
@@ -91,20 +112,35 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Workspace Man
 
 **핵심 개념**: "Workspace 내 개별 캔버스 페이지를 관리하고, 무한 계층 구조를 유지하는 Aggregate"
 
-#### Commands (받는 명령) - Scenario 1
-- CreateInitialPage (Workspace 생성 시 자동)
-- FindTreeByWorkspaceId (Workspace별 페이지 트리 조회)
-- VerifyPageAccess (페이지 접근 권한 확인)
+#### Commands (받는 명령) - Scenario 1, 4, 5
+- **CreateInitialPage** (Scenario 0, 2) - Workspace 생성 시 자동
+- **CreatePage** (Scenario 4) - 새 페이지 생성
+- **MovePage** (Scenario 4) - 페이지 이동
+- **UpdatePageInfo** (Scenario 4) - 페이지 제목/아이콘 수정
+- **ToggleFavorite** (Scenario 5) - 즐겨찾기 추가/제거
+- **FindTreeByWorkspaceId** (Scenario 1) - Workspace별 페이지 트리 조회
+- **VerifyPageAccess** (Scenario 1) - 페이지 접근 권한 확인
 
-#### Events (발생 이벤트) - Scenario 1
-- PageCreated (페이지 생성됨)
-- PageTreeLoaded (페이지 트리 로드됨)
-- PageAccessVerified (페이지 접근 권한 검증됨)
-- PageAccessDenied (페이지 접근 거부됨)
+#### Events (발생 이벤트) - Scenario 1, 4, 5
+- **PageCreated** (Scenario 0, 2, 4) - 페이지 생성됨
+- **EmptyCanvasInitialized** (Scenario 4) - 빈 캔버스 초기화됨
+- **PageMovedToChild** (Scenario 4) - 페이지가 다른 페이지 하위로 이동됨
+- **PageMovedToRoot** (Scenario 4) - 페이지가 최상위로 이동됨
+- **PageOrderChanged** (Scenario 4) - 페이지 순서 변경됨
+- **PageTitleSet** (Scenario 4) - 페이지 제목 설정됨
+- **PageIconSet** (Scenario 4) - 페이지 아이콘 설정됨
+- **PageAddedToFavorites** (Scenario 5) - 페이지가 즐겨찾기에 추가됨
+- **PageRemovedFromFavorites** (Scenario 5) - 페이지가 즐겨찾기에서 제거됨
+- **PageTreeLoaded** (Scenario 1) - 페이지 트리 로드됨
+- **PageAccessVerified** (Scenario 1) - 페이지 접근 권한 검증됨
+- **PageAccessDenied** (Scenario 1) - 페이지 접근 거부됨
 
 #### 핵심 불변식 (Invariants)
 - Page는 반드시 하나의 Workspace에 속해야 함
-- Page 순환 참조 불가 (자기 자신의 하위가 될 수 없음)
+- Page 순환 참조 허용 (비즈니스 정책상 자기 자신의 하위로도 이동 가능)
+- Workspace 멤버만 Page 생성/수정/이동 가능
+- 같은 레벨 내 순서는 자동으로 재정렬됨
+- 즐겨찾기는 개인별로 관리 (다른 멤버와 공유 안 됨)
 - 삭제된 Page는 30일 후 자동 삭제됨
 - Page 계층 무한 중첩 가능 (실제로는 보통 5단계 이내)
 - 하위 Page 삭제 시 모든 자식도 함께 삭제됨 (Cascade)
@@ -331,7 +367,7 @@ interface PageTreeNode {
 
 ---
 
-## 🤝 Service 레이어의 역할 (Scenario 1)
+## 🤝 Service 레이어의 역할 (Scenario 1~2)
 
 Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업무 진행 책임자**입니다.
 
@@ -339,9 +375,23 @@ Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업�
 
 **역할**: Workspace 및 Page Aggregate를 조율하고, Organization Domain과 통합
 
-**주요 Server Actions** (Scenario 1):
-- `getOrganizationWorkspacePageViewAction(orgId, userId, cookiePageId?)`: 조직 Workspace-Page 목록 조회
-- `verifyPageAccessAction(orgId, workspaceId, pageId, userId)`: 페이지 접근 권한 검증
+**주요 Server Actions** (Scenario 1~5):
+- **Scenario 1**:
+  - `getOrganizationWorkspacePageViewAction(orgId, userId, cookiePageId?)`: 조직 Workspace-Page 목록 조회
+  - `verifyPageAccessAction(orgId, workspaceId, pageId, userId)`: 페이지 접근 권한 검증
+- **Scenario 2**:
+  - `createWorkspaceAction(orgId, name, description, icon, userId)`: 새 Workspace 생성
+  - `updateWorkspaceInfoAction(workspaceId, name, description, icon, userId)`: Workspace 정보 수정
+- **Scenario 3**:
+  - `inviteWorkspaceMemberAction(workspaceId, memberEmails, userId)`: Workspace 멤버 초대
+  - `acceptWorkspaceInvitationAction(invitationId, userId)`: 초대 수락
+  - `rejectWorkspaceInvitationAction(invitationId, userId)`: 초대 거절
+- **Scenario 4**:
+  - `createPageAction(workspaceId, parentId, userId)`: 새 페이지 생성
+  - `movePageAction(pageId, newParentId, userId)`: 페이지 이동
+  - `updatePageInfoAction(pageId, title, icon, userId)`: 페이지 제목/아이콘 수정
+- **Scenario 5**:
+  - `togglePageFavoriteAction(pageId, userId)`: 즐겨찾기 토글
 
 **업무 시나리오 연결** (Scenario 1):
 - 사용자가 조직 페이지(`/r/[orgId]/workspace`)에 접근하면:
@@ -360,15 +410,19 @@ Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업�
 **규칙 준수 확인** (Scenario 1):
 - ✅ 조직 멤버만 Workspace-Page 목록 조회 가능
 - ✅ Default Workspace는 조직 멤버 자동 접근
-- ✅ 일반 Workspace는 멤버십 확인 필요
+- ✅ 일반 Workspace는 초대 여부 확인 필요
 - ✅ 쿠키 검증 및 Fallback 전략 준수
+- ✅ **권한은 조직 role에서 관리** (단일 출처)
 
 **외부 파트너 연동** (Scenario 1):
-- **Organization Domain**: 동기 호출로 조직 멤버십 확인
-  - Repository 호출: `organizationMemberRepository.isMember(orgId, userId)` (RLS 사용)
-  - 또는: `organizationMemberRepository.findMemberRole(orgId, userId)` (역할까지 조회)
-  - 성공: 멤버 여부 반환 (true/false) 또는 역할 정보 (owner/admin/member)
+- **Organization Domain**: 동기 호출로 조직 멤버십 및 권한 확인
+  - Repository 호출: `organizationMemberRepository.findMemberRole(orgId, userId)` (역할 조회)
+  - 성공: 역할 정보 반환 (owner/admin/member)
   - 실패: 네트워크 오류 → 접근 거부 (Fail-safe)
+  - **권한 판단**: 조직 role로 Workspace 편집/삭제 권한 결정
+    - owner: 모든 Workspace 편집/삭제 가능
+    - admin: 모든 Workspace 편집 가능
+    - member: 조회만 가능
 
 **실패 대응 전략** (Scenario 1):
 - Organization API 장애 시:
@@ -386,7 +440,209 @@ Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업�
 
 ---
 
-## 💡 핵심 설계 결정 (Scenario 1)
+**업무 시나리오 연결** (Scenario 2):
+
+#### Sequence 1: Workspace 생성
+- 조직 소유자가 "새 Workspace 만들기" 버튼 클릭:
+  1. **Client Component**가 **Server Action** 호출: `createWorkspaceAction(orgId, name, description, icon, userId)`
+  2. **Server Action**이 **Service** 호출:
+     - Organization Domain Repository 호출: 조직 소유자 권한 확인
+     - 소유자가 아니면 → 권한 없음 에러 반환
+     - Workspace Aggregate: 새 Workspace 생성 (is_default=false, deletable=true)
+     - Workspace Member Repository: 조직 소유자를 멤버로 추가
+     - Page Aggregate: 초기 "Untitled" 페이지 생성
+     - 생성된 Workspace ID와 Page ID 반환
+  3. **Frontend**가 생성된 첫 페이지로 이동 및 쿠키 저장
+
+#### Sequence 2: Workspace 정보 수정
+- Workspace 멤버가 Workspace 설정 메뉴 클릭:
+  1. **Client Component**가 **Server Action** 호출: `updateWorkspaceInfoAction(workspaceId, name, description, icon, userId)`
+  2. **Server Action**이 **Service** 호출:
+     - Workspace Member Repository 호출: Workspace 멤버십 확인
+     - 멤버가 아니면 → 권한 없음 에러 반환
+     - Workspace Aggregate: 정보 업데이트 (이름, 설명, 아이콘)
+     - WorkspaceNameChanged, WorkspaceDescriptionChanged, WorkspaceIconChanged 이벤트 발행
+  3. **Frontend**가 업데이트된 정보 표시
+
+**규칙 준수 확인** (Scenario 2):
+- ✅ 조직 소유자만 Workspace 생성 가능
+- ✅ Workspace 멤버만 정보 수정 가능
+- ✅ Workspace 생성 시 초기 페이지 자동 생성
+- ✅ 생성 후 첫 페이지로 자동 이동 및 쿠키 저장
+- ✅ Default Workspace도 정보 수정 가능 (삭제만 불가)
+
+---
+
+**업무 시나리오 연결** (Scenario 3):
+
+#### Sequence 1: Workspace 멤버 초대
+- Admin이 "멤버 초대" 버튼 클릭:
+  1. **Client Component**가 **Server Action** 호출: `inviteWorkspaceMemberAction(workspaceId, memberEmails, userId)`
+  2. **Server Action**이 **Service** 호출:
+     - Organization Domain Repository 호출: 조직 Admin 권한 확인
+     - Admin이 아니면 → 권한 없음 에러 반환
+     - Workspace Member Repository 호출: Workspace 멤버십 확인
+     - Workspace 멤버가 아니면 → 권한 없음 에러 반환
+     - 이메일로 조직 멤버 검색 (프로필 조회)
+     - 조직 멤버가 아니면 → 초대 불가 에러 반환
+     - 이미 Workspace 멤버인지 확인 (중복 방지)
+     - 초대 생성 (각 대상마다)
+     - Notification Domain 통합: 각 대상에게 알림 발송 (동기)
+     - WorkspaceMemberInvitationCreated, InvitationNotificationSent 이벤트 발행
+  3. **Frontend**가 성공 메시지 표시
+
+#### Sequence 2: 초대 수락/거절
+- 초대받은 사용자가 알림 확인:
+  1. **Client Component**가 **Server Action** 호출: `acceptWorkspaceInvitationAction(invitationId, userId)` 또는 `rejectWorkspaceInvitationAction(invitationId, userId)`
+  2. **Server Action**이 **Service** 호출:
+     - 초대 대상이 본인인지 확인
+     - 이미 처리된 초대인지 확인
+     - **수락 시**:
+       - 초대 완료 처리
+       - Workspace Member Repository: 멤버 추가
+       - Notification Domain 통합: 알림 업데이트 (동기)
+       - WorkspaceInvitationAccepted, MemberAddedToWorkspace 이벤트 발행
+     - **거절 시**:
+       - 초대 종료 처리
+       - Notification Domain 통합: 알림 업데이트 (동기)
+       - WorkspaceInvitationRejected 이벤트 발행
+  3. **Frontend**가 현재 페이지 유지 (이동 없음)
+
+**규칙 준수 확인** (Scenario 3):
+- ✅ 조직 Admin이면서 Workspace 멤버만 초대 가능
+- ✅ 이메일로 조직 멤버 검색 (프로필 조회)
+- ✅ 이미 Workspace 멤버인 경우 초대 불가 (중복 방지)
+- ✅ 초대받은 본인만 수락/거절 가능
+- ✅ 초대와 알림 생성은 동기 처리 (함께 성공/실패)
+- ✅ 수락/거절 후 현재 페이지 유지
+
+**외부 파트너 연동** (Scenario 3):
+- **Notification Domain**: 동기 호출로 알림 생성 및 업데이트
+  - Service 주입: `notificationService.createInvitationNotification(...)` (알림 생성)
+  - Service 주입: `notificationService.updateNotificationStatus(...)` (알림 업데이트)
+  - 성공: 알림 생성/업데이트 완료
+  - 실패: 전체 작업 취소 (초대도 롤백)
+
+---
+
+**업무 시나리오 연결** (Scenario 4):
+
+#### Sequence 1: 새 페이지 생성
+- 멤버가 "새 페이지 만들기" 버튼 클릭:
+  1. **Client Component**가 **Server Action** 호출: `createPageAction(workspaceId, parentId, userId)`
+  2. **Server Action**이 **Service** 호출:
+     - Workspace Member Repository 호출: Workspace 멤버십 확인
+     - 멤버가 아니면 → 권한 없음 에러 반환
+     - 부모 페이지가 같은 Workspace에 속하는지 확인
+     - 부모 페이지가 삭제되지 않았는지 확인
+     - Page Aggregate: 새 페이지 생성 (기본 제목 "Untitled", 기본 아이콘 📄)
+     - 같은 레벨 내 순서 자동 배정
+     - depth 자동 계산 (부모 depth + 1)
+     - PageCreated, EmptyCanvasInitialized 이벤트 발행
+  3. **Frontend**가 생성된 페이지 표시 (낙관적 업데이트)
+
+#### Sequence 2: 페이지 이동
+- 멤버가 페이지를 드래그 앤 드롭으로 이동:
+  1. **Client Component**가 **Server Action** 호출: `movePageAction(pageId, newParentId, userId)`
+  2. **Server Action**이 **Service** 호출:
+     - Workspace Member Repository 호출: Workspace 멤버십 확인
+     - 멤버가 아니면 → 권한 없음 에러 반환
+     - 새 부모 페이지가 같은 Workspace에 속하는지 확인
+     - Page Aggregate: 페이지 이동 (부모 변경, depth 재계산)
+     - 같은 레벨 내 순서 자동 재정렬
+     - 하위 페이지들 depth 자동 업데이트
+     - PageMovedToChild/PageMovedToRoot, PageOrderChanged 이벤트 발행
+  3. **Frontend**가 이동된 트리 구조 표시 (낙관적 업데이트)
+
+#### Sequence 3: 페이지 제목/아이콘 수정
+- 멤버가 페이지 제목 또는 아이콘 클릭 (인라인 편집):
+  1. **Client Component**가 **Server Action** 호출: `updatePageInfoAction(pageId, title, icon, userId)`
+  2. **Server Action**이 **Service** 호출:
+     - Workspace Member Repository 호출: Workspace 멤버십 확인
+     - 멤버가 아니면 → 권한 없음 에러 반환
+     - Page Aggregate: 제목/아이콘 업데이트
+     - PageTitleSet, PageIconSet 이벤트 발행
+  3. **Frontend**가 업데이트된 정보 표시 (낙관적 업데이트)
+
+**규칙 준수 확인** (Scenario 4):
+- ✅ Workspace 멤버만 페이지 생성/이동/수정 가능
+- ✅ 최상위 또는 특정 페이지 하위로 생성
+- ✅ 기본 제목 "Untitled", 기본 아이콘 📄 자동 설정
+- ✅ 순환 참조 허용 (자기 자신의 하위로도 이동 가능)
+- ✅ 같은 레벨 내 순서 자동 재정렬
+- ✅ 하위 페이지들 depth 자동 업데이트
+- ✅ 제목 빈 값 불가
+
+---
+
+**업무 시나리오 연결** (Scenario 5):
+
+#### Sequence 1: 즐겨찾기 토글
+- 멤버가 페이지 즐겨찾기 아이콘 클릭:
+  1. **Client Component**가 **Server Action** 호출: `togglePageFavoriteAction(pageId, userId)`
+  2. **Server Action**이 **Service** 호출:
+     - Workspace Member Repository 호출: Workspace 멤버십 확인
+     - 멤버가 아니면 → 권한 없음 에러 반환
+     - 현재 즐겨찾기 상태 확인
+     - 즐겨찾기면 제거, 아니면 추가 (토글)
+     - PageAddedToFavorites 또는 PageRemovedFromFavorites 이벤트 발행
+  3. **Frontend**가 즐겨찾기 상태 표시 (낙관적 업데이트)
+
+**규칙 준수 확인** (Scenario 5):
+- ✅ Workspace 멤버만 즐겨찾기 관리 가능
+- ✅ 즐겨찾기는 개인별로 관리 (다른 멤버와 공유 안 됨)
+- ✅ 토글 방식 (이미 즐겨찾기면 제거, 아니면 추가)
+
+---
+
+**업무 시나리오 연결** (Scenario 7, 8 - 삭제 및 복구):
+
+#### Scenario 7: Page 삭제 및 복구
+**추가 Commands**:
+- `DeletePage` - 페이지 휴지통으로 이동
+- `RestorePage` - 휴지통에서 페이지 복구
+- `EmptyTrash` - 휴지통 비우기 (모든 페이지 완전 삭제)
+- `PermanentlyDeleteExpiredPages` (배치) - 30일 경과 페이지 자동 삭제
+
+**추가 Events**:
+- `PageMovedToTrash` - 페이지가 휴지통으로 이동됨
+- `ChildPagesMovedToTrashTogether` - 하위 페이지들 함께 이동됨
+- `PageRestoredFromTrash` - 페이지 복구됨
+- `ChildPagesRestoredTogether` - 하위 페이지들 함께 복구됨
+- `TrashEmptied` - 휴지통 비워짐
+- `PagePermanentlyDeleted` - 페이지 완전 삭제됨
+- `BatchDeletionJobCompleted` - 배치 삭제 완료됨
+
+**불변식**:
+- 삭제 시 휴지통으로 이동 (30일 보관)
+- 하위 페이지들도 함께 삭제/복구
+- 30일 이내만 복구 가능
+- 원래 부모가 삭제된 경우 최상위로 복구
+
+#### Scenario 8: Workspace 삭제 및 복구
+**추가 Commands**:
+- `DeleteWorkspace` - Workspace 휴지통으로 이동
+- `RestoreWorkspace` - 휴지통에서 Workspace 복구
+- `PermanentlyDeleteExpiredWorkspaces` (배치) - 30일 경과 Workspace 자동 삭제
+
+**추가 Events**:
+- `WorkspaceMovedToTrash` - Workspace가 휴지통으로 이동됨
+- `AllPagesInWorkspaceHidden` - Workspace 내 모든 페이지 숨겨짐
+- `WorkspaceRestoredFromTrash` - Workspace 복구됨
+- `AllPagesInWorkspaceRestored` - Workspace 내 모든 페이지 복원됨
+- `WorkspacePermanentlyDeleted` - Workspace 완전 삭제됨
+- `WorkspaceRelatedDataCleaned` - Workspace 관련 데이터 정리됨
+
+**불변식**:
+- 조직 소유자만 Workspace 삭제/복구 가능
+- Default Workspace는 삭제 불가
+- 삭제 시 모든 페이지도 함께 숨김
+- 멤버십 정보는 유지 (복구 시 사용)
+- 30일 이내만 복구 가능
+
+---
+
+## 💡 핵심 설계 결정 (Scenario 1~5)
 
 ### 1. Read Model Service를 별도 레이어로 분리
 
@@ -473,13 +729,15 @@ Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업�
 
 ---
 
-## ✅ 검증 체크리스트 (Scenario 1)
+## ✅ 검증 체크리스트 (Scenario 1~5)
 
 ### Aggregate 설계
 - [x] Workspace Aggregate가 명확한 경계와 책임을 가지는가?
 - [x] Page Aggregate가 별도로 분리되어 독립적인가?
 - [x] Process Model의 System이 Aggregate로 적절히 매핑되었는가?
 - [x] Read Model Service가 복잡한 조회를 담당하는가?
+- [x] Workspace 생성, 수정, 초대 Commands가 정의되었는가?
+- [x] Page 생성, 이동, 수정, 즐겨찾기 Commands가 정의되었는가?
 
 ### Context 경계
 - [x] Workspace Management와 Page Structure가 명확히 분리되었는가?
@@ -488,21 +746,41 @@ Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업�
 
 ### External System 통합
 - [x] Organization Domain과의 통합이 적절한가? (동기 호출, 순차 처리)
+- [x] Notification Domain과의 통합이 적절한가? (동기 호출, Service 주입)
 - [x] ACL 필요 여부가 결정되었는가? (불필요)
-- [x] Failure Strategy가 정의되었는가? (Fail-safe)
+- [x] Failure Strategy가 정의되었는가? (Fail-safe, 알림 실패 시 전체 취소)
 
 ### 핵심 불변식
 - [x] Workspace Invariants가 올바르게 정의되었는가?
-- [x] Page Invariants가 올바르게 정의되었는가?
+- [x] Page Invariants가 올바르게 정의되었는가? (순환 참조 허용)
+- [x] 초대 관련 불변식이 명확한가? (Admin + Workspace 멤버만 초대)
+- [x] 즐겨찾기 관련 불변식이 명확한가? (개인별 관리)
 - [x] 권한 관련 불변식이 명확한가?
 
 ---
 
-## 📊 성과 측정 지표 (Scenario 1)
+## 📊 성과 측정 지표 (Scenario 1~5)
 
+**Scenario 1**:
 1. **페이지 로드 시간**: Server Component에서 Workspace-Page 목록 조회 및 렌더링 시간 < 500ms
 2. **권한 검증 성공률**: 조직 멤버십 + Workspace 멤버십 검증 성공률 > 99.9%
 3. **쿠키 Fallback 발생률**: 쿠키 유효하지 않아 Fallback 발생 비율 < 5%
+
+**Scenario 2**:
+1. **Workspace 생성 시간**: Workspace + 초기 페이지 생성 완료 시간 < 1000ms
+2. **Workspace 정보 수정 응답 시간**: 정보 업데이트 및 이벤트 발행 시간 < 200ms
+
+**Scenario 3**:
+1. **멤버 초대 시간**: 초대 생성 + 알림 발송 완료 시간 < 500ms
+2. **초대 수락 시간**: 멤버 추가 + 알림 업데이트 완료 시간 < 300ms
+
+**Scenario 4**:
+1. **페이지 생성 시간**: 페이지 생성 + depth 계산 완료 시간 < 200ms
+2. **페이지 이동 시간**: 페이지 이동 + 하위 페이지 depth 업데이트 완료 시간 < 300ms
+3. **페이지 수정 응답 시간**: 제목/아이콘 업데이트 시간 < 100ms
+
+**Scenario 5**:
+1. **즐겨찾기 토글 시간**: 즐겨찾기 추가/제거 완료 시간 < 100ms
 
 ---
 
@@ -517,5 +795,5 @@ Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업�
 
 ---
 
-*이 Software Design 문서는 Workspace Management Domain의 구현을 위한 완전한 설계 지침입니다. (Scenario 1까지 완료, 나머지 Scenario 진행 중)*
+*이 Software Design 문서는 Workspace Management Domain의 구현을 위한 완전한 설계 지침입니다. (Scenario 0~5, 7~8 완료, Scenario 6은 Post-MVP)*
 
