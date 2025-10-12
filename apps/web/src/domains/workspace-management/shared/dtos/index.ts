@@ -25,6 +25,7 @@ export interface WorkspaceDTO {
 export interface WorkspaceWithPagesDTO {
   workspaceId: string;
   name: string;
+  description: string | null;
   icon: string | null;
   isDefault: boolean;
   pageTree: PageTreeNodeDTO[];
@@ -85,6 +86,26 @@ export interface GetPageDetailsRequest {
   organizationId: string;
   workspaceId: string;
   pageId: string;
+}
+
+// Scenario 2: Workspace 생성 및 수정
+export interface CreateWorkspaceRequest {
+  organizationId: string;
+  name: string;
+  description?: string;
+  icon?: string;
+}
+
+export interface CreateWorkspaceResponse {
+  workspaceId: string;
+  firstPageId: string;
+}
+
+export interface UpdateWorkspaceInfoRequest {
+  workspaceId: string;
+  name?: string;
+  description?: string | null;
+  icon?: string | null;
 }
 
 export interface PageAccessResultDTO {

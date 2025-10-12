@@ -3,7 +3,7 @@
 import React from 'react';
 import { Star } from 'lucide-react';
 import type { PageTreeNodeDTO } from '../../../shared/dtos';
-import { useWorkspace } from '../../contexts/workspace-context';
+import { useWorkspace } from '../../hooks/use-workspace';
 import { cn } from '@/lib/utils';
 
 interface FavoritePageListProps {

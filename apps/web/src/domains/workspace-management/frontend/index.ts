@@ -1,9 +1,15 @@
-// apps/web/src/domains/workspace-management/frontend/index.ts
+/**
+ * Workspace Management Frontend Domain
+ *
+ * Public API for frontend components, hooks, and contexts
+ */
 
-// Contexts
-export { WorkspaceProvider, useWorkspace } from './contexts/workspace-context';
+// Context & Hooks
+export {
+  WorkspaceProvider,
+  useWorkspaceContext,
+} from './contexts/workspace-context';
+export { useWorkspace } from './hooks/use-workspace';
 
 // Components
-export * from './components/sidebar';
-export * from './components/page-tree';
-export * from './components/page-viewer';
+export * from './components';

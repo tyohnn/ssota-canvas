@@ -116,6 +116,34 @@ export class WorkspaceAggregate {
   }
 
   /**
+   * Workspace 정보 업데이트 (Scenario 2)
+   *
+   * @param name - 새 이름
+   * @param description - 새 설명
+   * @param icon - 새 아이콘
+   */
+  updateInfo(
+    name: string,
+    description: string | null,
+    icon: string | null
+  ): void {
+    // 1. Entity의 updateInfo 메서드 호출 (검증 포함)
+    this._workspace.updateInfo(name, description, icon);
+
+    // 2. WorkspaceUpdated 이벤트 발행
+    this.addEvent({
+      type: 'WorkspaceUpdated',
+      workspaceId: this._workspace.workspaceId.value,
+      changes: {
+        name,
+        description: description ?? undefined,
+        icon: icon ?? undefined,
+      },
+      occurredAt: new Date(),
+    });
+  }
+
+  /**
    * Workspace 멤버십 검증
    *
    * @param userId - 사용자 ID

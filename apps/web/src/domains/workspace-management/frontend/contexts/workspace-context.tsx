@@ -7,15 +7,27 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useTransition,
 } from 'react';
-import type { WorkspaceWithPagesDTO, PageTreeNodeDTO } from '../../shared/dtos';
+import { useRouter } from 'next/navigation';
+import { toast } from '@workspace/ui/components/ui/sonner';
+import {
+  type WorkspaceWithPagesDTO,
+  type PageTreeNodeDTO,
+  type CreateWorkspaceRequest,
+  type UpdateWorkspaceInfoRequest,
+  type CreateWorkspaceResponse,
+} from '@/domains/workspace-management/shared/dtos';
+import {
+  createWorkspaceAction,
+  updateWorkspaceInfoAction,
+} from '@/domains/workspace-management/actions/workspace-management.actions';
 
-// ────────────────────────────────────────────────────────────
-// Context 타입 정의
-// ────────────────────────────────────────────────────────────
-
+/**
+ * WorkspaceContext 타입 정의
+ */
 interface WorkspaceContextValue {
-  // State
+  // 기본 상태
   workspaces: WorkspaceWithPagesDTO[];
   selectedPageId: string | null;
   selectedWorkspaceId: string | null;
@@ -24,61 +36,59 @@ interface WorkspaceContextValue {
   isLoading: boolean;
   error: string | null;
 
-  // Actions
+  // Scenario 1: 페이지 선택 및 토글
   selectPage: (pageId: string, workspaceId: string) => void;
   toggleWorkspace: (workspaceId: string) => void;
   togglePage: (pageId: string) => void;
-  setError: (error: string | null) => void;
+  refreshWorkspacePages: () => Promise<void>;
 
-  // Computed Values
-  favoritePages: PageTreeNodeDTO[];
+  // Scenario 2: Workspace 생성 및 수정
+  createWorkspace: (
+    request: Omit<CreateWorkspaceRequest, 'organizationId'>
+  ) => Promise<CreateWorkspaceResponse | null>;
+  updateWorkspaceInfo: (
+    request: UpdateWorkspaceInfoRequest
+  ) => Promise<boolean>;
+
+  // 계산된 속성
   selectedPage: PageTreeNodeDTO | null;
   selectedWorkspace: WorkspaceWithPagesDTO | null;
+  defaultWorkspace: WorkspaceWithPagesDTO | null;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(
   undefined
 );
 
-// ────────────────────────────────────────────────────────────
-// Provider Props
-// ────────────────────────────────────────────────────────────
-
+/**
+ * WorkspaceProvider Props
+ */
 interface WorkspaceProviderProps {
   children: React.ReactNode;
   initialWorkspaces: WorkspaceWithPagesDTO[];
-  initialSelectedPageId: string | null;
+  initialSelectedPageId?: string | null;
   organizationId: string;
 }
 
-// ────────────────────────────────────────────────────────────
-// LocalStorage Keys
-// ────────────────────────────────────────────────────────────
-
-const STORAGE_KEYS = {
-  expandedWorkspaces: (orgId: string) => `xbowl:expanded-workspaces:${orgId}`,
-  expandedPages: (orgId: string) => `xbowl:expanded-pages:${orgId}`,
-  recentPage: (orgId: string) => `recent-page-${orgId}`,
-};
-
-// ────────────────────────────────────────────────────────────
-// Provider 구현
-// ────────────────────────────────────────────────────────────
-
+/**
+ * WorkspaceProvider 구현
+ *
+ * Workspace Management Domain의 전역 상태 관리
+ */
 export function WorkspaceProvider({
   children,
   initialWorkspaces,
   initialSelectedPageId,
   organizationId,
 }: WorkspaceProviderProps) {
-  // ──────────────────────────────────────────────────────
-  // State
-  // ──────────────────────────────────────────────────────
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
+  // 기본 상태
   const [workspaces, setWorkspaces] =
     useState<WorkspaceWithPagesDTO[]>(initialWorkspaces);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(
-    initialSelectedPageId
+    initialSelectedPageId || null
   );
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
     null
@@ -90,229 +100,332 @@ export function WorkspaceProvider({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ──────────────────────────────────────────────────────
-  // LocalStorage 초기화 (클라이언트에서만)
-  // ──────────────────────────────────────────────────────
+  // 로컬스토리지 키 생성
+  const getWorkspaceCollapsedKey = (workspaceId: string) =>
+    `workspace-collapsed-${workspaceId}`;
+  const getPageCollapsedKey = (pageId: string) => `page-collapsed-${pageId}`;
+  const getRecentPageKey = () => `recent-page-${organizationId}`;
 
+  // 초기화: 로컬스토리지에서 펼치기/접기 상태 복원
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // expandedWorkspaces 로드
-    const storedExpandedWorkspaces = localStorage.getItem(
-      STORAGE_KEYS.expandedWorkspaces(organizationId)
-    );
-    if (storedExpandedWorkspaces) {
-      try {
-        const parsedWorkspaces = JSON.parse(
-          storedExpandedWorkspaces
-        ) as string[];
-        setExpandedWorkspaces(new Set(parsedWorkspaces));
-      } catch (e) {
-        console.error(
-          '[WorkspaceContext] Failed to parse expandedWorkspaces',
-          e
+    // 1. Workspace 펼치기/접기 상태 복원
+    const newExpandedWorkspaces = new Set<string>();
+    workspaces.forEach(workspace => {
+      const key = getWorkspaceCollapsedKey(workspace.workspaceId);
+      const isCollapsed = localStorage.getItem(key) === 'true';
+      if (!isCollapsed) {
+        // 기본: 펼쳐짐
+        newExpandedWorkspaces.add(workspace.workspaceId);
+      }
+    });
+    setExpandedWorkspaces(newExpandedWorkspaces);
+
+    // 2. 선택된 페이지 복원 (우선순위)
+    let pageToSelect = initialSelectedPageId;
+
+    if (!pageToSelect) {
+      // URL 파라미터 없으면 쿠키에서 복원
+      const recentPageKey = getRecentPageKey();
+      const recentPageId = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(`${recentPageKey}=`))
+        ?.split('=')[1];
+
+      if (recentPageId) {
+        // 쿠키의 페이지가 유효한지 확인
+        const pageExists = workspaces.some(ws =>
+          findPageInTree(ws.pageTree, recentPageId)
         );
-      }
-    } else {
-      // 기본: Default Workspace만 펼치기
-      const defaultWorkspace = initialWorkspaces.find(ws => ws.isDefault);
-      if (defaultWorkspace) {
-        setExpandedWorkspaces(new Set([defaultWorkspace.workspaceId]));
-      }
-    }
-
-    // expandedPages 로드
-    const storedExpandedPages = localStorage.getItem(
-      STORAGE_KEYS.expandedPages(organizationId)
-    );
-    if (storedExpandedPages) {
-      try {
-        const parsedPages = JSON.parse(storedExpandedPages) as string[];
-        setExpandedPages(new Set(parsedPages));
-      } catch (e) {
-        console.error('[WorkspaceContext] Failed to parse expandedPages', e);
-      }
-    }
-  }, [organizationId, initialWorkspaces]);
-
-  // ──────────────────────────────────────────────────────
-  // selectedWorkspaceId 자동 추론
-  // ──────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!selectedPageId) {
-      setSelectedWorkspaceId(null);
-      return;
-    }
-
-    // selectedPageId가 속한 Workspace 찾기
-    for (const workspace of workspaces) {
-      const findPage = (pages: PageTreeNodeDTO[]): boolean => {
-        for (const page of pages) {
-          if (page.id === selectedPageId) {
-            return true;
-          }
-          if (page.children && findPage(page.children)) {
-            return true;
-          }
+        if (pageExists) {
+          pageToSelect = recentPageId;
         }
-        return false;
-      };
-
-      if (findPage(workspace.pageTree)) {
-        setSelectedWorkspaceId(workspace.workspaceId);
-        return;
       }
     }
 
-    setSelectedWorkspaceId(null);
-  }, [selectedPageId, workspaces]);
+    if (!pageToSelect) {
+      // Fallback: Default Workspace의 첫 번째 페이지
+      const defaultWs = workspaces.find(ws => ws.isDefault);
+      if (defaultWs && defaultWs.pageTree.length > 0) {
+        pageToSelect = defaultWs.pageTree[0]?.id;
+      }
+    }
 
-  // ──────────────────────────────────────────────────────
-  // Actions
-  // ──────────────────────────────────────────────────────
+    if (pageToSelect) {
+      const workspace = workspaces.find(ws =>
+        findPageInTree(ws.pageTree, pageToSelect as string)
+      );
+      if (workspace) {
+        setSelectedPageId(pageToSelect);
+        setSelectedWorkspaceId(workspace.workspaceId);
+        // 선택된 페이지의 Workspace 자동 펼치기
+        newExpandedWorkspaces.add(workspace.workspaceId);
+        setExpandedWorkspaces(new Set(newExpandedWorkspaces));
+      }
+    }
+  }, []);
 
+  // 페이지 찾기 (재귀)
+  const findPageInTree = (
+    tree: PageTreeNodeDTO[],
+    pageId: string
+  ): PageTreeNodeDTO | null => {
+    for (const node of tree) {
+      if (node.id === pageId) return node;
+      if (node.children && node.children.length > 0) {
+        const found = findPageInTree(node.children, pageId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  // Scenario 1: 페이지 선택
   const selectPage = useCallback(
     (pageId: string, workspaceId: string) => {
+      // 1. 페이지가 존재하는지 확인
+      const workspace = workspaces.find(ws => ws.workspaceId === workspaceId);
+      if (!workspace) return;
+
+      const page = findPageInTree(workspace.pageTree, pageId);
+      if (!page) return;
+
+      // 2. 상태 업데이트
       setSelectedPageId(pageId);
       setSelectedWorkspaceId(workspaceId);
 
-      // 쿠키에 저장 (recent-page-${orgId})
-      if (typeof document !== 'undefined') {
-        document.cookie = `${STORAGE_KEYS.recentPage(organizationId)}=${pageId}; path=/; max-age=${60 * 60 * 24 * 7}`; // 7일
+      // 3. 쿠키에 저장
+      if (typeof window !== 'undefined') {
+        const key = getRecentPageKey();
+        document.cookie = `${key}=${pageId}; path=/; max-age=31536000`; // 1년
       }
+
+      // 4. 해당 Workspace 자동 펼치기
+      setExpandedWorkspaces(prev => new Set(prev).add(workspaceId));
+
+      // 5. URL 변경
+      router.push(
+        `/r/${organizationId}/workspace/${workspaceId}/page/${pageId}`
+      );
     },
-    [organizationId]
+    [workspaces, organizationId, router]
   );
 
-  const toggleWorkspace = useCallback(
-    (workspaceId: string) => {
-      setExpandedWorkspaces(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(workspaceId)) {
-          newSet.delete(workspaceId);
-        } else {
-          newSet.add(workspaceId);
-        }
-
-        // LocalStorage 저장
+  // Scenario 1: Workspace 토글
+  const toggleWorkspace = useCallback((workspaceId: string) => {
+    setExpandedWorkspaces(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(workspaceId)) {
+        newSet.delete(workspaceId);
+        // 로컬스토리지에 저장
         if (typeof window !== 'undefined') {
-          localStorage.setItem(
-            STORAGE_KEYS.expandedWorkspaces(organizationId),
-            JSON.stringify(Array.from(newSet))
-          );
+          const key = getWorkspaceCollapsedKey(workspaceId);
+          localStorage.setItem(key, 'true');
         }
-
-        return newSet;
-      });
-    },
-    [organizationId]
-  );
-
-  const togglePage = useCallback(
-    (pageId: string) => {
-      setExpandedPages(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(pageId)) {
-          newSet.delete(pageId);
-        } else {
-          newSet.add(pageId);
-        }
-
-        // LocalStorage 저장
+      } else {
+        newSet.add(workspaceId);
+        // 로컬스토리지에 저장
         if (typeof window !== 'undefined') {
-          localStorage.setItem(
-            STORAGE_KEYS.expandedPages(organizationId),
-            JSON.stringify(Array.from(newSet))
-          );
-        }
-
-        return newSet;
-      });
-    },
-    [organizationId]
-  );
-
-  // ──────────────────────────────────────────────────────
-  // Computed Values
-  // ──────────────────────────────────────────────────────
-
-  const favoritePages = useMemo(() => {
-    const favorites: PageTreeNodeDTO[] = [];
-
-    const collectFavorites = (pages: PageTreeNodeDTO[]) => {
-      for (const page of pages) {
-        if (page.isFavorite) {
-          favorites.push(page);
-        }
-        if (page.children) {
-          collectFavorites(page.children);
+          const key = getWorkspaceCollapsedKey(workspaceId);
+          localStorage.setItem(key, 'false');
         }
       }
-    };
+      return newSet;
+    });
+  }, []);
 
-    for (const workspace of workspaces) {
-      collectFavorites(workspace.pageTree);
+  // Scenario 1: Page 토글
+  const togglePage = useCallback((pageId: string) => {
+    setExpandedPages(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(pageId)) {
+        newSet.delete(pageId);
+        // 로컬스토리지에 저장
+        if (typeof window !== 'undefined') {
+          const key = getPageCollapsedKey(pageId);
+          localStorage.setItem(key, 'true');
+        }
+      } else {
+        newSet.add(pageId);
+        // 로컬스토리지에 저장
+        if (typeof window !== 'undefined') {
+          const key = getPageCollapsedKey(pageId);
+          localStorage.setItem(key, 'false');
+        }
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Scenario 1: 데이터 갱신
+  const refreshWorkspacePages = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // TODO: getWorkspacePagesAction 호출
+      // const result = await getWorkspacePagesAction(organizationId);
+      // if (result.success) {
+      //   setWorkspaces(result.data.workspaces);
+      // }
+    } catch (err) {
+      setError('데이터를 불러오는데 실패했습니다');
+    } finally {
+      setIsLoading(false);
     }
+  }, [organizationId]);
 
-    return favorites;
-  }, [workspaces]);
+  // Scenario 2: Workspace 생성
+  const createWorkspace = useCallback(
+    async (
+      request: Omit<CreateWorkspaceRequest, 'organizationId'>
+    ): Promise<CreateWorkspaceResponse | null> => {
+      setIsLoading(true);
+      try {
+        const result = await createWorkspaceAction({
+          organizationId,
+          ...request,
+        });
 
+        if (result.success && result.data) {
+          toast.success('워크스페이스가 생성되었습니다');
+
+          // Optimistic update
+          const newWorkspace: WorkspaceWithPagesDTO = {
+            workspaceId: result.data.workspaceId,
+            name: request.name,
+            description: request.description || null,
+            icon: request.icon || null,
+            isDefault: false,
+            pageTree: [
+              {
+                id: result.data.firstPageId,
+                title: 'Untitled',
+                icon: 'FileText',
+                children: [],
+                depth: 0,
+                isFavorite: false,
+                lastModified: new Date().toISOString(),
+                parentId: null,
+                order: 0,
+              },
+            ],
+            pageCount: 1,
+          };
+
+          setWorkspaces(prev => [...prev, newWorkspace]);
+
+          // 자동으로 첫 페이지 선택
+          selectPage(result.data.firstPageId, result.data.workspaceId);
+
+          return result.data;
+        } else {
+          const errorMessage =
+            'error' in result
+              ? result.error
+              : '워크스페이스 생성에 실패했습니다';
+          toast.error(errorMessage);
+          return null;
+        }
+      } catch (err) {
+        toast.error('워크스페이스 생성 중 오류가 발생했습니다');
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [organizationId, selectPage]
+  );
+
+  // Scenario 2: Workspace 정보 수정
+  const updateWorkspaceInfo = useCallback(
+    async (request: UpdateWorkspaceInfoRequest): Promise<boolean> => {
+      setIsLoading(true);
+      try {
+        const result = await updateWorkspaceInfoAction(request);
+
+        if (result.success) {
+          toast.success('워크스페이스 정보가 업데이트되었습니다');
+
+          // Optimistic update
+          setWorkspaces(prev =>
+            prev.map(ws =>
+              ws.workspaceId === request.workspaceId
+                ? {
+                    ...ws,
+                    name: request.name ?? ws.name,
+                    description: request.description ?? ws.description,
+                    icon: request.icon ?? ws.icon,
+                  }
+                : ws
+            )
+          );
+
+          return true;
+        } else {
+          const errorMessage =
+            'error' in result
+              ? result.error
+              : '워크스페이스 수정에 실패했습니다';
+          toast.error(errorMessage);
+          return false;
+        }
+      } catch (err) {
+        toast.error('워크스페이스 수정 중 오류가 발생했습니다');
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  // 계산된 속성: 선택된 페이지
   const selectedPage = useMemo(() => {
     if (!selectedPageId) return null;
-
-    const findPage = (pages: PageTreeNodeDTO[]): PageTreeNodeDTO | null => {
-      for (const page of pages) {
-        if (page.id === selectedPageId) {
-          return page;
-        }
-        if (page.children) {
-          const found = findPage(page.children);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
     for (const workspace of workspaces) {
-      const found = findPage(workspace.pageTree);
-      if (found) return found;
+      const page = findPageInTree(workspace.pageTree, selectedPageId);
+      if (page) return page;
     }
-
     return null;
-  }, [selectedPageId, workspaces]);
+  }, [workspaces, selectedPageId]);
 
+  // 계산된 속성: 선택된 Workspace
   const selectedWorkspace = useMemo(() => {
     if (!selectedWorkspaceId) return null;
     return (
       workspaces.find(ws => ws.workspaceId === selectedWorkspaceId) || null
     );
-  }, [selectedWorkspaceId, workspaces]);
+  }, [workspaces, selectedWorkspaceId]);
 
-  // ──────────────────────────────────────────────────────
-  // Context Value
-  // ──────────────────────────────────────────────────────
+  // 계산된 속성: Default Workspace
+  const defaultWorkspace = useMemo(() => {
+    return workspaces.find(ws => ws.isDefault) || null;
+  }, [workspaces]);
 
   const value: WorkspaceContextValue = {
-    // State
+    // 기본 상태
     workspaces,
     selectedPageId,
     selectedWorkspaceId,
     expandedWorkspaces,
     expandedPages,
-    isLoading,
+    isLoading: isLoading || isPending,
     error,
 
-    // Actions
+    // Scenario 1
     selectPage,
     toggleWorkspace,
     togglePage,
-    setError,
+    refreshWorkspacePages,
 
-    // Computed
-    favoritePages,
+    // Scenario 2
+    createWorkspace,
+    updateWorkspaceInfo,
+
+    // 계산된 속성
     selectedPage,
     selectedWorkspace,
+    defaultWorkspace,
   };
 
   return (
@@ -322,14 +435,17 @@ export function WorkspaceProvider({
   );
 }
 
-// ────────────────────────────────────────────────────────────
-// useWorkspace Hook
-// ────────────────────────────────────────────────────────────
-
-export function useWorkspace() {
+/**
+ * useWorkspaceContext Hook
+ *
+ * WorkspaceContext 접근을 위한 내부 Hook
+ */
+export function useWorkspaceContext() {
   const context = useContext(WorkspaceContext);
-  if (!context) {
-    throw new Error('useWorkspace must be used within WorkspaceProvider');
+  if (context === undefined) {
+    throw new Error(
+      'useWorkspaceContext must be used within a WorkspaceProvider'
+    );
   }
   return context;
 }

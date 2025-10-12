@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/sidebar';
 import { FavoritePageList } from './favorite-page-list';
 import { WorkspacePageTree } from './workspace-page-tree';
-import { useWorkspace } from '../../contexts/workspace-context';
+import { useWorkspace } from '../../hooks/use-workspace';
 
 /**
  * Workspace Sidebar Content

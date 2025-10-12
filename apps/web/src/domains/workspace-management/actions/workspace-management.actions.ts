@@ -2,6 +2,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { revalidatePath } from 'next/cache';
 import { DrizzleWorkspaceRepository } from '../backend/repositories/implementations/drizzle-workspace.repository';
 import { DrizzlePageRepository } from '../backend/repositories/implementations/drizzle-page.repository';
 import { DrizzleWorkspaceMemberRepository } from '../backend/repositories/implementations/drizzle-workspace-member.repository';
@@ -18,6 +19,9 @@ import type {
   ServerActionResult,
   PageTreeNodeDTO,
   WorkspaceWithPagesDTO,
+  CreateWorkspaceRequest,
+  CreateWorkspaceResponse,
+  UpdateWorkspaceInfoRequest,
 } from '../shared/dtos';
 import type { Page } from '../shared/entities/page.entity';
 
@@ -79,6 +83,7 @@ export async function getOrganizationWorkspacePageViewAction(
       workspaces: result.data.workspaces.map(ws => ({
         workspaceId: ws.workspaceId,
         name: ws.name,
+        description: ws.description,
         icon: ws.icon,
         isDefault: ws.isDefault,
         pageTree: buildPageTreeDTO(ws.pageTree),
@@ -175,6 +180,173 @@ export async function getPageDetailsAction(
     };
   } catch (error) {
     console.error('[getPageDetailsAction] Error:', error);
+    return {
+      success: false,
+      error: 'INTERNAL_SERVER_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Workspace 생성 Server Action (Scenario 2)
+ *
+ * 트랜잭션:
+ * 1. Workspace 생성
+ * 2. 생성자를 Workspace 멤버로 추가
+ * 3. 초기 "Untitled" 페이지 생성
+ *
+ * @param request - Workspace 생성 요청
+ * @returns CreateWorkspaceResponse (성공) | Error (실패)
+ */
+export async function createWorkspaceAction(
+  request: CreateWorkspaceRequest
+): Promise<ServerActionResult<CreateWorkspaceResponse>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'UNAUTHORIZED',
+        details: 'User not authenticated',
+      };
+    }
+
+    // 2. 입력 검증
+    if (!request.name || request.name.trim().length === 0) {
+      return {
+        success: false,
+        error: 'INVALID_WORKSPACE_NAME',
+        details: 'Workspace name is required',
+      };
+    }
+
+    // 3. 의존성 주입
+    const workspaceRepo = new DrizzleWorkspaceRepository();
+    const pageRepo = new DrizzlePageRepository();
+    const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
+    const orgMemberRepo = new DrizzleOrganizationMemberRepository();
+
+    const service = new DefaultWorkspaceManagementService(
+      workspaceRepo,
+      pageRepo,
+      workspaceMemberRepo,
+      orgMemberRepo
+    );
+
+    // 4. Service 호출 (트랜잭션: Workspace + 초기 Page 생성)
+    const result = await service.createWorkspace(
+      new OrganizationId(request.organizationId),
+      request.name,
+      request.description || null,
+      request.icon || null,
+      user.id
+    );
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error,
+      };
+    }
+
+    // 5. DTO 반환
+    const response: CreateWorkspaceResponse = {
+      workspaceId: result.data.workspaceId,
+      firstPageId: result.data.firstPageId,
+    };
+
+    // 6. 캐시 무효화
+    revalidatePath(`/r/${request.organizationId}`);
+
+    return {
+      success: true,
+      data: response,
+    };
+  } catch (error) {
+    console.error('[createWorkspaceAction] Error:', error);
+    return {
+      success: false,
+      error: 'INTERNAL_SERVER_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Workspace 정보 수정 Server Action (Scenario 2)
+ *
+ * @param request - Workspace 정보 수정 요청
+ * @returns void (성공) | Error (실패)
+ */
+export async function updateWorkspaceInfoAction(
+  request: UpdateWorkspaceInfoRequest
+): Promise<ServerActionResult<void>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'UNAUTHORIZED',
+        details: 'User not authenticated',
+      };
+    }
+
+    // 2. 의존성 주입
+    const workspaceRepo = new DrizzleWorkspaceRepository();
+    const pageRepo = new DrizzlePageRepository();
+    const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
+    const orgMemberRepo = new DrizzleOrganizationMemberRepository();
+
+    const service = new DefaultWorkspaceManagementService(
+      workspaceRepo,
+      pageRepo,
+      workspaceMemberRepo,
+      orgMemberRepo
+    );
+
+    // 3. Service 호출
+    const result = await service.updateWorkspaceInfo(
+      new WorkspaceId(request.workspaceId),
+      request.name,
+      request.description,
+      request.icon,
+      user.id
+    );
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error,
+      };
+    }
+
+    // 4. 캐시 무효화 (사이드바 Workspace 목록 갱신)
+    const workspace = await workspaceRepo.findById(
+      new WorkspaceId(request.workspaceId)
+    );
+    if (workspace) {
+      revalidatePath(`/r/${workspace.organizationId.value}`);
+    }
+
+    return {
+      success: true,
+      data: undefined,
+    };
+  } catch (error) {
+    console.error('[updateWorkspaceInfoAction] Error:', error);
     return {
       success: false,
       error: 'INTERNAL_SERVER_ERROR',

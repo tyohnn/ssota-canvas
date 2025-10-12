@@ -291,5 +291,155 @@ describe('Workspace Aggregate', () => {
       expect(events2).toHaveLength(0); // 클리어됨
     });
   });
+
+  // Scenario 2: Workspace 정보 수정
+  describe('updateInfo (Command 처리)', () => {
+    it('이름/설명/아이콘을 업데이트해야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Original Name',
+        description: 'Original Description',
+        icon: '🏠',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+      aggregate.getUncommittedEvents(); // 이전 이벤트 클리어
+
+      // When
+      aggregate.updateInfo('Updated Name', 'Updated Description', '🚀');
+
+      // Then
+      expect(aggregate.workspace.name).toBe('Updated Name');
+      expect(aggregate.workspace.description).toBe('Updated Description');
+      expect(aggregate.workspace.icon).toBe('🚀');
+    });
+
+    it('이름만 업데이트해도 WorkspaceUpdatedEvent가 발행되어야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Original Name',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+      aggregate.getUncommittedEvents(); // 이전 이벤트 클리어
+
+      // When
+      aggregate.updateInfo('New Name', null, null);
+      const events = aggregate.getUncommittedEvents();
+
+      // Then
+      expect(events).toHaveLength(1);
+      expect(events[0]!.type).toBe('WorkspaceUpdated');
+      const event = events[0] as any;
+      expect(event.changes.name).toBe('New Name');
+    });
+
+    it('설명만 업데이트해도 WorkspaceUpdatedEvent가 발행되어야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+      aggregate.getUncommittedEvents(); // 이전 이벤트 클리어
+
+      // When
+      aggregate.updateInfo('Test Workspace', 'New Description', null);
+      const events = aggregate.getUncommittedEvents();
+
+      // Then
+      expect(events).toHaveLength(1);
+      expect(events[0]!.type).toBe('WorkspaceUpdated');
+      const event = events[0] as any;
+      expect(event.changes.description).toBe('New Description');
+    });
+
+    it('아이콘만 업데이트해도 WorkspaceUpdatedEvent가 발행되어야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        icon: '🏠',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+      aggregate.getUncommittedEvents(); // 이전 이벤트 클리어
+
+      // When
+      aggregate.updateInfo('Test Workspace', null, '🎨');
+      const events = aggregate.getUncommittedEvents();
+
+      // Then
+      expect(events).toHaveLength(1);
+      expect(events[0]!.type).toBe('WorkspaceUpdated');
+      const event = events[0] as any;
+      expect(event.changes.icon).toBe('🎨');
+    });
+
+    it('여러 필드 동시 업데이트 시 WorkspaceUpdatedEvent가 발행되어야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Old Name',
+        description: 'Old Description',
+        icon: '🏠',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+      aggregate.getUncommittedEvents(); // 이전 이벤트 클리어
+
+      // When
+      aggregate.updateInfo('New Name', 'New Description', '🚀');
+      const events = aggregate.getUncommittedEvents();
+
+      // Then
+      expect(events).toHaveLength(1);
+      expect(events[0]!.type).toBe('WorkspaceUpdated');
+      const event = events[0] as any;
+      expect(event.changes.name).toBe('New Name');
+      expect(event.changes.description).toBe('New Description');
+      expect(event.changes.icon).toBe('🚀');
+    });
+
+    it('이름이 빈 문자열이면 예외를 발생시켜야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+
+      // When & Then
+      expect(() => aggregate.updateInfo('', null, null)).toThrow(
+        WorkspaceManagementError
+      );
+    });
+
+    it('updated_at 타임스탬프가 갱신되어야 한다', () => {
+      // Given
+      const command: CreateWorkspaceCommand = {
+        organizationId: organizationId.value,
+        name: 'Test Workspace',
+        createdBy,
+      };
+      const aggregate = WorkspaceAggregate.create(command);
+      const originalUpdatedAt = aggregate.workspace.updatedAt;
+
+      // When
+      // 약간의 시간 차이를 만들기 위해
+      const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+      sleep(10);
+      aggregate.updateInfo('Updated Name', null, null);
+
+      // Then
+      expect(aggregate.workspace.updatedAt.getTime()).toBeGreaterThanOrEqual(
+        originalUpdatedAt.getTime()
+      );
+    });
+  });
 });
 

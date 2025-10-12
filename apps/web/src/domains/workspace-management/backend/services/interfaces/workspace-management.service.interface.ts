@@ -19,6 +19,7 @@ export interface OrganizationWorkspacePageView {
 export interface WorkspaceWithPages {
   workspaceId: string;
   name: string;
+  description: string | null;
   icon: string | null;
   isDefault: boolean;
   pageTree: Page[];
@@ -33,6 +34,16 @@ export interface WorkspaceWithPages {
 export interface PageAccessResult {
   page: Page;
   userRole: string; // organization role (owner, admin, member)
+}
+
+/**
+ * Create Workspace Result
+ *
+ * Workspace 생성 성공 시 반환 데이터
+ */
+export interface CreateWorkspaceResult {
+  workspaceId: string;
+  firstPageId: string;
 }
 
 /**
@@ -70,6 +81,47 @@ export interface WorkspaceManagementService {
     pageId: PageId,
     userId: string
   ): Promise<Result<PageAccessResult>>;
+
+  /**
+   * Workspace 생성 (Scenario 2)
+   *
+   * 트랜잭션:
+   * 1. Workspace 생성
+   * 2. 생성자를 Workspace 멤버로 추가
+   * 3. 초기 "Untitled" 페이지 생성
+   *
+   * @param orgId - 조직 ID
+   * @param name - Workspace 이름 (1-100자)
+   * @param description - Workspace 설명 (최대 500자)
+   * @param icon - Workspace 아이콘
+   * @param userId - 사용자 ID
+   * @returns CreateWorkspaceResult (성공) | Error code (실패)
+   */
+  createWorkspace(
+    orgId: OrganizationId,
+    name: string,
+    description: string | null,
+    icon: string | null,
+    userId: string
+  ): Promise<Result<CreateWorkspaceResult>>;
+
+  /**
+   * Workspace 정보 수정 (Scenario 2)
+   *
+   * @param workspaceId - Workspace ID
+   * @param name - 새 이름 (선택)
+   * @param description - 새 설명 (선택)
+   * @param icon - 새 아이콘 (선택)
+   * @param userId - 사용자 ID
+   * @returns void (성공) | Error code (실패)
+   */
+  updateWorkspaceInfo(
+    workspaceId: WorkspaceId,
+    name: string | undefined,
+    description: string | null | undefined,
+    icon: string | null | undefined,
+    userId: string
+  ): Promise<Result<void>>;
 }
 
 /**

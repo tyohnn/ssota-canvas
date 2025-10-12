@@ -1,15 +1,18 @@
 'use client';
 
-import React from 'react';
-import { ChevronDown, Folder } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Badge } from '@/components/ui/badge';
 import type { WorkspaceWithPagesDTO } from '../../../shared/dtos';
-import { useWorkspace } from '../../contexts/workspace-context';
+import { useWorkspace } from '../../hooks/use-workspace';
 import { PageTree } from '../page-tree/page-tree';
+import { WorkspaceIcon } from '../shared/icon-picker';
+import { WorkspaceContextMenu } from '../workspace/workspace-context-menu';
 import { cn } from '@/lib/utils';
 
 interface WorkspaceItemProps {
@@ -20,7 +23,7 @@ interface WorkspaceItemProps {
  * Workspace Item
  *
  * 개별 Workspace 렌더링 (Collapsible)
- * - 헤더: Workspace 이름 + 아이콘 + Chevron
+ * - 헤더: Chevron + 아이콘 + 이름 + 배지 + 컨텍스트 메뉴
  * - 콘텐츠: PageTree 컴포넌트
  */
 export function WorkspaceItem({ workspace }: WorkspaceItemProps) {
@@ -40,35 +43,54 @@ export function WorkspaceItem({ workspace }: WorkspaceItemProps) {
       open={isExpanded}
       onOpenChange={() => toggleWorkspace(workspace.workspaceId)}
     >
-      <CollapsibleTrigger asChild>
-        <button
-          className={cn(
-            'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
-            'hover:bg-accent hover:text-accent-foreground'
-          )}
-        >
-          <ChevronDown
+      {/* Workspace 헤더 */}
+      <div className="group flex items-center justify-between w-full hover:bg-accent rounded-md transition-colors">
+        <CollapsibleTrigger asChild>
+          <button
             className={cn(
-              'h-4 w-4 transition-transform',
-              !isExpanded && '-rotate-90'
+              'flex items-center gap-1.5 px-2 py-1.5 rounded-md text-sm flex-1 min-w-0'
             )}
-          />
-          {workspace.icon ? (
-            <span className="text-base">{workspace.icon}</span>
-          ) : (
-            <Folder className="h-4 w-4" />
-          )}
-          <span className="truncate flex-1 text-left">{workspace.name}</span>
-          <span className="text-xs text-muted-foreground">
-            {workspace.pageCount}
-          </span>
-        </button>
-      </CollapsibleTrigger>
+          >
+            {/* Chevron */}
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 shrink-0 transition-transform',
+                !isExpanded && '-rotate-90'
+              )}
+            />
 
+            {/* Workspace 아이콘 */}
+            <WorkspaceIcon
+              icon={workspace.icon}
+              size={16}
+              className="shrink-0"
+            />
+
+            {/* Workspace 이름 */}
+            <span className="truncate flex-1 text-left font-medium">
+              {workspace.name}
+            </span>
+
+            {/* 기본 배지 (Default Workspace) */}
+            {workspace.isDefault && (
+              <Badge variant="secondary" className="text-xs shrink-0">
+                기본
+              </Badge>
+            )}
+          </button>
+        </CollapsibleTrigger>
+
+        {/* 삼점 메뉴 (호버 시 표시) */}
+        <div className="shrink-0 pr-2">
+          <WorkspaceContextMenu workspace={workspace} />
+        </div>
+      </div>
+
+      {/* Workspace 콘텐츠 (페이지 트리) */}
       <CollapsibleContent>
         {workspace.pageTree.length === 0 ? (
           <div className="px-8 py-2 text-xs text-muted-foreground">
-            No pages yet
+            페이지를 생성하세요
           </div>
         ) : (
           <PageTree

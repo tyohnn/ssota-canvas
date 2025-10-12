@@ -94,6 +94,32 @@ describe('WorkspaceRepository Integration Tests', () => {
       expect(saved).toHaveLength(1);
       expect(saved[0]?.name).toBe('Test Workspace');
     });
+
+    it('기존 Workspace를 업데이트할 수 있어야 한다 (Scenario 2)', async () => {
+      // Given: Workspace 생성
+      const aggregate = WorkspaceAggregate.create({
+        organizationId: testOrgId.value,
+        name: 'Original Name',
+        description: 'Original Description',
+        icon: '🏠',
+        createdBy: testUserId.value,
+      });
+      await repository.save(aggregate);
+
+      // When: Workspace 정보 수정
+      aggregate.updateInfo('Updated Name', 'Updated Description', '🚀');
+      await repository.save(aggregate);
+
+      // Then: 업데이트된 정보 확인
+      const updated = await adminDb.select()
+        .from(workspaces)
+        .where(eq(workspaces.id, aggregate.workspace.workspaceId.value));
+
+      expect(updated).toHaveLength(1);
+      expect(updated[0]?.name).toBe('Updated Name');
+      expect(updated[0]?.description).toBe('Updated Description');
+      expect(updated[0]?.icon).toBe('🚀');
+    });
   });
 
   describe('findById', () => {
