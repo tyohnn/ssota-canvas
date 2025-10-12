@@ -1,3 +1,5 @@
+'use client';
+
 import { Suspense } from 'react';
 import {
   Sidebar,
@@ -17,6 +19,7 @@ import { SidebarHeaderGroup } from './sidebar-header-group';
 import { OrgWorkspacesSkeleton } from './org-workspaces-skeleton';
 import { OrgWorkspacesMenu } from './org-workspaces-menu';
 import { OrganizationSwitcher } from '../organization/organization-switcher';
+import { WorkspaceSidebarContent } from '@/domains/workspace-management/frontend/components/sidebar/workspace-sidebar-content';
 import { MessageCircleQuestion, Plus, RefreshCw, Blocks } from 'lucide-react';
 
 export function DashboardSidebar() {
@@ -30,19 +33,8 @@ export function DashboardSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Workspaces</SidebarGroupLabel>
-          <SidebarGroupAction aria-label="Add Workspace">
-            <Plus className="text-muted-foreground" />
-          </SidebarGroupAction>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <Suspense fallback={<OrgWorkspacesSkeleton />}>
-                <OrgWorkspacesMenu />
-              </Suspense>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Workspace Management Domain: Workspace-Page 트리 */}
+        <WorkspaceSidebarContent />
       </SidebarContent>
 
       <SidebarFooter>

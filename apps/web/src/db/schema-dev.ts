@@ -345,7 +345,7 @@ export const workspaces = pgTable(
     deletable: boolean('deletable').notNull().default(true),
     created_by: uuid('created_by')
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => profiles.user_id, { onDelete: 'cascade' }),
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -356,10 +356,12 @@ export const workspaces = pgTable(
   },
   table => ({
     // Unique constraint: Only one default workspace per organization
-    uniqueDefaultPerOrg: unique('workspaces_unique_default_per_org').on(
-      table.organization_id,
-      table.is_default
-    ),
+    // Note: Partial unique index (WHERE is_default = true)는 Drizzle ORM에서 직접 지원하지 않음
+    // → Migration 파일에서 수동으로 추가 필요
+    // uniqueDefaultPerOrg: unique('workspaces_unique_default_per_org').on(
+    //   table.organization_id,
+    //   table.is_default
+    // ),
 
     // CHECK constraints
     nameLengthCheck: check(
@@ -430,7 +432,7 @@ export const pages = pgTable(
     depth: integer('depth').notNull().default(0), // Cached depth (0 = root)
     created_by: uuid('created_by')
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => profiles.user_id, { onDelete: 'cascade' }),
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -506,6 +508,7 @@ export const pages = pgTable(
 // Workspace Members Table
 // 🔐 RLS Strategy: Self only
 // - Application: Admin permission checks before using adminDb
+// - Note: role은 organization_members에서 관리 (권한 단일화)
 export const workspaceMembers = pgTable(
   'workspace_members',
   {
@@ -514,8 +517,7 @@ export const workspaceMembers = pgTable(
       .references(() => workspaces.id, { onDelete: 'cascade' }),
     user_id: uuid('user_id')
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    role: memberRoleEnum('role').notNull().default('member'),
+      .references(() => profiles.user_id, { onDelete: 'cascade' }),
     joined_at: timestamp('joined_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -568,7 +570,7 @@ export const pageFavorites = pgTable(
       .references(() => pages.id, { onDelete: 'cascade' }),
     user_id: uuid('user_id')
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => profiles.user_id, { onDelete: 'cascade' }),
     favorited_at: timestamp('favorited_at', { withTimezone: true })
       .defaultNow()
       .notNull(),

@@ -1,9 +1,17 @@
+import { PageViewer } from '@/domains/workspace-management/frontend/components/page-viewer/page-viewer';
+
+/**
+ * Workspace Page (조직 메인 페이지)
+ *
+ * Layout에서 이미 WorkspaceProvider가 설정되어 있음
+ * - Sidebar: WorkspaceSidebarContent (Favorites + Workspace-Page 트리)
+ * - Main: PageViewer (선택된 페이지 렌더링)
+ */
 export default function WorkspacePage() {
   return (
-    <div className="flex items-center justify-center h-full">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">대시보드</h1>
-        <p className="text-lg text-gray-600">워크스페이스 페이지입니다.</p>
+    <div className="flex h-full">
+      <div className="flex-1 overflow-auto">
+        <PageViewer />
       </div>
     </div>
   );
