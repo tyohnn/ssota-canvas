@@ -69,6 +69,8 @@ export const profiles = pgTable(
     user_type: userTypeEnum('user_type').default('GENERAL').notNull(),
   },
   table => [
+    // Performance index for email search
+    index('idx_profiles_email').on(table.email),
     // SELECT: Public (for displaying member names, avatars, etc.)
     pgPolicy('Enable read access for all users', {
       for: 'select',
@@ -193,6 +195,9 @@ export const organizationMembers = pgTable(
       table.organization_id,
       table.user_id
     ),
+    // Performance indexes
+    index('idx_org_members_org_id').on(table.organization_id),
+    index('idx_org_members_user_id').on(table.user_id),
     // SELECT: Self only (Application uses adminDb for Owner/Admin to view all members)
     pgPolicy('Enable read access for self', {
       for: 'select',
@@ -259,6 +264,8 @@ export const invitations = pgTable(
       table.invitee_email,
       table.status
     ),
+    // Performance indexes
+    index('idx_invitations_org_status').on(table.organization_id, table.status).where(sql`status = 'pending'`),
     // SELECT: Inviter or invitee
     pgPolicy('Enable read for inviter and invitee', {
       for: 'select',

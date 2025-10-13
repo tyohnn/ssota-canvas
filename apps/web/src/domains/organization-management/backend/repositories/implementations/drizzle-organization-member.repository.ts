@@ -183,25 +183,67 @@ export class DrizzleOrganizationMemberRepository
         .limit(1)
     );
 
-    // 🔑 Step 2: 조직 정보 조회 (Admin DB 사용 - 멤버십 확인 후)
-    // Owner 확인을 위해 먼저 조회
-    const organization = await db.admin
-      .select({
-        id: organizations.id,
-        name: organizations.name,
-        ownerId: organizations.owner_id,
-        createdAt: organizations.created_at,
-        ownerProfile: {
-          userId: profiles.user_id,
-          email: profiles.email,
-          name: profiles.name,
-          avatarUrl: profiles.avatar_url,
-        },
-      })
-      .from(organizations)
-      .leftJoin(profiles, eq(organizations.owner_id, profiles.user_id))
-      .where(eq(organizations.id, organizationId))
-      .limit(1);
+    // 🔑 Step 2: 병렬로 나머지 데이터 조회 (성능 최적화)
+    const [organization, members, pendingInvites] = await Promise.all([
+      // Query 2-1: 조직 정보 조회 (Admin DB 사용 - 멤버십 확인 후)
+      db.admin
+        .select({
+          id: organizations.id,
+          name: organizations.name,
+          ownerId: organizations.owner_id,
+          createdAt: organizations.created_at,
+          ownerProfile: {
+            userId: profiles.user_id,
+            email: profiles.email,
+            name: profiles.name,
+            avatarUrl: profiles.avatar_url,
+          },
+        })
+        .from(organizations)
+        .leftJoin(profiles, eq(organizations.owner_id, profiles.user_id))
+        .where(eq(organizations.id, organizationId))
+        .limit(1),
+
+      // Query 2-2: 조직 멤버는 adminDb로 전체 멤버 조회 (RLS 우회)
+      db.admin
+        .select({
+          userId: organizationMembers.user_id,
+          role: organizationMembers.role,
+          joinedAt: organizationMembers.joined_at,
+          profile: {
+            email: profiles.email,
+            name: profiles.name,
+            avatarUrl: profiles.avatar_url,
+          },
+        })
+        .from(organizationMembers)
+        .leftJoin(profiles, eq(organizationMembers.user_id, profiles.user_id))
+        .where(eq(organizationMembers.organization_id, organizationId)),
+
+      // Query 2-3: 대기 중인 초대 조회
+      db.rls(tx =>
+        tx
+          .select({
+            id: invitations.id,
+            inviteeEmail: invitations.invitee_email,
+            role: invitations.role,
+            createdAt: invitations.created_at,
+            inviterUserId: invitations.inviter_user_id,
+            inviterProfile: {
+              name: profiles.name,
+              email: profiles.email,
+            },
+          })
+          .from(invitations)
+          .leftJoin(profiles, eq(invitations.inviter_user_id, profiles.user_id))
+          .where(
+            and(
+              eq(invitations.organization_id, organizationId),
+              eq(invitations.status, 'pending')
+            )
+          )
+      ),
+    ]);
 
     if (organization.length === 0) {
       throw new Error('Organization not found');
@@ -218,24 +260,7 @@ export class DrizzleOrganizationMemberRepository
       throw new Error('Unauthorized: Not a member of this organization');
     }
 
-    // 🔑 Step 4: 조직 멤버는 adminDb로 전체 멤버 조회 (RLS 우회)
-    // Application 레벨에서 멤버십이 확인되었으므로 Admin DB 사용 안전
-    const members = await db.admin
-      .select({
-        userId: organizationMembers.user_id,
-        role: organizationMembers.role,
-        joinedAt: organizationMembers.joined_at,
-        profile: {
-          email: profiles.email,
-          name: profiles.name,
-          avatarUrl: profiles.avatar_url,
-        },
-      })
-      .from(organizationMembers)
-      .leftJoin(profiles, eq(organizationMembers.user_id, profiles.user_id))
-      .where(eq(organizationMembers.organization_id, organizationId));
-
-    // 🔑 Step 5: 소유자를 멤버 목록에 추가 (중복 체크)
+    // 🔑 Step 4: 멤버 목록 구성
     const currentMembers: OrganizationMemberView['currentMembers'] = [];
 
     // 소유자 추가
@@ -271,30 +296,6 @@ export class DrizzleOrganizationMemberRepository
       }
     }
 
-    // 4. 대기 중인 초대 조회
-    const pendingInvites = await db.rls(tx =>
-      tx
-        .select({
-          id: invitations.id,
-          inviteeEmail: invitations.invitee_email,
-          role: invitations.role,
-          createdAt: invitations.created_at,
-          inviterUserId: invitations.inviter_user_id,
-          inviterProfile: {
-            name: profiles.name,
-            email: profiles.email,
-          },
-        })
-        .from(invitations)
-        .leftJoin(profiles, eq(invitations.inviter_user_id, profiles.user_id))
-        .where(
-          and(
-            eq(invitations.organization_id, organizationId),
-            eq(invitations.status, 'pending')
-          )
-        )
-    );
-
     const pendingInvitations = pendingInvites.map(
       (invite: (typeof pendingInvites)[0]) => ({
         id: invite.id,
@@ -308,15 +309,12 @@ export class DrizzleOrganizationMemberRepository
       })
     );
 
-    // 5. 최종 결과 반환 (userRole은 Step 3에서 이미 확인함)
-    const result = {
+    return {
       organizationId,
       currentMembers,
       pendingInvitations,
       userRole,
     };
-
-    return result;
   }
 
   async searchUserProfileByEmail(email: string): Promise<UserProfile[]> {

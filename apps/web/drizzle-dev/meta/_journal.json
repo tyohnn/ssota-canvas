@@ -148,6 +148,13 @@
       "when": 1760257522396,
       "tag": "0020_easy_toxin",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1760341609666,
+      "tag": "0021_perpetual_juggernaut",
+      "breakpoints": true
     }
   ]
 }
