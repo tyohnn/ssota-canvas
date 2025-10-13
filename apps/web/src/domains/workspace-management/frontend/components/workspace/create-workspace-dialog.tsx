@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { IconPicker } from '../shared/icon-picker';
 import { useWorkspace } from '../../hooks/use-workspace';
+import { InviteMemberDialog } from './invite-member-dialog';
 
 /**
  * Workspace 생성 폼 검증 스키마
@@ -61,6 +62,11 @@ export function CreateWorkspaceDialog({
   onOpenChange,
 }: CreateWorkspaceDialogProps) {
   const { createWorkspace, isLoading } = useWorkspace();
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = React.useState(false);
+  const [createdWorkspace, setCreatedWorkspace] = React.useState<{
+    workspaceId: string;
+    workspaceName: string;
+  } | null>(null);
 
   const form = useForm<CreateWorkspaceFormValues>({
     resolver: zodResolver(createWorkspaceSchema),
@@ -79,8 +85,17 @@ export function CreateWorkspaceDialog({
     });
 
     if (result) {
+      // 워크스페이스 정보 저장
+      setCreatedWorkspace({
+        workspaceId: result.workspaceId,
+        workspaceName: values.name,
+      });
+
       form.reset();
       onOpenChange(false);
+
+      // 멤버 초대 모달 열기
+      setIsInviteDialogOpen(true);
     }
   };
 
@@ -103,28 +118,47 @@ export function CreateWorkspaceDialog({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-4"
           >
-            {/* 워크스페이스 이름 */}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    워크스페이스 이름{' '}
-                    <span className="text-destructive">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="예: 마케팅 프로젝트"
-                      maxLength={100}
-                      disabled={isSubmitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* 워크스페이스 이름 & 아이콘 */}
+            <div className="space-y-2">
+              <FormLabel>
+                워크스페이스 이름 <span className="text-destructive">*</span>
+              </FormLabel>
+              <div className="flex items-start gap-2">
+                {/* 아이콘 선택 */}
+                <FormField
+                  control={form.control}
+                  name="icon"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <IconPicker
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                {/* 이름 입력 */}
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormControl>
+                        <Input
+                          placeholder="예: 마케팅 프로젝트"
+                          maxLength={100}
+                          disabled={isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             {/* 워크스페이스 설명 */}
             <FormField
@@ -152,24 +186,6 @@ export function CreateWorkspaceDialog({
               )}
             />
 
-            {/* 아이콘 선택 */}
-            <FormField
-              control={form.control}
-              name="icon"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>아이콘 선택</FormLabel>
-                  <FormControl>
-                    <IconPicker value={field.value} onChange={field.onChange} />
-                  </FormControl>
-                  <p className="text-xs text-muted-foreground">
-                    아이콘을 클릭하여 선택하세요
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <DialogFooter>
               <Button
                 type="button"
@@ -186,6 +202,20 @@ export function CreateWorkspaceDialog({
           </form>
         </Form>
       </DialogContent>
+
+      {/* 워크스페이스 생성 후 멤버 초대 모달 */}
+      {createdWorkspace && (
+        <InviteMemberDialog
+          open={isInviteDialogOpen}
+          onOpenChange={setIsInviteDialogOpen}
+          workspaceId={createdWorkspace.workspaceId}
+          workspaceName={createdWorkspace.workspaceName}
+          showSkipButton={true}
+          onSuccess={() => {
+            setCreatedWorkspace(null);
+          }}
+        />
+      )}
     </Dialog>
   );
 }

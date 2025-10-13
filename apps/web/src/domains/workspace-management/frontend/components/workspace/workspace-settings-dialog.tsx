@@ -206,33 +206,53 @@ export function WorkspaceSettingsDialog({
                           onSubmit={form.handleSubmit(handleSubmit)}
                           className="space-y-4"
                         >
-                          {/* 워크스페이스 이름 */}
-                          <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  워크스페이스 이름{' '}
-                                  <span className="text-destructive">*</span>
-                                </FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="예: 마케팅 프로젝트"
-                                    maxLength={100}
-                                    disabled={isSubmitting}
-                                    {...field}
-                                  />
-                                </FormControl>
-                                {workspace.isDefault && (
-                                  <p className="text-xs text-muted-foreground">
-                                    기본 워크스페이스입니다 (삭제만 불가능)
-                                  </p>
+                          {/* 워크스페이스 이름 & 아이콘 */}
+                          <div className="space-y-2">
+                            <FormLabel>
+                              워크스페이스 이름{' '}
+                              <span className="text-destructive">*</span>
+                            </FormLabel>
+                            <div className="flex items-start gap-2">
+                              {/* 아이콘 선택 */}
+                              <FormField
+                                control={form.control}
+                                name="icon"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <IconPicker
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
                                 )}
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                              />
+                              {/* 이름 입력 */}
+                              <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                  <FormItem className="flex-1">
+                                    <FormControl>
+                                      <Input
+                                        placeholder="예: 마케팅 프로젝트"
+                                        maxLength={100}
+                                        disabled={isSubmitting}
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    {workspace.isDefault && (
+                                      <p className="text-xs text-muted-foreground">
+                                        기본 워크스페이스입니다 (삭제만 불가능)
+                                      </p>
+                                    )}
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
 
                           {/* 워크스페이스 설명 */}
                           <FormField
@@ -256,27 +276,6 @@ export function WorkspaceSettingsDialog({
                                     {descriptionLength} / 500
                                   </p>
                                 </div>
-                              </FormItem>
-                            )}
-                          />
-
-                          {/* 아이콘 선택 */}
-                          <FormField
-                            control={form.control}
-                            name="icon"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>아이콘 선택</FormLabel>
-                                <FormControl>
-                                  <IconPicker
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <p className="text-xs text-muted-foreground">
-                                  아이콘을 클릭하여 변경할 수 있습니다
-                                </p>
-                                <FormMessage />
                               </FormItem>
                             )}
                           />

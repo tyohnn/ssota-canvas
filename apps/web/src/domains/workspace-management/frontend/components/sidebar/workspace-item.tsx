@@ -36,6 +36,8 @@ export function WorkspaceItem({ workspace }: WorkspaceItemProps) {
   } = useWorkspace();
 
   const isExpanded = expandedWorkspaces.has(workspace.workspaceId);
+  const [isMenuOrDialogOpen, setIsMenuOrDialogOpen] = React.useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
 
   return (
     <Collapsible
@@ -43,26 +45,37 @@ export function WorkspaceItem({ workspace }: WorkspaceItemProps) {
       onOpenChange={() => toggleWorkspace(workspace.workspaceId)}
     >
       {/* Workspace 헤더 */}
-      <div className="group flex items-center justify-between w-full hover:bg-accent/50 rounded-md transition-colors">
+      <div
+        className={cn(
+          'group flex items-center justify-between w-full rounded-sm transition-colors',
+          isMenuOrDialogOpen ? 'bg-accent/70' : 'hover:bg-accent/70'
+        )}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <CollapsibleTrigger asChild>
           <button
             className={cn(
-              'group/button flex items-center gap-1.5 px-2 py-1 rounded-md text-xs flex-1 min-w-0 text-muted-foreground hover:text-foreground transition-colors'
+              'flex items-center gap-1.5 px-2 py-1 rounded-sm text-xs flex-1 min-w-0 text-muted-foreground transition-colors'
             )}
           >
             {/* 아이콘/Chevron 컨테이너 (고정 너비로 레이아웃 틀어짐 방지) */}
             <div className="relative w-[14px] h-[14px] shrink-0">
-              {/* Workspace 아이콘 (기본 표시, 버튼 호버 시 숨김) */}
+              {/* Workspace 아이콘 (기본 표시, 아이템 호버 또는 메뉴 열림 시 숨김) */}
               <WorkspaceIcon
                 icon={workspace.icon}
                 size={14}
-                className="absolute inset-0 transition-opacity group-hover/button:opacity-0"
+                className={cn(
+                  'absolute inset-0 transition-opacity',
+                  isHovered || isMenuOrDialogOpen ? 'opacity-0' : 'opacity-100'
+                )}
               />
 
-              {/* Chevron (기본 숨김, 버튼 호버 시 표시) */}
+              {/* Chevron (기본 숨김, 아이템 호버 또는 메뉴 열림 시 표시) */}
               <ChevronDown
                 className={cn(
-                  'absolute inset-0 w-full h-full transition-all opacity-0 group-hover/button:opacity-100',
+                  'absolute inset-0 w-full h-full transition-all',
+                  isHovered || isMenuOrDialogOpen ? 'opacity-100' : 'opacity-0',
                   !isExpanded && '-rotate-90'
                 )}
               />
@@ -75,9 +88,13 @@ export function WorkspaceItem({ workspace }: WorkspaceItemProps) {
           </button>
         </CollapsibleTrigger>
 
-        {/* 삼점 메뉴 (호버 시 표시) */}
-        <div className="shrink-0 pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <WorkspaceContextMenu workspace={workspace} />
+        {/* 삼점 메뉴 (아이템 호버 시 표시) */}
+        <div className="shrink-0 pr-2">
+          <WorkspaceContextMenu
+            workspace={workspace}
+            onOpenChange={setIsMenuOrDialogOpen}
+            isParentHovered={isHovered}
+          />
         </div>
       </div>
 
@@ -95,8 +112,8 @@ export function WorkspaceItem({ workspace }: WorkspaceItemProps) {
             expandedPageIds={Array.from(expandedPages)}
             onSelectPage={pageId => selectPage(pageId, workspace.workspaceId)}
             onTogglePage={togglePage}
-            enableDragDrop={false} // Scenario 1에서는 false
-            indent={16}
+            enableDragDrop={true} // Scenario 4: 드래그앤드롭 활성화
+            indent={8}
           />
         )}
       </CollapsibleContent>

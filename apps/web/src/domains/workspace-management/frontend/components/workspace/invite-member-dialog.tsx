@@ -27,6 +27,7 @@ interface InviteMemberDialogProps {
   workspaceId: string;
   workspaceName: string;
   onSuccess?: () => void;
+  showSkipButton?: boolean; // 건너뛰기 버튼 표시 여부
 }
 
 /**
@@ -44,6 +45,7 @@ export function InviteMemberDialog({
   workspaceId,
   workspaceName,
   onSuccess,
+  showSkipButton = false,
 }: InviteMemberDialogProps) {
   const { inviteMembers, searchOrganizationMembers, isLoading } =
     useWorkspace();
@@ -276,7 +278,7 @@ export function InviteMemberDialog({
             onClick={handleClose}
             disabled={isSubmitting || isLoading}
           >
-            취소
+            {showSkipButton ? '건너뛰기' : '취소'}
           </Button>
           <Button
             onClick={handleSubmit}
@@ -284,7 +286,9 @@ export function InviteMemberDialog({
           >
             {isSubmitting
               ? '초대 중...'
-              : `${selectedMembers.length}명 초대하기`}
+              : selectedMembers.length > 0
+                ? `${selectedMembers.length}명 초대하기`
+                : '초대하기'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -16,13 +16,15 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { MoreHorizontal, Settings, UserPlus, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { WorkspaceWithPagesDTO } from '@/domains/workspace-management/shared/dtos';
 import { WorkspaceSettingsDialog } from './workspace-settings-dialog';
 import { InviteMemberDialog } from './invite-member-dialog';
-import { useWorkspace } from '../../hooks/use-workspace';
 
 interface WorkspaceContextMenuProps {
   workspace: WorkspaceWithPagesDTO;
+  onOpenChange?: (open: boolean) => void; // 메뉴/다이얼로그 열림 상태 전달
+  isParentHovered?: boolean; // 부모 아이템 호버 상태
 }
 
 /**
@@ -32,36 +34,77 @@ interface WorkspaceContextMenuProps {
  * - 권한별 메뉴 항목 필터링
  * - Default Workspace 특별 처리
  */
-export function WorkspaceContextMenu({ workspace }: WorkspaceContextMenuProps) {
+export function WorkspaceContextMenu({
+  workspace,
+  onOpenChange,
+  isParentHovered = false,
+}: WorkspaceContextMenuProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // 부모에 열림 상태 전달
+  const handleOpenChange = (open: boolean) => {
+    setIsMenuOpen(open);
+    onOpenChange?.(open || showSettings || showInvite || showArchive);
+  };
+
+  // 다이얼로그 열림 상태 변경 시 부모에 전달
+  const handleSettingsChange = (open: boolean) => {
+    setShowSettings(open);
+    onOpenChange?.(open || isMenuOpen || showInvite || showArchive);
+  };
+
+  const handleInviteChange = (open: boolean) => {
+    setShowInvite(open);
+    onOpenChange?.(open || isMenuOpen || showSettings || showArchive);
+  };
+
+  const handleArchiveChange = (open: boolean) => {
+    setShowArchive(open);
+    onOpenChange?.(open || isMenuOpen || showSettings || showInvite);
+  };
 
   // TODO: 권한 체크 로직 (조직 Admin + Workspace 멤버)
   const canInviteMembers = true; // 임시로 true
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            className={cn(
+              'h-6 w-6 p-0 transition-all hover:bg-accent',
+              isMenuOpen || showSettings || showInvite || showArchive
+                ? 'opacity-100'
+                : isParentHovered
+                  ? 'opacity-100'
+                  : 'opacity-0'
+            )}
           >
-            <MoreHorizontal className="h-4 w-4" />
+            <MoreHorizontal
+              className={cn(
+                'h-4 w-4 transition-colors',
+                isMenuOpen || showSettings || showInvite || showArchive
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            />
             <span className="sr-only">워크스페이스 메뉴</span>
           </Button>
         </DropdownMenuTrigger>
 
         <DropdownMenuContent side="right" align="start" className="w-48">
-          <DropdownMenuItem onClick={() => setShowSettings(true)}>
+          <DropdownMenuItem onClick={() => handleSettingsChange(true)}>
             <Settings className="mr-2 h-4 w-4" />
             워크스페이스 설정
           </DropdownMenuItem>
 
           {canInviteMembers && (
-            <DropdownMenuItem onClick={() => setShowInvite(true)}>
+            <DropdownMenuItem onClick={() => handleInviteChange(true)}>
               <UserPlus className="mr-2 h-4 w-4" />
               멤버 초대
             </DropdownMenuItem>
@@ -74,7 +117,7 @@ export function WorkspaceContextMenu({ workspace }: WorkspaceContextMenuProps) {
               <TooltipTrigger asChild>
                 <div>
                   <DropdownMenuItem
-                    onClick={() => setShowArchive(true)}
+                    onClick={() => handleArchiveChange(true)}
                     disabled={workspace.isDefault}
                     className="text-destructive focus:text-destructive"
                   >
@@ -97,7 +140,7 @@ export function WorkspaceContextMenu({ workspace }: WorkspaceContextMenuProps) {
       <WorkspaceSettingsDialog
         workspace={workspace}
         open={showSettings}
-        onOpenChange={setShowSettings}
+        onOpenChange={handleSettingsChange}
       />
 
       {/* InviteMemberDialog (Scenario 3) */}
@@ -105,7 +148,7 @@ export function WorkspaceContextMenu({ workspace }: WorkspaceContextMenuProps) {
         workspaceId={workspace.workspaceId}
         workspaceName={workspace.name}
         open={showInvite}
-        onOpenChange={setShowInvite}
+        onOpenChange={handleInviteChange}
       />
 
       {/* TODO: ArchiveWorkspaceDialog */}

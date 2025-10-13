@@ -282,13 +282,13 @@ export function IconPicker({
 
   // 아이콘 버튼 렌더링 (재사용)
   const renderIconButton = useCallback(
-    (iconName: string, size: number = 18) => (
+    (iconName: string, size: number = 20) => (
       <Button
         key={iconName}
         type="button"
         variant={value === iconName ? 'default' : 'ghost'}
         size="sm"
-        className="h-10 w-10 p-0"
+        className="h-9 w-9 p-0"
         onClick={() => handleSelectIcon(iconName)}
         title={iconName}
         aria-label={`Select ${iconName} icon`}
@@ -333,15 +333,15 @@ export function IconPicker({
           <Button
             type="button"
             variant="outline"
-            className={cn('h-12 w-12 p-0', className)}
+            className={cn('h-9 w-9 p-0', className)}
             title={`현재 아이콘: ${value || 'Folder'}`}
             aria-label="Open icon picker"
           >
-            {renderIcon(value || 'Folder', 24)}
+            {renderIcon(value || 'Folder', 20)}
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[360px] h-[480px] p-0 flex flex-col overflow-hidden"
+          className="w-[360px] h-[420px] p-0 flex flex-col overflow-hidden"
           align="start"
           side="bottom"
           sideOffset={4}
@@ -349,12 +349,12 @@ export function IconPicker({
           {/* 검색 필드 - sticky */}
           <div className="p-3 border-b bg-background shrink-0 sticky top-0 z-10">
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 placeholder="아이콘 검색... (예: folder, home)"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 text-sm"
+                className="pl-8 h-8 text-xs"
                 autoFocus
                 aria-label="Search icons"
               />

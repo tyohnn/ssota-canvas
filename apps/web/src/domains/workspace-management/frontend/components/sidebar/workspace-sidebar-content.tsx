@@ -1,14 +1,21 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
 } from '@/components/ui/sidebar';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { Plus } from 'lucide-react';
 import { FavoritePageList } from './favorite-page-list';
 import { WorkspacePageTree } from './workspace-page-tree';
 import { useWorkspace } from '../../hooks/use-workspace';
+import { CreateWorkspaceDialog } from '../workspace/create-workspace-dialog';
 
 /**
  * Workspace Sidebar Content
@@ -19,6 +26,8 @@ import { useWorkspace } from '../../hooks/use-workspace';
  */
 export function WorkspaceSidebarContent() {
   const { favoritePages, workspaces } = useWorkspace();
+  const [isWorkspaceGroupOpen, setIsWorkspaceGroupOpen] = useState(true);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   return (
     <>
@@ -33,12 +42,40 @@ export function WorkspaceSidebarContent() {
       )}
 
       {/* Workspace 섹션 */}
-      <SidebarGroup>
-        <SidebarGroupLabel>Workspaces</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <WorkspacePageTree workspaces={workspaces} />
-        </SidebarGroupContent>
-      </SidebarGroup>
+      <Collapsible
+        open={isWorkspaceGroupOpen}
+        onOpenChange={setIsWorkspaceGroupOpen}
+      >
+        <SidebarGroup>
+          <div className="flex items-center justify-between">
+            <CollapsibleTrigger asChild>
+              <SidebarGroupLabel className="cursor-pointer">
+                Workspaces
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                setIsCreateDialogOpen(true);
+              }}
+              className="opacity-70 hover:opacity-100 transition-opacity p-1 -mr-1"
+              title="새 워크스페이스"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+          </div>
+          <CollapsibleContent>
+            <SidebarGroupContent>
+              <WorkspacePageTree workspaces={workspaces} />
+            </SidebarGroupContent>
+          </CollapsibleContent>
+        </SidebarGroup>
+      </Collapsible>
+
+      <CreateWorkspaceDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
     </>
   );
 }
