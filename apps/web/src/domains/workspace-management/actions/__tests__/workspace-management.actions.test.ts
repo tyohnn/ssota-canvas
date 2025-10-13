@@ -6,6 +6,9 @@ import {
   updateWorkspaceInfoAction,
   getWorkspaceMembersAction,
   searchOrganizationMembersAction,
+  createPageAction,
+  movePageAction,
+  updatePageInfoAction,
 } from '../workspace-management.actions';
 import { adminDb } from '@/db';
 import { workspaces, pages, workspaceMembers, workspaceInvitations } from '@/db/schema-dev';
@@ -658,6 +661,185 @@ describe('Workspace Management Server Actions Integration Tests', () => {
 
       // Cleanup
       await adminDb.delete(workspaces).where(eq(workspaces.id, workspaceId));
+    });
+  });
+
+  describe('createPageAction (Scenario 4)', () => {
+    it('Workspace 멤버가 Page를 생성할 수 있어야 한다', async () => {
+      // Given: Workspace 생성
+      const workspace = WorkspaceAggregate.create({
+        organizationId: testOrgId.value,
+        name: 'Page Test Workspace',
+        createdBy: testUserId,
+      });
+      await workspaceRepo.save(workspace);
+      await adminDb.insert(workspaceMembers).values({
+        workspace_id: workspace.workspace.workspaceId.value,
+        user_id: testUserId,
+      });
+
+      // When
+      const result = await createPageAction({
+        workspaceId: workspace.workspace.workspaceId.value,
+        title: 'New Page',
+        icon: '📄',
+      });
+
+      // Then
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.pageId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      }
+
+      // Cleanup
+      await adminDb.delete(pages).where(eq(pages.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaceMembers).where(eq(workspaceMembers.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaces).where(eq(workspaces.id, workspace.workspace.workspaceId.value));
+    });
+
+    it('기본값이 적용되어야 한다 (title: Untitled, icon: 📄)', async () => {
+      // Given
+      const workspace = WorkspaceAggregate.create({
+        organizationId: testOrgId.value,
+        name: 'Default Test Workspace',
+        createdBy: testUserId,
+      });
+      await workspaceRepo.save(workspace);
+      await adminDb.insert(workspaceMembers).values({
+        workspace_id: workspace.workspace.workspaceId.value,
+        user_id: testUserId,
+      });
+
+      // When: title, icon 없이 생성
+      const result = await createPageAction({
+        workspaceId: workspace.workspace.workspaceId.value,
+      });
+
+      // Then
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const savedPage = await adminDb
+          .select()
+          .from(pages)
+          .where(eq(pages.id, result.data.pageId));
+        
+        expect(savedPage[0]?.title).toBe('Untitled');
+        expect(savedPage[0]?.icon).toBe('📄');
+      }
+
+      // Cleanup
+      await adminDb.delete(pages).where(eq(pages.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaceMembers).where(eq(workspaceMembers.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaces).where(eq(workspaces.id, workspace.workspace.workspaceId.value));
+    });
+  });
+
+  describe('movePageAction (Scenario 4)', () => {
+    it('Page를 이동할 수 있어야 한다', async () => {
+      // Given: Workspace와 2개 페이지 생성
+      const workspace = WorkspaceAggregate.create({
+        organizationId: testOrgId.value,
+        name: 'Move Test Workspace',
+        createdBy: testUserId,
+      });
+      await workspaceRepo.save(workspace);
+      await adminDb.insert(workspaceMembers).values({
+        workspace_id: workspace.workspace.workspaceId.value,
+        user_id: testUserId,
+      });
+
+      const pageA = PageAggregate.create(
+        {
+          workspaceId: workspace.workspace.workspaceId.value,
+          title: 'Page A',
+          createdBy: testUserId,
+        },
+        null
+      );
+      await pageRepo.save(pageA);
+
+      const pageB = PageAggregate.create(
+        {
+          workspaceId: workspace.workspace.workspaceId.value,
+          title: 'Page B',
+          createdBy: testUserId,
+        },
+        null
+      );
+      await pageRepo.save(pageB);
+
+      // When: Page A를 Page B의 하위로 이동
+      const result = await movePageAction({
+        pageId: pageA.page.pageId.value,
+        newParentId: pageB.page.pageId.value,
+      });
+
+      // Then
+      expect(result.success).toBe(true);
+
+      // DB 확인
+      const movedPage = await adminDb
+        .select()
+        .from(pages)
+        .where(eq(pages.id, pageA.page.pageId.value));
+      
+      expect(movedPage[0]?.parent_id).toBe(pageB.page.pageId.value);
+
+      // Cleanup
+      await adminDb.delete(pages).where(eq(pages.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaceMembers).where(eq(workspaceMembers.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaces).where(eq(workspaces.id, workspace.workspace.workspaceId.value));
+    });
+  });
+
+  describe('updatePageInfoAction (Scenario 4)', () => {
+    it('Page 정보를 수정할 수 있어야 한다', async () => {
+      // Given: Workspace와 페이지 생성
+      const workspace = WorkspaceAggregate.create({
+        organizationId: testOrgId.value,
+        name: 'Update Test Workspace',
+        createdBy: testUserId,
+      });
+      await workspaceRepo.save(workspace);
+      await adminDb.insert(workspaceMembers).values({
+        workspace_id: workspace.workspace.workspaceId.value,
+        user_id: testUserId,
+      });
+
+      const page = PageAggregate.create(
+        {
+          workspaceId: workspace.workspace.workspaceId.value,
+          title: 'Old Title',
+          icon: '📄',
+          createdBy: testUserId,
+        },
+        null
+      );
+      await pageRepo.save(page);
+
+      // When
+      const result = await updatePageInfoAction({
+        pageId: page.page.pageId.value,
+        title: 'New Title',
+        icon: '🚀',
+      });
+
+      // Then
+      expect(result.success).toBe(true);
+
+      // DB 확인
+      const updatedPage = await adminDb
+        .select()
+        .from(pages)
+        .where(eq(pages.id, page.page.pageId.value));
+      
+      expect(updatedPage[0]?.title).toBe('New Title');
+      expect(updatedPage[0]?.icon).toBe('🚀');
+
+      // Cleanup
+      await adminDb.delete(pages).where(eq(pages.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaceMembers).where(eq(workspaceMembers.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaces).where(eq(workspaces.id, workspace.workspace.workspaceId.value));
     });
   });
 });

@@ -10,7 +10,12 @@ import { DrizzleWorkspaceInvitationRepository } from '../backend/repositories/im
 import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
 import { DrizzleOrganizationRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository';
 import { DrizzleNotificationRepository } from '@/domains/notification-management/backend/repositories/implementations/drizzle-notification.repository';
-import { DefaultWorkspaceManagementService } from '../backend/services/workspace-management.service';
+import {
+  DefaultWorkspaceNavigationService,
+  DefaultWorkspaceCrudService,
+  DefaultWorkspaceInvitationService,
+  DefaultPageHierarchyService,
+} from '../backend/services';
 import { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '../shared/value-objects/workspace-id.vo';
@@ -33,6 +38,10 @@ import type {
   OrganizationMemberSearchResultDTO,
   GetWorkspaceMembersRequest,
   WorkspaceMemberView,
+  CreatePageRequest,
+  CreatePageResponse,
+  MovePageRequest,
+  UpdatePageInfoRequest,
 } from '../shared/dtos';
 import type { Page } from '../shared/entities/page.entity';
 
@@ -66,14 +75,12 @@ export async function getOrganizationWorkspacePageViewAction(
     const pageRepo = new DrizzlePageRepository();
     const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
     const orgMemberRepo = new DrizzleOrganizationMemberRepository();
-    const orgRepo = new DrizzleOrganizationRepository();
 
-    const service = new DefaultWorkspaceManagementService(
+    const service = new DefaultWorkspaceNavigationService(
       workspaceRepo,
       pageRepo,
       workspaceMemberRepo,
-      orgMemberRepo,
-      orgRepo
+      orgMemberRepo
     );
 
     // 3. Service 호출
@@ -149,14 +156,12 @@ export async function getPageDetailsAction(
     const pageRepo = new DrizzlePageRepository();
     const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
     const orgMemberRepo = new DrizzleOrganizationMemberRepository();
-    const orgRepo = new DrizzleOrganizationRepository();
 
-    const service = new DefaultWorkspaceManagementService(
+    const service = new DefaultWorkspaceNavigationService(
       workspaceRepo,
       pageRepo,
       workspaceMemberRepo,
-      orgMemberRepo,
-      orgRepo
+      orgMemberRepo
     );
 
     // 3. Service 호출 (권한 검증 포함)
@@ -247,14 +252,12 @@ export async function createWorkspaceAction(
     const pageRepo = new DrizzlePageRepository();
     const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
     const orgMemberRepo = new DrizzleOrganizationMemberRepository();
-    const orgRepo = new DrizzleOrganizationRepository();
 
-    const service = new DefaultWorkspaceManagementService(
+    const service = new DefaultWorkspaceCrudService(
       workspaceRepo,
       pageRepo,
       workspaceMemberRepo,
-      orgMemberRepo,
-      orgRepo
+      orgMemberRepo
     );
 
     // 4. Service 호출 (트랜잭션: Workspace + 초기 Page 생성)
@@ -326,14 +329,12 @@ export async function updateWorkspaceInfoAction(
     const pageRepo = new DrizzlePageRepository();
     const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
     const orgMemberRepo = new DrizzleOrganizationMemberRepository();
-    const orgRepo = new DrizzleOrganizationRepository();
 
-    const service = new DefaultWorkspaceManagementService(
+    const service = new DefaultWorkspaceCrudService(
       workspaceRepo,
       pageRepo,
       workspaceMemberRepo,
-      orgMemberRepo,
-      orgRepo
+      orgMemberRepo
     );
 
     // 3. Service 호출
@@ -463,16 +464,14 @@ export async function inviteWorkspaceMemberAction(
 
     // 3. 의존성 주입
     const workspaceRepo = new DrizzleWorkspaceRepository();
-    const pageRepo = new DrizzlePageRepository();
     const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
     const orgMemberRepo = new DrizzleOrganizationMemberRepository();
     const orgRepo = new DrizzleOrganizationRepository();
     const invitationRepo = new DrizzleWorkspaceInvitationRepository();
     const notificationRepo = new DrizzleNotificationRepository();
 
-    const service = new DefaultWorkspaceManagementService(
+    const service = new DefaultWorkspaceInvitationService(
       workspaceRepo,
-      pageRepo,
       workspaceMemberRepo,
       orgMemberRepo,
       orgRepo,
@@ -631,15 +630,13 @@ export async function acceptWorkspaceInvitationAction(
 
     // 2. 의존성 주입
     const workspaceRepo = new DrizzleWorkspaceRepository();
-    const pageRepo = new DrizzlePageRepository();
     const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
     const orgMemberRepo = new DrizzleOrganizationMemberRepository();
     const orgRepo = new DrizzleOrganizationRepository();
     const invitationRepo = new DrizzleWorkspaceInvitationRepository();
 
-    const service = new DefaultWorkspaceManagementService(
+    const service = new DefaultWorkspaceInvitationService(
       workspaceRepo,
-      pageRepo,
       workspaceMemberRepo,
       orgMemberRepo,
       orgRepo,
@@ -703,15 +700,13 @@ export async function rejectWorkspaceInvitationAction(
 
     // 2. 의존성 주입
     const workspaceRepo = new DrizzleWorkspaceRepository();
-    const pageRepo = new DrizzlePageRepository();
     const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
     const orgMemberRepo = new DrizzleOrganizationMemberRepository();
     const orgRepo = new DrizzleOrganizationRepository();
     const invitationRepo = new DrizzleWorkspaceInvitationRepository();
 
-    const service = new DefaultWorkspaceManagementService(
+    const service = new DefaultWorkspaceInvitationService(
       workspaceRepo,
-      pageRepo,
       workspaceMemberRepo,
       orgMemberRepo,
       orgRepo,
@@ -826,6 +821,205 @@ export async function getWorkspaceMembersAction(
     };
   } catch (error) {
     console.error('[getWorkspaceMembersAction] Error:', error);
+    return {
+      success: false,
+      error: 'UNKNOWN_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// Scenario 4: Page 생성 및 관리
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Page 생성 Server Action
+ *
+ * @param request - Page 생성 요청
+ * @returns CreatePageResponse (성공) | Error (실패)
+ */
+export async function createPageAction(
+  request: CreatePageRequest
+): Promise<ServerActionResult<CreatePageResponse>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'UNAUTHORIZED',
+        details: 'User not authenticated',
+      };
+    }
+
+    // 2. 의존성 주입
+    const pageRepo = new DrizzlePageRepository();
+    const memberRepo = new DrizzleWorkspaceMemberRepository();
+
+    const service = new DefaultPageHierarchyService(pageRepo, memberRepo);
+
+    // 3. Service 호출
+    const result = await service.createPage(
+      new WorkspaceId(request.workspaceId),
+      request.parentId ? new PageId(request.parentId) : null,
+      request.title || 'Untitled',
+      request.icon || '📄',
+      user.id
+    );
+
+    // 4. Result 처리
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error,
+        details: `Failed to create page: ${result.error}`,
+      };
+    }
+
+    // 5. 캐시 무효화
+    revalidatePath('/r');
+
+    return {
+      success: true,
+      data: { pageId: result.data },
+    };
+  } catch (error) {
+    console.error('[createPageAction] Error:', error);
+    return {
+      success: false,
+      error: 'UNKNOWN_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Page 이동 Server Action
+ *
+ * @param request - Page 이동 요청
+ * @returns void (성공) | Error (실패)
+ */
+export async function movePageAction(
+  request: MovePageRequest
+): Promise<ServerActionResult<void>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'UNAUTHORIZED',
+        details: 'User not authenticated',
+      };
+    }
+
+    // 2. 의존성 주입
+    const pageRepo = new DrizzlePageRepository();
+    const memberRepo = new DrizzleWorkspaceMemberRepository();
+
+    const service = new DefaultPageHierarchyService(pageRepo, memberRepo);
+
+    // 3. Service 호출
+    const result = await service.movePage(
+      new PageId(request.pageId),
+      request.newParentId ? new PageId(request.newParentId) : null,
+      user.id
+    );
+
+    // 4. Result 처리
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error,
+        details: `Failed to move page: ${result.error}`,
+      };
+    }
+
+    // 5. 캐시 무효화
+    revalidatePath('/r');
+
+    return {
+      success: true,
+      data: undefined,
+    };
+  } catch (error) {
+    console.error('[movePageAction] Error:', error);
+    return {
+      success: false,
+      error: 'UNKNOWN_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Page 정보 수정 Server Action
+ *
+ * @param request - Page 정보 수정 요청
+ * @returns void (성공) | Error (실패)
+ */
+export async function updatePageInfoAction(
+  request: UpdatePageInfoRequest
+): Promise<ServerActionResult<void>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'UNAUTHORIZED',
+        details: 'User not authenticated',
+      };
+    }
+
+    // 2. 의존성 주입
+    const pageRepo = new DrizzlePageRepository();
+    const memberRepo = new DrizzleWorkspaceMemberRepository();
+
+    const service = new DefaultPageHierarchyService(pageRepo, memberRepo);
+
+    // 3. Service 호출
+    const result = await service.updatePageInfo(
+      new PageId(request.pageId),
+      request.title,
+      request.icon,
+      user.id
+    );
+
+    // 4. Result 처리
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error,
+        details: `Failed to update page info: ${result.error}`,
+      };
+    }
+
+    // 5. 캐시 무효화
+    revalidatePath('/r');
+
+    return {
+      success: true,
+      data: undefined,
+    };
+  } catch (error) {
+    console.error('[updatePageInfoAction] Error:', error);
     return {
       success: false,
       error: 'UNKNOWN_ERROR',
