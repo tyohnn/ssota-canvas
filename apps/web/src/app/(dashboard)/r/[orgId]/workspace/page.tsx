@@ -1,18 +1,17 @@
-import { PageViewer } from '@/domains/workspace-management/frontend/components/page-viewer/page-viewer';
+import { redirect } from 'next/navigation';
+
+interface WorkspacePageProps {
+  params: Promise<{ orgId: string }>;
+}
 
 /**
- * Workspace Page (조직 메인 페이지)
+ * Workspace 페이지
  *
- * Layout에서 이미 WorkspaceProvider가 설정되어 있음
- * - Sidebar: WorkspaceSidebarContent (Favorites + Workspace-Page 트리)
- * - Main: PageViewer (선택된 페이지 렌더링)
+ * 조직 루트로 리다이렉트하여 적절한 페이지로 이동
  */
-export default function WorkspacePage() {
-  return (
-    <div className="flex h-full">
-      <div className="flex-1 overflow-auto">
-        <PageViewer />
-      </div>
-    </div>
-  );
+export default async function WorkspacePageRoute({
+  params,
+}: WorkspacePageProps) {
+  const { orgId } = await params;
+  redirect(`/r/${orgId}`);
 }

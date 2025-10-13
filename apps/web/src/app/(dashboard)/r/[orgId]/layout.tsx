@@ -47,12 +47,10 @@ export default async function DashboardLayout({
     redirect('/unauthorized');
   }
 
-  // Workspace-Page 데이터 로드
-  const cookieStore = await cookies();
-  const recentPageCookie = cookieStore.get(`recent-page-${orgId}`);
+  // Workspace-Page 데이터 로드 (리스트만, selectedPageId 계산 안 함)
   const workspacePageResult = await getOrganizationWorkspacePageViewAction({
     organizationId: orgId,
-    cookiePageId: recentPageCookie?.value,
+    // cookiePageId 제거 - Layout은 리스트만 제공
   });
 
   // Workspace 데이터 로드 실패 시 빈 배열로 Fallback
@@ -71,7 +69,7 @@ export default async function DashboardLayout({
     >
       <WorkspaceProvider
         initialWorkspaces={workspacePageData.workspaces}
-        initialSelectedPageId={workspacePageData.selectedPageId}
+        initialSelectedPageId={null}
         organizationId={orgId}
       >
         <SidebarProvider>
