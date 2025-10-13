@@ -75,9 +75,10 @@ export function PageTreeItemRenderer({ item, onToggle }: PageTreeItemProps) {
       <TreeItem item={item} className="pb-0!">
         <div
           className={cn(
-            'flex items-center rounded-sm py-0.5 w-full gap-0 transition-colors',
+            'flex items-center rounded-sm py-0.5 w-full gap-0',
+            'border border-transparent transition-all',
             item.isDragTarget()
-              ? 'bg-primary/10 border-2 border-primary border-dashed'
+              ? 'bg-primary/10 border-primary border-dashed'
               : 'hover:bg-accent/70'
           )}
           onMouseEnter={() => setIsHovered(true)}

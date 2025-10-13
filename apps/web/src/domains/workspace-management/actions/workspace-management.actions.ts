@@ -870,7 +870,7 @@ export async function createPageAction(
       new WorkspaceId(request.workspaceId),
       request.parentId ? new PageId(request.parentId) : null,
       request.title || 'Untitled',
-      request.icon || '📄',
+      request.icon || 'Briefcase',
       user.id
     );
 

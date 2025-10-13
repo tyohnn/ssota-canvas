@@ -134,7 +134,6 @@ export function useWorkspace() {
     selectPage: context.selectPage,
     toggleWorkspace: context.toggleWorkspace,
     togglePage: context.togglePage,
-    refreshWorkspacePages: context.refreshWorkspacePages,
 
     // Actions (Scenario 2)
     createWorkspace: context.createWorkspace,

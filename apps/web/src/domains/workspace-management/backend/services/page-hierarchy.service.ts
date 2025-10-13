@@ -27,7 +27,7 @@ export class DefaultPageHierarchyService implements PageHierarchyService {
    * @param workspaceId - Workspace ID
    * @param parentId - 부모 페이지 ID (null이면 최상위)
    * @param title - 페이지 제목 (기본값: "Untitled")
-   * @param icon - 페이지 아이콘 (기본값: "📄")
+   * @param icon - 페이지 아이콘 (기본값: "Briefcase")
    * @param userId - 사용자 ID
    * @returns pageId (성공) | Error code (실패)
    */
@@ -62,22 +62,36 @@ export class DefaultPageHierarchyService implements PageHierarchyService {
         }
       }
 
-      // 4. Page Aggregate 생성
+      // 4. 같은 부모의 children 조회하여 maxOrder 계산
+      const allPages = await this.pageRepo.findTreeByWorkspaceId(workspaceId);
+      const siblings = allPages.filter(p => {
+        const pParentId = p.parentId?.value || null;
+        const targetParentId = parentId?.value || null;
+        return pParentId === targetParentId;
+      });
+      const maxOrder =
+        siblings.length > 0 ? Math.max(...siblings.map(p => p.order)) : -1;
+      const newOrder = maxOrder + 1;
+
+      // 5. Page Aggregate 생성
       const pageAgg = PageAggregate.create(
         {
           workspaceId: workspaceId.value,
           parentId: parentId?.value,
           title,
-          icon: icon || '📄',
+          icon: icon || 'Briefcase',
           createdBy: userId,
         },
         parentPage
       );
 
-      // 5. Page 저장
+      // 6. order 업데이트 (같은 부모의 마지막 순서로)
+      pageAgg.page.updateOrder(newOrder);
+
+      // 7. Page 저장
       await this.pageRepo.save(pageAgg);
 
-      // 6. Result.ok 반환 (pageId)
+      // 8. Result.ok 반환 (pageId)
       return R.ok(pageAgg.page.pageId.value);
     } catch (error) {
       if (isWorkspaceManagementError(error)) {

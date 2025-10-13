@@ -63,7 +63,6 @@ interface WorkspaceContextValue {
   ) => void;
   toggleWorkspace: (workspaceId: string) => void;
   togglePage: (pageId: string) => void;
-  refreshWorkspacePages: () => Promise<void>;
 
   // Scenario 2: Workspace 생성 및 수정
   createWorkspace: (
@@ -126,6 +125,179 @@ interface WorkspaceProviderProps {
   initialSelectedPageId?: string | null;
   organizationId: string;
 }
+
+// ============================================================================
+// 헬퍼 함수: Page Tree 조작 (컴포넌트 외부, 메모리 최적화)
+// ============================================================================
+
+/**
+ * PageTree에서 특정 페이지를 찾아서 제거
+ *
+ * @returns 제거된 트리와 제거된 페이지
+ */
+function findAndRemovePageFromTree(
+  tree: PageTreeNodeDTO[],
+  pageId: string
+): { tree: PageTreeNodeDTO[]; page: PageTreeNodeDTO | null } {
+  for (let i = 0; i < tree.length; i++) {
+    const node = tree[i] as PageTreeNodeDTO;
+
+    if (node.id === pageId) {
+      // 찾았음 - 제거하고 반환
+      return {
+        tree: [...tree.slice(0, i), ...tree.slice(i + 1)],
+        page: node,
+      };
+    }
+
+    // 자식에서 재귀 탐색
+    if (node.children.length > 0) {
+      const result = findAndRemovePageFromTree(node.children, pageId);
+      if (result.page) {
+        return {
+          tree: [
+            ...tree.slice(0, i),
+            { ...node, children: result.tree },
+            ...tree.slice(i + 1),
+          ],
+          page: result.page,
+        };
+      }
+    }
+  }
+
+  return { tree, page: null };
+}
+
+/**
+ * PageTree의 특정 부모에 페이지 추가
+ */
+function addPageToTree(
+  tree: PageTreeNodeDTO[],
+  page: PageTreeNodeDTO,
+  parentId: string | undefined
+): PageTreeNodeDTO[] {
+  // 루트로 추가
+  if (parentId === undefined) {
+    return [...tree, { ...page, parentId: null }];
+  }
+
+  // 특정 부모에 추가
+  return tree.map(node => {
+    if (node.id === parentId) {
+      return {
+        ...node,
+        children: [...node.children, { ...page, parentId }],
+      };
+    }
+
+    if (node.children.length > 0) {
+      return {
+        ...node,
+        children: addPageToTree(node.children, page, parentId),
+      };
+    }
+
+    return node;
+  });
+}
+
+/**
+ * PageTree에서 특정 ID의 페이지를 제거 (임시 페이지 제거용)
+ */
+function removePageFromTree(
+  tree: PageTreeNodeDTO[],
+  pageId: string
+): PageTreeNodeDTO[] {
+  return tree
+    .filter(node => node.id !== pageId)
+    .map(node => ({
+      ...node,
+      children: removePageFromTree(node.children, pageId),
+    }));
+}
+
+/**
+ * PageTree에서 임시 ID를 실제 ID로 교체
+ */
+function replacePageIdInTree(
+  tree: PageTreeNodeDTO[],
+  tempId: string,
+  realId: string
+): PageTreeNodeDTO[] {
+  return tree.map(node => {
+    if (node.id === tempId) {
+      return { ...node, id: realId };
+    }
+    if (node.children.length > 0) {
+      return {
+        ...node,
+        children: replacePageIdInTree(node.children, tempId, realId),
+      };
+    }
+    return node;
+  });
+}
+
+/**
+ * PageTree에서 특정 parentId를 가진 페이지들의 order 업데이트
+ */
+function updatePageOrderInTree(
+  tree: PageTreeNodeDTO[],
+  parentId: string | undefined,
+  orderedPageIds: string[]
+): PageTreeNodeDTO[] {
+  return tree.map(node => {
+    // 해당 parentId의 children인 경우 order 업데이트
+    if (node.parentId === parentId) {
+      const newOrder = orderedPageIds.indexOf(node.id);
+      if (newOrder !== -1) {
+        return {
+          ...node,
+          order: newOrder,
+          children: updatePageOrderInTree(
+            node.children,
+            parentId,
+            orderedPageIds
+          ),
+        };
+      }
+    }
+    // 재귀적으로 하위 노드도 처리
+    return {
+      ...node,
+      children: updatePageOrderInTree(node.children, parentId, orderedPageIds),
+    };
+  });
+}
+
+/**
+ * PageTree에서 특정 부모의 children 중 최대 order 값 찾기
+ */
+function findMaxOrderInTree(
+  tree: PageTreeNodeDTO[],
+  parentId: string | undefined
+): number {
+  let maxOrder = -1;
+
+  for (const node of tree) {
+    // 같은 부모의 children 확인
+    if (node.parentId === parentId) {
+      maxOrder = Math.max(maxOrder, node.order);
+    }
+    // 재귀적으로 하위 노드도 확인
+    if (node.children.length > 0) {
+      const childMax = findMaxOrderInTree(node.children, parentId);
+      maxOrder = Math.max(maxOrder, childMax);
+    }
+  }
+
+  return maxOrder;
+}
+
+// ============================================================================
+// WorkspaceProvider 구현
+// ============================================================================
 
 /**
  * WorkspaceProvider 구현
@@ -334,22 +506,6 @@ export function WorkspaceProvider({
     });
   }, []);
 
-  // Scenario 1: 데이터 갱신
-  const refreshWorkspacePages = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // TODO: getWorkspacePagesAction 호출
-      // const result = await getWorkspacePagesAction(organizationId);
-      // if (result.success) {
-      //   setWorkspaces(result.data.workspaces);
-      // }
-    } catch (err) {
-      setError('데이터를 불러오는데 실패했습니다');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [organizationId]);
-
   // Scenario 2: Workspace 생성
   const createWorkspace = useCallback(
     async (
@@ -439,7 +595,6 @@ export function WorkspaceProvider({
 
           // 3. 성공 토스트
           toast.success('워크스페이스 정보가 업데이트되었습니다');
-
           return true;
         } else {
           // 사용자 친화적인 에러 메시지
@@ -562,7 +717,10 @@ export function WorkspaceProvider({
         }
 
         toast.success('Workspace 초대를 수락했습니다');
-        await refreshWorkspacePages();
+
+        // TODO: Optimistic Update로 워크스페이스 목록에 추가
+        // 현재는 페이지 새로고침 필요 (향후 개선)
+
         return true;
       } catch (error) {
         console.error('[acceptInvitation] Error:', error);
@@ -570,7 +728,7 @@ export function WorkspaceProvider({
         return false;
       }
     },
-    [refreshWorkspacePages]
+    []
   );
 
   // Scenario 3: 초대 거절
@@ -635,46 +793,25 @@ export function WorkspaceProvider({
           return prev.map(ws => {
             if (ws.workspaceId !== workspaceId) return ws;
 
+            // 같은 부모의 maxOrder 찾기
+            const maxOrder = findMaxOrderInTree(ws.pageTree, parentId);
+            const newOrder = maxOrder + 1;
+
             const newPage: PageTreeNodeDTO = {
               id: tempPageId,
               title: finalTitle,
               icon: finalIcon,
               children: [],
-              depth: parentId ? 1 : 0, // 부모 있으면 1, 없으면 0 (실제는 계산됨)
+              depth: parentId ? 1 : 0,
               isFavorite: false,
               lastModified: new Date().toISOString(),
               parentId: parentId || null,
-              order: 999, // 임시 순서
+              order: newOrder,
             };
-
-            // 부모 페이지 찾기 및 추가
-            const addToParent = (
-              nodes: PageTreeNodeDTO[]
-            ): PageTreeNodeDTO[] => {
-              return nodes.map(node => {
-                if (node.id === parentId) {
-                  return {
-                    ...node,
-                    children: [...node.children, newPage],
-                  };
-                }
-                if (node.children.length > 0) {
-                  return {
-                    ...node,
-                    children: addToParent(node.children),
-                  };
-                }
-                return node;
-              });
-            };
-
-            const updatedPageTree = parentId
-              ? addToParent(ws.pageTree)
-              : [...ws.pageTree, newPage];
 
             return {
               ...ws,
-              pageTree: updatedPageTree,
+              pageTree: addPageToTree(ws.pageTree, newPage, parentId),
               pageCount: ws.pageCount + 1,
             };
           });
@@ -703,20 +840,9 @@ export function WorkspaceProvider({
             return prev.map(ws => {
               if (ws.workspaceId !== workspaceId) return ws;
 
-              const removeTemp = (
-                nodes: PageTreeNodeDTO[]
-              ): PageTreeNodeDTO[] => {
-                return nodes
-                  .filter(node => node.id !== tempPageId)
-                  .map(node => ({
-                    ...node,
-                    children: removeTemp(node.children),
-                  }));
-              };
-
               return {
                 ...ws,
-                pageTree: removeTemp(ws.pageTree),
+                pageTree: removePageFromTree(ws.pageTree, tempPageId),
                 pageCount: ws.pageCount - 1,
               };
             });
@@ -737,32 +863,13 @@ export function WorkspaceProvider({
           return prev.map(ws => {
             if (ws.workspaceId !== workspaceId) return ws;
 
-            // 임시 페이지를 실제 페이지 데이터로 교체
-            const replaceTempId = (
-              nodes: PageTreeNodeDTO[]
-            ): PageTreeNodeDTO[] => {
-              return nodes.map(node => {
-                if (node.id === tempPageId) {
-                  // 임시 페이지를 실제 페이지 ID로 교체
-                  return {
-                    ...node,
-                    id: result.data.pageId,
-                    // title, icon 등은 임시 값 유지 (서버에서 반환 안함)
-                  };
-                }
-                if (node.children.length > 0) {
-                  return {
-                    ...node,
-                    children: replaceTempId(node.children),
-                  };
-                }
-                return node;
-              });
-            };
-
             return {
               ...ws,
-              pageTree: replaceTempId(ws.pageTree),
+              pageTree: replacePageIdInTree(
+                ws.pageTree,
+                tempPageId,
+                result.data.pageId
+              ),
             };
           });
         });
@@ -776,20 +883,9 @@ export function WorkspaceProvider({
           return prev.map(ws => {
             if (ws.workspaceId !== workspaceId) return ws;
 
-            const removeTemp = (
-              nodes: PageTreeNodeDTO[]
-            ): PageTreeNodeDTO[] => {
-              return nodes
-                .filter(node => node.id !== tempPageId)
-                .map(node => ({
-                  ...node,
-                  children: removeTemp(node.children),
-                }));
-            };
-
             return {
               ...ws,
-              pageTree: removeTemp(ws.pageTree),
+              pageTree: removePageFromTree(ws.pageTree, tempPageId),
               pageCount: ws.pageCount - 1,
             };
           });
@@ -800,7 +896,7 @@ export function WorkspaceProvider({
         return null;
       }
     },
-    [refreshWorkspacePages]
+    []
   );
 
   // Scenario 4: Page 이동 (Optimistic Update)
@@ -813,79 +909,18 @@ export function WorkspaceProvider({
         // 2. Optimistic Update: 즉시 페이지 이동
         setWorkspaces(prev => {
           return prev.map(ws => {
-            // 페이지를 찾아서 제거
-            const removePage = (
-              nodes: PageTreeNodeDTO[]
-            ): {
-              newTree: PageTreeNodeDTO[];
-              removedPage: PageTreeNodeDTO | null;
-            } => {
-              let removedPage: PageTreeNodeDTO | null = null;
-              const newTree = nodes
-                .filter(node => {
-                  if (node.id === pageId) {
-                    removedPage = node;
-                    return false;
-                  }
-                  return true;
-                })
-                .map(node => {
-                  if (node.children.length > 0) {
-                    const result = removePage(node.children);
-                    if (result.removedPage) {
-                      removedPage = result.removedPage;
-                    }
-                    return {
-                      ...node,
-                      children: result.newTree,
-                    };
-                  }
-                  return node;
-                });
-              return { newTree, removedPage };
-            };
-
             // 페이지 제거
-            const { newTree: treeAfterRemoval, removedPage } = removePage(
-              ws.pageTree
+            const { tree: treeAfterRemoval, page } = findAndRemovePageFromTree(
+              ws.pageTree,
+              pageId
             );
 
-            if (!removedPage) {
-              return ws; // 페이지를 찾지 못함
-            }
+            if (!page) return ws;
 
-            // 새 부모에 페이지 추가
-            const addToNewParent = (
-              nodes: PageTreeNodeDTO[]
-            ): PageTreeNodeDTO[] => {
-              if (newParentId === undefined) {
-                // 루트로 이동
-                return [...nodes, { ...removedPage, parentId: null }];
-              }
-
-              return nodes.map(node => {
-                if (node.id === newParentId) {
-                  return {
-                    ...node,
-                    children: [
-                      ...node.children,
-                      { ...removedPage, parentId: newParentId },
-                    ],
-                  };
-                }
-                if (node.children.length > 0) {
-                  return {
-                    ...node,
-                    children: addToNewParent(node.children),
-                  };
-                }
-                return node;
-              });
-            };
-
+            // 새 위치에 추가
             return {
               ...ws,
-              pageTree: addToNewParent(treeAfterRemoval),
+              pageTree: addPageToTree(treeAfterRemoval, page, newParentId),
             };
           });
         });
@@ -945,7 +980,8 @@ export function WorkspaceProvider({
         }
 
         // 제목/아이콘만 수정하는 경우 조용히 처리
-        await refreshWorkspacePages();
+        // Optimistic Update는 없지만 Server Action 성공 시
+        // 다음 페이지 이동에서 revalidatePath로 최신 데이터 fetch됨
         return true;
       } catch (error) {
         console.error('[updatePageInfo] Error:', error);
@@ -953,7 +989,7 @@ export function WorkspaceProvider({
         return false;
       }
     },
-    [refreshWorkspacePages]
+    []
   );
 
   // Scenario 4: Page 순서 재정렬 (Optimistic Update)
@@ -972,33 +1008,13 @@ export function WorkspaceProvider({
           return prev.map(ws => {
             if (ws.workspaceId !== workspaceId) return ws;
 
-            // 재귀적으로 pageTree를 순회하며 order 업데이트
-            const updateOrder = (
-              nodes: PageTreeNodeDTO[]
-            ): PageTreeNodeDTO[] => {
-              return nodes.map(node => {
-                // 해당 parentId의 children인 경우 order 업데이트
-                if (node.parentId === parentId) {
-                  const newOrder = orderedPageIds.indexOf(node.id);
-                  if (newOrder !== -1) {
-                    return {
-                      ...node,
-                      order: newOrder,
-                      children: updateOrder(node.children),
-                    };
-                  }
-                }
-                // 재귀적으로 하위 노드도 처리
-                return {
-                  ...node,
-                  children: updateOrder(node.children),
-                };
-              });
-            };
-
             return {
               ...ws,
-              pageTree: updateOrder(ws.pageTree),
+              pageTree: updatePageOrderInTree(
+                ws.pageTree,
+                parentId,
+                orderedPageIds
+              ),
             };
           });
         });
@@ -1024,8 +1040,7 @@ export function WorkspaceProvider({
           return false;
         }
 
-        // 4. 성공 시 서버 데이터로 최종 동기화
-        await refreshWorkspacePages();
+        // 4. 성공 - Optimistic Update 상태 유지
         return true;
       } catch (error) {
         // 에러 시 롤백
@@ -1033,7 +1048,7 @@ export function WorkspaceProvider({
         return false;
       }
     },
-    [workspaces, refreshWorkspacePages]
+    [workspaces]
   );
 
   const value: WorkspaceContextValue = {
@@ -1050,7 +1065,6 @@ export function WorkspaceProvider({
     selectPage,
     toggleWorkspace,
     togglePage,
-    refreshWorkspacePages,
 
     // Scenario 2
     createWorkspace,
