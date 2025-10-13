@@ -54,6 +54,15 @@ vi.mock('../backend/services/user-management.service', () => ({
   UserManagementService: vi.fn(() => mockUserManagementService),
 }));
 
+// Mock Organization Management Actions
+const mockCreateDefaultOrgWithWorkspaceAndPageAction = vi.fn();
+vi.mock('@/domains/organization-management/actions/organization-management.actions', () => ({
+  getUserOrganizationsAction: vi.fn(),
+  createDefaultOrganizationAction: vi.fn(),
+  createDefaultOrganizationWithWorkspaceAndPageAction: mockCreateDefaultOrgWithWorkspaceAndPageAction,
+  createNewOrganizationAction: vi.fn(),
+}));
+
 // Mock Next.js functions
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
@@ -426,6 +435,97 @@ describe('Server Actions Integration Tests', () => {
 
       // Then - 조직 조회 성공
       expect(orgsResult).toEqual(mockOrganizations);
+    });
+  });
+
+  describe('processUserRegistrationAction', () => {
+    it('프로필 → 조직 → 워크스페이스 → 페이지 생성 전체 플로우가 성공해야 한다', async () => {
+      // Given
+      const mockAuthUser = {
+        data: {
+          user: {
+            id: 'test-user-id',
+            email: 'test@example.com',
+            user_metadata: {
+              name: 'Test User',
+              avatar_url: 'https://example.com/avatar.jpg'
+            }
+          }
+        },
+        error: null
+      };
+
+      mockSupabaseClient.auth.getUser.mockResolvedValue(mockAuthUser);
+      mockUserManagementService.createUserProfile.mockResolvedValue(
+        Result.success(mockUser)
+      );
+
+      // Mock: Organization + Workspace + Page 생성 성공
+      const mockOrgWithWorkspaceAndPage = {
+        organization: {
+          id: 'org-123',
+          name: "Test User's Organization",
+          organizationType: 'personal' as const,
+          isDefault: true,
+          role: 'owner' as const,
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+        workspace: {
+          id: 'workspace-123',
+          name: 'Default Workspace',
+          isDefault: true,
+        },
+        page: {
+          id: 'page-123',
+          title: 'Welcome',
+          icon: '👋',
+        },
+        redirectUrl: '/r/org-123/workspace/workspace-123/page/page-123',
+      };
+
+      mockCreateDefaultOrgWithWorkspaceAndPageAction.mockResolvedValue(mockOrgWithWorkspaceAndPage);
+
+      // When
+      const { processUserRegistrationAction } = await import('../actions/user-management.actions');
+      const result = await processUserRegistrationAction();
+
+      // Then
+      expect(result.success).toBe(true);
+      expect(result.user.id).toBe('test-user-id');
+      expect(result.user.email).toBe('test@example.com');
+      expect(result.defaultOrganization.id).toBe('org-123');
+      expect(result.defaultOrganization.isDefault).toBe(true);
+      expect(result.workspace.id).toBe('workspace-123');
+      expect(result.workspace.name).toBe('Default Workspace');
+      expect(result.page.id).toBe('page-123');
+      expect(result.page.title).toBe('Welcome');
+      expect(result.redirectUrl).toMatch(/^\/r\/[a-z0-9-]+\/workspace\/[a-z0-9-]+\/page\/[a-z0-9-]+$/);
+    });
+
+    it('프로필 생성 실패 시 전체 플로우가 중단되어야 한다', async () => {
+      // Given
+      const mockAuthUser = {
+        data: {
+          user: {
+            id: 'test-user-id',
+            email: 'test@example.com',
+            user_metadata: { name: 'Test User' }
+          }
+        },
+        error: null
+      };
+
+      mockSupabaseClient.auth.getUser.mockResolvedValue(mockAuthUser);
+      mockUserManagementService.createUserProfile.mockResolvedValue(
+        Result.error(new UserManagementError(
+          'PROFILE_CREATION_FAILED',
+          'Failed to create user profile'
+        ))
+      );
+
+      // When & Then
+      const { processUserRegistrationAction } = await import('../actions/user-management.actions');
+      await expect(processUserRegistrationAction()).rejects.toThrow('Failed to create user profile');
     });
   });
 });

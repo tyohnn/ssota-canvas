@@ -15,7 +15,7 @@ import { PageAggregate } from '../../shared/aggregates/page.aggregate';
 import { adminDb } from '@/db';
 
 /**
- * Workspace CRUD Service Implementation (Scenario 2)
+ * Workspace CRUD Service Implementation (Scenario 0, 2)
  *
  * Workspace 생성 및 정보 수정을 담당
  */
@@ -26,6 +26,95 @@ export class DefaultWorkspaceCrudService implements WorkspaceCrudService {
     private workspaceMemberRepo: WorkspaceMemberRepository,
     private orgMemberRepo: OrganizationMemberRepository
   ) {}
+
+  /**
+   * Default Workspace 생성 (Scenario 0)
+   *
+   * 트랜잭션:
+   * 1. Default Workspace 생성 (삭제 불가)
+   * 2. 생성자를 Workspace 멤버로 추가
+   * 3. 초기 "Welcome 👋" 페이지 생성
+   *
+   * @param orgId - 조직 ID
+   * @param userId - 사용자 ID (조직 소유자)
+   * @returns CreateWorkspaceResult (성공) | Error code (실패)
+   */
+  async createDefaultWorkspace(
+    orgId: OrganizationId,
+    userId: string
+  ): Promise<Result<CreateWorkspaceResult>> {
+    try {
+      // 1. Default Workspace Aggregate 생성
+      const workspaceAgg = WorkspaceAggregate.createDefault({
+        organizationId: orgId.value,
+        createdBy: userId,
+      });
+
+      // 2. Welcome Page Aggregate 생성
+      const pageAgg = PageAggregate.create(
+        {
+          workspaceId: workspaceAgg.workspace.workspaceId.value,
+          parentId: undefined, // 최상위
+          title: 'Welcome',
+          icon: 'Sparkles', // Lucide icon name
+          createdBy: userId,
+        },
+        null // parentPage
+      );
+
+      // 3. 트랜잭션: Workspace + Membership + Welcome Page 생성
+      await adminDb.transaction(async tx => {
+        try {
+          // 3-1. Workspace 저장
+          await this.workspaceRepo.save(workspaceAgg);
+          console.log(
+            '[WorkspaceCrudService] Workspace created:',
+            workspaceAgg.workspace.workspaceId.value
+          );
+
+          // 3-2. 생성자를 Workspace 멤버로 추가
+          await this.workspaceMemberRepo.addMember(
+            workspaceAgg.workspace.workspaceId,
+            userId
+          );
+          console.log('[WorkspaceCrudService] Workspace member added:', userId);
+
+          // 3-3. Welcome 페이지 저장
+          await this.pageRepo.save(pageAgg);
+          console.log(
+            '[WorkspaceCrudService] Welcome page created:',
+            pageAgg.page.pageId.value
+          );
+        } catch (error) {
+          console.error(
+            '[WorkspaceCrudService] Transaction failed, auto-rollback triggered:',
+            error
+          );
+          throw error; // 트랜잭션 롤백 트리거
+        }
+      });
+
+      // 4. Result.ok 반환 (workspaceId, firstPageId)
+      console.log(
+        '[WorkspaceCrudService] Default workspace creation completed successfully'
+      );
+      return R.ok({
+        workspaceId: workspaceAgg.workspace.workspaceId.value,
+        firstPageId: pageAgg.page.pageId.value,
+      });
+    } catch (error) {
+      // 5. Validation 에러 처리 (Aggregate에서 발생)
+      console.error(
+        '[WorkspaceCrudService] Default workspace creation failed:',
+        error
+      );
+
+      if (error instanceof Error) {
+        return R.err(`WORKSPACE_CREATION_FAILED: ${error.message}`);
+      }
+      return R.err('UNKNOWN_ERROR');
+    }
+  }
 
   /**
    * Workspace 생성 (Scenario 2)

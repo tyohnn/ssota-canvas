@@ -8,7 +8,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
@@ -73,28 +72,28 @@ export function WorkspaceContextMenu({
     <>
       <DropdownMenu onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
+          <div
             className={cn(
-              'h-4 w-4 p-0 transition-all hover:bg-accent',
+              'h-4 w-4 p-0 flex items-center justify-center rounded-sm transition-all hover:bg-accent cursor-pointer',
               isMenuOpen || showSettings || showInvite || showArchive
                 ? 'opacity-100'
                 : isParentHovered
                   ? 'opacity-100'
                   : 'opacity-0'
             )}
+            role="button"
+            aria-label="워크스페이스 메뉴"
+            tabIndex={-1}
           >
             <MoreHorizontal
               className={cn(
                 'h-3.5 w-3.5 transition-colors',
                 isMenuOpen || showSettings || showInvite || showArchive
                   ? 'text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
+                  : 'text-muted-foreground'
               )}
             />
-            <span className="sr-only">워크스페이스 메뉴</span>
-          </Button>
+          </div>
         </DropdownMenuTrigger>
 
         <DropdownMenuContent side="right" align="start" className="w-48">

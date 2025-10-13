@@ -16,11 +16,8 @@ import {
   CreateOrganizationRequest,
   CreateOrganizationResult,
 } from '../../shared/dtos';
-import {
-  getCookieValue,
-  setCookieValue,
-  ORGANIZATION_COOKIE_KEYS,
-} from '../utils/cookie-helpers';
+import { getCookieValue, setCookieValue } from '@/utils/cookie-helpers';
+import { ORGANIZATION_COOKIE_KEYS } from '../utils/cookie-helpers';
 
 interface OrganizationContextType {
   // 상태

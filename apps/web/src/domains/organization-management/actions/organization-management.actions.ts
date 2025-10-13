@@ -11,6 +11,10 @@ import { DrizzleOrganizationMemberRepository } from '../backend/repositories/imp
 import { OrganizationManagementService } from '../backend/services/organization-management.service';
 import { DrizzleNotificationRepository } from '@/domains/notification-management/backend/repositories/implementations/drizzle-notification.repository';
 import { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
+import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
+import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
+import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace-member.repository';
+import { DefaultWorkspaceCrudService } from '@/domains/workspace-management/backend/services/workspace-crud.service';
 import {
   CreateDefaultOrganizationCommand,
   CreateNewOrganizationCommand,
@@ -141,6 +145,90 @@ export async function createDefaultOrganizationAction(
       createdAt: result.value.entity.createdAt.toISOString(), // Serialize Date to ISO string
     };
   } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * 기본 조직, 워크스페이스, Welcome 페이지를 생성하고 리다이렉션 URL 반환
+ * (사용자 가입 시 자동 호출)
+ */
+export async function createDefaultOrganizationWithWorkspaceAndPageAction(
+  input: z.infer<typeof createDefaultOrganizationSchema>
+): Promise<{
+  organization: OrganizationSummary;
+  workspace: { id: string; name: string; isDefault: boolean };
+  page: { id: string; title: string; icon: string };
+  redirectUrl: string;
+}> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      throw new Error('Authentication required');
+    }
+
+    // 2. Input validation
+    const validatedInput = createDefaultOrganizationSchema.parse(input);
+
+    // 3. Repository 인스턴스 생성
+    const organizationRepository = new DrizzleOrganizationRepository();
+    const organizationMemberRepository =
+      new DrizzleOrganizationMemberRepository();
+
+    // Workspace Management Domain Repositories
+    const workspaceRepository = new DrizzleWorkspaceRepository();
+    const pageRepository = new DrizzlePageRepository();
+    const workspaceMemberRepository = new DrizzleWorkspaceMemberRepository();
+
+    // 4. Service 주입 (Workspace Service → Organization Service)
+    const workspaceCrudService = new DefaultWorkspaceCrudService(
+      workspaceRepository,
+      pageRepository,
+      workspaceMemberRepository,
+      organizationMemberRepository
+    );
+
+    const organizationService = new OrganizationManagementService(
+      organizationRepository,
+      undefined, // invitationRepository
+      organizationMemberRepository,
+      undefined, // notificationService
+      workspaceCrudService // Workspace Service 주입
+    );
+
+    // 5. Command 생성
+    const command: CreateDefaultOrganizationCommand = {
+      userId: user.id,
+      organizationName: validatedInput.organizationName,
+    };
+
+    // 6. 도메인 로직 실행 (트랜잭션: 조직 → 워크스페이스 → 페이지)
+    const result =
+      await organizationService.createDefaultOrganizationWithWorkspaceAndPage(
+        command
+      );
+
+    if (result.isError()) {
+      throw new Error(result.error.message);
+    }
+
+    // 7. 관련 페이지 재검증
+    revalidatePath('/dashboard');
+    revalidatePath('/organizations');
+    revalidatePath(`/r/${result.value.organization.id}`);
+
+    return result.value;
+  } catch (error) {
+    console.error(
+      '[createDefaultOrganizationWithWorkspaceAndPageAction] Error:',
+      error
+    );
     throw error;
   }
 }

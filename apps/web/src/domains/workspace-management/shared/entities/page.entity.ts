@@ -109,6 +109,23 @@ export class Page {
   }
 
   /**
+   * 순서 업데이트
+   * 
+   * @param order - 새 순서 (0부터 시작하는 인덱스)
+   */
+  updateOrder(order: number): void {
+    if (order < 0) {
+      throw new WorkspaceManagementError(
+        'INVALID_PAGE_ORDER',
+        'Order must be non-negative'
+      );
+    }
+    
+    this.order = order;
+    this._updatedAt = new Date();
+  }
+
+  /**
    * 부모 페이지 변경 및 depth 재계산
    * 
    * @param newParentId - 새 부모 페이지 ID (null이면 최상위로 이동)

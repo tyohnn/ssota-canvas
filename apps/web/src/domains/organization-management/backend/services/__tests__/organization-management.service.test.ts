@@ -8,12 +8,14 @@ import { OrganizationAggregate } from '../../../shared/aggregates/organization.a
 import { InvitationAggregate } from '../../../shared/aggregates/invitation.aggregate.js';
 import { UserId, OrganizationId, InvitationId } from '../../../shared/value-objects/ids.vo.js';
 import { MemberRole } from '../../../shared/value-objects/member-role.vo.js';
+import type { WorkspaceCrudService } from '@/domains/workspace-management/backend/services/interfaces/workspace-crud.service.interface';
 
 describe('OrganizationManagementService', () => {
   let service: OrganizationManagementService;
   let mockOrgRepository: Mocked<OrganizationRepository>;
   let mockInvitationRepository: Mocked<InvitationRepository>;
   let mockMemberRepository: Mocked<OrganizationMemberRepository>;
+  let mockWorkspaceCrudService: Mocked<WorkspaceCrudService>;
 
   beforeEach(() => {
     mockOrgRepository = {
@@ -22,6 +24,7 @@ describe('OrganizationManagementService', () => {
       findByIdAsAdmin: vi.fn<OrganizationRepository['findByIdAsAdmin']>(),
       findByOwnerId: vi.fn<OrganizationRepository['findByOwnerId']>(),
       delete: vi.fn<OrganizationRepository['delete']>(),
+      getOrganizationName: vi.fn<OrganizationRepository['getOrganizationName']>(),
     } as Mocked<OrganizationRepository>;
 
     mockInvitationRepository = {
@@ -48,10 +51,18 @@ describe('OrganizationManagementService', () => {
       searchUserProfileByEmail: vi.fn(),
     } as Mocked<OrganizationMemberRepository>;
 
+    mockWorkspaceCrudService = {
+      createDefaultWorkspace: vi.fn(),
+      createWorkspace: vi.fn(),
+      updateWorkspaceInfo: vi.fn(),
+    } as Mocked<WorkspaceCrudService>;
+
     service = new OrganizationManagementService(
       mockOrgRepository,
       mockInvitationRepository,
-      mockMemberRepository
+      mockMemberRepository,
+      undefined, // notificationService
+      mockWorkspaceCrudService
     );
   });
 
@@ -446,6 +457,150 @@ describe('OrganizationManagementService', () => {
       expect(sortedResults[0]?.role).toBe('owner'); // 소유자 조직
       expect(sortedResults[1]?.id).toBe(memberOrg1.id.value); // 2024-01-01 참여
       expect(sortedResults[2]?.id).toBe(memberOrg2.id.value); // 2024-01-02 참여
+    });
+  });
+
+  describe('createDefaultOrganizationWithWorkspaceAndPage', () => {
+    it('기본 조직, 워크스페이스, Welcome 페이지를 생성하고 리다이렉션 URL을 반환해야 한다', async () => {
+      // Given
+      const userId = crypto.randomUUID();
+      const userName = 'Test User';
+      const command = {
+        userId,
+        organizationName: `${userName}'s Organization`,
+      };
+
+      // Mock: 기존 기본 조직 없음
+      vi.mocked(mockOrgRepository.findByOwnerId).mockResolvedValueOnce([]);
+
+      // Mock: Workspace 생성 성공
+      const mockWorkspaceId = crypto.randomUUID();
+      const mockPageId = crypto.randomUUID();
+      vi.mocked(mockWorkspaceCrudService.createDefaultWorkspace).mockResolvedValueOnce({
+        success: true,
+        data: {
+          workspaceId: mockWorkspaceId,
+          firstPageId: mockPageId,
+        },
+      });
+
+      // When
+      const result = await service.createDefaultOrganizationWithWorkspaceAndPage(command);
+
+      // Then
+      expect(result.isSuccess()).toBe(true);
+      
+      // 조직이 생성되었는지 확인
+      expect(mockOrgRepository.save).toHaveBeenCalledTimes(1);
+      expect(mockOrgRepository.save).toHaveBeenCalledWith(
+        expect.any(OrganizationAggregate)
+      );
+
+      // 소유자가 멤버로 추가되었는지 확인
+      expect(mockMemberRepository.addMember).toHaveBeenCalledTimes(1);
+
+      // Workspace 생성이 호출되었는지 확인
+      expect(mockWorkspaceCrudService.createDefaultWorkspace).toHaveBeenCalledTimes(1);
+      expect(mockWorkspaceCrudService.createDefaultWorkspace).toHaveBeenCalledWith(
+        expect.any(OrganizationId),
+        userId
+      );
+
+      // 반환값 확인
+      if (result.isSuccess()) {
+        expect(result.value.organization).toBeDefined();
+        expect(result.value.workspace).toBeDefined();
+        expect(result.value.page).toBeDefined();
+        expect(result.value.redirectUrl).toMatch(
+          /^\/r\/[a-f0-9-]+\/workspace\/[a-f0-9-]+\/page\/[a-f0-9-]+$/
+        );
+      }
+    });
+
+    it('워크스페이스 생성 실패 시 조직 생성이 롤백되어야 한다', async () => {
+      // Given
+      const userId = crypto.randomUUID();
+      const command = {
+        userId,
+        organizationName: "Test User's Organization",
+      };
+
+      // Mock: 기존 기본 조직 없음
+      vi.mocked(mockOrgRepository.findByOwnerId).mockResolvedValueOnce([]);
+
+      // Mock: Workspace 생성 실패
+      vi.mocked(mockWorkspaceCrudService.createDefaultWorkspace).mockResolvedValueOnce({
+        success: false,
+        error: 'WORKSPACE_CREATION_FAILED',
+      });
+
+      // When
+      const result = await service.createDefaultOrganizationWithWorkspaceAndPage(command);
+
+      // Then
+      expect(result.isError()).toBe(true);
+      expect(result.error.code).toBe('ORGANIZATION_CREATION_FAILED');
+      expect(result.error.message).toContain('WORKSPACE_CREATION_FAILED');
+
+      // 조직이 저장되었는지 확인
+      expect(mockOrgRepository.save).toHaveBeenCalledTimes(1);
+
+      // 롤백: 조직이 삭제되었는지 확인
+      expect(mockOrgRepository.delete).toHaveBeenCalledTimes(1);
+      expect(mockMemberRepository.removeMember).toHaveBeenCalledTimes(1);
+    });
+
+    it('WorkspaceCrudService가 주입되지 않으면 에러를 반환해야 한다', async () => {
+      // Given
+      const serviceWithoutWorkspace = new OrganizationManagementService(
+        mockOrgRepository,
+        mockInvitationRepository,
+        mockMemberRepository
+        // workspaceCrudService 없음
+      );
+
+      const command = {
+        userId: crypto.randomUUID(),
+        organizationName: "Test User's Organization",
+      };
+
+      // When
+      const result = await serviceWithoutWorkspace.createDefaultOrganizationWithWorkspaceAndPage(command);
+
+      // Then
+      expect(result.isError()).toBe(true);
+      expect(result.error.code).toBe('WORKSPACE_SERVICE_NOT_INITIALIZED');
+    });
+
+    it('중복 기본 조직 방지: 이미 기본 조직이 있으면 기존 조직을 반환해야 한다', async () => {
+      // Given
+      const userId = new UserId(crypto.randomUUID());
+      const existingOrg = OrganizationAggregate.createDefault(
+        "Existing User's Organization",
+        userId
+      );
+
+      vi.mocked(mockOrgRepository.findByOwnerId).mockResolvedValueOnce([existingOrg]);
+
+      const command = {
+        userId: userId.value,
+        organizationName: "Test User's Organization",
+      };
+
+      // When
+      const result = await service.createDefaultOrganizationWithWorkspaceAndPage(command);
+
+      // Then
+      expect(result.isSuccess()).toBe(true);
+      
+      // 새 조직은 생성되지 않아야 함
+      expect(mockOrgRepository.save).not.toHaveBeenCalled();
+      
+      // 기존 조직 정보를 반환해야 함
+      if (result.isSuccess()) {
+        expect(result.value.organization.id).toBe(existingOrg.id.value);
+        expect(result.value.organization.isDefault).toBe(true);
+      }
     });
   });
 });

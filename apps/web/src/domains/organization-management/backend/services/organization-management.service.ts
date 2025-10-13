@@ -24,6 +24,7 @@ import {
 } from '../../shared/commands';
 import { OrganizationSummary } from '../../shared/dtos';
 import { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
+import type { WorkspaceCrudService } from '@/domains/workspace-management/backend/services/interfaces/workspace-crud.service.interface';
 import { devLog, eventLog } from '@/utils/dev-logger';
 
 export class OrganizationManagementService {
@@ -31,8 +32,207 @@ export class OrganizationManagementService {
     private organizationRepository: OrganizationRepository,
     private invitationRepository?: InvitationRepository,
     private organizationMemberRepository?: OrganizationMemberRepository,
-    private notificationService?: NotificationService
+    private notificationService?: NotificationService,
+    private workspaceCrudService?: WorkspaceCrudService
   ) {}
+
+  /**
+   * 기본 조직, 워크스페이스, Welcome 페이지를 생성하고 리다이렉션 URL 반환
+   * (Scenario 0: Organization 생성 시 Default Workspace 자동 생성)
+   *
+   * @param command - CreateDefaultOrganizationCommand
+   * @returns 조직, 워크스페이스, 페이지 정보 및 리다이렉션 URL
+   */
+  async createDefaultOrganizationWithWorkspaceAndPage(
+    command: CreateDefaultOrganizationCommand
+  ): Promise<
+    Result<
+      {
+        organization: OrganizationSummary;
+        workspace: { id: string; name: string; isDefault: boolean };
+        page: { id: string; title: string; icon: string };
+        redirectUrl: string;
+      },
+      OrganizationManagementError
+    >
+  > {
+    // 1. WorkspaceCrudService 주입 확인
+    if (!this.workspaceCrudService) {
+      return Result.error(
+        new OrganizationManagementError(
+          'WORKSPACE_SERVICE_NOT_INITIALIZED',
+          'Workspace service is not initialized'
+        )
+      );
+    }
+
+    try {
+      const userId = new UserId(command.userId);
+
+      // 2. 중복 기본 조직 확인
+      const existingOrganizations =
+        await this.organizationRepository.findByOwnerId(userId);
+      const existingDefaultOrg = existingOrganizations.find(
+        org => org.entity.isDefault
+      );
+
+      if (existingDefaultOrg) {
+        // 기존 기본 조직이 있으면 반환 (워크스페이스/페이지는 이미 존재한다고 가정)
+        // TODO: 기존 워크스페이스와 페이지 정보도 조회하여 반환
+        return Result.success({
+          organization: {
+            id: existingDefaultOrg.id.value,
+            name: existingDefaultOrg.entity.name,
+            organizationType: existingDefaultOrg.entity.organizationType,
+            isDefault: true,
+            role: 'owner',
+            createdAt: existingDefaultOrg.entity.createdAt.toISOString(),
+          },
+          workspace: {
+            id: 'existing-workspace-id',
+            name: 'Default Workspace',
+            isDefault: true,
+          },
+          page: {
+            id: 'existing-page-id',
+            title: 'Welcome',
+            icon: 'Sparkles',
+          },
+          redirectUrl: `/r/${existingDefaultOrg.id.value}/workspace/existing-workspace-id/page/existing-page-id`,
+        });
+      }
+
+      // 3. 기본 조직 생성
+      const organization = OrganizationAggregate.createDefault(
+        command.organizationName,
+        userId
+      );
+
+      // 4. 조직 저장
+      await this.organizationRepository.save(organization);
+
+      // 5. 소유자를 organization_members 테이블에 추가
+      if (this.organizationMemberRepository) {
+        await this.organizationMemberRepository.addMember({
+          organizationId: organization.id,
+          userId: userId,
+          role: new MemberRole('owner'),
+          joinedAt: new Date(),
+        });
+      }
+
+      // 6. Default Workspace + Welcome 페이지 생성 (Workspace Management Domain 통합)
+      const workspaceResult =
+        await this.workspaceCrudService.createDefaultWorkspace(
+          organization.id,
+          command.userId
+        );
+
+      if (!workspaceResult.success) {
+        // 워크스페이스 생성 실패 시 조직 전체 롤백
+        await this.rollbackOrganizationCreation(organization.id, userId);
+
+        return Result.error(
+          new OrganizationManagementError(
+            'ORGANIZATION_CREATION_FAILED',
+            `Failed to create default workspace: ${workspaceResult.error}`
+          )
+        );
+      }
+
+      const { workspaceId, firstPageId } = workspaceResult.data;
+
+      // 7. 리다이렉션 URL 생성
+      const redirectUrl = `/r/${organization.id.value}/workspace/${workspaceId}/page/${firstPageId}`;
+
+      // 8. 결과 반환
+      return Result.success({
+        organization: {
+          id: organization.id.value,
+          name: organization.entity.name,
+          organizationType: organization.entity.organizationType,
+          isDefault: true,
+          role: 'owner',
+          createdAt: organization.entity.createdAt.toISOString(),
+        },
+        workspace: {
+          id: workspaceId,
+          name: 'Default Workspace',
+          isDefault: true,
+        },
+        page: {
+          id: firstPageId,
+          title: 'Welcome',
+          icon: 'Sparkles',
+        },
+        redirectUrl,
+      });
+    } catch (error) {
+      return Result.error(
+        new OrganizationManagementError(
+          'ORGANIZATION_CREATION_FAILED',
+          'Failed to create default organization with workspace and page',
+          { error }
+        )
+      );
+    }
+  }
+
+  /**
+   * 조직 생성 롤백 - 실패 시 생성된 모든 관련 데이터 정리
+   */
+  private async rollbackOrganizationCreation(
+    organizationId: OrganizationId,
+    userId: UserId
+  ): Promise<void> {
+    try {
+      console.warn(
+        '[OrganizationManagementService] Starting rollback for organization:',
+        organizationId.value
+      );
+
+      // 1. 조직 멤버 제거 (먼저 FK 관계 정리)
+      if (this.organizationMemberRepository) {
+        try {
+          await this.organizationMemberRepository.removeMember(
+            organizationId,
+            userId
+          );
+          console.log(
+            '[OrganizationManagementService] Removed organization member during rollback'
+          );
+        } catch (error) {
+          console.error(
+            '[OrganizationManagementService] Failed to remove organization member during rollback:',
+            error
+          );
+          // 멤버 제거 실패는 조직 삭제를 막지 않음 (orphan 방지)
+        }
+      }
+
+      // 2. 조직 삭제
+      try {
+        await this.organizationRepository.delete(organizationId);
+        console.log(
+          '[OrganizationManagementService] Deleted organization during rollback'
+        );
+      } catch (error) {
+        console.error(
+          '[OrganizationManagementService] Failed to delete organization during rollback:',
+          error
+        );
+        throw error; // 조직 삭제 실패는 심각한 문제
+      }
+
+      console.log(
+        '[OrganizationManagementService] Rollback completed successfully'
+      );
+    } catch (error) {
+      console.error('[OrganizationManagementService] Rollback failed:', error);
+      // 롤백 실패도 원래 에러에 포함하지 않음 (원인 파악을 위해)
+      // 대신 별도 로깅으로 관리자가 확인할 수 있도록 함
+    }
+  }
 
   async createDefaultOrganization(
     command: CreateDefaultOrganizationCommand
