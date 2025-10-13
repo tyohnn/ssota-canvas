@@ -77,7 +77,7 @@ export function WorkspaceContextMenu({
             variant="ghost"
             size="sm"
             className={cn(
-              'h-6 w-6 p-0 transition-all hover:bg-accent',
+              'h-4 w-4 p-0 transition-all hover:bg-accent',
               isMenuOpen || showSettings || showInvite || showArchive
                 ? 'opacity-100'
                 : isParentHovered
@@ -87,7 +87,7 @@ export function WorkspaceContextMenu({
           >
             <MoreHorizontal
               className={cn(
-                'h-4 w-4 transition-colors',
+                'h-3.5 w-3.5 transition-colors',
                 isMenuOpen || showSettings || showInvite || showArchive
                   ? 'text-foreground'
                   : 'text-muted-foreground hover:text-foreground'

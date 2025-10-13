@@ -23,6 +23,7 @@ import { CreateWorkspaceDialog } from '../workspace/create-workspace-dialog';
  * 조직 페이지 사이드바의 메인 콘텐츠
  * - 즐겨찾기 섹션 (최상단)
  * - Workspace 섹션 (Workspace-Page 트리)
+ * - Suspense로 로딩 상태 처리
  */
 export function WorkspaceSidebarContent() {
   const { favoritePages, workspaces } = useWorkspace();

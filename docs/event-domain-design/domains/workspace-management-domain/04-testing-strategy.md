@@ -5,8 +5,8 @@
 **도메인**: Workspace Management  
 **작성자**: 시니어개발자 + QA  
 **작성일**: 2025-10-11  
-**최종 수정**: 2025-10-12  
-**버전**: v1.1
+**최종 수정**: 2025-10-13  
+**버전**: v1.2
 
 **Software Design 참조**: `03-software-design.md`  
 **Process Model 참조**: `02-process-model.md`  
@@ -666,12 +666,14 @@ describe('권한 검증 통합 테스트', () => {
 | **Value Objects** | 95% 이상 | ⭐️⭐️⭐️⭐️ | 6개 |
 | **Entities** | 95% 이상 | ⭐️⭐️⭐️⭐️⭐️ | 12개 |
 | **Aggregates** | 90% 이상 | ⭐️⭐️⭐️⭐️⭐️ | 70개 (Workspace 35 + Page 35) |
-| **Read Model Service** | 85% 이상 | ⭐️⭐️⭐️⭐️⭐️ | 13개 |
+| **Services** | 90% 이상 | ⭐️⭐️⭐️⭐️⭐️ | 39개 (4개 Service) |
 | **Repositories** | 80% 이상 | ⭐️⭐️⭐️⭐️ | 31개 (총 3개 Repository) |
 | **Server Actions** | 85% 이상 | ⭐️⭐️⭐️⭐️⭐️ | 77개 (총 9개 Action) |
 | **E2E Tests** | 주요 시나리오 | ⭐️⭐️⭐️⭐️⭐️ | 12개 |
 
-**총 예상 테스트 수**: ~221개 (Scenario 0~5 완료)
+**총 예상 테스트 수**: ~247개 (Scenario 0~5 완료)
+
+> **아키텍처 개선 (v1.2)**: 단일 WorkspaceManagementService를 Scenario별로 4개 Service로 분리하여 SRP(단일 책임 원칙) 준수 및 테스트 독립성 확보
 
 ---
 
@@ -721,14 +723,29 @@ describe('권한 검증 통합 테스트', () => {
 
 ---
 
-#### Phase 4: Read Model Service (⭐️⭐️⭐️⭐️⭐️)
+#### Phase 4: Services (⭐️⭐️⭐️⭐️⭐️)
 ```
-1. OrganizationWorkspacePageView Service → RED-GREEN-REFACTOR
-   - load 메서드 (Workspace + Page 조합)
-   - validateCookie 메서드 (쿠키 검증 및 Fallback)
+1. WorkspaceNavigationService → RED-GREEN-REFACTOR (Scenario 1)
+   - getOrganizationWorkspacePageView 메서드
+   - verifyPageAccess 메서드
+   
+2. WorkspaceCrudService → RED-GREEN-REFACTOR (Scenario 2)
+   - createWorkspace 메서드 (트랜잭션: Workspace + 초기 Page)
+   - updateWorkspaceInfo 메서드
+   
+3. WorkspaceInvitationService → RED-GREEN-REFACTOR (Scenario 3)
+   - inviteWorkspaceMembers 메서드 (Notification 통합)
+   - acceptWorkspaceInvitation 메서드
+   - rejectWorkspaceInvitation 메서드
+   
+4. PageHierarchyService → RED-GREEN-REFACTOR (Scenario 4)
+   - createPage 메서드
+   - movePage 메서드 (순환 참조 체크)
+   - updatePageInfo 메서드
 ```
 
-**예상 시간**: 3-4시간
+**예상 시간**: 8-10시간  
+**아키텍처 원칙**: SRP 준수, 의존성 최소화 (평균 4개), 독립 테스트 가능
 
 ---
 
@@ -927,6 +944,20 @@ async move(pageId: string, newParentId: string): Promise<void> {
 ---
 
 ## 📋 문서 변경 이력
+
+### v1.2 (2025-10-13)
+- **Service 아키텍처 리팩토링**:
+  - 단일 WorkspaceManagementService → 4개 Scenario별 Service로 분리
+    - WorkspaceNavigationService (Scenario 1: 11 tests)
+    - WorkspaceCrudService (Scenario 2: 10 tests)
+    - WorkspaceInvitationService (Scenario 3: 8 tests)
+    - PageHierarchyService (Scenario 4: 10 tests)
+  - SOLID 원칙 준수 (SRP, OCP)
+  - 의존성 최소화 (평균 7개 → 4개, 43% 감소)
+  - 테스트 독립성 확보 (4개 파일로 분리, 병렬 실행 가능)
+  - 파일 크기 감소 (837줄 → 평균 220줄, 74% 감소)
+- Phase 4 업데이트: Read Model Service → Services로 변경
+- 총 예상 테스트 수 업데이트: 221개 → 247개
 
 ### v1.1 (2025-10-12)
 - Scenario 3 테스트 케이스 확장:

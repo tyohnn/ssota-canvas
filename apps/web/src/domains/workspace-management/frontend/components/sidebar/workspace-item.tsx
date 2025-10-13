@@ -56,15 +56,15 @@ export function WorkspaceItem({ workspace }: WorkspaceItemProps) {
         <CollapsibleTrigger asChild>
           <button
             className={cn(
-              'flex items-center gap-1.5 px-2 py-1 rounded-sm text-xs flex-1 min-w-0 text-muted-foreground transition-colors'
+              'flex items-center gap-1.5 px-2 py-1 rounded-sm text-sm flex-1 min-w-0 text-muted-foreground transition-colors'
             )}
           >
             {/* 아이콘/Chevron 컨테이너 (고정 너비로 레이아웃 틀어짐 방지) */}
-            <div className="relative w-[14px] h-[14px] shrink-0">
+            <div className="relative w-4 h-4 shrink-0">
               {/* Workspace 아이콘 (기본 표시, 아이템 호버 또는 메뉴 열림 시 숨김) */}
               <WorkspaceIcon
                 icon={workspace.icon}
-                size={14}
+                size={16}
                 className={cn(
                   'absolute inset-0 transition-opacity',
                   isHovered || isMenuOrDialogOpen ? 'opacity-0' : 'opacity-100'
@@ -101,7 +101,7 @@ export function WorkspaceItem({ workspace }: WorkspaceItemProps) {
       {/* Workspace 콘텐츠 (페이지 트리) */}
       <CollapsibleContent>
         {workspace.pageTree.length === 0 ? (
-          <div className="px-8 py-2 text-xs text-muted-foreground">
+          <div className="px-8 py-2 text-sm text-muted-foreground">
             페이지를 생성하세요
           </div>
         ) : (

@@ -7,6 +7,8 @@ import type { PageTreeNodeDTO } from '../../../shared/dtos';
  */
 export interface PageTreeItem {
   id: string;
+  pageId: string; // Page ID (id와 동일, 명시성)
+  workspaceId: string; // Page가 속한 Workspace ID
   title: string;
   icon?: string | null;
   children: string[]; // 자식 페이지 IDs
@@ -22,6 +24,7 @@ export interface PageTreeItem {
  */
 export interface PageFlatItem {
   id: string;
+  workspaceId: string; // Page가 속한 Workspace ID
   title: string;
   icon?: string | null;
   parentId: string | null;

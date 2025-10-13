@@ -5,10 +5,16 @@ import {
   PageCreatedEvent,
   PageAccessVerifiedEvent,
   PageAccessDeniedEvent,
+  PageMovedEvent,
+  PageUpdatedEvent,
   WorkspaceManagementDomainEvent,
 } from '../events';
 import { WorkspaceManagementError } from '../errors/workspace-management.error';
-import type { CreatePageCommand } from '../commands';
+import type {
+  CreatePageCommand,
+  MovePageCommand,
+  UpdatePageCommand,
+} from '../commands';
 
 /**
  * Page Aggregate
@@ -89,6 +95,92 @@ export class PageAggregate {
     });
 
     return aggregate;
+  }
+
+  /**
+   * Page 이동
+   *
+   * @param command - Page 이동 Command
+   * @param newParentPage - 새 부모 페이지 (null이면 최상위)
+   * @param ancestors - 새 부모의 조상 페이지들 (순환 참조 체크용)
+   */
+  move(
+    command: MovePageCommand,
+    newParentPage: Page | null,
+    ancestors: Page[]
+  ): void {
+    const oldParentId = this._page.parentId?.value;
+    const oldDepth = this._page.depth;
+
+    // 1. 순환 참조 체크: 자기 자신으로 이동
+    if (command.newParentId === command.pageId) {
+      throw new WorkspaceManagementError(
+        'CIRCULAR_REFERENCE_DETECTED',
+        'Circular reference detected'
+      );
+    }
+
+    // 2. 순환 참조 체크: ancestors에 이동할 페이지가 있는지 확인
+    const isCircular = ancestors.some(
+      ancestor => ancestor.pageId.value === command.pageId
+    );
+    if (isCircular) {
+      throw new WorkspaceManagementError(
+        'CIRCULAR_REFERENCE_DETECTED',
+        'Circular reference detected'
+      );
+    }
+
+    // 3. 새 부모 ID 및 depth 계산
+    const newParentId = command.newParentId
+      ? new PageId(command.newParentId)
+      : null;
+    const newDepth = newParentId === null ? 0 : (newParentPage?.depth ?? 0) + 1;
+
+    // 4. Page Entity의 moveToParent 호출
+    this._page.moveToParent(newParentId, newDepth);
+
+    // 5. PageMoved 이벤트 발행
+    this.addEvent({
+      type: 'PageMoved',
+      pageId: this._page.pageId.value,
+      oldParentId,
+      newParentId: newParentId?.value,
+      oldDepth,
+      newDepth,
+      occurredAt: new Date(),
+    });
+  }
+
+  /**
+   * Page 정보 수정
+   *
+   * @param command - Page 정보 수정 Command
+   */
+  updateInfo(command: UpdatePageCommand): void {
+    const changes: { title?: string; icon?: string } = {};
+
+    // 1. 제목 업데이트
+    if (command.title !== undefined) {
+      this._page.updateTitle(command.title);
+      changes.title = command.title;
+    }
+
+    // 2. 아이콘 업데이트
+    if (command.icon !== undefined) {
+      this._page.updateIcon(command.icon);
+      changes.icon = command.icon;
+    }
+
+    // 3. PageUpdated 이벤트 발행
+    if (Object.keys(changes).length > 0) {
+      this.addEvent({
+        type: 'PageUpdated',
+        pageId: this._page.pageId.value,
+        changes,
+        occurredAt: new Date(),
+      });
+    }
   }
 
   /**

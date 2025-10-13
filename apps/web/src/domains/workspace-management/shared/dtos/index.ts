@@ -195,6 +195,38 @@ export interface WorkspaceMemberView {
 }
 
 // ────────────────────────────────────────────────────────────
+// Scenario 4: Page 생성 및 관리
+// ────────────────────────────────────────────────────────────
+
+export interface CreatePageRequest {
+  workspaceId: string;
+  parentId?: string; // null이면 최상위
+  title?: string; // 기본값: "Untitled"
+  icon?: string; // 기본값: "📄"
+}
+
+export interface CreatePageResponse {
+  pageId: string;
+}
+
+export interface MovePageRequest {
+  pageId: string;
+  newParentId?: string; // undefined면 최상위
+}
+
+export interface UpdatePageInfoRequest {
+  pageId: string;
+  title?: string;
+  icon?: string | null;
+}
+
+export interface ReorderPagesRequest {
+  workspaceId: string;
+  parentId?: string; // undefined면 루트
+  orderedPageIds: string[]; // 순서대로 정렬된 페이지 ID 배열
+}
+
+// ────────────────────────────────────────────────────────────
 // Server Action Result Type
 // ────────────────────────────────────────────────────────────
 

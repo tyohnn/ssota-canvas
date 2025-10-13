@@ -232,17 +232,25 @@ describe('UserManagementService Integration Tests', () => {
 #### UserManagement Actions
 ```typescript
 describe('Server Actions Integration Tests', () => {
+  describe('createDefaultOrganizationWithWorkspaceAndPageAction', () => {
+    it('트랜잭션으로 프로필 → 조직 → 워크스페이스 → 페이지를 생성해야 한다')
+    it('생성된 Welcome 페이지 URL을 반환해야 한다')
+    it('Organization Service를 주입하여 조직 생성을 요청해야 한다')
+    it('Workspace Service를 주입하여 워크스페이스 생성을 요청해야 한다')
+    it('Page Service를 주입하여 Welcome 페이지 생성을 요청해야 한다')
+    it('프로필 생성 실패 시 전체 롤백되어야 한다')
+    it('조직 생성 실패 시 전체 롤백되어야 한다')
+    it('워크스페이스 생성 실패 시 조직 생성이 롤백되어야 한다')
+    it('페이지 생성 실패 시 워크스페이스 생성이 롤백되어야 한다')
+    it('최종 실패 시 Supabase Auth 계정도 롤백되어야 한다')
+    it('리다이렉션 URL 형식이 올바른지 검증해야 한다: /r/[orgId]/workspace/[workspaceId]/page/[pageId]')
+  })
+  
   describe('createUserProfileAction', () => {
     it('인증된 사용자의 프로필을 생성해야 한다')
     it('미인증 사용자는 거부해야 한다')
     it('성공 시 Result.ok를 반환해야 한다')
     it('실패 시 Result.err를 반환해야 한다')
-  })
-  
-  describe('processUserRegistrationAction', () => {
-    it('트랜잭션으로 프로필을 생성해야 한다')
-    it('프로필 생성 실패 시 롤백되어야 한다')
-    it('Organization Management Domain으로 기본 조직 생성 요청을 보내야 한다')
   })
   
   describe('processOnboardingAction', () => {
@@ -261,16 +269,16 @@ describe('Server Actions Integration Tests', () => {
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**이유**: Server Actions는 클라이언트와의 주요 접점
+**이유**: Server Actions는 클라이언트와의 주요 접점, 특히 트랜잭션 처리가 핵심
 
 ---
 
 ## 🎭 E2E Tests 전략
 
-### 1. 사용자 등록 플로우 (Scenario 0)
+### 1. 사용자 등록 및 Welcome 페이지 리다이렉션 플로우 (Scenario 1)
 
 ```typescript
-test('구글 OAuth를 통한 신규 사용자 등록 전체 플로우', async ({ page }) => {
+test('구글 OAuth를 통한 신규 사용자 등록 및 Welcome 페이지 리다이렉션 전체 플로우', async ({ page }) => {
   // Given: 로그인 페이지 접근
   await page.goto('/login');
   
@@ -283,26 +291,31 @@ test('구글 OAuth를 통한 신규 사용자 등록 전체 플로우', async ({
   // When: 구글 로그인 완료 (테스트 계정 사용)
   // ... OAuth 플로우 ...
   
-  // Then: 온보딩 페이지로 리다이렉트
-  await expect(page).toHaveURL('/onboarding');
+  // Then: 로딩 상태 표시
+  await expect(page.locator('[data-testid="loading-message"]')).toContainText(
+    '환영합니다! 워크스페이스를 준비하고 있습니다'
+  );
   
-  // Then: 사용자 정보가 표시됨
-  await expect(page.locator('[data-testid="user-email"]')).toBeVisible();
-  await expect(page.locator('[data-testid="user-name"]')).toBeVisible();
+  // Then: Welcome 페이지로 자동 리다이렉트
+  await expect(page).toHaveURL(/\/r\/[a-f0-9-]+\/workspace\/[a-f0-9-]+\/page\/[a-f0-9-]+/);
   
-  // When: 온보딩 완료
-  await page.click('[data-testid="complete-onboarding-button"]');
+  // Then: Welcome 페이지 내용이 표시됨
+  await expect(page.locator('[data-testid="page-title"]')).toContainText('Welcome');
+  await expect(page.locator('[data-testid="page-icon"]')).toContainText('👋');
   
-  // Then: 대시보드로 이동
-  await expect(page).toHaveURL('/dashboard');
-  
-  // Then: 기본 조직이 선택되어 있음
+  // Then: 기본 조직이 사이드바에 표시됨
   await expect(page.locator('[data-testid="selected-organization"]')).toBeVisible();
+  
+  // Then: 기본 워크스페이스가 사이드바에 표시됨
+  await expect(page.locator('[data-testid="default-workspace"]')).toContainText('Default Workspace');
+  
+  // Then: Welcome 페이지가 페이지 트리에 표시됨
+  await expect(page.locator('[data-testid="page-tree-item"]')).toContainText('Welcome');
 })
 ```
 
 **테스트 우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**Process Model 매핑**: Scenario 0 전체
+**Process Model 매핑**: Scenario 1 전체 (프로필 → 조직 → 워크스페이스 → 페이지 → 리다이렉션)
 
 ---
 

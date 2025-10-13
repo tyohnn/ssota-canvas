@@ -9,6 +9,7 @@ import {
   createPageAction,
   movePageAction,
   updatePageInfoAction,
+  reorderPagesAction,
 } from '../workspace-management.actions';
 import { adminDb } from '@/db';
 import { workspaces, pages, workspaceMembers, workspaceInvitations } from '@/db/schema-dev';
@@ -839,6 +840,223 @@ describe('Workspace Management Server Actions Integration Tests', () => {
       // Cleanup
       await adminDb.delete(pages).where(eq(pages.workspace_id, workspace.workspace.workspaceId.value));
       await adminDb.delete(workspaceMembers).where(eq(workspaceMembers.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaces).where(eq(workspaces.id, workspace.workspace.workspaceId.value));
+    });
+  });
+
+  describe('reorderPagesAction', () => {
+    it('같은 부모 내에서 페이지 순서를 재정렬해야 한다', async () => {
+      // Given: 3개의 페이지가 있는 워크스페이스
+      const workspaceRepo = new DrizzleWorkspaceRepository();
+      const pageRepo = new DrizzlePageRepository();
+
+      const workspace = WorkspaceAggregate.create({
+        organizationId: testOrgId.value,
+        name: 'Reorder Test Workspace',
+        createdBy: testUserId,
+      });
+      await workspaceRepo.save(workspace);
+      await adminDb.insert(workspaceMembers).values({
+        workspace_id: workspace.workspace.workspaceId.value,
+        user_id: testUserId,
+      });
+
+      // 3개의 루트 페이지 생성 (order: 0, 1, 2)
+      const page1 = PageAggregate.create(
+        {
+          workspaceId: workspace.workspace.workspaceId.value,
+          title: 'Page 1',
+          icon: '1️⃣',
+          createdBy: testUserId,
+        },
+        null
+      );
+      await pageRepo.save(page1);
+
+      const page2 = PageAggregate.create(
+        {
+          workspaceId: workspace.workspace.workspaceId.value,
+          title: 'Page 2',
+          icon: '2️⃣',
+          createdBy: testUserId,
+        },
+        null
+      );
+      await pageRepo.save(page2);
+
+      const page3 = PageAggregate.create(
+        {
+          workspaceId: workspace.workspace.workspaceId.value,
+          title: 'Page 3',
+          icon: '3️⃣',
+          createdBy: testUserId,
+        },
+        null
+      );
+      await pageRepo.save(page3);
+
+      // When: 순서를 [3, 1, 2]로 재정렬
+      const result = await reorderPagesAction({
+        workspaceId: workspace.workspace.workspaceId.value,
+        parentId: undefined, // 루트
+        orderedPageIds: [
+          page3.page.pageId.value,
+          page1.page.pageId.value,
+          page2.page.pageId.value,
+        ],
+      });
+
+      // Then
+      expect(result.success).toBe(true);
+
+      // DB에서 순서 확인
+      const reorderedPages = await adminDb
+        .select()
+        .from(pages)
+        .where(eq(pages.workspace_id, workspace.workspace.workspaceId.value))
+        .orderBy(pages.order);
+
+      expect(reorderedPages[0]?.id).toBe(page3.page.pageId.value);
+      expect(reorderedPages[0]?.order).toBe(0);
+      expect(reorderedPages[1]?.id).toBe(page1.page.pageId.value);
+      expect(reorderedPages[1]?.order).toBe(1);
+      expect(reorderedPages[2]?.id).toBe(page2.page.pageId.value);
+      expect(reorderedPages[2]?.order).toBe(2);
+
+      // Cleanup
+      await adminDb.delete(pages).where(eq(pages.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaceMembers).where(eq(workspaceMembers.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaces).where(eq(workspaces.id, workspace.workspace.workspaceId.value));
+    });
+
+    it('하위 페이지 순서를 재정렬해야 한다', async () => {
+      // Given: 부모 페이지와 3개의 하위 페이지
+      const workspaceRepo = new DrizzleWorkspaceRepository();
+      const pageRepo = new DrizzlePageRepository();
+
+      const workspace = WorkspaceAggregate.create({
+        organizationId: testOrgId.value,
+        name: 'Reorder Subpages Test',
+        createdBy: testUserId,
+      });
+      await workspaceRepo.save(workspace);
+      await adminDb.insert(workspaceMembers).values({
+        workspace_id: workspace.workspace.workspaceId.value,
+        user_id: testUserId,
+      });
+
+      // 부모 페이지 생성
+      const parentPage = PageAggregate.create(
+        {
+          workspaceId: workspace.workspace.workspaceId.value,
+          title: 'Parent Page',
+          icon: '📁',
+          createdBy: testUserId,
+        },
+        null
+      );
+      await pageRepo.save(parentPage);
+
+      // 하위 페이지 3개 생성
+      const child1 = PageAggregate.create(
+        {
+          workspaceId: workspace.workspace.workspaceId.value,
+          title: 'Child 1',
+          icon: '1️⃣',
+          createdBy: testUserId,
+          parentId: parentPage.page.pageId.value,
+        },
+        parentPage.page
+      );
+      await pageRepo.save(child1);
+
+      const child2 = PageAggregate.create(
+        {
+          workspaceId: workspace.workspace.workspaceId.value,
+          title: 'Child 2',
+          icon: '2️⃣',
+          createdBy: testUserId,
+          parentId: parentPage.page.pageId.value,
+        },
+        parentPage.page
+      );
+      await pageRepo.save(child2);
+
+      const child3 = PageAggregate.create(
+        {
+          workspaceId: workspace.workspace.workspaceId.value,
+          title: 'Child 3',
+          icon: '3️⃣',
+          createdBy: testUserId,
+          parentId: parentPage.page.pageId.value,
+        },
+        parentPage.page
+      );
+      await pageRepo.save(child3);
+
+      // When: 하위 페이지 순서를 [2, 3, 1]로 재정렬
+      const result = await reorderPagesAction({
+        workspaceId: workspace.workspace.workspaceId.value,
+        parentId: parentPage.page.pageId.value,
+        orderedPageIds: [
+          child2.page.pageId.value,
+          child3.page.pageId.value,
+          child1.page.pageId.value,
+        ],
+      });
+
+      // Then
+      expect(result.success).toBe(true);
+
+      // DB에서 순서 확인
+      const reorderedChildren = await adminDb
+        .select()
+        .from(pages)
+        .where(eq(pages.parent_id, parentPage.page.pageId.value));
+
+      // order로 정렬해서 확인
+      const sorted = reorderedChildren.sort((a, b) => (a.order || 0) - (b.order || 0));
+      
+      expect(sorted.length).toBe(3);
+      expect(sorted[0]?.id).toBe(child2.page.pageId.value);
+      expect(sorted[0]?.order).toBe(0);
+      expect(sorted[1]?.id).toBe(child3.page.pageId.value);
+      expect(sorted[1]?.order).toBe(1);
+      expect(sorted[2]?.id).toBe(child1.page.pageId.value);
+      expect(sorted[2]?.order).toBe(2);
+
+      // Cleanup
+      await adminDb.delete(pages).where(eq(pages.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaceMembers).where(eq(workspaceMembers.workspace_id, workspace.workspace.workspaceId.value));
+      await adminDb.delete(workspaces).where(eq(workspaces.id, workspace.workspace.workspaceId.value));
+    });
+
+    it('권한이 없는 사용자는 순서를 변경할 수 없다', async () => {
+      // Given: 현재 사용자가 속하지 않은 워크스페이스
+      const workspaceRepo = new DrizzleWorkspaceRepository();
+
+      const workspace = WorkspaceAggregate.create({
+        organizationId: testOrgId.value,
+        name: 'Unauthorized Workspace',
+        createdBy: testUserId,
+      });
+      await workspaceRepo.save(workspace);
+      // testUserId를 멤버로 추가하지 않음!
+
+      // When: 권한 없는 사용자가 순서 변경 시도
+      const result = await reorderPagesAction({
+        workspaceId: workspace.workspace.workspaceId.value,
+        parentId: undefined,
+        orderedPageIds: [],
+      });
+
+      // Then
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe('NOT_WORKSPACE_MEMBER');
+      }
+
+      // Cleanup
       await adminDb.delete(workspaces).where(eq(workspaces.id, workspace.workspace.workspaceId.value));
     });
   });

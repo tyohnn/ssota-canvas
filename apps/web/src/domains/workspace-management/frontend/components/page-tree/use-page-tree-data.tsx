@@ -9,17 +9,20 @@ import { flattenPageTree } from './utils';
  * PageTreeNodeDTO를 @headless-tree/core 형태로 변환
  *
  * @param pages - 재귀 구조의 페이지 트리
+ * @param workspaceId - 페이지가 속한 Workspace ID
  * @returns @headless-tree/core용 데이터 구조
  */
-export function usePageTreeData(pages: PageTreeNodeDTO[]) {
+export function usePageTreeData(pages: PageTreeNodeDTO[], workspaceId: string) {
   const treeData = useMemo(() => {
     const nodeMap: Record<string, PageTreeItem> = {};
-    const flatPages = flattenPageTree(pages); // 재귀 → 플랫
+    const flatPages = flattenPageTree(pages, workspaceId); // 재귀 → 플랫
 
     // 1. 모든 페이지를 Map에 저장
     flatPages.forEach(page => {
       nodeMap[page.id] = {
         id: page.id,
+        pageId: page.id, // pageId 추가
+        workspaceId: page.workspaceId, // workspaceId 추가
         title: page.title,
         icon: page.icon,
         children: [], // 나중에 채움
@@ -51,7 +54,7 @@ export function usePageTreeData(pages: PageTreeNodeDTO[]) {
     });
 
     return nodeMap;
-  }, [pages]);
+  }, [pages, workspaceId]);
 
   // @headless-tree/core용 헬퍼 함수
   const getItem = useMemo(

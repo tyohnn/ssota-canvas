@@ -115,7 +115,8 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Workspace Man
 #### Commands (받는 명령) - Scenario 1, 4, 5
 - **CreateInitialPage** (Scenario 0, 2) - Workspace 생성 시 자동
 - **CreatePage** (Scenario 4) - 새 페이지 생성
-- **MovePage** (Scenario 4) - 페이지 이동
+- **MovePage** (Scenario 4) - 페이지 이동 (부모 변경)
+- **ReorderPages** (Scenario 4) - 페이지 순서 재정렬 **(신규 2025-10-13)**
 - **UpdatePageInfo** (Scenario 4) - 페이지 제목/아이콘 수정
 - **ToggleFavorite** (Scenario 5) - 즐겨찾기 추가/제거
 - **FindTreeByWorkspaceId** (Scenario 1) - Workspace별 페이지 트리 조회

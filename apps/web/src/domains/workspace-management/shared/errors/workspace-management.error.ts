@@ -18,6 +18,7 @@ export type WorkspaceManagementErrorCode =
   | 'INVALID_PAGE_TITLE'
   | 'CIRCULAR_REFERENCE_DETECTED'
   | 'INVALID_PAGE_DEPTH'
+  | 'INVALID_PARENT_PAGE'
 
   // Invitation 관련 에러 (Scenario 3)
   | 'INVITATION_NOT_FOUND'
@@ -81,6 +82,7 @@ export const ERROR_MESSAGES: Record<WorkspaceManagementErrorCode, string> = {
   INVALID_PAGE_TITLE: '페이지 제목이 유효하지 않습니다',
   CIRCULAR_REFERENCE_DETECTED: '순환 참조가 발생합니다',
   INVALID_PAGE_DEPTH: '유효하지 않은 페이지 깊이입니다',
+  INVALID_PARENT_PAGE: '부모 페이지가 같은 Workspace에 속하지 않습니다',
 
   // Invitation (Scenario 3)
   INVITATION_NOT_FOUND: '초대를 찾을 수 없습니다',

@@ -1,8 +1,8 @@
 // apps/web/src/domains/workspace-management/frontend/components/page-tree/page-tree.tsx
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
-import { useTree } from '@headless-tree/react';
+import React, { useCallback, useEffect, useMemo } from 'react';
+import { useTree, AssistiveTreeDescription } from '@headless-tree/react';
 import {
   createOnDropHandler,
   dragAndDropFeature,
@@ -11,10 +11,11 @@ import {
   selectionFeature,
   syncDataLoaderFeature,
 } from '@headless-tree/core';
-import { Tree } from '@workspace/ui/components/ui/tree';
+import { Tree, TreeDragLine } from '@workspace/ui/components/ui/tree';
 import type { PageTreeProps, PageTreeItem } from './types';
 import { usePageTreeData } from './use-page-tree-data';
 import { PageTreeItemRenderer } from './page-tree-item';
+import { useWorkspace } from '../../hooks/use-workspace';
 
 /**
  * Page Tree Component
@@ -25,6 +26,10 @@ import { PageTreeItemRenderer } from './page-tree-item';
  * - 단일 페이지 선택
  * - 드래그앤드롭 조건부 활성화 (Scenario 4 대비)
  */
+// 상수 정의
+const ROOT_DEPTH = -1;
+const DEFAULT_DEPTH = 0;
+
 export function PageTree({
   workspaceId,
   pages,
@@ -33,10 +38,15 @@ export function PageTree({
   onSelectPage,
   onTogglePage,
   enableDragDrop = false,
-  indent = 16,
+  indent = 20,
 }: PageTreeProps) {
+  const { movePage, reorderPages } = useWorkspace();
+
   // 페이지 데이터 변환
-  const { treeData, getItem, getChildren } = usePageTreeData(pages);
+  const { treeData, getItem, getChildren } = usePageTreeData(
+    pages,
+    workspaceId
+  );
 
   // Root 페이지 IDs (parentId가 null인 페이지들)
   const rootPageIds = useMemo(() => {
@@ -46,20 +56,59 @@ export function PageTree({
       .map(page => page.id);
   }, [treeData]);
 
-  // Custom click behavior (페이지 선택 시 Context 업데이트)
-  const customClickBehavior = useMemo(
+  // 드래그앤드롭 핸들러 - 부모 변경 및 순서 재정렬
+  const handleDrop = useCallback(
+    (parentItem: any, newChildrenIds: Iterable<string>) => {
+      const parentId = parentItem.getId();
+      const newParentId = parentId === workspaceId ? undefined : parentId;
+
+      // 중복 제거
+      const uniqueChildren = [...new Set(Array.from(newChildrenIds))];
+
+      // 변경 사항 분석
+      const currentChildren = treeData[parentId]?.children || [];
+      const addedIds = uniqueChildren.filter(
+        id => !currentChildren.includes(id)
+      );
+      const removedIds = currentChildren.filter(
+        id => !uniqueChildren.includes(id)
+      );
+
+      // 케이스 1: 부모 변경 (다른 부모로 이동)
+      if (addedIds.length > 0) {
+        addedIds
+          .filter(id => id !== workspaceId)
+          .forEach(id => movePage(id, newParentId));
+
+        reorderPages(workspaceId, newParentId, uniqueChildren);
+        return uniqueChildren;
+      }
+
+      // 케이스 2: 순서만 변경 (같은 부모 내에서 재정렬)
+      if (removedIds.length === 0 && uniqueChildren.length > 0) {
+        reorderPages(workspaceId, newParentId, uniqueChildren);
+        return uniqueChildren;
+      }
+
+      // 케이스 3: 변경 없음
+      return currentChildren;
+    },
+    [workspaceId, treeData, movePage, reorderPages]
+  );
+
+  // 기본 클릭 동작 비활성화 (각 버튼에서 직접 처리)
+  const disableDefaultClick = useMemo(
     () => ({
       onClick: (item: any, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        const pageId = item.getId();
-        onSelectPage(pageId);
       },
     }),
-    [onSelectPage]
+    []
   );
 
   // @headless-tree/core 설정
+  // pages가 변경될 때마다 재생성하되, 현재 펼쳐진 상태를 유지
   const tree = useTree<PageTreeItem>({
     initialState: {
       expandedItems: expandedPageIds,
@@ -69,38 +118,32 @@ export function PageTree({
     rootItemId: workspaceId, // Workspace ID를 root로 사용
     getItemName: item => item.getItemData()?.title ?? 'Unknown',
     isItemFolder: item => {
-      const data = item.getItemData();
-      return (data?.children?.length ?? 0) > 0; // 자식이 있으면 폴더
+      // 모든 페이지를 폴더처럼 동작하도록 (자식이 없어도 펼치기/접기 가능)
+      return true;
     },
     canReorder: enableDragDrop,
     canDrop: enableDragDrop
       ? (dragItems, target) => {
-          // Scenario 4에서 구현: 순환 참조 체크 등
+          // TODO: 순환 참조 체크 구현
           return true;
         }
       : undefined,
-    onDrop: enableDragDrop
-      ? createOnDropHandler((parentItem, newChildrenIds) => {
-          // Scenario 4에서 구현: Server Action 호출하여 순서 변경
-          console.log('[PageTree] onDrop:', {
-            parentId: parentItem.getId(),
-            newChildrenIds,
-          });
-        })
-      : undefined,
+    onDrop: enableDragDrop ? createOnDropHandler(handleDrop) : undefined,
     dataLoader: {
       getItem: (itemId: string): PageTreeItem => {
         // Root일 경우 가상 아이템 반환
         if (itemId === workspaceId) {
           return {
             id: workspaceId,
+            pageId: workspaceId,
+            workspaceId,
             title: 'Root',
             children: rootPageIds,
             parentId: null,
             order: 0,
             isFavorite: false,
             lastModified: new Date().toISOString(),
-            depth: -1,
+            depth: ROOT_DEPTH,
           };
         }
         const item = getItem(itemId);
@@ -108,13 +151,15 @@ export function PageTree({
         if (!item) {
           return {
             id: itemId,
+            pageId: itemId,
+            workspaceId,
             title: 'Unknown',
             children: [],
             parentId: null,
             order: 0,
             isFavorite: false,
             lastModified: new Date().toISOString(),
-            depth: 0,
+            depth: DEFAULT_DEPTH,
           };
         }
         return item;
@@ -134,7 +179,7 @@ export function PageTree({
       ...(enableDragDrop
         ? [dragAndDropFeature, keyboardDragAndDropFeature]
         : []),
-      customClickBehavior as any,
+      disableDefaultClick as any,
     ],
   });
 
@@ -147,9 +192,10 @@ export function PageTree({
     }
   }, [selectedPageId, tree]);
 
-  // 펼치기/접기 상태는 initialState에서만 설정
-  // @headless-tree/core가 내부적으로 관리
-  // onTogglePage를 통해 Context는 업데이트됨 (Tree → Context)
+  // pages 데이터 변경 시 Tree 리빌드 (Optimistic Update 반영)
+  useEffect(() => {
+    tree.rebuildTree();
+  }, [pages, tree]);
 
   // 빈 페이지 트리 처리
   if (rootPageIds.length === 0) {
@@ -160,7 +206,9 @@ export function PageTree({
   const treeItems = tree.getItems();
 
   return (
-    <Tree tree={tree} className="text-xs" indent={indent}>
+    <Tree tree={tree} className="text-xs pl-2 relative" indent={indent}>
+      <AssistiveTreeDescription tree={tree} />
+      <TreeDragLine />
       {treeItems.map(item => (
         <PageTreeItemRenderer
           key={item.getId()}

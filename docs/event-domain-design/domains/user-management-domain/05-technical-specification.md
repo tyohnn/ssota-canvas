@@ -43,7 +43,15 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
    - 기본 조직 생성은 Organization Management Domain에 위임 ✅
    - 조직 조회/선택은 Organization Management Domain으로 이관 ✅
 
-3. **Phase 3**: 사용자 계정 삭제 시스템 구현 🚧
+3. **Phase 3**: 전체 플로우 통합 및 리다이렉션 🚧 **← 현재 작업**
+   - 도메인 간 서비스 주입 구현 (User → Organization → Workspace → Page)
+   - 트랜잭션 처리 로직 구현 (프로필 → 조직 → 워크스페이스 → 페이지)
+   - Welcome 페이지 생성 로직
+   - 리다이렉션 URL 생성 및 반환
+   - 롤백 로직 구현 (각 단계 실패 시)
+   - 최근 방문 페이지 쿠키 저장
+
+4. **Phase 4**: 사용자 계정 삭제 시스템 구현 (추후)
    - UserAggregate 계정 삭제 처리
    - Organization Management Domain으로 삭제 이벤트 발행
    - 사용자 데이터 정리 프로세스
@@ -129,6 +137,7 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 - **역할**: 도메인 서비스에 전달되는 명령 객체들을 정의
 - **주요 Commands**:
   - CreateUserProfileCommand: 사용자 프로필 생성 명령 (Supabase Auth 데이터 기반)
+  - CreateDefaultOrganizationWithWorkspaceAndPageCommand: 기본 조직, 워크스페이스, Welcome 페이지 생성 명령 (새로 추가 필요)
   - ProcessOnboardingCommand: 온보딩 진행 명령
   - UpdateUserProfileCommand: 사용자 프로필 수정 명령
   - DeleteUserAccountCommand: 사용자 계정 삭제 명령
@@ -250,6 +259,7 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 - **파일 위치**: `src/domains/user-management/actions/user-management.actions.ts`
 - **역할**: Next.js Server Actions를 통해 클라이언트에서 호출 가능한 서버 함수들 제공
 - **주요 Actions**:
+  - createDefaultOrganizationWithWorkspaceAndPageAction(): 기본 조직, 워크스페이스, Welcome 페이지 생성 및 리다이렉션 URL 반환 (새로 추가 필요)
   - createUserProfileAction(): 사용자 프로필 생성
   - processOnboardingAction(): 온보딩 완료 처리
   - updateUserProfileAction(): 사용자 프로필 수정
@@ -257,7 +267,10 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
   - getUserProfileAction(): 사용자 프로필 조회
 - **인증 처리**: 모든 Action에서 Supabase Auth를 통한 사용자 인증 확인
 - **에러 처리**: Result 패턴을 통한 일관된 에러 처리 및 사용자 친화적 메시지 제공
-- **트랜잭션**: 사용자 등록, 계정 삭제 등에서 Drizzle 트랜잭션을 사용하여 원자성 보장
+- **트랜잭션**: 
+  - 사용자 등록: 프로필 → 조직 → 워크스페이스 → 페이지 생성을 하나의 트랜잭션으로 처리
+  - 계정 삭제: 사용자 데이터 정리를 트랜잭션으로 처리
+  - 롤백 전략: 각 단계 실패 시 이전 단계 모두 롤백 (Supabase Auth 포함)
 
 ---
 

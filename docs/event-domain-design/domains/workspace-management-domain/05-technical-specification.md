@@ -5,8 +5,8 @@
 **도메인**: Workspace Management  
 **작성자**: 주니어개발자 + 시니어개발자 (멘토링)  
 **작성일**: 2025-10-11  
-**최종 수정**: 2025-10-12  
-**버전**: v1.1
+**최종 수정**: 2025-10-13  
+**버전**: v1.2
 
 **Testing Strategy 참조**: `04-testing-strategy.md`  
 **Software Design 참조**: `03-software-design.md`  
@@ -43,13 +43,19 @@ Phase 2: Entities (⭐️⭐️⭐️⭐️⭐️) - 2개 (Workspace, Page)
 Phase 3: Aggregates (⭐️⭐️⭐️⭐️⭐️) - 2개 (Workspace, Page)
   - Workspace: 35개 테스트 (생성, 수정, 초대, 수락, 거절)
   - Page: 35개 테스트 (생성, 이동, 수정, 즐겨찾기)
-Phase 4: Read Model Service (⭐️⭐️⭐️⭐️⭐️) - 1개 (OrganizationWorkspacePageView)
+Phase 4: Services (⭐️⭐️⭐️⭐️⭐️) - 4개 (Scenario별 분리)
+  - WorkspaceNavigationService (Scenario 1: 11 tests, 4 deps)
+  - WorkspaceCrudService (Scenario 2: 10 tests, 4 deps)
+  - WorkspaceInvitationService (Scenario 3: 8 tests, 6 deps)
+  - PageHierarchyService (Scenario 4: 10 tests, 2 deps)
 Phase 5: Repositories (⭐️⭐️⭐️⭐️) - 4개
   - WorkspaceRepository, PageRepository (재귀 CTE), WorkspaceMemberRepository, PageFavoriteRepository
 Phase 6: Server Actions (⭐️⭐️⭐️⭐️⭐️) - 9개
   - Scenario 1: 2개, Scenario 2: 2개, Scenario 3: 3개, Scenario 4: 3개, Scenario 5: 1개
 Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 12개 시나리오
 ```
+
+> **v1.2 아키텍처 개선**: 단일 Service를 Scenario별 4개로 분리하여 SRP 준수, 평균 파일 크기 74% 감소, 의존성 43% 감소
 
 ---
 
@@ -1499,48 +1505,81 @@ interface WorkspaceInvitationPendingDTO {
 
 ### 1. Service 수도코드
 
-#### WorkspaceManagementService
+> **v1.2 아키텍처 개선**: 단일 Service를 Scenario별 4개로 분리하여 SRP(단일 책임 원칙) 준수
+> - **Before**: 1개 Service (837줄, 7 deps, 10 메서드)
+> - **After**: 4개 Service (평균 220줄, 평균 4 deps)
 
-- **파일 위치**: `src/domains/workspace-management/backend/services/workspace-management.service.ts`
-- **역할**: Workspace 및 Page Aggregate를 조율하고, Organization Domain과 통합
-- **주요 의존성**:
+#### WorkspaceNavigationService (Scenario 1)
+
+- **파일 위치**: `src/domains/workspace-management/backend/services/workspace-navigation.service.ts`
+- **역할**: 조직 내 Workspace-Page 조회 및 접근 권한 검증
+- **주요 의존성** (4개):
   - WorkspaceRepository
   - PageRepository
   - WorkspaceMemberRepository
-  - WorkspaceInvitationRepository (Scenario 3)
-  - PageFavoriteRepository
-  - OrganizationMemberRepository (Organization Domain)
-  - OrganizationRepository (Organization Domain - 조직 정보 조회)
-  - NotificationService (Notification Domain)
+  - OrganizationMemberRepository
 - **주요 메서드**:
-  - **Scenario 1**:
-    - getOrganizationWorkspacePageView(orgId, userId, cookiePageId): Workspace-Page 목록 조회
-    - verifyPageAccess(orgId, workspaceId, pageId, userId): Page 접근 권한 검증
-  - **Scenario 2**:
-    - createWorkspace(orgId, name, description, icon, userId): Workspace 생성
-    - updateWorkspaceInfo(workspaceId, name, description, icon, userId): Workspace 정보 수정
-  - **Scenario 3**:
-    - inviteWorkspaceMember(workspaceId, memberEmails, userId): 멤버 초대
-    - acceptWorkspaceInvitation(invitationId, userId): 초대 수락
-    - rejectWorkspaceInvitation(invitationId, userId): 초대 거절
-  - **Scenario 4**:
-    - createPage(workspaceId, parentId, userId): Page 생성
-    - movePage(pageId, newParentId, userId): Page 이동
-    - updatePageInfo(pageId, title, icon, userId): Page 정보 수정
-  - **Scenario 5**:
-    - togglePageFavorite(pageId, userId): 즐겨찾기 토글
-- **트랜잭션**: Workspace 생성 + Page 생성, 초대 + 알림 발송
+  - getOrganizationWorkspacePageView(orgId, userId, cookiePageId): Workspace-Page 목록 조회
+  - verifyPageAccess(orgId, workspaceId, pageId, userId): Page 접근 권한 검증
+- **테스트**: 11개 (100% 통과)
+
+#### WorkspaceCrudService (Scenario 2)
+
+- **파일 위치**: `src/domains/workspace-management/backend/services/workspace-crud.service.ts`
+- **역할**: Workspace 생성 및 정보 수정
+- **주요 의존성** (4개):
+  - WorkspaceRepository
+  - PageRepository
+  - WorkspaceMemberRepository
+  - OrganizationMemberRepository
+- **주요 메서드**:
+  - createWorkspace(orgId, name, description, icon, userId): Workspace 생성 (트랜잭션)
+  - updateWorkspaceInfo(workspaceId, name, description, icon, userId): Workspace 정보 수정
+- **트랜잭션**: Workspace + 멤버십 + 초기 Page 생성
+- **테스트**: 10개 (100% 통과)
+
+#### WorkspaceInvitationService (Scenario 3)
+
+- **파일 위치**: `src/domains/workspace-management/backend/services/workspace-invitation.service.ts`
+- **역할**: Workspace 멤버 초대, 수락, 거절
+- **주요 의존성** (6개):
+  - WorkspaceRepository
+  - WorkspaceMemberRepository
+  - OrganizationMemberRepository
+  - OrganizationRepository
+  - WorkspaceInvitationRepository (optional)
+  - NotificationRepository (optional)
+- **주요 메서드**:
+  - inviteWorkspaceMembers(workspaceId, memberEmails, userId): 멤버 초대 (Notification 통합)
+  - acceptWorkspaceInvitation(invitationId, userId): 초대 수락
+  - rejectWorkspaceInvitation(invitationId, userId): 초대 거절
+- **Graceful Degradation**: Notification 실패해도 초대는 생성
+- **테스트**: 8개 (100% 통과)
+
+#### PageHierarchyService (Scenario 4)
+
+- **파일 위치**: `src/domains/workspace-management/backend/services/page-hierarchy.service.ts`
+- **역할**: Page 생성, 이동, 정보 수정
+- **주요 의존성** (2개 - 최소!):
+  - PageRepository
+  - WorkspaceMemberRepository
+- **주요 메서드**:
+  - createPage(workspaceId, parentId, title, icon, userId): Page 생성
+  - movePage(pageId, newParentId, userId): Page 이동 (순환 참조 체크)
+  - updatePageInfo(pageId, title, icon, userId): Page 정보 수정
+- **특징**: 의존성 최소화 (2개만), 순환 참조 자동 감지
+- **테스트**: 10개 (100% 통과)
 
 **구현 수도코드**:
+
 ```typescript
-class WorkspaceManagementService {
+// ===== Scenario 1: WorkspaceNavigationService =====
+class WorkspaceNavigationService {
   constructor(
     private workspaceRepo: IWorkspaceRepository,
     private pageRepo: IPageRepository,
     private workspaceMemberRepo: IWorkspaceMemberRepository,
-    private pageFavoriteRepo: IPageFavoriteRepository,
-    private orgMemberRepo: IOrganizationMemberRepository,
-    private notificationService: INotificationService
+    private orgMemberRepo: IOrganizationMemberRepository
   ) {}
   
   // ===== Scenario 1: Workspace-Page 목록 조회 =====
@@ -1561,7 +1600,17 @@ class WorkspaceManagementService {
     // (기존 로직 유지)
   }
   
-  // ===== Scenario 2: Workspace 생성 및 수정 =====
+}
+
+// ===== Scenario 2: WorkspaceCrudService =====
+class WorkspaceCrudService {
+  constructor(
+    private workspaceRepo: IWorkspaceRepository,
+    private pageRepo: IPageRepository,
+    private workspaceMemberRepo: IWorkspaceMemberRepository,
+    private orgMemberRepo: IOrganizationMemberRepository
+  ) {}
+  
   async createWorkspace(
     orgId: OrganizationId,
     name: string,
@@ -1636,8 +1685,20 @@ class WorkspaceManagementService {
     return Result.ok();
   }
   
-  // ===== Scenario 3: Workspace 멤버 초대 =====
-  async inviteWorkspaceMember(
+}
+
+// ===== Scenario 3: WorkspaceInvitationService =====
+class WorkspaceInvitationService {
+  constructor(
+    private workspaceRepo: IWorkspaceRepository,
+    private workspaceMemberRepo: IWorkspaceMemberRepository,
+    private orgMemberRepo: IOrganizationMemberRepository,
+    private orgRepo: IOrganizationRepository,
+    private invitationRepo?: IWorkspaceInvitationRepository,
+    private notificationRepo?: INotificationRepository
+  ) {}
+  
+  async inviteWorkspaceMembers(
     workspaceId: WorkspaceId,
     memberEmails: string[],
     userId: UserId
@@ -1772,10 +1833,20 @@ class WorkspaceManagementService {
     // 6. Result.ok 반환
   }
   
-  // ===== Scenario 4: Page 생성 및 관리 =====
+}
+
+// ===== Scenario 4: PageHierarchyService =====
+class PageHierarchyService {
+  constructor(
+    private pageRepo: IPageRepository,
+    private workspaceMemberRepo: IWorkspaceMemberRepository
+  ) {}
+  
   async createPage(
     workspaceId: WorkspaceId,
     parentId: PageId | null,
+    title: string,
+    icon: string | null,
     userId: UserId
   ): Promise<Result<string>> {
     // 1. Workspace 멤버십 확인
@@ -1929,8 +2000,15 @@ class WorkspaceManagementService {
 }
 ```
 
-**우선순위**: ⭐️⭐️⭐️⭐️  
-**Testing Strategy 참조**: 섹션 4 - Service 통합 테스트
+}
+
+**우선순위**: ⭐️⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: 섹션 4 - Service 통합 테스트  
+**아키텍처 특징**: 
+- SRP 준수 (각 Service가 1개 Scenario 책임)
+- 의존성 최소화 (PageHierarchyService는 2개만)
+- 독립 테스트 가능 (병렬 실행)
+- 확장성 (새 Scenario 추가 시 기존 코드 변경 없음)
 
 ---
 
@@ -2636,6 +2714,25 @@ export default async function OrganizationWorkspacePage({
 ---
 
 ## 📋 문서 변경 이력
+
+### v1.2 (2025-10-13)
+- **Service 아키텍처 리팩토링**:
+  - 단일 WorkspaceManagementService → 4개 Scenario별 Service로 분리
+  - **WorkspaceNavigationService** (195줄, 4 deps, 2 메서드)
+    - getOrganizationWorkspacePageView, verifyPageAccess
+  - **WorkspaceCrudService** (170줄, 4 deps, 2 메서드)
+    - createWorkspace (트랜잭션), updateWorkspaceInfo
+  - **WorkspaceInvitationService** (281줄, 6 deps, 3 메서드)
+    - inviteWorkspaceMembers (Notification 통합), acceptWorkspaceInvitation, rejectWorkspaceInvitation
+  - **PageHierarchyService** (227줄, 2 deps, 3 메서드)
+    - createPage, movePage (순환 참조 체크), updatePageInfo
+- **개선 효과**:
+  - SOLID 원칙 준수 (SRP, OCP)
+  - 파일 크기 74% 감소 (837줄 → 평균 220줄)
+  - 의존성 43% 감소 (7개 → 평균 4개)
+  - 테스트 독립성 확보 (4개 파일, 병렬 실행)
+  - Git Conflict 최소화 (Scenario별 독립 파일)
+- Service 수도코드 업데이트 (4개 클래스로 분리)
 
 ### v1.1 (2025-10-12)
 - Scenario 3 관련 상세 구현 추가:

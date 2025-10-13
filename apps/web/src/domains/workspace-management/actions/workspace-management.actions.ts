@@ -42,6 +42,7 @@ import type {
   CreatePageResponse,
   MovePageRequest,
   UpdatePageInfoRequest,
+  ReorderPagesRequest,
 } from '../shared/dtos';
 import type { Page } from '../shared/entities/page.entity';
 
@@ -1020,6 +1021,85 @@ export async function updatePageInfoAction(
     };
   } catch (error) {
     console.error('[updatePageInfoAction] Error:', error);
+    return {
+      success: false,
+      error: 'UNKNOWN_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Page 순서 재정렬 Server Action (TDD 구현)
+ *
+ * @param request - Page 순서 재정렬 요청
+ * @returns void (성공) | Error (실패)
+ */
+export async function reorderPagesAction(
+  request: ReorderPagesRequest
+): Promise<ServerActionResult<void>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'UNAUTHORIZED',
+        details: 'User not authenticated',
+      };
+    }
+
+    // 2. 의존성 주입
+    const pageRepo = new DrizzlePageRepository();
+    const memberRepo = new DrizzleWorkspaceMemberRepository();
+
+    // 3. 권한 확인: 워크스페이스 멤버인지 확인
+    const workspaceId = new WorkspaceId(request.workspaceId);
+    const isMember = await memberRepo.isMember(workspaceId, user.id);
+
+    if (!isMember) {
+      return {
+        success: false,
+        error: 'NOT_WORKSPACE_MEMBER',
+        details: 'User is not a member of this workspace',
+      };
+    }
+
+    // 4. 페이지 순서 재정렬 (직접 DB 업데이트)
+    const { orderedPageIds } = request;
+    const { adminDb } = await import('@/db');
+    const { pages } = await import('@/db/schema-dev');
+    const { eq } = await import('drizzle-orm');
+
+    // 각 페이지의 order를 배열 인덱스로 업데이트
+    for (let i = 0; i < orderedPageIds.length; i++) {
+      const pageId = orderedPageIds[i];
+      if (!pageId) continue;
+
+      // DB에서 직접 order 업데이트
+      await adminDb
+        .update(pages)
+        .set({
+          order: i,
+          updated_at: new Date(),
+        })
+        .where(eq(pages.id, pageId));
+    }
+
+    // 5. 캐시 무효화
+    revalidatePath('/r');
+
+    return {
+      success: true,
+      data: undefined,
+    };
+  } catch (error) {
+    console.error('[reorderPagesAction] Error:', error);
     return {
       success: false,
       error: 'UNKNOWN_ERROR',

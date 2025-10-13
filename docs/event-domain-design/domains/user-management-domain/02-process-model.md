@@ -31,11 +31,36 @@ User Management Domain의 핵심 시나리오를 실제 상호작용 순서에 �
 
 1. **Event** (이전 시퀀스의 결과) → 2. **Policy** (이벤트에 따른 정책 적용) → 3. **Read Model** (시스템에서 사용자에게 제공하는 정보) → 4. **Command** (사용자가 입력하는 정보) → 5. **System** (처리 시스템) → 6. **Event** (결과 이벤트)
 
-### 🟪 External System: Supabase Auth
-User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니다:
-- **역할**: 사용자 인증, 세션 관리, 자동 토큰 갱신
+### 🟪 External Systems
+
+User Management Domain은 다음 외부 시스템들과 통합됩니다:
+
+#### External System 1: Supabase Auth
+**역할**: 사용자 인증, 세션 관리, 자동 토큰 갱신
 - **SSOT**: Supabase Auth가 User의 Single Source of Truth
-- **통합**: Supabase Auth ↔ public.profiles 테이블 간 실시간 동기화 필요
+- **통합 방식**: Supabase Auth ↔ public.profiles 테이블 간 실시간 동기화
+- **Failure Strategy**: 인증 실패 시 로그인 페이지로 리다이렉트
+
+#### External System 2: Organization Management Domain
+**역할**: 조직 생성 및 관리
+- **SSOT**: Organization Domain이 조직 데이터의 Single Source of Truth
+- **통합 방식**: 
+  - **사용자 가입 → 기본 조직 생성**: User Management Service에서 Organization Service를 주입하여 동기 처리
+  - **트랜잭션**: 프로필 생성 + 기본 조직 생성 + 기본 워크스페이스 생성 + 초기 페이지 생성이 하나의 트랜잭션
+- **Failure Strategy**: 
+  - 조직 생성 실패 시 재시도 → 최종 실패 시 사용자 가입 중단 및 Supabase Auth 롤백
+  - 사용자에게 재시도 안내
+
+#### External System 3: Workspace Management Domain
+**역할**: 워크스페이스 및 페이지 생성
+- **SSOT**: Workspace Domain이 워크스페이스/페이지 데이터의 Single Source of Truth
+- **통합 방식**: 
+  - **기본 조직 생성 → 기본 워크스페이스 생성**: Organization Service에서 Workspace Service를 주입하여 동기 처리
+  - **기본 워크스페이스 생성 → Welcome 페이지 생성**: Workspace Service 내부에서 자동 처리
+  - **트랜잭션**: Organization + Workspace + Page 생성이 하나의 트랜잭션
+- **Failure Strategy**: 
+  - Workspace 생성 실패 시 재시도 → 최종 실패 시 Organization 생성 중단
+  - Page 생성 실패 시 Workspace 생성 중단
 
 ---
 
@@ -86,36 +111,61 @@ User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니�
   - 구글 계정 정보에서 이름, 이메일 추출
   - 고유 UUID로 프로필 생성
   - 프로필 생성 실패 시 재시도 (동기 처리)
-- **기본 조직 생성**:
-  - Organization Management Domain에 기본 조직 생성 요청
-  - 유저를 조직 소유자로 설정
-  - 트랜잭션 처리 (프로필 + 조직)
+- **기본 조직 생성** (Organization Management Domain 통합):
+  - Organization Service 주입하여 기본 조직 생성 요청
+  - 조직 이름: "{사용자명}'s Organization"
+  - 유저를 조직 소유자로 자동 설정
+  - 조직 생성 실패 시 재시도
+- **기본 워크스페이스 생성** (Workspace Management Domain 통합):
+  - Organization Service 내부에서 Workspace Service 주입
+  - 워크스페이스 이름: "Default Workspace"
+  - 삭제 불가 설정 (is_default=true, deletable=false)
+  - 조직 소유자를 워크스페이스 멤버로 자동 추가
+  - 워크스페이스 생성 실패 시 조직 생성 중단
+- **초기 페이지 생성** (Workspace Management Domain 통합):
+  - Workspace Service 내부에서 Page 자동 생성
+  - 페이지 제목: "Welcome"
+  - 페이지 아이콘: 👋 (기본값)
+  - 빈 캔버스로 초기화
+  - 페이지 생성 실패 시 워크스페이스 생성 중단
+- **트랜잭션 처리**:
+  - 프로필 → 조직 → 워크스페이스 → 페이지 순서로 생성
+  - 하나라도 실패 시 전체 롤백
+  - 최종 실패 시 Supabase Auth 계정 삭제
+- **리다이렉션 준비**:
+  - 생성된 페이지 URL 반환: `/r/[orgId]/workspace/[workspaceId]/page/[pageId]`
+  - 최근 방문 페이지 쿠키 설정
 
 **Events**:
 1. 유저 가입 완료됨 (User Registration Completed)
-2. 유저 가입 실패함 (User Registration Failed)
+2. 기본 조직이 생성됨 (Default Organization Created)
+3. 기본 워크스페이스가 생성됨 (Default Workspace Created)
+4. Welcome 페이지가 생성됨 (Welcome Page Created)
+5. 유저 가입 실패함 (User Registration Failed)
 
 ---
 
 **Policy**:
-- "Whenever 유저 가입 완료됨, then if 온보딩 필요하면 then 온보딩 옵션 제공하기"
+- "Whenever 유저 가입 완료됨, then always 생성된 Welcome 페이지로 리다이렉트하기"
 - "Whenever 유저 가입 실패함, then immediately 오류 화면 표시하기"
 
-**Read Model** (온보딩 옵션):
-- 온보딩 진행 옵션
-- 온보딩 건너뛰기 옵션
-- 사용자 가이드 링크
-- *UI Hint: 온보딩 화면 또는 다이얼로그*
+**Read Model** (리다이렉션):
+- 리다이렉션 대상 URL: `/r/[orgId]/workspace/[workspaceId]/page/[pageId]`
+- 로딩 상태 표시: "환영합니다! 워크스페이스를 준비하고 있습니다..."
+- *UI Hint: 로딩 인디케이터 + 환영 메시지*
 
-**Command**: 온보딩 선택
-- 온보딩 시작 또는 건너뛰기 선택
+**Command**: 페이지로 이동 (자동)
+- 생성된 페이지 URL
+- 최근 방문 페이지 쿠키 설정
 
 **System**: (웹) - Frontend
-- 선택된 옵션에 따라 온보딩 화면 또는 메인 화면으로 이동
+- 생성된 Welcome 페이지로 자동 리다이렉트
+- 최근 방문 페이지 쿠키에 페이지 정보 저장
+- 온보딩 옵션 표시 (선택사항)
 
 **Events**:
-1. 온보딩이 시작됨 (Onboarding Started)
-2. 온보딩을 건너뛰었음 (Onboarding Skipped)
+1. Welcome 페이지로 이동됨 (Navigated to Welcome Page)
+2. 최근 방문 페이지가 쿠키에 저장됨 (Recent Page Saved to Cookie)
 
 ---
 *Frontend Implementation Details: `03-user-flow.md` 참조*
@@ -189,17 +239,20 @@ User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니�
 ### 사용자 인증 및 등록 관련 (Scenario 1)
 1. **구글 로그인 전용**: 구글 OAuth를 통한 유일한 로그인 방식
 2. **자동 프로필 생성**: 구글 계정 정보를 기반으로 프로필 자동 생성
-3. **트랜잭션 처리**: 프로필 생성 + 기본 조직 생성 트랜잭션
-4. **장애 복구**: 프로필 생성 실패 시 즉시 재시도 (동기 처리)
-5. **기본 조직 자동 생성**: 사용자 등록 시 개인 조직 자동 생성 (Organization Management Domain 통합)
-6. **온보딩 옵션**: 가입 완료 후 온보딩 시작 또는 건너뛰기 선택 가능
+3. **전체 트랜잭션 처리**: 프로필 → 조직 → 워크스페이스 → 페이지 생성이 하나의 트랜잭션
+4. **장애 복구**: 각 단계 실패 시 즉시 재시도 (동기 처리)
+5. **기본 조직 자동 생성**: 사용자 등록 시 "{사용자명}'s Organization" 자동 생성 (Organization Management Domain 통합)
+6. **기본 워크스페이스 자동 생성**: 기본 조직 생성 시 "Default Workspace" 자동 생성 (Workspace Management Domain 통합)
+7. **Welcome 페이지 자동 생성**: 기본 워크스페이스 생성 시 "Welcome" 페이지 자동 생성
+8. **자동 리다이렉션**: 가입 완료 후 생성된 Welcome 페이지로 자동 이동
+9. **최근 방문 페이지 저장**: 생성된 페이지를 최근 방문 페이지로 쿠키에 저장
 
 ### 계정 삭제 관련 (Scenario 2)
-7. **삭제 제약**: 기본 조직 외 소유 조직이 있으면 삭제 불가
-8. **소유권 이전 필수**: 삭제 전 모든 조직 소유권 이전 필요
-9. **소프트 삭제**: 사용자 계정은 소프트 삭제 (deleted_at)
-10. **조직 보존**: 기본 조직은 orphaned 상태로 30일 보존
-11. **멤버십 제거**: 다른 조직의 멤버십은 즉시 제거
+10. **삭제 제약**: 기본 조직 외 소유 조직이 있으면 삭제 불가
+11. **소유권 이전 필수**: 삭제 전 모든 조직 소유권 이전 필요
+12. **소프트 삭제**: 사용자 계정은 소프트 삭제 (deleted_at)
+13. **조직 보존**: 기본 조직은 orphaned 상태로 30일 보존
+14. **멤버십 제거**: 다른 조직의 멤버십은 즉시 제거
 
 ---
 
@@ -225,8 +278,11 @@ User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니�
 다음 단계:
 1. **Software Design**: System을 Aggregate로 전환 (Supabase Auth는 External System으로 유지)
 2. **Bounded Context 식별**: User, Profile 경계 확인
-3. **Integration Points**: Organization Management Domain과의 연결점 정의
-4. **Anti-Corruption Layer**: Supabase Auth ↔ Database 변환 레이어 설계
+3. **Integration Points**: Organization Management Domain, Workspace Management Domain과의 연결점 정의
+4. **Anti-Corruption Layer**: 
+   - Supabase Auth ↔ Database 변환 레이어 설계
+   - Organization/Workspace Domain 간 커맨드 실행 레이어 설계
+5. **트랜잭션 관리**: 프로필 → 조직 → 워크스페이스 → 페이지 생성의 트랜잭션 처리 전략
 
 ---
 
@@ -243,10 +299,13 @@ User Management Domain은 Supabase Auth를 인증 시스템으로 사용합니�
 - [x] Event → Policy → Read Model → Command → System → Event 순서가 일관되게 적용됨
 - [x] Supabase Auth와의 통합점이 명확히 정의됨 (OAuth, Database, Session Management)
 - [x] Organization Management Domain과의 통합점 정의 (기본 조직 생성, 계정 삭제 처리)
-- [x] 비즈니스 규칙(Policy)이 구체적으로 명시됨 (11개 핵심 정책)
+- [x] Workspace Management Domain과의 통합점 정의 (기본 워크스페이스 생성, Welcome 페이지 생성, 리다이렉션)
+- [x] 전체 트랜잭션 처리 전략 정의 (프로필 → 조직 → 워크스페이스 → 페이지)
+- [x] 비즈니스 규칙(Policy)이 구체적으로 명시됨 (14개 핵심 정책)
 - [x] 하이브리드 접근법 적용 (UI Hint 최소화, 비즈니스 프로세스 중심)
 - [x] Software Design 작성을 위한 충분한 정보 확보
 - [x] 조직 조회/선택은 Organization Management Domain으로 이관
+- [x] 자동 리다이렉션 플로우 정의 (Welcome 페이지로 자동 이동)
 
 ---
 

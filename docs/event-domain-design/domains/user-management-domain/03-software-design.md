@@ -14,7 +14,9 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, User Manageme
 
 ### 🔗 Domain Integration
 - **Organization Management Domain**: 기본 조직 생성, 계정 삭제 시 조직 처리
-- **조직 조회/선택**: Organization Management Domain에서 처리 (Scenario 0)
+- **Workspace Management Domain**: 기본 워크스페이스 생성, Welcome 페이지 생성
+- **조직 조회/선택**: Organization Management Domain에서 처리
+- **전체 트랜잭션**: 프로필 → 조직 → 워크스페이스 → 페이지 생성이 하나의 트랜잭션
 
 ---
 
@@ -41,6 +43,7 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, User Manageme
 - Process User Registration // 구글 OAuth 코드로 사용자 등록 처리
 - Create Supabase User // Supabase Auth에서 사용자 계정 생성
 - Create User Profile // 사용자 프로필 생성 및 관리
+- Create Default Organization With Workspace And Page // 기본 조직, 워크스페이스, Welcome 페이지 생성
 - Process Onboarding // 온보딩 진행 처리
 - User Login // 사용자 로그인 처리 및 세션 생성
 - User Logout // 사용자 로그아웃 및 세션 정리
@@ -50,7 +53,10 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, User Manageme
 #### Events (발생 이벤트)
 - Supabase User Created // Supabase Auth에서 사용자 계정이 생성됨
 - User Profile Created // 사용자 프로필이 생성됨
-- User Registration Completed // 사용자 등록이 완료됨
+- Default Organization Created // 기본 조직이 생성됨
+- Default Workspace Created // 기본 워크스페이스가 생성됨
+- Welcome Page Created // Welcome 페이지가 생성됨
+- User Registration Completed // 사용자 등록이 완료됨 (+ 리다이렉션 URL 포함)
 - User Registration Failed // 사용자 등록이 실패함
 - Onboarding Completed // 온보딩이 완료됨
 - User Logged In // 사용자가 성공적으로 로그인함
@@ -282,7 +288,10 @@ interface UserSessionView {
 Service 레이어는 User Aggregate와 외부 시스템을 한 자리에서 조율하는 **업무 진행 책임자**입니다.
 
 - **업무 시나리오 연결**: 
-  - 유저 등록 시 Supabase Auth에서 사용자를 생성하고, User Aggregate에서 프로필을 생성한 뒤, Organization Management Domain으로 "기본 조직 생성하기" 커맨드를 실행합니다.
+  - 유저 등록 시 Supabase Auth에서 사용자를 생성하고, User Aggregate에서 프로필을 생성한 뒤, Organization Service를 주입하여 "기본 조직 생성하기" 커맨드를 실행합니다.
+  - 기본 조직 생성 시 Organization Service에서 Workspace Service를 주입하여 "기본 워크스페이스 생성하기" 커맨드를 실행합니다.
+  - 기본 워크스페이스 생성 시 Workspace Service에서 Page Service를 주입하여 "Welcome 페이지 생성하기" 커맨드를 실행합니다.
+  - 모든 생성 작업이 완료되면 생성된 Welcome 페이지의 URL을 반환하여 리다이렉션합니다.
   - 로그인 완료 시 User Aggregate에서 세션을 생성하고, Organization Management Domain에서 유저 관련 조직을 조회합니다.
   - 사용자 계정 삭제 시 User Aggregate에서 계정을 삭제하고, Organization Management Domain으로 "사용자 삭제 처리하기" 커맨드를 실행합니다.
 
