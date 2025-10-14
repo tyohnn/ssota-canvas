@@ -37,10 +37,15 @@ export interface PageAccessResult {
  * Create Workspace Result
  *
  * Workspace 생성 성공 시 반환 데이터
+ * SSOT: 생성된 workspace와 페이지의 실제 정보를 반환
  */
 export interface CreateWorkspaceResult {
   workspaceId: string;
+  workspaceName: string;
+  workspaceIsDefault: boolean;
   firstPageId: string;
+  firstPageTitle: string;
+  firstPageIcon: string | null;
 }
 
 /**
@@ -56,4 +61,3 @@ export const Result = {
   ok: <T>(data: T): Result<T> => ({ success: true, data }),
   err: <T>(error: string): Result<T> => ({ success: false, error }),
 };
-

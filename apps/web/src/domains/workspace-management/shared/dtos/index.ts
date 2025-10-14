@@ -98,7 +98,11 @@ export interface CreateWorkspaceRequest {
 
 export interface CreateWorkspaceResponse {
   workspaceId: string;
+  workspaceName: string;
+  workspaceIsDefault: boolean;
   firstPageId: string;
+  firstPageTitle: string;
+  firstPageIcon: string | null;
 }
 
 export interface UpdateWorkspaceInfoRequest {

@@ -55,12 +55,10 @@ vi.mock('../backend/services/user-management.service', () => ({
 }));
 
 // Mock Organization Management Actions
-const mockCreateDefaultOrgWithWorkspaceAndPageAction = vi.fn();
 vi.mock('@/domains/organization-management/actions/organization-management.actions', () => ({
   getUserOrganizationsAction: vi.fn(),
   createDefaultOrganizationAction: vi.fn(),
-  createDefaultOrganizationWithWorkspaceAndPageAction: mockCreateDefaultOrgWithWorkspaceAndPageAction,
-  createNewOrganizationAction: vi.fn(),
+  createOrganizationAction: vi.fn(),
 }));
 
 // Mock Next.js functions
@@ -73,6 +71,7 @@ import {
   createUserProfileAction,
   getUserOrganizationsAction,
 } from '../actions/user-management.actions';
+import { createDefaultOrganizationAction } from '@/domains/organization-management/actions/organization-management.actions';
 import { UserAggregate } from '../shared/aggregates/user.aggregate';
 import { UserManagementError } from '../shared/errors/user-management.error';
 import { Result } from '@/utils/result';
@@ -483,7 +482,7 @@ describe('Server Actions Integration Tests', () => {
         redirectUrl: '/r/org-123/workspace/workspace-123/page/page-123',
       };
 
-      mockCreateDefaultOrgWithWorkspaceAndPageAction.mockResolvedValue(mockOrgWithWorkspaceAndPage);
+      vi.mocked(createDefaultOrganizationAction).mockResolvedValue(mockOrgWithWorkspaceAndPage);
 
       // When
       const { processUserRegistrationAction } = await import('../actions/user-management.actions');

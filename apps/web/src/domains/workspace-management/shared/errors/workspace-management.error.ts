@@ -7,6 +7,7 @@
 export type WorkspaceManagementErrorCode =
   // Workspace 관련 에러
   | 'WORKSPACE_NOT_FOUND'
+  | 'WORKSPACE_RETRIEVAL_FAILED'
   | 'INVALID_WORKSPACE_ID'
   | 'INVALID_WORKSPACE_NAME'
   | 'DEFAULT_WORKSPACE_NOT_DELETABLE'
@@ -71,6 +72,7 @@ export class WorkspaceManagementError extends Error {
 export const ERROR_MESSAGES: Record<WorkspaceManagementErrorCode, string> = {
   // Workspace
   WORKSPACE_NOT_FOUND: 'Workspace를 찾을 수 없습니다',
+  WORKSPACE_RETRIEVAL_FAILED: 'Workspace 조회에 실패했습니다',
   INVALID_WORKSPACE_ID: '유효하지 않은 Workspace ID 형식입니다',
   INVALID_WORKSPACE_NAME: 'Workspace 이름이 유효하지 않습니다',
   DEFAULT_WORKSPACE_NOT_DELETABLE: '기본 워크스페이스는 삭제할 수 없습니다',

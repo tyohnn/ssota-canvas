@@ -3,11 +3,11 @@ import { DefaultWorkspaceInvitationService } from '../workspace-invitation.servi
 import { DrizzleWorkspaceRepository } from '../../repositories/implementations/drizzle-workspace.repository';
 import { DrizzleWorkspaceMemberRepository } from '../../repositories/implementations/drizzle-workspace-member.repository';
 import { DrizzleWorkspaceInvitationRepository } from '../../repositories/implementations/drizzle-workspace-invitation.repository';
-import type { OrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/interfaces/organization-member.repository.interface';
-import type { OrganizationRepository } from '@/domains/organization-management/backend/repositories/interfaces/organization.repository.interface';
-import type { NotificationRepository } from '@/domains/notification-management/backend/repositories/interfaces/notification.repository.interface';
+import type { OrganizationQueryService } from '@/domains/organization-management/backend/services/interfaces/organization-query.service.interface';
+import type { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
 import { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
 import { MemberRole } from '@/domains/organization-management/shared/value-objects/member-role.vo';
+import { Result } from '@/utils/result';
 import { WorkspaceAggregate } from '../../../shared/aggregates/workspace.aggregate';
 import { adminDb } from '@/db';
 import { workspaces, workspaceMembers, workspaceInvitations } from '@/db/schema-dev';
@@ -19,9 +19,8 @@ describe('WorkspaceInvitationService Integration Tests (Scenario 3)', () => {
   let workspaceRepo: DrizzleWorkspaceRepository;
   let workspaceMemberRepo: DrizzleWorkspaceMemberRepository;
   let invitationRepo: DrizzleWorkspaceInvitationRepository;
-  let orgMemberRepo: OrganizationMemberRepository;
-  let orgRepo: OrganizationRepository;
-  let notificationRepo: NotificationRepository;
+  let orgQueryService: OrganizationQueryService;
+  let notificationService: NotificationService;
 
   let testOrgId: OrganizationId;
   let testUserId: string;
@@ -33,47 +32,36 @@ describe('WorkspaceInvitationService Integration Tests (Scenario 3)', () => {
     workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
     invitationRepo = new DrizzleWorkspaceInvitationRepository();
 
-    // Organization Member Repository Stub
-    orgMemberRepo = {
+    // Organization Query Service Mock (도메인 경계 유지)
+    orgQueryService = {
       isMember: vi.fn(),
-      findMemberRole: vi.fn(),
-      searchUserProfileByEmail: vi.fn(),
+      getMemberRole: vi.fn(),
+      getOrganizationName: vi.fn().mockResolvedValue(
+        Result.success('Test Organization')
+      ),
+      searchUserByEmail: vi.fn(),
     } as any;
 
-    // Organization Repository Mock
-    orgRepo = {
-      findById: vi.fn(),
-      findByIdAsAdmin: vi.fn(),
-      findByOwnerId: vi.fn(),
-      save: vi.fn(),
-      delete: vi.fn(),
-      getOrganizationName: vi.fn().mockResolvedValue('Test Organization'),
-    } as any;
-
-    // Notification Repository Mock
-    notificationRepo = {
-      save: vi.fn(),
-      findById: vi.fn(),
-      findByUserId: vi.fn(),
-      delete: vi.fn(),
+    // Notification Service Mock
+    notificationService = {
+      createWorkspaceInvitationNotification: vi.fn().mockResolvedValue(Result.success({})),
+      markAsReadByRelatedId: vi.fn().mockResolvedValue(Result.success(undefined)),
     } as any;
 
     // Service 초기화 (Notification 없음)
     service = new DefaultWorkspaceInvitationService(
       workspaceRepo,
       workspaceMemberRepo,
-      orgMemberRepo,
-      orgRepo
+      orgQueryService
     );
 
     // Service 초기화 (Notification 있음)
     serviceWithNotification = new DefaultWorkspaceInvitationService(
       workspaceRepo,
       workspaceMemberRepo,
-      orgMemberRepo,
-      orgRepo,
+      orgQueryService,
       invitationRepo,
-      notificationRepo
+      notificationService
     );
 
     // Test data
@@ -140,13 +128,15 @@ describe('WorkspaceInvitationService Integration Tests (Scenario 3)', () => {
       await workspaceRepo.save(workspace);
       await workspaceMemberRepo.addMember(workspace.workspace.workspaceId, testUserId);
 
-      // Organization Member Repository Stub: Admin 권한
-      vi.mocked(orgMemberRepo.findMemberRole).mockResolvedValue(
-        new MemberRole('admin')
+      // Organization Query Service Mock: Admin 권한
+      vi.mocked(orgQueryService.getMemberRole).mockResolvedValue(
+        Result.success(new MemberRole('admin'))
       );
 
       // 검색 결과가 없는 경우 (초대할 사용자를 찾을 수 없음)
-      vi.mocked(orgMemberRepo.searchUserProfileByEmail).mockResolvedValue([]);
+      vi.mocked(orgQueryService.searchUserByEmail).mockResolvedValue(
+        Result.success([])
+      );
 
       // When: 존재하지 않는 이메일로 초대 시도
       const result = await service.inviteWorkspaceMembers(
@@ -173,8 +163,8 @@ describe('WorkspaceInvitationService Integration Tests (Scenario 3)', () => {
       await workspaceMemberRepo.addMember(workspace.workspace.workspaceId, testUserId);
 
       // Organization Member Repository Stub: member 권한
-      vi.mocked(orgMemberRepo.findMemberRole).mockResolvedValue(
-        new MemberRole('member')
+      vi.mocked(orgQueryService.getMemberRole).mockResolvedValue(
+        Result.success(new MemberRole('member'))
       );
 
       // When
@@ -201,8 +191,8 @@ describe('WorkspaceInvitationService Integration Tests (Scenario 3)', () => {
       await workspaceRepo.save(workspace);
 
       // Organization Member Repository Stub: Admin 권한
-      vi.mocked(orgMemberRepo.findMemberRole).mockResolvedValue(
-        new MemberRole('admin')
+      vi.mocked(orgQueryService.getMemberRole).mockResolvedValue(
+        Result.success(new MemberRole('admin'))
       );
 
       // When
@@ -231,31 +221,34 @@ describe('WorkspaceInvitationService Integration Tests (Scenario 3)', () => {
       await workspaceMemberRepo.addMember(workspace.workspace.workspaceId, testUserId);
 
       // Organization Member Repository Stub
-      vi.mocked(orgMemberRepo.findMemberRole).mockResolvedValue(
-        new MemberRole('admin')
+      vi.mocked(orgQueryService.getMemberRole).mockResolvedValue(
+        Result.success(
+        new MemberRole('admin'))
       );
-      vi.mocked(orgMemberRepo.searchUserProfileByEmail).mockImplementation(
+      vi.mocked(orgQueryService.searchUserByEmail).mockImplementation(
         async (email: string) => {
           if (email === testUserId) {
-            return [{
+            return Result.success([{
               userId: testUserId,
               email: 'admin@test.com',
               name: 'Admin User',
               profileImageUrl: '',
-            }];
+            }]);
           }
           if (email === 'invitee@test.com') {
-            return [{
+            return Result.success([{
               userId: otherUserId,
               email: 'invitee@test.com',
               name: 'Invitee User',
               profileImageUrl: '',
-            }];
+            }]);
           }
-          return [];
+          return Result.success([]);
         }
       );
-      vi.mocked(orgMemberRepo.isMember).mockResolvedValue(true);
+      vi.mocked(orgQueryService.isMember).mockResolvedValue(
+        Result.success(true)
+      );
 
       // When: Notification 통합된 Service로 초대
       const result = await serviceWithNotification.inviteWorkspaceMembers(
@@ -270,16 +263,15 @@ describe('WorkspaceInvitationService Integration Tests (Scenario 3)', () => {
         expect(result.data).toBe(1);
       }
 
-      // Notification Repository의 save 메서드가 호출되었는지 확인
-      expect(notificationRepo.save).toHaveBeenCalled();
+      // Notification Service의 createWorkspaceInvitationNotification 메서드가 호출되었는지 확인
+      expect(notificationService.createWorkspaceInvitationNotification).toHaveBeenCalled();
 
-      // 호출된 Notification Aggregate 확인
-      const saveCall = vi.mocked(notificationRepo.save).mock.calls[0];
-      if (saveCall) {
-        const notificationAgg = saveCall[0];
-        expect(notificationAgg.entity.type).toBe('workspace-invitation');
-        expect(notificationAgg.entity.title).toContain('Notification Test Workspace');
-        expect(notificationAgg.userId.value).toBe(otherUserId); // 초대받은 사람
+      // 호출된 파라미터 확인
+      const createNotificationCall = vi.mocked(notificationService.createWorkspaceInvitationNotification).mock.calls[0];
+      if (createNotificationCall) {
+        const notificationData = createNotificationCall[0];
+        expect(notificationData.userId).toBe(otherUserId); // 초대받은 사용자 ID
+        expect(notificationData.workspaceName).toBe('Notification Test Workspace'); // 워크스페이스 이름
       }
     });
 
@@ -294,34 +286,37 @@ describe('WorkspaceInvitationService Integration Tests (Scenario 3)', () => {
       await workspaceMemberRepo.addMember(workspace.workspace.workspaceId, testUserId);
 
       // Organization Member Repository Stub
-      vi.mocked(orgMemberRepo.findMemberRole).mockResolvedValue(
-        new MemberRole('admin')
+      vi.mocked(orgQueryService.getMemberRole).mockResolvedValue(
+        Result.success(
+        new MemberRole('admin'))
       );
-      vi.mocked(orgMemberRepo.searchUserProfileByEmail).mockImplementation(
+      vi.mocked(orgQueryService.searchUserByEmail).mockImplementation(
         async (email: string) => {
           if (email === testUserId) {
-            return [{
+            return Result.success([{
               userId: testUserId,
               email: 'admin@test.com',
               name: 'Admin User',
               profileImageUrl: '',
-            }];
+            }]);
           }
           if (email === 'invitee@test.com') {
-            return [{
+            return Result.success([{
               userId: otherUserId,
               email: 'invitee@test.com',
               name: 'Invitee User',
               profileImageUrl: '',
-            }];
+            }]);
           }
-          return [];
+          return Result.success([]);
         }
       );
-      vi.mocked(orgMemberRepo.isMember).mockResolvedValue(true);
+      vi.mocked(orgQueryService.isMember).mockResolvedValue(
+        Result.success(true)
+      );
 
-      // Notification save가 실패하도록 설정
-      vi.mocked(notificationRepo.save).mockRejectedValue(
+      // Notification 생성이 실패하도록 설정
+      vi.mocked(notificationService.createWorkspaceInvitationNotification).mockRejectedValue(
         new Error('Notification service unavailable')
       );
 
@@ -360,31 +355,34 @@ describe('WorkspaceInvitationService Integration Tests (Scenario 3)', () => {
       await workspaceMemberRepo.addMember(workspace.workspace.workspaceId, testUserId);
 
       // Mocks 설정
-      vi.mocked(orgMemberRepo.findMemberRole).mockResolvedValue(
-        new MemberRole('admin')
+      vi.mocked(orgQueryService.getMemberRole).mockResolvedValue(
+        Result.success(
+        new MemberRole('admin'))
       );
-      vi.mocked(orgMemberRepo.searchUserProfileByEmail).mockImplementation(
+      vi.mocked(orgQueryService.searchUserByEmail).mockImplementation(
         async (email: string) => {
           if (email === testUserId) {
-            return [{
+            return Result.success([{
               userId: testUserId,
               email: 'admin@test.com',
               name: 'Admin User',
               profileImageUrl: '',
-            }];
+            }]);
           }
           if (email === 'invitee@test.com') {
-            return [{
+            return Result.success([{
               userId: otherUserId,
               email: 'invitee@test.com',
               name: 'Invitee User',
               profileImageUrl: '',
-            }];
+            }]);
           }
-          return [];
+          return Result.success([]);
         }
       );
-      vi.mocked(orgMemberRepo.isMember).mockResolvedValue(true);
+      vi.mocked(orgQueryService.isMember).mockResolvedValue(
+        Result.success(true)
+      );
 
       // When
       const result = await serviceWithNotification.inviteWorkspaceMembers(

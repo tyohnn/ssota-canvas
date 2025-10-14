@@ -1,10 +1,8 @@
 // apps/web/src/domains/workspace-management/backend/services/workspace-invitation.service.ts
 
 import { UserId } from '@/domains/organization-management/shared/value-objects/ids.vo';
-import type { OrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/interfaces/organization-member.repository.interface';
-import type { OrganizationRepository } from '@/domains/organization-management/backend/repositories/interfaces/organization.repository.interface';
-import type { NotificationRepository } from '@/domains/notification-management/backend/repositories/interfaces/notification.repository.interface';
-import { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
+import type { OrganizationQueryService } from '@/domains/organization-management/backend/services/interfaces/organization-query.service.interface';
+import type { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
 import type { WorkspaceRepository } from '../repositories/interfaces/workspace.repository.interface';
 import type { WorkspaceMemberRepository } from '../repositories/interfaces/workspace-member.repository.interface';
 import type { IWorkspaceInvitationRepository } from '../repositories/interfaces/workspace-invitation.repository.interface';
@@ -27,10 +25,9 @@ export class DefaultWorkspaceInvitationService
   constructor(
     private workspaceRepo: WorkspaceRepository,
     private workspaceMemberRepo: WorkspaceMemberRepository,
-    private orgMemberRepo: OrganizationMemberRepository,
-    private orgRepo: OrganizationRepository,
+    private orgQueryService: OrganizationQueryService,
     private invitationRepo?: IWorkspaceInvitationRepository,
-    private notificationRepo?: NotificationRepository
+    private notificationService?: NotificationService
   ) {}
 
   /**
@@ -53,16 +50,17 @@ export class DefaultWorkspaceInvitationService
         return R.err('WORKSPACE_NOT_FOUND');
       }
 
-      // 2. 조직 Admin 권한 확인
-      const orgMemberRole = await this.orgMemberRepo.findMemberRole(
+      // 2. 조직 Admin 권한 확인 (OrganizationQueryService 사용)
+      const roleResult = await this.orgQueryService.getMemberRole(
         workspace.organizationId,
         new UserId(userId)
       );
 
-      if (!orgMemberRole) {
+      if (roleResult.isError() || !roleResult.value) {
         return R.err('NOT_ORG_MEMBER');
       }
 
+      const orgMemberRole = roleResult.value;
       const isAdmin =
         orgMemberRole.value === 'admin' || orgMemberRole.value === 'owner';
       if (!isAdmin) {
@@ -84,37 +82,45 @@ export class DefaultWorkspaceInvitationService
       // 5. 각 이메일에 대해 초대 처리
       let invitedCount = 0;
 
-      // 5.1. 초대한 사람의 프로필 조회 (알림 메시지용)
-      const inviterProfiles =
-        await this.orgMemberRepo.searchUserProfileByEmail(userId);
-      const inviterProfile = inviterProfiles[0];
+      // 5.1. 초대한 사람의 프로필 조회 (알림 메시지용) - OrganizationQueryService 사용
+      const inviterProfilesResult =
+        await this.orgQueryService.searchUserByEmail(userId);
+      const inviterProfile = inviterProfilesResult.isSuccess()
+        ? inviterProfilesResult.value[0]
+        : null;
       const inviterName = inviterProfile?.name || '관리자';
 
-      // 5.2. 조직 정보 조회 (알림 메시지용) - Repository 사용
-      const organizationName =
-        (await this.orgRepo.getOrganizationName(workspace.organizationId)) ||
-        'Unknown Organization';
+      // 5.2. 조직 정보 조회 (알림 메시지용) - OrganizationQueryService 사용
+      const orgNameResult = await this.orgQueryService.getOrganizationName(
+        workspace.organizationId
+      );
+      const organizationName = orgNameResult.isSuccess()
+        ? orgNameResult.value
+        : 'Unknown Organization';
 
       for (const email of memberEmails) {
         try {
-          // a) Organization Member Repository에서 이메일로 사용자 검색
-          const userProfiles =
-            await this.orgMemberRepo.searchUserProfileByEmail(email);
+          // a) OrganizationQueryService에서 이메일로 사용자 검색
+          const userProfilesResult =
+            await this.orgQueryService.searchUserByEmail(email);
 
-          if (userProfiles.length === 0) {
+          if (
+            userProfilesResult.isError() ||
+            userProfilesResult.value.length === 0
+          ) {
             console.warn(`User not found for email: ${email}`);
             continue;
           }
 
-          const targetUser = userProfiles[0];
+          const targetUser = userProfilesResult.value[0];
 
-          // b) Organization 멤버인지 확인
-          const isOrgMember = await this.orgMemberRepo.isMember(
+          // b) Organization 멤버인지 확인 (OrganizationQueryService 사용)
+          const isMemberResult = await this.orgQueryService.isMember(
             workspace.organizationId,
             new UserId(targetUser!.userId)
           );
 
-          if (!isOrgMember) {
+          if (isMemberResult.isError() || !isMemberResult.value) {
             console.warn(`User ${email} is not an organization member`);
             continue;
           }
@@ -145,19 +151,18 @@ export class DefaultWorkspaceInvitationService
           }
 
           // f) Notification 발송 (Optional - 실패해도 초대는 생성됨)
-          if (this.notificationRepo) {
+          if (this.notificationService) {
             try {
-              const notificationService = new NotificationService(
-                this.notificationRepo
+              await this.notificationService.createWorkspaceInvitationNotification(
+                {
+                  userId: targetUser!.userId,
+                  workspaceInvitationId: invitation.id.value,
+                  workspaceName: workspace.name,
+                  workspaceDescription: workspace.description,
+                  inviterName,
+                  organizationName,
+                }
               );
-              await notificationService.createWorkspaceInvitationNotification({
-                userId: targetUser!.userId,
-                workspaceInvitationId: invitation.id.value,
-                workspaceName: workspace.name,
-                workspaceDescription: workspace.description,
-                inviterName,
-                organizationName,
-              });
             } catch (notificationError) {
               // 알림 발송 실패는 로그만 남기고 진행
               console.error(
@@ -240,7 +245,10 @@ export class DefaultWorkspaceInvitationService
       // 6. Workspace 멤버로 추가
       await this.workspaceMemberRepo.addMember(invitation.workspaceId, userId);
 
-      // 7. TODO: Notification Domain 통합 (알림 업데이트)
+      // 7. Notification Domain 통합 (알림 읽음 처리)
+      if (this.notificationService) {
+        await this.notificationService.markAsReadByRelatedId(invitationId);
+      }
 
       return R.ok(undefined);
     } catch (error) {
@@ -304,7 +312,10 @@ export class DefaultWorkspaceInvitationService
       invitation.reject();
       await this.invitationRepo.save(invitation);
 
-      // 6. TODO: Notification Domain 통합 (알림 업데이트)
+      // 6. Notification Domain 통합 (알림 읽음 처리)
+      if (this.notificationService) {
+        await this.notificationService.markAsReadByRelatedId(invitationId);
+      }
 
       return R.ok(undefined);
     } catch (error) {

@@ -8,7 +8,9 @@ import { revalidatePath } from 'next/cache';
 import { DrizzleOrganizationRepository } from '../backend/repositories/implementations/drizzle-organization.repository';
 import { DrizzleInvitationRepository } from '../backend/repositories/implementations/drizzle-invitation.repository';
 import { DrizzleOrganizationMemberRepository } from '../backend/repositories/implementations/drizzle-organization-member.repository';
-import { OrganizationManagementService } from '../backend/services/organization-management.service';
+import { DefaultOrganizationCrudService } from '../backend/services/organization-crud.service';
+import { DefaultOrganizationInvitationService } from '../backend/services/organization-invitation.service';
+import { DefaultOrganizationMemberService } from '../backend/services/organization-member.service';
 import { DrizzleNotificationRepository } from '@/domains/notification-management/backend/repositories/implementations/drizzle-notification.repository';
 import { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
 import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
@@ -17,7 +19,7 @@ import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management
 import { DefaultWorkspaceCrudService } from '@/domains/workspace-management/backend/services/workspace-crud.service';
 import {
   CreateDefaultOrganizationCommand,
-  CreateNewOrganizationCommand,
+  CreateOrganizationCommand,
   GetUserOrganizationsCommand,
   RequestMemberInvitationCommand,
   AcceptInvitationCommand,
@@ -53,24 +55,25 @@ export async function getUserOrganizationsAction(): Promise<
       throw new Error('Authentication required');
     }
 
-    // 2. Service 사용 (Drizzle Repository)
+    // 2. Repository 인스턴스 생성
     const organizationRepository = new DrizzleOrganizationRepository();
-    const invitationRepository = new DrizzleInvitationRepository();
     const organizationMemberRepository =
       new DrizzleOrganizationMemberRepository();
-    const service = new OrganizationManagementService(
+
+    // 3. Service 생성 (OrganizationCrudService)
+    const crudService = new DefaultOrganizationCrudService(
       organizationRepository,
-      invitationRepository,
-      organizationMemberRepository
+      organizationMemberRepository,
+      null as any // workspaceCrudService는 조회에 불필요
     );
 
-    // 3. Command 생성
+    // 4. Command 생성
     const command: GetUserOrganizationsCommand = {
       userId: user.id,
     };
 
-    // 4. 도메인 로직 실행
-    const result = await service.getUserOrganizations(command);
+    // 5. 도메인 로직 실행
+    const result = await crudService.getUserOrganizations(command);
 
     if (result.isError()) {
       console.error('[getUserOrganizationsAction] Failed:', {
@@ -91,74 +94,18 @@ const createDefaultOrganizationSchema = z.object({
   organizationName: z.string().min(1).max(255),
 });
 
-export async function createDefaultOrganizationAction(
-  input: z.infer<typeof createDefaultOrganizationSchema>
-): Promise<OrganizationSummary> {
-  try {
-    // 1. Supabase Auth 인증 확인
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-
-    if (error || !user) {
-      throw new Error('Authentication required');
-    }
-
-    // 2. Input validation
-    const validatedInput = createDefaultOrganizationSchema.parse(input);
-
-    // 3. Service 사용 (Drizzle Repository)
-    const organizationRepository = new DrizzleOrganizationRepository();
-    const organizationMemberRepository =
-      new DrizzleOrganizationMemberRepository();
-    const service = new OrganizationManagementService(
-      organizationRepository,
-      undefined, // invitationRepository
-      organizationMemberRepository
-    );
-
-    // 4. Command 생성
-    const command: CreateDefaultOrganizationCommand = {
-      userId: user.id,
-      organizationName: validatedInput.organizationName,
-    };
-
-    // 5. 도메인 로직 실행
-    const result = await service.createDefaultOrganization(command);
-
-    if (result.isError()) {
-      throw new Error(result.error.message);
-    }
-
-    // 6. 관련 페이지 재검증
-    revalidatePath('/dashboard');
-    revalidatePath('/organizations');
-
-    // Serialize to DTO (plain object for Next.js client)
-    return {
-      id: result.value.id.value, // Serialize OrganizationId to string
-      name: result.value.entity.name,
-      organizationType: result.value.entity.organizationType,
-      isDefault: result.value.entity.isDefault,
-      createdAt: result.value.entity.createdAt.toISOString(), // Serialize Date to ISO string
-    };
-  } catch (error) {
-    throw error;
-  }
-}
-
 /**
- * 기본 조직, 워크스페이스, Welcome 페이지를 생성하고 리다이렉션 URL 반환
- * (사용자 가입 시 자동 호출)
+ * 기본 조직 생성 (is_default=true)
+ * - 사용자 가입 시 자동 호출
+ * - Default Workspace + Welcome 페이지 자동 생성
+ * - 생성 완료 후 리다이렉션 URL 반환
  */
-export async function createDefaultOrganizationWithWorkspaceAndPageAction(
+export async function createDefaultOrganizationAction(
   input: z.infer<typeof createDefaultOrganizationSchema>
 ): Promise<{
   organization: OrganizationSummary;
   workspace: { id: string; name: string; isDefault: boolean };
-  page: { id: string; title: string; icon: string };
+  page: { id: string; title: string; icon: string | null };
   redirectUrl: string;
 }> {
   try {
@@ -186,7 +133,7 @@ export async function createDefaultOrganizationWithWorkspaceAndPageAction(
     const pageRepository = new DrizzlePageRepository();
     const workspaceMemberRepository = new DrizzleWorkspaceMemberRepository();
 
-    // 4. Service 주입 (Workspace Service → Organization Service)
+    // 4. Workspace Service 생성
     const workspaceCrudService = new DefaultWorkspaceCrudService(
       workspaceRepository,
       pageRepository,
@@ -194,25 +141,21 @@ export async function createDefaultOrganizationWithWorkspaceAndPageAction(
       organizationMemberRepository
     );
 
-    const organizationService = new OrganizationManagementService(
+    // 5. Organization CRUD Service 생성
+    const crudService = new DefaultOrganizationCrudService(
       organizationRepository,
-      undefined, // invitationRepository
       organizationMemberRepository,
-      undefined, // notificationService
-      workspaceCrudService // Workspace Service 주입
+      workspaceCrudService
     );
 
-    // 5. Command 생성
+    // 6. Command 생성
     const command: CreateDefaultOrganizationCommand = {
       userId: user.id,
       organizationName: validatedInput.organizationName,
     };
 
-    // 6. 도메인 로직 실행 (트랜잭션: 조직 → 워크스페이스 → 페이지)
-    const result =
-      await organizationService.createDefaultOrganizationWithWorkspaceAndPage(
-        command
-      );
+    // 7. 도메인 로직 실행 (트랜잭션: 조직 → 워크스페이스 → 페이지)
+    const result = await crudService.createDefaultOrganization(command);
 
     if (result.isError()) {
       throw new Error(result.error.message);
@@ -225,15 +168,12 @@ export async function createDefaultOrganizationWithWorkspaceAndPageAction(
 
     return result.value;
   } catch (error) {
-    console.error(
-      '[createDefaultOrganizationWithWorkspaceAndPageAction] Error:',
-      error
-    );
+    console.error('[createDefaultOrganizationAction] Error:', error);
     throw error;
   }
 }
 
-const createNewOrganizationSchema = z.object({
+const createOrganizationSchema = z.object({
   name: z
     .string()
     .min(1, '조직명은 필수입니다')
@@ -246,7 +186,13 @@ const createNewOrganizationSchema = z.object({
   ),
 });
 
-export async function createNewOrganizationAction(
+/**
+ * 일반 조직 생성 (is_default=false)
+ * - 사용자가 수동으로 생성
+ * - Default Workspace + Untitled 페이지 자동 생성
+ * - 생성 완료 후 조직, 워크스페이스, 페이지 정보 반환
+ */
+export async function createOrganizationAction(
   input: CreateOrganizationRequest
 ): Promise<CreateOrganizationResult> {
   try {
@@ -265,7 +211,7 @@ export async function createNewOrganizationAction(
     }
 
     // 2. Input validation
-    const validationResult = createNewOrganizationSchema.safeParse(input);
+    const validationResult = createOrganizationSchema.safeParse(input);
     if (!validationResult.success) {
       return {
         success: false,
@@ -275,25 +221,40 @@ export async function createNewOrganizationAction(
 
     const validatedInput = validationResult.data;
 
-    // 3. Service 사용 (Drizzle Repository)
+    // 3. Repository 인스턴스 생성
     const organizationRepository = new DrizzleOrganizationRepository();
     const organizationMemberRepository =
       new DrizzleOrganizationMemberRepository();
-    const service = new OrganizationManagementService(
-      organizationRepository,
-      undefined, // invitationRepository
+
+    // Workspace Management Domain Repositories
+    const workspaceRepository = new DrizzleWorkspaceRepository();
+    const pageRepository = new DrizzlePageRepository();
+    const workspaceMemberRepository = new DrizzleWorkspaceMemberRepository();
+
+    // 4. Workspace Service 생성
+    const workspaceCrudService = new DefaultWorkspaceCrudService(
+      workspaceRepository,
+      pageRepository,
+      workspaceMemberRepository,
       organizationMemberRepository
     );
 
-    // 4. Command 생성
-    const command: CreateNewOrganizationCommand = {
+    // 5. Organization CRUD Service 생성
+    const crudService = new DefaultOrganizationCrudService(
+      organizationRepository,
+      organizationMemberRepository,
+      workspaceCrudService
+    );
+
+    // 6. Command 생성
+    const command: CreateOrganizationCommand = {
       name: validatedInput.name,
       organizationType: validatedInput.organizationType,
       ownerId: user.id,
     };
 
-    // 5. 도메인 로직 실행
-    const result = await service.createNewOrganization(command);
+    // 7. 도메인 로직 실행 (트랜잭션: 조직 → 워크스페이스 → 페이지)
+    const result = await crudService.createOrganization(command);
 
     if (result.isError()) {
       return {
@@ -302,19 +263,22 @@ export async function createNewOrganizationAction(
       };
     }
 
-    // 6. 관련 페이지 재검증
+    // 7. 관련 페이지 재검증
     revalidatePath('/dashboard');
     revalidatePath('/organizations');
+    revalidatePath(`/r/${result.value.organization.id}`);
 
     return {
       success: true,
       organization: {
-        id: result.value.id,
-        name: result.value.name,
-        organizationType: result.value.organizationType!,
-        isDefault: result.value.isDefault,
-        createdAt: result.value.createdAt,
+        id: result.value.organization.id,
+        name: result.value.organization.name,
+        organizationType: result.value.organization.organizationType!,
+        isDefault: result.value.organization.isDefault,
+        createdAt: result.value.organization.createdAt,
       },
+      workspace: result.value.workspace,
+      page: result.value.page,
     };
   } catch (error) {
     return {
@@ -343,24 +307,25 @@ export async function inviteMemberAction(
       throw new Error('Authentication required');
     }
 
-    // 2. Service 사용
+    // 2. Repository 인스턴스 생성
     const organizationRepository = new DrizzleOrganizationRepository();
     const invitationRepository = new DrizzleInvitationRepository();
     const organizationMemberRepository =
       new DrizzleOrganizationMemberRepository();
 
-    // Notification Service 추가 (Notification Management Domain과 통합)
+    // 3. Notification Service 생성 (Notification Management Domain과 통합)
     const notificationRepository = new DrizzleNotificationRepository();
     const notificationService = new NotificationService(notificationRepository);
 
-    const service = new OrganizationManagementService(
+    // 4. Organization Invitation Service 생성
+    const invitationService = new DefaultOrganizationInvitationService(
       organizationRepository,
       invitationRepository,
       organizationMemberRepository,
       notificationService
     );
 
-    // Get inviter name from profile (profiles 테이블에서 조회)
+    // 5. Get inviter name from profile
     const userProfiles =
       await organizationMemberRepository.searchUserProfileByEmail(
         user.email || ''
@@ -370,17 +335,17 @@ export async function inviteMemberAction(
         ? userProfiles[0].name
         : user.email || 'Someone';
 
-    // 3. Command 생성
+    // 6. Command 생성
     const command: RequestMemberInvitationCommand = {
       organizationId: input.organizationId,
       inviterUserId: user.id,
-      inviterName: inviterName, // Profile 테이블에서 조회한 이름
+      inviterName: inviterName,
       inviteeEmail: input.inviteeEmail,
       role: input.role,
     };
 
-    // 4. 도메인 로직 실행
-    const result = await service.inviteMember(command);
+    // 7. 도메인 로직 실행
+    const result = await invitationService.inviteMember(command);
 
     if (result.isError()) {
       console.error('[inviteMemberAction] Error:', result.error);
@@ -418,25 +383,32 @@ export async function respondToInvitationAction(
       throw new Error('Authentication required');
     }
 
-    // 2. Service 사용
+    // 2. Repository 인스턴스 생성
     const organizationRepository = new DrizzleOrganizationRepository();
     const invitationRepository = new DrizzleInvitationRepository();
     const organizationMemberRepository =
       new DrizzleOrganizationMemberRepository();
-    const service = new OrganizationManagementService(
+
+    // 3. Notification Service 생성
+    const notificationRepository = new DrizzleNotificationRepository();
+    const notificationService = new NotificationService(notificationRepository);
+
+    // 4. Organization Invitation Service 생성
+    const invitationService = new DefaultOrganizationInvitationService(
       organizationRepository,
       invitationRepository,
-      organizationMemberRepository
+      organizationMemberRepository,
+      notificationService
     );
 
-    // 3. Command 생성
+    // 5. Command 생성 및 실행
     if (input.accept) {
       const command: AcceptInvitationCommand = {
         invitationId: input.invitationId,
         inviteeUserId: user.id,
       };
 
-      const result = await service.acceptInvitation(command);
+      const result = await invitationService.acceptInvitation(command);
 
       if (result.isError()) {
         console.error('[respondToInvitationAction] Accept failed:', {
@@ -451,7 +423,7 @@ export async function respondToInvitationAction(
         inviteeUserId: user.id,
       };
 
-      const result = await service.rejectInvitation(command);
+      const result = await invitationService.rejectInvitation(command);
 
       if (result.isError()) {
         console.error('[respondToInvitationAction] Reject failed:', {
@@ -544,22 +516,18 @@ export async function changeMemberRoleAction(data: {
       throw new Error('Authentication required');
     }
 
-    // 2. 의존성 주입 (Repository, Service)
+    // 2. Repository 인스턴스 생성
     const organizationRepository = new DrizzleOrganizationRepository();
-    const invitationRepository = new DrizzleInvitationRepository();
     const organizationMemberRepository =
       new DrizzleOrganizationMemberRepository();
-    const notificationRepository = new DrizzleNotificationRepository();
-    const notificationService = new NotificationService(notificationRepository);
 
-    const service = new OrganizationManagementService(
+    // 3. Organization Member Service 생성
+    const memberService = new DefaultOrganizationMemberService(
       organizationRepository,
-      invitationRepository,
-      organizationMemberRepository,
-      notificationService
+      organizationMemberRepository
     );
 
-    // 3. Command 생성
+    // 4. Command 생성
     const command: ChangeMemberRoleCommand = {
       organizationId: data.organizationId,
       userId: data.targetUserId,
@@ -567,8 +535,8 @@ export async function changeMemberRoleAction(data: {
       requesterId: user.id,
     };
 
-    // 4. 도메인 로직 실행
-    const result = await service.changeMemberRole(command);
+    // 5. 도메인 로직 실행
+    const result = await memberService.changeMemberRole(command);
 
     if (result.isError()) {
       console.error('[changeMemberRoleAction] Failed:', {

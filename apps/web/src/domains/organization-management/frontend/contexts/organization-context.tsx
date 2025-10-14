@@ -9,7 +9,7 @@ import React, {
 } from 'react';
 import {
   getUserOrganizationsAction,
-  createNewOrganizationAction,
+  createOrganizationAction,
 } from '../../actions/organization-management.actions';
 import {
   OrganizationSummary,
@@ -135,7 +135,7 @@ export function OrganizationProvider({
     setError(null);
 
     try {
-      const result = await createNewOrganizationAction(data);
+      const result = await createOrganizationAction(data);
 
       if (result.success && result.organization) {
         // 새로 생성된 조직을 목록에 추가

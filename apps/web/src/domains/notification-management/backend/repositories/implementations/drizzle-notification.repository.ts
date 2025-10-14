@@ -86,6 +86,24 @@ export class DrizzleNotificationRepository implements NotificationRepository {
     return data.map((row: DBNotification) => this.mapToAggregate(row));
   }
 
+  async findByRelatedId(
+    relatedId: string
+  ): Promise<NotificationAggregate | null> {
+    const db = await createDrizzleSupabaseClient();
+
+    const data = await db.rls(tx =>
+      tx.query.notifications.findFirst({
+        where: eq(notifications.related_id, relatedId),
+      })
+    );
+
+    if (!data) {
+      return null;
+    }
+
+    return this.mapToAggregate(data);
+  }
+
   async delete(id: NotificationId): Promise<void> {
     const db = await createDrizzleSupabaseClient();
 

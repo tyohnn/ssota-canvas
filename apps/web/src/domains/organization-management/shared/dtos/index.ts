@@ -29,6 +29,16 @@ export interface CreateOrganizationResult {
     isDefault: boolean;
     createdAt: string;
   };
+  workspace?: {
+    id: string;
+    name: string;
+    isDefault: boolean;
+  };
+  page?: {
+    id: string;
+    title: string;
+    icon: string | null;
+  };
   error?: string;
 }
 

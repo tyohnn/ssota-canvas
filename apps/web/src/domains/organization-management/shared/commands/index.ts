@@ -3,15 +3,27 @@
 import { OrganizationType } from '../types';
 import { MemberRoleType } from '../value-objects/member-role.vo';
 
+/**
+ * 기본 조직 생성 Command (is_default=true)
+ * - 사용자 가입 시 자동 생성
+ * - Default Workspace + Welcome 페이지 자동 생성
+ */
 export interface CreateDefaultOrganizationCommand {
   userId: string;
   organizationName: string;
+  workspaceTemplate?: 'default'; // Phase 1: default만 지원, Phase 2: 다양한 템플릿 추가 예정
 }
 
-export interface CreateNewOrganizationCommand {
+/**
+ * 일반 조직 생성 Command (is_default=false)
+ * - 사용자가 수동으로 생성
+ * - Default Workspace + Untitled 페이지 자동 생성
+ */
+export interface CreateOrganizationCommand {
   name: string;
   organizationType: OrganizationType;
   ownerId: string;
+  workspaceTemplate?: 'default'; // Phase 1: default만 지원, Phase 2: 다양한 템플릿 추가 예정
 }
 
 export interface GetUserOrganizationsCommand {

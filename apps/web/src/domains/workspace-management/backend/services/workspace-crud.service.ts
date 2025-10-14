@@ -94,13 +94,17 @@ export class DefaultWorkspaceCrudService implements WorkspaceCrudService {
         }
       });
 
-      // 4. Result.ok 반환 (workspaceId, firstPageId)
+      // 4. Result.ok 반환 (workspaceId, workspace 정보, 페이지 정보)
       console.log(
         '[WorkspaceCrudService] Default workspace creation completed successfully'
       );
       return R.ok({
         workspaceId: workspaceAgg.workspace.workspaceId.value,
+        workspaceName: workspaceAgg.workspace.name,
+        workspaceIsDefault: workspaceAgg.workspace.isDefault,
         firstPageId: pageAgg.page.pageId.value,
+        firstPageTitle: pageAgg.page.title,
+        firstPageIcon: pageAgg.page.icon,
       });
     } catch (error) {
       // 5. Validation 에러 처리 (Aggregate에서 발생)
@@ -163,7 +167,7 @@ export class DefaultWorkspaceCrudService implements WorkspaceCrudService {
           workspaceId: workspaceAgg.workspace.workspaceId.value,
           parentId: undefined, // 최상위
           title: 'Untitled',
-          icon: '📄',
+          icon: 'File',
           createdBy: userId,
         },
         null // parentPage
@@ -184,10 +188,14 @@ export class DefaultWorkspaceCrudService implements WorkspaceCrudService {
         await this.pageRepo.save(pageAgg);
       });
 
-      // 5. Result.ok 반환 (workspaceId, firstPageId)
+      // 5. Result.ok 반환 (workspaceId, workspace 정보, 페이지 정보)
       return R.ok({
         workspaceId: workspaceAgg.workspace.workspaceId.value,
+        workspaceName: workspaceAgg.workspace.name,
+        workspaceIsDefault: workspaceAgg.workspace.isDefault,
         firstPageId: pageAgg.page.pageId.value,
+        firstPageTitle: pageAgg.page.title,
+        firstPageIcon: pageAgg.page.icon,
       });
     } catch (error) {
       // 6. Validation 에러 처리 (Aggregate에서 발생)

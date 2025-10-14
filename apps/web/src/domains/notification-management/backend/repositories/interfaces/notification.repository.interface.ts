@@ -8,5 +8,6 @@ export interface NotificationRepository {
   findById(id: NotificationId): Promise<NotificationAggregate | null>;
   findByUserId(userId: UserId): Promise<NotificationAggregate[]>;
   findUnreadByUserId(userId: UserId): Promise<NotificationAggregate[]>;
+  findByRelatedId(relatedId: string): Promise<NotificationAggregate | null>;
   delete(id: NotificationId): Promise<void>;
 }

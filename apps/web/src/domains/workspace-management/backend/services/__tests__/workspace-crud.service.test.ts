@@ -136,7 +136,7 @@ describe('WorkspaceCrudService Integration Tests (Scenario 2)', () => {
         );
         expect(initialPage).not.toBeNull();
         expect(initialPage?.title).toBe('Untitled');
-        expect(initialPage?.icon).toBe('FileText');
+        expect(initialPage?.icon).toBe('📄');
       }
     });
 

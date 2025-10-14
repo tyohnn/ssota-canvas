@@ -14,9 +14,8 @@ import { UserProfileView } from '../backend/read-models/user-profile.view';
 // Organization management imports
 import {
   getUserOrganizationsAction as getOrganizationsAction,
-  createDefaultOrganizationAction as createDefaultOrgAction,
-  createDefaultOrganizationWithWorkspaceAndPageAction as createDefaultOrgWithWorkspaceAndPageAction,
-  createNewOrganizationAction as createNewOrgAction,
+  createDefaultOrganizationAction,
+  createOrganizationAction,
 } from '@/domains/organization-management/actions/organization-management.actions';
 
 export async function createUserProfileAction(): Promise<UserProfileView> {
@@ -71,7 +70,8 @@ export async function createUserProfileAction(): Promise<UserProfileView> {
 }
 
 // AI 자동화 패턴 준수: Repository 패턴 기반 사용자 등록
-export interface UserRegistrationResult {
+// createDefaultOrganizationAction의 반환 타입 재사용 (organization, workspace, page, redirectUrl)
+export type UserRegistrationResult = {
   success: boolean;
   user: {
     id: string;
@@ -79,23 +79,7 @@ export interface UserRegistrationResult {
     name: string;
     avatarUrl: string | null;
   };
-  defaultOrganization: {
-    id: string;
-    name: string;
-    isDefault: boolean;
-  };
-  workspace: {
-    id: string;
-    name: string;
-    isDefault: boolean;
-  };
-  page: {
-    id: string;
-    title: string;
-    icon: string;
-  };
-  redirectUrl: string;
-}
+} & Awaited<ReturnType<typeof createDefaultOrganizationAction>>;
 
 export async function processUserRegistrationAction(): Promise<UserRegistrationResult> {
   try {
@@ -141,10 +125,9 @@ export async function processUserRegistrationAction(): Promise<UserRegistrationR
     let orgWithWorkspaceAndPageResult;
     try {
       const orgName = `${user.user_metadata?.name || 'User'}'s Organization`;
-      orgWithWorkspaceAndPageResult =
-        await createDefaultOrgWithWorkspaceAndPageAction({
-          organizationName: orgName,
-        });
+      orgWithWorkspaceAndPageResult = await createDefaultOrganizationAction({
+        organizationName: orgName,
+      });
     } catch (organizationError) {
       // 조직 생성 실패 시 사용자 프로필 롤백 고려
       console.error(
@@ -168,14 +151,7 @@ export async function processUserRegistrationAction(): Promise<UserRegistrationR
         name: userResult.value.entity.name,
         avatarUrl: userResult.value.entity.avatarUrl,
       },
-      defaultOrganization: {
-        id: orgWithWorkspaceAndPageResult.organization.id,
-        name: orgWithWorkspaceAndPageResult.organization.name,
-        isDefault: orgWithWorkspaceAndPageResult.organization.isDefault,
-      },
-      workspace: orgWithWorkspaceAndPageResult.workspace,
-      page: orgWithWorkspaceAndPageResult.page,
-      redirectUrl: orgWithWorkspaceAndPageResult.redirectUrl,
+      ...orgWithWorkspaceAndPageResult,
     };
   } catch (error) {
     console.error(
@@ -188,7 +164,5 @@ export async function processUserRegistrationAction(): Promise<UserRegistrationR
 
 // Delegated to organization-management domain
 export const getUserOrganizationsAction = getOrganizationsAction;
-export const createDefaultOrganizationAction = createDefaultOrgAction;
-export const createDefaultOrganizationWithWorkspaceAndPageAction =
-  createDefaultOrgWithWorkspaceAndPageAction;
-export const createNewOrganizationAction = createNewOrgAction;
+// Note: createDefaultOrganizationAction and createOrganizationAction are available
+// directly from @/domains/organization-management/actions/organization-management.actions

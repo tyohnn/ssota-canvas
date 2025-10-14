@@ -9,7 +9,9 @@ import { DrizzleWorkspaceMemberRepository } from '../backend/repositories/implem
 import { DrizzleWorkspaceInvitationRepository } from '../backend/repositories/implementations/drizzle-workspace-invitation.repository';
 import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
 import { DrizzleOrganizationRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository';
+import { DefaultOrganizationQueryService } from '@/domains/organization-management/backend/services/organization-query.service';
 import { DrizzleNotificationRepository } from '@/domains/notification-management/backend/repositories/implementations/drizzle-notification.repository';
+import { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
 import {
   DefaultWorkspaceNavigationService,
   DefaultWorkspaceCrudService,
@@ -277,10 +279,14 @@ export async function createWorkspaceAction(
       };
     }
 
-    // 5. DTO 반환
+    // 5. DTO 반환 (SSOT: service에서 반환된 실제 값 사용)
     const response: CreateWorkspaceResponse = {
       workspaceId: result.data.workspaceId,
+      workspaceName: result.data.workspaceName,
+      workspaceIsDefault: result.data.workspaceIsDefault,
       firstPageId: result.data.firstPageId,
+      firstPageTitle: result.data.firstPageTitle,
+      firstPageIcon: result.data.firstPageIcon,
     };
 
     // 6. 캐시 무효화
@@ -466,18 +472,26 @@ export async function inviteWorkspaceMemberAction(
     // 3. 의존성 주입
     const workspaceRepo = new DrizzleWorkspaceRepository();
     const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
+    const invitationRepo = new DrizzleWorkspaceInvitationRepository();
+
+    // Organization Query Service (도메인 경계 유지)
     const orgMemberRepo = new DrizzleOrganizationMemberRepository();
     const orgRepo = new DrizzleOrganizationRepository();
-    const invitationRepo = new DrizzleWorkspaceInvitationRepository();
+    const orgQueryService = new DefaultOrganizationQueryService(
+      orgRepo,
+      orgMemberRepo
+    );
+
+    // Notification Service
     const notificationRepo = new DrizzleNotificationRepository();
+    const notificationService = new NotificationService(notificationRepo);
 
     const service = new DefaultWorkspaceInvitationService(
       workspaceRepo,
       workspaceMemberRepo,
-      orgMemberRepo,
-      orgRepo,
+      orgQueryService,
       invitationRepo,
-      notificationRepo
+      notificationService
     );
 
     // 4. Service 호출
@@ -632,16 +646,26 @@ export async function acceptWorkspaceInvitationAction(
     // 2. 의존성 주입
     const workspaceRepo = new DrizzleWorkspaceRepository();
     const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
+    const invitationRepo = new DrizzleWorkspaceInvitationRepository();
+
+    // Organization Query Service (도메인 경계 유지)
     const orgMemberRepo = new DrizzleOrganizationMemberRepository();
     const orgRepo = new DrizzleOrganizationRepository();
-    const invitationRepo = new DrizzleWorkspaceInvitationRepository();
+    const orgQueryService = new DefaultOrganizationQueryService(
+      orgRepo,
+      orgMemberRepo
+    );
+
+    // Notification Service
+    const notificationRepo = new DrizzleNotificationRepository();
+    const notificationService = new NotificationService(notificationRepo);
 
     const service = new DefaultWorkspaceInvitationService(
       workspaceRepo,
       workspaceMemberRepo,
-      orgMemberRepo,
-      orgRepo,
-      invitationRepo
+      orgQueryService,
+      invitationRepo,
+      notificationService
     );
 
     // 3. Service 호출
@@ -702,16 +726,26 @@ export async function rejectWorkspaceInvitationAction(
     // 2. 의존성 주입
     const workspaceRepo = new DrizzleWorkspaceRepository();
     const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
+    const invitationRepo = new DrizzleWorkspaceInvitationRepository();
+
+    // Organization Query Service (도메인 경계 유지)
     const orgMemberRepo = new DrizzleOrganizationMemberRepository();
     const orgRepo = new DrizzleOrganizationRepository();
-    const invitationRepo = new DrizzleWorkspaceInvitationRepository();
+    const orgQueryService = new DefaultOrganizationQueryService(
+      orgRepo,
+      orgMemberRepo
+    );
+
+    // Notification Service
+    const notificationRepo = new DrizzleNotificationRepository();
+    const notificationService = new NotificationService(notificationRepo);
 
     const service = new DefaultWorkspaceInvitationService(
       workspaceRepo,
       workspaceMemberRepo,
-      orgMemberRepo,
-      orgRepo,
-      invitationRepo
+      orgQueryService,
+      invitationRepo,
+      notificationService
     );
 
     // 3. Service 호출
