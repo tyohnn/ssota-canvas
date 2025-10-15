@@ -53,6 +53,8 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
         description: workspace.description,
         icon: workspace.icon,
         is_default: workspace.isDefault,
+        is_personal: workspace.isPersonal, // v1.2
+        owner_id: workspace.ownerId, // v1.2
         deletable: workspace.deletable,
         created_by: workspace.createdBy,
         created_at: workspace.createdAt,
@@ -127,6 +129,8 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       row.description,
       row.icon,
       row.is_default,
+      row.is_personal, // v1.2
+      row.owner_id, // v1.2
       row.deletable,
       row.created_by,
       row.created_at,

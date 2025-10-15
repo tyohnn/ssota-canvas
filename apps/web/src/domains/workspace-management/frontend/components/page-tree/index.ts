@@ -2,5 +2,4 @@
 
 export { PageTree } from './page-tree';
 export { PageTreeItemRenderer } from './page-tree-item';
-export { PageTreeControls } from './page-tree-controls';
 export type { PageTreeProps, PageTreeItem, PageFlatItem } from './types';

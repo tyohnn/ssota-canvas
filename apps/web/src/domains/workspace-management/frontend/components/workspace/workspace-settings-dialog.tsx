@@ -58,6 +58,7 @@ interface WorkspaceSettingsDialogProps {
   workspace: WorkspaceWithPagesDTO;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  disableInvite?: boolean; // 개인 워크스페이스는 Members 탭 숨김
 }
 
 /**
@@ -71,6 +72,7 @@ export function WorkspaceSettingsDialog({
   workspace,
   open,
   onOpenChange,
+  disableInvite = false,
 }: WorkspaceSettingsDialogProps) {
   const {
     updateWorkspaceInfo,
@@ -102,15 +104,17 @@ export function WorkspaceSettingsDialog({
         description: workspace.description || '',
         icon: workspace.icon || 'Folder',
       });
+      // 모달이 열릴 때 항상 general 탭으로 초기화
+      setActiveTab('general');
     }
   }, [workspace, open, form]);
 
   // Dialog가 열릴 때 멤버 목록 로드
   useEffect(() => {
-    if (open && activeTab === 'members') {
+    if (open && activeTab === 'members' && !disableInvite) {
       loadMemberView();
     }
-  }, [open, activeTab, workspace.workspaceId]);
+  }, [open, activeTab, workspace.workspaceId, disableInvite]);
 
   const loadMemberView = async () => {
     setIsLoadingMembers(true);
@@ -142,9 +146,12 @@ export function WorkspaceSettingsDialog({
   const isDirty = form.formState.isDirty;
   const descriptionLength = form.watch('description')?.length || 0;
 
+  // 개인 워크스페이스는 Members 탭 숨김
   const tabs = [
     { id: 'general' as const, label: '설정', icon: Settings },
-    { id: 'members' as const, label: '멤버', icon: Users },
+    ...(disableInvite
+      ? []
+      : [{ id: 'members' as const, label: '멤버', icon: Users }]),
   ];
 
   return (
@@ -301,7 +308,7 @@ export function WorkspaceSettingsDialog({
                     </div>
                   )}
 
-                  {activeTab === 'members' && (
+                  {activeTab === 'members' && !disableInvite && (
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <div>

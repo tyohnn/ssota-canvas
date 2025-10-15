@@ -4,21 +4,24 @@ import React from 'react';
 import type { WorkspaceWithPagesDTO } from '../../../shared/dtos';
 import { WorkspaceItem } from './workspace-item';
 
-interface WorkspacePageTreeProps {
+interface PersonalWorkspacePageTreeProps {
   workspaces: WorkspaceWithPagesDTO[];
 }
 
 /**
- * Workspace Page Tree
+ * Personal Workspace Page Tree
  *
- * 모든 Workspace의 Page 트리를 렌더링
- * - Default Workspace가 최상단 (Backend에서 정렬됨)
+ * 개인 Workspace의 Page 트리를 렌더링
+ * - isPersonal=true인 워크스페이스만 표시
+ * - 섹션 레이블로 이미 구분되므로 개별 배지 불필요
  */
-export function WorkspacePageTree({ workspaces }: WorkspacePageTreeProps) {
+export function PersonalWorkspacePageTree({
+  workspaces,
+}: PersonalWorkspacePageTreeProps) {
   if (workspaces.length === 0) {
     return (
       <div className="px-2 text-xs text-muted-foreground">
-        No workspaces found
+        No personal workspaces found
       </div>
     );
   }

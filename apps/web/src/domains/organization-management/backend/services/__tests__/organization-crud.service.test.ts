@@ -39,6 +39,7 @@ describe('DefaultOrganizationCrudService', () => {
     mockWorkspaceCrudService = {
       createDefaultWorkspace: vi.fn(),
       createWorkspace: vi.fn(),
+      createPersonalWorkspace: vi.fn(), // v1.2
       updateWorkspaceInfo: vi.fn(),
     } as Mocked<WorkspaceCrudService>;
 
@@ -234,7 +235,7 @@ describe('DefaultOrganizationCrudService', () => {
   });
 
   describe('createDefaultOrganization', () => {
-    it('기본 조직, 워크스페이스, Welcome 페이지를 생성하고 리다이렉션 URL을 반환해야 한다', async () => {
+    it('기본 조직, Default 워크스페이스, 개인 워크스페이스, Welcome 페이지를 생성하고 리다이렉션 URL을 반환해야 한다', async () => {
       // Given
       const userId = crypto.randomUUID();
       const userName = 'Test User';
@@ -244,18 +245,40 @@ describe('DefaultOrganizationCrudService', () => {
       };
 
       vi.mocked(mockOrgRepository.findByOwnerId).mockResolvedValueOnce([]);
+      vi.mocked(mockMemberRepository.searchUserProfileByEmail).mockResolvedValueOnce([
+        {
+          userId,
+          email: 'test@example.com',
+          name: userName,
+          profileImageUrl: undefined,
+        },
+      ]);
 
-      const mockWorkspaceId = crypto.randomUUID();
-      const mockPageId = crypto.randomUUID();
+      const mockDefaultWorkspaceId = crypto.randomUUID();
+      const mockDefaultPageId = crypto.randomUUID();
       vi.mocked(mockWorkspaceCrudService.createDefaultWorkspace).mockResolvedValueOnce({
         success: true,
         data: {
-          workspaceId: mockWorkspaceId,
+          workspaceId: mockDefaultWorkspaceId,
           workspaceName: 'Default Workspace',
           workspaceIsDefault: true,
-          firstPageId: mockPageId,
+          firstPageId: mockDefaultPageId,
           firstPageTitle: 'Welcome',
           firstPageIcon: 'Sparkles',
+        },
+      });
+
+      const mockPersonalWorkspaceId = crypto.randomUUID();
+      const mockPersonalPageId = crypto.randomUUID();
+      vi.mocked(mockWorkspaceCrudService.createPersonalWorkspace).mockResolvedValueOnce({
+        success: true,
+        data: {
+          workspaceId: mockPersonalWorkspaceId,
+          workspaceName: `${userName}의 개인 워크스페이스`,
+          workspaceIsDefault: false,
+          firstPageId: mockPersonalPageId,
+          firstPageTitle: 'Untitled',
+          firstPageIcon: 'File',
         },
       });
 
@@ -274,11 +297,19 @@ describe('DefaultOrganizationCrudService', () => {
         expect.any(OrganizationId),
         userId
       );
+      expect(mockWorkspaceCrudService.createPersonalWorkspace).toHaveBeenCalledTimes(1);
+      expect(mockWorkspaceCrudService.createPersonalWorkspace).toHaveBeenCalledWith(
+        expect.any(OrganizationId),
+        userId,
+        expect.any(String) // ownerName
+      );
 
       if (result.isSuccess()) {
         expect(result.value.organization).toBeDefined();
         expect(result.value.workspace).toBeDefined();
         expect(result.value.page).toBeDefined();
+        expect(result.value.personalWorkspace).toBeDefined(); // v1.2
+        expect(result.value.personalPage).toBeDefined(); // v1.2
         expect(result.value.redirectUrl).toMatch(
           /^\/r\/[a-f0-9-]+\/workspace\/[a-f0-9-]+\/page\/[a-f0-9-]+$/
         );
@@ -294,6 +325,14 @@ describe('DefaultOrganizationCrudService', () => {
       };
 
       vi.mocked(mockOrgRepository.findByOwnerId).mockResolvedValueOnce([]);
+      vi.mocked(mockMemberRepository.searchUserProfileByEmail).mockResolvedValueOnce([
+        {
+          userId,
+          email: 'test@example.com',
+          name: 'Test User',
+          profileImageUrl: undefined,
+        },
+      ]);
       vi.mocked(mockWorkspaceCrudService.createDefaultWorkspace).mockResolvedValueOnce({
         success: false,
         error: 'WORKSPACE_CREATION_FAILED',
@@ -306,6 +345,56 @@ describe('DefaultOrganizationCrudService', () => {
       expect(result.isError()).toBe(true);
       expect(result.error.code).toBe('ORGANIZATION_CREATION_FAILED');
       expect(result.error.message).toContain('WORKSPACE_CREATION_FAILED');
+      expect(mockOrgRepository.save).toHaveBeenCalledTimes(1);
+      expect(mockOrgRepository.delete).toHaveBeenCalledTimes(1);
+      expect(mockMemberRepository.removeMember).toHaveBeenCalledTimes(1);
+    });
+
+    it('개인 워크스페이스 생성 실패 시 조직 생성이 롤백되어야 한다', async () => {
+      // Given
+      const userId = crypto.randomUUID();
+      const userName = 'Test User';
+      const command = {
+        userId,
+        organizationName: `${userName}'s Organization`,
+      };
+
+      vi.mocked(mockOrgRepository.findByOwnerId).mockResolvedValueOnce([]);
+      vi.mocked(mockMemberRepository.searchUserProfileByEmail).mockResolvedValueOnce([
+        {
+          userId,
+          email: 'test@example.com',
+          name: userName,
+          profileImageUrl: undefined,
+        },
+      ]);
+
+      const mockWorkspaceId = crypto.randomUUID();
+      const mockPageId = crypto.randomUUID();
+      vi.mocked(mockWorkspaceCrudService.createDefaultWorkspace).mockResolvedValueOnce({
+        success: true,
+        data: {
+          workspaceId: mockWorkspaceId,
+          workspaceName: 'Default Workspace',
+          workspaceIsDefault: true,
+          firstPageId: mockPageId,
+          firstPageTitle: 'Welcome',
+          firstPageIcon: 'Sparkles',
+        },
+      });
+
+      vi.mocked(mockWorkspaceCrudService.createPersonalWorkspace).mockResolvedValueOnce({
+        success: false,
+        error: 'PERSONAL_WORKSPACE_CREATION_FAILED',
+      });
+
+      // When
+      const result = await service.createDefaultOrganization(command);
+
+      // Then
+      expect(result.isError()).toBe(true);
+      expect(result.error.code).toBe('ORGANIZATION_CREATION_FAILED');
+      expect(result.error.message).toContain('PERSONAL_WORKSPACE_CREATION_FAILED');
       expect(mockOrgRepository.save).toHaveBeenCalledTimes(1);
       expect(mockOrgRepository.delete).toHaveBeenCalledTimes(1);
       expect(mockMemberRepository.removeMember).toHaveBeenCalledTimes(1);

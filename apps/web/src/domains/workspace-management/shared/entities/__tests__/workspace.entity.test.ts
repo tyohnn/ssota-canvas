@@ -34,6 +34,8 @@ describe('Workspace Entity', () => {
         description,
         icon,
         false, // isDefault
+        false, // isPersonal
+        null, // ownerId
         true, // deletable
         createdBy,
         now,
@@ -64,6 +66,8 @@ describe('Workspace Entity', () => {
         null,
         null,
         true, // isDefault
+        false, // isPersonal
+        null, // ownerId
         false, // deletable
         createdBy,
         now,
@@ -85,6 +89,8 @@ describe('Workspace Entity', () => {
         null,
         null,
         false, // isDefault
+        false, // isPersonal
+        null, // ownerId
         true, // deletable
         createdBy,
         now,
@@ -107,8 +113,10 @@ describe('Workspace Entity', () => {
             '', // 빈 이름
             null,
             null,
-            false,
-            true,
+            false, // isDefault
+            false, // isPersonal
+            null, // ownerId
+            true, // deletable
             createdBy,
             now,
             now,
@@ -130,8 +138,10 @@ describe('Workspace Entity', () => {
             longName,
             null,
             null,
-            false,
-            true,
+            false, // isDefault
+            false, // isPersonal
+            null, // ownerId
+            true, // deletable
             createdBy,
             now,
             now,
@@ -153,8 +163,10 @@ describe('Workspace Entity', () => {
             'Valid Name',
             longDescription,
             null,
-            false,
-            true,
+            false, // isDefault
+            false, // isPersonal
+            null, // ownerId
+            true, // deletable
             createdBy,
             now,
             now,
@@ -174,6 +186,8 @@ describe('Workspace Entity', () => {
             null,
             null,
             true, // isDefault
+            false, // isPersonal
+            null, // ownerId
             true, // deletable (잘못된 조합!)
             createdBy,
             now,
@@ -189,14 +203,121 @@ describe('Workspace Entity', () => {
             'Default Workspace',
             null,
             null,
-            true,
-            true,
+            true, // isDefault
+            false, // isPersonal
+            null, // ownerId
+            true, // deletable
             createdBy,
             now,
             now,
             null
           )
       ).toThrow('Default workspace cannot be deletable');
+    });
+
+    it('개인 워크스페이스(is_personal=true)는 owner_id가 필수여야 한다', () => {
+      // When & Then
+      expect(
+        () =>
+          new Workspace(
+            workspaceId,
+            organizationId,
+            'Personal Workspace',
+            null,
+            null,
+            false, // isDefault
+            true, // isPersonal
+            null, // ownerId (없음 - 잘못된 조합!)
+            true, // deletable
+            createdBy,
+            now,
+            now,
+            null
+          )
+      ).toThrow(WorkspaceManagementError);
+      expect(
+        () =>
+          new Workspace(
+            workspaceId,
+            organizationId,
+            'Personal Workspace',
+            null,
+            null,
+            false,
+            true,
+            null,
+            true,
+            createdBy,
+            now,
+            now,
+            null
+          )
+      ).toThrow('Personal workspace must have an owner');
+    });
+
+    it('is_default와 is_personal은 동시에 true일 수 없다', () => {
+      // When & Then
+      expect(
+        () =>
+          new Workspace(
+            workspaceId,
+            organizationId,
+            'Invalid Workspace',
+            null,
+            null,
+            true, // isDefault
+            true, // isPersonal (잘못된 조합!)
+            createdBy, // ownerId
+            false, // deletable
+            createdBy,
+            now,
+            now,
+            null
+          )
+      ).toThrow(WorkspaceManagementError);
+      expect(
+        () =>
+          new Workspace(
+            workspaceId,
+            organizationId,
+            'Invalid Workspace',
+            null,
+            null,
+            true,
+            true,
+            createdBy,
+            false,
+            createdBy,
+            now,
+            now,
+            null
+          )
+      ).toThrow('Workspace cannot be both default and personal');
+    });
+
+    it('개인 워크스페이스(is_personal=true, owner_id 있음)는 정상 생성되어야 한다', () => {
+      // When
+      const personalWorkspace = new Workspace(
+        workspaceId,
+        organizationId,
+        '홍길동의 개인 워크스페이스',
+        null,
+        null,
+        false, // isDefault
+        true, // isPersonal
+        createdBy, // ownerId
+        true, // deletable
+        createdBy,
+        now,
+        now,
+        null
+      );
+
+      // Then
+      expect(personalWorkspace.isPersonal).toBe(true);
+      expect(personalWorkspace.ownerId).toBe(createdBy);
+      expect(personalWorkspace.isDefault).toBe(false);
+      expect(personalWorkspace.deletable).toBe(true);
     });
   });
 
@@ -209,8 +330,10 @@ describe('Workspace Entity', () => {
         'Old Name',
         'Old Description',
         '📁',
-        false,
-        true,
+        false, // isDefault
+        false, // isPersonal
+        null, // ownerId
+        true, // deletable
         createdBy,
         now,
         now,
@@ -242,8 +365,10 @@ describe('Workspace Entity', () => {
         'Name',
         null,
         null,
-        false,
-        true,
+        false, // isDefault
+        false, // isPersonal
+        null, // ownerId
+        true, // deletable
         createdBy,
         now,
         now,
@@ -269,8 +394,10 @@ describe('Workspace Entity', () => {
         'Name',
         null,
         null,
-        false,
-        true,
+        false, // isDefault
+        false, // isPersonal
+        null, // ownerId
+        true, // deletable
         createdBy,
         now,
         now,
@@ -293,8 +420,10 @@ describe('Workspace Entity', () => {
         'Name',
         null,
         null,
-        false,
-        true,
+        false, // isDefault
+        false, // isPersonal
+        null, // ownerId
+        true, // deletable
         createdBy,
         now,
         now,
@@ -317,7 +446,9 @@ describe('Workspace Entity', () => {
         'Name',
         null,
         null,
-        false,
+        false, // isDefault
+        false, // isPersonal
+        null, // ownerId
         true, // deletable
         createdBy,
         now,
@@ -342,6 +473,8 @@ describe('Workspace Entity', () => {
         null,
         null,
         true, // isDefault
+        false, // isPersonal
+        null, // ownerId
         false, // deletable
         createdBy,
         now,
@@ -366,7 +499,9 @@ describe('Workspace Entity', () => {
         'Name',
         null,
         null,
-        false,
+        false, // isDefault
+        false, // isPersonal
+        null, // ownerId
         true, // deletable
         createdBy,
         now,
@@ -387,6 +522,8 @@ describe('Workspace Entity', () => {
         null,
         null,
         true, // isDefault
+        false, // isPersonal
+        null, // ownerId
         false, // deletable
         createdBy,
         now,

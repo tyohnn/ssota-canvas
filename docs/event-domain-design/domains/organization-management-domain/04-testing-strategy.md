@@ -371,30 +371,47 @@ describe('InvitationRepository Integration Tests', () => {
 
 #### OrganizationManagementService
 ```typescript
-describe('OrganizationManagementService Integration Tests', () => {
+describe('OrganizationCrudService Integration Tests', () => {
   describe('createDefaultOrganization', () => {
     it('사용자를 위한 기본 조직을 생성해야 한다')
+    it('Default Workspace를 자동으로 생성해야 한다')
+    it('소유자 개인 워크스페이스를 자동으로 생성해야 한다')
     it('이미 기본 조직이 있으면 예외를 발생시켜야 한다')
-    it('User Management Domain으로 이벤트를 발행해야 한다')
+    it('생성된 워크스페이스 정보를 반환해야 한다')
   })
   
-  describe('createNewOrganization', () => {
+  describe('createOrganization', () => {
     it('새로운 조직을 생성해야 한다')
     it('조직 타입이 올바르게 설정되어야 한다')
     it('생성자를 소유자로 설정해야 한다')
+    it('Default Workspace를 자동으로 생성해야 한다')
+    it('소유자 개인 워크스페이스를 자동으로 생성해야 한다')
+    it('개인 워크스페이스는 초대 불가 속성이어야 한다')
     it('조직 생성 후 컨텍스트를 전환해야 한다')
   })
   
+})
+
+describe('OrganizationInvitationService Integration Tests', () => {
   describe('inviteMember', () => {
     it('멤버를 초대해야 한다')
     it('중복 초대는 방지해야 한다')
     it('Notification Management Domain으로 알림 생성 요청을 보내야 한다')
   })
   
-  describe('respondToInvitation', () => {
+  describe('acceptInvitation', () => {
     it('초대에 응답해야 한다')
     it('승낙 시 조직에 멤버를 추가해야 한다')
+    it('승낙 시 새 멤버의 개인 워크스페이스를 자동 생성해야 한다')
+    it('생성된 개인 워크스페이스는 해당 멤버만 접근 가능해야 한다')
+    it('개인 워크스페이스는 초대 불가 속성이어야 한다')
+    it('알림을 읽음 처리해야 한다')
+  })
+  
+  describe('rejectInvitation', () => {
     it('거절 시 초대를 무효화해야 한다')
+    it('개인 워크스페이스는 생성되지 않아야 한다')
+    it('알림을 읽음 처리해야 한다')
   })
   
   describe('changeMemberRole', () => {
@@ -512,7 +529,7 @@ describe('Server Actions Integration Tests', () => {
 ### 1. 새로운 조직 생성 플로우 (Scenario 1)
 
 ```typescript
-test('새로운 조직 생성 전체 플로우', async ({ page }) => {
+test('새로운 조직 생성 전체 플로우 (워크스페이스 자동 생성 포함)', async ({ page }) => {
   // Given: 이미 등록된 사용자로 로그인
   await loginAsTestUser(page);
   
@@ -540,6 +557,16 @@ test('새로운 조직 생성 전체 플로우', async ({ page }) => {
   
   // Then: 조직 목록에 새 조직이 추가됨
   await expect(page.locator('[data-testid="organization-list"]')).toContainText('새로운 프로젝트');
+  
+  // Then: Default Workspace가 자동 생성되어 워크스페이스 목록에 표시됨
+  await expect(page.locator('[data-testid="workspace-list"]')).toContainText('Default Workspace');
+  
+  // Then: 개인 워크스페이스가 자동 생성되어 워크스페이스 목록에 표시됨
+  await expect(page.locator('[data-testid="workspace-list"]')).toContainText('개인 워크스페이스');
+  
+  // Then: 개인 워크스페이스에는 초대 버튼이 비활성화됨
+  await page.click('[data-testid="personal-workspace"]');
+  await expect(page.locator('[data-testid="invite-member-button"]')).toBeDisabled();
 })
 ```
 
@@ -584,7 +611,7 @@ test('조직 소유자가 새 멤버를 초대하는 전체 플로우', async ({
 
 #### Sequence 2: 초대 수락/거절 플로우
 ```typescript
-test('초대받은 사용자가 초대를 수락하는 전체 플로우', async ({ page }) => {
+test('초대받은 사용자가 초대를 수락하는 전체 플로우 (개인 워크스페이스 자동 생성)', async ({ page }) => {
   // Given: 초대가 생성된 상태
   await createInvitationForUser('invitee@example.com');
   
@@ -609,6 +636,15 @@ test('초대받은 사용자가 초대를 수락하는 전체 플로우', async 
   
   // Then: 알림이 읽음 처리됨
   await expect(page.locator('[data-testid="unread-count"]')).toHaveText('0');
+  
+  // Then: 개인 워크스페이스가 자동 생성되어 워크스페이스 목록에 표시됨
+  await page.goto('/workspace');
+  await expect(page.locator('[data-testid="workspace-list"]')).toContainText('개인 워크스페이스');
+  
+  // Then: 개인 워크스페이스는 본인만 접근 가능
+  await page.click('[data-testid="personal-workspace"]');
+  await expect(page.locator('[data-testid="invite-member-button"]')).toBeDisabled();
+  await expect(page.locator('[data-testid="workspace-privacy-badge"]')).toContainText('개인 전용');
 })
 ```
 
@@ -931,9 +967,13 @@ test('일반 멤버의 역할 변경 시도 시 에러 표시 (Scenario 3)', asy
 |-------------------|------------|-------------|
 | Command: 새로운 조직 생성하기 | Unit | OrganizationAggregate.createNew() |
 | System: Organization System | Unit | 조직 생성 비즈니스 로직 |
+| System: Workspace 자동 생성 | Integration | WorkspaceCrudService.createDefaultWorkspace() |
+| System: 개인 워크스페이스 자동 생성 | Integration | WorkspaceCrudService.createPersonalWorkspace() |
 | Event: 새로운 조직이 생성됨 | Unit | NewOrganizationCreatedEvent 발행 검증 |
-| 전체 플로우 | Integration | createNewOrganizationAction() |
-| 사용자 경험 | E2E | 조직 생성 폼 → 생성 완료 → 컨텍스트 전환 |
+| Event: 기본 워크스페이스가 생성됨 | Integration | DefaultWorkspaceCreatedEvent 검증 |
+| Event: 개인 워크스페이스가 생성됨 | Integration | PersonalWorkspaceCreatedEvent 검증 |
+| 전체 플로우 | Integration | createOrganizationAction() - 조직 + 2개 워크스페이스 생성 |
+| 사용자 경험 | E2E | 조직 생성 폼 → 생성 완료 → 워크스페이스 확인 → 컨텍스트 전환 |
 
 ### Scenario 2: 멤버 초대 및 수락
 
@@ -948,10 +988,12 @@ test('일반 멤버의 역할 변경 시도 시 에러 표시 (Scenario 3)', asy
 | Event: 초대 알림 생성함 | Unit | InvitationNotificationCreatedEvent 발행 검증 |
 | Command: 인박스 버튼 클릭하기 | E2E | 인박스 버튼 클릭 UI 테스트 |
 | System: Invitation System | Unit | 초대 승낙/거절 처리 로직 |
+| System: 개인 워크스페이스 자동 생성 (승낙 시) | Integration | WorkspaceCrudService.createPersonalWorkspace() |
 | Event: 초대 거절함/승낙함 | Unit | InvitationRejectedEvent/AcceptedEvent 발행 검증 |
+| Event: 개인 워크스페이스가 생성됨 (승낙 시) | Integration | PersonalWorkspaceCreatedEvent 검증 |
 | Event: 알림 읽혀짐 | Unit | NotificationReadEvent 발행 검증 |
-| 전체 플로우 | Integration | inviteMemberAction(), respondToInvitationAction() |
-| 사용자 경험 | E2E | 멤버 초대 → 알림 생성 → 초대 수락/거절 |
+| 전체 플로우 | Integration | inviteMemberAction(), acceptInvitationAction() - 멤버 추가 + 개인 워크스페이스 |
+| 사용자 경험 | E2E | 멤버 초대 → 알림 생성 → 초대 수락 → 개인 워크스페이스 확인 |
 
 ### Scenario 3: 멤버 역할 변경
 

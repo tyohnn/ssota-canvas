@@ -479,6 +479,16 @@ describe('Server Actions Integration Tests', () => {
           title: 'Welcome',
           icon: '👋',
         },
+        personalWorkspace: {
+          id: 'personal-workspace-123',
+          name: 'Test User의 개인 워크스페이스',
+          isDefault: false,
+        },
+        personalPage: {
+          id: 'personal-page-123',
+          title: 'Untitled',
+          icon: 'File',
+        },
         redirectUrl: '/r/org-123/workspace/workspace-123/page/page-123',
       };
 
@@ -492,12 +502,14 @@ describe('Server Actions Integration Tests', () => {
       expect(result.success).toBe(true);
       expect(result.user.id).toBe('test-user-id');
       expect(result.user.email).toBe('test@example.com');
-      expect(result.defaultOrganization.id).toBe('org-123');
-      expect(result.defaultOrganization.isDefault).toBe(true);
+      expect(result.organization.id).toBe('org-123');
+      expect(result.organization.isDefault).toBe(true);
       expect(result.workspace.id).toBe('workspace-123');
       expect(result.workspace.name).toBe('Default Workspace');
       expect(result.page.id).toBe('page-123');
       expect(result.page.title).toBe('Welcome');
+      expect(result.personalWorkspace.id).toBe('personal-workspace-123'); // v1.2
+      expect(result.personalPage.id).toBe('personal-page-123'); // v1.2
       expect(result.redirectUrl).toMatch(/^\/r\/[a-z0-9-]+\/workspace\/[a-z0-9-]+\/page\/[a-z0-9-]+$/);
     });
 

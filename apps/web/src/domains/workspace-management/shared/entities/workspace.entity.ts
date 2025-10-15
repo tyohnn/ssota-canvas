@@ -15,6 +15,8 @@ import {
  * - 설명은 최대 500자
  * - Default Workspace는 deletable=false
  * - 조직당 1개의 Default Workspace만 허용
+ * - 개인 워크스페이스는 is_personal=true, owner_id 필수
+ * - is_default와 is_personal은 배타적 (동시에 true 불가)
  */
 export class Workspace {
   constructor(
@@ -24,6 +26,8 @@ export class Workspace {
     private _description: string | null,
     private _icon: string | null,
     public readonly isDefault: boolean,
+    public readonly isPersonal: boolean, // v1.2: 개인 워크스페이스 구분
+    public readonly ownerId: string | null, // v1.2: 개인 워크스페이스 소유자
     public readonly deletable: boolean,
     public readonly createdBy: string,
     public readonly createdAt: Date,
@@ -34,6 +38,8 @@ export class Workspace {
     this.validateName(_name);
     this.validateDescription(_description);
     this.validateDefaultDeletable(isDefault, deletable);
+    this.validatePersonalOwner(isPersonal, ownerId);
+    this.validateDefaultPersonalMutuallyExclusive(isDefault, isPersonal);
   }
 
   // Getters
@@ -134,6 +140,30 @@ export class Workspace {
       throw new WorkspaceManagementError(
         'DEFAULT_WORKSPACE_NOT_DELETABLE',
         'Default workspace cannot be deletable'
+      );
+    }
+  }
+
+  private validatePersonalOwner(
+    isPersonal: boolean,
+    ownerId: string | null
+  ): void {
+    if (isPersonal && !ownerId) {
+      throw new WorkspaceManagementError(
+        'PERSONAL_WORKSPACE_OWNER_REQUIRED',
+        'Personal workspace must have an owner'
+      );
+    }
+  }
+
+  private validateDefaultPersonalMutuallyExclusive(
+    isDefault: boolean,
+    isPersonal: boolean
+  ): void {
+    if (isDefault && isPersonal) {
+      throw new WorkspaceManagementError(
+        'DEFAULT_PERSONAL_MUTUALLY_EXCLUSIVE',
+        'Workspace cannot be both default and personal'
       );
     }
   }

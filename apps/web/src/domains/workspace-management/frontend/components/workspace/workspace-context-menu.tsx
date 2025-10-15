@@ -24,6 +24,7 @@ interface WorkspaceContextMenuProps {
   workspace: WorkspaceWithPagesDTO;
   onOpenChange?: (open: boolean) => void; // 메뉴/다이얼로그 열림 상태 전달
   isParentHovered?: boolean; // 부모 아이템 호버 상태
+  disableInvite?: boolean; // 초대 기능 비활성화 (개인 워크스페이스)
 }
 
 /**
@@ -32,11 +33,13 @@ interface WorkspaceContextMenuProps {
  * Workspace 헤더 삼점 메뉴
  * - 권한별 메뉴 항목 필터링
  * - Default Workspace 특별 처리
+ * - 개인 Workspace 초대 제한
  */
 export function WorkspaceContextMenu({
   workspace,
   onOpenChange,
   isParentHovered = false,
+  disableInvite = false,
 }: WorkspaceContextMenuProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
@@ -64,9 +67,6 @@ export function WorkspaceContextMenu({
     setShowArchive(open);
     onOpenChange?.(open || isMenuOpen || showSettings || showInvite);
   };
-
-  // TODO: 권한 체크 로직 (조직 Admin + Workspace 멤버)
-  const canInviteMembers = true; // 임시로 true
 
   return (
     <>
@@ -102,36 +102,39 @@ export function WorkspaceContextMenu({
             워크스페이스 설정
           </DropdownMenuItem>
 
-          {canInviteMembers && (
-            <DropdownMenuItem onClick={() => handleInviteChange(true)}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              멤버 초대
-            </DropdownMenuItem>
+          {/* 일반 워크스페이스만 초대 메뉴 표시 */}
+          {!disableInvite && (
+            <>
+              <DropdownMenuItem onClick={() => handleInviteChange(true)}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                멤버 초대
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <DropdownMenuItem
+                        onClick={() => handleArchiveChange(true)}
+                        disabled={workspace.isDefault}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        워크스페이스 보관
+                      </DropdownMenuItem>
+                    </div>
+                  </TooltipTrigger>
+                  {workspace.isDefault && (
+                    <TooltipContent>
+                      <p>기본 워크스페이스는 삭제할 수 없습니다</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            </>
           )}
-
-          <DropdownMenuSeparator />
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <DropdownMenuItem
-                    onClick={() => handleArchiveChange(true)}
-                    disabled={workspace.isDefault}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    워크스페이스 보관
-                  </DropdownMenuItem>
-                </div>
-              </TooltipTrigger>
-              {workspace.isDefault && (
-                <TooltipContent>
-                  <p>기본 워크스페이스는 삭제할 수 없습니다</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -140,15 +143,18 @@ export function WorkspaceContextMenu({
         workspace={workspace}
         open={showSettings}
         onOpenChange={handleSettingsChange}
+        disableInvite={disableInvite}
       />
 
-      {/* InviteMemberDialog (Scenario 3) */}
-      <InviteMemberDialog
-        workspaceId={workspace.workspaceId}
-        workspaceName={workspace.name}
-        open={showInvite}
-        onOpenChange={handleInviteChange}
-      />
+      {/* InviteMemberDialog (일반 워크스페이스만) */}
+      {!disableInvite && (
+        <InviteMemberDialog
+          workspaceId={workspace.workspaceId}
+          workspaceName={workspace.name}
+          open={showInvite}
+          onOpenChange={handleInviteChange}
+        />
+      )}
 
       {/* TODO: ArchiveWorkspaceDialog */}
     </>

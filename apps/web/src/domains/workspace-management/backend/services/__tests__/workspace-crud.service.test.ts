@@ -136,7 +136,7 @@ describe('WorkspaceCrudService Integration Tests (Scenario 2)', () => {
         );
         expect(initialPage).not.toBeNull();
         expect(initialPage?.title).toBe('Untitled');
-        expect(initialPage?.icon).toBe('📄');
+        expect(initialPage?.icon).toBe('File'); // Lucide icon name
       }
     });
 
@@ -370,6 +370,113 @@ describe('WorkspaceCrudService Integration Tests (Scenario 2)', () => {
       // DB 확인: 원래 이름 유지
       const notUpdated = await workspaceRepo.findById(workspace.workspace.workspaceId);
       expect(notUpdated?.name).toBe('Valid Name');
+    });
+  });
+
+  describe('createPersonalWorkspace', () => {
+    it('개인 워크스페이스를 생성할 수 있어야 한다', async () => {
+      // Given
+      const ownerName = 'Test User';
+
+      // When
+      const result = await service.createPersonalWorkspace(
+        testOrgId,
+        testUserId,
+        ownerName
+      );
+
+      // Then
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.workspaceId).toBeDefined();
+        expect(result.data.firstPageId).toBeDefined();
+
+        // DB 확인: 개인 워크스페이스 생성됨
+        const savedWorkspace = await workspaceRepo.findById(
+          new WorkspaceId(result.data.workspaceId)
+        );
+        expect(savedWorkspace).not.toBeNull();
+        expect(savedWorkspace?.name).toBe(`${ownerName}의 개인 워크스페이스`);
+        expect(savedWorkspace?.isPersonal).toBe(true);
+        expect(savedWorkspace?.ownerId).toBe(testUserId);
+        expect(savedWorkspace?.isDefault).toBe(false);
+        expect(savedWorkspace?.deletable).toBe(true);
+
+        // DB 확인: 소유자가 멤버로 추가됨
+        const isMember = await workspaceMemberRepo.isMember(
+          new WorkspaceId(result.data.workspaceId),
+          testUserId
+        );
+        expect(isMember).toBe(true);
+
+        // DB 확인: 초기 페이지 생성됨
+        const initialPage = await pageRepo.findById(
+          new PageId(result.data.firstPageId)
+        );
+        expect(initialPage).not.toBeNull();
+        expect(initialPage?.title).toBe('Untitled');
+      }
+    });
+
+    it('개인 워크스페이스는 is_default=false여야 한다', async () => {
+      // Given
+      const ownerName = 'Test User';
+
+      // When
+      const result = await service.createPersonalWorkspace(
+        testOrgId,
+        testUserId,
+        ownerName
+      );
+
+      // Then
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const savedWorkspace = await workspaceRepo.findById(
+          new WorkspaceId(result.data.workspaceId)
+        );
+        expect(savedWorkspace?.isDefault).toBe(false);
+        expect(savedWorkspace?.isPersonal).toBe(true);
+      }
+    });
+
+    it('개인 워크스페이스는 deletable=true여야 한다', async () => {
+      // Given
+      const ownerName = 'Test User';
+
+      // When
+      const result = await service.createPersonalWorkspace(
+        testOrgId,
+        testUserId,
+        ownerName
+      );
+
+      // Then
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const savedWorkspace = await workspaceRepo.findById(
+          new WorkspaceId(result.data.workspaceId)
+        );
+        expect(savedWorkspace?.deletable).toBe(true);
+      }
+    });
+
+    it('개인 워크스페이스 이름은 "{ownerName}의 개인 워크스페이스" 형식이어야 한다', async () => {
+      // Given
+      const ownerName = '홍길동';
+
+      // When
+      const result = await service.createPersonalWorkspace(
+        testOrgId,
+        testUserId,
+        ownerName
+      );
+
+      // Then
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.workspaceName).toBe(`${ownerName}의 개인 워크스페이스`);
+      }
     });
   });
 });

@@ -4,11 +4,23 @@ Technical Specification을 기반으로 한 데이터베이스 스키마 설계 
 
 **작성자**: AI Assistant  
 **작성일**: 2025-09-28  
-**수정일**: 2025-10-09
-**버전**: 8.0  
+**수정일**: 2025-10-14
+**버전**: 9.0  
 **기반 문서**: [Technical Specification](./05-technical-specification.md)
 
-### 주요 변경사항 (v8.0) - 멤버 역할 변경 시스템 스키마 문서화 (Scenario 3)
+### 주요 변경사항 (v9.0) - 개인 워크스페이스 시스템 통합 문서화
+- **Workspace Management Domain 통합**: 개인 워크스페이스 자동 생성 로직 명시 ✅
+  - 조직 생성 시: Default Workspace + 개인 워크스페이스 자동 생성
+  - 초대 승낙 시: 새 멤버 개인 워크스페이스 자동 생성
+- **워크스페이스 종류 구분**: is_default, is_personal 플래그로 구분 ✅
+  - is_default=true, is_personal=false: 기본 워크스페이스 (조직 전체 협업)
+  - is_default=false, is_personal=false: 일반 워크스페이스 (선택적 초대)
+  - is_default=false, is_personal=true: 개인 워크스페이스 (소유자만 접근, 초대 불가)
+- **도메인 간 통합 섹션 강화**: Workspace Management Domain과의 통합 포인트 상세화 ✅
+- **검증 체크리스트**: 워크스페이스 자동 생성 항목 추가 ✅
+- **마이그레이션 최소화**: 기존 is_default 로직 유지, is_personal과 owner_id만 추가
+
+### 이전 변경사항 (v8.0) - 멤버 역할 변경 시스템 스키마 문서화 (Scenario 3)
 - **member_role enum 주석 강화**: 계층적 권한 시스템 설명 추가 ✅
   - owner: 모든 멤버 역할 변경 가능
   - admin: 멤버 승격만 가능
@@ -641,12 +653,19 @@ ORDER BY idx_scan DESC;
 ### Scenario 1-6 지원
 - [x] **기본 조직 생성**: User Management Domain 요청 수신 시 자동 생성 ✅
 - [x] **새로운 조직 생성**: 사용자가 직접 새로운 조직 생성 ✅
+  - Default Workspace 자동 생성 (조직 전체 협업 공간)
+  - 개인 워크스페이스 자동 생성 (소유자 전용 공간)
 - [x] **조직 조회**: 사용자가 소유하거나 멤버인 조직 목록 조회 ✅
 - [x] **조직 타입 관리**: `organization_type` enum으로 타입 안전성 확보 ✅
 - [x] **멤버 초대**: `invitations` 테이블로 초대 상태 관리 + adminDb 사용 ✅
   - inviteMember: 이메일 검색, inviteeUserId 저장, Notification 생성
-- [x] **초대 수락/거절**: 초대 상태 변경 + 멤버십 자동 추가 ✅
+- [x] **초대 수락/거절**: 초대 상태 변경 + 멤버십 자동 추가 + 개인 워크스페이스 생성 ✅
   - acceptInvitation: organization_members에 멤버 추가 (adminDb)
+  - **개인 워크스페이스 자동 생성** (새 멤버 전용, is_personal=true, owner_id=새멤버)
+- [x] **워크스페이스 종류 시스템**: Workspace Management Domain에서 is_default, is_personal 플래그로 관리 ✅
+  - is_default=true, is_personal=false: 기본 워크스페이스 (조직 생성 시 자동 생성, 모든 멤버 접근 가능)
+  - is_default=false, is_personal=false: 일반 워크스페이스 (조직 멤버가 생성, 선택적 초대 가능)
+  - is_default=false, is_personal=true: 개인 워크스페이스 (각 멤버 전용, 소유자만 접근, 초대 불가)
 - [x] **멤버십 관리**: Layered Security Model 적용 ✅
   - Application-level: Service에서 Owner/Admin 권한 체크
   - Repository: adminDb 사용 (addMember, removeMember, updateMemberRole)
@@ -702,10 +721,73 @@ ORDER BY idx_scan DESC;
 - **profiles.user_id**: organizations.owner_id, organization_members.user_id, invitations.inviter_user_id, invitations.invitee_user_id의 외래키로 참조
 - **profiles 테이블**: RLS 공개 정책으로 사용자 프로필 조회 가능 (멤버 초대 폼에서 사용)
 
+### Workspace Management Domain과의 통합 (v9.0 신규)
+
+**워크스페이스 자동 생성 로직**:
+- **조직 생성 시** (OrganizationCrudService):
+  1. Default Workspace 자동 생성 (조직 전체 협업 공간)
+  2. 개인 워크스페이스 자동 생성 (소유자 전용 공간)
+  
+- **초대 승낙 시** (OrganizationInvitationService):
+  1. 개인 워크스페이스 자동 생성 (새 멤버 전용 공간)
+
+**워크스페이스 종류 구분** (Workspace Management Domain에서 관리):
+```sql
+-- workspaces 테이블 (참고용 - Workspace Domain에서 관리)
+CREATE TABLE workspaces (
+    id UUID PRIMARY KEY,
+    organization_id UUID NOT NULL REFERENCES organizations(id),
+    name TEXT NOT NULL,
+    is_default BOOLEAN NOT NULL DEFAULT false,
+    is_personal BOOLEAN NOT NULL DEFAULT false, -- v1.2 신규
+    owner_id UUID REFERENCES profiles(user_id), -- v1.2 신규: personal 워크스페이스의 경우
+    deletable BOOLEAN NOT NULL DEFAULT true,
+    created_by UUID NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ, -- 소프트 삭제 (30-day retention)
+    
+    -- 개인 워크스페이스 제약: is_personal=true이면 owner_id 필수
+    CONSTRAINT workspaces_personal_owner_required 
+        CHECK (is_personal = false OR owner_id IS NOT NULL),
+    
+    -- is_default와 is_personal은 배타적
+    CONSTRAINT workspaces_default_personal_mutually_exclusive 
+        CHECK (NOT (is_default = true AND is_personal = true)),
+    
+    -- 기본 워크스페이스 제약: 조직당 1개만
+    CONSTRAINT workspaces_unique_default 
+        UNIQUE (organization_id, is_default) 
+        WHERE is_default = true,
+    
+    -- 개인 워크스페이스 제약: 멤버당 조직당 1개만
+    CONSTRAINT workspaces_unique_personal_per_member 
+        UNIQUE (organization_id, owner_id) 
+        WHERE is_personal = true AND deleted_at IS NULL
+);
+
+-- 워크스페이스 종류별 인덱스
+CREATE INDEX idx_workspaces_personal ON workspaces(organization_id, is_personal) 
+    WHERE is_personal = true AND deleted_at IS NULL;
+CREATE INDEX idx_workspaces_personal_owner ON workspaces(owner_id) 
+    WHERE is_personal = true AND deleted_at IS NULL;
+```
+
+**워크스페이스 권한 규칙**:
+- **Default Workspace**: `is_default=true, is_personal=false`, 모든 조직 멤버 접근 가능
+- **일반 워크스페이스**: `is_default=false, is_personal=false`, 선택적 멤버 초대 가능
+- **개인 워크스페이스**: `is_default=false, is_personal=true`, owner_id 멤버만 접근, 초대 불가
+
+**통합 이벤트**:
+- `Organization Created` → `Create Default Workspace` + `Create Personal Workspace` (소유자용)
+- `Invitation Accepted` → `Create Personal Workspace` (새 멤버용)
+
+**참조**: 실제 workspaces 테이블 스키마는 `docs/event-domain-design/domains/workspace-management-domain/06-db-schema.md`에서 관리
+
 ### Notification Management Domain과의 통합
 - **invitations.id**: Notification Management Domain에서 알림 생성 시 related_id로 참조
 - **초대 생성**: Notification Management Domain에 알림 생성 요청
-- **초대 응답**: Notification Management Domain에 알림 정리 요청
+- **초대 응답**: Notification Management Domain에 알림 읽음 처리 요청 (markAsReadByRelatedId)
 
 ---
 

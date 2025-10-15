@@ -94,6 +94,7 @@ export function WorkspaceItem({ workspace }: WorkspaceItemProps) {
             workspace={workspace}
             onOpenChange={setIsMenuOrDialogOpen}
             isParentHovered={isHovered}
+            disableInvite={workspace.isPersonal}
           />
         </div>
       </div>

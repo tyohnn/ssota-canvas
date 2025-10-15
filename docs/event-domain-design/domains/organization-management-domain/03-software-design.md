@@ -38,9 +38,12 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Organization 
 - Retrieve User Organizations // 유저 관련 조직 (소유, 소속) 조회 (Scenario 0)
 - Select Initial Organization // 초기 조직 자동 선택 (Scenario 0)
 - Create New Organization // 사용자가 새로운 조직 생성 (Scenario 1)
+  - Default Workspace 자동 생성 포함
+  - 개인 워크스페이스 자동 생성 포함 (소유자용)
 - Update Organization // 조직 정보 수정
 - Invite Member // 멤버 초대 (Scenario 2)
 - Respond to Invitation // 초대 응답 (Scenario 2)
+  - 개인 워크스페이스 자동 생성 포함 (승낙 시)
 - Change Member Role // 멤버 역할 변경 (Scenario 3)
 - Remove Member // 멤버 제거 (Scenario 4 - Sequence 1)
 - Leave Organization // 조직 나가기 (Scenario 4 - Sequence 2)
@@ -50,6 +53,8 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Organization 
 #### Events
 - Default Organization Created // 기본 조직이 생성됨
 - New Organization Created // 새로운 조직이 생성됨
+- Default Workspace Created // 기본 워크스페이스가 생성됨 (조직 생성 시)
+- Personal Workspace Created // 개인 워크스페이스가 생성됨 (조직 생성/초대 승낙 시)
 - Related Organizations Retrieved // 유저 관련 조직이 조회됨
 - Initial Organization Selected // 초기 조직이 선택됨
 - Organization Selected // 조직이 선택됨
@@ -68,6 +73,12 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Organization 
 - 동일한 조직 ID가 중복될 수 없음
 - 조직 생성 시 반드시 조직 타입을 선택해야 함 (마케팅용)
 - 조직 생성자는 자동으로 소유자(Owner) 권한을 가짐
+- **조직 생성 시 자동으로 2개의 워크스페이스가 생성됨**
+  - Default Workspace (조직 전체 협업 공간, 모든 멤버 접근 가능)
+  - 개인 워크스페이스 (소유자 전용 공간, 초대 불가)
+- **멤버 초대 승낙 시 자동으로 개인 워크스페이스가 생성됨**
+  - 해당 멤버만 접근 가능
+  - 다른 멤버 초대 불가
 - 멤버 추가 시 중복 멤버는 추가할 수 없음
 - 조직 소유자는 최소 1명 이상 유지되어야 함
 - 멤버 역할은 Owner, Admin, Member 중 하나여야 함
@@ -204,7 +215,14 @@ type NotificationType = 'invitation' | 'system' | 'announcement';
 
 **External System Integration**:
 - **User Management Domain**: 사용자 정보 참조, 기본 조직 생성 요청 수신
-- **Notification Management Domain**: 알림 생성 요청 발행
+- **Workspace Management Domain**: 워크스페이스 생성 요청 발행 (Service 통합)
+- **Notification Management Domain**: 알림 생성 요청 발행 (Service 통합)
+
+**QueryService 패턴 적용** (2025-10-14):
+- **OrganizationQueryService**: 다른 도메인에서 Organization 정보를 안전하게 조회
+  - Repository 직접 노출 방지로 도메인 경계 유지
+  - 최소 권한 원칙: 읽기 전용 API만 노출
+  - 사용처: Workspace Management Domain에서 조직 멤버 확인, Notification Domain에서 조직 정보 조회
 
 ---
 
@@ -232,8 +250,17 @@ type NotificationType = 'invitation' | 'system' | 'announcement';
 | "Organization Member" | "Workspace Creator/Member" |
 
 **통합 이벤트**:
-- `Organization Created` → `Create Default Workspace`
+- `Organization Created` → `Create Default Workspace + Create Personal Workspace`
+  - Default Workspace: 조직 전체 협업 공간
+  - Personal Workspace: 생성자의 개인 작업 공간
+- `Invitation Accepted` → `Create Personal Workspace`
+  - 새 멤버의 개인 작업 공간 자동 생성
 - `Organization Selected` → `Set Workspace Context`
+
+**워크스페이스 종류 및 권한 규칙**:
+- **Default Workspace**: 조직 생성 시 자동 생성, 모든 멤버 접근 가능, 멤버 초대 가능
+- **일반 워크스페이스**: 조직 멤버가 생성, 선택적으로 멤버 초대 가능
+- **개인 워크스페이스**: 각 멤버 전용, 소유자만 접근, 다른 멤버 초대 불가
 
 ---
 
@@ -289,31 +316,51 @@ type NotificationType = 'invitation' | 'system' | 'announcement';
   - 재사용성: Notification System을 다른 도메인에서도 활용 가능
   - 향후 확장성: 각 도메인이 독립적으로 진화 가능
 
-### 2. 조직 타입 시스템 도입
+### 2. 워크스페이스 자동 생성 시스템
+- **문제**: 조직 생성 시 워크스페이스를 어떻게 구성할지, 개인 작업 공간을 어떻게 제공할지
+- **해결**: 조직 생성 시 Default Workspace + 개인 워크스페이스 자동 생성, 멤버 추가 시에도 개인 워크스페이스 자동 생성
+- **대안**: Default Workspace만 생성, 사용자가 직접 워크스페이스 생성, 템플릿 선택 방식
+- **결정 이유**: 
+  - 사용자 경험 개선: 즉시 사용 가능한 작업 공간 제공
+  - 개인 프라이버시: 각 멤버가 자신만의 공간을 가짐
+  - 협업과 개인 작업 분리: Default Workspace(협업) + Personal Workspace(개인)
+  - 온보딩 단순화: 추가 설정 없이 바로 작업 시작 가능
+
+### 3. 3가지 워크스페이스 종류 도입
+- **문제**: 워크스페이스의 용도와 접근 권한을 어떻게 구분할지
+- **해결**: Default, 일반, 개인 워크스페이스 3가지 종류로 구분
+- **대안**: 권한 기반 워크스페이스만 사용, 공개/비공개 워크스페이스만 구분
+- **결정 이유**:
+  - **Default Workspace**: 조직 전체 협업을 위한 공통 공간
+  - **일반 워크스페이스**: 팀/프로젝트별 선택적 협업 공간
+  - **개인 워크스페이스**: 개인 작업 및 메모를 위한 전용 공간 (초대 불가)
+  - 명확한 용도 구분으로 사용자 혼란 최소화
+
+### 4. 조직 타입 시스템 도입
 - **문제**: 조직 생성 시 어떤 정보를 수집할지, 조직을 어떻게 분류할지
 - **해결**: 6가지 조직 타입 선택 시스템 (개인, 교육, 스타트업, 에이전시, 컴퍼니, N/A)
 - **대안**: 자유형 텍스트 입력, 태그 시스템, 조직 타입 없이 운영
 - **결정 이유**: 향후 맞춤형 기능 제공, 사용 패턴 분석, 온보딩 개인화
 
-### 3. 단순화된 조직 생성 프로세스
+### 5. 단순화된 조직 생성 프로세스
 - **문제**: 조직 생성 시 필요한 필수/선택 정보의 범위
 - **해결**: 조직 이름과 타입만 필수로 하는 최소한의 정보 수집
 - **대안**: 상세 정보 모두 수집, 단계적 정보 입력, 설명 필드 포함
 - **결정 이유**: 사용자 진입 장벽 최소화, 빠른 조직 생성, 나중에 수정 가능
 
-### 4. 3단계 역할 시스템
+### 6. 3단계 역할 시스템
 - **문제**: 조직 내 권한을 어떻게 관리할지
 - **해결**: 소유자 > 관리자 > 멤버 3단계 역할 시스템
 - **대안**: 복잡한 권한 매트릭스, 역할 기반 접근 제어(RBAC)
 - **결정 이유**: 단순하고 명확한 권한 관리, 사용자 이해 용이성
 
-### 5. 초대 기반 멤버십 관리
+### 7. 초대 기반 멤버십 관리
 - **문제**: 조직에 멤버를 어떻게 추가할지
 - **해결**: 초대 데이터 기반 내부 시스템
 - **대안**: 직접 초대, 링크 공유, 자동 가입
 - **결정 이유**: 보안성, 추적 가능성, 사용자 경험
 
-### 6. 계층적 역할 변경 권한 시스템 (Scenario 3)
+### 8. 계층적 역할 변경 권한 시스템 (Scenario 3)
 - **문제**: 멤버 역할 변경 시 누가 누구의 역할을 변경할 수 있는지
 - **해결**: 계층적 권한 시스템 - 소유자는 모든 역할 변경 가능, 관리자는 승격만 가능
 - **대안**: 모든 관리자가 동등한 권한, RBAC 기반 세밀한 권한 제어
@@ -322,7 +369,7 @@ type NotificationType = 'invitation' | 'system' | 'announcement';
   - 명확한 권한 계층: 소유자 > 관리자 > 멤버 구조 유지
   - 사용자 이해 용이성: 직관적인 권한 규칙
 
-### 7. 두 단계 역할 변경 프로세스 (Scenario 3)
+### 9. 두 단계 역할 변경 프로세스 (Scenario 3)
 - **문제**: 역할 변경 시 실수로 인한 권한 변경 방지
 - **해결**: 역할 옵션 선택 → 확인 다이얼로그 → 역할 업데이트 2단계 프로세스
 - **대안**: 즉시 역할 변경, 역할 변경 후 undo 기능
@@ -424,10 +471,55 @@ interface InvitationNotificationData {
 
 Service 레이어는 여러 Aggregate와 외부 시스템을 한 자리에서 조율하는 **업무 진행 책임자**입니다.
 
+### Service 분리 및 구조 (2025-10-14 개선)
+
+Organization Management Domain의 Service는 **단일 책임 원칙(SRP)**에 따라 다음과 같이 분리되었습니다:
+
+#### 1. OrganizationCrudService (CRUD 작업)
+- **책임**: 조직 생성, 조회, 업데이트 관리
+- **주요 기능**:
+  - 기본 조직 생성 (사용자 가입 시)
+    - Default Workspace 자동 생성
+    - 개인 워크스페이스 자동 생성 (소유자용)
+  - 새로운 조직 생성
+    - Default Workspace 자동 생성
+    - 개인 워크스페이스 자동 생성 (소유자용)
+  - 사용자 조직 목록 조회 (소유자 + 멤버)
+- **의존성**: OrganizationRepository, OrganizationMemberRepository, WorkspaceCrudService
+
+#### 2. OrganizationInvitationService (초대 관리)
+- **책임**: 멤버 초대, 수락, 거절 처리
+- **주요 기능**:
+  - 멤버 초대 생성 (권한 검증 포함)
+  - 초대 승낙 처리 (멤버십 추가)
+    - 개인 워크스페이스 자동 생성 (새 멤버용)
+  - 초대 거절 처리
+- **의존성**: InvitationRepository, OrganizationRepository, OrganizationMemberRepository, NotificationService, WorkspaceCrudService
+
+#### 3. OrganizationMemberService (멤버 관리)
+- **책임**: 멤버 역할 변경, 제거 등 멤버십 관리
+- **주요 기능**:
+  - 멤버 역할 변경 (계층적 권한 시스템)
+  - 멤버 제거
+  - 멤버 목록 조회
+- **의존성**: OrganizationMemberRepository, OrganizationRepository
+
+#### 4. OrganizationQueryService (조회 전용 - 도메인 간 통합)
+- **책임**: 다른 도메인에서 Organization 정보를 안전하게 조회
+- **주요 기능**:
+  - 조직 멤버 여부 확인 (isMember)
+  - 멤버 역할 조회 (getMemberRole)
+  - 조직 이름 조회 (getOrganizationName)
+  - 이메일로 사용자 검색 (searchUserByEmail)
+- **특징**: Repository를 직접 노출하지 않고 Service를 통해 도메인 경계 유지
+- **사용처**: Workspace Management Domain, Notification Management Domain 등
+
+### Service 레이어 핵심 책임
+
 - **업무 시나리오 연결**: 
-  - 새로운 조직 생성 시 Organization Aggregate에서 조직을 생성하고, 자동으로 생성자를 소유자로 설정한 뒤, 조직 목록을 갱신하고 새 조직으로 컨텍스트를 전환합니다.
+  - 새로운 조직 생성 시 Organization Aggregate에서 조직을 생성하고, Workspace Management Domain에 **Default Workspace와 개인 워크스페이스 생성**을 요청하며, 조직 목록을 갱신하고 새 조직으로 컨텍스트를 전환합니다.
   - 멤버 초대 시 Invitation Aggregate에서 초대를 생성하고, Notification Management Domain에 알림 생성 요청을 보낸 뒤, 초대 상태를 추적합니다.
-  - 초대 승낙/거절 시 Invitation Aggregate에서 초대 상태를 업데이트하고, 승낙인 경우 Organization Aggregate에서 멤버십을 추가하며, Notification Management Domain에 알림 정리 요청을 보냅니다.
+  - 초대 승낙/거절 시 Invitation Aggregate에서 초대 상태를 업데이트하고, 승낙인 경우 Organization Aggregate에서 멤버십을 추가하며, **새 멤버의 개인 워크스페이스를 생성**하고, Notification Service를 통해 알림을 읽음 처리합니다.
   - 멤버 역할 변경 시 Organization Aggregate에서 현재 사용자 권한을 확인하고, 대상 멤버의 역할을 검증한 뒤, 역할을 업데이트하고 권한 캐시를 무효화합니다.
   - 조직 소유권 이전 시 Organization Aggregate에서 소유권을 이전하고, 관련 멤버십을 업데이트합니다.
   - 조직 삭제 시 Organization Aggregate에서 조직을 삭제하고, 관련 멤버십과 초대를 정리합니다.
@@ -446,8 +538,9 @@ Service 레이어는 여러 Aggregate와 외부 시스템을 한 자리에서 �
 
 - **외부 파트너 연동**: 
   - User Management Domain에서 사용자 정보 조회
-  - Notification Management Domain으로 알림 생성/조회/수정 요청
-  - 도메인 간 커맨드 실행을 통한 통합
+  - Workspace Management Domain으로 워크스페이스 생성 요청 (Service 통합)
+  - Notification Management Domain으로 알림 생성/조회/수정 요청 (Service 통합)
+  - **QueryService 패턴**: 다른 도메인에서 OrganizationQueryService를 통해 안전하게 정보 조회
 
 - **실패 대응 전략**: 
   - 조직 생성 실패 시 사용자에게 상태 안내 및 재시도 옵션 제공
@@ -494,20 +587,22 @@ Service 레이어는 여러 Aggregate와 외부 시스템을 한 자리에서 �
 ## 📊 성과 측정 지표
 
 ### 기존 지표 (Scenario 1)
-1. **조직 생성 성공률**: 99.5% 이상
+1. **조직 생성 성공률**: 99.5% 이상 (Default + 개인 워크스페이스 생성 포함)
 2. **조직 컨텍스트 전환 시간**: 평균 200ms 이하 (캐싱 활용)
 3. **조직 목록 조회 시간**: 평균 300ms 이하
+4. **워크스페이스 자동 생성 성공률**: 99% 이상 (Default + 개인 워크스페이스 2개 생성)
 
 ### 신규 지표 (Scenario 2-6)
-4. **멤버 초대 성공률**: 95% 이상 (초대 생성부터 알림 전달까지)
-5. **초대 응답률**: 70% 이상 (초대받은 사용자의 승낙/거절 비율)
-6. **알림 전달 지연 시간**: 평균 100ms 이하 (초대 생성부터 알림 생성까지)
-7. **인박스 로딩 시간**: 평균 300ms 이하 (알림 목록 조회)
-8. **멤버 목록 조회 시간**: 평균 200ms 이하 (조직별 멤버 및 초대 목록)
-9. **멤버 역할 변경 성공률**: 99% 이상 (권한 검증부터 역할 업데이트까지) - Scenario 3
-10. **멤버 역할 변경 처리 시간**: 평균 200ms 이하 (역할 업데이트 및 캐시 무효화) - Scenario 3
-11. **소유권 이전 처리 시간**: 평균 1초 이하 (소유권 이전 및 권한 변경)
-12. **조직 삭제 처리 시간**: 평균 2초 이하 (조직 삭제 및 관련 데이터 정리)
+5. **멤버 초대 성공률**: 95% 이상 (초대 생성부터 알림 전달까지)
+6. **초대 응답률**: 70% 이상 (초대받은 사용자의 승낙/거절 비율)
+7. **개인 워크스페이스 자동 생성 성공률**: 99% 이상 (초대 승낙 시)
+8. **알림 전달 지연 시간**: 평균 100ms 이하 (초대 생성부터 알림 생성까지)
+9. **인박스 로딩 시간**: 평균 300ms 이하 (알림 목록 조회)
+10. **멤버 목록 조회 시간**: 평균 200ms 이하 (조직별 멤버 및 초대 목록)
+11. **멤버 역할 변경 성공률**: 99% 이상 (권한 검증부터 역할 업데이트까지) - Scenario 3
+12. **멤버 역할 변경 처리 시간**: 평균 200ms 이하 (역할 업데이트 및 캐시 무효화) - Scenario 3
+13. **소유권 이전 처리 시간**: 평균 1초 이하 (소유권 이전 및 권한 변경)
+14. **조직 삭제 처리 시간**: 평균 2초 이하 (조직 삭제 및 관련 데이터 정리)
 
 ---
 

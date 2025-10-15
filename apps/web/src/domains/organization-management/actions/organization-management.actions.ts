@@ -106,6 +106,8 @@ export async function createDefaultOrganizationAction(
   organization: OrganizationSummary;
   workspace: { id: string; name: string; isDefault: boolean };
   page: { id: string; title: string; icon: string | null };
+  personalWorkspace: { id: string; name: string; isDefault: boolean }; // v1.2
+  personalPage: { id: string; title: string; icon: string | null }; // v1.2
   redirectUrl: string;
 }> {
   try {
@@ -313,19 +315,33 @@ export async function inviteMemberAction(
     const organizationMemberRepository =
       new DrizzleOrganizationMemberRepository();
 
-    // 3. Notification Service 생성 (Notification Management Domain과 통합)
+    // 3. Workspace Management Domain Repositories
+    const workspaceRepository = new DrizzleWorkspaceRepository();
+    const pageRepository = new DrizzlePageRepository();
+    const workspaceMemberRepository = new DrizzleWorkspaceMemberRepository();
+
+    // 4. Workspace CRUD Service 생성
+    const workspaceCrudService = new DefaultWorkspaceCrudService(
+      workspaceRepository,
+      pageRepository,
+      workspaceMemberRepository,
+      organizationMemberRepository
+    );
+
+    // 5. Notification Service 생성 (Notification Management Domain과 통합)
     const notificationRepository = new DrizzleNotificationRepository();
     const notificationService = new NotificationService(notificationRepository);
 
-    // 4. Organization Invitation Service 생성
+    // 6. Organization Invitation Service 생성
     const invitationService = new DefaultOrganizationInvitationService(
       organizationRepository,
       invitationRepository,
       organizationMemberRepository,
+      workspaceCrudService, // v1.2
       notificationService
     );
 
-    // 5. Get inviter name from profile
+    // 7. Get inviter name from profile
     const userProfiles =
       await organizationMemberRepository.searchUserProfileByEmail(
         user.email || ''
@@ -335,7 +351,7 @@ export async function inviteMemberAction(
         ? userProfiles[0].name
         : user.email || 'Someone';
 
-    // 6. Command 생성
+    // 8. Command 생성
     const command: RequestMemberInvitationCommand = {
       organizationId: input.organizationId,
       inviterUserId: user.id,
@@ -344,7 +360,7 @@ export async function inviteMemberAction(
       role: input.role,
     };
 
-    // 7. 도메인 로직 실행
+    // 9. 도메인 로직 실행
     const result = await invitationService.inviteMember(command);
 
     if (result.isError()) {
@@ -389,19 +405,33 @@ export async function respondToInvitationAction(
     const organizationMemberRepository =
       new DrizzleOrganizationMemberRepository();
 
-    // 3. Notification Service 생성
+    // 3. Workspace Management Domain Repositories
+    const workspaceRepository = new DrizzleWorkspaceRepository();
+    const pageRepository = new DrizzlePageRepository();
+    const workspaceMemberRepository = new DrizzleWorkspaceMemberRepository();
+
+    // 4. Workspace CRUD Service 생성
+    const workspaceCrudService = new DefaultWorkspaceCrudService(
+      workspaceRepository,
+      pageRepository,
+      workspaceMemberRepository,
+      organizationMemberRepository
+    );
+
+    // 5. Notification Service 생성
     const notificationRepository = new DrizzleNotificationRepository();
     const notificationService = new NotificationService(notificationRepository);
 
-    // 4. Organization Invitation Service 생성
+    // 6. Organization Invitation Service 생성
     const invitationService = new DefaultOrganizationInvitationService(
       organizationRepository,
       invitationRepository,
       organizationMemberRepository,
+      workspaceCrudService, // v1.2
       notificationService
     );
 
-    // 5. Command 생성 및 실행
+    // 7. Command 생성 및 실행
     if (input.accept) {
       const command: AcceptInvitationCommand = {
         invitationId: input.invitationId,

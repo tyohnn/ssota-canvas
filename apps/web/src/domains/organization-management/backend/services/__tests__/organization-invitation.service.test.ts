@@ -8,12 +8,14 @@ import { InvitationAggregate } from '../../../shared/aggregates/invitation.aggre
 import { UserId, OrganizationId, InvitationId } from '../../../shared/value-objects/ids.vo.js';
 import { MemberRole } from '../../../shared/value-objects/member-role.vo.js';
 import { DefaultOrganizationInvitationService } from '../organization-invitation.service.js';
+import type { WorkspaceCrudService } from '@/domains/workspace-management/backend/services/interfaces/workspace-crud.service.interface';
 
 describe('DefaultOrganizationInvitationService', () => {
   let service: DefaultOrganizationInvitationService;
   let mockOrgRepository: Mocked<OrganizationRepository>;
   let mockInvitationRepository: Mocked<InvitationRepository>;
   let mockMemberRepository: Mocked<OrganizationMemberRepository>;
+  let mockWorkspaceCrudService: Mocked<WorkspaceCrudService>;
 
   beforeEach(() => {
     mockOrgRepository = {
@@ -49,10 +51,18 @@ describe('DefaultOrganizationInvitationService', () => {
       searchUserProfileByEmail: vi.fn(),
     } as Mocked<OrganizationMemberRepository>;
 
+    mockWorkspaceCrudService = {
+      createDefaultWorkspace: vi.fn(),
+      createWorkspace: vi.fn(),
+      createPersonalWorkspace: vi.fn(), // v1.2
+      updateWorkspaceInfo: vi.fn(),
+    } as Mocked<WorkspaceCrudService>;
+
     service = new DefaultOrganizationInvitationService(
       mockOrgRepository,
       mockInvitationRepository,
       mockMemberRepository,
+      mockWorkspaceCrudService, // v1.2
       undefined // notificationService
     );
   });
@@ -159,12 +169,13 @@ describe('DefaultOrganizationInvitationService', () => {
   });
 
   describe('acceptInvitation', () => {
-    it('초대를 수락해야 한다', async () => {
+    it('초대를 수락하고 개인 워크스페이스를 생성해야 한다', async () => {
       // Given
       const invitationId = InvitationId.generate();
       const orgId = OrganizationId.generate();
       const inviterUserId = new UserId(crypto.randomUUID());
       const inviteeUserId = new UserId(crypto.randomUUID());
+      const inviteeName = 'New Member';
 
       const mockInvitation = InvitationAggregate.create(
         orgId,
@@ -175,6 +186,28 @@ describe('DefaultOrganizationInvitationService', () => {
       );
 
       mockInvitationRepository.findById.mockResolvedValueOnce(mockInvitation);
+      vi.mocked(mockMemberRepository.searchUserProfileByEmail).mockResolvedValueOnce([
+        {
+          userId: inviteeUserId.value,
+          email: 'test@example.com',
+          name: inviteeName,
+          profileImageUrl: undefined,
+        },
+      ]);
+
+      const mockPersonalWorkspaceId = crypto.randomUUID();
+      const mockPersonalPageId = crypto.randomUUID();
+      vi.mocked(mockWorkspaceCrudService.createPersonalWorkspace).mockResolvedValueOnce({
+        success: true,
+        data: {
+          workspaceId: mockPersonalWorkspaceId,
+          workspaceName: `${inviteeName}의 개인 워크스페이스`,
+          workspaceIsDefault: false,
+          firstPageId: mockPersonalPageId,
+          firstPageTitle: 'Untitled',
+          firstPageIcon: 'File',
+        },
+      });
 
       const command = {
         invitationId: invitationId.value,
@@ -187,6 +220,59 @@ describe('DefaultOrganizationInvitationService', () => {
       // Then
       expect(result.isSuccess()).toBe(true);
       expect(mockInvitationRepository.save).toHaveBeenCalledTimes(1);
+      expect(mockMemberRepository.addMember).toHaveBeenCalledTimes(1);
+      expect(mockWorkspaceCrudService.createPersonalWorkspace).toHaveBeenCalledTimes(1);
+      expect(mockWorkspaceCrudService.createPersonalWorkspace).toHaveBeenCalledWith(
+        orgId,
+        inviteeUserId.value,
+        inviteeName
+      );
+    });
+
+    it('개인 워크스페이스 생성 실패 시 멤버 추가가 롤백되어야 한다', async () => {
+      // Given
+      const invitationId = InvitationId.generate();
+      const orgId = OrganizationId.generate();
+      const inviterUserId = new UserId(crypto.randomUUID());
+      const inviteeUserId = new UserId(crypto.randomUUID());
+      const inviteeName = 'New Member';
+
+      const mockInvitation = InvitationAggregate.create(
+        orgId,
+        inviterUserId,
+        'test@example.com',
+        inviteeUserId,
+        new MemberRole('admin')
+      );
+
+      mockInvitationRepository.findById.mockResolvedValueOnce(mockInvitation);
+      vi.mocked(mockMemberRepository.searchUserProfileByEmail).mockResolvedValueOnce([
+        {
+          userId: inviteeUserId.value,
+          email: 'test@example.com',
+          name: inviteeName,
+          profileImageUrl: undefined,
+        },
+      ]);
+      vi.mocked(mockWorkspaceCrudService.createPersonalWorkspace).mockResolvedValueOnce({
+        success: false,
+        error: 'PERSONAL_WORKSPACE_CREATION_FAILED',
+      });
+
+      const command = {
+        invitationId: invitationId.value,
+        inviteeUserId: inviteeUserId.value,
+      };
+
+      // When
+      const result = await service.acceptInvitation(command);
+
+      // Then
+      expect(result.isError()).toBe(true);
+      expect(result.error.code).toBe('INVITATION_ACCEPTANCE_FAILED');
+      expect(result.error.message).toContain('PERSONAL_WORKSPACE_CREATION_FAILED');
+      expect(mockMemberRepository.addMember).toHaveBeenCalledTimes(1);
+      expect(mockMemberRepository.removeMember).toHaveBeenCalledTimes(1); // 롤백
     });
 
     it('존재하지 않는 초대는 에러를 반환해야 한다', async () => {

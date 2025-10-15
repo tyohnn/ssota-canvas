@@ -207,6 +207,105 @@ export class DefaultWorkspaceCrudService implements WorkspaceCrudService {
   }
 
   /**
+   * 개인 Workspace 생성 (v1.2)
+   *
+   * 트랜잭션:
+   * 1. 개인 Workspace 생성 (is_personal=true, owner_id 설정)
+   * 2. 소유자를 Workspace 멤버로 추가
+   * 3. 초기 "Untitled" 페이지 생성
+   *
+   * @param orgId - 조직 ID
+   * @param ownerId - 소유자 ID
+   * @param ownerName - 소유자 이름
+   * @returns CreateWorkspaceResult (성공) | Error code (실패)
+   */
+  async createPersonalWorkspace(
+    orgId: OrganizationId,
+    ownerId: string,
+    ownerName: string
+  ): Promise<Result<CreateWorkspaceResult>> {
+    try {
+      // 1. 개인 Workspace Aggregate 생성
+      const workspaceAgg = WorkspaceAggregate.createPersonal(
+        orgId.value,
+        ownerId,
+        ownerName
+      );
+
+      // 2. Page Aggregate 생성 (초기 "Untitled" 페이지)
+      const pageAgg = PageAggregate.create(
+        {
+          workspaceId: workspaceAgg.workspace.workspaceId.value,
+          parentId: undefined, // 최상위
+          title: 'Untitled',
+          icon: 'File',
+          createdBy: ownerId,
+        },
+        null // parentPage
+      );
+
+      // 3. 트랜잭션: Workspace + Membership + Page 생성
+      await adminDb.transaction(async tx => {
+        try {
+          // 3-1. Workspace 저장
+          await this.workspaceRepo.save(workspaceAgg);
+          console.log(
+            '[WorkspaceCrudService] Personal workspace created:',
+            workspaceAgg.workspace.workspaceId.value
+          );
+
+          // 3-2. 소유자를 Workspace 멤버로 추가
+          await this.workspaceMemberRepo.addMember(
+            workspaceAgg.workspace.workspaceId,
+            ownerId
+          );
+          console.log(
+            '[WorkspaceCrudService] Personal workspace member added:',
+            ownerId
+          );
+
+          // 3-3. 초기 페이지 저장
+          await this.pageRepo.save(pageAgg);
+          console.log(
+            '[WorkspaceCrudService] Personal workspace page created:',
+            pageAgg.page.pageId.value
+          );
+        } catch (error) {
+          console.error(
+            '[WorkspaceCrudService] Transaction failed, auto-rollback triggered:',
+            error
+          );
+          throw error; // 트랜잭션 롤백 트리거
+        }
+      });
+
+      // 4. Result.ok 반환 (workspaceId, workspace 정보, 페이지 정보)
+      console.log(
+        '[WorkspaceCrudService] Personal workspace creation completed successfully'
+      );
+      return R.ok({
+        workspaceId: workspaceAgg.workspace.workspaceId.value,
+        workspaceName: workspaceAgg.workspace.name,
+        workspaceIsDefault: workspaceAgg.workspace.isDefault,
+        firstPageId: pageAgg.page.pageId.value,
+        firstPageTitle: pageAgg.page.title,
+        firstPageIcon: pageAgg.page.icon,
+      });
+    } catch (error) {
+      // 5. Validation 에러 처리 (Aggregate에서 발생)
+      console.error(
+        '[WorkspaceCrudService] Personal workspace creation failed:',
+        error
+      );
+
+      if (error instanceof Error) {
+        return R.err(`WORKSPACE_CREATION_FAILED: ${error.message}`);
+      }
+      return R.err('UNKNOWN_ERROR');
+    }
+  }
+
+  /**
    * Workspace 정보 수정 (Scenario 2)
    *
    * @param workspaceId - Workspace ID

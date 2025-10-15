@@ -31,18 +31,23 @@
    - **목표**: 자주 사용하는 페이지를 즐겨찾기에 추가하여 빠른 접근
    - **완료 기준**: Star 아이콘 토글, 사이드바 즐겨찾기 섹션, Optimistic update
 
+6. **Story-006: Workspace 멤버 제거 및 자발적 나가기** (5 points, High)
+   - **의존성**: Story-003
+   - **목표**: 조직 소유자가 멤버를 제거하거나, 일반 멤버가 자발적으로 나갈 수 있도록 함
+   - **완료 기준**: 드롭다운 통합, AlertDialog 확인, 조직 소유자 보호, 즐겨찾기 CASCADE, Default로 자동 이동
+
 ### Phase 5: Workspace 고급 관리 (계획 중)
-6. **Story-006: Page 템플릿 복제** (5 points, Medium) - 📋 계획 중
+7. **Story-007: Page 템플릿 복제** (5 points, Medium) - 📋 계획 중
    - **의존성**: Story-004
    - **목표**: 기존 Page를 템플릿으로 복제
    - **완료 기준**: 복제 기능, 계층 구조 유지, 콘텐츠 복사
 
-7. **Story-007: Workspace 보관 및 복원** (5 points, Low) - 📋 계획 중
+8. **Story-008: Workspace 보관 및 복원** (5 points, Low) - 📋 계획 중
    - **의존성**: Story-002
    - **목표**: Workspace를 보관하고 복원할 수 있도록 함
    - **완료 기준**: 소프트 삭제, 30일 보관, 복원 기능
 
-8. **Story-008: Page 삭제 및 복원** (3 points, Low) - 📋 계획 중
+9. **Story-009: Page 삭제 및 복원** (3 points, Low) - 📋 계획 중
    - **의존성**: Story-004
    - **목표**: Page를 삭제하고 복원할 수 있도록 함
    - **완료 기준**: 소프트 삭제, 휴지통, 하위 페이지 처리
@@ -84,8 +89,9 @@
 **포함 Story**:
 - Story-004: Page 생성 및 계층 구조 관리 (8 points) - 📋 설계 완료
 - Story-005: 페이지 즐겨찾기 토글 (3 points) - 📋 설계 완료
+- Story-006: Workspace 멤버 제거 및 자발적 나가기 (5 points) - 📋 설계 완료
 
-**총 포인트**: 11 points  
+**총 포인트**: 16 points  
 **현재 상황**: 설계 완료, 구현 대기 중
 
 ---
@@ -102,27 +108,29 @@ Story-002 (Workspace 생성 및 수정)  Story-005 (즐겨찾기)
     ↓
 Story-003 (멤버 초대)  ←─── Notification Domain (알림)
     ↓
+Story-006 (멤버 제거/나가기)
+    ↓
 Story-004 (Page 생성 및 관리)
     ↓
-Story-006 (Page 템플릿 복제) - 계획 중
+Story-007 (Page 템플릿 복제) - 계획 중
     ↓
-Story-007 (Workspace 보관) - 계획 중
-Story-008 (Page 삭제) - 계획 중
+Story-008 (Workspace 보관) - 계획 중
+Story-009 (Page 삭제) - 계획 중
 ```
 
 ---
 
 ## 📚 도메인 문서 참조
 
-### 설계 문서 (완료)
+### 설계 문서 (Scenario 0~6 완료)
 - [Event Storming](../../event-domain-design/domains/workspace-management-domain/01-event-storm.md)
 - [Process Model](../../event-domain-design/domains/workspace-management-domain/02-process-model.md)
 - [Software Design](../../event-domain-design/domains/workspace-management-domain/03-software-design.md)
-- [User Flow](../../event-domain-design/domains/workspace-management-domain/03-user-flow.md)
-- [Testing Strategy](../../event-domain-design/domains/workspace-management-domain/04-testing-strategy.md)
-- [Technical Specification](../../event-domain-design/domains/workspace-management-domain/05-technical-specification.md)
-- [Frontend Specification](../../event-domain-design/domains/workspace-management-domain/04-frontend-specification.md)
-- [Database Schema](../../event-domain-design/domains/workspace-management-domain/06-db-schema.md)
+- [User Flow](../../event-domain-design/domains/workspace-management-domain/03-user-flow.md) - v1.7
+- [Testing Strategy](../../event-domain-design/domains/workspace-management-domain/04-testing-strategy.md) - v1.3
+- [Technical Specification](../../event-domain-design/domains/workspace-management-domain/05-technical-specification.md) - v1.3
+- [Frontend Specification](../../event-domain-design/domains/workspace-management-domain/04-frontend-specification.md) - v2.2
+- [Database Schema](../../event-domain-design/domains/workspace-management-domain/06-db-schema.md) - v1.3
 
 ### 핵심 아키텍처 결정
 - **계층 구조 패턴**: Parent ID + depth 캐시
@@ -138,12 +146,13 @@ Story-008 (Page 삭제) - 계획 중
 ### Epic-002: Workspace & Page 관리
 **목표**: 팀별로 작업 공간을 분리하고 페이지를 계층적으로 관리
 
-**완료된 Story**: 0/5 (0%)
+**완료된 Story**: 0/6 (0%)
 - Story-001: Workspace-Page 목록 조회 (설계 완료)
 - Story-002: Workspace 생성 및 수정 (설계 완료)
 - Story-003: 멤버 초대 (설계 완료)
 - Story-004: Page 관리 (설계 완료)
 - Story-005: 즐겨찾기 (설계 완료)
+- Story-006: 멤버 제거/나가기 (설계 완료)
 
 **Epic 진행률**: 설계 100% 완료, 구현 0% 완료
 
@@ -151,27 +160,27 @@ Story-008 (Page 삭제) - 계획 중
 
 ## 📊 전체 Progress 요약
 
-### 완료된 설계 (Scenario 0~5)
+### 완료된 설계 (Scenario 0~6)
 - ✅ **Event Storming**: 도메인 이벤트 및 명령 정의
-- ✅ **Process Model**: 5개 Scenario의 비즈니스 프로세스
+- ✅ **Process Model**: 6개 Scenario의 비즈니스 프로세스 (Scenario 4 추가)
 - ✅ **Software Design**: 2개 Aggregate (Workspace, Page)
-- ✅ **User Flow**: 25개 Screen 정의
-- ✅ **Testing Strategy**: 221개 테스트 케이스
-- ✅ **Technical Specification**: 9개 Server Actions, 4개 Repository
-- ✅ **Frontend Specification**: 19개 컴포넌트, 15개 Context Actions
-- ✅ **Database Schema**: 5개 테이블, RLS 정책
+- ✅ **User Flow**: 31개 Screen 정의 (Scenario 4: 6개 추가)
+- ✅ **Testing Strategy**: 285개 테스트 케이스 (+38개)
+- ✅ **Technical Specification**: 11개 Server Actions, 5개 Service
+- ✅ **Frontend Specification**: 28개 컴포넌트, 18개 Context Actions
+- ✅ **Database Schema**: 5개 테이블, RLS 정책, CASCADE 검증
 
 ### 구현 대기 중
-- 📋 **Backend**: Aggregates, Entities, Value Objects, Repositories, Services
+- 📋 **Backend**: Aggregates, Entities, Value Objects, Repositories, 5개 Services
 - 📋 **Database**: 5개 테이블 마이그레이션
-- 📋 **Server Actions**: 12개 Actions
-- 📋 **Frontend**: Context, Hooks, 19개 컴포넌트
-- 📋 **Tests**: 221개 테스트 (Unit, Integration, E2E)
+- 📋 **Server Actions**: 11개 Actions
+- 📋 **Frontend**: Context, Hooks, 28개 컴포넌트
+- 📋 **Tests**: 285개 테스트 (Unit, Integration, E2E)
 
 ### 예상 구현 시간
-- **Backend**: 45-55시간 (TDD 기반)
-- **Frontend**: 46-57시간 (컴포넌트 + 테스트)
-- **총**: 약 91-112시간 (11-14일, 2명 기준)
+- **Backend**: 52-63시간 (TDD 기반, Scenario 4 포함)
+- **Frontend**: 52-64시간 (컴포넌트 + 테스트, Scenario 4 포함)
+- **총**: 약 104-127시간 (13-16일, 2명 기준)
 
 ---
 
@@ -196,11 +205,12 @@ Story-008 (Page 삭제) - 계획 중
 ```
 docs/agile-planning/stories/workspace-management/
 ├── README.md                                    # 이 문서
-├── story-001-workspace-page-navigation.md       # 작성 예정
-├── story-002-workspace-creation-management.md   # 작성 예정
-├── story-003-workspace-member-invitation.md     # 작성 예정
-├── story-004-page-hierarchy-management.md       # 작성 예정
-└── story-005-page-favorites.md                  # 작성 예정
+├── story-001-workspace-page-navigation.md       # ✅ 작성 완료
+├── story-002-workspace-creation-management.md   # ✅ 작성 완료
+├── story-003-workspace-member-invitation.md     # ✅ 작성 완료
+├── story-004-page-hierarchy-management.md       # ✅ 작성 완료
+├── story-005-page-favorites.md                  # ✅ 작성 완료
+└── story-006-workspace-member-removal.md        # ✅ 작성 완료 (NEW!)
 ```
 
 ---
@@ -228,5 +238,6 @@ docs/agile-planning/stories/workspace-management/
 ---
 
 **Workspace Management Domain의 모든 Story 설계가 완료되었습니다!** 🎉  
+**Scenario 0~6 완료** (6개 Story, 총 34 Story Points)  
 이제 Sprint 계획을 수립하고 구현을 시작할 수 있습니다.
 
