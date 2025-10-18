@@ -6,6 +6,10 @@
 - Ready for refactor
 - Remove clerk & redesign
 - Restructure domain folder
+- Performance optimization
+- Split workspace service class
+- Optimize hooks and actions
+- Optimize backend
 
 ### ✨ Features
 
@@ -29,6 +33,15 @@
 - Complete organization creation feature and UI improvements
 - (story5) member invitation logic
 - *(organization-management)* Add member role update with fine policy
+- 시나리오1 db 스키마 세팅
+- Full implementation of STORY 001. Pass whole tests.
+- Full implementation of STORY 002
+- Upgrade icon picker
+- Full implementaion of WORK-STORY-003
+- Optimize page structure
+- Edit sidebar components
+- Full implementation of WORK STORY 004
+- USER STORY 003 add workspace and page creation
 
 ### 📚 Documentation
 
@@ -71,6 +84,11 @@
 - *(story)* Update story-006-organization-creation to match latest design
 - Update CHANGELOG
 - Update CHANGELOG
+- Update CHANGELOG
+- Ready for STORY 001
+- Ready for STORY 002
+- Finish story
+- Update WORK STORY 004
 
 ### 🔧 Maintenance
 
@@ -81,6 +99,8 @@
 - Prettier
 - Set dev db
 - Remove unused apis
+- Avoid changlog everytime
+- Add drizzle kit studio & push
 
 ### 🧪 Testing
 
