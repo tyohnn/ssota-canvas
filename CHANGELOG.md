@@ -42,6 +42,7 @@
 - Edit sidebar components
 - Full implementation of WORK STORY 004
 - USER STORY 003 add workspace and page creation
+- Full implemenation of ORG-STORY-006
 
 ### 📚 Documentation
 
@@ -89,6 +90,7 @@
 - Ready for STORY 002
 - Finish story
 - Update WORK STORY 004
+- Update CHANGELOG
 
 ### 🔧 Maintenance
 
@@ -101,6 +103,7 @@
 - Remove unused apis
 - Avoid changlog everytime
 - Add drizzle kit studio & push
+- Clean files
 
 ### 🧪 Testing
 
