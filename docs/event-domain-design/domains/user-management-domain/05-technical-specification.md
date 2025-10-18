@@ -1,6 +1,6 @@
 # User Management Domain - Technical Specification
 
-Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가이드입니다. (Scenario 0, 1, 8 기준)
+Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가이드입니다. (Scenario 1, 2 기준)
 
 **작성자**: AI Assistant  
 **작성일**: 2025-09-28  
@@ -29,7 +29,7 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 
 ## 🎯 Implementation Overview
 
-### 개발 우선순위 (Scenario 0, 8) - 현재 진행 상황
+### 개발 우선순위 (Scenario 1, 2) - 현재 진행 상황
 1. **Phase 1**: Supabase Auth 통합 및 기본 사용자 관리 ✅
    - User Aggregate 구현 ✅
    - 구글 OAuth 처리 ✅
@@ -41,8 +41,17 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
    - User Management는 순수하게 User 관련 로직만 관리 ✅
    - 도메인 간 명확한 경계 설정 ✅
    - 기본 조직 생성은 Organization Management Domain에 위임 ✅
+   - 조직 조회/선택은 Organization Management Domain으로 이관 ✅
 
-3. **Phase 3**: 사용자 계정 삭제 시스템 구현 🚧
+3. **Phase 3**: 전체 플로우 통합 및 리다이렉션 🚧 **← 현재 작업**
+   - 도메인 간 서비스 주입 구현 (User → Organization → Workspace → Page)
+   - 트랜잭션 처리 로직 구현 (프로필 → 조직 → 워크스페이스 → 페이지)
+   - Welcome 페이지 생성 로직
+   - 리다이렉션 URL 생성 및 반환
+   - 롤백 로직 구현 (각 단계 실패 시)
+   - 최근 방문 페이지 쿠키 저장
+
+4. **Phase 4**: 사용자 계정 삭제 시스템 구현 (추후)
    - UserAggregate 계정 삭제 처리
    - Organization Management Domain으로 삭제 이벤트 발행
    - 사용자 데이터 정리 프로세스
@@ -128,6 +137,7 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 - **역할**: 도메인 서비스에 전달되는 명령 객체들을 정의
 - **주요 Commands**:
   - CreateUserProfileCommand: 사용자 프로필 생성 명령 (Supabase Auth 데이터 기반)
+  - CreateDefaultOrganizationWithWorkspaceAndPageCommand: 기본 조직, 워크스페이스, Welcome 페이지 생성 명령 (새로 추가 필요)
   - ProcessOnboardingCommand: 온보딩 진행 명령
   - UpdateUserProfileCommand: 사용자 프로필 수정 명령
   - DeleteUserAccountCommand: 사용자 계정 삭제 명령
@@ -249,6 +259,7 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 - **파일 위치**: `src/domains/user-management/actions/user-management.actions.ts`
 - **역할**: Next.js Server Actions를 통해 클라이언트에서 호출 가능한 서버 함수들 제공
 - **주요 Actions**:
+  - createDefaultOrganizationWithWorkspaceAndPageAction(): 기본 조직, 워크스페이스, Welcome 페이지 생성 및 리다이렉션 URL 반환 (새로 추가 필요)
   - createUserProfileAction(): 사용자 프로필 생성
   - processOnboardingAction(): 온보딩 완료 처리
   - updateUserProfileAction(): 사용자 프로필 수정
@@ -256,7 +267,10 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
   - getUserProfileAction(): 사용자 프로필 조회
 - **인증 처리**: 모든 Action에서 Supabase Auth를 통한 사용자 인증 확인
 - **에러 처리**: Result 패턴을 통한 일관된 에러 처리 및 사용자 친화적 메시지 제공
-- **트랜잭션**: 사용자 등록, 계정 삭제 등에서 Drizzle 트랜잭션을 사용하여 원자성 보장
+- **트랜잭션**: 
+  - 사용자 등록: 프로필 → 조직 → 워크스페이스 → 페이지 생성을 하나의 트랜잭션으로 처리
+  - 계정 삭제: 사용자 데이터 정리를 트랜잭션으로 처리
+  - 롤백 전략: 각 단계 실패 시 이전 단계 모두 롤백 (Supabase Auth 포함)
 
 ---
 
@@ -323,14 +337,15 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 
 ## 📋 검증 체크리스트
 
-### Scenario 0, 1, 8 지원 - 현재 구현 상태
-- [x] **유저 가입**: Supabase Auth + profiles 테이블로 구글 OAuth 사용자 생성 (백엔드 완료)
+### Scenario 1, 2 지원 - 현재 구현 상태
+- [x] **유저 가입**: Supabase Auth + profiles 테이블로 구글 OAuth 사용자 생성 ✅
 - [x] **프로필 생성**: 사용자 프로필 생성 및 관리 ✅
 - [x] **온보딩**: 온보딩 프로세스 관리 ✅
-- [x] **조직 조회**: Organization Management Domain과의 통합 ✅
-- [x] **구글 로그인 UI**: 프론트엔드 로그인 페이지 및 버튼 미구현 ✅
+- [x] **기본 조직 생성**: Organization Management Domain으로 위임 ✅
+- [x] **구글 로그인 UI**: 프론트엔드 OAuth 버튼 및 온보딩 화면 구현 ✅
 - [ ] **계정 삭제**: 사용자 계정 삭제 및 데이터 정리 (구현 필요)
 - [ ] **Organization Management Domain 통합**: 사용자 삭제 시 조직 처리 (구현 필요)
+- ℹ️ **조직 조회/선택**: Organization Management Domain Scenario 0 참조
 
 ### 설계 일관성
 - [x] 모든 Command에 입력 검증 로직이 정의되어 있는가? ✅

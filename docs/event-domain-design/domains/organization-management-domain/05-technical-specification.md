@@ -1,6 +1,6 @@
 # Organization Management Domain - Technical Specification
 
-Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가이드입니다. (Scenario 1-6 기준)
+Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가이드입니다. (Scenario 0-6 기준)
 
 **작성자**: AI Assistant  
 **작성일**: 2025-09-28  
@@ -8,17 +8,25 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 **버전**: 9.0  
 **리뷰어**: [시니어 개발자명]
 
-### 주요 변경사항 (v9.0) - 멤버 역할 변경 시스템 구현 (Scenario 3)
+### 주요 변경사항 (v10.0) - User Management Domain 연동 강화
+- **Scenario 0 추가**: 조직 조회 및 선택 (User Management Domain에서 이관) ✅
+  - 유저 가입 완료 시 자동 트리거
+  - 소유 조직 + 멤버 조직 통합 조회
+  - 초기 조직 자동 선택 (쿠키 > 기본 조직 > 첫 번째 소유 조직)
+  - 조직 컨텍스트 전환 및 쿠키 관리
+- **도메인 책임 명확화**: 조직 관련 모든 기능을 Organization Management에서 통합 관리 ✅
+
+### 이전 변경사항 (v9.0) - 멤버 역할 변경 시스템 구현 (Scenario 3)
 - **계층적 역할 변경 권한 시스템**: 소유자/관리자별 역할 변경 권한 구분 ✅
   - 소유자: 모든 역할 변경 가능 (관리자 → 멤버 강등 포함)
   - 관리자: 멤버 → 관리자 승격만 가능, 다운그레이드 불가
   - 일반 멤버: 역할 변경 권한 없음
 - **역할 변경 보호 규칙**: 소유자 역할 변경 방지, 자기 자신 역할 변경 방지 ✅
-- **두 단계 프로세스**: 역할 옵션 선택 → 확인 다이얼로그 → 역할 업데이트 ✅
+- **Layered Authorization**: 프론트엔드(UX) + 백엔드(보안) 이중 검증 ✅
 - **새로운 Events**: RoleOptionSelectedEvent, MemberPromotedToAdminEvent, AdminDemotedToMemberEvent ✅
 - **권한 캐시 무효화**: 역할 변경 후 즉시 권한 반영 ✅
 
-### 이전 변경사항 (v8.0) - 조직 목록 조회 개선 (소유자 + 멤버 조직)
+### 이전 변경사항 (v8.0) - 조직 목록 조회 개선 (Scenario 0 기반)
 - **멤버 조직 조회 지원**: 소유자 조직 + 멤버/관리자로 속한 조직 모두 표시 ✅
   - OrganizationMemberRepository: `findByUserId()` 메서드 추가
   - 사용자가 멤버로 속한 모든 조직의 멤버십 정보 조회 (RLS)

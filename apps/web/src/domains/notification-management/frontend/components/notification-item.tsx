@@ -14,12 +14,17 @@ interface NotificationItemProps {
     invitationId: string,
     accept: boolean
   ) => Promise<void>;
+  onWorkspaceInvitationRespond?: (
+    invitationId: string,
+    accept: boolean
+  ) => Promise<void>;
 }
 
 export function NotificationItem({
   notification,
   onMarkAsRead,
   onInvitationRespond,
+  onWorkspaceInvitationRespond,
 }: NotificationItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -34,12 +39,24 @@ export function NotificationItem({
   };
 
   const handleInvitationResponse = async (accept: boolean) => {
-    if (!notification.relatedId || !onInvitationRespond) return;
+    if (!notification.relatedId) return;
+
+    // Organization 초대인지 Workspace 초대인지 확인
+    if (notification.type === 'invitation' && !onInvitationRespond) return;
+    if (
+      notification.type === 'workspace-invitation' &&
+      !onWorkspaceInvitationRespond
+    )
+      return;
 
     setIsProcessing(true);
     try {
-      // 1. 초대 응답 처리
-      await onInvitationRespond(notification.relatedId, accept);
+      // 1. 초대 응답 처리 (타입에 따라 분기)
+      if (notification.type === 'invitation') {
+        await onInvitationRespond!(notification.relatedId, accept);
+      } else if (notification.type === 'workspace-invitation') {
+        await onWorkspaceInvitationRespond!(notification.relatedId, accept);
+      }
 
       // 2. 알림을 자동으로 읽음 처리 (Optimistic)
       await onMarkAsRead(notification.id);
@@ -109,30 +126,32 @@ export function NotificationItem({
           {formatDate(notification.createdAt)}
         </p>
 
-        {/* 초대 알림의 경우 액션 버튼 표시 */}
-        {notification.type === 'invitation' && !notification.isRead && (
-          <div className="flex gap-2 mt-3">
-            <Button
-              size="sm"
-              onClick={() => handleInvitationResponse(true)}
-              disabled={isProcessing}
-              className="h-7 text-xs px-3"
-            >
-              <Check className="h-3 w-3 mr-1" />
-              승낙
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleInvitationResponse(false)}
-              disabled={isProcessing}
-              className="h-7 text-xs px-3"
-            >
-              <X className="h-3 w-3 mr-1" />
-              거절
-            </Button>
-          </div>
-        )}
+        {/* 초대 알림의 경우 액션 버튼 표시 (Organization & Workspace) */}
+        {(notification.type === 'invitation' ||
+          notification.type === 'workspace-invitation') &&
+          !notification.isRead && (
+            <div className="flex gap-2 mt-3">
+              <Button
+                size="sm"
+                onClick={() => handleInvitationResponse(true)}
+                disabled={isProcessing}
+                className="h-7 text-xs px-3"
+              >
+                <Check className="h-3 w-3 mr-1" />
+                수락
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleInvitationResponse(false)}
+                disabled={isProcessing}
+                className="h-7 text-xs px-3"
+              >
+                <X className="h-3 w-3 mr-1" />
+                거절
+              </Button>
+            </div>
+          )}
       </div>
     </div>
   );

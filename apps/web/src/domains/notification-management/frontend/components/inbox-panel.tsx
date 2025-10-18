@@ -4,6 +4,7 @@ import React from 'react';
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
   SheetTitle,
   SheetDescription,
 } from '@workspace/ui/components/ui/sheet';
@@ -18,12 +19,17 @@ interface InboxPanelProps {
     invitationId: string,
     accept: boolean
   ) => Promise<void>;
+  onWorkspaceInvitationRespond?: (
+    invitationId: string,
+    accept: boolean
+  ) => Promise<void>;
 }
 
 export function InboxPanel({
   open,
   onOpenChange,
   onInvitationRespond,
+  onWorkspaceInvitationRespond,
 }: InboxPanelProps) {
   const { notifications, unreadCount, markAsRead, isLoading, error } =
     useNotification();
@@ -33,7 +39,7 @@ export function InboxPanel({
       <SheetContent side="right" className="w-[400px] sm:w-[540px] p-0">
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="px-6 py-4 border-b">
+          <SheetHeader className="px-6 py-4 border-b">
             <SheetTitle className="text-base">
               인박스
               {unreadCount > 0 && (
@@ -45,7 +51,7 @@ export function InboxPanel({
             <SheetDescription className="sr-only">
               알림 목록을 확인하고 관리할 수 있습니다.
             </SheetDescription>
-          </div>
+          </SheetHeader>
 
           {/* Content */}
           <div className="flex-1 overflow-hidden">
@@ -76,6 +82,9 @@ export function InboxPanel({
                       notification={notification}
                       onMarkAsRead={markAsRead}
                       onInvitationRespond={onInvitationRespond}
+                      onWorkspaceInvitationRespond={
+                        onWorkspaceInvitationRespond
+                      }
                     />
                   ))}
                 </div>

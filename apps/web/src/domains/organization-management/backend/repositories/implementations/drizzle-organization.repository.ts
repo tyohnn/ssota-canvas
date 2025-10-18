@@ -139,4 +139,20 @@ export class DrizzleOrganizationRepository implements OrganizationRepository {
       tx.delete(organizations).where(eq(organizations.id, id.value))
     );
   }
+
+  /**
+   * 조직 이름 조회 (Admin DB 사용)
+   *
+   * ⚠️ 주의: Service Layer에서 권한 체크 완료 후에만 호출!
+   * 가벼운 조회를 위해 이름만 반환
+   */
+  async getOrganizationName(id: OrganizationId): Promise<string | null> {
+    const [data] = await adminDb
+      .select({ name: organizations.name })
+      .from(organizations)
+      .where(eq(organizations.id, id.value))
+      .limit(1);
+
+    return data?.name ?? null;
+  }
 }

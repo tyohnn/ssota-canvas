@@ -4,8 +4,11 @@ import {
 } from '@workspace/ui/components/ui/sidebar';
 import { DashboardSidebar } from '@/domains/organization-management/frontend/components/sidebar/dashboard-sidebar';
 import { OrganizationProvider } from '@/domains/organization-management/frontend/contexts/organization-context';
+import { WorkspaceProvider } from '@/domains/workspace-management/frontend/contexts/workspace-context';
 import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
+import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-management.actions';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 
 export default async function DashboardLayout({
   children,
@@ -17,7 +20,7 @@ export default async function DashboardLayout({
   const { orgId } = await params;
 
   // Story 004에서 구현된 액션을 사용하여 초기 데이터 제공
-  let organizations;
+  let organizations: Awaited<ReturnType<typeof getUserOrganizationsAction>>;
   try {
     organizations = await getUserOrganizationsAction();
   } catch (error) {
@@ -44,17 +47,37 @@ export default async function DashboardLayout({
     redirect('/unauthorized');
   }
 
+  // Workspace-Page 데이터 로드 (리스트만, cookiePageId 제외)
+  const workspacePageResult = await getOrganizationWorkspacePageViewAction({
+    organizationId: orgId,
+    // cookiePageId는 page.tsx에서만 사용
+  });
+
+  // Workspace 데이터 로드 실패 시 빈 배열로 Fallback
+  const workspacePageData = workspacePageResult.success
+    ? workspacePageResult.data
+    : {
+        organizationId: orgId,
+        workspaces: [],
+        selectedPageId: null,
+      };
   return (
     <OrganizationProvider
       initialOrganizations={organizations}
       initialSelectedId={selectedOrganization.id}
     >
-      <SidebarProvider>
-        <DashboardSidebar />
-        <SidebarInset className="overflow-hidden overscroll-none h-svh">
-          {children}
-        </SidebarInset>
-      </SidebarProvider>
+      <WorkspaceProvider
+        initialWorkspaces={workspacePageData.workspaces}
+        initialSelectedPageId={null}
+        organizationId={orgId}
+      >
+        <SidebarProvider>
+          <DashboardSidebar />
+          <SidebarInset className="overflow-hidden overscroll-none h-svh">
+            {children}
+          </SidebarInset>
+        </SidebarProvider>
+      </WorkspaceProvider>
     </OrganizationProvider>
   );
 }

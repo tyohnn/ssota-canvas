@@ -1,137 +1,313 @@
-# Software Design → Testing Strategy 가이드라인
+# Testing Strategy 수립 가이드
 
-이 문서는 **Software Design** 산출물을 바탕으로, 주니어 개발자가 따라 할 수 있는 **Testing Strategy 작성 프로세스**를 설명합니다. 최종 목표는 `3.5. testing-strategy.md` 문서에서 확인할 수 있는 수준의 테스트 전략을 완성하는 것입니다.
+이 문서는 **Software Design 결과**를 바탕으로 **Testing Strategy**를 정의하고 **testing-strategy.md 문서 작성**까지, 의사결정 참여자들이 순서대로 따라할 수 있는 **Testing Strategy 전용 프로세스**를 설명합니다.
 
-> 시작 전, `docs/event-domain-design/template/3.5-testing-strategy-template.md` 파일을 복사해 도메인 전용 `3.5. testing-strategy.md` 초안을 생성한 뒤, 아래 단계에 따라 내용을 채워 넣으세요.
+> 시작 전, `docs/event-domain-design/template/testing-strategy-template.md` 파일을 복사해 도메인 전용 `testing-strategy.md` 초안을 생성한 뒤, 아래 단계에 따라 내용을 채워 넣으세요.
 
 ---
 
-## 🔁 전체 프로세스 한눈에 보기
+## 🔁 Testing Strategy 프로세스 한눈에 보기
 
 ```mermaid
 graph TD
-    A[Software Design 문서] --> B[Aggregate 분석]
-    B --> C[Process Model 매핑]
-    C --> D[Unit Test 케이스 도출]
-    D --> E[Integration Test 케이스 도출]
-    E --> F[E2E Test 시나리오 작성]
-    F --> G[커버리지 목표 설정]
-    G --> H[검증 및 리뷰]
+    A[Software Design 결과 분석] --> B[Testing Strategy 워크샵]
+    B --> C[테스트 전략 정의]
+    C --> D[testing-strategy.md 문서화]
+    D --> E[문서 검증 및 리뷰]
+    E --> F[다음 단계: Technical Specification]
+    
+    A1[software-design.md 검토, Aggregate 추출] --> A
+    B1[Unit/Integration/E2E 케이스 도출, 커버리지 목표] --> B
+    C1[TDD 사이클, 테스트 도구 정의] --> C
+    D1[구조화된 문서 작성] --> D
+    E1[시니어개발자/QA 리뷰] --> E
 ```
 
-각 단계는 아래 절차를 순서대로 수행하면서 `3.5. testing-strategy.md`를 채워넣습니다.
+Testing Strategy는 **구현하기 전에 무엇을 어떻게 테스트할지 명확히 정의**하는 핵심 단계입니다.
 
 ---
 
-## 🛠️ 작업 시작 전 Git 브랜치 준비하기
+## Phase 1: Software Design 결과 분석 (담당: 시니어개발자)
 
-작업을 시작하기 전에 **반드시 브랜치를 확인**하고, Software Design과 동일한 브랜치에서 작업합니다.
+### 1.1 사전 준비 - 완료된 Software Design 확인
 
+#### 필수 전제 조건:
+- [ ] software-design.md 문서가 완성되어 있음
+- [ ] Software Design 워크샵이 완료되어 도메인전문가의 승인을 받음
+- [ ] 모든 Bounded Context와 Aggregate가 정의되어 있음
+- [ ] Invariant가 명확히 정의되어 있음
+
+#### Software Design 결과물 검토:
 ```bash
-# 현재 브랜치 확인 (Software Design 작업 중인 브랜치)
-git branch
+# Software Design 문서 확인
+cat docs/event-domain-design/domains/<domain-name>/software-design.md
 
-# 최신 상태 확인
-git status
+# 주요 확인 포인트:
+# - 정의된 모든 Aggregate들
+# - 각 Aggregate의 Command와 Event
+# - Invariant (불변식)
+# - ACL 설계
 ```
 
----
+### 1.2 Aggregate 목록 추출 및 분석
 
-## 🎯 작성 시점 및 목적
+#### Aggregate 목록화:
+Software Design에 정의된 모든 Aggregate와 구성 요소를 추출합니다.
 
-**작성 시점**: Software Design 완료 후, Technical Specification 작성 전  
-**목적**: 구현하기 전에 "무엇을 어떻게 테스트할지" 명확히 정의
+**추출 항목**:
+- **Aggregate 이름**: 각 Aggregate 식별
+- **Value Objects**: 유효성 검증 로직이 있는 VO
+- **Entities**: 비즈니스 로직 메서드가 있는 Entity
+- **Commands**: Aggregate가 받는 명령
+- **Events**: Aggregate가 발행하는 이벤트
+- **Invariants**: 반드시 지켜야 할 비즈니스 규칙
 
----
-
-## 1단계. Software Design에서 Aggregate 분석하기
-
-**목표**: Software Design에 정의된 모든 Aggregate와 그 구성 요소를 파악합니다.
-
-### 1.1 Aggregate 목록 작성
-
-1. **Software Design 문서 열기**: `3. software-design.md`
-2. **Aggregate 섹션 찾기**: "Aggregate 상세 정의" 섹션
-3. **목록 작성**: 모든 Aggregate, Entity, Value Object 나열
-
+#### 예시 결과:
 ```markdown
-### Aggregate 목록
-- UserAggregate
-  - Value Objects: UserId, UserEmail
-  - Entities: User
-- OrganizationAggregate
-  - Value Objects: OrganizationId
-  - Entities: Organization
+| Aggregate | Value Objects | Entities | Commands | Events | Invariants |
+| --------- | ------------- | -------- | -------- | ------ | ---------- |
+| User Aggregate | UserId, UserEmail | User | CreateUserProfile | UserProfileCreated | 이메일은 고유해야 함 |
+| Organization Aggregate | OrganizationId | Organization | CreateOrganization | OrganizationCreated | Owner는 1명만 존재 |
 ```
 
-### 1.2 각 Aggregate의 구성 요소 파악
+### 1.3 Process Model 시나리오 매핑 준비
 
-각 Aggregate마다 다음을 확인:
-- **Value Objects**: 유효성 검증 로직이 있는가?
-- **Entities**: 비즈니스 로직 메서드가 있는가?
-- **Commands**: 어떤 명령을 받는가?
-- **Events**: 어떤 이벤트를 발행하는가?
-- **Invariants**: 반드시 지켜야 할 규칙은 무엇인가?
+#### Process Model 검토:
+```bash
+# Process Model 문서 확인
+cat docs/event-domain-design/domains/<domain-name>/process-model.md
 
-> `testing-strategy.md`의 **"Unit Tests 전략"** 섹션 작성 준비
+# 주요 확인 포인트:
+# - 각 Scenario와 Sequence
+# - System 처리 로직
+# - Command와 Event 흐름
+```
+
+#### 매핑 준비:
+Process Model의 각 Scenario를 테스트 케이스로 매핑할 준비를 합니다.
+
+### 1.4 템플릿 파일 준비
+```bash
+# Testing Strategy 템플릿 복사 (아직 없다면)
+cp docs/event-domain-design/template/testing-strategy-template.md docs/event-domain-design/domains/<domain-name>/testing-strategy.md
+```
 
 ---
 
-## 2단계. Process Model → Test 매핑표 작성하기
+## Phase 2: Testing Strategy 워크샵 진행 (담당: 시니어개발자 + QA)
 
-**목표**: Process Model의 각 요소를 테스트 케이스로 변환합니다.
+### 2.1 워크샵 참여자 및 구조
 
-### 2.1 Process Model 시나리오 분석
+#### 필수 참여자:
+- **시니어 개발자** (리드): 테스트 전략 설계 및 우선순위 결정
+- **QA** (있는 경우): 테스트 시나리오 검증 및 E2E 테스트 설계
+- **주니어 개발자**: TDD 적용 방법 학습
 
-1. **Process Model 문서 열기**: `2. process-model.md`
-2. **각 Scenario 확인**: Scenario 0, 1, 2, ...
-3. **Sequence별로 분해**: 각 Sequence의 Command, System, Event 파악
+#### 권장 참여자:
+- **도메인 전문가**: 비즈니스 규칙 검증
+- **PM**: 우선순위 확인
 
-### 2.2 매핑표 작성
-
-각 Process Model 요소를 테스트로 매핑:
-
-```markdown
-| Process Model 요소 | 테스트 종류 | 테스트 케이스 |
-|-------------------|------------|-------------|
-| Command: [명령명] | Unit | [Aggregate].[메서드명]() |
-| System: [시스템명] | Unit | [Aggregate] [로직 설명] |
-| Event: [이벤트명] | Unit | [Event] 발행 검증 |
-| 전체 플로우 | Integration | [Service/Action].[메서드명]() |
-| 사용자 경험 | E2E | [시나리오 설명] |
+#### 워크샵 시간 배분 (2-3시간):
+```
+- Phase 1: Process Model → Test 매핑 (40-50분)
+- Phase 2: Unit/Integration/E2E 케이스 도출 (60-70분)
+- Phase 3: 커버리지 목표 및 TDD 사이클 정의 (30-40분)
+- 휴식 및 정리 (15-30분)
 ```
 
-**예시**:
+### 2.2 Phase 1: Process Model → Test 매핑 (40-50분)
+
+**목표**: Process Model의 각 Scenario를 테스트 케이스로 변환합니다.
+
+#### 진행 방법:
+1. **각 Scenario 검토**: Process Model의 모든 Scenario를 순서대로 확인
+2. **Sequence별 분해**: Command, System, Event 파악
+3. **테스트 종류 할당**: Unit, Integration, E2E로 분류
+4. **우선순위 설정**: 비즈니스 중요도에 따라 별점 부여
+
+#### 매핑 템플릿:
+```markdown
+| Process Model 요소 | 테스트 종류 | 테스트 케이스 | 우선순위 |
+|-------------------|------------|-------------|---------|
+| Command: [명령명] | Unit | [Aggregate].[메서드명]() | ⭐️⭐️⭐️⭐️⭐️ |
+| System: [시스템명] | Unit | [Aggregate] [로직 설명] | ⭐️⭐️⭐️⭐️ |
+| Event: [이벤트명] | Unit | [Event] 발행 검증 | ⭐️⭐️⭐️ |
+| 전체 플로우 | Integration | [Service/Action].[메서드명]() | ⭐️⭐️⭐️⭐️⭐️ |
+| 사용자 경험 | E2E | [시나리오 설명] | ⭐️⭐️⭐️⭐️⭐️ |
+```
+
+#### 예시 결과:
 ```markdown
 ### Scenario 0: 유저 가입 및 온보딩
 
-| Process Model 요소 | 테스트 종류 | 테스트 케이스 |
-|-------------------|------------|-------------|
-| Command: 유저 가입 처리하기 | Unit | UserAggregate.createFromSupabaseAuth() |
-| System: Profile System | Unit | UserAggregate 프로필 생성 로직 |
-| Event: 유저 프로필이 생성됨 | Unit | UserProfileCreatedEvent 발행 검증 |
-| System: Organization System | Unit | OrganizationAggregate.createDefault() |
-| Event: 기본 조직이 생성됨 | Unit | DefaultOrganizationCreatedEvent 발행 검증 |
-| 전체 플로우 | Integration | processUserRegistrationAction() |
-| 사용자 경험 | E2E | 구글 로그인 → 프로필 생성 → 조직 선택 |
+| Process Model 요소 | 테스트 종류 | 테스트 케이스 | 우선순위 |
+|-------------------|------------|-------------|---------|
+| Command: 유저 가입 처리 | Unit | UserAggregate.createFromSupabaseAuth() | ⭐️⭐️⭐️⭐️⭐️ |
+| System: Profile System | Unit | UserAggregate 프로필 생성 | ⭐️⭐️⭐️⭐️⭐️ |
+| Event: 유저 프로필 생성됨 | Unit | UserProfileCreatedEvent 발행 | ⭐️⭐️⭐️⭐️ |
+| 전체 플로우 | Integration | processUserRegistrationAction() | ⭐️⭐️⭐️⭐️⭐️ |
+| 사용자 경험 | E2E | 구글 로그인 → 프로필 생성 → 조직 선택 | ⭐️⭐️⭐️⭐️⭐️ |
 ```
 
-> `testing-strategy.md`의 **"Process Model → Test 매핑"** 섹션에 반영
+### 2.3 Phase 2: Unit/Integration/E2E 케이스 도출 (60-70분)
+
+**목표**: 각 테스트 레벨별로 구체적인 테스트 케이스를 도출합니다.
+
+#### Part 1: Unit Test 케이스 (30분)
+
+**Value Objects 테스트 케이스**:
+```typescript
+describe('[ValueObjectName] Value Object', () => {
+  describe('생성자', () => {
+    it('유효한 값으로 생성되어야 한다')
+    it('잘못된 값에 대해 예외를 발생시켜야 한다')
+    it('[경계값 케이스]')
+  })
+  
+  describe('[메서드명]', () => {
+    it('[기대 동작]')
+  })
+})
+```
+
+**Aggregates 테스트 케이스**:
+```typescript
+describe('[AggregateName]', () => {
+  describe('[팩토리메서드]', () => {
+    it('[정상 케이스]로부터 생성되어야 한다')
+    it('[예외 케이스]에 대해 예외를 발생시켜야 한다')
+    it('[Event]가 발행되어야 한다')
+  })
+  
+  describe('[Command처리메서드]', () => {
+    it('[비즈니스 로직]이 수행되어야 한다')
+    it('[Event]가 발행되어야 한다')
+    it('[불변식]이 유지되어야 한다')
+  })
+})
+```
+
+#### Part 2: Integration Test 케이스 (20분)
+
+**Repository 통합 테스트**:
+```typescript
+describe('[RepositoryName] Integration Tests', () => {
+  beforeEach(async () => {
+    await cleanDatabase();
+  })
+  
+  describe('save', () => {
+    it('[Entity]를 데이터베이스에 저장해야 한다')
+    it('RLS 정책이 적용되어야 한다')
+  })
+})
+```
+
+**Server Actions 통합 테스트**:
+```typescript
+describe('[actionName]', () => {
+  it('인증된 사용자의 [작업]을 수행해야 한다')
+  it('미인증 사용자는 거부해야 한다')
+  it('성공 시 Result.ok를 반환해야 한다')
+})
+```
+
+#### Part 3: E2E Test 시나리오 (10-20분)
+
+**시나리오 작성 템플릿**:
+```typescript
+test('[시나리오 설명]', async ({ page }) => {
+  // Given: [초기 상태]
+  await page.goto('[URL]');
+  
+  // When: [사용자 액션]
+  await page.click('[selector]');
+  
+  // Then: [기대 결과]
+  await expect(page.locator('[selector]')).toBeVisible();
+})
+```
+
+### 2.4 Phase 3: 커버리지 목표 및 TDD 사이클 정의 (30-40분)
+
+**목표**: 레이어별 커버리지 목표를 설정하고 TDD 적용 방법을 정의합니다.
+
+#### Part 1: 커버리지 목표 설정
+
+**레이어별 목표**:
+| 레이어 | 목표 커버리지 | 우선순위 |
+|--------|--------------|---------|
+| Value Objects | 95% 이상 | ⭐️⭐️⭐️⭐️⭐️ |
+| Entities | 95% 이상 | ⭐️⭐️⭐️⭐️⭐️ |
+| Aggregates | 90% 이상 | ⭐️⭐️⭐️⭐️⭐️ |
+| Services | 85% 이상 | ⭐️⭐️⭐️⭐️ |
+| Repositories | 80% 이상 | ⭐️⭐️⭐️⭐️ |
+| Server Actions | 85% 이상 | ⭐️⭐️⭐️⭐️⭐️ |
+
+#### Part 2: TDD 사이클 정의
+
+**RED-GREEN-REFACTOR 패턴**:
+```typescript
+// 1. RED: 테스트 먼저 작성
+describe('[Component]', () => {
+  it('[기대 동작]', () => {
+    // Given-When-Then
+  })
+})
+// 실행: FAIL
+
+// 2. GREEN: 최소 구현
+// 실행: PASS
+
+// 3. REFACTOR: 코드 개선
+// 실행: PASS (여전히!)
+```
 
 ---
 
-## 3단계. Unit Test 케이스 도출하기
+## Phase 3: testing-strategy.md 문서 작성 (담당: 시니어개발자)
 
-**목표**: Value Objects, Entities, Aggregates의 단위 테스트 케이스를 작성합니다.
+### 3.1 문서 구조 및 작성 순서
 
-### 3.1 Value Objects 테스트 케이스
+복사한 템플릿을 기반으로 다음 순서로 작성합니다:
 
-각 Value Object마다:
-1. **생성자 테스트**: 유효한 값, 잘못된 값
-2. **유효성 검증**: 경계값, 특수 케이스
-3. **메서드 테스트**: equals, getter 등
+#### 1. 📊 Testing Strategy Overview
+- 테스트 전략 개요
+- Process Model과의 연결점
+- 커버리지 목표 요약
 
-**템플릿**:
+#### 2. 🗺️ Process Model → Test 매핑
+- 워크샵에서 정의한 매핑 테이블
+- 시나리오별 테스트 케이스 목록
+
+#### 3. 🧪 Unit Tests 전략
+- Value Objects 테스트 케이스
+- Entities 테스트 케이스
+- Aggregates 테스트 케이스
+
+#### 4. 🔗 Integration Tests 전략
+- Repository 통합 테스트
+- Service 통합 테스트
+- Server Actions 통합 테스트
+
+#### 5. 🎭 E2E Tests 전략
+- 핵심 사용자 시나리오
+- 에러 시나리오
+- 경계 케이스
+
+#### 6. 📈 커버리지 목표 및 TDD 사이클
+- 레이어별 커버리지 목표
+- TDD 구현 순서
+- RED-GREEN-REFACTOR 예시
+
+#### 7. ⚙️ 테스트 도구 및 설정
+- 테스트 프레임워크
+- 테스트 환경
+- CI/CD 설정
+
+### 3.2 Unit Tests 전략 작성
+
+#### Value Objects 테스트 케이스:
 ```typescript
 describe('[ValueObjectName] Value Object', () => {
   describe('생성자', () => {
@@ -151,14 +327,7 @@ describe('[ValueObjectName] Value Object', () => {
 - ⭐️⭐️⭐️⭐️: 비즈니스 로직이 있는 VO
 - ⭐️⭐️⭐️: 단순 래퍼 VO
 
-### 3.2 Entities 테스트 케이스
-
-각 Entity마다:
-1. **생성 테스트**: 필수 속성 검증
-2. **비즈니스 메서드**: 각 메서드의 동작 검증
-3. **불변성 검증**: createdAt 등 변경되지 않아야 할 속성
-
-**템플릿**:
+#### Entities 테스트 케이스:
 ```typescript
 describe('[EntityName] Entity', () => {
   describe('생성', () => {
@@ -173,15 +342,7 @@ describe('[EntityName] Entity', () => {
 })
 ```
 
-### 3.3 Aggregates 테스트 케이스
-
-각 Aggregate마다:
-1. **생성 메서드**: 팩토리 메서드 테스트
-2. **Command 처리**: 각 Command에 대한 동작
-3. **Event 발행**: 올바른 이벤트가 발행되는지
-4. **Invariant 검증**: 불변식이 깨지지 않는지
-
-**템플릿**:
+#### Aggregates 테스트 케이스:
 ```typescript
 describe('[AggregateName]', () => {
   describe('[팩토리메서드]', () => {
@@ -198,26 +359,12 @@ describe('[AggregateName]', () => {
 })
 ```
 
-> `testing-strategy.md`의 **"Unit Tests 전략"** 섹션에 반영
+### 3.3 Integration Tests 전략 작성
 
----
-
-## 4단계. Integration Test 케이스 도출하기
-
-**목표**: Repository, Service, Server Actions의 통합 테스트 케이스를 작성합니다.
-
-### 4.1 Repository 통합 테스트
-
-각 Repository마다:
-1. **CRUD 테스트**: save, findById, update, delete
-2. **복잡한 쿼리**: 조건부 조회, 정렬, 페이징
-3. **RLS 정책**: 권한 기반 접근 제어
-
-**템플릿**:
+#### Repository 통합 테스트:
 ```typescript
 describe('[RepositoryName] Integration Tests', () => {
   beforeEach(async () => {
-    // 테스트 데이터베이스 초기화
     await cleanDatabase();
   })
   
@@ -234,14 +381,7 @@ describe('[RepositoryName] Integration Tests', () => {
 })
 ```
 
-### 4.2 Service 통합 테스트
-
-각 Service마다:
-1. **핵심 플로우**: 여러 Aggregate 협력
-2. **트랜잭션**: 원자성 보장
-3. **에러 처리**: 실패 시 적절한 처리
-
-**템플릿**:
+#### Service 통합 테스트:
 ```typescript
 describe('[ServiceName] Integration Tests', () => {
   describe('[메서드명]', () => {
@@ -252,22 +392,13 @@ describe('[ServiceName] Integration Tests', () => {
 })
 ```
 
-### 4.3 Server Actions 통합 테스트
-
-각 Server Action마다:
-1. **인증 검증**: 인증된 사용자만 접근
-2. **Result 패턴**: 성공/실패 일관된 처리
-3. **전체 플로우**: UI → Action → Service → Repository
-
-**템플릿**:
+#### Server Actions 통합 테스트:
 ```typescript
-describe('Server Actions Integration Tests', () => {
-  describe('[actionName]', () => {
-    it('인증된 사용자의 [작업]을 수행해야 한다')
-    it('미인증 사용자는 거부해야 한다')
-    it('성공 시 Result.ok를 반환해야 한다')
-    it('실패 시 Result.err를 반환해야 한다')
-  })
+describe('[actionName]', () => {
+  it('인증된 사용자의 [작업]을 수행해야 한다')
+  it('미인증 사용자는 거부해야 한다')
+  it('성공 시 Result.ok를 반환해야 한다')
+  it('실패 시 Result.err를 반환해야 한다')
 })
 ```
 
@@ -276,31 +407,17 @@ describe('Server Actions Integration Tests', () => {
 - ⭐️⭐️⭐️⭐️: Service (비즈니스 로직 조율)
 - ⭐️⭐️⭐️⭐️: Repository (데이터 접근)
 
-> `testing-strategy.md`의 **"Integration Tests 전략"** 섹션에 반영
+### 3.4 E2E Tests 전략 작성
 
----
-
-## 5단계. E2E Test 시나리오 작성하기
-
-**목표**: 실제 사용자 관점의 End-to-End 테스트 시나리오를 작성합니다.
-
-### 5.1 핵심 시나리오 선정
-
-Process Model의 각 Scenario를 E2E 테스트로:
-1. **Happy Path**: 정상적인 사용자 플로우
-2. **Error Path**: 주요 에러 시나리오
-3. **Edge Cases**: 경계 케이스
+#### 핵심 시나리오 선정:
+Process Model의 각 Scenario를 E2E 테스트로 전환합니다.
 
 **선정 기준**:
 - 비즈니스 크리티컬한 플로우
 - 사용자가 자주 사용하는 기능
 - 과거 버그가 발생했던 영역
 
-### 5.2 시나리오 작성
-
-각 시나리오를 Given-When-Then 형식으로:
-
-**템플릿**:
+#### 시나리오 작성 템플릿:
 ```typescript
 test('[시나리오 설명]', async ({ page }) => {
   // Given: [초기 상태]
@@ -320,45 +437,14 @@ test('[시나리오 설명]', async ({ page }) => {
 })
 ```
 
-### 5.3 E2E 테스트 구체화
-
-각 시나리오에 대해:
-1. **페이지 이동**: 어떤 페이지에서 시작하는가?
-2. **사용자 액션**: 클릭, 입력, 선택 등
-3. **UI 검증**: 보이는 요소, URL, 텍스트 등
-4. **데이터 검증**: 실제 데이터가 변경되었는가?
-
 **우선순위 설정**:
 - ⭐️⭐️⭐️⭐️⭐️: 핵심 사용자 플로우
 - ⭐️⭐️⭐️⭐️: 중요 에러 시나리오
 - ⭐️⭐️⭐️: 보조 기능
 
-> `testing-strategy.md`의 **"E2E Tests 전략"** 섹션에 반영
+### 3.5 커버리지 목표 및 TDD 사이클 작성
 
----
-
-## 6단계. 커버리지 목표 설정하기
-
-**목표**: 각 레이어별 테스트 커버리지 목표를 설정합니다.
-
-### 6.1 테스트 피라미드 비율 정하기
-
-기본 비율:
-```
-Unit Tests:       70%  (20-30개)
-Integration Tests: 20%  (5-8개)
-E2E Tests:        10%  (1-2개)
-```
-
-**도메인 특성에 따라 조정**:
-- **비즈니스 로직 중심**: Unit 80%, Integration 15%, E2E 5%
-- **외부 연동 중심**: Unit 60%, Integration 30%, E2E 10%
-- **UI 중심**: Unit 50%, Integration 20%, E2E 30%
-
-### 6.2 레이어별 커버리지 목표
-
-**기본 목표**:
-
+#### 레이어별 커버리지 목표:
 | 레이어 | 목표 커버리지 | 우선순위 |
 |--------|--------------|---------|
 | Value Objects | 95% 이상 | ⭐️⭐️⭐️⭐️⭐️ |
@@ -369,89 +455,53 @@ E2E Tests:        10%  (1-2개)
 | Server Actions | 85% 이상 | ⭐️⭐️⭐️⭐️⭐️ |
 | UI Components | 70% 이상 | ⭐️⭐️⭐️ |
 
-**전체 목표**:
+#### TDD 구현 순서:
+```markdown
+### Phase 1: Value Objects (⭐️⭐️⭐️⭐️⭐️)
+1. UserEmail VO → RED-GREEN-REFACTOR
+2. UserId, OrganizationId VO
+
+### Phase 2: Entities (⭐️⭐️⭐️⭐️⭐️)
+1. User Entity
+2. Organization Entity
+
+### Phase 3: Aggregates (⭐️⭐️⭐️⭐️⭐️)
+1. UserAggregate
+2. OrganizationAggregate
+
+### Phase 4-7: Repository, Service, Server Actions, E2E
 ```
-전체 코드 커버리지: 85% 이상
-- Branches: 80% 이상
-- Functions: 85% 이상
-- Lines: 85% 이상
-- Statements: 85% 이상
-```
 
-**프로젝트 상황에 따라 조정**:
-- **초기 단계**: 전체 70% 이상
-- **성숙 단계**: 전체 85% 이상
-- **레거시 개선**: 점진적 향상 (현재 +10%)
-
-> `testing-strategy.md`의 **"커버리지 목표"** 섹션에 반영
-
----
-
-## 7단계. TDD 사이클 예시 작성하기
-
-**목표**: 실제 TDD 사이클을 적용한 예시를 작성합니다.
-
-### 7.1 대표적인 Value Object 선택
-
-도메인에서 가장 중요한 Value Object 하나를 선택:
-- Email, UserId, OrderId 등
-- 유효성 검증 로직이 있는 것
-
-### 7.2 TDD 사이클 예시 작성
-
-**RED → GREEN → REFACTOR** 순서로:
-
+#### TDD 사이클 예시:
 ```typescript
 // 1. RED: 테스트 먼저 작성
-describe('[ValueObject]', () => {
+describe('UserEmail', () => {
   it('유효한 값으로 생성되어야 한다', () => {
-    const vo = new [ValueObject]('[valid-value]');
-    expect(vo.value).toBe('[valid-value]');
+    const email = new UserEmail('test@example.com');
+    expect(email.value).toBe('test@example.com');
   })
 })
-
-// 실행: FAIL ([ValueObject] 클래스 없음)
+// 실행: FAIL
 
 // 2. GREEN: 최소 구현
-export class [ValueObject] {
+export class UserEmail {
   constructor(public readonly value: string) {}
 }
-
 // 실행: PASS
 
 // 3. REFACTOR: 검증 로직 추가
-export class [ValueObject] {
+export class UserEmail {
   constructor(public readonly value: string) {
-    if (!this.isValid(value)) {
-      throw new Error('Invalid value');
-    }
+    if (!this.isValid(value)) throw new Error('Invalid email');
   }
-  
-  private isValid(value: string): boolean {
-    // 검증 로직
-  }
+  private isValid(value: string): boolean { /* ... */ }
 }
-
-// 실행: PASS (기존 테스트 통과 + 새 테스트 추가)
+// 실행: PASS
 ```
 
-> `testing-strategy.md`의 **"TDD 사이클 적용"** 섹션에 반영
+### 3.6 테스트 도구 및 설정 정리
 
----
-
-## 8단계. 테스트 도구 및 설정 정리하기
-
-**목표**: 프로젝트에서 사용할 테스트 도구와 설정을 명시합니다.
-
-### 8.1 테스트 프레임워크 확인
-
-**현재 프로젝트 설정**:
-- Unit & Integration: Vitest
-- E2E: Playwright
-- 커버리지: v8 (Vitest 내장)
-
-### 8.2 테스트 환경 설정
-
+#### 테스트 프레임워크:
 ```markdown
 ### Unit & Integration Tests
 - **프레임워크**: Vitest
@@ -471,150 +521,131 @@ export class [ValueObject] {
 - **정리 전략**: 각 테스트 후 데이터 완전 삭제
 ```
 
-> `testing-strategy.md`의 **"테스트 도구 및 설정"** 섹션에 반영
+### 3.7 품질 검증 체크리스트
 
----
-
-## 9단계. 검증 체크리스트 작성하기
-
-**목표**: 테스트 작성 전후의 검증 항목을 정리합니다.
-
-### 9.1 테스트 작성 전 체크리스트
-
-```markdown
-### 테스트 작성 전
+#### 일관성 검증:
 - [ ] Process Model의 모든 시나리오가 테스트 케이스로 매핑되었는가?
 - [ ] Software Design의 모든 Aggregate가 테스트 계획에 포함되었는가?
 - [ ] 핵심 불변식이 테스트로 검증 가능한가?
-```
 
-### 9.2 테스트 작성 후 체크리스트
-
-```markdown
-### 테스트 작성 후
+#### 완전성 검증:
 - [ ] 모든 Happy Path가 커버되는가?
 - [ ] 주요 에러 시나리오가 테스트되는가?
 - [ ] 경계값 테스트가 포함되어 있는가?
-- [ ] 커버리지 목표를 달성했는가?
-```
+- [ ] 커버리지 목표를 달성할 수 있는가?
 
-### 9.3 테스트 품질 체크리스트
-
-```markdown
-### 테스트 품질
+#### 실용성 검증:
 - [ ] 테스트는 독립적으로 실행 가능한가?
 - [ ] 테스트는 빠르게 실행되는가? (Unit < 100ms, Integration < 1s)
 - [ ] 테스트는 반복 실행해도 동일한 결과를 내는가?
 - [ ] 테스트 실패 시 원인을 명확히 알 수 있는가?
-```
-
-> `testing-strategy.md`의 **"검증 체크리스트"** 섹션에 반영
 
 ---
 
-## 10단계. 다음 단계 명시하기
+## Phase 4: 문서 검증 및 리뷰 (담당: 전체 참여자)
 
-**목표**: Testing Strategy 이후 진행할 작업을 명확히 합니다.
+### 4.1 리뷰 단계별 체크포인트
 
-```markdown
-## 📚 다음 단계
+#### 시니어개발자 리뷰:
+- [ ] Process Model → Test 매핑이 정확한가?
+- [ ] 테스트 우선순위가 합리적인가?
+- [ ] 커버리지 목표가 달성 가능한가?
+- [ ] TDD 사이클이 명확히 정의되었는가?
 
-이 Testing Strategy 문서를 기반으로 다음 문서를 작성하세요:
+#### QA 리뷰 (있는 경우):
+- [ ] E2E 테스트 시나리오가 실제 사용자 여정을 커버하는가?
+- [ ] 에러 시나리오가 충분히 고려되었는가?
+- [ ] 테스트 데이터 관리 전략이 적절한가?
 
-1. **Technical Specification** (4단계)
-   - 각 클래스별 수도코드
-   - **테스트 수도코드 포함** ✅
-   - 구현 가이드라인
+#### 도메인전문가 리뷰:
+- [ ] 비즈니스 규칙이 테스트로 검증 가능한가?
+- [ ] Invariant 테스트가 충분한가?
 
-2. **실제 구현** (5단계)
-   - TDD 사이클로 구현
-   - 테스트 먼저 → 구현 → 리팩토링
+#### 주니어개발자 리뷰:
+- [ ] TDD 사이클을 이해하고 적용할 수 있는가?
+- [ ] 테스트 작성 방법이 명확한가?
 
-3. **테스트 결과 문서** (6단계)
-   - 커버리지 리포트
-   - 실패한 테스트 분석
-   - 개선 방향
-```
+### 4.2 Software Design ↔ Testing Strategy 일관성 검증
 
-> `testing-strategy.md`의 **"다음 단계"** 섹션에 반영
-
----
-
-## ✅ 최종 점검 단계
-
-### 문서 완성도 확인
-
-- [ ] 모든 섹션이 채워져 있는가?
-- [ ] Process Model → Test 매핑이 완료되었는가?
-- [ ] Unit/Integration/E2E 테스트 케이스가 모두 작성되었는가?
-- [ ] 커버리지 목표가 명확한가?
-- [ ] TDD 사이클 예시가 구체적인가?
-
-### 리뷰 준비
-
-- [ ] 시니어 개발자 리뷰 요청
-- [ ] Technical Specification 작성자와 공유
-- [ ] QA 팀과 테스트 전략 논의
+#### 필수 검증 포인트:
+- [ ] Software Design의 모든 Aggregate가 테스트에 포함되었는가?
+- [ ] Invariant가 모두 테스트로 검증되는가?
+- [ ] Process Model의 모든 Scenario가 E2E 테스트로 매핑되었는가?
+- [ ] 동일한 도메인 언어가 일관되게 사용되고 있는가?
 
 ---
 
-## 📊 프로젝트 진행 상황 업데이트
+## ✅ Testing Strategy 완료 기준
 
-### Git 커밋
+다음 모든 조건이 충족되어야 Testing Strategy가 완료된 것으로 간주합니다:
 
-```bash
-# 변경사항 커밋
-git add docs/event-domain-design/domains/[domain-name]/3.5.\ testing-strategy.md
-git commit -m "docs(testing-strategy): complete [Domain Name] testing strategy
+### 워크샵 완료 기준:
+- [ ] Process Model → Test 매핑 완료
+- [ ] Unit/Integration/E2E 테스트 케이스 도출 완료
+- [ ] 커버리지 목표 설정 완료
+- [ ] TDD 사이클 정의 완료
 
-- Map Process Model scenarios to test cases
-- Define Unit/Integration/E2E test strategies
-- Set coverage goals for each layer
-- Add TDD cycle examples"
-
-# 브랜치 푸시
-git push origin domain/[번호]-[domain-name]
-```
-
----
-
-## 💡 실무 팁
-
-### 1. 우선순위 설정
-
-**시간이 부족할 때**:
-1. Unit Tests (Value Objects, Aggregates) 먼저
-2. Server Actions Integration Tests 다음
-3. E2E Tests는 핵심 시나리오만
-
-### 2. 점진적 개선
-
-**초기 버전**:
-- Process Model 매핑만 완료
-- 주요 테스트 케이스 목록 작성
-
-**개선 버전**:
-- 모든 테스트 케이스 상세화
-- TDD 사이클 예시 추가
-- 커버리지 목표 세분화
-
-### 3. 팀과 협업
-
-**리뷰 포인트**:
-- Process Model 매핑이 정확한가?
-- 테스트 우선순위가 합리적인가?
-- 커버리지 목표가 달성 가능한가?
-- TDD 사이클 예시가 명확한가?
+### 문서 완료 기준:
+- [ ] testing-strategy.md의 모든 필수 섹션이 작성됨
+- [ ] Software Design과의 일관성이 확인됨
+- [ ] 시니어개발자와 QA의 검증 완료
+- [ ] Technical Specification 작성을 위한 충분한 정보 확보
+- [ ] Git에 체계적으로 커밋되고 PR이 승인됨
 
 ---
 
-## 📚 추가 참고 문서
+## 🚀 다음 단계: Technical Specification으로 연결
 
-- `docs/event-domain-design/domains/user-management/3.5. testing-strategy.md`: 실제 예시
-- `docs/event-domain-design/guide/4-technical-specification-guide.md`: 다음 단계 가이드
-- `docs/agile-planning/stories/user-management/TESTING_GUIDE.md`: 실제 테스트 작성 가이드
+Testing Strategy가 완료되면 다음 단계를 진행할 수 있습니다:
+
+### Technical Specification 작성 준비:
+1. **Technical Specification 가이드 참조**: `docs/event-domain-design/guide/05-technical-specification-guide.md`
+2. **테스트 케이스를 수도코드로 전환**: Testing Strategy의 테스트 케이스들이 수도코드가 됨
+3. **워크샵 참여자 조정**: 주니어개발자 중심으로
+
+### 연결 정보:
+- **입력**: 완성된 testing-strategy.md + software-design.md
+- **출력**: technical-specification.md
+- **다음 담당자**: 주니어개발자 (시니어개발자 멘토링)
+
+### Technical Specification에서 해결될 사항:
+- **구현 수도코드**: 각 컴포넌트의 구현 방법
+- **테스트 수도코드**: Given-When-Then 패턴으로 구체화
+- **TDD 구현 순서**: 실제 구현 순서 정의
+- **도구 및 설정**: 개발 환경 구성
 
 ---
 
-이 가이드를 따라 체계적인 Testing Strategy를 수립하고, 높은 품질의 도메인을 구현할 수 있습니다! 🎉
+## 📚 관련 문서 및 템플릿
 
+### 참조 가이드:
+- [Software Design 가이드](./03-software-design-guide.md)
+- [Technical Specification 가이드](./05-technical-specification-guide.md)
+
+### 템플릿 파일:
+- [Testing Strategy 템플릿](../template/testing-strategy-template.md)
+
+### 예시 문서:
+- [User Management Domain 예시](../domains/user-management-domain/testing-strategy.md)
+
+---
+
+## 💡 성공을 위한 핵심 팁
+
+### 워크샵 성공 팁:
+- **시니어개발자 주도**: 테스트 전략 및 TDD 사이클을 명확히 정의
+- **QA 참여**: 실제 사용자 시나리오와 에러 케이스 검증
+- **Process Model 기반**: 모든 테스트 케이스를 Process Model에서 도출
+- **우선순위 명확히**: 제한된 시간에 핵심 기능부터 테스트
+
+### 문서화 성공 팁:
+- **구체적 테스트 케이스**: Given-When-Then 패턴 일관 적용
+- **명확한 우선순위**: 별점으로 우선순위 표시
+- **Software Design 연결성**: Aggregate와 Invariant를 테스트로 검증
+- **실용적 목표**: 달성 가능한 커버리지 목표 설정
+
+### 주의사항:
+- **테스트 독립성**: 각 테스트는 독립적으로 실행 가능해야 함
+- **빠른 실행**: Unit Test는 100ms 이하, Integration은 1s 이하
+- **명확한 실패**: 테스트 실패 시 원인을 즉시 파악 가능해야 함
+- **TDD 우선**: Testing Strategy 없이 구현 시작 금지

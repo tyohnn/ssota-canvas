@@ -15,17 +15,15 @@ export default function OnboardingPage() {
     async function setupUserProfile() {
       try {
         setStatus('loading');
-        console.log('Starting user profile setup...');
 
-        // 사용자 프로필 및 기본 조직 생성
+        // 사용자 프로필 + 기본 조직 + 워크스페이스 + Welcome 페이지 생성
         const result = await processUserRegistrationAction();
-        console.log('User profile setup completed:', result);
 
         setStatus('success');
 
-        // 성공 시 잠시 후 홈으로 리다이렉트 (사용자가 성공 메시지를 볼 수 있도록)
+        // 성공 시 잠시 후 Welcome 페이지로 리다이렉트 (사용자가 성공 메시지를 볼 수 있도록)
         setTimeout(() => {
-          router.push('/');
+          router.push(result.redirectUrl);
         }, 1500);
       } catch (error) {
         console.error('User profile setup failed:', error);

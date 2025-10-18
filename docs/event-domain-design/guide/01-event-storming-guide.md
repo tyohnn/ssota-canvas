@@ -27,42 +27,6 @@ Event Storming은 **도메인 이해의 기초**를 만드는 단계로, Process
 
 ---
 
-## 🛠️ 작업 시작 전 Git 브랜치 준비하기
-
-### 단계별 브랜치 생성 과정
-
-```bash
-# Step 0: 현재 날짜 확인
-date
-
-# Step 1: dev 브랜치에서 최신 상태로 업데이트
-git checkout dev
-git pull origin dev
-
-# Step 2: Initiative 브랜치 생성 (이미 있다면 체크아웃)
-git checkout -b init/001-core-whiteboard-block-system
-# 또는 기존 브랜치: git checkout init/001-core-whiteboard-block-system
-
-# Step 3: Initiative 브랜치에서 Domain 브랜치 생성
-git checkout -b domain/001-user-management
-
-# Step 4: Domain 브랜치에서 작업 시작
-```
-
-### 브랜치 구조
-```
-dev (메인 브랜치)
-└── init/001-core-whiteboard-block-system (Initiative 브랜치)
-    ├── domain/001-user-management (Domain 1 브랜치)
-    ├── domain/002-workspace-structure (Domain 2 브랜치)
-    ├── domain/003-visual-canvas (Domain 3 브랜치)
-    ├── domain/004-block-system (Domain 4 브랜치)
-    ├── domain/005-component-system (Domain 5 브랜치)
-    └── domain/006-ai-integration (Domain 6 브랜치)
-```
-
----
-
 ## Phase 1: 사전 준비 (담당: PM)
 
 ### 1.1 참여자 확정 및 일정 조율
@@ -235,6 +199,58 @@ cp docs/event-domain-design/template/event-storm-template.md docs/event-domain-d
    - 같은 개념이라도 다른 Context에서는 다르게 해석될 수 있음
    - 예: "User"는 Authentication Context에서는 "인증된 사용자", Profile Context에서는 "프로필 소유자"
 
+### 2.6 Phase 5: Context 간 관계 파악 (20분)
+
+**목표**: Bounded Context 간의 기본적인 관계와 데이터 흐름 발견
+
+> **참고**: 구체적인 Context Map 작성과 통합 패턴(ACL, Customer-Supplier 등) 정의는 **Software Design 단계**에서 진행합니다.
+
+#### 진행 방법:
+
+1. **Context 간 연결선 그리기**:
+   - 어떤 Context가 다른 Context와 통신하는가?
+   - 데이터나 이벤트가 흐르는 방향은?
+
+2. **간단한 관계 메모**:
+   - "User Management → Organization Management" (사용자 생성 후 조직 생성)
+   - "Organization Management → Workspace Structure" (조직 생성 후 워크스페이스 생성)
+
+3. **외부 시스템 식별**:
+   - 어떤 외부 시스템/서비스와 통합이 필요한가?
+   - 각 외부 시스템은 어느 Context와 연관되는가?
+
+#### Context 간 관계 메모 예시:
+
+```markdown
+### Context 간 관계 (발견 단계)
+
+**User Management → Organization Management**:
+- 사용자 생성 완료 후 기본 조직 생성 필요
+- 데이터 흐름: userId → createDefaultOrganization
+
+**Organization Management → Notification Management**:
+- 멤버 초대 시 이메일/알림 발송 필요
+- 데이터 흐름: invitation → sendNotification
+
+**외부 시스템**:
+- Supabase Auth (User Management Context)
+- SendGrid (Notification Management Context)
+```
+
+#### 주의사항:
+
+1. **발견 단계에 집중**:
+   - 이 단계에서는 "어떤 Context들이 연결되는가?"만 파악
+   - 구체적인 통합 패턴(ACL, Customer-Supplier)은 Software Design에서 결정
+
+2. **순환 의존성 경고**:
+   - Context A → Context B → Context A 구조 발견 시 메모
+   - Software Design 단계에서 재설계 검토
+
+3. **다음 단계를 위한 준비**:
+   - Process Model: External System 목록 제공
+   - Software Design: 구체적인 Context Map + ACL 설계
+
 ---
 
 ## Phase 3: 워크샵 결과 정리 및 문서화 (담당: PM)
@@ -273,7 +289,12 @@ cp docs/event-domain-design/template/event-storm-template.md docs/event-domain-d
    - 즉시구현(MVP 필수) vs 향후구현(Post-MVP) 분류
    - 구체적인 구현 방안 제시
 
-6. **❓ Process Modeling을 위한 주요 질문들**
+6. **🔗 Context 간 관계** (다른 도메인과 통합이 있는 경우)
+   - Bounded Context 목록
+   - Context 간 간단한 관계 및 데이터 흐름
+   - 외부 시스템 식별 (구체적인 통합 패턴은 Software Design에서)
+
+7. **❓ Process Modeling을 위한 주요 질문들**
    - 다음 단계(Process Model)에서 해결해야 할 미해결 이슈
    - 핵심 프로세스별 질문 정리
 
@@ -320,46 +341,6 @@ cp docs/event-domain-design/template/event-storm-template.md docs/event-domain-d
 - [ ] 외부 시스템 통합점이 명확히 정의되었는가?
 - [ ] Process Model 작성을 위한 정보가 충분한가?
 
-### 4.2 Git 커밋 및 PR 생성
-
-```bash
-# Event Storm 문서 커밋
-git add docs/event-domain-design/domains/<domain-name>/event-storm.md
-git commit -m "docs(event-storm): define <domain-name> domain events and boundaries
-
-- Identify core business events and user journeys
-- Define bounded contexts and their responsibilities  
-- Document hotspots and improvement opportunities
-- Prepare foundation for process modeling"
-
-# GitHub에 푸시 및 PR 생성
-git push origin domain/001-user-management
-
-# PR 생성 시:
-# - Base 브랜치: init/001-core-whiteboard-block-system
-# - Compare 브랜치: domain/001-user-management
-# - 제목: "Domain 001: User Management Event Storming"
-# - 설명: Domain 1 (사용자 관리) Event Storming 결과
-```
-
-### Domain 완료 후 Initiative 브랜치로 병합
-```bash
-# Domain 작업 완료 후 Initiative 브랜치로 병합
-git checkout init/001-core-whiteboard-block-system
-git merge domain/001-user-management
-
-# Initiative에서 dev로 최종 PR 생성
-git push origin init/001-core-whiteboard-block-system
-```
-
-### 4.3 PR 리뷰 체크리스트
-
-**승인 조건:**
-- [ ] 도메인전문가가 비즈니스 정확성을 승인
-- [ ] PM이 요구사항 완전성을 승인
-- [ ] 시니어개발자가 기술적 타당성을 승인
-- [ ] 모든 필수 섹션이 의미있는 내용으로 채워짐
-
 ---
 
 ## ✅ Event Storming 완료 기준
@@ -399,7 +380,6 @@ Event Storming이 완료되면 다음 단계를 진행할 수 있습니다:
 ## 📚 관련 문서 및 템플릿
 
 ### 참조 가이드:
-- [기존 Event Storming 워크샵 가이드](../../agile-planning/guide/03-event-storming-guide.md)
 - [Process Model 작성 가이드](./2-process-model-guide.md)
 - [Software Design 작성 가이드](./1-software-design-guide.md)
 
@@ -429,65 +409,3 @@ Event Storming이 완료되면 다음 단계를 진행할 수 있습니다:
 - **기술적 세부사항 피하기**: 구현 방법보다는 무엇을 할지에 집중
 - **완벽함 추구하지 않기**: 100% 완벽한 결과보다는 방향성 확립
 - **시간 관리**: 각 Phase별 시간을 엄수하여 전체 일정 지키기
-
----
-
-## 📊 8단계. 프로젝트 진행 상황 업데이트
-
-### 8.1 project-progress.md 업데이트
-
-**목표**: Event Storming 완료 상태를 프로젝트 전체 진행 상황에 반영
-
-**작업 과정**:
-```bash
-# 1. 현재 날짜 확인
-date
-
-# 2. project-progress.md 파일 열기
-# docs/project-progress.md
-```
-
-**업데이트 내용**:
-1. **Overall Progress Overview 테이블 업데이트**:
-   ```markdown
-   | [Domain Name] | ✅ Complete | ❌ Pending | ❌ Pending | ❌ Pending | ❌ Pending | **25%** |
-   ```
-
-2. **해당 도메인 섹션 업데이트**:
-   ```markdown
-   ### [N]. [Domain Name] Domain 🟡 **25% 완료**
-   
-   #### 설계 진행 상황
-   - [x] **Event Storming**: `docs/event-domain-design/[domain-name]/event-storm.md`
-     - 핵심 이벤트 [N]개 정의
-     - Hotspots [N]개 식별
-     - Opportunities [N]개 발견
-   
-   - [ ] **Process Model**: ❌ **대기 중**
-   - [ ] **Software Design**: ❌ **대기 중**
-   - [ ] **Technical Design**: ❌ **대기 중**
-   - [ ] **Agile Planning**: ❌ **대기 중**
-   ```
-
-3. **전체 진행률 업데이트**:
-   - 완료된 도메인 수 증가에 따른 백분율 재계산
-   - Next Steps 섹션에서 해당 도메인을 다음 단계로 이동
-
-### 8.2 Git 커밋
-
-```bash
-# 변경사항 커밋
-git add docs/event-domain-design/[domain-name]/event-storm.md docs/project-progress.md
-git commit -m "feat(event-storming): complete [Domain Name] domain event storming
-
-- Define [N] core events and [N] commands
-- Identify [N] hotspots and [N] opportunities  
-- Update project progress to 25% for [Domain Name] domain"
-
-# 브랜치 푸시
-git push origin domain/[번호]-[domain-name]
-```
-
----
-
-이 가이드를 따라하면 체계적이고 완성도 높은 Event Storming 결과를 얻을 수 있습니다! 🚀

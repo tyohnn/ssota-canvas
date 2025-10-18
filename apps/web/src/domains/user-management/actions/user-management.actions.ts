@@ -14,8 +14,8 @@ import { UserProfileView } from '../backend/read-models/user-profile.view';
 // Organization management imports
 import {
   getUserOrganizationsAction as getOrganizationsAction,
-  createDefaultOrganizationAction as createDefaultOrgAction,
-  createNewOrganizationAction as createNewOrgAction,
+  createDefaultOrganizationAction,
+  createOrganizationAction,
 } from '@/domains/organization-management/actions/organization-management.actions';
 
 export async function createUserProfileAction(): Promise<UserProfileView> {
@@ -69,13 +69,9 @@ export async function createUserProfileAction(): Promise<UserProfileView> {
   }
 }
 
-// Delegated to organization-management domain
-export const getUserOrganizationsAction = getOrganizationsAction;
-export const createDefaultOrganizationAction = createDefaultOrgAction;
-export const createNewOrganizationAction = createNewOrgAction;
-
 // AI 자동화 패턴 준수: Repository 패턴 기반 사용자 등록
-export interface UserRegistrationResult {
+// createDefaultOrganizationAction의 반환 타입 재사용 (organization, workspace, page, redirectUrl)
+export type UserRegistrationResult = {
   success: boolean;
   user: {
     id: string;
@@ -83,12 +79,7 @@ export interface UserRegistrationResult {
     name: string;
     avatarUrl: string | null;
   };
-  defaultOrganization: {
-    id: string;
-    name: string;
-    isDefault: boolean;
-  };
-}
+} & Awaited<ReturnType<typeof createDefaultOrganizationAction>>;
 
 export async function processUserRegistrationAction(): Promise<UserRegistrationResult> {
   try {
@@ -130,13 +121,28 @@ export async function processUserRegistrationAction(): Promise<UserRegistrationR
       );
     }
 
-    // 5. 기본 조직 생성 (Organization Management Domain에 위임)
-    const orgName = `${user.user_metadata?.name || 'User'}'s Organization`;
-    const orgResult = await createDefaultOrgAction({
-      organizationName: orgName,
-    });
+    // 5. 기본 조직 + 워크스페이스 + Welcome 페이지 생성 (Organization/Workspace Management Domain에 위임)
+    let orgWithWorkspaceAndPageResult;
+    try {
+      const orgName = `${user.user_metadata?.name || 'User'}'s Organization`;
+      orgWithWorkspaceAndPageResult = await createDefaultOrganizationAction({
+        organizationName: orgName,
+      });
+    } catch (organizationError) {
+      // 조직 생성 실패 시 사용자 프로필 롤백 고려
+      console.error(
+        '[processUserRegistrationAction] Organization creation failed, user profile already created:',
+        organizationError
+      );
 
-    // 6. 결과 반환 (AI 자동화 패턴 준수)
+      // 현재는 사용자 프로필은 유지하고 조직 생성 실패만 보고
+      // 향후 정책에 따라 사용자 프로필도 롤백할 수 있음
+      throw new Error(
+        `Failed to create default organization: ${organizationError instanceof Error ? organizationError.message : 'Unknown error'}`
+      );
+    }
+
+    // 6. 결과 반환 (AI 자동화 패턴 준수 + 리다이렉션 URL 포함)
     return {
       success: true,
       user: {
@@ -145,13 +151,18 @@ export async function processUserRegistrationAction(): Promise<UserRegistrationR
         name: userResult.value.entity.name,
         avatarUrl: userResult.value.entity.avatarUrl,
       },
-      defaultOrganization: {
-        id: orgResult.id,
-        name: orgResult.name,
-        isDefault: orgResult.isDefault,
-      },
+      ...orgWithWorkspaceAndPageResult,
     };
   } catch (error) {
+    console.error(
+      '[processUserRegistrationAction] Registration process failed:',
+      error
+    );
     throw error;
   }
 }
+
+// Delegated to organization-management domain
+export const getUserOrganizationsAction = getOrganizationsAction;
+// Note: createDefaultOrganizationAction and createOrganizationAction are available
+// directly from @/domains/organization-management/actions/organization-management.actions

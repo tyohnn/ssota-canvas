@@ -1,9 +1,31 @@
-# TDD 기반 실제 구현 가이드
+# TDD 기반 구현 가이드
 
-이 문서는 **Technical Specification**을 기반으로 **TDD 사이클**을 적용하여 실제 코드를 구현하는 프로세스를 설명합니다. 주니어 개발자가 단계별로 따라할 수 있도록 작성되었습니다.
+이 문서는 **Technical Specification 결과**를 바탕으로 **TDD 사이클**을 적용하여 **실제 코드를 구현**하는 프로세스를 설명합니다. 주니어 개발자가 단계별로 따라할 수 있도록 작성되었습니다.
 
-**작성 시점**: Technical Specification 완료 후, 실제 코드 작성 시작  
-**목적**: RED-GREEN-REFACTOR 사이클을 실전에 적용하는 방법 학습
+> Technical Specification 문서를 기반으로 **RED-GREEN-REFACTOR** 사이클을 적용하여 실제 코드를 작성하세요.
+
+---
+
+## 🔁 TDD 구현 프로세스 한눈에 보기
+
+```mermaid
+graph TD
+    A[Technical Specification 분석] --> B[TDD 구현 시작]
+    B --> C{RED 단계}
+    C --> D{GREEN 단계}
+    D --> E{REFACTOR 단계}
+    E --> F{다음 컴포넌트?}
+    F -->|Yes| C
+    F -->|No| G[커버리지 확인]
+    G --> H[코드 리뷰]
+    H --> I[완료]
+    
+    C1[테스트 작성 → 실패 확인] --> C
+    D1[최소 구현 → 테스트 통과] --> D
+    E1[코드 개선 → 테스트 유지] --> E
+```
+
+TDD 구현은 **Technical Specification의 수도코드를 실제 코드로 전환**하는 핵심 단계입니다.
 
 ---
 
@@ -31,10 +53,31 @@
 
 ---
 
-## 🚀 실전 구현 프로세스
+## Phase 1: Technical Specification 분석 (담당: 주니어개발자)
 
-### Phase별 구현 순서 (Technical Specification 참조)
+### 1.1 사전 준비 - 완료된 Technical Specification 확인
 
+#### 필수 전제 조건:
+- [ ] technical-specification.md 문서가 완성되어 있음
+- [ ] Technical Specification 워크샵이 완료되어 시니어개발자의 승인을 받음
+- [ ] 구현 수도코드와 테스트 수도코드가 모두 작성되어 있음
+- [ ] TDD 구현 순서가 명확히 정의되어 있음
+
+#### Technical Specification 결과물 검토:
+```bash
+# Technical Specification 문서 확인
+cat docs/event-domain-design/domains/<domain-name>/technical-specification.md
+
+# 주요 확인 포인트:
+# - DDD 컴포넌트별 구현 수도코드
+# - 테스트 수도코드 (Given-When-Then)
+# - TDD 구현 순서
+# - 커버리지 목표
+```
+
+### 1.2 구현 순서 확인
+
+#### Phase별 구현 순서 (Technical Specification 참조):
 ```markdown
 Phase 1: Value Objects (⭐️⭐️⭐️⭐️⭐️)
 Phase 2: Entities (⭐️⭐️⭐️⭐️⭐️)
@@ -45,13 +88,30 @@ Phase 6: Server Actions (⭐️⭐️⭐️⭐️⭐️)
 Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️)
 ```
 
+### 1.3 개발 환경 설정
+
+#### 테스트 도구 확인:
+```bash
+# Vitest 설정 확인
+cat vitest.config.ts
+
+# Playwright 설정 확인
+cat playwright.config.ts
+
+# 테스트 실행 확인
+pnpm test
+pnpm test:e2e
+```
+
 ---
 
-## 📝 Phase 1: Value Objects 구현
+## Phase 2: TDD 사이클 적용 구현 (담당: 주니어개발자)
 
-### 1.1 준비 단계
+### 2.1 Value Objects 구현 (RED-GREEN-REFACTOR)
 
-**Technical Specification 확인**:
+#### Step 1: Technical Specification 확인
+
+**구현 수도코드 및 테스트 수도코드**:
 ```typescript
 // 구현 수도코드
 class UserEmail {
@@ -72,9 +132,7 @@ describe('UserEmail', () => {
 })
 ```
 
-### 1.2 TDD 사이클 적용
-
-#### Step 1: 🔴 RED - 실패하는 테스트 작성
+#### Step 2: 🔴 RED - 실패하는 테스트 작성
 
 ```bash
 # 1. 테스트 파일 생성
@@ -122,7 +180,7 @@ pnpm test user-email.test.ts
 # - UserEmail 클래스를 찾을 수 없음
 ```
 
-#### Step 2: 🟢 GREEN - 최소 구현
+#### Step 3: 🟢 GREEN - 최소 구현
 
 ```bash
 # 1. 구현 파일 생성
@@ -162,7 +220,7 @@ pnpm test user-email.test.ts
 # 예상 결과: ✅ PASS
 ```
 
-#### Step 3: 🔵 REFACTOR - 코드 개선
+#### Step 4: 🔵 REFACTOR - 코드 개선
 
 ```typescript
 // user-email.vo.ts (리팩토링)
@@ -216,7 +274,7 @@ pnpm test user-email.test.ts
 # 예상 결과: ✅ PASS (여전히 통과!)
 ```
 
-#### Step 4: 추가 테스트 케이스 작성
+#### Step 5: 추가 테스트 케이스 작성
 
 ```typescript
 // user-email.test.ts (추가 테스트)
@@ -264,7 +322,7 @@ pnpm test user-email.test.ts
 # 예상 결과: ✅ PASS (모든 테스트 통과)
 ```
 
-#### Step 5: 커밋
+#### Step 6: 커밋 및 다음 컴포넌트
 
 ```bash
 # 1. 커버리지 확인
@@ -282,11 +340,38 @@ git commit -m "test(user-email): add UserEmail value object with TDD
 - Achieve 95%+ coverage for Value Object"
 ```
 
----
+### 2.2 Entities, Aggregates, Repository, Service, Server Actions 구현
 
-## 📝 Phase 2: Entities 구현
+**동일한 TDD 사이클 적용**:
+각 Phase마다 동일한 RED-GREEN-REFACTOR 패턴을 적용합니다.
 
-### 2.1 Entity 테스트 작성 (RED)
+#### Phase 2: Entities
+1. Entity 테스트 작성 (RED)
+2. Entity 구현 (GREEN)
+3. 비즈니스 로직 개선 (REFACTOR)
+4. 커밋
+
+#### Phase 3: Aggregates
+1. Aggregate 테스트 작성 (RED)
+2. Aggregate 구현 (GREEN)
+3. 이벤트 발행 로직 개선 (REFACTOR)
+4. 커밋
+
+#### Phase 4-6: Repository, Service, Server Actions (통합 테스트)
+1. 통합 테스트 작성 (RED)
+2. 구현 (GREEN)
+3. 트랜잭션/에러 처리 개선 (REFACTOR)
+4. 커밋
+
+#### Phase 7: E2E Tests
+1. 사용자 시나리오 테스트 작성 (RED)
+2. UI + 전체 플로우 구현 (GREEN)
+3. UX 개선 (REFACTOR)
+4. 커밋
+
+### 2.3 TDD 사이클 예시: Entities 구현
+
+#### Entity 테스트 작성 (RED)
 
 ```typescript
 // user.entity.test.ts
@@ -411,192 +496,148 @@ pnpm test user.entity.test.ts
 
 ---
 
-## 📝 Phase 3: Aggregates 구현
+## Phase 3: 커버리지 및 문서 업데이트 (담당: 주니어개발자)
 
-### 3.1 Aggregate 테스트 작성 (RED)
+### 3.1 커버리지 확인
 
-```typescript
-// user.aggregate.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
-import { UserAggregate } from '../user.aggregate';
-import { UserProfileCreatedEvent, UserUpdatedEvent } from '../../events';
+#### 전체 커버리지 확인:
+```bash
+# 전체 테스트 실행
+pnpm test
 
-describe('UserAggregate', () => {
-  let validSupabaseUser: any;
+# 커버리지 리포트 생성
+pnpm test:coverage
 
-  beforeEach(() => {
-    validSupabaseUser = {
-      id: 'user_123456789',
-      email: 'test@example.com',
-      user_metadata: {
-        name: 'Test User',
-        avatar_url: 'https://example.com/avatar.jpg',
-      },
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
-    };
-  });
-
-  describe('createFromSupabaseAuth', () => {
-    it('유효한 Supabase User로부터 생성되어야 한다', () => {
-      // When
-      const aggregate = UserAggregate.createFromSupabaseAuth(validSupabaseUser);
-
-      // Then
-      expect(aggregate.user.id.value).toBe(validSupabaseUser.id);
-      expect(aggregate.user.email.value).toBe(validSupabaseUser.email);
-      expect(aggregate.user.name).toBe(validSupabaseUser.user_metadata.name);
-    });
-
-    it('이메일이 없으면 예외를 발생시켜야 한다', () => {
-      // Given
-      const userWithoutEmail = { ...validSupabaseUser, email: undefined };
-
-      // When & Then
-      expect(() => {
-        UserAggregate.createFromSupabaseAuth(userWithoutEmail);
-      }).toThrow();
-    });
-  });
-});
+# 결과 확인
+open coverage/index.html
 ```
 
-### 3.2 Aggregate 구현 (GREEN)
+#### 레이어별 커버리지 검증:
+```markdown
+Testing Strategy 목표 달성 여부 확인:
+- [ ] Value Objects: 95% 이상 달성
+- [ ] Entities: 95% 이상 달성
+- [ ] Aggregates: 90% 이상 달성
+- [ ] Services: 85% 이상 달성
+- [ ] Repositories: 80% 이상 달성
+- [ ] Server Actions: 85% 이상 달성
+```
 
-```typescript
-// user.aggregate.ts
-import { User } from '../entities/user.entity';
-import { UserId } from '../value-objects/ids.vo';
-import { UserEmail } from '../value-objects/user-email.vo';
-import { UserProfileCreatedEvent, UserUpdatedEvent } from '../events';
-import { UserManagementError } from '../errors/user-management.error';
+### 3.2 문서 업데이트
 
-export class UserAggregate {
-  private _events: DomainEvent[] = [];
+#### Technical Specification 업데이트:
+```bash
+# 구현 상태 섹션 업데이트
+# - 완료된 컴포넌트 체크
+# - 커버리지 달성 현황 기록
+# - 미완료 항목 및 이유 기록
+```
 
-  constructor(private _user: User) {}
-
-  static createFromSupabaseAuth(supabaseUser: any): UserAggregate {
-    if (!supabaseUser.email) {
-      throw new UserManagementError(
-        'SUPABASE_AUTH_FAILED',
-        'Email is required'
-      );
-    }
-
-    const user = new User(
-      new UserId(supabaseUser.id),
-      new UserEmail(supabaseUser.email),
-      supabaseUser.user_metadata?.name || 'User',
-      supabaseUser.user_metadata?.avatar_url || null,
-      new Date(supabaseUser.created_at || Date.now()),
-      new Date(supabaseUser.updated_at || Date.now())
-    );
-
-    const aggregate = new UserAggregate(user);
-    
-    aggregate.addEvent(new UserProfileCreatedEvent(
-      user.id.value,
-      user.email.value,
-      user.name,
-      new Date()
-    ));
-
-    return aggregate;
-  }
-
-  updateFromSupabaseAuth(supabaseUser: any): UserUpdatedEvent {
-    const newName = supabaseUser.user_metadata?.name || this._user.name;
-    const newAvatarUrl = supabaseUser.user_metadata?.avatar_url || this._user.avatarUrl;
-
-    this._user.updateProfile(newName, newAvatarUrl);
-
-    const event = new UserUpdatedEvent(
-      this._user.id.value,
-      newName,
-      newAvatarUrl,
-      new Date()
-    );
-
-    this.addEvent(event);
-    return event;
-  }
-
-  get user(): User {
-    return this._user;
-  }
-
-  get id(): UserId {
-    return this._user.id;
-  }
-
-  get entity(): User {
-    return this._user;
-  }
-
-  private addEvent(event: DomainEvent): void {
-    this._events.push(event);
-  }
-
-  getUncommittedEvents(): DomainEvent[] {
-    return [...this._events];
-  }
-
-  clearEvents(): void {
-    this._events = [];
-  }
-}
+#### Testing Strategy 업데이트:
+```bash
+# 테스트 결과 섹션 업데이트
+# - 실제 커버리지 수치 기록
+# - 미달성 목표 분석
+# - 개선 계획 수립
 ```
 
 ---
 
-## 📝 Phase 4-7: 동일한 패턴 적용
+## Phase 4: 코드 리뷰 및 완료 (담당: 전체 참여자)
 
-각 Phase마다 동일한 TDD 사이클을 적용합니다:
+### 4.1 코드 리뷰 체크리스트
 
-### Phase 4: Repository (통합 테스트)
-1. Repository 인터페이스 테스트 작성 (RED)
-2. Drizzle 구현체 작성 (GREEN)
-3. 쿼리 최적화 (REFACTOR)
+#### 시니어개발자 리뷰:
+- [ ] TDD 사이클이 올바르게 적용되었는가?
+- [ ] 모든 테스트가 독립적으로 실행되는가?
+- [ ] 코드 품질이 기준을 충족하는가?
+- [ ] 리팩토링이 적절히 이루어졌는가?
 
-### Phase 5: Service (통합 테스트)
-1. Service 메서드 테스트 작성 (RED)
-2. 비즈니스 로직 구현 (GREEN)
-3. 트랜잭션 처리 개선 (REFACTOR)
+#### 동료 리뷰:
+- [ ] 테스트가 이해하기 쉬운가?
+- [ ] 코드가 읽기 쉬운가?
+- [ ] 비즈니스 로직이 명확한가?
 
-### Phase 6: Server Actions (통합 테스트)
-1. Server Actions 테스트 작성 (RED)
-2. 인증 및 Service 호출 구현 (GREEN)
-3. 에러 처리 개선 (REFACTOR)
+### 4.2 Testing Strategy 검증
 
-### Phase 7: E2E Tests
-1. 사용자 시나리오 테스트 작성 (RED)
-2. UI + 전체 플로우 구현 (GREEN)
-3. UX 개선 (REFACTOR)
+#### 필수 검증 포인트:
+- [ ] Testing Strategy의 모든 테스트 케이스가 구현되었는가?
+- [ ] 커버리지 목표를 달성했는가?
+- [ ] RED-GREEN-REFACTOR 사이클이 모든 컴포넌트에 적용되었는가?
 
 ---
 
-## ✅ 체크리스트
+## ✅ TDD 구현 완료 기준
 
-### 각 TDD 사이클마다
+다음 모든 조건이 충족되어야 TDD 구현이 완료된 것으로 간주합니다:
 
-- [ ] **RED 확인**: 테스트가 실패하는 것을 직접 확인했는가?
-- [ ] **GREEN 확인**: 테스트가 통과하는가?
-- [ ] **REFACTOR 후 통과**: 리팩토링 후에도 모든 테스트가 통과하는가?
-- [ ] **커밋**: 각 사이클 후 의미있는 커밋을 했는가?
+### 구현 완료 기준:
+- [ ] 모든 Phase의 구현 완료
+- [ ] 모든 테스트 통과
+- [ ] 커버리지 목표 달성
+- [ ] 코드 리뷰 승인 완료
 
-### Phase 완료 시
-
-- [ ] **커버리지 목표**: Testing Strategy의 목표를 달성했는가?
-- [ ] **모든 테스트 통과**: 전체 테스트 스위트가 통과하는가?
-- [ ] **린터 에러 없음**: ESLint, TypeScript 에러가 없는가?
-- [ ] **문서 업데이트**: Technical Specification을 실제 구현으로 업데이트했는가?
+### 품질 기준:
+- [ ] 모든 테스트가 독립적으로 실행됨
+- [ ] 테스트 실행 속도가 적절함 (Unit < 100ms)
+- [ ] 린터 에러 없음
+- [ ] 문서 업데이트 완료
 
 ---
 
-## 💡 실무 팁
+## 🚀 다음 단계
 
-### 1. 테스트 먼저의 이점 체감하기
+TDD로 구현을 완료했다면:
+
+1. **PR 생성 및 리뷰 요청**
+   ```bash
+   git push origin feature/[domain-name]
+   # GitHub에서 PR 생성
+   ```
+
+2. **문서 최종 업데이트**
+   - Technical Specification의 "구현 상태" 업데이트
+   - Testing Strategy의 커버리지 달성 여부 체크
+
+3. **다음 도메인으로 이동**
+   - Testing Strategy의 우선순위에 따라 다음 도메인 개발
+
+---
+
+## 📚 관련 문서 및 템플릿
+
+### 참조 가이드:
+- [Technical Specification 가이드](./05-technical-specification-guide.md)
+- [Testing Strategy 가이드](./04-testing-strategy-guide.md)
+
+### 예시 문서:
+- [User Management Domain 구현 예시](../domains/user-management-domain/)
+
+---
+
+## 💡 성공을 위한 핵심 팁
+
+### TDD 성공 팁:
+- **RED 먼저 확인**: 테스트가 실패하는 것을 반드시 확인
+- **최소 구현**: GREEN 단계에서는 테스트만 통과하는 최소 코드
+- **자신있는 리팩토링**: 테스트가 있으면 두려워하지 말고 개선
+- **작은 단위**: 한 번에 하나의 메서드만 TDD
+
+### 구현 성공 팁:
+- **커밋 자주**: 각 TDD 사이클마다 의미있는 커밋
+- **테스트 먼저**: 절대 구현부터 시작하지 않기
+- **페어 프로그래밍**: 막힐 때는 동료와 함께
+- **시니어 멘토링**: 어려운 부분은 즉시 질문
+
+### 주의사항:
+- **테스트 통과가 목적이 아님**: 품질 좋은 코드가 목적
+- **과도한 목업 지양**: 실제 통합 테스트 우선
+- **리팩토링 필수**: GREEN만 보고 넘어가지 말기
+- **커버리지 집착 금지**: 의미있는 테스트가 중요
+
+### 실무 팁
+
+#### 1. 테스트 먼저의 이점 체감하기
 
 **Before TDD**:
 ```
@@ -610,91 +651,22 @@ export class UserAggregate {
 (확신을 가지고 개발)
 ```
 
-### 2. 작은 단계로 나누기
+#### 2. 작은 단계로 나누기
 
-❌ **나쁜 예**: 한 번에 전체 클래스 구현
-```typescript
-// 모든 메서드를 한 번에 구현
-class UserEmail {
-  validate() { ... }
-  equals() { ... }
-  getDomain() { ... }
-  toString() { ... }
-  // ... 10개 메서드
-}
-```
+❌ **나쁜 예**: 한 번에 전체 클래스 구현  
+✅ **좋은 예**: 하나씩 TDD 사이클 적용
 
-✅ **좋은 예**: 하나씩 TDD 사이클
-```typescript
-// 1차: 생성자만
-class UserEmail {
-  constructor(value: string) { ... }
-}
+#### 3. 리팩토링 두려워하지 않기
 
-// 2차: equals 추가
-class UserEmail {
-  constructor(value: string) { ... }
-  equals(other: UserEmail) { ... }
-}
+테스트가 있으면 자신있게 리팩토링 가능합니다.
 
-// 3차: getDomain 추가
-// ...
-```
-
-### 3. 리팩토링 두려워하지 않기
-
-테스트가 있으면 자신있게 리팩토링 가능:
-```typescript
-// Before: 복잡한 중첩 if
-if (email) {
-  if (email.length > 0) {
-    if (email.includes('@')) {
-      // ...
-    }
-  }
-}
-
-// After: Early return (테스트가 보호함!)
-if (!email || email.length === 0) return false;
-if (!email.includes('@')) return false;
-// ...
-```
-
-### 4. 커밋 단위
+#### 4. 커밋 단위
 
 ```bash
-# ❌ 나쁜 예: 한 번에 커밋
-git commit -m "user management domain 구현"
-
 # ✅ 좋은 예: TDD 사이클마다 커밋
 git commit -m "test(user-email): add UserEmail value object with basic validation"
 git commit -m "refactor(user-email): extract validation logic to private method"
-git commit -m "test(user): add User entity with profile update"
 ```
-
----
-
-## 🚀 다음 단계
-
-TDD로 구현을 완료했다면:
-
-1. **커버리지 확인**
-   ```bash
-   pnpm test:coverage
-   ```
-
-2. **문서 업데이트**
-   - Technical Specification의 "구현 상태" 섹션 업데이트
-   - Testing Strategy의 커버리지 달성 여부 체크
-
-3. **코드 리뷰 요청**
-   - PR 생성
-   - 시니어 개발자 리뷰 요청
-
-4. **다음 Phase로 이동**
-   - Testing Strategy의 우선순위에 따라 진행
-
----
 
 **핵심 원칙**: 
 - 🔴 **RED**: 실패를 먼저 본다
@@ -702,4 +674,3 @@ TDD로 구현을 완료했다면:
 - 🔵 **REFACTOR**: 자신있게 개선한다
 
 TDD는 처음에는 느리게 느껴지지만, 버그가 적고 유지보수가 쉬운 코드를 만들어줍니다! 🎉
-

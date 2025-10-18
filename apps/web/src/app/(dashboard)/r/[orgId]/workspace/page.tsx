@@ -1,10 +1,17 @@
-export default function WorkspacePage() {
-  return (
-    <div className="flex items-center justify-center h-full">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">대시보드</h1>
-        <p className="text-lg text-gray-600">워크스페이스 페이지입니다.</p>
-      </div>
-    </div>
-  );
+import { redirect } from 'next/navigation';
+
+interface WorkspacePageProps {
+  params: Promise<{ orgId: string }>;
+}
+
+/**
+ * Workspace 페이지
+ *
+ * 조직 루트로 리다이렉트하여 적절한 페이지로 이동
+ */
+export default async function WorkspacePageRoute({
+  params,
+}: WorkspacePageProps) {
+  const { orgId } = await params;
+  redirect(`/r/${orgId}`);
 }

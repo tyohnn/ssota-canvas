@@ -1,4 +1,15 @@
-# [Domain Name] Domain - Event Storming
+# Event Storming: [Domain Name] Domain
+
+## 🎯 개요
+
+**도메인**: [Domain Name]  
+**작성자**: 도메인전문가 + PO
+**작성일**: YYYY-MM-DD  
+**버전**: v1.0
+
+**다음 단계**: `02-process-model.md`
+
+---
 
 ## 📊 Domain Overview
 **비즈니스 가치**: [이 도메인이 제공하는 핵심 비즈니스 가치 설명 - 다른 도메인과의 관계 포함]

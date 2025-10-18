@@ -3,6 +3,27 @@
 ## 🎯 Process Modeling Overview
 Organization Management Domain의 핵심 시나리오를 실제 상호작용 순서에 따라 정의
 
+### 📝 작성 원칙 (하이브리드 접근법)
+
+#### ✅ 항상 작성된 내용 (비즈니스 프로세스)
+- 비즈니스 정책 및 규칙 (계층적 권한 시스템, 멤버십 관리 규칙)
+- 권한 기반 필터링 로직 (소유자/관리자/멤버 권한 구분)
+- 시스템 처리 흐름 (멤버 초대, 역할 변경, 제거 프로세스)
+- 데이터 검증 규칙 (중복 검증, 권한 검증)
+- 외부 시스템 통합 (User Management, Notification Management)
+
+#### ✅ 선택적으로 작성된 내용 (최소 UX 힌트)
+- `*UI Hint:` 형태로 Frontend 팀을 위한 최소 힌트 제공
+- 예시: `*UI Hint: 옵션 선택 UI*`, `*UI Hint: 확인 다이얼로그*`
+- `*Layered Authorization:` Frontend/Backend 역할 구분 명시
+
+#### ❌ 작성하지 않은 내용 (UI 과도 종속)
+- 구체적인 컴포넌트 이름 (MUI Select, shadcn/ui Dialog 등)
+- 색상, 크기, 패딩 등 스타일 세부사항
+- 애니메이션, 트랜지션 효과
+
+> **참고**: 구체적인 UI/UX 설계는 `03-user-flow.md`에서 진행합니다.
+
 ### 🔄 시퀀스 기반 상호작용 순서
 각 시나리오는 여러 시퀀스로 구성되며, 이벤트에 의해 다음 시퀀스가 트리거됩니다:
 
@@ -18,11 +39,59 @@ Organization Management Domain은 User Management Domain과 통합됩니다:
 
 ---
 
+## 📍 Scenario 0: 조직 조회 및 선택 (User Management Domain 연동)
+
+**Trigger Event**: 유저 가입 완료됨 (User Management Domain)
+*UI Hint: 메인 화면 진입 시 자동 트리거*
+
+```
+👤 사용자: "내가 속한 조직들을 확인하고 작업할 조직을 선택하고 싶어"
+```
+
+**Policy**: 
+- "Whenever 유저 가입 완료됨 또는 로그인 완료됨, then always 유저 관련 조직을 조회하고 초기 조직을 선택하기"
+
+**Read Model**:
+- 유저 관련 조직 목록:
+  - 소유한 조직 (역할: 소유자)
+  - 소속된 조직 (역할: 관리자/멤버)
+- 각 조직 정보 (이름, 타입, 역할, 기본 조직 여부)
+- 초기 선택 규칙:
+  - 쿠키에 저장된 이전 선택 조직 우선
+  - 없으면 기본 조직 선택
+  - 기본 조직 없으면 첫 번째 소유 조직 선택
+- *UI Hint: 조직 선택 UI (드롭다운 또는 사이드바)*
+
+**Command**: 조직 조회 및 선택
+- 선택할 조직 ID (자동 선택의 경우 시스템이 결정)
+
+**System**: Organization System
+- **Backend (Data Retrieval)**:
+  - 유저가 소유한 조직 조회 (organizations 테이블)
+  - 유저가 멤버인 조직 조회 (organization_members 테이블)
+  - 중복 제거 및 정렬 (소유 조직 우선 → 참여일 순)
+- **Frontend (State Management)**:
+  - 조직 목록을 OrganizationContext에 저장
+  - 초기 조직 선택 로직 실행
+  - 선택된 조직 ID를 쿠키에 저장
+  - 조직 컨텍스트 전환
+
+**Events**:
+1. 유저 관련 조직이 조회됨 (User Organizations Retrieved)
+2. 초기 조직이 선택됨 (Initial Organization Selected)
+
+---
+*Frontend Implementation Details: `03-user-flow.md` 참조*
+*Note: 조직 선택 후 워크스페이스 조회는 Workspace Domain에서 진행*
+
+---
+
 ## 📍 Scenario 1: 새로운 조직 생성
 
 ### Sequence 1: 사용자가 새로운 조직을 생성하고 소유자가 됨
 
 **Trigger Event**: 조직 목록 화면에서 "새 조직 만들기" 선택함
+*UI Hint: 조직 선택 드롭다운 또는 버튼을 통해 트리거*
 
 ```
 👤 사용자: "새로운 프로젝트를 위해 별도의 조직을 만들고 싶어"
@@ -32,16 +101,19 @@ Organization Management Domain은 User Management Domain과 통합됩니다:
 - "Whenever 새 조직 만들기가 선택됨, then always 조직 생성 폼을 표시하기"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 조직 생성 폼 (조직 이름 입력 필드, 조직 타입 선택 필드(개인, 교육, 스타트업, 에이전시, 컴퍼니, N/A))
-- 조직 생성 진행 상태 표시
+- 조직 생성에 필요한 입력 필드:
+  - 조직 이름 (필수)
+  - 조직 타입 (개인, 교육, 스타트업, 에이전시, 컴퍼니, N/A)
+- 생성 진행 상태
 - 생성 취소 옵션
+- *UI Hint: 생성 폼 다이얼로그*
 
-**Command**: 새로운 조직 생성 요청 (사용자가 입력하는 정보)
+**Command**: 새로운 조직 생성 요청
 - 조직 이름 (필수)
 - 조직 타입 (필수)
 - 조직 생성 확인
 
-**System**: Organization System
+**System**: Organization System (Backend - Security Enforcement)
 - 사용자의 조직 생성 권한 확인
 - 새로운 UUID 기반 조직 ID 생성
 - 사용자를 조직 소유자로 자동 설정
@@ -65,117 +137,107 @@ Organization Management Domain은 User Management Domain과 통합됩니다:
 - 조직이 선택됨 (Organization Selected)
 
 ---
+*Frontend Implementation Details: `03-user-flow.md` 참조*
+
+---
 
 ## 📍 Scenario 2: 멤버 초대 및 수락
 
 ### Sequence 1: 조직 소유자/관리자가 새 멤버를 초대
 
-**Trigger Event**: 멤버 관리 버튼을 클릭함
+**Trigger Event**: 멤버 관리 화면 접근함
+*UI Hint: 설정 다이얼로그의 멤버 메뉴를 통해 트리거*
 
 ```
 👤 조직 관리자: "새 팀원을 우리 조직에 초대하고 싶어"
 ```
 
 **Policy**: 
-- "Whenever 멤버 관리 버튼이 클릭됨, then always 멤버 초대 폼을 표시하기"
+- "Whenever 멤버 관리 화면이 접근됨, then always 멤버 초대 폼과 현재 멤버 목록을 표시하기"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 조직 멤버 목록 (프로필 이미지, 이름, 이메일, 역할)
-- 이메일 입력 폼 + 역할 선택 드롭다운
-- 초대 진행 중인 경우 조직 목록에서 회색으로 표시 (선택 불가, 초대 취소)
-- 초대 가능한 역할 옵션 (관리자/멤버)
+- 현재 조직 멤버 목록 (이름, 이메일, 역할, 가입일)
+- 진행 중인 초대 목록 (초대 대상 이메일, 역할, 상태)
+- 멤버 초대 입력 필드:
+  - 이메일 주소 입력 (자동 검색 기능)
+  - 부여할 역할 선택 (관리자/멤버)
+- 권한 기반 필터링:
+  - 소유자와 관리자만 멤버 초대 가능
+  - 이미 멤버인 경우 선택 불가
+  - 초대 진행 중인 경우 선택 불가
+- *Layered Authorization: Frontend에서 권한 기반 UI 표시*
+- *UI Hint: 멤버 초대 폼 (이메일 검색 + 역할 선택)*
 
-**Command**: 초대할 이메일 주소 입력하기
+**Command**: 멤버 초대 요청
 - 초대할 이메일 주소
+- 부여할 역할 (관리자/멤버)
+- 초대 확인
 
-**System**: Invitation System
-- 이메일 입력 시 자동으로 프로필 검색
-- 현재 멤버인지 확인
-- 기존 초대가 있는지 확인
-- 가능하면 선택, 불가능하면 선택 불가 처리
-
-**Events**:
-1. 초대할 이메일을 선택함 (Invitation Email Selected)
-
----
-
-**Policy**: 
-- "Whenever 초대할 이메일이 선택됨, then always 멤버 초대 요청 폼에 배지 표시하기"
-
-**Read Model** (초대 요청 폼):
-- 선택된 프로필 미리보기 (이름, 이메일, 프로필 이미지)
-- 부여할 역할 선택 (관리자/멤버)
-- 초대 요청 확인 버튼
-
-**Command**: (Organization System) 멤버 초대 요청하기
-- 선택된 프로필과 부여 역할 입력
-- 초대 요청 확인
-
-**System**: Invitation System
-- 초대 정보 데이터베이스 저장
+**System**: Invitation System (Backend - Security Enforcement)
+- **Application-level 권한 체크**: 소유자/관리자만 초대 가능
+- 이메일로 사용자 검색 (프로필 조회)
+- 중복 멤버 검증
+- 중복 초대 검증
+- 초대 정보 데이터베이스 저장 (invitations 테이블)
+- Notification System에 초대 알림 생성 요청
 
 **Events**:
-1. 멤버 초대 요청함 (Member Invitation Requested)
-
----
-
-**Policy**: 
-- "Whenever 멤버 초대 요청함, then always 멤버 초대 알림 추가"
-
-**Command**: (Invitation System) 초대 알림 생성하기
-
-**System**: Notification System (Notification Management Domain)
-
-**Events**:
-1. 초대 알림 생성됨 (Invitation Notification Created)
+1. 멤버 초대 요청됨 (Member Invitation Requested)
+2. 초대 알림 생성됨 (Invitation Notification Created)
 
 ---
 
 ### Sequence 2: 초대받은 사용자가 초대를 확인하고 수락/거절
 
-**Trigger Event**: 초대받은 사용자가 인박스 버튼을 클릭함
+**Trigger Event**: 초대받은 사용자가 인박스를 확인함
+*UI Hint: 사이드바 인박스 버튼을 통해 트리거*
 
 ```
 👤 초대받은 사용자: "초대 알림을 받았는데 조직에 참여하고 싶어"
 ```
 
 **Policy**: 
-- "Whenever 인박스 버튼이 클릭됨, then if 초대 있으면 then 초대 알림을 표시하기"
+- "Whenever 인박스가 확인됨, then if 초대 알림 있으면 then 초대 내용을 표시하기"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 초대 정보 (누구누구 님이 다음 조직에 초대함. ㅇㅇㅇ 조직)
-- 초대 승낙/거절 버튼
+- 초대 알림 목록 (읽지 않은 알림 우선)
+- 초대 상세 정보:
+  - 초대한 사람 이름
+  - 조직 이름
+  - 부여될 역할
+  - 초대 시간
+- 초대 응답 옵션 (승낙/거절)
+- *UI Hint: 인박스 패널 (알림 목록 + 응답 버튼)*
 
-**Command**: (유저) 초대 응답
-- 초대 승낙하기 또는 초대 거절하기
+**Command**: 초대 응답
+- 초대 승낙 또는 초대 거절 선택
+- 응답 확인
 
-**System**: Invitation System
-- 초대 승낙이면 멤버 등록하기
-- 초대 거절이면 초대 무효화하기
+**System**: Invitation System (Backend - Security Enforcement)
+- 초대 상태 확인 (유효성 검증)
+- 초대 승낙인 경우:
+  - organization_members 테이블에 멤버 추가 (adminDb)
+  - 초대 상태를 'accepted'로 업데이트
+- 초대 거절인 경우:
+  - 초대 상태를 'rejected'로 업데이트
+- Notification System에 알림 읽음 처리 요청
+- 멤버 권한 캐시 무효화 (승낙 시)
 
 **Events**:
-1. 초대 거절함 (Invitation Rejected)
-2. 초대 승낙함 (Invitation Accepted)
+1. 초대 승낙됨 (Invitation Accepted) - 멤버 추가 완료
+2. 초대 거절됨 (Invitation Rejected)
+3. 알림 읽혀짐 (Notification Read)
 
 ---
-**Policy**: 
-- "Whenever 초대 승낙 or 초대 거절, then always 알림 읽기"
-
-**Command**: (Organization System) 알림 읽기
-
-**System**: Notification System (Notification Management Domain)
-
-**Events**:
-1. 알림 읽혀짐 (Notification Read)
+*Frontend Implementation Details: `03-user-flow.md` 참조*
 
 2025-10-07
 ---
 
 ## 📍 Scenario 3: 멤버 역할 변경
 
-### Sequence 1: 조직 관리자가 멤버의 역할을 변경
-
-**Trigger Event**: 멤버 관리 화면에서 역할 변경 버튼을 클릭함
+**Trigger Event**: 사용자가 멤버 역할 변경을 시작함
+*UI Hint: 멤버 목록의 역할 표시 영역 버튼을 통해 트리거*
 
 ```
 👤 조직 관리자 (소유자/어드민): "팀원의 권한을 Admin으로 승격시키고 싶어"
@@ -183,42 +245,42 @@ Organization Management Domain은 User Management Domain과 통합됩니다:
 ```
 
 **Policy**: 
-- "Whenever 역할 변경 버튼이 클릭됨, then always 역할 선택 옵션을 표시하기"
+- "Whenever 역할 변경이 시작됨, then always 계층적 권한을 검증하고 확인을 받기"
 
-**Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 선택된 멤버의 현재 역할 정보
-- 역할 선택 옵션 (관리자/멤버) → 현재 역할은 체크 표시
+**Read Model**:
+- 선택된 멤버 정보 (이름, 이메일, 현재 역할)
+- 변경 가능한 역할 옵션 (권한 기반 필터링 적용됨):
+  - **소유자가 보는 옵션**: "관리자", "멤버", "조직에서 제외"
+  - **어드민이 보는 옵션**: "관리자" (대상이 멤버인 경우만)
+  - **현재 역할**: 체크 표시 및 선택 불가
+  - **소유자 역할**: 변경 불가 (버튼 자체를 표시 안 함)
+- 역할 변경 확인 정보:
+  - 현재 역할 → 새 역할
+  - 권한 변경 안내 메시지 (승격/강등에 따라 다름)
+- *Layered Authorization: Frontend에서 권한 기반 옵션 계산 및 필터링*
+- *UI Hint: 옵션 선택 UI (드롭다운 메뉴) + 확인 다이얼로그*
 
-**Command**: 역할 옵션 선택하기
-- 새로운 역할 선택 (관리자/멤버)
-
-**System**: Organization System
-- 현재 유저가 역할 변경 권한이 있는지 확인
-- 변경 대상 멤버가 소유자가 아닌지 확인 (소유자는 역할 버튼 선택 불가)
-- 현재 역할과 새 역할이 다른지 검증 (같은 옵션에는 체크 표시가 있고, 선택되지 않음)
-- 소유자만 어드민을 멤버로 다운그레이드 가능 여부 확인 (멤버를 어드민으로 업그레이드 가능)
-- 어드민은 멤버를 어드민으로 업그레이드만 가능 여부 확인
-
-**Events**:
-1. 역할 옵션이 선택됨 (Role Option Selected) (프론트엔드)
-
----
-
-**Policy**: 
-- "Whenever 역할 옵션이 선택됨, then if 어드민을 멤버로 다운그레이드하면, then 다운그레이드 확인 다이얼로그 띄우기"
-- "Whenever 역할 옵션이 선택됨, then if 멤버를 어드민으로 업그레이드하면, then 업그레이드 확인 다이얼로그 띄우기"
-
-**Read Model** (역할 변경 확인 다이얼로그):
-- 선택된 멤버 정보 (이름, 이메일)
-- 현재 역할 → 새 역할 표시
-- 역할 변경에 따른 권한 변경 안내 메시지
-- 확인/취소 버튼
-
-**Command**: 역할 변경 확인
-- 역할 변경 확인 또는 취소
+**Command**: 멤버 역할 변경
+- 대상 멤버 ID
+- 새로운 역할 (관리자/멤버)
+- 확인 여부
 
 **System**: Organization System
-- 멤버 역할 데이터베이스 업데이트
+- **Layered Authorization**:
+  - **Frontend (UX 최적화)**: 
+    - 사용자 권한에 따라 변경 가능한 옵션 필터링
+    - 소유자 역할 변경 버튼 숨김
+    - 현재 역할 체크 표시 및 비활성화
+    - 권한별 옵션 활성화/비활성화 결정
+  - **Backend (Security Enforcement)**: 
+    - 현재 유저가 역할 변경 권한이 있는지 검증 (DB 조회)
+    - 변경 대상 멤버가 소유자가 아닌지 검증
+    - 계층적 권한 시스템 규칙 재검증:
+      - 소유자만 어드민을 멤버로 다운그레이드 가능
+      - 어드민은 멤버를 어드민으로 승격만 가능
+    - 현재 역할과 새 역할이 다른지 검증
+    - 자기 자신 역할 변경 방지
+- adminDb로 멤버 역할 데이터베이스 업데이트
 - 멤버 권한 캐시 무효화
 
 **Events**:
@@ -226,46 +288,116 @@ Organization Management Domain은 User Management Domain과 통합됩니다:
 2. Admin이 Member로 강등되었다 (Admin Demoted to Member)
 
 ---
+*Frontend Implementation Details: `03-user-flow.md` 참조*
+
+---
 
 ## 📍 Scenario 4: 멤버 제거
 
-### Sequence 1: 조직 관리자가 멤버를 조직에서 제거
+### Sequence 1: 조직 소유자가 다른 멤버를 제거
 
-**Trigger Event**: 멤버 역할 변경이 완료됨
+**Trigger Event**: Scenario 3에서 "조직에서 제외" 옵션이 선택됨
+*UI Hint: 역할 옵션 메뉴의 "조직에서 제외" 항목 선택*
 
 ```
-👤 조직 관리자: "더 이상 필요없는 멤버를 조직에서 제거하고 싶어"
-👤 멤버 본인: "이 조직을 떠나고 싶어"
+👤 조직 소유자: "더 이상 필요없는 멤버를 조직에서 제거하고 싶어"
 ```
 
-**Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 조직 멤버 목록 (제거 가능한 멤버들)
-- 멤버 제거 안내 메시지 및 주의사항
-- 제거 사유 선택 옵션 (관리자 제거/본인 탈퇴)
-- 제거 확인 체크박스
-- 멤버 제거 진행 상태 표시
+**Policy**: 
+- "Whenever 다른 멤버 '조직에서 제외' 옵션이 선택됨, then always 제거 영향을 안내하고 확인을 받기"
 
-**Command**: 멤버 제거 요청 (사용자가 입력하는 정보)
-- 제거할 대상 멤버 선택
-- 제거 사유 선택 (관리자 제거/본인 탈퇴)
-- 제거 확인 체크박스
-- 멤버 제거 확인
+**Read Model**:
+- 제거할 멤버 정보 (이름, 이메일, 역할)
+- 제거 시 영향 안내:
+  - 멤버의 개인 워크스페이스 이전 안내
+  - 멤버의 초대 및 세션 무효화 안내
+  - 되돌릴 수 없음 경고
+- 확인/취소 옵션
+- 권한 기반 표시:
+  - **소유자만** 다른 멤버를 제거할 수 있음
+  - 어드민은 이 옵션을 볼 수 없음
+- *Layered Authorization: Frontend에서 소유자 권한 기반 옵션 표시*
+- *UI Hint: 확인 다이얼로그 (Danger Zone 경고 스타일)*
 
-**Policy**: 멤버 제거 규칙
-- "소유자만 다른 멤버 제거 가능"
-- "소유자는 제거 불가 (소유권 이전 후에만 가능)"
-- "모든 멤버는 본인이 조직을 떠날 수 있음 (소유자 제외)"
-- "제거된 멤버의 개인 워크스페이스는 조직 소유자에게 이전"
-- "제거 시 모든 초대 및 세션 무효화"
+**Command**: 멤버 제거
+- 대상 멤버 ID
+- 제거 확인 여부
 
-**System**: Member Removal Manager → Database
+**System**: Organization System
+- **Layered Authorization**:
+  - **Frontend (UX 최적화)**: 
+    - 소유자만 "조직에서 제외" 옵션 표시
+    - 어드민 및 일반 멤버는 옵션 숨김
+    - 다른 멤버 제거 경고 메시지 표시
+  - **Backend (Security Enforcement)**: 
+    - 현재 유저가 소유자인지 검증 (DB 조회)
+    - 제거 대상 멤버가 소유자가 아닌지 검증
+    - 자기 자신 제거 방지
+- **멤버 제거 프로세스**:
+  - 멤버의 개인 워크스페이스를 조직 소유자에게 이전 (Workspace Domain)
+  - 멤버를 조직에서 제거 (organization_members 테이블, adminDb)
+  - 멤버의 모든 초대 무효화 (invitations 테이블)
+  - 멤버 세션 무효화 (세션 캐시 삭제)
+  - 멤버 권한 캐시 무효화
 
 **Events**:
-1. 멤버 제거가 요청되었다 (Member Removal Requested)
-2. 멤버 워크스페이스가 Owner에게 이전되었다 (Member Workspaces Transferred to Owner)
-3. 멤버가 조직에서 제거되었다 (Member Removed from Organization)
-4. 멤버 세션이 무효화되었다 (Member Sessions Invalidated)
-5. 멤버 제거가 완료되었다 (Member Removal Completed)
+1. 멤버가 조직에서 제거되었다 (Member Removed from Organization)
+2. 멤버 워크스페이스가 소유자에게 이전되었다 (Member Workspaces Transferred to Owner)
+
+---
+
+### Sequence 2: 자신이 조직을 나감 (자발적 탈퇴)
+
+**Trigger Event**: 자신의 역할 메뉴에서 "조직 나가기" 옵션이 선택됨
+*UI Hint: 자신의 프로필 또는 설정 메뉴를 통해 트리거*
+
+```
+👤 조직 멤버 (어드민/멤버): "더 이상 이 조직에 참여하고 싶지 않아"
+```
+
+**Policy**: 
+- "Whenever 자신의 '조직 나가기' 옵션이 선택됨, then always 나가기 영향을 안내하고 확인을 받기"
+
+**Read Model**:
+- 현재 조직 정보 (조직 이름, 자신의 역할)
+- 나가기 시 영향 안내:
+  - 자신의 워크스페이스 처리 방법 (조직 소유자에게 이전 또는 삭제)
+  - 조직 데이터 접근 권한 상실 안내
+  - 되돌릴 수 없음 경고
+- 확인/취소 옵션
+- 권한 기반 제약:
+  - **소유자는 나갈 수 없음** (소유권 이전 후에만 가능)
+  - 어드민과 일반 멤버만 나갈 수 있음
+- *Layered Authorization: Frontend에서 소유자 나가기 옵션 숨김*
+- *UI Hint: 확인 다이얼로그 (Danger Zone 경고 스타일)*
+
+**Command**: 조직 나가기
+- 조직 ID
+- 나가기 확인 여부
+
+**System**: Organization System
+- **Layered Authorization**:
+  - **Frontend (UX 최적화)**: 
+    - 소유자는 "조직 나가기" 옵션 숨김
+    - 어드민/멤버만 옵션 표시
+    - 자발적 탈퇴 경고 메시지 표시
+  - **Backend (Security Enforcement)**: 
+    - 현재 유저가 해당 조직의 멤버인지 검증 (DB 조회)
+    - 나가려는 유저가 소유자가 아닌지 검증
+    - 마지막 남은 멤버인지 확인 (조직 고아 방지)
+- **조직 나가기 프로세스**:
+  - 자신의 워크스페이스를 조직 소유자에게 이전 (Workspace Domain)
+  - 자신을 조직에서 제거 (organization_members 테이블, adminDb)
+  - 자신이 보낸 초대 처리 (소유자에게 이전 또는 무효화)
+  - 자신의 세션에서 조직 컨텍스트 제거
+  - 권한 캐시 무효화
+
+**Events**:
+1. 멤버가 자발적으로 조직을 나갔다 (Member Left Organization Voluntarily)
+2. 멤버 워크스페이스가 소유자에게 이전되었다 (Member Workspaces Transferred to Owner)
+
+---
+*Frontend Implementation Details: `03-user-flow.md` 참조*
 
 ---
 

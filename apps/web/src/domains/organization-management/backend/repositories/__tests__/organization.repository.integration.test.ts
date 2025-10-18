@@ -61,6 +61,11 @@ class MockOrganizationRepository implements OrganizationRepository {
     // Mock implementation that calls Supabase client
     this.supabase.from();
   }
+
+  async getOrganizationName(id: OrganizationId): Promise<string | null> {
+    // Mock implementation
+    return 'Test Organization';
+  }
 }
 
 describe('OrganizationRepository Integration Tests', () => {
@@ -274,6 +279,45 @@ describe('OrganizationRepository Integration Tests', () => {
 
       // When & Then
       await expect(errorRepository.delete(mockOrganization.id)).rejects.toThrow('Delete failed');
+    });
+  });
+
+  describe('getOrganizationName', () => {
+    it('조직 이름을 조회할 수 있어야 한다', async () => {
+      // Given
+      const mockRepository = new MockOrganizationRepository();
+      vi.spyOn(mockRepository, 'getOrganizationName').mockResolvedValue('Test Organization');
+
+      // When
+      const result = await mockRepository.getOrganizationName(mockOrganization.id);
+
+      // Then
+      expect(result).toBe('Test Organization');
+    });
+
+    it('존재하지 않는 조직은 null을 반환해야 한다', async () => {
+      // Given
+      const nonExistentId = OrganizationId.generate();
+      const mockRepository = new MockOrganizationRepository();
+      vi.spyOn(mockRepository, 'getOrganizationName').mockResolvedValue(null);
+
+      // When
+      const result = await mockRepository.getOrganizationName(nonExistentId);
+
+      // Then
+      expect(result).toBeNull();
+    });
+
+    it('조회 중 오류가 발생하면 예외를 발생시켜야 한다', async () => {
+      // Given
+      const errorRepository = new MockOrganizationRepository();
+      vi.spyOn(errorRepository, 'getOrganizationName').mockRejectedValue(
+        new Error('Database connection failed')
+      );
+
+      // When & Then
+      await expect(errorRepository.getOrganizationName(mockOrganization.id))
+        .rejects.toThrow('Database connection failed');
     });
   });
 

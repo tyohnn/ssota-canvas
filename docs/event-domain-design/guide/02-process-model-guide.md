@@ -25,26 +25,87 @@ graph TD
 
 Process Model은 **Event Storm의 추상적 이벤트**를 **구체적 시스템 프로세스**로 전환하는 핵심 단계입니다.
 
+### 🎯 Process Model의 핵심 원칙
+
+#### 1. UI/UX로부터의 독립성 (하이브리드 접근법)
+**Process Model은 비즈니스 프로세스에 집중**하되, **최소한의 UX 힌트**를 포함할 수 있습니다:
+
+##### 작성 기준
+- ✅ **항상 작성**: 비즈니스 정책, 권한 규칙, 시스템 처리 로직
+- ✅ **선택적 작성**: `*UI Hint:` 형태의 최소 UX 가이드 (Frontend 팀을 위한)
+- ❌ **작성 금지**: 버튼 위치, 색상, 애니메이션, 구체적인 컴포넌트 이름
+
+##### UI Hint 작성 가이드
+
+**UI Hint의 목적**:
+- Frontend 팀이 Process Model만 보고도 기본 흐름을 이해할 수 있도록
+- 구체적인 구현은 User Flow 문서로 이관
+
+**UI Hint 작성 원칙**:
+1. **최소성**: 꼭 필요한 힌트만 작성 (예: "옵션 선택 UI", "확인 다이얼로그")
+2. **추상성**: 구체적인 컴포넌트 이름 사용 금지 (예: "드롭다운" ❌, "옵션 선택 UI" ✅)
+3. **선택성**: UI Hint는 `*UI Hint:` 형태의 이탤릭 + 별표로 표시하여 선택적 정보임을 명시
+
+**예시**:
+```markdown
+✅ 좋은 Process Model (하이브리드 방식):
+**Trigger Event**: 사용자가 멤버 역할 변경을 시작함
+*UI Hint: 역할 표시 영역을 통해 트리거*
+
+**Read Model**: 역할 변경 가능한 옵션 목록
+- 소유자가 보는 옵션: Owner, Admin, Member
+- 어드민이 보는 옵션: Admin, Member (Owner 제외)
+- 권한 기반 필터링 적용됨
+- *Layered Authorization: Frontend에서 계산 및 필터링*
+- *UI Hint: 옵션 선택 UI (드롭다운, 모달 등)*
+
+**Command**: 역할 변경 선택 및 확인
+- 새로운 역할 선택
+- 변경 영향 확인
+- 최종 확인
+- *UI Hint: 확인 다이얼로그*
+
+**System**: Organization System
+- **Frontend (Layered Authorization)**: 권한 기반 옵션 계산
+- **Backend (Security Enforcement)**: 
+  - 권한 재검증
+  - 역할 업데이트
+  - 캐시 무효화
+
+---
+*Frontend Implementation Details: `03-user-flow.md` 참조*
+
+❌ 나쁜 Process Model (UI 과도 종속):
+Read Model: 드롭다운 메뉴
+- MUI Select 컴포넌트 사용
+- 파란색 배경, 12px 패딩
+- 호버 시 밝은 회색으로 변경
+- 애니메이션: 300ms fade-in
+```
+
+#### 2. 다음 단계와의 연결
+
+**Backend 경로**:
+```
+Process Model → Software Design → Testing Strategy → Technical Specification
+```
+- **System**: Backend 시스템 처리 로직 (ACL, 비즈니스 규칙, 데이터 저장)
+- **External System**: Software Design에서 ACL 설계의 기반이 됨
+
+**Frontend 경로**:
+```
+Process Model → User Flow → Frontend Specification
+```
+- **Read Model**: UX/UI 디자이너가 화면 설계의 기반으로 사용
+- **Command**: 사용자 인터랙션의 시작점
+- **구체적인 UI 요소**: User Flow 문서에서 정의
+
 ### 🔄 시퀀스 기반 상호작용 순서
 Process Model은 시나리오와 시퀀스로 구성되며, 이벤트에 의해 다음 시퀀스가 트리거됩니다:
 
 **Event** → **Policy** → **Read Model** → **Command** → **System** → **Event** → **Policy** → ...
 
 1. **Event** (이전 시퀀스의 결과) → 2. **Policy** (이벤트에 따른 정책 적용) → 3. **Read Model** (시스템에서 사용자에게 제공하는 정보) → 4. **Command** (사용자가 입력하는 정보) → 5. **System** (처리 시스템) → 6. **Event** (결과 이벤트)
-
----
-
-## 🛠️ 작업 시작 전 Git 브랜치 준비하기
-
-```bash
-# Event Storming 브랜치에서 연결하거나 새 브랜치 생성
-git checkout event-storm-<domain-name>
-
-# Process Model 브랜치 생성 (Event Storm이 완료된 상태에서)
-git checkout -b process-model-<domain-name>
-
-# 예시: git checkout -b process-model-workspace-structure
-```
 
 ---
 
@@ -279,6 +340,7 @@ Event → Policy → Read Model → Command → System → Event
 ✅ 내부 시스템 분리 (필요):
 ### Sequence 2: User Authentication System 내부 처리 과정  # 우리가 정의하는 블랙박스
 ```
+
 #### 이벤트의 종류:
 - 내부 서비스에서 발생하는 이벤트 (중요)
 - 웹에서 발생하는 이벤트 (중요)
@@ -343,11 +405,52 @@ Scenario 0: 사용자 등록 및 온보딩
 
 #### 시퀀스 작성 가이드:
 - **Trigger Event**: 이전 시퀀스의 특정 이벤트 또는 초기 사용자 액션
+  - **선택사항**: `*UI Hint:` 형태로 트리거 지점 명시 (예: `*UI Hint: 역할 표시 영역을 통해 트리거*`)
 - **Policy**: 이벤트에 대한 자동 반응 규칙 ("Whenever X, then Y" 패턴)
 - **Read Model**: 시스템이 사용자에게 보여주는 정보 (폼, 목록, 상태 표시 등)
+  - **선택사항**: `*UI Hint:` 형태로 UI 유형 명시 (예: `*UI Hint: 옵션 선택 UI*`)
+  - **선택사항**: `*Layered Authorization:` Frontend/Backend 역할 구분
 - **Command**: 사용자가 실제로 입력하거나 선택하는 정보 (폼 데이터, 선택 옵션 등)
+  - **선택사항**: `*UI Hint:` 형태로 인터랙션 유형 명시 (예: `*UI Hint: 확인 다이얼로그*`)
 - **System**: 처리 시스템 (비즈니스 로직 포함, 백엔드 시스템 또는 Frontend)
+  - **Layered Authorization 명시**: Frontend (UX 최적화) vs Backend (보안 검증)
 - **Events**: Command 실행 결과로 발생하는 구체적인 이벤트들
+
+#### UI Hint 작성 가이드 (하이브리드 접근법):
+
+**작성 시기**:
+- Frontend 팀이 기본 흐름을 이해하는 데 도움이 필요할 때
+- Process Model만으로 사용자 여정을 이해하기 어려울 때
+- **주의**: 과도한 UI Hint는 User Flow 문서로 이관
+
+**작성 형식**:
+```markdown
+**Trigger Event**: 사용자가 멤버 역할 변경을 시작함
+*UI Hint: 역할 표시 영역을 통해 트리거*
+
+**Read Model**: 역할 변경 가능한 옵션 목록
+- 소유자가 보는 옵션: Owner, Admin, Member
+- 어드민이 보는 옵션: Admin, Member (Owner 제외)
+- *Layered Authorization: Frontend에서 계산 및 필터링*
+- *UI Hint: 옵션 선택 UI (드롭다운, 모달 등)*
+
+**Command**: 역할 변경 선택 및 확인
+- 새로운 역할 선택
+- *UI Hint: 확인 다이얼로그*
+
+**System**: Organization System
+- **Frontend (Layered Authorization)**: 권한 기반 옵션 계산
+- **Backend (Security Enforcement)**: 권한 재검증, 역할 업데이트
+
+---
+*Frontend Implementation Details: `03-user-flow.md` 참조*
+```
+
+**UI Hint 작성 규칙**:
+1. **이탤릭 + 별표**: `*UI Hint:` 형태로 선택적 정보임을 명시
+2. **최소성**: 추상적 UI 유형만 (예: "옵션 선택 UI", "확인 다이얼로그")
+3. **금지**: 구체적 컴포넌트 이름 (예: "MUI Select", "shadcn/ui Dialog")
+4. **참조**: 상세 구현은 `03-user-flow.md`로 이관
 
 ### 2.4 Phase 3: 상호작용 순서 검증 및 정리 (60분)
 
@@ -712,29 +815,6 @@ Command를 실행하고 Event를 발생시키는 **책임 단위**가 명확히 
 - [ ] Event Storm의 Context 경계와 Process Model의 System 경계가 일치하는가?
 - [ ] 동일한 도메인 언어가 일관되게 사용되고 있는가?
 
-### 4.3 Git 커밋 및 PR 생성
-
-```bash
-# Process Model 문서 커밋
-git add docs/event-domain-design/domains/<domain-name>/process-model.md
-git commit -m "docs(process-model): define <domain-name> core processes
-
-- Map user scenarios to command-policy-system-event patterns
-- Define business rules and constraints
-- Identify system boundaries and external integrations
-- Prepare foundation for software design"
-
-# GitHub에 푸시 및 PR 생성
-git push origin process-model-<domain-name>
-```
-
-### 4.4 PR 리뷰 체크리스트
-
-**승인 조건:**
-- [ ] 도메인전문가가 비즈니스 프로세스 정확성을 승인
-- [ ] 시니어개발자가 시스템 설계 타당성을 승인
-- [ ] PM이 요구사항 충족도를 승인
-- [ ] Event Storm과의 일관성이 확인됨
 
 ---
 
@@ -812,68 +892,4 @@ Process Model이 완료되면 다음 단계를 진행할 수 있습니다:
 - **External System 명확한 분리**: 도메인 내부 로직과 외부 통합 로직 구분
 - **Policy의 구현 독립성**: 특정 기술에 종속되지 않는 순수한 비즈니스 규칙
 
----
-
-## 📊 8단계. 프로젝트 진행 상황 업데이트
-
-### 8.1 project-progress.md 업데이트
-
-**목표**: Process Model 완료 상태를 프로젝트 전체 진행 상황에 반영
-
-**작업 과정**:
-```bash
-# 1. 현재 날짜 확인
-date
-
-# 2. project-progress.md 파일 열기
-# docs/project-progress.md
-```
-
-**업데이트 내용**:
-1. **Overall Progress Overview 테이블 업데이트**:
-   ```markdown
-   | [Domain Name] | ✅ Complete | ✅ Complete | ❌ Pending | ❌ Pending | ❌ Pending | **40%** |
-   ```
-
-2. **해당 도메인 섹션 업데이트**:
-   ```markdown
-   ### [N]. [Domain Name] Domain 🟡 **40% 완료**
-   
-   #### 설계 진행 상황
-   - [x] **Event Storming**: `docs/event-domain-design/[domain-name]/event-storm.md`
-     - 핵심 이벤트 [N]개 정의
-     - Hotspots [N]개 식별
-     - Opportunities [N]개 발견
-   
-   - [x] **Process Model**: `docs/event-domain-design/[domain-name]/process-model.md`
-     - [N]개 핵심 시나리오 정의
-     - Event → Policy → Read Model → Command → System → Event 패턴 적용
-     - External System 매핑 완료
-   
-   - [ ] **Software Design**: ❌ **대기 중**
-   - [ ] **Technical Design**: ❌ **대기 중**
-   - [ ] **Agile Planning**: ❌ **대기 중**
-   ```
-
-3. **전체 진행률 업데이트**:
-   - 해당 도메인의 진행률을 25% → 40%로 업데이트
-   - Next Steps 섹션에서 해당 도메인을 Software Design 단계로 이동
-
-### 8.2 Git 커밋
-
-```bash
-# 변경사항 커밋
-git add docs/event-domain-design/[domain-name]/process-model.md docs/project-progress.md
-git commit -m "feat(process-model): complete [Domain Name] domain process model
-
-- Define [N] core scenarios with Event → Policy → Read Model → Command → System → Event pattern
-- Map external system integrations
-- Update project progress to 40% for [Domain Name] domain"
-
-# 브랜치 푸시
-git push origin domain/[번호]-[domain-name]
-```
-
----
-
-이 가이드를 따라하면 Event Storm 결과를 바탕으로 체계적이고 완성도 높은 Process Model을 정의할 수 있습니다! 🚀
+-

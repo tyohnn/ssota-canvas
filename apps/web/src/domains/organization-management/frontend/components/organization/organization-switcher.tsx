@@ -64,36 +64,42 @@ export function OrganizationSwitcher() {
               <DropdownMenuLabel className="text-muted-foreground text-xs">
                 Organizations
               </DropdownMenuLabel>
-              {organizations.map(org => (
-                <DropdownMenuItem
-                  key={org.id}
-                  onClick={() => {
-                    selectOrganization(org.id);
-                    // URL 이동: /r/[orgId]/workspace
-                    router.push(`/r/${org.id}/workspace`);
-                  }}
-                  className="gap-2 p-2"
-                >
-                  <div className="flex size-6 items-center justify-center rounded-xs border">
-                    <span className="text-xs font-semibold">
-                      {org.name.charAt(0)}
-                    </span>
-                  </div>
-                  <div className="flex flex-col flex-1">
-                    <div className="flex items-center gap-2">
-                      <span>{org.name}</span>
-                      {org.isDefault && org.role === 'owner' && (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs px-1.5 py-0.5"
-                        >
-                          기본
-                        </Badge>
-                      )}
+              {organizations.map(org => {
+                const isCurrentOrg = org.id === selectedOrganization?.id;
+                return (
+                  <DropdownMenuItem
+                    key={org.id}
+                    onClick={() => {
+                      selectOrganization(org.id);
+                      // URL 이동: /r/[orgId]/workspace
+                      router.push(`/r/${org.id}/workspace`);
+                    }}
+                    className="gap-2 p-2"
+                  >
+                    <div className="flex size-6 items-center justify-center rounded-xs border">
+                      <span className="text-xs font-semibold">
+                        {org.name.charAt(0)}
+                      </span>
                     </div>
-                  </div>
-                </DropdownMenuItem>
-              ))}
+                    <div className="flex flex-col flex-1">
+                      <div className="flex items-center gap-2">
+                        <span>{org.name}</span>
+                        {org.isDefault && org.role === 'owner' && (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs px-1.5 py-0.5"
+                          >
+                            기본
+                          </Badge>
+                        )}
+                        {isCurrentOrg && (
+                          <span className="ml-auto text-primary">✓</span>
+                        )}
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                );
+              })}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="gap-2 p-2"

@@ -16,14 +16,14 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Organization 
 
 ## 🟨 Aggregate 식별
 
-### Process Model에서 발견된 Systems → Aggregates (Scenario 1-6 기준)
+### Process Model에서 발견된 Systems → Aggregates (Scenario 0-6 기준)
 
 | Process Model (System) | Software Design (Aggregate/External System) | 책임 | 구현 상태 |
 |----------------------|---------------------------|------|----------|
-| Organization System | **Organization Aggregate** | 조직 생성/관리, 조직 조회, 권한 관리 | ✅ 완료 |
+| Organization System | **Organization Aggregate** | 조직 생성/관리, 조직 조회/선택, 권한 관리 | ✅ 완료 |
 | Invitation System | **Invitation Aggregate** | 멤버 초대 처리, 초대 상태 관리, 멤버십 관리 | 🚧 신규 |
 | Notification System | **Notification System (External)** | Notification Management Domain에서 제공 | 🚧 신규 |
-| 프론트엔드 (Frontend) | **Frontend** | UI 상태 관리, 조직 선택 로직 | ✅ 완료 |
+| 프론트엔드 (Frontend) | **Frontend** | UI 상태 관리, 조직 선택 로직, 쿠키 관리 | ✅ 완료 |
 
 ---
 
@@ -34,16 +34,18 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Organization 
 **핵심 개념**: "유저들 협업하는 조직 단위와 조직 생명주기를 관리하는 집합체"
 
 #### Commands
-- Create Default Organization // 사용자 등록 시 기본 조직 생성
-- Create New Organization // 사용자가 새로운 조직 생성
-- Retrieve User Organizations // 유저 관련 조직 (소유, 소속) 조회
+- Create Default Organization // 사용자 등록 시 기본 조직 생성 (User Management Domain 연동)
+- Retrieve User Organizations // 유저 관련 조직 (소유, 소속) 조회 (Scenario 0)
+- Select Initial Organization // 초기 조직 자동 선택 (Scenario 0)
+- Create New Organization // 사용자가 새로운 조직 생성 (Scenario 1)
 - Update Organization // 조직 정보 수정
-- Add Member to Organization // 새 멤버를 조직에 추가
-- Assign Member Role // 멤버 역할 설정
-- Change Member Role // 멤버 역할 변경
-- Remove Member from Organization // 멤버를 조직에서 제거
-- Transfer Organization Ownership // 조직 소유권 이전
-- Delete Organization // 조직 삭제
+- Invite Member // 멤버 초대 (Scenario 2)
+- Respond to Invitation // 초대 응답 (Scenario 2)
+- Change Member Role // 멤버 역할 변경 (Scenario 3)
+- Remove Member // 멤버 제거 (Scenario 4 - Sequence 1)
+- Leave Organization // 조직 나가기 (Scenario 4 - Sequence 2)
+- Transfer Organization Ownership // 조직 소유권 이전 (Scenario 5)
+- Delete Organization // 조직 삭제 (Scenario 6)
 
 #### Events
 - Default Organization Created // 기본 조직이 생성됨

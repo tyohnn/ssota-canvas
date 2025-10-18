@@ -9,18 +9,15 @@ import React, {
 } from 'react';
 import {
   getUserOrganizationsAction,
-  createNewOrganizationAction,
+  createOrganizationAction,
 } from '../../actions/organization-management.actions';
 import {
   OrganizationSummary,
   CreateOrganizationRequest,
   CreateOrganizationResult,
 } from '../../shared/dtos';
-import {
-  getCookieValue,
-  setCookieValue,
-  ORGANIZATION_COOKIE_KEYS,
-} from '../utils/cookie-helpers';
+import { getCookieValue, setCookieValue } from '@/utils/cookie-helpers';
+import { ORGANIZATION_COOKIE_KEYS } from '../utils/cookie-helpers';
 
 interface OrganizationContextType {
   // 상태
@@ -138,7 +135,7 @@ export function OrganizationProvider({
     setError(null);
 
     try {
-      const result = await createNewOrganizationAction(data);
+      const result = await createOrganizationAction(data);
 
       if (result.success && result.organization) {
         // 새로 생성된 조직을 목록에 추가
