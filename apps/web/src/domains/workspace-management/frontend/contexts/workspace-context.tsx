@@ -527,6 +527,8 @@ export function WorkspaceProvider({
             description: request.description || null,
             icon: request.icon || null,
             isDefault: false,
+            isPersonal: false,
+            ownerId: null,
             pageTree: [
               {
                 id: result.data.firstPageId,

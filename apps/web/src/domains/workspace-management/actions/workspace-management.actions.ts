@@ -109,6 +109,8 @@ export async function getOrganizationWorkspacePageViewAction(
         description: ws.description,
         icon: ws.icon,
         isDefault: ws.isDefault,
+        isPersonal: ws.isPersonal,
+        ownerId: ws.ownerId,
         pageTree: buildPageTreeDTO(ws.pageTree),
         pageCount: ws.pageCount,
       })),

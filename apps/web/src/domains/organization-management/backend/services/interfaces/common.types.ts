@@ -7,11 +7,14 @@ import type { OrganizationSummary } from '../../../shared/dtos';
  *
  * 조직 생성 성공 시 반환 데이터
  * SSOT: workspace와 page 정보는 WorkspaceCrudService에서 반환된 실제 값
+ * v1.2: 개인 워크스페이스 추가
  */
 export interface CreateOrganizationWithWorkspaceResult {
   organization: OrganizationSummary;
   workspace: { id: string; name: string; isDefault: boolean };
   page: { id: string; title: string; icon: string | null };
+  personalWorkspace: { id: string; name: string; isDefault: boolean }; // v1.2
+  personalPage: { id: string; title: string; icon: string | null }; // v1.2
 }
 
 /**
@@ -19,6 +22,7 @@ export interface CreateOrganizationWithWorkspaceResult {
  *
  * 기본 조직 생성 성공 시 반환 데이터
  * SSOT: workspace와 page 정보는 WorkspaceCrudService에서 반환된 실제 값
+ * v1.2: 개인 워크스페이스 추가
  */
 export interface CreateDefaultOrganizationResult
   extends CreateOrganizationWithWorkspaceResult {

@@ -39,6 +39,18 @@ export interface CreateOrganizationResult {
     title: string;
     icon: string | null;
   };
+  personalWorkspace?: {
+    // v1.2
+    id: string;
+    name: string;
+    isDefault: boolean;
+  };
+  personalPage?: {
+    // v1.2
+    id: string;
+    title: string;
+    icon: string | null;
+  };
   error?: string;
 }
 

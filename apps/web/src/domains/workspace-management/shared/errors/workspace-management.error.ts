@@ -12,11 +12,14 @@ export type WorkspaceManagementErrorCode =
   | 'INVALID_WORKSPACE_NAME'
   | 'DEFAULT_WORKSPACE_NOT_DELETABLE'
   | 'WORKSPACE_ALREADY_EXISTS'
+  | 'PERSONAL_WORKSPACE_OWNER_REQUIRED' // v1.2
+  | 'DEFAULT_PERSONAL_MUTUALLY_EXCLUSIVE' // v1.2
 
   // Page 관련 에러
   | 'PAGE_NOT_FOUND'
   | 'INVALID_PAGE_ID'
   | 'INVALID_PAGE_TITLE'
+  | 'INVALID_PAGE_ORDER'
   | 'CIRCULAR_REFERENCE_DETECTED'
   | 'INVALID_PAGE_DEPTH'
   | 'INVALID_PARENT_PAGE'
@@ -77,11 +80,15 @@ export const ERROR_MESSAGES: Record<WorkspaceManagementErrorCode, string> = {
   INVALID_WORKSPACE_NAME: 'Workspace 이름이 유효하지 않습니다',
   DEFAULT_WORKSPACE_NOT_DELETABLE: '기본 워크스페이스는 삭제할 수 없습니다',
   WORKSPACE_ALREADY_EXISTS: '이미 존재하는 Workspace입니다',
+  PERSONAL_WORKSPACE_OWNER_REQUIRED: '개인 워크스페이스는 소유자가 필요합니다', // v1.2
+  DEFAULT_PERSONAL_MUTUALLY_EXCLUSIVE:
+    '워크스페이스는 기본과 개인을 동시에 가질 수 없습니다', // v1.2
 
   // Page
   PAGE_NOT_FOUND: '페이지를 찾을 수 없습니다',
   INVALID_PAGE_ID: '유효하지 않은 Page ID 형식입니다',
   INVALID_PAGE_TITLE: '페이지 제목이 유효하지 않습니다',
+  INVALID_PAGE_ORDER: '페이지 순서가 유효하지 않습니다',
   CIRCULAR_REFERENCE_DETECTED: '순환 참조가 발생합니다',
   INVALID_PAGE_DEPTH: '유효하지 않은 페이지 깊이입니다',
   INVALID_PARENT_PAGE: '부모 페이지가 같은 Workspace에 속하지 않습니다',

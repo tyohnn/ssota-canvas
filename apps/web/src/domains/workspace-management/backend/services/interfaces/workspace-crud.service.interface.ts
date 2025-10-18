@@ -51,6 +51,25 @@ export interface WorkspaceCrudService {
   ): Promise<Result<CreateWorkspaceResult>>;
 
   /**
+   * 개인 Workspace 생성 (v1.2)
+   *
+   * 트랜잭션:
+   * 1. 개인 Workspace 생성 (is_personal=true, owner_id 설정)
+   * 2. 소유자를 Workspace 멤버로 추가
+   * 3. 초기 "Untitled" 페이지 생성
+   *
+   * @param orgId - 조직 ID
+   * @param ownerId - 소유자 ID
+   * @param ownerName - 소유자 이름
+   * @returns CreateWorkspaceResult (성공) | Error code (실패)
+   */
+  createPersonalWorkspace(
+    orgId: OrganizationId,
+    ownerId: string,
+    ownerName: string
+  ): Promise<Result<CreateWorkspaceResult>>;
+
+  /**
    * Workspace 정보 수정 (Scenario 2)
    *
    * @param workspaceId - Workspace ID

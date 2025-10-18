@@ -4,11 +4,32 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 
 **작성자**: AI Assistant  
 **작성일**: 2025-09-28  
-**수정일**: 2025-10-09
-**버전**: 9.0  
+**수정일**: 2025-10-14
+**버전**: 11.0  
 **리뷰어**: [시니어 개발자명]
 
-### 주요 변경사항 (v10.0) - User Management Domain 연동 강화
+### 주요 변경사항 (v11.0) - Service 분리 및 QueryService 패턴 적용
+- **Service 레이어 리팩토링**: 단일 책임 원칙(SRP) 적용으로 Service 분리 ✅
+  - OrganizationCrudService: 조직 생성, 조회, 업데이트 (CRUD)
+    - 조직 생성 시 Default Workspace + 개인 워크스페이스 자동 생성
+  - OrganizationInvitationService: 멤버 초대, 수락, 거절 처리
+    - 초대 승낙 시 개인 워크스페이스 자동 생성 (새 멤버용)
+  - OrganizationMemberService: 멤버 역할 변경, 제거 등 멤버십 관리
+  - OrganizationQueryService: 도메인 간 조회 전용 서비스 (NEW)
+- **개인 워크스페이스 시스템 도입**: 각 멤버 전용 작업 공간 제공 ✅
+  - 조직 생성 시 소유자 개인 워크스페이스 자동 생성
+  - 멤버 초대 승낙 시 해당 멤버 개인 워크스페이스 자동 생성
+  - 다른 멤버 초대 불가, 개인 작업 공간으로 활용
+- **QueryService 패턴 도입**: 도메인 경계 유지를 위한 조회 전용 API ✅
+  - Repository 직접 노출 방지
+  - 최소 권한 원칙: 읽기 전용 메서드만 제공
+  - 사용처: Workspace Management Domain, Notification Management Domain
+- **도메인 간 통합 개선**: Workspace Management Domain도 QueryService 패턴 적용 ✅
+  - WorkspaceQueryService 생성으로 일관된 도메인 통합 패턴 확립
+- **Notification 통합 개선**: NotificationService.markAsReadByRelatedId() 메서드 활용 ✅
+  - 초대 승낙/거절 시 자동으로 관련 알림 읽음 처리
+
+### 이전 변경사항 (v10.0) - User Management Domain 연동 강화
 - **Scenario 0 추가**: 조직 조회 및 선택 (User Management Domain에서 이관) ✅
   - 유저 가입 완료 시 자동 트리거
   - 소유 조직 + 멤버 조직 통합 조회
@@ -47,6 +68,7 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 - **멤버 초대 시스템 완성**: 초대 생성, 알림 생성, 초대 승낙, 멤버 추가 전체 플로우 구현 ✅
 - **Repository 개선**: 시스템 레벨 작업에 adminDb 사용으로 RLS 재귀 문제 해결 ✅
 - **Frontend UI/UX 개선**: 인박스 패널 디자인 최적화, NEW 배지, 호버 액션 ✅
+- **Notification 통합 개선**: markAsReadByRelatedId() 메서드로 초대 응답 시 자동 알림 읽음 처리 ✅
 
 ### 이전 변경사항 (v6.0) - User Management Domain에서 완전히 분리
 - **도메인 분리 완료**: User Management에서 Organization 관련 모든 로직 이동 ✅
@@ -79,6 +101,9 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 2. **Phase 2**: 새로운 조직 생성 기능 구현 ✅
    - OrganizationAggregate.createNew() 메서드 추가 ✅
    - 조직 타입 시스템 도입 (Drizzle ORM enum) ✅
+   - **워크스페이스 자동 생성 시스템** ✅
+     - Default Workspace 자동 생성 (조직 전체 협업 공간)
+     - 개인 워크스페이스 자동 생성 (소유자 전용, 초대 불가)
    - 조직 생성 폼 UI 구현 ✅
    - 조직 생성 후 컨텍스트 전환 로직 ✅
 
@@ -88,9 +113,18 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
    - Organization Aggregate 멤버 관리 기능 추가 ✅
    - 권한 기반 초대 시스템 (Application-level에서 Owner/Admin 체크) ✅
    - 초대 수락/거절 처리 및 멤버십 관리 (acceptInvitation에서 멤버 추가) ✅
+   - **개인 워크스페이스 자동 생성** (초대 승낙 시) ✅
+     - 새 멤버 전용 공간
+     - 다른 멤버 초대 불가
    - Layered Security: RLS 최소화 + adminDb 사용 ✅
 
 4. **Phase 4**: 조직 관리 시스템 구현 🚧
+   - [x] **Service 레이어 분리** ✅
+     - OrganizationCrudService, OrganizationInvitationService, OrganizationMemberService
+     - 단일 책임 원칙 (SRP) 적용
+   - [x] **QueryService 패턴 도입** ✅
+     - OrganizationQueryService (도메인 간 조회 전용)
+     - WorkspaceQueryService (도메인 간 조회 전용)
    - [x] **멤버 역할 변경 기능 (Scenario 3)** ✅
      - 계층적 권한 시스템 구현 (소유자/관리자 역할별 권한)
      - 두 단계 프로세스 (역할 옵션 선택 → 확인 다이얼로그)
@@ -110,17 +144,26 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 
 ### 협업 포인트 - 현재 상태
 - **User Management Domain**: UserId 참조 (re-export), 사용자 등록 시 기본 조직 생성 요청 수신 ✅
+- **Workspace Management Domain**: Service Layer 통합 완료 ✅
+  - OrganizationCrudService에 WorkspaceCrudService 주입
+  - 조직 생성 시 WorkspaceCrudService.createDefaultWorkspace() 호출
+  - 조직 생성 시 WorkspaceCrudService.createPersonalWorkspace() 호출 (소유자용)
+  - 초대 승낙 시 WorkspaceCrudService.createPersonalWorkspace() 호출 (새 멤버용)
+  - **QueryService 패턴**: WorkspaceInvitationService → OrganizationQueryService 사용
 - **Notification Management Domain**: Service Layer 통합 완료 ✅
-  - OrganizationManagementService에 NotificationService 주입
+  - OrganizationInvitationService에 NotificationService 주입
   - inviteMember에서 NotificationService.createInvitationNotification() 호출
+  - acceptInvitation/rejectInvitation에서 NotificationService.markAsReadByRelatedId() 호출
   - Action → Action 호출 제거, Service → Service 호출로 개선
 - **도메인 간 통합**: 
   - User Management의 `processUserRegistrationAction` → Organization Management의 `createDefaultOrganizationAction` 호출 ✅
   - UserId를 user-management domain에서 re-export하여 참조 ✅
+  - Organization Management Service → Workspace Management Service 통합 ✅
   - Organization Management Service → Notification Management Service 통합 ✅
+  - **QueryService 패턴**: 도메인 간 Repository 직접 노출 방지 ✅
 - **DB 스키마**: 모든 테이블 설계 및 마이그레이션 완료 ✅
 - **UI/UX**: Frontend 레이어가 organization-management domain으로 완전 이동, UI/UX 개선 완료 ✅
-- **남은 작업**: 소유권 이전, 멤버 역할 변경, 멤버 제거, 조직 삭제 구현 (Phase 4)
+- **남은 작업**: 소유권 이전, 멤버 제거, 조직 삭제 구현 (Phase 4)
 
 ---
 
@@ -330,31 +373,60 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 
 ## 🔧 Service & Repository 구현
 
-### 1. Service 레이어
+### 1. Service 레이어 (v11.0 개선: 단일 책임 원칙 적용)
 
-#### OrganizationManagementService
-- **파일 위치**: `src/domains/organization-management/backend/services/organization-management.service.ts`
-- **역할**: 조직 관리 도메인의 핵심 비즈니스 로직을 담당하는 서비스 클래스
-- **주요 기능**:
-  - 조직 생성/관리, 조직 선택, 소유권 이전, 삭제
-  - 멤버 초대 및 수락/거절 처리
-  - Notification Management Domain 연동 (Service Layer에서 NotificationService 호출)
-  - 조직 멤버십 및 역할 관리
-  - Application-level 권한 체크 (Layered Security Model)
+Organization Management Domain의 Service는 **단일 책임 원칙(SRP)**에 따라 4개의 Service로 분리되었습니다:
+
+#### 1. OrganizationCrudService (CRUD 작업)
+- **파일 위치**: `src/domains/organization-management/backend/services/organization-crud.service.ts`
+- **역할**: 조직 생성, 조회, 업데이트 관리
+- **주요 의존성**: OrganizationRepository, OrganizationMemberRepository, WorkspaceCrudService
 - **주요 메서드**:
-  - createDefaultOrganization(): 사용자 등록 시 기본 조직 자동 생성
-  - createNewOrganization(): 사용자가 새로운 조직 생성
-  - **getUserOrganizations(): 사용자 조직 목록 조회 (소유자 + 멤버)** ✅ v8.0 개선
+  - **createDefaultOrganization()**: 사용자 등록 시 기본 조직 자동 생성
+    - Workspace Management Domain에 워크스페이스 생성 요청 (WorkspaceCrudService)
+      - Default Workspace 생성 (조직 전체 협업 공간)
+      - 개인 워크스페이스 생성 (소유자 전용 공간)
+    - 생성된 워크스페이스 및 페이지 정보 반환
+  - **createOrganization()**: 사용자가 새로운 조직 생성
+    - Workspace Management Domain에 워크스페이스 생성 요청
+      - Default Workspace 생성 (조직 전체 협업 공간)
+      - 개인 워크스페이스 생성 (소유자 전용 공간)
+    - 조직 생성 후 자동으로 컨텍스트 전환
+  - **getUserOrganizations()**: 사용자 조직 목록 조회 (소유자 + 멤버) ✅ v8.0
     - 소유자인 조직 조회 (OrganizationRepository.findByOwnerId)
     - 멤버인 조직 조회 (OrganizationMemberRepository.findByUserId)
     - Map을 사용한 중복 제거 (소유자이면서 멤버인 경우)
     - 정렬: 소유자 조직 우선 → 참여일(joined_at) 오름차순
     - 각 조직의 정확한 역할 정보 포함
-  - inviteMember(): 멤버 초대 처리 (권한 검증, 사용자 검색, Notification 생성)
-  - acceptInvitation(): 초대 승낙 처리 (멤버 추가 포함)
-  - rejectInvitation(): 초대 거절 처리
-  - getOrganizationMembers(): 조직 멤버 목록 조회
-  - **changeMemberRole(): 멤버 역할 변경 (Scenario 3)** ✅
+
+#### 2. OrganizationInvitationService (초대 관리)
+- **파일 위치**: `src/domains/organization-management/backend/services/organization-invitation.service.ts`
+- **역할**: 멤버 초대, 수락, 거절 처리
+- **주요 의존성**: InvitationRepository, OrganizationRepository, OrganizationMemberRepository, NotificationService, WorkspaceCrudService
+- **주요 메서드**:
+  - **inviteMember()**: 멤버 초대 처리
+    - Application-level 권한 검증 (소유자/관리자만 가능)
+    - 사용자 검색 및 inviteeUserId 저장
+    - 중복 초대 및 기존 멤버 검증
+    - Notification Management Domain에 알림 생성 요청 (NotificationService)
+  - **acceptInvitation()**: 초대 승낙 처리
+    - 초대 유효성 검증
+    - organization_members 테이블에 멤버 추가 (adminDb)
+    - **Workspace Management Domain에 개인 워크스페이스 생성 요청** (새 멤버용)
+      - 해당 멤버만 접근 가능
+      - 다른 멤버 초대 불가
+    - 초대 상태를 'accepted'로 업데이트
+    - NotificationService.markAsReadByRelatedId() 호출하여 알림 읽음 처리 ✅ v11.0
+  - **rejectInvitation()**: 초대 거절 처리
+    - 초대 상태를 'rejected'로 업데이트
+    - NotificationService.markAsReadByRelatedId() 호출하여 알림 읽음 처리 ✅ v11.0
+
+#### 3. OrganizationMemberService (멤버 관리)
+- **파일 위치**: `src/domains/organization-management/backend/services/organization-member.service.ts`
+- **역할**: 멤버 역할 변경, 제거 등 멤버십 관리
+- **주요 의존성**: OrganizationMemberRepository, OrganizationRepository
+- **주요 메서드**:
+  - **changeMemberRole()**: 멤버 역할 변경 (Scenario 3) ✅
     - **Step 1**: 현재 사용자 권한 확인 (소유자/관리자만 가능)
     - **Step 2**: 대상 멤버 역할 조회 및 검증
     - **Step 3**: 계층적 권한 시스템 검증
@@ -366,26 +438,65 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
     - **Step 6**: adminDb로 역할 업데이트 (organization_members 테이블)
     - **Step 7**: 권한 캐시 무효화 (즉시 권한 반영)
     - **Events**: MemberPromotedToAdminEvent 또는 AdminDemotedToMemberEvent 발행
-  - removeMember(): 멤버 제거
-  - transferOwnership(): 소유권 이전
-  - deleteOrganization(): 조직 삭제
-- **의존성**: OrganizationRepository, InvitationRepository, OrganizationMemberRepository, NotificationService ✅
-- **비즈니스 로직**: 
-  - 새로운 조직 생성 시 조직 이름 중복 검사 및 조직 타입 검증
-  - **조직 목록 조회 시 소유자 + 멤버 조직 통합** ✅ v8.0
-    - 소유자 조직과 멤버 조직을 모두 조회하여 통합
-    - 중복 제거: 소유자이면서 멤버인 경우 소유자 역할 우선
-    - 정렬 로직: 소유자 조직 우선, 이후 joined_at 오름차순
-  - 멤버 초대 시 권한 검증 (Application-level: Owner/Admin 체크) 및 중복 초대 방지
-  - 초대 시 이메일로 사용자 검색하여 inviteeUserId 저장 (가입된 사용자만 알림 생성)
-  - 초대 승낙 시 organization_members 테이블에 멤버 추가 (adminDb 사용)
-  - Notification 생성을 Service Layer에서 처리 (NotificationService 호출)
-  - **멤버 역할 변경 시 계층적 권한 시스템 적용 (Scenario 3)** ✅
-    - 소유자: 모든 역할 변경 가능 (관리자 강등 포함)
-    - 관리자: 멤버 승격만 가능, 관리자 강등 불가
-    - 소유자 역할 변경 방지, 자기 자신 역할 변경 방지
-    - adminDb 사용하여 역할 업데이트, 권한 캐시 무효화
-  - 소유권 이전 시 기존 소유자 권한 변경 및 새 소유자 설정
+  - **removeMember()**: 멤버 제거 (예정)
+  - **transferOwnership()**: 소유권 이전 (예정)
+  - **deleteOrganization()**: 조직 삭제 (예정)
+
+#### 4. OrganizationQueryService (조회 전용 - 도메인 간 통합) ✅ v11.0 NEW
+- **파일 위치**: `src/domains/organization-management/backend/services/organization-query.service.ts`
+- **역할**: 다른 도메인에서 Organization 정보를 안전하게 조회
+- **주요 의존성**: OrganizationRepository, OrganizationMemberRepository
+- **핵심 원칙**:
+  - Repository를 직접 노출하지 않고 Service를 통해 도메인 경계 유지
+  - 최소 권한 원칙: 읽기 전용 API만 노출
+  - 타입 안전성: Result 패턴을 통한 일관된 에러 처리
+- **주요 메서드**:
+  - **isMember()**: 조직 멤버 여부 확인
+    - 사용처: Workspace Invitation Service에서 조직 멤버 확인
+  - **getMemberRole()**: 멤버 역할 조회
+    - 사용처: Workspace Invitation Service에서 권한 확인
+  - **getOrganizationName()**: 조직 이름 조회
+    - 사용처: Workspace Invitation Service에서 알림 메시지 생성
+  - **searchUserByEmail()**: 이메일로 사용자 검색
+    - 사용처: Workspace Invitation Service에서 초대 대상 검색
+    - 특징: profileImageUrl을 undefined에서 null로 변환하여 타입 일치 보장
+- **사용 도메인**:
+  - Workspace Management Domain (WorkspaceInvitationService)
+  - Notification Management Domain (알림 생성 시 조직 정보 조회)
+
+#### Service 분리의 장점
+- **단일 책임 원칙(SRP)**: 각 Service가 하나의 명확한 책임을 가짐
+- **유지보수성**: 코드 변경 시 영향 범위가 명확
+- **테스트 용이성**: 각 Service를 독립적으로 테스트 가능
+- **도메인 경계 유지**: QueryService 패턴으로 Repository 직접 노출 방지
+- **재사용성**: 다른 도메인에서 QueryService를 통해 안전하게 정보 조회
+- **비즈니스 로직 (Service별로 분리)**: 
+  - **OrganizationCrudService**:
+    - 새로운 조직 생성 시 조직 이름 중복 검사 및 조직 타입 검증
+    - 조직 생성 시 Workspace Management Domain에 워크스페이스 생성 요청 (WorkspaceCrudService)
+      - **Default Workspace 자동 생성** (조직 전체 협업 공간)
+      - **개인 워크스페이스 자동 생성** (소유자 전용 공간, 초대 불가)
+    - **조직 목록 조회 시 소유자 + 멤버 조직 통합** ✅ v8.0
+      - 소유자 조직과 멤버 조직을 모두 조회하여 통합
+      - 중복 제거: 소유자이면서 멤버인 경우 소유자 역할 우선
+      - 정렬 로직: 소유자 조직 우선, 이후 joined_at 오름차순
+  - **OrganizationInvitationService**:
+    - 멤버 초대 시 권한 검증 (Application-level: Owner/Admin 체크) 및 중복 초대 방지
+    - 초대 시 이메일로 사용자 검색하여 inviteeUserId 저장 (가입된 사용자만 알림 생성)
+    - 초대 승낙 시 organization_members 테이블에 멤버 추가 (adminDb 사용)
+    - **초대 승낙 시 개인 워크스페이스 자동 생성** (새 멤버 전용, 초대 불가)
+    - Notification 생성/읽음 처리를 Service Layer에서 처리 (NotificationService 호출) ✅ v11.0
+  - **OrganizationMemberService**:
+    - **멤버 역할 변경 시 계층적 권한 시스템 적용 (Scenario 3)** ✅
+      - 소유자: 모든 역할 변경 가능 (관리자 강등 포함)
+      - 관리자: 멤버 승격만 가능, 관리자 강등 불가
+      - 소유자 역할 변경 방지, 자기 자신 역할 변경 방지
+      - adminDb 사용하여 역할 업데이트, 권한 캐시 무효화
+    - 소유권 이전 시 기존 소유자 권한 변경 및 새 소유자 설정 (예정)
+  - **OrganizationQueryService** ✅ v11.0:
+    - Repository 직접 노출 방지로 도메인 경계 유지
+    - Result 패턴을 통한 일관된 에러 처리
+    - profileImageUrl 타입 변환 (undefined → null)
 
 ### 2. Repository 레이어 (Drizzle ORM + RLS)
 
@@ -513,16 +624,20 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
 
 #### Scenario 1-6 지원 - 현재 구현 상태
 - [x] **조직 생성**: 새로운 조직 생성 및 관리 ✅
+  - Default Workspace 자동 생성 (조직 전체 협업 공간)
+  - 개인 워크스페이스 자동 생성 (소유자 전용 공간, 초대 불가)
 - [x] **조직 타입 시스템**: Drizzle ORM enum 기반 조직 타입 관리 ✅
 - [x] **멤버 초대**: Application-level 권한 체크 + NotificationService 통합 ✅
   - inviteMember: 이메일 검색, inviteeUserId 저장, Notification 생성
   - Service Layer에서 NotificationService 호출 (Action → Action 제거)
-- [x] **초대 수락/거절**: 초대 응답 처리 + 멤버 추가 완성 ✅
+- [x] **초대 수락/거절**: 초대 응답 처리 + 멤버 추가 + 개인 워크스페이스 생성 ✅
   - acceptInvitation: organization_members에 멤버 추가 (adminDb)
+  - **개인 워크스페이스 자동 생성** (새 멤버 전용, 초대 불가)
   - rejectInvitation: 초대 거절 처리
 - [x] **알림 시스템**: Notification Management Domain Service Layer 통합 ✅
-  - NotificationService를 OrganizationManagementService에 주입
+  - NotificationService를 OrganizationInvitationService에 주입
   - inviteMember에서 자동으로 알림 생성 (가입된 사용자만)
+  - acceptInvitation/rejectInvitation에서 알림 읽음 처리
 - [x] **멤버십 관리**: Layered Security Model 적용 ✅
   - Application-level: Service에서 Owner/Admin 권한 체크
   - Repository: adminDb 사용 (addMember, removeMember, updateMemberRole)
@@ -533,6 +648,10 @@ Software Design과 Testing Strategy를 기반으로 한 구체적인 구현 가�
   - 소유자 역할 변경 방지, 자기 자신 역할 변경 방지
   - adminDb 사용하여 역할 업데이트
   - 권한 캐시 무효화 (즉시 권한 반영)
+- [x] **워크스페이스 종류 시스템**: Default, 일반, 개인 워크스페이스 구분 ✅
+  - Default Workspace: 모든 멤버 접근, 초대 가능
+  - 일반 워크스페이스: 선택적 초대 가능
+  - 개인 워크스페이스: 소유자만 접근, 초대 불가
 - [ ] **소유권 이전**: 조직 소유권 이전 기능 (Phase 4 예정)
 - [ ] **조직 삭제**: 조직 삭제 및 관련 데이터 정리 (Phase 4 예정)
 

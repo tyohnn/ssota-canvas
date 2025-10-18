@@ -80,7 +80,15 @@ export class DefaultOrganizationCrudService implements OrganizationCrudService {
         joinedAt: new Date(),
       });
 
-      // 5. Default Workspace + Welcome 페이지 생성 (Workspace Management Domain 통합)
+      // 5. 소유자 프로필 조회 (개인 워크스페이스 이름 생성용)
+      const ownerProfiles =
+        await this.organizationMemberRepository.searchUserProfileByEmail('');
+      const ownerProfile = ownerProfiles.find(
+        profile => profile.userId === command.userId
+      );
+      const ownerName = ownerProfile?.name || 'User';
+
+      // 6. Default Workspace + Welcome 페이지 생성 (Workspace Management Domain 통합)
       const workspaceResult =
         await this.workspaceCrudService.createDefaultWorkspace(
           organization.id,
@@ -108,10 +116,39 @@ export class DefaultOrganizationCrudService implements OrganizationCrudService {
         firstPageIcon,
       } = workspaceResult.data;
 
-      // 6. 리다이렉션 URL 생성
+      // 7. 개인 워크스페이스 생성 (v1.2)
+      const personalWorkspaceResult =
+        await this.workspaceCrudService.createPersonalWorkspace(
+          organization.id,
+          command.userId,
+          ownerName
+        );
+
+      if (!personalWorkspaceResult.success) {
+        // 개인 워크스페이스 생성 실패 시 조직 전체 롤백
+        await this.rollbackOrganizationCreation(organization.id, userId);
+
+        return Result.error(
+          new OrganizationManagementError(
+            'ORGANIZATION_CREATION_FAILED',
+            `Failed to create personal workspace: ${personalWorkspaceResult.error}`
+          )
+        );
+      }
+
+      const {
+        workspaceId: personalWorkspaceId,
+        workspaceName: personalWorkspaceName,
+        workspaceIsDefault: personalWorkspaceIsDefault,
+        firstPageId: personalPageId,
+        firstPageTitle: personalPageTitle,
+        firstPageIcon: personalPageIcon,
+      } = personalWorkspaceResult.data;
+
+      // 8. 리다이렉션 URL 생성
       const redirectUrl = `/r/${organization.id.value}/workspace/${workspaceId}/page/${firstPageId}`;
 
-      // 7. 결과 반환 (SSOT: workspace service에서 반환된 실제 값 사용)
+      // 9. 결과 반환 (SSOT: workspace service에서 반환된 실제 값 사용)
       return Result.success({
         organization: {
           id: organization.id.value,
@@ -130,6 +167,16 @@ export class DefaultOrganizationCrudService implements OrganizationCrudService {
           id: firstPageId,
           title: firstPageTitle,
           icon: firstPageIcon,
+        },
+        personalWorkspace: {
+          id: personalWorkspaceId,
+          name: personalWorkspaceName,
+          isDefault: personalWorkspaceIsDefault,
+        },
+        personalPage: {
+          id: personalPageId,
+          title: personalPageTitle,
+          icon: personalPageIcon,
         },
         redirectUrl,
       });
@@ -191,7 +238,15 @@ export class DefaultOrganizationCrudService implements OrganizationCrudService {
         joinedAt: new Date(),
       });
 
-      // 5. Default Workspace + Untitled 페이지 생성 (Workspace Management Domain 통합)
+      // 5. 소유자 프로필 조회 (개인 워크스페이스 이름 생성용)
+      const ownerProfiles =
+        await this.organizationMemberRepository.searchUserProfileByEmail('');
+      const ownerProfile = ownerProfiles.find(
+        profile => profile.userId === command.ownerId
+      );
+      const ownerName = ownerProfile?.name || 'User';
+
+      // 6. Default Workspace + Untitled 페이지 생성 (Workspace Management Domain 통합)
       const workspaceResult = await this.workspaceCrudService.createWorkspace(
         newOrganization.id,
         'Default Workspace',
@@ -221,7 +276,36 @@ export class DefaultOrganizationCrudService implements OrganizationCrudService {
         firstPageIcon,
       } = workspaceResult.data;
 
-      // 6. 결과 반환 (SSOT: workspace service에서 반환된 실제 값 사용)
+      // 7. 개인 워크스페이스 생성 (v1.2)
+      const personalWorkspaceResult =
+        await this.workspaceCrudService.createPersonalWorkspace(
+          newOrganization.id,
+          command.ownerId,
+          ownerName
+        );
+
+      if (!personalWorkspaceResult.success) {
+        // 개인 워크스페이스 생성 실패 시 조직 전체 롤백
+        await this.rollbackOrganizationCreation(newOrganization.id, ownerId);
+
+        return Result.error(
+          new OrganizationManagementError(
+            'ORGANIZATION_CREATION_FAILED',
+            `Failed to create personal workspace: ${personalWorkspaceResult.error}`
+          )
+        );
+      }
+
+      const {
+        workspaceId: personalWorkspaceId,
+        workspaceName: personalWorkspaceName,
+        workspaceIsDefault: personalWorkspaceIsDefault,
+        firstPageId: personalPageId,
+        firstPageTitle: personalPageTitle,
+        firstPageIcon: personalPageIcon,
+      } = personalWorkspaceResult.data;
+
+      // 8. 결과 반환 (SSOT: workspace service에서 반환된 실제 값 사용)
       return Result.success({
         organization: {
           id: newOrganization.id.value,
@@ -240,6 +324,16 @@ export class DefaultOrganizationCrudService implements OrganizationCrudService {
           id: firstPageId,
           title: firstPageTitle,
           icon: firstPageIcon,
+        },
+        personalWorkspace: {
+          id: personalWorkspaceId,
+          name: personalWorkspaceName,
+          isDefault: personalWorkspaceIsDefault,
+        },
+        personalPage: {
+          id: personalPageId,
+          title: personalPageTitle,
+          icon: personalPageIcon,
         },
       });
     } catch (error) {

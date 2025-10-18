@@ -56,6 +56,8 @@ export class WorkspaceAggregate {
       null, // description
       null, // icon
       true, // isDefault
+      false, // isPersonal
+      null, // ownerId
       false, // deletable
       command.createdBy,
       new Date(),
@@ -98,6 +100,8 @@ export class WorkspaceAggregate {
       command.description || null,
       command.icon || null,
       false, // isDefault
+      false, // isPersonal
+      null, // ownerId
       true, // deletable
       command.createdBy,
       new Date(),
@@ -113,6 +117,56 @@ export class WorkspaceAggregate {
       type: 'WorkspaceCreated',
       workspaceId: workspaceId.value,
       organizationId: organizationId.value,
+      name: workspace.name,
+      isDefault: false,
+      occurredAt: new Date(),
+    });
+
+    return aggregate;
+  }
+
+  /**
+   * 개인 Workspace 생성 (팩토리 메서드) - v1.2
+   *
+   * @param organizationId - 조직 ID
+   * @param ownerId - 소유자 ID
+   * @param ownerName - 소유자 이름
+   * @returns WorkspaceAggregate 인스턴스
+   */
+  static createPersonal(
+    organizationId: string,
+    ownerId: string,
+    ownerName: string
+  ): WorkspaceAggregate {
+    // 1. WorkspaceId 생성
+    const workspaceId = new WorkspaceId(crypto.randomUUID());
+    const orgId = new OrganizationId(organizationId);
+
+    // 2. Workspace Entity 생성 (isPersonal=true, ownerId 설정)
+    const workspace = new Workspace(
+      workspaceId,
+      orgId,
+      `${ownerName}의 개인 워크스페이스`, // 개인 워크스페이스 이름 패턴
+      null, // description
+      null, // icon
+      false, // isDefault
+      true, // isPersonal
+      ownerId, // ownerId
+      true, // deletable
+      ownerId, // createdBy
+      new Date(),
+      new Date(),
+      null
+    );
+
+    // 3. Aggregate 생성
+    const aggregate = new WorkspaceAggregate(workspace);
+
+    // 4. PersonalWorkspaceCreated 이벤트 발행
+    aggregate.addEvent({
+      type: 'WorkspaceCreated',
+      workspaceId: workspaceId.value,
+      organizationId: orgId.value,
       name: workspace.name,
       isDefault: false,
       occurredAt: new Date(),

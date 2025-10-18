@@ -221,6 +221,67 @@ describe('WorkspaceNavigationService Integration Tests (Scenario 1)', () => {
         );
       }
     });
+
+    it('다른 사용자의 개인 워크스페이스는 보이지 않아야 한다', async () => {
+      // Given: 조직 멤버 + 다른 사용자의 개인 워크스페이스 생성
+      vi.mocked(orgMemberRepo.isMember).mockResolvedValue(true);
+      
+      const otherUserId = '8c3e5a9b-7d42-4f1a-9b3e-2c8d7a6f5e4b';
+      const personalWorkspace = WorkspaceAggregate.createPersonal(
+        testOrgId.value,
+        otherUserId,
+        'Other User'
+      );
+      await workspaceRepo.save(personalWorkspace);
+
+      // When: 현재 사용자가 조회
+      const result = await service.getOrganizationWorkspacePageView(
+        testOrgId,
+        testUserId
+      );
+
+      // Then: 다른 사용자의 개인 워크스페이스는 보이지 않아야 함
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.workspaces).toHaveLength(1); // Default Workspace만
+        expect(result.data.workspaces[0]?.isDefault).toBe(true);
+        
+        // 개인 워크스페이스는 포함되지 않음
+        const hasPersonalWorkspace = result.data.workspaces.some(
+          ws => ws.isPersonal
+        );
+        expect(hasPersonalWorkspace).toBe(false);
+      }
+    });
+
+    it('자신의 개인 워크스페이스는 보여야 한다', async () => {
+      // Given: 조직 멤버 + 자신의 개인 워크스페이스 생성
+      vi.mocked(orgMemberRepo.isMember).mockResolvedValue(true);
+      
+      const personalWorkspace = WorkspaceAggregate.createPersonal(
+        testOrgId.value,
+        testUserId,
+        'Test User'
+      );
+      await workspaceRepo.save(personalWorkspace);
+
+      // When: 현재 사용자가 조회
+      const result = await service.getOrganizationWorkspacePageView(
+        testOrgId,
+        testUserId
+      );
+
+      // Then: 자신의 개인 워크스페이스가 보여야 함
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.workspaces).toHaveLength(2); // Default + Personal
+        
+        const personalWs = result.data.workspaces.find(ws => ws.isPersonal);
+        expect(personalWs).toBeDefined();
+        expect(personalWs?.ownerId).toBe(testUserId);
+        expect(personalWs?.name).toContain('Test User');
+      }
+    });
   });
 
   describe('verifyPageAccess', () => {

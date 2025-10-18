@@ -265,7 +265,9 @@ export const invitations = pgTable(
       table.status
     ),
     // Performance indexes
-    index('idx_invitations_org_status').on(table.organization_id, table.status).where(sql`status = 'pending'`),
+    index('idx_invitations_org_status')
+      .on(table.organization_id, table.status)
+      .where(sql`status = 'pending'`),
     // SELECT: Inviter or invitee
     pgPolicy('Enable read for inviter and invitee', {
       for: 'select',
@@ -350,6 +352,10 @@ export const workspaces = pgTable(
     description: text('description'),
     icon: text('icon'),
     is_default: boolean('is_default').notNull().default(false),
+    is_personal: boolean('is_personal').notNull().default(false), // v1.2: 개인 워크스페이스 구분
+    owner_id: uuid('owner_id').references(() => profiles.user_id, {
+      onDelete: 'cascade',
+    }), // v1.2: 개인 워크스페이스 소유자
     deletable: boolean('deletable').notNull().default(true),
     created_by: uuid('created_by')
       .notNull()
@@ -384,11 +390,27 @@ export const workspaces = pgTable(
       'workspaces_default_not_deletable',
       sql`NOT (${table.is_default} = true AND ${table.deletable} = true)`
     ),
+    // v1.2: 개인 워크스페이스 제약조건
+    personalOwnerRequiredCheck: check(
+      'workspaces_personal_owner_required',
+      sql`${table.is_personal} = false OR ${table.owner_id} IS NOT NULL`
+    ),
+    defaultPersonalMutuallyExclusiveCheck: check(
+      'workspaces_default_personal_mutually_exclusive',
+      sql`NOT (${table.is_default} = true AND ${table.is_personal} = true)`
+    ),
 
     // Indexes for performance
     orgIdIdx: index('idx_workspaces_organization_id')
       .on(table.organization_id)
       .where(sql`deleted_at IS NULL`),
+    // v1.2: 개인 워크스페이스 인덱스
+    personalIdx: index('idx_workspaces_personal')
+      .on(table.organization_id, table.is_personal)
+      .where(sql`is_personal = true AND deleted_at IS NULL`),
+    personalOwnerIdx: index('idx_workspaces_personal_owner')
+      .on(table.owner_id)
+      .where(sql`is_personal = true AND deleted_at IS NULL`),
     defaultIdx: index('idx_workspaces_default')
       .on(table.organization_id, table.is_default)
       .where(sql`is_default = true`),

@@ -19,6 +19,8 @@ export interface WorkspaceWithPages {
   description: string | null;
   icon: string | null;
   isDefault: boolean;
+  isPersonal: boolean;
+  ownerId: string | null;
   pageTree: Page[];
   pageCount: number;
 }

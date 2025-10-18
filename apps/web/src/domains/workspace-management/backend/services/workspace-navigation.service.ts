@@ -8,9 +8,7 @@ import type { PageRepository } from '../repositories/interfaces/page.repository.
 import type { WorkspaceMemberRepository } from '../repositories/interfaces/workspace-member.repository.interface';
 import type { WorkspaceId } from '../../shared/value-objects/workspace-id.vo';
 import type { PageId } from '../../shared/value-objects/page-id.vo';
-import type {
-  WorkspaceNavigationService,
-} from './interfaces/workspace-navigation.service.interface';
+import type { WorkspaceNavigationService } from './interfaces/workspace-navigation.service.interface';
 import type {
   OrganizationWorkspacePageView,
   WorkspaceWithPages,
@@ -57,9 +55,17 @@ export class DefaultWorkspaceNavigationService
     }
 
     // 2. Workspace 목록 조회 (Default 우선 정렬)
-    const workspaces = await this.workspaceRepo.findByOrganizationId(orgId);
+    const allWorkspaces = await this.workspaceRepo.findByOrganizationId(orgId);
 
-    // 3. 각 Workspace의 Page 트리 조회 (재귀 CTE)
+    // 3. 개인 워크스페이스 필터링: 자신의 개인 워크스페이스만 포함
+    const workspaces = allWorkspaces.filter(ws => {
+      // 일반 워크스페이스(isPersonal=false)는 모두 포함
+      if (!ws.isPersonal) return true;
+      // 개인 워크스페이스는 소유자만 볼 수 있음
+      return ws.ownerId === userId;
+    });
+
+    // 4. 각 Workspace의 Page 트리 조회 (재귀 CTE)
     const workspacesWithPages: WorkspaceWithPages[] = await Promise.all(
       workspaces.map(async ws => {
         const pageTree = await this.pageRepo.findTreeByWorkspaceId(
@@ -71,13 +77,15 @@ export class DefaultWorkspaceNavigationService
           description: ws.description,
           icon: ws.icon,
           isDefault: ws.isDefault,
+          isPersonal: ws.isPersonal,
+          ownerId: ws.ownerId,
           pageTree,
           pageCount: pageTree.length,
         };
       })
     );
 
-    // 4. 쿠키 검증 및 Fallback
+    // 5. 쿠키 검증 및 Fallback
     let selectedPageId: string | null = null;
 
     if (cookiePageId) {
@@ -188,4 +196,3 @@ export class DefaultWorkspaceNavigationService
     return defaultWorkspace?.pageTree[0]?.pageId.value || null;
   }
 }
-

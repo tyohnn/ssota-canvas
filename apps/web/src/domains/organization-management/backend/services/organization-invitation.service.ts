@@ -18,6 +18,7 @@ import type {
   RejectInvitationCommand,
 } from '../../shared/commands';
 import type { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
+import type { WorkspaceCrudService } from '@/domains/workspace-management/backend/services/interfaces/workspace-crud.service.interface';
 import type { OrganizationInvitationService } from './interfaces/organization-invitation.service.interface';
 import { devLog, eventLog } from '@/utils/dev-logger';
 
@@ -33,6 +34,7 @@ export class DefaultOrganizationInvitationService
     private organizationRepository: OrganizationRepository,
     private invitationRepository: InvitationRepository,
     private organizationMemberRepository: OrganizationMemberRepository,
+    private workspaceCrudService: WorkspaceCrudService, // v1.2
     private notificationService?: NotificationService
   ) {}
 
@@ -231,7 +233,44 @@ export class DefaultOrganizationInvitationService
         joinedAt: new Date(),
       });
 
-      // 6. Notification Domain 통합 (알림 읽음 처리)
+      // 6. 초대받은 사용자 프로필 조회 (개인 워크스페이스 이름 생성용)
+      const inviteeProfiles =
+        await this.organizationMemberRepository.searchUserProfileByEmail(
+          invitation.entity.inviteeEmail
+        );
+      const inviteeProfile = inviteeProfiles.find(
+        profile => profile.userId === command.inviteeUserId
+      );
+      const inviteeName = inviteeProfile?.name || 'User';
+
+      // 7. 개인 워크스페이스 생성 (v1.2)
+      const personalWorkspaceResult =
+        await this.workspaceCrudService.createPersonalWorkspace(
+          invitation.entity.organizationId,
+          command.inviteeUserId,
+          inviteeName
+        );
+
+      if (!personalWorkspaceResult.success) {
+        // 개인 워크스페이스 생성 실패 시 멤버 추가 롤백
+        console.error(
+          '[acceptInvitation] Personal workspace creation failed, rolling back:',
+          personalWorkspaceResult.error
+        );
+        await this.organizationMemberRepository.removeMember(
+          invitation.entity.organizationId,
+          inviteeUserId
+        );
+
+        return Result.error(
+          new OrganizationManagementError(
+            'INVITATION_ACCEPTANCE_FAILED',
+            `Failed to create personal workspace: ${personalWorkspaceResult.error}`
+          )
+        );
+      }
+
+      // 8. Notification Domain 통합 (알림 읽음 처리)
       if (this.notificationService) {
         await this.notificationService.markAsReadByRelatedId(
           command.invitationId
@@ -244,6 +283,7 @@ export class DefaultOrganizationInvitationService
         organizationId: invitation.entity.organizationId.value,
         userId: command.inviteeUserId,
         role: invitation.entity.role.value,
+        personalWorkspaceId: personalWorkspaceResult.data.workspaceId,
       });
 
       return Result.success(undefined);
@@ -251,7 +291,7 @@ export class DefaultOrganizationInvitationService
       console.error('[acceptInvitation] Caught error:', error);
       return Result.error(
         new OrganizationManagementError(
-          'INVITATION_CREATION_FAILED',
+          'INVITATION_ACCEPTANCE_FAILED',
           'Failed to accept invitation',
           { error }
         )

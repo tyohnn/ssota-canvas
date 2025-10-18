@@ -17,6 +17,8 @@ export interface WorkspaceDTO {
   description: string | null;
   icon: string | null;
   isDefault: boolean;
+  isPersonal: boolean;
+  ownerId: string | null;
   createdBy: string;
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
@@ -28,6 +30,8 @@ export interface WorkspaceWithPagesDTO {
   description: string | null;
   icon: string | null;
   isDefault: boolean;
+  isPersonal: boolean;
+  ownerId: string | null;
   pageTree: PageTreeNodeDTO[];
   pageCount: number;
 }
