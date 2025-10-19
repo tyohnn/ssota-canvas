@@ -73,6 +73,88 @@ Level 1 (최상위)
 
 ---
 
+## 🔵 Commands & Actors
+
+### 주요 커맨드 목록
+
+#### Scenario 1: [Major User Flow 1]
+- **[Actor]가 [Action] 하기** ([Actor]) → [Event 1]
+- **[Actor]가 [Action] 하기** ([Actor]) → [Event 2]
+- **시스템이 [Action] 하기** (System) → [Event 3]
+
+#### Scenario 2: [Major User Flow 2]
+- **[Actor]가 [Action] 하기** ([Actor]) → [Event 1]
+- **시스템이 [Action] 하기** (System) → [Event 2]
+
+### 식별된 액터 분류
+
+#### Primary Actors (직접 사용자)
+- **[User Role 1]**: [역할 설명 및 주요 액션]
+- **[User Role 2]**: [역할 설명 및 주요 액션]
+- **[User Role 3]**: [역할 설명 및 주요 액션]
+
+#### System Actors (내부 시스템)
+- **[System Name 1]**: [시스템 책임 및 자동 처리 작업]
+- **[System Name 2]**: [시스템 책임 및 자동 처리 작업]
+
+#### External Systems (외부 도메인)
+- **[External Domain 1]**: [연결점 및 제공 기능]
+- **[External Domain 2]**: [연결점 및 제공 기능]
+
+---
+
+## 🟠 Bounded Context 정의
+
+### [Context Name 1] (Main Context)
+**책임**: [이 Context가 담당하는 핵심 책임]
+
+**핵심 언어**: [Key Term 1], [Key Term 2], [Key Term 3], [Key Term 4]
+
+**핵심 용어 및 개념**:
+- **[Term 1]**: [용어 정의]
+- **[Term 2]**: [용어 정의]
+- **[Term 3]**: [용어 정의]
+- **[Term 4]**: [용어 정의]
+
+**포함 이벤트**:
+- [Event Category 1] (N개 이벤트)
+- [Event Category 2] (N개 이벤트)
+- [Event Category 3] (N개 이벤트)
+
+---
+
+### [Context Name 2] (선택적, 필요시)
+**책임**: [이 Context가 담당하는 핵심 책임]
+
+**핵심 언어**: [Key Term 1], [Key Term 2], [Key Term 3]
+
+**핵심 용어 및 개념**:
+- **[Term 1]**: [용어 정의]
+- **[Term 2]**: [용어 정의]
+
+**포함 이벤트**:
+- [Event Category 1] (N개 이벤트)
+- [Event Category 2] (N개 이벤트)
+
+---
+
+## 🔗 Context 간 관계 및 통합점
+
+### [Context 1] ↔ [Context 2]
+- **연결점**: [구체적인 연결 지점]
+- **데이터 흐름**: 
+  - `[Event A]` → `[Event B]`
+  - `[Event C]` → `[Event D]`
+- **통합 방식**: [동기적 서비스 주입, 이벤트 기반 등]
+
+### [Context] ↔ [External Domain]
+- **연결점**: [구체적인 연결 지점]
+- **데이터 흐름**: 
+  - `[Event A]` → `[External Event]`
+- **통합 방식**: [API 호출, Webhook 등]
+
+---
+
 ## 🔴 Hotspots (문제점/병목)
 
 ### 우선순위: 높음

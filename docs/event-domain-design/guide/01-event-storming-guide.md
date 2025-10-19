@@ -161,11 +161,20 @@ cp docs/event-domain-design/template/event-storm-template.md docs/event-domain-d
 1. **관련 이벤트들을 그룹핑**: 논리적으로 연결된 이벤트들 묶기
 2. **경계선 그리기**: 각 그룹을 색상으로 구분
 3. **Context 이름 붙이기**: 각 경계의 이름 정의
+4. **핵심 언어 정의**: 각 Context의 Ubiquitous Language 식별
+5. **포함 이벤트 카운트**: 각 Context에 몇 개의 이벤트가 있는지
 
 #### Context 식별 기준:
 - **동일한 언어 사용**: 같은 비즈니스 용어 사용
 - **강한 응집성**: 내부 요소들이 밀접하게 연결
 - **약한 결합성**: 다른 Context와의 의존성 최소화
+
+#### 문서화 시 작성 항목:
+각 Bounded Context마다 다음을 작성:
+- **책임**: Context가 담당하는 핵심 책임 (한 문장)
+- **핵심 언어**: 주요 용어 5-10개 (쉼표로 나열)
+- **핵심 용어 및 개념**: 각 용어의 정의 (간결하게)
+- **포함 이벤트**: 이벤트 카테고리별 개수
 
 #### 실제 예시:
 
@@ -211,44 +220,57 @@ cp docs/event-domain-design/template/event-storm-template.md docs/event-domain-d
    - 어떤 Context가 다른 Context와 통신하는가?
    - 데이터나 이벤트가 흐르는 방향은?
 
-2. **간단한 관계 메모**:
-   - "User Management → Organization Management" (사용자 생성 후 조직 생성)
-   - "Organization Management → Workspace Structure" (조직 생성 후 워크스페이스 생성)
+2. **연결점 및 데이터 흐름 메모**:
+   - **연결점**: 무엇 때문에 통신하는가?
+   - **데이터 흐름**: 어떤 이벤트/데이터가 흐르는가?
+   - **통합 방식**: 동기적 서비스 주입, 이벤트 기반, API 호출 등
 
 3. **외부 시스템 식별**:
    - 어떤 외부 시스템/서비스와 통합이 필요한가?
    - 각 외부 시스템은 어느 Context와 연관되는가?
 
+#### 문서화 시 작성 항목:
+
+각 Context 간 관계마다 다음을 작성:
+
+```markdown
+### [Context 1] ↔ [Context 2]
+- **연결점**: [구체적인 연결 이유]
+- **데이터 흐름**: 
+  - `[이벤트 A]` → `[이벤트 B]`
+  - `[이벤트 C]` → `[이벤트 D]`
+- **통합 방식**: [동기적 서비스 주입, 이벤트 기반 등]
+```
+
 #### Context 간 관계 메모 예시:
 
 ```markdown
-### Context 간 관계 (발견 단계)
+### Workspace Management ↔ Page Structure
+- **연결점**: Workspace 생성 시 초기 페이지 생성 필요
+- **데이터 흐름**: 
+  - `[Workspace가 생성됨]` → `[초기 페이지가 생성됨]`
+  - `[Workspace가 삭제됨]` → `[모든 페이지가 숨겨짐]`
+- **통합 방식**: 동기적 서비스 주입 (Next.js Server Actions)
 
-**User Management → Organization Management**:
-- 사용자 생성 완료 후 기본 조직 생성 필요
-- 데이터 흐름: userId → createDefaultOrganization
-
-**Organization Management → Notification Management**:
-- 멤버 초대 시 이메일/알림 발송 필요
-- 데이터 흐름: invitation → sendNotification
-
-**외부 시스템**:
-- Supabase Auth (User Management Context)
-- SendGrid (Notification Management Context)
+### Canvas Management → React Flow (외부 라이브러리)
+- **연결점**: 캔버스 렌더링 및 인터랙션 처리
+- **데이터 흐름**: 
+  - `[Canvas Block 데이터]` → `[ACL 변환]` → `[React Flow Node]`
+- **통합 방식**: Anti-Corruption Layer (ACL) 패턴
 ```
 
 #### 주의사항:
 
 1. **발견 단계에 집중**:
-   - 이 단계에서는 "어떤 Context들이 연결되는가?"만 파악
-   - 구체적인 통합 패턴(ACL, Customer-Supplier)은 Software Design에서 결정
+   - 이 단계에서는 "어떤 Context들이 어떻게 연결되는가?"만 파악
+   - 구체적인 통합 패턴은 Software Design에서 결정
 
 2. **순환 의존성 경고**:
    - Context A → Context B → Context A 구조 발견 시 메모
    - Software Design 단계에서 재설계 검토
 
 3. **다음 단계를 위한 준비**:
-   - Process Model: External System 목록 제공
+   - Process Model: External System 목록 및 통합 방식 제공
    - Software Design: 구체적인 Context Map + ACL 설계
 
 ---
@@ -281,20 +303,30 @@ cp docs/event-domain-design/template/event-storm-template.md docs/event-domain-d
    - 워크샵에서 식별된 이벤트들을 카테고리별로 분류
    - 시간순 배치와 사용자 여정 반영
 
-4. **🔴 Hotspots (문제점/병목)**
+4. **🔵 Commands & Actors**
+   - 주요 커맨드 목록 (시나리오별로 정리)
+   - 식별된 액터 분류 (Primary Actors, System Actors, External Systems)
+   - 커맨드-이벤트 매핑
+
+5. **🟠 Bounded Context 정의**
+   - Context별 책임과 핵심 언어
+   - 핵심 용어 및 개념 정의
+   - 포함되는 이벤트 카테고리
+
+6. **🔗 Context 간 관계 및 통합점**
+   - Context 간 연결점 및 데이터 흐름
+   - 외부 시스템/도메인과의 통합 방식
+   - (구체적인 통합 패턴은 Software Design에서)
+
+7. **🔴 Hotspots (문제점/병목)**
    - 우선순위별로 분류 (높음/중간/낮음)
    - 각 문제의 영향도와 해결방안 제시
 
-5. **💡 Opportunities (개선 기회)**
+8. **💡 Opportunities (개선 기회)**
    - 즉시구현(MVP 필수) vs 향후구현(Post-MVP) 분류
    - 구체적인 구현 방안 제시
 
-6. **🔗 Context 간 관계** (다른 도메인과 통합이 있는 경우)
-   - Bounded Context 목록
-   - Context 간 간단한 관계 및 데이터 흐름
-   - 외부 시스템 식별 (구체적인 통합 패턴은 Software Design에서)
-
-7. **❓ Process Modeling을 위한 주요 질문들**
+9. **❓ Process Modeling을 위한 주요 질문들**
    - 다음 단계(Process Model)에서 해결해야 할 미해결 이슈
    - 핵심 프로세스별 질문 정리
 
@@ -355,6 +387,11 @@ cp docs/event-domain-design/template/event-storm-template.md docs/event-domain-d
 
 ### 문서 완료 기준:
 - [ ] event-storm.md의 모든 필수 섹션이 작성됨
+  - [ ] Domain Events (시간순)
+  - [ ] Commands & Actors
+  - [ ] Bounded Context 정의
+  - [ ] Context 간 관계
+  - [ ] Hotspots & Opportunities
 - [ ] 비즈니스 도메인 전문가의 검증 완료
 - [ ] Process Modeling을 위한 질문들이 정리됨
 - [ ] Git에 체계적으로 커밋되고 PR이 승인됨
