@@ -5,7 +5,7 @@
 **도메인**: Canvas Management Domain  
 **작성자**: 프론트엔드개발자 + UX/UI 디자이너  
 **작성일**: 2025-10-19  
-**버전**: v1.0
+**버전**: v1.1
 
 **User Flow 참조**: `03-user-flow.md`  
 **Software Design 참조**: `03-software-design.md`  
@@ -26,9 +26,11 @@
 Canvas Management Domain의 프론트엔드는 **React Flow 기반의 무한 캔버스**를 중심으로 블럭 조작, 엣지 관리, 뷰포트 제어를 제공합니다. 핵심은 **React Flow State (단기 SoT)**와 **Database (장기 SoT)**의 이중 상태 관리 전략을 통한 실시간 UX와 데이터 일관성을 보장하는 것입니다.
 
 **주요 구현 전략**:
-- **React Flow Integration**: Canvas 렌더링, 드래그/드롭, 스냅 가이드라인
+- **React Flow + shadcn/ui Integration**: [React Flow Components](https://reactflow.dev/learn/tutorials/getting-started-with-react-flow-components) 기반 캔버스 구현
+- **Building Blocks**: `BaseNode`, `LabeledHandle`, `DataEdge` 등 shadcn/ui React Flow Components 활용
 - **Optimistic Updates**: `useOptimistic`으로 즉시 UI 반응성 제공
 - **Context-based State**: 캔버스 상태, 선택된 블럭, 뷰포트 정보 중앙 관리
+- **React Flow Hooks**: `useReactFlow()`, `useStore()`, `useNodesData()` 등 공식 Hooks 활용
 - **ACL Pattern**: React Flow와 도메인 로직 간의 안전한 분리
 
 ### User Flow 연결점
@@ -259,6 +261,176 @@ const edgeTypes: EdgeTypes = {
 
 ---
 
+### 3. shadcn/ui React Flow Components
+
+> **참고**: [React Flow Components Tutorial](https://reactflow.dev/learn/tutorials/getting-started-with-react-flow-components)
+
+Canvas Management Domain은 shadcn/ui의 React Flow Components를 기반으로 구축됩니다. 이를 통해 일관된 디자인 시스템과 빠른 개발이 가능합니다.
+
+#### 설치 및 설정
+
+**React Flow Components 설치**:
+```bash
+# shadcn/ui 초기 설정 (이미 완료되었다면 스킵)
+npx shadcn@latest init
+
+# React Flow Components 설치
+npx shadcn@latest add https://ui.reactflow.dev/base-node
+npx shadcn@latest add https://ui.reactflow.dev/labeled-handle
+npx shadcn@latest add https://ui.reactflow.dev/data-edge
+```
+
+**tailwind.config.js 설정**:
+```javascript
+module.exports = {
+  // shadcn/ui와 React Flow 스타일링을 위한 설정
+  theme: {
+    extend: {
+      // React Flow 노드 스타일을 위한 커스텀 색상
+      colors: {
+        border: "hsl(var(--border))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+      },
+    },
+  },
+}
+```
+
+#### Building Blocks
+
+**BaseNode 컴포넌트**:
+- **역할**: 모든 커스텀 노드의 기본 구조 제공
+- **주요 기능**: 헤더, 본문, 푸터 레이아웃, shadcn/ui 스타일 적용
+- **사용법**: `<BaseNode>`, `<BaseNodeHeader>`, `<BaseNodeHeaderTitle>`, `<BaseNodeResizer>`
+- **특징**: tailwind.config.js 수정으로 일괄 스타일 변경 가능
+
+**LabeledHandle 컴포넌트**:
+- **역할**: 레이블이 있는 연결 핸들 제공
+- **주요 기능**: 핸들 위치 (top, right, bottom, left), 타입 (source, target), 레이블 표시
+- **사용법**: `<LabeledHandle title="input" type="target" position={Position.Left} />`
+- **특징**: 시각적으로 명확한 연결점 제공
+
+**DataEdge 컴포넌트**:
+- **역할**: 소스 노드의 데이터를 엣지 레이블로 표시
+- **주요 기능**: 동적 레이블 업데이트, 데이터 필드 매핑
+- **사용법**: `edge.data = { key: 'value' }` 로 표시할 필드 지정
+- **특징**: 실시간 데이터 흐름 시각화
+
+#### NodeTypes 및 EdgeTypes 등록
+
+**nodeTypes 설정**:
+```typescript
+import { BlockMountNode } from '@/components/nodes/block-mount-node'
+
+const nodeTypes = {
+  blockMount: BlockMountNode,
+  // 다른 커스텀 노드 타입들...
+}
+```
+
+**edgeTypes 설정**:
+```typescript
+import { DataEdge } from '@/components/data-edge'
+
+const edgeTypes = {
+  data: DataEdge,
+  // 다른 커스텀 엣지 타입들...
+}
+```
+
+**ReactFlow 컴포넌트에 전달**:
+```typescript
+<ReactFlow
+  nodes={nodes}
+  edges={edges}
+  nodeTypes={nodeTypes}
+  edgeTypes={edgeTypes}
+  // ... 다른 props
+/>
+```
+
+#### React Flow Hooks 활용
+
+**useReactFlow Hook**:
+- **역할**: React Flow 인스턴스에 접근하여 노드/엣지 조작
+- **주요 메서드**:
+  - `getNodes()`: 모든 노드 조회
+  - `getEdges()`: 모든 엣지 조회
+  - `updateNodeData(nodeId, data)`: 노드 데이터 업데이트
+  - `getHandleConnections({ nodeId, id, type })`: 핸들 연결 정보 조회
+- **사용 시나리오**: 블럭 데이터 업데이트, 엣지 연결 확인
+
+**useStore Hook**:
+- **역할**: React Flow 내부 상태에 직접 접근
+- **주요 용도**: 노드 조회 최적화 (`state.nodeLookup`)
+- **사용 시나리오**: 대량의 노드 데이터 조회 시 성능 최적화
+
+**useNodesData Hook**:
+- **역할**: 특정 노드들의 데이터를 구독
+- **주요 용도**: 연결된 노드의 데이터 변경 감지
+- **사용 시나리오**: 엣지로 연결된 노드의 데이터 기반 계산
+
+#### 컴포넌트 구현 예시
+
+**BlockMountNode 구현**:
+```typescript
+import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from '@/components/base-node'
+import { LabeledHandle } from '@/components/labeled-handle'
+import type { Node, NodeProps } from '@xyflow/react'
+
+type BlockMountNode = Node<BlockMountView, 'blockMount'>
+
+export function BlockMountNode({ data }: NodeProps<BlockMountNode>) {
+  return (
+    <BaseNode className="w-64">
+      <BaseNodeHeader>
+        <BaseNodeHeaderTitle>{data.blockType}</BaseNodeHeaderTitle>
+      </BaseNodeHeader>
+      
+      <div className="p-4">
+        {/* 블럭 콘텐츠 렌더링 */}
+      </div>
+      
+      <footer className="bg-gray-100">
+        <LabeledHandle title="input" type="target" position={Position.Left} />
+        <LabeledHandle title="output" type="source" position={Position.Right} />
+      </footer>
+    </BaseNode>
+  )
+}
+```
+
+**onConnect Handler 구현**:
+```typescript
+const onConnect: OnConnect = useCallback(
+  (params) => {
+    setEdges((edges) =>
+      addEdge({ 
+        type: 'data', 
+        data: { key: 'value' }, // DataEdge에서 표시할 필드
+        ...params 
+      }, edges)
+    )
+  },
+  [setEdges]
+)
+```
+
+#### 스타일 커스터마이징
+
+**BaseNode 스타일 수정**:
+- `src/components/base-node.tsx` 파일 수정
+- 모든 노드에 일괄 적용됨
+- tailwind 클래스로 간편한 스타일링
+
+**테마 설정**:
+- `tailwind.config.js`의 CSS 변수 수정
+- 다크 모드 지원
+- 브랜드 컬러 적용
+
+---
+
 ## 🎯 React Context 설계
 
 > **가이드 참조**: Phase 2.3 - Context 및 Hooks 설계
@@ -440,12 +612,74 @@ const edgeTypes: EdgeTypes = {
   - 드래그, 선택, 엣지 생성 이벤트 처리
   - 뷰포트 상태 관리 (줌/패닝)
   - 스냅 가이드라인 렌더링
-- **사용 Hook**: useCanvasManagement(), useBlockSelection()
-- **UI 라이브러리**: ReactFlow, ReactFlowProvider, Background, Controls, MiniMap
+- **사용 Hook**: 
+  - `useCanvasManagement()`: 캔버스 상태 관리
+  - `useBlockSelection()`: 블럭 선택 관리
+  - `useReactFlow()`: React Flow 인스턴스 접근
+  - `useNodesState()`: 노드 상태 관리
+  - `useEdgesState()`: 엣지 상태 관리
+  - `useOnSelectionChange()`: 선택 변경 감지
+- **UI 라이브러리**: 
+  - `ReactFlow`: 메인 캔버스 컴포넌트
+  - `ReactFlowProvider`: React Flow Context Provider
+  - `Background`: 그리드 배경
+  - `Controls`: 줌/패닝 컨트롤
+  - `MiniMap`: 미니맵
+  - `Panel`: 커스텀 패널 (툴바, 컨트롤 등)
+- **nodeTypes 등록**:
+  ```typescript
+  const nodeTypes = {
+    blockMount: BlockMountNode,
+    // 블럭 타입별 커스텀 노드들...
+  }
+  ```
+- **edgeTypes 등록**:
+  ```typescript
+  const edgeTypes = {
+    data: DataEdge,
+    // 커스텀 엣지들...
+  }
+  ```
 - **특징**:
   - React Flow와 도메인 Context 간 브릿지 역할
   - 실시간 이벤트 처리 및 상태 동기화
-  - Custom Node/Edge 타입 등록
+  - shadcn/ui React Flow Components 활용
+  - `onConnect` Handler로 엣지 생성 처리
+  - `onNodesChange` / `onEdgesChange` Handler로 상태 동기화
+
+**구현 예시**:
+```typescript
+export function CanvasProvider() {
+  const { blockMounts, edges, updateBlockMount, createEdge } = useCanvasManagement()
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+  
+  const onConnect: OnConnect = useCallback((params) => {
+    setEdges((edges) => addEdge({ 
+      type: 'data', 
+      data: { key: 'value' },
+      ...params 
+    }, edges))
+  }, [setEdges])
+  
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onConnect={onConnect}
+      fitView
+    >
+      <Background />
+      <Controls />
+      <MiniMap />
+    </ReactFlow>
+  )
+}
+```
 
 **사용 위치**:
 - 캔버스 페이지: 메인 캔버스 영역
@@ -720,6 +954,16 @@ export function setSelectedBlocksToStorage(blockIds: string[]): void {
 - [ ] Date 객체가 ISO 문자열로 직렬화되었는가?
 - [ ] Value Object가 string으로 직렬화되었는가?
 - [ ] Next.js Server Actions 직렬화 제약을 준수하는가?
+- [ ] React Flow 타입 (`Node<T>`, `Edge<T>`)이 올바르게 정의되었는가?
+- [ ] AppNode, AppEdge Union 타입이 정의되었는가?
+
+### shadcn/ui React Flow Components
+- [ ] BaseNode, LabeledHandle, DataEdge 컴포넌트가 설치되었는가?
+- [ ] tailwind.config.js에 React Flow 스타일 설정이 추가되었는가?
+- [ ] BaseNode를 활용한 커스텀 노드가 구현되었는가?
+- [ ] LabeledHandle로 명확한 연결점이 제공되는가?
+- [ ] DataEdge로 실시간 데이터 흐름이 시각화되는가?
+- [ ] nodeTypes와 edgeTypes가 올바르게 등록되었는가?
 
 ### Context 설계
 - [ ] Canvas Management 전용 Context가 독립적으로 생성되었는가?
@@ -738,6 +982,7 @@ export function setSelectedBlocksToStorage(blockIds: string[]): void {
 ### Hook 구현
 - [ ] useCanvasManagement Hook이 Context를 적절히 추상화했는가?
 - [ ] useBlockSelection, useSnapGuidelines 전용 Hook이 구현되었는가?
+- [ ] React Flow Hooks (useReactFlow, useStore, useNodesData)가 활용되는가?
 - [ ] 블럭 선택, 스냅 계산 등 비즈니스 로직 메서드가 포함되었는가?
 - [ ] React Flow 데이터와 도메인 데이터 간 매핑이 제공되는가?
 - [ ] 에러 상태가 적절히 처리되는가?
@@ -745,6 +990,8 @@ export function setSelectedBlocksToStorage(blockIds: string[]): void {
 ### 컴포넌트 연동
 - [ ] 컴포넌트에서 직접 Context 접근을 피하고 Hook을 사용하는가?
 - [ ] CanvasProvider가 React Flow와 도메인 상태를 연결하는가?
+- [ ] useNodesState, useEdgesState로 노드/엣지 상태가 관리되는가?
+- [ ] onConnect Handler로 엣지 생성이 처리되는가?
 - [ ] BlockToolbar, ViewportControls 등 캔버스 전용 컴포넌트가 구현되었는가?
 - [ ] 로딩 상태와 에러 상태가 적절히 처리되는가?
 - [ ] 드래그/스냅 상태 처리가 포함되었는가?
@@ -754,6 +1001,7 @@ export function setSelectedBlocksToStorage(blockIds: string[]): void {
 - [ ] 페이지별 초기 캔버스/블럭/엣지/뷰포트 데이터가 전달되는가?
 - [ ] 로컬 스토리지 기반 뷰포트 영속성이 올바르게 작동하는가?
 - [ ] React Flow와 도메인 Context 간 이벤트 처리가 구현되었는가?
+- [ ] ReactFlowProvider가 올바른 위치에 배치되었는가?
 
 ---
 
@@ -784,39 +1032,50 @@ export function setSelectedBlocksToStorage(blockIds: string[]): void {
 ## 📁 폴더 구조 요약
 
 ```
-src/domains/canvas-management/
-├── shared/
-│   ├── dtos/
-│   │   └── index.ts                    # CanvasView, BlockMountView, EdgeView, ViewportView DTO
-│   ├── types/
-│   │   └── index.ts                    # Result 패턴, ReactFlowNode, ReactFlowEdge 타입
-│   ├── commands/                       # Canvas Management Command 객체들
-│   └── errors/                         # CanvasManagementError 타입들
-├── frontend/
-│   ├── contexts/
-│   │   └── canvas-management-context.tsx  # CanvasManagementContext + Provider
-│   ├── hooks/
-│   │   ├── use-canvas-management.ts    # 메인 Hook
-│   │   ├── use-block-selection.ts      # 블럭 선택 관리 Hook
-│   │   └── use-snap-guidelines.ts      # 스냅 가이드라인 Hook
-│   ├── components/
-│   │   ├── canvas-provider.tsx         # React Flow 캔버스 컴포넌트
-│   │   ├── block-toolbar.tsx           # 블럭 생성 툴바
-│   │   ├── block-add-dialog.tsx        # 블럭 타입 선택 다이얼로그
-│   │   ├── block-mount-toolbar.tsx     # 블럭 편집 툴바
-│   │   ├── snap-guidelines.tsx         # 스냅 가이드라인 렌더링
-│   │   └── viewport-controls.tsx       # 뷰포트 제어 컴포넌트
-│   └── utils/
-│       └── canvas-storage.ts           # 로컬 스토리지 유틸리티
-└── actions/
-    └── canvas-management.actions.ts    # Server Actions
+src/
+├── components/                         # shadcn/ui React Flow Components (공용)
+│   ├── base-node.tsx                   # BaseNode 빌딩 블록
+│   ├── labeled-handle.tsx              # LabeledHandle 빌딩 블록
+│   ├── data-edge.tsx                   # DataEdge 컴포넌트
+│   └── nodes/
+│       └── block-mount-node.tsx        # BlockMount 커스텀 노드
+│
+└── domains/canvas-management/
+    ├── shared/
+    │   ├── dtos/
+    │   │   └── index.ts                # CanvasView, BlockMountView, EdgeView, ViewportView DTO
+    │   ├── types/
+    │   │   └── index.ts                # Result 패턴, AppNode, AppEdge 타입
+    │   ├── commands/                   # Canvas Management Command 객체들
+    │   └── errors/                     # CanvasManagementError 타입들
+    ├── frontend/
+    │   ├── contexts/
+    │   │   └── canvas-management-context.tsx  # CanvasManagementContext + Provider
+    │   ├── hooks/
+    │   │   ├── use-canvas-management.ts    # 메인 Hook (useReactFlow 활용)
+    │   │   ├── use-block-selection.ts      # 블럭 선택 관리 Hook
+    │   │   └── use-snap-guidelines.ts      # 스냅 가이드라인 Hook
+    │   ├── components/
+    │   │   ├── canvas-provider.tsx         # React Flow 캔버스 (nodeTypes/edgeTypes 등록)
+    │   │   ├── block-toolbar.tsx           # 블럭 생성 툴바
+    │   │   ├── block-add-dialog.tsx        # 블럭 타입 선택 다이얼로그
+    │   │   ├── block-mount-toolbar.tsx     # 블럭 편집 툴바
+    │   │   ├── snap-guidelines.tsx         # 스냅 가이드라인 렌더링
+    │   │   └── viewport-controls.tsx       # 뷰포트 제어 컴포넌트
+    │   └── utils/
+    │       └── canvas-storage.ts           # 로컬 스토리지 유틸리티
+    └── actions/
+        └── canvas-management.actions.ts    # Server Actions
 ```
 
 **주요 특징**:
-- **React Flow 통합**: React Flow와 도메인 상태 간 브릿지 역할
+- **shadcn/ui React Flow Components**: BaseNode, LabeledHandle, DataEdge 등 빌딩 블록 활용
+- **React Flow 통합**: React Flow와 도메인 상태 간 브릿지 역할, nodeTypes/edgeTypes 등록
+- **React Flow Hooks**: useReactFlow(), useStore(), useNodesData() 등 공식 Hooks 활용
 - **전용 Hooks**: 블럭 선택, 스냅 가이드라인 등 캔버스 특화 Hook
 - **컴포넌트 분리**: 캔버스, 툴바, 컨트롤 등 역할별 컴포넌트 분리
 - **로컬 스토리지**: 뷰포트 상태 등 클라이언트 전용 상태 영속성
+- **TypeScript 타입 안전성**: Node<T>, Edge<T> 제네릭 타입 활용
 
 ---
 
