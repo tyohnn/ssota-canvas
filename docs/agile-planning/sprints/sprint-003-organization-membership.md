@@ -163,7 +163,7 @@
 ---
 
 ## 📁 관련 문서
-- [Epic-001: Core Platform Foundation](../epics/epic-001-user-management.md)
+- [Epic-001: Core Platform Foundation](../epics/epic-001-core-platform-foundation.md)
 - [Organization Management Stories](../stories/organization-management/README.md)
 - [Story-004: 멤버 초대](../stories/organization-management/story-004-member-invitation.md)
 - [Story-005: 멤버 역할 변경](../stories/organization-management/story-005-member-role-change.md)

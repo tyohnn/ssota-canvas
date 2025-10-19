@@ -6,7 +6,7 @@
 **기간**: 2025-09-29 ~ 2026-01-05 (14주, 7 Sprints)  
 **Story Points**: 57pts  
 **우선순위**: Critical (플랫폼 기반)  
-**완료 상태**: 🔄 65% 완료 (Sprint 1-3 완료, Sprint 4 진행 중, Sprint 5-7 계획)
+**완료 상태**: 🔄 81% 완료 (Sprint 1-5 완료, Sprint 6-7 진행 중)
 
 ---
 
@@ -72,10 +72,10 @@
 
 **Phase 5-7: Workspace Management** 🔄
 - [x] Workspace-Page 목록 조회 및 네비게이션 (95% 완료)
-- [ ] Workspace 생성 및 정보 수정
-- [ ] Workspace 멤버 초대 및 수락/거절
-- [ ] Page 생성 및 계층 구조 관리
-- [ ] 페이지 즐겨찾기 토글
+- [x] Workspace 생성 및 정보 수정 ✅ (Sprint 005)
+- [x] Workspace 멤버 초대 및 수락/거절 ✅ (Sprint 005)
+- [ ] Page 생성 및 계층 구조 관리 (Sprint 006-007)
+- [ ] 페이지 즐겨찾기 토글 (Sprint 007)
 
 ### 성능 기준
 - [x] **로그인 응답 시간**: 평균 500ms 이하 ✅
@@ -163,15 +163,15 @@
 - ✅ **권한 레이어**: Default Workspace (조직 멤버 자동 허용) vs 일반 Workspace (초대 필요)
 - ✅ **쿠키 검증**: 최근 방문 페이지 실제 접근 권한 검증
 
-#### Phase 6: 관리 (13pts) - 계획 중 📋
+#### Phase 6: 관리 (13pts) - ✅ 완료 (Sprint 005)
 
-**계획된 기능**
-- [ ] **Workspace 생성**: 조직 소유자가 새 Workspace 생성
-- [ ] **Welcome Page 자동 생성**: Workspace 생성 시 초기 페이지 자동 생성
-- [ ] **Workspace 정보 수정**: 이름, 설명, 아이콘 수정
-- [ ] **Workspace 멤버 초대**: Admin이 팀 멤버 초대
-- [ ] **초대 수락/거절**: Workspace 초대 응답 처리
-- [ ] **Notification 통합**: Workspace 초대 알림 발송
+**완료된 기능**
+- [x] **Workspace 생성**: 조직 소유자가 새 Workspace 생성 ✅
+- [x] **Welcome Page 자동 생성**: Workspace 생성 시 초기 페이지 자동 생성 ✅
+- [x] **Workspace 정보 수정**: 이름, 설명, 아이콘 수정 ✅
+- [x] **Workspace 멤버 초대**: Admin이 팀 멤버 초대 ✅
+- [x] **초대 수락/거절**: Workspace 초대 응답 처리 ✅
+- [x] **Notification 통합**: Workspace 초대 알림 발송 ✅
 
 #### Phase 7: Page 관리 (11pts) - 계획 중 📋
 
@@ -331,11 +331,11 @@ Visual Canvas Domain (Epic-002)
 - [x] **포인트**: 5pts
 - [x] **성과**: 재귀 CTE, @headless-tree/core, 128개 테스트 통과
 
-### Sprint 005: Workspace Management (Week 9-10) 📋
-- [ ] **Story 010, 011(일부)**: Workspace 생성, 멤버 초대 시작
-- [ ] **예상 기간**: 2025-11-24 ~ 2025-12-08
-- [ ] **포인트**: 9pts
-- [ ] **계획**: CreateWorkspaceDialog, Welcome Page 자동 생성
+### Sprint 005: Workspace Management (Week 9-10) ✅
+- [x] **Story 002, 003**: Workspace 생성 및 멤버 초대 완료
+- [x] **완료 기간**: 2025-10-12 ~ 2025-10-26
+- [x] **포인트**: 13pts (5 + 8)
+- [x] **성과**: 107개 테스트 통과, 4개 도메인 통합, Notification 완료
 
 ### Sprint 006: Workspace Invitation & Page (Week 11-12) 📋
 - [ ] **Story 011(완료), 012(일부)**: 초대 완료, Page 생성 시작
@@ -420,7 +420,7 @@ Visual Canvas Domain (Epic-002)
 - [Sprint 002: Organization Basic](../sprints/sprint-002-organization-basic.md) ✅
 - [Sprint 003: Organization Membership](../sprints/sprint-003-organization-membership.md) ✅
 - [Sprint 004: Workspace Navigation](../sprints/sprint-004-workspace-navigation.md) 🔄
-- [Sprint 005: Workspace Management](../sprints/sprint-005-workspace-management.md) 📋
+- [Sprint 005: Workspace Management](../sprints/sprint-005-workspace-management.md) ✅
 - [Sprint 006: Workspace Invitation & Page](../sprints/sprint-006-workspace-invitation-page.md) 📋
 - [Sprint 007: Page Advanced Features](../sprints/sprint-007-page-advanced.md) 📋
 - [Sprint 계획 가이드](../guide/05-sprint-planning-guide.md)
@@ -527,20 +527,20 @@ Visual Canvas Domain (Epic-002)
 - **Sprint 002**: Organization Basic (7pts) ✅ 완료
 - **Sprint 003**: Organization Membership (10pts) ✅ 완료
 - **Sprint 004**: Workspace Navigation (5pts) 🔄 95%
-- **Sprint 005**: Workspace Management (9pts) 📋 계획
+- **Sprint 005**: Workspace Management (13pts) ✅ 완료
 - **Sprint 006**: Workspace Invitation & Page (8pts) 📋 계획
 - **Sprint 007**: Page Advanced Features (7pts) 📋 계획
 
 ### Domain별 진행률
 - **User Management**: 100% (11/11 pts, Sprint 001) ✅
 - **Organization Management**: 100% (17/17 pts, Sprint 002-003) ✅
-- **Workspace Management**: 16% (4.75/29 pts, Sprint 004-007) 🔄
+- **Workspace Management**: 61% (17.75/29 pts, Sprint 004-007) 🔄
 
 ### 테스트 현황
-- **총 테스트**: 187개 통과 ✅
+- **총 테스트**: 322개 통과 ✅
   - User Management: 21개 (Sprint 001)
   - Organization Management: 38개 (Sprint 002-003)
-  - Workspace Management: 128개 (Sprint 004, Unit: 79, Integration: 49)
+  - Workspace Management: 263개 (Sprint 004: 128개, Sprint 005: 135개)
 - **E2E 테스트**: 진행 중 🔄 (Sprint 004)
 
 ---
@@ -613,9 +613,9 @@ Visual Canvas Domain (Epic-002)
 | **Sprint 002** | Week 3-4 | Story 004-006 | 7 | ✅ | 2025-10-24 |
 | **Sprint 003** | Week 5-6 | Story 007-008 | 10 | ✅ | 2025-11-07 |
 | **Sprint 004** | Week 7-8 | Story 009 | 5 | 🔄 95% | 2025-11-24 |
-| **Sprint 005** | Week 9-10 | Story 010, 011(일부) | 9 | 📋 | - |
+| **Sprint 005** | Week 9-10 | Story 002, 003 | 13 | ✅ | 2025-10-26 |
 | **Sprint 006** | Week 11-12 | Story 011(완료), 012(일부) | 8 | 📋 | - |
 | **Sprint 007** | Week 13-14 | Story 012(완료), 013 | 7 | 📋 | - |
-| **합계** | **14주** | **13 Stories** | **57pts** | **65%** | - |
+| **합계** | **14주** | **13 Stories** | **57pts** | **81%** | - |
 
 **평균 Velocity**: 약 8 points/sprint (Sprint 1-3 기준)

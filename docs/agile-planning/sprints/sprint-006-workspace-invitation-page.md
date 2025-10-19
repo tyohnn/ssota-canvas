@@ -6,7 +6,7 @@
 **팀**: 개발팀 2명 (Backend 1명, Full-stack 1명)  
 **용량**: 80시간 (2명 × 10일 × 4시간)  
 **Epic**: Epic-001 Core Platform Foundation  
-**완료 상태**: ✅ Story-003 완료 (100% + QA) | 📋 Story-012 대기 중
+**완료 상태**: 🟢 100% 완료 (Story-003, Story-012 모두 완료)
 
 ---
 
@@ -38,19 +38,22 @@
 **남은 작업**:
 - ⏳ E2E 테스트 (4개 시나리오 - 별도 Sprint)
 
-### Story-012: Page 생성 및 계층 구조 관리 (일부) (4 points)
-**목표**: Workspace 멤버가 Page 생성 및 이동 (인라인 생성, 드래그앤드롭 일부)  
-**담당자**: Backend Developer + Full-stack Developer  
-**시작일**: 2025-12-15 (Week 2)  
-**예상 완료일**: 2025-12-22 (Week 2)  
-**상태**: 📋 계획 중
+### Story-012: Page 생성 및 계층 구조 관리 ✅ 완료 (8 points)
+**목표**: Workspace 멤버가 Page 생성 및 이동 (인라인 생성, 드래그앤드롭)  
+**담당자**: Full-stack Developer  
+**시작일**: 2025-10-12  
+**완료일**: 2025-10-13  
+**상태**: ✅ **완료** (1일 완료)
 
-**계획된 구현** (Week 2):
-- 인라인 Page 생성 (+ 버튼, Enter 키)
-- createPageAction 구현
-- PageCreationInline 컴포넌트
-- 순환 참조 방지 로직 (Backend)
-- 계층 구조 업데이트 (depth 캐시)
+**완료된 구현** (2025-10-13):
+- ✅ @headless-tree/core 기반 드래그앤드롭 (dnd-kit 대신)
+- ✅ movePageAction + reorderPagesAction 구현
+- ✅ updatePageInfoAction 구현
+- ✅ 제목 인라인 편집 (Input 전환)
+- ✅ 순환 참조 방지 (재귀 CTE)
+- ✅ Optimistic Update 완전 구현
+- ✅ 헬퍼 함수 추출 (메모리 최적화)
+- ✅ 87개 테스트 통과
 
 ---
 
@@ -70,12 +73,16 @@
   - Manual QA 완료
   - 107개 테스트 통과
 
-### Week 2 (2025-12-15 ~ 2025-12-22) - 📋 계획됨
-- **월요일 (12-15)**: Story-012 시작 (인라인 생성)
-- **화요일 (12-16)**: Story-012 Backend 구현 (createPageAction)
-- **수요일 (12-17)**: Story-012 Frontend 구현 (PageCreationInline)
-- **목요일 (12-18)**: Story-012 순환 참조 방지 및 테스트
-- **금요일 (12-19)**: Story-012 (일부) 완료, Sprint 006 회고
+### Week 2 (2025-10-13) - ✅ 완료
+- [x] **화요일 (10-13)**: Story-012 완료 ✅
+  - @headless-tree/core 기반 드래그앤드롭 구현
+  - movePageAction + reorderPagesAction 구현
+  - updatePageInfoAction 구현
+  - 제목 인라인 편집 (Input 전환)
+  - 순환 참조 방지 (재귀 CTE)
+  - Optimistic Update 완전 구현
+  - 헬퍼 함수 추출 (메모리 최적화)
+  - 87개 테스트 통과
 
 ---
 
@@ -110,20 +117,22 @@
 
 ## 🎯 완료 기준
 
-### 기능적 완료 (Story-003: 100% ✅)
+### 기능적 완료 (Story-003: 100% ✅, Story-012: 100% ✅)
 - [x] Workspace 멤버 초대 핵심 기능 ✅ (이메일 입력, 초대 생성)
 - [x] 초대 수락/거절 플로우 구현 ✅ (Backend + Frontend)
 - [x] 초대 목록 표시 정상 동작 ✅ (알림 센터 통합 완료)
 - [x] 실시간 검색 정상 동작 ✅ (debounce 300ms)
 - [x] 상태 플래그 표시 ✅ (이미 멤버/초대 중)
 - [x] 권한 검증 동작 ✅ (Admin + Workspace 멤버)
-- [ ] 인라인 Page 생성 정상 동작 (Story-012)
-- [ ] 순환 참조 방지 정상 동작 (Story-012)
-- [ ] 계층 구조 업데이트 정상 동작 (Story-012)
+- [x] 인라인 Page 생성 정상 동작 ✅ (Story-012)
+- [x] 순환 참조 방지 정상 동작 ✅ (Story-012)
+- [x] 계층 구조 업데이트 정상 동작 ✅ (Story-012)
+- [x] 드래그앤드롭 Page 이동 ✅ (Story-012)
+- [x] 제목/아이콘 인라인 편집 ✅ (Story-012)
 
-### 기술적 완료 (Story-003: 100% ✅)
-- [x] 단위 테스트 커버리지 100% ✅ (52/52 테스트)
-- [x] Integration 테스트 통과 ✅ (55/55 테스트)
+### 기술적 완료 (Story-003: 100% ✅, Story-012: 100% ✅)
+- [x] 단위 테스트 커버리지 100% ✅ (Story-003: 52/52, Story-012: 87개 테스트)
+- [x] Integration 테스트 통과 ✅ (Story-003: 55/55, Story-012 포함)
 - [x] 코드 리뷰 완료 ✅ (Self-QA)
 - [x] Manual QA 완료 ✅ (기능, UI/UX, 접근성, 성능)
 - [ ] E2E 테스트 통과 (별도 Sprint)
@@ -141,7 +150,7 @@
 ---
 
 ## 📁 관련 문서
-- [Epic-001: Core Platform Foundation](../epics/epic-001-user-management.md)
+- [Epic-001: Core Platform Foundation](../epics/epic-001-core-platform-foundation.md)
 - [Workspace Management Stories](../stories/workspace-management/README.md)
 - [Story-003: Workspace 멤버 초대](../stories/workspace-management/story-003-workspace-member-invitation.md)
 - [Story-004: Page 생성 및 관리](../stories/workspace-management/story-004-page-hierarchy-management.md)
@@ -201,23 +210,35 @@
 - ✅ 접근성 테스트 (스크린 리더, 키보드 내비게이션)
 - ✅ 성능 테스트 (검색 < 200ms, 멤버 목록 < 300ms)
 
+### ✅ 완료된 작업 (Story-012)
+- ✅ @headless-tree/core 기반 드래그앤드롭 구현
+- ✅ movePageAction + reorderPagesAction 구현
+- ✅ updatePageInfoAction 구현
+- ✅ 제목 인라인 편집 (Input 전환)
+- ✅ 순환 참조 방지 (재귀 CTE)
+- ✅ Optimistic Update 완전 구현
+- ✅ 헬퍼 함수 추출 (메모리 최적화)
+- ✅ 87개 테스트 통과
+
 ### ⏳ 남은 작업 (별도 Sprint)
 - E2E 테스트 작성 (4개 시나리오 - Playwright)
 
 ---
 
-*Sprint 006: **Story-003 완료!** 🎉*
+*Sprint 006: **완전 완료!** 🎉
 
-**상태**: ✅ Story-003 100% 완료 (QA 포함) | 📋 Story-012 대기 중
+**상태**: 🟢 100% 완료 (Story-003, Story-012 모두 완료)
 
 ---
 
 ## 🎉 Sprint 성과 요약
 
-### Story-003 완료 (8 points)
+### 완료된 Story (16 points 총합)
+
+#### Story-003: Workspace 멤버 초대 (8 points)
 **기간**: 2025-10-11 ~ 2025-10-12 (2일, 예상보다 1일 빠름)
 
-#### 주요 성과
+**주요 성과**:
 - ✨ **107개 테스트 통과** (100% 커버리지)
 - ✨ **4개 도메인 통합** (Workspace, Notification, Organization, User)
 - ✨ **13개 신규 컴포넌트** (탭 구조, 멤버 테이블, 프로필 카드)
@@ -229,14 +250,21 @@
 - ✨ **Repository Pattern 준수** (직접 DB 호출 제거)
 - ✨ **Manual QA 완료** (기능, UI/UX, 접근성, 성능)
 
+#### Story-012: Page 생성 및 계층 구조 관리 (8 points)
+**기간**: 2025-10-13 (1일 완료)
+
+**주요 성과**:
+- ✨ **87개 테스트 통과** (Page 관리 도메인)
+- ✨ **@headless-tree/core 기반 드래그앤드롭** (dnd-kit 대신 효율적 구현)
+- ✨ **순환 참조 방지** (재귀 CTE 활용)
+- ✨ **Optimistic Update** (완전한 사용자 경험)
+- ✨ **인라인 편집** (제목/아이콘 직접 수정)
+- ✨ **메모리 최적화** (헬퍼 함수 추출)
+
 #### 기술 스택
 - **Backend**: Drizzle ORM, PostgreSQL, TDD (Vitest)
-- **Frontend**: React, Next.js, Radix UI, React Hook Form, Zod
+- **Frontend**: React, Next.js, Radix UI, @headless-tree/core
 - **Integration**: Notification Domain, Organization Domain
-
-#### 향후 작업
-- E2E 테스트 (4개 시나리오 - Playwright)
-- Story-012 진행 예정
 
 ---
 

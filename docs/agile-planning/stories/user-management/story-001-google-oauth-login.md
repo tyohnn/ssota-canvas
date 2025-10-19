@@ -171,6 +171,6 @@ CREATE POLICY "Users can view own profile" ON profiles
 **외부 의존성**: Supabase Auth, Google OAuth API
 
 ## 📁 관련 문서
-- [Epic 문서](../../epics/epic-001-user-management.md)
+- [Epic 문서](../../epics/epic-001-core-platform-foundation.md)
 - [Process Model](../../../event-domain-design/domains/user-management-domain/process-model.md)
 - [Technical Specification](../../../event-domain-design/domains/user-management-domain/technical-specification.md)

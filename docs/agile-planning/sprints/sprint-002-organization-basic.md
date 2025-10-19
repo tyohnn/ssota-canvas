@@ -168,7 +168,7 @@
 ---
 
 ## 📁 관련 문서
-- [Epic-001: Core Platform Foundation](../epics/epic-001-user-management.md)
+- [Epic-001: Core Platform Foundation](../epics/epic-001-core-platform-foundation.md)
 - [Organization Management Stories](../stories/organization-management/README.md)
 - [Story-001: 조직 목록 조회](../stories/organization-management/story-001-organization-list-retrieval.md)
 - [Story-002: 조직 선택](../stories/organization-management/story-002-organization-selection.md)

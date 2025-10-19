@@ -5,7 +5,7 @@
 
 **Story Points**: 5  
 **우선순위**: High  
-**Epic**: [Epic-001: User Management](../../epics/epic-001-user-management.md)  
+**Epic**: [Epic-001: User Management](../../epics/epic-001-core-platform-foundation.md)  
 **Domain**: Organization Management Domain (주), Workspace Management Domain (통합)
 
 **작성일**: 2025-10-15  
@@ -315,7 +315,7 @@ And 개인 워크스페이스는 자신만 볼 수 있다
 - [Frontend Specification](../../../event-domain-design/domains/workspace-management-domain/04-frontend-specification.md)
 
 ### Agile Planning
-- [Epic-001: User Management](../../epics/epic-001-user-management.md)
+- [Epic-001: User Management](../../epics/epic-001-core-platform-foundation.md)
 - [Sprint Planning Guide](../../guide/05-sprint-planning-guide.md)
 
 ---
