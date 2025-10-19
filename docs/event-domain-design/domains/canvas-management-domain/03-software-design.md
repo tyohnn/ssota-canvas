@@ -4,9 +4,8 @@
 
 **도메인**: Canvas Management Domain  
 **작성자**: 시니어개발자 + 아키텍트  
-**작성일**: 2025-01-17  
-**버전**: v1.0
-
+**작성일**: 2025-10-19  
+**버전**: v1.1
 **Process Model 참조**: `02-process-model.md`  
 **다음 단계**: `technical-specification.md` (Backend), `user-flow.md` (Frontend)
 
@@ -130,11 +129,11 @@ Canvas Management Domain은 **단일 Bounded Context**로 구성되어 있으며
 - 같은 블럭 쌍이라도 페이지마다 다른 엣지 설정 가능
 - 자기 자신으로의 엣지(self-loop) 허용
 - 블럭 삭제 시 연결된 모든 엣지 자동 삭제 (트랜잭션 단위)
-- 엣지 타입은 지원되는 형식만 허용 (직선, 곡선, 스텝, 스무스스텝)
+- 엣지 타입은 React Flow 기본 타입만 허용 (default, straight, step, smoothstep, simplebezier)
 
 **포함 엔티티**:
 - `EdgeConnection` (Value Object): sourceBlockId, targetBlockId
-- `EdgeType` (Value Object): 직선, 곡선, 스텝, 스무스스텝
+- `EdgeType` (Value Object): React Flow 기본 타입 (default, straight, step, smoothstep, simplebezier)
 - `EdgeStyle` (Value Object): 색상, 두께, 화살표 스타일
 
 ### Viewport Aggregate
@@ -312,7 +311,7 @@ interface EdgeView {
   edgeId: EdgeId;                   // 엣지 ID
   sourceBlockId: BlockId;           // 소스 블럭 ID
   targetBlockId: BlockId;           // 타겟 블럭 ID
-  edgeType: EdgeType;               // 엣지 타입 (직선, 곡선, 스텝, 스무스스텝)
+  edgeType: EdgeType;               // 엣지 타입 (React Flow 기본 타입: default, straight, step, smoothstep, simplebezier)
   edgeLabel?: string;               // 엣지 레이블
   edgeStyle: EdgeStyle;             // 엣지 스타일 (색상, 두께, 화살표)
   createdAt: Date;                  // 엣지 생성 시간
