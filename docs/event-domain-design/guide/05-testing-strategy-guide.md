@@ -1,8 +1,8 @@
 # Testing Strategy 수립 가이드
 
-이 문서는 **Software Design 결과**를 바탕으로 **Testing Strategy**를 정의하고 **testing-strategy.md 문서 작성**까지, 의사결정 참여자들이 순서대로 따라할 수 있는 **Testing Strategy 전용 프로세스**를 설명합니다.
+이 문서는 **Technical Specification 결과**를 바탕으로 **Testing Strategy**를 정의하고 **04-testing-strategy.md 문서 작성**까지, 의사결정 참여자들이 순서대로 따라할 수 있는 **Testing Strategy 전용 프로세스**를 설명합니다.
 
-> 시작 전, `docs/event-domain-design/template/testing-strategy-template.md` 파일을 복사해 도메인 전용 `testing-strategy.md` 초안을 생성한 뒤, 아래 단계에 따라 내용을 채워 넣으세요.
+> 시작 전, `docs/event-domain-design/template/04-testing-strategy-template.md` 파일을 복사해 도메인 전용 `04-testing-strategy.md` 초안을 생성한 뒤, 아래 단계에 따라 내용을 채워 넣으세요.
 
 ---
 
@@ -10,86 +10,87 @@
 
 ```mermaid
 graph TD
-    A[Software Design 결과 분석] --> B[Testing Strategy 워크샵]
+    A[Technical Specification 결과 분석] --> B[Testing Strategy 워크샵]
     B --> C[테스트 전략 정의]
-    C --> D[testing-strategy.md 문서화]
+    C --> D[04-testing-strategy.md 문서화]
     D --> E[문서 검증 및 리뷰]
-    E --> F[다음 단계: Technical Specification]
+    E --> F[다음 단계: TDD Implementation]
     
-    A1[software-design.md 검토, Aggregate 추출] --> A
+    A1[05-technical-specification.md 검토, 수도코드 분석] --> A
     B1[Unit/Integration/E2E 케이스 도출, 커버리지 목표] --> B
     C1[TDD 사이클, 테스트 도구 정의] --> C
     D1[구조화된 문서 작성] --> D
     E1[시니어개발자/QA 리뷰] --> E
 ```
 
-Testing Strategy는 **구현하기 전에 무엇을 어떻게 테스트할지 명확히 정의**하는 핵심 단계입니다.
+Testing Strategy는 **Technical Specification의 수도코드를 바탕으로 실제 테스트 전략을 수립**하는 핵심 단계입니다.
 
 ---
 
-## Phase 1: Software Design 결과 분석 (담당: 시니어개발자)
+## Phase 1: Technical Specification 결과 분석 (담당: 시니어개발자)
 
-### 1.1 사전 준비 - 완료된 Software Design 확인
+### 1.1 사전 준비 - 완료된 Technical Specification 확인
 
 #### 필수 전제 조건:
-- [ ] software-design.md 문서가 완성되어 있음
-- [ ] Software Design 워크샵이 완료되어 도메인전문가의 승인을 받음
-- [ ] 모든 Bounded Context와 Aggregate가 정의되어 있음
-- [ ] Invariant가 명확히 정의되어 있음
+- [ ] 04-technical-specification.md 문서가 완성되어 있음
+- [ ] Technical Specification 워크샵이 완료되어 시니어개발자의 승인을 받음
+- [ ] 모든 DDD 컴포넌트의 수도코드가 작성되어 있음
+- [ ] 기본 테스트 수도코드가 포함되어 있음
 
-#### Software Design 결과물 검토:
+#### Technical Specification 결과물 검토:
 ```bash
-# Software Design 문서 확인
-cat docs/event-domain-design/domains/<domain-name>/software-design.md
+# Technical Specification 문서 확인
+cat docs/event-domain-design/domains/<domain-name>/04-technical-specification.md
 
 # 주요 확인 포인트:
-# - 정의된 모든 Aggregate들
-# - 각 Aggregate의 Command와 Event
-# - Invariant (불변식)
-# - ACL 설계
+# - 모든 DDD 컴포넌트의 구현 수도코드
+# - 기본 테스트 수도코드 (Given-When-Then)
+# - TDD 구현 순서 정의
+# - ACL 및 Infrastructure Layer 수도코드
 ```
 
-### 1.2 Aggregate 목록 추출 및 분석
+### 1.2 Technical Specification 수도코드 분석
 
-#### Aggregate 목록화:
-Software Design에 정의된 모든 Aggregate와 구성 요소를 추출합니다.
+#### 구현 수도코드 분석:
+Technical Specification에 정의된 모든 구현 수도코드를 분석합니다.
 
-**추출 항목**:
-- **Aggregate 이름**: 각 Aggregate 식별
-- **Value Objects**: 유효성 검증 로직이 있는 VO
-- **Entities**: 비즈니스 로직 메서드가 있는 Entity
-- **Commands**: Aggregate가 받는 명령
-- **Events**: Aggregate가 발행하는 이벤트
-- **Invariants**: 반드시 지켜야 할 비즈니스 규칙
+**분석 항목**:
+- **DDD 컴포넌트**: Value Objects, Entities, Aggregates의 수도코드
+- **테스트 수도코드**: Given-When-Then 패턴으로 작성된 기본 테스트
+- **Infrastructure Layer**: Repository, Service, ACL의 수도코드
+- **Application Layer**: Server Actions의 수도코드
 
 #### 예시 결과:
 ```markdown
-| Aggregate | Value Objects | Entities | Commands | Events | Invariants |
-| --------- | ------------- | -------- | -------- | ------ | ---------- |
-| User Aggregate | UserId, UserEmail | User | CreateUserProfile | UserProfileCreated | 이메일은 고유해야 함 |
-| Organization Aggregate | OrganizationId | Organization | CreateOrganization | OrganizationCreated | Owner는 1명만 존재 |
+| Component | 구현 수도코드 | 기본 테스트 수도코드 | 우선순위 |
+| --------- | ------------- | ------------------ | -------- |
+| Position VO | 좌표 검증 로직 포함 | 유효/무효 좌표 테스트 | ⭐️⭐️⭐️⭐️⭐️ |
+| Canvas Aggregate | 캔버스 초기화 로직 | 초기화 성공/실패 테스트 | ⭐️⭐️⭐️⭐️⭐️ |
+| CanvasRepository | Drizzle ORM 연동 | 저장/조회 테스트 | ⭐️⭐️⭐️⭐️ |
 ```
 
-### 1.3 Process Model 시나리오 매핑 준비
+### 1.3 Process Model 및 Technical Specification 연계 분석
 
-#### Process Model 검토:
+#### Process Model과 Technical Specification의 연계 분석:
 ```bash
 # Process Model 문서 확인
-cat docs/event-domain-design/domains/<domain-name>/process-model.md
+cat docs/event-domain-design/domains/<domain-name>/02-process-model.md
+# Technical Specification 문서 확인  
+cat docs/event-domain-design/domains/<domain-name>/04-technical-specification.md
 
 # 주요 확인 포인트:
-# - 각 Scenario와 Sequence
-# - System 처리 로직
-# - Command와 Event 흐름
+# - Process Model의 각 Scenario가 Technical Specification의 수도코드와 매핑되는지
+# - 구현 수도코드가 Process Model의 모든 시나리오를 커버하는지
+# - 기본 테스트 수도코드가 Process Model의 핵심 플로우를 검증하는지
 ```
 
 #### 매핑 준비:
-Process Model의 각 Scenario를 테스트 케이스로 매핑할 준비를 합니다.
+Technical Specification의 수도코드를 바탕으로 체계적인 테스트 전략을 수립할 준비를 합니다.
 
 ### 1.4 템플릿 파일 준비
 ```bash
 # Testing Strategy 템플릿 복사 (아직 없다면)
-cp docs/event-domain-design/template/testing-strategy-template.md docs/event-domain-design/domains/<domain-name>/testing-strategy.md
+cp docs/event-domain-design/template/05-testing-strategy-template.md docs/event-domain-design/domains/<domain-name>/05-testing-strategy.md
 ```
 
 ---
@@ -115,25 +116,27 @@ cp docs/event-domain-design/template/testing-strategy-template.md docs/event-dom
 - 휴식 및 정리 (15-30분)
 ```
 
-### 2.2 Phase 1: Process Model → Test 매핑 (40-50분)
+### 2.2 Phase 1: Technical Specification → Test 전략 매핑 (40-50분)
 
-**목표**: Process Model의 각 Scenario를 테스트 케이스로 변환합니다.
+**목표**: Technical Specification의 수도코드를 바탕으로 체계적인 테스트 전략을 수립합니다.
 
 #### 진행 방법:
-1. **각 Scenario 검토**: Process Model의 모든 Scenario를 순서대로 확인
-2. **Sequence별 분해**: Command, System, Event 파악
-3. **테스트 종류 할당**: Unit, Integration, E2E로 분류
-4. **우선순위 설정**: 비즈니스 중요도에 따라 별점 부여
+1. **수도코드 분석**: Technical Specification의 모든 구현 수도코드를 확인
+2. **기본 테스트 확장**: 기본 테스트 수도코드를 상세 테스트 케이스로 확장
+3. **테스트 종류 할당**: Unit, Integration, E2E로 분류 및 우선순위 설정
+4. **커버리지 목표**: 각 레이어별 커버리지 목표 설정
 
 #### 매핑 템플릿:
 ```markdown
-| Process Model 요소 | 테스트 종류 | 테스트 케이스 | 우선순위 |
-|-------------------|------------|-------------|---------|
-| Command: [명령명] | Unit | [Aggregate].[메서드명]() | ⭐️⭐️⭐️⭐️⭐️ |
-| System: [시스템명] | Unit | [Aggregate] [로직 설명] | ⭐️⭐️⭐️⭐️ |
-| Event: [이벤트명] | Unit | [Event] 발행 검증 | ⭐️⭐️⭐️ |
-| 전체 플로우 | Integration | [Service/Action].[메서드명]() | ⭐️⭐️⭐️⭐️⭐️ |
-| 사용자 경험 | E2E | [시나리오 설명] | ⭐️⭐️⭐️⭐️⭐️ |
+| Technical Specification 요소 | 테스트 종류 | 테스트 케이스 | 우선순위 |
+|---------------------------|------------|-------------|---------|
+| [ValueObject] VO | Unit | [ValueObject] 생성/검증 테스트 | ⭐️⭐️⭐️⭐️⭐️ |
+| [Entity] Entity | Unit | [Entity] 비즈니스 로직 테스트 | ⭐️⭐️⭐️⭐️⭐️ |
+| [Aggregate] Aggregate | Unit | [Aggregate] Command/Event 테스트 | ⭐️⭐️⭐️⭐️⭐️ |
+| [Repository] Repository | Integration | DB 연동 테스트 | ⭐️⭐️⭐️⭐️ |
+| [Service] Service | Integration | 비즈니스 플로우 테스트 | ⭐️⭐️⭐️⭐️ |
+| [Action] ServerAction | Integration | 인증/권한 테스트 | ⭐️⭐️⭐️⭐️⭐️ |
+| 전체 사용자 플로우 | E2E | [시나리오 설명] | ⭐️⭐️⭐️⭐️⭐️ |
 ```
 
 #### 예시 결과:
@@ -580,39 +583,39 @@ export class UserEmail {
 다음 모든 조건이 충족되어야 Testing Strategy가 완료된 것으로 간주합니다:
 
 ### 워크샵 완료 기준:
-- [ ] Process Model → Test 매핑 완료
+- [ ] Technical Specification → Test 전략 매핑 완료
 - [ ] Unit/Integration/E2E 테스트 케이스 도출 완료
 - [ ] 커버리지 목표 설정 완료
 - [ ] TDD 사이클 정의 완료
 
 ### 문서 완료 기준:
-- [ ] testing-strategy.md의 모든 필수 섹션이 작성됨
-- [ ] Software Design과의 일관성이 확인됨
+- [ ] 05-testing-strategy.md의 모든 필수 섹션이 작성됨
+- [ ] Technical Specification과의 일관성이 확인됨
 - [ ] 시니어개발자와 QA의 검증 완료
-- [ ] Technical Specification 작성을 위한 충분한 정보 확보
+- [ ] TDD 구현을 위한 충분한 정보 확보
 - [ ] Git에 체계적으로 커밋되고 PR이 승인됨
 
 ---
 
-## 🚀 다음 단계: Technical Specification으로 연결
+## 🚀 다음 단계: TDD Implementation으로 연결
 
 Testing Strategy가 완료되면 다음 단계를 진행할 수 있습니다:
 
-### Technical Specification 작성 준비:
-1. **Technical Specification 가이드 참조**: `docs/event-domain-design/guide/05-technical-specification-guide.md`
-2. **테스트 케이스를 수도코드로 전환**: Testing Strategy의 테스트 케이스들이 수도코드가 됨
-3. **워크샵 참여자 조정**: 주니어개발자 중심으로
+### TDD Implementation 준비:
+1. **TDD Implementation 가이드 참조**: `docs/event-domain-design/guide/07-tdd-implementation-guide.md`
+2. **RED-GREEN-REFACTOR 사이클 적용**: Technical Specification의 수도코드를 실제 코드로 구현
+3. **워크샵 참여자**: 주니어개발자 (시니어개발자 코드 리뷰)
 
 ### 연결 정보:
-- **입력**: 완성된 testing-strategy.md + software-design.md
-- **출력**: technical-specification.md
-- **다음 담당자**: 주니어개발자 (시니어개발자 멘토링)
+- **입력**: 완성된 04-technical-specification.md + 05-testing-strategy.md
+- **출력**: 실제 구현 코드 + 테스트 코드
+- **다음 담당자**: 주니어개발자 (시니어개발자 코드 리뷰)
 
-### Technical Specification에서 해결될 사항:
-- **구현 수도코드**: 각 컴포넌트의 구현 방법
-- **테스트 수도코드**: Given-When-Then 패턴으로 구체화
-- **TDD 구현 순서**: 실제 구현 순서 정의
-- **도구 및 설정**: 개발 환경 구성
+### TDD Implementation에서 해결될 사항:
+- **RED 단계**: 테스트 먼저 작성 (실패 확인)
+- **GREEN 단계**: 최소 구현 (테스트 통과)
+- **REFACTOR 단계**: 코드 개선 (테스트 유지)
+- **커버리지 확인**: Testing Strategy의 목표 달성
 
 ---
 
@@ -620,10 +623,10 @@ Testing Strategy가 완료되면 다음 단계를 진행할 수 있습니다:
 
 ### 참조 가이드:
 - [Software Design 가이드](./03-software-design-guide.md)
-- [Technical Specification 가이드](./05-technical-specification-guide.md)
+- [Technical Specification 가이드](./04-technical-specification-guide.md)
 
 ### 템플릿 파일:
-- [Testing Strategy 템플릿](../template/testing-strategy-template.md)
+- [Testing Strategy 템플릿](../template/05-testing-strategy-template.md)
 
 ### 예시 문서:
 - [User Management Domain 예시](../domains/user-management-domain/testing-strategy.md)
@@ -635,13 +638,13 @@ Testing Strategy가 완료되면 다음 단계를 진행할 수 있습니다:
 ### 워크샵 성공 팁:
 - **시니어개발자 주도**: 테스트 전략 및 TDD 사이클을 명확히 정의
 - **QA 참여**: 실제 사용자 시나리오와 에러 케이스 검증
-- **Process Model 기반**: 모든 테스트 케이스를 Process Model에서 도출
+- **Technical Specification 기반**: 수도코드를 바탕으로 체계적인 테스트 전략 수립
 - **우선순위 명확히**: 제한된 시간에 핵심 기능부터 테스트
 
 ### 문서화 성공 팁:
 - **구체적 테스트 케이스**: Given-When-Then 패턴 일관 적용
 - **명확한 우선순위**: 별점으로 우선순위 표시
-- **Software Design 연결성**: Aggregate와 Invariant를 테스트로 검증
+- **Technical Specification 연결성**: 수도코드의 구현 로직을 테스트로 검증
 - **실용적 목표**: 달성 가능한 커버리지 목표 설정
 
 ### 주의사항:
