@@ -12,6 +12,7 @@ import {
 } from '@workspace/ui/components/ui/tooltip';
 import { Map } from 'lucide-react';
 import { MiniMap } from '@xyflow/react';
+import { cn } from '@/lib/utils';
 import { useCanvasViewport } from '../hooks/use-canvas-viewport';
 
 export interface ViewportControlsProps {
@@ -82,13 +83,13 @@ export function ViewportControls({ className = '' }: ViewportControlsProps) {
     >
       {/* MiniMap positioned above the toolbar */}
       {showMiniMap && (
-        <div className="w-48 h-32 bg-background/70 backdrop-blur-md border border-border/50 rounded-lg shadow-xl overflow-hidden">
+        <div className="w-48 h-32 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg overflow-hidden">
           <MiniMap />
         </div>
       )}
 
       {/* Zoom controls toolbar */}
-      <div className="flex items-center gap-3 px-2 py-1 bg-background/70 backdrop-blur-md border border-border/50 rounded-lg shadow-xl">
+      <div className="flex items-center gap-3 px-2 py-1.5 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg">
         {/* 줌 레벨 표시 (읽기 전용) */}
         <div className="flex items-center gap-2">
           <Label className="tabular-nums text-sm">
@@ -110,7 +111,12 @@ export function ViewportControls({ className = '' }: ViewportControlsProps) {
               <Button
                 variant={showMiniMap ? 'default' : 'ghost'}
                 size="sm"
-                className="h-8 w-8 p-0 rounded-md"
+                className={cn(
+                  'h-8 w-8 p-0 rounded-sm transition-colors',
+                  showMiniMap
+                    ? 'bg-accent text-accent-foreground'
+                    : 'hover:bg-accent hover:text-accent-foreground'
+                )}
                 onClick={toggleMiniMap}
                 aria-label="Toggle Minimap"
               >

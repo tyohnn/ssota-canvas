@@ -1,4 +1,4 @@
-import type { Node, Edge } from '@xyflow/react';
+import type { Node, Edge, BuiltInNode, BuiltInEdge } from '@xyflow/react';
 import type { BlockDTO } from '@/domains/block-management/shared/dtos';
 import type {
   BlockMountView,
@@ -9,7 +9,33 @@ import type {
 } from '../../shared/dtos';
 
 /**
- * React Flow Node 데이터 타입
+ * Basic Block 노드 데이터 타입
+ * React Flow의 Record<string, unknown> 제약을 만족하도록 확장
+ */
+export interface BasicBlockNodeData extends Record<string, unknown> {
+  blockMountId: string;
+  blockId: string;
+  blockType: 'basic';
+  metadata?: Record<string, any>;
+  size: { width: number; height: number };
+  zOrder: number;
+  isOptimistic?: boolean;
+  position: { x: number; y: number };
+  _optimisticId?: string;
+}
+
+/**
+ * Basic Block 노드 타입 정의 (React Flow TypeScript 문서 방식)
+ */
+export type BasicBlockNode = Node<BasicBlockNodeData, 'basic'>;
+
+/**
+ * 확장 가능한 노드 타입 유니온 (향후 다른 블록 타입 추가 가능)
+ */
+export type CustomNodeType = BuiltInNode | BasicBlockNode;
+
+/**
+ * React Flow Node 데이터 타입 (기존 호환성 유지)
  */
 export interface BlockNodeData extends Record<string, unknown> {
   blockMountId: string;

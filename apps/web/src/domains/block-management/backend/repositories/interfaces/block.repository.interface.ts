@@ -1,4 +1,6 @@
 import { BlockId } from '../../../shared/value-objects/block-id.vo';
+import { BlockType } from '../../../shared/value-objects/block-type.vo';
+import { Metadata } from '../../../shared/value-objects/metadata.vo';
 import { Block } from '../../../shared/entities/block.entity';
 
 /**
@@ -13,6 +15,25 @@ export interface BlockRepository {
    * @param block - Block Entity 또는 Aggregate
    */
   save(block: Block): Promise<void>;
+
+  /**
+   * Block 생성 (UUID 충돌 시 재시도 포함)
+   * 새 Block을 생성할 때만 사용 - 기존 Block 수정 시에는 save() 사용
+   *
+   * @param blockType - Block 타입
+   * @param workspaceId - 워크스페이스 ID
+   * @param metadata - 메타데이터
+   * @param createdAt - 생성 시각 (기본값: 현재 시각)
+   * @param updatedAt - 수정 시각 (기본값: 현재 시각)
+   * @returns 생성된 Block Entity
+   */
+  createBlock(
+    blockType: BlockType,
+    workspaceId: string,
+    metadata: Metadata,
+    createdAt?: Date,
+    updatedAt?: Date
+  ): Promise<Block>;
 
   /**
    * ID로 Block 조회

@@ -8,6 +8,8 @@ import type { Node, Edge } from '@xyflow/react';
 
 export interface CanvasClientProps {
   pageId: string;
+  orgId: string;
+  workspaceId: string;
   initialNodes: Node[];
   initialEdges: Edge[];
 }
@@ -19,6 +21,8 @@ export interface CanvasClientProps {
  */
 export function CanvasClient({
   pageId,
+  orgId,
+  workspaceId,
   initialNodes,
   initialEdges,
 }: CanvasClientProps) {
@@ -30,6 +34,8 @@ export function CanvasClient({
           <main className="flex-1 relative overflow-hidden">
             <CanvasReactFlowWrapper
               pageId={pageId}
+              orgId={orgId}
+              workspaceId={workspaceId}
               initialNodes={initialNodes}
               initialEdges={initialEdges}
             />

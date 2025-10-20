@@ -4,11 +4,16 @@ import { BlockManagementError } from '../errors/block-management.error';
  * 지원되는 블록 타입 목록
  */
 export const SUPPORTED_BLOCK_TYPES = [
+  'basic',
   'text',
   'image',
+  'video',
+  'map',
   'code',
   'page',
   'shape',
+  'shape-square',
+  'shape-circle',
   'todo',
 ] as const;
 

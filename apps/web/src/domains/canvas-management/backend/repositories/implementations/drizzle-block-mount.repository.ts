@@ -18,31 +18,39 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
   async save(blockMountAggregate: BlockMountAggregate): Promise<void> {
     const blockMount = blockMountAggregate.blockMount;
 
-    await adminDb
-      .insert(blockMounts)
-      .values({
-        id: blockMount.id.value,
-        page_id: blockMount.pageId.value,
-        block_id: blockMount.blockId.value,
-        position_x: String(blockMount.position.x),
-        position_y: String(blockMount.position.y),
-        size_width: String(blockMount.size.width),
-        size_height: String(blockMount.size.height),
-        z_order: blockMount.zOrder.value,
-        created_at: blockMount.createdAt,
-        updated_at: blockMount.updatedAt,
-      })
-      .onConflictDoUpdate({
-        target: blockMounts.id,
-        set: {
+    try {
+      await adminDb
+        .insert(blockMounts)
+        .values({
+          id: blockMount.id.value,
+          page_id: blockMount.pageId.value,
+          block_id: blockMount.blockId.value,
           position_x: String(blockMount.position.x),
           position_y: String(blockMount.position.y),
           size_width: String(blockMount.size.width),
           size_height: String(blockMount.size.height),
           z_order: blockMount.zOrder.value,
+          created_at: blockMount.createdAt,
           updated_at: blockMount.updatedAt,
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: blockMounts.id,
+          set: {
+            position_x: String(blockMount.position.x),
+            position_y: String(blockMount.position.y),
+            size_width: String(blockMount.size.width),
+            size_height: String(blockMount.size.height),
+            z_order: blockMount.zOrder.value,
+            updated_at: blockMount.updatedAt,
+          },
+        });
+    } catch (error) {
+      console.error(
+        '❌ [DrizzleBlockMountRepository.save] Failed to save block mount:',
+        error
+      );
+      throw error;
+    }
   }
 
   async findById(

@@ -84,6 +84,8 @@ async function PageContent({
   return (
     <CanvasClient
       pageId={pageId}
+      orgId={orgId}
+      workspaceId={workspaceId}
       initialNodes={initialNodes}
       initialEdges={initialEdges}
     />

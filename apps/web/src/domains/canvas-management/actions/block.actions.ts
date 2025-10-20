@@ -1,0 +1,140 @@
+'use server';
+
+import { createClient } from '@/utils/supabase/server';
+import { revalidatePath } from 'next/cache';
+import { CreateBlockRequest, BlockMountedDTO } from '../shared/dtos/index';
+import { ActionResult, ok, err } from '@/lib/action-result';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { Position } from '../shared/value-objects/position.vo';
+import { Size } from '../shared/value-objects/size.vo';
+import { CanvasManagementService } from '../backend/services/canvas-management.service';
+import { BlockManagementService } from '@/domains/block-management/backend/services/block-management.service';
+import { DrizzleBlockMountRepository } from '../backend/repositories/implementations/drizzle-block-mount.repository';
+import { DrizzleEdgeRepository } from '../backend/repositories/implementations/drizzle-edge.repository';
+import { DrizzleViewportRepository } from '../backend/repositories/implementations/drizzle-viewport.repository';
+import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
+import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
+import { CreateAndMountBlockCommand } from '../shared/commands/index';
+
+/**
+ * Block 생성 및 마운팅 통합 Server Action
+ *
+ * @param request - CreateBlockRequest
+ * @returns BlockMountedDTO (성공) | Error (실패)
+ */
+export async function createBlockAction(
+  request: CreateBlockRequest
+): Promise<ActionResult<BlockMountedDTO>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error('❌ [createBlockAction] Authentication failed:', authError);
+      return err('Unauthorized: User not authenticated', {
+        code: 'UNAUTHORIZED',
+        meta: { authError: authError?.message },
+      });
+    }
+
+    const userIdVO = new UserId(user.id);
+    const pageIdVO = new PageId(request.pageId);
+
+    // 2. 기본 크기 설정 (size가 제공되지 않은 경우)
+    const defaultSize = { width: 200, height: 150 };
+    const sizeVO = new Size(
+      request.size?.width ?? defaultSize.width,
+      request.size?.height ?? defaultSize.height
+    );
+    const positionVO = new Position(request.position.x, request.position.y);
+
+    // 3. Repository 인스턴스 생성
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const edgeRepository = new DrizzleEdgeRepository();
+    const viewportRepository = new DrizzleViewportRepository();
+    const blockRepository = new DrizzleBlockRepository();
+    const workspaceRepository = new DrizzleWorkspaceRepository();
+
+    // 4. Service 인스턴스 생성
+    const blockManagementService = new BlockManagementService(blockRepository);
+    const canvasManagementService = new CanvasManagementService(
+      blockManagementService,
+      blockMountRepository,
+      edgeRepository,
+      viewportRepository,
+      workspaceRepository
+    );
+
+    // 5. Block 생성 및 마운팅 Command 생성
+    const command: CreateAndMountBlockCommand = {
+      blockType: request.blockType,
+      workspaceId: request.workspaceId,
+      pageId: pageIdVO,
+      position: positionVO,
+      size: sizeVO,
+      userId: userIdVO.value,
+      metadata: {}, // 기본 메타데이터
+    };
+
+    // 6. CanvasManagementService.createAndMountBlock 호출
+    const result = await canvasManagementService.createAndMountBlock(command);
+
+    if (result.isError()) {
+      console.error(
+        '❌ [createBlockAction] CanvasManagementService failed:',
+        result.error
+      );
+      return err(String(result.error), {
+        code: 'BLOCK_CREATION_FAILED',
+        meta: {
+          originalError: result.error,
+          request,
+        },
+      });
+    }
+
+    const aggregate = result.value;
+
+    // 7. BlockMountedDTO로 변환
+    const blockMountedDTO: BlockMountedDTO = {
+      blockMountId: aggregate.blockMount.id.value,
+      blockId: aggregate.blockMount.blockId.value,
+      position: {
+        x: aggregate.blockMount.position.x,
+        y: aggregate.blockMount.position.y,
+      },
+      size: {
+        width: aggregate.blockMount.size.width,
+        height: aggregate.blockMount.size.height,
+      },
+      zOrder: aggregate.blockMount.zOrder.value,
+      createdAt: new Date().toISOString(),
+    };
+
+    // 8. 페이지 재검증 및 성공적으로 BlockMountedDTO 반환
+    if (request.orgId) {
+      revalidatePath(
+        `/r/${request.orgId}/workspace/${request.workspaceId}/page/${request.pageId}`
+      );
+    } else {
+      // orgId가 없는 경우 기존 경로 사용 (호환성)
+      revalidatePath(`/r/${request.workspaceId}/page/${request.pageId}`);
+    }
+
+    return ok(blockMountedDTO);
+  } catch (error) {
+    console.error('[createBlockAction] Error:', error);
+    return err('Internal server error', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+        request,
+      },
+    });
+  }
+}

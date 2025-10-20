@@ -36,7 +36,6 @@ export function BlockToolbar({ pageId, onAddBlock }: BlockToolbarProps) {
   };
 
   const handleSelectBlockType = (blockType: string) => {
-    console.log('Selected block type:', blockType, 'for page:', pageId);
     // TODO: createAndMountBlockAction 호출
     // TODO: 캔버스에 블럭 추가 로직
   };

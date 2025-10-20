@@ -1,17 +1,24 @@
 import { Result } from '@/utils/result';
 import { BlockId } from '../../shared/value-objects/block-id.vo';
+import { BlockType } from '../../shared/value-objects/block-type.vo';
+import { Metadata } from '../../shared/value-objects/metadata.vo';
+import { Block } from '../../shared/entities/block.entity';
 import { BlockDTO } from '../../shared/dtos/index';
 import { CreateBlockCommand } from '../../shared/commands/index';
 import { BlockManagementError } from '../../shared/errors/block-management.error';
+import { BlockRepository } from '../repositories/interfaces/block.repository.interface';
+import { DrizzleBlockRepository } from '../repositories/implementations/drizzle-block.repository';
 
 /**
  * Block Management Service
  * 다른 도메인에서 블럭 관련 비즈니스 로직을 사용할 때 활용하는 서비스
  */
 export class BlockManagementService {
-  constructor(
-    // TODO: BlockRepository 주입 예정
-  ) {}
+  private blockRepository: BlockRepository;
+
+  constructor(blockRepository?: BlockRepository) {
+    this.blockRepository = blockRepository || new DrizzleBlockRepository();
+  }
 
   /**
    * 블럭 생성
@@ -40,18 +47,25 @@ export class BlockManagementService {
         );
       }
 
-      // 2. TODO: BlockAggregate.create() 호출
-      // 3. TODO: BlockRepository.save() 호출
+      // 2. Block 생성 - Repository에서 UUID 충돌 처리를 담당
+      const blockTypeVO = new BlockType(command.blockType);
+      const metadataVO = new Metadata(command.metadata || {});
 
-      // 4. 임시 DTO 생성 (실제로는 Aggregate에서 생성)
-      const blockId = new BlockId('550e8400-e29b-41d4-a716-446655440000'); // 임시 ID
+      // 3. Repository를 통해 Block 생성 (UUID 충돌 시 재시도 포함)
+      const block = await this.blockRepository.createBlock(
+        blockTypeVO,
+        command.workspaceId,
+        metadataVO
+      );
+
+      // 5. DTO 생성 및 반환
       const dto: BlockDTO = {
-        id: blockId.value,
-        blockType: command.blockType,
-        workspaceId: command.workspaceId,
-        metadata: command.metadata || {},
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        id: block.id.value,
+        blockType: block.blockType.value,
+        workspaceId: block.workspaceId,
+        metadata: block.metadata.value || {},
+        createdAt: block.createdAt.toISOString(),
+        updatedAt: block.updatedAt.toISOString(),
       };
 
       return Result.success(dto);

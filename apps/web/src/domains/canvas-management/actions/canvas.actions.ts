@@ -249,7 +249,6 @@ export async function deleteBlockMountAction(
     }
 
     // TODO: 실제 구현으로 교체
-    console.log('Deleting block mount:', blockMountId);
 
     return ok(undefined);
   } catch (error) {

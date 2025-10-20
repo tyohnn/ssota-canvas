@@ -93,6 +93,15 @@ export interface InitializeCanvasRequest {
   pageId: string;
 }
 
+export interface CreateBlockRequest {
+  pageId: string;
+  blockType: string;
+  position: { x: number; y: number };
+  size?: { width: number; height: number };
+  workspaceId: string;
+  orgId?: string;
+}
+
 export interface MountBlockRequest {
   pageId: string;
   blockId: string;
@@ -135,6 +144,15 @@ export interface MountBlockDTO {
   size: { width: number; height: number };
   zOrder: number;
   mountedAt: string;
+}
+
+export interface BlockMountedDTO {
+  blockMountId: string;
+  blockId: string;
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+  zOrder: number;
+  createdAt: string;
 }
 
 export interface TransformBlockDTO {

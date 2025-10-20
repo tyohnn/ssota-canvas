@@ -15,6 +15,9 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
+// Type imports
+import type { CustomNodeType } from '../acl/react-flow.acl';
+
 // Canvas Management Hooks
 import { useCanvasMode } from '../hooks/use-canvas-mode';
 import { useCanvasSelection } from '../hooks/use-canvas-selection';
@@ -23,9 +26,15 @@ import { useCanvasViewport } from '../hooks/use-canvas-viewport';
 // Canvas Management Components
 import { CanvasToolbar } from './canvas-toolbar';
 import { ViewportControls } from './viewport-controls';
+import { SkeletonBlock } from './skeleton-block';
+import { BlockMountToolbar } from './block-mount-toolbar';
+import { BlockAddDialog } from './block-add-dialog';
+import { BasicBlockNode } from './basic-block-node';
 
 interface CanvasReactFlowWrapperProps {
   pageId: string;
+  orgId: string;
+  workspaceId: string;
   initialNodes: Node[];
   initialEdges: Edge[];
 }
@@ -40,6 +49,8 @@ interface CanvasReactFlowWrapperProps {
  */
 export function CanvasReactFlowWrapper({
   pageId,
+  orgId,
+  workspaceId,
   initialNodes,
   initialEdges,
 }: CanvasReactFlowWrapperProps) {
@@ -52,6 +63,28 @@ export function CanvasReactFlowWrapper({
   const canvasSelection = useCanvasSelection();
   const canvasViewport = useCanvasViewport();
 
+  // BlockAddDialog 상태 관리
+  const [showAddDialog, setShowAddDialog] = React.useState(false);
+
+  // 노드 타입 정의
+  const nodeTypes = React.useMemo(
+    () => ({
+      basic: BasicBlockNode,
+      // 다른 블록 타입들도 여기에 추가 가능
+    }),
+    []
+  );
+
+  // 블럭 타입 선택 핸들러
+  const handleSelectBlockType = React.useCallback(
+    (blockType: string) => {
+      setShowAddDialog(false);
+      // 선택된 블럭 타입으로 생성 모드 진입
+      canvasMode.enterBlockCreationMode(blockType);
+    },
+    [canvasMode]
+  );
+
   // 트랙패드 제스처 최적화 설정 (피그마 스타일)
   // - 핀치 제스처: 줌인/줌아웃
   // - 두 손가락 스크롤: 캔버스 패닝
@@ -59,13 +92,17 @@ export function CanvasReactFlowWrapper({
   return (
     <div className="h-full w-full relative">
       {/* 캔버스 상단 툴바 */}
-      <CanvasToolbar pageId={pageId} />
+      <CanvasToolbar
+        pageId={pageId}
+        onAddBlockClick={() => setShowAddDialog(true)}
+      />
 
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
         // 기본 설정
         fitView
         minZoom={0.1}
@@ -88,7 +125,29 @@ export function CanvasReactFlowWrapper({
 
         {/* 우측 하단 뷰포트 컨트롤 */}
         <ViewportControls />
+
+        {/* 블럭 생성 모드에서 표시되는 스켈레톤 블럭 */}
+        <SkeletonBlock
+          pageId={pageId}
+          orgId={orgId}
+          workspaceId={workspaceId}
+        />
+
+        {/* 선택된 블럭의 컨텍스트 툴바 */}
+        <BlockMountToolbar
+          pageId={pageId}
+          orgId={orgId}
+          workspaceId={workspaceId}
+        />
       </ReactFlow>
+
+      {/* Block Add Dialog (캔버스 밖에 위치) */}
+      <BlockAddDialog
+        isOpen={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+        onSelectBlockType={handleSelectBlockType}
+        workspaceId={workspaceId}
+      />
     </div>
   );
 }

@@ -120,6 +120,10 @@ export class CanvasManagementService {
       );
 
       if (blockCreationResult.isError()) {
+        console.error(
+          '❌ [CanvasManagementService] Block creation failed:',
+          blockCreationResult.error
+        );
         return Result.error(blockCreationResult.error);
       }
 
@@ -136,11 +140,26 @@ export class CanvasManagementService {
         command.size
       );
 
-      // 3. TODO: BlockMountRepository에 저장
-
+      // 3. BlockMountRepository에 저장
+      try {
+        await this.blockMountRepository.save(aggregate);
+      } catch (saveError) {
+        console.error(
+          '❌ [CanvasManagementService] Failed to save block mount:',
+          saveError
+        );
+        return Result.error(
+          saveError instanceof Error
+            ? saveError
+            : new Error('Failed to save block mount')
+        );
+      }
       return Result.success(aggregate);
     } catch (error) {
-      console.error('Block creation and mounting failed:', error);
+      console.error(
+        '💥 [CanvasManagementService] Block creation and mounting failed:',
+        error
+      );
       return Result.error(new Error('Block creation and mounting failed'));
     }
   }

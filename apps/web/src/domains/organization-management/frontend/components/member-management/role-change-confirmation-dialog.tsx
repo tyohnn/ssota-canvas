@@ -43,7 +43,7 @@ export function RoleChangeConfirmationDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md rounded-md">
         <DialogHeader>
           <DialogTitle>멤버 역할 변경</DialogTitle>
           <DialogDescription>멤버의 역할을 변경하시겠습니까?</DialogDescription>

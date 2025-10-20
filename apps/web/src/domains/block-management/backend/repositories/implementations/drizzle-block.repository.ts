@@ -24,36 +24,60 @@ export class DrizzleBlockRepository implements BlockRepository {
    * - Block 수정: 워크스페이스 멤버십 확인 후
    */
   async save(block: Block): Promise<void> {
-    // Check if block exists
-    const existing = await adminDb
-      .select()
-      .from(blocks)
-      .where(eq(blocks.id, block.id.value))
-      .limit(1);
+    await adminDb.insert(blocks).values({
+      id: block.id.value,
+      workspace_id: block.workspaceId,
+      block_type: block.blockType.value,
+      metadata: block.metadata.value || {},
+      created_at: block.createdAt,
+      updated_at: block.updatedAt,
+      deleted_at: block.deletedAt || null,
+    });
+  }
 
-    if (existing.length > 0) {
-      // Update: Admin DB 사용 (Service에서 권한 확인 후)
-      await adminDb
-        .update(blocks)
-        .set({
-          block_type: block.blockType.value,
-          metadata: block.metadata.value,
-          updated_at: block.updatedAt,
-          deleted_at: block.deletedAt,
-        })
-        .where(eq(blocks.id, block.id.value));
-    } else {
-      // Insert: Admin DB 사용 (Service에서 권한 확인 후)
-      await adminDb.insert(blocks).values({
-        id: block.id.value,
-        workspace_id: block.workspaceId,
-        block_type: block.blockType.value,
-        metadata: block.metadata.value || {},
-        created_at: block.createdAt,
-        updated_at: block.updatedAt,
-        deleted_at: block.deletedAt || null,
-      });
+  /**
+   * Block 생성 (UUID 충돌 시 재시도 포함)
+   * 새 Block을 생성할 때만 사용 - 기존 Block 수정 시에는 save() 사용
+   */
+  async createBlock(
+    blockType: BlockType,
+    workspaceId: string,
+    metadata: Metadata,
+    createdAt: Date = new Date(),
+    updatedAt: Date = new Date()
+  ): Promise<Block> {
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+      try {
+        const blockId = new BlockId(crypto.randomUUID());
+        const block = Block.create(blockId, workspaceId, blockType, metadata);
+
+        // Try to save with the generated ID
+        await this.save(block);
+
+        return block;
+      } catch (error: any) {
+        // If it's a unique constraint violation (UUID collision), retry
+        if (
+          (error?.code === '23505' ||
+            error?.message?.includes('duplicate key')) &&
+          attempts < maxAttempts - 1
+        ) {
+          attempts++;
+          console.warn(
+            `[DrizzleBlockRepository] UUID collision detected, retry attempt ${attempts}/${maxAttempts}`
+          );
+          continue;
+        }
+        throw error;
+      }
     }
+
+    throw new Error(
+      `Failed to create block after ${maxAttempts} attempts due to UUID collisions`
+    );
   }
 
   /**

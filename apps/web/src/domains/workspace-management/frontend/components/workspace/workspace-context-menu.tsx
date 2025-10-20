@@ -74,7 +74,7 @@ export function WorkspaceContextMenu({
         <DropdownMenuTrigger asChild>
           <div
             className={cn(
-              'h-4 w-4 p-0 flex items-center justify-center rounded-sm transition-all hover:bg-accent cursor-pointer',
+              'h-4 w-4 p-0 flex items-center justify-center rounded-sm transition-all hover:bg-accent hover:text-accent-foreground cursor-pointer',
               isMenuOpen || showSettings || showInvite || showArchive
                 ? 'opacity-100'
                 : isParentHovered

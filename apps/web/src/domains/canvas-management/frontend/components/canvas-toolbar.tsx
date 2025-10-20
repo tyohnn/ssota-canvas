@@ -11,15 +11,17 @@ import {
 } from '@workspace/ui/components/ui/tooltip';
 import { Separator } from '@workspace/ui/components/ui/separator';
 import { Plus, MousePointer, Hand, Maximize } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Canvas Management Hooks
 import { useCanvasMode } from '../hooks/use-canvas-mode';
 
 export interface CanvasToolbarProps {
   pageId: string;
+  onAddBlockClick?: () => void;
 }
 
-export function CanvasToolbar({ pageId }: CanvasToolbarProps) {
+export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
   const reactFlow = useReactFlow();
   const canvasMode = useCanvasMode();
 
@@ -32,11 +34,10 @@ export function CanvasToolbar({ pageId }: CanvasToolbarProps) {
     reactFlow.fitView({ duration: 200, padding: 0.1 });
   }, [reactFlow]);
 
-  // 블록 생성 모드 진입 (CM-002에서 구현될 예정)
+  // 블록 추가 다이얼로그 열기
   const handleAddBlock = React.useCallback(() => {
-    // TODO: CM-002에서 BlockAddDialog와 연동
-    console.log('Add block clicked for page:', pageId);
-  }, [pageId]);
+    onAddBlockClick?.();
+  }, [onAddBlockClick]);
 
   // Keyboard event handler
   const handleKeyDown = React.useCallback(
@@ -87,7 +88,7 @@ export function CanvasToolbar({ pageId }: CanvasToolbarProps) {
 
   return (
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-      <div className="flex items-center gap-1 px-2 py-1 bg-background/70 backdrop-blur-md border border-border/50 rounded-lg shadow-xl">
+      <div className="flex items-center gap-1 px-2 py-1.5 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg">
         <TooltipProvider>
           {/* Selection Tool - 항상 활성화 */}
           <Tooltip>
@@ -95,7 +96,7 @@ export function CanvasToolbar({ pageId }: CanvasToolbarProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 rounded-md"
+                className="h-8 w-8 p-0 rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
                 onClick={canvasMode.exitToDefaultMode}
               >
                 <MousePointer className="h-4 w-4" />
@@ -112,7 +113,7 @@ export function CanvasToolbar({ pageId }: CanvasToolbarProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 rounded-md"
+                className="h-8 w-8 p-0 rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
                 onClick={() => {
                   // Hand tool은 React Flow 내장 기능 활용
                   console.log('Hand tool activated');
@@ -128,7 +129,7 @@ export function CanvasToolbar({ pageId }: CanvasToolbarProps) {
 
           <Separator
             orientation="vertical"
-            className="mx-1 data-[orientation=vertical]:h-4"
+            className="mx-1 data-[orientation=vertical]:h-4 bg-border/50"
           />
 
           {/* Fit to View Button */}
@@ -138,7 +139,7 @@ export function CanvasToolbar({ pageId }: CanvasToolbarProps) {
                 variant="ghost"
                 size="sm"
                 onClick={handleFitToView}
-                className="h-8 w-8 p-0 rounded-md"
+                className="h-8 w-8 p-0 rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <Maximize className="h-4 w-4" />
               </Button>
@@ -150,7 +151,7 @@ export function CanvasToolbar({ pageId }: CanvasToolbarProps) {
 
           <Separator
             orientation="vertical"
-            className="mx-1 data-[orientation=vertical]:h-4"
+            className="mx-1 data-[orientation=vertical]:h-4 bg-border/50"
           />
 
           {/* Add Block Button */}
@@ -160,7 +161,12 @@ export function CanvasToolbar({ pageId }: CanvasToolbarProps) {
                 variant={isBlockCreationMode ? 'default' : 'ghost'}
                 size="sm"
                 onClick={handleAddBlock}
-                className="h-8 w-8 p-0 rounded-md"
+                className={cn(
+                  'h-8 w-8 p-0 rounded-sm transition-colors',
+                  isBlockCreationMode
+                    ? 'bg-accent text-accent-foreground'
+                    : 'hover:bg-accent hover:text-accent-foreground'
+                )}
                 disabled={isBlockCreationMode}
               >
                 <Plus className="h-4 w-4" />

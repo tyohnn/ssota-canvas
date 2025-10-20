@@ -1,6 +1,24 @@
 'use client';
 
 import React, { useState } from 'react';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@workspace/ui/components/ui/command';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@workspace/ui/components/ui/dialog';
+import { FileText, Image, Video, Map, Square, Circle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useCanvasMode } from '../hooks/use-canvas-mode';
 
 /**
  * Block Type 정의 (임시)
@@ -9,50 +27,57 @@ import React, { useState } from 'react';
 interface BlockType {
   type: string;
   displayName: string;
-  icon: string;
+  icon: React.ComponentType<{ className?: string }>;
   description: string;
+  category?: string;
 }
 
 /**
- * 기본 블럭 타입 목록 (임시)
+ * 기본 블럭 타입 목록 (Command 컴포넌트용으로 확장)
  * TODO: Block Management Domain의 useBlockManagement Hook에서 가져오기
  */
 const DEFAULT_BLOCK_TYPES: BlockType[] = [
   {
-    type: 'text',
-    displayName: '텍스트',
-    icon: '📝',
-    description: '일반 텍스트 블럭',
+    type: 'basic',
+    displayName: 'Basic Block',
+    icon: FileText,
+    description: 'shadcn basic 블럭 타입',
+    category: 'Basic',
+  },
+  {
+    type: 'shape-square',
+    displayName: 'Square',
+    icon: Square,
+    description: '사각형 도형 블럭',
+    category: 'Shapes',
+  },
+  {
+    type: 'shape-circle',
+    displayName: 'Circle',
+    icon: Circle,
+    description: '원형 도형 블럭',
+    category: 'Shapes',
   },
   {
     type: 'image',
-    displayName: '이미지',
-    icon: '🖼️',
+    displayName: 'Image',
+    icon: Image,
     description: '이미지 블럭',
+    category: 'Media',
   },
   {
-    type: 'code',
-    displayName: '코드',
-    icon: '💻',
-    description: '코드 블럭',
-  },
-  {
-    type: 'shape',
-    displayName: '도형',
-    icon: '⬜',
-    description: '기본 도형',
-  },
-  {
-    type: 'youtube',
-    displayName: '유튜브',
-    icon: '▶️',
-    description: '유튜브 영상',
+    type: 'video',
+    displayName: 'Video',
+    icon: Video,
+    description: '비디오 블럭',
+    category: 'Media',
   },
   {
     type: 'map',
-    displayName: '지도',
-    icon: '🗺️',
+    displayName: 'Map',
+    icon: Map,
     description: '지도 블럭',
+    category: 'Media',
   },
 ];
 
@@ -69,17 +94,8 @@ export interface BlockAddDialogProps {
 /**
  * BlockAddDialog Component
  *
- * 블럭 타입 선택을 위한 다이얼로그 컴포넌트
- *
- * Features:
- * - 카테고리별 블럭 타입 목록 표시 (도형, 유튜브, 이미지, 영상, 지도 등)
- * - 각 타입에 아이콘과 이름 표시
- * - 검색 기능으로 타입 필터링
- * - 선택 시 블럭 생성 모드 활성화
- *
- * TODO: Block Management Domain의 BlockTypeSelector 컴포넌트 재사용
- * TODO: useBlockManagement Hook으로 블록 타입 정보 조회
- * TODO: 워크스페이스 권한 기반 타입 활성화/비활성화
+ * Command 컴포넌트를 사용한 블럭 타입 선택 다이얼로그
+ * 더 나은 키보드 네비게이션과 검색 기능 제공
  */
 export function BlockAddDialog({
   isOpen,
@@ -87,106 +103,83 @@ export function BlockAddDialog({
   onSelectBlockType,
   workspaceId,
 }: BlockAddDialogProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const canvasMode = useCanvasMode();
 
-  // 검색 필터링
-  const filteredBlockTypes = DEFAULT_BLOCK_TYPES.filter(
-    blockType =>
-      blockType.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      blockType.description.toLowerCase().includes(searchQuery.toLowerCase())
+  // 카테고리별로 그룹화된 블럭 타입
+  const blockTypesByCategory = DEFAULT_BLOCK_TYPES.reduce(
+    (acc, blockType) => {
+      const category = blockType.category || 'General';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(blockType);
+      return acc;
+    },
+    {} as Record<string, BlockType[]>
   );
 
   const handleSelectBlockType = (blockType: string) => {
+    // useCanvasMode Hook을 사용하여 블럭 생성 모드 진입
+    canvasMode.enterBlockCreationMode(blockType);
+
+    // 기존 콜백도 호출 (하위 호환성)
     onSelectBlockType(blockType);
     onClose();
-    setSearchQuery('');
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* 헤더 */}
-        <div className="border-b p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">
-              블럭 타입 선택
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="닫기"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-[450px] p-0 rounded-md">
+        <DialogHeader className="px-4 py-3 border-b border-border/30">
+          <DialogTitle>블럭 타입 선택</DialogTitle>
+        </DialogHeader>
 
-          {/* 검색 */}
-          <input
-            type="text"
+        <Command className="rounded-md border-0">
+          <CommandInput
             placeholder="블럭 타입 검색..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border-0 focus:ring-0 rounded-md"
           />
-        </div>
+          <CommandList>
+            <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
 
-        {/* 블럭 타입 그리드 */}
-        <div className="p-4 overflow-y-auto max-h-[60vh]">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {filteredBlockTypes.map(blockType => (
-              <button
-                key={blockType.type}
-                onClick={() => handleSelectBlockType(blockType.type)}
-                className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
-              >
-                <div className="flex items-center space-x-3 mb-2">
-                  <span className="text-3xl">{blockType.icon}</span>
-                  <span className="font-semibold text-gray-900">
-                    {blockType.displayName}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600">{blockType.description}</p>
-              </button>
-            ))}
-          </div>
-
-          {/* 검색 결과 없음 */}
-          {filteredBlockTypes.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">검색 결과가 없습니다.</p>
-            </div>
-          )}
-        </div>
-
-        {/* 푸터 */}
-        <div className="border-t p-4 bg-gray-50">
-          <p className="text-sm text-gray-600">
-            💡 Tip: 블럭을 선택하면 캔버스에 추가할 수 있습니다.
-          </p>
-        </div>
-      </div>
-    </div>
+            {Object.entries(blockTypesByCategory).map(
+              ([category, blockTypes], index) => (
+                <React.Fragment key={category}>
+                  <CommandGroup heading={category}>
+                    {blockTypes.map(blockType => {
+                      const IconComponent = blockType.icon;
+                      return (
+                        <CommandItem
+                          key={blockType.type}
+                          value={`${blockType.displayName} ${blockType.description}`}
+                          onSelect={() => handleSelectBlockType(blockType.type)}
+                          className={cn(
+                            'flex items-center gap-3 px-2 py-1.5 rounded-md transition-colors',
+                            'hover:bg-accent hover:text-accent-foreground'
+                          )}
+                        >
+                          <IconComponent className="h-4 w-4" />
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {blockType.displayName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {blockType.description}
+                            </span>
+                          </div>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                  {index < Object.keys(blockTypesByCategory).length - 1 && (
+                    <CommandSeparator className="bg-border/50" />
+                  )}
+                </React.Fragment>
+              )
+            )}
+          </CommandList>
+        </Command>
+      </DialogContent>
+    </Dialog>
   );
 }
