@@ -1,5 +1,11 @@
-import { PageViewer } from '@/domains/workspace-management/frontend/components/page-viewer/page-viewer';
-import { PageSyncClient } from './page-sync-client';
+import { Suspense } from 'react';
+import { getCanvasViewAction } from '@/domains/canvas-management/actions/canvas.actions';
+import {
+  toReactFlowNodeFromCanvasView,
+  toReactFlowEdgeFromCanvasView,
+} from '@/domains/canvas-management/frontend/acl/react-flow.acl';
+import { CanvasClient } from '@/domains/canvas-management/frontend/components/canvas-client';
+import type { Node, Edge } from '@xyflow/react';
 
 interface WorkspacePageProps {
   params: Promise<{
@@ -10,28 +16,103 @@ interface WorkspacePageProps {
 }
 
 /**
+ * Canvas Loading Skeleton
+ */
+function CanvasLoadingSkeleton() {
+  return (
+    <div className="h-full flex items-center justify-center bg-gray-50">
+      <div className="text-center space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+        <p className="text-lg text-gray-600">캔버스를 로딩하고 있습니다...</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Canvas Error Fallback
+ */
+function CanvasErrorFallback({ error }: { error: string }) {
+  return (
+    <div className="h-full flex items-center justify-center bg-gray-50">
+      <div className="text-center space-y-4 max-w-md">
+        <div className="text-red-500 text-5xl">⚠️</div>
+        <h2 className="text-2xl font-bold text-gray-900">캔버스 로드 실패</h2>
+        <p className="text-gray-600">{error}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 페이지의 캔버스 콘텐츠를 렌더링하는 서버 컴포넌트
+ */
+async function PageContent({
+  pageId,
+  orgId,
+  workspaceId,
+}: {
+  pageId: string;
+  orgId: string;
+  workspaceId: string;
+}) {
+  const canvasViewResult = await getCanvasViewAction(
+    pageId,
+    orgId,
+    workspaceId
+  );
+
+  if (!canvasViewResult.success) {
+    return (
+      <CanvasErrorFallback
+        error={canvasViewResult.error || '캔버스 데이터를 불러올 수 없습니다.'}
+      />
+    );
+  }
+
+  const canvasViewData = canvasViewResult.data;
+
+  // ACL 변환: CanvasViewData → React Flow 초기 데이터
+  const initialNodes: Node[] = canvasViewData.blocks.map(block =>
+    toReactFlowNodeFromCanvasView(block)
+  );
+
+  const initialEdges: Edge[] = canvasViewData.edges.map(edge =>
+    toReactFlowEdgeFromCanvasView(edge)
+  );
+
+  return (
+    <CanvasClient
+      pageId={pageId}
+      initialNodes={initialNodes}
+      initialEdges={initialEdges}
+    />
+  );
+}
+
+/**
  * 페이지 렌더링
  *
  * - URL이 Single Source of Truth
- * - PageSyncClient: 사이드바 선택 상태 동기화 + 최근 방문 페이지 쿠키 저장
- * - PageViewer: props로 pageId, workspaceId 전달 (Context는 fallback)
+ * - Suspense로 데이터 로딩 처리
+ * - CanvasClient를 사용하여 캔버스 렌더링
  */
 export default async function WorkspacePageRoute({
   params,
 }: WorkspacePageProps) {
   const { orgId, workspaceId, pageId } = await params;
 
-  return (
-    <>
-      {/* 사이드바 하이라이트 동기화 + 최근 방문 페이지 쿠키 저장 */}
-      <PageSyncClient orgId={orgId} workspaceId={workspaceId} pageId={pageId} />
-
-      {/* 페이지 콘텐츠 렌더링 (props 기반) */}
-      <div className="flex h-full">
-        <div className="flex-1 overflow-auto">
-          <PageViewer pageId={pageId} workspaceId={workspaceId} />
-        </div>
+  if (!pageId) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-muted-foreground">페이지를 선택해주세요</p>
       </div>
-    </>
+    );
+  }
+
+  return (
+    <Suspense fallback={<CanvasLoadingSkeleton />}>
+      <PageContent pageId={pageId} orgId={orgId} workspaceId={workspaceId} />
+    </Suspense>
   );
 }

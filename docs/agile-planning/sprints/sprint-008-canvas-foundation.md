@@ -53,19 +53,16 @@ Canvas Management Domain의 설계가 **React Flow 중심 아키텍처**로 대�
 **담당자**: Full-stack Developer  
 **예상 완료일**: 2025-10-25 (Week 1)  
 
-**주요 구현**:
-- ✅ **Backend (Read Model)**:
-  - `GetCanvasViewQuery` 클래스 (BlockMount, Edge, Viewport 통합 조회)
-  - `getCanvasViewAction` Server Action
-  - BlockMountRepository, EdgeRepository, ViewportRepository (findByPageId 메서드)
-- ✅ **ACL**:
-  - `toReactFlowNode()`, `toReactFlowEdge()` 변환 함수
-- ✅ **Frontend (기본 렌더링)**:
-  - `page.tsx` - Server Component, ACL 변환
-  - `CanvasClient` - ReactFlowProvider 설정
-  - `CanvasReactFlowWrapper` - React Flow 인스턴스 (기본 버전)
-  - `useCanvasMode()` Hook (읽기 전용)
-  - `useCanvasViewport()` Hook (읽기 전용)
+**주요 구현 완료**:
+- ✅ **Backend (Service Layer 통합)**:
+  - `CanvasManagementService.getCanvasView()` - Repository 통합 조회
+  - `getCanvasViewAction` Server Action (URL 파라미터 기반 권한 검증 포함)
+  - DrizzleBlockMountRepository `findByPageIdWithBlocks()` JOIN 쿼리
+  - DefaultWorkspaceNavigationService 권한 검증 연동
+- ✅ **ACL & Frontend**:
+  - `toReactFlowNodeFromCanvasView()`, `toReactFlowEdgeFromCanvasView()` 변환 함수
+  - `page.tsx` Server Component - getCanvasViewAction 호출 (URL 파라미터 전달)
+  - `CanvasClient` Client Component - React Flow 렌더링
 
 **제거할 것들** ❌:
 - CanvasAggregate, Canvas Entity, CanvasId VO
@@ -74,10 +71,11 @@ Canvas Management Domain의 설계가 **React Flow 중심 아키텍처**로 대�
 - CanvasManagementContext
 - 기존 useCanvasManagement Hook
 
-**완료 시 테스트 가능**:
+**테스트 가능한 기능**:
 - ✅ 빈 페이지 접근 → 빈 캔버스 렌더링
-- ✅ 기존 페이지 접근 → 블럭/엣지 렌더링
-- ✅ 뷰포트 복원 확인
+- ✅ 기존 페이지 접근 → 블럭/엣지 렌더링  
+- ✅ 권한 검증 통과 → 데이터 정상 로드
+- ✅ URL 파라미터 기반 권한 검증 (orgId, workspaceId)
 
 ---
 
@@ -300,7 +298,7 @@ Canvas Management Domain의 설계가 **React Flow 중심 아키텍처**로 대�
 ## 📊 진행 상황 추적
 
 ### Sprint 008 전체 진행률
-**현재**: 40% (기존 완료 작업 재사용)  
+**현재**: 75% (CM-001 완료, CM-002 진행 중)  
 **목표**: 100% (CM-001, CM-002, CM-003 완료)
 
 **기존 완료 작업**: 
@@ -316,17 +314,14 @@ Canvas Management Domain의 설계가 **React Flow 중심 아키텍처**로 대�
 - [x] ✅ Entities (BlockMount, Edge, Viewport)
 - [x] ✅ Repositories (기본 구조 및 findByPageId)
 
-**새로 구현 필요**:
-- [ ] Phase 1: GetCanvasViewQuery (Read Model) - 0%
-- [ ] Phase 2: getCanvasViewAction (Server Action) - 0%
-- [ ] Phase 3: ACL (toReactFlowNode, toReactFlowEdge) - 0%
-- [ ] Phase 4: Frontend Components (page.tsx, CanvasClient) - 0%
-- [ ] Phase 5: E2E Testing - 0%
-
-**제거 작업**:
-- [ ] Canvas Aggregate 관련 코드 제거 (~15개 파일)
-- [ ] CanvasManagementContext 제거
-- [ ] 기존 useCanvasManagement Hook 제거
+#### CM-001: 캔버스 데이터 로드 및 렌더링 (8pts) - ✅ **100% 완료**
+**완료된 주요 작업**:
+- [x] ✅ **CanvasManagementService.getCanvasView()** 통합 구현
+- [x] ✅ **getCanvasViewAction** Server Action (URL 파라미터 기반 권한 검증 포함)
+- [x] ✅ **DrizzleBlockMountRepository** JOIN 쿼리 최적화
+- [x] ✅ **ACL** React Flow 변환 함수 및 테스트
+- [x] ✅ **Frontend** page.tsx + CanvasClient 컴포넌트
+- [x] ✅ **권한 검증** workspace-management 연동 (DefaultWorkspaceNavigationService.verifyPageAccess())
 
 ---
 

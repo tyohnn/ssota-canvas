@@ -11,6 +11,7 @@ import {
   boolean,
   index,
   check,
+  decimal,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 import { anonRole, authenticatedRole } from 'drizzle-orm/supabase';
@@ -42,6 +43,26 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'workspace-invitation',
   'system',
   'announcement',
+]);
+
+// Canvas Management Domain Enums
+export const canvasEdgeTypeEnum = pgEnum('canvas_edge_type', [
+  'default',
+  'straight',
+  'step',
+  'smoothstep',
+  'simplebezier',
+]);
+
+export const alignmentTypeEnum = pgEnum('alignment_type', [
+  'TOP',
+  'BOTTOM',
+  'LEFT',
+  'RIGHT',
+  'HORIZONTAL_CENTER',
+  'VERTICAL_CENTER',
+  'HORIZONTAL_DISTRIBUTE',
+  'VERTICAL_DISTRIBUTE',
 ]);
 
 // Profiles Table
@@ -792,6 +813,10 @@ export const pagesRelations = relations(pages, ({ one, many }) => ({
     references: [users.id],
   }),
   favorites: many(pageFavorites),
+  // Canvas Management Domain relations
+  blockMounts: many(blockMounts),
+  edges: many(edges),
+  viewports: many(viewports),
 }));
 
 export const workspaceMembersRelations = relations(
@@ -839,6 +864,399 @@ export const workspaceInvitationsRelations = relations(
   })
 );
 
+// Canvas Management Domain Tables
+// ================================
+
+// Blocks Table
+// 🔐 RLS Strategy: Basic authenticated user access
+export const blocks = pgTable(
+  'blocks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspace_id: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    block_type: text('block_type').notNull().default('text'),
+    metadata: jsonb('metadata').default({}),
+    created_at: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    deleted_at: timestamp('deleted_at', { withTimezone: true }),
+  },
+  table => ({
+    // Constraints
+    blockTypeLengthCheck: check(
+      'blocks_type_length',
+      sql`LENGTH(TRIM(${table.block_type})) >= 2 AND LENGTH(${table.block_type}) <= 50`
+    ),
+
+    // Indexes for performance
+    workspaceIdIdx: index('idx_blocks_workspace_id')
+      .on(table.workspace_id)
+      .where(sql`deleted_at IS NULL`),
+    typeIdx: index('idx_blocks_type')
+      .on(table.block_type)
+      .where(sql`deleted_at IS NULL`),
+    createdAtIndex: index('idx_blocks_created_at')
+      .on(table.created_at)
+      .where(sql`deleted_at IS NULL`),
+    idActiveIdx: index('idx_blocks_id_active')
+      .on(table.id)
+      .where(sql`deleted_at IS NULL`),
+
+    // RLS Policies - Basic authenticated user access
+    selectPolicy: pgPolicy('Enable read for authenticated users', {
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+    insertPolicy: pgPolicy('Enable insert for authenticated users', {
+      for: 'insert',
+      to: authenticatedRole,
+      withCheck: sql`true`,
+    }),
+    updatePolicy: pgPolicy('Enable update for authenticated users', {
+      for: 'update',
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+    deletePolicy: pgPolicy('Enable delete for authenticated users', {
+      for: 'delete',
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+  })
+).enableRLS();
+
+// Block Mounts Table
+// 🔐 RLS Strategy: Page-based access control via pages table
+export const blockMounts = pgTable(
+  'block_mounts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    page_id: uuid('page_id')
+      .notNull()
+      .references(() => pages.id, { onDelete: 'cascade' }),
+    block_id: uuid('block_id')
+      .notNull()
+      .references(() => blocks.id, { onDelete: 'cascade' }),
+    position_x: decimal('position_x', { precision: 10, scale: 2 })
+      .notNull()
+      .default('0'),
+    position_y: decimal('position_y', { precision: 10, scale: 2 })
+      .notNull()
+      .default('0'),
+    size_width: decimal('size_width', { precision: 8, scale: 2 })
+      .notNull()
+      .default('100'),
+    size_height: decimal('size_height', { precision: 8, scale: 2 })
+      .notNull()
+      .default('100'),
+    z_order: integer('z_order').notNull().default(0),
+    created_at: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    deleted_at: timestamp('deleted_at', { withTimezone: true }),
+  },
+  table => ({
+    // Constraints
+    positionXCheck: check(
+      'block_mounts_position_x_range',
+      sql`${table.position_x} >= -999999 AND ${table.position_x} <= 999999`
+    ),
+    positionYCheck: check(
+      'block_mounts_position_y_range',
+      sql`${table.position_y} >= -999999 AND ${table.position_y} <= 999999`
+    ),
+    sizeWidthCheck: check(
+      'block_mounts_size_width_range',
+      sql`${table.size_width} >= 1 AND ${table.size_width} <= 10000`
+    ),
+    sizeHeightCheck: check(
+      'block_mounts_size_height_range',
+      sql`${table.size_height} >= 1 AND ${table.size_height} <= 10000`
+    ),
+    zOrderCheck: check(
+      'block_mounts_z_order_range',
+      sql`${table.z_order} >= 0 AND ${table.z_order} <= 2147483647`
+    ),
+    uniquePageBlockCheck: unique('block_mounts_unique_page_block').on(
+      table.page_id,
+      table.block_id
+    ),
+
+    // Indexes for performance
+    pageIdIdx: index('idx_block_mounts_page_id')
+      .on(table.page_id)
+      .where(sql`deleted_at IS NULL`),
+    blockIdIdx: index('idx_block_mounts_block_id')
+      .on(table.block_id)
+      .where(sql`deleted_at IS NULL`),
+    pageZOrderIdx: index('idx_block_mounts_page_z_order')
+      .on(table.page_id, table.z_order)
+      .where(sql`deleted_at IS NULL`),
+
+    // RLS Policies - Page creator access only
+    selectPolicy: pgPolicy('Enable read for page creator', {
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM pages 
+        WHERE pages.id = ${table.page_id} 
+          AND pages.created_by = (SELECT auth.uid())
+      )`,
+    }),
+    insertPolicy: pgPolicy('Enable insert for page creator', {
+      for: 'insert',
+      to: authenticatedRole,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM pages 
+        WHERE pages.id = ${table.page_id} 
+          AND pages.created_by = (SELECT auth.uid())
+      )`,
+    }),
+    updatePolicy: pgPolicy('Enable update for page creator', {
+      for: 'update',
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM pages 
+        WHERE pages.id = ${table.page_id} 
+          AND pages.created_by = (SELECT auth.uid())
+      )`,
+    }),
+    deletePolicy: pgPolicy('Enable delete for page creator', {
+      for: 'delete',
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM pages 
+        WHERE pages.id = ${table.page_id} 
+          AND pages.created_by = (SELECT auth.uid())
+      )`,
+    }),
+  })
+).enableRLS();
+
+// Canvas Edges Table
+// 🔐 RLS Strategy: Page-based access control via pages table
+export const edges = pgTable(
+  'edges',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    page_id: uuid('page_id')
+      .notNull()
+      .references(() => pages.id, { onDelete: 'cascade' }),
+    source_block_id: uuid('source_block_id')
+      .notNull()
+      .references(() => blocks.id, { onDelete: 'cascade' }),
+    target_block_id: uuid('target_block_id')
+      .notNull()
+      .references(() => blocks.id, { onDelete: 'cascade' }),
+    edge_type: canvasEdgeTypeEnum('edge_type').notNull().default('default'),
+    edge_label: text('edge_label').default(''),
+    edge_style_color: text('edge_style_color').default('#000000'),
+    edge_style_thickness: integer('edge_style_thickness').default(2),
+    created_at: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    deleted_at: timestamp('deleted_at', { withTimezone: true }),
+  },
+  table => ({
+    // Constraints
+    thicknessCheck: check(
+      'edges_thickness_range',
+      sql`${table.edge_style_thickness} >= 1 AND ${table.edge_style_thickness} <= 10`
+    ),
+    uniquePageSourceTargetCheck: unique('edges_unique_page_source_target').on(
+      table.page_id,
+      table.source_block_id,
+      table.target_block_id
+    ),
+
+    // Indexes for performance
+    pageIdIdx: index('idx_edges_page_id')
+      .on(table.page_id)
+      .where(sql`deleted_at IS NULL`),
+    sourceBlockIdIdx: index('idx_edges_source_block_id')
+      .on(table.source_block_id)
+      .where(sql`deleted_at IS NULL`),
+    targetBlockIdIdx: index('idx_edges_target_block_id')
+      .on(table.target_block_id)
+      .where(sql`deleted_at IS NULL`),
+
+    // RLS Policies - Page creator access only
+    selectPolicy: pgPolicy('Enable read for page creator', {
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM pages 
+        WHERE pages.id = ${table.page_id} 
+          AND pages.created_by = (SELECT auth.uid())
+      )`,
+    }),
+    insertPolicy: pgPolicy('Enable insert for page creator', {
+      for: 'insert',
+      to: authenticatedRole,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM pages 
+        WHERE pages.id = ${table.page_id} 
+          AND pages.created_by = (SELECT auth.uid())
+      )`,
+    }),
+    updatePolicy: pgPolicy('Enable update for page creator', {
+      for: 'update',
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM pages 
+        WHERE pages.id = ${table.page_id} 
+          AND pages.created_by = (SELECT auth.uid())
+      )`,
+    }),
+    deletePolicy: pgPolicy('Enable delete for page creator', {
+      for: 'delete',
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM pages 
+        WHERE pages.id = ${table.page_id} 
+          AND pages.created_by = (SELECT auth.uid())
+      )`,
+    }),
+  })
+).enableRLS();
+
+// Viewports Table
+// 🔐 RLS Strategy: User-specific access control
+export const viewports = pgTable(
+  'viewports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    page_id: uuid('page_id')
+      .notNull()
+      .references(() => pages.id, { onDelete: 'cascade' }),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    zoom_level: decimal('zoom_level', { precision: 4, scale: 2 })
+      .notNull()
+      .default('1.0'),
+    center_x: decimal('center_x', { precision: 10, scale: 2 })
+      .notNull()
+      .default('0'),
+    center_y: decimal('center_y', { precision: 10, scale: 2 })
+      .notNull()
+      .default('0'),
+    last_saved: timestamp('last_saved', { withTimezone: true }),
+    created_at: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  table => ({
+    // Constraints
+    zoomLevelCheck: check(
+      'viewports_zoom_level_range',
+      sql`${table.zoom_level} >= 0.1 AND ${table.zoom_level} <= 5.0`
+    ),
+    centerXCheck: check(
+      'viewports_center_x_range',
+      sql`${table.center_x} >= -999999 AND ${table.center_x} <= 999999`
+    ),
+    centerYCheck: check(
+      'viewports_center_y_range',
+      sql`${table.center_y} >= -999999 AND ${table.center_y} <= 999999`
+    ),
+    uniquePageUserCheck: unique('viewports_unique_page_user').on(
+      table.page_id,
+      table.user_id
+    ),
+
+    // Indexes for performance
+    pageUserIdIdx: index('idx_viewports_page_user').on(
+      table.page_id,
+      table.user_id
+    ),
+    userIdIdx: index('idx_viewports_user_id').on(table.user_id),
+
+    // RLS Policies - User-specific access
+    selectPolicy: pgPolicy('Enable read for own viewport', {
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`${table.user_id} = (SELECT auth.uid())`,
+    }),
+    insertPolicy: pgPolicy('Enable insert for own viewport', {
+      for: 'insert',
+      to: authenticatedRole,
+      withCheck: sql`${table.user_id} = (SELECT auth.uid())`,
+    }),
+    updatePolicy: pgPolicy('Enable update for own viewport', {
+      for: 'update',
+      to: authenticatedRole,
+      using: sql`${table.user_id} = (SELECT auth.uid())`,
+    }),
+    deletePolicy: pgPolicy('Enable delete for own viewport', {
+      for: 'delete',
+      to: authenticatedRole,
+      using: sql`${table.user_id} = (SELECT auth.uid())`,
+    }),
+  })
+).enableRLS();
+
+// Canvas Management Domain Relations
+export const blocksRelations = relations(blocks, ({ many }) => ({
+  blockMounts: many(blockMounts),
+  sourceEdges: many(edges, { relationName: 'sourceBlock' }),
+  targetEdges: many(edges, { relationName: 'targetBlock' }),
+}));
+
+export const blockMountsRelations = relations(blockMounts, ({ one }) => ({
+  page: one(pages, {
+    fields: [blockMounts.page_id],
+    references: [pages.id],
+  }),
+  block: one(blocks, {
+    fields: [blockMounts.block_id],
+    references: [blocks.id],
+  }),
+}));
+
+export const edgesRelations = relations(edges, ({ one }) => ({
+  page: one(pages, {
+    fields: [edges.page_id],
+    references: [pages.id],
+  }),
+  sourceBlock: one(blocks, {
+    fields: [edges.source_block_id],
+    references: [blocks.id],
+    relationName: 'sourceBlock',
+  }),
+  targetBlock: one(blocks, {
+    fields: [edges.target_block_id],
+    references: [blocks.id],
+    relationName: 'targetBlock',
+  }),
+}));
+
+export const viewportsRelations = relations(viewports, ({ one }) => ({
+  page: one(pages, {
+    fields: [viewports.page_id],
+    references: [pages.id],
+  }),
+  user: one(users, {
+    fields: [viewports.user_id],
+    references: [users.id],
+  }),
+}));
+
 export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
 export type Organization = typeof organizations.$inferSelect;
@@ -862,8 +1280,20 @@ export type NewPageFavorite = typeof pageFavorites.$inferInsert;
 export type WorkspaceInvitation = typeof workspaceInvitations.$inferSelect;
 export type NewWorkspaceInvitation = typeof workspaceInvitations.$inferInsert;
 
+// Canvas Management Domain Types
+export type Block = typeof blocks.$inferSelect;
+export type NewBlock = typeof blocks.$inferInsert;
+export type BlockMount = typeof blockMounts.$inferSelect;
+export type NewBlockMount = typeof blockMounts.$inferInsert;
+export type Edge = typeof edges.$inferSelect;
+export type NewEdge = typeof edges.$inferInsert;
+export type Viewport = typeof viewports.$inferSelect;
+export type NewViewport = typeof viewports.$inferInsert;
+
 // Enum Types
 export type OrganizationType = (typeof organizationTypeEnum.enumValues)[number];
 export type MemberRole = (typeof memberRoleEnum.enumValues)[number];
 export type InvitationStatus = (typeof invitationStatusEnum.enumValues)[number];
 export type NotificationType = (typeof notificationTypeEnum.enumValues)[number];
+export type CanvasEdgeType = (typeof canvasEdgeTypeEnum.enumValues)[number];
+export type AlignmentType = (typeof alignmentTypeEnum.enumValues)[number];
