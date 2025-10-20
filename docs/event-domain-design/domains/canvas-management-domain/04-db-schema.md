@@ -52,27 +52,27 @@
 └────────┬────────┘    (별도 canvases 테이블 없음 - 페이지 1:1 매핑)
          │ 1:N
          ▼
-┌─────────────────┐
-│  block_mounts   │
-│                 │
-│ • id (PK)       │
-│ • page_id (FK)  │
-│ • block_id (FK) │
-│ • position_x,y  │
-│ • size_w,h      │
-│ • z_order       │
+┌─────────────────┐     ┌─────────────────┐
+│  block_mounts   │────▶│     blocks      │ (Block Management Domain)
+│                 │     │                 │
+│ • id (PK)       │  N:1│ • id (PK)       │
+│ • page_id (FK)  │     │ • workspace_id  │
+│ • block_id (FK) │     │ • block_type    │
+│ • position_x,y  │     │ • metadata      │
+│ • size_w,h      │     │ • created_at    │
+│ • z_order       │     └─────────────────┘
 └────────┬────────┘
          │ 1:N
          ▼
-┌─────────────────┐        ┌─────────────────┐
-│     edges       │        │    viewports    │
-│                 │        │                 │
-│ • id (PK)       │        │ • id (PK)       │
-│ • page_id (FK)  │        │ • page_id (FK)  │
-│ • source_id     │        │ • user_id (FK)  │
-│ • target_id     │        │ • zoom_level    │
-│ • edge_type     │        │ • center_x,y    │
-└─────────────────┘        └─────────────────┘
+┌─────────────────┐     ┌─────────────────┐        ┌─────────────────┐
+│     edges       │────▶│     blocks      │        │    viewports    │
+│                 │ N:1 │ (source/target) │        │                 │
+│ • id (PK)       │     │ (Block Mgmt)    │        │ • id (PK)       │
+│ • page_id (FK)  │     └─────────────────┘        │ • page_id (FK)  │
+│ • source_id (FK)│                                │ • user_id (FK)  │
+│ • target_id (FK)│                                │ • zoom_level    │
+│ • edge_type     │                                │ • center_x,y    │
+└─────────────────┘                                └─────────────────┘
 ```
 
 > **💡 설계 노트: CanvasAggregate vs DB Schema**  
@@ -145,6 +145,16 @@ COMMENT ON ENUM VALUE alignment_type.VERTICAL_DISTRIBUTE IS '수직 균등 분�
 
 ---
 
+### 3. blocks 테이블 참조 (Block Management Domain)
+
+블럭 기본 정보는 **Block Management Domain**에서 관리합니다.
+
+> **📋 참조 문서**: [Block Management Domain DB Schema](../block-management-domain/04-db-schema.md)
+> 
+> **연동 방식**: Canvas Management Domain은 블럭 정보를 직접 DB JOIN으로 조회합니다.
+
+---
+
 ### 3. block_mounts 테이블 (public schema)
 
 블럭 마운팅 정보를 저장하는 테이블 (BlockMount Aggregate Root) - 페이지에 직접 연결
@@ -158,7 +168,7 @@ CREATE TABLE block_mounts (
     page_id UUID NOT NULL, -- Workspace Management Domain과의 외부 참조
     
     -- Block Mount Fields
-    block_id UUID NOT NULL, -- Block Domain과의 외부 참조
+    block_id UUID NOT NULL, -- Block Management Domain의 blocks 테이블 참조
     position_x DECIMAL(10, 2) NOT NULL DEFAULT 0,
     position_y DECIMAL(10, 2) NOT NULL DEFAULT 0,
     size_width DECIMAL(8, 2) NOT NULL DEFAULT 100,
@@ -185,7 +195,7 @@ CREATE TABLE block_mounts (
 COMMENT ON TABLE block_mounts IS 'Canvas Management Domain - 블럭 마운팅 정보';
 COMMENT ON COLUMN block_mounts.id IS '블럭 마운트 고유 식별자';
 COMMENT ON COLUMN block_mounts.page_id IS '소속 페이지 ID (Workspace Management Domain)';
-COMMENT ON COLUMN block_mounts.block_id IS '마운트된 블럭 ID (Block Domain)';
+COMMENT ON COLUMN block_mounts.block_id IS '마운트된 블럭 ID (Block Management Domain blocks 테이블 참조)';
 COMMENT ON COLUMN block_mounts.position_x IS '블럭 X 좌표';
 COMMENT ON COLUMN block_mounts.position_y IS '블럭 Y 좌표';
 COMMENT ON COLUMN block_mounts.size_width IS '블럭 너비';
@@ -200,7 +210,7 @@ COMMENT ON COLUMN block_mounts.deleted_at IS '삭제 시각 (소프트 삭제)';
 > - **페이지 직접 연결**: 블럭과 엣지는 페이지에 직접 연결하여 모든 뷰에서 공통 사용
 > - **뷰 독립적 데이터**: Canvas, List, Kanban 뷰 모두 같은 블럭 데이터를 다른 방식으로 렌더링
 > - **Position, Size VO**: 별도 컬럼으로 분해하여 저장 (쿼리 편의성)
-> - **FK 제약조건**: `page_id`, `block_id`는 외부 도메인이므로 FK 설정하지 않음
+> - **FK 제약조건**: `block_id`는 Block Management Domain의 blocks 테이블 참조, `page_id`는 외부 도메인이므로 FK 미설정
 
 ---
 
@@ -217,8 +227,8 @@ CREATE TABLE edges (
     page_id UUID NOT NULL, -- Workspace Management Domain과의 외부 참조
     
     -- Edge Fields
-    source_block_id UUID NOT NULL, -- Block Domain과의 외부 참조
-    target_block_id UUID NOT NULL, -- Block Domain과의 외부 참조
+    source_block_id UUID NOT NULL, -- Block Management Domain의 blocks 테이블 참조
+    target_block_id UUID NOT NULL, -- Block Management Domain의 blocks 테이블 참조
     edge_type edge_type NOT NULL DEFAULT 'default',
     edge_label TEXT DEFAULT '',
     edge_style_color TEXT DEFAULT '#000000',
@@ -240,8 +250,8 @@ CREATE TABLE edges (
 COMMENT ON TABLE edges IS 'Canvas Management Domain - 엣지 연결 정보';
 COMMENT ON COLUMN edges.id IS '엣지 고유 식별자';
 COMMENT ON COLUMN edges.page_id IS '소속 페이지 ID (Workspace Management Domain)';
-COMMENT ON COLUMN edges.source_block_id IS '연결 소스 블럭 ID (Block Domain)';
-COMMENT ON COLUMN edges.target_block_id IS '연결 타겟 블럭 ID (Block Domain)';
+COMMENT ON COLUMN edges.source_block_id IS '연결 소스 블럭 ID (Block Management Domain blocks 테이블 참조)';
+COMMENT ON COLUMN edges.target_block_id IS '연결 타겟 블럭 ID (Block Management Domain blocks 테이블 참조)';
 COMMENT ON COLUMN edges.edge_type IS '엣지 타입 (React Flow 기본 타입: default, straight, step, smoothstep, simplebezier)';
 COMMENT ON COLUMN edges.edge_label IS '엣지 레이블';
 COMMENT ON COLUMN edges.edge_style_color IS '엣지 색상';
@@ -322,6 +332,18 @@ Process Model과 Technical Specification 기반 쿼리 패턴 분석:
 
 #### 1. 자주 사용되는 조회 패턴
 
+**Blocks 관련 쿼리**:
+```sql
+-- 블럭 생성 및 조회 - Scenario 1, 3
+SELECT * FROM blocks WHERE id = $1 AND deleted_at IS NULL;
+
+-- 블럭 타입별 조회
+SELECT * FROM blocks WHERE block_type = $1 AND deleted_at IS NULL;
+
+-- 블럭 내용 업데이트
+UPDATE blocks SET content = $2, updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL;
+```
+
 **Block Mount 관련 쿼리**:
 ```sql
 -- 페이지별 모든 블럭 조회 (z-order 정렬) - Scenario 0, 1, 2, 5
@@ -364,7 +386,13 @@ WHERE page_id = $1 AND user_id = $2;
 
 ### Core Performance Indexes
 
-#### 1. block_mounts 테이블 인덱스
+#### 1. Block Management Domain blocks 테이블 인덱스
+
+> **📋 참조**: [Block Management Domain DB Schema](../block-management-domain/04-db-schema.md)에서 인덱스 전략 확인
+
+blocks 테이블의 인덱스는 Block Management Domain에서 관리됩니다.
+
+#### 2. block_mounts 테이블 인덱스
 
 ```sql
 -- 기본 인덱스들
@@ -382,7 +410,7 @@ CREATE INDEX idx_block_mounts_position_spatial ON block_mounts(page_id, position
 CREATE INDEX idx_block_mounts_batch_update ON block_mounts(id, page_id, z_order) WHERE deleted_at IS NULL;
 ```
 
-#### 2. edges 테이블 인덱스
+#### 3. edges 테이블 인덱스
 
 ```sql
 -- 기본 인덱스들
@@ -399,7 +427,7 @@ CREATE INDEX idx_edges_source_connected ON edges(source_block_id, id) WHERE dele
 CREATE INDEX idx_edges_target_connected ON edges(target_block_id, id) WHERE deleted_at IS NULL;
 ```
 
-#### 3. viewports 테이블 인덱스
+#### 4. viewports 테이블 인덱스
 
 ```sql
 -- 기본 인덱스들
@@ -505,7 +533,8 @@ Canvas Management Domain은 **최후의 보루** 전략을 적용합니다:
 #### 1. 기본 설정
 
 ```sql
--- RLS 활성화 (모든 테이블)
+-- RLS 활성화 (Canvas Management Domain 테이블들)
+-- blocks 테이블은 Block Management Domain에서 RLS 설정
 ALTER TABLE block_mounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE edges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE viewports ENABLE ROW LEVEL SECURITY;
@@ -519,7 +548,13 @@ CREATE OR REPLACE FUNCTION auth.user_id() RETURNS UUID AS $$
 $$ LANGUAGE SQL STABLE;
 ```
 
-#### 2. block_mounts & edges 테이블 RLS 정책
+#### 2. Block Management Domain blocks 테이블 RLS 정책
+
+> **📋 참조**: [Block Management Domain DB Schema](../block-management-domain/04-db-schema.md)에서 RLS 정책 확인
+
+blocks 테이블의 RLS 정책은 Block Management Domain에서 관리됩니다.
+
+#### 3. block_mounts & edges 테이블 RLS 정책
 
 ```sql
 -- 블럭 마운트 CRUD 정책 (인증된 사용자만)
@@ -535,7 +570,7 @@ CREATE POLICY "Enable all for authenticated users" ON edges
   WITH CHECK (true);
 ```
 
-#### 3. viewports 테이블 RLS 정책
+#### 4. viewports 테이블 RLS 정책
 
 ```sql
 -- 뷰포트 조회/수정 정책 (사용자별 소유권만)
@@ -559,6 +594,7 @@ CREATE POLICY "Enable delete for own viewport" ON viewports
 
 ### 🔒 보안 원칙
 
+- **blocks**: 기본 블럭 정보는 인증된 사용자만 접근 가능 (최후의 보루)
 - **block_mounts & edges**: 페이지 권한은 Application-level에서 관리, RLS는 최후의 보루
 - **viewports**: 사용자별 데이터 격리로 개인 정보 보호
 
@@ -571,20 +607,20 @@ CREATE POLICY "Enable delete for own viewport" ON viewports
 #### 1. 데이터 무결성 확인
 
 ```sql
--- 1. 고아 블럭 마운트 레코드 확인 (존재하지 않는 페이지 참조)
-SELECT 'Orphan block_mounts' as issue, COUNT(*) as count
+-- 1. 고아 블럭 마운트 레코드 확인 (존재하지 않는 블럭 참조)
+SELECT 'Orphan block_mounts (missing blocks)' as issue, COUNT(*) as count
 FROM block_mounts bm
-LEFT JOIN workspace_management.pages p ON bm.page_id = p.id
-WHERE bm.page_id IS NOT NULL 
-  AND p.id IS NULL 
+LEFT JOIN blocks b ON bm.block_id = b.id
+WHERE bm.block_id IS NOT NULL 
+  AND b.id IS NULL 
   AND bm.deleted_at IS NULL;
 
 -- 2. 고아 엣지 레코드 확인 (존재하지 않는 블럭 참조)
-SELECT 'Orphan edges' as issue, COUNT(*) as count
+SELECT 'Orphan edges (missing source/target blocks)' as issue, COUNT(*) as count
 FROM edges e
-LEFT JOIN workspace_management.pages p ON e.page_id = p.id
-WHERE e.page_id IS NOT NULL 
-  AND p.id IS NULL 
+LEFT JOIN blocks sb ON e.source_block_id = sb.id
+LEFT JOIN blocks tb ON e.target_block_id = tb.id
+WHERE (sb.id IS NULL OR tb.id IS NULL) 
   AND e.deleted_at IS NULL;
 
 -- 3. 고아 뷰포트 레코드 확인 (존재하지 않는 페이지/사용자 참조)
@@ -872,6 +908,8 @@ Technical Specification의 Repository 메서드와 DB 인덱스 매핑:
 
 | Repository 메서드 | 사용 인덱스 | 쿼리 패턴 |
 |------------------|-----------|----------|
+| `BlockRepository.findById()` | `idx_blocks_id_active` | `WHERE id = ? AND deleted_at IS NULL` |
+| `BlockRepository.findByType()` | `idx_blocks_type` | `WHERE block_type = ? AND deleted_at IS NULL` |
 | `BlockMountRepository.findByPageId()` | `idx_block_mounts_page_z_order` | `WHERE page_id = ? ORDER BY z_order DESC` |
 | `BlockMountRepository.findByBlockId()` | `idx_block_mounts_block_id` | `WHERE block_id = ?` |
 | `EdgeRepository.findByConnectedBlockId()` | `idx_edges_source_block_id`, `idx_edges_target_block_id` | `WHERE source_block_id = ? OR target_block_id = ?` |
@@ -906,16 +944,16 @@ Technical Specification의 모든 Invariants가 DB 제약조건으로 구현되�
 ## ✅ 검증 체크리스트
 
 ### DB Schema ↔ Technical Specification 연계 검증
-- [x] **Aggregate → Table 매핑**: 4개 Aggregate 중 3개는 직접 매핑, 1개(Canvas)는 Virtual Aggregate로 처리
+- [x] **Aggregate → Table 매핑**: 4개 Aggregate 중 3개는 직접 매핑, 1개(Canvas)는 Virtual Aggregate로 처리, `blocks` 테이블은 Block Management Domain 참조
 - [x] **Value Objects → Columns**: 모든 VO가 적절한 DB 컬럼으로 분해됨
 - [x] **Invariants → Constraints**: 모든 비즈니스 규칙이 DB 제약조건 또는 Application Logic으로 구현됨
 - [x] **Repository Methods → Indexes**: 모든 Repository 메서드에 필요한 인덱스가 설계됨
 
 ### Process Model Scenario 지원 검증
 - [x] **Scenario 0**: 캔버스 초기화 및 데이터 로드 (CanvasAggregate는 Virtual로 처리)
-- [x] **Scenario 1**: 블럭 생성 및 마운팅 (`block_mounts` 테이블)
+- [x] **Scenario 1**: 블럭 생성 및 마운팅 (Block Management Domain `blocks` + Canvas `block_mounts` 테이블)
 - [x] **Scenario 2**: 블럭 변환 (`block_mounts` 테이블, 인덱스 최적화)
-- [x] **Scenario 3**: 블럭 복제 (`block_mounts` 테이블)
+- [x] **Scenario 3**: 블럭 복제 (Block Management Domain `blocks` + Canvas `block_mounts` 테이블)
 - [x] **Scenario 4**: 블럭 선택 (Frontend State, DB 저장 불필요)
 - [x] **Scenario 5**: 블럭 정렬 도구 (`block_mounts` 배치 업데이트 인덱스)
 - [x] **Scenario 6**: 스마트 가이드 & 스냅 (위치 기반 spatial 인덱스)
@@ -924,7 +962,7 @@ Technical Specification의 모든 Invariants가 DB 제약조건으로 구현되�
 - [x] **Scenario 9**: 뷰포트 관리 (`viewports` 테이블, user별 관리)
 
 ### 성능 최적화 검증
-- [x] **Read Model 쿼리 최적화**: 15개 인덱스 설계 완료
+- [x] **Read Model 쿼리 최적화**: Canvas Management Domain 인덱스 설계 완료 (blocks 테이블은 Block Management Domain 참조)
 - [x] **Partial Indexes**: `WHERE deleted_at IS NULL` 조건으로 인덱스 크기 최적화
 - [x] **Covering Indexes**: `INCLUDE` 절로 테이블 접근 방지
 - [x] **Composite Indexes**: 선택도 기준 컬럼 순서 최적화
