@@ -62,7 +62,8 @@ describe('BlockMountAggregate', () => {
     });
   });
 
-  describe('transformBlock', () => {
+
+  describe('updateBlockPosition', () => {
     let aggregate: BlockMountAggregate;
 
     beforeEach(() => {
@@ -70,59 +71,106 @@ describe('BlockMountAggregate', () => {
       aggregate.clearEvents(); // 테스트를 위해 이벤트 초기화
     });
 
-    it('블럭 위치를 변형할 수 있어야 한다', () => {
+    it('블럭 위치를 개별적으로 업데이트할 수 있어야 한다', () => {
       // Given
       const newPosition = new Position(200, 300);
 
       // When
-      const event = aggregate.transformBlock(newPosition);
+      const event = aggregate.updateBlockPosition(newPosition);
 
       // Then
       expect(aggregate.blockMount.position).toEqual(newPosition);
-      expect(event!.type).toBe('BlockTransformed');
+      expect(event.type).toBe('BlockPositionUpdated');
       expect(event.data.newPosition).toEqual(newPosition);
     });
 
-    it('블럭 크기를 변형할 수 있어야 한다', () => {
+    it('위치 업데이트 시 BlockPositionUpdated 이벤트가 발행되어야 한다', () => {
+      // Given
+      const newPosition = new Position(250, 350);
+
+      // When
+      aggregate.updateBlockPosition(newPosition);
+      const events = aggregate.getUncommittedEvents();
+
+      // Then
+      expect(events).toHaveLength(1);
+      expect(events[0]!.type).toBe('BlockPositionUpdated');
+      expect(events[0]!.data.blockMountId).toEqual(blockMountId);
+      expect(events[0]!.data.newPosition).toEqual(newPosition);
+    });
+  });
+
+  describe('updateBlockSize', () => {
+    let aggregate: BlockMountAggregate;
+
+    beforeEach(() => {
+      aggregate = BlockMountAggregate.mountBlock(blockMountId, pageId, blockId, position, size);
+      aggregate.clearEvents(); // 테스트를 위해 이벤트 초기화
+    });
+
+    it('블럭 크기를 개별적으로 업데이트할 수 있어야 한다', () => {
       // Given
       const newSize = new Size(400, 500);
 
       // When
-      const event = aggregate.transformBlock(undefined, newSize);
+      const event = aggregate.updateBlockSize(newSize);
 
       // Then
       expect(aggregate.blockMount.size).toEqual(newSize);
-      expect(event.type).toBe('BlockTransformed');
+      expect(event.type).toBe('BlockSizeUpdated');
       expect(event.data.newSize).toEqual(newSize);
     });
 
-    it('블럭 z-order를 변형할 수 있어야 한다', () => {
+    it('크기 업데이트 시 BlockSizeUpdated 이벤트가 발행되어야 한다', () => {
+      // Given
+      const newSize = new Size(450, 550);
+
+      // When
+      aggregate.updateBlockSize(newSize);
+      const events = aggregate.getUncommittedEvents();
+
+      // Then
+      expect(events).toHaveLength(1);
+      expect(events[0]!.type).toBe('BlockSizeUpdated');
+      expect(events[0]!.data.blockMountId).toEqual(blockMountId);
+      expect(events[0]!.data.newSize).toEqual(newSize);
+    });
+  });
+
+  describe('updateBlockZOrder', () => {
+    let aggregate: BlockMountAggregate;
+
+    beforeEach(() => {
+      aggregate = BlockMountAggregate.mountBlock(blockMountId, pageId, blockId, position, size);
+      aggregate.clearEvents(); // 테스트를 위해 이벤트 초기화
+    });
+
+    it('블럭 Z-Order를 개별적으로 업데이트할 수 있어야 한다', () => {
       // Given
       const newZOrder = new ZOrder(10);
 
       // When
-      const event = aggregate.transformBlock(undefined, undefined, newZOrder);
+      const event = aggregate.updateBlockZOrder(newZOrder);
 
       // Then
       expect(aggregate.blockMount.zOrder).toEqual(newZOrder);
-      expect(event.type).toBe('BlockTransformed');
+      expect(event.type).toBe('BlockZOrderUpdated');
       expect(event.data.newZOrder).toEqual(newZOrder);
     });
 
-    it('모든 속성을 동시에 변형할 수 있어야 한다', () => {
+    it('Z-Order 업데이트 시 BlockZOrderUpdated 이벤트가 발행되어야 한다', () => {
       // Given
-      const newPosition = new Position(300, 400);
-      const newSize = new Size(500, 600);
       const newZOrder = new ZOrder(15);
 
       // When
-      const event = aggregate.transformBlock(newPosition, newSize, newZOrder);
+      aggregate.updateBlockZOrder(newZOrder);
+      const events = aggregate.getUncommittedEvents();
 
       // Then
-      expect(aggregate.blockMount.position).toEqual(newPosition);
-      expect(aggregate.blockMount.size).toEqual(newSize);
-      expect(aggregate.blockMount.zOrder).toEqual(newZOrder);
-      expect(event.type).toBe('BlockTransformed');
+      expect(events).toHaveLength(1);
+      expect(events[0]!.type).toBe('BlockZOrderUpdated');
+      expect(events[0]!.data.blockMountId).toEqual(blockMountId);
+      expect(events[0]!.data.newZOrder).toEqual(newZOrder);
     });
   });
 

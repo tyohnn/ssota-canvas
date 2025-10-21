@@ -69,11 +69,73 @@ export function useCanvasViewport() {
     }
   }, [reactFlow]);
 
+  /**
+   * 수동 제어 메서드들 (AI Tool Call, 프로그램적 제어용)
+   */
+  const zoomIn = useCallback(() => {
+    if (!reactFlow) return;
+    try {
+      reactFlow.zoomIn({ duration: 300 });
+    } catch (error) {
+      console.error('Failed to zoom in:', error);
+    }
+  }, [reactFlow]);
+
+  const zoomOut = useCallback(() => {
+    if (!reactFlow) return;
+    try {
+      reactFlow.zoomOut({ duration: 300 });
+    } catch (error) {
+      console.error('Failed to zoom out:', error);
+    }
+  }, [reactFlow]);
+
+  const panTo = useCallback(
+    (center: { x: number; y: number }) => {
+      if (!reactFlow) return;
+      try {
+        reactFlow.setCenter(center.x, center.y, { duration: 500, zoom: 1.0 });
+      } catch (error) {
+        console.error('Failed to pan to center:', error);
+      }
+    },
+    [reactFlow]
+  );
+
+  const fitToScreen = useCallback(() => {
+    if (!reactFlow) return;
+    try {
+      reactFlow.fitView({ duration: 500, padding: 0.1 });
+    } catch (error) {
+      console.error('Failed to fit to screen:', error);
+    }
+  }, [reactFlow]);
+
+  const resetZoom = useCallback(() => {
+    if (!reactFlow) return;
+    try {
+      const viewport = reactFlow.getViewport();
+      reactFlow.setViewport(
+        { x: viewport.x, y: viewport.y, zoom: 1 },
+        { duration: 300 }
+      );
+    } catch (error) {
+      console.error('Failed to reset zoom:', error);
+    }
+  }, [reactFlow]);
+
   return {
+    // 상태 읽기
     getZoomLevel,
     getViewportCenter,
     getViewportBounds,
-    getViewport, // 추가: 뷰포트 객체도 직접 제공
-    reactFlow: reactFlow || null, // 추가: React Flow 인스턴스도 제공 (안전하게)
+    getViewport,
+    reactFlow: reactFlow || null,
+    // 수동 제어
+    zoomIn,
+    zoomOut,
+    panTo,
+    fitToScreen,
+    resetZoom,
   };
 }

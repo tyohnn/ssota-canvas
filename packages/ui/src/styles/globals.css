@@ -226,3 +226,8 @@ body {
 [data-slot='collapsible-content'][data-state='closed'] {
   animation: collapsible-up 200ms ease-out;
 }
+
+/* React Flow 기본 선택 박스 숨김 (커스텀 SelectionBoundingBox 사용) */
+.react-flow.hide-default-selection .react-flow__selection {
+  display: none !important;
+}

@@ -5,6 +5,7 @@ import React, {
   useContext,
   useState,
   useCallback,
+  useMemo,
   type ReactNode,
 } from 'react';
 
@@ -106,23 +107,42 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
     [mode.type]
   );
 
-  const value: CanvasModeContextValue = {
-    mode,
-    enterBlockCreationMode,
-    enterSingleSelectionMode,
-    enterMultiSelectionMode,
-    enterBlockEditingMode,
-    enterDraggingMode,
-    enterEdgeCreationMode,
-    exitToDefaultMode,
-    getCurrentMode,
-    isBlockCreationMode,
-    isSingleSelectionMode,
-    isMultiSelectionMode,
-    isBlockEditingMode,
-    isDraggingMode,
-    isEdgeCreationMode,
-  };
+  const value: CanvasModeContextValue = useMemo(
+    () => ({
+      mode,
+      enterBlockCreationMode,
+      enterSingleSelectionMode,
+      enterMultiSelectionMode,
+      enterBlockEditingMode,
+      enterDraggingMode,
+      enterEdgeCreationMode,
+      exitToDefaultMode,
+      getCurrentMode,
+      isBlockCreationMode,
+      isSingleSelectionMode,
+      isMultiSelectionMode,
+      isBlockEditingMode,
+      isDraggingMode,
+      isEdgeCreationMode,
+    }),
+    [
+      mode,
+      enterBlockCreationMode,
+      enterSingleSelectionMode,
+      enterMultiSelectionMode,
+      enterBlockEditingMode,
+      enterDraggingMode,
+      enterEdgeCreationMode,
+      exitToDefaultMode,
+      getCurrentMode,
+      isBlockCreationMode,
+      isSingleSelectionMode,
+      isMultiSelectionMode,
+      isBlockEditingMode,
+      isDraggingMode,
+      isEdgeCreationMode,
+    ]
+  );
 
   return (
     <CanvasModeContext.Provider value={value}>

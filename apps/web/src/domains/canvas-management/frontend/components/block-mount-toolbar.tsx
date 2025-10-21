@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { NodeToolbar, Position } from '@xyflow/react';
 import { Button } from '@workspace/ui/components/ui/button';
 import {
   Tooltip,
@@ -52,20 +53,17 @@ export function BlockMountToolbar({
   const canvasSelection = useCanvasSelection();
   const blockLifecycle = useCanvasBlockLifecycle({ pageId, orgId });
 
-  // 렌더링 조건 확인
-  const isSingleSelectionMode = canvasMode.isSingleSelectionMode();
-  const selectionCount = canvasSelection.getSelectionCount();
-
-  // 단일 선택 모드가 아니거나 선택된 블럭이 없으면 렌더링하지 않음
-  if (!isSingleSelectionMode || selectionCount !== 1) {
-    return null;
-  }
-
-  // 선택된 블럭 정보
+  // 선택된 블럭 정보 (단일 선택 시에만 이 컴포넌트가 렌더링됨)
   const selectedBlocks = canvasSelection.getSelectedBlocks();
   const selectedBlockId = selectedBlocks[0];
 
+  // 선택된 블럭이 없으면 렌더링하지 않음
   if (!selectedBlockId) {
+    return null;
+  }
+
+  // 다중 선택 시에는 MultiSelectionToolbar가 표시되므로 여기서는 렌더링하지 않음
+  if (selectedBlocks.length > 1) {
     return null;
   }
 
@@ -99,7 +97,11 @@ export function BlockMountToolbar({
   };
 
   return (
-    <div className="absolute z-20 pointer-events-auto">
+    <NodeToolbar
+      isVisible={true}
+      position={Position.Top}
+      className="nodrag nowheel"
+    >
       <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-lg shadow-lg px-2 py-1 flex items-center gap-1">
         <TooltipProvider>
           {/* Details 버튼 */}
@@ -166,6 +168,6 @@ export function BlockMountToolbar({
           </DropdownMenu>
         </TooltipProvider>
       </div>
-    </div>
+    </NodeToolbar>
   );
 }

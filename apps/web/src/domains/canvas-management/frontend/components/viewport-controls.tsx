@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
-import { Map } from 'lucide-react';
+import { Map, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { MiniMap } from '@xyflow/react';
 import { cn } from '@/lib/utils';
 import { useCanvasViewport } from '../hooks/use-canvas-viewport';
@@ -105,6 +105,54 @@ export function ViewportControls({ className = '' }: ViewportControlsProps) {
         </div>
 
         <TooltipProvider>
+          {/* Zoom In */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-sm hover:bg-accent hover:text-accent-foreground"
+                onClick={() => canvasViewport.zoomIn()}
+                aria-label="Zoom In"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">확대</TooltipContent>
+          </Tooltip>
+
+          {/* Zoom Out */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-sm hover:bg-accent hover:text-accent-foreground"
+                onClick={() => canvasViewport.zoomOut()}
+                aria-label="Zoom Out"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">축소</TooltipContent>
+          </Tooltip>
+
+          {/* Fit to Screen */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-sm hover:bg-accent hover:text-accent-foreground"
+                onClick={() => canvasViewport.fitToScreen()}
+                aria-label="Fit to Screen"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">화면 맞춤</TooltipContent>
+          </Tooltip>
+
           {/* MiniMap toggle */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -123,26 +171,9 @@ export function ViewportControls({ className = '' }: ViewportControlsProps) {
                 <Map className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top">Minimap</TooltipContent>
+            <TooltipContent side="top">미니맵</TooltipContent>
           </Tooltip>
         </TooltipProvider>
-
-        {/* TODO: CM-003에서 슬라이더와 제어 버튼들 추가 */}
-        {/* 
-        <div className="flex items-center gap-2">
-          <div className="w-32">
-            <Slider
-              className="grow"
-              value={[zoomPercent]}
-              onValueChange={value => handleZoomChange(value[0] as number)}
-              min={10}
-              max={200}
-              step={5}
-              aria-label="Zoom slider"
-            />
-          </div>
-        </div>
-        */}
       </div>
     </div>
   );

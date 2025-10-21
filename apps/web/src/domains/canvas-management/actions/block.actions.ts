@@ -2,12 +2,22 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { CreateBlockRequest, BlockMountedDTO } from '../shared/dtos/index';
+import {
+  CreateBlockRequest,
+  BlockMountedDTO,
+  UpdateBlockPositionRequest,
+  UpdateBlockSizeRequest,
+  UpdateMultipleBlockPositionsRequest,
+  BlockPositionUpdatedDTO,
+  BlockSizeUpdatedDTO,
+  MultipleBlockPositionsUpdatedDTO,
+} from '../shared/dtos/index';
 import { ActionResult, ok, err } from '@/lib/action-result';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Position } from '../shared/value-objects/position.vo';
 import { Size } from '../shared/value-objects/size.vo';
+import { BlockMountId } from '../shared/value-objects/block-mount-id.vo';
 import { CanvasManagementService } from '../backend/services/canvas-management.service';
 import { BlockManagementService } from '@/domains/block-management/backend/services/block-management.service';
 import { DrizzleBlockMountRepository } from '../backend/repositories/implementations/drizzle-block-mount.repository';
@@ -15,7 +25,12 @@ import { DrizzleEdgeRepository } from '../backend/repositories/implementations/d
 import { DrizzleViewportRepository } from '../backend/repositories/implementations/drizzle-viewport.repository';
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
 import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
-import { CreateAndMountBlockCommand } from '../shared/commands/index';
+import {
+  CreateAndMountBlockCommand,
+  UpdateBlockPositionCommand,
+  UpdateBlockSizeCommand,
+  UpdateMultipleBlockPositionsCommand,
+} from '../shared/commands/index';
 
 /**
  * Block 생성 및 마운팅 통합 Server Action
@@ -129,6 +144,307 @@ export async function createBlockAction(
     return ok(blockMountedDTO);
   } catch (error) {
     console.error('[createBlockAction] Error:', error);
+    return err('Internal server error', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+        request,
+      },
+    });
+  }
+}
+
+/**
+ * 블럭 위치 업데이트 Server Action
+ *
+ * @param request - UpdateBlockPositionRequest
+ * @returns BlockPositionUpdatedDTO (성공) | Error (실패)
+ */
+export async function updateBlockPositionAction(
+  request: UpdateBlockPositionRequest
+): Promise<ActionResult<BlockPositionUpdatedDTO>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error(
+        '❌ [updateBlockPositionAction] Authentication failed:',
+        authError
+      );
+      return err('Unauthorized: User not authenticated', {
+        code: 'UNAUTHORIZED',
+        meta: { authError: authError?.message },
+      });
+    }
+
+    const userIdVO = new UserId(user.id);
+    const blockMountIdVO = new BlockMountId(request.blockMountId);
+    const positionVO = new Position(
+      request.newPosition.x,
+      request.newPosition.y
+    );
+
+    // 2. Repository 인스턴스 생성
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const edgeRepository = new DrizzleEdgeRepository();
+    const viewportRepository = new DrizzleViewportRepository();
+    const blockRepository = new DrizzleBlockRepository();
+    const workspaceRepository = new DrizzleWorkspaceRepository();
+
+    // 3. Service 인스턴스 생성
+    const blockManagementService = new BlockManagementService(blockRepository);
+    const canvasManagementService = new CanvasManagementService(
+      blockManagementService,
+      blockMountRepository,
+      edgeRepository,
+      viewportRepository,
+      workspaceRepository
+    );
+
+    // 4. Command 생성
+    const command: UpdateBlockPositionCommand = {
+      blockMountId: blockMountIdVO,
+      newPosition: positionVO,
+      userId: userIdVO.value,
+    };
+
+    // 5. Service 메서드 호출
+    const result = await canvasManagementService.updateBlockPosition(command);
+
+    if (result.isError()) {
+      console.error(
+        '❌ [updateBlockPositionAction] Service failed:',
+        result.error
+      );
+      return err(String(result.error), {
+        code: 'POSITION_UPDATE_FAILED',
+        meta: { originalError: result.error },
+      });
+    }
+
+    const aggregate = result.value;
+
+    // 6. DTO 직렬화
+    const dto: BlockPositionUpdatedDTO = {
+      blockMountId: aggregate.blockMount.id.value,
+      newPosition: {
+        x: aggregate.blockMount.position.x,
+        y: aggregate.blockMount.position.y,
+      },
+      updatedAt: aggregate.blockMount.updatedAt.toISOString(),
+    };
+
+    // 7. 페이지 재검증
+    if (request.orgId && request.workspaceId && request.pageId) {
+      revalidatePath(
+        `/r/${request.orgId}/workspace/${request.workspaceId}/page/${request.pageId}`
+      );
+    }
+
+    return ok(dto);
+  } catch (error) {
+    console.error('[updateBlockPositionAction] Error:', error);
+    return err('Internal server error', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+        request,
+      },
+    });
+  }
+}
+
+/**
+ * 블럭 크기 업데이트 Server Action
+ *
+ * @param request - UpdateBlockSizeRequest
+ * @returns BlockSizeUpdatedDTO (성공) | Error (실패)
+ */
+export async function updateBlockSizeAction(
+  request: UpdateBlockSizeRequest
+): Promise<ActionResult<BlockSizeUpdatedDTO>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error(
+        '❌ [updateBlockSizeAction] Authentication failed:',
+        authError
+      );
+      return err('Unauthorized: User not authenticated', {
+        code: 'UNAUTHORIZED',
+        meta: { authError: authError?.message },
+      });
+    }
+
+    const userIdVO = new UserId(user.id);
+    const blockMountIdVO = new BlockMountId(request.blockMountId);
+    const sizeVO = new Size(request.newSize.width, request.newSize.height);
+
+    // 2. Repository 인스턴스 생성
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const edgeRepository = new DrizzleEdgeRepository();
+    const viewportRepository = new DrizzleViewportRepository();
+    const blockRepository = new DrizzleBlockRepository();
+    const workspaceRepository = new DrizzleWorkspaceRepository();
+
+    // 3. Service 인스턴스 생성
+    const blockManagementService = new BlockManagementService(blockRepository);
+    const canvasManagementService = new CanvasManagementService(
+      blockManagementService,
+      blockMountRepository,
+      edgeRepository,
+      viewportRepository,
+      workspaceRepository
+    );
+
+    // 4. Command 생성
+    const command: UpdateBlockSizeCommand = {
+      blockMountId: blockMountIdVO,
+      newSize: sizeVO,
+      userId: userIdVO.value,
+    };
+
+    // 5. Service 메서드 호출
+    const result = await canvasManagementService.updateBlockSize(command);
+
+    if (result.isError()) {
+      console.error('❌ [updateBlockSizeAction] Service failed:', result.error);
+      return err(String(result.error), {
+        code: 'SIZE_UPDATE_FAILED',
+        meta: { originalError: result.error },
+      });
+    }
+
+    const aggregate = result.value;
+
+    // 6. DTO 직렬화
+    const dto: BlockSizeUpdatedDTO = {
+      blockMountId: aggregate.blockMount.id.value,
+      newSize: {
+        width: aggregate.blockMount.size.width,
+        height: aggregate.blockMount.size.height,
+      },
+      updatedAt: aggregate.blockMount.updatedAt.toISOString(),
+    };
+
+    // 7. 페이지 재검증
+    if (request.orgId && request.workspaceId && request.pageId) {
+      revalidatePath(
+        `/r/${request.orgId}/workspace/${request.workspaceId}/page/${request.pageId}`
+      );
+    }
+
+    return ok(dto);
+  } catch (error) {
+    console.error('[updateBlockSizeAction] Error:', error);
+    return err('Internal server error', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+        request,
+      },
+    });
+  }
+}
+
+/**
+ * 다중 블럭 위치 일괄 업데이트 Server Action (정렬/분포용)
+ *
+ * @param request - UpdateMultipleBlockPositionsRequest
+ * @returns MultipleBlockPositionsUpdatedDTO (성공) | Error (실패)
+ */
+export async function updateMultipleBlockPositionsAction(
+  request: UpdateMultipleBlockPositionsRequest
+): Promise<ActionResult<MultipleBlockPositionsUpdatedDTO>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error(
+        '❌ [updateMultipleBlockPositionsAction] Authentication failed:',
+        authError
+      );
+      return err('Unauthorized: User not authenticated', {
+        code: 'UNAUTHORIZED',
+        meta: { authError: authError?.message },
+      });
+    }
+
+    const userIdVO = new UserId(user.id);
+
+    // 2. Repository 인스턴스 생성
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const edgeRepository = new DrizzleEdgeRepository();
+    const viewportRepository = new DrizzleViewportRepository();
+    const blockRepository = new DrizzleBlockRepository();
+    const workspaceRepository = new DrizzleWorkspaceRepository();
+
+    // 3. Service 인스턴스 생성
+    const blockManagementService = new BlockManagementService(blockRepository);
+    const canvasManagementService = new CanvasManagementService(
+      blockManagementService,
+      blockMountRepository,
+      edgeRepository,
+      viewportRepository,
+      workspaceRepository
+    );
+
+    // 4. Command 생성
+    const command: UpdateMultipleBlockPositionsCommand = {
+      blockPositions: request.blockPositions.map(bp => ({
+        blockMountId: new BlockMountId(bp.blockMountId),
+        position: new Position(bp.position.x, bp.position.y),
+      })),
+      userId: userIdVO.value,
+    };
+
+    // 5. Service 메서드 호출
+    const result =
+      await canvasManagementService.updateMultipleBlockPositions(command);
+
+    if (result.isError()) {
+      console.error(
+        '❌ [updateMultipleBlockPositionsAction] Service failed:',
+        result.error
+      );
+      return err(String(result.error), {
+        code: 'MULTIPLE_POSITIONS_UPDATE_FAILED',
+        meta: { originalError: result.error },
+      });
+    }
+
+    // 6. DTO 직렬화
+    const dto: MultipleBlockPositionsUpdatedDTO = {
+      updatedCount: request.blockPositions.length,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // 7. 페이지 재검증
+    if (request.orgId && request.workspaceId && request.pageId) {
+      revalidatePath(
+        `/r/${request.orgId}/workspace/${request.workspaceId}/page/${request.pageId}`
+      );
+    }
+
+    return ok(dto);
+  } catch (error) {
+    console.error('[updateMultipleBlockPositionsAction] Error:', error);
     return err('Internal server error', {
       code: 'INTERNAL_SERVER_ERROR',
       meta: {

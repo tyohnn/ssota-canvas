@@ -9,6 +9,9 @@ import {
   DomainEvent,
   BlockMountedEvent,
   BlockTransformedEvent,
+  BlockPositionUpdatedEvent,
+  BlockSizeUpdatedEvent,
+  BlockZOrderUpdatedEvent,
   BlockMountDeletedEvent,
 } from '../events/index';
 
@@ -57,19 +60,49 @@ export class BlockMountAggregate {
     return aggregate;
   }
 
-  transformBlock(
-    newPosition?: Position,
-    newSize?: Size,
-    newZOrder?: ZOrder
-  ): BlockTransformedEvent {
-    // 1. 기존 BlockMount Entity 업데이트
-    this.blockMount.transform(newPosition, newSize, newZOrder);
+  updateBlockPosition(newPosition: Position): BlockPositionUpdatedEvent {
+    // 1. BlockMount Entity 위치 업데이트
+    this.blockMount.transform(newPosition, undefined, undefined);
 
-    // 2. BlockTransformed 이벤트 생성
-    const event = new BlockTransformedEvent(this.blockMount.id, {
+    // 2. BlockPositionUpdated 이벤트 생성
+    const event = new BlockPositionUpdatedEvent(this.blockMount.id, {
       blockMountId: this.blockMount.id,
       newPosition,
+      occurredAt: new Date(),
+    });
+
+    // 3. 이벤트 추가
+    this._events.push(event);
+
+    // 4. 이벤트 반환
+    return event;
+  }
+
+  updateBlockSize(newSize: Size): BlockSizeUpdatedEvent {
+    // 1. BlockMount Entity 크기 업데이트
+    this.blockMount.transform(undefined, newSize, undefined);
+
+    // 2. BlockSizeUpdated 이벤트 생성
+    const event = new BlockSizeUpdatedEvent(this.blockMount.id, {
+      blockMountId: this.blockMount.id,
       newSize,
+      occurredAt: new Date(),
+    });
+
+    // 3. 이벤트 추가
+    this._events.push(event);
+
+    // 4. 이벤트 반환
+    return event;
+  }
+
+  updateBlockZOrder(newZOrder: ZOrder): BlockZOrderUpdatedEvent {
+    // 1. BlockMount Entity Z-Order 업데이트
+    this.blockMount.transform(undefined, undefined, newZOrder);
+
+    // 2. BlockZOrderUpdated 이벤트 생성
+    const event = new BlockZOrderUpdatedEvent(this.blockMount.id, {
+      blockMountId: this.blockMount.id,
       newZOrder,
       occurredAt: new Date(),
     });

@@ -46,6 +46,48 @@ export class BlockTransformedEvent implements DomainEvent {
   ) {}
 }
 
+// BlockPositionUpdatedEvent
+export class BlockPositionUpdatedEvent implements DomainEvent {
+  readonly type = 'BlockPositionUpdated';
+
+  constructor(
+    public readonly aggregateId: BlockMountId,
+    public readonly data: {
+      blockMountId: BlockMountId;
+      newPosition: Position;
+      occurredAt: Date;
+    }
+  ) {}
+}
+
+// BlockSizeUpdatedEvent
+export class BlockSizeUpdatedEvent implements DomainEvent {
+  readonly type = 'BlockSizeUpdated';
+
+  constructor(
+    public readonly aggregateId: BlockMountId,
+    public readonly data: {
+      blockMountId: BlockMountId;
+      newSize: Size;
+      occurredAt: Date;
+    }
+  ) {}
+}
+
+// BlockZOrderUpdatedEvent
+export class BlockZOrderUpdatedEvent implements DomainEvent {
+  readonly type = 'BlockZOrderUpdated';
+
+  constructor(
+    public readonly aggregateId: BlockMountId,
+    public readonly data: {
+      blockMountId: BlockMountId;
+      newZOrder: ZOrder;
+      occurredAt: Date;
+    }
+  ) {}
+}
+
 // BlockMountDeletedEvent
 export class BlockMountDeletedEvent implements DomainEvent {
   readonly type = 'BlockMountDeleted';

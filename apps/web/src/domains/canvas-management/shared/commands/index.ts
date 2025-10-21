@@ -45,3 +45,23 @@ export interface TransformBlockCommand {
   newZOrder?: ZOrder;
   userId: string;
 }
+
+export interface UpdateBlockPositionCommand {
+  blockMountId: BlockMountId;
+  newPosition: Position;
+  userId: string;
+}
+
+export interface UpdateBlockSizeCommand {
+  blockMountId: BlockMountId;
+  newSize: Size;
+  userId: string;
+}
+
+export interface UpdateMultipleBlockPositionsCommand {
+  blockPositions: Array<{
+    blockMountId: BlockMountId;
+    position: Position;
+  }>;
+  userId: string;
+}

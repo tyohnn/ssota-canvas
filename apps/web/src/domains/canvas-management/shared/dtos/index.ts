@@ -116,6 +116,32 @@ export interface TransformBlockRequest {
   newZOrder?: number;
 }
 
+export interface UpdateBlockPositionRequest {
+  blockMountId: string;
+  newPosition: { x: number; y: number };
+  orgId?: string;
+  workspaceId?: string;
+  pageId?: string;
+}
+
+export interface UpdateBlockSizeRequest {
+  blockMountId: string;
+  newSize: { width: number; height: number };
+  orgId?: string;
+  workspaceId?: string;
+  pageId?: string;
+}
+
+export interface UpdateMultipleBlockPositionsRequest {
+  blockPositions: Array<{
+    blockMountId: string;
+    position: { x: number; y: number };
+  }>;
+  orgId?: string;
+  workspaceId?: string;
+  pageId?: string;
+}
+
 export interface CreateEdgeRequest {
   pageId: string;
   sourceBlockId: string;
@@ -161,6 +187,23 @@ export interface TransformBlockDTO {
   size: { width: number; height: number };
   zOrder: number;
   transformedAt: string;
+}
+
+export interface BlockPositionUpdatedDTO {
+  blockMountId: string;
+  newPosition: { x: number; y: number };
+  updatedAt: string;
+}
+
+export interface BlockSizeUpdatedDTO {
+  blockMountId: string;
+  newSize: { width: number; height: number };
+  updatedAt: string;
+}
+
+export interface MultipleBlockPositionsUpdatedDTO {
+  updatedCount: number;
+  updatedAt: string;
 }
 
 // CanvasPageData 타입 - 서버에서 초기 데이터 로드 시 사용
