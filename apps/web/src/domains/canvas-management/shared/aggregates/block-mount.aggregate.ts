@@ -13,6 +13,7 @@ import {
   BlockSizeUpdatedEvent,
   BlockZOrderUpdatedEvent,
   BlockMountDeletedEvent,
+  BlockDuplicatedEvent,
 } from '../events/index';
 
 export class BlockMountAggregate {
@@ -131,6 +132,98 @@ export class BlockMountAggregate {
 
     // 4. 이벤트 반환
     return event;
+  }
+
+  duplicateBlock(
+    newBlockId: BlockId,
+    offsetX: number = 20,
+    offsetY: number = 20
+  ): BlockMountAggregate {
+    // 1. 입력 검증
+    if (!newBlockId) {
+      throw new Error('New block ID is required for duplication');
+    }
+
+    // 2. 새로운 BlockMountId 생성
+    const newBlockMountId = new BlockMountId(crypto.randomUUID());
+
+    // 3. 복제된 위치 및 ZOrder 계산
+    const duplicatedPosition = this.calculateDuplicatePosition(
+      offsetX,
+      offsetY
+    );
+    const duplicatedZOrder = this.calculateDuplicateZOrder();
+
+    // 4. 새로운 BlockMount Entity 생성
+    const duplicatedBlockMount = new BlockMount(
+      newBlockMountId,
+      this.blockMount.pageId,
+      newBlockId,
+      duplicatedPosition,
+      this.blockMount.size,
+      duplicatedZOrder
+    );
+
+    // 5. BlockDuplicated 이벤트 생성
+    const event = this.createDuplicationEvent(
+      newBlockMountId,
+      newBlockId,
+      duplicatedPosition,
+      duplicatedZOrder
+    );
+
+    // 6. 새로운 Aggregate 생성 및 이벤트 추가
+    const duplicatedAggregate = new BlockMountAggregate(duplicatedBlockMount);
+    duplicatedAggregate._events.push(event);
+
+    // 7. 원본 Aggregate에도 이벤트 추가
+    this._events.push(event);
+
+    // 8. 복제된 Aggregate 반환
+    return duplicatedAggregate;
+  }
+
+  /**
+   * 복제된 블럭의 위치를 계산합니다.
+   */
+  private calculateDuplicatePosition(
+    offsetX: number,
+    offsetY: number
+  ): Position {
+    return new Position(
+      this.blockMount.position.x + offsetX,
+      this.blockMount.position.y + offsetY
+    );
+  }
+
+  /**
+   * 복제된 블럭의 Z-Order를 계산합니다.
+   * 원본보다 높은 Z-Order를 가져야 합니다.
+   */
+  private calculateDuplicateZOrder(): ZOrder {
+    return new ZOrder(this.blockMount.zOrder.value + 1);
+  }
+
+  /**
+   * 블럭 복제 이벤트를 생성합니다.
+   */
+  private createDuplicationEvent(
+    newBlockMountId: BlockMountId,
+    newBlockId: BlockId,
+    duplicatedPosition: Position,
+    duplicatedZOrder: ZOrder
+  ): BlockDuplicatedEvent {
+    return new BlockDuplicatedEvent(this.blockMount.id, {
+      originalBlockMountId: this.blockMount.id,
+      duplicatedBlockMountId: newBlockMountId,
+      originalBlockId: this.blockMount.blockId,
+      duplicatedBlockId: newBlockId,
+      pageId: this.blockMount.pageId,
+      duplicatedPosition,
+      duplicatedSize: this.blockMount.size,
+      duplicatedZOrder,
+      occurredAt: new Date(),
+    });
   }
 
   getUncommittedEvents(): DomainEvent[] {

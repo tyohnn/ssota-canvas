@@ -22,6 +22,10 @@ export interface BasicBlockNodeData extends Record<string, unknown> {
   isOptimistic?: boolean;
   position: { x: number; y: number };
   _optimisticId?: string;
+  // Canvas Management에 필요한 ID들
+  pageId?: string;
+  orgId?: string;
+  workspaceId?: string;
 }
 
 /**
@@ -81,11 +85,13 @@ export function toReactFlowEdge(edge: EdgeView): Edge {
     id: edge.edgeId,
     source: edge.sourceBlockId, // React Flow 노드 ID 매핑
     target: edge.targetBlockId, // React Flow 노드 ID 매핑
-    type: edge.edgeType || 'default',
+    type: 'custom', // 항상 custom 타입 사용 (CustomEdge 컴포넌트 사용)
     label: edge.label,
     style: edge.style,
     data: {
       edgeId: edge.edgeId,
+      actualEdgeShape: edge.edgeShape || 'default', // 실제 엣지 모양 저장
+      pageId: edge.pageId,
       createdAt: edge.createdAt,
       updatedAt: edge.updatedAt,
     },
@@ -192,9 +198,13 @@ export function toReactFlowEdgeFromCanvasView(
     id: edge.edgeId,
     source: edge.sourceBlockId,
     target: edge.targetBlockId,
-    type: edge.edgeType || 'default',
+    type: 'custom', // 항상 custom 타입 사용 (CustomEdge 컴포넌트 사용)
+    label: edge.label,
+    style: edge.style,
     data: {
       edgeId: edge.edgeId,
+      actualEdgeShape: edge.edgeShape || 'default', // 실제 엣지 모양 저장
+      pageId: edge.pageId,
     },
   };
 }

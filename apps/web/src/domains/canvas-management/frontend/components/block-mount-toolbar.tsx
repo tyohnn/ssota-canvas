@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { NodeToolbar, Position } from '@xyflow/react';
+import React, { useRef } from 'react';
+import { NodeToolbar, Position, useStore, useReactFlow } from '@xyflow/react';
 import { Button } from '@workspace/ui/components/ui/button';
 import {
   Tooltip,
@@ -23,6 +23,8 @@ import { MoreHorizontal, Edit, Copy, Trash2, ChevronRight } from 'lucide-react';
 import { useCanvasMode } from '../hooks/use-canvas-mode';
 import { useCanvasSelection } from '../hooks/use-canvas-selection';
 import { useCanvasBlockLifecycle } from '../hooks/use-canvas-block-lifecycle';
+import { usePreventPinchZoom } from '../hooks/use-prevent-pinch-zoom';
+import { deleteBlockMountAction } from '../../actions/block.actions';
 
 export interface BlockMountToolbarProps {
   pageId: string;
@@ -53,19 +55,17 @@ export function BlockMountToolbar({
   const canvasSelection = useCanvasSelection();
   const blockLifecycle = useCanvasBlockLifecycle({ pageId, orgId });
 
+  // React Flow Store 직접 접근
+  const nodes = useStore(state => state.nodes);
+  const setNodes = useStore(state => state.setNodes);
+  const { deleteElements } = useReactFlow();
+
+  // Canvas Mode 함수들 미리 추출
+  const { exitToDefaultMode } = canvasMode;
+
   // 선택된 블럭 정보 (단일 선택 시에만 이 컴포넌트가 렌더링됨)
   const selectedBlocks = canvasSelection.getSelectedBlocks();
   const selectedBlockId = selectedBlocks[0];
-
-  // 선택된 블럭이 없으면 렌더링하지 않음
-  if (!selectedBlockId) {
-    return null;
-  }
-
-  // 다중 선택 시에는 MultiSelectionToolbar가 표시되므로 여기서는 렌더링하지 않음
-  if (selectedBlocks.length > 1) {
-    return null;
-  }
 
   const selectedNode = canvasSelection.selectedNodes.find(
     node => node.id === selectedBlockId
@@ -76,6 +76,7 @@ export function BlockMountToolbar({
 
   // Details 버튼 핸들러 (에디터 패널 열기)
   const handleDetails = () => {
+    if (!selectedBlockId) return;
     canvasMode.enterBlockEditingMode(selectedBlockId);
   };
 
@@ -84,25 +85,70 @@ export function BlockMountToolbar({
     // TODO: 블럭 편집 모드 (CM-003에서 구현 예정)
   };
 
-  const handleDuplicate = () => {
-    // TODO: 블럭 복제 구현 (Phase 4에서 구현 예정)
+  const handleDuplicate = async () => {
+    if (!selectedBlockId) return;
+
+    try {
+      // 선택된 노드에서 blockMountId 찾기
+      const selectedNode = nodes.find(node => node.id === selectedBlockId);
+      if (!selectedNode?.data?.blockMountId) {
+        console.error('Block mount ID not found for selected block');
+        return;
+      }
+
+      // 블럭 복제 실행 (블럭 너비 + 50px 오프셋)
+      const blockWidth = selectedNode.width || 200; // 기본 너비 200px
+      const offsetX = blockWidth + 50;
+      const offsetY = 20; // Y축은 기본 20px
+
+      await blockLifecycle.duplicateBlock(
+        selectedNode.data.blockMountId as string,
+        workspaceId,
+        offsetX,
+        offsetY
+      );
+    } catch (error) {
+      console.error('Block duplication failed:', error);
+    }
   };
 
   const handleCreateComponent = () => {
     // TODO: 컴포넌트 생성 구현 (추후 구현 예정)
   };
 
-  const handleDelete = () => {
-    // TODO: 블럭 삭제 구현 (Phase 4에서 구현 예정)
+  const handleDelete = async () => {
+    if (!selectedBlockId) return;
+
+    // 1. React Flow에서 즉시 제거 (Optimistic UI)
+    deleteElements({ nodes: [{ id: selectedBlockId }] });
+
+    // 2. 기본 모드로 복귀
+    exitToDefaultMode();
+
+    // 3. 서버 액션은 onNodesDelete 콜백에서 처리됨
   };
+
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // 트랙패드 핀치 줌 방지
+  usePreventPinchZoom(toolbarRef);
+
+  // 툴바 표시 조건: 단일 선택 모드 && 선택된 블럭이 있음
+  const shouldShowToolbar = !!selectedBlockId && selectedBlocks.length === 1;
 
   return (
     <NodeToolbar
-      isVisible={true}
+      isVisible={shouldShowToolbar}
       position={Position.Top}
       className="nodrag nowheel"
     >
-      <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-lg shadow-lg px-2 py-1 flex items-center gap-1">
+      {/* z-index: React Flow NodeToolbar (자동 관리) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
+      <div
+        ref={toolbarRef}
+        className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-lg shadow-lg px-2 py-1 flex items-center gap-1"
+        style={{ touchAction: 'none' }}
+        onWheel={e => e.stopPropagation()}
+      >
         <TooltipProvider>
           {/* Details 버튼 */}
           <Tooltip>
@@ -139,7 +185,7 @@ export function BlockMountToolbar({
               </TooltipContent>
             </Tooltip>
 
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="start" side="right" className="w-48">
               <DropdownMenuItem onClick={handleEdit}>
                 <Edit className="h-4 w-4 mr-2" />
                 편집

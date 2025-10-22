@@ -87,9 +87,7 @@ export function useCanvasBlockTransform({
           newPosition: position,
         });
 
-        if (result.success) {
-          console.log('✅ Position saved to server:', result.data);
-        } else {
+        if (!result.success) {
           console.error('❌ Failed to save position:', result.error);
           // 실패 시 롤백은 상위 컴포넌트에서 처리
         }

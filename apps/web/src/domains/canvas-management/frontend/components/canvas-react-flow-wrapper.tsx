@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   ReactFlow,
   Background,
   Controls,
   MiniMap,
+  Panel,
   SelectionMode,
   type OnConnect,
   type Node,
@@ -15,6 +16,11 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { isFailure } from '@/lib/action-result';
+import {
+  deleteBlockMountAction,
+  deleteMultipleBlockMountsAction,
+} from '../../actions/block.actions';
 
 // Type imports
 import type { CustomNodeType } from '../acl/react-flow.acl';
@@ -25,6 +31,8 @@ import { useCanvasSelection } from '../hooks/use-canvas-selection';
 import { useCanvasViewport } from '../hooks/use-canvas-viewport';
 import { useCanvasBlockTransform } from '../hooks/use-canvas-block-transform';
 import { useCanvasSnapGuides } from '../hooks/use-canvas-snap-guides';
+import { useCanvasEdgeManagement } from '../hooks/use-canvas-edge-management';
+import { useCanvasBlockLifecycle } from '../hooks/use-canvas-block-lifecycle';
 
 // Canvas Management Components
 import { CanvasToolbar } from './canvas-toolbar';
@@ -34,7 +42,9 @@ import { BlockAddDialog } from './block-add-dialog';
 import { BasicBlockNode } from './basic-block-node';
 import { SnapGuidelines } from './snap-guidelines';
 import { MultiSelectionToolbar } from './multi-selection-toolbar';
+import { BlockMountToolbar } from './block-mount-toolbar';
 import { SelectionBoundingBox } from './selection-bounding-box';
+import { CustomEdge } from './custom-edge';
 
 interface CanvasReactFlowWrapperProps {
   pageId: string;
@@ -74,9 +84,24 @@ export function CanvasReactFlowWrapper({
     [initialNodes, pageId, orgId, workspaceId]
   );
 
+  // 엣지 데이터에 pageId 추가 (EdgeToolbar에서 사용)
+  const enrichedEdges = React.useMemo(
+    () =>
+      initialEdges.map(edge => ({
+        ...edge,
+        type: 'custom', // 모든 엣지를 커스텀 엣지로 설정
+        data: {
+          ...edge.data,
+          pageId,
+          actualEdgeType: edge.type || 'default', // 실제 엣지 타입 저장
+        },
+      })),
+    [initialEdges, pageId]
+  );
+
   // React Flow 상태 관리 (SSOT)
   const [nodes, setNode, onNodesChange] = useNodesState(enrichedNodes);
-  const [edges, setEdge, onEdgesChange] = useEdgesState(initialEdges);
+  const [edges, setEdge, onEdgesChange] = useEdgesState(enrichedEdges);
   const reactFlowInstance = useReactFlow();
 
   // Canvas Management Hooks
@@ -85,6 +110,8 @@ export function CanvasReactFlowWrapper({
   const canvasViewport = useCanvasViewport();
   const blockTransform = useCanvasBlockTransform({ pageId });
   const snapGuides = useCanvasSnapGuides();
+  const edgeManagement = useCanvasEdgeManagement(pageId);
+  const blockLifecycle = useCanvasBlockLifecycle({ pageId, orgId });
 
   // BlockAddDialog 상태 관리
   const [showAddDialog, setShowAddDialog] = React.useState(false);
@@ -94,6 +121,15 @@ export function CanvasReactFlowWrapper({
     () => ({
       basic: BasicBlockNode,
       // 다른 블록 타입들도 여기에 추가 가능
+    }),
+    []
+  );
+
+  // 엣지 타입 정의
+  const edgeTypes = React.useMemo(
+    () => ({
+      custom: CustomEdge,
+      // 다른 엣지 타입들도 여기에 추가 가능
     }),
     []
   );
@@ -271,8 +307,151 @@ export function CanvasReactFlowWrapper({
       return;
     }
 
+    // React Flow 선택 상태를 명시적으로 해제
+    reactFlowInstance.setNodes(nodes =>
+      nodes.map(node => ({ ...node, selected: false }))
+    );
+
     canvasMode.exitToDefaultMode();
-  }, [canvasMode.exitToDefaultMode, canvasMode.isBlockCreationMode]);
+  }, [
+    canvasMode.exitToDefaultMode,
+    canvasMode.isBlockCreationMode,
+    reactFlowInstance,
+  ]);
+
+  /**
+   * 엣지 연결 → 엣지 생성 및 서버 저장
+   */
+  const onConnect: OnConnect = useCallback(
+    async connection => {
+      console.log('[Canvas] onConnect:', {
+        source: connection.source,
+        target: connection.target,
+      });
+
+      // 1. 연결 유효성 확인
+      if (!connection.source || !connection.target) {
+        console.warn(
+          '⚠️ [Canvas] Invalid connection: missing source or target'
+        );
+        return;
+      }
+
+      // 2. Optimistic UI로 엣지 생성
+      // Hook 내부에서 blockMountId → blockId 변환 처리
+      await edgeManagement.createEdge(
+        connection.source, // blockMountId (React Flow 노드 ID)
+        connection.target, // blockMountId (React Flow 노드 ID)
+        'default' // 기본 타입, 나중에 사용자가 변경 가능
+      );
+    },
+    [edgeManagement.createEdge]
+  );
+
+  /**
+   * 노드 삭제 → 블럭 마운트 및 연결된 엣지 삭제
+   * Story CM-008: Delete 키 또는 Backspace 키로 블럭 삭제
+   *
+   * 주의: React Flow가 이미 노드를 제거한 후 이 콜백을 호출하므로,
+   * UI는 이미 제거된 상태이고 서버 액션만 호출하면 됨
+   */
+  const onNodesDelete = useCallback(
+    async (deletedNodes: Node[]) => {
+      // Optimistic 노드 필터링 (아직 서버에 저장되지 않음)
+      const optimisticNodes = deletedNodes.filter(node =>
+        node.id.startsWith('optimistic-')
+      );
+      const realNodes = deletedNodes.filter(
+        node => !node.id.startsWith('optimistic-')
+      );
+
+      if (optimisticNodes.length > 0) {
+      }
+
+      // 실제 노드만 서버로 전송
+      if (realNodes.length === 0) {
+        return;
+      }
+
+      const blockMountIds = realNodes.map(node => node.id);
+
+      try {
+        if (blockMountIds.length === 1) {
+          // 단일 블럭 삭제 - 직접 서버 액션 호출
+          const result = await deleteBlockMountAction({
+            blockMountId: blockMountIds[0]!,
+            orgId,
+            workspaceId,
+            pageId,
+          });
+
+          if (result.success && result.data) {
+            // 성공 시 로그 없음 (조용한 처리)
+          } else if (isFailure(result)) {
+            console.error('Block deletion failed:', result.error);
+          }
+        } else if (blockMountIds.length > 1) {
+          // 다중 블럭 삭제 - 직접 서버 액션 호출
+          const result = await deleteMultipleBlockMountsAction({
+            blockMountIds,
+            orgId,
+            workspaceId,
+            pageId,
+          });
+
+          if (result.success && result.data) {
+            // 성공 시 로그 없음 (조용한 처리)
+          } else if (isFailure(result)) {
+            console.error('Multiple blocks deletion failed:', result.error);
+          }
+        }
+      } catch (error) {
+        console.error('Block deletion error:', error);
+      }
+    },
+    [workspaceId, pageId, orgId]
+  );
+
+  // 키보드 이벤트 핸들러 (Ctrl+D 복제)
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      // Ctrl+D 또는 Cmd+D (Mac)
+      if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
+        event.preventDefault();
+
+        const selectedBlocks = canvasSelection.getSelectedBlocks();
+        if (selectedBlocks.length === 0) {
+          return;
+        }
+
+        // 선택된 블럭들을 복제
+        selectedBlocks.forEach(async blockId => {
+          const selectedNode = nodes.find(node => node.id === blockId);
+          const blockMountId = (selectedNode?.data as any)?.blockMountId;
+          if (!blockMountId) {
+            return;
+          }
+
+          try {
+            // 블럭 너비 + 50px 오프셋 계산
+            const blockWidth = selectedNode?.width || 200; // 기본 너비 200px
+            const offsetX = blockWidth + 50;
+            const offsetY = 20; // Y축은 기본 20px
+
+            await blockLifecycle.duplicateBlock(
+              blockMountId,
+              workspaceId,
+              offsetX,
+              offsetY
+            );
+          } catch (error) {
+            console.error(`Failed to duplicate block ${blockId}:`, error);
+          }
+        });
+      }
+    },
+    [canvasSelection, nodes, blockLifecycle, workspaceId]
+  );
 
   // 트랙패드 제스처 최적화 설정 (피그마 스타일)
   // - 핀치 제스처: 줌인/줌아웃
@@ -306,18 +485,13 @@ export function CanvasReactFlowWrapper({
         }
       `}</style>
 
-      {/* 캔버스 상단 툴바 */}
-      <CanvasToolbar
-        pageId={pageId}
-        onAddBlockClick={() => setShowAddDialog(true)}
-      />
-
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         // 기본 설정
         fitView
         minZoom={0.1}
@@ -333,17 +507,29 @@ export function CanvasReactFlowWrapper({
         panOnScroll={true} // 두 손가락 스크롤로 패닝
         zoomOnScroll={false} // 스크롤로 줌 비활성화
         zoomOnPinch={true} // 핀치 제스처로 줌 활성화
-        // 이벤트 핸들러 (CM-003 추가)
+        // 이벤트 핸들러 (CM-003, CM-007 추가)
         onNodeClick={onNodeClick}
         onSelectionChange={onSelectionChange}
         onPaneClick={onPaneClick}
         onNodeDragStart={onNodeDragStart}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
+        onConnect={onConnect}
+        onNodesDelete={onNodesDelete}
+        onKeyDown={onKeyDown}
+        deleteKeyCode={['Delete', 'Backspace']}
         className="bg-gray-50"
       >
         <Background />
-        <Controls />
+
+        {/* 캔버스 상단 툴바 - Panel로 ReactFlow 내부로 이동 */}
+        {/* z-index: 블럭(0) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
+        <Panel position="top-center" className="!m-0 !pointer-events-auto z-10">
+          <CanvasToolbar
+            pageId={pageId}
+            onAddBlockClick={() => setShowAddDialog(true)}
+          />
+        </Panel>
 
         {/* 모드별 컴포넌트 렌더링 */}
         {canvasMode.isBlockCreationMode() && (
@@ -356,16 +542,34 @@ export function CanvasReactFlowWrapper({
 
         {canvasMode.isMultiSelectionMode() && (
           <>
-            <MultiSelectionToolbar pageId={pageId} />
+            <MultiSelectionToolbar
+              pageId={pageId}
+              orgId={orgId}
+              workspaceId={workspaceId}
+            />
             <SelectionBoundingBox pageId={pageId} />
           </>
+        )}
+
+        {/* 단일 선택 모드에서 BlockMountToolbar 표시 */}
+        {canvasMode.isSingleSelectionMode() && (
+          <BlockMountToolbar
+            pageId={pageId}
+            orgId={orgId}
+            workspaceId={workspaceId}
+          />
         )}
 
         {/* 항상 렌더링하고 내부에서 조건 체크 (상태 업데이트 타이밍 이슈 방지) */}
         <SnapGuidelines guidelines={snapGuides.guidelines} />
 
-        {/* 우측 하단 뷰포트 컨트롤 */}
-        <ViewportControls />
+        {/* 우측 하단 뷰포트 컨트롤 - Panel로 감싸서 React Flow 이벤트 시스템 통합 */}
+        <Panel
+          position="bottom-right"
+          className="!mr-4 !mb-4 !pointer-events-auto"
+        >
+          <ViewportControls />
+        </Panel>
       </ReactFlow>
 
       {/* Block Add Dialog (캔버스 밖에 위치) */}

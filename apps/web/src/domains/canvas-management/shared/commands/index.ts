@@ -1,6 +1,8 @@
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { BlockMountId } from '../value-objects/block-mount-id.vo';
+import { EdgeId } from '../value-objects/edge-id.vo';
+import { EdgeShape } from '../value-objects/edge-shape.vo';
 import { Position } from '../value-objects/position.vo';
 import { Size } from '../value-objects/size.vo';
 import { ZOrder } from '../value-objects/z-order.vo';
@@ -63,5 +65,60 @@ export interface UpdateMultipleBlockPositionsCommand {
     blockMountId: BlockMountId;
     position: Position;
   }>;
+  userId: string;
+}
+
+// Edge Commands
+export interface CreateEdgeCommand {
+  pageId: PageId;
+  sourceBlockId: BlockId;
+  targetBlockId: BlockId;
+  edgeShape?: EdgeShape;
+  userId: string;
+}
+
+export interface UpdateEdgeShapeCommand {
+  edgeId: EdgeId;
+  newShape: EdgeShape;
+  userId: string;
+}
+
+export interface UpdateEdgeLabelCommand {
+  edgeId: EdgeId;
+  newLabel: string;
+  userId: string;
+}
+
+export interface UpdateEdgeStyleCommand {
+  edgeId: EdgeId;
+  style: {
+    stroke?: string;
+    strokeWidth?: number;
+  };
+  userId: string;
+}
+
+export interface DeleteEdgeCommand {
+  edgeId: EdgeId;
+  userId: string;
+}
+
+// Block Mount Deletion Commands
+export interface DeleteBlockMountCommand {
+  blockMountId: BlockMountId;
+  userId: string;
+}
+
+export interface DeleteMultipleBlockMountsCommand {
+  blockMountIds: BlockMountId[];
+  userId: string;
+}
+
+// Block Duplication Commands
+export interface DuplicateBlockCommand {
+  blockMountId: BlockMountId;
+  workspaceId: string;
+  offsetX?: number;
+  offsetY?: number;
   userId: string;
 }

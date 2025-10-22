@@ -80,6 +80,7 @@ describe('React Flow ACL', () => {
       // Given
       const edge = {
         edgeId: 'edge-123',
+        pageId: 'page-123',
         sourceBlockId: 'block-mount-456',
         targetBlockId: 'block-mount-789',
         edgeType: 'straight'
@@ -93,9 +94,11 @@ describe('React Flow ACL', () => {
         id: 'edge-123',
         source: 'block-mount-456',
         target: 'block-mount-789',
-        type: 'straight',
+        type: 'custom',
         data: {
-          edgeId: 'edge-123'
+          edgeId: 'edge-123',
+          actualEdgeType: 'straight',
+          pageId: 'page-123'
         }
       });
     });
@@ -104,6 +107,7 @@ describe('React Flow ACL', () => {
       // Given
       const edge = {
         edgeId: 'edge-456',
+        pageId: 'page-456',
         sourceBlockId: 'block-mount-123',
         targetBlockId: 'block-mount-456',
         edgeType: ''
@@ -113,13 +117,15 @@ describe('React Flow ACL', () => {
       const reactFlowEdge = toReactFlowEdgeFromCanvasView(edge);
 
       // Then
-      expect(reactFlowEdge.type).toBe('default');
+      expect(reactFlowEdge.type).toBe('custom');
+      expect(reactFlowEdge.data?.actualEdgeType).toBe('default');
     });
 
     it('null edgeType일 때도 기본값을 사용해야 한다', () => {
       // Given
       const edge = {
         edgeId: 'edge-789',
+        pageId: 'page-789',
         sourceBlockId: 'block-mount-123',
         targetBlockId: 'block-mount-456',
         edgeType: null as any
@@ -129,7 +135,8 @@ describe('React Flow ACL', () => {
       const reactFlowEdge = toReactFlowEdgeFromCanvasView(edge);
 
       // Then
-      expect(reactFlowEdge.type).toBe('default');
+      expect(reactFlowEdge.type).toBe('custom');
+      expect(reactFlowEdge.data?.actualEdgeType).toBe('default');
     });
   });
 });

@@ -13,6 +13,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@workspace/ui/components/ui/dialog';
@@ -132,6 +133,9 @@ export function BlockAddDialog({
       <DialogContent className="max-w-[450px] p-0 rounded-md">
         <DialogHeader className="px-4 py-3 border-b border-border/30">
           <DialogTitle>블럭 타입 선택</DialogTitle>
+          <DialogDescription>
+            캔버스에 추가할 블럭 타입을 선택하세요.
+          </DialogDescription>
         </DialogHeader>
 
         <Command className="rounded-md border-0">

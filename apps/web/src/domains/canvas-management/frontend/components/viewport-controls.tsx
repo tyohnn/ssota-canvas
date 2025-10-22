@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { Button } from '@workspace/ui/components/ui/button';
-import { Label } from '@workspace/ui/components/ui/label';
-import { Slider } from '@workspace/ui/components/ui/slider';
 import {
   Tooltip,
   TooltipContent,
@@ -14,6 +12,7 @@ import { Map, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { MiniMap } from '@xyflow/react';
 import { cn } from '@/lib/utils';
 import { useCanvasViewport } from '../hooks/use-canvas-viewport';
+import { usePreventPinchZoom } from '../hooks/use-prevent-pinch-zoom';
 
 export interface ViewportControlsProps {
   className?: string;
@@ -27,42 +26,23 @@ export interface ViewportControlsProps {
  */
 export function ViewportControls({ className = '' }: ViewportControlsProps) {
   const [isClient, setIsClient] = useState(false);
-  const [zoomPercent, setZoomPercent] = useState(100);
   const [showMiniMap, setShowMiniMap] = useState(false);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const minimapRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Hook은 항상 호출해야 함 (Hook Rules)
   const canvasViewport = useCanvasViewport();
+
+  // 트랙패드 핀치 줌 방지 (모든 영역에 적용)
+  usePreventPinchZoom(toolbarRef);
+  usePreventPinchZoom(minimapRef);
+  usePreventPinchZoom(containerRef);
 
   // 클라이언트 사이드에서만 렌더링되도록 처리
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  // 현재 줌 레벨을 퍼센트로 변환
-  const updateZoomPercent = useCallback(() => {
-    if (!isClient || !canvasViewport) return;
-    const currentZoom = canvasViewport.getZoomLevel();
-    setZoomPercent(Math.round(currentZoom * 100));
-  }, [canvasViewport, isClient]);
-
-  // 줌 레벨 변경 시 퍼센트 업데이트
-  useEffect(() => {
-    if (isClient) {
-      updateZoomPercent();
-    }
-  }, [updateZoomPercent, isClient]);
-
-  // 슬라이더로 줌 변경 (CM-003에서 활성화될 예정)
-  const handleZoomChange = useCallback(
-    (percent: number) => {
-      const zoomLevel = percent / 100;
-      if (isClient && canvasViewport?.reactFlow) {
-        canvasViewport.reactFlow.zoomTo(zoomLevel, { duration: 200 });
-      }
-      setZoomPercent(percent);
-    },
-    [canvasViewport, isClient]
-  );
 
   // 미니맵 토글
   const toggleMiniMap = useCallback(() => {
@@ -75,53 +55,35 @@ export function ViewportControls({ className = '' }: ViewportControlsProps) {
   }
 
   const zoomLevel = canvasViewport.getZoomLevel();
-  const center = canvasViewport.getViewportCenter();
 
   return (
     <div
-      className={`absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2 ${className}`}
+      ref={containerRef}
+      className={`flex flex-col items-end gap-2 ${className}`}
+      style={{ touchAction: 'none' }}
+      onWheel={e => e.stopPropagation()}
     >
       {/* MiniMap positioned above the toolbar */}
       {showMiniMap && (
-        <div className="w-48 h-32 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg overflow-hidden">
+        <div
+          ref={minimapRef}
+          className="w-48 h-32 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg overflow-hidden"
+          style={{ touchAction: 'none' }}
+          onWheel={e => e.stopPropagation()}
+        >
           <MiniMap />
         </div>
       )}
 
       {/* Zoom controls toolbar */}
-      <div className="flex items-center gap-3 px-2 py-1.5 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg">
-        {/* 줌 레벨 표시 (읽기 전용) */}
-        <div className="flex items-center gap-2">
-          <Label className="tabular-nums text-sm">
-            {Math.round(zoomLevel * 100)}%
-          </Label>
-        </div>
-
-        {/* 뷰포트 정보 (디버그용) */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>
-            {Math.round(center.x)}, {Math.round(center.y)}
-          </span>
-        </div>
-
+      <div
+        ref={toolbarRef}
+        className="flex items-center gap-2 px-2 py-1.5 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg"
+        style={{ touchAction: 'none' }}
+        onWheel={e => e.stopPropagation()}
+      >
         <TooltipProvider>
-          {/* Zoom In */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 rounded-sm hover:bg-accent hover:text-accent-foreground"
-                onClick={() => canvasViewport.zoomIn()}
-                aria-label="Zoom In"
-              >
-                <ZoomIn className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top">확대</TooltipContent>
-          </Tooltip>
-
-          {/* Zoom Out */}
+          {/* Zoom Out (축소) - 왼쪽 */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -135,6 +97,29 @@ export function ViewportControls({ className = '' }: ViewportControlsProps) {
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top">축소</TooltipContent>
+          </Tooltip>
+
+          {/* 줌 레벨 표시 - 중앙 */}
+          <div className="flex items-center justify-center min-w-[3rem] px-1">
+            <span className="text-xs tabular-nums font-medium">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+          </div>
+
+          {/* Zoom In (확대) - 오른쪽 */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-sm hover:bg-accent hover:text-accent-foreground"
+                onClick={() => canvasViewport.zoomIn()}
+                aria-label="Zoom In"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">확대</TooltipContent>
           </Tooltip>
 
           {/* Fit to Screen */}

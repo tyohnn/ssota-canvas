@@ -11,6 +11,10 @@ import {
   BlockPositionUpdatedDTO,
   BlockSizeUpdatedDTO,
   MultipleBlockPositionsUpdatedDTO,
+  DeleteBlockMountRequest,
+  DeleteMultipleBlockMountsRequest,
+  BlockMountDeletedDTO,
+  MultipleBlockMountsDeletedDTO,
 } from '../shared/dtos/index';
 import { ActionResult, ok, err } from '@/lib/action-result';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
@@ -30,6 +34,9 @@ import {
   UpdateBlockPositionCommand,
   UpdateBlockSizeCommand,
   UpdateMultipleBlockPositionsCommand,
+  DeleteBlockMountCommand,
+  DeleteMultipleBlockMountsCommand,
+  DuplicateBlockCommand,
 } from '../shared/commands/index';
 
 /**
@@ -452,5 +459,280 @@ export async function updateMultipleBlockPositionsAction(
         request,
       },
     });
+  }
+}
+
+/**
+ * 블럭 마운트 삭제 Server Action (연결된 엣지 자동 정리)
+ * Story CM-008 구현
+ *
+ * @param request - DeleteBlockMountRequest
+ * @returns BlockMountDeletedDTO (성공) | Error (실패)
+ */
+export async function deleteBlockMountAction(
+  request: DeleteBlockMountRequest
+): Promise<ActionResult<BlockMountDeletedDTO>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error(
+        '❌ [deleteBlockMountAction] Authentication failed:',
+        authError
+      );
+      return err('Unauthorized: User not authenticated', {
+        code: 'UNAUTHORIZED',
+        meta: { authError: authError?.message },
+      });
+    }
+
+    const userIdVO = new UserId(user.id);
+    const blockMountIdVO = new BlockMountId(request.blockMountId);
+
+    // 2. Repository 인스턴스 생성
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const edgeRepository = new DrizzleEdgeRepository();
+    const viewportRepository = new DrizzleViewportRepository();
+    const blockRepository = new DrizzleBlockRepository();
+    const workspaceRepository = new DrizzleWorkspaceRepository();
+
+    // 3. Service 인스턴스 생성
+    const blockManagementService = new BlockManagementService(blockRepository);
+    const canvasManagementService = new CanvasManagementService(
+      blockManagementService,
+      blockMountRepository,
+      edgeRepository,
+      viewportRepository,
+      workspaceRepository
+    );
+
+    // 4. Command 생성
+    const command: DeleteBlockMountCommand = {
+      blockMountId: blockMountIdVO,
+      userId: userIdVO.value,
+    };
+
+    // 5. Service 메서드 호출
+    const result = await canvasManagementService.deleteBlockMount(command);
+
+    if (result.isError()) {
+      console.error(
+        '❌ [deleteBlockMountAction] Service failed:',
+        result.error
+      );
+      return err(String(result.error), {
+        code: 'BLOCK_MOUNT_DELETION_FAILED',
+        meta: { originalError: result.error },
+      });
+    }
+
+    // 6. DTO 직렬화
+    const dto: BlockMountDeletedDTO = {
+      blockMountId: blockMountIdVO.value,
+      deletedEdgesCount: result.value.deletedEdgesCount,
+      deletedAt: new Date().toISOString(),
+    };
+
+    // 7. 페이지 재검증
+    if (request.orgId && request.workspaceId && request.pageId) {
+      revalidatePath(
+        `/r/${request.orgId}/workspace/${request.workspaceId}/page/${request.pageId}`
+      );
+    }
+
+    return ok(dto);
+  } catch (error) {
+    console.error('[deleteBlockMountAction] Error:', error);
+    return err('Internal server error', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+        request,
+      },
+    });
+  }
+}
+
+/**
+ * 다중 블럭 마운트 삭제 Server Action (연결된 엣지 자동 정리)
+ * Story CM-008 구현 - 다중 블럭 삭제
+ *
+ * @param request - DeleteMultipleBlockMountsRequest
+ * @returns MultipleBlockMountsDeletedDTO (성공) | Error (실패)
+ */
+export async function deleteMultipleBlockMountsAction(
+  request: DeleteMultipleBlockMountsRequest
+): Promise<ActionResult<MultipleBlockMountsDeletedDTO>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error(
+        '❌ [deleteMultipleBlockMountsAction] Authentication failed:',
+        authError
+      );
+      return err('Unauthorized: User not authenticated', {
+        code: 'UNAUTHORIZED',
+        meta: { authError: authError?.message },
+      });
+    }
+
+    const userIdVO = new UserId(user.id);
+
+    // 2. Repository 인스턴스 생성
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const edgeRepository = new DrizzleEdgeRepository();
+    const viewportRepository = new DrizzleViewportRepository();
+    const blockRepository = new DrizzleBlockRepository();
+    const workspaceRepository = new DrizzleWorkspaceRepository();
+
+    // 3. Service 인스턴스 생성
+    const blockManagementService = new BlockManagementService(blockRepository);
+    const canvasManagementService = new CanvasManagementService(
+      blockManagementService,
+      blockMountRepository,
+      edgeRepository,
+      viewportRepository,
+      workspaceRepository
+    );
+
+    // 4. Command 생성
+    const command: DeleteMultipleBlockMountsCommand = {
+      blockMountIds: request.blockMountIds.map(id => new BlockMountId(id)),
+      userId: userIdVO.value,
+    };
+
+    // 5. Service 메서드 호출
+    const result =
+      await canvasManagementService.deleteMultipleBlockMounts(command);
+
+    if (result.isError()) {
+      console.error(
+        '❌ [deleteMultipleBlockMountsAction] Service failed:',
+        result.error
+      );
+      return err(String(result.error), {
+        code: 'MULTIPLE_BLOCK_MOUNTS_DELETION_FAILED',
+        meta: { originalError: result.error },
+      });
+    }
+
+    // 6. DTO 직렬화
+    const dto: MultipleBlockMountsDeletedDTO = {
+      deletedCount: result.value.deletedCount,
+      deletedEdgesCount: result.value.deletedEdgesCount,
+      deletedAt: new Date().toISOString(),
+    };
+
+    // 7. 페이지 재검증
+    if (request.orgId && request.workspaceId && request.pageId) {
+      revalidatePath(
+        `/r/${request.orgId}/workspace/${request.workspaceId}/page/${request.pageId}`
+      );
+    }
+
+    return ok(dto);
+  } catch (error) {
+    console.error('[deleteMultipleBlockMountsAction] Error:', error);
+    return err('Internal server error', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+        request,
+      },
+    });
+  }
+}
+
+/**
+ * 블럭 복제 Server Action
+ * Story CM-010 구현
+ */
+export async function duplicateBlockAction(request: {
+  blockMountId: string;
+  workspaceId: string;
+  offsetX?: number;
+  offsetY?: number;
+}): Promise<{ success: boolean; error?: string; data?: any }> {
+  try {
+    // 1. 사용자 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error(
+        '❌ [duplicateBlockAction] Authentication failed:',
+        authError
+      );
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const userIdVO = new UserId(user.id);
+
+    // 2. Repository 인스턴스 생성
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const edgeRepository = new DrizzleEdgeRepository();
+    const viewportRepository = new DrizzleViewportRepository();
+    const blockRepository = new DrizzleBlockRepository();
+    const workspaceRepository = new DrizzleWorkspaceRepository();
+
+    // 3. Service 인스턴스 생성
+    const blockManagementService = new BlockManagementService(blockRepository);
+    const canvasManagementService = new CanvasManagementService(
+      blockManagementService,
+      blockMountRepository,
+      edgeRepository,
+      viewportRepository,
+      workspaceRepository
+    );
+
+    // 4. Command 생성
+    const command: DuplicateBlockCommand = {
+      blockMountId: new BlockMountId(request.blockMountId),
+      workspaceId: request.workspaceId,
+      offsetX: request.offsetX,
+      offsetY: request.offsetY,
+      userId: userIdVO.value,
+    };
+
+    // 5. Service 메서드 호출
+    const result = await canvasManagementService.duplicateBlock(command);
+
+    if (result.isError()) {
+      return { success: false, error: result.error.message };
+    }
+
+    // 6. 성공 응답 반환
+    return {
+      success: true,
+      data: {
+        duplicatedBlockMountId: result.value.blockMount.id.value,
+        duplicatedBlockId: result.value.blockMount.blockId.value,
+        position: {
+          x: result.value.blockMount.position.x,
+          y: result.value.blockMount.position.y,
+        },
+        size: {
+          width: result.value.blockMount.size.width,
+          height: result.value.blockMount.size.height,
+        },
+        zOrder: result.value.blockMount.zOrder.value,
+      },
+    };
+  } catch (error) {
+    return { success: false, error: 'Internal server error' };
   }
 }

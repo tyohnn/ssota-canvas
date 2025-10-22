@@ -5,8 +5,9 @@ import { useStore, useViewport, useReactFlow } from '@xyflow/react';
 import { useCanvasMode } from '../hooks/use-canvas-mode';
 import { useCanvasSelection } from '../hooks/use-canvas-selection';
 import { useCanvasBlockTransform } from '../hooks/use-canvas-block-transform';
+import { usePreventPinchZoom } from '../hooks/use-prevent-pinch-zoom';
 
-const PADDING = 8; // 선택된 노드들과의 여백 (flow 좌표계)
+const PADDING = 3; // 선택된 노드들과의 여백 제거
 
 interface SelectionBoundingBoxProps {
   pageId: string;
@@ -34,6 +35,7 @@ export const SelectionBoundingBox = memo(function SelectionBoundingBox({
   const initialPositionsRef = useRef<
     Array<{ id: string; x: number; y: number }>
   >([]);
+  const boundingBoxRef = useRef<HTMLDivElement>(null);
 
   // 선택된 노드들의 정보 가져오기
   const selectedNodes = useStore(state =>
@@ -235,6 +237,9 @@ export const SelectionBoundingBox = memo(function SelectionBoundingBox({
     [selectedNodes, handleMouseMove, handleMouseUp]
   );
 
+  // 트랙패드 핀치 줌 방지
+  usePreventPinchZoom(boundingBoxRef);
+
   // 다중 선택 모드가 아니거나 2개 미만 선택 시 렌더링하지 않음
   if (!isMultiSelectionMode() || getSelectionCount() < 2 || !bounds) {
     return null;
@@ -242,8 +247,10 @@ export const SelectionBoundingBox = memo(function SelectionBoundingBox({
 
   return (
     <div
+      ref={boundingBoxRef}
       className="absolute cursor-move select-none"
       onPointerDown={handleMouseDown}
+      onWheel={e => e.stopPropagation()}
       style={{
         left: bounds.left,
         top: bounds.top,
@@ -255,7 +262,7 @@ export const SelectionBoundingBox = memo(function SelectionBoundingBox({
         zIndex: 100, // 노드보다 위에 렌더링
         willChange: 'transform', // 성능 최적화
         pointerEvents: 'auto', // 드래그 가능하게
-        touchAction: 'none', // 터치 이벤트 차단
+        touchAction: 'none', // 터치 이벤트 차단 (핀치 줌 방지)
       }}
     />
   );
