@@ -23,6 +23,7 @@ export type CanvasManagementErrorCode =
   | 'INVALID_CANVAS_ID'
   | 'INVALID_BLOCK_MOUNT_ID'
   | 'INVALID_EDGE_ID'
+  | 'INVALID_EDGE_TYPE'
   | 'INVALID_PAGE_ID';
 
 // 사용자 메시지 매핑
@@ -41,5 +42,6 @@ export const CANVAS_MANAGEMENT_ERROR_MESSAGES: Record<
   INVALID_CANVAS_ID: '올바르지 않은 캔버스 ID입니다.',
   INVALID_BLOCK_MOUNT_ID: '올바르지 않은 블럭 마운트 ID입니다.',
   INVALID_EDGE_ID: '올바르지 않은 엣지 ID입니다.',
+  INVALID_EDGE_TYPE: '올바르지 않은 엣지 타입입니다.',
   INVALID_PAGE_ID: '올바르지 않은 페이지 ID입니다.',
 };

@@ -133,6 +133,11 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar({
     };
   }, [nodesWithSize, viewport]);
 
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // 트랙패드 핀치 줌 방지
+  usePreventPinchZoom(toolbarRef);
+
   // 다중 선택 모드가 아니거나 2개 미만 선택 시 렌더링하지 않음
   if (!isMultiSelectionMode() || getSelectionCount() < 2 || !toolbarPosition) {
     return null;
@@ -157,11 +162,6 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar({
     // TODO: Implement delete for multiple blocks
     console.log('Delete blocks');
   };
-
-  const toolbarRef = useRef<HTMLDivElement>(null);
-
-  // 트랙패드 핀치 줌 방지
-  usePreventPinchZoom(toolbarRef);
 
   return (
     <div

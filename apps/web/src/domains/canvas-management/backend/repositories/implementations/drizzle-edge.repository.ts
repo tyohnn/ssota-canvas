@@ -2,10 +2,11 @@ import { EdgeRepository } from '../interfaces/edge.repository.interface';
 import { EdgeAggregate } from '../../../shared/aggregates/edge.aggregate';
 import { Edge } from '../../../shared/entities/edge.entity';
 import { EdgeId } from '../../../shared/value-objects/edge-id.vo';
+import { EdgeType } from '../../../shared/value-objects/edge-type.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { adminDb } from '@/db';
-import { edges } from '@/db/schema-dev';
+import { edges, type CanvasEdgeType } from '@/db/schema-dev';
 import { eq, and, or, inArray } from 'drizzle-orm';
 
 /**
@@ -26,7 +27,7 @@ export class DrizzleEdgeRepository implements EdgeRepository {
         page_id: edge.pageId.value,
         source_block_id: edge.sourceBlockId.value,
         target_block_id: edge.targetBlockId.value,
-        edge_type: edge.edgeType as any,
+        edge_type: edge.edgeType.value as CanvasEdgeType,
         edge_label: edge.edgeLabel,
         edge_style_color: edge.edgeStyle.color,
         edge_style_thickness: edge.edgeStyle.thickness,
@@ -36,7 +37,7 @@ export class DrizzleEdgeRepository implements EdgeRepository {
       .onConflictDoUpdate({
         target: edges.id,
         set: {
-          edge_type: edge.edgeType as any,
+          edge_type: edge.edgeType.value as CanvasEdgeType,
           edge_label: edge.edgeLabel,
           edge_style_color: edge.edgeStyle.color,
           edge_style_thickness: edge.edgeStyle.thickness,
@@ -117,7 +118,7 @@ export class DrizzleEdgeRepository implements EdgeRepository {
       new PageId(row.page_id),
       new BlockId(row.source_block_id),
       new BlockId(row.target_block_id),
-      row.edge_type,
+      new EdgeType(row.edge_type),
       row.edge_label || '',
       {
         color: row.edge_style_color || '#000000',

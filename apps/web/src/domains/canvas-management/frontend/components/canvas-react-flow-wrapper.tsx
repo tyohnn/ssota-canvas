@@ -6,6 +6,7 @@ import {
   Background,
   Controls,
   MiniMap,
+  Panel,
   SelectionMode,
   type OnConnect,
   type Node,
@@ -25,6 +26,7 @@ import { useCanvasSelection } from '../hooks/use-canvas-selection';
 import { useCanvasViewport } from '../hooks/use-canvas-viewport';
 import { useCanvasBlockTransform } from '../hooks/use-canvas-block-transform';
 import { useCanvasSnapGuides } from '../hooks/use-canvas-snap-guides';
+import { useCanvasEdgeManagement } from '../hooks/use-canvas-edge-management';
 
 // Canvas Management Components
 import { CanvasToolbar } from './canvas-toolbar';
@@ -35,6 +37,7 @@ import { BasicBlockNode } from './basic-block-node';
 import { SnapGuidelines } from './snap-guidelines';
 import { MultiSelectionToolbar } from './multi-selection-toolbar';
 import { SelectionBoundingBox } from './selection-bounding-box';
+import { CustomEdge } from './custom-edge';
 
 interface CanvasReactFlowWrapperProps {
   pageId: string;
@@ -74,9 +77,24 @@ export function CanvasReactFlowWrapper({
     [initialNodes, pageId, orgId, workspaceId]
   );
 
+  // 엣지 데이터에 pageId 추가 (EdgeToolbar에서 사용)
+  const enrichedEdges = React.useMemo(
+    () =>
+      initialEdges.map(edge => ({
+        ...edge,
+        type: 'custom', // 모든 엣지를 커스텀 엣지로 설정
+        data: {
+          ...edge.data,
+          pageId,
+          actualEdgeType: edge.type || 'default', // 실제 엣지 타입 저장
+        },
+      })),
+    [initialEdges, pageId]
+  );
+
   // React Flow 상태 관리 (SSOT)
   const [nodes, setNode, onNodesChange] = useNodesState(enrichedNodes);
-  const [edges, setEdge, onEdgesChange] = useEdgesState(initialEdges);
+  const [edges, setEdge, onEdgesChange] = useEdgesState(enrichedEdges);
   const reactFlowInstance = useReactFlow();
 
   // Canvas Management Hooks
@@ -85,6 +103,7 @@ export function CanvasReactFlowWrapper({
   const canvasViewport = useCanvasViewport();
   const blockTransform = useCanvasBlockTransform({ pageId });
   const snapGuides = useCanvasSnapGuides();
+  const edgeManagement = useCanvasEdgeManagement(pageId);
 
   // BlockAddDialog 상태 관리
   const [showAddDialog, setShowAddDialog] = React.useState(false);
@@ -94,6 +113,15 @@ export function CanvasReactFlowWrapper({
     () => ({
       basic: BasicBlockNode,
       // 다른 블록 타입들도 여기에 추가 가능
+    }),
+    []
+  );
+
+  // 엣지 타입 정의
+  const edgeTypes = React.useMemo(
+    () => ({
+      custom: CustomEdge,
+      // 다른 엣지 타입들도 여기에 추가 가능
     }),
     []
   );
@@ -271,8 +299,46 @@ export function CanvasReactFlowWrapper({
       return;
     }
 
+    // React Flow 선택 상태를 명시적으로 해제
+    reactFlowInstance.setNodes(nodes =>
+      nodes.map(node => ({ ...node, selected: false }))
+    );
+
     canvasMode.exitToDefaultMode();
-  }, [canvasMode.exitToDefaultMode, canvasMode.isBlockCreationMode]);
+  }, [
+    canvasMode.exitToDefaultMode,
+    canvasMode.isBlockCreationMode,
+    reactFlowInstance,
+  ]);
+
+  /**
+   * 엣지 연결 → 엣지 생성 및 서버 저장
+   */
+  const onConnect: OnConnect = useCallback(
+    async connection => {
+      console.log('[Canvas] onConnect:', {
+        source: connection.source,
+        target: connection.target,
+      });
+
+      // 1. 연결 유효성 확인
+      if (!connection.source || !connection.target) {
+        console.warn(
+          '⚠️ [Canvas] Invalid connection: missing source or target'
+        );
+        return;
+      }
+
+      // 2. Optimistic UI로 엣지 생성
+      // Hook 내부에서 blockMountId → blockId 변환 처리
+      await edgeManagement.createEdge(
+        connection.source, // blockMountId (React Flow 노드 ID)
+        connection.target, // blockMountId (React Flow 노드 ID)
+        'default' // 기본 타입, 나중에 사용자가 변경 가능
+      );
+    },
+    [edgeManagement.createEdge]
+  );
 
   // 트랙패드 제스처 최적화 설정 (피그마 스타일)
   // - 핀치 제스처: 줌인/줌아웃
@@ -306,18 +372,13 @@ export function CanvasReactFlowWrapper({
         }
       `}</style>
 
-      {/* 캔버스 상단 툴바 */}
-      <CanvasToolbar
-        pageId={pageId}
-        onAddBlockClick={() => setShowAddDialog(true)}
-      />
-
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         // 기본 설정
         fitView
         minZoom={0.1}
@@ -333,17 +394,27 @@ export function CanvasReactFlowWrapper({
         panOnScroll={true} // 두 손가락 스크롤로 패닝
         zoomOnScroll={false} // 스크롤로 줌 비활성화
         zoomOnPinch={true} // 핀치 제스처로 줌 활성화
-        // 이벤트 핸들러 (CM-003 추가)
+        // 이벤트 핸들러 (CM-003, CM-007 추가)
         onNodeClick={onNodeClick}
         onSelectionChange={onSelectionChange}
         onPaneClick={onPaneClick}
         onNodeDragStart={onNodeDragStart}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
+        onConnect={onConnect}
         className="bg-gray-50"
       >
         <Background />
         <Controls />
+
+        {/* 캔버스 상단 툴바 - Panel로 ReactFlow 내부로 이동 */}
+        {/* z-index: 블럭(0) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
+        <Panel position="top-center" className="!m-0 !pointer-events-auto z-10">
+          <CanvasToolbar
+            pageId={pageId}
+            onAddBlockClick={() => setShowAddDialog(true)}
+          />
+        </Panel>
 
         {/* 모드별 컴포넌트 렌더링 */}
         {canvasMode.isBlockCreationMode() && (
@@ -364,8 +435,13 @@ export function CanvasReactFlowWrapper({
         {/* 항상 렌더링하고 내부에서 조건 체크 (상태 업데이트 타이밍 이슈 방지) */}
         <SnapGuidelines guidelines={snapGuides.guidelines} />
 
-        {/* 우측 하단 뷰포트 컨트롤 */}
-        <ViewportControls />
+        {/* 우측 하단 뷰포트 컨트롤 - Panel로 감싸서 React Flow 이벤트 시스템 통합 */}
+        <Panel
+          position="bottom-right"
+          className="!mr-4 !mb-4 !pointer-events-auto"
+        >
+          <ViewportControls />
+        </Panel>
       </ReactFlow>
 
       {/* Block Add Dialog (캔버스 밖에 위치) */}

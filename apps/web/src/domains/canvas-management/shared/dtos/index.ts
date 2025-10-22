@@ -66,12 +66,11 @@ export interface EdgeView {
   pageId: string;
   sourceBlockId: string;
   targetBlockId: string;
-  edgeType: 'default' | 'straight' | 'step' | 'smoothstep' | 'simplebezier';
+  edgeType: string; // 'default' | 'straight' | 'step' | 'smoothstep' | 'simplebezier'
   label?: string;
   style?: {
-    color: string;
-    width: number;
-    arrowHeadType?: string;
+    stroke: string;
+    strokeWidth: number;
   };
   createdAt: string;
   updatedAt: string;

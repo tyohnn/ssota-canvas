@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getCanvasViewAction } from '@/domains/canvas-management/actions/canvas.actions';
+import { getCanvasViewAction } from '@/domains/canvas-management/actions/canvas-query.actions';
 import {
   toReactFlowNodeFromCanvasView,
   toReactFlowEdgeFromCanvasView,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { NodeToolbar, Position } from '@xyflow/react';
 import { Button } from '@workspace/ui/components/ui/button';
 import {
@@ -93,14 +93,12 @@ export function BlockMountToolbar({
   // 트랙패드 핀치 줌 방지
   usePreventPinchZoom(toolbarRef);
 
-  // 선택된 블럭이 없거나 다중 선택 시에는 렌더링하지 않음
-  if (!selectedBlockId || selectedBlocks.length > 1) {
-    return null;
-  }
+  // 툴바 표시 조건: 단일 선택 모드 && 선택된 블럭이 있음
+  const shouldShowToolbar = !!selectedBlockId && selectedBlocks.length === 1;
 
   return (
     <NodeToolbar
-      isVisible={true}
+      isVisible={shouldShowToolbar}
       position={Position.Top}
       className="nodrag nowheel"
     >
