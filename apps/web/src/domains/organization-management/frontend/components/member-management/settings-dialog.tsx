@@ -50,10 +50,10 @@ export function SettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-6xl !h-[85vh] p-0 gap-0 overflow-hidden">
+      <DialogContent className="!max-w-6xl !h-[85vh] p-0 gap-0 overflow-hidden rounded-md">
         <div className="flex h-full min-h-0">
           {/* 좌측 사이드바 */}
-          <div className="w-56 flex-shrink-0 border-r bg-muted/30 p-4 flex flex-col">
+          <div className="w-56 flex-shrink-0 border-r border-border/30 bg-muted/30 p-4 flex flex-col">
             <DialogHeader className="mb-4 flex-shrink-0">
               <DialogTitle className="flex items-center gap-2 text-base">
                 <Settings className="h-4 w-4" />
@@ -62,18 +62,19 @@ export function SettingsDialog({
             </DialogHeader>
             <nav className="space-y-1 flex-shrink-0">
               {tabs.map(tab => (
-                <Button
+                <button
                   key={tab.id}
-                  variant={activeTab === tab.id ? 'secondary' : 'ghost'}
-                  className={cn(
-                    'w-full justify-start gap-2',
-                    activeTab === tab.id && 'bg-background shadow-sm'
-                  )}
                   onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
+                    activeTab === tab.id
+                      ? 'bg-accent text-accent-foreground font-medium'
+                      : 'hover:bg-accent hover:text-accent-foreground text-muted-foreground'
+                  )}
                 >
                   <tab.icon className="h-4 w-4" />
                   {tab.label}
-                </Button>
+                </button>
               ))}
             </nav>
           </div>

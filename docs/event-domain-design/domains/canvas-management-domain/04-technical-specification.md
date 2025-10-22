@@ -4,7 +4,7 @@
 
 **도메인**: Canvas Management Domain  
 **작성자**: 주니어개발자 + 시니어개발자 (멘토링)  
-**작성일**: 2025-01-17  
+**작성일**: 2025-10-19  
 **버전**: v1.0
 
 **Testing Strategy 참조**: `04-testing-strategy.md`  
@@ -26,7 +26,8 @@
 Canvas Management Domain은 **단일 Bounded Context**로 구성되어 있으며, 무한 캔버스에서의 블럭/엣지 조작, 뷰포트 관리, 시각적 편집 도구를 제공하는 핵심 도메인입니다.
 
 **핵심 구현 전략**:
-- 4개 핵심 Aggregate: Canvas, BlockMount, Edge, Viewport
+- 3개 핵심 Aggregate: BlockMount, Edge, Viewport
+- Read Model Service: 페이지별 캔버스 데이터 조회 (블럭 마운트 + 엣지 + 뷰포트)
 - React Flow ACL을 통한 외부 라이브러리 통합
 - State of Truth 전략: React Flow State (단기) + Database (장기)
 - Workspace Management, Block Domain과의 동기적 서비스 주입
@@ -34,19 +35,20 @@ Canvas Management Domain은 **단일 Bounded Context**로 구성되어 있으며
 ### Testing Strategy 연결점
 
 - **입력**: `04-testing-strategy.md` - 주요 테스트 케이스 N개
-- **입력**: `03-software-design.md` - 4개 핵심 Aggregate (Canvas, BlockMount, Edge, Viewport)
+- **입력**: `03-software-design.md` - 3개 핵심 Aggregate (BlockMount, Edge, Viewport) + Read Model
 - **출력**: 구현 수도코드 + 테스트 수도코드
 
 ### TDD 구현 순서 요약
 
 ```markdown
-Phase 1: Value Objects (⭐️⭐️⭐️⭐️⭐️) - 6개 (Position, Size, ZOrder, CanvasId, BlockMountId, EdgeId)
-Phase 2: Entities (⭐️⭐️⭐️⭐️⭐️) - 4개 (Canvas, BlockMount, Edge, Viewport)
-Phase 3: Aggregates (⭐️⭐️⭐️⭐️⭐️) - 4개 (Canvas, BlockMount, Edge, Viewport)
-Phase 4: Repository (⭐️⭐️⭐️⭐️) - 4개 (Canvas, BlockMount, Edge, Viewport Repository)
-Phase 5: Service (⭐️⭐️⭐️⭐️) - 1개 (CanvasManagementService)
-Phase 6: Server Actions (⭐️⭐️⭐️⭐️⭐️) - 8개 (캔버스 초기화, 블럭 생성/변환/삭제, 엣지 관리 등)
-Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 9개 (각 시나리오별)
+Phase 1: Value Objects (⭐️⭐️⭐️⭐️⭐️) - 5개 (Position, Size, ZOrder, BlockMountId, EdgeId)
+Phase 2: Entities (⭐️⭐️⭐️⭐️⭐️) - 3개 (BlockMount, Edge, Viewport)
+Phase 3: Aggregates (⭐️⭐️⭐️⭐️⭐️) - 3개 (BlockMount, Edge, Viewport)
+Phase 4: Repository (⭐️⭐️⭐️⭐️) - 3개 (BlockMount, Edge, Viewport Repository)
+Phase 5: Read Model (⭐️⭐️⭐️⭐️) - 1개 (CanvasView Query)
+Phase 6: Service (⭐️⭐️⭐️⭐️) - 1개 (CanvasManagementService)
+Phase 7: Server Actions (⭐️⭐️⭐️⭐️⭐️) - 8개 (캔버스 데이터 조회, 블럭 생성/변환/삭제, 엣지 관리 등)
+Phase 8: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 9개 (각 시나리오별)
 ```
 
 ---
@@ -212,44 +214,6 @@ class ZOrder {
 
 ---
 
-#### CanvasId VO
-
-- **파일 위치**: `src/domains/canvas-management/shared/value-objects/canvas-id.vo.ts`
-- **역할**: CanvasId의 유효성을 검증하고 캔버스 식별자 도메인 로직을 캡슐화
-- **주요 기능**:
-  - UUID 형식 검증
-  - 다른 CanvasId 객체와의 동등성 비교
-- **에러 처리**: 잘못된 UUID 형식 시 CanvasManagementError 발생
-- **비즈니스 규칙**: CanvasId는 PageId와 1:1 매핑되는 유효한 UUID
-
-```typescript
-class CanvasId {
-  private readonly value: string;
-  
-  constructor(value: string) {
-    // 1. 빈 값 검증
-    // 2. UUID 형식 검증 (정규식)
-    // 3. this.value 할당
-  }
-  
-  equals(other: CanvasId): boolean {
-    // 1. null/undefined 체크
-    // 2. value 비교
-    // 3. boolean 반환
-  }
-  
-  static fromPageId(pageId: PageId): CanvasId {
-    // 1. PageId를 CanvasId로 변환 (일반적으로 동일한 값 사용)
-    // 2. 새로운 CanvasId 인스턴스 반환
-  }
-}
-```
-
-**우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**Testing Strategy 참조**: Value Objects 테스트 케이스
-
----
-
 #### BlockMountId VO
 
 - **파일 위치**: `src/domains/canvas-management/shared/value-objects/block-mount-id.vo.ts`
@@ -332,58 +296,6 @@ class EdgeId {
 ---
 
 ### 2. Entities 수도코드
-
-#### Canvas Entity
-
-- **파일 위치**: `src/domains/canvas-management/shared/entities/canvas.entity.ts`
-- **역할**: Canvas 도메인 엔티티로 캔버스의 핵심 정보와 비즈니스 로직을 캡슐화
-- **주요 속성**:
-  - id: CanvasId Value Object로 고유 식별자
-  - pageId: PageId (불변)
-  - reactFlowInstanceId: React Flow 인스턴스 ID (변경 가능)
-  - isInitialized: 초기화 여부 (불변)
-  - createdAt: 생성 시각 (불변)
-  - updatedAt: 수정 시각 (변경 가능)
-- **주요 메서드**:
-  - initialize(): 캔버스 초기화 및 React Flow 인스턴스 생성
-  - loadData(): 페이지 데이터 로드
-  - canBeInitialized(): 초기화 가능 여부 확인
-- **비즈니스 규칙**: 속성 변경 시 updatedAt 자동 갱신, 하나의 페이지에만 연결됨
-
-```typescript
-class Canvas {
-  constructor(
-    public readonly id: CanvasId,
-    public readonly pageId: PageId,
-    public reactFlowInstanceId: string | null = null,
-    public readonly isInitialized: boolean = false,
-    public readonly createdAt: Date = new Date(),
-    public updatedAt: Date = new Date()
-  ) {}
-  
-  initialize(reactFlowInstanceId: string): void {
-    // 1. 이미 초기화되었는지 확인
-    // 2. reactFlowInstanceId 유효성 검증
-    // 3. reactFlowInstanceId 설정
-    // 4. updatedAt 갱신
-  }
-  
-  loadData(): boolean {
-    // 1. 초기화 상태 확인
-    // 2. 데이터 로드 가능 여부 반환
-  }
-}
-```
-
-**사용 시나리오**:
-- 캔버스 생성 시 모든 필드 검증
-- 초기화 시 React Flow 인스턴스 연결
-- 데이터 로드 시 상태 확인
-
-**우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**Testing Strategy 참조**: Entities 테스트 케이스
-
----
 
 #### BlockMount Entity
 
@@ -550,90 +462,29 @@ class Viewport {
 
 ### 3. Aggregates 수도코드
 
-#### Canvas Aggregate
-
-- **파일 위치**: `src/domains/canvas-management/shared/aggregates/canvas.aggregate.ts`
-- **역할**: Canvas 관련 도메인 로직과 일관성 경계를 담당하는 Aggregate Root
-- **주요 기능**:
-  - Canvas 생성 시 모든 관련 객체 동시 생성
-  - 비즈니스 규칙 검증 및 정책 실행
-  - 도메인 이벤트 발생 및 관리
-  - 관련 엔티티들의 일관성 보장
-- **주요 메서드**:
-  - initializeCanvas(): 캔버스 초기화 및 CanvasInitialized 발행
-  - loadCanvasData(): 캔버스 데이터 로드 및 CanvasDataLoaded 발행
-  - getUncommittedEvents(): 발행된 이벤트 목록 반환
-- **비즈니스 로직**: 캔버스는 정확히 하나의 페이지에만 연결되며, 초기화 시 React Flow 인스턴스가 반드시 생성됨
-- **불변식(Invariants)**:
-  - 캔버스는 정확히 하나의 페이지에만 연결됨
-  - 캔버스 초기화 시 React Flow 인스턴스가 반드시 생성됨
-
-```typescript
-class CanvasAggregate {
-  private _canvas: Canvas;
-  private _events: DomainEvent[] = [];
-  
-  static create(pageId: PageId): CanvasAggregate {
-    // 1. CanvasId 생성 (PageId 기반)
-    // 2. Canvas Entity 생성
-    // 3. CanvasInitialized 이벤트 생성
-    // 4. 이벤트 추가
-    // 5. CanvasAggregate 반환
-  }
-  
-  initializeCanvas(reactFlowInstanceId: string): CanvasInitializedEvent {
-    // 1. 초기화 상태 확인
-    // 2. Canvas Entity 초기화
-    // 3. CanvasInitialized 이벤트 생성
-    // 4. 이벤트 추가
-    // 5. 이벤트 반환
-  }
-  
-  loadCanvasData(blockCount: number, edgeCount: number): CanvasDataLoadedEvent {
-    // 1. 초기화 상태 확인
-    // 2. CanvasDataLoaded 이벤트 생성
-    // 3. 이벤트 추가
-    // 4. 이벤트 반환
-  }
-  
-  getUncommittedEvents(): DomainEvent[] {
-    // 1. 발행된 이벤트 목록 반환
-  }
-}
-```
-
-**사용 시나리오**:
-- 캔버스 생성 시 모든 관련 객체 동시 생성
-- 비즈니스 규칙 위반 시 즉시 예외 발생
-- 생성된 모든 이벤트를 한 번에 반환
-
-**우선순위**: ⭐️⭐️⭐️⭐️⭐️  
-**Testing Strategy 참조**: Aggregates 테스트 케이스  
-**Process Model 매핑**: Scenario 0 - Sequence 1, 2
-
----
-
 #### BlockMount Aggregate
 
 - **파일 위치**: `src/domains/canvas-management/shared/aggregates/block-mount.aggregate.ts`
 - **역할**: BlockMount 관련 도메인 로직과 일관성 경계를 담당하는 Aggregate Root
 - **주요 기능**:
   - BlockMount 생성 시 모든 관련 객체 동시 생성
-  - 블럭 변형 비즈니스 규칙 검증 및 정책 실행
+  - 블럭 위치, 크기, Z-Order 개별 업데이트
   - 도메인 이벤트 발생 및 관리
   - 관련 엔티티들의 일관성 보장
 - **주요 메서드**:
   - mountBlock(): 블럭 마운트 및 BlockMounted 발행
-  - transformBlock(): 블럭 변형 및 BlockTransformed 발행
-  - duplicateBlock(): 블럭 복제 및 DuplicatedBlockMounted 발행
+  - updateBlockPosition(): 블럭 위치 업데이트 및 BlockPositionUpdated 발행
+  - updateBlockSize(): 블럭 크기 업데이트 및 BlockSizeUpdated 발행
+  - updateBlockZOrder(): 블럭 Z-Order 업데이트 및 BlockZOrderUpdated 발행
+  - mountDuplicatedBlock(): 복제된 블럭 마운트 및 DuplicatedBlockMounted 발행
   - deleteBlockMount(): 블럭 마운트 해제 및 BlockMountDeleted 발행
-  - alignBlocks(): 블럭 정렬 및 BlocksAligned 발행
-  - distributeBlocks(): 블럭 분포 및 BlocksDistributed 발행
 - **비즈니스 로직**: 새로 생성된 블럭은 최상위 z-order에 배치되며, 드래그/리사이즈 종료 시에만 DB 저장
 - **불변식(Invariants)**:
   - 블럭은 반드시 하나 이상의 페이지에 마운트되어야 함
+  - 하나의 블럭은 여러 페이지에 마운트 가능하지만, 같은 페이지에는 한 번만 마운트 가능
+  - 블럭 복제 시 완전히 새로운 블럭 생성 + 새로운 마운트 관계 생성
   - 새로 생성된 블럭은 최상위 z-order에 배치됨
-  - 스냅 임계값 5px 이내에서만 자동 정렬 적용
+  - 다중 선택 시 상대적 순서 유지
 
 ```typescript
 class BlockMountAggregate {
@@ -647,39 +498,53 @@ class BlockMountAggregate {
     size: Size
   ): BlockMountAggregate {
     // 1. BlockMountId 생성
-    // 2. 최상위 ZOrder 계산
+    // 2. 최상위 ZOrder 계산 (현재 최대값 + 1)
     // 3. BlockMount Entity 생성
     // 4. BlockMounted 이벤트 생성
     // 5. 이벤트 추가
     // 6. BlockMountAggregate 반환
   }
   
-  transformBlock(
-    newPosition?: Position, 
-    newSize?: Size, 
-    newZOrder?: ZOrder
-  ): BlockTransformedEvent {
-    // 1. 기존 BlockMount Entity 업데이트
-    // 2. 스냅 로직 적용 (5px 임계값)
-    // 3. BlockTransformed 이벤트 생성
-    // 4. 이벤트 추가
-    // 5. 이벤트 반환
+  updateBlockPosition(newPosition: Position): BlockPositionUpdatedEvent {
+    // 1. BlockMount Entity 위치 업데이트
+    // 2. BlockPositionUpdated 이벤트 생성
+    // 3. 이벤트 추가
+    // 4. 이벤트 반환
+  }
+  
+  updateBlockSize(newSize: Size): BlockSizeUpdatedEvent {
+    // 1. BlockMount Entity 크기 업데이트
+    // 2. BlockSizeUpdated 이벤트 생성
+    // 3. 이벤트 추가
+    // 4. 이벤트 반환
+  }
+  
+  updateBlockZOrder(newZOrder: ZOrder): BlockZOrderUpdatedEvent {
+    // 1. BlockMount Entity Z-Order 업데이트
+    // 2. BlockZOrderUpdated 이벤트 생성
+    // 3. 이벤트 추가
+    // 4. 이벤트 반환
+  }
+  
+  static mountDuplicatedBlock(
+    originalBlockId: BlockId,
+    newBlockId: BlockId,
+    pageId: PageId,
+    position: Position,
+    size: Size
+  ): BlockMountAggregate {
+    // 1. BlockMountId 생성 (newBlockId 기반)
+    // 2. 최상위 ZOrder 계산
+    // 3. BlockMount Entity 생성
+    // 4. DuplicatedBlockMounted 이벤트 생성
+    // 5. 이벤트 추가
+    // 6. BlockMountAggregate 반환
   }
   
   deleteBlockMount(): BlockMountDeletedEvent {
     // 1. 삭제 가능 여부 확인
     // 2. BlockMountDeleted 이벤트 생성
     // 3. 이벤트 추가
-    // 4. 이벤트 반환
-  }
-  
-  static alignBlocks(
-    blockMountIds: BlockMountId[], 
-    alignment: AlignmentType
-  ): BlocksAlignedEvent {
-    // 1. 다중 BlockMount 조회
-    // 2. 정렬 위치 계산
-    // 3. BlocksAligned 이벤트 생성
     // 4. 이벤트 반환
   }
   
@@ -797,13 +662,14 @@ class EdgeAggregate {
   - 관련 엔티티들의 일관성 보장
 - **주요 메서드**:
   - updateViewport(): 뷰포트 업데이트 및 ViewportUpdated 발행
-  - focusOnBlock(): 블럭 포커스 및 ViewportFocused 발행
   - saveViewportState(): 뷰포트 상태 저장 및 ViewportStateSaved 발행
   - restoreViewportState(): 뷰포트 상태 복원 및 ViewportStateRestored 발행
 - **비즈니스 로직**: 줌 레벨은 최소/최대 제한 범위 내에서만 가능하며, 페이지 이탈 시에만 자동 저장
 - **불변식(Invariants)**:
   - 줌 레벨은 최소/최대 제한 범위 내에서만 가능
   - 페이지 이탈 시에만 뷰포트 상태 자동 저장
+  - 페이지 재진입 시 이전 뷰포트 상태 자동 복원
+  - React Flow 애니메이션을 통한 부드러운 전환 보장
 
 ```typescript
 class ViewportAggregate {
@@ -821,20 +687,11 @@ class ViewportAggregate {
     zoomLevel: ZoomLevel, 
     center: ViewportCenter
   ): ViewportUpdatedEvent {
-    // 1. 줌 레벨 제한 확인
+    // 1. 줌 레벨 제한 확인 (최소/최대 범위)
     // 2. Viewport Entity 업데이트
     // 3. ViewportUpdated 이벤트 생성
     // 4. 이벤트 추가
     // 5. 이벤트 반환
-  }
-  
-  focusOnBlock(targetBlockId: BlockId): ViewportFocusedEvent {
-    // 1. 블럭 위치 정보 조회
-    // 2. 적절한 줌 레벨 및 중심점 계산
-    // 3. Viewport Entity 업데이트
-    // 4. ViewportFocused 이벤트 생성
-    // 5. 이벤트 추가
-    // 6. 이벤트 반환
   }
   
   saveViewportState(): ViewportStateSavedEvent {
@@ -873,20 +730,20 @@ class ViewportAggregate {
 
 ### 4. Commands & Events 수도코드
 
-#### InitializeCanvasCommand
+#### LoadCanvasDataCommand
 
 - **파일 위치**: `src/domains/canvas-management/shared/commands/index.ts`
-- **역할**: 캔버스 초기화 의도를 표현하는 Command 객체
+- **역할**: 캔버스 데이터 로드 의도를 표현하는 Command 객체
 - **주요 속성**:
   - pageId: PageId (필수, 유효한 UUID 형식)
   - userId: UserId (필수, 사용자 인증 확인)
 - **검증 규칙**:
   - pageId는 유효한 UUID 형식이어야 함
   - userId는 인증된 사용자여야 함
-- **특징**: 모든 Command는 필요한 최소한의 데이터만 포함하여 타입 안전성 확보
+- **특징**: 페이지 접근 시 캔버스 전체 상태를 로드
 
 ```typescript
-interface InitializeCanvasCommand {
+interface LoadCanvasDataCommand {
   pageId: PageId;
   userId: UserId;
 }
@@ -924,56 +781,117 @@ interface MountBlockCommand {
 
 ---
 
-#### TransformBlockCommand
+#### UpdateBlockPositionCommand
 
 - **파일 위치**: `src/domains/canvas-management/shared/commands/index.ts`
-- **역할**: 블럭 변형 의도를 표현하는 Command 객체
+- **역할**: 블럭 위치 업데이트 의도를 표현하는 Command 객체
 - **주요 속성**:
   - blockMountId: BlockMountId (필수)
-  - newPosition: Position (선택적, 스냅 적용 가능)
-  - newSize: Size (선택적, 크기 제한 준수)
-  - newZOrder: ZOrder (선택적)
+  - newPosition: Position (필수)
+  - userId: UserId (필수, 사용자 인증)
 - **검증 규칙**:
-  - newPosition은 스냅 임계값 5px 이내 검증
-  - newSize는 최소/최대 크기 제한 준수
-- **특징**: 드래그/리사이즈 종료 시에만 적용되는 변형 명령
+  - newPosition은 유효한 좌표 범위 내여야 함
+- **특징**: 드래그 종료 시 위치만 업데이트
 
 ```typescript
-interface TransformBlockCommand {
+interface UpdateBlockPositionCommand {
   blockMountId: BlockMountId;
-  newPosition?: Position;
-  newSize?: Size;
-  newZOrder?: ZOrder;
+  newPosition: Position;
+  userId: UserId;
 }
 ```
 
 ---
 
-#### CanvasInitializedEvent
+#### UpdateBlockSizeCommand
+
+- **파일 위치**: `src/domains/canvas-management/shared/commands/index.ts`
+- **역할**: 블럭 크기 업데이트 의도를 표현하는 Command 객체
+- **주요 속성**:
+  - blockMountId: BlockMountId (필수)
+  - newSize: Size (필수)
+  - userId: UserId (필수, 사용자 인증)
+- **검증 규칙**:
+  - newSize는 최소/최대 크기 제한 준수
+- **특징**: 리사이즈 종료 시 크기만 업데이트
+
+```typescript
+interface UpdateBlockSizeCommand {
+  blockMountId: BlockMountId;
+  newSize: Size;
+  userId: UserId;
+}
+```
+
+---
+
+#### UpdateBlockZOrderCommand
+
+- **파일 위치**: `src/domains/canvas-management/shared/commands/index.ts`
+- **역할**: 블럭 Z-Order 업데이트 의도를 표현하는 Command 객체
+- **주요 속성**:
+  - blockMountId: BlockMountId (필수)
+  - newZOrder: ZOrder (필수)
+  - userId: UserId (필수, 사용자 인증)
+- **검증 규칙**:
+  - newZOrder는 유효한 범위 내여야 함
+- **특징**: 레이어 순서 변경 시 사용
+
+```typescript
+interface UpdateBlockZOrderCommand {
+  blockMountId: BlockMountId;
+  newZOrder: ZOrder;
+  userId: UserId;
+}
+```
+
+---
+
+#### UpdateMultipleBlockPositionsCommand
+
+- **파일 위치**: `src/domains/canvas-management/shared/commands/index.ts`
+- **역할**: 다중 블럭 위치 일괄 업데이트 의도를 표현하는 Command 객체
+- **주요 속성**:
+  - blockPositions: Array<{blockMountId: BlockMountId, position: Position}> (필수)
+  - userId: UserId (필수, 사용자 인증)
+- **검증 규칙**:
+  - 모든 position은 유효한 좌표 범위 내여야 함
+- **특징**: 정렬/분포 후 프론트엔드에서 계산된 위치값을 일괄 업데이트
+
+```typescript
+interface UpdateMultipleBlockPositionsCommand {
+  blockPositions: Array<{blockMountId: BlockMountId, position: Position}>;
+  userId: UserId;
+}
+```
+
+---
+
+#### CanvasDataLoadedEvent
 
 - **파일 위치**: `src/domains/canvas-management/shared/events/index.ts`
-- **역할**: 캔버스 초기화 완료를 알리는 도메인 이벤트
+- **역할**: 캔버스 데이터 로드 완료를 알리는 도메인 이벤트
 - **주요 속성**:
-  - type: 이벤트 타입 ('CanvasInitialized')
+  - type: 이벤트 타입 ('CanvasDataLoaded')
   - aggregateId: 이벤트를 발생시킨 Canvas Aggregate ID
   - data: 이벤트 데이터
 - **이벤트 데이터**:
-  - canvasId: CanvasId - 초기화된 캔버스 ID
-  - pageId: PageId - 연관된 페이지 ID
-  - reactFlowInstanceId: string - React Flow 인스턴스 ID
+  - pageId: PageId - 로드된 페이지 ID
+  - blockCount: number - 로드된 블럭 개수
+  - edgeCount: number - 로드된 엣지 개수
   - occurredAt: Date - 발생 시각
 - **특징**: 불변 객체이며 타임스탬프를 포함하여 발생 시점 추적 가능
 
 ```typescript
-class CanvasInitializedEvent implements DomainEvent {
-  readonly type = 'CanvasInitialized';
+class CanvasDataLoadedEvent implements DomainEvent {
+  readonly type = 'CanvasDataLoaded';
   
   constructor(
-    public readonly aggregateId: CanvasId,
+    public readonly aggregateId: PageId,
     public readonly data: {
-      canvasId: CanvasId;
       pageId: PageId;
-      reactFlowInstanceId: string;
+      blockCount: number;
+      edgeCount: number;
       occurredAt: Date;
     }
   ) {}
@@ -981,8 +899,113 @@ class CanvasInitializedEvent implements DomainEvent {
 ```
 
 **사용 시나리오**:
-- 캔버스 초기화 완료 시 Frontend에 알림
-- React Flow 인스턴스 연결 확인
+- 캔버스 데이터 로드 완료 시 Frontend에 알림
+- 빈 페이지와 기존 페이지 모두 동일한 이벤트 발행
+
+---
+
+#### BlockPositionUpdatedEvent
+
+- **파일 위치**: `src/domains/canvas-management/shared/events/index.ts`
+- **역할**: 블럭 위치 업데이트 완료를 알리는 도메인 이벤트
+- **주요 속성**:
+  - type: 이벤트 타입 ('BlockPositionUpdated')
+  - aggregateId: 이벤트를 발생시킨 BlockMount Aggregate ID
+  - data: 이벤트 데이터
+- **이벤트 데이터**:
+  - blockMountId: BlockMountId - 업데이트된 블럭 마운트 ID
+  - newPosition: Position - 새 위치
+  - occurredAt: Date - 발생 시각
+- **특징**: 드래그 종료 시 발행
+
+```typescript
+class BlockPositionUpdatedEvent implements DomainEvent {
+  readonly type = 'BlockPositionUpdated';
+  
+  constructor(
+    public readonly aggregateId: BlockMountId,
+    public readonly data: {
+      blockMountId: BlockMountId;
+      newPosition: Position;
+      occurredAt: Date;
+    }
+  ) {}
+}
+```
+
+**사용 시나리오**:
+- 드래그 종료 시 Frontend에 알림
+- React Flow State 업데이트
+
+---
+
+#### BlockSizeUpdatedEvent
+
+- **파일 위치**: `src/domains/canvas-management/shared/events/index.ts`
+- **역할**: 블럭 크기 업데이트 완료를 알리는 도메인 이벤트
+- **주요 속성**:
+  - type: 이벤트 타입 ('BlockSizeUpdated')
+  - aggregateId: 이벤트를 발생시킨 BlockMount Aggregate ID
+  - data: 이벤트 데이터
+- **이벤트 데이터**:
+  - blockMountId: BlockMountId - 업데이트된 블럭 마운트 ID
+  - newSize: Size - 새 크기
+  - occurredAt: Date - 발생 시각
+- **특징**: 리사이즈 종료 시 발행
+
+```typescript
+class BlockSizeUpdatedEvent implements DomainEvent {
+  readonly type = 'BlockSizeUpdated';
+  
+  constructor(
+    public readonly aggregateId: BlockMountId,
+    public readonly data: {
+      blockMountId: BlockMountId;
+      newSize: Size;
+      occurredAt: Date;
+    }
+  ) {}
+}
+```
+
+**사용 시나리오**:
+- 리사이즈 종료 시 Frontend에 알림
+- React Flow State 업데이트
+
+---
+
+#### BlockZOrderUpdatedEvent
+
+- **파일 위치**: `src/domains/canvas-management/shared/events/index.ts`
+- **역할**: 블럭 Z-Order 업데이트 완료를 알리는 도메인 이벤트
+- **주요 속성**:
+  - type: 이벤트 타입 ('BlockZOrderUpdated')
+  - aggregateId: 이벤트를 발생시킨 BlockMount Aggregate ID
+  - data: 이벤트 데이터
+- **이벤트 데이터**:
+  - blockMountId: BlockMountId - 업데이트된 블럭 마운트 ID
+  - newZOrder: ZOrder - 새 Z-Order
+  - occurredAt: Date - 발생 시각
+- **특징**: 레이어 순서 변경 시 발행
+
+```typescript
+class BlockZOrderUpdatedEvent implements DomainEvent {
+  readonly type = 'BlockZOrderUpdated';
+  
+  constructor(
+    public readonly aggregateId: BlockMountId,
+    public readonly data: {
+      blockMountId: BlockMountId;
+      newZOrder: ZOrder;
+      occurredAt: Date;
+    }
+  ) {}
+}
+```
+
+**사용 시나리오**:
+- 레이어 순서 변경 시 Frontend에 알림
+- React Flow State 업데이트
 
 ---
 
@@ -1115,66 +1138,77 @@ const ERROR_MESSAGES: Record<CanvasManagementErrorCode, string> = {
 
 > **가이드 참조**: Phase 2.3 - Service/Repository/ACL 수도코드 작성
 
-### 1. Repository 수도코드
+### 1. Read Model 수도코드
 
-#### CanvasRepository
+#### CanvasView Query
 
-- **파일 위치**: `src/domains/canvas-management/infrastructure/repositories/canvas.repository.ts`
-- **역할**: Canvas Aggregate의 영속성을 담당하는 Repository 인터페이스 및 Drizzle ORM 구현체
-- **주요 메서드**:
-  - save(): Canvas Aggregate를 데이터베이스에 저장 (생성/수정)
-  - findById(): CanvasId로 Canvas Aggregate 조회
-  - findByPageId(): PageId로 Canvas Aggregate 조회
-  - delete(): Canvas Aggregate 삭제
-- **DB 연동**: Drizzle ORM을 사용한 PostgreSQL 연결
-- **RLS 정책**: 사용자 인증 정보 기반 데이터 접근 제어
-- **특징**:
-  - Aggregate ↔ DB 모델 간 변환 로직 포함
-  - 트랜잭션 지원
-  - Connection pool 활용
-  - RLS(Row Level Security) 자동 적용
+- **파일 위치**: `src/domains/canvas-management/application/queries/get-canvas-view.query.ts`
+- **역할**: 페이지별 캔버스 전체 데이터를 조회하는 Read Model Query
+- **주요 기능**:
+  - 페이지 접근 권한 확인
+  - BlockMount, Edge, Viewport 데이터 조회
+  - Block Domain Service와 DB JOIN으로 블럭 정보 조회
+  - React Flow 형식으로 변환
+- **Return Type**: `CanvasView` DTO
 
 ```typescript
-interface CanvasRepository {
-  save(canvas: CanvasAggregate): Promise<void>;
-  findById(canvasId: CanvasId): Promise<CanvasAggregate | null>;
-  findByPageId(pageId: PageId): Promise<CanvasAggregate | null>;
-  delete(canvasId: CanvasId): Promise<void>;
+interface CanvasView {
+  pageId: string;
+  blocks: Array<{
+    blockMountId: string;
+    blockId: string;
+    blockType: string;
+    position: { x: number; y: number };
+    size: { width: number; height: number };
+    zOrder: number;
+    content: any; // 블럭별 컨텐츠
+  }>;
+  edges: Array<{
+    edgeId: string;
+    sourceBlockId: string;
+    targetBlockId: string;
+    edgeType: string;
+  }>;
+  viewport: {
+    x: number;
+    y: number;
+    zoom: number;
+  };
 }
 
-class DrizzleCanvasRepository implements CanvasRepository {
-  constructor(private db: DrizzleDatabase) {}
+class GetCanvasViewQuery {
+  constructor(
+    private blockMountRepository: BlockMountRepository,
+    private edgeRepository: EdgeRepository,
+    private viewportRepository: ViewportRepository,
+    private blockDomainService: BlockDomainService,
+    private workspaceRepository: WorkspaceRepository
+  ) {}
   
-  async save(canvas: CanvasAggregate): Promise<void> {
-    // 1. Aggregate → DB 모델 변환
-    // 2. Drizzle insert/update 실행 (upsert)
-    // 3. RLS 정책 적용 확인
-    // 4. 트랜잭션 처리
-  }
-  
-  async findById(canvasId: CanvasId): Promise<CanvasAggregate | null> {
-    // 1. CanvasId로 DB 조회
-    // 2. DB 모델 → Aggregate 변환
-    // 3. CanvasAggregate 반환 또는 null
-  }
-  
-  async findByPageId(pageId: PageId): Promise<CanvasAggregate | null> {
-    // 1. PageId로 DB 조회 (1:1 관계)
-    // 2. DB 모델 → Aggregate 변환
-    // 3. CanvasAggregate 반환 또는 null
+  async execute(pageId: PageId, userId: UserId): Promise<Result<CanvasView, Error>> {
+    // 1. 페이지 접근 권한 확인 (WorkspaceRepository)
+    // 2. BlockMountRepository.findByPageId() - z-order 정렬
+    // 3. EdgeRepository.findByPageId()
+    // 4. ViewportRepository.findByPageId()
+    // 5. BlockDomainService.getBlocksByIds() - 배치 조회 (DB JOIN)
+    // 6. 모든 데이터 조합하여 CanvasView 생성
+    // 7. Result<CanvasView, Error> 반환
   }
 }
 ```
 
 **사용 시나리오**:
-- Service Layer에서 Canvas Aggregate 저장/조회
-- 사용자별 캔버스 접근 권한 제어
-- 페이지별 캔버스 상태 관리
+- 페이지 접근 시 전체 캔버스 데이터 로드
+- Server Component에서 초기 렌더링 데이터 제공
+- React Flow로 변환 가능한 형식 반환
 
-**우선순위**: ⭐️⭐️⭐️⭐️  
-**Testing Strategy 참조**: Repository 통합 테스트 케이스
+**우선순위**: ⭐️⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: Query 통합 테스트 케이스  
+**Process Model 매핑**: Scenario 0 - Sequence 1
 
 ---
+
+### 2. Repository 수도코드
 
 #### BlockMountRepository
 
@@ -1315,7 +1349,7 @@ class DrizzleViewportRepository implements ViewportRepository {
 
 #### ReactFlowACL
 
-- **파일 위치**: `src/domains/canvas-management/infrastructure/acl/react-flow.acl.ts`
+- **파일 위치**: `src/domains/canvas-management/backend/acl/react-flow.acl.ts`
 - **역할**: React Flow 라이브러리와 Canvas Management 도메인 간 데이터 변환 레이어
 - **주요 메서드**:
   - toDomainBlockMount(): React Flow Node → BlockMount 도메인 모델로 변환
@@ -1376,110 +1410,6 @@ class ReactFlowACL {
 
 **우선순위**: ⭐️⭐️⭐️⭐️  
 **Software Design 참조**: React Flow ACL 섹션
-
----
-
-#### WorkspaceManagementACL
-
-- **파일 위치**: `src/domains/canvas-management/infrastructure/acl/workspace-management.acl.ts`
-- **역할**: Workspace Management Domain과 Canvas Management 도메인 간 이벤트 변환 레이어
-- **주요 메서드**:
-  - toCanvasInitializationCommand(): PageCreated 이벤트 → 캔버스 초기화 Command 변환
-  - toCanvasCleanupCommand(): PageDeleted 이벤트 → 캔버스 정리 Command 변환
-  - validatePageEvent(): 페이지 이벤트 유효성 검증
-- **특징**:
-  - 도메인 간 느슨한 결합 유지
-  - 이벤트 기반 비동기 통신
-  - 이벤트 변환 로직 캡슐화
-
-```typescript
-import { PageCreatedEvent, PageDeletedEvent } from '@workspace-management/events';
-
-class WorkspaceManagementACL {
-  toCanvasInitializationCommand(pageEvent: PageCreatedEvent): InitializeCanvasCommand {
-    // 1. PageCreated 이벤트 → InitializeCanvasCommand 변환
-    // 2. pageId, userId 매핑
-    // 3. InitializeCanvasCommand 반환
-  }
-  
-  toCanvasCleanupCommand(pageEvent: PageDeletedEvent): CleanupCanvasCommand {
-    // 1. PageDeleted 이벤트 → CleanupCanvasCommand 변환
-    // 2. pageId 매핑
-    // 3. CleanupCanvasCommand 반환
-  }
-  
-  validatePageEvent(event: PageCreatedEvent | PageDeletedEvent): boolean {
-    // 1. 페이지 이벤트 유효성 검증
-    // 2. 필수 필드 확인
-    // 3. boolean 반환
-  }
-}
-```
-
-**사용 시나리오**:
-- Workspace Management 이벤트 수신 및 변환
-- 페이지 생명주기 이벤트 처리
-- 도메인 간 이벤트 매핑
-
-**우선순위**: ⭐️⭐️⭐️⭐️  
-**Software Design 참조**: Workspace Management ACL 섹션
-
----
-
-#### BlockDomainACL
-
-- **파일 위치**: `src/domains/canvas-management/infrastructure/acl/block-domain.acl.ts`
-- **역할**: Block Domain과 Canvas Management 도메인 간 서비스 호출 변환 레이어
-- **주요 메서드**:
-  - toBlockMountSize(): Block Domain 블럭 타입 → 기본 Size 변환
-  - fromBlockMountCommand(): 블럭 마운트 요청 → Block Domain 호출 형식 변환
-  - validateBlockType(): 블럭 타입 유효성 검증
-- **특징**:
-  - 동기적 서비스 주입을 통한 직접 호출
-  - Block Domain API 변경에 대한 보호
-  - 타입 안전한 서비스 호출
-
-```typescript
-import { BlockDomainService } from '@block-domain/services';
-import { BlockType, BlockSize } from '@block-domain/types';
-
-class BlockDomainACL {
-  constructor(private blockDomainService: BlockDomainService) {}
-  
-  async createBlock(blockType: BlockType, defaultProperties: any): Promise<BlockId> {
-    // 1. Block Domain Service 호출
-    // 2. 블럭 타입 검증
-    // 3. 기본값 설정
-    // 4. BlockId 반환
-  }
-  
-  async duplicateBlock(originalBlockId: BlockId): Promise<BlockId> {
-    // 1. Block Domain Service 호출
-    // 2. 블럭 복제 처리
-    // 3. 새로운 BlockId 반환
-  }
-  
-  toBlockMountSize(blockType: BlockType): Size {
-    // 1. 블럭 타입별 기본 크기 매핑
-    // 2. Size VO 생성
-    // 3. Size 반환
-  }
-  
-  async getBlockType(blockId: BlockId): Promise<BlockType> {
-    // 1. Block Domain Service 호출
-    // 2. 블럭 타입 조회
-    // 3. BlockType 반환
-  }
-}
-```
-
-**사용 시나리오**:
-- Block Domain 서비스 호출 및 응답 처리
-- 블럭 생성/복제 요청 변환
-- 블럭 타입별 기본값 적용
-
-**우선순위**: ⭐️⭐️⭐️⭐️  
-**Software Design 참조**: Block Domain ACL 섹션
 
 ---
 
@@ -1589,27 +1519,26 @@ async function getCanvasView(pageId: PageId, userId: UserId): Promise<CanvasView
 - **파일 위치**: `src/domains/canvas-management/application/services/canvas-management.service.ts`
 - **역할**: Canvas Management의 비즈니스 유스케이스를 조율하고 실행하는 Application Service
 - **주요 의존성**:
-  - CanvasRepository: Canvas Aggregate 영속성 관리
+  - GetCanvasViewQuery: 페이지별 캔버스 데이터 조회 (Read Model)
   - BlockMountRepository: BlockMount Aggregate 영속성 관리
   - EdgeRepository: Edge Aggregate 영속성 관리
   - ViewportRepository: Viewport Aggregate 영속성 관리
-  - BlockDomainService: Block Domain 서비스 통신
+  - BlockManagementService: Block Management Domain 서비스 통신
   - WorkspaceManagementService: Workspace Management 도메인 통신
   - ReactFlowACL: React Flow 라이브러리 연동
 - **주요 메서드**:
-  - initializeCanvas(): 캔버스 초기화 및 CanvasInitialized 처리
-  - loadCanvasData(): 페이지 데이터 로드 (블럭/엣지 복원)
+  - getCanvasView(): 페이지 데이터 로드 (블럭/엣지/뷰포트 복원) - READ MODEL
   - mountBlock(): 블럭 마운트 및 BlockMounted 처리
-  - transformBlock(): 블럭 변형 및 BlockTransformed 처리
+  - updateBlockPosition(): 블럭 위치 업데이트 및 BlockPositionUpdated 처리
+  - updateBlockSize(): 블럭 크기 업데이트 및 BlockSizeUpdated 처리
+  - updateBlockZOrder(): 블럭 Z-Order 업데이트 및 BlockZOrderUpdated 처리
+  - updateMultipleBlockPositions(): 다중 블럭 위치 일괄 업데이트 (정렬/분포 후)
   - duplicateBlock(): 블럭 복제 및 마운트 처리
-  - deleteBlockMount(): 블럭 마운트 해제 및 연결된 엣지 정리
-  - alignBlocks(): 다중 블럭 정렬 처리
-  - distributeBlocks(): 블럭 균등 분포 처리
+  - deleteBlock(): 블럭 삭제 처리 (툴바 버튼 & 키보드 단축키 모두 처리)
   - createEdge(): 엣지 생성 및 EdgeCreated 처리
   - updateEdge(): 엣지 속성 업데이트 (타입, 레이블, 스타일)
   - deleteEdge(): 엣지 삭제 처리
   - updateViewport(): 뷰포트 업데이트 및 ViewportUpdated 처리
-  - focusOnBlock(): 특정 블럭으로 뷰포트 포커스
   - saveViewportState(): 뷰포트 상태 저장 (페이지 이탈 시)
   - restoreViewportState(): 뷰포트 상태 복원 (페이지 재진입 시)
 - **트랜잭션**: 하나의 Service 메서드는 하나의 트랜잭션 단위
@@ -1621,22 +1550,19 @@ async function getCanvasView(pageId: PageId, userId: UserId): Promise<CanvasView
 ```typescript
 class CanvasManagementService {
   constructor(
-    private canvasRepository: CanvasRepository,
+    private getCanvasViewQuery: GetCanvasViewQuery,
     private blockMountRepository: BlockMountRepository,
     private edgeRepository: EdgeRepository,
     private viewportRepository: ViewportRepository,
-    private blockDomainService: BlockDomainService,
+    private blockManagementService: BlockManagementService,
     private workspaceManagementService: WorkspaceManagementService,
     private reactFlowACL: ReactFlowACL
   ) {}
   
-  async initializeCanvas(command: InitializeCanvasCommand): Promise<Result<CanvasAggregate>> {
+  async getCanvasView(pageId: PageId, userId: UserId): Promise<Result<CanvasView>> {
     try {
-      // 1. 페이지 접근 권한 확인
-      // 2. CanvasAggregate.create() 호출
-      // 3. CanvasRepository.save() 호출
-      // 4. 이벤트 발행
-      // 5. Result.ok(canvasAggregate) 반환
+      // 1. GetCanvasViewQuery.execute() 호출 (Read Model)
+      // 2. Result.ok(canvasView) 반환
     } catch (error) {
       // 1. 에러 타입 분류
       // 2. Result.err(error) 반환
@@ -1645,7 +1571,7 @@ class CanvasManagementService {
   
   async mountBlock(command: MountBlockCommand): Promise<Result<BlockMountAggregate>> {
     try {
-      // 1. Block Domain으로 블럭 존재 확인
+      // 1. Block Management Domain으로 블럭 존재 확인 (DB JOIN으로 blocks 테이블 확인)
       // 2. BlockMountAggregate.mountBlock() 호출
       // 3. BlockMountRepository.save() 호출
       // 4. 이벤트 발행
@@ -1656,13 +1582,24 @@ class CanvasManagementService {
     }
   }
   
-  async transformBlock(command: TransformBlockCommand): Promise<Result<BlockMountAggregate>> {
+  async updateBlockPosition(command: UpdateBlockPositionCommand): Promise<Result<BlockMountAggregate>> {
     try {
       // 1. BlockMountRepository.findById() 호출
-      // 2. BlockMountAggregate.transformBlock() 호출
-      // 3. 스냅 로직 적용
-      // 4. BlockMountRepository.save() 호출
-      // 5. Result.ok(blockMountAggregate) 반환
+      // 2. BlockMountAggregate.updatePosition() 호출
+      // 3. BlockMountRepository.save() 호출
+      // 4. Result.ok(blockMountAggregate) 반환
+    } catch (error) {
+      // 1. 에러 타입 분류
+      // 2. Result.err(error) 반환
+    }
+  }
+  
+  async updateMultipleBlockPositions(command: UpdateMultipleBlockPositionsCommand): Promise<Result<void>> {
+    try {
+      // 1. 다중 BlockMount 조회
+      // 2. 각 블럭 위치 업데이트
+      // 3. 배치 저장 (트랜잭션)
+      // 4. Result.ok() 반환
     } catch (error) {
       // 1. 에러 타입 분류
       // 2. Result.err(error) 반환
@@ -1691,22 +1628,22 @@ class CanvasManagementService {
 
 ### 2. Server Actions 수도코드
 
-#### initializeCanvasAction
+#### getCanvasViewAction
 
 - **파일 위치**: `src/domains/canvas-management/actions/canvas.actions.ts`
-- **역할**: 캔버스 초기화 기능을 제공하는 Next.js Server Action
+- **역할**: 캔버스 전체 데이터 조회 기능을 제공하는 Next.js Server Action
 - **주요 기능**:
   - Supabase Auth를 통한 사용자 인증 확인
   - 의존성 주입 패턴으로 Service Layer 활용
-  - Command 객체 생성 및 Service 메서드 호출
+  - Read Model Service 호출
   - 도메인 모델 → DTO 직렬화 (Value Object → string, Date → ISO string)
   - Next.js 캐시 무효화 (revalidatePath)
 - **입력**: pageId (string), userId (string)
-- **출력**: CanvasInitializedDTO
+- **출력**: CanvasViewDTO
 - **인증**: Supabase Auth 기반 사용자 인증 필수
 - **에러 처리**: 
   - 인증 실패 → UnauthorizedError
-  - 도메인 규칙 위반 → CanvasManagementError
+  - 권한 없음 → UnauthorizedError
   - 시스템 에러 → InternalServerError
 - **특징**:
   - `'use server'` 지시어 사용
@@ -1716,7 +1653,7 @@ class CanvasManagementService {
 ```typescript
 'use server'
 
-async function initializeCanvasAction(pageId: string, userId: string): Promise<Result<CanvasInitializedDTO>> {
+async function getCanvasViewAction(pageId: string, userId: string): Promise<Result<CanvasViewDTO>> {
   try {
     // 1. Supabase Auth 인증 확인
     const user = await getCurrentUser();
@@ -1725,56 +1662,53 @@ async function initializeCanvasAction(pageId: string, userId: string): Promise<R
     }
     
     // 2. 의존성 주입 (Repository, Service)
-    const canvasRepository = new DrizzleCanvasRepository(db);
-    const canvasManagementService = new CanvasManagementService(canvasRepository, ...);
+    const canvasManagementService = new CanvasManagementService(...);
     
-    // 3. Command 생성
-    const command: InitializeCanvasCommand = {
-      pageId: new PageId(pageId),
-      userId: new UserId(userId)
-    };
-    
-    // 4. 도메인 로직 실행
-    const result = await canvasManagementService.initializeCanvas(command);
+    // 3. Read Model 조회
+    const result = await canvasManagementService.getCanvasView(new PageId(pageId), new UserId(userId));
     if (result.isErr()) {
       return Result.err(result.error);
     }
     
-    // 5. DTO 직렬화
-    const dto: CanvasInitializedDTO = {
-      canvasId: result.value.id.value,
+    // 4. DTO 직렬화
+    const dto: CanvasViewDTO = {
       pageId: result.value.pageId.value,
-      reactFlowInstanceId: result.value.reactFlowInstanceId,
-      initializedAt: result.value.createdAt.toISOString()
+      blocks: result.value.blocks.map(b => ({
+        blockMountId: b.blockMountId.value,
+        blockId: b.blockId.value,
+        position: b.position,
+        size: b.size,
+        zOrder: b.zOrder.value,
+        blockType: b.blockType,
+        blockData: b.blockData
+      })),
+      edges: result.value.edges,
+      viewport: result.value.viewport,
+      totalBlockCount: result.value.totalBlockCount,
+      totalEdgeCount: result.value.totalEdgeCount
     };
     
-    // 6. 캐시 무효화
-    revalidatePath(`/pages/${pageId}`);
-    
-    // 7. 결과 반환
+    // 5. 결과 반환
     return Result.ok(dto);
     
   } catch (error) {
-    // 에러 로깅
-    console.error('Canvas initialization failed:', error);
-    return Result.err(new InternalServerError('Canvas initialization failed'));
+    console.error('Canvas view load failed:', error);
+    return Result.err(new InternalServerError('Canvas view load failed'));
   }
 }
 ```
 
 **처리 흐름**:
 1. 인증 확인: Supabase Auth로 현재 사용자 확인
-2. 의존성 주입: Repository, Service 인스턴스 생성
-3. Command 생성: 입력 파라미터 → Command 객체 변환
-4. 도메인 로직 실행: Service 메서드 호출
-5. DTO 직렬화: 도메인 모델 → 직렬화 가능한 Plain Object
-6. 캐시 무효화: revalidatePath 호출
-7. 결과 반환: Result<DTO> 형식
+2. 의존성 주입: Service 인스턴스 생성
+3. Read Model 조회: getCanvasView() 호출
+4. DTO 직렬화: 도메인 모델 → 직렬화 가능한 Plain Object
+5. 결과 반환: Result<DTO> 형식
 
 **사용 시나리오**:
-- 페이지 접근 시 캔버스 초기화
+- 페이지 접근 시 캔버스 전체 데이터 로드
 - Server Components에서 캔버스 상태 조회
-- React Hooks와 결합하여 낙관적 업데이트
+- React Flow 초기화 데이터 제공
 
 **우선순위**: ⭐️⭐️⭐️⭐️⭐️  
 **Testing Strategy 참조**: Server Actions 통합 테스트 케이스
@@ -1850,24 +1784,21 @@ async function mountBlockAction(
 
 ---
 
-#### transformBlockAction
+#### updateBlockPositionAction
 
 - **파일 위치**: `src/domains/canvas-management/actions/block.actions.ts`
-- **역할**: 블럭 변형 기능을 제공하는 Next.js Server Action
-- **입력**: blockMountId, newPosition, newSize, newZOrder
-- **출력**: BlockTransformedDTO
+- **역할**: 블럭 위치 업데이트 기능을 제공하는 Next.js Server Action
+- **입력**: blockMountId, newPosition
+- **출력**: BlockPositionUpdatedDTO
 
 ```typescript
 'use server'
 
-async function transformBlockAction(
+async function updateBlockPositionAction(
   blockMountId: string,
-  transformData: {
-    newPosition?: { x: number; y: number };
-    newSize?: { width: number; height: number };
-    newZOrder?: number;
-  }
-): Promise<Result<BlockTransformedDTO>> {
+  newPosition: { x: number; y: number },
+  userId: string
+): Promise<Result<BlockPositionUpdatedDTO>> {
   try {
     // 1. Supabase Auth 인증 확인
     const user = await getCurrentUser();
@@ -1876,38 +1807,94 @@ async function transformBlockAction(
     }
     
     // 2. 의존성 주입
-    const blockMountRepository = new DrizzleBlockMountRepository(db);
-    const canvasManagementService = new CanvasManagementService(blockMountRepository, ...);
+    const canvasManagementService = new CanvasManagementService(...);
     
     // 3. Command 생성
-    const command: TransformBlockCommand = {
+    const command: UpdateBlockPositionCommand = {
       blockMountId: new BlockMountId(/* blockMountId 파싱 */),
-      newPosition: transformData.newPosition ? new Position(transformData.newPosition.x, transformData.newPosition.y) : undefined,
-      newSize: transformData.newSize ? new Size(transformData.newSize.width, transformData.newSize.height) : undefined,
-      newZOrder: transformData.newZOrder ? new ZOrder(transformData.newZOrder) : undefined
+      newPosition: new Position(newPosition.x, newPosition.y),
+      userId: new UserId(userId)
     };
     
     // 4. 도메인 로직 실행
-    const result = await canvasManagementService.transformBlock(command);
+    const result = await canvasManagementService.updateBlockPosition(command);
     if (result.isErr()) {
       return Result.err(result.error);
     }
     
     // 5. DTO 직렬화 및 반환
-    const dto: BlockTransformedDTO = {
+    const dto: BlockPositionUpdatedDTO = {
       blockMountId: result.value.id.value,
-      position: result.value.position,
-      size: result.value.size,
-      zOrder: result.value.zOrder.value,
-      transformedAt: result.value.updatedAt.toISOString()
+      newPosition: result.value.position,
+      updatedAt: result.value.updatedAt.toISOString()
     };
     
     revalidatePath(`/pages/${command.blockMountId.getPageId()}`);
     return Result.ok(dto);
     
   } catch (error) {
-    console.error('Block transform failed:', error);
-    return Result.err(new InternalServerError('Block transform failed'));
+    console.error('Block position update failed:', error);
+    return Result.err(new InternalServerError('Block position update failed'));
+  }
+}
+```
+
+**우선순위**: ⭐️⭐️⭐️⭐️⭐️  
+**Testing Strategy 참조**: Server Actions 통합 테스트 케이스
+
+---
+
+#### updateMultipleBlockPositionsAction
+
+- **파일 위치**: `src/domains/canvas-management/actions/block.actions.ts`
+- **역할**: 다중 블럭 위치 일괄 업데이트 기능을 제공하는 Next.js Server Action
+- **입력**: blockPositions[]
+- **출력**: MultipleBlockPositionsUpdatedDTO
+
+```typescript
+'use server'
+
+async function updateMultipleBlockPositionsAction(
+  blockPositions: Array<{blockMountId: string, position: {x: number, y: number}}>,
+  userId: string
+): Promise<Result<MultipleBlockPositionsUpdatedDTO>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const user = await getCurrentUser();
+    if (!user) {
+      return Result.err(new UnauthorizedError('User not authenticated'));
+    }
+    
+    // 2. 의존성 주입
+    const canvasManagementService = new CanvasManagementService(...);
+    
+    // 3. Command 생성
+    const command: UpdateMultipleBlockPositionsCommand = {
+      blockPositions: blockPositions.map(bp => ({
+        blockMountId: new BlockMountId(/* bp.blockMountId 파싱 */),
+        position: new Position(bp.position.x, bp.position.y)
+      })),
+      userId: new UserId(userId)
+    };
+    
+    // 4. 도메인 로직 실행 (일괄 처리)
+    const result = await canvasManagementService.updateMultipleBlockPositions(command);
+    if (result.isErr()) {
+      return Result.err(result.error);
+    }
+    
+    // 5. DTO 직렬화 및 반환
+    const dto: MultipleBlockPositionsUpdatedDTO = {
+      updatedCount: result.value.length,
+      updatedAt: new Date().toISOString()
+    };
+    
+    revalidatePath(`/pages/${/* pageId */}`);
+    return Result.ok(dto);
+    
+  } catch (error) {
+    console.error('Multiple block positions update failed:', error);
+    return Result.err(new InternalServerError('Multiple block positions update failed'));
   }
 }
 ```
@@ -2142,8 +2129,8 @@ class CanvasManagementService {
   
   async duplicateBlock(originalBlockId: BlockId, pageId: PageId): Promise<Result<BlockMountAggregate>> {
     try {
-      // 1. Block Domain Service로 블럭 복제 (동기 호출)
-      const newBlockId = await this.blockDomainService.duplicateBlock(originalBlockId);
+      // 1. Block Management Domain으로 블럭 복제 (완전히 새로운 블럭 생성)
+      const newBlockId = await this.blockManagementService.duplicateBlockAction(originalBlockId);
       
       // 2. 원본 블럭 마운트 정보 조회
       const originalBlockMount = await this.blockMountRepository.findByBlockId(originalBlockId);
@@ -2181,7 +2168,7 @@ class CanvasManagementService {
 
 **사용 시나리오**:
 - Workspace Management Service: 페이지 접근 권한 확인
-- Block Domain Service: 블럭 존재 확인, 타입 조회, 블럭 복제
+- Block Management Service: 블럭 생성/복제/삭제, 블럭 정보 조회 (DB JOIN)
 - 동기적 호출로 즉시 결과 반환 및 에러 처리
 
 **장점**:
@@ -2240,6 +2227,67 @@ function useCanvasManagement(pageId: string) {
     isPending
   };
 }
+```
+
+**블럭 삭제 Hook** (Optimistic UI + React Flow 콜백):
+```typescript
+function useCanvasBlockLifecycle(pageId: string) {
+  const [optimisticBlocks, updateOptimisticBlocks] = useOptimistic(
+    blocks,
+    (state, action: { type: 'add' | 'remove', blockId: string }) => {
+      if (action.type === 'add') return [...state, action.blockId];
+      return state.filter(id => id !== action.blockId);
+    }
+  );
+  
+  // 툴바 버튼 삭제 (Optimistic UI 패턴)
+  const deleteBlock = useCallback(async (blockId: string) => {
+    // 1. 즉시 React Flow에서 제거
+    updateOptimisticBlocks({ type: 'remove', blockId });
+    
+    // 2. Server Action 호출
+    const result = await deleteBlockAction(blockId, userId);
+    
+    if (result.isErr()) {
+      // 3. 실패 시 복원
+      updateOptimisticBlocks({ type: 'add', blockId });
+      console.error('Block deletion failed:', result.error);
+    }
+  }, [pageId, userId]);
+  
+  // React Flow 콜백 삭제 (onNodesDelete)
+  const handleBlockDeletion = useCallback(async (blockIds: string[]) => {
+    // React Flow에서 이미 제거된 상태이므로, 서버 액션만 호출
+    for (const blockId of blockIds) {
+      const result = await deleteBlockAction(blockId, userId);
+      
+      if (result.isErr()) {
+        // 실패 시 React Flow에 블럭 복원
+        // (React Flow Store 직접 조작 또는 상태 복원 로직)
+        console.error('Block deletion failed:', result.error);
+      }
+    }
+  }, [userId]);
+  
+  return {
+    deleteBlock,        // 툴바 버튼용
+    handleBlockDeletion // React Flow 콜백용
+  };
+}
+```
+
+**React Flow 콜백 연동**:
+```typescript
+<ReactFlow
+  nodes={nodes}
+  edges={edges}
+  deleteKeyCode={['Delete', 'Backspace']}
+  onNodesDelete={(nodes) => {
+    // React Flow가 자동으로 노드 제거 후 콜백 호출
+    const blockIds = nodes.map(node => node.id);
+    handleBlockDeletion(blockIds);
+  }}
+>
 ```
 
 **뷰포트 관리 Hook**:
@@ -2343,6 +2391,7 @@ function useSnapGuidelines(blocks: BlockMountView[]) {
 function CanvasComponent({ pageId }: { pageId: string }) {
   const { blocks, mountBlock, isPending } = useCanvasManagement(pageId);
   const { viewport, updateViewport } = useViewport(pageId);
+  const { deleteBlock, handleBlockDeletion } = useCanvasBlockLifecycle(pageId);
   
   const onNodesChange = useCallback((changes) => {
     // React Flow 이벤트 → 도메인 이벤트 변환
@@ -2355,10 +2404,18 @@ function CanvasComponent({ pageId }: { pageId: string }) {
     });
   }, []);
   
+  // React Flow 삭제 키 콜백 (Delete/Backspace 키)
+  const onNodesDelete = useCallback((nodes) => {
+    const blockIds = nodes.map(node => node.id);
+    handleBlockDeletion(blockIds);
+  }, [handleBlockDeletion]);
+  
   return (
     <ReactFlow
       nodes={blocks.map(block => reactFlowACL.toReactFlowNode(block))}
       onNodesChange={onNodesChange}
+      onNodesDelete={onNodesDelete}
+      deleteKeyCode={['Delete', 'Backspace']}
       onMove={(event, viewport) => updateViewport(viewport.zoom, viewport.center)}
     >
       {/* 캔버스 컨텐츠 */}

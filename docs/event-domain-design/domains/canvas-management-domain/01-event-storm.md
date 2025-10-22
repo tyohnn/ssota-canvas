@@ -86,29 +86,35 @@ Block (전역)
 ## 🟠 Domain Events (시간 순서)
 
 ### 1. 캔버스 초기화 (Canvas Initialization)
+
+#### Backend Events
 - 캔버스가 초기화되었다 (Canvas Initialized)
-  - *사용자가 페이지를 열거나 생성할 때*
-- React Flow 인스턴스가 생성되었다 (React Flow Instance Created)
-  - *캔버스 렌더링 엔진 준비*
-- 빈 페이지 상태가 로드되었다 (Empty Canvas State Loaded)
-  - *새 페이지인 경우*
-- 페이지의 블럭들이 로드되었다 (Page Blocks Loaded)
-  - *기존 페이지인 경우*
-- 페이지의 엣지들이 로드되었다 (Page Edges Loaded)
-  - *기존 페이지인 경우*
+  - *페이지 접근 시 React Flow 인스턴스 생성 및 초기 데이터 로드*
 
 ### 2. 블럭 생명주기 (Block Lifecycle)
-- 블럭 생성이 요청되었다 (Block Creation Requested)
+
+#### Frontend Events
+- 블럭 생성 요청이 시작되었다 (Block Creation Request Started)
   - *도구바에서 블럭 타입 선택 → 캔버스 클릭*
+
+#### Backend Events
+- 블럭 생성이 요청되었다 (Block Creation Requested)
   - *Block Domain과 통신: 타입 검증, 기본값 설정*
 - 블럭이 생성되었다 (Block Created)
   - *Block Domain에서 블럭 생성 완료 후*
 - 블럭이 페이지에 마운트되었다 (Block Mounted to Page)
   - *초기 위치(x, y), 초기 크기(width, height), z-order 포함*
-- 블럭이 복제되었다 (Block Duplicated)
+
+#### Frontend Events
+- 블럭 복제 요청이 시작되었다 (Block Duplication Request Started)
   - *Ctrl+D 또는 복제 메뉴 클릭*
+
+#### Backend Events
+- 블럭이 복제되었다 (Block Duplicated)
 - 복제된 블럭이 페이지에 마운트되었다 (Duplicated Block Mounted to Page)
   - *원본 블럭 근처 위치에 마운트*
+
+#### Backend Events
 - 블럭이 삭제되었다 (Block Deleted)
   - *Delete 키 또는 삭제 메뉴 클릭*
   - *실제로는 휴지통으로 이동 (Soft Delete)*
@@ -116,6 +122,8 @@ Block (전역)
   - *휴지통에서 복구*
 
 ### 3. 블럭 선택 (Block Selection)
+
+#### Frontend Events
 - 블럭이 선택되었다 (Block Selected)
   - *사용자가 블럭 클릭*
 - 블럭이 다중 선택에 추가되었다 (Block Added to Selection)
@@ -132,25 +140,37 @@ Block (전역)
   - *빈 공간 클릭 또는 Esc*
 
 ### 4. 블럭 변환 (Block Transform)
+
+#### Frontend Events
 - 블럭 드래그가 시작되었다 (Block Drag Started)
   - *블럭을 마우스로 클릭하여 드래그 시작*
 - 블럭이 이동 중이다 (Block Moving)
   - *드래그 중 실시간 위치 업데이트*
   - *스냅 가이드 표시용*
+
+#### Backend Events
 - 블럭 위치가 확정되었다 (Block Position Confirmed)
   - *드래그 종료 시*
   - *DB 저장용 최종 위치*
+
+#### Frontend Events
 - 블럭 리사이즈가 시작되었다 (Block Resize Started)
   - *크기 조절 핸들 드래그 시작*
 - 블럭 크기가 변경 중이다 (Block Resizing)
   - *리사이즈 중 실시간 크기 업데이트*
+
+#### Backend Events
 - 블럭 크기가 확정되었다 (Block Size Confirmed)
   - *리사이즈 종료 시*
   - *DB 저장용 최종 크기*
+
+#### Backend Events
 - 블럭 Z-Order가 변경되었다 (Block Z-Order Changed)
   - *앞으로 가져오기/뒤로 보내기*
 
 ### 5. 블럭 정렬 도구 (Alignment Tools)
+
+#### Backend Events
 - 블럭들이 상단 정렬되었다 (Blocks Aligned to Top)
 - 블럭들이 하단 정렬되었다 (Blocks Aligned to Bottom)
 - 블럭들이 좌측 정렬되었다 (Blocks Aligned to Left)
@@ -165,6 +185,8 @@ Block (전역)
   - *자동으로 행/열 계산하여 배치*
 
 ### 6. 스마트 가이드 & 스냅 (Smart Guides & Snapping)
+
+#### Frontend Events
 - 스냅 가이드라인이 표시되었다 (Snap Guidelines Shown)
   - *블럭 드래그 중 다른 블럭과 정렬 가능할 때*
   - *다른 블럭의 가장자리/중심선 표시*
@@ -172,19 +194,32 @@ Block (전역)
   - *자동으로 위치 조정 (오차 5px 이내)*
 
 ### 7. 엣지 관리 (Edge Management)
+
+#### Frontend Events
 - 엣지 생성이 시작되었다 (Edge Creation Started)
   - *블럭의 연결 핸들을 드래그*
   - *소스 블럭 ID + 핸들 위치 기록*
+
+#### Backend Events
 - 엣지가 생성되었다 (Edge Created)
   - *다른 블럭의 핸들에 드롭*
   - *소스 블럭 → 타겟 블럭 연결 확정*
   - *특정 페이지에서만 존재*
+
+#### Frontend Events
 - 엣지가 선택되었다 (Edge Selected)
   - *엣지 클릭*
+
+#### Backend Events
 - 엣지 타입이 변경되었다 (Edge Type Changed)
   - *직선(straight), 곡선(bezier), 스텝(step), 스무스스텝(smoothstep) 등*
-- 엣지가 재연결되었다 (Edge Reconnected)
+
+#### Frontend Events
+- 엣지 재연결이 시작되었다 (Edge Reconnection Started)
   - *엣지의 끝점을 드래그하여 다른 블럭으로 변경*
+
+#### Backend Events
+- 엣지가 재연결되었다 (Edge Reconnected)
   - *소스 또는 타겟 블럭 변경*
 - 엣지 레이블이 변경되었다 (Edge Label Changed)
   - *엣지 더블클릭하여 레이블 편집*
@@ -196,6 +231,8 @@ Block (전역)
   - *블럭 삭제 시 해당 블럭의 모든 엣지 자동 제거*
 
 ### 8. 캔버스 뷰포트 (Canvas Viewport)
+
+#### Frontend Events
 - 캔버스가 줌인되었다 (Canvas Zoomed In)
   - *마우스 휠 또는 줌 버튼*
   - *줌 레벨 증가 (최대 제한 있음)*
@@ -215,6 +252,12 @@ Block (전역)
   - *React Flow가 애니메이션 처리*
 - 캔버스 줌이 100%로 리셋되었다 (Canvas Zoom Reset to 100%)
   - *"100%로 리셋" 버튼 클릭*
+- 미니맵이 표시되었다 (Minimap Shown)
+  - *미니맵 토글 버튼*
+- 미니맵이 숨겨졌다 (Minimap Hidden)
+  - *미니맵 토글 버튼*
+
+#### Backend Events
 - 캔버스 뷰가 저장되었다 (Canvas View Saved)
   - *페이지를 떠날 때 자동 저장*
   - *현재 줌 레벨 + 뷰포트 중심 좌표 저장*
@@ -222,10 +265,6 @@ Block (전역)
 - 캔버스 뷰가 복원되었다 (Canvas View Restored)
   - *페이지 진입 시 자동 복원*
   - *이전에 저장된 줌/패닝 상태로 복원*
-- 미니맵이 표시되었다 (Minimap Shown)
-  - *미니맵 토글 버튼*
-- 미니맵이 숨겨졌다 (Minimap Hidden)
-  - *미니맵 토글 버튼*
 
 ---
 

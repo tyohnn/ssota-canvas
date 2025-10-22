@@ -15,8 +15,8 @@ import { useWorkspace } from '../../hooks/use-workspace';
 import { WorkspaceIcon } from '../shared/icon-picker';
 
 interface WorkspacePageHeaderProps {
-  workspaceId: string;
-  pageId?: string | null;
+  pageId?: string;
+  workspaceId?: string;
 }
 
 /**
@@ -31,19 +31,25 @@ interface WorkspacePageHeaderProps {
  * 레거시 workspace-header.tsx 기반으로 확장
  */
 export function WorkspacePageHeader({
-  workspaceId,
-  pageId,
+  pageId: propPageId,
+  workspaceId: propWorkspaceId,
 }: WorkspacePageHeaderProps) {
-  const { workspaces, findPageById } = useWorkspace();
+  const context = useWorkspace();
+
+  // Props 우선, 없으면 Context fallback
+  const actualPageId = propPageId ?? context.selectedPageId;
+  const actualWorkspaceId = propWorkspaceId ?? context.selectedWorkspaceId;
 
   // Workspace 찾기
-  const workspace = workspaces.find(ws => ws.workspaceId === workspaceId);
+  const workspace = context.workspaces.find(
+    ws => ws.workspaceId === actualWorkspaceId
+  );
 
-  // Page 찾기 및 ancestor path 계산
+  // Page 찾기 및 ancestor path 계산 (기존 로직)
   const { page, ancestorPath } = useMemo(() => {
-    if (!pageId) return { page: null, ancestorPath: [] };
+    if (!actualPageId) return { page: null, ancestorPath: [] };
 
-    const foundPage = findPageById(pageId);
+    const foundPage = context.findPageById(actualPageId);
     if (!foundPage) return { page: null, ancestorPath: [] };
 
     // Ancestor path 계산 (depth가 긴 경우)
@@ -53,14 +59,14 @@ export function WorkspacePageHeader({
     // 부모 페이지들을 역으로 추적
     while (currentPage.parentId && path.length < 10) {
       // 최대 10단계
-      const parent = findPageById(currentPage.parentId);
+      const parent = context.findPageById(currentPage.parentId);
       if (!parent) break;
       path.unshift({ id: parent.id, title: parent.title });
       currentPage = parent;
     }
 
     return { page: foundPage, ancestorPath: path };
-  }, [pageId, findPageById]);
+  }, [actualPageId, context.findPageById]);
 
   const workspaceName = workspace?.name || 'Workspace';
   const workspaceIcon = workspace?.icon || null;
@@ -85,7 +91,7 @@ export function WorkspacePageHeader({
             {/* Workspace */}
             <BreadcrumbItem>
               <BreadcrumbLink
-                href={`/r/${workspace?.workspaceId || workspaceId}`}
+                href={`/r/${workspace?.workspaceId || actualWorkspaceId}`}
                 className="flex items-center gap-1.5"
               >
                 <WorkspaceIcon icon={workspaceIcon} size={16} />
@@ -114,7 +120,7 @@ export function WorkspacePageHeader({
                     {index > 0 && <BreadcrumbSeparator>/</BreadcrumbSeparator>}
                     <BreadcrumbItem>
                       <BreadcrumbLink
-                        href={`/r/${workspaceId}/page/${ancestor.id}`}
+                        href={`/r/${actualWorkspaceId}/page/${ancestor.id}`}
                         className="truncate max-w-[100px]"
                       >
                         {ancestor.title}

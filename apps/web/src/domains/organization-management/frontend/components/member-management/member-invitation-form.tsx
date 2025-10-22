@@ -189,7 +189,7 @@ export function MemberInvitationForm({
                     onClick={() => !isDisabled && handleUserSelect(user)}
                     disabled={isDisabled}
                     className={cn(
-                      'w-full flex items-center gap-3 p-2 rounded-md hover:bg-accent transition-colors',
+                      'w-full flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors',
                       isDisabled && 'opacity-50 cursor-not-allowed bg-muted'
                     )}
                   >
@@ -234,7 +234,7 @@ export function MemberInvitationForm({
       {selectedUsers.length > 0 && (
         <div className="space-y-2">
           <Label>초대할 멤버 ({selectedUsers.length}명)</Label>
-          <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-muted/30">
+          <div className="flex flex-wrap gap-2 p-3 border border-border/30 rounded-md bg-muted/30">
             {selectedUsers.map(user => (
               <Badge
                 key={user.userId}

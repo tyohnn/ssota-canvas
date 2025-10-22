@@ -25,7 +25,7 @@ export function InviteMemberDialog({
 }: InviteMemberDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] rounded-md">
         <DialogHeader>
           <DialogTitle>새 멤버 초대</DialogTitle>
           <DialogDescription>

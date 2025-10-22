@@ -4,8 +4,8 @@
 
 **도메인**: Canvas Management Domain  
 **작성자**: 도메인전문가 + 시니어개발자  
-**작성일**: 2025-10-19  
-**버전**: v1.0
+**작성일**: 2025-10-20  
+**버전**: v1.1
 
 **Event Storming 참조**: `01-event-storm.md`  
 **다음 단계**: `03-software-design.md` (Backend), `03-user-flow.md` (Frontend)
@@ -41,10 +41,13 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 - **SSOT**: Workspace Management가 페이지 생성/삭제의 Single Source of Truth
 - **통합**: 동기적 서비스 주입 (Next.js Server Actions)
 
-#### 2. Block Domain (내부 도메인)
-- **역할**: 블럭 타입 검증, 기본값 설정, 렌더링 컴포넌트 제공
-- **SSOT**: Block Domain이 블럭 타입별 속성의 Single Source of Truth
-- **통합**: 동기적 서비스 주입 (양방향 협력)
+#### 2. Block Management Domain (내부 도메인)
+- **역할**: 블럭 생명주기 관리 (생성, 수정, 삭제), 블럭 타입별 메타데이터 스키마 검증
+- **SSOT**: Block Management가 blocks 테이블의 Single Source of Truth
+- **통합**: 
+  - **블럭 생성**: Canvas Management → Block Management (createBlockAction 호출)
+  - **블럭 조회**: Canvas Management → Block Management (DB JOIN으로 blocks 테이블 직접 조회)
+  - **직접 DB JOIN**: Canvas에서 `block_mounts.block_id → blocks.id` 관계로 조회
 
 #### 3. React Flow (외부 라이브러리)
 - **역할**: 캔버스 렌더링, 인터랙션 처리, 엣지 경로 계산
@@ -83,8 +86,7 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 
 **Events**:
 1. 캔버스가 초기화되었다 (Canvas Initialized)
-2. React Flow 인스턴스가 생성되었다 (React Flow Instance Created)
-3. 빈 페이지 상태가 로드되었다 (Empty Canvas State Loaded)
+   - *페이지 접근 시 React Flow 인스턴스 생성 및 초기 데이터 로드*
 
 ### Sequence 2: 기존 페이지 로드 시 블럭/엣지 복원
 
@@ -125,12 +127,12 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 ```
 
 **Policy**: 
-- "Whenever 블럭 생성 요청됨, then always Block Domain에서 타입 검증하기"
+- "Whenever 블럭 생성 요청됨, then always Block Management Domain에서 블럭 생성하기"
 - "Whenever 블럭 생성 완료됨, then always 페이지에 마운트하기"
 - "새로 생성된 블럭은 가장 위(z-order 최상위)에 배치"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 사용 가능한 블럭 타입 목록
+- 사용 가능한 블럭 타입 목록 (Block Management Domain에서 조회)
 - 캔버스 커서 위치 (마우스 좌표)
 - 생성 진행 상태
 - *UI Hint: 블럭 도구바 및 캔버스 커서*
@@ -138,49 +140,65 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 **Command**: 블럭 생성 요청 (사용자가 입력하는 정보)
 - 선택한 블럭 타입
 - 캔버스 클릭 위치 (x, y 좌표)
+- 워크스페이스 ID
 
-**System**: Block Creation Manager (Backend - Security Enforcement)
-- 비즈니스 로직: Block Domain 서비스 호출, 타입 검증, 기본값 설정
-- 검증 로직: 블럭 타입 유효성 확인, 페이지 접근 권한 확인
-- 처리 로직: Block Domain에서 블럭 생성 요청, 생성 결과 대기
+**System**: Block Creation Manager
+- **Frontend (UI Interaction)**: 블럭 도구바에서 타입 선택, 캔버스 클릭 위치 감지
+- **Backend (Security Enforcement)**: Block Management Domain의 createBlockAction 호출
+- 비즈니스 로직: 워크스페이스 접근 권한 확인, 블럭 타입 유효성 확인
+- 처리 로직: Block Management Domain에 블럭 생성 요청, blocks 테이블에 저장
 
 **Events**:
-1. 블럭 생성이 요청되었다 (Block Creation Requested)
+1. **Frontend**: 블럭 생성 요청이 시작되었다 (Block Creation Request Started)
+2. **Backend**: 블럭 생성이 요청되었다 (Block Creation Requested)
 
-**Policy**: "Whenever 블럭 생성 요청됨, then always Block Domain에서 블럭 생성 처리하기"
+**Policy**: "Whenever 블럭 생성 요청됨, then always Block Management Domain에서 blocks 테이블에 블럭 생성하기"
 
-**System**: Block Domain Service (외부 시스템)
-**Events**: 블럭이 생성되었다 (Block Created)
+**External System**: Block Management Domain
+- **호출**: `createBlockAction(workspaceId, blockType, initialMetadata)`
+- **처리**: BlockAggregate.createBlock() → blocks 테이블에 저장
+- **반환**: BlockDTO (생성된 블럭 정보)
 
-**Policy**: "Whenever 블럭 생성 완료됨, then always 페이지에 마운트하기"
+**Events**: 블럭이 생성되었다 (Block Created in Block Management Domain)
 
 ### Sequence 2: 생성된 블럭을 페이지에 마운트
 
-**Trigger Event**: 블럭이 생성되었다
+**Trigger Event**: 블럭이 생성되었다 (Block Management Domain에서 blocks 테이블에 저장 완료)
 
 **Policy**: 
-- "Whenever 블럭 생성 완료됨, then always 페이지에 마운트하기"
+- "Whenever Block Management에서 블럭 생성 완료됨, then always Canvas Management에서 블럭 마운트하기"
 - "블럭은 반드시 하나 이상의 페이지에 마운트되어야 함"
+- "하나의 블럭은 여러 페이지에 마운트 가능하지만, 같은 페이지에는 한 번만 마운트 가능"
 - "초기 위치는 클릭한 좌표, 초기 크기는 블럭 타입별 기본값"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 생성된 블럭 정보 (타입, 크기)
+- Block Management에서 생성된 블럭 정보 (BlockDTO)
 - 마운트할 페이지 정보
-- 마운트 위치 정보
+- 마운트 위치 정보 (클릭한 좌표)
 
 **Command**: 블럭 마운트 처리
-- 블럭 ID
+- 생성된 블럭 ID (Block Management에서 반환)
 - 페이지 ID
 - 마운트 위치 (x, y)
 - 초기 크기 (width, height)
 
 **System**: Block Mounting Manager (Backend - Security Enforcement)
-- 비즈니스 로직: 마운트 관계 생성, Z-Order 최상위 설정
-- 검증 로직: 블럭과 페이지 ID 유효성 확인, 중복 마운트 방지
-- 처리 로직: 마운트 정보 저장, React Flow에 노드 추가
+- 비즈니스 로직: block_mounts 테이블에 마운트 관계 생성, Z-Order 최상위 설정
+- 검증 로직: 
+  - 블럭 ID가 Block Management Domain의 blocks 테이블에 존재하는지 확인
+  - 페이지 접근 권한 확인
+  - 같은 블럭이 같은 페이지에 이미 마운트되지 않았는지 확인 (UNIQUE 제약조건)
+- 처리 로직: 
+  - block_mounts 테이블에 마운트 정보 저장
+  - React Flow에 노드 추가 (블럭 정보는 DB JOIN으로 조회)
 
 **Events**:
 1. 블럭이 페이지에 마운트되었다 (Block Mounted to Page)
+
+**데이터 흐름 정리**:
+1. **Block Management Domain**: blocks 테이블에 블럭 생성
+2. **Canvas Management Domain**: block_mounts 테이블에 마운트 관계 생성  
+3. **렌더링**: Canvas에서 `block_mounts JOIN blocks` 쿼리로 블럭 정보 + 마운트 정보 조회
 
 ---
 
@@ -285,12 +303,13 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 ```
 
 **Policy**: 
-- "Whenever 블럭 복제 요청됨, then always Block Domain에서 블럭 복제 처리하기"
-- "복제된 블럭은 원본과 같은 타입이지만 마운트 정보는 복제되지 않음"
+- "Whenever 블럭 복제 요청됨, then always Block Management Domain에서 새로운 블럭 생성하기"
+- "복제된 블럭은 원본과 동일한 타입과 메타데이터를 가지지만 완전히 새로운 블럭 ID를 가짐"
 - "복제된 블럭은 원본 근처 위치에 새로운 마운트로 생성하기"
+- "복제 시 원본의 마운트 정보는 복제되지 않음 (새로운 마운트 관계만 생성)"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 복제될 블럭 정보 (타입, 속성 미리보기)
+- 복제될 블럭 정보 (타입, 속성 미리보기) - DB JOIN으로 조회
 - 복제 진행 상태
 - *UI Hint: 복제 옵션 및 미리보기*
 
@@ -298,27 +317,49 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 - 복제할 블럭 ID
 - 복제 위치 (원본 근처 vs 자유 위치)
 
-**System**: Block Duplication Manager (Backend - Security Enforcement)
-- 비즈니스 로직: Block Domain 서비스 호출, 블럭 복제 처리
-- 검증 로직: 원본 블럭 존재 확인, 페이지 접근 권한 확인
-- 처리 로직: Block Domain에서 블럭 복제 요청, 복제 결과 대기
+**System**: Block Duplication Manager
+- **Frontend (UI Interaction)**: Ctrl+D 또는 복제 메뉴 클릭 감지
+- **Backend (Security Enforcement)**: Canvas Management Domain의 duplicateBlockAction 호출
+- 비즈니스 로직: 
+- 검증 로직: 
+  - 원본 블럭이 blocks 테이블에 존재하는지 확인 (DB JOIN으로)
+  - 페이지 접근 권한 확인
+- 처리 로직: Block Management Domain에 블럭 복제 요청
 
 **Events**:
-1. 블럭이 복제되었다 (Block Duplicated)
+1. **Frontend**: 블럭 복제 요청이 시작되었다 (Block Duplication Request Started)
+2. **Backend**: 블럭 복제가 요청되었다 (Block Duplication Requested)
 
-**Policy**: "Whenever 블럭 복제 완료됨, then always 복제된 블럭을 페이지에 마운트하기"
+**External System**: Block Management Domain
+- **호출**: `duplicateBlockAction(blockId)`
+- **처리**: BlockAggregate.duplicateBlock() → blocks 테이블에 완전히 새로운 블럭 생성 (새로운 ID, 동일한 타입/메타데이터)
+- **반환**: BlockDTO (새로 생성된 복제 블럭 정보)
+
+**Events**: 블럭이 복제되었다 (Block Duplicated in Block Management Domain)
+
+**Policy**: "Whenever Block Management에서 블럭 복제 완료됨, then always 복제된 블럭을 페이지에 마운트하기"
 
 **Command**: 복제된 블럭 마운트 처리
-- 복제된 블럭 ID
+- 복제된 블럭 ID (Block Management에서 반환)
 - 페이지 ID
 - 마운트 위치 (원본 근처 + 오프셋)
 
 **System**: Block Mounting Manager (Backend - Security Enforcement)
-- 비즈니스 로직: 복제된 블럭 마운트, Z-Order 최상위 설정
-- 처리 로직: 마운트 정보 저장, React Flow에 새 노드 추가
+- 비즈니스 로직: block_mounts 테이블에 복제된 블럭의 새로운 마운트 관계 생성, Z-Order 최상위 설정
+- 검증 로직: 
+  - 복제된 블럭 ID가 blocks 테이블에 존재하는지 확인
+  - 같은 블럭이 같은 페이지에 중복 마운트되지 않았는지 확인
+- 처리 로직: 
+  - block_mounts 테이블에 새로운 마운트 정보 저장 (복제된 블럭 ID + 페이지 ID)
+  - React Flow에 새 노드 추가
 
 **Events**:
 1. 복제된 블럭이 페이지에 마운트되었다 (Duplicated Block Mounted to Page)
+
+**데이터 흐름 정리**:
+1. **Canvas Management**: 원본 블럭 정보를 DB JOIN으로 조회
+2. **Block Management Domain**: blocks 테이블에 완전히 새로운 블럭 생성 (새로운 블럭 ID)
+3. **Canvas Management**: block_mounts 테이블에 새로운 마운트 관계 생성 (복제된 블럭 ID + 페이지 ID)
 
 ---
 
@@ -540,7 +581,7 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 - 비즈니스 로직: 연결 유효성 검사, 페이지별 엣지 관리
 
 **Events**:
-1. 엣지 생성이 시작되었다 (Edge Creation Started)
+1. **Frontend**: 엣지 생성이 시작되었다 (Edge Creation Started)
 
 ### Sequence 2: 엣지 연결 확정
 
@@ -565,7 +606,7 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 - 처리 로직: 엣지 생성, React Flow에 엣지 추가
 
 **Events**:
-1. 엣지가 생성되었다 (Edge Created)
+1. **Backend**: 엣지가 생성되었다 (Edge Created)
 
 ### Sequence 3: 엣지 편집 (타입, 레이블, 스타일)
 
@@ -611,11 +652,12 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 
 **Policy**: 
 - "블럭 삭제는 Soft Delete (휴지통으로 이동)"
-- "블럭 삭제 시 연결된 모든 엣지 자동 삭제"
-- "하나 이상의 페이지에 마운트된 블럭만 삭제 가능"
+- "블럭 삭제 시 모든 페이지에서의 마운트 관계 해제 및 연결된 모든 엣지 자동 삭제"
+- "Canvas Management에서 모든 마운트 해제 후 Block Management에서 Soft Delete 처리"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 삭제될 블럭 정보
+- 삭제될 블럭 정보 (DB JOIN으로 조회)
+- 해당 블럭이 마운트된 페이지 목록
 - 연결된 엣지 개수 표시
 - 삭제 확인 메시지
 - *UI Hint: 삭제 확인 다이얼로그*
@@ -625,13 +667,34 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 - 삭제 확인
 
 **System**: Block Deletion Manager (Backend - Security Enforcement)
-- 비즈니스 로직: 연결된 엣지 일괄 삭제, Soft Delete 처리, 페이지별 마운트 제거
-- 검증 로직: 블럭 존재 확인, 삭제 가능 조건 확인
-- 처리 로직: 트랜잭션으로 블럭과 엣지 삭제, React Flow에서 제거
+- 비즈니스 로직: 
+  1. Canvas Management: 
+     - 해당 블럭과 연결된 모든 페이지의 엣지 일괄 삭제
+     - block_mounts에서 해당 블럭 ID의 모든 마운트 관계 제거
+  2. Block Management Domain: 블럭 Soft Delete 처리 (deleted_at 설정)
+- 검증 로직: 
+  - 블럭 존재 확인 (DB JOIN으로 blocks 테이블 확인)
+  - 해당 블럭의 마운트 관계들 존재 확인
+- 처리 로직: 
+  - 트랜잭션으로 모든 페이지의 엣지 삭제 + 모든 마운트 해제
+  - Block Management Domain에 deleteBlockAction 호출
+  - React Flow에서 모든 관련 노드 제거
 
 **Events**:
-1. 블럭이 삭제되었다 (Block Deleted)
+1. 모든 페이지에서 블럭 마운트가 해제되었다 (Block Mounts Removed from All Pages)
 2. 연결된 엣지들이 삭제되었다 (Connected Edges Deleted)
+
+**External System**: Block Management Domain
+- **호출**: `deleteBlockAction(blockId)`
+- **처리**: BlockAggregate.deleteBlock() → blocks 테이블에 deleted_at 설정 (Soft Delete)
+- **반환**: 성공/실패 결과
+
+**Events**: 블럭이 삭제되었다 (Block Deleted in Block Management Domain)
+
+**데이터 흐름 정리**:
+1. **Canvas Management**: 모든 페이지의 엣지 삭제 + block_mounts에서 해당 블럭의 모든 마운트 관계 제거
+2. **Block Management Domain**: blocks 테이블에 deleted_at 설정 (Soft Delete)
+3. **렌더링**: DB JOIN에서 deleted_at IS NULL 조건으로 삭제된 블럭 필터링
 
 ---
 
@@ -665,9 +728,9 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 - 비즈니스 로직: 줌 레벨 제한 적용, 뷰포트 상태 관리
 
 **Events**:
-1. 캔버스가 줌인되었다 (Canvas Zoomed In)
-2. 캔버스가 줌아웃되었다 (Canvas Zoomed Out)
-3. 캔버스가 패닝되었다 (Canvas Panned)
+1. **Frontend**: 캔버스가 줌인되었다 (Canvas Zoomed In)
+2. **Frontend**: 캔버스가 줌아웃되었다 (Canvas Zoomed Out)
+3. **Frontend**: 캔버스가 패닝되었다 (Canvas Panned)
 
 ### Sequence 2: 블럭 포커스 및 화면 맞춤
 
@@ -690,7 +753,7 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 - 비즈니스 로직: 블럭 위치 계산, 적절한 줌 레벨 결정
 
 **Events**:
-1. 캔버스가 특정 블럭으로 포커스되었다 (Canvas Focused on Block)
+1. **Frontend**: 캔버스가 특정 블럭으로 포커스되었다 (Canvas Focused on Block)
 
 ### Sequence 3: 뷰포트 상태 저장 및 복원
 
@@ -713,17 +776,46 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 - 처리 로직: 뷰포트 상태 저장, 복원 시 React Flow 적용
 
 **Events**:
-1. 캔버스 뷰가 저장되었다 (Canvas View Saved)
-2. 캔버스 뷰가 복원되었다 (Canvas View Restored)
+1. **Backend**: 캔버스 뷰가 저장되었다 (Canvas View Saved)
+2. **Backend**: 캔버스 뷰가 복원되었다 (Canvas View Restored)
+
+### Sequence 4: 미니맵 표시/숨김
+
+**Trigger Event**: 사용자가 미니맵 토글 버튼 클릭
+
+**Policy**: 
+- "미니맵은 캔버스 전체 구조를 한눈에 볼 수 있도록 도움"
+- "미니맵에서 클릭 시 해당 위치로 뷰포트 이동"
+
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 미니맵 표시/숨김 상태
+- 캔버스 전체 구조 미리보기
+- *UI Hint: 미니맵 토글 버튼*
+
+**Command**: 미니맵 토글
+- 토글 상태 (표시/숨김)
+
+**System**: Minimap Manager
+- **Frontend (UI Toggle)**: 미니맵 표시/숨김 처리
+- 비즈니스 로직: 미니맵 상태 관리, 클릭 시 뷰포트 이동
+
+**Events**:
+1. **Frontend**: 미니맵이 표시되었다 (Minimap Shown)
+2. **Frontend**: 미니맵이 숨겨졌다 (Minimap Hidden)
 
 ---
 
 ## 💡 핵심 Policy 정리
 
 ### 블럭 생명주기 관련
-1. **블럭 마운팅**: 반드시 하나 이상의 페이지에 마운트되어야 함
-2. **Z-Order 정책**: 새 블럭은 최상위, 다중 선택 시 상대적 순서 유지
-3. **Soft Delete**: 블럭 삭제는 휴지통으로 이동, 완전 삭제는 별도 처리
+1. **블럭 생성 순서**: Block Management Domain에서 blocks 테이블 생성 → Canvas Management에서 block_mounts 테이블
+2. **블럭 복제**: 원본과 동일한 타입/메타데이터를 가진 완전히 새로운 블럭 생성 + 새로운 마운트 관계 생성
+3. **블럭 마운팅**: 
+   - 반드시 하나 이상의 페이지에 마운트되어야 함
+   - 하나의 블럭은 여러 페이지에 마운트 가능
+   - 같은 블럭이 같은 페이지에는 한 번만 마운트 가능 (UNIQUE 제약조건)
+4. **Z-Order 정책**: 새 블럭은 최상위, 다중 선택 시 상대적 순서 유지
+5. **Soft Delete**: Canvas에서 마운트 해제 → Block Management에서 deleted_at 설정
 
 ### 엣지 관리 관련
 4. **페이지 종속성**: 엣지는 특정 페이지에서만 존재
@@ -755,9 +847,75 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 - **Batch Processing**: 다중 블럭 변환 시 배치 처리
 
 ### 외부 도메인 통합
-- **동기적 서비스 주입**: Workspace Management, Block Domain과의 실시간 통신
-- **권한 검증**: 페이지 및 블럭 접근 권한 일관성 유지
-- **트랜잭션**: 블럭 삭제 시 엣지 정리 등 원자성 보장
+- **Block Management Domain 통합**: 
+  - 블럭 생성/삭제 시 createBlockAction, deleteBlockAction 호출
+  - 블럭 정보 조회 시 DB JOIN (`block_mounts JOIN blocks`) 활용
+- **Workspace Management Domain 통합**: 동기적 서비스 주입을 통한 실시간 통신
+- **권한 검증**: 페이지 및 블럭 접근 권한 일관성 유지 (RLS 정책 공유)
+- **트랜잭션**: 블럭 삭제 시 엣지 정리 + 마운트 해제 + 블럭 Soft Delete의 원자성 보장
+
+---
+
+## 🗺️ Context Map
+
+### Canvas Management ↔ Block Management 도메인 관계
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                Canvas Management Context                    │
+│                                                             │
+│  ┌─────────────────┐    ┌─────────────────┐               │
+│  │   BlockMount    │    │      Edge       │               │
+│  │   Aggregate     │    │    Aggregate    │               │
+│  └─────────────────┘    └─────────────────┘               │
+│           │                                              │
+│           │ 1. Server Actions 통합                       │
+│           ▼                                              │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │     Block Management Integration Layer              │  │
+│  │                                                     │  │
+│  │  • createBlockAction(workspaceId, blockType)       │  │
+│  │  • deleteBlockAction(blockId)                       │  │
+│  └─────────────────────────────────────────────────────┘  │
+│                          │                                │
+│                          │ 2. DB JOIN                    │
+│                          ▼                                │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │              Database Layer                         │  │
+│  │                                                     │  │
+│  │  block_mounts JOIN blocks                           │  │
+│  │  (Canvas 테이블)    (Block Management 테이블)       │  │
+│  │                                                     │  │
+│  │  관계 규칙:                                         │  │
+│  │  • 1개 블럭 → 여러 페이지 마운트 가능                │  │
+│  │  • 1개 페이지 → 같은 블럭 한 번만 마운트 가능       │  │
+│  └─────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          │ Partnership (Partnership)
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Block Management Context                       │
+│                                                             │
+│  ┌─────────────────┐    ┌─────────────────┐               │
+│  │    Block        │    │  BlockType,     │               │
+│  │   Aggregate     │    │  Metadata, etc. │               │
+│  └─────────────────┘    └─────────────────┘               │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │              blocks table (SSOT)                    │  │
+│  │                                                     │  │
+│  │  • 블럭 생명주기 관리 (생성, 수정, 삭제)            │  │
+│  │  • 블럭 타입별 메타데이터 스키마 검증               │  │
+│  │  • 워크스페이스별 격리 (RLS)                       │  │
+│  └─────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**통합 패턴**: Partnership (동반자 관계)
+- **Canvas → Block**: Server Actions를 통한 블럭 CRUD 호출
+- **Block → Canvas**: DB JOIN을 통한 블럭 정보 직접 조회
+- **공유 인프라**: 동일한 Database, RLS 정책, 워크스페이스 격리
 
 ---
 

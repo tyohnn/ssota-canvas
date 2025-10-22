@@ -30,6 +30,39 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 ---
 
+## 🎭 캔버스 모드별 UI 컴포넌트 렌더링 규칙
+
+각 화면은 특정 캔버스 모드에서 실행되며, 모드에 따라 다른 UI 컴포넌트가 렌더링됩니다.
+
+### 모드 타입 및 렌더링 조건
+
+| 모드 | 조건 | 렌더링되는 주요 컴포넌트 |
+|------|------|-------------------------|
+| `default` | 초기 상태, 선택 해제 시 | 도구바 플러스 버튼, 연결 핸들들 |
+| `block-creation` | 블럭 타입 선택 후 | 스켈레톤 블럭 (Cursor Follow), 생성 커서 |
+| `single-selection` | 단일 블럭 선택 시 | 블럭 탑 툴바, 리사이즈 핸들, 텍스트 편집 영역 |
+| `multi-selection` | 다중 블럭 선택 시 | 정렬 도구 툴바, 선택 바운딩 박스 |
+| `block-editing` | 블럭 더블클릭 시 | 에디터 패널 (사이드바) |
+| `dragging` | 드래그 및 리사이즈 중 | 스냅 가이드라인, 드래그 피드백 |
+| `edge-creation` | 엣지 연결 시작 시 | 연결선 프리뷰, 연결 가능 표시 |
+
+### Hook 기반 렌더링 제어
+
+모든 컴포넌트는 `useCanvasMode()` Hook의 상태를 기반으로 렌더링됩니다:
+
+```typescript
+// 예시: 블럭 탑 툴바 렌더링 조건
+const isNodeTopToolbarVisible = isSingleSelectionMode() && selectedNodeId;
+
+// 예시: 정렬 도구 툴바 렌더링 조건  
+const isAlignmentToolbarVisible = isMultiSelectionMode() && getSelectionCount() >= 2;
+
+// 예시: 스냅 가이드라인 렌더링 조건
+const showSnapGuides = isDraggingMode();
+```
+
+---
+
 ## 📍 Scenario 0: 외부 도메인과의 동기화
 
 ### 비즈니스 컨텍스트
@@ -42,6 +75,8 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 ### Screen 1: 빈 캔버스 초기 화면
 
+**캔버스 모드**: `default` (초기 상태)
+
 **화면 구성**:
 - **헤더 영역**: 페이지 제목, 즐겨찾기 버튼, 공유 버튼
 - **본문 영역**: 빈 캔버스 영역, 도구바 (상단)
@@ -49,14 +84,17 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 **UI 컴포넌트**:
 - **캔버스 영역** (React Flow): 
+  - 렌더링 조건: 항상 렌더링 (기본 캔버스 영역)
   - 무한 확대/축소 지원
   - 빈 배경에 그리드 표시
   - 마우스 휠 줌, 트랙패드/마우스 드래그 패닝
-- **도구바** (상단): 
-  - 플러스(+) 버튼 하나로 통합 (블럭 추가)
+- **도구바** (상단 Toolbar 컴포넌트): 
+  - 렌더링 조건: 권한이 있는 경우 (`canEdit === true`)
+  - 플러스(+) 버튼: `getCurrentMode().type === 'default'`일 때만 활성화
   - 클릭 시 블럭 타입 선택 다이얼로그 표시
-  - 도형, 유튜브, 이미지, 영상, 지도 등 수많은 타입 지원
-- **뷰포트 컨트롤** (우측 하단): 
+  - 도형, 유튜브, 이미지, 영상, 지도 등 수많은 타입 지원 (권한 기반 필터링)
+- **뷰포트 컨트롤** (우측 하단 ViewportControls 컴포넌트): 
+  - 렌더링 조건: 항상 렌더링
   - 줌 인/아웃 버튼
   - 미니맵 토글 버튼
   - 현재 줌 레벨 표시
@@ -91,6 +129,8 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 ### Screen 2: 기존 캔버스 로드 화면
 
+**캔버스 모드**: `default` (데이터 로드 완료 후)
+
 **화면 구성**:
 - **헤더 영역**: 페이지 제목, 즐겨찾기 버튼, 공유 버튼
 - **본문 영역**: 로딩된 블럭들과 엣지들이 표시된 캔버스, 도구바
@@ -98,13 +138,23 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 **UI 컴포넌트**:
 - **캔버스 영역** (React Flow):
-  - 기존 블럭들 위치와 크기로 표시
-  - 기존 엣지들 연결 상태로 표시
-  - 복원된 뷰포트 상태 (줌, 중심 좌표)
-- **도구바** (상단): 
-  - 플러스(+) 버튼 (블럭 추가)
+  - 렌더링 조건: 항상 렌더링
+  - 기존 블럭들 위치와 크기로 표시 (React Flow `nodes` 상태)
+  - 기존 엣지들 연결 상태로 표시 (React Flow `edges` 상태)
+  - 복원된 뷰포트 상태 (줌, 중심 좌표) - `useCanvasViewport.loadViewportState()` 호출
+- **로딩된 블럭들**:
+  - 렌더링 조건: `nodes.length > 0` (데이터 로드 완료 후)
+  - React Flow `nodes` 상태에 따라 자동 렌더링
+  - 연결 핸들, 리사이즈 핸들 등 기본 기능 활성화
+- **로딩된 엣지들**:
+  - 렌더링 조건: `edges.length > 0` (데이터 로드 완료 후)
+  - React Flow `edges` 상태에 따라 자동 렌더링
+- **도구바** (상단 Toolbar): 
+  - 렌더링 조건: 권한이 있는 경우 (`canEdit === true`)
+  - 플러스(+) 버튼: `getCurrentMode().type === 'default'`일 때 활성화
   - 클릭 시 블럭 타입 선택 다이얼로그
-- **뷰포트 컨트롤** (우측 하단): 
+- **뷰포트 컨트롤** (우측 하단 ViewportControls): 
+  - 렌더링 조건: 항상 렌더링
   - 줌 인/아웃 버튼, 미니맵 토글, 줌 레벨 표시
 
 **인터랙션**:
@@ -144,6 +194,8 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 ### Screen 1: 블럭 타입 선택 다이얼로그
 
+**캔버스 모드**: `default` (초기 상태)
+
 **화면 구성**:
 - **도구바**: 플러스(+) 버튼
 - **블럭 타입 선택 다이얼로그**: 모달 형태로 표시
@@ -151,22 +203,41 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 **UI 컴포넌트**:
 - **플러스 버튼** (상단 도구바):
+  - 렌더링 조건: `getCurrentMode().type === 'default'`
   - 클릭 시 블럭 타입 선택 다이얼로그 표시
-- **블럭 타입 선택 다이얼로그**:
+- **블럭 타입 선택 다이얼로그** (모달):
+  - 렌더링 조건: 다이얼로그 상태가 `open`
   - 카테고리별 블럭 타입 목록 (도형, 유튜브, 이미지, 영상, 지도 등)
   - 각 타입에 아이콘과 이름 표시
   - 검색 기능
   - 취소/선택 버튼
-- **캔버스 커서** (선택 후):
-  - 블럭 타입 선택 시 커서 아이콘 변경
-  - 마우스에 블럭 스켈레톤 표시 (반투명 프리뷰)
 
 **인터랙션**:
 - 플러스 버튼 클릭 → 블럭 타입 선택 다이얼로그 표시
-- 다이얼로그에서 타입 선택 → 다이얼로그 닫기, 블럭 생성 모드 활성화
-- 캔버스 호버 (모드 활성화 시) → 마우스에 블럭 스켈레톤 표시
-- 빈 영역 클릭 → 해당 위치에 블럭 생성 및 배치
-- ESC 키 → 블럭 생성 모드 취소, 다이얼로그 닫기
+- 다이얼로그에서 타입 선택 → `enterBlockCreationMode(blockType)` 호출
+
+---
+
+### Screen 1-2: 블럭 생성 모드 (스켈레톤 그림자)
+
+**캔버스 모드**: `block-creation` (blockType: 선택된 블럭 타입)
+
+**화면 구성**:
+- **캔버스**: 기존 블럭들 + 마우스 커서 따라다니는 스켈레톤 블럭
+- **모드 표시**: 현재 블럭 생성 모드임을 나타내는 UI 힌트
+
+**UI 컴포넌트**:
+- **스켈레톤 블럭** (Cursor Follow):
+  - 렌더링 조건: `isBlockCreationMode() === true`
+  - 마우스 커서를 따라다니는 반투명 블럭 프리뷰
+  - 선택된 `blockType`에 맞는 모양과 크기로 표시
+  - 커서 아이콘: 십자형 (+) 커서로 변경
+- **캔버스 배경**: 
+
+**인터랙션**:
+- 캔버스 빈 영역 클릭 → `createBlock(blockType, position)` 호출 → `single-selection` 모드로 전환
+- ESC 키 → `exitToDefaultMode()` 호출 → `default` 모드로 복귀
+- 다른 블럭 클릭 → 클릭 무시 (생성 모드 유지)
 
 **화면 전환**:
 - **조건**: 블럭 생성 완료
@@ -175,36 +246,65 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 ---
 
-### Screen 2: 새 블럭 생성 완료 (단일 블럭 편집 모드)
+### Screen 2: 새 블럭 생성 완료 (단일 선택 모드)
+
+**캔버스 모드**: `single-selection` (blockId: 새로 생성된 블럭 ID)
 
 **화면 구성**:
 - **캔버스**: 새로 생성된 블럭이 선택된 상태로 표시
-- **블럭 탑 툴바**: 선택된 블럭 위에 표시되는 툴바 (node-top-toolbar 참고)
-- **단일 블럭 편집 모드**: 블럭 내부 컨텐츠 편집 활성화
+- **블럭 탑 툴바**: 선택된 블럭 위에 표시되는 툴바
+- **텍스트 편집 영역**: 블럭 내부 컨텐츠 편집 가능
 
 **UI 컴포넌트**:
 - **선택된 블럭**:
+  - 렌더링 조건: `isSingleSelectionMode() === true && getCurrentMode().blockId === blockId`
   - 테두리 강조 표시 (파란색 또는 포인트 색상)
-  - 리사이즈 핸들 (8방향 핸들)
+  - 리사이즈 핸들 (8방향 핸들) - React Flow 기본 핸들
   - 선택 표시기
-- **블럭 탑 툴바** (블럭 위에 표시, node-top-toolbar.tsx 참고):
-  - ">>" 버튼 (Details): 에디터 패널 열기/닫기
+- **블럭 탑 툴바** (node-top-toolbar.tsx):
+  - 렌더링 조건: `isSingleSelectionMode() === true`
+  - 위치: 선택된 블럭 위에 부유
+  - ">>" 버튼 (Details): `enterBlockEditingMode(blockId)` 호출
   - "..." 드롭다운 메뉴:
     - Edit (⌘E), Duplicate (⌘D), Create Component, Delete (⌫)
-    - 블럭 타입별 추가 옵션들
-- **단일 블럭 편집 모드**:
-  - 블럭 내 텍스트 area 등이 활성화됨
-  - 캔버스 전체 조작과 블럭 조작 명확히 구분
-  - 다른 블럭 클릭하거나 빈 영역 클릭 시 편집 모드 해제
+    - 블럭 타입별 추가 옵션들 (권한 기반 필터링)
+- **텍스트 편집 영역** (블럭 내부):
+  - 렌더링 조건: `isSingleSelectionMode() === true`
+  - 블럭 타입별 편집 가능한 영역 활성화
+  - 포커스 상태로 즉시 편집 가능
 
 **인터랙션**:
-- 블럭 클릭 → 단일 블럭 편집 모드 활성화 (내부 컨텐츠 편집 가능)
-- 다른 블럭 클릭 → 이전 블럭 편집 모드 해제, 새 블럭 편집 모드
-- 빈 영역 클릭 → 모든 블럭 편집 모드 해제
-- 블럭 드래그 → 위치 변경 (실시간)
-- 리사이즈 핸들 드래그 → 크기 변경 (실시간)
+- 블럭 더블클릭 → `enterBlockEditingMode(blockId)` 호출
+- 다른 블럭 클릭 → `enterSingleSelectionMode(newBlockId)` 호출  
+- 빈 영역 클릭 → `exitToDefaultMode()` 호출
+- 블럭 드래그 시작 → `enterDraggingMode([blockId])` 호출
+- 리사이즈 핸들 드래그 → React Flow 자동 처리
 - DEL 키 → 블럭 삭제 확인 다이얼로그
-- Ctrl+D → 블럭 복제
+- Ctrl+D → `duplicateBlock(blockId, position)` 호출
+
+---
+
+### Screen 2-2: 블럭 편집 모드 (에디터 패널)
+
+**캔버스 모드**: `block-editing` (blockId: 편집 중인 블럭 ID)
+
+**화면 구성**:
+- **캔버스**: 편집 중인 블럭 유지
+- **사이드 에디터 패널**: 블럭 상세 편집 패널
+
+**UI 컴포넌트**:
+- **에디터 패널** (사이드바):
+  - 렌더링 조건: `isBlockEditingMode() === true`
+  - 블럭 타입별 상세 편집 옵션 (폰트, 색상, 속성 등)
+  - 실시간 미리보기
+  - 저장/취소 버튼
+- **편집 중인 블럭**:
+  - 렌더링 조건: `isBlockEditingMode() === true`
+  - 특별한 시각적 표시 (편집 중임을 나타내는 테두리)
+
+**인터랙션**:
+- 편집 패널 외부 클릭 또는 ESC → 이전 `single-selection` 모드로 복귀
+- 저장 버튼 → 변경사항 저장, `single-selection` 모드로 복귀
 
 **화면 전환**:
 - **조건**: 다른 블럭 클릭 또는 빈 영역 클릭
@@ -237,24 +337,30 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 ### Screen 1: 블럭 드래그 이동 중
 
+**캔버스 모드**: `dragging` (blockIds: 드래그 중인 블럭 ID들)
+
 **화면 구성**:
 - **캔버스**: 드래그 중인 블럭과 실시간 위치 업데이트
-- **가이드라인**: 다른 블럭과의 정렬 가이드라인 표시
+- **스냅 가이드라인**: 다른 블럭과의 정렬 가이드라인 표시
 
 **UI 컴포넌트**:
 - **드래그 중인 블럭**:
+  - 렌더링 조건: `isDraggingMode() === true && getCurrentMode().blockIds.includes(blockId)`
   - React Flow의 기본 동작에 따라 실시간 위치 업데이트
-  - 시각적 효과 없음 (React Flow 기본 상태 유지)
-- **스냅 가이드라인**:
+  - 드래그 중임을 나타내는 시각적 효과 (약간의 투명도 변화 등)
+- **스냅 가이드라인** (SnapGuides 컴포넌트):
+  - 렌더링 조건: `isDraggingMode() === true`
   - 다른 블럭과의 정렬 가능한 위치에 점선 표시
   - 중심선 (세로/가로), 가장자리 정렬선
   - 가이드라인 위에 있을 때 하이라이트 효과
+  - `useCanvasSnapGuides` Hook을 통해 관리
 
 **인터랙션**:
-- 블럭 드래그 → React Flow 기본 동작으로 실시간 위치 업데이트, 가이드라인 계산 및 표시
+- 블럭 드래그 시작 → `onNodeDragStart` 콜백 → `enterDraggingMode([blockId])` 호출
+- 드래그 중 → React Flow 자동 처리, `showGuidelines()` 호출
 - 5px 임계값 내 진입 → 자동 스냅 가이드라인 하이라이트
-- 드래그 종료 → 최종 위치 확정, DB 저장
-- ESC 키 → 드래그 취소, 원래 위치로 복원
+- 드래그 종료 → `onNodeDragStop` 콜백 → `saveBlockPosition(blockId, finalPosition)` 호출
+- ESC 키 → 드래그 취소, 이전 `single-selection` 또는 `multi-selection` 모드로 복귀
 
 **애니메이션**:
 - 가이드라인 표시/숨김: 200ms 페이드 인/아웃
@@ -419,6 +525,8 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 ### Screen 1: 다중 블럭 선택 상태 (복수 블럭 편집 모드)
 
+**캔버스 모드**: `multi-selection` (blockIds: 선택된 여러 블럭 ID들)
+
 **화면 구성**:
 - **선택된 블럭들**: 여러 블럭이 선택된 상태로 테두리 표시
 - **정렬 도구 툴바**: 선택된 블럭들 영역 중앙 상단에 표시
@@ -426,49 +534,64 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 **UI 컴포넌트**:
 - **다중 선택된 블럭들**:
-  - 모든 선택된 블럭에 선택 테두리 표시
-  - 선택 영역 바운딩 박스 표시
-- **정렬 도구 툴바** (선택된 블럭들 영역 중앙 상단, node-top-toolbar와 유사한 스타일):
-  - 복제, 삭제 버튼
-  - 정렬 옵션 버튼들 (상단, 하단, 좌측, 우측, 중앙 정렬)
-  - 분포 옵션 버튼들 (수평 분포, 수직 분포)
-  - "..." 드롭다운 (추가 옵션들)
+  - 렌더링 조건: `isMultiSelectionMode() === true && getCurrentMode().blockIds.includes(blockId)`
+  - 모든 선택된 블럭에 선택 테두리 표시 (파란색 강조)
+  - 선택 영역 바운딩 박스 표시 (React Flow 기본 기능)
+- **정렬 도구 툴바** (MultiSelectionToolbar 컴포넌트):
+  - 렌더링 조건: `isMultiSelectionMode() === true && getSelectionCount() >= 2`
+  - 위치: 선택된 블럭들 영역 중앙 상단에 부유
+  - 복제 버튼: `duplicateBlock()` 호출
+  - 삭제 버튼: `deleteBlock()` 호출
+  - 정렬 옵션 버튼들:
+    - 좌측 정렬: `alignBlocks(blockIds, 'left')` 호출
+    - 우측 정렬: `alignBlocks(blockIds, 'right')` 호출
+    - 상단 정렬: `alignBlocks(blockIds, 'top')` 호출
+    - 하단 정렬: `alignBlocks(blockIds, 'bottom')` 호출
+    - 중앙 정렬: `alignBlocks(blockIds, 'center')` 호출
+  - 분포 옵션 버튼들:
+    - 수평 분포: `distributeBlocks(blockIds, 'horizontal')` 호출
+    - 수직 분포: `distributeBlocks(blockIds, 'vertical')` 호출
+  - "..." 드롭다운 (추가 옵션들, 권한 기반 필터링)
 
 **인터랙션**:
-- 다중 선택 완료 → 정렬 도구 툴바 자동 표시
-- 정렬 버튼 클릭 → 즉시 정렬 적용 (토스트 메시지 없음)
+- 다중 선택 완료 → `enterMultiSelectionMode(blockIds)` 호출 → 정렬 도구 툴바 자동 표시
+- 정렬 버튼 클릭 → `alignBlocks(blockIds, alignmentType)` 호출 → 즉시 정렬 적용 (애니메이션 포함)
+- 분포 버튼 클릭 → `distributeBlocks(blockIds, direction)` 호출 → 즉시 분포 적용
 - 복제/삭제 버튼 클릭 → 해당 액션 수행
-- 빈 영역 클릭 → 다중 선택 해제
+- 빈 영역 클릭 → `exitToDefaultMode()` 호출 → 다중 선택 해제
 
 **화면 전환**:
-- **조건**: 정렬 버튼 클릭
-- **전환**: Screen 1 → Screen 2 (정렬 적용)
+- **조건**: 정렬/분포 버튼 클릭
+- **전환**: Screen 1 → Screen 2 (정렬/분포 적용)
 - **전환 방식**: 부드러운 애니메이션으로 블럭들이 새 위치로 이동
 
 ---
 
 ### Screen 2: 정렬 적용 완료
 
+**캔버스 모드**: `multi-selection` (blockIds: 정렬된 블럭들이 여전히 선택된 상태)
+
 **화면 구성**:
 - **정렬된 블럭들**: 새로운 위치로 정렬된 블럭들
+- **정렬 도구 툴바**: 여전히 표시되어 추가 정렬 작업 가능
 - **완료 피드백**: 정렬 완료 시각적 피드백
-- **도구 패널**: 선택 상태 유지 또는 해제
 
 **UI 컴포넌트**:
 - **정렬된 블럭들**:
-  - 새로운 정렬된 위치에 배치
+  - 렌더링 조건: `isMultiSelectionMode() === true && getCurrentMode().blockIds.includes(blockId)`
+  - 새로운 정렬된 위치에 배치 (프론트엔드 계산된 위치)
   - 선택 상태 유지 (계속 편집 가능)
+- **정렬 도구 툴바** (MultiSelectionToolbar):
+  - 렌더링 조건: `isMultiSelectionMode() === true && getSelectionCount() >= 2`
+  - 여전히 표시되어 추가 정렬/분포 작업 가능
 - **정렬 완료 피드백**:
-  - 블럭들이 새 위치로 이동하는 애니메이션
+  - 블럭들이 새 위치로 이동하는 애니메이션 (`updateMultipleBlockPositions` 호출)
+  - 500ms ease-in-out 애니메이션
 
 **인터랙션**:
-- 정렬된 블럭들 계속 선택 상태 유지
-- 추가 정렬 작업 가능
-- 다른 블럭 클릭하여 선택 변경 가능
-
-**애니메이션**:
-- 블럭 이동: 500ms ease-in-out 애니메이션
-- 동시에 모든 블럭이 새 위치로 이동
+- 정렬된 블럭들 계속 `multi-selection` 모드 유지
+- 추가 정렬/분포 작업 가능 (툴바 버튼들 활성 상태)
+- 다른 블럭 클릭하여 선택 변경 가능 → `enterSingleSelectionMode()` 또는 새로운 `multi-selection`으로 전환
 
 ---
 
@@ -516,28 +639,33 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 ### Screen 1: 엣지 생성 시작 (연결 핸들 드래그)
 
+**캔버스 모드**: `edge-creation` (sourceBlockId: 연결을 시작하는 블럭 ID)
+
 **화면 구성**:
 - **소스 블럭**: 연결을 시작하는 블럭
 - **연결 핸들**: 블럭 가장자리의 연결점
 - **드래그 중 상태**: 연결선 프리뷰
 
 **UI 컴포넌트**:
-- **연결 핸들** (블럭 가장자리):
+- **연결 핸들** (블럭 가장자리, React Flow 기본 핸들):
+  - 렌더링 조건: `getCurrentMode().type !== 'edge-creation'` (일반 상태에서만 표시)
   - 작은 원형 또는 사각형 핸들
   - 호버 시 하이라이트, 커서 변경
   - 클릭 가능 상태 표시
-- **연결선 프리뷰**:
+- **연결선 프리뷰** (React Flow onConnectStart에서 처리):
+  - 렌더링 조건: `isEdgeCreationMode() === true`
   - 마우스를 따라 움직이는 점선 또는 실선
-  - 연결 가능한 블럭 하이라이트
+  - `onConnectStart(sourceNode, sourceHandle)` 콜백으로 `enterEdgeCreationMode(sourceBlockId)` 호출
 - **연결 가능 표시**:
+  - 렌더링 조건: `isEdgeCreationMode() === true`
   - 호버 가능한 블럭들 하이라이트
   - 불가능한 영역 시각적 구분
 
 **인터랙션**:
-- 연결 핸들과 드래그 시작 → 연결선 프리뷰 시작
-- 마우스 이동 → 프리뷰 연결선 실시간 업데이트
+- 연결 핸들 클릭 & 드래그 시작 → `onConnectStart` 콜백 → `enterEdgeCreationMode(sourceBlockId)` 호출
+- 마우스 이동 → React Flow 자동 처리로 프리뷰 연결선 실시간 업데이트
 - 다른 블럭 핸들과 호버 → 연결 가능 표시
-- ESC 키 → 연결 취소
+- ESC 키 → `exitToDefaultMode()` 호출 → 연결 취소
 
 **화면 전환**:
 - **조건**: 유효한 연결점에 드롭
@@ -548,30 +676,36 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 ### Screen 2: 엣지 연결 확정
 
+**캔버스 모드**: `default` (엣지 생성 완료 후 기본 모드로 복귀)
+
 **화면 구성**:
 - **생성된 엣지**: 두 블럭을 연결하는 선
-- **엣지 선택 상태**: 새로 생성된 엣지가 선택된 상태
-- **엣지 편집 패널**: 엣지 속성 편집 옵션
+- **엣지 선택 상태**: 새로 생성된 엣지가 선택된 상태 (React Flow 기본 선택)
+- **엣지 편집 패널**: 엣지 선택 시 표시되는 툴바
 
 **UI 컴포넌트**:
 - **생성된 엣지**:
+  - 렌더링 조건: React Flow `edges` 상태에 포함된 엣지
   - 기본 스타일 (직선, 기본 색상)
-  - 선택된 상태 시각적 표시 (하이라이트)
-  - 두께, 색상 변화로 선택 상태 표현
-- **엣지 탑 툴바** (엣지 선택 시 표시, node-top-toolbar와 유사한 스타일):
-  - 엣지 타입 선택 (직선, 곡선, 스텝, 스무스스텝)
+  - React Flow 기본 선택 상태 시각적 표시 (하이라이트)
+  - `onConnect` 콜백에서 `createEdge(sourceBlockId, targetBlockId)` 호출
+- **엣지 탑 툴바** (EdgeTopToolbar 컴포넌트):
+  - 렌더링 조건: `selectedEdges.length > 0` (React Flow 선택된 엣지가 있을 때)
+  - 위치: 선택된 엣지 중앙 상단에 부유
+  - 엣지 타입 선택 드롭다운 (직선, 곡선, 스텝, 스무스스텝)
   - 색상 선택 버튼
   - 두께 조절 버튼
-  - 삭제 버튼 (⌫)
-- **엣지 핸들**:
-  - 중앙 부분에 편집 핸들
+  - 삭제 버튼 (⌫): `deleteEdge(edgeId)` 호출
+- **엣지 편집 핸들**:
+  - 렌더링 조건: 선택된 엣지가 곡선 타입일 때
+  - 중앙 부분에 편집 핸들 (React Flow 기본 핸들)
   - 호버 시 시각적 피드백
 
 **인터랙션**:
-- 엣지 클릭 → 선택 상태 토글
-- 엣지 더블클릭 → 레이블 편집 모드
-- 엣지 드래그 → 중앙점 이동 (곡선 엣지의 경우)
-- DEL 키 → 엣지 삭제
+- 엣지 클릭 → React Flow 기본 선택 토글
+- 엣지 더블클릭 → 레이블 편집 모드 (추후 구현)
+- 엣지 드래그 (곡선 핸들) → React Flow 기본 처리
+- DEL 키 → `deleteEdge(selectedEdgeId)` 호출
 
 **화면 전환**:
 - **조건**: 다른 엣지나 블럭 클릭
@@ -894,7 +1028,101 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 
 ---
 
+## 🏗️ 프론트엔드 아키텍처 흐름
+
+### 컴포넌트 계층 구조 (최신 버전)
+
+**사용자 플로우**:
+```
+사용자 접근
+  ↓
+layout.tsx (PageSyncClient + WorkspacePageHeader)
+  ↓
+page.tsx (PageContent: 서버 컴포넌트, 데이터 로드)
+  ↓
+canvas-client.tsx (CanvasManagementProvider + ReactFlowProvider)
+  ↓
+canvas-react-flow-wrapper.tsx (React Flow 인스턴스, 이벤트 핸들러)
+```
+
+### 주요 컴포넌트 역할
+
+1. **`layout.tsx`** (Client Component)
+   - **역할**: 페이지 레이아웃 및 메타 동기화
+   - **주요 기능**:
+     - `PageSyncClient`: URL과 Context 동기화, 쿠키에 최근 방문 페이지 저장
+     - `WorkspacePageHeader`: Breadcrumb 헤더 렌더링
+   - **렌더링**: 클라이언트 사이드
+
+2. **`page.tsx`** (Server Component)
+   - **역할**: 서버에서 캔버스 데이터 로드 및 초기화
+   - **주요 기능**:
+     - `getCanvasPageDataAction` 호출로 페이지 데이터 로드
+     - ACL 변환: DB 데이터 → React Flow 초기 노드/엣지 (`toReactFlowNode`, `toReactFlowEdge`)
+     - `CanvasClient`에 초기 데이터 전달
+     - Suspense로 로딩 처리
+   - **렌더링**: 서버 사이드
+
+3. **`canvas-client.tsx`** (Client Component)
+   - **역할**: 클라이언트 사이드 캔버스 래퍼 및 Provider 설정
+   - **주요 기능**:
+     - `CanvasManagementProvider`: 캔버스 메타 정보 관리 (pageId, canvasId, error)
+     - `ReactFlowProvider`: React Flow Context 제공
+     - `CanvasReactFlowWrapper`에 초기 노드/엣지 전달
+   - **렌더링**: 클라이언트 사이드
+
+4. **`canvas-react-flow-wrapper.tsx`** (Client Component)
+   - **역할**: React Flow 인스턴스 및 실제 캔버스 렌더링
+   - **주요 기능**:
+     - `useNodesState`, `useEdgesState`로 React Flow 상태 관리 (SSOT)
+     - `onNodeDragStop`, `onConnect` 등 이벤트 핸들러로 DB 동기화
+     - `useCanvasManagement` Hook으로 서버 액션 호출
+     - `Background`, `Controls`, `MiniMap` 등 React Flow UI 컴포넌트 렌더링
+   - **렌더링**: 클라이언트 사이드
+
+### 데이터 흐름
+
+**초기 로드**:
+```
+1. page.tsx (서버)
+   ↓ getCanvasPageDataAction
+2. DB에서 Canvas, BlockMounts, Edges 조회
+   ↓ ACL 변환 (toReactFlowNode, toReactFlowEdge)
+3. canvas-client.tsx
+   ↓ initialNodes, initialEdges 전달
+4. canvas-react-flow-wrapper.tsx
+   ↓ React Flow 상태로 초기화
+5. 캔버스 렌더링 완료
+```
+
+**사용자 인터랙션**:
+```
+1. 사용자가 블럭 드래그/엣지 연결
+   ↓ React Flow 이벤트 발생
+2. canvas-react-flow-wrapper.tsx
+   ↓ onNodeDragStop, onConnect 콜백
+3. useCanvasManagement Hook
+   ↓ transformBlock, createEdge 메서드
+4. Server Actions (transformBlockAction, createEdgeAction)
+   ↓ DB 저장
+5. React Flow 상태 유지 (이미 업데이트됨)
+```
+
+### React Flow SSOT (Single Source of Truth)
+
+- **React Flow가 UI 상태 관리**: position, size, selection은 React Flow가 직접 관리
+- **DB는 장기 저장소**: 드래그 종료, 엣지 연결 시점에만 DB 동기화
+- **Context는 메타 정보만**: pageId, canvasId, error 등만 Context에서 관리
+- **Hook은 액션 래퍼**: 서버 액션을 호출하는 메서드만 제공
+
+---
+
 ## 📋 문서 변경 이력
+
+### v1.1 (2025-10-19)
+- 프론트엔드 아키텍처 흐름 섹션 추가
+- 최신 컴포넌트 계층 구조 반영 (layout → page → canvas-client → canvas-react-flow-wrapper)
+- React Flow SSOT 설계 원칙 명시
 
 ### v1.0 (2025-01-17)
 - 초안 작성

@@ -1,7 +1,9 @@
 import { WorkspaceAggregate } from '../../../shared/aggregates/workspace.aggregate';
 import { Workspace } from '../../../shared/entities/workspace.entity';
 import { WorkspaceId } from '../../../shared/value-objects/workspace-id.vo';
+import { PageId } from '../../../shared/value-objects/page-id.vo';
 import { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 
 /**
  * Workspace Repository Interface
@@ -33,4 +35,13 @@ export interface WorkspaceRepository {
    * @returns Workspace Entity 배열
    */
   findByOrganizationId(organizationId: OrganizationId): Promise<Workspace[]>;
+
+  /**
+   * 페이지 접근 권한 확인
+   *
+   * @param pageId - 페이지 ID
+   * @param userId - 사용자 ID
+   * @returns 접근 권한 여부
+   */
+  checkPageAccess(pageId: PageId, userId: UserId): Promise<boolean>;
 }
