@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useRef } from 'react';
 import { useStore, useViewport } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,8 +34,9 @@ import {
   useCanvasBlockTransform,
   AlignmentType,
 } from '../hooks/use-canvas-block-transform';
+import { usePreventPinchZoom } from '../hooks/use-prevent-pinch-zoom';
 
-const PADDING = 8; // SelectionBoundingBox와 동일한 padding
+const PADDING = 0;
 const TOOLBAR_OFFSET = 12; // 툴바와 선택 박스 사이의 간격
 
 interface MultiSelectionToolbarProps {
@@ -157,16 +158,25 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar({
     console.log('Delete blocks');
   };
 
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // 트랙패드 핀치 줌 방지
+  usePreventPinchZoom(toolbarRef);
+
   return (
     <div
+      ref={toolbarRef}
       className="absolute z-50"
       style={{
         left: toolbarPosition.left,
         top: toolbarPosition.top,
         transform: 'translateX(-50%) translateY(-100%)',
         willChange: 'transform', // 성능 최적화
+        touchAction: 'none', // 핀치 줌 방지
       }}
+      onWheel={e => e.stopPropagation()}
     >
+      {/* z-index 계층: 블럭(0) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
       <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex items-center gap-1">
         <TooltipProvider delayDuration={300}>
           {/* 좌우 정렬 3개 */}
@@ -267,7 +277,7 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar({
                 size="sm"
                 onClick={() => handleDistribute('horizontal')}
                 className="h-8 w-8 p-0"
-                disabled={selectedBlockIds.length < 3}
+                disabled={selectedBlockIds.length < 2}
               >
                 <AlignHorizontalSpaceBetween className="h-4 w-4" />
               </Button>
@@ -282,7 +292,7 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar({
                 size="sm"
                 onClick={() => handleDistribute('vertical')}
                 className="h-8 w-8 p-0"
-                disabled={selectedBlockIds.length < 3}
+                disabled={selectedBlockIds.length < 2}
               >
                 <AlignVerticalSpaceBetween className="h-4 w-4" />
               </Button>

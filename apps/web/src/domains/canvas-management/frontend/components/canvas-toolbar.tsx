@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { Button } from '@workspace/ui/components/ui/button';
 import {
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 
 // Canvas Management Hooks
 import { useCanvasMode } from '../hooks/use-canvas-mode';
+import { usePreventPinchZoom } from '../hooks/use-prevent-pinch-zoom';
 
 export interface CanvasToolbarProps {
   pageId: string;
@@ -24,6 +25,10 @@ export interface CanvasToolbarProps {
 export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
   const reactFlow = useReactFlow();
   const canvasMode = useCanvasMode();
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // 트랙패드 핀치 줌 방지
+  usePreventPinchZoom(toolbarRef);
 
   // 현재 모드 상태 확인
   const isBlockCreationMode = canvasMode.isBlockCreationMode();
@@ -87,8 +92,11 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
   }, [handleKeyDown]);
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-      <div className="flex items-center gap-1 px-2 py-1.5 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg">
+    <div className="mt-4">
+      <div
+        ref={toolbarRef}
+        className="flex items-center gap-1 px-2 py-1.5 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg"
+      >
         <TooltipProvider>
           {/* Selection Tool - 항상 활성화 */}
           <Tooltip>

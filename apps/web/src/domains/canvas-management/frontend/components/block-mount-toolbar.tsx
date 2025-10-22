@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { NodeToolbar, Position } from '@xyflow/react';
 import { Button } from '@workspace/ui/components/ui/button';
 import {
@@ -23,6 +23,7 @@ import { MoreHorizontal, Edit, Copy, Trash2, ChevronRight } from 'lucide-react';
 import { useCanvasMode } from '../hooks/use-canvas-mode';
 import { useCanvasSelection } from '../hooks/use-canvas-selection';
 import { useCanvasBlockLifecycle } from '../hooks/use-canvas-block-lifecycle';
+import { usePreventPinchZoom } from '../hooks/use-prevent-pinch-zoom';
 
 export interface BlockMountToolbarProps {
   pageId: string;
@@ -57,16 +58,6 @@ export function BlockMountToolbar({
   const selectedBlocks = canvasSelection.getSelectedBlocks();
   const selectedBlockId = selectedBlocks[0];
 
-  // 선택된 블럭이 없으면 렌더링하지 않음
-  if (!selectedBlockId) {
-    return null;
-  }
-
-  // 다중 선택 시에는 MultiSelectionToolbar가 표시되므로 여기서는 렌더링하지 않음
-  if (selectedBlocks.length > 1) {
-    return null;
-  }
-
   const selectedNode = canvasSelection.selectedNodes.find(
     node => node.id === selectedBlockId
   );
@@ -76,6 +67,7 @@ export function BlockMountToolbar({
 
   // Details 버튼 핸들러 (에디터 패널 열기)
   const handleDetails = () => {
+    if (!selectedBlockId) return;
     canvasMode.enterBlockEditingMode(selectedBlockId);
   };
 
@@ -96,13 +88,29 @@ export function BlockMountToolbar({
     // TODO: 블럭 삭제 구현 (Phase 4에서 구현 예정)
   };
 
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // 트랙패드 핀치 줌 방지
+  usePreventPinchZoom(toolbarRef);
+
+  // 선택된 블럭이 없거나 다중 선택 시에는 렌더링하지 않음
+  if (!selectedBlockId || selectedBlocks.length > 1) {
+    return null;
+  }
+
   return (
     <NodeToolbar
       isVisible={true}
       position={Position.Top}
       className="nodrag nowheel"
     >
-      <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-lg shadow-lg px-2 py-1 flex items-center gap-1">
+      {/* z-index: React Flow NodeToolbar (자동 관리) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
+      <div
+        ref={toolbarRef}
+        className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-lg shadow-lg px-2 py-1 flex items-center gap-1"
+        style={{ touchAction: 'none' }}
+        onWheel={e => e.stopPropagation()}
+      >
         <TooltipProvider>
           {/* Details 버튼 */}
           <Tooltip>
