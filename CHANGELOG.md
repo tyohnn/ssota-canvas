@@ -10,6 +10,7 @@
 - Split workspace service class
 - Optimize hooks and actions
 - Optimize backend
+- Align epic and sprint
 
 ### ✨ Features
 
@@ -43,6 +44,12 @@
 - Full implementation of WORK STORY 004
 - USER STORY 003 add workspace and page creation
 - Full implemenation of ORG-STORY-006
+- Full implementation of CM-STORY-001
+- Full implementation of CM STORY 002
+- Full implementation of CM-STORY-03
+- Fix toolbar and multi select component
+- Full implementation of CM STORY 007
+- Full implemenation CM STORY 010
 
 ### 📚 Documentation
 
@@ -91,6 +98,21 @@
 - Finish story
 - Update WORK STORY 004
 - Update CHANGELOG
+- Update CHANGELOG
+- Version 1.0 event storming
+- Revise event storming guide and template
+- Process model v1.0 of canvas management domain
+- V1.0 software design of canvas management domain
+- V1.0 user flow of canvas management domain
+- Revise workflow guide
+- V1.0 technical spec of canvas management domain
+- V1.0 testing strategy of canvas management domain
+- V1.0 db schema of canvas management domain
+- V1.0 testing strategy of canvas management domain
+- V1.1 software design update
+- V1.1 frontend specification update
+- Update canvas management planning
+- Revise canvas management doamin system structure
 
 ### 🔧 Maintenance
 
@@ -104,6 +126,7 @@
 - Avoid changlog everytime
 - Add drizzle kit studio & push
 - Clean files
+- Delete ssota-cli
 
 ### 🧪 Testing
 
