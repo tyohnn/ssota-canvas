@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { Button } from '@workspace/ui/components/ui/button';
 import { Label } from '@workspace/ui/components/ui/label';
 import { Slider } from '@workspace/ui/components/ui/slider';
@@ -14,6 +14,7 @@ import { Map, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { MiniMap } from '@xyflow/react';
 import { cn } from '@/lib/utils';
 import { useCanvasViewport } from '../hooks/use-canvas-viewport';
+import { usePreventPinchZoom } from '../hooks/use-prevent-pinch-zoom';
 
 export interface ViewportControlsProps {
   className?: string;
@@ -29,9 +30,17 @@ export function ViewportControls({ className = '' }: ViewportControlsProps) {
   const [isClient, setIsClient] = useState(false);
   const [zoomPercent, setZoomPercent] = useState(100);
   const [showMiniMap, setShowMiniMap] = useState(false);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const minimapRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Hook은 항상 호출해야 함 (Hook Rules)
   const canvasViewport = useCanvasViewport();
+
+  // 트랙패드 핀치 줌 방지 (모든 영역에 적용)
+  usePreventPinchZoom(toolbarRef);
+  usePreventPinchZoom(minimapRef);
+  usePreventPinchZoom(containerRef);
 
   // 클라이언트 사이드에서만 렌더링되도록 처리
   useEffect(() => {
@@ -79,17 +88,30 @@ export function ViewportControls({ className = '' }: ViewportControlsProps) {
 
   return (
     <div
+      ref={containerRef}
       className={`absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2 ${className}`}
+      style={{ touchAction: 'none' }}
+      onWheel={e => e.stopPropagation()}
     >
       {/* MiniMap positioned above the toolbar */}
       {showMiniMap && (
-        <div className="w-48 h-32 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg overflow-hidden">
+        <div
+          ref={minimapRef}
+          className="w-48 h-32 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg overflow-hidden"
+          style={{ touchAction: 'none' }}
+          onWheel={e => e.stopPropagation()}
+        >
           <MiniMap />
         </div>
       )}
 
       {/* Zoom controls toolbar */}
-      <div className="flex items-center gap-3 px-2 py-1.5 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg">
+      <div
+        ref={toolbarRef}
+        className="flex items-center gap-3 px-2 py-1.5 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg"
+        style={{ touchAction: 'none' }}
+        onWheel={e => e.stopPropagation()}
+      >
         {/* 줌 레벨 표시 (읽기 전용) */}
         <div className="flex items-center gap-2">
           <Label className="tabular-nums text-sm">
