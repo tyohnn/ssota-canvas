@@ -6,10 +6,13 @@ import {
   UpdateBlockSizeCommand,
   UpdateMultipleBlockPositionsCommand,
   CreateEdgeCommand,
-  UpdateEdgeTypeCommand,
+  UpdateEdgeShapeCommand,
   UpdateEdgeLabelCommand,
   UpdateEdgeStyleCommand,
   DeleteEdgeCommand,
+  DeleteBlockMountCommand,
+  DeleteMultipleBlockMountsCommand,
+  DuplicateBlockCommand,
 } from '../../shared/commands/index';
 import { BlockManagementService } from '@/domains/block-management/backend/services/block-management.service';
 import { BlockMountAggregate } from '../../shared/aggregates/block-mount.aggregate';
@@ -17,7 +20,7 @@ import { EdgeAggregate } from '../../shared/aggregates/edge.aggregate';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { BlockMountId } from '../../shared/value-objects/block-mount-id.vo';
 import { EdgeId } from '../../shared/value-objects/edge-id.vo';
-import { EdgeType } from '../../shared/value-objects/edge-type.vo';
+import { EdgeShape } from '../../shared/value-objects/edge-shape.vo';
 import { CanvasViewData } from '../../shared/dtos';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
@@ -108,9 +111,15 @@ export class CanvasManagementService {
 
           return {
             edgeId: edgeAgg.edge.id.value,
+            pageId: edgeAgg.edge.pageId.value,
             sourceBlockId: sourceBlockMountId,
             targetBlockId: targetBlockMountId,
-            edgeType: edgeAgg.edge.edgeType.value,
+            edgeShape: edgeAgg.edge.edgeShape.value,
+            label: edgeAgg.edge.edgeLabel,
+            style: {
+              stroke: edgeAgg.edge.edgeStyle.color,
+              strokeWidth: edgeAgg.edge.edgeStyle.thickness,
+            },
           };
         }),
         viewport: viewportAggregate
@@ -369,7 +378,7 @@ export class CanvasManagementService {
         command.pageId,
         command.sourceBlockId,
         command.targetBlockId,
-        command.edgeType
+        command.edgeShape
       );
 
       // 3. EdgeRepository.save() 호출
@@ -392,10 +401,10 @@ export class CanvasManagementService {
   }
 
   /**
-   * 엣지 타입 업데이트
+   * 엣지 모양 업데이트
    */
-  async updateEdgeType(
-    command: UpdateEdgeTypeCommand
+  async updateEdgeShape(
+    command: UpdateEdgeShapeCommand
   ): Promise<Result<EdgeAggregate, Error>> {
     try {
       // 1. EdgeRepository.findById() 호출
@@ -407,8 +416,8 @@ export class CanvasManagementService {
         );
       }
 
-      // 2. EdgeAggregate.updateEdgeType() 호출
-      aggregate.updateEdgeType(command.newType);
+      // 2. EdgeAggregate.updateEdgeShape() 호출
+      aggregate.updateEdgeShape(command.newShape);
 
       // 3. EdgeRepository.save() 호출
       await this.edgeRepository.save(aggregate);
@@ -572,6 +581,180 @@ export class CanvasManagementService {
         new CanvasManagementError(
           'CONNECTED_EDGES_DELETION_FAILED',
           `Failed to delete connected edges: ${error}`
+        )
+      );
+    }
+  }
+
+  /**
+   * 블럭 마운트 삭제 (연결된 엣지 자동 정리)
+   * Story CM-008 구현
+   */
+  async deleteBlockMount(
+    command: DeleteBlockMountCommand
+  ): Promise<Result<{ deletedEdgesCount: number }, Error>> {
+    try {
+      // 1. BlockMountRepository.findById() 호출
+      const aggregate = await this.blockMountRepository.findById(
+        command.blockMountId
+      );
+
+      if (!aggregate) {
+        return Result.error(
+          new CanvasManagementError(
+            'BLOCK_MOUNT_NOT_FOUND',
+            'Block mount not found'
+          )
+        );
+      }
+
+      // 2. BlockMountAggregate.deleteBlockMount() 호출
+      aggregate.deleteBlockMount();
+
+      // 3. 연결된 엣지 조회 및 삭제
+      const connectedEdges = await this.edgeRepository.findByConnectedBlockId(
+        aggregate.blockMount.blockId
+      );
+
+      const edgeIds = connectedEdges.map(edgeAgg => edgeAgg.edge.id);
+      const deletedEdgesCount = edgeIds.length;
+
+      // 4. 엣지 일괄 삭제
+      if (edgeIds.length > 0) {
+        await this.edgeRepository.deleteAll(edgeIds);
+      }
+
+      // 5. BlockMountRepository.delete() 호출
+      await this.blockMountRepository.delete(command.blockMountId);
+
+      // 6. Result.success(deletedEdgesCount) 반환
+      return Result.success({ deletedEdgesCount });
+    } catch (error) {
+      console.error(
+        '❌ [CanvasManagementService] Block mount deletion failed:',
+        error
+      );
+      return Result.error(
+        new CanvasManagementError(
+          'BLOCK_MOUNT_DELETION_FAILED',
+          `Failed to delete block mount: ${error}`
+        )
+      );
+    }
+  }
+
+  /**
+   * 다중 블럭 마운트 삭제 (연결된 엣지 자동 정리)
+   * Story CM-008 구현 - 다중 블럭 삭제
+   */
+  async deleteMultipleBlockMounts(
+    command: DeleteMultipleBlockMountsCommand
+  ): Promise<
+    Result<{ deletedCount: number; deletedEdgesCount: number }, Error>
+  > {
+    try {
+      let deletedCount = 0;
+      let totalDeletedEdgesCount = 0;
+
+      // 1. 각 BlockMount 삭제
+      for (const blockMountId of command.blockMountIds) {
+        const result = await this.deleteBlockMount({
+          blockMountId,
+          userId: command.userId,
+        });
+
+        if (result.isSuccess()) {
+          deletedCount++;
+          totalDeletedEdgesCount += result.value.deletedEdgesCount;
+        } else {
+          console.warn(
+            `⚠️ [CanvasManagementService] Failed to delete block mount: ${blockMountId.value}`,
+            result.error
+          );
+        }
+      }
+
+      // 2. Result.success() 반환
+      return Result.success({
+        deletedCount,
+        deletedEdgesCount: totalDeletedEdgesCount,
+      });
+    } catch (error) {
+      console.error(
+        '❌ [CanvasManagementService] Multiple block mounts deletion failed:',
+        error
+      );
+      return Result.error(
+        new CanvasManagementError(
+          'MULTIPLE_BLOCK_MOUNTS_DELETION_FAILED',
+          `Failed to delete multiple block mounts: ${error}`
+        )
+      );
+    }
+  }
+
+  /**
+   * 블럭 복제 (Block Management Service와 연동)
+   * Story CM-010 구현
+   */
+  async duplicateBlock(
+    command: DuplicateBlockCommand
+  ): Promise<Result<BlockMountAggregate, Error>> {
+    try {
+      // 1. 원본 BlockMount 조회
+      const originalAggregate = await this.blockMountRepository.findById(
+        command.blockMountId
+      );
+
+      if (!originalAggregate) {
+        return Result.error(
+          new CanvasManagementError(
+            'BLOCK_MOUNT_NOT_FOUND',
+            'Block mount not found'
+          )
+        );
+      }
+
+      // 2. Block Management Service를 통해 블럭 복제
+
+      const blockDuplicationResult =
+        await this.blockManagementService.duplicateBlock({
+          originalBlockId: originalAggregate.blockMount.blockId,
+          workspaceId: command.workspaceId,
+          userId: command.userId,
+        });
+
+      if (blockDuplicationResult.isError()) {
+        return Result.error(blockDuplicationResult.error);
+      }
+
+      const duplicatedBlock = blockDuplicationResult.value;
+      const duplicatedBlockId = new BlockId(duplicatedBlock.id);
+
+      // 3. BlockMountAggregate.duplicateBlock() 호출
+      const duplicatedAggregate = originalAggregate.duplicateBlock(
+        duplicatedBlockId,
+        command.offsetX || 20,
+        command.offsetY || 20
+      );
+
+      // 4. BlockMountRepository에 저장
+      try {
+        await this.blockMountRepository.save(duplicatedAggregate);
+      } catch (saveError) {
+        return Result.error(
+          saveError instanceof Error
+            ? saveError
+            : new Error('Failed to save duplicated block mount')
+        );
+      }
+
+      return Result.success(duplicatedAggregate);
+    } catch (error) {
+      return Result.error(
+        new CanvasManagementError(
+          'BLOCK_DUPLICATION_FAILED',
+          `Failed to duplicate block: ${error}`
         )
       );
     }

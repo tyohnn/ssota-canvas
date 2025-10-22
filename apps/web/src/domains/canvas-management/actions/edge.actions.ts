@@ -7,7 +7,7 @@ import { ActionResult, ok, err } from '@/lib/action-result';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { EdgeId } from '../shared/value-objects/edge-id.vo';
-import { EdgeType } from '../shared/value-objects/edge-type.vo';
+import { EdgeShape } from '../shared/value-objects/edge-shape.vo';
 
 import { DrizzleBlockMountRepository } from '../backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '../backend/repositories/implementations/drizzle-edge.repository';
@@ -24,7 +24,7 @@ export async function createEdgeAction(
   pageId: string,
   sourceBlockId: string,
   targetBlockId: string,
-  edgeType: string = 'default'
+  edgeShape: string = 'default'
 ): Promise<ActionResult<EdgeView>> {
   try {
     // 1. Supabase Auth 인증 확인
@@ -59,7 +59,7 @@ export async function createEdgeAction(
     const pageIdVO = new PageId(pageId);
     const sourceBlockIdVO = new BlockId(sourceBlockId);
     const targetBlockIdVO = new BlockId(targetBlockId);
-    const edgeTypeVO = new EdgeType(edgeType);
+    const edgeShapeVO = new EdgeShape(edgeShape);
 
     // 4. 의존성 주입
     const blockMountRepository = new DrizzleBlockMountRepository();
@@ -75,7 +75,7 @@ export async function createEdgeAction(
       pageId: pageIdVO,
       sourceBlockId: sourceBlockIdVO,
       targetBlockId: targetBlockIdVO,
-      edgeType: edgeTypeVO,
+      edgeShape: edgeShapeVO,
       userId: user.id,
     });
 
@@ -93,7 +93,7 @@ export async function createEdgeAction(
       pageId: aggregate.edge.pageId.value,
       sourceBlockId: aggregate.edge.sourceBlockId.value,
       targetBlockId: aggregate.edge.targetBlockId.value,
-      edgeType: aggregate.edge.edgeType.value,
+      edgeShape: aggregate.edge.edgeShape.value,
       createdAt: aggregate.edge.createdAt.toISOString(),
       updatedAt: aggregate.edge.updatedAt.toISOString(),
     };
@@ -114,11 +114,11 @@ export async function createEdgeAction(
 }
 
 /**
- * 엣지 타입 업데이트 Server Action
+ * 엣지 모양 업데이트 Server Action
  */
-export async function updateEdgeTypeAction(
+export async function updateEdgeShapeAction(
   edgeId: string,
-  newType: string
+  newShape: string
 ): Promise<ActionResult<EdgeView>> {
   try {
     // 1. Supabase Auth 인증 확인
@@ -139,7 +139,7 @@ export async function updateEdgeTypeAction(
 
     // 3. Value Objects 생성
     const edgeIdVO = new EdgeId(edgeId);
-    const newTypeVO = new EdgeType(newType);
+    const newShapeVO = new EdgeShape(newShape);
 
     // 4. 의존성 주입
     const blockMountRepository = new DrizzleBlockMountRepository();
@@ -150,16 +150,16 @@ export async function updateEdgeTypeAction(
       edgeRepository
     );
 
-    // 5. 엣지 타입 업데이트
-    const result = await canvasEdgeService.updateEdgeType({
+    // 5. 엣지 모양 업데이트
+    const result = await canvasEdgeService.updateEdgeShape({
       edgeId: edgeIdVO,
-      newType: newTypeVO,
+      newShape: newShapeVO,
       userId: user.id,
     });
 
     if (result.isError()) {
       return err(String(result.error), {
-        code: 'EDGE_TYPE_UPDATE_FAILED',
+        code: 'EDGE_SHAPE_UPDATE_FAILED',
         meta: { originalError: result.error },
       });
     }
@@ -171,7 +171,7 @@ export async function updateEdgeTypeAction(
       pageId: aggregate.edge.pageId.value,
       sourceBlockId: aggregate.edge.sourceBlockId.value,
       targetBlockId: aggregate.edge.targetBlockId.value,
-      edgeType: aggregate.edge.edgeType.value,
+      edgeShape: aggregate.edge.edgeShape.value,
       createdAt: aggregate.edge.createdAt.toISOString(),
       updatedAt: aggregate.edge.updatedAt.toISOString(),
     };
@@ -315,7 +315,7 @@ export async function updateEdgeStyleAction(
       pageId: aggregate.edge.pageId.value,
       sourceBlockId: aggregate.edge.sourceBlockId.value,
       targetBlockId: aggregate.edge.targetBlockId.value,
-      edgeType: aggregate.edge.edgeType.value,
+      edgeShape: aggregate.edge.edgeShape.value,
       label: aggregate.edge.edgeLabel,
       style: aggregate.edge.style,
       createdAt: aggregate.edge.createdAt.toISOString(),
@@ -398,7 +398,7 @@ export async function updateEdgeLabelAction(
       pageId: aggregate.edge.pageId.value,
       sourceBlockId: aggregate.edge.sourceBlockId.value,
       targetBlockId: aggregate.edge.targetBlockId.value,
-      edgeType: aggregate.edge.edgeType.value,
+      edgeShape: aggregate.edge.edgeShape.value,
       label: aggregate.edge.edgeLabel,
       style: aggregate.edge.style,
       createdAt: aggregate.edge.createdAt.toISOString(),

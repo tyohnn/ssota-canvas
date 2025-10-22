@@ -187,16 +187,15 @@ describe('EdgeAggregate', () => {
         sourceBlockId,
         targetBlockId
       );
-      const newColor = '#FF0000';
-      const newThickness = 5;
+      const newStyle = { stroke: '#FF0000', strokeWidth: 5 };
 
       // When
       aggregate.clearEvents(); // 생성 이벤트 클리어
-      aggregate.updateEdgeStyle(newColor, newThickness);
+      aggregate.updateEdgeStyle(newStyle);
 
       // Then
-      expect(aggregate.edge.edgeStyle.color).toBe(newColor);
-      expect(aggregate.edge.edgeStyle.thickness).toBe(newThickness);
+      expect(aggregate.edge.style.stroke).toBe(newStyle.stroke);
+      expect(aggregate.edge.style.strokeWidth).toBe(newStyle.strokeWidth);
     });
 
     it('EdgeStyleChanged 이벤트를 발행해야 한다', () => {
@@ -208,18 +207,17 @@ describe('EdgeAggregate', () => {
         targetBlockId
       );
       aggregate.clearEvents();
-      const newColor = '#00FF00';
-      const newThickness = 3;
+      const newStyle = { stroke: '#00FF00', strokeWidth: 3 };
 
       // When
-      aggregate.updateEdgeStyle(newColor, newThickness);
+      aggregate.updateEdgeStyle(newStyle);
 
       // Then
       const events = aggregate.getEvents();
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(EdgeStyleChangedEvent);
-      expect((events[0] as EdgeStyleChangedEvent).data.color).toBe(newColor);
-      expect((events[0] as EdgeStyleChangedEvent).data.thickness).toBe(newThickness);
+      expect((events[0] as EdgeStyleChangedEvent).data.style.stroke).toBe(newStyle.stroke);
+      expect((events[0] as EdgeStyleChangedEvent).data.style.strokeWidth).toBe(newStyle.strokeWidth);
     });
   });
 

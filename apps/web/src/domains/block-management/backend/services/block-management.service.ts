@@ -80,6 +80,59 @@ export class BlockManagementService {
     }
   }
 
+  /**
+   * 블럭 복제
+   * Canvas Management에서 호출
+   */
+  async duplicateBlock(command: {
+    originalBlockId: BlockId;
+    workspaceId: string;
+    userId: string;
+  }): Promise<Result<BlockDTO, BlockManagementError>> {
+    try {
+      // 1. 원본 블럭 조회
+      const originalBlock = await this.blockRepository.findById(
+        command.originalBlockId
+      );
+
+      if (!originalBlock) {
+        return Result.error(
+          new BlockManagementError(
+            'BLOCK_NOT_FOUND',
+            'Original block not found'
+          )
+        );
+      }
+
+      // 2. 새로운 블럭 생성 (원본과 동일한 타입과 메타데이터)
+      const duplicatedBlock = await this.blockRepository.createBlock(
+        originalBlock.blockType,
+        command.workspaceId,
+        originalBlock.metadata
+      );
+
+      // 3. DTO 생성 및 반환
+      const dto: BlockDTO = {
+        id: duplicatedBlock.id.value,
+        blockType: duplicatedBlock.blockType.value,
+        workspaceId: duplicatedBlock.workspaceId,
+        metadata: duplicatedBlock.metadata.value || {},
+        createdAt: duplicatedBlock.createdAt.toISOString(),
+        updatedAt: duplicatedBlock.updatedAt.toISOString(),
+      };
+
+      return Result.success(dto);
+    } catch (error) {
+      console.error('Block duplication failed:', error);
+      return Result.error(
+        new BlockManagementError(
+          'BLOCK_DUPLICATION_FAILED',
+          'Failed to duplicate block'
+        )
+      );
+    }
+  }
+
   private isValidUUID(value: string): boolean {
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

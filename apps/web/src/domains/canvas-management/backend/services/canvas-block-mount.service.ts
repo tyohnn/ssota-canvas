@@ -3,12 +3,15 @@
 import { Result } from '@/utils/result';
 import type { CanvasBlockMountService } from './interfaces/canvas-block-mount.service.interface';
 import type { BlockMountRepository } from '../repositories/interfaces/block-mount.repository.interface';
+import type { EdgeRepository } from '../repositories/interfaces/edge.repository.interface';
 import type { BlockManagementService } from '@/domains/block-management/backend/services/block-management.service';
 import {
   CreateAndMountBlockCommand,
   UpdateBlockPositionCommand,
   UpdateBlockSizeCommand,
   UpdateMultipleBlockPositionsCommand,
+  DeleteBlockMountCommand,
+  DeleteMultipleBlockMountsCommand,
 } from '../../shared/commands/index';
 import { BlockMountAggregate } from '../../shared/aggregates/block-mount.aggregate';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
@@ -33,7 +36,8 @@ class CanvasManagementError extends Error {
 export class DefaultCanvasBlockMountService implements CanvasBlockMountService {
   constructor(
     private blockManagementService: BlockManagementService,
-    private blockMountRepository: BlockMountRepository
+    private blockMountRepository: BlockMountRepository,
+    private edgeRepository: EdgeRepository
   ) {}
 
   /**
@@ -232,6 +236,113 @@ export class DefaultCanvasBlockMountService implements CanvasBlockMountService {
         new CanvasManagementError(
           'MULTIPLE_POSITIONS_UPDATE_FAILED',
           `Failed to update multiple block positions: ${error}`
+        )
+      );
+    }
+  }
+
+  /**
+   * 블럭 마운트 삭제 (연결된 엣지 자동 정리)
+   * Story CM-008 구현
+   */
+  async deleteBlockMount(
+    command: DeleteBlockMountCommand
+  ): Promise<Result<{ deletedEdgesCount: number }, Error>> {
+    try {
+      // 1. BlockMountRepository.findById() 호출
+      const aggregate = await this.blockMountRepository.findById(
+        command.blockMountId
+      );
+
+      if (!aggregate) {
+        return Result.error(
+          new CanvasManagementError(
+            'BLOCK_MOUNT_NOT_FOUND',
+            'Block mount not found'
+          )
+        );
+      }
+
+      // 2. BlockMountAggregate.deleteBlockMount() 호출
+      aggregate.deleteBlockMount();
+
+      // 3. 연결된 엣지 조회 및 삭제
+      const connectedEdges = await this.edgeRepository.findByConnectedBlockId(
+        aggregate.blockMount.blockId
+      );
+
+      const edgeIds = connectedEdges.map(edgeAgg => edgeAgg.edge.id);
+      const deletedEdgesCount = edgeIds.length;
+
+      // 4. 엣지 일괄 삭제
+      if (edgeIds.length > 0) {
+        await this.edgeRepository.deleteAll(edgeIds);
+      }
+
+      // 5. BlockMountRepository.delete() 호출
+      await this.blockMountRepository.delete(command.blockMountId);
+
+      // 6. Result.success(deletedEdgesCount) 반환
+      return Result.success({ deletedEdgesCount });
+    } catch (error) {
+      console.error(
+        '❌ [CanvasBlockMountService] Block mount deletion failed:',
+        error
+      );
+      return Result.error(
+        new CanvasManagementError(
+          'BLOCK_MOUNT_DELETION_FAILED',
+          `Failed to delete block mount: ${error}`
+        )
+      );
+    }
+  }
+
+  /**
+   * 다중 블럭 마운트 삭제 (연결된 엣지 자동 정리)
+   * Story CM-008 구현 - 다중 블럭 삭제
+   */
+  async deleteMultipleBlockMounts(
+    command: DeleteMultipleBlockMountsCommand
+  ): Promise<
+    Result<{ deletedCount: number; deletedEdgesCount: number }, Error>
+  > {
+    try {
+      let deletedCount = 0;
+      let totalDeletedEdgesCount = 0;
+
+      // 1. 각 BlockMount 삭제
+      for (const blockMountId of command.blockMountIds) {
+        const result = await this.deleteBlockMount({
+          blockMountId,
+          userId: command.userId,
+        });
+
+        if (result.isSuccess()) {
+          deletedCount++;
+          totalDeletedEdgesCount += result.value.deletedEdgesCount;
+        } else {
+          console.warn(
+            `⚠️ [CanvasBlockMountService] Failed to delete block mount: ${blockMountId.value}`,
+            result.error
+          );
+        }
+      }
+
+      // 2. Result.success() 반환
+      return Result.success({
+        deletedCount,
+        deletedEdgesCount: totalDeletedEdgesCount,
+      });
+    } catch (error) {
+      console.error(
+        '❌ [CanvasBlockMountService] Multiple block mounts deletion failed:',
+        error
+      );
+      return Result.error(
+        new CanvasManagementError(
+          'MULTIPLE_BLOCK_MOUNTS_DELETION_FAILED',
+          `Failed to delete multiple block mounts: ${error}`
         )
       );
     }

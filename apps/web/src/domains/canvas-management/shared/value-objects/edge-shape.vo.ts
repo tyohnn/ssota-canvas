@@ -1,10 +1,10 @@
 import { CanvasManagementError } from '../errors/canvas-management.error';
 
 /**
- * EdgeType Value Object
- * React Flow 기본 엣지 타입 (default, straight, step, smoothstep, simplebezier)
+ * EdgeShape Value Object
+ * React Flow 엣지 모양 (default, straight, step, smoothstep, simplebezier)
  */
-export class EdgeType {
+export class EdgeShape {
   private static readonly VALID_TYPES = [
     'default',
     'straight',
@@ -18,8 +18,8 @@ export class EdgeType {
   constructor(value: string) {
     if (!this.isValid(value)) {
       throw new CanvasManagementError(
-        'INVALID_EDGE_TYPE',
-        'Invalid edge type. Must be one of: default, straight, step, smoothstep, simplebezier'
+        'INVALID_EDGE_SHAPE',
+        'Invalid edge shape. Must be one of: default, straight, step, smoothstep, simplebezier'
       );
     }
     this._value = value;
@@ -39,35 +39,35 @@ export class EdgeType {
       return false;
     }
 
-    return EdgeType.VALID_TYPES.includes(
-      trimmedValue as (typeof EdgeType.VALID_TYPES)[number]
+    return EdgeShape.VALID_TYPES.includes(
+      trimmedValue as (typeof EdgeShape.VALID_TYPES)[number]
     );
   }
 
-  equals(other: EdgeType): boolean {
+  equals(other: EdgeShape): boolean {
     if (!other) return false;
     return this._value === other._value;
   }
 
   // 정적 팩토리 메서드
-  static default(): EdgeType {
-    return new EdgeType('default');
+  static default(): EdgeShape {
+    return new EdgeShape('default');
   }
 
-  static straight(): EdgeType {
-    return new EdgeType('straight');
+  static straight(): EdgeShape {
+    return new EdgeShape('straight');
   }
 
-  static step(): EdgeType {
-    return new EdgeType('step');
+  static step(): EdgeShape {
+    return new EdgeShape('step');
   }
 
-  static smoothstep(): EdgeType {
-    return new EdgeType('smoothstep');
+  static smoothstep(): EdgeShape {
+    return new EdgeShape('smoothstep');
   }
 
-  static simplebezier(): EdgeType {
-    return new EdgeType('simplebezier');
+  static simplebezier(): EdgeShape {
+    return new EdgeShape('simplebezier');
   }
 
   // 타입 체크 메서드

@@ -122,43 +122,42 @@ describe('Edge Entity', () => {
     it('엣지 색상을 업데이트할 수 있어야 한다', () => {
       // Given
       const edge = new Edge(edgeId, pageId, sourceBlockId, targetBlockId);
-      const newColor = '#00FF00';
+      const newStyle = { stroke: '#00FF00' };
 
       // When
-      edge.updateStyle(newColor);
+      edge.updateStyle(newStyle);
 
       // Then
-      expect(edge.edgeStyle.color).toBe(newColor);
-      expect(edge.edgeStyle.thickness).toBe(2); // 기존값 유지
+      expect(edge.style.stroke).toBe(newStyle.stroke);
+      expect(edge.style.strokeWidth).toBe(2); // 기존값 유지
       expect(edge.updatedAt).toBeInstanceOf(Date);
     });
 
     it('엣지 두께를 업데이트할 수 있어야 한다', () => {
       // Given
       const edge = new Edge(edgeId, pageId, sourceBlockId, targetBlockId);
-      const newThickness = 5;
+      const newStyle = { strokeWidth: 5 };
 
       // When
-      edge.updateStyle(undefined, newThickness);
+      edge.updateStyle(newStyle);
 
       // Then
-      expect(edge.edgeStyle.thickness).toBe(newThickness);
-      expect(edge.edgeStyle.color).toBe('#000000'); // 기존값 유지
+      expect(edge.style.strokeWidth).toBe(newStyle.strokeWidth);
+      expect(edge.style.stroke).toBe('#000000'); // 기존값 유지
       expect(edge.updatedAt).toBeInstanceOf(Date);
     });
 
     it('색상과 두께를 동시에 업데이트할 수 있어야 한다', () => {
       // Given
       const edge = new Edge(edgeId, pageId, sourceBlockId, targetBlockId);
-      const newColor = '#0000FF';
-      const newThickness = 4;
+      const newStyle = { stroke: '#0000FF', strokeWidth: 4 };
 
       // When
-      edge.updateStyle(newColor, newThickness);
+      edge.updateStyle(newStyle);
 
       // Then
-      expect(edge.edgeStyle.color).toBe(newColor);
-      expect(edge.edgeStyle.thickness).toBe(newThickness);
+      expect(edge.style.stroke).toBe(newStyle.stroke);
+      expect(edge.style.strokeWidth).toBe(newStyle.strokeWidth);
       expect(edge.updatedAt).toBeInstanceOf(Date);
     });
   });

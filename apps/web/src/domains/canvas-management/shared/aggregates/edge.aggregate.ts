@@ -1,12 +1,12 @@
 import { Edge } from '../entities/edge.entity';
 import { EdgeId } from '../value-objects/edge-id.vo';
-import { EdgeType } from '../value-objects/edge-type.vo';
+import { EdgeShape } from '../value-objects/edge-shape.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import {
   DomainEvent,
   EdgeCreatedEvent,
-  EdgeTypeChangedEvent,
+  EdgeShapeChangedEvent,
   EdgeLabelChangedEvent,
   EdgeStyleChangedEvent,
   EdgeDeletedEvent,
@@ -35,7 +35,7 @@ export class EdgeAggregate {
     pageId: PageId,
     sourceBlockId: BlockId,
     targetBlockId: BlockId,
-    edgeType?: EdgeType
+    edgeShape?: EdgeShape
   ): EdgeAggregate {
     // 1. Edge Entity 생성 (self-loop 허용)
     const edge = new Edge(
@@ -43,7 +43,7 @@ export class EdgeAggregate {
       pageId,
       sourceBlockId,
       targetBlockId,
-      edgeType || EdgeType.default()
+      edgeShape || EdgeShape.default()
     );
 
     // 2. Aggregate 생성
@@ -55,7 +55,7 @@ export class EdgeAggregate {
       pageId,
       sourceBlockId,
       targetBlockId,
-      edgeType: edge.edgeType,
+      edgeShape: edge.edgeShape,
       occurredAt: new Date(),
     });
     aggregate._events.push(event);
@@ -64,15 +64,15 @@ export class EdgeAggregate {
   }
 
   /**
-   * 엣지 타입 업데이트
+   * 엣지 모양 업데이트
    */
-  updateEdgeType(newType: EdgeType): void {
-    this.edge.updateType(newType);
+  updateEdgeShape(newShape: EdgeShape): void {
+    this.edge.updateShape(newShape);
 
-    // EdgeTypeChanged 이벤트 추가
-    const event = new EdgeTypeChangedEvent(this.edge.id, {
+    // EdgeShapeChanged 이벤트 추가
+    const event = new EdgeShapeChangedEvent(this.edge.id, {
       edgeId: this.edge.id,
-      newType,
+      newShape,
       occurredAt: new Date(),
     });
     this._events.push(event);

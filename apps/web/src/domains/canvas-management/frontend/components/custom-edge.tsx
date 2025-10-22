@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -45,11 +45,50 @@ export function CustomEdge({
 
   // 엣지 정보 가져오기
   const edge = getEdge(id);
-  // data.actualEdgeType을 사용 (React Flow는 항상 'custom' 타입 사용)
-  const edgeType = (data?.actualEdgeType as string) || 'default';
-  const label = edge?.label as string | undefined;
-  const pageId = (data?.pageId as string) || '';
+
+  // React Flow에서 엣지 정보 가져오기
+  const { getEdges } = useReactFlow();
+  const edges = getEdges();
+  const currentEdge = edges.find(e => e.id === id);
+
+  // 추가 디버깅: edges 배열 변경 감지
+  console.log('[CustomEdge] Edges array length:', edges.length);
+  console.log('[CustomEdge] Current edge in store:', currentEdge);
+
+  // data.actualEdgeShape을 사용 (React Flow는 항상 'custom' 타입 사용)
+  const edgeShape =
+    (currentEdge?.data?.actualEdgeShape as string) ||
+    (data?.actualEdgeShape as string) ||
+    'default';
+  const label =
+    (currentEdge?.label as string | undefined) ||
+    (edge?.label as string | undefined);
+  const pageId =
+    (currentEdge?.data?.pageId as string) || (data?.pageId as string) || '';
   const edgeManagement = useCanvasEdgeManagement(pageId);
+
+  // 디버깅: 엣지 모양 확인
+  console.log('[CustomEdge] Debug:', {
+    id,
+    edgeShape,
+    currentEdgeData: currentEdge?.data,
+    propsData: data,
+    fullCurrentEdge: currentEdge,
+    fullPropsEdge: edge,
+  });
+
+  // 엣지 타입 변경 시 강제 리렌더링을 위한 상태
+  const [forceRender, setForceRender] = useState(0);
+
+  // data.actualEdgeShape 변경 감지
+  useEffect(() => {
+    setForceRender(prev => prev + 1);
+  }, [data?.actualEdgeShape]);
+
+  // currentEdge의 actualEdgeShape 변경 감지
+  useEffect(() => {
+    setForceRender(prev => prev + 1);
+  }, [currentEdge?.data?.actualEdgeShape]);
 
   // 편집 모드 진입 시 input에 포커스
   useEffect(() => {
@@ -59,44 +98,58 @@ export function CustomEdge({
     }
   }, [isEditing]);
 
-  // 엣지 타입에 따라 경로 계산
-  let edgePath: string;
-  let labelX: number;
-  let labelY: number;
+  // 엣지 모양에 따라 경로 계산 (useMemo로 최적화)
+  const { edgePath, labelX, labelY } = useMemo(() => {
+    console.log('[CustomEdge] useMemo triggered with edgeShape:', edgeShape);
+    let path: string;
+    let x: number;
+    let y: number;
 
-  switch (edgeType) {
-    case 'straight':
-      [edgePath, labelX, labelY] = getStraightPath({
-        sourceX,
-        sourceY,
-        targetX,
-        targetY,
-      });
-      break;
-    case 'step':
-    case 'smoothstep':
-      [edgePath, labelX, labelY] = getSmoothStepPath({
-        sourceX,
-        sourceY,
-        sourcePosition,
-        targetX,
-        targetY,
-        targetPosition,
-      });
-      break;
-    case 'simplebezier':
-    case 'default':
-    default:
-      [edgePath, labelX, labelY] = getBezierPath({
-        sourceX,
-        sourceY,
-        sourcePosition,
-        targetX,
-        targetY,
-        targetPosition,
-      });
-      break;
-  }
+    switch (edgeShape) {
+      case 'straight':
+        [path, x, y] = getStraightPath({
+          sourceX,
+          sourceY,
+          targetX,
+          targetY,
+        });
+        break;
+      case 'step':
+      case 'smoothstep':
+        [path, x, y] = getSmoothStepPath({
+          sourceX,
+          sourceY,
+          sourcePosition,
+          targetX,
+          targetY,
+          targetPosition,
+        });
+        break;
+      case 'simplebezier':
+      case 'default':
+      default:
+        [path, x, y] = getBezierPath({
+          sourceX,
+          sourceY,
+          sourcePosition,
+          targetX,
+          targetY,
+          targetPosition,
+        });
+        break;
+    }
+
+    return { edgePath: path, labelX: x, labelY: y };
+  }, [
+    edgeShape,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    forceRender,
+  ]);
 
   // 툴바 위치: 엣지 상단 (y 좌표가 더 작은 쪽)
   const toolbarY = Math.min(sourceY, targetY) - 10;
@@ -135,6 +188,7 @@ export function CustomEdge({
         id={id}
         path={edgePath}
         markerEnd={markerEnd}
+        key={`${id}-${edgeShape}-${forceRender}`}
         style={{
           ...style,
           // 선택 시 약간 두껍게, 아니면 설정된 두께 사용

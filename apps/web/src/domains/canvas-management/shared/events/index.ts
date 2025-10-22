@@ -1,7 +1,7 @@
 import { PageId } from '../../../workspace-management/shared/value-objects/page-id.vo';
 import { BlockMountId } from '../value-objects/block-mount-id.vo';
 import { EdgeId } from '../value-objects/edge-id.vo';
-import { EdgeType } from '../value-objects/edge-type.vo';
+import { EdgeShape } from '../value-objects/edge-shape.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { Position } from '../value-objects/position.vo';
 import { Size } from '../value-objects/size.vo';
@@ -103,6 +103,26 @@ export class BlockMountDeletedEvent implements DomainEvent {
   ) {}
 }
 
+// BlockDuplicatedEvent
+export class BlockDuplicatedEvent implements DomainEvent {
+  readonly type = 'BlockDuplicated';
+
+  constructor(
+    public readonly aggregateId: BlockMountId,
+    public readonly data: {
+      originalBlockMountId: BlockMountId;
+      duplicatedBlockMountId: BlockMountId;
+      originalBlockId: BlockId;
+      duplicatedBlockId: BlockId;
+      pageId: PageId;
+      duplicatedPosition: Position;
+      duplicatedSize: Size;
+      duplicatedZOrder: ZOrder;
+      occurredAt: Date;
+    }
+  ) {}
+}
+
 // EdgeCreatedEvent
 export class EdgeCreatedEvent implements DomainEvent {
   readonly type = 'EdgeCreated';
@@ -114,21 +134,21 @@ export class EdgeCreatedEvent implements DomainEvent {
       pageId: PageId;
       sourceBlockId: BlockId;
       targetBlockId: BlockId;
-      edgeType: EdgeType;
+      edgeShape: EdgeShape;
       occurredAt: Date;
     }
   ) {}
 }
 
-// EdgeTypeChangedEvent
-export class EdgeTypeChangedEvent implements DomainEvent {
-  readonly type = 'EdgeTypeChanged';
+// EdgeShapeChangedEvent
+export class EdgeShapeChangedEvent implements DomainEvent {
+  readonly type = 'EdgeShapeChanged';
 
   constructor(
     public readonly aggregateId: EdgeId,
     public readonly data: {
       edgeId: EdgeId;
-      newType: EdgeType;
+      newShape: EdgeShape;
       occurredAt: Date;
     }
   ) {}

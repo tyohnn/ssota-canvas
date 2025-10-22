@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useMemo, useRef } from 'react';
-import { useStore, useViewport } from '@xyflow/react';
+import { useStore, useViewport, useReactFlow } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -34,13 +34,17 @@ import {
   useCanvasBlockTransform,
   AlignmentType,
 } from '../hooks/use-canvas-block-transform';
+import { useCanvasBlockLifecycle } from '../hooks/use-canvas-block-lifecycle';
 import { usePreventPinchZoom } from '../hooks/use-prevent-pinch-zoom';
+import { deleteMultipleBlockMountsAction } from '../../actions/block.actions';
 
 const PADDING = 0;
 const TOOLBAR_OFFSET = 12; // 툴바와 선택 박스 사이의 간격
 
 interface MultiSelectionToolbarProps {
   pageId: string;
+  orgId?: string;
+  workspaceId?: string;
 }
 
 /**
@@ -51,11 +55,19 @@ interface MultiSelectionToolbarProps {
  */
 export const MultiSelectionToolbar = memo(function MultiSelectionToolbar({
   pageId,
+  orgId,
+  workspaceId,
 }: MultiSelectionToolbarProps) {
-  const { isMultiSelectionMode } = useCanvasMode();
+  const { isMultiSelectionMode, exitToDefaultMode } = useCanvasMode();
   const { getSelectedBlocks, getSelectionCount } = useCanvasSelection();
   const { alignBlocks, distributeBlocks } = useCanvasBlockTransform({ pageId });
+  const blockLifecycle = useCanvasBlockLifecycle({ pageId, orgId });
   const viewport = useViewport();
+
+  // React Flow Store 직접 접근
+  const nodes = useStore(state => state.nodes);
+  const setNodes = useStore(state => state.setNodes);
+  const { deleteElements } = useReactFlow();
 
   // 선택된 노드들의 정보 가져오기
   const selectedNodes = useStore(state =>
@@ -153,14 +165,48 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar({
     distributeBlocks(selectedBlockIds, direction);
   };
 
-  const handleDuplicate = () => {
-    // TODO: Implement duplicate for multiple blocks
-    console.log('Duplicate blocks');
+  const handleDuplicate = async () => {
+    if (!workspaceId) {
+      return;
+    }
+
+    try {
+      // 선택된 모든 블럭을 순차적으로 복제
+      for (const blockId of selectedBlockIds) {
+        const selectedNode = nodes.find(node => node.id === blockId);
+        if (!selectedNode?.data?.blockMountId) {
+          continue;
+        }
+
+        // 각 블럭을 복제 (블럭 너비 + 50px + 인덱스 오프셋)
+        const index = selectedBlockIds.indexOf(blockId);
+        const blockWidth = selectedNode.width || 200; // 기본 너비 200px
+        const baseOffsetX = blockWidth + 50; // 기본 오프셋: 블럭 너비 + 50px
+        const offsetX = baseOffsetX + index * 20; // 각 블럭마다 20px씩 추가 오프셋
+        const offsetY = 20 + index * 20; // Y축도 인덱스에 따라 오프셋
+
+        await blockLifecycle.duplicateBlock(
+          selectedNode.data.blockMountId as string,
+          workspaceId,
+          offsetX,
+          offsetY
+        );
+      }
+    } catch (error) {
+      console.error('Multiple blocks duplication failed:', error);
+    }
   };
 
-  const handleDelete = () => {
-    // TODO: Implement delete for multiple blocks
-    console.log('Delete blocks');
+  const handleDelete = async () => {
+    // 1. React Flow에서 즉시 제거 (Optimistic UI)
+    deleteElements({
+      nodes: selectedBlockIds.map(id => ({ id })),
+    });
+
+    // 2. 기본 모드로 복귀
+    exitToDefaultMode();
+
+    // 3. 서버 액션은 onNodesDelete 콜백에서 처리됨
   };
 
   return (

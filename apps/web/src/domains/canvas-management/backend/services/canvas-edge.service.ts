@@ -6,7 +6,7 @@ import type { BlockMountRepository } from '../repositories/interfaces/block-moun
 import type { EdgeRepository } from '../repositories/interfaces/edge.repository.interface';
 import {
   CreateEdgeCommand,
-  UpdateEdgeTypeCommand,
+  UpdateEdgeShapeCommand,
   UpdateEdgeLabelCommand,
   UpdateEdgeStyleCommand,
   DeleteEdgeCommand,
@@ -72,7 +72,7 @@ export class DefaultCanvasEdgeService implements CanvasEdgeService {
         command.pageId,
         command.sourceBlockId,
         command.targetBlockId,
-        command.edgeType
+        command.edgeShape
       );
 
       // 3. EdgeRepository.save() 호출
@@ -92,10 +92,10 @@ export class DefaultCanvasEdgeService implements CanvasEdgeService {
   }
 
   /**
-   * 엣지 타입 업데이트
+   * 엣지 모양 업데이트
    */
-  async updateEdgeType(
-    command: UpdateEdgeTypeCommand
+  async updateEdgeShape(
+    command: UpdateEdgeShapeCommand
   ): Promise<Result<EdgeAggregate, Error>> {
     try {
       // 1. EdgeRepository.findById() 호출
@@ -107,8 +107,8 @@ export class DefaultCanvasEdgeService implements CanvasEdgeService {
         );
       }
 
-      // 2. EdgeAggregate.updateEdgeType() 호출
-      aggregate.updateEdgeType(command.newType);
+      // 2. EdgeAggregate.updateEdgeShape() 호출
+      aggregate.updateEdgeShape(command.newShape);
 
       // 3. EdgeRepository.save() 호출
       await this.edgeRepository.save(aggregate);

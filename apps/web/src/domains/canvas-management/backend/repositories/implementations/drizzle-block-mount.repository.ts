@@ -59,7 +59,12 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     const result = await adminDb
       .select()
       .from(blockMounts)
-      .where(eq(blockMounts.id, blockMountId.value))
+      .where(
+        and(
+          eq(blockMounts.id, blockMountId.value),
+          isNull(blockMounts.deleted_at)
+        )
+      )
       .limit(1);
 
     if (result.length === 0) {
@@ -74,14 +79,23 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     const results = await adminDb
       .select()
       .from(blockMounts)
-      .where(eq(blockMounts.page_id, pageId.value));
+      .where(
+        and(
+          eq(blockMounts.page_id, pageId.value),
+          isNull(blockMounts.deleted_at)
+        )
+      );
 
     return results.map(row => this.toDomain(row));
   }
 
   async delete(blockMountId: BlockMountId): Promise<void> {
     await adminDb
-      .delete(blockMounts)
+      .update(blockMounts)
+      .set({
+        deleted_at: new Date(),
+        updated_at: new Date(),
+      })
       .where(eq(blockMounts.id, blockMountId.value));
   }
 

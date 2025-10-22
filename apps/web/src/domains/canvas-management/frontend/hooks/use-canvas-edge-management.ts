@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useReactFlow, Edge } from '@xyflow/react';
 import {
   createEdgeAction,
-  updateEdgeTypeAction,
+  updateEdgeShapeAction,
   updateEdgeLabelAction,
   updateEdgeStyleAction,
   deleteEdgeAction,
@@ -52,13 +52,6 @@ export function useCanvasEdgeManagement(pageId: string) {
         return null;
       }
 
-      console.log('[useCanvasEdgeManagement] Creating edge:', {
-        sourceBlockMountId,
-        targetBlockMountId,
-        sourceBlockId,
-        targetBlockId,
-      });
-
       // 2. Optimistic Edge 생성
       const optimisticEdgeId = `temp-edge-${Date.now()}`;
       const optimisticEdge: Edge = {
@@ -68,7 +61,7 @@ export function useCanvasEdgeManagement(pageId: string) {
         type: 'custom', // 항상 custom 타입 사용
         data: {
           isOptimistic: true,
-          actualEdgeType: edgeType,
+          actualEdgeShape: edgeType,
           pageId,
         },
       };
@@ -105,7 +98,7 @@ export function useCanvasEdgeManagement(pageId: string) {
           type: 'custom', // 항상 custom 타입 사용
           data: {
             edgeId: result.data.edgeId,
-            actualEdgeType: result.data.edgeType,
+            actualEdgeShape: result.data.edgeShape,
             pageId,
             createdAt: result.data.createdAt,
             updatedAt: result.data.updatedAt,
@@ -187,11 +180,11 @@ export function useCanvasEdgeManagement(pageId: string) {
   );
 
   /**
-   * Optimistic UI: 엣지 타입 변경
+   * Optimistic UI: 엣지 모양 변경
    * 즉시 React Flow Store에서 변경 → 서버 호출 → 실패 시 롤백
    */
-  const updateEdgeType = useCallback(
-    async (edgeId: string, newType: string): Promise<boolean> => {
+  const updateEdgeShape = useCallback(
+    async (edgeId: string, newShape: string): Promise<boolean> => {
       // 1. 현재 엣지 목록 백업
       const currentEdges = getEdges();
       const edgeToUpdate = currentEdges.find(edge => edge.id === edgeId);
@@ -201,29 +194,36 @@ export function useCanvasEdgeManagement(pageId: string) {
         return false;
       }
 
-      // 2. 즉시 React Flow Store에서 타입 변경 (data.actualEdgeType 업데이트)
-      setEdges(
-        currentEdges.map(edge =>
-          edge.id === edgeId
-            ? {
-                ...edge,
-                // type은 'custom'으로 유지, actualEdgeType만 변경
-                data: {
-                  ...edge.data,
-                  actualEdgeType: newType,
-                },
-              }
-            : edge
-        )
+      // 2. 즉시 React Flow Store에서 모양 변경 (data.actualEdgeShape 업데이트)
+      const updatedEdges = currentEdges.map(edge =>
+        edge.id === edgeId
+          ? {
+              ...edge,
+              // type은 'custom'으로 유지, actualEdgeShape만 변경
+              data: {
+                ...edge.data,
+                actualEdgeShape: newShape,
+              },
+            }
+          : edge
       );
+
+      // React Flow가 변경을 감지하도록 새로운 배열로 설정
+      setEdges([...updatedEdges]);
+
+      // 추가 강제 리렌더링을 위한 비동기 업데이트
+      setTimeout(() => {
+        const currentEdges = getEdges();
+        setEdges([...currentEdges]);
+      }, 0);
 
       try {
         // 3. Server Action 호출
-        const result = await updateEdgeTypeAction(edgeId, newType);
+        const result = await updateEdgeShapeAction(edgeId, newShape);
 
         if (!result.success) {
           console.error(
-            '❌ [useCanvasEdgeManagement] Edge type update failed:',
+            '❌ [useCanvasEdgeManagement] Edge shape update failed:',
             result.error
           );
 
@@ -236,7 +236,7 @@ export function useCanvasEdgeManagement(pageId: string) {
         return true;
       } catch (error) {
         console.error(
-          '❌ [useCanvasEdgeManagement] Edge type update error:',
+          '❌ [useCanvasEdgeManagement] Edge shape update error:',
           error
         );
 
@@ -452,7 +452,7 @@ export function useCanvasEdgeManagement(pageId: string) {
     // Optimistic UI 제어 (사용자 액션, AI Tool Call)
     createEdge,
     deleteEdge,
-    updateEdgeType,
+    updateEdgeShape,
     updateEdgeLabel,
     updateEdgeStyle,
 

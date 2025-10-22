@@ -26,7 +26,7 @@ export interface EdgeToolbarProps {
 }
 
 // 엣지 타입 정의 (아이콘만) - 주요 타입만 표시
-const EDGE_TYPES = [
+const EDGE_SHAPES = [
   {
     value: 'default',
     label: '곡선',
@@ -98,19 +98,19 @@ export function EdgeToolbar({ pageId, edgeId }: EdgeToolbarProps) {
 
   // 현재 엣지 정보 가져오기
   const edge = edgeManagement.getEdgeById(edgeId);
-  // data.actualEdgeType 사용 (React Flow type은 항상 'custom')
-  const currentType = (edge?.data as any)?.actualEdgeType || 'default';
+  // data.actualEdgeShape 사용 (React Flow type은 항상 'custom')
+  const currentShape = (edge?.data as any)?.actualEdgeShape || 'default';
   const currentColor = (edge?.style as any)?.stroke || '#b1b1b7';
   const currentWidth = (edge?.style as any)?.strokeWidth || 1.5;
 
-  // 엣지 타입 변경 핸들러
-  const handleEdgeTypeChange = async (newType: string) => {
-    const success = await edgeManagement.updateEdgeType(edgeId, newType);
+  // 엣지 모양 변경 핸들러
+  const handleEdgeShapeChange = async (newShape: string) => {
+    const success = await edgeManagement.updateEdgeShape(edgeId, newShape);
 
     if (success) {
       setIsTypePopoverOpen(false); // 성공 시 Popover 닫기
     } else {
-      console.error('❌ [EdgeToolbar] Failed to update edge type');
+      console.error('❌ [EdgeToolbar] Failed to update edge shape');
     }
   };
 
@@ -170,7 +170,7 @@ export function EdgeToolbar({ pageId, edgeId }: EdgeToolbarProps) {
                   onMouseDown={e => e.stopPropagation()}
                   title="엣지 타입"
                 >
-                  {EDGE_TYPES.find(t => t.value === currentType)?.icon || (
+                  {EDGE_SHAPES.find(t => t.value === currentShape)?.icon || (
                     <Workflow className="h-4 w-4" />
                   )}
                 </button>
@@ -189,22 +189,22 @@ export function EdgeToolbar({ pageId, edgeId }: EdgeToolbarProps) {
             onClick={e => e.stopPropagation()}
           >
             <div className="flex gap-1">
-              {EDGE_TYPES.map(type => (
+              {EDGE_SHAPES.map(shape => (
                 <button
-                  key={type.value}
+                  key={shape.value}
                   onClick={e => {
                     e.stopPropagation();
-                    handleEdgeTypeChange(type.value);
+                    handleEdgeShapeChange(shape.value);
                   }}
                   onMouseDown={e => e.stopPropagation()}
                   className={`p-2 rounded transition-colors ${
-                    currentType === type.value
+                    currentShape === shape.value
                       ? 'bg-blue-100 text-blue-900'
                       : 'hover:bg-gray-100'
                   }`}
-                  title={type.label}
+                  title={shape.label}
                 >
-                  {type.icon}
+                  {shape.icon}
                 </button>
               ))}
             </div>

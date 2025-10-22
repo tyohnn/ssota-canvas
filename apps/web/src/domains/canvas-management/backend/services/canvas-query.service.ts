@@ -99,7 +99,7 @@ export class DefaultCanvasQueryService implements CanvasQueryService {
             pageId: edgeAgg.edge.pageId.value,
             sourceBlockId: sourceBlockMountId,
             targetBlockId: targetBlockMountId,
-            edgeType: edgeAgg.edge.edgeType.value,
+            edgeShape: edgeAgg.edge.edgeShape.value,
             label: edgeAgg.edge.edgeLabel,
             style: edgeAgg.edge.style,
             createdAt: edgeAgg.edge.createdAt.toISOString(),

@@ -7,6 +7,8 @@ import type {
   UpdateBlockPositionCommand,
   UpdateBlockSizeCommand,
   UpdateMultipleBlockPositionsCommand,
+  DeleteBlockMountCommand,
+  DeleteMultipleBlockMountsCommand,
 } from '../../../shared/commands';
 
 /**
@@ -54,4 +56,26 @@ export interface CanvasBlockMountService {
   updateMultipleBlockPositions(
     command: UpdateMultipleBlockPositionsCommand
   ): Promise<Result<void, Error>>;
+
+  /**
+   * 블럭 마운트 삭제 (연결된 엣지 자동 정리)
+   *
+   * @param command - 블럭 마운트 삭제 Command
+   * @returns 삭제된 엣지 개수 (성공) | Error (실패)
+   */
+  deleteBlockMount(
+    command: DeleteBlockMountCommand
+  ): Promise<Result<{ deletedEdgesCount: number }, Error>>;
+
+  /**
+   * 다중 블럭 마운트 삭제 (연결된 엣지 자동 정리)
+   *
+   * @param command - 다중 블럭 마운트 삭제 Command
+   * @returns 삭제된 블럭과 엣지 개수 (성공) | Error (실패)
+   */
+  deleteMultipleBlockMounts(
+    command: DeleteMultipleBlockMountsCommand
+  ): Promise<
+    Result<{ deletedCount: number; deletedEdgesCount: number }, Error>
+  >;
 }

@@ -1,8 +1,13 @@
 'use client';
 
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { useReactFlow, type Node } from '@xyflow/react';
-import { createBlockAction } from '../../actions/block.actions';
+import {
+  createBlockAction,
+  deleteBlockMountAction,
+  deleteMultipleBlockMountsAction,
+  duplicateBlockAction,
+} from '../../actions/block.actions';
 import { useCanvasMode } from '../contexts/canvas-mode-context';
 import { isFailure } from '@/lib/action-result';
 import type { BasicBlockNodeData } from '../acl/react-flow.acl';
@@ -29,6 +34,8 @@ export interface BlockData {
   blockMountId?: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
+  zOrder?: number;
+  workspaceId?: string;
   [key: string]: any;
 }
 
@@ -39,6 +46,24 @@ export interface UseCanvasBlockLifecycleResult {
     position: { x: number; y: number },
     workspaceId: string,
     orgId?: string
+  ) => Promise<void>;
+  deleteBlock: (
+    blockMountId: string,
+    workspaceId?: string,
+    pageIdParam?: string,
+    orgIdParam?: string
+  ) => Promise<void>;
+  deleteMultipleBlocks: (
+    blockMountIds: string[],
+    workspaceId?: string,
+    pageIdParam?: string,
+    orgIdParam?: string
+  ) => Promise<void>;
+  duplicateBlock: (
+    blockMountId: string,
+    workspaceId: string,
+    offsetX?: number,
+    offsetY?: number
   ) => Promise<void>;
 
   // 프로그램적 제어 (UI만 변경, 서버 호출 X)
@@ -64,10 +89,12 @@ export function useCanvasBlockLifecycle(
   const { pageId, orgId } = params;
 
   // React Flow hooks
-  const { addNodes, deleteElements, getNodes, updateNode } = useReactFlow();
+  const { addNodes, deleteElements, getNodes, updateNode, setNodes } =
+    useReactFlow();
 
   // Canvas Mode hook
-  const { enterSingleSelectionMode, exitToDefaultMode } = useCanvasMode();
+  const canvasMode = useCanvasMode();
+  const { enterSingleSelectionMode, exitToDefaultMode } = canvasMode;
 
   /**
    * 고유한 Optimistic ID 생성
@@ -108,6 +135,10 @@ export function useCanvasBlockLifecycle(
           isOptimistic: true,
           // 임시 데이터로 빠른 UI 반응
           _optimisticId: optimisticId,
+          // Canvas Management에 필요한 ID들 추가
+          pageId,
+          orgId: orgIdParam || orgId,
+          workspaceId,
         };
 
         const optimisticNode = {
@@ -144,6 +175,10 @@ export function useCanvasBlockLifecycle(
             size: result.data.size,
             zOrder: result.data.zOrder,
             isOptimistic: false,
+            // Canvas Management에 필요한 ID들 추가
+            pageId,
+            orgId: orgIdParam || orgId,
+            workspaceId,
           };
 
           const realNode = {
@@ -200,8 +235,12 @@ export function useCanvasBlockLifecycle(
         blockType: blockData.blockType as 'basic',
         position: blockData.position,
         size: blockData.size,
-        zOrder: 1,
+        zOrder: blockData.zOrder || 1,
         isOptimistic: false,
+        // Canvas Management에 필요한 추가 데이터
+        pageId,
+        orgId,
+        workspaceId: blockData.workspaceId || '',
       };
 
       const node = {
@@ -213,7 +252,7 @@ export function useCanvasBlockLifecycle(
 
       addNodes([node]);
     },
-    [addNodes]
+    [addNodes, pageId, orgId]
   );
 
   /**
@@ -251,8 +290,296 @@ export function useCanvasBlockLifecycle(
     return getNodes().length;
   }, [getNodes]);
 
+  /**
+   * 블럭 삭제 (Optimistic UI)
+   * Story CM-008 구현 - 단일 블럭 삭제
+   */
+  const deleteBlock = useCallback(
+    async (
+      blockMountId: string,
+      workspaceId?: string,
+      pageIdParam?: string,
+      orgIdParam?: string
+    ) => {
+      // 삭제 전 노드 백업 (롤백용)
+      const nodeToDelete = getNodes().find(node => node.id === blockMountId);
+
+      if (!nodeToDelete) {
+        console.warn(`Node with id ${blockMountId} not found`);
+        return;
+      }
+
+      // Optimistic 노드인 경우 (아직 서버에 저장되지 않음)
+      const isOptimisticNode = blockMountId.startsWith('optimistic-');
+
+      if (isOptimisticNode) {
+        // Optimistic 노드는 서버에 없으므로 UI에서만 제거
+        deleteElements({ nodes: [{ id: blockMountId }] });
+        exitToDefaultMode();
+        console.log(
+          '✅ Optimistic block removed from UI (not yet saved to server)'
+        );
+        return;
+      }
+
+      try {
+        // 1. 즉시 React Flow Store에서 제거 (Optimistic UI)
+        deleteElements({ nodes: [{ id: blockMountId }] });
+
+        // 2. 서버 액션 호출
+        const result = await deleteBlockMountAction({
+          blockMountId,
+          orgId: orgIdParam || orgId,
+          workspaceId,
+          pageId: pageIdParam || pageId,
+        });
+
+        if (result.success && result.data) {
+          // 3. 성공: 기본 모드로 복귀
+          exitToDefaultMode();
+
+          console.log(
+            `✅ Block deleted successfully. Deleted ${result.data.deletedEdgesCount} connected edges.`
+          );
+        } else {
+          // 4. 실패 시: 노드 복원
+          addNodes([nodeToDelete]);
+
+          console.error(
+            'Block deletion failed:',
+            isFailure(result) ? result.error : 'Unknown error'
+          );
+        }
+      } catch (error) {
+        // 5. 예외 발생 시: 노드 복원
+        addNodes([nodeToDelete]);
+
+        console.error('Block deletion error:', error);
+      }
+    },
+    [pageId, orgId, getNodes, deleteElements, addNodes, exitToDefaultMode]
+  );
+
+  /**
+   * 다중 블럭 삭제 (Optimistic UI)
+   * Story CM-008 구현 - 다중 블럭 삭제
+   */
+  const deleteMultipleBlocks = useCallback(
+    async (
+      blockMountIds: string[],
+      workspaceId?: string,
+      pageIdParam?: string,
+      orgIdParam?: string
+    ) => {
+      // 삭제 전 노드들 백업 (롤백용)
+      const nodesToDelete = getNodes().filter(node =>
+        blockMountIds.includes(node.id)
+      );
+
+      if (nodesToDelete.length === 0) {
+        console.warn('No nodes found to delete');
+        return;
+      }
+
+      // Optimistic 노드와 실제 노드 분리
+      const optimisticNodes = nodesToDelete.filter(node =>
+        node.id.startsWith('optimistic-')
+      );
+      const realNodes = nodesToDelete.filter(
+        node => !node.id.startsWith('optimistic-')
+      );
+
+      // Optimistic 노드만 있는 경우 서버 호출 없이 종료
+      if (realNodes.length === 0) {
+        // 모든 노드를 UI에서 즉시 제거
+        deleteElements({
+          nodes: nodesToDelete.map(node => ({ id: node.id })),
+        });
+        exitToDefaultMode();
+        console.log(
+          `✅ ${optimisticNodes.length} optimistic block(s) removed from UI (not yet saved to server)`
+        );
+        return;
+      }
+
+      // 실제 노드만 서버 액션 호출
+      const realBlockMountIds = realNodes.map(node => node.id);
+
+      try {
+        // 모든 노드를 UI에서 즉시 제거
+        deleteElements({
+          nodes: nodesToDelete.map(node => ({ id: node.id })),
+        });
+
+        const result = await deleteMultipleBlockMountsAction({
+          blockMountIds: realBlockMountIds,
+          orgId: orgIdParam || orgId,
+          workspaceId,
+          pageId: pageIdParam || pageId,
+        });
+
+        if (result.success && result.data) {
+          // 성공: 기본 모드로 복귀
+          exitToDefaultMode();
+
+          const totalDeleted =
+            result.data.deletedCount + optimisticNodes.length;
+          console.log(
+            `✅ ${totalDeleted} block(s) deleted (${result.data.deletedCount} from server, ${optimisticNodes.length} optimistic). Deleted ${result.data.deletedEdgesCount} connected edges.`
+          );
+        } else {
+          // 실패 시: 실제 노드들만 복원 (optimistic 노드는 복원하지 않음)
+          addNodes(realNodes);
+
+          console.error(
+            'Multiple blocks deletion failed:',
+            isFailure(result) ? result.error : 'Unknown error'
+          );
+        }
+      } catch (error) {
+        // 예외 발생 시: 실제 노드들만 복원
+        addNodes(realNodes);
+
+        console.error('Multiple blocks deletion error:', error);
+      }
+    },
+    [pageId, orgId, getNodes, deleteElements, addNodes, exitToDefaultMode]
+  );
+
+  const duplicateBlock = useCallback(
+    async (
+      blockMountId: string,
+      workspaceId: string,
+      offsetX: number = 20,
+      offsetY: number = 20
+    ) => {
+      // 1. 원본 블럭 정보 조회
+      const originalNodes = getNodes();
+      const originalNode = originalNodes.find(
+        node => (node.data as any)?.blockMountId === blockMountId
+      );
+
+      if (!originalNode) {
+        console.error('Original block not found for duplication');
+        return;
+      }
+
+      // 2. Optimistic ID 생성
+      const optimisticId = generateOptimisticId();
+      const optimisticBlockMountId = `optimistic-${optimisticId}`;
+
+      // 3. 복제된 위치 계산
+      const duplicatedPosition = {
+        x: originalNode.position.x + offsetX,
+        y: originalNode.position.y + offsetY,
+      };
+
+      // 4. Optimistic 블럭 데이터 생성
+      const optimisticBlockData: BlockData = {
+        blockType: (originalNode.data as any)?.blockType || 'basic',
+        blockMountId: optimisticBlockMountId,
+        position: duplicatedPosition,
+        size: (originalNode.data as any)?.size || { width: 200, height: 150 },
+        zOrder: ((originalNode.data as any)?.zOrder || 1) + 1,
+        workspaceId: workspaceId,
+      };
+
+      // 5. 즉시 UI에 복제된 블럭 추가 (Optimistic UI)
+      addBlockToCanvas(optimisticId, optimisticBlockData);
+
+      // 6. 복제된 블럭을 자동으로 선택 (프로그래밍적 선택)
+      setTimeout(() => {
+        // 모든 노드의 선택 상태를 해제
+        setNodes(nodes => nodes.map(node => ({ ...node, selected: false })));
+
+        // 복제된 블럭만 선택
+        setNodes(nodes =>
+          nodes.map(node =>
+            node.id === optimisticBlockMountId
+              ? { ...node, selected: true }
+              : node
+          )
+        );
+
+        // Canvas Mode도 업데이트
+        canvasMode.enterSingleSelectionMode(optimisticBlockMountId);
+      }, 100);
+
+      try {
+        // 7. 서버에 복제 요청
+        const result = await duplicateBlockAction({
+          blockMountId,
+          workspaceId,
+          offsetX,
+          offsetY,
+        });
+
+        if (result.success && result.data) {
+          // 8. 성공: Optimistic 블럭을 실제 데이터로 교체
+          const realBlockData: BlockData = {
+            blockType: 'basic', // TODO: 원본 블럭 타입을 가져와야 함
+            blockMountId: result.data.duplicatedBlockMountId,
+            position: result.data.position,
+            size: result.data.size,
+            zOrder: result.data.zOrder,
+            workspaceId: workspaceId,
+          };
+
+          // Optimistic 블럭 제거
+          deleteElements({ nodes: [{ id: optimisticBlockMountId }] });
+
+          // 실제 블럭 추가
+          addBlockToCanvas(result.data.duplicatedBlockId, realBlockData);
+
+          // 실제 블럭으로 선택 상태 업데이트 (프로그래밍적 선택)
+          setTimeout(() => {
+            // 모든 노드의 선택 상태를 해제
+            setNodes(nodes =>
+              nodes.map(node => ({ ...node, selected: false }))
+            );
+
+            // 실제 복제된 블럭만 선택
+            setNodes(nodes =>
+              nodes.map(node =>
+                node.id === result.data.duplicatedBlockMountId
+                  ? { ...node, selected: true }
+                  : node
+              )
+            );
+
+            // Canvas Mode도 업데이트
+            canvasMode.enterSingleSelectionMode(
+              result.data.duplicatedBlockMountId
+            );
+          }, 100);
+        } else {
+          // 9. 실패: Optimistic 블럭 제거
+          deleteElements({ nodes: [{ id: optimisticBlockMountId }] });
+          exitToDefaultMode();
+        }
+      } catch (error) {
+        // 10. 예외 발생: Optimistic 블럭 제거
+        deleteElements({ nodes: [{ id: optimisticBlockMountId }] });
+        exitToDefaultMode();
+        console.error('Block duplication error:', error);
+      }
+    },
+    [
+      getNodes,
+      generateOptimisticId,
+      addBlockToCanvas,
+      deleteElements,
+      setNodes,
+      canvasMode,
+      exitToDefaultMode,
+    ]
+  );
+
   return {
     createBlock,
+    deleteBlock,
+    deleteMultipleBlocks,
+    duplicateBlock,
     addBlockToCanvas,
     removeBlockFromCanvas,
     getAllBlocks,

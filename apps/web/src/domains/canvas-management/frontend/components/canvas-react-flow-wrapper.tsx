@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -16,6 +16,11 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { isFailure } from '@/lib/action-result';
+import {
+  deleteBlockMountAction,
+  deleteMultipleBlockMountsAction,
+} from '../../actions/block.actions';
 
 // Type imports
 import type { CustomNodeType } from '../acl/react-flow.acl';
@@ -27,6 +32,7 @@ import { useCanvasViewport } from '../hooks/use-canvas-viewport';
 import { useCanvasBlockTransform } from '../hooks/use-canvas-block-transform';
 import { useCanvasSnapGuides } from '../hooks/use-canvas-snap-guides';
 import { useCanvasEdgeManagement } from '../hooks/use-canvas-edge-management';
+import { useCanvasBlockLifecycle } from '../hooks/use-canvas-block-lifecycle';
 
 // Canvas Management Components
 import { CanvasToolbar } from './canvas-toolbar';
@@ -36,6 +42,7 @@ import { BlockAddDialog } from './block-add-dialog';
 import { BasicBlockNode } from './basic-block-node';
 import { SnapGuidelines } from './snap-guidelines';
 import { MultiSelectionToolbar } from './multi-selection-toolbar';
+import { BlockMountToolbar } from './block-mount-toolbar';
 import { SelectionBoundingBox } from './selection-bounding-box';
 import { CustomEdge } from './custom-edge';
 
@@ -104,6 +111,7 @@ export function CanvasReactFlowWrapper({
   const blockTransform = useCanvasBlockTransform({ pageId });
   const snapGuides = useCanvasSnapGuides();
   const edgeManagement = useCanvasEdgeManagement(pageId);
+  const blockLifecycle = useCanvasBlockLifecycle({ pageId, orgId });
 
   // BlockAddDialog 상태 관리
   const [showAddDialog, setShowAddDialog] = React.useState(false);
@@ -340,6 +348,111 @@ export function CanvasReactFlowWrapper({
     [edgeManagement.createEdge]
   );
 
+  /**
+   * 노드 삭제 → 블럭 마운트 및 연결된 엣지 삭제
+   * Story CM-008: Delete 키 또는 Backspace 키로 블럭 삭제
+   *
+   * 주의: React Flow가 이미 노드를 제거한 후 이 콜백을 호출하므로,
+   * UI는 이미 제거된 상태이고 서버 액션만 호출하면 됨
+   */
+  const onNodesDelete = useCallback(
+    async (deletedNodes: Node[]) => {
+      // Optimistic 노드 필터링 (아직 서버에 저장되지 않음)
+      const optimisticNodes = deletedNodes.filter(node =>
+        node.id.startsWith('optimistic-')
+      );
+      const realNodes = deletedNodes.filter(
+        node => !node.id.startsWith('optimistic-')
+      );
+
+      if (optimisticNodes.length > 0) {
+      }
+
+      // 실제 노드만 서버로 전송
+      if (realNodes.length === 0) {
+        return;
+      }
+
+      const blockMountIds = realNodes.map(node => node.id);
+
+      try {
+        if (blockMountIds.length === 1) {
+          // 단일 블럭 삭제 - 직접 서버 액션 호출
+          const result = await deleteBlockMountAction({
+            blockMountId: blockMountIds[0]!,
+            orgId,
+            workspaceId,
+            pageId,
+          });
+
+          if (result.success && result.data) {
+            // 성공 시 로그 없음 (조용한 처리)
+          } else if (isFailure(result)) {
+            console.error('Block deletion failed:', result.error);
+          }
+        } else if (blockMountIds.length > 1) {
+          // 다중 블럭 삭제 - 직접 서버 액션 호출
+          const result = await deleteMultipleBlockMountsAction({
+            blockMountIds,
+            orgId,
+            workspaceId,
+            pageId,
+          });
+
+          if (result.success && result.data) {
+            // 성공 시 로그 없음 (조용한 처리)
+          } else if (isFailure(result)) {
+            console.error('Multiple blocks deletion failed:', result.error);
+          }
+        }
+      } catch (error) {
+        console.error('Block deletion error:', error);
+      }
+    },
+    [workspaceId, pageId, orgId]
+  );
+
+  // 키보드 이벤트 핸들러 (Ctrl+D 복제)
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      // Ctrl+D 또는 Cmd+D (Mac)
+      if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
+        event.preventDefault();
+
+        const selectedBlocks = canvasSelection.getSelectedBlocks();
+        if (selectedBlocks.length === 0) {
+          return;
+        }
+
+        // 선택된 블럭들을 복제
+        selectedBlocks.forEach(async blockId => {
+          const selectedNode = nodes.find(node => node.id === blockId);
+          const blockMountId = (selectedNode?.data as any)?.blockMountId;
+          if (!blockMountId) {
+            return;
+          }
+
+          try {
+            // 블럭 너비 + 50px 오프셋 계산
+            const blockWidth = selectedNode?.width || 200; // 기본 너비 200px
+            const offsetX = blockWidth + 50;
+            const offsetY = 20; // Y축은 기본 20px
+
+            await blockLifecycle.duplicateBlock(
+              blockMountId,
+              workspaceId,
+              offsetX,
+              offsetY
+            );
+          } catch (error) {
+            console.error(`Failed to duplicate block ${blockId}:`, error);
+          }
+        });
+      }
+    },
+    [canvasSelection, nodes, blockLifecycle, workspaceId]
+  );
+
   // 트랙패드 제스처 최적화 설정 (피그마 스타일)
   // - 핀치 제스처: 줌인/줌아웃
   // - 두 손가락 스크롤: 캔버스 패닝
@@ -402,10 +515,12 @@ export function CanvasReactFlowWrapper({
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
+        onNodesDelete={onNodesDelete}
+        onKeyDown={onKeyDown}
+        deleteKeyCode={['Delete', 'Backspace']}
         className="bg-gray-50"
       >
         <Background />
-        <Controls />
 
         {/* 캔버스 상단 툴바 - Panel로 ReactFlow 내부로 이동 */}
         {/* z-index: 블럭(0) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
@@ -427,9 +542,22 @@ export function CanvasReactFlowWrapper({
 
         {canvasMode.isMultiSelectionMode() && (
           <>
-            <MultiSelectionToolbar pageId={pageId} />
+            <MultiSelectionToolbar
+              pageId={pageId}
+              orgId={orgId}
+              workspaceId={workspaceId}
+            />
             <SelectionBoundingBox pageId={pageId} />
           </>
+        )}
+
+        {/* 단일 선택 모드에서 BlockMountToolbar 표시 */}
+        {canvasMode.isSingleSelectionMode() && (
+          <BlockMountToolbar
+            pageId={pageId}
+            orgId={orgId}
+            workspaceId={workspaceId}
+          />
         )}
 
         {/* 항상 렌더링하고 내부에서 조건 체크 (상태 업데이트 타이밍 이슈 방지) */}

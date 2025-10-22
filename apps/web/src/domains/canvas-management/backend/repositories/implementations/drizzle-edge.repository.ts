@@ -2,12 +2,12 @@ import { EdgeRepository } from '../interfaces/edge.repository.interface';
 import { EdgeAggregate } from '../../../shared/aggregates/edge.aggregate';
 import { Edge } from '../../../shared/entities/edge.entity';
 import { EdgeId } from '../../../shared/value-objects/edge-id.vo';
-import { EdgeType } from '../../../shared/value-objects/edge-type.vo';
+import { EdgeShape } from '../../../shared/value-objects/edge-shape.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { adminDb } from '@/db';
-import { edges, type CanvasEdgeType } from '@/db/schema-dev';
-import { eq, and, or, inArray } from 'drizzle-orm';
+import { edges, type CanvasEdgeShape } from '@/db/schema-dev';
+import { eq, and, or, inArray, isNull } from 'drizzle-orm';
 
 /**
  * DrizzleEdgeRepository
@@ -27,7 +27,7 @@ export class DrizzleEdgeRepository implements EdgeRepository {
         page_id: edge.pageId.value,
         source_block_id: edge.sourceBlockId.value,
         target_block_id: edge.targetBlockId.value,
-        edge_type: edge.edgeType.value as CanvasEdgeType,
+        edge_shape: edge.edgeShape.value as CanvasEdgeShape,
         edge_label: edge.edgeLabel,
         edge_style_color: edge.edgeStyle.color,
         edge_style_thickness: edge.edgeStyle.thickness,
@@ -37,7 +37,7 @@ export class DrizzleEdgeRepository implements EdgeRepository {
       .onConflictDoUpdate({
         target: edges.id,
         set: {
-          edge_type: edge.edgeType.value as CanvasEdgeType,
+          edge_shape: edge.edgeShape.value as CanvasEdgeShape,
           edge_label: edge.edgeLabel,
           edge_style_color: edge.edgeStyle.color,
           edge_style_thickness: edge.edgeStyle.thickness,
@@ -53,7 +53,7 @@ export class DrizzleEdgeRepository implements EdgeRepository {
     const result = await adminDb
       .select()
       .from(edges)
-      .where(eq(edges.id, edgeId.value))
+      .where(and(eq(edges.id, edgeId.value), isNull(edges.deleted_at)))
       .limit(1);
 
     if (result.length === 0) {
@@ -70,7 +70,7 @@ export class DrizzleEdgeRepository implements EdgeRepository {
     const result = await adminDb
       .select()
       .from(edges)
-      .where(eq(edges.page_id, pageId.value));
+      .where(and(eq(edges.page_id, pageId.value), isNull(edges.deleted_at)));
 
     return result.map(row => this.toDomain(row));
   }
@@ -83,9 +83,12 @@ export class DrizzleEdgeRepository implements EdgeRepository {
       .select()
       .from(edges)
       .where(
-        or(
-          eq(edges.source_block_id, blockId.value),
-          eq(edges.target_block_id, blockId.value)
+        and(
+          or(
+            eq(edges.source_block_id, blockId.value),
+            eq(edges.target_block_id, blockId.value)
+          ),
+          isNull(edges.deleted_at)
         )
       );
 
@@ -93,20 +96,32 @@ export class DrizzleEdgeRepository implements EdgeRepository {
   }
 
   /**
-   * Edge 삭제
+   * Edge 삭제 (소프트 삭제)
    */
   async delete(edgeId: EdgeId): Promise<void> {
-    await adminDb.delete(edges).where(eq(edges.id, edgeId.value));
+    await adminDb
+      .update(edges)
+      .set({
+        deleted_at: new Date(),
+        updated_at: new Date(),
+      })
+      .where(eq(edges.id, edgeId.value));
   }
 
   /**
-   * 여러 Edge 일괄 삭제
+   * 여러 Edge 일괄 삭제 (소프트 삭제)
    */
   async deleteAll(edgeIds: EdgeId[]): Promise<void> {
     if (edgeIds.length === 0) return;
 
     const idValues = edgeIds.map(id => id.value);
-    await adminDb.delete(edges).where(inArray(edges.id, idValues));
+    await adminDb
+      .update(edges)
+      .set({
+        deleted_at: new Date(),
+        updated_at: new Date(),
+      })
+      .where(inArray(edges.id, idValues));
   }
 
   /**
@@ -118,7 +133,7 @@ export class DrizzleEdgeRepository implements EdgeRepository {
       new PageId(row.page_id),
       new BlockId(row.source_block_id),
       new BlockId(row.target_block_id),
-      new EdgeType(row.edge_type),
+      new EdgeShape(row.edge_shape),
       row.edge_label || '',
       {
         color: row.edge_style_color || '#000000',

@@ -5,7 +5,7 @@ import type { EdgeAggregate } from '../../../shared/aggregates/edge.aggregate';
 import type { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import type {
   CreateEdgeCommand,
-  UpdateEdgeTypeCommand,
+  UpdateEdgeShapeCommand,
   UpdateEdgeLabelCommand,
   UpdateEdgeStyleCommand,
   DeleteEdgeCommand,
@@ -26,13 +26,13 @@ export interface CanvasEdgeService {
   createEdge(command: CreateEdgeCommand): Promise<Result<EdgeAggregate, Error>>;
 
   /**
-   * 엣지 타입 업데이트
+   * 엣지 모양 업데이트
    *
-   * @param command - 엣지 타입 업데이트 Command
+   * @param command - 엣지 모양 업데이트 Command
    * @returns EdgeAggregate (성공) | Error (실패)
    */
-  updateEdgeType(
-    command: UpdateEdgeTypeCommand
+  updateEdgeShape(
+    command: UpdateEdgeShapeCommand
   ): Promise<Result<EdgeAggregate, Error>>;
 
   /**

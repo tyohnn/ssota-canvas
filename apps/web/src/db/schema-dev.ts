@@ -46,7 +46,7 @@ export const notificationTypeEnum = pgEnum('notification_type', [
 ]);
 
 // Canvas Management Domain Enums
-export const canvasEdgeTypeEnum = pgEnum('canvas_edge_type', [
+export const canvasEdgeShapeEnum = pgEnum('canvas_edge_shape', [
   'default',
   'straight',
   'step',
@@ -1057,7 +1057,7 @@ export const edges = pgTable(
     target_block_id: uuid('target_block_id')
       .notNull()
       .references(() => blocks.id, { onDelete: 'cascade' }),
-    edge_type: canvasEdgeTypeEnum('edge_type').notNull().default('default'),
+    edge_shape: canvasEdgeShapeEnum('edge_shape').notNull().default('default'),
     edge_label: text('edge_label').default(''),
     edge_style_color: text('edge_style_color').default('#000000'),
     edge_style_thickness: integer('edge_style_thickness').default(2),
@@ -1295,5 +1295,5 @@ export type OrganizationType = (typeof organizationTypeEnum.enumValues)[number];
 export type MemberRole = (typeof memberRoleEnum.enumValues)[number];
 export type InvitationStatus = (typeof invitationStatusEnum.enumValues)[number];
 export type NotificationType = (typeof notificationTypeEnum.enumValues)[number];
-export type CanvasEdgeType = (typeof canvasEdgeTypeEnum.enumValues)[number];
+export type CanvasEdgeShape = (typeof canvasEdgeShapeEnum.enumValues)[number];
 export type AlignmentType = (typeof alignmentTypeEnum.enumValues)[number];

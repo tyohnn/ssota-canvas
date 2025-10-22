@@ -39,9 +39,15 @@ export interface CanvasViewData {
   }>;
   edges: Array<{
     edgeId: string;
+    pageId: string;
     sourceBlockId: string;
     targetBlockId: string;
-    edgeType: string;
+    edgeShape: string;
+    label?: string;
+    style?: {
+      stroke: string;
+      strokeWidth: number;
+    };
   }>;
   viewport: {
     x: number;
@@ -66,7 +72,7 @@ export interface EdgeView {
   pageId: string;
   sourceBlockId: string;
   targetBlockId: string;
-  edgeType: string; // 'default' | 'straight' | 'step' | 'smoothstep' | 'simplebezier'
+  edgeShape: string; // 'default' | 'straight' | 'step' | 'smoothstep' | 'simplebezier'
   label?: string;
   style?: {
     stroke: string;
@@ -203,6 +209,33 @@ export interface BlockSizeUpdatedDTO {
 export interface MultipleBlockPositionsUpdatedDTO {
   updatedCount: number;
   updatedAt: string;
+}
+
+// Block Mount Deletion DTOs
+export interface DeleteBlockMountRequest {
+  blockMountId: string;
+  orgId?: string;
+  workspaceId?: string;
+  pageId?: string;
+}
+
+export interface DeleteMultipleBlockMountsRequest {
+  blockMountIds: string[];
+  orgId?: string;
+  workspaceId?: string;
+  pageId?: string;
+}
+
+export interface BlockMountDeletedDTO {
+  blockMountId: string;
+  deletedEdgesCount: number;
+  deletedAt: string;
+}
+
+export interface MultipleBlockMountsDeletedDTO {
+  deletedCount: number;
+  deletedEdgesCount: number;
+  deletedAt: string;
 }
 
 // CanvasPageData 타입 - 서버에서 초기 데이터 로드 시 사용
