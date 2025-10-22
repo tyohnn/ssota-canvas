@@ -145,7 +145,7 @@
 ---
 
 ## 📁 관련 문서
-- [Epic-001: Core Platform Foundation](../epics/epic-001-user-management.md)
+- [Epic-001: Core Platform Foundation](../epics/epic-001-core-platform-foundation.md)
 - [Workspace Management Stories](../stories/workspace-management/README.md)
 - [Story-004: Page 생성 및 관리](../stories/workspace-management/story-004-page-hierarchy-management.md)
 - [Story-005: 즐겨찾기](../stories/workspace-management/story-005-page-favorites.md)

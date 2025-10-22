@@ -19,7 +19,6 @@ export default async function DashboardLayout({
 }) {
   const { orgId } = await params;
 
-  // Story 004에서 구현된 액션을 사용하여 초기 데이터 제공
   let organizations: Awaited<ReturnType<typeof getUserOrganizationsAction>>;
   try {
     organizations = await getUserOrganizationsAction();
@@ -50,7 +49,6 @@ export default async function DashboardLayout({
   // Workspace-Page 데이터 로드 (리스트만, cookiePageId 제외)
   const workspacePageResult = await getOrganizationWorkspacePageViewAction({
     organizationId: orgId,
-    // cookiePageId는 page.tsx에서만 사용
   });
 
   // Workspace 데이터 로드 실패 시 빈 배열로 Fallback
@@ -61,6 +59,7 @@ export default async function DashboardLayout({
         workspaces: [],
         selectedPageId: null,
       };
+
   return (
     <OrganizationProvider
       initialOrganizations={organizations}

@@ -401,7 +401,7 @@ export function CreateOrganizationDialog({
 **외부 의존성**: Database, User Authentication
 
 ## 📁 관련 문서
-- [Epic 문서](../../epics/epic-001-user-management.md)
+- [Epic 문서](../../epics/epic-001-core-platform-foundation.md)
 - [Process Model](../../../event-domain-design/domains/user-management-domain/02-process-model.md)
 - [Software Design](../../../event-domain-design/domains/user-management-domain/03-software-design.md)
 - [Technical Specification](../../../event-domain-design/domains/user-management-domain/05-technical-specification.md)

@@ -501,7 +501,7 @@
 ### Domain Documentation
 
 **User Management Domain**
-- [Epic 문서](../epics/epic-001-user-management.md)
+- [Epic 문서](../epics/epic-001-core-platform-foundation.md)
 - [User Management Stories](../stories/user-management/README.md)
 - [Event Storming](../../event-domain-design/domains/user-management-domain/01-event-storm.md)
 - [Process Model](../../event-domain-design/domains/user-management-domain/02-process-model.md)

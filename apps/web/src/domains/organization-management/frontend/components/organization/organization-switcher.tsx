@@ -56,7 +56,7 @@ export function OrganizationSwitcher() {
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-64 rounded-lg"
+              className="w-64 rounded-md"
               align="start"
               side="bottom"
               sideOffset={4}

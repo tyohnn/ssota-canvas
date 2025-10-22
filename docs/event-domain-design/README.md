@@ -23,9 +23,11 @@ graph TD
     
     %% Backend 경로
     Backend --> SD[03. Software Design<br/>담당: 시니어개발자]
-    SD --> TS[04. Testing Strategy<br/>담당: 시니어 + 주니어개발자]
-    TS --> TechSpec[05. Technical Specification<br/>담당: 주니어개발자]
-    TechSpec --> BTDD[07. TDD Implementation<br/>담당: 주니어개발자]
+    SD --> TechSpec[04. Technical Specification<br/>담당: 주니어개발자]
+    SD --> DBSchema[04. DB Schema<br/>담당: 주니어개발자]
+    TechSpec --> TS[05. Testing Strategy<br/>담당: 시니어 + 주니어개발자]
+    DBSchema --> TS
+    TS --> BTDD[07. TDD Implementation<br/>담당: 주니어개발자]
     
     %% 공통 참조
     CC[99. Code Conventions<br/>공통 참조] -.-> FTDD
@@ -45,7 +47,7 @@ graph TD
     
     class ES,PM commonStep
     class UF,FS,FTDD frontendStep
-    class SD,TS,TechSpec,BTDD backendStep
+    class SD,TS,TechSpec,DBSchema,BTDD backendStep
     class CC,AO referenceStep
 ```
 
@@ -62,8 +64,9 @@ graph TD
 
 **🟪 Backend 경로** (병렬 진행):
 3. **Software Design**: DDD 설계 (Aggregate, ACL, Context Map)
-4. **Testing Strategy**: 테스트 전략 수립 (Unit/Integration/E2E)
-5. **Technical Specification**: 구현 + 테스트 수도코드 작성
+4. **Technical Specification**: 구현 + 테스트 수도코드 작성
+4. **DB Schema**: 데이터베이스 테이블 및 관계 설계
+5. **Testing Strategy**: 테스트 전략 수립 (Unit/Integration/E2E)
 7. **TDD Implementation**: 백엔드 구현
 
 **🟩 공통 참조** (구현 전반):
@@ -84,10 +87,10 @@ event-domain-design/
 │   │   ├── 02-process-model.md     # Process Model 정의 (공통)
 │   │   ├── 03-user-flow.md         # User Flow 정의 (Frontend) ⭐ 신규
 │   │   ├── 03-software-design.md   # Software Design (Backend)
-│   │   ├── 04-testing-strategy.md  # Testing Strategy (Backend)
-│   │   ├── 04-frontend-specification.md # Frontend Spec (Frontend)
-│   │   ├── 05-technical-specification.md # Technical Spec (Backend)
-│   │   ├── 06-db-schema.md         # DB Schema (Backend)
+    │   │   ├── 04-technical-specification.md # Technical Spec (Backend)
+    │   │   ├── 04-db-schema.md         # DB Schema (Backend)
+    │   │   ├── 04-frontend-specification.md # Frontend Spec (Frontend)
+    │   │   ├── 05-testing-strategy.md  # Testing Strategy (Backend)
 │   │   └── README.md            # 도메인별 가이드
 │   ├── workspace-structure/    # Workspace Structure Domain
 │   ├── user-management/        # User Management Domain
@@ -95,13 +98,13 @@ event-domain-design/
 ├── template/                   # 표준 문서 템플릿
 │   ├── 01, 02 (공통)
 │   ├── 03 (User Flow - Frontend, Software Design - Backend)
-│   ├── 04 (Frontend Spec - Frontend, Testing Strategy - Backend)
-│   └── 05 (Technical Spec - Backend)
+│   ├── 04 (Frontend Spec - Frontend, Technical Spec, DB Schema - Backend)
+│   └── 05 (Testing Strategy - Backend)
 ├── guide/                      # 구현 가이드라인
 │   ├── 01, 02 (공통)
 │   ├── 03 (User Flow - Frontend, Software Design - Backend)
-│   ├── 04 (Frontend Spec - Frontend, Testing Strategy - Backend)
-│   ├── 05 (Technical Spec - Backend)
+│   ├── 04 (Frontend Spec - Frontend, Technical Spec, DB Schema - Backend)
+│   ├── 05 (Testing Strategy - Backend)
 │   ├── 07 (TDD Implementation - 공통)
 │   └── 99 (Code Conventions, Architecture Overview - 공통 참조)
 └── discussion/                 # 설계 토론 기록
@@ -124,8 +127,9 @@ event-domain-design/
 > 3. `guide/03-software-design-guide.md`를 따라 Software Design 작성
 >    - **Process Model의 External System → ACL 설계**
 >    - **Event Storming의 관계 → Context Map 작성**
-> 4. `guide/04-testing-strategy-guide.md`를 따라 Testing Strategy 수립
-> 5. `guide/05-technical-specification-guide.md`로 수도코드 작성 (구현 + 테스트)
+> 4. `guide/04-technical-specification-guide.md`로 수도코드 작성 (구현 + 테스트)
+> 4. `guide/04-db-schema-guide.md`로 DB 스키마 설계 및 작성
+> 5. `guide/05-testing-strategy-guide.md`를 따라 Testing Strategy 수립
 > 6. `guide/07-tdd-implementation-guide.md`로 TDD 사이클 적용하여 구현
 > 
 > ### Frontend 경로 (UX/UI 디자이너 → 프론트엔드 개발자)
@@ -201,27 +205,38 @@ event-domain-design/
   3. 낙관적 업데이트 패턴 적용
   4. UI 컴포넌트 구현
 
-#### 4-B단계: Testing Strategy (테스트 전략 수립) - Backend 경로
-- **담당자**: 시니어개발자 + 주니어개발자
-- **참가자**: 시니어개발자, 주니어개발자
-- **결과물**: `04-testing-strategy.md`
-- **가이드**: `guide/04-testing-strategy-guide.md`
-- **작업 순서**:
-  1. Process Model 시나리오를 테스트 케이스로 매핑
-  2. Unit/Integration/E2E 테스트 전략 수립
-  3. 커버리지 목표 설정
-  4. TDD 우선순위 정의
-
-#### 5단계: Technical Specification (수도코드 작성) - Backend 경로
+#### 4-B단계: Technical Specification (수도코드 작성) - Backend 경로
 - **담당자**: 주니어개발자
 - **참가자**: 주니어개발자, 시니어개발자
-- **결과물**: `05-technical-specification.md`
-- **가이드**: `guide/05-technical-specification-guide.md`
+- **결과물**: `04-technical-specification.md`
+- **가이드**: `guide/04-technical-specification-guide.md`
 - **작업 순서**:
   1. 구현 수도코드 작성 (DDD 컴포넌트별)
   2. 테스트 수도코드 작성 (Given-When-Then)
   3. TDD 구현 순서 정의
   4. 시니어 개발자 리뷰
+
+#### 4-C단계: DB Schema (데이터베이스 스키마 설계) - Backend 경로
+- **담당자**: 주니어개발자
+- **참가자**: 주니어개발자, 시니어개발자
+- **결과물**: `04-db-schema.md`
+- **가이드**: `guide/04-db-schema-guide.md`
+- **작업 순서**:
+  1. DB 테이블 및 관계 설계
+  2. 인덱스 및 제약조건 정의
+  3. 마이그레이션 스크립트 작성
+  4. 시니어 개발자 리뷰
+
+#### 5단계: Testing Strategy (테스트 전략 수립) - Backend 경로
+- **담당자**: 시니어개발자 + 주니어개발자
+- **참가자**: 시니어개발자, 주니어개발자
+- **결과물**: `05-testing-strategy.md`
+- **가이드**: `guide/05-testing-strategy-guide.md`
+- **작업 순서**:
+  1. Technical Specification 결과 기반 테스트 전략 수립
+  2. Unit/Integration/E2E 테스트 전략 수립
+  3. 커버리지 목표 설정
+  4. TDD 우선순위 정의
 
 #### 7단계: TDD Implementation (실제 구현)
 - **담당자**: 주니어개발자
@@ -270,20 +285,25 @@ event-domain-design/
 - **작성**: 시니어개발자
 - **가이드**: `guide/03-software-design-guide.md`
 
-#### testing-strategy.md (04)
-- **테스트 전략**: Unit/Integration/E2E 테스트 전략 (Backend)
-- **작성**: 시니어개발자 + 주니어개발자
-- **가이드**: `guide/04-testing-strategy-guide.md`
+#### technical-specification.md (04)
+- **구현 가이드**: 구체적 코드 작성 방법 (Backend)
+- **작성**: 주니어개발자
+- **가이드**: `guide/04-technical-specification-guide.md`
+
+#### db-schema.md (04)
+- **DB 스키마 설계**: 데이터베이스 테이블 및 관계 정의 (Backend)
+- **작성**: 주니어개발자
+- **가이드**: `guide/04-db-schema-guide.md`
 
 #### frontend-specification.md (04)
 - **프론트엔드 구현 상세**: React Context, Hooks, Components (Frontend)
 - **작성**: 프론트엔드 개발자
 - **가이드**: `guide/04-frontend-specification-guide.md`
 
-#### technical-specification.md (05)
-- **구현 가이드**: 구체적 코드 작성 방법 (Backend)
-- **작성**: 주니어개발자
-- **가이드**: `guide/05-technical-specification-guide.md`
+#### testing-strategy.md (05)
+- **테스트 전략**: Unit/Integration/E2E 테스트 전략 (Backend)
+- **작성**: 시니어개발자 + 주니어개발자
+- **가이드**: `guide/05-testing-strategy-guide.md`
 
 ### template/
 - **표준 템플릿들**: 새로운 도메인 개발 시 사용
@@ -307,8 +327,9 @@ event-domain-design/
 
 #### Backend 경로 (병렬 진행)
 - [ ] **Software Design**: `guide/03-software-design-guide.md` 따라 진행 (시니어개발자)
-- [ ] **Testing Strategy**: `guide/04-testing-strategy-guide.md` 따라 진행 (시니어 + 주니어)
-- [ ] **Technical Specification**: `guide/05-technical-specification-guide.md` 따라 수도코드 작성 (주니어개발자)
+- [ ] **Technical Specification**: `guide/04-technical-specification-guide.md` 따라 수도코드 작성 (주니어개발자)
+- [ ] **DB Schema**: `guide/04-db-schema-guide.md` 따라 DB 스키마 작성 (주니어개발자)
+- [ ] **Testing Strategy**: `guide/05-testing-strategy-guide.md` 따라 진행 (시니어 + 주니어)
 - [ ] **TDD Implementation**: `guide/07-tdd-implementation-guide.md` 따라 RED-GREEN-REFACTOR (주니어개발자)
 
 #### Frontend 경로 (병렬 진행)
@@ -349,8 +370,9 @@ event-domain-design/
 
 #### Backend 경로
 - **[Software Design 가이드](./guide/03-software-design-guide.md)**: DDD 설계 및 문서화
-- **[Testing Strategy 가이드](./guide/04-testing-strategy-guide.md)**: 테스트 전략 수립
-- **[Technical Specification 가이드](./guide/05-technical-specification-guide.md)**: 수도코드 작성 (구현 + 테스트)
+- **[Technical Specification 가이드](./guide/04-technical-specification-guide.md)**: 수도코드 작성 (구현 + 테스트)
+- **[DB Schema 가이드](./guide/04-db-schema-guide.md)**: 데이터베이스 스키마 설계
+- **[Testing Strategy 가이드](./guide/05-testing-strategy-guide.md)**: 테스트 전략 수립
 
 #### 공통 구현
 - **[TDD Implementation 가이드](./guide/07-tdd-implementation-guide.md)**: TDD 사이클 적용 구현
@@ -371,8 +393,9 @@ event-domain-design/
 
 #### Backend 템플릿
 - **[Software Design 템플릿](./template/03-software-design-template.md)**: Software Design 문서 템플릿
-- **[Testing Strategy 템플릿](./template/04-testing-strategy-template.md)**: Testing Strategy 문서 템플릿
-- **[Technical Specification 템플릿](./template/05-technical-specification-template.md)**: Technical Specification 문서 템플릿
+- **[Technical Specification 템플릿](./template/04-technical-specification-template.md)**: Technical Specification 문서 템플릿
+- **[DB Schema 템플릿](./template/04-db-schema-template.md)**: DB Schema 문서 템플릿
+- **[Testing Strategy 템플릿](./template/05-testing-strategy-template.md)**: Testing Strategy 문서 템플릿
 
 ### 예시 문서
 - **[Workspace Structure Domain](../domains/workspace-structure-domain/)**: 완성된 도메인 예시

@@ -139,7 +139,7 @@ export function InviteMemberDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[550px] rounded-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
@@ -190,7 +190,7 @@ export function InviteMemberDialog({
                         }
                         disabled={isDisabled}
                         className={cn(
-                          'w-full flex items-center gap-3 p-2 rounded-md hover:bg-accent transition-colors',
+                          'w-full flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors',
                           isDisabled && 'opacity-50 cursor-not-allowed bg-muted'
                         )}
                       >
@@ -240,7 +240,7 @@ export function InviteMemberDialog({
           {selectedMembers.length > 0 && (
             <div className="space-y-2">
               <Label>초대할 멤버 ({selectedMembers.length}명)</Label>
-              <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-muted/30">
+              <div className="flex flex-wrap gap-2 p-3 border border-border/30 rounded-md bg-muted/30">
                 {selectedMembers.map(member => (
                   <Badge
                     key={member.userId}

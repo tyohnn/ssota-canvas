@@ -214,7 +214,7 @@ Event Storming → DDD → Technical Design → Agile Planning 설계 진행 상
     - Server Actions, Testing Strategy, Anti-Corruption Layer 완성
 
 - [x] **Agile Planning**: ✅ **완성**
-  - [x] **Epic 정의**: `docs/agile-planning/epics/epic-001-user-management.md`
+  - [x] **Epic 정의**: `docs/agile-planning/epics/epic-001-core-platform-foundation.md`
     - 6주 개발 기간, 89pts 총 Story Points
     - 3개 Phase로 구성 (사용자 인증, 조직 관리, 멤버십 관리)
     - 성공 기준 및 의존성 정의

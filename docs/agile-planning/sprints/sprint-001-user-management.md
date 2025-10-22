@@ -166,7 +166,7 @@
 ---
 
 ## 📁 관련 문서
-- [Epic-001: Core Platform Foundation](../epics/epic-001-user-management.md)
+- [Epic-001: Core Platform Foundation](../epics/epic-001-core-platform-foundation.md)
 - [User Management Stories](../stories/user-management/README.md)
 - [Organization Management Stories](../stories/organization-management/README.md)
 - [Event Storming](../../event-domain-design/domains/user-management-domain/01-event-storm.md)

@@ -115,7 +115,7 @@ Story-005 (사용자 계정 삭제) - 계획 중
 ## 📁 관련 문서
 
 ### Epic 문서
-- [Epic-001: User Management](../../epics/epic-001-user-management.md)
+- [Epic-001: User Management](../../epics/epic-001-core-platform-foundation.md)
 
 ### 도메인 설계 문서
 - [Event Storming](../../../event-domain-design/domains/user-management-domain/01-event-storm.md)

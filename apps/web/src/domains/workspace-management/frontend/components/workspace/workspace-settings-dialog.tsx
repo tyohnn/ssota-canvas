@@ -157,7 +157,7 @@ export function WorkspaceSettingsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[900px] h-[600px] p-0">
+        <DialogContent className="sm:max-w-[900px] h-[600px] p-0 rounded-md">
           <DialogHeader className="sr-only">
             <DialogTitle>워크스페이스 설정</DialogTitle>
             <DialogDescription>
@@ -166,7 +166,7 @@ export function WorkspaceSettingsDialog({
           </DialogHeader>
           <div className="flex h-full">
             {/* 좌측 탭 네비게이션 */}
-            <div className="w-48 border-r bg-muted/30 p-4">
+            <div className="w-48 border-r border-border/30 bg-muted/30 p-4">
               <div className="mb-4">
                 <h3 className="font-semibold text-sm px-2">
                   워크스페이스 설정
@@ -180,10 +180,10 @@ export function WorkspaceSettingsDialog({
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
                       className={cn(
-                        'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors',
+                        'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
                         activeTab === tab.id
-                          ? 'bg-background shadow-sm font-medium'
-                          : 'hover:bg-muted text-muted-foreground'
+                          ? 'bg-accent text-accent-foreground font-medium'
+                          : 'hover:bg-accent hover:text-accent-foreground text-muted-foreground'
                       )}
                     >
                       <Icon className="h-4 w-4" />

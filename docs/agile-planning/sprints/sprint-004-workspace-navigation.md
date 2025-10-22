@@ -160,7 +160,7 @@
 ---
 
 ## 📁 관련 문서
-- [Epic-001: Core Platform Foundation](../epics/epic-001-user-management.md)
+- [Epic-001: Core Platform Foundation](../epics/epic-001-core-platform-foundation.md)
 - [Workspace Management Stories](../stories/workspace-management/README.md)
 - [Story-001: Workspace-Page 네비게이션](../stories/workspace-management/story-001-workspace-page-navigation.md)
 - [Event Storming](../../event-domain-design/domains/workspace-management-domain/01-event-storm.md)

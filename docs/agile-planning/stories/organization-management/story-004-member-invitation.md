@@ -214,4 +214,4 @@ And 멤버십이 생성되지 않는다
 - [Frontend Specification](../../../event-domain-design/domains/notification-management-domain/07-frontend-specification.md) - 인박스 UI
 
 ### Agile Planning
-- [Epic 001: User Management](../../epics/epic-001-user-management.md)
+- [Epic 001: User Management](../../epics/epic-001-core-platform-foundation.md)

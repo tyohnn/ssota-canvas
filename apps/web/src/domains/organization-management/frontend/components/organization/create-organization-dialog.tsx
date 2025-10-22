@@ -108,7 +108,7 @@ export function CreateOrganizationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] rounded-md">
         <DialogHeader>
           <DialogTitle>새 조직 만들기</DialogTitle>
           <DialogDescription>
