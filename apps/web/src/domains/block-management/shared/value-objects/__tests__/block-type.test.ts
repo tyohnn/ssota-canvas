@@ -6,7 +6,7 @@ describe('BlockType Value Object', () => {
   describe('생성자', () => {
     it('지원되는 블록 타입으로 생성되어야 한다', () => {
       // Given
-      const validTypes = ['text', 'image', 'code', 'page', 'shape', 'todo'];
+      const validTypes = ['youtube', 'python', 'markdown', 'image', 'file', 'link', 'shape', 'page_mention', 'latex', 'github_pr', 'react_component'];
 
       // When & Then
       validTypes.forEach((type) => {
@@ -15,15 +15,37 @@ describe('BlockType Value Object', () => {
       });
     });
 
-    it('text 타입으로 생성되어야 한다', () => {
+    it('youtube 타입으로 생성되어야 한다', () => {
       // Given
-      const type = 'text';
+      const type = 'youtube';
 
       // When
       const blockType = new BlockType(type);
 
       // Then
-      expect(blockType.value).toBe('text');
+      expect(blockType.value).toBe('youtube');
+    });
+
+    it('python 타입으로 생성되어야 한다', () => {
+      // Given
+      const type = 'python';
+
+      // When
+      const blockType = new BlockType(type);
+
+      // Then
+      expect(blockType.value).toBe('python');
+    });
+
+    it('markdown 타입으로 생성되어야 한다', () => {
+      // Given
+      const type = 'markdown';
+
+      // When
+      const blockType = new BlockType(type);
+
+      // Then
+      expect(blockType.value).toBe('markdown');
     });
 
     it('image 타입으로 생성되어야 한다', () => {
@@ -37,48 +59,26 @@ describe('BlockType Value Object', () => {
       expect(blockType.value).toBe('image');
     });
 
-    it('code 타입으로 생성되어야 한다', () => {
+    it('file 타입으로 생성되어야 한다', () => {
       // Given
-      const type = 'code';
+      const type = 'file';
 
       // When
       const blockType = new BlockType(type);
 
       // Then
-      expect(blockType.value).toBe('code');
+      expect(blockType.value).toBe('file');
     });
 
-    it('page 타입으로 생성되어야 한다', () => {
+    it('link 타입으로 생성되어야 한다', () => {
       // Given
-      const type = 'page';
+      const type = 'link';
 
       // When
       const blockType = new BlockType(type);
 
       // Then
-      expect(blockType.value).toBe('page');
-    });
-
-    it('shape 타입으로 생성되어야 한다', () => {
-      // Given
-      const type = 'shape';
-
-      // When
-      const blockType = new BlockType(type);
-
-      // Then
-      expect(blockType.value).toBe('shape');
-    });
-
-    it('todo 타입으로 생성되어야 한다', () => {
-      // Given
-      const type = 'todo';
-
-      // When
-      const blockType = new BlockType(type);
-
-      // Then
-      expect(blockType.value).toBe('todo');
+      expect(blockType.value).toBe('link');
     });
 
     it('지원되지 않는 타입에 대해 예외를 발생시켜야 한다', () => {
@@ -134,8 +134,8 @@ describe('BlockType Value Object', () => {
   describe('equals', () => {
     it('동일한 타입을 가진 BlockType은 같다고 판정되어야 한다', () => {
       // Given
-      const blockType1 = new BlockType('text');
-      const blockType2 = new BlockType('text');
+      const blockType1 = new BlockType('youtube');
+      const blockType2 = new BlockType('youtube');
 
       // When
       const result = blockType1.equals(blockType2);
@@ -146,8 +146,8 @@ describe('BlockType Value Object', () => {
 
     it('다른 타입을 가진 BlockType은 다르다고 판정되어야 한다', () => {
       // Given
-      const blockType1 = new BlockType('text');
-      const blockType2 = new BlockType('image');
+      const blockType1 = new BlockType('youtube');
+      const blockType2 = new BlockType('python');
 
       // When
       const result = blockType1.equals(blockType2);
@@ -158,7 +158,7 @@ describe('BlockType Value Object', () => {
 
     it('null과 비교 시 false를 반환해야 한다', () => {
       // Given
-      const blockType = new BlockType('text');
+      const blockType = new BlockType('youtube');
       const nullValue = null as any;
 
       // When
@@ -169,40 +169,112 @@ describe('BlockType Value Object', () => {
     });
   });
 
-  describe('isPageType', () => {
-    it('page 타입인 경우 true를 반환해야 한다', () => {
+
+  describe('getMetadataSchema', () => {
+    it('각 타입별 메타데이터 스키마를 반환해야 한다', () => {
       // Given
-      const pageType = new BlockType('page');
+      const youtubeType = new BlockType('youtube');
 
       // When
-      const result = pageType.isPageType();
+      const schema = youtubeType.getMetadataSchema();
 
       // Then
-      expect(result).toBe(true);
+      expect(schema).toBeDefined();
+      expect(schema.required).toContain('youtubeUrl');
+      expect(schema.properties).toHaveProperty('youtubeUrl');
+      expect(schema.properties).toHaveProperty('title');
+      expect(schema.properties).toHaveProperty('description');
     });
 
-    it('page 타입이 아닌 경우 false를 반환해야 한다', () => {
+    it('python 타입의 스키마를 반환해야 한다', () => {
       // Given
-      const textType = new BlockType('text');
+      const pythonType = new BlockType('python');
 
       // When
-      const result = textType.isPageType();
+      const schema = pythonType.getMetadataSchema();
 
       // Then
-      expect(result).toBe(false);
+      expect(schema).toBeDefined();
+      expect(schema.required).toContain('code');
+      expect(schema.properties).toHaveProperty('code');
+      expect(schema.properties).toHaveProperty('language');
+      expect(schema.properties).toHaveProperty('output');
+    });
+  });
+
+  describe('getDefaultProperties', () => {
+    it('각 타입별 기본 속성을 반환해야 한다', () => {
+      // Given
+      const youtubeType = new BlockType('youtube');
+
+      // When
+      const defaultProps = youtubeType.getDefaultProperties();
+
+      // Then
+      expect(defaultProps).toBeDefined();
+      expect(defaultProps).toHaveProperty('youtubeUrl', '');
+      expect(defaultProps).toHaveProperty('title', '');
+      expect(defaultProps).toHaveProperty('description', '');
+    });
+
+    it('python 타입의 기본 속성을 반환해야 한다', () => {
+      // Given
+      const pythonType = new BlockType('python');
+
+      // When
+      const defaultProps = pythonType.getDefaultProperties();
+
+      // Then
+      expect(defaultProps).toBeDefined();
+      expect(defaultProps).toHaveProperty('code', '');
+      expect(defaultProps).toHaveProperty('language', 'python');
+      expect(defaultProps).toHaveProperty('output', '');
+    });
+  });
+
+  describe('getAvailableTools', () => {
+    it('각 타입별 사용 가능한 툴 목록을 반환해야 한다', () => {
+      // Given
+      const youtubeType = new BlockType('youtube');
+
+      // When
+      const tools = youtubeType.getAvailableTools();
+
+      // Then
+      expect(tools).toBeDefined();
+      expect(Array.isArray(tools)).toBe(true);
+      expect(tools.length).toBeGreaterThan(0);
+      expect(tools).toContain('getComments');
+      expect(tools).toContain('getVideoInfo');
+      expect(tools).toContain('generateThumbnail');
+    });
+
+    it('python 타입의 툴 목록을 반환해야 한다', () => {
+      // Given
+      const pythonType = new BlockType('python');
+
+      // When
+      const tools = pythonType.getAvailableTools();
+
+      // Then
+      expect(tools).toBeDefined();
+      expect(Array.isArray(tools)).toBe(true);
+      expect(tools).toContain('executeCode');
+      expect(tools).toContain('formatCode');
+      expect(tools).toContain('lintCode');
     });
   });
 
   describe('toString', () => {
     it('블록 타입 문자열을 반환해야 한다', () => {
       // Given
-      const blockType = new BlockType('text');
+      const blockType = new BlockType('youtube');
 
       // When
       const result = blockType.toString();
 
       // Then
-      expect(result).toBe('text');
+      expect(result).toBe('youtube');
     });
   });
 });
