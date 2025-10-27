@@ -72,4 +72,32 @@ export class PropertyType {
   requiresValidation(): boolean {
     return this.isTextType() || this.isDateTimeType();
   }
+
+  /**
+   * 값이 속성 타입에 맞는지 검증
+   */
+  validateValue(value: any): boolean {
+    if (value === null || value === undefined) {
+      return true; // null/undefined는 허용
+    }
+
+    switch (this.value) {
+      case 'text':
+      case 'url':
+      case 'email':
+        return typeof value === 'string';
+      case 'select':
+        return typeof value === 'string';
+      case 'multiselect':
+        return Array.isArray(value) && value.every(v => typeof v === 'string');
+      case 'datetime':
+        return value instanceof Date || typeof value === 'string';
+      case 'media':
+        return typeof value === 'string' && value.startsWith('http');
+      case 'profile':
+        return typeof value === 'string';
+      default:
+        return true;
+    }
+  }
 }

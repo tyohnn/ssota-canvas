@@ -1,29 +1,28 @@
 import { BlockManagementError } from '../errors/block-management.error';
+import {
+  getDefaultPropertiesForBlockType,
+  validateBlockProperties,
+} from '../types/block-properties.types';
+import {
+  BlockType as BlockTypeEnum,
+  isValidBlockType,
+} from '../types/block-types';
+
+export type SupportedBlockType = BlockTypeEnum;
 
 /**
- * 지원되는 블록 타입 목록
- */
-export const SUPPORTED_BLOCK_TYPES = [
-  'basic', // 기본 블록 (기존 데이터 호환성)
-  'youtube',
-  'python',
-  'markdown',
-  'image',
-  'file',
-  'link',
-  'shape',
-  'page_mention',
-  'latex',
-  'github_pr',
-  'react_component',
-] as const;
-
-export type SupportedBlockType = (typeof SUPPORTED_BLOCK_TYPES)[number];
-
-/**
- * BlockType Value Object
+ * BlockType Value Object (Domain Only)
  *
- * 블록 타입의 유효성을 검증하고 도메인 로직을 캡슐화
+ * 도메인에서만 사용하는 블록 타입 Value Object
+ *
+ * 사용처:
+ * - 비즈니스 규칙 검증
+ * - 도메인 로직 캡슐화
+ * - 서비스 레이어 전용
+ * - 엔티티 생성 및 검증
+ *
+ * ⚠️ 프론트엔드에서는 사용하지 마세요!
+ * 프론트엔드에서는 block-types.ts의 BlockType enum을 사용하세요.
  */
 export class BlockType {
   private readonly _value: SupportedBlockType;
@@ -47,7 +46,7 @@ export class BlockType {
       return false;
     }
 
-    return SUPPORTED_BLOCK_TYPES.includes(value as SupportedBlockType);
+    return isValidBlockType(value);
   }
 
   equals(other: BlockType): boolean {
@@ -56,126 +55,14 @@ export class BlockType {
   }
 
   /**
-   * 타입별 메타데이터 스키마 반환
+   * 블록 타입별 기본 속성 검증
    *
-   * @returns 메타데이터 스키마
+   * @param properties - 검증할 속성들
+   * @returns 검증 결과
    */
-  getMetadataSchema(): Record<string, any> {
-    const schemas: Record<string, Record<string, any>> = {
-      youtube: {
-        required: ['youtubeUrl'],
-        properties: {
-          youtubeUrl: { type: 'string', format: 'url' },
-          title: { type: 'string' },
-          description: { type: 'string' },
-        },
-      },
-      python: {
-        required: ['code'],
-        properties: {
-          code: { type: 'string' },
-          language: { type: 'string', default: 'python' },
-          output: { type: 'string' },
-        },
-      },
-      markdown: {
-        required: ['content'],
-        properties: {
-          content: { type: 'string' },
-          title: { type: 'string' },
-        },
-      },
-      image: {
-        required: ['imageUrl'],
-        properties: {
-          imageUrl: { type: 'string', format: 'url' },
-          alt: { type: 'string' },
-          caption: { type: 'string' },
-        },
-      },
-      file: {
-        required: ['fileUrl'],
-        properties: {
-          fileUrl: { type: 'string', format: 'url' },
-          fileName: { type: 'string' },
-          fileSize: { type: 'number' },
-        },
-      },
-      link: {
-        required: ['url'],
-        properties: {
-          url: { type: 'string', format: 'url' },
-          title: { type: 'string' },
-          description: { type: 'string' },
-        },
-      },
-      shape: {
-        required: ['shapeType'],
-        properties: {
-          shapeType: { type: 'string' },
-          color: { type: 'string' },
-          size: { type: 'object' },
-        },
-      },
-      page_mention: {
-        required: ['pageId'],
-        properties: {
-          pageId: { type: 'string' },
-          pageTitle: { type: 'string' },
-        },
-      },
-      latex: {
-        required: ['formula'],
-        properties: {
-          formula: { type: 'string' },
-          rendered: { type: 'string' },
-        },
-      },
-      github_pr: {
-        required: ['repository', 'pullRequestNumber'],
-        properties: {
-          repository: { type: 'string' },
-          pullRequestNumber: { type: 'number' },
-          title: { type: 'string' },
-        },
-      },
-      react_component: {
-        required: ['componentName'],
-        properties: {
-          componentName: { type: 'string' },
-          props: { type: 'object' },
-        },
-      },
-    };
-
-    return schemas[this._value] || {};
-  }
-
-  /**
-   * 타입별 기본 속성 반환
-   *
-   * @returns 기본 속성 객체
-   */
-  getDefaultProperties(): Record<string, any> {
-    const defaults: Record<string, Record<string, any>> = {
-      youtube: { youtubeUrl: '', title: '', description: '' },
-      python: { code: '', language: 'python', output: '' },
-      markdown: { content: '', title: '' },
-      image: { imageUrl: '', alt: '', caption: '' },
-      file: { fileUrl: '', fileName: '', fileSize: 0 },
-      link: { url: '', title: '', description: '' },
-      shape: {
-        shapeType: 'rectangle',
-        color: '#3B82F6',
-        size: { width: 100, height: 100 },
-      },
-      page_mention: { pageId: '', pageTitle: '' },
-      latex: { formula: '', rendered: '' },
-      github_pr: { repository: '', pullRequestNumber: 0, title: '' },
-      react_component: { componentName: '', props: {} },
-    };
-
-    return defaults[this._value] || {};
+  validateProperties(properties: Record<string, any>): boolean {
+    // SSOT: block-properties.types.ts의 validateBlockProperties 사용
+    return validateBlockProperties(this._value as BlockTypeEnum, properties);
   }
 
   /**
@@ -185,6 +72,8 @@ export class BlockType {
    */
   getAvailableTools(): string[] {
     const tools: Record<string, string[]> = {
+      basic: ['edit', 'duplicate', 'delete'],
+      default: ['edit', 'duplicate', 'delete'],
       youtube: ['getComments', 'getVideoInfo', 'generateThumbnail'],
       python: ['executeCode', 'formatCode', 'lintCode'],
       markdown: ['preview', 'exportPdf', 'exportHtml'],
@@ -199,6 +88,15 @@ export class BlockType {
     };
 
     return tools[this._value] || [];
+  }
+
+  /**
+   * 블록 타입별 기본 속성 반환
+   *
+   * @returns 기본 속성 객체
+   */
+  getDefaultProperties(): Record<string, any> {
+    return getDefaultPropertiesForBlockType(this._value as BlockTypeEnum);
   }
 
   /**

@@ -1,91 +1,176 @@
-import { describe, it, expect } from 'vitest';
-import { createBlockAction } from '../block.actions';
-import { BlockManagementError } from '../../shared/errors/block-management.error';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+  createBlockAction,
+  updateBlockAction,
+  deleteBlockAction,
+} from '../block.actions';
+import type { CreateBlockRequest, UpdateBlockRequest } from '../../shared/types';
+
+// Mock Next.js
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}));
+
+// Mock repository
+const mockBlockRepository = {
+  createBlock: vi.fn(),
+  updateBlock: vi.fn(),
+  deleteBlock: vi.fn(),
+};
+
+vi.mock('../../infrastructure/block.repository', () => mockBlockRepository);
 
 describe('Block Actions', () => {
-  // 테스트용 고정 UUID (삭제 금지)
-  const TEST_PROFILE_ID = '571f5680-0684-405d-b977-f6f28ff1df6f';
-  const TEST_ORG_ID = 'ff215d4a-045d-499d-bf6b-07426bcc0b06';
-  const TEST_WORKSPACE_ID = 'e4ee861a-4de1-42ce-820f-33866b136068';
-  const TEST_PAGE_ID = '88597cb7-6828-480d-a77b-04db5ed5a142';
+  let blockId: string;
+  let workspaceId: string;
+  let canvasId: string;
+
+  beforeEach(() => {
+    blockId = '123e4567-e89b-12d3-a456-426614174000';
+    workspaceId = '123e4567-e89b-12d3-a456-426614174001';
+    canvasId = '123e4567-e89b-12d3-a456-426614174002';
+    
+    // Reset all mocks
+    vi.clearAllMocks();
+  });
 
   describe('createBlockAction', () => {
-    it('정상적으로 블럭을 생성할 수 있어야 한다', async () => {
-      // Given
-      const request = {
-        blockType: 'text',
-        workspaceId: TEST_WORKSPACE_ID,
-        metadata: { content: 'Hello World' },
+    it('should create a block successfully', async () => {
+      const mockResult = {
+        id: blockId,
+        workspaceId,
+        canvasId,
+        type: 'youtube',
+        position: { x: 0, y: 0 },
+        properties: { title: 'Test Video' },
+        customProperties: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
+      
+      mockBlockRepository.createBlock.mockResolvedValue(mockResult);
 
-      // When
-      const result = await createBlockAction(request);
+      const result = await createBlockAction({
+        workspaceId,
+        canvasId,
+        type: 'youtube',
+        position: { x: 0, y: 0 },
+        properties: { title: 'Test Video' },
+      });
 
-      // Then
-      expect(result.isSuccess()).toBe(true);
-      if (result.isSuccess()) {
-        const dto = result.value;
-        expect(dto.id).toBeTruthy();
-        expect(dto.blockType).toBe('text');
-        expect(dto.workspaceId).toBe(TEST_WORKSPACE_ID);
-        expect(dto.metadata).toEqual({ content: 'Hello World' });
-        expect(dto.createdAt).toBeTruthy();
-        expect(dto.updatedAt).toBeTruthy();
-      }
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockResult);
+      expect(mockBlockRepository.createBlock).toHaveBeenCalledWith({
+        workspaceId,
+        canvasId,
+        type: 'youtube',
+        position: { x: 0, y: 0 },
+        properties: { title: 'Test Video' },
+      });
     });
 
-    it('잘못된 workspaceId로 블럭 생성을 시도하면 에러를 반환해야 한다', async () => {
-      // Given
-      const request = {
-        blockType: 'text',
-        workspaceId: 'invalid-workspace-id',
-        metadata: { content: 'Hello World' },
-      };
+    it('should return error when validation fails', async () => {
+      const result = await createBlockAction({
+        workspaceId: 'invalid-uuid',
+        canvasId,
+        type: 'youtube',
+        position: { x: 0, y: 0 },
+      });
 
-      // When
-      const result = await createBlockAction(request);
-
-      // Then
-      expect(result.isError()).toBe(true);
-      if (result.isError()) {
-        expect(result.error.message).toContain('Invalid workspace ID format');
-      }
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid uuid');
     });
 
-    it('빈 blockType으로 블럭 생성을 시도하면 에러를 반환해야 한다', async () => {
-      // Given
-      const request = {
-        blockType: '',
-        workspaceId: TEST_WORKSPACE_ID,
-        metadata: {},
+    it('should return error when repository fails', async () => {
+      mockBlockRepository.createBlock.mockRejectedValue(
+        new Error('Repository error')
+      );
+
+      const result = await createBlockAction({
+        workspaceId,
+        canvasId,
+        type: 'youtube',
+        position: { x: 0, y: 0 },
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Repository error');
+    });
+  });
+
+  describe('updateBlockAction', () => {
+    it('should update a block successfully', async () => {
+      const mockResult = {
+        id: blockId,
+        workspaceId,
+        canvasId: 'canvas-id',
+        type: 'youtube',
+        position: { x: 0, y: 0 },
+        properties: { title: 'Updated Title' },
+        customProperties: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
+      
+      mockBlockRepository.updateBlock.mockResolvedValue(mockResult);
 
-      // When
-      const result = await createBlockAction(request);
+      const result = await updateBlockAction({
+        blockId,
+        properties: { title: 'Updated Title' },
+      });
 
-      // Then
-      expect(result.isError()).toBe(true);
-      if (result.isError()) {
-        expect(result.error.message).toContain('Block type is required');
-      }
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockResult);
+      expect(mockBlockRepository.updateBlock).toHaveBeenCalledWith({
+        blockId,
+        properties: { title: 'Updated Title' },
+      });
     });
 
-    it('메타데이터 없이도 블럭을 생성할 수 있어야 한다', async () => {
-      // Given
-      const request = {
-        blockType: 'text',
-        workspaceId: TEST_WORKSPACE_ID,
-      };
+    it('should return error when validation fails', async () => {
+      const result = await updateBlockAction({
+        blockId: 'invalid-uuid',
+        properties: { title: 'Updated Title' },
+      });
 
-      // When
-      const result = await createBlockAction(request);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid uuid');
+    });
 
-      // Then
-      expect(result.isSuccess()).toBe(true);
-      if (result.isSuccess()) {
-        const dto = result.value;
-        expect(dto.metadata).toEqual({});
-      }
+    it('should return error when repository fails', async () => {
+      mockBlockRepository.updateBlock.mockRejectedValue(
+        new Error('Repository error')
+      );
+
+      const result = await updateBlockAction({
+        blockId,
+        properties: { title: 'Updated Title' },
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Repository error');
+    });
+  });
+
+  describe('deleteBlockAction', () => {
+    it('should delete a block successfully', async () => {
+      mockBlockRepository.deleteBlock.mockResolvedValue(undefined);
+
+      const result = await deleteBlockAction(blockId);
+
+      expect(result.success).toBe(true);
+      expect(mockBlockRepository.deleteBlock).toHaveBeenCalledWith(blockId);
+    });
+
+    it('should return error when repository fails', async () => {
+      mockBlockRepository.deleteBlock.mockRejectedValue(
+        new Error('Repository error')
+      );
+
+      const result = await deleteBlockAction(blockId);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Repository error');
     });
   });
 });

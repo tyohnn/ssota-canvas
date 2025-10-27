@@ -126,7 +126,19 @@ And 적절한 오류 메시지가 표시된다
 - [ ] 보안 취약점 0개
 
 ## 📊 진행 상황
-**현재**: 0% 완료 (설계 완료, 구현 대기 중)
+**현재**: 30% 완료 (기본 UI 구조만 구현)
+
+### ✅ 완료된 구현 (2025-10-24 기준)
+- **Value Objects**: MediaURL 완전 구현 (URL 검증, 파일 타입 검증)
+- **Frontend Components**: MediaInput 컴포넌트 기본 구조 구현
+- **UI Components**: 파일 선택 및 미리보기 기본 기능
+
+### ❌ 미구현 사항
+- **Server Actions**: manageMediaAction, uploadMediaAction, deleteMediaAction 미구현
+- **Supabase Storage 연동**: 파일 업로드, Public URL 생성, 파일 삭제 로직 미구현
+- **Frontend Components**: 드래그앤드롭, 진행률 표시, 미리보기 고급 기능 미구현
+- **Frontend Components**: 파일 드래그 앤 드롭 UI, 업로드 진행률 표시, 파일 미리보기 기능 미구현
+- **Testing**: Unit Tests, Integration Tests, E2E Tests 미구현
 
 ## 🔗 의존성
 - **선행 Story**: BM-004 (속성 값 관리)

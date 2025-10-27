@@ -15,9 +15,11 @@ import {
   DuplicateBlockCommand,
 } from '../../shared/commands/index';
 import { BlockManagementService } from '@/domains/block-management/backend/services/block-management.service';
+import { DefaultCanvasBlockMountService } from './canvas-block-mount.service';
 import { BlockMountAggregate } from '../../shared/aggregates/block-mount.aggregate';
 import { EdgeAggregate } from '../../shared/aggregates/edge.aggregate';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { Block } from '@/domains/block-management/shared/entities/block.entity';
 import { BlockMountId } from '../../shared/value-objects/block-mount-id.vo';
 import { EdgeId } from '../../shared/value-objects/edge-id.vo';
 import { EdgeShape } from '../../shared/value-objects/edge-shape.vo';
@@ -40,13 +42,21 @@ class CanvasManagementError extends Error {
 }
 
 export class CanvasManagementService {
+  private blockMountService: DefaultCanvasBlockMountService;
+
   constructor(
     private blockManagementService: BlockManagementService,
     private blockMountRepository: BlockMountRepository,
     private edgeRepository: EdgeRepository,
     private viewportRepository: ViewportRepository,
     private workspaceRepository: WorkspaceRepository
-  ) {}
+  ) {
+    this.blockMountService = new DefaultCanvasBlockMountService(
+      blockManagementService,
+      blockMountRepository,
+      edgeRepository
+    );
+  }
   /**
    * 캔버스 뷰 데이터 조회 (BlockMount와 Block을 JOIN해서 조회)
    *
@@ -59,8 +69,19 @@ export class CanvasManagementService {
     userId: UserId
   ): Promise<Result<CanvasViewData, Error>> {
     try {
-      // 권한 확인은 getCanvasViewAction에서 verifyPageAccess로 처리됨
-      // 이 서비스는 이미 권한이 확인된 상태에서만 호출됨
+      // 권한 확인
+      const hasAccess = await this.workspaceRepository.checkPageAccess(
+        pageId,
+        userId
+      );
+      if (!hasAccess) {
+        return Result.error(
+          new CanvasManagementError(
+            'ACCESS_DENIED',
+            'User does not have access to this page'
+          )
+        );
+      }
 
       // 1. BlockMountRepository와 Block을 JOIN해서 조회
       const blockMountsWithBlocks =
@@ -89,6 +110,8 @@ export class CanvasManagementService {
           blockMountId: blockMount.blockMount.id.value,
           blockId: blockMount.blockMount.blockId.value,
           blockType: block.blockType.value,
+          properties: block.properties,
+          customProperties: block.customProperties,
           position: {
             x: blockMount.blockMount.position.x,
             y: blockMount.blockMount.position.y,
@@ -98,7 +121,6 @@ export class CanvasManagementService {
             height: blockMount.blockMount.size.height,
           },
           zOrder: blockMount.blockMount.zOrder.value,
-          content: block.metadata.value,
         })),
         edges: edges.map(edgeAgg => {
           // blockId를 blockMountId로 변환 (React Flow 노드 ID 매핑)
@@ -144,58 +166,13 @@ export class CanvasManagementService {
 
   /**
    * 블럭 생성 후 마운트하는 통합 메서드
-   * Block Management Service를 사용하여 블럭 생성 후 마운트
+   * CanvasBlockMountService를 사용하여 블럭 생성 후 마운트
    */
   async createAndMountBlock(
     command: CreateAndMountBlockCommand
-  ): Promise<Result<BlockMountAggregate, Error>> {
+  ): Promise<Result<{ aggregate: BlockMountAggregate; block: Block }, Error>> {
     try {
-      // 1. Block Management Service를 통해 블럭 생성
-      const blockCreationResult = await this.blockManagementService.createBlock(
-        {
-          blockType: command.blockType,
-          workspaceId: command.workspaceId,
-          metadata: command.metadata,
-          userId: command.userId,
-        }
-      );
-
-      if (blockCreationResult.isError()) {
-        console.error(
-          '❌ [CanvasManagementService] Block creation failed:',
-          blockCreationResult.error
-        );
-        return Result.error(blockCreationResult.error);
-      }
-
-      const createdBlock = blockCreationResult.value;
-
-      // 2. 생성된 블럭 ID로 BlockMountAggregate 생성
-      const blockIdVO = new BlockId(createdBlock.id);
-      const blockMountId = new BlockMountId(crypto.randomUUID());
-      const aggregate = BlockMountAggregate.mountBlock(
-        blockMountId,
-        command.pageId,
-        blockIdVO,
-        command.position,
-        command.size
-      );
-
-      // 3. BlockMountRepository에 저장
-      try {
-        await this.blockMountRepository.save(aggregate);
-      } catch (saveError) {
-        console.error(
-          '❌ [CanvasManagementService] Failed to save block mount:',
-          saveError
-        );
-        return Result.error(
-          saveError instanceof Error
-            ? saveError
-            : new Error('Failed to save block mount')
-        );
-      }
-      return Result.success(aggregate);
+      return await this.blockMountService.createAndMountBlock(command);
     } catch (error) {
       console.error(
         '💥 [CanvasManagementService] Block creation and mounting failed:',
@@ -716,19 +693,11 @@ export class CanvasManagementService {
       }
 
       // 2. Block Management Service를 통해 블럭 복제
-
-      const blockDuplicationResult =
-        await this.blockManagementService.duplicateBlock({
-          originalBlockId: originalAggregate.blockMount.blockId,
-          workspaceId: command.workspaceId,
-          userId: command.userId,
-        });
-
-      if (blockDuplicationResult.isError()) {
-        return Result.error(blockDuplicationResult.error);
-      }
-
-      const duplicatedBlock = blockDuplicationResult.value;
+      const duplicatedBlock = await this.blockManagementService.duplicateBlock({
+        originalBlockId: originalAggregate.blockMount.blockId,
+        workspaceId: command.workspaceId,
+        userId: command.userId,
+      });
       const duplicatedBlockId = new BlockId(duplicatedBlock.id);
 
       // 3. BlockMountAggregate.duplicateBlock() 호출

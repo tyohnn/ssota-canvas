@@ -83,7 +83,7 @@ describe('React Flow ACL', () => {
         pageId: 'page-123',
         sourceBlockId: 'block-mount-456',
         targetBlockId: 'block-mount-789',
-        edgeType: 'straight'
+        edgeShape: 'straight'
       };
 
       // When
@@ -97,7 +97,7 @@ describe('React Flow ACL', () => {
         type: 'custom',
         data: {
           edgeId: 'edge-123',
-          actualEdgeType: 'straight',
+          actualEdgeShape: 'straight',
           pageId: 'page-123'
         }
       });
@@ -110,7 +110,7 @@ describe('React Flow ACL', () => {
         pageId: 'page-456',
         sourceBlockId: 'block-mount-123',
         targetBlockId: 'block-mount-456',
-        edgeType: ''
+        edgeShape: ''
       };
 
       // When
@@ -118,7 +118,7 @@ describe('React Flow ACL', () => {
 
       // Then
       expect(reactFlowEdge.type).toBe('custom');
-      expect(reactFlowEdge.data?.actualEdgeType).toBe('default');
+      expect(reactFlowEdge.data?.actualEdgeShape).toBe('default');
     });
 
     it('null edgeType일 때도 기본값을 사용해야 한다', () => {
@@ -128,7 +128,7 @@ describe('React Flow ACL', () => {
         pageId: 'page-789',
         sourceBlockId: 'block-mount-123',
         targetBlockId: 'block-mount-456',
-        edgeType: null as any
+        edgeShape: null as any
       };
 
       // When
@@ -136,7 +136,7 @@ describe('React Flow ACL', () => {
 
       // Then
       expect(reactFlowEdge.type).toBe('custom');
-      expect(reactFlowEdge.data?.actualEdgeType).toBe('default');
+      expect(reactFlowEdge.data?.actualEdgeShape).toBe('default');
     });
   });
 });

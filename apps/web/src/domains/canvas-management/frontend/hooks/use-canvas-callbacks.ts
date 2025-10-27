@@ -1,0 +1,445 @@
+import { useCallback, useMemo } from 'react';
+import { type Node, type OnConnect, useReactFlow } from '@xyflow/react';
+import { isFailure } from '@/lib/action-result';
+import {
+  deleteBlockMountAction,
+  deleteMultipleBlockMountsAction,
+} from '../../actions/block.actions';
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import type { EdgeView } from '../../shared/dtos';
+
+interface UseCanvasCallbacksProps {
+  pageId: string;
+  orgId: string;
+  workspaceId: string;
+  canvasMode: {
+    enterDraggingMode: (draggedIds: string[]) => void;
+    enterSingleSelectionMode: (nodeId: string) => void;
+    enterMultiSelectionMode: (nodeIds: string[]) => void;
+    enterBlockCreationMode: (blockType: BlockType) => void;
+    exitToDefaultMode: () => void;
+    isBlockCreationMode: () => boolean;
+    isMultiSelectionMode: () => boolean;
+    isSingleSelectionMode: () => boolean;
+  };
+  canvasSelection: {
+    getSelectedBlocks: () => string[];
+  };
+  blockTransform: {
+    saveBlockPosition: (
+      nodeId: string,
+      position: { x: number; y: number }
+    ) => Promise<void>;
+    saveBlockSize: (
+      nodeId: string,
+      size: { width: number; height: number }
+    ) => Promise<void>;
+  };
+  snapGuides: {
+    calculateSnapGuides: (
+      nodeId: string,
+      position: { x: number; y: number },
+      currentNodes: Node[]
+    ) => { position: { x: number; y: number } };
+    hideGuidelines: () => void;
+  };
+  edgeManagement: {
+    createEdge: (
+      sourceId: string,
+      targetId: string,
+      edgeType?: string
+    ) => Promise<EdgeView | null>;
+  };
+  blockLifecycle: {
+    duplicateBlock: (
+      blockMountId: string,
+      workspaceId: string,
+      offsetX: number,
+      offsetY: number
+    ) => Promise<void>;
+  };
+}
+
+/**
+ * React Flow 콜백 함수들을 관리하는 커스텀 훅
+ *
+ * React Flow와 관련된 모든 이벤트 핸들러를 중앙에서 관리하여
+ * 컴포넌트 파일을 간결하게 유지합니다.
+ */
+export function useCanvasCallbacks({
+  pageId,
+  orgId,
+  workspaceId,
+  canvasMode,
+  canvasSelection,
+  blockTransform,
+  snapGuides,
+  edgeManagement,
+  blockLifecycle,
+}: UseCanvasCallbacksProps) {
+  const reactFlowInstance = useReactFlow();
+
+  /**
+   * 드래그 시작 → 드래그 모드 진입 및 이전 가이드라인 초기화
+   */
+  const onNodeDragStart = useCallback(
+    (event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
+      const draggedIds = draggedNodes.map(n => n.id);
+
+      // 이전 가이드라인 초기화 (새 블럭 드래그 시 깨끗한 상태로 시작)
+      snapGuides.hideGuidelines();
+
+      canvasMode.enterDraggingMode(draggedIds);
+    },
+    [canvasMode.enterDraggingMode, snapGuides.hideGuidelines]
+  );
+
+  /**
+   * 드래그 중 → 스냅 가이드라인 실시간 업데이트 (표시만, 스냅은 dragStop에서)
+   * React Flow Helper Lines 예제: https://reactflow.dev/examples/interaction/helper-lines
+   */
+  const onNodeDrag = useCallback(
+    (event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
+      // 단일 블럭 드래그 시에만 스냅 가이드라인 표시 (스냅은 적용하지 않음)
+      if (draggedNodes.length === 1) {
+        const currentNodes = reactFlowInstance.getNodes();
+        // 가이드라인만 계산하고 표시 (position은 변경하지 않음)
+        snapGuides.calculateSnapGuides(node.id, node.position, currentNodes);
+      }
+    },
+    [reactFlowInstance, snapGuides.calculateSnapGuides]
+  );
+
+  /**
+   * 드래그 종료 → 스냅 적용 및 위치 서버 저장
+   */
+  const onNodeDragStop = useCallback(
+    async (event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
+      let finalPosition = node.position;
+
+      // 1. 단일 블럭인 경우 최종 스냅 위치 계산 및 적용
+      if (draggedNodes.length === 1) {
+        const currentNodes = reactFlowInstance.getNodes();
+        const snapResult = snapGuides.calculateSnapGuides(
+          node.id,
+          node.position,
+          currentNodes
+        );
+
+        finalPosition = snapResult.position;
+
+        // 스냅된 위치로 노드 업데이트
+        if (
+          snapResult.position.x !== node.position.x ||
+          snapResult.position.y !== node.position.y
+        ) {
+          reactFlowInstance.setNodes(nodes =>
+            nodes.map(n =>
+              n.id === node.id ? { ...n, position: snapResult.position } : n
+            )
+          );
+        }
+      }
+
+      // 2. 가이드라인 즉시 숨김 (서버 저장보다 먼저!)
+      snapGuides.hideGuidelines();
+
+      // 3. 이전 모드로 즉시 복귀 (서버 저장보다 먼저!)
+      if (draggedNodes.length === 1) {
+        canvasMode.enterSingleSelectionMode(draggedNodes[0]!.id);
+      } else {
+        canvasMode.enterMultiSelectionMode(draggedNodes.map(n => n.id));
+      }
+
+      // 4. 서버 저장 (백그라운드, UI 블로킹 없음)
+      // await을 제거하고 Promise를 백그라운드에서 실행
+      if (draggedNodes.length === 1) {
+        blockTransform.saveBlockPosition(node.id, finalPosition).catch(err => {
+          console.error('[Canvas] Failed to save position:', err);
+        });
+      } else {
+        // 다중 선택인 경우 각 노드의 위치를 서버에 저장
+        Promise.all(
+          draggedNodes.map(draggedNode =>
+            blockTransform.saveBlockPosition(
+              draggedNode.id,
+              draggedNode.position
+            )
+          )
+        ).catch(err => {
+          console.error('[Canvas] Failed to save positions:', err);
+        });
+      }
+    },
+    [
+      reactFlowInstance,
+      snapGuides.calculateSnapGuides,
+      snapGuides.hideGuidelines,
+      canvasMode.enterSingleSelectionMode,
+      canvasMode.enterMultiSelectionMode,
+      blockTransform.saveBlockPosition,
+    ]
+  );
+
+  /**
+   * 리사이즈 종료 → 크기 서버 저장
+   * Note: React Flow의 onNodesChange에서 dimension 변경을 감지하여 처리
+   */
+  const handleNodeResize = useCallback(
+    async (nodeId: string, newWidth: number, newHeight: number) => {
+      const newSize = {
+        width: newWidth,
+        height: newHeight,
+      };
+
+      await blockTransform.saveBlockSize(nodeId, newSize);
+    },
+    [blockTransform.saveBlockSize]
+  );
+
+  /**
+   * 노드 클릭 → 단일 선택 모드 진입
+   */
+  const onNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      // Ctrl/Cmd + 클릭이 아닌 경우에만 단일 선택 모드로 전환
+      if (!event.ctrlKey && !event.metaKey) {
+        canvasMode.enterSingleSelectionMode(node.id);
+      }
+    },
+    [canvasMode.enterSingleSelectionMode]
+  );
+
+  /**
+   * 선택 변경 → 다중 선택 모드 진입
+   */
+  const onSelectionChange = useCallback(
+    ({ nodes: selectedNodes }: { nodes: Node[] }) => {
+      if (selectedNodes.length > 1) {
+        canvasMode.enterMultiSelectionMode(selectedNodes.map(n => n.id));
+      } else if (selectedNodes.length === 1) {
+        canvasMode.enterSingleSelectionMode(selectedNodes[0]!.id);
+      } else {
+        canvasMode.exitToDefaultMode();
+      }
+    },
+    [
+      canvasMode.enterMultiSelectionMode,
+      canvasMode.enterSingleSelectionMode,
+      canvasMode.exitToDefaultMode,
+    ]
+  );
+
+  /**
+   * 빈 영역 클릭 → 기본 모드 복귀
+   * Note: block-creation 모드일 때는 SkeletonBlock에서 블럭 생성을 처리하므로 여기서는 처리하지 않음
+   */
+  const onPaneClick = useCallback(() => {
+    // block-creation 모드일 때는 SkeletonBlock 컴포넌트에서 처리
+    if (canvasMode.isBlockCreationMode()) {
+      return;
+    }
+
+    // React Flow 선택 상태를 명시적으로 해제
+    reactFlowInstance.setNodes(nodes =>
+      nodes.map(node => ({ ...node, selected: false }))
+    );
+
+    canvasMode.exitToDefaultMode();
+  }, [
+    canvasMode.isBlockCreationMode,
+    canvasMode.exitToDefaultMode,
+    reactFlowInstance,
+  ]);
+
+  /**
+   * 엣지 연결 → 엣지 생성 및 서버 저장
+   */
+  const onConnect: OnConnect = useCallback(
+    async connection => {
+      console.log('[Canvas] onConnect:', {
+        source: connection.source,
+        target: connection.target,
+      });
+
+      // 1. 연결 유효성 확인
+      if (!connection.source || !connection.target) {
+        console.warn(
+          '⚠️ [Canvas] Invalid connection: missing source or target'
+        );
+        return;
+      }
+
+      // 2. Optimistic UI로 엣지 생성
+      // Hook 내부에서 blockMountId → blockId 변환 처리
+      await edgeManagement.createEdge(
+        connection.source, // blockMountId (React Flow 노드 ID)
+        connection.target, // blockMountId (React Flow 노드 ID)
+        'default' // 기본 타입, 나중에 사용자가 변경 가능
+      );
+    },
+    [edgeManagement.createEdge]
+  );
+
+  /**
+   * 노드 삭제 → 블럭 마운트 및 연결된 엣지 삭제
+   * Story CM-008: Delete 키 또는 Backspace 키로 블럭 삭제
+   *
+   * 주의: React Flow가 이미 노드를 제거한 후 이 콜백을 호출하므로,
+   * UI는 이미 제거된 상태이고 서버 액션만 호출하면 됨
+   */
+  const onNodesDelete = useCallback(
+    async (deletedNodes: Node[]) => {
+      // Optimistic 노드 필터링 (아직 서버에 저장되지 않음)
+      const optimisticNodes = deletedNodes.filter(node =>
+        node.id.startsWith('optimistic-')
+      );
+      const realNodes = deletedNodes.filter(
+        node => !node.id.startsWith('optimistic-')
+      );
+
+      if (optimisticNodes.length > 0) {
+        // Optimistic 노드는 서버 호출 없이 무시
+      }
+
+      // 실제 노드만 서버로 전송
+      if (realNodes.length === 0) {
+        return;
+      }
+
+      const blockMountIds = realNodes.map(node => node.id);
+
+      try {
+        if (blockMountIds.length === 1) {
+          // 단일 블럭 삭제 - 직접 서버 액션 호출
+          const result = await deleteBlockMountAction({
+            blockMountId: blockMountIds[0]!,
+            orgId,
+            workspaceId,
+            pageId,
+          });
+
+          if (result.success && result.data) {
+            // 성공 시 로그 없음 (조용한 처리)
+          } else if (isFailure(result)) {
+            console.error('Block deletion failed:', result.error);
+          }
+        } else if (blockMountIds.length > 1) {
+          // 다중 블럭 삭제 - 직접 서버 액션 호출
+          const result = await deleteMultipleBlockMountsAction({
+            blockMountIds,
+            orgId,
+            workspaceId,
+            pageId,
+          });
+
+          if (result.success && result.data) {
+            // 성공 시 로그 없음 (조용한 처리)
+          } else if (isFailure(result)) {
+            console.error('Multiple blocks deletion failed:', result.error);
+          }
+        }
+      } catch (error) {
+        console.error('Block deletion error:', error);
+      }
+    },
+    [orgId, workspaceId, pageId]
+  );
+
+  /**
+   * 키보드 이벤트 핸들러 (Ctrl+D 복제)
+   */
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      // Ctrl+D 또는 Cmd+D (Mac)
+      if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
+        event.preventDefault();
+
+        const selectedBlocks = canvasSelection.getSelectedBlocks();
+        if (selectedBlocks.length === 0) {
+          return;
+        }
+
+        // 선택된 블럭들을 복제
+        selectedBlocks.forEach(async blockId => {
+          // nodes를 의존성에서 제거하고 내부에서 가져오기
+          const currentNodes = reactFlowInstance.getNodes();
+          const selectedNode = currentNodes.find(node => node.id === blockId);
+          const blockMountId = (selectedNode?.data as any)?.blockMountId;
+          if (!blockMountId) {
+            return;
+          }
+
+          try {
+            // 블럭 너비 + 50px 오프셋 계산
+            const blockWidth = selectedNode?.width || 200; // 기본 너비 200px
+            const offsetX = blockWidth + 50;
+            const offsetY = 20; // Y축은 기본 20px
+
+            await blockLifecycle.duplicateBlock(
+              blockMountId,
+              workspaceId,
+              offsetX,
+              offsetY
+            );
+          } catch (error) {
+            console.error(`Failed to duplicate block ${blockId}:`, error);
+          }
+        });
+      }
+    },
+    [
+      canvasSelection.getSelectedBlocks,
+      reactFlowInstance,
+      blockLifecycle.duplicateBlock,
+      workspaceId,
+    ]
+  );
+
+  /**
+   * 블럭 타입 선택 핸들러
+   */
+  const handleSelectBlockType = useCallback(
+    (blockType: BlockType) => {
+      // 선택된 블럭 타입으로 생성 모드 진입
+      canvasMode.enterBlockCreationMode(blockType);
+    },
+    [canvasMode.enterBlockCreationMode]
+  );
+
+  // 반환 객체를 useMemo로 메모이제이션하여 불필요한 리렌더링 방지
+  return useMemo(
+    () => ({
+      // 드래그 관련
+      onNodeDragStart,
+      onNodeDrag,
+      onNodeDragStop,
+      // 선택 관련
+      onNodeClick,
+      onSelectionChange,
+      onPaneClick,
+      // 엣지 관련
+      onConnect,
+      // 삭제 관련
+      onNodesDelete,
+      // 키보드 관련
+      onKeyDown,
+      // 기타
+      handleNodeResize,
+      handleSelectBlockType,
+    }),
+    [
+      onNodeDragStart,
+      onNodeDrag,
+      onNodeDragStop,
+      onNodeClick,
+      onSelectionChange,
+      onPaneClick,
+      onConnect,
+      onNodesDelete,
+      onKeyDown,
+      handleNodeResize,
+      handleSelectBlockType,
+    ]
+  );
+}

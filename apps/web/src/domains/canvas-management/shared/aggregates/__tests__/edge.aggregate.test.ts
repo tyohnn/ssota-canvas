@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EdgeAggregate } from '../edge.aggregate';
 import { EdgeId } from '../../value-objects/edge-id.vo';
-import { EdgeType } from '../../value-objects/edge-type.vo';
+import { EdgeShape } from '../../value-objects/edge-shape.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import {
   EdgeCreatedEvent,
-  EdgeTypeChangedEvent,
   EdgeLabelChangedEvent,
   EdgeStyleChangedEvent,
   EdgeDeletedEvent,
+  EdgeShapeChangedEvent,
 } from '../../events';
 
 describe('EdgeAggregate', () => {
@@ -28,7 +28,7 @@ describe('EdgeAggregate', () => {
   describe('createEdge', () => {
     it('유효한 파라미터로 새로운 Edge를 생성할 수 있어야 한다', () => {
       // Given
-      const edgeType = EdgeType.straight();
+      const edgeShape = EdgeShape.straight();
 
       // When
       const aggregate = EdgeAggregate.createEdge(
@@ -36,7 +36,7 @@ describe('EdgeAggregate', () => {
         pageId,
         sourceBlockId,
         targetBlockId,
-        edgeType
+        edgeShape
       );
 
       // Then
@@ -44,7 +44,7 @@ describe('EdgeAggregate', () => {
       expect(aggregate.edge.pageId).toBe(pageId);
       expect(aggregate.edge.sourceBlockId).toBe(sourceBlockId);
       expect(aggregate.edge.targetBlockId).toBe(targetBlockId);
-      expect(aggregate.edge.edgeType.equals(edgeType)).toBe(true);
+      expect(aggregate.edge.edgeShape.equals(edgeShape)).toBe(true);
     });
 
     it('기본 edgeType으로 Edge를 생성할 수 있어야 한다', () => {
@@ -57,7 +57,7 @@ describe('EdgeAggregate', () => {
       );
 
       // Then
-      expect(aggregate.edge.edgeType.isDefault()).toBe(true);
+      expect(aggregate.edge.edgeShape.isDefault()).toBe(true);
     });
 
     it('EdgeCreated 이벤트를 발행해야 한다', () => {
@@ -95,27 +95,27 @@ describe('EdgeAggregate', () => {
     });
   });
 
-  describe('updateEdgeType', () => {
-    it('엣지 타입을 업데이트할 수 있어야 한다', () => {
+  describe('updateEdgeShape', () => {
+    it('엣지 모양을 업데이트할 수 있어야 한다', () => {
       // Given
       const aggregate = EdgeAggregate.createEdge(
         edgeId,
         pageId,
         sourceBlockId,
         targetBlockId,
-        EdgeType.default()
+        EdgeShape.default()
       );
-      const newType = EdgeType.step();
+      const newShape = EdgeShape.step();
 
       // When
       aggregate.clearEvents(); // 생성 이벤트 클리어
-      aggregate.updateEdgeType(newType);
+      aggregate.updateEdgeShape(newShape);
 
       // Then
-      expect(aggregate.edge.edgeType.equals(newType)).toBe(true);
+      expect(aggregate.edge.edgeShape.equals(newShape)).toBe(true);
     });
 
-    it('EdgeTypeChanged 이벤트를 발행해야 한다', () => {
+    it('EdgeShapeChanged 이벤트를 발행해야 한다', () => {
       // Given
       const aggregate = EdgeAggregate.createEdge(
         edgeId,
@@ -124,16 +124,16 @@ describe('EdgeAggregate', () => {
         targetBlockId
       );
       aggregate.clearEvents(); // 생성 이벤트 클리어
-      const newType = EdgeType.straight();
+      const newShape = EdgeShape.straight();
 
       // When
-      aggregate.updateEdgeType(newType);
+      aggregate.updateEdgeShape(newShape);
 
       // Then
       const events = aggregate.getEvents();
       expect(events).toHaveLength(1);
-      expect(events[0]).toBeInstanceOf(EdgeTypeChangedEvent);
-      expect((events[0] as EdgeTypeChangedEvent).data.newType.equals(newType)).toBe(true);
+      expect(events[0]).toBeInstanceOf(EdgeShapeChangedEvent);
+      expect((events[0] as EdgeShapeChangedEvent).data.newShape.equals(newShape)).toBe(true);
     });
   });
 

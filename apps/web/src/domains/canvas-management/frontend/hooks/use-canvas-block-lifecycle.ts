@@ -10,39 +10,24 @@ import {
 } from '../../actions/block.actions';
 import { useCanvasMode } from '../contexts/canvas-mode-context';
 import { isFailure } from '@/lib/action-result';
-import type { BasicBlockNodeData } from '../acl/react-flow.acl';
-
-/**
- * 블록 타입별 기본 크기 정의 (SkeletonBlock과 동일)
- */
-const BLOCK_TYPE_SIZES: Record<string, { width: number; height: number }> = {
-  basic: { width: 200, height: 150 },
-  'shape-square': { width: 150, height: 150 },
-  'shape-circle': { width: 150, height: 150 },
-  image: { width: 300, height: 200 },
-  video: { width: 400, height: 225 },
-  map: { width: 350, height: 250 },
-};
+import type { BlockNodeData } from '../../../block-management/shared/types/block-data.types';
+import { createBlockNodeData } from '../../../block-management/shared/types/block-data.types';
+import {
+  BlockType,
+  getBlockSize,
+} from '../../../block-management/shared/types/block-types';
 
 export interface CreateBlockParams {
   pageId: string;
   orgId?: string;
 }
 
-export interface BlockData {
-  blockType: string;
-  blockMountId?: string;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  zOrder?: number;
-  workspaceId?: string;
-  [key: string]: any;
-}
+// BlockData 인터페이스 제거 - React Flow Node 타입을 직접 사용
 
 export interface UseCanvasBlockLifecycleResult {
   // Optimistic UI 제어 (사용자 액션, AI Tool Call)
   createBlock: (
-    blockType: string,
+    blockType: BlockType,
     position: { x: number; y: number },
     workspaceId: string,
     orgId?: string
@@ -67,7 +52,12 @@ export interface UseCanvasBlockLifecycleResult {
   ) => Promise<void>;
 
   // 프로그램적 제어 (UI만 변경, 서버 호출 X)
-  addBlockToCanvas: (blockId: string, blockData: BlockData) => void;
+  addBlockToCanvas: (
+    blockId: string,
+    nodeData: BlockNodeData,
+    position: { x: number; y: number },
+    size: { width: number; height: number }
+  ) => void;
   removeBlockFromCanvas: (blockId: string) => void;
 
   // 상태 읽기
@@ -94,7 +84,8 @@ export function useCanvasBlockLifecycle(
 
   // Canvas Mode hook
   const canvasMode = useCanvasMode();
-  const { enterSingleSelectionMode, exitToDefaultMode } = canvasMode;
+  const { enterSingleSelectionMode, exitToDefaultMode, enterBlockEditingMode } =
+    canvasMode;
 
   /**
    * 고유한 Optimistic ID 생성
@@ -108,7 +99,7 @@ export function useCanvasBlockLifecycle(
    */
   const createBlock = useCallback(
     async (
-      blockType: string,
+      blockType: BlockType,
       position: { x: number; y: number },
       workspaceId: string,
       orgIdParam?: string
@@ -117,35 +108,28 @@ export function useCanvasBlockLifecycle(
 
       try {
         // 블록 타입별 크기 가져오기
-        const blockSizeDef =
-          BLOCK_TYPE_SIZES[blockType] || BLOCK_TYPE_SIZES.basic;
-        const blockSize = {
-          width: blockSizeDef?.width ?? 200,
-          height: blockSizeDef?.height ?? 150,
-        };
+        const blockSize = getBlockSize(blockType);
 
         // 1. 임시 노드 생성 및 React Flow Store에 즉시 추가
-        const optimisticNodeData: BasicBlockNodeData = {
-          blockMountId: '',
-          blockId: '',
-          blockType: blockType as 'basic', // 타입 단언으로 안전성 확보
-          position,
-          size: blockSize, // 블록 타입별 동적 크기
-          zOrder: 1,
-          isOptimistic: true,
-          // 임시 데이터로 빠른 UI 반응
-          _optimisticId: optimisticId,
-          // Canvas Management에 필요한 ID들 추가
-          pageId,
-          orgId: orgIdParam || orgId,
-          workspaceId,
-        };
+        const optimisticNodeData: BlockNodeData = createBlockNodeData(
+          blockType,
+          {
+            blockMountId: '',
+            blockId: '',
+            pageId,
+            orgId: orgIdParam || orgId,
+            workspaceId,
+          }
+        );
 
         const optimisticNode = {
           id: optimisticId,
-          type: blockType as 'basic', // blockType을 노드 타입으로 사용
+          type: blockType, // blockType을 노드 타입으로 사용
           position,
           data: optimisticNodeData,
+          width: blockSize.width,
+          height: blockSize.height,
+          zIndex: 1,
         } as Node; // React Flow Node 타입으로 캐스팅
 
         addNodes([optimisticNode]);
@@ -167,31 +151,35 @@ export function useCanvasBlockLifecycle(
           deleteElements({ nodes: [{ id: optimisticId }] });
 
           // 실제 노드 추가
-          const realNodeData: BasicBlockNodeData = {
-            blockMountId,
-            blockId,
-            blockType: blockType as 'basic',
-            position: result.data.position,
-            size: result.data.size,
-            zOrder: result.data.zOrder,
-            isOptimistic: false,
-            // Canvas Management에 필요한 ID들 추가
-            pageId,
-            orgId: orgIdParam || orgId,
-            workspaceId,
-          };
+          const realNodeData: BlockNodeData = createBlockNodeData(
+            blockType as BlockType,
+            {
+              blockMountId,
+              blockId,
+              pageId,
+              orgId: orgIdParam || orgId,
+              workspaceId,
+              // createdBy, createdAt, updatedAt는 별도 조회 필요
+            }
+          );
 
           const realNode = {
             id: blockMountId, // blockMountId를 노드 ID로 사용 (ACL과 일치)
-            type: blockType as 'basic', // blockType을 노드 타입으로 사용
+            type: blockType, // blockType을 노드 타입으로 사용
             position: result.data.position,
             data: realNodeData,
+            width: result.data.size.width,
+            height: result.data.size.height,
+            zIndex: result.data.zOrder,
           } as Node; // React Flow Node 타입으로 캐스팅
 
           addNodes([realNode]);
 
           // 4. 단일 선택 모드로 전환 (blockMountId를 사용)
           enterSingleSelectionMode(blockMountId);
+
+          // 5. 자동으로 에디터 패널 열기
+          enterBlockEditingMode(result.data.blockId);
         } else {
           // 5. 실패 시: 임시 노드 제거
           deleteElements({ nodes: [{ id: optimisticId }] });
@@ -221,6 +209,7 @@ export function useCanvasBlockLifecycle(
       deleteElements,
       enterSingleSelectionMode,
       exitToDefaultMode,
+      enterBlockEditingMode,
     ]
   );
 
@@ -228,31 +217,25 @@ export function useCanvasBlockLifecycle(
    * 프로그램적 제어: UI에만 블럭 추가 (서버 저장 X)
    */
   const addBlockToCanvas = useCallback(
-    (blockId: string, blockData: BlockData) => {
-      const nodeData: BasicBlockNodeData = {
-        blockMountId: blockData.blockMountId || blockId,
-        blockId,
-        blockType: blockData.blockType as 'basic',
-        position: blockData.position,
-        size: blockData.size,
-        zOrder: blockData.zOrder || 1,
-        isOptimistic: false,
-        // Canvas Management에 필요한 추가 데이터
-        pageId,
-        orgId,
-        workspaceId: blockData.workspaceId || '',
-      };
-
+    (
+      blockId: string,
+      nodeData: BlockNodeData,
+      position: { x: number; y: number },
+      size: { width: number; height: number }
+    ) => {
       const node = {
-        id: blockData.blockMountId || blockId,
-        type: blockData.blockType as 'basic', // blockType을 노드 타입으로 사용
-        position: blockData.position,
+        id: nodeData.blockMountId || blockId,
+        type: nodeData.blockType, // blockType을 노드 타입으로 사용
+        position,
         data: nodeData,
+        width: size.width,
+        height: size.height,
+        zIndex: 1,
       } as Node; // React Flow Node 타입으로 캐스팅
 
       addNodes([node]);
     },
-    [addNodes, pageId, orgId]
+    [addNodes]
   );
 
   /**
@@ -475,17 +458,26 @@ export function useCanvasBlockLifecycle(
       };
 
       // 4. Optimistic 블럭 데이터 생성
-      const optimisticBlockData: BlockData = {
-        blockType: (originalNode.data as any)?.blockType || 'basic',
-        blockMountId: optimisticBlockMountId,
-        position: duplicatedPosition,
-        size: (originalNode.data as any)?.size || { width: 200, height: 150 },
-        zOrder: ((originalNode.data as any)?.zOrder || 1) + 1,
-        workspaceId: workspaceId,
-      };
+      const originalBlockType =
+        (originalNode.data as any)?.blockType || BlockType.TEXT;
+      const optimisticNodeData: BlockNodeData = createBlockNodeData(
+        originalBlockType,
+        {
+          blockMountId: optimisticBlockMountId,
+          blockId: optimisticId,
+          pageId,
+          orgId,
+          workspaceId,
+        }
+      );
 
       // 5. 즉시 UI에 복제된 블럭 추가 (Optimistic UI)
-      addBlockToCanvas(optimisticId, optimisticBlockData);
+      addBlockToCanvas(
+        optimisticId,
+        optimisticNodeData,
+        duplicatedPosition,
+        (originalNode.data as any)?.size || getBlockSize(originalBlockType)
+      );
 
       // 6. 복제된 블럭을 자동으로 선택 (프로그래밍적 선택)
       setTimeout(() => {
@@ -516,20 +508,27 @@ export function useCanvasBlockLifecycle(
 
         if (result.success && result.data) {
           // 8. 성공: Optimistic 블럭을 실제 데이터로 교체
-          const realBlockData: BlockData = {
-            blockType: 'basic', // TODO: 원본 블럭 타입을 가져와야 함
-            blockMountId: result.data.duplicatedBlockMountId,
-            position: result.data.position,
-            size: result.data.size,
-            zOrder: result.data.zOrder,
-            workspaceId: workspaceId,
-          };
+          const realNodeData: BlockNodeData = createBlockNodeData(
+            originalBlockType,
+            {
+              blockMountId: result.data.duplicatedBlockMountId,
+              blockId: result.data.duplicatedBlockId,
+              pageId,
+              orgId,
+              workspaceId,
+            }
+          );
 
           // Optimistic 블럭 제거
           deleteElements({ nodes: [{ id: optimisticBlockMountId }] });
 
           // 실제 블럭 추가
-          addBlockToCanvas(result.data.duplicatedBlockId, realBlockData);
+          addBlockToCanvas(
+            result.data.duplicatedBlockId,
+            realNodeData,
+            result.data.position,
+            result.data.size
+          );
 
           // 실제 블럭으로 선택 상태 업데이트 (프로그래밍적 선택)
           setTimeout(() => {

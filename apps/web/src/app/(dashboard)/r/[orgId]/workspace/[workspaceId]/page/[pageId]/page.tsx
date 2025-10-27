@@ -4,7 +4,7 @@ import {
   toReactFlowNodeFromCanvasView,
   toReactFlowEdgeFromCanvasView,
 } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
-import { CanvasClient } from '@/domains/canvas-management/frontend/components/canvas-client';
+import { CanvasClient } from '@/domains/canvas-management/frontend/components/core/canvas-client';
 import type { Node, Edge } from '@xyflow/react';
 
 interface WorkspacePageProps {

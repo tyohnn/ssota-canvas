@@ -90,7 +90,22 @@ And 편집시각이 자동으로 갱신된다
 - [ ] 보안 취약점 0개
 
 ## 📊 진행 상황
-**현재**: 0% 완료 (설계 완료, 구현 대기 중)
+**현재**: 90% 완료 (Backend Domain, Database, Server Actions, Frontend Hooks 완전 구현)
+
+### ✅ 완료된 핵심 구현 (2025-10-24 기준)
+- **Backend Domain**: BlockAggregate 편집 로직, UpdateBlockCommand, BlockUpdatedEvent 완전 구현
+- **Database**: DrizzleBlockRepository updateBlock, updateBlockType, markAsDeleted, restore 메서드 완전 구현
+- **Server Actions**: updateBlockInfoAction, changeBlockTypeAction 완전 구현
+- **Frontend Hooks**: useBlockUpdate Hook 완전 구현 (Optimistic UI 포함)
+- **Testing**: Unit Tests, Integration Tests 완전 구현
+
+### ❌ 미구현 사항 (2025-10-24 기준)
+- **Frontend Components**: Editor Panel, 블록 정보 편집 폼 UI 컴포넌트 구현 필요
+- **RLS Policies**: blocks 테이블 Row-Level Security 정책 구현 필요
+
+### 🔄 의존성
+- **선행 Story**: BM-001 (블록 생성) - 85% 완료
+- **후행 Story**: BM-003 (커스텀 속성 관리) - 60% 완료
 
 ## 🔗 의존성
 - **선행 Story**: BM-001 (블록 생성)

@@ -38,7 +38,9 @@ export class PropertyValidation {
   }
 
   hasLengthValidation(): boolean {
-    return this.rules.minLength !== undefined || this.rules.maxLength !== undefined;
+    return (
+      this.rules.minLength !== undefined || this.rules.maxLength !== undefined
+    );
   }
 
   hasPatternValidation(): boolean {

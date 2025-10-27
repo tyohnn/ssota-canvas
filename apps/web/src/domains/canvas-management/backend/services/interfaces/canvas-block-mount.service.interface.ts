@@ -10,6 +10,7 @@ import type {
   DeleteBlockMountCommand,
   DeleteMultipleBlockMountsCommand,
 } from '../../../shared/commands';
+import type { Block } from '@/domains/block-management/shared/entities/block.entity';
 
 /**
  * Canvas Block Mount Service Interface
@@ -25,7 +26,7 @@ export interface CanvasBlockMountService {
    */
   createAndMountBlock(
     command: CreateAndMountBlockCommand
-  ): Promise<Result<BlockMountAggregate, Error>>;
+  ): Promise<Result<{ aggregate: BlockMountAggregate; block: Block }, Error>>;
 
   /**
    * 블럭 위치 업데이트

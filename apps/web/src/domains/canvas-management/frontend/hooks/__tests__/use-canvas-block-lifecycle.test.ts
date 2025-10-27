@@ -90,7 +90,7 @@ describe('useCanvasBlockLifecycle', () => {
         expect.arrayContaining([
           expect.objectContaining({
             id: expect.stringMatching(/^optimistic-/),
-            type: 'blockMount',
+            type: blockType,
             position,
             data: expect.objectContaining({
               blockType,
@@ -122,8 +122,8 @@ describe('useCanvasBlockLifecycle', () => {
         await result.current.createBlock(blockType, position, mockWorkspaceId);
       });
 
-      // Should enter single selection mode with real block ID
-      expect(mockEnterSingleSelectionMode).toHaveBeenCalledWith('new-block-id');
+      // Should enter single selection mode with real block mount ID
+      expect(mockEnterSingleSelectionMode).toHaveBeenCalledWith('new-block-mount-id');
     });
 
     it('should handle block creation failure with rollback', async () => {
@@ -259,7 +259,7 @@ describe('useCanvasBlockLifecycle', () => {
         expect.arrayContaining([
           expect.objectContaining({
             id: blockId,
-            type: 'blockMount',
+            type: 'text',
             data: expect.objectContaining({
               blockType: 'text',
               isOptimistic: false,

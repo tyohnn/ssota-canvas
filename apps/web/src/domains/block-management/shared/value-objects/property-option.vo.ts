@@ -35,7 +35,7 @@ export class PropertyOption {
   toJSON(): { label: string; value: string } {
     return {
       label: this.label,
-      value: this.value
+      value: this.value,
     };
   }
 }

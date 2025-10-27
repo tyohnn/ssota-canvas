@@ -8,10 +8,11 @@ import React, {
   useMemo,
   type ReactNode,
 } from 'react';
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
 export type CanvasMode =
   | { type: 'default' } // 초기 모드
-  | { type: 'block-creation'; blockType: string } // 블럭 추가 모드
+  | { type: 'block-creation'; blockType: BlockType } // 블럭 추가 모드
   | { type: 'single-selection'; blockId: string } // 단일 선택 모드
   | { type: 'multi-selection'; blockIds: string[] } // 복수 선택 모드
   | { type: 'block-editing'; blockId: string } // 블럭 편집 모드
@@ -23,7 +24,7 @@ interface CanvasModeContextValue {
   mode: CanvasMode;
 
   // 모드 전환
-  enterBlockCreationMode: (blockType: string) => void;
+  enterBlockCreationMode: (blockType: BlockType) => void;
   enterSingleSelectionMode: (blockId: string) => void;
   enterMultiSelectionMode: (blockIds: string[]) => void;
   enterBlockEditingMode: (blockId: string) => void;
@@ -51,7 +52,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
   const [mode, setMode] = useState<CanvasMode>({ type: 'default' });
 
   // 모드 전환
-  const enterBlockCreationMode = useCallback((blockType: string) => {
+  const enterBlockCreationMode = useCallback((blockType: BlockType) => {
     setMode({ type: 'block-creation', blockType });
   }, []);
 

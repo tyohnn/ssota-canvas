@@ -65,6 +65,38 @@ export const alignmentTypeEnum = pgEnum('alignment_type', [
   'VERTICAL_DISTRIBUTE',
 ]);
 
+// Block Management Domain Enums
+export const blockTypeEnum = pgEnum('block_type', [
+  'text', // 텍스트 블록
+  'shape', // 도형 블록
+  'markdown', // 마크다운 블록
+  'youtube', // 유튜브 블록
+  'image', // 이미지 블록
+  'pdf', // PDF 문서 블록
+  'audio', // 오디오 블록
+  'video', // 비디오 블록
+  'file', // 파일 블록
+  'python', // 파이썬 코드 블록
+  'link', // 링크 블록
+  'page_mention', // 페이지 멘션 블록
+  'latex', // 라텍스 블록
+  'github_pr', // 깃헙 PR 블록
+  'react_component', // 리액트 컴포넌트 블록
+]);
+
+export const propertyTypeEnum = pgEnum('property_type', [
+  'text', // 텍스트 속성
+  'url', // URL 속성
+  'email', // 이메일 속성
+  'phone', // 전화번호 속성
+  'select', // 선택형 속성
+  'multiselect', // 멀티선택형 속성
+  'status', // 상태형 속성
+  'datetime', // 날짜/날짜시간 속성 (시간 옵션 포함)
+  'media', // 미디어 속성
+  'profile', // 프로필 속성
+]);
+
 // Profiles Table
 // 🔐 RLS Strategy: Minimal permissions
 // - SELECT: Public (all users can read profiles for collaboration)
@@ -876,8 +908,14 @@ export const blocks = pgTable(
     workspace_id: uuid('workspace_id')
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
-    block_type: text('block_type').notNull().default('text'),
-    metadata: jsonb('metadata').default({}),
+    block_type: blockTypeEnum('block_type').notNull().default('text'),
+    title: text('title').notNull().default('새 블럭'), // 블록 제목
+    metadata: jsonb('metadata').default({}), // Deprecated: properties로 대체됨 (호환성 유지)
+    properties: jsonb('properties').default({}), // 속성 값 저장 (JSONB) - key-value 형태
+    custom_properties: jsonb('custom_properties').default([]), // 커스텀 속성 정의 저장 (JSONB 배열) - 속성 스키마
+    created_by: uuid('created_by').references(() => profiles.id, {
+      onDelete: 'set null',
+    }), // 작성자 ID
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -887,12 +925,6 @@ export const blocks = pgTable(
     deleted_at: timestamp('deleted_at', { withTimezone: true }),
   },
   table => ({
-    // Constraints
-    blockTypeLengthCheck: check(
-      'blocks_type_length',
-      sql`LENGTH(TRIM(${table.block_type})) >= 2 AND LENGTH(${table.block_type}) <= 50`
-    ),
-
     // Indexes for performance
     workspaceIdIdx: index('idx_blocks_workspace_id')
       .on(table.workspace_id)
@@ -1212,10 +1244,14 @@ export const viewports = pgTable(
 ).enableRLS();
 
 // Canvas Management Domain Relations
-export const blocksRelations = relations(blocks, ({ many }) => ({
+export const blocksRelations = relations(blocks, ({ one, many }) => ({
   blockMounts: many(blockMounts),
   sourceEdges: many(edges, { relationName: 'sourceBlock' }),
   targetEdges: many(edges, { relationName: 'targetBlock' }),
+  createdByProfile: one(profiles, {
+    fields: [blocks.created_by],
+    references: [profiles.id],
+  }),
 }));
 
 export const blockMountsRelations = relations(blockMounts, ({ one }) => ({

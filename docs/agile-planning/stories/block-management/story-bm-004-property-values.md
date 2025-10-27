@@ -127,7 +127,21 @@ And Public URL이 생성되어 속성에 저장된다
 - [ ] 보안 취약점 0개
 
 ## 📊 진행 상황
-**현재**: 0% 완료 (설계 완료, 구현 대기 중)
+**현재**: 70% 완료 (기본 UI 구현, 백엔드 로직 미완성)
+
+### ✅ 완료된 구현 (2025-10-24 기준)
+- **Frontend Hooks**: useBlockFieldUpdate Hook 완전 구현
+- **Frontend Components**: PropertyInput 타입별 컴포넌트 구현
+  - TextProperty, SelectProperty, MultiSelectProperty
+  - DatetimeProperty, MediaProperty, ProfileProperty
+- **UI Components**: 실시간 자동 저장 기능 기본 구현
+
+### ❌ 미구현 사항
+- **Backend Domain**: 속성 값 검증 로직, 타입별 값 변환 로직, 프로필 속성 멤버 검증 로직 미구현
+- **Server Actions**: setPropertyValueAction, validatePropertyValueAction 미구현
+- **Workspace Management 연동**: 멤버 검증 로직 미구현
+- **Supabase Storage 연동**: 파일 업로드 로직 미구현
+- **Testing**: Unit Tests, Integration Tests, E2E Tests 미구현
 
 ## 🔗 의존성
 - **선행 Story**: BM-003 (커스텀 속성 관리)

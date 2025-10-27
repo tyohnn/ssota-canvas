@@ -1,16 +1,22 @@
 import { BlockId } from '../value-objects/block-id.vo';
+import { BlockType } from '../value-objects/block-type.vo';
 
 export interface CreateBlockCommand {
-  blockType: string;
+  blockId: BlockId;
   workspaceId: string;
-  metadata?: Record<string, any>;
+  blockType: BlockType;
+  title?: string;
+  initialProperties?: Record<string, any>;
   userId: string;
 }
 
 export interface UpdateBlockCommand {
   blockId: BlockId;
-  blockType?: string;
-  metadata?: Record<string, any>;
+  updateData: {
+    title?: string;
+    description?: string;
+    properties?: Record<string, any>;
+  };
   userId: string;
 }
 

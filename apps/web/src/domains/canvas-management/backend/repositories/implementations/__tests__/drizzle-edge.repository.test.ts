@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DrizzleEdgeRepository } from '../drizzle-edge.repository';
 import { EdgeAggregate } from '../../../../shared/aggregates/edge.aggregate';
 import { EdgeId } from '../../../../shared/value-objects/edge-id.vo';
-import { EdgeType } from '../../../../shared/value-objects/edge-type.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { EdgeShape } from '@/domains/canvas-management/shared/value-objects/edge-shape.vo';
 
 // Mock Drizzle DB
 vi.mock('@/db', () => ({
@@ -22,6 +22,11 @@ vi.mock('@/db', () => ({
             then: (resolve: any) => resolve([]),
           };
         }),
+      }),
+    }),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
       }),
     }),
     delete: vi.fn().mockReturnValue({
@@ -69,7 +74,7 @@ describe('DrizzleEdgeRepository', () => {
         mockPageId,
         mockSourceBlockId,
         mockTargetBlockId,
-        EdgeType.default()
+        EdgeShape.default()
       );
 
       // When

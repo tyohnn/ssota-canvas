@@ -26,16 +26,34 @@ export interface CanvasView {
 }
 
 // GetCanvasViewQuery Result DTO (from Technical Specification)
+export interface CreatedByProfile {
+  id: string;
+  email?: string;
+  fullName?: string;
+  avatarUrl?: string;
+}
+
 export interface CanvasViewData {
   pageId: string;
   blocks: Array<{
     blockMountId: string;
     blockId: string;
     blockType: string;
+    properties: Record<string, any>;
+    customProperties: Array<{
+      id: string;
+      name: string;
+      type: string;
+      options?: Array<{ id: string; label: string; color?: string }>;
+      order: number;
+      visible: boolean;
+    }>;
     position: { x: number; y: number };
     size: { width: number; height: number };
     zOrder: number;
-    content: any; // 블럭별 컨텐츠
+    createdAt?: string;
+    updatedAt?: string;
+    createdBy?: string | CreatedByProfile;
   }>;
   edges: Array<{
     edgeId: string;
@@ -183,7 +201,6 @@ export interface BlockMountedDTO {
   position: { x: number; y: number };
   size: { width: number; height: number };
   zOrder: number;
-  createdAt: string;
 }
 
 export interface TransformBlockDTO {

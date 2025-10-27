@@ -120,7 +120,7 @@ export async function createBlockAction(
       });
     }
 
-    const aggregate = result.value;
+    const { aggregate, block } = result.value;
 
     // 7. BlockMountedDTO로 변환
     const blockMountedDTO: BlockMountedDTO = {
@@ -135,7 +135,6 @@ export async function createBlockAction(
         height: aggregate.blockMount.size.height,
       },
       zOrder: aggregate.blockMount.zOrder.value,
-      createdAt: new Date().toISOString(),
     };
 
     // 8. 페이지 재검증 및 성공적으로 BlockMountedDTO 반환

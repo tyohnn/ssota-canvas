@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Edge } from '../edge.entity';
 import { EdgeId } from '../../value-objects/edge-id.vo';
-import { EdgeType } from '../../value-objects/edge-type.vo';
+import { EdgeShape } from '../../value-objects/edge-shape.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 
@@ -21,7 +21,7 @@ describe('Edge Entity', () => {
   describe('생성', () => {
     it('모든 필수 속성으로 Edge를 생성할 수 있어야 한다', () => {
       // Given
-      const edgeType = EdgeType.default();
+      const edgeShape = EdgeShape.default();
       const edgeLabel = 'test edge';
       const edgeStyle = {
         color: '#FF0000',
@@ -34,7 +34,7 @@ describe('Edge Entity', () => {
         pageId,
         sourceBlockId,
         targetBlockId,
-        edgeType,
+        edgeShape,
         edgeLabel,
         edgeStyle
       );
@@ -44,7 +44,7 @@ describe('Edge Entity', () => {
       expect(edge.pageId).toBe(pageId);
       expect(edge.sourceBlockId).toBe(sourceBlockId);
       expect(edge.targetBlockId).toBe(targetBlockId);
-      expect(edge.edgeType.equals(edgeType)).toBe(true);
+      expect(edge.edgeShape.equals(edgeShape)).toBe(true);
       expect(edge.edgeLabel).toBe(edgeLabel);
       expect(edge.edgeStyle).toEqual(edgeStyle);
     });
@@ -54,7 +54,7 @@ describe('Edge Entity', () => {
       const edge = new Edge(edgeId, pageId, sourceBlockId, targetBlockId);
 
       // Then
-      expect(edge.edgeType.isDefault()).toBe(true);
+      expect(edge.edgeShape.isDefault()).toBe(true);
       expect(edge.edgeLabel).toBe('');
       expect(edge.edgeStyle.color).toBe('#000000');
       expect(edge.edgeStyle.thickness).toBe(2);
@@ -87,18 +87,18 @@ describe('Edge Entity', () => {
     });
   });
 
-  describe('updateType', () => {
-    it('엣지 타입을 업데이트할 수 있어야 한다', () => {
+  describe('updateShape', () => {
+    it('엣지 모양을 업데이트할 수 있어야 한다', () => {
       // Given
-      const edge = new Edge(edgeId, pageId, sourceBlockId, targetBlockId, EdgeType.default());
-      const newType = EdgeType.straight();
+      const edge = new Edge(edgeId, pageId, sourceBlockId, targetBlockId, EdgeShape.default());
+      const newShape = EdgeShape.straight();
 
       // When
-      edge.updateType(newType);
+      edge.updateShape(newShape);
 
       // Then
-      expect(edge.edgeType.equals(newType)).toBe(true);
-      expect(edge.edgeType.isStraight()).toBe(true);
+      expect(edge.edgeShape.equals(newShape)).toBe(true);
+      expect(edge.edgeShape.isStraight()).toBe(true);
       expect(edge.updatedAt).toBeInstanceOf(Date);
     });
   });

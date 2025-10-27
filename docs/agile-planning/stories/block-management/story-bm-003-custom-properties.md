@@ -104,7 +104,21 @@ And 옵션별 색상과 순서를 설정할 수 있다
 - [ ] 보안 취약점 0개
 
 ## 📊 진행 상황
-**현재**: 0% 완료 (설계 완료, 구현 대기 중)
+**현재**: 85% 완료 (기본 구조 구현, 고급 기능 미완성)
+
+### ✅ 완료된 구현 (2025-10-24 기준)
+- **Value Objects**: PropertyType, PropertyOption, PropertyValidation 완전 구현
+- **Backend Repository**: DrizzlePropertyRepository 완전 구현
+- **Server Actions**: createCustomPropertyAction, updateCustomPropertyAction, deleteCustomPropertyAction 완전 구현
+- **Frontend Hooks**: useSchemaFieldEditor Hook 완전 구현
+- **Block Type Schemas**: 분리된 스키마 시스템으로 확장성 개선
+- **Testing**: Value Objects 단위 테스트 완전 구현
+- **Frontend Components**: PropertyInput 컴포넌트 기본 구조 구현
+
+### ❌ 미구현 사항
+- **Backend Logic**: 속성 타입별 고급 검증 로직, 중첩 속성 관리 로직 미구현
+- **Frontend Components**: GenericFieldPopover, SelectLikeFieldPopover, StatusFieldPopover 미구현
+- **Testing**: Integration Tests, E2E Tests 미구현
 
 ## 🔗 의존성
 - **선행 Story**: BM-002 (블록 편집)

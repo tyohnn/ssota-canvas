@@ -1,0 +1,1 @@
+ALTER TABLE "blocks" ADD COLUMN "title" text DEFAULT '새 블럭' NOT NULL;
