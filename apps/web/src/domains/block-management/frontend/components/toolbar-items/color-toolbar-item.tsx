@@ -7,6 +7,11 @@ import {
   PopoverTrigger,
 } from '@workspace/ui/components/ui/popover';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@workspace/ui/components/ui/tooltip';
+import {
   ColorToken,
   getColorPreviewClass,
   getColorLabel,
@@ -57,21 +62,27 @@ export function ColorToolbarItem({
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <button
-          className="flex items-center justify-center p-1 rounded-md hover:bg-black/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          onMouseDown={e => e.stopPropagation()}
-          title="Text Color"
-          disabled={disabled}
-        >
-          <div
-            className={cn(
-              'h-4 w-4 rounded ring-1 ring-black/10',
-              getColorPreviewClass(currentColor)
-            )}
-          />
-        </button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <button
+              className="flex items-center justify-center p-1 rounded-md hover:bg-black/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onMouseDown={e => e.stopPropagation()}
+              disabled={disabled}
+            >
+              <div
+                className={cn(
+                  'h-4 w-4 rounded ring-1 ring-black/10',
+                  getColorPreviewClass(currentColor)
+                )}
+              />
+            </button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p>색상</p>
+        </TooltipContent>
+      </Tooltip>
       <PopoverContent
         className="p-2 w-fit"
         side="top"
@@ -98,6 +109,7 @@ export function ColorToolbarItem({
                 }
               )}
               title={colorOption.label}
+              aria-label={colorOption.label}
             />
           ))}
         </div>

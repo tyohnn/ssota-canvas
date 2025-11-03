@@ -7,6 +7,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@workspace/ui/components/ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@workspace/ui/components/ui/tooltip';
 import { TextAlign } from '../../../shared/value-objects/block-properties/common-types';
 
 interface TextAlignToolbarItemProps {
@@ -39,22 +44,29 @@ export function TextAlignToolbarItem({
     [onAlignChange]
   );
 
-  const CurrentIcon =
-    ALIGNMENT_OPTIONS.find(option => option.align === currentAlign)?.icon ||
-    AlignCenter;
+  const currentOption =
+    ALIGNMENT_OPTIONS.find(option => option.align === currentAlign) ||
+    ALIGNMENT_OPTIONS[1]!;
+  const CurrentIcon = currentOption.icon;
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <button
-          className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-black/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          onMouseDown={e => e.stopPropagation()}
-          title="Text Alignment"
-          disabled={disabled}
-        >
-          <CurrentIcon className="h-4 w-4" />
-        </button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <button
+              className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-black/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onMouseDown={e => e.stopPropagation()}
+              disabled={disabled}
+            >
+              <CurrentIcon className="h-4 w-4" />
+            </button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p>텍스트 정렬</p>
+        </TooltipContent>
+      </Tooltip>
       <PopoverContent
         className="p-2 w-fit"
         side="top"
@@ -77,6 +89,7 @@ export function TextAlignToolbarItem({
                   : 'hover:bg-gray-50'
               }`}
               title={title}
+              aria-label={title}
             >
               <Icon className="h-4 w-4" />
             </button>

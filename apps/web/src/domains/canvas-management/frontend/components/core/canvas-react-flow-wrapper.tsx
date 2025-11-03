@@ -33,13 +33,14 @@ import { useCanvasCallbacks } from '../../hooks/use-canvas-callbacks';
 // Canvas Management Components
 import { CanvasToolbar } from './canvas-toolbar';
 import { ViewportControls } from './viewport-controls';
-import { SkeletonBlock } from '../block/skeleton-block';
+import { ShadowBlockContainer } from '../shadow-block/shadow-block-container';
 import { BlockAddDialog } from './block-add-dialog';
 import {
   MarkdownBlock,
   YoutubeBlock,
   PythonBlock,
   TextBlock,
+  ShapeBlock,
 } from '@/domains/block-management/frontend/components/block';
 import { SnapGuidelines } from '../snap/snap-guidelines';
 import { MultiSelectionToolbar } from '../multi-select/multi-selection-toolbar';
@@ -153,6 +154,7 @@ export function CanvasReactFlowWrapper({
   const nodeTypes = React.useMemo(
     () => ({
       [BlockType.TEXT]: TextBlock,
+      [BlockType.SHAPE]: ShapeBlock,
       [BlockType.MARKDOWN]: MarkdownBlock,
       [BlockType.YOUTUBE]: YoutubeBlock,
       [BlockType.PYTHON]: PythonBlock,
@@ -274,7 +276,7 @@ export function CanvasReactFlowWrapper({
 
         {/* 모드별 컴포넌트 렌더링 */}
         {canvasMode.isBlockCreationMode() && (
-          <SkeletonBlock
+          <ShadowBlockContainer
             pageId={pageId}
             orgId={orgId}
             workspaceId={workspaceId}

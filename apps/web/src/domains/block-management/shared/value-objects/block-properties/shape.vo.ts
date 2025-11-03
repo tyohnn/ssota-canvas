@@ -5,7 +5,7 @@
  */
 
 import { BlockPropertiesVO } from './base.vo';
-import { ShapeType } from './common-types';
+import { ShapeType, BorderStyle } from './common-types';
 import { ColorToken } from '../../types/style-tokens.types';
 
 /**
@@ -13,7 +13,9 @@ import { ColorToken } from '../../types/style-tokens.types';
  */
 export interface ShapeBlockProperties {
   shapeType: ShapeType;
+  content?: string;
   color: ColorToken;
+  borderStyle: BorderStyle;
 }
 
 /**
@@ -22,7 +24,9 @@ export interface ShapeBlockProperties {
 export class ShapeBlockPropertiesVO extends BlockPropertiesVO {
   constructor(
     private readonly shapeType: ShapeType,
-    private readonly color: ColorToken
+    private readonly content: string,
+    private readonly color: ColorToken,
+    private readonly borderStyle: BorderStyle
   ) {
     super();
   }
@@ -31,26 +35,37 @@ export class ShapeBlockPropertiesVO extends BlockPropertiesVO {
    * 기본 Properties 생성
    */
   static createDefault(): ShapeBlockPropertiesVO {
-    return new ShapeBlockPropertiesVO(ShapeType.RECTANGLE, ColorToken.GRAY);
+    return new ShapeBlockPropertiesVO(
+      ShapeType.RECTANGLE,
+      '',
+      ColorToken.BLUE,
+      'solid'
+    );
   }
 
   /**
    * JSON에서 생성
+   * 런타임 안전성을 위해 기본값 제공 (외부 데이터 대응)
    */
-  static fromJSON(data: ShapeBlockProperties): ShapeBlockPropertiesVO {
+  static fromJSON(data: unknown): ShapeBlockPropertiesVO {
+    const safeData = (data as Partial<ShapeBlockProperties>) ?? {};
     return new ShapeBlockPropertiesVO(
-      data.shapeType || ShapeType.RECTANGLE,
-      data.color || ColorToken.GRAY
+      safeData.shapeType ?? ShapeType.RECTANGLE,
+      safeData.content ?? '',
+      safeData.color ?? ColorToken.BLUE,
+      safeData.borderStyle ?? 'solid'
     );
   }
 
   /**
    * Properties 검증
    */
-  validate(): boolean {
+  protected validate(): boolean {
+    const validBorderStyles = ['solid', 'dashed', 'dotted'];
     return (
       Object.values(ShapeType).includes(this.shapeType) &&
-      Object.values(ColorToken).includes(this.color)
+      Object.values(ColorToken).includes(this.color) &&
+      validBorderStyles.includes(this.borderStyle)
     );
   }
 
@@ -60,7 +75,9 @@ export class ShapeBlockPropertiesVO extends BlockPropertiesVO {
   toJSON(): ShapeBlockProperties {
     return {
       shapeType: this.shapeType,
+      content: this.content,
       color: this.color,
+      borderStyle: this.borderStyle,
     };
   }
 
@@ -72,7 +89,12 @@ export class ShapeBlockPropertiesVO extends BlockPropertiesVO {
       return false;
     }
 
-    return this.shapeType === other.shapeType && this.color === other.color;
+    return (
+      this.shapeType === other.shapeType &&
+      this.content === other.content &&
+      this.color === other.color &&
+      this.borderStyle === other.borderStyle
+    );
   }
 
   // Getters
@@ -80,7 +102,15 @@ export class ShapeBlockPropertiesVO extends BlockPropertiesVO {
     return this.shapeType;
   }
 
+  getContent(): string {
+    return this.content;
+  }
+
   getColor(): ColorToken {
     return this.color;
+  }
+
+  getBorderStyle(): BorderStyle {
+    return this.borderStyle;
   }
 }

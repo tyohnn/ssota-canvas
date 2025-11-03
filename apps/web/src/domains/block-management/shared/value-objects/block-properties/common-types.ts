@@ -29,8 +29,18 @@ export enum FontSize {
 export enum ShapeType {
   RECTANGLE = 'rectangle',
   CIRCLE = 'circle',
+  ELLIPSE = 'ellipse',
   TRIANGLE = 'triangle',
+  DIAMOND = 'diamond',
+  HEXAGON = 'hexagon',
+  CYLINDER = 'cylinder',
+  PARALLELOGRAM = 'parallelogram',
 }
+
+/**
+ * Border Style Type
+ */
+export type BorderStyle = 'solid' | 'dashed' | 'dotted';
 
 /**
  * Property Type Enum - 지원하는 속성 타입들

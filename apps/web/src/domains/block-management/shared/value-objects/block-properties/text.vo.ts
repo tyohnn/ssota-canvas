@@ -13,10 +13,10 @@ import { TextAlign, FontSize } from './common-types';
  */
 export interface TextBlockProperties {
   content: string;
-  color?: ColorToken;
-  richStyle?: boolean;
-  textAlign?: TextAlign;
-  fontSize?: FontSize;
+  color: ColorToken;
+  richStyle: boolean;
+  textAlign: TextAlign;
+  fontSize: FontSize;
 }
 
 /**
@@ -48,21 +48,23 @@ export class TextBlockPropertiesVO extends BlockPropertiesVO {
 
   /**
    * JSON에서 생성
+   * 런타임 안전성을 위해 기본값 제공 (외부 데이터 대응)
    */
-  static fromJSON(data: TextBlockProperties): TextBlockPropertiesVO {
+  static fromJSON(data: unknown): TextBlockPropertiesVO {
+    const safeData = (data as Partial<TextBlockProperties>) ?? {};
     return new TextBlockPropertiesVO(
-      data.content || '',
-      data.color || ColorToken.GRAY,
-      data.richStyle || false,
-      data.textAlign || TextAlign.LEFT,
-      data.fontSize || FontSize.MEDIUM
+      safeData.content ?? '',
+      safeData.color ?? ColorToken.GRAY,
+      safeData.richStyle ?? false,
+      safeData.textAlign ?? TextAlign.LEFT,
+      safeData.fontSize ?? FontSize.MEDIUM
     );
   }
 
   /**
    * Properties 검증
    */
-  validate(): boolean {
+  protected validate(): boolean {
     return (
       typeof this.content === 'string' &&
       typeof this.richStyle === 'boolean' &&

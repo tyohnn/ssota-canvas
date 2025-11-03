@@ -9,6 +9,7 @@ import {
   BlockUISchemaRegistry,
 } from './block-ui-schema.interface';
 import { textBlockUISchema } from './text-block.ui-schema';
+import { shapeBlockUISchema } from './shape-block.ui-schema';
 
 class BlockUISchemaRegistryImpl implements BlockUISchemaRegistry {
   private schemas: Map<string, BlockUISchema> = new Map();
@@ -21,6 +22,9 @@ class BlockUISchemaRegistryImpl implements BlockUISchemaRegistry {
   private registerDefaultSchemas(): void {
     // Text Block 스키마 등록
     this.register(textBlockUISchema.blockType, textBlockUISchema);
+
+    // Shape Block 스키마 등록
+    this.register(shapeBlockUISchema.blockType, shapeBlockUISchema);
 
     // 추후 다른 블록 타입 스키마 추가
     // this.register(markdownBlockUISchema.blockType, markdownBlockUISchema);

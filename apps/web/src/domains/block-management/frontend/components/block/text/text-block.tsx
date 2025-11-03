@@ -9,7 +9,11 @@ import {
   TextAlign,
   FontSize,
 } from '@/domains/block-management/shared/value-objects/block-properties';
-import { ColorToken } from '@/domains/block-management/shared/types/style-tokens.types';
+import {
+  ColorToken,
+  getSelectedRingClasses,
+  getGlowColor,
+} from '@/domains/block-management/shared/types/style-tokens.types';
 import { cn } from '@workspace/ui/lib/utils';
 import { useBlockPropertyUpdate } from '../../../hooks/use-block-property-update';
 import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
@@ -48,11 +52,11 @@ export const TextBlock = memo(function TextBlock({
 
   const textBlockProperties = properties as TextBlockProperties;
 
-  // 스타일 속성 추출
-  const color = textBlockProperties.color || ColorToken.GRAY;
-  const richStyle = textBlockProperties.richStyle || false;
-  const textAlign = textBlockProperties.textAlign || TextAlign.LEFT;
-  const fontSize = textBlockProperties.fontSize || FontSize.MEDIUM;
+  // 스타일 속성 추출 (모든 속성은 필수값)
+  const color = textBlockProperties.color;
+  const richStyle = textBlockProperties.richStyle;
+  const textAlign = textBlockProperties.textAlign;
+  const fontSize = textBlockProperties.fontSize;
 
   // Tailwind 클래스 생성 (BaseBlock에서 처리하므로 제거)
   const textAlignClass =
@@ -295,7 +299,24 @@ export const TextBlock = memo(function TextBlock({
       }}
     >
       {/* Text Block Content */}
-      <div className="w-full h-full flex flex-col">
+      <div
+        className={cn(
+          'w-full h-full flex flex-col border border-gray-200 rounded-lg bg-white shadow-sm',
+          // 호버 효과 (선택되지 않았을 때만)
+          !selected && 'hover:shadow-lg hover:scale-[1.02] hover:rotate-1',
+          !selected && 'hover:shadow-[0_0_4px_1px_var(--glow-color)]',
+          // 선택 효과
+          selected && getSelectedRingClasses(color),
+          selected && 'shadow-[0_0_4px_1px_var(--glow-color)]',
+          // Transition
+          'transition-all duration-300 ease-out'
+        )}
+        style={
+          {
+            '--glow-color': getGlowColor(color),
+          } as React.CSSProperties
+        }
+      >
         {/* Content */}
         <div
           className="flex-1 p-3 flex flex-col"

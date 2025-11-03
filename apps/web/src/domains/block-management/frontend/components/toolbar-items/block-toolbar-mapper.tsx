@@ -7,11 +7,14 @@ import {
   FontSizeToolbarItem,
   TextAlignToolbarItem,
   RichStyleToolbarItem,
+  ShapeTypeToolbarItem,
+  BorderStyleToolbarItem,
 } from './index';
 import {
   FontSize,
   TextAlign,
   TextBlockProperties,
+  ShapeBlockProperties,
 } from '../../../shared/value-objects/block-properties';
 import { ColorToken } from '../../../shared/types/style-tokens.types';
 import { BlockNodeData } from '../../../shared/types/block-data.types';
@@ -55,7 +58,7 @@ export function BlockToolbarMapper({
             <ColorToolbarItem
               blockId={blockId}
               blockMountId={blockData.blockMountId}
-              currentColor={textBlockProperties.color || ColorToken.GRAY}
+              currentColor={textBlockProperties.color}
               disabled={disabled}
               onColorChange={async color => {
                 await handlePropertyUpdate('properties.color', color);
@@ -64,7 +67,7 @@ export function BlockToolbarMapper({
             <FontSizeToolbarItem
               blockId={blockId}
               blockMountId={blockData.blockMountId}
-              currentFontSize={textBlockProperties.fontSize || FontSize.MEDIUM}
+              currentFontSize={textBlockProperties.fontSize}
               disabled={disabled}
               onFontSizeChange={async fontSize => {
                 await handlePropertyUpdate('properties.fontSize', fontSize);
@@ -73,7 +76,7 @@ export function BlockToolbarMapper({
             <TextAlignToolbarItem
               blockId={blockId}
               blockMountId={blockData.blockMountId}
-              currentAlign={textBlockProperties.textAlign || TextAlign.LEFT}
+              currentAlign={textBlockProperties.textAlign}
               disabled={disabled}
               onAlignChange={async align => {
                 await handlePropertyUpdate('properties.textAlign', align);
@@ -82,10 +85,44 @@ export function BlockToolbarMapper({
             <RichStyleToolbarItem
               blockId={blockId}
               blockMountId={blockData.blockMountId}
-              currentRichStyle={textBlockProperties.richStyle || false}
+              currentRichStyle={textBlockProperties.richStyle}
               disabled={disabled}
               onRichStyleChange={async richStyle => {
                 await handlePropertyUpdate('properties.richStyle', richStyle);
+              }}
+            />
+          </>
+        );
+
+      case 'shape':
+        const shapeBlockProperties = blockData.properties as ShapeBlockProperties;
+        return (
+          <>
+            <ShapeTypeToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              currentShapeType={shapeBlockProperties.shapeType}
+              disabled={disabled}
+              onShapeTypeChange={async shapeType => {
+                await handlePropertyUpdate('properties.shapeType', shapeType);
+              }}
+            />
+            <ColorToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              currentColor={shapeBlockProperties.color}
+              disabled={disabled}
+              onColorChange={async color => {
+                await handlePropertyUpdate('properties.color', color);
+              }}
+            />
+            <BorderStyleToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              currentBorderStyle={shapeBlockProperties.borderStyle}
+              disabled={disabled}
+              onBorderStyleChange={async borderStyle => {
+                await handlePropertyUpdate('properties.borderStyle', borderStyle);
               }}
             />
           </>
