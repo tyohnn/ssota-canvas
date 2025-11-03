@@ -42,6 +42,39 @@
 - `roadmap.md` - 프로젝트 로드맵
 - `opensource-monorepo.md` - 오픈소스 모노레포 전략
 
+### 🧩 block-definitions/
+**블록 타입 정의**
+
+다양한 블록 타입의 상세 정의 문서입니다. 각 블록의 기능, UI, 속성, 툴바 아이템, 블록 툴 등을 정의합니다.
+
+**기본 콘텐츠 블록**:
+- `01-text-block.md` - 텍스트 블록 (참조 기준)
+- `02-markdown-block.md` - 마크다운 블록
+- `03-shape-block.md` - 도형 블록
+
+**미디어 블록**:
+- `04-image-block.md` - 이미지 블록
+- `05-video-block.md` - 비디오 블록
+- `06-youtube-block.md` - 유튜브 블록
+
+**프리뷰/링크 블록**:
+- `07-url-preview-block.md` - URL 프리뷰 블록
+- `08-twitter-preview-block.md` - 트위터 프리뷰 블록
+
+**개발 도구 블록**:
+- `09-code-block.md` - 코드 블록
+- `10-vercel-deployment-block.md` - Vercel 배포 상태 블록
+- `11-github-pr-block.md` - 깃헙 PR 블록
+- `12-db-schema-block.md` - DB Schema 블록
+
+**디자인 도구 블록**:
+- `13-shadcn-registry-block.md` - Shadcn Registry 블록
+- `14-design-theme-block.md` - Design Theme 블록
+
+**기타 블록**:
+- `15-pdf-viewer-block.md` - PDF 뷰어 블록
+- `16-circuit-js-block.md` - Circuit JS 블록
+
 ---
 
 ## 📚 문서 읽기 순서 (권장)
@@ -61,6 +94,11 @@
 2. `project-strategy/roadmap.md` - 로드맵
 3. `ai-automation/ai-automation-patterns-discussion.md` - AI 활용 전략
 
+### 블록 개발자
+1. `block-definitions/01-text-block.md` - 텍스트 블록 (참조 기준)
+2. `block-definitions/README.md` - 블록 정의 가이드
+3. 필요한 블록 타입별 문서
+
 ---
 
 ## 🔄 문서 업데이트 규칙
@@ -73,4 +111,6 @@
 ---
 
 **최종 업데이트**: 2025-11-03
+
+**최근 추가**: 2025-11-03 - Block Definitions 폴더 추가 (16개 블록 타입 정의)
 

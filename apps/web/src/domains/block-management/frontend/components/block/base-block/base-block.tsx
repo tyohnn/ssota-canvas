@@ -69,6 +69,9 @@ export interface BaseBlockProps {
     textAlign?: string;
     fontSize?: string;
   };
+  // 배경/테두리 제어
+  noBorder?: boolean; // 테두리 제거 (각 블록에서 직접 처리)
+  noBackground?: boolean; // 배경색 제거
 }
 
 /**
@@ -91,6 +94,8 @@ export const BaseBlock = memo(
         width,
         height,
         styleProps,
+        noBorder = false,
+        noBackground = false,
       },
       ref
     ) => {
@@ -158,31 +163,16 @@ export const BaseBlock = memo(
         <div
           ref={ref}
           className={cn(
-            // 기본 스타일
-            'relative w-full h-full min-w-[100px] min-h-[50px] rounded-lg shadow-sm',
-            // 배경색: Rich Style이 아니면 기본 흰색
-            !richStyle && 'bg-background',
+            // 기본 스타일만 유지 (호버/선택 효과는 하위 블록에서 처리)
+            'relative w-full h-full min-w-[100px] min-h-[50px]',
             // Transition (리사이즈 중에는 비활성화)
-            !isResizing && 'transition-all duration-300 ease-out',
-            // 선택 상태만: 선명한 링 추가
-            selected && selectedRingClasses,
-            // 선택됨 + 호버: Shadow 강화
-            selected && 'hover:!shadow-xl',
-            // 선택 안됨 + 호버: 크기 확대 + 회전
-            !selected &&
-              'hover:shadow-lg hover:scale-[1.02] hover:rotate-[1deg]',
-            // Rich Style 색상 (배경 + 텍스트 + 테두리)
-            styleClasses,
-            // 글로우 효과 (호버 + 선택 상태 모두)
-            'hover:shadow-[0_0_4px_1px_var(--glow-color)]',
-            selected && 'shadow-[0_0_4px_1px_var(--glow-color)]'
+            !isResizing && 'transition-all duration-300 ease-out'
           )}
           style={
             {
               width: width || 'auto',
               height: height || 'auto',
-              minHeight: '120px',
-              '--glow-color': getGlowColor(colorToken),
+              minHeight: noBackground ? undefined : '120px',
             } as React.CSSProperties
           }
         >
@@ -210,28 +200,28 @@ export const BaseBlock = memo(
             position={Position.Left}
             isConnectable={isConnectable}
             id="left"
-            className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white hover:!bg-blue-600 hover:!scale-125 transition-all"
+            className="w-3! h-3! bg-blue-500! border-2! border-white! hover:bg-blue-600! hover:scale-125! transition-all z-50!"
           />
           <Handle
             type="source"
             position={Position.Right}
             isConnectable={isConnectable}
             id="right"
-            className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white hover:!bg-blue-600 hover:!scale-125 transition-all"
+            className="w-3! h-3! bg-blue-500! border-2! border-white! hover:bg-blue-600! hover:scale-125! transition-all z-50!"
           />
           <Handle
             type="source"
             position={Position.Top}
             isConnectable={isConnectable}
             id="top"
-            className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white hover:!bg-blue-600 hover:!scale-125 transition-all"
+            className="w-3! h-3! bg-blue-500! border-2! border-white! hover:bg-blue-600! hover:scale-125! transition-all z-50!"
           />
           <Handle
             type="source"
             position={Position.Bottom}
             isConnectable={isConnectable}
             id="bottom"
-            className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white hover:!bg-blue-600 hover:!scale-125 transition-all"
+            className="w-3! h-3! bg-blue-500! border-2! border-white! hover:bg-blue-600! hover:scale-125! transition-all z-50!"
           />
 
           {/* Top Toolbar - BlockMountToolbar (선택된 블럭에만 표시) */}
