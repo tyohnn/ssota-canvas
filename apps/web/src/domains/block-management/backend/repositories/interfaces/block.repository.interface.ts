@@ -1,5 +1,4 @@
 import { BlockId } from '../../../shared/value-objects/block-id.vo';
-import { BlockType } from '../../../shared/value-objects/block-type.vo';
 import { Block } from '../../../shared/entities/block.entity';
 
 /**
@@ -9,12 +8,20 @@ import { Block } from '../../../shared/entities/block.entity';
  */
 export interface BlockRepository {
   /**
-   * 블록 저장
+   * 블록 생성
    *
-   * @param block - 저장할 블록
+   * @param block - 생성할 블록
    * @returns Promise<void>
    */
-  save(block: Block): Promise<void>;
+  create(block: Block): Promise<void>;
+
+  /**
+   * 블록 업데이트
+   *
+   * @param block - 업데이트할 블록
+   * @returns Promise<void>
+   */
+  update(block: Block): Promise<void>;
 
   /**
    * 블록 ID로 조회
@@ -65,59 +72,6 @@ export interface BlockRepository {
    * @returns Promise<void>
    */
   hardDelete(id: BlockId): Promise<void>;
-
-  /**
-   * 블록 존재 여부 확인
-   *
-   * @param id - 블록 ID
-   * @returns Promise<boolean>
-   */
-  exists(id: BlockId): Promise<boolean>;
-
-  /**
-   * 워크스페이스의 블록 개수 조회
-   *
-   * @param workspaceId - 워크스페이스 ID
-   * @param includeDeleted - 삭제된 블록 포함 여부
-   * @returns Promise<number>
-   */
-  countByWorkspaceId(
-    workspaceId: string,
-    includeDeleted?: boolean
-  ): Promise<number>;
-
-  /**
-   * 블록 정보 업데이트
-   *
-   * @param blockId - 블록 ID
-   * @param updateData - 업데이트할 데이터
-   * @returns Promise<void>
-   */
-  updateBlock(
-    blockId: BlockId,
-    updateData: {
-      title?: string;
-      description?: string;
-      properties?: Record<string, any>;
-    }
-  ): Promise<void>;
-
-  /**
-   * 블록 타입 변경
-   *
-   * @param blockId - 블록 ID
-   * @param newBlockType - 새로운 블록 타입
-   * @returns Promise<void>
-   */
-  updateBlockType(blockId: BlockId, newBlockType: BlockType): Promise<void>;
-
-  /**
-   * 블록 소프트 삭제
-   *
-   * @param blockId - 블록 ID
-   * @returns Promise<void>
-   */
-  markAsDeleted(blockId: BlockId): Promise<void>;
 
   /**
    * 삭제된 블록 복원

@@ -27,20 +27,45 @@ Block Management Domain은 재사용 가능한 블록 콘텐츠의 생명주기�
 
 ### Software Design 연결점
 
-- **입력**: `03-software-design.md` - Block Aggregate (14개 Commands, 20개 Events, 15개 Invariants)
+- **입력**: `03-software-design.md` - Block Aggregate (실제 구현: 5개 Commands, 5개 Events)
 - **입력**: `02-process-model.md` - 5개 주요 시나리오 (Canvas 연동, Custom Properties, Property Values, Media Upload, Block Tools)
 - **출력**: 구현 수도코드 + 테스트 수도코드
+- **참고**: 설계 문서의 일부 기능(Custom Property Commands, Media Commands, Tool Commands)은 Aggregate 레벨이 아닌 Entity나 Service 레벨에서 처리됨
 
-### TDD 구현 순서 요약
+### TDD 구현 순서 요약 (실제 구현 기준)
 
 ```markdown
-Phase 1: Value Objects (⭐️⭐️⭐️⭐️⭐️) - 4개 (BlockId, BlockType, PropertyType, MediaURL)
-Phase 2: Entities (⭐️⭐️⭐️⭐️⭐️) - 1개 (Block)
-Phase 3: Aggregates (⭐️⭐️⭐️⭐️⭐️) - 1개 (BlockAggregate)
-Phase 4: Repository (⭐️⭐️⭐️⭐️) - 1개 (BlockRepository)
-Phase 5: Service (⭐️⭐️⭐️⭐️) - 1개 (BlockManagementService)
-Phase 6: Server Actions (⭐️⭐️⭐️⭐️⭐️) - 5개 (create, update, delete, property, media)
-Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 5개 시나리오
+Phase 1: Value Objects (⭐️⭐️⭐️⭐️⭐️) - 완료
+  - BlockId, BlockType, PropertyType, MediaURL ✅
+  - PropertyOption, PropertyValidation, CustomPropertyDefinitionVO ✅
+  - BlockPropertiesVO (타입별 Value Objects) ✅
+
+Phase 2: Entities (⭐️⭐️⭐️⭐️⭐️) - 완료
+  - Block Entity ✅
+
+Phase 3: Aggregates (⭐️⭐️⭐️⭐️⭐️) - 완료
+  - BlockAggregate ✅
+
+Phase 4: Repository (⭐️⭐️⭐️⭐️) - 완료
+  - DrizzleBlockRepository ✅
+
+Phase 5: Service (⭐️⭐️⭐️⭐️) - 완료
+  - BlockManagementService ✅
+  - BlockPropertyService ✅
+  - BlockToolService ✅
+
+Phase 6: Server Actions (⭐️⭐️⭐️⭐️⭐️) - 부분 완료
+  - createAndMountBlockAction ✅ (Canvas Management Domain)
+  - updateBlockPropertyAction ✅
+  - updateBlockTitleAction ✅
+  - executeBlockToolAction ✅
+  - manageCustomPropertyAction ❌ (미구현)
+  - manageMediaAction ❌ (미구현)
+
+Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 부분 완료
+  - 블록 생성 시나리오 ✅
+  - 블록 속성 업데이트 시나리오 ✅
+  - 커스텀 속성 관리 시나리오 ❌ (Server Actions 미구현으로 제한적)
 ```
 
 ---
@@ -147,20 +172,33 @@ Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 5개 시나리오
   - createdAt: 생성 시각 (불변)
   - updatedAt: 수정 시각 (변경 가능)
   - deletedAt: 삭제 시각 (소프트 삭제용, 변경 가능)
-- **주요 메서드**:
-  - updateBlockType(): 블록 타입 변경 및 메타데이터 재검증
-  - addCustomProperty(): 커스텀 속성 추가 (최대 50개 제한)
-  - changePropertyType(): 속성 타입 변경 및 호환성 검사
-  - deleteCustomProperty(): 커스텀 속성 삭제 (정의-값 동시 제거)
-  - setPropertyValue(): 속성 값 설정 및 타입별 검증 (멀티선택은 배열 값)
-  - clearPropertyValue(): 속성 값 초기화
-  - uploadMedia(): 미디어 파일 업로드 및 URL 저장
-  - deleteMediaFile(): 미디어 파일 URL 제거 (Storage 보존)
-  - executeBlockTool(): 블록 툴 실행
-  - executeBlockToolByAI(): AI 블록 툴 실행
+- **주요 메서드** (실제 구현 기준):
+  **블록 생명주기**:
+  - create(): Block 생성 (BlockPropertiesFactory로 타입별 기본 속성 초기화)
+  - update(): 블록 정보 업데이트 (title, properties)
+  - updateBlockType(): 블록 타입 변경 및 기본 속성 재설정
+  - duplicate(): 블록 복제 (새로운 BlockId 생성)
   - markAsDeleted(): 소프트 삭제 처리 (deletedAt 설정)
   - restore(): 삭제 취소 (deletedAt 제거)
-  - canBeModifiedBy(): 수정 권한 확인
+  
+  **커스텀 속성 관리**:
+  - addCustomPropertyDefinition(): 커스텀 속성 추가 (updatedAt 갱신)
+  - updateCustomPropertyDefinition(): 커스텀 속성 업데이트 (updatedAt 갱신)
+  - removeCustomPropertyDefinition(): 커스텀 속성 삭제 (updatedAt 갱신)
+  - getCustomProperty(): 특정 커스텀 속성 조회
+  
+  **속성 조회**:
+  - getPropertyValue(): 특정 속성 값 조회
+  - getAllProperties(): 모든 속성 값 조회
+  - getDefaultProperties(): 블록 타입별 기본 속성 조회
+  
+  **블록 툴**:
+  - getAvailableTools(): 사용 가능한 툴 목록 반환
+  - supportsTool(): 특정 툴 지원 여부 확인
+  
+  **참고**: 
+  - 미디어 업로드, 블록 툴 실행은 BlockToolService에서 별도 처리
+  - 속성 값 검증은 BlockPropertiesVO Value Objects에서 처리
 - **비즈니스 규칙**: 
   - 타입 변경 시 메타데이터 자동 재검증
   - 삭제된 블록은 수정 불가
@@ -192,31 +230,30 @@ Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 5개 시나리오
   - 비즈니스 규칙 검증 및 정책 실행
   - 도메인 이벤트 발생 및 관리
   - Block의 일관성 보장
-- **주요 메서드**:
-  - createBlock(): Block 생성 및 BlockCreated 이벤트 발행
-  - deleteBlock(): 소프트 삭제 및 BlockDeleted 이벤트 발행
-  - addCustomProperty(): 커스텀 속성 추가 및 CustomPropertyAdded 이벤트 발행
-  - changePropertyType(): 속성 타입 변경 및 CustomPropertyTypeChanged 이벤트 발행
-  - reorderProperty(): 속성 순서 변경 및 PropertyOrderSet 이벤트 발행
-  - togglePropertyVisibility(): 속성 가시성 변경 및 PropertyVisibilityChanged 이벤트 발행
-  - deleteCustomProperty(): 커스텀 속성 삭제 및 CustomPropertyDeleted 이벤트 발행
-  - setPropertyValue(): 속성 값 설정 및 PropertyValueSet 이벤트 발행
-  - clearPropertyValue(): 속성 값 초기화 및 PropertyValueInitialized 이벤트 발행
-  - uploadMedia(): 미디어 업로드 및 ImageUploadedToStorage 이벤트 발행
-  - deleteMediaFile(): 미디어 삭제 및 MediaFileURLRemoved 이벤트 발행
-  - executeBlockTool(): 블록 툴 실행 및 BlockToolExecutedByUser 이벤트 발행
-  - executeBlockToolByAI(): AI 블록 툴 실행 및 BlockToolExecutedByAI 이벤트 발행
-  - validateWorkspaceAccess(): 워크스페이스 접근 권한 검증
+- **주요 메서드** (실제 구현 기준):
+  **Aggregate 레벨**:
+  - create(): Block 생성 및 BlockCreated 이벤트 발행
+  - update(): Block 업데이트 및 BlockUpdated 이벤트 발행
+  - updateProperty(): 블록 속성 업데이트 (properties.xxx 경로만) 및 BlockPropertyUpdated 이벤트 발행
+  - delete(): 소프트 삭제 및 BlockDeleted 이벤트 발행
+  - duplicate(): 블록 복제 및 BlockDuplicated 이벤트 발행
+  - restore(): 삭제 취소 및 BlockUpdated 이벤트 발행
+  - getBlock(): 현재 Block Entity 반환
   - getUncommittedEvents(): 발행된 이벤트 목록 반환
-- **비즈니스 로직**: 
-  - 블록 타입별 메타데이터 스키마 검증
-  - 워크스페이스 격리
-  - 커스텀 속성 개수 제한 (최대 50개)
-  - 정의-값 동시 업데이트
-  - 타입별 속성 값 검증 (멀티선택은 배열 값 검증)
-  - 프로필 속성 멤버 검증
-  - 미디어 파일 크기/MIME 타입 검증
-  - 블록 툴 실행 권한 확인
+  - markEventsAsCommitted(): 이벤트 커밋 처리
+  
+  **참고**: 
+  - 커스텀 속성 관리: Block Entity 메서드 (addCustomPropertyDefinition, updateCustomPropertyDefinition, removeCustomPropertyDefinition)
+  - 미디어 업로드, 블록 툴 실행: BlockToolService에서 별도 처리 (Aggregate 레벨 아님)
+- **비즈니스 로직** (실제 구현 기준): 
+  - 블록 타입별 기본 속성 초기화 (BlockPropertiesFactory 사용)
+  - 워크스페이스 격리 (RLS 정책, Application 레벨 verifyAccess)
+  - 삭제된 블록 수정 불가 검증
+  - properties.xxx 경로만 속성 업데이트 허용
+  - 커스텀 속성 개수 제한 (최대 50개 - Entity 레벨, 추후 구현)
+  - 타입별 속성 값 검증 (BlockPropertiesVO Value Objects에서 처리)
+  - 블록 툴 지원 여부 확인 (Block Entity 레벨)
+  - 참고: 프로필 속성 멤버 검증, 미디어 파일 검증은 미구현
 - **불변식(Invariants)**:
   - 블록은 반드시 하나의 워크스페이스에 속해야 함
   - 블록 타입은 지원되는 타입만 허용
@@ -246,63 +283,42 @@ Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 5개 시나리오
 
 ### 4. Commands & Events 수도코드
 
-#### Commands (14개)
+#### Commands (실제 구현 기준 - 5개)
 
 **블록 생명주기**:
-- **CreateBlockCommand**: 블록 생성 (workspaceId, blockType, initialMetadata)
+- **CreateBlockCommand**: 블록 생성 (blockId, userId, workspaceId, blockType, title)
+- **UpdateBlockCommand**: 블록 업데이트 (blockId, updateData: {title?, properties?})
+- **UpdateBlockPropertyCommand**: 블록 속성 업데이트 (blockId, propertyPath, value, workspaceId)
+  - blockId: 블록 ID
+  - propertyPath: 속성 경로 (properties.xxx 형태만 지원)
+  - value: 새로운 속성 값
+  - workspaceId: 블록 소유권 검증용
 - **DeleteBlockCommand**: 블록 삭제 (blockId)
+- **DuplicateBlockCommand**: 블록 복제 (userId)
 
-**커스텀 속성 관리**:
-- **AddCustomPropertyCommand**: 커스텀 속성 추가 (blockId, name, type, options?)
-- **ChangePropertyTypeCommand**: 속성 타입 변경 (blockId, propertyId, newType, newOptions?)
-- **ReorderPropertyCommand**: 속성 순서 변경 (blockId, propertyId, newOrder)
-- **TogglePropertyVisibilityCommand**: 속성 가시성 설정 (blockId, propertyId, visible)
-- **DeleteCustomPropertyCommand**: 커스텀 속성 삭제 (blockId, propertyId)
+**참고**: 
+- 커스텀 속성 관리는 Block Entity 메서드로 직접 처리 (Command 패턴 없음)
+- 미디어 관리, 블록 툴 실행은 BlockToolService에서 별도 처리 (Command 패턴 없음)
 
-**속성 값 관리**:
-- **SetPropertyValueCommand**: 속성 값 설정 (blockId, propertyId, value)
-- **ClearPropertyValueCommand**: 속성 값 초기화 (blockId, propertyId)
-
-**미디어 관리**:
-- **UploadMediaCommand**: 미디어 파일 업로드 (blockId, file, propertyId?)
-- **DeleteMediaFileCommand**: 미디어 파일 삭제 (blockId, propertyId)
-
-**블록 툴 실행**:
-- **ExecuteBlockToolCommand**: 블록 툴 실행 (blockId, toolType, parameters)
-- **ExecuteBlockToolByAICommand**: AI 블록 툴 실행 (blockId, toolType, parameters, aiContext)
-
-#### Events (20개)
+#### Events (실제 구현 기준 - 5개)
 
 **블록 생명주기**:
 - **BlockCreatedEvent**: 블록이 생성되었다
-- **BlockValidatedEvent**: 블록이 검증되었다
-- **BlockTypeDefaultPropertySetEvent**: 블록 타입 기본 속성이 설정되었다
+  - blockId, blockType, title, properties, customProperties, workspaceId, userId
+- **BlockUpdatedEvent**: 블록이 업데이트되었다
+  - blockId, updateData
+- **BlockPropertyUpdatedEvent**: 블록 속성이 업데이트되었다
+  - blockId, propertyPath (properties.xxx 형태만), oldValue, newValue
+  - 참고: userId는 현재 이벤트에 포함되지 않음 (필요 시 추후 추가)
 - **BlockDeletedEvent**: 블록이 삭제되었다
+  - blockId, workspaceId
+- **BlockDuplicatedEvent**: 블록이 복제되었다
+  - originalBlockId, duplicatedBlockId
 
-**커스텀 속성**:
-- **CustomPropertyAddedEvent**: 커스텀 속성이 추가되었다
-- **CustomPropertyTypeChangedEvent**: 커스텀 속성 타입이 변경되었다
-- **PropertyOrderSetEvent**: 속성 순서가 설정되었다
-- **PropertyVisibilityChangedEvent**: 속성 가시성이 변경되었다
-- **CustomPropertyDeletedEvent**: 커스텀 속성이 삭제되었다
-
-**속성 값**:
-- **PropertyValueSetEvent**: 속성 값이 설정되었다
-- **PropertyValueValidatedEvent**: 속성 값이 검증되었다
-- **PropertyValueInitializedEvent**: 속성 값이 초기화되었다
-- **EditedTimePropertyAutoUpdatedEvent**: 편집시각이 자동 업데이트되었다
-
-**미디어 파일**:
-- **ImageUploadedToStorageEvent**: 이미지가 Supabase Storage에 업로드되었다
-- **MediaPublicURLGeneratedEvent**: 미디어 Public URL이 생성되었다
-- **MediaFileURLRemovedEvent**: 미디어 파일 URL이 속성에서 제거되었다
-
-**블록 툴**:
-- **BlockToolExecutedByUserEvent**: 블록 툴이 사용자에 의해 실행되었다
-- **BlockToolExecutedByAIEvent**: 블록 툴이 AI에 의해 실행되었다
-- **BlockToolExecutionStartedEvent**: 블록 툴 실행이 시작되었다
-- **BlockToolExecutionCompletedEvent**: 블록 툴 실행이 완료되었다
-- **NewBlocksCreatedFromToolResultEvent**: 툴 실행 결과로 새 블록들이 생성되었다
+**참고**: 
+- 커스텀 속성, 미디어, 블록 툴 관련 이벤트는 현재 Aggregate 레벨에서 발생하지 않음
+- 커스텀 속성 변경은 Entity 레벨에서 처리되며 Service에서 로깅으로 대체
+- 미디어 및 블록 툴 실행은 BlockToolService에서 별도 처리 (이벤트 발행 없음)
 
 ---
 
@@ -524,6 +540,7 @@ Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 5개 시나리오
   - togglePropertyVisibility(): TogglePropertyVisibilityCommand 처리
   - deleteCustomProperty(): DeleteCustomPropertyCommand 처리
   - setPropertyValue(): SetPropertyValueCommand 처리
+  - updateBlockProperty(): UpdateBlockPropertyCommand 처리
   - clearPropertyValue(): ClearPropertyValueCommand 처리
   - uploadMedia(): UploadMediaCommand 처리
   - deleteMediaFile(): DeleteMediaFileCommand 처리
@@ -561,17 +578,17 @@ Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 5개 시나리오
 
 ### 2. Server Actions 수도코드
 
-#### createBlockAction
+#### createAndMountBlockAction (실제 구현 기준)
 
-- **파일 위치**: `src/domains/block-management/actions/block.actions.ts`
-- **역할**: 블록 생성 기능을 제공하는 Next.js Server Action
+- **파일 위치**: `src/domains/canvas-management/actions/block.actions.ts`
+- **역할**: 블록 생성 및 Canvas 마운팅 통합 Server Action
 - **주요 기능**:
   - Supabase Auth를 통한 사용자 인증 확인
-  - 의존성 주입 패턴으로 Service Layer 활용
+  - Canvas Management와 Block Management 통합 처리
   - Command 객체 생성 및 Service 메서드 호출
   - 도메인 모델 → DTO 직렬화
-- **입력**: FormData (workspaceId, blockType, initialMetadata)
-- **출력**: BlockDTO
+- **입력**: CreateAndMountBlockRequest (workspaceId, orgId, pageId, blockType, position, size)
+- **출력**: BlockCreatedAndMountedDTO
 - **인증**: Supabase Auth 기반 사용자 인증 필수
 - **에러 처리**: 
   - 인증 실패 → UnauthorizedError
@@ -579,56 +596,83 @@ Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️) - 5개 시나리오
   - 도메인 규칙 위반 → BlockManagementError
 - **특징**:
   - `'use server'` 지시어 사용
-  - Plain Object만 반환 (직렬화 가능)
-  - 의존성 주입으로 테스트 용이성 확보
+  - Canvas Management Domain에 구현됨
+  - BlockManagementService와 CanvasBlockMountService 통합
 
 **처리 흐름**:
 1. 인증 확인: Supabase Auth로 현재 사용자 확인
-2. 의존성 주입: Repository, Service 인스턴스 생성
-3. Command 생성: 입력 파라미터 → CreateBlockCommand 객체 변환
-4. 도메인 로직 실행: BlockManagementService.createBlock() 호출
-5. DTO 직렬화: Block Aggregate → BlockDTO 변환
-6. 결과 반환: Result<BlockDTO> 형식
+2. 워크스페이스 권한 확인: verifyAccess()로 접근 권한 검증
+3. 의존성 주입: Repository, Service 인스턴스 생성
+4. 블록 생성 및 마운팅: CanvasBlockMountService.createAndMountBlock() 호출
+5. DTO 직렬화: Block Aggregate + BlockMount Aggregate → DTO 변환
+6. 결과 반환: ActionResult<BlockCreatedAndMountedDTO> 형식
 
-#### updateBlockAction
-
-- **파일 위치**: `src/domains/block-management/actions/block.actions.ts`
-- **역할**: 블록 정보 업데이트 기능을 제공하는 Next.js Server Action
-- **입력**: FormData (blockId, blockType?, metadata?)
-- **출력**: BlockDTO
-- **처리 흐름**: createBlockAction과 유사하나 수정 로직 적용
-
-#### deleteBlockAction
+#### updateBlockTitleAction (실제 구현 기준)
 
 - **파일 위치**: `src/domains/block-management/actions/block.actions.ts`
-- **역할**: 블록 삭제 기능을 제공하는 Next.js Server Action
-- **입력**: FormData (blockId)
-- **출력**: void
-- **처리 흐름**: 소프트 삭제 로직 적용
+- **역할**: 블록 제목 업데이트 기능을 제공하는 Next.js Server Action
+- **입력**: UpdateBlockTitleRequest (blockId, title, workspaceId, orgId)
+- **출력**: BlockTitleUpdatedDTO
+- **처리 흐름**: 
+  1. 인증 확인 및 권한 검증
+  2. Block Entity 직접 업데이트 (update 메서드)
+  3. Repository에 저장
+  4. DTO 반환
 
-#### manageCustomPropertyAction
+참고: updateBlockAction은 현재 별도 구현 없이 updateBlockTitleAction과 updateBlockPropertyAction으로 분리됨
 
-- **파일 위치**: `src/domains/block-management/actions/property.actions.ts`
+#### updateBlockPropertyAction (실제 구현 기준)
+
+- **파일 위치**: `src/domains/block-management/actions/block.actions.ts`
+- **역할**: 블록 속성 업데이트 기능을 제공하는 Next.js Server Action
+- **주요 기능**:
+  - UpdateBlockPropertyCommand 처리
+  - 속성 경로 검증 (properties.xxx 형태만 지원)
+  - 타입별 값 검증 (BlockPropertiesVO Value Objects에서 처리)
+- **입력**: UpdateBlockPropertyRequest (blockId, propertyPath, value, workspaceId, orgId)
+- **출력**: BlockPropertyUpdatedDTO
+- **인증**: Supabase Auth 기반 사용자 인증 필수
+- **에러 처리**:
+  - 인증 실패 → UnauthorizedError
+  - 블록 없음 → BlockNotFoundError
+  - 삭제된 블록 → BlockAlreadyDeletedError
+  - 잘못된 속성 경로 → InvalidPropertyPathError (properties.xxx만 허용)
+- **처리 흐름**:
+  1. 인증 확인: Supabase Auth로 현재 사용자 확인
+  2. 워크스페이스 권한 확인: verifyAccess()로 접근 권한 검증
+  3. 입력 파라미터 검증: Zod 스키마로 런타임 검증
+  4. UpdateBlockPropertyCommand 생성 (workspaceId 포함 - 소유권 검증용)
+  5. BlockPropertyService.updateProperty() 호출
+  6. BlockAggregate.updateProperty() 호출 (properties.xxx 경로만 처리)
+  7. 도메인 이벤트 처리 (BlockPropertyUpdatedEvent 발생)
+  8. DTO 직렬화 및 반환
+- **참고**: 
+  - userId는 현재 이벤트에 포함되지 않음 (필요 시 추후 추가)
+  - 프로필 속성 멤버 검증은 현재 미구현
+
+#### manageCustomPropertyAction (미구현)
+
+- **파일 위치**: `src/domains/block-management/actions/property.actions.ts` (파일 없음)
 - **역할**: 커스텀 속성 관리 기능을 제공하는 Next.js Server Action
-- **주요 기능**:
-  - AddCustomProperty, ChangePropertyType, DeleteCustomProperty 처리
-  - 속성 타입별 검증
-  - 정의-값 동시 업데이트
-- **입력**: FormData (action, blockId, propertyId?, name?, type?, options?)
-- **출력**: PropertyDTO
-- **처리 흐름**: 속성 관리 로직 적용
+- **현재 상태**: 
+  - Frontend Hook(useSchemaFieldEditor)에서 호출하지만 실제 파일이 존재하지 않음
+  - Block Entity 메서드(addCustomPropertyDefinition 등)는 구현되어 있으나 Server Action 레벨에서 연동 필요
+- **필요한 구현**:
+  - createCustomPropertyAction: 커스텀 속성 추가
+  - updateCustomPropertyAction: 커스텀 속성 업데이트
+  - deleteCustomPropertyAction: 커스텀 속성 삭제
+- **참고**: 현재는 Frontend에서 Optimistic Update만 동작하며 백엔드 저장은 불가
 
-#### manageMediaAction
+#### manageMediaAction (미구현)
 
-- **파일 위치**: `src/domains/block-management/actions/media.actions.ts`
+- **파일 위치**: `src/domains/block-management/actions/media.actions.ts` (파일 없음)
 - **역할**: 미디어 파일 관리 기능을 제공하는 Next.js Server Action
-- **주요 기능**:
-  - UploadMedia, DeleteMediaFile 처리
-  - 파일 크기/MIME 타입 검증
-  - Supabase Storage 연동
-- **입력**: FormData (action, blockId, file?, propertyId?)
-- **출력**: MediaDTO
-- **처리 흐름**: 미디어 관리 로직 적용
+- **현재 상태**: 
+  - MediaURL Value Object는 구현되어 있으나 Server Action은 미구현
+  - Supabase Storage 연동 로직 미구현
+- **필요한 구현**:
+  - uploadMediaAction: 미디어 파일 업로드 및 Public URL 생성
+  - deleteMediaAction: 미디어 파일 삭제 (properties에서 URL 제거)
 
 **우선순위**: ⭐️⭐️⭐️⭐️⭐️  
 **Testing Strategy 참조**: Server Actions 통합 테스트 케이스
@@ -718,19 +762,31 @@ function useBlocks(workspaceId: string) {
 ### Phase 5: Service (⭐️⭐️⭐️⭐️)
 1. BlockManagementService (통합 테스트)
 
-### Phase 6: Server Actions (⭐️⭐️⭐️⭐️⭐️)
-1. createBlockAction (통합 테스트)
-2. updateBlockAction (통합 테스트)
-3. deleteBlockAction (통합 테스트)
-4. manageCustomPropertyAction (통합 테스트)
-5. manageMediaAction (통합 테스트)
+### Phase 6: Server Actions (⭐️⭐️⭐️⭐️⭐️) - 실제 구현 기준
+1. createAndMountBlockAction (Canvas Management Domain에 구현) ✅
+   - 파일: `canvas-management/actions/block.actions.ts`
+   - 블록 생성 및 Canvas 마운팅 통합 처리
+2. updateBlockPropertyAction ✅
+   - 파일: `block-management/actions/block.actions.ts`
+   - 블록 속성 업데이트 (properties.xxx 경로만)
+3. updateBlockTitleAction ✅
+   - 파일: `block-management/actions/block.actions.ts`
+   - 블록 제목 업데이트
+4. executeBlockToolAction ✅
+   - 파일: `block-management/actions/tool.actions.ts`
+   - 블록 툴 실행
+5. manageCustomPropertyAction ❌ (미구현 - property.actions.ts 파일 없음)
+   - Frontend Hook에서 호출하나 실제 Server Action 파일 없음
+6. manageMediaAction ❌ (미구현)
+   - MediaURL Value Object만 구현, Server Action 및 Storage 연동 미구현
 
 ### Phase 7: E2E Tests (⭐️⭐️⭐️⭐️⭐️)
 1. 블록 생성 시나리오
-2. 커스텀 속성 관리 시나리오
-3. 미디어 파일 관리 시나리오
-4. 블록 툴 실행 시나리오
-5. 블록 삭제 시나리오
+2. 블록 속성 업데이트 시나리오 (블록 마운트 툴바에서 색상 변경)
+3. 커스텀 속성 관리 시나리오
+4. 미디어 파일 관리 시나리오
+5. 블록 툴 실행 시나리오
+6. 블록 삭제 시나리오
 ```
 
 ### TDD 사이클 적용 방법
@@ -793,12 +849,13 @@ Testing Strategy 목표 참조:
 - [x] 소프트 삭제 호환성이 보장되었는가?
 - [x] 성능 최적화 방안이 포함되었는가?
 
-### Software Design 완전 반영 검증
-- [x] 14개 Commands가 모두 구현 수도코드로 작성되었는가?
-- [x] 20개 Events가 모두 구현 수도코드로 작성되었는가?
-- [x] 15개 Invariants가 모두 구현 수도코드로 반영되었는가?
-- [x] JSONB Properties 구조가 구현 수도코드로 반영되었는가?
-- [x] External System ACL이 구현 수도코드로 반영되었는가?
+### Software Design 완전 반영 검증 (실제 구현 기준)
+- [x] 5개 Commands가 모두 구현 수도코드로 작성되었는가? (CreateBlock, UpdateBlock, UpdateBlockProperty, DeleteBlock, DuplicateBlock)
+- [x] 5개 Events가 모두 구현 수도코드로 작성되었는가? (BlockCreated, BlockUpdated, BlockPropertyUpdated, BlockDeleted, BlockDuplicated)
+- [x] 핵심 Invariants가 구현 수도코드로 반영되었는가? (워크스페이스 격리, 삭제된 블록 수정 불가, properties.xxx 경로 검증)
+- [x] JSONB Properties 구조가 구현 수도코드로 반영되었는가? (properties, custom_properties 분리)
+- [x] BlockPropertiesVO Value Objects 구조가 반영되었는가? (타입별 Properties Value Object)
+- 참고: 커스텀 속성, 미디어, 블록 툴 관련 Commands/Events는 Entity나 Service 레벨에서 처리됨
 
 ---
 

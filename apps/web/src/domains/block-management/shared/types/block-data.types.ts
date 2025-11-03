@@ -8,9 +8,9 @@ import { BlockType } from './block-types';
 import {
   TextBlockProperties,
   ShapeBlockProperties,
+  ImageBlockProperties,
   MarkdownBlockProperties,
   YoutubeBlockProperties,
-  ImageBlockProperties,
   PdfBlockProperties,
   AudioBlockProperties,
   VideoBlockProperties,
@@ -21,52 +21,63 @@ import {
   LatexBlockProperties,
   GithubPrBlockProperties,
   ReactComponentBlockProperties,
-  getDefaultPropertiesForBlockType,
-  BlockProperties,
-} from './block-properties.types';
+} from '../value-objects/block-properties';
+import { CustomPropertyDefinition } from '../value-objects/block-properties/common-types';
+import { BlockPropertiesFactory } from '../value-objects/block-properties';
+import { BlockType as BlockTypeVO } from '../value-objects/block-type.vo';
+import { UserProfile } from '@/domains/user-management/shared/types';
+
+// CustomPropertyDefinition은 block-properties.types.ts에서 import
 
 /**
- * 커스텀 속성 정의 (DB 구조와 일치)
+ * 블록 속성 타입 (Value Objects에서 정의된 타입들)
  */
-export interface CustomPropertyDefinition {
-  id: string;
-  name: string;
-  type: 'text' | 'select' | 'multiselect' | 'profile' | 'date' | 'number';
-  options?: Array<{
-    id: string;
-    label: string;
-    color?: string;
-    order: number;
-  }>;
-  order: number;
-  visible: boolean;
-}
-
-/**
- * React Flow Node용 기본 블록 데이터
- */
-export interface CreatedByProfile {
-  id: string;
-  email?: string;
-  fullName?: string;
-  avatarUrl?: string;
-}
+export type BlockProperties<T extends BlockType> = T extends 'text'
+  ? TextBlockProperties
+  : T extends 'shape'
+    ? ShapeBlockProperties
+    : T extends 'image'
+      ? ImageBlockProperties
+      : T extends 'markdown'
+        ? MarkdownBlockProperties
+        : T extends 'youtube'
+          ? YoutubeBlockProperties
+          : T extends 'pdf'
+            ? PdfBlockProperties
+            : T extends 'audio'
+              ? AudioBlockProperties
+              : T extends 'video'
+                ? VideoBlockProperties
+                : T extends 'file'
+                  ? FileBlockProperties
+                  : T extends 'python'
+                    ? PythonBlockProperties
+                    : T extends 'link'
+                      ? LinkBlockProperties
+                      : T extends 'page_mention'
+                        ? PageMentionBlockProperties
+                        : T extends 'latex'
+                          ? LatexBlockProperties
+                          : T extends 'github_pr'
+                            ? GithubPrBlockProperties
+                            : T extends 'react_component'
+                              ? ReactComponentBlockProperties
+                              : Record<string, any>;
 
 export interface BaseNodeData extends Record<string, unknown> {
   blockMountId: string;
   blockId: string;
   blockType: BlockType;
-  properties: Record<string, any>; // 실제 DB properties는 Record<string, any>로 처리
+  properties: BlockProperties<BlockType>;
   customProperties: CustomPropertyDefinition[];
-  metadata?: Record<string, any>;
   // Canvas Management 특화 속성들
-  pageId?: string;
-  orgId?: string;
-  workspaceId?: string;
+  pageId: string;
+  orgId: string;
+  workspaceId: string;
   // 메타데이터
   createdAt?: string;
   updatedAt?: string;
-  createdBy?: string | CreatedByProfile;
+  createdByProfile: UserProfile;
 }
 
 export interface TextBlockNodeData extends BaseNodeData {
@@ -81,6 +92,12 @@ export interface ShapeBlockNodeData extends BaseNodeData {
   [key: string]: any; // React Flow Node data constraint
 }
 
+export interface ImageBlockNodeData extends BaseNodeData {
+  blockType: 'image';
+  properties: ImageBlockProperties;
+  [key: string]: any; // React Flow Node data constraint
+}
+
 export interface MarkdownBlockNodeData extends BaseNodeData {
   blockType: 'markdown';
   properties: MarkdownBlockProperties;
@@ -90,12 +107,6 @@ export interface MarkdownBlockNodeData extends BaseNodeData {
 export interface YoutubeBlockNodeData extends BaseNodeData {
   blockType: 'youtube';
   properties: YoutubeBlockProperties;
-  [key: string]: any; // React Flow Node data constraint
-}
-
-export interface ImageBlockNodeData extends BaseNodeData {
-  blockType: 'image';
-  properties: ImageBlockProperties;
   [key: string]: any; // React Flow Node data constraint
 }
 
@@ -165,9 +176,9 @@ export interface ReactComponentBlockNodeData extends BaseNodeData {
 export type BlockNodeData =
   | TextBlockNodeData
   | ShapeBlockNodeData
+  | ImageBlockNodeData
   | MarkdownBlockNodeData
   | YoutubeBlockNodeData
-  | ImageBlockNodeData
   | PdfBlockNodeData
   | AudioBlockNodeData
   | VideoBlockNodeData
@@ -180,72 +191,50 @@ export type BlockNodeData =
   | ReactComponentBlockNodeData;
 
 /**
- * 타입 안전한 블록 노드 데이터 생성 함수
+ * 타입 안전한 블록 노드 데이터 빌드 함수
+ *
+ * Generic을 활용하여 타입 안전성을 보장하면서도 불필요한 타입 어설션을 제거
+ * 새로운 블록 타입 추가 시 이 함수는 수정할 필요가 없음
  */
-export function createBlockNodeData<T extends BlockType>(
+export function buildBlockNodeData<T extends BlockType>(
   blockType: T,
   baseData: {
     blockMountId: string;
     blockId: string;
-    pageId?: string;
-    orgId?: string;
-    workspaceId?: string;
-    properties?: Record<string, any>; // 실제 DB properties 추가
-    createdBy?: string | CreatedByProfile;
+    pageId: string;
+    orgId: string;
+    workspaceId: string;
+    properties?: BlockProperties<T>;
+    customProperties?: CustomPropertyDefinition[];
+    createdByProfile?: UserProfile;
     createdAt?: string;
     updatedAt?: string;
   }
 ): BlockNodeData {
-  const commonData = {
+  // BlockPropertiesFactory에서 이미 올바른 타입의 properties를 반환하므로
+  // 추가적인 타입 어설션이나 switch문이 불필요
+  const properties =
+    baseData.properties ||
+    BlockPropertiesFactory.createForBlockType(
+      new BlockTypeVO(blockType)
+    ).toJSON();
+
+  return {
     blockMountId: baseData.blockMountId,
     blockId: baseData.blockId,
     blockType,
-    properties:
-      baseData.properties ||
-      (getDefaultPropertiesForBlockType(blockType) as BlockProperties<T>), // 실제 properties 우선, 없으면 기본값
-    customProperties: [],
-    metadata: {},
+    properties: properties,
+    customProperties: baseData.customProperties || [],
     pageId: baseData.pageId,
     orgId: baseData.orgId,
     workspaceId: baseData.workspaceId,
-    createdBy: baseData.createdBy,
+    createdByProfile: baseData.createdByProfile || {
+      id: 'unknown',
+      email: 'unknown',
+      name: 'unknown',
+      avatarUrl: 'unknown',
+    },
     createdAt: baseData.createdAt,
     updatedAt: baseData.updatedAt,
-  };
-
-  // 타입 안전성을 위한 타입 어설션
-  switch (blockType) {
-    case 'text':
-      return commonData as TextBlockNodeData;
-    case 'shape':
-      return commonData as ShapeBlockNodeData;
-    case 'markdown':
-      return commonData as MarkdownBlockNodeData;
-    case 'youtube':
-      return commonData as YoutubeBlockNodeData;
-    case 'image':
-      return commonData as ImageBlockNodeData;
-    case 'pdf':
-      return commonData as PdfBlockNodeData;
-    case 'audio':
-      return commonData as AudioBlockNodeData;
-    case 'video':
-      return commonData as VideoBlockNodeData;
-    case 'file':
-      return commonData as FileBlockNodeData;
-    case 'python':
-      return commonData as PythonBlockNodeData;
-    case 'link':
-      return commonData as LinkBlockNodeData;
-    case 'page_mention':
-      return commonData as PageMentionBlockNodeData;
-    case 'latex':
-      return commonData as LatexBlockNodeData;
-    case 'github_pr':
-      return commonData as GithubPrBlockNodeData;
-    case 'react_component':
-      return commonData as ReactComponentBlockNodeData;
-    default:
-      return commonData as BlockNodeData;
-  }
+  } as BlockNodeData;
 }

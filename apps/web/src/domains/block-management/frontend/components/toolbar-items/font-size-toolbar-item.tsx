@@ -7,7 +7,7 @@ import {
   PopoverTrigger,
 } from '@workspace/ui/components/ui/popover';
 import { ALargeSmall } from 'lucide-react';
-import { FontSize } from '../../../shared/types/block-properties.types';
+import { FontSize } from '../../../shared/value-objects/block-properties/common-types';
 
 interface FontSizeToolbarItemProps {
   blockId: string;

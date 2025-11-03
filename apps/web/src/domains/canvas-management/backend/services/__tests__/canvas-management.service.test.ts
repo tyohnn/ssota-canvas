@@ -1,30 +1,37 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { CanvasManagementService } from '../canvas-management.service';
+import { CanvasQueryService } from '../canvas-query.service';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import { BlockManagementService } from '@/domains/block-management/backend/services/block-management.service';
 import { BlockMountRepository } from '../../repositories/interfaces/block-mount.repository.interface';
 import { EdgeRepository } from '../../repositories/interfaces/edge.repository.interface';
 import { ViewportRepository } from '../../repositories/interfaces/viewport.repository.interface';
-import { WorkspaceRepository } from '@/domains/workspace-management/backend/repositories/interfaces/workspace.repository.interface';
 import { CanvasViewData } from '../../../shared/dtos';
 import { BlockMountAggregate } from '../../../shared/aggregates/block-mount.aggregate';
 import { EdgeAggregate } from '../../../shared/aggregates/edge.aggregate';
 import { ViewportAggregate } from '../../../shared/aggregates/viewport.aggregate';
 import { Block } from '@/domains/block-management/shared/entities/block.entity';
+import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { BlockType } from '@/domains/block-management/shared/value-objects/block-type.vo';
 import { EdgeId } from '../../../shared/value-objects/edge-id.vo';
 import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
 import { Position } from '../../../shared/value-objects/position.vo';
 import { Size } from '../../../shared/value-objects/size.vo';
 import { ZOrder } from '../../../shared/value-objects/z-order.vo';
+import { UserId as BlockUserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+import { MountBlockCommand } from '../../../shared/commands';
 
 // Mock repositories for testing
 class MockBlockMountRepository implements BlockMountRepository {
   private storage = new Map<string, BlockMountAggregate>();
 
-  async save(blockMount: BlockMountAggregate): Promise<void> {
-    this.storage.set(blockMount.blockMount.id.value, blockMount);
+  async create(blockMount: any): Promise<void> {
+    // Mock implementation
+  }
+
+  async update(blockMount: any): Promise<void> {
+    // Mock implementation
   }
 
   async findById(blockMountId: any): Promise<BlockMountAggregate | null> {
@@ -33,36 +40,45 @@ class MockBlockMountRepository implements BlockMountRepository {
 
   async findByPageId(pageId: PageId): Promise<BlockMountAggregate[]> {
     return Array.from(this.storage.values()).filter(
-      bm => bm.blockMount.pageId.value === pageId.value
+      bm => bm.getBlockMount().pageId.value === pageId.value
     );
   }
 
-  async delete(blockMountId: any): Promise<void> {
+  async softDelete(blockMountId: any): Promise<void> {
     this.storage.delete(blockMountId.value);
   }
 
   async findByPageIdWithBlocks(pageId: PageId): Promise<Array<{
-    blockMount: BlockMountAggregate;
-    block: Block;
+    blockMountAggregate: BlockMountAggregate;
+    blockAggregate: BlockAggregate;
   }>> {
     const blockMounts = await this.findByPageId(pageId);
     return blockMounts.map(bm => ({
-      blockMount: bm,
-      block: this.createMockBlock(bm.blockMount.blockId.value)
+      blockMountAggregate: bm,
+      blockAggregate: this.createMockBlockAggregate(bm.getBlockMount().blockId.value)
     }));
   }
 
-  private createMockBlock(blockId: string): Block {
+  private createMockBlockAggregate(blockId: string): BlockAggregate {
     const blockIdVO = new BlockId(blockId);
-    return Block.reconstitute(
+    const workspaceId = new WorkspaceId('test-workspace-id');
+    const userId = new BlockUserId('test-user-id');
+    const blockType = new BlockType('text');
+    
+    const block = Block.reconstitute(
       blockIdVO,
-      'test-workspace-id',
-      { value: 'text' } as any,
+      workspaceId,
+      userId,
+      blockType,
+      'Test Block',
       { value: {} } as any,
+      [],
       new Date(),
       new Date(),
       null
     );
+    
+    return BlockAggregate.reconstitute(block);
   }
 
   clear(): void {
@@ -71,7 +87,11 @@ class MockBlockMountRepository implements BlockMountRepository {
 }
 
 class MockEdgeRepository implements EdgeRepository {
-  async save(edgeAggregate: EdgeAggregate): Promise<void> {
+  async create(edgeAggregate: EdgeAggregate): Promise<void> {
+    // Mock implementation
+  }
+
+  async update(edgeAggregate: EdgeAggregate): Promise<void> {
     // Mock implementation
   }
 
@@ -83,7 +103,7 @@ class MockEdgeRepository implements EdgeRepository {
     return [];
   }
 
-  async findByConnectedBlockId(blockId: any): Promise<EdgeAggregate[]> {
+  async findByConnectedBlockMountId(blockMountId: any): Promise<EdgeAggregate[]> {
     return [];
   }
 
@@ -114,37 +134,17 @@ class MockViewportRepository implements ViewportRepository {
   }
 }
 
-class MockWorkspaceRepository implements WorkspaceRepository {
-  async save(workspaceAggregate: any): Promise<void> {
-    // Mock implementation
-  }
-
-  async findById(id: any): Promise<any> {
-    return null;
-  }
-
-  async findByOrganizationId(organizationId: any): Promise<any[]> {
-    return [];
-  }
-
-  async checkPageAccess(pageId: PageId, userId: UserId): Promise<boolean> {
-    return true; // 기본적으로 접근 허용
-  }
-}
-
-describe('CanvasManagementService', () => {
+describe('CanvasQueryService', () => {
   // 테스트용 고정 UUID (삭제 금지)
   const TEST_PROFILE_ID = '571f5680-0684-405d-b977-f6f28ff1df6f';
   const TEST_ORG_ID = 'ff215d4a-045d-499d-bf6b-07426bcc0b06';
   const TEST_WORKSPACE_ID = 'e4ee861a-4de1-42ce-820f-33866b136068';
   const TEST_PAGE_ID = '88597cb7-6828-480d-a77b-04db5ed5a142';
   
-  let service: CanvasManagementService;
+  let service: CanvasQueryService;
   let mockBlockMountRepository: MockBlockMountRepository;
   let mockEdgeRepository: MockEdgeRepository;
   let mockViewportRepository: MockViewportRepository;
-  let mockWorkspaceRepository: MockWorkspaceRepository;
-  let mockBlockManagementService: BlockManagementService;
   let pageId: PageId;
   let userId: UserId;
 
@@ -152,15 +152,11 @@ describe('CanvasManagementService', () => {
     mockBlockMountRepository = new MockBlockMountRepository();
     mockEdgeRepository = new MockEdgeRepository();
     mockViewportRepository = new MockViewportRepository();
-    mockWorkspaceRepository = new MockWorkspaceRepository();
-    mockBlockManagementService = new BlockManagementService();
     
-    service = new CanvasManagementService(
-      mockBlockManagementService,
+    service = new CanvasQueryService(
       mockBlockMountRepository,
       mockEdgeRepository,
-      mockViewportRepository,
-      mockWorkspaceRepository
+      mockViewportRepository
     );
     
     pageId = new PageId(TEST_PAGE_ID);
@@ -187,51 +183,29 @@ describe('CanvasManagementService', () => {
       }
     });
 
-    it('페이지 접근 권한이 없으면 에러가 발생해야 한다', async () => {
-      // Given
-      mockWorkspaceRepository.checkPageAccess = vi.fn().mockResolvedValue(false);
-
-      // When
-      const result = await service.getCanvasView(pageId, userId);
-
-      // Then
-      expect(result.isError()).toBe(true);
-      if (result.isError()) {
-        expect(result.error.message).toContain('User does not have access to this page');
-      }
-    });
-
-    it('권한 확인이 실패하면 에러가 발생해야 한다', async () => {
-      // Given
-      mockWorkspaceRepository.checkPageAccess = vi.fn().mockRejectedValue(new Error('DB Error'));
-
-      // When
-      const result = await service.getCanvasView(pageId, userId);
-
-      // Then
-      expect(result.isError()).toBe(true);
-      if (result.isError()) {
-        expect(result.error.message).toContain('Failed to load canvas view');
-      }
-    });
-
     it('페이지에 블럭이 있을 때 올바른 형식으로 반환해야 한다', async () => {
       // Given
       const blockMountId = new BlockMountId('550e8400-e29b-41d4-a716-446655440123');
       const blockId = new BlockId('550e8400-e29b-41d4-a716-446655440456');
       const position = new Position(100, 200);
       const size = new Size(150, 250);
-      const zOrder = new ZOrder(1);
 
-      const blockMountAggregate = BlockMountAggregate.mountBlock(
+      const mountCommand: MountBlockCommand = {
         blockMountId,
         pageId,
         blockId,
         position,
-        size
-      );
+        size,
+        userId,
+      };
 
-      await mockBlockMountRepository.save(blockMountAggregate);
+      const blockMountAggregate = BlockMountAggregate.mountBlock(mountCommand);
+      
+      // Store in the mock repository
+      mockBlockMountRepository['storage'].set(
+        blockMountId.value,
+        blockMountAggregate
+      );
 
       // When
       const result = await service.getCanvasView(pageId, userId);
@@ -249,7 +223,7 @@ describe('CanvasManagementService', () => {
           expect(block.blockId).toBe(blockId.value);
           expect(block.position).toEqual({ x: 100, y: 200 });
           expect(block.size).toEqual({ width: 150, height: 250 });
-          expect(block.zOrder).toBe(1);
+          expect(block.zOrder).toBe(0); // ZOrder is 0 by default in mountBlock
           expect(block.blockType).toBe('text'); // Mock에서 반환하는 타입
         }
       }

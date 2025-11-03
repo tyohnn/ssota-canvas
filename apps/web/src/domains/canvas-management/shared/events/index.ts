@@ -27,8 +27,8 @@ export class BlockMountedEvent implements DomainEvent {
       position: Position;
       size: Size;
       zOrder: ZOrder;
-      occurredAt: Date;
-    }
+    },
+    public readonly occurredAt: Date
   ) {}
 }
 
@@ -57,8 +57,8 @@ export class BlockPositionUpdatedEvent implements DomainEvent {
     public readonly data: {
       blockMountId: BlockMountId;
       newPosition: Position;
-      occurredAt: Date;
-    }
+    },
+    public readonly occurredAt: Date
   ) {}
 }
 
@@ -71,8 +71,8 @@ export class BlockSizeUpdatedEvent implements DomainEvent {
     public readonly data: {
       blockMountId: BlockMountId;
       newSize: Size;
-      occurredAt: Date;
-    }
+    },
+    public readonly occurredAt: Date
   ) {}
 }
 
@@ -85,8 +85,8 @@ export class BlockZOrderUpdatedEvent implements DomainEvent {
     public readonly data: {
       blockMountId: BlockMountId;
       newZOrder: ZOrder;
-      occurredAt: Date;
-    }
+    },
+    public readonly occurredAt: Date
   ) {}
 }
 
@@ -98,32 +98,63 @@ export class BlockMountDeletedEvent implements DomainEvent {
     public readonly aggregateId: BlockMountId,
     public readonly data: {
       blockMountId: BlockMountId;
-      occurredAt: Date;
-    }
+    },
+    public readonly occurredAt: Date
   ) {}
 }
 
-// BlockDuplicatedEvent
-export class BlockDuplicatedEvent implements DomainEvent {
-  readonly type = 'BlockDuplicated';
+// BlockMountDuplicatedEvent
+export class BlockMountDuplicatedEvent implements DomainEvent {
+  readonly type = 'BlockMountDuplicated';
 
   constructor(
     public readonly aggregateId: BlockMountId,
     public readonly data: {
-      originalBlockMountId: BlockMountId;
-      duplicatedBlockMountId: BlockMountId;
-      originalBlockId: BlockId;
-      duplicatedBlockId: BlockId;
-      pageId: PageId;
-      duplicatedPosition: Position;
-      duplicatedSize: Size;
-      duplicatedZOrder: ZOrder;
-      occurredAt: Date;
-    }
+      originalBlockMountId: string;
+      duplicatedBlockMountId: string;
+      originalBlockId: string;
+      duplicatedBlockId: string;
+    },
+    public readonly occurredAt: Date
+  ) {}
+}
+
+// MultipleBlockPositionsUpdatedEvent
+export class MultipleBlockPositionsUpdatedEvent implements DomainEvent {
+  readonly type = 'MultipleBlockPositionsUpdated';
+
+  constructor(
+    public readonly aggregateId: string, // 'batch-update' 등의 배치 식별자
+    public readonly data: {
+      blockMountIds: string[];
+      positions: Array<{
+        blockMountId: string;
+        position: Position;
+      }>;
+      userId: string;
+    },
+    public readonly occurredAt: Date
+  ) {}
+}
+
+// MultipleBlockMountsDeletedEvent
+export class MultipleBlockMountsDeletedEvent implements DomainEvent {
+  readonly type = 'MultipleBlockMountsDeleted';
+
+  constructor(
+    public readonly aggregateId: string, // 'batch-delete' 등의 배치 식별자
+    public readonly data: {
+      deletedBlockMountIds: string[];
+      deletedEdgesCount: number;
+      deletedAt: Date;
+      userId: string;
+    },
+    public readonly occurredAt: Date
   ) {}
 }
 
 // EdgeCreatedEvent
+// ⚠️ Schema Change: now uses BlockMountId instead of BlockId
 export class EdgeCreatedEvent implements DomainEvent {
   readonly type = 'EdgeCreated';
 
@@ -132,11 +163,13 @@ export class EdgeCreatedEvent implements DomainEvent {
     public readonly data: {
       edgeId: EdgeId;
       pageId: PageId;
-      sourceBlockId: BlockId;
-      targetBlockId: BlockId;
+      sourceBlockMountId: BlockMountId;
+      targetBlockMountId: BlockMountId;
+      sourceHandle?: string;
+      targetHandle?: string;
       edgeShape: EdgeShape;
-      occurredAt: Date;
-    }
+    },
+    public readonly occurredAt: Date
   ) {}
 }
 
@@ -149,8 +182,8 @@ export class EdgeShapeChangedEvent implements DomainEvent {
     public readonly data: {
       edgeId: EdgeId;
       newShape: EdgeShape;
-      occurredAt: Date;
-    }
+    },
+    public readonly occurredAt: Date
   ) {}
 }
 
@@ -163,8 +196,8 @@ export class EdgeLabelChangedEvent implements DomainEvent {
     public readonly data: {
       edgeId: EdgeId;
       newLabel: string;
-      occurredAt: Date;
-    }
+    },
+    public readonly occurredAt: Date
   ) {}
 }
 
@@ -180,8 +213,8 @@ export class EdgeStyleChangedEvent implements DomainEvent {
         stroke?: string;
         strokeWidth?: number;
       };
-      occurredAt: Date;
-    }
+    },
+    public readonly occurredAt: Date
   ) {}
 }
 
@@ -193,7 +226,7 @@ export class EdgeDeletedEvent implements DomainEvent {
     public readonly aggregateId: EdgeId,
     public readonly data: {
       edgeId: EdgeId;
-      occurredAt: Date;
-    }
+    },
+    public readonly occurredAt: Date
   ) {}
 }

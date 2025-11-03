@@ -101,10 +101,17 @@ export const propertyTypeEnum = pgEnum('property_type', [
 // 🔐 RLS Strategy: Minimal permissions
 // - SELECT: Public (all users can read profiles for collaboration)
 // - INSERT/UPDATE/DELETE: Self only
+//
+// ⚠️ Design Decision: profiles.id = users.id (auth.users.id)
+// - 단순성: userId → profileId 변환 불필요
+// - 일관성: 전체 시스템에서 동일한 ID 사용
+// - 성능: 추가 JOIN 불필요
 export const profiles = pgTable(
   'profiles',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid('id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'set null' }), // users.id와 동일
     email: text('email').notNull().unique(),
     name: text('name'),
     avatar_url: text('avatar_url'),
@@ -115,10 +122,6 @@ export const profiles = pgTable(
       .defaultNow()
       .notNull(),
     deleted_at: timestamp('deleted_at', { withTimezone: true }), // Soft delete (30-day retention policy)
-    user_id: uuid('user_id')
-      .references(() => users.id)
-      .notNull()
-      .unique(),
     user_type: userTypeEnum('user_type').default('GENERAL').notNull(),
   },
   table => [
@@ -134,20 +137,20 @@ export const profiles = pgTable(
     pgPolicy('Enable insert for self', {
       for: 'insert',
       to: authenticatedRole,
-      withCheck: sql`(select auth.uid()) = user_id`,
+      withCheck: sql`(select auth.uid()) = id`,
     }),
     // UPDATE: Self only
     pgPolicy('Enable update for self', {
       for: 'update',
       to: authenticatedRole,
-      using: sql`(select auth.uid()) = user_id`,
-      withCheck: sql`(select auth.uid()) = user_id`,
+      using: sql`(select auth.uid()) = id`,
+      withCheck: sql`(select auth.uid()) = id`,
     }),
     // DELETE: Self only
     pgPolicy('Enable delete for self', {
       for: 'delete',
       to: authenticatedRole,
-      using: sql`(select auth.uid()) = user_id`,
+      using: sql`(select auth.uid()) = id`,
     }),
   ]
 ).enableRLS();
@@ -167,7 +170,7 @@ export const organizations = pgTable(
       .default('n/a'),
     owner_id: uuid('owner_id')
       .notNull()
-      .references(() => profiles.user_id, { onDelete: 'cascade' }),
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     is_default: boolean('is_default').notNull().default(false),
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
@@ -211,7 +214,7 @@ export const organizations = pgTable(
 
 export const profilesRelations = relations(profiles, ({ one, many }) => ({
   user: one(users, {
-    fields: [profiles.user_id],
+    fields: [profiles.id],
     references: [users.id],
   }),
   ownedOrganizations: many(organizations),
@@ -231,7 +234,7 @@ export const organizationMembers = pgTable(
       .references(() => organizations.id, { onDelete: 'cascade' }),
     user_id: uuid('user_id')
       .notNull()
-      .references(() => profiles.user_id, { onDelete: 'cascade' }),
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     role: memberRoleEnum('role').notNull().default('member'),
     joined_at: timestamp('joined_at', { withTimezone: true })
       .defaultNow()
@@ -293,14 +296,11 @@ export const invitations = pgTable(
       .references(() => organizations.id, { onDelete: 'cascade' }),
     inviter_user_id: uuid('inviter_user_id')
       .notNull()
-      .references(() => profiles.user_id, { onDelete: 'cascade' }),
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     invitee_email: text('invitee_email').notNull(),
-    invitee_user_id: uuid('invitee_user_id').references(
-      () => profiles.user_id,
-      {
-        onDelete: 'cascade',
-      }
-    ),
+    invitee_user_id: uuid('invitee_user_id').references(() => profiles.id, {
+      onDelete: 'cascade',
+    }),
     role: memberRoleEnum('role').notNull().default('member'),
     status: invitationStatusEnum('status').notNull().default('pending'),
     created_at: timestamp('created_at', { withTimezone: true })
@@ -353,7 +353,7 @@ export const notifications = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     user_id: uuid('user_id')
       .notNull()
-      .references(() => profiles.user_id, { onDelete: 'cascade' }),
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     type: notificationTypeEnum('type').notNull(),
     title: text('title').notNull(),
     message: text('message').notNull(),
@@ -406,13 +406,13 @@ export const workspaces = pgTable(
     icon: text('icon'),
     is_default: boolean('is_default').notNull().default(false),
     is_personal: boolean('is_personal').notNull().default(false), // v1.2: 개인 워크스페이스 구분
-    owner_id: uuid('owner_id').references(() => profiles.user_id, {
+    owner_id: uuid('owner_id').references(() => profiles.id, {
       onDelete: 'cascade',
     }), // v1.2: 개인 워크스페이스 소유자
     deletable: boolean('deletable').notNull().default(true),
     created_by: uuid('created_by')
       .notNull()
-      .references(() => profiles.user_id, { onDelete: 'cascade' }),
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -515,7 +515,7 @@ export const pages = pgTable(
     depth: integer('depth').notNull().default(0), // Cached depth (0 = root)
     created_by: uuid('created_by')
       .notNull()
-      .references(() => profiles.user_id, { onDelete: 'cascade' }),
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -600,7 +600,7 @@ export const workspaceMembers = pgTable(
       .references(() => workspaces.id, { onDelete: 'cascade' }),
     user_id: uuid('user_id')
       .notNull()
-      .references(() => profiles.user_id, { onDelete: 'cascade' }),
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     joined_at: timestamp('joined_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -653,7 +653,7 @@ export const pageFavorites = pgTable(
       .references(() => pages.id, { onDelete: 'cascade' }),
     user_id: uuid('user_id')
       .notNull()
-      .references(() => profiles.user_id, { onDelete: 'cascade' }),
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     favorited_at: timestamp('favorited_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -708,10 +708,10 @@ export const workspaceInvitations = pgTable(
       .references(() => workspaces.id, { onDelete: 'cascade' }),
     invited_user_id: uuid('invited_user_id')
       .notNull()
-      .references(() => profiles.user_id, { onDelete: 'cascade' }),
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     invited_by: uuid('invited_by')
       .notNull()
-      .references(() => profiles.user_id, { onDelete: 'cascade' }),
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     status: invitationStatusEnum('status').default('pending').notNull(),
     notification_id: uuid('notification_id'), // Soft reference to Notification Domain
     created_at: timestamp('created_at', { withTimezone: true })
@@ -785,7 +785,7 @@ export const organizationMembersRelations = relations(
     }),
     user: one(profiles, {
       fields: [organizationMembers.user_id],
-      references: [profiles.user_id],
+      references: [profiles.id],
     }),
   })
 );
@@ -797,18 +797,18 @@ export const invitationsRelations = relations(invitations, ({ one }) => ({
   }),
   inviter: one(profiles, {
     fields: [invitations.inviter_user_id],
-    references: [profiles.user_id],
+    references: [profiles.id],
   }),
   invitee: one(profiles, {
     fields: [invitations.invitee_user_id],
-    references: [profiles.user_id],
+    references: [profiles.id],
   }),
 }));
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(profiles, {
     fields: [notifications.user_id],
-    references: [profiles.user_id],
+    references: [profiles.id],
   }),
 }));
 
@@ -818,9 +818,9 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
     fields: [workspaces.organization_id],
     references: [organizations.id],
   }),
-  creator: one(users, {
+  creator: one(profiles, {
     fields: [workspaces.created_by],
-    references: [users.id],
+    references: [profiles.id],
   }),
   pages: many(pages),
   members: many(workspaceMembers),
@@ -840,9 +840,9 @@ export const pagesRelations = relations(pages, ({ one, many }) => ({
   children: many(pages, {
     relationName: 'pageHierarchy',
   }),
-  creator: one(users, {
+  creator: one(profiles, {
     fields: [pages.created_by],
-    references: [users.id],
+    references: [profiles.id],
   }),
   favorites: many(pageFavorites),
   // Canvas Management Domain relations
@@ -858,9 +858,9 @@ export const workspaceMembersRelations = relations(
       fields: [workspaceMembers.workspace_id],
       references: [workspaces.id],
     }),
-    user: one(users, {
+    user: one(profiles, {
       fields: [workspaceMembers.user_id],
-      references: [users.id],
+      references: [profiles.id],
     }),
   })
 );
@@ -870,9 +870,9 @@ export const pageFavoritesRelations = relations(pageFavorites, ({ one }) => ({
     fields: [pageFavorites.page_id],
     references: [pages.id],
   }),
-  user: one(users, {
+  user: one(profiles, {
     fields: [pageFavorites.user_id],
-    references: [users.id],
+    references: [profiles.id],
   }),
 }));
 
@@ -885,12 +885,12 @@ export const workspaceInvitationsRelations = relations(
     }),
     invitedUser: one(profiles, {
       fields: [workspaceInvitations.invited_user_id],
-      references: [profiles.user_id],
+      references: [profiles.id],
       relationName: 'workspaceInvitedUser',
     }),
     inviter: one(profiles, {
       fields: [workspaceInvitations.invited_by],
-      references: [profiles.user_id],
+      references: [profiles.id],
       relationName: 'workspaceInviter',
     }),
   })
@@ -1076,6 +1076,10 @@ export const blockMounts = pgTable(
 
 // Canvas Edges Table
 // 🔐 RLS Strategy: Page-based access control via pages table
+// ⚠️ Schema Change: edges now reference block_mounts instead of blocks
+//    - Rationale: Edges represent visual connections between block instances on a specific page
+//    - Performance: Eliminates JOINs on page render (most frequent operation)
+//    - Logic: Page-specific connections, not global block relationships
 export const edges = pgTable(
   'edges',
   {
@@ -1083,12 +1087,14 @@ export const edges = pgTable(
     page_id: uuid('page_id')
       .notNull()
       .references(() => pages.id, { onDelete: 'cascade' }),
-    source_block_id: uuid('source_block_id')
+    source_block_mount_id: uuid('source_block_mount_id')
       .notNull()
-      .references(() => blocks.id, { onDelete: 'cascade' }),
-    target_block_id: uuid('target_block_id')
+      .references(() => blockMounts.id, { onDelete: 'cascade' }),
+    target_block_mount_id: uuid('target_block_mount_id')
       .notNull()
-      .references(() => blocks.id, { onDelete: 'cascade' }),
+      .references(() => blockMounts.id, { onDelete: 'cascade' }),
+    source_handle: text('source_handle'), // React Flow handle ID ('left', 'right', 'top', 'bottom')
+    target_handle: text('target_handle'), // React Flow handle ID ('left', 'right', 'top', 'bottom')
     edge_shape: canvasEdgeShapeEnum('edge_shape').notNull().default('default'),
     edge_label: text('edge_label').default(''),
     edge_style_color: text('edge_style_color').default('#000000'),
@@ -1107,21 +1113,18 @@ export const edges = pgTable(
       'edges_thickness_range',
       sql`${table.edge_style_thickness} >= 1 AND ${table.edge_style_thickness} <= 10`
     ),
-    uniquePageSourceTargetCheck: unique('edges_unique_page_source_target').on(
-      table.page_id,
-      table.source_block_id,
-      table.target_block_id
-    ),
+    // ⚠️ Unique constraint removed to allow soft-deleted edges to be recreated
+    // Previously: uniquePageSourceTargetCheck prevented duplicate edges even after soft deletion
 
     // Indexes for performance
     pageIdIdx: index('idx_edges_page_id')
       .on(table.page_id)
       .where(sql`deleted_at IS NULL`),
-    sourceBlockIdIdx: index('idx_edges_source_block_id')
-      .on(table.source_block_id)
+    sourceBlockMountIdIdx: index('idx_edges_source_block_mount_id')
+      .on(table.source_block_mount_id)
       .where(sql`deleted_at IS NULL`),
-    targetBlockIdIdx: index('idx_edges_target_block_id')
-      .on(table.target_block_id)
+    targetBlockMountIdIdx: index('idx_edges_target_block_mount_id')
+      .on(table.target_block_mount_id)
       .where(sql`deleted_at IS NULL`),
 
     // RLS Policies - Page creator access only
@@ -1246,15 +1249,13 @@ export const viewports = pgTable(
 // Canvas Management Domain Relations
 export const blocksRelations = relations(blocks, ({ one, many }) => ({
   blockMounts: many(blockMounts),
-  sourceEdges: many(edges, { relationName: 'sourceBlock' }),
-  targetEdges: many(edges, { relationName: 'targetBlock' }),
   createdByProfile: one(profiles, {
     fields: [blocks.created_by],
     references: [profiles.id],
   }),
 }));
 
-export const blockMountsRelations = relations(blockMounts, ({ one }) => ({
+export const blockMountsRelations = relations(blockMounts, ({ one, many }) => ({
   page: one(pages, {
     fields: [blockMounts.page_id],
     references: [pages.id],
@@ -1263,6 +1264,8 @@ export const blockMountsRelations = relations(blockMounts, ({ one }) => ({
     fields: [blockMounts.block_id],
     references: [blocks.id],
   }),
+  sourceEdges: many(edges, { relationName: 'sourceBlockMount' }),
+  targetEdges: many(edges, { relationName: 'targetBlockMount' }),
 }));
 
 export const edgesRelations = relations(edges, ({ one }) => ({
@@ -1270,15 +1273,15 @@ export const edgesRelations = relations(edges, ({ one }) => ({
     fields: [edges.page_id],
     references: [pages.id],
   }),
-  sourceBlock: one(blocks, {
-    fields: [edges.source_block_id],
-    references: [blocks.id],
-    relationName: 'sourceBlock',
+  sourceBlockMount: one(blockMounts, {
+    fields: [edges.source_block_mount_id],
+    references: [blockMounts.id],
+    relationName: 'sourceBlockMount',
   }),
-  targetBlock: one(blocks, {
-    fields: [edges.target_block_id],
-    references: [blocks.id],
-    relationName: 'targetBlock',
+  targetBlockMount: one(blockMounts, {
+    fields: [edges.target_block_mount_id],
+    references: [blockMounts.id],
+    relationName: 'targetBlockMount',
   }),
 }));
 

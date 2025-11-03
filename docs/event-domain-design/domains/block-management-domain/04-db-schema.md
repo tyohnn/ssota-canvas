@@ -149,32 +149,37 @@ COMMENT ON ENUM VALUE property_type.profile IS '프로필 속성';
 Block Management Domain의 핵심 테이블 - 기존 테이블 확장
 
 ```sql
--- 기존 blocks 테이블에 새로운 컬럼 추가
-ALTER TABLE blocks 
-ADD COLUMN properties JSONB DEFAULT '{}',
-ADD COLUMN custom_properties JSONB DEFAULT '[]';
+-- blocks 테이블 스키마 (실제 구현 기준 - schema-dev.ts)
+CREATE TABLE blocks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  block_type block_type_enum NOT NULL DEFAULT 'text',
+  title TEXT NOT NULL DEFAULT '새 블럭',
+  metadata JSONB DEFAULT '{}', -- Deprecated: properties로 대체됨 (호환성 유지)
+  properties JSONB DEFAULT '{}', -- 속성 값 저장 (JSONB) - key-value 형태
+  custom_properties JSONB DEFAULT '[]', -- 커스텀 속성 정의 저장 (JSONB 배열)
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  deleted_at TIMESTAMP WITH TIME ZONE
+);
 
--- 기존 metadata 컬럼은 deprecated (호환성을 위해 유지)
--- ALTER TABLE blocks DROP COLUMN metadata; -- 향후 제거 예정
+-- 인덱스 (실제 구현 기준)
+CREATE INDEX idx_blocks_workspace_id ON blocks(workspace_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_blocks_type ON blocks(block_type) WHERE deleted_at IS NULL;
+CREATE INDEX idx_blocks_created_at ON blocks(created_at) WHERE deleted_at IS NULL;
+CREATE INDEX idx_blocks_id_active ON blocks(id) WHERE deleted_at IS NULL;
 
--- 새로운 제약조건 추가
-ALTER TABLE blocks 
-ADD CONSTRAINT blocks_properties_jsonb_check 
-CHECK (jsonb_typeof(properties) = 'object');
-
-ALTER TABLE blocks 
-ADD CONSTRAINT blocks_custom_properties_jsonb_check 
-CHECK (jsonb_typeof(custom_properties) = 'array');
-
--- 커스텀 속성 개수 제한 (최대 50개)
-ALTER TABLE blocks 
-ADD CONSTRAINT blocks_custom_properties_count_check 
-CHECK (jsonb_array_length(custom_properties) <= 50);
+-- JSONB 제약조건은 애플리케이션 레벨에서 처리 (TypeScript에서 검증)
+-- 커스텀 속성 개수 제한 (최대 50개)도 애플리케이션 레벨에서 처리 (현재 미구현)
 
 -- Comments
 COMMENT ON COLUMN blocks.properties IS '속성 값 저장 (JSONB) - key-value 형태';
 COMMENT ON COLUMN blocks.custom_properties IS '커스텀 속성 정의 저장 (JSONB 배열) - 속성 스키마';
 COMMENT ON COLUMN blocks.metadata IS 'Deprecated: properties로 대체됨 (호환성 유지)';
+COMMENT ON COLUMN blocks.created_by IS '블록 생성자 ID (profiles.id 참조)';
+COMMENT ON COLUMN blocks.created_at IS '블록 생성 시각';
+COMMENT ON COLUMN blocks.updated_at IS '블록 수정 시각';
 ```
 
 > **💡 설계 노트**  
@@ -198,64 +203,41 @@ COMMENT ON COLUMN blocks.metadata IS 'Deprecated: properties로 대체됨 (호�
 ### 2. RLS 활성화
 
 ```sql
--- blocks 테이블에 RLS 활성화
+-- blocks 테이블에 RLS 활성화 (실제 구현 기준)
 ALTER TABLE blocks ENABLE ROW LEVEL SECURITY;
 ```
 
-### 3. blocks 테이블 RLS 정책
+### 3. blocks 테이블 RLS 정책 (실제 구현 기준)
+
+**현재 구현**: 기본 authenticated 사용자 접근 정책 (개발 단계)
 
 ```sql
--- SELECT: 워크스페이스 멤버만 조회 가능
-CREATE POLICY "Enable read for workspace members" ON blocks
+-- SELECT: 인증된 사용자 모두 조회 가능 (개발 단계)
+CREATE POLICY "Enable read for authenticated users" ON blocks
     FOR SELECT TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM workspace_members wm
-            WHERE wm.workspace_id = blocks.workspace_id 
-            AND wm.user_id = (SELECT auth.uid())
-        )
-    );
+    USING (true);
 
--- INSERT: 워크스페이스 멤버만 생성 가능
-CREATE POLICY "Enable insert for workspace members" ON blocks
+-- INSERT: 인증된 사용자 모두 생성 가능 (개발 단계)
+CREATE POLICY "Enable insert for authenticated users" ON blocks
     FOR INSERT TO authenticated
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM workspace_members wm
-            WHERE wm.workspace_id = blocks.workspace_id 
-            AND wm.user_id = (SELECT auth.uid())
-        )
-    );
+    WITH CHECK (true);
 
--- UPDATE: 워크스페이스 멤버만 수정 가능
-CREATE POLICY "Enable update for workspace members" ON blocks
+-- UPDATE: 인증된 사용자 모두 수정 가능 (개발 단계)
+CREATE POLICY "Enable update for authenticated users" ON blocks
     FOR UPDATE TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM workspace_members wm
-            WHERE wm.workspace_id = blocks.workspace_id 
-            AND wm.user_id = (SELECT auth.uid())
-        )
-    )
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM workspace_members wm
-            WHERE wm.workspace_id = blocks.workspace_id 
-            AND wm.user_id = (SELECT auth.uid())
-        )
-    );
+    USING (true)
+    WITH CHECK (true);
 
--- DELETE: 워크스페이스 멤버만 삭제 가능
-CREATE POLICY "Enable delete for workspace members" ON blocks
+-- DELETE: 인증된 사용자 모두 삭제 가능 (개발 단계)
+CREATE POLICY "Enable delete for authenticated users" ON blocks
     FOR DELETE TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM workspace_members wm
-            WHERE wm.workspace_id = blocks.workspace_id 
-            AND wm.user_id = (SELECT auth.uid())
-        )
-    );
+    USING (true);
 ```
+
+**참고**: 
+- 현재는 개발 단계로 간단한 authenticated 사용자 정책 사용
+- 실제 운영 환경에서는 워크스페이스 멤버십 기반 정책으로 업데이트 예정
+- Application 레벨에서 verifyAccess()로 워크스페이스 권한 검증 수행
 
 **RLS 전략 설명**:
 - **SELECT**: 워크스페이스 멤버만 해당 워크스페이스의 블록 조회 가능
@@ -312,29 +294,30 @@ return Result.ok(block);
 
 ## 🚀 Performance Optimization
 
-### 1. 핵심 인덱스 전략
+### 1. 핵심 인덱스 전략 (실제 구현 기준)
 
 ```sql
--- Canvas 조회 최적화 (가장 중요)
-CREATE INDEX idx_blocks_workspace_active ON blocks(workspace_id, block_type, deleted_at) 
+-- Canvas 조회 최적화 (실제 구현)
+CREATE INDEX idx_blocks_workspace_id ON blocks(workspace_id) 
 WHERE deleted_at IS NULL;
 
--- JSONB 속성 검색 최적화
-CREATE INDEX idx_blocks_properties_gin ON blocks USING GIN (properties);
-CREATE INDEX idx_blocks_custom_properties_gin ON blocks USING GIN (custom_properties);
-
--- 블록 타입별 조회 최적화
-CREATE INDEX idx_blocks_type_active ON blocks(block_type, workspace_id) 
+-- 블록 타입별 조회 최적화 (실제 구현)
+CREATE INDEX idx_blocks_type ON blocks(block_type) 
 WHERE deleted_at IS NULL;
 
--- 생성일 기준 정렬 최적화
-CREATE INDEX idx_blocks_created_at_desc ON blocks(created_at DESC) 
+-- 생성일 기준 정렬 최적화 (실제 구현)
+CREATE INDEX idx_blocks_created_at ON blocks(created_at) 
 WHERE deleted_at IS NULL;
 
--- 복합 쿼리 최적화 (워크스페이스 + 타입 + 활성)
-CREATE INDEX idx_blocks_workspace_type_active ON blocks(workspace_id, block_type, created_at) 
+-- 블록 ID 활성 블록 조회 최적화 (실제 구현)
+CREATE INDEX idx_blocks_id_active ON blocks(id) 
 WHERE deleted_at IS NULL;
 ```
+
+**참고**: 
+- 현재는 부분 인덱스(WHERE deleted_at IS NULL)만 구현됨
+- JSONB GIN 인덱스는 현재 미구현 (성능 최적화를 위해 추후 추가 예정)
+- 복합 인덱스(workspace_id + block_type + deleted_at)는 현재 미구현
 
 ### 2. 쿼리 성능 최적화
 
@@ -485,34 +468,36 @@ WHERE b.workspace_id IS NOT NULL AND w.id IS NULL;
 
 ## ✅ 검증 체크리스트
 
-### Scenario 지원
-- [ ] **Canvas Management 연동**: Canvas에서 blocks 테이블 직접 JOIN으로 조회
-- [ ] **Custom Properties 관리**: 커스텀 속성 추가/편집/삭제
-- [ ] **Property Values 관리**: 속성 값 설정/변경 및 타입별 검증
-- [ ] **Media Upload 처리**: 이미지/파일 업로드 및 Supabase Storage 연동
-- [ ] **Block Tools 실행**: 블록 타입별 특화 기능 실행
+### Scenario 지원 (실제 구현 기준)
+- [x] ✅ **Canvas Management 연동**: Canvas에서 blocks 테이블 직접 JOIN으로 조회 (구현 완료)
+- [x] ✅ **Custom Properties 관리**: 커스텀 속성 추가/편집/삭제 (Entity 레벨 구현 완료, Server Actions 미구현)
+- [x] ✅ **Property Values 관리**: 속성 값 설정/변경 및 타입별 검증 (BlockPropertiesVO Value Objects로 구현 완료)
+- [ ] ❌ **Media Upload 처리**: 이미지/파일 업로드 및 Supabase Storage 연동 (미구현 - MediaURL VO만 구현)
+- [x] ✅ **Block Tools 실행**: 블록 타입별 특화 기능 실행 (BlockToolService로 구현 완료)
 
-### 데이터 무결성
-- [ ] **워크스페이스 제약**: 블록은 반드시 하나의 워크스페이스에 속함
-- [ ] **블록 타입 제약**: 지원되는 블록 타입만 허용
-- [ ] **JSONB 제약**: properties는 object, custom_properties는 array
-- [ ] **속성 개수 제한**: 최대 50개의 커스텀 속성
-- [ ] **FK 관계**: 모든 외래키가 올바르게 설정됨
-- [ ] **RLS 보안**: 워크스페이스 멤버십 기반 접근 제어
+### 데이터 무결성 (실제 구현 기준)
+- [x] ✅ **워크스페이스 제약**: 블록은 반드시 하나의 워크스페이스에 속함 (FK 제약조건 설정 완료)
+- [x] ✅ **블록 타입 제약**: 지원되는 블록 타입만 허용 (block_type_enum 사용)
+- [x] ✅ **JSONB 구조**: properties는 object, custom_properties는 array (애플리케이션 레벨 검증)
+- [ ] ❌ **속성 개수 제한**: 최대 50개의 커스텀 속성 (미구현, 추후 Entity 레벨 검증 추가 예정)
+- [x] ✅ **FK 관계**: 모든 외래키가 올바르게 설정됨 (workspace_id, created_by)
+- [x] ✅ **RLS 보안**: 기본 authenticated 사용자 접근 정책 (개발 단계, 운영 환경에서는 워크스페이스 멤버십 정책 필요)
 
-### 성능 최적화
-- [ ] **Canvas 조회 인덱스**: workspace_id + block_type + deleted_at 복합 인덱스
-- [ ] **JSONB GIN 인덱스**: properties, custom_properties GIN 인덱스
-- [ ] **부분 인덱스**: deleted_at IS NULL 조건부 인덱스
-- [ ] **정렬 인덱스**: created_at DESC 정렬 최적화
-- [ ] **Canvas 뷰**: 복잡한 JOIN 쿼리 최적화
+### 성능 최적화 (실제 구현 기준)
+- [x] ✅ **부분 인덱스**: deleted_at IS NULL 조건부 인덱스 (구현 완료)
+- [x] ✅ **워크스페이스 인덱스**: workspace_id 부분 인덱스 (구현 완료)
+- [x] ✅ **타입 인덱스**: block_type 부분 인덱스 (구현 완료)
+- [x] ✅ **생성일 인덱스**: created_at 부분 인덱스 (구현 완료)
+- [ ] **복합 인덱스**: workspace_id + block_type + deleted_at 복합 인덱스 (미구현, 추후 추가 예정)
+- [ ] **JSONB GIN 인덱스**: properties, custom_properties GIN 인덱스 (미구현, 추후 추가 예정)
+- [ ] **Canvas 뷰**: 복잡한 JOIN 쿼리 최적화 뷰 (미구현, 선택적)
 
-### 아키텍처 일관성
-- [ ] **DDD 원칙**: Block Aggregate 경계와 DB 스키마 일치
-- [ ] **정의-값 분리**: custom_properties(정의)와 properties(값) 분리
-- [ ] **확장성**: 향후 블록 컴포넌트화 확장 가능한 구조
-- [ ] **타입 안전성**: Drizzle ORM과 TypeScript 타입 일치
-- [ ] **RLS 통합**: 워크스페이스 멤버십 기반 격리
+### 아키텍처 일관성 (실제 구현 기준)
+- [x] ✅ **DDD 원칙**: Block Aggregate 경계와 DB 스키마 일치 (구현 완료)
+- [x] ✅ **정의-값 분리**: custom_properties(정의)와 properties(값) 분리 (구현 완료)
+- [x] ✅ **확장성**: 향후 블록 컴포넌트화 확장 가능한 구조 (JSONB 구조로 확장 용이)
+- [x] ✅ **타입 안전성**: Drizzle ORM과 TypeScript 타입 일치 (BlockPropertiesVO Value Objects로 타입 안전성 확보)
+- [x] ✅ **RLS 통합**: 기본 authenticated 정책 구현 (개발 단계, 워크스페이스 멤버십 정책은 추후 추가)
 
 ---
 

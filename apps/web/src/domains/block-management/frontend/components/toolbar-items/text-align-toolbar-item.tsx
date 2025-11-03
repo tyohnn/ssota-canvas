@@ -7,7 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@workspace/ui/components/ui/popover';
-import { TextAlign } from '../../../shared/types/block-properties.types';
+import { TextAlign } from '../../../shared/value-objects/block-properties/common-types';
 
 interface TextAlignToolbarItemProps {
   blockId: string;

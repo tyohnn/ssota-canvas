@@ -13,23 +13,25 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     async function setupUserProfile() {
-      try {
-        setStatus('loading');
+      setStatus('loading');
 
-        // 사용자 프로필 + 기본 조직 + 워크스페이스 + Welcome 페이지 생성
-        const result = await processUserRegistrationAction();
+      // 사용자 프로필 + 기본 조직 + 워크스페이스 + Welcome 페이지 생성
+      const result = await processUserRegistrationAction();
 
+      if (result.success) {
         setStatus('success');
 
         // 성공 시 잠시 후 Welcome 페이지로 리다이렉트 (사용자가 성공 메시지를 볼 수 있도록)
         setTimeout(() => {
-          router.push(result.redirectUrl);
+          router.push(result.data.redirectUrl);
         }, 1500);
-      } catch (error) {
-        console.error('User profile setup failed:', error);
+      } else {
+        console.error('User profile setup failed:', result.error);
         setStatus('error');
         setError(
-          error instanceof Error ? error.message : 'Unknown error occurred'
+          typeof result.error === 'string'
+            ? result.error
+            : 'Unknown error occurred'
         );
       }
     }

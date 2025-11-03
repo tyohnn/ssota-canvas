@@ -1,103 +1,211 @@
 import { BlockManagementError } from '../errors/block-management.error';
+import { PropertyType } from './block-properties/common-types';
 
-export class PropertyType {
-  private static readonly VALID_TYPES = [
-    'text',
-    'url',
-    'email',
-    'select',
-    'multiselect',
-    'datetime',
-    'media',
-    'profile',
-  ] as const;
-
-  private static readonly TEXT_TYPES = ['text', 'url', 'email'] as const;
-  private static readonly SELECT_TYPES = ['select', 'multiselect'] as const;
-
-  constructor(public readonly value: string) {
-    this.validate(value);
+/**
+ * Property Type Value Object
+ *
+ * 속성 타입의 비즈니스 로직과 검증을 캡슐화
+ */
+export class PropertyTypeVO {
+  constructor(public readonly value: PropertyType) {
+    this.validate();
   }
 
-  private validate(type: string): void {
-    if (!type || type.trim().length === 0) {
+  private validate(): void {
+    if (!Object.values(PropertyType).includes(this.value)) {
       throw new BlockManagementError(
         'INVALID_PROPERTY_TYPE',
-        'Property type cannot be empty'
-      );
-    }
-
-    if (!PropertyType.VALID_TYPES.includes(type as any)) {
-      throw new BlockManagementError(
-        'INVALID_PROPERTY_TYPE',
-        `Invalid property type: ${type}. Valid types are: ${PropertyType.VALID_TYPES.join(', ')}`
+        `Invalid property type: ${this.value}`
       );
     }
   }
 
-  equals(other: PropertyType): boolean {
+  /**
+   * 텍스트 타입인지 확인
+   */
+  isText(): boolean {
+    return this.value === PropertyType.TEXT;
+  }
+
+  /**
+   * 선택 타입인지 확인
+   */
+  isSelect(): boolean {
+    return this.value === PropertyType.SELECT;
+  }
+
+  /**
+   * 다중 선택 타입인지 확인
+   */
+  isMultiSelect(): boolean {
+    return this.value === PropertyType.MULTISELECT;
+  }
+
+  /**
+   * 프로필 타입인지 확인
+   */
+  isProfile(): boolean {
+    return this.value === PropertyType.PROFILE;
+  }
+
+  /**
+   * 날짜 타입인지 확인
+   */
+  isDate(): boolean {
+    return this.value === PropertyType.DATE;
+  }
+
+  /**
+   * 숫자 타입인지 확인
+   */
+  isNumber(): boolean {
+    return this.value === PropertyType.NUMBER;
+  }
+
+  /**
+   * 불린 타입인지 확인
+   */
+  isBoolean(): boolean {
+    return this.value === PropertyType.BOOLEAN;
+  }
+
+  /**
+   * 색상 타입인지 확인
+   */
+  isColor(): boolean {
+    return this.value === PropertyType.COLOR;
+  }
+
+  /**
+   * URL 타입인지 확인
+   */
+  isUrl(): boolean {
+    return this.value === PropertyType.URL;
+  }
+
+  /**
+   * 이메일 타입인지 확인
+   */
+  isEmail(): boolean {
+    return this.value === PropertyType.EMAIL;
+  }
+
+  /**
+   * 전화번호 타입인지 확인
+   */
+  isPhone(): boolean {
+    return this.value === PropertyType.PHONE;
+  }
+
+  /**
+   * 옵션이 필요한 타입인지 확인
+   */
+  requiresOptions(): boolean {
+    return this.isSelect() || this.isMultiSelect();
+  }
+
+  /**
+   * 검증이 필요한 타입인지 확인
+   */
+  requiresValidation(): boolean {
+    return this.isEmail() || this.isUrl() || this.isPhone() || this.isNumber();
+  }
+
+  /**
+   * 기본값이 필요한 타입인지 확인
+   */
+  requiresDefaultValue(): boolean {
+    return this.isBoolean() || this.isNumber() || this.isText();
+  }
+
+  /**
+   * 타입별 기본값 반환
+   */
+  getDefaultValue(): any {
+    switch (this.value) {
+      case PropertyType.TEXT:
+      case PropertyType.URL:
+      case PropertyType.EMAIL:
+      case PropertyType.PHONE:
+        return '';
+      case PropertyType.NUMBER:
+        return 0;
+      case PropertyType.BOOLEAN:
+        return false;
+      case PropertyType.DATE:
+        return null;
+      case PropertyType.COLOR:
+        return '#000000';
+      case PropertyType.SELECT:
+      case PropertyType.MULTISELECT:
+      case PropertyType.PROFILE:
+        return null;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * 타입별 검증 패턴 반환
+   */
+  getValidationPattern(): RegExp | null {
+    switch (this.value) {
+      case PropertyType.EMAIL:
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      case PropertyType.URL:
+        return /^https?:\/\/.+/;
+      case PropertyType.PHONE:
+        return /^[\+]?[1-9][\d]{0,15}$/;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * 타입별 검증 메시지 반환
+   */
+  getValidationMessage(): string | null {
+    switch (this.value) {
+      case PropertyType.EMAIL:
+        return '올바른 이메일 형식을 입력해주세요';
+      case PropertyType.URL:
+        return '올바른 URL 형식을 입력해주세요 (http:// 또는 https://로 시작)';
+      case PropertyType.PHONE:
+        return '올바른 전화번호 형식을 입력해주세요';
+      default:
+        return null;
+    }
+  }
+
+  equals(other: PropertyTypeVO): boolean {
     return this.value === other.value;
   }
 
-  isTextType(): boolean {
-    return PropertyType.TEXT_TYPES.includes(this.value as any);
+  toString(): string {
+    return this.value;
   }
 
-  isSelectType(): boolean {
-    return PropertyType.SELECT_TYPES.includes(this.value as any);
-  }
-
-  isMediaType(): boolean {
-    return this.value === 'media';
-  }
-
-  isProfileType(): boolean {
-    return this.value === 'profile';
-  }
-
-  isDateTimeType(): boolean {
-    return this.value === 'datetime';
+  toJSON(): string {
+    return this.value;
   }
 
   /**
-   * 속성 타입이 옵션을 가져야 하는지 확인
+   * 문자열로부터 PropertyTypeVO 생성
    */
-  requiresOptions(): boolean {
-    return this.isSelectType();
-  }
-
-  /**
-   * 속성 타입이 검증 규칙을 가져야 하는지 확인
-   */
-  requiresValidation(): boolean {
-    return this.isTextType() || this.isDateTimeType();
-  }
-
-  /**
-   * 값이 속성 타입에 맞는지 검증
-   */
-  validateValue(value: any): boolean {
-    if (value === null || value === undefined) {
-      return true; // null/undefined는 허용
+  static fromString(value: string): PropertyTypeVO {
+    if (!Object.values(PropertyType).includes(value as PropertyType)) {
+      throw new BlockManagementError(
+        'INVALID_PROPERTY_TYPE',
+        `Invalid property type: ${value}`
+      );
     }
+    return new PropertyTypeVO(value as PropertyType);
+  }
 
-    switch (this.value) {
-      case 'text':
-      case 'url':
-      case 'email':
-        return typeof value === 'string';
-      case 'select':
-        return typeof value === 'string';
-      case 'multiselect':
-        return Array.isArray(value) && value.every(v => typeof v === 'string');
-      case 'datetime':
-        return value instanceof Date || typeof value === 'string';
-      case 'media':
-        return typeof value === 'string' && value.startsWith('http');
-      case 'profile':
-        return typeof value === 'string';
-      default:
-        return true;
-    }
+  /**
+   * PropertyType enum으로부터 PropertyTypeVO 생성
+   */
+  static fromPropertyType(propertyType: PropertyType): PropertyTypeVO {
+    return new PropertyTypeVO(propertyType);
   }
 }

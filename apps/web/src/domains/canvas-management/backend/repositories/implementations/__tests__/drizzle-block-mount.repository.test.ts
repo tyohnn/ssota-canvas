@@ -84,7 +84,7 @@ describe('DrizzleBlockMountRepository', () => {
       );
 
       // When
-      await repository.save(aggregate);
+      await repository.create(aggregate);
 
       // Then
       // Mock이 올바르게 호출되었는지 확인
@@ -103,7 +103,7 @@ describe('DrizzleBlockMountRepository', () => {
       );
 
       // When
-      await repository.save(aggregate);
+      await repository.create(aggregate);
 
       // Then
       // onConflictDoUpdate가 호출되었는지 확인
@@ -223,7 +223,7 @@ describe('DrizzleBlockMountRepository', () => {
       );
 
       // When
-      await repository.save(aggregate);
+      await repository.create(aggregate);
       // 실제 구현에서는 save 후 findById로 조회하여 일관성 확인
 
       // Then

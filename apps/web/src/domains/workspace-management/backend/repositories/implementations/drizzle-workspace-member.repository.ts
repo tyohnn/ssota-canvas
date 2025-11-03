@@ -57,7 +57,7 @@ export class DrizzleWorkspaceMemberRepository
         avatarUrl: profiles.avatar_url,
       })
       .from(workspaceMembers)
-      .innerJoin(profiles, eq(workspaceMembers.user_id, profiles.user_id))
+      .innerJoin(profiles, eq(workspaceMembers.user_id, profiles.id))
       .where(eq(workspaceMembers.workspace_id, workspaceId.value))
       .orderBy(workspaceMembers.joined_at);
 

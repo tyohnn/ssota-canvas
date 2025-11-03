@@ -260,6 +260,48 @@
       "when": 1761463487555,
       "tag": "0036_late_gamora",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1761561742322,
+      "tag": "0037_step1_drop_foreign_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1761566423029,
+      "tag": "0038_brief_hercules",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1761739692542,
+      "tag": "0039_calm_switch",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1762096017131,
+      "tag": "0040_cuddly_rumiko_fujikawa",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1762097737616,
+      "tag": "0041_magical_ronan",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1762099589126,
+      "tag": "0042_cuddly_havok",
+      "breakpoints": true
     }
   ]
 }

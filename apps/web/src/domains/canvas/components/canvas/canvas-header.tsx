@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useCanvasData } from '@/domains/canvas/contexts/CanvasDataContext';
 import { useCanvasPageCommandsContext } from '@/domains/canvas/contexts/CanvasPageCommandsContext';
 import { useOrganizationContext } from '@/domains/dashboard/context/OrganizationCotext';
@@ -16,16 +15,15 @@ import {
   BreadcrumbSeparator,
 } from '@workspace/ui/components/ui/breadcrumb';
 import { Separator } from '@workspace/ui/components/ui/separator';
-import { ArrowLeft } from 'lucide-react';
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
 import { ViewSwitcher } from './view-switcher';
+import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
 
 interface CanvasHeaderProps {
   workspaceId: string;
 }
 
 export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
-  const router = useRouter();
   const data = useCanvasData();
   const commands = useCanvasPageCommandsContext();
   const { activeOrganization, orgWorkspaces, setActiveWorkspace } =
@@ -57,13 +55,6 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
       setTitle(selectedPageBlock.title);
     }
   }, [selectedPageBlock]);
-
-  // Navigation handlers
-  const handleLogoClick = () => {
-    if (activeOrganization?.slug) {
-      router.push(`/${activeOrganization.slug}`);
-    }
-  };
 
   // Title editing handlers
   const handleTitleClick = () => {
@@ -122,19 +113,8 @@ export function CanvasHeader({ workspaceId }: CanvasHeaderProps) {
     <header className="flex h-12 shrink-0 items-center gap-2 bg-background/60 backdrop-blur-md">
       {/* Left side: Logo and breadcrumb */}
       <div className="flex flex-1 items-center gap-2 px-3">
-        {/* SSOTA Logo with improved hover navigation */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleLogoClick}
-          className="h-8 px-2 font-semibold hover:bg-accent/50 group relative"
-        >
-          <span className="group-hover:opacity-0 transition-opacity duration-200">
-            SSOTA
-          </span>
-          <ArrowLeft className="h-4 w-4 absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-        </Button>
-
+        {/* Sidebar toggle button */}
+        <SidebarTrigger />
         <Separator
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"

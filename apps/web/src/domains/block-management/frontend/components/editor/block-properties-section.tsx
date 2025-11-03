@@ -61,7 +61,7 @@ export function BlockPropertiesSection({
               } else if (item!.propertyKey === 'updatedAt') {
                 value = blockData.updatedAt;
               } else if (item!.propertyKey === 'createdBy') {
-                value = blockData.createdBy;
+                value = blockData.createdByProfile || blockData.createdBy;
               }
 
               return (

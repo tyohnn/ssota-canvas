@@ -129,7 +129,7 @@ export class DrizzleWorkspaceInvitationRepository
       .from(workspaceInvitations)
       .innerJoin(
         profiles,
-        eq(workspaceInvitations.invited_user_id, profiles.user_id)
+        eq(workspaceInvitations.invited_user_id, profiles.id)
       )
       .where(
         and(
@@ -150,7 +150,7 @@ export class DrizzleWorkspaceInvitationRepository
           email: profiles.email,
         })
         .from(profiles)
-        .where(eq(profiles.user_id, row.invitedBy))
+        .where(eq(profiles.id, row.invitedBy))
         .limit(1);
 
       resultsWithProfiles.push({

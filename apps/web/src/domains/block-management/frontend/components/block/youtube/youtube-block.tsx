@@ -4,12 +4,12 @@ import React, { memo, useState } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import { YoutubeBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { BaseBlock } from '../base-block/base-block';
-import { useBlockFieldUpdate } from '../../../hooks/use-block-field-update';
+import { useBlockPropertyUpdate } from '../../../hooks/use-block-property-update';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { YoutubeIcon, AlertCircle } from 'lucide-react';
 import { cn } from '@workspace/ui/lib/utils';
-import { YoutubeBlockProperties } from '@/domains/block-management/shared/types/block-properties.types';
+import { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 
 /**
  * YouTube Block Component
@@ -43,7 +43,7 @@ export const YoutubeBlock = memo(function YoutubeBlock({
   const height = nodeH || size.height;
   const youtubeBlockProperties = properties as YoutubeBlockProperties;
 
-  const { updateField } = useBlockFieldUpdate();
+  const { updateProperty } = useBlockPropertyUpdate();
   const [url, setUrl] = useState(youtubeBlockProperties?.url || '');
   const [urlError, setUrlError] = useState('');
 
@@ -61,7 +61,12 @@ export const YoutubeBlock = memo(function YoutubeBlock({
       setUrlError('Please enter a valid YouTube URL');
     } else {
       setUrlError('');
-      await updateField(blockId, 'properties.url', newUrl);
+      await updateProperty(
+        blockId,
+        'url',
+        newUrl,
+        data as YoutubeBlockNodeData
+      );
     }
   };
 

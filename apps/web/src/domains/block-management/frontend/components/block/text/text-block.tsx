@@ -8,10 +8,11 @@ import {
   TextBlockProperties,
   TextAlign,
   FontSize,
-} from '@/domains/block-management/shared/types/block-properties.types';
+} from '@/domains/block-management/shared/value-objects/block-properties';
 import { ColorToken } from '@/domains/block-management/shared/types/style-tokens.types';
 import { cn } from '@workspace/ui/lib/utils';
 import { useBlockPropertyUpdate } from '../../../hooks/use-block-property-update';
+import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
 
 /**
  * Text Block Node Component
@@ -28,6 +29,11 @@ export const TextBlock = memo(function TextBlock({
   height: nodeH,
 }: NodeProps) {
   // TypeScript 타입 안전성을 위한 데이터 접근
+  if (!data) {
+    console.error('TextBlock: data is required');
+    return null;
+  }
+
   const nodeData = data as TextBlockNodeData;
   const {
     blockType,
@@ -59,24 +65,20 @@ export const TextBlock = memo(function TextBlock({
   // Block property update hook
   const { updateProperty } = useBlockPropertyUpdate();
 
+  // Canvas mode context
+  const { setTextareaEditing } = useCanvasMode();
+
   // 텍스트 편집 상태 (SSOT)
   const [isEditing, setIsEditing] = useState(false);
   const [draftContent, setDraftContent] = useState(
     textBlockProperties.content || ''
   );
-  const [textAreaHeight, setTextAreaHeight] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isComposingRef = useRef(false);
   const [isDoubleClickMode, setIsDoubleClickMode] = useState(false);
 
   // Debounce timer for content updates
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // 최신 값을 읽기 위한 refs (이펙트 안에서 stale 방지)
-  const draftContentRef = useRef(draftContent);
-  useEffect(() => {
-    draftContentRef.current = draftContent;
-  }, [draftContent]);
 
   // 외부 데이터가 바뀌었을 때, 편집 중이 아니면 초안 동기화
   useEffect(() => {
@@ -102,12 +104,12 @@ export const TextBlock = memo(function TextBlock({
       }
 
       try {
-        await updateProperty(id, 'properties.content', content);
+        await updateProperty(id, 'properties.content', content, nodeData);
       } catch (error) {
         console.error('Failed to save content:', error);
       }
     },
-    [id, updateProperty, textBlockProperties.content]
+    [id, updateProperty, textBlockProperties.content, nodeData]
   );
 
   // 선택 시 편집 모드 진입 (더블클릭 모드가 활성화된 경우에만)
@@ -125,55 +127,12 @@ export const TextBlock = memo(function TextBlock({
   useEffect(() => {
     if (isEditing && !selected) {
       setIsEditing(false);
+      setTextareaEditing(false);
     }
     if (!selected) {
       setIsDoubleClickMode(false);
     }
-  }, [isEditing, selected]);
-
-  // textarea 자동 리사이즈 및 실시간 높이 업데이트
-  useEffect(() => {
-    if (textareaRef.current && selected) {
-      const textarea = textareaRef.current;
-
-      const calculateHeight = () => {
-        // 정확한 높이 측정을 위한 임시 textarea
-        const tempTextarea = document.createElement('textarea');
-        tempTextarea.style.position = 'absolute';
-        tempTextarea.style.left = '-9999px';
-        tempTextarea.style.top = '-9999px';
-        tempTextarea.style.visibility = 'hidden';
-
-        // 원본 textarea의 스타일 복사
-        const computedStyle = window.getComputedStyle(textarea);
-        tempTextarea.style.width = computedStyle.width;
-        tempTextarea.style.fontSize = computedStyle.fontSize;
-        tempTextarea.style.fontFamily = computedStyle.fontFamily;
-        tempTextarea.style.fontWeight = computedStyle.fontWeight;
-        tempTextarea.style.lineHeight = computedStyle.lineHeight;
-        tempTextarea.style.padding = computedStyle.padding;
-        tempTextarea.style.border = computedStyle.border;
-        tempTextarea.style.boxSizing = computedStyle.boxSizing;
-        tempTextarea.style.wordWrap = computedStyle.wordWrap;
-        tempTextarea.style.whiteSpace = computedStyle.whiteSpace;
-        tempTextarea.style.resize = 'none';
-        tempTextarea.style.overflow = 'hidden';
-        tempTextarea.rows = 1;
-
-        tempTextarea.value = draftContent;
-        document.body.appendChild(tempTextarea);
-        tempTextarea.style.height = 'auto';
-        const scrollHeight = tempTextarea.scrollHeight;
-        document.body.removeChild(tempTextarea);
-
-        // textarea에 높이 적용
-        textarea.style.height = `${scrollHeight}px`;
-        setTextAreaHeight(scrollHeight);
-      };
-
-      requestAnimationFrame(calculateHeight);
-    }
-  }, [draftContent, selected, id, width]);
+  }, [isEditing, selected, setTextareaEditing]);
 
   // 텍스트 블럭 클릭 핸들러 (더블클릭 모드 활성화)
   const handleTextBlockClick = useCallback(
@@ -193,10 +152,12 @@ export const TextBlock = memo(function TextBlock({
 
   const handleTextareaFocus = useCallback(() => {
     setIsEditing(true);
-  }, []);
+    setTextareaEditing(true); // Context에 상태 전파
+  }, [setTextareaEditing]);
 
   const handleTextareaBlur = useCallback(() => {
     setIsEditing(false);
+    setTextareaEditing(false); // Context에 상태 전파
 
     // Blur 시 debounce timer 취소하고 즉시 저장
     if (debounceTimerRef.current) {
@@ -206,7 +167,7 @@ export const TextBlock = memo(function TextBlock({
 
     // 즉시 저장
     saveContentToServer(draftContent);
-  }, [draftContent, saveContentToServer]);
+  }, [draftContent, saveContentToServer, setTextareaEditing]);
 
   const handleTextareaKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -218,6 +179,7 @@ export const TextBlock = memo(function TextBlock({
       if (e.key === 'Escape') {
         e.preventDefault();
         setIsEditing(false);
+        setTextareaEditing(false);
         setIsDoubleClickMode(false);
 
         // Debounce timer 취소 (저장하지 않음)
@@ -234,6 +196,7 @@ export const TextBlock = memo(function TextBlock({
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setIsEditing(false);
+        setTextareaEditing(false);
 
         // Debounce timer 취소하고 즉시 저장
         if (debounceTimerRef.current) {
@@ -245,7 +208,7 @@ export const TextBlock = memo(function TextBlock({
         if (textareaRef.current) textareaRef.current.blur();
       }
     },
-    [draftContent, saveContentToServer]
+    [draftContent, saveContentToServer, setTextareaEditing]
   );
 
   const handleTextareaChange = useCallback(
@@ -282,14 +245,40 @@ export const TextBlock = memo(function TextBlock({
     [saveContentToServer]
   );
 
-  const handleTextareaInput = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const textarea = e.target;
-      textarea.style.height = 'auto';
-      textarea.style.height = `${textarea.scrollHeight}px`;
-    },
-    []
-  );
+  // Textarea 스크롤을 위해 네이티브 휠 이벤트 전파 막기
+  // textarea가 실제로 렌더링된 후(isDoubleClickMode && selected)에만 리스너 등록
+  useEffect(() => {
+    // textarea가 렌더링되지 않은 상태면 리스너 등록하지 않음
+    if (!selected || !isDoubleClickMode) {
+      return;
+    }
+
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    const handleWheel = (e: WheelEvent) => {
+      // React Flow로 이벤트 전파 차단
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      e.preventDefault();
+
+      // 수동으로 스크롤 처리
+      const newScrollTop = textarea.scrollTop + e.deltaY;
+      textarea.scrollTop = newScrollTop;
+    };
+
+    // 캡처 단계에서 먼저 이벤트 리스너 등록하여 다른 리스너보다 우선 실행
+    textarea.addEventListener('wheel', handleWheel, {
+      passive: false,
+      capture: true, // 캡처 단계에서 처리
+    });
+
+    return () => {
+      textarea.removeEventListener('wheel', handleWheel, { capture: true });
+    };
+  }, [selected, isDoubleClickMode]); // textarea가 렌더링될 때마다 재등록
 
   return (
     <BaseBlock
@@ -308,7 +297,10 @@ export const TextBlock = memo(function TextBlock({
       {/* Text Block Content */}
       <div className="w-full h-full flex flex-col">
         {/* Content */}
-        <div className="flex-1 p-3" onClick={handleTextBlockClick}>
+        <div
+          className="flex-1 p-3 flex flex-col"
+          onClick={handleTextBlockClick}
+        >
           {selected && isDoubleClickMode ? (
             <textarea
               ref={textareaRef}
@@ -322,20 +314,17 @@ export const TextBlock = memo(function TextBlock({
               onClick={handleTextareaClick}
               onFocus={handleTextareaFocus}
               onKeyDown={handleTextareaKeyDown}
-              onInput={handleTextareaInput}
               placeholder="Enter text..."
               className={cn(
-                'w-full resize-none border-none outline-none leading-tight nodrag bg-transparent',
+                'flex-1 w-full resize-none border-none outline-none nodrag bg-transparent overflow-y-auto',
                 textAlignClass
               )}
               style={{
                 fontSize: fontSize,
                 fontWeight: 'normal',
                 fontFamily: 'inherit',
-                height: textAreaHeight || 'auto',
-                minHeight: '1.2em',
-                overflow: 'hidden',
                 lineHeight: '1.4',
+                minHeight: '1.2em',
               }}
             />
           ) : (

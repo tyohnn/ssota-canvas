@@ -62,12 +62,15 @@ And Public URL이 생성되어 속성에 저장된다
 - [ ] setPropertyValueAction (속성 값 설정)
 - [ ] validatePropertyValueAction (값 검증)
 
-#### Frontend
-- [ ] PropertyInput 타입별 컴포넌트
-- [ ] TextProperty, SelectProperty, MultiSelectProperty
-- [ ] DatetimeProperty, MediaProperty, ProfileProperty
-- [ ] useBlockFieldUpdate Hook
-- [ ] 실시간 자동 저장 기능
+#### Frontend ✅ 완료
+- [x] ✅ **PropertyInput 타입별 컴포넌트** (완전 구현)
+- [x] ✅ **TextProperty, SelectProperty, MultiSelectProperty** (완전 구현)
+- [x] ✅ **CheckboxProperty, NumberProperty, UrlProperty** (완전 구현)
+- [x] ✅ **EmailProperty, PhoneProperty, ColorProperty** (완전 구현)
+- [x] ✅ **StatusProperty** (BM-003에서 완전 구현)
+- [ ] **DatetimeProperty, MediaProperty, ProfileProperty** (부분 구현 또는 미구현)
+- [x] ✅ **useBlockPropertyUpdate Hook** (완전 구현)
+- [x] ✅ **실시간 자동 저장 기능** (Optimistic Update로 즉시 반응)
 
 ---
 
@@ -127,21 +130,23 @@ And Public URL이 생성되어 속성에 저장된다
 - [ ] 보안 취약점 0개
 
 ## 📊 진행 상황
-**현재**: 70% 완료 (기본 UI 구현, 백엔드 로직 미완성)
+**현재**: 85% 완료 (Frontend 완전 구현, Backend 검증 로직 부분 미구현)
 
 ### ✅ 완료된 구현 (2025-10-24 기준)
-- **Frontend Hooks**: useBlockFieldUpdate Hook 완전 구현
-- **Frontend Components**: PropertyInput 타입별 컴포넌트 구현
+- **Frontend Hooks**: useBlockPropertyUpdate Hook 완전 구현 (Optimistic UI 포함)
+- **Frontend Components**: PropertyInput 타입별 컴포넌트 완전 구현
   - TextProperty, SelectProperty, MultiSelectProperty
-  - DatetimeProperty, MediaProperty, ProfileProperty
-- **UI Components**: 실시간 자동 저장 기능 기본 구현
+  - CheckboxProperty, NumberProperty, UrlProperty
+  - EmailProperty, PhoneProperty, ColorProperty
+  - StatusProperty (BM-003에서 구현)
+- **Server Actions**: updateBlockPropertyAction을 통한 속성 값 업데이트 완전 구현
+- **UI Components**: 실시간 자동 저장 기능 완전 구현 (Optimistic Update)
 
 ### ❌ 미구현 사항
-- **Backend Domain**: 속성 값 검증 로직, 타입별 값 변환 로직, 프로필 속성 멤버 검증 로직 미구현
-- **Server Actions**: setPropertyValueAction, validatePropertyValueAction 미구현
-- **Workspace Management 연동**: 멤버 검증 로직 미구현
-- **Supabase Storage 연동**: 파일 업로드 로직 미구현
-- **Testing**: Unit Tests, Integration Tests, E2E Tests 미구현
+- **Backend Domain**: 타입별 값 변환 로직 (부분 구현, 일부 타입은 프론트엔드에서 처리)
+- **Workspace Management 연동**: 프로필 속성 멤버 검증 로직 미구현
+- **Supabase Storage 연동**: 미디어 파일 업로드 로직 미구현 (BM-005에서 처리 예정)
+- **Testing**: Integration Tests, E2E Tests 미구현
 
 ## 🔗 의존성
 - **선행 Story**: BM-003 (커스텀 속성 관리)

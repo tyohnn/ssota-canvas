@@ -16,7 +16,7 @@ import { DrizzlePageRepository } from '@/domains/workspace-management/backend/re
 import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace-member.repository';
 import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
 import { DefaultWorkspaceNavigationService } from '@/domains/workspace-management/backend/services/workspace-navigation.service';
-import { DefaultCanvasQueryService } from '../backend/services/canvas-query.service';
+import { CanvasQueryService } from '../backend/services/canvas-query.service';
 
 /**
  * 캔버스 뷰 데이터 조회 Server Action
@@ -91,7 +91,7 @@ export async function getCanvasViewAction(
     const viewportRepository = new DrizzleViewportRepository();
 
     // 6. CanvasQueryService 인스턴스 생성 및 실행
-    const canvasQueryService = new DefaultCanvasQueryService(
+    const canvasQueryService = new CanvasQueryService(
       blockMountRepository,
       edgeRepository,
       viewportRepository

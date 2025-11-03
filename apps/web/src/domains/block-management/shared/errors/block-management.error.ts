@@ -19,6 +19,7 @@ export type BlockManagementErrorCode =
   | 'INVALID_OPERATION'
   | 'INSUFFICIENT_PERMISSIONS'
   | 'WORKSPACE_ACCESS_DENIED'
+  | 'WORKSPACE_MISMATCH'
   | 'DATABASE_CONNECTION_FAILED'
   | 'CUSTOM_PROPERTY_LIMIT_EXCEEDED'
   | 'PROPERTY_NOT_FOUND'
@@ -27,8 +28,9 @@ export type BlockManagementErrorCode =
   | 'PROPERTY_UPDATE_FAILED'
   | 'PROPERTY_DELETE_FAILED'
   | 'PROPERTY_FETCH_FAILED'
-  | 'INVALID_PROPERTY_TYPE'
   | 'INVALID_PROPERTY_OPTION'
+  | 'INVALID_PROPERTY_TYPE'
+  | 'INVALID_PROPERTY_DEFINITION'
   | 'INVALID_PROPERTY_VALIDATION'
   | 'INVALID_MEDIA_URL'
   | 'MEDIA_FILE_TYPE_MISMATCH'
@@ -50,7 +52,9 @@ export type BlockManagementErrorCode =
   | 'BLOCK_DUPLICATION_FAILED'
   | 'BLOCK_SAVE_FAILED'
   | 'BLOCK_HARD_DELETE_FAILED'
-  | 'PROFILE_NOT_FOUND';
+  | 'PROFILE_NOT_FOUND'
+  | 'INVALID_PROPERTY_PATH'
+  | 'BLOCK_PROPERTY_UPDATE_FAILED';
 
 // 사용자 메시지 매핑
 export const BLOCK_MANAGEMENT_ERROR_MESSAGES: Record<
@@ -67,6 +71,7 @@ export const BLOCK_MANAGEMENT_ERROR_MESSAGES: Record<
   INVALID_OPERATION: '유효하지 않은 작업입니다.',
   INSUFFICIENT_PERMISSIONS: '권한이 부족합니다.',
   WORKSPACE_ACCESS_DENIED: '워크스페이스 접근이 거부되었습니다.',
+  WORKSPACE_MISMATCH: '블록이 해당 워크스페이스에 속하지 않습니다.',
   DATABASE_CONNECTION_FAILED: '데이터베이스 연결에 실패했습니다.',
   CUSTOM_PROPERTY_LIMIT_EXCEEDED: '커스텀 속성 개수 제한을 초과했습니다.',
   PROPERTY_NOT_FOUND: '속성을 찾을 수 없습니다.',
@@ -77,6 +82,7 @@ export const BLOCK_MANAGEMENT_ERROR_MESSAGES: Record<
   PROPERTY_FETCH_FAILED: '속성 조회에 실패했습니다.',
   INVALID_PROPERTY_TYPE: '올바르지 않은 속성 타입입니다.',
   INVALID_PROPERTY_OPTION: '올바르지 않은 속성 옵션입니다.',
+  INVALID_PROPERTY_DEFINITION: '올바르지 않은 속성 정의입니다.',
   INVALID_PROPERTY_VALIDATION: '올바르지 않은 속성 검증 규칙입니다.',
   INVALID_MEDIA_URL: '올바르지 않은 미디어 URL입니다.',
   MEDIA_FILE_TYPE_MISMATCH: '미디어 파일 타입이 일치하지 않습니다.',
@@ -99,4 +105,6 @@ export const BLOCK_MANAGEMENT_ERROR_MESSAGES: Record<
   BLOCK_SAVE_FAILED: '블럭 저장에 실패했습니다.',
   BLOCK_HARD_DELETE_FAILED: '블럭 영구 삭제에 실패했습니다.',
   PROFILE_NOT_FOUND: '사용자 프로필을 찾을 수 없습니다.',
+  INVALID_PROPERTY_PATH: '올바르지 않은 속성 경로입니다.',
+  BLOCK_PROPERTY_UPDATE_FAILED: '블럭 속성 업데이트에 실패했습니다.',
 };

@@ -22,6 +22,7 @@ export type CanvasMode =
 interface CanvasModeContextValue {
   // 상태 읽기
   mode: CanvasMode;
+  isTextareaEditing: boolean;
 
   // 모드 전환
   enterBlockCreationMode: (blockType: BlockType) => void;
@@ -31,6 +32,9 @@ interface CanvasModeContextValue {
   enterDraggingMode: (blockIds: string[]) => void;
   enterEdgeCreationMode: (sourceBlockId: string) => void;
   exitToDefaultMode: () => void;
+
+  // Textarea 편집 상태 제어
+  setTextareaEditing: (editing: boolean) => void;
 
   // 상태 읽기 헬퍼
   getCurrentMode: () => CanvasMode;
@@ -50,6 +54,7 @@ interface CanvasModeProviderProps {
 
 export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
   const [mode, setMode] = useState<CanvasMode>({ type: 'default' });
+  const [isTextareaEditing, setIsTextareaEditing] = useState(false);
 
   // 모드 전환
   const enterBlockCreationMode = useCallback((blockType: BlockType) => {
@@ -78,6 +83,11 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
 
   const exitToDefaultMode = useCallback(() => {
     setMode({ type: 'default' });
+  }, []);
+
+  // Textarea 편집 상태 관리
+  const setTextareaEditing = useCallback((editing: boolean) => {
+    setIsTextareaEditing(editing);
   }, []);
 
   // 상태 읽기 헬퍼
@@ -111,6 +121,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
   const value: CanvasModeContextValue = useMemo(
     () => ({
       mode,
+      isTextareaEditing,
       enterBlockCreationMode,
       enterSingleSelectionMode,
       enterMultiSelectionMode,
@@ -118,6 +129,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
       enterDraggingMode,
       enterEdgeCreationMode,
       exitToDefaultMode,
+      setTextareaEditing,
       getCurrentMode,
       isBlockCreationMode,
       isSingleSelectionMode,
@@ -128,6 +140,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
     }),
     [
       mode,
+      isTextareaEditing,
       enterBlockCreationMode,
       enterSingleSelectionMode,
       enterMultiSelectionMode,
@@ -135,6 +148,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
       enterDraggingMode,
       enterEdgeCreationMode,
       exitToDefaultMode,
+      setTextareaEditing,
       getCurrentMode,
       isBlockCreationMode,
       isSingleSelectionMode,

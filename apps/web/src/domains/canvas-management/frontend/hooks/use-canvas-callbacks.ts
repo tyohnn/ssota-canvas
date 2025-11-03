@@ -1,12 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { type Node, type OnConnect, useReactFlow } from '@xyflow/react';
 import { isFailure } from '@/lib/action-result';
-import {
-  deleteBlockMountAction,
-  deleteMultipleBlockMountsAction,
-} from '../../actions/block.actions';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import type { EdgeView } from '../../shared/dtos';
+import { useCanvasBlockLifecycle } from './use-canvas-block-lifecycle';
 
 interface UseCanvasCallbacksProps {
   pageId: string;
@@ -26,10 +23,11 @@ interface UseCanvasCallbacksProps {
     getSelectedBlocks: () => string[];
   };
   blockTransform: {
-    saveBlockPosition: (
-      nodeId: string,
-      position: { x: number; y: number }
-    ) => Promise<void>;
+    saveBlockPositions: (
+      blockPositions:
+        | Array<{ blockId: string; position: { x: number; y: number } }>
+        | { blockId: string; position: { x: number; y: number } }
+    ) => Promise<any>;
     saveBlockSize: (
       nodeId: string,
       size: { width: number; height: number }
@@ -45,17 +43,18 @@ interface UseCanvasCallbacksProps {
   };
   edgeManagement: {
     createEdge: (
-      sourceId: string,
-      targetId: string,
-      edgeType?: string
+      sourceBlockMountId: string,
+      targetBlockMountId: string,
+      edgeShape?: string,
+      sourceHandle?: string,
+      targetHandle?: string
     ) => Promise<EdgeView | null>;
   };
   blockLifecycle: {
-    duplicateBlock: (
+    duplicateBlockAndMount: (
       blockMountId: string,
-      workspaceId: string,
-      offsetX: number,
-      offsetY: number
+      offsetX?: number,
+      offsetY?: number
     ) => Promise<void>;
   };
 }
@@ -78,6 +77,13 @@ export function useCanvasCallbacks({
   blockLifecycle,
 }: UseCanvasCallbacksProps) {
   const reactFlowInstance = useReactFlow();
+
+  // Block lifecycle hook 사용
+  const { softDeleteBlockMounts } = useCanvasBlockLifecycle({
+    pageId,
+    orgId,
+    workspaceId,
+  });
 
   /**
    * 드래그 시작 → 드래그 모드 진입 및 이전 가이드라인 초기화
@@ -154,19 +160,18 @@ export function useCanvasCallbacks({
       // 4. 서버 저장 (백그라운드, UI 블로킹 없음)
       // await을 제거하고 Promise를 백그라운드에서 실행
       if (draggedNodes.length === 1) {
-        blockTransform.saveBlockPosition(node.id, finalPosition).catch(err => {
-          console.error('[Canvas] Failed to save position:', err);
-        });
+        blockTransform
+          .saveBlockPositions({ blockId: node.id, position: finalPosition })
+          .catch(err => {
+            console.error('[Canvas] Failed to save position:', err);
+          });
       } else {
-        // 다중 선택인 경우 각 노드의 위치를 서버에 저장
-        Promise.all(
-          draggedNodes.map(draggedNode =>
-            blockTransform.saveBlockPosition(
-              draggedNode.id,
-              draggedNode.position
-            )
-          )
-        ).catch(err => {
+        // 다중 선택인 경우 모든 노드의 위치를 한 번에 저장
+        const blockPositions = draggedNodes.map(draggedNode => ({
+          blockId: draggedNode.id,
+          position: draggedNode.position,
+        }));
+        blockTransform.saveBlockPositions(blockPositions).catch(err => {
           console.error('[Canvas] Failed to save positions:', err);
         });
       }
@@ -177,7 +182,7 @@ export function useCanvasCallbacks({
       snapGuides.hideGuidelines,
       canvasMode.enterSingleSelectionMode,
       canvasMode.enterMultiSelectionMode,
-      blockTransform.saveBlockPosition,
+      blockTransform.saveBlockPositions,
     ]
   );
 
@@ -257,26 +262,31 @@ export function useCanvasCallbacks({
    */
   const onConnect: OnConnect = useCallback(
     async connection => {
-      console.log('[Canvas] onConnect:', {
-        source: connection.source,
-        target: connection.target,
-      });
-
       // 1. 연결 유효성 확인
       if (!connection.source || !connection.target) {
         console.warn(
-          '⚠️ [Canvas] Invalid connection: missing source or target'
+          '⚠️ [Canvas] Invalid connection: missing source or target',
+          connection
         );
         return;
       }
 
       // 2. Optimistic UI로 엣지 생성
       // Hook 내부에서 blockMountId → blockId 변환 처리
-      await edgeManagement.createEdge(
+      const result = await edgeManagement.createEdge(
         connection.source, // blockMountId (React Flow 노드 ID)
         connection.target, // blockMountId (React Flow 노드 ID)
-        'default' // 기본 타입, 나중에 사용자가 변경 가능
+        'default', // 기본 타입, 나중에 사용자가 변경 가능
+        connection.sourceHandle || undefined, // React Flow handle ID
+        connection.targetHandle || undefined // React Flow handle ID
       );
+
+      if (!result) {
+        console.error(
+          '❌ [Canvas] Edge creation failed. Check console for details.'
+        );
+      } else {
+      }
     },
     [edgeManagement.createEdge]
   );
@@ -290,60 +300,17 @@ export function useCanvasCallbacks({
    */
   const onNodesDelete = useCallback(
     async (deletedNodes: Node[]) => {
-      // Optimistic 노드 필터링 (아직 서버에 저장되지 않음)
-      const optimisticNodes = deletedNodes.filter(node =>
-        node.id.startsWith('optimistic-')
-      );
-      const realNodes = deletedNodes.filter(
-        node => !node.id.startsWith('optimistic-')
-      );
+      // 삭제할 노드 ID들 추출
+      const blockMountIds = deletedNodes.map(node => node.id);
 
-      if (optimisticNodes.length > 0) {
-        // Optimistic 노드는 서버 호출 없이 무시
-      }
-
-      // 실제 노드만 서버로 전송
-      if (realNodes.length === 0) {
+      if (blockMountIds.length === 0) {
         return;
       }
 
-      const blockMountIds = realNodes.map(node => node.id);
-
-      try {
-        if (blockMountIds.length === 1) {
-          // 단일 블럭 삭제 - 직접 서버 액션 호출
-          const result = await deleteBlockMountAction({
-            blockMountId: blockMountIds[0]!,
-            orgId,
-            workspaceId,
-            pageId,
-          });
-
-          if (result.success && result.data) {
-            // 성공 시 로그 없음 (조용한 처리)
-          } else if (isFailure(result)) {
-            console.error('Block deletion failed:', result.error);
-          }
-        } else if (blockMountIds.length > 1) {
-          // 다중 블럭 삭제 - 직접 서버 액션 호출
-          const result = await deleteMultipleBlockMountsAction({
-            blockMountIds,
-            orgId,
-            workspaceId,
-            pageId,
-          });
-
-          if (result.success && result.data) {
-            // 성공 시 로그 없음 (조용한 처리)
-          } else if (isFailure(result)) {
-            console.error('Multiple blocks deletion failed:', result.error);
-          }
-        }
-      } catch (error) {
-        console.error('Block deletion error:', error);
-      }
+      // softDeleteBlockMounts 훅 사용 (Optimistic 노드 처리 포함)
+      await softDeleteBlockMounts(blockMountIds);
     },
-    [orgId, workspaceId, pageId]
+    [softDeleteBlockMounts]
   );
 
   /**
@@ -376,9 +343,8 @@ export function useCanvasCallbacks({
             const offsetX = blockWidth + 50;
             const offsetY = 20; // Y축은 기본 20px
 
-            await blockLifecycle.duplicateBlock(
+            await blockLifecycle.duplicateBlockAndMount(
               blockMountId,
-              workspaceId,
               offsetX,
               offsetY
             );
@@ -391,7 +357,7 @@ export function useCanvasCallbacks({
     [
       canvasSelection.getSelectedBlocks,
       reactFlowInstance,
-      blockLifecycle.duplicateBlock,
+      blockLifecycle.duplicateBlockAndMount,
       workspaceId,
     ]
   );

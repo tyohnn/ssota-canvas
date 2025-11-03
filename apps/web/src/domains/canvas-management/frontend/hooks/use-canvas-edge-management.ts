@@ -7,7 +7,24 @@ import {
   updateEdgeStyleAction,
   deleteEdgeAction,
 } from '../../actions/edge.actions';
+import {
+  CreateEdgeRequestSchema,
+  type CreateEdgeRequestInput,
+  UpdateEdgeShapeRequestSchema,
+  type UpdateEdgeShapeRequestInput,
+  UpdateEdgeLabelRequestSchema,
+  type UpdateEdgeLabelRequestInput,
+  DeleteEdgeRequestSchema,
+  type DeleteEdgeRequestInput,
+} from '../../shared/dtos/requests';
 import type { EdgeView } from '../../shared/dtos';
+import { ActionResult, isFailure } from '@/lib/action-result';
+
+export interface UseCanvasEdgeManagementParams {
+  pageId: string;
+  orgId: string;
+  workspaceId: string;
+}
 
 /**
  * useCanvasEdgeManagement Hook
@@ -17,8 +34,235 @@ import type { EdgeView } from '../../shared/dtos';
  * - 프로그램적 제어: UI만 변경 (서버 호출 X)
  * - 상태 읽기: React Flow Store에서 엣지 정보 조회
  */
-export function useCanvasEdgeManagement(pageId: string) {
+export function useCanvasEdgeManagement(params: UseCanvasEdgeManagementParams) {
+  const { pageId, orgId, workspaceId } = params;
   const { getEdges, setEdges, getNodes } = useReactFlow();
+
+  /**
+   * 엣지 생성 요청 검증
+   *
+   * ⚠️ Schema Change: now uses BlockMountId instead of BlockId
+   */
+  const validateCreateRequest = useCallback(
+    (
+      sourceBlockMountId: string,
+      targetBlockMountId: string,
+      edgeShape: string = 'default',
+      sourceHandle?: string,
+      targetHandle?: string
+    ) => {
+      const rawRequest: CreateEdgeRequestInput = {
+        pageId,
+        sourceBlockMountId,
+        targetBlockMountId,
+        sourceHandle,
+        targetHandle,
+        edgeShape,
+        workspaceId,
+        orgId,
+      };
+
+      const parseResult = CreateEdgeRequestSchema.safeParse(rawRequest);
+
+      if (!parseResult.success) {
+        const firstError = parseResult.error.issues[0];
+        console.error('[Frontend Validation] Invalid edge data:', {
+          message: firstError?.message || 'Invalid edge data',
+          issues: parseResult.error.issues,
+          rawRequest,
+          zodError: parseResult.error,
+        });
+        // TODO: toast.error로 사용자에게 피드백
+        return null;
+      }
+
+      return parseResult.data;
+    },
+    [pageId, orgId, workspaceId]
+  );
+
+  /**
+   * Optimistic 엣지 생성
+   */
+  const createOptimisticEdge = useCallback(
+    (
+      sourceBlockMountId: string,
+      targetBlockMountId: string,
+      edgeShape: string,
+      optimisticId: string,
+      sourceHandle?: string,
+      targetHandle?: string
+    ): Edge => {
+      return {
+        id: optimisticId,
+        source: sourceBlockMountId,
+        target: targetBlockMountId,
+        sourceHandle,
+        targetHandle,
+        type: 'custom', // 항상 custom 타입 사용
+        data: {
+          isOptimistic: true,
+          actualEdgeShape: edgeShape,
+          pageId,
+        },
+      };
+    },
+    [pageId]
+  );
+
+  /**
+   * 엣지 생성 실패 시 처리
+   */
+  const handleCreateEdgeFailure = useCallback(
+    (
+      optimisticEdgeId: string,
+      result: ActionResult<EdgeView> | Error,
+      currentEdges: Edge[]
+    ) => {
+      // Optimistic 엣지 제거
+      setEdges(currentEdges);
+      // 에러 처리
+      if (result instanceof Error) {
+        console.error('Edge creation error:', result);
+      } else if (isFailure(result)) {
+        console.error('Edge creation failed:', result.error);
+      } else {
+        console.error('Edge creation failed: Unknown error');
+      }
+    },
+    [setEdges]
+  );
+
+  /**
+   * 엣지 생성 성공 시 처리
+   */
+  const handleCreateEdgeSuccess = useCallback(
+    (
+      optimisticEdgeId: string,
+      edgeView: EdgeView,
+      sourceBlockMountId: string,
+      targetBlockMountId: string,
+      currentEdges: Edge[]
+    ) => {
+      console.log('🔵 [handleCreateEdgeSuccess] Starting edge replacement:', {
+        optimisticEdgeId,
+        edgeView: {
+          edgeId: edgeView.edgeId,
+          sourceBlockMountId: edgeView.sourceBlockMountId,
+          targetBlockMountId: edgeView.targetBlockMountId,
+          sourceHandle: edgeView.sourceHandle,
+          targetHandle: edgeView.targetHandle,
+          edgeShape: edgeView.edgeShape,
+        },
+        sourceBlockMountId,
+        targetBlockMountId,
+        currentEdgesCount: currentEdges.length,
+        currentEdgesIds: currentEdges.map(e => ({
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          sourceHandle: e.sourceHandle,
+          targetHandle: e.targetHandle,
+        })),
+      });
+
+      // 현재 edges에서 optimistic edge 찾기
+      const optimisticEdge = currentEdges.find(e => e.id === optimisticEdgeId);
+      console.log('🔵 [handleCreateEdgeSuccess] Found optimistic edge:', {
+        found: !!optimisticEdge,
+        optimisticEdge: optimisticEdge
+          ? {
+              id: optimisticEdge.id,
+              source: optimisticEdge.source,
+              target: optimisticEdge.target,
+              sourceHandle: optimisticEdge.sourceHandle,
+              targetHandle: optimisticEdge.targetHandle,
+              type: optimisticEdge.type,
+            }
+          : null,
+      });
+
+      // Optimistic Edge를 실제 Edge로 교체
+      const realEdge: Edge = {
+        id: edgeView.edgeId,
+        source: sourceBlockMountId, // ✅ blockMountId 사용 (React Flow 노드 ID)
+        target: targetBlockMountId, // ✅ blockMountId 사용 (React Flow 노드 ID)
+        sourceHandle: edgeView.sourceHandle, // ✅ React Flow handle ID
+        targetHandle: edgeView.targetHandle, // ✅ React Flow handle ID
+        type: 'custom', // 항상 custom 타입 사용
+        data: {
+          edgeId: edgeView.edgeId,
+          actualEdgeShape: edgeView.edgeShape,
+          pageId,
+          orgId,
+          workspaceId,
+          createdAt: edgeView.createdAt,
+          updatedAt: edgeView.updatedAt,
+        },
+      };
+
+      console.log('🔵 [handleCreateEdgeSuccess] Real edge created:', {
+        id: realEdge.id,
+        source: realEdge.source,
+        target: realEdge.target,
+        sourceHandle: realEdge.sourceHandle,
+        targetHandle: realEdge.targetHandle,
+        type: realEdge.type,
+        data: realEdge.data,
+      });
+
+      const updatedEdges = currentEdges.map(edge => {
+        if (edge.id === optimisticEdgeId) {
+          console.log(
+            '🟢 [handleCreateEdgeSuccess] Replacing optimistic edge:',
+            {
+              optimisticId: edge.id,
+              realId: realEdge.id,
+            }
+          );
+          return realEdge;
+        }
+        return edge;
+      });
+
+      console.log('🔵 [handleCreateEdgeSuccess] Edge replacement summary:', {
+        beforeCount: currentEdges.length,
+        afterCount: updatedEdges.length,
+        foundOptimistic: currentEdges.some(e => e.id === optimisticEdgeId),
+        updatedEdgesIds: updatedEdges.map(e => ({
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          sourceHandle: e.sourceHandle,
+          targetHandle: e.targetHandle,
+        })),
+        realEdgeIncluded: updatedEdges.some(e => e.id === realEdge.id),
+      });
+
+      setEdges(updatedEdges);
+
+      // setEdges 후 실제 상태 확인을 위한 추가 로그
+      setTimeout(() => {
+        const finalEdges = getEdges();
+        console.log(
+          '🟣 [handleCreateEdgeSuccess] Final edges state after setEdges:',
+          {
+            count: finalEdges.length,
+            edges: finalEdges.map(e => ({
+              id: e.id,
+              source: e.source,
+              target: e.target,
+              sourceHandle: e.sourceHandle,
+              targetHandle: e.targetHandle,
+              type: e.type,
+            })),
+            realEdgeExists: finalEdges.some(e => e.id === realEdge.id),
+          }
+        );
+      }, 100);
+    },
+    [pageId, orgId, workspaceId, setEdges, getEdges]
+  );
 
   /**
    * Optimistic UI: 엣지 생성
@@ -28,7 +272,9 @@ export function useCanvasEdgeManagement(pageId: string) {
     async (
       sourceBlockMountId: string,
       targetBlockMountId: string,
-      edgeType: string = 'default'
+      edgeShape: string = 'default',
+      sourceHandle?: string,
+      targetHandle?: string
     ): Promise<EdgeView | null> => {
       // 1. 노드 데이터에서 blockId 추출
       const currentNodes = getNodes();
@@ -37,97 +283,184 @@ export function useCanvasEdgeManagement(pageId: string) {
 
       if (!sourceNode || !targetNode) {
         console.warn(
-          '⚠️ [useCanvasEdgeManagement] Source or target node not found'
+          '⚠️ [useCanvasEdgeManagement] Source or target node not found',
+          {
+            sourceBlockMountId,
+            targetBlockMountId,
+            availableNodes: currentNodes.map(n => ({
+              id: n.id,
+              type: n.type,
+            })),
+          }
         );
         return null;
       }
 
-      const sourceBlockId = (sourceNode.data as any)?.blockId;
-      const targetBlockId = (targetNode.data as any)?.blockId;
+      // ⚠️ Schema Change: edges now use blockMountId (React Flow node ID)
+      // No need to extract blockId from node.data anymore
 
-      if (!sourceBlockId || !targetBlockId) {
-        console.warn(
-          '⚠️ [useCanvasEdgeManagement] blockId not found in node data'
+      const validatedRequest = validateCreateRequest(
+        sourceBlockMountId,
+        targetBlockMountId,
+        edgeShape,
+        sourceHandle,
+        targetHandle
+      );
+      if (!validatedRequest) {
+        console.error(
+          '❌ [createEdge] Request validation failed. Check console for validation errors.'
         );
         return null;
       }
 
-      // 2. Optimistic Edge 생성
-      const optimisticEdgeId = `temp-edge-${Date.now()}`;
-      const optimisticEdge: Edge = {
-        id: optimisticEdgeId,
-        source: sourceBlockMountId,
-        target: targetBlockMountId,
-        type: 'custom', // 항상 custom 타입 사용
-        data: {
-          isOptimistic: true,
-          actualEdgeShape: edgeType,
-          pageId,
-        },
-      };
+      // 3. Optimistic Edge 생성
+      const optimisticEdgeId = `optimistic-edge-${Date.now()}-${Math.random()}`;
+      const optimisticEdge = createOptimisticEdge(
+        sourceBlockMountId,
+        targetBlockMountId,
+        edgeShape,
+        optimisticEdgeId,
+        sourceHandle,
+        targetHandle
+      );
 
-      // 3. 즉시 React Flow Store에 추가
-      const currentEdges = getEdges();
-      setEdges([...currentEdges, optimisticEdge]);
+      // 4. 즉시 React Flow Store에 추가
+      const edgesBeforeOptimistic = getEdges();
+      console.log('🟡 [createEdge] Edges before adding optimistic:', {
+        count: edgesBeforeOptimistic.length,
+        edges: edgesBeforeOptimistic.map(e => ({
+          id: e.id,
+          source: e.source,
+          target: e.target,
+        })),
+      });
+
+      setEdges([...edgesBeforeOptimistic, optimisticEdge]);
+
+      // Optimistic edge 추가 후 최신 상태 가져오기
+      const edgesAfterOptimistic = [...edgesBeforeOptimistic, optimisticEdge];
+      console.log('🟡 [createEdge] Edges after adding optimistic:', {
+        count: edgesAfterOptimistic.length,
+        optimisticEdgeId,
+        edges: edgesAfterOptimistic.map(e => ({
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          sourceHandle: e.sourceHandle,
+          targetHandle: e.targetHandle,
+        })),
+      });
 
       try {
-        // 4. Server Action 호출 (blockId 사용)
-        const result = await createEdgeAction(
-          pageId,
-          sourceBlockId,
-          targetBlockId,
-          edgeType
+        // 5. Server Action 호출
+        console.log(
+          '🟡 [createEdge] Calling createEdgeAction with:',
+          validatedRequest
         );
+        const result = await createEdgeAction(validatedRequest);
 
-        if (!result.success) {
-          console.error(
-            '❌ [useCanvasEdgeManagement] Edge creation failed:',
-            result.error
+        console.log('🟡 [createEdge] Server action result:', {
+          success: result.success,
+          data: result.success ? result.data : undefined,
+          error: result.success ? undefined : result.error,
+        });
+
+        // 6. 결과 처리
+        if (result.success) {
+          console.log('🟡 [createEdge] Edge created successfully:', {
+            edgeId: result.data.edgeId,
+            sourceBlockMountId: result.data.sourceBlockMountId,
+            targetBlockMountId: result.data.targetBlockMountId,
+            sourceHandle: result.data.sourceHandle,
+            targetHandle: result.data.targetHandle,
+            edgeShape: result.data.edgeShape,
+          });
+
+          // ⚠️ 중요: optimistic edge가 추가된 후의 edges 상태를 전달해야 함!
+          const currentEdgesWithOptimistic = getEdges();
+          console.log(
+            '🟡 [createEdge] Current edges before handleCreateEdgeSuccess:',
+            {
+              count: currentEdgesWithOptimistic.length,
+              edges: currentEdgesWithOptimistic.map(e => ({
+                id: e.id,
+                source: e.source,
+                target: e.target,
+              })),
+            }
           );
 
-          // 5. 실패 시 롤백 (Optimistic Edge 제거)
-          setEdges(currentEdges);
+          handleCreateEdgeSuccess(
+            optimisticEdgeId,
+            result.data,
+            sourceBlockMountId,
+            targetBlockMountId,
+            currentEdgesWithOptimistic // ✅ optimistic edge가 포함된 최신 상태
+          );
+          return result.data;
+        } else {
+          console.error(
+            '❌ [createEdge] Server action failed:',
+            result.error,
+            result
+          );
+          const currentEdgesForFailure = getEdges();
+          handleCreateEdgeFailure(
+            optimisticEdgeId,
+            result,
+            currentEdgesForFailure
+          );
           return null;
         }
-
-        // 6. 성공 시 Optimistic Edge를 실제 Edge로 교체
-        const realEdge: Edge = {
-          id: result.data.edgeId,
-          source: sourceBlockMountId,
-          target: targetBlockMountId,
-          type: 'custom', // 항상 custom 타입 사용
-          data: {
-            edgeId: result.data.edgeId,
-            actualEdgeShape: result.data.edgeShape,
-            pageId,
-            createdAt: result.data.createdAt,
-            updatedAt: result.data.updatedAt,
-          },
-        };
-
-        setEdges(
-          currentEdges
-            .map(edge => (edge.id === optimisticEdgeId ? realEdge : edge))
-            .concat(
-              currentEdges.find(e => e.id === optimisticEdgeId)
-                ? []
-                : [realEdge]
-            )
-        );
-
-        return result.data;
       } catch (error) {
-        console.error(
-          '❌ [useCanvasEdgeManagement] Edge creation error:',
-          error
+        // 예외 발생 시 처리
+        console.error('❌ [createEdge] Exception occurred:', error);
+        const currentEdgesForFailure = getEdges();
+        handleCreateEdgeFailure(
+          optimisticEdgeId,
+          error as Error,
+          currentEdgesForFailure
         );
-
-        // 예외 발생 시 롤백
-        setEdges(currentEdges);
         return null;
       }
     },
-    [pageId, getEdges, setEdges, getNodes]
+    [
+      getNodes,
+      validateCreateRequest,
+      createOptimisticEdge,
+      handleCreateEdgeSuccess,
+      handleCreateEdgeFailure,
+      getEdges,
+      setEdges,
+    ]
+  );
+
+  /**
+   * 엣지 삭제 요청 검증
+   */
+  const validateDeleteRequest = useCallback(
+    (edgeId: string) => {
+      const rawRequest: DeleteEdgeRequestInput = {
+        edgeId,
+        workspaceId,
+        orgId,
+      };
+
+      const parseResult = DeleteEdgeRequestSchema.safeParse(rawRequest);
+
+      if (!parseResult.success) {
+        const firstError = parseResult.error.issues[0];
+        console.error('[Frontend Validation] Invalid edge delete data:', {
+          message: firstError?.message || 'Invalid edge delete data',
+          issues: parseResult.error.issues,
+        });
+        // TODO: toast.error로 사용자에게 피드백
+        return null;
+      }
+
+      return parseResult.data;
+    },
+    [orgId, workspaceId]
   );
 
   /**
@@ -136,7 +469,13 @@ export function useCanvasEdgeManagement(pageId: string) {
    */
   const deleteEdge = useCallback(
     async (edgeId: string): Promise<boolean> => {
-      // 1. 현재 엣지 목록 백업
+      // 1. 요청 검증
+      const validatedRequest = validateDeleteRequest(edgeId);
+      if (!validatedRequest) {
+        return false;
+      }
+
+      // 2. 현재 엣지 목록 백업
       const currentEdges = getEdges();
       const edgeToDelete = currentEdges.find(edge => edge.id === edgeId);
 
@@ -145,12 +484,12 @@ export function useCanvasEdgeManagement(pageId: string) {
         return false;
       }
 
-      // 2. 즉시 React Flow Store에서 제거
+      // 3. 즉시 React Flow Store에서 제거
       setEdges(currentEdges.filter(edge => edge.id !== edgeId));
 
       try {
-        // 3. Server Action 호출
-        const result = await deleteEdgeAction(edgeId);
+        // 4. Server Action 호출
+        const result = await deleteEdgeAction(validatedRequest);
 
         if (!result.success) {
           console.error(
@@ -158,12 +497,12 @@ export function useCanvasEdgeManagement(pageId: string) {
             result.error
           );
 
-          // 4. 실패 시 복원
+          // 5. 실패 시 복원
           setEdges(currentEdges);
           return false;
         }
 
-        // 5. 성공
+        // 6. 성공
         return true;
       } catch (error) {
         console.error(
@@ -176,7 +515,36 @@ export function useCanvasEdgeManagement(pageId: string) {
         return false;
       }
     },
-    [getEdges, setEdges]
+    [validateDeleteRequest, getEdges, setEdges]
+  );
+
+  /**
+   * 엣지 모양 업데이트 요청 검증
+   */
+  const validateUpdateShapeRequest = useCallback(
+    (edgeId: string, newShape: string) => {
+      const rawRequest: UpdateEdgeShapeRequestInput = {
+        edgeId,
+        newShape,
+        workspaceId,
+        orgId,
+      };
+
+      const parseResult = UpdateEdgeShapeRequestSchema.safeParse(rawRequest);
+
+      if (!parseResult.success) {
+        const firstError = parseResult.error.issues[0];
+        console.error('[Frontend Validation] Invalid edge shape update data:', {
+          message: firstError?.message || 'Invalid edge shape update data',
+          issues: parseResult.error.issues,
+        });
+        // TODO: toast.error로 사용자에게 피드백
+        return null;
+      }
+
+      return parseResult.data;
+    },
+    [orgId, workspaceId]
   );
 
   /**
@@ -185,7 +553,13 @@ export function useCanvasEdgeManagement(pageId: string) {
    */
   const updateEdgeShape = useCallback(
     async (edgeId: string, newShape: string): Promise<boolean> => {
-      // 1. 현재 엣지 목록 백업
+      // 1. 요청 검증
+      const validatedRequest = validateUpdateShapeRequest(edgeId, newShape);
+      if (!validatedRequest) {
+        return false;
+      }
+
+      // 2. 현재 엣지 목록 백업
       const currentEdges = getEdges();
       const edgeToUpdate = currentEdges.find(edge => edge.id === edgeId);
 
@@ -194,7 +568,7 @@ export function useCanvasEdgeManagement(pageId: string) {
         return false;
       }
 
-      // 2. 즉시 React Flow Store에서 모양 변경 (data.actualEdgeShape 업데이트)
+      // 3. 즉시 React Flow Store에서 모양 변경 (data.actualEdgeShape 업데이트)
       const updatedEdges = currentEdges.map(edge =>
         edge.id === edgeId
           ? {
@@ -218,8 +592,8 @@ export function useCanvasEdgeManagement(pageId: string) {
       }, 0);
 
       try {
-        // 3. Server Action 호출
-        const result = await updateEdgeShapeAction(edgeId, newShape);
+        // 4. Server Action 호출
+        const result = await updateEdgeShapeAction(validatedRequest);
 
         if (!result.success) {
           console.error(
@@ -227,12 +601,12 @@ export function useCanvasEdgeManagement(pageId: string) {
             result.error
           );
 
-          // 4. 실패 시 롤백
+          // 5. 실패 시 롤백
           setEdges(currentEdges);
           return false;
         }
 
-        // 5. 성공
+        // 6. 성공
         return true;
       } catch (error) {
         console.error(
@@ -245,7 +619,36 @@ export function useCanvasEdgeManagement(pageId: string) {
         return false;
       }
     },
-    [getEdges, setEdges]
+    [validateUpdateShapeRequest, getEdges, setEdges]
+  );
+
+  /**
+   * 엣지 라벨 업데이트 요청 검증
+   */
+  const validateUpdateLabelRequest = useCallback(
+    (edgeId: string, newLabel: string) => {
+      const rawRequest: UpdateEdgeLabelRequestInput = {
+        edgeId,
+        newLabel,
+        workspaceId,
+        orgId,
+      };
+
+      const parseResult = UpdateEdgeLabelRequestSchema.safeParse(rawRequest);
+
+      if (!parseResult.success) {
+        const firstError = parseResult.error.issues[0];
+        console.error('[Frontend Validation] Invalid edge label update data:', {
+          message: firstError?.message || 'Invalid edge label update data',
+          issues: parseResult.error.issues,
+        });
+        // TODO: toast.error로 사용자에게 피드백
+        return null;
+      }
+
+      return parseResult.data;
+    },
+    [orgId, workspaceId]
   );
 
   /**
@@ -254,7 +657,13 @@ export function useCanvasEdgeManagement(pageId: string) {
    */
   const updateEdgeLabel = useCallback(
     async (edgeId: string, newLabel: string): Promise<boolean> => {
-      // 1. 현재 엣지 목록 백업
+      // 1. 요청 검증
+      const validatedRequest = validateUpdateLabelRequest(edgeId, newLabel);
+      if (!validatedRequest) {
+        return false;
+      }
+
+      // 2. 현재 엣지 목록 백업
       const currentEdges = getEdges();
       const edgeToUpdate = currentEdges.find(edge => edge.id === edgeId);
 
@@ -263,7 +672,7 @@ export function useCanvasEdgeManagement(pageId: string) {
         return false;
       }
 
-      // 2. 즉시 React Flow Store에서 라벨 변경
+      // 3. 즉시 React Flow Store에서 라벨 변경
       setEdges(
         currentEdges.map(edge =>
           edge.id === edgeId ? { ...edge, label: newLabel } : edge
@@ -271,8 +680,8 @@ export function useCanvasEdgeManagement(pageId: string) {
       );
 
       try {
-        // 3. Server Action 호출
-        const result = await updateEdgeLabelAction(edgeId, newLabel);
+        // 4. Server Action 호출
+        const result = await updateEdgeLabelAction(validatedRequest);
 
         if (!result.success) {
           console.error(
@@ -295,7 +704,7 @@ export function useCanvasEdgeManagement(pageId: string) {
         return false;
       }
     },
-    [getEdges, setEdges]
+    [validateUpdateLabelRequest, getEdges, setEdges]
   );
 
   /**

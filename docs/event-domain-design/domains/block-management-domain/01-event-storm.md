@@ -188,6 +188,7 @@ blocks {
 
 ### Block Creation & Management
 - 블록이 타입별 기본 속성과 함께 생성되었다 (Block Created with Type Default Properties)
+  - *생성자 정보(createdBy), 생성 시간(createdAt), 수정 시간(updatedAt) 포함*
 - 블록이 검증되었다 (Block Validated)
 - 블록 타입 기본 속성이 설정되었다 (Block Type Default Property Set)
 - 블록 타입 기본 속성이 업데이트되었다 (Block Type Default Property Updated)

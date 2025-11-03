@@ -3,7 +3,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCanvasBlockLifecycle } from '../use-canvas-block-lifecycle';
-import { createBlockAction } from '../../../actions/block.actions';
+import { createAndMountBlockAction } from '../../../actions/block.actions';
+import type { Position } from '../../../shared/types/common.types';
 
 // Mock dependencies
 vi.mock('@xyflow/react', () => ({
@@ -11,7 +12,7 @@ vi.mock('@xyflow/react', () => ({
 }));
 
 vi.mock('../../../actions/block.actions', () => ({
-  createBlockAction: vi.fn(),
+  createAndMountBlockAction: vi.fn(),
 }));
 
 vi.mock('../../contexts/canvas-mode-context', () => ({
@@ -22,7 +23,7 @@ import { useReactFlow } from '@xyflow/react';
 import { useCanvasMode } from '../../contexts/canvas-mode-context';
 
 const mockUseReactFlow = vi.mocked(useReactFlow);
-const mockCreateBlockAction = vi.mocked(createBlockAction);
+const mockCreateAndMountBlockAction = vi.mocked(createAndMountBlockAction);
 const mockUseCanvasMode = vi.mocked(useCanvasMode);
 
 describe('useCanvasBlockLifecycle', () => {
@@ -59,7 +60,7 @@ describe('useCanvasBlockLifecycle', () => {
     } as any);
 
     // Setup Server Action mock (success by default)
-    mockCreateBlockAction.mockResolvedValue({
+    mockCreateAndMountBlockAction.mockResolvedValue({
       success: true,
       data: {
         blockMountId: 'new-block-mount-id',
@@ -72,17 +73,17 @@ describe('useCanvasBlockLifecycle', () => {
     } as any);
   });
 
-  describe('createBlock', () => {
+  describe('createAndMountBlock', () => {
     it('should create block with optimistic UI updates', async () => {
       const { result } = renderHook(() => 
         useCanvasBlockLifecycle({ pageId: mockPageId })
       );
 
       const blockType = 'text';
-      const position = { x: 100, y: 100 };
+      const position: Position = { x: 100, y: 100 };
 
       await act(async () => {
-        await result.current.createBlock(blockType, position, mockWorkspaceId);
+        await result.current.createAndMountBlock(blockType, position, mockWorkspaceId);
       });
 
       // Should add optimistic node immediately - check first call
@@ -101,7 +102,7 @@ describe('useCanvasBlockLifecycle', () => {
       );
 
       // Should call server action
-      expect(mockCreateBlockAction).toHaveBeenCalledWith({
+      expect(mockCreateAndMountBlockAction).toHaveBeenCalledWith({
         pageId: mockPageId,
         blockType,
         position,
@@ -116,10 +117,10 @@ describe('useCanvasBlockLifecycle', () => {
       );
 
       const blockType = 'text';
-      const position = { x: 100, y: 100 };
+      const position: Position = { x: 100, y: 100 };
 
       await act(async () => {
-        await result.current.createBlock(blockType, position, mockWorkspaceId);
+        await result.current.createAndMountBlock(blockType, position, mockWorkspaceId);
       });
 
       // Should enter single selection mode with real block mount ID
@@ -128,7 +129,7 @@ describe('useCanvasBlockLifecycle', () => {
 
     it('should handle block creation failure with rollback', async () => {
       // Mock server failure
-      mockCreateBlockAction.mockResolvedValue({
+      mockCreateAndMountBlockAction.mockResolvedValue({
         success: false,
         error: 'Block creation failed',
       } as any);
@@ -138,7 +139,7 @@ describe('useCanvasBlockLifecycle', () => {
       );
 
       const blockType = 'text';
-      const position = { x: 100, y: 100 };
+      const position: Position = { x: 100, y: 100 };
 
       // Capture the optimistic node ID to verify rollback
       let optimisticNodeId: string;
@@ -147,7 +148,7 @@ describe('useCanvasBlockLifecycle', () => {
       });
 
       await act(async () => {
-        await result.current.createBlock(blockType, position, mockWorkspaceId);
+        await result.current.createAndMountBlock(blockType, position, mockWorkspaceId);
       });
 
       // Should remove optimistic node on failure
@@ -173,8 +174,8 @@ describe('useCanvasBlockLifecycle', () => {
       });
 
       await act(async () => {
-        await result.current.createBlock('text', { x: 100, y: 100 }, mockWorkspaceId);
-        await result.current.createBlock('image', { x: 200, y: 200 }, mockWorkspaceId);
+        await result.current.createAndMountBlock('text', { x: 100, y: 100 } as Position, mockWorkspaceId);
+        await result.current.createAndMountBlock('image', { x: 200, y: 200 } as Position, mockWorkspaceId);
       });
 
       expect(optimisticCalls).toHaveLength(2);
@@ -269,7 +270,7 @@ describe('useCanvasBlockLifecycle', () => {
       );
 
       // Should not call server action
-      expect(mockCreateBlockAction).not.toHaveBeenCalled();
+      expect(mockCreateAndMountBlockAction).not.toHaveBeenCalled();
     });
 
     it('should remove block from canvas without server call', async () => {
@@ -288,7 +289,7 @@ describe('useCanvasBlockLifecycle', () => {
       });
 
       // Should not call server action (no delete action mock needed for this test)
-      expect(mockCreateBlockAction).not.toHaveBeenCalled();
+      expect(mockCreateAndMountBlockAction).not.toHaveBeenCalled();
     });
   });
 });

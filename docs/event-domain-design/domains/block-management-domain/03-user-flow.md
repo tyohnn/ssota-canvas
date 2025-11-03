@@ -119,10 +119,15 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 - 캔버스 클릭 → Skeleton Block 생성 및 Canvas 마운트
 - ESC 키 → Shadow Block 모드 취소, 기본 모드로 복귀
 
-**화면 전환**:
+**화면 전환** (실제 구현 기준):
 - **조건**: 캔버스 클릭하여 블록 생성
 - **전환**: Screen 2 → Screen 3 (Skeleton Block 생성)
-- **전환 방식**: Shadow Block이 Skeleton Block으로 전환, 낙관적 업데이트
+- **전환 방식**: 
+  - `useCanvasBlockLifecycle.createAndMountBlock()` 호출
+  - Optimistic Update: React Flow Store에 즉시 추가 (`addNodes`)
+  - Server Action: `createAndMountBlockAction` 백그라운드 실행
+  - 성공 시: Completed Block으로 전환 (이미 추가됨)
+  - 실패 시: 롤백 (`deleteElements`)
 
 ---
 
@@ -208,12 +213,12 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
   - 공통 스타일 유지 (호버, 선택 시 효과)
   - Resizer 및 Handle 유지
 
-**인터랙션**:
-- 블록 클릭 → 블록 선택, Editor Panel 열림 (재편집 가능)
-- 블록 더블 클릭 → 블록 타입별 인라인 편집 모드 (선택적)
+**인터랙션** (실제 구현 기준):
+- 블록 클릭 → 블록 선택, Editor Panel 열림 (Canvas Mode: `block-editing`, 재편집 가능)
+- 블록 더블 클릭 → 블록 타입별 인라인 편집 모드 (선택적, 현재 미구현)
 - Toolbar 버튼 → 블록 타입별 액션 실행 (예: Youtube 재생, Python 코드 실행)
-- Resizer → 블록 크기 조정
-- Handle → 엣지 연결/편집
+- Resizer → 블록 크기 조정 (Canvas Management Domain: `updateBlockSizeAction`)
+- Handle → 엣지 연결/편집 (Canvas Management Domain 처리)
 
 **다음 액션**:
 - 블록 편집 계속 → Editor Panel에서 속성 수정
@@ -250,7 +255,7 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 - **Process Model 참조**: Scenario 1 in `02-process-model.md`
 - **사용자 목표**: 블록에 커스텀 속성을 추가하여 더 많은 정보를 관리하고 싶어함
 - **주요 제약**: 속성 개수 제한 (최대 50개), 속성 이름 중복 방지, 타입별 설정 옵션
-- **핵심 패턴**: PropertyInput 컴포넌트로 타입별 동적 렌더링, useBlockFieldUpdate Hook 공유
+- **핵심 패턴**: PropertyInput 컴포넌트로 타입별 동적 렌더링, useBlockPropertyUpdate Hook 공유
 
 ---
 
@@ -370,7 +375,7 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 **UI 컴포넌트** (PropertyInput 패턴):
 - **Text Property**:
   - Input 필드
-  - 실시간 자동 저장 (useNodeFieldUpdate)
+  - 실시간 자동 저장 (useBlockPropertyUpdate)
   
 - **Select Property**:
   - Dropdown 메뉴
@@ -410,10 +415,10 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 - optimistic 업데이트 + DB 동기화
 - 에러 처리 및 롤백
 
-**인터랙션**:
-- 값 입력 → useNodeFieldUpdate로 자동 저장
-- 파일 업로드 → Supabase Storage 업로드 후 URL 저장
-- 프로필 선택 → 멤버 검증 후 저장
+**인터랙션** (실제 구현 기준):
+- 값 입력 → useBlockPropertyUpdate로 자동 저장 (`updateProperty` 메서드)
+- 파일 업로드 → 현재 미구현 (MediaURL VO만 구현, Server Action 없음)
+- 프로필 선택 → 현재 미구현 (멤버 검증 로직 미구현)
 
 **화면 전환**:
 - **조건**: 값 입력 완료
@@ -493,13 +498,13 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
   - 편집 버튼 숨김
   - 값만 표시
 
-**인터랙션**:
-- 값 입력 → useNodeFieldUpdate로 즉시 저장 (디바운스 없음)
-- Optimistic 업데이트 → 화면 즉시 갱신
-- 백그라운드 DB 동기화 → 성공/실패 처리
+**인터랙션** (실제 구현 기준):
+- 값 입력 → useBlockPropertyUpdate로 즉시 저장 (디바운스 없음, `updatePropertyImmediate` 사용)
+- Optimistic 업데이트 → 화면 즉시 갱신 (`updateNode` 사용)
+- 백그라운드 DB 동기화 → 성공/실패 처리 (`updateBlockPropertyAction` 호출)
 - 에러 시 → 롤백 및 에러 메시지 표시
-- 파일 업로드 → Supabase Storage 업로드 후 URL 저장
-- 프로필 선택 → 멤버 검증 후 저장
+- 파일 업로드 → 현재 미구현 (Server Action 없음)
+- 프로필 선택 → 현재 미구현 (멤버 검증 로직 미구현)
 
 **화면 전환**:
 - **조건**: 값 입력 완료
@@ -534,9 +539,9 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
   - ISO 8601 형식으로 직렬화
 
 **인터랙션**:
-- Profile: 멤버 검색 → 검증 → 선택 → 저장
-- Media: 파일 선택 → 업로드 → URL 생성 → 저장
-- Datetime: 날짜/시간 선택 → ISO 형식 변환 → 저장
+- Profile: 멤버 검색 → 검증 → 선택 → 저장 (현재 미구현 - 멤버 검증 로직 없음)
+- Media: 파일 선택 → 업로드 → URL 생성 → 저장 (현재 미구현 - Server Action 및 Storage 연동 없음)
+- Datetime: 날짜/시간 선택 → ISO 형식 변환 → 저장 (부분 구현 - useBlockPropertyUpdate 사용 가능)
 
 **화면 전환**:
 - **조건**: 특별한 속성 타입 처리 완료
@@ -686,10 +691,10 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
   - 파일명, 크기, 타입
   - 업로드 시각 (현재 시간)
   - Public URL (복사 가능, 클립보드 복사 버튼)
-- **속성 저장 상태**:
-  - Media Property에 URL 자동 저장 완료 표시
-  - useNodeFieldUpdate를 통한 자동 저장
-  - 저장 완료 체크 아이콘
+- **속성 저장 상태** (현재 미구현):
+  - Media Property에 URL 자동 저장 완료 표시 (미구현)
+  - useBlockPropertyUpdate를 통한 자동 저장 (미구현 - Server Action 없음)
+  - 저장 완료 체크 아이콘 (미구현)
 
 **인터랙션**:
 - 토스트 자동 사라짐 → 정상 화면으로 복귀
@@ -855,12 +860,12 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
   - 툴 실행 중단 버튼 (가능한 경우)
   - 중단 시 진행 중인 작업 정리
 
-**인터랙션**:
-- 툴 실행 시작 → 진행률 바 애니메이션 시작
-- 진행률 업데이트 → 상태 메시지 변경
-- 중간 결과 표시 → 결과 미리보기 업데이트
-- 취소 버튼 클릭 → 툴 실행 중단 확인
-- 실행 완료 → Screen 3으로 전환
+**인터랙션** (실제 구현 기준):
+- 툴 실행 시작 → `useBlockToolExecution.executeTool()` 호출, 진행률 바 애니메이션 시작
+- 진행률 업데이트 → `isExecuting`, `executionProgress` 상태 변경, 상태 메시지 변경
+- 중간 결과 표시 → 결과 미리보기 업데이트 (현재 부분 구현)
+- 취소 버튼 클릭 → 툴 실행 중단 확인 (현재 미구현 - 진행률 표시만 가능)
+- 실행 완료 → Screen 3으로 전환 (`executeBlockToolAction` 완료 후, `addNodes`로 새 블록 추가)
 
 **화면 전환**:
 - **조건**: 툴 실행 완료
@@ -897,12 +902,12 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
   - 생성된 블록 타입별 분류
   - 실행 시간 정보
 
-**인터랙션**:
+**인터랙션** (실제 구현 기준):
 - 토스트 자동 사라짐 → 정상 화면으로 복귀
-- 블록 카드 클릭 → 블록 상세 정보 표시 (Editor Panel 열림)
-- 블록 편집 → 개별 블록 속성 수정
-- 블록 삭제 → 개별 블록 삭제 확인
-- 결과 상세 보기 → 실행 로그 및 통계 표시
+- 블록 카드 클릭 → 블록 상세 정보 표시 (Editor Panel 열림, Canvas Mode: `block-editing`)
+- 블록 편집 → 개별 블록 속성 수정 (useBlockPropertyUpdate 사용)
+- 블록 삭제 → 개별 블록 삭제 확인 (Canvas Management Domain: `softDeleteBlockMountAction`)
+- 결과 상세 보기 → 실행 로그 및 통계 표시 (현재 부분 구현)
 
 **화면 전환**:
 - **조건**: Canvas에 새 블록 마운트 완료
@@ -1043,12 +1048,12 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
    - **Field Popover**: 속성 편집 팝오버 (Generic, Select-Like, Status)
    - **Block Toolbar**: 블록별 툴 실행 버튼
 
-2. **Custom Hooks 설계**: 
-   - `useNodeFieldUpdate`: 모든 속성 업데이트 통합 처리
-   - `useSchemaFieldEditor`: 속성 스키마 편집
+2. **Custom Hooks 설계** (실제 구현 기준): 
+   - `useBlockPropertyUpdate`: 블록 속성 업데이트 통합 처리 (useNodeFieldUpdate 패턴)
+   - `useSchemaFieldEditor`: 속성 스키마 편집 (라벨 저장, 속성 삭제, 옵션 커밋)
    - `use-canvas-mode`: Shadow Block 모드 관리
    - `use-canvas-block-lifecycle`: 블록 생명주기 관리
-   - `useBlockTools`: 블록 툴 실행 로직
+   - `useBlockToolExecution`: 블록 툴 실행 로직 (진행률 표시 포함)
 
 3. **상태 관리**: 
    - 블록 상태별 구분 (Shadow → Skeleton → Completed)
@@ -1056,12 +1061,13 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
    - 속성 편집 상태 (Popover, 중첩 메뉴)
    - 툴 실행 진행 상태
 
-4. **Server Actions 연동**: 
-   - `createBlockAction`: 블록 생성 (Canvas Management 연동)
-   - `updateBlockAction`: 블록 업데이트
-   - `manageCustomPropertyAction`: 커스텀 속성 관리
-   - `manageMediaAction`: 미디어 업로드/삭제
+4. **Server Actions 연동** (실제 구현 기준): 
+   - `createAndMountBlockAction`: 블록 생성 및 Canvas 마운팅 통합 (Canvas Management Domain)
+   - `updateBlockPropertyAction`: 블록 속성 업데이트 (properties.xxx 경로만)
+   - `updateBlockTitleAction`: 블록 제목 업데이트
+   - `createCustomPropertyAction`, `updateCustomPropertyAction`: 커스텀 속성 관리
    - `executeBlockToolAction`: 블록 툴 실행
+   - 참고: `manageMediaAction`은 현재 미구현 (MediaURL VO만 구현)
 
 5. **Canvas Management 연동**: 
    - 블록 생성 시 Canvas 마운트
@@ -1101,7 +1107,7 @@ Process Model의 비즈니스 프로세스를 기반으로 실제 화면 흐름�
 ### 레거시 코드 패턴
 - **PropertyInput**: 타입별 동적 렌더링 컴포넌트
 - **Field Popover**: 속성 편집 팝오버 (Generic, Select-Like, Status)
-- **useNodeFieldUpdate**: 모든 속성 업데이트 통합 처리
+- **useBlockPropertyUpdate**: 모든 속성 업데이트 통합 처리 (실제 구현 기준)
 - **useSchemaFieldEditor**: 속성 스키마 편집
 
 ### 디자인 시스템

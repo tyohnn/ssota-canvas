@@ -31,7 +31,7 @@ Block Management Domain은 **Canvas Management Domain과 긴밀하게 연동되�
 - **입력**: `03-user-flow.md` - 5개 주요 화면 흐름
   - Scenario 0: Shadow Block → Skeleton Block → Completed Block
   - Scenario 1: Property 추가/편집 (PropertyInput + Popover 패턴)
-  - Scenario 2: Property 값 입력 (useBlockFieldUpdate 패턴)
+  - Scenario 2: Property 값 입력 (useBlockPropertyUpdate 패턴)
   - Scenario 3: Media Upload
   - Scenario 4: Block Tools 실행
 - **입력**: `03-software-design.md` - BlockAggregate, Custom Properties, Block Tools
@@ -42,7 +42,7 @@ Block Management Domain은 **Canvas Management Domain과 긴밀하게 연동되�
 - **블록 상태 구분**: Shadow Block (마우스 추적) / Skeleton Block (빈 블록) / Completed Block (렌더링 완료)
 - **공통 컴포넌트**: BaseNode 기반 일관된 블록 스타일 (호버, 선택, Resizer, Handle)
 - **동적 속성 렌더링**: PropertyInput 컴포넌트로 타입별 동적 UI 생성
-- **공통 Hook**: useBlockFieldUpdate로 모든 속성 업데이트 통합 처리
+- **공통 Hook**: useBlockPropertyUpdate로 모든 속성 업데이트 통합 처리
 - **Editor Panel**: Notion 스타일 우측 슬라이드 패널
 - **Optimistic Update**: 즉각적인 UI 반응 + 백그라운드 DB 동기화
 
@@ -233,23 +233,27 @@ Block Management Domain은 **Canvas Management Domain과 긴밀하게 연동**�
 
 Block Management Domain의 Hook은 **Server Actions를 래핑**하여 Optimistic Update 패턴을 제공합니다.
 
-### 1. useBlockFieldUpdate Hook
+### 1. useBlockPropertyUpdate Hook
 
-#### useBlockFieldUpdate
+#### useBlockPropertyUpdate
 
-- **파일 위치**: `src/domains/block-management/frontend/hooks/use-block-field-update.ts`
-- **역할**: 블록 속성 값 업데이트를 처리하는 공통 Hook (Canvas의 useNodeFieldUpdate 패턴)
+- **파일 위치**: `src/domains/block-management/frontend/hooks/use-block-property-update.ts` ✅
+- **역할**: 블록 속성 값 업데이트를 처리하는 공통 Hook (Optimistic Update 패턴)
 - **주요 기능**:
-  - Optimistic Update: React Flow Store 즉시 업데이트
-  - Server Action 호출: 백그라운드 DB 동기화
-  - 실패 시 롤백
-- **제공 메서드**:
-  - `updateField(blockId, fieldPath, value)`: 속성 값 업데이트
-  - `resetField(blockId, fieldPath)`: 속성 값 초기화
-- **의존성**: React Flow Store (`useReactFlow` Hook), Server Actions
-- **특징**:
-  - 타입별 속성 값 검증
-  - 자동 직렬화 (Date, File 등)
+  - Optimistic Update: React Flow Store 즉시 업데이트 (`updateNode`)
+  - Server Action 호출: 백그라운드 DB 동기화 (`updateBlockPropertyAction`)
+  - 실패 시 롤백: 원래 값으로 복원
+  - 중첩된 객체 경로 처리 (`properties.xxx` 형태)
+- **제공 메서드** (실제 구현 기준):
+  - `updateProperty<T>(blockId, propertyPath, value, blockData)`: 속성 값 업데이트 (비동기)
+  - `updatePropertyImmediate<T>(blockId, propertyPath, value, blockData)`: 즉시 업데이트 (동기, Optimistic)
+- **의존성**: 
+  - React Flow (`useReactFlow` Hook의 `updateNode`)
+  - Server Actions (`updateBlockPropertyAction`)
+- **특징** (실제 구현):
+  - 중첩된 객체 경로 처리 (`properties.xxx` 형태)
+  - Zod 스키마 검증 (`UpdateBlockPropertyRequestSchema`)
+  - 타입 안전성 (`BlockNodeData` 타입 사용)
   - 에러 처리 및 Toast 알림
 
 **사용 시나리오**:
@@ -263,23 +267,29 @@ Block Management Domain의 Hook은 **Server Actions를 래핑**하여 Optimistic
 
 #### useSchemaFieldEditor
 
-- **파일 위치**: `src/domains/block-management/frontend/hooks/use-schema-field-editor.ts`
+- **파일 위치**: `src/domains/block-management/frontend/hooks/use-schema-field-editor.ts` ✅
 - **역할**: 커스텀 속성 정의 관리 Hook (속성 추가/편집/삭제)
-- **주요 기능**:
-  - 속성 라벨 저장
-  - 속성 삭제
-  - 속성 복제
-  - 옵션 커밋 (select/multi-select/status 타입)
-- **제공 메서드**:
-  - `saveLabel(blockId, propertyId, label)`: 라벨 저장
-  - `deleteField(blockId, propertyId)`: 속성 삭제
-  - `duplicateField(blockId, propertyId)`: 속성 복제
-  - `commitOptions(blockId, propertyId, options)`: 옵션 저장
-- **의존성**: Server Actions (manageCustomPropertyAction)
-- **특징**:
-  - Optimistic Update 패턴
-  - 정의-값 동시 업데이트
+- **주요 기능** (실제 구현 기준):
+  - 속성 라벨 저장 (`createCustomPropertyAction`, `updateCustomPropertyAction`)
+  - 속성 삭제 (Optimistic Update로 처리)
+  - 속성 복제 (Optimistic Update로 처리)
+  - 옵션 커밋 (select/multi-select/status 타입, `updateCustomPropertyAction`)
+- **제공 메서드** (실제 구현 기준):
+  - `saveLabel(blockId, propertyId, label)`: 라벨 저장 (비동기)
+  - `deleteField(blockId, propertyId)`: 속성 삭제 (Optimistic Update)
+  - `duplicateField(blockId, propertyId)`: 속성 복제 (Optimistic Update)
+  - `commitOptions(blockId, propertyId, options)`: 옵션 저장 (비동기)
+- **의존성**: 
+  - React Flow (`useReactFlow` Hook의 `getNode`, `updateNode`)
+  - Server Actions (`createCustomPropertyAction`, `updateCustomPropertyAction` - 현재 미구현)
+- **특징** (실제 구현):
+  - Optimistic Update 패턴 (React Flow Store만 업데이트)
+  - React Flow Store에서 블록 데이터 직접 읽기
   - 에러 처리 및 Toast 알림
+  - 참고: 
+    - `createCustomPropertyAction`, `updateCustomPropertyAction` Server Action 파일 없음 (Hook에서 호출하나 실제 구현 없음)
+    - `deleteCustomPropertyAction`도 미구현 (Optimistic Update만 동작)
+    - 현재는 Frontend에서 Optimistic Update만 동작하며 백엔드 저장은 불가
 
 **사용 시나리오**:
 - Field Popover: 속성 정의 편집
@@ -292,20 +302,25 @@ Block Management Domain의 Hook은 **Server Actions를 래핑**하여 Optimistic
 
 #### useBlockToolExecution
 
-- **파일 위치**: `src/domains/block-management/frontend/hooks/use-block-tool-execution.ts`
+- **파일 위치**: `src/domains/block-management/frontend/hooks/use-block-tool-execution.ts` ✅
 - **역할**: 블록 툴 실행 Hook
-- **주요 기능**:
-  - 툴 실행 진행률 표시
+- **주요 기능** (실제 구현 기준):
+  - 툴 실행 진행률 표시 (`isExecuting`, `executionProgress` 상태)
   - 실행 결과 처리
-  - 새 블록 생성 (Canvas Management 연동)
-- **제공 메서드**:
-  - `executeTool(blockId, toolType, parameters)`: 사용자 툴 실행
-  - `executeToolByAI(blockId, toolType, aiContext)`: AI 툴 실행
-- **의존성**: Server Actions (executeBlockToolAction), Canvas Hooks
-- **특징**:
-  - 진행률 상태 관리
-  - 실행 결과 파싱
-  - Canvas 연동 (새 블록 마운트)
+  - 새 블록 생성 (Canvas Management 연동, `addNodes` 사용)
+- **제공 메서드** (실제 구현 기준):
+  - `executeTool(blockId, toolName, parameters?)`: 사용자 툴 실행 (비동기)
+  - `executeToolByAI(blockId, toolName, aiContext)`: AI 툴 실행 (비동기)
+  - `isExecuting`: 실행 중 여부 (상태)
+  - `executionProgress`: 진행률 (0-100, 상태)
+- **의존성**: 
+  - React Flow (`useReactFlow` Hook의 `getNode`, `addNodes`)
+  - Server Actions (`executeBlockToolAction`)
+- **특징** (실제 구현):
+  - 진행률 상태 관리 (`useState`로 관리)
+  - 실행 결과 파싱 및 새 블록 생성
+  - Canvas 연동 (`addNodes`로 새 블록 추가)
+  - 에러 처리 및 Toast 알림
 
 **사용 시나리오**:
 - BlockToolbar: 툴 버튼 클릭
@@ -397,17 +412,21 @@ return (
 - **Props**:
   - data: BlockNodeData (필수)
   - state: 'skeleton' | 'completed' (필수)
-- **사용 Hook**: useBlockFieldUpdate (속성 값 업데이트용)
+- **사용 Hook**: useBlockPropertyUpdate ✅ (속성 값 업데이트용)
 - **UI 라이브러리**: YouTube Embed, Input, Icon
 - **특징**:
   - 상태별 조건부 렌더링
   - 공통 스타일 유지 (BaseNode 기반)
   - 속성 값 실시간 업데이트
 
-**구현 패턴**:
+**구현 패턴** (실제 구현 기준):
 ```typescript
 export function YoutubeBlock({ data, state }: YoutubeBlockProps) {
-  const { updateField } = useBlockFieldUpdate();
+  const { updateProperty } = useBlockPropertyUpdate();
+  const { getNode } = useReactFlow();
+  
+  const blockNode = getNode(blockId);
+  const blockData = blockNode?.data;
   
   if (state === 'skeleton') {
     return (
@@ -417,6 +436,12 @@ export function YoutubeBlock({ data, state }: YoutubeBlockProps) {
       </div>
     );
   }
+  
+  const handleUrlChange = (newUrl: string) => {
+    if (blockData) {
+      updateProperty(blockId, 'properties.url', newUrl, blockData);
+    }
+  };
   
   return (
     <div className="completed-state">
@@ -505,10 +530,13 @@ export function isValidYoutubeUrl(url: string): boolean {
 - **Props**:
   - blockId: string (필수) - Props로 전달받음
   - isOpen: boolean - Canvas Mode (`block-editing`)로 제어
-- **사용 Hook**: 
-  - useBlockFieldUpdate (속성 값 업데이트)
-  - useSchemaFieldEditor (속성 정의 관리)
-  - useReactFlow (React Flow Store에서 블록 데이터 읽기)
+- **사용 Hook** (실제 구현 기준): 
+  - useBlockPropertyUpdate (속성 값 업데이트) ✅
+  - useSchemaFieldEditor (속성 정의 관리) ✅
+  - useReactFlow (React Flow Store에서 블록 데이터 읽기) ✅
+  - useNodes (reactive nodes subscription) ✅
+  - useCanvasMode (Canvas 모드 관리) ✅
+  - updateBlockTitleAction (제목 업데이트 Server Action 직접 호출) ✅
 - **UI 라이브러리**: Slide-in Animation, Backdrop Blur
 - **특징**:
   - **레거시 UI 복제**: `react-flow-canvas/components/editor/editor-panel.tsx` UI 구조 복제
@@ -517,22 +545,31 @@ export function isValidYoutubeUrl(url: string): boolean {
   - 슬라이드 애니메이션 (300ms, ease-out)
   - 닫기 버튼 (ChevronsRight 아이콘)
 
-**구현 패턴**:
+**구현 패턴** (실제 구현 기준):
 ```typescript
 export function EditorPanel({ blockId, isOpen }: EditorPanelProps) {
-  const { updateField } = useBlockFieldUpdate();
-  const { getNode } = useReactFlow();
+  const { updateNode, getNode } = useReactFlow();
+  const nodes = useNodes(); // Reactive nodes subscription
+  const canvasMode = useCanvasMode();
   
-  // React Flow Store에서 블록 데이터 읽기
-  const blockNode = getNode(blockId);
+  // React Flow Store에서 블록 데이터 읽기 (reactive)
+  const blockNode = useMemo(
+    () => nodes.find(node => node.id === blockId),
+    [nodes, blockId]
+  );
   const blockData = blockNode?.data;
+  
+  // Title 업데이트 (updateBlockTitleAction 사용)
+  const handleTitleChange = async (newTitle: string) => {
+    await updateBlockTitleAction({ blockId, title: newTitle, ... });
+  };
   
   if (!isOpen || !blockData) return null;
   
   return (
     <div className="fixed right-0 top-0 w-[45%] h-[90%] bg-background/70 backdrop-blur">
       <PropertySection blockId={blockId} blockData={blockData} />
-      <StyleSection blockId={blockId} blockData={blockData} />
+      {/* Style Section은 현재 구현에 포함될 수 있음 */}
     </div>
   );
 }
@@ -559,22 +596,28 @@ export function EditorPanel({ blockId, isOpen }: EditorPanelProps) {
   - field: CustomPropertyDefinition (필수)
   - value: any (현재 값)
 - **사용 Hook**: 
-  - useBlockFieldUpdate (속성 값 업데이트)
+  - useBlockPropertyUpdate (속성 값 업데이트) ✅
 - **UI 라이브러리**: Input, Dropdown, Checkbox, DatePicker, FileUpload
 - **특징**:
   - **레거시 UI 복제**: `react-flow-canvas/components/editor/property-input/property-input.tsx` UI 구조 복제
-  - **Hook은 새로 정의**: useBlockFieldUpdate 사용
+  - **Hook은 새로 정의**: useBlockPropertyUpdate 사용
   - 타입별 전용 Input 컴포넌트
-  - 자동 저장 (디바운스 없음)
+  - 자동 저장 (디바운스 없음, `updatePropertyImmediate` 사용)
   - 에러 처리 및 검증
 
-**구현 패턴**:
+**구현 패턴** (실제 구현 기준):
 ```typescript
 export function PropertyInput({ blockId, field, value }: PropertyInputProps) {
-  const { updateField } = useBlockFieldUpdate();
+  const { updateProperty } = useBlockPropertyUpdate();
+  const { getNode } = useReactFlow();
+  
+  const blockNode = getNode(blockId);
+  const blockData = blockNode?.data;
   
   const handleChange = (newValue: any) => {
-    updateField(blockId, field.id, newValue);
+    if (blockData) {
+      updateProperty(blockId, `properties.${field.id}`, newValue, blockData);
+    }
   };
   
   switch (field.type) {
@@ -606,11 +649,11 @@ export function PropertyInput({ blockId, field, value }: PropertyInputProps) {
   - fieldId: string (필수)
   - options: PropertyOption[] (필수)
   - value: string[] (선택된 옵션 ID 배열)
-- **사용 Hook**: useBlockFieldUpdate
+- **사용 Hook**: useBlockPropertyUpdate ✅
 - **UI 라이브러리**: Popover, Checkbox, Badge, Button
 - **특징**:
   - **레거시 UI 복제**: `react-flow-canvas/components/editor/property-input/multi-select-property.tsx` UI 구조 복제
-  - **Hook은 새로 정의**: useBlockFieldUpdate 사용
+  - **Hook은 새로 정의**: useBlockPropertyUpdate 사용 ✅
   - 중첩 Popover 구조
   - 실시간 선택/해제
   - 자동 저장
@@ -704,7 +747,7 @@ Block Management Domain 전용으로 **레거시 UI를 복제**하되, **Hook은
 
 모든 Editor Panel 및 Property 관련 컴포넌트는:
 1. **UI 레이어**: 레거시 코드(`react-flow-canvas/components/editor/`) 복제
-2. **Hook 레이어**: Block Management 전용 Hook으로 교체 (useBlockFieldUpdate, useSchemaFieldEditor)
+2. **Hook 레이어**: Block Management 전용 Hook으로 교체 (useBlockPropertyUpdate, useSchemaFieldEditor)
 3. **Props 레이어**: Props로 blockId 전달받아 React Flow Store 접근
 
 ---
@@ -719,7 +762,8 @@ Block Management Domain 전용으로 **레거시 UI를 복제**하되, **Hook은
   - 블록 타입별 툴 버튼 표시
   - 툴 실행 진행률 표시
   - 권한별 버튼 활성화/비활성화
-- **사용 Hook**: useBlockManagement
+- **사용 Hook**: useBlockToolExecution ✅ (Block Management Domain Hook)
+- **참고**: Canvas Management Domain의 `use-canvas-block-lifecycle`과 통합되어 사용됨
 - **UI 라이브러리**: Button, Progress, Tooltip
 - **특징**:
   - 블록 타입별 동적 툴 목록
@@ -790,12 +834,17 @@ async function PageContent({ pageId }) {
 }
 ```
 
-**데이터 흐름**:
-1. page.tsx (서버) → getCanvasPageDataAction → DB 조회 (블록 정보 포함)
+**데이터 흐름** (실제 구현 기준):
+1. page.tsx (서버) → Server Component → DB 조회 (Canvas Management Domain)
 2. page.tsx (서버) → ACL 변환 → initialNodes (블록 데이터 포함)
 3. CanvasClient → ReactFlowProvider 설정
-4. CanvasReactFlowWrapper → React Flow 상태 초기화
+4. CanvasReactFlowWrapper → React Flow 상태 초기화 (`useNodesState`, `useEdgesState`)
 5. 사용자 인터랙션 → React Flow 이벤트 → Hook → Server Actions → DB 저장
+   - 블록 생성: `useCanvasBlockLifecycle.createAndMountBlock()` → `createAndMountBlockAction`
+   - 속성 업데이트: `useBlockPropertyUpdate.updateProperty()` → `updateBlockPropertyAction`
+   - 제목 업데이트: `EditorPanel` → `updateBlockTitleAction`
+   - 커스텀 속성: `useSchemaFieldEditor` → `createCustomPropertyAction` / `updateCustomPropertyAction` (미구현)
+   - 툴 실행: `useBlockToolExecution.executeTool()` → `executeBlockToolAction`
 
 ---
 
@@ -809,9 +858,9 @@ export function CanvasReactFlowWrapper({ pageId, initialNodes, initialEdges }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   
   // Block Management Hooks
-  const { updateField } = useBlockFieldUpdate();
-  const { saveLabel, deleteField } = useSchemaFieldEditor();
-  const { executeTool } = useBlockToolExecution();
+  const { updateProperty } = useBlockPropertyUpdate(); ✅
+  const { saveLabel, deleteField } = useSchemaFieldEditor(); ✅
+  const { executeTool, isExecuting, executionProgress } = useBlockToolExecution(); ✅
   
   // Canvas Mode로 Editor Panel 제어
   const { isBlockEditingMode, getCurrentMode } = useCanvasMode();
@@ -830,19 +879,41 @@ export function CanvasReactFlowWrapper({ pageId, initialNodes, initialEdges }) {
 
 ### 4. Canvas Management Domain 연동
 
-**Canvas 연동 패턴**:
+**Canvas 연동 패턴** (실제 구현 기준):
 ```typescript
 // src/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle.ts
-export function useCanvasBlockLifecycle({ pageId, orgId }) {
-  const { createBlock, updateBlock, deleteBlock } = useBlockManagement();
+export function useCanvasBlockLifecycle({ pageId, orgId, workspaceId }) {
+  const { addNodes, deleteElements, getNodes, updateNode } = useReactFlow();
+  const canvasMode = useCanvasMode();
   
   // 1. Shadow Block 상태 → Skeleton Block 생성
-  const result = await createBlock(blockType, position, workspaceId, orgId);
+  const createAndMountBlock = async (blockType: BlockType, position: Position) => {
+    // Optimistic 업데이트: React Flow Store에 즉시 추가
+    const optimisticNode = buildBlockNodeData(blockType, position);
+    addNodes([optimisticNode]);
+    
+    // Server Action 호출: CanvasBlockMountService.createAndMountBlock()
+    const result = await createAndMountBlockAction({
+      workspaceId,
+      orgId,
+      pageId,
+      blockType,
+      position,
+      size: getBlockSize(blockType),
+    });
+    
+    // 성공 시: Completed Block으로 전환 (이미 추가됨)
+    // 실패 시: 롤백 및 에러 표시 (deleteElements 사용)
+    if (isFailure(result)) {
+      deleteElements({ nodes: [{ id: optimisticNode.id }] });
+      throw new Error(result.error);
+    }
+    
+    // 블록 편집 모드 진입
+    enterBlockEditingMode(result.data.blockId);
+  };
   
-  // 2. Optimistic 업데이트: Canvas에 즉시 표시
-  // 3. Server Action 호출: BlockManagementService.createBlock()
-  // 4. 성공 시: Completed Block으로 전환
-  // 5. 실패 시: 롤백 및 에러 표시
+  return { createAndMountBlock, ... };
 }
 ```
 
@@ -863,16 +934,25 @@ type BlockState = 'shadow' | 'skeleton' | 'completed';
 
 **Editor Panel 연동**:
 ```typescript
-// src/domains/react-flow-canvas/components/editor/editor-panel.tsx
-export function EditorPanel() {
-  const { selectedBlock, editorPanelOpen, closeEditorPanel } = useBlockManagement();
+// src/domains/block-management/frontend/components/editor/editor-panel.tsx
+export function EditorPanel({ blockId, isOpen }: EditorPanelProps) {
+  const { getNode } = useReactFlow();
+  const nodes = useNodes(); // Reactive nodes subscription
+  const canvasMode = useCanvasMode();
   
-  if (!selectedBlock || !editorPanelOpen) return null;
+  // React Flow Store에서 블록 데이터 읽기 (reactive)
+  const blockNode = useMemo(
+    () => nodes.find(node => node.id === blockId),
+    [nodes, blockId]
+  );
+  const blockData = blockNode?.data;
+  
+  if (!isOpen || !blockData) return null;
   
   return (
     <div className="fixed right-0 top-0 w-[45%] h-[90%] bg-background/70 backdrop-blur">
-      <PropertySection block={selectedBlock} />
-      <StyleSection block={selectedBlock} />
+      <PropertySection blockId={blockId} blockData={blockData} />
+      {/* Style Section은 현재 구현에 포함될 수 있음 */}
     </div>
   );
 }
@@ -886,86 +966,104 @@ export function EditorPanel() {
 
 ### 1. Server Actions 구현
 
-#### createBlockAction
+#### createAndMountBlockAction (실제 구현 기준)
 
-- **파일 위치**: `src/domains/block-management/actions/block.actions.ts`
-- **역할**: 블록 생성 기능을 제공하는 Next.js Server Action
-- **주요 기능**:
+- **파일 위치**: `src/domains/canvas-management/actions/block.actions.ts` ✅
+- **역할**: 블록 생성 및 Canvas 마운팅 통합 Server Action
+- **주요 기능** (실제 구현 기준):
   - Supabase Auth를 통한 사용자 인증 확인
-  - 의존성 주입 패턴으로 Service Layer 활용
-  - Command 객체 생성 및 Service 메서드 호출
-  - 도메인 모델 → DTO 직렬화
-- **입력**: FormData (workspaceId, blockType, initialMetadata)
-- **출력**: BlockDTO
+  - 조직 & 워크스페이스 권한 확인 (`verifyAccess`)
+  - BlockManagementService와 CanvasBlockMountService 통합 호출
+  - 블록 생성 + Canvas 마운팅을 한 번에 처리
+- **입력**: `CreateAndMountBlockRequest` (workspaceId, orgId, pageId, blockType, position, size)
+- **출력**: `BlockCreatedAndMountedDTO`
 - **인증**: Supabase Auth 기반 사용자 인증 필수
 - **에러 처리**: 
-  - 인증 실패 → UnauthorizedError
-  - 권한 부족 → WorkspaceAccessDeniedError
-  - 도메인 규칙 위반 → BlockManagementError
-- **특징**:
+  - 인증 실패 → `UNAUTHORIZED`
+  - 권한 부족 → `ACCESS_DENIED`
+  - 도메인 규칙 위반 → `BlockManagementError`
+- **특징** (실제 구현):
   - `'use server'` 지시어 사용
-  - Plain Object만 반환 (직렬화 가능)
-  - 의존성 주입으로 테스트 용이성 확보
+  - Zod 스키마 런타임 검증 (`CreateAndMountBlockRequestSchema`)
+  - Defense in Depth 보안 패턴
+  - `ActionResult` 패턴 사용
 
-**처리 흐름**:
-1. 인증 확인: Supabase Auth로 현재 사용자 확인
-2. 의존성 주입: Repository, Service 인스턴스 생성
-3. Command 생성: 입력 파라미터 → CreateBlockCommand 객체 변환
-4. 도메인 로직 실행: BlockManagementService.createBlock() 호출
-5. DTO 직렬화: Block Aggregate → BlockDTO 변환
-6. 결과 반환: Result<BlockDTO> 형식
+**처리 흐름** (실제 구현 기준):
+1. 런타임 검증: Zod 스키마로 입력 검증
+2. 인증 확인: Supabase Auth로 현재 사용자 확인
+3. 권한 확인: `verifyAccess()`로 조직 & 워크스페이스 접근 권한 확인
+4. 의존성 주입: Repository, Service 인스턴스 생성
+5. 블록 생성 및 마운팅: `CanvasBlockMountService.createAndMountBlock()` 호출
+6. DTO 직렬화: Block Aggregate + BlockMount Aggregate → DTO 변환
+7. 결과 반환: `ActionResult<BlockCreatedAndMountedDTO>` 형식
 
-#### updateBlockAction
+#### updateBlockPropertyAction (실제 구현 기준)
 
-- **파일 위치**: `src/domains/block-management/actions/block.actions.ts`
-- **역할**: 블록 정보 업데이트 기능을 제공하는 Next.js Server Action
-- **입력**: FormData (blockId, blockType?, metadata?)
-- **출력**: BlockDTO
-- **처리 흐름**: createBlockAction과 유사하나 수정 로직 적용
+- **파일 위치**: `src/domains/block-management/actions/block.actions.ts` ✅
+- **역할**: 블록 속성 업데이트 기능을 제공하는 Next.js Server Action
+- **입력**: `UpdateBlockPropertyRequest` (blockId, propertyPath, value, workspaceId, orgId)
+- **출력**: `BlockPropertyUpdatedDTO`
+- **처리 흐름**: properties.xxx 경로만 처리, `BlockPropertyService.updateProperty()` 호출
 
-#### deleteBlockAction
+#### updateBlockTitleAction (실제 구현 기준)
 
-- **파일 위치**: `src/domains/block-management/actions/block.actions.ts`
-- **역할**: 블록 삭제 기능을 제공하는 Next.js Server Action
-- **입력**: FormData (blockId)
-- **출력**: void
-- **처리 흐름**: 소프트 삭제 로직 적용
+- **파일 위치**: `src/domains/block-management/actions/block.actions.ts` ✅
+- **역할**: 블록 제목 업데이트 기능을 제공하는 Next.js Server Action
+- **입력**: `UpdateBlockTitleRequest` (blockId, title, workspaceId, orgId)
+- **출력**: `BlockTitleUpdatedDTO`
+- **처리 흐름**: Block Entity의 title 직접 업데이트
 
-#### manageCustomPropertyAction
+참고: `updateBlockAction`은 현재 별도 구현 없이 `updateBlockPropertyAction`과 `updateBlockTitleAction`으로 분리됨
 
-- **파일 위치**: `src/domains/block-management/actions/property.actions.ts`
+#### createCustomPropertyAction / updateCustomPropertyAction (미구현)
+
+- **파일 위치**: `src/domains/block-management/actions/property.actions.ts` (파일 없음) ❌
 - **역할**: 커스텀 속성 관리 기능을 제공하는 Next.js Server Action
-- **주요 기능**:
-  - AddCustomProperty, ChangePropertyType, DeleteCustomProperty 처리
-  - 속성 타입별 검증
-  - 정의-값 동시 업데이트
-- **입력**: FormData (action, blockId, propertyId?, name?, type?, options?)
-- **출력**: PropertyDTO
-- **처리 흐름**: 속성 관리 로직 적용
+- **현재 상태**: 
+  - Hook (`useSchemaFieldEditor`)에서 `createCustomPropertyAction`, `updateCustomPropertyAction` 호출하나 실제 파일이 존재하지 않음
+  - Block Entity 메서드 (`addCustomPropertyDefinition`, `updateCustomPropertyDefinition`)는 구현되어 있으나 Server Action 레벨에서 연동 필요
+- **주요 기능** (필요한 구현):
+  - `createCustomPropertyAction`: 커스텀 속성 추가
+  - `updateCustomPropertyAction`: 커스텀 속성 업데이트 (라벨, 옵션 등)
+- **입력**: 
+  - `CreateCustomPropertyRequest` (blockId, propertyId, name, type, options?, order, visible)
+  - `UpdateCustomPropertyRequest` (blockId, propertyId, name?, type?, options?, order?, visible?)
+- **출력**: CustomPropertyDTO
+- **처리 흐름** (필요한 구현):
+  - Block Entity 메서드 (`addCustomPropertyDefinition`, `updateCustomPropertyDefinition`) 호출
+  - Optimistic Update 패턴 (Hook에서 처리)
+- **참고**: 
+  - `deleteCustomPropertyAction`은 현재 미구현 (Hook에서 Optimistic Update만 처리)
+  - 현재는 Frontend에서 Optimistic Update만 동작하며 백엔드 저장은 불가
 
-#### manageMediaAction
+#### manageMediaAction (미구현)
 
-- **파일 위치**: `src/domains/block-management/actions/media.actions.ts`
+- **파일 위치**: `src/domains/block-management/actions/media.actions.ts` (파일 없음) ❌
 - **역할**: 미디어 파일 관리 기능을 제공하는 Next.js Server Action
-- **주요 기능**:
-  - UploadMedia, DeleteMediaFile 처리
-  - 파일 크기/MIME 타입 검증
-  - Supabase Storage 연동
-- **입력**: FormData (action, blockId, file?, propertyId?)
-- **출력**: MediaDTO
-- **처리 흐름**: 미디어 관리 로직 적용
+- **현재 상태**: 
+  - MediaURL Value Object는 구현되어 있으나 Server Action은 미구현
+  - Supabase Storage 연동 로직 미구현
+- **필요한 구현**:
+  - `uploadMediaAction`: 미디어 파일 업로드 및 Public URL 생성
+  - `deleteMediaAction`: 미디어 파일 삭제 (properties에서 URL 제거)
 
-#### executeBlockToolAction
+#### executeBlockToolAction (실제 구현 기준)
 
-- **파일 위치**: `src/domains/block-management/actions/tool.actions.ts`
+- **파일 위치**: `src/domains/block-management/actions/tool.actions.ts` ✅
 - **역할**: 블록 툴 실행 기능을 제공하는 Next.js Server Action
-- **주요 기능**:
-  - ExecuteBlockTool, ExecuteBlockToolByAI 처리
-  - 툴 타입별 검증
-  - 실행 결과 파싱
-- **입력**: FormData (blockId, toolType, parameters?, aiContext?)
-- **출력**: ToolResultDTO
-- **처리 흐름**: 툴 실행 로직 적용
+- **주요 기능** (실제 구현 기준):
+  - 블록 툴 실행 (`BlockToolService.executeBlockTool`)
+  - 실행 결과 반환
+- **입력**: `ExecuteBlockToolRequest` (blockId, toolName, parameters?)
+- **출력**: `{ success: boolean, data?: any, error?: string }`
+- **처리 흐름** (실제 구현):
+  1. 블록 조회 및 검증
+  2. BlockToolService.executeBlockTool() 호출
+  3. 실행 결과 반환
+  4. Hook에서 새 블록 생성 처리 (`addNodes` 사용)
+- **특징** (실제 구현):
+  - 타입 검증 없이 일반 객체 반환 (향후 타입 안전성 개선 필요)
+  - 실행 진행률은 Hook에서 관리
 
 ---
 
@@ -991,12 +1089,12 @@ export function EditorPanel() {
 - [ ] DTO 직렬화가 올바르게 구현되었는가?
 - [ ] revalidatePath로 관련 페이지 재검증이 포함되었는가?
 
-### Hook 구현
-- [ ] useBlockFieldUpdate Hook이 Optimistic Update 패턴을 구현하는가?
-- [ ] useSchemaFieldEditor Hook이 속성 정의 관리를 담당하는가?
-- [ ] useBlockToolExecution Hook이 툴 실행 로직을 캡슐화하는가?
-- [ ] React Flow Store에서 블록 데이터를 직접 읽는가?
-- [ ] 에러 상태가 적절히 처리되는가?
+### Hook 구현 (실제 구현 기준)
+- [x] ✅ useBlockPropertyUpdate Hook이 Optimistic Update 패턴을 구현하는가? (`updateNode` 사용)
+- [x] ✅ useSchemaFieldEditor Hook이 속성 정의 관리를 담당하는가? (Optimistic Update 패턴, Server Actions는 미구현)
+- [x] ✅ useBlockToolExecution Hook이 툴 실행 로직을 캡슐화하는가? (`executeBlockToolAction` 사용, 진행률 표시 포함)
+- [x] ✅ React Flow Store에서 블록 데이터를 직접 읽는가? (`useNodes`, `getNode` 사용)
+- [x] ✅ 에러 상태가 적절히 처리되는가? (Toast 알림, 롤백 처리)
 
 ### 블록 컴포넌트 구조
 - [ ] 블록 타입별 폴더 구조가 구현되었는가? (`block/[type]/`)
@@ -1033,13 +1131,15 @@ export function EditorPanel() {
 
 이 Frontend Specification을 기반으로 실제 구현을 시작하세요:
 
-### TDD Implementation (07단계)
+### TDD Implementation (07단계) - 실제 구현 기준
 - **가이드**: `guide/07-tdd-implementation-guide.md`
-- **산출물**: 실제 프론트엔드 코드 (Context, Hooks, Components)
+- **산출물**: 실제 프론트엔드 코드 (Hooks, Components)
 - **내용**:
-  - Context 구현 및 Provider 설정
-  - Custom Hooks 구현
-  - UI 컴포넌트 구현
+  - ✅ Custom Hooks 구현 완료 (useBlockPropertyUpdate, useSchemaFieldEditor, useBlockToolExecution)
+  - ✅ Editor Panel 구현 완료
+  - ✅ PropertyInput 컴포넌트 구현 완료
+  - ⏳ 미구현: property.actions.ts (createCustomPropertyAction, updateCustomPropertyAction)
+  - ⏳ 미구현: media.actions.ts (uploadMediaAction, deleteMediaAction)
   - React Testing Library로 테스트
 
 ---
@@ -1067,9 +1167,9 @@ src/domains/block-management/
 │
 ├── frontend/
 │   ├── hooks/
-│   │   ├── use-block-field-update.ts           # ⭐ 블록 속성 값 업데이트 Hook
-│   │   ├── use-schema-field-editor.ts          # ⭐ 커스텀 속성 정의 관리 Hook
-│   │   └── use-block-tool-execution.ts         # ⭐ 블록 툴 실행 Hook
+│   │   ├── use-block-property-update.ts        # ⭐ 블록 속성 값 업데이트 Hook ✅
+│   │   ├── use-schema-field-editor.ts          # ⭐ 커스텀 속성 정의 관리 Hook ✅
+│   │   └── use-block-tool-execution.ts         # ⭐ 블록 툴 실행 Hook ✅
 │   │
 │   ├── components/
 │   │   ├── block/                              # ⭐ 블록 타입별 컴포넌트
@@ -1099,10 +1199,22 @@ src/domains/block-management/
 │   │           └── status-field-popover.tsx    # Block Management 전용
 │
 └── actions/
-    ├── block.actions.ts                        # 블록 관련 Server Actions
-    ├── property.actions.ts                     # 속성 관련 Server Actions
-    ├── media.actions.ts                        # 미디어 관련 Server Actions
-    └── tool.actions.ts                         # 툴 관련 Server Actions
+    ├── block.actions.ts                        # 블록 관련 Server Actions ✅
+    │   ├── updateBlockPropertyAction ✅
+    │   └── updateBlockTitleAction ✅
+    ├── property.actions.ts                     # 속성 관련 Server Actions ❌ (파일 없음)
+    │   ├── createCustomPropertyAction ❌ (미구현 - Hook에서 호출하나 파일 없음)
+    │   └── updateCustomPropertyAction ❌ (미구현 - Hook에서 호출하나 파일 없음)
+    └── tool.actions.ts                         # 툴 관련 Server Actions ✅
+        └── executeBlockToolAction ✅
+    
+# Canvas Management Domain 연동
+src/domains/canvas-management/actions/
+    └── block.actions.ts                        # 블록 생성 및 마운팅 통합 ✅
+        └── createAndMountBlockAction ✅
+
+# 미구현 Server Actions
+❌ media.actions.ts                             # 미디어 관련 Server Actions (미구현)
 
 # Canvas Management Domain 연동
 src/domains/canvas-management/frontend/
@@ -1124,6 +1236,17 @@ src/domains/canvas-management/frontend/
 
 ## 📋 문서 변경 이력
 
+### v2.1 (2025-01-XX) ⭐ 실제 구현 반영
+- **Hook 이름 정정**: `useBlockFieldUpdate` → `useBlockPropertyUpdate` (실제 구현 기준)
+- **Server Actions 실제 구현 반영**:
+  - `createAndMountBlockAction`: Canvas Management Domain에 구현 ✅
+  - `updateBlockPropertyAction`, `updateBlockTitleAction`: Block Management Domain ✅
+  - `createCustomPropertyAction`, `updateCustomPropertyAction`: 파일 없음 ❌ (Hook에서 호출하나 미구현)
+  - `executeBlockToolAction`: Block Management Domain ✅
+  - `manageMediaAction`: 미구현 ❌
+- **Editor Panel 실제 구현 반영**: `useNodes`, `useCanvasMode`, `updateBlockTitleAction` 직접 호출
+- **데이터 플로우 실제 구현 반영**: Optimistic Update 패턴, React Flow Store SSOT
+
 ### v2.0 (2025-10-22) ⭐ 주요 아키텍처 변경
 - **Context 제거**: BlockManagementContext 불필요, React Flow Store 직접 활용
 - **Props 전달 방식 도입**: Canvas Domain 패턴 참조, blockId를 Props로 전달
@@ -1138,7 +1261,7 @@ src/domains/canvas-management/frontend/
 - **Editor Panel & Property Components 분리**:
   - Block Management 도메인에 새롭게 구현
   - 레거시 UI 복제, Hook은 새로 정의
-  - useBlockFieldUpdate, useSchemaFieldEditor, useBlockToolExecution 사용
+  - useBlockPropertyUpdate, useSchemaFieldEditor, useBlockToolExecution 사용
 - **검증 체크리스트 업데이트**: Props 전달, 블록 구조, Editor Panel 분리
 - **폴더 구조 대폭 수정**: Context 제거, 블록 타입별 폴더, Editor 분리
 

@@ -193,14 +193,14 @@ export class DrizzleOrganizationMemberRepository
           ownerId: organizations.owner_id,
           createdAt: organizations.created_at,
           ownerProfile: {
-            userId: profiles.user_id,
+            userId: profiles.id,
             email: profiles.email,
             name: profiles.name,
             avatarUrl: profiles.avatar_url,
           },
         })
         .from(organizations)
-        .leftJoin(profiles, eq(organizations.owner_id, profiles.user_id))
+        .leftJoin(profiles, eq(organizations.owner_id, profiles.id))
         .where(eq(organizations.id, organizationId))
         .limit(1),
 
@@ -217,7 +217,7 @@ export class DrizzleOrganizationMemberRepository
           },
         })
         .from(organizationMembers)
-        .leftJoin(profiles, eq(organizationMembers.user_id, profiles.user_id))
+        .leftJoin(profiles, eq(organizationMembers.user_id, profiles.id))
         .where(eq(organizationMembers.organization_id, organizationId)),
 
       // Query 2-3: 대기 중인 초대 조회
@@ -235,7 +235,7 @@ export class DrizzleOrganizationMemberRepository
             },
           })
           .from(invitations)
-          .leftJoin(profiles, eq(invitations.inviter_user_id, profiles.user_id))
+          .leftJoin(profiles, eq(invitations.inviter_user_id, profiles.id))
           .where(
             and(
               eq(invitations.organization_id, organizationId),
@@ -323,7 +323,7 @@ export class DrizzleOrganizationMemberRepository
     const searchResults = await db.rls(tx =>
       tx
         .select({
-          userId: profiles.user_id,
+          userId: profiles.id,
           email: profiles.email,
           name: profiles.name,
           avatarUrl: profiles.avatar_url,
@@ -364,7 +364,7 @@ export class DrizzleOrganizationMemberRepository
         avatarUrl: profiles.avatar_url,
       })
       .from(organizationMembers)
-      .innerJoin(profiles, eq(organizationMembers.user_id, profiles.user_id))
+      .innerJoin(profiles, eq(organizationMembers.user_id, profiles.id))
       .where(
         and(
           eq(organizationMembers.organization_id, organizationId),

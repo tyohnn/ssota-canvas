@@ -9,23 +9,23 @@
 
 ## 📋 포함 Story
 
-### Story BM-001: 블록 생성 및 기본 관리 (13pts) ✅ 95% 완료
+### Story BM-001: 블록 생성 및 기본 관리 (13pts) ✅ 100% 완료
 **목표**: Shadow Block → Skeleton Block → Completed Block 흐름 완성  
 **담당자**: 시니어 개발자  
 **예상 완료일**: 2025-10-29  
-**현재 상태**: Domain Layer, Repository Layer, Service Layer, Frontend Hooks 완전 구현, 블록 상태 관리 시스템 완성
+**현재 상태**: Domain Layer, Repository Layer, Service Layer, Server Actions, Frontend Components 모두 완전 구현 완료
 
-### Story BM-002: 블록 편집 및 정보 관리 (8pts) ✅ 90% 완료
+### Story BM-002: 블록 편집 및 정보 관리 (8pts) ✅ 95% 완료
 **목표**: 블록 기본 정보 편집 및 타입 변경 기능 완성  
 **담당자**: 주니어 개발자  
 **예상 완료일**: 2025-11-01  
-**현재 상태**: Backend Domain, Database, Server Actions, Frontend Hooks 완전 구현, UI 컴포넌트 구현 필요
+**현재 상태**: Backend Domain, Database, Server Actions, Frontend Components 완전 구현, RLS 정책만 미완성
 
-### Story BM-003: 커스텀 속성 관리 (21pts) ✅ 85% 완료
+### Story BM-003: 커스텀 속성 관리 (21pts) ✅ 90% 완료
 **목표**: 커스텀 속성 추가/편집/삭제 및 타입별 설정 기능 완성  
 **담당자**: 시니어 개발자  
 **예상 완료일**: 2025-11-07  
-**현재 상태**: Value Objects, Backend Logic, Frontend Hooks 완전 구현, 고급 UI 컴포넌트 구현 필요
+**현재 상태**: Value Objects, Backend Entity, Frontend Components 완전 구현, Server Actions만 미구현
 
 ### Story BM-004: 속성 값 관리 (13pts) → Sprint 012로 이동
 **목표**: 속성 값 입력 및 타입별 검증 기능 완성  
@@ -91,11 +91,11 @@
 ## 🎯 완료 기준
 
 ### 기능적 완료
-- [x] 블록 생성 흐름 정상 동작 (BM-001 95% 완료)
-- [x] 블록 편집 기능 정상 동작 (BM-002 90% 완료)
-- [x] 커스텀 속성 관리 정상 동작 (BM-003 85% 완료)
-- [x] 블록 상태 관리 시스템 완성 (스켈레톤/완성 상태 전환)
-- [x] 에러 케이스 처리
+- [x] ✅ 블록 생성 흐름 정상 동작 (BM-001 100% 완료)
+- [x] ✅ 블록 편집 기능 정상 동작 (BM-002 95% 완료)
+- [x] ✅ 커스텀 속성 관리 UI 정상 동작 (BM-003 90% 완료, Frontend 완전 구현, Server Actions만 미구현)
+- [x] ✅ 블록 상태 관리 시스템 완성 (스켈레톤/완성 상태 전환)
+- [x] ✅ 에러 케이스 처리
 
 ### 기술적 완료
 - [x] 단위 테스트 커버리지 85% 이상 (BM-001, BM-002, BM-003 완료)

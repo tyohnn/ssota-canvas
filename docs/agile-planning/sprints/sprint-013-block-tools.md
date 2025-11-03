@@ -9,11 +9,11 @@
 
 ## 📋 포함 Story
 
-### Story BM-006: 블록 툴 실행 및 AI 연동 (13pts) 🔄 50% 완료
+### Story BM-006: 블록 툴 실행 및 AI 연동 (13pts) 🔄 60% 완료
 **목표**: 블록 타입별 특화 툴 실행, 진행률 표시, 결과 처리, AI 자동 실행 기능 완성  
 **담당자**: 시니어 개발자 2명  
 **예상 완료일**: 2025-12-12  
-**현재 상태**: DrizzleToolRepository, executeBlockToolAction, useBlockToolExecution Hook 완전 구현, AI 연동 구현 필요
+**현재 상태**: BlockToolService, executeBlockToolAction, useBlockToolExecution Hook, BlockMountToolbar 완전 구현, AI 연동만 미구현
 
 ## 📅 Sprint 일정
 
@@ -57,12 +57,12 @@
 ## 🎯 완료 기준
 
 ### 기능적 완료
-- [ ] 사용자 툴 실행 기능 정상 동작 (BM-006)
-- [ ] AI 자동 툴 실행 기능 정상 동작 (BM-006)
-- [ ] 툴 실행 진행률 표시 정상 동작 (BM-006)
-- [ ] 툴 실행 결과 처리 정상 동작 (BM-006)
-- [ ] 새 블록 생성 및 Canvas 연동 정상 동작 (BM-006)
-- [ ] 에러 케이스 처리
+- [x] ✅ 사용자 툴 실행 기능 정상 동작 (BM-006 - executeBlockToolAction 완전 구현)
+- [ ] AI 자동 툴 실행 기능 정상 동작 (BM-006 - AI 연동 미구현)
+- [x] ✅ 툴 실행 진행률 표시 정상 동작 (BM-006 - useBlockToolExecution Hook 완전 구현)
+- [x] ✅ 툴 실행 결과 처리 정상 동작 (BM-006 - 새 블록 생성 로직 완전 구현)
+- [x] ✅ 새 블록 생성 및 Canvas 연동 정상 동작 (BM-006 - addNodes를 통한 Canvas 연동)
+- [x] ✅ 에러 케이스 처리
 
 ### 기술적 완료
 - [ ] 단위 테스트 커버리지 85% 이상

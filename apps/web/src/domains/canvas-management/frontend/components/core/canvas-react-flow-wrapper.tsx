@@ -6,6 +6,7 @@ import {
   Background,
   Panel,
   SelectionMode,
+  ConnectionMode,
   type Node,
   type Edge,
   useEdgesState,
@@ -13,6 +14,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useTheme } from 'next-themes';
 
 // Type imports
 import type { CustomNodeType } from '../../acl/react-flow.acl';
@@ -83,7 +85,7 @@ export function CanvasReactFlowWrapper({
     [initialNodes, pageId, orgId, workspaceId]
   );
 
-  // 엣지 데이터에 pageId 추가 (EdgeToolbar에서 사용)
+  // 엣지 데이터에 pageId, orgId, workspaceId 추가 (EdgeToolbar에서 사용)
   const enrichedEdges = React.useMemo(
     () =>
       initialEdges.map(edge => ({
@@ -92,11 +94,16 @@ export function CanvasReactFlowWrapper({
         data: {
           ...edge.data,
           pageId,
+          orgId,
+          workspaceId,
           actualEdgeType: edge.type || 'default', // 실제 엣지 타입 저장
         },
       })),
-    [initialEdges, pageId]
+    [initialEdges, pageId, orgId, workspaceId]
   );
+
+  // Theme for React Flow colorMode
+  const { theme } = useTheme();
 
   // React Flow 상태 관리 (SSOT)
   const [nodes, setNode, onNodesChange] = useNodesState(enrichedNodes);
@@ -107,10 +114,24 @@ export function CanvasReactFlowWrapper({
   const canvasMode = useCanvasMode();
   const canvasSelection = useCanvasSelection();
   const canvasViewport = useCanvasViewport();
-  const blockTransform = useCanvasBlockTransform({ pageId });
+
+  // PanOnScroll 동적 제어: textarea 편집 중에는 비활성화
+  const panOnScrollEnabled = !canvasMode.isTextareaEditing;
+  const blockTransform = useCanvasBlockTransform({
+    orgId,
+    workspaceId,
+  });
   const snapGuides = useCanvasSnapGuides();
-  const edgeManagement = useCanvasEdgeManagement(pageId);
-  const blockLifecycle = useCanvasBlockLifecycle({ pageId, orgId });
+  const edgeManagement = useCanvasEdgeManagement({
+    pageId,
+    orgId,
+    workspaceId,
+  });
+  const blockLifecycle = useCanvasBlockLifecycle({
+    pageId,
+    orgId,
+    workspaceId,
+  });
 
   // React Flow Callbacks Hook
   const canvasCallbacks = useCanvasCallbacks({
@@ -173,6 +194,12 @@ export function CanvasReactFlowWrapper({
           border: 1px dashed rgb(59, 130, 246) !important;
         }
 
+        /* 다크모드: 선택 드래그 프리뷰 박스 */
+        .dark .react-flow__selection {
+          background: rgba(59, 130, 246, 0.15) !important;
+          border: 1px dashed rgb(96, 165, 250) !important;
+        }
+
         /* 선택된 노드들을 감싸는 박스는 우리 커스텀 컴포넌트 사용 */
         .react-flow__nodesselection {
           display: none !important;
@@ -189,6 +216,11 @@ export function CanvasReactFlowWrapper({
         .react-flow__node:hover {
           /* 우리 커스텀 호버 스타일 사용 */
         }
+
+        /* React Flow Background 다크모드 */
+        .dark .react-flow__background-pattern {
+          stroke: rgba(255, 255, 255, 0.05) !important;
+        }
       `}</style>
 
       <ReactFlow
@@ -202,15 +234,18 @@ export function CanvasReactFlowWrapper({
         fitView
         minZoom={0.1}
         maxZoom={2}
+        // 테마 설정
+        colorMode={theme === 'dark' ? 'dark' : 'light'}
         // 상호작용 설정
         nodesDraggable={true}
         nodesConnectable={true}
         elementsSelectable={true}
         selectionOnDrag={true}
         selectionMode={SelectionMode.Full}
+        connectionMode={ConnectionMode.Loose} // source/target 구분 없이 양방향 연결 허용
         // 트랙패드 제스처 설정 (피그마 스타일)
         panOnDrag={false} // 드래그는 선택 용도로만 사용
-        panOnScroll={true} // 두 손가락 스크롤로 패닝
+        panOnScroll={panOnScrollEnabled} // 두 손가락 스크롤로 패닝 (textarea 편집 중 비활성화)
         zoomOnScroll={false} // 스크롤로 줌 비활성화
         zoomOnPinch={true} // 핀치 제스처로 줌 활성화
         // 이벤트 핸들러 (CM-003, CM-007 추가)
@@ -224,7 +259,7 @@ export function CanvasReactFlowWrapper({
         onNodesDelete={canvasCallbacks.onNodesDelete}
         onKeyDown={canvasCallbacks.onKeyDown}
         deleteKeyCode={['Delete', 'Backspace']}
-        className="bg-gray-50"
+        className="bg-muted/30"
       >
         <Background />
 
@@ -253,17 +288,8 @@ export function CanvasReactFlowWrapper({
               orgId={orgId}
               workspaceId={workspaceId}
             />
-            <SelectionBoundingBox pageId={pageId} />
+            <SelectionBoundingBox orgId={orgId} workspaceId={workspaceId} />
           </>
-        )}
-
-        {/* 단일 선택 모드에서 BlockMountToolbar 표시 */}
-        {canvasMode.isSingleSelectionMode() && (
-          <BlockMountToolbar
-            pageId={pageId}
-            orgId={orgId}
-            workspaceId={workspaceId}
-          />
         )}
 
         {/* 항상 렌더링하고 내부에서 조건 체크 (상태 업데이트 타이밍 이슈 방지) */}

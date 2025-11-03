@@ -8,10 +8,10 @@ import type { CanvasViewData } from '../../../shared/dtos';
 /**
  * Canvas Query Service Interface
  *
- * 캔버스 데이터 조회를 담당하는 서비스
- * Read Model 패턴 적용
+ * 캔버스 데이터 조회를 담당하는 서비스 인터페이스
+ * Read Model 패턴 적용, 구현체는 특정 ORM/DB에 의존하지 않도록 설계
  */
-export interface CanvasQueryService {
+export interface ICanvasQueryService {
   /**
    * 캔버스 뷰 데이터 조회 (BlockMount + Block JOIN)
    *

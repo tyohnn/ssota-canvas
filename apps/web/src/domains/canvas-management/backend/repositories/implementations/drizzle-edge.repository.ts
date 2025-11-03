@@ -4,7 +4,7 @@ import { Edge } from '../../../shared/entities/edge.entity';
 import { EdgeId } from '../../../shared/value-objects/edge-id.vo';
 import { EdgeShape } from '../../../shared/value-objects/edge-shape.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
 import { adminDb } from '@/db';
 import { edges, type CanvasEdgeShape } from '@/db/schema-dev';
 import { eq, and, or, inArray, isNull } from 'drizzle-orm';
@@ -12,38 +12,106 @@ import { eq, and, or, inArray, isNull } from 'drizzle-orm';
 /**
  * DrizzleEdgeRepository
  * Drizzle ORM을 사용한 EdgeRepository 구현
+ *
+ * ⚠️ Schema Change: edges now reference block_mounts instead of blocks
  */
 export class DrizzleEdgeRepository implements EdgeRepository {
   /**
-   * Edge 저장 (생성 또는 업데이트)
+   * Edge 생성
    */
-  async save(edgeAggregate: EdgeAggregate): Promise<void> {
+  async create(edgeAggregate: EdgeAggregate): Promise<void> {
+    const edge = edgeAggregate.edge;
+    let currentId = edge.id.value;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+      try {
+        await adminDb.insert(edges).values({
+          id: currentId,
+          page_id: edge.pageId.value,
+          source_block_mount_id: edge.sourceBlockMountId.value,
+          target_block_mount_id: edge.targetBlockMountId.value,
+          source_handle: edge.sourceHandle || null,
+          target_handle: edge.targetHandle || null,
+          edge_shape: edge.edgeShape.value as CanvasEdgeShape,
+          edge_label: edge.edgeLabel,
+          edge_style_color: edge.edgeStyle.color,
+          edge_style_thickness: edge.edgeStyle.thickness,
+          created_at: edge.createdAt,
+          updated_at: edge.updatedAt,
+          deleted_at: null,
+        });
+
+        // 성공 시 종료
+        return;
+      } catch (error) {
+        // UUID 충돌인지 확인 (PostgreSQL unique constraint violation)
+        if (
+          (error as any).code === '23505' &&
+          (error as any).constraint === 'edges_pkey'
+        ) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            // 새로운 ID 생성
+            const newId = EdgeId.generate().value;
+            console.warn(
+              `[DrizzleEdgeRepository] ID collision detected (attempt ${attempts}), retrying with new ID: ${newId}`
+            );
+            currentId = newId;
+          } else {
+            console.error(
+              '❌ [DrizzleEdgeRepository] Failed to generate unique ID after multiple attempts'
+            );
+            throw new Error(
+              'Failed to generate unique ID after multiple attempts'
+            );
+          }
+        } else {
+          console.error(
+            '❌ [DrizzleEdgeRepository.create] Failed to create edge:',
+            error
+          );
+          throw error;
+        }
+      }
+    }
+  }
+
+  /**
+   * Edge 업데이트
+   */
+  async update(edgeAggregate: EdgeAggregate): Promise<void> {
     const edge = edgeAggregate.edge;
 
-    await adminDb
-      .insert(edges)
-      .values({
-        id: edge.id.value,
-        page_id: edge.pageId.value,
-        source_block_id: edge.sourceBlockId.value,
-        target_block_id: edge.targetBlockId.value,
-        edge_shape: edge.edgeShape.value as CanvasEdgeShape,
-        edge_label: edge.edgeLabel,
-        edge_style_color: edge.edgeStyle.color,
-        edge_style_thickness: edge.edgeStyle.thickness,
-        created_at: edge.createdAt,
-        updated_at: edge.updatedAt,
-      })
-      .onConflictDoUpdate({
-        target: edges.id,
-        set: {
+    try {
+      await adminDb
+        .update(edges)
+        .set({
+          page_id: edge.pageId.value,
+          source_block_mount_id: edge.sourceBlockMountId.value,
+          target_block_mount_id: edge.targetBlockMountId.value,
+          source_handle: edge.sourceHandle || null,
+          target_handle: edge.targetHandle || null,
           edge_shape: edge.edgeShape.value as CanvasEdgeShape,
           edge_label: edge.edgeLabel,
           edge_style_color: edge.edgeStyle.color,
           edge_style_thickness: edge.edgeStyle.thickness,
           updated_at: edge.updatedAt,
-        },
-      });
+          deleted_at: null,
+        })
+        .where(eq(edges.id, edge.id.value));
+
+      console.log('[DrizzleEdgeRepository] Edge updated successfully');
+    } catch (error) {
+      console.error(
+        '❌ [DrizzleEdgeRepository.update] Failed to update edge:',
+        error
+      );
+      throw new Error(
+        `Failed to update edge: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   }
 
   /**
@@ -76,17 +144,19 @@ export class DrizzleEdgeRepository implements EdgeRepository {
   }
 
   /**
-   * 연결된 블럭 ID로 Edge 조회
+   * 연결된 블럭 마운트 ID로 Edge 조회
    */
-  async findByConnectedBlockId(blockId: BlockId): Promise<EdgeAggregate[]> {
+  async findByConnectedBlockMountId(
+    blockMountId: BlockMountId
+  ): Promise<EdgeAggregate[]> {
     const result = await adminDb
       .select()
       .from(edges)
       .where(
         and(
           or(
-            eq(edges.source_block_id, blockId.value),
-            eq(edges.target_block_id, blockId.value)
+            eq(edges.source_block_mount_id, blockMountId.value),
+            eq(edges.target_block_mount_id, blockMountId.value)
           ),
           isNull(edges.deleted_at)
         )
@@ -131,8 +201,10 @@ export class DrizzleEdgeRepository implements EdgeRepository {
     const edge = new Edge(
       new EdgeId(row.id),
       new PageId(row.page_id),
-      new BlockId(row.source_block_id),
-      new BlockId(row.target_block_id),
+      new BlockMountId(row.source_block_mount_id),
+      new BlockMountId(row.target_block_mount_id),
+      row.source_handle || undefined,
+      row.target_handle || undefined,
       new EdgeShape(row.edge_shape),
       row.edge_label || '',
       {

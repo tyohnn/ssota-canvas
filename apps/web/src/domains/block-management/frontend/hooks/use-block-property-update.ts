@@ -4,13 +4,25 @@ import { useCallback } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { updateBlockPropertyAction } from '../../actions/block.actions';
 import { isFailure } from '@/lib/action-result';
+import {
+  UpdateBlockPropertyRequestSchema,
+  type UpdateBlockPropertyRequestInput,
+} from '../../shared/dtos/requests';
+import { BlockNodeData } from '../../shared/types/block-data.types';
 
 export interface UseBlockPropertyUpdateResult {
   updateProperty: <T>(
     blockId: string,
     propertyPath: string,
-    value: T
+    value: T,
+    blockData: BlockNodeData
   ) => Promise<void>;
+  updatePropertyImmediate: <T>(
+    blockId: string,
+    propertyPath: string,
+    value: T,
+    blockData: BlockNodeData
+  ) => void;
 }
 
 /**
@@ -21,30 +33,15 @@ export interface UseBlockPropertyUpdateResult {
  * - 실패 시 롤백
  */
 export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
-  const { getNode, updateNode } = useReactFlow();
+  const { updateNode } = useReactFlow();
 
-  const updateProperty = useCallback(
-    async <T>(
-      blockId: string,
-      propertyPath: string,
-      value: T
-    ): Promise<void> => {
-      // 1. 현재 노드 가져오기
-      const currentNode = getNode(blockId);
-      if (!currentNode) {
-        console.warn('Node not found:', blockId);
-        return;
-      }
-
-      // 2. 원본 데이터 백업 (롤백용)
-      const originalData = currentNode.data;
-
-      // 3. Optimistic Update: React Flow Store 즉시 업데이트
-      const updatedData = { ...currentNode.data };
+  // 중첩된 객체 경로 처리 유틸리티 함수
+  const updateNestedProperty = useCallback(
+    <T>(data: BlockNodeData, propertyPath: string, value: T) => {
+      const updatedData = { ...data };
       const pathParts = propertyPath.split('.');
 
-      // 중첩된 객체 경로 처리
-      let current: any = updatedData;
+      let current = updatedData;
       for (let i = 0; i < pathParts.length - 1; i++) {
         const part = pathParts[i];
         if (part && !current[part]) {
@@ -59,18 +56,62 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
         current[lastPart] = value;
       }
 
+      return updatedData;
+    },
+    []
+  );
+
+  const updateProperty = useCallback(
+    async <T>(
+      blockId: string,
+      propertyPath: string,
+      value: T,
+      blockData: BlockNodeData
+    ): Promise<void> => {
+      // 1. 원본 데이터 백업 (롤백용)
+      const originalData = blockData;
+
+      // 2. Optimistic Update: React Flow Store 즉시 업데이트
+      const updatedData = updateNestedProperty<T>(
+        blockData,
+        propertyPath,
+        value
+      );
       updateNode(blockId, { data: updatedData });
 
       try {
-        // 4. Server Action 호출 (비동기)
-        const result = await updateBlockPropertyAction({
-          blockId: currentNode.data.blockId as string,
+        // 3. workspaceId와 orgId 확인
+        if (!blockData.workspaceId || !blockData.orgId) {
+          console.error('Missing workspaceId or orgId in blockData');
+          updateNode(blockId, { data: originalData });
+          return;
+        }
+
+        // 4. 프론트엔드 검증 (UX 최적화)
+        const rawRequest: UpdateBlockPropertyRequestInput = {
+          blockId: blockData.blockId,
           propertyPath,
           value,
-          pageId: currentNode.data.pageId as string | undefined,
-          orgId: currentNode.data.orgId as string | undefined,
-          workspaceId: currentNode.data.workspaceId as string | undefined,
-        });
+          workspaceId: blockData.workspaceId,
+          orgId: blockData.orgId,
+        };
+
+        const parseResult =
+          UpdateBlockPropertyRequestSchema.safeParse(rawRequest);
+        if (!parseResult.success) {
+          // 검증 실패 시 롤백
+          updateNode(blockId, { data: originalData });
+          const firstError = parseResult.error.issues[0];
+          console.error('[Frontend Validation] Invalid property update data:', {
+            message: firstError?.message || 'Invalid property update data',
+            issues: parseResult.error.issues,
+          });
+          // TODO: toast.error로 사용자에게 피드백
+          return;
+        }
+
+        // 5. Server Action 호출 (검증된 데이터)
+        const result = await updateBlockPropertyAction(parseResult.data);
 
         if (isFailure(result)) {
           // 실패 시 롤백
@@ -83,10 +124,59 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
         console.error('Error updating block property:', error);
       }
     },
-    [getNode, updateNode]
+    [updateNode, updateNestedProperty]
+  );
+
+  const updatePropertyImmediate = useCallback(
+    <T>(
+      blockId: string,
+      propertyPath: string,
+      value: T,
+      blockData: BlockNodeData
+    ): void => {
+      // 1. workspaceId와 orgId 확인
+      if (!blockData.workspaceId || !blockData.orgId) {
+        console.error('Missing workspaceId or orgId in blockData');
+        return;
+      }
+
+      // 2. 프론트엔드 검증 (데이터 무결성)
+      const rawRequest: UpdateBlockPropertyRequestInput = {
+        blockId: blockData.blockId,
+        propertyPath,
+        value,
+        workspaceId: blockData.workspaceId,
+        orgId: blockData.orgId,
+      };
+
+      const parseResult =
+        UpdateBlockPropertyRequestSchema.safeParse(rawRequest);
+      if (!parseResult.success) {
+        const firstError = parseResult.error.issues[0];
+        console.error(
+          '[Frontend Validation] Invalid immediate property update data:',
+          {
+            message: firstError?.message || 'Invalid property update data',
+            issues: parseResult.error.issues,
+          }
+        );
+        // TODO: toast.error로 사용자에게 피드백
+        return;
+      }
+
+      // 3. Optimistic Update: React Flow Store 즉시 업데이트
+      const updatedData = updateNestedProperty<T>(
+        blockData,
+        propertyPath,
+        value
+      );
+      updateNode(blockId, { data: updatedData });
+    },
+    [updateNode, updateNestedProperty]
   );
 
   return {
     updateProperty,
+    updatePropertyImmediate,
   };
 }

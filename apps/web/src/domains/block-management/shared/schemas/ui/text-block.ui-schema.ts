@@ -138,7 +138,8 @@ export const textBlockUISchema: BlockUISchema = {
       defaultDisplay: (value: any) => {
         if (!value) return '알 수 없음';
         if (typeof value === 'string') return value;
-        return value.fullName || value.email || '알 수 없음';
+        // UserProfile 타입: userId, email, name, profileImageUrl
+        return value.name || value.email || '알 수 없음';
       },
     },
   },

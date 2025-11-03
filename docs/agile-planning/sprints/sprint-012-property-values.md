@@ -9,17 +9,17 @@
 
 ## 📋 포함 Story
 
-### Story BM-004: 속성 값 관리 (13pts) 🔄 70% 완료
+### Story BM-004: 속성 값 관리 (13pts) 🔄 85% 완료
 **목표**: 다양한 속성 타입별 값 입력 및 실시간 저장 기능 완성  
 **담당자**: 주니어 개발자  
 **예상 완료일**: 2025-11-22  
-**현재 상태**: Frontend Hooks, PropertyInput 컴포넌트 완전 구현, 백엔드 검증 로직 구현 필요
+**현재 상태**: Frontend Hooks, PropertyInput 컴포넌트, Server Actions 완전 구현, Workspace Management 연동만 미구현
 
-### Story BM-005: 미디어 업로드 및 관리 (21pts) 🔄 30% 완료
+### Story BM-005: 미디어 업로드 및 관리 (21pts) 🔄 40% 완료
 **목표**: 미디어 파일 업로드, 진행률 표시, URL 저장, 소프트 삭제 기능 완성  
 **담당자**: 시니어 개발자  
 **예상 완료일**: 2025-11-28  
-**현재 상태**: MediaURL Value Object, 기본 UI 구조 구현, Supabase Storage 연동 필요
+**현재 상태**: MediaURL Value Object 완전 구현, Server Actions 및 Supabase Storage 연동 미구현
 
 ## 📅 Sprint 일정
 

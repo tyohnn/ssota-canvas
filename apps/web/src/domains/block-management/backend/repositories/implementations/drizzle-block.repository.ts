@@ -1,187 +1,377 @@
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, desc } from 'drizzle-orm';
 import { adminDb } from '@/db';
-import { blocks } from '@/db/schema-dev';
-import type { Block as DBBlock } from '@/db/schema-dev';
-import { BlockRepository } from '../interfaces/block.repository.interface';
+import {
+  blocks,
+  blockTypeEnum,
+  profiles,
+  type Block as DatabaseBlock,
+  type Profile as DatabaseProfile,
+} from '@/db/schema-dev';
 import { BlockId } from '../../../shared/value-objects/block-id.vo';
 import { BlockType } from '../../../shared/value-objects/block-type.vo';
-import { Metadata } from '../../../shared/value-objects/metadata.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Block } from '../../../shared/entities/block.entity';
+import { BlockPropertiesFactory } from '../../../shared/value-objects/block-properties';
+import { CustomPropertyDefinitionVO } from '../../../shared/value-objects/custom-property-definition.vo';
+import { UserProfile } from '@/domains/user-management/shared/types';
+import { BlockRepository } from '../interfaces/block.repository.interface';
+import { BlockManagementError } from '../../../shared/errors/block-management.error';
+import {
+  CustomPropertyDefinition,
+  PropertyType,
+} from '@/domains/block-management/shared/value-objects/block-properties/common-types';
+
+// 데이터베이스 스키마에서 추출한 블록 타입 (SSOT)
+type DatabaseBlockType = (typeof blockTypeEnum.enumValues)[number];
 
 /**
- * Drizzle ORM 기반 Block Repository 구현체
+ * DrizzleBlockRepository
  *
- * PostgreSQL + Drizzle ORM을 사용한 Block 영속성 관리
- * RLS(Row Level Security) 정책이 자동으로 적용됨
+ * Drizzle ORM을 사용한 BlockRepository 구현
  */
 export class DrizzleBlockRepository implements BlockRepository {
   /**
-   * Block 저장 (생성 또는 업데이트)
-   *
-   * ⚠️ 주의: Service Layer에서 권한 체크 완료 후에만 호출!
-   * 사용 시나리오:
-   * - Block 생성: 워크스페이스 멤버십 확인 후
-   * - Block 수정: 워크스페이스 멤버십 확인 후
+   * 블록 생성
    */
-  async save(block: Block): Promise<void> {
-    await adminDb.insert(blocks).values({
-      id: block.id.value,
-      workspace_id: block.workspaceId,
-      block_type: block.blockType.value,
-      metadata: block.metadata.value || {},
-      created_at: block.createdAt,
-      updated_at: block.updatedAt,
-      deleted_at: block.deletedAt || null,
-    });
-  }
-
-  /**
-   * Block 생성 (UUID 충돌 시 재시도 포함)
-   * 새 Block을 생성할 때만 사용 - 기존 Block 수정 시에는 save() 사용
-   */
-  async createBlock(
-    blockType: BlockType,
-    workspaceId: string,
-    metadata: Metadata,
-    createdAt: Date = new Date(),
-    updatedAt: Date = new Date()
-  ): Promise<Block> {
+  async create(block: Block): Promise<void> {
+    let currentId = block.id.value;
     let attempts = 0;
     const maxAttempts = 3;
 
     while (attempts < maxAttempts) {
       try {
-        const blockId = new BlockId(crypto.randomUUID());
-        const block = Block.create(blockId, workspaceId, blockType, metadata);
+        const blockData = {
+          id: currentId,
+          workspace_id: block.workspaceId.value,
+          created_by: block.userId.value,
+          block_type: block.blockType.value,
+          title: block.title,
+          properties: block.properties.toJSON(),
+          custom_properties: block.customProperties.map(vo => vo.toJSON()),
+          created_at: block.createdAt,
+          updated_at: block.updatedAt,
+          deleted_at: block.deletedAt,
+        };
 
-        // Try to save with the generated ID
-        await this.save(block);
+        await adminDb.insert(blocks).values(blockData);
 
-        return block;
-      } catch (error: any) {
-        // If it's a unique constraint violation (UUID collision), retry
+        // 성공 시 종료
+        return;
+      } catch (error) {
+        // UUID 충돌인지 확인 (PostgreSQL unique constraint violation)
         if (
-          (error?.code === '23505' ||
-            error?.message?.includes('duplicate key')) &&
-          attempts < maxAttempts - 1
+          (error as any).code === '23505' &&
+          (error as any).constraint === 'blocks_pkey'
         ) {
           attempts++;
-          console.warn(
-            `[DrizzleBlockRepository] UUID collision detected, retry attempt ${attempts}/${maxAttempts}`
+          if (attempts < maxAttempts) {
+            // 새로운 ID 생성
+            const newId = BlockId.generate().value;
+            console.warn(
+              `[DrizzleBlockRepository] ID collision detected (attempt ${attempts}), retrying with new ID: ${newId}`
+            );
+            currentId = newId;
+          } else {
+            console.error(
+              '❌ [DrizzleBlockRepository] Failed to generate unique ID after multiple attempts'
+            );
+            throw new BlockManagementError(
+              'BLOCK_SAVE_FAILED',
+              'Failed to generate unique ID after multiple attempts'
+            );
+          }
+        } else {
+          throw new BlockManagementError(
+            'BLOCK_SAVE_FAILED',
+            `Failed to save block: ${error instanceof Error ? error.message : 'Unknown error'}`
           );
-          continue;
         }
-        throw error;
       }
     }
-
-    throw new Error(
-      `Failed to create block after ${maxAttempts} attempts due to UUID collisions`
-    );
   }
 
   /**
-   * ID로 Block 조회
-   *
-   * ⚠️ 주의: 소프트 삭제된 블록은 조회되지 않음
-   *
-   * @param id - Block ID
-   * @returns Block 또는 null
+   * 블록 업데이트
+   */
+  async update(block: Block): Promise<void> {
+    try {
+      const blockData = {
+        workspace_id: block.workspaceId.value,
+        block_type: block.blockType.value as DatabaseBlockType,
+        title: block.title,
+        properties: block.properties.toJSON(),
+        custom_properties: block.customProperties.map(vo => vo.toJSON()),
+        created_at: block.createdAt,
+        updated_at: block.updatedAt,
+        deleted_at: block.deletedAt,
+      };
+
+      await adminDb
+        .update(blocks)
+        .set(blockData)
+        .where(eq(blocks.id, block.id.value));
+    } catch (error) {
+      throw new BlockManagementError(
+        'BLOCK_UPDATE_FAILED',
+        `Failed to update block: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * 블록 ID로 조회
    */
   async findById(id: BlockId): Promise<Block | null> {
-    const result = await adminDb
-      .select()
-      .from(blocks)
-      .where(and(eq(blocks.id, id.value), isNull(blocks.deleted_at)))
-      .limit(1);
+    try {
+      const result = await adminDb
+        .select({
+          block: blocks,
+          profile: profiles,
+        })
+        .from(blocks)
+        .leftJoin(profiles, eq(blocks.created_by, profiles.id))
+        .where(eq(blocks.id, id.value))
+        .limit(1);
 
-    if (result.length === 0) {
-      return null;
-    }
+      if (result.length === 0) {
+        return null;
+      }
 
-    const row = result[0]!;
-    return this.toDomain(row);
-  }
+      const row = result[0];
+      if (!row) {
+        return null;
+      }
 
-  /**
-   * 워크스페이스의 모든 Block 조회
-   *
-   * ⚠️ 주의: Service Layer에서 워크스페이스 멤버십 확인 후에만 호출!
-   * ⚠️ 주의: 소프트 삭제된 블록은 조회되지 않음
-   *
-   * @param workspaceId - 워크스페이스 ID
-   * @returns Block 배열
-   */
-  async findByWorkspaceId(workspaceId: string): Promise<Block[]> {
-    const result = await adminDb
-      .select()
-      .from(blocks)
-      .where(
-        and(eq(blocks.workspace_id, workspaceId), isNull(blocks.deleted_at))
+      return this.mapToBlock(row.block, row.profile);
+    } catch (error) {
+      throw new BlockManagementError(
+        'BLOCK_FETCH_FAILED',
+        `Failed to fetch block: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
-
-    return result.map(row => this.toDomain(row));
+    }
   }
 
   /**
-   * Block 소프트 삭제
-   *
-   * ⚠️ 주의: 물리적 삭제가 아닌 deleted_at 타임스탬프 설정
-   *
-   * @param id - Block ID
+   * 워크스페이스 ID로 블록 목록 조회
+   */
+  async findByWorkspaceId(
+    workspaceId: string,
+    includeDeleted: boolean = false
+  ): Promise<Block[]> {
+    try {
+      const whereConditions = [eq(blocks.workspace_id, workspaceId)];
+
+      if (!includeDeleted) {
+        whereConditions.push(isNull(blocks.deleted_at));
+      }
+
+      const results = await adminDb
+        .select({
+          block: blocks,
+          profile: profiles,
+        })
+        .from(blocks)
+        .leftJoin(profiles, eq(blocks.created_by, profiles.id))
+        .where(and(...whereConditions))
+        .orderBy(desc(blocks.created_at));
+
+      return results.map(({ block: blockData, profile }) =>
+        this.mapToBlock(blockData, profile)
+      );
+    } catch (error) {
+      throw new BlockManagementError(
+        'BLOCK_FETCH_FAILED',
+        `Failed to fetch blocks by workspace: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * 블록 타입으로 블록 목록 조회
+   */
+  async findByBlockType(
+    workspaceId: string,
+    blockType: DatabaseBlockType,
+    includeDeleted: boolean = false
+  ): Promise<Block[]> {
+    try {
+      const whereConditions = [
+        eq(blocks.workspace_id, workspaceId),
+        eq(blocks.block_type, blockType), // 타입 단언 (호출자가 검증 책임)
+      ];
+
+      if (!includeDeleted) {
+        whereConditions.push(isNull(blocks.deleted_at));
+      }
+
+      const results = await adminDb
+        .select()
+        .from(blocks)
+        .where(and(...whereConditions))
+        .orderBy(desc(blocks.created_at));
+
+      return results.map(blockData => this.mapToBlock(blockData, null));
+    } catch (error) {
+      throw new BlockManagementError(
+        'BLOCK_FETCH_FAILED',
+        `Failed to fetch blocks by type: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * 블록 삭제 (소프트 삭제)
    */
   async delete(id: BlockId): Promise<void> {
-    await adminDb
-      .update(blocks)
-      .set({
-        deleted_at: new Date(),
-        updated_at: new Date(),
-      })
-      .where(eq(blocks.id, id.value));
+    try {
+      await adminDb
+        .update(blocks)
+        .set({
+          deleted_at: new Date(), // 데이터베이스 컬럼명에 맞게 수정
+          updated_at: new Date(), // 데이터베이스 컬럼명에 맞게 수정
+        })
+        .where(eq(blocks.id, id.value));
+    } catch (error) {
+      throw new BlockManagementError(
+        'BLOCK_DELETE_FAILED',
+        `Failed to delete block: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   }
 
   /**
-   * 워크스페이스별 활성 블록 목록 조회 (페이징 지원)
-   *
-   * @param workspaceId - 워크스페이스 ID
-   * @param page - 페이지 번호 (기본값: 1)
-   * @param limit - 페이지당 항목 수 (기본값: 50)
-   * @returns Block 배열
+   * 블록 영구 삭제
    */
-  async listBlocksByWorkspace(
-    workspaceId: string,
-    page: number = 1,
-    limit: number = 50
-  ): Promise<Block[]> {
-    const offset = (page - 1) * limit;
-
-    const result = await adminDb
-      .select()
-      .from(blocks)
-      .where(
-        and(eq(blocks.workspace_id, workspaceId), isNull(blocks.deleted_at))
-      )
-      .limit(limit)
-      .offset(offset);
-
-    return result.map(row => this.toDomain(row));
+  async hardDelete(id: BlockId): Promise<void> {
+    try {
+      await adminDb.delete(blocks).where(eq(blocks.id, id.value));
+    } catch (error) {
+      throw new BlockManagementError(
+        'BLOCK_HARD_DELETE_FAILED',
+        `Failed to hard delete block: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   }
 
   /**
-   * DB 모델을 도메인 모델로 변환
-   *
-   * @param row - DB Row
-   * @returns 도메인 모델
+   * 삭제된 블록 복원
    */
-  private toDomain(row: typeof blocks.$inferSelect): Block {
+  async restore(blockId: BlockId): Promise<void> {
+    if (!blockId) {
+      throw new BlockManagementError(
+        'INVALID_BLOCK_ID',
+        'Block ID cannot be null or undefined'
+      );
+    }
+
+    try {
+      // 기존 블록 조회
+      const existingBlock = await this.findById(blockId);
+      if (!existingBlock) {
+        throw new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found');
+      }
+
+      await adminDb
+        .update(blocks)
+        .set({
+          deleted_at: null,
+          updated_at: new Date(),
+        })
+        .where(eq(blocks.id, blockId.value));
+    } catch (error) {
+      if (error instanceof BlockManagementError) {
+        throw error;
+      }
+      throw new BlockManagementError(
+        'BLOCK_RESTORE_FAILED',
+        `Failed to restore block: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * 데이터베이스 결과를 Block Entity로 변환
+   */
+  private mapToBlock(
+    blockData: DatabaseBlock,
+    profile: DatabaseProfile | null = null
+  ): Block {
+    const blockId = new BlockId(blockData.id);
+    const workspaceId = new WorkspaceId(blockData.workspace_id);
+    const userId = new UserId(
+      blockData.created_by || '00000000-0000-0000-0000-000000000000'
+    );
+    const blockType = new BlockType(blockData.block_type); // 데이터베이스 컬럼명에 맞게 수정
+    const customPropertiesVO = Array.isArray(blockData.custom_properties)
+      ? blockData.custom_properties.map((data: unknown) => {
+          // 타입가드: CustomPropertyDefinition의 주요 필드 존재 여부 확인
+          const isCustomPropertyDefinition = (
+            obj: any
+          ): obj is CustomPropertyDefinition => {
+            return (
+              obj &&
+              typeof obj === 'object' &&
+              'propertyType' in obj &&
+              'fieldName' in obj &&
+              'name' in obj
+            );
+          };
+          if (isCustomPropertyDefinition(data)) {
+            return CustomPropertyDefinitionVO.fromJSON(data);
+          } else {
+            // 타입 미스매치에 대한 핸들링 (예: 로그, 에러 throw, fallback 생성)
+            console.warn(
+              '[DrizzleBlockRepository] Invalid custom property definition structure:',
+              data
+            );
+            // 필요에 따라 아래 라인 수정: 안전하게 무시하거나, 기본값, 혹은 throw Error
+            return CustomPropertyDefinitionVO.fromJSON({
+              id: 'unknown',
+              name: 'Unknown',
+              type: PropertyType.TEXT,
+              options: [],
+              order: 0,
+              visible: true,
+            });
+          }
+        })
+      : []; // 데이터베이스 컬럼명에 맞게 수정
+
+    // createdBy를 프로필 정보 객체로 변환
+    const createdByProfile = profile
+      ? {
+          userId: profile.id,
+          email: profile.email,
+          name: profile.name,
+          profileImageUrl: profile.avatar_url,
+        }
+      : {
+          userId:
+            blockData.created_by || '00000000-0000-0000-0000-000000000000',
+          email: null,
+          name: null,
+          profileImageUrl: null,
+        };
+
+    // JSON 데이터를 BlockPropertiesVO로 변환
+    const propertiesVO = BlockPropertiesFactory.createFromJSON(
+      blockType,
+      blockData.properties || {}
+    );
+
     return Block.reconstitute(
-      new BlockId(row.id),
-      row.workspace_id,
-      new BlockType(row.block_type),
-      new Metadata(row.metadata as Record<string, any> | null),
-      row.created_at,
-      row.updated_at,
-      row.deleted_at
+      blockId,
+      workspaceId,
+      userId,
+      blockType,
+      blockData.title,
+      propertiesVO,
+      customPropertiesVO,
+      blockData.created_at,
+      blockData.updated_at,
+      blockData.deleted_at,
+      createdByProfile
     );
   }
 }

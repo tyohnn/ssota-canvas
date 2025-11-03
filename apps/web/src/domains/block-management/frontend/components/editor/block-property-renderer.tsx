@@ -22,7 +22,7 @@ import {
   User,
 } from 'lucide-react';
 import type { PropertyUIDefinition } from '../../../shared/schemas/ui/block-ui-schema.interface';
-import { useBlockFieldUpdate } from '../../hooks/use-block-field-update';
+import { useBlockPropertyUpdate } from '../../hooks/use-block-property-update';
 
 // Import all input components
 import {
@@ -53,7 +53,7 @@ export function BlockPropertyRenderer({
   value,
   blockData,
 }: BlockPropertyRendererProps) {
-  const { updateField, updateFieldImmediate } = useBlockFieldUpdate();
+  const { updateProperty, updatePropertyImmediate } = useBlockPropertyUpdate();
 
   const handleValueChange = useCallback(
     async (newValue: any) => {
@@ -66,15 +66,25 @@ export function BlockPropertyRenderer({
         return;
       }
 
+      if (!blockData) {
+        console.error('blockData is required for property update');
+        return;
+      }
+
       try {
         // React Flow 노드 ID 사용 (optimistic update용)
         // 서버 액션에서는 실제 DB blockId 사용
-        await updateField(blockId, `properties.${propertyKey}`, newValue);
+        await updateProperty(
+          blockId,
+          `properties.${propertyKey}`,
+          newValue,
+          blockData
+        );
       } catch (error) {
         console.error('Failed to update property:', error);
       }
     },
-    [blockId, propertyKey, propertyDef.readonly, updateField, blockData]
+    [blockId, propertyKey, propertyDef.readonly, updateProperty, blockData]
   );
 
   const handleImmediateUpdate = useCallback(
@@ -87,10 +97,26 @@ export function BlockPropertyRenderer({
         return;
       }
 
-      // Immediate React Flow node update only
-      updateFieldImmediate(blockId, `properties.${propertyKey}`, newValue);
+      if (!blockData) {
+        console.error('blockData is required for immediate property update');
+        return;
+      }
+
+      // Immediate React Flow node update only (no server action)
+      updatePropertyImmediate(
+        blockId,
+        `properties.${propertyKey}`,
+        newValue,
+        blockData
+      );
     },
-    [blockId, propertyKey, propertyDef.readonly, updateFieldImmediate]
+    [
+      blockId,
+      propertyKey,
+      propertyDef.readonly,
+      updatePropertyImmediate,
+      blockData,
+    ]
   );
 
   const getFieldIcon = () => {
@@ -275,12 +301,12 @@ export function BlockPropertyRenderer({
       case 'readonly-profile':
         // value가 CreatedByProfile 객체인지 확인
         const isProfileObject =
-          value && typeof value === 'object' && 'id' in value;
-        const avatarUrl = isProfileObject ? value.avatarUrl : null;
+          value && typeof value === 'object' && 'userId' in value;
+        const avatarUrl = isProfileObject ? value.profileImageUrl : null;
         const displayName = propertyDef.defaultDisplay
           ? propertyDef.defaultDisplay(value)
           : isProfileObject
-            ? value.fullName || value.email || '알 수 없음'
+            ? value.name || '알 수 없음'
             : value || '-';
 
         return (

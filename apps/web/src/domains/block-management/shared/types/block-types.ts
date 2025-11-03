@@ -66,7 +66,7 @@ export const BLOCK_TYPE_SIZES: Record<
  * @param blockType - 블록 타입
  * @returns 블록 크기 정보
  */
-export function getBlockSize(blockType: string): {
+export function getBlockSize(blockType: BlockType): {
   width: number;
   height: number;
 } {

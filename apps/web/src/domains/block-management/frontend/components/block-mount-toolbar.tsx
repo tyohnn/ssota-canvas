@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { NodeToolbar, Position, useStore, useReactFlow } from '@xyflow/react';
+import { NodeToolbar, Position, useReactFlow } from '@xyflow/react';
 import { Button } from '@workspace/ui/components/ui/button';
 import {
   Tooltip,
@@ -21,16 +21,21 @@ import { MoreHorizontal, Edit, Copy, Trash2, ChevronRight } from 'lucide-react';
 
 // Canvas Management Hooks
 import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
-import { useCanvasSelection } from '@/domains/canvas-management/frontend/hooks/use-canvas-selection';
 import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
 import { usePreventPinchZoom } from '@/domains/canvas-management/frontend/hooks/use-prevent-pinch-zoom';
-import { deleteBlockMountAction } from '@/domains/canvas-management/actions/block.actions';
 import { BlockToolbarMapper } from '@/domains/block-management/frontend/components/toolbar-items/block-toolbar-mapper';
+import { BlockNodeData } from '../../shared/types/block-data.types';
 
 export interface BlockMountToolbarProps {
+  blockId: string;
+  blockMountId: string;
+  blockType: string;
+  blockData: BlockNodeData;
   pageId: string;
-  orgId?: string;
+  orgId: string;
   workspaceId: string;
+  width?: number;
+  height?: number;
 }
 
 /**
@@ -48,69 +53,46 @@ export interface BlockMountToolbarProps {
  * 렌더링 조건: isSingleSelectionMode() === true && isSelected(blockId)
  */
 export function BlockMountToolbar({
+  blockId,
+  blockMountId,
+  blockType,
+  blockData,
   pageId,
   orgId,
   workspaceId,
+  width,
+  height,
 }: BlockMountToolbarProps) {
   const canvasMode = useCanvasMode();
-  const canvasSelection = useCanvasSelection();
-  const blockLifecycle = useCanvasBlockLifecycle({ pageId, orgId });
-
-  // React Flow Store 직접 접근
-  const nodes = useStore(state => state.nodes);
-  const setNodes = useStore(state => state.setNodes);
+  const blockLifecycle = useCanvasBlockLifecycle({
+    pageId,
+    orgId,
+    workspaceId,
+  });
   const { deleteElements } = useReactFlow();
 
   // Canvas Mode 함수들 미리 추출
   const { exitToDefaultMode } = canvasMode;
 
-  // 선택된 블럭 정보 (단일 선택 시에만 이 컴포넌트가 렌더링됨)
-  const selectedBlocks = canvasSelection.getSelectedBlocks();
-  const selectedBlockId = selectedBlocks[0];
-
-  const selectedNode = canvasSelection.selectedNodes.find(
-    node => node.id === selectedBlockId
-  );
-
-  // 블럭 타입 확인
-  const blockType: string =
-    (selectedNode?.data?.blockType as string) || 'basic';
-
   // Details 버튼 핸들러 (에디터 패널 열기)
   const handleDetails = () => {
-    if (!selectedBlockId) {
-      return;
-    }
-    canvasMode.enterBlockEditingMode(selectedBlockId);
+    canvasMode.enterBlockEditingMode(blockId);
   };
 
   // 더보기 메뉴 핸들러들
   const handleEdit = () => {
-    if (!selectedBlockId) {
-      return;
-    }
-    canvasMode.enterBlockEditingMode(selectedBlockId);
+    canvasMode.enterBlockEditingMode(blockId);
   };
 
   const handleDuplicate = async () => {
-    if (!selectedBlockId) return;
-
     try {
-      // 선택된 노드에서 blockMountId 찾기
-      const selectedNode = nodes.find(node => node.id === selectedBlockId);
-      if (!selectedNode?.data?.blockMountId) {
-        console.error('Block mount ID not found for selected block');
-        return;
-      }
-
       // 블럭 복제 실행 (블럭 너비 + 50px 오프셋)
-      const blockWidth = selectedNode.width || 200; // 기본 너비 200px
+      const blockWidth = width || 200; // 기본 너비 200px
       const offsetX = blockWidth + 50;
       const offsetY = 20; // Y축은 기본 20px
 
-      await blockLifecycle.duplicateBlock(
-        selectedNode.data.blockMountId as string,
-        workspaceId,
+      await blockLifecycle.duplicateBlockAndMount(
+        blockMountId,
         offsetX,
         offsetY
       );
@@ -124,10 +106,8 @@ export function BlockMountToolbar({
   };
 
   const handleDelete = async () => {
-    if (!selectedBlockId) return;
-
     // 1. React Flow에서 즉시 제거 (Optimistic UI)
-    deleteElements({ nodes: [{ id: selectedBlockId }] });
+    deleteElements({ nodes: [{ id: blockId }] });
 
     // 2. 기본 모드로 복귀
     exitToDefaultMode();
@@ -149,20 +129,18 @@ export function BlockMountToolbar({
       {/* z-index: React Flow NodeToolbar (자동 관리) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
       <div
         ref={toolbarRef}
-        className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-lg shadow-lg px-2 py-1 flex items-center gap-1"
+        className="bg-background/90 backdrop-blur-md border border-border rounded-lg shadow-lg px-2 py-1 flex items-center gap-1"
         style={{ touchAction: 'none' }}
         onWheel={e => e.stopPropagation()}
       >
         <TooltipProvider>
           {/* 블럭 타입별 기본 속성 툴바 아이템 (좌측부터) */}
-          {selectedBlockId && (
-            <BlockToolbarMapper
-              blockId={selectedBlockId}
-              blockType={blockType}
-              blockData={selectedNode?.data}
-              disabled={false}
-            />
-          )}
+          <BlockToolbarMapper
+            blockId={blockId}
+            blockType={blockType}
+            blockData={blockData}
+            disabled={false}
+          />
 
           <Separator orientation="vertical" className="mx-1 h-4" />
 

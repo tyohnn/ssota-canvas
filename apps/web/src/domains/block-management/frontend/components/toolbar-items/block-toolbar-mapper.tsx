@@ -11,13 +11,15 @@ import {
 import {
   FontSize,
   TextAlign,
-} from '../../../shared/types/block-properties.types';
+  TextBlockProperties,
+} from '../../../shared/value-objects/block-properties';
 import { ColorToken } from '../../../shared/types/style-tokens.types';
+import { BlockNodeData } from '../../../shared/types/block-data.types';
 
 interface BlockToolbarMapperProps {
   blockId: string;
   blockType: string;
-  blockData?: any;
+  blockData: BlockNodeData;
   disabled?: boolean;
 }
 
@@ -34,26 +36,26 @@ export function BlockToolbarMapper({
 }: BlockToolbarMapperProps) {
   const { updateProperty } = useBlockPropertyUpdate();
 
-  // 속성 업데이트 핸들러
-  const handlePropertyUpdate = useCallback(
-    async (propertyPath: string, value: any) => {
-      await updateProperty(blockId, propertyPath, value);
-    },
-    [blockId, updateProperty]
-  );
+  // 속성 업데이트 핸들러 - 제네릭 타입을 통해 타입 안전성 유지
+  const handlePropertyUpdate = async <T,>(propertyPath: string, value: T) => {
+    if (!blockData) {
+      console.warn('Block data not available for property update');
+      return;
+    }
+    await updateProperty<T>(blockId, propertyPath, value, blockData);
+  };
 
   // 블럭 타입별 툴바 아이템 매핑
   const renderToolbarItem = () => {
     switch (blockType) {
       case 'text':
+        const textBlockProperties = blockData.properties as TextBlockProperties;
         return (
           <>
             <ColorToolbarItem
               blockId={blockId}
-              blockMountId={blockData?.blockMountId}
-              currentColor={
-                (blockData?.properties?.color as ColorToken) || ColorToken.GRAY
-              }
+              blockMountId={blockData.blockMountId}
+              currentColor={textBlockProperties.color || ColorToken.GRAY}
               disabled={disabled}
               onColorChange={async color => {
                 await handlePropertyUpdate('properties.color', color);
@@ -61,10 +63,8 @@ export function BlockToolbarMapper({
             />
             <FontSizeToolbarItem
               blockId={blockId}
-              blockMountId={blockData?.blockMountId}
-              currentFontSize={
-                blockData?.properties?.fontSize || FontSize.MEDIUM
-              }
+              blockMountId={blockData.blockMountId}
+              currentFontSize={textBlockProperties.fontSize || FontSize.MEDIUM}
               disabled={disabled}
               onFontSizeChange={async fontSize => {
                 await handlePropertyUpdate('properties.fontSize', fontSize);
@@ -72,8 +72,8 @@ export function BlockToolbarMapper({
             />
             <TextAlignToolbarItem
               blockId={blockId}
-              blockMountId={blockData?.blockMountId}
-              currentAlign={blockData?.properties?.textAlign || TextAlign.LEFT}
+              blockMountId={blockData.blockMountId}
+              currentAlign={textBlockProperties.textAlign || TextAlign.LEFT}
               disabled={disabled}
               onAlignChange={async align => {
                 await handlePropertyUpdate('properties.textAlign', align);
@@ -81,8 +81,8 @@ export function BlockToolbarMapper({
             />
             <RichStyleToolbarItem
               blockId={blockId}
-              blockMountId={blockData?.blockMountId}
-              currentRichStyle={blockData?.properties?.richStyle || false}
+              blockMountId={blockData.blockMountId}
+              currentRichStyle={textBlockProperties.richStyle || false}
               disabled={disabled}
               onRichStyleChange={async richStyle => {
                 await handlePropertyUpdate('properties.richStyle', richStyle);

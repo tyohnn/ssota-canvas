@@ -1,7 +1,7 @@
 // apps/web/src/domains/canvas-management/backend/services/canvas-query.service.ts
 
 import { Result } from '@/utils/result';
-import type { CanvasQueryService } from './interfaces/canvas-query.service.interface';
+import type { ICanvasQueryService } from './interfaces/canvas-query.service.interface';
 import type { BlockMountRepository } from '../repositories/interfaces/block-mount.repository.interface';
 import type { EdgeRepository } from '../repositories/interfaces/edge.repository.interface';
 import type { ViewportRepository } from '../repositories/interfaces/viewport.repository.interface';
@@ -21,11 +21,11 @@ class CanvasManagementError extends Error {
 }
 
 /**
- * Default Canvas Query Service
+ * Canvas Query Service
  *
- * 캔버스 데이터 조회를 담당 (Read Model 패턴)
+ * 캔버스 데이터 조회를 담당하는 서비스 구현 (Read Model 패턴, Drizzle ORM 사용)
  */
-export class DefaultCanvasQueryService implements CanvasQueryService {
+export class CanvasQueryService implements ICanvasQueryService {
   constructor(
     private blockMountRepository: BlockMountRepository,
     private edgeRepository: EdgeRepository,
@@ -58,52 +58,101 @@ export class DefaultCanvasQueryService implements CanvasQueryService {
       const viewportAggregate =
         await this.viewportRepository.findByPageId(pageId);
 
-      // 4. blockId → blockMountId 매핑 생성 (React Flow는 blockMountId를 노드 ID로 사용)
-      const blockIdToMountIdMap = new Map<string, string>();
-      blockMountsWithBlocks.forEach(({ blockMount }) => {
-        blockIdToMountIdMap.set(
-          blockMount.blockMount.blockId.value,
-          blockMount.blockMount.id.value
-        );
+      console.log('[CanvasQueryService] Loading canvas view:', {
+        pageId: pageId.value,
+        blockMountsCount: blockMountsWithBlocks.length,
+        edgesCount: edges.length,
+        hasViewport: !!viewportAggregate,
       });
 
-      // 5. 모든 데이터 조합하여 CanvasViewData 생성
+      // 4. 모든 데이터 조합하여 CanvasViewData 생성
+      // ⚠️ Schema Change: edges now use block_mount_id directly (no mapping needed)
       const canvasViewData: CanvasViewData = {
         pageId: pageId.value,
-        blocks: blockMountsWithBlocks.map(({ blockMount, block }) => ({
-          blockMountId: blockMount.blockMount.id.value,
-          blockId: blockMount.blockMount.blockId.value,
-          blockType: block.blockType.value,
-          position: {
-            x: blockMount.blockMount.position.x,
-            y: blockMount.blockMount.position.y,
-          },
-          size: {
-            width: blockMount.blockMount.size.width,
-            height: blockMount.blockMount.size.height,
-          },
-          zOrder: blockMount.blockMount.zOrder.value,
-          content: block.metadata.value,
-        })),
+        blocks: blockMountsWithBlocks.map(
+          ({ blockMountAggregate, blockAggregate }) => {
+            if (!blockMountAggregate || !blockAggregate) {
+              console.error(
+                '[CanvasQueryService] Invalid block mount or block aggregate:',
+                { blockMountAggregate, blockAggregate }
+              );
+              throw new Error('Invalid block mount or block aggregate');
+            }
+
+            const blockMount = blockMountAggregate.getBlockMount();
+            const block = blockAggregate.getBlock();
+
+            if (!blockMount || !block) {
+              console.error(
+                '[CanvasQueryService] Invalid block mount or block:',
+                { blockMount, block }
+              );
+              throw new Error('Invalid block mount or block');
+            }
+
+            return {
+              blockMountId: blockMount.id.value,
+              blockId: blockMount.blockId.value,
+              blockType: block.blockType.value,
+              properties: block.properties.toJSON(),
+              customProperties:
+                block.customProperties.map(cp => cp.toJSON()) || [],
+              position: {
+                x: blockMount.position.x,
+                y: blockMount.position.y,
+              },
+              size: {
+                width: blockMount.size.width,
+                height: blockMount.size.height,
+              },
+              zOrder: blockMount.zOrder.value,
+              createdAt: block.createdAt.toISOString(),
+              updatedAt: block.updatedAt.toISOString(),
+              createdByProfile: block.createdByProfile,
+            };
+          }
+        ),
         edges: edges.map(edgeAgg => {
-          // blockId를 blockMountId로 변환 (React Flow 노드 ID 매핑)
-          const sourceBlockMountId =
-            blockIdToMountIdMap.get(edgeAgg.edge.sourceBlockId.value) ||
-            edgeAgg.edge.sourceBlockId.value;
-          const targetBlockMountId =
-            blockIdToMountIdMap.get(edgeAgg.edge.targetBlockId.value) ||
-            edgeAgg.edge.targetBlockId.value;
+          if (!edgeAgg || !edgeAgg.edge) {
+            console.error(
+              '[CanvasQueryService] Invalid edge aggregate:',
+              edgeAgg
+            );
+            throw new Error('Invalid edge aggregate');
+          }
+
+          const edge = edgeAgg.edge;
+
+          if (
+            !edge.id ||
+            !edge.pageId ||
+            !edge.sourceBlockMountId ||
+            !edge.targetBlockMountId ||
+            !edge.edgeShape
+          ) {
+            console.error('[CanvasQueryService] Invalid edge data:', {
+              hasId: !!edge.id,
+              hasPageId: !!edge.pageId,
+              hasSourceBlockMountId: !!edge.sourceBlockMountId,
+              hasTargetBlockMountId: !!edge.targetBlockMountId,
+              hasEdgeShape: !!edge.edgeShape,
+              edge,
+            });
+            throw new Error('Invalid edge data: missing required fields');
+          }
 
           return {
-            edgeId: edgeAgg.edge.id.value,
-            pageId: edgeAgg.edge.pageId.value,
-            sourceBlockId: sourceBlockMountId,
-            targetBlockId: targetBlockMountId,
-            edgeShape: edgeAgg.edge.edgeShape.value,
-            label: edgeAgg.edge.edgeLabel,
-            style: edgeAgg.edge.style,
-            createdAt: edgeAgg.edge.createdAt.toISOString(),
-            updatedAt: edgeAgg.edge.updatedAt.toISOString(),
+            edgeId: edge.id.value,
+            pageId: edge.pageId.value,
+            sourceBlockMountId: edge.sourceBlockMountId.value, // ✅ 직접 사용 (이미 blockMountId)
+            targetBlockMountId: edge.targetBlockMountId.value, // ✅ 직접 사용 (이미 blockMountId)
+            sourceHandle: edge.sourceHandle, // ✅ React Flow handle ID (optional)
+            targetHandle: edge.targetHandle, // ✅ React Flow handle ID (optional)
+            edgeShape: edge.edgeShape.value,
+            label: edge.edgeLabel || '',
+            style: edge.style,
+            createdAt: edge.createdAt.toISOString(),
+            updatedAt: edge.updatedAt.toISOString(),
           };
         }),
         viewport: viewportAggregate

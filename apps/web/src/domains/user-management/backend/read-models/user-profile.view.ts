@@ -27,7 +27,7 @@ export class DrizzleUserProfileViewRepository {
     // 사용자 프로필 조회
     const userProfile = await db.rls(tx =>
       tx.query.profiles.findFirst({
-        where: eq(profiles.user_id, userId.value),
+        where: eq(profiles.id, userId.value),
       })
     );
 
@@ -51,7 +51,7 @@ export class DrizzleUserProfileViewRepository {
 
     // Serialize to DTO (plain object for Next.js client-server boundary)
     return {
-      userId: userProfile.user_id, // Already a string
+      userId: userProfile.id, // Already a string
       email: userProfile.email,
       name: userProfile.name || 'User',
       profileImageUrl: userProfile.avatar_url || undefined,

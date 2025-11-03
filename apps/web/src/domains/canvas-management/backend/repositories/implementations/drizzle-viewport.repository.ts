@@ -18,30 +18,57 @@ export class DrizzleViewportRepository implements ViewportRepository {
    */
   async save(viewportAggregate: ViewportAggregate): Promise<void> {
     const viewport = viewportAggregate.viewport;
+    let currentId = viewport.id.value;
+    let attempts = 0;
+    const maxAttempts = 3;
 
-    await adminDb
-      .insert(viewports)
-      .values({
-        id: viewport.id.value,
-        page_id: viewport.pageId.value,
-        user_id: viewport.userId.value,
-        zoom_level: viewport.zoomLevel.toString(),
-        center_x: viewport.centerX.toString(),
-        center_y: viewport.centerY.toString(),
-        last_saved: viewport.lastSaved,
-        created_at: viewport.createdAt,
-        updated_at: viewport.updatedAt,
-      })
-      .onConflictDoUpdate({
-        target: viewports.id,
-        set: {
+    while (attempts < maxAttempts) {
+      try {
+        await adminDb.insert(viewports).values({
+          id: currentId,
+          page_id: viewport.pageId.value,
+          user_id: viewport.userId.value,
           zoom_level: viewport.zoomLevel.toString(),
           center_x: viewport.centerX.toString(),
           center_y: viewport.centerY.toString(),
           last_saved: viewport.lastSaved,
+          created_at: viewport.createdAt,
           updated_at: viewport.updatedAt,
-        },
-      });
+        });
+
+        // 성공 시 종료
+        return;
+      } catch (error) {
+        // UUID 충돌인지 확인 (PostgreSQL unique constraint violation)
+        if (
+          (error as any).code === '23505' &&
+          (error as any).constraint === 'viewports_pkey'
+        ) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            // 새로운 ID 생성
+            const newId = ViewportId.generate().value;
+            console.warn(
+              `[DrizzleViewportRepository] ID collision detected (attempt ${attempts}), retrying with new ID: ${newId}`
+            );
+            currentId = newId;
+          } else {
+            console.error(
+              '❌ [DrizzleViewportRepository] Failed to generate unique ID after multiple attempts'
+            );
+            throw new Error(
+              'Failed to generate unique ID after multiple attempts'
+            );
+          }
+        } else {
+          console.error(
+            '❌ [DrizzleViewportRepository.save] Failed to save viewport:',
+            error
+          );
+          throw error;
+        }
+      }
+    }
   }
 
   /**

@@ -1,5 +1,5 @@
 import { adminDb } from '@/db';
-import { blockMounts, blocks } from '@/db/schema-dev';
+import { blockMounts, blocks, profiles } from '@/db/schema-dev';
 import { eq, isNull, and } from 'drizzle-orm';
 import { BlockMountAggregate } from '../../../shared/aggregates/block-mount.aggregate';
 import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
@@ -10,19 +10,28 @@ import { ZOrder } from '../../../shared/value-objects/z-order.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { BlockMountRepository } from '../interfaces/block-mount.repository.interface';
+import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
 import { Block } from '@/domains/block-management/shared/entities/block.entity';
 import { BlockType } from '@/domains/block-management/shared/value-objects/block-type.vo';
-import { Metadata } from '@/domains/block-management/shared/value-objects/metadata.vo';
+import { BlockPropertiesFactory } from '@/domains/block-management/shared/value-objects/block-properties';
+import { CustomPropertyDefinition } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
+import { CustomPropertyDefinitionVO } from '@/domains/block-management/shared/value-objects/custom-property-definition.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 
 export class DrizzleBlockMountRepository implements BlockMountRepository {
-  async save(blockMountAggregate: BlockMountAggregate): Promise<void> {
-    const blockMount = blockMountAggregate.blockMount;
+  /**
+   * BlockMount 생성
+   */
+  async create(blockMount: BlockMount): Promise<void> {
+    let currentId = blockMount.id.value;
+    let attempts = 0;
+    const maxAttempts = 3;
 
-    try {
-      await adminDb
-        .insert(blockMounts)
-        .values({
-          id: blockMount.id.value,
+    while (attempts < maxAttempts) {
+      try {
+        await adminDb.insert(blockMounts).values({
+          id: currentId,
           page_id: blockMount.pageId.value,
           block_id: blockMount.blockId.value,
           position_x: String(blockMount.position.x),
@@ -32,24 +41,65 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
           z_order: blockMount.zOrder.value,
           created_at: blockMount.createdAt,
           updated_at: blockMount.updatedAt,
-        })
-        .onConflictDoUpdate({
-          target: blockMounts.id,
-          set: {
-            position_x: String(blockMount.position.x),
-            position_y: String(blockMount.position.y),
-            size_width: String(blockMount.size.width),
-            size_height: String(blockMount.size.height),
-            z_order: blockMount.zOrder.value,
-            updated_at: blockMount.updatedAt,
-          },
         });
+
+        // 성공 시 종료
+        return;
+      } catch (error) {
+        // UUID 충돌인지 확인 (PostgreSQL unique constraint violation)
+        if (
+          (error as any).code === '23505' &&
+          (error as any).constraint === 'block_mounts_pkey'
+        ) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            // 새로운 ID 생성
+            const newId = BlockId.generate().value;
+            console.warn(
+              `[DrizzleBlockMountRepository] ID collision detected (attempt ${attempts}), retrying with new ID: ${newId}`
+            );
+            currentId = newId;
+          } else {
+            console.error(
+              '❌ [DrizzleBlockMountRepository] Failed to generate unique ID after multiple attempts'
+            );
+            throw new Error(
+              'Failed to generate unique ID after multiple attempts'
+            );
+          }
+        } else {
+          console.error(
+            '❌ [DrizzleBlockMountRepository.create] Failed to create block mount:',
+            error
+          );
+          throw error;
+        }
+      }
+    }
+  }
+
+  /**
+   * BlockMount 업데이트
+   */
+  async update(blockMount: BlockMount): Promise<void> {
+    try {
+      await adminDb
+        .update(blockMounts)
+        .set({
+          page_id: blockMount.pageId.value,
+          block_id: blockMount.blockId.value,
+          position_x: String(blockMount.position.x),
+          position_y: String(blockMount.position.y),
+          size_width: String(blockMount.size.width),
+          size_height: String(blockMount.size.height),
+          z_order: blockMount.zOrder.value,
+          updated_at: blockMount.updatedAt,
+        })
+        .where(eq(blockMounts.id, blockMount.id.value));
     } catch (error) {
-      console.error(
-        '❌ [DrizzleBlockMountRepository.save] Failed to save block mount:',
-        error
+      throw new Error(
+        `Failed to update block mount: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
-      throw error;
     }
   }
 
@@ -89,20 +139,17 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     return results.map(row => this.toDomain(row));
   }
 
-  async delete(blockMountId: BlockMountId): Promise<void> {
+  async softDelete(blockMountId: BlockMountId): Promise<void> {
     await adminDb
       .update(blockMounts)
-      .set({
-        deleted_at: new Date(),
-        updated_at: new Date(),
-      })
+      .set({ deleted_at: new Date(), updated_at: new Date() })
       .where(eq(blockMounts.id, blockMountId.value));
   }
 
   async findByPageIdWithBlocks(pageId: PageId): Promise<
     Array<{
-      blockMount: BlockMountAggregate;
-      block: Block;
+      blockMountAggregate: BlockMountAggregate;
+      blockAggregate: BlockAggregate;
     }>
   > {
     const results = await adminDb
@@ -122,13 +169,22 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         // Block fields
         blockWorkspaceId: blocks.workspace_id,
         blockType: blocks.block_type,
-        blockMetadata: blocks.metadata,
+        blockTitle: blocks.title,
+        blockProperties: blocks.properties,
+        blockCustomProperties: blocks.custom_properties,
+        blockCreatedBy: blocks.created_by,
         blockCreatedAt: blocks.created_at,
         blockUpdatedAt: blocks.updated_at,
         blockDeletedAt: blocks.deleted_at,
+        // Profile fields
+        profileId: profiles.id,
+        profileName: profiles.name,
+        profileEmail: profiles.email,
+        profileAvatarUrl: profiles.avatar_url,
       })
       .from(blockMounts)
       .innerJoin(blocks, eq(blockMounts.block_id, blocks.id))
+      .leftJoin(profiles, eq(blocks.created_by, profiles.id))
       .where(
         and(
           eq(blockMounts.page_id, pageId.value),
@@ -139,7 +195,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       .orderBy(blockMounts.z_order);
 
     return results.map(row => ({
-      blockMount: this.toDomainFromJoin({
+      blockMountAggregate: this.toDomainFromJoin({
         id: row.blockMountId,
         page_id: row.pageId,
         block_id: row.blockId,
@@ -152,14 +208,23 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         updated_at: row.blockMountUpdatedAt,
         deleted_at: row.blockMountDeletedAt,
       }),
-      block: this.toBlockDomain({
+      blockAggregate: this.toBlockDomain({
         id: row.blockId,
         workspace_id: row.blockWorkspaceId,
         block_type: row.blockType,
-        metadata: row.blockMetadata,
+        title: row.blockTitle,
+        properties: row.blockProperties as Record<string, any>,
+        custom_properties:
+          row.blockCustomProperties as CustomPropertyDefinition[],
+        created_by: row.blockCreatedBy || undefined,
         created_at: row.blockCreatedAt,
         updated_at: row.blockUpdatedAt,
         deleted_at: row.blockDeletedAt,
+        // Profile information
+        profileId: row.profileId || undefined,
+        profileName: row.profileName || undefined,
+        profileEmail: row.profileEmail || undefined,
+        profileAvatarUrl: row.profileAvatarUrl || undefined,
       }),
     }));
   }
@@ -222,23 +287,61 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     id: string;
     workspace_id: string;
     block_type: string;
-    metadata: any;
+    title?: string;
+    properties: Record<string, any>;
+    custom_properties: CustomPropertyDefinition[];
+    created_by?: string;
     created_at: Date;
     updated_at: Date;
     deleted_at: Date | null;
-  }): Block {
+    // Profile information
+    profileId?: string;
+    profileName?: string;
+    profileEmail?: string;
+    profileAvatarUrl?: string;
+  }): BlockAggregate {
     const blockId = new BlockId(row.id);
+    const workspaceId = new WorkspaceId(row.workspace_id);
+    const userId = new UserId(row.created_by || 'unknown');
     const blockType = new BlockType(row.block_type);
-    const metadata = new Metadata(row.metadata || {});
 
-    return Block.reconstitute(
-      blockId,
-      row.workspace_id,
+    // properties를 BlockPropertiesVO로 변환
+    const propertiesVO = BlockPropertiesFactory.createFromJSON(
       blockType,
-      metadata,
+      row.properties || {}
+    );
+
+    // customProperties를 CustomPropertyDefinitionVO로 변환
+    const customPropertiesVO = Array.isArray(row.custom_properties)
+      ? row.custom_properties.map(cp => CustomPropertyDefinitionVO.fromJSON(cp))
+      : [];
+
+    // createdByProfile 구성
+    const createdByProfile = row.profileId
+      ? {
+          userId: row.profileId,
+          email: row.profileEmail || null,
+          name: row.profileName || null,
+          profileImageUrl: row.profileAvatarUrl || null,
+        }
+      : undefined;
+
+    // Block 엔티티 재구성 (기존 데이터를 복원)
+    const blockEntity = Block.reconstitute(
+      blockId,
+      workspaceId,
+      userId,
+      blockType,
+      row.title || 'Block',
+      propertiesVO,
+      customPropertiesVO,
       row.created_at,
       row.updated_at,
-      row.deleted_at
+      row.deleted_at,
+      createdByProfile
     );
+
+    // BlockAggregate 재구성
+    return BlockAggregate.reconstitute(blockEntity);
   }
 }

@@ -36,15 +36,14 @@ import {
 } from '../../hooks/use-canvas-block-transform';
 import { useCanvasBlockLifecycle } from '../../hooks/use-canvas-block-lifecycle';
 import { usePreventPinchZoom } from '../../hooks/use-prevent-pinch-zoom';
-import { deleteMultipleBlockMountsAction } from '../../../actions/block.actions';
 
 const PADDING = 0;
 const TOOLBAR_OFFSET = 12; // 툴바와 선택 박스 사이의 간격
 
 interface MultiSelectionToolbarProps {
   pageId: string;
-  orgId?: string;
-  workspaceId?: string;
+  orgId: string;
+  workspaceId: string;
 }
 
 /**
@@ -60,8 +59,15 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar({
 }: MultiSelectionToolbarProps) {
   const { isMultiSelectionMode, exitToDefaultMode } = useCanvasMode();
   const { getSelectedBlocks, getSelectionCount } = useCanvasSelection();
-  const { alignBlocks, distributeBlocks } = useCanvasBlockTransform({ pageId });
-  const blockLifecycle = useCanvasBlockLifecycle({ pageId, orgId });
+  const { alignBlocks, distributeBlocks } = useCanvasBlockTransform({
+    orgId,
+    workspaceId,
+  });
+  const blockLifecycle = useCanvasBlockLifecycle({
+    pageId,
+    orgId,
+    workspaceId,
+  });
   const viewport = useViewport();
 
   // React Flow Store 직접 접근
@@ -166,31 +172,40 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar({
   };
 
   const handleDuplicate = async () => {
-    if (!workspaceId) {
-      return;
-    }
-
     try {
-      // 선택된 모든 블럭을 순차적으로 복제
-      for (const blockId of selectedBlockIds) {
-        const selectedNode = nodes.find(node => node.id === blockId);
-        if (!selectedNode?.data?.blockMountId) {
-          continue;
-        }
+      // 모든 블럭의 복제 정보 준비
+      const blocksToDuplicate = selectedBlockIds
+        .map((blockId, index) => {
+          const selectedNode = nodes.find(node => node.id === blockId);
+          if (!selectedNode?.data?.blockMountId) {
+            return null;
+          }
 
-        // 각 블럭을 복제 (블럭 너비 + 50px + 인덱스 오프셋)
-        const index = selectedBlockIds.indexOf(blockId);
-        const blockWidth = selectedNode.width || 200; // 기본 너비 200px
-        const baseOffsetX = blockWidth + 50; // 기본 오프셋: 블럭 너비 + 50px
-        const offsetX = baseOffsetX + index * 20; // 각 블럭마다 20px씩 추가 오프셋
-        const offsetY = 20 + index * 20; // Y축도 인덱스에 따라 오프셋
+          // 각 블럭을 복제 (블럭 너비 + 50px + 인덱스 오프셋)
+          const blockWidth = selectedNode.width || 200; // 기본 너비 200px
+          const baseOffsetX = blockWidth + 50; // 기본 오프셋: 블럭 너비 + 50px
+          const offsetX = baseOffsetX + index * 20; // 각 블럭마다 20px씩 추가 오프셋
+          const offsetY = 20 + index * 20; // Y축도 인덱스에 따라 오프셋
 
-        await blockLifecycle.duplicateBlock(
-          selectedNode.data.blockMountId as string,
-          workspaceId,
-          offsetX,
-          offsetY
+          return {
+            blockMountId: selectedNode.data.blockMountId as string,
+            offsetX,
+            offsetY,
+          };
+        })
+        .filter(
+          (
+            block
+          ): block is {
+            blockMountId: string;
+            offsetX: number;
+            offsetY: number;
+          } => block !== null
         );
+
+      if (blocksToDuplicate.length > 0) {
+        // 배치로 한 번에 복제 (optimistic 노드가 한 번에 생성됨)
+        await blockLifecycle.duplicateMultipleBlocksAndMount(blocksToDuplicate);
       }
     } catch (error) {
       console.error('Multiple blocks duplication failed:', error);

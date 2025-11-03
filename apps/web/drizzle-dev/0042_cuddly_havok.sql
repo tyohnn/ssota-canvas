@@ -1,0 +1,1 @@
+ALTER TABLE "edges" DROP CONSTRAINT "edges_unique_page_source_target";

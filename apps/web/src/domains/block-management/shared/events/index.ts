@@ -1,5 +1,10 @@
 import { BlockId } from '../value-objects/block-id.vo';
-import { BlockType } from '../value-objects/block-type.vo';
+import { CustomPropertyDefinition } from '../value-objects/block-properties/common-types';
+import { BlockType } from '../types/block-types';
+import { BlockProperties } from '../types/block-data.types';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { UserProfile } from '@/domains/user-management/shared/types';
 
 // DomainEvent 인터페이스
 export interface DomainEvent {
@@ -15,20 +20,15 @@ export class BlockCreatedEvent implements DomainEvent {
   constructor(
     public readonly aggregateId: BlockId,
     public readonly data: {
-      blockId: BlockId;
-      workspaceId: string;
+      blockId: string;
       blockType: BlockType;
-      properties: Record<string, any>;
-      customProperties: Array<{
-        id: string;
-        name: string;
-        type: string;
-        options?: Array<{ id: string; label: string; color: string }>;
-        order: number;
-        visible: boolean;
-      }>;
-      occurredAt: Date;
-    }
+      title: string;
+      properties: BlockProperties<BlockType>;
+      customProperties: CustomPropertyDefinition[];
+      workspaceId: string;
+      userId: string;
+    },
+    public readonly occurredAt: Date
   ) {}
 }
 
@@ -41,8 +41,24 @@ export class BlockUpdatedEvent implements DomainEvent {
     public readonly data: {
       blockId: BlockId;
       updateData: Record<string, any>;
-      occurredAt: Date;
-    }
+    },
+    public readonly occurredAt: Date
+  ) {}
+}
+
+// BlockPropertyUpdatedEvent
+export class BlockPropertyUpdatedEvent implements DomainEvent {
+  readonly type = 'BlockPropertyUpdated';
+
+  constructor(
+    public readonly aggregateId: BlockId,
+    public readonly data: {
+      blockId: BlockId;
+      propertyPath: string;
+      oldValue: any;
+      newValue: any;
+    },
+    public readonly occurredAt: Date
   ) {}
 }
 
@@ -54,8 +70,22 @@ export class BlockDeletedEvent implements DomainEvent {
     public readonly aggregateId: BlockId,
     public readonly data: {
       blockId: BlockId;
-      workspaceId: string;
-      occurredAt: Date;
-    }
+      workspaceId: WorkspaceId;
+    },
+    public readonly occurredAt: Date
+  ) {}
+}
+
+// BlockDuplicatedEvent
+export class BlockDuplicatedEvent implements DomainEvent {
+  readonly type = 'BlockDuplicated';
+
+  constructor(
+    public readonly aggregateId: BlockId,
+    public readonly data: {
+      originalBlockId: BlockId;
+      duplicatedBlockId: BlockId;
+    },
+    public readonly occurredAt: Date
   ) {}
 }

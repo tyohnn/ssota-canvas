@@ -10,7 +10,8 @@ import { usePreventPinchZoom } from '../../hooks/use-prevent-pinch-zoom';
 const PADDING = 3; // 선택된 노드들과의 여백 제거
 
 interface SelectionBoundingBoxProps {
-  pageId: string;
+  orgId: string;
+  workspaceId: string;
 }
 
 /**
@@ -20,14 +21,18 @@ interface SelectionBoundingBoxProps {
  * 다중 선택된 블럭들을 감싸는 커스텀 바운딩 박스 렌더링
  */
 export const SelectionBoundingBox = memo(function SelectionBoundingBox({
-  pageId,
+  orgId,
+  workspaceId,
 }: SelectionBoundingBoxProps) {
   const { isMultiSelectionMode } = useCanvasMode();
   const { getSelectionCount } = useCanvasSelection();
   const viewport = useViewport();
   const reactFlowInstance = useReactFlow();
   const { setNodes } = reactFlowInstance;
-  const { saveMultipleBlockPositions } = useCanvasBlockTransform({ pageId });
+  const { saveBlockPositions } = useCanvasBlockTransform({
+    orgId,
+    workspaceId,
+  });
 
   // 드래그 상태 관리
   const isDraggingRef = useRef(false);
@@ -200,7 +205,7 @@ export const SelectionBoundingBox = memo(function SelectionBoundingBox({
 
         // 변경된 노드가 있으면 배치로 저장
         if (changedPositions.length > 0) {
-          saveMultipleBlockPositions(changedPositions).catch(err => {
+          saveBlockPositions(changedPositions).catch(err => {
             console.error(
               '[SelectionBoundingBox] Failed to save positions:',
               err
@@ -211,7 +216,7 @@ export const SelectionBoundingBox = memo(function SelectionBoundingBox({
 
       initialPositionsRef.current = [];
     },
-    [handleMouseMove, saveMultipleBlockPositions, reactFlowInstance]
+    [handleMouseMove, saveBlockPositions, reactFlowInstance]
   );
 
   // 드래그 시작

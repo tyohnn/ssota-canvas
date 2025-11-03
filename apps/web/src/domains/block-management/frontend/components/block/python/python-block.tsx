@@ -4,10 +4,10 @@ import React, { memo, useState } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import { PythonBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { BaseBlock } from '../base-block/base-block';
-import { useBlockFieldUpdate } from '../../../hooks/use-block-field-update';
+import { useBlockPropertyUpdate } from '../../../hooks/use-block-property-update';
 import { Button } from '@/components/ui/button';
 import { Play, FileCode, AlertCircle } from 'lucide-react';
-import { PythonBlockProperties } from '@/domains/block-management/shared/types/block-properties.types';
+import { PythonBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { cn } from '@/lib/utils';
 
 /**
@@ -42,7 +42,7 @@ export const PythonBlock = memo(function PythonBlock({
   const height = nodeH || size.height;
   const pythonBlockProperties = properties as PythonBlockProperties;
 
-  const { updateField } = useBlockFieldUpdate();
+  const { updateProperty } = useBlockPropertyUpdate();
   const [code, setCode] = useState(pythonBlockProperties.code || '');
   const [output, setOutput] = useState(pythonBlockProperties.output || '');
   const [isRunning, setIsRunning] = useState(false);
@@ -52,7 +52,7 @@ export const PythonBlock = memo(function PythonBlock({
 
   const handleCodeChange = async (newCode: string) => {
     setCode(newCode);
-    await updateField(blockId, 'properties.code', newCode);
+    await updateProperty(blockId, 'code', newCode, data as PythonBlockNodeData);
   };
 
   const handleRunCode = async () => {
@@ -63,7 +63,12 @@ export const PythonBlock = memo(function PythonBlock({
       // In a real implementation, this would call a Python execution service
       const mockOutput = `Output: ${code}`;
       setOutput(mockOutput);
-      await updateField(blockId, 'properties.output', mockOutput);
+      await updateProperty(
+        blockId,
+        'output',
+        mockOutput,
+        data as PythonBlockNodeData
+      );
     } catch (error) {
       setOutput(`Error: ${error}`);
     } finally {

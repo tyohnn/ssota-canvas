@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { useCanvasMode } from '../../hooks/use-canvas-mode';
 import { useCanvasBlockLifecycle } from '../../hooks/use-canvas-block-lifecycle';
+import type { Position } from '../../../shared/types/common.types';
 
 /**
  * 블록 타입별 기본 크기 정의
@@ -19,7 +20,7 @@ const BLOCK_TYPE_SIZES: Record<string, { width: number; height: number }> = {
 
 export interface SkeletonBlockProps {
   pageId: string;
-  orgId?: string;
+  orgId: string;
   workspaceId: string;
 }
 
@@ -43,7 +44,11 @@ export function SkeletonBlock({
   workspaceId,
 }: SkeletonBlockProps) {
   const canvasMode = useCanvasMode();
-  const blockLifecycle = useCanvasBlockLifecycle({ pageId, orgId });
+  const blockLifecycle = useCanvasBlockLifecycle({
+    pageId,
+    orgId,
+    workspaceId,
+  });
   const reactFlow = useReactFlow();
   const [mousePosition, setMousePosition] = useState<{
     x: number;
@@ -134,18 +139,16 @@ export function SkeletonBlock({
 
       // 마우스 포인터가 블록의 좌측상단이 되도록 위치 조정
       // 스켈레톤이 중앙에 위치하도록 조정했으므로, 블록 생성 시 반대로 조정
-      const adjustedPosition = {
+      const adjustedPosition: Position = {
         x: mouseFlowPosition.x - (blockSize?.width ?? 200) / 2,
         y: mouseFlowPosition.y - (blockSize?.height ?? 150) / 2,
       };
 
       // 블럭 생성
       if (currentMode.blockType) {
-        blockLifecycle.createBlock(
+        blockLifecycle.createAndMountBlock(
           currentMode.blockType,
-          adjustedPosition,
-          workspaceId,
-          orgId
+          adjustedPosition
         );
 
         // 블럭 생성 후 기본 모드로 복귀
@@ -205,7 +208,7 @@ export function SkeletonBlock({
         <div className="text-center">
           <div className="text-2xl mb-1">📝</div>
           <div className="text-xs font-medium text-blue-600">
-            {blockType === 'basic' ? 'Basic Block' : blockType}
+            {blockType === 'text' ? 'Text Block' : blockType}
           </div>
         </div>
       </div>

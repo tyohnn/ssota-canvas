@@ -10,14 +10,19 @@ import {
   type EdgeProps,
   useReactFlow,
 } from '@xyflow/react';
+import { useTheme } from 'next-themes';
 import { EdgeToolbar } from './edge-toolbar';
 import { useCanvasEdgeManagement } from '../../hooks/use-canvas-edge-management';
+import {
+  getHexColor,
+  getHexColorDark,
+} from '@/domains/block-management/shared/types/style-tokens.types';
 
 /**
  * CustomEdge Component
  *
  * React Flow 커스텀 엣지 컴포넌트
- * - 엣지 선택 시 EdgeToolbar 표시 (상단에 배치)
+ * - 엣지 선택 시 EdgeToolbar 표시 (엣지 중앙 상단에 배치, z-index 최대)
  * - 엣지 중앙에 라벨 표시 (편집 가능, 더블클릭 또는 클릭 시 편집 모드)
  * - 다양한 엣지 타입 지원 (default, straight, step, smoothstep, simplebezier)
  *
@@ -39,6 +44,7 @@ export function CustomEdge({
   data,
 }: EdgeProps) {
   const { getEdge } = useReactFlow();
+  const { theme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editingLabel, setEditingLabel] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,7 +67,17 @@ export function CustomEdge({
     (edge?.label as string | undefined);
   const pageId =
     (currentEdge?.data?.pageId as string) || (data?.pageId as string) || '';
-  const edgeManagement = useCanvasEdgeManagement(pageId);
+  const orgId =
+    (currentEdge?.data?.orgId as string) || (data?.orgId as string) || '';
+  const workspaceId =
+    (currentEdge?.data?.workspaceId as string) ||
+    (data?.workspaceId as string) ||
+    '';
+  const edgeManagement = useCanvasEdgeManagement({
+    pageId,
+    orgId,
+    workspaceId,
+  });
 
   // 엣지 타입 변경 시 강제 리렌더링을 위한 상태
   const [forceRender, setForceRender] = useState(0);
@@ -136,9 +152,6 @@ export function CustomEdge({
     forceRender,
   ]);
 
-  // 툴바 위치: 엣지 상단 (y 좌표가 더 작은 쪽)
-  const toolbarY = Math.min(sourceY, targetY) - 10;
-
   // 라벨 편집 시작
   const handleLabelClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -166,6 +179,10 @@ export function CustomEdge({
     }
   };
 
+  // 다크모드 기본 색상
+  const defaultStrokeColor = theme === 'dark' ? '#9ca3af' : '#9ca3af';
+  const selectedStrokeColor = theme === 'dark' ? '#60a5fa' : '#3b82f6';
+
   return (
     <>
       {/* 엣지 경로 */}
@@ -185,21 +202,29 @@ export function CustomEdge({
               ? 2.5
               : 1.5,
           // 선택 시 파란색, 아니면 설정된 색상 사용
-          stroke: selected ? '#3b82f6' : style.stroke || '#b1b1b7',
+          stroke: selected
+            ? selectedStrokeColor
+            : style.stroke || defaultStrokeColor,
         }}
       />
 
       <EdgeLabelRenderer>
-        {/* 엣지 툴바 (상단, 선택된 엣지에만 표시) */}
-        {selected && pageId && id && (
+        {/* 엣지 툴바 (엣지 중앙 상단, 선택된 엣지에만 표시) */}
+        {selected && pageId && id && orgId && workspaceId && (
           <div
+            className="z-50"
             style={{
               position: 'absolute',
-              transform: `translate(-50%, -100%) translate(${labelX}px,${toolbarY}px)`,
+              transform: `translate(-50%, -100%) translate(${labelX}px,${labelY - 20}px)`,
               pointerEvents: 'all',
             }}
           >
-            <EdgeToolbar pageId={pageId} edgeId={id} />
+            <EdgeToolbar
+              pageId={pageId}
+              edgeId={id}
+              orgId={orgId}
+              workspaceId={workspaceId}
+            />
           </div>
         )}
 
@@ -220,13 +245,13 @@ export function CustomEdge({
               onChange={e => setEditingLabel(e.target.value)}
               onBlur={handleLabelBlur}
               onKeyDown={handleLabelKeyDown}
-              className="bg-white border-2 border-blue-500 rounded px-2 py-1 text-xs text-gray-700 shadow-md focus:outline-none min-w-[60px]"
+              className="bg-background border-2 border-blue-500 rounded px-2 py-1 text-xs text-foreground shadow-md focus:outline-none min-w-[60px]"
               style={{ pointerEvents: 'all' }}
             />
           ) : (
             <button
               onClick={handleLabelClick}
-              className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded px-2 py-1 text-xs text-gray-700 shadow-sm hover:bg-white hover:border-gray-300 transition-colors"
+              className="bg-background/90 backdrop-blur-sm border border-border rounded px-2 py-1 text-xs text-foreground shadow-sm hover:bg-background hover:border-border transition-colors"
               style={{ pointerEvents: 'all' }}
             >
               {label || '라벨 추가'}

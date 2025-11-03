@@ -111,13 +111,14 @@ Block Management Domain은 Supabase Auth와 연동됩니다:
 **Command**: 블록 생성 요청 (Canvas Management가 입력하는 정보)
 - 블록 타입 (youtube, python, markdown 등)
 - 워크스페이스 ID
+- 사용자 ID (생성자 정보)
 - 초기 메타데이터 (선택적)
 - 생성 확인
 
 **System**: Block Manager (Backend - Security Enforcement)
-- 비즈니스 로직: 블록 타입 검증, 워크스페이스 권한 확인, 기본 속성 초기화
-- 검증 로직: 블록 타입 유효성, 워크스페이스 접근 권한, 생성 제한 검증
-- 처리 로직: 새 블록 생성, 타입별 기본 속성 설정, 생성 시간 기록
+- 비즈니스 로직: 블록 타입 검증, 워크스페이스 권한 확인, 기본 속성 초기화, 생성자 정보 설정
+- 검증 로직: 블록 타입 유효성, 워크스페이스 접근 권한, 생성 제한 검증, 사용자 ID 유효성
+- 처리 로직: 새 블록 생성, 타입별 기본 속성 설정, 생성자 정보(createdBy), 생성 시간(createdAt), 수정 시간(updatedAt) 기록
 
 **Events**:
 1. 블록이 타입별 기본 속성과 함께 생성되었다 (Block Created with Type Default Properties)
@@ -207,27 +208,62 @@ Block Management Domain은 Supabase Auth와 연동됩니다:
 
 ## 📍 Scenario 2: Property Values 관리
 
-### Sequence 1: 사용자가 속성 값 설정
+### Sequence 1: 사용자가 블록 마운트 툴바에서 색상 속성 변경
 
-**Trigger Event**: 사용자가 속성 값 입력 요청
+**Trigger Event**: 사용자가 블록 마운트 툴바에서 색상 속성 변경 요청
 
 ```
-👤 사용자: "속성에 실제 값을 입력해서 정보를 저장하고 싶어"
+👤 사용자: "텍스트 블록의 색상을 orange에서 red로 변경하고 싶어"
 ```
 
 **Policy**:
-- "Whenever 속성 값 입력됨, then always 타입별 값 검증하기"
+- "Whenever 블록 속성 변경 요청됨, then always 속성 경로 검증하기"
+- "Whenever 속성 값 변경됨, then always 타입별 값 검증하기"
+- "Whenever 값 변경 완료됨, then always 편집시각 업데이트하기"
+- "If 프로필 속성 변경됨, then 워크스페이스 멤버 검증하기"
+
+**Read Model** (시스템에서 사용자에게 제공하는 정보):
+- 현재 블록의 기본 속성 (색상, 폰트 크기, 정렬 등)
+- 블록 타입별 사용 가능한 속성 옵션
+- 현재 속성 값 상태
+- 속성 변경 진행 상태
+- *UI Hint: 블록 마운트 툴바의 색상 선택 UI, 속성별 입력 UI*
+
+**Command**: 블록 속성 변경 요청 (사용자가 입력하는 정보)
+- 블록 ID (React Flow 노드 ID)
+- 속성 경로 (properties.color)
+- 새로운 속성 값 (red)
+- 변경 확인
+
+**System**: Block Property Manager (Backend - Security Enforcement)
+- 비즈니스 로직: 속성 경로 검증, 타입별 값 검증, 프로필 속성 멤버 검증, 값 변환
+- 검증 로직: 속성 경로 유효성, 값 형식 검증, 멤버 존재 확인, 필수값 검증
+- 처리 로직: properties JSONB에서 값 업데이트, 편집시각 갱신, 도메인 이벤트 발생
+
+**Events**:
+블록 속성이 업데이트되었다 (Block Property Updated)
+
+### Sequence 2: 사용자가 커스텀 속성 값 설정
+
+**Trigger Event**: 사용자가 커스텀 속성 값 입력 요청
+
+```
+👤 사용자: "커스텀 속성에 실제 값을 입력해서 정보를 저장하고 싶어"
+```
+
+**Policy**:
+- "Whenever 커스텀 속성 값 입력됨, then always 타입별 값 검증하기"
 - "Whenever 값 설정 완료됨, then always 편집시각 업데이트하기"
 - "If 프로필 속성 설정됨, then 워크스페이스 멤버 검증하기"
 
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
-- 현재 속성 정의 (이름, 타입, 옵션)
+- 현재 커스텀 속성 정의 (이름, 타입, 옵션)
 - 속성별 입력 필드 (텍스트, 선택, 멀티선택, 날짜 등)
 - 현재 속성 값
 - 검증 오류 메시지 (있는 경우)
 - *UI Hint: 속성별 입력 UI (텍스트박스, 드롭다운, 멀티선택 체크박스, 날짜선택기 등)*
 
-**Command**: 속성 값 설정 요청 (사용자가 입력하는 정보)
+**Command**: 커스텀 속성 값 설정 요청 (사용자가 입력하는 정보)
 - 속성 ID
 - 속성 값 (타입별)
 - 값 설정 확인

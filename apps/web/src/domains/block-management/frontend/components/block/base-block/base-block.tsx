@@ -204,41 +204,52 @@ export const BaseBlock = memo(
             </NodeResizeControl>
           )}
 
-          {/* Handle 4개 - 상하좌우 연결점 */}
-          <BaseHandle
-            type="target"
+          {/* Connection Handles - 각 방향당 1개씩 (source/target 모두 가능) */}
+          <Handle
+            type="source"
             position={Position.Left}
             isConnectable={isConnectable}
             id="left"
+            className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white hover:!bg-blue-600 hover:!scale-125 transition-all"
           />
-          <BaseHandle
-            type="target"
+          <Handle
+            type="source"
             position={Position.Right}
             isConnectable={isConnectable}
             id="right"
+            className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white hover:!bg-blue-600 hover:!scale-125 transition-all"
           />
-          <BaseHandle
-            type="target"
+          <Handle
+            type="source"
             position={Position.Top}
             isConnectable={isConnectable}
             id="top"
+            className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white hover:!bg-blue-600 hover:!scale-125 transition-all"
           />
-          <BaseHandle
-            type="target"
+          <Handle
+            type="source"
             position={Position.Bottom}
             isConnectable={isConnectable}
             id="bottom"
+            className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white hover:!bg-blue-600 hover:!scale-125 transition-all"
           />
 
           {/* Top Toolbar - BlockMountToolbar (선택된 블럭에만 표시) */}
-          {data.pageId &&
+          {data.blockMountId &&
+            data.pageId &&
             data.workspaceId &&
             isCurrentBlockSelected &&
             isSingleSelection && (
               <BlockMountToolbar
+                blockId={data.blockMountId}
+                blockMountId={data.blockMountId}
+                blockType={data.blockType || 'basic'}
+                blockData={data}
                 pageId={data.pageId}
                 orgId={data.orgId}
                 workspaceId={data.workspaceId}
+                width={width}
+                height={height}
               />
             )}
 

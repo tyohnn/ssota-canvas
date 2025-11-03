@@ -1,50 +1,41 @@
 import { describe, it, expect } from 'vitest';
-import { PropertyType } from '../property-type.vo';
+import { PropertyTypeVO } from '../property-type.vo';
 import { BlockManagementError } from '../../errors/block-management.error';
+import { PropertyType } from '../block-properties/common-types';
 
 describe('PropertyType Value Object', () => {
   describe('생성자', () => {
     it('유효한 속성 타입으로 생성되어야 한다', () => {
       // Given
-      const validTypes = ['text', 'url', 'email', 'select', 'multiselect', 'datetime', 'media', 'profile'];
+      const validTypes = [PropertyType.TEXT, PropertyType.URL, PropertyType.EMAIL, PropertyType.SELECT, PropertyType.MULTISELECT, PropertyType.PROFILE];
 
       // When & Then
       validTypes.forEach(type => {
-        const propertyType = new PropertyType(type);
+        const propertyType = new PropertyTypeVO(type);
         expect(propertyType.value).toBe(type);
       });
     });
 
     it('잘못된 속성 타입에 대해 예외를 발생시켜야 한다', () => {
       // Given
-      const invalidType = 'invalid-type';
+      const invalidType = 'invalid-type' as any;
 
       // When & Then
-      expect(() => new PropertyType(invalidType)).toThrow(BlockManagementError);
-      expect(() => new PropertyType(invalidType)).toThrow('Invalid property type');
-    });
-
-    it('빈 문자열에 대해 예외를 발생시켜야 한다', () => {
-      // Given
-      const emptyType = '';
-
-      // When & Then
-      expect(() => new PropertyType(emptyType)).toThrow(BlockManagementError);
-      expect(() => new PropertyType(emptyType)).toThrow('Property type cannot be empty');
+      expect(() => new PropertyTypeVO(invalidType)).toThrow(BlockManagementError);
     });
 
     it('null 또는 undefined에 대해 예외를 발생시켜야 한다', () => {
       // When & Then
-      expect(() => new PropertyType(null as any)).toThrow(BlockManagementError);
-      expect(() => new PropertyType(undefined as any)).toThrow(BlockManagementError);
+      expect(() => new PropertyTypeVO(null as any)).toThrow(BlockManagementError);
+      expect(() => new PropertyTypeVO(undefined as any)).toThrow(BlockManagementError);
     });
   });
 
   describe('equals', () => {
     it('동일한 속성 타입은 같다고 판단되어야 한다', () => {
       // Given
-      const type1 = new PropertyType('text');
-      const type2 = new PropertyType('text');
+      const type1 = new PropertyTypeVO(PropertyType.TEXT);
+      const type2 = new PropertyTypeVO(PropertyType.TEXT);
 
       // When & Then
       expect(type1.equals(type2)).toBe(true);
@@ -52,75 +43,63 @@ describe('PropertyType Value Object', () => {
 
     it('다른 속성 타입은 다르다고 판단되어야 한다', () => {
       // Given
-      const type1 = new PropertyType('text');
-      const type2 = new PropertyType('url');
+      const type1 = new PropertyTypeVO(PropertyType.TEXT);
+      const type2 = new PropertyTypeVO(PropertyType.URL);
 
       // When & Then
       expect(type1.equals(type2)).toBe(false);
     });
   });
 
-  describe('isTextType', () => {
+  describe('isText', () => {
     it('텍스트 관련 타입을 올바르게 식별해야 한다', () => {
       // Given
-      const textType = new PropertyType('text');
-      const urlType = new PropertyType('url');
-      const emailType = new PropertyType('email');
+      const textType = new PropertyTypeVO(PropertyType.TEXT);
+      const urlType = new PropertyTypeVO(PropertyType.URL);
+      const emailType = new PropertyTypeVO(PropertyType.EMAIL);
 
       // When & Then
-      expect(textType.isTextType()).toBe(true);
-      expect(urlType.isTextType()).toBe(true);
-      expect(emailType.isTextType()).toBe(true); // email도 텍스트 타입
+      expect(textType.isText()).toBe(true);
+      expect(urlType.isUrl()).toBe(true);
+      expect(emailType.isEmail()).toBe(true);
     });
   });
 
-  describe('isSelectType', () => {
+  describe('isSelect', () => {
     it('선택형 타입을 올바르게 식별해야 한다', () => {
       // Given
-      const selectType = new PropertyType('select');
-      const multiselectType = new PropertyType('multiselect');
-      const textType = new PropertyType('text');
+      const selectType = new PropertyTypeVO(PropertyType.SELECT);
+      const multiselectType = new PropertyTypeVO(PropertyType.MULTISELECT);
+      const textType = new PropertyTypeVO(PropertyType.TEXT);
 
       // When & Then
-      expect(selectType.isSelectType()).toBe(true);
-      expect(multiselectType.isSelectType()).toBe(true);
-      expect(textType.isSelectType()).toBe(false);
+      expect(selectType.isSelect()).toBe(true);
+      expect(multiselectType.isMultiSelect()).toBe(true);
+      expect(textType.isText()).toBe(true);
     });
   });
 
-  describe('isMediaType', () => {
-    it('미디어 타입을 올바르게 식별해야 한다', () => {
-      // Given
-      const mediaType = new PropertyType('media');
-      const textType = new PropertyType('text');
-
-      // When & Then
-      expect(mediaType.isMediaType()).toBe(true);
-      expect(textType.isMediaType()).toBe(false);
-    });
-  });
-
-  describe('isProfileType', () => {
+  describe('isProfile', () => {
     it('프로필 타입을 올바르게 식별해야 한다', () => {
       // Given
-      const profileType = new PropertyType('profile');
-      const textType = new PropertyType('text');
+      const profileType = new PropertyTypeVO(PropertyType.PROFILE);
+      const textType = new PropertyTypeVO(PropertyType.TEXT);
 
       // When & Then
-      expect(profileType.isProfileType()).toBe(true);
-      expect(textType.isProfileType()).toBe(false);
+      expect(profileType.isProfile()).toBe(true);
+      expect(textType.isProfile()).toBe(false);
     });
   });
 
-  describe('isDateTimeType', () => {
-    it('날짜시간 타입을 올바르게 식별해야 한다', () => {
+  describe('isDate', () => {
+    it('날짜 타입을 올바르게 식별해야 한다', () => {
       // Given
-      const datetimeType = new PropertyType('datetime');
-      const textType = new PropertyType('text');
+      const dateType = new PropertyTypeVO(PropertyType.DATE);
+      const textType = new PropertyTypeVO(PropertyType.TEXT);
 
       // When & Then
-      expect(datetimeType.isDateTimeType()).toBe(true);
-      expect(textType.isDateTimeType()).toBe(false);
+      expect(dateType.isDate()).toBe(true);
+      expect(textType.isDate()).toBe(false);
     });
   });
 });

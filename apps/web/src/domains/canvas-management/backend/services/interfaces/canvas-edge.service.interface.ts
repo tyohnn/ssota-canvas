@@ -2,72 +2,95 @@
 
 import type { Result } from '@/utils/result';
 import type { EdgeAggregate } from '../../../shared/aggregates/edge.aggregate';
-import type { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
-import type {
-  CreateEdgeCommand,
-  UpdateEdgeShapeCommand,
-  UpdateEdgeLabelCommand,
-  UpdateEdgeStyleCommand,
-  DeleteEdgeCommand,
-} from '../../../shared/commands';
+import type { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
+import type { EdgeId } from '../../../shared/value-objects/edge-id.vo';
+import type { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+import type { EdgeShape } from '../../../shared/value-objects/edge-shape.vo';
 
 /**
  * Canvas Edge Service Interface
  *
- * 엣지 생성 및 관리 비즈니스 로직을 담당하는 서비스
+ * 엣지 생성 및 관리 비즈니스 로직을 담당하는 서비스 인터페이스
+ * 구현체는 특정 ORM/DB에 의존하지 않도록 설계
+ *
+ * ⚠️ Schema Change: edges now reference block_mounts instead of blocks
  */
-export interface CanvasEdgeService {
+export interface ICanvasEdgeService {
   /**
    * 엣지 생성
    *
-   * @param command - 엣지 생성 Command
+   * @param params - 엣지 생성 파라미터
    * @returns EdgeAggregate (성공) | Error (실패)
    */
-  createEdge(command: CreateEdgeCommand): Promise<Result<EdgeAggregate, Error>>;
+  createEdge(params: {
+    pageId: PageId;
+    sourceBlockMountId: BlockMountId;
+    targetBlockMountId: BlockMountId;
+    sourceHandle?: string;
+    targetHandle?: string;
+    edgeShape?: EdgeShape;
+    userId: string;
+  }): Promise<Result<EdgeAggregate, Error>>;
 
   /**
    * 엣지 모양 업데이트
    *
-   * @param command - 엣지 모양 업데이트 Command
+   * @param params - 엣지 모양 업데이트 파라미터
    * @returns EdgeAggregate (성공) | Error (실패)
    */
-  updateEdgeShape(
-    command: UpdateEdgeShapeCommand
-  ): Promise<Result<EdgeAggregate, Error>>;
+  updateEdgeShape(params: {
+    edgeId: EdgeId;
+    newShape: EdgeShape;
+    userId: string;
+  }): Promise<Result<EdgeAggregate, Error>>;
 
   /**
    * 엣지 레이블 업데이트
    *
-   * @param command - 엣지 레이블 업데이트 Command
+   * @param params - 엣지 레이블 업데이트 파라미터
    * @returns EdgeAggregate (성공) | Error (실패)
    */
-  updateEdgeLabel(
-    command: UpdateEdgeLabelCommand
-  ): Promise<Result<EdgeAggregate, Error>>;
+  updateEdgeLabel(params: {
+    edgeId: EdgeId;
+    newLabel: string;
+    userId: string;
+  }): Promise<Result<EdgeAggregate, Error>>;
 
   /**
    * 엣지 스타일 업데이트
    *
-   * @param command - 엣지 스타일 업데이트 Command
+   * @param params - 엣지 스타일 업데이트 파라미터
    * @returns EdgeAggregate (성공) | Error (실패)
    */
-  updateEdgeStyle(
-    command: UpdateEdgeStyleCommand
-  ): Promise<Result<EdgeAggregate, Error>>;
+  updateEdgeStyle(params: {
+    edgeId: EdgeId;
+    style: {
+      stroke?: string;
+      strokeWidth?: number;
+    };
+    userId: string;
+  }): Promise<Result<EdgeAggregate, Error>>;
 
   /**
    * 엣지 삭제
    *
-   * @param command - 엣지 삭제 Command
+   * @param params - 엣지 삭제 파라미터
    * @returns void (성공) | Error (실패)
    */
-  deleteEdge(command: DeleteEdgeCommand): Promise<Result<void, Error>>;
+  deleteEdge(params: {
+    edgeId: EdgeId;
+    userId: string;
+  }): Promise<Result<void, Error>>;
 
   /**
-   * 블럭 삭제 시 연결된 엣지 모두 삭제
+   * 블럭 마운트 삭제 시 연결된 엣지 모두 삭제
    *
-   * @param blockId - 블럭 ID
+   * ⚠️ Schema Change: now uses BlockMountId instead of BlockId
+   *
+   * @param blockMountId - 블럭 마운트 ID
    * @returns void (성공) | Error (실패)
    */
-  deleteConnectedEdges(blockId: BlockId): Promise<Result<void, Error>>;
+  deleteConnectedEdges(
+    blockMountId: BlockMountId
+  ): Promise<Result<void, Error>>;
 }

@@ -4,18 +4,22 @@ import { Block } from '../../entities/block.entity';
 import { CreateBlockCommand, UpdateBlockCommand, DeleteBlockCommand } from '../../commands';
 import { BlockId } from '../../value-objects/block-id.vo';
 import { BlockType } from '../../value-objects/block-type.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { BlockCreatedEvent, BlockUpdatedEvent, BlockDeletedEvent } from '../../events';
 import { BlockManagementError } from '../../errors/block-management.error';
 
 describe('BlockAggregate', () => {
   let blockId: BlockId;
   let blockType: BlockType;
-  let workspaceId: string;
+  let workspaceId: WorkspaceId;
+  let userId: UserId;
 
   beforeEach(() => {
     blockId = new BlockId('123e4567-e89b-12d3-a456-426614174000');
     blockType = new BlockType('youtube');
-    workspaceId = 'workspace-123';
+    workspaceId = new WorkspaceId('550e8400-e29b-41d4-a716-446655440000');
+    userId = new UserId('550e8400-e29b-41d4-a716-446655440020');
   });
 
   describe('create', () => {
@@ -23,17 +27,18 @@ describe('BlockAggregate', () => {
       const command: CreateBlockCommand = {
         blockId,
         workspaceId,
+        userId,
         blockType,
-        initialProperties: { title: 'Test Video' },
-        userId: 'user-123'
+        title: 'Test Video'
       };
       
       const aggregate = BlockAggregate.create(command);
       
       expect(aggregate.getBlock().id).toBe(blockId);
       expect(aggregate.getBlock().workspaceId).toBe(workspaceId);
+      expect(aggregate.getBlock().userId).toBe(userId);
       expect(aggregate.getBlock().blockType).toBe(blockType);
-      expect(aggregate.getBlock().properties.title).toBe('Test Video');
+      expect(aggregate.getBlock().title).toBe('Test Video');
       
       const events = aggregate.getUncommittedEvents();
       expect(events).toHaveLength(1);
@@ -41,8 +46,8 @@ describe('BlockAggregate', () => {
       
       const createdEvent = events[0] as BlockCreatedEvent;
       expect(createdEvent.aggregateId).toBe(blockId);
-      expect(createdEvent.data.workspaceId).toBe(workspaceId);
-      expect(createdEvent.data.blockType).toBe(blockType);
+      expect(createdEvent.data.workspaceId).toBe(workspaceId.value);
+      expect(createdEvent.data.blockType).toBe(blockType.value);
     });
   });
 
@@ -51,8 +56,9 @@ describe('BlockAggregate', () => {
       const command: CreateBlockCommand = {
         blockId,
         workspaceId,
+        userId,
         blockType,
-        userId: 'user-123'
+        title: 'Test Video'
       };
       const aggregate = BlockAggregate.create(command);
       const block = aggregate.getBlock();
@@ -70,8 +76,9 @@ describe('BlockAggregate', () => {
       const command: CreateBlockCommand = {
         blockId,
         workspaceId,
+        userId,
         blockType,
-        userId: 'user-123'
+        title: 'Test Video'
       };
       aggregate = BlockAggregate.create(command);
       aggregate.markEventsAsCommitted(); // 초기 이벤트 커밋
@@ -82,15 +89,13 @@ describe('BlockAggregate', () => {
         blockId,
         updateData: {
           title: 'Updated Title',
-          description: 'Updated Description'
-        },
-        userId: 'user-123'
+          properties: {}
+        }
       };
       
       aggregate.update(updateCommand);
       
-      expect(aggregate.getBlock().properties.title).toBe('Updated Title');
-      expect(aggregate.getBlock().properties.description).toBe('Updated Description');
+      expect(aggregate.getBlock().title).toBe('Updated Title');
       
       const events = aggregate.getUncommittedEvents();
       expect(events).toHaveLength(1);
@@ -103,16 +108,14 @@ describe('BlockAggregate', () => {
 
     it('should throw error when updating deleted block', () => {
       const deleteCommand: DeleteBlockCommand = {
-        blockId,
-        userId: 'user-123'
+        blockId
       };
       aggregate.delete(deleteCommand);
       aggregate.markEventsAsCommitted();
       
       const updateCommand: UpdateBlockCommand = {
         blockId,
-        updateData: { title: 'Updated Title' },
-        userId: 'user-123'
+        updateData: { title: 'Updated Title' }
       };
       
       expect(() => {
@@ -129,8 +132,9 @@ describe('BlockAggregate', () => {
       const command: CreateBlockCommand = {
         blockId,
         workspaceId,
+        userId,
         blockType,
-        userId: 'user-123'
+        title: 'Test Video'
       };
       aggregate = BlockAggregate.create(command);
       aggregate.markEventsAsCommitted();
@@ -138,8 +142,7 @@ describe('BlockAggregate', () => {
 
     it('should delete block and emit BlockDeletedEvent', () => {
       const deleteCommand: DeleteBlockCommand = {
-        blockId,
-        userId: 'user-123'
+        blockId
       };
       
       aggregate.delete(deleteCommand);
@@ -153,13 +156,12 @@ describe('BlockAggregate', () => {
       
       const deletedEvent = events[0] as BlockDeletedEvent;
       expect(deletedEvent.aggregateId).toBe(blockId);
-      expect(deletedEvent.data.workspaceId).toBe(workspaceId);
+      expect(deletedEvent.data.workspaceId.value).toBe(workspaceId.value);
     });
 
     it('should throw error when deleting already deleted block', () => {
       const deleteCommand: DeleteBlockCommand = {
-        blockId,
-        userId: 'user-123'
+        blockId
       };
       aggregate.delete(deleteCommand);
       aggregate.markEventsAsCommitted();
@@ -176,8 +178,9 @@ describe('BlockAggregate', () => {
       const command: CreateBlockCommand = {
         blockId,
         workspaceId,
+        userId,
         blockType,
-        userId: 'user-123'
+        title: 'Test Video'
       };
       const aggregate = BlockAggregate.create(command);
       
@@ -196,8 +199,9 @@ describe('BlockAggregate', () => {
       const command: CreateBlockCommand = {
         blockId,
         workspaceId,
+        userId,
         blockType,
-        userId: 'user-123'
+        title: 'Test Video'
       };
       aggregate = BlockAggregate.create(command);
     });
@@ -213,15 +217,14 @@ describe('BlockAggregate', () => {
     });
 
     it('should return workspace ID', () => {
-      expect(aggregate.getWorkspaceId()).toBe(workspaceId);
+      expect(aggregate.getWorkspaceId()).toBe(workspaceId.value);
     });
 
     it('should return deletion status', () => {
       expect(aggregate.isDeleted()).toBe(false);
       
       const deleteCommand: DeleteBlockCommand = {
-        blockId,
-        userId: 'user-123'
+        blockId
       };
       aggregate.delete(deleteCommand);
       

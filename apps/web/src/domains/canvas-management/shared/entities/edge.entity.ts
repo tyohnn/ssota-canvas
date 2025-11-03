@@ -1,22 +1,31 @@
 import { EdgeId } from '../value-objects/edge-id.vo';
 import { EdgeShape } from '../value-objects/edge-shape.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { BlockMountId } from '../value-objects/block-mount-id.vo';
 
 /**
  * Edge Entity
- * Canvas에서 블럭 간의 연결 관계를 표현
+ * Canvas에서 블럭 마운트(block mount) 간의 연결 관계를 표현
+ *
+ * ⚠️ Schema Change: edges now reference block_mounts instead of blocks
+ *    - Rationale: Edges represent visual connections between block instances on a specific page
+ *    - Performance: Eliminates JOINs on page render (most frequent operation)
+ *    - Logic: Page-specific connections, not global block relationships
  *
  * Invariants:
  * - self-loop 허용 (DB 스키마 설계에 따름)
  * - edgeShape은 유효한 React Flow 엣지 모양이어야 함
+ * - source/target은 block mount ID를 참조함 (React Flow 노드 ID와 동일)
+ * - sourceHandle/targetHandle은 React Flow handle ID ('left', 'right', 'top', 'bottom')
  */
 export class Edge {
   constructor(
     public readonly id: EdgeId,
     public readonly pageId: PageId,
-    public readonly sourceBlockId: BlockId,
-    public readonly targetBlockId: BlockId,
+    public readonly sourceBlockMountId: BlockMountId,
+    public readonly targetBlockMountId: BlockMountId,
+    public readonly sourceHandle?: string, // React Flow handle ID ('left', 'right', 'top', 'bottom')
+    public readonly targetHandle?: string, // React Flow handle ID ('left', 'right', 'top', 'bottom')
     public edgeShape: EdgeShape = EdgeShape.default(),
     public edgeLabel: string = '',
     public edgeStyle: {
@@ -70,18 +79,19 @@ export class Edge {
   }
 
   /**
-   * 엣지가 특정 블럭과 연결되어 있는지 확인
+   * 엣지가 특정 블럭 마운트와 연결되어 있는지 확인
    */
-  isConnectedTo(blockId: BlockId): boolean {
+  isConnectedTo(blockMountId: BlockMountId): boolean {
     return (
-      this.sourceBlockId.equals(blockId) || this.targetBlockId.equals(blockId)
+      this.sourceBlockMountId.equals(blockMountId) ||
+      this.targetBlockMountId.equals(blockMountId)
     );
   }
 
   /**
-   * self-loop 여부 확인 (같은 블럭을 소스와 타겟으로 가지는 경우)
+   * self-loop 여부 확인 (같은 블럭 마운트를 소스와 타겟으로 가지는 경우)
    */
   isSelfLoop(): boolean {
-    return this.sourceBlockId.equals(this.targetBlockId);
+    return this.sourceBlockMountId.equals(this.targetBlockMountId);
   }
 }

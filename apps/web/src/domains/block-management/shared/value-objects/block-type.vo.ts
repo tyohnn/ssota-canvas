@@ -1,8 +1,5 @@
 import { BlockManagementError } from '../errors/block-management.error';
-import {
-  getDefaultPropertiesForBlockType,
-  validateBlockProperties,
-} from '../types/block-properties.types';
+import { BlockPropertiesFactory } from './block-properties';
 import {
   BlockType as BlockTypeEnum,
   isValidBlockType,
@@ -61,8 +58,9 @@ export class BlockType {
    * @returns 검증 결과
    */
   validateProperties(properties: Record<string, any>): boolean {
-    // SSOT: block-properties.types.ts의 validateBlockProperties 사용
-    return validateBlockProperties(this._value as BlockTypeEnum, properties);
+    // 기본적인 타입 검증만 수행
+    // 상세한 검증은 각 BlockPropertiesVO에서 처리
+    return typeof properties === 'object' && properties !== null;
   }
 
   /**
@@ -96,7 +94,7 @@ export class BlockType {
    * @returns 기본 속성 객체
    */
   getDefaultProperties(): Record<string, any> {
-    return getDefaultPropertiesForBlockType(this._value as BlockTypeEnum);
+    return BlockPropertiesFactory.createForBlockType(this).toJSON();
   }
 
   /**

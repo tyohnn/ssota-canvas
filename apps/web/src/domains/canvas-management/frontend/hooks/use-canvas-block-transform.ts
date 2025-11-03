@@ -3,8 +3,17 @@ import { useReactFlow, Node } from '@xyflow/react';
 import {
   updateBlockPositionAction,
   updateBlockSizeAction,
-  updateMultipleBlockPositionsAction,
 } from '@/domains/canvas-management/actions/block.actions';
+import {
+  UpdateBlockPositionRequestSchema,
+  UpdateBlockSizeRequestSchema,
+  type UpdateBlockPositionRequestInput,
+  type UpdateBlockSizeRequestInput,
+} from '@/domains/canvas-management/shared/dtos/requests';
+import type {
+  Position,
+  Size,
+} from '@/domains/canvas-management/shared/types/common.types';
 
 export type AlignmentType =
   | 'left'
@@ -16,21 +25,13 @@ export type AlignmentType =
 export type DistributionDirection = 'horizontal' | 'vertical';
 
 interface UseCanvasBlockTransformProps {
-  pageId: string;
-}
-
-interface Position {
-  x: number;
-  y: number;
-}
-
-interface Size {
-  width: number;
-  height: number;
+  orgId: string;
+  workspaceId: string;
 }
 
 export function useCanvasBlockTransform({
-  pageId,
+  orgId,
+  workspaceId,
 }: UseCanvasBlockTransformProps) {
   const { setNodes, getNodes } = useReactFlow();
 
@@ -66,36 +67,72 @@ export function useCanvasBlockTransform({
 
   /**
    * 서버 연동: React Flow 콜백용, 영구 저장
+   * 단일/다중 블록 위치 저장 통합
    */
-  const saveBlockPosition = useCallback(
-    async (blockId: string, position: Position) => {
+  const saveBlockPositions = useCallback(
+    async (
+      blockPositions:
+        | Array<{ blockId: string; position: Position }>
+        | { blockId: string; position: Position }
+    ) => {
       try {
-        // 1. blockMountId 조회 (노드 데이터에서)
-        const nodes = getNodes();
-        const node = nodes.find(n => n.id === blockId);
+        // 단일 위치인 경우 배열로 변환
+        const positionsArray = Array.isArray(blockPositions)
+          ? blockPositions
+          : [blockPositions];
 
-        if (!node || !node.data?.blockMountId) {
-          console.error('Block mount ID not found for block:', blockId);
+        // 1. React Flow Store의 노드에서 blockMountId 찾기
+        const nodes = getNodes();
+        const blockMountPositions = positionsArray.map(bp => {
+          const node = nodes.find(n => n.id === bp.blockId);
+          if (!node || !node.data?.blockMountId) {
+            throw new Error(
+              `Node or blockMountId not found for blockId: ${bp.blockId}`
+            );
+          }
+          return {
+            blockMountId: node.data.blockMountId as string,
+            position: bp.position,
+          };
+        });
+
+        // 2. Request 객체 생성 (프론트엔드 Input 타입 사용)
+        const rawRequest: UpdateBlockPositionRequestInput = {
+          blockPositions: blockMountPositions,
+          orgId,
+          workspaceId,
+        };
+
+        // 3. Frontend 검증 (UX 최적화)
+        const parseResult =
+          UpdateBlockPositionRequestSchema.safeParse(rawRequest);
+
+        if (!parseResult.success) {
+          // 즉시 사용자에게 에러 표시
+          const firstError = parseResult.error.issues[0];
+          console.error('[Frontend Validation] Invalid position request:', {
+            message: firstError?.message || 'Invalid position request',
+            issues: parseResult.error.issues,
+          });
+          // TODO: toast.error로 사용자에게 피드백
           return;
         }
 
-        const blockMountId = node.data.blockMountId as string;
+        // 4. Server Action 호출
+        const result = await updateBlockPositionAction(rawRequest);
 
-        // 2. Server Action 호출
-        const result = await updateBlockPositionAction({
-          blockMountId,
-          newPosition: position,
-        });
-
-        if (!result.success) {
-          console.error('❌ Failed to save position:', result.error);
-          // 실패 시 롤백은 상위 컴포넌트에서 처리
+        if (result.success) {
+        } else {
+          console.error('❌ Failed to save block positions:', result.error);
         }
+
+        return result;
       } catch (error) {
-        console.error('Error saving block position:', error);
+        console.error('Error saving block positions:', error);
+        throw error;
       }
     },
-    [getNodes]
+    [getNodes, orgId, workspaceId]
   );
 
   const saveBlockSize = useCallback(
@@ -112,14 +149,32 @@ export function useCanvasBlockTransform({
 
         const blockMountId = node.data.blockMountId as string;
 
-        // 2. Server Action 호출
-        const result = await updateBlockSizeAction({
+        // 2. Request 객체 생성 (프론트엔드 Input 타입 사용)
+        const rawRequest: UpdateBlockSizeRequestInput = {
           blockMountId,
           newSize: size,
-        });
+          orgId,
+          workspaceId,
+        };
+
+        // 3. Frontend 검증 (UX 최적화)
+        const parseResult = UpdateBlockSizeRequestSchema.safeParse(rawRequest);
+
+        if (!parseResult.success) {
+          // 즉시 사용자에게 에러 표시
+          const firstError = parseResult.error.issues[0];
+          console.error('[Frontend Validation] Invalid size request:', {
+            message: firstError?.message || 'Invalid size request',
+            issues: parseResult.error.issues,
+          });
+          // TODO: toast.error로 사용자에게 피드백
+          return;
+        }
+
+        // 4. Server Action 호출
+        const result = await updateBlockSizeAction(rawRequest);
 
         if (result.success) {
-          console.log('✅ Size saved to server:', result.data);
         } else {
           console.error('❌ Failed to save size:', result.error);
         }
@@ -127,7 +182,7 @@ export function useCanvasBlockTransform({
         console.error('Error saving block size:', error);
       }
     },
-    [getNodes]
+    [getNodes, orgId, workspaceId]
   );
 
   /**
@@ -229,22 +284,11 @@ export function useCanvasBlockTransform({
           })
         );
 
-        // 4. Server Action 호출 (blockMountId 필요)
-        const blockPositions = newPositions.map(np => {
-          const node = selectedNodes.find(n => n.id === np.blockId);
-          return {
-            blockMountId: node?.data?.blockMountId as string,
-            position: np.position,
-          };
-        });
+        // 4. Server Action 호출
+        const result = await saveBlockPositions(newPositions);
 
-        const result = await updateMultipleBlockPositionsAction({
-          blockPositions,
-        });
-
-        if (result.success) {
-          console.log('✅ Alignment saved to server:', result.data);
-        } else {
+        if (result && result.success) {
+        } else if (result && !result.success) {
           console.error('❌ Failed to save alignment:', result.error);
           // 실패 시 롤백 로직 필요
         }
@@ -252,7 +296,7 @@ export function useCanvasBlockTransform({
         console.error('Error aligning blocks:', error);
       }
     },
-    [getNodes, setNodes]
+    [getNodes, setNodes, saveBlockPositions]
   );
 
   /**
@@ -315,73 +359,25 @@ export function useCanvasBlockTransform({
           })
         );
 
-        // 4. Server Action 호출
-        const blockPositions = newPositions.map(np => {
-          const node = selectedNodes.find(n => n.id === np.blockId);
-          return {
-            blockMountId: node?.data?.blockMountId as string,
-            position: np.position,
-          };
-        });
+        // 4. 훅 호출
+        const result = await saveBlockPositions(newPositions);
 
-        const result = await updateMultipleBlockPositionsAction({
-          blockPositions,
-        });
-
-        if (result.success) {
-          console.log('✅ Distribution saved to server:', result.data);
-        } else {
+        if (result && result.success) {
+        } else if (result && !result.success) {
           console.error('❌ Failed to save distribution:', result.error);
         }
       } catch (error) {
         console.error('Error distributing blocks:', error);
       }
     },
-    [getNodes, setNodes]
-  );
-
-  /**
-   * 여러 블럭의 위치를 배치로 서버에 저장
-   */
-  const saveMultipleBlockPositions = useCallback(
-    async (blockPositions: Array<{ blockId: string; position: Position }>) => {
-      try {
-        // 1. React Flow Store의 노드에서 blockMountId 찾기
-        const nodes = getNodes();
-        const blockMountPositions = blockPositions.map(bp => {
-          const node = nodes.find(n => n.id === bp.blockId);
-          return {
-            blockMountId: node?.data?.blockMountId as string,
-            position: bp.position,
-          };
-        });
-
-        // 2. Server Action 호출
-        const result = await updateMultipleBlockPositionsAction({
-          blockPositions: blockMountPositions,
-        });
-
-        if (result.success) {
-          console.log('✅ Multiple positions saved to server:', result.data);
-        } else {
-          console.error('❌ Failed to save multiple positions:', result.error);
-        }
-
-        return result;
-      } catch (error) {
-        console.error('Error saving multiple block positions:', error);
-        throw error;
-      }
-    },
-    [getNodes]
+    [getNodes, setNodes, saveBlockPositions]
   );
 
   return {
     setBlockPosition,
     setBlockSize,
-    saveBlockPosition,
+    saveBlockPositions,
     saveBlockSize,
-    saveMultipleBlockPositions,
     alignBlocks,
     distributeBlocks,
   };

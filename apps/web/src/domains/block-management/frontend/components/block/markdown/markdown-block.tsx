@@ -4,10 +4,10 @@ import React, { memo, useState } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import { MarkdownBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { BaseBlock } from '../base-block/base-block';
-import { useBlockFieldUpdate } from '../../../hooks/use-block-field-update';
+import { useBlockPropertyUpdate } from '../../../hooks/use-block-property-update';
 import { Button } from '@/components/ui/button';
 import { FileText, Eye, Edit3 } from 'lucide-react';
-import { MarkdownBlockProperties } from '@/domains/block-management/shared/types/block-properties.types';
+import { MarkdownBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { cn } from '@/lib/utils';
 /**
  * Markdown Block Component
@@ -41,7 +41,7 @@ export const MarkdownBlock = memo(function MarkdownBlock({
   const height = nodeH || size.height;
   const markdownBlockProperties = properties as MarkdownBlockProperties;
 
-  const { updateField } = useBlockFieldUpdate();
+  const { updateProperty } = useBlockPropertyUpdate();
   const [content, setContent] = useState(markdownBlockProperties.content || '');
   const [isPreviewMode, setIsPreviewMode] = useState(false);
 
@@ -50,7 +50,12 @@ export const MarkdownBlock = memo(function MarkdownBlock({
 
   const handleContentChange = async (newContent: string) => {
     setContent(newContent);
-    await updateField(blockId, 'properties.content', newContent);
+    await updateProperty(
+      blockId,
+      'content',
+      newContent,
+      data as MarkdownBlockNodeData
+    );
   };
 
   const renderSkeletonState = () => (

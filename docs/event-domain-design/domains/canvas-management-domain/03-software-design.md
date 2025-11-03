@@ -5,9 +5,10 @@
 **도메인**: Canvas Management Domain  
 **작성자**: 시니어개발자 + 아키텍트  
 **작성일**: 2025-10-19  
-**버전**: v1.1
+**버전**: v1.2
 **Process Model 참조**: `02-process-model.md`  
 **다음 단계**: `technical-specification.md` (Backend), `user-flow.md` (Frontend)
+**최근 업데이트**: 2025-10-27 - SSOT BlockView 도입, 서비스 인터페이스 명명 규칙 적용
 
 ---
 
@@ -95,33 +96,40 @@ Canvas Management Domain은 **단일 Bounded Context**로 구성되어 있으며
 
 **Root Entity**: Edge (식별자: EdgeId)
 
+**⚠️ Schema Change (리팩토링 완료)**: 
+- 엣지는 이제 `blocks` 대신 `block_mounts`를 직접 참조합니다
+- `sourceBlockId`, `targetBlockId` → `sourceBlockMountId`, `targetBlockMountId`로 변경
+- **Rationale**: 엣지는 특정 페이지에서의 블럭 인스턴스 간 시각적 연결을 표현 (페이지별 연결 관계)
+- **Performance**: 페이지 렌더링 시 JOIN 제거 (가장 빈번한 작업)
+- **Logic**: 페이지별 연결 관계, 전역 블럭 관계가 아님
+
 **Commands**:
-- `CreateEdge(pageId: PageId, sourceBlockId: BlockId, targetBlockId: BlockId, edgeType?: EdgeType)`: 블럭 간 연결 엣지 생성
-- `UpdateEdgeType(edgeId: EdgeId, newType: EdgeType)`: 엣지 타입 변경
+- `CreateEdge(pageId: PageId, sourceBlockMountId: BlockMountId, targetBlockMountId: BlockMountId, edgeShape?: EdgeShape, sourceHandle?: string, targetHandle?: string)`: 블럭 마운트 간 연결 엣지 생성
+- `UpdateEdgeShape(edgeId: EdgeId, newShape: EdgeShape)`: 엣지 모양 변경 (기존 EdgeType → EdgeShape)
 - `UpdateEdgeLabel(edgeId: EdgeId, newLabel: string)`: 엣지 레이블 변경
 - `UpdateEdgeStyle(edgeId: EdgeId, newStyle: EdgeStyle)`: 엣지 스타일 변경
 - `DeleteEdge(edgeId: EdgeId)`: 엣지 삭제
-- `DeleteConnectedEdges(pageId: PageId, blockId: BlockId)`: 블럭 삭제 시 연결된 엣지들 일괄 삭제
+- `DeleteConnectedEdges(blockMountId: BlockMountId)`: 블럭 마운트 삭제 시 연결된 엣지들 일괄 삭제
 
 **Events**:
-- `EdgeCreated(edgeId: EdgeId, pageId: PageId, sourceBlockId: BlockId, targetBlockId: BlockId)`: 엣지가 생성됨
-- `EdgeTypeChanged(edgeId: EdgeId, newType: EdgeType)`: 엣지 타입이 변경됨
+- `EdgeCreated(edgeId: EdgeId, pageId: PageId, sourceBlockMountId: BlockMountId, targetBlockMountId: BlockMountId, edgeShape: EdgeShape, sourceHandle?: string, targetHandle?: string)`: 엣지가 생성됨
+- `EdgeShapeChanged(edgeId: EdgeId, newShape: EdgeShape)`: 엣지 모양이 변경됨 (기존 EdgeTypeChanged → EdgeShapeChanged)
 - `EdgeLabelChanged(edgeId: EdgeId, newLabel: string)`: 엣지 레이블이 변경됨
 - `EdgeStyleChanged(edgeId: EdgeId, newStyle: EdgeStyle)`: 엣지 스타일이 변경됨
 - `EdgeDeleted(edgeId: EdgeId)`: 엣지가 삭제됨
-- `ConnectedEdgesDeleted(pageId: PageId, blockId: BlockId, deletedEdgeIds: EdgeId[])`: 연결된 엣지들이 삭제됨
 
 **Invariants**:
 - 엣지는 특정 페이지에서만 존재함
-- 같은 블럭 쌍이라도 페이지마다 다른 엣지 설정 가능
+- 같은 블럭 마운트 쌍이라도 페이지마다 다른 엣지 설정 가능
 - 자기 자신으로의 엣지(self-loop) 허용
-- 블럭 삭제 시 연결된 모든 엣지 자동 삭제 (트랜잭션 단위)
-- 엣지 타입은 React Flow 기본 타입만 허용 (default, straight, step, smoothstep, simplebezier)
+- 블럭 마운트 삭제 시 연결된 모든 엣지 자동 삭제 (트랜잭션 단위)
+- 엣지 모양(EdgeShape)은 React Flow 기본 타입만 허용 (default, straight, step, smoothstep, simplebezier)
+- sourceHandle/targetHandle은 React Flow handle ID ('left', 'right', 'top', 'bottom')
 
 **포함 엔티티**:
-- `EdgeConnection` (Value Object): sourceBlockId, targetBlockId
-- `EdgeType` (Value Object): React Flow 기본 타입 (default, straight, step, smoothstep, simplebezier)
-- `EdgeStyle` (Value Object): 색상, 두께, 화살표 스타일
+- `EdgeConnection` (Value Object): sourceBlockMountId, targetBlockMountId, sourceHandle?, targetHandle?
+- `EdgeShape` (Value Object): React Flow 기본 타입 (default, straight, step, smoothstep, simplebezier)
+- `EdgeStyle` (Value Object): 색상, 두께
 
 ### Viewport Aggregate
 
@@ -196,7 +204,10 @@ Canvas Management Domain은 **단일 Bounded Context**로 구성되어 있으며
 **테스트 환경**: React Flow 훅 Mock + 서버 액션 Mock
 
 **Optimistic UI 제어** (사용자 액션, AI Tool Call):
-- `createBlock(blockType: string, position: Position)`: 즉시 React Flow에 노드 추가 → 서버 액션 호출 → 실패 시 롤백
+- `createBlock(blockType: string, position: Position, userId: string)`: 즉시 React Flow에 노드 추가 → 서버 액션 호출 → 실패 시 롤백
+  - *서버에서 BlockView (SSOT) 형식으로 완전한 데이터 반환*
+  - *생성자 정보(createdBy), 생성 시간(createdAt), 수정 시간(updatedAt) 포함*
+  - *properties, customProperties 등 모든 블럭 정보 포함*
 - `duplicateBlock(originalBlockId: BlockId, position: Position)`: 즉시 React Flow에 노드 추가 → 서버 액션 호출 → 실패 시 롤백
 - `deleteBlock(blockId: BlockId)`: 툴바 버튼 삭제 → 즉시 React Flow에서 제거 → 서버 액션 호출 → 실패 시 복원
 - `handleBlockDeletion(blockIds: BlockId[])`: React Flow 콜백 삭제 → 즉시 React Flow에서 제거 → 서버 액션 호출 → 실패 시 복원
@@ -441,6 +452,7 @@ Block Management Context (Supporting)
   - Block → Canvas: DB JOIN (`block_mounts JOIN blocks`) 직접 조회
 - **통합 방식**: Server Actions (CRUD) + DB JOIN (조회)
 - **공유 인프라**: 동일한 Database, RLS 정책, 워크스페이스 격리
+- **⚠️ Schema Change**: Edge는 이제 `block_mounts`를 직접 참조하여 Block Management와의 의존성 감소
 
 **Canvas Management → React Flow**:
 - **패턴**: Anti-Corruption Layer
@@ -453,30 +465,65 @@ Block Management Context (Supporting)
 
 ## 📖 Read Models (Query Side)
 
+### SSOT (Single Source of Truth) - BlockView
+
+**목적**: 블럭 데이터의 일관성을 보장하는 단일 데이터 모델
+**적용 범위**: 캔버스 렌더링, 블럭 생성, 블럭 조회 등 모든 블럭 관련 데이터 처리
+
+```typescript
+/**
+ * BlockView - SSOT (Single Source of Truth)
+ * 
+ * 모든 블럭 관련 데이터 처리를 위한 통일된 인터페이스
+ * Canvas Management와 Block Management 도메인 간 데이터 일관성 보장
+ */
+interface BlockView {
+  // Canvas Management 정보 (Mount 정보)
+  blockMountId: string;             // 블럭 마운트 ID
+  position: { x: number; y: number }; // 블럭 위치
+  size: { width: number; height: number }; // 블럭 크기
+  zOrder: number;                   // Z-Order 값
+  
+  // Block Management 정보 (Block 정보)
+  blockId: string;                  // 블럭 ID
+  blockType: string;                // 블럭 타입
+  properties: Record<string, any>;  // 블럭 기본 속성
+  customProperties: Record<string, any>; // 블럭 커스텀 속성
+  
+  // 메타데이터 (공통)
+  createdAt: string;                // 생성 시간 (ISO string)
+  updatedAt: string;                // 수정 시간 (ISO string)
+  createdBy: string | CreatedByProfile; // 생성자 정보
+}
+
+interface CreatedByProfile {
+  id: string;                       // 프로필 ID
+  name: string;                     // 사용자 이름
+  avatarUrl?: string;               // 아바타 URL
+}
+```
+
 ### CanvasView (Scenario 0)
 
 **목적**: 페이지 접근 시 캔버스 전체 상태 조회 (블럭, 엣지, 뷰포트 정보)
 
 ```typescript
-interface CanvasView {
-  pageId: PageId;                   // 페이지 ID
-  blocks: BlockMountView[];         // 페이지에 마운트된 블럭 목록
+interface CanvasViewData {
+  pageId: string;                   // 페이지 ID
+  blocks: BlockView[];              // 페이지에 마운트된 블럭 목록 (SSOT 적용)
   edges: EdgeView[];                // 페이지 내 엣지 목록
-  viewport: ViewportView;           // 뷰포트 상태
-  totalBlockCount: number;          // 전체 블럭 개수
-  totalEdgeCount: number;           // 전체 엣지 개수
+  viewport: ViewportView | null;    // 뷰포트 상태
 }
 
 interface BlockMountView {
-  blockMountId: BlockMountId;       // 블럭 마운트 ID
-  blockId: BlockId;                 // 블럭 ID
-  position: Position;               // 블럭 위치 (x, y)
-  size: Size;                       // 블럭 크기 (width, height)
-  zOrder: ZOrder;                   // Z-Order 값
-  blockType: string;                // 블럭 타입 (Block Domain에서 제공)
-  blockData: any;                   // 블럭 속성 (Block Domain에서 제공)
-  createdAt: Date;                  // 마운트 생성 시간
-  updatedAt: Date;                  // 마운트 수정 시간
+  blockMountId: string;             // 블럭 마운트 ID
+  pageId: string;                   // 페이지 ID
+  blockId: string;                  // 블럭 ID
+  position: { x: number; y: number }; // 블럭 위치
+  size: { width: number; height: number }; // 블럭 크기
+  zOrder: number;                   // Z-Order 값
+  createdAt: string;                // 마운트 생성 시간
+  updatedAt: string;                // 마운트 수정 시간
 }
 
 interface EdgeView {
@@ -521,9 +568,43 @@ interface ViewportView {
 
 Service 레이어는 여러 Aggregate와 외부 도메인을 조율하는 **업무 진행 책임자**입니다.
 
-### CanvasManagementService (Service Layer)
+### Service Layer Architecture
+
+**서비스 인터페이스 명명 규칙**:
+- **인터페이스**: `I[ServiceName]` (예: `ICanvasBlockMountService`)
+- **구현체**: `[ServiceName]` (예: `CanvasBlockMountService` - Drizzle ORM 사용)
+- **목적**: 특정 ORM/DB에 agnostic한 인터페이스 설계
+
+### 새로운 Service Layer 구조
+
+#### ICanvasBlockMountService / CanvasBlockMountService
+**역할**: 블럭 마운트 관련 비즈니스 로직 담당
+**주요 메서드**:
+- `createAndMountBlock()`: 블럭 생성 후 마운트
+- `updateBlockPosition()`: 블럭 위치 업데이트
+- `updateBlockSize()`: 블럭 크기 업데이트
+- `deleteBlockMount()`: 블럭 마운트 삭제
+
+#### ICanvasQueryService / CanvasQueryService
+**역할**: 캔버스 데이터 조회 (Read Model 패턴)
+**주요 메서드**:
+- `getCanvasView()`: 페이지별 캔버스 전체 데이터 조회
+
+#### ICanvasEdgeService / CanvasEdgeService
+**역할**: 엣지 생성 및 관리 비즈니스 로직 담당
+**⚠️ Schema Change**: `block_mounts`를 직접 참조하여 Block Management와의 의존성 감소
+**주요 메서드**:
+- `createEdge()`: 엣지 생성 (sourceBlockMountId, targetBlockMountId 사용)
+- `updateEdgeShape()`: 엣지 모양 업데이트 (EdgeShape 사용)
+- `updateEdgeLabel()`: 엣지 레이블 업데이트
+- `updateEdgeStyle()`: 엣지 스타일 업데이트
+- `deleteEdge()`: 엣지 삭제
+- `deleteConnectedEdges()`: 블럭 마운트 삭제 시 연결된 엣지 일괄 삭제 (findByConnectedBlockMountId 사용)
+
+### CanvasManagementService (Service Layer) - Deprecated
 
 **역할**: Canvas, Block Mount, Edge, Viewport Aggregate를 조율하고, Workspace Management, Block Domain, React Flow와 통합
+**상태**: 간소화됨 - 직접 서비스 사용으로 전환
 
 **주요 책임** (Scenario 0~9):
 - **Scenario 1**: 블럭 생성 및 마운팅

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useReactFlow } from '@xyflow/react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useReactFlow, useNodes } from '@xyflow/react';
 import { ChevronsRight, Expand, Share2, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,9 +22,10 @@ export interface EditorPanelProps {
  * - Style Section, Property Section
  */
 export function EditorPanel({ blockId, isOpen }: EditorPanelProps) {
-  const { getNode, updateNode, fitView, setCenter, getZoom, getViewport } =
+  const { updateNode, fitView, setCenter, getZoom, getViewport, getNode } =
     useReactFlow();
   const canvasMode = useCanvasMode();
+  const nodes = useNodes(); // Reactive nodes subscription
 
   // Animation state
   const [isAnimating, setIsAnimating] = useState(false);
@@ -32,8 +33,11 @@ export function EditorPanel({ blockId, isOpen }: EditorPanelProps) {
   const [title, setTitle] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // React Flow Store에서 블록 데이터 읽기
-  const blockNode = getNode(blockId);
+  // React Flow Store에서 블록 데이터 읽기 (reactive)
+  const blockNode = useMemo(
+    () => nodes.find(node => node.id === blockId),
+    [nodes, blockId]
+  );
   const blockData = blockNode?.data;
 
   // Title 상태 동기화
@@ -158,13 +162,18 @@ export function EditorPanel({ blockId, isOpen }: EditorPanelProps) {
         updateNode(blockId, { data: updatedData });
       }
 
+      // workspaceId와 orgId 확인
+      if (!blockData.workspaceId || !blockData.orgId) {
+        console.error('Missing workspaceId or orgId in blockData');
+        return;
+      }
+
       // Server action 호출
       const result = await updateBlockTitleAction({
         blockId: blockIdValue,
         title: trimmedTitle,
-        pageId: blockData.pageId as string | undefined,
-        orgId: blockData.orgId as string | undefined,
-        workspaceId: blockData.workspaceId as string | undefined,
+        workspaceId: blockData.workspaceId,
+        orgId: blockData.orgId,
       });
 
       if (!result.success) {

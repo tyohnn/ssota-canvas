@@ -160,6 +160,7 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 - **반환**: BlockDTO (생성된 블럭 정보)
 
 **Events**: 블럭이 생성되었다 (Block Created in Block Management Domain)
+- *생성자 정보 (createdBy), 생성 시간 (createdAt), 수정 시간 (updatedAt) 포함*
 
 ### Sequence 2: 생성된 블럭을 페이지에 마운트
 
@@ -170,9 +171,9 @@ Canvas Management Domain의 핵심 프로세스를 실제 상호작용 순서에
 - "블럭은 반드시 하나 이상의 페이지에 마운트되어야 함"
 - "하나의 블럭은 여러 페이지에 마운트 가능하지만, 같은 페이지에는 한 번만 마운트 가능"
 - "초기 위치는 클릭한 좌표, 초기 크기는 블럭 타입별 기본값"
-
 **Read Model** (시스템에서 사용자에게 제공하는 정보):
 - Block Management에서 생성된 블럭 정보 (BlockDTO)
+  - *생성자 정보 (createdBy), 생성 시간 (createdAt), 수정 시간 (updatedAt) 포함*
 - 마운트할 페이지 정보
 - 마운트 위치 정보 (클릭한 좌표)
 

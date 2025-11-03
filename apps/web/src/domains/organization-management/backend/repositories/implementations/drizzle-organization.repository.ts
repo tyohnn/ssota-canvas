@@ -107,29 +107,57 @@ export class DrizzleOrganizationRepository implements OrganizationRepository {
 
   async save(organizationAggregate: OrganizationAggregate): Promise<void> {
     const db = await createDrizzleSupabaseClient();
+    let currentId = organizationAggregate.id.value;
+    let attempts = 0;
+    const maxAttempts = 3;
 
-    await db.rls(tx =>
-      tx
-        .insert(organizations)
-        .values({
-          id: organizationAggregate.id.value,
-          name: organizationAggregate.entity.name,
-          organization_type: organizationAggregate.entity.organizationType,
-          owner_id: organizationAggregate.entity.ownerId.value,
-          is_default: organizationAggregate.entity.isDefault,
-          created_at: organizationAggregate.entity.createdAt,
-          updated_at: organizationAggregate.entity.updatedAt,
-        })
-        .onConflictDoUpdate({
-          target: organizations.id,
-          set: {
+    while (attempts < maxAttempts) {
+      try {
+        await db.rls(tx =>
+          tx.insert(organizations).values({
+            id: currentId,
             name: organizationAggregate.entity.name,
             organization_type: organizationAggregate.entity.organizationType,
+            owner_id: organizationAggregate.entity.ownerId.value,
             is_default: organizationAggregate.entity.isDefault,
+            created_at: organizationAggregate.entity.createdAt,
             updated_at: organizationAggregate.entity.updatedAt,
-          },
-        })
-    );
+          })
+        );
+
+        // 성공 시 종료
+        return;
+      } catch (error) {
+        // UUID 충돌인지 확인 (PostgreSQL unique constraint violation)
+        if (
+          (error as any).code === '23505' &&
+          (error as any).constraint === 'organizations_pkey'
+        ) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            // 새로운 ID 생성
+            const newId = OrganizationId.generate().value;
+            console.warn(
+              `[DrizzleOrganizationRepository] ID collision detected (attempt ${attempts}), retrying with new ID: ${newId}`
+            );
+            currentId = newId;
+          } else {
+            console.error(
+              '❌ [DrizzleOrganizationRepository] Failed to generate unique ID after multiple attempts'
+            );
+            throw new Error(
+              'Failed to generate unique ID after multiple attempts'
+            );
+          }
+        } else {
+          console.error(
+            '❌ [DrizzleOrganizationRepository.save] Failed to save organization:',
+            error
+          );
+          throw error;
+        }
+      }
+    }
   }
 
   async delete(id: OrganizationId): Promise<void> {

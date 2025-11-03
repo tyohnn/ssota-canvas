@@ -59,20 +59,22 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Block Managem
 
 **핵심 개념**: "재사용 가능한 콘텐츠 단위로, 유연한 속성 시스템과 블록 타입별 특화 기능(Tools)을 제공하며, Canvas에서 마운트하여 사용할 수 있는 범용 블록"
 
-#### Commands (받는 명령)
+#### Commands (받는 명령) - 실제 구현 기준
 **블록 생명주기**:
-- **CreateBlock**: 새로운 블록 생성 (Canvas Management 요청)
-- **DeleteBlock**: 블록 삭제 (소프트 삭제)
+- **CreateBlock**: 새로운 블록 생성 (blockId, userId, workspaceId, blockType, title)
+- **UpdateBlock**: 블록 정보 업데이트 (blockId, updateData: {title?, properties?})
+- **UpdateBlockProperty**: 블록 속성 업데이트 (blockId, propertyPath, value, workspaceId)
+- **DeleteBlock**: 블록 삭제 (소프트 삭제) (blockId)
+- **DuplicateBlock**: 블록 복제 (userId)
 
-**커스텀 속성 관리**:
-- **AddCustomProperty**: 커스텀 속성 추가
-- **ChangePropertyType**: 속성 타입 변경
-- **ReorderProperty**: 속성 순서 변경
-- **TogglePropertyVisibility**: 속성 가시성 설정
-- **DeleteCustomProperty**: 커스텀 속성 삭제
+**참고**: 커스텀 속성 관리, 미디어 관리, 블록 툴 실행은 Aggregate 레벨이 아닌 Entity나 Service 레벨에서 처리됨
+- 커스텀 속성: Block Entity의 addCustomPropertyDefinition, updateCustomPropertyDefinition, removeCustomPropertyDefinition 메서드
+- 미디어 관리: BlockToolService에서 별도 처리 (미구현)
+- 블록 툴 실행: BlockToolService에서 별도 처리
 
 **속성 값 관리**:
 - **SetPropertyValue**: 속성 값 설정
+- **UpdateBlockProperty**: 블록 속성 업데이트 (기본 속성 및 커스텀 속성)
 - **ClearPropertyValue**: 속성 값 초기화
 
 **미디어 관리**:
@@ -85,35 +87,16 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Block Managem
 
 #### Events (발생 이벤트)
 **블록 생명주기**:
-- **BlockCreated**: 블록이 생성되었다
-- **BlockValidated**: 블록이 검증되었다
-- **BlockTypeDefaultPropertySet**: 블록 타입 기본 속성이 설정되었다
-- **BlockDeleted**: 블록이 삭제되었다
+- **BlockCreated**: 블록이 생성되었다 (blockId, blockType, title, properties, customProperties, workspaceId, userId)
+- **BlockUpdated**: 블록이 업데이트되었다 (blockId, updateData)
+- **BlockPropertyUpdated**: 블록 속성이 업데이트되었다 (blockId, propertyPath, oldValue, newValue)
+- **BlockDeleted**: 블록이 삭제되었다 (blockId, workspaceId)
+- **BlockDuplicated**: 블록이 복제되었다 (originalBlockId, duplicatedBlockId)
 
-**커스텀 속성**:
-- **CustomPropertyAdded**: 커스텀 속성이 추가되었다
-- **CustomPropertyTypeChanged**: 커스텀 속성 타입이 변경되었다
-- **PropertyOrderSet**: 속성 순서가 설정되었다
-- **PropertyVisibilityChanged**: 속성 가시성이 변경되었다
-- **CustomPropertyDeleted**: 커스텀 속성이 삭제되었다
-
-**속성 값**:
-- **PropertyValueSet**: 속성 값이 설정되었다
-- **PropertyValueValidated**: 속성 값이 검증되었다
-- **PropertyValueInitialized**: 속성 값이 초기화되었다
-- **EditedTimePropertyAutoUpdated**: 편집시각이 자동 업데이트되었다
-
-**미디어 파일**:
-- **ImageUploadedToStorage**: 이미지가 Supabase Storage에 업로드되었다
-- **MediaPublicURLGenerated**: 미디어 Public URL이 생성되었다
-- **MediaFileURLRemoved**: 미디어 파일 URL이 속성에서 제거되었다
-
-**블록 툴**:
-- **BlockToolExecutedByUser**: 블록 툴이 사용자에 의해 실행되었다
-- **BlockToolExecutedByAI**: 블록 툴이 AI에 의해 실행되었다
-- **BlockToolExecutionStarted**: 블록 툴 실행이 시작되었다
-- **BlockToolExecutionCompleted**: 블록 툴 실행이 완료되었다
-- **NewBlocksCreatedFromToolResult**: 툴 실행 결과로 새 블록들이 생성되었다
+**참고**: 
+- 커스텀 속성, 미디어, 블록 툴 관련 이벤트는 현재 Aggregate 레벨에서 발생하지 않음
+- 커스텀 속성 변경은 Entity 레벨에서 처리되며 Service에서 로깅 처리
+- 미디어 및 블록 툴 실행은 BlockToolService에서 별도 처리 (미구현)
 
 #### 핵심 불변식 (Invariants)
 **블록 생명주기**:
@@ -130,16 +113,18 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Block Managem
 7. 속성 값은 속성 타입에 맞는 형식이어야 한다 (타입별 값 검증)
 8. 프로필 속성은 워크스페이스 멤버만 할당 가능하다
 9. Readonly 속성(작성자, 생성시각, 편집시각)은 시스템만 설정 가능하다
+10. 블록 속성 업데이트 시 속성 경로는 properties.* 형태여야 한다
+11. 블록 속성 업데이트 시 이전 값과 새 값을 기록해야 한다
 
 **미디어 파일 관리**:
-10. 이미지는 최대 10MB, 파일은 최대 50MB까지만 업로드 가능하다
-11. 지원되는 MIME 타입만 업로드 가능하다
-12. 미디어 파일 삭제 시 properties에서 URL만 제거하고, Storage 파일은 보존한다
+12. 이미지는 최대 10MB, 파일은 최대 50MB까지만 업로드 가능하다
+13. 지원되는 MIME 타입만 업로드 가능하다
+14. 미디어 파일 삭제 시 properties에서 URL만 제거하고, Storage 파일은 보존한다
 
 **블록 툴 실행**:
-13. 툴 실행 시 사용자 권한 확인이 필요하다
-14. AI 툴 실행 시에도 사용자 권한 기반으로 확인한다
-15. 툴 실행 타임아웃은 30초로 제한된다
+15. 툴 실행 시 사용자 권한 확인이 필요하다
+16. AI 툴 실행 시에도 사용자 권한 기반으로 확인한다
+17. 툴 실행 타임아웃은 30초로 제한된다
 
 #### 속성 (Properties)
 ```typescript
@@ -206,27 +191,34 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Block Managem
 }
 ```
 
-#### 비즈니스 로직
-**블록 생명주기**:
-- **createBlock()**: 블록 타입 검증, 워크스페이스 권한 확인, 타입별 기본 속성 초기화
-- **deleteBlock()**: 삭제 권한 검증, deleted_at 타임스탬프 설정
+#### 비즈니스 로직 (실제 구현 기준)
+**블록 생명주기 (Aggregate 레벨)**:
+- **create()**: Block.create() 호출, BlockPropertiesFactory로 타입별 기본 속성 초기화, BlockCreated 이벤트 발생
+- **update()**: Block.update() 호출, BlockUpdated 이벤트 발생
+- **updateProperty()**: properties.xxx 경로만 처리, Block.update()로 속성 업데이트, BlockPropertyUpdated 이벤트 발생
+- **delete()**: Block.markAsDeleted() 호출, BlockDeleted 이벤트 발생
+- **duplicate()**: Block.duplicate() 호출, BlockDuplicated 이벤트 발생
+- **restore()**: Block.restore() 호출, BlockUpdated 이벤트 발생
 
-**커스텀 속성 관리**:
-- **addCustomProperty()**: 속성 개수 제한 확인(최대 50개), 속성 이름 중복 확인, 순서 자동 할당
-- **changePropertyType()**: 기존 값 보존, 타입별 설정 적용, 호환성 검사
-- **deleteCustomProperty()**: custom_properties와 properties에서 동시 제거 (트랜잭션)
+**커스텀 속성 관리 (Entity 레벨)**:
+- **addCustomPropertyDefinition()**: Block Entity 메서드, customProperties 배열에 추가, updatedAt 갱신 (이벤트 없음)
+- **updateCustomPropertyDefinition()**: Block Entity 메서드, customProperties 배열 업데이트, updatedAt 갱신 (이벤트 없음)
+- **removeCustomPropertyDefinition()**: Block Entity 메서드, customProperties 배열에서 제거, updatedAt 갱신 (이벤트 없음)
+- 참고: 정의-값 동시 업데이트는 Service 레벨에서 처리
 
-**속성 값 관리**:
-- **setPropertyValue()**: 타입별 값 검증, 프로필 속성 멤버 검증, 값 변환
-- **clearPropertyValue()**: properties JSONB에서 값 제거
+**속성 값 관리 (Aggregate/Entity 레벨)**:
+- **updateProperty()**: Aggregate 메서드, properties.xxx 경로만 지원, BlockPropertiesVO Value Object로 검증 및 업데이트
+
+**블록 타입 및 툴 (Entity 레벨)**:
+- **updateBlockType()**: Block Entity 메서드, 블록 타입 변경 시 기본 속성 재설정
+- **getAvailableTools()**: Block Entity 메서드, BlockType Value Object에서 툴 목록 반환
+- **supportsTool()**: Block Entity 메서드, 특정 툴 지원 여부 확인
 
 **미디어 파일 관리**:
-- **uploadMedia()**: 파일 크기 검증, MIME 타입 검증, Supabase Storage 업로드, Public URL 생성
-- **deleteMediaFile()**: properties에서 URL 제거, Storage 파일 보존
+- 현재 Aggregate/Entity 레벨에서 직접 구현되지 않음, BlockToolService에서 별도 처리 예정 (미구현)
 
 **블록 툴 실행**:
-- **executeBlockTool()**: 툴 타입 검증, 파라미터 검증, 실행 권한 확인, 결과 파싱, 새 블록 생성
-- **executeBlockToolByAI()**: AI 권한 검증, 툴 실행, AI에게 결과 전달
+- 현재 Aggregate 레벨에서 직접 구현되지 않음, BlockToolService에서 별도 처리
 
 ---
 
@@ -409,18 +401,23 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Block Managem
 
 ## 💡 핵심 설계 결정
 
-### 1. Properties 저장 전략: 정의-값 분리 (JSONB)
+### 1. Properties 저장 전략: 정의-값 분리 (JSONB) - 실제 구현 기준
 - **문제**: 커스텀 속성 정의와 값을 어떻게 저장할 것인가?
 - **해결**: custom_properties(정의)와 properties(값)를 JSONB로 분리 저장
+- **실제 구현**:
+  - properties: JSONB 객체, 속성 값만 저장 (BlockPropertiesVO Value Objects로 타입별 검증)
+  - custom_properties: JSONB 배열, 속성 정의만 저장 (CustomPropertyDefinitionVO Value Objects)
+  - BlockPropertiesFactory로 블록 타입별 기본 속성 초기화
 - **대안**: 
   - 단일 JSONB에 정의와 값 혼합 저장
   - 별도 properties 테이블 생성 (관계형 모델)
   - 속성 타입별 별도 테이블 생성
-- **결정 이유**: 
+- **결정 이유** (실제 구현 반영): 
   - **컴포넌트화 호환**: 향후 블록 컴포넌트화 시 정의는 컴포넌트에서 관리, 값만 인스턴스가 가짐
   - **선택적 파싱**: Canvas 조회 시 properties만 선택적으로 파싱하여 성능 향상
   - **명확한 데이터 구조**: 정의와 값의 책임 분리로 이해하기 쉬움
-  - **트랜잭션 최적화**: 속성 추가/삭제 시 정의와 값 동시 업데이트 용이
+  - **타입 안전성**: BlockPropertiesVO Value Objects로 타입별 검증 및 변환
+  - **트랜잭션 최적화**: 속성 추가/삭제 시 정의와 값 동시 업데이트 용이 (Service 레벨 처리)
 
 ### 2. Canvas Management의 직접 DB 조회 방식 선택
 - **문제**: Canvas Management Domain에서 블록 정보를 어떻게 가져올 것인가?
@@ -449,17 +446,21 @@ Process Model에서 식별된 System을 Aggregate로 전환하고, Block Managem
   - 데이터 보존으로 감사 추적 가능
   - 추후 배치 작업으로 오래된 블록 정리 가능
 
-### 4. 단일 Block Aggregate로 통합
+### 4. 단일 Block Aggregate로 통합 (실제 구현 기준)
 - **문제**: Block Management Domain의 Aggregate를 어떻게 나눌 것인가?
-- **해결**: 단일 Block Aggregate로 모든 기능 통합
+- **해결**: 단일 Block Aggregate로 핵심 기능 통합, 일부 기능은 Entity/Service 레벨 처리
+- **실제 구현**:
+  - **Aggregate 레벨**: 블록 생명주기(생성, 업데이트, 삭제, 복제, 속성 업데이트)
+  - **Entity 레벨**: 커스텀 속성 관리(addCustomPropertyDefinition, updateCustomPropertyDefinition, removeCustomPropertyDefinition)
+  - **Service 레벨**: 미디어 관리, 블록 툴 실행(BlockToolService)
 - **대안**: 
   - Property Aggregate 분리
   - BlockTool Aggregate 분리
   - Media Aggregate 분리
-- **결정 이유**: 
-  - 모든 System이 Block 중심의 작업 수행
-  - 트랜잭션 경계가 Block 단위로 명확함
-  - Properties와 Tools는 Block 없이 독립적으로 존재할 수 없음
+- **결정 이유** (실제 구현 반영): 
+  - 블록 생명주기는 Block 중심으로 Aggregate 경계 명확
+  - 커스텀 속성은 Entity 메서드로 충분하며 이벤트 발행 불필요
+  - 미디어/툴 실행은 Service 레벨에서 별도 처리하여 Aggregate 단순화
   - 과도한 설계 방지 및 빠른 구현
   - 향후 필요 시 점진적으로 분리 가능
 
@@ -522,25 +523,30 @@ Block Management Domain은 Block Aggregate 중심으로 설계되었으며, Serv
 
 ### Block Management Service의 역할
 
-**블록 생명주기 관리**:
-- Canvas Management가 블록 생성을 요청하면, Block Management Service는 워크스페이스 권한을 확인하고, 블록 타입을 검증한 뒤 타입별 기본 속성과 함께 블록을 생성합니다.
-- 블록 삭제 요청 시, 삭제 권한을 확인하고 deleted_at 타임스탬프를 설정하여 소프트 삭제를 처리합니다.
+**블록 생명주기 관리** (실제 구현 기준):
+- Canvas Management가 블록 생성을 요청하면, Block Management Service는 워크스페이스 권한을 확인하고, BlockAggregate.create()를 호출하여 블록을 생성합니다.
+- 블록 업데이트 요청 시, BlockAggregate.update() 또는 updateProperty()를 호출합니다.
+- 블록 삭제 요청 시, BlockAggregate.delete()를 호출하여 deleted_at 타임스탬프를 설정합니다.
+- 블록 복제 요청 시, BlockAggregate.duplicate()를 호출하여 새 블록을 생성합니다.
 
-**커스텀 속성 관리**:
-- 커스텀 속성 추가 요청이 들어오면, 속성 개수 제한(최대 50개)을 확인하고, 속성 이름 중복을 방지한 뒤 custom_properties 배열에 정의를 추가하고 properties에 빈 값을 초기화합니다.
-- 속성 타입 변경 시, 기존 값을 보존하면서 custom_properties의 타입 정의를 업데이트하고, properties에서 호환성을 검사합니다.
-- 속성 삭제 시, custom_properties와 properties에서 동시에 제거하여 정의-값 싱크를 유지합니다 (트랜잭션 처리).
+**커스텀 속성 관리** (실제 구현 기준):
+- 커스텀 속성 추가/수정/삭제는 Block Entity의 메서드를 직접 호출하여 처리합니다.
+- BlockPropertyService에서 커스텀 속성 관리 로직을 처리합니다 (현재 부분 구현).
+- 속성 개수 제한(최대 50개)은 현재 미구현이며 추후 Entity 레벨에서 검증 예정.
 
-**속성 값 관리**:
-- 속성 값 설정 요청이 들어오면, 속성 타입에 맞는 값 검증을 수행하고(프로필 속성은 워크스페이스 멤버 확인), properties JSONB에 값을 저장한 뒤 편집시각을 자동으로 업데이트합니다.
+**속성 값 관리** (실제 구현 기준):
+- 속성 값 업데이트 요청이 들어오면, BlockAggregate.updateProperty()를 호출하여 properties.xxx 경로의 속성만 업데이트합니다.
+- BlockPropertiesVO Value Objects에서 타입별 값 검증을 수행합니다.
+- 프로필 속성 멤버 검증은 현재 미구현 (Workspace Management 연동 필요).
 
 **미디어 파일 관리**:
-- 미디어 업로드 요청이 들어오면, 파일 크기와 MIME 타입을 검증한 뒤 Supabase Storage Adapter를 통해 파일을 업로드하고, 생성된 Public URL을 properties에 저장합니다.
-- 미디어 삭제 요청 시, properties에서 URL만 제거하고 Supabase Storage의 파일은 보존합니다 (재사용 가능성).
+- 현재 BlockManagementService에서 직접 처리하지 않음, BlockToolService에서 별도 처리 예정 (미구현).
 
-**블록 툴 실행**:
-- 툴 실행 요청이 들어오면, 툴 타입을 검증하고 실행 권한을 확인한 뒤 툴 로직을 실행합니다. 툴 실행 결과를 파싱하여 새 블록들을 생성하고, Canvas Management에 새 블록 정보를 전달합니다.
-- AI 툴 실행 시에도 사용자 권한을 기반으로 검증하며, 실행 결과를 AI에게 전달합니다.
+**블록 툴 실행** (실제 구현 기준):
+- 툴 실행 요청이 들어오면, BlockToolService.executeBlockTool()을 호출합니다.
+- Block Entity의 supportsTool()로 툴 지원 여부를 확인합니다.
+- 툴 실행 결과는 새 블록 생성 및 Canvas Management에 전달됩니다.
+- AI 툴 실행은 BlockToolService.executeBlockToolByAI()로 처리 (현재 Mock 구현).
 
 **실패 대응 전략**:
 - 속성 추가/삭제 실패 시 정의-값 싱크 유지를 위해 트랜잭션 롤백
