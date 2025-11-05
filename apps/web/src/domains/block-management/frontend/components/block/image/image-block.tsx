@@ -16,6 +16,7 @@ import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
+import { refreshImageUrlAction } from '@/domains/storage/actions/storage.actions';
 
 /**
  * Image Block Component
@@ -33,7 +34,15 @@ export const ImageBlock = memo(function ImageBlock({
   const properties = nodeData.properties as ImageBlockProperties;
 
   // Properties destructuring
-  const { imageUrl, objectFit, caption, alt } = properties;
+  const {
+    imageUrl,
+    imageSource,
+    objectFit,
+    caption,
+    alt,
+    unsplashAuthorName,
+    unsplashAuthorLink,
+  } = properties;
 
   // Dimensions
   const width = typeof nodeW === 'number' ? nodeW : 300;
@@ -45,9 +54,12 @@ export const ImageBlock = memo(function ImageBlock({
   const [hasError, setHasError] = useState(false);
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [draftCaption, setDraftCaption] = useState(caption || '');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // 원본 caption 저장 (서버에 저장된 값)
   const originalCaptionRef = useRef(caption || '');
+  // URL 재생성 시도 횟수 추적 (무한 루프 방지)
+  const retryCountRef = useRef(0);
 
   // Hooks
   const { updateProperty } = useBlockPropertyUpdate();
@@ -114,10 +126,44 @@ export const ImageBlock = memo(function ImageBlock({
     setHasError(false);
   }, []);
 
-  const handleImageError = useCallback(() => {
+  const handleImageError = useCallback(async () => {
     setIsLoading(false);
-    setHasError(true);
-  }, []);
+
+    // 이미 재시도했거나 재생성 중이면 에러 상태만 표시
+    if (retryCountRef.current > 0 || isRefreshing) {
+      setHasError(true);
+      return;
+    }
+
+    // URL 재생성 시도 (한 번만)
+    retryCountRef.current += 1;
+    setIsRefreshing(true);
+
+    try {
+      const result = await refreshImageUrlAction(nodeData.blockId);
+
+      if (result.success && result.url) {
+        // 새 URL로 업데이트 (로컬 상태만 업데이트, DB는 Server Action에서 이미 업데이트됨)
+        await updateProperty(
+          nodeData.blockId,
+          'properties.imageUrl',
+          result.url,
+          nodeData
+        );
+        // 로딩 상태로 돌려서 이미지 재로드 시도
+        setIsLoading(true);
+        setHasError(false);
+      } else {
+        console.error('Failed to refresh image URL:', result.error);
+        setHasError(true);
+      }
+    } catch (error) {
+      console.error('Error refreshing image URL:', error);
+      setHasError(true);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [nodeData, updateProperty, isRefreshing]);
 
   const handleCaptionClick = useCallback(() => {
     // 편집 시작 시 현재 값을 원본으로 저장
@@ -240,17 +286,11 @@ export const ImageBlock = memo(function ImageBlock({
                   )}
                 </div>
               )
-            ) : hasError ? (
-              // Error state
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
-                <ImageOff className="h-12 w-12 mb-2" />
-                <span className="text-sm">이미지 로드 실패</span>
-              </div>
             ) : (
-              // Image wrapper
+              // Image wrapper (에러 포함)
               <>
                 {/* Loading skeleton */}
-                {isLoading && (
+                {isLoading && !hasError && (
                   <div className="absolute inset-0 bg-muted animate-pulse" />
                 )}
 
@@ -265,10 +305,55 @@ export const ImageBlock = memo(function ImageBlock({
                     objectFit === 'contain' && 'object-contain',
                     objectFit === 'cover' && 'object-cover',
                     objectFit === 'fill' && 'object-fill',
-                    isLoading && 'opacity-0',
+                    (isLoading || hasError) && 'opacity-0', // 로딩 중이거나 에러 시 숨김
                     'transition-opacity duration-300'
                   )}
                 />
+
+                {/* 에러 오버레이 */}
+                {hasError && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-muted/50 backdrop-blur-sm">
+                    <ImageOff className="h-12 w-12 mb-2" />
+                    <span className="text-sm font-medium">
+                      {isRefreshing ? 'URL 재생성 중...' : '이미지 로드 실패'}
+                    </span>
+                    {isRefreshing && (
+                      <div className="mt-2 h-1 w-24 bg-muted-foreground/20 rounded-full overflow-hidden">
+                        <div className="h-full w-1/2 bg-muted-foreground/50 animate-pulse" />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Unsplash 저자 정보 오버레이 (호버 시 표시) */}
+                {imageSource === 'unsplash' &&
+                  unsplashAuthorName &&
+                  unsplashAuthorLink && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 opacity-0 hover:opacity-100 transition-opacity duration-200">
+                      <p className="text-xs text-white">
+                        Photo by{' '}
+                        <a
+                          href={unsplashAuthorLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-blue-300 transition-colors"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          {unsplashAuthorName}
+                        </a>
+                        {' on '}
+                        <a
+                          href="https://unsplash.com?utm_source=ssota&utm_medium=referral"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-blue-300 transition-colors"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          Unsplash
+                        </a>
+                      </p>
+                    </div>
+                  )}
 
                 {/* 업로드 중 Skeleton Overlay */}
                 {isUploading && (

@@ -52,6 +52,12 @@ export type AspectRatio = 'original' | '16:9' | '4:3' | '1:1' | 'custom';
 export type ObjectFit = 'contain' | 'cover' | 'fill';
 
 /**
+ * Image Source Type
+ * 이미지의 출처를 나타냅니다.
+ */
+export type ImageSource = 'user-upload' | 'unsplash';
+
+/**
  * Property Type Enum - 지원하는 속성 타입들
  */
 export enum PropertyType {

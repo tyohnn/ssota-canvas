@@ -9,6 +9,7 @@ export { BlockPropertiesVO } from './base.vo';
 
 // Common types
 export { TextAlign, FontSize, ShapeType } from './common-types';
+export type { ObjectFit, ImageSource } from './common-types';
 
 // Concrete implementations
 export { TextBlockPropertiesVO, type TextBlockProperties } from './text.vo';

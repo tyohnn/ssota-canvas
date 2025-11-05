@@ -68,9 +68,16 @@
 ### Properties Interface
 
 ```typescript
+/**
+ * Image Source Enum
+ * 이미지의 출처를 나타냅니다.
+ */
+export type ImageSource = 'user-upload' | 'unsplash';
+
 export interface ImageBlockProperties {
   // 이미지 정보
-  imageUrl: string;                   // Supabase Storage URL
+  imageUrl: string;                   // Supabase Storage URL 또는 Unsplash URL
+  imageSource: ImageSource;           // 이미지 출처
   
   // 표시 옵션
   objectFit: 'contain' | 'cover' | 'fill';
@@ -80,6 +87,10 @@ export interface ImageBlockProperties {
   
   // 접근성
   alt?: string;                       // 대체 텍스트 (접근성)
+  
+  // Unsplash 저작권 정보 (imageSource가 'unsplash'일 때만 사용)
+  unsplashAuthorName?: string;        // Unsplash 저자 이름
+  unsplashAuthorLink?: string;        // Unsplash 저자 프로필 링크 (UTM 포함)
 }
 
 // Note: filename, mimeType, size, width, height, uploadedAt 등의 메타데이터는
@@ -91,7 +102,7 @@ export interface ImageBlockProperties {
 
 #### 1. imageUrl
 - **타입**: `string`
-- **설명**: 이미지 파일 URL (Supabase Storage)
+- **설명**: 이미지 파일 URL (Supabase Storage 또는 Unsplash)
 - **기본값**: `''`
 - **필수**: ✅ Yes
 - **UI Schema**:
@@ -100,13 +111,20 @@ export interface ImageBlockProperties {
     label: '이미지 URL',
     inputType: 'url',
     icon: 'Image',
-    description: '이미지 파일 URL (업로드 시 자동 설정)',
+    description: '이미지 파일 URL (업로드 또는 Unsplash 검색으로 자동 설정)',
     order: 1,
-    readonly: true,  // 파일 업로드로만 설정
+    readonly: true,  // 파일 업로드 또는 Unsplash 검색으로만 설정
   }
   ```
 
-#### 2. objectFit
+#### 2. imageSource
+- **타입**: `'user-upload' | 'unsplash'`
+- **설명**: 이미지 출처 (사용자 업로드 또는 Unsplash)
+- **기본값**: `'user-upload'`
+- **필수**: ✅ Yes
+- **에디터 표시**: ❌ No (내부 속성, 자동 설정)
+
+#### 3. objectFit
 - **타입**: `'contain' | 'cover' | 'fill'`
 - **설명**: 이미지 맞춤 방식 (CSS object-fit)
 - **기본값**: `'contain'`
@@ -118,7 +136,7 @@ export interface ImageBlockProperties {
     inputType: 'select',
     icon: 'Maximize',
     description: '이미지를 컨테이너에 맞추는 방식',
-    order: 2,
+    order: 3,
     options: [
       { value: 'contain', label: '전체 표시' },
       { value: 'cover', label: '채우기' },
@@ -127,7 +145,7 @@ export interface ImageBlockProperties {
   }
   ```
 
-#### 3. caption
+#### 4. caption
 - **타입**: `string`
 - **설명**: 이미지 캡션 (항상 하단에 작게 표시)
 - **기본값**: `''`
@@ -140,11 +158,11 @@ export interface ImageBlockProperties {
     icon: 'MessageSquare',
     description: '이미지 설명 또는 캡션 (하단에 작게 표시됨)',
     placeholder: '캡션을 입력하세요...',
-    order: 3,
+    order: 4,
   }
   ```
 
-#### 4. alt
+#### 5. alt
 - **타입**: `string`
 - **설명**: 대체 텍스트 (접근성)
 - **기본값**: `''`
@@ -157,9 +175,23 @@ export interface ImageBlockProperties {
     icon: 'AudioLines',
     description: '접근성을 위한 대체 텍스트',
     placeholder: '이미지 설명...',
-    order: 4,
+    order: 5,
   }
   ```
+
+#### 6. unsplashAuthorName
+- **타입**: `string`
+- **설명**: Unsplash 이미지 저자 이름
+- **기본값**: `undefined`
+- **필수**: ❌ No (imageSource가 'unsplash'일 때만 사용)
+- **에디터 표시**: ❌ No (내부 속성, 블록 호버 시 표시)
+
+#### 7. unsplashAuthorLink
+- **타입**: `string`
+- **설명**: Unsplash 저자 프로필 링크 (UTM 파라미터 포함)
+- **기본값**: `undefined`
+- **필수**: ❌ No (imageSource가 'unsplash'일 때만 사용)
+- **에디터 표시**: ❌ No (내부 속성, 블록 호버 시 표시)
 
 ### 메타데이터 속성 (이미지 블록 전용)
 - `fileType`: 파일 확장자/MIME 타입 (readonly-text, 예: 'image/jpeg', 'image/png')
@@ -182,6 +214,8 @@ groups: [
     defaultCollapsed: false,
     order: 1,
     properties: ['imageUrl', 'objectFit', 'caption', 'alt'],
+    // 주의: imageSource, unsplashAuthorName, unsplashAuthorLink는 
+    // 내부 속성으로 에디터에 표시하지 않음
   },
   {
     id: 'metadata',
@@ -193,6 +227,11 @@ groups: [
   },
 ]
 ```
+
+**내부 전용 속성 (에디터에 표시하지 않음)**:
+- `imageSource`: 이미지 출처 (자동 설정)
+- `unsplashAuthorName`: Unsplash 저자 이름 (블록 호버 시 표시)
+- `unsplashAuthorLink`: Unsplash 저자 링크 (블록 호버 시 표시)
 
 ## 5. 툴바 아이템
 
@@ -207,16 +246,267 @@ groups: [
 - **기능**: 이미지 에디터 열기 (향후)
 - **동작**: 블록 스페이스로 이미지 에디터 표시
 
+## 5.5. 블록 액션 바 (Block Action Bar)
+
+### 개요
+**BlockActionBar**는 이미지 블록 우측에 표시되는 액션 툴바입니다. NodeToolbar를 사용하며, BlockMountToolbar와 유사한 디자인과 구조를 가집니다.
+
+### 설계 원칙
+- **위치**: 블록 우측 (Position.Right)
+- **디자인**: BlockMountToolbar와 동일한 스타일 (backdrop-blur, rounded-lg, shadow-lg)
+- **표시 조건**: 블록이 선택되었을 때만 표시
+- **구조**: 블록 타입별로 다른 액션 아이템을 렌더링하는 매퍼 패턴 사용
+
+### 컴포넌트 구조
+```typescript
+// BlockActionBar.tsx
+export interface BlockActionBarProps {
+  blockId: string;
+  blockType: string;
+  blockData: BlockNodeData;
+  pageId: string;
+  orgId: string;
+  workspaceId: string;
+}
+
+export function BlockActionBar({
+  blockId,
+  blockType,
+  blockData,
+  pageId,
+  orgId,
+  workspaceId,
+}: BlockActionBarProps) {
+  return (
+    <NodeToolbar
+      isVisible={true}
+      position={Position.Right}
+      className="nodrag nowheel"
+    >
+      <div className="bg-background/90 backdrop-blur-md border border-border rounded-lg shadow-lg px-2 py-1 flex flex-col items-center gap-1">
+        <TooltipProvider>
+          {/* 블록 타입별 액션 아이템 매퍼 */}
+          <BlockActionMapper
+            blockId={blockId}
+            blockType={blockType}
+            blockData={blockData}
+            pageId={pageId}
+            orgId={orgId}
+            workspaceId={workspaceId}
+          />
+        </TooltipProvider>
+      </div>
+    </NodeToolbar>
+  );
+}
+```
+
+### 액션 매퍼 구조
+```typescript
+// BlockActionMapper.tsx
+export function BlockActionMapper({ blockType, ...props }: BlockActionMapperProps) {
+  switch (blockType) {
+    case 'image':
+      return (
+        <>
+          <UnsplashSearchAction {...props} />
+          {/* 향후 추가 액션들 */}
+        </>
+      );
+    
+    case 'text':
+      return (
+        <>
+          {/* 텍스트 블록 액션들 */}
+        </>
+      );
+    
+    // ... 다른 블록 타입들
+    
+    default:
+      return null;
+  }
+}
+```
+
+### 이미지 블록 액션 아이템
+
+#### 1. UnsplashSearchAction
+- **아이콘**: `Search` (Lucide)
+- **기능**: Unsplash에서 이미지 검색 및 변경
+- **동작**:
+  1. 버튼 클릭 → 다이얼로그 표시
+  2. 초기 로드: 랜덤 이미지 10개 표시
+  3. 검색창에서 키워드 검색 가능
+  4. 이미지 클릭 → `updateProperty`로 이미지 URL 변경
+  5. 다이얼로그 닫기
+
+**다이얼로그 UI 구조**:
+```typescript
+<Dialog>
+  <DialogContent className="max-w-4xl max-h-[80vh]">
+    {/* 헤더 */}
+    <DialogHeader>
+      <DialogTitle>Unsplash 이미지 검색</DialogTitle>
+      <DialogDescription>
+        고품질 무료 이미지를 검색하고 선택하세요
+      </DialogDescription>
+    </DialogHeader>
+    
+    {/* 검색창 */}
+    <div className="flex gap-2">
+      <Input
+        placeholder="검색어를 입력하세요..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+      />
+      <Button onClick={handleSearch}>
+        <Search className="h-4 w-4" />
+      </Button>
+    </div>
+    
+    {/* 이미지 그리드 */}
+    <ScrollArea className="h-[500px]">
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-4">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-video" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          {images.map((image) => (
+            <div
+              key={image.id}
+              className="relative group cursor-pointer rounded-lg overflow-hidden border hover:border-blue-500 transition-all"
+              onClick={() => handleSelectImage(image)}
+            >
+              <img
+                src={image.urls.small}
+                alt={image.alt_description || 'Unsplash image'}
+                className="w-full aspect-video object-cover"
+              />
+              
+              {/* 저자 정보 오버레이 */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <p className="text-xs text-white">
+                  Photo by{' '}
+                  <a
+                    href={`${image.user.links.html}?utm_source=ssota&utm_medium=referral`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-blue-300"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {image.user.name}
+                  </a>
+                  {' '}on{' '}
+                  <a
+                    href="https://unsplash.com?utm_source=ssota&utm_medium=referral"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-blue-300"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Unsplash
+                  </a>
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </ScrollArea>
+  </DialogContent>
+</Dialog>
+```
+
+**API 통합**:
+```typescript
+// Unsplash API 호출
+const fetchUnsplashImages = async (query?: string) => {
+  const params = new URLSearchParams({
+    client_id: process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY!,
+    per_page: '10',
+    ...(query && { query }),
+  });
+  
+  const endpoint = query
+    ? `https://api.unsplash.com/search/photos?${params}`
+    : `https://api.unsplash.com/photos/random?${params}&count=10`;
+  
+  const response = await fetch(endpoint);
+  const data = await response.json();
+  
+  return query ? data.results : data;
+};
+
+// 이미지 선택 핸들러
+const handleSelectImage = async (image: UnsplashImage) => {
+  // 1. Unsplash 다운로드 엔드포인트 트리거 (필수 - API 가이드라인)
+  await fetch(
+    `https://api.unsplash.com/photos/${image.id}/download?client_id=${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`
+  );
+  
+  // 2. 블록 속성 일괄 업데이트 (imageUrl, imageSource, unsplash 정보, alt)
+  const updates = {
+    'properties.imageUrl': image.urls.regular, // 또는 image.urls.full
+    'properties.imageSource': 'unsplash' as const,
+    'properties.unsplashAuthorName': image.user.name,
+    'properties.unsplashAuthorLink': `${image.user.links.html}?utm_source=ssota&utm_medium=referral`,
+  };
+  
+  // 각 속성을 개별적으로 업데이트
+  for (const [key, value] of Object.entries(updates)) {
+    await updateProperty(blockId, key, value, blockData);
+  }
+  
+  // 3. alt 텍스트도 함께 업데이트 (선택적)
+  if (image.alt_description) {
+    await updateProperty(
+      blockId,
+      'properties.alt',
+      image.alt_description,
+      blockData
+    );
+  }
+  
+  // 4. 다이얼로그 닫기
+  setIsDialogOpen(false);
+};
+```
+
+**환경 변수**:
+```env
+NEXT_PUBLIC_UNSPLASH_ACCESS_KEY=your_unsplash_access_key
+```
+
+**Unsplash API 가이드라인 준수**:
+- ✅ 이미지 선택 시 다운로드 엔드포인트 트리거 (필수)
+- ✅ 저자 이름과 Unsplash 링크 표시 (필수)
+- ✅ UTM 파라미터 포함 (`utm_source=ssota&utm_medium=referral`)
+- ✅ 저작권 정보 표시
+
 ## 6. 블록 툴
 
-### 1. 이미지 스톡 검색 (Stock Image Search)
+### 1. 이미지 스톡 검색 (Stock Image Search) - ✅ 구현됨
+- **구현 위치**: BlockActionBar → UnsplashSearchAction
 - **입력**: 
-  - 검색 쿼리 (string)
-  - 이미지 수 (number, 기본값: 5)
+  - 검색 쿼리 (string, 선택적)
+  - 이미지 수 (number, 기본값: 10)
 - **출력**: 
-  - 새로운 이미지 블록 (검색 결과 이미지들)
-- **설명**: Unsplash, Pexels 등의 스톡 이미지 서비스에서 이미지 검색
-- **API**: Unsplash API, Pexels API
+  - 현재 이미지 블록의 imageUrl 업데이트
+- **설명**: 
+  - Unsplash API를 통해 무료 고품질 이미지 검색
+  - 초기 로드 시 랜덤 이미지 10개 표시
+  - 검색창을 통해 키워드 검색 가능
+  - 이미지 클릭 시 현재 블록의 이미지 변경
+- **API**: Unsplash API
+  - Random Photos: `GET /photos/random`
+  - Search Photos: `GET /search/photos`
+  - Download Tracking: `GET /photos/{id}/download`
+- **참조**: 섹션 5.5의 UnsplashSearchAction 참조
 
 ### 2. 이미지 AI 생성 (AI Image Generation)
 - **입력**: 
@@ -282,20 +572,267 @@ apps/web/src/domains/block-management/shared/schemas/ui/image-block.ui-schema.ts
 ```
 apps/web/src/domains/block-management/frontend/components/block/image/image-block.tsx
 ```
-**(향후 구현)**
+**✅ 구현 완료** (Unsplash 저자 정보 표시 추가 예정)
 
-**사용 라이브러리 후보**:
+**사용 라이브러리**:
+- **이미지 업로드**: `@workspace/ui/hooks/use-file-upload` (커스텀 훅)
+- **스토리지**: Supabase Storage (`@/domains/storage/hooks/use-supabase-storage`)
+- **UI 컴포넌트**: `@workspace/ui` (Dialog, Skeleton, ScrollArea 등)
+
+**Unsplash 저자 정보 표시 구현**:
+```typescript
+// ImageBlock 컴포넌트 내부
+const { imageUrl, imageSource, unsplashAuthorName, unsplashAuthorLink, objectFit, caption, alt } = properties;
+
+// ... 이미지 렌더링 부분
+<div className="relative flex-1 overflow-hidden bg-muted/30">
+  {imageUrl && !hasError && (
+    <>
+      {/* 이미지 */}
+      <img
+        src={imageUrl}
+        alt={alt || '이미지'}
+        onLoad={handleImageLoad}
+        onError={handleImageError}
+        className={cn(
+          'w-full h-full',
+          objectFit === 'contain' && 'object-contain',
+          objectFit === 'cover' && 'object-cover',
+          objectFit === 'fill' && 'object-fill',
+          isLoading && 'opacity-0',
+          'transition-opacity duration-300'
+        )}
+      />
+      
+      {/* Unsplash 저자 정보 오버레이 (호버 시 표시) */}
+      {imageSource === 'unsplash' && unsplashAuthorName && unsplashAuthorLink && (
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 opacity-0 hover:opacity-100 transition-opacity duration-200">
+          <p className="text-xs text-white">
+            Photo by{' '}
+            <a
+              href={unsplashAuthorLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-blue-300 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {unsplashAuthorName}
+            </a>
+            {' '}on{' '}
+            <a
+              href="https://unsplash.com?utm_source=ssota&utm_medium=referral"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-blue-300 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Unsplash
+            </a>
+          </p>
+        </div>
+      )}
+    </>
+  )}
+</div>
+```
+
+**구현 세부사항**:
+1. `imageSource === 'unsplash'`일 때만 저자 정보 오버레이 표시
+2. 이미지 하단에 검은 그라데이션 배경 (`from-black/70`)
+3. 기본적으로 투명 (`opacity-0`), 호버 시 나타남 (`hover:opacity-100`)
+4. 저자 이름과 Unsplash 링크는 클릭 가능하며 새 탭에서 열림
+5. UTM 파라미터 포함된 링크 사용
+6. 캡션 영역과는 별도로 이미지 영역 내부에 표시
+
+**사용 라이브러리 후보 (향후)**:
 - **이미지 표시**: `react-image-gallery`, `react-slick` (슬라이더)
 - **이미지 확대**: `react-medium-image-zoom`, `react-photoswipe-gallery`
 - **이미지 편집**: `tui-image-editor`, `fabric.js`
 - **자르기**: `react-advanced-cropper`, `react-easy-crop`
-- **업로드**: Supabase Storage SDK
 
 ### Toolbar Items
 ```
 apps/web/src/domains/block-management/frontend/components/toolbar-items/block-toolbar-mapper.tsx
 ```
 (case 'image' 추가 예정)
+
+### Block Action Bar (신규)
+```
+apps/web/src/domains/block-management/frontend/components/block-action-bar.tsx
+```
+**(구현 예정)** - 블록 하단 액션 툴바 (NodeToolbar 사용)
+
+### Block Action Mapper (신규)
+```
+apps/web/src/domains/block-management/frontend/components/action-items/block-action-mapper.tsx
+```
+**(구현 예정)** - 블록 타입별 액션 아이템 매퍼
+
+### Action Items (신규)
+
+#### Unsplash Search Action
+```
+apps/web/src/domains/block-management/frontend/components/action-items/image/unsplash-search-action.tsx
+```
+**(구현 예정)** - Unsplash 이미지 검색 및 변경 액션
+
+**구현 내용**:
+- Unsplash API 통합
+- 이미지 검색 다이얼로그
+- 랜덤 이미지 10개 표시
+- 검색 기능
+- 이미지 선택 시 updateProperty 호출
+- 저자 정보 및 Unsplash 링크 표시
+
+**필요 환경 변수**:
+```env
+NEXT_PUBLIC_UNSPLASH_ACCESS_KEY=your_unsplash_access_key
+```
+
+**Unsplash API 타입 정의**:
+```
+apps/web/src/domains/block-management/shared/types/unsplash.types.ts
+```
+**(구현 예정)**
+```typescript
+export interface UnsplashImage {
+  id: string;
+  urls: {
+    raw: string;
+    full: string;
+    regular: string;
+    small: string;
+    thumb: string;
+  };
+  alt_description: string | null;
+  user: {
+    name: string;
+    links: {
+      html: string;
+    };
+  };
+}
+
+export interface UnsplashSearchResponse {
+  total: number;
+  total_pages: number;
+  results: UnsplashImage[];
+}
+```
+
+### Image Block Properties Value Object 업데이트 필요
+```
+apps/web/src/domains/block-management/shared/value-objects/block-properties/image.vo.ts
+```
+**(업데이트 필요)**
+
+**기존 구조**:
+```typescript
+export interface ImageBlockProperties {
+  imageUrl: string;
+  objectFit: ObjectFit;
+  caption?: string;
+  alt?: string;
+}
+```
+
+**업데이트된 구조**:
+```typescript
+export type ImageSource = 'user-upload' | 'unsplash';
+
+export interface ImageBlockProperties {
+  imageUrl: string;
+  imageSource: ImageSource;
+  objectFit: ObjectFit;
+  caption?: string;
+  alt?: string;
+  // Unsplash 저작권 정보
+  unsplashAuthorName?: string;
+  unsplashAuthorLink?: string;
+}
+```
+
+**ImageBlockPropertiesVO 클래스 업데이트**:
+```typescript
+export class ImageBlockPropertiesVO extends BlockPropertiesVO {
+  constructor(
+    private readonly imageUrl: string,
+    private readonly imageSource: ImageSource,
+    private readonly objectFit: ObjectFit,
+    private readonly caption: string | undefined,
+    private readonly alt: string | undefined,
+    private readonly unsplashAuthorName: string | undefined,
+    private readonly unsplashAuthorLink: string | undefined
+  ) {
+    super();
+  }
+
+  static createDefault(): ImageBlockPropertiesVO {
+    return new ImageBlockPropertiesVO(
+      '',              // imageUrl
+      'user-upload',   // imageSource
+      'contain',       // objectFit
+      '',              // caption
+      '',              // alt
+      undefined,       // unsplashAuthorName
+      undefined        // unsplashAuthorLink
+    );
+  }
+
+  static fromJSON(data: unknown): ImageBlockPropertiesVO {
+    const safeData = (data as Partial<ImageBlockProperties>) ?? {};
+    return new ImageBlockPropertiesVO(
+      safeData.imageUrl ?? '',
+      safeData.imageSource ?? 'user-upload',
+      safeData.objectFit ?? 'contain',
+      safeData.caption ?? '',
+      safeData.alt ?? '',
+      safeData.unsplashAuthorName,
+      safeData.unsplashAuthorLink
+    );
+  }
+
+  toJSON(): ImageBlockProperties {
+    return {
+      imageUrl: this.imageUrl,
+      imageSource: this.imageSource,
+      objectFit: this.objectFit,
+      caption: this.caption,
+      alt: this.alt,
+      unsplashAuthorName: this.unsplashAuthorName,
+      unsplashAuthorLink: this.unsplashAuthorLink,
+    };
+  }
+
+  // Getter 메서드들 추가
+  getImageSource(): ImageSource {
+    return this.imageSource;
+  }
+
+  getUnsplashAuthorName(): string | undefined {
+    return this.unsplashAuthorName;
+  }
+
+  getUnsplashAuthorLink(): string | undefined {
+    return this.unsplashAuthorLink;
+  }
+}
+```
+
+### Common Types 업데이트
+```
+apps/web/src/domains/block-management/shared/value-objects/block-properties/common-types.ts
+```
+**(업데이트 필요)**
+
+**추가할 타입**:
+```typescript
+/**
+ * Image Source Type
+ * 이미지의 출처를 나타냅니다.
+ */
+export type ImageSource = 'user-upload' | 'unsplash';
+```
 
 ## 8. 특이사항 및 주의사항
 
@@ -305,6 +842,18 @@ apps/web/src/domains/block-management/frontend/components/toolbar-items/block-to
 - **Supabase Storage**: 프로젝트별 버킷에 저장
 - **파일명 충돌 방지**: UUID 기반 파일명 생성
 - **썸네일 생성**: 자동으로 썸네일 생성 (리스트 뷰용)
+
+### Unsplash API 사용 지침
+- **API 키 필수**: `NEXT_PUBLIC_UNSPLASH_ACCESS_KEY` 환경 변수 설정 필요
+- **Rate Limit**: 
+  - Demo 키: 50 requests/hour
+  - Production 키: 5,000 requests/hour (신청 필요)
+- **필수 준수 사항**:
+  1. **다운로드 트리거**: 이미지 선택 시 `/photos/{id}/download` 엔드포인트 호출 (통계 수집용)
+  2. **저작권 표시**: 저자 이름과 Unsplash 링크 필수 표시
+  3. **UTM 파라미터**: 모든 링크에 `utm_source=ssota&utm_medium=referral` 포함
+  4. **API 응답 캐싱**: 동일한 검색어는 캐싱하여 API 호출 최소화
+- **참고 문서**: [Unsplash API Guidelines](https://help.unsplash.com/en/articles/2511245-unsplash-api-guidelines)
 
 ### 성능 최적화
 - **Lazy Loading**: 뷰포트에 들어올 때 이미지 로드
@@ -324,8 +873,47 @@ apps/web/src/domains/block-management/frontend/components/toolbar-items/block-to
 - **키보드 네비게이션**: 화살표 키로 이미지 탐색
 - **스크린 리더**: 이미지 정보 읽어주기
 
-## 9. 향후 계획
+## 9. 타입 시스템 구조 요약
 
+### 데이터 흐름
+```
+DB (blocks 테이블)
+  ↓ properties (JSONB)
+DTO (BlockDTO)
+  ↓ transformation
+Value Object (ImageBlockPropertiesVO)
+  ↓ toJSON()
+React Flow Node Data (ImageBlockNodeData)
+  ↓ properties
+React Component (ImageBlock)
+```
+
+### 타입 레이어
+1. **Interface Layer**: `ImageBlockProperties` - 순수 타입 정의
+2. **Value Object Layer**: `ImageBlockPropertiesVO` - 비즈니스 로직 + 유효성 검증
+3. **Node Data Layer**: `ImageBlockNodeData` - React Flow 노드 데이터
+4. **Component Layer**: `ImageBlock` - React 컴포넌트
+
+### 업데이트 필요 파일 체크리스트
+- [ ] `common-types.ts` - ImageSource 타입 추가
+- [ ] `image.vo.ts` - ImageBlockProperties 및 VO 클래스 업데이트
+- [ ] `unsplash.types.ts` - Unsplash API 타입 정의 추가 (신규)
+- [ ] `image-block.tsx` - Unsplash 저자 정보 오버레이 추가
+- [ ] `block-action-bar.tsx` - 액션 툴바 컴포넌트 생성 (신규)
+- [ ] `block-action-mapper.tsx` - 액션 매퍼 생성 (신규)
+- [ ] `unsplash-search-action.tsx` - Unsplash 검색 액션 생성 (신규)
+
+## 10. 향후 계획
+
+### BlockActionBar 관련
+- [ ] **BlockActionBar 구현**: 블록 우측 액션 툴바 컴포넌트
+- [ ] **BlockActionMapper 구현**: 블록 타입별 액션 매퍼
+- [x] **UnsplashSearchAction 설계 완료**: Unsplash 이미지 검색 액션 (구현 대기)
+- [ ] **Pexels API 통합**: 추가 스톡 이미지 서비스
+- [ ] **AI 이미지 생성 액션**: DALL-E, Stable Diffusion 통합
+- [ ] **이미지 편집 액션**: 자르기, 필터, 리사이즈 등
+
+### 이미지 블록 기능 확장
 - [ ] **이미지 갤러리**: 여러 이미지 표시 (슬라이더, 그리드)
 - [ ] **이미지 주석**: 화살표, 텍스트, 도형 추가
 - [ ] **이미지 비교**: 두 이미지를 슬라이더로 비교
@@ -335,4 +923,17 @@ apps/web/src/domains/block-management/frontend/components/toolbar-items/block-to
 - [ ] **이미지 검색**: 이미지 내용 기반 검색
 - [ ] **이미지 메타데이터**: EXIF 데이터 표시 및 편집
 - [ ] **이미지 버전 관리**: 편집 히스토리 및 되돌리기
+
+---
+
+## 문서 변경 이력
+
+### 2025-11-05: Unsplash 저작권 정보 추가
+- **변경 사항**:
+  - `ImageBlockProperties`에 `imageSource`, `unsplashAuthorName`, `unsplashAuthorLink` 속성 추가
+  - BlockActionBar 설계 추가 (Position.Right)
+  - UnsplashSearchAction 상세 설계
+  - 이미지 블록에 Unsplash 저자 정보 호버 오버레이 추가
+  - ImageSource 타입 추가 (`'user-upload' | 'unsplash'`)
+- **목적**: Unsplash API 가이드라인 준수 및 저작권 정보 표시
 

@@ -5,14 +5,15 @@
  */
 
 import { BlockPropertiesVO } from './base.vo';
-import type { AspectRatio, ObjectFit } from './common-types';
+import type { AspectRatio, ObjectFit, ImageSource } from './common-types';
 
 /**
  * Image Block Properties Interface
  */
 export interface ImageBlockProperties {
   // 이미지 정보
-  imageUrl: string; // Supabase Storage URL
+  imageUrl: string; // Supabase Storage URL 또는 Unsplash URL
+  imageSource: ImageSource; // 이미지 출처
 
   // 스타일
   objectFit: ObjectFit;
@@ -22,6 +23,10 @@ export interface ImageBlockProperties {
 
   // 접근성
   alt?: string; // 대체 텍스트
+
+  // Unsplash 저작권 정보 (imageSource가 'unsplash'일 때만 사용)
+  unsplashAuthorName?: string; // Unsplash 저자 이름
+  unsplashAuthorLink?: string; // Unsplash 저자 프로필 링크 (UTM 포함)
 }
 
 /**
@@ -30,9 +35,12 @@ export interface ImageBlockProperties {
 export class ImageBlockPropertiesVO extends BlockPropertiesVO {
   constructor(
     private readonly imageUrl: string,
+    private readonly imageSource: ImageSource,
     private readonly objectFit: ObjectFit,
     private readonly caption: string | undefined,
-    private readonly alt: string | undefined
+    private readonly alt: string | undefined,
+    private readonly unsplashAuthorName: string | undefined,
+    private readonly unsplashAuthorLink: string | undefined
   ) {
     super();
   }
@@ -43,9 +51,12 @@ export class ImageBlockPropertiesVO extends BlockPropertiesVO {
   static createDefault(): ImageBlockPropertiesVO {
     return new ImageBlockPropertiesVO(
       '', // imageUrl
+      'user-upload', // imageSource
       'contain', // objectFit
       '', // caption
-      '' // alt
+      '', // alt
+      undefined, // unsplashAuthorName
+      undefined // unsplashAuthorLink
     );
   }
 
@@ -57,9 +68,12 @@ export class ImageBlockPropertiesVO extends BlockPropertiesVO {
     const safeData = (data as Partial<ImageBlockProperties>) ?? {};
     return new ImageBlockPropertiesVO(
       safeData.imageUrl ?? '',
+      safeData.imageSource ?? 'user-upload',
       safeData.objectFit ?? 'contain',
       safeData.caption ?? '',
-      safeData.alt ?? ''
+      safeData.alt ?? '',
+      safeData.unsplashAuthorName,
+      safeData.unsplashAuthorLink
     );
   }
 
@@ -87,9 +101,12 @@ export class ImageBlockPropertiesVO extends BlockPropertiesVO {
   toJSON(): ImageBlockProperties {
     return {
       imageUrl: this.imageUrl,
+      imageSource: this.imageSource,
       objectFit: this.objectFit,
       caption: this.caption,
       alt: this.alt,
+      unsplashAuthorName: this.unsplashAuthorName,
+      unsplashAuthorLink: this.unsplashAuthorLink,
     };
   }
 
@@ -102,15 +119,22 @@ export class ImageBlockPropertiesVO extends BlockPropertiesVO {
     }
     return (
       this.imageUrl === other.imageUrl &&
+      this.imageSource === other.imageSource &&
       this.objectFit === other.objectFit &&
       this.caption === other.caption &&
-      this.alt === other.alt
+      this.alt === other.alt &&
+      this.unsplashAuthorName === other.unsplashAuthorName &&
+      this.unsplashAuthorLink === other.unsplashAuthorLink
     );
   }
 
   // Getter 메서드들
   getImageUrl(): string {
     return this.imageUrl;
+  }
+
+  getImageSource(): ImageSource {
+    return this.imageSource;
   }
 
   getObjectFit(): ObjectFit {
@@ -123,5 +147,13 @@ export class ImageBlockPropertiesVO extends BlockPropertiesVO {
 
   getAlt(): string | undefined {
     return this.alt;
+  }
+
+  getUnsplashAuthorName(): string | undefined {
+    return this.unsplashAuthorName;
+  }
+
+  getUnsplashAuthorLink(): string | undefined {
+    return this.unsplashAuthorLink;
   }
 }
