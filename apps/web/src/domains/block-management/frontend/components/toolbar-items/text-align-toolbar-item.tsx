@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
 import { TextAlign } from '../../../shared/value-objects/block-properties/common-types';
+import { cn } from '@/lib/utils';
 
 interface TextAlignToolbarItemProps {
   blockId: string;
@@ -63,7 +64,7 @@ export function TextAlignToolbarItem({
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="bottom">
+        <TooltipContent side="top" hasArrow={false} sideOffset={10}>
           <p>텍스트 정렬</p>
         </TooltipContent>
       </Tooltip>
@@ -73,26 +74,34 @@ export function TextAlignToolbarItem({
         align="center"
         onMouseDown={e => e.stopPropagation()}
         onClick={e => e.stopPropagation()}
+        onOpenAutoFocus={e => e.preventDefault()}
       >
         <div className="flex gap-1.5">
           {ALIGNMENT_OPTIONS.map(({ align, icon: Icon, title }) => (
-            <button
-              key={align}
-              onClick={e => {
-                e.stopPropagation();
-                handleAlignSelect(align);
-              }}
-              onMouseDown={e => e.stopPropagation()}
-              className={`h-8 w-8 rounded flex items-center justify-center ring-1 ring-black/10 transition hover:scale-110 ${
-                currentAlign === align
-                  ? 'ring-2 ring-blue-500 bg-blue-50'
-                  : 'hover:bg-gray-50'
-              }`}
-              title={title}
-              aria-label={title}
-            >
-              <Icon className="h-4 w-4" />
-            </button>
+            <Tooltip key={align}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleAlignSelect(align);
+                  }}
+                  onMouseDown={e => e.stopPropagation()}
+                  className={cn(
+                    'h-7 w-7 rounded flex items-center justify-center transition hover:scale-110',
+                    {
+                      'ring-1 ring-black/10': currentAlign !== align,
+                      'ring-2 ring-blue-400': currentAlign === align,
+                    }
+                  )}
+                  aria-label={title}
+                >
+                  <Icon className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" hasArrow={false} sideOffset={10}>
+                <p>{title}</p>
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
       </PopoverContent>

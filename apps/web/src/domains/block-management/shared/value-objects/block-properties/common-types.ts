@@ -28,19 +28,28 @@ export enum FontSize {
  */
 export enum ShapeType {
   RECTANGLE = 'rectangle',
-  CIRCLE = 'circle',
   ELLIPSE = 'ellipse',
   TRIANGLE = 'triangle',
   DIAMOND = 'diamond',
   HEXAGON = 'hexagon',
-  CYLINDER = 'cylinder',
   PARALLELOGRAM = 'parallelogram',
+  CYLINDER = 'cylinder',
 }
 
 /**
  * Border Style Type
  */
 export type BorderStyle = 'solid' | 'dashed' | 'dotted';
+
+/**
+ * Aspect Ratio Type (Image/Video blocks)
+ */
+export type AspectRatio = 'original' | '16:9' | '4:3' | '1:1' | 'custom';
+
+/**
+ * Object Fit Type (Image/Video blocks)
+ */
+export type ObjectFit = 'contain' | 'cover' | 'fill';
 
 /**
  * Property Type Enum - 지원하는 속성 타입들

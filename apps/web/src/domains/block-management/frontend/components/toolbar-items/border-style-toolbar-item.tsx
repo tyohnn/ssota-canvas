@@ -86,7 +86,7 @@ export function BorderStyleToolbarItem({
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="bottom">
+        <TooltipContent side="top" hasArrow={false} sideOffset={10}>
           <p>테두리 스타일</p>
         </TooltipContent>
       </Tooltip>
@@ -96,33 +96,41 @@ export function BorderStyleToolbarItem({
         align="center"
         onMouseDown={e => e.stopPropagation()}
         onClick={e => e.stopPropagation()}
+        onOpenAutoFocus={e => e.preventDefault()}
       >
-        <div className="flex flex-col gap-1">
+        <div className="flex gap-1.5">
           {BORDER_STYLE_OPTIONS.map(option => (
-            <button
-              key={option.value}
-              onClick={e => {
-                e.stopPropagation();
-                handleBorderStyleSelect(option.value);
-              }}
-              onMouseDown={e => e.stopPropagation()}
-              className={cn(
-                'px-3 py-2 flex items-center gap-2 rounded transition hover:bg-black/5 text-sm',
-                {
-                  'bg-black/10': currentBorderStyle === option.value,
-                }
-              )}
-              title={option.label}
-              aria-label={option.label}
-            >
-              <div
-                className={cn(
-                  'w-12 h-0 border-t-2 border-gray-700',
-                  option.preview
-                )}
-              />
-              <span>{option.label}</span>
-            </button>
+            <Tooltip key={option.value}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleBorderStyleSelect(option.value);
+                  }}
+                  onMouseDown={e => e.stopPropagation()}
+                  className={cn(
+                    'h-7 w-7 flex items-center justify-center rounded transition hover:scale-110',
+                    {
+                      'ring-1 ring-black/10':
+                        currentBorderStyle !== option.value,
+                      'ring-2 ring-blue-400':
+                        currentBorderStyle === option.value,
+                    }
+                  )}
+                  aria-label={option.label}
+                >
+                  <div
+                    className={cn(
+                      'w-4 h-0 border-t-2 border-gray-700',
+                      option.preview
+                    )}
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" hasArrow={false} sideOffset={10}>
+                <p>{option.label}</p>
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
       </PopoverContent>

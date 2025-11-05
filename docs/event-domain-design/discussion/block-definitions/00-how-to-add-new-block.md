@@ -360,7 +360,7 @@ export function YourPropertyToolbarItem({
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="bottom">
+        <TooltipContent side="top">
           <p>Your Property Name</p>  {/* 속성 이름 (예: "도형 타입", "색상") */}
         </TooltipContent>
       </Tooltip>
@@ -370,28 +370,35 @@ export function YourPropertyToolbarItem({
         align="center"
         onMouseDown={e => e.stopPropagation()}
         onClick={e => e.stopPropagation()}
+        onOpenAutoFocus={e => e.preventDefault()}
       >
+        {/* ⚠️ 중요: Toolbar 옵션은 항상 horizontal하게 아이콘으로만 배치 */}
         <div className="flex gap-1.5">
           {OPTIONS.map(option => (
-            <button
-              key={option.value}
-              onClick={e => {
-                e.stopPropagation();
-                handleSelect(option.value);
-              }}
-              onMouseDown={e => e.stopPropagation()}
-              className={cn(
-                'h-6 w-6 rounded transition hover:scale-110',
-                {
-                  'ring-1 ring-black/10': currentValue !== option.value,
-                  'ring-2 ring-blue-400': currentValue === option.value,
-                }
-              )}
-              title={option.label}  // 각 옵션에도 툴팁
-              aria-label={option.label}  // 접근성 향상
-            >
-              {renderPreview(option.value, 20)}
-            </button>
+            <Tooltip key={option.value}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleSelect(option.value);
+                  }}
+                  onMouseDown={e => e.stopPropagation()}
+                  className={cn(
+                    'h-7 w-7 flex items-center justify-center rounded transition hover:scale-110',
+                    {
+                      'ring-1 ring-black/10': currentValue !== option.value,
+                      'ring-2 ring-blue-400': currentValue === option.value,
+                    }
+                  )}
+                  aria-label={option.label}
+                >
+                  {renderPreview(option.value, 16)}
+                </button>
+               </TooltipTrigger>
+               <TooltipContent side="top" hasArrow={false} sideOffset={10}>
+                 <p>{option.label}</p>
+               </TooltipContent>
+             </Tooltip>
           ))}
         </div>
       </PopoverContent>
@@ -412,9 +419,12 @@ export function YourPropertyToolbarItem({
  *    - 현재 선택된 값이 아님!
  * 
  * 3. Option 버튼들 툴팁:
- *    - title 속성에 옵션의 실제 라벨 표시
+ *    - Tooltip 컴포넌트로 감싸서 표시
+ *    - TooltipContent에 옵션의 실제 라벨 표시
  *    - 예: "사각형", "타원", "Blue", "Red"
  *    - aria-label도 추가하여 접근성 향상
+ *    - HTML title 속성은 제거 (Tooltip이 대체)
+ *    - hasArrow={false}로 화살표 제거 (Popover 내부에서 깔끔하게 표시)
  * 
  * 4. 중첩 구조:
  *    ```tsx
@@ -430,9 +440,55 @@ export function YourPropertyToolbarItem({
  *        </TooltipContent>
  *      </Tooltip>
  *      <PopoverContent>
- *        {/* 옵션들 */}
+ *        {/* 옵션들 - 각 옵션도 Tooltip으로 감쌈 */}
+ *        <div className="flex gap-1.5">
+ *          {OPTIONS.map(option => (
+ *            <Tooltip>
+ *              <TooltipTrigger asChild>
+ *                <button>...</button>
+ *              </TooltipTrigger>
+ *              <TooltipContent side="top" hasArrow={false}>
+ *                <p>{option.label}</p>
+ *              </TooltipContent>
+ *            </Tooltip>
+ *          ))}
+ *        </div>
  *      </PopoverContent>
  *    </Popover>
+ *    ```
+ * 
+ * 5. hasArrow={false} & sideOffset={10} 사용:
+ *    - Tooltip은 화살표 제거 (hasArrow={false})
+ *    - sideOffset={10}으로 버튼과 적절한 거리 확보
+ *    - z-index 문제 방지 및 깔끔한 UI
+ * 
+ * 6. onOpenAutoFocus 방지:
+ *    - PopoverContent에 onOpenAutoFocus={e => e.preventDefault()} 추가
+ *    - Popover 열릴 때 자동 포커스 방지
+ *    - 마우스 호버 시에만 툴팁 표시되도록 함
+ * 
+ * 5. 🔥 PopoverContent 내부 옵션 레이아웃:
+ *    - 항상 horizontal하게 아이콘으로만 배치
+ *    - 텍스트 라벨 없이 아이콘만 표시
+ *    - 고정 크기 정사각형 버튼 사용 (h-7 w-7)
+ *    - flex gap-1.5로 수평 배치
+ *    
+ *    ❌ Bad: 세로 배치, 텍스트와 아이콘 함께
+ *    ```tsx
+ *    <div className="flex flex-col gap-1">
+ *      <button className="flex items-center gap-2">
+ *        <Icon /> <span>Label</span>
+ *      </button>
+ *    </div>
+ *    ```
+ *    
+ *    ✅ Good: 가로 배치, 아이콘만
+ *    ```tsx
+ *    <div className="flex gap-1.5">
+ *      <button className="h-7 w-7 flex items-center justify-center">
+ *        <Icon size={16} />
+ *      </button>
+ *    </div>
  *    ```
  */
 ```

@@ -79,7 +79,7 @@ export function ColorToolbarItem({
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="bottom">
+        <TooltipContent side="top" hasArrow={false} sideOffset={10}>
           <p>색상</p>
         </TooltipContent>
       </Tooltip>
@@ -89,28 +89,35 @@ export function ColorToolbarItem({
         align="center"
         onMouseDown={e => e.stopPropagation()}
         onClick={e => e.stopPropagation()}
+        onOpenAutoFocus={e => e.preventDefault()}
       >
         <div className="flex gap-1.5">
           {COLOR_OPTIONS.map(colorOption => (
-            <button
-              key={colorOption.value}
-              onClick={e => {
-                e.stopPropagation();
-                handleColorSelect(colorOption.value);
-              }}
-              onMouseDown={e => e.stopPropagation()}
-              className={cn(
-                'h-6 w-6 rounded transition hover:scale-110',
-                colorOption.previewClass,
-                {
-                  'ring-1 ring-black/10': currentColor !== colorOption.value,
-                  [getSelectedRingClasses(colorOption.value)]:
-                    currentColor === colorOption.value,
-                }
-              )}
-              title={colorOption.label}
-              aria-label={colorOption.label}
-            />
+            <Tooltip key={colorOption.value}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleColorSelect(colorOption.value);
+                  }}
+                  onMouseDown={e => e.stopPropagation()}
+                  className={cn(
+                    'h-7 w-7 rounded transition hover:scale-110',
+                    colorOption.previewClass,
+                    {
+                      'ring-1 ring-black/10':
+                        currentColor !== colorOption.value,
+                      [getSelectedRingClasses(colorOption.value)]:
+                        currentColor === colorOption.value,
+                    }
+                  )}
+                  aria-label={colorOption.label}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top" hasArrow={false} sideOffset={10}>
+                <p>{colorOption.label}</p>
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
       </PopoverContent>

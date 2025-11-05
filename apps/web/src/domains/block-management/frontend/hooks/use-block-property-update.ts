@@ -82,7 +82,10 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
       try {
         // 3. workspaceId와 orgId 확인
         if (!blockData.workspaceId || !blockData.orgId) {
-          console.error('Missing workspaceId or orgId in blockData');
+          console.error('Missing workspaceId or orgId in blockData', {
+            blockData,
+            blockId,
+          });
           updateNode(blockId, { data: originalData });
           return;
         }

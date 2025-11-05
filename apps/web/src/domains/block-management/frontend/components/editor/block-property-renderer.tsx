@@ -36,6 +36,7 @@ import {
   EmailProperty,
   PhoneProperty,
   ColorProperty,
+  ImageUploadProperty,
 } from './property-input';
 
 export interface BlockPropertyRendererProps {
@@ -267,6 +268,17 @@ export function BlockPropertyRenderer({
             propertyDef={propertyDef}
             onChange={handleValueChange}
             disabled={propertyDef.readonly}
+          />
+        );
+
+      case 'image-upload':
+        return (
+          <ImageUploadProperty
+            value={value}
+            propertyDef={propertyDef}
+            onChange={handleValueChange}
+            disabled={propertyDef.readonly}
+            blockData={blockData}
           />
         );
 

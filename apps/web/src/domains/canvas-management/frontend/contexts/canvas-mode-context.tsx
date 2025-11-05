@@ -70,7 +70,13 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
   }, []);
 
   const enterBlockEditingMode = useCallback((blockId: string) => {
-    setMode({ type: 'block-editing', blockId });
+    // 이미 같은 blockId로 편집 모드인 경우 업데이트하지 않음 (무한 루프 방지)
+    setMode(prevMode => {
+      if (prevMode.type === 'block-editing' && prevMode.blockId === blockId) {
+        return prevMode; // 상태 변경 없음
+      }
+      return { type: 'block-editing', blockId };
+    });
   }, []);
 
   const enterDraggingMode = useCallback((blockIds: string[]) => {

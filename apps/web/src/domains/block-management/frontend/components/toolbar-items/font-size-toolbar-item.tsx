@@ -13,6 +13,7 @@ import {
 } from '@workspace/ui/components/ui/tooltip';
 import { ALargeSmall } from 'lucide-react';
 import { FontSize } from '../../../shared/value-objects/block-properties/common-types';
+import { cn } from '@/lib/utils';
 
 interface FontSizeToolbarItemProps {
   blockId: string;
@@ -59,7 +60,7 @@ export function FontSizeToolbarItem({
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="bottom">
+        <TooltipContent side="top" hasArrow={false} sideOffset={10}>
           <p>글자 크기</p>
         </TooltipContent>
       </Tooltip>
@@ -69,26 +70,34 @@ export function FontSizeToolbarItem({
         align="center"
         onMouseDown={e => e.stopPropagation()}
         onClick={e => e.stopPropagation()}
+        onOpenAutoFocus={e => e.preventDefault()}
       >
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           {FONT_SIZE_OPTIONS.map(option => (
-            <button
-              key={option.value}
-              onClick={e => {
-                e.stopPropagation();
-                handleFontSizeSelect(option.value);
-              }}
-              onMouseDown={e => e.stopPropagation()}
-              className={`px-3 py-1 font-medium rounded text-sm transition-colors ${
-                currentFontSize === option.value
-                  ? 'bg-blue-100 text-blue-900'
-                  : 'hover:bg-gray-100'
-              }`}
-              title={option.displayLabel}
-              aria-label={option.displayLabel}
-            >
-              {option.label}
-            </button>
+            <Tooltip key={option.value}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleFontSizeSelect(option.value);
+                  }}
+                  onMouseDown={e => e.stopPropagation()}
+                  className={cn(
+                    'h-7 w-7 flex items-center justify-center font-medium rounded text-sm transition hover:scale-110',
+                    {
+                      'ring-1 ring-black/10': currentFontSize !== option.value,
+                      'ring-2 ring-blue-400': currentFontSize === option.value,
+                    }
+                  )}
+                  aria-label={option.displayLabel}
+                >
+                  {option.label}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" hasArrow={false} sideOffset={10}>
+                <p>{option.displayLabel}</p>
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
       </PopoverContent>

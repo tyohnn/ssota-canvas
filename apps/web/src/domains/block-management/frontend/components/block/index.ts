@@ -21,3 +21,6 @@ export * from './python/python-block';
 
 // YouTube Block Components
 export * from './youtube/youtube-block';
+
+// Image Block Components
+export * from './image/image-block';

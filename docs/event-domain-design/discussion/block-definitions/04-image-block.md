@@ -73,7 +73,6 @@ export interface ImageBlockProperties {
   imageUrl: string;                   // Supabase Storage URL
   
   // 표시 옵션
-  aspectRatio: 'original' | '16:9' | '4:3' | '1:1' | 'custom';
   objectFit: 'contain' | 'cover' | 'fill';
   
   // 캡션 (항상 하단에 작게 표시)
@@ -107,30 +106,7 @@ export interface ImageBlockProperties {
   }
   ```
 
-#### 2. aspectRatio
-- **타입**: `'original' | '16:9' | '4:3' | '1:1' | 'custom'`
-- **설명**: 이미지 비율
-- **기본값**: `'original'`
-- **필수**: ✅ Yes
-- **UI Schema**:
-  ```typescript
-  {
-    label: '비율',
-    inputType: 'select',
-    icon: 'AspectRatio',
-    description: '이미지 비율 설정',
-    order: 2,
-    options: [
-      { value: 'original', label: '원본' },
-      { value: '16:9', label: '16:9 (와이드)' },
-      { value: '4:3', label: '4:3 (표준)' },
-      { value: '1:1', label: '1:1 (정사각형)' },
-      { value: 'custom', label: '커스텀' },
-    ],
-  }
-  ```
-
-#### 3. objectFit
+#### 2. objectFit
 - **타입**: `'contain' | 'cover' | 'fill'`
 - **설명**: 이미지 맞춤 방식 (CSS object-fit)
 - **기본값**: `'contain'`
@@ -142,7 +118,7 @@ export interface ImageBlockProperties {
     inputType: 'select',
     icon: 'Maximize',
     description: '이미지를 컨테이너에 맞추는 방식',
-    order: 3,
+    order: 2,
     options: [
       { value: 'contain', label: '전체 표시' },
       { value: 'cover', label: '채우기' },
@@ -151,7 +127,7 @@ export interface ImageBlockProperties {
   }
   ```
 
-#### 4. caption
+#### 3. caption
 - **타입**: `string`
 - **설명**: 이미지 캡션 (항상 하단에 작게 표시)
 - **기본값**: `''`
@@ -164,11 +140,11 @@ export interface ImageBlockProperties {
     icon: 'MessageSquare',
     description: '이미지 설명 또는 캡션 (하단에 작게 표시됨)',
     placeholder: '캡션을 입력하세요...',
-    order: 4,
+    order: 3,
   }
   ```
 
-#### 5. alt
+#### 4. alt
 - **타입**: `string`
 - **설명**: 대체 텍스트 (접근성)
 - **기본값**: `''`
@@ -181,7 +157,7 @@ export interface ImageBlockProperties {
     icon: 'AudioLines',
     description: '접근성을 위한 대체 텍스트',
     placeholder: '이미지 설명...',
-    order: 5,
+    order: 4,
   }
   ```
 
@@ -205,7 +181,7 @@ groups: [
     description: '이미지의 기본 정보',
     defaultCollapsed: false,
     order: 1,
-    properties: ['imageUrl', 'aspectRatio', 'objectFit', 'caption', 'alt'],
+    properties: ['imageUrl', 'objectFit', 'caption', 'alt'],
   },
   {
     id: 'metadata',
@@ -220,22 +196,16 @@ groups: [
 
 ## 5. 툴바 아이템
 
-### 1. AspectRatioToolbarItem
-- **아이콘**: `AspectRatio`
-- **기능**: 비율 변경
-- **동작**: Popover로 비율 옵션 표시
-- **업데이트**: `properties.aspectRatio`
-
-### 2. ObjectFitToolbarItem
+### 1. ObjectFitToolbarItem
 - **아이콘**: `Maximize`
 - **기능**: 맞춤 방식 변경
 - **동작**: Popover로 맞춤 옵션 표시
 - **업데이트**: `properties.objectFit`
 
-### 3. ImageEditToolbarItem
+### 2. ImageEditToolbarItem
 - **아이콘**: `Edit`
-- **기능**: 이미지 에디터 열기
-- **동작**: 모달로 이미지 에디터 표시
+- **기능**: 이미지 에디터 열기 (향후)
+- **동작**: 블록 스페이스로 이미지 에디터 표시
 
 ## 6. 블록 툴
 

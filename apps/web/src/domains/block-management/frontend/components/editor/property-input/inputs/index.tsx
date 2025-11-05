@@ -8,3 +8,4 @@ export { UrlProperty } from './url-property';
 export { EmailProperty } from './email-property';
 export { PhoneProperty } from './phone-property';
 export { ColorProperty } from './color-property';
+export { ImageUploadProperty } from './image-upload-property';

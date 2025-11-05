@@ -8,6 +8,7 @@ import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { DefaultShadowPreview } from './previews/default-shadow-preview';
 import { TextShadowPreview } from './previews/text-shadow-preview';
 import { ShapeShadowPreview } from './previews/shape-shadow-preview';
+import { ImageShadowPreview } from './previews/image-shadow-preview';
 
 export interface ShadowPreviewProps {
   blockType: BlockType;
@@ -21,6 +22,7 @@ export interface ShadowPreviewProps {
 const SHADOW_PREVIEW_MAP: Partial<Record<BlockType, React.ComponentType<ShadowPreviewProps>>> = {
   [BlockType.TEXT]: TextShadowPreview,
   [BlockType.SHAPE]: ShapeShadowPreview,
+  [BlockType.IMAGE]: ImageShadowPreview,
   // 추가 블록 타입들은 필요시 여기에 추가
   // [BlockType.MARKDOWN]: MarkdownShadowPreview,
   // [BlockType.YOUTUBE]: YoutubeShadowPreview,

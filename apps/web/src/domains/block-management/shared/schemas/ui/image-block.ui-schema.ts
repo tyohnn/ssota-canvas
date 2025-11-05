@@ -1,31 +1,31 @@
 /**
- * Shape Block UI Schema
+ * Image Block UI Schema
  *
- * 도형 블록의 UI 렌더링 스키마
+ * 이미지 블록의 UI 렌더링 스키마
  */
 
 import { BlockUISchema } from './block-ui-schema.interface';
 import { BlockType } from '../../types/block-types';
 
-export const shapeBlockUISchema: BlockUISchema = {
-  blockType: BlockType.SHAPE,
+export const imageBlockUISchema: BlockUISchema = {
+  blockType: BlockType.IMAGE,
 
   groups: [
     {
       id: 'basic-info',
       label: '기본 정보',
-      description: '도형 블럭의 기본 정보',
+      description: '이미지 블럭의 기본 정보',
       defaultCollapsed: false,
       order: 1,
-      properties: ['content'],
+      properties: ['imageUrl', 'caption', 'alt'],
     },
     {
       id: 'style',
       label: '스타일',
-      description: '도형의 스타일 설정',
+      description: '이미지 스타일 설정',
       defaultCollapsed: false,
       order: 2,
-      properties: ['shapeType', 'color', 'borderStyle'],
+      properties: ['objectFit'],
     },
     {
       id: 'metadata',
@@ -38,50 +38,43 @@ export const shapeBlockUISchema: BlockUISchema = {
   ],
 
   properties: {
-    // 일반 정보
-    content: {
-      label: '텍스트',
-      inputType: 'textarea',
-      icon: 'Type',
-      description: '도형 내부에 표시할 텍스트',
-      placeholder: '텍스트를 입력하세요...',
+    // 기본 정보
+    imageUrl: {
+      label: '이미지',
+      inputType: 'image-upload',
+      icon: 'Image',
+      description: '이미지 파일 업로드',
       order: 1,
+      readonly: false,
+    },
+    caption: {
+      label: '캡션',
+      inputType: 'text',
+      icon: 'MessageSquare',
+      description: '이미지 설명 또는 캡션 (하단에 작게 표시됨)',
+      placeholder: '캡션을 입력하세요...',
+      order: 2,
+    },
+    alt: {
+      label: '대체 텍스트',
+      inputType: 'text',
+      icon: 'AudioLines',
+      description: '접근성을 위한 대체 텍스트',
+      placeholder: '이미지 설명...',
+      order: 3,
     },
 
     // 스타일
-    color: {
-      label: '색상',
-      inputType: 'color',
-      icon: 'Palette',
-      description: '도형의 색상',
-      order: 2,
-    },
-    shapeType: {
-      label: '도형 타입',
+    objectFit: {
+      label: '맞춤 방식',
       inputType: 'select',
-      icon: 'Shapes',
-      description: '도형의 종류를 선택',
-      order: 3,
-      options: [
-        { value: 'rectangle', label: '사각형' },
-        { value: 'ellipse', label: '타원' },
-        { value: 'triangle', label: '삼각형' },
-        { value: 'diamond', label: '다이아몬드' },
-        { value: 'hexagon', label: '육각형' },
-        { value: 'parallelogram', label: '평행사변형' },
-        { value: 'cylinder', label: '원기둥' },
-      ],
-    },
-    borderStyle: {
-      label: '테두리 스타일',
-      inputType: 'select',
-      icon: 'Minus',
-      description: '테두리 스타일',
+      icon: 'Maximize',
+      description: '이미지를 컨테이너에 맞추는 방식',
       order: 4,
       options: [
-        { value: 'solid', label: '실선' },
-        { value: 'dashed', label: '대시선' },
-        { value: 'dotted', label: '점선' },
+        { value: 'contain', label: '전체 표시' },
+        { value: 'cover', label: '채우기' },
+        { value: 'fill', label: '늘리기' },
       ],
     },
 
@@ -91,7 +84,7 @@ export const shapeBlockUISchema: BlockUISchema = {
       inputType: 'readonly-datetime',
       icon: 'Calendar',
       description: '블록이 생성된 날짜',
-      order: 4,
+      order: 5,
       readonly: true,
       defaultDisplay: (value: any) => {
         if (!value) return '-';
@@ -110,7 +103,7 @@ export const shapeBlockUISchema: BlockUISchema = {
       inputType: 'readonly-datetime',
       icon: 'Clock',
       description: '블록이 마지막으로 수정된 날짜',
-      order: 5,
+      order: 6,
       readonly: true,
       defaultDisplay: (value: any) => {
         if (!value) return '-';
@@ -129,7 +122,7 @@ export const shapeBlockUISchema: BlockUISchema = {
       inputType: 'readonly-profile',
       icon: 'User',
       description: '블록을 생성한 사용자',
-      order: 6,
+      order: 7,
       readonly: true,
       defaultDisplay: (value: any) => {
         if (!value) return '알 수 없음';

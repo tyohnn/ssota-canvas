@@ -177,7 +177,7 @@ export function ShapeTypeToolbarItem({
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="bottom">
+        <TooltipContent side="top" hasArrow={false} sideOffset={10}>
           <p>도형 타입</p>
         </TooltipContent>
       </Tooltip>
@@ -187,31 +187,37 @@ export function ShapeTypeToolbarItem({
         align="center"
         onMouseDown={e => e.stopPropagation()}
         onClick={e => e.stopPropagation()}
+        onOpenAutoFocus={e => e.preventDefault()}
       >
         <div className="flex gap-1.5">
           {SHAPE_OPTIONS.map(shapeOption => {
             return (
-              <button
-                key={shapeOption.value}
-                onClick={e => {
-                  e.stopPropagation();
-                  handleShapeSelect(shapeOption.value);
-                }}
-                onMouseDown={e => e.stopPropagation()}
-                className={cn(
-                  'h-6 w-6 rounded transition hover:scale-110 flex items-center justify-center',
-                  {
-                    'ring-1 ring-black/10':
-                      currentShapeType !== shapeOption.value,
-                    'ring-2 ring-blue-400':
-                      currentShapeType === shapeOption.value,
-                  }
-                )}
-                title={shapeOption.label}
-                aria-label={shapeOption.label}
-              >
-                {renderShapePreview(shapeOption.value, 20)}
-              </button>
+              <Tooltip key={shapeOption.value}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleShapeSelect(shapeOption.value);
+                    }}
+                    onMouseDown={e => e.stopPropagation()}
+                    className={cn(
+                      'h-7 w-7 rounded transition hover:scale-110 flex items-center justify-center',
+                      {
+                        'ring-1 ring-black/10':
+                          currentShapeType !== shapeOption.value,
+                        'ring-2 ring-blue-400':
+                          currentShapeType === shapeOption.value,
+                      }
+                    )}
+                    aria-label={shapeOption.label}
+                  >
+                    {renderShapePreview(shapeOption.value, 16)}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" hasArrow={false} sideOffset={10}>
+                  <p>{shapeOption.label}</p>
+                </TooltipContent>
+              </Tooltip>
             );
           })}
         </div>

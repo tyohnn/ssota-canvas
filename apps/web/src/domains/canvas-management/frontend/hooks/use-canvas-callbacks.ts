@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { type Node, type OnConnect, useReactFlow } from '@xyflow/react';
 import { isFailure } from '@/lib/action-result';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
@@ -14,6 +14,7 @@ interface UseCanvasCallbacksProps {
     enterSingleSelectionMode: (nodeId: string) => void;
     enterMultiSelectionMode: (nodeIds: string[]) => void;
     enterBlockCreationMode: (blockType: BlockType) => void;
+    enterBlockEditingMode: (blockId: string) => void;
     exitToDefaultMode: () => void;
     isBlockCreationMode: () => boolean;
     isMultiSelectionMode: () => boolean;
@@ -59,6 +60,12 @@ interface UseCanvasCallbacksProps {
   };
 }
 
+interface BlockNodeData {
+  blockId: string;
+  blockType: string;
+  // ... other properties
+}
+
 /**
  * React Flow 콜백 함수들을 관리하는 커스텀 훅
  *
@@ -84,6 +91,12 @@ export function useCanvasCallbacks({
     orgId,
     workspaceId,
   });
+
+  // 이전 선택 상태 추적 (무한 루프 방지)
+  const previousSelectionRef = useRef<{
+    count: number;
+    blockId?: string;
+  }>({ count: 0 });
 
   /**
    * 드래그 시작 → 드래그 모드 진입 및 이전 가이드라인 초기화
@@ -203,36 +216,50 @@ export function useCanvasCallbacks({
   );
 
   /**
-   * 노드 클릭 → 단일 선택 모드 진입
+   * 노드 클릭 → React Flow가 자동으로 선택 처리, 여기서는 로그만
+   * 실제 모드 전환은 onSelectionChange에서 처리
    */
-  const onNodeClick = useCallback(
-    (event: React.MouseEvent, node: Node) => {
-      // Ctrl/Cmd + 클릭이 아닌 경우에만 단일 선택 모드로 전환
-      if (!event.ctrlKey && !event.metaKey) {
-        canvasMode.enterSingleSelectionMode(node.id);
-      }
-    },
-    [canvasMode.enterSingleSelectionMode]
-  );
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    // React Flow가 자동으로 선택 상태를 관리하므로
+    // onSelectionChange에서 모드 전환이 처리됨
+  }, []);
 
   /**
-   * 선택 변경 → 다중 선택 모드 진입
+   * 선택 변경 → 모드 전환
+   * React Flow가 이미 선택 상태를 관리하므로 모드만 전환
+   * 이전 선택과 비교해서 실제로 변경된 경우에만 모드 전환 (무한 루프 방지)
    */
   const onSelectionChange = useCallback(
     ({ nodes: selectedNodes }: { nodes: Node[] }) => {
-      if (selectedNodes.length > 1) {
-        canvasMode.enterMultiSelectionMode(selectedNodes.map(n => n.id));
-      } else if (selectedNodes.length === 1) {
-        canvasMode.enterSingleSelectionMode(selectedNodes[0]!.id);
+      const currentCount = selectedNodes.length;
+      const previousSelection = previousSelectionRef.current;
+
+      if (currentCount > 1) {
+        // 다중 선택: 이전과 다른 경우에만 업데이트
+        if (previousSelection.count !== currentCount) {
+          previousSelectionRef.current = { count: currentCount };
+          canvasMode.enterMultiSelectionMode(selectedNodes.map(n => n.id));
+        }
+      } else if (currentCount === 1) {
+        // 단일 선택: blockId가 변경된 경우에만 업데이트
+        const node = selectedNodes[0]!;
+        const nodeData = node.data as unknown as BlockNodeData;
+        const blockId = nodeData?.blockId || node.id;
+
+        // 이전 선택과 같은 blockId면 스킵
+        if (previousSelection.blockId !== blockId) {
+          previousSelectionRef.current = { count: 1, blockId };
+          canvasMode.enterBlockEditingMode(blockId);
+        }
       } else {
-        canvasMode.exitToDefaultMode();
+        // 선택 해제: 이전에 선택이 있었던 경우에만 업데이트
+        if (previousSelection.count > 0) {
+          previousSelectionRef.current = { count: 0 };
+          canvasMode.exitToDefaultMode();
+        }
       }
     },
-    [
-      canvasMode.enterMultiSelectionMode,
-      canvasMode.enterSingleSelectionMode,
-      canvasMode.exitToDefaultMode,
-    ]
+    [canvasMode]
   );
 
   /**

@@ -13,6 +13,7 @@ import {
   ColorToken,
   getSelectedRingClasses,
   getGlowColor,
+  getRichStyleClasses,
 } from '@/domains/block-management/shared/types/style-tokens.types';
 import { cn } from '@workspace/ui/lib/utils';
 import { useBlockPropertyUpdate } from '../../../hooks/use-block-property-update';
@@ -301,12 +302,17 @@ export const TextBlock = memo(function TextBlock({
       {/* Text Block Content */}
       <div
         className={cn(
-          'w-full h-full flex flex-col border border-gray-200 rounded-lg bg-white shadow-sm',
+          'w-full h-full flex flex-col rounded-lg shadow-sm',
+          // Rich Style 배경색 적용 (richStyle이 true일 때)
+          richStyle
+            ? getRichStyleClasses(color)
+            : 'border border-gray-200 bg-white',
           // 호버 효과 (선택되지 않았을 때만)
           !selected && 'hover:shadow-lg hover:scale-[1.02] hover:rotate-1',
           !selected && 'hover:shadow-[0_0_4px_1px_var(--glow-color)]',
-          // 선택 효과
+          // 선택 효과 (강화)
           selected && getSelectedRingClasses(color),
+          selected && 'shadow-lg',
           selected && 'shadow-[0_0_4px_1px_var(--glow-color)]',
           // Transition
           'transition-all duration-300 ease-out'

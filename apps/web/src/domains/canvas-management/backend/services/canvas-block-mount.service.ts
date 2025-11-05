@@ -318,8 +318,8 @@ export class CanvasBlockMountService implements ICanvasBlockMountService {
 
           // 2. 연결된 엣지 조회
           const connectedEdges =
-            await this.edgeRepository.findByConnectedBlockId(
-              blockMount.blockId
+            await this.edgeRepository.findByConnectedBlockMountId(
+              blockMount.id
             );
 
           // 3. 엣지 삭제
@@ -337,6 +337,20 @@ export class CanvasBlockMountService implements ICanvasBlockMountService {
           };
         })
       );
+
+      // Log rejected errors
+      const rejectedResults = deletionResults.filter(
+        r => r.status === 'rejected'
+      );
+      if (rejectedResults.length > 0) {
+        console.error(
+          '❌ [CanvasBlockMountService] Some deletions failed:',
+          rejectedResults.map((r, i) => ({
+            index: i,
+            reason: (r as PromiseRejectedResult).reason,
+          }))
+        );
+      }
 
       // 7. 성공한 작업들만 이벤트 처리
       const successfulResults = deletionResults

@@ -13,6 +13,7 @@ import {
 import { useTheme } from 'next-themes';
 import { EdgeToolbar } from './edge-toolbar';
 import { useCanvasEdgeManagement } from '../../hooks/use-canvas-edge-management';
+import { useCanvasSelection } from '../../hooks/use-canvas-selection';
 import {
   getHexColor,
   getHexColorDark,
@@ -78,6 +79,18 @@ export function CustomEdge({
     orgId,
     workspaceId,
   });
+
+  // Canvas selection 확인 (멀티 선택 체크용)
+  const canvasSelection = useCanvasSelection();
+  const selectedNodeCount = canvasSelection.getSelectionCount();
+
+  // 선택된 엣지 개수 확인
+  const selectedEdgeCount = edges.filter(e => e.selected).length;
+
+  // 단일 선택: 노드 0개 + 엣지 1개, 또는 노드 1개 + 엣지 0개
+  const isSingleSelection =
+    (selectedNodeCount === 0 && selectedEdgeCount === 1) ||
+    (selectedNodeCount === 1 && selectedEdgeCount === 0);
 
   // 엣지 타입 변경 시 강제 리렌더링을 위한 상태
   const [forceRender, setForceRender] = useState(0);
@@ -209,24 +222,29 @@ export function CustomEdge({
       />
 
       <EdgeLabelRenderer>
-        {/* 엣지 툴바 (엣지 중앙 상단, 선택된 엣지에만 표시) */}
-        {selected && pageId && id && orgId && workspaceId && (
-          <div
-            className="z-50"
-            style={{
-              position: 'absolute',
-              transform: `translate(-50%, -100%) translate(${labelX}px,${labelY - 20}px)`,
-              pointerEvents: 'all',
-            }}
-          >
-            <EdgeToolbar
-              pageId={pageId}
-              edgeId={id}
-              orgId={orgId}
-              workspaceId={workspaceId}
-            />
-          </div>
-        )}
+        {/* 엣지 툴바 (엣지 중앙 상단, 단일 선택 시만 표시) */}
+        {selected &&
+          isSingleSelection &&
+          pageId &&
+          id &&
+          orgId &&
+          workspaceId && (
+            <div
+              className="z-50"
+              style={{
+                position: 'absolute',
+                transform: `translate(-50%, -100%) translate(${labelX}px,${labelY - 20}px)`,
+                pointerEvents: 'all',
+              }}
+            >
+              <EdgeToolbar
+                pageId={pageId}
+                edgeId={id}
+                orgId={orgId}
+                workspaceId={workspaceId}
+              />
+            </div>
+          )}
 
         {/* 엣지 라벨 (중앙, 항상 표시, 클릭 시 편집 가능) */}
         <div

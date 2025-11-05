@@ -142,8 +142,6 @@ export function BlockMountToolbar({
             disabled={false}
           />
 
-          <Separator orientation="vertical" className="mx-1 h-4" />
-
           {/* Details 버튼 */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -160,12 +158,10 @@ export function BlockMountToolbar({
                 <ChevronRight className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">
+            <TooltipContent side="top" hasArrow={false} sideOffset={10}>
               <p>블럭 세부사항</p>
             </TooltipContent>
           </Tooltip>
-
-          <Separator orientation="vertical" className="mx-1 h-4" />
 
           {/* 더보기 메뉴 */}
           <DropdownMenu>
@@ -177,7 +173,7 @@ export function BlockMountToolbar({
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
-              <TooltipContent side="bottom">
+              <TooltipContent side="top" hasArrow={false} sideOffset={10}>
                 <p>더보기</p>
               </TooltipContent>
             </Tooltip>

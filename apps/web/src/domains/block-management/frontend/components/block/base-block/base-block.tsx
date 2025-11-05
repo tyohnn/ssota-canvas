@@ -49,12 +49,48 @@ function ResizeIcon() {
           fill="none"
         >
           {/* 대각선 그립 점들 */}
-          <circle cx="9" cy="9" r="1" fill="#3b82f6" className="group-hover:fill-blue-600" />
-          <circle cx="6" cy="9" r="1" fill="#3b82f6" className="group-hover:fill-blue-600" />
-          <circle cx="9" cy="6" r="1" fill="#3b82f6" className="group-hover:fill-blue-600" />
-          <circle cx="3" cy="9" r="1" fill="#3b82f6" className="group-hover:fill-blue-600" />
-          <circle cx="6" cy="6" r="1" fill="#3b82f6" className="group-hover:fill-blue-600" />
-          <circle cx="9" cy="3" r="1" fill="#3b82f6" className="group-hover:fill-blue-600" />
+          <circle
+            cx="9"
+            cy="9"
+            r="1"
+            fill="#3b82f6"
+            className="group-hover:fill-blue-600"
+          />
+          <circle
+            cx="6"
+            cy="9"
+            r="1"
+            fill="#3b82f6"
+            className="group-hover:fill-blue-600"
+          />
+          <circle
+            cx="9"
+            cy="6"
+            r="1"
+            fill="#3b82f6"
+            className="group-hover:fill-blue-600"
+          />
+          <circle
+            cx="3"
+            cy="9"
+            r="1"
+            fill="#3b82f6"
+            className="group-hover:fill-blue-600"
+          />
+          <circle
+            cx="6"
+            cy="6"
+            r="1"
+            fill="#3b82f6"
+            className="group-hover:fill-blue-600"
+          />
+          <circle
+            cx="9"
+            cy="3"
+            r="1"
+            fill="#3b82f6"
+            className="group-hover:fill-blue-600"
+          />
         </svg>
       </div>
     </div>
@@ -182,8 +218,8 @@ export const BaseBlock = memo(
             } as React.CSSProperties
           }
         >
-          {/* 커스텀 NodeResizeControl - 우측 하단 리사이즈 핸들 */}
-          {selected && data.blockMountId && (
+          {/* 커스텀 NodeResizeControl - 우측 하단 리사이즈 핸들 (단일 선택 시만) */}
+          {selected && isSingleSelection && data.blockMountId && (
             <NodeResizeControl
               nodeId={data.blockMountId}
               position="bottom-right"
@@ -208,34 +244,35 @@ export const BaseBlock = memo(
             position={Position.Left}
             isConnectable={isConnectable}
             id="left"
-            className="w-3! h-3! bg-blue-500! border-2! border-white! hover:bg-blue-600! hover:scale-125! transition-all z-50!"
+            className="w-3! h-3! bg-background! border-2! border-gray-300! dark:border-gray-600! hover:border-blue-500! hover:scale-110! transition-all z-50!"
           />
           <Handle
             type="source"
             position={Position.Right}
             isConnectable={isConnectable}
             id="right"
-            className="w-3! h-3! bg-blue-500! border-2! border-white! hover:bg-blue-600! hover:scale-125! transition-all z-50!"
+            className="w-3! h-3! bg-background! border-2! border-gray-300! dark:border-gray-600! hover:border-blue-500! hover:scale-105! transition-all z-50!"
           />
           <Handle
             type="source"
             position={Position.Top}
             isConnectable={isConnectable}
             id="top"
-            className="w-3! h-3! bg-blue-500! border-2! border-white! hover:bg-blue-600! hover:scale-125! transition-all z-50!"
+            className="w-3! h-3! bg-background! border-2! border-gray-300! dark:border-gray-600! hover:border-blue-500! hover:scale-105! transition-all z-50!"
           />
           <Handle
             type="source"
             position={Position.Bottom}
             isConnectable={isConnectable}
             id="bottom"
-            className="w-3! h-3! bg-blue-500! border-2! border-white! hover:bg-blue-600! hover:scale-125! transition-all z-50!"
+            className="w-3! h-3! bg-background! border-2! border-gray-300! dark:border-gray-600! hover:border-blue-500! hover:scale-105! transition-all z-50!"
           />
 
-          {/* Top Toolbar - BlockMountToolbar (선택된 블럭에만 표시) */}
+          {/* Top Toolbar - BlockMountToolbar (단일 선택 시만 표시) */}
           {data.blockMountId &&
             data.pageId &&
             data.workspaceId &&
+            selected &&
             isCurrentBlockSelected &&
             isSingleSelection && (
               <BlockMountToolbar

@@ -9,6 +9,7 @@ export { PhoneProperty } from './inputs/phone-property';
 export { ColorProperty } from './inputs/color-property';
 export { StatusProperty } from './inputs/status-property';
 export { MultiSelectProperty } from './inputs/multi-select-property';
+export { ImageUploadProperty } from './inputs/image-upload-property';
 
 // Re-export types
 export type { TextPropertyProps } from './inputs/text-property';
@@ -21,3 +22,4 @@ export type { PhonePropertyProps } from './inputs/phone-property';
 export type { ColorPropertyProps } from './inputs/color-property';
 export type { StatusPropertyProps } from './inputs/status-property';
 export type { MultiSelectPropertyProps } from './inputs/multi-select-property';
+export type { ImageUploadPropertyProps } from './inputs/image-upload-property';

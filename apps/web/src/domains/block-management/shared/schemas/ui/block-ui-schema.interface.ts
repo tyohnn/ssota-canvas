@@ -23,6 +23,7 @@ export type PropertyInputType =
   | 'checkbox'
   | 'profile'
   | 'media'
+  | 'image-upload'
   | 'readonly-text'
   | 'readonly-datetime'
   | 'readonly-profile';

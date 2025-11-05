@@ -25,16 +25,22 @@ export function TextProperty({
   const isInitialized = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // 원본 값 저장 (서버에 저장된 값, optimistic update와 비교용)
+  const originalValueRef = useRef(value || '');
+
   // 초기값 설정 (한 번만)
   useEffect(() => {
     if (!isInitialized.current && value !== undefined) {
       setTextValue(value || '');
+      originalValueRef.current = value || '';
       isInitialized.current = true;
     }
   }, [value]);
 
   const handleLabelClick = () => {
     if (disabled) return;
+    // 편집 시작 시 현재 값을 원본으로 저장
+    originalValueRef.current = textValue;
     setIsEditing(true);
   };
 
@@ -46,13 +52,16 @@ export function TextProperty({
     onImmediateChange?.(newValue);
   };
 
-  const handleInputBlur = () => {
+  const handleInputBlur = async () => {
     // 편집 모드 종료
     setIsEditing(false);
 
-    // 서버에 저장 (편집 종료 시에만)
-    if (textValue !== value) {
-      onChange(textValue);
+    // 원본 값(서버에 저장된 값)과 비교
+    if (textValue !== originalValueRef.current) {
+      await onChange(textValue);
+
+      // 서버 저장 성공 후 원본 값 업데이트
+      originalValueRef.current = textValue;
     }
   };
 
@@ -71,7 +80,7 @@ export function TextProperty({
       }
     } else if (e.key === 'Escape') {
       // Escape: 변경사항 취소 (원본 값으로 복원)
-      setTextValue(value || '');
+      setTextValue(originalValueRef.current);
       setIsEditing(false);
     }
   };

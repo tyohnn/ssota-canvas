@@ -34,10 +34,10 @@ export function EditorPanel({ blockId, isOpen }: EditorPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // React Flow Store에서 블록 데이터 읽기 (reactive)
-  const blockNode = useMemo(
-    () => nodes.find(node => node.id === blockId),
-    [nodes, blockId]
-  );
+  const blockNode = useMemo(() => {
+    const node = nodes.find(node => node.id === blockId);
+    return node;
+  }, [nodes, blockId]);
   const blockData = blockNode?.data;
 
   // Title 상태 동기화
@@ -223,7 +223,7 @@ export function EditorPanel({ blockId, isOpen }: EditorPanelProps) {
     >
       <div className="flex flex-col h-full">
         {/* Modal Header */}
-        <div className="flex-shrink-0 flex items-center justify-between p-4">
+        <div className="shrink-0 flex items-center justify-between p-4">
           <div className="flex items-center gap-2">
             <Button
               size="icon"

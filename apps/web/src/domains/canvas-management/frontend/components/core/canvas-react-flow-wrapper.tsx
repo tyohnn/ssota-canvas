@@ -41,6 +41,7 @@ import {
   PythonBlock,
   TextBlock,
   ShapeBlock,
+  ImageBlock,
 } from '@/domains/block-management/frontend/components/block';
 import { SnapGuidelines } from '../snap/snap-guidelines';
 import { MultiSelectionToolbar } from '../multi-select/multi-selection-toolbar';
@@ -155,6 +156,7 @@ export function CanvasReactFlowWrapper({
     () => ({
       [BlockType.TEXT]: TextBlock,
       [BlockType.SHAPE]: ShapeBlock,
+      [BlockType.IMAGE]: ImageBlock,
       [BlockType.MARKDOWN]: MarkdownBlock,
       [BlockType.YOUTUBE]: YoutubeBlock,
       [BlockType.PYTHON]: PythonBlock,

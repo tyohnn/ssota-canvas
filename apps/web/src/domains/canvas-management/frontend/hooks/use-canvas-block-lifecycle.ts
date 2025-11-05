@@ -99,6 +99,9 @@ export function useCanvasBlockLifecycle(
     enterBlockEditingMode,
   } = canvasMode;
 
+  // 중복 삭제 방지를 위한 Set (현재 삭제 진행 중인 blockMountId들)
+  const deletingBlockMountsRef = React.useRef<Set<string>>(new Set());
+
   /**
    * 모든 블럭 조회
    */
@@ -487,7 +490,7 @@ export function useCanvasBlockLifecycle(
         realBlockMountIds: realNodes.map(node => node.id),
       };
     },
-    []
+    [getNodes]
   );
 
   /**
@@ -525,28 +528,46 @@ export function useCanvasBlockLifecycle(
    */
   const softDeleteBlockMounts = useCallback(
     async (blockMountIds: string | string[]) => {
-      // 1. 노드 정규화 및 분리
-      const nodeData = normalizeAndSeparateNodes(blockMountIds);
+      // 0. 중복 호출 방지 - 이미 삭제 진행 중인 블록은 건너뛰기
+      const normalizedIds = Array.isArray(blockMountIds)
+        ? blockMountIds
+        : [blockMountIds];
+      const alreadyDeleting = normalizedIds.filter(id =>
+        deletingBlockMountsRef.current.has(id)
+      );
 
-      if (nodeData.shouldReturn) {
-        console.warn(nodeData.reason);
+      if (alreadyDeleting.length > 0) {
         return;
       }
 
-      const { nodesToDelete, optimisticNodes, realNodes, realBlockMountIds } =
-        nodeData;
-
-      // Optimistic 노드만 있는 경우 서버 호출 없이 UI에서만 제거하고 종료
-      if (realNodes.length === 0) {
-        // optimistic 노드들만 UI에서 즉시 제거 (서버에 저장되지 않았으므로)
-        deleteElements({
-          nodes: optimisticNodes.map(node => ({ id: node.id })),
-        });
-        exitToDefaultMode();
-        return;
-      }
+      // 삭제 시작 표시
+      normalizedIds.forEach(id => deletingBlockMountsRef.current.add(id));
 
       try {
+        // 1. 노드 정규화 및 분리
+        const nodeData = normalizeAndSeparateNodes(blockMountIds);
+
+        if (nodeData.shouldReturn) {
+          console.warn(
+            '⚠️ [Frontend] softDeleteBlockMounts aborted:',
+            nodeData.reason
+          );
+          return;
+        }
+
+        const { nodesToDelete, optimisticNodes, realNodes, realBlockMountIds } =
+          nodeData;
+
+        // Optimistic 노드만 있는 경우 서버 호출 없이 UI에서만 제거하고 종료
+        if (realNodes.length === 0) {
+          // optimistic 노드들만 UI에서 즉시 제거 (서버에 저장되지 않았으므로)
+          deleteElements({
+            nodes: optimisticNodes.map(node => ({ id: node.id })),
+          });
+          exitToDefaultMode();
+          return;
+        }
+
         // 2. 요청 검증
         const validation = validateSoftDeleteRequest(realBlockMountIds);
         if (!validation.isValid) {
@@ -575,7 +596,18 @@ export function useCanvasBlockLifecycle(
           );
         }
       } catch (error) {
-        handleSoftDeleteBlockMountsFailure(realNodes, error as Error);
+        console.error('Failed to delete blocks:', error);
+        // nodeData가 정의되어 있고 realNodes가 있는 경우에만 복원 시도
+        const nodeData = normalizeAndSeparateNodes(blockMountIds);
+        if (!nodeData.shouldReturn) {
+          handleSoftDeleteBlockMountsFailure(
+            nodeData.realNodes,
+            error as Error
+          );
+        }
+      } finally {
+        // 삭제 완료 후 진행 중 표시 제거
+        normalizedIds.forEach(id => deletingBlockMountsRef.current.delete(id));
       }
     },
     [

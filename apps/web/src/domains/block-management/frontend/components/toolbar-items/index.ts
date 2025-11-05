@@ -4,3 +4,7 @@ export { TextAlignToolbarItem } from './text-align-toolbar-item';
 export { RichStyleToolbarItem } from './rich-style-toolbar-item';
 export { ShapeTypeToolbarItem } from './shape-type-toolbar-item';
 export { BorderStyleToolbarItem } from './border-style-toolbar-item';
+export { ObjectFitToolbarItem } from './object-fit-toolbar-item';
+
+// Image Block Toolbar Items
+export { ImageChangeToolbarItem } from './image-block';

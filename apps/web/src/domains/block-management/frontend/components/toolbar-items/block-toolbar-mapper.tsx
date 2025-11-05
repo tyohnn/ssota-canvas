@@ -9,15 +9,20 @@ import {
   RichStyleToolbarItem,
   ShapeTypeToolbarItem,
   BorderStyleToolbarItem,
+  ObjectFitToolbarItem,
+  ImageChangeToolbarItem,
 } from './index';
 import {
   FontSize,
   TextAlign,
   TextBlockProperties,
   ShapeBlockProperties,
+  ImageBlockProperties,
 } from '../../../shared/value-objects/block-properties';
+import type { ObjectFit } from '../../../shared/value-objects/block-properties/common-types';
 import { ColorToken } from '../../../shared/types/style-tokens.types';
 import { BlockNodeData } from '../../../shared/types/block-data.types';
+import { Separator } from '@workspace/ui/components/ui/separator';
 
 interface BlockToolbarMapperProps {
   blockId: string;
@@ -95,7 +100,8 @@ export function BlockToolbarMapper({
         );
 
       case 'shape':
-        const shapeBlockProperties = blockData.properties as ShapeBlockProperties;
+        const shapeBlockProperties =
+          blockData.properties as ShapeBlockProperties;
         return (
           <>
             <ShapeTypeToolbarItem
@@ -122,7 +128,39 @@ export function BlockToolbarMapper({
               currentBorderStyle={shapeBlockProperties.borderStyle}
               disabled={disabled}
               onBorderStyleChange={async borderStyle => {
-                await handlePropertyUpdate('properties.borderStyle', borderStyle);
+                await handlePropertyUpdate(
+                  'properties.borderStyle',
+                  borderStyle
+                );
+              }}
+            />
+          </>
+        );
+
+      case 'image':
+        const imageBlockProperties =
+          blockData.properties as ImageBlockProperties;
+        return (
+          <>
+            <ImageChangeToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              currentValue={imageBlockProperties.imageUrl}
+              disabled={disabled}
+              orgId={blockData.orgId}
+              workspaceId={blockData.workspaceId}
+              pageId={blockData.pageId}
+              onValueChange={async (url: string) => {
+                await handlePropertyUpdate('properties.imageUrl', url);
+              }}
+            />
+            <ObjectFitToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              currentValue={imageBlockProperties.objectFit}
+              disabled={disabled}
+              onValueChange={async (objectFit: ObjectFit) => {
+                await handlePropertyUpdate('properties.objectFit', objectFit);
               }}
             />
           </>
