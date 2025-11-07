@@ -6,7 +6,16 @@ import type { AudioBlockNodeData } from '@/domains/block-management/shared/types
 import { BaseBlock } from '../base-block/base-block';
 import type { AudioBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { cn } from '@workspace/ui/lib/utils';
-import { Play, Pause, Music, AudioLines, Upload, Mic, Square, Check } from 'lucide-react';
+import {
+  Play,
+  Pause,
+  Music,
+  AudioLines,
+  Upload,
+  Mic,
+  Square,
+  Check,
+} from 'lucide-react';
 import { AudioScrubber } from '@workspace/ui/components/eleven-labs/waveform';
 import { LiveWaveform } from '@workspace/ui/components/eleven-labs/live-waveform';
 import { Button } from '@workspace/ui/components/ui/button';
@@ -368,7 +377,8 @@ export const AudioBlock = memo(function AudioBlock({
                     {selected && (
                       <>
                         <p className="text-xs text-muted-foreground mb-3">
-                          파일을 드롭하거나 아래 버튼을 사용하세요 (최대 {maxSizeMB}MB)
+                          파일을 드롭하거나 아래 버튼을 사용하세요 (최대{' '}
+                          {maxSizeMB}MB)
                         </p>
                         <div className="flex gap-2">
                           <Button

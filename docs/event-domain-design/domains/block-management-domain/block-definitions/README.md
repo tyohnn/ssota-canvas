@@ -113,6 +113,23 @@
 - Block Component: `apps/web/src/domains/block-management/frontend/components/block/text/text-block.tsx`
 - Toolbar Items: `apps/web/src/domains/block-management/frontend/components/toolbar-items/block-toolbar-mapper.tsx` (case 'text')
 
+## ✅ 현재 구현된 블록 컴포넌트
+
+| 블록 타입 | 주요 기능 | 프런트엔드 컴포넌트 |
+| --- | --- | --- |
+| BaseBlock (공통) | React Flow `NodeResizer`·핸들·툴바 통합, 공통 스타일 토큰 처리 | `apps/web/src/domains/block-management/frontend/components/block/base-block/base-block.tsx` |
+| Text Block | 더블클릭 편집, 색상/정렬/타이포 속성 적용, 낙관적 저장 | `apps/web/src/domains/block-management/frontend/components/block/text/text-block.tsx` |
+| Shape Block | 다양한 도형 타입과 텍스트 오버레이, 호버 글로우, 더블클릭 인라인 편집 | `apps/web/src/domains/block-management/frontend/components/block/shape/shape-block.tsx` |
+| Markdown Block | TipTap 기반 마크다운 편집, JSON 콘텐츠 동기화, 디바운스 저장 | `apps/web/src/domains/block-management/frontend/components/block/markdown/markdown-block.tsx` |
+| Image Block | Supabase 업로드, 캡션 편집·재생성, 이미지 fit 제어, 에러 시 URL 재발급 | `apps/web/src/domains/block-management/frontend/components/block/image/image-block.tsx` |
+| Link Block (URL Preview) | Open Graph 메타데이터 fetch·저장, 도메인 기반 폴백 카드 | `apps/web/src/domains/block-management/frontend/components/block/link/link-block.tsx` |
+| YouTube Block | YouTube 메타데이터 수집, 임베드 플레이어 토글, 낙관적 갱신 | `apps/web/src/domains/block-management/frontend/components/block/youtube/youtube-block.tsx` |
+| Audio Block | Supabase 오디오 업로드, ElevenLabs 파형/녹음, 재생 컨트롤 및 속도·볼륨 조절 | `apps/web/src/domains/block-management/frontend/components/block/audio/audio-block.tsx` |
+| PDF Block | `react-pdf` 뷰어, Supabase 업로드, 페이지 네비게이션·줌 제공 (SSR 우회 위해 동적 import) | `apps/web/src/domains/block-management/frontend/components/block/pdf/pdf-block.tsx` |
+| Python Block | 코드 편집·실행(Mock) UI, 실행 결과 저장, 블록 속성 동기화 | `apps/web/src/domains/block-management/frontend/components/block/python/python-block.tsx` |
+
+> 참고: `apps/web/src/domains/block-management/frontend/components/block/index.ts`는 위 블록들을 중앙 export 하며, PDF 블록은 SSR 영향을 피하기 위해 `canvas-react-flow-wrapper`에서 동적 import 됩니다.
+
 ## 🔗 관련 문서
 - [Epic-003: Block Management](../../../agile-planning/epics/epic-003-block-management.md)
 - [Block Management Domain 설계](../../domains/block-management-domain/)

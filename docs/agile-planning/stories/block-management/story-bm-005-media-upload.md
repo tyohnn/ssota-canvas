@@ -126,17 +126,18 @@ And 적절한 오류 메시지가 표시된다
 - [ ] 보안 취약점 0개
 
 ## 📊 진행 상황
-**현재**: 40% 완료 (Value Object 구현 완료, Server Actions 및 Storage 연동 미구현)
+**현재**: 65% 완료 (MediaURL VO + Image/PDF 블록 업로드 & 뷰어 UI 통합, 서버 액션/권한 검증 진행 전)
 
 ### ✅ 완료된 구현 (2025-10-24 기준)
 - **Value Objects**: MediaURL 완전 구현 (URL 검증, 파일 타입 검증, 파일 크기 제한)
+- **Frontend Blocks**: Image/PDF 블록에서 Supabase 업로드·진행률·미리보기 UI 통합, 캡션 및 페이지 네비게이션 제공
 - **Testing**: MediaURL Value Object 단위 테스트 완전 구현
 
 ### ❌ 미구현 사항
 - **Server Actions**: manageMediaAction, uploadMediaAction, deleteMediaAction 미구현
-- **Supabase Storage 연동**: 파일 업로드, Public URL 생성, 파일 삭제 로직 미구현
+- **Supabase Storage 연동**: 서버 액션 기반 파일 업로드/삭제, Workspace 권한 검증, 세션 기반 Supabase 클라이언트 미구현
 - **Frontend Components**: MediaInput 컴포넌트 미구현 (PropertyInput에 통합 가능)
-- **Frontend Components**: 파일 드래그 앤 드롭 UI, 업로드 진행률 표시, 파일 미리보기 기능 미구현
+- **삭제 흐름**: 파일 삭제 UI 및 properties ↔ Storage 연동 미구현
 - **Testing**: Integration Tests, E2E Tests 미구현
 
 ## 🔗 의존성

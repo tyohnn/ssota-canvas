@@ -15,11 +15,15 @@
 **예상 완료일**: 2025-11-22  
 **현재 상태**: Frontend Hooks, PropertyInput 컴포넌트, Server Actions 완전 구현, Workspace Management 연동만 미구현
 
-### Story BM-005: 미디어 업로드 및 관리 (21pts) 🔄 40% 완료
+### Story BM-005: 미디어 업로드 및 관리 (21pts) 🔄 65% 완료
 **목표**: 미디어 파일 업로드, 진행률 표시, URL 저장, 소프트 삭제 기능 완성  
 **담당자**: 시니어 개발자  
 **예상 완료일**: 2025-11-28  
-**현재 상태**: MediaURL Value Object 완전 구현, Server Actions 및 Supabase Storage 연동 미구현
+**현재 상태**: MediaURL Value Object 완료, Image/PDF 블록 업로드 및 뷰어 UI 통합, Supabase Storage 서버 액션·Workspace 권한 연동 진행 중
+
+#### 구현 메모
+- **Image Block 고도화**: Supabase Storage 업로드/재시도, 캡션 인라인 편집 및 낙관적 반영, Unsplash 메타데이터 표시 로직 적용
+- **PDF Block 초기 버전**: `react-pdf` 기반 뷰어, Supabase 업로드 흐름, 페이지 네비게이션·줌·페이지 수 동기화 처리 (SSR 영향 최소화를 위한 동적 import 분리)
 
 ## 📅 Sprint 일정
 

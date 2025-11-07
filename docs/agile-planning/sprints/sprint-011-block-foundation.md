@@ -27,23 +27,16 @@
 **예상 완료일**: 2025-11-07  
 **현재 상태**: Value Objects, Backend Entity, Frontend Components 완전 구현, Server Actions만 미구현
 
-### Story BM-004: 속성 값 관리 (13pts) → Sprint 012로 이동
-**목표**: 속성 값 입력 및 타입별 검증 기능 완성  
-**담당자**: 주니어 개발자  
-**예상 완료일**: 2025-11-13 (Sprint 012에서)  
-**현재 상태**: 기본 UI 구현, 백엔드 로직 미완성
 
-### Story BM-005: 미디어 업로드 및 관리 (21pts) → Sprint 012로 이동
-**목표**: 미디어 파일 업로드 및 Supabase Storage 연동 완성  
-**담당자**: 시니어 개발자  
-**예상 완료일**: 2025-11-20 (Sprint 012에서)  
-**현재 상태**: 기본 UI 구조만 구현
-
-### Story BM-006: 블록 툴 실행 (13pts) → Sprint 013으로 이동
-**목표**: 블록 타입별 특화 기능 실행 및 결과 처리 완성  
-**담당자**: 주니어 개발자  
-**예상 완료일**: 2025-12-05 (Sprint 013에서)  
-**현재 상태**: 기본 Hook 구조만 구현
+## ✅ 구현된 블록 컴포넌트
+- **BaseBlock 공통 래퍼**: `NodeResizer`, 연결 핸들, BlockMountToolbar/ActionBar 통합으로 모든 블록의 공통 UX 정립
+- **Text Block**: 더블클릭 인라인 편집, 색상·정렬·타이포 속성 적용, 낙관적 저장 흐름 구축
+- **Shape Block**: 도형 타입/테두리/텍스트 오버레이 지원, 호버 글로우 및 더블클릭 편집 UX 정비
+- **Markdown Block**: TipTap 에디터 도입, JSON 콘텐츠 동기화 및 디바운스 저장 로직 구현
+- **Link Block (URL Preview)**: Open Graph 메타데이터 fetch 및 폴백 처리, 카드형 UI 완성
+- **YouTube Block**: 영상 메타데이터 수집/표시, 임베드 플레이어 토글 및 낙관적 갱신 흐름 구현
+- **Audio Block**: Supabase 업로드 연동, ElevenLabs 파형/녹음 UI, 재생 컨트롤 및 속도·볼륨 조절 추가
+- **Python Block**: 코드 편집/실행(Mock) UI, 실행 결과 저장 및 블록 속성 동기화
 
 ## 📅 Sprint 일정 (TDD 기반 구현)
 
