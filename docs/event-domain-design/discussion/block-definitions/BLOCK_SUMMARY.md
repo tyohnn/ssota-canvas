@@ -182,6 +182,30 @@
 
 ---
 
+### 13. 오디오 블록 (Audio)
+```typescript
+{
+  audioUrl: string;           // Supabase Storage URL
+  title?: string;             // 오디오 제목
+  artist?: string;            // 아티스트/화자
+  playbackRate: number;       // 재생 속도 (0.5 ~ 2.0)
+  volume: number;             // 볼륨 (0.0 ~ 1.0)
+  transcript?: string;        // 음성 텍스트 변환 결과 (STT)
+}
+```
+
+**입력 방식**: 파일 업로드 또는 직접 녹음 (2가지)  
+**UI**: 파형(Waveform) 시각화 + 재생 컨트롤  
+**사용 컴포넌트**: 
+- 재생: `AudioScrubber` (waveform.tsx)
+- 녹음: `VoiceButton`, `LiveWaveform`, `MicSelector`
+
+**메타데이터 (전용)**: `fileType`, `fileSize`, `audioDuration`  
+**메타데이터 (공통)**: `createdAt`, `updatedAt`, `createdBy`  
+**블록 툴**: 음성→텍스트 변환(STT), 오디오 요약, 번역, 챕터 생성, 오디오 찾기, 오디오 생성(TTS)
+
+---
+
 ## 📊 메타데이터 구조
 
 ### 일반 블록
@@ -191,12 +215,12 @@
 - createdBy
 ```
 
-### 파일 기반 블록 (이미지, 비디오, PDF)
+### 파일 기반 블록 (이미지, 비디오, 오디오, PDF)
 ```
 [블록 전용]
 - fileType (MIME 타입)
 - fileSize
-- imageDimensions / videoDimensions / pageCount
+- imageDimensions / videoDimensions / audioDuration / pageCount
 
 [공통]
 - createdAt
@@ -237,7 +261,8 @@
 
 **Properties에 포함하지 않는 데이터**:
 - YouTube: `videoId` (URL에서 추출)
-- 이미지/비디오: `filename`, `mimeType` (파일에서 추출)
+- 이미지/비디오/오디오: `filename`, `mimeType` (파일에서 추출)
+- 오디오: `waveformData` (Web Audio API로 생성), `duration` (메타데이터)
 - URL 프리뷰: `title`, `description`, `imageUrl` (오픈그래프 fetch)
 - Twitter: `tweetId`, `text`, `authorName` (Twitter API fetch)
 
@@ -245,6 +270,7 @@
 - 블록 컴포넌트 내부 상태 (useState)
 - 서버 액션/API Route에서 fetch
 - 메타데이터로 readonly 표시 (필요한 경우)
+- 로컬 스토리지/DB 캐싱 (파형 데이터 등)
 
 ## 🚀 다음 단계
 
@@ -256,7 +282,13 @@
 5. Toolbar Items 구현
 6. Block Tools 구현 (AI 연동)
 
-**참조 문서**: `00-block-properties-principle.md`, `01-text-block.md`
+**참조 문서**: 
+- `00-block-properties-principle.md` - 블록 속성 정의 원칙
+- `01-text-block.md` - 텍스트 블록
+- `02-markdown-block.md` - 마크다운 블록
+- `04-image-block.md` - 이미지 블록
+- `06-youtube-block.md` - 유튜브 블록
+- `07-audio-block.md` - 오디오 블록 (신규)
 
 
 

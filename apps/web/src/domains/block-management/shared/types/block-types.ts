@@ -47,14 +47,14 @@ export const BLOCK_TYPE_SIZES: Record<
   [BlockType.TEXT]: { width: 200, height: 100 }, // 텍스트 블록
   [BlockType.SHAPE]: { width: 150, height: 150 }, // 도형 블록
   [BlockType.MARKDOWN]: { width: 300, height: 200 },
-  [BlockType.YOUTUBE]: { width: 400, height: 225 },
+  [BlockType.YOUTUBE]: { width: 405, height: 314 }, // YouTube 썸네일 + 메타정보
   [BlockType.IMAGE]: { width: 300, height: 200 },
   [BlockType.PDF]: { width: 300, height: 400 }, // PDF 문서
   [BlockType.AUDIO]: { width: 300, height: 120 }, // 오디오 플레이어
   [BlockType.VIDEO]: { width: 400, height: 225 }, // 비디오 플레이어
   [BlockType.FILE]: { width: 250, height: 150 },
   [BlockType.PYTHON]: { width: 350, height: 250 },
-  [BlockType.LINK]: { width: 300, height: 150 },
+  [BlockType.LINK]: { width: 316, height: 288 }, // 링크 블록 (16:9 비율에 가까운 크기)
   [BlockType.PAGE_MENTION]: { width: 250, height: 120 },
   [BlockType.LATEX]: { width: 300, height: 180 },
   [BlockType.GITHUB_PR]: { width: 400, height: 200 },

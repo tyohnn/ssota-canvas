@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
 import { updateBlockTitleAction } from '../../../actions/block.actions';
 import { BlockPropertiesSection } from './block-properties-section';
+import { BlockContentSection } from './markdown-content-section';
 
 export interface EditorPanelProps {
   blockId: string;
@@ -291,6 +292,14 @@ export function EditorPanel({ blockId, isOpen }: EditorPanelProps) {
 
           {/* Block Properties (Schema-based) */}
           <BlockPropertiesSection blockId={blockId} blockData={blockData} />
+
+          {/* Block Content Section (모든 블록 타입) */}
+          {blockData && (
+            <BlockContentSection
+              blockId={blockId}
+              blockData={blockData as any}
+            />
+          )}
         </div>
       </div>
     </div>

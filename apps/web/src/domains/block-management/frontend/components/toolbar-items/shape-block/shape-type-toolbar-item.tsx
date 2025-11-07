@@ -11,7 +11,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
-import { ShapeType } from '../../../shared/value-objects/block-properties';
+import { ShapeType } from '@/domains/block-management/shared/value-objects/block-properties';
 import { cn } from '@/lib/utils';
 
 interface ShapeTypeToolbarItemProps {

@@ -9,6 +9,10 @@ import { DefaultShadowPreview } from './previews/default-shadow-preview';
 import { TextShadowPreview } from './previews/text-shadow-preview';
 import { ShapeShadowPreview } from './previews/shape-shadow-preview';
 import { ImageShadowPreview } from './previews/image-shadow-preview';
+import { MarkdownShadowPreview } from './previews/markdown-shadow-preview';
+import { LinkShadowPreview } from './previews/link-shadow-preview';
+import { PdfShadowPreview } from './previews/pdf-shadow-preview';
+import { AudioShadowPreview } from './previews/audio-shadow-preview';
 
 export interface ShadowPreviewProps {
   blockType: BlockType;
@@ -19,12 +23,17 @@ export interface ShadowPreviewProps {
 /**
  * 블록 타입별 Shadow Preview 매핑
  */
-const SHADOW_PREVIEW_MAP: Partial<Record<BlockType, React.ComponentType<ShadowPreviewProps>>> = {
+const SHADOW_PREVIEW_MAP: Partial<
+  Record<BlockType, React.ComponentType<ShadowPreviewProps>>
+> = {
   [BlockType.TEXT]: TextShadowPreview,
   [BlockType.SHAPE]: ShapeShadowPreview,
   [BlockType.IMAGE]: ImageShadowPreview,
+  [BlockType.MARKDOWN]: MarkdownShadowPreview,
+  [BlockType.LINK]: LinkShadowPreview,
+  [BlockType.PDF]: PdfShadowPreview,
+  [BlockType.AUDIO]: AudioShadowPreview,
   // 추가 블록 타입들은 필요시 여기에 추가
-  // [BlockType.MARKDOWN]: MarkdownShadowPreview,
   // [BlockType.YOUTUBE]: YoutubeShadowPreview,
 };
 
@@ -52,4 +61,3 @@ export function registerShadowPreview(
 ): void {
   SHADOW_PREVIEW_MAP[blockType] = component;
 }
-

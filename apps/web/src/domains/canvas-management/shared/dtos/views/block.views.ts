@@ -27,6 +27,7 @@ export interface BlockView {
   blockType: BlockType;
   properties: BlockProperties<BlockType>;
   customProperties: CustomPropertyDefinition[];
+  content?: unknown; // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
 
   // 메타데이터 (Block Management Domain)
   createdAt: string;

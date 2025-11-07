@@ -61,6 +61,10 @@ export const CreateAndMountBlockRequestSchema = z.object({
   size: SizeSchema, // 프론트엔드에서 항상 전달됨
   workspaceId: z.uuid('Invalid workspace ID'),
   orgId: z.uuid('Invalid organization ID'),
+  // 선택적 초기 properties (예: 클립보드 붙여넣기 시 URL 등)
+  initialProperties: z.record(z.string(), z.any()).optional(),
+  // 선택적 초기 content (예: 마크다운 텍스트 붙여넣기)
+  initialContent: z.any().optional(), // JSONB - TipTap JSON, 텍스트, 코드 등
 });
 
 /**

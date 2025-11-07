@@ -144,43 +144,8 @@ export function useCanvasEdgeManagement(params: UseCanvasEdgeManagementParams) {
       targetBlockMountId: string,
       currentEdges: Edge[]
     ) => {
-      console.log('🔵 [handleCreateEdgeSuccess] Starting edge replacement:', {
-        optimisticEdgeId,
-        edgeView: {
-          edgeId: edgeView.edgeId,
-          sourceBlockMountId: edgeView.sourceBlockMountId,
-          targetBlockMountId: edgeView.targetBlockMountId,
-          sourceHandle: edgeView.sourceHandle,
-          targetHandle: edgeView.targetHandle,
-          edgeShape: edgeView.edgeShape,
-        },
-        sourceBlockMountId,
-        targetBlockMountId,
-        currentEdgesCount: currentEdges.length,
-        currentEdgesIds: currentEdges.map(e => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-          sourceHandle: e.sourceHandle,
-          targetHandle: e.targetHandle,
-        })),
-      });
-
       // 현재 edges에서 optimistic edge 찾기
       const optimisticEdge = currentEdges.find(e => e.id === optimisticEdgeId);
-      console.log('🔵 [handleCreateEdgeSuccess] Found optimistic edge:', {
-        found: !!optimisticEdge,
-        optimisticEdge: optimisticEdge
-          ? {
-              id: optimisticEdge.id,
-              source: optimisticEdge.source,
-              target: optimisticEdge.target,
-              sourceHandle: optimisticEdge.sourceHandle,
-              targetHandle: optimisticEdge.targetHandle,
-              type: optimisticEdge.type,
-            }
-          : null,
-      });
 
       // Optimistic Edge를 실제 Edge로 교체
       const realEdge: Edge = {
@@ -201,67 +166,16 @@ export function useCanvasEdgeManagement(params: UseCanvasEdgeManagementParams) {
         },
       };
 
-      console.log('🔵 [handleCreateEdgeSuccess] Real edge created:', {
-        id: realEdge.id,
-        source: realEdge.source,
-        target: realEdge.target,
-        sourceHandle: realEdge.sourceHandle,
-        targetHandle: realEdge.targetHandle,
-        type: realEdge.type,
-        data: realEdge.data,
-      });
-
       const updatedEdges = currentEdges.map(edge => {
         if (edge.id === optimisticEdgeId) {
-          console.log(
-            '🟢 [handleCreateEdgeSuccess] Replacing optimistic edge:',
-            {
-              optimisticId: edge.id,
-              realId: realEdge.id,
-            }
-          );
           return realEdge;
         }
         return edge;
       });
 
-      console.log('🔵 [handleCreateEdgeSuccess] Edge replacement summary:', {
-        beforeCount: currentEdges.length,
-        afterCount: updatedEdges.length,
-        foundOptimistic: currentEdges.some(e => e.id === optimisticEdgeId),
-        updatedEdgesIds: updatedEdges.map(e => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-          sourceHandle: e.sourceHandle,
-          targetHandle: e.targetHandle,
-        })),
-        realEdgeIncluded: updatedEdges.some(e => e.id === realEdge.id),
-      });
-
       setEdges(updatedEdges);
-
-      // setEdges 후 실제 상태 확인을 위한 추가 로그
-      setTimeout(() => {
-        const finalEdges = getEdges();
-        console.log(
-          '🟣 [handleCreateEdgeSuccess] Final edges state after setEdges:',
-          {
-            count: finalEdges.length,
-            edges: finalEdges.map(e => ({
-              id: e.id,
-              source: e.source,
-              target: e.target,
-              sourceHandle: e.sourceHandle,
-              targetHandle: e.targetHandle,
-              type: e.type,
-            })),
-            realEdgeExists: finalEdges.some(e => e.id === realEdge.id),
-          }
-        );
-      }, 100);
     },
-    [pageId, orgId, workspaceId, setEdges, getEdges]
+    [pageId, orgId, workspaceId, setEdges]
   );
 
   /**
@@ -326,69 +240,16 @@ export function useCanvasEdgeManagement(params: UseCanvasEdgeManagementParams) {
 
       // 4. 즉시 React Flow Store에 추가
       const edgesBeforeOptimistic = getEdges();
-      console.log('🟡 [createEdge] Edges before adding optimistic:', {
-        count: edgesBeforeOptimistic.length,
-        edges: edgesBeforeOptimistic.map(e => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-        })),
-      });
-
       setEdges([...edgesBeforeOptimistic, optimisticEdge]);
-
-      // Optimistic edge 추가 후 최신 상태 가져오기
-      const edgesAfterOptimistic = [...edgesBeforeOptimistic, optimisticEdge];
-      console.log('🟡 [createEdge] Edges after adding optimistic:', {
-        count: edgesAfterOptimistic.length,
-        optimisticEdgeId,
-        edges: edgesAfterOptimistic.map(e => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-          sourceHandle: e.sourceHandle,
-          targetHandle: e.targetHandle,
-        })),
-      });
 
       try {
         // 5. Server Action 호출
-        console.log(
-          '🟡 [createEdge] Calling createEdgeAction with:',
-          validatedRequest
-        );
         const result = await createEdgeAction(validatedRequest);
-
-        console.log('🟡 [createEdge] Server action result:', {
-          success: result.success,
-          data: result.success ? result.data : undefined,
-          error: result.success ? undefined : result.error,
-        });
 
         // 6. 결과 처리
         if (result.success) {
-          console.log('🟡 [createEdge] Edge created successfully:', {
-            edgeId: result.data.edgeId,
-            sourceBlockMountId: result.data.sourceBlockMountId,
-            targetBlockMountId: result.data.targetBlockMountId,
-            sourceHandle: result.data.sourceHandle,
-            targetHandle: result.data.targetHandle,
-            edgeShape: result.data.edgeShape,
-          });
-
           // ⚠️ 중요: optimistic edge가 추가된 후의 edges 상태를 전달해야 함!
           const currentEdgesWithOptimistic = getEdges();
-          console.log(
-            '🟡 [createEdge] Current edges before handleCreateEdgeSuccess:',
-            {
-              count: currentEdgesWithOptimistic.length,
-              edges: currentEdgesWithOptimistic.map(e => ({
-                id: e.id,
-                source: e.source,
-                target: e.target,
-              })),
-            }
-          );
 
           handleCreateEdgeSuccess(
             optimisticEdgeId,

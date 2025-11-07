@@ -11,6 +11,19 @@ import {
   BorderStyleToolbarItem,
   ObjectFitToolbarItem,
   ImageChangeToolbarItem,
+  CaptionVisibilityToolbarItem,
+  ExpandImageToolbarItem,
+  LinkUrlToolbarItem,
+  OpenLinkToolbarItem,
+  CopyLinkToolbarItem,
+  YouTubeUrlToolbarItem,
+  OpenYoutubeToolbarItem,
+  CopyYoutubeLinkToolbarItem,
+  ExpandPdfToolbarItem,
+  DownloadPdfToolbarItem,
+  AudioDownloadToolbarItem,
+  AudioUploadToolbarItem,
+  AudioRecordToolbarItem,
 } from './index';
 import {
   FontSize,
@@ -18,6 +31,11 @@ import {
   TextBlockProperties,
   ShapeBlockProperties,
   ImageBlockProperties,
+  MarkdownBlockProperties,
+  LinkBlockProperties,
+  YoutubeBlockProperties,
+  PdfBlockProperties,
+  AudioBlockProperties,
 } from '../../../shared/value-objects/block-properties';
 import type { ObjectFit } from '../../../shared/value-objects/block-properties/common-types';
 import { ColorToken } from '../../../shared/types/style-tokens.types';
@@ -163,6 +181,26 @@ export function BlockToolbarMapper({
                 await handlePropertyUpdate('properties.objectFit', objectFit);
               }}
             />
+            <Separator orientation="vertical" className="h-6" />
+            <CaptionVisibilityToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              currentValue={imageBlockProperties.isCaptionVisible ?? false}
+              disabled={disabled}
+              onValueChange={async (value: boolean) => {
+                await handlePropertyUpdate(
+                  'properties.isCaptionVisible',
+                  value
+                );
+              }}
+            />
+            <ExpandImageToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              imageUrl={imageBlockProperties.imageUrl}
+              alt={imageBlockProperties.alt}
+              disabled={disabled || !imageBlockProperties.imageUrl}
+            />
           </>
         );
 
@@ -170,10 +208,138 @@ export function BlockToolbarMapper({
         return <></>;
 
       case 'markdown':
-        return <></>;
+        const markdownBlockProperties =
+          blockData.properties as MarkdownBlockProperties;
+        return (
+          <>
+            <ColorToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              currentColor={markdownBlockProperties.color}
+              disabled={disabled}
+              onColorChange={async color => {
+                await handlePropertyUpdate('properties.color', color);
+              }}
+            />
+          </>
+        );
+
+      case 'link':
+        const linkBlockProperties = blockData.properties as LinkBlockProperties;
+        return (
+          <>
+            <LinkUrlToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              currentValue={linkBlockProperties.url}
+              disabled={disabled}
+              onValueChange={async (url: string) => {
+                await handlePropertyUpdate('properties.url', url);
+              }}
+            />
+            <Separator orientation="vertical" className="h-6" />
+            <OpenLinkToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              url={linkBlockProperties.url}
+              disabled={disabled || !linkBlockProperties.url}
+            />
+            <CopyLinkToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              url={linkBlockProperties.url}
+              disabled={disabled || !linkBlockProperties.url}
+            />
+          </>
+        );
 
       case 'youtube':
-        return <></>;
+        const youtubeBlockProperties =
+          blockData.properties as YoutubeBlockProperties;
+        return (
+          <>
+            <YouTubeUrlToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              currentValue={youtubeBlockProperties.url}
+              disabled={disabled}
+              onValueChange={async (url: string) => {
+                await handlePropertyUpdate('properties.url', url);
+              }}
+            />
+            <Separator orientation="vertical" className="h-6" />
+            <OpenYoutubeToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              url={youtubeBlockProperties.url}
+              disabled={disabled || !youtubeBlockProperties.url}
+            />
+            <CopyYoutubeLinkToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              url={youtubeBlockProperties.url}
+              disabled={disabled || !youtubeBlockProperties.url}
+            />
+          </>
+        );
+
+      case 'pdf':
+        const pdfBlockProperties = blockData.properties as PdfBlockProperties;
+        return (
+          <>
+            <ExpandPdfToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              pdfUrl={pdfBlockProperties.url}
+              filename={pdfBlockProperties.filename}
+              disabled={disabled || !pdfBlockProperties.url}
+            />
+            <DownloadPdfToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              pdfUrl={pdfBlockProperties.url}
+              filename={pdfBlockProperties.filename}
+              disabled={disabled || !pdfBlockProperties.url}
+            />
+          </>
+        );
+
+      case 'audio':
+        const audioBlockProperties =
+          blockData.properties as AudioBlockProperties;
+        return (
+          <>
+            <AudioUploadToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              disabled={disabled}
+              orgId={blockData.orgId}
+              workspaceId={blockData.workspaceId}
+              pageId={blockData.pageId}
+              onValueChange={async (url: string) => {
+                await handlePropertyUpdate('properties.audioUrl', url);
+              }}
+            />
+            <AudioRecordToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              disabled={disabled}
+              orgId={blockData.orgId}
+              workspaceId={blockData.workspaceId}
+              pageId={blockData.pageId}
+              onValueChange={async (url: string) => {
+                await handlePropertyUpdate('properties.audioUrl', url);
+              }}
+            />
+            <AudioDownloadToolbarItem
+              blockId={blockId}
+              blockMountId={blockData.blockMountId}
+              audioUrl={audioBlockProperties.audioUrl}
+              title={audioBlockProperties.title}
+              disabled={disabled || !audioBlockProperties.audioUrl}
+            />
+          </>
+        );
 
       default:
         // 기본 블럭 타입에 대한 기본 툴바 아이템

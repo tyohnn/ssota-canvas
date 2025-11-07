@@ -86,6 +86,8 @@ export class BlockManagementService {
     workspaceId: WorkspaceId;
     blockType: BlockType;
     title: string;
+    initialProperties?: Record<string, any>; // 선택적 초기 properties
+    initialContent?: unknown; // 선택적 초기 content (JSONB)
   }): Promise<BlockAggregate> {
     try {
       // Aggregate 생성
@@ -95,6 +97,8 @@ export class BlockManagementService {
         blockId: BlockId.generate(),
         blockType: params.blockType,
         title: params.title,
+        initialProperties: params.initialProperties, // 초기 properties 전달
+        initialContent: params.initialContent, // ✨ 초기 content 전달
       };
       const aggregate = BlockAggregate.create(createBlockCommand);
 

@@ -9,10 +9,15 @@ import type {
 } from '../../shared/dtos';
 import {
   BaseNodeData,
+  TextBlockNodeData,
+  ShapeBlockNodeData,
+  LinkBlockNodeData,
   MarkdownBlockNodeData,
   YoutubeBlockNodeData,
   ImageBlockNodeData,
   PythonBlockNodeData,
+  PdfBlockNodeData,
+  AudioBlockNodeData,
   BlockNodeData,
 } from '@/domains/block-management/shared/types/block-data.types';
 
@@ -22,10 +27,15 @@ import {
  * 각 블록 타입별 React Flow 노드 타입 정의
  */
 export type DefaultBlockNode = Node<BaseNodeData, 'default'>;
+export type TextBlockNode = Node<TextBlockNodeData, 'text'>;
+export type ShapeBlockNode = Node<ShapeBlockNodeData, 'shape'>;
 export type MarkdownBlockNode = Node<MarkdownBlockNodeData, 'markdown'>;
+export type LinkBlockNode = Node<LinkBlockNodeData, 'link'>;
 export type YoutubeBlockNode = Node<YoutubeBlockNodeData, 'youtube'>;
 export type ImageBlockNode = Node<ImageBlockNodeData, 'image'>;
 export type PythonBlockNode = Node<PythonBlockNodeData, 'python'>;
+export type PdfBlockNode = Node<PdfBlockNodeData, 'pdf'>;
+export type AudioBlockNode = Node<AudioBlockNodeData, 'audio'>;
 
 /**
  * 확장 가능한 노드 타입 유니온 (모든 블록 타입 포함)
@@ -33,10 +43,15 @@ export type PythonBlockNode = Node<PythonBlockNodeData, 'python'>;
 export type CustomNodeType =
   | BuiltInNode
   | DefaultBlockNode
+  | TextBlockNode
+  | ShapeBlockNode
+  | LinkBlockNode
+  | ImageBlockNode
   | MarkdownBlockNode
   | YoutubeBlockNode
-  | ImageBlockNode
-  | PythonBlockNode;
+  | PythonBlockNode
+  | PdfBlockNode
+  | AudioBlockNode;
 
 /**
  * Clean nested properties recursively
@@ -85,6 +100,7 @@ export function transformBlockViewToNodeData(
     blockType: blockView.blockType,
     properties: cleanNestedProperties(blockView.properties),
     customProperties: blockView.customProperties,
+    content: blockView.content, // JSONB content
     pageId: additionalData.pageId,
     orgId: additionalData.orgId,
     workspaceId: additionalData.workspaceId,
@@ -218,6 +234,7 @@ export function toReactFlowNodeFromMountDTO(
       blockType: block.blockType,
       properties: block.properties,
       customProperties: block.customProperties,
+      content: block.content, // JSONB content
       pageId: additionalData.pageId,
       orgId: additionalData.orgId,
       workspaceId: additionalData.workspaceId,
@@ -260,7 +277,10 @@ export function isCustomNodeType(
       'markdown',
       'youtube',
       'image',
+      'link',
       'python',
+      'pdf',
+      'audio',
     ];
     return validBlockTypes.includes(node.data.blockType as string);
   }
@@ -296,6 +316,7 @@ export function toReactFlowNodeFromCanvasView(
       blockType: block.blockType,
       properties: block.properties,
       customProperties: block.customProperties,
+      content: block.content, // JSONB content
       pageId: additionalData.pageId,
       orgId: additionalData.orgId,
       workspaceId: additionalData.workspaceId,

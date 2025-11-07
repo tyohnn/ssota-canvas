@@ -39,6 +39,7 @@ export const ImageBlock = memo(function ImageBlock({
     imageSource,
     objectFit,
     caption,
+    isCaptionVisible = false,
     alt,
     unsplashAuthorName,
     unsplashAuthorLink,
@@ -50,7 +51,7 @@ export const ImageBlock = memo(function ImageBlock({
 
   // State
   const [isHovered, setIsHovered] = useState(false);
-  const [isLoading, setIsLoading] = useState(!!imageUrl);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [draftCaption, setDraftCaption] = useState(caption || '');
@@ -60,10 +61,29 @@ export const ImageBlock = memo(function ImageBlock({
   const originalCaptionRef = useRef(caption || '');
   // URL 재생성 시도 횟수 추적 (무한 루프 방지)
   const retryCountRef = useRef(0);
+  // 이전 imageUrl 추적 (변경 감지용)
+  const prevImageUrlRef = useRef(imageUrl);
 
   // Hooks
   const { updateProperty } = useBlockPropertyUpdate();
   const { upload, isUploading } = useSupabaseStorage();
+
+  // imageUrl이 변경되면 로딩 상태로 전환
+  React.useEffect(() => {
+    if (imageUrl && imageUrl !== prevImageUrlRef.current) {
+      setIsLoading(true);
+      setHasError(false);
+      prevImageUrlRef.current = imageUrl;
+    }
+  }, [imageUrl]);
+
+  // 외부 데이터가 바뀌었을 때, 편집 중이 아니면 초안 동기화
+  React.useEffect(() => {
+    if (!isEditingCaption) {
+      setDraftCaption(caption || '');
+      originalCaptionRef.current = caption || '';
+    }
+  }, [caption, isEditingCaption]);
 
   // File upload hook (only used when no image)
   const maxSizeMB = 10;
@@ -217,26 +237,21 @@ export const ImageBlock = memo(function ImageBlock({
           className={cn(
             'w-full h-full flex flex-col relative',
             'bg-background border-2 border-border rounded-lg overflow-hidden',
-            'shadow-md', // 기본 shadow 크게
-            // Hover 효과 (선택되지 않았을 때만)
+            'shadow-md',
             !selected && 'hover:shadow-xl hover:scale-[1.02] hover:rotate-1',
-            // 선택 효과
             selected && 'ring-2 ring-blue-400 dark:ring-blue-500',
             selected && 'shadow-xl',
-            // Transition
             'transition-all duration-300 ease-out'
           )}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
           {/* 이미지 컨테이너 */}
-          <div className="relative flex-1 overflow-hidden bg-muted/30">
+          <div className="relative flex-1 overflow-hidden bg-muted/30 group">
             {!imageUrl ? (
               isUploading ? (
-                // 업로드 중 Skeleton
                 <Skeleton className="absolute inset-0" />
               ) : (
-                // Empty state with file uploader
                 <div
                   role="button"
                   onClick={selected ? openFileDialog : undefined}
@@ -305,7 +320,7 @@ export const ImageBlock = memo(function ImageBlock({
                     objectFit === 'contain' && 'object-contain',
                     objectFit === 'cover' && 'object-cover',
                     objectFit === 'fill' && 'object-fill',
-                    (isLoading || hasError) && 'opacity-0', // 로딩 중이거나 에러 시 숨김
+                    (isLoading || hasError) && 'opacity-0',
                     'transition-opacity duration-300'
                   )}
                 />
@@ -325,12 +340,15 @@ export const ImageBlock = memo(function ImageBlock({
                   </div>
                 )}
 
-                {/* Unsplash 저자 정보 오버레이 (호버 시 표시) */}
-                {imageSource === 'unsplash' &&
+                {/* Unsplash 저자 정보 오버레이 (선택 + 호버 시 표시) */}
+                {selected &&
+                  imageSource === 'unsplash' &&
                   unsplashAuthorName &&
-                  unsplashAuthorLink && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 opacity-0 hover:opacity-100 transition-opacity duration-200">
-                      <p className="text-xs text-white">
+                  unsplashAuthorLink &&
+                  !isLoading &&
+                  !hasError && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                      <p className="text-xs text-white pointer-events-auto">
                         Photo by{' '}
                         <a
                           href={unsplashAuthorLink}
@@ -365,34 +383,36 @@ export const ImageBlock = memo(function ImageBlock({
             )}
           </div>
 
-          {/* Caption - 인라인 편집 가능 */}
-          <div
-            className="px-3 py-2 bg-background border-t border-border min-h-[36px] flex items-center justify-center"
-            onClick={handleCaptionClick}
-          >
-            {isEditingCaption ? (
-              <input
-                type="text"
-                value={draftCaption}
-                onChange={e => setDraftCaption(e.target.value)}
-                onBlur={handleCaptionBlur}
-                onKeyDown={handleCaptionKeyDown}
-                placeholder="캡션을 입력하세요..."
-                className={cn(
-                  'w-full text-xs text-center',
-                  'bg-transparent border-none outline-none',
-                  'text-muted-foreground',
-                  'placeholder:text-muted-foreground/60 placeholder:italic',
-                  'transition-colors'
-                )}
-                autoFocus
-              />
-            ) : (
-              <p className="text-xs text-center cursor-text text-muted-foreground italic transition-colors">
-                {caption || '캡션을 추가하려면 클릭하세요'}
-              </p>
-            )}
-          </div>
+          {/* Caption - 인라인 편집 가능 (토글 가능) */}
+          {isCaptionVisible && (
+            <div
+              className="px-3 py-2 bg-background border-t border-border min-h-[36px] flex items-center justify-center"
+              onClick={handleCaptionClick}
+            >
+              {isEditingCaption ? (
+                <input
+                  type="text"
+                  value={draftCaption}
+                  onChange={e => setDraftCaption(e.target.value)}
+                  onBlur={handleCaptionBlur}
+                  onKeyDown={handleCaptionKeyDown}
+                  placeholder="캡션을 입력하세요..."
+                  className={cn(
+                    'w-full text-xs text-center',
+                    'bg-transparent border-none outline-none',
+                    'text-muted-foreground',
+                    'placeholder:text-muted-foreground/60 placeholder:italic',
+                    'transition-colors'
+                  )}
+                  autoFocus
+                />
+              ) : (
+                <p className="text-xs text-center cursor-text text-muted-foreground italic transition-colors">
+                  {caption || '캡션을 추가하려면 클릭하세요'}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </TooltipProvider>
     </BaseBlock>

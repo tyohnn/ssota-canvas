@@ -16,3 +16,5 @@ export { DefaultShadowPreview } from './previews/default-shadow-preview';
 export { TextShadowPreview } from './previews/text-shadow-preview';
 export { ShapeShadowPreview } from './previews/shape-shadow-preview';
 export { ImageShadowPreview } from './previews/image-shadow-preview';
+export { LinkShadowPreview } from './previews/link-shadow-preview';
+export { PdfShadowPreview } from './previews/pdf-shadow-preview';

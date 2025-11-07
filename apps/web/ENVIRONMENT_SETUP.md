@@ -10,6 +10,14 @@ CLERK_SECRET_KEY=sk_test_...
 CLERK_WEBHOOK_SECRET=whsec_...  # Add this for webhook verification
 ```
 
+### YouTube Data API (Optional)
+```bash
+# YouTube Data API v3 - For YouTube Block metadata fetching
+# Get your API key from: https://console.cloud.google.com/apis/credentials
+YOUTUBE_API_KEY=your_youtube_api_key_here
+```
+> **Note**: Without this key, YouTube blocks will use web scraping as fallback (less reliable)
+
 ### Supabase Database
 ```bash
 # Production Database
@@ -152,7 +160,54 @@ SUPABASE_SERVICE_ROLE_KEY_DEV=your_dev_service_role_key
 
 # Environment
 NODE_ENV=development  # Switches to dev schema, DB, and Supabase
+
+# YouTube Data API (Optional - for YouTube Block)
+YOUTUBE_API_KEY=your_youtube_api_key_here
 ```
+
+## YouTube Data API Setup (Optional)
+
+### Why YouTube API?
+The YouTube Block uses YouTube Data API v3 to fetch video metadata (title, channel, views, likes, etc.). Without an API key, the system will fallback to web scraping which is less reliable.
+
+### Getting Your API Key
+
+1. **Go to Google Cloud Console**
+   - Visit: https://console.cloud.google.com/
+
+2. **Create a Project** (if you don't have one)
+   - Click "Select a project" → "New Project"
+   - Name: "SSota YouTube API"
+   - Click "Create"
+
+3. **Enable YouTube Data API v3**
+   - Go to: https://console.cloud.google.com/apis/library
+   - Search for "YouTube Data API v3"
+   - Click on it and press "Enable"
+
+4. **Create API Credentials**
+   - Go to: https://console.cloud.google.com/apis/credentials
+   - Click "Create Credentials" → "API Key"
+   - Copy the generated API key
+   - (Optional) Click "Restrict Key" to add security:
+     - Application restrictions: None (or HTTP referrers for production)
+     - API restrictions: Select "YouTube Data API v3"
+
+5. **Add to Environment Variables**
+   ```bash
+   # Add to .env.local
+   YOUTUBE_API_KEY=AIzaSyD...your_api_key_here
+   ```
+
+### Quota Information
+- **Free Tier**: 10,000 units per day
+- **Cost per YouTube Block**: 2 units (videos API + channels API)
+- **Daily Limit**: ~5,000 YouTube blocks per day
+- **Pricing**: Free for most use cases, $0.25 per 10,000 additional units if exceeded
+
+### Fallback Behavior
+- **With API Key**: Fast, accurate metadata from official API
+- **Without API Key**: Web scraping (slower, less reliable, may break if YouTube changes UI)
 
 ## Testing
 1. Start the development server: `pnpm dev`

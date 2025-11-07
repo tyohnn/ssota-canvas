@@ -3,6 +3,13 @@
 import React from 'react';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { UnsplashSearchAction } from './image/unsplash-search-action';
+import { GenerateImageAction } from './image/generate-image-action';
+import { SearchImageStyleAction } from './image/search-image-style-action';
+import { ExtractScriptAction } from './youtube/extract-script-action';
+import { SummarizeYoutubeAction } from './youtube/summarize-youtube-action';
+import { ExtractPdfContentAction } from './pdf/extract-pdf-content-action';
+import { SummarizePdfAction } from './pdf/summarize-pdf-action';
+import { SummarizeLinkAction } from './link/summarize-link-action';
 
 export interface BlockActionMapperProps {
   blockId: string;
@@ -30,28 +37,42 @@ export function BlockActionMapper({
     case 'image':
       return (
         <>
-          <UnsplashSearchAction
-            blockId={blockId}
-            blockData={blockData}
-            pageId={pageId}
-            orgId={orgId}
-            workspaceId={workspaceId}
-          />
-          {/* 향후 추가 액션들 */}
+          <UnsplashSearchAction blockId={blockId} blockData={blockData} />
+          <GenerateImageAction blockId={blockId} blockData={blockData} />
+          <SearchImageStyleAction blockId={blockId} blockData={blockData} />
+        </>
+      );
+
+    case 'youtube':
+      return (
+        <>
+          <ExtractScriptAction blockId={blockId} blockData={blockData} />
+          <SummarizeYoutubeAction blockId={blockId} blockData={blockData} />
+        </>
+      );
+
+    case 'pdf':
+      return (
+        <>
+          <ExtractPdfContentAction blockId={blockId} blockData={blockData} />
+          <SummarizePdfAction blockId={blockId} blockData={blockData} />
+        </>
+      );
+
+    case 'link':
+      return (
+        <>
+          <SummarizeLinkAction blockId={blockId} blockData={blockData} />
         </>
       );
 
     case 'text':
-      return (
-        <>
-          {/* 텍스트 블록 액션들 */}
-        </>
-      );
+      return <>{/* 텍스트 블록 액션들 */}</>;
 
-    // ... 다른 블록 타입들
+    case 'markdown':
+      return <>{/* 마크다운 블록 액션들 */}</>;
 
     default:
       return null;
   }
 }
-

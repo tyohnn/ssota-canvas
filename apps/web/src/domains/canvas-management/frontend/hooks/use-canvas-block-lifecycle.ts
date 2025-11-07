@@ -9,7 +9,10 @@ import {
 } from '../../actions/block.actions';
 import { useCanvasMode } from '../contexts/canvas-mode-context';
 import { isFailure } from '@/lib/action-result';
-import type { BlockNodeData } from '../../../block-management/shared/types/block-data.types';
+import type {
+  BlockNodeData,
+  BlockProperties,
+} from '../../../block-management/shared/types/block-data.types';
 import { buildBlockNodeData } from '../../../block-management/shared/types/block-data.types';
 import {
   BlockType,
@@ -43,7 +46,9 @@ export interface UseCanvasBlockLifecycleResult {
   // Optimistic UI 제어 (사용자 액션, AI Tool Call)
   createAndMountBlock: (
     blockType: BlockType,
-    position: Position
+    position: Position,
+    initialProperties?: Record<string, any>, // 선택적 초기 properties
+    initialContent?: unknown // 선택적 초기 content (JSONB)
   ) => Promise<void>;
   softDeleteBlockMounts: (blockMountIds: string | string[]) => Promise<void>;
   duplicateBlockAndMount: (
@@ -195,7 +200,13 @@ export function useCanvasBlockLifecycle(
    * Optimistic 노드 생성
    */
   const createOptimisticNode = useCallback(
-    (blockType: BlockType, position: Position, optimisticId: string) => {
+    (
+      blockType: BlockType,
+      position: Position,
+      optimisticId: string,
+      initialProperties?: Record<string, any>, // initialProperties 추가
+      initialContent?: unknown // ✨ initialContent 추가 (JSONB)
+    ) => {
       const blockSize = getBlockSize(blockType);
       const optimisticNodeData: BlockNodeData = buildBlockNodeData(blockType, {
         blockMountId: '',
@@ -203,6 +214,8 @@ export function useCanvasBlockLifecycle(
         pageId,
         orgId,
         workspaceId,
+        properties: initialProperties as BlockProperties<BlockType>, // initialProperties 포함
+        content: initialContent, // ✨ initialContent 포함
       });
 
       return {
@@ -315,6 +328,7 @@ export function useCanvasBlockLifecycle(
           workspaceId,
           properties: blockView.properties,
           customProperties: blockView.customProperties,
+          content: blockView.content, // ✨ content 포함!
           createdByProfile: blockView.createdByProfile,
           createdAt: blockView.createdAt,
           updatedAt: blockView.updatedAt,
@@ -358,19 +372,49 @@ export function useCanvasBlockLifecycle(
    * 블럭 생성 (Optimistic UI)
    */
   const createAndMountBlock = useCallback(
-    async (blockType: BlockType, position: Position) => {
+    async (
+      blockType: BlockType,
+      position: Position,
+      initialProperties?: Record<string, any>, // 선택적 초기 properties
+      initialContent?: unknown // 선택적 초기 content (JSONB)
+    ) => {
       const optimisticId = generateOptimisticId();
 
       try {
-        // 1. 요청 검증
-        const validatedRequest = validateCreateRequest(blockType, position);
-        if (!validatedRequest) return;
+        // 1. 요청 검증 (initialProperties, initialContent 포함)
+        const rawRequest: CreateAndMountBlockRequestInput = {
+          pageId,
+          blockType,
+          position,
+          size: getBlockSize(blockType),
+          workspaceId,
+          orgId,
+          initialProperties, // 초기 properties 추가
+          initialContent, // ✨ 초기 content 추가
+        };
 
-        // 2. Optimistic UI - 임시 노드 생성 및 추가
+        const parseResult =
+          CreateAndMountBlockRequestSchema.safeParse(rawRequest);
+
+        if (!parseResult.success) {
+          const firstError = parseResult.error.issues[0];
+          console.error('[Frontend Validation] Invalid block data:', {
+            message: firstError?.message || 'Invalid block data',
+            issues: parseResult.error.issues,
+          });
+          // TODO: toast.error로 사용자에게 피드백
+          return;
+        }
+
+        const validatedRequest = parseResult.data;
+
+        // 2. Optimistic UI - 임시 노드 생성 및 추가 (initialProperties, initialContent 포함)
         const optimisticNode = createOptimisticNode(
           blockType,
           position,
-          optimisticId
+          optimisticId,
+          initialProperties, // initialProperties 전달
+          initialContent // ✨ initialContent 전달
         );
         addNodes([optimisticNode]);
 
@@ -675,6 +719,7 @@ export function useCanvasBlockLifecycle(
           workspaceId,
           properties: originalNodeData.properties,
           customProperties: originalNodeData.customProperties,
+          content: originalNodeData.content, // ✨ content 복제!
         }
       );
 
@@ -753,7 +798,7 @@ export function useCanvasBlockLifecycle(
         | BlockNodeData
         | undefined;
 
-      // 실제 블럭 데이터 생성 (optimistic 노드의 properties 사용)
+      // 실제 블럭 데이터 생성 (optimistic 노드의 properties와 content 사용)
       const realNodeData: BlockNodeData = buildBlockNodeData(
         originalBlockType,
         {
@@ -764,6 +809,7 @@ export function useCanvasBlockLifecycle(
           workspaceId,
           properties: optimisticNodeData?.properties,
           customProperties: optimisticNodeData?.customProperties,
+          content: optimisticNodeData?.content, // ✨ content 포함!
         }
       );
 

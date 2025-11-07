@@ -18,7 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <NotificationProvider>
           <MemberManagementProvider>{children}</MemberManagementProvider>
         </NotificationProvider>
-        <Toaster position="top-center" richColors closeButton />
+        <Toaster position="bottom-right" richColors closeButton />
       </TooltipProvider>
     </NextThemesProvider>
   );

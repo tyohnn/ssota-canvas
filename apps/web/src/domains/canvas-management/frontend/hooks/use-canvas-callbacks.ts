@@ -4,6 +4,7 @@ import { isFailure } from '@/lib/action-result';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import type { EdgeView } from '../../shared/dtos';
 import { useCanvasBlockLifecycle } from './use-canvas-block-lifecycle';
+import { useClipboardPaste } from '../clipboard/hooks/use-clipboard-paste';
 
 interface UseCanvasCallbacksProps {
   pageId: string;
@@ -86,10 +87,21 @@ export function useCanvasCallbacks({
   const reactFlowInstance = useReactFlow();
 
   // Block lifecycle hook 사용
-  const { softDeleteBlockMounts } = useCanvasBlockLifecycle({
+  const {
+    softDeleteBlockMounts,
+    createAndMountBlock: blockLifecycleCreateAndMountBlock,
+  } = useCanvasBlockLifecycle({
     pageId,
     orgId,
     workspaceId,
+  });
+
+  // Clipboard paste hook
+  const clipboardPaste = useClipboardPaste({
+    pageId,
+    orgId,
+    workspaceId,
+    createAndMountBlock: blockLifecycleCreateAndMountBlock,
   });
 
   // 이전 선택 상태 추적 (무한 루프 방지)
@@ -341,12 +353,31 @@ export function useCanvasCallbacks({
   );
 
   /**
-   * 키보드 이벤트 핸들러 (Ctrl+D 복제)
+   * 키보드 이벤트 핸들러 (Ctrl+D 복제, Ctrl+V 붙여넣기)
    */
   const onKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      // Ctrl+D 또는 Cmd+D (Mac)
-      if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
+    (event: KeyboardEvent) => {
+      console.log('[Canvas] KeyDown event:', {
+        key: event.key,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+      });
+
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isCtrlOrCmd = isMac ? event.metaKey : event.ctrlKey;
+
+      // Ctrl+V 또는 Cmd+V (Mac): 붙여넣기
+      if (isCtrlOrCmd && event.key === 'v') {
+        console.log('[Canvas] Paste shortcut detected (Cmd/Ctrl+V)');
+        event.preventDefault();
+        clipboardPaste.handlePaste();
+        return;
+      }
+
+      // Ctrl+D 또는 Cmd+D (Mac): 복제
+      if (isCtrlOrCmd && event.key === 'd') {
         event.preventDefault();
 
         const selectedBlocks = canvasSelection.getSelectedBlocks();
@@ -382,6 +413,7 @@ export function useCanvasCallbacks({
       }
     },
     [
+      clipboardPaste.handlePaste,
       canvasSelection.getSelectedBlocks,
       reactFlowInstance,
       blockLifecycle.duplicateBlockAndMount,

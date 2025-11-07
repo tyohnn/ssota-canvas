@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import {
   ReactFlow,
   Background,
@@ -42,12 +43,23 @@ import {
   TextBlock,
   ShapeBlock,
   ImageBlock,
+  LinkBlock,
+  AudioBlock,
 } from '@/domains/block-management/frontend/components/block';
 import { SnapGuidelines } from '../snap/snap-guidelines';
 import { MultiSelectionToolbar } from '../multi-select/multi-selection-toolbar';
 import { BlockMountToolbar } from '@/domains/block-management/frontend/components/block-mount-toolbar';
 import { SelectionBoundingBox } from '../multi-select/selection-bounding-box';
 import { CustomEdge } from '../edge/custom-edge';
+
+// PDF Block - SSR 비활성화 (react-pdf가 브라우저 전용 API 사용)
+const PdfBlock = dynamic(
+  () =>
+    import(
+      '@/domains/block-management/frontend/components/block/pdf/pdf-block'
+    ).then(mod => ({ default: mod.PdfBlock })),
+  { ssr: false }
+);
 
 interface CanvasReactFlowWrapperProps {
   pageId: string;
@@ -160,6 +172,9 @@ export function CanvasReactFlowWrapper({
       [BlockType.MARKDOWN]: MarkdownBlock,
       [BlockType.YOUTUBE]: YoutubeBlock,
       [BlockType.PYTHON]: PythonBlock,
+      [BlockType.LINK]: LinkBlock,
+      [BlockType.PDF]: PdfBlock,
+      [BlockType.AUDIO]: AudioBlock,
       // 다른 블록 타입들도 여기에 추가 가능
     }),
     []
@@ -183,6 +198,43 @@ export function CanvasReactFlowWrapper({
     },
     [canvasCallbacks.handleSelectBlockType]
   );
+
+  // 전역 키보드 이벤트 리스너 (React Flow 포커스 문제 우회)
+  React.useEffect(() => {
+    const handleGlobalKeyDown = (event: globalThis.KeyboardEvent) => {
+      // Input, Textarea, ContentEditable에서는 무시
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isCtrlOrCmd = isMac ? event.metaKey : event.ctrlKey;
+
+      // Cmd+V: 붙여넣기
+      if (isCtrlOrCmd && event.key === 'v') {
+        event.preventDefault();
+        // globalThis.KeyboardEvent를 React Flow의 KeyboardEvent로 타입 캐스팅
+        canvasCallbacks.onKeyDown(event as unknown as KeyboardEvent);
+      }
+
+      // Cmd+D: 복제
+      if (isCtrlOrCmd && event.key === 'd') {
+        event.preventDefault();
+        // globalThis.KeyboardEvent를 React Flow의 KeyboardEvent로 타입 캐스팅
+        canvasCallbacks.onKeyDown(event as unknown as KeyboardEvent);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, [canvasCallbacks]);
 
   // 트랙패드 제스처 최적화 설정 (피그마 스타일)
   // - 핀치 제스처: 줌인/줌아웃
@@ -245,7 +297,7 @@ export function CanvasReactFlowWrapper({
         nodesConnectable={true}
         elementsSelectable={true}
         selectionOnDrag={true}
-        selectionMode={SelectionMode.Full}
+        selectionMode={SelectionMode.Partial}
         connectionMode={ConnectionMode.Loose} // source/target 구분 없이 양방향 연결 허용
         // 트랙패드 제스처 설정 (피그마 스타일)
         panOnDrag={false} // 드래그는 선택 용도로만 사용
@@ -261,7 +313,7 @@ export function CanvasReactFlowWrapper({
         onNodeDragStop={canvasCallbacks.onNodeDragStop}
         onConnect={canvasCallbacks.onConnect}
         onNodesDelete={canvasCallbacks.onNodesDelete}
-        onKeyDown={canvasCallbacks.onKeyDown}
+        // onKeyDown은 전역 리스너로 처리 (포커스 문제 우회)
         deleteKeyCode={['Delete', 'Backspace']}
         className="bg-muted/30"
       >
@@ -269,7 +321,7 @@ export function CanvasReactFlowWrapper({
 
         {/* 캔버스 상단 툴바 - Panel로 ReactFlow 내부로 이동 */}
         {/* z-index: 블럭(0) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
-        <Panel position="top-center" className="!m-0 !pointer-events-auto z-10">
+        <Panel position="top-center" className="m-0! pointer-events-auto! z-10">
           <CanvasToolbar
             pageId={pageId}
             onAddBlockClick={() => setShowAddDialog(true)}
@@ -302,7 +354,7 @@ export function CanvasReactFlowWrapper({
         {/* 우측 하단 뷰포트 컨트롤 - Panel로 감싸서 React Flow 이벤트 시스템 통합 */}
         <Panel
           position="bottom-right"
-          className="!mr-4 !mb-4 !pointer-events-auto"
+          className="mr-4! mb-4! pointer-events-auto!"
         >
           <ViewportControls />
         </Panel>

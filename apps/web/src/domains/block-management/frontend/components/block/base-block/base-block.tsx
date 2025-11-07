@@ -4,7 +4,8 @@
  * 모든 블록의 공통 래퍼 컴포넌트
  * - NodeResizer (우측 하단 리사이즈 핸들)
  * - Handle 4개 (상하좌우 연결점)
- * - Top Toolbar (BlockMountToolbar)
+ * - Top Toolbar (BlockMountToolbar) - 블록 속성 편집
+ * - Right Action Bar (BlockActionBar) - 블록 타입별 액션
  */
 
 import { memo, forwardRef, useCallback, useState } from 'react';
@@ -16,6 +17,7 @@ import {
 } from '@xyflow/react';
 import { BaseHandle } from '@workspace/ui/components/react-flow/base-handle';
 import { BlockMountToolbar } from '@/domains/block-management/frontend/components/block-mount-toolbar';
+import { BlockActionBar } from '@/domains/block-management/frontend/components/block-action-bar';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { cn } from '@workspace/ui/lib/utils';
 import { useBlockCommands } from '../../../hooks/use-block-commands';
@@ -122,8 +124,9 @@ export interface BaseBlockProps {
  * 모든 블록의 공통 래퍼로 다음 기능을 제공:
  * 1. NodeResizer - 우측 하단에서 종횡비 자유롭게 리사이즈
  * 2. Handle 4개 - 상하좌우 연결점
- * 3. Top Toolbar - BlockMountToolbar
- * 4. Children - 실제 블록 컨텐츠
+ * 3. Top Toolbar - BlockMountToolbar (블록 속성 편집)
+ * 4. Right Action Bar - BlockActionBar (블록 타입별 액션)
+ * 5. Children - 실제 블록 컨텐츠
  */
 export const BaseBlock = memo(
   forwardRef<HTMLDivElement, BaseBlockProps>(
@@ -206,9 +209,9 @@ export const BaseBlock = memo(
           ref={ref}
           className={cn(
             // 기본 스타일만 유지 (호버/선택 효과는 하위 블록에서 처리)
-            'relative w-full h-full min-w-[100px] min-h-[50px]',
-            // Transition (리사이즈 중에는 비활성화)
-            !isResizing && 'transition-all duration-300 ease-out'
+            'relative w-full h-full min-w-[100px] min-h-[50px]'
+            // Transition 제거 - 각 블록에서 필요한 transition만 개별 적용
+            // 리사이즈 시 즉시 반응하도록 함
           )}
           style={
             {
@@ -285,6 +288,23 @@ export const BaseBlock = memo(
                 workspaceId={data.workspaceId}
                 width={width}
                 height={height}
+              />
+            )}
+
+          {/* Right Action Bar - BlockActionBar (단일 선택 시만 표시) */}
+          {data.blockMountId &&
+            data.pageId &&
+            data.workspaceId &&
+            selected &&
+            isCurrentBlockSelected &&
+            isSingleSelection && (
+              <BlockActionBar
+                blockId={data.blockMountId}
+                blockType={data.blockType || 'basic'}
+                blockData={data}
+                pageId={data.pageId}
+                orgId={data.orgId}
+                workspaceId={data.workspaceId}
               />
             )}
 

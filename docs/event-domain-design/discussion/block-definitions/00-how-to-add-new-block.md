@@ -679,7 +679,69 @@ export { YourBlockShadowPreview } from './previews/your-block-shadow-preview';
 
 ## 8. Canvas 통합
 
-### 8.1 nodeTypes에 등록
+### 8.1 React Flow ACL 타입 추가
+
+**파일**: `apps/web/src/domains/canvas-management/frontend/acl/react-flow.acl.ts`
+
+React Flow의 타입 시스템에 새 블록을 등록해야 합니다.
+
+#### 8.1.1 Import 추가
+
+```typescript
+import {
+  BaseNodeData,
+  TextBlockNodeData,
+  ShapeBlockNodeData,
+  YourBlockNodeData,  // 추가
+  BlockNodeData,
+} from '@/domains/block-management/shared/types/block-data.types';
+```
+
+#### 8.1.2 노드 타입 정의 추가
+
+```typescript
+/**
+ * 각 블록 타입별 React Flow 노드 타입 정의
+ */
+export type DefaultBlockNode = Node<BaseNodeData, 'default'>;
+export type TextBlockNode = Node<TextBlockNodeData, 'text'>;
+export type ShapeBlockNode = Node<ShapeBlockNodeData, 'shape'>;
+export type YourBlockNode = Node<YourBlockNodeData, 'your_new_block'>;  // 추가
+```
+
+#### 8.1.3 CustomNodeType 유니온에 추가
+
+```typescript
+/**
+ * 확장 가능한 노드 타입 유니온 (모든 블록 타입 포함)
+ */
+export type CustomNodeType =
+  | BuiltInNode
+  | DefaultBlockNode
+  | TextBlockNode
+  | ShapeBlockNode
+  | YourBlockNode  // 추가
+  | ...;
+```
+
+#### 8.1.4 타입 가드에 추가
+
+```typescript
+// blockType이 있는 경우 (커스텀 블록)
+if ('blockType' in node.data) {
+  const validBlockTypes = [
+    'default',
+    'text',
+    'shape',
+    'your_new_block',  // 추가 (BlockType enum 값과 동일)
+  ];
+  return validBlockTypes.includes(node.data.blockType as string);
+}
+```
+
+> **⚠️ 중요**: ACL 타입 추가를 빠뜨리면 React Flow에서 타입 에러가 발생하거나 런타임에서 블록이 제대로 렌더링되지 않을 수 있습니다.
+
+### 8.2 nodeTypes에 등록
 
 **파일**: `apps/web/src/domains/canvas-management/frontend/components/core/canvas-react-flow-wrapper.tsx`
 
@@ -800,6 +862,13 @@ const BLOCK_TYPES = [
 
 ### ✅ Canvas Integration
 
+- [ ] **React Flow ACL 타입 추가**
+  - `apps/web/src/domains/canvas-management/frontend/acl/react-flow.acl.ts`
+  - Import `YourBlockNodeData` 추가
+  - `export type YourBlockNode` 정의 추가
+  - `CustomNodeType` 유니온에 추가
+  - `validBlockTypes` 배열에 추가
+
 - [ ] **nodeTypes 등록**
   - `apps/web/src/domains/canvas-management/frontend/components/core/canvas-react-flow-wrapper.tsx`
   - `nodeTypes` 객체에 추가
@@ -848,6 +917,8 @@ apps/web/src/domains/
 │               └── index.ts                            # Export
 └── canvas-management/
     └── frontend/
+        ├── acl/
+        │   └── react-flow.acl.ts                       # React Flow ACL 타입 추가
         └── components/
             ├── shadow-block/
             │   ├── previews/
@@ -1153,6 +1224,34 @@ await updateProperty(
   noBackground={true}  // 블록별 배경 직접 처리
 >
 ```
+
+### 문제: 블록이 렌더링되지 않거나 타입 에러 발생
+
+**원인**: React Flow ACL 타입 추가 누락
+
+**해결**:
+```typescript
+// 1. react-flow.acl.ts 확인
+// Import 추가
+import { YourBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+
+// 타입 정의 추가
+export type YourBlockNode = Node<YourBlockNodeData, 'your_new_block'>;
+
+// CustomNodeType에 추가
+export type CustomNodeType =
+  | BuiltInNode
+  | YourBlockNode  // 추가 확인
+  | ...;
+
+// validBlockTypes에 추가
+const validBlockTypes = [
+  'your_new_block',  // BlockType enum 값과 일치하는지 확인
+  ...
+];
+```
+
+> **💡 팁**: ACL 타입을 추가하지 않으면 런타임에서 블록이 렌더링되지 않거나 TypeScript 타입 체킹에서 에러가 발생할 수 있습니다. 항상 새 블록을 추가할 때 ACL 타입도 함께 추가해야 합니다.
 
 ---
 

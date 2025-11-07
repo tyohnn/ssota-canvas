@@ -35,6 +35,19 @@ export const UpdateBlockPropertyRequestSchema = z.object({
 });
 
 /**
+ * 블록 속성 일괄 업데이트 요청 스키마 (Bulk Update)
+ * - 여러 properties를 한 번에 업데이트
+ * - Frontend에서 1차 검증 (UX)
+ * - Server Action에서 2차 검증 (보안)
+ */
+export const UpdateBlockPropertiesRequestSchema = z.object({
+  blockId: z.uuid('Invalid block ID'),
+  properties: z.record(z.string(), z.unknown()),
+  workspaceId: z.uuid('Invalid workspace ID'),
+  orgId: z.uuid('Invalid organization ID'),
+});
+
+/**
  * 블록 제목 업데이트 요청 스키마
  * - Frontend에서 1차 검증 (UX)
  * - Server Action에서 2차 검증 (보안)
@@ -46,18 +59,44 @@ export const UpdateBlockTitleRequestSchema = z.object({
   orgId: z.uuid('Invalid organization ID'),
 });
 
+/**
+ * 블록 콘텐츠 업데이트 요청 스키마
+ * - block.content JSONB 컬럼 업데이트
+ * - TipTap JSON, 기타 구조화된 콘텐츠에 사용
+ * - Frontend에서 1차 검증 (UX)
+ * - Server Action에서 2차 검증 (보안)
+ */
+export const UpdateBlockContentRequestSchema = z.object({
+  blockId: z.uuid('Invalid block ID'),
+  content: z.unknown(), // JSONB - 자유로운 JSON 구조 허용
+  workspaceId: z.uuid('Invalid workspace ID'),
+  orgId: z.uuid('Invalid organization ID'),
+});
+
 // Input types (프론트엔드에서 사용)
 export type UpdateBlockPropertyRequestInput = z.input<
   typeof UpdateBlockPropertyRequestSchema
 >;
+export type UpdateBlockPropertiesRequestInput = z.input<
+  typeof UpdateBlockPropertiesRequestSchema
+>;
 export type UpdateBlockTitleRequestInput = z.input<
   typeof UpdateBlockTitleRequestSchema
+>;
+export type UpdateBlockContentRequestInput = z.input<
+  typeof UpdateBlockContentRequestSchema
 >;
 
 // Output types (서버에서 사용)
 export type UpdateBlockPropertyRequest = z.output<
   typeof UpdateBlockPropertyRequestSchema
 >;
+export type UpdateBlockPropertiesRequest = z.output<
+  typeof UpdateBlockPropertiesRequestSchema
+>;
 export type UpdateBlockTitleRequest = z.output<
   typeof UpdateBlockTitleRequestSchema
+>;
+export type UpdateBlockContentRequest = z.output<
+  typeof UpdateBlockContentRequestSchema
 >;

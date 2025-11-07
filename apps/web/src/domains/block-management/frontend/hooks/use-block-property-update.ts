@@ -2,11 +2,16 @@
 
 import { useCallback } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import { updateBlockPropertyAction } from '../../actions/block.actions';
+import {
+  updateBlockPropertyAction,
+  updateBlockPropertiesAction,
+} from '../../actions/block.actions';
 import { isFailure } from '@/lib/action-result';
 import {
   UpdateBlockPropertyRequestSchema,
+  UpdateBlockPropertiesRequestSchema,
   type UpdateBlockPropertyRequestInput,
+  type UpdateBlockPropertiesRequestInput,
 } from '../../shared/dtos/requests';
 import { BlockNodeData } from '../../shared/types/block-data.types';
 
@@ -15,6 +20,11 @@ export interface UseBlockPropertyUpdateResult {
     blockId: string,
     propertyPath: string,
     value: T,
+    blockData: BlockNodeData
+  ) => Promise<void>;
+  updateProperties: (
+    blockId: string,
+    properties: Record<string, unknown>,
     blockData: BlockNodeData
   ) => Promise<void>;
   updatePropertyImmediate: <T>(
@@ -38,25 +48,36 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
   // 중첩된 객체 경로 처리 유틸리티 함수
   const updateNestedProperty = useCallback(
     <T>(data: BlockNodeData, propertyPath: string, value: T) => {
-      const updatedData = { ...data };
+      // Create a new root object
+      const updatedData: any = { ...data };
       const pathParts = propertyPath.split('.');
 
-      let current = updatedData;
+      // Clone each ancestor along the path to ensure new references
+      let current: any = updatedData;
       for (let i = 0; i < pathParts.length - 1; i++) {
         const part = pathParts[i];
-        if (part && !current[part]) {
+        if (!part) continue;
+
+        const prev = current[part];
+        if (prev === undefined || prev === null) {
+          current[part] = {};
+        } else if (Array.isArray(prev)) {
+          current[part] = [...prev];
+        } else if (typeof prev === 'object') {
+          current[part] = { ...prev };
+        } else {
+          // If it's a primitive, replace with an object to continue nesting
           current[part] = {};
         }
-        if (part) {
-          current = current[part];
-        }
-      }
-      const lastPart = pathParts[pathParts.length - 1];
-      if (lastPart) {
-        current[lastPart] = value;
+        current = current[part];
       }
 
-      return updatedData;
+      const lastPart = pathParts[pathParts.length - 1];
+      if (lastPart) {
+        current[lastPart] = value as any;
+      }
+
+      return updatedData as BlockNodeData;
     },
     []
   );
@@ -77,6 +98,7 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
         propertyPath,
         value
       );
+
       updateNode(blockId, { data: updatedData });
 
       try {
@@ -178,8 +200,82 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
     [updateNode, updateNestedProperty]
   );
 
+  const updateProperties = useCallback(
+    async (
+      blockId: string,
+      properties: Record<string, unknown>,
+      blockData: BlockNodeData
+    ): Promise<void> => {
+      // 1. 원본 데이터 백업 (롤백용)
+      const originalData = blockData;
+
+      // 2. Optimistic Update: React Flow Store 즉시 업데이트
+      // 주의: properties는 partial이므로 기존 properties와 merge
+      const updatedData: BlockNodeData = {
+        ...blockData,
+        properties: {
+          ...(blockData.properties as any),
+          ...properties, // partial properties를 merge
+        } as any,
+      };
+
+      updateNode(blockId, { data: updatedData });
+
+      try {
+        // 3. workspaceId와 orgId 확인
+        if (!blockData.workspaceId || !blockData.orgId) {
+          console.error('Missing workspaceId or orgId in blockData', {
+            blockData,
+            blockId,
+          });
+          updateNode(blockId, { data: originalData });
+          return;
+        }
+
+        // 4. 프론트엔드 검증 (UX 최적화)
+        const rawRequest: UpdateBlockPropertiesRequestInput = {
+          blockId: blockData.blockId,
+          properties,
+          workspaceId: blockData.workspaceId,
+          orgId: blockData.orgId,
+        };
+
+        const parseResult =
+          UpdateBlockPropertiesRequestSchema.safeParse(rawRequest);
+        if (!parseResult.success) {
+          // 검증 실패 시 롤백
+          updateNode(blockId, { data: originalData });
+          const firstError = parseResult.error.issues[0];
+          console.error(
+            '[Frontend Validation] Invalid properties update data:',
+            {
+              message: firstError?.message || 'Invalid properties update data',
+              issues: parseResult.error.issues,
+            }
+          );
+          return;
+        }
+
+        // 5. Server Action 호출 (검증된 데이터)
+        const result = await updateBlockPropertiesAction(parseResult.data);
+
+        if (isFailure(result)) {
+          // 실패 시 롤백
+          updateNode(blockId, { data: originalData });
+          console.error('Failed to update block properties:', result.error);
+        }
+      } catch (error) {
+        // 에러 시 롤백
+        updateNode(blockId, { data: originalData });
+        console.error('Error updating block properties:', error);
+      }
+    },
+    [updateNode]
+  );
+
   return {
     updateProperty,
+    updateProperties,
     updatePropertyImmediate,
   };
 }

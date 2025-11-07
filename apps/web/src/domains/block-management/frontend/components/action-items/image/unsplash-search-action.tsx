@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { useReactFlow } from '@xyflow/react';
 import { Search } from 'lucide-react';
 import { Button } from '@workspace/ui/components/ui/button';
 import {
@@ -28,9 +29,6 @@ import type {
 export interface UnsplashSearchActionProps {
   blockId: string;
   blockData: BlockNodeData;
-  pageId: string;
-  orgId: string;
-  workspaceId: string;
 }
 
 /**
@@ -41,15 +39,12 @@ export interface UnsplashSearchActionProps {
 export function UnsplashSearchAction({
   blockId,
   blockData,
-  pageId,
-  orgId,
-  workspaceId,
 }: UnsplashSearchActionProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [images, setImages] = useState<UnsplashImage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { updateProperty } = useBlockPropertyUpdate();
+  const { updateProperties } = useBlockPropertyUpdate();
 
   // Unsplash API 호출
   const fetchUnsplashImages = useCallback(async (query?: string) => {
@@ -112,41 +107,36 @@ export function UnsplashSearchAction({
           return;
         }
 
-        // 1. Unsplash 다운로드 엔드포인트 트리거 (필수 - API 가이드라인)
-        await fetch(
+        // 1. Unsplash 다운로드 엔드포인트 트리거 (백그라운드 - API 가이드라인)
+        // 응답을 기다릴 필요 없음 (통계 수집용)
+        fetch(
           `https://api.unsplash.com/photos/${image.id}/download?client_id=${accessKey}`
-        );
+        ).catch(err => console.warn('Unsplash download tracking failed:', err));
 
-        // 2. 블록 속성 일괄 업데이트 (imageUrl, imageSource, unsplash 정보)
-        const updates = {
-          'properties.imageUrl': image.urls.regular,
-          'properties.imageSource': 'unsplash' as const,
-          'properties.unsplashAuthorName': image.user.name,
-          'properties.unsplashAuthorLink': `${image.user.links.html}?utm_source=ssota&utm_medium=referral`,
+        // 2. 다이얼로그 즉시 닫기 (UX 개선)
+        setIsDialogOpen(false);
+
+        // 3. 블록 속성 일괄 업데이트 (한 번에 모든 속성 업데이트)
+        const propertiesToUpdate: Record<string, unknown> = {
+          imageUrl: image.urls.regular,
+          imageSource: 'unsplash' as const,
+          unsplashAuthorName: image.user.name,
+          unsplashAuthorLink: `${image.user.links.html}?utm_source=ssota&utm_medium=referral`,
+          caption: `Photo by @${image.user.name} on Unsplash`,
         };
 
-        // 각 속성을 개별적으로 업데이트
-        for (const [key, value] of Object.entries(updates)) {
-          await updateProperty(blockId, key, value, blockData);
-        }
-
-        // 3. alt 텍스트도 함께 업데이트 (선택적)
+        // alt 텍스트도 함께 업데이트 (선택적)
         if (image.alt_description) {
-          await updateProperty(
-            blockId,
-            'properties.alt',
-            image.alt_description,
-            blockData
-          );
+          propertiesToUpdate.alt = image.alt_description;
         }
 
-        // 4. 다이얼로그 닫기
-        setIsDialogOpen(false);
+        // 한 번의 호출로 모든 속성 업데이트
+        await updateProperties(blockId, propertiesToUpdate, blockData);
       } catch (error) {
         console.error('Failed to select Unsplash image:', error);
       }
     },
-    [blockId, blockData, updateProperty]
+    [blockId, updateProperties, blockData]
   );
 
   return (
@@ -167,7 +157,7 @@ export function UnsplashSearchAction({
             <Search className="h-3.5 w-3.5" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="left" hasArrow={false} sideOffset={10}>
+        <TooltipContent side="right" hasArrow={false} sideOffset={10}>
           <p>Unsplash 이미지 검색</p>
         </TooltipContent>
       </Tooltip>
@@ -254,4 +244,3 @@ export function UnsplashSearchAction({
     </>
   );
 }
-

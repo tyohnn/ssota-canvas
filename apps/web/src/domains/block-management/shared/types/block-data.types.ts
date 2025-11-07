@@ -70,6 +70,7 @@ export interface BaseNodeData extends Record<string, unknown> {
   blockType: BlockType;
   properties: BlockProperties<BlockType>;
   customProperties: CustomPropertyDefinition[];
+  content?: unknown; // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
   // Canvas Management 특화 속성들
   pageId: string;
   orgId: string;
@@ -101,6 +102,12 @@ export interface ImageBlockNodeData extends BaseNodeData {
 export interface MarkdownBlockNodeData extends BaseNodeData {
   blockType: 'markdown';
   properties: MarkdownBlockProperties;
+  [key: string]: any; // React Flow Node data constraint
+}
+
+export interface LinkBlockNodeData extends BaseNodeData {
+  blockType: 'link';
+  properties: LinkBlockProperties;
   [key: string]: any; // React Flow Node data constraint
 }
 
@@ -140,12 +147,6 @@ export interface PythonBlockNodeData extends BaseNodeData {
   [key: string]: any; // React Flow Node data constraint
 }
 
-export interface LinkBlockNodeData extends BaseNodeData {
-  blockType: 'link';
-  properties: LinkBlockProperties;
-  [key: string]: any; // React Flow Node data constraint
-}
-
 export interface PageMentionBlockNodeData extends BaseNodeData {
   blockType: 'page_mention';
   properties: PageMentionBlockProperties;
@@ -178,13 +179,13 @@ export type BlockNodeData =
   | ShapeBlockNodeData
   | ImageBlockNodeData
   | MarkdownBlockNodeData
+  | LinkBlockNodeData
   | YoutubeBlockNodeData
   | PdfBlockNodeData
   | AudioBlockNodeData
   | VideoBlockNodeData
   | FileBlockNodeData
   | PythonBlockNodeData
-  | LinkBlockNodeData
   | PageMentionBlockNodeData
   | LatexBlockNodeData
   | GithubPrBlockNodeData
@@ -206,6 +207,7 @@ export function buildBlockNodeData<T extends BlockType>(
     workspaceId: string;
     properties?: BlockProperties<T>;
     customProperties?: CustomPropertyDefinition[];
+    content?: unknown; // JSONB content
     createdByProfile?: UserProfile;
     createdAt?: string;
     updatedAt?: string;
@@ -225,6 +227,7 @@ export function buildBlockNodeData<T extends BlockType>(
     blockType,
     properties: properties,
     customProperties: baseData.customProperties || [],
+    content: baseData.content, // JSONB content
     pageId: baseData.pageId,
     orgId: baseData.orgId,
     workspaceId: baseData.workspaceId,

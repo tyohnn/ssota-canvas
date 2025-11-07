@@ -100,6 +100,13 @@ export interface ImageBlockProperties {
 
 ### 기본 속성
 
+#### 0. imageSource
+- **타입**: `'user-upload' | 'unsplash'`
+- **설명**: 이미지 출처 (사용자 업로드 또는 Unsplash)
+- **기본값**: `'user-upload'`
+- **필수**: ✅ Yes
+- **에디터 표시**: ❌ No (내부 속성, 자동 설정)
+
 #### 1. imageUrl
 - **타입**: `string`
 - **설명**: 이미지 파일 URL (Supabase Storage 또는 Unsplash)
@@ -117,14 +124,7 @@ export interface ImageBlockProperties {
   }
   ```
 
-#### 2. imageSource
-- **타입**: `'user-upload' | 'unsplash'`
-- **설명**: 이미지 출처 (사용자 업로드 또는 Unsplash)
-- **기본값**: `'user-upload'`
-- **필수**: ✅ Yes
-- **에디터 표시**: ❌ No (내부 속성, 자동 설정)
-
-#### 3. objectFit
+#### 2. objectFit
 - **타입**: `'contain' | 'cover' | 'fill'`
 - **설명**: 이미지 맞춤 방식 (CSS object-fit)
 - **기본값**: `'contain'`
@@ -145,9 +145,9 @@ export interface ImageBlockProperties {
   }
   ```
 
-#### 4. caption
+#### 3. caption
 - **타입**: `string`
-- **설명**: 이미지 캡션 (항상 하단에 작게 표시)
+- **설명**: 이미지 캡션 (토글 가능)
 - **기본값**: `''`
 - **필수**: ❌ No
 - **UI Schema**:
@@ -156,11 +156,18 @@ export interface ImageBlockProperties {
     label: '캡션',
     inputType: 'textarea',
     icon: 'MessageSquare',
-    description: '이미지 설명 또는 캡션 (하단에 작게 표시됨)',
+    description: '이미지 설명 또는 캡션',
     placeholder: '캡션을 입력하세요...',
     order: 4,
   }
   ```
+
+#### 4. isCaptionVisible (✅ 구현 완료)
+- **타입**: `boolean`
+- **설명**: 캡션 표시 여부
+- **기본값**: `false`
+- **필수**: ❌ No
+- **에디터 표시**: ❌ No (툴바에서 토글)
 
 #### 5. alt
 - **타입**: `string`
@@ -235,15 +242,33 @@ groups: [
 
 ## 5. 툴바 아이템
 
-### 1. ObjectFitToolbarItem
+### 1. ImageChangeToolbarItem
+- **아이콘**: `Upload`
+- **기능**: 이미지 변경/업로드
+- **동작**: 파일 업로드 다이얼로그 표시 또는 Unsplash 검색
+- **업데이트**: `properties.imageUrl`
+
+### 2. ObjectFitToolbarItem
 - **아이콘**: `Maximize`
 - **기능**: 맞춤 방식 변경
 - **동작**: Popover로 맞춤 옵션 표시
 - **업데이트**: `properties.objectFit`
 
-### 2. ImageEditToolbarItem
+### 3. CaptionVisibilityToolbarItem (✅ 구현 완료)
+- **아이콘**: `MessageSquare`
+- **기능**: 캡션 표시/숨김 토글
+- **동작**: 클릭 시 캡션 영역 표시/숨김
+- **업데이트**: `properties.isCaptionVisible`
+
+### 4. ExpandImageToolbarItem (✅ 구현 완료)
+- **아이콘**: `Expand`
+- **기능**: 이미지 확대 보기
+- **동작**: 클릭 시 다이얼로그로 원본 크기 이미지 표시
+- **업데이트**: 없음 (일회성 액션)
+
+### 5. ImageEditToolbarItem (향후)
 - **아이콘**: `Edit`
-- **기능**: 이미지 에디터 열기 (향후)
+- **기능**: 이미지 에디터 열기
 - **동작**: 블록 스페이스로 이미지 에디터 표시
 
 ## 5.5. 블록 액션 바 (Block Action Bar)
@@ -572,7 +597,7 @@ apps/web/src/domains/block-management/shared/schemas/ui/image-block.ui-schema.ts
 ```
 apps/web/src/domains/block-management/frontend/components/block/image/image-block.tsx
 ```
-**✅ 구현 완료** (Unsplash 저자 정보 표시 추가 예정)
+**✅ 구현 완료** - Unsplash 저자 정보 표시, 캡션 편집, 이미지 업로드 지원
 
 **사용 라이브러리**:
 - **이미지 업로드**: `@workspace/ui/hooks/use-file-upload` (커스텀 훅)
@@ -654,7 +679,19 @@ const { imageUrl, imageSource, unsplashAuthorName, unsplashAuthorLink, objectFit
 ```
 apps/web/src/domains/block-management/frontend/components/toolbar-items/block-toolbar-mapper.tsx
 ```
-(case 'image' 추가 예정)
+**✅ 구현 완료** - case 'image'에 4개 toolbar items 추가됨
+
+#### CaptionVisibilityToolbarItem
+```
+apps/web/src/domains/block-management/frontend/components/toolbar-items/image-block/caption-visibility-toolbar-item.tsx
+```
+**✅ 구현 완료** - 캡션 표시/숨김 토글 버튼
+
+#### ExpandImageToolbarItem
+```
+apps/web/src/domains/block-management/frontend/components/toolbar-items/image-block/expand-image-toolbar-item.tsx
+```
+**✅ 구현 완료** - 이미지 확대 다이얼로그 버튼
 
 ### Block Action Bar (신규)
 ```
@@ -895,13 +932,16 @@ React Component (ImageBlock)
 4. **Component Layer**: `ImageBlock` - React 컴포넌트
 
 ### 업데이트 필요 파일 체크리스트
-- [ ] `common-types.ts` - ImageSource 타입 추가
-- [ ] `image.vo.ts` - ImageBlockProperties 및 VO 클래스 업데이트
-- [ ] `unsplash.types.ts` - Unsplash API 타입 정의 추가 (신규)
-- [ ] `image-block.tsx` - Unsplash 저자 정보 오버레이 추가
-- [ ] `block-action-bar.tsx` - 액션 툴바 컴포넌트 생성 (신규)
-- [ ] `block-action-mapper.tsx` - 액션 매퍼 생성 (신규)
-- [ ] `unsplash-search-action.tsx` - Unsplash 검색 액션 생성 (신규)
+- [x] `common-types.ts` - ImageSource 타입 추가 ✅
+- [x] `image.vo.ts` - ImageBlockProperties 및 VO 클래스 업데이트 (isCaptionVisible 추가) ✅
+- [x] `image-block.tsx` - Unsplash 저자 정보 오버레이 추가 ✅
+- [x] `caption-visibility-toolbar-item.tsx` - 캡션 토글 toolbar item 생성 ✅
+- [x] `expand-image-toolbar-item.tsx` - 이미지 확대 toolbar item 생성 ✅
+- [x] `block-toolbar-mapper.tsx` - image case에 새 toolbar items 추가 ✅
+- [x] `block-action-bar.tsx` - 액션 툴바 컴포넌트 생성 (신규) ✅
+- [x] `block-action-mapper.tsx` - 액션 매퍼 생성 (신규) ✅
+- [x] `unsplash-search-action.tsx` - Unsplash 검색 액션 생성 (신규) ✅
+- [ ] `unsplash.types.ts` - Unsplash API 타입 정의 추가 (신규) - 구현 대기
 
 ## 10. 향후 계획
 
@@ -927,6 +967,16 @@ React Component (ImageBlock)
 ---
 
 ## 문서 변경 이력
+
+### 2025-11-06: Toolbar Items로 UI 컨트롤 이동
+- **변경 사항**:
+  - `ImageBlockProperties`에 `isCaptionVisible` 속성 추가
+  - 이미지 블록 내부 호버 버튼 제거 (캡션 토글, 이미지 확대)
+  - `CaptionVisibilityToolbarItem` 생성 - 캡션 표시/숨김 토글
+  - `ExpandImageToolbarItem` 생성 - 이미지 확대 다이얼로그
+  - `block-toolbar-mapper.tsx`의 image case에 새 toolbar items 추가
+  - 캡션 표시 여부를 블록 properties로 관리하여 상태 일관성 확보
+- **목적**: UI 컨트롤을 toolbar로 통합하여 일관된 UX 제공
 
 ### 2025-11-05: Unsplash 저작권 정보 추가
 - **변경 사항**:

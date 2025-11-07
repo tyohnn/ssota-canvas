@@ -20,6 +20,7 @@ export interface ImageBlockProperties {
 
   // 캡션 (항상 하단에 작게 표시)
   caption?: string;
+  isCaptionVisible?: boolean; // 캡션 표시 여부
 
   // 접근성
   alt?: string; // 대체 텍스트
@@ -38,6 +39,7 @@ export class ImageBlockPropertiesVO extends BlockPropertiesVO {
     private readonly imageSource: ImageSource,
     private readonly objectFit: ObjectFit,
     private readonly caption: string | undefined,
+    private readonly isCaptionVisible: boolean | undefined,
     private readonly alt: string | undefined,
     private readonly unsplashAuthorName: string | undefined,
     private readonly unsplashAuthorLink: string | undefined
@@ -54,6 +56,7 @@ export class ImageBlockPropertiesVO extends BlockPropertiesVO {
       'user-upload', // imageSource
       'contain', // objectFit
       '', // caption
+      false, // isCaptionVisible
       '', // alt
       undefined, // unsplashAuthorName
       undefined // unsplashAuthorLink
@@ -71,6 +74,7 @@ export class ImageBlockPropertiesVO extends BlockPropertiesVO {
       safeData.imageSource ?? 'user-upload',
       safeData.objectFit ?? 'contain',
       safeData.caption ?? '',
+      safeData.isCaptionVisible ?? false,
       safeData.alt ?? '',
       safeData.unsplashAuthorName,
       safeData.unsplashAuthorLink
@@ -104,6 +108,7 @@ export class ImageBlockPropertiesVO extends BlockPropertiesVO {
       imageSource: this.imageSource,
       objectFit: this.objectFit,
       caption: this.caption,
+      isCaptionVisible: this.isCaptionVisible,
       alt: this.alt,
       unsplashAuthorName: this.unsplashAuthorName,
       unsplashAuthorLink: this.unsplashAuthorLink,
@@ -122,6 +127,7 @@ export class ImageBlockPropertiesVO extends BlockPropertiesVO {
       this.imageSource === other.imageSource &&
       this.objectFit === other.objectFit &&
       this.caption === other.caption &&
+      this.isCaptionVisible === other.isCaptionVisible &&
       this.alt === other.alt &&
       this.unsplashAuthorName === other.unsplashAuthorName &&
       this.unsplashAuthorLink === other.unsplashAuthorLink
@@ -143,6 +149,10 @@ export class ImageBlockPropertiesVO extends BlockPropertiesVO {
 
   getCaption(): string | undefined {
     return this.caption;
+  }
+
+  getIsCaptionVisible(): boolean | undefined {
+    return this.isCaptionVisible;
   }
 
   getAlt(): string | undefined {

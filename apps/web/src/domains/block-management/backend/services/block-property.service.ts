@@ -1,14 +1,17 @@
 import { BlockId } from '../../shared/value-objects/block-id.vo';
 import { BlockAggregate } from '../../shared/aggregates/block.aggregate';
 import { BlockRepository } from '../repositories/interfaces/block.repository.interface';
-import { UpdateBlockPropertyCommand } from '../../shared/commands';
+import {
+  UpdateBlockPropertyCommand,
+  UpdateBlockContentCommand,
+} from '../../shared/commands';
 import { BlockPropertyUpdatedEvent } from '../../shared/events';
 import { BlockManagementError } from '../../shared/errors/block-management.error';
 
 /**
  * BlockPropertyService
  *
- * 블록 속성 업데이트를 담당하는 Application Service
+ * 블록 속성 및 콘텐츠 업데이트를 담당하는 Application Service
  * Command 패턴을 사용하여 직접 구현
  */
 export class BlockPropertyService {
@@ -72,6 +75,82 @@ export class BlockPropertyService {
       throw new BlockManagementError(
         'PROPERTY_UPDATE_FAILED',
         `Failed to update property: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * 블록 콘텐츠 업데이트 (Command 패턴)
+   *
+   * @param command - 콘텐츠 업데이트 Command
+   * @returns 업데이트된 시간 정보
+   */
+  async updateContent(
+    command: UpdateBlockContentCommand
+  ): Promise<{ updatedAt: Date }> {
+    console.log('[BlockPropertyService] updateContent called', {
+      blockId: command.blockId.value,
+      workspaceId: command.workspaceId,
+      contentPreview: JSON.stringify(command.content).slice(0, 100),
+    });
+
+    try {
+      // 1. 블록 조회 및 소유권 확인
+      const block = await this.blockRepository.findById(command.blockId);
+      if (!block) {
+        console.error(
+          '[BlockPropertyService] Block not found:',
+          command.blockId.value
+        );
+        throw new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found');
+      }
+
+      console.log('[BlockPropertyService] Block found:', {
+        blockId: block.id.value,
+        workspaceId: block.workspaceId.value,
+      });
+
+      // 2. 블록 소유권 확인: 블록이 해당 워크스페이스에 속하는지 검증
+      if (block.workspaceId.value !== command.workspaceId) {
+        console.error('[BlockPropertyService] Workspace mismatch', {
+          blockWorkspaceId: block.workspaceId.value,
+          commandWorkspaceId: command.workspaceId,
+        });
+        throw new BlockManagementError(
+          'WORKSPACE_MISMATCH',
+          'Block does not belong to this workspace'
+        );
+      }
+
+      // 3. Aggregate 재구성
+      const aggregate = BlockAggregate.reconstitute(block);
+
+      // 4. 블록 콘텐츠 업데이트
+      aggregate.updateContent(command);
+      console.log('[BlockPropertyService] Aggregate updated');
+
+      // 5. 블록 업데이트
+      const updatedBlock = aggregate.getBlock();
+      console.log('[BlockPropertyService] Calling repository.update...');
+      await this.blockRepository.update(updatedBlock);
+      console.log('[BlockPropertyService] Repository update succeeded');
+
+      // 6. 도메인 이벤트 처리
+      const events = aggregate.getUncommittedEvents();
+      await this.handleDomainEvents(events);
+
+      // 7. 이벤트 커밋
+      aggregate.markEventsAsCommitted();
+
+      // 8. 업데이트된 시간 반환
+      return { updatedAt: updatedBlock.updatedAt };
+    } catch (error) {
+      if (error instanceof BlockManagementError) {
+        throw error;
+      }
+      throw new BlockManagementError(
+        'PROPERTY_UPDATE_FAILED',
+        `Failed to update content: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }

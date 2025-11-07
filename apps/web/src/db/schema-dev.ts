@@ -69,15 +69,15 @@ export const alignmentTypeEnum = pgEnum('alignment_type', [
 export const blockTypeEnum = pgEnum('block_type', [
   'text', // 텍스트 블록
   'shape', // 도형 블록
-  'markdown', // 마크다운 블록
-  'youtube', // 유튜브 블록
   'image', // 이미지 블록
+  'markdown', // 마크다운 블록
+  'link', // 링크 블록
+  'youtube', // 유튜브 블록
   'pdf', // PDF 문서 블록
   'audio', // 오디오 블록
   'video', // 비디오 블록
   'file', // 파일 블록
   'python', // 파이썬 코드 블록
-  'link', // 링크 블록
   'page_mention', // 페이지 멘션 블록
   'latex', // 라텍스 블록
   'github_pr', // 깃헙 PR 블록
@@ -912,6 +912,7 @@ export const blocks = pgTable(
     title: text('title').notNull().default('새 블럭'), // 블록 제목
     metadata: jsonb('metadata').default({}), // Deprecated: properties로 대체됨 (호환성 유지)
     properties: jsonb('properties').default({}), // 속성 값 저장 (JSONB) - key-value 형태
+    content: jsonb('content'), // TipTap JSON content (for markdown blocks, etc.)
     custom_properties: jsonb('custom_properties').default([]), // 커스텀 속성 정의 저장 (JSONB 배열) - 속성 스키마
     created_by: uuid('created_by').references(() => profiles.id, {
       onDelete: 'set null',

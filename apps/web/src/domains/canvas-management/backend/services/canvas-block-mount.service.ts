@@ -64,6 +64,8 @@ export class CanvasBlockMountService implements ICanvasBlockMountService {
     blockType: BlockType;
     position: Position;
     size: Size;
+    initialProperties?: Record<string, any>; // 선택적 초기 properties
+    initialContent?: unknown; // 선택적 초기 content (JSONB)
   }): Promise<
     Result<
       {
@@ -75,17 +77,14 @@ export class CanvasBlockMountService implements ICanvasBlockMountService {
   > {
     try {
       // 1. Block Management Service를 통해 블럭 생성 (완전한 Block 엔티티 반환)
-      const createBlockCommand: CreateBlockCommand = {
+      const blockAggregate = await this.blockManagementService.createBlock({
         userId: params.userId,
         workspaceId: params.workspaceId,
-        blockId: BlockId.generate(),
         blockType: params.blockType,
         title: '새 블럭', // 기본 제목
-        // ✅ Properties 초기화는 Block.create() 내부에서 처리됨
-      };
-
-      const blockAggregate =
-        await this.blockManagementService.createBlock(createBlockCommand);
+        initialProperties: params.initialProperties, // 초기 properties 전달
+        initialContent: params.initialContent, // ✨ 초기 content 전달
+      });
 
       // 2. Canvas Management Aggregate 생성 (자체 이벤트 생성)
       const blockMountId = new BlockMountId(crypto.randomUUID());

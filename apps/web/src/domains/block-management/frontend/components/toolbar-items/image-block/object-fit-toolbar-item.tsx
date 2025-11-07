@@ -13,7 +13,7 @@ import {
 } from '@workspace/ui/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { ObjectFit } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
-import { Maximize, Maximize2, Move } from 'lucide-react';
+import { ScanEye, Crop, Maximize } from 'lucide-react';
 
 interface ObjectFitToolbarItemProps {
   blockId: string;
@@ -28,9 +28,9 @@ const OBJECT_FIT_OPTIONS: Array<{
   label: string;
   icon: any;
 }> = [
-  { value: 'contain', label: '전체 표시', icon: Maximize2 },
-  { value: 'cover', label: '채우기', icon: Maximize },
-  { value: 'fill', label: '늘리기', icon: Move },
+  { value: 'contain', label: '전체 표시', icon: ScanEye },
+  { value: 'cover', label: '채우기', icon: Crop },
+  { value: 'fill', label: '늘리기', icon: Maximize },
 ];
 
 /**
@@ -38,7 +38,7 @@ const OBJECT_FIT_OPTIONS: Array<{
  */
 function renderPreview(value: ObjectFit, size: number = 16) {
   const option = OBJECT_FIT_OPTIONS.find(opt => opt.value === value);
-  const Icon = option?.icon || Maximize2;
+  const Icon = option?.icon || ScanEye;
   return <Icon size={size} />;
 }
 

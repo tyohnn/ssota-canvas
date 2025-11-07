@@ -4,6 +4,7 @@ import {
   CreateBlockCommand,
   UpdateBlockCommand,
   UpdateBlockPropertyCommand,
+  UpdateBlockContentCommand,
   DeleteBlockCommand,
   DuplicateBlockCommand,
 } from '../commands';
@@ -15,6 +16,7 @@ import {
   BlockDuplicatedEvent,
 } from '../events';
 import { BlockManagementError } from '../errors/block-management.error';
+import { BlockPropertiesFactory } from '../value-objects/block-properties';
 
 /**
  * BlockAggregate
@@ -42,13 +44,31 @@ export class BlockAggregate {
    * 새로운 BlockAggregate 생성
    */
   static create(command: CreateBlockCommand): BlockAggregate {
+    // initialProperties가 있으면 기본값과 병합하여 BlockPropertiesVO 생성
+    let propertiesVO = undefined;
+
+    if (command.initialProperties) {
+      const defaultProperties = BlockPropertiesFactory.createForBlockType(
+        command.blockType
+      );
+      const mergedProperties = {
+        ...defaultProperties.toJSON(),
+        ...command.initialProperties,
+      };
+      propertiesVO = BlockPropertiesFactory.createFromJSON(
+        command.blockType,
+        mergedProperties
+      );
+    }
+
     const block = Block.create(
       command.blockId,
       command.workspaceId,
       command.userId,
       command.blockType,
-      command.title
-      // Properties 초기화는 Block.create() 내부에서 처리
+      command.title,
+      propertiesVO, // initialProperties가 있으면 전달, 없으면 undefined (기본값 사용)
+      command.initialContent // ✨ initialContent 전달
     );
 
     const aggregate = new BlockAggregate(block);
@@ -179,6 +199,33 @@ export class BlockAggregate {
         `Invalid property path: ${command.propertyPath}. Only properties.* paths are supported.`
       );
     }
+  }
+
+  /**
+   * 블록 콘텐츠 업데이트
+   */
+  updateContent(command: UpdateBlockContentCommand): void {
+    if (this._block.isDeleted()) {
+      throw new BlockManagementError(
+        'BLOCK_ALREADY_DELETED',
+        'Cannot update content of deleted block'
+      );
+    }
+
+    // content 필드 업데이트
+    this._block.update({ content: command.content });
+
+    // 도메인 이벤트 발생 (BlockUpdatedEvent 재사용)
+    const event = new BlockUpdatedEvent(
+      this._block.id,
+      {
+        blockId: this._block.id,
+        updateData: { content: command.content },
+      },
+      this._block.updatedAt
+    );
+
+    this._uncommittedEvents.push(event);
   }
 
   /**

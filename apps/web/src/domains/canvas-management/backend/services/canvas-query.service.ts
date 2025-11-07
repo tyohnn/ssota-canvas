@@ -58,13 +58,6 @@ export class CanvasQueryService implements ICanvasQueryService {
       const viewportAggregate =
         await this.viewportRepository.findByPageId(pageId);
 
-      console.log('[CanvasQueryService] Loading canvas view:', {
-        pageId: pageId.value,
-        blockMountsCount: blockMountsWithBlocks.length,
-        edgesCount: edges.length,
-        hasViewport: !!viewportAggregate,
-      });
-
       // 4. 모든 데이터 조합하여 CanvasViewData 생성
       // ⚠️ Schema Change: edges now use block_mount_id directly (no mapping needed)
       const canvasViewData: CanvasViewData = {
@@ -97,6 +90,7 @@ export class CanvasQueryService implements ICanvasQueryService {
               properties: block.properties.toJSON(),
               customProperties:
                 block.customProperties.map(cp => cp.toJSON()) || [],
+              content: block.content, // JSONB content
               position: {
                 x: blockMount.position.x,
                 y: blockMount.position.y,

@@ -22,20 +22,18 @@ export function TextProperty({
   // 단일 상태로 통합 (span과 textarea 모두 사용)
   const [textValue, setTextValue] = useState(value || '');
   const [isEditing, setIsEditing] = useState(false);
-  const isInitialized = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // 원본 값 저장 (서버에 저장된 값, optimistic update와 비교용)
   const originalValueRef = useRef(value || '');
 
-  // 초기값 설정 (한 번만)
+  // Props와 동기화 (편집 중이 아닐 때만)
   useEffect(() => {
-    if (!isInitialized.current && value !== undefined) {
+    if (!isEditing && value !== undefined) {
       setTextValue(value || '');
       originalValueRef.current = value || '';
-      isInitialized.current = true;
     }
-  }, [value]);
+  }, [value, isEditing]);
 
   const handleLabelClick = () => {
     if (disabled) return;

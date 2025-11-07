@@ -12,6 +12,7 @@ import { blocks } from '@/db/schema-dev';
 import { eq } from 'drizzle-orm';
 import { StorageBucket } from '../types/storage.types';
 import { StorageService } from '../backend/services/storage.service';
+import type { ImageBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 
 /**
  * Signed URL이 만료된 경우 새로운 URL을 생성하여 반환
@@ -46,8 +47,8 @@ export async function refreshImageUrlAction(
     }
 
     // 4. properties에서 imageUrl 추출
-    const properties = block.properties as any;
-    const currentUrl = properties?.imageUrl;
+    const properties = block.properties as ImageBlockProperties;
+    const currentUrl = properties.imageUrl;
 
     if (!currentUrl) {
       return { success: false, error: 'No image URL found in block' };

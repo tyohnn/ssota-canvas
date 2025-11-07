@@ -296,7 +296,9 @@ export function BlockPropertyRenderer({
       case 'readonly-text':
         return (
           <div className="text-xs py-1 px-2 text-muted-foreground">
-            {value || '-'}
+            {propertyDef.defaultDisplay
+              ? propertyDef.defaultDisplay(value)
+              : value || '-'}
           </div>
         );
 

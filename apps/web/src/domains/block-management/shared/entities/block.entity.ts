@@ -28,6 +28,7 @@ export class Block {
     public readonly createdAt: Date,
     public updatedAt: Date,
     public deletedAt: Date | null,
+    public content: unknown = null, // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
     public readonly createdByProfile?: UserProfile
   ) {}
 
@@ -50,7 +51,8 @@ export class Block {
     userId: UserId,
     blockType: BlockType,
     title: string = '새 블럭',
-    properties?: BlockPropertiesVO
+    properties?: BlockPropertiesVO,
+    content?: unknown // ✨ 초기 content 추가 (JSONB)
   ): Block {
     const now = new Date();
     // ✅ Properties 초기화: 전달받은 properties가 있으면 사용, 없으면 기본값 생성
@@ -68,7 +70,8 @@ export class Block {
       customProperties,
       now,
       now,
-      null
+      null,
+      content ?? null // ✨ content: 전달받은 값 또는 null
     );
   }
 
@@ -85,6 +88,7 @@ export class Block {
    * @param createdAt - 생성 시각
    * @param updatedAt - 수정 시각
    * @param deletedAt - 삭제 시각
+   * @param content - JSONB 콘텐츠
    * @param createdByProfile - 생성자 프로필
    * @returns Block 인스턴스
    */
@@ -99,6 +103,7 @@ export class Block {
     createdAt: Date,
     updatedAt: Date,
     deletedAt: Date | null,
+    content: unknown = null,
     createdByProfile?: UserProfile
   ): Block {
     return new Block(
@@ -112,6 +117,7 @@ export class Block {
       createdAt,
       updatedAt,
       deletedAt,
+      content,
       createdByProfile
     );
   }
@@ -133,7 +139,8 @@ export class Block {
       this.customProperties,
       this.createdAt,
       this.updatedAt,
-      this.deletedAt
+      this.deletedAt,
+      this.content // 콘텐츠도 복제
     );
   }
 
@@ -145,6 +152,7 @@ export class Block {
   update(updateData: {
     title?: string;
     properties?: Record<string, any>;
+    content?: unknown; // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
   }): void {
     if (this.isDeleted()) {
       throw new BlockManagementError(
@@ -169,6 +177,11 @@ export class Block {
         this.blockType,
         mergedProperties
       );
+    }
+
+    // 콘텐츠 업데이트
+    if (updateData.content !== undefined) {
+      this.content = updateData.content;
     }
 
     this.updatedAt = new Date();

@@ -30,6 +30,7 @@ import {
   MessageSquare,
   Github,
   Zap,
+  Music,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCanvasMode } from '../../hooks/use-canvas-mode';
@@ -73,6 +74,13 @@ const DEFAULT_BLOCK_TYPES: BlockTypeInfo[] = [
     category: 'Media',
   },
   {
+    type: BlockType.AUDIO,
+    displayName: 'Audio',
+    icon: Music,
+    description: '오디오 파일 블럭',
+    category: 'Media',
+  },
+  {
     type: BlockType.PYTHON,
     displayName: 'Python Code',
     icon: Code,
@@ -91,6 +99,13 @@ const DEFAULT_BLOCK_TYPES: BlockTypeInfo[] = [
     displayName: 'File',
     icon: File,
     description: '파일 첨부 블럭',
+    category: 'Media',
+  },
+  {
+    type: BlockType.PDF,
+    displayName: 'PDF',
+    icon: FileText,
+    description: 'PDF 문서 블럭',
     category: 'Media',
   },
   {

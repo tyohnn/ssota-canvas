@@ -11,6 +11,11 @@ import {
 import { textBlockUISchema } from './text-block.ui-schema';
 import { shapeBlockUISchema } from './shape-block.ui-schema';
 import { imageBlockUISchema } from './image-block.ui-schema';
+import { markdownBlockUISchema } from './markdown-block.ui-schema';
+import { linkBlockUISchema } from './link-block.ui-schema';
+import { youtubeBlockUISchema } from './youtube-block.ui-schema';
+import { pdfBlockUISchema } from './pdf-block.ui-schema';
+import { audioBlockUISchema } from './audio-block.ui-schema';
 
 class BlockUISchemaRegistryImpl implements BlockUISchemaRegistry {
   private schemas: Map<string, BlockUISchema> = new Map();
@@ -30,9 +35,22 @@ class BlockUISchemaRegistryImpl implements BlockUISchemaRegistry {
     // Image Block 스키마 등록
     this.register(imageBlockUISchema.blockType, imageBlockUISchema);
 
+    // Markdown Block 스키마 등록
+    this.register(markdownBlockUISchema.blockType, markdownBlockUISchema);
+
+    // Link Block 스키마 등록
+    this.register(linkBlockUISchema.blockType, linkBlockUISchema);
+
+    // YouTube Block 스키마 등록
+    this.register(youtubeBlockUISchema.blockType, youtubeBlockUISchema);
+
+    // PDF Block 스키마 등록
+    this.register(pdfBlockUISchema.blockType, pdfBlockUISchema);
+
+    // Audio Block 스키마 등록
+    this.register(audioBlockUISchema.blockType, audioBlockUISchema);
+
     // 추후 다른 블록 타입 스키마 추가
-    // this.register(markdownBlockUISchema.blockType, markdownBlockUISchema);
-    // this.register(youtubeBlockUISchema.blockType, youtubeBlockUISchema);
   }
 
   register(blockType: string, schema: BlockUISchema): void {

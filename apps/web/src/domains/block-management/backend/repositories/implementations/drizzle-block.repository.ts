@@ -14,7 +14,6 @@ import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Block } from '../../../shared/entities/block.entity';
 import { BlockPropertiesFactory } from '../../../shared/value-objects/block-properties';
 import { CustomPropertyDefinitionVO } from '../../../shared/value-objects/custom-property-definition.vo';
-import { UserProfile } from '@/domains/user-management/shared/types';
 import { BlockRepository } from '../interfaces/block.repository.interface';
 import { BlockManagementError } from '../../../shared/errors/block-management.error';
 import {
@@ -102,6 +101,7 @@ export class DrizzleBlockRepository implements BlockRepository {
         title: block.title,
         properties: block.properties.toJSON(),
         custom_properties: block.customProperties.map(vo => vo.toJSON()),
+        content: block.content as any, // JSONB content (e.g., TipTap JSON)
         created_at: block.createdAt,
         updated_at: block.updatedAt,
         deleted_at: block.deletedAt,
@@ -371,6 +371,7 @@ export class DrizzleBlockRepository implements BlockRepository {
       blockData.created_at,
       blockData.updated_at,
       blockData.deleted_at,
+      blockData.content, // JSONB content
       createdByProfile
     );
   }

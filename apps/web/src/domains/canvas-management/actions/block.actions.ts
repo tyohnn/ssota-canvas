@@ -171,6 +171,8 @@ async function createAndMountBlockInternal(
       blockType: blockTypeVO,
       position: positionVO,
       size: sizeVO,
+      initialProperties: request.initialProperties, // 초기 properties 전달 (optional)
+      initialContent: request.initialContent, // ✨ 초기 content 전달 (optional)
     };
 
     // 5. CanvasBlockMountService.createAndMountBlock 호출
@@ -214,6 +216,7 @@ async function createAndMountBlockInternal(
       blockType: block.blockType.value,
       properties: block.properties.toJSON(), // Value Object를 JSON으로 변환
       customProperties: block.customProperties.map(cp => cp.toJSON()) || [],
+      content: block.content, // JSONB content
 
       // 메타데이터 (blockEntity에서 추출)
       createdAt: block.createdAt.toISOString(),

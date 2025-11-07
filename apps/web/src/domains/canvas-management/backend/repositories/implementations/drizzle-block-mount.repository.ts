@@ -172,6 +172,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         blockTitle: blocks.title,
         blockProperties: blocks.properties,
         blockCustomProperties: blocks.custom_properties,
+        blockContent: blocks.content, // JSONB content
         blockCreatedBy: blocks.created_by,
         blockCreatedAt: blocks.created_at,
         blockUpdatedAt: blocks.updated_at,
@@ -216,6 +217,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         properties: row.blockProperties as Record<string, any>,
         custom_properties:
           row.blockCustomProperties as CustomPropertyDefinition[],
+        content: row.blockContent, // JSONB content
         created_by: row.blockCreatedBy || undefined,
         created_at: row.blockCreatedAt,
         updated_at: row.blockUpdatedAt,
@@ -290,6 +292,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     title?: string;
     properties: Record<string, any>;
     custom_properties: CustomPropertyDefinition[];
+    content?: unknown; // JSONB content
     created_by?: string;
     created_at: Date;
     updated_at: Date;
@@ -338,6 +341,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       row.created_at,
       row.updated_at,
       row.deleted_at,
+      row.content, // JSONB content
       createdByProfile
     );
 
