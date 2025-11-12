@@ -1,22 +1,47 @@
-# 기본 AI - 컨텍스트 엔지니어링 설계
+# 기본 AI - Vercel AI Agent 설계 (Simplified)
 
-**작성일**: 2025-11-11  
-**상태**: 설계 논의 중  
-**관련 기능**: 기본 AI (캔버스 소통 담당)
+**작성일**: 2025-11-12  
+**상태**: 설계 확정  
+**관련 기능**: AI Agent (Vercel AI SDK 기반)
 
 ---
 
 ## 📋 목차
 
-1. [AI 기능 전체 구조](#ai-기능-전체-구조)
-2. [기본 AI의 목표와 철학](#기본-ai의-목표와-철학)
-3. [UX 레벨 정의](#ux-레벨-정의)
-4. [컨텍스트의 종류](#컨텍스트의-종류)
-5. [현재 상태 요약](#현재-상태-요약)
-6. [전반적인 평가](#전반적인-평가)
-7. [실제 유스케이스 시나리오](#실제-유스케이스-시나리오)
-8. [검토 포인트](#검토-포인트)
-9. [다음 단계](#다음-단계)
+1. [설계 개요](#설계-개요)
+2. [AI 기능 전체 구조](#ai-기능-전체-구조)
+3. [기본 AI Agent의 목표와 철학](#기본-ai-agent의-목표와-철학)
+4. [단순화된 아키텍처](#단순화된-아키텍처)
+5. [컨텍스트 구성](#컨텍스트-구성)
+6. [툴 시스템](#툴-시스템)
+7. [Agent Loop 실행](#agent-loop-실행)
+8. [실제 유스케이스 시나리오](#실제-유스케이스-시나리오)
+9. [기술 스택 및 구현](#기술-스택-및-구현)
+10. [검토 포인트](#검토-포인트)
+11. [다음 단계](#다음-단계)
+
+---
+
+## 설계 개요
+
+### 핵심 의사결정
+
+이전 설계에서 **Two-Line Response + 액션칩** 패턴을 사용했으나, 이를 **단순화**하여:
+
+✅ **Vercel AI SDK Agent** 사용  
+✅ **액션칩 제거** → Agent가 직접 툴 호출  
+✅ **자율 실행** → 사용자는 발화만 입력, Agent가 자율적으로 작업 수행  
+✅ **툴 중심** → 캔버스 조작/검색 툴을 Agent가 직접 호출  
+✅ **이벤트 로깅** → 모든 툴 호출을 이벤트 로그에 저장
+
+### 설계 변경 이유
+
+| 기존 설계 | 단순화된 설계 | 이유 |
+|----------|--------------|------|
+| Two-Line Response | ❌ 제거 | Agent가 직접 작업하므로 불필요 |
+| 액션칩 (Action Chips) | ❌ 제거 | 사용자 중간 클릭 없이 자율 실행 |
+| Command Chain | ✅ 툴 호출로 대체 | Vercel AI SDK가 툴 호출 자동 관리 |
+| 복잡한 Context Area System | ✅ 단순화 | 선택/주변/의미적 블럭 3가지만 |
 
 ---
 
@@ -24,9 +49,9 @@
 
 쏘타 서비스는 AI 기능을 3가지로 구분:
 
-### 1. 기본 AI (Basic AI)
-**역할**: 캔버스에서 소통 담당  
-**특징**: 컨텍스트 자동 추론 및 전달, 짧은 응답 + 행동 트리거
+### 1. 기본 AI (AI Agent)
+**역할**: Vercel AI SDK 기반 Agent로 캔버스 작업 자율 수행  
+**특징**: 컨텍스트 자동 추론, 툴 직접 호출, 자율 실행
 
 ### 2. 블럭 액션 AI (Block Action AI)
 **역할**: 1회성 AI 함수 실행  
@@ -37,1670 +62,1626 @@
 - 이미지 생성 등
 
 **기본 AI와의 관계**:
-- 기본 AI는 블럭 액션 AI를 **트리거**하는 역할
-- 예: "이 코드 리팩터해줘" → 기본 AI가 컨텍스트 파악 → 블럭 액션 AI 실행
+- 기본 AI Agent가 블럭 액션 AI를 **툴로 호출**
+- 예: "이 코드 리팩터해줘" → Agent가 `executeBlockAction` 툴 호출
 
-### 3. AI 워크플로우 (AI Workflow)
+### 3. AI 워크플로우 (AI Workflow) *(향후)*
 **역할**: 복잡한 AI 자동화  
 **특징**:
 - 커스텀 프롬프트 설정
 - 인풋/아웃풋 블럭 설정
-- KNOWLEDGE/TOOL 세팅
 - 자동 스케줄링 실행
 
-> 📝 **현재 문서의 범위**: 이 문서는 **기본 AI**의 컨텍스트 엔지니어링을 다룸
+> 📝 **현재 문서의 범위**: 이 문서는 **기본 AI Agent**의 설계를 다룸
 
 ---
 
-## 기본 AI의 목표와 철학
+## 기본 AI Agent의 목표와 철학
 
 ### 핵심 목표
-**"커서(Cursor IDE)처럼 캔버스에서 컨텍스트를 자동으로 찾고 세팅하기"**
+**"Cursor IDE처럼 캔버스에서 컨텍스트를 자동으로 찾고, Agent가 자율적으로 작업 수행"**
 
-- Cursor가 IDE에서 컨텍스트를 자동으로 찾고 세팅하듯
-- 쏘타는 캔버스에서 다형성 블럭, 정형 데이터 등 필요한 컨텍스트를 자동으로 전달
-- 다양한 데이터 타입과 워크플로우 지원
+- Cursor가 IDE에서 컨텍스트를 자동으로 찾고 작업하듯
+- 쏘타 Agent는 캔버스에서 블럭, 엣지, 이력 등을 자동으로 파악
+- Agent가 스스로 툴을 호출하여 작업 완료
+- 사용자는 결과만 확인하고 필요시 피드백
 
-### 초기 [컨텍스트 추가] 아이디어
+### 철학적 배경
 
-1. **주변 블럭 추가하기**  
-   공간적으로 가까운 블럭들을 컨텍스트에 포함
+#### 1. **Agent-First, Not Chat-First**
+- 챗 UI의 긴 응답 대신 → **직접 작업 수행**
+- "말하는 AI"가 아니라 → **행동하는 AI**
 
-2. **의미적 연결된 블럭 추가하기**  
-   **엣지(Edge)**로 연결된 블럭들을 탐색. 엣지에는 **라벨**이 있어서 의미적 연결을 표현함  
-   예: "causes", "references", "depends_on", "summary_of" 등
+#### 2. **Tool-Centric Architecture**
+- Agent가 캔버스를 조작하는 방법 = **툴 호출**
+- 모든 작업은 툴로 표준화
+- 툴 호출 = 재사용 가능 + 로깅 가능 + 학습 가능
 
-3. **선택/멀티선택 추가하기**  
-   사용자가 명시적으로 선택한 블럭들
-
-4. **상황에 맞는 툴을 시맨틱으로 찾아서 연결된 블럭/컴포넌트 검색**  
-   작업 의도에 맞는 블럭 액션/툴 발견
-
-5. **대화내용을 시맨틱으로 검색해서 넣기 (기간에 따라 가중치)**  
-   과거 대화에서 관련된 내용 복원
-
----
-
-## UX 레벨 정의
-
-### 기본 원칙
-> **"긴 답변"이 아니라 짧은 힌트 + 행동 트리거를 주고,  
-> 실제 작업은 블럭/툴 레이어에서 일어나게 만든다.**
-
-### 챗 UI의 문제점 (5번 아이디어와 관련)
-
-#### 현재 챗 UI의 한계
-- 챗 UI는 아웃풋을 뱉을 때 **너무 많은 내용**을 생성
-- 우리는 실제로 **매번 보고서 형태로 대화를 주고받지 않음**
-- 보고서/문서는 **이해도를 높이기 위한 도구**이지, 소통 순간에 활용되지 않음
-
-#### 실제 업무 방식과의 비교
-- 회의할 때 **긴 문서를 읽고 있는 사람** = 일을 잘 못하는 사람
-- **문서는 회의 이전 또는 이후에 읽는 것**
-- 즉, 챗 UI에서 아웃풋을 미친듯이 뱉는 것 = **좋은 회의 과정이 아님**
-
-#### Bandwidth 불일치 문제
-- **AI의 아웃풋** bandwidth vs **인간의 인풋** bandwidth가 맞지 않음
-- 이로 인해 **병목(bottleneck)**이 발생
-
-### 쏘타의 새로운 접근
-
-#### 1️⃣ 기본 출력 형태 (휘발성 응답)
-
-**최대 2줄 텍스트**
-- **1줄**: 결론 / 제안
-- **1줄**: 근거나 다음 액션 힌트
-
-**예시**:
-```
-✅ 코드 리팩터링이 필요한 3개 블럭을 찾았어요.
-💡 [관련 블럭 보기]로 확인하거나 [바로 적용]으로 실행하세요.
-```
-
-#### 2️⃣ 액션 칩 (컨텍스트/툴 브리지)
-
-**액션 칩의 역할**:
-- `[관련 블럭 보기]`
-- `[바로 적용]`
-- `[세부 보기]`
-
-**클릭 시 동작**:
-- 캔버스에서 해당 블럭/영역으로 **이동 또는 하이라이트**
-- 또는, **블럭 액션/워크플로우 실행**
-
-#### 3️⃣ 블럭 아웃풋으로 출력 (툴 레이어)
-
-**결과가 "남아야" 하는 경우**:
-- **새 블럭 생성**: 요약, 태스크 리스트, 코드, 이미지 등
-- **기존 블럭 업데이트**: 코드 리팩터 결과 적용 등
-
-**핵심 패턴**:
-```
-AI 응답 → 블럭/툴로 귀결
-```
+#### 3. **Context is King**
+- 정확한 컨텍스트 = 정확한 작업
+- 선택/주변/의미적 블럭을 지능적으로 수집
+- 메모리 (숏텀/롱텀)를 활용한 맥락 이해
 
 ---
 
-## 컨텍스트의 종류
+## 단순화된 아키텍처
 
-### 2-1. 블럭 컨텍스트 (Sensor Score)
+### 전체 플로우
 
-#### 기본 아이디어
-캔버스 위 모든 블럭에 대해 **Sensor Score**를 계산해서,  
-**"지금 이 발화에 중요한 것들만"** 모델에 전달
-
-#### Sensor Score 구성 요소
-
-##### 1. IntentMatch (의도 매칭)
-- 현재 발화에서 **의도/작업 타입 추출**
-- 블럭 타입/블럭 액션과의 **매칭 정도**로 가중치 부여
-
-**예시**:
 ```
-발화: "코드 리팩터해줘"
-→ code 블럭 ↑
-→ refactor 액션 스코어 ↑ -> 이 액션을 가진 블럭의 가중치가 높아짐
+┌──────────────────────────────────────────────────────────────┐
+│                        User Utterance                         │
+│                     "이 코드 리팩터해줘"                         │
+└────────────────────┬─────────────────────────────────────────┘
+                     │
+                     ▼
+┌──────────────────────────────────────────────────────────────┐
+│                    Context Assembly                           │
+│                                                               │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐         │
+│  │Short-Term   │  │Long-Term    │  │Canvas        │         │
+│  │Memory       │  │Memory       │  │Context       │         │
+│  │(최근 이력)   │  │(시맨틱 검색) │  │(선택/주변/의미)│        │
+│  └─────────────┘  └─────────────┘  └──────────────┘         │
+└────────────────────┬─────────────────────────────────────────┘
+                     │
+                     ▼
+┌──────────────────────────────────────────────────────────────┐
+│              Vercel AI Agent (LLM Reasoning)                  │
+│                                                               │
+│  Context + Available Tools → LLM Decision                    │
+└────────────────────┬─────────────────────────────────────────┘
+                     │
+                     ▼
+            ┌────────┴────────┐
+            │                 │
+            ▼                 ▼
+    ┌──────────────┐  ┌──────────────┐
+    │Canvas        │  │Canvas        │
+    │Manipulation  │  │Search        │
+    │Tools         │  │Tools         │
+    │              │  │              │
+    │- addBlock    │  │- searchByHop │
+    │- deleteBlock │  │- searchBy    │
+    │- updateProp  │  │  Keyword     │
+    │- connect     │  │- searchBlock │
+    │- execute     │  │  Actions     │
+    │  BlockAction │  │- searchMulti │
+    └──────┬───────┘  └──────┬───────┘
+           │                 │
+           └────────┬────────┘
+                    │
+                    ▼
+           ┌─────────────────┐
+           │ Tool Result     │
+           │ → Agent         │
+           └────────┬────────┘
+                    │
+            ┌───────┴───────┐
+            │ Continue?     │
+            └───┬───────┬───┘
+                │       │
+          Yes ◄─┘       └─► No
+           │                 │
+           └─► Loop          ▼
+                    ┌─────────────────┐
+                    │ Task Completed  │
+                    │ → Log to Event  │
+                    │   Store         │
+                    └─────────────────┘
 ```
 
-##### 2. SemanticSim (시맨틱 유사도)
-- 발화 ↔ 블럭 내용/속성 간 **벡터 유사도**
-- 발화 ↔ 블럭 타입 설명 간 유사도
-- 발화 ↔ 블럭 액션 설명 간 유사도
-- 발화 ↔ 엣지 설명 간 유사도
+### 핵심 컴포넌트
+
+1. **Context Manager**: 메모리 + 캔버스 컨텍스트 조립
+2. **Vercel AI Agent**: LLM 추론 + 툴 호출 결정
+3. **Tool Executor**: 툴 실행 및 결과 반환
+4. **Event Logger**: 모든 툴 호출 기록
+5. **Vector Store**: 시맨틱 검색 (롱텀 메모리)
+
+---
+
+## 컨텍스트 구성
+
+### 1. Short-Term Memory (숏텀 메모리)
+
+**정의**: 페이지 단위로 최근 N개 이벤트를 시간 순으로 조회
+
+**포함 대상**:
+- 사용자 발화
+- Agent 툴 호출
+- 블럭 생성/수정/삭제
+- 블럭 액션 실행
+
+**개수**: 최근 10-20개 이벤트
+
+**목적**: 
+- 최근 작업 맥락 유지
+- "방금 만든 블럭", "아까 말한 내용" 이해
+
+**구현**:
+```typescript
+// 페이지 단위 최근 이벤트 조회
+const shortTermMemory = await getRecentEvents({
+  pageId: currentPageId,
+  limit: 20,
+  orderBy: 'timestamp DESC'
+});
+```
+
+---
+
+### 2. Long-Term Memory (롱텀 메모리)
+
+**정의**: 발화와 유사성 높은 과거 작업 이력을 시맨틱 검색으로 복원
+
+**검색 방식**:
+1. 현재 발화를 임베딩
+2. 벡터 DB에서 유사도 높은 과거 이벤트 검색
+3. 시간 가중치 적용 (최근일수록 높은 점수)
+4. 상위 N개 선택
+
+
+```
+
+**개수**: 상위 5-10개 이벤트
 
 **목적**:
-"이 내용을 해결할 수 있는" 블럭/액션을 찾고,  
-그 블럭들을 **우선적으로 컨텍스트에 포함**
+- 과거 유사 작업 패턴 복원
+- 사용자 선호도 학습
+- 반복 작업 최적화
 
-##### 3. Recency (최근성) - 클라이언트 계산
-- 최근 편집/조회 시간 기반 감쇠
-- 공식: `exp(-t/τ)` (t: 경과 시간, τ: 시간 상수)
-- "방금/최근 본 것"에 더 높은 점수
-
-##### 4. Proximity (근접성) - 클라이언트 계산
-- 캔버스 **좌표 거리**
-- 그룹/섹션 **소속 관계**
-- 엣지 연결 **의미 관계**
-- 시각적으로/논리적으로 가까운 블럭일수록 가중치 ↑
-
-##### 5. Attention (주의도) - 클라이언트 계산
-- **hover** 이벤트
-- **선택/멀티선택**
-- **스크롤 체류 시간**
-- 사용자가 "신경 쓰고 있는" 블럭에 추가 보너스
-
-#### Sensor Score 최종 계산
-
+**예시**:
 ```
-Sensor Score = 
-  α₁ × IntentMatch +
-  α₂ × SemanticSim +
-  α₃ × Recency +
-  α₄ × Proximity +
-  α₅ × Attention
+현재 발화: "이 코드 리팩터해줘"
+→ 과거 검색: "코드 리팩터 관련 이전 작업"
+→ 발견: 2주 전에 비슷한 코드 리팩터 요청
+→ 컨텍스트에 추가: "이전에는 이렇게 리팩터했어요"
 ```
 
-**결과**: 상위 N개 블럭만 모델 컨텍스트로 전송
+**구현**:
+```typescript
+const longTermMemory = await vectorSearch({
+  query: userUtterance,
+  pageId: currentPageId,
+  limit: 10,
+  timeWeight: true,
+  tau: 30 // days
+});
+```
 
 ---
 
-### 2-2. 이전 대화 컨텍스트
+### 3. Canvas Context (캔버스 컨텍스트)
 
-#### 기존 LLM 패턴의 문제
-- **세션 단위**(채팅방)로 메시지를 시간 순서로 쌓음
-- 컨텍스트 윈도우만큼 잘라서 전달
-- 시간이 지나면 **오래된 정보는 사라짐**
+#### 3.1 선택 블럭 (Selected Blocks)
 
-#### 쏘타의 접근
+**정의**: 사용자가 현재 선택한 블럭
 
-##### 저장 단위
-**세션이 아니라 "페이지(노트)" 단위**로 모든 AI 발화를 저장
+**우선순위**: **최우선**
 
-##### 컨텍스트 복원 방식
+**목적**: 명시적 의도 파악
 
-**1. 시맨틱 서치 (Semantic Search)**
-- 현재 발화와 **관련 높은 과거 발화**들을 벡터 검색으로 찾기
-- 주제 연관성 기반
-
-**2. 기간 가중치 (Temporal Weighting)**
-- **최근일수록 점수를 더 줌** (기억의 신선도)
-- 공식: `semantic_score × exp(-t/τ)`
-
-##### 철학적 배경
-> "사람이 실제로 일하면서 기억/맥락을 되살리는 방식"과 유사
-
-- 특정 회의록/대화를 **"회의 세션"으로만 보지 않음**
-- 같은 주제에 대한 **과거 생각/대화**를 시맨틱 + 시간으로 재구성
-- **비선형적 기억 복원**
+**예시**:
+```
+사용자가 코드 블럭 선택 후 "리팩터해줘"
+→ 해당 코드 블럭을 주 대상으로 인식
+```
 
 ---
 
-### 2-3. Diff / 변경 이력 컨텍스트
+#### 3.2 주변 블럭 (Nearby Blocks)
 
-#### 기본 방향
+**정의**: 선택 블럭 주변의 관련 블럭들
 
-**"모든 것을 같은 데이터 레이어에 감사 로그처럼 저장"**
+**수집 기준**:
+1. **거리 기반** (Proximity): 좌표상 가까운 블럭 (반경 N px 내)
+2. **그룹 기반** (Group): 같은 그룹에 소속된 블럭
+3. **엣지 Hop 기반** (Edge): 1차 연결된 블럭 (엣지로 연결)
 
-#### 이벤트 통합 저장
+**개수**: 
+- 거리: 5-10개
+- 그룹: 전체 (그룹 크기 제한 있음)
+- 엣지 1-hop: 5-10개
+
+**우선순위**: 
+1. 엣지 연결 블럭 (사용자가 명시적으로 연결한 관계)
+2. 같은 그룹 블럭
+3. 좌표 근접 블럭
+
+**목적**: 
+- 공간적 맥락 이해
+- 사용자가 시각적으로 구성한 구조 활용
+
+**철학**:
+> 사용자가 블럭을 특정 위치에 배치하거나 엣지로 연결하는 행위는  
+> **의미적 연관성에 대한 인간의 판단**이 시각적으로 표현된 것입니다.  
+> 이를 ML 모델의 시맨틱 검색보다 우선 활용합니다. (인간 지능 존중)
+
+---
+
+#### 3.3 의미적 블럭 (Semantic Blocks)
+
+**정의**: 발화와 블럭 내용 간 시맨틱 유사도가 높은 블럭
+
+**검색 방식**:
+1. 발화를 임베딩
+2. 현재 페이지의 모든 블럭 임베딩과 비교
+3. 유사도 상위 N개 선택
+
+**개수**: 5개
+
+**목적**: 
+- 명시적으로 선택/연결되지 않았지만 의미적으로 관련 있는 블럭 발견
+- "이 주제와 관련된 다른 블럭"
+
+**예시**:
+```
+발화: "결제 프로세스 정리해줘"
+→ 페이지 내 "결제 관련" 블럭들 검색
+→ 선택되지 않았지만 관련된 마크다운 노트, 다이어그램 등 발견
+```
+
+---
+
+### 4. Available Tools (사용 가능한 툴)
+
+**정의**: Agent가 호출할 수 있는 툴 목록과 메타데이터
+
+**제공 정보**:
+- 툴 이름
+- 툴 설명
+- 파라미터 스키마
+- 사용 예시
+
+**목적**: Agent가 작업에 적합한 툴 선택
+
+---
+
+### 5. 컨텍스트 전달 전략
+
+**핵심 원칙**: 프론트엔드와 서버가 각각 담당하는 컨텍스트를 분리하여 효율적으로 전달
+
+#### 5.1 Client Context (프론트엔드 → 서버)
+
+**정의**: 프론트엔드에서만 알 수 있는 UI 상태 및 사용자 의도
+
+**전달 방식**: `sendMessage`의 `metadata` 필드 사용
 
 ```typescript
-Event = {
-  type: 'edit' | 'chat' | 'move' | 'delete' | ...,
-  payload: any,
-  timestamp: number,
-  blockId?: string,
-  userId: string,
-  // ...
+interface ClientContext {
+  // 필수
+  pageId: string;
+  workspaceId: string;
+  organizationId: string;
+  
+  // 선택 상태
+  selectedBlockIds: string[];
+  
+  // 뷰포트 (보고 있는 영역)
+  viewport: {
+    x: number;
+    y: number;
+    zoom: number;
+    width: number;
+    height: number;
+  };
+  
+  // UI 상태
+  visibleBlockIds: string[]; // 현재 화면에 보이는 블럭들
+  recentlyModifiedBlockIds: string[]; // 최근 수정한 블럭들
+  hoveredBlockId?: string;
+  
+  // 필터/정렬
+  filters?: Record<string, any>;
+  sortBy?: string;
+  
+  // 사용자 의도 힌트
+  lastAction?: {
+    type: 'block_created' | 'block_moved' | 'edge_created' | ...;
+    timestamp: number;
+    blockIds: string[];
+  };
 }
 ```
 
-**저장 대상**:
-- 블럭 수정
-- 채팅 발화
-- 블럭 이동
-- 속성 변경
-- 등등...
-
-#### 컨텍스트 복원 방식
-
-**검색 쿼리**:
+**구현 예시**:
+```typescript
+const handleSubmit = async (userMessage: string) => {
+  const currentContext: ClientContext = {
+    pageId: canvasStore.currentPageId,
+    workspaceId: canvasStore.workspaceId,
+    selectedBlockIds: canvasStore.selectedBlocks.map(b => b.id),
+    viewport: {
+      x: canvasStore.viewport.x,
+      y: canvasStore.viewport.y,
+      zoom: canvasStore.viewport.zoom,
+      width: window.innerWidth,
+      height: window.innerHeight,
+    },
+    visibleBlockIds: canvasStore.getVisibleBlockIds(),
+    recentlyModifiedBlockIds: canvasStore.getRecentlyModifiedIds(10),
+  };
+  
+  // ✅ metadata로 컨텍스트 전달
+  sendMessage({
+    text: userMessage,
+    metadata: currentContext,
+  });
+};
 ```
-"이 페이지에서 이 주제에 대해 과거에 뭐라고 말하고/수정했지?"
+
+#### 5.2 Server Context (서버에서 조립)
+
+**정의**: DB/벡터 검색이 필요한 컨텍스트
+
+**조립 방식**: 서버에서 `assembleServerContext()` 함수로 수집
+
+```typescript
+interface ServerContext {
+  // 블럭 전체 데이터
+  selectedBlocks: Block[]; // 선택된 블럭의 전체 정보
+  nearbyBlocks: Block[]; // 주변 블럭 (거리/그룹/엣지 기반)
+  semanticBlocks: Block[]; // 의미적 블럭 (벡터 검색)
+  
+  // 메모리
+  shortTermMemory: Event[]; // 최근 20개 이벤트
+  longTermMemory: Event[]; // 시맨틱 검색 결과
+  
+  // 권한
+  userPermissions: Permission[];
+  
+  // 메타데이터
+  availableBlockTypes: BlockType[];
+  availableBlockActions: BlockAction[];
+}
 ```
 
-**복원 방법**:
-1. 시맨틱 서치로 관련 이벤트 찾기
-2. 기간 가중치 적용
-3. 필요한 이벤트만 시간 필터로 추출
-4. 모델에 컨텍스트로 전달
+**구현 예시**:
+```typescript
+async function assembleServerContext(frontendContext: ClientContext): Promise<ServerContext> {
+  const { pageId, selectedBlockIds } = frontendContext;
+  
+  // 1. 선택된 블럭의 전체 데이터
+  const selectedBlocks = await db.blocks.findMany({
+    where: { id: { in: selectedBlockIds } },
+    include: { properties: true }
+  });
+  
+  // 2. 주변 블럭 (거리/그룹/엣지 기반)
+  const nearbyBlocks = await findNearbyBlocks(selectedBlockIds, pageId);
+  
+  // 3. 의미적 블럭 (벡터 검색)
+  const semanticBlocks = await vectorSearch({
+    query: messages[messages.length - 1].content,
+    pageId,
+    limit: 5
+  });
+  
+  // 4. Short-term Memory
+  const shortTermMemory = await getRecentEvents({
+    pageId,
+    limit: 20
+  });
+  
+  // 5. Long-term Memory
+  const longTermMemory = await vectorSearchEvents({
+    query: messages[messages.length - 1].content,
+    pageId,
+    limit: 10
+  });
+  
+  return {
+    selectedBlocks,
+    nearbyBlocks,
+    semanticBlocks,
+    shortTermMemory,
+    longTermMemory,
+    userPermissions: await getUserPermissions(userId),
+    availableBlockTypes: await getAvailableBlockTypes(),
+    availableBlockActions: await getAvailableBlockActions(),
+  };
+}
+```
 
-#### 핵심 아이디어
-- Diff를 따로 구조화해서 보내기보다는
-- **"변경 과정 자체"를 하나의 연속된 시퀀스/지식**으로 관리
-- 필요할 때 **검색 + 시간 필터**로 동적 복원
+#### 5.3 통합 컨텍스트 → System Prompt
 
-#### 🔶 미결정 사항
-> "어떤 단위까지 diff를 노출할 것인가"는 아직 열려 있음
+**목적**: Client Context + Server Context를 통합하여 LLM에 전달
 
-**기본 합의**:
-"모든 편집/발화를 일관된 로그로 저장하고, 시맨틱+기간으로 뽑는다"
+```typescript
+function buildSystemPrompt(fullContext: ClientContext & ServerContext): string {
+  return `
+You are an AI agent that helps users work on a canvas.
+
+## Current Context
+
+### Selected Blocks (${fullContext.selectedBlocks.length})
+${fullContext.selectedBlocks.map(b => `
+- ID: ${b.id}
+  Type: ${b.type}
+  Content: ${JSON.stringify(b.content).slice(0, 100)}...
+`).join('\n')}
+
+### Nearby Blocks (${fullContext.nearbyBlocks.length})
+${fullContext.nearbyBlocks.map(b => `
+- ${b.id}: ${b.type} (distance: ${b.distance}px)
+`).join('\n')}
+
+### Semantic Blocks (${fullContext.semanticBlocks.length})
+${fullContext.semanticBlocks.map(b => `
+- ${b.id}: ${b.type} (similarity: ${b.similarity})
+`).join('\n')}
+
+### Recent Activity (Short-term Memory)
+${fullContext.shortTermMemory.map(e => `
+- [${e.timestamp}] ${e.type}: ${e.summary}
+`).join('\n')}
+
+### Similar Past Work (Long-term Memory)
+${fullContext.longTermMemory.map(e => `
+- ${e.summary} (${e.timeAgo})
+`).join('\n')}
+
+### Viewport Context
+- Position: (${fullContext.viewport.x}, ${fullContext.viewport.y})
+- Zoom: ${fullContext.viewport.zoom}
+- Visible Blocks: ${fullContext.visibleBlockIds.length}
+
+## Your Task
+Help the user with their request using the available tools.
+Prioritize selected blocks, then nearby blocks, then semantic blocks.
+  `.trim();
+}
+```
+
+#### 5.4 컨텍스트 전달 최적화
+
+**성능 고려사항**:
+
+1. **점진적 로딩**: 필수 컨텍스트만 먼저 전송, 나머지는 필요시 search tool로
+   ```typescript
+   const minimalContext = {
+     selectedBlocks, // 필수
+     recentMemory: shortTermMemory.slice(0, 5), // 최근 5개만
+   };
+   ```
+
+2. **컨텍스트 압축**: 블럭 내용이 너무 길면 요약
+   ```typescript
+   function compressContext(context: ServerContext) {
+     return {
+       ...context,
+       selectedBlocks: context.selectedBlocks.map(b => ({
+         id: b.id,
+         type: b.type,
+         contentSummary: b.content.slice(0, 200) + '...',
+         metadata: b.metadata,
+       })),
+     };
+   }
+   ```
+
+3. **캐싱**: 동일 페이지의 컨텍스트는 일정 시간 캐싱
+   ```typescript
+   const cachedContext = await redis.get(`context:${pageId}`);
+   if (cachedContext && !isStale(cachedContext)) {
+     return JSON.parse(cachedContext);
+   }
+   ```
 
 ---
 
-## 현재 상태 요약
+## 툴 시스템
 
-### ✅ UX
-- **"2줄 + 액션칩 + 블럭 아웃풋"**으로 짧게 말하고
-- 캔버스에서 **행동하게** 만든다
-- 챗 UI의 긴 응답 패턴을 탈피
+### 캔버스 조작 툴 (Canvas Manipulation Tools)
 
-### ✅ 블럭 컨텍스트
-- **Sensor Score** 기반 (의도/시맨틱/최근/거리/주의)
-- 캔버스 블럭을 자동 선택
-- 상위 N개만 컨텍스트로 전송
+#### 1. `addBlock`
+**설명**: 새 블럭 생성  
+**파라미터**:
+```typescript
+{
+  blockType: 'markdown' | 'code' | 'image' | 'shape' | ...,
+  content: any,
+  position: { x: number, y: number }
+}
+```
 
-### ✅ 대화 컨텍스트
-- 세션 X → **페이지 단위**로 저장 O
-- 시맨틱 + 시간 가중치로 **기억 복원**
-- 비선형적 컨텍스트 재구성
+#### 2. `duplicateBlock`
+**설명**: 기존 블럭 복제  
+**파라미터**:
+```typescript
+{
+  blockId: string,
+  offset?: { x: number, y: number }
+}
+```
 
-### ✅ Diff/이력
-- 블럭 수정과 채팅 발화를 **같은 이벤트 로그 레이어**로 관리
-- 시맨틱 + 기간으로 **"과정까지"** 다시 꺼내 쓸 수 있게
+#### 3. `deleteBlock`
+**설명**: 블럭 삭제  
+**파라미터**:
+```typescript
+{
+  blockId: string
+}
+```
+
+#### 4. `connectBlocks`
+**설명**: 두 블럭을 엣지로 연결  
+**파라미터**:
+```typescript
+{
+  sourceBlockId: string,
+  targetBlockId: string,
+  edgeType?: string,
+  label?: string
+}
+```
+
+#### 5. `updateProperty`
+**설명**: 블럭 속성 변경  
+**파라미터**:
+```typescript
+{
+  blockId: string,
+  propertyId: string,
+  value: any
+}
+```
+
+#### 6. `executeBlockAction`
+**설명**: 블럭 액션 AI 실행  
+**파라미터**:
+```typescript
+{
+  blockId: string,
+  action: string,
+  params?: any
+}
+```
 
 ---
 
-## 전반적인 평가
+### 캔버스 검색 툴 (Canvas Search Tools)
 
-### ✨ 핵심 강점
-
-#### 1. **명확한 UX 철학과 차별화**
-- 기존 챗 UI의 "긴 응답" 문제를 정확히 파악
-- "2줄 + 액션칩 + 블럭 아웃풋" 패턴은 실제 업무 방식과 일치
-- AI-인간 간 Bandwidth 불일치 문제를 해결하는 혁신적 접근
-- **캔버스 중심 상호작용**으로 AI를 도구화
-
-#### 2. **강력한 컨텍스트 시스템**
-- **Sensor Score**: 5가지 요소(의도/시맨틱/최근/거리/주의)의 조합으로 정교한 컨텍스트 선택
-- **비선형적 기억**: 세션이 아닌 시맨틱 + 시간 가중치 기반 기억 복원
-- **통합 이벤트 로그**: 모든 수정/발화를 일관된 레이어로 관리
-- **엣지 기반 의미 연결**: 블럭 간 관계를 라벨로 명시
-
-#### 3. **확장 가능한 아키텍처**
-- 기본 AI → 블럭 액션 AI → AI 워크플로우의 명확한 단계별 구조
-- Command 패턴으로 복잡한 액션 체인 구성 가능
-- 툴/액션 시스템과 자연스러운 통합
-- 단순한 MVP에서 시작해 점진적 고도화 가능
-
-#### 4. **실용적 구현 전략**
-- 클라이언트/서버 역할 분담이 명확
-- Pre-filtering으로 성능 문제 완화
-- 휴리스틱 → 학습 기반 가중치로 점진적 발전
-- Phase별 구현 우선순위가 합리적
-
-### 🎯 핵심 경쟁력
-
-이 설계가 기존 AI 도구들과 차별화되는 지점:
-
-1. **컨텍스트 자동화의 질**
-   - Cursor의 IDE 컨텍스트 자동 추론을 캔버스 환경으로 확장
-   - 단순 "주변 텍스트"가 아닌 "의미/의도/관계" 기반 컨텍스트
-
-2. **행동 중심 UX**
-   - 긴 텍스트 응답 대신 → 짧은 힌트 + 실행 가능한 액션
-   - AI가 "말하는" 것이 아니라 "돕는" 존재로 포지셔닝
-
-3. **캔버스와의 깊은 통합**
-   - 엣지, 블럭 타입, 툴/액션 등 캔버스 고유 요소 활용
-   - AI 응답이 블럭으로 구체화되어 캔버스에 누적
-
-4. **워크스페이스 전체를 지식 베이스화**
-   - 페이지 경계를 넘어선 시맨틱 검색
-   - 과거 작업/대화가 모두 AI의 컨텍스트로 활용 가능
-
-### ⚠️ 주요 도전 과제
-
-#### 1. **성능 최적화**
-- 대규모 캔버스(수천 개 블럭)에서 실시간 Sensor Score 계산
-- 벡터 검색 지연 시간 최소화
-- 클라이언트 배터리/메모리 영향
-
-**완화 전략**:
-- Pre-filtering (viewport, 최근 N개)
-- Debouncing (500ms idle)
-- 점진적 컨텍스트 로딩
-
-#### 2. **컨텍스트 정확도**
-- Sensor Score 가중치 튜닝의 어려움
-- 사용자 의도 오해 시 잘못된 블럭 선택
-- 엣지 라벨의 일관성 문제
-
-**완화 전략**:
-- 컨텍스트 시각화로 투명성 확보
-- 사용자 피드백 루프 (재선택 추적)
-- 점진적 학습으로 개인화
-
-#### 3. **데이터 볼륨 관리**
-- 이벤트 로그 폭발
-- 벡터 DB 크기 증가
-- 스토리지/검색 비용
-
-**완화 전략**:
-- Event Importance 기반 필터링
-- Retention Policy (시간 기반 압축/삭제)
-- 샘플링 전략
-
-#### 4. **사용자 학습 곡선**
-- "2줄 응답"이 사용자에게 충분히 명확한가?
-- 액션칩의 의미를 즉시 이해할 수 있는가?
-- 워크플로우로의 전환 시점 인지
-
-**완화 전략**:
-- Onboarding 튜토리얼
-- 컨텍스트 힌트 제공
-- 점진적 기능 노출
-
-### 📊 기술적 타당성
-
-| 요소 | 타당성 | 비고 |
-|------|--------|------|
-| **Sensor Score 계산** | ⭐⭐⭐⭐ | Pre-filtering으로 충분히 구현 가능 |
-| **벡터 검색** | ⭐⭐⭐⭐⭐ | pgvector로 MVP 가능, 성숙한 기술 |
-| **Command 체인** | ⭐⭐⭐⭐⭐ | 명령 패턴의 표준적 활용 |
-| **실시간 컨텍스트** | ⭐⭐⭐ | Debouncing 필수, 최적화 필요 |
-| **이벤트 로그 통합** | ⭐⭐⭐⭐ | 감사 로그 패턴 응용 |
-| **엣지 기반 탐색** | ⭐⭐⭐⭐⭐ | 그래프 순회, 검증된 접근 |
-
-### 🚀 비즈니스 가치
-
-#### 사용자 입장
-- **생산성 향상**: 컨텍스트 수동 선택 불필요
-- **학습 곡선 완화**: AI가 적절한 툴/액션 제안
-- **지식 축적**: 모든 작업이 검색 가능한 지식으로 전환
-
-#### 플랫폼 입장
-- **차별화 포인트**: 기존 도구와 명확히 구분
-- **네트워크 효과**: 워크플로우가 사용자 자산이 됨
-- **확장성**: 기본 AI → 워크플로우로 자연스러운 업셀
-
-### 💡 추가 고려사항
-
-#### 1. **다른 페이지 컨텍스트 검색**
-✅ **가능**: 시맨틱 검색은 워크스페이스 전체를 대상으로 함
-- 사용자가 범위 조정 가능 (현재 페이지 / 전체 워크스페이스)
-- 페이지 경계를 넘는 지식 연결로 더 강력한 AI
-
-#### 2. **블럭 액션 AI 트리거**
-✅ **명확화**: 기본 AI는 오케스트레이터 역할
-```
-사용자 발화 
-  → 기본 AI (컨텍스트 파악 + 의도 분석)
-    → 액션칩 생성 (Command 배열)
-      → 사용자 클릭
-        → 블럭 액션 AI 실행
+#### 1. `searchByHop`
+**설명**: 특정 블럭으로부터 N-hop 연결 블럭 검색  
+**파라미터**:
+```typescript
+{
+  startBlockId: string,
+  hops: number,
+  edgeType?: string
+}
 ```
 
-#### 3. **의미적 연결의 활용**
-✅ **엣지 라벨 기반**: 단순 거리가 아닌 관계 의미 활용
-- "causes" → 인과 관계
-- "depends_on" → 의존성
-- "summary_of" → 요약 관계
-- Sensor Score의 Proximity 계산 시 엣지 라벨 가중치 적용
+#### 2. `searchByKeyword`
+**설명**: 키워드로 블럭 검색  
+**파라미터**:
+```typescript
+{
+  keyword: string,
+  blockTypes?: string[]
+}
+```
 
-### 🎓 결론
+#### 3. `searchBlockActions`
+**설명**: 블럭 액션 검색  
+**파라미터**:
+```typescript
+{
+  query: string,
+  blockType?: string
+}
+```
 
-이 설계는 **매우 탄탄하고 실용적**입니다:
+#### 4. `searchMultimodal`
+**설명**: 멀티모달 검색 (텍스트 + 이미지)  
+**파라미터**:
+```typescript
+{
+  textQuery?: string,
+  imageQuery?: string,
+  threshold?: number
+}
+```
 
-✅ **UX 철학이 명확하고 차별화됨**  
-✅ **기술적으로 구현 가능하며 점진적 발전 경로가 명확함**  
-✅ **비즈니스 가치가 명확함**  
-✅ **확장 가능하고 유연함**
+---
 
-권장 사항:
-1. **Phase 0 Prototype** (1주)으로 UX 검증
-2. 사용자 피드백 기반 Sensor Score 가중치 조정
-3. 명령어 체인을 워크플로우로 전환하는 자연스러운 경로 제공
+## Agent Loop 실행
+
+### 아키텍처 결정: Server Reasoning + Client Execution
+
+**핵심 결정**: Tool execution을 서버에서 할지 클라이언트에서 할지에 대한 고민을 거쳐, **하이브리드 방식**을 채택했습니다.
+
+#### 고려했던 옵션들
+
+**옵션 1: 서버에서 Tool Call 루프 (maxSteps)**
+- ✅ Agent loop가 서버에서 자동 관리
+- ❌ 캔버스 상태 동기화 복잡 (서버 DB 변경 → 프론트 업데이트 필요)
+- ❌ 기존 캔버스 조작 로직과 분리됨
+
+**옵션 2: 클라이언트에서 루프 관리**
+- ✅ 캔버스 상태와 툴 실행이 같은 곳 (프론트)
+- ✅ 기존 훅 재사용 가능
+- ❌ Agent loop 로직이 프론트에 (복잡도 증가)
+- ❌ 각 툴 API 호출마다 네트워크 요청
+
+**옵션 3: 하이브리드 (채택 ⭐)**
+- ✅ **서버**: LLM reasoning만 담당 (툴 스키마 제공, execute 없음)
+- ✅ **클라이언트**: `onToolCall`로 툴 실행 후 `addToolOutput`으로 결과 추가 (기존 훅 재사용)
+  - ⚠️ **최신 API**: `experimental_onToolCall`이 deprecated되어 `onToolCall`을 사용 (Vercel AI SDK 최신 버전)
+- ✅ 툴 실행 결과가 다시 서버로 전달되어 다음 reasoning에 활용
+- ✅ Agent loop는 Vercel AI SDK가 자동 관리 (`sendAutomaticallyWhen` 사용)
+
+#### 최종 아키텍처
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   Client (React)                     │
+│                                                      │
+│  ┌──────────────┐         ┌──────────────┐         │
+│  │ Chat UI      │────────▶│ useChat Hook  │         │
+│  │ (Messages)   │         │ + onToolCall │         │
+│  └──────────────┘         └──────┬───────┘         │
+│                                   │                  │
+│                          ┌────────▼────────┐        │
+│                          │ Canvas Actions  │        │
+│                          │ (useBlockStore) │        │
+│                          └─────────────────┘        │
+└──────────────┬──────────────────────────────────────┘
+               │ Stream                ▲ Fetch
+               │                       │
+┌──────────────▼───────────────────────┴───────────────┐
+│                   Server (API)                        │
+│                                                       │
+│  ┌──────────────┐         ┌──────────────┐          │
+│  │ LLM Reasoner │────────▶│ Tool Schemas │          │
+│  │ (streamText) │         │ (No execute) │          │
+│  └──────────────┘         └──────────────┘          │
+│         │                                             │
+│         │ Returns: Tool Call Plan                    │
+│         └─────────────────────────────────────────────┤
+│                                                       │
+│  ┌──────────────┐                                    │
+│  │ Context      │                                    │
+│  │ Assembly     │                                    │
+│  │ (DB/Vector)  │                                    │
+│  └──────────────┘                                    │
+└───────────────────────────────────────────────────────┘
+```
+
+### 실행 플로우
+
+```typescript
+// ============================================
+// Server: app/api/agent/route.ts
+// ============================================
+import { openai } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText, UIMessage, stepCountIs } from 'ai';
+import { z } from 'zod';
+
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+  
+  // 프론트에서 보낸 컨텍스트 추출 (메시지 metadata에서)
+  const firstUserMessage = messages.find(m => m.role === 'user');
+  const frontendContext = firstUserMessage?.metadata || {};
+  
+  // 서버에서 추가 컨텍스트 조립
+  const serverContext = await assembleServerContext(frontendContext);
+  const fullContext = { ...frontendContext, ...serverContext };
+  
+  const result = streamText({
+    model: openai('gpt-4o'),
+    system: buildSystemPrompt(fullContext),
+    messages: convertToModelMessages(messages),
+    maxSteps: 10,
+  tools: {
+      // ⚠️ 핵심: execute 없음 (클라이언트에서 처리)
+      addBlock: {
+        description: '새 블럭을 캔버스에 생성합니다',
+        inputSchema: z.object({
+          blockType: z.enum(['markdown', 'code', 'image', 'shape']),
+          content: z.any(),
+          position: z.object({ x: z.number(), y: z.number() })
+        })
+        // execute 없음!
+      },
+      deleteBlock: {
+        description: '블럭을 삭제합니다',
+        inputSchema: z.object({ blockId: z.string() })
+      },
+      connectBlocks: {
+        description: '두 블럭을 엣지로 연결합니다',
+        inputSchema: z.object({
+          sourceBlockId: z.string(),
+          targetBlockId: z.string(),
+          edgeType: z.string().optional(),
+          label: z.string().optional()
+        })
+      },
+      // ... 다른 툴들
+    },
+    stopWhen: stepCountIs(10),
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+
+// ============================================
+// Client: app/canvas/components/ai-agent-runner.tsx
+// ============================================
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { 
+  DefaultChatTransport, 
+  lastAssistantMessageIsCompleteWithToolCalls 
+} from 'ai';
+import { useBlockActions } from '@/hooks/use-block-actions';
+import { useCanvasStore } from '@/stores/canvas-store';
+
+export function AIAgentRunner() {
+  const blockActions = useBlockActions();
+  const canvasStore = useCanvasStore();
+  
+  const { messages, sendMessage, addToolOutput } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/agent',
+    }),
+    
+    // ✅ 모든 툴 결과가 준비되면 자동으로 다음 iteration 시작
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    
+    // ✅ 클라이언트에서 툴 실행
+    // ⚠️ 최신 API: experimental_onToolCall → onToolCall로 변경됨 (Vercel AI SDK 최신 버전)
+    async onToolCall({ toolCall }) {
+      // 동적 툴 체크 (TypeScript 타입 가드)
+      if (toolCall.dynamic) {
+        return;
+      }
+      
+      try {
+        switch (toolCall.toolName) {
+          case 'addBlock': {
+            // ✅ 기존 캔버스 액션 훅 사용!
+            const block = await blockActions.addBlock({
+              pageId: canvasStore.currentPageId,
+              type: toolCall.input.blockType,
+              content: toolCall.input.content,
+              position: toolCall.input.position,
+            });
+            
+            // ✅ addToolOutput으로 결과 추가 (await 없이 - 데드락 방지)
+            addToolOutput({
+              tool: 'addBlock',
+              toolCallId: toolCall.toolCallId,
+              output: { success: true, blockId: block.id },
+            });
+            break;
+          }
+          
+          case 'deleteBlock': {
+            await blockActions.deleteBlock(toolCall.input.blockId);
+            
+            addToolOutput({
+              tool: 'deleteBlock',
+              toolCallId: toolCall.toolCallId,
+              output: { success: true },
+            });
+            break;
+          }
+          
+          case 'connectBlocks': {
+            const edge = await blockActions.connectBlocks({
+              sourceId: toolCall.input.sourceBlockId,
+              targetId: toolCall.input.targetBlockId,
+              label: toolCall.input.label,
+            });
+            
+            addToolOutput({
+              tool: 'connectBlocks',
+              toolCallId: toolCall.toolCallId,
+              output: { success: true, edgeId: edge.id },
+            });
+            break;
+          }
+          
+          // ... 다른 툴들
+        }
+      } catch (error) {
+        // ✅ 에러 처리
+        addToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          state: 'output-error',
+          errorText: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+  });
+  
+  // ✅ 메시지 전송 시 최신 컨텍스트 포함
+  const handleSubmit = async (userMessage: string) => {
+    const currentContext = {
+      pageId: canvasStore.currentPageId,
+      workspaceId: canvasStore.workspaceId,
+      selectedBlockIds: canvasStore.selectedBlocks.map(b => b.id),
+      viewport: {
+        x: canvasStore.viewport.x,
+        y: canvasStore.viewport.y,
+        zoom: canvasStore.viewport.zoom,
+      },
+      visibleBlockIds: canvasStore.getVisibleBlockIds(),
+    };
+    
+    // ✅ metadata로 컨텍스트 전달
+    sendMessage({
+      text: userMessage,
+      metadata: currentContext,
+    });
+  };
+  
+  return (
+    <div>
+      <MessageList messages={messages} />
+      <ChatInput onSubmit={handleSubmit} />
+    </div>
+  );
+}
+```
+
+### Agent 시스템 프롬프트 (예시)
+
+```
+You are an AI Agent that helps users work on a canvas with blocks.
+
+Your goal:
+- Understand user intent from their utterance
+- Use the provided context (memory, selected blocks, nearby blocks, semantic blocks)
+- Call the appropriate tools to complete the task
+- Work autonomously without asking for confirmation unless critical
+
+Available tools:
+- Canvas manipulation: addBlock, deleteBlock, connectBlocks, updateProperty, executeBlockAction
+- Canvas search: searchByHop, searchByKeyword, searchBlockActions, searchMultimodal
+
+Guidelines:
+1. If a block is selected, prioritize working with that block
+2. Use nearby/semantic blocks for additional context
+3. Call tools in a logical order
+4. Check tool results before proceeding
+5. Finish when the task is complete or if you encounter an error
+
+Context provided:
+- Short-term memory: Recent 20 events
+- Long-term memory: Semantically similar past events
+- Selected blocks: {selectedBlocks}
+- Nearby blocks: {nearbyBlocks}
+- Semantic blocks: {semanticBlocks}
+
+Now, please help the user with: {userUtterance}
+```
 
 ---
 
 ## 실제 유스케이스 시나리오
 
-실제 사용자들이 기본 AI를 어떻게 활용할지 구체적인 시나리오를 통해 살펴봅니다.
+### 🎯 시나리오 1: 코드 리팩터링
 
----
+#### 사용자 액션
+1. 코드 블럭 선택
+2. "이 코드 리팩터해줘" 발화
 
-### 🎯 시나리오 1: 기획자 - 이벤트 스토밍에서 Aggregate 디자인으로
-
-#### 배경
-- **사용자**: 제품 기획자 / 도메인 전문가
-- **상황**: 이벤트 스토밍으로 프로세스 모델을 캔버스에 구축
-- **블럭 구성**:
-  - 도형 블럭들이 유저/이벤트/커맨드/시스템/Aggregate 등으로 분류
-  - 엣지로 의미적 연결 (예: "triggers", "handled_by", "produces" 등)
-
-#### 시나리오 A: 선택된 플로우에서 Aggregate 디자인
-
-**사용자 액션**:
-1. 특정 이벤트 스토밍 플로우 (5-10개 블럭)를 멀티선택
-2. AI에게 요청: "이 플로우를 바탕으로 aggregate 디자인해줘"
-
-**AI 컨텍스트 구성**:
-
-```typescript
-// Sensor Score 계산 결과
-{
-  selectedBlocks: [
-    { id: 'user-1', type: 'shape', label: 'Customer', category: 'actor' },
-    { id: 'event-1', type: 'shape', label: 'OrderPlaced', category: 'event' },
-    { id: 'cmd-1', type: 'shape', label: 'PlaceOrder', category: 'command' },
-    { id: 'event-2', type: 'shape', label: 'PaymentProcessed', category: 'event' },
-    { id: 'sys-1', type: 'shape', label: 'PaymentGateway', category: 'system' }
-  ],
-  
-  edges: [
-    { from: 'user-1', to: 'cmd-1', label: 'triggers' },
-    { from: 'cmd-1', to: 'event-1', label: 'produces' },
-    { from: 'event-1', to: 'event-2', label: 'triggers' }
-  ],
-  
-  sensorScore: {
-    attention: 1.0,     // 사용자가 명시적으로 선택
-    proximity: 0.9,     // 선택된 블럭들이 모두 가까움
-    semantic: 0.85,     // "aggregate"와 "이벤트 스토밍" 용어 매칭
-    intent: 0.95,       // "디자인해줘" → create/generate 의도
-    recency: 0.7        // 최근 편집한 영역
-  },
-  
-  relatedTools: [
-    { name: 'aggregate-design-tool', score: 0.92 },
-    { name: 'domain-model-generator', score: 0.87 }
-  ]
-}
-```
-
-**AI 응답**:
+#### Agent 실행
 
 ```
-✅ Order Aggregate를 설계했어요. 3개 엔티티와 5개 이벤트로 구성됩니다.
-💡 [Aggregate 블럭 생성] [DDD 다이어그램 보기] [코드 스켈레톤 생성]
-```
+Step 1: Context 분석
+- Selected Block: 코드 블럭 (Python 함수)
+- Nearby Blocks: 관련 테스트 코드 블럭, 설명 마크다운
+- Short-Term Memory: 최근 이 코드를 수정한 이력
 
-**액션칩 1: "Aggregate 블럭 생성" 클릭 시**:
+Step 2: Agent 결정
+→ executeBlockAction 툴 호출 필요
 
-```typescript
-{
-  type: 'execute',
-  label: 'Aggregate 블럭 생성',
-  preview: 'Order Aggregate 블럭 생성 → 엔티티 블럭 3개 생성 → 엣지 연결',
-  commands: [
-    // 1. Aggregate 블럭 생성
-    {
-      type: 'create_block',
-      blockType: 'shape',
-      content: {
-        label: 'Order Aggregate',
-        category: 'aggregate',
-        style: { backgroundColor: '#FFE5CC', border: '2px solid #FF9933' }
-      },
-      position: { x: 800, y: 200 }
-    },
-    
-    // 2. 엔티티 블럭들 생성
-    {
-      type: 'create_block',
-      blockType: 'shape',
-      content: { label: 'Order (Root)', category: 'entity' },
-      position: { x: 900, y: 280 }
-    },
-    {
-      type: 'create_block',
-      blockType: 'shape',
-      content: { label: 'OrderItem', category: 'entity' },
-      position: { x: 900, y: 360 }
-    },
-    {
-      type: 'create_block',
-      blockType: 'shape',
-      content: { label: 'PaymentInfo', category: 'entity' },
-      position: { x: 900, y: 440 }
-    },
-    
-    // 3. Aggregate와 엔티티 연결
-    {
-      type: 'create_edge',
-      sourceId: 'new_aggregate',
-      targetId: 'new_entity_1',
-      edgeType: 'contains',
-      label: 'root'
-    },
-    {
-      type: 'create_edge',
-      sourceId: 'new_entity_1',
-      targetId: 'new_entity_2',
-      edgeType: 'contains',
-      label: 'has_many'
-    },
-    {
-      type: 'create_edge',
-      sourceId: 'new_entity_1',
-      targetId: 'new_entity_3',
-      edgeType: 'contains',
-      label: 'has_one'
-    },
-    
-    // 4. 원본 이벤트들과 연결
-    {
-      type: 'create_edge',
-      sourceId: 'event-1',
-      targetId: 'new_aggregate',
-      edgeType: 'handled_by',
-      label: 'creates'
-    },
-    {
-      type: 'create_edge',
-      sourceId: 'event-2',
-      targetId: 'new_aggregate',
-      edgeType: 'handled_by',
-      label: 'updates'
-    },
-    
-    // 5. 설명 마크다운 블럭 생성
-    {
-      type: 'create_block',
-      blockType: 'markdown',
-      content: `## Order Aggregate
+Step 3: Tool Call
+executeBlockAction({
+  blockId: 'block-123',
+  action: 'refactor',
+  params: { style: 'clean-code' }
+})
 
-**경계**: 주문과 관련된 모든 비즈니스 로직
-**Root Entity**: Order
-**Value Objects**: OrderItem, PaymentInfo
+Step 4: Result
+- 리팩터된 코드 블럭 생성됨
+- 원본 블럭과 엣지 연결
 
-**처리 이벤트**:
-- OrderPlaced → 새 주문 생성
-- PaymentProcessed → 결제 정보 업데이트
-`,
-      position: { x: 1100, y: 200 }
-    },
-    
-    // 6. 그룹화
-    {
-      type: 'group_blocks',
-      blockIds: ['new_aggregate', 'new_entity_1', 'new_entity_2', 'new_entity_3'],
-      groupName: 'Order Aggregate'
-    }
-  ]
-}
-```
-
-**실행 결과**:
-- 캔버스에 Order Aggregate 구조가 시각적으로 생성됨
-- 원본 이벤트 스토밍 블럭들과 엣지로 연결
-- 설명 문서가 옆에 배치됨
-- 전체가 그룹으로 묶여서 관리 용이
-
-#### 시나리오 B: 단일 이벤트에서 유저 플로우 생성
-
-**사용자 액션**:
-1. 하나의 이벤트 블럭 ("OrderPlaced") 클릭
-2. AI에게 요청: "이 이벤트를 유저 플로우로 만들어줘"
-
-**AI 컨텍스트 구성**:
-
-```typescript
-{
-  selectedBlock: {
-    id: 'event-1',
-    type: 'shape',
-    label: 'OrderPlaced',
-    category: 'event'
-  },
-  
-  // 엣지를 따라 연결된 블럭들 자동 수집
-  connectedBlocks: {
-    upstream: [
-      { id: 'user-1', label: 'Customer', edgeLabel: 'triggers' },
-      { id: 'cmd-1', label: 'PlaceOrder', edgeLabel: 'produces' }
-    ],
-    downstream: [
-      { id: 'event-2', label: 'PaymentProcessed', edgeLabel: 'triggers' },
-      { id: 'event-3', label: 'InventoryReserved', edgeLabel: 'triggers' }
-    ]
-  },
-  
-  // 시맨틱 검색으로 관련 블럭 추가 발견
-  semanticMatches: [
-    { id: 'md-1', type: 'markdown', title: '주문 프로세스 정의', score: 0.88 },
-    { id: 'code-1', type: 'code', title: 'OrderService.ts', score: 0.76 }
-  ],
-  
-  sensorScore: {
-    attention: 1.0,
-    proximity: 0.85,
-    semantic: 0.90,
-    intent: 0.92,
-    recency: 0.8
-  }
-}
-```
-
-**AI 응답**:
-
-```
-✅ OrderPlaced 이벤트 중심으로 4단계 유저 플로우를 구성했어요.
-💡 [플로우 다이어그램 생성] [스토리보드 만들기] [관련 문서 보기]
-```
-
-**액션칩 실행 시**:
-- 유저 → 인터페이스 → 시스템 → 이벤트 순서의 플로우 다이어그램 생성
-- 각 단계를 새 블럭으로 생성하고 순차적으로 엣지 연결
-- 타임라인 형태로 배치
-
-#### 🤔 한번의 컨텍스트로 가능한가? 에이전트 방식?
-
-**MVP 단계 (한번의 실행)**:
-- ✅ 가능: 선택된 블럭 + 엣지 연결 블럭 + 시맨틱 매치 블럭을 한번에 컨텍스트로 전달
-- LLM이 Command 배열 생성
-- 사용자가 액션칩 클릭 → 일괄 실행
-
-**고급 단계 (에이전트 방식)**:
-- 복잡한 경우 **AI 워크플로우**로 전환 제안
-- 예: "Aggregate 디자인 → 코드 생성 → 테스트 작성 → 문서화"
-- 각 단계마다:
-  1. 컨텍스트 재수집
-  2. 이전 단계 결과를 컨텍스트에 추가
-  3. 다음 액션 실행
-  4. 사용자 피드백 반영
-
-**실용적 접근**:
-```
-간단한 요청 (1-5개 블럭 생성) → 기본 AI (단일 실행)
-복잡한 요청 (10+ 블럭, 다단계) → AI 워크플로우로 전환 제안
+Step 5: Agent 완료
+→ "Refactored the code and created a new block"
 ```
 
 ---
 
-### 💪 시나리오 2: 슈퍼휴먼 - 지식 연결과 콘텐츠 큐레이션
+### 💪 시나리오 2: 유튜브 요약
 
-#### 배경
-- **사용자**: 지식 근로자 / 연구자
-- **상황**: 다양한 소스의 정보를 캔버스에 수집하고 연결
-- **블럭 구성**:
-  - 유튜브 블럭, 마크다운 노트, 이미지, PDF, 코드 등 다양한 타입
+#### 사용자 액션
+1. 유튜브 블럭 선택
+2. "이 영상 요약해줘" 발화
 
-#### 시나리오 A: 유튜브 영상 요약
-
-**사용자 액션**:
-1. Y Combinator 유튜브 영상 블럭을 캔버스에 배치
-2. 해당 블럭 클릭 후 요청: "이 영상 요약해줘"
-
-**AI 컨텍스트 구성**:
-
-```typescript
-{
-  selectedBlock: {
-    id: 'youtube-1',
-    type: 'youtube',
-    url: 'https://youtube.com/watch?v=...',
-    title: 'How to Get Your First 10 Customers',
-    metadata: {
-      channel: 'Y Combinator',
-      duration: '15:32',
-      uploadDate: '2024-10-15'
-    }
-  },
-  
-  // 블럭 타입에 연결된 툴 발견
-  availableTools: [
-    {
-      name: 'youtube-transcript-extractor',
-      description: '유튜브 자막 추출',
-      score: 0.98
-    },
-    {
-      name: 'text-summarizer',
-      description: '텍스트 요약',
-      score: 0.95
-    }
-  ],
-  
-  sensorScore: {
-    intent: 0.98,      // "요약해줘" → summarize 의도 명확
-    semantic: 0.90,    // 요약 툴과 매칭
-    attention: 1.0,    // 클릭한 블럭
-    proximity: 0.6,
-    recency: 0.9
-  }
-}
-```
-
-**AI 응답**:
+#### Agent 실행
 
 ```
-✅ 영상 스크립트를 분석했어요. 초기 고객 10명 확보의 3가지 전략을 다룹니다.
-💡 [요약 블럭 생성] [타임스탬프별 정리] [관련 개념 찾기]
+Step 1: Context 분석
+- Selected Block: 유튜브 블럭
+- Semantic Blocks: 없음 (새로운 블럭)
+
+Step 2: Agent 결정
+→ executeBlockAction 툴 호출 (유튜브 스크립트 추출 + 요약)
+
+Step 3: Tool Call 1
+executeBlockAction({
+  blockId: 'youtube-1',
+  action: 'extract-transcript',
+  params: { language: 'en' }
+})
+→ 스크립트 추출 완료
+
+Step 4: Tool Call 2
+executeBlockAction({
+  blockId: 'youtube-1',
+  action: 'summarize',
+  params: { style: 'bullet-points' }
+})
+→ 요약 생성 중...
+
+Step 5: Tool Call 3
+addBlock({
+  blockType: 'markdown',
+  content: '## 영상 요약\n- 핵심 포인트 1\n- 핵심 포인트 2\n...',
+  position: { x: youtube1.x + 400, y: youtube1.y }
+})
+→ 요약 블럭 생성
+
+Step 6: Tool Call 4
+connectBlocks({
+  sourceBlockId: 'youtube-1',
+  targetBlockId: 'new-summary-block',
+  edgeType: 'summary',
+  label: 'summary_of'
+})
+→ 엣지 연결
+
+Step 7: Agent 완료
+→ "Summarized the video and created a summary block"
 ```
-
-**액션칩 1: "요약 블럭 생성" 클릭 시**:
-
-```typescript
-{
-  type: 'execute',
-  label: '요약 블럭 생성',
-  preview: '스크립트 추출 → AI 요약 → 마크다운 블럭 생성 → 엣지 연결',
-  commands: [
-    // 1. 유튜브 스크립트 추출 (블럭 액션 AI)
-    {
-      type: 'run_block_action',
-      blockId: 'youtube-1',
-      action: 'extract-transcript',
-      params: { language: 'en' }
-    },
-    
-    // 2. 요약 실행 (블럭 액션 AI)
-    {
-      type: 'run_block_action',
-      blockId: 'youtube-1',
-      action: 'summarize',
-      params: {
-        style: 'bullet-points',
-        sections: ['key-insights', 'action-items', 'quotes']
-      }
-    },
-    
-    // 3. 결과를 마크다운 블럭으로 생성
-    {
-      type: 'create_block',
-      blockType: 'markdown',
-      content: `## 📹 How to Get Your First 10 Customers
-
-### 핵심 인사이트
-- **직접 찾아가기**: 초기에는 자동화보다 수동 접근이 효과적
-- **문제 검증**: 고객과 대화하며 실제 문제를 확인
-- **반복 개선**: 피드백을 즉시 제품에 반영
-
-### 액션 아이템
-1. 타겟 고객 20명 리스트 작성
-2. 일주일 내 10명과 대화
-3. 3가지 패턴 식별
-
-### 인상적인 문구
-> "Do things that don't scale" - Paul Graham
-
----
-*출처*: Y Combinator, 2024-10-15
-`,
-      position: { x: originalX + 400, y: originalY }
-    },
-    
-    // 4. 유튜브 블럭과 요약 블럭 연결
-    {
-      type: 'create_edge',
-      sourceId: 'youtube-1',
-      targetId: 'new_summary_block',
-      edgeType: 'summary',
-      label: 'summary_of'
-    },
-    
-    // 5. 유튜브 블럭 속성 업데이트 (요약 완료 표시)
-    {
-      type: 'update_property',
-      blockId: 'youtube-1',
-      propertyId: 'has_summary',
-      value: true
-    }
-  ]
-}
-```
-
-#### 시나리오 B: 유사 개념 연결
-
-**사용자 액션**:
-1. 방금 요약한 유튜브 블럭 클릭
-2. 요청: "이 영상에서 다룬 내용과 유사한 개념들을 찾아서 연결해줘"
-
-**AI 컨텍스트 구성**:
-
-```typescript
-{
-  selectedBlock: {
-    id: 'youtube-1',
-    // ... (위와 동일)
-  },
-  
-  extractedConcepts: [
-    'customer development',
-    'problem-solution fit',
-    'lean startup',
-    'do things that don\'t scale'
-  ],
-  
-  // 워크스페이스 전체에서 시맨틱 검색
-  semanticSearchResults: {
-    samePageBlocks: [
-      {
-        id: 'md-5',
-        type: 'markdown',
-        title: 'Lean Startup 방법론',
-        score: 0.92,
-        matchedConcepts: ['lean startup', 'customer development']
-      },
-      {
-        id: 'pdf-2',
-        type: 'pdf',
-        title: 'The Mom Test.pdf',
-        score: 0.88,
-        matchedConcepts: ['customer development', 'problem validation']
-      }
-    ],
-    
-    otherPagesBlocks: [
-      {
-        id: 'note-15',
-        pageId: 'startup-notes-2024',
-        type: 'markdown',
-        title: '스타트업 성장 전략',
-        score: 0.85,
-        matchedConcepts: ['early customers', 'scaling']
-      },
-      {
-        id: 'youtube-7',
-        pageId: 'yc-playlist',
-        type: 'youtube',
-        title: 'Paul Graham on Doing Things that Don\'t Scale',
-        score: 0.94,
-        matchedConcepts: ['do things that don\'t scale']
-      }
-    ]
-  },
-  
-  sensorScore: {
-    semantic: 0.95,    // 시맨틱 검색이 핵심
-    intent: 0.90,      // "찾아서 연결" → search + connect
-    attention: 1.0,
-    proximity: 0.3,    // 다른 페이지까지 포함
-    recency: 0.5
-  }
-}
-```
-
-**AI 응답**:
-
-```
-✅ 4개 페이지에서 관련 블럭 5개를 찾았어요. 2개는 이 페이지에 있습니다.
-💡 [모두 가져오기] [같은 페이지만] [개념 맵 생성]
-```
-
-**액션칩 1: "모두 가져오기" 클릭 시**:
-
-```typescript
-{
-  type: 'execute',
-  label: '모두 가져오기',
-  preview: '5개 블럭을 현재 페이지로 마운트 → 원본과 엣지 연결 → 개념별 그룹화',
-  commands: [
-    // 1. 같은 페이지 블럭에 엣지만 추가
-    {
-      type: 'create_edge',
-      sourceId: 'youtube-1',
-      targetId: 'md-5',
-      edgeType: 'related',
-      label: 'related_concept: lean startup'
-    },
-    {
-      type: 'create_edge',
-      sourceId: 'youtube-1',
-      targetId: 'pdf-2',
-      edgeType: 'related',
-      label: 'related_concept: customer development'
-    },
-    
-    // 2. 다른 페이지 블럭을 현재 페이지로 마운트 (Block Mount)
-    {
-      type: 'create_block',
-      blockType: 'block-mount',  // 특수 블럭 타입: 다른 블럭의 참조
-      content: {
-        sourceBlockId: 'note-15',
-        sourcePageId: 'startup-notes-2024',
-        displayMode: 'preview',  // preview | full | link
-        syncMode: 'live'  // 원본 변경 시 자동 업데이트
-      },
-      position: { x: originalX - 300, y: originalY + 200 }
-    },
-    {
-      type: 'create_block',
-      blockType: 'block-mount',
-      content: {
-        sourceBlockId: 'youtube-7',
-        sourcePageId: 'yc-playlist',
-        displayMode: 'preview'
-      },
-      position: { x: originalX - 300, y: originalY + 400 }
-    },
-    
-    // 3. 마운트된 블럭들과 원본 연결
-    {
-      type: 'create_edge',
-      sourceId: 'youtube-1',
-      targetId: 'mount_note-15',
-      edgeType: 'related',
-      label: 'related_concept: scaling'
-    },
-    {
-      type: 'create_edge',
-      sourceId: 'youtube-1',
-      targetId: 'mount_youtube-7',
-      edgeType: 'related',
-      label: 'same_concept: don\'t scale'
-    },
-    
-    // 4. 개념 맵 중심 블럭 생성
-    {
-      type: 'create_block',
-      blockType: 'shape',
-      content: {
-        label: '초기 고객 확보 전략',
-        category: 'concept-hub',
-        style: { backgroundColor: '#E3F2FD', borderRadius: '50%' }
-      },
-      position: { x: originalX, y: originalY - 150 }
-    },
-    
-    // 5. 중심 블럭에서 모든 관련 블럭으로 엣지
-    {
-      type: 'create_edge',
-      sourceId: 'new_concept_hub',
-      targetId: 'youtube-1',
-      edgeType: 'includes',
-      label: 'primary_source'
-    },
-    {
-      type: 'create_edge',
-      sourceId: 'new_concept_hub',
-      targetId: 'md-5',
-      edgeType: 'includes'
-    },
-    // ... (나머지 블럭들도 연결)
-    
-    // 6. 전체를 컨셉 그룹으로 묶기
-    {
-      type: 'group_blocks',
-      blockIds: [
-        'new_concept_hub', 'youtube-1', 'md-5', 'pdf-2',
-        'mount_note-15', 'mount_youtube-7'
-      ],
-      groupName: '💡 초기 고객 확보 전략'
-    }
-  ]
-}
-```
-
-**실행 결과**:
-- 다른 페이지의 블럭들이 Block Mount로 현재 페이지에 표시됨
-- 중심 개념 블럭을 중심으로 방사형 레이아웃
-- 엣지 라벨로 어떤 개념이 연결되는지 명확히 표시
-- 원본 블럭 수정 시 마운트된 블럭도 자동 업데이트
-
-#### 🔑 핵심 포인트
-
-1. **툴 자동 발견**: 유튜브 블럭 타입 → transcript-extractor 툴 자동 매칭
-2. **블럭 액션 AI 트리거**: 기본 AI가 `run_block_action` 명령어로 블럭 액션 AI 실행
-3. **워크스페이스 전체 검색**: 페이지 경계를 넘어 시맨틱 검색
-4. **Block Mount**: 다른 페이지 블럭을 참조로 가져오는 강력한 기능
 
 ---
 
-### 🎨 시나리오 3: 미디어 디자이너 - 창작 워크플로우
+### 🎨 시나리오 3: 이벤트 스토밍 → Aggregate 디자인
 
-#### 배경
-- **사용자**: 미디어 아티스트 / 비주얼 디자이너
-- **상황**: 꿈에서 본 장면을 시각화하고 다양한 스타일로 변형
-- **블럭 구성**:
-  - 마크다운 노트 (아이디어 메모)
-  - 이미지 블럭 (생성된 이미지들)
-  - 무드보드 (참고 이미지들)
+#### 사용자 액션
+1. 이벤트 스토밍 플로우 블럭들 (5-10개) 멀티선택
+2. "이 플로우를 바탕으로 aggregate 디자인해줘" 발화
 
-#### 시나리오 A: 텍스트 설명에서 이미지 생성
+#### Agent 실행
 
-**사용자 액션**:
-1. 마크다운 블럭에 꿈 내용 작성:
-```markdown
-## 꿈 메모 - 2024.11.11
-
-어두운 숲 속에서 빛나는 나무가 있었다.
-나무 줄기는 크리스탈처럼 투명하고,
-잎사귀에서 파란 빛이 흘러내렸다.
-달빛이 안개를 통과해 신비로운 분위기를 만들었다.
 ```
+Step 1: Context 분석
+- Selected Blocks: 5개 이벤트/커맨드/시스템 블럭
+- Nearby Blocks: 엣지로 연결된 추가 블럭들
+- Long-Term Memory: 과거 Aggregate 디자인 작업 패턴
 
-2. 해당 블럭 클릭 후 요청: "이 장면을 이미지로 만들어줘"
+Step 2: Agent 결정
+→ 여러 블럭 생성 + 엣지 연결 필요
 
-**AI 컨텍스트 구성**:
-
-```typescript
-{
-  selectedBlock: {
-    id: 'md-dream-1',
-    type: 'markdown',
-    content: '어두운 숲 속에서 빛나는 나무...',
-    metadata: {
-      wordCount: 45,
-      keywords: ['숲', '나무', '크리스탈', '빛', '안개', '달빛']
-    }
+Step 3: Tool Call 1
+addBlock({
+  blockType: 'shape',
+  content: {
+    label: 'Order Aggregate',
+    category: 'aggregate',
+    style: { backgroundColor: '#FFE5CC' }
   },
-  
-  // 프롬프트 엔지니어링을 위한 주변 컨텍스트
-  nearbyBlocks: [
-    {
-      id: 'img-ref-1',
-      type: 'image',
-      tags: ['fantasy', 'forest', 'concept-art'],
-      score: 0.82  // Proximity + Semantic
-    },
-    {
-      id: 'md-style-1',
-      type: 'markdown',
-      title: '선호 스타일 가이드',
-      content: '전반적으로 painterly, 드림코어, 이더리얼한 느낌...',
-      score: 0.76
-    }
-  ],
-  
-  // 이미지 생성 툴 발견
-  availableTools: [
-    {
-      name: 'image-generator',
-      description: 'Text-to-Image 생성 (DALL-E, Midjourney, Stable Diffusion)',
-      score: 0.99
-    },
-    {
-      name: 'prompt-enhancer',
-      description: 'AI 이미지 프롬프트 최적화',
-      score: 0.95
-    }
-  ],
-  
-  sensorScore: {
-    intent: 0.99,      // "이미지로 만들어줘" → image-generation
-    semantic: 0.92,    // 이미지 생성 툴과 매칭
-    attention: 1.0,
-    proximity: 0.85,   // 주변에 이미지 참고자료
-    recency: 1.0       // 방금 작성함
-  }
-}
+  position: { x: 800, y: 200 }
+})
+
+Step 4: Tool Call 2-4
+addBlock({ ... }) // Entity 블럭들 3개 생성
+
+Step 5: Tool Call 5-8
+connectBlocks({ ... }) // Aggregate와 Entity 연결
+
+Step 6: Tool Call 9
+addBlock({
+  blockType: 'markdown',
+  content: '## Order Aggregate\n**경계**: 주문과 관련된...',
+  position: { x: 1100, y: 200 }
+})
+
+Step 7: Agent 완료
+→ "Created Order Aggregate with 3 entities and documentation"
 ```
-
-**AI 응답**:
-
-```
-✅ 꿈 장면을 프롬프트로 변환했어요. Ethereal 스타일로 생성합니다.
-💡 [이미지 생성] [여러 스타일로 생성] [프롬프트 수정]
-```
-
-**액션칩 1: "이미지 생성" 클릭 시**:
-
-```typescript
-{
-  type: 'execute',
-  label: '이미지 생성',
-  preview: '프롬프트 최적화 → 이미지 생성 (DALL-E 3) → 이미지 블럭 생성 → 원본과 연결',
-  commands: [
-    // 1. 프롬프트 최적화 (블럭 액션 AI)
-    {
-      type: 'run_block_action',
-      blockId: 'md-dream-1',
-      action: 'enhance-prompt',
-      params: {
-        targetModel: 'dall-e-3',
-        style: 'painterly',
-        mood: 'ethereal',
-        aspectRatio: '16:9',
-        // 주변 스타일 가이드 블럭의 내용도 컨텍스트로 활용
-        styleReference: 'md-style-1'
-      }
-    },
-    // 결과 프롬프트:
-    // "A mystical crystal tree glowing in a dark enchanted forest,
-    //  ethereal blue light flowing from transparent leaves,
-    //  moonlight piercing through mist, dreamcore aesthetic,
-    //  painterly style, cinematic lighting, 16:9"
-    
-    // 2. 이미지 블럭 생성 (먼저 placeholder)
-    {
-      type: 'create_block',
-      blockType: 'image',
-      content: {
-        status: 'generating',
-        prompt: '[enhanced_prompt_from_step_1]'
-      },
-      position: { x: originalX + 500, y: originalY }
-    },
-    
-    // 3. 이미지 생성 실행 (블럭 액션 AI - 비동기)
-    {
-      type: 'run_block_action',
-      blockId: 'new_image_block',
-      action: 'generate-image',
-      params: {
-        model: 'dall-e-3',
-        prompt: '[enhanced_prompt_from_step_1]',
-        quality: 'hd',
-        size: '1792x1024'
-      }
-    },
-    
-    // 4. 생성 완료 후 블럭 속성 업데이트
-    {
-      type: 'update_property',
-      blockId: 'new_image_block',
-      propertyId: 'status',
-      value: 'completed'
-    },
-    {
-      type: 'update_property',
-      blockId: 'new_image_block',
-      propertyId: 'metadata',
-      value: {
-        generatedAt: Date.now(),
-        model: 'dall-e-3',
-        sourceTextBlockId: 'md-dream-1',
-        tags: ['dream', 'forest', 'crystal', 'generated']
-      }
-    },
-    
-    // 5. 원본 텍스트와 생성 이미지 연결
-    {
-      type: 'create_edge',
-      sourceId: 'md-dream-1',
-      targetId: 'new_image_block',
-      edgeType: 'generated_from',
-      label: 'visualized_as'
-    },
-    
-    // 6. 참고한 스타일 가이드와도 연결
-    {
-      type: 'create_edge',
-      sourceId: 'md-style-1',
-      targetId: 'new_image_block',
-      edgeType: 'style_applied',
-      label: 'style_reference'
-    }
-  ]
-}
-```
-
-#### 시나리오 B: 이미지 다양한 스타일로 변형
-
-**사용자 액션**:
-1. 방금 생성된 이미지 블럭 클릭
-2. 요청: "이 이미지를 사이버펑크, 수채화, 미니멀리즘 느낌으로 변형을 많이 만들어줘"
-
-**AI 컨텍스트 구성**:
-
-```typescript
-{
-  selectedBlock: {
-    id: 'img-1',
-    type: 'image',
-    url: 'https://...',
-    metadata: {
-      originalPrompt: '...',
-      sourceTextBlockId: 'md-dream-1'
-    }
-  },
-  
-  requestedStyles: [
-    'cyberpunk',
-    'watercolor',
-    'minimalism'
-  ],
-  
-  // 이미지 변형 툴 발견
-  availableTools: [
-    {
-      name: 'image-style-transfer',
-      description: '이미지 스타일 변형',
-      score: 0.96
-    },
-    {
-      name: 'image-to-image',
-      description: 'Image-to-Image 생성',
-      score: 0.94
-    }
-  ],
-  
-  // 원본 텍스트도 컨텍스트에 포함 (엣지 연결 추적)
-  relatedBlocks: [
-    { id: 'md-dream-1', type: 'markdown', relationship: 'source' }
-  ],
-  
-  sensorScore: {
-    intent: 0.98,
-    semantic: 0.94,
-    attention: 1.0,
-    proximity: 0.7,
-    recency: 0.95
-  }
-}
-```
-
-**AI 응답**:
-
-```
-✅ 3가지 스타일로 변형 이미지를 생성합니다. 각 스타일별 2개씩 총 6개입니다.
-💡 [모두 생성] [하나씩 확인하며 생성] [스타일 추가]
-```
-
-**액션칩 1: "모두 생성" 클릭 시**:
-
-```typescript
-{
-  type: 'execute',
-  label: '모두 생성',
-  preview: '6개 이미지 블럭 생성 → 각각 스타일 변형 실행 → 그리드 레이아웃 배치',
-  commands: [
-    // 스타일 1: Cyberpunk (2개 변형)
-    {
-      type: 'create_block',
-      blockType: 'image',
-      content: { status: 'generating' },
-      position: { x: originalX + 600, y: originalY }
-    },
-    {
-      type: 'run_block_action',
-      blockId: 'new_img_cyberpunk_1',
-      action: 'style-transfer',
-      params: {
-        sourceImageId: 'img-1',
-        targetStyle: 'cyberpunk',
-        stylePrompt: 'neon lights, futuristic, cyberpunk aesthetic, holographic',
-        strength: 0.7
-      }
-    },
-    {
-      type: 'create_block',
-      blockType: 'image',
-      content: { status: 'generating' },
-      position: { x: originalX + 800, y: originalY }
-    },
-    {
-      type: 'run_block_action',
-      blockId: 'new_img_cyberpunk_2',
-      action: 'style-transfer',
-      params: {
-        sourceImageId: 'img-1',
-        targetStyle: 'cyberpunk',
-        stylePrompt: 'dark cyberpunk, rain, neon reflections, blade runner',
-        strength: 0.8
-      }
-    },
-    
-    // 스타일 2: Watercolor (2개 변형)
-    {
-      type: 'create_block',
-      blockType: 'image',
-      content: { status: 'generating' },
-      position: { x: originalX + 600, y: originalY + 300 }
-    },
-    {
-      type: 'run_block_action',
-      blockId: 'new_img_watercolor_1',
-      action: 'style-transfer',
-      params: {
-        sourceImageId: 'img-1',
-        targetStyle: 'watercolor',
-        stylePrompt: 'soft watercolor painting, pastel colors, dreamy',
-        strength: 0.6
-      }
-    },
-    {
-      type: 'create_block',
-      blockType: 'image',
-      content: { status: 'generating' },
-      position: { x: originalX + 800, y: originalY + 300 }
-    },
-    {
-      type: 'run_block_action',
-      blockId: 'new_img_watercolor_2',
-      action: 'style-transfer',
-      params: {
-        sourceImageId: 'img-1',
-        targetStyle: 'watercolor',
-        stylePrompt: 'vibrant watercolor, flowing colors, artistic',
-        strength: 0.7
-      }
-    },
-    
-    // 스타일 3: Minimalism (2개 변형)
-    {
-      type: 'create_block',
-      blockType: 'image',
-      content: { status: 'generating' },
-      position: { x: originalX + 600, y: originalY + 600 }
-    },
-    {
-      type: 'run_block_action',
-      blockId: 'new_img_minimal_1',
-      action: 'style-transfer',
-      params: {
-        sourceImageId: 'img-1',
-        targetStyle: 'minimalism',
-        stylePrompt: 'minimalist illustration, simple shapes, limited palette',
-        strength: 0.8
-      }
-    },
-    {
-      type: 'create_block',
-      blockType: 'image',
-      content: { status: 'generating' },
-      position: { x: originalX + 800, y: originalY + 600 }
-    },
-    {
-      type: 'run_block_action',
-      blockId: 'new_img_minimal_2',
-      action: 'style-transfer',
-      params: {
-        sourceImageId: 'img-1',
-        targetStyle: 'minimalism',
-        stylePrompt: 'ultra minimalist, monochrome, geometric abstraction',
-        strength: 0.9
-      }
-    },
-    
-    // 모든 변형 이미지를 원본과 연결
-    {
-      type: 'create_edge',
-      sourceId: 'img-1',
-      targetId: 'new_img_cyberpunk_1',
-      edgeType: 'variant',
-      label: 'style: cyberpunk'
-    },
-    // ... (나머지 5개도 동일하게 연결)
-    
-    // 스타일별 라벨 블럭 생성
-    {
-      type: 'create_block',
-      blockType: 'shape',
-      content: {
-        label: '🌃 Cyberpunk',
-        category: 'style-label',
-        style: { backgroundColor: '#FF00FF20', fontSize: '14px' }
-      },
-      position: { x: originalX + 700, y: originalY - 50 }
-    },
-    {
-      type: 'create_block',
-      blockType: 'shape',
-      content: { label: '🎨 Watercolor', category: 'style-label' },
-      position: { x: originalX + 700, y: originalY + 250 }
-    },
-    {
-      type: 'create_block',
-      blockType: 'shape',
-      content: { label: '⚪ Minimalism', category: 'style-label' },
-      position: { x: originalX + 700, y: originalY + 550 }
-    },
-    
-    // 전체를 "스타일 변형" 그룹으로 묶기
-    {
-      type: 'group_blocks',
-      blockIds: [
-        'img-1',  // 원본
-        'new_img_cyberpunk_1', 'new_img_cyberpunk_2',
-        'new_img_watercolor_1', 'new_img_watercolor_2',
-        'new_img_minimal_1', 'new_img_minimal_2',
-        'style_label_1', 'style_label_2', 'style_label_3'
-      ],
-      groupName: '🎨 Crystal Tree - Style Variations'
-    }
-  ]
-}
-```
-
-**실행 결과**:
-- 원본 이미지 옆에 3x2 그리드로 6개 변형 이미지 배치
-- 각 스타일별로 라벨 블럭이 구분자 역할
-- 엣지 라벨로 어떤 스타일인지 명확히 표시
-- 모두 하나의 그룹으로 관리됨
-
-#### 🔑 핵심 포인트
-
-1. **주변 컨텍스트 활용**: 스타일 가이드 블럭을 자동으로 찾아서 프롬프트 최적화에 활용
-2. **비동기 실행**: 이미지 생성은 시간이 걸리므로 placeholder 블럭 먼저 생성 → 완료 후 업데이트
-3. **배치 작업**: 여러 개의 변형을 한번에 요청하고 그리드로 정리
-4. **엣지 추적**: 원본 텍스트 → 첫 이미지 → 변형 이미지들의 계보 추적
 
 ---
 
-## 유스케이스 요약 테이블
+## 기술 스택 및 구현
 
-| 페르소나 | 시나리오 | 핵심 기능 | 컨텍스트 범위 | 에이전트 필요 |
-|---------|---------|---------|--------------|--------------|
-| **기획자** | 이벤트 스토밍 → Aggregate 디자인 | 엣지 추적, Command 체인, 그룹화 | 선택 블럭 + 엣지 연결 블럭 | ❌ 단일 실행 가능 |
-| **기획자** | 단일 이벤트 → 유저 플로우 | 엣지 추적, 시맨틱 검색 | 선택 블럭 + 업스트림/다운스트림 | ❌ 단일 실행 가능 |
-| **슈퍼휴먼** | 유튜브 요약 | 블럭 액션 AI 트리거, 툴 자동 발견 | 선택 블럭 + 툴 메타데이터 | ❌ 단일 실행 가능 |
-| **슈퍼휴먼** | 유사 개념 연결 | 시맨틱 검색 (워크스페이스 전체), Block Mount | 선택 블럭 + 전체 페이지 벡터 검색 | ❌ 단일 실행 가능 |
-| **디자이너** | 텍스트 → 이미지 생성 | 프롬프트 최적화, 블럭 액션 AI, 비동기 실행 | 선택 블럭 + 주변 참고 이미지/스타일 가이드 | ❌ 단일 실행 가능 |
-| **디자이너** | 다양한 스타일 변형 | 배치 작업, 그리드 배치, 엣지 추적 | 선택 블럭 + 원본 소스 추적 | ❌ 단일 실행 가능<br>✅ 많을 경우 워크플로우 제안 |
+### 1. Vercel AI SDK
 
-### 에이전트 vs 단일 실행 기준
+```bash
+npm install ai
+```
 
-**단일 실행으로 충분한 경우** (기본 AI):
-- 명확한 인풋 (선택된 블럭, 명시적 요청)
-- 생성할 블럭 개수가 ~10개 이하
-- 단계가 명확하고 선형적
-- 사용자 중간 피드백 불필요
+**주요 기능**:
+- `streamText()`: 스트리밍 응답 및 Agent Loop 자동 관리
+- `useChat()`: React 훅으로 채팅 UI 구현 (`@ai-sdk/react`)
+- `onToolCall`: 클라이언트에서 툴 실행 인터셉트
+  - ⚠️ **최신 API**: `experimental_onToolCall` → `onToolCall`로 변경됨 (Vercel AI SDK 최신 버전)
+  - 표준 API로 승격되어 더 이상 experimental이 아님
+- `addToolOutput`: 클라이언트에서 툴 결과 추가
+- `DefaultChatTransport`: 채팅 전송을 위한 transport 설정
+- `toUIMessageStreamResponse()`: UI 메시지 스트림 응답 생성
 
-**AI 워크플로우로 전환 제안하는 경우**:
-- 생성할 블럭이 10개 이상
-- 다단계 작업 (각 단계 결과가 다음 단계 인풋)
-- 사용자가 중간 검토/수정 필요
-- 반복 실행 가능성 (템플릿화)
-- 스케줄링 필요
+**핵심 패턴**: Server Reasoning + Client Execution
+
+**툴 타입**:
+1. **서버 사이드 툴**: `execute` 함수가 있는 툴 (서버에서 자동 실행)
+2. **클라이언트 사이드 자동 실행 툴**: `execute` 없고 `onToolCall`에서 처리
+   - ⚠️ **최신 API**: `onToolCall` 사용 (더 이상 `experimental_onToolCall` 아님)
+3. **사용자 상호작용 툴**: `execute` 없고 UI에서 사용자 확인 후 `addToolOutput` 호출
+
+#### 서버 구현 (app/api/agent/route.ts)
+
+```typescript
+import { openai } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import { z } from 'zod';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+  
+  // 프론트에서 보낸 컨텍스트 추출 (메시지 body에서)
+  // 참고: 컨텍스트는 첫 번째 사용자 메시지의 metadata나 별도 필드로 전달 가능
+  const firstUserMessage = messages.find(m => m.role === 'user');
+  const frontendContext = firstUserMessage?.metadata || {};
+  
+  // 서버에서 추가 컨텍스트 조립
+  const serverContext = await assembleServerContext(frontendContext);
+  const fullContext = { ...frontendContext, ...serverContext };
+  
+  const result = streamText({
+    model: openai('gpt-4o'),
+    system: buildSystemPrompt(fullContext),
+    messages: convertToModelMessages(messages),
+    maxSteps: 10, // Agent loop 최대 횟수
+  tools: {
+      // ⚠️ 핵심: execute 없음 (클라이언트에서 처리)
+      addBlock: {
+        description: '새 블럭을 캔버스에 생성합니다',
+        inputSchema: z.object({
+          blockType: z.enum(['markdown', 'code', 'image', 'shape']),
+        content: z.any(),
+        position: z.object({ x: z.number(), y: z.number() })
+        })
+        // execute 없음!
+      },
+      deleteBlock: {
+        description: '블럭을 삭제합니다',
+        inputSchema: z.object({
+          blockId: z.string()
+        })
+      },
+      connectBlocks: {
+        description: '두 블럭을 엣지로 연결합니다',
+        inputSchema: z.object({
+          sourceBlockId: z.string(),
+          targetBlockId: z.string(),
+          edgeType: z.string().optional(),
+          label: z.string().optional()
+        })
+      },
+      // ... 다른 툴들
+    },
+    stopWhen: stepCountIs(10), // 최대 10단계
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+#### 클라이언트 구현 (app/canvas/components/ai-agent-runner.tsx)
+
+```typescript
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { 
+  DefaultChatTransport, 
+  lastAssistantMessageIsCompleteWithToolCalls 
+} from 'ai';
+import { useBlockActions } from '@/hooks/use-block-actions';
+import { useCanvasStore } from '@/stores/canvas-store';
+
+export function AIAgentRunner() {
+  const blockActions = useBlockActions();
+  const canvasStore = useCanvasStore();
+  
+  const { messages, sendMessage, addToolOutput } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/agent',
+    }),
+    
+    // ✅ 모든 툴 결과가 준비되면 자동으로 다음 iteration 시작
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    
+    // ✅ 핵심: 클라이언트에서 툴 실행
+    // ⚠️ 최신 API: experimental_onToolCall → onToolCall로 변경됨 (Vercel AI SDK 최신 버전)
+    async onToolCall({ toolCall }) {
+      // 동적 툴 체크 (TypeScript 타입 가드)
+      if (toolCall.dynamic) {
+        return;
+      }
+      
+      try {
+        switch (toolCall.toolName) {
+          case 'addBlock': {
+            // ✅ 기존 캔버스 액션 훅 사용!
+            const block = await blockActions.addBlock({
+              pageId: canvasStore.currentPageId,
+              type: toolCall.input.blockType,
+              content: toolCall.input.content,
+              position: toolCall.input.position,
+            });
+            
+            // ✅ addToolOutput으로 결과 추가 (await 없이 - 데드락 방지)
+            addToolOutput({
+              tool: 'addBlock',
+              toolCallId: toolCall.toolCallId,
+              output: { success: true, blockId: block.id },
+            });
+            break;
+          }
+          
+          case 'deleteBlock': {
+            await blockActions.deleteBlock(toolCall.input.blockId);
+            
+            addToolOutput({
+              tool: 'deleteBlock',
+              toolCallId: toolCall.toolCallId,
+              output: { success: true },
+            });
+            break;
+          }
+          
+          case 'connectBlocks': {
+            const edge = await blockActions.connectBlocks({
+              sourceId: toolCall.input.sourceBlockId,
+              targetId: toolCall.input.targetBlockId,
+              label: toolCall.input.label,
+            });
+            
+            addToolOutput({
+              tool: 'connectBlocks',
+              toolCallId: toolCall.toolCallId,
+              output: { success: true, edgeId: edge.id },
+            });
+            break;
+          }
+          
+          default:
+            throw new Error(`Unknown tool: ${toolCall.toolName}`);
+        }
+      } catch (error) {
+        // ✅ 에러 처리
+        addToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          state: 'output-error',
+          errorText: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+  });
+  
+  // ✅ 메시지 전송 시 최신 컨텍스트 포함
+  const handleSubmit = async (userMessage: string) => {
+    const currentContext = {
+      pageId: canvasStore.currentPageId,
+      workspaceId: canvasStore.workspaceId,
+      selectedBlockIds: canvasStore.selectedBlocks.map(b => b.id),
+      viewport: {
+        x: canvasStore.viewport.x,
+        y: canvasStore.viewport.y,
+        zoom: canvasStore.viewport.zoom,
+      },
+      visibleBlockIds: canvasStore.getVisibleBlockIds(),
+    };
+    
+    // ✅ metadata로 컨텍스트 전달
+    sendMessage({ 
+      text: userMessage,
+      metadata: currentContext,
+    });
+  };
+  
+  return (
+    <div className="ai-chat-panel">
+      <MessageList messages={messages} />
+      <ChatInput onSubmit={handleSubmit} />
+    </div>
+  );
+}
+```
+
+#### 메시지 렌더링 (message.parts 사용)
+
+```typescript
+// 메시지 렌더링 예시
+{messages?.map(message => (
+  <div key={message.id}>
+    <strong>{`${message.role}: `}</strong>
+    {message.parts.map(part => {
+      switch (part.type) {
+        case 'text':
+          return <div>{part.text}</div>;
+        
+        // 툴 파트 렌더링
+        case 'tool-addBlock': {
+          const callId = part.toolCallId;
+          
+          switch (part.state) {
+            case 'input-streaming':
+              return <div key={callId}>블럭 생성 중...</div>;
+            
+            case 'input-available':
+              return (
+                <div key={callId}>
+                  {part.input.blockType} 블럭 생성 중...
+                </div>
+              );
+            
+            case 'output-available':
+              return (
+                <div key={callId}>
+                  ✅ 블럭 생성 완료: {part.output.blockId}
+                </div>
+              );
+            
+            case 'output-error':
+              return (
+                <div key={callId}>
+                  ❌ 에러: {part.errorText}
+                </div>
+              );
+          }
+          break;
+        }
+        
+        case 'tool-deleteBlock':
+        case 'tool-connectBlocks':
+          // 유사한 패턴으로 렌더링
+          break;
+        
+        // 단계 구분선
+        case 'step-start':
+          return <hr className="my-2 border-gray-300" />;
+      }
+    })}
+  </div>
+))}
+```
+
+**이 방식의 장점**:
+- ✅ **상태 동기화 간단**: 캔버스 상태와 툴 실행이 같은 곳 (프론트)
+- ✅ **코드 재사용**: 기존 `useBlockActions` 등 훅 그대로 사용
+- ✅ **보안**: 각 액션 API에서 권한 체크 가능
+- ✅ **실시간성**: Optimistic update 가능
+- ✅ **Agent Loop**: Vercel AI SDK가 자동 관리 (maxSteps)
+- ✅ **LLM Context**: 툴 실행 결과가 다음 reasoning에 반영
+
+---
+
+### 2. Vector Database (pgvector)
+
+```sql
+-- 임베딩 저장 테이블
+CREATE TABLE event_embeddings (
+  id UUID PRIMARY KEY,
+  page_id UUID NOT NULL,
+  event_type TEXT NOT NULL,
+  content TEXT NOT NULL,
+  embedding vector(1536),
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+-- 벡터 인덱스
+CREATE INDEX ON event_embeddings USING ivfflat (embedding vector_cosine_ops);
+
+-- 시맨틱 검색 쿼리
+SELECT 
+  id, 
+  content,
+  1 - (embedding <=> query_embedding) AS similarity,
+  exp(-EXTRACT(EPOCH FROM (NOW() - created_at)) / (30 * 86400)) AS time_weight,
+  (1 - (embedding <=> query_embedding)) * exp(-EXTRACT(EPOCH FROM (NOW() - created_at)) / (30 * 86400)) AS final_score
+FROM event_embeddings
+WHERE page_id = $1
+ORDER BY final_score DESC
+LIMIT 10;
+```
+
+---
+
+### 3. Event Store (통합 이벤트 로그)
+
+```typescript
+interface Event {
+  id: string;
+  page_id: string;
+  user_id: string;
+  event_type: 'utterance' | 'tool_call' | 'block_created' | 'block_updated' | ...;
+  payload: any;
+  timestamp: Date;
+  embedding?: number[]; // 임베딩 (선택적)
+}
+
+// 이벤트 저장
+async function logEvent(event: Event) {
+  await db.insert('events', event);
+  
+  // 임베딩 생성 (비동기)
+  if (shouldEmbed(event)) {
+    const embedding = await generateEmbedding(event.payload);
+    await db.update('events', { id: event.id }, { embedding });
+  }
+}
+
+// 숏텀 메모리 조회
+async function getShortTermMemory(pageId: string, limit: number) {
+  return await db.query(
+    'SELECT * FROM events WHERE page_id = $1 ORDER BY timestamp DESC LIMIT $2',
+    [pageId, limit]
+  );
+}
+
+// 롱텀 메모리 시맨틱 검색
+async function getLongTermMemory(query: string, pageId: string, limit: number) {
+  const queryEmbedding = await generateEmbedding(query);
+  return await vectorSearch(queryEmbedding, pageId, limit);
+}
+```
 
 ---
 
 ## 검토 포인트
 
-### 1. 아키텍처 관점
+### 1. Agent Loop 제어
 
-#### 1.1 Sensor Score 계산
-**질문**:
-- Sensor Score의 각 요소(α₁, α₂, ...)의 **가중치를 어떻게 결정**할 것인가?
-- 정적 가중치 vs 학습 기반 가중치?
-- A/B 테스트로 최적화할 것인가?
+#### 문제
+- Agent가 무한 루프에 빠질 위험
+- 불필요한 툴 호출 반복
+- LLM 비용 증가
 
-**제안**:
-- 초기에는 **휴리스틱 기반** 가중치로 시작 (예: IntentMatch 40%, SemanticSim 30%, 나머지 30%)
-- 사용자 피드백(액션 칩 클릭률, 블럭 선택 정확도)을 수집
-- 추후 ML 모델로 **개인화된 가중치** 학습 고려
+#### 해결
+- **최대 루프 횟수 제한**: 10회
+- **타임아웃 설정**: 30초
+- **명시적 종료 조건**: 시스템 프롬프트에 "작업 완료 시 명시적으로 종료" 지시
+- **중간 체크포인트**: 5회마다 "계속 진행할까요?" 확인
 
-#### 1.2 성능 문제
-**질문**:
-- 캔버스에 블럭이 수천 개 있을 때도 실시간으로 Sensor Score를 계산할 수 있나?
-- 클라이언트 vs 서버에서 계산?
+---
 
-**제안**:
-- **클라이언트**: Proximity, Attention, Recency (실시간 UI 상태)
-- **서버**: IntentMatch, SemanticSim (벡터 검색)
-- 클라이언트에서 **pre-filtering** (viewport 내 블럭, 최근 N개만)
-- 서버로 전송 후 최종 스코어 계산
+### 2. Tool Execution 실패 처리
 
-#### 1.3 벡터 검색 인프라
-**질문**:
-- 시맨틱 서치를 위한 벡터 DB가 필요한데, 어떤 기술 스택?
-- Pinecone, Weaviate, Qdrant, pgvector?
+#### 문제
+- 툴 실행 실패 시 Agent가 혼란
+- 부분 완료 상태 방치
 
-**제안**:
-- 초기에는 **pgvector** (PostgreSQL extension) 고려
-  - 이미 PostgreSQL 사용 중이면 추가 인프라 최소화
-  - 중소 규모에서 충분한 성능
-- 대규모 확장 시 **전용 벡터 DB** 고려
+#### 해결
+- **명확한 에러 메시지**: 툴 실패 시 구체적 이유 반환
+- **재시도 로직**: 네트워크 에러 등은 자동 재시도
+- **Undo 제안**: 실패 시 이전 상태로 복구 옵션 제공
+- **사용자 안내**: 치명적 실패 시 사용자에게 알림
 
-### 2. UX 관점
+---
 
-#### 2.1 "2줄" 제한의 실효성
-**질문**:
-- 모든 상황에서 2줄로 충분한가?
-- 복잡한 질문에 대한 답변은?
+### 3. Context Assembly 성능
 
-**제안**:
-- 2줄은 **기본 원칙**, 예외 허용
-- 복잡한 경우: "2줄 요약 + [세부 보기] 액션 칩"
-- [세부 보기] 클릭 시 → **새 블럭 생성**으로 긴 내용 표시
+#### 문제
+- 컨텍스트 수집이 1초 이상 걸릴 경우 체감 품질 저하
 
-#### 2.2 액션 칩의 종류
-**질문**:
-- 어떤 종류의 액션 칩이 필요한가?
-- 동적으로 생성되나? 고정된 세트?
+#### 해결
+- **선택 블럭 우선 수집**: 즉시 Agent에게 전달
+- **주변 블럭 비동기**: 백그라운드에서 수집
+- **의미적 블럭 캐싱**: 페이지 임베딩 사전 계산
+- **컨텍스트 압축**: 불필요한 정보 제거
 
-**제안**:
-```typescript
-// 개별 명령어 정의 (블럭 생성, 속성 수정, 컴포넌트 생성 등)
-type Command = 
-  | { type: 'create_block', blockType: string, content: any, position?: Point }
-  | { type: 'update_block', blockId: string, updates: Partial<Block> }
-  | { type: 'update_property', blockId: string, propertyId: string, value: any }
-  | { type: 'create_edge', sourceId: string, targetId: string, edgeType: string, label?: string }
-  | { type: 'delete_block', blockId: string }
-  | { type: 'move_block', blockId: string, position: Point }
-  | { type: 'run_block_action', blockId: string, action: string, params?: any }
-  | { type: 'group_blocks', blockIds: string[], groupName?: string }
-  | { type: 'create_component', componentType: string, config: any };
+---
 
-type ActionChip = 
-  | { type: 'navigate', blockIds: string[], label: string }
-  | { type: 'execute', commands: Command[], label: string, preview?: string }
-  | { type: 'create', blockType: string, content: any, label: string }
-  | { type: 'expand', detailContent: string, label: string };
-```
+### 4. LLM 비용 최적화
 
-**명령어 체인의 장점**:
-- **복잡한 액션을 하나의 칩에 담기**
-  - 예: "3개 코드 블럭 리팩터 + 요약 블럭 생성 + 엣지로 연결"
-- **미리보기 가능**
-  - `preview` 필드로 어떤 작업이 실행될지 사용자에게 설명
-- **Undo/Redo 용이**
-  - 명령어 배열을 역순으로 실행하거나 저장
-- **AI가 워크플로우 생성**
-  - 단순 1회성 액션이 아닌 여러 단계의 작업을 AI가 설계
+#### 문제
+- Agent 루프마다 LLM 호출 = 비용 증가
 
-**예시**:
-```typescript
-// "이 3개 코드를 리팩터하고 결과 요약해줘"
-{
-  type: 'execute',
-  label: '리팩터 & 요약 생성',
-  preview: '3개 블럭 리팩터 → 요약 블럭 생성 → 엣지 연결',
-  commands: [
-    { type: 'run_block_action', blockId: 'block1', action: 'refactor' },
-    { type: 'run_block_action', blockId: 'block2', action: 'refactor' },
-    { type: 'run_block_action', blockId: 'block3', action: 'refactor' },
-    { type: 'create_block', blockType: 'markdown', content: '## 리팩터 요약\n...' },
-    { type: 'create_edge', sourceId: 'block1', targetId: 'new_block', edgeType: 'summary' },
-    { type: 'create_edge', sourceId: 'block2', targetId: 'new_block', edgeType: 'summary' },
-    { type: 'create_edge', sourceId: 'block3', targetId: 'new_block', edgeType: 'summary' }
-  ]
-}
-```
+#### 해결
+- **컨텍스트 압축**: 중요한 정보만 전달
+- **간단한 작업 규칙 기반 처리**: "블럭 삭제" 같은 단순 작업은 LLM 호출 없이 처리
+- **캐싱**: 동일 발화는 캐시 응답 사용
+- **모델 선택**: 간단한 작업은 경량 모델 사용
 
-- AI가 **상황에 맞게 동적 생성**
-- 최대 3개까지 표시 (선택 피로도 방지)
+---
 
-#### 2.3 휘발성 vs 영구성
-**질문**:
-- AI의 2줄 응답은 언제 사라지나?
-- 다시 보고 싶을 때는?
+### 5. 사용자 피드백 수집
 
-**제안**:
-- 기본적으로 **휘발성** (다음 발화 시 사라짐)
-- 하지만 **대화 히스토리**에는 저장 (시맨틱 서치 대상)
-- 중요한 응답은 "[블럭으로 저장]" 액션 칩 제공
+#### 문제
+- Agent가 자율 실행하면 사용자가 중간 과정을 평가하기 어려움
 
-### 3. 데이터 관점
+#### 해결
+- **실행 후 요약 제공**: "3개 블럭 생성, 2개 엣지 연결했어요"
+- **피드백 UI**: 👍/👎 버튼 + "잘못된 부분 알려주기"
+- **Undo 지원**: 잘못된 작업 즉시 되돌리기
+- **주요 액션 하이라이트**: 생성/수정된 블럭 강조
 
-#### 3.1 이벤트 로그 볼륨
-**질문**:
-- 모든 편집/발화를 저장하면 **데이터 양이 폭발**하지 않나?
-- 특히 실시간 협업 시 초당 수십 개 이벤트 발생 가능
+---
 
-**제안**:
-- **Debouncing**: 연속된 편집은 하나로 병합 (예: 타이핑)
-- **중요도 필터링**: 의미 있는 변경만 저장 (예: 단순 커서 이동 제외)
-- **Retention Policy**: 오래된 이벤트는 압축 또는 삭제 (예: 6개월 이후)
-- **샘플링**: 모든 이벤트가 아닌 중요 이벤트만 벡터화
+### 6. Tool Execution 에러 처리 및 Undo
 
-#### 3.2 개인정보/보안
-**질문**:
-- AI가 모든 블럭/대화 내용에 접근하는 것에 대한 개인정보 이슈?
-- 민감한 정보가 포함된 블럭은?
+#### 문제
+- `onToolCall`에서 툴 실행 실패 시 Agent loop가 중단될 수 있음
+- 부분 완료 상태에서 롤백 필요
 
-**제안**:
-- 블럭 레벨 **권한 시스템** 연동
-- AI는 사용자가 **접근 가능한 블럭만** 컨텍스트로 사용
-- "AI 제외" 플래그를 블럭에 추가 (opt-out)
+#### 해결
+- **명확한 에러 메시지**: 툴 실패 시 `addToolOutput`에 `state: 'output-error'`와 `errorText` 사용
+- **Snapshot 기반 Undo**: 툴 실행 전 상태 저장
+  ```typescript
+  async onToolCall({ toolCall }) {
+    if (toolCall.dynamic) return;
+    
+    const snapshot = canvasStore.createSnapshot();
+    
+    try {
+      const result = await executeToolOnCanvas(toolCall);
+      
+      addToolOutput({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        output: result,
+      });
+    } catch (error) {
+      // ❌ 실패 시 롤백
+      canvasStore.restoreSnapshot(snapshot);
+      
+      addToolOutput({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        state: 'output-error',
+        errorText: error.message,
+      });
+    }
+  }
+  ```
+- **재시도 로직**: 네트워크 에러 등은 자동 재시도
+- **사용자 안내**: 치명적 실패 시 사용자에게 알림
 
-### 4. 구현 우선순위
+---
 
-#### Phase 1: MVP (2-3주)
-1. **기본 UI**: 2줄 응답 + 고정 액션 칩 3개
-2. **Simple Context**: 선택된 블럭 + 주변 5개 블럭
-3. **대화 저장**: 페이지 단위 저장 (시맨틱 검색 없이 최근 10개만)
+### 7. Context Assembly 성능 최적화
 
-#### Phase 2: Sensor Score (4-6주)
-1. **Sensor Score 구현**: 5가지 요소 계산
-2. **벡터 검색**: pgvector + 간단한 embedding
-3. **동적 컨텍스트**: Sensor Score 기반 블럭 자동 선택
+#### 문제
+- 컨텍스트 수집이 1초 이상 걸릴 경우 체감 품질 저하
+- LLM 토큰 비용 증가
 
-#### Phase 3: Advanced Context (8주+)
-1. **시맨틱 대화 검색**: 과거 대화 벡터 검색
-2. **이벤트 로그**: 통합 이벤트 시스템
-3. **동적 액션 칩**: AI가 상황별 액션 칩 생성
-4. **개인화**: 사용자별 Sensor Score 가중치 학습
+#### 해결
+- **선택 블럭 우선 수집**: 즉시 Agent에게 전달
+- **주변 블럭 비동기**: 백그라운드에서 수집
+- **의미적 블럭 캐싱**: 페이지 임베딩 사전 계산
+- **컨텍스트 압축**: 불필요한 정보 제거
+- **점진적 로딩**: 필수 컨텍스트만 먼저, 나머지는 필요시 search tool로
 
 ---
 
 ## 다음 단계
 
-### 즉시 결정이 필요한 사항
+### Phase 1: MVP (2-3주)
 
-1. **벡터 DB 선택**
-   - [ ] pgvector vs 전용 벡터 DB
-   - [ ] Embedding 모델 선택 (OpenAI, Cohere, local model?)
+#### 목표
+Vercel AI Agent 기본 기능 구현 및 테스트
 
-2. **MVP 범위 확정**
-   - [ ] Phase 1에서 어디까지 구현?
-   - [ ] 프로토타입 일정
+#### 작업 항목
+- [x] Event Storming 완료
+- [x] 아키텍처 결정 (Server Reasoning + Client Execution)
+- [x] 컨텍스트 전달 전략 설계
+- [ ] Vercel AI SDK 설정 (`ai` 패키지 설치)
+- [ ] 서버 API Route 구현 (`app/api/agent/route.ts`)
+  - [ ] `streamText` 설정 (`convertToModelMessages` 사용)
+  - [ ] 툴 스키마 정의 (`inputSchema` 사용, execute 없이)
+  - [ ] `toUIMessageStreamResponse()` 사용
+  - [ ] 컨텍스트 조립 로직 (`assembleServerContext`, `metadata`에서 추출)
+  - [ ] System Prompt 빌더
+  - [ ] `stopWhen` 설정 (`stepCountIs` 사용)
+- [ ] 클라이언트 Agent Runner 구현 (`app/canvas/components/ai-agent-runner.tsx`)
+  - [ ] `useChat` 훅 설정 (`@ai-sdk/react`)
+  - [ ] `DefaultChatTransport` 설정
+  - [ ] `onToolCall` 구현 및 `addToolOutput` 사용
+    - ⚠️ **최신 API**: `experimental_onToolCall` → `onToolCall`로 변경됨 (표준 API)
+  - [ ] `sendAutomaticallyWhen` 설정 (`lastAssistantMessageIsCompleteWithToolCalls`)
+  - [ ] 컨텍스트 수집 및 전달 (`metadata` 사용)
+  - [ ] 메시지 렌더링 (`message.parts` 사용)
+- [ ] 기본 툴 5개 구현 (addBlock, deleteBlock, updateProperty, connectBlocks, executeBlockAction)
+- [ ] 단순 컨텍스트 조립 (선택 블럭 + 주변 블럭)
+- [ ] Event Store 구축
+- [ ] Agent 시스템 프롬프트 작성
+- [ ] 기본 UI (발화 입력, 실행 상태 표시)
 
-3. **API 설계**
-   - [ ] AI 요청/응답 포맷
-   - [ ] 액션 칩 실행 프로토콜
+#### 성공 기준
+- [ ] 사용자가 발화 입력 → Agent가 블럭 생성/수정 성공
+- [ ] 툴 호출 로깅 정상 작동
+- [ ] 평균 응답 시간 < 5초
 
-### 추가 논의가 필요한 사항
+---
 
-1. **비용 모델**
-   - Sensor Score 계산 빈도 vs API 비용
-   - 벡터 검색 비용
-   - 토큰 사용량 최적화
+### Phase 2: Context & Memory (4-6주)
 
-2. **에러 핸들링**
-   - AI 응답 실패 시 fallback
-   - 컨텍스트가 너무 클 때
-   - 관련 블럭이 없을 때
+#### 목표
+컨텍스트 고도화 및 메모리 시스템 구축
 
-3. **측정 지표**
-   - 성공적인 컨텍스트 전달을 어떻게 측정?
-   - A/B 테스트 설계
+#### 작업 항목
+- [ ] pgvector 설정 및 임베딩 저장
+- [ ] Short-Term Memory 구현
+- [ ] Long-Term Memory 시맨틱 검색 구현
+- [ ] 의미적 블럭 수집 (시맨틱 유사도)
+- [ ] 검색 툴 4개 구현 (searchByHop, searchByKeyword, searchBlockActions, searchMultimodal)
+- [ ] Context 시각화 UI
+
+#### 성공 기준
+- [ ] 과거 작업 패턴을 활용한 작업 성공
+- [ ] 시맨틱 검색 정확도 > 70%
+- [ ] 컨텍스트 조립 시간 < 2초
+
+---
+
+### Phase 3: Advanced Features (8주+)
+
+#### 목표
+고급 기능 및 최적화
+
+#### 작업 항목
+- [ ] Agent Loop 최적화 (조기 종료, 재시도 로직)
+- [ ] 사용자 피드백 루프 (학습 데이터 수집)
+- [ ] 개인화된 컨텍스트 가중치
+- [ ] Multi-Agent 협업 (복잡한 작업 분담)
+- [ ] 음성 인터페이스
+- [ ] 워크플로우 전환 (반복 작업 자동화)
+
+#### 성공 기준
+- [ ] Agent 성공률 > 85%
+- [ ] 사용자 만족도 > 4.0/5.0
+- [ ] 평균 LLM 비용 < $0.10/세션
 
 ---
 
 ## 관련 문서
 
-- [AI Automation Patterns Discussion](./ai-automation-patterns-discussion.md)
-- [Component Development Guidelines](../frontend-architecture/component-development-guidelines.md)
-- [Event Flow Discussion](../event-patterns/event-flow-discussion.md)
+- [Event Storming: AI Management Domain](../../domains/ai-management-domain/01-event-storm.md)
+- [Block Management Domain](../../domains/block-management-domain/)
+- [Canvas Management Domain](../../domains/canvas-management-domain/)
 
 ---
 
-**최종 업데이트**: 2025-11-11  
+**최종 업데이트**: 2025-11-12  
 **작성자**: AI 기능 설계 팀  
-**다음 리뷰**: TBD
+**주요 변경사항**:
+- 아키텍처 결정: Server Reasoning + Client Execution (하이브리드 방식)
+- Vercel AI SDK 최신 API 반영:
+  - ⚠️ **API 변경**: `experimental_onToolCall` → `onToolCall`로 변경됨 (표준 API로 승격)
+  - `onToolCall` 및 `addToolOutput`을 활용한 클라이언트 툴 실행 패턴 확정
+  - `DefaultChatTransport` 및 `sendAutomaticallyWhen` 사용
+  - `toUIMessageStreamResponse()` 및 `convertToModelMessages` 사용
+  - `message.parts`를 사용한 메시지 렌더링 패턴
+- 컨텍스트 전달 전략 설계 (Client Context + Server Context, `metadata` 사용)
+- 툴 스키마 정의 방식 변경 (`inputSchema` 사용)
 
+**다음 리뷰**: Phase 1 완료 후
