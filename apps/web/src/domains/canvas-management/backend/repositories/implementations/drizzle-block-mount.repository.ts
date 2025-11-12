@@ -309,10 +309,26 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     const blockType = new BlockType(row.block_type);
 
     // properties를 BlockPropertiesVO로 변환
+    const properties = row.properties || {};
     const propertiesVO = BlockPropertiesFactory.createFromJSON(
       blockType,
-      row.properties || {}
+      properties
     );
+
+    // 커스텀 속성 값들을 _extraFields에 설정
+    // known fields (toJSON()의 결과)를 제외한 나머지가 커스텀 속성 값
+    const knownFields = propertiesVO.toJSON();
+    const knownFieldKeys = new Set(Object.keys(knownFields));
+    const extraFields: Record<string, any> = {};
+    for (const [key, value] of Object.entries(properties)) {
+      if (!knownFieldKeys.has(key)) {
+        extraFields[key] = value;
+      }
+    }
+    // _extraFields에 커스텀 속성 값 설정
+    if (Object.keys(extraFields).length > 0) {
+      (propertiesVO as any)._extraFields = extraFields;
+    }
 
     // customProperties를 CustomPropertyDefinitionVO로 변환
     const customPropertiesVO = Array.isArray(row.custom_properties)

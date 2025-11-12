@@ -64,6 +64,7 @@ export enum PropertyType {
   TEXT = 'text',
   SELECT = 'select',
   MULTISELECT = 'multiselect',
+  STATUS = 'status',
   PROFILE = 'profile',
   DATE = 'date',
   NUMBER = 'number',
@@ -85,6 +86,7 @@ export interface PropertyOption {
   order: number;
   disabled?: boolean;
   description?: string;
+  group?: string;
 }
 
 /**
@@ -99,6 +101,7 @@ export interface CustomPropertyDefinition {
   visible: boolean;
   required?: boolean;
   defaultValue?: any;
+  icon?: string | null;
   validation?: {
     min?: number;
     max?: number;

@@ -10,16 +10,7 @@ import {
 } from '@/components/ui/popover';
 import { Check } from 'lucide-react';
 import type { PropertyUIDefinition } from '../../../../../shared/schemas/ui/block-ui-schema.interface';
-
-const getBadgeStyleObject = (color?: string) => {
-  if (!color)
-    return {
-      backgroundColor: '#F3F4F6',
-      borderColor: '#E5E7EB',
-      color: '#374151',
-    };
-  return { backgroundColor: color, borderColor: color, color: '#FFFFFF' };
-};
+import { getBadgeStyleObject } from '../utils/badge-style.utils';
 
 export interface MultiSelectPropertyProps {
   value: string[] | undefined;
@@ -77,14 +68,14 @@ export function MultiSelectProperty({
           disabled={disabled}
         >
           {selectedOptions.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1.5">
               {selectedOptions.map(opt => (
                 <Badge
                   key={opt.value}
-                  className="h-4 px-1 text-[11px] font-medium"
+                  className="h-5 px-1.5 gap-1.5 font-medium"
                   style={getBadgeStyleObject(opt.color)}
                 >
-                  {opt.label}
+                  <span className="text-xs">{opt.label}</span>
                 </Badge>
               ))}
             </div>
@@ -115,10 +106,10 @@ export function MultiSelectProperty({
                     {isSelected && <Check className="h-2.5 w-2.5" />}
                   </div>
                   <Badge
-                    className="h-4 px-1 text-[11px] font-medium"
+                    className="h-5 px-1.5 gap-1.5 font-medium"
                     style={getBadgeStyleObject(option.color)}
                   >
-                    {option.label}
+                    <span className="text-xs">{option.label}</span>
                   </Badge>
                 </div>
               </Button>

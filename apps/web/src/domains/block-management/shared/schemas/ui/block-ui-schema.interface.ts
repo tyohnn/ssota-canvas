@@ -1,3 +1,4 @@
+import type { PropertyOption } from '../../value-objects/block-properties/common-types';
 /**
  * Block UI Schema Interface
  *
@@ -47,11 +48,7 @@ export interface PropertyUIDefinition {
   /** 읽기 전용 여부 */
   readonly?: boolean;
   /** 옵션 (select, multi-select용) */
-  options?: Array<{
-    value: string;
-    label: string;
-    color?: string;
-  }>;
+  options?: Array<PropertyOption>;
   /** 조건부 렌더링 */
   showIf?: (properties: Record<string, any>) => boolean;
   /** 기본값 표시 함수 */

@@ -69,7 +69,7 @@ export function NumberProperty({
     return (
       <Input
         type="number"
-        className="text-xs"
+        className="text-xs h-7"
         placeholder={propertyDef.placeholder}
         value={inputValue}
         onChange={handleInputChange}
@@ -83,7 +83,7 @@ export function NumberProperty({
 
   return (
     <div
-      className="text-xs p-2 border border-transparent hover:border-border rounded cursor-text"
+      className="text-xs px-2 py-1 border border-transparent hover:border-border rounded cursor-text"
       onClick={handleLabelClick}
     >
       {currentValue || (

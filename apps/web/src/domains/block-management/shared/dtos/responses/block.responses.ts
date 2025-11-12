@@ -2,6 +2,8 @@
  * Block 관련 Response 타입들 (Server Actions 출력)
  */
 
+import type { CustomPropertyDefinition } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
+
 /**
  * 블록 속성 업데이트 후 반환되는 DTO
  */
@@ -36,5 +38,25 @@ export interface BlockTitleUpdatedDTO {
 export interface BlockContentUpdatedDTO {
   blockId: string;
   content: unknown;
+  updatedAt: Date;
+}
+
+/**
+ * 커스텀 속성 생성/업데이트 후 반환되는 DTO
+ */
+export interface CustomPropertyMutationDTO {
+  blockId: string;
+  workspaceId: string;
+  property: CustomPropertyDefinition;
+  updatedAt: Date;
+}
+
+/**
+ * 커스텀 속성 삭제 후 반환되는 DTO
+ */
+export interface CustomPropertyDeletedDTO {
+  blockId: string;
+  workspaceId: string;
+  propertyId: string;
   updatedAt: Date;
 }

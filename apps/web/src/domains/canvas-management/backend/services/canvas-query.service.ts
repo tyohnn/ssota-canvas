@@ -83,11 +83,19 @@ export class CanvasQueryService implements ICanvasQueryService {
               throw new Error('Invalid block mount or block');
             }
 
+            // properties.toJSON()과 _extraFields(커스텀 속성 값) 병합
+            const propertiesJSON = block.properties.toJSON();
+            const extraFields = (block.properties as any)._extraFields || {};
+            const fullProperties = {
+              ...propertiesJSON,
+              ...extraFields,
+            };
+
             return {
               blockMountId: blockMount.id.value,
               blockId: blockMount.blockId.value,
               blockType: block.blockType.value,
-              properties: block.properties.toJSON(),
+              properties: fullProperties,
               customProperties:
                 block.customProperties.map(cp => cp.toJSON()) || [],
               content: block.content, // JSONB content

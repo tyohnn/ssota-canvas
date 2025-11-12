@@ -11,6 +11,7 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import type { PropertyUIDefinition } from '../../../../../shared/schemas/ui/block-ui-schema.interface';
+import { getBadgeStyleObject } from '../utils/badge-style.utils';
 
 export interface SelectPropertyProps {
   value: string | undefined;
@@ -69,14 +70,10 @@ export function SelectProperty({
           <SelectValue>
             {currentOption ? (
               <Badge
-                className="gap-1 h-4 text-[11px]"
-                style={{
-                  backgroundColor: currentOption.color || '#F3F4F6',
-                  borderColor: currentOption.color || '#E5E7EB',
-                  color: '#374151',
-                }}
+                className="gap-1.5 h-5"
+                style={getBadgeStyleObject(currentOption.color)}
               >
-                {currentOption.label}
+                <span className="text-xs">{currentOption.label}</span>
               </Badge>
             ) : (
               <span className="text-xs text-muted-foreground">
@@ -89,14 +86,10 @@ export function SelectProperty({
           {options.map(option => (
             <SelectItem key={option.value} value={option.value}>
               <Badge
-                className="gap-1 h-4 text-[11px]"
-                style={{
-                  backgroundColor: option.color || '#F3F4F6',
-                  borderColor: option.color || '#E5E7EB',
-                  color: '#374151',
-                }}
+                className="gap-1.5 h-5"
+                style={getBadgeStyleObject(option.color)}
               >
-                {option.label}
+                <span className="text-xs">{option.label}</span>
               </Badge>
             </SelectItem>
           ))}
@@ -114,14 +107,10 @@ export function SelectProperty({
     >
       {currentOption ? (
         <Badge
-          className="gap-1 h-4 text-[11px]"
-          style={{
-            backgroundColor: currentOption.color || '#F3F4F6',
-            borderColor: currentOption.color || '#E5E7EB',
-            color: '#374151',
-          }}
+          className="gap-1.5 h-5"
+          style={getBadgeStyleObject(currentOption.color)}
         >
-          {currentOption.label}
+          <span className="text-xs">{currentOption.label}</span>
         </Badge>
       ) : (
         <span className="text-xs text-muted-foreground">

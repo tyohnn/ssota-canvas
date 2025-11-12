@@ -113,6 +113,7 @@ describe('Block Entity', () => {
         0,
         true,
         false,
+        null,
         null
       );
 
@@ -139,6 +140,7 @@ describe('Block Entity', () => {
         0,
         true,
         false,
+        null,
         null
       );
 
@@ -159,6 +161,7 @@ describe('Block Entity', () => {
         0,
         true,
         false,
+        null,
         null
       );
 
@@ -169,11 +172,58 @@ describe('Block Entity', () => {
   });
 
   describe('updateCustomPropertyDefinition', () => {
+    it('should update an existing custom property definition', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
+      const originalProperty = new CustomPropertyDefinitionVO(
+        'prop-1',
+        'Custom Field',
+        new PropertyTypeVO(PropertyType.TEXT),
+        [],
+        0,
+        true,
+        false,
+        null,
+        null
+      );
+      block.addCustomPropertyDefinition(originalProperty);
+
+      const updatedProperty = new CustomPropertyDefinitionVO(
+        'prop-1',
+        'Updated Field',
+        new PropertyTypeVO(PropertyType.TEXT),
+        [],
+        1,
+        false,
+        true,
+        'default',
+        null
+      );
+
+      block.updateCustomPropertyDefinition('prop-1', updatedProperty);
+
+      expect(block.customProperties[0]?.name).toBe('Updated Field');
+      expect(block.customProperties[0]?.order).toBe(1);
+      expect(block.customProperties[0]?.visible).toBe(false);
+      expect(block.customProperties[0]?.required).toBe(true);
+      expect(block.customProperties[0]?.defaultValue).toBe('default');
+    });
+
     it('should throw error when property not found', () => {
       const block = Block.create(blockId, workspaceId, userId, blockType);
+      const updatedProperty = new CustomPropertyDefinitionVO(
+        'prop-unknown',
+        'Updated Field',
+        new PropertyTypeVO(PropertyType.TEXT),
+        [],
+        0,
+        true,
+        false,
+        null,
+        null
+      );
 
       expect(() => {
-        block.updateCustomPropertyDefinition('non-existent', {});
+        block.updateCustomPropertyDefinition('non-existent', updatedProperty);
       }).toThrow(BlockManagementError);
     });
   });
@@ -189,6 +239,7 @@ describe('Block Entity', () => {
         0,
         true,
         false,
+        null,
         null
       );
       block.addCustomPropertyDefinition(customProperty);
@@ -272,6 +323,7 @@ describe('Block Entity', () => {
         0,
         true,
         false,
+        null,
         null
       );
       block.addCustomPropertyDefinition(customProperty);
@@ -292,6 +344,7 @@ describe('Block Entity', () => {
         0,
         true,
         false,
+        null,
         null
       );
       block.addCustomPropertyDefinition(customProperty);
@@ -315,6 +368,7 @@ describe('Block Entity', () => {
         0,
         true,
         false,
+        null,
         null
       );
       block.addCustomPropertyDefinition(customProperty);

@@ -40,13 +40,21 @@ export class DrizzleBlockRepository implements BlockRepository {
 
     while (attempts < maxAttempts) {
       try {
+        // properties.toJSON()과 _extraFields(커스텀 속성 값) 병합
+        const propertiesJSON = block.properties.toJSON();
+        const extraFields = (block.properties as any)._extraFields || {};
+        const fullProperties = {
+          ...propertiesJSON,
+          ...extraFields,
+        };
+
         const blockData = {
           id: currentId,
           workspace_id: block.workspaceId.value,
           created_by: block.userId.value,
           block_type: block.blockType.value,
           title: block.title,
-          properties: block.properties.toJSON(),
+          properties: fullProperties,
           custom_properties: block.customProperties.map(vo => vo.toJSON()),
           created_at: block.createdAt,
           updated_at: block.updatedAt,
@@ -95,11 +103,19 @@ export class DrizzleBlockRepository implements BlockRepository {
    */
   async update(block: Block): Promise<void> {
     try {
+      // properties.toJSON()과 _extraFields(커스텀 속성 값) 병합
+      const propertiesJSON = block.properties.toJSON();
+      const extraFields = (block.properties as any)._extraFields || {};
+      const fullProperties = {
+        ...propertiesJSON,
+        ...extraFields,
+      };
+
       const blockData = {
         workspace_id: block.workspaceId.value,
         block_type: block.blockType.value as DatabaseBlockType,
         title: block.title,
-        properties: block.properties.toJSON(),
+        properties: fullProperties,
         custom_properties: block.customProperties.map(vo => vo.toJSON()),
         content: block.content as any, // JSONB content (e.g., TipTap JSON)
         created_at: block.createdAt,
@@ -304,39 +320,47 @@ export class DrizzleBlockRepository implements BlockRepository {
     );
     const blockType = new BlockType(blockData.block_type); // 데이터베이스 컬럼명에 맞게 수정
     const customPropertiesVO = Array.isArray(blockData.custom_properties)
-      ? blockData.custom_properties.map((data: unknown) => {
-          // 타입가드: CustomPropertyDefinition의 주요 필드 존재 여부 확인
-          const isCustomPropertyDefinition = (
-            obj: any
-          ): obj is CustomPropertyDefinition => {
-            return (
-              obj &&
-              typeof obj === 'object' &&
-              'propertyType' in obj &&
-              'fieldName' in obj &&
-              'name' in obj
-            );
-          };
-          if (isCustomPropertyDefinition(data)) {
-            return CustomPropertyDefinitionVO.fromJSON(data);
-          } else {
-            // 타입 미스매치에 대한 핸들링 (예: 로그, 에러 throw, fallback 생성)
-            console.warn(
-              '[DrizzleBlockRepository] Invalid custom property definition structure:',
-              data
-            );
-            // 필요에 따라 아래 라인 수정: 안전하게 무시하거나, 기본값, 혹은 throw Error
-            return CustomPropertyDefinitionVO.fromJSON({
-              id: 'unknown',
-              name: 'Unknown',
-              type: PropertyType.TEXT,
-              options: [],
-              order: 0,
-              visible: true,
-            });
-          }
-        })
-      : []; // 데이터베이스 컬럼명에 맞게 수정
+      ? blockData.custom_properties
+          .map((data: unknown) => {
+            // 타입가드: CustomPropertyDefinition의 주요 필드 존재 여부 확인
+            const isCustomPropertyDefinition = (
+              obj: any
+            ): obj is CustomPropertyDefinition => {
+              return (
+                obj &&
+                typeof obj === 'object' &&
+                'id' in obj &&
+                'name' in obj &&
+                'type' in obj &&
+                typeof obj.id === 'string' &&
+                typeof obj.name === 'string'
+              );
+            };
+            if (isCustomPropertyDefinition(data)) {
+              try {
+                return CustomPropertyDefinitionVO.fromJSON(data);
+              } catch (error) {
+                console.warn(
+                  '[DrizzleBlockRepository] Failed to parse custom property definition:',
+                  {
+                    data,
+                    error:
+                      error instanceof Error ? error.message : 'Unknown error',
+                  }
+                );
+                return null; // 파싱 실패 시 null 반환
+              }
+            } else {
+              // 타입 미스매치에 대한 핸들링
+              console.warn(
+                '[DrizzleBlockRepository] Invalid custom property definition structure:',
+                data
+              );
+              return null; // 잘못된 구조는 null 반환
+            }
+          })
+          .filter((vo): vo is CustomPropertyDefinitionVO => vo !== null) // null 제거
+      : [];
 
     // createdBy를 프로필 정보 객체로 변환
     const createdByProfile = profile
@@ -355,10 +379,27 @@ export class DrizzleBlockRepository implements BlockRepository {
         };
 
     // JSON 데이터를 BlockPropertiesVO로 변환
+    const properties = blockData.properties || {};
     const propertiesVO = BlockPropertiesFactory.createFromJSON(
       blockType,
-      blockData.properties || {}
+      properties
     );
+
+    // 커스텀 속성 값들을 _extraFields에 설정
+    // known fields (toJSON()의 결과)를 제외한 나머지가 커스텀 속성 값
+    const knownFields = propertiesVO.toJSON();
+    const knownFieldKeys = new Set(Object.keys(knownFields));
+    const extraFields: Record<string, any> = {};
+    for (const [key, value] of Object.entries(properties)) {
+      if (!knownFieldKeys.has(key)) {
+        extraFields[key] = value;
+      }
+    }
+
+    // _extraFields에 커스텀 속성 값 설정
+    if (Object.keys(extraFields).length > 0) {
+      (propertiesVO as any)._extraFields = extraFields;
+    }
 
     return Block.reconstitute(
       blockId,

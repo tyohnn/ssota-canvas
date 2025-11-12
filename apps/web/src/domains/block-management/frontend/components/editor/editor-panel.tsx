@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
 import { updateBlockTitleAction } from '../../../actions/block.actions';
+import { BlockNodeData } from '../../../shared/types/block-data.types';
 import { BlockPropertiesSection } from './block-properties-section';
+import { CustomPropertiesSection } from './custom-properties-section';
 import { BlockContentSection } from './markdown-content-section';
 
 export interface EditorPanelProps {
@@ -39,7 +41,7 @@ export function EditorPanel({ blockId, isOpen }: EditorPanelProps) {
     const node = nodes.find(node => node.id === blockId);
     return node;
   }, [nodes, blockId]);
-  const blockData = blockNode?.data;
+  const blockData = blockNode?.data as BlockNodeData | undefined;
 
   // Title 상태 동기화
   useEffect(() => {
@@ -215,7 +217,7 @@ export function EditorPanel({ blockId, isOpen }: EditorPanelProps) {
 
   return (
     <div
-      className={`absolute bottom-0 right-0 z-50 w-[50%] h-[85%] bg-background/70 backdrop-blur-md border-l border-t border-border shadow-2xl rounded-tl-lg transition-all duration-300 ease-out ${
+      className={`absolute bottom-0 right-0 z-50 w-[50%] h-[85%] bg-background backdrop-blur-md border-l border-t border-border shadow-2xl rounded-tl-lg transition-all duration-300 ease-out ${
         isAnimating ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       }`}
       role="dialog"
@@ -292,6 +294,9 @@ export function EditorPanel({ blockId, isOpen }: EditorPanelProps) {
 
           {/* Block Properties (Schema-based) */}
           <BlockPropertiesSection blockId={blockId} blockData={blockData} />
+
+          {/* Custom Properties Section */}
+          <CustomPropertiesSection blockId={blockId} />
 
           {/* Block Content Section (모든 블록 타입) */}
           {blockData && (

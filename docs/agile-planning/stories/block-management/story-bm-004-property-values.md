@@ -132,8 +132,9 @@ And Public URL이 생성되어 속성에 저장된다
 ## 📊 진행 상황
 **현재**: 85% 완료 (Frontend 완전 구현, Backend 검증 로직 부분 미구현)
 
-### ✅ 완료된 구현 (2025-10-24 기준)
+### ✅ 완료된 구현 (2025-11-07 기준)
 - **Frontend Hooks**: useBlockPropertyUpdate Hook 완전 구현 (Optimistic UI 포함)
+- **Frontend Hooks 보강**: useBlockPropertyUpdate/useBlockContentUpdate에서 Zod 기반 클라이언트 검증 추가로 서버 액션 호출 안정화
 - **Frontend Components**: PropertyInput 타입별 컴포넌트 완전 구현
   - TextProperty, SelectProperty, MultiSelectProperty
   - CheckboxProperty, NumberProperty, UrlProperty

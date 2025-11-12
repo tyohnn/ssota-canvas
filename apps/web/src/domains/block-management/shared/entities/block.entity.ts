@@ -169,14 +169,40 @@ export class Block {
     // 속성 업데이트 - Properties Value Object는 불변이므로 새로 생성
     if (updateData.properties !== undefined) {
       // 기존 properties와 새로운 properties를 병합하여 새 Value Object 생성
+      const currentPropertiesJSON = this.properties.toJSON() as Record<
+        string,
+        any
+      >;
+      // 기존 _extraFields (커스텀 속성 값) 포함
+      const existingExtraFields = (this.properties as any)._extraFields || {};
+      const currentPropertiesWithExtras = {
+        ...currentPropertiesJSON,
+        ...existingExtraFields,
+      };
       const mergedProperties = {
-        ...this.properties.toJSON(),
+        ...currentPropertiesWithExtras,
         ...updateData.properties,
       };
-      this.properties = BlockPropertiesFactory.createFromJSON(
+
+      // Properties VO 생성 (알 수 없는 필드는 _extraFields에 저장됨)
+      const newPropertiesVO = BlockPropertiesFactory.createFromJSON(
         this.blockType,
         mergedProperties
       );
+
+      // 알 수 없는 필드(커스텀 속성 값 등)를 _extraFields에 저장
+      const knownPropertyKeys = new Set(Object.keys(currentPropertiesJSON));
+      const extraFields: Record<string, any> = {};
+      for (const [key, value] of Object.entries(mergedProperties)) {
+        if (!knownPropertyKeys.has(key)) {
+          extraFields[key] = value;
+        }
+      }
+
+      // _extraFields 설정 (protected 필드이므로 타입 단언 사용)
+      (newPropertiesVO as any)._extraFields = extraFields;
+
+      this.properties = newPropertiesVO;
     }
 
     // 콘텐츠 업데이트
@@ -219,6 +245,13 @@ export class Block {
       );
     }
 
+    if (this.customProperties.some(existing => existing.id === property.id)) {
+      throw new BlockManagementError(
+        'PROPERTY_CREATE_FAILED',
+        `Custom property with ID ${property.id} already exists`
+      );
+    }
+
     this.customProperties.push(property);
     this.updatedAt = new Date();
   }
@@ -227,11 +260,11 @@ export class Block {
    * 커스텀 속성 정의 업데이트 (Service Layer에서 사용)
    *
    * @param propertyId - 속성 ID
-   * @param updates - 업데이트할 속성
+   * @param updatedProperty - 교체할 속성 정의
    */
   updateCustomPropertyDefinition(
     propertyId: string,
-    updates: Partial<CustomPropertyDefinitionVO>
+    updatedProperty: CustomPropertyDefinitionVO
   ): void {
     if (this.isDeleted()) {
       throw new BlockManagementError(
@@ -250,10 +283,14 @@ export class Block {
       );
     }
 
-    this.customProperties[propertyIndex] = {
-      ...this.customProperties[propertyIndex],
-      ...updates,
-    } as CustomPropertyDefinitionVO;
+    if (updatedProperty.id !== propertyId) {
+      throw new BlockManagementError(
+        'INVALID_PROPERTY_DEFINITION',
+        'Updated custom property ID does not match target property ID'
+      );
+    }
+
+    this.customProperties[propertyIndex] = updatedProperty;
     this.updatedAt = new Date();
   }
 

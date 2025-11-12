@@ -76,7 +76,7 @@ export async function fetchOpenGraphMetadata(
           imageUrl: '',
           siteName: domain,
           domain: domain,
-          faviconUrl: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+          faviconUrl: `https://icons.duckduckgo.com/ip3/${domain}.ico`,
           type: 'website',
         },
       };
@@ -134,7 +134,7 @@ function parseOpenGraphMetadata(
     undefined;
 
   // 파비콘 URL (고해상도)
-  const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+  const faviconUrl = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
 
   return {
     title: ogTitle,

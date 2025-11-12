@@ -169,10 +169,16 @@ export class BlockAggregate {
     // properties.xxx 형태의 경로만 처리
     if (command.propertyPath.startsWith('properties.')) {
       const propertyKey = command.propertyPath.replace('properties.', '');
-      const currentProperties = this._block.properties.toJSON() as Record<
+      const currentPropertiesJSON = this._block.properties.toJSON() as Record<
         string,
         any
       >;
+      // 기존 _extraFields (커스텀 속성 값) 포함
+      const extraFields = (this._block.properties as any)._extraFields || {};
+      const currentProperties = {
+        ...currentPropertiesJSON,
+        ...extraFields,
+      };
       const oldValue = currentProperties[propertyKey];
       const updatedProperties = {
         ...currentProperties,

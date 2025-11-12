@@ -9,11 +9,11 @@
 
 ## 📋 포함 Story
 
-### Story BM-004: 속성 값 관리 (13pts) 🔄 85% 완료
+### Story BM-004: 속성 값 관리 (13pts) 🔄 90% 완료
 **목표**: 다양한 속성 타입별 값 입력 및 실시간 저장 기능 완성  
 **담당자**: 주니어 개발자  
 **예상 완료일**: 2025-11-22  
-**현재 상태**: Frontend Hooks, PropertyInput 컴포넌트, Server Actions 완전 구현, Workspace Management 연동만 미구현
+**현재 상태**: Frontend Hooks, PropertyInput 컴포넌트, Server Actions 완전 구현, 클라이언트 측 검증 로직 보강 완료, Workspace Management 연동만 미구현
 
 ### Story BM-005: 미디어 업로드 및 관리 (21pts) 🔄 65% 완료
 **목표**: 미디어 파일 업로드, 진행률 표시, URL 저장, 소프트 삭제 기능 완성  

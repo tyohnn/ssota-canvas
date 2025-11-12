@@ -13,6 +13,11 @@ import { BlockType } from '../../types/block-types';
 
 export abstract class BlockPropertiesVO {
   /**
+   * 추가 필드 (커스텀 속성 값 등 알 수 없는 필드 보존용)
+   */
+  protected _extraFields: Record<string, any> = {};
+
+  /**
    * Properties 검증
    * 각 블록 타입별로 구체적인 검증 로직 구현
    */
@@ -20,8 +25,9 @@ export abstract class BlockPropertiesVO {
 
   /**
    * JSON으로 변환 (프론트엔드 전달용)
+   * 추가 필드도 포함하여 반환
    */
-  abstract toJSON(): BlockProperties<BlockType>;
+  abstract toJSON(): BlockProperties<BlockType> & Record<string, any>;
 
   /**
    * JSON에서 생성 (프론트엔드에서 받은 데이터로 생성)

@@ -1,6 +1,13 @@
 'use client';
 
-import React, { memo, useState, useCallback, useEffect, useRef } from 'react';
+import React, {
+  memo,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+} from 'react';
 import type { NodeProps } from '@xyflow/react';
 import type { LinkBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { BaseBlock } from '../base-block/base-block';
@@ -73,10 +80,13 @@ export const LinkBlock = memo(function LinkBlock({
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [draftUrl, setDraftUrl] = useState('');
+  const [faviconIndex, setFaviconIndex] = useState(0);
+  const [isFaviconExhausted, setIsFaviconExhausted] = useState(false);
 
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
   const prevUrlRef = useRef<string>(url);
+  const lastPersistedFaviconRef = useRef<string | null>(null);
 
   // Hooks
   const { updateProperty, updateProperties } = useBlockPropertyUpdate();
@@ -95,6 +105,156 @@ export const LinkBlock = memo(function LinkBlock({
       return '';
     }
   }, []);
+
+  const normalizedDomain = useMemo(() => {
+    const baseDomain = (
+      metadata?.domain?.trim() || (url ? getDomain(url) : '')
+    ).trim();
+
+    if (!baseDomain) {
+      return '';
+    }
+
+    return baseDomain
+      .replace(/^https?:\/\//i, '')
+      .replace(/\/.*$/, '')
+      .toLowerCase();
+  }, [metadata?.domain, url, getDomain]);
+
+  const sanitizeFaviconUrl = useCallback(
+    (favicon?: string | null): string | null => {
+      if (!favicon || !favicon.trim()) {
+        if (!normalizedDomain) {
+          return null;
+        }
+        return `https://icons.duckduckgo.com/ip3/${normalizedDomain}.ico`;
+      }
+
+      const normalizedFavicon = favicon.trim();
+      const lowercaseFavicon = normalizedFavicon.toLowerCase();
+      const needsReplacement =
+        lowercaseFavicon.includes('google.com/s2/favicons') ||
+        lowercaseFavicon.includes('gstatic.com/favicon');
+
+      if (needsReplacement) {
+        if (!normalizedDomain) {
+          return null;
+        }
+        return `https://icons.duckduckgo.com/ip3/${normalizedDomain}.ico`;
+      }
+
+      return normalizedFavicon;
+    },
+    [normalizedDomain]
+  );
+
+  const sanitizedMetadataFavicon = useMemo(
+    () => sanitizeFaviconUrl(metadata?.faviconUrl),
+    [metadata?.faviconUrl, sanitizeFaviconUrl]
+  );
+
+  useEffect(() => {
+    if (!metadata) {
+      return;
+    }
+
+    const targetFavicon =
+      sanitizedMetadataFavicon ||
+      (normalizedDomain
+        ? `https://icons.duckduckgo.com/ip3/${normalizedDomain}.ico`
+        : '');
+
+    if (metadata.faviconUrl !== targetFavicon) {
+      setMetadata(prev =>
+        prev
+          ? {
+              ...prev,
+              faviconUrl: targetFavicon,
+            }
+          : prev
+      );
+
+      if (targetFavicon && lastPersistedFaviconRef.current !== targetFavicon) {
+        lastPersistedFaviconRef.current = targetFavicon;
+        updateProperties(
+          id,
+          {
+            faviconUrl: targetFavicon,
+          },
+          nodeData
+        ).catch(error => {
+          console.error('Failed to persist sanitized favicon URL:', error);
+        });
+      }
+    }
+  }, [
+    id,
+    metadata,
+    sanitizedMetadataFavicon,
+    normalizedDomain,
+    updateProperties,
+    nodeData,
+  ]);
+
+  const faviconCandidates = useMemo(() => {
+    const candidates: string[] = [];
+
+    if (sanitizedMetadataFavicon) {
+      candidates.push(sanitizedMetadataFavicon);
+    }
+
+    if (normalizedDomain) {
+      candidates.push(`https://${normalizedDomain}/favicon.ico`);
+      candidates.push(`https://${normalizedDomain}/apple-touch-icon.png`);
+      candidates.push(
+        `https://icons.duckduckgo.com/ip3/${normalizedDomain}.ico`
+      );
+    }
+
+    const absoluteCandidates = candidates
+      .filter(candidate => Boolean(candidate))
+      .map(candidate => {
+        if (!candidate) {
+          return '';
+        }
+
+        if (/^https?:\/\//i.test(candidate)) {
+          return candidate;
+        }
+
+        if (!normalizedDomain) {
+          return candidate;
+        }
+
+        const trimmedCandidate = candidate.replace(/^\/+/, '');
+        return `https://${normalizedDomain}/${trimmedCandidate}`;
+      })
+      .filter((candidate): candidate is string => Boolean(candidate));
+
+    return Array.from(new Set(absoluteCandidates));
+  }, [sanitizedMetadataFavicon, normalizedDomain]);
+
+  const currentFaviconUrl =
+    !isFaviconExhausted && faviconCandidates.length > 0
+      ? faviconCandidates[Math.min(faviconIndex, faviconCandidates.length - 1)]
+      : null;
+
+  useEffect(() => {
+    setFaviconIndex(0);
+    setIsFaviconExhausted(false);
+  }, [faviconCandidates]);
+
+  const handleFaviconError = useCallback(() => {
+    setFaviconIndex(prevIndex => {
+      const nextIndex = prevIndex + 1;
+      if (nextIndex < faviconCandidates.length) {
+        return nextIndex;
+      }
+
+      setIsFaviconExhausted(true);
+      return prevIndex;
+    });
+  }, [faviconCandidates.length]);
 
   /**
    * 오픈그래프 메타데이터 fetch 및 properties에 저장
@@ -141,7 +301,7 @@ export const LinkBlock = memo(function LinkBlock({
             imageUrl: '',
             siteName: domainValue,
             domain: domainValue,
-            faviconUrl: `https://www.google.com/s2/favicons?domain=${domainValue}&sz=128`,
+            faviconUrl: `https://icons.duckduckgo.com/ip3/${domainValue}.ico`,
             type: 'website',
           };
           setMetadata(fallbackMetadata);
@@ -172,7 +332,7 @@ export const LinkBlock = memo(function LinkBlock({
           imageUrl: '',
           siteName: domainValue,
           domain: domainValue,
-          faviconUrl: `https://www.google.com/s2/favicons?domain=${domainValue}&sz=128`,
+          faviconUrl: `https://icons.duckduckgo.com/ip3/${domainValue}.ico`,
           type: 'website',
         };
         setMetadata(fallbackMetadata);
@@ -469,18 +629,16 @@ export const LinkBlock = memo(function LinkBlock({
         {/* 도메인 & 파비콘 */}
         <div className="p-3 pt-0 mt-auto">
           <div className="flex items-center gap-1.5">
-            {metadata.faviconUrl && (
+            {currentFaviconUrl && !isFaviconExhausted && (
               <img
-                src={metadata.faviconUrl}
+                src={currentFaviconUrl}
                 alt=""
                 className="w-4 h-4 shrink-0"
-                onError={e => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
+                onError={handleFaviconError}
               />
             )}
             <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-              {metadata.domain}
+              {metadata.domain || normalizedDomain}
             </span>
             <ExternalLink className="w-3 h-3 text-gray-400 dark:text-gray-500 ml-auto shrink-0" />
           </div>

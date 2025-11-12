@@ -18,10 +18,10 @@ export function PropertyGroup({ group, children }: PropertyGroupProps) {
   const [isOpen, setIsOpen] = useState(!group.defaultCollapsed);
 
   return (
-    <div className="py-2">
+    <div className="py-3">
       {/* Group Label - Simple and Small */}
       <div className="px-3 mb-1.5">
-        <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+        <h3 className="text-[10px] font-semibold text-muted-foreground tracking-wide">
           {group.label}
         </h3>
       </div>

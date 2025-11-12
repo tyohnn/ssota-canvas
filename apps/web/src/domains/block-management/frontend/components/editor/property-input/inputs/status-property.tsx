@@ -9,6 +9,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import type { PropertyUIDefinition } from '../../../../../shared/schemas/ui/block-ui-schema.interface';
+import { getBadgeStyleObject } from '../utils/badge-style.utils';
 
 // Status groups with default options
 const statusGroups = {
@@ -27,36 +28,6 @@ const statusGroups = {
     color: 'bg-emerald-100 border-emerald-300 text-emerald-900',
     dotColor: 'bg-emerald-500',
   },
-};
-
-const getBadgeStyleObject = (color?: string) => {
-  const colorMap: Record<
-    string,
-    { backgroundColor: string; borderColor: string; color: string }
-  > = {
-    gray: {
-      backgroundColor: '#F3F4F6',
-      borderColor: '#E5E7EB',
-      color: '#374151',
-    },
-    blue: {
-      backgroundColor: '#DBEAFE',
-      borderColor: '#93C5FD',
-      color: '#1E40AF',
-    },
-    green: {
-      backgroundColor: '#D1FAE5',
-      borderColor: '#6EE7B7',
-      color: '#065F46',
-    },
-    emerald: {
-      backgroundColor: '#D1FAE5',
-      borderColor: '#6EE7B7',
-      color: '#065F46',
-    },
-  };
-
-  return colorMap[color || 'gray'] || colorMap.gray;
 };
 
 export interface StatusPropertyProps {
@@ -116,10 +87,10 @@ export function StatusProperty({
         >
           {currentOption ? (
             <Badge
-              className="gap-1 h-4 text-[11px]"
+              className="gap-1.5 h-5"
               style={getBadgeStyleObject(currentOption.color)}
             >
-              {currentOption.label}
+              <span className="text-xs">{currentOption.label}</span>
             </Badge>
           ) : (
             <span className="text-xs text-muted-foreground">
@@ -136,28 +107,28 @@ export function StatusProperty({
             if (groupOptions.length === 0) return null;
 
             return (
-              <div key={groupKey} className="mb-2 last:mb-0">
-                <div className="mb-1.5 px-2">
-                  <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+              <div key={groupKey} className="mb-3 last:mb-0">
+                <div className="mb-2 px-2">
+                  <h4 className="text-xs font-medium text-muted-foreground">
                     {groupConfig.label}
                   </h4>
                 </div>
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   {groupOptions.map(option => (
                     <Button
                       key={option.value}
                       variant="ghost"
                       size="sm"
-                      className={`w-full justify-start h-7 px-2 ${
+                      className={`w-full justify-start h-8 px-2 ${
                         value === option.value ? 'bg-accent' : ''
                       }`}
                       onClick={() => handleStatusSelect(option.value)}
                     >
                       <Badge
-                        className="gap-1 h-4 text-[11px]"
+                        className="gap-1.5 h-5"
                         style={getBadgeStyleObject(option.color)}
                       >
-                        {option.label}
+                        <span className="text-xs">{option.label}</span>
                       </Badge>
                     </Button>
                   ))}

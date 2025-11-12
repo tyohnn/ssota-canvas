@@ -5,7 +5,18 @@ import { useReactFlow } from '@xyflow/react';
 import {
   createCustomPropertyAction,
   updateCustomPropertyAction,
+  deleteCustomPropertyAction,
 } from '../../actions/property.actions';
+import {
+  CreateCustomPropertyRequestSchema,
+  UpdateCustomPropertyRequestSchema,
+  DeleteCustomPropertyRequestSchema,
+  type CreateCustomPropertyRequestInput,
+  type UpdateCustomPropertyRequestInput,
+  type DeleteCustomPropertyRequestInput,
+} from '../../shared/dtos/requests';
+import { BlockNodeData } from '../../shared/types/block-data.types';
+import { isFailure } from '@/lib/action-result';
 
 export interface PropertyOption {
   id: string;
@@ -51,25 +62,49 @@ export function useSchemaFieldEditor(): UseSchemaFieldEditorResult {
         throw new Error('Block not found');
       }
 
-      const originalData = blockNode.data;
+      const blockData = blockNode.data as BlockNodeData;
+      const { workspaceId, orgId } = blockData;
+
+      if (!workspaceId || !orgId) {
+        throw new Error('Workspace context is missing');
+      }
+
+      const originalData = blockData;
       const updatedData = updatePropertyInArray(
-        originalData,
+        blockData,
         'customProperties',
         propertyId,
         { name: label }
       );
 
+      const rawRequest: UpdateCustomPropertyRequestInput = {
+        blockId: blockData.blockId,
+        propertyId,
+        workspaceId,
+        orgId,
+        name: label,
+      };
+
       try {
+        const parseResult =
+          UpdateCustomPropertyRequestSchema.safeParse(rawRequest);
+
+        if (!parseResult.success) {
+          const firstError = parseResult.error.issues[0];
+          console.error('[useSchemaFieldEditor] Validation failed:', {
+            message: firstError?.message || 'Invalid property label',
+            issues: parseResult.error.issues,
+          });
+          throw new Error(firstError?.message || 'Invalid property label');
+        }
+
         // Optimistic update
         updateNode(blockId, { data: updatedData });
 
         // Server action call
-        const result = await updateCustomPropertyAction(propertyId, {
-          workspaceId: 'workspace-id', // TODO: Get from context
-          name: label,
-        });
+        const result = await updateCustomPropertyAction(parseResult.data);
 
-        if (!result.success) {
+        if (isFailure(result)) {
           // Rollback on failure
           updateNode(blockId, { data: originalData });
           throw new Error(result.error || 'Failed to save property label');
@@ -90,21 +125,64 @@ export function useSchemaFieldEditor(): UseSchemaFieldEditorResult {
         throw new Error('Block not found');
       }
 
-      const originalData = blockNode.data;
-      const updatedData = removePropertyFromArray(
-        originalData,
+      const blockData = blockNode.data as BlockNodeData;
+      const { workspaceId, orgId } = blockData;
+
+      if (!workspaceId || !orgId) {
+        throw new Error('Workspace context is missing');
+      }
+
+      const originalData = blockData;
+      const updatedCustomProperties = removePropertyFromArray(
+        blockData,
         'customProperties',
         propertyId
-      );
+      ).customProperties;
+
+      const updatedProperties = {
+        ...(blockData.properties as unknown as Record<string, unknown>),
+      };
+      delete updatedProperties[propertyId];
+
+      const updatedData = {
+        ...blockData,
+        customProperties:
+          updatedCustomProperties as BlockNodeData['customProperties'],
+        properties: updatedProperties as unknown as BlockNodeData['properties'],
+      } as BlockNodeData;
+
+      const rawRequest: DeleteCustomPropertyRequestInput = {
+        blockId: blockData.blockId,
+        propertyId,
+        workspaceId,
+        orgId,
+      };
 
       try {
+        const parseResult =
+          DeleteCustomPropertyRequestSchema.safeParse(rawRequest);
+
+        if (!parseResult.success) {
+          const firstError = parseResult.error.issues[0];
+          console.error('[useSchemaFieldEditor] Validation failed:', {
+            message: firstError?.message || 'Invalid delete request',
+            issues: parseResult.error.issues,
+            rawRequest,
+          });
+          throw new Error(firstError?.message || 'Invalid delete request');
+        }
+
         // Optimistic update
         updateNode(blockId, { data: updatedData });
 
         // Server action call
-        await updateCustomPropertyAction(propertyId, {
-          workspaceId: 'workspace-id', // TODO: Get from context
-        });
+        const result = await deleteCustomPropertyAction(parseResult.data);
+
+        if (isFailure(result)) {
+          // Rollback on failure
+          updateNode(blockId, { data: originalData });
+          throw new Error(result.error || 'Failed to delete property');
+        }
       } catch (error) {
         // Rollback on error
         updateNode(blockId, { data: originalData });
@@ -121,9 +199,16 @@ export function useSchemaFieldEditor(): UseSchemaFieldEditorResult {
         throw new Error('Block not found');
       }
 
-      const originalData = blockNode.data;
+      const blockData = blockNode.data as BlockNodeData;
+      const { workspaceId, orgId } = blockData;
+
+      if (!workspaceId || !orgId) {
+        throw new Error('Workspace context is missing');
+      }
+
+      const originalData = blockData;
       const property = findPropertyInArray(
-        originalData,
+        blockData,
         'customProperties',
         propertyId
       );
@@ -138,27 +223,64 @@ export function useSchemaFieldEditor(): UseSchemaFieldEditorResult {
         name: `${property.name} (Copy)`,
       };
 
-      const updatedData = addPropertyToArray(
-        originalData,
+      const defaultValue =
+        duplicatedProperty?.defaultValue !== undefined &&
+        duplicatedProperty?.defaultValue !== null
+          ? duplicatedProperty.defaultValue
+          : getDefaultValueForType(duplicatedProperty.type);
+
+      const updatedCustomProperties = addPropertyToArray(
+        blockData,
         'customProperties',
         duplicatedProperty
-      );
+      ).customProperties;
+
+      const updatedProperties = {
+        ...(blockData.properties as unknown as Record<string, unknown>),
+        [duplicatedProperty.id]: defaultValue,
+      };
+
+      const updatedData = {
+        ...blockData,
+        customProperties:
+          updatedCustomProperties as BlockNodeData['customProperties'],
+        properties: updatedProperties as unknown as BlockNodeData['properties'],
+      } as BlockNodeData;
+
+      const rawRequest: CreateCustomPropertyRequestInput = {
+        blockId: blockData.blockId,
+        workspaceId,
+        orgId,
+        id: duplicatedProperty.id,
+        name: duplicatedProperty.name,
+        type: duplicatedProperty.type,
+        options: duplicatedProperty.options,
+        order: duplicatedProperty.order,
+        visible: duplicatedProperty.visible,
+        required: duplicatedProperty.required,
+        defaultValue,
+      };
 
       try {
+        const parseResult =
+          CreateCustomPropertyRequestSchema.safeParse(rawRequest);
+
+        if (!parseResult.success) {
+          const firstError = parseResult.error.issues[0];
+          console.error('[useSchemaFieldEditor] Validation failed:', {
+            message: firstError?.message || 'Invalid duplicate request',
+            issues: parseResult.error.issues,
+          });
+          throw new Error(firstError?.message || 'Invalid duplicate request');
+        }
+
         // Optimistic update
         updateNode(blockId, { data: updatedData });
 
         // Server action call
-        const result = await createCustomPropertyAction({
-          action: 'add',
-          blockId,
-          workspaceId: 'workspace-id', // TODO: Get from context
-          name: duplicatedProperty.name,
-          propertyType: duplicatedProperty.type as any,
-          options: duplicatedProperty.options,
-        });
+        const result = await createCustomPropertyAction(parseResult.data);
 
-        if (!result.success) {
+        if (isFailure(result)) {
           // Rollback on failure
           updateNode(blockId, { data: originalData });
           throw new Error(result.error || 'Failed to duplicate property');
@@ -183,25 +305,49 @@ export function useSchemaFieldEditor(): UseSchemaFieldEditorResult {
         throw new Error('Block not found');
       }
 
-      const originalData = blockNode.data;
+      const blockData = blockNode.data as BlockNodeData;
+      const { workspaceId, orgId } = blockData;
+
+      if (!workspaceId || !orgId) {
+        throw new Error('Workspace context is missing');
+      }
+
+      const originalData = blockData;
       const updatedData = updatePropertyInArray(
-        originalData,
+        blockData,
         'customProperties',
         propertyId,
         { options }
       );
 
+      const rawRequest: UpdateCustomPropertyRequestInput = {
+        blockId: blockData.blockId,
+        propertyId,
+        workspaceId,
+        orgId,
+        options,
+      };
+
       try {
+        const parseResult =
+          UpdateCustomPropertyRequestSchema.safeParse(rawRequest);
+
+        if (!parseResult.success) {
+          const firstError = parseResult.error.issues[0];
+          console.error('[useSchemaFieldEditor] Validation failed:', {
+            message: firstError?.message || 'Invalid options',
+            issues: parseResult.error.issues,
+          });
+          throw new Error(firstError?.message || 'Invalid options');
+        }
+
         // Optimistic update
         updateNode(blockId, { data: updatedData });
 
         // Server action call
-        const result = await updateCustomPropertyAction(propertyId, {
-          workspaceId: 'workspace-id', // TODO: Get from context
-          options,
-        });
+        const result = await updateCustomPropertyAction(parseResult.data);
 
-        if (!result.success) {
+        if (isFailure(result)) {
           // Rollback on failure
           updateNode(blockId, { data: originalData });
           throw new Error(result.error || 'Failed to commit options');
@@ -315,4 +461,26 @@ function setNestedProperty(obj: any, path: string, value: any): any {
  */
 function generateId(): string {
   return `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+function getDefaultValueForType(type: string | undefined): any {
+  switch (type) {
+    case 'text':
+    case 'url':
+    case 'email':
+    case 'phone':
+      return '';
+    case 'number':
+      return 0;
+    case 'boolean':
+      return false;
+    case 'color':
+      return '#000000';
+    case 'date':
+    case 'select':
+    case 'multiselect':
+    case 'profile':
+    default:
+      return null;
+  }
 }

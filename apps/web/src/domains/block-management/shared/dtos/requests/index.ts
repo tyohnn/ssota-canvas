@@ -5,3 +5,4 @@
  */
 
 export * from './block.requests';
+export * from './custom-property.requests';

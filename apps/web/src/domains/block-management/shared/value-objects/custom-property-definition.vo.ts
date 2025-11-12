@@ -18,6 +18,7 @@ export class CustomPropertyDefinitionVO {
     public readonly visible: boolean = true,
     public readonly required: boolean = false,
     public readonly defaultValue: any = null,
+    public readonly icon: string | null = null,
     public readonly validation?: {
       min?: number;
       max?: number;
@@ -82,6 +83,7 @@ export class CustomPropertyDefinitionVO {
       this.visible,
       this.required,
       this.defaultValue,
+      this.icon,
       this.validation
     );
   }
@@ -99,6 +101,7 @@ export class CustomPropertyDefinitionVO {
       this.visible,
       this.required,
       this.defaultValue,
+      this.icon,
       this.validation
     );
   }
@@ -117,6 +120,7 @@ export class CustomPropertyDefinitionVO {
       this.visible,
       this.required,
       this.defaultValue,
+      this.icon,
       this.validation
     );
   }
@@ -135,6 +139,7 @@ export class CustomPropertyDefinitionVO {
       this.visible,
       this.required,
       this.defaultValue,
+      this.icon,
       this.validation
     );
   }
@@ -158,6 +163,7 @@ export class CustomPropertyDefinitionVO {
       this.visible,
       this.required,
       this.defaultValue,
+      this.icon,
       this.validation
     );
   }
@@ -175,6 +181,7 @@ export class CustomPropertyDefinitionVO {
       this.visible,
       this.required,
       this.defaultValue,
+      this.icon,
       this.validation
     );
   }
@@ -192,6 +199,7 @@ export class CustomPropertyDefinitionVO {
       visible,
       this.required,
       this.defaultValue,
+      this.icon,
       this.validation
     );
   }
@@ -209,6 +217,7 @@ export class CustomPropertyDefinitionVO {
       this.visible,
       required,
       this.defaultValue,
+      this.icon,
       this.validation
     );
   }
@@ -226,6 +235,25 @@ export class CustomPropertyDefinitionVO {
       this.visible,
       this.required,
       defaultValue,
+      this.icon,
+      this.validation
+    );
+  }
+
+  /**
+   * 아이콘 변경
+   */
+  setIcon(icon: string | null): CustomPropertyDefinitionVO {
+    return new CustomPropertyDefinitionVO(
+      this.id,
+      this.name,
+      this.type,
+      this.options,
+      this.order,
+      this.visible,
+      this.required,
+      this.defaultValue,
+      icon,
       this.validation
     );
   }
@@ -248,6 +276,7 @@ export class CustomPropertyDefinitionVO {
       this.visible,
       this.required,
       this.defaultValue,
+      this.icon,
       validation
     );
   }
@@ -338,6 +367,7 @@ export class CustomPropertyDefinitionVO {
     visible: boolean;
     required: boolean;
     defaultValue: any;
+    icon: string | null;
     validation?: {
       min?: number;
       max?: number;
@@ -354,6 +384,7 @@ export class CustomPropertyDefinitionVO {
       visible: this.visible,
       required: this.required,
       defaultValue: this.defaultValue,
+      icon: this.icon,
       validation: this.validation,
     };
   }
@@ -370,6 +401,7 @@ export class CustomPropertyDefinitionVO {
     visible?: boolean;
     required?: boolean;
     defaultValue?: any;
+    icon?: string | null;
     validation?: {
       min?: number;
       max?: number;
@@ -391,6 +423,7 @@ export class CustomPropertyDefinitionVO {
       data.visible ?? true,
       data.required ?? false,
       data.defaultValue ?? null,
+      data.icon ?? null,
       data.validation
     );
   }
@@ -414,7 +447,8 @@ export class CustomPropertyDefinitionVO {
       0,
       true,
       false,
-      defaultValue
+      defaultValue,
+      null
     );
   }
 }

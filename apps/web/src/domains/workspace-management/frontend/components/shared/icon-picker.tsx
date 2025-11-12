@@ -175,7 +175,6 @@ export function IconPicker({
   // NEW: Intersection Observer for infinite scroll
   useEffect(() => {
     if (!isOpen) {
-      console.log('[IconPicker] Observer 스킵 (Popover 닫힘)');
       return;
     }
 
@@ -302,11 +301,6 @@ export function IconPicker({
   // 표시할 아이콘 목록 (visibleCount만큼만)
   const visibleIcons = useMemo(() => {
     const icons = filteredIcons.slice(0, visibleCount);
-    console.log('[IconPicker] 표시 아이콘 계산:', {
-      filteredCount: filteredIcons.length,
-      visibleCount,
-      actualVisible: icons.length,
-    });
     return icons;
   }, [filteredIcons, visibleCount]);
 
