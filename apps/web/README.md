@@ -28,6 +28,7 @@ pnpm dev
 
 - **[ONBOARDING.md](./ONBOARDING.md)** - 팀원 온보딩 가이드 (필독)
 - **[DB_MIGRATION_WORKFLOW.md](./DB_MIGRATION_WORKFLOW.md)** - 데이터베이스 마이그레이션 워크플로우
+- **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** - Supabase Branching 설정 가이드
 - **[Architecture Docs](../../docs/README.md)** - 전체 아키텍처 문서
 
 ---
@@ -155,12 +156,19 @@ pnpm db:push             # DB에 직접 Push (주의!)
 ### 브랜치 전략
 
 ```
-main            # Production (Supabase Main Project)
+main            # Production (Full OAuth + Real Data)
   ↓
-develop         # Staging (Supabase Persistent Preview Branch)
+develop         # Staging (Full OAuth + Complete Testing)
   ↓
-feature/*       # Feature 개발 (Supabase Preview Branches)
+feature/*       # Feature 개발 (Build Validation Only)
 ```
+
+**실용적 접근:**
+- **feature/***: 로컬 테스트 + 빌드 검증 + 코드 리뷰
+- **develop**: 완전한 기능 테스트 (Google OAuth 작동)
+- **main**: Production 배포
+
+**자세한 내용**: [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
 
 ### 일반적인 개발 흐름
 

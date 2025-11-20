@@ -10,6 +10,8 @@ build/
 
 # Supabase
 .supabase/
+supabase/.env*
+!supabase/.env.example
 
 # Drizzle temporary
 .drizzle-temp/

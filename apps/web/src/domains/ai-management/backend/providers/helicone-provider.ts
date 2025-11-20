@@ -8,6 +8,7 @@
 
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { config } from '@/config';
 
 /**
  * Helicone OpenAI Provider 생성
@@ -19,8 +20,7 @@ export function createHeliconeOpenAI(
   headers?: Record<string, string>
 ): ReturnType<typeof createOpenAI> {
   // Helper to get env var
-  const getEnv = (key: string) => process.env[key] || '';
-  const heliconeApiKey = getEnv('HELICONE_API_KEY');
+  const heliconeApiKey = config.ai.helicone;
 
   if (!heliconeApiKey) {
     throw new Error('HELICONE_API_KEY is required');

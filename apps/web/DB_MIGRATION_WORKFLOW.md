@@ -202,15 +202,29 @@ export default defineConfig({
 main (Production)
   ↓ Supabase Main Project
   ↓ Vercel Production
+  ✅ Full Google OAuth
+  ✅ Complete testing
+  ⚠️ Real data
 
-develop (Staging)
+develop (Persistent Preview)
   ↓ Supabase Persistent Preview Branch
   ↓ Vercel Preview
+  ✅ Full Google OAuth
+  ✅ Complete testing
+  ✅ DB schema testing
 
-feature/* (Feature Branches)
-  ↓ Supabase Preview Branches (자동 생성/삭제)
+feature/* (Ephemeral Preview)
+  ↓ Supabase Preview Branches (Optional)
   ↓ Vercel Preview Deployments
+  ❌ No Google OAuth (Build validation only)
+  ✅ Type checking, Lint, Build
+  💡 Use local development for testing
 ```
+
+**실용적 접근:**
+- Feature 브랜치: 빌드 검증 + 코드 리뷰
+- develop 브랜치: 완전한 기능 테스트
+- main 브랜치: Production
 
 ---
 
