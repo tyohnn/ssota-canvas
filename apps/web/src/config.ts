@@ -6,11 +6,15 @@
 
 export const config = {
   database: {
-    url: process.env.DATABASE_URL || '',
+    url: process.env.DATABASE_URL || process.env.POSTGRES_URL || '',
   },
   supabase: {
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    // Fallback to Supabase Integration auto-generated variables
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '',
+    anonKey:
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
+      '',
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   },
   clerk: {
