@@ -47,7 +47,6 @@ function DashboardSidebarSkeleton() {
         <div className="space-y-2">
           {Array.from({ length: 6 }).map((_, index) => (
             <div
-              // eslint-disable-next-line react/no-array-index-key
               key={index}
               className="h-9 rounded bg-muted-foreground/10 animate-pulse"
             />
@@ -57,7 +56,6 @@ function DashboardSidebarSkeleton() {
       <div className="mt-auto space-y-2">
         {Array.from({ length: 4 }).map((_, index) => (
           <div
-            // eslint-disable-next-line react/no-array-index-key
             key={index}
             className="h-9 rounded bg-muted-foreground/10 animate-pulse"
           />

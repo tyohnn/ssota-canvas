@@ -33,8 +33,6 @@ export function PageSyncClient({
 
     // 2. 쿠키에 최근 방문 페이지 저장
     saveLastVisitedPage(orgId, workspaceId, pageId);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageId, workspaceId, orgId, selectedPageId]);
 
   // UI를 렌더링하지 않음 (동기화만 담당)
