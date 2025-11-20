@@ -115,10 +115,7 @@ export async function signOutAction() {
   redirect('/login');
 }
 
-export async function oAuthSignIn(
-  provider: Provider,
-  enrollmentCode?: string | null
-) {
+export async function oAuthSignIn(provider: Provider) {
   if (!provider) {
     return redirect(
       `${loginUrl}?message=${encodeURIComponent(serverErrorMessage)}`
@@ -127,9 +124,6 @@ export async function oAuthSignIn(
 
   const supabase = await createClient();
   let redirectUrl = getURL(authenticationCallbackUrl);
-  if (enrollmentCode) {
-    redirectUrl = `${redirectUrl}?enrollment_code=${enrollmentCode}`;
-  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,

@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 // utils
 import { createClient } from '@/utils/supabase/server';
 // constants
-import { appDefaultUrl } from '../constant';
+import { appDefaultUrl } from '@/domains/auth/constant';
 
 export default async function EmailVerification() {
   const supabase = await createClient();

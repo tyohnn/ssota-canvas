@@ -11,7 +11,7 @@ import {
   appDefaultUrl,
   emailVerificationErrorMessage,
   loginUrl,
-} from '../../constant';
+} from '@/domains/auth/constant';
 import { config } from '@/config';
 
 export async function GET(request: NextRequest) {

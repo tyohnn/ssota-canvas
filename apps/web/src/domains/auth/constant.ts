@@ -1,6 +1,6 @@
 // url
 export const appDefaultUrl = '/';
-export const onBoardingUrl = '/';
+export const onBoardingUrl = '/onboarding';
 export const signUpUrl = '/sign-up';
 export const loginUrl = '/login';
 export const authenticationCallbackUrl = '/auth/callback';

@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Provider } from '@supabase/supabase-js';
 import { GoogleIcon } from '@/components/icon';
 import { oAuthSignIn } from '@/domains/auth/actions';
-import { useSearchParams } from 'next/navigation';
 
 import type { JSX } from 'react';
 
@@ -28,8 +27,6 @@ export function OAuthButtons({
       icon: <GoogleIcon />,
     },
   ];
-  const searchParams = useSearchParams();
-  const enrollmentCode = searchParams.get('enrollment_code');
 
   return (
     <>
@@ -39,15 +36,15 @@ export function OAuthButtons({
           className="relative w-full flex items-center justify-center gap-2"
           variant="outline"
           onClick={async () => {
-            await oAuthSignIn(provider.name, enrollmentCode);
+            await oAuthSignIn(provider.name);
           }}
         >
           {provider.icon}
-          {provider.displayName} 계정으로 {isRegister ? '회원가입' : '로그인'}
+          {provider.displayName} account for {isRegister ? 'register' : 'login'}
           {lastSignedInMethod === 'google' && (
             <div className="absolute top-1/2 -translate-y-1/2 left-full whitespace-nowrap ml-8 bg-accent px-4 py-1 rounded-md text-xs text-foreground/80">
-              <div className="absolute -left-5 top-0 border-background border-[12px] border-r-accent" />
-              최근 로그인
+              <div className="absolute -left-5 top-0 border-background border-[10px] border-r-accent" />
+              Last login method
             </div>
           )}
         </Button>
