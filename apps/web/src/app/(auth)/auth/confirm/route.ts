@@ -12,6 +12,7 @@ import {
   emailVerificationErrorMessage,
   loginUrl,
 } from '../../constant';
+import { config } from '@/config';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     });
     if (!error && data?.user) {
       const forwardedHost = request.headers.get('x-forwarded-host'); // original origin before load balancer // 로드 밸런서 이전의 원래 원본
-      const isLocalEnv = process.env.NODE_ENV === 'development';
+      const isLocalEnv = config.environment === 'development';
       if (isLocalEnv) {
         // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
         return NextResponse.redirect(`${origin}${next}`);

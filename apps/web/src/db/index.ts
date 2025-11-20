@@ -5,26 +5,41 @@ import { sql } from 'drizzle-orm';
 import { createClient } from '@/utils/supabase/server';
 import { config } from '@/config';
 import * as schema from './schema';
-import * as devSchema from './schema-dev';
+import * as imageAppSpaceSchema from './schemas/image-app-space-schema';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = config.environment === 'development';
 
-if (!config.database.url) {
-  throw new Error('DATABASE_URL is not set in environment variables.');
+if (!config.database.nonPoolingUrl) {
+  // non-pooling url is the Database URL
+  console.error('❌ Database configuration error:', {
+    POSTGRES_URL_NON_POOLING: !!process.env.POSTGRES_URL_NON_POOLING,
+    configValue: config.database.nonPoolingUrl,
+  });
+  throw new Error(
+    'POSTGRES_URL_NON_POOLING is not set in environment variables. Please check your .env.local file.'
+  );
 }
 
 // 🔧 Connection Pool 설정
 // Development: 작은 풀 크기 (HMR로 인한 누적 방지)
 // Production: 적절한 풀 크기
+// Local Supabase: SSL 불필요
+const isLocalSupabase =
+  config.supabase.url.includes('localhost') ||
+  config.supabase.url.includes('127.0.0.1');
+
 const connectionConfig = {
   prepare: false,
   max: isDevelopment ? 3 : 10, // Dev: 3, Prod: 10
   idle_timeout: 20,
   connect_timeout: 10,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  // Local Supabase는 SSL 불필요, Production은 SSL 필수
+  ssl: isLocalSupabase
+    ? false
+    : {
+        rejectUnauthorized: false,
+      },
 };
 
 // 🔑 Singleton 패턴: Next.js HMR에서도 클라이언트 재사용
@@ -36,21 +51,24 @@ const globalForDb = globalThis as unknown as {
 
 // Create admin client for direct database access (Singleton)
 const adminClient =
-  globalForDb.adminClient ?? postgres(config.database.url, connectionConfig);
+  globalForDb.adminClient ??
+  postgres(config.database.nonPoolingUrl, connectionConfig);
 if (isDevelopment) globalForDb.adminClient = adminClient;
 
 // Create RLS client for user-scoped operations (Singleton)
 const rlsClient =
-  globalForDb.rlsClient ?? postgres(config.database.url, connectionConfig);
+  globalForDb.rlsClient ??
+  postgres(config.database.nonPoolingUrl, connectionConfig);
 if (isDevelopment) globalForDb.rlsClient = rlsClient;
 
 // Create drizzle instances with environment-based schema
+// Include image_app_space schema for both dev and prod
 export const adminDb = drizzle(adminClient, {
-  schema: isDevelopment ? devSchema : schema,
+  schema: { ...schema, ...imageAppSpaceSchema },
 });
 
 export const rlsDb = drizzle(rlsClient, {
-  schema: isDevelopment ? devSchema : schema,
+  schema: { ...schema, ...imageAppSpaceSchema },
 });
 
 type SupabaseToken = {

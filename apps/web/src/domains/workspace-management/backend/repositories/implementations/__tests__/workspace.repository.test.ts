@@ -4,7 +4,7 @@ import { WorkspaceAggregate } from '../../../../shared/aggregates/workspace.aggr
 import { OrganizationId, UserId } from '@/domains/organization-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '../../../../shared/value-objects/workspace-id.vo';
 import { adminDb } from '@/db';
-import { workspaces } from '@/db/schema-dev';
+import { workspaces } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('WorkspaceRepository Integration Tests', () => {

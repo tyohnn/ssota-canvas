@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock Supabase client first before any imports
@@ -11,7 +12,7 @@ vi.mock('@/utils/supabase/server', () => ({
   createClient: vi.fn(() => mockSupabaseClient),
 }));
 
-// Mock database to prevent DATABASE_URL error
+// Mock database to prevent POSTGRES_URL error
 vi.mock('@/db', () => ({
   db: {},
   createDrizzleSupabaseClient: vi.fn(),

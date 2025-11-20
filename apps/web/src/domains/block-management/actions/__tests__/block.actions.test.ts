@@ -1,91 +1,139 @@
-import { describe, it, expect } from 'vitest';
-import { createBlockAction } from '../block.actions';
-import { BlockManagementError } from '../../shared/errors/block-management.error';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+  updateBlockPropertyAction,
+  updateBlockTitleAction,
+} from '../block.actions';
+
+// Mock Next.js
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}));
+
+// Mock repositories and services
+const mockBlockRepository = {
+  findById: vi.fn(),
+  save: vi.fn(),
+};
+
+const mockBlockManagementService = {
+  updateBlock: vi.fn(),
+};
+
+const mockBlockPropertyService = {
+  updateProperty: vi.fn(),
+};
+
+vi.mock('../../backend/repositories/implementations/drizzle-block.repository', () => ({
+  DrizzleBlockRepository: vi.fn(() => mockBlockRepository),
+}));
+
+vi.mock('../../backend/services/block-management.service', () => ({
+  BlockManagementService: vi.fn(() => mockBlockManagementService),
+}));
+
+vi.mock('../../backend/services/block-property.service', () => ({
+  BlockPropertyService: vi.fn(() => mockBlockPropertyService),
+}));
 
 describe('Block Actions', () => {
-  // 테스트용 고정 UUID (삭제 금지)
-  const TEST_PROFILE_ID = '571f5680-0684-405d-b977-f6f28ff1df6f';
-  const TEST_ORG_ID = 'ff215d4a-045d-499d-bf6b-07426bcc0b06';
-  const TEST_WORKSPACE_ID = 'e4ee861a-4de1-42ce-820f-33866b136068';
-  const TEST_PAGE_ID = '88597cb7-6828-480d-a77b-04db5ed5a142';
+  const blockId = '550e8400-e29b-41d4-a716-446655440000';
 
-  describe('createBlockAction', () => {
-    it('정상적으로 블럭을 생성할 수 있어야 한다', async () => {
-      // Given
-      const request = {
-        blockType: 'text',
-        workspaceId: TEST_WORKSPACE_ID,
-        metadata: { content: 'Hello World' },
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('updateBlockPropertyAction', () => {
+    it('should update a block property successfully', async () => {
+      const mockBlock = {
+        id: { value: blockId },
+        properties: { toJSON: () => ({ title: 'Updated Title' }) },
+        customProperties: [],
+        workspaceId: 'workspace-123',
+        blockType: { value: 'text' },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: undefined,
       };
+      
+      mockBlockRepository.findById.mockResolvedValue(mockBlock);
 
-      // When
-      const result = await createBlockAction(request);
+      const result = await updateBlockPropertyAction({
+        blockId,
+        propertyPath: 'title',
+        value: 'Updated Title',
+      });
 
-      // Then
-      expect(result.isSuccess()).toBe(true);
-      if (result.isSuccess()) {
-        const dto = result.value;
-        expect(dto.id).toBeTruthy();
-        expect(dto.blockType).toBe('text');
-        expect(dto.workspaceId).toBe(TEST_WORKSPACE_ID);
-        expect(dto.metadata).toEqual({ content: 'Hello World' });
-        expect(dto.createdAt).toBeTruthy();
-        expect(dto.updatedAt).toBeTruthy();
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.blockId).toBe(blockId);
+        expect(result.data.propertyPath).toBe('title');
+        expect(result.data.value).toBe('Updated Title');
       }
     });
 
-    it('잘못된 workspaceId로 블럭 생성을 시도하면 에러를 반환해야 한다', async () => {
-      // Given
-      const request = {
-        blockType: 'text',
-        workspaceId: 'invalid-workspace-id',
-        metadata: { content: 'Hello World' },
+    it('should return error when validation fails', async () => {
+      const result = await updateBlockPropertyAction({
+        blockId: 'invalid-uuid',
+        propertyPath: 'title',
+        value: 'Updated Title',
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should return error when block not found', async () => {
+      mockBlockRepository.findById.mockResolvedValue(null);
+
+      const result = await updateBlockPropertyAction({
+        blockId,
+        propertyPath: 'title',
+        value: 'Updated Title',
+      });
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('updateBlockTitleAction', () => {
+    it('should update a block title successfully', async () => {
+      const mockBlock = {
+        id: { value: blockId },
+        title: 'Updated Title',
+        updatedAt: new Date(),
       };
 
-      // When
-      const result = await createBlockAction(request);
+      mockBlockRepository.findById.mockResolvedValue(mockBlock);
 
-      // Then
-      expect(result.isError()).toBe(true);
-      if (result.isError()) {
-        expect(result.error.message).toContain('Invalid workspace ID format');
+      const result = await updateBlockTitleAction({
+        blockId,
+        title: 'Updated Title',
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.blockId).toBe(blockId);
+        expect(result.data.title).toBe('Updated Title');
       }
     });
 
-    it('빈 blockType으로 블럭 생성을 시도하면 에러를 반환해야 한다', async () => {
-      // Given
-      const request = {
-        blockType: '',
-        workspaceId: TEST_WORKSPACE_ID,
-        metadata: {},
-      };
+    it('should return error when validation fails', async () => {
+      const result = await updateBlockTitleAction({
+        blockId: 'invalid-uuid',
+        title: 'Updated Title',
+      });
 
-      // When
-      const result = await createBlockAction(request);
-
-      // Then
-      expect(result.isError()).toBe(true);
-      if (result.isError()) {
-        expect(result.error.message).toContain('Block type is required');
-      }
+      expect(result.success).toBe(false);
     });
 
-    it('메타데이터 없이도 블럭을 생성할 수 있어야 한다', async () => {
-      // Given
-      const request = {
-        blockType: 'text',
-        workspaceId: TEST_WORKSPACE_ID,
-      };
+    it('should return error when block not found', async () => {
+      mockBlockRepository.findById.mockResolvedValue(null);
 
-      // When
-      const result = await createBlockAction(request);
+      const result = await updateBlockTitleAction({
+        blockId,
+        title: 'Updated Title',
+      });
 
-      // Then
-      expect(result.isSuccess()).toBe(true);
-      if (result.isSuccess()) {
-        const dto = result.value;
-        expect(dto.metadata).toEqual({});
-      }
+      expect(result.success).toBe(false);
     });
   });
 });

@@ -2,19 +2,27 @@ import { createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 import { Database } from '@/types/database.types';
 import { Database as DevDatabase } from '@/types/database-dev.types';
-import { config } from '@/config';
 
+// Edge Runtime에서는 config import 대신 직접 환경변수 읽기
 const isDevelopment = process.env.NODE_ENV === 'development';
 type DatabaseType = typeof isDevelopment extends true ? DevDatabase : Database;
 
 export async function updateSession(request: NextRequest) {
+  // Edge Runtime에서 환경변수 직접 접근
+  const supabaseUrl =
+    process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey =
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    '';
+
   let supabaseResponse = NextResponse.next({
     request,
   });
 
   const supabase = createServerClient<DatabaseType>(
-    config.supabase.url,
-    config.supabase.anonKey,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {

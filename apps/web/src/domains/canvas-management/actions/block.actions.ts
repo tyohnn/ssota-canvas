@@ -1,114 +1,187 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
-import { revalidatePath } from 'next/cache';
 import {
-  CreateBlockRequest,
-  BlockMountedDTO,
-  UpdateBlockPositionRequest,
-  UpdateBlockSizeRequest,
-  UpdateMultipleBlockPositionsRequest,
+  BlockCreatedAndMountedDTO,
   BlockPositionUpdatedDTO,
   BlockSizeUpdatedDTO,
-  MultipleBlockPositionsUpdatedDTO,
-  DeleteBlockMountRequest,
-  DeleteMultipleBlockMountsRequest,
-  BlockMountDeletedDTO,
-  MultipleBlockMountsDeletedDTO,
-} from '../shared/dtos/index';
+  BlockMountSoftDeletedDTO,
+  BlockDuplicatedAndMountedDTO,
+} from '../shared/dtos/responses';
+import {
+  CreateAndMountBlockRequestSchema,
+  CreateAndMountBlockRequest,
+  UpdateBlockPositionRequestSchema,
+  UpdateBlockPositionRequest,
+  UpdateBlockSizeRequestSchema,
+  UpdateBlockSizeRequest,
+  SoftDeleteBlockMountRequestSchema,
+  SoftDeleteBlockMountRequest,
+  DuplicateBlockAndMountRequestSchema,
+  DuplicateBlockAndMountRequest,
+} from '../shared/dtos/requests';
 import { ActionResult, ok, err } from '@/lib/action-result';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import {
+  getAuthenticatedUser,
+  verifyAccess,
+  type AuthenticatedUser,
+} from '@/domains/common/auth/helpers';
+import { getAuthErrorMessage } from '@/domains/common/auth/error';
+import type { Workspace } from '@/domains/workspace-management/shared/entities/workspace.entity';
 import { Position } from '../shared/value-objects/position.vo';
 import { Size } from '../shared/value-objects/size.vo';
 import { BlockMountId } from '../shared/value-objects/block-mount-id.vo';
-import { CanvasManagementService } from '../backend/services/canvas-management.service';
+import { BlockType } from '@/domains/block-management/shared/value-objects/block-type.vo';
 import { BlockManagementService } from '@/domains/block-management/backend/services/block-management.service';
+import { CanvasBlockMountService } from '../backend/services/canvas-block-mount.service';
 import { DrizzleBlockMountRepository } from '../backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '../backend/repositories/implementations/drizzle-edge.repository';
-import { DrizzleViewportRepository } from '../backend/repositories/implementations/drizzle-viewport.repository';
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
-import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
-import {
-  CreateAndMountBlockCommand,
-  UpdateBlockPositionCommand,
-  UpdateBlockSizeCommand,
-  UpdateMultipleBlockPositionsCommand,
-  DeleteBlockMountCommand,
-  DeleteMultipleBlockMountsCommand,
-  DuplicateBlockCommand,
-} from '../shared/commands/index';
 
 /**
  * Block 생성 및 마운팅 통합 Server Action
  *
- * @param request - CreateBlockRequest
+ * ⚠️ Security: 이 함수는 HTTP를 통해 공개되므로 모든 입력을 검증합니다
+ *
+ * Defense in Depth:
+ * 1. Request 스키마 검증
+ * 2. 사용자 인증 확인
+ * 3. 조직 멤버십 확인
+ * 4. 워크스페이스 접근 권한 확인
+ *
+ * @param request - 클라이언트 요청 (런타임 검증 필요)
  * @returns BlockMountedDTO (성공) | Error (실패)
  */
-export async function createBlockAction(
-  request: CreateBlockRequest
-): Promise<ActionResult<BlockMountedDTO>> {
-  try {
-    // 1. Supabase Auth 인증 확인
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+export async function createAndMountBlockAction(
+  request: unknown // ⚠️ 외부 입력 - 신뢰하지 않음
+): Promise<ActionResult<BlockCreatedAndMountedDTO>> {
+  // 1. Runtime Validation (필수)
+  const parseResult = CreateAndMountBlockRequestSchema.safeParse(request);
 
-    if (authError || !user) {
-      console.error('❌ [createBlockAction] Authentication failed:', authError);
-      return err('Unauthorized: User not authenticated', {
-        code: 'UNAUTHORIZED',
-        meta: { authError: authError?.message },
+  if (!parseResult.success) {
+    console.warn('[Security] Invalid request to createBlockAction', {
+      errors: parseResult.error.issues,
+      timestamp: new Date().toISOString(),
+    });
+
+    return err('Invalid request data', {
+      code: 'INVALID_REQUEST',
+      meta: { errors: parseResult.error.issues },
+    });
+  }
+
+  // 2. 검증된 데이터는 타입 안전
+  const validatedRequest = parseResult.data; // type: CreateAndMountBlockRequest
+
+  // 3. 인증 확인 (Supabase Auth)
+  try {
+    const authenticatedUser = await getAuthenticatedUser();
+
+    // 4. orgId 필수 확인
+    if (!validatedRequest.orgId) {
+      console.warn('[Security] Missing orgId in request', {
+        userId: authenticatedUser.id,
+        workspaceId: validatedRequest.workspaceId,
+      });
+
+      return err('Organization ID is required', {
+        code: 'MISSING_ORG_ID',
       });
     }
 
-    const userIdVO = new UserId(user.id);
-    const pageIdVO = new PageId(request.pageId);
-
-    // 2. 기본 크기 설정 (size가 제공되지 않은 경우)
-    const defaultSize = { width: 200, height: 150 };
-    const sizeVO = new Size(
-      request.size?.width ?? defaultSize.width,
-      request.size?.height ?? defaultSize.height
+    // 5. 조직 & 워크스페이스 권한 확인
+    const accessResult = await verifyAccess(
+      validatedRequest.orgId,
+      validatedRequest.workspaceId,
+      authenticatedUser.id
     );
-    const positionVO = new Position(request.position.x, request.position.y);
 
-    // 3. Repository 인스턴스 생성
+    if (!accessResult.success) {
+      console.warn('[Security] Access denied', {
+        userId: authenticatedUser.id,
+        orgId: validatedRequest.orgId,
+        workspaceId: validatedRequest.workspaceId,
+        error: accessResult.error,
+      });
+
+      return err(getAuthErrorMessage(accessResult.error), {
+        code: accessResult.error || 'ACCESS_DENIED',
+      });
+    }
+
+    // 6. 검증 완료 - Internal 함수 호출 (검증된 workspace 전달)
+    return await createAndMountBlockInternal(
+      validatedRequest,
+      authenticatedUser,
+      accessResult.workspace! // ✅ 검증된 workspace entity
+    );
+  } catch (error) {
+    console.error('[createAndMountBlockAction] Authentication error:', error);
+
+    return err(
+      error instanceof Error ? error.message : 'Authentication failed',
+      {
+        code: 'UNAUTHORIZED',
+      }
+    );
+  }
+}
+
+/**
+ * 내부 구현 (검증된 데이터만 처리)
+ *
+ * ⚠️ 이 함수는 이미 검증된 요청과 인증된 사용자만 받습니다
+ *
+ * @param request - 검증된 요청
+ * @param user - 인증된 사용자
+ * @param workspace - 검증된 워크스페이스 entity
+ */
+async function createAndMountBlockInternal(
+  request: CreateAndMountBlockRequest, // ✅ 이미 검증됨
+  authenticatedUser: AuthenticatedUser, // ✅ 이미 인증됨
+  workspace: Workspace // ✅ 이미 검증된 workspace entity
+): Promise<ActionResult<BlockCreatedAndMountedDTO>> {
+  try {
+    // 1. Value Objects 생성 (타입 안전 - 이미 검증됨)
+    const userIdVO = new UserId(authenticatedUser.id);
+    const pageIdVO = new PageId(request.pageId);
+    const sizeVO = new Size(request.size.width, request.size.height);
+    const positionVO = new Position(request.position.x, request.position.y);
+    const blockTypeVO = new BlockType(request.blockType);
+
+    // 2. Repository 인스턴스 생성
     const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
-    const viewportRepository = new DrizzleViewportRepository();
     const blockRepository = new DrizzleBlockRepository();
-    const workspaceRepository = new DrizzleWorkspaceRepository();
 
-    // 4. Service 인스턴스 생성
+    // 3. Service 인스턴스 생성
     const blockManagementService = new BlockManagementService(blockRepository);
-    const canvasManagementService = new CanvasManagementService(
+    const blockMountService = new CanvasBlockMountService(
       blockManagementService,
       blockMountRepository,
-      edgeRepository,
-      viewportRepository,
-      workspaceRepository
+      edgeRepository
     );
 
-    // 5. Block 생성 및 마운팅 Command 생성
-    const command: CreateAndMountBlockCommand = {
-      blockType: request.blockType,
-      workspaceId: request.workspaceId,
+    // 4. Block 생성 및 마운팅 Command 생성 (검증된 workspace의 VO 사용)
+    const params = {
+      userId: userIdVO,
+      workspaceId: workspace.workspaceId, // ✅ 검증된 workspace entity의 VO 사용
       pageId: pageIdVO,
+      blockType: blockTypeVO,
       position: positionVO,
       size: sizeVO,
-      userId: userIdVO.value,
-      metadata: {}, // 기본 메타데이터
+      title: request.title, // 초기 title 전달 (optional)
+      initialProperties: request.initialProperties, // 초기 properties 전달 (optional)
+      initialContent: request.initialContent, // ✨ 초기 content 전달 (optional)
     };
 
-    // 6. CanvasManagementService.createAndMountBlock 호출
-    const result = await canvasManagementService.createAndMountBlock(command);
+    // 5. CanvasBlockMountService.createAndMountBlock 호출
+    const result = await blockMountService.createAndMountBlock(params);
 
     if (result.isError()) {
       console.error(
-        '❌ [createBlockAction] CanvasManagementService failed:',
+        '❌ [createBlockInternal] BlockMountService failed:',
         result.error
       );
       return err(String(result.error), {
@@ -120,37 +193,42 @@ export async function createBlockAction(
       });
     }
 
-    const aggregate = result.value;
+    // 7. 명시적 변수명으로 Aggregate와 Entity 분리
+    const { blockMountAggregate, blockAggregate } = result.value;
+    const blockMount = blockMountAggregate.getBlockMount();
+    const block = blockAggregate.getBlock();
 
-    // 7. BlockMountedDTO로 변환
-    const blockMountedDTO: BlockMountedDTO = {
-      blockMountId: aggregate.blockMount.id.value,
-      blockId: aggregate.blockMount.blockId.value,
+    // 8. BlockView (= BlockCreatedAndMountedDTO) 형식으로 변환
+    const blockView: BlockCreatedAndMountedDTO = {
+      // Mount 정보 (mountAggregate에서 추출)
+      blockMountId: blockMount.id.value,
       position: {
-        x: aggregate.blockMount.position.x,
-        y: aggregate.blockMount.position.y,
+        x: blockMount.position.x,
+        y: blockMount.position.y,
       },
       size: {
-        width: aggregate.blockMount.size.width,
-        height: aggregate.blockMount.size.height,
+        width: blockMount.size.width,
+        height: blockMount.size.height,
       },
-      zOrder: aggregate.blockMount.zOrder.value,
-      createdAt: new Date().toISOString(),
+      zOrder: blockMount.zOrder.value,
+
+      // Block 정보 (blockEntity에서 추출)
+      blockId: block.id.value,
+      blockType: block.blockType.value,
+      title: block.title,
+      properties: block.properties.toJSON(), // Value Object를 JSON으로 변환
+      customProperties: block.customProperties.map(cp => cp.toJSON()) || [],
+      content: block.content, // JSONB content
+
+      // 메타데이터 (blockEntity에서 추출)
+      createdAt: block.createdAt.toISOString(),
+      updatedAt: block.updatedAt.toISOString(),
+      createdByProfile: block.createdByProfile,
     };
 
-    // 8. 페이지 재검증 및 성공적으로 BlockMountedDTO 반환
-    if (request.orgId) {
-      revalidatePath(
-        `/r/${request.orgId}/workspace/${request.workspaceId}/page/${request.pageId}`
-      );
-    } else {
-      // orgId가 없는 경우 기존 경로 사용 (호환성)
-      revalidatePath(`/r/${request.workspaceId}/page/${request.pageId}`);
-    }
-
-    return ok(blockMountedDTO);
+    return ok(blockView);
   } catch (error) {
-    console.error('[createBlockAction] Error:', error);
+    console.error('[createBlockInternal] Internal error:', error);
     return err('Internal server error', {
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
@@ -164,68 +242,111 @@ export async function createBlockAction(
 /**
  * 블럭 위치 업데이트 Server Action
  *
- * @param request - UpdateBlockPositionRequest
- * @returns BlockPositionUpdatedDTO (성공) | Error (실패)
+ * ⚠️ Security: 이 함수는 HTTP를 통해 공개되므로 모든 입력을 검증합니다
+ *
+ * Defense in Depth:
+ * 1. Request 스키마 검증
+ * 2. 사용자 인증 확인
+ * 3. 조직 멤버십 확인
+ * 4. 워크스페이스 접근 권한 확인
+ *
+ * @param request - 클라이언트 요청 (런타임 검증 필요)
+ * @returns BlockPositionUpdatedDTO[] (성공) | Error (실패)
  */
 export async function updateBlockPositionAction(
-  request: UpdateBlockPositionRequest
-): Promise<ActionResult<BlockPositionUpdatedDTO>> {
-  try {
-    // 1. Supabase Auth 인증 확인
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+  request: unknown // ⚠️ 외부 입력 - 신뢰하지 않음
+): Promise<ActionResult<BlockPositionUpdatedDTO[]>> {
+  // 1. Runtime Validation (필수)
+  const parseResult = UpdateBlockPositionRequestSchema.safeParse(request);
 
-    if (authError || !user) {
-      console.error(
-        '❌ [updateBlockPositionAction] Authentication failed:',
-        authError
-      );
-      return err('Unauthorized: User not authenticated', {
-        code: 'UNAUTHORIZED',
-        meta: { authError: authError?.message },
+  if (!parseResult.success) {
+    console.warn('[Security] Invalid request to updateBlockPositionAction', {
+      errors: parseResult.error.issues,
+      timestamp: new Date().toISOString(),
+    });
+
+    return err('Invalid request data', {
+      code: 'INVALID_REQUEST',
+      meta: { errors: parseResult.error.issues },
+    });
+  }
+
+  // 2. 검증된 데이터는 타입 안전
+  const validatedRequest = parseResult.data;
+
+  // 3. 인증 및 권한 확인
+  try {
+    const user = await getAuthenticatedUser();
+
+    // 4. 조직 및 워크스페이스 접근 권한 확인
+    const accessResult = await verifyAccess(
+      validatedRequest.orgId,
+      validatedRequest.workspaceId,
+      user.id
+    );
+
+    if (!accessResult.success) {
+      console.warn('[Security] Access verification failed', {
+        userId: user.id,
+        orgId: validatedRequest.orgId,
+        workspaceId: validatedRequest.workspaceId,
+        error: accessResult.error,
+      });
+
+      return err(getAuthErrorMessage(accessResult.error), {
+        code: accessResult.error || 'ACCESS_DENIED',
       });
     }
 
-    const userIdVO = new UserId(user.id);
-    const blockMountIdVO = new BlockMountId(request.blockMountId);
-    const positionVO = new Position(
-      request.newPosition.x,
-      request.newPosition.y
+    // 5. 검증 완료 - Internal 함수 호출
+    return await updateBlockPositionInternal(validatedRequest, user);
+  } catch (error) {
+    console.error('[updateBlockPositionAction] Authentication error:', error);
+
+    return err(
+      error instanceof Error ? error.message : 'Authentication failed',
+      { code: 'AUTHENTICATION_FAILED' }
     );
+  }
+}
+
+/**
+ * 내부 구현 (검증된 데이터만 처리)
+ */
+async function updateBlockPositionInternal(
+  request: UpdateBlockPositionRequest,
+  user: AuthenticatedUser
+): Promise<ActionResult<BlockPositionUpdatedDTO[]>> {
+  try {
+    const userIdVO = new UserId(user.id);
 
     // 2. Repository 인스턴스 생성
     const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
-    const viewportRepository = new DrizzleViewportRepository();
     const blockRepository = new DrizzleBlockRepository();
-    const workspaceRepository = new DrizzleWorkspaceRepository();
 
     // 3. Service 인스턴스 생성
     const blockManagementService = new BlockManagementService(blockRepository);
-    const canvasManagementService = new CanvasManagementService(
+    const canvasBlockMountService = new CanvasBlockMountService(
       blockManagementService,
       blockMountRepository,
-      edgeRepository,
-      viewportRepository,
-      workspaceRepository
+      edgeRepository
     );
 
-    // 4. Command 생성
-    const command: UpdateBlockPositionCommand = {
-      blockMountId: blockMountIdVO,
-      newPosition: positionVO,
-      userId: userIdVO.value,
-    };
+    // 4. Command 생성 (배열 형태)
 
     // 5. Service 메서드 호출
-    const result = await canvasManagementService.updateBlockPosition(command);
+    const result = await canvasBlockMountService.updateBlockPosition({
+      blockPositions: request.blockPositions.map(bp => ({
+        blockMountId: new BlockMountId(bp.blockMountId),
+        position: new Position(bp.position.x, bp.position.y),
+      })),
+      userId: userIdVO,
+    });
 
     if (result.isError()) {
       console.error(
-        '❌ [updateBlockPositionAction] Service failed:',
+        '❌ [updateBlockPositionInternal] Service failed:',
         result.error
       );
       return err(String(result.error), {
@@ -234,28 +355,27 @@ export async function updateBlockPositionAction(
       });
     }
 
-    const aggregate = result.value;
+    const aggregates = result.value;
 
-    // 6. DTO 직렬화
-    const dto: BlockPositionUpdatedDTO = {
-      blockMountId: aggregate.blockMount.id.value,
+    // 6. DTO 직렬화 (다중 결과 처리)
+    const dtos: BlockPositionUpdatedDTO[] = aggregates.map(aggregate => ({
+      blockMountId: aggregate.getBlockMount().id.value,
       newPosition: {
-        x: aggregate.blockMount.position.x,
-        y: aggregate.blockMount.position.y,
+        x: aggregate.getBlockMount().position.x,
+        y: aggregate.getBlockMount().position.y,
       },
-      updatedAt: aggregate.blockMount.updatedAt.toISOString(),
-    };
+      updatedAt: aggregate.getBlockMount().updatedAt.toISOString(),
+    }));
 
-    // 7. 페이지 재검증
-    if (request.orgId && request.workspaceId && request.pageId) {
-      revalidatePath(
-        `/r/${request.orgId}/workspace/${request.workspaceId}/page/${request.pageId}`
-      );
+    if (dtos.length === 0) {
+      return err('No aggregate returned from service', {
+        code: 'POSITION_UPDATE_FAILED',
+      });
     }
 
-    return ok(dto);
+    return ok(dtos);
   } catch (error) {
-    console.error('[updateBlockPositionAction] Error:', error);
+    console.error('[updateBlockPositionInternal] Internal error:', error);
     return err('Internal server error', {
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
@@ -269,31 +389,82 @@ export async function updateBlockPositionAction(
 /**
  * 블럭 크기 업데이트 Server Action
  *
- * @param request - UpdateBlockSizeRequest
+ * ⚠️ Security: 이 함수는 HTTP를 통해 공개되므로 모든 입력을 검증합니다
+ *
+ * Defense in Depth:
+ * 1. Request 스키마 검증
+ * 2. 사용자 인증 확인
+ * 3. 조직 멤버십 확인
+ * 4. 워크스페이스 접근 권한 확인
+ *
+ * @param request - 클라이언트 요청 (런타임 검증 필요)
  * @returns BlockSizeUpdatedDTO (성공) | Error (실패)
  */
 export async function updateBlockSizeAction(
-  request: UpdateBlockSizeRequest
+  request: unknown // ⚠️ 외부 입력 - 신뢰하지 않음
 ): Promise<ActionResult<BlockSizeUpdatedDTO>> {
-  try {
-    // 1. Supabase Auth 인증 확인
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+  // 1. Runtime Validation (필수)
+  const parseResult = UpdateBlockSizeRequestSchema.safeParse(request);
 
-    if (authError || !user) {
-      console.error(
-        '❌ [updateBlockSizeAction] Authentication failed:',
-        authError
-      );
-      return err('Unauthorized: User not authenticated', {
-        code: 'UNAUTHORIZED',
-        meta: { authError: authError?.message },
+  if (!parseResult.success) {
+    console.warn('[Security] Invalid request to updateBlockSizeAction', {
+      errors: parseResult.error.issues,
+      timestamp: new Date().toISOString(),
+    });
+
+    return err('Invalid request data', {
+      code: 'INVALID_REQUEST',
+      meta: { errors: parseResult.error.issues },
+    });
+  }
+
+  // 2. 검증된 데이터는 타입 안전
+  const validatedRequest = parseResult.data;
+
+  // 3. 인증 및 권한 확인
+  try {
+    const user = await getAuthenticatedUser();
+
+    // 4. 조직 및 워크스페이스 접근 권한 확인
+    const accessResult = await verifyAccess(
+      validatedRequest.orgId,
+      validatedRequest.workspaceId,
+      user.id
+    );
+
+    if (!accessResult.success) {
+      console.warn('[Security] Access verification failed', {
+        userId: user.id,
+        orgId: validatedRequest.orgId,
+        workspaceId: validatedRequest.workspaceId,
+        error: accessResult.error,
+      });
+
+      return err(getAuthErrorMessage(accessResult.error), {
+        code: accessResult.error || 'ACCESS_DENIED',
       });
     }
 
+    // 5. 검증 완료 - Internal 함수 호출
+    return await updateBlockSizeInternal(validatedRequest, user);
+  } catch (error) {
+    console.error('[updateBlockSizeAction] Authentication error:', error);
+
+    return err(
+      error instanceof Error ? error.message : 'Authentication failed',
+      { code: 'AUTHENTICATION_FAILED' }
+    );
+  }
+}
+
+/**
+ * 내부 구현 (검증된 데이터만 처리)
+ */
+async function updateBlockSizeInternal(
+  request: UpdateBlockSizeRequest,
+  user: AuthenticatedUser
+): Promise<ActionResult<BlockSizeUpdatedDTO>> {
+  try {
     const userIdVO = new UserId(user.id);
     const blockMountIdVO = new BlockMountId(request.blockMountId);
     const sizeVO = new Size(request.newSize.width, request.newSize.height);
@@ -301,32 +472,28 @@ export async function updateBlockSizeAction(
     // 2. Repository 인스턴스 생성
     const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
-    const viewportRepository = new DrizzleViewportRepository();
     const blockRepository = new DrizzleBlockRepository();
-    const workspaceRepository = new DrizzleWorkspaceRepository();
 
     // 3. Service 인스턴스 생성
     const blockManagementService = new BlockManagementService(blockRepository);
-    const canvasManagementService = new CanvasManagementService(
+    const canvasBlockMountService = new CanvasBlockMountService(
       blockManagementService,
       blockMountRepository,
-      edgeRepository,
-      viewportRepository,
-      workspaceRepository
+      edgeRepository
     );
 
     // 4. Command 생성
-    const command: UpdateBlockSizeCommand = {
+    const result = await canvasBlockMountService.updateBlockSize({
       blockMountId: blockMountIdVO,
-      newSize: sizeVO,
-      userId: userIdVO.value,
-    };
-
-    // 5. Service 메서드 호출
-    const result = await canvasManagementService.updateBlockSize(command);
+      size: sizeVO,
+      userId: userIdVO,
+    });
 
     if (result.isError()) {
-      console.error('❌ [updateBlockSizeAction] Service failed:', result.error);
+      console.error(
+        '❌ [updateBlockSizeInternal] Service failed:',
+        result.error
+      );
       return err(String(result.error), {
         code: 'SIZE_UPDATE_FAILED',
         meta: { originalError: result.error },
@@ -337,24 +504,17 @@ export async function updateBlockSizeAction(
 
     // 6. DTO 직렬화
     const dto: BlockSizeUpdatedDTO = {
-      blockMountId: aggregate.blockMount.id.value,
+      blockMountId: aggregate.getBlockMount().id.value,
       newSize: {
-        width: aggregate.blockMount.size.width,
-        height: aggregate.blockMount.size.height,
+        width: aggregate.getBlockMount().size.width,
+        height: aggregate.getBlockMount().size.height,
       },
-      updatedAt: aggregate.blockMount.updatedAt.toISOString(),
+      updatedAt: aggregate.getBlockMount().updatedAt.toISOString(),
     };
-
-    // 7. 페이지 재검증
-    if (request.orgId && request.workspaceId && request.pageId) {
-      revalidatePath(
-        `/r/${request.orgId}/workspace/${request.workspaceId}/page/${request.pageId}`
-      );
-    }
 
     return ok(dto);
   } catch (error) {
-    console.error('[updateBlockSizeAction] Error:', error);
+    console.error('[updateBlockSizeInternal] Internal error:', error);
     return err('Internal server error', {
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
@@ -366,163 +526,112 @@ export async function updateBlockSizeAction(
 }
 
 /**
- * 다중 블럭 위치 일괄 업데이트 Server Action (정렬/분포용)
- *
- * @param request - UpdateMultipleBlockPositionsRequest
- * @returns MultipleBlockPositionsUpdatedDTO (성공) | Error (실패)
- */
-export async function updateMultipleBlockPositionsAction(
-  request: UpdateMultipleBlockPositionsRequest
-): Promise<ActionResult<MultipleBlockPositionsUpdatedDTO>> {
-  try {
-    // 1. Supabase Auth 인증 확인
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      console.error(
-        '❌ [updateMultipleBlockPositionsAction] Authentication failed:',
-        authError
-      );
-      return err('Unauthorized: User not authenticated', {
-        code: 'UNAUTHORIZED',
-        meta: { authError: authError?.message },
-      });
-    }
-
-    const userIdVO = new UserId(user.id);
-
-    // 2. Repository 인스턴스 생성
-    const blockMountRepository = new DrizzleBlockMountRepository();
-    const edgeRepository = new DrizzleEdgeRepository();
-    const viewportRepository = new DrizzleViewportRepository();
-    const blockRepository = new DrizzleBlockRepository();
-    const workspaceRepository = new DrizzleWorkspaceRepository();
-
-    // 3. Service 인스턴스 생성
-    const blockManagementService = new BlockManagementService(blockRepository);
-    const canvasManagementService = new CanvasManagementService(
-      blockManagementService,
-      blockMountRepository,
-      edgeRepository,
-      viewportRepository,
-      workspaceRepository
-    );
-
-    // 4. Command 생성
-    const command: UpdateMultipleBlockPositionsCommand = {
-      blockPositions: request.blockPositions.map(bp => ({
-        blockMountId: new BlockMountId(bp.blockMountId),
-        position: new Position(bp.position.x, bp.position.y),
-      })),
-      userId: userIdVO.value,
-    };
-
-    // 5. Service 메서드 호출
-    const result =
-      await canvasManagementService.updateMultipleBlockPositions(command);
-
-    if (result.isError()) {
-      console.error(
-        '❌ [updateMultipleBlockPositionsAction] Service failed:',
-        result.error
-      );
-      return err(String(result.error), {
-        code: 'MULTIPLE_POSITIONS_UPDATE_FAILED',
-        meta: { originalError: result.error },
-      });
-    }
-
-    // 6. DTO 직렬화
-    const dto: MultipleBlockPositionsUpdatedDTO = {
-      updatedCount: request.blockPositions.length,
-      updatedAt: new Date().toISOString(),
-    };
-
-    // 7. 페이지 재검증
-    if (request.orgId && request.workspaceId && request.pageId) {
-      revalidatePath(
-        `/r/${request.orgId}/workspace/${request.workspaceId}/page/${request.pageId}`
-      );
-    }
-
-    return ok(dto);
-  } catch (error) {
-    console.error('[updateMultipleBlockPositionsAction] Error:', error);
-    return err('Internal server error', {
-      code: 'INTERNAL_SERVER_ERROR',
-      meta: {
-        originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
-      },
-    });
-  }
-}
-
-/**
- * 블럭 마운트 삭제 Server Action (연결된 엣지 자동 정리)
+ * Soft Delete Block Mount Server Action (연결된 엣지 자동 정리)
  * Story CM-008 구현
  *
- * @param request - DeleteBlockMountRequest
- * @returns BlockMountDeletedDTO (성공) | Error (실패)
+ * ⚠️ Security: 이 함수는 HTTP를 통해 공개되므로 모든 입력을 검증합니다
+ *
+ * Defense in Depth:
+ * 1. Request 스키마 검증
+ * 2. 사용자 인증 확인
+ * 3. 조직 멤버십 확인
+ * 4. 워크스페이스 접근 권한 확인
+ *
+ * @param request - 클라이언트 요청 (런타임 검증 필요)
+ * @returns SoftDeletedBlockMountsDTO (성공) | Error (실패)
  */
-export async function deleteBlockMountAction(
-  request: DeleteBlockMountRequest
-): Promise<ActionResult<BlockMountDeletedDTO>> {
-  try {
-    // 1. Supabase Auth 인증 확인
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+export async function softDeleteBlockMountAction(
+  request: unknown // ⚠️ 외부 입력 - 신뢰하지 않음
+): Promise<ActionResult<BlockMountSoftDeletedDTO>> {
+  // 1. Runtime Validation (필수)
+  const parseResult = SoftDeleteBlockMountRequestSchema.safeParse(request);
 
-    if (authError || !user) {
-      console.error(
-        '❌ [deleteBlockMountAction] Authentication failed:',
-        authError
-      );
-      return err('Unauthorized: User not authenticated', {
-        code: 'UNAUTHORIZED',
-        meta: { authError: authError?.message },
+  if (!parseResult.success) {
+    console.warn('[Security] Invalid request to softDeleteBlockMountAction', {
+      errors: parseResult.error.issues,
+      timestamp: new Date().toISOString(),
+    });
+
+    return err('Invalid request data', {
+      code: 'INVALID_REQUEST',
+      meta: { errors: parseResult.error.issues },
+    });
+  }
+
+  // 2. 검증된 데이터는 타입 안전
+  const validatedRequest = parseResult.data;
+
+  // 3. 인증 및 권한 확인
+  try {
+    const user = await getAuthenticatedUser();
+
+    // 4. 조직 및 워크스페이스 접근 권한 확인
+    const accessResult = await verifyAccess(
+      validatedRequest.orgId,
+      validatedRequest.workspaceId,
+      user.id
+    );
+
+    if (!accessResult.success) {
+      console.warn('[Security] Access verification failed', {
+        userId: user.id,
+        orgId: validatedRequest.orgId,
+        workspaceId: validatedRequest.workspaceId,
+        error: accessResult.error,
+      });
+
+      return err(getAuthErrorMessage(accessResult.error), {
+        code: accessResult.error || 'ACCESS_DENIED',
       });
     }
 
+    // 5. 검증 완료 - Internal 함수 호출
+    return await softDeleteBlockMountInternal(validatedRequest, user);
+  } catch (error) {
+    console.error('[softDeleteBlockMountAction] Authentication error:', error);
+
+    return err(
+      error instanceof Error ? error.message : 'Authentication failed',
+      { code: 'AUTHENTICATION_FAILED' }
+    );
+  }
+}
+
+/**
+ * Soft Delete Block Mount 내부 구현 (검증된 데이터만 처리)
+ */
+async function softDeleteBlockMountInternal(
+  request: SoftDeleteBlockMountRequest,
+  user: AuthenticatedUser
+): Promise<ActionResult<BlockMountSoftDeletedDTO>> {
+  try {
     const userIdVO = new UserId(user.id);
-    const blockMountIdVO = new BlockMountId(request.blockMountId);
 
     // 2. Repository 인스턴스 생성
     const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
-    const viewportRepository = new DrizzleViewportRepository();
     const blockRepository = new DrizzleBlockRepository();
-    const workspaceRepository = new DrizzleWorkspaceRepository();
 
     // 3. Service 인스턴스 생성
     const blockManagementService = new BlockManagementService(blockRepository);
-    const canvasManagementService = new CanvasManagementService(
+    const canvasBlockMountService = new CanvasBlockMountService(
       blockManagementService,
       blockMountRepository,
-      edgeRepository,
-      viewportRepository,
-      workspaceRepository
+      edgeRepository
     );
 
-    // 4. Command 생성
-    const command: DeleteBlockMountCommand = {
-      blockMountId: blockMountIdVO,
-      userId: userIdVO.value,
+    // 4. Command 생성 (배열 형태)
+    const params = {
+      blockMountIds: request.blockMountIds.map(id => new BlockMountId(id)),
+      userId: userIdVO,
     };
 
     // 5. Service 메서드 호출
-    const result = await canvasManagementService.deleteBlockMount(command);
+    const result = await canvasBlockMountService.softDeleteBlockMount(params);
 
     if (result.isError()) {
       console.error(
-        '❌ [deleteBlockMountAction] Service failed:',
+        '❌ [softDeleteBlockMountInternal] Service failed:',
         result.error
       );
       return err(String(result.error), {
@@ -531,119 +640,19 @@ export async function deleteBlockMountAction(
       });
     }
 
-    // 6. DTO 직렬화
-    const dto: BlockMountDeletedDTO = {
-      blockMountId: blockMountIdVO.value,
-      deletedEdgesCount: result.value.deletedEdgesCount,
-      deletedAt: new Date().toISOString(),
-    };
-
-    // 7. 페이지 재검증
-    if (request.orgId && request.workspaceId && request.pageId) {
-      revalidatePath(
-        `/r/${request.orgId}/workspace/${request.workspaceId}/page/${request.pageId}`
-      );
-    }
-
-    return ok(dto);
-  } catch (error) {
-    console.error('[deleteBlockMountAction] Error:', error);
-    return err('Internal server error', {
-      code: 'INTERNAL_SERVER_ERROR',
-      meta: {
-        originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
-      },
-    });
-  }
-}
-
-/**
- * 다중 블럭 마운트 삭제 Server Action (연결된 엣지 자동 정리)
- * Story CM-008 구현 - 다중 블럭 삭제
- *
- * @param request - DeleteMultipleBlockMountsRequest
- * @returns MultipleBlockMountsDeletedDTO (성공) | Error (실패)
- */
-export async function deleteMultipleBlockMountsAction(
-  request: DeleteMultipleBlockMountsRequest
-): Promise<ActionResult<MultipleBlockMountsDeletedDTO>> {
-  try {
-    // 1. Supabase Auth 인증 확인
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      console.error(
-        '❌ [deleteMultipleBlockMountsAction] Authentication failed:',
-        authError
-      );
-      return err('Unauthorized: User not authenticated', {
-        code: 'UNAUTHORIZED',
-        meta: { authError: authError?.message },
-      });
-    }
-
-    const userIdVO = new UserId(user.id);
-
-    // 2. Repository 인스턴스 생성
-    const blockMountRepository = new DrizzleBlockMountRepository();
-    const edgeRepository = new DrizzleEdgeRepository();
-    const viewportRepository = new DrizzleViewportRepository();
-    const blockRepository = new DrizzleBlockRepository();
-    const workspaceRepository = new DrizzleWorkspaceRepository();
-
-    // 3. Service 인스턴스 생성
-    const blockManagementService = new BlockManagementService(blockRepository);
-    const canvasManagementService = new CanvasManagementService(
-      blockManagementService,
-      blockMountRepository,
-      edgeRepository,
-      viewportRepository,
-      workspaceRepository
-    );
-
-    // 4. Command 생성
-    const command: DeleteMultipleBlockMountsCommand = {
-      blockMountIds: request.blockMountIds.map(id => new BlockMountId(id)),
-      userId: userIdVO.value,
-    };
-
-    // 5. Service 메서드 호출
-    const result =
-      await canvasManagementService.deleteMultipleBlockMounts(command);
-
-    if (result.isError()) {
-      console.error(
-        '❌ [deleteMultipleBlockMountsAction] Service failed:',
-        result.error
-      );
-      return err(String(result.error), {
-        code: 'MULTIPLE_BLOCK_MOUNTS_DELETION_FAILED',
-        meta: { originalError: result.error },
-      });
-    }
-
-    // 6. DTO 직렬화
-    const dto: MultipleBlockMountsDeletedDTO = {
+    // 6. DTO 직렬화 (다중 결과 처리)
+    const dto: BlockMountSoftDeletedDTO = {
       deletedCount: result.value.deletedCount,
       deletedEdgesCount: result.value.deletedEdgesCount,
       deletedAt: new Date().toISOString(),
+      deletedBlockMountIds: result.value.deletedBlockMountIds.map(
+        id => id.value
+      ),
     };
-
-    // 7. 페이지 재검증
-    if (request.orgId && request.workspaceId && request.pageId) {
-      revalidatePath(
-        `/r/${request.orgId}/workspace/${request.workspaceId}/page/${request.pageId}`
-      );
-    }
 
     return ok(dto);
   } catch (error) {
-    console.error('[deleteMultipleBlockMountsAction] Error:', error);
+    console.error('[softDeleteBlockMountInternal] Internal error:', error);
     return err('Internal server error', {
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
@@ -657,82 +666,155 @@ export async function deleteMultipleBlockMountsAction(
 /**
  * 블럭 복제 Server Action
  * Story CM-010 구현
+ *
+ * ⚠️ Security: 이 함수는 HTTP를 통해 공개되므로 모든 입력을 검증합니다
+ *
+ * Defense in Depth:
+ * 1. Request 스키마 검증
+ * 2. 사용자 인증 확인
+ * 3. 조직 멤버십 확인
+ * 4. 워크스페이스 접근 권한 확인
+ *
+ * @param request - 클라이언트 요청 (런타임 검증 필요)
+ * @returns BlockDuplicatedDTO (성공) | Error (실패)
  */
-export async function duplicateBlockAction(request: {
-  blockMountId: string;
-  workspaceId: string;
-  offsetX?: number;
-  offsetY?: number;
-}): Promise<{ success: boolean; error?: string; data?: any }> {
-  try {
-    // 1. 사용자 인증 확인
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+export async function duplicateBlockAndMountAction(
+  request: unknown // ⚠️ 외부 입력 - 신뢰하지 않음
+): Promise<ActionResult<BlockDuplicatedAndMountedDTO>> {
+  // 1. Runtime Validation (필수)
+  const parseResult = DuplicateBlockAndMountRequestSchema.safeParse(request);
 
-    if (authError || !user) {
-      console.error(
-        '❌ [duplicateBlockAction] Authentication failed:',
-        authError
-      );
-      return { success: false, error: 'Unauthorized' };
+  if (!parseResult.success) {
+    console.warn('[Security] Invalid request to duplicateBlockAndMountAction', {
+      errors: parseResult.error.issues,
+      timestamp: new Date().toISOString(),
+    });
+
+    return err('Invalid request data', {
+      code: 'INVALID_REQUEST',
+      meta: { errors: parseResult.error.issues },
+    });
+  }
+
+  // 2. 검증된 데이터는 타입 안전
+  const validatedRequest = parseResult.data;
+
+  // 3. 인증 및 권한 확인
+  try {
+    const user = await getAuthenticatedUser();
+
+    // 4. 조직 및 워크스페이스 접근 권한 확인
+    const accessResult = await verifyAccess(
+      validatedRequest.orgId,
+      validatedRequest.workspaceId,
+      user.id
+    );
+
+    if (!accessResult.success) {
+      console.warn('[Security] Access verification failed', {
+        userId: user.id,
+        orgId: validatedRequest.orgId,
+        workspaceId: validatedRequest.workspaceId,
+        error: accessResult.error,
+      });
+
+      return err(getAuthErrorMessage(accessResult.error), {
+        code: accessResult.error || 'ACCESS_DENIED',
+      });
     }
 
+    // 5. 검증 완료 - Internal 함수 호출
+    return await duplicateBlockAndMountInternal(
+      validatedRequest,
+      user,
+      accessResult.workspace!
+    );
+  } catch (error) {
+    console.error(
+      '[duplicateBlockAndMountAction] Authentication error:',
+      error
+    );
+
+    return err(
+      error instanceof Error ? error.message : 'Authentication failed',
+      { code: 'AUTHENTICATION_FAILED' }
+    );
+  }
+}
+
+/**
+ * 내부 구현 (검증된 데이터만 처리)
+ */
+async function duplicateBlockAndMountInternal(
+  request: DuplicateBlockAndMountRequest,
+  user: AuthenticatedUser,
+  workspace: Workspace
+): Promise<ActionResult<BlockDuplicatedAndMountedDTO>> {
+  try {
     const userIdVO = new UserId(user.id);
 
     // 2. Repository 인스턴스 생성
     const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
-    const viewportRepository = new DrizzleViewportRepository();
     const blockRepository = new DrizzleBlockRepository();
-    const workspaceRepository = new DrizzleWorkspaceRepository();
 
     // 3. Service 인스턴스 생성
     const blockManagementService = new BlockManagementService(blockRepository);
-    const canvasManagementService = new CanvasManagementService(
+    const canvasBlockMountService = new CanvasBlockMountService(
       blockManagementService,
       blockMountRepository,
-      edgeRepository,
-      viewportRepository,
-      workspaceRepository
+      edgeRepository
     );
 
     // 4. Command 생성
-    const command: DuplicateBlockCommand = {
+    const params = {
       blockMountId: new BlockMountId(request.blockMountId),
-      workspaceId: request.workspaceId,
-      offsetX: request.offsetX,
-      offsetY: request.offsetY,
-      userId: userIdVO.value,
+      workspaceId: workspace.workspaceId!,
+      userId: userIdVO,
+      offsetX: request.offsetX || 20,
+      offsetY: request.offsetY || 20,
     };
 
     // 5. Service 메서드 호출
-    const result = await canvasManagementService.duplicateBlock(command);
+    const result = await canvasBlockMountService.duplicateBlockAndMount(params);
 
     if (result.isError()) {
-      return { success: false, error: result.error.message };
+      console.error(
+        '❌ [duplicateBlockInternal] Service failed:',
+        result.error
+      );
+      return err(String(result.error), {
+        code: 'BLOCK_DUPLICATION_FAILED',
+        meta: { originalError: result.error },
+      });
     }
 
-    // 6. 성공 응답 반환
-    return {
-      success: true,
-      data: {
-        duplicatedBlockMountId: result.value.blockMount.id.value,
-        duplicatedBlockId: result.value.blockMount.blockId.value,
-        position: {
-          x: result.value.blockMount.position.x,
-          y: result.value.blockMount.position.y,
-        },
-        size: {
-          width: result.value.blockMount.size.width,
-          height: result.value.blockMount.size.height,
-        },
-        zOrder: result.value.blockMount.zOrder.value,
+    // 6. DTO 직렬화
+    const blockMountAggregate = result.value;
+    const blockMount = blockMountAggregate.getBlockMount();
+    const dto = {
+      duplicatedBlockMountId: blockMount.id.value,
+      duplicatedBlockId: blockMount.blockId.value,
+      position: {
+        x: blockMount.position.x,
+        y: blockMount.position.y,
       },
+      size: {
+        width: blockMount.size.width,
+        height: blockMount.size.height,
+      },
+      zOrder: blockMount.zOrder.value,
     };
+
+    return ok(dto);
   } catch (error) {
-    return { success: false, error: 'Internal server error' };
+    console.error('[duplicateBlockInternal] Internal error:', error);
+    return err('Internal server error', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+        request,
+      },
+    });
   }
 }

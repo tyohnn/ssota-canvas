@@ -15,6 +15,7 @@ export type CanvasManagementErrorCode =
   | 'INVALID_POSITION'
   | 'INVALID_SIZE'
   | 'INVALID_ZORDER'
+  | 'INVALID_EDGE_SHAPE'
   | 'BLOCK_NOT_FOUND'
   | 'EDGE_CONNECTION_FAILED'
   | 'VIEWPORT_LIMIT_EXCEEDED'
@@ -34,6 +35,7 @@ export const CANVAS_MANAGEMENT_ERROR_MESSAGES: Record<
   INVALID_POSITION: '좌표 값이 유효하지 않습니다.',
   INVALID_SIZE: '블럭 크기가 유효하지 않습니다.',
   INVALID_ZORDER: 'z-order 값이 유효하지 않습니다.',
+  INVALID_EDGE_SHAPE: '올바르지 않은 엣지 모양입니다.',
   BLOCK_NOT_FOUND: '블럭을 찾을 수 없습니다.',
   EDGE_CONNECTION_FAILED: '엣지 연결에 실패했습니다.',
   VIEWPORT_LIMIT_EXCEEDED: '뷰포트 제한을 초과했습니다.',

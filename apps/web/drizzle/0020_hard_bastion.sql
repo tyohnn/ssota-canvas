@@ -1,1 +1,0 @@
-ALTER TABLE "blocks" ADD COLUMN "icon_name" text DEFAULT 'file';

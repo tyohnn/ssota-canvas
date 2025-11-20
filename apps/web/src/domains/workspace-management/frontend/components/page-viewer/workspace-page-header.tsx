@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/breadcrumb';
 import { useWorkspace } from '../../hooks/use-workspace';
 import { WorkspaceIcon } from '../shared/icon-picker';
+import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
 
 interface WorkspacePageHeaderProps {
   pageId?: string;
@@ -77,9 +78,8 @@ export function WorkspacePageHeader({
   return (
     <header className="flex h-12 shrink-0 items-center gap-2 border-b">
       <div className="flex flex-1 items-center gap-2 px-3 overflow-hidden">
-        {/* SSOTA 브랜딩 */}
-        <p className="font-semibold text-sm shrink-0">SSOTA</p>
-
+        {/* Sidebar toggle button */}
+        <SidebarTrigger />
         <Separator
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4 shrink-0"

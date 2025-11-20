@@ -73,6 +73,7 @@ export function NotificationProvider({
   );
 
   useEffect(() => {
+    // 초기 마운트 시에만 알림 조회 (에러 발생해도 괜찮음)
     refreshNotifications();
   }, [refreshNotifications]);
 

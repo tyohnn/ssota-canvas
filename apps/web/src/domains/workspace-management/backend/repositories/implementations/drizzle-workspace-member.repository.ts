@@ -2,8 +2,8 @@
 
 import { eq, and } from 'drizzle-orm';
 import { createDrizzleSupabaseClient, adminDb } from '@/db';
-import { workspaceMembers, profiles } from '@/db/schema-dev';
-import type { WorkspaceMember as DBWorkspaceMember } from '@/db/schema-dev';
+import { workspaceMembers, profiles } from '@/db/schema';
+import type { WorkspaceMember as DBWorkspaceMember } from '@/db/schema';
 import {
   WorkspaceMemberRepository,
   WorkspaceMemberInfo,
@@ -57,7 +57,7 @@ export class DrizzleWorkspaceMemberRepository
         avatarUrl: profiles.avatar_url,
       })
       .from(workspaceMembers)
-      .innerJoin(profiles, eq(workspaceMembers.user_id, profiles.user_id))
+      .innerJoin(profiles, eq(workspaceMembers.user_id, profiles.id))
       .where(eq(workspaceMembers.workspace_id, workspaceId.value))
       .orderBy(workspaceMembers.joined_at);
 

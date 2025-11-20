@@ -12,6 +12,7 @@ import {
 } from '../../constant';
 // user-management actions
 import { processUserRegistrationAction } from '@/domains/user-management/actions/user-management.actions';
+import { config } from '@/config';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
 
   // if "next" is in param, use it as the redirect URL
   // 새로운 사용자는 온보딩 페이지로, 기존 사용자는 원래 목적지로
-  let next = searchParams.get('next') ?? '/onboarding';
+  const next = searchParams.get('next') ?? '/onboarding';
 
   if (code) {
     const supabase = await createClient();
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
 
     // 리다이렉트
     const forwardedHost = request.headers.get('x-forwarded-host'); // original origin before load balancer
-    const isLocalEnv = process.env.NODE_ENV === 'development';
+    const isLocalEnv = config.environment === 'development';
 
     if (isLocalEnv) {
       // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host

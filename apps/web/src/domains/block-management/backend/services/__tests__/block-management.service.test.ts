@@ -1,149 +1,191 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BlockManagementService } from '../block-management.service';
-import { CreateBlockCommand } from '../../../shared/commands/index';
+import { BlockRepository } from '../../repositories/interfaces/block.repository.interface';
+import { BlockId } from '../../../shared/value-objects/block-id.vo';
+import { BlockType } from '../../../shared/value-objects/block-type.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { Block } from '../../../shared/entities/block.entity';
+import { BlockAggregate } from '../../../shared/aggregates/block.aggregate';
 import { BlockManagementError } from '../../../shared/errors/block-management.error';
 
-describe('BlockManagementService', () => {
-  // 테스트용 고정 UUID (삭제 금지)
-  const TEST_PROFILE_ID = '571f5680-0684-405d-b977-f6f28ff1df6f';
-  const TEST_ORG_ID = 'ff215d4a-045d-499d-bf6b-07426bcc0b06';
-  const TEST_WORKSPACE_ID = 'e4ee861a-4de1-42ce-820f-33866b136068';
-  const TEST_PAGE_ID = '88597cb7-6828-480d-a77b-04db5ed5a142';
+// Mock Repository
+const mockRepository = {
+  create: vi.fn(),
+  update: vi.fn(),
+  findById: vi.fn(),
+  findByWorkspaceId: vi.fn(),
+  findByBlockType: vi.fn(),
+  delete: vi.fn(),
+  hardDelete: vi.fn(),
+  restore: vi.fn()
+} as any;
 
+describe('BlockManagementService', () => {
   let service: BlockManagementService;
+  let blockId: BlockId;
+  let blockType: BlockType;
+  let workspaceId: WorkspaceId;
+  let userId: UserId;
+  let block: Block;
 
   beforeEach(() => {
-    service = new BlockManagementService();
+    service = new BlockManagementService(mockRepository);
+    blockId = new BlockId('123e4567-e89b-12d3-a456-426614174000');
+    blockType = new BlockType('youtube');
+    workspaceId = new WorkspaceId('550e8400-e29b-41d4-a716-446655440000');
+    userId = new UserId('550e8400-e29b-41d4-a716-446655440020');
+    block = Block.create(blockId, workspaceId, userId, blockType, 'Test Video');
+    
+    // Reset all mocks
+    vi.clearAllMocks();
   });
 
   describe('createBlock', () => {
-    it('정상적으로 블럭을 생성할 수 있어야 한다', async () => {
-      // Given
-      const command: CreateBlockCommand = {
-        blockType: 'text',
-        workspaceId: TEST_WORKSPACE_ID,
-        metadata: { content: 'Hello World' },
-        userId: TEST_PROFILE_ID,
-      };
+    it('should create a new block successfully', async () => {
+      mockRepository.create.mockResolvedValue(undefined);
 
-      // When
-      const result = await service.createBlock(command);
+      const result = await service.createBlock({
+        userId,
+        workspaceId,
+        blockType,
+        title: 'Test Video'
+      });
 
-      // Then
-      expect(result.isSuccess()).toBe(true);
-      if (result.isSuccess()) {
-        const dto = result.value;
-        expect(dto.id).toBeTruthy();
-        expect(dto.blockType).toBe('text');
-        expect(dto.workspaceId).toBe(TEST_WORKSPACE_ID);
-        expect(dto.metadata).toEqual({ content: 'Hello World' });
-        expect(dto.createdAt).toBeTruthy();
-        expect(dto.updatedAt).toBeTruthy();
-      }
+      expect(result).toBeInstanceOf(BlockAggregate);
+      expect(mockRepository.create).toHaveBeenCalled();
     });
 
-    it('잘못된 workspaceId로 블럭 생성을 시도하면 INVALID_WORKSPACE_ID 에러를 반환해야 한다', async () => {
-      // Given
-      const command: CreateBlockCommand = {
-        blockType: 'text',
-        workspaceId: 'invalid-workspace-id',
-        metadata: { content: 'Hello World' },
-        userId: TEST_PROFILE_ID,
-      };
+    it('should throw error when save fails', async () => {
+      mockRepository.create.mockRejectedValue(new Error('Database error'));
 
-      // When
-      const result = await service.createBlock(command);
+      await expect(service.createBlock({
+        userId,
+        workspaceId,
+        blockType,
+        title: 'Test Video'
+      })).rejects.toThrow(BlockManagementError);
+    });
+  });
 
-      // Then
-      expect(result.isError()).toBe(true);
-      if (result.isError()) {
-        expect(result.error).toBeInstanceOf(BlockManagementError);
-        expect((result.error as BlockManagementError).code).toBe('INVALID_WORKSPACE_ID');
-        expect(result.error.message).toContain('Invalid workspace ID format');
-      }
+  describe('getBlock', () => {
+    it('should return block when found', async () => {
+      mockRepository.findById.mockResolvedValue(block);
+
+      const result = await service.getBlock(blockId);
+
+      expect(result).toBeInstanceOf(BlockAggregate);
+      expect(mockRepository.findById).toHaveBeenCalledWith(blockId);
     });
 
-    it('빈 blockType으로 블럭 생성을 시도하면 INVALID_BLOCK_TYPE 에러를 반환해야 한다', async () => {
-      // Given
-      const command: CreateBlockCommand = {
-        blockType: '',
-        workspaceId: TEST_WORKSPACE_ID,
-        metadata: {},
-        userId: TEST_PROFILE_ID,
-      };
+    it('should throw error when block not found', async () => {
+      mockRepository.findById.mockResolvedValue(null);
 
-      // When
-      const result = await service.createBlock(command);
-
-      // Then
-      expect(result.isError()).toBe(true);
-      if (result.isError()) {
-        expect(result.error).toBeInstanceOf(BlockManagementError);
-        expect((result.error as BlockManagementError).code).toBe('INVALID_BLOCK_TYPE');
-        expect(result.error.message).toContain('Block type is required');
-      }
+      await expect(service.getBlock(blockId)).rejects.toThrow(BlockManagementError);
     });
 
-    it('공백만 있는 blockType으로 블럭 생성을 시도하면 INVALID_BLOCK_TYPE 에러를 반환해야 한다', async () => {
-      // Given
-      const command: CreateBlockCommand = {
-        blockType: '   ',
-        workspaceId: TEST_WORKSPACE_ID,
-        metadata: {},
-        userId: TEST_PROFILE_ID,
-      };
+    it('should throw error when fetch fails', async () => {
+      mockRepository.findById.mockRejectedValue(new Error('Database error'));
 
-      // When
-      const result = await service.createBlock(command);
+      await expect(service.getBlock(blockId)).rejects.toThrow(BlockManagementError);
+    });
+  });
 
-      // Then
-      expect(result.isError()).toBe(true);
-      if (result.isError()) {
-        expect(result.error).toBeInstanceOf(BlockManagementError);
-        expect((result.error as BlockManagementError).code).toBe('INVALID_BLOCK_TYPE');
-      }
+  describe('updateBlock', () => {
+    it('should update block successfully', async () => {
+      mockRepository.findById.mockResolvedValue(block);
+      mockRepository.update.mockResolvedValue(undefined);
+
+      await service.updateBlock(blockId, {
+        properties: {}
+      });
+
+      expect(mockRepository.findById).toHaveBeenCalledWith(blockId);
+      expect(mockRepository.update).toHaveBeenCalled();
     });
 
-    it('메타데이터 없이도 블럭을 생성할 수 있어야 한다', async () => {
-      // Given
-      const command: CreateBlockCommand = {
-        blockType: 'text',
-        workspaceId: TEST_WORKSPACE_ID,
-        userId: TEST_PROFILE_ID,
-      };
+    it('should throw error when block not found', async () => {
+      mockRepository.findById.mockResolvedValue(null);
 
-      // When
-      const result = await service.createBlock(command);
-
-      // Then
-      expect(result.isSuccess()).toBe(true);
-      if (result.isSuccess()) {
-        const dto = result.value;
-        expect(dto.metadata).toEqual({});
-      }
+      await expect(service.updateBlock(blockId, {})).rejects.toThrow(BlockManagementError);
     });
 
-    it('다양한 블럭 타입으로 블럭을 생성할 수 있어야 한다', async () => {
-      // Given
-      const blockTypes = ['text', 'image', 'code', 'page', 'shape'];
+    it('should throw error when save fails', async () => {
+      mockRepository.findById.mockResolvedValue(block);
+      mockRepository.update.mockRejectedValue(new Error('Database error'));
 
-      for (const blockType of blockTypes) {
-        const command: CreateBlockCommand = {
-          blockType,
-          workspaceId: TEST_WORKSPACE_ID,
-          metadata: {},
-          userId: TEST_PROFILE_ID,
-        };
+      await expect(service.updateBlock(blockId, {})).rejects.toThrow(BlockManagementError);
+    });
+  });
 
-        // When
-        const result = await service.createBlock(command);
+  describe('softDeleteBlock', () => {
+    it('should delete block successfully', async () => {
+      mockRepository.findById.mockResolvedValue(block);
+      mockRepository.update.mockResolvedValue(undefined);
 
-        // Then
-        expect(result.isSuccess()).toBe(true);
-        if (result.isSuccess()) {
-          expect(result.value.blockType).toBe(blockType);
-        }
-      }
+      await service.softDeleteBlock(blockId);
+
+      expect(mockRepository.findById).toHaveBeenCalledWith(blockId);
+      expect(mockRepository.update).toHaveBeenCalled();
+    });
+
+    it('should throw error when block not found', async () => {
+      mockRepository.findById.mockResolvedValue(null);
+
+      await expect(service.softDeleteBlock(blockId)).rejects.toThrow(BlockManagementError);
+    });
+  });
+
+  describe('restoreBlock', () => {
+    it('should restore deleted block successfully', async () => {
+      const deletedBlock = Block.create(blockId, workspaceId, userId, blockType);
+      deletedBlock.markAsDeleted();
+      
+      mockRepository.findById.mockResolvedValue(deletedBlock);
+      mockRepository.update.mockResolvedValue(undefined);
+
+      await service.restoreBlock(blockId);
+
+      expect(mockRepository.findById).toHaveBeenCalledWith(blockId);
+      expect(mockRepository.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('duplicateBlock', () => {
+    it('should duplicate block successfully', async () => {
+      mockRepository.findById.mockResolvedValue(block);
+      mockRepository.create.mockResolvedValue(undefined);
+
+      const result = await service.duplicateBlock({
+        originalBlockId: blockId,
+        workspaceId,
+        userId
+      });
+
+      expect(result).toBeInstanceOf(Block);
+      expect(mockRepository.findById).toHaveBeenCalledWith(blockId);
+      expect(mockRepository.create).toHaveBeenCalled();
+    });
+
+    it('should throw error when original block not found', async () => {
+      mockRepository.findById.mockResolvedValue(null);
+
+      await expect(service.duplicateBlock({
+        originalBlockId: blockId,
+        workspaceId,
+        userId
+      })).rejects.toThrow(BlockManagementError);
+    });
+
+    it('should throw error when save fails', async () => {
+      mockRepository.findById.mockResolvedValue(block);
+      mockRepository.create.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.duplicateBlock({
+        originalBlockId: blockId,
+        workspaceId,
+        userId
+      })).rejects.toThrow(BlockManagementError);
     });
   });
 });

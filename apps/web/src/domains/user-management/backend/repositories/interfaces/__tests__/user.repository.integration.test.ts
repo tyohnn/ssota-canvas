@@ -55,6 +55,12 @@ class MockUserRepository implements UserRepository {
     // Mock implementation that calls Supabase client
     this.supabase.from();
   }
+
+  async getUserProfile(userId: import('../../../../shared/value-objects/ids.vo').UserId): Promise<any> {
+    // Mock implementation
+    this.supabase.from();
+    return null;
+  }
 }
 
 describe('UserRepository Integration Tests', () => {

@@ -159,6 +159,9 @@ COMMENT ON ENUM VALUE alignment_type.VERTICAL_DISTRIBUTE IS '수직 균등 분�
 
 블럭 마운팅 정보를 저장하는 테이블 (BlockMount Aggregate Root) - 페이지에 직접 연결
 
+> **참고**: 블럭의 생성자 정보(createdBy)는 Block Management Domain의 `blocks` 테이블에서 관리되며, 
+> Canvas Management에서는 `block_mounts.block_id → blocks.id` JOIN을 통해 조회합니다.
+
 ```sql
 CREATE TABLE block_mounts (
     -- Primary Key
@@ -218,6 +221,13 @@ COMMENT ON COLUMN block_mounts.deleted_at IS '삭제 시각 (소프트 삭제)';
 
 엣지 연결 정보를 저장하는 테이블 (Edge Aggregate Root) - 페이지에 직접 연결
 
+**⚠️ Schema Change (리팩토링 완료)**:
+- 엣지는 이제 `blocks` 대신 `block_mounts`를 직접 참조합니다
+- `source_block_id`, `target_block_id` → `source_block_mount_id`, `target_block_mount_id`로 변경
+- **Rationale**: 엣지는 특정 페이지에서의 블럭 인스턴스 간 시각적 연결을 표현 (페이지별 연결 관계)
+- **Performance**: 페이지 렌더링 시 JOIN 제거 (가장 빈번한 작업)
+- **Logic**: 페이지별 연결 관계, 전역 블럭 관계가 아님
+
 ```sql
 CREATE TABLE edges (
     -- Primary Key
@@ -226,10 +236,12 @@ CREATE TABLE edges (
     -- Foreign Keys
     page_id UUID NOT NULL, -- Workspace Management Domain과의 외부 참조
     
-    -- Edge Fields
-    source_block_id UUID NOT NULL, -- Block Management Domain의 blocks 테이블 참조
-    target_block_id UUID NOT NULL, -- Block Management Domain의 blocks 테이블 참조
-    edge_type edge_type NOT NULL DEFAULT 'default',
+    -- Edge Fields (⚠️ Schema Change: block_mounts 직접 참조)
+    source_block_mount_id UUID NOT NULL, -- Canvas Management Domain의 block_mounts 테이블 참조
+    target_block_mount_id UUID NOT NULL, -- Canvas Management Domain의 block_mounts 테이블 참조
+    source_handle TEXT, -- React Flow handle ID ('left', 'right', 'top', 'bottom')
+    target_handle TEXT, -- React Flow handle ID ('left', 'right', 'top', 'bottom')
+    edge_shape TEXT NOT NULL DEFAULT 'default', -- React Flow 기본 타입 (default, straight, step, smoothstep, simplebezier)
     edge_label TEXT DEFAULT '',
     edge_style_color TEXT DEFAULT '#000000',
     edge_style_thickness INTEGER DEFAULT 2,
@@ -241,7 +253,8 @@ CREATE TABLE edges (
     
     -- Constraints
     CONSTRAINT edges_thickness_range CHECK (edge_style_thickness >= 1 AND edge_style_thickness <= 10),
-    CONSTRAINT edges_unique_page_source_target UNIQUE (page_id, source_block_id, target_block_id) WHERE deleted_at IS NULL
+    CONSTRAINT edges_shape_valid CHECK (edge_shape IN ('default', 'straight', 'step', 'smoothstep', 'simplebezier')),
+    CONSTRAINT edges_unique_page_source_target UNIQUE (page_id, source_block_mount_id, target_block_mount_id, source_handle, target_handle) WHERE deleted_at IS NULL
 );
 
 -- Basic Indexes (자세한 인덱스 전략은 Performance Optimization Strategy 섹션 참조)
@@ -250,9 +263,11 @@ CREATE TABLE edges (
 COMMENT ON TABLE edges IS 'Canvas Management Domain - 엣지 연결 정보';
 COMMENT ON COLUMN edges.id IS '엣지 고유 식별자';
 COMMENT ON COLUMN edges.page_id IS '소속 페이지 ID (Workspace Management Domain)';
-COMMENT ON COLUMN edges.source_block_id IS '연결 소스 블럭 ID (Block Management Domain blocks 테이블 참조)';
-COMMENT ON COLUMN edges.target_block_id IS '연결 타겟 블럭 ID (Block Management Domain blocks 테이블 참조)';
-COMMENT ON COLUMN edges.edge_type IS '엣지 타입 (React Flow 기본 타입: default, straight, step, smoothstep, simplebezier)';
+COMMENT ON COLUMN edges.source_block_mount_id IS '연결 소스 블럭 마운트 ID (Canvas Management Domain block_mounts 테이블 참조)';
+COMMENT ON COLUMN edges.target_block_mount_id IS '연결 타겟 블럭 마운트 ID (Canvas Management Domain block_mounts 테이블 참조)';
+COMMENT ON COLUMN edges.source_handle IS 'React Flow 소스 핸들 ID (left, right, top, bottom)';
+COMMENT ON COLUMN edges.target_handle IS 'React Flow 타겟 핸들 ID (left, right, top, bottom)';
+COMMENT ON COLUMN edges.edge_shape IS '엣지 모양 (React Flow 기본 타입: default, straight, step, smoothstep, simplebezier)';
 COMMENT ON COLUMN edges.edge_label IS '엣지 레이블';
 COMMENT ON COLUMN edges.edge_style_color IS '엣지 색상';
 COMMENT ON COLUMN edges.edge_style_thickness IS '엣지 두께 (1-10px)';
@@ -262,11 +277,14 @@ COMMENT ON COLUMN edges.deleted_at IS '삭제 시각 (소프트 삭제)';
 ```
 
 > **💡 설계 개선 노트**  
+> - **⚠️ Schema Change**: `blocks` 대신 `block_mounts` 직접 참조로 Block Management와의 의존성 감소
 > - **페이지 직접 연결**: 엣지도 페이지에 직접 연결하여 모든 뷰에서 공통 사용
 > - **다중 뷰 지원**: Canvas, List, Kanban 뷰에서 모두 같은 엣지 데이터 활용 가능
-> - **self-loop 허용**: source_block_id === target_block_id 허용
+> - **self-loop 허용**: source_block_mount_id === target_block_mount_id 허용
+> - **React Flow 통합**: sourceHandle/targetHandle은 React Flow handle ID와 직접 매핑
+> - **EdgeShape VO**: edge_type → edge_shape로 변경, React Flow 기본 타입 유효성 검증
 > - **EdgeStyle VO**: color, thickness를 개별 컬럼으로 분해하여 저장
-> - **블럭 삭제 시**: 연결된 엣지 찾기를 위한 인덱스 설정
+> - **블럭 마운트 삭제 시**: 연결된 엣지 찾기를 위한 인덱스 설정
 
 ---
 
@@ -367,9 +385,10 @@ WHERE page_id = $1 AND deleted_at IS NULL;
 SELECT * FROM edges 
 WHERE page_id = $1 AND deleted_at IS NULL;
 
--- 블럭 연결된 모든 엣지 조회 (블럭 삭제 시) - Scenario 8
+-- 블럭 마운트 연결된 모든 엣지 조회 (블럭 마운트 삭제 시) - Scenario 8
+-- ⚠️ Schema Change: source_block_id → source_block_mount_id
 SELECT * FROM edges 
-WHERE (source_block_id = $1 OR target_block_id = $1) 
+WHERE (source_block_mount_id = $1 OR target_block_mount_id = $1) 
   AND deleted_at IS NULL;
 ```
 
@@ -414,17 +433,18 @@ CREATE INDEX idx_block_mounts_batch_update ON block_mounts(id, page_id, z_order)
 
 ```sql
 -- 기본 인덱스들
+-- ⚠️ Schema Change: source_block_id → source_block_mount_id, target_block_id → target_block_mount_id
 CREATE INDEX idx_edges_page_id ON edges(page_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_edges_source_block_id ON edges(source_block_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_edges_target_block_id ON edges(target_block_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_edges_source_block_mount_id ON edges(source_block_mount_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_edges_target_block_mount_id ON edges(target_block_mount_id) WHERE deleted_at IS NULL;
 
 -- 성능 최적화 복합 인덱스들
--- Scenario 7: 페이지별 엣지 조회 + 타입별 정렬
-CREATE INDEX idx_edges_page_type ON edges(page_id, edge_type, created_at) WHERE deleted_at IS NULL;
+-- Scenario 7: 페이지별 엣지 조회 + 모양별 정렬
+CREATE INDEX idx_edges_page_shape ON edges(page_id, edge_shape, created_at) WHERE deleted_at IS NULL;
 
--- Scenario 8: 블럭 삭제 시 연결된 엣지 찾기 (OR 조건 최적화)
-CREATE INDEX idx_edges_source_connected ON edges(source_block_id, id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_edges_target_connected ON edges(target_block_id, id) WHERE deleted_at IS NULL;
+-- Scenario 8: 블럭 마운트 삭제 시 연결된 엣지 찾기 (OR 조건 최적화)
+CREATE INDEX idx_edges_source_connected ON edges(source_block_mount_id, id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_edges_target_connected ON edges(target_block_mount_id, id) WHERE deleted_at IS NULL;
 ```
 
 #### 4. viewports 테이블 인덱스
@@ -912,7 +932,7 @@ Technical Specification의 Repository 메서드와 DB 인덱스 매핑:
 | `BlockRepository.findByType()` | `idx_blocks_type` | `WHERE block_type = ? AND deleted_at IS NULL` |
 | `BlockMountRepository.findByPageId()` | `idx_block_mounts_page_z_order` | `WHERE page_id = ? ORDER BY z_order DESC` |
 | `BlockMountRepository.findByBlockId()` | `idx_block_mounts_block_id` | `WHERE block_id = ?` |
-| `EdgeRepository.findByConnectedBlockId()` | `idx_edges_source_block_id`, `idx_edges_target_block_id` | `WHERE source_block_id = ? OR target_block_id = ?` |
+| `EdgeRepository.findByConnectedBlockMountId()` | `idx_edges_source_block_mount_id`, `idx_edges_target_block_mount_id` | `WHERE source_block_mount_id = ? OR target_block_mount_id = ?` |
 | `ViewportRepository.findByPageId()` | `idx_viewports_page_user_fast` (Covering) | `WHERE page_id = ? AND user_id = ?` |
 
 ### Invariants → DB Constraints 매핑 확인
@@ -931,8 +951,9 @@ Technical Specification의 모든 Invariants가 DB 제약조건으로 구현되�
 ✅ **EdgeAggregate Invariants**:
 - ✅ 엣지는 특정 페이지에서만 존재함 → `NOT NULL page_id`
 - ✅ 자기 자신으로의 엣지(self-loop) 허용 → 제약조건 없음 (허용)
-- ✅ 블럭 삭제 시 연결된 모든 엣지 자동 삭제 → Application Logic (Service Layer에서 처리)
-- ✅ 엣지 타입은 지원되는 형식만 허용 → `edge_type` ENUM
+- ✅ 블럭 마운트 삭제 시 연결된 모든 엣지 자동 삭제 → Application Logic (CanvasEdgeService에서 처리)
+- ✅ 엣지 모양(EdgeShape)은 지원되는 형식만 허용 → `edge_shape` CHECK 제약조건
+- ✅ ⚠️ Schema Change: `blocks` 대신 `block_mounts` 직접 참조 → `source_block_mount_id`, `target_block_mount_id` 컬럼
 
 ✅ **ViewportAggregate Invariants**:
 - ✅ 줌 레벨은 최소/최대 제한 범위 내에서만 가능 → `CHECK (zoom_level >= 0.1 AND <= 5.0)`

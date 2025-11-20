@@ -1,32 +1,15 @@
 import { defineConfig } from 'drizzle-kit';
-
-const isDevelopment = process.env.NODE_ENV === 'development';
-
-// Debug logging
-console.log('🔍 Drizzle Config Debug:');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('isDevelopment:', isDevelopment);
-console.log('DEV_DATABASE_URL exists:', !!process.env.DEV_DATABASE_URL);
-console.log('DEV_DIRECT_URL exists:', !!process.env.DEV_DIRECT_URL);
-console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
-
-// Use DEV_DIRECT_URL for migrations (port 6543) as pooler (5432) times out
-const databaseUrl = isDevelopment
-  ? process.env.DEV_DATABASE_URL || process.env.DEV_DIRECT_URL || ''
-  : process.env.DATABASE_URL || '';
-
-console.log(
-  'Using database URL:',
-  databaseUrl ? `${databaseUrl.substring(0, 50)}...` : 'EMPTY'
-);
+import { config } from '@/config';
 
 export default defineConfig({
-  schema: isDevelopment ? './src/db/schema-dev.ts' : './src/db/schema.ts',
-  out: isDevelopment ? './drizzle-dev' : './drizzle',
+  schema: ['./src/db/schema.ts', './src/db/schemas/image-app-space-schema.ts'],
+  out: './drizzle-temp',
   dialect: 'postgresql',
   dbCredentials: {
-    url: databaseUrl,
+    url: config.database.nonPoolingUrl || '',
   },
+  // 🔑 중요: 여러 스키마를 관리하려면 schemaFilter 필수
+  schemaFilter: ['public', 'image_app_space'],
   verbose: true,
   strict: true,
 });

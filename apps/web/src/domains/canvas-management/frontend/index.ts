@@ -19,8 +19,9 @@ export type {
   EdgeView,
   ViewportView,
   InitializeCanvasRequest,
-  MountBlockRequest,
-  TransformBlockRequest,
+  CreateAndMountBlockRequest,
+  UpdateBlockPositionRequest,
+  UpdateBlockSizeRequest,
   CreateEdgeRequest,
   UpdateViewportRequest,
 } from '../shared/dtos/index';

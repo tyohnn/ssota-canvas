@@ -1,28 +1,25 @@
 import { BlockManagementError } from '../errors/block-management.error';
+import { BlockPropertiesFactory } from './block-properties';
+import {
+  BlockType as BlockTypeEnum,
+  isValidBlockType,
+} from '../types/block-types';
+
+export type SupportedBlockType = BlockTypeEnum;
 
 /**
- * 지원되는 블록 타입 목록
- */
-export const SUPPORTED_BLOCK_TYPES = [
-  'basic',
-  'text',
-  'image',
-  'video',
-  'map',
-  'code',
-  'page',
-  'shape',
-  'shape-square',
-  'shape-circle',
-  'todo',
-] as const;
-
-export type SupportedBlockType = (typeof SUPPORTED_BLOCK_TYPES)[number];
-
-/**
- * BlockType Value Object
+ * BlockType Value Object (Domain Only)
  *
- * 블록 타입의 유효성을 검증하고 도메인 로직을 캡슐화
+ * 도메인에서만 사용하는 블록 타입 Value Object
+ *
+ * 사용처:
+ * - 비즈니스 규칙 검증
+ * - 도메인 로직 캡슐화
+ * - 서비스 레이어 전용
+ * - 엔티티 생성 및 검증
+ *
+ * ⚠️ 프론트엔드에서는 사용하지 마세요!
+ * 프론트엔드에서는 block-types.ts의 BlockType enum을 사용하세요.
  */
 export class BlockType {
   private readonly _value: SupportedBlockType;
@@ -46,7 +43,7 @@ export class BlockType {
       return false;
     }
 
-    return SUPPORTED_BLOCK_TYPES.includes(value as SupportedBlockType);
+    return isValidBlockType(value);
   }
 
   equals(other: BlockType): boolean {
@@ -55,10 +52,49 @@ export class BlockType {
   }
 
   /**
-   * page 타입인지 확인
+   * 블록 타입별 기본 속성 검증
+   *
+   * @param properties - 검증할 속성들
+   * @returns 검증 결과
    */
-  isPageType(): boolean {
-    return this._value === 'page';
+  validateProperties(properties: Record<string, any>): boolean {
+    // 기본적인 타입 검증만 수행
+    // 상세한 검증은 각 BlockPropertiesVO에서 처리
+    return typeof properties === 'object' && properties !== null;
+  }
+
+  /**
+   * 타입별 사용 가능한 툴 목록 반환
+   *
+   * @returns 툴 목록
+   */
+  getAvailableTools(): string[] {
+    const tools: Record<string, string[]> = {
+      basic: ['edit', 'duplicate', 'delete'],
+      default: ['edit', 'duplicate', 'delete'],
+      youtube: ['getComments', 'getVideoInfo', 'generateThumbnail'],
+      python: ['executeCode', 'formatCode', 'lintCode'],
+      markdown: ['preview', 'exportPdf', 'exportHtml'],
+      image: ['resize', 'crop', 'addFilter'],
+      file: ['download', 'preview', 'share'],
+      link: ['preview', 'validate', 'archive'],
+      shape: ['resize', 'rotate', 'changeColor'],
+      page_mention: ['preview', 'navigate'],
+      latex: ['render', 'exportPdf'],
+      github_pr: ['getDetails', 'getComments', 'getCommits'],
+      react_component: ['preview', 'editProps', 'test'],
+    };
+
+    return tools[this._value] || [];
+  }
+
+  /**
+   * 블록 타입별 기본 속성 반환
+   *
+   * @returns 기본 속성 객체
+   */
+  getDefaultProperties(): Record<string, any> {
+    return BlockPropertiesFactory.createForBlockType(this).toJSON();
   }
 
   /**

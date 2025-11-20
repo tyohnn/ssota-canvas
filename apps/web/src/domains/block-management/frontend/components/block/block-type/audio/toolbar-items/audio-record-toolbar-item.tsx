@@ -1,0 +1,238 @@
+'use client';
+
+import { useCallback, useState, useRef } from 'react';
+import { Mic, Square } from 'lucide-react';
+import { Button } from '@workspace/ui/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@workspace/ui/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@workspace/ui/components/ui/dialog';
+import { LiveWaveform } from '@workspace/ui/components/eleven-labs/live-waveform';
+import { MicSelector } from '@workspace/ui/components/eleven-labs/mic-selector';
+import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
+import { StorageBucket } from '@/domains/storage/types/storage.types';
+
+interface AudioRecordToolbarItemProps {
+  blockId: string;
+  blockMountId?: string;
+  disabled?: boolean;
+  orgId: string;
+  workspaceId: string;
+  pageId: string;
+  onValueChange?: (url: string) => Promise<void>;
+}
+
+/**
+ * Audio Record Toolbar Item
+ *
+ * 오디오 녹음을 위한 툴바 아이템
+ * - 녹음 다이얼로그 표시
+ * - 마이크 선택 및 녹음
+ * - Supabase Storage 업로드
+ */
+export function AudioRecordToolbarItem({
+  blockId,
+  blockMountId,
+  disabled = false,
+  orgId,
+  workspaceId,
+  pageId,
+  onValueChange,
+}: AudioRecordToolbarItemProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const { upload, isUploading } = useSupabaseStorage();
+
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: selectedDeviceId
+          ? { deviceId: { exact: selectedDeviceId } }
+          : true,
+      });
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = event => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setRecordedBlob(blob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      // TODO: Show error toast
+    }
+  }, [selectedDeviceId]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  }, [isRecording]);
+
+  const handleSave = useCallback(async () => {
+    if (!recordedBlob || !onValueChange) return;
+
+    try {
+      // Convert Blob to File
+      const file = new File([recordedBlob], `recording-${Date.now()}.webm`, {
+        type: 'audio/webm',
+      });
+
+      // Upload to Supabase Storage
+      const result = await upload({
+        bucket: StorageBucket.CANVAS_ASSETS,
+        file,
+        orgId,
+        workspaceId,
+        pageId,
+        blockId,
+      });
+
+      await onValueChange(result.url);
+      setIsDialogOpen(false);
+      setRecordedBlob(null);
+    } catch (error) {
+      console.error('Failed to upload recorded audio:', error);
+      // TODO: Show error toast
+    }
+  }, [
+    recordedBlob,
+    onValueChange,
+    upload,
+    orgId,
+    workspaceId,
+    pageId,
+    blockId,
+  ]);
+
+  const handleCancel = useCallback(() => {
+    if (isRecording) {
+      stopRecording();
+    }
+    setIsDialogOpen(false);
+    setRecordedBlob(null);
+  }, [isRecording, stopRecording]);
+
+  return (
+    <>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={e => {
+              e.stopPropagation();
+              setIsDialogOpen(true);
+            }}
+            disabled={disabled}
+            aria-label="오디오 녹음"
+          >
+            <Mic className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          <p>오디오 녹음</p>
+        </TooltipContent>
+      </Tooltip>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>오디오 녹음</DialogTitle>
+            <DialogDescription>
+              마이크를 선택하고 녹음을 시작하세요
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Mic Selector */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">마이크</span>
+              <MicSelector
+                value={selectedDeviceId}
+                onValueChange={setSelectedDeviceId}
+              />
+            </div>
+
+            {/* Waveform */}
+            <div className="border rounded-lg p-4 bg-muted/50">
+              <LiveWaveform
+                active={isRecording}
+                deviceId={selectedDeviceId}
+                mode="static"
+                height={120}
+                barWidth={3}
+                barGap={1}
+              />
+            </div>
+
+            {/* Recording Status */}
+            {isRecording && (
+              <div className="flex items-center justify-center gap-2 text-sm text-destructive">
+                <span className="animate-pulse">●</span>
+                녹음 중...
+              </div>
+            )}
+
+            {recordedBlob && !isRecording && (
+              <div className="flex items-center justify-center text-sm text-muted-foreground">
+                녹음 완료 ({(recordedBlob.size / 1024).toFixed(2)} KB)
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={handleCancel}>
+              취소
+            </Button>
+            {!isRecording ? (
+              <>
+                {recordedBlob && (
+                  <Button onClick={handleSave} disabled={isUploading}>
+                    {isUploading ? '저장 중...' : '저장'}
+                  </Button>
+                )}
+                {!recordedBlob && (
+                  <Button onClick={startRecording}>녹음 시작</Button>
+                )}
+              </>
+            ) : (
+              <Button variant="destructive" onClick={stopRecording}>
+                <Square className="h-4 w-4 mr-2" />
+                녹음 중지
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

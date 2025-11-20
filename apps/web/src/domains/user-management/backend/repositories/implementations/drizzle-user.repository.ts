@@ -1,13 +1,14 @@
 // apps/web/src/domains/user-management/repositories/implementations/drizzle-user.repository.ts
 
 import { eq } from 'drizzle-orm';
-import { createDrizzleSupabaseClient } from '@/db';
-import { profiles } from '@/db/schema-dev';
+import { createDrizzleSupabaseClient, adminDb } from '@/db';
+import { profiles } from '@/db/schema';
 import { UserRepository } from '../interfaces/user.repository.interface';
 import { UserAggregate } from '../../../shared/aggregates/user.aggregate';
 import { User } from '../../../shared/entities/user.entity';
 import { UserId } from '../../../shared/value-objects/ids.vo';
 import { UserEmail } from '../../../shared/value-objects/user-email.vo';
+import { UserProfile } from '../../../shared/types';
 
 export class DrizzleUserRepository implements UserRepository {
   async findById(id: UserId): Promise<UserAggregate | null> {
@@ -15,7 +16,7 @@ export class DrizzleUserRepository implements UserRepository {
 
     const data = await db.rls(tx =>
       tx.query.profiles.findFirst({
-        where: eq(profiles.user_id, id.value),
+        where: eq(profiles.id, id.value),
       })
     );
 
@@ -25,7 +26,7 @@ export class DrizzleUserRepository implements UserRepository {
 
     // schema-dev.ts 구조: name, avatar_url 사용
     const user = new User(
-      new UserId(data.user_id),
+      new UserId(data.id),
       new UserEmail(data.email),
       data.name || 'User',
       data.avatar_url,
@@ -51,7 +52,7 @@ export class DrizzleUserRepository implements UserRepository {
 
     // schema-dev.ts 구조: name, avatar_url 사용
     const user = new User(
-      new UserId(data.user_id),
+      new UserId(data.id),
       new UserEmail(data.email),
       data.name || 'User',
       data.avatar_url,
@@ -67,7 +68,7 @@ export class DrizzleUserRepository implements UserRepository {
 
     // schema-dev.ts를 SSOT로 사용: name, avatar_url 컬럼
     const profileData = {
-      user_id: userAggregate.id.value,
+      id: userAggregate.id.value,
       email: userAggregate.entity.email.value,
       name: userAggregate.entity.name,
       avatar_url: userAggregate.entity.avatarUrl,
@@ -81,7 +82,7 @@ export class DrizzleUserRepository implements UserRepository {
           .insert(profiles)
           .values(profileData)
           .onConflictDoUpdate({
-            target: profiles.user_id,
+            target: profiles.id,
             set: {
               email: userAggregate.entity.email.value,
               name: userAggregate.entity.name,
@@ -98,8 +99,38 @@ export class DrizzleUserRepository implements UserRepository {
   async delete(id: UserId): Promise<void> {
     const db = await createDrizzleSupabaseClient();
 
-    await db.rls(tx =>
-      tx.delete(profiles).where(eq(profiles.user_id, id.value))
-    );
+    await db.rls(tx => tx.delete(profiles).where(eq(profiles.id, id.value)));
+  }
+
+  /**
+   * 사용자 프로필 조회 (CreatedByProfile 형태로 반환)
+   */
+  async getUserProfile(userId: UserId): Promise<UserProfile | undefined> {
+    try {
+      const result = await adminDb
+        .select({
+          id: profiles.id,
+          email: profiles.email,
+          name: profiles.name,
+          avatar_url: profiles.avatar_url,
+        })
+        .from(profiles)
+        .where(eq(profiles.id, userId.value))
+        .limit(1);
+
+      if (result.length === 0) return undefined;
+
+      const profile = result[0];
+      if (!profile) return undefined;
+      return {
+        userId: profile.id,
+        email: profile.email,
+        name: profile.name || '',
+        profileImageUrl: profile.avatar_url || null,
+      };
+    } catch (error) {
+      console.warn('Failed to fetch user profile:', error);
+      return undefined;
+    }
   }
 }

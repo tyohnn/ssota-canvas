@@ -5,7 +5,8 @@
 **도메인**: Canvas Management Domain  
 **작성자**: 주니어개발자 + 시니어개발자 (멘토링)  
 **작성일**: 2025-10-19  
-**버전**: v1.0
+**버전**: v1.1
+**최근 업데이트**: 2025-10-27 - SSOT BlockView 도입, 서비스 인터페이스 명명 규칙 적용
 
 **Testing Strategy 참조**: `04-testing-strategy.md`  
 **Software Design 참조**: `03-software-design.md`  
@@ -350,21 +351,25 @@ class BlockMount {
 
 - **파일 위치**: `src/domains/canvas-management/shared/entities/edge.entity.ts`
 - **역할**: Edge 도메인 엔티티로 엣지 연결의 핵심 정보와 비즈니스 로직을 캡슐화
+- **⚠️ Schema Change (리팩토링 완료)**: `blocks` 대신 `block_mounts`를 직접 참조
 - **주요 속성**:
   - id: EdgeId Value Object로 고유 식별자
   - pageId: PageId (불변)
-  - sourceBlockId: BlockId (불변)
-  - targetBlockId: BlockId (불변)
-  - edgeType: EdgeType VO (변경 가능)
+  - sourceBlockMountId: BlockMountId (불변) ⚠️ 변경됨
+  - targetBlockMountId: BlockMountId (불변) ⚠️ 변경됨
+  - sourceHandle?: string (불변, React Flow handle ID)
+  - targetHandle?: string (불변, React Flow handle ID)
+  - edgeShape: EdgeShape VO (변경 가능) ⚠️ EdgeType → EdgeShape로 변경
   - edgeLabel: string (변경 가능)
-  - edgeStyle: EdgeStyle VO (변경 가능)
+  - edgeStyle: { color: string, thickness: number } (변경 가능)
   - createdAt: 생성 시각 (불변)
   - updatedAt: 수정 시각 (변경 가능)
 - **주요 메서드**:
-  - updateType(newType: EdgeType): 엣지 타입 변경
+  - updateShape(newShape: EdgeShape): 엣지 모양 변경
   - updateLabel(newLabel: string): 엣지 레이블 변경
-  - updateStyle(newStyle: EdgeStyle): 엣지 스타일 변경
-  - isSelfLoop(): self-loop 여부 확인
+  - updateStyle(newStyle: { stroke?: string, strokeWidth?: number }): 엣지 스타일 변경
+  - isSelfLoop(): self-loop 여부 확인 (sourceBlockMountId === targetBlockMountId)
+  - isConnectedTo(blockMountId: BlockMountId): 특정 블럭 마운트와 연결되어 있는지 확인
 - **비즈니스 규칙**: 속성 변경 시 updatedAt 자동 갱신, 특정 페이지에서만 존재
 
 ```typescript
@@ -372,17 +377,22 @@ class Edge {
   constructor(
     public readonly id: EdgeId,
     public readonly pageId: PageId,
-    public readonly sourceBlockId: BlockId,
-    public readonly targetBlockId: BlockId,
-    public edgeType: EdgeType,
+    public readonly sourceBlockMountId: BlockMountId, // ⚠️ BlockId → BlockMountId
+    public readonly targetBlockMountId: BlockMountId, // ⚠️ BlockId → BlockMountId
+    public readonly sourceHandle?: string, // React Flow handle ID
+    public readonly targetHandle?: string, // React Flow handle ID
+    public edgeShape: EdgeShape = EdgeShape.default(), // ⚠️ EdgeType → EdgeShape
     public edgeLabel: string = '',
-    public edgeStyle: EdgeStyle,
+    public edgeStyle: { color: string; thickness: number } = {
+      color: '#000000',
+      thickness: 2,
+    },
     public readonly createdAt: Date = new Date(),
     public updatedAt: Date = new Date()
   ) {}
   
-  updateType(newType: EdgeType): void {
-    // 1. edgeType 업데이트
+  updateShape(newShape: EdgeShape): void {
+    // 1. edgeShape 업데이트
     // 2. updatedAt 갱신
   }
   
@@ -391,13 +401,18 @@ class Edge {
     // 2. updatedAt 갱신
   }
   
-  updateStyle(newStyle: EdgeStyle): void {
-    // 1. edgeStyle 업데이트
+  updateStyle(style: { stroke?: string; strokeWidth?: number }): void {
+    // 1. edgeStyle.color/strokeWidth 업데이트
     // 2. updatedAt 갱신
   }
   
   isSelfLoop(): boolean {
-    // 1. sourceBlockId === targetBlockId 비교
+    // 1. sourceBlockMountId === targetBlockMountId 비교
+    // 2. boolean 반환
+  }
+  
+  isConnectedTo(blockMountId: BlockMountId): boolean {
+    // 1. sourceBlockMountId 또는 targetBlockMountId와 같으면 true
     // 2. boolean 반환
   }
 }
@@ -569,6 +584,7 @@ class BlockMountAggregate {
 
 - **파일 위치**: `src/domains/canvas-management/shared/aggregates/edge.aggregate.ts`
 - **역할**: Edge 관련 도메인 로직과 일관성 경계를 담당하는 Aggregate Root
+- **⚠️ Schema Change (리팩토링 완료)**: `blocks` 대신 `block_mounts`를 직접 참조
 - **주요 기능**:
   - Edge 생성 시 모든 관련 객체 동시 생성
   - 엣지 관리 비즈니스 규칙 검증 및 정책 실행
@@ -576,15 +592,16 @@ class BlockMountAggregate {
   - 관련 엔티티들의 일관성 보장
 - **주요 메서드**:
   - createEdge(): 엣지 생성 및 EdgeCreated 발행
-  - updateEdgeType(): 엣지 타입 변경 및 EdgeTypeChanged 발행
+  - updateEdgeShape(): 엣지 모양 변경 및 EdgeShapeChanged 발행 (⚠️ EdgeType → EdgeShape)
   - updateEdgeLabel(): 엣지 레이블 변경 및 EdgeLabelChanged 발행
   - updateEdgeStyle(): 엣지 스타일 변경 및 EdgeStyleChanged 발행
   - deleteEdge(): 엣지 삭제 및 EdgeDeleted 발행
-- **비즈니스 로직**: 엣지는 특정 페이지에서만 존재하며, 블럭 삭제 시 연결된 모든 엣지 자동 삭제
+- **비즈니스 로직**: 엣지는 특정 페이지에서만 존재하며, 블럭 마운트 삭제 시 연결된 모든 엣지 자동 삭제
 - **불변식(Invariants)**:
   - 엣지는 특정 페이지에서만 존재함
   - 자기 자신으로의 엣지(self-loop) 허용
-  - 엣지 타입은 지원되는 형식만 허용
+  - 엣지 모양(EdgeShape)은 지원되는 형식만 허용
+  - sourceHandle/targetHandle은 React Flow handle ID ('left', 'right', 'top', 'bottom')
 
 ```typescript
 class EdgeAggregate {
@@ -592,22 +609,25 @@ class EdgeAggregate {
   private _events: DomainEvent[] = [];
   
   static createEdge(
+    edgeId: EdgeId,
     pageId: PageId,
-    sourceBlockId: BlockId, 
-    targetBlockId: BlockId, 
-    edgeType?: EdgeType
+    sourceBlockMountId: BlockMountId, // ⚠️ BlockId → BlockMountId
+    targetBlockMountId: BlockMountId, // ⚠️ BlockId → BlockMountId
+    edgeShape?: EdgeShape, // ⚠️ EdgeType → EdgeShape
+    sourceHandle?: string,
+    targetHandle?: string
   ): EdgeAggregate {
-    // 1. EdgeId 생성
-    // 2. Edge Entity 생성 (기본 EdgeType, EdgeStyle 적용)
-    // 3. EdgeCreated 이벤트 생성
+    // 1. Edge Entity 생성 (기본 EdgeShape, EdgeStyle 적용)
+    // 2. EdgeAggregate 생성
+    // 3. EdgeCreated 이벤트 생성 (sourceBlockMountId, targetBlockMountId 포함)
     // 4. 이벤트 추가
     // 5. EdgeAggregate 반환
   }
   
-  updateEdgeType(newType: EdgeType): EdgeTypeChangedEvent {
-    // 1. 유효한 EdgeType 확인
-    // 2. Edge Entity 타입 업데이트
-    // 3. EdgeTypeChanged 이벤트 생성
+  updateEdgeShape(newShape: EdgeShape): EdgeShapeChangedEvent {
+    // 1. 유효한 EdgeShape 확인
+    // 2. Edge Entity 모양 업데이트
+    // 3. EdgeShapeChanged 이벤트 생성
     // 4. 이벤트 추가
     // 5. 이벤트 반환
   }
@@ -619,18 +639,16 @@ class EdgeAggregate {
     // 4. 이벤트 반환
   }
   
+  updateEdgeStyle(style: { stroke?: string; strokeWidth?: number }): EdgeStyleChangedEvent {
+    // 1. Edge Entity 스타일 업데이트
+    // 2. EdgeStyleChanged 이벤트 생성
+    // 3. 이벤트 추가
+    // 4. 이벤트 반환
+  }
+  
   deleteEdge(): EdgeDeletedEvent {
     // 1. EdgeDeleted 이벤트 생성
     // 2. 이벤트 추가
-    // 3. 이벤트 반환
-  }
-  
-  static deleteConnectedEdges(
-    pageId: PageId, 
-    blockId: BlockId
-  ): ConnectedEdgesDeletedEvent {
-    // 1. 연결된 모든 엣지 조회
-    // 2. ConnectedEdgesDeleted 이벤트 생성
     // 3. 이벤트 반환
   }
   
@@ -639,6 +657,8 @@ class EdgeAggregate {
   }
 }
 ```
+
+**참고**: `deleteConnectedEdges`는 Service Layer에서 처리합니다 (EdgeRepository.findByConnectedBlockMountId 사용)
 
 **사용 시나리오**:
 - 엣지 생성 시 모든 관련 객체 동시 생성
@@ -1024,8 +1044,6 @@ class BlockZOrderUpdatedEvent implements DomainEvent {
   - position: Position - 초기 위치
   - size: Size - 초기 크기
   - zOrder: ZOrder - 할당된 z-order
-  - occurredAt: Date - 발생 시각
-- **특징**: 블럭 생성 완료 시점을 명확히 기록
 
 ```typescript
 class BlockMountedEvent implements DomainEvent {
@@ -1040,7 +1058,6 @@ class BlockMountedEvent implements DomainEvent {
       position: Position;
       size: Size;
       zOrder: ZOrder;
-      occurredAt: Date;
     }
   ) {}
 }
@@ -1263,27 +1280,32 @@ class DrizzleBlockMountRepository implements BlockMountRepository {
 
 - **파일 위치**: `src/domains/canvas-management/infrastructure/repositories/edge.repository.ts`
 - **역할**: Edge Aggregate의 영속성을 담당하는 Repository 인터페이스 및 Drizzle ORM 구현체
+- **⚠️ Schema Change (리팩토링 완료)**: `blocks` 대신 `block_mounts`를 직접 참조
 - **주요 메서드**:
-  - save(): Edge Aggregate를 데이터베이스에 저장 (생성/수정)
+  - create(): Edge Aggregate를 데이터베이스에 생성
+  - update(): Edge Aggregate를 데이터베이스에 업데이트
   - findById(): EdgeId로 Edge Aggregate 조회
   - findByPageId(): PageId로 여러 Edge Aggregate 조회
-  - findByBlockId(): BlockId로 연결된 Edge Aggregate들 조회
-  - deleteAll(): 여러 Edge Aggregate 삭제 (블럭 삭제 시)
+  - findByConnectedBlockMountId(): BlockMountId로 연결된 Edge Aggregate들 조회 ⚠️ 변경됨
+  - delete(): Edge Aggregate 삭제
+  - deleteAll(): 여러 Edge Aggregate 삭제 (블럭 마운트 삭제 시)
 - **DB 연동**: Drizzle ORM을 사용한 PostgreSQL 연결
-- **특징**: 블럭 삭제 시 연결된 엣지 일괄 삭제를 위한 배치 처리 지원
+- **특징**: 블럭 마운트 삭제 시 연결된 엣지 일괄 삭제를 위한 배치 처리 지원
 
 ```typescript
 interface EdgeRepository {
-  save(edge: EdgeAggregate): Promise<void>;
+  create(edge: EdgeAggregate): Promise<void>;
+  update(edge: EdgeAggregate): Promise<void>;
   findById(edgeId: EdgeId): Promise<EdgeAggregate | null>;
   findByPageId(pageId: PageId): Promise<EdgeAggregate[]>;
-  findByConnectedBlockId(blockId: BlockId): Promise<EdgeAggregate[]>;
+  findByConnectedBlockMountId(blockMountId: BlockMountId): Promise<EdgeAggregate[]>; // ⚠️ BlockId → BlockMountId
+  delete(edgeId: EdgeId): Promise<void>;
   deleteAll(edgeIds: EdgeId[]): Promise<void>;
 }
 
 class DrizzleEdgeRepository implements EdgeRepository {
-  async findByConnectedBlockId(blockId: BlockId): Promise<EdgeAggregate[]> {
-    // 1. sourceBlockId 또는 targetBlockId로 조회
+  async findByConnectedBlockMountId(blockMountId: BlockMountId): Promise<EdgeAggregate[]> {
+    // 1. source_block_mount_id 또는 target_block_mount_id로 조회
     // 2. 연결된 모든 엣지 반환
     // 3. EdgeAggregate[] 반환
   }
@@ -1291,7 +1313,7 @@ class DrizzleEdgeRepository implements EdgeRepository {
   async deleteAll(edgeIds: EdgeId[]): Promise<void> {
     // 1. 다중 EdgeId로 일괄 삭제
     // 2. 트랜잭션으로 원자성 보장
-    // 3. 블럭 삭제 시 연결된 엣지 정리
+    // 3. 블럭 마운트 삭제 시 연결된 엣지 정리
   }
 }
 ```
@@ -1299,7 +1321,7 @@ class DrizzleEdgeRepository implements EdgeRepository {
 **사용 시나리오**:
 - Service Layer에서 Edge Aggregate 저장/조회
 - 페이지별 엣지 목록 조회
-- 블럭 삭제 시 연결된 엣지 일괄 정리
+- 블럭 마운트 삭제 시 연결된 엣지 일괄 정리 (⚠️ BlockId → BlockMountId)
 
 **우선순위**: ⭐️⭐️⭐️⭐️  
 **Testing Strategy 참조**: Repository 통합 테스트 케이스
@@ -1514,33 +1536,44 @@ async function getCanvasView(pageId: PageId, userId: UserId): Promise<CanvasView
 
 ### 1. Service 수도코드
 
-#### CanvasManagementService
+#### Service Layer 구조 (리팩토링 완료)
 
-- **파일 위치**: `src/domains/canvas-management/application/services/canvas-management.service.ts`
-- **역할**: Canvas Management의 비즈니스 유스케이스를 조율하고 실행하는 Application Service
+**⚠️ Service 분리**: CanvasManagementService가 여러 서비스로 분리되었습니다
+
+#### ICanvasBlockMountService / CanvasBlockMountService
+- **파일 위치**: `src/domains/canvas-management/backend/services/canvas-block-mount.service.ts`
+- **역할**: 블럭 마운트 관련 비즈니스 로직 담당
 - **주요 의존성**:
-  - GetCanvasViewQuery: 페이지별 캔버스 데이터 조회 (Read Model)
-  - BlockMountRepository: BlockMount Aggregate 영속성 관리
-  - EdgeRepository: Edge Aggregate 영속성 관리
-  - ViewportRepository: Viewport Aggregate 영속성 관리
   - BlockManagementService: Block Management Domain 서비스 통신
-  - WorkspaceManagementService: Workspace Management 도메인 통신
-  - ReactFlowACL: React Flow 라이브러리 연동
+  - BlockMountRepository: BlockMount Aggregate 영속성 관리
+  - EdgeRepository: 연결된 엣지 삭제를 위한 Repository
 - **주요 메서드**:
-  - getCanvasView(): 페이지 데이터 로드 (블럭/엣지/뷰포트 복원) - READ MODEL
-  - mountBlock(): 블럭 마운트 및 BlockMounted 처리
-  - updateBlockPosition(): 블럭 위치 업데이트 및 BlockPositionUpdated 처리
-  - updateBlockSize(): 블럭 크기 업데이트 및 BlockSizeUpdated 처리
-  - updateBlockZOrder(): 블럭 Z-Order 업데이트 및 BlockZOrderUpdated 처리
-  - updateMultipleBlockPositions(): 다중 블럭 위치 일괄 업데이트 (정렬/분포 후)
-  - duplicateBlock(): 블럭 복제 및 마운트 처리
-  - deleteBlock(): 블럭 삭제 처리 (툴바 버튼 & 키보드 단축키 모두 처리)
-  - createEdge(): 엣지 생성 및 EdgeCreated 처리
-  - updateEdge(): 엣지 속성 업데이트 (타입, 레이블, 스타일)
-  - deleteEdge(): 엣지 삭제 처리
-  - updateViewport(): 뷰포트 업데이트 및 ViewportUpdated 처리
-  - saveViewportState(): 뷰포트 상태 저장 (페이지 이탈 시)
-  - restoreViewportState(): 뷰포트 상태 복원 (페이지 재진입 시)
+  - `createAndMountBlock()`: 블럭 생성 후 마운트 및 BlockMounted 처리
+  - `updateBlockPosition()`: 블럭 위치 업데이트 및 BlockPositionUpdated 처리
+  - `updateBlockSize()`: 블럭 크기 업데이트 및 BlockSizeUpdated 처리
+  - `softDeleteBlockMount()`: 블럭 마운트 삭제 및 연결된 엣지 자동 정리
+  - `duplicateBlockAndMount()`: 블럭 복제 및 마운트 처리
+
+#### ICanvasEdgeService / CanvasEdgeService
+- **파일 위치**: `src/domains/canvas-management/backend/services/canvas-edge.service.ts`
+- **역할**: 엣지 생성 및 관리 비즈니스 로직 담당
+- **⚠️ Schema Change**: `block_mounts`를 직접 참조하여 Block Management와의 의존성 감소
+- **주요 의존성**:
+  - BlockMountRepository: 블럭 마운트 존재 확인
+  - EdgeRepository: Edge Aggregate 영속성 관리
+- **주요 메서드**:
+  - `createEdge()`: 엣지 생성 및 EdgeCreated 처리 (sourceBlockMountId, targetBlockMountId 사용)
+  - `updateEdgeShape()`: 엣지 모양 업데이트 (EdgeShape 사용)
+  - `updateEdgeLabel()`: 엣지 레이블 업데이트
+  - `updateEdgeStyle()`: 엣지 스타일 업데이트
+  - `deleteEdge()`: 엣지 삭제 처리
+  - `deleteConnectedEdges()`: 블럭 마운트 삭제 시 연결된 엣지 일괄 삭제 (findByConnectedBlockMountId 사용)
+
+#### ICanvasQueryService / CanvasQueryService
+- **파일 위치**: `src/domains/canvas-management/backend/services/canvas-query.service.ts`
+- **역할**: 캔버스 데이터 조회 (Read Model 패턴)
+- **주요 메서드**:
+  - `getCanvasView()`: 페이지별 캔버스 전체 데이터 조회
 - **트랜잭션**: 하나의 Service 메서드는 하나의 트랜잭션 단위
 - **특징**:
   - 얇은 Application Layer: 도메인 로직은 Aggregate에 위임
@@ -1639,7 +1672,7 @@ class CanvasManagementService {
   - 도메인 모델 → DTO 직렬화 (Value Object → string, Date → ISO string)
   - Next.js 캐시 무효화 (revalidatePath)
 - **입력**: pageId (string), userId (string)
-- **출력**: CanvasViewDTO
+- **출력**: CanvasViewData (BlockView[] 포함)
 - **인증**: Supabase Auth 기반 사용자 인증 필수
 - **에러 처리**: 
   - 인증 실패 → UnauthorizedError
@@ -1653,7 +1686,7 @@ class CanvasManagementService {
 ```typescript
 'use server'
 
-async function getCanvasViewAction(pageId: string, userId: string): Promise<Result<CanvasViewDTO>> {
+async function getCanvasViewAction(pageId: string, userId: string): Promise<Result<CanvasViewData>> {
   try {
     // 1. Supabase Auth 인증 확인
     const user = await getCurrentUser();
@@ -1662,30 +1695,42 @@ async function getCanvasViewAction(pageId: string, userId: string): Promise<Resu
     }
     
     // 2. 의존성 주입 (Repository, Service)
-    const canvasManagementService = new CanvasManagementService(...);
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const edgeRepository = new DrizzleEdgeRepository();
+    const viewportRepository = new DrizzleViewportRepository();
+    const canvasQueryService = new CanvasQueryService(
+      blockMountRepository,
+      edgeRepository,
+      viewportRepository
+    );
     
     // 3. Read Model 조회
-    const result = await canvasManagementService.getCanvasView(new PageId(pageId), new UserId(userId));
+    const result = await canvasQueryService.getCanvasView(new PageId(pageId), new UserId(userId));
     if (result.isErr()) {
       return Result.err(result.error);
     }
     
-    // 4. DTO 직렬화
-    const dto: CanvasViewDTO = {
+    // 4. DTO 직렬화 (SSOT BlockView 사용)
+    const dto: CanvasViewData = {
       pageId: result.value.pageId.value,
       blocks: result.value.blocks.map(b => ({
-        blockMountId: b.blockMountId.value,
-        blockId: b.blockId.value,
+        // Canvas Management 정보
+        blockMountId: b.blockMountId,
         position: b.position,
         size: b.size,
-        zOrder: b.zOrder.value,
+        zOrder: b.zOrder,
+        // Block Management 정보
+        blockId: b.blockId,
         blockType: b.blockType,
-        blockData: b.blockData
+        properties: b.properties,
+        customProperties: b.customProperties,
+        // 메타데이터
+        createdAt: b.createdAt,
+        updatedAt: b.updatedAt,
+        createdBy: b.createdBy
       })),
       edges: result.value.edges,
-      viewport: result.value.viewport,
-      totalBlockCount: result.value.totalBlockCount,
-      totalEdgeCount: result.value.totalEdgeCount
+      viewport: result.value.viewport
     };
     
     // 5. 결과 반환
@@ -1720,7 +1765,7 @@ async function getCanvasViewAction(pageId: string, userId: string): Promise<Resu
 - **파일 위치**: `src/domains/canvas-management/actions/block.actions.ts`
 - **역할**: 블럭 마운트 기능을 제공하는 Next.js Server Action
 - **입력**: pageId, blockId, position, size
-- **출력**: BlockMountedDTO
+- **출력**: BlockView (SSOT)
 - **인증**: Supabase Auth 기반 사용자 인증 필수
 
 ```typescript
@@ -1731,7 +1776,7 @@ async function mountBlockAction(
   blockId: string, 
   position: { x: number; y: number }, 
   size: { width: number; height: number }
-): Promise<Result<BlockMountedDTO>> {
+): Promise<Result<BlockView>> {
   try {
     // 1. Supabase Auth 인증 확인
     const user = await getCurrentUser();
@@ -1740,31 +1785,48 @@ async function mountBlockAction(
     }
     
     // 2. 의존성 주입
-    const blockMountRepository = new DrizzleBlockMountRepository(db);
-    const canvasManagementService = new CanvasManagementService(blockMountRepository, ...);
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const edgeRepository = new DrizzleEdgeRepository();
+    const blockRepository = new DrizzleBlockRepository();
+    const blockManagementService = new BlockManagementService(blockRepository);
+    const canvasBlockMountService = new CanvasBlockMountService(
+      blockManagementService,
+      blockMountRepository,
+      edgeRepository
+    );
     
     // 3. Command 생성
-    const command: MountBlockCommand = {
+    const command: CreateAndMountBlockCommand = {
+      blockType: 'text', // 기본 타입
+      workspaceId: 'workspace-id', // 실제 워크스페이스 ID
       pageId: new PageId(pageId),
-      blockId: new BlockId(blockId),
       position: new Position(position.x, position.y),
-      size: new Size(size.width, size.height)
+      size: new Size(size.width, size.height),
+      userId: user.id
     };
     
     // 4. 도메인 로직 실행
-    const result = await canvasManagementService.mountBlock(command);
+    const result = await canvasBlockMountService.createAndMountBlock(command);
     if (result.isErr()) {
       return Result.err(result.error);
     }
     
-    // 5. DTO 직렬화
-    const dto: BlockMountedDTO = {
-      blockMountId: result.value.id.value,
-      blockId: result.value.blockId.value,
-      position: result.value.position,
-      size: result.value.size,
-      zOrder: result.value.zOrder.value,
-      mountedAt: result.value.createdAt.toISOString()
+    // 5. DTO 직렬화 (SSOT BlockView 사용)
+    const dto: BlockView = {
+      // Canvas Management 정보
+      blockMountId: result.value.aggregate.blockMount.id.value,
+      position: result.value.aggregate.blockMount.position,
+      size: result.value.aggregate.blockMount.size,
+      zOrder: result.value.aggregate.blockMount.zOrder.value,
+      // Block Management 정보
+      blockId: result.value.block.id.value,
+      blockType: result.value.block.blockType.value,
+      properties: result.value.block.properties,
+      customProperties: result.value.block.customProperties || [],
+      // 메타데이터
+      createdAt: result.value.block.createdAt.toISOString(),
+      updatedAt: result.value.block.updatedAt.toISOString(),
+      createdBy: result.value.block.createdBy
     };
     
     // 6. 캐시 무효화
@@ -1908,58 +1970,83 @@ async function updateMultipleBlockPositionsAction(
 
 - **파일 위치**: `src/domains/canvas-management/actions/edge.actions.ts`
 - **역할**: 엣지 생성 기능을 제공하는 Next.js Server Action
-- **입력**: pageId, sourceBlockId, targetBlockId, edgeType
-- **출력**: EdgeCreatedDTO
+- **⚠️ Schema Change**: `sourceBlockId`, `targetBlockId` → `sourceBlockMountId`, `targetBlockMountId`
+- **입력**: pageId, sourceBlockMountId, targetBlockMountId, edgeShape, sourceHandle?, targetHandle?
+- **출력**: EdgeView (sourceBlockMountId, targetBlockMountId 포함)
 
 ```typescript
 'use server'
 
 async function createEdgeAction(
-  pageId: string,
-  sourceBlockId: string,
-  targetBlockId: string,
-  edgeType?: string
-): Promise<Result<EdgeCreatedDTO>> {
+  request: CreateEdgeRequest // pageId, sourceBlockMountId, targetBlockMountId, edgeShape, sourceHandle?, targetHandle?
+): Promise<ActionResult<EdgeView>> {
   try {
-    // 1. Supabase Auth 인증 확인
-    const user = await getCurrentUser();
-    if (!user) {
-      return Result.err(new UnauthorizedError('User not authenticated'));
+    // 1. Request 스키마 검증 (Runtime Validation)
+    const parseResult = CreateEdgeRequestSchema.safeParse(request);
+    if (!parseResult.success) {
+      return err('Invalid request data', { code: 'INVALID_REQUEST' });
     }
     
-    // 2. 의존성 주입
-    const edgeRepository = new DrizzleEdgeRepository(db);
-    const canvasManagementService = new CanvasManagementService(edgeRepository, ...);
+    // 2. Supabase Auth 인증 확인
+    const authenticatedUser = await getAuthenticatedUser();
     
-    // 3. Command 생성
-    const command: CreateEdgeCommand = {
-      pageId: new PageId(pageId),
-      sourceBlockId: new BlockId(sourceBlockId),
-      targetBlockId: new BlockId(targetBlockId),
-      edgeType: edgeType ? new EdgeType(edgeType) : undefined
-    };
-    
-    // 4. 도메인 로직 실행
-    const result = await canvasManagementService.createEdge(command);
-    if (result.isErr()) {
-      return Result.err(result.error);
+    // 3. 조직 & 워크스페이스 권한 확인
+    const accessResult = await verifyAccess(request.orgId, request.workspaceId, authenticatedUser);
+    if (!accessResult.success) {
+      return err('Access denied', { code: 'ACCESS_DENIED' });
     }
     
-    // 5. DTO 직렬화 및 반환
-    const dto: EdgeCreatedDTO = {
-      edgeId: result.value.id.value,
-      sourceBlockId: result.value.sourceBlockId.value,
-      targetBlockId: result.value.targetBlockId.value,
-      edgeType: result.value.edgeType.value,
-      createdAt: result.value.createdAt.toISOString()
+    // 4. 의존성 주입
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const edgeRepository = new DrizzleEdgeRepository();
+    const canvasEdgeService = new CanvasEdgeService(
+      blockMountRepository,
+      edgeRepository
+    );
+    
+    // 5. Value Objects 생성
+    const pageIdVO = new PageId(request.pageId);
+    const sourceBlockMountIdVO = new BlockMountId(request.sourceBlockMountId);
+    const targetBlockMountIdVO = new BlockMountId(request.targetBlockMountId);
+    const edgeShapeVO = request.edgeShape ? new EdgeShape(request.edgeShape) : undefined;
+    
+    // 6. 도메인 로직 실행
+    const result = await canvasEdgeService.createEdge({
+      pageId: pageIdVO,
+      sourceBlockMountId: sourceBlockMountIdVO,
+      targetBlockMountId: targetBlockMountIdVO,
+      edgeShape: edgeShapeVO,
+      sourceHandle: request.sourceHandle,
+      targetHandle: request.targetHandle,
+      userId: authenticatedUser.id
+    });
+    
+    if (result.isError()) {
+      return err(String(result.error), { code: 'EDGE_CREATION_FAILED' });
+    }
+    
+    // 7. DTO 직렬화 및 반환
+    const aggregate = result.value;
+    const dto: EdgeView = {
+      edgeId: aggregate.edge.id.value,
+      pageId: aggregate.edge.pageId.value,
+      sourceBlockMountId: aggregate.edge.sourceBlockMountId.value, // ⚠️ BlockId → BlockMountId
+      targetBlockMountId: aggregate.edge.targetBlockMountId.value, // ⚠️ BlockId → BlockMountId
+      sourceHandle: aggregate.edge.sourceHandle,
+      targetHandle: aggregate.edge.targetHandle,
+      edgeShape: aggregate.edge.edgeShape.value, // ⚠️ EdgeType → EdgeShape
+      edgeLabel: aggregate.edge.edgeLabel,
+      edgeStyle: aggregate.edge.edgeStyle,
+      createdAt: aggregate.edge.createdAt.toISOString(),
+      updatedAt: aggregate.edge.updatedAt.toISOString()
     };
     
     revalidatePath(`/pages/${pageId}`);
-    return Result.ok(dto);
+    return ok(dto);
     
   } catch (error) {
     console.error('Edge creation failed:', error);
-    return Result.err(new InternalServerError('Edge creation failed'));
+    return err('Edge creation failed', { code: 'INTERNAL_ERROR' });
   }
 }
 ```

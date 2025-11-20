@@ -15,6 +15,7 @@ describe('NotificationService', () => {
       findById: vi.fn(),
       findByUserId: vi.fn(),
       findUnreadByUserId: vi.fn(),
+      findByRelatedId: vi.fn(),
       delete: vi.fn(),
     };
 

@@ -1,2 +1,0 @@
-CREATE TYPE "public"."organization_type" AS ENUM('personal', 'education', 'startup', 'agency', 'company', 'n/a');--> statement-breakpoint
-ALTER TABLE "organizations" ADD COLUMN "organization_type" "organization_type" DEFAULT 'n/a' NOT NULL;

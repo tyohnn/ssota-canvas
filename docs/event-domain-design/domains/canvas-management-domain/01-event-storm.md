@@ -99,9 +99,9 @@ Block (전역)
 
 #### Backend Events
 - 블럭 생성이 요청되었다 (Block Creation Requested)
-  - *Block Domain과 통신: 타입 검증, 기본값 설정*
+  - *Block Domain과 통신: 타입 검증, 기본값 설정, 사용자 정보 포함*
 - 블럭이 생성되었다 (Block Created)
-  - *Block Domain에서 블럭 생성 완료 후*
+  - *Block Domain에서 블럭 생성 완료 후 (createdBy, createdAt, updatedAt 포함)*
 - 블럭이 페이지에 마운트되었다 (Block Mounted to Page)
   - *초기 위치(x, y), 초기 크기(width, height), z-order 포함*
 

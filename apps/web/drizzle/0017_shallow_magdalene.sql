@@ -1,1 +1,0 @@
-ALTER TABLE "workspaces" ADD COLUMN "icon_name" text DEFAULT 'Blocks';

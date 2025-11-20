@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DrizzleEdgeRepository } from '../drizzle-edge.repository';
 import { EdgeAggregate } from '../../../../shared/aggregates/edge.aggregate';
 import { EdgeId } from '../../../../shared/value-objects/edge-id.vo';
-import { EdgeType } from '../../../../shared/value-objects/edge-type.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { BlockMountId } from '../../../../shared/value-objects/block-mount-id.vo';
+import { EdgeShape } from '@/domains/canvas-management/shared/value-objects/edge-shape.vo';
 
 // Mock Drizzle DB
 vi.mock('@/db', () => ({
@@ -24,6 +24,11 @@ vi.mock('@/db', () => ({
         }),
       }),
     }),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    }),
     delete: vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue(undefined),
     }),
@@ -34,46 +39,70 @@ vi.mock('@/db/schema-dev', () => ({
   edges: {
     id: 'id',
     page_id: 'page_id',
-    source_block_id: 'source_block_id',
-    target_block_id: 'target_block_id',
-    edge_type: 'edge_type',
+    source_block_mount_id: 'source_block_mount_id',
+    target_block_mount_id: 'target_block_mount_id',
+    source_handle: 'source_handle',
+    target_handle: 'target_handle',
+    edge_shape: 'edge_shape',
     edge_label: 'edge_label',
     edge_style_color: 'edge_style_color',
     edge_style_thickness: 'edge_style_thickness',
     created_at: 'created_at',
     updated_at: 'updated_at',
+    deleted_at: 'deleted_at',
   },
 }));
 
 describe('DrizzleEdgeRepository', () => {
   let repository: DrizzleEdgeRepository;
   let mockPageId: PageId;
-  let mockSourceBlockId: BlockId;
-  let mockTargetBlockId: BlockId;
+  let mockSourceBlockMountId: BlockMountId;
+  let mockTargetBlockMountId: BlockMountId;
 
   beforeEach(() => {
     repository = new DrizzleEdgeRepository();
     mockPageId = new PageId('550e8400-e29b-41d4-a716-446655440000');
-    mockSourceBlockId = new BlockId('550e8400-e29b-41d4-a716-446655440001');
-    mockTargetBlockId = new BlockId('550e8400-e29b-41d4-a716-446655440002');
+    mockSourceBlockMountId = new BlockMountId('550e8400-e29b-41d4-a716-446655440001');
+    mockTargetBlockMountId = new BlockMountId('550e8400-e29b-41d4-a716-446655440002');
     
     vi.clearAllMocks();
   });
 
-  describe('save', () => {
-    it('EdgeAggregate를 저장할 수 있어야 한다', async () => {
+  describe('create', () => {
+    it('EdgeAggregate를 생성할 수 있어야 한다', async () => {
       // Given
       const edgeId = new EdgeId('550e8400-e29b-41d4-a716-446655440003');
       const aggregate = EdgeAggregate.createEdge(
         edgeId,
         mockPageId,
-        mockSourceBlockId,
-        mockTargetBlockId,
-        EdgeType.default()
+        mockSourceBlockMountId,
+        mockTargetBlockMountId,
+        EdgeShape.default()
       );
 
       // When
-      await repository.save(aggregate);
+      await repository.create(aggregate);
+
+      // Then
+      // Mock이 올바르게 호출되었는지 확인
+      expect(true).toBe(true); // 실제 구현에서는 adminDb 호출 검증
+    });
+  });
+
+  describe('update', () => {
+    it('EdgeAggregate를 업데이트할 수 있어야 한다', async () => {
+      // Given
+      const edgeId = new EdgeId('550e8400-e29b-41d4-a716-446655440003');
+      const aggregate = EdgeAggregate.createEdge(
+        edgeId,
+        mockPageId,
+        mockSourceBlockMountId,
+        mockTargetBlockMountId,
+        EdgeShape.default()
+      );
+
+      // When
+      await repository.update(aggregate);
 
       // Then
       // Mock이 올바르게 호출되었는지 확인
@@ -116,10 +145,10 @@ describe('DrizzleEdgeRepository', () => {
     });
   });
 
-  describe('findByConnectedBlockId', () => {
-    it('연결된 Block ID로 EdgeAggregate를 조회할 수 있어야 한다', async () => {
+  describe('findByConnectedBlockMountId', () => {
+    it('연결된 BlockMount ID로 EdgeAggregate를 조회할 수 있어야 한다', async () => {
       // When
-      const result = await repository.findByConnectedBlockId(mockSourceBlockId);
+      const result = await repository.findByConnectedBlockMountId(mockSourceBlockMountId);
 
       // Then
       expect(Array.isArray(result)).toBe(true);

@@ -2,319 +2,387 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { Block } from '../block.entity';
 import { BlockId } from '../../value-objects/block-id.vo';
 import { BlockType } from '../../value-objects/block-type.vo';
-import { Metadata } from '../../value-objects/metadata.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { CustomPropertyDefinitionVO } from '../../value-objects/custom-property-definition.vo';
+import { PropertyTypeVO } from '../../value-objects/property-type.vo';
+import { PropertyOptionVO } from '../../value-objects/property-option.vo';
 import { BlockManagementError } from '../../errors/block-management.error';
+import { BlockPropertiesFactory } from '../../value-objects/block-properties';
+import { PropertyType } from '../../value-objects/block-properties/common-types';
 
 describe('Block Entity', () => {
   let blockId: BlockId;
-  let workspaceId: string;
   let blockType: BlockType;
-  let metadata: Metadata;
+  let workspaceId: WorkspaceId;
+  let userId: UserId;
 
   beforeEach(() => {
     blockId = new BlockId('123e4567-e89b-12d3-a456-426614174000');
-    workspaceId = '123e4567-e89b-12d3-a456-426614174001';
-    blockType = new BlockType('text');
-    metadata = new Metadata({ content: 'Hello World' });
+    blockType = new BlockType('youtube');
+    workspaceId = new WorkspaceId('550e8400-e29b-41d4-a716-446655440000');
+    userId = new UserId('550e8400-e29b-41d4-a716-446655440020');
   });
 
   describe('create', () => {
-    it('모든 필수 속성으로 생성되어야 한다', () => {
-      // Given & When
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
+    it('should create a new block with default properties', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
 
-      // Then
+      expect(block.id).toBe(blockId);
+      expect(block.workspaceId).toBe(workspaceId);
+      expect(block.userId).toBe(userId);
+      expect(block.blockType).toBe(blockType);
+      expect(block.properties.toJSON()).toEqual(blockType.getDefaultProperties());
+      expect(block.customProperties).toEqual([]);
+      expect(block.deletedAt).toBeNull();
+      expect(block.createdAt).toBeInstanceOf(Date);
+      expect(block.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('should create a block with initial title', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType, 'Test Video');
+
+      expect(block.title).toBe('Test Video');
+      expect(block.properties.toJSON()).toEqual(blockType.getDefaultProperties());
+    });
+  });
+
+  describe('reconstitute', () => {
+    it('should reconstitute a block from existing data', () => {
+      const properties = {};
+      const customProperties: CustomPropertyDefinitionVO[] = [];
+      const createdAt = new Date('2023-01-01');
+      const updatedAt = new Date('2023-01-02');
+      const deletedAt = null;
+
+      const propertiesVO = BlockPropertiesFactory.createFromJSON(blockType, properties);
+      const block = Block.reconstitute(
+        blockId,
+        workspaceId,
+        userId,
+        blockType,
+        'Test Block',
+        propertiesVO,
+        customProperties,
+        createdAt,
+        updatedAt,
+        deletedAt
+      );
+
       expect(block.id).toBe(blockId);
       expect(block.workspaceId).toBe(workspaceId);
       expect(block.blockType).toBe(blockType);
-      expect(block.metadata).toBe(metadata);
-    });
-
-    it('생성 시점과 수정 시점이 기록되어야 한다', () => {
-      // Given & When
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-
-      // Then
-      expect(block.createdAt).toBeInstanceOf(Date);
-      expect(block.updatedAt).toBeInstanceOf(Date);
-      expect(block.deletedAt).toBeNull();
-    });
-
-    it('생성 시점과 수정 시점이 같아야 한다', () => {
-      // Given & When
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-
-      // Then
-      expect(block.createdAt.getTime()).toBe(block.updatedAt.getTime());
-    });
-
-    it('삭제 시점은 null이어야 한다', () => {
-      // Given & When
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-
-      // Then
-      expect(block.deletedAt).toBeNull();
-      expect(block.isDeleted()).toBe(false);
-    });
-
-    it('null 메타데이터로 생성할 수 있어야 한다', () => {
-      // Given & When
-      const block = Block.create(
-        blockId,
-        workspaceId,
-        blockType,
-        new Metadata(null)
-      );
-
-      // Then
-      expect(block.metadata.value).toBeNull();
-    });
-
-    it('빈 메타데이터로 생성할 수 있어야 한다', () => {
-      // Given & When
-      const block = Block.create(
-        blockId,
-        workspaceId,
-        blockType,
-        new Metadata({})
-      );
-
-      // Then
-      expect(block.metadata.value).toEqual({});
+      expect(block.properties.toJSON()).toEqual(properties);
+      expect(block.customProperties).toEqual(customProperties);
+      expect(block.createdAt).toBe(createdAt);
+      expect(block.updatedAt).toBe(updatedAt);
+      expect(block.deletedAt).toBe(deletedAt);
     });
   });
 
   describe('updateBlockType', () => {
-    it('새로운 타입으로 변경되어야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-      const newType = new BlockType('image');
-      const originalUpdatedAt = block.updatedAt;
+    it('should update block type and reset properties', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
+      const newType = new BlockType('markdown');
 
-      // When
       block.updateBlockType(newType);
 
-      // Then
-      expect(block.blockType.value).toBe('image');
-      expect(block.updatedAt.getTime()).toBeGreaterThanOrEqual(
-        originalUpdatedAt.getTime()
-      );
+      expect(block.blockType).toBe(newType);
+      expect(block.properties.toJSON()).toEqual(newType.getDefaultProperties());
+      expect(block.updatedAt).toBeInstanceOf(Date);
     });
 
-    it('page 타입으로 변경할 수 있어야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-      const pageType = new BlockType('page');
-
-      // When
-      block.updateBlockType(pageType);
-
-      // Then
-      expect(block.blockType.value).toBe('page');
-      expect(block.blockType.isPageType()).toBe(true);
-    });
-
-    it('code 타입으로 변경할 수 있어야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-      const codeType = new BlockType('code');
-
-      // When
-      block.updateBlockType(codeType);
-
-      // Then
-      expect(block.blockType.value).toBe('code');
-    });
-
-    it('updatedAt이 갱신되어야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-      const originalUpdatedAt = block.updatedAt.getTime();
-
-      // 시간 차이를 보장하기 위해 약간 대기
-      const sleep = () => new Promise((resolve) => setTimeout(resolve, 10));
-
-      // When
-      sleep().then(() => {
-        const newType = new BlockType('image');
-        block.updateBlockType(newType);
-
-        // Then
-        expect(block.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt);
-      });
-    });
-
-    it('createdAt은 변경되지 않아야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-      const originalCreatedAt = block.createdAt;
-
-      // When
-      const newType = new BlockType('image');
-      block.updateBlockType(newType);
-
-      // Then
-      expect(block.createdAt).toBe(originalCreatedAt);
-    });
-
-    it('삭제된 블록은 타입 변경할 수 없어야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
+    it('should throw error when trying to update deleted block', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
       block.markAsDeleted();
 
-      // When & Then
-      const newType = new BlockType('image');
-      expect(() => block.updateBlockType(newType)).toThrow(
-        BlockManagementError
-      );
-      expect(() => block.updateBlockType(newType)).toThrow(
-        'Cannot modify deleted block'
-      );
+      expect(() => {
+        block.updateBlockType(new BlockType('markdown'));
+      }).toThrow(BlockManagementError);
     });
   });
 
-  describe('updateMetadata', () => {
-    it('새로운 메타데이터로 업데이트되어야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-      const newMetadata = new Metadata({ content: 'Updated content' });
-
-      // When
-      block.updateMetadata(newMetadata);
-
-      // Then
-      expect(block.metadata.value).toEqual({ content: 'Updated content' });
-    });
-
-    it('updatedAt이 갱신되어야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-      const originalUpdatedAt = block.updatedAt.getTime();
-
-      // When
-      const newMetadata = new Metadata({ content: 'Updated' });
-      block.updateMetadata(newMetadata);
-
-      // Then
-      expect(block.updatedAt.getTime()).toBeGreaterThanOrEqual(
-        originalUpdatedAt
+  describe('addCustomPropertyDefinition', () => {
+    it('should add a custom property definition', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
+      const customProperty = new CustomPropertyDefinitionVO(
+        'prop-1',
+        'Custom Field',
+        new PropertyTypeVO(PropertyType.TEXT),
+        [],
+        0,
+        true,
+        false,
+        null,
+        null
       );
+
+      block.addCustomPropertyDefinition(customProperty);
+
+      expect(block.customProperties).toHaveLength(1);
+      expect(block.customProperties[0]?.name).toBe('Custom Field');
+      expect(block.customProperties[0]?.type.value).toBe('text');
+      expect(block.customProperties[0]?.visible).toBe(true);
+      expect(block.updatedAt).toBeInstanceOf(Date);
     });
 
-    it('삭제된 블록은 메타데이터 업데이트할 수 없어야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
+    it('should add a custom property definition with options', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
+      const options = [
+        new PropertyOptionVO('opt1', 'Option 1', 'opt1', '#ff0000'),
+        new PropertyOptionVO('opt2', 'Option 2', 'opt2', '#00ff00')
+      ];
+      const customProperty = new CustomPropertyDefinitionVO(
+        'prop-1',
+        'Status',
+        new PropertyTypeVO(PropertyType.SELECT),
+        options,
+        0,
+        true,
+        false,
+        null,
+        null
+      );
+
+      block.addCustomPropertyDefinition(customProperty);
+
+      expect(block.customProperties[0]?.options).toHaveLength(2);
+    });
+
+    it('should throw error when adding property to deleted block', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
       block.markAsDeleted();
 
-      // When & Then
-      const newMetadata = new Metadata({ content: 'Updated' });
-      expect(() => block.updateMetadata(newMetadata)).toThrow(
-        BlockManagementError
+      const customProperty = new CustomPropertyDefinitionVO(
+        'prop-1',
+        'Custom Field',
+        new PropertyTypeVO(PropertyType.TEXT),
+        [],
+        0,
+        true,
+        false,
+        null,
+        null
       );
+
+      expect(() => {
+        block.addCustomPropertyDefinition(customProperty);
+      }).toThrow(BlockManagementError);
     });
   });
+
+  describe('updateCustomPropertyDefinition', () => {
+    it('should update an existing custom property definition', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
+      const originalProperty = new CustomPropertyDefinitionVO(
+        'prop-1',
+        'Custom Field',
+        new PropertyTypeVO(PropertyType.TEXT),
+        [],
+        0,
+        true,
+        false,
+        null,
+        null
+      );
+      block.addCustomPropertyDefinition(originalProperty);
+
+      const updatedProperty = new CustomPropertyDefinitionVO(
+        'prop-1',
+        'Updated Field',
+        new PropertyTypeVO(PropertyType.TEXT),
+        [],
+        1,
+        false,
+        true,
+        'default',
+        null
+      );
+
+      block.updateCustomPropertyDefinition('prop-1', updatedProperty);
+
+      expect(block.customProperties[0]?.name).toBe('Updated Field');
+      expect(block.customProperties[0]?.order).toBe(1);
+      expect(block.customProperties[0]?.visible).toBe(false);
+      expect(block.customProperties[0]?.required).toBe(true);
+      expect(block.customProperties[0]?.defaultValue).toBe('default');
+    });
+
+    it('should throw error when property not found', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
+      const updatedProperty = new CustomPropertyDefinitionVO(
+        'prop-unknown',
+        'Updated Field',
+        new PropertyTypeVO(PropertyType.TEXT),
+        [],
+        0,
+        true,
+        false,
+        null,
+        null
+      );
+
+      expect(() => {
+        block.updateCustomPropertyDefinition('non-existent', updatedProperty);
+      }).toThrow(BlockManagementError);
+    });
+  });
+
+  describe('removeCustomPropertyDefinition', () => {
+    it('should remove custom property definition', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
+      const customProperty = new CustomPropertyDefinitionVO(
+        'prop-1',
+        'Custom Field',
+        new PropertyTypeVO(PropertyType.TEXT),
+        [],
+        0,
+        true,
+        false,
+        null,
+        null
+      );
+      block.addCustomPropertyDefinition(customProperty);
+      const propertyId = block.customProperties[0]?.id;
+
+      block.removeCustomPropertyDefinition(propertyId!);
+
+      expect(block.customProperties).toHaveLength(0);
+    });
+
+    it('should throw error when property not found', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
+
+      expect(() => {
+        block.removeCustomPropertyDefinition('non-existent');
+      }).toThrow(BlockManagementError);
+    });
+  });
+
+  describe('properties management', () => {
+    it('should update properties through BlockPropertiesVO', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
+      
+      // Properties are managed through BlockPropertiesVO
+      const newProperties = BlockPropertiesFactory.createFromJSON(blockType, {});
+      block.updateProperties(newProperties);
+
+      expect(block.properties).toBeInstanceOf(Object);
+    });
+  });
+
 
   describe('markAsDeleted', () => {
-    it('소프트 삭제로 deletedAt이 설정되어야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
+    it('should mark block as deleted', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
 
-      // When
       block.markAsDeleted();
 
-      // Then
-      expect(block.deletedAt).toBeInstanceOf(Date);
       expect(block.isDeleted()).toBe(true);
+      expect(block.deletedAt).toBeInstanceOf(Date);
     });
 
-    it('이미 삭제된 블록은 다시 삭제할 수 없다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
+    it('should throw error when already deleted', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
       block.markAsDeleted();
 
-      // When & Then
-      expect(() => block.markAsDeleted()).toThrow(BlockManagementError);
-      expect(() => block.markAsDeleted()).toThrow('Block already deleted');
-    });
-
-    it('updatedAt이 갱신되어야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-      const originalUpdatedAt = block.updatedAt.getTime();
-
-      // When
-      block.markAsDeleted();
-
-      // Then
-      expect(block.updatedAt.getTime()).toBeGreaterThanOrEqual(
-        originalUpdatedAt
-      );
+      expect(() => {
+        block.markAsDeleted();
+      }).toThrow(BlockManagementError);
     });
   });
 
   describe('restore', () => {
-    it('삭제 취소로 deletedAt이 제거되어야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
+    it('should restore deleted block', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
       block.markAsDeleted();
-      expect(block.isDeleted()).toBe(true);
 
-      // When
       block.restore();
 
-      // Then
-      expect(block.deletedAt).toBeNull();
       expect(block.isDeleted()).toBe(false);
+      expect(block.deletedAt).toBeNull();
     });
 
-    it('삭제되지 않은 블록은 복구할 수 없다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
+    it('should throw error when not deleted', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
 
-      // When & Then
-      expect(() => block.restore()).toThrow(BlockManagementError);
-      expect(() => block.restore()).toThrow('Block is not deleted');
-    });
-
-    it('updatedAt이 갱신되어야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-      block.markAsDeleted();
-      const deletedUpdatedAt = block.updatedAt.getTime();
-
-      // When
-      block.restore();
-
-      // Then
-      expect(block.updatedAt.getTime()).toBeGreaterThanOrEqual(
-        deletedUpdatedAt
-      );
+      expect(() => {
+        block.restore();
+      }).toThrow(BlockManagementError);
     });
   });
 
-  describe('isDeleted', () => {
-    it('삭제되지 않은 블록은 false를 반환해야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
+  describe('getter methods', () => {
+    it('should return custom properties', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
+      const customProperty = new CustomPropertyDefinitionVO(
+        'prop-1',
+        'Custom Field',
+        new PropertyTypeVO(PropertyType.TEXT),
+        [],
+        0,
+        true,
+        false,
+        null,
+        null
+      );
+      block.addCustomPropertyDefinition(customProperty);
 
-      // When
-      const result = block.isDeleted();
+      const customProperties = block.customProperties;
 
-      // Then
-      expect(result).toBe(false);
+      expect(customProperties).toHaveLength(1);
+      expect(customProperties[0]?.name).toBe('Custom Field');
     });
 
-    it('삭제된 블록은 true를 반환해야 한다', () => {
-      // Given
-      const block = Block.create(blockId, workspaceId, blockType, metadata);
-      block.markAsDeleted();
+    it('should return specific custom property', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
+      const customProperty = new CustomPropertyDefinitionVO(
+        'prop-1',
+        'Custom Field',
+        new PropertyTypeVO(PropertyType.TEXT),
+        [],
+        0,
+        true,
+        false,
+        null,
+        null
+      );
+      block.addCustomPropertyDefinition(customProperty);
+      const propertyId = block.customProperties[0]?.id;
 
-      // When
-      const result = block.isDeleted();
+      const foundProperty = block.customProperties.find(p => p.id === propertyId);
 
-      // Then
-      expect(result).toBe(true);
+      expect(foundProperty).toBeDefined();
+      expect(foundProperty?.name).toBe('Custom Field');
+    });
+  });
+
+  describe('toJSON', () => {
+    it('should return JSON representation', () => {
+      const block = Block.create(blockId, workspaceId, userId, blockType);
+      const customProperty = new CustomPropertyDefinitionVO(
+        'prop-1',
+        'Custom Field',
+        new PropertyTypeVO(PropertyType.TEXT),
+        [],
+        0,
+        true,
+        false,
+        null,
+        null
+      );
+      block.addCustomPropertyDefinition(customProperty);
+
+      const json = block.toJSON();
+
+      expect(json.id).toBe(blockId.value);
+      expect(json.workspaceId).toBe(workspaceId.value);
+      expect(json.blockType).toBe(blockType.value);
+      expect(json.properties).toEqual(block.properties.toJSON());
+      expect(json.customProperties).toHaveLength(1);
+      expect(json.createdAt).toBe(block.createdAt.toISOString());
+      expect(json.updatedAt).toBe(block.updatedAt.toISOString());
+      expect(json.deletedAt).toBeNull();
     });
   });
 });
-

@@ -1,9 +1,9 @@
-import LayoutTemplate from '../template';
+import { DashboardProviders } from './providers';
 
 export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <LayoutTemplate>{children}</LayoutTemplate>;
+  return <DashboardProviders>{children}</DashboardProviders>;
 }

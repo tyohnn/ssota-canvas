@@ -3,9 +3,10 @@ import { getCanvasViewAction } from '@/domains/canvas-management/actions/canvas-
 import {
   toReactFlowNodeFromCanvasView,
   toReactFlowEdgeFromCanvasView,
+  type CustomNodeType,
 } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
-import { CanvasClient } from '@/domains/canvas-management/frontend/components/canvas-client';
-import type { Node, Edge } from '@xyflow/react';
+import { CanvasClient } from '@/domains/canvas-management/frontend/components/core/canvas-client';
+import type { Edge } from '@xyflow/react';
 
 interface WorkspacePageProps {
   params: Promise<{
@@ -73,8 +74,12 @@ async function PageContent({
   const canvasViewData = canvasViewResult.data;
 
   // ACL 변환: CanvasViewData → React Flow 초기 데이터
-  const initialNodes: Node[] = canvasViewData.blocks.map(block =>
-    toReactFlowNodeFromCanvasView(block)
+  const initialNodes: CustomNodeType[] = canvasViewData.blocks.map(block =>
+    toReactFlowNodeFromCanvasView(block, {
+      pageId,
+      orgId,
+      workspaceId,
+    })
   );
 
   const initialEdges: Edge[] = canvasViewData.edges.map(edge =>

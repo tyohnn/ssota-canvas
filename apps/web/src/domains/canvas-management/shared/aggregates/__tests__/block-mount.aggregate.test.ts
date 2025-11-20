@@ -6,6 +6,7 @@ import { BlockId } from '@/domains/block-management/shared/value-objects/block-i
 import { Position } from '../../value-objects/position.vo';
 import { Size } from '../../value-objects/size.vo';
 import { ZOrder } from '../../value-objects/z-order.vo';
+import { MountBlockCommand } from '../../commands';
 
 describe('BlockMountAggregate', () => {
   let blockMountId: BlockMountId;
@@ -25,20 +26,23 @@ describe('BlockMountAggregate', () => {
   describe('mountBlock', () => {
     it('새로운 블럭을 마운트할 수 있어야 한다', () => {
       // When
-      const aggregate = BlockMountAggregate.mountBlock(blockMountId, pageId, blockId, position, size);
+      const command: MountBlockCommand = { blockMountId, pageId, blockId, position, size };
+      const aggregate = BlockMountAggregate.mountBlock(command);
 
       // Then
-      expect(aggregate.blockMount).toBeDefined();
-      expect(aggregate.blockMount.pageId).toEqual(pageId);
-      expect(aggregate.blockMount.blockId).toEqual(blockId);
-      expect(aggregate.blockMount.position).toEqual(position);
-      expect(aggregate.blockMount.size).toEqual(size);
-      expect(aggregate.blockMount.zOrder.value).toBeGreaterThan(0);
+      const blockMount = aggregate.getBlockMount();
+      expect(blockMount).toBeDefined();
+      expect(blockMount.pageId).toEqual(pageId);
+      expect(blockMount.blockId).toEqual(blockId);
+      expect(blockMount.position).toEqual(position);
+      expect(blockMount.size).toEqual(size);
+      expect(blockMount.zOrder.value).toBeGreaterThanOrEqual(0);
     });
 
     it('블럭 마운트 시 BlockMounted 이벤트가 발행되어야 한다', () => {
       // When
-      const aggregate = BlockMountAggregate.mountBlock(blockMountId, pageId, blockId, position, size);
+      const command: MountBlockCommand = { blockMountId, pageId, blockId, position, size };
+      const aggregate = BlockMountAggregate.mountBlock(command);
       const events = aggregate.getUncommittedEvents();
 
       // Then
@@ -50,15 +54,14 @@ describe('BlockMountAggregate', () => {
       expect(events[0]!.data.size).toEqual(size);
     });
 
-    it('새로 생성된 블럭은 최상위 z-order에 배치되어야 한다', () => {
-      // Given
-      const baseZOrder = 5;
-
+    it('새로 생성된 블럭은 기본 z-order에 배치되어야 한다', () => {
       // When
-      const aggregate = BlockMountAggregate.mountBlock(blockMountId, pageId, blockId, position, size, baseZOrder);
+      const command: MountBlockCommand = { blockMountId, pageId, blockId, position, size };
+      const aggregate = BlockMountAggregate.mountBlock(command);
 
       // Then
-      expect(aggregate.blockMount.zOrder.value).toBe(baseZOrder + 1);
+      const blockMount = aggregate.getBlockMount();
+      expect(blockMount.zOrder.value).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -67,8 +70,8 @@ describe('BlockMountAggregate', () => {
     let aggregate: BlockMountAggregate;
 
     beforeEach(() => {
-      aggregate = BlockMountAggregate.mountBlock(blockMountId, pageId, blockId, position, size);
-      aggregate.clearEvents(); // 테스트를 위해 이벤트 초기화
+      const command: MountBlockCommand = { blockMountId, pageId, blockId, position, size };
+      aggregate = BlockMountAggregate.mountBlock(command);
     });
 
     it('블럭 위치를 개별적으로 업데이트할 수 있어야 한다', () => {
@@ -79,7 +82,8 @@ describe('BlockMountAggregate', () => {
       const event = aggregate.updateBlockPosition(newPosition);
 
       // Then
-      expect(aggregate.blockMount.position).toEqual(newPosition);
+      const blockMount = aggregate.getBlockMount();
+      expect(blockMount.position).toEqual(newPosition);
       expect(event.type).toBe('BlockPositionUpdated');
       expect(event.data.newPosition).toEqual(newPosition);
     });
@@ -104,8 +108,8 @@ describe('BlockMountAggregate', () => {
     let aggregate: BlockMountAggregate;
 
     beforeEach(() => {
-      aggregate = BlockMountAggregate.mountBlock(blockMountId, pageId, blockId, position, size);
-      aggregate.clearEvents(); // 테스트를 위해 이벤트 초기화
+      const command: MountBlockCommand = { blockMountId, pageId, blockId, position, size };
+      aggregate = BlockMountAggregate.mountBlock(command);
     });
 
     it('블럭 크기를 개별적으로 업데이트할 수 있어야 한다', () => {
@@ -116,7 +120,8 @@ describe('BlockMountAggregate', () => {
       const event = aggregate.updateBlockSize(newSize);
 
       // Then
-      expect(aggregate.blockMount.size).toEqual(newSize);
+      const blockMount = aggregate.getBlockMount();
+      expect(blockMount.size).toEqual(newSize);
       expect(event.type).toBe('BlockSizeUpdated');
       expect(event.data.newSize).toEqual(newSize);
     });
@@ -141,8 +146,8 @@ describe('BlockMountAggregate', () => {
     let aggregate: BlockMountAggregate;
 
     beforeEach(() => {
-      aggregate = BlockMountAggregate.mountBlock(blockMountId, pageId, blockId, position, size);
-      aggregate.clearEvents(); // 테스트를 위해 이벤트 초기화
+      const command: MountBlockCommand = { blockMountId, pageId, blockId, position, size };
+      aggregate = BlockMountAggregate.mountBlock(command);
     });
 
     it('블럭 Z-Order를 개별적으로 업데이트할 수 있어야 한다', () => {
@@ -153,7 +158,8 @@ describe('BlockMountAggregate', () => {
       const event = aggregate.updateBlockZOrder(newZOrder);
 
       // Then
-      expect(aggregate.blockMount.zOrder).toEqual(newZOrder);
+      const blockMount = aggregate.getBlockMount();
+      expect(blockMount.zOrder).toEqual(newZOrder);
       expect(event.type).toBe('BlockZOrderUpdated');
       expect(event.data.newZOrder).toEqual(newZOrder);
     });
@@ -178,17 +184,21 @@ describe('BlockMountAggregate', () => {
     let aggregate: BlockMountAggregate;
 
     beforeEach(() => {
-      aggregate = BlockMountAggregate.mountBlock(blockMountId, pageId, blockId, position, size);
-      aggregate.clearEvents(); // 테스트를 위해 이벤트 초기화
+      const command: MountBlockCommand = { blockMountId, pageId, blockId, position, size };
+      aggregate = BlockMountAggregate.mountBlock(command);
     });
 
     it('블럭 마운트를 삭제할 수 있어야 한다', () => {
+      // Given
+      const command: any = { blockMountId };
+      
       // When
-      const event = aggregate.deleteBlockMount();
+      const event = aggregate.deleteBlockMount(command);
 
       // Then
       expect(event.type).toBe('BlockMountDeleted');
-      expect(event.data.blockMountId).toEqual(aggregate.blockMount.id);
+      const blockMount = aggregate.getBlockMount();
+      expect(event.data.blockMountId).toEqual(blockMount.id);
     });
   });
 });

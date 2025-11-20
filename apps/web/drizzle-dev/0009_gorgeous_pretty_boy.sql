@@ -1,2 +1,0 @@
-ALTER POLICY "Enable insert for organization owners" ON "invitations" RENAME TO "Enable insert for authenticated users";--> statement-breakpoint
-ALTER POLICY "Enable read access for organization owners" ON "organization_members" RENAME TO "Enable read access for self";

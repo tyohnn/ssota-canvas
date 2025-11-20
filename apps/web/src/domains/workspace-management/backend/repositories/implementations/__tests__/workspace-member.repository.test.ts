@@ -5,7 +5,7 @@ import { DrizzleWorkspaceRepository } from '../drizzle-workspace.repository';
 import { OrganizationId, UserId } from '@/domains/organization-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '../../../../shared/value-objects/workspace-id.vo';
 import { adminDb } from '@/db';
-import { workspaceMembers, workspaces } from '@/db/schema-dev';
+import { workspaceMembers, workspaces } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 describe('WorkspaceMemberRepository Integration Tests', () => {

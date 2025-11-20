@@ -13,7 +13,8 @@ export function useCanvasSelection() {
 
   // 상태 읽기 메서드들
   const getSelectedBlocks = useCallback(() => {
-    return selectedNodes.map(node => node.id);
+    const blockIds = selectedNodes.map(node => node.id);
+    return blockIds;
   }, [selectedNodes]);
 
   const isSelected = useCallback(

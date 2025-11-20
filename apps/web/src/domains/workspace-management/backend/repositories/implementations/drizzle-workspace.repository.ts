@@ -7,8 +7,8 @@ import {
   pages,
   workspaceMembers,
   organizationMembers,
-} from '@/db/schema-dev';
-import type { Workspace as DBWorkspace } from '@/db/schema-dev';
+} from '@/db/schema';
+import type { Workspace as DBWorkspace } from '@/db/schema';
 import { WorkspaceRepository } from '../interfaces/workspace.repository.interface';
 import { WorkspaceAggregate } from '../../../shared/aggregates/workspace.aggregate';
 import { Workspace } from '../../../shared/entities/workspace.entity';

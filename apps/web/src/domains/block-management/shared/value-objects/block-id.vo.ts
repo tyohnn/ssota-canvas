@@ -13,6 +13,15 @@ export class BlockId {
     this._value = value;
   }
 
+  /**
+   * 새로운 BlockId 생성
+   */
+  static generate(): BlockId {
+    // UUID v4 생성
+    const uuid = crypto.randomUUID();
+    return new BlockId(uuid);
+  }
+
   get value(): string {
     return this._value;
   }

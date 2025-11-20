@@ -8,10 +8,11 @@ import React, {
   useMemo,
   type ReactNode,
 } from 'react';
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
 export type CanvasMode =
   | { type: 'default' } // 초기 모드
-  | { type: 'block-creation'; blockType: string } // 블럭 추가 모드
+  | { type: 'block-creation'; blockType: BlockType } // 블럭 추가 모드
   | { type: 'single-selection'; blockId: string } // 단일 선택 모드
   | { type: 'multi-selection'; blockIds: string[] } // 복수 선택 모드
   | { type: 'block-editing'; blockId: string } // 블럭 편집 모드
@@ -21,15 +22,19 @@ export type CanvasMode =
 interface CanvasModeContextValue {
   // 상태 읽기
   mode: CanvasMode;
+  isTextareaEditing: boolean;
 
   // 모드 전환
-  enterBlockCreationMode: (blockType: string) => void;
+  enterBlockCreationMode: (blockType: BlockType) => void;
   enterSingleSelectionMode: (blockId: string) => void;
   enterMultiSelectionMode: (blockIds: string[]) => void;
   enterBlockEditingMode: (blockId: string) => void;
   enterDraggingMode: (blockIds: string[]) => void;
   enterEdgeCreationMode: (sourceBlockId: string) => void;
   exitToDefaultMode: () => void;
+
+  // Textarea 편집 상태 제어
+  setTextareaEditing: (editing: boolean) => void;
 
   // 상태 읽기 헬퍼
   getCurrentMode: () => CanvasMode;
@@ -49,9 +54,10 @@ interface CanvasModeProviderProps {
 
 export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
   const [mode, setMode] = useState<CanvasMode>({ type: 'default' });
+  const [isTextareaEditing, setIsTextareaEditing] = useState(false);
 
   // 모드 전환
-  const enterBlockCreationMode = useCallback((blockType: string) => {
+  const enterBlockCreationMode = useCallback((blockType: BlockType) => {
     setMode({ type: 'block-creation', blockType });
   }, []);
 
@@ -64,7 +70,13 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
   }, []);
 
   const enterBlockEditingMode = useCallback((blockId: string) => {
-    setMode({ type: 'block-editing', blockId });
+    // 이미 같은 blockId로 편집 모드인 경우 업데이트하지 않음 (무한 루프 방지)
+    setMode(prevMode => {
+      if (prevMode.type === 'block-editing' && prevMode.blockId === blockId) {
+        return prevMode; // 상태 변경 없음
+      }
+      return { type: 'block-editing', blockId };
+    });
   }, []);
 
   const enterDraggingMode = useCallback((blockIds: string[]) => {
@@ -77,6 +89,11 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
 
   const exitToDefaultMode = useCallback(() => {
     setMode({ type: 'default' });
+  }, []);
+
+  // Textarea 편집 상태 관리
+  const setTextareaEditing = useCallback((editing: boolean) => {
+    setIsTextareaEditing(editing);
   }, []);
 
   // 상태 읽기 헬퍼
@@ -110,6 +127,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
   const value: CanvasModeContextValue = useMemo(
     () => ({
       mode,
+      isTextareaEditing,
       enterBlockCreationMode,
       enterSingleSelectionMode,
       enterMultiSelectionMode,
@@ -117,6 +135,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
       enterDraggingMode,
       enterEdgeCreationMode,
       exitToDefaultMode,
+      setTextareaEditing,
       getCurrentMode,
       isBlockCreationMode,
       isSingleSelectionMode,
@@ -127,6 +146,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
     }),
     [
       mode,
+      isTextareaEditing,
       enterBlockCreationMode,
       enterSingleSelectionMode,
       enterMultiSelectionMode,
@@ -134,6 +154,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
       enterDraggingMode,
       enterEdgeCreationMode,
       exitToDefaultMode,
+      setTextareaEditing,
       getCurrentMode,
       isBlockCreationMode,
       isSingleSelectionMode,

@@ -20,7 +20,7 @@
 // Environment Variables
 interface EnvironmentConfig {
   // Database
-  DATABASE_URL: string
+  POSTGRES_URL: string
   DIRECT_URL: string
   
   // Authentication
@@ -158,7 +158,7 @@ export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    url: process.env.POSTGRES_URL!,
   },
   migrations: {
     prefix: 'timestamp',
@@ -421,7 +421,7 @@ jobs:
       - name: Run integration tests
         run: pnpm test:integration
         env:
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          POSTGRES_URL: ${{ secrets.STAGING_DATABASE_URL }}
 
   # 3. Build
   build:
@@ -457,7 +457,7 @@ jobs:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--env DATABASE_URL=${{ secrets.STAGING_DATABASE_URL }}'
+          vercel-args: '--env POSTGRES_URL=${{ secrets.STAGING_DATABASE_URL }}'
 
   # 5. Deploy to Production
   deploy-production:
@@ -472,12 +472,12 @@ jobs:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod --env DATABASE_URL=${{ secrets.PRODUCTION_DATABASE_URL }}'
+          vercel-args: '--prod --env POSTGRES_URL=${{ secrets.PRODUCTION_DATABASE_URL }}'
       
       - name: Run database migrations
         run: pnpm drizzle-kit migrate
         env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          POSTGRES_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
 ```
 
 ---
@@ -492,7 +492,7 @@ NODE_ENV=development
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Database
-DATABASE_URL=postgresql://localhost:5432/xbowl_dev
+POSTGRES_URL=postgresql://localhost:5432/xbowl_dev
 DIRECT_URL=postgresql://localhost:5432/xbowl_dev
 
 # Clerk
@@ -514,7 +514,7 @@ NODE_ENV=staging
 NEXT_PUBLIC_APP_URL=https://staging.ssota.app
 
 # Database
-DATABASE_URL=postgresql://staging-db.supabase.co:5432/postgres
+POSTGRES_URL=postgresql://staging-db.supabase.co:5432/postgres
 DIRECT_URL=postgresql://staging-db.supabase.co:5432/postgres
 
 # Clerk
@@ -536,7 +536,7 @@ NODE_ENV=production
 NEXT_PUBLIC_APP_URL=https://ssota.app
 
 # Database
-DATABASE_URL=postgresql://prod-db.supabase.co:5432/postgres
+POSTGRES_URL=postgresql://prod-db.supabase.co:5432/postgres
 DIRECT_URL=postgresql://prod-db.supabase.co:5432/postgres
 
 # Clerk

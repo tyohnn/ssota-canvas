@@ -67,12 +67,19 @@ export class UserManagementService {
 
       return Result.success(newUser);
     } catch (error) {
+      console.error('[UserManagementService] Profile creation error:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      
       return Result.error(
         new UserManagementError(
           'PROFILE_CREATION_FAILED',
           'Failed to create user profile',
           {
             error,
+            message: error instanceof Error ? error.message : 'Unknown error',
           }
         )
       );

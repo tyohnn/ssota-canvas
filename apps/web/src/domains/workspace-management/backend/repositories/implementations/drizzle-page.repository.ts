@@ -2,8 +2,8 @@
 
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { createDrizzleSupabaseClient, adminDb } from '@/db';
-import { pages } from '@/db/schema-dev';
-import type { Page as DBPage } from '@/db/schema-dev';
+import { pages } from '@/db/schema';
+import type { Page as DBPage } from '@/db/schema';
 import { PageRepository } from '../interfaces/page.repository.interface';
 import { PageAggregate } from '../../../shared/aggregates/page.aggregate';
 import { Page } from '../../../shared/entities/page.entity';

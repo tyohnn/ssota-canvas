@@ -12,7 +12,7 @@ import {
   reorderPagesAction,
 } from '../workspace-management.actions';
 import { adminDb } from '@/db';
-import { workspaces, pages, workspaceMembers, workspaceInvitations } from '@/db/schema-dev';
+import { workspaces, pages, workspaceMembers, workspaceInvitations } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { WorkspaceAggregate } from '../../shared/aggregates/workspace.aggregate';
 import { PageAggregate } from '../../shared/aggregates/page.aggregate';

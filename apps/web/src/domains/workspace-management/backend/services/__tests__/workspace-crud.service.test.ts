@@ -10,7 +10,7 @@ import { WorkspaceId } from '../../../shared/value-objects/workspace-id.vo';
 import { PageId } from '../../../shared/value-objects/page-id.vo';
 import { WorkspaceAggregate } from '../../../shared/aggregates/workspace.aggregate';
 import { adminDb } from '@/db';
-import { workspaces, pages, workspaceMembers } from '@/db/schema-dev';
+import { workspaces, pages, workspaceMembers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('WorkspaceCrudService Integration Tests (Scenario 2)', () => {
@@ -396,7 +396,7 @@ describe('WorkspaceCrudService Integration Tests (Scenario 2)', () => {
           new WorkspaceId(result.data.workspaceId)
         );
         expect(savedWorkspace).not.toBeNull();
-        expect(savedWorkspace?.name).toBe(`${ownerName}의 개인 워크스페이스`);
+        expect(savedWorkspace?.name).toBe('Personal Workspace');
         expect(savedWorkspace?.isPersonal).toBe(true);
         expect(savedWorkspace?.ownerId).toBe(testUserId);
         expect(savedWorkspace?.isDefault).toBe(false);

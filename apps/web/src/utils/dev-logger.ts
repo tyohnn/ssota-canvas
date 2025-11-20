@@ -1,9 +1,13 @@
+import { config } from '@/config';
+
+const isDevelopment = config.environment === 'development';
+
 /**
  * Development-only logging utility
  * Only outputs logs when NODE_ENV is 'development'
  */
 export function devLog(message: string, data?: Record<string, any>): void {
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopment) {
     const timestamp = new Date().toISOString();
     console.log(`[DEV] ${message}`, data ? data : '');
   }
@@ -18,7 +22,7 @@ export function devLog(message: string, data?: Record<string, any>): void {
  */
 export function eventLog(message: string, data?: Record<string, any>): void {
   // Development: Always log
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopment) {
     console.log(`[EVENT] ${message}`, data ? data : '');
     return;
   }
@@ -34,7 +38,7 @@ export function eventLog(message: string, data?: Record<string, any>): void {
  * Only outputs error logs when NODE_ENV is 'development'
  */
 export function devError(message: string, error?: Error | unknown): void {
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopment) {
     const timestamp = new Date().toISOString();
     const errorData =
       error instanceof Error
@@ -50,7 +54,7 @@ export function devError(message: string, error?: Error | unknown): void {
  * Only outputs warning logs when NODE_ENV is 'development'
  */
 export function devWarn(message: string, data?: Record<string, any>): void {
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopment) {
     const timestamp = new Date().toISOString();
     console.warn(`[DEV WARN] ${message}`, data ? data : '');
   }
@@ -70,7 +74,7 @@ export class PerformanceTimer {
 
   end(): number {
     const duration = performance.now() - this.startTime;
-    if (process.env.NODE_ENV === 'development') {
+    if (isDevelopment) {
       console.log(`[PERF] ${this.label}: ${duration.toFixed(2)}ms`);
     }
     return duration;
@@ -78,7 +82,7 @@ export class PerformanceTimer {
 
   log(message: string, data?: Record<string, any>): void {
     const currentTime = performance.now() - this.startTime;
-    if (process.env.NODE_ENV === 'development') {
+    if (isDevelopment) {
       console.log(
         `[PERF] ${this.label} - ${message}: ${currentTime.toFixed(2)}ms`,
         data ? data : ''

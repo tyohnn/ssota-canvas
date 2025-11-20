@@ -1,9 +1,28 @@
+# apps/web/.gitignore
+node_modules/
+.next/
+.turbo/
+dist/
+build/
+.env
+.env*.local
+!.env.example
 
-# clerk configuration (can include secrets)
-/.clerk/
+# Supabase
+.supabase/
+supabase/.env*
+!supabase/.env.example
 
-# Playwright
+# Drizzle temporary
+.drizzle-temp/
+
+# Testing
 /test-results/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+coverage/
+
+# OS
+.DS_Store
+*.log
