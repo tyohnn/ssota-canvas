@@ -294,6 +294,8 @@ email_optional = false
 
 [auth.external.google]
 enabled = true
+# Use env() for runtime environment variable substitution
+# This applies to ALL branches (local, preview, production)
 client_id = "env(GOOGLE_CLIENT_ID)"
 secret = "env(GOOGLE_CLIENT_SECRET)"
 # Overrides the default auth redirectUrl.
