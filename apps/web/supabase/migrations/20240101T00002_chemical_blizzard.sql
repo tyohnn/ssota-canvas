@@ -1,4 +1,0 @@
-CREATE TYPE "public"."block_type" AS ENUM('text', 'markdown', 'youtube', 'python', 'image', 'file', 'link', 'shape', 'page_mention', 'latex', 'github_pr', 'react_component');--> statement-breakpoint
-CREATE TYPE "public"."property_type" AS ENUM('text', 'url', 'email', 'phone', 'select', 'multiselect', 'status', 'datetime', 'media', 'profile');--> statement-breakpoint
-ALTER TABLE "blocks" ALTER COLUMN "block_type" SET DEFAULT 'text'::"public"."block_type";--> statement-breakpoint
-ALTER TABLE "blocks" ALTER COLUMN "block_type" SET DATA TYPE "public"."block_type" USING "block_type"::"public"."block_type";

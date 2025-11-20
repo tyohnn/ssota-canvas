@@ -9,6 +9,7 @@ type OnboardingStatus = 'loading' | 'success' | 'error';
 export default function OnboardingPage() {
   const [status, setStatus] = useState<OnboardingStatus>('loading');
   const [error, setError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number>(3);
   const router = useRouter();
 
   useEffect(() => {
@@ -21,10 +22,17 @@ export default function OnboardingPage() {
       if (result.success) {
         setStatus('success');
 
-        // 성공 시 잠시 후 Welcome 페이지로 리다이렉트 (사용자가 성공 메시지를 볼 수 있도록)
-        setTimeout(() => {
-          router.push(result.data.redirectUrl);
-        }, 1500);
+        // 카운트다운 시작 (3초)
+        let count = 3;
+        const countdownInterval = setInterval(() => {
+          count -= 1;
+          setCountdown(count);
+
+          if (count <= 0) {
+            clearInterval(countdownInterval);
+            router.push(result.data.redirectUrl);
+          }
+        }, 1000);
       } else {
         console.error('User profile setup failed:', result.error);
         setStatus('error');
@@ -80,7 +88,15 @@ export default function OnboardingPage() {
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
                 설정이 완료되었습니다!
               </h2>
-              <p className="text-gray-600">잠시 후 홈페이지로 이동합니다...</p>
+              <p className="text-gray-600">
+                {countdown}초 후 홈페이지로 이동합니다...
+              </p>
+              <div className="mt-4 w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-green-600 transition-all duration-1000"
+                  style={{ width: `${((3 - countdown) / 3) * 100}%` }}
+                />
+              </div>
             </>
           )}
 

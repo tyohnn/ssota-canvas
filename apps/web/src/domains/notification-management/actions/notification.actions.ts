@@ -116,8 +116,13 @@ export async function getUserNotificationsAction(): Promise<UserNotificationView
       error,
     } = await supabase.auth.getUser();
 
+    // 인증되지 않은 사용자의 경우 빈 알림 반환 (에러 throw 하지 않음)
     if (error || !user) {
-      throw new Error('Authentication required');
+      return {
+        userId: '',
+        notifications: [],
+        unreadCount: 0,
+      };
     }
 
     const repository = new DrizzleNotificationRepository();

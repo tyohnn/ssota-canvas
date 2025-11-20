@@ -4,6 +4,9 @@
 
 import type { UnsplashImage } from '@/domains/image-app-space/shared/types/image-search.types';
 
+// Re-export for convenience
+export type { UnsplashImage };
+
 /**
  * Unsplash Tab Props
  */

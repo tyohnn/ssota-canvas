@@ -17,12 +17,16 @@ if (!config.database.url) {
 // 🔧 Connection Pool 설정
 // Development: 작은 풀 크기 (HMR로 인한 누적 방지)
 // Production: 적절한 풀 크기
+// Local Supabase: SSL 불필요
+const isLocalSupabase = config.database.url.includes('localhost') || config.database.url.includes('127.0.0.1');
+
 const connectionConfig = {
   prepare: false,
   max: isDevelopment ? 3 : 10, // Dev: 3, Prod: 10
   idle_timeout: 20,
   connect_timeout: 10,
-  ssl: {
+  // Local Supabase는 SSL 불필요, Production은 SSL 필수
+  ssl: isLocalSupabase ? false : {
     rejectUnauthorized: false,
   },
 };

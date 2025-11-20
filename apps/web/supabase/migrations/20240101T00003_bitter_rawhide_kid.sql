@@ -1,2 +1,0 @@
-ALTER TABLE "blocks" ADD COLUMN "block_type" "block_type" DEFAULT 'text' NOT NULL;--> statement-breakpoint
-CREATE INDEX "idx_blocks_type" ON "blocks" USING btree ("block_type") WHERE deleted_at IS NULL;

@@ -23,71 +23,76 @@ export function useEditorPanel(
 ) {
   // UI State
   const uiState = useEditorPanelUI();
+  const { title, setTitle, setShouldRender, setIsAnimating, inputRef } =
+    uiState;
 
   // Business Logic
   const defaultBusiness = useEditorPanelBusiness(onClose);
   const business = businessLogic ?? defaultBusiness;
+  const { onTitleSave: businessOnTitleSave, onClose: businessOnClose } =
+    business;
 
-  // Title 상태 동기화
+  // Title 상태 동기화 (blockData.title이 변경되었을 때만)
   useEffect(() => {
     if (blockData) {
-      uiState.setTitle((blockData.title as string) || '새 블럭');
+      const newTitle = (blockData.title as string) || '새 블럭';
+      setTitle(newTitle);
     }
-  }, [blockData, uiState]);
+  }, [blockData?.title, setTitle]);
 
   // 슬라이드 애니메이션 처리
   useEffect(() => {
     if (isOpen) {
-      uiState.setShouldRender(true);
+      setShouldRender(true);
       const timer = setTimeout(() => {
-        uiState.setIsAnimating(true);
+        setIsAnimating(true);
       }, 10);
       return () => clearTimeout(timer);
     } else {
-      uiState.setIsAnimating(false);
+      setIsAnimating(false);
       const timer = setTimeout(() => {
-        uiState.setShouldRender(false);
+        setShouldRender(false);
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, uiState]);
+  }, [isOpen, setShouldRender, setIsAnimating]);
 
   // Title 저장 핸들러
   const handleTitleSave = useCallback(async () => {
-    if (!blockData || !uiState.title.trim()) {
+    if (!blockData || !title.trim()) {
       return;
     }
 
     try {
-      await business.onTitleSave({
+      await businessOnTitleSave({
         blockId,
-        title: uiState.title,
+        title: title,
         blockData,
       });
     } catch (error) {
       // 에러 발생 시 원래 title로 되돌림
-      uiState.setTitle((blockData.title as string) || '새 블럭');
+      setTitle((blockData.title as string) || '새 블럭');
     }
-  }, [blockId, uiState, blockData, business]);
+  }, [blockId, title, blockData, businessOnTitleSave, setTitle]);
 
   // Enter 키로 저장
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter') {
         handleTitleSave();
-        uiState.inputRef.current?.blur();
+        inputRef.current?.blur();
       } else if (e.key === 'Escape') {
-        uiState.setTitle((blockData?.title as string) || '새 블럭');
-        uiState.inputRef.current?.blur();
+        setTitle((blockData?.title as string) || '새 블럭');
+        inputRef.current?.blur();
       }
     },
-    [handleTitleSave, blockData, uiState]
+    [handleTitleSave, blockData?.title, setTitle, inputRef]
   );
 
   return {
     ...uiState,
     handleTitleSave,
     handleKeyDown,
-    onClose: business.onClose,
+    onClose: businessOnClose,
   };
 }

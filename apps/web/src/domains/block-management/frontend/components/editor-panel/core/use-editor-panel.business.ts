@@ -58,6 +58,10 @@ export function useEditorPanelBusiness(
 
         if (blockNode) {
           updateNode(blockId, { data: updatedData });
+        } else {
+          console.warn(
+            '[EditorPanel] Block node not found, skipping React Flow update'
+          );
         }
 
         // Validation
@@ -76,16 +80,16 @@ export function useEditorPanelBusiness(
 
         if (!result.success) {
           // 실패 시 롤백
+          console.error('[EditorPanel] Failed to update title:', result.error);
           if (blockNode) {
             updateNode(blockId, {
               data: { ...blockData, title: originalTitle },
             });
           }
-          console.error('Failed to update title:', result.error);
           throw new Error(result.error || 'Failed to update title');
         }
       } catch (error) {
-        console.error('Failed to update title:', error);
+        console.error('[EditorPanel] Exception during title update:', error);
         throw error;
       }
     },

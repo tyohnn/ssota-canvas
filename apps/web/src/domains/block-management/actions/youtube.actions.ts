@@ -6,6 +6,8 @@
 
 'use server';
 
+import { config } from '@/config';
+
 /**
  * YouTube Metadata Type
  * "use server" 파일에서는 async 함수만 export 가능하므로 타입만 export
@@ -68,7 +70,7 @@ export async function fetchYouTubeMetadata(
     }
 
     // 1순위: YouTube Data API v3 (MVP - 가장 정확하고 안정적)
-    const apiKey = process.env.YOUTUBE_API_KEY;
+    const apiKey = config.providers.youtube;
     console.log('[YouTube] API Key exists:', !!apiKey);
 
     if (apiKey) {
@@ -138,7 +140,7 @@ export async function fetchYouTubeMetadata(
 export async function fetchYouTubeMetadataFromAPI(
   videoId: string
 ): Promise<YouTubeMetadata | null> {
-  const apiKey = process.env.YOUTUBE_API_KEY;
+  const apiKey = config.providers.youtube;
 
   if (!apiKey) {
     console.warn('YouTube API key not configured');

@@ -29,7 +29,9 @@ export function GroupHeader({ group }: GroupHeaderProps) {
   // 현재 그룹에 대한 팝오버인지 확인
   const isCurrentGroupPopover =
     pendingOption &&
-    (pendingOption as PropertyOption & { group?: string }).group === group.id;
+    (pendingOption as PropertyOption & { group?: string }).group === group.id
+      ? true
+      : undefined;
 
   const handleGroupPopoverOpenChange = (open: boolean) => {
     // 현재 그룹의 Popover가 아닌 경우 무시
@@ -57,7 +59,7 @@ export function GroupHeader({ group }: GroupHeaderProps) {
           </Button>
         </PopoverTrigger>
       </div>
-      {isCurrentGroupPopover && (
+      {isCurrentGroupPopover && pendingOption && (
         <PopoverContent align="start" side="right" className="w-48">
           <OptionEditPopover
             option={pendingOption}

@@ -1,2 +1,0 @@
-ALTER TABLE "blocks" ADD COLUMN "created_by" uuid;--> statement-breakpoint
-ALTER TABLE "blocks" ADD CONSTRAINT "blocks_created_by_profiles_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id") ON DELETE set null ON UPDATE no action;

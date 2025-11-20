@@ -10,6 +10,7 @@
 
 import { ImageSearchService } from '../backend/services/image-search.service';
 import { ActionResult, ok, err } from '@/lib/action-result';
+import { config } from '@/config';
 import {
   SearchImageAssetsRequestSchema,
   type SearchImageAssetsRequest,
@@ -107,7 +108,7 @@ export async function searchUnsplashImagesAction(
   category?: string
 ): Promise<ActionResult<UnsplashImage[]>> {
   try {
-    const accessKey = process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY;
+    const accessKey = config.providers.unsplash;
     if (!accessKey) {
       return err('Unsplash API key is not configured', {
         code: 'UNSPLASH_KEY_MISSING',
@@ -161,7 +162,7 @@ export async function trackUnsplashDownloadAction(
   imageId: string
 ): Promise<ActionResult<void>> {
   try {
-    const accessKey = process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY;
+    const accessKey = config.providers.unsplash;
     if (!accessKey) {
       return ok(undefined);
     }

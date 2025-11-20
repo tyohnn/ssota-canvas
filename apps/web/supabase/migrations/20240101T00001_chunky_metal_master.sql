@@ -1,3 +1,0 @@
-ALTER POLICY "Enable insert for organization owners" ON "organization_members" TO authenticated WITH CHECK (user_id = (select auth.uid()));--> statement-breakpoint
-ALTER POLICY "Enable update for organization owners" ON "organization_members" TO authenticated USING (user_id = (select auth.uid()));--> statement-breakpoint
-ALTER POLICY "Enable delete for organization owners" ON "organization_members" TO authenticated USING (user_id = (select auth.uid()));

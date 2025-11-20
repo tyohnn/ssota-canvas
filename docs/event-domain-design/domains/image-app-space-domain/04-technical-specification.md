@@ -907,7 +907,7 @@ searchUnsplashImagesAction(query?: string, category?: string): Promise<ActionRes
   인증: Optional (Public API)
   
   비즈니스 로직:
-    1. NEXT_PUBLIC_UNSPLASH_ACCESS_KEY 확인
+    1. UNSPLASH_ACCESS_KEY 확인
     2. 검색어 조합 (query + category)
     3. Unsplash API 호출
        - 검색어 있으면: /search/photos

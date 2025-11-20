@@ -1,6 +1,7 @@
 import { streamText, UIMessage, convertToModelMessages, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
+import { config } from '@/config';
 import { DrizzleEventLogRepository } from '@/domains/ai-management/backend/repositories/implementations/drizzle-event-log.repository';
 import { MemorySearchService } from '@/domains/ai-management/backend/services/memory-search.service';
 import { ContextAssemblyService } from '@/domains/ai-management/backend/services/context-assembly.service';
@@ -42,7 +43,7 @@ export const maxDuration = 300; // 5분 타임아웃
 
 // Helicone OpenAI Provider (tool 데이터 추적을 위해 사용)
 const helicone = createHeliconeOpenAI({
-  apiKey: process.env.HELICONE_API_KEY,
+  apiKey: config.ai.helicone,
 });
 
 // TODO: Gateway는 tool 데이터 문제 해결 후 사용

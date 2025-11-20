@@ -104,7 +104,7 @@ describe('ToolExecutionService', () => {
   describe('searchBlockTypes', () => {
     it('블럭 타입 목록을 조회해야 한다', async () => {
       // When
-      const result = await service.searchBlockTypes();
+      const result = await service.searchBlockTypes({});
 
       // Then
       expect(result.success).toBe(true);
@@ -116,7 +116,7 @@ describe('ToolExecutionService', () => {
 
     it('각 블럭 타입에 필수 정보가 포함되어야 한다', async () => {
       // When
-      const result = await service.searchBlockTypes();
+      const result = await service.searchBlockTypes({});
       const blockTypes = result.result?.blockTypes as any[];
 
       // Then

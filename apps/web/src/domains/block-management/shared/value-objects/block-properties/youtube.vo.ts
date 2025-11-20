@@ -232,11 +232,13 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       metadata.youtubeDescription ?? this.youtubeDescription,
       metadata.youtubeThumbnail ?? this.youtubeThumbnail,
       metadata.channelThumbnail ?? this.channelThumbnail,
-      metadata.viewCount ?? this.viewCount,
+      metadata.viewCount ? Number(metadata.viewCount) : this.viewCount,
       metadata.channelName ?? this.channelName,
-      metadata.subscriberCount ?? this.subscriberCount,
-      metadata.commentCount ?? this.commentCount,
-      metadata.likeCount ?? this.likeCount,
+      metadata.subscriberCount
+        ? Number(metadata.subscriberCount)
+        : this.subscriberCount,
+      metadata.commentCount ? Number(metadata.commentCount) : this.commentCount,
+      metadata.likeCount ? Number(metadata.likeCount) : this.likeCount,
       metadata.publishedAt ?? this.publishedAt
     );
   }

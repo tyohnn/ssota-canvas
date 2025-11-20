@@ -4,6 +4,7 @@ import type { UnsplashImage, CategoryKey } from './types';
 import { getCacheKey, imageCache } from './utils';
 import { searchUnsplashImagesAction } from '@/domains/image-app-space/actions/image-search.actions';
 import { isFailure } from '@/lib/action-result';
+import { config } from '@/config';
 
 /**
  * 카테고리 매핑 (영문)
@@ -97,7 +98,7 @@ export function useUnsplashTabBusiness(): UnsplashTabBusinessLogic {
   const selectImage = useCallback(
     async (image: UnsplashImage): Promise<void> => {
       try {
-        const accessKey = process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY;
+        const accessKey = config.providers.unsplash;
         if (accessKey) {
           // Unsplash 다운로드 엔드포인트 트리거 (백그라운드)
           fetch(

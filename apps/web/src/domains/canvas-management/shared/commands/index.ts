@@ -32,7 +32,7 @@ export interface MountBlockCommand {
   blockId: BlockId;
   position: Position;
   size: Size;
-  userId: UserId;
+  userId?: UserId;
 }
 
 export interface TransformBlockCommand {

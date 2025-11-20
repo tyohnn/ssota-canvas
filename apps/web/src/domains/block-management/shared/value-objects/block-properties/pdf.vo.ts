@@ -153,7 +153,7 @@ export class PdfBlockPropertiesVO extends BlockPropertiesVO {
     const urlParts = this.url.split('/');
     const lastPart = urlParts[urlParts.length - 1] || 'document.pdf';
     // 쿼리 파라미터 제거
-    return lastPart.split('?')[0];
+    return lastPart.split('?')[0] || 'document.pdf';
   }
 
   /**

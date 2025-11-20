@@ -396,7 +396,7 @@ describe('WorkspaceCrudService Integration Tests (Scenario 2)', () => {
           new WorkspaceId(result.data.workspaceId)
         );
         expect(savedWorkspace).not.toBeNull();
-        expect(savedWorkspace?.name).toBe(`${ownerName}의 개인 워크스페이스`);
+        expect(savedWorkspace?.name).toBe('Personal Workspace');
         expect(savedWorkspace?.isPersonal).toBe(true);
         expect(savedWorkspace?.ownerId).toBe(testUserId);
         expect(savedWorkspace?.isDefault).toBe(false);

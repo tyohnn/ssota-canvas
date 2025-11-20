@@ -25,8 +25,6 @@ export { FavoritePageList } from './sidebar/favorite-page-list';
 
 // Page Viewer Components
 export {
-  PageViewer,
-  PageHeader,
   WorkspacePageHeader,
   PageSkeleton,
   AccessDeniedPage,

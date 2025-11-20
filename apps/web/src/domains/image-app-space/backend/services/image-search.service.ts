@@ -20,6 +20,7 @@ import type {
   UnsplashImage,
   UnsplashSearchResponse,
 } from '../../shared/types/image-search.types';
+import { config } from '@/config';
 
 /**
  * Image Search Service
@@ -28,12 +29,10 @@ export class ImageSearchService {
   private readonly unsplashAccessKey: string;
 
   constructor() {
-    this.unsplashAccessKey = process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY || '';
+    this.unsplashAccessKey = config.providers.unsplash;
 
     if (!this.unsplashAccessKey) {
-      console.warn(
-        '[ImageSearchService] NEXT_PUBLIC_UNSPLASH_ACCESS_KEY is not set'
-      );
+      console.warn('[ImageSearchService] UNSPLASH_ACCESS_KEY is not set');
     }
   }
 

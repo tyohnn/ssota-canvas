@@ -146,7 +146,7 @@ export class WorkspaceAggregate {
     const workspace = new Workspace(
       workspaceId,
       orgId,
-      `${ownerName}의 개인 워크스페이스`, // 개인 워크스페이스 이름 패턴
+      'Personal Workspace', // 개인 워크스페이스 이름
       null, // description
       null, // icon
       false, // isDefault

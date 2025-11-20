@@ -452,7 +452,7 @@ export function BlockActionMapper({ blockType, ...props }: BlockActionMapperProp
 // Unsplash API 호출
 const fetchUnsplashImages = async (query?: string) => {
   const params = new URLSearchParams({
-    client_id: process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY!,
+    client_id: process.env.UNSPLASH_ACCESS_KEY!,
     per_page: '10',
     ...(query && { query }),
   });
@@ -471,7 +471,7 @@ const fetchUnsplashImages = async (query?: string) => {
 const handleSelectImage = async (image: UnsplashImage) => {
   // 1. Unsplash 다운로드 엔드포인트 트리거 (필수 - API 가이드라인)
   await fetch(
-    `https://api.unsplash.com/photos/${image.id}/download?client_id=${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`
+    `https://api.unsplash.com/photos/${image.id}/download?client_id=${process.env.UNSPLASH_ACCESS_KEY}`
   );
   
   // 2. 블록 속성 일괄 업데이트 (imageUrl, imageSource, unsplash 정보, alt)
@@ -504,7 +504,7 @@ const handleSelectImage = async (image: UnsplashImage) => {
 
 **환경 변수**:
 ```env
-NEXT_PUBLIC_UNSPLASH_ACCESS_KEY=your_unsplash_access_key
+UNSPLASH_ACCESS_KEY=your_unsplash_access_key
 ```
 
 **Unsplash API 가이드라인 준수**:
@@ -723,7 +723,7 @@ apps/web/src/domains/block-management/frontend/components/action-items/image/uns
 
 **필요 환경 변수**:
 ```env
-NEXT_PUBLIC_UNSPLASH_ACCESS_KEY=your_unsplash_access_key
+UNSPLASH_ACCESS_KEY=your_unsplash_access_key
 ```
 
 **Unsplash API 타입 정의**:
@@ -881,7 +881,7 @@ export type ImageSource = 'user-upload' | 'unsplash';
 - **썸네일 생성**: 자동으로 썸네일 생성 (리스트 뷰용)
 
 ### Unsplash API 사용 지침
-- **API 키 필수**: `NEXT_PUBLIC_UNSPLASH_ACCESS_KEY` 환경 변수 설정 필요
+- **API 키 필수**: `UNSPLASH_ACCESS_KEY` 환경 변수 설정 필요
 - **Rate Limit**: 
   - Demo 키: 50 requests/hour
   - Production 키: 5,000 requests/hour (신청 필요)

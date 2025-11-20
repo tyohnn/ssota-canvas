@@ -77,7 +77,7 @@ class BlockId {
 **Features**:
 - **Real-time Subscriptions**: 실시간 데이터 동기화
 - **Row Level Security**: 세밀한 권한 제어
-- **Built-in Auth**: 인증 시스템 (Clerk와 함께 사용)
+- **Built-in Auth**: 인증 시스템
 - **Edge Functions**: 서버리스 함수
 
 #### Drizzle ORM
@@ -109,27 +109,28 @@ const blocks = await db
 
 ### Authentication & User Management
 
-#### Clerk
-**Purpose**: Authentication and Organization Management  
+#### Supabase Auth
+**Purpose**: Authentication and User Management  
 **Features**:
 - **JWT Tokens**: Stateless authentication
-- **Organization Management**: 팀 기반 권한 관리
-- **Webhooks**: 실시간 사용자 동기화
-- **Custom Claims**: 도메인별 권한 정보
+- **Social OAuth**: Google, GitHub 등 소셜 로그인 지원
+- **Row Level Security**: PostgreSQL RLS를 통한 권한 관리
+- **Session Management**: 자동 세션 갱신 및 관리
 
 ```typescript
-// Clerk Integration
-import { auth } from '@clerk/nextjs'
+// Supabase Auth Integration
+import { createClient } from '@/utils/supabase/server'
 
 async function createWorkspaceAction(input: CreateWorkspaceInput) {
-  const { userId, orgId } = auth()
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   
-  if (!userId || !orgId) {
+  if (!user) {
     throw new UnauthorizedError()
   }
   
-  // Organization-based authorization
-  const hasPermission = await checkOrganizationPermission(userId, orgId)
+  // User-based authorization
+  const hasPermission = await checkUserPermission(user.id)
   // ... rest of logic
 }
 ```
@@ -477,7 +478,7 @@ async function createBlockAction(input: CreateBlockInput) {
 
 ### Authentication & Authorization
 
-1. **JWT Validation**: Clerk 토큰 검증
+1. **JWT Validation**: Supabase 토큰 검증
 2. **Role-based Access**: 조직/워크스페이스 권한
 3. **Input Sanitization**: Zod 스키마 검증
 4. **SQL Injection Prevention**: Drizzle ORM 사용

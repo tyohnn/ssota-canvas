@@ -8,6 +8,7 @@ import { Position } from '../../value-objects/position.vo';
 import { Size } from '../../value-objects/size.vo';
 import { ZOrder } from '../../value-objects/z-order.vo';
 import { CanvasManagementError } from '../../errors/canvas-management.error';
+import { DuplicateBlockMountCommand } from '../../commands';
 
 describe('BlockMountAggregate - Duplication', () => {
   let blockMountAggregate: BlockMountAggregate;
@@ -38,7 +39,7 @@ describe('BlockMountAggregate - Duplication', () => {
     blockMountAggregate = new BlockMountAggregate(blockMount);
   });
 
-  describe('duplicateBlock', () => {
+  describe('duplicateBlockMount', () => {
     it('새로운 블럭 ID로 복제된 블럭 마운트를 생성해야 한다', () => {
       // Given
       const newBlockId = new BlockId('550e8400-e29b-41d4-a716-446655440003');
@@ -46,32 +47,47 @@ describe('BlockMountAggregate - Duplication', () => {
       const offsetY = 50;
 
       // When
-      const duplicatedMount = blockMountAggregate.duplicateBlock(newBlockId, offsetX, offsetY);
+      const command: DuplicateBlockMountCommand = {
+        newBlockId,
+        originalBlockMount: blockMountAggregate.getBlockMount(),
+        offsetX,
+        offsetY,
+      };
+      const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
       // Then
+      const duplicatedBlockMount = duplicatedMount.getBlockMount();
       expect(duplicatedMount).toBeDefined();
-      expect(duplicatedMount.blockMount.blockId).toBe(newBlockId);
-      expect(duplicatedMount.blockMount.pageId).toBe(pageId);
-      expect(duplicatedMount.blockMount.position.x).toBe(originalPosition.x + offsetX);
-      expect(duplicatedMount.blockMount.position.y).toBe(originalPosition.y + offsetY);
-      expect(duplicatedMount.blockMount.size).toEqual(originalSize);
-      expect(duplicatedMount.blockMount.zOrder.value).toBe(originalZOrder.value + 1);
+      expect(duplicatedBlockMount.blockId).toBe(newBlockId);
+      expect(duplicatedBlockMount.pageId).toBe(pageId);
+      expect(duplicatedBlockMount.position.x).toBe(originalPosition.x + offsetX);
+      expect(duplicatedBlockMount.position.y).toBe(originalPosition.y + offsetY);
+      expect(duplicatedBlockMount.size).toEqual(originalSize);
+      expect(duplicatedBlockMount.zOrder.value).toBe(originalZOrder.value + 1);
     });
 
     it('복제 시 원본 블럭 마운트는 변경되지 않아야 한다', () => {
       // Given
       const newBlockId = new BlockId('550e8400-e29b-41d4-a716-446655440003');
-      const originalPositionX = blockMountAggregate.blockMount.position.x;
-      const originalPositionY = blockMountAggregate.blockMount.position.y;
-      const originalZOrderValue = blockMountAggregate.blockMount.zOrder.value;
+      const originalBlockMount = blockMountAggregate.getBlockMount();
+      const originalPositionX = originalBlockMount.position.x;
+      const originalPositionY = originalBlockMount.position.y;
+      const originalZOrderValue = originalBlockMount.zOrder.value;
 
       // When
-      blockMountAggregate.duplicateBlock(newBlockId, 50, 50);
+      const command: DuplicateBlockMountCommand = {
+        newBlockId,
+        originalBlockMount,
+        offsetX: 50,
+        offsetY: 50,
+      };
+      blockMountAggregate.duplicateBlockMount(command);
 
       // Then
-      expect(blockMountAggregate.blockMount.position.x).toBe(originalPositionX);
-      expect(blockMountAggregate.blockMount.position.y).toBe(originalPositionY);
-      expect(blockMountAggregate.blockMount.zOrder.value).toBe(originalZOrderValue);
+      const afterBlockMount = blockMountAggregate.getBlockMount();
+      expect(afterBlockMount.position.x).toBe(originalPositionX);
+      expect(afterBlockMount.position.y).toBe(originalPositionY);
+      expect(afterBlockMount.zOrder.value).toBe(originalZOrderValue);
     });
 
     it('복제된 블럭은 원본보다 높은 z-order를 가져야 한다', () => {
@@ -79,10 +95,18 @@ describe('BlockMountAggregate - Duplication', () => {
       const newBlockId = new BlockId('550e8400-e29b-41d4-a716-446655440003');
 
       // When
-      const duplicatedMount = blockMountAggregate.duplicateBlock(newBlockId, 0, 0);
+      const command: DuplicateBlockMountCommand = {
+        newBlockId,
+        originalBlockMount: blockMountAggregate.getBlockMount(),
+        offsetX: 0,
+        offsetY: 0,
+      };
+      const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
       // Then
-      expect(duplicatedMount.blockMount.zOrder.value).toBeGreaterThan(blockMountAggregate.blockMount.zOrder.value);
+      const duplicatedBlockMount = duplicatedMount.getBlockMount();
+      const originalBlockMount = blockMountAggregate.getBlockMount();
+      expect(duplicatedBlockMount.zOrder.value).toBeGreaterThan(originalBlockMount.zOrder.value);
     });
 
     it('복제 시 새로운 BlockMountId가 생성되어야 한다', () => {
@@ -90,11 +114,19 @@ describe('BlockMountAggregate - Duplication', () => {
       const newBlockId = new BlockId('550e8400-e29b-41d4-a716-446655440003');
 
       // When
-      const duplicatedMount = blockMountAggregate.duplicateBlock(newBlockId, 0, 0);
+      const command: DuplicateBlockMountCommand = {
+        newBlockId,
+        originalBlockMount: blockMountAggregate.getBlockMount(),
+        offsetX: 0,
+        offsetY: 0,
+      };
+      const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
       // Then
-      expect(duplicatedMount.blockMount.id).not.toEqual(blockMountAggregate.blockMount.id);
-      expect(duplicatedMount.blockMount.id.value).toBeDefined();
+      const duplicatedBlockMount = duplicatedMount.getBlockMount();
+      const originalBlockMount = blockMountAggregate.getBlockMount();
+      expect(duplicatedBlockMount.id).not.toEqual(originalBlockMount.id);
+      expect(duplicatedBlockMount.id.value).toBeDefined();
     });
 
     it('복제 시 created_at과 updated_at이 현재 시간으로 설정되어야 한다', () => {
@@ -103,11 +135,18 @@ describe('BlockMountAggregate - Duplication', () => {
       const beforeDuplication = new Date();
 
       // When
-      const duplicatedMount = blockMountAggregate.duplicateBlock(newBlockId, 0, 0);
+      const command: DuplicateBlockMountCommand = {
+        newBlockId,
+        originalBlockMount: blockMountAggregate.getBlockMount(),
+        offsetX: 0,
+        offsetY: 0,
+      };
+      const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
       // Then
-      expect(duplicatedMount.blockMount.createdAt.getTime()).toBeGreaterThanOrEqual(beforeDuplication.getTime());
-      expect(duplicatedMount.blockMount.updatedAt.getTime()).toBeGreaterThanOrEqual(beforeDuplication.getTime());
+      const duplicatedBlockMount = duplicatedMount.getBlockMount();
+      expect(duplicatedBlockMount.createdAt.getTime()).toBeGreaterThanOrEqual(beforeDuplication.getTime());
+      expect(duplicatedBlockMount.updatedAt.getTime()).toBeGreaterThanOrEqual(beforeDuplication.getTime());
     });
 
     it('음수 오프셋도 허용해야 한다', () => {
@@ -117,11 +156,18 @@ describe('BlockMountAggregate - Duplication', () => {
       const offsetY = -40;
 
       // When
-      const duplicatedMount = blockMountAggregate.duplicateBlock(newBlockId, offsetX, offsetY);
+      const command: DuplicateBlockMountCommand = {
+        newBlockId,
+        originalBlockMount: blockMountAggregate.getBlockMount(),
+        offsetX,
+        offsetY,
+      };
+      const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
       // Then
-      expect(duplicatedMount.blockMount.position.x).toBe(originalPosition.x + offsetX);
-      expect(duplicatedMount.blockMount.position.y).toBe(originalPosition.y + offsetY);
+      const duplicatedBlockMount = duplicatedMount.getBlockMount();
+      expect(duplicatedBlockMount.position.x).toBe(originalPosition.x + offsetX);
+      expect(duplicatedBlockMount.position.y).toBe(originalPosition.y + offsetY);
     });
 
     it('0 오프셋도 허용해야 한다', () => {
@@ -131,11 +177,18 @@ describe('BlockMountAggregate - Duplication', () => {
       const offsetY = 0;
 
       // When
-      const duplicatedMount = blockMountAggregate.duplicateBlock(newBlockId, offsetX, offsetY);
+      const command: DuplicateBlockMountCommand = {
+        newBlockId,
+        originalBlockMount: blockMountAggregate.getBlockMount(),
+        offsetX,
+        offsetY,
+      };
+      const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
       // Then
-      expect(duplicatedMount.blockMount.position.x).toBe(originalPosition.x);
-      expect(duplicatedMount.blockMount.position.y).toBe(originalPosition.y);
+      const duplicatedBlockMount = duplicatedMount.getBlockMount();
+      expect(duplicatedBlockMount.position.x).toBe(originalPosition.x);
+      expect(duplicatedBlockMount.position.y).toBe(originalPosition.y);
     });
   });
 
@@ -145,12 +198,18 @@ describe('BlockMountAggregate - Duplication', () => {
       const newBlockId = new BlockId('550e8400-e29b-41d4-a716-446655440003');
 
       // When
-      const duplicatedMount = blockMountAggregate.duplicateBlock(newBlockId);
+      const command: DuplicateBlockMountCommand = {
+        newBlockId,
+        originalBlockMount: blockMountAggregate.getBlockMount(),
+        offsetX: 20,
+        offsetY: 20,
+      };
+      const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
       // Then
-      // 기본 오프셋은 20px
-      expect(duplicatedMount.blockMount.position.x).toBe(originalPosition.x + 20);
-      expect(duplicatedMount.blockMount.position.y).toBe(originalPosition.y + 20);
+      const duplicatedBlockMount = duplicatedMount.getBlockMount();
+      expect(duplicatedBlockMount.position.x).toBe(originalPosition.x + 20);
+      expect(duplicatedBlockMount.position.y).toBe(originalPosition.y + 20);
     });
 
     it('커스텀 오프셋으로 복제 위치를 계산해야 한다', () => {
@@ -160,11 +219,18 @@ describe('BlockMountAggregate - Duplication', () => {
       const customOffsetY = 150;
 
       // When
-      const duplicatedMount = blockMountAggregate.duplicateBlock(newBlockId, customOffsetX, customOffsetY);
+      const command: DuplicateBlockMountCommand = {
+        newBlockId,
+        originalBlockMount: blockMountAggregate.getBlockMount(),
+        offsetX: customOffsetX,
+        offsetY: customOffsetY,
+      };
+      const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
       // Then
-      expect(duplicatedMount.blockMount.position.x).toBe(originalPosition.x + customOffsetX);
-      expect(duplicatedMount.blockMount.position.y).toBe(originalPosition.y + customOffsetY);
+      const duplicatedBlockMount = duplicatedMount.getBlockMount();
+      expect(duplicatedBlockMount.position.x).toBe(originalPosition.x + customOffsetX);
+      expect(duplicatedBlockMount.position.y).toBe(originalPosition.y + customOffsetY);
     });
   });
 });

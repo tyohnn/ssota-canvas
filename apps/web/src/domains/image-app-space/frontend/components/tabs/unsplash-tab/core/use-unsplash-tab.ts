@@ -2,7 +2,10 @@ import { useCallback, useEffect } from 'react';
 import { useImageSpaceContext } from '../../../../core/image-space.context';
 import { useUnsplashTabUI } from './use-unsplash-tab.ui';
 import { useUnsplashTabBusiness } from './use-unsplash-tab.business';
-import type { UnsplashTabBusinessLogic } from './types';
+import type {
+  UnsplashTabBusinessLogic,
+  UnsplashTabContextValue,
+} from './types';
 
 /**
  * Combined Hook (UI + Business 통합)
@@ -66,7 +69,16 @@ export function useUnsplashTab(
 
   return {
     ...uiState,
-    loadImages,
-    handleSelectImage,
+    searchQuery,
+    selectedCategory,
+    setSearchQuery: (query: string) => {},
+    setSelectedCategory: (category: string | null) => {},
+    handleSearch: async () => {
+      await loadImages();
+    },
+    handleRefresh: async () => {
+      await loadImages(true);
+    },
+    onSelectImage: handleSelectImage,
   };
 }

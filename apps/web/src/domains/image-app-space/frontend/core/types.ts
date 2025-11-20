@@ -24,6 +24,8 @@ export interface SelectImageParams {
   imageUrl: string;
   source: ImageSource;
   metadata?: {
+    // Image Asset
+    imageAssetId?: string;
     // Unsplash
     unsplashAuthorName?: string;
     unsplashAuthorLink?: string;

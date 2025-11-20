@@ -135,7 +135,7 @@ describe('ContextAssemblyService', () => {
 
       // Then
       expect(memory).toHaveLength(1);
-      expect(memory[0].type).toBe('user_utterance');
+      expect(memory[0]?.type).toBe('user_utterance');
       expect(mockEventLogRepository.findRecentByPageId).toHaveBeenCalledWith(
         pageId,
         20
@@ -188,7 +188,7 @@ describe('ContextAssemblyService', () => {
 
       // Then
       expect(memory).toHaveLength(1);
-      expect(memory[0].type).toBe('user_utterance');
+      expect(memory[0]?.type).toBe('user_utterance');
     });
 
     it('실패 시 빈 배열을 반환해야 한다', async () => {
@@ -251,8 +251,8 @@ describe('ContextAssemblyService', () => {
       const formatted = service.formatForAgent(context);
 
       // Then
-      expect(formatted.systemPrompt).toContain('AI Agent');
-      expect(formatted.systemPrompt).toContain('Selected Blocks');
+      expect(formatted.contextPrompt).toContain('AI Agent');
+      expect(formatted.contextPrompt).toContain('Selected Blocks');
       expect(formatted.context.shortTermMemory).toContain('테스트');
       expect(formatted.context.longTermMemory).toContain('유사 작업');
       expect(formatted.context.selectedBlocks).toContain('block-1');
