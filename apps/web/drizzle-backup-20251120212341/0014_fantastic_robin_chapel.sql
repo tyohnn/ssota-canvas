@@ -1,1 +1,0 @@
-ALTER POLICY "Enable read access for all users" ON "organizations" RENAME TO "Enable read access for owner";

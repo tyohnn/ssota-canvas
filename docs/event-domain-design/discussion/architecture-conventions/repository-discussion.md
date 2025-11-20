@@ -73,7 +73,7 @@ import { Pool } from "pg";
 // Supabase: process.env.SUPABASE_DB_URL
 // AWS RDS:  process.env.RDS_DB_URL (ssl 옵션 등)
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.POSTGRES_URL,
   ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : undefined,
 });
 export const db = drizzle(pool);

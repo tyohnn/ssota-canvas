@@ -18,7 +18,9 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 export function createHeliconeOpenAI(
   headers?: Record<string, string>
 ): ReturnType<typeof createOpenAI> {
-  const heliconeApiKey = process.env.HELICONE_API_KEY;
+  // Helper to get env var
+  const getEnv = (key: string) => process.env[key] || '';
+  const heliconeApiKey = getEnv('HELICONE_API_KEY');
 
   if (!heliconeApiKey) {
     throw new Error('HELICONE_API_KEY is required');
@@ -44,7 +46,9 @@ export function createHeliconeOpenAI(
 export function createHeliconeGoogle(
   headers?: Record<string, string>
 ): ReturnType<typeof createGoogleGenerativeAI> {
-  const heliconeApiKey = process.env.HELICONE_API_KEY;
+  // Helper to get env var
+  const getEnv = (key: string) => process.env[key] || '';
+  const heliconeApiKey = getEnv('HELICONE_API_KEY');
 
   if (!heliconeApiKey) {
     throw new Error('HELICONE_API_KEY is required');

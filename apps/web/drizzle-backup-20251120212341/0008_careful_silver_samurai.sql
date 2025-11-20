@@ -1,1 +1,0 @@
-ALTER POLICY "Enable insert for organization owners and admins" ON "invitations" RENAME TO "Enable insert for organization owners";

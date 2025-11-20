@@ -1,26 +1,30 @@
 // Configuration for environment variables
 // Centralized config with type safety and default values
 //
-// Note: With Supabase Branching, each environment (local/preview/production)
-// automatically gets the correct credentials. No need for manual branching logic.
+// Environment Variables Priority (Vercel-Supabase Integration):
+// 1. Integration auto-generated: SUPABASE_URL, POSTGRES_URL
+// 2. Client-side public: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+// 3. Local development: 127.0.0.1 addresses
+//
+// ⚠️ IMPORTANT: Next.js는 process.env.VARIABLE를 정적으로 분석합니다.
+// process.env[key] 같은 동적 접근은 브라우저에서 작동하지 않습니다!
 
 export const config = {
   database: {
-    url: process.env.DATABASE_URL || process.env.POSTGRES_URL || '',
+    // Vercel-Supabase Integration provides POSTGRES_URL
+    url: process.env.POSTGRES_URL || '',
+    nonPoolingUrl: process.env.POSTGRES_URL_NON_POOLING || '',
   },
   supabase: {
-    // Fallback to Supabase Integration auto-generated variables
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '',
+    // Vercel-Supabase Integration provides SUPABASE_URL (server-side)
+    // NEXT_PUBLIC_SUPABASE_URL needed for client-side
+    url: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    // SUPABASE_ANON_KEY must be added manually in Vercel Dashboard
     anonKey:
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
       process.env.SUPABASE_ANON_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
       '',
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-  },
-  clerk: {
-    publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '',
-    secretKey: process.env.CLERK_SECRET_KEY || '',
-    webhookSecret: process.env.CLERK_WEBHOOK_SECRET || '',
   },
   ai: {
     openai: process.env.OPENAI_API_KEY || '',

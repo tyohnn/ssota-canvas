@@ -120,11 +120,8 @@ interface HeliconeGatewayConfig {
  * ```
  */
 export function createHeliconeGateway(config?: HeliconeGatewayConfig) {
-  const heliconeApiKey = config?.heliconeApiKey || process.env.HELICONE_API_KEY;
-  const vercelAIGatewayApiKey =
-    config?.vercelAIGatewayApiKey ||
-    process.env.VERCEL_AI_GATEWAY_API_KEY ||
-    process.env.AI_GATEWAY_API_KEY;
+  const heliconeApiKey = config?.heliconeApiKey || '';
+  const vercelAIGatewayApiKey = config?.vercelAIGatewayApiKey || '';
 
   if (!heliconeApiKey) {
     throw new Error(

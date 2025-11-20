@@ -1,7 +1,9 @@
 import mixpanel from 'mixpanel-browser';
 
-const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN;
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+import { config } from '@/config';
+
+const MIXPANEL_TOKEN = config.analytics.mixpanel;
+const IS_PRODUCTION = config.environment === 'production';
 
 // Dev 모드에서는 Mixpanel을 비활성화
 const isEnabled = () => IS_PRODUCTION && !!MIXPANEL_TOKEN;

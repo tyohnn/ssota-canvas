@@ -4,7 +4,7 @@ import { Database } from '@/types/database.types';
 import { Database as DevDatabase } from '@/types/database-dev.types';
 import { config } from '@/config';
 
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = config.environment === 'development';
 type DatabaseType = typeof isDevelopment extends true ? DevDatabase : Database;
 
 export async function updateSession(request: NextRequest) {

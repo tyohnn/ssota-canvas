@@ -12,7 +12,7 @@ vi.mock('@/utils/supabase/server', () => ({
   createClient: vi.fn(() => mockSupabaseClient),
 }));
 
-// Mock database to prevent DATABASE_URL error
+// Mock database to prevent POSTGRES_URL error
 vi.mock('@/db', () => ({
   db: {},
   createDrizzleSupabaseClient: vi.fn(),

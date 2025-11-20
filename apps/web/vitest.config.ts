@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 import { loadEnv } from 'vite';
+import { config } from '@/config';
 
 export default defineConfig(({ mode }) => {
   // Load env file based on mode
@@ -13,8 +14,8 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./src/__tests__/setup.ts'],
       env: {
         NODE_ENV: 'development',
-        DEV_DATABASE_URL: env.DEV_DATABASE_URL,
-        DATABASE_URL: env.DATABASE_URL,
+        POSTGRES_URL: config.database.url,
+        POSTGRES_URL_NON_POOLING: config.database.nonPoolingUrl,
       },
       exclude: [
         '**/node_modules/**',
