@@ -448,6 +448,44 @@ export const imageViews = imageAppSpaceSchema
   )
   .enableRLS();
 
+/**
+ * Test Deployments Table
+ *
+ * 배포 테스트용 테이블
+ * - Supabase Branching 테스트
+ * - 브랜치별 마이그레이션 적용 확인
+ * - 이 테이블은 테스트 후 제거 예정
+ */
+export const testDeployments = imageAppSpaceSchema
+  .table(
+    'test_deployments',
+    {
+      id: uuid('id').primaryKey().defaultRandom(),
+      branch_name: text('branch_name').notNull(),
+      deployed_at: timestamp('deployed_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+      notes: text('notes'),
+    },
+    table => ({
+      // Index
+      branchIdx: index('idx_test_deployments_branch').on(table.branch_name),
+
+      // RLS - 누구나 읽기 가능, 인증된 사용자만 작성
+      selectPolicy: pgPolicy('test_deployments_select_policy', {
+        for: 'select',
+        to: [anonRole, authenticatedRole],
+        using: sql`true`,
+      }),
+      insertPolicy: pgPolicy('test_deployments_insert_policy', {
+        for: 'insert',
+        to: authenticatedRole,
+        withCheck: sql`true`,
+      }),
+    })
+  )
+  .enableRLS();
+
 // ============================================
 // Relations
 // ============================================
@@ -506,6 +544,8 @@ export type ImageLike = typeof imageLikes.$inferSelect;
 export type NewImageLike = typeof imageLikes.$inferInsert;
 export type ImageView = typeof imageViews.$inferSelect;
 export type NewImageView = typeof imageViews.$inferInsert;
+export type TestDeployment = typeof testDeployments.$inferSelect;
+export type NewTestDeployment = typeof testDeployments.$inferInsert;
 
 // Enum types
 export type ImageAssetType = (typeof imageAssetTypeEnum.enumValues)[number];
