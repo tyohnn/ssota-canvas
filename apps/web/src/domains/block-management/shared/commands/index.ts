@@ -36,6 +36,7 @@ export interface UpdateBlockPropertyCommand {
 export interface UpdateBlockContentCommand {
   blockId: BlockId;
   content: unknown; // JSONB - TipTap JSON, 기타 구조화된 콘텐츠
+  contentRaw?: string; // Markdown text (optional, for AI context)
   workspaceId: string; // 블록 소유권 검증용
 }
 

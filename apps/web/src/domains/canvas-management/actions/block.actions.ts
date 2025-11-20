@@ -171,6 +171,7 @@ async function createAndMountBlockInternal(
       blockType: blockTypeVO,
       position: positionVO,
       size: sizeVO,
+      title: request.title, // 초기 title 전달 (optional)
       initialProperties: request.initialProperties, // 초기 properties 전달 (optional)
       initialContent: request.initialContent, // ✨ 초기 content 전달 (optional)
     };
@@ -214,6 +215,7 @@ async function createAndMountBlockInternal(
       // Block 정보 (blockEntity에서 추출)
       blockId: block.id.value,
       blockType: block.blockType.value,
+      title: block.title,
       properties: block.properties.toJSON(), // Value Object를 JSON으로 변환
       customProperties: block.customProperties.map(cp => cp.toJSON()) || [],
       content: block.content, // JSONB content

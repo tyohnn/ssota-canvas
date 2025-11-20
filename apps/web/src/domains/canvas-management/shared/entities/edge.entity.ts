@@ -32,7 +32,7 @@ export class Edge {
       color: string;
       thickness: number;
     } = {
-      color: '#000000',
+      color: '#9ca3af',
       thickness: 2,
     },
     public readonly createdAt: Date = new Date(),

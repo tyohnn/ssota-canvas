@@ -218,15 +218,21 @@ export class BlockAggregate {
       );
     }
 
-    // content 필드 업데이트
-    this._block.update({ content: command.content });
+    // content 및 contentRaw 필드 업데이트
+    this._block.update({
+      content: command.content,
+      contentRaw: command.contentRaw,
+    });
 
     // 도메인 이벤트 발생 (BlockUpdatedEvent 재사용)
     const event = new BlockUpdatedEvent(
       this._block.id,
       {
         blockId: this._block.id,
-        updateData: { content: command.content },
+        updateData: {
+          content: command.content,
+          contentRaw: command.contentRaw,
+        },
       },
       this._block.updatedAt
     );

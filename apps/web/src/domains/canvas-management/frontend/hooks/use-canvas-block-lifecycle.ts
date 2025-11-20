@@ -48,8 +48,9 @@ export interface UseCanvasBlockLifecycleResult {
     blockType: BlockType,
     position: Position,
     initialProperties?: Record<string, any>, // 선택적 초기 properties
-    initialContent?: unknown // 선택적 초기 content (JSONB)
-  ) => Promise<void>;
+    initialContent?: unknown, // 선택적 초기 content (JSONB)
+    title?: string // 선택적 초기 title
+  ) => Promise<BlockCreatedAndMountedDTO | void>;
   softDeleteBlockMounts: (blockMountIds: string | string[]) => Promise<void>;
   duplicateBlockAndMount: (
     blockMountId: string,
@@ -205,7 +206,8 @@ export function useCanvasBlockLifecycle(
       position: Position,
       optimisticId: string,
       initialProperties?: Record<string, any>, // initialProperties 추가
-      initialContent?: unknown // ✨ initialContent 추가 (JSONB)
+      initialContent?: unknown, // ✨ initialContent 추가 (JSONB)
+      title?: string // title 추가
     ) => {
       const blockSize = getBlockSize(blockType);
       const optimisticNodeData: BlockNodeData = buildBlockNodeData(blockType, {
@@ -216,6 +218,7 @@ export function useCanvasBlockLifecycle(
         workspaceId,
         properties: initialProperties as BlockProperties<BlockType>, // initialProperties 포함
         content: initialContent, // ✨ initialContent 포함
+        title, // title 포함
       });
 
       return {
@@ -326,6 +329,7 @@ export function useCanvasBlockLifecycle(
           pageId,
           orgId,
           workspaceId,
+          title: blockView.title, // title 포함!
           properties: blockView.properties,
           customProperties: blockView.customProperties,
           content: blockView.content, // ✨ content 포함!
@@ -376,12 +380,13 @@ export function useCanvasBlockLifecycle(
       blockType: BlockType,
       position: Position,
       initialProperties?: Record<string, any>, // 선택적 초기 properties
-      initialContent?: unknown // 선택적 초기 content (JSONB)
-    ) => {
+      initialContent?: unknown, // 선택적 초기 content (JSONB)
+      title?: string // 선택적 초기 title
+    ): Promise<BlockCreatedAndMountedDTO | void> => {
       const optimisticId = generateOptimisticId();
 
       try {
-        // 1. 요청 검증 (initialProperties, initialContent 포함)
+        // 1. 요청 검증 (initialProperties, initialContent, title 포함)
         const rawRequest: CreateAndMountBlockRequestInput = {
           pageId,
           blockType,
@@ -389,6 +394,7 @@ export function useCanvasBlockLifecycle(
           size: getBlockSize(blockType),
           workspaceId,
           orgId,
+          title, // title 추가
           initialProperties, // 초기 properties 추가
           initialContent, // ✨ 초기 content 추가
         };
@@ -408,13 +414,14 @@ export function useCanvasBlockLifecycle(
 
         const validatedRequest = parseResult.data;
 
-        // 2. Optimistic UI - 임시 노드 생성 및 추가 (initialProperties, initialContent 포함)
+        // 2. Optimistic UI - 임시 노드 생성 및 추가 (initialProperties, initialContent, title 포함)
         const optimisticNode = createOptimisticNode(
           blockType,
           position,
           optimisticId,
           initialProperties, // initialProperties 전달
-          initialContent // ✨ initialContent 전달
+          initialContent, // ✨ initialContent 전달
+          title // title 전달
         );
         addNodes([optimisticNode]);
 
@@ -424,6 +431,7 @@ export function useCanvasBlockLifecycle(
         // 4. 결과 처리
         if (result.success && result.data) {
           await handleCreateAndMountBlockSuccess(optimisticId, result.data);
+          return result.data; // 생성된 블록 데이터 반환
         } else {
           handleCreateAndMountBlockFailure(optimisticId, result);
         }
@@ -717,6 +725,7 @@ export function useCanvasBlockLifecycle(
           pageId,
           orgId,
           workspaceId,
+          title: originalNodeData.title, // title 복제!
           properties: originalNodeData.properties,
           customProperties: originalNodeData.customProperties,
           content: originalNodeData.content, // ✨ content 복제!
@@ -807,6 +816,7 @@ export function useCanvasBlockLifecycle(
           pageId,
           orgId,
           workspaceId,
+          title: optimisticNodeData?.title, // title 포함!
           properties: optimisticNodeData?.properties,
           customProperties: optimisticNodeData?.customProperties,
           content: optimisticNodeData?.content, // ✨ content 포함!

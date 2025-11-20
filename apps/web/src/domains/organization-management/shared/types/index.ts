@@ -1,6 +1,6 @@
 // apps/web/src/domains/organization-management/shared/types/index.ts
 
-import { memberRoleEnum } from '@/db/schema-dev';
+import { memberRoleEnum } from '@/db/schema';
 
 // Organization Types (정적 정의)
 export type OrganizationType =

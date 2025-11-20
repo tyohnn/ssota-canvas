@@ -7,7 +7,7 @@ import { OrganizationId, UserId } from '@/domains/organization-management/shared
 import { WorkspaceId } from '../../../../shared/value-objects/workspace-id.vo';
 import { PageId } from '../../../../shared/value-objects/page-id.vo';
 import { adminDb } from '@/db';
-import { pages, workspaces } from '@/db/schema-dev';
+import { pages, workspaces } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('PageRepository Integration Tests', () => {

@@ -68,6 +68,7 @@ export interface BaseNodeData extends Record<string, unknown> {
   blockMountId: string;
   blockId: string;
   blockType: BlockType;
+  title: string;
   properties: BlockProperties<BlockType>;
   customProperties: CustomPropertyDefinition[];
   content?: unknown; // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
@@ -205,6 +206,7 @@ export function buildBlockNodeData<T extends BlockType>(
     pageId: string;
     orgId: string;
     workspaceId: string;
+    title?: string;
     properties?: BlockProperties<T>;
     customProperties?: CustomPropertyDefinition[];
     content?: unknown; // JSONB content
@@ -225,6 +227,7 @@ export function buildBlockNodeData<T extends BlockType>(
     blockMountId: baseData.blockMountId,
     blockId: baseData.blockId,
     blockType,
+    title: baseData.title || '',
     properties: properties,
     customProperties: baseData.customProperties || [],
     content: baseData.content, // JSONB content

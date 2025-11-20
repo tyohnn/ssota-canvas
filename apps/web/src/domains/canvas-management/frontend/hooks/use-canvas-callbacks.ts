@@ -1,5 +1,11 @@
 import { useCallback, useMemo, useRef } from 'react';
-import { type Node, type OnConnect, useReactFlow } from '@xyflow/react';
+import {
+  type Node,
+  type Edge,
+  type OnConnect,
+  type OnReconnect,
+  useReactFlow,
+} from '@xyflow/react';
 import { isFailure } from '@/lib/action-result';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import type { EdgeView } from '../../shared/dtos';
@@ -51,6 +57,14 @@ interface UseCanvasCallbacksProps {
       sourceHandle?: string,
       targetHandle?: string
     ) => Promise<EdgeView | null>;
+    reconnectEdge: (
+      edgeId: string,
+      newSourceBlockMountId: string,
+      newTargetBlockMountId: string,
+      sourceHandle?: string | null,
+      targetHandle?: string | null
+    ) => Promise<boolean>;
+    deleteEdge: (edgeId: string) => Promise<boolean>;
   };
   blockLifecycle: {
     duplicateBlockAndMount: (
@@ -86,6 +100,9 @@ export function useCanvasCallbacks({
 }: UseCanvasCallbacksProps) {
   const reactFlowInstance = useReactFlow();
 
+  // 엣지 재연결 성공 여부 추적 (공식 문서 패턴)
+  const edgeReconnectSuccessful = useRef(true);
+
   // Block lifecycle hook 사용
   const {
     softDeleteBlockMounts,
@@ -96,12 +113,24 @@ export function useCanvasCallbacks({
     workspaceId,
   });
 
-  // Clipboard paste hook
+  // Clipboard paste hook - wrap to match expected signature
   const clipboardPaste = useClipboardPaste({
     pageId,
     orgId,
     workspaceId,
-    createAndMountBlock: blockLifecycleCreateAndMountBlock,
+    createAndMountBlock: async (
+      blockType,
+      position,
+      initialProperties,
+      initialContent
+    ) => {
+      await blockLifecycleCreateAndMountBlock(
+        blockType,
+        position,
+        initialProperties,
+        initialContent
+      );
+    },
   });
 
   // 이전 선택 상태 추적 (무한 루프 방지)
@@ -331,6 +360,70 @@ export function useCanvasCallbacks({
   );
 
   /**
+   * 엣지 재연결 시작
+   */
+  const onReconnectStart = useCallback(() => {
+    edgeReconnectSuccessful.current = false;
+    console.log('🔄 [onReconnectStart] Edge reconnection started');
+  }, []);
+
+  /**
+   * 엣지 재연결
+   */
+  const onReconnect: OnReconnect = useCallback(
+    async (oldEdge: Edge, newConnection) => {
+      console.log('🔄 [onReconnect] Reconnecting edge', {
+        oldEdge,
+        newConnection,
+      });
+
+      edgeReconnectSuccessful.current = true;
+
+      // 재연결 수행
+      const success = await edgeManagement.reconnectEdge(
+        oldEdge.id,
+        newConnection.source,
+        newConnection.target,
+        newConnection.sourceHandle,
+        newConnection.targetHandle
+      );
+
+      if (success) {
+        console.log('✅ [onReconnect] Edge reconnected successfully');
+      } else {
+        console.error('❌ [onReconnect] Edge reconnection failed');
+        edgeReconnectSuccessful.current = false;
+      }
+    },
+    [edgeManagement]
+  );
+
+  /**
+   * 엣지 재연결 종료
+   * 재연결에 실패하면 엣지를 삭제 (빈 공간에 드롭한 경우)
+   */
+  const onReconnectEnd = useCallback(
+    async (_event: MouseEvent | TouchEvent, edge: Edge) => {
+      console.log('🔄 [onReconnectEnd] Edge reconnection ended', {
+        success: edgeReconnectSuccessful.current,
+        edgeId: edge.id,
+      });
+
+      if (!edgeReconnectSuccessful.current) {
+        // 재연결 실패 시 엣지 삭제 (빈 공간에 드롭한 경우)
+        console.log(
+          '🗑️ [onReconnectEnd] Deleting edge due to failed reconnection'
+        );
+        await edgeManagement.deleteEdge(edge.id);
+      }
+
+      // 다음 재연결을 위해 초기화
+      edgeReconnectSuccessful.current = true;
+    },
+    [edgeManagement]
+  );
+
+  /**
    * 노드 삭제 → 블럭 마운트 및 연결된 엣지 삭제
    * Story CM-008: Delete 키 또는 Backspace 키로 블럭 삭제
    *
@@ -445,6 +538,9 @@ export function useCanvasCallbacks({
       onPaneClick,
       // 엣지 관련
       onConnect,
+      onReconnect,
+      onReconnectStart,
+      onReconnectEnd,
       // 삭제 관련
       onNodesDelete,
       // 키보드 관련
@@ -461,6 +557,9 @@ export function useCanvasCallbacks({
       onSelectionChange,
       onPaneClick,
       onConnect,
+      onReconnect,
+      onReconnectStart,
+      onReconnectEnd,
       onNodesDelete,
       onKeyDown,
       handleNodeResize,

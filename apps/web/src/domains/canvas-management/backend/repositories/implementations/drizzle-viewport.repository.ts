@@ -5,7 +5,7 @@ import { ViewportId } from '../../../shared/value-objects/viewport-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { adminDb } from '@/db';
-import { viewports } from '@/db/schema-dev';
+import { viewports } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 /**

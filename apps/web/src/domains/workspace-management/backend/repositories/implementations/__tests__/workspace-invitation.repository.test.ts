@@ -4,7 +4,7 @@ import { WorkspaceInvitation } from '../../../../shared/entities/workspace-invit
 import { WorkspaceInvitationId } from '../../../../shared/value-objects/workspace-invitation-id.vo';
 import { WorkspaceId } from '../../../../shared/value-objects/workspace-id.vo';
 import { adminDb } from '@/db';
-import { workspaceInvitations, workspaces } from '@/db/schema-dev';
+import { workspaceInvitations, workspaces } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('DrizzleWorkspaceInvitationRepository Integration Tests', () => {

@@ -64,6 +64,7 @@ export class CanvasBlockMountService implements ICanvasBlockMountService {
     blockType: BlockType;
     position: Position;
     size: Size;
+    title?: string; // 선택적 초기 title
     initialProperties?: Record<string, any>; // 선택적 초기 properties
     initialContent?: unknown; // 선택적 초기 content (JSONB)
   }): Promise<
@@ -81,7 +82,7 @@ export class CanvasBlockMountService implements ICanvasBlockMountService {
         userId: params.userId,
         workspaceId: params.workspaceId,
         blockType: params.blockType,
-        title: '새 블럭', // 기본 제목
+        title: params.title || '새 블럭', // 전달받은 title 사용, 없으면 기본 제목
         initialProperties: params.initialProperties, // 초기 properties 전달
         initialContent: params.initialContent, // ✨ 초기 content 전달
       });

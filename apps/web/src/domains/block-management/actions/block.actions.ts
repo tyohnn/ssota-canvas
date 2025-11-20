@@ -521,6 +521,7 @@ async function updateBlockContentInternal(
     const command: UpdateBlockContentCommand = {
       blockId,
       content: request.content,
+      contentRaw: request.contentRaw, // Markdown text (optional)
       workspaceId: request.workspaceId,
     };
 

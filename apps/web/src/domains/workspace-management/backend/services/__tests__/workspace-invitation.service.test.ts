@@ -10,7 +10,7 @@ import { MemberRole } from '@/domains/organization-management/shared/value-objec
 import { Result } from '@/utils/result';
 import { WorkspaceAggregate } from '../../../shared/aggregates/workspace.aggregate';
 import { adminDb } from '@/db';
-import { workspaces, workspaceMembers, workspaceInvitations } from '@/db/schema-dev';
+import { workspaces, workspaceMembers, workspaceInvitations } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('WorkspaceInvitationService Integration Tests (Scenario 3)', () => {

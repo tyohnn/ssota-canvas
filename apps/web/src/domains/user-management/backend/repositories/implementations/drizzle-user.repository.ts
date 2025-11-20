@@ -2,7 +2,7 @@
 
 import { eq } from 'drizzle-orm';
 import { createDrizzleSupabaseClient, adminDb } from '@/db';
-import { profiles } from '@/db/schema-dev';
+import { profiles } from '@/db/schema';
 import { UserRepository } from '../interfaces/user.repository.interface';
 import { UserAggregate } from '../../../shared/aggregates/user.aggregate';
 import { User } from '../../../shared/entities/user.entity';

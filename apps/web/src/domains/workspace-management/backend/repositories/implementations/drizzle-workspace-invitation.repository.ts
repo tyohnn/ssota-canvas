@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { adminDb } from '@/db';
-import { workspaceInvitations, profiles } from '@/db/schema-dev';
-import type { WorkspaceInvitation as DBWorkspaceInvitation } from '@/db/schema-dev';
+import { workspaceInvitations, profiles } from '@/db/schema';
+import type { WorkspaceInvitation as DBWorkspaceInvitation } from '@/db/schema';
 import {
   IWorkspaceInvitationRepository,
   WorkspaceInvitationWithProfiles,

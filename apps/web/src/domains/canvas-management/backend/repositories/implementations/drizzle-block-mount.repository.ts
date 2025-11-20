@@ -1,5 +1,5 @@
 import { adminDb } from '@/db';
-import { blockMounts, blocks, profiles } from '@/db/schema-dev';
+import { blockMounts, blocks, profiles } from '@/db/schema';
 import { eq, isNull, and } from 'drizzle-orm';
 import { BlockMountAggregate } from '../../../shared/aggregates/block-mount.aggregate';
 import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';

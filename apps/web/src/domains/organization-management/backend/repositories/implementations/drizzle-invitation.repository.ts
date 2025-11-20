@@ -2,8 +2,8 @@
 
 import { eq, and } from 'drizzle-orm';
 import { createDrizzleSupabaseClient } from '@/db';
-import { invitations } from '@/db/schema-dev';
-import type { Invitation as DBInvitation } from '@/db/schema-dev';
+import { invitations } from '@/db/schema';
+import type { Invitation as DBInvitation } from '@/db/schema';
 import { InvitationRepository } from '../interfaces/invitation.repository.interface';
 import { InvitationAggregate } from '../../../shared/aggregates/invitation.aggregate';
 import { Invitation } from '../../../shared/entities/invitation.entity';

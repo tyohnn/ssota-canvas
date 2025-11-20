@@ -95,6 +95,7 @@ export class CanvasQueryService implements ICanvasQueryService {
               blockMountId: blockMount.id.value,
               blockId: blockMount.blockId.value,
               blockType: block.blockType.value,
+              title: block.title,
               properties: fullProperties,
               customProperties:
                 block.customProperties.map(cp => cp.toJSON()) || [],

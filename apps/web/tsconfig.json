@@ -8,11 +8,11 @@
       "@/*": ["./src/*"],
       // fallbacks to UI package when not found in app
       "@/components/*": [
-        "../../packages/ui/src/components/*",
-        "./src/components/*"
+        "./src/components/*",
+        "../../packages/ui/src/components/*"
       ],
-      "@/hooks/*": ["../../packages/ui/src/hooks/*", "./src/hooks/*"],
-      "@/lib/*": ["../../packages/ui/src/lib/*", "./src/lib/*"],
+      "@/hooks/*": ["./src/hooks/*", "../../packages/ui/src/hooks/*"],
+      "@/lib/*": ["./src/lib/*", "../../packages/ui/src/lib/*"],
       "@workspace/ui/components/*": ["../../packages/ui/src/components/*"],
       "@workspace/ui/hooks/*": ["../../packages/ui/src/hooks/*"],
       "@workspace/ui/lib/*": ["../../packages/ui/src/lib/*"],
@@ -33,7 +33,8 @@
     "**/*.test.ts",
     "**/*.test.tsx",
     "jest.setup.js",
-    "src/domains/canvas/components/editor/property-input"
-, "src/domains/canvas/handlers/useReactFlowHandler.tsㅌ"  ],
+    "src/domains/canvas/components/editor/property-input",
+    "src/domains/canvas/handlers/useReactFlowHandler.tsㅌ"
+  ],
   "exclude": ["node_modules"]
 }

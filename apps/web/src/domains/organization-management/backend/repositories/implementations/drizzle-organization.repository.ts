@@ -2,8 +2,8 @@
 
 import { eq } from 'drizzle-orm';
 import { createDrizzleSupabaseClient, adminDb } from '@/db';
-import { organizations } from '@/db/schema-dev';
-import type { Organization as DBOrganization } from '@/db/schema-dev';
+import { organizations } from '@/db/schema';
+import type { Organization as DBOrganization } from '@/db/schema';
 import { OrganizationRepository } from '../interfaces/organization.repository.interface';
 import { OrganizationAggregate } from '../../../shared/aggregates/organization.aggregate';
 import { Organization } from '../../../shared/entities/organization.entity';

@@ -1,491 +1,22 @@
 {
-  "id": "d3355db3-6a8e-4a06-a6b7-bb0fa1646fa2",
-  "prevId": "b8d943fb-6f4a-41a1-8936-e0d091d23dbb",
+  "id": "1a6973eb-f505-4110-893b-7cc385b32247",
+  "prevId": "e6a3c9cf-140b-472a-8f24-207c6a082fbf",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.edges": {
-      "name": "edges",
+    "public.organizations": {
+      "name": "organizations",
       "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "source_node_id": {
-          "name": "source_node_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "target_node_id": {
-          "name": "target_node_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "edge_type": {
-          "name": "edge_type",
-          "type": "edge_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "edges_source_node_id_nodes_id_fk": {
-          "name": "edges_source_node_id_nodes_id_fk",
-          "tableFrom": "edges",
-          "tableTo": "nodes",
-          "columnsFrom": [
-            "source_node_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "edges_target_node_id_nodes_id_fk": {
-          "name": "edges_target_node_id_nodes_id_fk",
-          "tableFrom": "edges",
-          "tableTo": "nodes",
-          "columnsFrom": [
-            "target_node_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {
-        "Enable read access for all users": {
-          "name": "Enable read access for all users",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "anon",
-            "authenticated"
-          ],
-          "using": "true"
-        },
-        "Enable insert for workspace members": {
-          "name": "Enable insert for workspace members",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
-          "withCheck": "\"edges\".\"source_node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))"
-        },
-        "Enable update for workspace members": {
-          "name": "Enable update for workspace members",
-          "as": "PERMISSIVE",
-          "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "\"edges\".\"source_node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))",
-          "withCheck": "\"edges\".\"source_node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))"
-        },
-        "Enable delete for workspace members": {
-          "name": "Enable delete for workspace members",
-          "as": "PERMISSIVE",
-          "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "\"edges\".\"source_node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))"
-        }
-      },
-      "checkConstraints": {},
-      "isRLSEnabled": true
-    },
-    "public.node_positions": {
-      "name": "node_positions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "node_id": {
-          "name": "node_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "context_node_id": {
-          "name": "context_node_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "x_position": {
-          "name": "x_position",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "y_position": {
-          "name": "y_position",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "node_positions_node_id_nodes_id_fk": {
-          "name": "node_positions_node_id_nodes_id_fk",
-          "tableFrom": "node_positions",
-          "tableTo": "nodes",
-          "columnsFrom": [
-            "node_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "node_positions_context_node_id_nodes_id_fk": {
-          "name": "node_positions_context_node_id_nodes_id_fk",
-          "tableFrom": "node_positions",
-          "tableTo": "nodes",
-          "columnsFrom": [
-            "context_node_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {
-        "Enable read access for all users": {
-          "name": "Enable read access for all users",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "anon",
-            "authenticated"
-          ],
-          "using": "true"
-        },
-        "Enable insert for workspace members": {
-          "name": "Enable insert for workspace members",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
-          "withCheck": "\"node_positions\".\"node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))"
-        },
-        "Enable update for workspace members": {
-          "name": "Enable update for workspace members",
-          "as": "PERMISSIVE",
-          "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "\"node_positions\".\"node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))",
-          "withCheck": "\"node_positions\".\"node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))"
-        },
-        "Enable delete for workspace members": {
-          "name": "Enable delete for workspace members",
-          "as": "PERMISSIVE",
-          "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "\"node_positions\".\"node_id\" IN (SELECT id FROM nodes WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid())))"
-        }
-      },
-      "checkConstraints": {},
-      "isRLSEnabled": true
-    },
-    "public.nodes": {
-      "name": "nodes",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "node_type": {
-          "name": "node_type",
-          "type": "node_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "slug": {
-          "name": "slug",
-          "type": "varchar(100)",
-          "primaryKey": false,
           "notNull": true
         },
         "name": {
           "name": "name",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "parent_node_id": {
-          "name": "parent_node_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "nodes_workspace_id_workspaces_id_fk": {
-          "name": "nodes_workspace_id_workspaces_id_fk",
-          "tableFrom": "nodes",
-          "tableTo": "workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {
-        "Enable read access for all users": {
-          "name": "Enable read access for all users",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "anon",
-            "authenticated"
-          ],
-          "using": "true"
-        },
-        "Enable insert for workspace members": {
-          "name": "Enable insert for workspace members",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
-          "withCheck": "\"nodes\".\"workspace_id\" IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))"
-        },
-        "Enable update for workspace members": {
-          "name": "Enable update for workspace members",
-          "as": "PERMISSIVE",
-          "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "\"nodes\".\"workspace_id\" IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))",
-          "withCheck": "\"nodes\".\"workspace_id\" IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))"
-        },
-        "Enable delete for workspace members": {
-          "name": "Enable delete for workspace members",
-          "as": "PERMISSIVE",
-          "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "\"nodes\".\"workspace_id\" IN (SELECT id FROM workspaces WHERE owner_id = (select auth.uid()))"
-        }
-      },
-      "checkConstraints": {},
-      "isRLSEnabled": true
-    },
-    "public.users": {
-      "name": "users",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "first_name": {
-          "name": "first_name",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_name": {
-          "name": "last_name",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "image_url": {
-          "name": "image_url",
-          "type": "varchar(500)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {
-        "Enable read access for authenticated users": {
-          "name": "Enable read access for authenticated users",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
-          "using": "(select auth.uid()) = \"users\".\"id\""
-        },
-        "Enable insert for authenticated users": {
-          "name": "Enable insert for authenticated users",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
-          "withCheck": "(select auth.uid()) = \"users\".\"id\""
-        },
-        "Enable update for users based on id": {
-          "name": "Enable update for users based on id",
-          "as": "PERMISSIVE",
-          "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "(select auth.uid()) = \"users\".\"id\"",
-          "withCheck": "(select auth.uid()) = \"users\".\"id\""
-        },
-        "Enable delete for users based on id": {
-          "name": "Enable delete for users based on id",
-          "as": "PERMISSIVE",
-          "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "(select auth.uid()) = \"users\".\"id\""
-        }
-      },
-      "checkConstraints": {},
-      "isRLSEnabled": true
-    },
-    "public.workspaces": {
-      "name": "workspaces",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(100)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -495,62 +26,221 @@
           "primaryKey": false,
           "notNull": true
         },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "organizations_owner_id_profiles_id_fk": {
+          "name": "organizations_owner_id_profiles_id_fk",
+          "tableFrom": "organizations",
+          "tableTo": "profiles",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "organizations_unique_default_per_owner": {
+          "name": "organizations_unique_default_per_owner",
+          "nullsNotDistinct": false,
+          "columns": [
+            "owner_id",
+            "is_default"
+          ]
+        }
+      },
       "policies": {
-        "Enable read access for workspace members": {
-          "name": "Enable read access for workspace members",
+        "Enable read access for all users": {
+          "name": "Enable read access for all users",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
+            "anon",
             "authenticated"
           ],
           "using": "true"
         },
-        "Enable insert for authenticated users": {
-          "name": "Enable insert for authenticated users",
+        "Enable insert for authenticated users only": {
+          "name": "Enable insert for authenticated users only",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(select auth.uid()) = \"workspaces\".\"owner_id\""
+          "withCheck": "(select auth.uid()) = owner_id"
         },
-        "Enable update for workspace owners": {
-          "name": "Enable update for workspace owners",
+        "Enable update for users based on owner_id": {
+          "name": "Enable update for users based on owner_id",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(select auth.uid()) = \"workspaces\".\"owner_id\"",
-          "withCheck": "(select auth.uid()) = \"workspaces\".\"owner_id\""
+          "using": "(select auth.uid()) = owner_id",
+          "withCheck": "(select auth.uid()) = owner_id"
         },
-        "Enable delete for workspace owners": {
-          "name": "Enable delete for workspace owners",
+        "Enable delete for users based on owner_id": {
+          "name": "Enable delete for users based on owner_id",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(select auth.uid()) = \"workspaces\".\"owner_id\""
+          "using": "(select auth.uid()) = owner_id"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.profiles": {
+      "name": "profiles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avatar_url": {
+          "name": "avatar_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_type": {
+          "name": "user_type",
+          "type": "user_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'GENERAL'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "profiles_user_id_users_id_fk": {
+          "name": "profiles_user_id_users_id_fk",
+          "tableFrom": "profiles",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "profiles_email_unique": {
+          "name": "profiles_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {
+        "Enable read access for all users": {
+          "name": "Enable read access for all users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true"
+        },
+        "Enable insert for authenticated users only": {
+          "name": "Enable insert for authenticated users only",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(select auth.uid()) = user_id"
+        },
+        "Enable update for users based on user_id": {
+          "name": "Enable update for users based on user_id",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = user_id",
+          "withCheck": "(select auth.uid()) = user_id"
+        },
+        "Enable delete for users based on user_id": {
+          "name": "Enable delete for users based on user_id",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = user_id"
         }
       },
       "checkConstraints": {},
@@ -558,32 +248,12 @@
     }
   },
   "enums": {
-    "public.edge_type": {
-      "name": "edge_type",
+    "public.user_type": {
+      "name": "user_type",
       "schema": "public",
       "values": [
-        "contains",
-        "next",
-        "input",
-        "output",
-        "accesses",
-        "used_by"
-      ]
-    },
-    "public.node_type": {
-      "name": "node_type",
-      "schema": "public",
-      "values": [
-        "agent",
-        "task",
-        "workflow",
-        "artifact_template",
-        "checklist",
-        "data",
-        "artifact_class",
-        "node_definition",
-        "edge_definition",
-        "column_definition"
+        "ADMIN",
+        "GENERAL"
       ]
     }
   },

@@ -8,7 +8,7 @@ import { PageId } from '../../../shared/value-objects/page-id.vo';
 import { WorkspaceAggregate } from '../../../shared/aggregates/workspace.aggregate';
 import { PageAggregate } from '../../../shared/aggregates/page.aggregate';
 import { adminDb } from '@/db';
-import { workspaces, pages, workspaceMembers } from '@/db/schema-dev';
+import { workspaces, pages, workspaceMembers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('PageHierarchyService Integration Tests (Scenario 4)', () => {

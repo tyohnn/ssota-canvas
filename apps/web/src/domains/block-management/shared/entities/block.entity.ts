@@ -153,6 +153,7 @@ export class Block {
     title?: string;
     properties?: Record<string, any>;
     content?: unknown; // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
+    contentRaw?: string; // Markdown text (AI context용)
   }): void {
     if (this.isDeleted()) {
       throw new BlockManagementError(
@@ -208,6 +209,10 @@ export class Block {
     // 콘텐츠 업데이트
     if (updateData.content !== undefined) {
       this.content = updateData.content;
+    }
+
+    if (updateData.contentRaw !== undefined) {
+      (this as any).contentRaw = updateData.contentRaw;
     }
 
     this.updatedAt = new Date();

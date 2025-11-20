@@ -2,8 +2,8 @@
 
 import { eq, and } from 'drizzle-orm';
 import { createDrizzleSupabaseClient } from '@/db';
-import { notifications } from '@/db/schema-dev';
-import type { Notification as DBNotification } from '@/db/schema-dev';
+import { notifications } from '@/db/schema';
+import type { Notification as DBNotification } from '@/db/schema';
 import { NotificationRepository } from '../interfaces/notification.repository.interface';
 import { NotificationAggregate } from '../../../shared/aggregates/notification.aggregate';
 import { Notification } from '../../../shared/entities/notification.entity';

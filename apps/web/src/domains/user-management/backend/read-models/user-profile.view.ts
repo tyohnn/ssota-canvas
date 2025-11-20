@@ -2,7 +2,7 @@
 
 import { eq, and } from 'drizzle-orm';
 import { createDrizzleSupabaseClient } from '@/db';
-import { profiles, organizations } from '@/db/schema-dev';
+import { profiles, organizations } from '@/db/schema';
 import { OrganizationId, UserId } from '../../shared/value-objects/ids.vo';
 import { UserManagementError } from '../../shared/errors/user-management.error';
 

@@ -7,8 +7,8 @@ import {
   organizations,
   invitations,
   profiles,
-} from '@/db/schema-dev';
-import type { OrganizationMember as DBOrganizationMember } from '@/db/schema-dev';
+} from '@/db/schema';
+import type { OrganizationMember as DBOrganizationMember } from '@/db/schema';
 import {
   OrganizationMemberRepository,
   OrganizationMemberInfo,

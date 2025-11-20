@@ -6,7 +6,7 @@ import {
   profiles,
   type Block as DatabaseBlock,
   type Profile as DatabaseProfile,
-} from '@/db/schema-dev';
+} from '@/db/schema';
 import { BlockId } from '../../../shared/value-objects/block-id.vo';
 import { BlockType } from '../../../shared/value-objects/block-type.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
@@ -48,6 +48,10 @@ export class DrizzleBlockRepository implements BlockRepository {
           ...extraFields,
         };
 
+        // content_raw는 클라이언트에서 이미 생성되어 전달됨 (Command에서 가져옴)
+        // 서버에서는 더 이상 변환하지 않음
+        const contentRaw: string | null = (block as any).contentRaw || null;
+
         const blockData = {
           id: currentId,
           workspace_id: block.workspaceId.value,
@@ -56,6 +60,8 @@ export class DrizzleBlockRepository implements BlockRepository {
           title: block.title,
           properties: fullProperties,
           custom_properties: block.customProperties.map(vo => vo.toJSON()),
+          content: block.content as any, // JSONB content (e.g., TipTap JSON)
+          content_raw: contentRaw, // Markdown content for context
           created_at: block.createdAt,
           updated_at: block.updatedAt,
           deleted_at: block.deletedAt,
@@ -111,6 +117,10 @@ export class DrizzleBlockRepository implements BlockRepository {
         ...extraFields,
       };
 
+      // content_raw는 클라이언트에서 이미 생성되어 전달됨 (Command에서 가져옴)
+      // 서버에서는 더 이상 변환하지 않음
+      const contentRaw: string | null = (block as any).contentRaw || null;
+
       const blockData = {
         workspace_id: block.workspaceId.value,
         block_type: block.blockType.value as DatabaseBlockType,
@@ -118,6 +128,7 @@ export class DrizzleBlockRepository implements BlockRepository {
         properties: fullProperties,
         custom_properties: block.customProperties.map(vo => vo.toJSON()),
         content: block.content as any, // JSONB content (e.g., TipTap JSON)
+        content_raw: contentRaw, // Markdown content for context
         created_at: block.createdAt,
         updated_at: block.updatedAt,
         deleted_at: block.deletedAt,

@@ -1,0 +1,1 @@
+ALTER TABLE "edges" ALTER COLUMN "edge_style_color" SET DEFAULT '#9ca3af';

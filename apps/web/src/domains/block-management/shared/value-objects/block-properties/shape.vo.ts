@@ -13,6 +13,10 @@ import { ColorToken } from '../../types/style-tokens.types';
  */
 export interface ShapeBlockProperties {
   shapeType: ShapeType;
+  /**
+   * @deprecated Use block.title instead. This field is kept for backward compatibility only.
+   * Will be removed in a future version.
+   */
   content?: string;
   color: ColorToken;
   borderStyle: BorderStyle;
@@ -24,6 +28,9 @@ export interface ShapeBlockProperties {
 export class ShapeBlockPropertiesVO extends BlockPropertiesVO {
   constructor(
     private readonly shapeType: ShapeType,
+    /**
+     * @deprecated Use block.title instead. This field is kept for backward compatibility only.
+     */
     private readonly content: string,
     private readonly color: ColorToken,
     private readonly borderStyle: BorderStyle
@@ -46,12 +53,15 @@ export class ShapeBlockPropertiesVO extends BlockPropertiesVO {
   /**
    * JSON에서 생성
    * 런타임 안전성을 위해 기본값 제공 (외부 데이터 대응)
+   *
+   * Note: content 필드는 deprecated되었지만 backward compatibility를 위해 유지합니다.
+   * 새로운 구현에서는 block.title을 사용해야 합니다.
    */
   static fromJSON(data: unknown): ShapeBlockPropertiesVO {
     const safeData = (data as Partial<ShapeBlockProperties>) ?? {};
     return new ShapeBlockPropertiesVO(
       safeData.shapeType ?? ShapeType.RECTANGLE,
-      safeData.content ?? '',
+      safeData.content ?? '', // Backward compatibility
       safeData.color ?? ColorToken.BLUE,
       safeData.borderStyle ?? 'solid'
     );
@@ -102,6 +112,9 @@ export class ShapeBlockPropertiesVO extends BlockPropertiesVO {
     return this.shapeType;
   }
 
+  /**
+   * @deprecated Use block.title instead. This field is kept for backward compatibility only.
+   */
   getContent(): string {
     return this.content;
   }

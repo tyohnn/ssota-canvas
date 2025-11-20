@@ -4,7 +4,7 @@ import React from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { CanvasReactFlowWrapper } from './canvas-react-flow-wrapper';
 import { CanvasModeProvider } from '../../contexts/canvas-mode-context';
-import { EditorPanel } from '../../../../block-management/frontend/components/editor/editor-panel';
+import { EditorPanel } from '@/domains/block-management/frontend/components/editor-panel';
 import { useCanvasMode } from '../../hooks/use-canvas-mode';
 import type { Edge } from '@xyflow/react';
 import type { CustomNodeType } from '../../acl/react-flow.acl';

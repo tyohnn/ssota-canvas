@@ -8,7 +8,7 @@
  */
 
 import { z } from 'zod';
-import { blockTypeEnum } from '@/db/schema-dev';
+import { blockTypeEnum } from '@/db/schema';
 
 /**
  * Block Type 검증 스키마
@@ -68,7 +68,8 @@ export const UpdateBlockTitleRequestSchema = z.object({
  */
 export const UpdateBlockContentRequestSchema = z.object({
   blockId: z.uuid('Invalid block ID'),
-  content: z.unknown(), // JSONB - 자유로운 JSON 구조 허용
+  content: z.unknown(), // JSONB - 자유로운 JSON 구조 허용 (TipTap JSON)
+  contentRaw: z.string().optional(), // Markdown 텍스트 (AI context용)
   workspaceId: z.uuid('Invalid workspace ID'),
   orgId: z.uuid('Invalid organization ID'),
 });

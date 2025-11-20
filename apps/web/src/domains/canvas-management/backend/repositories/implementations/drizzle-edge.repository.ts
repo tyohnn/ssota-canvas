@@ -6,7 +6,7 @@ import { EdgeShape } from '../../../shared/value-objects/edge-shape.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
 import { adminDb } from '@/db';
-import { edges, type CanvasEdgeShape } from '@/db/schema-dev';
+import { edges, type CanvasEdgeShape } from '@/db/schema';
 import { eq, and, or, inArray, isNull } from 'drizzle-orm';
 
 /**
@@ -208,7 +208,7 @@ export class DrizzleEdgeRepository implements EdgeRepository {
       new EdgeShape(row.edge_shape),
       row.edge_label || '',
       {
-        color: row.edge_style_color || '#000000',
+        color: row.edge_style_color || '#9ca3af',
         thickness: row.edge_style_thickness || 2,
       },
       row.created_at,

@@ -1109,7 +1109,7 @@ export async function reorderPagesAction(
     // 4. 페이지 순서 재정렬 (직접 DB 업데이트)
     const { orderedPageIds } = request;
     const { adminDb } = await import('@/db');
-    const { pages } = await import('@/db/schema-dev');
+    const { pages } = await import('@/db/schema');
     const { eq } = await import('drizzle-orm');
 
     // 각 페이지의 order를 배열 인덱스로 업데이트

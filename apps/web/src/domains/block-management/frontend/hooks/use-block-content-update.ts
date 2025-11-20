@@ -14,7 +14,8 @@ export interface UseBlockContentUpdateResult {
   updateContent: (
     nodeId: string, // React Flow node id (blockMountId)
     content: unknown,
-    blockData: BlockNodeData
+    blockData: BlockNodeData,
+    contentRaw?: string // Markdown text (optional, for AI context)
   ) => Promise<void>;
   updateContentImmediate: (
     nodeId: string, // React Flow node id (blockMountId)
@@ -39,7 +40,8 @@ export function useBlockContentUpdate(): UseBlockContentUpdateResult {
     async (
       nodeId: string, // React Flow node id (blockMountId)
       content: unknown,
-      blockData: BlockNodeData
+      blockData: BlockNodeData,
+      contentRaw?: string // Markdown text (optional)
     ): Promise<void> => {
       console.log('[useBlockContentUpdate] updateContent called', {
         nodeId,
@@ -47,6 +49,7 @@ export function useBlockContentUpdate(): UseBlockContentUpdateResult {
         workspaceId: blockData.workspaceId,
         orgId: blockData.orgId,
         contentPreview: JSON.stringify(content).slice(0, 100),
+        hasContentRaw: !!contentRaw,
       });
 
       // 1. 원본 데이터 백업 (롤백용)
@@ -78,6 +81,7 @@ export function useBlockContentUpdate(): UseBlockContentUpdateResult {
         const rawRequest: UpdateBlockContentRequestInput = {
           blockId: blockData.blockId,
           content,
+          contentRaw, // Markdown text (optional)
           workspaceId: blockData.workspaceId,
           orgId: blockData.orgId,
         };

@@ -8,7 +8,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { adminDb } from '@/db';
-import { blocks } from '@/db/schema-dev';
+import { blocks } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { StorageBucket } from '../types/storage.types';
 import { StorageService } from '../backend/services/storage.service';

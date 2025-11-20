@@ -2,8 +2,8 @@
 
 import { eq, and } from 'drizzle-orm';
 import { createDrizzleSupabaseClient, adminDb } from '@/db';
-import { workspaceMembers, profiles } from '@/db/schema-dev';
-import type { WorkspaceMember as DBWorkspaceMember } from '@/db/schema-dev';
+import { workspaceMembers, profiles } from '@/db/schema';
+import type { WorkspaceMember as DBWorkspaceMember } from '@/db/schema';
 import {
   WorkspaceMemberRepository,
   WorkspaceMemberInfo,

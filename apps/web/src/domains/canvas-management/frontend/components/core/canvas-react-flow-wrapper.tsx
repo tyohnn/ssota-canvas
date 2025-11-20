@@ -45,18 +45,21 @@ import {
   ImageBlock,
   LinkBlock,
   AudioBlock,
-} from '@/domains/block-management/frontend/components/block';
+} from '@/domains/block-management/frontend/components/block/block-type';
 import { SnapGuidelines } from '../snap/snap-guidelines';
 import { MultiSelectionToolbar } from '../multi-select/multi-selection-toolbar';
-import { BlockMountToolbar } from '@/domains/block-management/frontend/components/block-mount-toolbar';
+import { BlockMountToolbar } from '@/domains/block-management/frontend/components/block/block-mount-toolbar';
 import { SelectionBoundingBox } from '../multi-select/selection-bounding-box';
 import { CustomEdge } from '../edge/custom-edge';
+
+// AI Management Components
+import { AIAgentRunner } from '@/domains/ai-management/frontend/components/ai-agent-runner';
 
 // PDF Block - SSR 비활성화 (react-pdf가 브라우저 전용 API 사용)
 const PdfBlock = dynamic(
   () =>
     import(
-      '@/domains/block-management/frontend/components/block/pdf/pdf-block'
+      '@/domains/block-management/frontend/components/block/block-type/pdf/index'
     ).then(mod => ({ default: mod.PdfBlock })),
   { ssr: false }
 );
@@ -312,6 +315,9 @@ export function CanvasReactFlowWrapper({
         onNodeDrag={canvasCallbacks.onNodeDrag}
         onNodeDragStop={canvasCallbacks.onNodeDragStop}
         onConnect={canvasCallbacks.onConnect}
+        onReconnect={canvasCallbacks.onReconnect}
+        onReconnectStart={canvasCallbacks.onReconnectStart}
+        onReconnectEnd={canvasCallbacks.onReconnectEnd}
         onNodesDelete={canvasCallbacks.onNodesDelete}
         // onKeyDown은 전역 리스너로 처리 (포커스 문제 우회)
         deleteKeyCode={['Delete', 'Backspace']}
@@ -350,6 +356,18 @@ export function CanvasReactFlowWrapper({
 
         {/* 항상 렌더링하고 내부에서 조건 체크 (상태 업데이트 타이밍 이슈 방지) */}
         <SnapGuidelines guidelines={snapGuides.guidelines} />
+
+        {/* 좌측 하단 AI Agent Runner - Panel로 감싸서 React Flow 이벤트 시스템 통합 */}
+        <Panel
+          position="bottom-left"
+          className="ml-4! mb-4! pointer-events-auto!"
+        >
+          <AIAgentRunner
+            pageId={pageId}
+            workspaceId={workspaceId}
+            organizationId={orgId}
+          />
+        </Panel>
 
         {/* 우측 하단 뷰포트 컨트롤 - Panel로 감싸서 React Flow 이벤트 시스템 통합 */}
         <Panel

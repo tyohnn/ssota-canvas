@@ -10,7 +10,7 @@ import { WorkspaceId } from '../../../shared/value-objects/workspace-id.vo';
 import { PageId } from '../../../shared/value-objects/page-id.vo';
 import { WorkspaceAggregate } from '../../../shared/aggregates/workspace.aggregate';
 import { adminDb } from '@/db';
-import { workspaces, pages, workspaceMembers } from '@/db/schema-dev';
+import { workspaces, pages, workspaceMembers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('WorkspaceCrudService Integration Tests (Scenario 2)', () => {

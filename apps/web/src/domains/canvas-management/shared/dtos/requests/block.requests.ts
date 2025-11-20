@@ -8,7 +8,7 @@
  */
 
 import { z } from 'zod';
-import { blockTypeEnum } from '@/db/schema-dev';
+import { blockTypeEnum } from '@/db/schema';
 import type { Position, Size } from '../../types/common.types';
 
 /**
@@ -61,6 +61,8 @@ export const CreateAndMountBlockRequestSchema = z.object({
   size: SizeSchema, // 프론트엔드에서 항상 전달됨
   workspaceId: z.uuid('Invalid workspace ID'),
   orgId: z.uuid('Invalid organization ID'),
+  // 선택적 초기 title
+  title: z.string().optional(),
   // 선택적 초기 properties (예: 클립보드 붙여넣기 시 URL 등)
   initialProperties: z.record(z.string(), z.any()).optional(),
   // 선택적 초기 content (예: 마크다운 텍스트 붙여넣기)

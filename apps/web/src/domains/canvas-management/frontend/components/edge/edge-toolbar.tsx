@@ -29,7 +29,7 @@ import {
   getHexColorDark,
   getColorTokenFromHex,
 } from '@/domains/block-management/shared/types/style-tokens.types';
-import { ColorToolbarItem } from '@/domains/block-management/frontend/components/toolbar-items/color-toolbar-item';
+import { ColorToolbarItem } from '@/domains/block-management/frontend/components/block/common-toolbar-items/color-toolbar-item';
 
 export interface EdgeToolbarProps {
   pageId: string;

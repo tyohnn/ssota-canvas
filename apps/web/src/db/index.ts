@@ -5,7 +5,7 @@ import { sql } from 'drizzle-orm';
 import { createClient } from '@/utils/supabase/server';
 import { config } from '@/config';
 import * as schema from './schema';
-import * as devSchema from './schema-dev';
+import * as imageAppSpaceSchema from './schemas/image-app-space-schema';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -45,12 +45,13 @@ const rlsClient =
 if (isDevelopment) globalForDb.rlsClient = rlsClient;
 
 // Create drizzle instances with environment-based schema
+// Include image_app_space schema for both dev and prod
 export const adminDb = drizzle(adminClient, {
-  schema: isDevelopment ? devSchema : schema,
+  schema: { ...schema, ...imageAppSpaceSchema },
 });
 
 export const rlsDb = drizzle(rlsClient, {
-  schema: isDevelopment ? devSchema : schema,
+  schema: { ...schema, ...imageAppSpaceSchema },
 });
 
 type SupabaseToken = {

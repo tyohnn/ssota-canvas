@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { SideExplorer } from '@/domains/react-flow-canvas/components/explorer/side-explorer';
-import { EditorPanel } from './editor/editor-panel';
 import { ReactFlowCanvas } from './react-flow-canvas';
 import { RootProvider } from '../providers/root-provider';
 import { BlockInsertPanel } from './block-insert-panel';
@@ -50,8 +49,6 @@ function EditorPanelWrapper() {
   const { isSingleSelected } = useReactFlowNodeSelection();
 
   if (!showEditorPanel || !isSingleSelected) return null;
-
-  return <EditorPanel />;
 }
 
 function DebugPanelWrapper() {

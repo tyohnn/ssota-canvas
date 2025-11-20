@@ -12,7 +12,11 @@ import { TextAlign, FontSize } from './common-types';
  * Text Block Properties Interface (프론트엔드 공유용)
  */
 export interface TextBlockProperties {
-  content: string;
+  /**
+   * @deprecated Use block.title instead. This field is kept for backward compatibility only.
+   * Will be removed in a future version.
+   */
+  content?: string;
   color: ColorToken;
   richStyle: boolean;
   textAlign: TextAlign;
@@ -24,6 +28,9 @@ export interface TextBlockProperties {
  */
 export class TextBlockPropertiesVO extends BlockPropertiesVO {
   constructor(
+    /**
+     * @deprecated Use block.title instead. This field is kept for backward compatibility only.
+     */
     private readonly content: string,
     private readonly color: ColorToken,
     private readonly richStyle: boolean,
@@ -49,11 +56,14 @@ export class TextBlockPropertiesVO extends BlockPropertiesVO {
   /**
    * JSON에서 생성
    * 런타임 안전성을 위해 기본값 제공 (외부 데이터 대응)
+   *
+   * Note: content 필드는 deprecated되었지만 backward compatibility를 위해 유지합니다.
+   * 새로운 구현에서는 block.title을 사용해야 합니다.
    */
   static fromJSON(data: unknown): TextBlockPropertiesVO {
     const safeData = (data as Partial<TextBlockProperties>) ?? {};
     return new TextBlockPropertiesVO(
-      safeData.content ?? '',
+      safeData.content ?? '', // Backward compatibility
       safeData.color ?? ColorToken.GRAY,
       safeData.richStyle ?? false,
       safeData.textAlign ?? TextAlign.LEFT,
@@ -104,6 +114,9 @@ export class TextBlockPropertiesVO extends BlockPropertiesVO {
   }
 
   // Getters for accessing properties
+  /**
+   * @deprecated Use block.title instead. This field is kept for backward compatibility only.
+   */
   getContent(): string {
     return this.content;
   }

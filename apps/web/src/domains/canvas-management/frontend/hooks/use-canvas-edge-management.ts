@@ -633,6 +633,114 @@ export function useCanvasEdgeManagement(params: UseCanvasEdgeManagementParams) {
   );
 
   /**
+   * 엣지 재연결 (reconnect)
+   *
+   * 기존 엣지의 source 또는 target을 변경하여 다른 노드에 재연결
+   * - Optimistic UI로 즉시 반영
+   * - 서버에 변경사항 저장
+   * - 실패 시 롤백
+   */
+  const reconnectEdge = useCallback(
+    async (
+      edgeId: string,
+      newSourceBlockMountId: string,
+      newTargetBlockMountId: string,
+      sourceHandle?: string | null,
+      targetHandle?: string | null
+    ): Promise<boolean> => {
+      // 1. 현재 엣지 정보 가져오기
+      const currentEdges = getEdges();
+      const oldEdge = currentEdges.find(e => e.id === edgeId);
+
+      if (!oldEdge) {
+        console.error('❌ [reconnectEdge] Edge not found:', edgeId);
+        return false;
+      }
+
+      // 2. Optimistic Update: 즉시 React Flow Store 반영
+      const updatedEdge = {
+        ...oldEdge,
+        source: newSourceBlockMountId,
+        target: newTargetBlockMountId,
+        sourceHandle: sourceHandle || oldEdge.sourceHandle,
+        targetHandle: targetHandle || oldEdge.targetHandle,
+      };
+
+      setEdges(
+        currentEdges.map(edge => (edge.id === edgeId ? updatedEdge : edge))
+      );
+
+      try {
+        // 3. 기존 엣지 삭제
+        const deleteResult = await deleteEdgeAction({
+          edgeId,
+          pageId,
+          workspaceId,
+          orgId,
+        });
+
+        if (!deleteResult.success) {
+          console.error(
+            '❌ [reconnectEdge] Failed to delete old edge:',
+            deleteResult.error
+          );
+          // 롤백
+          setEdges(currentEdges);
+          return false;
+        }
+
+        // 4. 새 엣지 생성 (기존 엣지의 속성 유지)
+        const createResult = await createEdgeAction({
+          pageId,
+          sourceBlockMountId: newSourceBlockMountId,
+          targetBlockMountId: newTargetBlockMountId,
+          sourceHandle: sourceHandle || undefined,
+          targetHandle: targetHandle || undefined,
+          edgeShape: (oldEdge.data?.actualEdgeShape as string) || 'default',
+          workspaceId,
+          orgId,
+        });
+
+        if (!createResult.success) {
+          console.error(
+            '❌ [reconnectEdge] Failed to create new edge:',
+            createResult.error
+          );
+          // 롤백
+          setEdges(currentEdges);
+          return false;
+        }
+
+        // 5. 새로 생성된 엣지 ID로 업데이트
+        const newEdgeId = createResult.data.edgeId;
+        const finalEdge = {
+          ...updatedEdge,
+          id: newEdgeId,
+          data: {
+            ...updatedEdge.data,
+            edgeId: newEdgeId,
+            pageId,
+            orgId,
+            workspaceId,
+          },
+        };
+
+        setEdges(
+          getEdges().map(edge => (edge.id === edgeId ? finalEdge : edge))
+        );
+
+        return true;
+      } catch (error) {
+        console.error('❌ [reconnectEdge] Exception:', error);
+        // 롤백
+        setEdges(currentEdges);
+        return false;
+      }
+    },
+    [pageId, orgId, workspaceId, getEdges, setEdges]
+  );
+
+  /**
    * 프로그램적 제어: 엣지를 React Flow Store에만 추가 (서버 저장 X)
    */
   const addEdgeToCanvas = useCallback(
@@ -725,6 +833,7 @@ export function useCanvasEdgeManagement(params: UseCanvasEdgeManagementParams) {
     updateEdgeShape,
     updateEdgeLabel,
     updateEdgeStyle,
+    reconnectEdge,
 
     // 프로그램적 제어 (UI만 변경, 서버 호출 X)
     addEdgeToCanvas,

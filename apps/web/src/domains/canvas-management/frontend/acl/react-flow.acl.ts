@@ -98,6 +98,7 @@ export function transformBlockViewToNodeData(
     blockMountId,
     blockId: blockView.blockId,
     blockType: blockView.blockType,
+    title: blockView.title,
     properties: cleanNestedProperties(blockView.properties),
     customProperties: blockView.customProperties,
     content: blockView.content, // JSONB content
@@ -232,6 +233,7 @@ export function toReactFlowNodeFromMountDTO(
       blockMountId: mountDTO.blockMountId,
       blockId: mountDTO.blockId,
       blockType: block.blockType,
+      title: block.title,
       properties: block.properties,
       customProperties: block.customProperties,
       content: block.content, // JSONB content
@@ -314,6 +316,7 @@ export function toReactFlowNodeFromCanvasView(
       blockMountId: block.blockMountId,
       blockId: block.blockId,
       blockType: block.blockType,
+      title: block.title,
       properties: block.properties,
       customProperties: block.customProperties,
       content: block.content, // JSONB content

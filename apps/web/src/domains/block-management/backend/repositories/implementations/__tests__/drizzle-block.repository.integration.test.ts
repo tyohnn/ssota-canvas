@@ -6,7 +6,7 @@ import { BlockType } from '../../../../shared/value-objects/block-type.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { adminDb } from '@/db';
-import { blocks } from '@/db/schema-dev';
+import { blocks } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('DrizzleBlockRepository - Integration Tests', () => {

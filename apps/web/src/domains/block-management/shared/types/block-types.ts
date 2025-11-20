@@ -6,7 +6,7 @@
  * - 여기서는 데이터베이스에서 추출한 타입을 사용
  */
 
-import { blockTypeEnum } from '@/db/schema-dev';
+import { blockTypeEnum } from '@/db/schema';
 
 /**
  * 데이터베이스 스키마에서 추출한 블록 타입 (SSOT)
