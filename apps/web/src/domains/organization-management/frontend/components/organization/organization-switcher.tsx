@@ -32,7 +32,9 @@ export function OrganizationSwitcher() {
   }, []);
 
   // Prevent hydration mismatch by showing a consistent state until mounted
-  const displayName = mounted ? selectedOrganization?.name : 'Select Organization';
+  const displayName = mounted
+    ? selectedOrganization?.name
+    : 'Select Organization';
   const displayInitial = mounted
     ? selectedOrganization?.name?.charAt(0)?.toUpperCase() || 'O'
     : 'O';

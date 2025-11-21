@@ -238,7 +238,7 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar({
       onWheel={e => e.stopPropagation()}
     >
       {/* z-index 계층: 블럭(0) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex items-center gap-1">
+      <div className="bg-background border border-border rounded-lg shadow-lg p-2 flex items-center gap-1">
         <TooltipProvider delayDuration={300}>
           {/* 좌우 정렬 3개 */}
           <Tooltip>
