@@ -1,8 +1,14 @@
+import RotatingBracket from './landing/RotatingBracket';
 import { Button } from '@workspace/ui/components/ui/button';
 import Link from 'next/link';
-import RotatingBracket from './landing/RotatingBracket';
+import { createClient } from '@/utils/supabase/server';
 
-export default function Landing() {
+export default async function Landing() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const rotating = [
     'vibe coder',
     'Cursor',
@@ -21,7 +27,7 @@ export default function Landing() {
         <div className="space-y-8 text-center">
           {/* Main Heading */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight">
-            <div className="mb-2">AI canvas for</div>
+            <div>AI canvas for</div>
             <div>
               <RotatingBracket items={rotating} />
             </div>
@@ -47,9 +53,23 @@ export default function Landing() {
 
           {/* CTA Button */}
           <div className="pt-4">
-            <Button asChild size="lg" className="text-base px-8 py-6">
-              <Link href="/login">Get Started</Link>
-            </Button>
+            {user ? (
+              <Button
+                asChild
+                size="lg"
+                className="text-base px-8 py-6 cursor-pointer"
+              >
+                <Link href="/r/">Dashboard</Link>
+              </Button>
+            ) : (
+              <Button
+                asChild
+                size="lg"
+                className="text-base px-8 py-6 cursor-pointer"
+              >
+                <Link href="/login">Login</Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>
