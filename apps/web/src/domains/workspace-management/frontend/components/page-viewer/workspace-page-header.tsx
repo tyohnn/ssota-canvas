@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import {
   Breadcrumb,
@@ -193,6 +194,22 @@ export function WorkspacePageHeader({
   // Breadcrumb이 너무 길면 축약 (depth > 2)
   const shouldTruncate = ancestorPath.length > 2;
 
+  // 워크스페이스 링크 URL 계산 (첫 번째 페이지로)
+  const workspaceUrl = useMemo(() => {
+    if (!workspace || !actualWorkspaceId) {
+      return `/r/${context.organizationId}/workspace/${actualWorkspaceId}`;
+    }
+
+    // 워크스페이스의 첫 번째 페이지로 이동
+    const firstPage = workspace.pageTree[0];
+    if (firstPage) {
+      return `/r/${context.organizationId}/workspace/${actualWorkspaceId}/page/${firstPage.id}`;
+    }
+
+    // 페이지가 없으면 워크스페이스 루트로
+    return `/r/${context.organizationId}/workspace/${actualWorkspaceId}`;
+  }, [workspace, actualWorkspaceId, context.organizationId]);
+
   // 페이지 아이콘 변경 핸들러 (WorkspaceContext가 optimistic update 처리)
   const handleIconChange = (newIcon: string) => {
     if (!actualPageId) return;
@@ -219,12 +236,13 @@ export function WorkspacePageHeader({
           <BreadcrumbList>
             {/* Workspace */}
             <BreadcrumbItem>
-              <BreadcrumbLink
-                href={`/r/${context.organizationId}/workspace/${actualWorkspaceId}`}
-                className="flex items-center gap-1.5"
-              >
-                <WorkspaceIcon icon={workspaceIcon} size={16} />
-                <span className="truncate max-w-[150px]">{workspaceName}</span>
+              <BreadcrumbLink asChild>
+                <Link href={workspaceUrl} className="flex items-center gap-1.5">
+                  <WorkspaceIcon icon={workspaceIcon} size={16} />
+                  <span className="truncate max-w-[150px]">
+                    {workspaceName}
+                  </span>
+                </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
 
@@ -248,11 +266,13 @@ export function WorkspacePageHeader({
                   <React.Fragment key={ancestor.id}>
                     {index > 0 && <BreadcrumbSeparator>/</BreadcrumbSeparator>}
                     <BreadcrumbItem>
-                      <BreadcrumbLink
-                        href={`/r/${context.organizationId}/workspace/${actualWorkspaceId}/page/${ancestor.id}`}
-                        className="truncate max-w-[100px]"
-                      >
-                        {ancestor.title}
+                      <BreadcrumbLink asChild>
+                        <Link
+                          href={`/r/${context.organizationId}/workspace/${actualWorkspaceId}/page/${ancestor.id}`}
+                          className="truncate max-w-[100px]"
+                        >
+                          {ancestor.title}
+                        </Link>
                       </BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator>/</BreadcrumbSeparator>

@@ -13,6 +13,7 @@ import {
   SidebarInset,
 } from '@workspace/ui/components/ui/sidebar';
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
+import { CanvasLoadingSkeleton } from '@/domains/workspace-management/frontend/components/page-viewer/canvas-loading-skeleton';
 
 /**
  * Dashboard Root Loading Skeleton
@@ -121,17 +122,9 @@ export default function DashboardRootLoading() {
         <SidebarRail />
       </Sidebar>
 
-      {/* Main Content Skeleton - 로딩 메시지 포함 */}
+      {/* Main Content Skeleton - Canvas Loading Style */}
       <SidebarInset className="overflow-hidden overscroll-none h-svh">
-        <div className="flex flex-col h-full items-center justify-center p-8">
-          <div className="text-center space-y-4 max-w-md">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <div className="space-y-2">
-              <Skeleton className="h-6 w-64 mx-auto" />
-              <Skeleton className="h-4 w-48 mx-auto" />
-            </div>
-          </div>
-        </div>
+        <CanvasLoadingSkeleton />
       </SidebarInset>
     </SidebarProvider>
   );
