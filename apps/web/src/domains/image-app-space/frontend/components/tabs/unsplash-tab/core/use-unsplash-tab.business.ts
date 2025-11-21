@@ -40,6 +40,13 @@ export function useUnsplashTabBusiness(): UnsplashTabBusinessLogic {
 
       if (isFailure(result)) {
         console.error('Failed to fetch Unsplash images:', result.error);
+        // API 키 에러인 경우 throw해서 UI에서 처리
+        if (
+          result.error.includes('API key') ||
+          result.error.includes('UNSPLASH')
+        ) {
+          throw new Error(result.error);
+        }
         return [];
       }
 

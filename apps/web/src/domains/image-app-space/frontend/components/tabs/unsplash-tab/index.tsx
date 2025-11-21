@@ -33,6 +33,7 @@ export function UnsplashTab({
         <ImageGrid
           images={contextValue.images}
           onSelectImage={contextValue.onSelectImage}
+          error={contextValue.error}
         />
       </Box>
     </UnsplashTabContext.Provider>

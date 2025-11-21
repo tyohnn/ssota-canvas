@@ -13,6 +13,10 @@ export interface UnsplashTabUIState {
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
 
+  // 에러 상태
+  error: string | null;
+  setError: (error: string | null) => void;
+
   // 로딩 참조 (중복 방지)
   loadingRef: React.MutableRefObject<boolean>;
 }
@@ -29,6 +33,7 @@ export interface UnsplashTabUIState {
 export function useUnsplashTabUI(): UnsplashTabUIState {
   const [images, setImages] = useState<UnsplashImage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const loadingRef = useRef(false);
 
   return {
@@ -36,6 +41,8 @@ export function useUnsplashTabUI(): UnsplashTabUIState {
     setImages,
     isLoading,
     setIsLoading,
+    error,
+    setError,
     loadingRef,
   };
 }

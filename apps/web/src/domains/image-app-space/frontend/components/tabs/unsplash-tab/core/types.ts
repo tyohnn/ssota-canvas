@@ -36,6 +36,7 @@ export interface UnsplashTabContextValue {
   searchQuery: string;
   selectedCategory: string | null;
   isLoading: boolean;
+  error: string | null;
 
   // Actions
   setSearchQuery: (query: string) => void;

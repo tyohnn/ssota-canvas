@@ -34,6 +34,7 @@ export function useUnsplashTab(
 
       uiState.loadingRef.current = true;
       uiState.setIsLoading(true);
+      uiState.setError(null); // 에러 초기화
 
       try {
         const results = await business.loadImages(
@@ -42,6 +43,13 @@ export function useUnsplashTab(
           forceRefresh
         );
         uiState.setImages(results);
+        uiState.setError(null);
+      } catch (error) {
+        console.error('Failed to load images:', error);
+        uiState.setError(
+          error instanceof Error ? error.message : 'Failed to load images'
+        );
+        uiState.setImages([]);
       } finally {
         uiState.setIsLoading(false);
         uiState.loadingRef.current = false;
