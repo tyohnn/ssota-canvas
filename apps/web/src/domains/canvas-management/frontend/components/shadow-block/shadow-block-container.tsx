@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { useCanvasMode } from '../../hooks/use-canvas-mode';
 import { useCanvasBlockLifecycle } from '../../hooks/use-canvas-block-lifecycle';
@@ -45,6 +45,9 @@ export function ShadowBlockContainer({
     y: number;
   } | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // 🔒 블록 생성 중 플래그 (중복 생성 방지)
+  const isCreatingRef = useRef(false);
 
   // 현재 모드와 선택된 블럭 타입 확인
   const isBlockCreationMode = canvasMode.isBlockCreationMode();
@@ -97,13 +100,39 @@ export function ShadowBlockContainer({
     if (!isBlockCreationMode) return;
 
     const handleClick = (event: MouseEvent) => {
-      // 캔버스 영역 클릭 확인 (React Flow 영역)
-      const target = event.target as HTMLElement;
-      const isCanvasArea =
-        target.closest('.react-flow__pane') ||
-        target.classList.contains('react-flow__pane');
+      // ⚠️ 이미 생성 중이면 무시 (중복 생성 방지 - 짧은 디바운스)
+      if (isCreatingRef.current) {
+        console.log(
+          '[ShadowBlock] Block creation cooldown active, ignoring click'
+        );
+        return;
+      }
 
-      if (!isCanvasArea || currentMode.type !== 'block-creation') return;
+      if (currentMode.type !== 'block-creation') return;
+
+      // UI 요소 클릭 제외 (다이얼로그, 사이드바, 패널 등)
+      const target = event.target as HTMLElement;
+      const isUIElement =
+        target.closest('[role="dialog"]') ||
+        target.closest('[role="menu"]') ||
+        target.closest('[role="listbox"]') ||
+        target.closest('.react-flow__controls') ||
+        target.closest('.react-flow__minimap') ||
+        target.closest('[data-exclude-block-creation]'); // 커스텀 제외 속성
+
+      // UI 요소 클릭 시 무시
+      if (isUIElement) {
+        console.log('[ShadowBlock] UI element clicked, ignoring');
+        return;
+      }
+
+      // ✅ 캔버스 영역이거나 기존 블록 위도 허용
+      // React Flow 컨테이너 내부인지만 확인
+      const isInReactFlow = target.closest('.react-flow');
+      if (!isInReactFlow) {
+        console.log('[ShadowBlock] Click outside React Flow, ignoring');
+        return;
+      }
 
       // 블럭 타입별 크기 가져오기
       const blockType = currentMode.blockType || 'text';
@@ -125,12 +154,19 @@ export function ShadowBlockContainer({
 
       // 블럭 생성
       if (currentMode.blockType) {
+        // 🔒 짧은 쿨다운 시작 (200ms) - 빠른 연속 클릭 방지
+        isCreatingRef.current = true;
+        setTimeout(() => {
+          isCreatingRef.current = false;
+        }, 200);
+
+        // ✅ 비동기로 블록 생성 (Optimistic UI로 즉시 표시됨)
         blockLifecycle.createAndMountBlock(
           currentMode.blockType,
           adjustedPosition
         );
 
-        // 블럭 생성 후 기본 모드로 복귀
+        // ✅ 즉시 모드 전환 (딜레이 없음)
         canvasMode.exitToDefaultMode();
       }
     };
@@ -138,6 +174,8 @@ export function ShadowBlockContainer({
     document.addEventListener('click', handleClick);
     return () => {
       document.removeEventListener('click', handleClick);
+      // 컴포넌트 언마운트 시 플래그 초기화
+      isCreatingRef.current = false;
     };
   }, [
     isBlockCreationMode,
