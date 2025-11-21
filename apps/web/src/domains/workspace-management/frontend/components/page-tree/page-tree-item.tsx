@@ -13,6 +13,7 @@ import { useWorkspace } from '../../index';
 interface PageTreeItemProps {
   item: ItemInstance<PageTreeItem>;
   onToggle?: (pageId: string) => void;
+  selectedPageId?: string | null;
 }
 
 /**
@@ -24,14 +25,27 @@ interface PageTreeItemProps {
  * - 쉐브론 클릭 시 펼치기/접기 (호버 시 액센트 표시)
  * - + 버튼으로 하위 페이지 생성
  * - 아이템 클릭 시 페이지로 이동
+ * - 활성(선택된) 페이지는 배경색과 텍스트 색상으로 구분
  */
-export function PageTreeItemRenderer({ item, onToggle }: PageTreeItemProps) {
+export function PageTreeItemRenderer({
+  item,
+  onToggle,
+  selectedPageId,
+}: PageTreeItemProps) {
   const page = item.getItemData();
   const hasChildren = (page?.children?.length ?? 0) > 0;
   const isExpanded = item.isExpanded();
-  const { createPage, selectPage } = useWorkspace();
+  const {
+    createPage,
+    selectPage,
+    selectedPageId: contextSelectedPageId,
+  } = useWorkspace();
   const [isHovered, setIsHovered] = useState(false);
   const [isChevronHovered, setIsChevronHovered] = useState(false);
+
+  // selectedPageId prop이 없으면 context에서 가져옴
+  const actualSelectedPageId = selectedPageId ?? contextSelectedPageId;
+  const isActive = actualSelectedPageId === page?.pageId;
 
   if (!page) return null;
 
@@ -79,7 +93,9 @@ export function PageTreeItemRenderer({ item, onToggle }: PageTreeItemProps) {
             'border border-transparent transition-all',
             item.isDragTarget()
               ? 'bg-primary/10 border-primary border-dashed'
-              : 'hover:bg-accent/70'
+              : isActive
+                ? 'bg-accent text-accent-foreground'
+                : 'hover:bg-accent/70'
           )}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
@@ -98,7 +114,11 @@ export function PageTreeItemRenderer({ item, onToggle }: PageTreeItemProps) {
                 <WorkspaceIcon
                   icon={page.icon || 'FileText'}
                   size={16}
-                  className="text-muted-foreground"
+                  className={cn(
+                    isActive
+                      ? 'text-accent-foreground'
+                      : 'text-muted-foreground'
+                  )}
                 />
               </div>
 
@@ -118,7 +138,10 @@ export function PageTreeItemRenderer({ item, onToggle }: PageTreeItemProps) {
               >
                 <ChevronDown
                   className={cn(
-                    'w-full h-full transition-all text-muted-foreground',
+                    'w-full h-full transition-all',
+                    isActive
+                      ? 'text-accent-foreground'
+                      : 'text-muted-foreground',
                     !isExpanded && '-rotate-90'
                   )}
                 />
@@ -127,7 +150,10 @@ export function PageTreeItemRenderer({ item, onToggle }: PageTreeItemProps) {
 
             {/* 페이지 제목 - 클릭 시 페이지 이동 */}
             <div
-              className="truncate text-sm text-muted-foreground font-medium tracking-wide cursor-pointer flex-1 text-left"
+              className={cn(
+                'truncate text-sm font-medium tracking-wide cursor-pointer flex-1 text-left',
+                isActive ? 'text-accent-foreground' : 'text-muted-foreground'
+              )}
               onClick={handlePageClick}
             >
               {page.title}

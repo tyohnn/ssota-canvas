@@ -453,6 +453,29 @@ export function WorkspaceProvider({
     return null;
   };
 
+  // 페이지의 모든 부모 페이지 ID 찾기 (재귀)
+  const findPageAncestors = (
+    tree: PageTreeNodeDTO[],
+    pageId: string,
+    ancestors: string[] = []
+  ): string[] | null => {
+    for (const node of tree) {
+      if (node.id === pageId) {
+        // 페이지를 찾았으면 ancestors 반환
+        return ancestors;
+      }
+      if (node.children && node.children.length > 0) {
+        // 현재 노드를 ancestors에 추가하고 재귀 탐색
+        const found = findPageAncestors(node.children, pageId, [
+          ...ancestors,
+          node.id,
+        ]);
+        if (found !== null) return found;
+      }
+    }
+    return null;
+  };
+
   // Scenario 1: 페이지 선택
   const selectPage = useCallback(
     (pageId: string, workspaceId: string, skipNavigation = false) => {
@@ -476,7 +499,17 @@ export function WorkspaceProvider({
       // 4. 해당 Workspace 자동 펼치기
       setExpandedWorkspaces(prev => new Set(prev).add(workspaceId));
 
-      // 5. URL 변경 (skipNavigation이 true면 건너뜀)
+      // 5. 페이지의 모든 부모 페이지들 자동 펼치기
+      const ancestors = findPageAncestors(workspace.pageTree, pageId);
+      if (ancestors && ancestors.length > 0) {
+        setExpandedPages(prev => {
+          const newSet = new Set(prev);
+          ancestors.forEach(ancestorId => newSet.add(ancestorId));
+          return newSet;
+        });
+      }
+
+      // 6. URL 변경 (skipNavigation이 true면 건너뜀)
       if (!skipNavigation && typeof window !== 'undefined') {
         const targetUrl = `/r/${organizationId}/workspace/${workspaceId}/page/${pageId}`;
         // 현재 URL과 다를 때만 변경

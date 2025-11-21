@@ -214,6 +214,7 @@ export function PageTree({
           key={item.getId()}
           item={item}
           onToggle={onTogglePage}
+          selectedPageId={selectedPageId}
         />
       ))}
     </Tree>
