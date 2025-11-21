@@ -23,12 +23,12 @@ export function MemberRoleSelector({
   currentUserRole,
   onRoleSelect,
 }: MemberRoleSelectorProps) {
-  // 클라이언트 측 권한 검증
+  // Client-side permission validation
   const canChange =
     currentUserRole === 'owner' ||
     (currentUserRole === 'admin' && member.role === 'member');
 
-  // 소유자 역할은 변경 불가
+  // Owner role cannot be changed
   const isOwner = member.role === 'owner';
 
   const getRoleIcon = (role: 'owner' | 'admin' | 'member') => {
@@ -45,11 +45,11 @@ export function MemberRoleSelector({
   const getRoleLabel = (role: 'owner' | 'admin' | 'member') => {
     switch (role) {
       case 'owner':
-        return '소유자';
+        return 'Owner';
       case 'admin':
-        return '관리자';
+        return 'Admin';
       case 'member':
-        return '멤버';
+        return 'Member';
     }
   };
 
@@ -64,14 +64,14 @@ export function MemberRoleSelector({
     }
   };
 
-  // 옵션별 활성화 결정
-  const adminOptionDisabled = member.role === 'admin'; // 현재 역할 (체크 표시)
+  // Determine enabled options
+  const adminOptionDisabled = member.role === 'admin'; // Current role (check mark)
 
   const memberOptionDisabled =
-    member.role === 'member' || // 현재 역할 (체크 표시)
-    (currentUserRole === 'admin' && member.role === 'admin'); // 관리자는 관리자를 다운그레이드 불가
+    member.role === 'member' || // Current role (check mark)
+    (currentUserRole === 'admin' && member.role === 'admin'); // Admin cannot downgrade admin
 
-  // 변경 불가능한 경우: 일반 배지만 표시
+  // If not changeable: show badge only
   if (!canChange || isOwner) {
     return (
       <Badge
@@ -84,7 +84,7 @@ export function MemberRoleSelector({
     );
   }
 
-  // 변경 가능한 경우: 클릭 가능한 배지 + 드롭다운
+  // If changeable: clickable badge + dropdown
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -110,7 +110,7 @@ export function MemberRoleSelector({
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              <span>관리자 (Admin)</span>
+              <span>Admin</span>
             </div>
             {member.role === 'admin' && <Check className="h-4 w-4 ml-2" />}
           </div>
@@ -127,7 +127,7 @@ export function MemberRoleSelector({
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              <span>멤버 (Member)</span>
+              <span>Member</span>
             </div>
             {member.role === 'member' && <Check className="h-4 w-4 ml-2" />}
           </div>

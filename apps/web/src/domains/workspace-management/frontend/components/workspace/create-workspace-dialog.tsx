@@ -28,16 +28,16 @@ import { useWorkspace } from '../../hooks/use-workspace';
 import { InviteMemberDialog } from './invite-member-dialog';
 
 /**
- * Workspace 생성 폼 검증 스키마
+ * Workspace creation form validation schema
  */
 const createWorkspaceSchema = z.object({
   name: z
     .string()
-    .min(1, '워크스페이스 이름을 입력해주세요')
-    .max(100, '워크스페이스 이름은 100자 이내로 입력해주세요'),
+    .min(1, 'Please enter a workspace name')
+    .max(100, 'Workspace name must be 100 characters or less'),
   description: z
     .string()
-    .max(500, '설명은 500자 이내로 입력해주세요')
+    .max(500, 'Description must be 500 characters or less')
     .optional(),
   icon: z.string().optional(),
 });
@@ -50,12 +50,12 @@ interface CreateWorkspaceDialogProps {
 }
 
 /**
- * CreateWorkspaceDialog 컴포넌트
+ * CreateWorkspaceDialog component
  *
- * 새 Workspace 생성 모달
- * - react-hook-form + zod 검증
- * - IconPicker 통합
- * - toast 피드백
+ * Modal for creating a new Workspace
+ * - react-hook-form + zod validation
+ * - IconPicker integration
+ * - toast feedback
  */
 export function CreateWorkspaceDialog({
   open,
@@ -85,7 +85,7 @@ export function CreateWorkspaceDialog({
     });
 
     if (result) {
-      // 워크스페이스 정보 저장
+      // Save workspace information
       setCreatedWorkspace({
         workspaceId: result.workspaceId,
         workspaceName: values.name,
@@ -94,7 +94,7 @@ export function CreateWorkspaceDialog({
       form.reset();
       onOpenChange(false);
 
-      // 멤버 초대 모달 열기
+      // Open member invite modal
       setIsInviteDialogOpen(true);
     }
   };
@@ -106,10 +106,9 @@ export function CreateWorkspaceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] rounded-md">
         <DialogHeader>
-          <DialogTitle>새 워크스페이스 만들기</DialogTitle>
+          <DialogTitle>Create New Workspace</DialogTitle>
           <DialogDescription>
-            프로젝트, 팀, 또는 주제별로 페이지를 관리할 수 있는 워크스페이스를
-            만드세요.
+            Create a workspace to manage pages by project, team, or topic.
           </DialogDescription>
         </DialogHeader>
 
@@ -118,13 +117,13 @@ export function CreateWorkspaceDialog({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-4"
           >
-            {/* 워크스페이스 이름 & 아이콘 */}
+            {/* Workspace Name & Icon */}
             <div className="space-y-2">
               <FormLabel>
-                워크스페이스 이름 <span className="text-destructive">*</span>
+                Workspace Name <span className="text-destructive">*</span>
               </FormLabel>
               <div className="flex items-start gap-2">
-                {/* 아이콘 선택 */}
+                {/* Icon Picker */}
                 <FormField
                   control={form.control}
                   name="icon"
@@ -139,7 +138,7 @@ export function CreateWorkspaceDialog({
                     </FormItem>
                   )}
                 />
-                {/* 이름 입력 */}
+                {/* Name Input */}
                 <FormField
                   control={form.control}
                   name="name"
@@ -147,7 +146,7 @@ export function CreateWorkspaceDialog({
                     <FormItem className="flex-1">
                       <FormControl>
                         <Input
-                          placeholder="예: 마케팅 프로젝트"
+                          placeholder="e.g. Marketing Project"
                           maxLength={100}
                           disabled={isSubmitting}
                           {...field}
@@ -160,16 +159,16 @@ export function CreateWorkspaceDialog({
               </div>
             </div>
 
-            {/* 워크스페이스 설명 */}
+            {/* Workspace Description */}
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>워크스페이스 설명</FormLabel>
+                  <FormLabel>Workspace Description</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="워크스페이스에 대한 간단한 설명을 입력하세요"
+                      placeholder="Enter a brief description of the workspace"
                       rows={3}
                       maxLength={500}
                       disabled={isSubmitting}
@@ -193,17 +192,17 @@ export function CreateWorkspaceDialog({
                 onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
               >
-                취소
+                Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? '생성 중...' : '생성하기'}
+                {isSubmitting ? 'Creating...' : 'Create'}
               </Button>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
 
-      {/* 워크스페이스 생성 후 멤버 초대 모달 */}
+      {/* Member invite modal after workspace creation */}
       {createdWorkspace && (
         <InviteMemberDialog
           open={isInviteDialogOpen}
