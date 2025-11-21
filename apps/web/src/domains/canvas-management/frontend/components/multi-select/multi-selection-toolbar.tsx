@@ -1,7 +1,7 @@
 'use client';
 
-import { memo, useMemo, useRef } from 'react';
-import { useStore, useViewport, useReactFlow } from '@xyflow/react';
+import React, { memo, useMemo, useRef, useEffect } from 'react';
+import { useStore, useViewport, useReactFlow, type Node } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -153,14 +153,6 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar({
 
   const toolbarRef = useRef<HTMLDivElement>(null);
 
-  // 트랙패드 핀치 줌 방지
-  usePreventPinchZoom(toolbarRef);
-
-  // 다중 선택 모드가 아니거나 2개 미만 선택 시 렌더링하지 않음
-  if (!isMultiSelectionMode() || getSelectionCount() < 2 || !toolbarPosition) {
-    return null;
-  }
-
   const selectedBlockIds = getSelectedBlocks();
 
   const handleAlign = (alignmentType: AlignmentType) => {
@@ -170,6 +162,39 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar({
   const handleDistribute = (direction: 'horizontal' | 'vertical') => {
     distributeBlocks(selectedBlockIds, direction);
   };
+
+  const handleEscape = React.useCallback(() => {
+    // ESC 또는 툴바 외부 클릭 시 선택 해제
+    // @ts-ignore - setNodes 타입 호환성 이슈
+    setNodes((nodes: Node[]) =>
+      nodes.map((node: Node) => ({ ...node, selected: false }))
+    );
+    exitToDefaultMode();
+  }, [setNodes, exitToDefaultMode]);
+
+  // 트랙패드 핀치 줌 방지
+  usePreventPinchZoom(toolbarRef);
+
+  // ESC 키로 선택 해제
+  useEffect(() => {
+    if (!isMultiSelectionMode()) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleEscape();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMultiSelectionMode, handleEscape]);
+
+  // 다중 선택 모드가 아니거나 2개 미만 선택 시 렌더링하지 않음
+  if (!isMultiSelectionMode() || getSelectionCount() < 2 || !toolbarPosition) {
+    return null;
+  }
 
   const handleDuplicate = async () => {
     try {
