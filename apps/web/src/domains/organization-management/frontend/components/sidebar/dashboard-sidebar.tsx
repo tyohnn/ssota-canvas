@@ -113,9 +113,7 @@ export function DashboardSidebar() {
             <SidebarMenuButton
               onClick={toggleTheme}
               className="text-muted-foreground"
-              tooltip={
-                mounted && theme === 'dark' ? 'Light Mode' : 'Dark Mode'
-              }
+              tooltip={mounted && theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             >
               {!mounted ? (
                 <Moon className="h-4 w-4" />
@@ -175,9 +173,7 @@ export function DashboardSidebar() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              🚧 Preparing...
-            </p>
+            <p className="text-sm text-muted-foreground">🚧 Preparing...</p>
             <p className="text-xs text-muted-foreground mt-2">
               This feature is under development
             </p>
@@ -195,9 +191,7 @@ export function DashboardSidebar() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              🚧 Preparing...
-            </p>
+            <p className="text-sm text-muted-foreground">🚧 Preparing...</p>
             <p className="text-xs text-muted-foreground mt-2">
               This feature is under development
             </p>
@@ -215,9 +209,7 @@ export function DashboardSidebar() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              🚧 Preparing...
-            </p>
+            <p className="text-sm text-muted-foreground">🚧 Preparing...</p>
             <p className="text-xs text-muted-foreground mt-2">
               This feature is under development
             </p>
