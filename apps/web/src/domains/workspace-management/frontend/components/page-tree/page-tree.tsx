@@ -192,6 +192,17 @@ export function PageTree({
     }
   }, [selectedPageId, tree]);
 
+  // 펼침 상태 동기화 (Context → Tree) - 부모 페이지 자동 펼침 지원
+  useEffect(() => {
+    const treeItems = tree.getItems();
+    expandedPageIds.forEach(pageId => {
+      const item = treeItems.find(i => i.getId() === pageId);
+      if (item && !item.isExpanded()) {
+        item.expand();
+      }
+    });
+  }, [expandedPageIds, tree]);
+
   // pages 데이터 변경 시 Tree 리빌드 (Optimistic Update 반영)
   useEffect(() => {
     tree.rebuildTree();

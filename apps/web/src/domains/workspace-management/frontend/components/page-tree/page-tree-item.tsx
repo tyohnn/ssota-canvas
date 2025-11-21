@@ -112,7 +112,7 @@ export function PageTreeItemRenderer({
                 )}
               >
                 <WorkspaceIcon
-                  icon={page.icon || 'FileText'}
+                  icon={page.icon || 'File'}
                   size={16}
                   className={cn(
                     isActive

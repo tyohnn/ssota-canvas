@@ -18,7 +18,7 @@ import type { EditorPanelProps } from './core/types';
 import type { EditorPanelBusinessLogic } from './core/use-editor-panel.business';
 
 function EditorPanelWrapper() {
-  const { blockId, isOpen, isAnimating, shouldRender, blockData } =
+  const { blockId, isOpen, isAnimating, shouldRender, blockData, isExpanded } =
     useEditorPanelContext();
 
   // Viewport 조정 (에디터 열림 시 블록을 적절한 위치로 이동)
@@ -28,9 +28,17 @@ function EditorPanelWrapper() {
 
   return (
     <div
-      className={`absolute bottom-0 right-0 z-50 w-[43%] h-[85%] bg-background backdrop-blur-md border-l border-t border-border shadow-2xl rounded-tl-lg transition-all duration-300 ease-out ${
+      className={`absolute z-50 bg-background backdrop-blur-md border-border shadow-2xl ${
+        isExpanded
+          ? 'inset-0 border rounded-none'
+          : 'bottom-0 right-0 w-[43%] h-[85%] border-l border-t rounded-tl-lg'
+      } ${
         isAnimating ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       }`}
+      style={{
+        transition:
+          'all 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease-out, opacity 0.3s ease-out',
+      }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="editor-panel-title"

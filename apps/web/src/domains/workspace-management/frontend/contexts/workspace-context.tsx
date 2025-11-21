@@ -848,7 +848,7 @@ export function WorkspaceProvider({
     ): Promise<string | null> => {
       const tempPageId = `temp-${Date.now()}`;
       const finalTitle = title || 'Untitled';
-      const finalIcon = icon || 'FileText';
+      const finalIcon = icon || 'File';
 
       try {
         // 1. Optimistic Update: 임시 페이지 추가
@@ -882,7 +882,18 @@ export function WorkspaceProvider({
 
         // 2. 부모 페이지 자동 펼치기
         if (parentId) {
-          setExpandedPages(prev => new Set(prev).add(parentId));
+          setExpandedPages(prev => {
+            const newSet = new Set(prev);
+            newSet.add(parentId);
+
+            // 로컬스토리지에 저장
+            if (typeof window !== 'undefined') {
+              const key = getPageCollapsedKey(parentId);
+              localStorage.setItem(key, 'false');
+            }
+
+            return newSet;
+          });
         }
 
         // 3. 새 페이지로 이동
