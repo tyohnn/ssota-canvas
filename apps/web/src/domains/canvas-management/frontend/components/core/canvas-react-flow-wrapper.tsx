@@ -334,6 +334,16 @@ export function CanvasReactFlowWrapper({
     <div className="h-full w-full relative">
       {/* React Flow 기본 선택 박스 스타일링 */}
       <style jsx global>{`
+        /* React Flow 기본 배경색 */
+        .react-flow {
+          background-color: hsl(var(--background)) !important;
+        }
+
+        /* React Flow Pane (캔버스 영역) */
+        .react-flow__pane {
+          background-color: transparent !important;
+        }
+
         /* 선택 드래그 프리뷰 박스 (파란색 반투명) */
         .react-flow__selection {
           background: rgba(59, 130, 246, 0.08) !important;
@@ -366,6 +376,11 @@ export function CanvasReactFlowWrapper({
         /* React Flow Background 다크모드 */
         .dark .react-flow__background-pattern {
           stroke: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        /* React Flow Background 라이트모드 */
+        .react-flow__background-pattern {
+          stroke: rgba(0, 0, 0, 0.1) !important;
         }
 
         /* 패닝 모드: 커서를 grab/grabbing으로 변경 */
