@@ -12,6 +12,7 @@ import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
 export type CanvasMode =
   | { type: 'default' } // 초기 모드
+  | { type: 'panning' } // 패닝(Hand Tool) 모드
   | { type: 'block-creation'; blockType: BlockType } // 블럭 추가 모드
   | { type: 'single-selection'; blockId: string } // 단일 선택 모드
   | { type: 'multi-selection'; blockIds: string[] } // 복수 선택 모드
@@ -25,6 +26,7 @@ interface CanvasModeContextValue {
   isTextareaEditing: boolean;
 
   // 모드 전환
+  enterPanningMode: () => void;
   enterBlockCreationMode: (blockType: BlockType) => void;
   enterSingleSelectionMode: (blockId: string) => void;
   enterMultiSelectionMode: (blockIds: string[]) => void;
@@ -38,6 +40,7 @@ interface CanvasModeContextValue {
 
   // 상태 읽기 헬퍼
   getCurrentMode: () => CanvasMode;
+  isPanningMode: () => boolean;
   isBlockCreationMode: () => boolean;
   isSingleSelectionMode: () => boolean;
   isMultiSelectionMode: () => boolean;
@@ -57,6 +60,10 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
   const [isTextareaEditing, setIsTextareaEditing] = useState(false);
 
   // 모드 전환
+  const enterPanningMode = useCallback(() => {
+    setMode({ type: 'panning' });
+  }, []);
+
   const enterBlockCreationMode = useCallback((blockType: BlockType) => {
     setMode({ type: 'block-creation', blockType });
   }, []);
@@ -99,6 +106,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
   // 상태 읽기 헬퍼
   const getCurrentMode = useCallback(() => mode, [mode]);
 
+  const isPanningMode = useCallback(() => mode.type === 'panning', [mode.type]);
   const isBlockCreationMode = useCallback(
     () => mode.type === 'block-creation',
     [mode.type]
@@ -128,6 +136,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
     () => ({
       mode,
       isTextareaEditing,
+      enterPanningMode,
       enterBlockCreationMode,
       enterSingleSelectionMode,
       enterMultiSelectionMode,
@@ -137,6 +146,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
       exitToDefaultMode,
       setTextareaEditing,
       getCurrentMode,
+      isPanningMode,
       isBlockCreationMode,
       isSingleSelectionMode,
       isMultiSelectionMode,
@@ -147,6 +157,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
     [
       mode,
       isTextareaEditing,
+      enterPanningMode,
       enterBlockCreationMode,
       enterSingleSelectionMode,
       enterMultiSelectionMode,
@@ -156,6 +167,7 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
       exitToDefaultMode,
       setTextareaEditing,
       getCurrentMode,
+      isPanningMode,
       isBlockCreationMode,
       isSingleSelectionMode,
       isMultiSelectionMode,

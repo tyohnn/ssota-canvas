@@ -32,6 +32,7 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
 
   // 현재 모드 상태 확인
   const isBlockCreationMode = canvasMode.isBlockCreationMode();
+  const isPanningMode = canvasMode.isPanningMode();
   const currentMode = canvasMode.getCurrentMode();
 
   // Fit to View 함수
@@ -67,6 +68,14 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
           event.stopPropagation();
           handleFitToView();
           break;
+        case 'Space':
+          // Space를 누르면 패닝 모드로 전환 (임시)
+          if (!isPanningMode) {
+            event.preventDefault();
+            event.stopPropagation();
+            canvasMode.enterPanningMode();
+          }
+          break;
         case 'Escape':
           // 기본 모드로 복귀
           if (currentMode.type !== 'default') {
@@ -77,19 +86,46 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
           break;
       }
     },
-    [handleFitToView, canvasMode, currentMode]
+    [handleFitToView, canvasMode, currentMode, isPanningMode]
+  );
+
+  // Space key up handler - 패닝 모드 해제
+  const handleKeyUp = React.useCallback(
+    (event: KeyboardEvent) => {
+      // Only handle if not typing in an input field
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        (event.target as HTMLElement | null)?.isContentEditable
+      ) {
+        return;
+      }
+
+      if (event.code === 'Space' && isPanningMode) {
+        event.preventDefault();
+        event.stopPropagation();
+        canvasMode.exitToDefaultMode();
+      }
+    },
+    [canvasMode, isPanningMode]
   );
 
   React.useEffect(() => {
     const handleKeyDownWrapper = (event: KeyboardEvent) => {
       handleKeyDown(event);
     };
+    const handleKeyUpWrapper = (event: KeyboardEvent) => {
+      handleKeyUp(event);
+    };
 
     // Use capture phase to ensure we get the event before React Flow
     document.addEventListener('keydown', handleKeyDownWrapper, true);
-    return () =>
+    document.addEventListener('keyup', handleKeyUpWrapper, true);
+    return () => {
       document.removeEventListener('keydown', handleKeyDownWrapper, true);
-  }, [handleKeyDown]);
+      document.removeEventListener('keyup', handleKeyUpWrapper, true);
+    };
+  }, [handleKeyDown, handleKeyUp]);
 
   return (
     <div className="mt-4">
@@ -104,9 +140,22 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
+                variant={
+                  currentMode.type === 'default' ||
+                  currentMode.type === 'single-selection' ||
+                  currentMode.type === 'multi-selection'
+                    ? 'default'
+                    : 'ghost'
+                }
                 size="sm"
-                className="h-8 w-8 p-0 rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                className={cn(
+                  'h-8 w-8 p-0 rounded-sm transition-colors',
+                  currentMode.type === 'default' ||
+                    currentMode.type === 'single-selection' ||
+                    currentMode.type === 'multi-selection'
+                    ? 'bg-accent text-accent-foreground hover:bg-accent'
+                    : 'hover:bg-accent/50 hover:text-accent-foreground'
+                )}
                 onClick={canvasMode.exitToDefaultMode}
               >
                 <MousePointer className="h-4 w-4" />
@@ -121,18 +170,21 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
+                variant={isPanningMode ? 'default' : 'ghost'}
                 size="sm"
-                className="h-8 w-8 p-0 rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                onClick={() => {
-                  // TODO: Hand tool 기능 구현 (React Flow 내장 기능 활용)
-                }}
+                className={cn(
+                  'h-8 w-8 p-0 rounded-sm transition-colors',
+                  isPanningMode
+                    ? 'bg-accent text-accent-foreground hover:bg-accent'
+                    : 'hover:bg-accent/50 hover:text-accent-foreground'
+                )}
+                onClick={canvasMode.enterPanningMode}
               >
                 <Hand className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              <p>Hand</p>
+              <p>Hand (Space)</p>
             </TooltipContent>
           </Tooltip>
 
@@ -148,7 +200,7 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
                 variant="ghost"
                 size="sm"
                 onClick={handleFitToView}
-                className="h-8 w-8 p-0 rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                className="h-8 w-8 p-0 rounded-sm hover:bg-accent/50 hover:text-accent-foreground transition-colors"
               >
                 <Maximize className="h-4 w-4" />
               </Button>
@@ -173,8 +225,8 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
                 className={cn(
                   'h-8 w-8 p-0 rounded-sm transition-colors',
                   isBlockCreationMode
-                    ? 'bg-accent text-accent-foreground'
-                    : 'hover:bg-accent hover:text-accent-foreground'
+                    ? 'bg-accent text-accent-foreground hover:bg-accent'
+                    : 'hover:bg-accent/50 hover:text-accent-foreground'
                 )}
                 disabled={isBlockCreationMode}
               >

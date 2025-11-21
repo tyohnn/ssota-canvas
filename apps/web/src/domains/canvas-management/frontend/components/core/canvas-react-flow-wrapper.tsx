@@ -134,6 +134,8 @@ export function CanvasReactFlowWrapper({
 
   // PanOnScroll 동적 제어: textarea 편집 중에는 비활성화
   const panOnScrollEnabled = !canvasMode.isTextareaEditing;
+  // PanOnDrag 동적 제어: 패닝 모드에서는 드래그로 패닝 가능
+  const panOnDragEnabled = canvasMode.isPanningMode();
   const blockTransform = useCanvasBlockTransform({
     orgId,
     workspaceId,
@@ -280,6 +282,23 @@ export function CanvasReactFlowWrapper({
         .dark .react-flow__background-pattern {
           stroke: rgba(255, 255, 255, 0.05) !important;
         }
+
+        /* 패닝 모드: 커서를 grab/grabbing으로 변경 */
+        .react-flow.panning-mode {
+          cursor: grab !important;
+        }
+        .react-flow.panning-mode:active {
+          cursor: grabbing !important;
+        }
+        .react-flow.panning-mode .react-flow__node {
+          cursor: grab !important;
+        }
+        .react-flow.panning-mode .react-flow__pane {
+          cursor: grab !important;
+        }
+        .react-flow.panning-mode .react-flow__pane:active {
+          cursor: grabbing !important;
+        }
       `}</style>
 
       <ReactFlow
@@ -296,14 +315,14 @@ export function CanvasReactFlowWrapper({
         // 테마 설정
         colorMode={theme === 'dark' ? 'dark' : 'light'}
         // 상호작용 설정
-        nodesDraggable={true}
-        nodesConnectable={true}
-        elementsSelectable={true}
-        selectionOnDrag={true}
+        nodesDraggable={!panOnDragEnabled} // 패닝 모드에서는 노드 드래그 비활성화
+        nodesConnectable={!panOnDragEnabled} // 패닝 모드에서는 연결 비활성화
+        elementsSelectable={!panOnDragEnabled} // 패닝 모드에서는 선택 비활성화
+        selectionOnDrag={!panOnDragEnabled} // 패닝 모드에서는 선택 박스 비활성화
         selectionMode={SelectionMode.Partial}
         connectionMode={ConnectionMode.Loose} // source/target 구분 없이 양방향 연결 허용
         // 트랙패드 제스처 설정 (피그마 스타일)
-        panOnDrag={false} // 드래그는 선택 용도로만 사용
+        panOnDrag={panOnDragEnabled} // 패닝 모드에서는 드래그로 패닝
         panOnScroll={panOnScrollEnabled} // 두 손가락 스크롤로 패닝 (textarea 편집 중 비활성화)
         zoomOnScroll={false} // 스크롤로 줌 비활성화
         zoomOnPinch={true} // 핀치 제스처로 줌 활성화
@@ -321,7 +340,7 @@ export function CanvasReactFlowWrapper({
         onNodesDelete={canvasCallbacks.onNodesDelete}
         // onKeyDown은 전역 리스너로 처리 (포커스 문제 우회)
         deleteKeyCode={['Delete', 'Backspace']}
-        className="bg-muted/30"
+        className={`bg-muted/30 ${panOnDragEnabled ? 'panning-mode' : ''}`}
       >
         <Background />
 
