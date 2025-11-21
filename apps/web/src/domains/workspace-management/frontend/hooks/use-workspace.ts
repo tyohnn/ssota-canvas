@@ -122,6 +122,7 @@ export function useWorkspace() {
 
   return {
     // 기본 상태
+    organizationId: context.organizationId,
     workspaces: context.workspaces,
     selectedPageId: context.selectedPageId,
     selectedWorkspaceId: context.selectedWorkspaceId,

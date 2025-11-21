@@ -47,6 +47,7 @@ import {
  */
 interface WorkspaceContextValue {
   // 기본 상태
+  organizationId: string;
   workspaces: WorkspaceWithPagesDTO[];
   selectedPageId: string | null;
   selectedWorkspaceId: string | null;
@@ -293,6 +294,33 @@ function findMaxOrderInTree(
   }
 
   return maxOrder;
+}
+
+/**
+ * PageTree에서 특정 페이지의 정보(title, icon) 업데이트
+ */
+function updatePageInfoInTree(
+  tree: PageTreeNodeDTO[],
+  pageId: string,
+  updates: { title?: string; icon?: string }
+): PageTreeNodeDTO[] {
+  return tree.map(node => {
+    if (node.id === pageId) {
+      return {
+        ...node,
+        ...(updates.title !== undefined && { title: updates.title }),
+        ...(updates.icon !== undefined && { icon: updates.icon }),
+        lastModified: new Date().toISOString(),
+      };
+    }
+    if (node.children.length > 0) {
+      return {
+        ...node,
+        children: updatePageInfoInTree(node.children, pageId, updates),
+      };
+    }
+    return node;
+  });
 }
 
 // ============================================================================
@@ -966,10 +994,25 @@ export function WorkspaceProvider({
     [workspaces]
   );
 
-  // Scenario 4: Page 정보 수정
+  // Scenario 4: Page 정보 수정 (Optimistic Update)
   const updatePageInfo = useCallback(
     async (pageId: string, title?: string, icon?: string): Promise<boolean> => {
+      // 1. 이전 상태 백업 (롤백용)
+      const previousWorkspaces = workspaces;
+
       try {
+        // 2. Optimistic Update: 즉시 페이지 정보 업데이트
+        setWorkspaces(prev => {
+          return prev.map(ws => ({
+            ...ws,
+            pageTree: updatePageInfoInTree(ws.pageTree, pageId, {
+              title,
+              icon,
+            }),
+          }));
+        });
+
+        // 3. Server Action 호출
         const result = await updatePageInfoAction({
           pageId,
           title,
@@ -977,21 +1020,23 @@ export function WorkspaceProvider({
         });
 
         if (!result.success) {
+          // 실패 시 롤백
+          setWorkspaces(previousWorkspaces);
           toast.error(`페이지 수정 실패: ${result.error}`);
           return false;
         }
 
-        // 제목/아이콘만 수정하는 경우 조용히 처리
-        // Optimistic Update는 없지만 Server Action 성공 시
-        // 다음 페이지 이동에서 revalidatePath로 최신 데이터 fetch됨
+        // 4. 성공 - Optimistic Update 상태 유지
         return true;
       } catch (error) {
+        // 에러 시 롤백
         console.error('[updatePageInfo] Error:', error);
+        setWorkspaces(previousWorkspaces);
         toast.error('페이지 수정 중 오류가 발생했습니다');
         return false;
       }
     },
-    []
+    [workspaces]
   );
 
   // Scenario 4: Page 순서 재정렬 (Optimistic Update)
@@ -1055,6 +1100,7 @@ export function WorkspaceProvider({
 
   const value: WorkspaceContextValue = {
     // 기본 상태
+    organizationId,
     workspaces,
     selectedPageId,
     selectedWorkspaceId,

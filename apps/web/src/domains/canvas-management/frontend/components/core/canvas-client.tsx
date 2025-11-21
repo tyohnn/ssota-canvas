@@ -50,7 +50,7 @@ export function CanvasClient({
   return (
     <ReactFlowProvider>
       <CanvasModeProvider>
-        <div className="h-full flex flex-col bg-gray-50">
+        <div className="h-full flex flex-col bg-background">
           {/* 메인 캔버스 영역 */}
           <main className="flex-1 relative overflow-hidden">
             <CanvasReactFlowWrapper
