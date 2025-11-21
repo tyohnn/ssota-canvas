@@ -53,21 +53,6 @@ export default function Landing() {
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Your workspace, understood. 2D docs in, 2D docs out.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <Link href="#get-started">
-                <Button size="lg">Start free</Button>
-              </Link>
-              <Link href="#demo">
-                <Button size="lg" variant="outline">
-                  Watch demo
-                </Button>
-              </Link>
-              <Link href="#templates">
-                <Button size="lg" variant="ghost">
-                  Browse templates
-                </Button>
-              </Link>
-            </div>
             <div className="flex gap-2 justify-center text-sm text-gray-500">
               <span className="px-2 py-1 rounded border">Visual canvas</span>
               <span className="px-2 py-1 rounded border">
@@ -189,10 +174,6 @@ export default function Landing() {
               </li>
               <li>Review on canvas, tweak, export</li>
             </ol>
-            <div className="flex gap-3 pt-2">
-              <Button>Start now</Button>
-              <Button variant="outline">See templates</Button>
-            </div>
           </div>
           <div className="w-full">
             <div className="aspect-video">
@@ -411,16 +392,6 @@ export default function Landing() {
           <p className="text-gray-300 max-w-2xl mx-auto">
             Ingest, understand, and generate 2D documents—on one canvas.
           </p>
-          <div className="flex items-center justify-center gap-4">
-            <Button size="lg">Start free</Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="bg-white text-gray-900"
-            >
-              Watch demo
-            </Button>
-          </div>
         </div>
       </Section>
     </div>
