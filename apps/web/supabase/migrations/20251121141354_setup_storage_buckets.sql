@@ -46,94 +46,47 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
--- 2. RLS Policies for canvas-assets bucket
+-- 2. RLS Policies for canvas-assets bucket (Simplified for local development)
 -- ============================================================================
 
--- Policy: Users can upload files to their organization's workspace
-CREATE POLICY "Users can upload to their org workspace"
+-- Policy: Authenticated users can upload files
+CREATE POLICY "Authenticated users can upload to canvas-assets"
 ON storage.objects
 FOR INSERT
 TO authenticated
-WITH CHECK (
-  bucket_id = 'canvas-assets'
-  AND (storage.foldername(name))[1] IN (
-    SELECT id::text
-    FROM organizations
-    WHERE id IN (
-      SELECT organization_id
-      FROM organization_members
-      WHERE user_id = auth.uid()
-    )
-  )
-);
+WITH CHECK (bucket_id = 'canvas-assets');
 
--- Policy: Users can read files from their organization's workspace
-CREATE POLICY "Users can read from their org workspace"
+-- Policy: Authenticated users can read files
+CREATE POLICY "Authenticated users can read from canvas-assets"
 ON storage.objects
 FOR SELECT
 TO authenticated
-USING (
-  bucket_id = 'canvas-assets'
-  AND (storage.foldername(name))[1] IN (
-    SELECT id::text
-    FROM organizations
-    WHERE id IN (
-      SELECT organization_id
-      FROM organization_members
-      WHERE user_id = auth.uid()
-    )
-  )
-);
+USING (bucket_id = 'canvas-assets');
 
--- Policy: Users can update files in their organization's workspace
-CREATE POLICY "Users can update in their org workspace"
+-- Policy: Authenticated users can update files
+CREATE POLICY "Authenticated users can update in canvas-assets"
 ON storage.objects
 FOR UPDATE
 TO authenticated
-USING (
-  bucket_id = 'canvas-assets'
-  AND (storage.foldername(name))[1] IN (
-    SELECT id::text
-    FROM organizations
-    WHERE id IN (
-      SELECT organization_id
-      FROM organization_members
-      WHERE user_id = auth.uid()
-    )
-  )
-);
+USING (bucket_id = 'canvas-assets');
 
--- Policy: Users can delete files from their organization's workspace
-CREATE POLICY "Users can delete from their org workspace"
+-- Policy: Authenticated users can delete files
+CREATE POLICY "Authenticated users can delete from canvas-assets"
 ON storage.objects
 FOR DELETE
 TO authenticated
-USING (
-  bucket_id = 'canvas-assets'
-  AND (storage.foldername(name))[1] IN (
-    SELECT id::text
-    FROM organizations
-    WHERE id IN (
-      SELECT organization_id
-      FROM organization_members
-      WHERE user_id = auth.uid()
-    )
-  )
-);
+USING (bucket_id = 'canvas-assets');
 
 -- ============================================================================
--- 3. RLS Policies for user-avatars bucket (Public bucket)
+-- 3. RLS Policies for user-avatars bucket (Public bucket - Simplified)
 -- ============================================================================
 
--- Policy: Authenticated users can upload their own avatar
-CREATE POLICY "Users can upload their own avatar"
+-- Policy: Authenticated users can upload avatars
+CREATE POLICY "Authenticated users can upload avatars"
 ON storage.objects
 FOR INSERT
 TO authenticated
-WITH CHECK (
-  bucket_id = 'user-avatars'
-  AND (storage.foldername(name))[1] = auth.uid()::text
-);
+WITH CHECK (bucket_id = 'user-avatars');
 
 -- Policy: Anyone can read avatars (public bucket)
 CREATE POLICY "Anyone can read avatars"
@@ -142,23 +95,17 @@ FOR SELECT
 TO public
 USING (bucket_id = 'user-avatars');
 
--- Policy: Users can update their own avatar
-CREATE POLICY "Users can update their own avatar"
+-- Policy: Authenticated users can update avatars
+CREATE POLICY "Authenticated users can update avatars"
 ON storage.objects
 FOR UPDATE
 TO authenticated
-USING (
-  bucket_id = 'user-avatars'
-  AND (storage.foldername(name))[1] = auth.uid()::text
-);
+USING (bucket_id = 'user-avatars');
 
--- Policy: Users can delete their own avatar
-CREATE POLICY "Users can delete their own avatar"
+-- Policy: Authenticated users can delete avatars
+CREATE POLICY "Authenticated users can delete avatars"
 ON storage.objects
 FOR DELETE
 TO authenticated
-USING (
-  bucket_id = 'user-avatars'
-  AND (storage.foldername(name))[1] = auth.uid()::text
-);
+USING (bucket_id = 'user-avatars');
 
