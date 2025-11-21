@@ -30,29 +30,6 @@ export function Header() {
   const { onClose, isExpanded, setIsExpanded } = useEditorPanelContext();
   const [isShareOpen, setIsShareOpen] = useState(false);
 
-  // ESC 키 핸들러: 확대 상태면 축소, 축소 상태면 패널 닫기
-  React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (isExpanded) {
-          // 확대된 상태 → 축소 (이벤트 전파 차단)
-          event.preventDefault();
-          event.stopPropagation();
-          setIsExpanded(false);
-        } else {
-          // 축소된 상태 → 패널 닫기
-          onClose();
-        }
-      }
-    };
-
-    // 캡처 단계에서 먼저 처리하여 다른 핸들러보다 우선 실행
-    document.addEventListener('keydown', handleKeyDown, { capture: true });
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown, { capture: true });
-    };
-  }, [isExpanded, setIsExpanded, onClose]);
-
   return (
     <TooltipProvider delayDuration={300}>
       <div className="shrink-0 flex items-center justify-between p-4">

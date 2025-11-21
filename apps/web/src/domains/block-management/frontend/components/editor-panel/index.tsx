@@ -8,6 +8,7 @@
 
 'use client';
 
+import React from 'react';
 import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
 import { EditorPanelProvider } from './core/provider';
 import { useEditorPanelContext } from './core/context';
@@ -18,11 +19,41 @@ import type { EditorPanelProps } from './core/types';
 import type { EditorPanelBusinessLogic } from './core/use-editor-panel.business';
 
 function EditorPanelWrapper() {
-  const { blockId, isOpen, isAnimating, shouldRender, blockData, isExpanded } =
-    useEditorPanelContext();
+  const {
+    blockId,
+    isOpen,
+    isAnimating,
+    shouldRender,
+    blockData,
+    isExpanded,
+    setIsExpanded,
+    onClose,
+  } = useEditorPanelContext();
 
   // Viewport 조정 (에디터 열림 시 블록을 적절한 위치로 이동)
   useViewportAdjustment(blockId, isOpen);
+
+  // ESC 키 핸들러: 확대 상태면 축소, 축소 상태면 패널 닫기
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (isExpanded) {
+          // 확대된 상태 → 축소 (이벤트 완전 차단)
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          setIsExpanded(false);
+        }
+        // 축소 상태일 때는 아무것도 하지 않음 (다른 핸들러가 처리)
+      }
+    };
+
+    // 캡처 단계에서 가장 먼저 처리
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, { capture: true });
+    };
+  }, [isExpanded, setIsExpanded]);
 
   if (!shouldRender || !blockData) return null;
 
