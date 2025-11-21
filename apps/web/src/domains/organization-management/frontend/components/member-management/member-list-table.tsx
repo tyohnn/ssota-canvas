@@ -37,11 +37,11 @@ const getRoleIcon = (role: 'owner' | 'admin' | 'member') => {
 const getRoleLabel = (role: 'owner' | 'admin' | 'member') => {
   switch (role) {
     case 'owner':
-      return '소유자';
+      return 'Owner';
     case 'admin':
-      return '관리자';
+      return 'Admin';
     case 'member':
-      return '멤버';
+      return 'Member';
   }
 };
 
@@ -74,17 +74,17 @@ export function MemberListTable() {
     isChanging,
   } = useRoleChange();
 
-  // 현재 사용자 역할 가져오기
+  // Get current user role
   const userRole = organizationMembers?.userRole || 'member';
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR');
+    return date.toLocaleDateString('en-US');
   };
 
-  // 통합 데이터 구성
+  // Combine all rows
   const allRows: MemberRow[] = [
-    // 현재 멤버
+    // Current members
     ...getCurrentMembers.map(member => ({
       id: member.userId,
       type: 'member' as const,
@@ -95,7 +95,7 @@ export function MemberListTable() {
       role: member.role,
       dateLabel: formatDate(member.joinedAt),
     })),
-    // 대기 중인 초대
+    // Pending invitations
     ...getPendingInvitations.map(invitation => ({
       id: invitation.id,
       type: 'pending' as const,
@@ -113,10 +113,10 @@ export function MemberListTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>사용자</TableHead>
-              <TableHead>역할</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead>날짜</TableHead>
+              <TableHead>User</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Date</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -148,7 +148,7 @@ export function MemberListTable() {
     );
   }
 
-  // 역할 변경 성공 핸들러
+  // Role change success handler
   const handleRoleChangeSuccess = async () => {
     if (organizationMembers?.organizationId) {
       await refreshOrganizationMembers(organizationMembers.organizationId);
@@ -158,16 +158,16 @@ export function MemberListTable() {
   return (
     <div>
       {allRows.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4">멤버가 없습니다.</p>
+        <p className="text-sm text-muted-foreground py-4">No members.</p>
       ) : (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>사용자</TableHead>
-                <TableHead>역할</TableHead>
-                <TableHead>상태</TableHead>
-                <TableHead>날짜</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -205,7 +205,7 @@ export function MemberListTable() {
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {row.type === 'pending' && row.inviterName
-                            ? `${row.inviterName}님이 초대`
+                            ? `Invited by ${row.inviterName}`
                             : row.email}
                         </span>
                       </div>
@@ -253,7 +253,7 @@ export function MemberListTable() {
                       variant={row.type === 'pending' ? 'secondary' : 'default'}
                       className="w-fit"
                     >
-                      {row.type === 'pending' ? '대기 중' : '활성'}
+                      {row.type === 'pending' ? 'Pending' : 'Active'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
@@ -266,7 +266,7 @@ export function MemberListTable() {
         </div>
       )}
 
-      {/* 역할 변경 확인 다이얼로그 */}
+      {/* Role change confirmation dialog */}
       <RoleChangeConfirmationDialog
         isOpen={confirmationDialog.isOpen}
         memberInfo={confirmationDialog.memberInfo}

@@ -127,8 +127,17 @@ export function SidebarHeaderGroup() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Search</DialogTitle>
-                <DialogDescription>Type to search...</DialogDescription>
+                <DialogDescription>
+                  Search functionality is being prepared and will be available
+                  soon.
+                </DialogDescription>
               </DialogHeader>
+              <div className="py-6 text-center">
+                <p className="text-sm text-muted-foreground">🚧 Preparing...</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  This feature is under development
+                </p>
+              </div>
             </DialogContent>
           </Dialog>
         </SidebarMenuItem>

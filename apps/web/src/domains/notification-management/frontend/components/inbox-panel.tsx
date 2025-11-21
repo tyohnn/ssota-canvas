@@ -41,7 +41,7 @@ export function InboxPanel({
           {/* Header */}
           <SheetHeader className="px-6 py-4 border-b">
             <SheetTitle className="text-base">
-              인박스
+              Inbox
               {unreadCount > 0 && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
                   ({unreadCount})
@@ -49,7 +49,7 @@ export function InboxPanel({
               )}
             </SheetTitle>
             <SheetDescription className="sr-only">
-              알림 목록을 확인하고 관리할 수 있습니다.
+              View and manage your notifications
             </SheetDescription>
           </SheetHeader>
 
@@ -57,7 +57,7 @@ export function InboxPanel({
           <div className="flex-1 overflow-hidden">
             {isLoading && (
               <div className="flex items-center justify-center py-8">
-                <p className="text-sm text-muted-foreground">로딩 중...</p>
+                <p className="text-sm text-muted-foreground">Loading...</p>
               </div>
             )}
 
@@ -69,7 +69,7 @@ export function InboxPanel({
 
             {!isLoading && !error && notifications.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12">
-                <p className="text-sm text-muted-foreground">알림이 없습니다</p>
+                <p className="text-sm text-muted-foreground">No notifications</p>
               </div>
             )}
 
