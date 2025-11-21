@@ -357,13 +357,14 @@ export const MarkdownBlock = memo(function MarkdownBlock({
       {/* Markdown Block Content */}
       <div
         className={cn(
-          'w-full h-full flex flex-col rounded-lg shadow-sm overflow-hidden',
-          'border border-gray-200 bg-white',
+          'w-full h-full flex flex-col rounded-lg overflow-hidden',
+          'bg-background border-2 border-border',
+          'shadow-md',
           // 호버 효과 (선택되지 않았을 때만)
-          !selected && 'hover:shadow-lg hover:scale-[1.02] hover:rotate-1',
+          !selected && 'hover:shadow-xl hover:scale-[1.02] hover:rotate-1',
           // 선택 효과
           selected && 'ring-2 ring-blue-400 dark:ring-blue-500',
-          selected && 'shadow-lg',
+          selected && 'shadow-xl',
           // Transition
           'transition-all duration-300 ease-out'
         )}
@@ -386,7 +387,7 @@ export const MarkdownBlock = memo(function MarkdownBlock({
               <style>{`
                 .tiptap-markdown-block p.is-editor-empty:first-child::before {
                   content: attr(data-placeholder);
-                  color: rgb(209 213 219); /* gray-300 - 더 연한 회색 */
+                  color: hsl(var(--muted-foreground));
                   font-style: italic;
                   float: left;
                   height: 0;
@@ -411,9 +412,9 @@ export const MarkdownBlock = memo(function MarkdownBlock({
                   '[&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-bold [&_.ProseMirror_h3]:my-2',
                   '[&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:ml-4',
                   '[&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:ml-4',
-                  '[&_.ProseMirror_code]:bg-gray-100 [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:rounded',
-                  '[&_.ProseMirror_pre]:bg-gray-100 [&_.ProseMirror_pre]:p-3 [&_.ProseMirror_pre]:rounded',
-                  '[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-gray-300 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic'
+                  '[&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:rounded',
+                  '[&_.ProseMirror_pre]:bg-muted [&_.ProseMirror_pre]:p-3 [&_.ProseMirror_pre]:rounded',
+                  '[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-border [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic'
                 )}
               />
             </>
@@ -424,7 +425,7 @@ export const MarkdownBlock = memo(function MarkdownBlock({
               <style>{`
                 .tiptap-markdown-readonly p.is-editor-empty:first-child::before {
                   content: attr(data-placeholder);
-                  color: rgb(209 213 219); /* gray-300 - 더 연한 회색 */
+                  color: hsl(var(--muted-foreground));
                   font-style: italic;
                   float: left;
                   height: 0;
@@ -449,9 +450,9 @@ export const MarkdownBlock = memo(function MarkdownBlock({
                   '[&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-bold [&_.ProseMirror_h3]:my-2',
                   '[&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:ml-4',
                   '[&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:ml-4',
-                  '[&_.ProseMirror_code]:bg-gray-100 [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:rounded',
-                  '[&_.ProseMirror_pre]:bg-gray-100 [&_.ProseMirror_pre]:p-3 [&_.ProseMirror_pre]:rounded',
-                  '[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-gray-300 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic'
+                  '[&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:rounded',
+                  '[&_.ProseMirror_pre]:bg-muted [&_.ProseMirror_pre]:p-3 [&_.ProseMirror_pre]:rounded',
+                  '[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-border [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic'
                 )}
               />
             </>

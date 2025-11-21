@@ -304,11 +304,10 @@ export const TextBlock = memo(function TextBlock({
       {/* Text Block Content */}
       <div
         className={cn(
-          'w-full h-full flex flex-col rounded-lg shadow-sm',
+          'w-full h-full flex flex-col rounded-lg',
           // Rich Style 배경색 적용 (richStyle이 true일 때)
-          richStyle
-            ? getRichStyleClasses(color)
-            : 'border border-gray-200 bg-white',
+          richStyle && getRichStyleClasses(color),
+          richStyle && 'shadow-sm',
           // 호버 효과 (선택되지 않았을 때만)
           !selected && 'hover:shadow-lg hover:scale-[1.02] hover:rotate-1',
           !selected && 'hover:shadow-[0_0_4px_1px_var(--glow-color)]',

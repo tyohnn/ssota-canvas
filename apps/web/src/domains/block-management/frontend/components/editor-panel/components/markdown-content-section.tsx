@@ -223,7 +223,7 @@ export function BlockContentSection({
         <style>{`
           .tiptap-editor-panel p.is-editor-empty:first-child::before {
             content: attr(data-placeholder);
-            color: rgb(209 213 219); /* gray-300 - 더 연한 회색 */
+            color: hsl(var(--muted-foreground));
             font-style: italic;
             float: left;
             height: 0;
