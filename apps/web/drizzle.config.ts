@@ -1,12 +1,15 @@
-import { defineConfig } from "drizzle-kit";
+import { defineConfig } from 'drizzle-kit';
+import { config } from '@/config';
 
 export default defineConfig({
-  schema: "./src/db/schema.ts",
-  out: "./drizzle",
-  dialect: "postgresql",
+  schema: ['./src/db/schema.ts', './src/db/schemas/image-app-space-schema.ts'],
+  out: './drizzle-temp',
+  dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL || "",
+    url: config.database.nonPoolingUrl || '',
   },
+  // 🔑 중요: 여러 스키마를 관리하려면 schemaFilter 필수
+  schemaFilter: ['public', 'image_app_space'],
   verbose: true,
   strict: true,
 });

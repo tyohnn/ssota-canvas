@@ -1,0 +1,21 @@
+-- ============================================
+-- Supabase Local Development Seed Data (OPTIONAL)
+-- ============================================
+-- ⚠️ This seed is DISABLED by default (see supabase/config.toml)
+--
+-- WHY: 
+-- - We don't provide email/password login in production
+-- - Adding dev-only UI breaks SSOT principles
+-- - Developers should use Google OAuth (same as production)
+-- - processUserRegistrationAction automatically creates all necessary data
+--
+-- WHEN TO USE:
+-- - E2E testing that needs pre-existing accounts
+-- - Specific test scenarios requiring known data
+-- - Manual testing of multi-user features
+--
+-- TO ENABLE:
+-- supabase db reset --seed
+-- ============================================
+
+-- Clean existing data (for idempotency)

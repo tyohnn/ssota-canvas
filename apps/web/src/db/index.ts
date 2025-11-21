@@ -1,82 +1,170 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import { auth } from "@clerk/nextjs/server";
-import { sql } from "drizzle-orm";
-import * as schema from "./schema";
-import { config } from "@/config";
-import { devLog } from "@/utils/dev-logger";
+// dotenv/config removed - Next.js handles environment variables automatically
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { sql } from 'drizzle-orm';
+import { createClient } from '@/utils/supabase/server';
+import { config } from '@/config';
+import * as schema from './schema';
+import * as imageAppSpaceSchema from './schemas/image-app-space-schema';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
-// Database connection configuration
-const connectionString = config.database.url;
+const isDevelopment = config.environment === 'development';
 
-if (!connectionString) {
-  throw new Error("DATABASE_URL environment variable is required");
+if (!config.database.nonPoolingUrl) {
+  // non-pooling url is the Database URL
+  console.error('❌ Database configuration error:', {
+    POSTGRES_URL_NON_POOLING: !!process.env.POSTGRES_URL_NON_POOLING,
+    configValue: config.database.nonPoolingUrl,
+  });
+  throw new Error(
+    'POSTGRES_URL_NON_POOLING is not set in environment variables. Please check your .env.local file.'
+  );
 }
 
-// Create postgres connection
-const client = postgres(connectionString, {
-  // Connection timeout settings
-  connect_timeout: 10,
+// 🔧 Connection Pool 설정
+// Development: 작은 풀 크기 (HMR로 인한 누적 방지)
+// Production: 적절한 풀 크기
+// Local Supabase: SSL 불필요
+const isLocalSupabase =
+  config.supabase.url.includes('localhost') ||
+  config.supabase.url.includes('127.0.0.1');
+
+const connectionConfig = {
+  prepare: false,
+  max: isDevelopment ? 3 : 10, // Dev: 3, Prod: 10
   idle_timeout: 20,
-  max: 10,
-  // SSL settings for Supabase
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  connect_timeout: 10,
+  // Local Supabase는 SSL 불필요, Production은 SSL 필수
+  ssl: isLocalSupabase
+    ? false
+    : {
+        rejectUnauthorized: false,
+      },
+};
+
+// 🔑 Singleton 패턴: Next.js HMR에서도 클라이언트 재사용
+// globalThis 사용으로 모듈 reload 시에도 동일 인스턴스 유지
+const globalForDb = globalThis as unknown as {
+  adminClient: postgres.Sql | undefined;
+  rlsClient: postgres.Sql | undefined;
+};
+
+// Create admin client for direct database access (Singleton)
+const adminClient =
+  globalForDb.adminClient ??
+  postgres(config.database.nonPoolingUrl, connectionConfig);
+if (isDevelopment) globalForDb.adminClient = adminClient;
+
+// Create RLS client for user-scoped operations (Singleton)
+const rlsClient =
+  globalForDb.rlsClient ??
+  postgres(config.database.nonPoolingUrl, connectionConfig);
+if (isDevelopment) globalForDb.rlsClient = rlsClient;
+
+// Create drizzle instances with environment-based schema
+// Include image_app_space schema for both dev and prod
+export const adminDb = drizzle(adminClient, {
+  schema: { ...schema, ...imageAppSpaceSchema },
 });
 
-// Create drizzle instance (shared pool)
-export const db = drizzle(client, { schema });
+export const rlsDb = drizzle(rlsClient, {
+  schema: { ...schema, ...imageAppSpaceSchema },
+});
 
-// Create RLS-enabled database client for Clerk
-export async function createClerkDrizzleSupabaseClient() {
-  const { userId } = await auth();
+type SupabaseToken = {
+  iss?: string;
+  sub?: string;
+  aud?: string[] | string;
+  exp?: number;
+  nbf?: number;
+  iat?: number;
+  jti?: string;
+  role?: string;
+};
 
-  if (!userId) {
-    throw new Error("Authentication required");
+export function createDrizzle(
+  token: SupabaseToken,
+  {
+    admin,
+    client,
+  }: {
+    admin: PostgresJsDatabase<any>;
+    client: PostgresJsDatabase<any>;
   }
-
-  // Facade returning an RLS helper backed by the shared pool + transaction-scoped SET LOCAL
+) {
   return {
-    rls: async <T>(fn: (tx: typeof db) => Promise<T>): Promise<T> => {
-      try {
-        return await db.transaction(async (tx) => {
-          // devLog("🔐 [RLS] Setting user context (SET LOCAL):", { userId });
-          // SET LOCAL is scoped to the current transaction only
-          await tx.execute(sql.raw(`SET LOCAL "app.user_id" = '${userId}'`));
-          const result = await fn(tx as any);
-          // devLog("✅ [RLS] Query executed successfully");
-          return result;
-        });
-      } catch (error) {
-        // devLog("❌ [RLS] Transaction error:", { error });
-        throw error;
-      }
+    admin,
+    rls: async (
+      transaction: (tx: any) => Promise<any>,
+      ...rest: any[]
+    ): Promise<any> => {
+      return await client.transaction(
+        async tx => {
+          // Supabase exposes auth.uid() and auth.jwt()
+          // https://supabase.com/docs/guides/database/postgres/row-level-security#helper-functions
+          try {
+            await tx.execute(sql`
+          -- auth.jwt()
+          select set_config('request.jwt.claims', '${sql.raw(
+            JSON.stringify(token)
+          )}', TRUE);
+          -- auth.uid()
+          select set_config('request.jwt.claim.sub', '${sql.raw(
+            token.sub ?? ''
+          )}', TRUE);
+          -- set local role
+          set local role ${sql.raw(token.role ?? 'anon')};
+          `);
+            const result = await transaction(tx);
+            return result;
+          } catch (error) {
+            throw error;
+          } finally {
+            try {
+              await tx.execute(sql`
+              -- reset
+              select set_config('request.jwt.claims', NULL, TRUE);
+              select set_config('request.jwt.claim.sub', NULL, TRUE);
+              reset role;
+              `);
+            } catch (resetError) {
+              // Don't throw in finally block if transaction already failed
+            }
+          }
+        },
+        ...rest
+      );
     },
-    direct: db,
   };
 }
 
-// Alternative: Simple client without RLS for testing
-export async function createSimpleClient() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error("Authentication required");
+function decode(token: string): SupabaseToken {
+  if (!token) return {};
+  const parts = token.split('.');
+  if (parts.length !== 3 || !parts[1]) return {};
+  try {
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = Buffer.from(payload, 'base64').toString();
+    return JSON.parse(decoded);
+  } catch {
+    return {};
   }
-
-  // Use the same client but without RLS
-  return {
-    rls: async <T>(fn: (tx: typeof db) => Promise<T>): Promise<T> => {
-      // Just execute the function without RLS context
-      return await fn(db);
-    },
-    direct: db,
-  };
 }
 
-// Export schema for migrations
-export * from "./schema";
+export async function createDrizzleSupabaseClient() {
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const token = session?.access_token ?? '';
+  return createDrizzle(decode(token), {
+    admin: adminDb,
+    client: rlsDb,
+  });
+}
 
-// Export admin client
-export { createSupabaseAdminClient } from "./admin-client";
+// Example usage:
+// async function getRooms() {
+//   const db = await createDrizzleSupabaseClient();
+//   return db.rls((tx) => tx.select().from(rooms));
+// }

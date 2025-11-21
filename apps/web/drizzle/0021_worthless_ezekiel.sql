@@ -1,1 +1,0 @@
-ALTER TABLE "blocks" ADD COLUMN "order" integer DEFAULT 1000 NOT NULL;

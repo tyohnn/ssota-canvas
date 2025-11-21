@@ -15,6 +15,12 @@ node_modules
 # Testing
 coverage
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # Turbo
 .turbo
 
@@ -35,6 +41,6 @@ npm-debug.log*
 .DS_Store
 *.pem
 
-.xbowl/
+.ssota/
 .vscode/
 .claude/

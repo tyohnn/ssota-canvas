@@ -1,1 +1,0 @@
-ALTER TABLE "blocks" RENAME COLUMN "name" TO "title";

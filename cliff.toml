@@ -1,0 +1,91 @@
+# git-cliff configuration file
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+# changelog header
+header = """
+# CHANGELOG
+
+All notable changes to this project will be documented in this file.\n
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\n
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n
+"""
+
+# process each line starting with "feat:" as a new feature
+trim = true
+
+[git]
+# parse the commits based on https://www.conventionalcommits.org
+conventional_commits = true
+# filter out the commits that are not conventional
+filter_unconventional = false
+# process each line starting with "feat:" as a new feature
+split_commits = false
+# regex for preprocessing the commit messages
+commit_preprocessors = [
+    { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/${{remote.origin.url}}/pull/${2}))"},
+]
+
+# regex for parsing and grouping commits
+commit_parsers = [
+    { message = "^feat", group = "✨ Features"},
+    { message = "^fix", group = "🐛 Bug Fixes"},
+    { message = "^doc", group = "📚 Documentation"},
+    { message = "^perf", group = "⚡ Performance"},
+    { message = "^refactor", group = "♻️ Refactoring"},
+    { message = "^style", group = "💅 Style"},
+    { message = "^test", group = "🧪 Testing"},
+    { message = "^ci", group = "🔧 Maintenance"},
+    { message = "^chore\\(release\\): prepare for", skip = true},
+    { message = "^chore", group = "🔧 Maintenance"},
+    { body = ".*security", group = "🔒 Security"},
+]
+
+# protect breaking changes from being skipped due to matching a skipping commit_parser
+protect_breaking_commits = false
+
+# regex for matching git tags
+tag_pattern = "[0-9]*"
+# regex for skipping tags
+skip_tags = "v0.1.0-beta.1"
+
+# regex for ignoring tags
+ignore_tags = ""
+
+# regex for preprocessing the commit messages before the commit parsers, replacing lines with new lines
+topo_order = false
+
+# changelog footer
+footer = """
+---
+
+## Workflow
+
+### CHANGELOG Generation Process
+
+#### Automatic Generation (From Commits)
+- **Tool**: Uses 'git-cliff' for automatic CHANGELOG generation
+- **Trigger**: Every push to main or sprint branches
+- **Source**: Parses commit messages with conventional commit format
+- **Output**: Automatically updates CHANGELOG.md with new entries
+
+#### Manual Additions (Senior Developer)
+- **Sprint Goals**: Added when sprint branches are created
+- **Review Results**: Added after senior developer code review
+- **Design Decisions**: Documented architectural choices
+- **Performance Notes**: Important technical considerations
+
+#### Role-Based Contributions
+
+**Junior Developers & AI Agents:**
+- Focus on implementation tasks
+- Commit messages automatically tracked
+- No manual CHANGELOG editing required
+- Work appears in automatic generation
+
+**Senior Developers:**
+- Add sprint planning context
+- Document review findings
+- Record architectural decisions
+- Update design rationale
+"""

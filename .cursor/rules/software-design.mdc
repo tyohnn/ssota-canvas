@@ -1,0 +1,5 @@
+---
+alwaysApply: false
+---
+The event-storm and process-model for the domain are complete, so please create the software design based on them.
+Follow the steps in [Software Design Guide](/docs/event-domain-design/guide/1-software-design-guide.md).
