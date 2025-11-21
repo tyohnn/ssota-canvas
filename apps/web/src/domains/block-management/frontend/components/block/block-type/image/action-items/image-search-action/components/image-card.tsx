@@ -46,8 +46,8 @@ export function ImageCard({
       {/* 이미지 */}
       <Image
         src={image.thumbnailUrl}
-        width={image.metadata.width}
-        height={image.metadata.height}
+        width={image.metadata.width || 400}
+        height={image.metadata.height || 300}
         alt={image.alt || 'Image'}
         className={cn(
           'w-full h-auto block transition-all',

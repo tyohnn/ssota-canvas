@@ -22,6 +22,9 @@ export type SearchType = 'keyword' | 'semantic' | 'combined';
 export interface UnsplashImage {
   id: string;
   alt_description: string | null;
+  description: string | null;
+  width: number;
+  height: number;
   urls: {
     raw: string;
     full: string;

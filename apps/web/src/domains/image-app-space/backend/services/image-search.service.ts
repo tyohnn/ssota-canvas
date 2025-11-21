@@ -181,6 +181,9 @@ export class ImageSearchService {
           authorName: image.user.name,
           authorLink: `${image.user.links.html}?utm_source=ssota&utm_medium=referral`,
           unsplashId: image.id,
+          width: image.width,
+          height: image.height,
+          description: image.description || image.alt_description || undefined,
         },
       }));
     } catch (error) {
