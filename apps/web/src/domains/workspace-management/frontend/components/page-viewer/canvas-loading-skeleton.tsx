@@ -3,24 +3,26 @@
 import React from 'react';
 
 /**
- * 랜덤 블록 생성
+ * 고정된 위치의 블록 생성 (Hydration Mismatch 방지)
+ * 자연스럽게 흩어진 형태의 레이아웃
  */
-function generateRandomBlocks() {
-  const blocks = [];
-  const blockCount = 6;
+const FIXED_BLOCKS = [
+  // 왼쪽 상단 그룹
+  { x: 80, y: 60, width: 240, height: 140, delay: 0 },
+  { x: 120, y: 240, width: 200, height: 120, delay: 100 },
 
-  for (let i = 0; i < blockCount; i++) {
-    blocks.push({
-      x: 50 + Math.random() * 800,
-      y: 50 + Math.random() * 400,
-      width: 200 + Math.random() * 150,
-      height: 100 + Math.random() * 100,
-      delay: i * 50,
-    });
-  }
+  // 중앙 상단 그룹
+  { x: 420, y: 80, width: 280, height: 160, delay: 200 },
+  { x: 380, y: 280, width: 220, height: 140, delay: 300 },
 
-  return blocks;
-}
+  // 오른쪽 그룹 (화면 밖으로 나갈 수도 있음)
+  { x: 780, y: 100, width: 260, height: 180, delay: 400 },
+  { x: 720, y: 320, width: 240, height: 130, delay: 500 },
+
+  // 하단 그룹
+  { x: 200, y: 450, width: 300, height: 150, delay: 600 },
+  { x: 580, y: 480, width: 280, height: 140, delay: 700 },
+];
 
 /**
  * Canvas Loading Skeleton
@@ -29,9 +31,6 @@ function generateRandomBlocks() {
  * 모든 캔버스 로딩 상태에서 공통으로 사용
  */
 export function CanvasLoadingSkeleton() {
-  // 클라이언트에서 한 번만 생성 (리렌더링 시 변경 안됨)
-  const skeletonBlocks = React.useMemo(() => generateRandomBlocks(), []);
-
   return (
     <div className="h-full w-full relative overflow-hidden">
       {/* React Flow 스타일 배경 (Dot Pattern) */}
@@ -66,7 +65,7 @@ export function CanvasLoadingSkeleton() {
 
       {/* 스켈레톤 블록들 */}
       <div className="absolute inset-0">
-        {skeletonBlocks.map((block, index) => (
+        {FIXED_BLOCKS.map((block, index) => (
           <div
             key={index}
             className="absolute rounded-lg border border-border bg-card shadow-sm animate-pulse"
@@ -84,7 +83,7 @@ export function CanvasLoadingSkeleton() {
               <div className="h-4 bg-muted rounded w-3/4"></div>
               <div className="h-3 bg-muted/60 rounded w-full"></div>
               <div className="h-3 bg-muted/60 rounded w-5/6"></div>
-              {block.height > 120 && (
+              {block.height > 130 && (
                 <>
                   <div className="h-3 bg-muted/40 rounded w-4/6"></div>
                   <div className="h-3 bg-muted/40 rounded w-full"></div>

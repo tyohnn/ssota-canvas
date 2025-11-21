@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Sidebar,
   SidebarContent,
@@ -15,14 +19,28 @@ import {
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { CanvasLoadingSkeleton } from '@/domains/workspace-management/frontend/components/page-viewer/canvas-loading-skeleton';
 
+interface RedirectClientProps {
+  redirectUrl: string;
+  orgId?: string;
+  workspaceId?: string;
+  pageId?: string;
+}
+
 /**
- * Dashboard Root Loading Skeleton
+ * 클라이언트 사이드 리다이렉트 컴포넌트
  *
- * /r 루트 페이지 로딩 시 표시되는 스켈레톤
- * - Organization 데이터 로딩
- * - 첫 페이지로 리다이렉트 준비 중
+ * 서버 사이드 리다이렉트 시 발생하는 클라이언트 에러를 방지하기 위해 사용
+ * 로딩 상태를 유지하다가 클라이언트에서 안전하게 이동
  */
-export default function DashboardRootLoading() {
+export function RedirectClient({ redirectUrl }: RedirectClientProps) {
+  const router = useRouter();
+
+  useEffect(() => {
+    // 리다이렉트 수행
+    router.replace(redirectUrl);
+  }, [redirectUrl, router]);
+
+  // 리다이렉트 중에도 대시보드 스켈레톤 표시 (화면 깜빡임 방지)
   return (
     <SidebarProvider>
       <Sidebar className="border-r-0 p-0">

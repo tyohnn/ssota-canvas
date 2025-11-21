@@ -37,94 +37,6 @@ function generateRandomBlocks() {
 }
 
 /**
- * Canvas Loading Skeleton
- *
- * React Flow 스타일의 캔버스 배경에 스켈레톤 블록들을 표시
- * - 매 렌더링마다 랜덤한 위치에 블록 배치
- */
-function CanvasLoadingSkeleton() {
-  // 서버에서 실행되므로 매번 새로운 랜덤 블록 생성
-  const skeletonBlocks = generateRandomBlocks();
-
-  return (
-    <div className="h-full w-full relative overflow-hidden">
-      {/* React Flow 스타일 배경 (Dot Pattern) */}
-      <div className="absolute inset-0 bg-background">
-        <svg className="absolute inset-0 w-full h-full">
-          <defs>
-            <pattern
-              id="dot-pattern"
-              x="0"
-              y="0"
-              width="20"
-              height="20"
-              patternUnits="userSpaceOnUse"
-            >
-              <circle
-                cx="1"
-                cy="1"
-                r="1"
-                className="fill-muted-foreground/20 dark:fill-muted-foreground/10"
-              />
-            </pattern>
-          </defs>
-          <rect
-            x="0"
-            y="0"
-            width="100%"
-            height="100%"
-            fill="url(#dot-pattern)"
-          />
-        </svg>
-      </div>
-
-      {/* 스켈레톤 블록들 */}
-      <div className="absolute inset-0">
-        {skeletonBlocks.map((block, index) => (
-          <div
-            key={index}
-            className="absolute rounded-lg border border-border bg-card shadow-sm animate-pulse"
-            style={{
-              left: `${block.x}px`,
-              top: `${block.y}px`,
-              width: `${block.width}px`,
-              height: `${block.height}px`,
-              animationDelay: `${block.delay}ms`,
-              animationDuration: '2s',
-            }}
-          >
-            {/* 블록 내부 콘텐츠 스켈레톤 */}
-            <div className="p-4 space-y-3 h-full">
-              <div className="h-4 bg-muted rounded w-3/4"></div>
-              <div className="h-3 bg-muted/60 rounded w-full"></div>
-              <div className="h-3 bg-muted/60 rounded w-5/6"></div>
-              {block.height > 120 && (
-                <>
-                  <div className="h-3 bg-muted/40 rounded w-4/6"></div>
-                  <div className="h-3 bg-muted/40 rounded w-full"></div>
-                </>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* 중앙 로딩 인디케이터 (반투명 오버레이) */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="bg-background/80 backdrop-blur-sm rounded-lg px-6 py-4 shadow-lg border border-border">
-          <div className="flex items-center gap-3">
-            <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
-            <p className="text-sm font-medium text-foreground">
-              캔버스를 로딩하고 있습니다...
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
  * Canvas Error Fallback
  */
 function CanvasErrorFallback({ error }: { error: string }) {
@@ -158,6 +70,7 @@ async function PageContent({
   );
 
   if (!canvasViewResult.success) {
+    console.error('[PageContent] Canvas 로드 실패:', canvasViewResult.error);
     return (
       <CanvasErrorFallback
         error={canvasViewResult.error || '캔버스 데이터를 불러올 수 없습니다.'}

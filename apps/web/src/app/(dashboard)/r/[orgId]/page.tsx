@@ -1,78 +1,78 @@
-'use client';
+import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-management.actions';
 
-import { useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { useWorkspaceContext } from '@/domains/workspace-management/frontend/contexts/workspace-context';
+interface OrgRootPageProps {
+  params: Promise<{ orgId: string }>;
+}
 
 /**
- * 조직 루트 페이지
+ * 조직 루트 페이지 (서버 컴포넌트)
  *
- * Client Component로 구현하여 Hook 불일치 문제 해결
  * 자동으로 적절한 페이지로 리다이렉트:
  * 1. 쿠키에 저장된 최근 페이지가 있으면 → /r/[orgId]/workspace/[wId]/page/[pId]
  * 2. 없으면 첫 번째 워크스페이스의 첫 번째 페이지로 → /r/[orgId]/workspace/[wId]/page/[pId]
  */
-export default function OrgRootPage() {
-  const router = useRouter();
-  const params = useParams();
-  const { workspaces } = useWorkspaceContext();
-  const orgId = params.orgId as string;
+export default async function OrgRootPage({ params }: OrgRootPageProps) {
+  const { orgId } = await params;
 
-  useEffect(() => {
-    if (!orgId) return;
+  // Workspace-Page 데이터 로드
+  const workspacePageResult = await getOrganizationWorkspacePageViewAction({
+    organizationId: orgId,
+  });
 
-    // 워크스페이스가 없는 경우
-    if (workspaces.length === 0) {
-      router.push(`/r/${orgId}/workspace/new`);
-      return;
-    }
+  if (!workspacePageResult.success) {
+    // 실패 시 에러 페이지로
+    throw new Error('Failed to load workspace data');
+  }
 
-    // 쿠키에서 최근 페이지 확인
-    const recentPageKey = `ssota-recent-page-${orgId}`;
-    const cookiePageId = document.cookie
-      .split('; ')
-      .find(row => row.startsWith(`${recentPageKey}=`))
-      ?.split('=')[1];
+  const { workspaces } = workspacePageResult.data;
 
-    // 1. 쿠키에 저장된 최근 페이지가 유효한 경우
-    if (cookiePageId) {
-      // 페이지가 속한 워크스페이스 찾기
-      for (const workspace of workspaces) {
-        const findPageInTree = (pages: typeof workspace.pageTree): boolean => {
-          for (const page of pages) {
-            if (page.id === cookiePageId) return true;
-            if (page.children && page.children.length > 0) {
-              if (findPageInTree(page.children)) return true;
-            }
-          }
-          return false;
-        };
+  // 워크스페이스가 없는 경우
+  if (workspaces.length === 0) {
+    redirect(`/r/${orgId}/workspace/new`);
+  }
 
-        if (findPageInTree(workspace.pageTree)) {
-          router.push(
-            `/r/${orgId}/workspace/${workspace.workspaceId}/page/${cookiePageId}`
-          );
-          return;
+  // 쿠키에서 최근 페이지 확인
+  const cookieStore = await cookies();
+  const recentPageKey = `ssota-recent-page-${orgId}`;
+  const cookiePageId = cookieStore.get(recentPageKey)?.value;
+
+  // 1. 쿠키에 저장된 최근 페이지가 유효한 경우
+  if (cookiePageId) {
+    // 페이지가 속한 워크스페이스 찾기 (재귀 함수)
+    const findPageInTree = (
+      pages: (typeof workspaces)[0]['pageTree']
+    ): boolean => {
+      for (const page of pages) {
+        if (page.id === cookiePageId) return true;
+        if (page.children && page.children.length > 0) {
+          if (findPageInTree(page.children)) return true;
         }
       }
+      return false;
+    };
+
+    for (const workspace of workspaces) {
+      if (findPageInTree(workspace.pageTree)) {
+        redirect(
+          `/r/${orgId}/workspace/${workspace.workspaceId}/page/${cookiePageId}`
+        );
+      }
     }
+  }
 
-    // 2. 첫 번째 워크스페이스의 첫 번째 페이지로
-    const firstWorkspace = workspaces[0]!; // workspaces.length > 0 확인 완료
-    const firstPage = firstWorkspace.pageTree[0];
+  // 2. 첫 번째 워크스페이스의 첫 번째 페이지로
+  const firstWorkspace = workspaces[0]!; // workspaces.length > 0 확인 완료
+  const firstPage = firstWorkspace.pageTree[0];
 
-    if (!firstPage) {
-      // 페이지가 없는 경우 워크스페이스 루트로
-      router.push(`/r/${orgId}/workspace/${firstWorkspace.workspaceId}`);
-      return;
-    }
+  if (!firstPage) {
+    // 페이지가 없는 경우 워크스페이스 루트로
+    redirect(`/r/${orgId}/workspace/${firstWorkspace.workspaceId}`);
+  }
 
-    // 첫 페이지로 리다이렉트
-    router.push(
-      `/r/${orgId}/workspace/${firstWorkspace.workspaceId}/page/${firstPage.id}`
-    );
-  }, [orgId, router, workspaces]);
-
-  // 리다이렉트 중...
-  return null;
+  // 첫 페이지로 리다이렉트
+  redirect(
+    `/r/${orgId}/workspace/${firstWorkspace.workspaceId}/page/${firstPage.id}`
+  );
 }
