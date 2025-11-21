@@ -19,7 +19,10 @@ import { useTheme } from 'next-themes';
 
 // Type imports
 import type { CustomNodeType } from '../../acl/react-flow.acl';
-import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import {
+  BlockType,
+  BLOCK_TYPE_SIZES,
+} from '@/domains/block-management/shared/types/block-types';
 
 // Canvas Management Hooks
 import { useCanvasMode } from '../../hooks/use-canvas-mode';
@@ -136,6 +139,8 @@ export function CanvasReactFlowWrapper({
   const panOnScrollEnabled = !canvasMode.isTextareaEditing;
   // PanOnDrag 동적 제어: 패닝 모드에서는 드래그로 패닝 가능
   const panOnDragEnabled = canvasMode.isPanningMode();
+  // 🎨 블록 생성 모드 확인
+  const isBlockCreationMode = canvasMode.isBlockCreationMode();
   const blockTransform = useCanvasBlockTransform({
     orgId,
     workspaceId,
@@ -204,6 +209,86 @@ export function CanvasReactFlowWrapper({
     [canvasCallbacks.handleSelectBlockType]
   );
 
+  // ✅ 블록 생성 모드용 onPaneClick override
+  const handlePaneClick = React.useCallback(
+    (event: React.MouseEvent) => {
+      if (isBlockCreationMode) {
+        const currentMode = canvasMode.getCurrentMode();
+        if (currentMode.type !== 'block-creation' || !currentMode.blockType) {
+          return;
+        }
+
+        const blockType = currentMode.blockType;
+        const blockSize =
+          BLOCK_TYPE_SIZES[blockType] ?? BLOCK_TYPE_SIZES['text'];
+
+        const mouseFlowPosition = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
+
+        const adjustedPosition = {
+          x: mouseFlowPosition.x - (blockSize?.width ?? 200) / 2,
+          y: mouseFlowPosition.y - (blockSize?.height ?? 150) / 2,
+        };
+
+        blockLifecycle.createAndMountBlock(blockType, adjustedPosition);
+        canvasMode.exitToDefaultMode();
+        return;
+      }
+
+      // 일반 모드는 기존 콜백 사용
+      canvasCallbacks.onPaneClick(event);
+    },
+    [
+      isBlockCreationMode,
+      canvasMode,
+      blockLifecycle,
+      reactFlowInstance,
+      canvasCallbacks.onPaneClick,
+    ]
+  );
+
+  // ✅ 블록 생성 모드용 onNodeClick override
+  const handleNodeClick = React.useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      if (isBlockCreationMode) {
+        const currentMode = canvasMode.getCurrentMode();
+        if (currentMode.type !== 'block-creation' || !currentMode.blockType) {
+          return;
+        }
+
+        const blockType = currentMode.blockType;
+        const blockSize =
+          BLOCK_TYPE_SIZES[blockType] ?? BLOCK_TYPE_SIZES['text'];
+
+        const mouseFlowPosition = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
+
+        const adjustedPosition = {
+          x: mouseFlowPosition.x - (blockSize?.width ?? 200) / 2,
+          y: mouseFlowPosition.y - (blockSize?.height ?? 150) / 2,
+        };
+
+        blockLifecycle.createAndMountBlock(blockType, adjustedPosition);
+        canvasMode.exitToDefaultMode();
+        return;
+      }
+
+      // 일반 모드는 기존 콜백 사용
+      canvasCallbacks.onNodeClick(event, node);
+    },
+    [
+      isBlockCreationMode,
+      canvasMode,
+      blockLifecycle,
+      reactFlowInstance,
+      canvasCallbacks.onNodeClick,
+    ]
+  );
+
   // 전역 키보드 이벤트 리스너 (React Flow 포커스 문제 우회)
   React.useEffect(() => {
     const handleGlobalKeyDown = (event: globalThis.KeyboardEvent) => {
@@ -249,6 +334,16 @@ export function CanvasReactFlowWrapper({
     <div className="h-full w-full relative">
       {/* React Flow 기본 선택 박스 스타일링 */}
       <style jsx global>{`
+        /* React Flow 기본 배경색 */
+        .react-flow {
+          background-color: hsl(var(--background)) !important;
+        }
+
+        /* React Flow Pane (캔버스 영역) */
+        .react-flow__pane {
+          background-color: transparent !important;
+        }
+
         /* 선택 드래그 프리뷰 박스 (파란색 반투명) */
         .react-flow__selection {
           background: rgba(59, 130, 246, 0.08) !important;
@@ -283,6 +378,11 @@ export function CanvasReactFlowWrapper({
           stroke: rgba(255, 255, 255, 0.05) !important;
         }
 
+        /* React Flow Background 라이트모드 */
+        .react-flow__background-pattern {
+          stroke: rgba(0, 0, 0, 0.1) !important;
+        }
+
         /* 패닝 모드: 커서를 grab/grabbing으로 변경 */
         .react-flow.panning-mode {
           cursor: grab !important;
@@ -298,6 +398,44 @@ export function CanvasReactFlowWrapper({
         }
         .react-flow.panning-mode .react-flow__pane:active {
           cursor: grabbing !important;
+        }
+
+        /* 🎨 블록 생성 모드: 기존 블록들을 반투명하게 만들고 상호작용 차단 */
+        .react-flow.block-creation-mode .react-flow__node {
+          opacity: 0.4 !important;
+          transition: opacity 0.2s ease !important;
+          /* ✅ 노드 자체는 pointer-events 유지 (클릭 통과) */
+          pointer-events: auto !important;
+        }
+
+        /* 블록 생성 모드: 블록 내부의 모든 요소만 pointer-events 차단 */
+        .react-flow.block-creation-mode .react-flow__node > * {
+          pointer-events: none !important;
+        }
+
+        /* 블록 생성 모드: 호버 효과 차단 */
+        .react-flow.block-creation-mode .react-flow__node:hover {
+          opacity: 0.4 !important;
+        }
+
+        /* 블록 생성 모드: 블록의 호버 border/outline 제거 */
+        .react-flow.block-creation-mode .react-flow__node:hover > * {
+          border-color: transparent !important;
+          outline: none !important;
+        }
+
+        /* 블록 생성 모드: 캔버스 전체에 crosshair 커서 */
+        .react-flow.block-creation-mode,
+        .react-flow.block-creation-mode .react-flow__pane,
+        .react-flow.block-creation-mode .react-flow__node,
+        .react-flow.block-creation-mode .react-flow__node * {
+          cursor: crosshair !important;
+        }
+
+        /* 블록 생성 모드: 엣지도 투명하게 */
+        .react-flow.block-creation-mode .react-flow__edge {
+          opacity: 0.3 !important;
+          pointer-events: none !important;
         }
       `}</style>
 
@@ -315,10 +453,10 @@ export function CanvasReactFlowWrapper({
         // 테마 설정
         colorMode={theme === 'dark' ? 'dark' : 'light'}
         // 상호작용 설정
-        nodesDraggable={!panOnDragEnabled} // 패닝 모드에서는 노드 드래그 비활성화
-        nodesConnectable={!panOnDragEnabled} // 패닝 모드에서는 연결 비활성화
-        elementsSelectable={!panOnDragEnabled} // 패닝 모드에서는 선택 비활성화
-        selectionOnDrag={!panOnDragEnabled} // 패닝 모드에서는 선택 박스 비활성화
+        nodesDraggable={!panOnDragEnabled && !isBlockCreationMode} // 블록 생성 모드에서도 드래그 비활성화
+        nodesConnectable={!panOnDragEnabled && !isBlockCreationMode} // 블록 생성 모드에서도 연결 비활성화
+        elementsSelectable={!panOnDragEnabled && !isBlockCreationMode} // 블록 생성 모드에서도 선택 비활성화
+        selectionOnDrag={!panOnDragEnabled && !isBlockCreationMode} // 블록 생성 모드에서도 선택 박스 비활성화
         selectionMode={SelectionMode.Partial}
         connectionMode={ConnectionMode.Loose} // source/target 구분 없이 양방향 연결 허용
         // 트랙패드 제스처 설정 (피그마 스타일)
@@ -326,10 +464,10 @@ export function CanvasReactFlowWrapper({
         panOnScroll={panOnScrollEnabled} // 두 손가락 스크롤로 패닝 (textarea 편집 중 비활성화)
         zoomOnScroll={false} // 스크롤로 줌 비활성화
         zoomOnPinch={true} // 핀치 제스처로 줌 활성화
-        // 이벤트 핸들러 (CM-003, CM-007 추가)
-        onNodeClick={canvasCallbacks.onNodeClick}
+        // 이벤트 핸들러 (CM-003, CM-007 추가) - 블록 생성 모드용 override
+        onNodeClick={handleNodeClick}
         onSelectionChange={canvasCallbacks.onSelectionChange}
-        onPaneClick={canvasCallbacks.onPaneClick}
+        onPaneClick={handlePaneClick}
         onNodeDragStart={canvasCallbacks.onNodeDragStart}
         onNodeDrag={canvasCallbacks.onNodeDrag}
         onNodeDragStop={canvasCallbacks.onNodeDragStop}
@@ -340,7 +478,7 @@ export function CanvasReactFlowWrapper({
         onNodesDelete={canvasCallbacks.onNodesDelete}
         // onKeyDown은 전역 리스너로 처리 (포커스 문제 우회)
         deleteKeyCode={['Delete', 'Backspace']}
-        className={`bg-muted/30 ${panOnDragEnabled ? 'panning-mode' : ''}`}
+        className={`bg-muted/30 ${panOnDragEnabled ? 'panning-mode' : ''} ${isBlockCreationMode ? 'block-creation-mode' : ''}`}
       >
         <Background />
 

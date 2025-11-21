@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Sidebar,
   SidebarContent,
@@ -15,12 +19,28 @@ import {
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { CanvasLoadingSkeleton } from '@/domains/workspace-management/frontend/components/page-viewer/canvas-loading-skeleton';
 
+interface RedirectClientProps {
+  redirectUrl: string;
+  orgId?: string;
+  workspaceId?: string;
+  pageId?: string;
+}
+
 /**
- * Dashboard Layout Loading Skeleton
+ * 클라이언트 사이드 리다이렉트 컴포넌트
  *
- * /r/[orgId] 레이아웃 로딩 시 표시되는 스켈레톤
+ * 서버 사이드 리다이렉트 시 발생하는 클라이언트 에러를 방지하기 위해 사용
+ * 로딩 상태를 유지하다가 클라이언트에서 안전하게 이동
  */
-export default function DashboardLoading() {
+export function RedirectClient({ redirectUrl }: RedirectClientProps) {
+  const router = useRouter();
+
+  useEffect(() => {
+    // 리다이렉트 수행
+    router.replace(redirectUrl);
+  }, [redirectUrl, router]);
+
+  // 리다이렉트 중에도 대시보드 스켈레톤 표시 (화면 깜빡임 방지)
   return (
     <SidebarProvider>
       <Sidebar className="border-r-0 p-0">
@@ -120,9 +140,31 @@ export default function DashboardLoading() {
         <SidebarRail />
       </Sidebar>
 
-      {/* Main Content Skeleton - Canvas Loading Style */}
-      <SidebarInset className="overflow-hidden overscroll-none h-svh">
-        <CanvasLoadingSkeleton />
+      {/* Main Content Skeleton - Canvas Loading Style with Header */}
+      <SidebarInset className="overflow-hidden overscroll-none h-svh flex flex-col">
+        {/* Header Skeleton */}
+        <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b bg-background px-4">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded-md" /> {/* Sidebar Trigger */}
+            <div className="mx-2 h-4 w-px bg-border/50" /> {/* Separator */}
+            <Skeleton className="h-5 w-32 rounded-md" />{' '}
+            {/* Page Title / Breadcrumb */}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 mr-2">
+              <Skeleton className="h-8 w-8 rounded-md" /> {/* Action Icon */}
+              <Skeleton className="h-8 w-8 rounded-md" /> {/* Action Icon */}
+            </div>
+            <div className="h-4 w-px bg-border/50 mx-1" />
+            <Skeleton className="h-8 w-16 rounded-md" /> {/* Share Button */}
+            <Skeleton className="h-8 w-8 rounded-md" /> {/* More Menu */}
+          </div>
+        </header>
+
+        {/* Canvas Skeleton */}
+        <div className="flex-1 relative overflow-hidden">
+          <CanvasLoadingSkeleton />
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

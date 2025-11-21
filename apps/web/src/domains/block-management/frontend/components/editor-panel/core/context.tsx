@@ -18,6 +18,8 @@ export interface EditorPanelContextValue {
   title: string;
   setTitle: (value: string) => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  isExpanded: boolean;
+  setIsExpanded: (value: boolean) => void;
 
   // Handlers
   handleTitleSave: () => Promise<void>;

@@ -32,7 +32,9 @@ export function OrganizationSwitcher() {
   }, []);
 
   // Prevent hydration mismatch by showing a consistent state until mounted
-  const displayName = mounted ? selectedOrganization?.name : '조직 선택';
+  const displayName = mounted
+    ? selectedOrganization?.name
+    : 'Select Organization';
   const displayInitial = mounted
     ? selectedOrganization?.name?.charAt(0)?.toUpperCase() || 'O'
     : 'O';
@@ -71,7 +73,7 @@ export function OrganizationSwitcher() {
                     key={org.id}
                     onClick={() => {
                       selectOrganization(org.id);
-                      // URL 이동: /r/[orgId]/workspace
+                      // Navigate to: /r/[orgId]/workspace
                       router.push(`/r/${org.id}/workspace`);
                     }}
                     className="gap-2 p-2"
@@ -89,7 +91,7 @@ export function OrganizationSwitcher() {
                             variant="secondary"
                             className="text-xs px-1.5 py-0.5"
                           >
-                            기본
+                            Default
                           </Badge>
                         )}
                         {isCurrentOrg && (
@@ -109,7 +111,7 @@ export function OrganizationSwitcher() {
                   <Plus className="size-4" />
                 </div>
                 <div className="text-muted-foreground font-medium">
-                  새 조직 만들기
+                  Create Organization
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>

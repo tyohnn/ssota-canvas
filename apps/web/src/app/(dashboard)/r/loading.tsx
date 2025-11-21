@@ -16,11 +16,13 @@ import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { CanvasLoadingSkeleton } from '@/domains/workspace-management/frontend/components/page-viewer/canvas-loading-skeleton';
 
 /**
- * Dashboard Layout Loading Skeleton
+ * Dashboard Root Loading Skeleton
  *
- * /r/[orgId] 레이아웃 로딩 시 표시되는 스켈레톤
+ * /r 루트 페이지 로딩 시 표시되는 스켈레톤
+ * - Organization 데이터 로딩
+ * - 첫 페이지로 리다이렉트 준비 중
  */
-export default function DashboardLoading() {
+export default function DashboardRootLoading() {
   return (
     <SidebarProvider>
       <Sidebar className="border-r-0 p-0">
@@ -120,9 +122,31 @@ export default function DashboardLoading() {
         <SidebarRail />
       </Sidebar>
 
-      {/* Main Content Skeleton - Canvas Loading Style */}
-      <SidebarInset className="overflow-hidden overscroll-none h-svh">
-        <CanvasLoadingSkeleton />
+      {/* Main Content Skeleton - Canvas Loading Style with Header */}
+      <SidebarInset className="overflow-hidden overscroll-none h-svh flex flex-col">
+        {/* Header Skeleton */}
+        <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b bg-background px-4">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded-md" /> {/* Sidebar Trigger */}
+            <div className="mx-2 h-4 w-px bg-border/50" /> {/* Separator */}
+            <Skeleton className="h-5 w-32 rounded-md" />{' '}
+            {/* Page Title / Breadcrumb */}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 mr-2">
+              <Skeleton className="h-8 w-8 rounded-md" /> {/* Action Icon */}
+              <Skeleton className="h-8 w-8 rounded-md" /> {/* Action Icon */}
+            </div>
+            <div className="h-4 w-px bg-border/50 mx-1" />
+            <Skeleton className="h-8 w-16 rounded-md" /> {/* Share Button */}
+            <Skeleton className="h-8 w-8 rounded-md" /> {/* More Menu */}
+          </div>
+        </header>
+
+        {/* Canvas Skeleton */}
+        <div className="flex-1 relative overflow-hidden">
+          <CanvasLoadingSkeleton />
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -36,16 +36,16 @@ import { useOrganization } from '../../hooks/use-organization';
 import { CreateOrganizationRequest } from '../../../shared/dtos';
 import { ORGANIZATION_TYPE_LABELS } from '../../../shared/types';
 
-// Zod 스키마 정의 (08-code-conventions.md 준수)
+// Zod schema definition (08-code-conventions.md compliance)
 const createOrganizationSchema = z.object({
   name: z
     .string()
-    .min(1, '조직명은 필수입니다')
-    .max(255, '조직명은 255자를 초과할 수 없습니다'),
+    .min(1, 'Organization name is required')
+    .max(255, 'Organization name cannot exceed 255 characters'),
   organizationType: z.enum(
     ['personal', 'education', 'startup', 'agency', 'company', 'n/a'],
     {
-      message: '올바른 조직 타입을 선택해주세요',
+      message: 'Please select a valid organization type',
     }
   ),
 });
@@ -79,22 +79,20 @@ export function CreateOrganizationDialog({
       const result = await createOrganization(data);
 
       if (result.success) {
-        toast('조직이 성공적으로 생성되었습니다', {
-          description: `${data.name} 조직이 생성되었습니다.`,
+        toast('Organization created successfully', {
+          description: `${data.name} organization has been created.`,
         });
         form.reset();
         onOpenChange(false);
       } else {
-        toast.error('조직 생성에 실패했습니다', {
-          description: result.error || '알 수 없는 오류가 발생했습니다.',
+        toast.error('Failed to create organization', {
+          description: result.error || 'An unknown error occurred.',
         });
       }
     } catch (error) {
-      toast.error('조직 생성 중 오류가 발생했습니다', {
+      toast.error('Error creating organization', {
         description:
-          error instanceof Error
-            ? error.message
-            : '알 수 없는 오류가 발생했습니다.',
+          error instanceof Error ? error.message : 'An unknown error occurred.',
       });
     } finally {
       setIsSubmitting(false);
@@ -110,9 +108,9 @@ export function CreateOrganizationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] rounded-md">
         <DialogHeader>
-          <DialogTitle>새 조직 만들기</DialogTitle>
+          <DialogTitle>Create New Organization</DialogTitle>
           <DialogDescription>
-            새로운 조직을 생성하여 팀과 함께 작업을 시작하세요.
+            Create a new organization to start working with your team.
           </DialogDescription>
         </DialogHeader>
 
@@ -126,10 +124,10 @@ export function CreateOrganizationDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>조직명</FormLabel>
+                  <FormLabel>Organization Name</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="조직명을 입력하세요"
+                      placeholder="Enter organization name"
                       {...field}
                       disabled={isSubmitting}
                     />
@@ -144,7 +142,7 @@ export function CreateOrganizationDialog({
               name="organizationType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>조직 타입</FormLabel>
+                  <FormLabel>Organization Type</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
@@ -152,7 +150,7 @@ export function CreateOrganizationDialog({
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="조직 타입을 선택하세요" />
+                        <SelectValue placeholder="Select organization type" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -177,10 +175,10 @@ export function CreateOrganizationDialog({
                 onClick={handleCancel}
                 disabled={isSubmitting}
               >
-                취소
+                Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? '생성 중...' : '생성'}
+                {isSubmitting ? 'Creating...' : 'Create'}
               </Button>
             </DialogFooter>
           </form>

@@ -32,6 +32,11 @@ interface IconPickerProps {
    * 기본값: 16
    */
   maxRecentIcons?: number;
+  /**
+   * 커스텀 트리거 엘리먼트
+   * 제공되지 않으면 기본 버튼 사용
+   */
+  trigger?: React.ReactNode;
 }
 
 /**
@@ -138,6 +143,7 @@ export function IconPicker({
   className,
   storageKey = 'icon-picker-recent',
   maxRecentIcons = 16,
+  trigger,
 }: IconPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -324,6 +330,7 @@ export function IconPicker({
     <>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
+          {trigger || (
           <Button
             type="button"
             variant="outline"
@@ -333,6 +340,7 @@ export function IconPicker({
           >
             {renderIcon(value || 'Folder', 20)}
           </Button>
+          )}
         </PopoverTrigger>
         <PopoverContent
           className="w-[360px] h-[420px] p-0 flex flex-col overflow-hidden"

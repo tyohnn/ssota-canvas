@@ -2,7 +2,7 @@
 
 import { memberRoleEnum } from '@/db/schema';
 
-// Organization Types (정적 정의)
+// Organization Types (static definition)
 export type OrganizationType =
   | 'personal'
   | 'education'
@@ -11,30 +11,30 @@ export type OrganizationType =
   | 'company'
   | 'n/a';
 
-// Organization Type Labels (한국어)
+// Organization Type Labels
 export const ORGANIZATION_TYPE_LABELS: Record<OrganizationType, string> = {
-  personal: '개인',
-  education: '교육',
-  startup: '스타트업',
-  agency: '에이전시',
-  company: '컴퍼니',
+  personal: 'Personal',
+  education: 'Education',
+  startup: 'Startup',
+  agency: 'Agency',
+  company: 'Company',
   'n/a': 'N/A',
 } as const;
 
 /**
  * Member Role Type
  *
- * DB schema의 memberRoleEnum에서 추출한 타입
- * - 'owner': 조직 소유자
- * - 'admin': 관리자
- * - 'member': 일반 멤버
+ * Type extracted from DB schema's memberRoleEnum
+ * - 'owner': Organization owner
+ * - 'admin': Administrator
+ * - 'member': Regular member
  */
 export type MemberRole = (typeof memberRoleEnum.enumValues)[number];
 
 /**
- * Member Role with null (옵셔널 역할)
+ * Member Role with null (optional role)
  *
- * 권한 확인 시 멤버가 아닌 경우 null을 반환할 때 사용
+ * Used when returning null for non-members during permission checks
  */
 export type MemberRoleOrNull = MemberRole | null;
 

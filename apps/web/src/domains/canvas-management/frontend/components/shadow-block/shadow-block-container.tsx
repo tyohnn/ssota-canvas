@@ -102,35 +102,44 @@ export function ShadowBlockContainer({
     const handleClick = (event: MouseEvent) => {
       // ⚠️ 이미 생성 중이면 무시 (중복 생성 방지 - 짧은 디바운스)
       if (isCreatingRef.current) {
-        console.log(
-          '[ShadowBlock] Block creation cooldown active, ignoring click'
-        );
         return;
       }
 
       if (currentMode.type !== 'block-creation') return;
 
-      // UI 요소 클릭 제외 (다이얼로그, 사이드바, 패널 등)
       const target = event.target as HTMLElement;
-      const isUIElement =
-        target.closest('[role="dialog"]') ||
-        target.closest('[role="menu"]') ||
-        target.closest('[role="listbox"]') ||
-        target.closest('.react-flow__controls') ||
-        target.closest('.react-flow__minimap') ||
-        target.closest('[data-exclude-block-creation]'); // 커스텀 제외 속성
 
-      // UI 요소 클릭 시 무시
-      if (isUIElement) {
-        console.log('[ShadowBlock] UI element clicked, ignoring');
+      // ✅ React Flow 영역 확인 (여러 방법으로 체크)
+      const isReactFlowPane =
+        target.classList.contains('react-flow__pane') ||
+        target.classList.contains('react-flow__background');
+
+      const isReactFlowNode = target.closest('.react-flow__node') !== null;
+
+      const isReactFlowEdge = target.closest('.react-flow__edge') !== null;
+
+      const isInReactFlowContainer = target.closest('.react-flow') !== null;
+
+      const isInReactFlow =
+        isReactFlowPane ||
+        isReactFlowNode ||
+        isReactFlowEdge ||
+        isInReactFlowContainer;
+
+      if (!isInReactFlow) {
         return;
       }
 
-      // ✅ 캔버스 영역이거나 기존 블록 위도 허용
-      // React Flow 컨테이너 내부인지만 확인
-      const isInReactFlow = target.closest('.react-flow');
-      if (!isInReactFlow) {
-        console.log('[ShadowBlock] Click outside React Flow, ignoring');
+      // ❌ 특정 UI 요소는 제외 (툴바, 컨트롤 등)
+      const isExcludedElement =
+        target.closest('[role="dialog"]') || // 다이얼로그
+        target.closest('[role="menu"]') || // 메뉴
+        target.closest('.react-flow__controls') || // 컨트롤 버튼
+        target.closest('.react-flow__minimap') || // 미니맵
+        target.closest('[data-radix-popper-content-wrapper]') || // Radix 팝오버
+        target.closest('[data-exclude-block-creation]'); // 커스텀 제외
+
+      if (isExcludedElement) {
         return;
       }
 

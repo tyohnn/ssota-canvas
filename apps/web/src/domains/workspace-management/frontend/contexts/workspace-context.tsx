@@ -47,6 +47,7 @@ import {
  */
 interface WorkspaceContextValue {
   // 기본 상태
+  organizationId: string;
   workspaces: WorkspaceWithPagesDTO[];
   selectedPageId: string | null;
   selectedWorkspaceId: string | null;
@@ -94,7 +95,11 @@ interface WorkspaceContextValue {
     title?: string,
     icon?: string
   ) => Promise<string | null>;
-  movePage: (pageId: string, newParentId?: string) => Promise<boolean>;
+  movePage: (
+    pageId: string,
+    newParentId?: string,
+    insertIndex?: number
+  ) => Promise<boolean>;
   updatePageInfo: (
     pageId: string,
     title?: string,
@@ -171,30 +176,59 @@ function findAndRemovePageFromTree(
 
 /**
  * PageTree의 특정 부모에 페이지 추가
+ *
+ * @param tree - 페이지 트리
+ * @param page - 추가할 페이지
+ * @param parentId - 부모 페이지 ID (undefined면 루트)
+ * @param insertIndex - 삽입 위치 (undefined면 맨 끝)
  */
 function addPageToTree(
   tree: PageTreeNodeDTO[],
   page: PageTreeNodeDTO,
-  parentId: string | undefined
+  parentId: string | undefined,
+  insertIndex?: number
 ): PageTreeNodeDTO[] {
   // 루트로 추가
   if (parentId === undefined) {
-    return [...tree, { ...page, parentId: null }];
+    const pageWithParent = { ...page, parentId: null };
+
+    // 인덱스 지정 시 해당 위치에 삽입
+    if (insertIndex !== undefined && insertIndex >= 0) {
+      const newTree = [...tree];
+      newTree.splice(insertIndex, 0, pageWithParent);
+      return newTree;
+    }
+
+    // 인덱스 없으면 맨 끝에 추가
+    return [...tree, pageWithParent];
   }
 
   // 특정 부모에 추가
   return tree.map(node => {
     if (node.id === parentId) {
+      const pageWithParent = { ...page, parentId };
+
+      // 인덱스 지정 시 해당 위치에 삽입
+      if (insertIndex !== undefined && insertIndex >= 0) {
+        const newChildren = [...node.children];
+        newChildren.splice(insertIndex, 0, pageWithParent);
+        return {
+          ...node,
+          children: newChildren,
+        };
+      }
+
+      // 인덱스 없으면 맨 끝에 추가
       return {
         ...node,
-        children: [...node.children, { ...page, parentId }],
+        children: [...node.children, pageWithParent],
       };
     }
 
     if (node.children.length > 0) {
       return {
         ...node,
-        children: addPageToTree(node.children, page, parentId),
+        children: addPageToTree(node.children, page, parentId, insertIndex),
       };
     }
 
@@ -293,6 +327,33 @@ function findMaxOrderInTree(
   }
 
   return maxOrder;
+}
+
+/**
+ * PageTree에서 특정 페이지의 정보(title, icon) 업데이트
+ */
+function updatePageInfoInTree(
+  tree: PageTreeNodeDTO[],
+  pageId: string,
+  updates: { title?: string; icon?: string }
+): PageTreeNodeDTO[] {
+  return tree.map(node => {
+    if (node.id === pageId) {
+      return {
+        ...node,
+        ...(updates.title !== undefined && { title: updates.title }),
+        ...(updates.icon !== undefined && { icon: updates.icon }),
+        lastModified: new Date().toISOString(),
+      };
+    }
+    if (node.children.length > 0) {
+      return {
+        ...node,
+        children: updatePageInfoInTree(node.children, pageId, updates),
+      };
+    }
+    return node;
+  });
 }
 
 // ============================================================================
@@ -425,6 +486,29 @@ export function WorkspaceProvider({
     return null;
   };
 
+  // 페이지의 모든 부모 페이지 ID 찾기 (재귀)
+  const findPageAncestors = (
+    tree: PageTreeNodeDTO[],
+    pageId: string,
+    ancestors: string[] = []
+  ): string[] | null => {
+    for (const node of tree) {
+      if (node.id === pageId) {
+        // 페이지를 찾았으면 ancestors 반환
+        return ancestors;
+      }
+      if (node.children && node.children.length > 0) {
+        // 현재 노드를 ancestors에 추가하고 재귀 탐색
+        const found = findPageAncestors(node.children, pageId, [
+          ...ancestors,
+          node.id,
+        ]);
+        if (found !== null) return found;
+      }
+    }
+    return null;
+  };
+
   // Scenario 1: 페이지 선택
   const selectPage = useCallback(
     (pageId: string, workspaceId: string, skipNavigation = false) => {
@@ -448,7 +532,17 @@ export function WorkspaceProvider({
       // 4. 해당 Workspace 자동 펼치기
       setExpandedWorkspaces(prev => new Set(prev).add(workspaceId));
 
-      // 5. URL 변경 (skipNavigation이 true면 건너뜀)
+      // 5. 페이지의 모든 부모 페이지들 자동 펼치기
+      const ancestors = findPageAncestors(workspace.pageTree, pageId);
+      if (ancestors && ancestors.length > 0) {
+        setExpandedPages(prev => {
+          const newSet = new Set(prev);
+          ancestors.forEach(ancestorId => newSet.add(ancestorId));
+          return newSet;
+        });
+      }
+
+      // 6. URL 변경 (skipNavigation이 true면 건너뜀)
       if (!skipNavigation && typeof window !== 'undefined') {
         const targetUrl = `/r/${organizationId}/workspace/${workspaceId}/page/${pageId}`;
         // 현재 URL과 다를 때만 변경
@@ -787,7 +881,7 @@ export function WorkspaceProvider({
     ): Promise<string | null> => {
       const tempPageId = `temp-${Date.now()}`;
       const finalTitle = title || 'Untitled';
-      const finalIcon = icon || 'FileText';
+      const finalIcon = icon || 'File';
 
       try {
         // 1. Optimistic Update: 임시 페이지 추가
@@ -821,7 +915,18 @@ export function WorkspaceProvider({
 
         // 2. 부모 페이지 자동 펼치기
         if (parentId) {
-          setExpandedPages(prev => new Set(prev).add(parentId));
+          setExpandedPages(prev => {
+            const newSet = new Set(prev);
+            newSet.add(parentId);
+
+            // 로컬스토리지에 저장
+            if (typeof window !== 'undefined') {
+              const key = getPageCollapsedKey(parentId);
+              localStorage.setItem(key, 'false');
+            }
+
+            return newSet;
+          });
         }
 
         // 3. 새 페이지로 이동
@@ -903,7 +1008,11 @@ export function WorkspaceProvider({
 
   // Scenario 4: Page 이동 (Optimistic Update)
   const movePage = useCallback(
-    async (pageId: string, newParentId?: string): Promise<boolean> => {
+    async (
+      pageId: string,
+      newParentId?: string,
+      insertIndex?: number
+    ): Promise<boolean> => {
       // 1. 이전 상태 백업 (롤백용)
       const previousWorkspaces = workspaces;
 
@@ -919,17 +1028,42 @@ export function WorkspaceProvider({
 
             if (!page) return ws;
 
+            // 드롭 인덱스가 제공된 경우 해당 위치의 order 계산
+            let updatedPage = page;
+            if (insertIndex !== undefined) {
+              updatedPage = {
+                ...page,
+                order: insertIndex,
+              };
+            }
+
             // 새 위치에 추가
             return {
               ...ws,
-              pageTree: addPageToTree(treeAfterRemoval, page, newParentId),
+              pageTree: addPageToTree(
+                treeAfterRemoval,
+                updatedPage,
+                newParentId,
+                insertIndex
+              ),
             };
           });
         });
 
         // 3. 새 부모 자동 펼치기
         if (newParentId) {
-          setExpandedPages(prev => new Set(prev).add(newParentId));
+          setExpandedPages(prev => {
+            const newSet = new Set(prev);
+            newSet.add(newParentId);
+
+            // 로컬스토리지에 저장
+            if (typeof window !== 'undefined') {
+              const key = getPageCollapsedKey(newParentId);
+              localStorage.setItem(key, 'false');
+            }
+
+            return newSet;
+          });
         }
 
         // 4. Server Action 호출
@@ -966,10 +1100,25 @@ export function WorkspaceProvider({
     [workspaces]
   );
 
-  // Scenario 4: Page 정보 수정
+  // Scenario 4: Page 정보 수정 (Optimistic Update)
   const updatePageInfo = useCallback(
     async (pageId: string, title?: string, icon?: string): Promise<boolean> => {
+      // 1. 이전 상태 백업 (롤백용)
+      const previousWorkspaces = workspaces;
+
       try {
+        // 2. Optimistic Update: 즉시 페이지 정보 업데이트
+        setWorkspaces(prev => {
+          return prev.map(ws => ({
+            ...ws,
+            pageTree: updatePageInfoInTree(ws.pageTree, pageId, {
+              title,
+              icon,
+            }),
+          }));
+        });
+
+        // 3. Server Action 호출
         const result = await updatePageInfoAction({
           pageId,
           title,
@@ -977,21 +1126,23 @@ export function WorkspaceProvider({
         });
 
         if (!result.success) {
+          // 실패 시 롤백
+          setWorkspaces(previousWorkspaces);
           toast.error(`페이지 수정 실패: ${result.error}`);
           return false;
         }
 
-        // 제목/아이콘만 수정하는 경우 조용히 처리
-        // Optimistic Update는 없지만 Server Action 성공 시
-        // 다음 페이지 이동에서 revalidatePath로 최신 데이터 fetch됨
+        // 4. 성공 - Optimistic Update 상태 유지
         return true;
       } catch (error) {
+        // 에러 시 롤백
         console.error('[updatePageInfo] Error:', error);
+        setWorkspaces(previousWorkspaces);
         toast.error('페이지 수정 중 오류가 발생했습니다');
         return false;
       }
     },
-    []
+    [workspaces]
   );
 
   // Scenario 4: Page 순서 재정렬 (Optimistic Update)
@@ -1055,6 +1206,7 @@ export function WorkspaceProvider({
 
   const value: WorkspaceContextValue = {
     // 기본 상태
+    organizationId,
     workspaces,
     selectedPageId,
     selectedWorkspaceId,

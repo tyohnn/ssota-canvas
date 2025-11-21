@@ -15,6 +15,13 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@workspace/ui/components/ui/sidebar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@workspace/ui/components/ui/dialog';
 import { SidebarHeaderGroup } from './sidebar-header-group';
 import { OrgWorkspacesSkeleton } from './org-workspaces-skeleton';
 import { OrgWorkspacesMenu } from './org-workspaces-menu';
@@ -69,6 +76,9 @@ export function DashboardSidebar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const isClient = useIsClient();
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+  const [isUpdatesOpen, setIsUpdatesOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -103,9 +113,7 @@ export function DashboardSidebar() {
             <SidebarMenuButton
               onClick={toggleTheme}
               className="text-muted-foreground"
-              tooltip={
-                mounted && theme === 'dark' ? '라이트 모드' : '다크 모드'
-              }
+              tooltip={mounted && theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             >
               {!mounted ? (
                 <Moon className="h-4 w-4" />
@@ -115,51 +123,99 @@ export function DashboardSidebar() {
                 <Moon className="h-4 w-4" />
               )}
               <span>
-                {mounted && theme === 'dark' ? '라이트 모드' : '다크 모드'}
+                {mounted && theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
               </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
 
           <SidebarMenuItem>
             <SidebarMenuButton
-              asChild
               className="text-muted-foreground"
               tooltip="Templates"
+              onClick={() => setIsTemplatesOpen(true)}
             >
-              <a href="#">
-                <Blocks />
-                <span>Templates</span>
-              </a>
+              <Blocks />
+              <span>Templates</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              asChild
               className="text-muted-foreground"
               tooltip="Updates"
+              onClick={() => setIsUpdatesOpen(true)}
             >
-              <a href="#">
-                <RefreshCw />
-                <span>Updates</span>
-              </a>
+              <RefreshCw />
+              <span>Updates</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              asChild
               className="text-muted-foreground"
               tooltip="Help"
+              onClick={() => setIsHelpOpen(true)}
             >
-              <a href="#">
-                <MessageCircleQuestion />
-                <span>Help</span>
-              </a>
+              <MessageCircleQuestion />
+              <span>Help</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
 
       <SidebarRail />
+
+      {/* Templates Dialog */}
+      <Dialog open={isTemplatesOpen} onOpenChange={setIsTemplatesOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Templates</DialogTitle>
+            <DialogDescription>
+              Browse and use templates to quickly set up your workspace.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6 text-center">
+            <p className="text-sm text-muted-foreground">🚧 Preparing...</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              This feature is under development
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Updates Dialog */}
+      <Dialog open={isUpdatesOpen} onOpenChange={setIsUpdatesOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Updates</DialogTitle>
+            <DialogDescription>
+              Stay up to date with the latest features and improvements.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6 text-center">
+            <p className="text-sm text-muted-foreground">🚧 Preparing...</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              This feature is under development
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Help Dialog */}
+      <Dialog open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Help & Support</DialogTitle>
+            <DialogDescription>
+              Get help and learn how to use SSOTA effectively.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6 text-center">
+            <p className="text-sm text-muted-foreground">🚧 Preparing...</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              This feature is under development
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   );
 }

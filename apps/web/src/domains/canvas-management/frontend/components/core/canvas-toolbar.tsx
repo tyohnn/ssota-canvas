@@ -77,8 +77,11 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
           }
           break;
         case 'Escape':
-          // 기본 모드로 복귀
-          if (currentMode.type !== 'default') {
+          // 기본 모드로 복귀 (block-editing 모드는 제외 - 에디터 패널이 처리)
+          if (
+            currentMode.type !== 'default' &&
+            currentMode.type !== 'block-editing'
+          ) {
             event.preventDefault();
             event.stopPropagation();
             canvasMode.exitToDefaultMode();

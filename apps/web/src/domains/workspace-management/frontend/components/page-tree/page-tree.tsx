@@ -74,23 +74,55 @@ export function PageTree({
         id => !uniqueChildren.includes(id)
       );
 
+      console.log('[handleDrop] Debug:', {
+        parentId,
+        newParentId,
+        uniqueChildren,
+        currentChildren,
+        addedIds,
+        removedIds,
+        isOrderChanged:
+          JSON.stringify(uniqueChildren) !== JSON.stringify(currentChildren),
+      });
+
       // 케이스 1: 부모 변경 (다른 부모로 이동)
       if (addedIds.length > 0) {
+        console.log('[handleDrop] 케이스 1: 부모 변경');
         addedIds
           .filter(id => id !== workspaceId)
-          .forEach(id => movePage(id, newParentId));
+          .forEach(id => {
+            // 드롭된 위치의 인덱스 찾기
+            const insertIndex = uniqueChildren.indexOf(id);
+            movePage(id, newParentId, insertIndex);
+          });
 
+        // 모든 자식들의 order를 순서대로 업데이트
         reorderPages(workspaceId, newParentId, uniqueChildren);
         return uniqueChildren;
       }
 
-      // 케이스 2: 순서만 변경 (같은 부모 내에서 재정렬)
-      if (removedIds.length === 0 && uniqueChildren.length > 0) {
+      // 케이스 2: 같은 부모 내 드롭 진행 중
+      // removedIds가 있으면 드래그 중인 아이템이 일시 제거된 상태
+      // currentChildren을 반환하여 상태 유지
+      if (addedIds.length === 0 && removedIds.length > 0) {
+        console.log('[handleDrop] 케이스 2: 드롭 진행 중 (일시 제거), 대기');
+        return currentChildren;
+      }
+
+      // 순서가 변경되었는지 확인
+      const isOrderChanged =
+        JSON.stringify(uniqueChildren) !== JSON.stringify(currentChildren);
+
+      // 케이스 3: 순서 변경 완료 (같은 부모 내에서 재정렬)
+      // addedIds와 removedIds가 모두 없고 순서가 변경되었으면 최종 확정
+      if (addedIds.length === 0 && removedIds.length === 0 && isOrderChanged) {
+        console.log('[handleDrop] 케이스 3: 순서 변경 완료');
         reorderPages(workspaceId, newParentId, uniqueChildren);
         return uniqueChildren;
       }
 
-      // 케이스 3: 변경 없음
+      // 케이스 4: 변경 없음
+      console.log('[handleDrop] 케이스 4: 변경 없음');
       return currentChildren;
     },
     [workspaceId, treeData, movePage, reorderPages]
@@ -192,6 +224,17 @@ export function PageTree({
     }
   }, [selectedPageId, tree]);
 
+  // 펼침 상태 동기화 (Context → Tree) - 부모 페이지 자동 펼침 지원
+  useEffect(() => {
+    const treeItems = tree.getItems();
+    expandedPageIds.forEach(pageId => {
+      const item = treeItems.find(i => i.getId() === pageId);
+      if (item && !item.isExpanded()) {
+        item.expand();
+      }
+    });
+  }, [expandedPageIds, tree]);
+
   // pages 데이터 변경 시 Tree 리빌드 (Optimistic Update 반영)
   useEffect(() => {
     tree.rebuildTree();
@@ -214,6 +257,7 @@ export function PageTree({
           key={item.getId()}
           item={item}
           onToggle={onTogglePage}
+          selectedPageId={selectedPageId}
         />
       ))}
     </Tree>

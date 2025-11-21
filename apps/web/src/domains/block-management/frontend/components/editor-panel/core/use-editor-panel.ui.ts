@@ -19,6 +19,10 @@ export interface EditorPanelUIState {
   title: string;
   setTitle: (value: string) => void;
   inputRef: RefObject<HTMLInputElement | null>;
+
+  // Expand state
+  isExpanded: boolean;
+  setIsExpanded: (value: boolean) => void;
 }
 
 /**
@@ -28,6 +32,7 @@ export function useEditorPanelUI(): EditorPanelUIState {
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
   const [title, setTitle] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   return {
@@ -38,5 +43,7 @@ export function useEditorPanelUI(): EditorPanelUIState {
     title,
     setTitle,
     inputRef,
+    isExpanded,
+    setIsExpanded,
   };
 }

@@ -7,7 +7,10 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import { isFailure } from '@/lib/action-result';
-import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import {
+  BlockType,
+  BLOCK_TYPE_SIZES,
+} from '@/domains/block-management/shared/types/block-types';
 import type { EdgeView } from '../../shared/dtos';
 import { useCanvasBlockLifecycle } from './use-canvas-block-lifecycle';
 import { useClipboardPaste } from '../clipboard/hooks/use-clipboard-paste';
@@ -259,11 +262,20 @@ export function useCanvasCallbacks({
   /**
    * 노드 클릭 → React Flow가 자동으로 선택 처리, 여기서는 로그만
    * 실제 모드 전환은 onSelectionChange에서 처리
+   * Note: 블록 생성 모드는 canvas-react-flow-wrapper에서 override하여 처리
    */
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    // React Flow가 자동으로 선택 상태를 관리하므로
-    // onSelectionChange에서 모드 전환이 처리됨
-  }, []);
+  const onNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      // 블록 생성 모드는 override에서 처리
+      if (canvasMode.isBlockCreationMode()) {
+        return;
+      }
+
+      // React Flow가 자동으로 선택 상태를 관리하므로
+      // onSelectionChange에서 모드 전환이 처리됨
+    },
+    [canvasMode.isBlockCreationMode]
+  );
 
   /**
    * 선택 변경 → 모드 전환
@@ -305,25 +317,28 @@ export function useCanvasCallbacks({
 
   /**
    * 빈 영역 클릭 → 기본 모드 복귀
-   * Note: block-creation 모드일 때는 SkeletonBlock에서 블럭 생성을 처리하므로 여기서는 처리하지 않음
+   * Note: 블록 생성 모드는 canvas-react-flow-wrapper에서 override하여 처리
    */
-  const onPaneClick = useCallback(() => {
-    // block-creation 모드일 때는 SkeletonBlock 컴포넌트에서 처리
-    if (canvasMode.isBlockCreationMode()) {
-      return;
-    }
+  const onPaneClick = useCallback(
+    (event: React.MouseEvent) => {
+      // 블록 생성 모드는 override에서 처리
+      if (canvasMode.isBlockCreationMode()) {
+        return;
+      }
 
-    // React Flow 선택 상태를 명시적으로 해제
-    reactFlowInstance.setNodes(nodes =>
-      nodes.map(node => ({ ...node, selected: false }))
-    );
+      // React Flow 선택 상태를 명시적으로 해제
+      reactFlowInstance.setNodes(nodes =>
+        nodes.map(node => ({ ...node, selected: false }))
+      );
 
-    canvasMode.exitToDefaultMode();
-  }, [
-    canvasMode.isBlockCreationMode,
-    canvasMode.exitToDefaultMode,
-    reactFlowInstance,
-  ]);
+      canvasMode.exitToDefaultMode();
+    },
+    [
+      canvasMode.isBlockCreationMode,
+      canvasMode.exitToDefaultMode,
+      reactFlowInstance,
+    ]
+  );
 
   /**
    * 엣지 연결 → 엣지 생성 및 서버 저장
