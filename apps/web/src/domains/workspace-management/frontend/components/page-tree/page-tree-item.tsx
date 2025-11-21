@@ -171,7 +171,7 @@ export function PageTreeItemRenderer({ item, onToggle }: PageTreeItemProps) {
         </div>
       </TreeItem>
 
-      {/* 펼쳐진 상태에서 자식이 없으면 빈 메시지 표시 */}
+      {/* Show empty message when expanded with no children */}
       {isExpanded && !hasChildren && (
         <div
           className="text-xs text-muted-foreground/60 py-1"
@@ -179,7 +179,7 @@ export function PageTreeItemRenderer({ item, onToggle }: PageTreeItemProps) {
             paddingLeft: `calc(${item.getItemMeta().level * 8}px + 8px + 8px + 16px - 2px)`,
           }}
         >
-          하위 페이지가 없습니다.
+          No subpages.
         </div>
       )}
     </>

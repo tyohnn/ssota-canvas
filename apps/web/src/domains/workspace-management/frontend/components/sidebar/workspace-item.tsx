@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
@@ -33,11 +33,19 @@ export function WorkspaceItem({ workspace }: WorkspaceItemProps) {
     toggleWorkspace,
     togglePage,
     selectPage,
+    createPage,
   } = useWorkspace();
 
   const isExpanded = expandedWorkspaces.has(workspace.workspaceId);
   const [isMenuOrDialogOpen, setIsMenuOrDialogOpen] = React.useState(false);
   const [isHovered, setIsHovered] = React.useState(false);
+
+  // 페이지 추가 버튼 클릭 핸들러
+  const handleCreatePage = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    await createPage(workspace.workspaceId);
+  };
 
   return (
     <Collapsible
@@ -88,14 +96,29 @@ export function WorkspaceItem({ workspace }: WorkspaceItemProps) {
           </button>
         </CollapsibleTrigger>
 
-        {/* 삼점 메뉴 (아이템 호버 시 표시) */}
-        <div className="shrink-0 pr-2">
+        {/* 오른쪽 액션 버튼들 (아이템 호버 시 표시) */}
+        <div className="shrink-0 pr-2 flex items-center gap-0.5">
+          {/* 삼점 메뉴 */}
           <WorkspaceContextMenu
             workspace={workspace}
             onOpenChange={setIsMenuOrDialogOpen}
             isParentHovered={isHovered}
             disableInvite={workspace.isPersonal}
           />
+
+          {/* + 버튼 (페이지 추가) */}
+          <div
+            className={cn(
+              'h-4 w-4 p-0 flex items-center justify-center rounded-sm transition-all hover:bg-accent cursor-pointer',
+              isHovered || isMenuOrDialogOpen ? 'opacity-100' : 'opacity-0'
+            )}
+            onClick={handleCreatePage}
+            role="button"
+            aria-label="Add page"
+            tabIndex={-1}
+          >
+            <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+          </div>
         </div>
       </div>
 
@@ -103,7 +126,7 @@ export function WorkspaceItem({ workspace }: WorkspaceItemProps) {
       <CollapsibleContent>
         {workspace.pageTree.length === 0 ? (
           <div className="px-8 py-2 text-sm text-muted-foreground">
-            페이지를 생성하세요
+            No pages yet
           </div>
         ) : (
           <PageTree
