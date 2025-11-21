@@ -37,16 +37,16 @@ import type {
 } from '@/domains/workspace-management/shared/dtos';
 
 /**
- * Workspace 수정 폼 검증 스키마
+ * Workspace update form validation schema
  */
 const updateWorkspaceSchema = z.object({
   name: z
     .string()
-    .min(1, '워크스페이스 이름을 입력해주세요')
-    .max(100, '워크스페이스 이름은 100자 이내로 입력해주세요'),
+    .min(1, 'Please enter a workspace name')
+    .max(100, 'Workspace name must be 100 characters or less'),
   description: z
     .string()
-    .max(500, '설명은 500자 이내로 입력해주세요')
+    .max(500, 'Description must be 500 characters or less')
     .optional(),
   icon: z.string().optional(),
 });
@@ -58,15 +58,15 @@ interface WorkspaceSettingsDialogProps {
   workspace: WorkspaceWithPagesDTO;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  disableInvite?: boolean; // 개인 워크스페이스는 Members 탭 숨김
+  disableInvite?: boolean; // Hide Members tab for personal workspace
 }
 
 /**
- * WorkspaceSettingsDialog 컴포넌트 (탭 구조)
+ * WorkspaceSettingsDialog component (tab structure)
  *
- * Workspace 설정 관리
- * - 설정 탭: Workspace 정보 수정
- * - 멤버 탭: 멤버 목록 및 초대
+ * Workspace settings management
+ * - Settings tab: Edit workspace information
+ * - Members tab: Member list and invitations
  */
 export function WorkspaceSettingsDialog({
   workspace,
@@ -96,7 +96,7 @@ export function WorkspaceSettingsDialog({
     },
   });
 
-  // workspace prop 변경 시 폼 재설정
+  // Reset form when workspace prop changes
   useEffect(() => {
     if (open) {
       form.reset({
@@ -104,12 +104,12 @@ export function WorkspaceSettingsDialog({
         description: workspace.description || '',
         icon: workspace.icon || 'Folder',
       });
-      // 모달이 열릴 때 항상 general 탭으로 초기화
+      // Always initialize to general tab when modal opens
       setActiveTab('general');
     }
   }, [workspace, open, form]);
 
-  // Dialog가 열릴 때 멤버 목록 로드
+  // Load member list when dialog opens
   useEffect(() => {
     if (open && activeTab === 'members' && !disableInvite) {
       loadMemberView();
@@ -125,7 +125,7 @@ export function WorkspaceSettingsDialog({
 
   const handleInviteSuccess = () => {
     setIsInviteDialogOpen(false);
-    loadMemberView(); // 멤버 목록 새로고침
+    loadMemberView(); // Refresh member list
   };
 
   const handleSubmit = async (values: UpdateWorkspaceFormValues) => {
@@ -137,7 +137,7 @@ export function WorkspaceSettingsDialog({
     });
 
     if (success) {
-      // 모달을 닫지 않고 폼만 초기화 (다른 탭으로 전환 가능)
+      // Reset form only without closing modal (allow switching to other tabs)
       form.reset(values);
     }
   };
@@ -146,12 +146,12 @@ export function WorkspaceSettingsDialog({
   const isDirty = form.formState.isDirty;
   const descriptionLength = form.watch('description')?.length || 0;
 
-  // 개인 워크스페이스는 Members 탭 숨김
+  // Hide Members tab for personal workspace
   const tabs = [
-    { id: 'general' as const, label: '설정', icon: Settings },
+    { id: 'general' as const, label: 'Settings', icon: Settings },
     ...(disableInvite
       ? []
-      : [{ id: 'members' as const, label: '멤버', icon: Users }]),
+      : [{ id: 'members' as const, label: 'Members', icon: Users }]),
   ];
 
   return (
@@ -159,17 +159,17 @@ export function WorkspaceSettingsDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[900px] h-[600px] p-0 rounded-md">
           <DialogHeader className="sr-only">
-            <DialogTitle>워크스페이스 설정</DialogTitle>
+            <DialogTitle>Workspace Settings</DialogTitle>
             <DialogDescription>
-              워크스페이스의 설정을 변경하거나 멤버를 관리합니다.
+              Change workspace settings or manage members.
             </DialogDescription>
           </DialogHeader>
           <div className="flex h-full">
-            {/* 좌측 탭 네비게이션 */}
+            {/* Left Tab Navigation */}
             <div className="w-48 border-r border-border/30 bg-muted/30 p-4">
               <div className="mb-4">
                 <h3 className="font-semibold text-sm px-2">
-                  워크스페이스 설정
+                  Workspace Settings
                 </h3>
               </div>
               <div className="space-y-1">
@@ -194,16 +194,18 @@ export function WorkspaceSettingsDialog({
               </div>
             </div>
 
-            {/* 우측 콘텐츠 영역 */}
+            {/* Right Content Area */}
             <div className="flex-1 flex flex-col min-h-0">
               <ScrollArea className="h-full w-full">
                 <div className="p-6 pb-8 min-h-full">
                   {activeTab === 'general' && (
                     <div className="space-y-6">
                       <div>
-                        <h2 className="text-lg font-semibold">기본 설정</h2>
+                        <h2 className="text-lg font-semibold">
+                          General Settings
+                        </h2>
                         <p className="text-sm text-muted-foreground">
-                          워크스페이스의 이름, 설명, 아이콘을 수정합니다.
+                          Edit workspace name, description, and icon.
                         </p>
                       </div>
                       <Separator />
@@ -213,14 +215,14 @@ export function WorkspaceSettingsDialog({
                           onSubmit={form.handleSubmit(handleSubmit)}
                           className="space-y-4"
                         >
-                          {/* 워크스페이스 이름 & 아이콘 */}
+                          {/* Workspace Name & Icon */}
                           <div className="space-y-2">
                             <FormLabel>
-                              워크스페이스 이름{' '}
+                              Workspace Name{' '}
                               <span className="text-destructive">*</span>
                             </FormLabel>
                             <div className="flex items-start gap-2">
-                              {/* 아이콘 선택 */}
+                              {/* Icon Picker */}
                               <FormField
                                 control={form.control}
                                 name="icon"
@@ -235,7 +237,7 @@ export function WorkspaceSettingsDialog({
                                   </FormItem>
                                 )}
                               />
-                              {/* 이름 입력 */}
+                              {/* Name Input */}
                               <FormField
                                 control={form.control}
                                 name="name"
@@ -243,7 +245,7 @@ export function WorkspaceSettingsDialog({
                                   <FormItem className="flex-1">
                                     <FormControl>
                                       <Input
-                                        placeholder="예: 마케팅 프로젝트"
+                                        placeholder="e.g. Marketing Project"
                                         maxLength={100}
                                         disabled={isSubmitting}
                                         {...field}
@@ -251,7 +253,7 @@ export function WorkspaceSettingsDialog({
                                     </FormControl>
                                     {workspace.isDefault && (
                                       <p className="text-xs text-muted-foreground">
-                                        기본 워크스페이스입니다 (삭제만 불가능)
+                                        Default workspace (cannot be deleted)
                                       </p>
                                     )}
                                     <FormMessage />
@@ -261,16 +263,16 @@ export function WorkspaceSettingsDialog({
                             </div>
                           </div>
 
-                          {/* 워크스페이스 설명 */}
+                          {/* Workspace Description */}
                           <FormField
                             control={form.control}
                             name="description"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>워크스페이스 설명</FormLabel>
+                                <FormLabel>Workspace Description</FormLabel>
                                 <FormControl>
                                   <Textarea
-                                    placeholder="워크스페이스에 대한 간단한 설명을 입력하세요"
+                                    placeholder="Enter a brief description of the workspace"
                                     rows={3}
                                     maxLength={500}
                                     disabled={isSubmitting}
@@ -294,13 +296,13 @@ export function WorkspaceSettingsDialog({
                               onClick={() => onOpenChange(false)}
                               disabled={isSubmitting}
                             >
-                              취소
+                              Cancel
                             </Button>
                             <Button
                               type="submit"
                               disabled={!isDirty || isSubmitting}
                             >
-                              {isSubmitting ? '저장 중...' : '저장하기'}
+                              {isSubmitting ? 'Saving...' : 'Save'}
                             </Button>
                           </div>
                         </form>
@@ -312,9 +314,11 @@ export function WorkspaceSettingsDialog({
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h2 className="text-lg font-semibold">멤버 관리</h2>
+                          <h2 className="text-lg font-semibold">
+                            Member Management
+                          </h2>
                           <p className="text-sm text-muted-foreground">
-                            워크스페이스 멤버를 초대하고 관리합니다.
+                            Invite and manage workspace members.
                           </p>
                         </div>
                         {canInviteMembers(workspace.workspaceId) && (
@@ -323,13 +327,13 @@ export function WorkspaceSettingsDialog({
                             className="gap-2"
                           >
                             <UserPlus className="h-4 w-4" />
-                            멤버 초대
+                            Invite Member
                           </Button>
                         )}
                       </div>
                       <Separator />
 
-                      {/* 멤버 목록 */}
+                      {/* Member List */}
                       <WorkspaceMemberListTable
                         currentMembers={memberView?.currentMembers || []}
                         pendingInvitations={
@@ -346,7 +350,7 @@ export function WorkspaceSettingsDialog({
         </DialogContent>
       </Dialog>
 
-      {/* 멤버 초대 다이얼로그 */}
+      {/* Member Invite Dialog */}
       <InviteMemberDialog
         open={isInviteDialogOpen}
         onOpenChange={setIsInviteDialogOpen}

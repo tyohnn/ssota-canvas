@@ -27,17 +27,17 @@ interface InviteMemberDialogProps {
   workspaceId: string;
   workspaceName: string;
   onSuccess?: () => void;
-  showSkipButton?: boolean; // 건너뛰기 버튼 표시 여부
+  showSkipButton?: boolean; // Whether to show skip button
 }
 
 /**
- * InviteMemberDialog 컴포넌트 (Scenario 3)
+ * InviteMemberDialog component (Scenario 3)
  *
- * Workspace 멤버 초대 모달
- * - 이메일 검색 및 미리보기
- * - 다중 선택 (Badge 목록)
- * - 여러 명 한 번에 초대
- * - toast 피드백
+ * Workspace member invitation modal
+ * - Email search and preview
+ * - Multi-selection (Badge list)
+ * - Invite multiple members at once
+ * - Toast feedback
  */
 export function InviteMemberDialog({
   open,
@@ -59,7 +59,7 @@ export function InviteMemberDialog({
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 이메일 검색 (디바운싱 300ms)
+  // Email search (debouncing 300ms)
   useEffect(() => {
     if (!email || email.length < 3) {
       setSearchResults([]);
@@ -83,22 +83,22 @@ export function InviteMemberDialog({
 
   const handleMemberSelect = (member: OrganizationMemberSearchResultDTO) => {
     if (member.isAlreadyMember) {
-      toast.error('이미 멤버입니다', {
-        description: '이미 Workspace 멤버인 사용자입니다.',
+      toast.error('Already a member', {
+        description: 'This user is already a workspace member.',
       });
       return;
     }
 
     if (member.hasPendingInvitation) {
-      toast.error('초대 진행 중', {
-        description: '이미 초대가 진행 중인 사용자입니다.',
+      toast.error('Invitation pending', {
+        description: 'This user already has a pending invitation.',
       });
       return;
     }
 
-    // 중복 체크
+    // Duplicate check
     if (selectedMembers.some(m => m.userId === member.userId)) {
-      toast.error('이미 선택된 멤버입니다');
+      toast.error('Member already selected');
       return;
     }
 
@@ -113,7 +113,7 @@ export function InviteMemberDialog({
 
   const handleSubmit = async () => {
     if (selectedMembers.length === 0) {
-      toast.error('최소 1명의 멤버를 선택해주세요');
+      toast.error('Please select at least one member');
       return;
     }
 
@@ -125,7 +125,7 @@ export function InviteMemberDialog({
     if (result !== null) {
       setSelectedMembers([]);
       setEmail('');
-      onSuccess?.(); // 성공 콜백 호출
+      onSuccess?.(); // Call success callback
       onOpenChange(false);
     }
   };
@@ -143,18 +143,18 @@ export function InviteMemberDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            멤버 초대
+            Invite Member
           </DialogTitle>
           <DialogDescription>
-            <span className="font-medium">{workspaceName}</span> 워크스페이스에
-            멤버를 초대합니다.
+            Invite members to{' '}
+            <span className="font-medium">{workspaceName}</span> workspace.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* 이메일 검색 필드 */}
+          {/* Email search field */}
           <div className="space-y-2">
-            <Label htmlFor="email">이메일로 조직 멤버 검색</Label>
+            <Label htmlFor="email">Search organization members by email</Label>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -168,7 +168,7 @@ export function InviteMemberDialog({
               />
             </div>
 
-            {/* 검색 결과 미리보기 */}
+            {/* Search results preview */}
             {searchResults.length > 0 && (
               <Card className="mt-2 p-2 max-h-[200px] overflow-y-auto">
                 <div className="space-y-1">
@@ -211,17 +211,17 @@ export function InviteMemberDialog({
                         </div>
                         {member.isAlreadyMember && (
                           <Badge variant="secondary" className="text-xs">
-                            멤버
+                            Member
                           </Badge>
                         )}
                         {member.hasPendingInvitation && (
                           <Badge variant="outline" className="text-xs">
-                            초대 중
+                            Invited
                           </Badge>
                         )}
                         {isAlreadySelected && (
                           <Badge variant="outline" className="text-xs">
-                            선택됨
+                            Selected
                           </Badge>
                         )}
                       </button>
@@ -232,14 +232,14 @@ export function InviteMemberDialog({
             )}
 
             {isSearching && (
-              <p className="text-sm text-muted-foreground">검색 중...</p>
+              <p className="text-sm text-muted-foreground">Searching...</p>
             )}
           </div>
 
-          {/* 선택된 멤버 목록 (Badge) */}
+          {/* Selected member list (Badge) */}
           {selectedMembers.length > 0 && (
             <div className="space-y-2">
-              <Label>초대할 멤버 ({selectedMembers.length}명)</Label>
+              <Label>Members to invite ({selectedMembers.length})</Label>
               <div className="flex flex-wrap gap-2 p-3 border border-border/30 rounded-md bg-muted/30">
                 {selectedMembers.map(member => (
                   <Badge
@@ -278,17 +278,17 @@ export function InviteMemberDialog({
             onClick={handleClose}
             disabled={isSubmitting || isLoading}
           >
-            {showSkipButton ? '건너뛰기' : '취소'}
+            {showSkipButton ? 'Skip' : 'Cancel'}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || isLoading || selectedMembers.length === 0}
           >
             {isSubmitting
-              ? '초대 중...'
+              ? 'Inviting...'
               : selectedMembers.length > 0
-                ? `${selectedMembers.length}명 초대하기`
-                : '초대하기'}
+                ? `Invite ${selectedMembers.length} member${selectedMembers.length > 1 ? 's' : ''}`
+                : 'Invite'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -27,16 +27,16 @@ export function InviteMemberDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] rounded-md">
         <DialogHeader>
-          <DialogTitle>새 멤버 초대</DialogTitle>
+          <DialogTitle>Invite New Member</DialogTitle>
           <DialogDescription>
-            이메일 주소를 입력하여 조직에 멤버를 초대하세요.
+            Enter an email address to invite a member to the organization.
           </DialogDescription>
         </DialogHeader>
         <MemberInvitationForm
           organizationId={organizationId}
           onSuccess={() => {
             onSuccess?.();
-            onOpenChange(false); // 다이얼로그 닫기
+            onOpenChange(false); // Close dialog
           }}
         />
       </DialogContent>

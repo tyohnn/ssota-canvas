@@ -22,18 +22,18 @@ import { InviteMemberDialog } from './invite-member-dialog';
 
 interface WorkspaceContextMenuProps {
   workspace: WorkspaceWithPagesDTO;
-  onOpenChange?: (open: boolean) => void; // 메뉴/다이얼로그 열림 상태 전달
-  isParentHovered?: boolean; // 부모 아이템 호버 상태
-  disableInvite?: boolean; // 초대 기능 비활성화 (개인 워크스페이스)
+  onOpenChange?: (open: boolean) => void; // Pass menu/dialog open state
+  isParentHovered?: boolean; // Parent item hover state
+  disableInvite?: boolean; // Disable invite feature (personal workspace)
 }
 
 /**
- * WorkspaceContextMenu 컴포넌트
+ * WorkspaceContextMenu component
  *
- * Workspace 헤더 삼점 메뉴
- * - 권한별 메뉴 항목 필터링
- * - Default Workspace 특별 처리
- * - 개인 Workspace 초대 제한
+ * Workspace header three-dot menu
+ * - Filter menu items by permission
+ * - Special handling for default workspace
+ * - Restrict invites for personal workspace
  */
 export function WorkspaceContextMenu({
   workspace,
@@ -46,13 +46,13 @@ export function WorkspaceContextMenu({
   const [showArchive, setShowArchive] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // 부모에 열림 상태 전달
+  // Pass open state to parent
   const handleOpenChange = (open: boolean) => {
     setIsMenuOpen(open);
     onOpenChange?.(open || showSettings || showInvite || showArchive);
   };
 
-  // 다이얼로그 열림 상태 변경 시 부모에 전달
+  // Pass dialog open state to parent
   const handleSettingsChange = (open: boolean) => {
     setShowSettings(open);
     onOpenChange?.(open || isMenuOpen || showInvite || showArchive);
@@ -82,7 +82,7 @@ export function WorkspaceContextMenu({
                   : 'opacity-0'
             )}
             role="button"
-            aria-label="워크스페이스 메뉴"
+            aria-label="Workspace menu"
             tabIndex={-1}
           >
             <MoreHorizontal
@@ -99,15 +99,15 @@ export function WorkspaceContextMenu({
         <DropdownMenuContent side="right" align="start" className="w-48">
           <DropdownMenuItem onClick={() => handleSettingsChange(true)}>
             <Settings className="mr-2 h-4 w-4" />
-            워크스페이스 설정
+            Workspace Settings
           </DropdownMenuItem>
 
-          {/* 일반 워크스페이스만 초대 메뉴 표시 */}
+          {/* Show invite menu for regular workspaces only */}
           {!disableInvite && (
             <>
               <DropdownMenuItem onClick={() => handleInviteChange(true)}>
                 <UserPlus className="mr-2 h-4 w-4" />
-                멤버 초대
+                Invite Member
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
@@ -122,13 +122,13 @@ export function WorkspaceContextMenu({
                         className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        워크스페이스 보관
+                        Archive Workspace
                       </DropdownMenuItem>
                     </div>
                   </TooltipTrigger>
                   {workspace.isDefault && (
                     <TooltipContent>
-                      <p>기본 워크스페이스는 삭제할 수 없습니다</p>
+                      <p>Default workspace cannot be deleted</p>
                     </TooltipContent>
                   )}
                 </Tooltip>
@@ -146,7 +146,7 @@ export function WorkspaceContextMenu({
         disableInvite={disableInvite}
       />
 
-      {/* InviteMemberDialog (일반 워크스페이스만) */}
+      {/* InviteMemberDialog (regular workspaces only) */}
       {!disableInvite && (
         <InviteMemberDialog
           workspaceId={workspace.workspaceId}
