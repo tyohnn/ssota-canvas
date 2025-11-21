@@ -35,7 +35,7 @@ export function SettingsDialog({
   const { refreshOrganizationMembers } = useMemberManagementContext();
   const { canInviteMembers } = useMemberManagement();
 
-  // Dialog가 열릴 때 멤버 데이터 로드
+  // Load member data when dialog opens
   useEffect(() => {
     if (open && organizationId) {
       refreshOrganizationMembers(organizationId);
@@ -43,24 +43,24 @@ export function SettingsDialog({
   }, [open, organizationId, refreshOrganizationMembers]);
 
   const tabs = [
-    { id: 'general' as const, label: '기본', icon: Building2 },
-    { id: 'members' as const, label: '멤버', icon: Users },
-    { id: 'profile' as const, label: '프로필', icon: UserCircle },
+    { id: 'general' as const, label: 'General', icon: Building2 },
+    { id: 'members' as const, label: 'Members', icon: Users },
+    { id: 'profile' as const, label: 'Profile', icon: UserCircle },
   ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-6xl !h-[85vh] p-0 gap-0 overflow-hidden rounded-md">
+      <DialogContent className="max-w-6xl! h-[85vh] p-0 gap-0 overflow-hidden rounded-md">
         <div className="flex h-full min-h-0">
-          {/* 좌측 사이드바 */}
-          <div className="w-56 flex-shrink-0 border-r border-border/30 bg-muted/30 p-4 flex flex-col">
-            <DialogHeader className="mb-4 flex-shrink-0">
+          {/* Left Sidebar */}
+          <div className="w-56 shrink-0 border-r border-border/30 bg-muted/30 p-4 flex flex-col">
+            <DialogHeader className="mb-4 shrink-0">
               <DialogTitle className="flex items-center gap-2 text-base">
                 <Settings className="h-4 w-4" />
-                설정
+                Settings
               </DialogTitle>
             </DialogHeader>
-            <nav className="space-y-1 flex-shrink-0">
+            <nav className="space-y-1 shrink-0">
               {tabs.map(tab => (
                 <button
                   key={tab.id}
@@ -79,18 +79,22 @@ export function SettingsDialog({
             </nav>
           </div>
 
-          {/* 우측 콘텐츠 영역 */}
+          {/* Right Content Area */}
           <div className="flex-1 flex flex-col min-h-0">
             <ScrollArea className="h-full w-full">
               <div className="p-6 pb-8 min-h-full">
                 {activeTab === 'general' && (
                   <div className="space-y-4">
-                    <h2 className="text-lg font-semibold">조직 설정</h2>
+                    <h2 className="text-lg font-semibold">
+                      Organization Settings
+                    </h2>
                     <p className="text-sm text-muted-foreground">
-                      조직의 기본 설정을 관리합니다.
+                      Manage your organization's general settings.
                     </p>
                     <Separator />
-                    <p className="text-sm text-muted-foreground">준비 중...</p>
+                    <p className="text-sm text-muted-foreground">
+                      Coming soon...
+                    </p>
                   </div>
                 )}
 
@@ -98,9 +102,11 @@ export function SettingsDialog({
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-lg font-semibold">멤버 관리</h2>
+                        <h2 className="text-lg font-semibold">
+                          Member Management
+                        </h2>
                         <p className="text-sm text-muted-foreground">
-                          조직 멤버를 초대하고 관리합니다.
+                          Invite and manage organization members.
                         </p>
                       </div>
                       {canInviteMembers && (
@@ -109,25 +115,27 @@ export function SettingsDialog({
                           className="gap-2"
                         >
                           <UserPlus className="h-4 w-4" />
-                          멤버 초대
+                          Invite Member
                         </Button>
                       )}
                     </div>
                     <Separator />
 
-                    {/* 멤버 목록 */}
+                    {/* Member List */}
                     <MemberListTable />
                   </div>
                 )}
 
                 {activeTab === 'profile' && (
                   <div className="space-y-4">
-                    <h2 className="text-lg font-semibold">프로필 설정</h2>
+                    <h2 className="text-lg font-semibold">Profile Settings</h2>
                     <p className="text-sm text-muted-foreground">
-                      사용자 프로필을 관리합니다.
+                      Manage your user profile.
                     </p>
                     <Separator />
-                    <p className="text-sm text-muted-foreground">준비 중...</p>
+                    <p className="text-sm text-muted-foreground">
+                      Coming soon...
+                    </p>
                   </div>
                 )}
               </div>
@@ -136,7 +144,7 @@ export function SettingsDialog({
         </div>
       </DialogContent>
 
-      {/* 멤버 초대 다이얼로그 */}
+      {/* Member Invite Dialog */}
       <InviteMemberDialog
         open={isInviteDialogOpen}
         onOpenChange={setIsInviteDialogOpen}
