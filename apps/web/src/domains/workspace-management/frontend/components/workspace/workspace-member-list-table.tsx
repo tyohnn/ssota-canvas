@@ -28,7 +28,7 @@ const getRoleIcon = () => {
 };
 
 const getRoleLabel = () => {
-  return '멤버';
+  return 'Member';
 };
 
 type MemberRow = {
@@ -55,12 +55,12 @@ export function WorkspaceMemberListTable({
 }: WorkspaceMemberListTableProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR');
+    return date.toLocaleDateString('en-US');
   };
 
-  // 통합 데이터 구성
+  // Combine all rows
   const allRows: MemberRow[] = [
-    // 현재 멤버
+    // Current members
     ...currentMembers.map(member => ({
       id: member.userId,
       type: 'member' as const,
@@ -70,7 +70,7 @@ export function WorkspaceMemberListTable({
       profileImageUrl: member.profileImageUrl,
       dateLabel: formatDate(member.joinedAt),
     })),
-    // 대기 중인 초대
+    // Pending invitations
     ...pendingInvitations.map(invitation => ({
       id: invitation.id,
       type: 'pending' as const,
@@ -87,10 +87,10 @@ export function WorkspaceMemberListTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>사용자</TableHead>
-              <TableHead>역할</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead>날짜</TableHead>
+              <TableHead>User</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Date</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -125,16 +125,16 @@ export function WorkspaceMemberListTable({
   return (
     <div>
       {allRows.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4">멤버가 없습니다.</p>
+        <p className="text-sm text-muted-foreground py-4">No members.</p>
       ) : (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>사용자</TableHead>
-                <TableHead>역할</TableHead>
-                <TableHead>상태</TableHead>
-                <TableHead>날짜</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -172,7 +172,7 @@ export function WorkspaceMemberListTable({
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {row.type === 'pending' && row.inviterName
-                            ? `${row.inviterName}님이 초대`
+                            ? `Invited by ${row.inviterName}`
                             : row.email}
                         </span>
                       </div>
@@ -192,7 +192,7 @@ export function WorkspaceMemberListTable({
                       variant={row.type === 'pending' ? 'secondary' : 'default'}
                       className="w-fit"
                     >
-                      {row.type === 'pending' ? '대기 중' : '활성'}
+                      {row.type === 'pending' ? 'Pending' : 'Active'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">

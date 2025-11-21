@@ -54,7 +54,7 @@ export function MemberInvitationForm({
     canInviteMembers,
   } = useMemberManagement();
 
-  // 이메일 검색 (디바운싱)
+  // Email search (debouncing)
   useEffect(() => {
     if (!email || email.length < 3) {
       setSearchResults([]);
@@ -78,22 +78,22 @@ export function MemberInvitationForm({
 
   const handleUserSelect = (user: UserProfile) => {
     if (isMember(user.email)) {
-      toast.error('이미 멤버입니다', {
-        description: '이미 조직 멤버인 사용자입니다.',
+      toast.error('Already a member', {
+        description: 'This user is already an organization member.',
       });
       return;
     }
 
     if (hasPendingInvitation(user.email)) {
-      toast.error('초대 진행 중', {
-        description: '이미 초대가 진행 중인 사용자입니다.',
+      toast.error('Invitation pending', {
+        description: 'This user already has a pending invitation.',
       });
       return;
     }
 
-    // 중복 체크
+    // Duplicate check
     if (selectedUsers.some(u => u.userId === user.userId)) {
-      toast.error('이미 선택된 사용자입니다');
+      toast.error('User already selected');
       return;
     }
 
@@ -110,20 +110,20 @@ export function MemberInvitationForm({
     e.preventDefault();
 
     if (selectedUsers.length === 0) {
-      toast.error('사용자를 선택해주세요');
+      toast.error('Please select a user');
       return;
     }
 
     if (!canInviteMembers) {
-      toast.error('권한 없음', {
-        description: '멤버를 초대할 권한이 없습니다.',
+      toast.error('Permission denied', {
+        description: 'You do not have permission to invite members.',
       });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // 여러 명 초대 (순차 처리)
+      // Invite multiple users (sequential processing)
       for (const user of selectedUsers) {
         await inviteMemberAction({
           organizationId,
@@ -132,20 +132,20 @@ export function MemberInvitationForm({
         });
       }
 
-      toast.success('초대 완료', {
-        description: `${selectedUsers.length}명에게 초대를 보냈습니다.`,
+      toast.success('Invitations sent', {
+        description: `Sent invitations to ${selectedUsers.length} member${selectedUsers.length > 1 ? 's' : ''}.`,
       });
 
-      // 폼 초기화
+      // Reset form
       setSelectedUsers([]);
       setRole('admin');
       onSuccess?.();
     } catch (error) {
-      toast.error('초대 실패', {
+      toast.error('Invitation failed', {
         description:
           error instanceof Error
             ? error.message
-            : '초대를 보내는데 실패했습니다.',
+            : 'Failed to send invitations.',
       });
     } finally {
       setIsSubmitting(false);
@@ -155,7 +155,7 @@ export function MemberInvitationForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="email">이메일로 사용자 검색</Label>
+        <Label htmlFor="email">Search users by email</Label>
         <div className="relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
@@ -169,7 +169,7 @@ export function MemberInvitationForm({
           />
         </div>
 
-        {/* 검색 결과 미리보기 */}
+        {/* Search results preview */}
         {searchResults.length > 0 && (
           <Card className="mt-2 p-2 max-h-[200px] overflow-y-auto">
             <div className="space-y-1">
@@ -205,17 +205,17 @@ export function MemberInvitationForm({
                     </div>
                     {isAlreadyMember && (
                       <Badge variant="secondary" className="text-xs">
-                        멤버
+                        Member
                       </Badge>
                     )}
                     {isPending && (
                       <Badge variant="outline" className="text-xs">
-                        초대 중
+                        Invited
                       </Badge>
                     )}
                     {isAlreadySelected && (
                       <Badge variant="outline" className="text-xs">
-                        선택됨
+                        Selected
                       </Badge>
                     )}
                   </button>
@@ -226,14 +226,14 @@ export function MemberInvitationForm({
         )}
 
         {isSearching && (
-          <p className="text-sm text-muted-foreground">검색 중...</p>
+          <p className="text-sm text-muted-foreground">Searching...</p>
         )}
       </div>
 
-      {/* 선택된 멤버 목록 (Badge) - Workspace 스타일 */}
+      {/* Selected member list (Badge) - Workspace style */}
       {selectedUsers.length > 0 && (
         <div className="space-y-2">
-          <Label>초대할 멤버 ({selectedUsers.length}명)</Label>
+          <Label>Members to invite ({selectedUsers.length})</Label>
           <div className="flex flex-wrap gap-2 p-3 border border-border/30 rounded-md bg-muted/30">
             {selectedUsers.map(user => (
               <Badge
@@ -264,9 +264,9 @@ export function MemberInvitationForm({
 
       <FieldGroup>
         <FieldSet>
-          <FieldLabel htmlFor="role">역할 선택</FieldLabel>
+          <FieldLabel htmlFor="role">Select Role</FieldLabel>
           <FieldDescription>
-            초대할 멤버의 역할을 선택해주세요.
+            Choose the role for the invited members.
           </FieldDescription>
           <RadioGroup
             value={role}
@@ -277,11 +277,11 @@ export function MemberInvitationForm({
                 <FieldContent>
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 text-blue-500" />
-                    <FieldTitle>관리자</FieldTitle>
+                    <FieldTitle>Admin</FieldTitle>
                   </div>
                   <FieldDescription>
-                    멤버를 초대하고 관리할 수 있습니다. 조직 설정을 변경할 수
-                    있는 권한이 있습니다.
+                    Can invite and manage members. Has permission to change
+                    organization settings.
                   </FieldDescription>
                 </FieldContent>
                 <RadioGroupItem value="admin" id="admin-role" />
@@ -292,11 +292,11 @@ export function MemberInvitationForm({
                 <FieldContent>
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-gray-500" />
-                    <FieldTitle>멤버</FieldTitle>
+                    <FieldTitle>Member</FieldTitle>
                   </div>
                   <FieldDescription>
-                    조직의 콘텐츠를 생성하고 편집할 수 있습니다. 일반적인 협업
-                    권한을 갖습니다.
+                    Can create and edit organization content. Has general
+                    collaboration permissions.
                   </FieldDescription>
                 </FieldContent>
                 <RadioGroupItem value="member" id="member-role" />
@@ -311,7 +311,9 @@ export function MemberInvitationForm({
         className="w-full"
         disabled={selectedUsers.length === 0 || isSubmitting}
       >
-        {isSubmitting ? '초대 중...' : `${selectedUsers.length}명 초대 보내기`}
+        {isSubmitting
+          ? 'Inviting...'
+          : `Send ${selectedUsers.length} invitation${selectedUsers.length > 1 ? 's' : ''}`}
       </Button>
     </form>
   );
