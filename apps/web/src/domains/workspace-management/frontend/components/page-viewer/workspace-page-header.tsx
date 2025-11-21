@@ -194,6 +194,11 @@ export function WorkspacePageHeader({
   // Breadcrumb이 너무 길면 축약 (depth > 2)
   const shouldTruncate = ancestorPath.length > 2;
 
+  // 표시할 ancestors 계산 (마지막 1-2개만)
+  const displayedAncestors = shouldTruncate
+    ? ancestorPath.slice(-1) // 길면 마지막 1개만
+    : ancestorPath; // 짧으면 전체 표시
+
   // 워크스페이스 링크 URL 계산 (첫 번째 페이지로)
   const workspaceUrl = useMemo(() => {
     if (!workspace || !actualWorkspaceId) {
@@ -251,8 +256,8 @@ export function WorkspacePageHeader({
               <>
                 <BreadcrumbSeparator>/</BreadcrumbSeparator>
 
-                {/* Ancestor path가 길면 ellipsis 표시 */}
-                {shouldTruncate && ancestorPath.length > 0 && (
+                {/* Ancestor path가 길면 ellipsis 표시 (생략된 페이지 표시) */}
+                {shouldTruncate && (
                   <>
                     <BreadcrumbItem>
                       <BreadcrumbEllipsis />
@@ -261,10 +266,9 @@ export function WorkspacePageHeader({
                   </>
                 )}
 
-                {/* 마지막 1-2개 ancestor만 표시 */}
-                {ancestorPath.slice(-1).map((ancestor, index) => (
+                {/* 표시할 ancestors 렌더링 */}
+                {displayedAncestors.map(ancestor => (
                   <React.Fragment key={ancestor.id}>
-                    {index > 0 && <BreadcrumbSeparator>/</BreadcrumbSeparator>}
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
                         <Link
