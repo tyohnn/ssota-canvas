@@ -1,5 +1,9 @@
 ## [unreleased]
 
+### Dev
+
+- Supabase branch에 storage 추가
+
 ### ♻️ Refactoring
 
 - *(db-schema)* Implement layered responsibility separation
@@ -50,6 +54,43 @@
 - Fix toolbar and multi select component
 - Full implementation of CM STORY 007
 - Full implemenation CM STORY 010
+- *(block-management)* Implement PropertyType, PropertyOption, PropertyValidation Value Objects with TDD
+- Feat(block-management): full implementation of BM STORY 002
+- editor panel
+- dynamic property rendering (basic property)
+- typescript compatible with various block type
+- *(block-management)* Fix and refactor implementation of BM STORY 002
+- Add shape block and edit shadow block system
+- Image block implementation
+- Add media refresh signed url logic
+- Add image block action bar and unsplash action
+- Feat: add pdf, link, youtube, audio block
+add copy and paste logic
+- SPRINT-012 implementation of custom property
+- 랜딩페이지에 상단 메뉴 추가
+- /r/ 페이지에서 orgId로 자동 리다이렉션
+- 캔버스 상단 툴바 동작하도록 수정 (패닝/선택 모드)
+- Add supabase storage
+
+### 🐛 Bug Fixes
+
+- Fix build error
+- Build warnings
+- Google 로그인 브랜치 모두 적용하기
+- 로그인 redirection 문제 해결
+- 사이드바 한글로 수정
+- 워크스페이스 추가 모달 한글화
+- 조직 설정 모달 한글화
+- 블록 추가 모달 그룹 수정 및 라벨 영어
+- 워크스페이스 설정 영어로 변경
+- 검색결과 없으면 없다고 띄우기
+- 유튜브 블록 영어로 변경 및 최적화
+- 멤버 초대 다이얼로그 영어로 변경 / 워크스페이스 멤버 테이블
+- 워크스페이스 버튼에 페이지 추가 버튼 추가
+- Unsplash 연결 문제 해결
+- 블록 추가할 때 shadow가 너무 빨리 사라져서 추가가 제대로 안되는 문제
+- 이미지 앱스페이스에 에러 표시하기
+- Unsplash 이미지 검색 안되는 문제 해결
 
 ### 📚 Documentation
 
@@ -113,6 +154,11 @@
 - V1.1 frontend specification update
 - Update canvas management planning
 - Revise canvas management doamin system structure
+- Update CHANGELOG
+- Ready for EPIC-003
+- Design block system
+- SPRINT-011 마무리
+- Design AI chat feature
 
 ### 🔧 Maintenance
 
@@ -127,7 +173,13 @@
 - Add drizzle kit studio & push
 - Clean files
 - Delete ssota-cli
+- Remove unneccesary files
+- Update project root folder name
+- Seed.sql 삭제
+- Db branching setting
 
 ### 🧪 Testing
 
 - Complete sprint1-2 implementation
+- Add test_deployments table to verify supabase branching
+- Env 맞추기
