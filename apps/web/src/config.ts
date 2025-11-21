@@ -34,7 +34,7 @@ export const config = {
     helicone: process.env.HELICONE_API_KEY || '',
   },
   providers: {
-    unsplash: process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY || '',
+    unsplash: process.env.UNSPLASH_ACCESS_KEY || '',
     youtube: process.env.YOUTUBE_API_KEY || '',
   },
   analytics: {
