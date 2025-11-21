@@ -4,6 +4,10 @@
 
 - Supabase branch에 storage 추가
 
+### Version
+
+- 0.3.0
+
 ### ♻️ Refactoring
 
 - *(db-schema)* Implement layered responsibility separation
@@ -91,6 +95,27 @@ add copy and paste logic
 - 블록 추가할 때 shadow가 너무 빨리 사라져서 추가가 제대로 안되는 문제
 - 이미지 앱스페이스에 에러 표시하기
 - Unsplash 이미지 검색 안되는 문제 해결
+- 빌드 에러 해결하기
+- 랜딩페이지 섹션 제거 / 다크모드 해결
+- 시작하기 버튼에서 유저 여부 판단해서 렌더링하기
+- 마크다운 블록, 텍스트 블록 다크모드 처리하기
+- 블록 추가할 때 제대로 동작하지 않는 에러 해결
+- 사이드바 조직 추가 모달 영어로 변경
+- 조직 타입 영어로 변경
+- 사이드바에 업커밍 모달 모두 추가
+- 멀티선택 에러 해결
+- 사이드바 언어 영어로 변경
+- 캔버스 상단 헤더 수정
+- React canvas 로딩 배경 색상 변경
+- 캔버스 페이지 로딩 시 문제 로딩 상태 중첩되는 문제 해결
+- 페이지 변하면 이를 사이드바에서 액티브하게 표시되도록 하기
+- 캔버스 로딩 상태 수정
+- 사이드바 페이지 트리의 생성과 액티브 로직 수정
+- 에디터 패널 확대하기, ESC로 닫기
+- 사이드바 페이지 아이템의 순서 바꿀 때 생기는 에러 해결. 부모 페이지 밖으로 나갈 때 order가 optimistic하게 반영되지 않는 문제
+- 캔버스 헤더에 브래드컴에 페이지 깊어지면 줄여서 표현하기
+- 페이지 부모 내에서 이동할 때 가장 아래로 이동하면 안되는 이동이 호출되지 않는 문제 해결 안됨
+- /r/ 리다이렉션, 스켈레톤 로직
 
 ### 📚 Documentation
 
@@ -159,6 +184,7 @@ add copy and paste logic
 - Design block system
 - SPRINT-011 마무리
 - Design AI chat feature
+- Update CHANGELOG
 
 ### 🔧 Maintenance
 
