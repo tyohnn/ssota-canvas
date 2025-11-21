@@ -95,7 +95,11 @@ interface WorkspaceContextValue {
     title?: string,
     icon?: string
   ) => Promise<string | null>;
-  movePage: (pageId: string, newParentId?: string) => Promise<boolean>;
+  movePage: (
+    pageId: string,
+    newParentId?: string,
+    insertIndex?: number
+  ) => Promise<boolean>;
   updatePageInfo: (
     pageId: string,
     title?: string,
@@ -172,30 +176,59 @@ function findAndRemovePageFromTree(
 
 /**
  * PageTree의 특정 부모에 페이지 추가
+ *
+ * @param tree - 페이지 트리
+ * @param page - 추가할 페이지
+ * @param parentId - 부모 페이지 ID (undefined면 루트)
+ * @param insertIndex - 삽입 위치 (undefined면 맨 끝)
  */
 function addPageToTree(
   tree: PageTreeNodeDTO[],
   page: PageTreeNodeDTO,
-  parentId: string | undefined
+  parentId: string | undefined,
+  insertIndex?: number
 ): PageTreeNodeDTO[] {
   // 루트로 추가
   if (parentId === undefined) {
-    return [...tree, { ...page, parentId: null }];
+    const pageWithParent = { ...page, parentId: null };
+
+    // 인덱스 지정 시 해당 위치에 삽입
+    if (insertIndex !== undefined && insertIndex >= 0) {
+      const newTree = [...tree];
+      newTree.splice(insertIndex, 0, pageWithParent);
+      return newTree;
+    }
+
+    // 인덱스 없으면 맨 끝에 추가
+    return [...tree, pageWithParent];
   }
 
   // 특정 부모에 추가
   return tree.map(node => {
     if (node.id === parentId) {
+      const pageWithParent = { ...page, parentId };
+
+      // 인덱스 지정 시 해당 위치에 삽입
+      if (insertIndex !== undefined && insertIndex >= 0) {
+        const newChildren = [...node.children];
+        newChildren.splice(insertIndex, 0, pageWithParent);
+        return {
+          ...node,
+          children: newChildren,
+        };
+      }
+
+      // 인덱스 없으면 맨 끝에 추가
       return {
         ...node,
-        children: [...node.children, { ...page, parentId }],
+        children: [...node.children, pageWithParent],
       };
     }
 
     if (node.children.length > 0) {
       return {
         ...node,
-        children: addPageToTree(node.children, page, parentId),
+        children: addPageToTree(node.children, page, parentId, insertIndex),
       };
     }
 
@@ -975,7 +1008,11 @@ export function WorkspaceProvider({
 
   // Scenario 4: Page 이동 (Optimistic Update)
   const movePage = useCallback(
-    async (pageId: string, newParentId?: string): Promise<boolean> => {
+    async (
+      pageId: string,
+      newParentId?: string,
+      insertIndex?: number
+    ): Promise<boolean> => {
       // 1. 이전 상태 백업 (롤백용)
       const previousWorkspaces = workspaces;
 
@@ -991,17 +1028,42 @@ export function WorkspaceProvider({
 
             if (!page) return ws;
 
+            // 드롭 인덱스가 제공된 경우 해당 위치의 order 계산
+            let updatedPage = page;
+            if (insertIndex !== undefined) {
+              updatedPage = {
+                ...page,
+                order: insertIndex,
+              };
+            }
+
             // 새 위치에 추가
             return {
               ...ws,
-              pageTree: addPageToTree(treeAfterRemoval, page, newParentId),
+              pageTree: addPageToTree(
+                treeAfterRemoval,
+                updatedPage,
+                newParentId,
+                insertIndex
+              ),
             };
           });
         });
 
         // 3. 새 부모 자동 펼치기
         if (newParentId) {
-          setExpandedPages(prev => new Set(prev).add(newParentId));
+          setExpandedPages(prev => {
+            const newSet = new Set(prev);
+            newSet.add(newParentId);
+
+            // 로컬스토리지에 저장
+            if (typeof window !== 'undefined') {
+              const key = getPageCollapsedKey(newParentId);
+              localStorage.setItem(key, 'false');
+            }
+
+            return newSet;
+          });
         }
 
         // 4. Server Action 호출

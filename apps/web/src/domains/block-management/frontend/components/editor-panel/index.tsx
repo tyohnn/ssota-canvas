@@ -37,14 +37,28 @@ function EditorPanelWrapper() {
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        // Input이나 contentEditable 요소에서는 무시
+        const target = event.target as HTMLElement;
+        if (
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+
         if (isExpanded) {
           // 확대된 상태 → 축소 (이벤트 완전 차단)
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
           setIsExpanded(false);
+        } else {
+          // 축소 상태 → 패널 닫기
+          event.preventDefault();
+          event.stopPropagation();
+          onClose();
         }
-        // 축소 상태일 때는 아무것도 하지 않음 (다른 핸들러가 처리)
       }
     };
 
@@ -53,7 +67,7 @@ function EditorPanelWrapper() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
-  }, [isExpanded, setIsExpanded]);
+  }, [isExpanded, setIsExpanded, onClose]);
 
   if (!shouldRender || !blockData) return null;
 

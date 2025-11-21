@@ -78,8 +78,13 @@ export function PageTree({
       if (addedIds.length > 0) {
         addedIds
           .filter(id => id !== workspaceId)
-          .forEach(id => movePage(id, newParentId));
+          .forEach(id => {
+            // 드롭된 위치의 인덱스 찾기
+            const insertIndex = uniqueChildren.indexOf(id);
+            movePage(id, newParentId, insertIndex);
+          });
 
+        // 모든 자식들의 order를 순서대로 업데이트
         reorderPages(workspaceId, newParentId, uniqueChildren);
         return uniqueChildren;
       }
