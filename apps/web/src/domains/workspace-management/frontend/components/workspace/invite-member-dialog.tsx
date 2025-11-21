@@ -234,6 +234,15 @@ export function InviteMemberDialog({
             {isSearching && (
               <p className="text-sm text-muted-foreground">Searching...</p>
             )}
+
+            {!isSearching &&
+              email.length >= 3 &&
+              searchResults.length === 0 && (
+                <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                  <Mail className="h-4 w-4 mr-2" />
+                  <p>No members found matching "{email}"</p>
+                </div>
+              )}
           </div>
 
           {/* Selected member list (Badge) */}
