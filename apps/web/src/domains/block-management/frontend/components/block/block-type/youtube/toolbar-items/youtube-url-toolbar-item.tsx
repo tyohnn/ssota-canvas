@@ -38,7 +38,7 @@ export function YouTubeUrlToolbarItem({
       disabled={disabled}
       onValueChange={onValueChange}
       icon={Link2}
-      label="YouTube URL 편집"
+      label="Edit YouTube URL"
       placeholder="https://www.youtube.com/watch?v=..."
       validateUrl={validateYouTubeUrl}
     />

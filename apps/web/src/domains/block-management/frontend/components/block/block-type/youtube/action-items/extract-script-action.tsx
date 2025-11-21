@@ -33,14 +33,19 @@ export function ExtractScriptAction({
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={handleExtractScript}
-          disabled={!url}
+          onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
           <FileText className="h-4 w-4" />
         </Button>
       </TooltipTrigger>
       <TooltipContent side="left" hasArrow={false} sideOffset={10}>
-        <p>스크립트 추출</p>
+        <div className="flex flex-col gap-1">
+          <p>Extract Script</p>
+          <p className="text-xs">Coming soon</p>
+        </div>
       </TooltipContent>
     </Tooltip>
   );

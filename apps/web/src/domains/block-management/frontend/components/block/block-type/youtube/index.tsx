@@ -343,7 +343,7 @@ export const YoutubeBlock = memo(function YoutubeBlock({
     >
       <Youtube className="h-12 w-12 shrink-0 text-red-500 mb-4" />
       <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
-        YouTube URL을 입력해주세요
+        Enter YouTube URL
       </p>
       <form
         onSubmit={handleUrlSubmit}
@@ -361,7 +361,7 @@ export const YoutubeBlock = memo(function YoutubeBlock({
           onClick={e => e.stopPropagation()}
         />
         <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-          Enter를 눌러 저장하세요
+          Press Enter to save
         </p>
       </form>
     </div>
@@ -408,7 +408,7 @@ export const YoutubeBlock = memo(function YoutubeBlock({
           )}
         >
           <Youtube className="h-12 w-12 text-red-500 mb-2" />
-          <p className="text-sm text-red-500">잘못된 YouTube URL입니다</p>
+          <p className="text-sm text-red-500">Invalid YouTube URL</p>
         </div>
       );
     }
@@ -490,7 +490,7 @@ export const YoutubeBlock = memo(function YoutubeBlock({
                 <div className="absolute inset-0 bg-black flex items-center justify-center">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-16 h-16 border-4 border-white/30 border-t-red-500 rounded-full animate-spin" />
-                    <p className="text-sm text-white/80">영상 로딩 중...</p>
+                    <p className="text-sm text-white/80">Loading video...</p>
                   </div>
                 </div>
               )}
@@ -536,7 +536,7 @@ export const YoutubeBlock = memo(function YoutubeBlock({
                   <span>•</span>
                 )}
               {displayMetadata.viewCount && (
-                <span>{displayMetadata.viewCount.toLocaleString()}회</span>
+                <span>{displayMetadata.viewCount.toLocaleString()} views</span>
               )}
               {displayMetadata.viewCount && displayMetadata.publishedAt && (
                 <span>•</span>
@@ -570,7 +570,7 @@ export const YoutubeBlock = memo(function YoutubeBlock({
     const diffMonth = Math.floor(diffDay / 30);
     const diffYear = Math.floor(diffDay / 365);
 
-    const rtf = new Intl.RelativeTimeFormat('ko-KR', { numeric: 'auto' });
+    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
     // 가장 적절한 단위 선택
     if (diffYear > 0) {

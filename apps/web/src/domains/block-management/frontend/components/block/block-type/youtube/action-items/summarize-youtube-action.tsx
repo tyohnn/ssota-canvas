@@ -33,14 +33,19 @@ export function SummarizeYoutubeAction({
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={handleSummarize}
-          disabled={!url}
+          onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
           <Sparkles className="h-4 w-4" />
         </Button>
       </TooltipTrigger>
       <TooltipContent side="left" hasArrow={false} sideOffset={10}>
-        <p>AI 요약 (LLM)</p>
+        <div className="flex flex-col gap-1">
+          <p>AI Summary</p>
+          <p className="text-xs">Coming soon</p>
+        </div>
       </TooltipContent>
     </Tooltip>
   );

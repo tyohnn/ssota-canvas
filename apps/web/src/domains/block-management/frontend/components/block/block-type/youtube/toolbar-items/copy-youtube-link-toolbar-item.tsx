@@ -52,7 +52,7 @@ export function CopyYoutubeLinkToolbarItem({
         </button>
       </TooltipTrigger>
       <TooltipContent side="top" hasArrow={false} sideOffset={10}>
-        <p>{isCopied ? '복사됨!' : '링크 복사'}</p>
+        <p>{isCopied ? 'Copied!' : 'Copy Link'}</p>
       </TooltipContent>
     </Tooltip>
   );

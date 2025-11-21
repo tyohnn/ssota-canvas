@@ -40,7 +40,7 @@ export function OpenYoutubeToolbarItem({
         </button>
       </TooltipTrigger>
       <TooltipContent side="top" hasArrow={false} sideOffset={10}>
-        <p>YouTube에서 열기</p>
+        <p>Open in YouTube</p>
       </TooltipContent>
     </Tooltip>
   );
