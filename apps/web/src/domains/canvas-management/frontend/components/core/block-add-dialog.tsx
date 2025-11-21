@@ -45,6 +45,7 @@ interface BlockTypeInfo {
   icon: React.ComponentType<{ className?: string }>;
   description: string;
   category?: string;
+  isPreparing?: boolean; // 준비 중인 블록
 }
 
 /**
@@ -52,103 +53,113 @@ interface BlockTypeInfo {
  * Block Management Domain의 SUPPORTED_BLOCK_TYPES와 동기화
  */
 const DEFAULT_BLOCK_TYPES: BlockTypeInfo[] = [
-  {
-    type: BlockType.TEXT,
-    displayName: 'Text',
-    icon: FileText,
-    description: '텍스트 편집 블럭',
-    category: 'Basic',
-  },
+  // Basic - Most frequently used blocks
   {
     type: BlockType.MARKDOWN,
     displayName: 'Markdown',
     icon: MessageSquare,
-    description: '마크다운 문서 블럭',
-    category: 'Content',
+    description: 'Rich text with markdown support',
+    category: 'Basic',
+  },
+  {
+    type: BlockType.TEXT,
+    displayName: 'Sticker',
+    icon: FileText,
+    description: 'Quick text note',
+    category: 'Basic',
+  },
+  {
+    type: BlockType.SHAPE,
+    displayName: 'Shape',
+    icon: Square,
+    description: 'Geometric shapes',
+    category: 'Basic',
+  },
+  // Media
+  {
+    type: BlockType.IMAGE,
+    displayName: 'Image',
+    icon: Image,
+    description: 'Upload or embed images',
+    category: 'Media',
   },
   {
     type: BlockType.YOUTUBE,
     displayName: 'YouTube',
     icon: Video,
-    description: '유튜브 비디오 블럭',
+    description: 'Embed YouTube videos',
     category: 'Media',
   },
   {
     type: BlockType.AUDIO,
     displayName: 'Audio',
     icon: Music,
-    description: '오디오 파일 블럭',
-    category: 'Media',
-  },
-  {
-    type: BlockType.PYTHON,
-    displayName: 'Python Code',
-    icon: Code,
-    description: '파이썬 코드 실행 블럭',
-    category: 'Code',
-  },
-  {
-    type: BlockType.IMAGE,
-    displayName: 'Image',
-    icon: Image,
-    description: '이미지 블럭',
-    category: 'Media',
-  },
-  {
-    type: BlockType.FILE,
-    displayName: 'File',
-    icon: File,
-    description: '파일 첨부 블럭',
+    description: 'Audio files and players',
     category: 'Media',
   },
   {
     type: BlockType.PDF,
     displayName: 'PDF',
     icon: FileText,
-    description: 'PDF 문서 블럭',
+    description: 'PDF document viewer',
     category: 'Media',
   },
+  // Content
   {
     type: BlockType.LINK,
     displayName: 'Link',
     icon: Link,
-    description: '링크 미리보기 블럭',
+    description: 'Link preview with metadata',
     category: 'Content',
   },
+  // Code
   {
-    type: BlockType.SHAPE,
-    displayName: 'Shape',
-    icon: Square,
-    description: '도형 블럭',
-    category: 'Design',
+    type: BlockType.PYTHON,
+    displayName: 'Python Code',
+    icon: Code,
+    description: 'Execute Python code',
+    category: 'Code',
   },
+  // Preparing - Blocks in development
   {
     type: BlockType.PAGE_MENTION,
     displayName: 'Page Mention',
     icon: FileText,
-    description: '페이지 언급 블럭',
-    category: 'Content',
+    description: 'Reference other pages',
+    category: 'Preparing',
+    isPreparing: true,
   },
   {
     type: BlockType.LATEX,
     displayName: 'LaTeX',
     icon: Code,
-    description: '수학 공식 블럭',
-    category: 'Content',
+    description: 'Mathematical formulas',
+    category: 'Preparing',
+    isPreparing: true,
+  },
+  {
+    type: BlockType.FILE,
+    displayName: 'File',
+    icon: File,
+    description: 'File attachment',
+    category: 'Preparing',
+    isPreparing: true,
   },
   {
     type: BlockType.GITHUB_PR,
     displayName: 'GitHub PR',
     icon: Github,
-    description: 'GitHub PR 미리보기',
-    category: 'Development',
+    description: 'GitHub pull request preview',
+    category: 'Preparing',
+    isPreparing: true,
   },
   {
     type: BlockType.REACT_COMPONENT,
     displayName: 'React Component',
     icon: Zap,
-    description: 'React 컴포넌트 블럭',
-    category: 'Development',
+    description: 'Custom React component',
+    category: 'Preparing',
+    isPreparing: true,
   },
 ];
 
@@ -202,19 +213,19 @@ export function BlockAddDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[450px] p-0 rounded-md">
         <DialogHeader className="px-4 py-3 border-b border-border/30">
-          <DialogTitle>블럭 타입 선택</DialogTitle>
+          <DialogTitle>Select Block Type</DialogTitle>
           <DialogDescription>
-            캔버스에 추가할 블럭 타입을 선택하세요.
+            Choose a block type to add to your canvas.
           </DialogDescription>
         </DialogHeader>
 
         <Command className="rounded-md border-0">
           <CommandInput
-            placeholder="블럭 타입 검색..."
+            placeholder="Search block types..."
             className="border-0 focus:ring-0 rounded-md"
           />
           <CommandList>
-            <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
+            <CommandEmpty>No results found.</CommandEmpty>
 
             {Object.entries(blockTypesByCategory).map(
               ([category, blockTypeInfos], index) => (
@@ -222,23 +233,36 @@ export function BlockAddDialog({
                   <CommandGroup heading={category}>
                     {blockTypeInfos.map((blockTypeInfo, blockIndex) => {
                       const IconComponent = blockTypeInfo.icon;
+                      const isPreparing = blockTypeInfo.isPreparing;
                       return (
                         <CommandItem
                           key={`${category}-${blockTypeInfo.type}-${blockIndex}`}
                           value={`${blockTypeInfo.displayName} ${blockTypeInfo.description}`}
-                          onSelect={() =>
-                            handleSelectBlockType(blockTypeInfo.type)
-                          }
+                          onSelect={() => {
+                            if (!isPreparing) {
+                              handleSelectBlockType(blockTypeInfo.type);
+                            }
+                          }}
+                          disabled={isPreparing}
                           className={cn(
                             'flex items-center gap-3 px-2 py-1.5 rounded-md transition-colors',
-                            'hover:bg-accent hover:text-accent-foreground'
+                            isPreparing
+                              ? 'opacity-50 cursor-not-allowed'
+                              : 'hover:bg-accent hover:text-accent-foreground cursor-pointer'
                           )}
                         >
                           <IconComponent className="h-4 w-4" />
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {blockTypeInfo.displayName}
-                            </span>
+                          <div className="flex flex-col flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">
+                                {blockTypeInfo.displayName}
+                              </span>
+                              {isPreparing && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                  Preparing
+                                </span>
+                              )}
+                            </div>
                             <span className="text-xs text-muted-foreground">
                               {blockTypeInfo.description}
                             </span>
