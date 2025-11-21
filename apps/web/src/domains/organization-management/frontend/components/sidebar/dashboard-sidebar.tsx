@@ -104,7 +104,7 @@ export function DashboardSidebar() {
               onClick={toggleTheme}
               className="text-muted-foreground"
               tooltip={
-                mounted && theme === 'dark' ? '라이트 모드' : '다크 모드'
+                mounted && theme === 'dark' ? 'Light Mode' : 'Dark Mode'
               }
             >
               {!mounted ? (
@@ -115,7 +115,7 @@ export function DashboardSidebar() {
                 <Moon className="h-4 w-4" />
               )}
               <span>
-                {mounted && theme === 'dark' ? '라이트 모드' : '다크 모드'}
+                {mounted && theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
               </span>
             </SidebarMenuButton>
           </SidebarMenuItem>

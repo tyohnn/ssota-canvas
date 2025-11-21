@@ -102,9 +102,6 @@ export function ShadowBlockContainer({
     const handleClick = (event: MouseEvent) => {
       // ⚠️ 이미 생성 중이면 무시 (중복 생성 방지 - 짧은 디바운스)
       if (isCreatingRef.current) {
-        console.log(
-          '[ShadowBlock] Block creation cooldown active, ignoring click'
-        );
         return;
       }
 
@@ -129,17 +126,7 @@ export function ShadowBlockContainer({
         isReactFlowEdge ||
         isInReactFlowContainer;
 
-      console.log('[ShadowBlock] Click detected:', {
-        targetElement: target.className,
-        isPane: isReactFlowPane,
-        isNode: isReactFlowNode,
-        isEdge: isReactFlowEdge,
-        isContainer: isInReactFlowContainer,
-        isInReactFlow,
-      });
-
       if (!isInReactFlow) {
-        console.log('[ShadowBlock] Click outside React Flow, ignoring');
         return;
       }
 
@@ -153,11 +140,8 @@ export function ShadowBlockContainer({
         target.closest('[data-exclude-block-creation]'); // 커스텀 제외
 
       if (isExcludedElement) {
-        console.log('[ShadowBlock] Excluded UI element clicked, ignoring');
         return;
       }
-
-      console.log('[ShadowBlock] ✅ Valid click, creating block...');
 
       // 블럭 타입별 크기 가져오기
       const blockType = currentMode.blockType || 'text';
