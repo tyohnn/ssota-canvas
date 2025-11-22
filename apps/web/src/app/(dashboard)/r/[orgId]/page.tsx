@@ -1,9 +1,43 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import type { Metadata } from 'next';
 import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-management.actions';
 
 interface OrgRootPageProps {
   params: Promise<{ orgId: string }>;
+}
+
+/**
+ * Generate dynamic metadata for organization page
+ */
+export async function generateMetadata({
+  params,
+}: OrgRootPageProps): Promise<Metadata> {
+  const { orgId } = await params;
+
+  // Fetch organization data to get the name
+  const workspacePageResult = await getOrganizationWorkspacePageViewAction({
+    organizationId: orgId,
+  });
+
+  if (!workspacePageResult.success) {
+    return {
+      title: 'Organization',
+      description: 'View and manage your organization workspace.',
+    };
+  }
+
+  const organizationName =
+    workspacePageResult.data.workspaces[0]?.organizationName || 'Organization';
+
+  return {
+    title: organizationName,
+    description: `Collaborate and manage workspaces in ${organizationName}. Access your team's pages, canvases, and projects.`,
+    openGraph: {
+      title: organizationName,
+      description: `Collaborate and manage workspaces in ${organizationName}. Access your team's pages, canvases, and projects.`,
+    },
+  };
 }
 
 /**

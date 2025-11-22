@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { getCanvasViewAction } from '@/domains/canvas-management/actions/canvas-query.actions';
 import {
   toReactFlowNodeFromCanvasView,
@@ -5,6 +6,7 @@ import {
   type CustomNodeType,
 } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 import { CanvasClient } from '@/domains/canvas-management/frontend/components/core/canvas-client';
+import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-management.actions';
 import type { Edge } from '@xyflow/react';
 
 interface WorkspacePageProps {
@@ -16,24 +18,65 @@ interface WorkspacePageProps {
 }
 
 /**
- * 랜덤 블록 생성 (서버 컴포넌트 호환)
- * 매번 새로고침할 때마다 다른 위치 생성
+ * Generate dynamic metadata for page
  */
-function generateRandomBlocks() {
-  const blocks = [];
-  const blockCount = 6;
+export async function generateMetadata({
+  params,
+}: WorkspacePageProps): Promise<Metadata> {
+  const { orgId, workspaceId, pageId } = await params;
 
-  for (let i = 0; i < blockCount; i++) {
-    blocks.push({
-      x: 50 + Math.random() * 800, // 50~850px
-      y: 50 + Math.random() * 400, // 50~450px
-      width: 200 + Math.random() * 150, // 200~350px
-      height: 100 + Math.random() * 100, // 100~200px
-      delay: i * 50, // 순차적 애니메이션 딜레이
-    });
+  // Fetch workspace data to get the page name
+  const workspacePageResult = await getOrganizationWorkspacePageViewAction({
+    organizationId: orgId,
+  });
+
+  if (!workspacePageResult.success) {
+    return {
+      title: 'Page',
+      description: 'View and edit your canvas page.',
+    };
   }
 
-  return blocks;
+  // Find the workspace and page
+  const workspace = workspacePageResult.data.workspaces.find(
+    w => w.workspaceId === workspaceId
+  );
+
+  if (!workspace) {
+    return {
+      title: 'Page',
+      description: 'View and edit your canvas page.',
+    };
+  }
+
+  // Recursively find the page in the tree
+  const findPageInTree = (
+    pages: typeof workspace.pageTree,
+    targetId: string
+  ): (typeof workspace.pageTree)[0] | null => {
+    for (const page of pages) {
+      if (page.id === targetId) return page;
+      if (page.children && page.children.length > 0) {
+        const found = findPageInTree(page.children, targetId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const page = findPageInTree(workspace.pageTree, pageId);
+  const pageName = page?.title || 'Untitled';
+  const workspaceName = workspace.workspaceName;
+  const organizationName = workspace.organizationName;
+
+  return {
+    title: `${pageName}`,
+    description: `Edit and collaborate on ${pageName} canvas. Create blocks, manage content, and work together with AI assistance in ${workspaceName}.`,
+    openGraph: {
+      title: `${pageName}`,
+      description: `Edit and collaborate on ${pageName} canvas. Create blocks, manage content, and work together with AI assistance in ${workspaceName}.`,
+    },
+  };
 }
 
 /**
