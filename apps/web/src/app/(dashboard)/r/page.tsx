@@ -4,6 +4,8 @@ import { getUserOrganizationsAction } from '@/domains/organization-management/ac
 import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-management.actions';
 import { RedirectClient } from './redirect-client';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * 대시보드 루트 페이지
  *
