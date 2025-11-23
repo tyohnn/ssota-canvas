@@ -7,6 +7,8 @@ import {
   PageAccessDeniedEvent,
   PageMovedEvent,
   PageUpdatedEvent,
+  PageDeletedEvent,
+  PageDuplicatedEvent,
   WorkspaceManagementDomainEvent,
 } from '../events';
 import { WorkspaceManagementError } from '../errors/workspace-management.error';
@@ -14,6 +16,8 @@ import type {
   CreatePageCommand,
   MovePageCommand,
   UpdatePageCommand,
+  DeletePageCommand,
+  DuplicatePageCommand,
 } from '../commands';
 
 /**
@@ -184,6 +188,70 @@ export class PageAggregate {
   }
 
   /**
+   * Page 삭제 (Soft Delete)
+   *
+   * @param command - Page 삭제 Command
+   */
+  delete(command: DeletePageCommand): void {
+    // 1. Soft delete 처리
+    this._page.softDelete();
+
+    // 2. PageDeleted 이벤트 발행
+    this.addEvent({
+      type: 'PageDeleted',
+      pageId: this._page.pageId.value,
+      workspaceId: this._page.workspaceId.value,
+      occurredAt: new Date(),
+    });
+  }
+
+  /**
+   * Page 복제
+   *
+   * @param command - Page 복제 Command
+   * @param parentPage - 부모 페이지 (원본과 동일)
+   * @returns 새로운 PageAggregate
+   */
+  static duplicate(
+    command: DuplicatePageCommand,
+    originalPage: Page,
+    parentPage: Page | null
+  ): PageAggregate {
+    // 1. 새 PageId 생성
+    const newPageId = new PageId(crypto.randomUUID());
+
+    // 2. 새 Page Entity 생성
+    const newPage = new Page(
+      newPageId,
+      originalPage.workspaceId,
+      originalPage.parentId,
+      command.newTitle,
+      originalPage.icon,
+      command.newOrder,
+      originalPage.depth,
+      command.duplicatedBy,
+      new Date(),
+      new Date(),
+      null
+    );
+
+    // 3. Aggregate 생성
+    const aggregate = new PageAggregate(newPage);
+
+    // 4. PageDuplicated 이벤트 발행
+    aggregate.addEvent({
+      type: 'PageDuplicated',
+      originalPageId: originalPage.pageId.value,
+      newPageId: newPageId.value,
+      workspaceId: originalPage.workspaceId.value,
+      newTitle: command.newTitle,
+      occurredAt: new Date(),
+    });
+
+    return aggregate;
+  }
+
+  /**
    * Page 접근 권한 검증
    *
    * @param userId - 사용자 ID
@@ -216,14 +284,19 @@ export class PageAggregate {
   }
 
   /**
-   * 미커밋 이벤트 목록 반환 및 클리어
+   * 미커밋 이벤트 목록 반환
    *
    * @returns 도메인 이벤트 배열
    */
   getUncommittedEvents(): WorkspaceManagementDomainEvent[] {
-    const events = [...this._events];
-    this._events = []; // 이벤트 클리어
-    return events;
+    return [...this._events];
+  }
+
+  /**
+   * 이벤트 커밋 (이벤트 처리 완료 후 호출)
+   */
+  markEventsAsCommitted(): void {
+    this._events = [];
   }
 
   /**

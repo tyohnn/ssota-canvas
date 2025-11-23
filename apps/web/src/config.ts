@@ -11,8 +11,10 @@
 
 export const config = {
   database: {
-    // Vercel-Supabase Integration provides POSTGRES_URL
+    // Vercel-Supabase Integration provides POSTGRES_URL (Pooled, 포트 6543)
+    // Connection Pooler를 사용하여 Serverless 환경에 최적화
     url: process.env.POSTGRES_URL || '',
+    // Direct Connection (포트 5432) - 마이그레이션/스키마 생성 전용
     nonPoolingUrl: process.env.POSTGRES_URL_NON_POOLING || '',
   },
   supabase: {

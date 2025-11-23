@@ -4,11 +4,12 @@
 import React, { useState } from 'react';
 import type { ItemInstance } from '@headless-tree/core';
 import { TreeItem } from '@workspace/ui/components/ui/tree';
-import { Plus, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { Plus, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PageTreeItem } from './types';
 import { WorkspaceIcon } from '../shared/icon-picker';
 import { useWorkspace } from '../../index';
+import { PageContextMenu } from './page-context-menu';
 
 interface PageTreeItemProps {
   item: ItemInstance<PageTreeItem>;
@@ -42,6 +43,7 @@ export function PageTreeItemRenderer({
   } = useWorkspace();
   const [isHovered, setIsHovered] = useState(false);
   const [isChevronHovered, setIsChevronHovered] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // selectedPageId prop이 없으면 context에서 가져옴
   const actualSelectedPageId = selectedPageId ?? contextSelectedPageId;
@@ -162,29 +164,28 @@ export function PageTreeItemRenderer({
 
           {/* 오른쪽 액션 버튼들 (아이템 호버 시 표시) */}
           <div className="shrink-0 pr-2 flex items-center gap-0.5">
-            {/* 삼점 설정 버튼 */}
-            <div
-              className={cn(
-                'h-4 w-4 p-0 flex items-center justify-center rounded-sm transition-all hover:bg-accent cursor-pointer',
-                isHovered ? 'opacity-100' : 'opacity-0'
-              )}
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
-                // TODO: 설정 메뉴 로직 추가
+            {/* 삼점 설정 버튼 (컨텍스트 메뉴) */}
+            <PageContextMenu
+              page={{
+                id: page.pageId,
+                title: page.title,
+                icon: page.icon ?? null,
+                children: [],
+                depth: page.depth,
+                isFavorite: page.isFavorite,
+                lastModified: page.lastModified,
+                parentId: page.parentId,
+                order: page.order,
               }}
-              role="button"
-              aria-label="More options"
-              tabIndex={-1}
-            >
-              <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-            </div>
+              onOpenChange={setIsMenuOpen}
+              isParentHovered={isHovered}
+            />
 
             {/* + 버튼 */}
             <div
               className={cn(
                 'h-4 w-4 p-0 flex items-center justify-center rounded-sm transition-all hover:bg-accent cursor-pointer',
-                isHovered ? 'opacity-100' : 'opacity-0'
+                isHovered || isMenuOpen ? 'opacity-100' : 'opacity-0'
               )}
               onClick={handleCreateSubPage}
               role="button"

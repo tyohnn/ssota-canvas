@@ -34,6 +34,12 @@ import { useCanvasEdgeManagement } from '../../hooks/use-canvas-edge-management'
 import { useCanvasBlockLifecycle } from '../../hooks/use-canvas-block-lifecycle';
 import { useCanvasCallbacks } from '../../hooks/use-canvas-callbacks';
 
+// Canvas Storage
+import {
+  getViewportStateFromStorage,
+  setViewportStateToStorage,
+} from '../../utils/canvas-storage';
+
 // Canvas Management Components
 import { CanvasToolbar } from './canvas-toolbar';
 import { ViewportControls } from './viewport-controls';
@@ -326,6 +332,96 @@ export function CanvasReactFlowWrapper({
     };
   }, [canvasCallbacks]);
 
+  // 페이지별 초기 viewport 로드 여부 추적
+  const lastLoadedPageIdRef = React.useRef<string | null>(null);
+
+  // 초기 viewport 설정 (깜빡임 방지)
+  const defaultViewport = React.useMemo(() => {
+    const savedViewport = getViewportStateFromStorage(pageId);
+    if (savedViewport) {
+      return {
+        x: savedViewport.x,
+        y: savedViewport.y,
+        zoom: savedViewport.zoom,
+      };
+    }
+    // 저장된 viewport가 없으면 기본값 (fitView는 나중에 실행)
+    return { x: 0, y: 0, zoom: 1 };
+  }, [pageId]);
+
+  // 페이지 변경 시 viewport 복원 또는 fitView (한 번만, 애니메이션 포함)
+  React.useEffect(() => {
+    // 이미 로드된 페이지면 스킵
+    if (lastLoadedPageIdRef.current === pageId) {
+      return;
+    }
+
+    // React Flow가 준비될 때까지 대기
+    const timer = setTimeout(() => {
+      const savedViewport = getViewportStateFromStorage(pageId);
+
+      if (savedViewport) {
+        // 저장된 viewport가 있으면 애니메이션과 함께 복원
+        reactFlowInstance.setViewport(
+          {
+            x: savedViewport.x,
+            y: savedViewport.y,
+            zoom: savedViewport.zoom,
+          },
+          { duration: 400 }
+        );
+      } else {
+        // 저장된 viewport가 없으면 fitView 실행 (애니메이션 포함)
+        canvasViewport.fitToScreen();
+      }
+
+      // 로드 완료 표시
+      lastLoadedPageIdRef.current = pageId;
+    }, 100); // React Flow 초기화 대기
+
+    return () => clearTimeout(timer);
+  }, [pageId, reactFlowInstance, canvasViewport.fitToScreen]);
+
+  // Viewport 변경 시 저장 (debounced)
+  const handleViewportChange = React.useCallback(
+    (viewport: { x: number; y: number; zoom: number }) => {
+      // Storage에 저장
+      setViewportStateToStorage(pageId, {
+        x: viewport.x,
+        y: viewport.y,
+        zoom: viewport.zoom,
+      });
+    },
+    [pageId]
+  );
+
+  // Debounce 타이머 관리
+  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleMove = React.useCallback(
+    (_event: unknown, viewport: { x: number; y: number; zoom: number }) => {
+      // 기존 타이머 취소
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      // 500ms 후에 저장
+      debounceTimerRef.current = setTimeout(() => {
+        handleViewportChange(viewport);
+      }, 500);
+    },
+    [handleViewportChange]
+  );
+
+  // 컴포넌트 언마운트 시 타이머 정리
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   // 트랙패드 제스처 최적화 설정 (피그마 스타일)
   // - 핀치 제스처: 줌인/줌아웃
   // - 두 손가락 스크롤: 캔버스 패닝
@@ -447,7 +543,7 @@ export function CanvasReactFlowWrapper({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         // 기본 설정
-        fitView
+        defaultViewport={defaultViewport}
         minZoom={0.1}
         maxZoom={2}
         // 테마 설정
@@ -476,6 +572,7 @@ export function CanvasReactFlowWrapper({
         onReconnectStart={canvasCallbacks.onReconnectStart}
         onReconnectEnd={canvasCallbacks.onReconnectEnd}
         onNodesDelete={canvasCallbacks.onNodesDelete}
+        onMove={handleMove}
         // onKeyDown은 전역 리스너로 처리 (포커스 문제 우회)
         deleteKeyCode={['Delete', 'Backspace']}
         className={`bg-muted/30 ${panOnDragEnabled ? 'panning-mode' : ''} ${isBlockCreationMode ? 'block-creation-mode' : ''}`}

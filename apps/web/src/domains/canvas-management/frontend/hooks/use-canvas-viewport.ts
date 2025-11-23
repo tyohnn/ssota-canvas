@@ -124,6 +124,40 @@ export function useCanvasViewport() {
     }
   }, [reactFlow]);
 
+  const setViewport = useCallback(
+    (x: number, y: number, zoom: number, options?: { duration?: number }) => {
+      if (!reactFlow) return;
+      try {
+        reactFlow.setViewport(
+          { x, y, zoom },
+          { duration: options?.duration ?? 0 }
+        );
+      } catch (error) {
+        console.error('Failed to set viewport:', error);
+      }
+    },
+    [reactFlow]
+  );
+
+  const restoreViewport = useCallback(
+    (viewportState: { x: number; y: number; zoom: number }) => {
+      if (!reactFlow) return;
+      try {
+        reactFlow.setViewport(
+          {
+            x: viewportState.x,
+            y: viewportState.y,
+            zoom: viewportState.zoom,
+          },
+          { duration: 0 }
+        );
+      } catch (error) {
+        console.error('Failed to restore viewport:', error);
+      }
+    },
+    [reactFlow]
+  );
+
   return {
     // 상태 읽기
     getZoomLevel,
@@ -137,5 +171,7 @@ export function useCanvasViewport() {
     panTo,
     fitToScreen,
     resetZoom,
+    setViewport,
+    restoreViewport,
   };
 }

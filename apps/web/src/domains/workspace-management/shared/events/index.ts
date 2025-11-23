@@ -85,6 +85,15 @@ export interface PageDeletedEvent {
   occurredAt: Date;
 }
 
+export interface PageDuplicatedEvent {
+  type: 'PageDuplicated';
+  originalPageId: string;
+  newPageId: string;
+  workspaceId: string;
+  newTitle: string;
+  occurredAt: Date;
+}
+
 export interface PageTreeLoadedEvent {
   type: 'PageTreeLoaded';
   workspaceId: string;
@@ -150,6 +159,7 @@ export type WorkspaceManagementDomainEvent =
   | PageUpdatedEvent
   | PageMovedEvent
   | PageDeletedEvent
+  | PageDuplicatedEvent
   | PageTreeLoadedEvent
   | PageAccessVerifiedEvent
   | PageAccessDeniedEvent

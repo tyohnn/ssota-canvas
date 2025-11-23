@@ -18,6 +18,7 @@ import {
   DefaultWorkspaceInvitationService,
   DefaultPageHierarchyService,
 } from '../backend/services';
+import { DefaultPageLifecycleService } from '../backend/services/page-lifecycle.service';
 import { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '../shared/value-objects/workspace-id.vo';
@@ -45,6 +46,9 @@ import type {
   MovePageRequest,
   UpdatePageInfoRequest,
   ReorderPagesRequest,
+  DeletePageRequest,
+  DuplicatePageRequest,
+  DuplicatePageResponse,
 } from '../shared/dtos';
 import type { Page } from '../shared/entities/page.entity';
 
@@ -1140,6 +1144,142 @@ export async function reorderPagesAction(
     };
   } catch (error) {
     console.error('[reorderPagesAction] Error:', error);
+    return {
+      success: false,
+      error: 'UNKNOWN_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// Scenario 7: Page 삭제 및 복제
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Page 삭제 Server Action (Soft Delete)
+ *
+ * @param request - Page 삭제 요청
+ * @returns void (성공) | Error (실패)
+ */
+export async function deletePageAction(
+  request: DeletePageRequest
+): Promise<ServerActionResult<void>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'UNAUTHORIZED',
+        details: 'User not authenticated',
+      };
+    }
+
+    // 2. 의존성 주입
+    const pageRepo = new DrizzlePageRepository();
+    const memberRepo = new DrizzleWorkspaceMemberRepository();
+
+    const service = new DefaultPageLifecycleService(pageRepo, memberRepo);
+
+    // 3. Service 호출 (params 패턴)
+    const result = await service.deletePage({
+      pageId: new PageId(request.pageId),
+      userId: user.id,
+    });
+
+    // 4. Result 처리
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error,
+        details: `Failed to delete page: ${result.error}`,
+      };
+    }
+
+    // 5. 캐시 무효화
+    revalidatePath('/r');
+
+    return {
+      success: true,
+      data: undefined,
+    };
+  } catch (error) {
+    console.error('[deletePageAction] Error:', error);
+    return {
+      success: false,
+      error: 'UNKNOWN_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Page 복제 Server Action
+ *
+ * @param request - Page 복제 요청
+ * @returns DuplicatePageResponse (성공) | Error (실패)
+ */
+export async function duplicatePageAction(
+  request: DuplicatePageRequest
+): Promise<ServerActionResult<DuplicatePageResponse>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'UNAUTHORIZED',
+        details: 'User not authenticated',
+      };
+    }
+
+    // 2. 의존성 주입
+    const pageRepo = new DrizzlePageRepository();
+    const memberRepo = new DrizzleWorkspaceMemberRepository();
+
+    const service = new DefaultPageLifecycleService(pageRepo, memberRepo);
+
+    // 3. Service 호출 (params 패턴)
+    const result = await service.duplicatePage({
+      pageId: new PageId(request.pageId),
+      userId: user.id,
+    });
+
+    // 4. Result 처리
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error,
+        details: `Failed to duplicate page: ${result.error}`,
+      };
+    }
+
+    // 5. Aggregate → DTO 변환
+    const aggregate = result.data;
+    const responseData: DuplicatePageResponse = {
+      pageId: aggregate.page.pageId.value,
+    };
+
+    // 6. 캐시 무효화
+    revalidatePath('/r');
+
+    return {
+      success: true,
+      data: responseData,
+    };
+  } catch (error) {
+    console.error('[duplicatePageAction] Error:', error);
     return {
       success: false,
       error: 'UNKNOWN_ERROR',

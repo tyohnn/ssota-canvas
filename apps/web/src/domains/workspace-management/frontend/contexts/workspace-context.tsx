@@ -40,6 +40,8 @@ import {
   movePageAction,
   updatePageInfoAction,
   reorderPagesAction,
+  deletePageAction,
+  duplicatePageAction,
 } from '@/domains/workspace-management/actions/workspace-management.actions';
 
 /**
@@ -110,6 +112,10 @@ interface WorkspaceContextValue {
     parentId: string | undefined,
     orderedPageIds: string[]
   ) => Promise<boolean>;
+
+  // Scenario 7: Page 삭제 및 복제
+  deletePage: (pageId: string) => Promise<boolean>;
+  duplicatePage: (pageId: string) => Promise<string | null>;
 
   // 계산된 속성
   selectedPage: PageTreeNodeDTO | null;
@@ -1210,6 +1216,190 @@ export function WorkspaceProvider({
     [workspaces]
   );
 
+  // Scenario 7: Page 삭제 (Optimistic Update)
+  const deletePage = useCallback(
+    async (pageId: string): Promise<boolean> => {
+      // 1. 이전 상태 백업 (롤백용)
+      const previousWorkspaces = workspaces;
+
+      try {
+        // 2. Optimistic Update: 즉시 페이지 제거
+        setWorkspaces(prev => {
+          return prev.map(ws => {
+            const { tree: updatedTree } = findAndRemovePageFromTree(
+              ws.pageTree,
+              pageId
+            );
+
+            return {
+              ...ws,
+              pageTree: updatedTree,
+              pageCount: ws.pageCount - 1,
+            };
+          });
+        });
+
+        // 3. 현재 선택된 페이지를 삭제한 경우 다른 페이지로 이동
+        if (selectedPageId === pageId) {
+          const workspace = workspaces.find(ws =>
+            findPageInTree(ws.pageTree, pageId)
+          );
+
+          if (workspace && workspace.pageTree.length > 0) {
+            // 첫 번째 페이지로 이동
+            const firstPage = workspace.pageTree[0];
+            if (firstPage) {
+              selectPage(firstPage.id, workspace.workspaceId);
+            }
+          }
+        }
+
+        // 4. Server Action 호출
+        const result = await deletePageAction({
+          pageId,
+        });
+
+        if (!result.success) {
+          // 실패 시 롤백
+          setWorkspaces(previousWorkspaces);
+
+          // 에러 토스트 표시
+          if (
+            result.error === 'NOT_WORKSPACE_MEMBER' ||
+            result.error === 'UNAUTHORIZED'
+          ) {
+            toast.error('페이지를 삭제할 권한이 없습니다');
+          } else if (result.error === 'PAGE_NOT_FOUND') {
+            toast.error('페이지를 찾을 수 없습니다');
+          } else {
+            toast.error('페이지 삭제에 실패했습니다');
+          }
+          return false;
+        }
+
+        // 5. 성공 토스트
+        toast.success('페이지가 삭제되었습니다');
+        return true;
+      } catch (error) {
+        // 에러 시 롤백
+        console.error('[deletePage] Error:', error);
+        setWorkspaces(previousWorkspaces);
+        toast.error('페이지 삭제 중 오류가 발생했습니다');
+        return false;
+      }
+    },
+    [workspaces, selectedPageId, selectPage]
+  );
+
+  // Scenario 7: Page 복제 (Optimistic Update)
+  const duplicatePage = useCallback(
+    async (pageId: string): Promise<string | null> => {
+      const tempPageId = `temp-dup-${Date.now()}`;
+      // 1. 이전 상태 백업 (롤백용)
+      const previousWorkspaces = workspaces;
+
+      try {
+        // 2. 원본 페이지 찾기
+        let originalPage: PageTreeNodeDTO | null = null;
+        let targetWorkspaceId = '';
+
+        for (const ws of workspaces) {
+          const page = findPageInTree(ws.pageTree, pageId);
+          if (page) {
+            originalPage = page;
+            targetWorkspaceId = ws.workspaceId;
+            break;
+          }
+        }
+
+        if (!originalPage) {
+          toast.error('페이지를 찾을 수 없습니다');
+          return null;
+        }
+
+        // 3. Optimistic Update: 임시 복제 페이지 추가
+        setWorkspaces(prev => {
+          return prev.map(ws => {
+            if (ws.workspaceId !== targetWorkspaceId) return ws;
+
+            const duplicatedPage: PageTreeNodeDTO = {
+              id: tempPageId,
+              title: `${originalPage!.title} (Copy)`,
+              icon: originalPage!.icon,
+              children: [],
+              depth: originalPage!.depth,
+              isFavorite: false,
+              lastModified: new Date().toISOString(),
+              parentId: originalPage!.parentId,
+              order: originalPage!.order + 1,
+            };
+
+            return {
+              ...ws,
+              pageTree: addPageToTree(
+                ws.pageTree,
+                duplicatedPage,
+                originalPage!.parentId || undefined,
+                undefined // 맨 끝에 추가
+              ),
+              pageCount: ws.pageCount + 1,
+            };
+          });
+        });
+
+        // 4. Server Action 호출
+        const result = await duplicatePageAction({
+          pageId,
+        });
+
+        if (!result.success) {
+          // 실패 시 롤백
+          setWorkspaces(previousWorkspaces);
+
+          // 에러 토스트 표시
+          if (
+            result.error === 'NOT_WORKSPACE_MEMBER' ||
+            result.error === 'UNAUTHORIZED'
+          ) {
+            toast.error('페이지를 복제할 권한이 없습니다');
+          } else if (result.error === 'PAGE_NOT_FOUND') {
+            toast.error('페이지를 찾을 수 없습니다');
+          } else {
+            toast.error('페이지 복제에 실패했습니다');
+          }
+          return null;
+        }
+
+        // 5. 성공 시 임시 ID를 실제 ID로 교체
+        setWorkspaces(prev => {
+          return prev.map(ws => {
+            if (ws.workspaceId !== targetWorkspaceId) return ws;
+
+            return {
+              ...ws,
+              pageTree: replacePageIdInTree(
+                ws.pageTree,
+                tempPageId,
+                result.data.pageId
+              ),
+            };
+          });
+        });
+
+        // 6. 성공 토스트
+        toast.success('페이지가 복제되었습니다');
+        return result.data.pageId;
+      } catch (error) {
+        // 에러 시 롤백
+        console.error('[duplicatePage] Error:', error);
+        setWorkspaces(previousWorkspaces);
+        toast.error('페이지 복제 중 오류가 발생했습니다');
+        return null;
+      }
+    },
+    [workspaces]
+  );
+
   const value: WorkspaceContextValue = {
     // 기본 상태
     organizationId,
@@ -1242,6 +1432,10 @@ export function WorkspaceProvider({
     movePage,
     updatePageInfo,
     reorderPages,
+
+    // Scenario 7
+    deletePage,
+    duplicatePage,
 
     // 계산된 속성
     selectedPage,
