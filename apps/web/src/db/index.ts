@@ -9,26 +9,65 @@ import * as imageAppSpaceSchema from './schemas/image-app-space-schema';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 const isDevelopment = config.environment === 'development';
+const isProduction = config.environment === 'production';
 
-if (!config.database.nonPoolingUrl) {
-  // non-pooling url is the Database URL
+// 🔧 Connection URL 전략
+// - 모든 환경: POSTGRES_URL (Pooled, Connection Pooler 사용)
+// - 이유: Dev/Prod 환경 일관성, Serverless 최적화, 타임아웃 방지
+// - 예외: 마이그레이션/스키마 생성은 POSTGRES_URL_NON_POOLING 사용 (별도 스크립트)
+const connectionUrl = config.database.url; // POSTGRES_URL (포트 6543)
+
+if (!connectionUrl) {
   console.error('❌ Database configuration error:', {
+    POSTGRES_URL: !!process.env.POSTGRES_URL,
     POSTGRES_URL_NON_POOLING: !!process.env.POSTGRES_URL_NON_POOLING,
-    configValue: config.database.nonPoolingUrl,
+    environment: config.environment,
+    usingUrl: 'POSTGRES_URL (Pooled)',
   });
   throw new Error(
-    'POSTGRES_URL_NON_POOLING is not set in environment variables. Please check your .env.local file.'
+    'POSTGRES_URL is not set. Please check your environment variables.'
   );
 }
 
 // 데이터베이스 URL 유효성 검사 (디버깅용)
 try {
-  const url = new URL(config.database.nonPoolingUrl);
+  const url = new URL(connectionUrl);
+  const isLocalDatabase =
+    url.hostname === '127.0.0.1' ||
+    url.hostname === 'localhost' ||
+    url.hostname.includes('supabase_');
+
   if (!url.hostname || !url.port) {
     console.warn('⚠️ Database URL parsing issue:', {
       hostname: url.hostname,
       port: url.port,
       protocol: url.protocol,
+      environment: config.environment,
+    });
+  }
+
+  // Connection Pooler 사용 확인 (프로덕션만)
+  if (isProduction && url.port !== '6543') {
+    console.warn('⚠️ Production should use Connection Pooler (port 6543):', {
+      currentPort: url.port,
+      hostname: url.hostname,
+      environment: config.environment,
+    });
+  } else if (isDevelopment && !isLocalDatabase && url.port !== '6543') {
+    console.warn(
+      '⚠️ Remote database should use Connection Pooler (port 6543):',
+      {
+        currentPort: url.port,
+        hostname: url.hostname,
+        environment: config.environment,
+      }
+    );
+  } else if (isDevelopment) {
+    console.log('✅ Database Connected:', {
+      port: url.port,
+      hostname: url.hostname,
+      environment: config.environment,
+      isLocal: isLocalDatabase,
     });
   }
 } catch (error) {
@@ -73,14 +112,12 @@ const globalForDb = globalThis as unknown as {
 
 // Create admin client for direct database access (Singleton)
 const adminClient =
-  globalForDb.adminClient ??
-  postgres(config.database.nonPoolingUrl, connectionConfig);
+  globalForDb.adminClient ?? postgres(connectionUrl, connectionConfig);
 if (isDevelopment) globalForDb.adminClient = adminClient;
 
 // Create RLS client for user-scoped operations (Singleton)
 const rlsClient =
-  globalForDb.rlsClient ??
-  postgres(config.database.nonPoolingUrl, connectionConfig);
+  globalForDb.rlsClient ?? postgres(connectionUrl, connectionConfig);
 if (isDevelopment) globalForDb.rlsClient = rlsClient;
 
 // Create drizzle instances with environment-based schema
