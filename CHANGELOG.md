@@ -1,5 +1,9 @@
 ## [unreleased]
 
+### Deploy
+
+- Version 0.3.1
+
 ### Dev
 
 - Supabase branch에 storage 추가
@@ -75,6 +79,7 @@ add copy and paste logic
 - /r/ 페이지에서 orgId로 자동 리다이렉션
 - 캔버스 상단 툴바 동작하도록 수정 (패닝/선택 모드)
 - Add supabase storage
+- Add seo metatags
 
 ### 🐛 Bug Fixes
 
@@ -116,6 +121,9 @@ add copy and paste logic
 - 캔버스 헤더에 브래드컴에 페이지 깊어지면 줄여서 표현하기
 - 페이지 부모 내에서 이동할 때 가장 아래로 이동하면 안되는 이동이 호출되지 않는 문제 해결 안됨
 - /r/ 리다이렉션, 스켈레톤 로직
+- Fix build error
+- Deploy build
+- Page redirection client error
 
 ### 📚 Documentation
 
@@ -184,6 +192,7 @@ add copy and paste logic
 - Design block system
 - SPRINT-011 마무리
 - Design AI chat feature
+- Update CHANGELOG
 - Update CHANGELOG
 
 ### 🔧 Maintenance
