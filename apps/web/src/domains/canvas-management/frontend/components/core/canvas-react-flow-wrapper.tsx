@@ -335,7 +335,21 @@ export function CanvasReactFlowWrapper({
   // 페이지별 초기 viewport 로드 여부 추적
   const lastLoadedPageIdRef = React.useRef<string | null>(null);
 
-  // 페이지 변경 시 viewport 복원 또는 fitView (한 번만)
+  // 초기 viewport 설정 (깜빡임 방지)
+  const defaultViewport = React.useMemo(() => {
+    const savedViewport = getViewportStateFromStorage(pageId);
+    if (savedViewport) {
+      return {
+        x: savedViewport.x,
+        y: savedViewport.y,
+        zoom: savedViewport.zoom,
+      };
+    }
+    // 저장된 viewport가 없으면 기본값 (fitView는 나중에 실행)
+    return { x: 0, y: 0, zoom: 1 };
+  }, [pageId]);
+
+  // 페이지 변경 시 viewport 복원 또는 fitView (한 번만, 애니메이션 포함)
   React.useEffect(() => {
     // 이미 로드된 페이지면 스킵
     if (lastLoadedPageIdRef.current === pageId) {
@@ -347,10 +361,17 @@ export function CanvasReactFlowWrapper({
       const savedViewport = getViewportStateFromStorage(pageId);
 
       if (savedViewport) {
-        // 저장된 viewport가 있으면 복원
-        canvasViewport.restoreViewport(savedViewport);
+        // 저장된 viewport가 있으면 애니메이션과 함께 복원
+        reactFlowInstance.setViewport(
+          {
+            x: savedViewport.x,
+            y: savedViewport.y,
+            zoom: savedViewport.zoom,
+          },
+          { duration: 400 }
+        );
       } else {
-        // 저장된 viewport가 없으면 fitView 실행
+        // 저장된 viewport가 없으면 fitView 실행 (애니메이션 포함)
         canvasViewport.fitToScreen();
       }
 
@@ -359,7 +380,7 @@ export function CanvasReactFlowWrapper({
     }, 100); // React Flow 초기화 대기
 
     return () => clearTimeout(timer);
-  }, [pageId, canvasViewport.restoreViewport, canvasViewport.fitToScreen]);
+  }, [pageId, reactFlowInstance, canvasViewport.fitToScreen]);
 
   // Viewport 변경 시 저장 (debounced)
   const handleViewportChange = React.useCallback(
@@ -522,6 +543,7 @@ export function CanvasReactFlowWrapper({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         // 기본 설정
+        defaultViewport={defaultViewport}
         minZoom={0.1}
         maxZoom={2}
         // 테마 설정
