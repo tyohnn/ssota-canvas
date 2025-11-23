@@ -80,6 +80,8 @@ add copy and paste logic
 - 캔버스 상단 툴바 동작하도록 수정 (패닝/선택 모드)
 - Add supabase storage
 - Add seo metatags
+- 캔버스 fitToView 삭제하고 페이지별 위치/줌을 로컬스토리지에서 로드하는 기능
+- 페이지 복제/삭제 기능
 
 ### 🐛 Bug Fixes
 
@@ -124,6 +126,9 @@ add copy and paste logic
 - Fix build error
 - Deploy build
 - Page redirection client error
+- Db 타임아웃 늘리고 로그 추가
+- Db connection pooler
+- Default viewport 추가해서 끊기지 않도록
 
 ### 📚 Documentation
 
@@ -192,6 +197,7 @@ add copy and paste logic
 - Design block system
 - SPRINT-011 마무리
 - Design AI chat feature
+- Update CHANGELOG
 - Update CHANGELOG
 - Update CHANGELOG
 
