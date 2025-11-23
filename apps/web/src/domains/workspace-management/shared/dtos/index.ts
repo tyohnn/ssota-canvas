@@ -237,6 +237,18 @@ export interface ReorderPagesRequest {
   orderedPageIds: string[]; // 순서대로 정렬된 페이지 ID 배열
 }
 
+export interface DeletePageRequest {
+  pageId: string;
+}
+
+export interface DuplicatePageRequest {
+  pageId: string;
+}
+
+export interface DuplicatePageResponse {
+  pageId: string; // 복제된 페이지 ID
+}
+
 // ────────────────────────────────────────────────────────────
 // Server Action Result Type
 // ────────────────────────────────────────────────────────────

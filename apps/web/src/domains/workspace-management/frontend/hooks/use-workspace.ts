@@ -153,6 +153,10 @@ export function useWorkspace() {
     updatePageInfo: context.updatePageInfo,
     reorderPages: context.reorderPages,
 
+    // Actions (Scenario 7)
+    deletePage: context.deletePage,
+    duplicatePage: context.duplicatePage,
+
     // 계산된 속성
     selectedPage: context.selectedPage,
     selectedWorkspace: context.selectedWorkspace,

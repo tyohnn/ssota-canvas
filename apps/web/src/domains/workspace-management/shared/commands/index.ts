@@ -57,3 +57,10 @@ export interface DeletePageCommand {
   pageId: string;
   deletedBy: string;
 }
+
+export interface DuplicatePageCommand {
+  pageId: string;
+  newTitle: string;
+  newOrder: number;
+  duplicatedBy: string;
+}
