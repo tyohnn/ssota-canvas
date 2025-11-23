@@ -2,6 +2,9 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import type { Metadata } from 'next';
 import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-management.actions';
+import { OrgRedirectClient } from './org-redirect-client';
+
+export const dynamic = 'force-dynamic';
 
 interface OrgRootPageProps {
   params: Promise<{ orgId: string }>;
@@ -64,7 +67,7 @@ export default async function OrgRootPage({ params }: OrgRootPageProps) {
 
   // 워크스페이스가 없는 경우
   if (workspaces.length === 0) {
-    redirect(`/r/${orgId}/workspace/new`);
+    return <OrgRedirectClient redirectUrl={`/r/${orgId}/workspace/new`} />;
   }
 
   // 쿠키에서 최근 페이지 확인
@@ -89,8 +92,10 @@ export default async function OrgRootPage({ params }: OrgRootPageProps) {
 
     for (const workspace of workspaces) {
       if (findPageInTree(workspace.pageTree)) {
-        redirect(
-          `/r/${orgId}/workspace/${workspace.workspaceId}/page/${cookiePageId}`
+        return (
+          <OrgRedirectClient
+            redirectUrl={`/r/${orgId}/workspace/${workspace.workspaceId}/page/${cookiePageId}`}
+          />
         );
       }
     }
@@ -102,11 +107,17 @@ export default async function OrgRootPage({ params }: OrgRootPageProps) {
 
   if (!firstPage) {
     // 페이지가 없는 경우 워크스페이스 루트로
-    redirect(`/r/${orgId}/workspace/${firstWorkspace.workspaceId}`);
+    return (
+      <OrgRedirectClient
+        redirectUrl={`/r/${orgId}/workspace/${firstWorkspace.workspaceId}`}
+      />
+    );
   }
 
   // 첫 페이지로 리다이렉트
-  redirect(
-    `/r/${orgId}/workspace/${firstWorkspace.workspaceId}/page/${firstPage.id}`
+  return (
+    <OrgRedirectClient
+      redirectUrl={`/r/${orgId}/workspace/${firstWorkspace.workspaceId}/page/${firstPage.id}`}
+    />
   );
 }

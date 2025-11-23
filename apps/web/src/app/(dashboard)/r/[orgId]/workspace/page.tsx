@@ -1,4 +1,7 @@
 import { redirect } from 'next/navigation';
+import { OrgRedirectClient } from '../org-redirect-client';
+
+export const dynamic = 'force-dynamic';
 
 interface WorkspacePageProps {
   params: Promise<{ orgId: string }>;
@@ -13,5 +16,5 @@ export default async function WorkspacePageRoute({
   params,
 }: WorkspacePageProps) {
   const { orgId } = await params;
-  redirect(`/r/${orgId}`);
+  return <OrgRedirectClient redirectUrl={`/r/${orgId}`} />;
 }
