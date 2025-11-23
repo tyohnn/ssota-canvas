@@ -1,6 +1,7 @@
 // next
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
 // utils
 import { createClient } from '@/utils/supabase/server';
 // components
@@ -9,6 +10,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OAuthButtons } from '@/components/auth/oauth-signin';
 // constants
 import { appDefaultUrl, loginErrorMessage } from '@/domains/auth/constant';
+
+export const metadata: Metadata = {
+  title: 'Login',
+  description:
+    'Sign in to your SSOTA account to access your workspaces and collaborate with your team.',
+  openGraph: {
+    title: 'Login | SSOTA',
+    description:
+      'Sign in to your SSOTA account to access your workspaces and collaborate with your team.',
+  },
+};
 
 export default async function login(props: {
   searchParams: Promise<{ message: string }>;
@@ -34,7 +46,7 @@ export default async function login(props: {
             <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
               <GalleryVerticalEnd className="size-4" />
             </div>
-            XBowl
+            SSOTA
           </a>
         </div>
         <div className="flex flex-1 items-center justify-center">

@@ -23,6 +23,9 @@ export interface WorkspaceWithPages {
   ownerId: string | null;
   pageTree: Page[];
   pageCount: number;
+  // For SEO and display purposes
+  workspaceName: string; // alias for 'name'
+  organizationName: string;
 }
 
 /**

@@ -78,12 +78,14 @@ export async function getOrganizationWorkspacePageViewAction(
     const pageRepo = new DrizzlePageRepository();
     const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
     const orgMemberRepo = new DrizzleOrganizationMemberRepository();
+    const orgRepo = new DrizzleOrganizationRepository();
 
     const service = new DefaultWorkspaceNavigationService(
       workspaceRepo,
       pageRepo,
       workspaceMemberRepo,
-      orgMemberRepo
+      orgMemberRepo,
+      orgRepo
     );
 
     // 3. Service 호출
@@ -113,6 +115,8 @@ export async function getOrganizationWorkspacePageViewAction(
         ownerId: ws.ownerId,
         pageTree: buildPageTreeDTO(ws.pageTree),
         pageCount: ws.pageCount,
+        workspaceName: ws.workspaceName,
+        organizationName: ws.organizationName,
       })),
       selectedPageId: result.data.selectedPageId ?? null,
     };

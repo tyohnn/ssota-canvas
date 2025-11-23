@@ -1,8 +1,16 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import type { Metadata } from 'next';
 import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
 import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-management.actions';
 import { RedirectClient } from './redirect-client';
+
+export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Dashboard',
+  description: 'Access your workspaces, pages, and collaborate with your team.',
+};
 
 /**
  * 대시보드 루트 페이지

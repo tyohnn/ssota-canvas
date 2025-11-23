@@ -1,13 +1,29 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { CanvasLoadingSkeleton } from '@/domains/workspace-management/frontend/components/page-viewer/canvas-loading-skeleton';
 
+interface OrgRedirectClientProps {
+  redirectUrl: string;
+}
+
 /**
- * Dashboard Layout Loading Skeleton
+ * 조직 페이지용 클라이언트 사이드 리다이렉트 컴포넌트
  *
- * /r/[orgId] 레이아웃 로딩 시 표시되는 스켈레톤
  * layout.tsx의 SidebarInset children으로 렌더링됨
+ * 전체 사이드바 구조 없이 콘텐츠(헤더 + 캔버스)만 렌더링
  */
-export default function DashboardLoading() {
+export function OrgRedirectClient({ redirectUrl }: OrgRedirectClientProps) {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace(redirectUrl);
+  }, [redirectUrl, router]);
+
+  // layout.tsx의 SidebarInset children으로 렌더링되므로
+  // 헤더 + 캔버스 내용만 반환
   return (
     <div className="flex flex-col h-full">
       {/* Header Skeleton */}

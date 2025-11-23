@@ -3,6 +3,7 @@
 import type { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
 import { UserId } from '@/domains/organization-management/shared/value-objects/ids.vo';
 import type { OrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/interfaces/organization-member.repository.interface';
+import type { OrganizationRepository } from '@/domains/organization-management/backend/repositories/interfaces/organization.repository.interface';
 import type { WorkspaceRepository } from '../repositories/interfaces/workspace.repository.interface';
 import type { PageRepository } from '../repositories/interfaces/page.repository.interface';
 import type { WorkspaceMemberRepository } from '../repositories/interfaces/workspace-member.repository.interface';
@@ -29,7 +30,8 @@ export class DefaultWorkspaceNavigationService
     private workspaceRepo: WorkspaceRepository,
     private pageRepo: PageRepository,
     private workspaceMemberRepo: WorkspaceMemberRepository,
-    private orgMemberRepo: OrganizationMemberRepository
+    private orgMemberRepo: OrganizationMemberRepository,
+    private orgRepo?: OrganizationRepository
   ) {}
 
   /**
@@ -54,10 +56,19 @@ export class DefaultWorkspaceNavigationService
       return R.err('NOT_ORG_MEMBER');
     }
 
-    // 2. Workspace 목록 조회 (Default 우선 정렬)
+    // 2. 조직 정보 조회 (for SEO metadata)
+    let organizationName = 'Organization';
+    if (this.orgRepo) {
+      const org = await this.orgRepo.findById(orgId);
+      if (org) {
+        organizationName = org.entity.name;
+      }
+    }
+
+    // 3. Workspace 목록 조회 (Default 우선 정렬)
     const allWorkspaces = await this.workspaceRepo.findByOrganizationId(orgId);
 
-    // 3. 개인 워크스페이스 필터링: 자신의 개인 워크스페이스만 포함
+    // 4. 개인 워크스페이스 필터링: 자신의 개인 워크스페이스만 포함
     const workspaces = allWorkspaces.filter(ws => {
       // 일반 워크스페이스(isPersonal=false)는 모두 포함
       if (!ws.isPersonal) return true;
@@ -65,7 +76,7 @@ export class DefaultWorkspaceNavigationService
       return ws.ownerId === userId;
     });
 
-    // 4. 각 Workspace의 Page 트리 조회 (재귀 CTE)
+    // 5. 각 Workspace의 Page 트리 조회 (재귀 CTE)
     const workspacesWithPages: WorkspaceWithPages[] = await Promise.all(
       workspaces.map(async ws => {
         const pageTree = await this.pageRepo.findTreeByWorkspaceId(
@@ -81,11 +92,13 @@ export class DefaultWorkspaceNavigationService
           ownerId: ws.ownerId,
           pageTree,
           pageCount: pageTree.length,
+          workspaceName: ws.name,
+          organizationName,
         };
       })
     );
 
-    // 5. 쿠키 검증 및 Fallback
+    // 6. 쿠키 검증 및 Fallback
     let selectedPageId: string | null = null;
 
     if (cookiePageId) {
@@ -113,7 +126,7 @@ export class DefaultWorkspaceNavigationService
       selectedPageId = this.findDefaultWorkspaceFirstPage(workspacesWithPages);
     }
 
-    // 5. OrganizationWorkspacePageView 반환
+    // 7. OrganizationWorkspacePageView 반환
     return R.ok({
       organizationId: orgId.value,
       workspaces: workspacesWithPages,

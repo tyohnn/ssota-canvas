@@ -34,6 +34,9 @@ export interface WorkspaceWithPagesDTO {
   ownerId: string | null;
   pageTree: PageTreeNodeDTO[];
   pageCount: number;
+  // For SEO and display purposes
+  workspaceName: string; // alias for 'name'
+  organizationName: string;
 }
 
 // ────────────────────────────────────────────────────────────
