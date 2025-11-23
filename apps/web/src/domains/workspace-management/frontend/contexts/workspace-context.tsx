@@ -615,6 +615,10 @@ export function WorkspaceProvider({
 
         if (result.success && result.data) {
           // 2. 성공 시 State 업데이트
+          // 기존 워크스페이스에서 organizationName 가져오기
+          const organizationName =
+            workspaces[0]?.organizationName || 'Organization';
+
           const newWorkspace: WorkspaceWithPagesDTO = {
             workspaceId: result.data.workspaceId,
             name: request.name,
@@ -637,6 +641,8 @@ export function WorkspaceProvider({
               },
             ],
             pageCount: 1,
+            workspaceName: request.name,
+            organizationName,
           };
 
           setWorkspaces(prev => [...prev, newWorkspace]);
