@@ -213,9 +213,9 @@ export function ShadowBlockContainer({
   // React Flow 좌표를 화면 좌표로 변환
   const screenPosition = reactFlow.flowToScreenPosition(mousePosition);
 
-  // 블럭 타입에 따른 동적 크기
-  const blockWidth = blockSize?.width ?? 200;
-  const blockHeight = blockSize?.height ?? 150;
+  // 블럭 타입에 따른 동적 크기 (shadow는 절반 크기로 표시)
+  const blockWidth = (blockSize?.width ?? 200) / 2;
+  const blockHeight = (blockSize?.height ?? 150) / 2;
 
   // 블록 타입별 Preview 컴포넌트 가져오기
   const PreviewComponent = getShadowPreview(blockType);

@@ -16,6 +16,7 @@ import type { useBlockContentUpdate } from '@/domains/block-management/frontend/
 import type { useBlockActionExecutor } from '@/domains/ai-management/frontend/hooks/use-block-action-executor';
 import type { useAutoPositionCalculator } from '@/domains/canvas-management/frontend/hooks/use-auto-position-calculator';
 import type { useReactFlow } from '@xyflow/react';
+import type { CustomNodeType } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 
 /**
  * Tool Handler Result Types
@@ -296,23 +297,43 @@ export const ToolHandlers = {
   },
 
   /**
-   * connectBlocks: 블럭 간 연결 (edge 생성)
+   * connectBlocks: 하나 이상의 블럭 간 연결 (단수/복수 모두 처리)
    */
   async connectBlocks(
     args: any,
     context: ToolHandlerContext
   ): Promise<BaseToolResult> {
-    await context.edgeManagement.createEdge(
-      args.sourceBlockId,
-      args.targetBlockId,
-      args.edgeType || 'default',
-      undefined,
-      undefined
-    );
+    if (
+      !args.connections ||
+      !Array.isArray(args.connections) ||
+      args.connections.length === 0
+    ) {
+      throw new Error('connections array is required and cannot be empty');
+    }
+
+    let connectedCount = 0;
+
+    for (const connection of args.connections) {
+      if (!connection.sourceBlockMountId || !connection.targetBlockMountId) {
+        throw new Error(
+          'sourceBlockMountId and targetBlockMountId are required for all connections'
+        );
+      }
+
+      await context.edgeManagement.createEdge(
+        connection.sourceBlockMountId, // blockMountId (React Flow node ID)
+        connection.targetBlockMountId, // blockMountId (React Flow node ID)
+        connection.edgeType || 'default',
+        connection.sourceHandle, // 'top' | 'bottom' | 'left' | 'right' | undefined
+        connection.targetHandle // 'top' | 'bottom' | 'left' | 'right' | undefined
+      );
+
+      connectedCount++;
+    }
 
     return {
       success: true,
-      message: 'Blocks connected.',
+      message: `Created ${connectedCount} connection${connectedCount > 1 ? 's' : ''}.`,
     };
   },
 

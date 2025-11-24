@@ -10,6 +10,7 @@ import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { CustomPropertyDefinitionVO } from '../value-objects/custom-property-definition.vo';
 import { UserProfile } from '@/domains/user-management/shared/types';
+import { tiptapToMarkdown } from '../utils/tiptap-markdown.utils';
 
 /**
  * Block Entity
@@ -60,7 +61,8 @@ export class Block {
       properties || BlockPropertiesFactory.createForBlockType(blockType);
     const customProperties: CustomPropertyDefinitionVO[] = [];
 
-    return new Block(
+    // 블록 생성
+    const block = new Block(
       id,
       workspaceId,
       userId,
@@ -73,6 +75,16 @@ export class Block {
       null,
       content ?? null // ✨ content: 전달받은 값 또는 null
     );
+
+    // 마크다운 블록인 경우 content_raw 자동 생성 (AI 컨텍스트용)
+    if (blockType.value === 'markdown' && content) {
+      const contentRaw = tiptapToMarkdown(content as any);
+      if (contentRaw) {
+        (block as any).contentRaw = contentRaw;
+      }
+    }
+
+    return block;
   }
 
   /**
