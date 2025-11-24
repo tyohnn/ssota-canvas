@@ -230,19 +230,23 @@ When to use:
 - Showing derivation (source → result)
 
 Examples:
-- Horizontal workflow: {"connections":[{"sourceBlockId":"a","targetBlockId":"b","sourceHandle":"right","targetHandle":"left"}]}
-- Vertical timeline: {"connections":[{"sourceBlockId":"a","targetBlockId":"b","sourceHandle":"bottom","targetHandle":"top"}]}
-- Hub connection: {"connections":[{"sourceBlockId":"hub","targetBlockId":"item1","sourceHandle":"bottom","targetHandle":"top"},{"sourceBlockId":"hub","targetBlockId":"item2","sourceHandle":"bottom","targetHandle":"top"}]}`,
+- Horizontal workflow: {"connections":[{"sourceBlockMountId":"...","targetBlockMountId":"...","sourceHandle":"right","targetHandle":"left"}]}
+- Vertical timeline: {"connections":[{"sourceBlockMountId":"...","targetBlockMountId":"...","sourceHandle":"bottom","targetHandle":"top"}]}
+- Hub pattern: {"connections":[{"sourceBlockMountId":"hub-mount-id","targetBlockMountId":"item1-mount-id","sourceHandle":"bottom","targetHandle":"top"}]}`,
   inputSchema: z.object({
     connections: z
       .array(
         z.object({
-          sourceBlockId: z
+          sourceBlockMountId: z
             .uuid()
-            .describe('REQUIRED: UUID of the source block (edge starts here)'),
-          targetBlockId: z
+            .describe(
+              'REQUIRED: blockMountId of the source block (edge starts here)'
+            ),
+          targetBlockMountId: z
             .uuid()
-            .describe('REQUIRED: UUID of the target block (edge ends here)'),
+            .describe(
+              'REQUIRED: blockMountId of the target block (edge ends here)'
+            ),
           edgeType: z
             .string()
             .optional()

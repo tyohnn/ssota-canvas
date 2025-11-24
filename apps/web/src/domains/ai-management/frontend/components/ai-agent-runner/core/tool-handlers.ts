@@ -311,39 +311,18 @@ export const ToolHandlers = {
       throw new Error('connections array is required and cannot be empty');
     }
 
-    // AI는 blockId를 전달하지만, edges는 blockMountId가 필요함
-    // React Flow nodes에서 blockId → blockMountId 변환
-    const allNodes = context.getNodes() as CustomNodeType[];
-
     let connectedCount = 0;
 
     for (const connection of args.connections) {
-      if (!connection.sourceBlockId || !connection.targetBlockId) {
+      if (!connection.sourceBlockMountId || !connection.targetBlockMountId) {
         throw new Error(
-          'sourceBlockId and targetBlockId are required for all connections'
-        );
-      }
-
-      const sourceNode = allNodes.find(
-        node =>
-          'blockId' in node.data &&
-          node.data.blockId === connection.sourceBlockId
-      );
-      const targetNode = allNodes.find(
-        node =>
-          'blockId' in node.data &&
-          node.data.blockId === connection.targetBlockId
-      );
-
-      if (!sourceNode || !targetNode) {
-        throw new Error(
-          `Block not found on canvas. Source: ${connection.sourceBlockId}, Target: ${connection.targetBlockId}`
+          'sourceBlockMountId and targetBlockMountId are required for all connections'
         );
       }
 
       await context.edgeManagement.createEdge(
-        sourceNode.id, // blockMountId
-        targetNode.id, // blockMountId
+        connection.sourceBlockMountId, // blockMountId (React Flow node ID)
+        connection.targetBlockMountId, // blockMountId (React Flow node ID)
         connection.edgeType || 'default',
         connection.sourceHandle, // 'top' | 'bottom' | 'left' | 'right' | undefined
         connection.targetHandle // 'top' | 'bottom' | 'left' | 'right' | undefined
