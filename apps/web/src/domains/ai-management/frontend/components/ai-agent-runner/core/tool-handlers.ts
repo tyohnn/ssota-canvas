@@ -16,6 +16,7 @@ import type { useBlockContentUpdate } from '@/domains/block-management/frontend/
 import type { useBlockActionExecutor } from '@/domains/ai-management/frontend/hooks/use-block-action-executor';
 import type { useAutoPositionCalculator } from '@/domains/canvas-management/frontend/hooks/use-auto-position-calculator';
 import type { useReactFlow } from '@xyflow/react';
+import type { CustomNodeType } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 
 /**
  * Tool Handler Result Types
@@ -296,23 +297,64 @@ export const ToolHandlers = {
   },
 
   /**
-   * connectBlocks: 블럭 간 연결 (edge 생성)
+   * connectBlocks: 하나 이상의 블럭 간 연결 (단수/복수 모두 처리)
    */
   async connectBlocks(
     args: any,
     context: ToolHandlerContext
   ): Promise<BaseToolResult> {
-    await context.edgeManagement.createEdge(
-      args.sourceBlockId,
-      args.targetBlockId,
-      args.edgeType || 'default',
-      undefined,
-      undefined
-    );
+    if (
+      !args.connections ||
+      !Array.isArray(args.connections) ||
+      args.connections.length === 0
+    ) {
+      throw new Error('connections array is required and cannot be empty');
+    }
+
+    // AI는 blockId를 전달하지만, edges는 blockMountId가 필요함
+    // React Flow nodes에서 blockId → blockMountId 변환
+    const allNodes = context.getNodes() as CustomNodeType[];
+
+    let connectedCount = 0;
+
+    for (const connection of args.connections) {
+      if (!connection.sourceBlockId || !connection.targetBlockId) {
+        throw new Error(
+          'sourceBlockId and targetBlockId are required for all connections'
+        );
+      }
+
+      const sourceNode = allNodes.find(
+        node =>
+          'blockId' in node.data &&
+          node.data.blockId === connection.sourceBlockId
+      );
+      const targetNode = allNodes.find(
+        node =>
+          'blockId' in node.data &&
+          node.data.blockId === connection.targetBlockId
+      );
+
+      if (!sourceNode || !targetNode) {
+        throw new Error(
+          `Block not found on canvas. Source: ${connection.sourceBlockId}, Target: ${connection.targetBlockId}`
+        );
+      }
+
+      await context.edgeManagement.createEdge(
+        sourceNode.id, // blockMountId
+        targetNode.id, // blockMountId
+        connection.edgeType || 'default',
+        connection.sourceHandle, // 'top' | 'bottom' | 'left' | 'right' | undefined
+        connection.targetHandle // 'top' | 'bottom' | 'left' | 'right' | undefined
+      );
+
+      connectedCount++;
+    }
 
     return {
       success: true,
-      message: 'Blocks connected.',
+      message: `Created ${connectedCount} connection${connectedCount > 1 ? 's' : ''}.`,
     };
   },
 

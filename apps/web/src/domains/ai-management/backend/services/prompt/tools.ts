@@ -202,10 +202,25 @@ Examples:
 };
 
 export const connectBlocksTool = {
-  description: `Connect two blocks with an edge to express semantic relationships.
+  description: `Connect one or more pairs of blocks with edges to express semantic relationships.
 
 ⚠️ CRITICAL: After creating related blocks, always consider connecting them.
 Edges maintain context and align with SSOTA's philosophy.
+
+This tool can create a single connection or multiple connections:
+- Single connection: Pass an array with one connection object
+- Multiple connections: Pass an array with multiple connection objects
+
+Handle Positioning (Controls edge attachment points):
+- Available handles: "top", "bottom", "left", "right"
+- sourceHandle: Where the edge starts from the source block
+- targetHandle: Where the edge ends on the target block
+- Default: Auto-calculated if not specified
+
+Visual Guidelines:
+- Horizontal flows: Use right→left (sourceHandle: "right", targetHandle: "left")
+- Vertical flows: Use bottom→top (sourceHandle: "bottom", targetHandle: "top")
+- Star/Hub patterns: All edges from center (sourceHandle: varies)
 
 When to use:
 - Creating workflows or process flows (A → B → C)
@@ -215,21 +230,39 @@ When to use:
 - Showing derivation (source → result)
 
 Examples:
-- Connect workflow: {"sourceBlockId":"...","targetBlockId":"...","label":"next step"}
-- Express dependency: {"sourceBlockId":"...","targetBlockId":"...","label":"depends on"}
-- Group items: {"sourceBlockId":"header-id","targetBlockId":"item-id","label":"contains"}`,
+- Horizontal workflow: {"connections":[{"sourceBlockId":"a","targetBlockId":"b","sourceHandle":"right","targetHandle":"left"}]}
+- Vertical timeline: {"connections":[{"sourceBlockId":"a","targetBlockId":"b","sourceHandle":"bottom","targetHandle":"top"}]}
+- Hub connection: {"connections":[{"sourceBlockId":"hub","targetBlockId":"item1","sourceHandle":"bottom","targetHandle":"top"},{"sourceBlockId":"hub","targetBlockId":"item2","sourceHandle":"bottom","targetHandle":"top"}]}`,
   inputSchema: z.object({
-    sourceBlockId: z
-      .uuid()
-      .describe('REQUIRED: UUID of the source block (edge starts here)'),
-    targetBlockId: z
-      .uuid()
-      .describe('REQUIRED: UUID of the target block (edge ends here)'),
-    edgeType: z
-      .string()
-      .optional()
-      .describe('OPTIONAL: Type of edge (default: "default")'),
-    label: z.string().optional().describe('OPTIONAL: Label for the edge'),
+    connections: z
+      .array(
+        z.object({
+          sourceBlockId: z
+            .uuid()
+            .describe('REQUIRED: UUID of the source block (edge starts here)'),
+          targetBlockId: z
+            .uuid()
+            .describe('REQUIRED: UUID of the target block (edge ends here)'),
+          edgeType: z
+            .string()
+            .optional()
+            .describe('OPTIONAL: Type of edge (default: "default")'),
+          sourceHandle: z
+            .enum(['top', 'bottom', 'left', 'right'])
+            .optional()
+            .describe(
+              'OPTIONAL: Handle position on source block (top/bottom/left/right). Default: auto-calculated'
+            ),
+          targetHandle: z
+            .enum(['top', 'bottom', 'left', 'right'])
+            .optional()
+            .describe(
+              'OPTIONAL: Handle position on target block (top/bottom/left/right). Default: auto-calculated'
+            ),
+        })
+      )
+      .min(1)
+      .describe('REQUIRED: Array of connections to create (minimum 1)'),
   }),
 };
 
