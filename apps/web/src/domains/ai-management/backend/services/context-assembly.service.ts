@@ -287,7 +287,7 @@ export class ContextAssemblyService implements IContextAssemblyService {
         properties: (row.properties as Record<string, unknown>) || {},
         customProperties:
           (row.customProperties as Record<string, unknown>) || {},
-        content: row.contentRaw || '', // Use content_raw instead of content
+        content: row.contentRaw || '',
         position: {
           x: Number(row.positionX),
           y: Number(row.positionY),
