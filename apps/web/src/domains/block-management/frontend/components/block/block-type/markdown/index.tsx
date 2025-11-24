@@ -343,6 +343,32 @@ export const MarkdownBlock = memo(function MarkdownBlock({
     };
   }, [isEditing]); // 편집 모드 변경 시 재등록
 
+  // 편집 모드에서 키보드 단축키 이벤트 전파 막기 (사이드바 토글 방지)
+  useEffect(() => {
+    if (!isEditing || !editorContainerRef.current) {
+      return;
+    }
+
+    const editorContainer = editorContainerRef.current;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + Shift + B 조합 감지 (사이드바 토글)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'b') {
+        // 브라우저 기본 동작 차단 (북마크바 토글 방지)
+        e.preventDefault();
+        // 이벤트 전파 차단 (사이드바가 토글되지 않도록)
+        e.stopPropagation();
+      }
+    };
+
+    // 버블링 단계에서 이벤트 리스너 등록 (Tiptap이 먼저 처리한 후 전파 차단)
+    editorContainer.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      editorContainer.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isEditing]);
+
   return (
     <BaseBlock
       data={nodeData}
