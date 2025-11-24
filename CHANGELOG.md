@@ -129,6 +129,10 @@ add copy and paste logic
 - Db 타임아웃 늘리고 로그 추가
 - Db connection pooler
 - Default viewport 추가해서 끊기지 않도록
+- 사이드바와 마크다운 블록 단축키 겹치는 문제 해결 & 블록 사이즈 조정
+- 클립보드 복사할 때 마크다운 블록의 content_raw 생성되지 않는 문제 해결
+- 엣지 연결 툴 콜 에러 수정
+- 엣지 연결 시  block mount id를 사용하도록 수정
 
 ### 📚 Documentation
 
@@ -197,6 +201,7 @@ add copy and paste logic
 - Design block system
 - SPRINT-011 마무리
 - Design AI chat feature
+- Update CHANGELOG
 - Update CHANGELOG
 - Update CHANGELOG
 - Update CHANGELOG
