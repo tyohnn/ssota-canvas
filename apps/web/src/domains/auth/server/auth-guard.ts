@@ -30,7 +30,7 @@ export interface AuthCheckResult {
   success: boolean;
   user?: User;
   error?: string;
-  errorCode?: 'SESSION_EXPIRED' | 'AUTH_FAILED' | 'UNAUTHORIZED';
+  errorCode?: 'AUTH_FAILED' | 'UNAUTHORIZED';
 }
 
 // ============================================
@@ -66,22 +66,8 @@ export async function requireAuth(actionName?: string): Promise<User> {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    const logPrefix = actionName ? `[${actionName}]` : '[requireAuth]';
-    console.error(`${logPrefix} Authentication failed:`, {
-      error: authError?.message || 'No error message',
-      hasUser: !!user,
-      errorCode: authError?.status,
-      timestamp: new Date().toISOString(),
-    });
-
-    // 세션 만료 에러 감지
-    if (
-      authError?.message?.includes('session') ||
-      authError?.message?.includes('Auth')
-    ) {
-      throw new Error('SESSION_EXPIRED');
-    }
-
+    // 인증 오류 발생 (조용히 처리)
+    // 참고: timebox=0, inactivity_timeout=0 설정으로 실제 세션 만료는 발생하지 않음
     throw new Error('Authentication required');
   }
 
@@ -120,25 +106,12 @@ export async function checkAuth(actionName?: string): Promise<AuthCheckResult> {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    const logPrefix = actionName ? `[${actionName}]` : '[checkAuth]';
-    console.error(`${logPrefix} Authentication failed:`, {
-      error: authError?.message || 'No error message',
-      hasUser: !!user,
-      errorCode: authError?.status,
-      timestamp: new Date().toISOString(),
-    });
-
-    // 세션 만료 에러 감지
-    const isSessionExpired =
-      authError?.message?.includes('session') ||
-      authError?.message?.includes('Auth');
-
+    // 인증 오류 반환 (조용히 처리)
+    // 참고: timebox=0, inactivity_timeout=0 설정으로 실제 세션 만료는 발생하지 않음
     return {
       success: false,
-      error: isSessionExpired
-        ? 'Session expired. Please log in again.'
-        : 'User not authenticated',
-      errorCode: isSessionExpired ? 'SESSION_EXPIRED' : 'AUTH_FAILED',
+      error: 'User not authenticated',
+      errorCode: 'AUTH_FAILED',
     };
   }
 

@@ -415,6 +415,70 @@ async function createOrGetDefaultOrganization(
   }
 }
 
+/**
+ * 사용자 설정 상태 확인 (Server Action - Client Component용)
+ *
+ * 사용자가 프로필과 조직 설정을 완료했는지 확인합니다.
+ * - 프로필이 존재하는가?
+ * - 최소 하나 이상의 조직이 존재하는가?
+ *
+ * ⚠️ Note: Route handlers는 UserManagementService.checkUserSetupStatus()를 직접 사용하세요.
+ * 이 action은 클라이언트 컴포넌트에서 호출하기 위한 래퍼입니다.
+ *
+ * @returns isSetupComplete: boolean, redirectUrl?: string
+ */
+export async function checkUserSetupStatusAction(): Promise<
+  ActionResult<{
+    isSetupComplete: boolean;
+    redirectUrl?: string;
+  }>
+> {
+  try {
+    // 1. 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      return err('Authentication required', {
+        code: 'UNAUTHORIZED',
+      });
+    }
+
+    // 2. Service를 통한 비즈니스 로직 처리
+    const userRepository = new DrizzleUserRepository();
+    const supabaseAuthService = new SupabaseAuthService(supabase);
+    const userManagementService = new UserManagementService(
+      userRepository,
+      supabaseAuthService
+    );
+
+    const result = await userManagementService.checkUserSetupStatus(user.id);
+
+    if (result.isError()) {
+      return err(result.error.message, {
+        code: 'INTERNAL_SERVER_ERROR',
+        meta: {
+          originalError: result.error,
+        },
+      });
+    }
+
+    return ok(result.value);
+  } catch (error) {
+    console.error('[checkUserSetupStatusAction] Error:', error);
+
+    return err('Failed to check user setup status', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
+  }
+}
+
 // Delegated to organization-management domain
 export const getUserOrganizationsAction = getOrganizationsAction;
 // Note: createDefaultOrganizationAction and createOrganizationAction are available

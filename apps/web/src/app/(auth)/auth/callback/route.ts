@@ -10,17 +10,15 @@ import {
   loginUrl,
   onBoardingUrl,
 } from '@/domains/auth/constant';
-// user-management actions
-import { processUserRegistrationAction } from '@/domains/user-management/actions/user-management.actions';
+// user-management service
+import { UserManagementService } from '@/domains/user-management/backend/services/user-management.service';
+import { DrizzleUserRepository } from '@/domains/user-management/backend/repositories/implementations/drizzle-user.repository';
+import { SupabaseAuthService } from '@/domains/user-management/backend/anti-corruption-layers/supabase-auth-acl';
 import { config } from '@/config';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-
-  // if "next" is in param, use it as the redirect URL
-  // 새로운 사용자는 온보딩 페이지로, 기존 사용자는 원래 목적지로
-  const next = onBoardingUrl;
 
   if (code) {
     const supabase = await createClient();
@@ -34,21 +32,56 @@ export async function GET(request: Request) {
       );
     }
 
-    // 🎯 User Management Domain: 온보딩 페이지에서 프로필 생성 처리
-    // 클라이언트 사이드에서 쿠키가 완전히 설정된 후 실행하도록 온보딩 페이지로 리다이렉트
+    // Check if user already has profile and organization (via domain service)
+    const user = sessionData.user;
+    if (user) {
+      // Initialize service
+      const userRepository = new DrizzleUserRepository();
+      const supabaseAuthService = new SupabaseAuthService(supabase);
+      const userManagementService = new UserManagementService(
+        userRepository,
+        supabaseAuthService
+      );
 
-    // 리다이렉트
-    const forwardedHost = request.headers.get('x-forwarded-host'); // original origin before load balancer
+      // Check setup status
+      const setupStatusResult =
+        await userManagementService.checkUserSetupStatus(user.id);
+
+      if (setupStatusResult.isSuccess()) {
+        const setupStatus = setupStatusResult.value;
+
+        if (setupStatus.isSetupComplete) {
+          // Existing user with complete setup - redirect to home or their last page
+          const forwardedHost = request.headers.get('x-forwarded-host');
+          const isLocalEnv = config.environment === 'development';
+
+          const targetPath = setupStatus.redirectUrl || appDefaultUrl;
+
+          let redirectUrl: string;
+          if (isLocalEnv) {
+            redirectUrl = `${origin}${targetPath}`;
+          } else if (forwardedHost) {
+            redirectUrl = `https://${forwardedHost}${targetPath}`;
+          } else {
+            redirectUrl = `${origin}${targetPath}`;
+          }
+
+          return NextResponse.redirect(redirectUrl);
+        }
+      }
+    }
+
+    // New user or user without complete setup - go to onboarding
+    const forwardedHost = request.headers.get('x-forwarded-host');
     const isLocalEnv = config.environment === 'development';
 
     let redirectUrl: string;
     if (isLocalEnv) {
-      // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-      redirectUrl = `${origin}${next}`;
+      redirectUrl = `${origin}${onBoardingUrl}`;
     } else if (forwardedHost) {
-      redirectUrl = `https://${forwardedHost}${next}`;
+      redirectUrl = `https://${forwardedHost}${onBoardingUrl}`;
     } else {
-      redirectUrl = `${origin}${next}`;
+      redirectUrl = `${origin}${onBoardingUrl}`;
     }
 
     return NextResponse.redirect(redirectUrl);
