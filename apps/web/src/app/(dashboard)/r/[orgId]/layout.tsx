@@ -25,9 +25,23 @@ export default async function DashboardLayout({
   } catch (error) {
     console.error('[/r/[orgId]/layout] Error fetching organizations:', error);
 
-    // 인증 오류만 unauthorized 페이지로 리다이렉트
-    if (error instanceof Error && error.message === 'Authentication required') {
-      redirect('/unauthorized');
+    // 인증 오류 처리
+    if (error instanceof Error) {
+      const isAuthError =
+        error.message === 'Authentication required' ||
+        error.message === 'SESSION_EXPIRED' ||
+        error.message.includes('Auth session missing');
+
+      if (isAuthError) {
+        console.warn(
+          '[/r/[orgId]/layout] Session expired, redirecting to login'
+        );
+
+        // 세션 만료 시 로그인 페이지로 리다이렉트 (메시지 포함)
+        redirect(
+          '/login?message=Your%20session%20has%20expired.%20Please%20log%20in%20again.'
+        );
+      }
     }
 
     // 다른 에러는 다시 throw

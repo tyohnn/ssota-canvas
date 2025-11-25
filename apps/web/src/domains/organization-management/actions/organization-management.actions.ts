@@ -48,10 +48,21 @@ export async function getUserOrganizationsAction(): Promise<
     } = await supabase.auth.getUser();
 
     if (error || !user) {
-      console.error(
-        '[getUserOrganizationsAction] Authentication failed:',
-        error
-      );
+      console.error('[getUserOrganizationsAction] Authentication failed:', {
+        error: error?.message || 'No error message',
+        hasUser: !!user,
+        errorCode: error?.status,
+        timestamp: new Date().toISOString(),
+      });
+
+      // 세션이 완전히 만료된 경우 더 명확한 메시지
+      if (
+        error?.message?.includes('session') ||
+        error?.message?.includes('Auth')
+      ) {
+        throw new Error('SESSION_EXPIRED');
+      }
+
       throw new Error('Authentication required');
     }
 
