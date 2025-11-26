@@ -9,6 +9,7 @@ import { getUserOrganizationsAction } from '@/domains/organization-management/ac
 import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-management.actions';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { BetaRedirectClient } from '../beta-redirect-client';
 
 export default async function DashboardLayout({
   children,
@@ -19,8 +20,24 @@ export default async function DashboardLayout({
 }) {
   const { orgId } = await params;
 
-  // getUserOrganizationsAction은 인증 실패 시 자동으로 redirect 함
-  const organizations = await getUserOrganizationsAction();
+  // getUserOrganizationsAction은 인증 및 베타 체크를 수행
+  // - 미인증: redirect to /login
+  // - 베타 미승인: BETA_ACCESS_REQUIRED 에러 발생 → 여기서 처리
+  let organizations;
+  try {
+    organizations = await getUserOrganizationsAction();
+  } catch (error) {
+    if (error instanceof Error && error.message === 'BETA_ACCESS_REQUIRED') {
+      // Use client redirect to avoid hydration issues
+      return (
+        <BetaRedirectClient
+          redirectUrl="/beta/application"
+          message="Beta access required"
+        />
+      );
+    }
+    throw error;
+  }
 
   // URL 파라미터로 전달된 orgId로 조직 찾기
   const selectedOrganization = organizations.find(org => org.id === orgId);

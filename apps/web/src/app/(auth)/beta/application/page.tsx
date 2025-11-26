@@ -1,0 +1,55 @@
+/**
+ * Beta Application Page
+ *
+ * Beta application form page
+ * - Compound Component Pattern
+ * - UI/Business logic separation
+ * - State sharing via Context
+ * - Requires authentication
+ * - Redirects if already submitted or approved
+ */
+
+import { redirect } from 'next/navigation';
+import { Box } from '@/components/ui/box';
+import { BetaApplicationForm } from '@/domains/user-management/frontend/components/beta-application-form';
+import { checkBetaRedirectAction } from '@/domains/user-management/actions/beta.actions';
+import { checkUserSetupStatusAction } from '@/domains/user-management/actions/user-management.actions';
+import { getAuthenticatedUserOrRedirect } from '@/domains/common/auth/server-auth.helpers';
+
+export default async function BetaApplicationPage() {
+  // Authentication check
+  await getAuthenticatedUserOrRedirect('Please login to apply for beta access');
+
+  // Beta status check - redirect if needed
+  const betaRedirect = await checkBetaRedirectAction();
+
+  if (betaRedirect && betaRedirect !== '/beta/application') {
+    // User should be on a different beta page
+    redirect(betaRedirect);
+  }
+
+  // If approved (betaRedirect is null), check setup status
+  if (betaRedirect === null) {
+    // User is approved - check if onboarding is complete
+    const setupStatusResult = await checkUserSetupStatusAction();
+
+    if (setupStatusResult.success && setupStatusResult.data) {
+      if (setupStatusResult.data.isSetupComplete) {
+        // Onboarding complete → redirect to dashboard
+        redirect('/r');
+      } else {
+        // Onboarding not complete → redirect to onboarding
+        redirect('/onboarding');
+      }
+    } else {
+      // Error checking setup status → redirect to onboarding to be safe
+      redirect('/onboarding');
+    }
+  }
+
+  return (
+    <Box className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4 pt-24">
+      <BetaApplicationForm />
+    </Box>
+  );
+}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { processUserRegistrationAction } from '@/domains/user-management/actions/user-management.actions';
+import { checkBetaRedirectAction } from '@/domains/user-management/actions/beta.actions';
 
 type OnboardingStatus = 'loading' | 'success' | 'error';
 
@@ -15,6 +16,14 @@ export default function OnboardingPage() {
   useEffect(() => {
     async function setupUserProfile() {
       setStatus('loading');
+
+      // Beta access check first
+      const betaRedirect = await checkBetaRedirectAction();
+      if (betaRedirect) {
+        // User needs to complete beta application first
+        router.push(betaRedirect);
+        return;
+      }
 
       // 사용자 프로필 + 기본 조직 + 워크스페이스 + Welcome 페이지 생성
       const result = await processUserRegistrationAction();

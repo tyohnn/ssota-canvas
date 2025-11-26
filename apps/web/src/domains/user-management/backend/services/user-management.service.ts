@@ -93,13 +93,17 @@ export class UserManagementService {
    * 사용자 설정 완료 상태 확인
    *
    * @param userId - 확인할 사용자 ID
-   * @returns 설정 완료 여부 및 리다이렉트 URL
+   * @returns 설정 완료 여부, 베타 상태 및 리다이렉트 URL
    */
   async checkUserSetupStatus(userId: string): Promise<
     Result<
       {
         isSetupComplete: boolean;
         redirectUrl?: string;
+        // Beta access fields
+        isBetaApproved: boolean;
+        beta_status: string;
+        beta_application: any;
       },
       UserManagementError
     >
@@ -109,6 +113,11 @@ export class UserManagementService {
 
       // 1. 프로필 확인
       const existingProfile = await this.userRepository.findById(userIdVO);
+
+      // 베타 상태 조회 (User entity에서 가져옴, optional)
+      const isBetaApproved = existingProfile?.entity.betaStatus === 'approved';
+      const beta_status = existingProfile?.entity.betaStatus || 'pending';
+      const beta_application = existingProfile?.entity.betaApplication || null;
 
       // 2. 조직 확인
       const organizationRepository = new DrizzleOrganizationRepository();
@@ -151,6 +160,9 @@ export class UserManagementService {
       return Result.success({
         isSetupComplete,
         redirectUrl,
+        isBetaApproved,
+        beta_status,
+        beta_application,
       });
     } catch (error) {
       console.error('[UserManagementService] Check setup status error:', {

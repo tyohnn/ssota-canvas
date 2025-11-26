@@ -2,12 +2,16 @@ import RotatingBracket from './landing/RotatingBracket';
 import { Button } from '@workspace/ui/components/ui/button';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
+import { checkBetaApprovalAction } from '@/domains/user-management/actions/beta.actions';
 
 export default async function Landing() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Check beta approval status for logged-in users
+  const isBetaApproved = user ? await checkBetaApprovalAction() : false;
 
   const rotating = [
     'vibe coder',
@@ -54,20 +58,31 @@ export default async function Landing() {
           {/* CTA Button */}
           <div className="pt-4">
             {user ? (
-              <Button
-                asChild
-                size="lg"
-                className="text-base px-8 py-6 cursor-pointer"
-              >
-                <Link href="/r/">Dashboard</Link>
-              </Button>
+              isBetaApproved ? (
+                <Button
+                  asChild
+                  size="lg"
+                  className="text-base px-8 py-6 cursor-pointer"
+                >
+                  <Link href="/r">Go to Dashboard</Link>
+                </Button>
+              ) : (
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="text-base px-8 py-6 cursor-pointer"
+                >
+                  <Link href="/beta/application">Apply for Beta Access</Link>
+                </Button>
+              )
             ) : (
               <Button
                 asChild
                 size="lg"
                 className="text-base px-8 py-6 cursor-pointer"
               >
-                <Link href="/login">Login</Link>
+                <Link href="/login">Get Started</Link>
               </Button>
             )}
           </div>

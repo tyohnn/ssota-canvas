@@ -156,6 +156,9 @@ importers:
       elkjs:
         specifier: ^0.10.0
         version: 0.10.2
+      framer-motion:
+        specifier: ^12.23.24
+        version: 12.23.24(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       lucide-react:
         specifier: ^0.475.0
         version: 0.475.0(react@19.2.0)
@@ -165,6 +168,9 @@ importers:
       media-icons:
         specifier: ^1.1.5
         version: 1.1.5
+      mixpanel:
+        specifier: ^0.19.1
+        version: 0.19.1
       mixpanel-browser:
         specifier: ^2.72.0
         version: 2.72.0(@mixpanel/rrweb-utils@2.0.0-alpha.18.2)
@@ -5850,6 +5856,10 @@ packages:
 
   mixpanel-browser@2.72.0:
     resolution: {integrity: sha512-Olc+1ebVBSVBjtR/Pp4t8Pc1wAI9AfA5e668B0MsI/gKJ43QcndzfQ/AT/TiP1Klup8O1C9vwykoWjvPqX+SRA==}
+
+  mixpanel@0.19.1:
+    resolution: {integrity: sha512-NK3kJ7/ke1KfLeZyfl9Ec9XALzfI3cclpnpD3Uu0N2kTjlpeIs+zN/mpd1ZxwaiZLK3muccSzmecQ8HzqtMptw==}
+    engines: {node: '>=10.0'}
 
   mkdirp@0.5.6:
     resolution: {integrity: sha512-FP+p8RB8OWpF3YZBCrP5gtADmtXApB5AMLn+vdyA+PyxCjrCs00mjyUozssO33cwDeT3wNGdLxJ5M//YqtHAJw==}
@@ -13696,6 +13706,12 @@ snapshots:
       '@mixpanel/rrweb-plugin-console-record': 2.0.0-alpha.18.2(@mixpanel/rrweb-utils@2.0.0-alpha.18.2)(@mixpanel/rrweb@2.0.0-alpha.18.2)
     transitivePeerDependencies:
       - '@mixpanel/rrweb-utils'
+
+  mixpanel@0.19.1:
+    dependencies:
+      https-proxy-agent: 7.0.6
+    transitivePeerDependencies:
+      - supports-color
 
   mkdirp@0.5.6:
     dependencies:

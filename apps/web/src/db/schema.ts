@@ -97,6 +97,12 @@ export const propertyTypeEnum = pgEnum('property_type', [
   'profile', // 프로필 속성
 ]);
 
+// Beta Management Enum
+export const betaStatusEnum = pgEnum('beta_status', [
+  'pending', // 신청서 작성 대기 또는 검토 중
+  'approved', // 승인됨 (전체 기능 사용 가능)
+]);
+
 // AI Management Domain Enums
 export const eventTypeEnum = pgEnum('event_type', [
   'user_utterance', // 사용자 발화
@@ -146,10 +152,23 @@ export const profiles = pgTable(
       .notNull(),
     deleted_at: timestamp('deleted_at', { withTimezone: true }), // Soft delete (30-day retention policy)
     user_type: userTypeEnum('user_type').default('GENERAL').notNull(),
+    // Beta Access Fields
+    beta_status: betaStatusEnum('beta_status').default('pending').notNull(),
+    beta_application: jsonb('beta_application'), // 신청서 데이터 (JSON)
+    beta_applied_at: timestamp('beta_applied_at', { withTimezone: true }),
+    beta_approved_at: timestamp('beta_approved_at', { withTimezone: true }),
+    beta_approved_by: uuid('beta_approved_by'), // FK constraint added in migration
   },
   table => [
     // Performance index for email search
     index('idx_profiles_email').on(table.email),
+    // Beta status indexes
+    index('idx_profiles_beta_status')
+      .on(table.beta_status)
+      .where(sql`deleted_at IS NULL`),
+    index('idx_profiles_beta_pending')
+      .on(table.beta_status, table.beta_applied_at)
+      .where(sql`beta_status = 'pending' AND deleted_at IS NULL`),
     // SELECT: Public (for displaying member names, avatars, etc.)
     pgPolicy('Enable read access for all users', {
       for: 'select',
@@ -1479,6 +1498,7 @@ export type OrganizationType = (typeof organizationTypeEnum.enumValues)[number];
 export type MemberRole = (typeof memberRoleEnum.enumValues)[number];
 export type InvitationStatus = (typeof invitationStatusEnum.enumValues)[number];
 export type NotificationType = (typeof notificationTypeEnum.enumValues)[number];
+export type BetaStatus = (typeof betaStatusEnum.enumValues)[number];
 export type CanvasEdgeShape = (typeof canvasEdgeShapeEnum.enumValues)[number];
 export type AlignmentType = (typeof alignmentTypeEnum.enumValues)[number];
 export type EventType = (typeof eventTypeEnum.enumValues)[number];
