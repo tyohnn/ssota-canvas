@@ -85,6 +85,8 @@ add copy and paste logic
 - Implement AuthSessionMonitor for session management and enhance authentication error handling
 - Enhance user onboarding and setup status checks with new user management service integration
 - Improve Supabase client initialization and error handling for session expiration
+- Add beta access mode server
+- Add beta access mode client
 
 ### 🐛 Bug Fixes
 
@@ -136,6 +138,7 @@ add copy and paste logic
 - 클립보드 복사할 때 마크다운 블록의 content_raw 생성되지 않는 문제 해결
 - 엣지 연결 툴 콜 에러 수정
 - 엣지 연결 시  block mount id를 사용하도록 수정
+- Build warning
 
 ### 📚 Documentation
 
@@ -204,6 +207,7 @@ add copy and paste logic
 - Design block system
 - SPRINT-011 마무리
 - Design AI chat feature
+- Update CHANGELOG
 - Update CHANGELOG
 - Update CHANGELOG
 - Update CHANGELOG
