@@ -82,6 +82,9 @@ add copy and paste logic
 - Add seo metatags
 - 캔버스 fitToView 삭제하고 페이지별 위치/줌을 로컬스토리지에서 로드하는 기능
 - 페이지 복제/삭제 기능
+- Implement AuthSessionMonitor for session management and enhance authentication error handling
+- Enhance user onboarding and setup status checks with new user management service integration
+- Improve Supabase client initialization and error handling for session expiration
 
 ### 🐛 Bug Fixes
 
@@ -201,6 +204,7 @@ add copy and paste logic
 - Design block system
 - SPRINT-011 마무리
 - Design AI chat feature
+- Update CHANGELOG
 - Update CHANGELOG
 - Update CHANGELOG
 - Update CHANGELOG
