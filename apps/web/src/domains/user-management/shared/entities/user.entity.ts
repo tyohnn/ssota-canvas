@@ -2,6 +2,8 @@
 
 import { UserId } from '../value-objects/ids.vo';
 import { UserEmail } from '../value-objects/user-email.vo';
+import type { BetaStatus } from '@/db/schema';
+import type { BetaApplicationData } from '../types/beta.types';
 
 export class User {
   constructor(
@@ -10,7 +12,10 @@ export class User {
     private _name: string,
     private _avatarUrl: string | null,
     public readonly createdAt: Date,
-    private _updatedAt: Date
+    private _updatedAt: Date,
+    // Beta fields (optional) - Beta feature가 제거되어도 User entity 핵심 로직은 영향 없음
+    private _betaStatus?: BetaStatus,
+    private _betaApplication?: BetaApplicationData | null
   ) {}
 
   // Getters
@@ -28,6 +33,15 @@ export class User {
 
   get updatedAt(): Date {
     return this._updatedAt;
+  }
+
+  // Beta getters (optional)
+  get betaStatus(): BetaStatus | undefined {
+    return this._betaStatus;
+  }
+
+  get betaApplication(): BetaApplicationData | null | undefined {
+    return this._betaApplication;
   }
 
   // 상태 변경 메서드

@@ -43,13 +43,47 @@ export async function GET(request: Request) {
         supabaseAuthService
       );
 
-      // Check setup status
+      // 🆕 Ensure profile exists (before beta check)
+      // This ensures beta status can be checked
+      // Note: createUserProfile handles upsert internally
+      const createProfileResult = await userManagementService.createUserProfile(
+        {
+          userId: user.id,
+          email: user.email!,
+          name: user.user_metadata?.name || 'User',
+          avatarUrl: user.user_metadata?.avatar_url || null,
+        }
+      );
+
+      if (createProfileResult.isError()) {
+        console.error(
+          '[auth/callback] Failed to create profile:',
+          createProfileResult.error
+        );
+        return NextResponse.redirect(
+          `${origin}${loginUrl}?message=${encodeURIComponent('Failed to create profile')}`
+        );
+      }
+
+      // Check setup status (now profile exists for sure)
       const setupStatusResult =
         await userManagementService.checkUserSetupStatus(user.id);
 
       if (setupStatusResult.isSuccess()) {
         const setupStatus = setupStatusResult.value;
 
+        // 🆕 Beta status check - redirect to appropriate beta page
+        if (!setupStatus.isBetaApproved) {
+          if (!setupStatus.beta_application) {
+            // No application yet → redirect to application page
+            return NextResponse.redirect(`${origin}/beta/application`);
+          } else if (setupStatus.beta_status === 'pending') {
+            // Application submitted, waiting for review
+            return NextResponse.redirect(`${origin}/beta/pending`);
+          }
+        }
+
+        // Beta approved - proceed with normal flow
         if (setupStatus.isSetupComplete) {
           // Existing user with complete setup - redirect to home or their last page
           const forwardedHost = request.headers.get('x-forwarded-host');

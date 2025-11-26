@@ -1,4 +1,4 @@
-CREATE SCHEMA "image_app_space";
+CREATE SCHEMA IF NOT EXISTS "image_app_space";
 --> statement-breakpoint
 CREATE TYPE "public"."alignment_type" AS ENUM('TOP', 'BOTTOM', 'LEFT', 'RIGHT', 'HORIZONTAL_CENTER', 'VERTICAL_CENTER', 'HORIZONTAL_DISTRIBUTE', 'VERTICAL_DISTRIBUTE');--> statement-breakpoint
 CREATE TYPE "public"."block_type" AS ENUM('text', 'shape', 'image', 'markdown', 'link', 'youtube', 'pdf', 'audio', 'video', 'file', 'python', 'page_mention', 'latex', 'github_pr', 'react_component');--> statement-breakpoint

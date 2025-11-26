@@ -13,8 +13,8 @@ build/
 supabase/.env*
 !supabase/.env.example
 
-# Drizzle temporary
-.drizzle-temp/
+# Drizzle temporary (ORM for TypeScript types only, not for migrations)
+drizzle-temp/
 
 # Testing
 /test-results/

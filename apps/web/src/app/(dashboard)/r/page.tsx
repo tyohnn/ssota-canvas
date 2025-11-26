@@ -1,120 +1,69 @@
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import type { Metadata } from 'next';
-import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
-import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-management.actions';
-import { RedirectClient } from './redirect-client';
-
-export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = {
-  title: 'Dashboard',
-  description: 'Access your workspaces, pages, and collaborate with your team.',
-};
-
 /**
- * 대시보드 루트 페이지
+ * /r Root Page
  *
- * 유저를 최종 페이지로 직접 리다이렉트 (클라이언트 사이드 위임)
- * 1. 쿠키에 저장된 최근 페이지로 이동
- * 2. 없으면 첫 번째 워크스페이스의 첫 번째 페이지로 이동
+ * Redirects to the user's default organization
+ * or shows error if user has no organizations
+ *
+ * This page handles:
+ * 1. Authenticated users with approved beta access → redirect to their org
+ * 2. Authenticated users without beta approval → redirect to beta pages
+ * 3. Users with no organizations → redirect to onboarding
+ * 4. Unauthenticated users → redirect to login
  */
+
+import { redirect } from 'next/navigation';
+import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
+import { BetaRedirectClient } from './beta-redirect-client';
+import { OrgRedirectClient } from './[orgId]/org-redirect-client';
+
 export default async function DashboardRootPage() {
-  let organizations;
-
   try {
-    // 유저의 organizations 가져오기
-    organizations = await getUserOrganizationsAction();
-  } catch (error) {
-    console.error('[DashboardRootPage] Error:', error);
+    // Get user's organizations
+    // This will throw BETA_ACCESS_REQUIRED if user is not approved
+    const organizations = await getUserOrganizationsAction();
 
-    // 인증 오류만 로그인 페이지로 리다이렉트
-    if (error instanceof Error && error.message === 'Authentication required') {
-      redirect('/login');
+    if (organizations.length === 0) {
+      // No organizations - user is approved but hasn't completed onboarding
+      return <OrgRedirectClient redirectUrl="/onboarding" />;
     }
 
-    // 다른 에러는 다시 throw
-    throw error;
-  }
+    // Find default organization or use first
+    const defaultOrg = organizations.find(org => org.isDefault);
+    const targetOrg = defaultOrg || organizations[0];
 
-  // Organization이 없으면 onboarding으로
-  if (!organizations || organizations.length === 0) {
-    redirect('/onboarding');
-  }
+    if (!targetOrg) {
+      return <OrgRedirectClient redirectUrl="/onboarding" />;
+    }
 
-  // 첫 번째 organization 선택
-  const firstOrg = organizations[0];
-  if (!firstOrg) {
-    redirect('/onboarding');
-  }
+    // Redirect to organization page
+    return <OrgRedirectClient redirectUrl={`/r/${targetOrg.id}`} />;
+  } catch (error) {
+    // Handle authentication and beta access errors
+    console.error('[/r] Dashboard access error:', error);
 
-  // Workspace-Page 데이터 로드
-  const workspacePageResult = await getOrganizationWorkspacePageViewAction({
-    organizationId: firstOrg.id,
-  });
-
-  if (!workspacePageResult.success) {
-    // 실패 시 orgId로 리다이렉트
-    return <RedirectClient redirectUrl={`/r/${firstOrg.id}`} />;
-  }
-
-  const { workspaces } = workspacePageResult.data;
-
-  // 워크스페이스가 없는 경우
-  if (workspaces.length === 0) {
-    return <RedirectClient redirectUrl={`/r/${firstOrg.id}/workspace/new`} />;
-  }
-
-  // 쿠키에서 최근 페이지 확인
-  const cookieStore = await cookies();
-  const recentPageKey = `ssota-recent-page-${firstOrg.id}`;
-  const cookiePageId = cookieStore.get(recentPageKey)?.value;
-
-  // 1. 쿠키에 저장된 최근 페이지가 유효한 경우
-  if (cookiePageId) {
-    // 페이지가 속한 워크스페이스 찾기 (재귀 함수)
-    const findPageInTree = (
-      pages: (typeof workspaces)[0]['pageTree']
-    ): { found: boolean; workspaceId?: string } => {
-      for (const page of pages) {
-        if (page.id === cookiePageId) return { found: true };
-        if (page.children && page.children.length > 0) {
-          const result = findPageInTree(page.children);
-          if (result.found) return result;
-        }
-      }
-      return { found: false };
-    };
-
-    for (const workspace of workspaces) {
-      const result = findPageInTree(workspace.pageTree);
-      if (result.found) {
+    if (error instanceof Error) {
+      if (error.message === 'BETA_ACCESS_REQUIRED') {
+        // Beta not approved - use client redirect
         return (
-          <RedirectClient
-            redirectUrl={`/r/${firstOrg.id}/workspace/${workspace.workspaceId}/page/${cookiePageId}`}
+          <BetaRedirectClient
+            redirectUrl="/beta/application"
+            message="Beta access required"
           />
         );
       }
+
+      if (
+        error.message === 'UNAUTHORIZED: User not authenticated' ||
+        error.message === 'USER_PROFILE_NOT_FOUND'
+      ) {
+        // Not authenticated - use client redirect
+        return (
+          <BetaRedirectClient redirectUrl="/login" message="Please login" />
+        );
+      }
     }
+
+    // Unknown error - use client redirect
+    return <BetaRedirectClient redirectUrl="/login" message="Redirecting..." />;
   }
-
-  // 2. 첫 번째 워크스페이스의 첫 번째 페이지로
-  const firstWorkspace = workspaces[0]!;
-  const firstPage = firstWorkspace.pageTree[0];
-
-  if (!firstPage) {
-    // 페이지가 없는 경우 워크스페이스 루트로
-    return (
-      <RedirectClient
-        redirectUrl={`/r/${firstOrg.id}/workspace/${firstWorkspace.workspaceId}`}
-      />
-    );
-  }
-
-  // 첫 페이지로 리다이렉트
-  return (
-    <RedirectClient
-      redirectUrl={`/r/${firstOrg.id}/workspace/${firstWorkspace.workspaceId}/page/${firstPage.id}`}
-    />
-  );
 }
