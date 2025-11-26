@@ -5,6 +5,7 @@ import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { Toaster } from '@workspace/ui/components/ui/sonner';
 import { QueryProvider } from '@/lib/query-client';
 import { MixpanelProvider } from '@/lib/mixpanel-provider';
+import { AuthSessionMonitor } from '@/domains/auth/components/auth-session-monitor';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -16,10 +17,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         <MixpanelProvider>
-          <TooltipProvider>
-            {children}
-            <Toaster position="bottom-right" richColors closeButton />
-          </TooltipProvider>
+          <AuthSessionMonitor>
+            <TooltipProvider>
+              {children}
+              <Toaster position="bottom-right" richColors closeButton />
+            </TooltipProvider>
+          </AuthSessionMonitor>
         </MixpanelProvider>
       </NextThemesProvider>
     </QueryProvider>

@@ -4,6 +4,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 import { DrizzleOrganizationRepository } from '../backend/repositories/implementations/drizzle-organization.repository';
 import { DrizzleInvitationRepository } from '../backend/repositories/implementations/drizzle-invitation.repository';
@@ -48,11 +49,9 @@ export async function getUserOrganizationsAction(): Promise<
     } = await supabase.auth.getUser();
 
     if (error || !user) {
-      console.error(
-        '[getUserOrganizationsAction] Authentication failed:',
-        error
-      );
-      throw new Error('Authentication required');
+      // 인증 오류 발생 - 로그인 페이지로 리다이렉트 (조용히 처리)
+      // 참고: timebox=0, inactivity_timeout=0 설정으로 실제 세션 만료는 발생하지 않음
+      redirect('/login?message=Please%20log%20in%20to%20continue.');
     }
 
     // 2. Repository 인스턴스 생성

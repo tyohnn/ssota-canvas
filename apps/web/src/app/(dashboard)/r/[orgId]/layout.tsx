@@ -19,20 +19,8 @@ export default async function DashboardLayout({
 }) {
   const { orgId } = await params;
 
-  let organizations: Awaited<ReturnType<typeof getUserOrganizationsAction>>;
-  try {
-    organizations = await getUserOrganizationsAction();
-  } catch (error) {
-    console.error('[/r/[orgId]/layout] Error fetching organizations:', error);
-
-    // 인증 오류만 unauthorized 페이지로 리다이렉트
-    if (error instanceof Error && error.message === 'Authentication required') {
-      redirect('/unauthorized');
-    }
-
-    // 다른 에러는 다시 throw
-    throw error;
-  }
+  // getUserOrganizationsAction은 인증 실패 시 자동으로 redirect 함
+  const organizations = await getUserOrganizationsAction();
 
   // URL 파라미터로 전달된 orgId로 조직 찾기
   const selectedOrganization = organizations.find(org => org.id === orgId);

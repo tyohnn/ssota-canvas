@@ -1,8 +1,8 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
 import { CanvasViewData } from '../shared/dtos/index';
 import { ActionResult, ok, err } from '@/lib/action-result';
+import { checkAuth } from '@/domains/auth/server/auth-guard';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
@@ -33,16 +33,12 @@ export async function getCanvasViewAction(
   workspaceId?: string
 ): Promise<ActionResult<CanvasViewData>> {
   try {
-    // 1. Supabase Auth 인증 확인
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return err('User not authenticated', { code: 'UNAUTHORIZED' });
+    // 1. 인증 확인
+    const authResult = await checkAuth('getCanvasViewAction');
+    if (!authResult.success) {
+      return err(authResult.error!, { code: authResult.errorCode! });
     }
+    const user = authResult.user!;
 
     // 2. 입력 검증
     if (!pageId || pageId.trim().length === 0) {

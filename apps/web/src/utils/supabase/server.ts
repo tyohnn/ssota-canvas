@@ -37,6 +37,14 @@ export const createClient = async () => {
             // The `set` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
             // user sessions.
+
+            // refresh_token_not_found 에러는 정상적인 세션 만료이므로
+            // 로그를 남기지 않음 (노이즈 방지)
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            if (!errorMessage.includes('refresh_token_not_found')) {
+              console.error('[Supabase Server Client] Cookie error:', error);
+            }
           }
         },
       },

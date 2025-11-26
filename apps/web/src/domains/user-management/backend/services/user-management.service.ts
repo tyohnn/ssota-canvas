@@ -7,6 +7,9 @@ import { UserId } from '../../shared/value-objects/ids.vo';
 import { UserManagementError } from '../../shared/errors/user-management.error';
 import { Result } from '@/utils/result';
 import { CreateUserProfileCommand } from '../../shared/commands';
+import { DrizzleOrganizationRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository';
+import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
+import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 
 export class UserManagementService {
   constructor(
@@ -72,11 +75,93 @@ export class UserManagementService {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
-      
+
       return Result.error(
         new UserManagementError(
           'PROFILE_CREATION_FAILED',
           'Failed to create user profile',
+          {
+            error,
+            message: error instanceof Error ? error.message : 'Unknown error',
+          }
+        )
+      );
+    }
+  }
+
+  /**
+   * 사용자 설정 완료 상태 확인
+   *
+   * @param userId - 확인할 사용자 ID
+   * @returns 설정 완료 여부 및 리다이렉트 URL
+   */
+  async checkUserSetupStatus(userId: string): Promise<
+    Result<
+      {
+        isSetupComplete: boolean;
+        redirectUrl?: string;
+      },
+      UserManagementError
+    >
+  > {
+    try {
+      const userIdVO = new UserId(userId);
+
+      // 1. 프로필 확인
+      const existingProfile = await this.userRepository.findById(userIdVO);
+
+      // 2. 조직 확인
+      const organizationRepository = new DrizzleOrganizationRepository();
+      const existingOrganizations =
+        await organizationRepository.findByOwnerId(userIdVO);
+
+      // 3. 설정 완료 여부 판단
+      const isSetupComplete =
+        existingProfile !== null && existingOrganizations.length > 0;
+
+      // 4. 설정이 완료된 경우, 기본 리다이렉트 URL 생성
+      let redirectUrl: string | undefined;
+      if (isSetupComplete && existingOrganizations.length > 0) {
+        const defaultOrg = existingOrganizations.find(
+          org => org.entity.isDefault
+        );
+        const firstOrg = defaultOrg || existingOrganizations[0]!;
+
+        // 해당 조직의 워크스페이스와 페이지 조회
+        const workspaceRepository = new DrizzleWorkspaceRepository();
+        const pageRepository = new DrizzlePageRepository();
+
+        const workspaces = await workspaceRepository.findByOrganizationId(
+          firstOrg.id
+        );
+        const defaultWorkspace = workspaces.find(ws => ws.isDefault);
+
+        if (defaultWorkspace) {
+          const pages = await pageRepository.findTreeByWorkspaceId(
+            defaultWorkspace.workspaceId
+          );
+          const firstPage = pages.length > 0 ? pages[0]! : null;
+
+          if (firstPage) {
+            redirectUrl = `/r/${firstOrg.id.value}/workspace/${defaultWorkspace.workspaceId.value}/page/${firstPage.pageId.value}`;
+          }
+        }
+      }
+
+      return Result.success({
+        isSetupComplete,
+        redirectUrl,
+      });
+    } catch (error) {
+      console.error('[UserManagementService] Check setup status error:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      return Result.error(
+        new UserManagementError(
+          'SETUP_STATUS_CHECK_FAILED',
+          'Failed to check user setup status',
           {
             error,
             message: error instanceof Error ? error.message : 'Unknown error',

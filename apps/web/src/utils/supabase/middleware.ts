@@ -58,7 +58,16 @@ export async function updateSession(request: NextRequest) {
 
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
+
+  // Refresh token 에러는 정상적인 세션 만료 상황이므로 조용히 처리
+  // (로그 노이즈 방지)
+  if (error && error.message?.includes('refresh_token_not_found')) {
+    // 세션이 만료되었으므로 쿠키를 정리
+    // AuthSessionMonitor가 프론트엔드에서 리다이렉트를 처리함
+    return supabaseResponse;
+  }
 
   // if (
   //   !user &&

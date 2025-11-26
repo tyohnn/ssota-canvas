@@ -22,17 +22,26 @@ export default function OnboardingPage() {
       if (result.success) {
         setStatus('success');
 
-        // 카운트다운 시작 (3초)
-        let count = 3;
-        const countdownInterval = setInterval(() => {
-          count -= 1;
-          setCountdown(count);
+        // 이미 설정이 완료된 사용자는 즉시 리다이렉트 (카운트다운 없음)
+        // 새로운 사용자는 카운트다운 표시 후 리다이렉트
+        const isExistingUser = result.data.user && result.data.organization;
 
-          if (count <= 0) {
-            clearInterval(countdownInterval);
-            router.push(result.data.redirectUrl);
-          }
-        }, 1000);
+        if (isExistingUser) {
+          // 기존 사용자: 즉시 리다이렉트
+          router.push(result.data.redirectUrl);
+        } else {
+          // 신규 사용자: 카운트다운 시작 (3초)
+          let count = 3;
+          const countdownInterval = setInterval(() => {
+            count -= 1;
+            setCountdown(count);
+
+            if (count <= 0) {
+              clearInterval(countdownInterval);
+              router.push(result.data.redirectUrl);
+            }
+          }, 1000);
+        }
       } else {
         console.error('User profile setup failed:', result.error);
         setStatus('error');
