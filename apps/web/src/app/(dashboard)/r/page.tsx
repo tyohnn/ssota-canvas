@@ -11,10 +11,11 @@
  * 4. Unauthenticated users → redirect to login
  */
 
-import { redirect } from 'next/navigation';
 import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
 import { BetaRedirectClient } from './beta-redirect-client';
 import { OrgRedirectClient } from './[orgId]/org-redirect-client';
+
+export const dynamic = 'force-dynamic';
 
 export default async function DashboardRootPage() {
   try {

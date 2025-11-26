@@ -46,8 +46,8 @@ try {
     });
   }
 
-  // Connection Pooler 사용 확인 (프로덕션만)
-  if (isProduction && url.port !== '6543') {
+  // Connection Pooler 사용 확인 (프로덕션 + 원격 DB만)
+  if (isProduction && !isLocalDatabase && url.port !== '6543') {
     console.warn('⚠️ Production should use Connection Pooler (port 6543):', {
       currentPort: url.port,
       hostname: url.hostname,
