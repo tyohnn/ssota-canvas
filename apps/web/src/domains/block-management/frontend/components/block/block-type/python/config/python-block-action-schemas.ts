@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 
-export const PythonActionSchemas = {
+export const PythonBlockActionSchemas = {
   formatCode: z.object({}),
 
   refactor: z.object({

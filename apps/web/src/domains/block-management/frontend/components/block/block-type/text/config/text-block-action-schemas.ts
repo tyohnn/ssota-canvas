@@ -4,4 +4,4 @@
 
 import { z } from 'zod';
 
-export const TextActionSchemas = {};
+export const TextBlockActionSchemas = {};

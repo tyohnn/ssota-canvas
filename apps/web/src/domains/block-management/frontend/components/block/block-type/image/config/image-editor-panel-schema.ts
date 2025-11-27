@@ -1,83 +1,85 @@
 /**
- * Text Block Editor Schema
+ * Image Block Editor Panel Schema
  *
- * 텍스트 블록의 에디터 패널 UI 렌더링 스키마
+ * Image block editor panel UI rendering schema
  */
 
 import { BlockEditorSchema } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
-export const textEditorSchema: BlockEditorSchema = {
-  blockType: BlockType.TEXT,
+export const imageEditorPanelSchema: BlockEditorSchema = {
+  blockType: BlockType.IMAGE,
 
   groups: [
     {
-      id: 'style',
-      label: 'Style',
-      description: 'Text styling options',
+      id: 'basic-info',
+      label: 'Basic Information',
+      description: 'Image block basic information',
       defaultCollapsed: false,
       order: 1,
-      properties: ['color', 'textAlign', 'fontSize', 'richStyle'],
+      properties: ['imageUrl', 'caption', 'alt'],
+    },
+    {
+      id: 'style',
+      label: 'Style',
+      description: 'Image styling settings',
+      defaultCollapsed: false,
+      order: 2,
+      properties: ['objectFit'],
     },
     {
       id: 'metadata',
       label: 'Metadata',
       description: 'Creation and modification information',
       defaultCollapsed: true,
-      order: 2,
+      order: 3,
       properties: ['createdAt', 'updatedAt', 'createdBy'],
     },
   ],
 
   properties: {
-    // Style
-    color: {
-      label: 'Text Color',
-      inputType: 'color',
-      icon: 'Palette',
-      description: 'Color of the text',
+    imageUrl: {
+      label: 'Image',
+      inputType: 'image-upload',
+      icon: 'Image',
+      description: 'Upload image file',
+      order: 1,
+      readonly: false,
+    },
+    caption: {
+      label: 'Caption',
+      inputType: 'text',
+      icon: 'MessageSquare',
+      description: 'Image description or caption (displayed at the bottom)',
+      placeholder: 'Enter caption...',
       order: 2,
     },
-    textAlign: {
-      label: 'Text Alignment',
-      inputType: 'select',
-      icon: 'AlignLeft',
-      description: 'Text alignment direction',
+    alt: {
+      label: 'Alt Text',
+      inputType: 'text',
+      icon: 'AudioLines',
+      description: 'Alternative text for accessibility',
+      placeholder: 'Describe the image...',
       order: 3,
-      options: [
-        { id: 'left', value: 'left', label: 'Left', order: 1 },
-        { id: 'center', value: 'center', label: 'Center', order: 2 },
-        { id: 'right', value: 'right', label: 'Right', order: 3 },
-      ],
     },
-    fontSize: {
-      label: 'Font Size',
+    objectFit: {
+      label: 'Object Fit',
       inputType: 'select',
-      icon: 'Type',
-      description: 'Text size',
+      icon: 'Maximize',
+      description: 'How the image fits into the container',
       order: 4,
       options: [
-        { id: '14px', value: '14px', label: 'Small (14px)', order: 1 },
-        { id: '16px', value: '16px', label: 'Medium (16px)', order: 2 },
-        { id: '20px', value: '20px', label: 'Large (20px)', order: 3 },
-        { id: '24px', value: '24px', label: 'Extra Large (24px)', order: 4 },
+        { id: 'contain', value: 'contain', label: 'Contain', order: 1 },
+        { id: 'cover', value: 'cover', label: 'Cover', order: 2 },
+        { id: 'fill', value: 'fill', label: 'Fill', order: 3 },
       ],
     },
-    richStyle: {
-      label: 'Rich Style',
-      inputType: 'checkbox',
-      icon: 'Bold',
-      description: 'Enable rich text styling',
-      order: 5,
-    },
-
-    // Metadata (read-only)
     createdAt: {
       label: 'Created At',
       inputType: 'readonly-datetime',
       icon: 'Calendar',
       description: 'Date when the block was created',
-      order: 6,
+      order: 5,
       readonly: true,
       defaultDisplay: (value: any) => {
         if (!value) return '-';
@@ -96,7 +98,7 @@ export const textEditorSchema: BlockEditorSchema = {
       inputType: 'readonly-datetime',
       icon: 'Clock',
       description: 'Date when the block was last updated',
-      order: 8,
+      order: 6,
       readonly: true,
       defaultDisplay: (value: any) => {
         if (!value) return '-';
@@ -115,12 +117,11 @@ export const textEditorSchema: BlockEditorSchema = {
       inputType: 'readonly-profile',
       icon: 'User',
       description: 'User who created the block',
-      order: 9,
+      order: 7,
       readonly: true,
       defaultDisplay: (value: any) => {
         if (!value) return 'Unknown';
         if (typeof value === 'string') return value;
-        // UserProfile type: userId, email, name, profileImageUrl
         return value.name || value.email || 'Unknown';
       },
     },

@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
-export const YoutubeActionSchemas = {
+export const YoutubeBlockActionSchemas = {
   extractScript: z.object({}),
   summarize: z.object({}),
 };
-

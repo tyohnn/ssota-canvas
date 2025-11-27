@@ -7,7 +7,7 @@
 import { BlockEditorSchema } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
-export const shapeEditorSchema: BlockEditorSchema = {
+export const shapeEditorPanelSchema: BlockEditorSchema = {
   blockType: BlockType.SHAPE,
 
   groups: [

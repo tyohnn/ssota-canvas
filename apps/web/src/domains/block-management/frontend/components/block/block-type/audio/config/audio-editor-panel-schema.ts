@@ -7,7 +7,7 @@
 import type { BlockEditorSchema } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
-export const audioEditorSchema: BlockEditorSchema = {
+export const audioEditorPanelSchema: BlockEditorSchema = {
   blockType: BlockType.AUDIO,
 
   groups: [

@@ -9,7 +9,6 @@ import { Button } from '@workspace/ui/components/ui/button';
 import { Palette } from 'lucide-react';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { ImageBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { useImageSearchStyle } from '../use-image-actions';
 
 interface SearchImageStyleActionProps {
   blockId: string;
@@ -23,8 +22,14 @@ export function SearchImageStyleAction({
   const properties = blockData.properties as ImageBlockProperties;
   const imageUrl = properties.imageUrl;
 
-  // 훅에서 로직을 가져옴
-  const handleSearchStyle = useImageSearchStyle(blockId, blockData);
+  // TODO: Implement image style search functionality
+  const handleSearchStyle = () => {
+    console.log('[TODO] Search similar style:', {
+      blockId,
+      blockData,
+      imageUrl,
+    });
+  };
 
   return (
     <Tooltip>

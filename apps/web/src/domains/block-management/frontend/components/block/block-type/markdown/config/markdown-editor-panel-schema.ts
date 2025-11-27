@@ -8,7 +8,7 @@ import { BlockEditorSchema } from '@/domains/block-management/frontend/types/blo
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { ColorToken } from '@/domains/block-management/shared/types/style-tokens.types';
 
-export const markdownEditorSchema: BlockEditorSchema = {
+export const markdownEditorPanelSchema: BlockEditorSchema = {
   blockType: BlockType.MARKDOWN,
 
   groups: [

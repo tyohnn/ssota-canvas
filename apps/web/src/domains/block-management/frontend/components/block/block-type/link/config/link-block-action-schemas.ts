@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
-export const LinkActionSchemas = {
+export const LinkBlockActionSchemas = {
   fetchMetadata: z.object({}),
   summarize: z.object({}),
 };
-

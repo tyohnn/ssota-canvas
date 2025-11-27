@@ -7,7 +7,7 @@
 import type { BlockEditorSchema } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
-export const youtubeEditorSchema: BlockEditorSchema = {
+export const youtubeEditorPanelSchema: BlockEditorSchema = {
   blockType: BlockType.YOUTUBE,
 
   groups: [

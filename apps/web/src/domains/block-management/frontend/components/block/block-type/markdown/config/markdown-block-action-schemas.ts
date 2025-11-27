@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 
-export const MarkdownActionSchemas = {
+export const MarkdownBlockActionSchemas = {
   summarize: z.object({}),
 
   translate: z.object({

@@ -9,7 +9,6 @@ import { Button } from '@workspace/ui/components/ui/button';
 import { Sparkles } from 'lucide-react';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { LinkBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { useLinkSummarize } from '../use-link-actions';
 
 interface SummarizeLinkActionProps {
   blockId: string;
@@ -23,8 +22,10 @@ export function SummarizeLinkAction({
   const properties = blockData.properties as LinkBlockProperties;
   const url = properties.url;
 
-  // 훅에서 로직을 가져옴
-  const handleSummarize = useLinkSummarize(blockId, blockData);
+  // TODO: Implement link summarization functionality
+  const handleSummarize = () => {
+    console.log('[TODO] Summarize link:', { blockId, blockData, url });
+  };
 
   return (
     <Tooltip>

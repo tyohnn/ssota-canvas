@@ -1,5 +1,5 @@
 import { z } from 'zod';
 
-export const AudioActionSchemas = {
+export const AudioBlockActionSchemas = {
   transcribe: z.object({}),
 };

@@ -107,7 +107,7 @@ export function useBlockActionExecutor() {
 
         const actionsModule = await import(
           /* webpackChunkName: "block-actions-[request]" */
-          `../components/block/block-type/${blockType}/${blockType}-actions`
+          `../components/block/block-type/${blockType}/action-items/${blockType}-block-actions`
         );
 
         // executeAction 함수 확인
