@@ -3,7 +3,7 @@
 import React, { memo, useState, useCallback, useEffect, useRef } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import type { MarkdownBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block/base-block';
+import { BaseBlock } from '../base-block';
 import type { MarkdownBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { cn } from '@workspace/ui/lib/utils';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -139,10 +139,6 @@ export const MarkdownBlock = memo(function MarkdownBlock({
           try {
             // @ts-ignore - getMarkdown()은 Markdown 확장에서 추가됨
             contentRaw = editor.getMarkdown() as string;
-            console.log(
-              '[MarkdownBlock] Extracted markdown:',
-              contentRaw.slice(0, 100)
-            );
           } catch (error) {
             console.warn('[MarkdownBlock] Failed to extract markdown:', error);
           }
