@@ -173,7 +173,9 @@ property-add-popover/
 
 ## 폴더 구조
 
-### 기본 구조
+### 기본 구조 (Flat Structure)
+
+단순한 컴포넌트의 경우 플랫 구조를 사용합니다:
 
 ```
 component-name/
@@ -186,12 +188,109 @@ component-name/
 └── utils.ts                 # 유틸리티 함수 (선택)
 ```
 
+### 계층 구조 (components/ + core/ Pattern)
+
+복잡한 컴포넌트나 하위 컴포넌트가 많은 경우 `components/` 와 `core/` 폴더로 분리합니다:
+
+```
+component-name/
+├── components/              # UI 컴포넌트들 (계층적)
+│   ├── sub-component-a/     # 서브 컴포넌트 (재귀적 구조 가능)
+│   │   ├── components/      # 더 깊은 하위 컴포넌트
+│   │   ├── core/            # 서브 컴포넌트의 로직
+│   │   ├── index.tsx
+│   │   └── README.md
+│   ├── sub-component-b.tsx  # 단순 서브 컴포넌트
+│   └── sub-component-c.tsx
+├── core/                    # 비즈니스 로직 (플랫)
+│   ├── context.tsx          # Context 정의
+│   ├── provider.tsx         # Provider 컴포넌트
+│   ├── types.ts             # 타입 정의
+│   ├── use-component-name.ui.ts        # UI 상태 (선택)
+│   ├── use-component-name.business.ts  # 비즈니스 로직 (선택)
+│   ├── use-component-name.ts           # 통합 훅
+│   └── README.md            # 로직 설명
+├── index.tsx                # 메인 컴포넌트 (Provider + UI 조합)
+└── README.md                # 컴포넌트 문서
+```
+
+**언제 사용하는가?**
+
+✅ **components/ + core/ 사용 (계층 구조)**
+- 서브 컴포넌트가 3개 이상
+- 서브 컴포넌트가 또 다른 하위 컴포넌트를 가짐 (프랙탈 구조)
+- 복잡한 비즈니스 로직이 있음
+- 여러 레벨의 Context가 필요함
+
+❌ **Flat 구조 사용 (기본 구조)**
+- 서브 컴포넌트가 2개 이하
+- 단순한 UI 컴포넌트
+- 비즈니스 로직이 간단함
+
+**실제 예시:**
+```
+custom-properties-section/          # 복잡한 컴포넌트
+├── components/                      # UI 컴포넌트 (계층적)
+│   ├── custom-property-add-popover/ # 하위 컴포넌트 (재귀적 구조)
+│   │   ├── components/              # 팝오버의 하위 UI들
+│   │   │   ├── label.tsx
+│   │   │   ├── name-input.tsx
+│   │   │   └── type-grid.tsx
+│   │   ├── core/                    # 팝오버의 로직
+│   │   │   ├── context.tsx
+│   │   │   ├── provider.tsx
+│   │   │   ├── types.ts
+│   │   │   ├── use-*.ui.ts
+│   │   │   ├── use-*.business.ts
+│   │   │   └── use-*.ts
+│   │   ├── index.tsx
+│   │   └── README.md
+│   ├── custom-property-item/        # 또 다른 복잡한 하위 컴포넌트
+│   │   └── (동일한 구조 반복)
+│   └── properties-list.tsx          # 단순 컴포넌트
+├── core/                            # 메인 컴포넌트의 로직 (플랫)
+│   ├── context.tsx
+│   ├── provider.tsx
+│   ├── types.ts
+│   ├── use-custom-properties-section.ts
+│   └── README.md
+├── index.tsx                        # 메인 엔트리
+└── README.md
+```
+
+### 프랙탈 아키텍처 (Fractal Architecture)
+
+위 구조는 **프랙탈 패턴**을 따릅니다. 각 컴포넌트가 동일한 구조(`components/` + `core/`)를 가질 수 있어, 무한히 중첩 가능합니다.
+
+```
+Level 1: custom-properties-section/
+         ├── components/
+         │   └── Level 2: custom-property-item/
+         │                ├── components/
+         │                │   └── Level 3: property-detail-popover/
+         │                │                ├── components/
+         │                │                │   └── Level 4: option-sections/
+         │                │                │                ├── components/
+         │                │                │                └── core/
+         │                │                └── core/
+         │                └── core/
+         └── core/
+```
+
+**장점:**
+- ✅ **일관성**: 모든 레벨에서 동일한 구조
+- ✅ **확장성**: 새 하위 컴포넌트 추가가 쉬움
+- ✅ **독립성**: 각 컴포넌트가 자체 로직/상태를 가짐
+- ✅ **테스트 용이**: 각 레벨을 독립적으로 테스트
+
 ### 파일명 규칙
 
 - **index.tsx**: 메인 컴포넌트, 폴더 대표 export
 - **use-xxx.ts**: Custom Hook (use- prefix 필수)
-- **xxx-context.tsx**: Context Provider와 Consumer
+- **xxx-context.tsx** 또는 **context.tsx**: Context 정의
+- **provider.tsx**: Context Provider 컴포넌트
 - **types.ts**: 타입 정의만 포함
+- **README.md**: 컴포넌트/로직 설명 문서
 - 모든 파일은 kebab-case 사용
 
 ---
@@ -1104,6 +1203,7 @@ export const GlobalPropertyAddPopoverContext = ...
 
 | 날짜 | 버전 | 변경 내용 |
 |------|------|-----------|
+| 2025-11-27 | 3.1.0 | 폴더 구조 섹션 업데이트: components/ + core/ 계층 구조 패턴 및 프랙탈 아키텍처 추가 |
 | 2025-11-10 | 3.0.0 | TanStack Query를 활용한 Optimistic Updates 패턴 추가 |
 | 2025-11-10 | 2.0.0 | 노코드 워크플로우를 위한 로직 분리 패턴 추가 (UI/Business 3-Layer 아키텍처) |
 | 2025-11-08 | 1.0.0 | 초안 작성 (PropertyAddPopover 리팩토링 기반) |

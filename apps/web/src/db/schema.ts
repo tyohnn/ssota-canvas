@@ -80,8 +80,12 @@ export const blockTypeEnum = pgEnum('block_type', [
   'python', // 파이썬 코드 블록
   'page_mention', // 페이지 멘션 블록
   'latex', // 라텍스 블록
-  'github_pr', // 깃헙 PR 블록
   'react_component', // 리액트 컴포넌트 블록
+  'github_branch', // 깃헙 브랜치 블록
+  'github_commit', // 깃헙 커밋 블록
+  'github_pr', // 깃헙 PR 블록
+  'react_preview', // 리액트 프리뷰 블록 (Sandbox)
+  'vercel_deployment', // Vercel 배포 블록
 ]);
 
 export const propertyTypeEnum = pgEnum('property_type', [

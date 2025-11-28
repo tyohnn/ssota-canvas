@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import type { LinkBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block/base-block';
+import { BaseBlock } from '../base-block';
 import type { LinkBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { cn } from '@workspace/ui/lib/utils';
 import { Link as LinkIcon, ExternalLink } from 'lucide-react';

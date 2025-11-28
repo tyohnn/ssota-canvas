@@ -3,7 +3,7 @@
 import React, { memo, useState, useRef, useEffect, useCallback } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import type { TextBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block/base-block';
+import { BaseBlock } from '../base-block';
 import {
   TextBlockProperties,
   TextAlign,

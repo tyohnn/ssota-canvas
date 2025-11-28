@@ -15,14 +15,14 @@
  */
 
 import { z } from 'zod';
-import { ImageActionSchemas } from './image/image-action-schemas';
-import { MarkdownActionSchemas } from './markdown/markdown-action-schemas';
-import { YoutubeActionSchemas } from './youtube/youtube-action-schemas';
-import { PdfActionSchemas } from './pdf/pdf-action-schemas';
-import { LinkActionSchemas } from './link/link-action-schemas';
-import { AudioActionSchemas } from './audio/audio-action-schemas';
-import { TextActionSchemas } from './text/text-action-schemas';
-import { PythonActionSchemas } from './python/python-action-schemas';
+import { ImageBlockActionSchemas } from './image/config/image-block-action-schemas';
+import { MarkdownBlockActionSchemas } from './markdown/config/markdown-block-action-schemas';
+import { YoutubeBlockActionSchemas } from './youtube/config/youtube-block-action-schemas';
+import { PdfBlockActionSchemas } from './pdf/config/pdf-block-action-schemas';
+import { LinkBlockActionSchemas } from './link/config/link-block-action-schemas';
+import { AudioBlockActionSchemas } from './audio/config/audio-block-action-schemas';
+import { TextBlockActionSchemas } from './text/config/text-block-action-schemas';
+import { PythonBlockActionSchemas } from './python/config/python-block-action-schemas';
 
 /**
  * 블록 타입별 액션 스키마 매핑
@@ -37,14 +37,14 @@ export const BLOCK_ACTION_SCHEMAS: Record<
   string,
   Record<string, z.ZodType<any>>
 > = {
-  image: ImageActionSchemas,
-  markdown: MarkdownActionSchemas,
-  youtube: YoutubeActionSchemas,
-  pdf: PdfActionSchemas,
-  link: LinkActionSchemas,
-  audio: AudioActionSchemas,
-  text: TextActionSchemas,
-  python: PythonActionSchemas,
+  image: ImageBlockActionSchemas,
+  markdown: MarkdownBlockActionSchemas,
+  youtube: YoutubeBlockActionSchemas,
+  pdf: PdfBlockActionSchemas,
+  link: LinkBlockActionSchemas,
+  audio: AudioBlockActionSchemas,
+  text: TextBlockActionSchemas,
+  python: PythonBlockActionSchemas,
   // shape는 액션 스키마가 없음 (액션 없음)
   shape: {},
 };
