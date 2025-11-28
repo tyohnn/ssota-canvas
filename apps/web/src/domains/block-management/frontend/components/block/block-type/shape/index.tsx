@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import type { ShapeBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
+import { BaseBlock } from '../base-block/base-block';
 import {
   ShapeBlockProperties,
   ShapeType,

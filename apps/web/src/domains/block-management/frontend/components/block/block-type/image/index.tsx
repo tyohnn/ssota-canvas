@@ -3,7 +3,7 @@
 import React, { memo, useState, useCallback, useRef } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import type { ImageBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
+import { BaseBlock } from '../base-block/base-block';
 import type { ImageBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { cn } from '@workspace/ui/lib/utils';
 import { ImageIcon, ImageOff } from 'lucide-react';

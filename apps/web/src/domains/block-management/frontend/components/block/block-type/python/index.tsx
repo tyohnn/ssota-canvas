@@ -3,7 +3,7 @@
 import React, { memo, useState } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import { PythonBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
+import { BaseBlock } from '../base-block/base-block';
 import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
 import { Button } from '@/components/ui/button';
 import { Play, FileCode, AlertCircle } from 'lucide-react';

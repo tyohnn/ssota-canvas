@@ -21,10 +21,6 @@ import {
   LatexBlockProperties,
   GithubPrBlockProperties,
   ReactComponentBlockProperties,
-  GithubBranchBlockProperties,
-  GithubCommitBlockProperties,
-  ReactPreviewBlockProperties,
-  VercelDeploymentBlockProperties,
 } from '../value-objects/block-properties';
 import { CustomPropertyDefinition } from '../value-objects/block-properties/common-types';
 import { BlockPropertiesFactory } from '../value-objects/block-properties';
@@ -36,37 +32,37 @@ import { UserProfile } from '@/domains/user-management/shared/types';
 /**
  * 블록 속성 타입 (Value Objects에서 정의된 타입들)
  */
-/**
- * Block Properties Type Map
- *
- * 확장 가능한 구조: 새 블록 타입 추가 시 여기만 수정
- */
-type BlockPropertiesMap = {
-  text: TextBlockProperties;
-  shape: ShapeBlockProperties;
-  image: ImageBlockProperties;
-  markdown: MarkdownBlockProperties;
-  youtube: YoutubeBlockProperties;
-  pdf: PdfBlockProperties;
-  audio: AudioBlockProperties;
-  video: VideoBlockProperties;
-  file: FileBlockProperties;
-  python: PythonBlockProperties;
-  link: LinkBlockProperties;
-  page_mention: PageMentionBlockProperties;
-  latex: LatexBlockProperties;
-  github_pr: GithubPrBlockProperties;
-  react_component: ReactComponentBlockProperties;
-  github_branch: GithubBranchBlockProperties;
-  github_commit: GithubCommitBlockProperties;
-  react_preview: ReactPreviewBlockProperties;
-  vercel_deployment: VercelDeploymentBlockProperties;
-};
-
-export type BlockProperties<T extends BlockType> =
-  T extends keyof BlockPropertiesMap
-    ? BlockPropertiesMap[T]
-    : Record<string, any>;
+export type BlockProperties<T extends BlockType> = T extends 'text'
+  ? TextBlockProperties
+  : T extends 'shape'
+    ? ShapeBlockProperties
+    : T extends 'image'
+      ? ImageBlockProperties
+      : T extends 'markdown'
+        ? MarkdownBlockProperties
+        : T extends 'youtube'
+          ? YoutubeBlockProperties
+          : T extends 'pdf'
+            ? PdfBlockProperties
+            : T extends 'audio'
+              ? AudioBlockProperties
+              : T extends 'video'
+                ? VideoBlockProperties
+                : T extends 'file'
+                  ? FileBlockProperties
+                  : T extends 'python'
+                    ? PythonBlockProperties
+                    : T extends 'link'
+                      ? LinkBlockProperties
+                      : T extends 'page_mention'
+                        ? PageMentionBlockProperties
+                        : T extends 'latex'
+                          ? LatexBlockProperties
+                          : T extends 'github_pr'
+                            ? GithubPrBlockProperties
+                            : T extends 'react_component'
+                              ? ReactComponentBlockProperties
+                              : Record<string, any>;
 
 export interface BaseNodeData extends Record<string, unknown> {
   blockMountId: string;
@@ -176,30 +172,6 @@ export interface ReactComponentBlockNodeData extends BaseNodeData {
   [key: string]: any; // React Flow Node data constraint
 }
 
-export interface GithubBranchBlockNodeData extends BaseNodeData {
-  blockType: 'github_branch';
-  properties: GithubBranchBlockProperties;
-  [key: string]: any; // React Flow Node data constraint
-}
-
-export interface GithubCommitBlockNodeData extends BaseNodeData {
-  blockType: 'github_commit';
-  properties: GithubCommitBlockProperties;
-  [key: string]: any; // React Flow Node data constraint
-}
-
-export interface ReactPreviewBlockNodeData extends BaseNodeData {
-  blockType: 'react_preview';
-  properties: ReactPreviewBlockProperties;
-  [key: string]: any; // React Flow Node data constraint
-}
-
-export interface VercelDeploymentBlockNodeData extends BaseNodeData {
-  blockType: 'vercel_deployment';
-  properties: VercelDeploymentBlockProperties;
-  [key: string]: any; // React Flow Node data constraint
-}
-
 /**
  * 모든 블록 노드 데이터 타입 유니온
  */
@@ -218,11 +190,7 @@ export type BlockNodeData =
   | PageMentionBlockNodeData
   | LatexBlockNodeData
   | GithubPrBlockNodeData
-  | ReactComponentBlockNodeData
-  | GithubBranchBlockNodeData
-  | GithubCommitBlockNodeData
-  | ReactPreviewBlockNodeData
-  | VercelDeploymentBlockNodeData;
+  | ReactComponentBlockNodeData;
 
 /**
  * 타입 안전한 블록 노드 데이터 빌드 함수

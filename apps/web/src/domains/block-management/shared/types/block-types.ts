@@ -33,12 +33,8 @@ export const BlockType = {
   LINK: 'link' as const,
   PAGE_MENTION: 'page_mention' as const,
   LATEX: 'latex' as const,
-  REACT_COMPONENT: 'react_component' as const,
-  GITHUB_BRANCH: 'github_branch' as const,
-  GITHUB_COMMIT: 'github_commit' as const,
   GITHUB_PR: 'github_pr' as const,
-  REACT_PREVIEW: 'react_preview' as const,
-  VERCEL_DEPLOYMENT: 'vercel_deployment' as const,
+  REACT_COMPONENT: 'react_component' as const,
 } as const;
 
 /**
@@ -63,10 +59,6 @@ export const BLOCK_TYPE_SIZES: Record<
   [BlockType.LATEX]: { width: 300, height: 180 },
   [BlockType.GITHUB_PR]: { width: 400, height: 200 },
   [BlockType.REACT_COMPONENT]: { width: 350, height: 250 },
-  [BlockType.GITHUB_BRANCH]: { width: 320, height: 180 }, // GitHub 브랜치 블록
-  [BlockType.GITHUB_COMMIT]: { width: 320, height: 160 }, // GitHub 커밋 블록
-  [BlockType.REACT_PREVIEW]: { width: 500, height: 400 }, // React 프리뷰 블록
-  [BlockType.VERCEL_DEPLOYMENT]: { width: 350, height: 200 }, // Vercel 배포 블록
 } as const;
 
 /**

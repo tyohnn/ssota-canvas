@@ -9,14 +9,14 @@ import {
   BlockEditorSchema,
   BlockEditorSchemaRegistry,
 } from '../../../types/block-editor-schema.interface';
-import { textEditorPanelSchema } from '../../block/block-type/text/config/text-editor-panel-schema';
-import { shapeEditorPanelSchema } from '../../block/block-type/shape/config/shape-editor-panel-schema';
-import { imageEditorPanelSchema } from '../../block/block-type/image/config/image-editor-panel-schema';
-import { markdownEditorPanelSchema } from '../../block/block-type/markdown/config/markdown-editor-panel-schema';
-import { linkEditorPanelSchema } from '../../block/block-type/link/config/link-editor-panel-schema';
-import { youtubeEditorPanelSchema } from '../../block/block-type/youtube/config/youtube-editor-panel-schema';
-import { pdfEditorPanelSchema } from '../../block/block-type/pdf/config/pdf-editor-panel-schema';
-import { audioEditorPanelSchema } from '../../block/block-type/audio/config/audio-editor-panel-schema';
+import { textEditorSchema } from '../../block/block-type/text/text-editor-schema';
+import { shapeEditorSchema } from '../../block/block-type/shape/shape-editor-schema';
+import { imageEditorSchema } from '../../block/block-type/image/image-editor-schema';
+import { markdownEditorSchema } from '../../block/block-type/markdown/markdown-editor-schema';
+import { linkEditorSchema } from '../../block/block-type/link/link-editor-schema';
+import { youtubeEditorSchema } from '../../block/block-type/youtube/youtube-editor-schema';
+import { pdfEditorSchema } from '../../block/block-type/pdf/pdf-editor-schema';
+import { audioEditorSchema } from '../../block/block-type/audio/audio-editor-schema';
 
 class BlockEditorSchemaRegistryImpl implements BlockEditorSchemaRegistry {
   private schemas: Map<string, BlockEditorSchema> = new Map();
@@ -28,31 +28,28 @@ class BlockEditorSchemaRegistryImpl implements BlockEditorSchemaRegistry {
 
   private registerDefaultSchemas(): void {
     // Text Block 스키마 등록
-    this.register(textEditorPanelSchema.blockType, textEditorPanelSchema);
+    this.register(textEditorSchema.blockType, textEditorSchema);
 
     // Shape Block 스키마 등록
-    this.register(shapeEditorPanelSchema.blockType, shapeEditorPanelSchema);
+    this.register(shapeEditorSchema.blockType, shapeEditorSchema);
 
     // Image Block 스키마 등록
-    this.register(imageEditorPanelSchema.blockType, imageEditorPanelSchema);
+    this.register(imageEditorSchema.blockType, imageEditorSchema);
 
     // Markdown Block 스키마 등록
-    this.register(
-      markdownEditorPanelSchema.blockType,
-      markdownEditorPanelSchema
-    );
+    this.register(markdownEditorSchema.blockType, markdownEditorSchema);
 
     // Link Block 스키마 등록
-    this.register(linkEditorPanelSchema.blockType, linkEditorPanelSchema);
+    this.register(linkEditorSchema.blockType, linkEditorSchema);
 
     // YouTube Block 스키마 등록
-    this.register(youtubeEditorPanelSchema.blockType, youtubeEditorPanelSchema);
+    this.register(youtubeEditorSchema.blockType, youtubeEditorSchema);
 
     // PDF Block 스키마 등록
-    this.register(pdfEditorPanelSchema.blockType, pdfEditorPanelSchema);
+    this.register(pdfEditorSchema.blockType, pdfEditorSchema);
 
     // Audio Block 스키마 등록
-    this.register(audioEditorPanelSchema.blockType, audioEditorPanelSchema);
+    this.register(audioEditorSchema.blockType, audioEditorSchema);
 
     // 추후 다른 블록 타입 스키마 추가
   }

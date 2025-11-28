@@ -5,7 +5,7 @@
  */
 
 // Base Block Components
-export * from './base-block';
+export * from './base-block/base-block';
 
 // Text Block Components
 export * from './text';
@@ -30,16 +30,3 @@ export * from './link';
 
 // Audio Block Components
 export * from './audio';
-
-// PDF Block Components
-export * from './pdf';
-
-// GitHub Block Components
-export * from './github-branch';
-export * from './github-commit';
-
-// React Preview Block Components
-export * from './react-preview';
-
-// Vercel Deployment Block Components
-export * from './vercel-deployment';

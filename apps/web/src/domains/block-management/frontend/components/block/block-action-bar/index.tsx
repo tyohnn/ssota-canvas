@@ -61,7 +61,7 @@ export function BlockActionBar({
   return (
     <NodeToolbar
       isVisible={true}
-      position={Position.Right}
+      position={Position.Left}
       className="nodrag nowheel"
     >
       {/* z-index: React Flow NodeToolbar (자동 관리) < canvas-toolbar(10) < multi-selection-toolbar(50) */}

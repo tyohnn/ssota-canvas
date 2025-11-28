@@ -15,15 +15,15 @@ import { PropertyType } from '@/domains/block-management/shared/value-objects/bl
 import { z } from 'zod';
 
 // Import block type definitions from each block type folder
-import { markdownAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/markdown/config/markdown-ai-definition';
-import { textAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/text/config/text-ai-definition';
-import { shapeAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/shape/config/shape-ai-definition';
-import { imageAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/image/config/image-ai-definition';
-import { youtubeAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/youtube/config/youtube-ai-definition';
-import { linkAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/link/config/link-ai-definition';
-import { pdfAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/pdf/config/pdf-ai-definition';
-import { pythonAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/python/config/python-ai-definition';
-import { audioAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/audio/config/audio-ai-definition';
+import { markdownAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/markdown/markdown-ai-definition';
+import { textAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/text/text-ai-definition';
+import { shapeAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/shape/shape-ai-definition';
+import { imageAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/image/image-ai-definition';
+import { youtubeAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/youtube/youtube-ai-definition';
+import { linkAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/link/link-ai-definition';
+import { pdfAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/pdf/pdf-ai-definition';
+import { pythonAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/python/python-ai-definition';
+import { audioAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/audio/audio-ai-definition';
 
 /**
  * Property Schema for AI Agent

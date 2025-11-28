@@ -9,6 +9,7 @@ import { Button } from '@workspace/ui/components/ui/button';
 import { Sparkles } from 'lucide-react';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+import { useYoutubeSummarize } from '../use-youtube-actions';
 
 interface SummarizeYoutubeActionProps {
   blockId: string;
@@ -22,10 +23,8 @@ export function SummarizeYoutubeAction({
   const properties = blockData.properties as YoutubeBlockProperties;
   const url = properties.url;
 
-  // TODO: Implement YouTube summarization functionality
-  const handleSummarize = () => {
-    console.log('[TODO] Summarize YouTube:', { blockId, blockData, url });
-  };
+  // 훅에서 로직을 가져옴
+  const handleSummarize = useYoutubeSummarize(blockId, blockData);
 
   return (
     <Tooltip>

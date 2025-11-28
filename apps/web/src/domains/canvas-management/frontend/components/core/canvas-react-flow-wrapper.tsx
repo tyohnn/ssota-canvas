@@ -45,8 +45,16 @@ import { CanvasToolbar } from './canvas-toolbar';
 import { ViewportControls } from './viewport-controls';
 import { ShadowBlockContainer } from '../shadow-block/shadow-block-container';
 import { BlockAddDialog } from './block-add-dialog';
-// Shared node types config
-import { CANVAS_NODE_TYPES } from '../../config/node-types.config';
+import {
+  MarkdownBlock,
+  YoutubeBlock,
+  PythonBlock,
+  TextBlock,
+  ShapeBlock,
+  ImageBlock,
+  LinkBlock,
+  AudioBlock,
+} from '@/domains/block-management/frontend/components/block/block-type';
 import { SnapGuidelines } from '../snap/snap-guidelines';
 import { MultiSelectionToolbar } from '../multi-select/multi-selection-toolbar';
 import { BlockMountToolbar } from '@/domains/block-management/frontend/components/block/block-mount-toolbar';
@@ -171,11 +179,19 @@ export function CanvasReactFlowWrapper({
   // BlockAddDialog 상태 관리
   const [showAddDialog, setShowAddDialog] = React.useState(false);
 
-  // 노드 타입 정의 - 공통 config 사용 + PDF 추가
+  // 노드 타입 정의 (타입 안전성 보장)
   const nodeTypes = React.useMemo(
     () => ({
-      ...CANVAS_NODE_TYPES,
-      [BlockType.PDF]: PdfBlock, // Dynamic import로 추가
+      [BlockType.TEXT]: TextBlock,
+      [BlockType.SHAPE]: ShapeBlock,
+      [BlockType.IMAGE]: ImageBlock,
+      [BlockType.MARKDOWN]: MarkdownBlock,
+      [BlockType.YOUTUBE]: YoutubeBlock,
+      [BlockType.PYTHON]: PythonBlock,
+      [BlockType.LINK]: LinkBlock,
+      [BlockType.PDF]: PdfBlock,
+      [BlockType.AUDIO]: AudioBlock,
+      // 다른 블록 타입들도 여기에 추가 가능
     }),
     []
   );

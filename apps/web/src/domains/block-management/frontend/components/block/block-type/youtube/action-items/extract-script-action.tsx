@@ -9,6 +9,7 @@ import { Button } from '@workspace/ui/components/ui/button';
 import { FileText } from 'lucide-react';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+import { useYoutubeExtractScript } from '../use-youtube-actions';
 
 interface ExtractScriptActionProps {
   blockId: string;
@@ -22,10 +23,8 @@ export function ExtractScriptAction({
   const properties = blockData.properties as YoutubeBlockProperties;
   const url = properties.url;
 
-  // TODO: Implement YouTube script extraction functionality
-  const handleExtractScript = () => {
-    console.log('[TODO] Extract YouTube script:', { blockId, blockData, url });
-  };
+  // 훅에서 로직을 가져옴
+  const handleExtractScript = useYoutubeExtractScript(blockId, blockData);
 
   return (
     <Tooltip>

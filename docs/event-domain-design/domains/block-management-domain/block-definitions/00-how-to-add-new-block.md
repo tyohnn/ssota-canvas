@@ -215,36 +215,16 @@ export const YourBlock = memo(function YourBlock({
 });
 ```
 
-### 3.2 NodeData 타입 정의 (3곳)
+### 3.2 NodeData 타입 정의
 
 **파일**: `apps/web/src/domains/block-management/shared/types/block-data.types.ts`
 
 ```typescript
-// 1. BlockPropertiesMap에 추가 (타입 매핑)
-type BlockPropertiesMap = {
-  text: TextBlockProperties;
-  shape: ShapeBlockProperties;
-  your_new_block: YourBlockProperties, // ← 추가
-};
-
-// 2. NodeData Interface 정의
-export interface YourBlockNodeData extends BaseNodeData {
-  blockType: 'your_new_block';
+export interface YourBlockNodeData extends BlockNodeData {
+  blockType: BlockType.YOUR_NEW_BLOCK;
   properties: YourBlockProperties;
-  [key: string]: any; // React Flow Node data constraint
 }
-
-// 3. BlockNodeData Union에 추가
-export type BlockNodeData =
-  | TextBlockNodeData
-  | ShapeBlockNodeData
-  | YourBlockNodeData  // ← 추가
-  | ...;
 ```
-
-> **✨ 개선사항**:
-> - `BlockPropertiesMap` 방식으로 타입 확장성 극대화
-> - 100개 블록 추가해도 깔끔한 구조 유지
 
 ### 3.3 Index에 Export 추가
 
@@ -560,410 +540,87 @@ export function BlockToolbarMapper({ ... }: BlockToolbarMapperProps) {
 
 ---
 
-## 6. Editor Panel Schema 정의 및 등록
+## 6. UI Schema 정의 및 등록
 
-### 6.1 Editor Panel Schema 정의
+### 6.1 UI Schema 정의
 
-**파일**: `apps/web/src/domains/block-management/frontend/components/block/block-type/{blockname}/config/{blockname}-editor-panel-schema.ts`
+**파일**: `apps/web/src/domains/block-management/shared/schemas/ui/{blockname}-block.ui-schema.ts`
 
 ```typescript
-import { BlockEditorSchema } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
-import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import type { BlockUISchema } from './types';
+import { BlockType } from '../../types/block-types';
+import { PropertyType } from '../../value-objects/block-properties/common-types';
+import { ColorToken, YourCustomType } from '../../value-objects/block-properties';
 
-export const yourBlockEditorPanelSchema: BlockEditorSchema = {
+export const yourBlockUISchema: BlockUISchema = {
   blockType: BlockType.YOUR_NEW_BLOCK,
-  
   groups: [
     {
       id: 'basic-info',
-      label: 'Basic Information',
-      description: 'Your block basic information',
-      defaultCollapsed: false,
+      label: '기본 정보',
       order: 1,
-      properties: ['customProp1', 'customProp2'],
-    },
-    {
-      id: 'style',
-      label: 'Style',
-      description: 'Styling settings',
-      defaultCollapsed: false,
-      order: 2,
-      properties: ['color'],
+      properties: ['customProp1', 'customProp2', 'color'],
     },
     {
       id: 'metadata',
-      label: 'Metadata',
-      description: 'Creation and modification information',
-      defaultCollapsed: true,
-      order: 3,
-      properties: ['createdAt', 'updatedAt', 'createdBy'],
+      label: '메타데이터',
+      order: 100,
+      properties: ['createdAt', 'updatedAt'],
     },
   ],
-  
   properties: {
     customProp1: {
       label: 'Custom Property 1',
-      inputType: 'select',
-      icon: 'Settings',
-      description: 'Select custom option',
-      order: 1,
+      type: PropertyType.SELECT,
       options: [
-        { id: 'option1', value: 'option1', label: 'Option 1', order: 1 },
-        { id: 'option2', value: 'option2', label: 'Option 2', order: 2 },
+        { value: YourCustomType.OPTION1, label: '옵션 1' },
+        { value: YourCustomType.OPTION2, label: '옵션 2' },
       ],
+      order: 1,
     },
     customProp2: {
       label: 'Custom Property 2',
-      inputType: 'text',
-      icon: 'Type',
-      description: 'Enter custom value',
-      placeholder: 'Enter value...',
+      type: PropertyType.NUMBER,
       order: 2,
     },
     color: {
-      label: 'Color',
-      inputType: 'color',
-      icon: 'Palette',
-      description: 'Block color',
+      label: '색상',
+      type: PropertyType.COLOR,
+      options: Object.values(ColorToken).map(token => ({
+        value: token,
+        label: token,
+      })),
       order: 3,
     },
     createdAt: {
-      label: 'Created At',
-      inputType: 'readonly-datetime',
-      icon: 'Calendar',
-      description: 'Date when the block was created',
-      order: 4,
-      readonly: true,
-      defaultDisplay: (value: any) => {
-        if (!value) return '-';
-        const date = new Date(value);
-        return date.toLocaleString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-      },
+      label: '생성 일시',
+      type: PropertyType.DATETIME,
+      order: 101,
+      readOnly: true,
     },
     updatedAt: {
-      label: 'Updated At',
-      inputType: 'readonly-datetime',
-      icon: 'Clock',
-      description: 'Date when the block was last updated',
-      order: 5,
-      readonly: true,
-      defaultDisplay: (value: any) => {
-        if (!value) return '-';
-        const date = new Date(value);
-        return date.toLocaleString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-      },
-    },
-    createdBy: {
-      label: 'Created By',
-      inputType: 'readonly-profile',
-      icon: 'User',
-      description: 'User who created the block',
-      order: 6,
-      readonly: true,
-      defaultDisplay: (value: any) => {
-        if (!value) return 'Unknown';
-        if (typeof value === 'string') return value;
-        return value.name || value.email || 'Unknown';
-      },
+      label: '수정 일시',
+      type: PropertyType.DATETIME,
+      order: 102,
+      readOnly: true,
     },
   },
 };
 ```
 
-### 6.2 Editor Schema Registry에 등록
+### 6.2 UI Schema Registry에 등록
 
-**파일**: `apps/web/src/domains/block-management/frontend/components/editor-panel/components/block-editor-schema-registry.ts`
+**파일**: `apps/web/src/domains/block-management/shared/schemas/ui/block-ui-schema-registry.ts`
 
 ```typescript
-import { yourBlockEditorPanelSchema } from '../../block/block-type/your-block/config/your-block-editor-panel-schema';
+import { yourBlockUISchema } from './your-block.ui-schema';
 
-export class BlockEditorSchemaRegistry {
-  // ...
-  
-  registerDefaultSchemas(): void {
-    this.register(textEditorPanelSchema.blockType, textEditorPanelSchema);
-    this.register(shapeEditorPanelSchema.blockType, shapeEditorPanelSchema);
-    this.register(yourBlockEditorPanelSchema.blockType, yourBlockEditorPanelSchema); // 추가
-  }
+export function registerDefaultSchemas(): void {
+  BlockUISchemaRegistry.register(textBlockUISchema);
+  BlockUISchemaRegistry.register(shapeBlockUISchema);
+  BlockUISchemaRegistry.register(yourBlockUISchema); // 추가
 }
 ```
-
-### 6.3 Action Schemas 정의 (AI Agent용)
-
-AI Agent가 사용할 블록 액션이 있다면 action schemas도 정의합니다.
-
-**파일**: `apps/web/src/domains/block-management/frontend/components/block/block-type/{blockname}/config/{blockname}-block-action-schemas.ts`
-
-```typescript
-import { z } from 'zod';
-
-export const YourBlockActionSchemas = {
-  yourAction: z.object({
-    param1: z.string().min(1, 'Param1 is required'),
-    param2: z.string().optional(),
-  }),
-  
-  anotherAction: z.object({
-    data: z.string(),
-  }),
-};
-```
-
-### 6.4 Action Schemas Registry에 등록
-
-**파일**: `apps/web/src/domains/block-management/frontend/components/block/block-type/action-schemas-registry.ts`
-
-```typescript
-import { YourBlockActionSchemas } from './your-block/config/your-block-action-schemas';
-
-export const BLOCK_ACTION_SCHEMAS: Record<string, Record<string, z.ZodType<any>>> = {
-  text: TextBlockActionSchemas,
-  shape: ShapeBlockActionSchemas,
-  your_new_block: YourBlockActionSchemas, // 추가
-};
-```
-
-### 6.5 AI Definition 정의 (AI Agent용)
-
-**파일**: `apps/web/src/domains/block-management/frontend/components/block/block-type/{blockname}/config/{blockname}-ai-definition.ts`
-
-```typescript
-import {
-  PropertyType,
-} from '@/domains/block-management/shared/value-objects/block-properties/common-types';
-import type { BlockTypeDefinition } from '@/domains/ai-management/backend/services/prompt/block-type-definitions';
-
-export const yourBlockAIDefinition: BlockTypeDefinition = {
-  type: 'your_new_block',
-  name: 'Your Block',
-  description: 'Description of your block.',
-  useCases: [
-    'Use case 1',
-    'Use case 2',
-    'Use case 3',
-  ],
-  basicProperties: {
-    customProp1: {
-      type: PropertyType.TEXT,
-      description: 'Description of custom property 1',
-      required: true,
-    },
-    customProp2: {
-      type: PropertyType.TEXT,
-      description: 'Description of custom property 2',
-      required: false,
-    },
-  },
-  actions: [
-    {
-      name: 'yourAction',
-      description: 'Description of what this action does',
-      params: {
-        param1: {
-          type: PropertyType.TEXT,
-          description: 'Description of param1',
-          required: true,
-        },
-      },
-    },
-  ],
-  examples: [],
-};
-```
-
-### 6.6 AI Definition Registry에 등록
-
-**파일**: `apps/web/src/domains/ai-management/backend/services/prompt/block-type-definitions.ts`
-
-```typescript
-import { yourBlockAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/your-block/config/your-block-ai-definition';
-
-export const BLOCK_TYPE_DEFINITIONS: BlockTypeDefinition[] = [
-  textAIDefinition,
-  shapeAIDefinition,
-  yourBlockAIDefinition, // 추가
-];
-```
-
-### 6.7 Block Actions 구현 (AI Agent용)
-
-AI Agent가 호출할 수 있는 순수 함수를 구현합니다.
-
-**파일**: `apps/web/src/domains/block-management/frontend/components/block/block-type/{blockname}/action-items/{blockname}-block-actions.ts`
-
-```typescript
-/**
- * Your Block Actions (Non-Hook Version)
- * AI Agent가 호출하는 순수 함수 버전
- *
- * 규약:
- * - Hook을 사용하지 않음 (React Rules 준수)
- * - executeAction 함수를 export
- * - 모든 블록 타입이 동일한 인터페이스 사용
- * - 필요한 Hook 콜백은 4번째 파라미터로 전달받음
- */
-
-import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-
-export interface ActionResult {
-  success: boolean;
-  message?: string;
-  error?: string;
-  data?: any;
-}
-
-export interface ActionCallbacks {
-  updateProperties: (
-    blockId: string,
-    properties: Record<string, any>,
-    blockData: BlockNodeData
-  ) => Promise<void>;
-  createAndMountBlock: (
-    blockType: string,
-    position: { x: number; y: number },
-    initialProperties?: Record<string, any>,
-    initialContent?: unknown,
-    title?: string
-  ) => Promise<any>;
-  calculatePosition: (
-    blockType: string,
-    selectedBlockIds?: string[]
-  ) => { x: number; y: number };
-  blockId: string;
-}
-
-/**
- * yourAction 액션 처리
- */
-async function handleYourAction(
-  params: Record<string, any>,
-  blockData: BlockNodeData,
-  callbacks?: ActionCallbacks
-): Promise<ActionResult> {
-  const { param1, param2 } = params;
-
-  if (!param1) {
-    return {
-      success: false,
-      error: 'param1 is required for yourAction',
-    };
-  }
-
-  try {
-    // 액션 로직 구현
-    // ...
-
-    return {
-      success: true,
-      message: `Action completed successfully`,
-      data: { /* result data */ },
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}
-
-/**
- * Your Block의 모든 액션을 처리하는 통합 실행 함수
- *
- * @param blockData - 블록 데이터
- * @param action - 액션 이름
- * @param params - 액션 파라미터
- * @param callbacks - Hook 콜백들
- */
-export async function executeAction(
-  blockData: BlockNodeData,
-  action: string,
-  params: Record<string, any>,
-  callbacks?: ActionCallbacks
-): Promise<ActionResult> {
-  const { workspaceId, orgId, pageId } = blockData;
-
-  // 필수 데이터 검증
-  if (!workspaceId || !orgId || !pageId) {
-    return {
-      success: false,
-      error: 'Missing workspaceId, orgId, or pageId in block data',
-    };
-  }
-
-  // 액션별 분기
-  switch (action) {
-    case 'yourAction':
-      return await handleYourAction(params, blockData, callbacks);
-
-    default:
-      return {
-        success: false,
-        error: `Unknown action for your_new_block: ${action}`,
-      };
-  }
-}
-```
-
-### 6.8 config/README.md 작성
-
-**파일**: `apps/web/src/domains/block-management/frontend/components/block/block-type/{blockname}/config/README.md`
-
-```markdown
-# Your Block Config
-
-Your 블록의 설정/스키마 파일들을 관리하는 폴더입니다.
-
-## 파일 구조
-
-\`\`\`
-config/
-├── your-block-editor-panel-schema.ts    # Editor Panel UI 스키마
-├── your-block-action-schemas.ts         # Action 파라미터 검증 스키마
-├── your-block-ai-definition.ts          # AI Agent용 블록 정의
-└── README.md                            # 현재 파일
-\`\`\`
-
-## 파일 설명
-
-### your-block-editor-panel-schema.ts
-
-**역할:** Editor Panel에서 블록 속성을 편집할 때 사용하는 UI 스키마
-
-**export:** \`yourBlockEditorPanelSchema: BlockEditorSchema\`
-
-**사용처:**
-- \`block-editor-schema-registry.ts\`에서 import하여 등록
-
-### your-block-action-schemas.ts
-
-**역할:** AI Agent가 블록 액션을 실행할 때 파라미터를 검증하는 Zod 스키마
-
-**export:** \`YourBlockActionSchemas: Record<string, z.ZodType<any>>\`
-
-**사용처:**
-- \`action-schemas-registry.ts\`에서 import하여 등록
-
-### your-block-ai-definition.ts
-
-**역할:** AI Agent가 Your Block을 이해하고 사용하기 위한 정의
-
-**export:** \`yourBlockAIDefinition: BlockTypeDefinition\`
-
-**사용처:**
-- \`block-type-definitions.ts\`에서 import하여 AI Agent에게 제공
-\`\`\`
 
 ---
 
@@ -1022,48 +679,81 @@ export { YourBlockShadowPreview } from './previews/your-block-shadow-preview';
 
 ## 8. Canvas 통합
 
-### 8.1 Node Types Config에 등록 ⭐ (중앙 집중식)
-
-**파일**: `apps/web/src/domains/canvas-management/frontend/config/node-types.config.ts`
-
-새로운 블록을 한 곳에서만 등록하면 모든 Canvas에 자동 적용됩니다.
-
-```typescript
-import { YourBlock } from '@/domains/block-management/frontend/components/block/block-type';
-
-export const CANVAS_NODE_TYPES: NodeTypes = {
-  [BlockType.TEXT]: TextBlock,
-  [BlockType.SHAPE]: ShapeBlock,
-  [BlockType.YOUR_NEW_BLOCK]: YourBlock, // ← 추가
-  // 실제 Canvas, Landing Canvas 등 모든 곳에서 자동 사용
-};
-```
-
-> **✨ 개선사항**: 
-> - 이전에는 각 Canvas 파일마다 nodeTypes를 정의했지만, 이제는 **중앙 config 한 곳**에서만 관리
-> - `canvas-react-flow-wrapper.tsx`, `landing-canvas-wrapper.tsx` 등에서 자동으로 사용
-> - DRY 원칙 준수
-
-### 8.2 React Flow ACL - 자동 생성 ⭐
+### 8.1 React Flow ACL 타입 추가
 
 **파일**: `apps/web/src/domains/canvas-management/frontend/acl/react-flow.acl.ts`
 
-**이제 수정 불필요!** `CustomNodeType`이 자동으로 생성됩니다.
+React Flow의 타입 시스템에 새 블록을 등록해야 합니다.
+
+#### 8.1.1 Import 추가
+
+```typescript
+import {
+  BaseNodeData,
+  TextBlockNodeData,
+  ShapeBlockNodeData,
+  YourBlockNodeData,  // 추가
+  BlockNodeData,
+} from '@/domains/block-management/shared/types/block-data.types';
+```
+
+#### 8.1.2 노드 타입 정의 추가
 
 ```typescript
 /**
- * Custom Node Type (자동 생성)
- *
- * BlockNodeData 유니온 타입에서 자동으로 생성됨
- * 새로운 블록 타입 추가 시 block-data.types.ts에만 추가하면 자동 반영
+ * 각 블록 타입별 React Flow 노드 타입 정의
  */
-export type CustomNodeType = BuiltInNode | Node<BlockNodeData, BlockType>;
+export type DefaultBlockNode = Node<BaseNodeData, 'default'>;
+export type TextBlockNode = Node<TextBlockNodeData, 'text'>;
+export type ShapeBlockNode = Node<ShapeBlockNodeData, 'shape'>;
+export type YourBlockNode = Node<YourBlockNodeData, 'your_new_block'>;  // 추가
 ```
 
-> **✨ 개선사항**:
-> - 이전: 각 블록마다 `YourBlockNode` 타입 정의 필요 (100줄)
-> - 이후: `BlockNodeData` Union에서 자동 생성 (1줄)
-> - 새 블록 추가 시 ACL 파일 수정 불필요
+#### 8.1.3 CustomNodeType 유니온에 추가
+
+```typescript
+/**
+ * 확장 가능한 노드 타입 유니온 (모든 블록 타입 포함)
+ */
+export type CustomNodeType =
+  | BuiltInNode
+  | DefaultBlockNode
+  | TextBlockNode
+  | ShapeBlockNode
+  | YourBlockNode  // 추가
+  | ...;
+```
+
+#### 8.1.4 타입 가드에 추가
+
+```typescript
+// blockType이 있는 경우 (커스텀 블록)
+if ('blockType' in node.data) {
+  const validBlockTypes = [
+    'default',
+    'text',
+    'shape',
+    'your_new_block',  // 추가 (BlockType enum 값과 동일)
+  ];
+  return validBlockTypes.includes(node.data.blockType as string);
+}
+```
+
+> **⚠️ 중요**: ACL 타입 추가를 빠뜨리면 React Flow에서 타입 에러가 발생하거나 런타임에서 블록이 제대로 렌더링되지 않을 수 있습니다.
+
+### 8.2 nodeTypes에 등록
+
+**파일**: `apps/web/src/domains/canvas-management/frontend/components/core/canvas-react-flow-wrapper.tsx`
+
+```typescript
+import { TextBlock, ShapeBlock, YourBlock } from '@/domains/block-management/frontend/components/block';
+
+const nodeTypes = {
+  text: TextBlock,
+  shape: ShapeBlock,
+  your_new_block: YourBlock, // 추가 (BlockType enum 값과 동일)
+};
+```
 
 ---
 
@@ -1102,127 +792,61 @@ const BLOCK_TYPES = [
 
 새로운 블록을 추가할 때 아래 체크리스트를 따르세요:
 
-### ✅ Domain Layer (Shared) - 총 6곳 수정
+### ✅ Domain Layer (Shared)
 
-- [ ] **1. Database Schema - BlockType enum**
-  - `apps/web/src/db/schema.ts`
-  - `blockTypeEnum`에 새 타입 추가
-  ```typescript
-  export const blockTypeEnum = pgEnum('block_type', [
-    'text', 'shape', ..., 
-    'your_new_block', // ← 추가
-  ]);
-  ```
-
-- [ ] **2. BlockType 상수 및 크기**
+- [ ] **BlockType enum 정의**
   - `apps/web/src/domains/block-management/shared/types/block-types.ts`
-  - `BlockType` 상수에 추가
   - `BLOCK_TYPE_SIZES`에 기본 크기 추가
-  ```typescript
-  export const BlockType = {
-    YOUR_NEW_BLOCK: 'your_new_block' as const,
-  };
-  
-  export const BLOCK_TYPE_SIZES = {
-    [BlockType.YOUR_NEW_BLOCK]: { width: 400, height: 300 },
-  };
-  ```
 
-- [ ] **3. Properties Interface 정의**
+- [ ] **공통 타입 정의** (필요한 경우)
+  - `apps/web/src/domains/block-management/shared/value-objects/block-properties/common-types.ts`
+  - Enum 또는 Union Type 정의
+
+- [ ] **Properties Interface 정의**
   - `apps/web/src/domains/block-management/shared/value-objects/block-properties/{blockname}.vo.ts`
-  ```typescript
-  export interface YourBlockProperties {
-    userInput1: string;  // 사용자 입력
-    userInput2: string;  // 사용자 선택
-  }
-  ```
+  - 모든 속성은 **mandatory** (필수값)
 
-- [ ] **4. Properties Index에 Export**
+- [ ] **PropertiesVO 클래스 구현**
+  - 같은 파일에 구현
+  - `createDefault()`, `fromJSON()`, `validate()`, `toJSON()`, `equals()` 필수
+  - Getter 메서드들 추가
+
+- [ ] **Index에 Export**
   - `apps/web/src/domains/block-management/shared/value-objects/block-properties/index.ts`
-  ```typescript
-  export type { YourBlockProperties } from './your-block.vo';
-  ```
 
-- [ ] **5. BlockPropertiesMap에 추가**
+- [ ] **NodeData 타입 정의**
   - `apps/web/src/domains/block-management/shared/types/block-data.types.ts`
-  ```typescript
-  type BlockPropertiesMap = {
-    your_new_block: YourBlockProperties, // ← 추가
-  };
-  ```
 
-- [ ] **6. NodeData 타입 3곳 추가**
-  - 같은 파일 (`block-data.types.ts`)
-  ```typescript
-  // 6-1. Interface 정의
-  export interface YourBlockNodeData extends BaseNodeData {
-    blockType: 'your_new_block';
-    properties: YourBlockProperties;
-    [key: string]: any;
-  }
-  
-  // 6-2. Union에 추가
-  export type BlockNodeData = 
-    ... | YourBlockNodeData;
-  ```
+### ✅ UI Schema Layer
 
-### ✅ Config Layer (설정/스키마)
-
-- [ ] **config/ 폴더 생성**
-  - `apps/web/src/domains/block-management/frontend/components/block/block-type/{blockname}/config/`
-
-- [ ] **Editor Panel Schema 정의**
-  - `config/{blockname}-editor-panel-schema.ts`
+- [ ] **UI Schema 정의**
+  - `apps/web/src/domains/block-management/shared/schemas/ui/{blockname}-block.ui-schema.ts`
   - `groups`와 `properties` 정의
 
-- [ ] **Editor Schema Registry 등록**
-  - `apps/web/src/domains/block-management/frontend/components/editor-panel/components/block-editor-schema-registry.ts`
+- [ ] **UI Schema Registry 등록**
+  - `apps/web/src/domains/block-management/shared/schemas/ui/block-ui-schema-registry.ts`
   - `registerDefaultSchemas()`에 추가
-
-- [ ] **Action Schemas 정의 (AI Agent용, 선택)**
-  - `config/{blockname}-block-action-schemas.ts`
-  - Zod 스키마로 액션 파라미터 검증
-
-- [ ] **Action Schemas Registry 등록**
-  - `apps/web/src/domains/block-management/frontend/components/block/block-type/action-schemas-registry.ts`
-
-- [ ] **AI Definition 정의 (AI Agent용, 선택)**
-  - `config/{blockname}-ai-definition.ts`
-
-- [ ] **AI Definition Registry 등록**
-  - `apps/web/src/domains/ai-management/backend/services/prompt/block-type-definitions.ts`
-
-- [ ] **config/README.md 작성**
-  - 각 파일의 역할과 사용처 문서화
 
 ### ✅ Component Layer (Frontend)
 
 - [ ] **블록 컴포넌트 구현**
-  - `apps/web/src/domains/block-management/frontend/components/block/block-type/{blockname}/index.tsx`
+  - `apps/web/src/domains/block-management/frontend/components/block/{blockname}/{blockname}-block.tsx`
   - `BaseBlock` 사용
   - 표준 스타일 패턴 적용
 
+- [ ] **Index에 Export**
+  - `apps/web/src/domains/block-management/frontend/components/block/index.ts`
+
 - [ ] **Toolbar Items 구현**
-  - `toolbar-items/{property}-toolbar-item.tsx`
+  - `apps/web/src/domains/block-management/frontend/components/toolbar-items/{property}-toolbar-item.tsx`
   - 각 커스텀 속성별로 생성
 
-- [ ] **Toolbar Items Index**
-  - `toolbar-items/index.tsx`
+- [ ] **Toolbar Items Index 업데이트**
+  - `apps/web/src/domains/block-management/frontend/components/toolbar-items/index.ts`
 
 - [ ] **BlockToolbarMapper 업데이트**
-  - `apps/web/src/domains/block-management/frontend/components/block/block-mount-toolbar/block-toolbar-mapper.tsx`
+  - `apps/web/src/domains/block-management/frontend/components/toolbar-items/block-toolbar-mapper.tsx`
   - 새로운 `case` 추가
-
-- [ ] **Action Items 구현 (AI Agent용, 선택)**
-  - `action-items/{blockname}-block-actions.ts`
-  - `executeAction` 함수 export
-
-- [ ] **Action Items UI 구현 (사용자용, 선택)**
-  - `action-items/{action-name}/` 폴더
-  - components/ + core/ 패턴 사용
-
-- [ ] **Block Export**
-  - `apps/web/src/domains/block-management/frontend/components/block/block-type/index.ts`
 
 ### ✅ Shadow Block Layer
 
@@ -1236,36 +860,22 @@ const BLOCK_TYPES = [
 - [ ] **Index에 Export**
   - `apps/web/src/domains/canvas-management/frontend/components/shadow-block/index.ts`
 
-### ✅ Canvas Integration - 총 2곳 수정
+### ✅ Canvas Integration
 
-- [ ] **7. Node Types Config에 등록**
-  - `apps/web/src/domains/canvas-management/frontend/config/node-types.config.ts`
-  - **중앙 집중식 nodeTypes 정의 - 한 곳에서만 관리**
-  ```typescript
-  import { YourBlock } from '@/domains/block-management/frontend/components/block/block-type';
-  
-  export const CANVAS_NODE_TYPES: NodeTypes = {
-    [BlockType.YOUR_NEW_BLOCK]: YourBlock, // ← 추가
-    // 실제 Canvas와 Landing Canvas에서 자동으로 사용됨
-  };
-  ```
+- [ ] **React Flow ACL 타입 추가**
+  - `apps/web/src/domains/canvas-management/frontend/acl/react-flow.acl.ts`
+  - Import `YourBlockNodeData` 추가
+  - `export type YourBlockNode` 정의 추가
+  - `CustomNodeType` 유니온에 추가
+  - `validBlockTypes` 배열에 추가
 
-- [ ] **8. 블록 컴포넌트 Export**
-  - `apps/web/src/domains/block-management/frontend/components/block/block-type/index.ts`
-  ```typescript
-  export * from './your-block';
-  ```
-
-> **✨ 개선사항**: 
-> - `CustomNodeType`은 `BlockNodeData`에서 자동 생성됨 (ACL 수정 불필요)
-> - `nodeTypes`는 `CANVAS_NODE_TYPES` config를 공통으로 사용 (중복 제거)
-> - 새 블록 추가 시 **총 8곳**만 수정하면 전체 시스템에 자동 반영
-
-### ✅ Optional (필요시)
+- [ ] **nodeTypes 등록**
+  - `apps/web/src/domains/canvas-management/frontend/components/core/canvas-react-flow-wrapper.tsx`
+  - `nodeTypes` 객체에 추가
 
 - [ ] **Add Dialog 옵션 추가**
   - `apps/web/src/domains/canvas-management/frontend/components/core/block-add-dialog.tsx`
-  - `BLOCK_TYPES` 배열에 추가 (사용자가 직접 추가할 수 있는 블록만)
+  - `BLOCK_TYPES` 배열에 추가
 
 ### ✅ Documentation
 
@@ -1285,36 +895,30 @@ apps/web/src/domains/
 │   ├── shared/
 │   │   ├── types/
 │   │   │   └── block-types.ts                          # BlockType enum 정의
-│   │   └── value-objects/
-│   │       └── block-properties/
-│   │           ├── common-types.ts                     # ShapeType, BorderStyle 정의
-│   │           ├── shape.vo.ts                         # ShapeBlockPropertiesVO 구현
-│   │           └── index.ts                            # Export
+│   │   ├── value-objects/
+│   │   │   └── block-properties/
+│   │   │       ├── common-types.ts                     # ShapeType, BorderStyle 정의
+│   │   │       ├── shape.vo.ts                         # ShapeBlockPropertiesVO 구현
+│   │   │       └── index.ts                            # Export
+│   │   └── schemas/
+│   │       └── ui/
+│   │           ├── shape-block.ui-schema.ts            # UI Schema 정의
+│   │           └── block-ui-schema-registry.ts         # Registry 등록
 │   └── frontend/
 │       └── components/
 │           ├── block/
-│           │   └── block-type/
-│           │       ├── shape/
-│           │       │   ├── config/                     # 설정/스키마 (새로 추가)
-│           │       │   │   ├── shape-editor-panel-schema.ts
-│           │       │   │   ├── shape-block-action-schemas.ts
-│           │       │   │   ├── shape-ai-definition.ts
-│           │       │   │   └── README.md
-│           │       │   ├── action-items/               # Action 로직 + UI
-│           │       │   │   ├── shape-block-actions.ts  # AI Agent용 순수 함수
-│           │       │   │   └── index.tsx
-│           │       │   ├── toolbar-items/              # Toolbar UI
-│           │       │   │   ├── shape-type-toolbar-item.tsx
-│           │       │   │   ├── border-style-toolbar-item.tsx
-│           │       │   │   └── index.tsx
-│           │       │   └── index.tsx                   # ShapeBlock 컴포넌트
-│           │       └── index.ts                        # All blocks export
+│           │   ├── shape/
+│           │   │   └── shape-block.tsx                 # ShapeBlock 컴포넌트
+│           │   └── index.ts                            # Export
 │           └── toolbar-items/
-│               └── block-toolbar-mapper.tsx            # Mapper에 case 추가
+│               ├── shape-type-toolbar-item.tsx         # ShapeType 선택 툴바
+│               ├── border-style-toolbar-item.tsx       # BorderStyle 선택 툴바
+│               ├── block-toolbar-mapper.tsx            # Mapper에 case 추가
+│               └── index.ts                            # Export
 └── canvas-management/
     └── frontend/
         ├── acl/
-        │   └── react-flow.acl.ts                       # React Flow ACL 타입 (자동 생성)
+        │   └── react-flow.acl.ts                       # React Flow ACL 타입 추가
         └── components/
             ├── shadow-block/
             │   ├── previews/
@@ -1326,35 +930,7 @@ apps/web/src/domains/
                 └── block-add-dialog.tsx                # Add Dialog 옵션
 ```
 
-### 11.2 폴더 구조 (config/ + action-items/ + toolbar-items/)
-
-```
-your-block/
-├── config/                               # 설정/스키마 파일들
-│   ├── your-block-editor-panel-schema.ts # Editor Panel UI 스키마
-│   ├── your-block-action-schemas.ts      # Action 파라미터 검증 스키마 (AI Agent용)
-│   ├── your-block-ai-definition.ts       # AI Definition (AI Agent용)
-│   └── README.md                         # Config 설명 문서
-├── action-items/                         # Action 관련 (AI Agent + UI)
-│   ├── your-block-actions.ts             # AI Agent용 순수 함수 (executeAction)
-│   ├── action-a/                         # Action UI 컴포넌트 (사용자용)
-│   │   ├── components/
-│   │   ├── core/
-│   │   └── index.tsx
-│   └── index.tsx
-├── toolbar-items/                        # Toolbar UI 컴포넌트들
-│   ├── property-a-toolbar-item.tsx
-│   ├── property-b-toolbar-item.tsx
-│   └── index.tsx
-└── index.tsx                             # 메인 Block 컴포넌트
-```
-
-**폴더 역할:**
-- **config/**: 설정/메타 정보 (schemas, AI definitions)
-- **action-items/**: AI Agent 액션 로직 + Action UI 컴포넌트
-- **toolbar-items/**: 블록 Toolbar에 표시되는 속성 편집 UI
-
-### 11.3 핵심 구현 패턴
+### 11.2 핵심 구현 패턴
 
 #### BaseBlock 사용
 ```typescript
@@ -1649,40 +1225,33 @@ await updateProperty(
 >
 ```
 
-### 문제: 블록이 Canvas에 표시되지 않음
+### 문제: 블록이 렌더링되지 않거나 타입 에러 발생
 
-**원인**: Node Types Config 등록 누락
-
-**해결**:
-```typescript
-// config/node-types.config.ts 확인
-import { YourBlock } from '@/domains/block-management/frontend/components/block/block-type';
-
-export const CANVAS_NODE_TYPES: NodeTypes = {
-  [BlockType.YOUR_NEW_BLOCK]: YourBlock, // ← 추가 확인
-};
-```
-
-> **💡 팁**: 
-> - `CustomNodeType`은 자동 생성되므로 ACL 파일 수정 불필요
-> - Node Types Config만 업데이트하면 모든 Canvas에 자동 반영
-
-### 문제: AI Agent 액션이 동작하지 않음
-
-**원인**: 동적 import 경로 불일치
+**원인**: React Flow ACL 타입 추가 누락
 
 **해결**:
 ```typescript
-// AI Agent가 액션을 호출할 때 다음 경로에서 파일을 찾습니다:
-// block-type/{blockType}/action-items/{blockType}-block-actions.ts
+// 1. react-flow.acl.ts 확인
+// Import 추가
+import { YourBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
-// 예시:
-// - image → block-type/image/action-items/image-block-actions.ts
-// - text → block-type/text/action-items/text-block-actions.ts
+// 타입 정의 추가
+export type YourBlockNode = Node<YourBlockNodeData, 'your_new_block'>;
 
-// 파일명 규칙: {blockType}-block-actions.ts
-// export: executeAction 함수 필수
+// CustomNodeType에 추가
+export type CustomNodeType =
+  | BuiltInNode
+  | YourBlockNode  // 추가 확인
+  | ...;
+
+// validBlockTypes에 추가
+const validBlockTypes = [
+  'your_new_block',  // BlockType enum 값과 일치하는지 확인
+  ...
+];
 ```
+
+> **💡 팁**: ACL 타입을 추가하지 않으면 런타임에서 블록이 렌더링되지 않거나 TypeScript 타입 체킹에서 에러가 발생할 수 있습니다. 항상 새 블록을 추가할 때 ACL 타입도 함께 추가해야 합니다.
 
 ---
 
@@ -1732,87 +1301,7 @@ export const YourBlock = memo(function YourBlock({ ... }) {
 
 ---
 
-## 20. 폴더 구조 Best Practices
-
-### 20.1 config/ 폴더 사용 가이드
-
-**언제 사용하나?**
-- Editor Panel Schema가 필요할 때
-- AI Agent 액션이 있을 때
-- 설정 파일이 2개 이상일 때
-
-**구성:**
-```
-config/
-├── {blockname}-editor-panel-schema.ts    # Editor Panel UI 정의
-├── {blockname}-block-action-schemas.ts   # Action 파라미터 검증 (Zod)
-├── {blockname}-ai-definition.ts          # AI Agent용 블록 정의
-└── README.md                             # 각 파일 설명
-```
-
-### 20.2 action-items/ 폴더 사용 가이드
-
-**언제 사용하나?**
-- AI Agent가 호출할 액션이 있을 때
-- 사용자가 사용할 Action UI가 있을 때
-
-**구성:**
-```
-action-items/
-├── {blockname}-block-actions.ts          # AI Agent용 순수 함수 (executeAction)
-├── {action-name}/                        # Action UI 컴포넌트 (사용자용)
-│   ├── components/                       # UI 컴포넌트
-│   ├── core/                             # 로직 (context, hooks)
-│   └── index.tsx
-└── index.tsx                             # Action Items export
-```
-
-**네이밍 규칙:**
-- AI Agent 액션: `{blocktype}-block-actions.ts` (예: `image-block-actions.ts`)
-- Action UI: `{action-name}-action/` (예: `generate-image-action/`)
-
-### 20.3 toolbar-items/ 폴더 사용 가이드
-
-**언제 사용하나?**
-- 블록 속성을 빠르게 편집할 UI가 필요할 때
-- Toolbar에 표시할 아이템이 있을 때
-
-**구성:**
-```
-toolbar-items/
-├── {property}-toolbar-item.tsx           # 각 속성별 툴바 아이템
-└── index.tsx                             # Toolbar Items export
-```
-
-### 20.4 완전한 블록 구조 예시
-
-```
-image/                                    # 블록 폴더
-├── config/                               # 설정/스키마
-│   ├── image-editor-panel-schema.ts
-│   ├── image-block-action-schemas.ts
-│   ├── image-ai-definition.ts
-│   └── README.md
-├── action-items/                         # Action 관련
-│   ├── image-block-actions.ts            # AI Agent용 (executeAction)
-│   ├── generate-image-action/            # UI: 이미지 생성
-│   │   ├── components/
-│   │   ├── core/
-│   │   └── index.tsx
-│   ├── image-search-action/              # UI: 이미지 검색
-│   │   ├── components/
-│   │   ├── core/
-│   │   └── index.tsx
-│   └── index.tsx
-├── toolbar-items/                        # Toolbar UI
-│   ├── caption-visibility-toolbar-item.tsx
-│   ├── expand-image-toolbar-item.tsx
-│   ├── object-fit-toolbar-item.tsx
-│   └── index.tsx
-└── index.tsx                             # 메인 ImageBlock 컴포넌트
-```
-
-## 21. Shape Block 구현 하이라이트
+## 20. Shape Block 구현 하이라이트
 
 ### 핵심 기술 결정
 
@@ -1831,40 +1320,13 @@ image/                                    # 블록 폴더
 
 ## 마무리
 
-### 새 블록 추가 시 수정 필요한 곳 요약
-
-**총 12곳 수정 (기본 8곳 + config 4곳)**
-
-**기본 (8곳):**
-1. **DB Schema** - `db/schema.ts` (blockTypeEnum)
-2. **BlockType 상수** - `block-types.ts` (BlockType + BLOCK_TYPE_SIZES)
-3. **Properties VO** - `block-properties/{name}.vo.ts` (Interface 정의)
-4. **Properties Export** - `block-properties/index.ts`
-5. **BlockPropertiesMap** - `block-data.types.ts` (Map에 추가)
-6. **NodeData** - `block-data.types.ts` (Interface + Union 추가)
-7. **Node Types Config** - `config/node-types.config.ts` (컴포넌트 등록)
-8. **컴포넌트 구현** - `block-type/{name}/index.tsx` (실제 UI)
-
-**Config (4곳 - 선택):**
-9. **Editor Panel Schema** - `config/{name}-editor-panel-schema.ts`
-10. **Action Schemas** - `config/{name}-block-action-schemas.ts` (AI Agent용)
-11. **AI Definition** - `config/{name}-ai-definition.ts` (AI Agent용)
-12. **Block Actions** - `action-items/{name}-block-actions.ts` (AI Agent용)
-
-### 자동 처리되는 것들
-
-✅ `CustomNodeType` - BlockNodeData에서 자동 생성  
-✅ `BlockProperties<T>` - BlockPropertiesMap에서 자동 매핑  
-✅ 모든 Canvas - Node Types Config 자동 사용  
-
-### 이 가이드를 따라 새로운 블록 타입을 추가하면:
+이 가이드를 따라 새로운 블록 타입을 추가하면:
 
 ✅ **일관된 아키텍처**: 모든 블록이 동일한 패턴을 따름  
 ✅ **타입 안전성**: TypeScript로 컴파일 타임 체크  
 ✅ **재사용성**: BaseBlock, Hooks, Helpers 활용  
-✅ **확장성**: 8곳만 수정하면 100개 블록도 추가 가능  
+✅ **확장성**: 새로운 블록 추가가 용이  
 ✅ **유지보수성**: 명확한 파일 구조와 책임 분리  
-✅ **DRY 원칙**: 중복 없이 한 곳에서만 정의  
 
 **Happy Coding! 🚀**
 

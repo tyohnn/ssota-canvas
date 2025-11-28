@@ -9,6 +9,7 @@ import { Button } from '@workspace/ui/components/ui/button';
 import { Sparkles } from 'lucide-react';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { PdfBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+import { usePdfSummarize } from '../use-pdf-actions';
 
 interface SummarizePdfActionProps {
   blockId: string;
@@ -22,10 +23,8 @@ export function SummarizePdfAction({
   const properties = blockData.properties as PdfBlockProperties;
   const url = properties.url;
 
-  // TODO: Implement PDF summarization functionality
-  const handleSummarize = () => {
-    console.log('[TODO] Summarize PDF:', { blockId, blockData, url });
-  };
+  // 훅에서 로직을 가져옴
+  const handleSummarize = usePdfSummarize(blockId, blockData);
 
   return (
     <Tooltip>
