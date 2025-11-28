@@ -23,6 +23,8 @@
 - Optimize hooks and actions
 - Optimize backend
 - Align epic and sprint
+- BaseBlock Refactoring
+- Block type refactoring
 
 ### ✨ Features
 
@@ -87,6 +89,7 @@ add copy and paste logic
 - Improve Supabase client initialization and error handling for session expiration
 - Add beta access mode server
 - Add beta access mode client
+- Add static new blocks for landing page
 
 ### 🐛 Bug Fixes
 
@@ -207,6 +210,7 @@ add copy and paste logic
 - Design block system
 - SPRINT-011 마무리
 - Design AI chat feature
+- Update CHANGELOG
 - Update CHANGELOG
 - Update CHANGELOG
 - Update CHANGELOG
