@@ -2,6 +2,9 @@
  * Handles Component
  *
  * 상하좌우 연결점 (Connection Handles)
+ * - 각 위치에 source와 target Handle 모두 배치
+ * - source: 이 노드에서 엣지가 시작
+ * - target: 이 노드에서 엣지가 끝남
  */
 
 'use client';
@@ -17,6 +20,7 @@ export function Handles() {
 
   return (
     <>
+      {/* Left - Source & Target */}
       <Handle
         type="source"
         position={Position.Left}
@@ -25,12 +29,30 @@ export function Handles() {
         className={handleClassName}
       />
       <Handle
+        type="target"
+        position={Position.Left}
+        isConnectable={isConnectable}
+        id="left"
+        className={handleClassName}
+      />
+
+      {/* Right - Source & Target */}
+      <Handle
         type="source"
         position={Position.Right}
         isConnectable={isConnectable}
         id="right"
         className={handleClassName}
       />
+      <Handle
+        type="target"
+        position={Position.Right}
+        isConnectable={isConnectable}
+        id="right"
+        className={handleClassName}
+      />
+
+      {/* Top - Source & Target */}
       <Handle
         type="source"
         position={Position.Top}
@@ -39,7 +61,23 @@ export function Handles() {
         className={handleClassName}
       />
       <Handle
+        type="target"
+        position={Position.Top}
+        isConnectable={isConnectable}
+        id="top"
+        className={handleClassName}
+      />
+
+      {/* Bottom - Source & Target */}
+      <Handle
         type="source"
+        position={Position.Bottom}
+        isConnectable={isConnectable}
+        id="bottom"
+        className={handleClassName}
+      />
+      <Handle
+        type="target"
         position={Position.Bottom}
         isConnectable={isConnectable}
         id="bottom"

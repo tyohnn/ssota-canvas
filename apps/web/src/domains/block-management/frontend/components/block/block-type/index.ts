@@ -32,7 +32,9 @@ export * from './link';
 export * from './audio';
 
 // PDF Block Components
-export * from './pdf';
+// NOTE: PDF block is exported separately to avoid SSR issues with pdfjs-dist
+// Use dynamic import: import dynamic from 'next/dynamic';
+// const PdfBlock = dynamic(() => import('./pdf').then(m => ({ default: m.PdfBlock })), { ssr: false });
 
 // GitHub Block Components
 export * from './github-branch';

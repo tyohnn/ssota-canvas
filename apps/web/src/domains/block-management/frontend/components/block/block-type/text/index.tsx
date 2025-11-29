@@ -40,11 +40,7 @@ export const TextBlock = memo(function TextBlock({
   }
 
   const nodeData = data as TextBlockNodeData;
-  const {
-    blockType,
-    size = { width: 200, height: 120 },
-    properties = {},
-  } = nodeData;
+  const { blockType, size, properties = {} } = nodeData;
 
   // 노드 크기 설정 (React Flow props 우선, 그 다음 data.size, 마지막 기본값)
   const width = nodeW || size.width;
@@ -75,7 +71,7 @@ export const TextBlock = memo(function TextBlock({
 
   // ✨ title을 content로 사용 (이전에는 properties.content 사용)
   // Backward compatibility: properties.content가 있으면 우선 사용하고, 없으면 nodeData.title 사용
-  const content = textBlockProperties.content || (nodeData as any).title || '';
+  const content = nodeData.title || '';
 
   // 텍스트 편집 상태 (SSOT)
   const [isEditing, setIsEditing] = useState(false);

@@ -18,6 +18,7 @@
  */
 
 import { memo, forwardRef } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '@workspace/ui/lib/utils';
 import { BaseBlockProvider } from '../core/provider';
 import { ResizeControl } from './resize-control';
@@ -80,18 +81,23 @@ const BaseBlockContainer = forwardRef<
     useBaseBlockContext();
 
   return (
-    <div
+    <motion.div
       ref={ref}
-      className={cn('relative w-full h-full min-w-[100px] min-h-[50px]')}
+      className={cn('relative w-full h-full min-w-[100px] min-h-[70px]')}
       style={{
         width: width || 'auto',
         height: height || 'auto',
-        minHeight: noBackground ? undefined : '120px',
       }}
       onMouseEnter={handleMouseEnter}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{
+        duration: 0.4,
+        ease: [0.4, 0, 0.2, 1], // ease-out
+      }}
     >
       {children}
-    </div>
+    </motion.div>
   );
 });
 

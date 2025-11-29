@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import dynamic from 'next/dynamic';
 import {
   ReactFlow,
   Background,
@@ -55,15 +54,7 @@ import { CustomEdge } from '../edge/custom-edge';
 
 // AI Management Components
 import { AIAgentRunner } from '@/domains/ai-management/frontend/components/ai-agent-runner';
-
-// PDF Block - SSR 비활성화 (react-pdf가 브라우저 전용 API 사용)
-const PdfBlock = dynamic(
-  () =>
-    import(
-      '@/domains/block-management/frontend/components/block/block-type/pdf/index'
-    ).then(mod => ({ default: mod.PdfBlock })),
-  { ssr: false }
-);
+import { PdfBlock } from '@/domains/block-management/frontend/components/block/block-type/pdf';
 
 interface CanvasReactFlowWrapperProps {
   pageId: string;
