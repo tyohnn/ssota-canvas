@@ -47,7 +47,6 @@ export {
 } from './react-component.vo';
 export type { GithubBranchBlockProperties } from './github-branch.vo';
 export type { GithubCommitBlockProperties } from './github-commit.vo';
-export type { ReactPreviewBlockProperties } from './react-preview.vo';
 export type { VercelDeploymentBlockProperties } from './vercel-deployment.vo';
 
 // Property-related Value Objects

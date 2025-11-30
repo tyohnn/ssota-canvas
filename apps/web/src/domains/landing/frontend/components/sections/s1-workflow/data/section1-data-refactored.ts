@@ -17,6 +17,24 @@ import type { CanvasMode } from '@/domains/canvas-management/frontend/contexts/c
 import { SSOTA_HEXAGON_BLOCK } from './blocks/intro-block';
 import { PLAN_PHASE_BLOCKS_SEQUENCE } from './blocks/plan-phase-blocks';
 import { PLAN_PHASE_EDGES_SEQUENCE } from './edges/plan-phase-edges';
+import { DESIGN_PHASE_BLOCKS_SEQUENCE } from './blocks/design-phase-blocks';
+import { DESIGN_PHASE_EDGES_SEQUENCE } from './edges/design-phase-edges';
+
+/**
+ * Canvas Animation Timing Configuration
+ */
+export const CANVAS_ANIMATION_CONFIG = {
+  // Phase별 블록 애니메이션 시작 딜레이
+  INTRO_START_DELAY: 1000, // 1.0s - 헤더 + 서브텍스트 + Workspace Header 완료 후
+  PHASE_START_DELAY: 1300, // 1.3s - Badge + PhaseDescription + PhaseIndicators 완료 후
+
+  // Viewport 애니메이션 duration
+  VIEWPORT_DURATION: 600, // 0.6s - viewport 전환 애니메이션 시간
+
+  // 블록/엣지 순차 애니메이션
+  BLOCK_DELAY: 400, // 블록 간 딜레이
+  EDGE_DELAY: 250, // 엣지 간 딜레이
+} as const;
 
 interface Section1Data {
   nodes: Node[];
@@ -50,6 +68,13 @@ export function useSection1Data(subPhase: number): Section1Data {
         };
 
       case 2: // Phase 2: Design
+        return {
+          nodes: DESIGN_PHASE_BLOCKS_SEQUENCE,
+          edges: DESIGN_PHASE_EDGES_SEQUENCE,
+          viewport: { x: 0, y: 0, zoom: 0.5 },
+          canvasMode: 'default',
+        };
+
       case 3: // Phase 3: Develop
       case 4: // Phase 4: Deploy
         // TODO: Implement other phases
@@ -87,6 +112,12 @@ export function useSection1AnimationSequence(subPhase: number) {
         return {
           blocks: PLAN_PHASE_BLOCKS_SEQUENCE,
           edges: PLAN_PHASE_EDGES_SEQUENCE,
+          enableAnimation: true,
+        };
+      case 2: // Phase 2: Design (with animation)
+        return {
+          blocks: DESIGN_PHASE_BLOCKS_SEQUENCE,
+          edges: DESIGN_PHASE_EDGES_SEQUENCE,
           enableAnimation: true,
         };
       default:

@@ -7,4 +7,3 @@
 export { ShowcasePage } from './showcase-page';
 export { CanvasDemo } from './canvas-demo';
 export * from './sections';
-

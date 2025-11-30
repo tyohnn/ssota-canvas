@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
 import type {
   CodeEditorProps,
   PreviewProps,
   SandpackLayoutProps,
   SandpackProviderProps,
-} from "@codesandbox/sandpack-react";
+} from '@codesandbox/sandpack-react';
 import {
   SandpackCodeEditor,
   SandpackConsole,
@@ -13,21 +13,21 @@ import {
   SandpackLayout,
   SandpackPreview,
   SandpackProvider,
-} from "@codesandbox/sandpack-react";
+} from '@codesandbox/sandpack-react';
 import type {
   ButtonHTMLAttributes,
   ComponentProps,
   HTMLAttributes,
   ReactNode,
-} from "react";
+} from 'react';
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useState,
-} from "react";
-import { cn } from "@/lib/utils";
+} from 'react';
+import { cn } from '@/lib/utils';
 
 export type SandboxProviderProps = SandpackProviderProps;
 
@@ -35,7 +35,7 @@ export const SandboxProvider = ({
   className,
   ...props
 }: SandpackProviderProps): ReactNode => (
-  <div className={cn("size-full", className)}>
+  <div className={cn('size-full', className)}>
     <SandpackProvider className="!size-full !max-h-none" {...props} />
   </div>
 );
@@ -48,7 +48,7 @@ export const SandboxLayout = ({
 }: SandpackLayoutProps): ReactNode => (
   <SandpackLayout
     className={cn(
-      "!rounded-none !border-none !bg-transparent !h-full",
+      '!rounded-none !border-none !bg-transparent !h-full',
       className
     )}
     {...props}
@@ -58,6 +58,7 @@ export const SandboxLayout = ({
 export type SandboxTabsContextValue = {
   selectedTab: string | undefined;
   setSelectedTab: (value: string) => void;
+  mountedTabs: Set<string>;
 };
 
 const SandboxTabsContext = createContext<SandboxTabsContextValue | undefined>(
@@ -69,7 +70,7 @@ const useSandboxTabsContext = () => {
 
   if (!context) {
     throw new Error(
-      "SandboxTabs components must be used within a SandboxTabsProvider"
+      'SandboxTabs components must be used within a SandboxTabsProvider'
     );
   }
 
@@ -90,15 +91,23 @@ export const SandboxTabs = ({
   ...props
 }: SandboxTabsProps): ReactNode => {
   const [selectedTab, setSelectedTabState] = useState(value || defaultValue);
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(
+    new Set(defaultValue ? [defaultValue] : [])
+  );
 
   useEffect(() => {
     if (value !== undefined) {
       setSelectedTabState(value);
+      // Also add the controlled value to mountedTabs
+      setMountedTabs(prev => new Set([...prev, value]));
     }
   }, [value]);
 
   const setSelectedTab = useCallback(
     (newValue: string) => {
+      // Add the tab to mountedTabs when it's selected
+      setMountedTabs(prev => new Set([...prev, newValue]));
+
       if (value === undefined) {
         setSelectedTabState(newValue);
       }
@@ -108,10 +117,12 @@ export const SandboxTabs = ({
   );
 
   return (
-    <SandboxTabsContext.Provider value={{ selectedTab, setSelectedTab }}>
+    <SandboxTabsContext.Provider
+      value={{ selectedTab, setSelectedTab, mountedTabs }}
+    >
       <div
         className={cn(
-          "group relative flex size-full flex-col overflow-hidden rounded-lg border text-sm",
+          'group relative flex size-full flex-col overflow-hidden rounded-lg border text-sm',
           className
         )}
         {...props}
@@ -131,7 +142,7 @@ export const SandboxTabsList = ({
 }: SandboxTabsListProps): ReactNode => (
   <div
     className={cn(
-      "inline-flex w-full shrink-0 items-center justify-start border-b bg-secondary p-2 text-muted-foreground",
+      'inline-flex w-full shrink-0 items-center justify-start border-b bg-secondary p-2 text-muted-foreground',
       className
     )}
     role="tablist"
@@ -141,7 +152,7 @@ export const SandboxTabsList = ({
 
 export type SandboxTabsTriggerProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
-  "onClick"
+  'onClick'
 > & {
   value: string;
 };
@@ -161,10 +172,10 @@ export const SandboxTabsTrigger = ({
     <button
       aria-selected={selectedTab === value}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 font-medium text-sm ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow",
+        'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 font-medium text-sm ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow',
         className
       )}
-      data-state={selectedTab === value ? "active" : "inactive"}
+      data-state={selectedTab === value ? 'active' : 'inactive'}
       onClick={handleClick}
       role="tab"
       {...props}
@@ -181,19 +192,23 @@ export const SandboxTabsContent = ({
   value,
   ...props
 }: SandboxTabsContentProps): ReactNode => {
-  const { selectedTab } = useSandboxTabsContext();
+  const { selectedTab, mountedTabs } = useSandboxTabsContext();
+  const isActive = selectedTab === value;
+
+  // Don't render tabs that haven't been activated yet
+  if (!mountedTabs.has(value)) {
+    return null;
+  }
 
   return (
     <div
-      aria-hidden={selectedTab !== value}
+      aria-hidden={!isActive}
       className={cn(
-        "flex-1 overflow-y-auto ring-offset-background transition-opacity duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        selectedTab === value
-          ? "h-auto w-auto opacity-100"
-          : "pointer-events-none absolute h-0 w-0 opacity-0",
+        'flex flex-col flex-1 overflow-y-auto ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        isActive ? 'relative z-10 block' : 'hidden',
         className
       )}
-      data-state={selectedTab === value ? "active" : "inactive"}
+      data-state={isActive ? 'active' : 'inactive'}
       role="tabpanel"
       {...props}
     />
@@ -215,7 +230,7 @@ export const SandboxConsole = ({
   className,
   ...props
 }: SandboxConsoleProps): ReactNode => (
-  <SandpackConsole className={cn("h-full", className)} {...props} />
+  <SandpackConsole className={cn('h-full', className)} {...props} />
 );
 
 export type SandboxPreviewProps = PreviewProps & {
@@ -228,7 +243,7 @@ export const SandboxPreview = ({
   ...props
 }: SandboxPreviewProps): ReactNode => (
   <SandpackPreview
-    className={cn("h-full", className)}
+    className={cn('h-full', className)}
     showOpenInCodeSandbox={showOpenInCodeSandbox}
     {...props}
   />
@@ -245,7 +260,7 @@ export const SandboxFileExplorer = ({
 }: SandboxFileExplorerProps): ReactNode => (
   <SandpackFileExplorer
     autoHiddenFiles={autoHiddenFiles}
-    className={cn("h-full", className)}
+    className={cn('h-full', className)}
     {...props}
   />
 );

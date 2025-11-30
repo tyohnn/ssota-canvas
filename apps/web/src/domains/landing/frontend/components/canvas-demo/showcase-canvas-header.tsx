@@ -39,7 +39,7 @@ export function ShowcaseCanvasHeader({
   const isIntro = subPhase === 0;
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4 select-none">
       {/* Breadcrumb - 항상 표시 */}
       <motion.div
         initial={{ opacity: 0, x: -10 }}
