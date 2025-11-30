@@ -18,25 +18,83 @@ export interface ReactComponentBlockProperties {
 /**
  * React Component Block Properties Value Object
  */
-export class ReactComponentBlockPropertiesVO extends BlockPropertiesVO<ReactComponentBlockProperties> {
-  protected validate(): void {
+export class ReactComponentBlockPropertiesVO extends BlockPropertiesVO {
+  constructor(
+    private readonly code: string = '',
+    private readonly template: string = 'react-ts',
+    private readonly dependencies: Record<string, string> = {},
+    private readonly files: Record<string, { code: string }> = {}
+  ) {
+    super();
+  }
+
+  protected validate(): boolean {
     // No validation needed for optional properties
+    return true;
   }
 
   /**
    * Create default properties
    */
   static createDefault(): ReactComponentBlockPropertiesVO {
-    return new ReactComponentBlockPropertiesVO({
-      code: '',
-      template: 'react-ts',
-    });
+    return new ReactComponentBlockPropertiesVO('', 'react-ts', {}, {});
   }
 
   /**
    * Create from JSON
    */
-  static fromJSON(data: ReactComponentBlockProperties): ReactComponentBlockPropertiesVO {
-    return new ReactComponentBlockPropertiesVO(data);
+  static fromJSON(data: unknown): ReactComponentBlockPropertiesVO {
+    const safeData = (data as Partial<ReactComponentBlockProperties>) ?? {};
+    return new ReactComponentBlockPropertiesVO(
+      safeData.code ?? '',
+      safeData.template ?? 'react-ts',
+      safeData.dependencies ?? {},
+      safeData.files ?? {}
+    );
+  }
+
+  /**
+   * JSON으로 변환
+   */
+  toJSON(): ReactComponentBlockProperties {
+    return {
+      code: this.code,
+      template: this.template,
+      dependencies: this.dependencies,
+      files: this.files,
+    };
+  }
+
+  /**
+   * 값 비교
+   */
+  equals(other: BlockPropertiesVO): boolean {
+    if (!(other instanceof ReactComponentBlockPropertiesVO)) {
+      return false;
+    }
+
+    return (
+      this.code === other.code &&
+      this.template === other.template &&
+      JSON.stringify(this.dependencies) === JSON.stringify(other.dependencies) &&
+      JSON.stringify(this.files) === JSON.stringify(other.files)
+    );
+  }
+
+  // Getters for accessing properties
+  getCode(): string {
+    return this.code;
+  }
+
+  getTemplate(): string {
+    return this.template;
+  }
+
+  getDependencies(): Record<string, string> {
+    return this.dependencies;
+  }
+
+  getFiles(): Record<string, { code: string }> {
+    return this.files;
   }
 }

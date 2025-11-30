@@ -23,7 +23,6 @@ import {
   ReactComponentBlockProperties,
   GithubBranchBlockProperties,
   GithubCommitBlockProperties,
-  ReactComponentBlockProperties,
   VercelDeploymentBlockProperties,
 } from '../value-objects/block-properties';
 import { CustomPropertyDefinition } from '../value-objects/block-properties/common-types';
@@ -59,7 +58,6 @@ type BlockPropertiesMap = {
   react_component: ReactComponentBlockProperties;
   github_branch: GithubBranchBlockProperties;
   github_commit: GithubCommitBlockProperties;
-  react_component: ReactComponentBlockProperties;
   vercel_deployment: VercelDeploymentBlockProperties;
 };
 
@@ -188,12 +186,6 @@ export interface GithubCommitBlockNodeData extends BaseNodeData {
   [key: string]: any; // React Flow Node data constraint
 }
 
-export interface ReactComponentBlockNodeData extends BaseNodeData {
-  blockType: 'react_component';
-  properties: ReactComponentBlockProperties;
-  [key: string]: any; // React Flow Node data constraint
-}
-
 export interface VercelDeploymentBlockNodeData extends BaseNodeData {
   blockType: 'vercel_deployment';
   properties: VercelDeploymentBlockProperties;
@@ -221,7 +213,6 @@ export type BlockNodeData =
   | ReactComponentBlockNodeData
   | GithubBranchBlockNodeData
   | GithubCommitBlockNodeData
-  | ReactComponentBlockNodeData
   | VercelDeploymentBlockNodeData;
 
 /**
