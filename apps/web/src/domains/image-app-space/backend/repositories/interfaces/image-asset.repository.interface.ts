@@ -34,6 +34,18 @@ export interface FindFollowingImagesParams {
 }
 
 /**
+ * Workspace 이미지 조회 파라미터
+ *
+ * 워크스페이스 협업: 멤버 전체의 이미지 조회
+ */
+export interface FindWorkspaceImagesParams {
+  workspaceId: string;
+  filterType: 'all' | 'ai-generated' | 'unsplash' | 'user-upload';
+  page: number;
+  perPage: number;
+}
+
+/**
  * Creator Profile (JOIN 결과)
  */
 export interface CreatorProfile {
@@ -115,6 +127,17 @@ export interface IImageAssetRepository {
   ): Promise<ImageAssetWithStats[]>;
 
   /**
+   * Workspace 이미지 조회 (협업용)
+   *
+   * 워크스페이스의 모든 멤버가 업로드한 이미지 조회
+   * created_by 체크하지 않음 (팀 협업)
+   *
+   * @param params - 조회 파라미터
+   * @returns ImageAsset 배열
+   */
+  findWorkspaceImages(params: FindWorkspaceImagesParams): Promise<ImageAsset[]>;
+
+  /**
    * 메타데이터 업데이트
    *
    * Process Model: Scenario 6 - 메타데이터 편집
@@ -137,4 +160,19 @@ export interface IImageAssetRepository {
    * 복원
    */
   restore(id: string): Promise<void>;
+
+  /**
+   * 이미지 URL 업데이트 (Signed URL 갱신용)
+   */
+  updateImageUrl(id: string, imageUrl: string): Promise<void>;
+
+  /**
+   * Unsplash photoId로 조회
+   */
+  findByUnsplashPhotoId(photoId: string): Promise<ImageAsset | null>;
+
+  /**
+   * use_count 증가
+   */
+  incrementUseCount(id: string): Promise<void>;
 }

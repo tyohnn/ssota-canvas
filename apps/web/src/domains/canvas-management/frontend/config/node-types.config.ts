@@ -57,5 +57,5 @@ export const CANVAS_NODE_TYPES: NodeTypes = {
   [BlockType.REACT_COMPONENT]: ReactComponentBlock,
   [BlockType.VERCEL_DEPLOYMENT]: VercelDeploymentBlock,
   [BlockType.PDF]: PdfBlock,
-  // GITHUB_PR 등은 추후 구현
+  // GITHUB_PR, REACT_PREVIEW 등은 추후 구현
 };

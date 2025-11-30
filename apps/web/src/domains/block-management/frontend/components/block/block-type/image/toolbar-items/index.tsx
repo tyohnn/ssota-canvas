@@ -44,6 +44,12 @@ export function ImageToolbarItems({
         onValueChange={async (url: string) => {
           await onPropertyUpdate('properties.imageUrl', url);
         }}
+        onPropertiesChange={async (properties: Record<string, any>) => {
+          // ✅ 여러 속성을 한번에 업데이트
+          for (const [key, value] of Object.entries(properties)) {
+            await onPropertyUpdate(`properties.${key}`, value);
+          }
+        }}
       />
       <ObjectFitToolbarItem
         blockId={blockId}

@@ -1,12 +1,14 @@
 /**
- * Generated Asset Service
+ * Generated Image Upload Service
  *
  * AI로 생성된 이미지를 Supabase Storage에 업로드하는 서비스
- * 기존 toolbar 업로드 로직과 경로 생성/권한 체크를 공유
+ *
+ * 도메인: image-app-space
+ * (storage 도메인에서 이동 - 이미지 자산 관리 책임)
  */
 
 import { createClient } from '@/utils/supabase/server';
-import { StorageBucket } from '../../types/storage.types';
+import { StorageBucket } from '@/domains/storage/types/storage.types';
 import { createHash } from 'crypto';
 import { randomUUID } from 'crypto';
 
@@ -62,10 +64,13 @@ export interface UploadGeneratedAssetResult {
 /**
  * 생성된 이미지를 Supabase Storage에 업로드
  *
+ * 워크스페이스 중심 IMAGE_ASSETS 버킷 사용
+ * 경로 구조: {workspaceId}/{YYYYMMDD}/{generated-promptHash-modelId-uuid}.{ext}
+ *
  * @param options - 업로드 옵션
  * @returns 업로드 결과
  */
-export async function uploadGeneratedAssetToSupabase(
+export async function uploadGeneratedImageToStorage(
   options: UploadGeneratedAssetOptions
 ): Promise<UploadGeneratedAssetResult> {
   const supabase = await createClient();
@@ -77,8 +82,8 @@ export async function uploadGeneratedAssetToSupabase(
   // 파일 확장자 결정
   const ext = options.mimeType.split('/')[1] || 'png';
 
-  // 경로 생성 (promptHash + modelId 포함)
-  const timestamp = Date.now();
+  // 경로 생성 (워크스페이스 중심)
+  const date = new Date().toISOString().split('T')[0]!.replace(/-/g, ''); // YYYYMMDD
   const uuid = randomUUID();
   const promptHash =
     options.promptHash ||
@@ -90,12 +95,15 @@ export async function uploadGeneratedAssetToSupabase(
     ? options.modelId.replace(/[^a-zA-Z0-9]/g, '-')
     : 'unknown';
 
-  const fileName = `generated-${promptHash}-${modelId}-${timestamp}-${uuid}.${ext}`;
-  const path = `${options.orgId}/${options.workspaceId}/${options.pageId}/${options.blockId}/${fileName}`;
+  // 파일명: generated-{promptHash}-{modelId}-{uuid}.{ext}
+  const fileName = `generated-${promptHash}-${modelId}-${uuid}.${ext}`;
 
-  // Supabase Storage에 업로드
+  // 경로: {workspaceId}/{YYYYMMDD}/{fileName}
+  const path = `${options.workspaceId}/${date}/${fileName}`;
+
+  // Supabase Storage에 업로드 (IMAGE_ASSETS 버킷)
   const { data, error } = await supabase.storage
-    .from(StorageBucket.CANVAS_ASSETS)
+    .from(StorageBucket.IMAGE_ASSETS)
     .upload(path, buffer, {
       contentType: options.mimeType,
       cacheControl: '3600',
@@ -103,13 +111,13 @@ export async function uploadGeneratedAssetToSupabase(
     });
 
   if (error) {
-    throw new Error(`Failed to upload generated asset: ${error.message}`);
+    throw new Error(`Failed to upload generated image: ${error.message}`);
   }
 
   // Signed URL 생성 (1년 만료)
   const ONE_YEAR_IN_SECONDS = 31536000;
   const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-    .from(StorageBucket.CANVAS_ASSETS)
+    .from(StorageBucket.IMAGE_ASSETS)
     .createSignedUrl(path, ONE_YEAR_IN_SECONDS);
 
   if (signedUrlError || !signedUrlData) {

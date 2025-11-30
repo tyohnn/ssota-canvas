@@ -270,4 +270,36 @@ export class ImageAssetService implements IImageAssetService {
       );
     }
   }
+
+  /**
+   * 워크스페이스 이미지 조회
+   * 
+   * 워크스페이스의 모든 멤버가 업로드한 이미지 조회
+   */
+  async getWorkspaceImages(
+    workspaceId: string,
+    filterType: 'all' | 'ai-generated' | 'unsplash' | 'user-upload',
+    page: number,
+    perPage: number
+  ): Promise<Result<ImageAsset[], ImageAssetError>> {
+    try {
+      const images = await this.repository.findWorkspaceImages({
+        workspaceId,
+        filterType,
+        page,
+        perPage,
+      });
+
+      return Result.success(images);
+    } catch (error) {
+      return Result.error(
+        new ImageAssetError(
+          'FETCH_FAILED',
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch workspace images'
+        )
+      );
+    }
+  }
 }

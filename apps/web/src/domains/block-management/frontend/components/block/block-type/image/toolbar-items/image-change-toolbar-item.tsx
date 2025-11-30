@@ -10,6 +10,7 @@ import {
 } from '@workspace/ui/components/ui/tooltip';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
+import { uploadImageAsset } from '@/domains/image-app-space/frontend/utils/upload-image-asset';
 
 interface ImageChangeToolbarItemProps {
   blockId: string;
@@ -20,6 +21,7 @@ interface ImageChangeToolbarItemProps {
   workspaceId: string;
   pageId: string;
   onValueChange?: (url: string) => Promise<void>;
+  onPropertiesChange?: (properties: Record<string, any>) => Promise<void>;
 }
 
 /**
@@ -39,11 +41,13 @@ export function ImageChangeToolbarItem({
   workspaceId,
   pageId,
   onValueChange,
+  onPropertiesChange,
 }: ImageChangeToolbarItemProps) {
   const { upload, isUploading } = useSupabaseStorage();
 
   const handleImageChange = useCallback(() => {
-    if (disabled || !onValueChange || isUploading) return;
+    if (disabled || isUploading) return;
+    if (!onValueChange && !onPropertiesChange) return;
 
     // Create file input element
     const input = document.createElement('input');
@@ -54,32 +58,45 @@ export function ImageChangeToolbarItem({
       const file = (event.target as HTMLInputElement).files?.[0];
       if (file) {
         try {
-          // Upload to Supabase Storage
-          const result = await upload({
-            bucket: StorageBucket.CANVAS_ASSETS,
-            file,
-            orgId,
-            workspaceId,
-            pageId,
-            blockId,
-          });
+          // ✅ New: image-assets 시스템 사용
+          const imageAsset = await uploadImageAsset(file, workspaceId);
 
-          await onValueChange(result.url);
+          // ✅ onPropertiesChange가 있으면 여러 속성 한번에 업데이트
+          if (onPropertiesChange) {
+            await onPropertiesChange({
+              imageAssetId: imageAsset.id,
+              imageSource: 'user-upload',
+              // 기존 메타데이터 제거
+              caption: '',
+              alt: '',
+              unsplashAuthorName: null,
+              unsplashAuthorLink: null,
+            });
+          } else if (onValueChange) {
+            // Legacy: imageUrl만 업데이트
+            await onValueChange(imageAsset.image_url);
+          }
         } catch (error) {
-          console.error('Failed to upload image:', error);
-          // Fallback to Base64 if Supabase upload fails
-          const reader = new FileReader();
-          reader.onload = async e => {
-            const url = e.target?.result as string;
-            await onValueChange(url);
-          };
-          reader.readAsDataURL(file);
+          console.error(
+            '[ImageChangeToolbarItem] image-assets upload failed:',
+            error
+          );
         }
       }
     };
 
     input.click();
-  }, [disabled, onValueChange, upload, isUploading]);
+  }, [
+    disabled,
+    onValueChange,
+    onPropertiesChange,
+    upload,
+    isUploading,
+    workspaceId,
+    orgId,
+    pageId,
+    blockId,
+  ]);
 
   return (
     <Tooltip>

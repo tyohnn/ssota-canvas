@@ -15,12 +15,14 @@ import {
   type ImageAsset,
   type NewImageAsset,
   type ImageCategory,
+  type ImageAssetType,
 } from '@/db/schemas/image-app-space-schema';
 import { profiles } from '@/db/schema';
 import type {
   IImageAssetRepository,
   FindPublicImagesParams,
   FindFollowingImagesParams,
+  FindWorkspaceImagesParams,
   ImageAssetWithCreator,
   ImageAssetWithStats,
   UpdateMetadataParams,
@@ -493,6 +495,36 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
   }
 
   /**
+   * Workspace 이미지 조회 (협업용)
+   *
+   * 워크스페이스의 모든 멤버가 업로드한 이미지 조회
+   * created_by 체크하지 않음 (팀 협업)
+   */
+  async findWorkspaceImages(
+    params: FindWorkspaceImagesParams
+  ): Promise<ImageAsset[]> {
+    const { workspaceId, filterType, page, perPage } = params;
+
+    const whereConditions = and(
+      eq(imageAssets.workspace_id, workspaceId),
+      eq(imageAssets.is_deleted, false),
+      filterType !== 'all'
+        ? eq(imageAssets.asset_type, filterType as ImageAssetType)
+        : undefined
+    );
+
+    const result = await adminDb
+      .select()
+      .from(imageAssets)
+      .where(whereConditions)
+      .orderBy(desc(imageAssets.created_at))
+      .limit(perPage)
+      .offset((page - 1) * perPage);
+
+    return result;
+  }
+
+  /**
    * 메타데이터 업데이트
    *
    * Process Model: Scenario 6 - 메타데이터 편집
@@ -560,6 +592,51 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
       .set({
         is_deleted: false,
         deleted_at: null,
+      })
+      .where(eq(imageAssets.id, id));
+  }
+
+  /**
+   * 이미지 URL 업데이트 (Signed URL 갱신용)
+   */
+  async updateImageUrl(id: string, imageUrl: string): Promise<void> {
+    await adminDb
+      .update(imageAssets)
+      .set({
+        image_url: imageUrl,
+        updated_at: new Date(),
+      })
+      .where(eq(imageAssets.id, id));
+  }
+
+  /**
+   * Unsplash photoId로 조회
+   */
+  async findByUnsplashPhotoId(photoId: string): Promise<ImageAsset | null> {
+    const results = await adminDb
+      .select()
+      .from(imageAssets)
+      .where(
+        and(
+          eq(imageAssets.asset_type, 'unsplash'),
+          sql`${imageAssets.metadata}->>'photoId' = ${photoId}`,
+          eq(imageAssets.is_deleted, false)
+        )
+      )
+      .limit(1);
+
+    return results[0] || null;
+  }
+
+  /**
+   * use_count 증가
+   */
+  async incrementUseCount(id: string): Promise<void> {
+    await adminDb
+      .update(imageAssets)
+      .set({
+        use_count: sql`${imageAssets.use_count} + 1`,
+        updated_at: new Date(),
       })
       .where(eq(imageAssets.id, id));
   }

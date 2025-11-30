@@ -32,20 +32,23 @@ function LibraryImageCard({
 
       {/* Overlay */}
       <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-        {/* Delete Button */}
-        <div className="absolute top-2 right-2">
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={e => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="h-8 w-8 p-0"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+        {/* Delete Button - Temporarily disabled */}
+        {false && (
+          <div className="absolute top-2 right-2">
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={e => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="h-8 w-8 p-0"
+              disabled
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
 
         {/* Info */}
         <div className="absolute bottom-2 left-2 text-white">
@@ -109,4 +112,3 @@ export function WorkspaceLibraryImageGrid() {
     </div>
   );
 }
-

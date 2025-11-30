@@ -20,15 +20,17 @@ import {
   type ImageGenerationModel,
 } from '../../shared/config/image-generation-models';
 import {
-  uploadGeneratedAssetToSupabase,
+  uploadGeneratedImageToStorage,
   type UploadGeneratedAssetResult,
-} from '@/domains/storage/backend/services/generated-asset.service';
+} from './storage/generated-image-upload.service';
 import type {
   ImageAsset,
   ImageAssetMetadata,
 } from '../../shared/types/image-search.types';
 import type { ImageGenerationResult } from '../../shared/types/image-generation.types';
 import type { GenerateImageRequest } from '../../shared/dtos/requests/image-generation.requests';
+import { DrizzleImageAssetRepository } from '../repositories/implementations/drizzle-image-asset.repository';
+import { ImageAssetService } from './image-asset.service';
 import { createHash } from 'crypto';
 
 /**
@@ -39,7 +41,7 @@ export class ImageGenerationService {
    * 이미지 생성 실행
    *
    * @param request - 생성 요청
-   * @param userId - 사용자 ID (Helicone 헤더용)
+   * @param userId - 사용자 ID (Helicone 헤더용 + DB 저장용)
    * @param pageId - 페이지 ID (Storage 경로용)
    * @param blockId - 블록 ID (Storage 경로용)
    * @returns 생성 결과
@@ -135,14 +137,19 @@ export class ImageGenerationService {
       .digest('hex')
       .slice(0, 8);
 
-    // 각 이미지를 Supabase Storage에 업로드
+    // Service 인스턴스 생성 (DB 저장용)
+    const repository = new DrizzleImageAssetRepository();
+    const imageAssetService = new ImageAssetService(repository);
+
+    // 각 이미지를 Supabase Storage에 업로드하고 DB에 저장
     const uploadPromises = images.map(
       async (image: Experimental_GeneratedImage, index) => {
         const base64 = image.base64 || '';
         // mediaType이 있으면 사용, 없으면 기본값 'image/png' 사용
         const mimeType = image.mediaType || 'image/png';
 
-        const uploadResult = await uploadGeneratedAssetToSupabase({
+        // 1. Storage에 업로드
+        const uploadResult = await uploadGeneratedImageToStorage({
           base64,
           mimeType,
           orgId: request.orgId,
@@ -153,11 +160,41 @@ export class ImageGenerationService {
           modelId: request.modelId,
         });
 
-        // ImageAsset 형식으로 변환
+        // 2. DB에 저장 (image_assets 테이블)
+        const dbResult = await imageAssetService.createImageAsset({
+          assetType: 'ai-generated',
+          imageUrl: uploadResult.path, // Storage path
+          workspaceId: request.workspaceId,
+          createdBy: userId,
+          width: uploadResult.width,
+          height: uploadResult.height,
+          mimeType: uploadResult.mimeType,
+          prompt: request.prompt,
+          negativePrompt: request.negativePrompt,
+          metadata: {
+            modelId: request.modelId,
+            aspectRatio: request.aspectRatio,
+            seed: request.seed,
+            blockId,
+            promptHash: `${promptHash}-${index}`,
+          },
+        });
+
+        if (dbResult.isError()) {
+          console.error(
+            '[ImageGeneration] Failed to save to DB:',
+            dbResult.error
+          );
+          // Storage는 성공했으므로 계속 진행
+        }
+
+        // 3. ImageAsset 형식으로 변환 (기존 응답 형식 유지)
         const imageAsset: ImageAsset = {
-          id: `generated-${request.modelId}-${promptHash}-${index}`,
-          url: uploadResult.url,
-          thumbnailUrl: uploadResult.url, // 생성된 이미지는 썸네일 = 원본
+          id: dbResult.isSuccess()
+            ? dbResult.value.id
+            : `generated-${request.modelId}-${promptHash}-${index}`,
+          url: uploadResult.url, // Signed URL
+          thumbnailUrl: uploadResult.url,
           alt: request.prompt.slice(0, 100),
           source: 'ssota',
           metadata: {
