@@ -1,4 +1,15 @@
 {
   "snapshot": "snapshot-20250928-938100d9-4707-4997-93f8-6109ac5c751e",
-  "terminals": []
+  "terminals": [
+    {
+      "name": "dev server",
+      "command": "cd apps/web && pnpm dev"
+    },
+    {
+      "name": "일반 작업용",
+      "command": "cd apps/web"
+    }
+  ],
+  "install": "curl -fsSL https://raw.githubusercontent.com/supabase/supabase/main/cli/install.sh | bash && cd /home/user/projects/ssota/apps/web && pnpm install",
+  "start": "cd /home/user/projects/ssota/apps/web && echo \"🚀 Starting Supabase...\" && supabase start & sleep 10 && supabase status && echo \"✅ Ready! Supabase Studio: http://127.0.0.1:54323\""
 }
