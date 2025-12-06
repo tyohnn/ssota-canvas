@@ -139,8 +139,11 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
 
     // Optimistic Update
     onMutate: async ({ blockId, propertyPath, value, blockData }) => {
+      // React Flow node id는 blockMountId (blockId와 다를 수 있음)
+      const nodeId = blockData.blockMountId;
+
       // Get latest data
-      const latestNode = getNode(blockId);
+      const latestNode = getNode(nodeId);
       const currentBlockData = (latestNode?.data as BlockNodeData) || blockData;
 
       // Backup original data
@@ -152,16 +155,16 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
         propertyPath,
         value
       );
-      updateNode(blockId, { data: updatedData });
+      updateNode(nodeId, { data: updatedData });
 
       // Return context for rollback
-      return { previousData, blockId };
+      return { previousData, nodeId };
     },
 
     // Rollback on error
     onError: (error, variables, context) => {
-      if (context?.previousData && context?.blockId) {
-        updateNode(context.blockId, { data: context.previousData });
+      if (context?.previousData && context?.nodeId) {
+        updateNode(context.nodeId, { data: context.previousData });
       }
       console.error('Failed to update property:', error);
       toast.error(
@@ -215,6 +218,9 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
 
     // Optimistic Update
     onMutate: async ({ blockId, properties, blockData }) => {
+      // React Flow node id는 blockMountId (blockId와 다를 수 있음)
+      const nodeId = blockData.blockMountId;
+
       // Backup original data
       const previousData = blockData;
 
@@ -226,16 +232,16 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
           ...properties,
         } as any,
       };
-      updateNode(blockId, { data: updatedData });
+      updateNode(nodeId, { data: updatedData });
 
       // Return context for rollback
-      return { previousData, blockId };
+      return { previousData, nodeId };
     },
 
     // Rollback on error
     onError: (error, variables, context) => {
-      if (context?.previousData && context?.blockId) {
-        updateNode(context.blockId, { data: context.previousData });
+      if (context?.previousData && context?.nodeId) {
+        updateNode(context.nodeId, { data: context.previousData });
       }
       console.error('Failed to update properties:', error);
       toast.error(
@@ -291,8 +297,11 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
       value: T,
       blockData: BlockNodeData
     ): void => {
+      // React Flow node id는 blockMountId (blockId와 다를 수 있음)
+      const nodeId = blockData.blockMountId;
+
       // Get latest data
-      const latestNode = getNode(blockId);
+      const latestNode = getNode(nodeId);
       const currentBlockData = (latestNode?.data as BlockNodeData) || blockData;
 
       // Validation
@@ -328,7 +337,7 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
         propertyPath,
         value
       );
-      updateNode(blockId, { data: updatedData });
+      updateNode(nodeId, { data: updatedData });
     },
     [updateNode, getNode]
   );

@@ -67,6 +67,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
         height: imageAssets.height,
         file_size: imageAssets.file_size,
         mime_type: imageAssets.mime_type,
+        signed_url: imageAssets.signed_url,
+        signed_url_expires_at: imageAssets.signed_url_expires_at,
         prompt: imageAssets.prompt,
         negative_prompt: imageAssets.negative_prompt,
         metadata: imageAssets.metadata,
@@ -112,6 +114,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
       height: row.height,
       file_size: row.file_size,
       mime_type: row.mime_type,
+      signed_url: row.signed_url,
+      signed_url_expires_at: row.signed_url_expires_at,
       prompt: row.prompt,
       negative_prompt: row.negative_prompt,
       metadata: row.metadata,
@@ -160,6 +164,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
         height: imageAssets.height,
         file_size: imageAssets.file_size,
         mime_type: imageAssets.mime_type,
+        signed_url: imageAssets.signed_url,
+        signed_url_expires_at: imageAssets.signed_url_expires_at,
         prompt: imageAssets.prompt,
         negative_prompt: imageAssets.negative_prompt,
         metadata: imageAssets.metadata,
@@ -217,6 +223,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
       height: row.height,
       file_size: row.file_size,
       mime_type: row.mime_type,
+      signed_url: row.signed_url,
+      signed_url_expires_at: row.signed_url_expires_at,
       prompt: row.prompt,
       negative_prompt: row.negative_prompt,
       metadata: row.metadata,
@@ -294,6 +302,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
         height: imageAssets.height,
         file_size: imageAssets.file_size,
         mime_type: imageAssets.mime_type,
+        signed_url: imageAssets.signed_url,
+        signed_url_expires_at: imageAssets.signed_url_expires_at,
         prompt: imageAssets.prompt,
         negative_prompt: imageAssets.negative_prompt,
         metadata: imageAssets.metadata,
@@ -350,6 +360,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
       height: row.height,
       file_size: row.file_size,
       mime_type: row.mime_type,
+      signed_url: row.signed_url,
+      signed_url_expires_at: row.signed_url_expires_at,
       prompt: row.prompt,
       negative_prompt: row.negative_prompt,
       metadata: row.metadata,
@@ -402,6 +414,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
         height: imageAssets.height,
         file_size: imageAssets.file_size,
         mime_type: imageAssets.mime_type,
+        signed_url: imageAssets.signed_url,
+        signed_url_expires_at: imageAssets.signed_url_expires_at,
         prompt: imageAssets.prompt,
         negative_prompt: imageAssets.negative_prompt,
         metadata: imageAssets.metadata,
@@ -464,6 +478,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
       height: row.height,
       file_size: row.file_size,
       mime_type: row.mime_type,
+      signed_url: row.signed_url,
+      signed_url_expires_at: row.signed_url_expires_at,
       prompt: row.prompt,
       negative_prompt: row.negative_prompt,
       metadata: row.metadata,
@@ -597,13 +613,22 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
   }
 
   /**
-   * 이미지 URL 업데이트 (Signed URL 갱신용)
+   * Signed URL 캐시 업데이트
+   *
+   * @param id - 이미지 자산 ID
+   * @param signedUrl - 새로 생성된 signed URL
+   * @param expiresAt - 만료 시간
    */
-  async updateImageUrl(id: string, imageUrl: string): Promise<void> {
+  async updateSignedUrl(
+    id: string,
+    signedUrl: string,
+    expiresAt: Date
+  ): Promise<void> {
     await adminDb
       .update(imageAssets)
       .set({
-        image_url: imageUrl,
+        signed_url: signedUrl,
+        signed_url_expires_at: expiresAt,
         updated_at: new Date(),
       })
       .where(eq(imageAssets.id, id));

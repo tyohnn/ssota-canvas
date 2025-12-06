@@ -10,9 +10,10 @@ import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hook
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
 import { getImageUrlAction } from '@/domains/image-app-space/actions/image-asset.actions';
-import { uploadImageAsset } from '@/domains/image-app-space/frontend/utils/upload-image-asset';
+import { uploadImageAction } from '@/domains/image-app-space/actions/image-upload.actions';
 import { refreshImageUrlAction } from '@/domains/storage/actions/storage.actions';
 import { isSignedUrlExpired } from '@/domains/image-app-space/frontend/utils/signed-url.utils';
+import { fileToBase64, extractImageMetadata } from '../utils/image-file.utils';
 import type { ImageBlockBusinessLogic, ImageBlockUIState } from './types';
 import type { ImageBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
@@ -47,7 +48,6 @@ export function useImageBlockBusiness(
 
         // 1-1. block.imageUrl이 있고 만료되지 않았으면 캐시 사용
         if (imageUrl && !isSignedUrlExpired(imageUrl)) {
-          console.log('[ImageBlock] Using cached imageUrl (not expired)');
           if (imageUrl !== uiState.prevImageUrlRef.current) {
             uiState.setIsLoading(true);
             uiState.setHasError(false);
@@ -60,11 +60,8 @@ export function useImageBlockBusiness(
         }
 
         // 1-2. 만료되었거나 없으면 asset에서 조회
-        console.log(
-          '[ImageBlock] imageUrl expired or missing, fetching from asset:',
-          imageAssetId
-        );
-
+        // ✅ 만료된 URL로 이미지 로드 방지 - displayUrl 먼저 초기화
+        uiState.setDisplayUrl(undefined);
         // ✅ 로딩 플래그 설정
         uiState.isLoadingUrlRef.current = true;
         uiState.setIsLoading(true);
@@ -72,11 +69,8 @@ export function useImageBlockBusiness(
 
         try {
           const result = await getImageUrlAction({ imageAssetId });
-          console.log('[ImageBlock] getImageUrlAction result:', result);
 
           if (result.success) {
-            console.log('[ImageBlock] Signed URL received:', result.data.url);
-
             // ✅ displayUrl 먼저 설정 (즉시 표시)
             uiState.setDisplayUrl(result.data.url);
             uiState.prevImageUrlRef.current = result.data.url;
@@ -131,7 +125,6 @@ export function useImageBlockBusiness(
 
       // 2. Legacy: imageUrl만 있는 경우
       if (imageUrl) {
-        console.log('[ImageBlock] Using legacy imageUrl:', imageUrl);
         if (imageUrl !== uiState.prevImageUrlRef.current) {
           uiState.setIsLoading(true);
           uiState.setHasError(false);
@@ -178,13 +171,20 @@ export function useImageBlockBusiness(
       const result = await refreshImageUrlAction(nodeData.blockId);
 
       if (result.success && result.url) {
-        // 새 URL로 업데이트
-        await updateProperty(
+        // ✅ 새 URL로 displayUrl 직접 설정 (핵심 수정)
+        uiState.setDisplayUrl(result.url);
+        uiState.prevImageUrlRef.current = result.url;
+
+        // 블록 속성 업데이트 (캐싱) - 백그라운드
+        updateProperty(
           nodeData.blockId,
           'properties.imageUrl',
           result.url,
           nodeData
-        );
+        ).catch(err => {
+          console.error('[ImageBlock] Failed to update imageUrl:', err);
+        });
+
         // 로딩 상태로 돌려서 이미지 재로드 시도
         uiState.setIsLoading(true);
         uiState.setHasError(false);
@@ -232,17 +232,35 @@ export function useImageBlockBusiness(
 
       try {
         // New image-assets system
-        // 1. Upload to IMAGE_ASSETS bucket + Save to DB
-        const imageAsset = await uploadImageAsset(
-          fileWithPreview.file,
-          nodeData.workspaceId
-        );
+        // 1. 이미지 메타데이터 추출 (클라이언트)
+        const metadata = await extractImageMetadata(fileWithPreview.file);
 
-        // 2. ✅ 모든 properties를 한번에 업데이트 (효율적)
+        // 2. 파일을 Base64로 변환
+        const base64 = await fileToBase64(fileWithPreview.file);
+
+        // 3. Server Action으로 업로드
+        const result = await uploadImageAction({
+          fileBase64: base64,
+          fileName: fileWithPreview.file.name,
+          fileSize: fileWithPreview.file.size,
+          mimeType: fileWithPreview.file.type,
+          workspaceId: nodeData.workspaceId,
+          width: metadata.width,
+          height: metadata.height,
+        });
+
+        if (!result.success) {
+          throw new Error(result.error || 'Upload failed');
+        }
+
+        const imageAsset = result.data;
+
+        // 4. ✅ 모든 properties를 한번에 업데이트 (효율적)
         await updateProperties(
           nodeData.blockId,
           {
             imageAssetId: imageAsset.id,
+            imageUrl: imageAsset.image_url,
             imageSource: 'user-upload',
             // 기존 메타데이터 제거
             caption: '',
@@ -319,26 +337,22 @@ export function useImageBlockBusiness(
  */
 export function useMockImageBlockBusiness(): ImageBlockBusinessLogic {
   const loadImageUrl = useCallback(async () => {
-    console.log('[Mock] Loading image URL');
     await new Promise(resolve => setTimeout(resolve, 300));
   }, []);
 
   const handleImageLoad = useCallback(() => {
-    console.log('[Mock] Image loaded');
+    // Mock implementation
   }, []);
 
   const handleImageError = useCallback(async () => {
-    console.log('[Mock] Image error');
     await new Promise(resolve => setTimeout(resolve, 300));
   }, []);
 
   const saveCaptionToServer = useCallback(async (caption: string) => {
-    console.log('[Mock] Saving caption:', caption);
     await new Promise(resolve => setTimeout(resolve, 300));
   }, []);
 
   const handleFileUpload = useCallback(async () => {
-    console.log('[Mock] Uploading file');
     await new Promise(resolve => setTimeout(resolve, 1000));
   }, []);
 

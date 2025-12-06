@@ -19,18 +19,13 @@ import {
   getImageGenerationModel,
   type ImageGenerationModel,
 } from '../../shared/config/image-generation-models';
-import {
-  uploadGeneratedImageToStorage,
-  type UploadGeneratedAssetResult,
-} from './storage/generated-image-upload.service';
 import type {
   ImageAsset,
   ImageAssetMetadata,
 } from '../../shared/types/image-search.types';
 import type { ImageGenerationResult } from '../../shared/types/image-generation.types';
 import type { GenerateImageRequest } from '../../shared/dtos/requests/image-generation.requests';
-import { DrizzleImageAssetRepository } from '../repositories/implementations/drizzle-image-asset.repository';
-import { ImageAssetService } from './image-asset.service';
+import { ImageUploadService } from './image-upload.service';
 import { createHash } from 'crypto';
 
 /**
@@ -137,38 +132,33 @@ export class ImageGenerationService {
       .digest('hex')
       .slice(0, 8);
 
-    // Service 인스턴스 생성 (DB 저장용)
-    const repository = new DrizzleImageAssetRepository();
-    const imageAssetService = new ImageAssetService(repository);
+    // Service 인스턴스 생성
+    const uploadService = new ImageUploadService();
 
     // 각 이미지를 Supabase Storage에 업로드하고 DB에 저장
     const uploadPromises = images.map(
       async (image: Experimental_GeneratedImage, index) => {
         const base64 = image.base64 || '';
-        // mediaType이 있으면 사용, 없으면 기본값 'image/png' 사용
         const mimeType = image.mediaType || 'image/png';
 
-        // 1. Storage에 업로드
-        const uploadResult = await uploadGeneratedImageToStorage({
-          base64,
-          mimeType,
-          orgId: request.orgId,
-          workspaceId: request.workspaceId,
-          pageId,
-          blockId,
-          promptHash: `${promptHash}-${index}`,
-          modelId: request.modelId,
-        });
+        // Base64 → Buffer 변환
+        const base64Data = base64.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
 
-        // 2. DB에 저장 (image_assets 테이블)
-        const dbResult = await imageAssetService.createImageAsset({
+        // 파일명 생성
+        const ext = mimeType.split('/')[1] || 'png';
+        const fileName = `generated-${promptHash}-${index}-${Date.now()}.${ext}`;
+
+        // ✅ ImageUploadService 사용 (통합된 플로우)
+        const uploadResult = await uploadService.uploadImage({
           assetType: 'ai-generated',
-          imageUrl: uploadResult.path, // Storage path
+          file: buffer,
+          fileName,
+          fileSize: buffer.length,
+          mimeType,
           workspaceId: request.workspaceId,
-          createdBy: userId,
-          width: uploadResult.width,
-          height: uploadResult.height,
-          mimeType: uploadResult.mimeType,
+          userId,
+          // AI 생성 전용 필드
           prompt: request.prompt,
           negativePrompt: request.negativePrompt,
           metadata: {
@@ -180,33 +170,38 @@ export class ImageGenerationService {
           },
         });
 
-        if (dbResult.isError()) {
+        if (uploadResult.isError()) {
           console.error(
-            '[ImageGeneration] Failed to save to DB:',
-            dbResult.error
+            '[ImageGeneration] Failed to upload/save image:',
+            uploadResult.error
           );
-          // Storage는 성공했으므로 계속 진행
+          throw uploadResult.error;
         }
 
-        // 3. ImageAsset 형식으로 변환 (기존 응답 형식 유지)
-        const imageAsset: ImageAsset = {
-          id: dbResult.isSuccess()
-            ? dbResult.value.id
-            : `generated-${request.modelId}-${promptHash}-${index}`,
-          url: uploadResult.url, // Signed URL
-          thumbnailUrl: uploadResult.url,
-          alt: request.prompt.slice(0, 100),
+        const savedImageAsset = uploadResult.value;
+
+        // ✅ ImageAsset을 프론트엔드 타입으로 변환
+        const frontendImageAsset: ImageAsset = {
+          id: savedImageAsset.id,
+          url: savedImageAsset.image_url,
+          thumbnailUrl:
+            savedImageAsset.thumbnail_url || savedImageAsset.image_url,
+          alt: `Generated: ${request.prompt.slice(0, 30)}...`,
           source: 'ssota',
           metadata: {
             blockId,
-            createdAt: new Date(),
-            workspaceId: request.workspaceId,
-            width: uploadResult.width,
-            height: uploadResult.height,
-          },
+            promptHash: `${promptHash}-${index}`,
+            modelId: request.modelId,
+            prompt: request.prompt,
+            negativePrompt: request.negativePrompt,
+            aspectRatio: request.aspectRatio,
+            seed: request.seed,
+            width: savedImageAsset.width,
+            height: savedImageAsset.height,
+          } as ImageAssetMetadata,
         };
 
-        return imageAsset;
+        return frontendImageAsset;
       }
     );
 

@@ -16,6 +16,7 @@ import {
   CategorySelect,
 } from './components/form-fields';
 import type { ImageAsset } from '@/db/schemas/image-app-space-schema';
+import { Box } from '@workspace/ui/components/ui/box';
 
 interface ImageMetadataEditorProps {
   imageAsset: ImageAsset;
@@ -35,7 +36,7 @@ export function ImageMetadataEditor({
 
   return (
     <MetadataEditorContext.Provider value={contextValue}>
-      <div className="space-y-6 p-6">
+      <Box className="space-y-6">
         <h2 className="text-lg font-semibold">Edit Metadata</h2>
 
         <TitleInput />
@@ -49,7 +50,7 @@ export function ImageMetadataEditor({
           </p>
         )}
 
-        <div className="flex justify-end gap-2">
+        <Box className="flex justify-end gap-2">
           <Button
             variant="outline"
             onClick={onClose}
@@ -63,8 +64,8 @@ export function ImageMetadataEditor({
           >
             {contextValue.isSaving ? 'Saving...' : 'Save'}
           </Button>
-        </div>
-      </div>
+        </Box>
+      </Box>
     </MetadataEditorContext.Provider>
   );
 }

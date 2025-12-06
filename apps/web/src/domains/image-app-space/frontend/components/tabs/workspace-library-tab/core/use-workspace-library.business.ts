@@ -62,8 +62,11 @@ export function useWorkspaceLibraryBusiness(
   const onSelectImage = useCallback(
     async (image: ImageAsset) => {
       try {
+        // ✅ signed_url 우선 사용 (image_url은 storage path)
+        const displayUrl = image.signed_url;
+
         await selectImage({
-          imageUrl: image.image_url,
+          imageUrl: displayUrl || '',
           source: 'workspace',
           metadata: {
             imageAssetId: image.id, // ✅ imageAssetId 전달 (signed URL 생성용)

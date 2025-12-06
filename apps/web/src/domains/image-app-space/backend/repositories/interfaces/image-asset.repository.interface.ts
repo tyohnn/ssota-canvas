@@ -162,9 +162,17 @@ export interface IImageAssetRepository {
   restore(id: string): Promise<void>;
 
   /**
-   * 이미지 URL 업데이트 (Signed URL 갱신용)
+   * Signed URL 캐시 업데이트
+   *
+   * @param id - 이미지 자산 ID
+   * @param signedUrl - 새로 생성된 signed URL
+   * @param expiresAt - 만료 시간
    */
-  updateImageUrl(id: string, imageUrl: string): Promise<void>;
+  updateSignedUrl(
+    id: string,
+    signedUrl: string,
+    expiresAt: Date
+  ): Promise<void>;
 
   /**
    * Unsplash photoId로 조회

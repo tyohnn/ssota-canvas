@@ -8,26 +8,54 @@
 
 'use client';
 
-import { WorkspaceLibraryContext } from './core/workspace-library.context';
-import { useWorkspaceLibrary } from './core/use-workspace-library';
+import { WorkspaceLibraryProvider } from './core/provider';
+import { useWorkspaceLibraryContext } from './core/context';
 import { WorkspaceFilterBar } from './components/filter-bar';
 import { WorkspaceLibraryImageGrid } from './components/image-grid';
+import { ImageSettingsDialog } from './components/image-settings-dialog';
 import { Box } from '@workspace/ui/components/ui/box';
+
+/**
+ * Workspace Library Tab Content
+ */
+function WorkspaceLibraryTabContent() {
+  const { selectedImageForSettings, closeImageSettings, refreshImages } =
+    useWorkspaceLibraryContext();
+
+  return (
+    <>
+      <Box className="flex-1 min-h-0 flex flex-col">
+        <WorkspaceFilterBar />
+        <WorkspaceLibraryImageGrid />
+      </Box>
+
+      {/* Settings Dialog */}
+      {selectedImageForSettings && (
+        <ImageSettingsDialog
+          image={selectedImageForSettings}
+          open={!!selectedImageForSettings}
+          onOpenChange={open => {
+            if (!open) {
+              closeImageSettings();
+            }
+          }}
+          onSuccess={() => {
+            refreshImages();
+            closeImageSettings();
+          }}
+        />
+      )}
+    </>
+  );
+}
 
 /**
  * Workspace Library Tab
  */
 export function WorkspaceLibraryTab() {
-  const contextValue = useWorkspaceLibrary();
-
   return (
-    <WorkspaceLibraryContext.Provider value={contextValue}>
-      <Box className="flex-1 min-h-0 flex flex-col">
-        <WorkspaceFilterBar />
-        <div className="flex-1 overflow-y-auto">
-          <WorkspaceLibraryImageGrid />
-        </div>
-      </Box>
-    </WorkspaceLibraryContext.Provider>
+    <WorkspaceLibraryProvider>
+      <WorkspaceLibraryTabContent />
+    </WorkspaceLibraryProvider>
   );
 }

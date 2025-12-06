@@ -64,3 +64,24 @@ export function getBlockOwnershipErrorMessage(
   }
   return BLOCK_OWNERSHIP_ERROR_MESSAGES[errorCode] || defaultMessage;
 }
+
+/**
+ * 인증 관련 에러인지 확인
+ *
+ * getAuthenticatedUser()에서 throw하는 에러를 확인합니다.
+ *
+ * @param error - 확인할 에러 객체
+ * @returns 인증 에러인지 여부
+ */
+export function isAuthenticationError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message;
+  return (
+    message.includes('UNAUTHORIZED') ||
+    message.includes('BETA_ACCESS_REQUIRED') ||
+    message.includes('USER_PROFILE_NOT_FOUND')
+  );
+}

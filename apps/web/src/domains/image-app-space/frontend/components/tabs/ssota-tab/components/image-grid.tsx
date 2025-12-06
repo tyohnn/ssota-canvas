@@ -6,6 +6,14 @@
 
 import type { ImageAsset } from '@/domains/image-app-space/shared/types/image-search.types';
 import { useSsotaTabContext } from '../core/ssota-tab.context';
+import {
+  ImageGridContainer,
+  ImageCardBase,
+  ImageBase,
+  ImageGridSkeleton,
+  ImageGridEmpty,
+} from '../../common/components';
+import { Box } from '@workspace/ui/components/ui/box';
 
 /**
  * Ssota Image Card
@@ -17,22 +25,24 @@ function SsotaImageCard({
   image: ImageAsset;
   onSelect: () => void;
 }) {
+  const displayTitle =
+    image.metadata?.description || image.alt || 'SSOTA Image';
+
+  // DB의 ImageAsset에서 creator 정보 가져오기
+  // TODO: ImageAssetWithStats 타입으로 creator 정보 포함 필요
+  const displayCreator = 'SSOTA Creator';
+
   return (
-    <div
-      className="group relative aspect-square overflow-hidden rounded-lg border bg-card cursor-pointer hover:shadow-lg transition-all"
+    <ImageCardBase
+      className="cursor-pointer hover:shadow-lg transition-all"
       onClick={onSelect}
     >
-      <img
-        src={image.thumbnailUrl}
-        alt={image.alt || 'SSOTA image'}
-        className="h-full w-full object-cover transition-transform group-hover:scale-105"
-      />
+      <ImageBase src={image.thumbnailUrl} alt={image.alt || 'SSOTA image'} />
 
       <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="absolute bottom-2 left-2 text-white">
-          <p className="text-sm font-medium">
-            {image.metadata.description || 'SSOTA Image'}
-          </p>
+        <div className="absolute bottom-2 left-2 text-white space-y-1">
+          <p className="text-sm font-medium line-clamp-1">{displayTitle}</p>
+          <p className="text-xs opacity-80">by {displayCreator}</p>
           {image.score && (
             <p className="text-xs opacity-80">
               Similarity: {(image.score * 100).toFixed(0)}%
@@ -40,7 +50,7 @@ function SsotaImageCard({
           )}
         </div>
       </div>
-    </div>
+    </ImageCardBase>
   );
 }
 
@@ -51,34 +61,21 @@ export function SsotaImageGrid() {
   const { images, isLoading, onSelectImage } = useSsotaTabContext();
 
   if (isLoading) {
-    return (
-      <div className="p-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="aspect-square rounded-lg bg-muted animate-pulse"
-            />
-          ))}
-        </div>
-      </div>
-    );
+    return <ImageGridSkeleton />;
   }
 
   if (images.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[400px]">
-        <div className="text-center text-muted-foreground">
-          <p className="text-lg font-medium mb-2">검색 결과가 없습니다</p>
-          <p className="text-sm">시맨틱 검색을 시도해보세요</p>
-        </div>
-      </div>
+      <ImageGridEmpty
+        title="No results found"
+        description="Try semantic search"
+      />
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <Box className="p-0">
+      <ImageGridContainer>
         {images.map(image => (
           <SsotaImageCard
             key={image.id}
@@ -86,7 +83,7 @@ export function SsotaImageGrid() {
             onSelect={() => onSelectImage(image)}
           />
         ))}
-      </div>
-    </div>
+      </ImageGridContainer>
+    </Box>
   );
 }

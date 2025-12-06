@@ -42,7 +42,6 @@ export function useImageBlock(
   useEffect(() => {
     // ✅ business를 의존성에서 제거하여 무한 루프 방지
     business.loadImageUrl(imageAssetId, imageUrl, imageSource);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageAssetId, imageUrl, imageSource]);
 
   // 외부 데이터가 바뀌었을 때, 편집 중이 아니면 초안 동기화
