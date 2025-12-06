@@ -6,6 +6,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
+import { isSignedUrlExpired } from '@/domains/image-app-space/frontend/utils/signed-url.utils';
 import type { ImageBlockUIState } from './types';
 
 export function useImageBlockUI(
@@ -17,8 +18,11 @@ export function useImageBlockUI(
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // ✅ 만료된 URL은 초기값으로 사용하지 않음 (이미지 로드 에러 방지)
   const [displayUrl, setDisplayUrl] = useState<string | undefined>(
-    initialImageUrl
+    initialImageUrl && !isSignedUrlExpired(initialImageUrl)
+      ? initialImageUrl
+      : undefined
   );
 
   // Caption editing state
@@ -83,4 +87,3 @@ export function useImageBlockUI(
     isLoadingUrlRef,
   };
 }
-

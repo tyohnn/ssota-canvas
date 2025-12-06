@@ -5,26 +5,63 @@
  */
 
 /**
+ * JWT 토큰에서 exp 클레임 추출 (base64 디코딩)
+ */
+function getExpFromJwtToken(token: string): number | null {
+  try {
+    // JWT는 header.payload.signature 형식
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return null;
+    }
+
+    // payload 부분 디코딩 (base64url → base64 → JSON)
+    const payload = parts[1];
+    if (!payload) {
+      return null;
+    }
+
+    // base64url to base64
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    // 패딩 추가
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+
+    // 브라우저/Node.js 호환 디코딩
+    let decoded: string;
+    if (typeof atob === 'function') {
+      decoded = atob(padded);
+    } else {
+      // Node.js 환경
+      decoded = Buffer.from(padded, 'base64').toString('utf-8');
+    }
+
+    const json = JSON.parse(decoded);
+    return typeof json.exp === 'number' ? json.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Signed URL에서 만료 시간 추출
  *
  * Supabase signed URL 형식:
- * https://.../path?token=...&exp=1764398810
+ * ?token=eyJhbGci... (JWT 토큰, payload에 exp 클레임 포함)
  */
 export function getSignedUrlExpiry(url: string): Date | null {
   try {
     const urlObj = new URL(url);
-    const expParam = urlObj.searchParams.get('exp');
 
-    if (!expParam) {
-      return null;
+    // JWT 토큰에서 exp 추출
+    const token = urlObj.searchParams.get('token');
+    if (token) {
+      const exp = getExpFromJwtToken(token);
+      if (exp) {
+        return new Date(exp * 1000);
+      }
     }
 
-    const expTimestamp = parseInt(expParam, 10);
-    if (isNaN(expTimestamp)) {
-      return null;
-    }
-
-    return new Date(expTimestamp * 1000); // Unix timestamp to Date
+    return null;
   } catch (error) {
     console.error('[getSignedUrlExpiry] Invalid URL:', error);
     return null;

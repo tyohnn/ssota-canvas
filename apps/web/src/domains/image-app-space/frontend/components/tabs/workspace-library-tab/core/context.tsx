@@ -17,6 +17,7 @@ export interface WorkspaceLibraryContextValue {
   images: ImageAsset[];
   isLoading: boolean;
   filterType: 'all' | 'ai-generated' | 'unsplash' | 'user-upload';
+  selectedImageForSettings: ImageAsset | null;
 
   // Actions
   setFilterType: (
@@ -25,6 +26,8 @@ export interface WorkspaceLibraryContextValue {
   refreshImages: () => Promise<void>;
   onSelectImage: (image: ImageAsset) => void;
   deleteImage: (imageId: string) => Promise<void>;
+  openImageSettings: (image: ImageAsset) => void;
+  closeImageSettings: () => void;
 }
 
 /**

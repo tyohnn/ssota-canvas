@@ -82,7 +82,11 @@ export function useSsotaTabBusiness() {
         await selectImage({
           imageUrl: image.url,
           source: 'ssota',
-          metadata: {},
+          metadata: {
+            imageAssetId: image.id,
+            alt: image.metadata?.description || image.alt,
+            caption: image.metadata?.description,
+          },
         });
       } catch (error) {
         console.error('[SsotaTabBusiness] Select failed:', error);

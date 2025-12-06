@@ -135,7 +135,8 @@ export function useGenerateImageBusiness(
               blockId,
               {
                 imageUrl: image.url,
-                imageSource: image.source,
+                imageAssetId: image.id,
+                imageSource: 'ai-generated',
                 alt: image.alt,
                 ...buildMetadata(image),
               },

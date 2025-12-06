@@ -97,3 +97,47 @@ export class PerformanceTimer {
 export function startTimer(label: string): PerformanceTimer {
   return new PerformanceTimer(label);
 }
+
+/**
+ * Server Action 에러 로깅 유틸리티
+ *
+ * 프로덕션에서 예상치 못한 에러를 구조화된 형태로 로깅합니다.
+ * - 개발 환경: 전체 스택 트레이스 포함
+ * - 프로덕션: 스택 트레이스 제외 (민감한 정보 보호)
+ *
+ * @param action - 액션 이름 (예: 'uploadImageAction')
+ * @param error - 에러 객체
+ * @param context - 추가 컨텍스트 정보 (선택사항)
+ *
+ * @example
+ * ```typescript
+ * catch (error) {
+ *   logServerActionError('uploadImageAction', error, {
+ *     workspaceId: request.workspaceId,
+ *   });
+ *   return err('Internal server error', { code: 'INTERNAL_ERROR' });
+ * }
+ * ```
+ */
+export function logServerActionError(
+  action: string,
+  error: unknown,
+  context?: Record<string, unknown>
+): void {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  const logData: Record<string, unknown> = {
+    action,
+    error: error instanceof Error ? error.message : 'Unknown error',
+    errorName: error instanceof Error ? error.name : undefined,
+    timestamp: new Date().toISOString(),
+    ...context,
+  };
+
+  // 개발 환경에서만 스택 트레이스 포함
+  if (!isProduction && error instanceof Error) {
+    logData.stack = error.stack;
+  }
+
+  console.error(`[${action}] Unexpected error`, logData);
+}

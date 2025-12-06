@@ -13,7 +13,6 @@ import type { ImageBlockNodeData } from '@/domains/block-management/shared/types
 import type { ImageBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { BaseBlock } from '../base-block';
 import { cn } from '@workspace/ui/lib/utils';
-import { useFileUpload } from '@workspace/ui/hooks/use-file-upload';
 import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { useImageBlock } from './core/use-image-block';
@@ -22,6 +21,7 @@ import { ImageUploadPlaceholder } from './components/image-upload-placeholder';
 import { ImageCaption } from './components/image-caption';
 import { ImageErrorOverlay } from './components/image-error-overlay';
 import { UnsplashAttribution } from './components/unsplash-attribution';
+import { Box } from '@/components/ui/box';
 
 /**
  * ImageBlock Component
@@ -58,24 +58,6 @@ export const ImageBlock = memo(function ImageBlock({
 
   // File upload configuration
   const maxSizeMB = 10;
-  const maxSize = maxSizeMB * 1024 * 1024; // 10MB
-
-  const [
-    { files, isDragging, errors: uploadErrors },
-    {
-      handleDragEnter,
-      handleDragLeave,
-      handleDragOver,
-      handleDrop,
-      openFileDialog,
-      getInputProps,
-    },
-  ] = useFileUpload({
-    accept: 'image/*',
-    maxSize,
-    multiple: false,
-    onFilesAdded: imageBlock.handleFileUpload,
-  });
 
   // Caption handlers
   const handleCaptionBlur = async () => {
@@ -94,12 +76,12 @@ export const ImageBlock = memo(function ImageBlock({
       noBackground={true}
     >
       <TooltipProvider>
-        <div
+        <Box
           className={cn(
             'w-full h-full flex flex-col relative',
             'bg-background border-2 border-border rounded-lg overflow-hidden',
             'shadow-md',
-            !selected && 'hover:shadow-xl hover:scale-[1.02] hover:rotate-1',
+            !selected && 'hover:shadow-xl hover:scale-[1.02]',
             selected && 'ring-2 ring-blue-400 dark:ring-blue-500',
             selected && 'shadow-xl',
             'transition-all duration-300 ease-out'
@@ -108,37 +90,27 @@ export const ImageBlock = memo(function ImageBlock({
           onMouseLeave={() => imageBlock.setIsHovered(false)}
         >
           {/* 이미지 컨테이너 */}
-          <div className="relative flex-1 overflow-hidden bg-muted/30 group">
+          <Box className="relative flex-1 overflow-hidden bg-muted/30 group">
             {!imageAssetId && !imageUrl ? (
               // 업로드 플레이스홀더
-              imageBlock.isUploading ? (
-                <Skeleton className="absolute inset-0" />
-              ) : (
-                <ImageUploadPlaceholder
-                  selected={selected}
-                  isDragging={isDragging}
-                  uploadErrors={uploadErrors}
-                  maxSizeMB={maxSizeMB}
-                  inputProps={getInputProps()}
-                  onOpenFileDialog={openFileDialog}
-                  onDragEnter={handleDragEnter}
-                  onDragLeave={handleDragLeave}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                />
-              )
+              <ImageUploadPlaceholder
+                selected={selected}
+                maxSizeMB={maxSizeMB}
+                isUploading={imageBlock.isUploading}
+                onFileSelect={imageBlock.handleFileUpload}
+              />
             ) : (
               // 이미지 표시
               <>
                 {/* Loading skeleton */}
                 {imageBlock.isLoading && !imageBlock.hasError && (
-                  <div className="absolute inset-0 bg-muted animate-pulse" />
+                  <Box className="absolute inset-0 bg-muted animate-pulse" />
                 )}
 
-                {/* Image */}
-                {(imageBlock.displayUrl || imageUrl) && (
+                {/* Image - displayUrl만 사용 (만료된 imageUrl fallback 방지) */}
+                {imageBlock.displayUrl && (
                   <ImageDisplay
-                    src={imageBlock.displayUrl || imageUrl!}
+                    src={imageBlock.displayUrl}
                     alt={alt || '이미지'}
                     objectFit={objectFit}
                     isLoading={imageBlock.isLoading}
@@ -170,13 +142,13 @@ export const ImageBlock = memo(function ImageBlock({
 
                 {/* 업로드 중 Skeleton Overlay */}
                 {imageBlock.isUploading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                  <Box className="absolute inset-0 flex items-center justify-center bg-background/80">
                     <Skeleton className="w-full h-full" />
-                  </div>
+                  </Box>
                 )}
               </>
             )}
-          </div>
+          </Box>
 
           {/* Caption */}
           <ImageCaption
@@ -189,7 +161,7 @@ export const ImageBlock = memo(function ImageBlock({
             onKeyDown={imageBlock.handleCaptionKeyDown}
             onClick={imageBlock.handleCaptionClick}
           />
-        </div>
+        </Box>
       </TooltipProvider>
     </BaseBlock>
   );

@@ -37,10 +37,13 @@ export function ImageDisplay({
         onLoad();
       }}
       onError={e => {
-        console.error('[ImageBlock] Image load error:', {
+        const errorDetails = {
           src,
-          error: e,
-        });
+          errorType: e.type,
+          currentSrc: e.currentTarget?.src || 'unknown',
+          timestamp: new Date().toISOString(),
+        };
+        console.error('[ImageBlock] Image load error:', errorDetails);
         onError(e);
       }}
       className={cn(

@@ -18,7 +18,20 @@ import {
 import { Badge } from '@workspace/ui/components/ui/badge';
 import { X } from 'lucide-react';
 import { useMetadataEditorContext } from '../core/metadata-editor.context';
-import { imageCategoryEnum } from '@/db/schemas/image-app-space-schema';
+
+// Image category values (must match schema)
+const IMAGE_CATEGORIES: string[] = [
+  'art',
+  'photo',
+  'illustration',
+  'design',
+  'abstract',
+  'nature',
+  'architecture',
+  'portrait',
+  'landscape',
+  'other',
+];
 
 export function TitleInput() {
   const { title, setTitle, errors } = useMetadataEditorContext();
@@ -136,7 +149,7 @@ export function CategorySelect() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="none">None</SelectItem>
-          {imageCategoryEnum.enumValues.map(cat => (
+          {IMAGE_CATEGORIES.map(cat => (
             <SelectItem key={cat} value={cat}>
               {cat.charAt(0).toUpperCase() + cat.slice(1)}
             </SelectItem>
