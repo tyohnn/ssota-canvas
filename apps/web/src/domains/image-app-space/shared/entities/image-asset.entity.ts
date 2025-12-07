@@ -26,6 +26,8 @@ export class ImageAssetEntity {
   readonly height?: number;
   readonly fileSize?: number;
   readonly mimeType?: string;
+  readonly signedUrl?: string;
+  readonly signedUrlExpiresAt?: Date;
   readonly prompt?: string;
   readonly negativePrompt?: string;
   readonly metadata: Record<string, any>;
@@ -54,6 +56,10 @@ export class ImageAssetEntity {
     this.height = data.height ?? undefined;
     this.fileSize = data.file_size ?? undefined;
     this.mimeType = data.mime_type ?? undefined;
+    this.signedUrl = data.signed_url ?? undefined;
+    this.signedUrlExpiresAt = data.signed_url_expires_at
+      ? new Date(data.signed_url_expires_at)
+      : undefined;
     this.prompt = data.prompt ?? undefined;
     this.negativePrompt = data.negative_prompt ?? undefined;
     this.metadata = (data.metadata as Record<string, any>) ?? {};
@@ -146,6 +152,8 @@ export class ImageAssetEntity {
       height: this.height ?? null,
       file_size: this.fileSize ?? null,
       mime_type: this.mimeType ?? null,
+      signed_url: this.signedUrl ?? null,
+      signed_url_expires_at: this.signedUrlExpiresAt ?? null,
       prompt: this.prompt ?? null,
       negative_prompt: this.negativePrompt ?? null,
       metadata: this.metadata,
