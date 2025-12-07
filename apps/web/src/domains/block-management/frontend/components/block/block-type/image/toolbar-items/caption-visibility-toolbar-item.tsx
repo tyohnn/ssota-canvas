@@ -8,27 +8,21 @@ import {
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
 import { MessageSquare } from 'lucide-react';
+import { useImageToolbarContext } from './core/image-toolbar.context';
 
-interface CaptionVisibilityToolbarItemProps {
-  blockId: string;
-  blockMountId?: string;
-  currentValue: boolean;
-  disabled?: boolean;
-  onValueChange?: (value: boolean) => Promise<void>;
-}
+/**
+ * Caption Visibility Toolbar Item Component
+ *
+ * Context에서 필요한 데이터 가져오기 (Props 없음)
+ */
+export function CaptionVisibilityToolbarItem() {
+  // ✅ Context에서 필요한 것만 가져오기
+  const { imageProperties, disabled, updateProperty } = useImageToolbarContext();
+  const currentValue = imageProperties.isCaptionVisible;
 
-export function CaptionVisibilityToolbarItem({
-  blockId,
-  blockMountId,
-  currentValue,
-  disabled = false,
-  onValueChange,
-}: CaptionVisibilityToolbarItemProps) {
   const handleToggle = useCallback(async () => {
-    if (onValueChange) {
-      await onValueChange(!currentValue);
-    }
-  }, [currentValue, onValueChange]);
+    await updateProperty('isCaptionVisible', !currentValue);
+  }, [currentValue, updateProperty]);
 
   return (
     <Tooltip>

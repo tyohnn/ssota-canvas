@@ -4,15 +4,19 @@ import {
   searchUnsplashImagesAction,
   trackUnsplashDownloadAction,
 } from '@/domains/image-app-space/actions/image-search.actions';
+import { createOrGetUnsplashImageAssetAction } from '@/domains/image-app-space/actions/image-asset.actions';
 import { isFailure } from '@/lib/action-result';
 import { imageCache, getCacheKey } from './cache';
 import { CATEGORY_MAP } from './constants';
 import type { UnsplashTabBusinessLogic } from './types';
+import { useWorkspace } from '@/domains/workspace-management/frontend/hooks/use-workspace';
 
 /**
  * Production 비즈니스 로직
  */
 export function useUnsplashTabBusiness(): UnsplashTabBusinessLogic {
+  const { selectedWorkspaceId } = useWorkspace();
+
   const loadImages = useCallback(
     async (
       searchQuery: string,
@@ -70,24 +74,76 @@ export function useUnsplashTabBusiness(): UnsplashTabBusinessLogic {
       image: UnsplashImage,
       onSelectImage: (params: any) => Promise<void>
     ) => {
+      if (!selectedWorkspaceId) {
+        console.error('[UnsplashTab] No workspace selected');
+        return;
+      }
+
       // Unsplash 다운로드 트래킹 (백그라운드)
       trackUnsplashDownloadAction(image.id).catch(err =>
         console.warn('Tracking failed:', err)
       );
 
-      // Space의 onSelectImage 호출
-      await onSelectImage({
-        imageUrl: image.urls.regular,
-        source: 'unsplash',
-        metadata: {
-          unsplashAuthorName: image.user.name,
-          unsplashAuthorLink: `${image.user.links.html}?utm_source=ssota&utm_medium=referral`,
-          caption: `Photo by ${image.user.name} on Unsplash`,
-          alt: image.alt_description || undefined,
-        },
-      });
+      try {
+        // ✅ 1. image_assets에 저장 (중복 체크 포함)
+        const result = await createOrGetUnsplashImageAssetAction({
+          photoId: image.id,
+          imageUrl: image.urls.regular,
+          width: image.width,
+          height: image.height,
+          authorName: image.user.name,
+          authorUsername: image.user.name, // username이 없으면 name 사용
+          authorLink: `${image.user.links.html}?utm_source=ssota&utm_medium=referral`,
+          altDescription: image.alt_description || undefined,
+          workspaceId: selectedWorkspaceId,
+        });
+
+        if (!result.success) {
+          console.error(
+            '[UnsplashTab] Failed to save to image_assets:',
+            result.error
+          );
+          // Fallback to legacy
+          await onSelectImage({
+            imageUrl: image.urls.regular,
+            source: 'unsplash',
+            metadata: {
+              unsplashAuthorName: image.user.name,
+              unsplashAuthorLink: `${image.user.links.html}?utm_source=ssota&utm_medium=referral`,
+              caption: `Photo by ${image.user.name} on Unsplash`,
+              alt: image.alt_description || undefined,
+            },
+          });
+          return;
+        }
+
+        // ✅ 2. imageAssetId로 블록 업데이트
+        await onSelectImage({
+          imageUrl: result.data.image_url, // 참고용 (실제로는 캐시로 사용)
+          source: 'unsplash',
+          metadata: {
+            imageAssetId: result.data.id, // ✅ 핵심: imageAssetId 전달
+            unsplashAuthorName: image.user.name,
+            unsplashAuthorLink: `${image.user.links.html}?utm_source=ssota&utm_medium=referral`,
+            alt: image.alt_description || undefined,
+          },
+        });
+      } catch (error) {
+        console.error('[UnsplashTab] Error in handleImageSelect:', error);
+        // Fallback
+        await onSelectImage({
+          imageUrl: image.urls.regular,
+          source: 'unsplash',
+          metadata: {
+            unsplashAuthorName: image.user.name,
+            unsplashAuthorLink: `${image.user.links.html}?utm_source=ssota&utm_medium=referral`,
+            caption: `Photo by ${image.user.name} on Unsplash`,
+            alt: image.alt_description || undefined,
+          },
+        });
+      }
     },
-    []
+    [selectedWorkspaceId]
   );
 
   return {

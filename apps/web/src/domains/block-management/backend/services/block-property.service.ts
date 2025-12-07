@@ -187,15 +187,6 @@ export class BlockPropertyService {
   private async handleBlockPropertyUpdated(
     event: BlockPropertyUpdatedEvent
   ): Promise<void> {
-    console.log('[Block Property] Block Property Updated:', {
-      type: event.type,
-      blockId: event.aggregateId.value,
-      propertyPath: event.data.propertyPath,
-      oldValue: event.data.oldValue,
-      newValue: event.data.newValue,
-      occurredAt: event.occurredAt,
-    });
-
     // Policy 구현 예시:
     // - 블록 속성 변경 이력 기록
     // - 버전 관리 시스템 업데이트

@@ -54,3 +54,45 @@ export interface ChangeImageVisibilityCommand {
   title?: string;
   category?: string;
 }
+
+/**
+ * 이미지 업로드 Command
+ *
+ * 이미지 파일 업로드 및 저장을 위한 Command
+ * - Storage 업로드 → DB 저장 → Signed URL 생성의 전체 플로우
+ *
+ * Process Model: 이미지 업로드 플로우
+ */
+export interface UploadImageCommand {
+  /** 에셋 타입 */
+  assetType: 'ai-generated' | 'user-upload';
+
+  /** 업로드할 파일 (Buffer 또는 Blob) */
+  file: Buffer | Blob;
+
+  /** 파일명 */
+  fileName: string;
+
+  /** 파일 크기 (bytes) */
+  fileSize: number;
+
+  /** MIME 타입 */
+  mimeType: string;
+
+  /** 워크스페이스 ID */
+  workspaceId: string;
+
+  /** 생성자 사용자 ID */
+  userId: string;
+
+  /** 이미지 너비 (optional) */
+  width?: number;
+
+  /** 이미지 높이 (optional) */
+  height?: number;
+
+  /** AI 생성 이미지 전용 필드 */
+  prompt?: string;
+  negativePrompt?: string;
+  metadata?: Record<string, any>;
+}

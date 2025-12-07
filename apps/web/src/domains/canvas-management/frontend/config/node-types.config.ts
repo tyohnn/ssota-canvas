@@ -24,7 +24,7 @@ import {
   AudioBlock,
   GitHubBranchBlock,
   GitHubCommitBlock,
-  ReactPreviewBlock,
+  ReactComponentBlock,
   VercelDeploymentBlock,
 } from '@/domains/block-management/frontend/components/block/block-type';
 
@@ -54,8 +54,8 @@ export const CANVAS_NODE_TYPES: NodeTypes = {
   [BlockType.AUDIO]: AudioBlock,
   [BlockType.GITHUB_BRANCH]: GitHubBranchBlock,
   [BlockType.GITHUB_COMMIT]: GitHubCommitBlock,
-  [BlockType.REACT_PREVIEW]: ReactPreviewBlock,
+  [BlockType.REACT_COMPONENT]: ReactComponentBlock,
   [BlockType.VERCEL_DEPLOYMENT]: VercelDeploymentBlock,
   [BlockType.PDF]: PdfBlock,
-  // GITHUB_PR, REACT_COMPONENT 등은 추후 구현
+  // GITHUB_PR, REACT_PREVIEW 등은 추후 구현
 };

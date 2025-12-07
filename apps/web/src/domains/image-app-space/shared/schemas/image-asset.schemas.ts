@@ -157,3 +157,53 @@ export const ChangeImageVisibilityRequestSchema = z.object({
 export type ChangeImageVisibilityRequest = z.infer<
   typeof ChangeImageVisibilityRequestSchema
 >;
+
+/**
+ * Workspace 이미지 조회 요청 스키마
+ *
+ * 워크스페이스의 모든 멤버가 업로드한 이미지 조회
+ */
+export const GetWorkspaceImagesRequestSchema = z.object({
+  workspaceId: z.uuid({ message: 'Invalid workspace ID' }),
+  filterType: z
+    .enum(['all', 'ai-generated', 'unsplash', 'user-upload'])
+    .default('all'),
+  page: z.number().int().positive().default(1),
+  perPage: z.number().int().positive().max(100).default(20),
+});
+
+export type GetWorkspaceImagesRequest = z.infer<
+  typeof GetWorkspaceImagesRequestSchema
+>;
+
+/**
+ * 이미지 URL 조회 요청 스키마
+ *
+ * Signed URL 생성을 위한 요청
+ */
+export const GetImageUrlRequestSchema = z.object({
+  imageAssetId: z.string().uuid({ message: 'Invalid image asset ID' }),
+});
+
+export type GetImageUrlRequest = z.infer<typeof GetImageUrlRequestSchema>;
+
+/**
+ * Unsplash 이미지 저장/조회 요청 스키마
+ *
+ * photoId로 중복 체크 후 생성 또는 기존 것 반환
+ */
+export const CreateOrGetUnsplashImageAssetRequestSchema = z.object({
+  photoId: z.string().min(1, { message: 'Invalid Unsplash photo ID' }),
+  imageUrl: z.string().url({ message: 'Invalid image URL' }),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  authorName: z.string().min(1, { message: 'Author name required' }),
+  authorUsername: z.string().min(1, { message: 'Author username required' }),
+  authorLink: z.string().url({ message: 'Invalid author link' }),
+  altDescription: z.string().optional(),
+  workspaceId: z.uuid({ message: 'Invalid workspace ID' }),
+});
+
+export type CreateOrGetUnsplashImageAssetRequest = z.infer<
+  typeof CreateOrGetUnsplashImageAssetRequestSchema
+>;

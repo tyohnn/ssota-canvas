@@ -92,16 +92,19 @@ export function useImageSearchBusiness(
 
             const blockData = node.data as BlockNodeData;
 
-            await updateProperties(
-              blockId,
-              {
-                imageUrl: image.url,
-                imageSource: image.source,
-                alt: image.alt,
-                ...buildMetadata(image),
-              },
-              blockData
-            );
+            const propertiesToUpdate: Record<string, unknown> = {
+              imageUrl: image.url,
+              imageSource: image.source,
+              alt: image.alt,
+              ...buildMetadata(image),
+            };
+
+            // Public 이미지 (Unsplash)를 선택할 때는 기존 imageAssetId 제거
+            if (image.source === 'unsplash') {
+              propertiesToUpdate.imageAssetId = null;
+            }
+
+            await updateProperties(blockId, propertiesToUpdate, blockData);
           })
         );
       } else if (mode === 'createNew') {

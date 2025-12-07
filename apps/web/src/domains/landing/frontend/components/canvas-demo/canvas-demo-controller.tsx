@@ -14,11 +14,10 @@ import { LandingCanvasWrapper } from './landing-canvas-wrapper';
 import {
   useSection1Data,
   useSection1AnimationSequence,
+  CANVAS_ANIMATION_CONFIG,
 } from '../sections/s1-workflow/data/section1-data-refactored';
 import { useAnimatedCanvasData } from '../sections/s1-workflow/hooks/use-animated-canvas-data';
 import { useAnimatedViewport } from '../sections/s1-workflow/hooks/use-animated-viewport';
-
-const VIEWPORT_ANIMATION_DURATION = 600; // viewport 애니메이션 duration (ms)
 
 export function CanvasDemoController() {
   const { section, subPhase } = useScrollSections();
@@ -27,29 +26,19 @@ export function CanvasDemoController() {
   const animationSequence = useSection1AnimationSequence(subPhase);
   const section1Data = useSection1Data(subPhase);
 
-  // Phase별 startDelay 설정
-  const getAnimationStartDelay = () => {
-    if (subPhase === 0) {
-      // Intro: 헤더 + 서브텍스트 + Workspace Header 완료 후
-      // 0.2s (헤더 delay) + 0.6s (헤더 duration) = 0.8s
-      // 0.6s (서브텍스트 delay) + 0.6s (서브텍스트 duration) = 1.2s
-      // 0.6s (workspace header delay) + 0.4s (duration) = 1.0s
-      return 1000; // 가장 긴 애니메이션 기준 (서브텍스트)
-    }
-    // Plan/Design/Develop/Deploy: PhaseIndicators 완료 후
-    // 0.9s (delay) + 0.4s (duration) = 1.3s
-    return 1300;
-  };
-
-  const animationStartDelay = getAnimationStartDelay();
+  // Phase별 startDelay 가져오기
+  const animationStartDelay =
+    subPhase === 0
+      ? CANVAS_ANIMATION_CONFIG.INTRO_START_DELAY
+      : CANVAS_ANIMATION_CONFIG.PHASE_START_DELAY;
 
   // Apply animation effect
   const { nodes, edges } = useAnimatedCanvasData({
     blocks: animationSequence.blocks,
     edges: animationSequence.edges,
     config: {
-      blockDelay: 400,
-      edgeDelay: 250,
+      blockDelay: CANVAS_ANIMATION_CONFIG.BLOCK_DELAY,
+      edgeDelay: CANVAS_ANIMATION_CONFIG.EDGE_DELAY,
       startDelay: animationStartDelay,
     },
     enabled: animationSequence.enableAnimation,
@@ -112,7 +101,7 @@ export function CanvasDemoController() {
       workspaceIcon={headerData.workspaceIcon}
       pageName={headerData.pageName}
       pageIcon={headerData.pageIcon}
-      viewportAnimationDuration={VIEWPORT_ANIMATION_DURATION}
+      viewportAnimationDuration={CANVAS_ANIMATION_CONFIG.VIEWPORT_DURATION}
     />
   );
 }

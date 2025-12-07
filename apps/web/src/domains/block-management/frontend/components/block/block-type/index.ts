@@ -40,8 +40,8 @@ export * from './audio';
 export * from './github-branch';
 export * from './github-commit';
 
-// React Preview Block Components
-export * from './react-preview';
+// React Component Block Components
+export * from './react-component';
 
 // Vercel Deployment Block Components
 export * from './vercel-deployment';

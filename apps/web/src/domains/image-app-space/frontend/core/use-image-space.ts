@@ -32,15 +32,11 @@ export function useImageSpace(
   const handleSelectImage = useCallback(
     async (params: SelectImageParams) => {
       try {
-        // UI: 성공 시 Dialog 닫기
-        uiState.setOpen(false);
-
-        // Business: 이미지 업데이트
+        // ✅ Business 로직 먼저 실행 (비동기 작업 완료 후 UI 업데이트)
         await business.onSelectImage(params);
 
-        // UI: 상태 초기화
-        uiState.setSearchQuery('');
-        uiState.setSelectedCategory(null);
+        // ✅ 성공 후 Dialog 닫기 (handleOpenChange에서 상태 초기화도 함께 처리됨)
+        uiState.setOpen(false);
       } catch (error) {
         console.error('Failed to select image in Image Space:', error);
         // UI: 에러 시 Dialog는 유지 (사용자가 재시도 가능)

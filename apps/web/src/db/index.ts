@@ -111,6 +111,7 @@ const globalForDb = globalThis as unknown as {
 };
 
 // Create admin client for direct database access (Singleton)
+// ⚠️ 인증 정보는 connectionUrl에 포함: postgresql://user:password@host:port/db
 const adminClient =
   globalForDb.adminClient ?? postgres(connectionUrl, connectionConfig);
 if (isDevelopment) globalForDb.adminClient = adminClient;
@@ -122,6 +123,7 @@ if (isDevelopment) globalForDb.rlsClient = rlsClient;
 
 // Create drizzle instances with environment-based schema
 // Include image_app_space schema for both dev and prod
+// ⚠️ adminClient = postgres.js client (SQL only)
 export const adminDb = drizzle(adminClient, {
   schema: { ...schema, ...imageAppSpaceSchema },
 });
