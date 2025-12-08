@@ -1,4 +1,4 @@
-# Story CM-004: 블럭 선택 및 다중 선택
+# Story E002-004: 블럭 선택 및 다중 선택
 
 ## 🎯 Story 개요
 **User Story**: As a 디자이너, I want to 블럭을 선택하고 여러 블럭을 동시에 선택할 수 있어야 so that 선택된 블럭들에 대해 일괄 작업을 수행할 수 있다
@@ -114,8 +114,8 @@ And 선택된 블럭 수가 표시된다
 - ✅ viewport 좌표 변환으로 줌/패닝 대응
 
 ## 🔗 의존성
-- **선행 Story**: CM-002 (블럭 생성 및 마운팅), CM-003 (블럭 변환)
-- **후행 Story**: CM-005 (블럭 정렬 도구), CM-008 (블럭 삭제)
+- **선행 Story**: E002-002 (블럭 생성 및 마운팅), E002-003 (블럭 변환)
+- **후행 Story**: E002-005 (블럭 정렬 도구), E002-008 (블럭 삭제)
 - **Sprint**: [Sprint 008](../../sprints/sprint-008-canvas-foundation.md)
 - **도메인 의존성**: React Flow SelectionMode 및 키보드 이벤트 처리
 

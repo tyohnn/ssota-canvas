@@ -1,4 +1,4 @@
-# Story CM-010: 블럭 복제
+# Story E002-010: 블럭 복제
 
 ## 🎯 Story 개요
 **User Story**: As a 디자이너, I want to 기존 블럭을 복사하여 새로운 블럭을 빠르게 생성할 수 있어야 so that 유사한 요소들을 효율적으로 만들고 작업 시간을 단축할 수 있다
@@ -116,7 +116,7 @@ And 복제된 블럭만 영향받는다
 - ✅ **Testing**: Integration Tests (CanvasManagementService.duplicateBlock)
 
 ## 🔗 의존성
-- **선행 Story**: CM-002 (블럭 생성 및 마운팅), CM-004 (블럭 선택)
+- **선행 Story**: E002-002 (블럭 생성 및 마운팅), E002-004 (블럭 선택)
 - **후행 Story**: 통합 테스트 및 최적화
 - **도메인 의존성**: Block Domain과의 블럭 복제 API 연동
 

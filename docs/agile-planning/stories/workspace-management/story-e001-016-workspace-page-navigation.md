@@ -1,4 +1,4 @@
-# Story 001: Workspace-Page 목록 조회 및 네비게이션
+# Story E001-016: Workspace-Page 목록 조회 및 네비게이션
 
 ## 🎯 Story 개요
 

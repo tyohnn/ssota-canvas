@@ -1,4 +1,4 @@
-# Story 001: 구글 OAuth 로그인
+# Story E001-013: 구글 OAuth 로그인
 
 ## 🎯 Story 개요
 **User Story**: As a 방문자 I want to 구글 계정으로 로그인할 수 있어야 so that 서비스에 가입하고 사용할 수 있다

@@ -1,4 +1,4 @@
-# Story BM-006: 블록 툴 실행
+# Story E001-006: 블록 툴 실행
 
 ## 🎯 Story 개요
 **User Story**: As a 사용자 I want to 블록 타입별 특화 기능을 실행할 수 있어야 so that 블록의 데이터를 활용하여 추가 정보를 생성할 수 있다
@@ -138,7 +138,7 @@ And 실행 상태가 초기화된다
 - **Testing**: Integration Tests, E2E Tests 미구현
 
 ## 🔗 의존성
-- **선행 Story**: BM-005 (미디어 업로드)
+- **선행 Story**: E001-005 (미디어 업로드)
 - **후행 Story**: 없음 (Epic 완료)
 - **도메인 의존성**: Block Management Domain ↔ Canvas Management Domain
 

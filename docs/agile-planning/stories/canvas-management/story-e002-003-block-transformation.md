@@ -1,4 +1,4 @@
-# Story CM-003: 블럭 변환 (드래그, 리사이즈, 정렬)
+# Story E002-003: 블럭 변환 (드래그, 리사이즈, 정렬)
 
 ## 🎯 Story 개요
 **User Story**: As a 디자이너, I want to 블럭을 드래그하여 이동시키고 크기를 조절하며 여러 블럭을 정렬할 수 있어야 so that 원하는 레이아웃으로 시각적 요소를 정확히 배치하고 테스트할 수 있다
@@ -15,7 +15,7 @@
 - ✅ 다중 블럭 정렬/분포 (프론트엔드 계산 + 서버 저장)
 - ✅ 뷰포트 제어 (줌/패닝)
 - ❌ Z-Order 변경 (추후 스토리에서 처리)
-- ❌ 블럭 삭제 (CM-008에서 처리)
+- ❌ 블럭 삭제 (E002-008에서 처리)
 
 ---
 
@@ -99,7 +99,7 @@ And 뷰포트 상태가 DB에 저장된다
 
 ### Phase 0: 기존 완료된 인프라 (재사용) ✅
 
-**CM-001, CM-002에서 완료된 인프라** (재사용):
+**E002-001, E002-002에서 완료된 인프라** (재사용):
 - [x] ✅ **Database Schema**: block_mounts 테이블 (position, size 컬럼 포함)
 - [x] ✅ **Value Objects**: Position, Size VO (좌표/크기 계산 메서드 포함)
 - [x] ✅ **Entities**: BlockMount Entity (기본 구조, transform 메서드 포함)
@@ -443,7 +443,7 @@ And 뷰포트 상태가 DB에 저장된다
     - 줌 인 버튼 → `zoomIn()` 호출
     - 줌 아웃 버튼 → `zoomOut()` 호출
     - 원래 크기 → `resetZoom()` 호출
-  - 🔄 **수정 필요**: CM-001의 읽기 전용 버전 → 제어 메서드 추가
+  - 🔄 **수정 필요**: E002-001의 읽기 전용 버전 → 제어 메서드 추가
 
 - [ ] **컴포넌트 테스트**
   - 테스트 케이스:
@@ -458,7 +458,7 @@ And 뷰포트 상태가 DB에 저장된다
 - [ ] **컴포넌트 대폭 업데이트**
   - 파일: `src/domains/canvas-management/frontend/components/canvas-react-flow-wrapper.tsx`
   - Hooks 추가:
-    - `useCanvasMode()` - 모드 관리 (CM-002에서 확장)
+    - `useCanvasMode()` - 모드 관리 (E002-002에서 확장)
     - `useCanvasBlockTransform(pageId)` - 블럭 변형
     - `useCanvasSnapGuides()` - 스냅 가이드
     - `useCanvasViewport()` - 뷰포트 제어
@@ -530,7 +530,7 @@ And 뷰포트 상태가 DB에 저장된다
     </ReactFlow>
     ```
 
-  - 🔄 **수정 필요**: CM-001의 기본 버전 → 모든 이벤트 핸들러 및 모드별 렌더링 추가
+  - 🔄 **수정 필요**: E002-001의 기본 버전 → 모든 이벤트 핸들러 및 모드별 렌더링 추가
 
 ---
 
@@ -540,7 +540,7 @@ And 뷰포트 상태가 DB에 저장된다
 - [ ] **블럭 드래그 플로우 테스트**
   - 파일: `src/__tests__/e2e/canvas/block-drag.spec.ts`
   - 시나리오:
-    1. 페이지 접근, 블럭 생성 (CM-002 의존)
+    1. 페이지 접근, 블럭 생성 (E002-002 의존)
     2. 블럭 선택 (single-selection 모드 확인)
     3. 블럭 드래그 시작 (dragging 모드 전환 확인)
     4. 스냅 가이드라인 표시 확인
@@ -661,14 +661,14 @@ And 뷰포트 상태가 DB에 저장된다
   - **이벤트**: 기존 이벤트 발행 구조 활용, 이벤트 타입만 분리
 
 - [ ] 🔄 **CanvasReactFlowWrapper 확장** (기존 구조 활용)
-  - **기존**: 기본 React Flow 렌더링, 기본 이벤트 핸들러 (CM-001, CM-002)
+  - **기존**: 기본 React Flow 렌더링, 기본 이벤트 핸들러 (E002-001, E002-002)
   - **변경**: 이벤트 핸들러 추가
     - `onNodeDragStart`, `onNodeDragStop`, `onNodeResizeEnd` 추가
     - 모드별 UI 렌더링 추가 (SnapGuidelines, MultiSelectionToolbar)
   - **Hook 통합**: 기존 Hook들 + useCanvasBlockTransform, useCanvasSnapGuides
 
-- [x] ✅ **BlockMountToolbar** (CM-002에서 완료)
-  - 기존: 기본 UI만 (CM-002에서 구현 완료)
+- [x] ✅ **BlockMountToolbar** (E002-002에서 완료)
+  - 기존: 기본 UI만 (E002-002에서 구현 완료)
   - 변경: 실제 기능 연동 필요 없음 (단순 UI 컴포넌트)
 
 **재사용 비율**: ~40% (Entity, Value Objects, Repository, 기본 Aggregate/Service 구조)
@@ -708,10 +708,10 @@ And 뷰포트 상태가 DB에 저장된다
 ---
 
 ## 📊 진행 상황
-**현재**: 25% (CM-001, CM-002 완료 인프라 + 기존 블럭 변형 코드 재사용 가능)
+**현재**: 25% (E002-001, E002-002 완료 인프라 + 기존 블럭 변형 코드 재사용 가능)
 
 ### 기존 완료 작업 (재사용 가능)
-- [x] ✅ **CM-001, CM-002 완료 인프라**: GetCanvasViewQuery, ACL, Frontend 기본 구조, useCanvasMode, useCanvasSelection
+- [x] ✅ **E002-001, E002-002 완료 인프라**: GetCanvasViewQuery, ACL, Frontend 기본 구조, useCanvasMode, useCanvasSelection
 - [x] ✅ **Database Schema**: block_mounts 테이블 (position, size 컬럼)
 - [x] ✅ **Value Objects**: Position, Size VO (좌표/크기 계산 메서드, 89개 테스트 통과)
 - [x] ✅ **Entities**: BlockMount Entity (transform 메서드 포함)
@@ -746,18 +746,18 @@ And 뷰포트 상태가 DB에 저장된다
 ---
 
 ## 🔗 의존성
-- **선행 Story**: CM-002 (블럭 생성 완료 필수)
-- **블로킹**: CM-002 완료 전까지 블럭 드래그/리사이즈 테스트 불가
+- **선행 Story**: E002-002 (블럭 생성 완료 필수)
+- **블로킹**: E002-002 완료 전까지 블럭 드래그/리사이즈 테스트 불가
 - **후행 Story**: 
-  - CM-003 완료 시점에 사용자가 테스트 가능:
+  - E002-003 완료 시점에 사용자가 테스트 가능:
     - ✅ 블럭 생성
     - ✅ 블럭 드래그 이동
     - ✅ 블럭 리사이즈
     - ✅ 다중 선택 및 정렬
     - ✅ 스냅 가이드라인
     - ✅ 뷰포트 제어
-  - CM-007 (엣지 생성) - 엣지 연결 기능 추가
-  - CM-008 (블럭 삭제) - 삭제 기능 추가
+  - E002-007 (엣지 생성) - 엣지 연결 기능 추가
+  - E002-008 (블럭 삭제) - 삭제 기능 추가
 - **도메인 의존성**: React Flow 라이브러리
 
 ---

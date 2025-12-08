@@ -1,4 +1,4 @@
-# Story 006: 조직 생성
+# Story E001-009: 조직 생성
 
 ## 🎯 Story 개요
 **User Story**: As a 로그인된 사용자 I want to 새로운 조직을 생성할 수 있어야 so that 팀과 함께 작업할 수 있다

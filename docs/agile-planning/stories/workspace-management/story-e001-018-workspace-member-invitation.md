@@ -1,4 +1,4 @@
-# Story 003: Workspace 멤버 초대 및 수락/거절
+# Story E001-018: Workspace 멤버 초대 및 수락/거절
 
 ## 🎯 Story 개요
 

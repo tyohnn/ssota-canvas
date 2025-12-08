@@ -1,4 +1,4 @@
-# Story CM-005: 블럭 정렬 및 분포 도구
+# Story E002-005: 블럭 정렬 및 분포 도구
 
 ## 🎯 Story 개요
 **User Story**: As a 디자이너, I want to 선택된 여러 블럭들을 정렬하고 균등하게 분포시킬 수 있어야 so that 일관된 레이아웃과 깔끔한 시각적 배치를 빠르게 만들 수 있다
@@ -118,8 +118,8 @@ And React Flow와 데이터베이스 상태가 동기화된다
 - ✅ MultiSelectionToolbar 동적 위치 (선택 박스 상단, viewport 좌표 변환)
 
 ## 🔗 의존성
-- **선행 Story**: CM-004 (블럭 선택 및 다중 선택)
-- **후행 Story**: CM-006 (스마트 가이드라인 및 스냅)
+- **선행 Story**: E002-004 (블럭 선택 및 다중 선택)
+- **후행 Story**: E002-006 (스마트 가이드라인 및 스냅)
 - **Sprint**: [Sprint 008](../../sprints/sprint-008-canvas-foundation.md)
 - **도메인 의존성**: 다중 블럭 선택 상태 및 정렬 알고리즘
 

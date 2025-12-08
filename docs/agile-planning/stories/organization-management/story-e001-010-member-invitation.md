@@ -1,4 +1,4 @@
-# Story 007: 멤버 초대
+# Story E001-010: 멤버 초대
 
 ## 🎯 Story 개요
 **User Story**: As a 조직 소유자 또는 관리자 I want to 인박스 알림으로 새 멤버를 초대할 수 있어야 so that 팀원들과 함께 작업할 수 있다

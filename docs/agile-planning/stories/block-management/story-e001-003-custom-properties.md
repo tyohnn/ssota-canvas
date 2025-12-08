@@ -1,4 +1,4 @@
-# Story BM-003: 커스텀 속성 관리
+# Story E001-003: 커스텀 속성 관리
 
 ## 🎯 Story 개요
 **User Story**: As a 사용자 I want to 블록에 커스텀 속성을 추가하고 관리할 수 있어야 so that 블록에 더 많은 정보를 저장하고 관리할 수 있다
@@ -69,7 +69,7 @@ And 옵션별 색상과 순서를 설정할 수 있다
 - 참고: Frontend Hook(`useSchemaFieldEditor`)과 연동되어 낙관적 UI + 백엔드 동기화 완성
 
 #### Frontend ✅ 완료
-- [x] ✅ **PropertyInput 컴포넌트** (타입별 동적 렌더링 - BM-004에서 완전 구현)
+- [x] ✅ **PropertyInput 컴포넌트** (타입별 동적 렌더링 - E001-004에서 완전 구현)
 - [x] ✅ **GenericFieldPopover 컴포넌트** (완전 구현)
 - [x] ✅ **SelectLikeFieldPopover 컴포넌트** (완전 구현)
 - [x] ✅ **StatusFieldPopover 컴포넌트** (완전 구현)
@@ -117,7 +117,7 @@ And 옵션별 색상과 순서를 설정할 수 있다
   - GenericFieldPopover (완전 구현)
   - SelectLikeFieldPopover (완전 구현)
   - StatusFieldPopover (완전 구현)
-  - PropertyInput 컴포넌트들 (BM-004에서 완전 구현)
+  - PropertyInput 컴포넌트들 (E001-004에서 완전 구현)
 - **Block Type Schemas**: 분리된 스키마 시스템으로 확장성 개선
 - **Testing**: Value Objects 단위 테스트, Frontend Hooks 테스트 완전 구현
 
@@ -126,8 +126,8 @@ And 옵션별 색상과 순서를 설정할 수 있다
 - **E2E Tests**: 속성 추가/편집/삭제 전체 플로우 E2E 테스트 미구현
 
 ## 🔗 의존성
-- **선행 Story**: BM-002 (블록 편집)
-- **후행 Story**: BM-004 (속성 값 관리)
+- **선행 Story**: E001-002 (블록 편집)
+- **후행 Story**: E001-004 (속성 값 관리)
 - **도메인 의존성**: Block Management Domain
 
 ## 📁 관련 문서

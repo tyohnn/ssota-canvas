@@ -1,4 +1,4 @@
-# Story BM-001: 블록 생성 및 기본 관리
+# Story E001-001: 블록 생성 및 기본 관리
 
 ## 🎯 Story 개요
 **User Story**: As a 사용자 I want to 블록을 생성하고 기본 정보를 관리할 수 있어야 so that 콘텐츠를 체계적으로 구성할 수 있다
@@ -62,12 +62,12 @@ And Canvas에서 블록이 제거된다
 - 참고: 블록 생성은 Canvas Management Domain의 `createAndMountBlockAction`을 통해 통합 처리됨
 
 #### Frontend ✅ 완료
-- [x] ✅ **useBlockPropertyUpdate Hook** (속성 값 업데이트 - BM-004에서 완전 구현)
-- [x] ✅ **useSchemaFieldEditor Hook** (속성 정의 관리 - BM-003에서 완전 구현)
-- [x] ✅ **useBlockToolExecution Hook** (툴 실행 - BM-006에서 완전 구현)
+- [x] ✅ **useBlockPropertyUpdate Hook** (속성 값 업데이트 - E001-004에서 완전 구현)
+- [x] ✅ **useSchemaFieldEditor Hook** (속성 정의 관리 - E001-003에서 완전 구현)
+- [x] ✅ **useBlockToolExecution Hook** (툴 실행 - E001-006에서 완전 구현)
 - [x] ✅ **Editor Panel 컴포넌트** (Block Management 전용 - 완전 구현)
-- [x] ✅ **PropertyInput 컴포넌트** (타입별 입력 컴포넌트 - BM-004에서 완전 구현)
-- [x] ✅ **Field Popover 컴포넌트들** (GenericFieldPopover, SelectLikeFieldPopover, StatusFieldPopover - BM-003에서 완전 구현)
+- [x] ✅ **PropertyInput 컴포넌트** (타입별 입력 컴포넌트 - E001-004에서 완전 구현)
+- [x] ✅ **Field Popover 컴포넌트들** (GenericFieldPopover, SelectLikeFieldPopover, StatusFieldPopover - E001-003에서 완전 구현)
 - [x] ✅ **블록 타입별 컴포넌트** (`block/[type]/` 구조: text, markdown, youtube, python 등 구현)
 
 ---
@@ -76,27 +76,27 @@ And Canvas에서 블록이 제거된다
 **참조 문서**: [Technical Specification](../../../event-domain-design/domains/canvas-management-domain/04-technical-specification.md)
 
 #### Backend Implementation ✅ 완료
-- [x] ✅ **CanvasBlockMountService 구현** (CM-002에서 완료)
-- [x] ✅ **블록 마운트 로직** (CM-002에서 완료)
-- [x] ✅ **createBlockAction 통합 액션** (CM-002에서 완료)
+- [x] ✅ **CanvasBlockMountService 구현** (E002-002에서 완료)
+- [x] ✅ **블록 마운트 로직** (E002-002에서 완료)
+- [x] ✅ **createBlockAction 통합 액션** (E002-002에서 완료)
 
 #### Frontend ✅ 완료
-- [x] ✅ **use-canvas-block-lifecycle Hook** (CM-002에서 완료)
-- [x] ✅ **블록 생명주기 관리** (CM-002에서 완료)
-- [x] ✅ **useCanvasMode Hook** (CM-001에서 완료)
-- [x] ✅ **Shadow Block 컴포넌트** (CM-002에서 완료)
-- [x] ✅ **Skeleton Block 컴포넌트** (CM-002에서 완료)
-- [x] ✅ **BasicBlockNode 컴포넌트** (CM-002에서 완료)
-- [x] ✅ **BlockAddDialog 컴포넌트** (CM-002에서 완료)
-- [x] ✅ **CanvasToolbar 컴포넌트** (CM-001에서 완료)
+- [x] ✅ **use-canvas-block-lifecycle Hook** (E002-002에서 완료)
+- [x] ✅ **블록 생명주기 관리** (E002-002에서 완료)
+- [x] ✅ **useCanvasMode Hook** (E002-001에서 완료)
+- [x] ✅ **Shadow Block 컴포넌트** (E002-002에서 완료)
+- [x] ✅ **Skeleton Block 컴포넌트** (E002-002에서 완료)
+- [x] ✅ **BasicBlockNode 컴포넌트** (E002-002에서 완료)
+- [x] ✅ **BlockAddDialog 컴포넌트** (E002-002에서 완료)
+- [x] ✅ **CanvasToolbar 컴포넌트** (E002-001에서 완료)
 
 ---
 
 ### 도메인 간 통합 ✅ 이미 구현됨
-- [x] ✅ **Block Management → Canvas Management 연동** (CM-002에서 완료)
-- [x] ✅ **블록 생성 시 Canvas 마운트** (CM-002에서 완료)
-- [x] ✅ **권한 검증 로직** (CM-002에서 완료)
-- [x] ✅ **워크스페이스 기반 접근 제어** (CM-002에서 완료)
+- [x] ✅ **Block Management → Canvas Management 연동** (E002-002에서 완료)
+- [x] ✅ **블록 생성 시 Canvas 마운트** (E002-002에서 완료)
+- [x] ✅ **권한 검증 로직** (E002-002에서 완료)
+- [x] ✅ **워크스페이스 기반 접근 제어** (E002-002에서 완료)
 
 ---
 
@@ -109,7 +109,7 @@ And Canvas에서 블록이 제거된다
 ## 🎯 Definition of Done
 
 ### 기능 완료
-- [x] ✅ **Shadow Block → Skeleton Block → Completed Block 흐름** (CM-002에서 완료)
+- [x] ✅ **Shadow Block → Skeleton Block → Completed Block 흐름** (E002-002에서 완료)
 - [x] ✅ **Editor Panel 자동 열림 기능** (Block Management 전용 Editor Panel 완전 구현)
 - [x] ✅ **블록 기본 정보 관리** (Editor Panel에서 블록 제목 편집, PropertyInput으로 속성 관리 완전 구현)
 - [x] ✅ **블록 삭제 기능** (Canvas Management의 softDeleteBlockMountAction으로 통합 처리)
@@ -141,9 +141,9 @@ And Canvas에서 블록이 제거된다
   - `updateBlockTitleAction` (블록 제목 업데이트)
 - **Canvas Management 연동**: 블록 생성 시 Canvas 마운트 완전 연동 (createAndMountBlockAction)
 - **Frontend Hooks**: 
-  - `useBlockPropertyUpdate` (BM-004에서 완전 구현)
-  - `useSchemaFieldEditor` (BM-003에서 완전 구현)
-  - `useBlockToolExecution` (BM-006에서 완전 구현)
+  - `useBlockPropertyUpdate` (E001-004에서 완전 구현)
+  - `useSchemaFieldEditor` (E001-003에서 완전 구현)
+  - `useBlockToolExecution` (E001-006에서 완전 구현)
 - **Frontend Components**: 
   - `EditorPanel` (Notion 스타일 우측 슬라이드 패널)
   - `PropertyInput` 컴포넌트들 (타입별 입력)
@@ -153,7 +153,7 @@ And Canvas에서 블록이 제거된다
 - **Block Type Schemas**: 분리된 스키마 시스템으로 확장성 개선
 - **Testing**: Unit Tests, Integration Tests 완전 구현
 
-### ✅ 이미 완료된 작업 (CM-002에서)
+### ✅ 이미 완료된 작업 (E002-002에서)
 - [x] ✅ **블록 생성 흐름**: Shadow Block → Skeleton Block → Completed Block
 - [x] ✅ **Canvas 연동**: 블록 생성 시 Canvas 마운트
 - [x] ✅ **권한 검증**: 워크스페이스 기반 접근 제어
@@ -173,20 +173,20 @@ And Canvas에서 블록이 제거된다
 
 ### ✅ Frontend 컴포넌트 완료
 - [x] ✅ **Editor Panel**: Block Management 전용 편집 패널 (완전 구현)
-- [x] ✅ **PropertyInput**: 속성 값 입력 컴포넌트 (BM-004에서 완전 구현)
-- [x] ✅ **Field Popover**: 속성 정의 편집 컴포넌트 (BM-003에서 완전 구현)
-- [x] ✅ **useBlockPropertyUpdate Hook**: 속성 값 업데이트 (BM-004에서 완전 구현)
-- [x] ✅ **useSchemaFieldEditor Hook**: 속성 정의 관리 (BM-003에서 완전 구현)
-- [x] ✅ **useBlockToolExecution Hook**: 툴 실행 (BM-006에서 완전 구현)
+- [x] ✅ **PropertyInput**: 속성 값 입력 컴포넌트 (E001-004에서 완전 구현)
+- [x] ✅ **Field Popover**: 속성 정의 편집 컴포넌트 (E001-003에서 완전 구현)
+- [x] ✅ **useBlockPropertyUpdate Hook**: 속성 값 업데이트 (E001-004에서 완전 구현)
+- [x] ✅ **useSchemaFieldEditor Hook**: 속성 정의 관리 (E001-003에서 완전 구현)
+- [x] ✅ **useBlockToolExecution Hook**: 툴 실행 (E001-006에서 완전 구현)
 - [x] ✅ **블록 타입별 컴포넌트**: `block/[type]/` 구조 (text, markdown, youtube, python 등 구현)
 
 ## 🔗 의존성
 - **선행 Story**: 
-  - ✅ **CM-001**: Canvas Management 기본 인프라 (완료)
-  - ✅ **CM-002**: 블록 생성 및 마운팅 (완료)
-- **후행 Story**: BM-002 (커스텀 속성 관리)
+  - ✅ **E002-001**: Canvas Management 기본 인프라 (완료)
+  - ✅ **E002-002**: 블록 생성 및 마운팅 (완료)
+- **후행 Story**: E001-002 (커스텀 속성 관리)
 - **도메인 의존성**: 
-  - ✅ **Canvas Management Domain**: 이미 통합 완료 (CM-002)
+  - ✅ **Canvas Management Domain**: 이미 통합 완료 (E002-002)
   - ✅ **Block Management Domain**: 구현 완료 (이 스토리에서)
 
 ## 📁 관련 문서

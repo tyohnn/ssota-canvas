@@ -1,4 +1,4 @@
-# Story CM-001: 캔버스 데이터 로드 및 렌더링
+# Story E002-001: 캔버스 데이터 로드 및 렌더링
 
 ## 🎯 Story 개요
 **User Story**: As a 사용자, I want to 페이지에 접속했을 때 기존 블럭/엣지/뷰포트가 자동으로 로드되고 렌더링되어야 so that 즉시 작업을 계속할 수 있다
@@ -12,7 +12,7 @@
 - ✅ 페이지별 캔버스 데이터 조회 (Read Model)
 - ✅ React Flow 초기 노드/엣지 렌더링
 - ✅ 뷰포트 상태 복원
-- ❌ 블럭 생성/편집 기능 (CM-002에서 처리)
+- ❌ 블럭 생성/편집 기능 (E002-002에서 처리)
 
 ---
 
@@ -293,7 +293,7 @@ And 뷰포트 제어(줌/패닝)만 가능하다
     - `useCanvasMode()` - 캔버스 모드 관리 ✅
     - `useCanvasSelection()` - 선택 상태 읽기 ✅
     - `useCanvasViewport()` - 뷰포트 상태 읽기 ✅
-    - 🔄 **추후 추가**: `useCanvasBlockLifecycle()`, `useCanvasBlockTransform()`, `useCanvasEdgeManagement()`, `useCanvasSnapGuides()` (CM-002, CM-003에서)
+    - 🔄 **추후 추가**: `useCanvasBlockLifecycle()`, `useCanvasBlockTransform()`, `useCanvasEdgeManagement()`, `useCanvasSnapGuides()` (E002-002, E002-003에서)
   - React Flow 설정:
     ```tsx
     <ReactFlow
@@ -331,7 +331,7 @@ And 뷰포트 제어(줌/패닝)만 가능하다
   - 역할: 블럭 선택 시 나타나는 컨텍스트 툴바 (CanvasToolbar와 구분)
   - UI: 플러스(+) 버튼과 BlockAddDialog 연동
   - 렌더링 조건: `isSingleSelectionMode() === true && isSelected(blockId)`
-  - 🔄 **추후 추가**: CM-002에서 BlockMountToolbar로 확장
+  - 🔄 **추후 추가**: E002-002에서 BlockMountToolbar로 확장
 
 - [x] ✅ **ViewportControls 컴포넌트**
   - 파일: `src/domains/canvas-management/frontend/components/viewport-controls.tsx`
@@ -339,7 +339,7 @@ And 뷰포트 제어(줌/패닝)만 가능하다
   - UI: 줌 레벨 표시, 뷰포트 좌표, 미니맵 토글 버튼
   - Hook: `useCanvasViewport()` (읽기 전용)
   - 디자인: `canvas-view-toolbar.tsx` (레거시) 참고하여 구현
-  - 기능: 뷰포트 상태 표시 + 미니맵 토글 (제어 버튼들은 CM-003에서 추가)
+  - 기능: 뷰포트 상태 표시 + 미니맵 토글 (제어 버튼들은 E002-003에서 추가)
 
 #### 4.5. Hooks 구현 (읽기 전용 버전)
 - [x] ✅ **useCanvasMode() Hook (Context 기반)**
@@ -544,8 +544,8 @@ And 뷰포트 제어(줌/패닝)만 가능하다
 ## 🔗 의존성
 - **선행 Story**: 없음 (첫 번째 스토리)
 - **후행 Story**: 
-  - CM-002 (블럭 생성 및 마운팅) - 블럭 추가 기능
-  - CM-003 (블럭 변환) - 드래그/리사이즈 기능
+  - E002-002 (블럭 생성 및 마운팅) - 블럭 추가 기능
+  - E002-003 (블럭 변환) - 드래그/리사이즈 기능
 - **도메인 의존성**: 
   - Workspace Management Domain (페이지 접근 권한)
   - Block Management Domain (블럭 정보 DB JOIN)
@@ -582,4 +582,4 @@ And 뷰포트 제어(줌/패닝)만 가능하다
 
 ---
 
-*이 스토리 완료 후 사용자는 페이지에 접근하여 기존 캔버스를 볼 수 있지만, 편집 기능은 CM-002에서 구현됩니다.*
+*이 스토리 완료 후 사용자는 페이지에 접근하여 기존 캔버스를 볼 수 있지만, 편집 기능은 E002-002에서 구현됩니다.*

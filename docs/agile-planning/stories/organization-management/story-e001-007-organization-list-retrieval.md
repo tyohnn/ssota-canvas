@@ -1,4 +1,4 @@
-# Story 004: 조직 목록 조회
+# Story E001-007: 조직 목록 조회
 
 ## 🎯 Story 개요
 **User Story**: As a 로그인된 사용자 I want to 내가 소유하거나 소속된 조직 목록을 조회할 수 있어야 so that 작업할 조직을 선택할 수 있다

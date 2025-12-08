@@ -1,4 +1,4 @@
-# Story 002: Workspace 생성 및 정보 수정
+# Story E001-017: Workspace 생성 및 정보 수정
 
 ## 🎯 Story 개요
 

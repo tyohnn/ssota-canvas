@@ -1,4 +1,4 @@
-# Story 002: 사용자 프로필 생성
+# Story E001-014: 사용자 프로필 생성
 
 ## 🎯 Story 개요
 **User Story**: As a 새로 가입한 사용자 I want to 프로필이 자동으로 생성되어야 so that 서비스를 사용할 수 있다

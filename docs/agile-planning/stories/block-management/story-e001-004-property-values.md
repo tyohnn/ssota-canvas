@@ -1,4 +1,4 @@
-# Story BM-004: 속성 값 관리
+# Story E001-004: 속성 값 관리
 
 ## 🎯 Story 개요
 **User Story**: As a 사용자 I want to 속성에 값을 입력하고 관리할 수 있어야 so that 블록에 실제 데이터를 저장하고 활용할 수 있다
@@ -67,7 +67,7 @@ And Public URL이 생성되어 속성에 저장된다
 - [x] ✅ **TextProperty, SelectProperty, MultiSelectProperty** (완전 구현)
 - [x] ✅ **CheckboxProperty, NumberProperty, UrlProperty** (완전 구현)
 - [x] ✅ **EmailProperty, PhoneProperty, ColorProperty** (완전 구현)
-- [x] ✅ **StatusProperty** (BM-003에서 완전 구현)
+- [x] ✅ **StatusProperty** (E001-003에서 완전 구현)
 - [ ] **DatetimeProperty, MediaProperty, ProfileProperty** (부분 구현 또는 미구현)
 - [x] ✅ **useBlockPropertyUpdate Hook** (완전 구현)
 - [x] ✅ **실시간 자동 저장 기능** (Optimistic Update로 즉시 반응)
@@ -139,19 +139,19 @@ And Public URL이 생성되어 속성에 저장된다
   - TextProperty, SelectProperty, MultiSelectProperty
   - CheckboxProperty, NumberProperty, UrlProperty
   - EmailProperty, PhoneProperty, ColorProperty
-  - StatusProperty (BM-003에서 구현)
+  - StatusProperty (E001-003에서 구현)
 - **Server Actions**: updateBlockPropertyAction을 통한 속성 값 업데이트 완전 구현
 - **UI Components**: 실시간 자동 저장 기능 완전 구현 (Optimistic Update)
 
 ### ❌ 미구현 사항
 - **Backend Domain**: 타입별 값 변환 로직 (부분 구현, 일부 타입은 프론트엔드에서 처리)
 - **Workspace Management 연동**: 프로필 속성 멤버 검증 로직 미구현
-- **Supabase Storage 연동**: 미디어 파일 업로드 로직 미구현 (BM-005에서 처리 예정)
+- **Supabase Storage 연동**: 미디어 파일 업로드 로직 미구현 (E001-005에서 처리 예정)
 - **Testing**: Integration Tests, E2E Tests 미구현
 
 ## 🔗 의존성
-- **선행 Story**: BM-003 (커스텀 속성 관리)
-- **후행 Story**: BM-005 (미디어 업로드)
+- **선행 Story**: E001-003 (커스텀 속성 관리)
+- **후행 Story**: E001-005 (미디어 업로드)
 - **도메인 의존성**: Block Management Domain ↔ Workspace Management Domain ↔ Supabase Storage
 
 ## 📁 관련 문서

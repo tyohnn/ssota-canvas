@@ -1,4 +1,4 @@
-# Story CM-002: 블럭 생성 및 마운팅
+# Story E002-002: 블럭 생성 및 마운팅
 
 ## 🎯 Story 개요
 **User Story**: As a 디자이너, I want to 도구바에서 블럭 타입을 선택하고 캔버스에 배치할 수 있어야 so that 원하는 시각적 요소를 빠르게 추가하고 즉시 확인할 수 있다
@@ -15,7 +15,7 @@
 - ✅ 블럭 생성 및 마운팅 (Optimistic UI)
 - ✅ 생성된 블럭 렌더링 및 선택 상태 전환
 - ✅ UUID 충돌 처리 및 데이터베이스 저장
-- ❌ 블럭 편집/변형 기능 (CM-003에서 처리)
+- ❌ 블럭 편집/변형 기능 (E002-003에서 처리)
 
 ---
 
@@ -76,23 +76,23 @@ And 블럭 내부 텍스트 편집 영역이 활성화된다
 
 ### Phase 0: 기존 완료된 인프라 (재사용) ✅
 
-**CM-001에서 완료된 인프라** (재사용):
+**E002-001에서 완료된 인프라** (재사용):
 - [x] ✅ **Database Schema**: block_mounts, edges, viewports 테이블 (Drizzle migration)
 - [x] ✅ **Value Objects**: Position, Size, ZOrder VO (단위 테스트 포함)
 - [x] ✅ **Entities**: BlockMount, Edge, Viewport Entity (단위 테스트 포함)
 - [x] ✅ **Repositories**: BlockMountRepository, EdgeRepository, ViewportRepository (기본 구조)
 - [x] ✅ **Service**: CanvasManagementService.getCanvasView() (통합 완료)
 - [x] ✅ **getCanvasViewAction**: Server Action 구현 (URL 파라미터 기반 권한 검증)
-- [x] ✅ **ACL**: toReactFlowNodeFromCanvasView, toReactFlowEdgeFromCanvasView (CM-001)
-- [x] ✅ **Frontend 기본 구조**: page.tsx, CanvasClient, CanvasReactFlowWrapper (CM-001)
-- [x] ✅ **useCanvasMode Hook**: Context 기반 전역 상태 관리 (CM-001)
-- [x] ✅ **CanvasToolbar**: 메인 캔버스 툴바 (CM-001)
-- [x] ✅ **ViewportControls**: 뷰포트 상태 표시 (CM-001)
+- [x] ✅ **ACL**: toReactFlowNodeFromCanvasView, toReactFlowEdgeFromCanvasView (E002-001)
+- [x] ✅ **Frontend 기본 구조**: page.tsx, CanvasClient, CanvasReactFlowWrapper (E002-001)
+- [x] ✅ **useCanvasMode Hook**: Context 기반 전역 상태 관리 (E002-001)
+- [x] ✅ **CanvasToolbar**: 메인 캔버스 툴바 (E002-001)
+- [x] ✅ **ViewportControls**: 뷰포트 상태 표시 (E002-001)
 
 **기존 완료된 블럭 관련 인프라** (검증 및 활용):
 - [x] ✅ **BlockMountAggregate 기본 구조**
   - 파일: `src/domains/canvas-management/shared/aggregates/block-mount.aggregate.ts`
-  - 이미 구현됨 (CM-001 또는 이전 작업)
+  - 이미 구현됨 (E002-001 또는 이전 작업)
   - 🔄 **검증 필요**: mountBlock() 정적 메서드 존재 확인
 
 - [x] ✅ **BlockMountId VO**
@@ -105,7 +105,7 @@ And 블럭 내부 텍스트 편집 영역이 활성화된다
   - 이미 정의됨
 
 **기존 완료된 Frontend 컴포넌트** (검증 및 활용):
-- [x] ✅ **CanvasToolbar 컴포넌트** (CM-001에서 완료)
+- [x] ✅ **CanvasToolbar 컴포넌트** (E002-001에서 완료)
   - 파일: `src/domains/canvas-management/frontend/components/canvas-toolbar.tsx`
   - 완료: 플러스 버튼과 `useCanvasMode()` Hook 연동
   - 완료: Add Block 버튼으로 `enterBlockCreationMode()` 호출
@@ -186,8 +186,8 @@ And 블럭 내부 텍스트 편집 영역이 활성화된다
 **참조 문서**: 
 - [Frontend Specification - useCanvasMode](../../../event-domain-design/domains/canvas-management-domain/04-frontend-specification.md#7-usecanvasmode-⭐-new)
 
-#### 2.1. useCanvasMode Hook 구현 ✅ (CM-001에서 완료)
-- [x] ✅ **Hook 구현** (CM-001에서 완료)
+#### 2.1. useCanvasMode Hook 구현 ✅ (E002-001에서 완료)
+- [x] ✅ **Hook 구현** (E002-001에서 완료)
   - 파일: `src/domains/canvas-management/frontend/hooks/use-canvas-mode.ts` (Context 기반)
   - 파일: `src/domains/canvas-management/frontend/contexts/canvas-mode-context.tsx` (실제 구현)
   - 상태: Context 기반 전역 `useState<CanvasMode>({ type: 'default' })`
@@ -248,8 +248,8 @@ And 블럭 내부 텍스트 편집 영역이 활성화된다
     - ✅ 블럭 타입 선택 시 enterBlockCreationMode 호출
     - ✅ 검색 필터링 동작
 
-#### 3.2. CanvasToolbar 컴포넌트 ✅ (CM-001에서 완료)
-- [x] ✅ **컴포넌트 구현** (CM-001에서 완료)
+#### 3.2. CanvasToolbar 컴포넌트 ✅ (E002-001에서 완료)
+- [x] ✅ **컴포넌트 구현** (E002-001에서 완료)
   - 파일: `src/domains/canvas-management/frontend/components/canvas-toolbar.tsx`
   - UI: Select, Hand, Fit to View, Add Block 버튼들
   - Hook: `useCanvasMode()` 연동 완료
@@ -257,13 +257,13 @@ And 블럭 내부 텍스트 편집 영역이 활성화된다
   - 완료: Context 기반 Hook 사용
 
 #### 3.3. BlockToolbar → BlockMountToolbar 확장
-- [ ] **BlockMountToolbar 컴포넌트 구현** (CM-001의 BlockToolbar 확장)
+- [ ] **BlockMountToolbar 컴포넌트 구현** (E002-001의 BlockToolbar 확장)
   - 파일: `src/domains/canvas-management/frontend/components/block-mount-toolbar.tsx`
   - 기반: `src/domains/canvas-management/frontend/components/block-toolbar.tsx`
   - Hook: `useCanvasMode()`, `useCanvasSelection()`
   - 렌더링 조건: `isSingleSelectionMode() === true`
   - UI: 선택된 블럭 위에 부유하는 컨텍스트 툴바
-  - 이벤트: Details, Duplicate, Delete 버튼 (일부는 CM-002 완료 후 활성화)
+  - 이벤트: Details, Duplicate, Delete 버튼 (일부는 E002-002 완료 후 활성화)
 
 - [ ] **컴포넌트 테스트**
   - 테스트 케이스:
@@ -360,7 +360,7 @@ And 블럭 내부 텍스트 편집 영역이 활성화된다
 ### Phase 5: Frontend - React Flow Wrapper 통합 ⭐⭐⭐
 
 #### 5.1. CanvasReactFlowWrapper 업데이트 ⭐ (부분 완료, 이벤트 핸들러 필요)
-- [x] ✅ **기본 구조** (CM-001에서 완료)
+- [x] ✅ **기본 구조** (E002-001에서 완료)
   - 파일: `src/domains/canvas-management/frontend/components/canvas-react-flow-wrapper.tsx`
   - Hooks 통합 완료:
     - `useCanvasMode()` - 모드 관리 (Context 기반)
@@ -437,10 +437,10 @@ And 블럭 내부 텍스트 편집 영역이 활성화된다
   - Hook: `useCanvasMode()`, `useCanvasSelection()`
   - 렌더링 조건: `isSingleSelectionMode() === true`
   - UI (기본 버전):
-    - Details 버튼 (>>): 비활성화 (CM-003에서 활성화)
+    - Details 버튼 (>>): 비활성화 (E002-003에서 활성화)
     - 더보기 메뉴 (...): 
-      - Duplicate (비활성화, CM-002 완료 후 활성화)
-      - Delete (비활성화, CM-002 완료 후 활성화)
+      - Duplicate (비활성화, E002-002 완료 후 활성화)
+      - Delete (비활성화, E002-002 완료 후 활성화)
   - 위치: 선택된 블럭 위에 부유
 
 - [ ] **컴포넌트 테스트**
@@ -629,9 +629,9 @@ And 블럭 내부 텍스트 편집 영역이 활성화된다
 ---
 
 ## 📊 진행 상황
-**현재**: 95% (CM-001 완료 + CM-002 핵심 기능 완료)
+**현재**: 95% (E002-001 완료 + E002-002 핵심 기능 완료)
 
-### CM-001에서 완료된 작업 (재사용) ✅
+### E002-001에서 완료된 작업 (재사용) ✅
 - [x] ✅ **Backend 인프라**: CanvasManagementService.getCanvasView(), getCanvasViewAction, 권한 검증
 - [x] ✅ **ACL**: toReactFlowNodeFromCanvasView, toReactFlowEdgeFromCanvasView 변환
 - [x] ✅ **Frontend 기본 구조**: page.tsx, CanvasClient, CanvasReactFlowWrapper
@@ -644,7 +644,7 @@ And 블럭 내부 텍스트 편집 영역이 활성화된다
 - [x] ✅ **Repositories**: BlockMountRepository, EdgeRepository, ViewportRepository
 - [x] ✅ **Aggregate**: BlockMountAggregate (mountBlock 메서드 포함)
 
-### CM-002 완료 작업 ✅
+### E002-002 완료 작업 ✅
 - [x] ✅ **createBlockAction**: Block Management Domain 연동 통합 액션 완료
 - [x] ✅ **useCanvasBlockLifecycle**: Optimistic UI 패턴 구현 완료 (핵심)
 - [x] ✅ **BlockAddDialog**: 실제 블럭 타입 목록과 useCanvasMode 연동 완료
@@ -658,8 +658,8 @@ And 블럭 내부 텍스트 편집 영역이 활성화된다
 - ✅ **새 설계**: Read Model Query + React Flow Optimistic UI
 - ✅ **기존 활용**: BlockMount 관련 인프라는 모두 재사용 가능
 
-### CM-001 완료 후 변경 사항
-| 항목 | CM-001 이전 | CM-001 완료 후 | CM-002에서 활용 |
+### E002-001 완료 후 변경 사항
+| 항목 | E002-001 이전 | E002-001 완료 후 | E002-002에서 활용 |
 |------|-------------|---------------|----------------|
 | Canvas Aggregate | ✅ 존재 | ❌ 제거 완료 | - |
 | BlockMount Aggregate | ✅ 존재 | ✅ **재사용** | ✅ **그대로 활용** |
@@ -675,14 +675,14 @@ And 블럭 내부 텍스트 편집 영역이 활성화된다
 ## 🔗 의존성
 - **선행 Story**: 없음 (첫 번째 스토리)
 - **후행 Story**: 
-  - CM-002 완료 시점에 사용자가 테스트 가능:
+  - E002-002 완료 시점에 사용자가 테스트 가능:
     - ✅ 페이지 로드
     - ✅ 빈 캔버스 확인
     - ✅ 블럭 생성 (Optimistic UI)
     - ✅ 생성된 블럭 확인
     - ✅ 선택 상태 전환
-  - CM-003 (블럭 변환) - 드래그/리사이즈 추가
-  - CM-004 (다중 선택) - 정렬 도구 추가
+  - E002-003 (블럭 변환) - 드래그/리사이즈 추가
+  - E002-004 (다중 선택) - 정렬 도구 추가
 - **도메인 의존성**: 
   - Workspace Management Domain (페이지 접근 권한)
   - Block Management Domain (블럭 생성, DB JOIN)

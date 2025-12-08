@@ -1,4 +1,4 @@
-# Story ORG-005: 멤버 역할 변경
+# Story E001-011: 멤버 역할 변경
 
 ## 🎯 Story 개요
 
@@ -279,13 +279,13 @@ And "역할 변경 권한이 없습니다" 에러 메시지가 표시된다
 ## 🔗 의존성
 
 ### 선행 Story
-- **Story ORG-004**: 멤버 초대 및 수락 시스템 ✅ (완료)
+- **Story E001-010**: 멤버 초대 및 수락 시스템 ✅ (완료)
   - organization_members 테이블 ✅
   - 멤버 목록 조회 기능 ✅
   - MemberListTable 컴포넌트 ✅
 
 ### 후행 Story
-- **Story ORG-006**: 멤버 제거 (Scenario 4) - 계획 중
+- **Story E001-012**: 멤버 제거 (Scenario 4) - 계획 중
 - **Story ORG-007**: 조직 소유권 이전 (Scenario 5) - 계획 중
 
 ### 도메인 의존성

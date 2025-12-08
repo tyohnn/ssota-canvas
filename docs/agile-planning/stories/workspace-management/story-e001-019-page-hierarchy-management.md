@@ -1,4 +1,4 @@
-# Story 004: Page 생성 및 계층 구조 관리
+# Story E001-019: Page 생성 및 계층 구조 관리
 
 ## 🎯 Story 개요
 

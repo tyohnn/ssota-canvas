@@ -134,7 +134,7 @@ Feature: 워크스페이스 생성
 ### 3.1 Story 문서 템플릿 (간결한 버전)
 
 ```markdown
-# Story [ID]: [Story 제목]
+# Story E[EPIC번호]-[순번]: [Story 제목]
 
 ## 🎯 Story 개요
 **User Story**: As a [사용자] I want to [기능] so that [가치]
@@ -143,6 +143,11 @@ Feature: 워크스페이스 생성
 **우선순위**: [High/Medium/Low]  
 **Epic**: [연관 Epic]  
 **Domain**: [관련 도메인들]
+
+**Story ID 규칙**: `E[EPIC번호]-[순번]` 형식 사용
+- 예시: `E005-001` (Epic-005의 첫 번째 Story)
+- Epic 번호만으로 명확하게 식별 가능
+- 도메인 정보는 Epic 문서에서 확인
 
 ## 📋 수용 기준 (Acceptance Criteria)
 
@@ -389,7 +394,12 @@ And [추가 조건]
 
 ### 7.1 문서 저장
 - [ ] Story 문서를 `agile-planning/stories/[도메인]/` 폴더에 저장
-- [ ] 파일명 규칙: `story-[ID]-[기능명].md`
+- [ ] 파일명 규칙: `story-e[epic번호]-[순번]-[기능명].md`
+  - 예시: `story-e005-001-basic-block-definition.md`
+- [ ] Story ID 규칙: `E[EPIC번호]-[순번]`
+  - 예시: `E005-001` (Epic-005의 첫 번째 Story)
+  - Epic 번호만 사용하여 간결하고 명확하게 식별
+  - 도메인 정보는 Epic 문서에서 확인 가능
 - [ ] 관련 문서들과 링크 연결
 
 ### 7.2 팀 공유
@@ -512,8 +522,9 @@ git pull origin dev
 ```bash
 # Story 문서 작성
 git add .
-git commit -m "docs(story): add story-007-member-invitation document
+git commit -m "docs(story): add story-e001-007-member-invitation document
 
+- Story ID: E001-007 (Epic-001의 7번째 Story)
 - Define user story and acceptance criteria
 - Identify related domains (Organization, Notification)
 - List domain-specific tasks with reference links

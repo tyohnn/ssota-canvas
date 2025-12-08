@@ -1,4 +1,4 @@
-# Story BM-005: 미디어 업로드 및 관리
+# Story E001-005: 미디어 업로드 및 관리
 
 ## 🎯 Story 개요
 **User Story**: As a 사용자 I want to 블록에 이미지나 파일을 업로드하고 관리할 수 있어야 so that 시각적 정보를 추가하고 관리할 수 있다
@@ -141,8 +141,8 @@ And 적절한 오류 메시지가 표시된다
 - **Testing**: Integration Tests, E2E Tests 미구현
 
 ## 🔗 의존성
-- **선행 Story**: BM-004 (속성 값 관리)
-- **후행 Story**: BM-006 (블록 툴 실행)
+- **선행 Story**: E001-004 (속성 값 관리)
+- **후행 Story**: E001-006 (블록 툴 실행)
 - **도메인 의존성**: Block Management Domain ↔ Supabase Storage
 
 ## 📁 관련 문서

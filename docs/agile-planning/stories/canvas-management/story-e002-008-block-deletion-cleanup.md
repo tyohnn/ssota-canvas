@@ -1,4 +1,4 @@
-# Story CM-008: 블럭 삭제 및 엣지 정리
+# Story E002-008: 블럭 삭제 및 엣지 정리
 
 ## 🎯 Story 개요
 **User Story**: As a 디자이너, I want to 불필요한 블럭을 삭제할 수 있고 연결된 엣지들이 자동으로 정리되어야 so that 캔버스를 깔끔하게 유지하고 데이터 일관성을 보장할 수 있다
@@ -57,9 +57,9 @@ And 이전 상태가 유지된다
 
 #### Backend Implementation
 - [x] BlockMountAggregate deleteBlockMount 로직 구현
-- [x] EdgeAggregate deleteEdge 로직 구현 (CM-007에서 완료)
+- [x] EdgeAggregate deleteEdge 로직 구현 (E002-007에서 완료)
 - [x] Commands 정의 (DeleteBlockMountCommand, DeleteMultipleBlockMountsCommand)
-- [x] Events 정의 (BlockMountDeletedEvent - CM-007에서 완료)
+- [x] Events 정의 (BlockMountDeletedEvent - E002-007에서 완료)
 - [x] 트랜잭션 처리 (블럭 삭제 + 연결된 엣지 삭제)
 
 #### Database
@@ -84,7 +84,7 @@ And 이전 상태가 유지된다
 ---
 
 ### Testing & Quality
-- [x] Unit Tests (BlockMountAggregate, EdgeAggregate - CM-007에서 완료)
+- [x] Unit Tests (BlockMountAggregate, EdgeAggregate - E002-007에서 완료)
 - [x] Integration Tests (Service Layer 트랜잭션 처리)
 - [x] E2E Tests 플레이스홀더 작성 (추후 통합 테스트 단계에서 구현)
 
@@ -97,7 +97,7 @@ And 이전 상태가 유지된다
 - [x] Optimistic UI 패턴으로 즉시 UI 반응성 제공
 
 ### 기술 완료
-- [x] Aggregate 및 Entity 레벨 테스트 완료 (CM-007에서 완료)
+- [x] Aggregate 및 Entity 레벨 테스트 완료 (E002-007에서 완료)
 - [x] Service Layer 통합 테스트 (삭제 + 엣지 정리 트랜잭션)
 - [x] E2E Tests 플레이스홀더 작성
 - [x] 코드 리뷰 준비 완료
@@ -139,7 +139,7 @@ And 이전 상태가 유지된다
 - ✅ **성능 최적화**: 불필요한 Hook 호출 제거
 
 ## 🔗 의존성
-- **선행 Story**: CM-004 (블럭 선택), CM-007 (엣지 생성 및 관리)
+- **선행 Story**: E002-004 (블럭 선택), E002-007 (엣지 생성 및 관리)
 - **후행 Story**: CM-009 (뷰포트 관리)
 - **도메인 의존성**: 블럭-엣지 관계 트랜잭션 처리
 
