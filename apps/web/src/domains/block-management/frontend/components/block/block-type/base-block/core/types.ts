@@ -62,9 +62,12 @@ export interface BaseBlockContextValue {
 
   // UI 상태
   isResizing: boolean;
+  hoverDirection: 'left' | 'right' | 'top' | 'bottom' | null;
 
   // UI 액션
   handleMouseEnter: () => void;
+  handleMouseMove: (event: React.MouseEvent<HTMLDivElement>) => void;
+  handleMouseLeave: () => void;
   handleResizeStart: () => void;
   handleResizeEnd: (
     event: any,

@@ -4,6 +4,7 @@
  * UI 상태만 관리 (비즈니스 로직 없음)
  * - 리사이즈 상태
  * - Hover 상태
+ * - Edge handle hover direction
  *
  * 노코드 툴에서 독립적으로 사용 가능
  */
@@ -12,14 +13,18 @@
 
 import { useState, useCallback } from 'react';
 
+export type HoverDirection = 'left' | 'right' | 'top' | 'bottom' | null;
+
 export interface BaseBlockUIState {
   // UI 상태
   isResizing: boolean;
+  hoverDirection: HoverDirection;
 
   // UI 액션
   setIsResizing: (isResizing: boolean) => void;
   handleResizeStart: () => void;
   handleResizeComplete: () => void;
+  setHoverDirection: (direction: HoverDirection) => void;
 }
 
 /**
@@ -29,6 +34,7 @@ export interface BaseBlockUIState {
  */
 export function useBaseBlockUI(): BaseBlockUIState {
   const [isResizing, setIsResizing] = useState(false);
+  const [hoverDirection, setHoverDirection] = useState<HoverDirection>(null);
 
   const handleResizeStart = useCallback(() => {
     setIsResizing(true);
@@ -40,8 +46,10 @@ export function useBaseBlockUI(): BaseBlockUIState {
 
   return {
     isResizing,
+    hoverDirection,
     setIsResizing,
     handleResizeStart,
     handleResizeComplete,
+    setHoverDirection,
   };
 }

@@ -54,6 +54,8 @@ export interface UseBaseBlockReturn extends BaseBlockUIState {
 
   // Combined 액션
   handleMouseEnter: () => void;
+  handleMouseMove: (event: React.MouseEvent<HTMLDivElement>) => void;
+  handleMouseLeave: () => void;
   handleResizeEnd: (event: any, resizeData: ResizeData) => Promise<void>;
 }
 
@@ -119,6 +121,38 @@ export function useBaseBlock(
     business.prefetchBlockTools(blockType);
   }, [data.blockType, business]);
 
+  // Combined Logic: Mouse Move (Detect edge hover)
+  const handleMouseMove = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const target = event.currentTarget;
+      const rect = target.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      // 경계 감지 영역 (20px)
+      const edgeThreshold = 20;
+
+      // 어느 경계에 가까운지 확인
+      if (x < edgeThreshold) {
+        uiState.setHoverDirection('left');
+      } else if (x > rect.width - edgeThreshold) {
+        uiState.setHoverDirection('right');
+      } else if (y < edgeThreshold) {
+        uiState.setHoverDirection('top');
+      } else if (y > rect.height - edgeThreshold) {
+        uiState.setHoverDirection('bottom');
+      } else {
+        uiState.setHoverDirection(null);
+      }
+    },
+    [uiState]
+  );
+
+  // Combined Logic: Mouse Leave (Clear hover direction)
+  const handleMouseLeave = useCallback(() => {
+    uiState.setHoverDirection(null);
+  }, [uiState]);
+
   // Combined Logic: Resize End (Save to DB)
   const handleResizeEnd = useCallback(
     async (event: any, resizeData: ResizeData) => {
@@ -174,6 +208,8 @@ export function useBaseBlock(
 
     // Combined 액션
     handleMouseEnter,
+    handleMouseMove,
+    handleMouseLeave,
     handleResizeEnd,
   };
 }

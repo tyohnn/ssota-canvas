@@ -18,7 +18,6 @@
  */
 
 import { memo, forwardRef } from 'react';
-import { motion } from 'framer-motion';
 import { cn } from '@workspace/ui/lib/utils';
 import { BaseBlockProvider } from '../core/provider';
 import { ResizeControl } from './resize-control';
@@ -77,11 +76,17 @@ const BaseBlockContainer = forwardRef<
   HTMLDivElement,
   { children: React.ReactNode }
 >(({ children }, ref) => {
-  const { width, height, noBackground, handleMouseEnter } =
-    useBaseBlockContext();
+  const {
+    width,
+    height,
+    noBackground,
+    handleMouseEnter,
+    handleMouseMove,
+    handleMouseLeave,
+  } = useBaseBlockContext();
 
   return (
-    <motion.div
+    <div
       ref={ref}
       className={cn('relative w-full h-full min-w-[100px] min-h-[70px]')}
       style={{
@@ -89,15 +94,11 @@ const BaseBlockContainer = forwardRef<
         height: height || 'auto',
       }}
       onMouseEnter={handleMouseEnter}
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{
-        duration: 0.4,
-        ease: [0.4, 0, 0.2, 1], // ease-out
-      }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
       {children}
-    </motion.div>
+    </div>
   );
 });
 
