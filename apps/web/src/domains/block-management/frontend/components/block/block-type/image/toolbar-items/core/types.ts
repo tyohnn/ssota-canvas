@@ -15,6 +15,8 @@ export interface ImageToolbarItemsProps {
   disabled: boolean;
   onPropertyUpdate: (path: string, value: any) => Promise<void>;
   onPropertiesUpdate: (properties: Record<string, any>) => Promise<void>;
+  width?: number;
+  height?: number;
 }
 
 /**
@@ -31,6 +33,10 @@ export interface ImageToolbarContextValue {
   workspaceId: string;
   orgId: string;
   pageId: string;
+
+  // Block dimensions
+  width?: number;
+  height?: number;
 
   // Properties (SSOT: ImageBlockProperties 사용)
   imageProperties: ImageBlockProperties;

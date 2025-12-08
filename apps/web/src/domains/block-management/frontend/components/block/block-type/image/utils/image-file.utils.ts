@@ -118,3 +118,57 @@ export function validateImageFile(
 
   return null;
 }
+
+/**
+ * 이미지 종횡비에 맞춘 블록 크기 계산
+ *
+ * @param imageWidth - 이미지 너비
+ * @param imageHeight - 이미지 높이
+ * @param currentHeight - 현재 블록 높이 (옵셔널, 있으면 높이 기준으로 너비 계산)
+ * @returns 블록 크기 (width, height)
+ *
+ * @example
+ * const { width, height } = calculateBlockSizeFromImage(1920, 1080);
+ * // { width: 300, height: 169 }
+ *
+ * const { width, height } = calculateBlockSizeFromImage(1920, 1080, 200);
+ * // { width: 356, height: 200 } (높이 200 기준으로 너비 계산)
+ */
+export function calculateBlockSizeFromImage(
+  imageWidth: number,
+  imageHeight: number,
+  currentHeight?: number
+): { width: number; height: number } {
+  const MIN_BLOCK_WIDTH = 100;
+  const MIN_BLOCK_HEIGHT = 50;
+
+  const aspectRatio = imageWidth / imageHeight;
+
+  let blockWidth: number;
+  let blockHeight: number;
+
+  if (currentHeight !== undefined && currentHeight > 0) {
+    // 현재 높이를 기준으로 너비 계산
+    blockHeight = Math.max(MIN_BLOCK_HEIGHT, currentHeight);
+    blockWidth = Math.round(blockHeight * aspectRatio);
+    blockWidth = Math.max(MIN_BLOCK_WIDTH, blockWidth);
+  } else {
+    // 기본 너비 사용, 종횡비에 맞춰 높이 계산
+    const DEFAULT_IMAGE_BLOCK_WIDTH = 300;
+    blockWidth = DEFAULT_IMAGE_BLOCK_WIDTH;
+
+    // 매우 넓은 이미지 (16:9 이상)는 조금 더 넓게
+    if (aspectRatio > 1.5) {
+      blockWidth = 400;
+    }
+
+    blockHeight = Math.round(blockWidth / aspectRatio);
+    blockWidth = Math.max(MIN_BLOCK_WIDTH, blockWidth);
+    blockHeight = Math.max(MIN_BLOCK_HEIGHT, blockHeight);
+  }
+
+  return {
+    width: blockWidth,
+    height: blockHeight,
+  };
+}

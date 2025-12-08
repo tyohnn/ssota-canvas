@@ -139,6 +139,8 @@ export function BlockMountToolbar({
             blockType={blockType}
             blockData={blockData}
             disabled={false}
+            width={width}
+            height={height}
           />
 
           {/* Details 버튼 */}

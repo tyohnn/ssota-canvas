@@ -41,7 +41,6 @@ export const ImageBlock = memo(function ImageBlock({
     imageUrl,
     imageAssetId,
     imageSource,
-    objectFit,
     caption,
     isCaptionVisible = false,
     alt,
@@ -112,7 +111,6 @@ export const ImageBlock = memo(function ImageBlock({
                   <ImageDisplay
                     src={imageBlock.displayUrl}
                     alt={alt || '이미지'}
-                    objectFit={objectFit}
                     isLoading={imageBlock.isLoading}
                     hasError={imageBlock.hasError}
                     onLoad={imageBlock.handleImageLoad}

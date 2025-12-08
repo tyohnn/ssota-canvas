@@ -27,7 +27,10 @@ export interface ImageUploadResult {
 
 export interface UseImageUploadOptions {
   workspaceId: string;
-  onSuccess: (properties: ImageUploadResult) => Promise<void>;
+  onSuccess: (
+    properties: ImageUploadResult,
+    metadata?: { width: number; height: number }
+  ) => Promise<void>;
   onError?: (error: Error) => void;
 }
 
@@ -89,17 +92,20 @@ export function useImageUpload({
 
         const imageAsset = result.data;
 
-        // 4. 성공 콜백 호출
-        await onSuccess({
-          imageAssetId: imageAsset.id,
-          imageUrl: imageAsset.image_url,
-          imageSource: 'user-upload',
-          // 기존 메타데이터 제거
-          caption: '',
-          alt: '',
-          unsplashAuthorName: null,
-          unsplashAuthorLink: null,
-        });
+        // 4. 성공 콜백 호출 (메타데이터 포함)
+        await onSuccess(
+          {
+            imageAssetId: imageAsset.id,
+            imageUrl: imageAsset.image_url,
+            imageSource: 'user-upload',
+            // 기존 메타데이터 제거
+            caption: '',
+            alt: '',
+            unsplashAuthorName: null,
+            unsplashAuthorLink: null,
+          },
+          metadata
+        );
       } catch (error) {
         console.error('[useImageUpload] Upload failed:', error);
         if (onError && error instanceof Error) {

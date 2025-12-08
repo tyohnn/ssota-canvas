@@ -32,13 +32,7 @@ export interface BlockActionBarProps {
  * 렌더링 조건: 블록이 선택되었을 때
  */
 // 액션 아이템이 있는 블록 타입들
-const BLOCKS_WITH_ACTIONS = [
-  'image',
-  'youtube',
-  'pdf',
-  'link',
-  'markdown',
-] as const;
+const BLOCKS_WITH_ACTIONS = ['youtube', 'pdf', 'link', 'markdown'] as const;
 
 export function BlockActionBar({
   blockId,

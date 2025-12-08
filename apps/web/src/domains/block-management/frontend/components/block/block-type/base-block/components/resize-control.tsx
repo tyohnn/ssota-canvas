@@ -3,6 +3,7 @@
  *
  * 우측 하단 리사이즈 핸들
  * 단일 선택 시에만 표시
+ * 이미지 블록은 종횡비 고정
  */
 
 'use client';
@@ -10,6 +11,10 @@
 import { NodeResizeControl } from '@xyflow/react';
 import { useBaseBlockContext } from '../core/context';
 import { ResizeIcon } from './resize-icon';
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
+
+// 종횡비 유지가 필요한 블록 타입들
+const ASPECT_RATIO_LOCKED_BLOCK_TYPES = [BlockType.IMAGE] as const;
 
 export function ResizeControl() {
   const {
@@ -25,6 +30,10 @@ export function ResizeControl() {
     return null;
   }
 
+  const shouldKeepAspectRatio = ASPECT_RATIO_LOCKED_BLOCK_TYPES.includes(
+    data.blockType as (typeof ASPECT_RATIO_LOCKED_BLOCK_TYPES)[number]
+  );
+
   return (
     <NodeResizeControl
       nodeId={data.blockMountId}
@@ -37,6 +46,7 @@ export function ResizeControl() {
       }}
       minWidth={100}
       minHeight={50}
+      keepAspectRatio={shouldKeepAspectRatio}
       onResizeStart={handleResizeStart}
       onResizeEnd={handleResizeEnd}
     >

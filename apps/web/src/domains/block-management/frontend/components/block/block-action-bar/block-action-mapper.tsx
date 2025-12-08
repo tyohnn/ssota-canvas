@@ -18,7 +18,7 @@ export interface BlockActionMapperProps {
  * 런타임에 동적으로 import할 경로만 정의 (실제 import 없음)
  */
 const BLOCK_ACTION_MODULES: Record<string, boolean> = {
-  image: true,
+  image: false,
   youtube: true,
   pdf: true,
   link: true,

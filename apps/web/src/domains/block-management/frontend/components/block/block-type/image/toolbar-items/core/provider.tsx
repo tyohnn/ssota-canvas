@@ -21,6 +21,8 @@ export function ImageToolbarProvider({
   disabled,
   onPropertyUpdate,
   onPropertiesUpdate,
+  width,
+  height,
   children,
 }: ImageToolbarItemsProps & { children: React.ReactNode }) {
   // Properties 추출 (ImageBlockProperties로 타입 캐스팅)
@@ -59,6 +61,8 @@ export function ImageToolbarProvider({
       workspaceId: blockData.workspaceId,
       orgId: blockData.orgId,
       pageId: blockData.pageId,
+      width,
+      height,
       imageProperties,
       updateProperty,
       onPropertiesUpdate,
@@ -68,6 +72,8 @@ export function ImageToolbarProvider({
       blockMountId,
       blockData,
       disabled,
+      width,
+      height,
       updateProperty,
       onPropertiesUpdate,
     ]
