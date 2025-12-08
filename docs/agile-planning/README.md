@@ -17,7 +17,8 @@ agile-planning/
 │   ├── 04-epic-planning-guide.md      # Epic 계획 가이드
 │   ├── 05-story-definition-guide.md   # Story 정의 가이드
 │   ├── 06-sprint-planning-guide.md    # Sprint 계획 가이드
-│   └── 07-branch-numbering-guide.md   # 브랜치 넘버링 가이드
+│   ├── 07-branch-numbering-guide.md   # 브랜치 넘버링 가이드
+│   └── 08-version-mapping-guide.md    # 버전 매칭 가이드
 ├── initiatives/                        # 분기별 Initiative 문서들
 │   ├── 2024-q1/                       # Q1 Initiative들
 │   │   ├── initiative-001-visual-platform.md
@@ -141,6 +142,11 @@ agile-planning/
 - **목적**: 브랜치 넘버링 체계 설계 및 관리 과정을 단계별로 안내
 - **대상**: 주니어 PM + 개발팀
 - **내용**: 브랜치 유형 정의, 넘버링 규칙, 생명주기 관리
+
+### 버전 매칭 가이드 (`08-version-mapping-guide.md`)
+- **목적**: Initiative/Epic/Story와 소프트웨어 버전을 매칭하는 방법론 정리
+- **대상**: 주니어 PM + 개발팀
+- **내용**: 버전 매칭 방법론, 프로젝트별 전략, 실전 예시, 베스트 프랙티스
 
 ---
 
