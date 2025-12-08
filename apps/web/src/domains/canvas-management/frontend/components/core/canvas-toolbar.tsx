@@ -131,10 +131,10 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
   }, [handleKeyDown, handleKeyUp]);
 
   return (
-    <div className="mt-4">
+    <div className="ml-4">
       <div
         ref={toolbarRef}
-        className="flex items-center gap-1 px-2 py-1.5 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg"
+        className="flex flex-col items-center gap-1 px-1.5 py-2 bg-background/95 backdrop-blur-sm border border-border/30 rounded-md shadow-lg"
         style={{ touchAction: 'none' }}
         onWheel={e => e.stopPropagation()}
       >
@@ -164,7 +164,7 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
                 <MousePointer className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">
+            <TooltipContent side="right">
               <p>Select</p>
             </TooltipContent>
           </Tooltip>
@@ -186,14 +186,14 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
                 <Hand className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">
+            <TooltipContent side="right">
               <p>Hand (Space)</p>
             </TooltipContent>
           </Tooltip>
 
           <Separator
-            orientation="vertical"
-            className="mx-1 data-[orientation=vertical]:h-4 bg-border/50"
+            orientation="horizontal"
+            className="my-1 w-4 bg-border/50"
           />
 
           {/* Fit to View Button */}
@@ -208,14 +208,14 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
                 <Maximize className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">
+            <TooltipContent side="right">
               <p>Fit to View (F)</p>
             </TooltipContent>
           </Tooltip>
 
           <Separator
-            orientation="vertical"
-            className="mx-1 data-[orientation=vertical]:h-4 bg-border/50"
+            orientation="horizontal"
+            className="my-1 w-4 bg-border/50"
           />
 
           {/* Add Block Button */}
@@ -236,7 +236,7 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
                 <Plus className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">
+            <TooltipContent side="right">
               <p>Add Block</p>
             </TooltipContent>
           </Tooltip>

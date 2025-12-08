@@ -305,7 +305,7 @@ export const TextBlock = memo(function TextBlock({
           richStyle && getRichStyleClasses(color),
           richStyle && 'shadow-sm',
           // 호버 효과 (선택되지 않았을 때만)
-          !selected && 'hover:shadow-lg hover:scale-[1.02] hover:rotate-1',
+          !selected && 'hover:shadow-lg',
           !selected && 'hover:shadow-[0_0_4px_1px_var(--glow-color)]',
           // 선택 효과 (강화)
           selected && getSelectedRingClasses(color),

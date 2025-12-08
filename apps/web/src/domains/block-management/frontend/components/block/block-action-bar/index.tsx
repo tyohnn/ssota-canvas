@@ -61,13 +61,13 @@ export function BlockActionBar({
   return (
     <NodeToolbar
       isVisible={true}
-      position={Position.Right}
+      position={Position.Bottom}
       className="nodrag nowheel"
     >
       {/* z-index: React Flow NodeToolbar (자동 관리) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
       <div
         ref={toolbarRef}
-        className="bg-background/90 backdrop-blur-md border border-border rounded-lg shadow-lg px-1.5 py-1 flex flex-col items-center gap-0.5"
+        className="bg-background/90 backdrop-blur-md border border-border rounded-lg shadow-lg px-1 py-1.5 flex items-center gap-0.5"
         style={{ touchAction: 'none' }}
         onWheel={e => e.stopPropagation()}
       >
