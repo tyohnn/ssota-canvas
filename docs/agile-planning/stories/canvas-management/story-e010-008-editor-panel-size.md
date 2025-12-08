@@ -18,11 +18,41 @@ Then 에디터 패널의 높이와 너비가 확대되었다
 And UI가 개선되었다
 ```
 
+## 🔧 구현 상세
+
+### 현재 크기
+```css
+w-[43%] h-[85%]
+```
+
+### 변경 크기 (제안)
+```css
+w-[50%] h-[90%]
+```
+
+### UI 개선 사항
+- 패널 내 섹션 간격 조정
+- 스크롤 영역 개선
+- 헤더/푸터 고정 여부 검토
+
+### 수정 대상 파일
+- `editor-panel/index.tsx` - 크기 조정
+- `editor-panel/components/` - UI 개선 (필요시)
+
+### 코드 변경
+```tsx
+// Before
+'bottom-0 right-0 w-[43%] h-[85%] border-l border-t rounded-tl-lg'
+
+// After
+'bottom-0 right-0 w-[50%] h-[90%] border-l border-t rounded-tl-lg'
+```
+
 ## 🎯 Definition of Done
 
 ### 기능 완료
-- [ ] 에디터 패널 크기 확대 완료
-- [ ] 높이/너비 확대 완료
+- [ ] 에디터 패널 너비 확대 완료 (43% → 50%)
+- [ ] 에디터 패널 높이 확대 완료 (85% → 90%)
 - [ ] UI 개선 완료
 
 ### 기술 완료
@@ -38,6 +68,8 @@ And UI가 개선되었다
 **현재**: 0% 완료 (설계 완료, 구현 대기 중)
 
 ## 🔗 의존성
+- **연관 Story**: 
+  - E010-005: 에디터 패널 위치
 - **도메인 의존성**: 
   - Canvas Management Domain: 에디터 패널 UI
 

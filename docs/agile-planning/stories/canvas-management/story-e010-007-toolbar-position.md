@@ -18,10 +18,32 @@ Then 툴바가 좌측에 위치한다
 And 툴바가 명확하게 보인다
 ```
 
+## 🔧 구현 상세
+
+### 변경 내용
+- 현재: `position="top-center"` (상단 중앙)
+- 변경: `position="top-left"` (상단 좌측)
+
+### 수정 대상 파일
+- `canvas-react-flow-wrapper.tsx` - Panel position 변경
+
+### 코드 변경
+```tsx
+// Before
+<Panel position="top-center" className="m-0! pointer-events-auto! z-10">
+  <CanvasToolbar ... />
+</Panel>
+
+// After
+<Panel position="top-left" className="m-0! ml-4! pointer-events-auto! z-10">
+  <CanvasToolbar ... />
+</Panel>
+```
+
 ## 🎯 Definition of Done
 
 ### 기능 완료
-- [ ] 툴바 위치 변경 완료
+- [ ] 툴바 위치 변경 완료 (top-center → top-left)
 - [ ] 캔버스 상단 좌측 배치 완료
 
 ### 기술 완료

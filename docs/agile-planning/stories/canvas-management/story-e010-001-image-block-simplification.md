@@ -26,12 +26,42 @@ Then 이미지가 cover 모드로 표시된다
 And 종횡비가 자동으로 맞춰진다
 ```
 
+### 시나리오 3: 종횡비 유지 리사이즈
+```gherkin
+Given 이미지 블록이 선택되었다
+When 사용자가 리사이즈 핸들을 드래그한다
+Then 이미지의 종횡비가 유지된다
+And 블록 크기가 비례적으로 조정된다
+```
+
+## 🔧 구현 상세
+
+### 간소화 항목 (8개)
+1. **블록 액션 주석 처리** - `image-block-actions.ts` 비활성화
+2. **objectFit 고정** - 항상 `cover`로 설정, 상단 툴바/에디터 패널에서 옵션 제거 / properties에서 제거
+3. **종횡비 맞춤 블록 생성** - 이미지 업로드 시 원본 종횡비로 블록 크기 자동 설정
+4. **종횡비 고정 리사이저** - 이미지 블록 전용 비례 리사이즈 옵션 추가
+5. **alt 버튼 주석** - 상단 툴바에서 alt 입력 버튼 비활성화 / properties에서 제거
+6. **이미지 확대 버튼 주석** - expand-image-toolbar-item 비활성화
+7. **블록 앱스페이스 버튼 주석** - 앱스페이스 관련 버튼 비활성화
+8. **캡션 보이기 주석** - caption-visibility-toolbar-item 비활성화
+
+### 수정 대상 파일
+- `block-type/image/index.tsx` - 메인 컴포넌트
+- `block-type/image/toolbar-items/index.tsx` - 툴바 아이템 주석
+- `block-type/image/action-items/image-block-actions.ts` - 액션 주석
+- `block-type/image/config/image-editor-panel-schema.ts` - objectFit 속성 제거
+- `block-type/image/core/use-image-block.business.ts` - 종횡비 맞춤 로직
+- `block-type/base-block/components/resize-control.tsx` - 종횡비 고정 리사이저
+
 ## 🎯 Definition of Done
 
 ### 기능 완료
-- [ ] 이미지 블록 간소화 완료 (7개 항목)
-- [ ] 핵심 기능만 유지 완료
-- [ ] 불필요한 옵션 제거 완료
+- [ ] 이미지 블록 간소화 완료 (8개 항목)
+- [ ] objectFit이 항상 cover로 동작
+- [ ] 이미지 업로드 시 종횡비 맞춤 블록 크기 설정
+- [ ] 종횡비 고정 리사이저 동작
+- [ ] 불필요한 툴바/액션 버튼 비활성화
 
 ### 기술 완료
 - [ ] 단위 테스트 커버리지 75% 이상
