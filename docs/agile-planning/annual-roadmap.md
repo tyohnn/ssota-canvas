@@ -68,13 +68,13 @@
 **기간**: 2025.12.01 ~ 2025.12.31
 
 **주요 Epic**:
-- Epic-005: 기본 블록 & 보기 시스템 - 마크다운 블록 → 기본 블록 대체, 카드/마크다운 보기 제공
-- Epic-006: 새 블록 타입 - 목차, 프레임(그룹), 페이지 이동 블록
-- Epic-007: 데이터베이스 기능 - 컴포넌트/인스턴스 → 데이터베이스, 테이블 보기
-- Epic-008: AI 기능 - 웹 검색 기반 리서치 툴, AI 정렬 기능
-- Epic-009: 공유 & 템플릿 - 페이지/블록 공유, 템플릿 저장/적용
-- Epic-010: UI/UX 개선 - 이미지 블록 간소화, UI 간소화
-- Epic-011: 버그 수정 & 안정화 - 알려진 버그 수정
+- Epic-005: 기본 블록 & 보기 시스템 - 카드/마크다운 보기 (Card/Markdown Views)
+- Epic-006: 새 블록 타입 - 목차, 프레임, 페이지 이동 (TOC, Frame, Page Link)
+- Epic-007: 데이터베이스 기능 - 테이블 보기 (Table View)
+- Epic-008: AI 기능 - 웹 검색 기반 리서치 (Web Search)
+- Epic-009: 공유 & 템플릿 - 페이지/블록 공유, 템플릿 저장 (Page/Block Share, Template Save)
+- Epic-010: UI/UX 개선 - 이미지 블록, 에디터 패널, 툴바 (Image Block, Editor Panel, Toolbar)
+- Epic-011: 버그 수정 & 안정화 - 알려진 이슈 (Known Issues)
 
 **타겟 도메인**:
 - 자기소개서 ⭐⭐⭐
@@ -187,13 +187,13 @@
 
 **Initiative-002 진행**:
 - 🔄 Epic-001 완료: Workspace Management Phase 5-7 완료 (Sprint 004, 006-007)
-- 📋 Epic-005: 기본 블록 & 보기 시스템 (카드/마크다운 보기)
-- 📋 Epic-006: 새 블록 타입 (목차, 프레임, 페이지 이동)
-- 📋 Epic-007: 데이터베이스 기능 (테이블 보기)
-- 📋 Epic-008: AI 기능 (리서치 툴, AI 정렬)
-- 📋 Epic-009: 공유 & 템플릿
-- 📋 Epic-010: UI/UX 개선
-- 📋 Epic-011: 버그 수정 & 안정화
+- 📋 Epic-005: 기본 블록 & 보기 시스템 - 카드/마크다운 보기 (Card/Markdown Views)
+- 📋 Epic-006: 새 블록 타입 - 목차, 프레임, 페이지 이동 (TOC, Frame, Page Link)
+- 📋 Epic-007: 데이터베이스 기능 - 테이블 보기 (Table View)
+- 📋 Epic-008: AI 기능 - 웹 검색 기반 리서치 (Web Search)
+- 📋 Epic-009: 공유 & 템플릿 - 페이지/블록 공유, 템플릿 저장 (Page/Block Share, Template Save)
+- 📋 Epic-010: UI/UX 개선 - 이미지 블록, 에디터 패널, 툴바 (Image Block, Editor Panel, Toolbar)
+- 📋 Epic-011: 버그 수정 & 안정화 - 알려진 이슈 (Known Issues)
 - 📋 MVP 글로벌 런칭 (2025.12 목표)
 
 ### Q1 2026 마일스톤 📋 (계획 중)
