@@ -68,11 +68,8 @@ export function useBaseBlockUI(): BaseBlockUIState {
         newDirection = 'bottom';
       }
 
-      console.log('[useBaseBlockUI] newDirection', newDirection);
-
       // 상태가 변경될 때만 업데이트
       if (newDirection !== hoverDirection) {
-        console.log('[useBaseBlockUI] setting hoverDirection', newDirection);
         setHoverDirection(newDirection);
       }
     },
