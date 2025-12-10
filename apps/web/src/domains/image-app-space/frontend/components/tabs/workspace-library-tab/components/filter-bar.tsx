@@ -6,7 +6,7 @@
 
 import { Button } from '@workspace/ui/components/ui/button';
 import { Sparkles, Image as ImageIcon, Upload } from 'lucide-react';
-import { useWorkspaceLibraryContext } from '../core/workspace-library.context';
+import { useWorkspaceLibraryContext } from '../core/context';
 
 /**
  * Filter Bar Component
@@ -52,4 +52,3 @@ export function WorkspaceFilterBar() {
     </div>
   );
 }
-

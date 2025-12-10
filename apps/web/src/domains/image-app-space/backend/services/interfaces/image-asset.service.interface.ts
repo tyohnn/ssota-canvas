@@ -58,4 +58,22 @@ export interface IImageAssetService {
     imageAssetId: string,
     currentUserId: string
   ): Promise<Result<ImageAsset, ImageAssetError>>;
+
+  /**
+   * 워크스페이스 이미지 조회
+   *
+   * 워크스페이스의 모든 멤버가 업로드한 이미지 조회
+   *
+   * @param workspaceId - 워크스페이스 ID
+   * @param filterType - 필터 타입
+   * @param page - 페이지 번호
+   * @param perPage - 페이지당 개수
+   * @returns ImageAsset 배열
+   */
+  getWorkspaceImages(
+    workspaceId: string,
+    filterType: 'all' | 'ai-generated' | 'unsplash' | 'user-upload',
+    page: number,
+    perPage: number
+  ): Promise<Result<ImageAsset[], ImageAssetError>>;
 }

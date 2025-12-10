@@ -108,3 +108,11 @@ export interface DuplicateBlockMountCommand {
   offsetX: number;
   offsetY: number;
 }
+
+// Block Page Move Commands
+export interface MoveBlockToPageCommand {
+  blockMountId: BlockMountId;
+  targetPageId: PageId;
+  newPosition: Position;
+  userId: UserId;
+}

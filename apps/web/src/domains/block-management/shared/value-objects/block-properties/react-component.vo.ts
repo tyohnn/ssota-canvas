@@ -1,189 +1,100 @@
-import { BlockManagementError } from '../../errors/block-management.error';
+/**
+ * React Component Block Properties
+ *
+ * 사용자가 직접 설정/입력하는 속성만 포함
+ */
+
 import { BlockPropertiesVO } from './base.vo';
 
-/**
- * React Component Block Properties Interface
- */
 export interface ReactComponentBlockProperties {
-  componentName: string;
-  props: Record<string, any>;
+  code?: string; // React 컴포넌트 코드 (사용자가 작성) - legacy single file approach
+  template?: string; // Sandpack template (react-ts, vite, etc.)
+  dependencies?: Record<string, string>; // NPM dependencies for Nodebox
+  files?: Record<string, { code: string }>; // Multiple files for Sandpack
+  // 렌더링 옵션은 컴포넌트 내부에서 관리:
+  // - autorun, autoReload 등
 }
 
 /**
  * React Component Block Properties Value Object
- *
- * React 컴포넌트 블록의 속성을 관리하는 Value Object
  */
 export class ReactComponentBlockPropertiesVO extends BlockPropertiesVO {
   constructor(
-    public readonly componentName: string,
-    public readonly props: Record<string, any>
+    private readonly code: string = '',
+    private readonly template: string = 'react-ts',
+    private readonly dependencies: Record<string, string> = {},
+    private readonly files: Record<string, { code: string }> = {}
   ) {
     super();
-    this.validate();
   }
 
   protected validate(): boolean {
-    if (
-      typeof this.componentName !== 'string' ||
-      this.componentName.trim().length === 0
-    ) {
-      throw new BlockManagementError(
-        'INVALID_PROPERTY_TYPE',
-        'Component name must be a non-empty string'
-      );
-    }
-
-    if (typeof this.props !== 'object' || this.props === null) {
-      throw new BlockManagementError(
-        'INVALID_PROPERTY_TYPE',
-        'Props must be an object'
-      );
-    }
-
-    // 컴포넌트명 형식 검증 (React 컴포넌트 네이밍 컨벤션)
-    if (!this.isValidComponentName(this.componentName)) {
-      throw new BlockManagementError(
-        'INVALID_PROPERTY_TYPE',
-        'Invalid component name format'
-      );
-    }
+    // No validation needed for optional properties
     return true;
   }
 
   /**
-   * React 컴포넌트명 형식 검증
+   * Create default properties
    */
-  private isValidComponentName(name: string): boolean {
-    // PascalCase 형식 검증
-    const pascalCaseRegex = /^[A-Z][a-zA-Z0-9]*$/;
-    return pascalCaseRegex.test(name);
+  static createDefault(): ReactComponentBlockPropertiesVO {
+    return new ReactComponentBlockPropertiesVO('', 'react-ts', {}, {});
   }
 
   /**
-   * 컴포넌트명 업데이트
+   * Create from JSON
    */
-  updateComponentName(componentName: string): ReactComponentBlockPropertiesVO {
-    return new ReactComponentBlockPropertiesVO(componentName, this.props);
-  }
-
-  /**
-   * Props 업데이트
-   */
-  updateProps(props: Record<string, any>): ReactComponentBlockPropertiesVO {
-    return new ReactComponentBlockPropertiesVO(this.componentName, props);
-  }
-
-  /**
-   * 특정 prop 업데이트
-   */
-  updateProp(key: string, value: any): ReactComponentBlockPropertiesVO {
-    const newProps = { ...this.props, [key]: value };
-    return new ReactComponentBlockPropertiesVO(this.componentName, newProps);
-  }
-
-  /**
-   * 특정 prop 제거
-   */
-  removeProp(key: string): ReactComponentBlockPropertiesVO {
-    const newProps = { ...this.props };
-    delete newProps[key];
-    return new ReactComponentBlockPropertiesVO(this.componentName, newProps);
-  }
-
-  /**
-   * 특정 prop 가져오기
-   */
-  getProp(key: string): any {
-    return this.props[key];
-  }
-
-  /**
-   * 특정 prop이 있는지 확인
-   */
-  hasProp(key: string): boolean {
-    return key in this.props;
-  }
-
-  /**
-   * Props 개수 반환
-   */
-  getPropsCount(): number {
-    return Object.keys(this.props).length;
-  }
-
-  /**
-   * Props가 비어있는지 확인
-   */
-  hasProps(): boolean {
-    return this.getPropsCount() > 0;
-  }
-
-  /**
-   * 컴포넌트가 유효한지 확인
-   */
-  isValid(): boolean {
-    return this.componentName.trim().length > 0;
-  }
-
-  /**
-   * 컴포넌트 import 문 생성
-   */
-  getImportStatement(): string {
-    return `import ${this.componentName} from './${this.componentName}';`;
-  }
-
-  /**
-   * 컴포넌트 사용 예시 생성
-   */
-  getUsageExample(): string {
-    const propsString = this.hasProps()
-      ? ` ${Object.entries(this.props)
-          .map(([key, value]) => `${key}={${JSON.stringify(value)}}`)
-          .join(' ')}`
-      : '';
-
-    return `<${this.componentName}${propsString} />`;
-  }
-
-  /**
-   * Props를 JSON 문자열로 변환
-   */
-  getPropsAsJson(): string {
-    return JSON.stringify(this.props, null, 2);
-  }
-
-  equals(other: ReactComponentBlockPropertiesVO): boolean {
-    return (
-      this.componentName === other.componentName &&
-      JSON.stringify(this.props) === JSON.stringify(other.props)
+  static fromJSON(data: unknown): ReactComponentBlockPropertiesVO {
+    const safeData = (data as Partial<ReactComponentBlockProperties>) ?? {};
+    return new ReactComponentBlockPropertiesVO(
+      safeData.code ?? '',
+      safeData.template ?? 'react-ts',
+      safeData.dependencies ?? {},
+      safeData.files ?? {}
     );
   }
 
-  toString(): string {
-    return this.componentName || 'Untitled Component';
-  }
-
+  /**
+   * JSON으로 변환
+   */
   toJSON(): ReactComponentBlockProperties {
     return {
-      componentName: this.componentName,
-      props: this.props,
+      code: this.code,
+      template: this.template,
+      dependencies: this.dependencies,
+      files: this.files,
     };
   }
 
   /**
-   * JSON 데이터로부터 ReactComponentBlockPropertiesVO 생성
+   * 값 비교
    */
-  static fromJSON(
-    data: ReactComponentBlockProperties
-  ): ReactComponentBlockPropertiesVO {
-    return new ReactComponentBlockPropertiesVO(data.componentName, data.props);
+  equals(other: BlockPropertiesVO): boolean {
+    if (!(other instanceof ReactComponentBlockPropertiesVO)) {
+      return false;
+    }
+
+    return (
+      this.code === other.code &&
+      this.template === other.template &&
+      JSON.stringify(this.dependencies) === JSON.stringify(other.dependencies) &&
+      JSON.stringify(this.files) === JSON.stringify(other.files)
+    );
   }
 
-  /**
-   * 기본 React 컴포넌트 속성 생성
-   */
-  static createDefault(): ReactComponentBlockPropertiesVO {
-    return new ReactComponentBlockPropertiesVO('MyComponent', {});
+  // Getters for accessing properties
+  getCode(): string {
+    return this.code;
+  }
+
+  getTemplate(): string {
+    return this.template;
+  }
+
+  getDependencies(): Record<string, string> {
+    return this.dependencies;
+  }
+
+  getFiles(): Record<string, { code: string }> {
+    return this.files;
   }
 }

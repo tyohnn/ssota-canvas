@@ -4,7 +4,7 @@
 
 'use client';
 
-import type { WorkspaceLibraryContextValue } from './workspace-library.context';
+import type { WorkspaceLibraryContextValue } from './context';
 import { useWorkspaceLibraryUI } from './use-workspace-library.ui';
 import { useWorkspaceLibraryBusiness } from './use-workspace-library.business';
 
@@ -20,12 +20,15 @@ export function useWorkspaceLibrary(): WorkspaceLibraryContextValue {
     images: business.images,
     isLoading: business.isLoading,
     filterType: uiState.filterType,
+    selectedImageForSettings: uiState.selectedImageForSettings,
 
     // Actions
     setFilterType: uiState.setFilterType,
     refreshImages: business.refreshImages,
     onSelectImage: business.onSelectImage,
     deleteImage: business.deleteImage,
+    openImageSettings: uiState.openImageSettings,
+    closeImageSettings: uiState.closeImageSettings,
   };
 }
 

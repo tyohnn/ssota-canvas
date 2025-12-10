@@ -26,12 +26,15 @@ interface ImageCardProps {
  */
 function CommunityImageCard({ image, onLike, onBookmark }: ImageCardProps) {
   return (
-    <div className="group relative aspect-square overflow-hidden rounded-lg border bg-card">
+    <div
+      className="group relative overflow-hidden bg-card break-inside-avoid"
+      style={{ display: 'inline-block', width: '100%', margin: 0 }}
+    >
       {/* Image */}
       <img
         src={image.thumbnail_url || image.image_url}
         alt={image.title || 'Image'}
-        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+        className="w-full h-auto object-cover transition-transform group-hover:scale-105"
       />
 
       {/* Overlay */}
@@ -123,11 +126,19 @@ export function CommunityImageGrid() {
   if (isLoading && images.length === 0) {
     return (
       <div className="p-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div
+          className="columns-2 md:columns-3 lg:columns-4"
+          style={{ columnGap: 0, gap: 0 }}
+        >
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-square rounded-lg bg-muted animate-pulse"
+              className="bg-muted animate-pulse mb-0 break-inside-avoid"
+              style={{
+                display: 'inline-block',
+                width: '100%',
+                aspectRatio: '4/3',
+              }}
             />
           ))}
         </div>
@@ -145,7 +156,10 @@ export function CommunityImageGrid() {
 
   return (
     <div className="p-6">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div
+        className="columns-2 md:columns-3 lg:columns-4"
+        style={{ columnGap: 0 }}
+      >
         {images.map(image => (
           <CommunityImageCard
             key={image.id}

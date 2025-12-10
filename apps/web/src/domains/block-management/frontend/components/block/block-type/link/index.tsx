@@ -494,7 +494,7 @@ export const LinkBlock = memo(function LinkBlock({
         'bg-background border-2 border-border',
         'shadow-md',
         // 호버 효과 (선택되지 않았을 때만)
-        !selected && 'hover:shadow-xl hover:scale-[1.02] hover:rotate-1',
+        !selected && 'hover:shadow-xl',
         // 선택 효과
         selected && 'ring-2 ring-blue-400 dark:ring-blue-500',
         selected && 'shadow-xl',
@@ -538,7 +538,7 @@ export const LinkBlock = memo(function LinkBlock({
         'bg-background border-2 border-border',
         'shadow-md',
         // 호버 효과 (선택되지 않았을 때만)
-        !selected && 'hover:shadow-xl hover:scale-[1.02] hover:rotate-1',
+        !selected && 'hover:shadow-xl',
         // 선택 효과
         selected && 'ring-2 ring-blue-400 dark:ring-blue-500',
         selected && 'shadow-xl',
@@ -565,7 +565,7 @@ export const LinkBlock = memo(function LinkBlock({
           'bg-background border-2 border-border',
           'shadow-md',
           // 호버 효과 (선택되지 않았을 때만)
-          !selected && 'hover:shadow-xl hover:scale-[1.02] hover:rotate-1',
+          !selected && 'hover:shadow-xl',
           // 선택 효과
           selected && 'ring-2 ring-blue-400 dark:ring-blue-500',
           selected && 'shadow-xl',

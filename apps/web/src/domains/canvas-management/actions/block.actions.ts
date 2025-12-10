@@ -6,6 +6,7 @@ import {
   BlockSizeUpdatedDTO,
   BlockMountSoftDeletedDTO,
   BlockDuplicatedAndMountedDTO,
+  BlockMovedToPageDTO,
 } from '../shared/dtos/responses';
 import {
   CreateAndMountBlockRequestSchema,
@@ -18,6 +19,8 @@ import {
   SoftDeleteBlockMountRequest,
   DuplicateBlockAndMountRequestSchema,
   DuplicateBlockAndMountRequest,
+  MoveBlockToPageRequestSchema,
+  MoveBlockToPageRequest,
 } from '../shared/dtos/requests';
 import { ActionResult, ok, err } from '@/lib/action-result';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
@@ -809,6 +812,152 @@ async function duplicateBlockAndMountInternal(
     return ok(dto);
   } catch (error) {
     console.error('[duplicateBlockInternal] Internal error:', error);
+    return err('Internal server error', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+        request,
+      },
+    });
+  }
+}
+
+/**
+ * 블럭 페이지 이동 Server Action
+ *
+ * ⚠️ Security: 이 함수는 HTTP를 통해 공개되므로 모든 입력을 검증합니다
+ *
+ * Defense in Depth:
+ * 1. Request 스키마 검증
+ * 2. 사용자 인증 확인
+ * 3. 조직 멤버십 확인
+ * 4. 워크스페이스 접근 권한 확인
+ *
+ * @param request - 클라이언트 요청 (런타임 검증 필요)
+ * @returns BlockMovedToPageDTO (성공) | Error (실패)
+ */
+export async function moveBlockToPageAction(
+  request: unknown // ⚠️ 외부 입력 - 신뢰하지 않음
+): Promise<ActionResult<BlockMovedToPageDTO>> {
+  // 1. Runtime Validation (필수)
+  const parseResult = MoveBlockToPageRequestSchema.safeParse(request);
+
+  if (!parseResult.success) {
+    console.warn('[Security] Invalid request to moveBlockToPageAction', {
+      errors: parseResult.error.issues,
+      timestamp: new Date().toISOString(),
+    });
+
+    return err('Invalid request data', {
+      code: 'INVALID_REQUEST',
+      meta: { errors: parseResult.error.issues },
+    });
+  }
+
+  // 2. 검증된 데이터는 타입 안전
+  const validatedRequest = parseResult.data; // type: MoveBlockToPageRequest
+
+  // 3. 인증 및 권한 확인
+  try {
+    const user = await getAuthenticatedUser();
+
+    // 4. 조직 및 워크스페이스 접근 권한 확인
+    const accessResult = await verifyAccess(
+      validatedRequest.orgId,
+      validatedRequest.workspaceId,
+      user.id
+    );
+
+    if (!accessResult.success) {
+      console.warn('[Security] Access verification failed', {
+        userId: user.id,
+        orgId: validatedRequest.orgId,
+        workspaceId: validatedRequest.workspaceId,
+        error: accessResult.error,
+      });
+
+      return err(getAuthErrorMessage(accessResult.error), {
+        code: accessResult.error || 'ACCESS_DENIED',
+      });
+    }
+
+    // 5. 검증 완료 - Internal 함수 호출
+    return await moveBlockToPageInternal(
+      validatedRequest,
+      user,
+      accessResult.workspace!
+    );
+  } catch (error) {
+    console.error('[moveBlockToPageAction] Authentication error:', error);
+
+    return err(
+      error instanceof Error ? error.message : 'Authentication failed',
+      { code: 'AUTHENTICATION_FAILED' }
+    );
+  }
+}
+
+/**
+ * 내부 구현 (검증된 데이터만 처리)
+ */
+async function moveBlockToPageInternal(
+  request: MoveBlockToPageRequest,
+  user: AuthenticatedUser,
+  workspace: Workspace
+): Promise<ActionResult<BlockMovedToPageDTO>> {
+  try {
+    const userIdVO = new UserId(user.id);
+
+    // 1. Repository 인스턴스 생성
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const edgeRepository = new DrizzleEdgeRepository();
+    const blockRepository = new DrizzleBlockRepository();
+
+    // 2. Service 인스턴스 생성
+    const blockManagementService = new BlockManagementService(blockRepository);
+    const canvasBlockMountService = new CanvasBlockMountService(
+      blockManagementService,
+      blockMountRepository,
+      edgeRepository
+    );
+
+    // 3. params 생성
+    const params = {
+      blockMountId: new BlockMountId(request.blockMountId),
+      targetPageId: new PageId(request.targetPageId),
+      userId: userIdVO,
+    };
+
+    // 4. Service 메서드 호출
+    const result = await canvasBlockMountService.moveBlockToPage(params);
+
+    if (result.isError()) {
+      console.error(
+        '❌ [moveBlockToPageInternal] Service failed:',
+        result.error
+      );
+      return err(String(result.error), {
+        code: 'BLOCK_MOVE_FAILED',
+        meta: { originalError: result.error },
+      });
+    }
+
+    // 5. DTO 직렬화
+    const blockMountAggregate = result.value;
+    const blockMount = blockMountAggregate.getBlockMount();
+    const dto: BlockMovedToPageDTO = {
+      blockMountId: blockMount.id.value,
+      newPageId: blockMount.pageId.value,
+      newPosition: {
+        x: blockMount.position.x,
+        y: blockMount.position.y,
+      },
+      movedAt: blockMount.updatedAt.toISOString(),
+    };
+
+    return ok(dto);
+  } catch (error) {
+    console.error('[moveBlockToPageInternal] Internal error:', error);
     return err('Internal server error', {
       code: 'INTERNAL_SERVER_ERROR',
       meta: {

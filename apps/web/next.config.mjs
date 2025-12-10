@@ -23,6 +23,12 @@ const nextConfig = {
       },
     ],
   },
+  // ✅ Server Actions body size limit 증가 (이미지 업로드용)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '50mb', // 기본값 1mb → 50mb로 증가 (Base64 인코딩 고려)
+    },
+  },
 };
 
 export default nextConfig;

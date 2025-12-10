@@ -20,7 +20,6 @@ import {
 } from '../backend/services';
 import { DefaultPageLifecycleService } from '../backend/services/page-lifecycle.service';
 import { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
-import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '../shared/value-objects/workspace-id.vo';
 import { PageId } from '../shared/value-objects/page-id.vo';
 import type {
@@ -49,7 +48,23 @@ import type {
   DeletePageRequest,
   DuplicatePageRequest,
   DuplicatePageResponse,
+  GetRecentPagesRequest,
+  GetRecentPagesResponse,
+  RecentPageDTO,
+  SearchPagesResponse,
 } from '../shared/dtos';
+import {
+  SearchPagesRequestSchema,
+  type SearchPagesRequest,
+} from '../shared/dtos/requests/page.requests';
+import { ActionResult, ok, err, isFailure } from '@/lib/action-result';
+import {
+  getAuthenticatedUser,
+  verifyAccess,
+  type AuthenticatedUser,
+} from '@/domains/common/auth/helpers';
+import { getAuthErrorMessage } from '@/domains/common/auth/error';
+import type { Workspace } from '../shared/entities/workspace.entity';
 import type { Page } from '../shared/entities/page.entity';
 
 /**
@@ -1285,5 +1300,213 @@ export async function duplicatePageAction(
       error: 'UNKNOWN_ERROR',
       details: error instanceof Error ? error.message : 'Unknown error',
     };
+  }
+}
+
+/**
+ * 최근 페이지 조회 Server Action (경량화)
+ *
+ * @param request - Workspace ID 및 limit
+ * @returns GetRecentPagesResponse (성공) | Error (실패)
+ */
+export async function getRecentPagesAction(
+  request: GetRecentPagesRequest
+): Promise<ServerActionResult<GetRecentPagesResponse>> {
+  try {
+    // 1. Supabase Auth 인증 확인
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'UNAUTHORIZED',
+        details: 'User not authenticated',
+      };
+    }
+
+    // 2. 입력 검증
+    if (!request.workspaceId) {
+      return {
+        success: false,
+        error: 'INVALID_WORKSPACE_ID',
+        details: 'Workspace ID is required',
+      };
+    }
+
+    const limit = Math.min(request.limit || 20, 50); // 최대 50개
+
+    // 3. Repository 초기화
+    const pageRepo = new DrizzlePageRepository();
+    const workspaceRepo = new DrizzleWorkspaceRepository();
+    const memberRepo = new DrizzleWorkspaceMemberRepository();
+
+    // 4. 워크스페이스 조회 및 권한 확인
+    const workspaceId = new WorkspaceId(request.workspaceId);
+    const workspace = await workspaceRepo.findById(workspaceId);
+
+    if (!workspace) {
+      return {
+        success: false,
+        error: 'WORKSPACE_NOT_FOUND',
+        details: 'Workspace not found',
+      };
+    }
+
+    // 5. 워크스페이스 멤버십 확인
+    const isMember = await memberRepo.isMember(workspaceId, user.id);
+    if (!isMember) {
+      return {
+        success: false,
+        error: 'NOT_WORKSPACE_MEMBER',
+        details: 'User is not a member of this workspace',
+      };
+    }
+
+    // 6. 최근 페이지 조회
+    const results = await pageRepo.findRecentByWorkspaceId(workspaceId, limit);
+
+    // 7. DTO 변환
+    const pages: RecentPageDTO[] = results.map(({ page, workspaceName }) => ({
+      pageId: page.pageId.value,
+      title: page.title,
+      icon: page.icon,
+      workspaceId: page.workspaceId.value,
+      workspaceName,
+      updatedAt: page.updatedAt.toISOString(),
+    }));
+
+    return {
+      success: true,
+      data: { pages },
+    };
+  } catch (error) {
+    console.error('[getRecentPagesAction] Error:', error);
+    return {
+      success: false,
+      error: 'INTERNAL_SERVER_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * 페이지 검색 Server Action
+ *
+ * ⚠️ Security: 이 함수는 HTTP를 통해 공개되므로 모든 입력을 검증합니다
+ *
+ * Defense in Depth:
+ * 1. Request 스키마 검증
+ * 2. 사용자 인증 확인
+ * 3. 조직 멤버십 확인
+ * 4. 워크스페이스 접근 권한 확인
+ *
+ * @param request - 클라이언트 요청 (런타임 검증 필요)
+ * @returns SearchPagesResponse (성공) | Error (실패)
+ */
+export async function searchPagesAction(
+  request: unknown // ⚠️ 외부 입력 - 신뢰하지 않음
+): Promise<ActionResult<SearchPagesResponse>> {
+  // 1. Runtime Validation (필수)
+  const parseResult = SearchPagesRequestSchema.safeParse(request);
+
+  if (!parseResult.success) {
+    console.warn('[Security] Invalid request to searchPagesAction', {
+      errors: parseResult.error.issues,
+      timestamp: new Date().toISOString(),
+    });
+
+    return err('Invalid request data', {
+      code: 'INVALID_REQUEST',
+      meta: { errors: parseResult.error.issues },
+    });
+  }
+
+  // 2. 검증된 데이터는 타입 안전
+  const validatedRequest = parseResult.data; // type: SearchPagesRequest
+
+  // 3. 인증 및 권한 확인
+  try {
+    const user = await getAuthenticatedUser();
+
+    // 4. 조직 및 워크스페이스 접근 권한 확인
+    const accessResult = await verifyAccess(
+      validatedRequest.orgId,
+      validatedRequest.workspaceId,
+      user.id
+    );
+
+    if (!accessResult.success) {
+      console.warn('[Security] Access verification failed', {
+        userId: user.id,
+        orgId: validatedRequest.orgId,
+        workspaceId: validatedRequest.workspaceId,
+        error: accessResult.error,
+      });
+
+      return err(getAuthErrorMessage(accessResult.error), {
+        code: accessResult.error || 'ACCESS_DENIED',
+      });
+    }
+
+    // 5. 검증 완료 - Internal 함수 호출
+    return await searchPagesInternal(
+      validatedRequest,
+      user,
+      accessResult.workspace!
+    );
+  } catch (error) {
+    console.error('[searchPagesAction] Authentication error:', error);
+
+    return err(
+      error instanceof Error ? error.message : 'Authentication failed',
+      { code: 'AUTHENTICATION_FAILED' }
+    );
+  }
+}
+
+/**
+ * 내부 구현 (검증된 데이터만 처리)
+ */
+async function searchPagesInternal(
+  request: SearchPagesRequest,
+  user: AuthenticatedUser,
+  workspace: Workspace
+): Promise<ActionResult<SearchPagesResponse>> {
+  try {
+    const pageRepo = new DrizzlePageRepository();
+    const limit = Math.min(request.limit || 50, 50); // 최대 50개 제한
+
+    const results = await pageRepo.searchByWorkspaceId(
+      new WorkspaceId(request.workspaceId),
+      request.query,
+      limit
+    );
+
+    const pages: RecentPageDTO[] = results.map(({ page, workspaceName }) => ({
+      pageId: page.pageId.value,
+      title: page.title,
+      icon: page.icon,
+      workspaceId: page.workspaceId.value,
+      workspaceName,
+      updatedAt: page.updatedAt.toISOString(),
+    }));
+
+    return ok({
+      pages,
+      hasMore: pages.length === limit, // limit에 도달하면 더 있을 수 있음
+    });
+  } catch (error) {
+    console.error('[searchPagesInternal] Internal error:', error);
+    return err('Internal server error', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+        request,
+      },
+    });
   }
 }

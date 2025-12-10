@@ -10,6 +10,8 @@ interface BlockToolbarMapperProps {
   blockType: string;
   blockData: BlockNodeData;
   disabled?: boolean;
+  width?: number;
+  height?: number;
 }
 
 /**
@@ -46,11 +48,13 @@ export function BlockToolbarMapper({
   blockType,
   blockData,
   disabled = false,
+  width,
+  height,
 }: BlockToolbarMapperProps) {
-  const { updateProperty } = useBlockPropertyUpdate();
+  const { updateProperty, updateProperties } = useBlockPropertyUpdate();
   const [, forceUpdate] = useState(0);
 
-  // 속성 업데이트 핸들러
+  // 속성 업데이트 핸들러 (단일 속성)
   const handlePropertyUpdate = useCallback(
     async <T,>(propertyPath: string, value: T) => {
       if (!blockData) {
@@ -60,6 +64,18 @@ export function BlockToolbarMapper({
       await updateProperty<T>(blockId, propertyPath, value, blockData);
     },
     [blockId, blockData, updateProperty]
+  );
+
+  // 속성 업데이트 핸들러 (여러 속성)
+  const onPropertiesUpdate = useCallback(
+    async (properties: Record<string, any>) => {
+      if (!blockData) {
+        console.warn('Block data not available for properties update');
+        return;
+      }
+      await updateProperties(blockId, properties, blockData);
+    },
+    [blockId, blockData, updateProperties]
   );
 
   // 컴포넌트가 로드될 때까지 polling (prefetch 완료 대기)
@@ -103,14 +119,15 @@ export function BlockToolbarMapper({
 
   // 컴포넌트 즉시 렌더링 (no Suspense!)
   return (
-    <div className="flex items-center gap-0.5">
-      <ToolbarItemsComponent
-        blockId={blockId}
-        blockMountId={blockData.blockMountId}
-        blockData={blockData}
-        disabled={disabled}
-        onPropertyUpdate={handlePropertyUpdate}
-      />
-    </div>
+    <ToolbarItemsComponent
+      blockId={blockId}
+      blockMountId={blockData.blockMountId}
+      blockData={blockData}
+      disabled={disabled}
+      onPropertyUpdate={handlePropertyUpdate}
+      onPropertiesUpdate={onPropertiesUpdate}
+      width={width}
+      height={height}
+    />
   );
 }

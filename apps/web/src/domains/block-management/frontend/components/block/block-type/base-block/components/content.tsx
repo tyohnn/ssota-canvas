@@ -7,7 +7,7 @@
 'use client';
 
 import { cn } from '@workspace/ui/lib/utils';
-import { useBaseBlockContext } from '../core/context';
+import { useBaseBlockContext } from '../core/use-base-block.context';
 
 export interface ContentProps {
   children?: React.ReactNode;

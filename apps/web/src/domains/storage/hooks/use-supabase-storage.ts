@@ -14,7 +14,6 @@ import {
   StorageBucket,
   StorageError,
 } from '../types/storage.types';
-import { generateAssetPath } from '../lib/path-generator';
 import { validateFile } from '../lib/validation';
 
 export function useSupabaseStorage() {
@@ -40,24 +39,14 @@ export function useSupabaseStorage() {
         // 2. Generate path (if not provided)
         let path = providedPath;
         if (!path) {
-          // Use context from options or fallback to temp
-          const { orgId, workspaceId, pageId, blockId } = options;
-          if (orgId && workspaceId && pageId && blockId) {
-            path = generateAssetPath({
-              orgId,
-              workspaceId,
-              pageId,
-              blockId,
-              file,
-            });
-          } else {
-            // Fallback: use temp folder
-            const timestamp = Date.now();
-            const uuid = crypto.randomUUID();
-            const ext = file.name.split('.').pop() || '';
-            path = `temp/${timestamp}-${uuid}.${ext}`;
-            console.warn('Context not provided, using temp path:', path);
-          }
+          // Fallback: use temp folder
+          // Note: 레거시 경로 구조는 제거되었습니다.
+          // 이미지 업로드는 image-upload.actions.ts를 통해 ImageUploadService를 사용해야 합니다.
+          const timestamp = Date.now();
+          const uuid = crypto.randomUUID();
+          const ext = file.name.split('.').pop() || '';
+          path = `temp/${timestamp}-${uuid}.${ext}`;
+          console.warn('Path not provided, using temp path:', path);
         }
 
         setProgress(30);

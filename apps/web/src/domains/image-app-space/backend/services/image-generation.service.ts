@@ -19,16 +19,13 @@ import {
   getImageGenerationModel,
   type ImageGenerationModel,
 } from '../../shared/config/image-generation-models';
-import {
-  uploadGeneratedAssetToSupabase,
-  type UploadGeneratedAssetResult,
-} from '@/domains/storage/backend/services/generated-asset.service';
 import type {
   ImageAsset,
   ImageAssetMetadata,
 } from '../../shared/types/image-search.types';
 import type { ImageGenerationResult } from '../../shared/types/image-generation.types';
 import type { GenerateImageRequest } from '../../shared/dtos/requests/image-generation.requests';
+import { ImageUploadService } from './image-upload.service';
 import { createHash } from 'crypto';
 
 /**
@@ -39,7 +36,7 @@ export class ImageGenerationService {
    * 이미지 생성 실행
    *
    * @param request - 생성 요청
-   * @param userId - 사용자 ID (Helicone 헤더용)
+   * @param userId - 사용자 ID (Helicone 헤더용 + DB 저장용)
    * @param pageId - 페이지 ID (Storage 경로용)
    * @param blockId - 블록 ID (Storage 경로용)
    * @returns 생성 결과
@@ -135,41 +132,76 @@ export class ImageGenerationService {
       .digest('hex')
       .slice(0, 8);
 
-    // 각 이미지를 Supabase Storage에 업로드
+    // Service 인스턴스 생성
+    const uploadService = new ImageUploadService();
+
+    // 각 이미지를 Supabase Storage에 업로드하고 DB에 저장
     const uploadPromises = images.map(
       async (image: Experimental_GeneratedImage, index) => {
         const base64 = image.base64 || '';
-        // mediaType이 있으면 사용, 없으면 기본값 'image/png' 사용
         const mimeType = image.mediaType || 'image/png';
 
-        const uploadResult = await uploadGeneratedAssetToSupabase({
-          base64,
+        // Base64 → Buffer 변환
+        const base64Data = base64.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // 파일명 생성
+        const ext = mimeType.split('/')[1] || 'png';
+        const fileName = `generated-${promptHash}-${index}-${Date.now()}.${ext}`;
+
+        // ✅ ImageUploadService 사용 (통합된 플로우)
+        const uploadResult = await uploadService.uploadImage({
+          assetType: 'ai-generated',
+          file: buffer,
+          fileName,
+          fileSize: buffer.length,
           mimeType,
-          orgId: request.orgId,
           workspaceId: request.workspaceId,
-          pageId,
-          blockId,
-          promptHash: `${promptHash}-${index}`,
-          modelId: request.modelId,
+          userId,
+          // AI 생성 전용 필드
+          prompt: request.prompt,
+          negativePrompt: request.negativePrompt,
+          metadata: {
+            modelId: request.modelId,
+            aspectRatio: request.aspectRatio,
+            seed: request.seed,
+            blockId,
+            promptHash: `${promptHash}-${index}`,
+          },
         });
 
-        // ImageAsset 형식으로 변환
-        const imageAsset: ImageAsset = {
-          id: `generated-${request.modelId}-${promptHash}-${index}`,
-          url: uploadResult.url,
-          thumbnailUrl: uploadResult.url, // 생성된 이미지는 썸네일 = 원본
-          alt: request.prompt.slice(0, 100),
+        if (uploadResult.isError()) {
+          console.error(
+            '[ImageGeneration] Failed to upload/save image:',
+            uploadResult.error
+          );
+          throw uploadResult.error;
+        }
+
+        const savedImageAsset = uploadResult.value;
+
+        // ✅ ImageAsset을 프론트엔드 타입으로 변환
+        const frontendImageAsset: ImageAsset = {
+          id: savedImageAsset.id,
+          url: savedImageAsset.image_url,
+          thumbnailUrl:
+            savedImageAsset.thumbnail_url || savedImageAsset.image_url,
+          alt: `Generated: ${request.prompt.slice(0, 30)}...`,
           source: 'ssota',
           metadata: {
             blockId,
-            createdAt: new Date(),
-            workspaceId: request.workspaceId,
-            width: uploadResult.width,
-            height: uploadResult.height,
-          },
+            promptHash: `${promptHash}-${index}`,
+            modelId: request.modelId,
+            prompt: request.prompt,
+            negativePrompt: request.negativePrompt,
+            aspectRatio: request.aspectRatio,
+            seed: request.seed,
+            width: savedImageAsset.width,
+            height: savedImageAsset.height,
+          } as ImageAssetMetadata,
         };
 
-        return imageAsset;
+        return frontendImageAsset;
       }
     );
 

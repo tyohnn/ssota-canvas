@@ -92,12 +92,18 @@ export const imageAssets = imageAppSpaceSchema
       asset_type: imageAssetTypeEnum('asset_type').notNull(),
 
       // Image Data
-      image_url: text('image_url').notNull(),
+      image_url: text('image_url').notNull(), // Storage path (e.g., "workspace_id/date/uuid.jpg"), NOT a full URL
       thumbnail_url: text('thumbnail_url'),
       width: integer('width'),
       height: integer('height'),
       file_size: integer('file_size'), // bytes
       mime_type: text('mime_type'), // 'image/png', 'image/jpeg', etc.
+
+      // Signed URL Cache (for performance)
+      signed_url: text('signed_url'), // Cached signed URL (may be expired)
+      signed_url_expires_at: timestamp('signed_url_expires_at', {
+        withTimezone: true,
+      }), // Expiration time of signed_url
 
       // Prompt Information (AI 생성 이미지만)
       prompt: text('prompt'),

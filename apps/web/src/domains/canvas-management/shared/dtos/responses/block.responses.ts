@@ -59,3 +59,13 @@ export interface BlockDuplicatedAndMountedDTO {
   size: Size;
   zOrder: number;
 }
+
+/**
+ * 블럭 페이지 이동 완료 DTO
+ */
+export interface BlockMovedToPageDTO {
+  blockMountId: string;
+  newPageId: string;
+  newPosition: Position;
+  movedAt: string;
+}

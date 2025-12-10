@@ -5,10 +5,13 @@ Supabase Branching을 사용한 데이터베이스 마이그레이션 워크플�
 ## 🎯 개요
 
 이 프로젝트는 **Drizzle ORM**과 **Supabase Branching**을 함께 사용합니다:
-- **Drizzle**: TypeScript 타입 안전성 + 마이그레이션 생성
+- **Drizzle**: TypeScript 타입 안전성만 제공 (마이그레이션 생성은 참고용)
 - **Supabase**: 실제 마이그레이션 실행 + GitHub 연동
 
 **SSOT (Single Source of Truth)**: `supabase/migrations/` 폴더
+
+> ⚠️ **중요**: Drizzle은 타입 체크용으로만 사용됩니다. 
+> 실제 마이그레이션은 Supabase CLI로 직접 작성하거나 Drizzle 생성 파일을 참고하여 수동으로 작성합니다.
 
 ---
 

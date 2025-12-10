@@ -7,6 +7,7 @@
 export enum StorageBucket {
   USER_AVATARS = 'user-avatars',
   CANVAS_ASSETS = 'canvas-assets',
+  IMAGE_ASSETS = 'image-assets', // Workspace-centric image storage
   THUMBNAILS = 'thumbnails',
   EXPORTS = 'exports',
 }

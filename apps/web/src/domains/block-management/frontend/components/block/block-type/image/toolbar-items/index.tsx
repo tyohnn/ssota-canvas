@@ -1,76 +1,42 @@
+/**
+ * Image Toolbar Items
+ *
+ * 이미지 블록 툴바 아이템들
+ *
+ */
+
 import React from 'react';
+import { ImageToolbarProvider } from './core/provider';
 import { ImageChangeToolbarItem } from './image-change-toolbar-item';
-import { ObjectFitToolbarItem } from './object-fit-toolbar-item';
-import { CaptionVisibilityToolbarItem } from './caption-visibility-toolbar-item';
-import { ExpandImageToolbarItem } from './expand-image-toolbar-item';
-import {
-  ImageSpaceContainer,
-  ImageSpaceExploreTrigger,
-  ImageSpaceEditorTrigger,
-} from '@/domains/image-app-space/frontend';
-import { Separator } from '@workspace/ui/components/ui/separator';
+// import { ObjectFitToolbarItem } from './object-fit-toolbar-item';
+// import { CaptionVisibilityToolbarItem } from './caption-visibility-toolbar-item';
+// import { ExpandImageToolbarItem } from './expand-image-toolbar-item';
+// import {
+//   ImageSpaceContainer,
+//   ImageSpaceExploreTrigger,
+//   ImageSpaceEditorTrigger,
+// } from '@/domains/image-app-space/frontend';
+// import { Separator } from '@workspace/ui/components/ui/separator';
+import type { ImageToolbarItemsProps } from './core/types';
 
-// Lazy Loading을 위한 Wrapper 컴포넌트
-// 이 컴포넌트 전체가 lazy()로 로드되므로 내부 import도 함께 lazy됨
-export function ImageToolbarItems({
-  blockId,
-  blockMountId,
-  blockData,
-  disabled,
-  onPropertyUpdate,
-}: {
-  blockId: string;
-  blockMountId?: string;
-  blockData: any;
-  disabled: boolean;
-  onPropertyUpdate: (path: string, value: any) => Promise<void>;
-}) {
-  const imageProperties = blockData.properties;
-
+/**
+ * Image Toolbar Items Component
+ *
+ * Provider + 서브 컴포넌트 조합
+ *
+ */
+export function ImageToolbarItems(props: ImageToolbarItemsProps) {
   return (
-    <>
-      <ImageSpaceContainer blockId={blockId} blockData={blockData}>
+    <ImageToolbarProvider {...props}>
+      {/* <ImageSpaceContainer blockId={blockId} blockData={blockData}>
         <ImageSpaceExploreTrigger />
         <ImageSpaceEditorTrigger />
-      </ImageSpaceContainer>
-      <ImageChangeToolbarItem
-        blockId={blockId}
-        blockMountId={blockMountId}
-        currentValue={imageProperties.imageUrl}
-        disabled={disabled}
-        orgId={blockData.orgId}
-        workspaceId={blockData.workspaceId}
-        pageId={blockData.pageId}
-        onValueChange={async (url: string) => {
-          await onPropertyUpdate('properties.imageUrl', url);
-        }}
-      />
-      <ObjectFitToolbarItem
-        blockId={blockId}
-        blockMountId={blockMountId}
-        currentValue={imageProperties.objectFit}
-        disabled={disabled}
-        onValueChange={async (objectFit: any) => {
-          await onPropertyUpdate('properties.objectFit', objectFit);
-        }}
-      />
-      <Separator orientation="vertical" className="h-6" />
-      <CaptionVisibilityToolbarItem
-        blockId={blockId}
-        blockMountId={blockMountId}
-        currentValue={imageProperties.isCaptionVisible ?? false}
-        disabled={disabled}
-        onValueChange={async (value: boolean) => {
-          await onPropertyUpdate('properties.isCaptionVisible', value);
-        }}
-      />
-      <ExpandImageToolbarItem
-        blockId={blockId}
-        blockMountId={blockMountId}
-        imageUrl={imageProperties.imageUrl}
-        alt={imageProperties.alt}
-        disabled={disabled || !imageProperties.imageUrl}
-      />
-    </>
+      </ImageSpaceContainer> */}
+      <ImageChangeToolbarItem />
+      {/* <ObjectFitToolbarItem /> */}
+      {/* <Separator orientation="vertical" className="h-6" /> */}
+      {/* <CaptionVisibilityToolbarItem /> */}
+      {/* <ExpandImageToolbarItem /> */}
+    </ImageToolbarProvider>
   );
 }

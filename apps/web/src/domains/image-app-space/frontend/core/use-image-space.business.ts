@@ -42,6 +42,18 @@ export function useImageSpaceBusiness(
           ...metadata,
         };
 
+        // Public 이미지 (Unsplash 등)를 선택할 때는 기존 imageAssetId 제거
+        // 이전에 private 이미지가 있었더라도, public 이미지로 대체됨
+        if (!metadata.imageAssetId) {
+          if (source === 'unsplash' || source === 'ai') {
+            propertiesToUpdate.imageAssetId = null;
+            console.log(
+              '[ImageSpace] Clearing imageAssetId for public image source:',
+              source
+            );
+          }
+        }
+
         await updateProperties(blockId, propertiesToUpdate, blockData);
 
         // Scenario 4: ImageAssetUsage 기록 (use_count 증가)

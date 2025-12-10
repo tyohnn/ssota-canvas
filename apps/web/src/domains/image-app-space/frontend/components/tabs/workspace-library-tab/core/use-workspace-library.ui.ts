@@ -16,9 +16,19 @@ export function useWorkspaceLibraryUI() {
   const [filterType, setFilterType] = useState<
     'all' | 'ai-generated' | 'unsplash' | 'user-upload'
   >('all');
+  const [selectedImageForSettings, setSelectedImageForSettings] =
+    useState<ImageAsset | null>(null);
 
   const clearImages = useCallback(() => {
     setImages([]);
+  }, []);
+
+  const openImageSettings = useCallback((image: ImageAsset) => {
+    setSelectedImageForSettings(image);
+  }, []);
+
+  const closeImageSettings = useCallback(() => {
+    setSelectedImageForSettings(null);
   }, []);
 
   return {
@@ -26,11 +36,14 @@ export function useWorkspaceLibraryUI() {
     images,
     isLoading,
     filterType,
+    selectedImageForSettings,
 
     // Actions
     setImages,
     setIsLoading,
     setFilterType,
     clearImages,
+    openImageSettings,
+    closeImageSettings,
   };
 }

@@ -330,7 +330,7 @@ export const AudioBlock = memo(function AudioBlock({
             'w-full h-full flex flex-col relative',
             'bg-background border-2 border-border rounded-lg overflow-hidden',
             'shadow-md',
-            !selected && 'hover:shadow-xl hover:scale-[1.02]',
+            !selected && 'hover:shadow-xl',
             selected && 'ring-2 ring-blue-400 dark:ring-blue-500',
             selected && 'shadow-xl',
             'transition-all duration-300 ease-out'

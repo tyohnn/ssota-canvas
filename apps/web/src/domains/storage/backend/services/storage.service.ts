@@ -2,6 +2,9 @@
  * Storage Service
  *
  * 파일 스토리지 관련 비즈니스 로직
+ *
+ * User-scoped client를 사용 (RLS 적용)
+ * constructor로 client를 주입받아 사용
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';

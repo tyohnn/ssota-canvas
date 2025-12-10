@@ -76,7 +76,7 @@ function EditorPanelWrapper() {
       className={`absolute z-50 bg-background backdrop-blur-md border-border shadow-2xl ${
         isExpanded
           ? 'inset-0 border rounded-none'
-          : 'bottom-0 right-0 w-[43%] h-[85%] border-l border-t rounded-tl-lg'
+          : 'bottom-0 right-0 w-[50%] h-[90%] border-l border-t rounded-tl-lg'
       } ${
         isAnimating ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       }`}

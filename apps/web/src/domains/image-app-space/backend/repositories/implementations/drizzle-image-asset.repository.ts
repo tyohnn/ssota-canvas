@@ -15,12 +15,14 @@ import {
   type ImageAsset,
   type NewImageAsset,
   type ImageCategory,
+  type ImageAssetType,
 } from '@/db/schemas/image-app-space-schema';
 import { profiles } from '@/db/schema';
 import type {
   IImageAssetRepository,
   FindPublicImagesParams,
   FindFollowingImagesParams,
+  FindWorkspaceImagesParams,
   ImageAssetWithCreator,
   ImageAssetWithStats,
   UpdateMetadataParams,
@@ -65,6 +67,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
         height: imageAssets.height,
         file_size: imageAssets.file_size,
         mime_type: imageAssets.mime_type,
+        signed_url: imageAssets.signed_url,
+        signed_url_expires_at: imageAssets.signed_url_expires_at,
         prompt: imageAssets.prompt,
         negative_prompt: imageAssets.negative_prompt,
         metadata: imageAssets.metadata,
@@ -110,6 +114,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
       height: row.height,
       file_size: row.file_size,
       mime_type: row.mime_type,
+      signed_url: row.signed_url,
+      signed_url_expires_at: row.signed_url_expires_at,
       prompt: row.prompt,
       negative_prompt: row.negative_prompt,
       metadata: row.metadata,
@@ -158,6 +164,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
         height: imageAssets.height,
         file_size: imageAssets.file_size,
         mime_type: imageAssets.mime_type,
+        signed_url: imageAssets.signed_url,
+        signed_url_expires_at: imageAssets.signed_url_expires_at,
         prompt: imageAssets.prompt,
         negative_prompt: imageAssets.negative_prompt,
         metadata: imageAssets.metadata,
@@ -215,6 +223,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
       height: row.height,
       file_size: row.file_size,
       mime_type: row.mime_type,
+      signed_url: row.signed_url,
+      signed_url_expires_at: row.signed_url_expires_at,
       prompt: row.prompt,
       negative_prompt: row.negative_prompt,
       metadata: row.metadata,
@@ -292,6 +302,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
         height: imageAssets.height,
         file_size: imageAssets.file_size,
         mime_type: imageAssets.mime_type,
+        signed_url: imageAssets.signed_url,
+        signed_url_expires_at: imageAssets.signed_url_expires_at,
         prompt: imageAssets.prompt,
         negative_prompt: imageAssets.negative_prompt,
         metadata: imageAssets.metadata,
@@ -348,6 +360,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
       height: row.height,
       file_size: row.file_size,
       mime_type: row.mime_type,
+      signed_url: row.signed_url,
+      signed_url_expires_at: row.signed_url_expires_at,
       prompt: row.prompt,
       negative_prompt: row.negative_prompt,
       metadata: row.metadata,
@@ -400,6 +414,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
         height: imageAssets.height,
         file_size: imageAssets.file_size,
         mime_type: imageAssets.mime_type,
+        signed_url: imageAssets.signed_url,
+        signed_url_expires_at: imageAssets.signed_url_expires_at,
         prompt: imageAssets.prompt,
         negative_prompt: imageAssets.negative_prompt,
         metadata: imageAssets.metadata,
@@ -462,6 +478,8 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
       height: row.height,
       file_size: row.file_size,
       mime_type: row.mime_type,
+      signed_url: row.signed_url,
+      signed_url_expires_at: row.signed_url_expires_at,
       prompt: row.prompt,
       negative_prompt: row.negative_prompt,
       metadata: row.metadata,
@@ -490,6 +508,36 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
       isLiked: row.isLiked,
       isBookmarked: row.isBookmarked,
     }));
+  }
+
+  /**
+   * Workspace 이미지 조회 (협업용)
+   *
+   * 워크스페이스의 모든 멤버가 업로드한 이미지 조회
+   * created_by 체크하지 않음 (팀 협업)
+   */
+  async findWorkspaceImages(
+    params: FindWorkspaceImagesParams
+  ): Promise<ImageAsset[]> {
+    const { workspaceId, filterType, page, perPage } = params;
+
+    const whereConditions = and(
+      eq(imageAssets.workspace_id, workspaceId),
+      eq(imageAssets.is_deleted, false),
+      filterType !== 'all'
+        ? eq(imageAssets.asset_type, filterType as ImageAssetType)
+        : undefined
+    );
+
+    const result = await adminDb
+      .select()
+      .from(imageAssets)
+      .where(whereConditions)
+      .orderBy(desc(imageAssets.created_at))
+      .limit(perPage)
+      .offset((page - 1) * perPage);
+
+    return result;
   }
 
   /**
@@ -560,6 +608,60 @@ export class DrizzleImageAssetRepository implements IImageAssetRepository {
       .set({
         is_deleted: false,
         deleted_at: null,
+      })
+      .where(eq(imageAssets.id, id));
+  }
+
+  /**
+   * Signed URL 캐시 업데이트
+   *
+   * @param id - 이미지 자산 ID
+   * @param signedUrl - 새로 생성된 signed URL
+   * @param expiresAt - 만료 시간
+   */
+  async updateSignedUrl(
+    id: string,
+    signedUrl: string,
+    expiresAt: Date
+  ): Promise<void> {
+    await adminDb
+      .update(imageAssets)
+      .set({
+        signed_url: signedUrl,
+        signed_url_expires_at: expiresAt,
+        updated_at: new Date(),
+      })
+      .where(eq(imageAssets.id, id));
+  }
+
+  /**
+   * Unsplash photoId로 조회
+   */
+  async findByUnsplashPhotoId(photoId: string): Promise<ImageAsset | null> {
+    const results = await adminDb
+      .select()
+      .from(imageAssets)
+      .where(
+        and(
+          eq(imageAssets.asset_type, 'unsplash'),
+          sql`${imageAssets.metadata}->>'photoId' = ${photoId}`,
+          eq(imageAssets.is_deleted, false)
+        )
+      )
+      .limit(1);
+
+    return results[0] || null;
+  }
+
+  /**
+   * use_count 증가
+   */
+  async incrementUseCount(id: string): Promise<void> {
+    await adminDb
+      .update(imageAssets)
+      .set({
+        use_count: sql`${imageAssets.use_count} + 1`,
+        updated_at: new Date(),
       })
       .where(eq(imageAssets.id, id));
   }

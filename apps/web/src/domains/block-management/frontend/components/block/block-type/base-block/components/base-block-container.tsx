@@ -19,13 +19,14 @@
 
 import { memo, forwardRef } from 'react';
 import { cn } from '@workspace/ui/lib/utils';
-import { BaseBlockProvider } from '../core/provider';
+import { BaseBlockProvider } from '../core/use-base-block.provider';
 import { ResizeControl } from './resize-control';
 import { Handles } from './handles';
 import { Toolbar } from './toolbar';
 import { ActionBar } from './action-bar';
 import { Content } from './content';
-import { useBaseBlockContext } from '../core/context';
+import { AddButtonZonesContainer } from './add-button-zones';
+import { useBaseBlockContext } from '../core/use-base-block.context';
 import { BaseBlockProps } from '../core/types';
 import { UseBaseBlockOptions } from '../core/use-base-block';
 
@@ -76,21 +77,33 @@ const BaseBlockContainer = forwardRef<
   HTMLDivElement,
   { children: React.ReactNode }
 >(({ children }, ref) => {
-  const { width, height, noBackground, handleMouseEnter } =
-    useBaseBlockContext();
+  const {
+    width,
+    height,
+    noBackground,
+    handleMouseEnter,
+    handleMouseMove,
+    handleMouseLeave,
+    isCurrentBlockSelected,
+    isSingleSelection,
+  } = useBaseBlockContext();
 
   return (
     <div
       ref={ref}
-      className={cn('relative w-full h-full min-w-[100px] min-h-[50px]')}
+      className={cn('relative w-full h-full min-w-[100px] min-h-[70px]')}
       style={{
         width: width || 'auto',
         height: height || 'auto',
-        minHeight: noBackground ? undefined : '120px',
       }}
       onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
       {children}
+      <AddButtonZonesContainer
+        show={isCurrentBlockSelected && isSingleSelection}
+      />
     </div>
   );
 });

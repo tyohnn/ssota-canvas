@@ -287,9 +287,16 @@ export function useCanvasCallbacks({
       const currentCount = selectedNodes.length;
       const previousSelection = previousSelectionRef.current;
 
+      console.log('🎯 [onSelectionChange] Selection changed:', {
+        currentCount,
+        previousCount: previousSelection.count,
+        selectedNodeIds: selectedNodes.map(n => n.id),
+      });
+
       if (currentCount > 1) {
         // 다중 선택: 이전과 다른 경우에만 업데이트
         if (previousSelection.count !== currentCount) {
+          console.log('🎯 [onSelectionChange] Entering multi-selection mode');
           previousSelectionRef.current = { count: currentCount };
           canvasMode.enterMultiSelectionMode(selectedNodes.map(n => n.id));
         }
@@ -301,14 +308,23 @@ export function useCanvasCallbacks({
 
         // 이전 선택과 같은 blockId면 스킵
         if (previousSelection.blockId !== blockId) {
+          console.log(
+            '🎯 [onSelectionChange] Entering block editing mode:',
+            blockId
+          );
           previousSelectionRef.current = { count: 1, blockId };
           canvasMode.enterBlockEditingMode(blockId);
         }
       } else {
         // 선택 해제: 이전에 선택이 있었던 경우에만 업데이트
         if (previousSelection.count > 0) {
+          console.log(
+            '🎯 [onSelectionChange] Deselecting - exiting to default mode'
+          );
           previousSelectionRef.current = { count: 0 };
           canvasMode.exitToDefaultMode();
+        } else {
+          console.log('🎯 [onSelectionChange] Already deselected - no change');
         }
       }
     },
@@ -321,16 +337,47 @@ export function useCanvasCallbacks({
    */
   const onPaneClick = useCallback(
     (event: React.MouseEvent) => {
+      console.log('🖱️ [onPaneClick] Pane clicked!');
+
       // 블록 생성 모드는 override에서 처리
       if (canvasMode.isBlockCreationMode()) {
+        console.log('🖱️ [onPaneClick] Block creation mode - skipping');
         return;
       }
+
+      // 현재 선택 상태 확인
+      const currentNodes = reactFlowInstance.getNodes();
+      const selectedBeforeCount = currentNodes.filter(n => n.selected).length;
+      console.log(
+        '🖱️ [onPaneClick] Selected nodes BEFORE:',
+        selectedBeforeCount
+      );
+      console.log(
+        '🖱️ [onPaneClick] Selected node IDs BEFORE:',
+        currentNodes.filter(n => n.selected).map(n => n.id)
+      );
 
       // React Flow 선택 상태를 명시적으로 해제
       reactFlowInstance.setNodes(nodes =>
         nodes.map(node => ({ ...node, selected: false }))
       );
 
+      // 선택 해제 후 상태 확인 (비동기적으로 실행될 수 있으므로 setTimeout 사용)
+      setTimeout(() => {
+        const nodesAfter = reactFlowInstance.getNodes();
+        const selectedAfterCount = nodesAfter.filter(n => n.selected).length;
+        console.log(
+          '🖱️ [onPaneClick] Selected nodes AFTER:',
+          selectedAfterCount
+        );
+        console.log(
+          '🖱️ [onPaneClick] Selected node IDs AFTER:',
+          nodesAfter.filter(n => n.selected).map(n => n.id)
+        );
+      }, 0);
+
+      // 기본 모드로 전환
+      console.log('🖱️ [onPaneClick] Exiting to default mode');
       canvasMode.exitToDefaultMode();
     },
     [

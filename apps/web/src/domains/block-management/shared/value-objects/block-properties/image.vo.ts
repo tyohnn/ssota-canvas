@@ -12,7 +12,8 @@ import type { AspectRatio, ObjectFit, ImageSource } from './common-types';
  */
 export interface ImageBlockProperties {
   // 이미지 정보
-  imageUrl: string; // Supabase Storage URL 또는 Unsplash URL
+  imageUrl: string; // Supabase Storage URL 또는 Unsplash URL (Legacy)
+  imageAssetId?: string; // Image Asset ID (New system)
   imageSource: ImageSource; // 이미지 출처
 
   // 스타일

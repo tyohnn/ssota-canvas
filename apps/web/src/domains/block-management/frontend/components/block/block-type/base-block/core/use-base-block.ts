@@ -20,7 +20,7 @@ import {
   useBaseBlockBusiness,
   type BaseBlockBusinessLogic,
 } from './use-base-block.business';
-import type { BaseBlockProps, ResizeData } from './types';
+import type { BaseBlockProps, ResizeData, HoverDirection } from './types';
 
 export interface UseBaseBlockOptions {
   businessLogic?: BaseBlockBusinessLogic;
@@ -54,6 +54,8 @@ export interface UseBaseBlockReturn extends BaseBlockUIState {
 
   // Combined 액션
   handleMouseEnter: () => void;
+  handleMouseMove: (event: React.MouseEvent<HTMLDivElement>) => void;
+  handleMouseLeave: () => void;
   handleResizeEnd: (event: any, resizeData: ResizeData) => Promise<void>;
 }
 
@@ -119,6 +121,19 @@ export function useBaseBlock(
     business.prefetchBlockTools(blockType);
   }, [data.blockType, business]);
 
+  // Combined Logic: Mouse Move (Delegated to UI hook)
+  const handleMouseMove = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      uiState.detectEdgeHoverDirection(event);
+    },
+    [uiState]
+  );
+
+  // Combined Logic: Mouse Leave (Delegated to UI hook)
+  const handleMouseLeave = useCallback(() => {
+    uiState.clearHoverDirection();
+  }, [uiState]);
+
   // Combined Logic: Resize End (Save to DB)
   const handleResizeEnd = useCallback(
     async (event: any, resizeData: ResizeData) => {
@@ -144,6 +159,9 @@ export function useBaseBlock(
   );
 
   return {
+    // UI State (먼저 스프레드)
+    ...uiState,
+
     // 블록 데이터
     data,
     selected,
@@ -169,11 +187,10 @@ export function useBaseBlock(
     isCurrentBlockSelected,
     isSingleSelection,
 
-    // UI State
-    ...uiState,
-
     // Combined 액션
     handleMouseEnter,
+    handleMouseMove,
+    handleMouseLeave,
     handleResizeEnd,
   };
 }

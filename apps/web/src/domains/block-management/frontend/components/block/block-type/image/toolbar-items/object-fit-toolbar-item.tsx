@@ -15,14 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { ObjectFit } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
 import { ScanEye, Crop, Maximize } from 'lucide-react';
-
-interface ObjectFitToolbarItemProps {
-  blockId: string;
-  blockMountId?: string;
-  currentValue: ObjectFit;
-  disabled?: boolean;
-  onValueChange?: (value: ObjectFit) => Promise<void>;
-}
+import { useImageToolbarContext } from './core/image-toolbar.context';
 
 const OBJECT_FIT_OPTIONS: Array<{
   value: ObjectFit;
@@ -43,22 +36,23 @@ function renderPreview(value: ObjectFit, size: number = 16) {
   return <Icon size={size} />;
 }
 
-export function ObjectFitToolbarItem({
-  blockId,
-  blockMountId,
-  currentValue,
-  disabled = false,
-  onValueChange,
-}: ObjectFitToolbarItemProps) {
+/**
+ * Object Fit Toolbar Item Component
+ *
+ * Context에서 필요한 데이터 가져오기 (Props 없음)
+ */
+export function ObjectFitToolbarItem() {
+  // ✅ Context에서 필요한 것만 가져오기
+  const { imageProperties, disabled, updateProperty } = useImageToolbarContext();
+  const currentValue = imageProperties.objectFit as ObjectFit;
+  
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSelect = useCallback(
     async (value: ObjectFit) => {
-      if (onValueChange) {
-        await onValueChange(value);
-      }
+      await updateProperty('objectFit', value);
     },
-    [onValueChange]
+    [updateProperty]
   );
 
   return (

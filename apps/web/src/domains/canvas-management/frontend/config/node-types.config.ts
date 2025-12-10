@@ -6,6 +6,9 @@
  * - 새로운 블록 타입 추가 시 이곳만 수정
  */
 
+'use client';
+
+import dynamic from 'next/dynamic';
 import type { NodeTypes } from '@xyflow/react';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
@@ -21,15 +24,24 @@ import {
   AudioBlock,
   GitHubBranchBlock,
   GitHubCommitBlock,
-  ReactPreviewBlock,
+  ReactComponentBlock,
   VercelDeploymentBlock,
 } from '@/domains/block-management/frontend/components/block/block-type';
+
+// PDF Block - Dynamic Import to avoid SSR issues with pdfjs-dist (DOMMatrix)
+const PdfBlock = dynamic(
+  () =>
+    import(
+      '@/domains/block-management/frontend/components/block/block-type/pdf'
+    ).then(m => ({ default: m.PdfBlock })),
+  { ssr: false }
+);
 
 /**
  * React Flow Node Types
  *
  * 모든 블록 타입을 React Flow 노드로 등록
- * (PDF 블록은 SSR 이슈로 별도 처리 필요)
+ * (PDF 블록은 SSR 이슈로 dynamic import 처리)
  */
 export const CANVAS_NODE_TYPES: NodeTypes = {
   [BlockType.TEXT]: TextBlock,
@@ -42,20 +54,8 @@ export const CANVAS_NODE_TYPES: NodeTypes = {
   [BlockType.AUDIO]: AudioBlock,
   [BlockType.GITHUB_BRANCH]: GitHubBranchBlock,
   [BlockType.GITHUB_COMMIT]: GitHubCommitBlock,
-  [BlockType.REACT_PREVIEW]: ReactPreviewBlock,
+  [BlockType.REACT_COMPONENT]: ReactComponentBlock,
   [BlockType.VERCEL_DEPLOYMENT]: VercelDeploymentBlock,
-  // PDF는 dynamic import 필요
-  // GITHUB_PR, REACT_COMPONENT 등은 추후 구현
+  [BlockType.PDF]: PdfBlock,
+  // GITHUB_PR, REACT_PREVIEW 등은 추후 구현
 };
-
-/**
- * Node Types with PDF (Dynamic Import 필요)
- *
- * PDF 블록을 사용해야 하는 경우 별도로 추가 필요
- * 사용 예시:
- *
- * ```tsx
- * const PdfBlock = dynamic(() => import('...').then(m => ({ default: m.PdfBlock })), { ssr: false });
- * const nodeTypes = { ...CANVAS_NODE_TYPES, [BlockType.PDF]: PdfBlock };
- * ```
- */

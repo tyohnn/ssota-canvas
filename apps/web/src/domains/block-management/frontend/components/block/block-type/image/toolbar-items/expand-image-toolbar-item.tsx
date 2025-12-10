@@ -13,22 +13,18 @@ import {
   DialogTitle,
 } from '@workspace/ui/components/ui/dialog';
 import { Expand } from 'lucide-react';
+import { useImageToolbarContext } from './core/image-toolbar.context';
 
-interface ExpandImageToolbarItemProps {
-  blockId: string;
-  blockMountId?: string;
-  imageUrl: string;
-  alt?: string;
-  disabled?: boolean;
-}
-
-export function ExpandImageToolbarItem({
-  blockId,
-  blockMountId,
-  imageUrl,
-  alt,
-  disabled = false,
-}: ExpandImageToolbarItemProps) {
+/**
+ * Expand Image Toolbar Item Component
+ *
+ * Context에서 필요한 데이터 가져오기 (Props 없음)
+ */
+export function ExpandImageToolbarItem() {
+  // ✅ Context에서 필요한 것만 가져오기
+  const { imageProperties, disabled } = useImageToolbarContext();
+  const imageUrl = imageProperties.imageUrl || '';
+  const alt = imageProperties.alt;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleExpand = useCallback(() => {
