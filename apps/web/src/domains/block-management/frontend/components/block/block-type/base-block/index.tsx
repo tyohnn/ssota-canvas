@@ -33,8 +33,8 @@
  */
 
 export { BaseBlock } from './components/base-block-container';
-export { BaseBlockProvider } from './core/provider';
-export { useBaseBlockContext } from './core/context';
+export { BaseBlockProvider } from './core/use-base-block.provider';
+export { useBaseBlockContext } from './core/use-base-block.context';
 
 // Hooks (로직 분리)
 export { useBaseBlockUI } from './core/use-base-block.ui';

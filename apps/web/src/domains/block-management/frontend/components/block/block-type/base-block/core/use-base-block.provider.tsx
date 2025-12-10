@@ -6,7 +6,7 @@
 
 'use client';
 
-import { BaseBlockContext } from './context';
+import { BaseBlockContext } from './use-base-block.context';
 import { useBaseBlock, type UseBaseBlockOptions } from './use-base-block';
 import type { BaseBlockProps } from './types';
 

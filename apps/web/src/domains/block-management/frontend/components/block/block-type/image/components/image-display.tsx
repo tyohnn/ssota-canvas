@@ -1,16 +1,14 @@
 /**
  * ImageDisplay Component
  *
- * 이미지 렌더링 (img 태그 + objectFit)
+ * 이미지 렌더링 (항상 object-cover)
  */
 
 import { cn } from '@workspace/ui/lib/utils';
-import type { ObjectFit } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
 
 export interface ImageDisplayProps {
   src: string;
   alt: string;
-  objectFit: ObjectFit;
   isLoading: boolean;
   hasError: boolean;
   onLoad: () => void;
@@ -21,7 +19,6 @@ export interface ImageDisplayProps {
 export function ImageDisplay({
   src,
   alt,
-  objectFit,
   isLoading,
   hasError,
   onLoad,
@@ -47,10 +44,7 @@ export function ImageDisplay({
         onError(e);
       }}
       className={cn(
-        'w-full h-full',
-        objectFit === 'contain' && 'object-contain',
-        objectFit === 'cover' && 'object-cover',
-        objectFit === 'fill' && 'object-fill',
+        'w-full h-full object-cover',
         (isLoading || hasError) && 'opacity-0',
         'transition-opacity duration-300',
         className
@@ -58,4 +52,3 @@ export function ImageDisplay({
     />
   );
 }
-

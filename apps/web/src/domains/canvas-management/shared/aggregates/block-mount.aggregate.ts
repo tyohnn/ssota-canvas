@@ -10,11 +10,13 @@ import {
   BlockZOrderUpdatedEvent,
   BlockMountDeletedEvent,
   BlockMountDuplicatedEvent,
+  BlockMovedToPageEvent,
 } from '../events';
 import {
   SoftDeleteBlockMountCommand,
   MountBlockCommand,
   DuplicateBlockMountCommand,
+  MoveBlockToPageCommand,
 } from '../commands/index';
 
 export class BlockMountAggregate {
@@ -185,6 +187,49 @@ export class BlockMountAggregate {
 
     // 5. 복제된 Aggregate 반환
     return duplicatedAggregate;
+  }
+
+  moveToPage(command: MoveBlockToPageCommand): BlockMovedToPageEvent {
+    // 1. 입력 검증
+    if (!command.targetPageId) {
+      throw new Error('Target page ID is required for moving block');
+    }
+
+    // 2. 이전 페이지 ID 저장
+    const previousPageId = this._blockMount.pageId;
+
+    // 3. 새로운 BlockMount 인스턴스 생성 (pageId가 readonly이므로 새 인스턴스 필요)
+    const newBlockMount = new BlockMount(
+      this._blockMount.id,
+      command.targetPageId, // 새로운 pageId
+      this._blockMount.blockId,
+      command.newPosition, // 새로운 위치
+      this._blockMount.size,
+      this._blockMount.zOrder,
+      this._blockMount.createdAt,
+      new Date() // updatedAt 갱신
+    );
+
+    // 4. BlockMount 교체
+    this._blockMount = newBlockMount;
+
+    // 5. BlockMovedToPage 이벤트 생성
+    const event = new BlockMovedToPageEvent(
+      this._blockMount.id,
+      {
+        blockMountId: this._blockMount.id,
+        previousPageId,
+        newPageId: command.targetPageId,
+        newPosition: command.newPosition,
+      },
+      new Date()
+    );
+
+    // 6. 이벤트 추가
+    this._uncommittedEvents.push(event);
+
+    // 7. 이벤트 반환
+    return event;
   }
 
   clearEvents(): void {

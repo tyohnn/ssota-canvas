@@ -50,4 +50,30 @@ export interface PageRepository {
    * @param depthDelta - depth 변화량
    */
   updateChildrenDepth(parentId: PageId, depthDelta: number): Promise<void>;
+
+  /**
+   * Workspace의 최근 업데이트된 페이지 조회 (경량화)
+   *
+   * @param workspaceId - Workspace ID
+   * @param limit - 최대 조회 개수 (기본값: 20)
+   * @returns updated_at DESC 정렬된 페이지 배열과 workspace name
+   */
+  findRecentByWorkspaceId(
+    workspaceId: WorkspaceId,
+    limit: number
+  ): Promise<Array<{ page: Page; workspaceName: string }>>;
+
+  /**
+   * 워크스페이스 내 페이지 검색 (제목 기준)
+   *
+   * @param workspaceId - Workspace ID
+   * @param query - 검색어
+   * @param limit - 최대 조회 개수
+   * @returns updated_at DESC 정렬된 페이지 배열과 workspace name
+   */
+  searchByWorkspaceId(
+    workspaceId: WorkspaceId,
+    query: string,
+    limit: number
+  ): Promise<Array<{ page: Page; workspaceName: string }>>;
 }

@@ -2,30 +2,48 @@
  * ImageBlock Business Logic Hook
  *
  * 비즈니스 로직만 관리 (API 호출, 파일 업로드 등)
+ * 이미지 업로드 시 블록 크기를 이미지 종횡비에 맞춤
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import type { FileWithPreview } from '@workspace/ui/hooks/use-file-upload';
 import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useBlockCommands } from '@/domains/block-management/frontend/hooks/use-block-commands';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
 import { getImageUrlAction } from '@/domains/image-app-space/actions/image-asset.actions';
 import { uploadImageAction } from '@/domains/image-app-space/actions/image-upload.actions';
+import { migrateSingleImageAction } from '@/domains/image-app-space/actions/image-migration.actions';
 import { refreshImageUrlAction } from '@/domains/storage/actions/storage.actions';
 import { isSignedUrlExpired } from '@/domains/image-app-space/frontend/utils/signed-url.utils';
-import { fileToBase64, extractImageMetadata } from '../utils/image-file.utils';
+import {
+  fileToBase64,
+  extractImageMetadata,
+  calculateBlockSizeFromImage,
+} from '../utils/image-file.utils';
 import type { ImageBlockBusinessLogic, ImageBlockUIState } from './types';
 import type { ImageBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
 /**
  * Production 비즈니스 로직
  */
+/**
+ * canvas-assets URL인지 확인
+ */
+function isCanvasAssetsUrl(url: string): boolean {
+  return url.includes('canvas-assets') && url.includes('/storage/v1/object/');
+}
+
 export function useImageBlockBusiness(
   nodeData: ImageBlockNodeData,
   uiState: ImageBlockUIState
 ): ImageBlockBusinessLogic {
   const { updateProperty, updateProperties } = useBlockPropertyUpdate();
+  const { updateBlockSizeWithOptimistic } = useBlockCommands();
   const { upload, isUploading } = useSupabaseStorage();
+
+  // 마이그레이션 진행 중 플래그 (중복 실행 방지)
+  const isMigratingRef = useRef(false);
 
   /**
    * 이미지 URL 로딩 (캐싱 + 만료 체크)
@@ -123,8 +141,70 @@ export function useImageBlockBusiness(
         return;
       }
 
-      // 2. Legacy: imageUrl만 있는 경우
+      // 2. Legacy: imageUrl만 있는 경우 (canvas-assets → image-assets 마이그레이션)
       if (imageUrl) {
+        // 2-1. canvas-assets URL이면 백그라운드에서 마이그레이션 시도
+        if (isCanvasAssetsUrl(imageUrl) && !isMigratingRef.current) {
+          isMigratingRef.current = true;
+
+          // 일단 기존 URL로 표시 (UX를 위해)
+          if (imageUrl !== uiState.prevImageUrlRef.current) {
+            uiState.setIsLoading(true);
+            uiState.setHasError(false);
+            uiState.prevImageUrlRef.current = imageUrl;
+          }
+          uiState.setDisplayUrl(imageUrl);
+          uiState.setIsLoading(false);
+
+          // 백그라운드에서 마이그레이션 수행
+          migrateSingleImageAction({ blockId: nodeData.blockId })
+            .then(result => {
+              if (result.success) {
+                console.log(
+                  '[ImageBlock] Migration successful:',
+                  result.data.imageAssetId
+                );
+
+                // ✅ 마이그레이션 완료 후 새 URL로 업데이트
+                uiState.setDisplayUrl(result.data.newUrl);
+                uiState.prevImageUrlRef.current = result.data.newUrl;
+                uiState.prevImageAssetIdRef.current = result.data.imageAssetId;
+
+                // 블록 속성 업데이트 (백그라운드)
+                updateProperties(
+                  nodeData.blockId,
+                  {
+                    imageAssetId: result.data.imageAssetId,
+                    imageUrl: result.data.newUrl,
+                  },
+                  nodeData
+                ).catch(err => {
+                  console.error(
+                    '[ImageBlock] Failed to update properties after migration:',
+                    err
+                  );
+                });
+              } else {
+                console.warn(
+                  '[ImageBlock] Migration failed, using legacy URL:',
+                  result.error
+                );
+              }
+            })
+            .catch(err => {
+              console.warn(
+                '[ImageBlock] Migration error, using legacy URL:',
+                err
+              );
+            })
+            .finally(() => {
+              isMigratingRef.current = false;
+            });
+
+          return;
+        }
+
+        // 2-2. 일반 URL (외부 URL 또는 이미 마이그레이션된 경우)
         if (imageUrl !== uiState.prevImageUrlRef.current) {
           uiState.setIsLoading(true);
           uiState.setHasError(false);
@@ -221,7 +301,7 @@ export function useImageBlockBusiness(
   );
 
   /**
-   * 파일 업로드 처리
+   * 파일 업로드 처리 (이미지 종횡비에 맞춰 블록 크기 조정)
    */
   const handleFileUpload = useCallback(
     async (addedFiles: FileWithPreview[]) => {
@@ -270,10 +350,29 @@ export function useImageBlockBusiness(
           },
           nodeData
         );
+
+        // 이미지 종횡비에 맞춰 블록 크기 업데이트 (Optimistic update 포함)
+        if (nodeData.blockMountId && metadata.width && metadata.height) {
+          const newSize = calculateBlockSizeFromImage(
+            metadata.width,
+            metadata.height
+            // 새 이미지 업로드 시에는 currentHeight를 넘기지 않음 (기본 너비 기준)
+          );
+
+          await updateBlockSizeWithOptimistic(nodeData.blockMountId, {
+            width: newSize.width,
+            height: newSize.height,
+            pageId: nodeData.pageId,
+            orgId: nodeData.orgId,
+            workspaceId: nodeData.workspaceId,
+          });
+        }
       } catch (error) {
         console.error('Failed to upload image:', error);
         // Fallback to old system
         try {
+          const metadata = await extractImageMetadata(fileWithPreview.file);
+
           const result = await upload({
             bucket: StorageBucket.CANVAS_ASSETS,
             file: fileWithPreview.file,
@@ -297,6 +396,21 @@ export function useImageBlockBusiness(
             },
             nodeData
           );
+
+          // 이미지 종횡비에 맞춰 블록 크기 업데이트 (Optimistic update 포함)
+          if (nodeData.blockMountId && metadata.width && metadata.height) {
+            const newSize = calculateBlockSizeFromImage(
+              metadata.width,
+              metadata.height
+            );
+            await updateBlockSizeWithOptimistic(nodeData.blockMountId, {
+              width: newSize.width,
+              height: newSize.height,
+              pageId: nodeData.pageId,
+              orgId: nodeData.orgId,
+              workspaceId: nodeData.workspaceId,
+            });
+          }
         } catch (fallbackError) {
           console.error('Fallback upload failed:', fallbackError);
           // Last resort: blob URL
@@ -319,7 +433,13 @@ export function useImageBlockBusiness(
         }
       }
     },
-    [nodeData, updateProperty, updateProperties, upload]
+    [
+      nodeData,
+      updateProperty,
+      updateProperties,
+      updateBlockSizeWithOptimistic,
+      upload,
+    ]
   );
 
   return {

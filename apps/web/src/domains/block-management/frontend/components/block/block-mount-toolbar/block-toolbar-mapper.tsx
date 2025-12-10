@@ -10,6 +10,8 @@ interface BlockToolbarMapperProps {
   blockType: string;
   blockData: BlockNodeData;
   disabled?: boolean;
+  width?: number;
+  height?: number;
 }
 
 /**
@@ -46,6 +48,8 @@ export function BlockToolbarMapper({
   blockType,
   blockData,
   disabled = false,
+  width,
+  height,
 }: BlockToolbarMapperProps) {
   const { updateProperty, updateProperties } = useBlockPropertyUpdate();
   const [, forceUpdate] = useState(0);
@@ -122,6 +126,8 @@ export function BlockToolbarMapper({
       disabled={disabled}
       onPropertyUpdate={handlePropertyUpdate}
       onPropertiesUpdate={onPropertiesUpdate}
+      width={width}
+      height={height}
     />
   );
 }

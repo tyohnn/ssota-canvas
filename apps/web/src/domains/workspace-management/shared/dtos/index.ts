@@ -250,6 +250,33 @@ export interface DuplicatePageResponse {
 }
 
 // ────────────────────────────────────────────────────────────
+// Recent Pages (경량화된 페이지 조회)
+// ────────────────────────────────────────────────────────────
+
+export interface GetRecentPagesRequest {
+  workspaceId: string;
+  limit?: number; // 기본값: 20, 최대: 50
+}
+
+export interface RecentPageDTO {
+  pageId: string;
+  title: string;
+  icon: string | null;
+  workspaceId: string;
+  workspaceName: string;
+  updatedAt: string; // ISO string
+}
+
+export interface GetRecentPagesResponse {
+  pages: RecentPageDTO[];
+}
+
+export interface SearchPagesResponse {
+  pages: RecentPageDTO[];
+  hasMore: boolean; // limit에 도달하면 더 있을 수 있음
+}
+
+// ────────────────────────────────────────────────────────────
 // Server Action Result Type
 // ────────────────────────────────────────────────────────────
 

@@ -556,7 +556,10 @@ export function CanvasReactFlowWrapper({
 
         {/* 캔버스 상단 툴바 - Panel로 ReactFlow 내부로 이동 */}
         {/* z-index: 블럭(0) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
-        <Panel position="top-center" className="m-0! pointer-events-auto! z-10">
+        <Panel
+          position="center-left"
+          className="m-0! ml-4! pointer-events-auto! z-10"
+        >
           <CanvasToolbar
             pageId={pageId}
             onAddBlockClick={() => setShowAddDialog(true)}

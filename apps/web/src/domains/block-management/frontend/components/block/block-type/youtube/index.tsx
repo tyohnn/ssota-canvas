@@ -333,7 +333,7 @@ export const YoutubeBlock = memo(function YoutubeBlock({
         'bg-background border-2 border-border',
         'shadow-md',
         // 호버 효과 (선택되지 않았을 때만)
-        !selected && 'hover:shadow-xl hover:scale-[1.02] hover:rotate-1',
+        !selected && 'hover:shadow-xl',
         // 선택 효과
         selected && 'ring-2 ring-blue-400 dark:ring-blue-500',
         selected && 'shadow-xl',
@@ -377,7 +377,7 @@ export const YoutubeBlock = memo(function YoutubeBlock({
         'bg-background border-2 border-border',
         'shadow-md',
         // 호버 효과 (선택되지 않았을 때만)
-        !selected && 'hover:shadow-xl hover:scale-[1.02] hover:rotate-1',
+        !selected && 'hover:shadow-xl',
         // 선택 효과
         selected && 'ring-2 ring-blue-400 dark:ring-blue-500',
         selected && 'shadow-xl',
@@ -419,7 +419,7 @@ export const YoutubeBlock = memo(function YoutubeBlock({
           'w-full h-full flex flex-col overflow-hidden rounded-lg',
           'bg-background border-2 border-border',
           'shadow-md',
-          !selected && 'hover:shadow-xl hover:scale-[1.02] hover:rotate-1',
+          !selected && 'hover:shadow-xl',
           selected && 'ring-2 ring-blue-400 dark:ring-blue-500',
           selected && 'shadow-xl',
           'transition-all duration-300 ease-out',

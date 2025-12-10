@@ -41,7 +41,6 @@ export const ImageBlock = memo(function ImageBlock({
     imageUrl,
     imageAssetId,
     imageSource,
-    objectFit,
     caption,
     isCaptionVisible = false,
     alt,
@@ -81,7 +80,7 @@ export const ImageBlock = memo(function ImageBlock({
             'w-full h-full flex flex-col relative',
             'bg-background border-2 border-border rounded-lg overflow-hidden',
             'shadow-md',
-            !selected && 'hover:shadow-xl hover:scale-[1.02]',
+            !selected && 'hover:shadow-xl',
             selected && 'ring-2 ring-blue-400 dark:ring-blue-500',
             selected && 'shadow-xl',
             'transition-all duration-300 ease-out'
@@ -112,7 +111,6 @@ export const ImageBlock = memo(function ImageBlock({
                   <ImageDisplay
                     src={imageBlock.displayUrl}
                     alt={alt || '이미지'}
-                    objectFit={objectFit}
                     isLoading={imageBlock.isLoading}
                     hasError={imageBlock.hasError}
                     onLoad={imageBlock.handleImageLoad}

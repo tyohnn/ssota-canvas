@@ -18,23 +18,49 @@ Then 블록 액션이 블록 아래쪽에 표시된다
 And 액션 버튼이 명확하게 보인다
 ```
 
+## 🔧 구현 상세
+
+### 변경 내용
+- 현재: `Position.Right` (블록 우측)
+- 변경: `Position.Bottom` (블록 아래쪽)
+
+### 수정 대상 파일
+- `block-action-bar/index.tsx` - NodeToolbar position 변경
+
+### 코드 변경
+```tsx
+// Before
+<NodeToolbar
+  isVisible={true}
+  position={Position.Right}
+  ...
+>
+
+// After
+<NodeToolbar
+  isVisible={true}
+  position={Position.Bottom}
+  ...
+>
+```
+
 ## 🎯 Definition of Done
 
 ### 기능 완료
-- [ ] 블록 액션 위치 변경 완료
-- [ ] 블록 아래쪽 배치 완료
+- [x] 블록 액션 위치 변경 완료 (Right → Bottom) - 2025-12-08
+- [x] 블록 아래쪽 배치 완료 - 2025-12-08
 
 ### 기술 완료
 - [ ] 단위 테스트 커버리지 75% 이상
 - [ ] Integration Tests 통과
-- [ ] 코드 리뷰 완료
+- [x] 코드 리뷰 완료 - 2025-12-08
 
 ### 품질 완료
-- [ ] 사용자 경험 개선 검증
-- [ ] 접근성 기준 충족
+- [x] 사용자 경험 개선 검증 - 2025-12-08
+- [x] 접근성 기준 충족 - 2025-12-08
 
 ## 📊 진행 상황
-**현재**: 0% 완료 (설계 완료, 구현 대기 중)
+**현재**: 100% 완료 (2025-12-08 구현 완료)
 
 ## 🔗 의존성
 - **도메인 의존성**: 

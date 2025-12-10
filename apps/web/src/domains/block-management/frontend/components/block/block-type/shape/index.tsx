@@ -400,8 +400,6 @@ export const ShapeBlock = memo(function ShapeBlock({
       <div
         className={cn(
           'w-full h-full flex flex-col rounded-lg',
-          // 호버 효과 (선택되지 않았을 때만)
-          !selected && 'hover:scale-[1.02] hover:rotate-1',
           // Transition
           'transition-all duration-300 ease-out'
         )}

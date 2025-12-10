@@ -1,9 +1,8 @@
 // apps/web/src/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository.ts
 
-import { eq, and, isNull, sql } from 'drizzle-orm';
-import { createDrizzleSupabaseClient, adminDb } from '@/db';
-import { pages } from '@/db/schema';
-import type { Page as DBPage } from '@/db/schema';
+import { eq, and, isNull, sql, desc, ilike } from 'drizzle-orm';
+import { adminDb } from '@/db';
+import { pages, workspaces } from '@/db/schema';
 import { PageRepository } from '../interfaces/page.repository.interface';
 import { PageAggregate } from '../../../shared/aggregates/page.aggregate';
 import { Page } from '../../../shared/entities/page.entity';
@@ -211,6 +210,92 @@ export class DrizzlePageRepository implements PageRepository {
           updated_at = NOW()
       WHERE id IN (SELECT id FROM children);
     `);
+  }
+
+  /**
+   * Workspace의 최근 업데이트된 페이지 조회 (경량화)
+   *
+   * @param workspaceId - Workspace ID
+   * @param limit - 최대 조회 개수
+   * @returns updated_at DESC 정렬된 페이지 배열과 workspace name
+   */
+  async findRecentByWorkspaceId(
+    workspaceId: WorkspaceId,
+    limit: number
+  ): Promise<Array<{ page: Page; workspaceName: string }>> {
+    const results = await adminDb
+      .select({
+        id: pages.id,
+        workspace_id: pages.workspace_id,
+        parent_id: pages.parent_id,
+        title: pages.title,
+        icon: pages.icon,
+        order: pages.order,
+        depth: pages.depth,
+        created_by: pages.created_by,
+        created_at: pages.created_at,
+        updated_at: pages.updated_at,
+        deleted_at: pages.deleted_at,
+        workspace_name: workspaces.name,
+      })
+      .from(pages)
+      .leftJoin(workspaces, eq(pages.workspace_id, workspaces.id))
+      .where(
+        and(eq(pages.workspace_id, workspaceId.value), isNull(pages.deleted_at))
+      )
+      .orderBy(desc(pages.updated_at))
+      .limit(limit);
+
+    return results.map(row => ({
+      page: this.toDomain(row),
+      workspaceName: row.workspace_name || 'Unknown Workspace',
+    }));
+  }
+
+  /**
+   * 워크스페이스 내 페이지 검색 (제목 기준)
+   *
+   * @param workspaceId - Workspace ID
+   * @param query - 검색어
+   * @param limit - 최대 조회 개수
+   * @returns updated_at DESC 정렬된 페이지 배열과 workspace name
+   */
+  async searchByWorkspaceId(
+    workspaceId: WorkspaceId,
+    query: string,
+    limit: number
+  ): Promise<Array<{ page: Page; workspaceName: string }>> {
+    const results = await adminDb
+      .select({
+        id: pages.id,
+        workspace_id: pages.workspace_id,
+        parent_id: pages.parent_id,
+        title: pages.title,
+        icon: pages.icon,
+        order: pages.order,
+        depth: pages.depth,
+        created_by: pages.created_by,
+        created_at: pages.created_at,
+        updated_at: pages.updated_at,
+        deleted_at: pages.deleted_at,
+        workspace_name: workspaces.name,
+      })
+      .from(pages)
+      .leftJoin(workspaces, eq(pages.workspace_id, workspaces.id))
+      .where(
+        and(
+          eq(pages.workspace_id, workspaceId.value),
+          isNull(pages.deleted_at),
+          ilike(pages.title, `%${query}%`) // 검색 조건 추가
+        )
+      )
+      .orderBy(desc(pages.updated_at))
+      .limit(limit);
+
+    return results.map(row => ({
+      page: this.toDomain(row),
+      workspaceName: row.workspace_name || 'Unknown Workspace',
+    }));
   }
 
   /**
