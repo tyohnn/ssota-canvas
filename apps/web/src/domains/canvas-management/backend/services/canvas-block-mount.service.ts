@@ -6,16 +6,12 @@ import type { BlockMountRepository } from '../repositories/interfaces/block-moun
 import type { EdgeRepository } from '../repositories/interfaces/edge.repository.interface';
 import type { BlockManagementService } from '@/domains/block-management/backend/services/block-management.service';
 import {
-  UpdateBlockPositionCommand,
-  UpdateBlockSizeCommand,
   SoftDeleteBlockMountCommand,
   MountBlockCommand,
   DuplicateBlockMountCommand,
+  MoveBlockToPageCommand,
 } from '../../shared/commands/index';
 import { BlockMountAggregate } from '../../shared/aggregates/block-mount.aggregate';
-import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
-import { Block } from '@/domains/block-management/shared/entities/block.entity';
-import { CreateBlockCommand } from '@/domains/block-management/shared/commands';
 import {
   DomainEvent,
   MultipleBlockPositionsUpdatedEvent,
@@ -421,6 +417,92 @@ export class CanvasBlockMountService implements ICanvasBlockMountService {
   }
 
   /**
+   * 블럭 페이지 이동
+   * Story E010-009 구현
+   */
+  async moveBlockToPage(params: {
+    blockMountId: BlockMountId;
+    targetPageId: PageId;
+    userId: UserId;
+  }): Promise<Result<BlockMountAggregate, Error>> {
+    try {
+      // 1. 원본 BlockMount 조회
+      const originalAggregate = await this.blockMountRepository.findById(
+        params.blockMountId
+      );
+
+      if (!originalAggregate) {
+        return Result.error(
+          new CanvasManagementError(
+            'BLOCK_MOUNT_NOT_FOUND',
+            'Block mount not found'
+          )
+        );
+      }
+
+      // 2. 대상 페이지의 모든 블록 조회
+      const targetPageBlocks = await this.blockMountRepository.findByPageId(
+        params.targetPageId
+      );
+
+      // 3. 가장 우측 블록 찾기
+      let newPosition: Position;
+      if (targetPageBlocks.length === 0) {
+        // 페이지가 비어있으면 중앙 배치
+        newPosition = new Position(0, 0);
+      } else {
+        // 가장 우측 블록의 오른쪽에 배치
+        const rightmostBlock = targetPageBlocks.reduce((rightmost, block) => {
+          const blockMount = block.getBlockMount();
+          const rightEdge = blockMount.position.x + blockMount.size.width;
+          const currentRightEdge =
+            rightmost.getBlockMount().position.x +
+            rightmost.getBlockMount().size.width;
+          return rightEdge > currentRightEdge ? block : rightmost;
+        });
+
+        const rightmostBlockMount = rightmostBlock.getBlockMount();
+        newPosition = new Position(
+          rightmostBlockMount.position.x + rightmostBlockMount.size.width + 50, // 50px 간격
+          rightmostBlockMount.position.y // 같은 Y 위치
+        );
+      }
+
+      // 4. BlockMount 이동 (Command 생성 및 실행)
+      const moveCommand: MoveBlockToPageCommand = {
+        blockMountId: params.blockMountId,
+        targetPageId: params.targetPageId,
+        newPosition,
+        userId: params.userId,
+      };
+      originalAggregate.moveToPage(moveCommand);
+
+      // 5. Repository 저장
+      await this.blockMountRepository.update(originalAggregate.getBlockMount());
+
+      // 6. 도메인 이벤트 발행
+      const events = originalAggregate.getUncommittedEvents();
+      await this.handleDomainEvents(events);
+
+      // 7. 이벤트 커밋
+      originalAggregate.markEventsAsCommitted();
+
+      return Result.success(originalAggregate);
+    } catch (error) {
+      console.error(
+        '❌ [CanvasBlockMountService] Block move to page failed:',
+        error
+      );
+      return Result.error(
+        new CanvasManagementError(
+          'BLOCK_MOVE_FAILED',
+          `Failed to move block to page: ${error}`
+        )
+      );
+    }
+  }
+
+  /**
    * 블럭 복제 (Block Management Service와 연동)
    * Story CM-010 구현
    */
@@ -524,6 +606,8 @@ export class CanvasBlockMountService implements ICanvasBlockMountService {
           return await this.handleBlockDeleted(event);
         } else if (event.type === 'BlockMountDuplicated') {
           return await this.handleBlockMountDuplicated(event);
+        } else if (event.type === 'BlockMovedToPage') {
+          return await this.handleBlockMovedToPage(event);
         }
 
         // 알 수 없는 이벤트 타입의 경우 무시
@@ -656,5 +740,20 @@ export class CanvasBlockMountService implements ICanvasBlockMountService {
     // - 복제된 블럭의 자동 연결
     // - 캔버스 통계 업데이트
     // - 레이아웃 최적화
+  }
+
+  /**
+   * Policy: 블럭이 다른 페이지로 이동되었을 때
+   */
+  private async handleBlockMovedToPage(event: DomainEvent): Promise<void> {
+    console.log('[Canvas Management] Block Moved To Page:', {
+      blockMountId: event.aggregateId,
+      data: event.data,
+    });
+
+    // Policy 구현 예시:
+    // - 연결된 엣지 정리 (다른 페이지로 이동했으므로)
+    // - 캔버스 통계 업데이트
+    // - 레이아웃 재정렬
   }
 }

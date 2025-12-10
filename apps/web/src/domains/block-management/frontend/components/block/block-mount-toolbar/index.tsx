@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/ui/dropdown-menu';
 import { MoreHorizontal, Edit, Copy, Trash2, ChevronRight } from 'lucide-react';
+import { PageMovePopover } from './page-move-popover';
 
 // Canvas Management Hooks
 import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
@@ -189,6 +190,19 @@ export function BlockMountToolbar({
                 <Copy className="h-4 w-4 mr-2" />
                 복제
               </DropdownMenuItem>
+
+              {/* 페이지 옮기기 */}
+              <div
+                onClick={e => e.stopPropagation()}
+                onMouseDown={e => e.stopPropagation()}
+              >
+                <PageMovePopover
+                  blockMountId={blockMountId}
+                  currentPageId={pageId}
+                  workspaceId={workspaceId}
+                  orgId={orgId}
+                />
+              </div>
 
               <DropdownMenuItem onClick={handleCreateComponent}>
                 <Edit className="h-4 w-4 mr-2" />

@@ -153,6 +153,22 @@ export class MultipleBlockMountsDeletedEvent implements DomainEvent {
   ) {}
 }
 
+// BlockMovedToPageEvent
+export class BlockMovedToPageEvent implements DomainEvent {
+  readonly type = 'BlockMovedToPage';
+
+  constructor(
+    public readonly aggregateId: BlockMountId,
+    public readonly data: {
+      blockMountId: BlockMountId;
+      previousPageId: PageId;
+      newPageId: PageId;
+      newPosition: Position;
+    },
+    public readonly occurredAt: Date
+  ) {}
+}
+
 // EdgeCreatedEvent
 // ⚠️ Schema Change: now uses BlockMountId instead of BlockId
 export class EdgeCreatedEvent implements DomainEvent {

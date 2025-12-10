@@ -113,6 +113,16 @@ export const DuplicateBlockAndMountRequestSchema = z.object({
   offsetY: z.number().optional(),
 });
 
+/**
+ * 블럭 페이지 이동 요청 스키마
+ */
+export const MoveBlockToPageRequestSchema = z.object({
+  blockMountId: z.uuid('Invalid block mount ID'),
+  targetPageId: z.uuid('Invalid target page ID'),
+  workspaceId: z.uuid('Invalid workspace ID'),
+  orgId: z.uuid('Invalid organization ID'),
+});
+
 // Input types (프론트엔드에서 사용)
 export type CreateAndMountBlockRequestInput = z.input<
   typeof CreateAndMountBlockRequestSchema
@@ -128,6 +138,9 @@ export type SoftDeleteBlockMountRequestInput = z.input<
 >;
 export type DuplicateBlockAndMountRequestInput = z.input<
   typeof DuplicateBlockAndMountRequestSchema
+>;
+export type MoveBlockToPageRequestInput = z.input<
+  typeof MoveBlockToPageRequestSchema
 >;
 
 // Output types (서버에서 사용)
@@ -145,4 +158,7 @@ export type SoftDeleteBlockMountRequest = z.output<
 >;
 export type DuplicateBlockAndMountRequest = z.output<
   typeof DuplicateBlockAndMountRequestSchema
+>;
+export type MoveBlockToPageRequest = z.output<
+  typeof MoveBlockToPageRequestSchema
 >;

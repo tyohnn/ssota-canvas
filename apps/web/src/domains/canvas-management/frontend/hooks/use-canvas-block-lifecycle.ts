@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useCallback } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useReactFlow, type Node } from '@xyflow/react';
 import {
   createAndMountBlockAction,
   duplicateBlockAndMountAction,
   softDeleteBlockMountAction,
+  moveBlockToPageAction,
 } from '../../actions/block.actions';
 import { useCanvasMode } from '../contexts/canvas-mode-context';
 import { isFailure } from '@/lib/action-result';
@@ -22,9 +24,11 @@ import {
   CreateAndMountBlockRequestSchema,
   SoftDeleteBlockMountRequestSchema,
   DuplicateBlockAndMountRequestSchema,
+  MoveBlockToPageRequestSchema,
   type CreateAndMountBlockRequestInput,
   type SoftDeleteBlockMountRequestInput,
   type DuplicateBlockAndMountRequestInput,
+  type MoveBlockToPageRequestInput,
 } from '../../shared/dtos/requests';
 import type { Position, Size } from '../../shared/types/common.types';
 import { CustomNodeType } from '../acl/react-flow.acl';
@@ -32,6 +36,7 @@ import type { ActionResult } from '@/lib/action-result';
 import type {
   BlockCreatedAndMountedDTO,
   BlockDuplicatedAndMountedDTO,
+  BlockMovedToPageDTO,
 } from '../../shared/dtos/responses';
 
 export interface UseCanvasBlockLifecycleParams {
@@ -63,6 +68,10 @@ export interface UseCanvasBlockLifecycleResult {
       offsetX?: number;
       offsetY?: number;
     }>
+  ) => Promise<void>;
+  moveBlockToPage: (
+    blockMountId: string,
+    targetPageId: string
   ) => Promise<void>;
 
   // 프로그램적 제어 (UI만 변경, 서버 호출 X)
@@ -1117,11 +1126,84 @@ export function useCanvasBlockLifecycle(
     ]
   );
 
+  /**
+   * 블록 페이지 이동 (TanStack Query Optimistic Update)
+   */
+  const moveBlockMutation = useMutation({
+    mutationFn: async ({
+      blockMountId,
+      targetPageId,
+    }: {
+      blockMountId: string;
+      targetPageId: string;
+    }) => {
+      // 1. 요청 검증
+      const rawRequest: MoveBlockToPageRequestInput = {
+        blockMountId,
+        targetPageId,
+        workspaceId,
+        orgId,
+      };
+
+      const parseResult = MoveBlockToPageRequestSchema.safeParse(rawRequest);
+
+      if (!parseResult.success) {
+        const firstError = parseResult.error.issues[0];
+        throw new Error(firstError?.message || 'Invalid move request');
+      }
+
+      const validatedRequest = parseResult.data;
+
+      // 2. 서버 액션 호출
+      const result = await moveBlockToPageAction(validatedRequest);
+
+      if (isFailure(result)) {
+        throw new Error(result.error);
+      }
+
+      return result.data;
+    },
+
+    // Optimistic Update
+    onMutate: async ({ blockMountId }) => {
+      // 1. 현재 노드 백업 (롤백용)
+      const nodeToRemove = getNodes().find(node => node.id === blockMountId);
+      const previousNode = nodeToRemove ? { ...nodeToRemove } : null;
+
+      // 2. Optimistic UI - setNodes로 블록 제거 (onNodesDelete 트리거 방지)
+      setNodes(nodes => nodes.filter(node => node.id !== blockMountId));
+
+      // 3. 기본 모드로 복귀
+      exitToDefaultMode();
+
+      // 4. 롤백용 컨텍스트 반환
+      return { previousNode, blockMountId };
+    },
+
+    // Rollback on error
+    onError: (error, variables, context) => {
+      // 블록 복원 (실패 시)
+      if (context?.previousNode) {
+        addNodes([context.previousNode]);
+      }
+      console.error('Failed to move block:', error);
+      // Toast 에러는 비즈니스 로직 훅에서 처리
+    },
+  });
+
+  const moveBlockToPage = useCallback(
+    async (blockMountId: string, targetPageId: string) => {
+      await moveBlockMutation.mutateAsync({ blockMountId, targetPageId });
+    },
+    [moveBlockMutation]
+  );
+
   return {
     createAndMountBlock,
     softDeleteBlockMounts,
     duplicateBlockAndMount,
     duplicateMultipleBlocksAndMount,
+    moveBlockToPage,
     addBlockToCanvas,
     removeBlockFromCanvas,
     getAllBlocks,
