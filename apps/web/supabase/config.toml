@@ -4,6 +4,10 @@
 # working directory name when running `supabase init`.
 project_id = "web"
 
+# Configure remote Supabase projects for linking and deployment
+[remotes.staging]
+project_id = "xtknhwadrjyosghqseoe"
+
 [api]
 enabled = true
 # Port to use for the API URL.
