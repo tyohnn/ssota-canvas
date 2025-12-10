@@ -11,7 +11,7 @@
 'use client';
 
 import { Handle, Position } from '@xyflow/react';
-import { useBaseBlockContext } from '../core/context';
+import { useBaseBlockContext } from '../core/use-base-block.context';
 import { useCanvasMode } from '@/domains/canvas-management/frontend/contexts/canvas-mode-context';
 
 // 핸들 크기: w-5 h-5 (20px × 20px)

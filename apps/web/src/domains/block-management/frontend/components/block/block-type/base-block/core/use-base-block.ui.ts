@@ -12,8 +12,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-
-export type HoverDirection = 'left' | 'right' | 'top' | 'bottom' | null;
+import type { HoverDirection } from './types';
 
 export interface BaseBlockUIState {
   // UI 상태
@@ -25,6 +24,8 @@ export interface BaseBlockUIState {
   handleResizeStart: () => void;
   handleResizeComplete: () => void;
   setHoverDirection: (direction: HoverDirection) => void;
+  detectEdgeHoverDirection: (event: React.MouseEvent<HTMLDivElement>) => void;
+  clearHoverDirection: () => void;
 }
 
 /**
@@ -44,6 +45,45 @@ export function useBaseBlockUI(): BaseBlockUIState {
     setIsResizing(false);
   }, []);
 
+  // Mouse Move: Detect edge hover
+  const detectEdgeHoverDirection = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const target = event.currentTarget;
+      const rect = target.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      // 경계 감지 영역 (20px)
+      const edgeThreshold = 20;
+
+      // 어느 경계에 가까운지 확인
+      let newDirection: HoverDirection = null;
+      if (x < edgeThreshold) {
+        newDirection = 'left';
+      } else if (x > rect.width - edgeThreshold) {
+        newDirection = 'right';
+      } else if (y < edgeThreshold) {
+        newDirection = 'top';
+      } else if (y > rect.height - edgeThreshold) {
+        newDirection = 'bottom';
+      }
+
+      console.log('[useBaseBlockUI] newDirection', newDirection);
+
+      // 상태가 변경될 때만 업데이트
+      if (newDirection !== hoverDirection) {
+        console.log('[useBaseBlockUI] setting hoverDirection', newDirection);
+        setHoverDirection(newDirection);
+      }
+    },
+    [hoverDirection]
+  );
+
+  // Mouse Leave: Clear hover direction
+  const clearHoverDirection = useCallback(() => {
+    setHoverDirection(null);
+  }, [hoverDirection]);
+
   return {
     isResizing,
     hoverDirection,
@@ -51,5 +91,7 @@ export function useBaseBlockUI(): BaseBlockUIState {
     handleResizeStart,
     handleResizeComplete,
     setHoverDirection,
+    detectEdgeHoverDirection,
+    clearHoverDirection,
   };
 }

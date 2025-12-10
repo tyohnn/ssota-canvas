@@ -20,7 +20,7 @@ import {
   useBaseBlockBusiness,
   type BaseBlockBusinessLogic,
 } from './use-base-block.business';
-import type { BaseBlockProps, ResizeData } from './types';
+import type { BaseBlockProps, ResizeData, HoverDirection } from './types';
 
 export interface UseBaseBlockOptions {
   businessLogic?: BaseBlockBusinessLogic;
@@ -121,36 +121,17 @@ export function useBaseBlock(
     business.prefetchBlockTools(blockType);
   }, [data.blockType, business]);
 
-  // Combined Logic: Mouse Move (Detect edge hover)
+  // Combined Logic: Mouse Move (Delegated to UI hook)
   const handleMouseMove = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      const target = event.currentTarget;
-      const rect = target.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-
-      // 경계 감지 영역 (20px)
-      const edgeThreshold = 20;
-
-      // 어느 경계에 가까운지 확인
-      if (x < edgeThreshold) {
-        uiState.setHoverDirection('left');
-      } else if (x > rect.width - edgeThreshold) {
-        uiState.setHoverDirection('right');
-      } else if (y < edgeThreshold) {
-        uiState.setHoverDirection('top');
-      } else if (y > rect.height - edgeThreshold) {
-        uiState.setHoverDirection('bottom');
-      } else {
-        uiState.setHoverDirection(null);
-      }
+      uiState.detectEdgeHoverDirection(event);
     },
     [uiState]
   );
 
-  // Combined Logic: Mouse Leave (Clear hover direction)
+  // Combined Logic: Mouse Leave (Delegated to UI hook)
   const handleMouseLeave = useCallback(() => {
-    uiState.setHoverDirection(null);
+    uiState.clearHoverDirection();
   }, [uiState]);
 
   // Combined Logic: Resize End (Save to DB)
@@ -178,6 +159,9 @@ export function useBaseBlock(
   );
 
   return {
+    // UI State (먼저 스프레드)
+    ...uiState,
+
     // 블록 데이터
     data,
     selected,
@@ -202,9 +186,6 @@ export function useBaseBlock(
     // 선택 상태
     isCurrentBlockSelected,
     isSingleSelection,
-
-    // UI State
-    ...uiState,
 
     // Combined 액션
     handleMouseEnter,

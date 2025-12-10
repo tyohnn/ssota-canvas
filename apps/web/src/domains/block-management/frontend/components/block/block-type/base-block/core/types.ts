@@ -8,6 +8,11 @@ import { BlockNodeData } from '@/domains/block-management/shared/types/block-dat
 import { ColorToken } from '@/domains/block-management/shared/types/style-tokens.types';
 
 /**
+ * Hover Direction Type
+ */
+export type HoverDirection = 'left' | 'right' | 'top' | 'bottom' | null;
+
+/**
  * BaseBlock Props
  */
 export interface BaseBlockProps {
@@ -62,7 +67,8 @@ export interface BaseBlockContextValue {
 
   // UI 상태
   isResizing: boolean;
-  hoverDirection: 'left' | 'right' | 'top' | 'bottom' | null;
+  hoverDirection: HoverDirection;
+  setHoverDirection: (direction: HoverDirection) => void;
 
   // UI 액션
   handleMouseEnter: () => void;

@@ -9,7 +9,7 @@
 'use client';
 
 import { NodeResizeControl } from '@xyflow/react';
-import { useBaseBlockContext } from '../core/context';
+import { useBaseBlockContext } from '../core/use-base-block.context';
 import { ResizeIcon } from './resize-icon';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 

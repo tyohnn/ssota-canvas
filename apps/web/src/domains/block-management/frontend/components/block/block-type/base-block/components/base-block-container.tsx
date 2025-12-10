@@ -19,13 +19,14 @@
 
 import { memo, forwardRef } from 'react';
 import { cn } from '@workspace/ui/lib/utils';
-import { BaseBlockProvider } from '../core/provider';
+import { BaseBlockProvider } from '../core/use-base-block.provider';
 import { ResizeControl } from './resize-control';
 import { Handles } from './handles';
 import { Toolbar } from './toolbar';
 import { ActionBar } from './action-bar';
 import { Content } from './content';
-import { useBaseBlockContext } from '../core/context';
+import { AddButtonZonesContainer } from './add-button-zones';
+import { useBaseBlockContext } from '../core/use-base-block.context';
 import { BaseBlockProps } from '../core/types';
 import { UseBaseBlockOptions } from '../core/use-base-block';
 
@@ -83,6 +84,8 @@ const BaseBlockContainer = forwardRef<
     handleMouseEnter,
     handleMouseMove,
     handleMouseLeave,
+    isCurrentBlockSelected,
+    isSingleSelection,
   } = useBaseBlockContext();
 
   return (
@@ -98,6 +101,9 @@ const BaseBlockContainer = forwardRef<
       onMouseLeave={handleMouseLeave}
     >
       {children}
+      <AddButtonZonesContainer
+        show={isCurrentBlockSelected && isSingleSelection}
+      />
     </div>
   );
 });

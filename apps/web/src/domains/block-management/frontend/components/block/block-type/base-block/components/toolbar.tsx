@@ -8,7 +8,7 @@
 'use client';
 
 import { BlockMountToolbar } from '@/domains/block-management/frontend/components/block/block-mount-toolbar';
-import { useBaseBlockContext } from '../core/context';
+import { useBaseBlockContext } from '../core/use-base-block.context';
 
 export function Toolbar() {
   const {

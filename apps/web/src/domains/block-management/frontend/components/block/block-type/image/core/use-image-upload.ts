@@ -95,14 +95,14 @@ export function useImageUpload({
         // 4. 성공 콜백 호출 (메타데이터 포함)
         await onSuccess(
           {
-            imageAssetId: imageAsset.id,
-            imageUrl: imageAsset.image_url,
-            imageSource: 'user-upload',
-            // 기존 메타데이터 제거
-            caption: '',
-            alt: '',
-            unsplashAuthorName: null,
-            unsplashAuthorLink: null,
+          imageAssetId: imageAsset.id,
+          imageUrl: imageAsset.image_url,
+          imageSource: 'user-upload',
+          // 기존 메타데이터 제거
+          caption: '',
+          alt: '',
+          unsplashAuthorName: null,
+          unsplashAuthorLink: null,
           },
           metadata
         );
