@@ -43,7 +43,7 @@ export default [
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/unified-signatures': 'off',
       '@typescript-eslint/no-empty-object-type': 'off', // Allow empty interfaces
-
+      '@typescript-eslint/no-require-imports': 'off', // Allow dynamic imports for Node.js modules like crypto
       // JavaScript rules
       'prefer-const': 'off', // Too many warnings
       'no-useless-escape': 'off', // Regex patterns

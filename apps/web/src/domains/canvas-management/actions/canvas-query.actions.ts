@@ -17,6 +17,7 @@ import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management
 import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
 import { DefaultWorkspaceNavigationService } from '@/domains/workspace-management/backend/services/workspace-navigation.service';
 import { CanvasQueryService } from '../backend/services/canvas-query.service';
+import { isTempPageId } from '@/domains/workspace-management/shared/utils/temp-page-id.utils';
 
 /**
  * 캔버스 뷰 데이터 조회 Server Action
@@ -43,6 +44,21 @@ export async function getCanvasViewAction(
     // 2. 입력 검증
     if (!pageId || pageId.trim().length === 0) {
       return err('Page ID is required', { code: 'INVALID_PAGE_ID' });
+    }
+
+    // 2.5. 임시 페이지 ID 감지 및 처리
+    if (isTempPageId(pageId)) {
+      // 임시 페이지는 빈 캔버스 데이터 반환
+      return ok({
+        pageId,
+        blocks: [],
+        edges: [],
+        viewport: {
+          x: 0,
+          y: 0,
+          zoom: 1,
+        },
+      });
     }
 
     // 3. Value Objects 생성
