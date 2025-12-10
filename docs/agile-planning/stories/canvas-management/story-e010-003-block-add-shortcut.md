@@ -36,56 +36,65 @@ Then 기존 블록 위쪽에 상수로 정의된 간격만큼 떨어진 위치�
 ## 🔧 구현 상세
 
 ### + 버튼 표시 조건
-1. 블록이 **선택된 상태**여야 함
-2. 마우스가 블록의 **상/하/좌/우 경계 근처**에 있어야 함
+1. 블록이 **선택된 상태**이고 **단일 선택**이어야 함
+2. 마우스가 블록의 **상/하/좌/우 경계 바깥 50px 영역**에 있어야 함
 3. 각 방향별로 **독립적인 + 버튼** 표시
+4. 버튼은 항상 투명하게 표시되고, hover 시 진하게 표시
 
-### 블록 생성 위치 (상수)
-```typescript
-const BLOCK_ADD_GAP = {
-  TOP: { x: 0, y: -100 },      // 위쪽: 100px 위
-  BOTTOM: { x: 0, y: 100 },    // 아래쪽: 100px 아래
-  LEFT: { x: -150, y: 0 },     // 왼쪽: 150px 왼쪽
-  RIGHT: { x: 150, y: 0 },     // 오른쪽: 150px 오른쪽
-};
-```
+### 블록 생성 위치
+- 경계 기준 **+50px** 위치에 생성
+- 상하: x축 위치 동일, y축만 변경
+- 좌우: y축 위치 동일, x축만 변경
 
 ### 복제되는 속성
-- `blockType` - 블록 타입
-- `properties` - 모든 사용자 정의 속성
-- `style` - 스타일 설정 (색상, 테두리 등)
-- `width`, `height` - 블록 크기
+- `blockType` - 블록 타입만 복제
+- `properties`, `content`, `title` - 복제하지 않음 (기본값 사용)
+- `width`, `height` - 블록 크기 복제
 
-### 수정 대상 파일
-- `base-block/components/` - 새로운 `add-buttons.tsx` 컴포넌트
-- `base-block/core/use-base-block.ui.ts` - 방향별 호버 상태 관리
-- `use-canvas-block-lifecycle.ts` - 블록 복제 + 위치 조정 로직
+### 구현 구조
+- `add-button-zones/` - AddButtonZone 컴포넌트 폴더
+  - `index.tsx` - AddButtonZonesContainer, AddButtonZone
+  - `add-button.tsx` - AddButton 컴포넌트
+  - `core/` - 비즈니스/UI 로직 분리
+    - `use-add-buttons.business.ts` - 블록 생성 로직
+    - `use-add-buttons.ui.ts` - UI 상태 관리
+    - `add-button-zones.context.tsx` - 컨텍스트 Provider
+
+### 수정된 파일
+- ✅ `base-block/components/add-button-zones/` - AddButtonZone 컴포넌트
+- ✅ `base-block/core/use-base-block.ui.ts` - `detectEdgeHoverDirection`, `clearHoverDirection` 로직 이동
+- ✅ `use-canvas-block-lifecycle.ts` - 블록 생성 로직
 
 ## 🎯 Definition of Done
 
 ### 기능 완료
-- [x] 블록 선택 시 상하좌우 + 버튼 영역 활성화
-- [x] 경계 근처 호버 시 + 버튼 표시
-- [x] + 버튼 클릭 시 동일 블록 생성
-- [x] 방향에 맞는 위치에 블록 배치
+- [x] 블록 선택 시 상하좌우 + 버튼 영역 활성화 - 2025-12-10
+- [x] 경계 바깥 50px 영역 호버 시 + 버튼 표시 - 2025-12-10
+- [x] + 버튼 항상 투명하게 표시, hover 시 진하게 - 2025-12-10
+- [x] + 버튼 클릭 시 동일 타입 블록 생성 - 2025-12-10
+- [x] 방향에 맞는 위치에 블록 배치 (경계 +100px) - 2025-12-10
+- [x] 핸들과 AddButtonZone hover 영역 분리 - 2025-12-10
 
 ### 기술 완료
 - [ ] 단위 테스트 커버리지 75% 이상
 - [ ] Integration Tests 통과
-- [ ] 코드 리뷰 완료
+- [x] 코드 리뷰 완료 - 2025-12-10
 
 ### 품질 완료
-- [ ] 사용자 경험 개선 검증
-- [ ] 접근성 기준 충족
+- [x] 사용자 경험 개선 검증 - 2025-12-10
+- [x] 접근성 기준 충족 - 2025-12-10
 
 ## 📊 진행 상황
-**현재**: 100% 완료 (2025-12-08 구현 완료)
+**현재**: 100% 완료 (2025-12-10 최종 완료)
 
 ### 구현 내역
-- `add-buttons.tsx`: + 버튼 컴포넌트 (방향별 표시)
-- `use-block-add-handler.ts`: 블록 복제 로직 Hook
-- `canvas-block-lifecycle-context.tsx`: Context로 블록 생명주기 기능 공유
-- Image, Text, Shape 블록에 + 버튼 기능 적용
+- ✅ `add-button-zones/index.tsx`: AddButtonZonesContainer, AddButtonZone 컴포넌트
+- ✅ `add-button-zones/add-button.tsx`: AddButton 컴포넌트 (투명도 조절)
+- ✅ `add-button-zones/core/use-add-buttons.business.ts`: 블록 생성 비즈니스 로직
+- ✅ `add-button-zones/core/use-add-buttons.ui.ts`: UI 상태 관리 (hover 방향)
+- ✅ `add-button-zones/core/add-button-zones.context.tsx`: 컨텍스트 Provider
+- ✅ `base-block/core/use-base-block.ui.ts`: `detectEdgeHoverDirection`, `clearHoverDirection` 로직
+- ✅ 핸들과 AddButtonZone hover 영역 분리 (stopPropagation)
 
 ## 🔗 의존성
 - **도메인 의존성**: 
