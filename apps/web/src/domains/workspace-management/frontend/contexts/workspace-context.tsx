@@ -43,6 +43,7 @@ import {
   deletePageAction,
   duplicatePageAction,
 } from '@/domains/workspace-management/actions/workspace-management.actions';
+import { generateTempPageId } from '@/domains/workspace-management/shared/utils/temp-page-id.utils';
 
 /**
  * WorkspaceContext 타입 정의
@@ -891,7 +892,7 @@ export function WorkspaceProvider({
       title?: string,
       icon?: string
     ): Promise<string | null> => {
-      const tempPageId = `temp-${Date.now()}`;
+      const tempPageId = await generateTempPageId();
       const finalTitle = title || 'Untitled';
       const finalIcon = icon || 'File';
 
@@ -1294,7 +1295,7 @@ export function WorkspaceProvider({
   // Scenario 7: Page 복제 (Optimistic Update)
   const duplicatePage = useCallback(
     async (pageId: string): Promise<string | null> => {
-      const tempPageId = `temp-dup-${Date.now()}`;
+      const tempPageId = await generateTempPageId();
       // 1. 이전 상태 백업 (롤백용)
       const previousWorkspaces = workspaces;
 
