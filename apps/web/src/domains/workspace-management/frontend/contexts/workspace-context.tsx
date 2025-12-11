@@ -1273,23 +1273,23 @@ export function WorkspaceProvider({
             result.error === 'NOT_WORKSPACE_MEMBER' ||
             result.error === 'UNAUTHORIZED'
           ) {
-            toast.error('페이지를 삭제할 권한이 없습니다');
+            toast.error('You do not have permission to delete this page');
           } else if (result.error === 'PAGE_NOT_FOUND') {
-            toast.error('페이지를 찾을 수 없습니다');
+            toast.error('Page not found');
           } else {
-            toast.error('페이지 삭제에 실패했습니다');
+            toast.error('Failed to delete page');
           }
           return false;
         }
 
         // 5. 성공 토스트
-        toast.success('페이지가 삭제되었습니다');
+        toast.success('Page deleted');
         return true;
       } catch (error) {
         // 에러 시 롤백
         console.error('[deletePage] Error:', error);
         setWorkspaces(previousWorkspaces);
-        toast.error('페이지 삭제 중 오류가 발생했습니다');
+        toast.error('An error occurred while deleting the page');
         return false;
       }
     },
@@ -1318,7 +1318,7 @@ export function WorkspaceProvider({
         }
 
         if (!originalPage) {
-          toast.error('페이지를 찾을 수 없습니다');
+          toast.error('Page not found');
           return null;
         }
 
@@ -1366,11 +1366,11 @@ export function WorkspaceProvider({
             result.error === 'NOT_WORKSPACE_MEMBER' ||
             result.error === 'UNAUTHORIZED'
           ) {
-            toast.error('페이지를 복제할 권한이 없습니다');
+            toast.error('You do not have permission to duplicate this page');
           } else if (result.error === 'PAGE_NOT_FOUND') {
-            toast.error('페이지를 찾을 수 없습니다');
+            toast.error('Page not found');
           } else {
-            toast.error('페이지 복제에 실패했습니다');
+            toast.error('Failed to duplicate page');
           }
           return null;
         }
@@ -1392,13 +1392,13 @@ export function WorkspaceProvider({
         });
 
         // 6. 성공 토스트
-        toast.success('페이지가 복제되었습니다');
+        toast.success('Page duplicated');
         return result.data.pageId;
       } catch (error) {
         // 에러 시 롤백
         console.error('[duplicatePage] Error:', error);
         setWorkspaces(previousWorkspaces);
-        toast.error('페이지 복제 중 오류가 발생했습니다');
+        toast.error('An error occurred while duplicating the page');
         return null;
       }
     },
