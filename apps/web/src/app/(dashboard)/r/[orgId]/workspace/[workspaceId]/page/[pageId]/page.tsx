@@ -6,7 +6,7 @@ import {
   type CustomNodeType,
 } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 import { CanvasClient } from '@/domains/canvas-management/frontend/components/core/canvas-client';
-import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-management.actions';
+import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-navigation.actions';
 import type { Edge } from '@xyflow/react';
 
 interface WorkspacePageProps {

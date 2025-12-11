@@ -31,18 +31,22 @@ import {
 import {
   createWorkspaceAction,
   updateWorkspaceInfoAction,
+} from '@/domains/workspace-management/actions/workspace.actions';
+import {
   inviteWorkspaceMemberAction,
   searchOrganizationMembersAction,
   acceptWorkspaceInvitationAction,
   rejectWorkspaceInvitationAction,
   getWorkspaceMembersAction,
+} from '@/domains/workspace-management/actions/workspace-member.actions';
+import {
   createPageAction,
   movePageAction,
   updatePageInfoAction,
   reorderPagesAction,
   deletePageAction,
   duplicatePageAction,
-} from '@/domains/workspace-management/actions/workspace-management.actions';
+} from '@/domains/workspace-management/actions/page.actions';
 import { generateTempPageId } from '@/domains/workspace-management/shared/utils/temp-page-id.utils';
 
 /**
