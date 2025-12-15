@@ -1,10 +1,4 @@
 ## [unreleased]
-
-### 🐛 Bug Fixes
-
-- *(ci)* Use PAT token for CHANGELOG workflow to bypass branch protection
-## [2025.12.15-canary.001] - 2025-12-15
-
 ### ♻️ Refactoring
 
 - Move CHANGELOG generation to dev branch
@@ -28,6 +22,7 @@
 - *(workspace-management)* Fix PR review issues and refactor architecture
 - *(workspace-management)* [**breaking**] Sanitize error logging and fix validation issues
 - *(workspace-management)* [**breaking**] Add authorization check for organization member search
+- *(ci)* Use PAT token for CHANGELOG workflow to bypass branch protection
 
 ### 📚 Documentation
 
@@ -162,6 +157,8 @@
 - Optimize hooks and actions
 - Optimize backend
 - Align epic and sprint
+- BaseBlock Refactoring
+- Block type refactoring
 
 ### ✨ Features
 
