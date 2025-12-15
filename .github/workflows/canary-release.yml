@@ -16,100 +16,94 @@ on:
 
 jobs:
   canary-release:
-    # PR 체크에는 나타나지만, 실제 실행은 merge 후에만
+    # github-actions bot PR은 스킵 (기본 조건만 체크)
+    # skip-canary 라벨은 첫 step에서 API로 확인 (더 확실함)
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      (github.event.pull_request.merged == true &&
+      github.event.pull_request.user.login != 'github-actions[bot]')
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Check if PR is merged
-        id: check-merged
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "✅ Manual trigger. Proceeding with canary release."
-            echo "merged=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # workflow_dispatch가 아닌 경우에만 PR 체크
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "⏭️ Not a pull_request event. Skipping."
-            echo "merged=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # CHANGELOG 동기화 PR은 스킵 (무한 루프 방지)
-          if echo "$PR_TITLE" | grep -qiE "(sync.*changelog|docs:.*sync|changelog.*sync)"; then
-            echo "⏭️ Skipping: This is a CHANGELOG sync PR from main → dev"
-            echo "PR title: $PR_TITLE"
-            echo "merged=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          if [ "$PR_AUTHOR" == "github-actions[bot]" ]; then
-            echo "⏭️ Skipping: PR created by github-actions[bot] (likely sync PR)"
-            echo "merged=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          if [ "${{ github.event.pull_request.merged }}" != "true" ]; then
-            echo "⏭️ PR not merged yet. This workflow will run automatically after PR merge."
-            echo "merged=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          echo "✅ PR merged. Proceeding with canary release."
-          echo "merged=true" >> $GITHUB_OUTPUT
-
-      - name: Check if should create canary release
-        if: github.event_name == 'pull_request' && steps.check-merged.outputs.merged == 'true'
-        id: should-release
+      - name: Check skip-canary label
+        id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "✅ Manual trigger - proceeding"
+            echo "proceed=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # PR 번호 확인
           PR_NUMBER="${{ github.event.pull_request.number }}"
-
-          # 커밋 메시지에 [skip canary] 패턴이 있는지 확인 (가장 간단한 방법)
-          COMMITS=$(gh pr view "$PR_NUMBER" --json commits --jq '.commits[].messageHeadline' 2>/dev/null || echo "")
-
-          if echo "$COMMITS" | grep -qiE "\[skip canary\]|\[skip release\]|\[no release\]"; then
-            echo "⏭️ Skipping: Found [skip canary] in commit messages"
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "skip_reason=Found [skip canary] in commit messages" >> $GITHUB_OUTPUT
+          if [ -z "$PR_NUMBER" ]; then
+            echo "⚠️ No PR number found"
+            echo "proceed=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # PR 제목에도 체크 (환경 변수 사용)
-          if echo "$PR_TITLE" | grep -qiE "\[skip canary\]|\[skip release\]|\[no release\]"; then
-            echo "⏭️ Skipping: Found [skip canary] in PR title"
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "skip_reason=Found [skip canary] in PR title" >> $GITHUB_OUTPUT
+          echo "🔍 Checking PR #$PR_NUMBER for skip-canary label..."
+
+          # Method 1: GitHub event context에서 라벨 가져오기 (가장 직접적)
+          echo "🔎 Method 1: From github.event.pull_request.labels..."
+          EVENT_LABELS='${{ toJSON(github.event.pull_request.labels) }}'
+          echo "📦 Event labels JSON:"
+          echo "$EVENT_LABELS"
+
+          LABELS=$(echo "$EVENT_LABELS" | jq -r '.[].name' 2>/dev/null | tr '\n' ',' || echo "")
+          echo "📋 Parsed from event: [$LABELS]"
+
+          # Method 2: GitHub REST API (fallback, GITHUB_TOKEN 사용)
+          if [ -z "$LABELS" ]; then
+            echo "🔎 Method 2: Fetching via REST API with GITHUB_TOKEN..."
+            API_RESPONSE=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER")
+            
+            echo "📦 API response status:"
+            HTTP_STATUS=$(echo "$API_RESPONSE" | jq -r '.message // "success"')
+            echo "Status: $HTTP_STATUS"
+            
+            if [ "$HTTP_STATUS" != "success" ]; then
+              echo "📦 Full API response:"
+              echo "$API_RESPONSE" | jq -c '.'
+            fi
+            
+            echo "📦 Labels from API:"
+            echo "$API_RESPONSE" | jq -c '.labels // []'
+            
+            LABELS=$(echo "$API_RESPONSE" | jq -r '.labels[]?.name // empty' 2>/dev/null | tr '\n' ',' || echo "")
+            echo "📋 Parsed from API: [$LABELS]"
+          fi
+
+          # skip-canary 라벨이 있는지 확인
+          if [ -n "$LABELS" ] && echo "$LABELS" | grep -qiE "skip-canary|no-release"; then
+            echo "⏭️ SKIPPING: Found skip-canary label"
+            echo "proceed=false" >> $GITHUB_OUTPUT
+            
+            # Summary 출력
+            echo "## ⏭️ Canary Release Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Reason:** PR #$PR_NUMBER has \`skip-canary\` label" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Labels found:** \`$LABELS\`" >> $GITHUB_STEP_SUMMARY
             exit 0
           fi
 
-          # PR 라벨 확인 (skip-canary 라벨이 있으면 스킵)
-          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name' 2>/dev/null | tr '\n' ' ' || echo "")
-
-          if echo "$LABELS" | grep -qiE "skip-canary|no-release"; then
-            echo "⏭️ Skipping: PR has skip-canary label"
-            echo "Labels: $LABELS"
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "skip_reason=PR has skip-canary label" >> $GITHUB_OUTPUT
-            exit 0
+          if [ -z "$LABELS" ]; then
+            echo "⚠️ No labels found (might be expected for some PRs)"
           fi
 
-          echo "✅ Proceeding with canary release"
-          echo "should_release=true" >> $GITHUB_OUTPUT
-          echo "skip_reason=" >> $GITHUB_OUTPUT
+          echo "✅ No skip label found - proceeding with canary release"
+          echo "proceed=true" >> $GITHUB_OUTPUT
 
       - name: Checkout repository
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true')
+        if: steps.check.outputs.proceed == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -118,17 +112,13 @@ jobs:
           fetch-tags: true # 원격 태그도 가져오기
 
       - name: Configure git
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true')
+        if: steps.check.outputs.proceed == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
       - name: Calculate canary version
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true')
+        if: steps.check.outputs.proceed == 'true'
         id: version
         run: |
           # 원격 태그 정보 가져오기
@@ -159,9 +149,7 @@ jobs:
           echo "📊 Today's canary tags: $TODAY_TAGS"
 
       - name: Generate release notes
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true')
+        if: steps.check.outputs.proceed == 'true'
         id: notes
         run: |
           # 최신 태그 이후의 커밋들 추출
@@ -201,9 +189,7 @@ jobs:
           echo "✅ Generated release notes"
 
       - name: Create and push tag
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true')
+        if: steps.check.outputs.proceed == 'true'
         run: |
           VERSION="${{ steps.version.outputs.canary_version }}"
           TAG_NAME="v${VERSION}"
@@ -235,9 +221,7 @@ jobs:
           echo "✅ Pushed tag: $TAG_NAME"
 
       - name: Publish GitHub Release
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true')
+        if: steps.check.outputs.proceed == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: 'v${{ steps.version.outputs.canary_version }}'
@@ -250,11 +234,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Summary
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          steps.check-merged.outputs.merged == 'true'
+        if: steps.check.outputs.proceed == 'true'
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ] || [ "${{ steps.should-release.outputs.should_release }}" == "true" ]; then
           echo "## 🐤 Canary Release Created!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Version:" >> $GITHUB_STEP_SUMMARY
@@ -270,14 +251,3 @@ jobs:
           echo "1. ✅ Canary release published" >> $GITHUB_STEP_SUMMARY
           echo "2. 📝 Testers can now install and test" >> $GITHUB_STEP_SUMMARY
           echo "3. 🐛 Report issues if found" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "## ⏭️ Canary Release Skipped" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Reason:" >> $GITHUB_STEP_SUMMARY
-            echo "- ${{ steps.should-release.outputs.skip_reason }}" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### ℹ️ Info:" >> $GITHUB_STEP_SUMMARY
-            echo "Canary releases are automatically skipped when:" >> $GITHUB_STEP_SUMMARY
-            echo "- Commit messages contain \`[skip canary]\`" >> $GITHUB_STEP_SUMMARY
-            echo "- PR has \`skip-canary\` label" >> $GITHUB_STEP_SUMMARY
-          fi

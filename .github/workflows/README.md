@@ -10,18 +10,16 @@ This directory contains the automated workflows for the project.
 
 **Behavior:**
 - Creates production tag (e.g., `v0.5.3`)
-- **Regenerates CHANGELOG on main branch** (main is the source of truth)
+- **Updates CHANGELOG on main branch** (main branch only)
 - Converts `[unreleased]` → `[0.5.3]`
-- **Automatically creates main → dev PR** to sync CHANGELOG
 - Triggers GitHub Release creation
 
 **Features:**
-- ✅ **main is the source of truth** for CHANGELOG
+- ✅ **main branch is the source of truth** for CHANGELOG
 - ✅ Production versions only (no canary versions in CHANGELOG)
-- ✅ **Automatic CHANGELOG sync via PR with auto-merge** (main → dev)
+- ✅ **CHANGELOG maintained on main only** (no sync to dev)
 - ✅ Label-based or manual version control
-- ✅ Prevents infinite loops (skips sync PRs)
-- ✅ Fully automated (no manual PR merge needed)
+- ✅ Fully automated release process
 
 **Label-based Release:**
 - `release:major` → v1.0.0
@@ -32,9 +30,9 @@ This directory contains the automated workflows for the project.
 - Uses `cliff.toml` for commit parsing rules
 - Groups commits by type (Features, Bug Fixes, etc.)
 
-**Workflow Strategy (Industry Standard):**
-- dev → main merge: CHANGELOG generated on main ✅
-- main → dev: Auto PR created and **auto-merged** for CHANGELOG sync ✅
+**Workflow Strategy:**
+- dev → main merge: CHANGELOG updated on main ✅
+- **CHANGELOG maintained on main branch only** ✅
 - Canary versions: Excluded from CHANGELOG ✅
 
 ---
@@ -57,7 +55,7 @@ This directory contains the automated workflows for the project.
 - ✅ Pre-release flag set automatically
 - ✅ Manual trigger available
 - ✅ **Not included in CHANGELOG** (production only)
-- ✅ **Skips CHANGELOG sync PRs** (prevents duplicate releases)
+- ✅ **Skip with `skip-canary` label** (prevents unnecessary releases)
 
 **Example:**
 ```bash
@@ -106,23 +104,18 @@ git push origin v0.5.3
 graph TD
     A[Sprint Development] --> B[sprint → dev PR]
     B --> C{PR Merge}
-    C -->|Merged| D[changelog.yml<br/>📚 CHANGELOG Update]
-    C -->|Merged| E[canary-release.yml<br/>🐤 Canary Release]
-    D --> F[dev Branch<br/>Source of Truth]
-    E --> F
-    F --> G[dev → main PR]
-    G --> H{Label Added?}
-    H -->|release:*| I[release-automation.yml<br/>Auto Release]
-    H -->|No Label| J[Manual Trigger]
-    I --> K[1. Create Tag v0.5.3]
-    J --> K
-    K --> L[2. Regenerate CHANGELOG<br/>unreleased → 0.5.3]
-    L --> M[3. Commit to main]
-    M --> N[4. Auto PR: main → dev<br/>CHANGELOG Sync]
-    M --> O[release.yml<br/>GitHub Release]
-    O --> P[🎉 Production Release!]
-    N --> Q[Merge PR to dev]
-    Q --> F
+    C -->|Merged| D[canary-release.yml<br/>🐤 Canary Release]
+    D --> E[dev Branch]
+    E --> F[dev → main PR]
+    F --> G{Label Added?}
+    G -->|release:*| H[release-automation.yml<br/>Auto Release]
+    G -->|No Label| I[Manual Trigger]
+    H --> J[1. Create Tag v0.5.3]
+    I --> J
+    J --> K[2. Update CHANGELOG<br/>unreleased → 0.5.3]
+    K --> L[3. Commit to main]
+    L --> M[release.yml<br/>GitHub Release]
+    M --> N[🎉 Production Release!]
 ```
 
 ### Step-by-Step Explanation
@@ -138,15 +131,11 @@ git push origin sprint/v0.5.3-sprint-017
 #### 2️⃣ sprint → dev PR Merge
 **Automatically triggers:**
 
-**A. CHANGELOG Generation** (`changelog.yml`)
-- ✅ Updates CHANGELOG.md on **dev branch**
-- ✅ Full CHANGELOG with all version sections
-- ✅ dev becomes the source of truth
-
-**B. Canary Release** (`canary-release.yml`)
+**Canary Release** (`canary-release.yml`)
 - ✅ Creates canary tag: `v2025.12.14-canary.001`
 - ✅ Creates Pre-release on GitHub
 - ✅ Testers can install and test early
+- ⏭️ Skip with `skip-canary` label if needed
 
 #### 3️⃣ dev → main PR (Production Release)
 - Create dev → main PR
@@ -161,21 +150,13 @@ git push origin sprint/v0.5.3-sprint-017
 
 **Automatically performs:**
 1. ✅ Creates production tag: `v0.5.3`
-2. ✅ Regenerates CHANGELOG: `[unreleased]` → `[0.5.3]`
+2. ✅ Updates CHANGELOG: `[unreleased]` → `[0.5.3]`
 3. ✅ Commits CHANGELOG to main
-4. ✅ Creates auto PR: main → dev (CHANGELOG sync)
-5. ✅ **Auto-merges the sync PR** (fully automated)
-6. ✅ Triggers `release.yml` for GitHub Release
+4. ✅ Triggers `release.yml` for GitHub Release
 
-#### 5️⃣ CHANGELOG Sync
-- ✅ Auto PR created: main → dev
-- ✅ **Automatically merged** (no manual action needed)
-- ✅ Only CHANGELOG.md is synced
-- ✅ **Automatically skipped by canary-release.yml**
-  - Prevents infinite loop
-  - No duplicate canary releases
+**Note:** CHANGELOG is maintained on `main` branch only.
 
-#### 6️⃣ GitHub Release (`release.yml`)
+#### 5️⃣ GitHub Release (`release.yml`)
 - ✅ Automatically creates official release
 - ✅ Includes release notes from CHANGELOG
 - ✅ Published to GitHub Release page
@@ -189,7 +170,6 @@ git push origin sprint/v0.5.3-sprint-017
 ```bash
 # 1. Sprint development
 sprint/v0.5.3-sprint-017 → dev (PR & Merge)
-# → ✅ CHANGELOG updated on dev
 # → 🐤 Canary release created (v2025.12.14-canary.001)
 
 # 2. Testing phase
@@ -199,13 +179,12 @@ sprint/v0.5.3-sprint-017 → dev (PR & Merge)
 dev → main PR + label: release:patch
 # → ✅ Everything automatic:
 #    - Production tag created (v0.5.3)
-#    - CHANGELOG regenerated: [unreleased] → [0.5.3]
-#    - CHANGELOG committed to main
-#    - Auto PR created: main → dev (CHANGELOG sync)
+#    - CHANGELOG updated on main: [unreleased] → [0.5.3]
 #    - GitHub Release created
 
-# 4. Complete the cycle
-# → Merge the CHANGELOG sync PR to dev
+# 4. Continue development
+# → Continue working on dev branch
+# → CHANGELOG is maintained on main only
 ```
 
 ### Scenario 2: Canary-Only Testing
@@ -341,16 +320,16 @@ release:patch → PATCH++
 - Canary releases show last 10 commits automatically
 - Production releases use CHANGELOG sections
 
-### Infinite Loop Occurring
+### Unwanted Canary Releases
 
 **Causes:**
-- `[skip ci]` is missing
-- Workflow conditions are incorrect
+- Every PR merge to dev triggers canary release
+- CI/config updates creating unnecessary releases
 
 **Solutions:**
-- ✅ Already fixed! (changelog.yml)
-- Include `[skip ci]` in commit message
-- Check GitHub Actions bot
+- ✅ Add `skip-canary` label to PR
+- ✅ Automated by `github-actions[bot]` PRs (automatically skipped)
+- Check canary-release.yml conditions
 
 ---
 
@@ -370,10 +349,10 @@ release:patch → PATCH++
 
 **Development Cycle:**
 1. Sprint development
-2. PR to dev → 📝 **CHANGELOG update** (automatic) + 🐤 **Canary release** (automatic)
+2. PR to dev → 🐤 **Canary release** (automatic)
 3. Testing and feedback
 4. PR to main → 🏷️ **Tag creation** (automatic, with label)
-5. 🎉 **Production release** (automatic)
+5. 🎉 **Production release** + 📝 **CHANGELOG update** (automatic, main only)
 
 **Manual tasks:**
 - Sprint development
@@ -384,7 +363,7 @@ release:patch → PATCH++
 
 **Automatically handled:**
 - ✅ Canary releases (dev merges)
-- ✅ CHANGELOG updates (main merges)
+- ✅ CHANGELOG updates (main merges, main branch only)
 - ✅ Version tag creation (with labels)
 - ✅ GitHub Release creation
 - ✅ Release notes generation
