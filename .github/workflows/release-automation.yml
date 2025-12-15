@@ -225,16 +225,17 @@ jobs:
           fi
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: '${{ steps.vars.outputs.version }}'
-          name: '${{ steps.vars.outputs.version }}'
-          body_path: RELEASE_NOTES.md
-          draft: false
-          prerelease: false
-          make_latest: true
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          VERSION="${{ steps.vars.outputs.version }}"
+          # name에서 v 제거 (v0.5.3 -> 0.5.3)
+          VERSION_NAME=$(echo "$VERSION" | sed 's/^v//')
+
+          gh release create "$VERSION" \
+            --title "$VERSION_NAME" \
+            --notes-file RELEASE_NOTES.md \
+            --latest
 
       - name: Commit and push CHANGELOG to main
         run: |
