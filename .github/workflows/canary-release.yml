@@ -57,8 +57,50 @@ jobs:
           echo "✅ PR merged. Proceeding with canary release."
           echo "merged=true" >> $GITHUB_OUTPUT
 
-      - name: Checkout repository
+      - name: Check if should create canary release
         if: steps.check-merged.outputs.merged == 'true'
+        id: should-release
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          # 커밋 메시지에 [skip canary] 패턴이 있는지 확인 (가장 간단한 방법)
+          COMMITS=$(gh pr view "$PR_NUMBER" --json commits --jq '.commits[].messageHeadline' 2>/dev/null || echo "")
+
+          if echo "$COMMITS" | grep -qiE "\[skip canary\]|\[skip release\]|\[no release\]"; then
+            echo "⏭️ Skipping: Found [skip canary] in commit messages"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "skip_reason=Found [skip canary] in commit messages" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # PR 제목에도 체크
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          if echo "$PR_TITLE" | grep -qiE "\[skip canary\]|\[skip release\]|\[no release\]"; then
+            echo "⏭️ Skipping: Found [skip canary] in PR title"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "skip_reason=Found [skip canary] in PR title" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # PR 라벨 확인 (skip-canary 라벨이 있으면 스킵)
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name' 2>/dev/null | tr '\n' ' ' || echo "")
+
+          if echo "$LABELS" | grep -qiE "skip-canary|no-release"; then
+            echo "⏭️ Skipping: PR has skip-canary label"
+            echo "Labels: $LABELS"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "skip_reason=PR has skip-canary label" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "✅ Proceeding with canary release"
+          echo "should_release=true" >> $GITHUB_OUTPUT
+          echo "skip_reason=" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout repository
+        if: steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -67,13 +109,13 @@ jobs:
           fetch-tags: true # 원격 태그도 가져오기
 
       - name: Configure git
-        if: steps.check-merged.outputs.merged == 'true'
+        if: steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
       - name: Calculate canary version
-        if: steps.check-merged.outputs.merged == 'true'
+        if: steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true'
         id: version
         run: |
           # 원격 태그 정보 가져오기
@@ -104,7 +146,7 @@ jobs:
           echo "📊 Today's canary tags: $TODAY_TAGS"
 
       - name: Generate release notes
-        if: steps.check-merged.outputs.merged == 'true'
+        if: steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true'
         id: notes
         run: |
           # 최신 태그 이후의 커밋들 추출
@@ -144,7 +186,7 @@ jobs:
           echo "✅ Generated release notes"
 
       - name: Create and push tag
-        if: steps.check-merged.outputs.merged == 'true'
+        if: steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true'
         run: |
           VERSION="${{ steps.version.outputs.canary_version }}"
           TAG_NAME="v${VERSION}"
@@ -176,7 +218,7 @@ jobs:
           echo "✅ Pushed tag: $TAG_NAME"
 
       - name: Publish GitHub Release
-        if: steps.check-merged.outputs.merged == 'true'
+        if: steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: 'v${{ steps.version.outputs.canary_version }}'
@@ -191,18 +233,31 @@ jobs:
       - name: Summary
         if: steps.check-merged.outputs.merged == 'true'
         run: |
-          echo "## 🐤 Canary Release Created!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Version:" >> $GITHUB_STEP_SUMMARY
-          echo "- \`v${{ steps.version.outputs.canary_version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Details:" >> $GITHUB_STEP_SUMMARY
-          echo "- Date: ${{ steps.version.outputs.date }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Build: ${{ steps.version.outputs.build_number }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Branch: dev" >> $GITHUB_STEP_SUMMARY
-          echo "- Pre-release: ✅ Yes" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
-          echo "1. ✅ Canary release published" >> $GITHUB_STEP_SUMMARY
-          echo "2. 📝 Testers can now install and test" >> $GITHUB_STEP_SUMMARY
-          echo "3. 🐛 Report issues if found" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.should-release.outputs.should_release }}" == "true" ]; then
+            echo "## 🐤 Canary Release Created!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Version:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`v${{ steps.version.outputs.canary_version }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Details:" >> $GITHUB_STEP_SUMMARY
+            echo "- Date: ${{ steps.version.outputs.date }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Build: ${{ steps.version.outputs.build_number }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Branch: dev" >> $GITHUB_STEP_SUMMARY
+            echo "- Pre-release: ✅ Yes" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+            echo "1. ✅ Canary release published" >> $GITHUB_STEP_SUMMARY
+            echo "2. 📝 Testers can now install and test" >> $GITHUB_STEP_SUMMARY
+            echo "3. 🐛 Report issues if found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ⏭️ Canary Release Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Reason:" >> $GITHUB_STEP_SUMMARY
+            echo "- ${{ steps.should-release.outputs.skip_reason }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ℹ️ Info:" >> $GITHUB_STEP_SUMMARY
+            echo "Canary releases are automatically skipped when:" >> $GITHUB_STEP_SUMMARY
+            echo "- Only CI/config files are changed (`.github/`, `cliff.toml`, `README.md`, etc.)" >> $GITHUB_STEP_SUMMARY
+            echo "- Commit messages contain `[skip canary]`" >> $GITHUB_STEP_SUMMARY
+            echo "- PR has `skip-canary` label" >> $GITHUB_STEP_SUMMARY
+          fi
