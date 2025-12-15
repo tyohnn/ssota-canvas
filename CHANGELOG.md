@@ -2,7 +2,7 @@
 
 ### 🐛 Bug Fixes
 
-- *(ci)* Remove canary tag at changlog
+- *(ci)* Remove canary tag at changelog
 - *(ci)* Add exclude canary tag logic
 - *(ci)* Fix code review
 
