@@ -34,14 +34,14 @@ jobs:
           # CHANGELOG 동기화 PR은 스킵 (무한 루프 방지)
           PR_TITLE="${{ github.event.pull_request.title }}"
           PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          
+
           if echo "$PR_TITLE" | grep -qiE "(sync.*changelog|docs:.*sync|changelog.*sync)"; then
             echo "⏭️ Skipping: This is a CHANGELOG sync PR from main → dev"
             echo "PR title: $PR_TITLE"
             echo "merged=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           if [ "$PR_AUTHOR" == "github-actions[bot]" ]; then
             echo "⏭️ Skipping: PR created by github-actions[bot] (likely sync PR)"
             echo "merged=false" >> $GITHUB_OUTPUT
@@ -64,6 +64,7 @@ jobs:
           fetch-depth: 0
           ref: dev
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-tags: true # 원격 태그도 가져오기
 
       - name: Configure git
         if: steps.check-merged.outputs.merged == 'true'
@@ -75,6 +76,9 @@ jobs:
         if: steps.check-merged.outputs.merged == 'true'
         id: version
         run: |
+          # 원격 태그 정보 가져오기
+          git fetch --tags --force
+
           # 날짜 기반 버전 (YYYY.MM.DD-canary.BUILD)
           DATE=$(date +%Y.%m.%d)
 
@@ -82,8 +86,8 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ inputs.build_number }}" ]; then
             BUILD_NUMBER="${{ inputs.build_number }}"
           else
-            # 오늘 날짜의 canary 태그 개수 세기
-            TODAY_TAGS=$(git tag -l "${DATE}-canary.*" | wc -l | tr -d ' ')
+            # 오늘 날짜의 canary 태그 개수 세기 (원격 포함)
+            TODAY_TAGS=$(git tag -l "v${DATE}-canary.*" | wc -l | tr -d ' ')
             BUILD_NUMBER=$((TODAY_TAGS + 1))
           fi
 
@@ -97,6 +101,7 @@ jobs:
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
 
           echo "📦 Canary version: $CANARY_VERSION"
+          echo "📊 Today's canary tags: $TODAY_TAGS"
 
       - name: Generate release notes
         if: steps.check-merged.outputs.merged == 'true'
@@ -142,6 +147,15 @@ jobs:
         if: steps.check-merged.outputs.merged == 'true'
         run: |
           VERSION="${{ steps.version.outputs.canary_version }}"
+          TAG_NAME="v${VERSION}"
+
+          # 태그가 이미 존재하는지 확인
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "⚠️ Tag $TAG_NAME already exists. Skipping tag creation."
+            echo "ℹ️ This can happen if the workflow runs multiple times for the same commit."
+            echo "✅ Tag already exists, proceeding to release creation..."
+            exit 0
+          fi
 
           # 태그 메시지 파일로 생성
           cat > TAG_MESSAGE.txt << 'TAGEOF'
@@ -152,14 +166,14 @@ jobs:
           TAGEOF
 
           # 태그 생성
-          git tag -a "v${VERSION}" -F TAG_MESSAGE.txt
+          git tag -a "$TAG_NAME" -F TAG_MESSAGE.txt
           rm -f TAG_MESSAGE.txt
 
-          echo "✅ Created tag: v${VERSION}"
+          echo "✅ Created tag: $TAG_NAME"
 
           # 태그 push
-          git push origin "v${VERSION}"
-          echo "✅ Pushed tag: v${VERSION}"
+          git push origin "$TAG_NAME"
+          echo "✅ Pushed tag: $TAG_NAME"
 
       - name: Publish GitHub Release
         if: steps.check-merged.outputs.merged == 'true'
