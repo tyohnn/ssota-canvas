@@ -4,40 +4,27 @@ These scripts help fix and maintain the CHANGELOG and release tags.
 
 ## 🚀 Quick Start
 
-### One-Command Fix (Recommended)
+### Regenerate CHANGELOG
 
 ```bash
-./.github/scripts/fix-changelog.sh
+./.github/scripts/regenerate-changelog.sh
 ```
 
-This interactive script will:
-1. ✅ Create missing tags (v0.3.0 ~ v0.5.0)
-2. ✅ Regenerate CHANGELOG with version sections
-3. ✅ (Optional) Push tags to remote
+This script will:
+1. ✅ Backup current CHANGELOG.md
+2. ✅ Generate new CHANGELOG with version sections
+3. ✅ Create preview for review
+
+After reviewing, apply with:
+```bash
+mv CHANGELOG_NEW.md CHANGELOG.md
+```
 
 ---
 
-## 📋 Individual Scripts
+## 📋 Available Scripts
 
-### 1. Create Missing Tags
-
-```bash
-./.github/scripts/create-missing-tags.sh
-```
-
-Creates tags for past versions:
-- v0.5.0 (2025-12-10)
-- v0.3.6 (2025-11-28)
-- v0.3.5 (2025-11-27)
-- v0.3.4 (2025-11-26)
-- v0.3.3 (2025-11-24)
-- v0.3.2 (2025-11-24)
-- v0.3.1 (2025-11-22)
-- v0.3.0 (2025-11-22)
-
-**Note:** Tags are created locally only. Push with `git push origin --tags`
-
-### 2. Regenerate CHANGELOG
+### 1. Regenerate CHANGELOG
 
 ```bash
 ./.github/scripts/regenerate-changelog.sh
@@ -49,6 +36,24 @@ Generates new CHANGELOG.md with:
 - No "Update CHANGELOG" meta entries
 
 **Note:** Creates `CHANGELOG_NEW.md` for review before applying.
+
+### 2. Create Missing Tags
+
+```bash
+./.github/scripts/create-missing-tags.sh
+```
+
+Creates tags for past versions based on commit history.
+
+**Note:** Tags are created locally only. Push with `git push origin --tags`
+
+### 3. Create GitHub Releases for Tags
+
+```bash
+./.github/scripts/create-releases-for-tags.sh
+```
+
+Creates GitHub Releases for all existing tags with proper release notes.
 
 ---
 

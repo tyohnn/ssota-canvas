@@ -47,7 +47,7 @@ jobs:
         id: git-cliff
         run: |
           echo "🔍 Generating CHANGELOG..."
-          git cliff --config cliff.toml --unreleased --strip header > CHANGELOG_NEW.md
+          git cliff --config cliff.toml --strip header > CHANGELOG_NEW.md
           if ! cmp -s CHANGELOG.md CHANGELOG_NEW.md 2>/dev/null; then
             echo "✅ CHANGELOG has changes"
             mv CHANGELOG_NEW.md CHANGELOG.md
