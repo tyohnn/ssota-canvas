@@ -17,43 +17,88 @@ on:
 jobs:
   # PR Label 기반 버전 계산
   calculate-version:
-    if: |
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.merged == true &&
-      (
-        contains(github.event.pull_request.labels.*.name, 'release:major') ||
-        contains(github.event.pull_request.labels.*.name, 'release:minor') ||
-        contains(github.event.pull_request.labels.*.name, 'release:patch')
-      )
     runs-on: ubuntu-latest
     outputs:
       new_version: ${{ steps.version.outputs.new_version }}
     steps:
+      - name: Check if should calculate version
+        id: should-calculate
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "⏭️ Not a pull_request event. Skipping version calculation."
+            echo "should_calculate=false" >> $GITHUB_OUTPUT
+            echo "new_version=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          if [ "${{ github.event.pull_request.merged }}" != "true" ]; then
+            echo "⏭️ PR not merged. Skipping version calculation."
+            echo "should_calculate=false" >> $GITHUB_OUTPUT
+            echo "new_version=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Label 체크
+          HAS_MAJOR="${{ contains(github.event.pull_request.labels.*.name, 'release:major') }}"
+          HAS_MINOR="${{ contains(github.event.pull_request.labels.*.name, 'release:minor') }}"
+          HAS_PATCH="${{ contains(github.event.pull_request.labels.*.name, 'release:patch') }}"
+          
+          if [ "$HAS_MAJOR" != "true" ] && [ "$HAS_MINOR" != "true" ] && [ "$HAS_PATCH" != "true" ]; then
+            echo "⏭️ No release label found. Skipping version calculation."
+            echo "should_calculate=false" >> $GITHUB_OUTPUT
+            echo "new_version=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "✅ Conditions met. Calculating version."
+          echo "should_calculate=true" >> $GITHUB_OUTPUT
+
       - name: Checkout repository
+        if: steps.should-calculate.outputs.should_calculate == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Calculate new version
+        if: steps.should-calculate.outputs.should_calculate == 'true'
         id: version
         run: |
           # 최신 태그 가져오기
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.5.2")
-          echo "Latest tag: $LATEST_TAG"
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LATEST_TAG" ]; then
+            echo "⚠️  No tags found in repository"
+            echo "Using default version: v0.0.0"
+            LATEST_TAG="v0.0.0"
+          else
+            echo "✅ Latest tag: $LATEST_TAG"
+          fi
 
-          # 버전 파싱 (v0.5.2 -> 0 5 2)
+          # 버전 파싱 및 검증 (v0.5.2 -> 0 5 2)
           VERSION=${LATEST_TAG#v}
+          
+          # SemVer 패턴 검증 (X.Y.Z 형식)
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "❌ Error: Invalid version format: $VERSION"
+            echo "Expected format: vX.Y.Z (e.g., v0.5.2)"
+            exit 1
+          fi
+          
           IFS='.' read -r -a VERSION_PARTS <<< "$VERSION"
           MAJOR=${VERSION_PARTS[0]:-0}
-          MINOR=${VERSION_PARTS[1]:-5}
-          PATCH=${VERSION_PARTS[2]:-2}
+          MINOR=${VERSION_PARTS[1]:-0}
+          PATCH=${VERSION_PARTS[2]:-0}
 
           # Label에 따라 버전 증가
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'release:major') }}" == "true" ]]; then
+          HAS_MAJOR="${{ contains(github.event.pull_request.labels.*.name, 'release:major') }}"
+          HAS_MINOR="${{ contains(github.event.pull_request.labels.*.name, 'release:minor') }}"
+          HAS_PATCH="${{ contains(github.event.pull_request.labels.*.name, 'release:patch') }}"
+          
+          if [ "$HAS_MAJOR" == "true" ]; then
             MAJOR=$((MAJOR + 1))
             MINOR=0
             PATCH=0
-          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'release:minor') }}" == "true" ]]; then
+          elif [ "$HAS_MINOR" == "true" ]; then
             MINOR=$((MINOR + 1))
             PATCH=0
           else
@@ -108,6 +153,20 @@ jobs:
 
           # CHANGELOG에서 최신 변경사항 추출 (태그 메시지용)
           RELEASE_NOTES=$(awk '/^## \[unreleased\]/,/^## \[/ {print}' CHANGELOG.md | head -n -1)
+          
+          # 릴리스 노트 검증 및 폴백
+          if [ -z "$RELEASE_NOTES" ] || [ "$(echo "$RELEASE_NOTES" | wc -l)" -lt 2 ]; then
+            echo "⚠️  Warning: No release notes found in CHANGELOG.md [unreleased] section"
+            echo "Checking for alternative formats..."
+            
+            # 대체 패턴 시도
+            RELEASE_NOTES=$(awk '/^## Unreleased/,/^## / {print}' CHANGELOG.md | head -n -1)
+            
+            if [ -z "$RELEASE_NOTES" ] || [ "$(echo "$RELEASE_NOTES" | wc -l)" -lt 2 ]; then
+              echo "⚠️  No release notes found. Using default message."
+              RELEASE_NOTES="See CHANGELOG.md for details."
+            fi
+          fi
 
           # 태그 생성
           git tag -a "$VERSION" -m "Release $VERSION

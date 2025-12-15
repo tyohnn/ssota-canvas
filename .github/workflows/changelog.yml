@@ -22,26 +22,26 @@ jobs:
           # CHANGELOG 동기화 PR은 스킵 (무한 루프 방지)
           PR_TITLE="${{ github.event.pull_request.title }}"
           PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          
+
           if echo "$PR_TITLE" | grep -qiE "(sync.*changelog|docs:.*sync|changelog.*sync)"; then
             echo "⏭️ Skipping: This is a CHANGELOG sync PR from main → dev"
             echo "PR title: $PR_TITLE"
             echo "merged=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           if [ "$PR_AUTHOR" == "github-actions[bot]" ]; then
             echo "⏭️ Skipping: PR created by github-actions[bot] (likely sync PR)"
             echo "merged=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           if [ "${{ github.event.pull_request.merged }}" != "true" ]; then
             echo "⏭️ PR not merged yet. This workflow will run automatically after PR merge."
             echo "merged=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           echo "✅ PR merged. Proceeding with CHANGELOG generation."
           echo "merged=true" >> $GITHUB_OUTPUT
 
@@ -128,11 +128,14 @@ jobs:
         if: |
           steps.check-merged.outputs.merged == 'true' &&
           steps.git-cliff.outputs.has_changes == 'true'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: |
           echo "✅ CHANGELOG successfully updated and pushed to dev!"
           echo "Event: ${{ github.event_name }}"
-          echo "PR: ${{ github.event.pull_request.title }}"
-          echo "Base branch: ${{ github.event.pull_request.base.ref }}"
+          echo "PR: $PR_TITLE"
+          echo "Base branch: $BASE_BRANCH"
           echo ""
           echo "📝 Workflow Strategy:"
           echo "  - dev is the source of truth for CHANGELOG"
