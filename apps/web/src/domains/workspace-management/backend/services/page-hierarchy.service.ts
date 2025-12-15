@@ -279,19 +279,17 @@ export class DefaultPageHierarchyService implements PageHierarchyService {
           orderedPageIds.includes(p.pageId.value)
         );
 
+        // Verify all requested pages were found
+        if (targetPages.length !== orderedPageIds.length) {
+          return R.err('PAGE_NOT_FOUND');
+        }
+
         // 모든 페이지가 같은 부모를 가지고 있는지 확인
         const expectedParentId = parentId?.value || null;
         for (const page of targetPages) {
           const pageParentId = page.parentId?.value || null;
           if (pageParentId !== expectedParentId) {
             return R.err('INVALID_PAGE_ORDER');
-          }
-        }
-
-        // 모든 페이지가 같은 Workspace에 속하는지 확인
-        for (const page of targetPages) {
-          if (page.workspaceId.value !== workspaceId.value) {
-            return R.err('INVALID_WORKSPACE');
           }
         }
       }

@@ -119,7 +119,7 @@ async function inviteWorkspaceMemberInternal(
 
     if (!result.success) {
       return err(result.error, {
-        code: result.error,
+        code: 'INVITATION_FAILED',
       });
     }
 
@@ -133,7 +133,7 @@ async function inviteWorkspaceMemberInternal(
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
         originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
+        workspaceId: request.workspaceId,
       },
     });
   }
@@ -254,7 +254,7 @@ async function searchOrganizationMembersInternal(
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
         originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
+        workspaceId: request.workspaceId,
       },
     });
   }
@@ -352,7 +352,7 @@ async function acceptWorkspaceInvitationInternal(
 
     if (!result.success) {
       return err(result.error, {
-        code: result.error,
+        code: 'ACCEPT_INVITATION_FAILED',
       });
     }
 
@@ -366,7 +366,6 @@ async function acceptWorkspaceInvitationInternal(
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
         originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
       },
     });
   }
@@ -464,9 +463,12 @@ async function rejectWorkspaceInvitationInternal(
 
     if (!result.success) {
       return err(result.error, {
-        code: result.error,
+        code: 'REJECT_INVITATION_FAILED',
       });
     }
+
+    // 3. 캐시 무효화 (사이드바 Workspace 목록 갱신)
+    revalidatePath('/r');
 
     return ok(undefined);
   } catch (error) {
@@ -475,7 +477,6 @@ async function rejectWorkspaceInvitationInternal(
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
         originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
       },
     });
   }
@@ -600,7 +601,7 @@ async function getWorkspaceMembersInternal(
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
         originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
+        workspaceId: request.workspaceId,
       },
     });
   }

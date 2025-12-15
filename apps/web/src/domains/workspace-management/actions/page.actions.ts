@@ -114,7 +114,7 @@ async function createPageInternal(
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
         originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
+        workspaceId: request.workspaceId,
       },
     });
   }
@@ -204,7 +204,7 @@ async function movePageInternal(
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
         originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
+        pageId: request.pageId,
       },
     });
   }
@@ -295,7 +295,7 @@ async function updatePageInfoInternal(
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
         originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
+        pageId: request.pageId,
       },
     });
   }
@@ -475,7 +475,7 @@ async function deletePageInternal(
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
         originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
+        pageId: request.pageId,
       },
     });
   }
@@ -570,7 +570,7 @@ async function duplicatePageInternal(
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
         originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
+        pageId: request.pageId,
       },
     });
   }
