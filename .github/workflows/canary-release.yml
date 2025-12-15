@@ -27,6 +27,7 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "✅ Manual trigger. Proceeding with canary release."
@@ -37,6 +38,20 @@ jobs:
           # workflow_dispatch가 아닌 경우에만 PR 체크
           if [ "${{ github.event_name }}" != "pull_request" ]; then
             echo "⏭️ Not a pull_request event. Skipping."
+            echo "merged=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          # PR 라벨 확인 (가장 먼저 체크 - 라벨이 있으면 바로 스킵)
+          # gh CLI로 라벨 가져오기 (merge 후에도 작동)
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name' 2>/dev/null | tr '\n' ' ' || echo "")
+          echo "📋 PR Labels: $LABELS"
+
+          if echo "$LABELS" | grep -qiE "skip-canary|no-release"; then
+            echo "⏭️ Skipping: PR has skip-canary label"
+            echo "Labels: $LABELS"
             echo "merged=false" >> $GITHUB_OUTPUT
             exit 0
           fi
@@ -91,8 +106,9 @@ jobs:
             exit 0
           fi
 
-          # PR 라벨 확인 (skip-canary 라벨이 있으면 스킵)
+          # PR 라벨 확인 (이미 위에서 체크했지만 중복 확인)
           LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name' 2>/dev/null | tr '\n' ' ' || echo "")
+          echo "📋 PR Labels (re-check): $LABELS"
 
           if echo "$LABELS" | grep -qiE "skip-canary|no-release"; then
             echo "⏭️ Skipping: PR has skip-canary label"
