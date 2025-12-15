@@ -47,6 +47,7 @@ This directory contains the automated workflows for the project.
 - Automatically creates canary (pre-release) builds
 - Generates date-based version: `vYYYY.MM.DD-canary.BUILD`
 - Creates GitHub Release marked as Pre-release
+- **Excluded from CHANGELOG** (pre-releases only)
 - Includes recent commit history in release notes
 
 **Features:**
@@ -55,6 +56,7 @@ This directory contains the automated workflows for the project.
 - ✅ Auto-incremented build numbers per day
 - ✅ Pre-release flag set automatically
 - ✅ Manual trigger available
+- ✅ **Not included in CHANGELOG** (production only)
 - ✅ **Skips CHANGELOG sync PRs** (prevents duplicate releases)
 
 **Example:**
@@ -72,7 +74,7 @@ This directory contains the automated workflows for the project.
 
 ---
 
-### 2. `release.yml` - Automatic GitHub Release Creation
+### 3. `release.yml` - Automatic GitHub Release Creation
 
 **Trigger:** When a Git tag matching `v*` pattern is pushed (excluding canary tags)
 
@@ -93,39 +95,6 @@ git tag -a v0.5.3 -m "Release v0.5.3"
 git push origin v0.5.3
 # → GitHub Release is automatically created
 ```
-
----
-
-### 3. `canary-release.yml` - Canary Release Automation 🐤
-
-**Trigger:** When a PR is merged into `dev` branch
-
-**Behavior:**
-- Automatically creates canary (pre-release) builds
-- Generates date-based version: `vYYYY.MM.DD-canary.BUILD`
-- Creates GitHub Release marked as Pre-release
-- **Excluded from CHANGELOG** (pre-releases only)
-- Includes recent commit history in release notes
-
-**Features:**
-- ✅ Automatic canary releases on every dev merge
-- ✅ Date-based versioning (e.g., `v2025.12.15-canary.001`)
-- ✅ Auto-incremented build numbers per day
-- ✅ Pre-release flag set automatically
-- ✅ Manual trigger available
-- ✅ **Not included in CHANGELOG** (production only)
-- ✅ **Skips CHANGELOG sync PRs** (prevents duplicate releases)
-
-**Example:**
-```bash
-# feature → dev PR merge
-# → Automatically creates: v2025.12.15-canary.001 (Pre-release)
-```
-
-**Use Cases:**
-- Early testing of new features
-- Continuous integration testing
-- Beta testing before production release
 
 ---
 
