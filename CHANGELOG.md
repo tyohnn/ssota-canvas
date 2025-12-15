@@ -1,16 +1,20 @@
-# CHANGELOG
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [unreleased]
+
+### 🐛 Bug Fixes
+
+- *(ci)* Use PAT token for CHANGELOG workflow to bypass branch protection
+## [2025.12.15-canary.001] - 2025-12-15
 
 ### ♻️ Refactoring
 
 - Move CHANGELOG generation to dev branch
+- Streamline CHANGELOG workflow and regenerate with version sections
+- Workspace-page action refactoring
+
+### ✨ Features
+
+- Complete automated release workflow with CHANGELOG sync
+- Add temp logo
 
 ### 🐛 Bug Fixes
 
@@ -18,10 +22,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Canary-release workflow YAML syntax and merge-only execution
 - Canary-release YAML syntax error on line 132
 - Resolve canary-release YAML syntax error completely
+- Prevent infinite loop on CHANGELOG sync PRs
+- Address CodeRabbit security and reliability issues
+- Pass untrusted PR metadata through env variables in changelog.yml
+- *(workspace-management)* Fix PR review issues and refactor architecture
+- *(workspace-management)* [**breaking**] Sanitize error logging and fix validation issues
+- *(workspace-management)* [**breaking**] Add authorization check for organization member search
+
+### 📚 Documentation
+
+- Branching strategy research
 
 ### 🔧 Maintenance
 
 - Add v0.5.1 and v0.5.2 tags and releases
+- Remove log
+- Toast message to english
 ## [0.5.2] - 2025-12-10
 
 ### 🐛 Bug Fixes
