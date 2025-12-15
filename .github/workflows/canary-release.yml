@@ -24,6 +24,9 @@ jobs:
     steps:
       - name: Check if PR is merged
         id: check-merged
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "✅ Manual trigger. Proceeding with canary release."
@@ -31,10 +34,14 @@ jobs:
             exit 0
           fi
 
-          # CHANGELOG 동기화 PR은 스킵 (무한 루프 방지)
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          # workflow_dispatch가 아닌 경우에만 PR 체크
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "⏭️ Not a pull_request event. Skipping."
+            echo "merged=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
+          # CHANGELOG 동기화 PR은 스킵 (무한 루프 방지)
           if echo "$PR_TITLE" | grep -qiE "(sync.*changelog|docs:.*sync|changelog.*sync)"; then
             echo "⏭️ Skipping: This is a CHANGELOG sync PR from main → dev"
             echo "PR title: $PR_TITLE"
@@ -58,8 +65,11 @@ jobs:
           echo "merged=true" >> $GITHUB_OUTPUT
 
       - name: Check if should create canary release
-        if: steps.check-merged.outputs.merged == 'true'
+        if: github.event_name == 'pull_request' && steps.check-merged.outputs.merged == 'true'
         id: should-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           PR_NUMBER="${{ github.event.pull_request.number }}"
 
@@ -73,8 +83,7 @@ jobs:
             exit 0
           fi
 
-          # PR 제목에도 체크
-          PR_TITLE="${{ github.event.pull_request.title }}"
+          # PR 제목에도 체크 (환경 변수 사용)
           if echo "$PR_TITLE" | grep -qiE "\[skip canary\]|\[skip release\]|\[no release\]"; then
             echo "⏭️ Skipping: Found [skip canary] in PR title"
             echo "should_release=false" >> $GITHUB_OUTPUT
@@ -96,11 +105,11 @@ jobs:
           echo "✅ Proceeding with canary release"
           echo "should_release=true" >> $GITHUB_OUTPUT
           echo "skip_reason=" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout repository
-        if: steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true'
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          (steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true')
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -109,13 +118,17 @@ jobs:
           fetch-tags: true # 원격 태그도 가져오기
 
       - name: Configure git
-        if: steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true'
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          (steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true')
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
       - name: Calculate canary version
-        if: steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true'
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          (steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true')
         id: version
         run: |
           # 원격 태그 정보 가져오기
@@ -146,7 +159,9 @@ jobs:
           echo "📊 Today's canary tags: $TODAY_TAGS"
 
       - name: Generate release notes
-        if: steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true'
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          (steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true')
         id: notes
         run: |
           # 최신 태그 이후의 커밋들 추출
@@ -186,7 +201,9 @@ jobs:
           echo "✅ Generated release notes"
 
       - name: Create and push tag
-        if: steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true'
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          (steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true')
         run: |
           VERSION="${{ steps.version.outputs.canary_version }}"
           TAG_NAME="v${VERSION}"
@@ -218,7 +235,9 @@ jobs:
           echo "✅ Pushed tag: $TAG_NAME"
 
       - name: Publish GitHub Release
-        if: steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true'
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          (steps.check-merged.outputs.merged == 'true' && steps.should-release.outputs.should_release == 'true')
         uses: softprops/action-gh-release@v1
         with:
           tag_name: 'v${{ steps.version.outputs.canary_version }}'
@@ -231,24 +250,26 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Summary
-        if: steps.check-merged.outputs.merged == 'true'
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          steps.check-merged.outputs.merged == 'true'
         run: |
-          if [ "${{ steps.should-release.outputs.should_release }}" == "true" ]; then
-            echo "## 🐤 Canary Release Created!" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Version:" >> $GITHUB_STEP_SUMMARY
-            echo "- \`v${{ steps.version.outputs.canary_version }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Details:" >> $GITHUB_STEP_SUMMARY
-            echo "- Date: ${{ steps.version.outputs.date }}" >> $GITHUB_STEP_SUMMARY
-            echo "- Build: ${{ steps.version.outputs.build_number }}" >> $GITHUB_STEP_SUMMARY
-            echo "- Branch: dev" >> $GITHUB_STEP_SUMMARY
-            echo "- Pre-release: ✅ Yes" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
-            echo "1. ✅ Canary release published" >> $GITHUB_STEP_SUMMARY
-            echo "2. 📝 Testers can now install and test" >> $GITHUB_STEP_SUMMARY
-            echo "3. 🐛 Report issues if found" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] || [ "${{ steps.should-release.outputs.should_release }}" == "true" ]; then
+          echo "## 🐤 Canary Release Created!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Version:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`v${{ steps.version.outputs.canary_version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Details:" >> $GITHUB_STEP_SUMMARY
+          echo "- Date: ${{ steps.version.outputs.date }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: ${{ steps.version.outputs.build_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: dev" >> $GITHUB_STEP_SUMMARY
+          echo "- Pre-release: ✅ Yes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Canary release published" >> $GITHUB_STEP_SUMMARY
+          echo "2. 📝 Testers can now install and test" >> $GITHUB_STEP_SUMMARY
+          echo "3. 🐛 Report issues if found" >> $GITHUB_STEP_SUMMARY
           else
             echo "## ⏭️ Canary Release Skipped" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -257,7 +278,6 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### ℹ️ Info:" >> $GITHUB_STEP_SUMMARY
             echo "Canary releases are automatically skipped when:" >> $GITHUB_STEP_SUMMARY
-            echo "- Only CI/config files are changed (`.github/`, `cliff.toml`, `README.md`, etc.)" >> $GITHUB_STEP_SUMMARY
-            echo "- Commit messages contain `[skip canary]`" >> $GITHUB_STEP_SUMMARY
-            echo "- PR has `skip-canary` label" >> $GITHUB_STEP_SUMMARY
+            echo "- Commit messages contain \`[skip canary]\`" >> $GITHUB_STEP_SUMMARY
+            echo "- PR has \`skip-canary\` label" >> $GITHUB_STEP_SUMMARY
           fi
