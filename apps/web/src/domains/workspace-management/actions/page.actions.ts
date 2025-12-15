@@ -355,37 +355,25 @@ async function reorderPagesInternal(
 ): Promise<ActionResult<void>> {
   try {
     // 1. 의존성 주입
+    const pageRepo = new DrizzlePageRepository();
     const memberRepo = new DrizzleWorkspaceMemberRepository();
 
-    // 2. 권한 확인: 워크스페이스 멤버인지 확인
-    const workspaceId = new WorkspaceId(request.workspaceId);
-    const isMember = await memberRepo.isMember(workspaceId, user.id);
+    const service = new DefaultPageHierarchyService(pageRepo, memberRepo);
 
-    if (!isMember) {
-      return err('User is not a member of this workspace', {
-        code: 'NOT_WORKSPACE_MEMBER',
+    // 2. Service 호출
+    const result = await service.reorderPages(
+      new WorkspaceId(request.workspaceId),
+      request.parentId ? new PageId(request.parentId) : undefined,
+      request.orderedPageIds,
+      user.id
+    );
+
+    // 3. Result 처리
+    if (!result.success) {
+      return err(result.error, {
+        code: result.error,
+        meta: { details: `Failed to reorder pages: ${result.error}` },
       });
-    }
-
-    // 3. 페이지 순서 재정렬 (직접 DB 업데이트)
-    const { orderedPageIds } = request;
-    const { adminDb } = await import('@/db');
-    const { pages } = await import('@/db/schema');
-    const { eq } = await import('drizzle-orm');
-
-    // 각 페이지의 order를 배열 인덱스로 업데이트
-    for (let i = 0; i < orderedPageIds.length; i++) {
-      const pageId = orderedPageIds[i];
-      if (!pageId) continue;
-
-      // DB에서 직접 order 업데이트
-      await adminDb
-        .update(pages)
-        .set({
-          order: i,
-          updated_at: new Date(),
-        })
-        .where(eq(pages.id, pageId));
     }
 
     // 4. 캐시 무효화
@@ -398,7 +386,7 @@ async function reorderPagesInternal(
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
         originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
+        workspaceId: request.workspaceId,
       },
     });
   }

@@ -1,6 +1,6 @@
 // apps/web/src/domains/workspace-management/backend/repositories/implementations/drizzle-workspace-member.repository.ts
 
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { createDrizzleSupabaseClient, adminDb } from '@/db';
 import { workspaceMembers, profiles } from '@/db/schema';
 import type { WorkspaceMember as DBWorkspaceMember } from '@/db/schema';
@@ -36,6 +36,48 @@ export class DrizzleWorkspaceMemberRepository
       .limit(1);
 
     return result.length > 0;
+  }
+
+  /**
+   * 여러 사용자의 Workspace 멤버십 상태를 배치로 조회
+   *
+   * 🔒 보안: adminDb 사용 (Application에서 조직 멤버십 확인 후)
+   *
+   * @param workspaceId - Workspace ID
+   * @param userIds - 사용자 ID 배열
+   * @returns userId를 키로 하는 멤버십 여부 Map
+   */
+  async getMembershipStatusBatch(
+    workspaceId: WorkspaceId,
+    userIds: string[]
+  ): Promise<Map<string, boolean>> {
+    if (userIds.length === 0) {
+      return new Map();
+    }
+
+    // Admin DB: Application 레벨에서 조직 멤버십 확인이 완료된 경우
+    const result = await adminDb
+      .select({
+        userId: workspaceMembers.user_id,
+      })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspace_id, workspaceId.value),
+          inArray(workspaceMembers.user_id, userIds)
+        )
+      );
+
+    // 멤버인 userId Set 생성
+    const memberSet = new Set(result.map(row => row.userId));
+
+    // 모든 userId에 대해 멤버십 여부 Map 생성
+    const membershipMap = new Map<string, boolean>();
+    for (const userId of userIds) {
+      membershipMap.set(userId, memberSet.has(userId));
+    }
+
+    return membershipMap;
   }
 
   /**

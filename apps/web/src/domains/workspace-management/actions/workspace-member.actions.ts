@@ -224,31 +224,28 @@ async function searchOrganizationMembersInternal(
       );
 
     // 4. Workspace 멤버십 + pending 초대 확인 후 결과 반환
-    const results: OrganizationMemberSearchResultDTO[] = [];
+    // Batch fetch instead of per-member queries
+    const userIds = organizationMembers.map(m => m.userId);
 
-    for (const member of organizationMembers) {
-      // Workspace 멤버인지 확인
-      const isWorkspaceMember = await memberRepo.isMember(
-        new WorkspaceId(request.workspaceId),
-        member.userId
-      );
+    const membershipMap = await memberRepo.getMembershipStatusBatch(
+      workspaceId,
+      userIds
+    );
 
-      // Pending 초대가 있는지 확인
-      const pendingInvitation = await invitationRepo.findInvitation(
-        new WorkspaceId(request.workspaceId),
-        member.userId,
-        'pending'
-      );
+    const pendingInvitations =
+      await invitationRepo.findPendingInvitationsForUsers(workspaceId, userIds);
+    const pendingSet = new Set(pendingInvitations.map(i => i.invitedUserId));
 
-      results.push({
+    // Then map results without additional queries
+    const results: OrganizationMemberSearchResultDTO[] =
+      organizationMembers.map(member => ({
         userId: member.userId,
         email: member.email,
         name: member.name,
         avatarUrl: member.profileImageUrl ?? null,
-        isAlreadyMember: isWorkspaceMember,
-        hasPendingInvitation: pendingInvitation !== null,
-      });
-    }
+        isAlreadyMember: membershipMap.get(member.userId) ?? false,
+        hasPendingInvitation: pendingSet.has(member.userId),
+      }));
 
     return ok(results);
   } catch (error) {
@@ -553,18 +550,29 @@ async function getWorkspaceMembersInternal(
       });
     }
 
-    // 3. 멤버 목록 조회
+    // 3. 권한 확인: 워크스페이스 멤버인지 확인
+    const isMember = await memberRepo.isMember(
+      new WorkspaceId(request.workspaceId),
+      user.id
+    );
+    if (!isMember) {
+      return err('User is not a member of this workspace', {
+        code: 'NOT_WORKSPACE_MEMBER',
+      });
+    }
+
+    // 4. 멤버 목록 조회
     const members = await memberRepo.findByWorkspaceId(
       new WorkspaceId(request.workspaceId)
     );
 
-    // 4. 대기 중인 초대 목록 조회 (Profile JOIN)
+    // 5. 대기 중인 초대 목록 조회 (Profile JOIN)
     const pendingInvitations =
       await invitationRepo.findPendingByWorkspaceWithProfiles(
         new WorkspaceId(request.workspaceId)
       );
 
-    // 5. DTO 변환
+    // 6. DTO 변환
     const memberView: WorkspaceMemberView = {
       workspaceId: request.workspaceId,
       workspaceName: workspace.name,

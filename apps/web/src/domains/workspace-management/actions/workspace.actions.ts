@@ -229,7 +229,7 @@ async function updateWorkspaceInfoInternal(
       code: 'INTERNAL_SERVER_ERROR',
       meta: {
         originalError: error instanceof Error ? error.message : 'Unknown error',
-        request,
+        workspaceId: request.workspaceId,
       },
     });
   }
