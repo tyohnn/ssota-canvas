@@ -1,3 +1,17 @@
+## [0.6.0] - 2025-12-15
+
+### ✨ Features
+
+- Integrate Sanity CMS for team blog
+
+### 🐛 Bug Fixes
+
+- *(deps)* Update zod to ^4.2.0 for vercel build compatibility
+- *(sanity)* Replace deprecated imageUrlBuilder with createImageUrlBuilder
+
+### 🔧 Maintenance
+
+- Version 0.5.4
 ## [0.5.5] - 2025-12-15
 
 ### 🐛 Bug Fixes
