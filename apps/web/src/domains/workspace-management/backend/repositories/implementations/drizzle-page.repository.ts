@@ -299,6 +299,45 @@ export class DrizzlePageRepository implements PageRepository {
   }
 
   /**
+   * 페이지들의 순서를 배치로 업데이트
+   *
+   * ⚠️ 주의: Service Layer에서 권한 체크 완료 후에만 호출!
+   *
+   * @param parentId - 부모 페이지 ID (undefined면 루트 레벨)
+   * @param orderedPageIds - 순서가 정해진 페이지 ID 배열
+   */
+  async reorderPages(
+    parentId: PageId | undefined,
+    orderedPageIds: string[]
+  ): Promise<void> {
+    // Wrap in transaction for atomicity
+    await adminDb.transaction(async tx => {
+      // 각 페이지의 order를 배열 인덱스로 업데이트
+      for (let i = 0; i < orderedPageIds.length; i++) {
+        const pageId = orderedPageIds[i];
+        if (!pageId) continue;
+
+        // parentId 조건 추가
+        const whereConditions = [
+          eq(pages.id, pageId),
+          parentId
+            ? eq(pages.parent_id, parentId.value)
+            : isNull(pages.parent_id),
+        ];
+
+        // DB에서 직접 order 업데이트
+        await tx
+          .update(pages)
+          .set({
+            order: i,
+            updated_at: new Date(),
+          })
+          .where(and(...whereConditions));
+      }
+    });
+  }
+
+  /**
    * DB 모델 → Domain Entity 변환
    *
    * @param row - DB 조회 결과

@@ -2,15 +2,21 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   getOrganizationWorkspacePageViewAction,
   getPageDetailsAction,
+} from '../workspace-navigation.actions';
+import {
   createWorkspaceAction,
   updateWorkspaceInfoAction,
+} from '../workspace.actions';
+import {
   getWorkspaceMembersAction,
   searchOrganizationMembersAction,
+} from '../workspace-member.actions';
+import {
   createPageAction,
   movePageAction,
   updatePageInfoAction,
   reorderPagesAction,
-} from '../workspace-management.actions';
+} from '../page.actions';
 import { adminDb } from '@/db';
 import { workspaces, pages, workspaceMembers, workspaceInvitations } from '@/db/schema';
 import { eq } from 'drizzle-orm';

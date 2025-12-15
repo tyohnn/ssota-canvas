@@ -79,6 +79,18 @@ export interface IWorkspaceInvitationRepository {
   ): Promise<WorkspaceInvitation | null>;
 
   /**
+   * 여러 사용자에 대한 pending 초대를 배치로 조회
+   *
+   * @param workspaceId - Workspace ID
+   * @param userIds - 사용자 ID 배열
+   * @returns pending 상태인 초대 목록
+   */
+  findPendingInvitationsForUsers(
+    workspaceId: WorkspaceId,
+    userIds: string[]
+  ): Promise<WorkspaceInvitation[]>;
+
+  /**
    * 초대 상태 변경
    *
    * @param id - 초대 ID

@@ -5,7 +5,7 @@ import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/ho
 import {
   getRecentPagesAction,
   searchPagesAction,
-} from '@/domains/workspace-management/actions/workspace-management.actions';
+} from '@/domains/workspace-management/actions/workspace-navigation.actions';
 import type { RecentPageDTO } from '@/domains/workspace-management/shared/dtos';
 import { toast } from '@workspace/ui/components/ui/sonner';
 import { isFailure } from '@/lib/action-result';

@@ -21,7 +21,7 @@ import { respondToInvitationAction } from '../../../actions/organization-managem
 import {
   acceptWorkspaceInvitationAction,
   rejectWorkspaceInvitationAction,
-} from '@/domains/workspace-management/actions/workspace-management.actions';
+} from '@/domains/workspace-management/actions/workspace-member.actions';
 import { toast } from '@workspace/ui/components/ui/sonner';
 import { SettingsDialog } from '../member-management/settings-dialog';
 

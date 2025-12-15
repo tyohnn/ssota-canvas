@@ -511,3 +511,247 @@ git push origin v0.1.0-sprint-001
 - 여러 개발자가 같은 Sprint 브랜치에서 다른 Story 작업 가능
 - Story별 feature 브랜치로 충돌 최소화
 
+---
+
+## 🌍 오픈소스 프로젝트 브랜치 전략 비교 및 제안
+
+### 주요 오픈소스 프로젝트의 브랜치 전략
+
+#### 1. React Flow (GitHub Flow)
+
+**브랜치 구조:**
+- `main`: 프로덕션 배포용 (항상 deployable)
+- `feature/*`: 기능 개발 브랜치
+- `v11`: 버전별 유지보수 브랜치 (선택적)
+
+**워크플로우:**
+```
+main
+  ↑
+feature/add-new-node (PR → main)
+```
+
+**특징:**
+- ✅ 단순하고 빠른 워크플로우
+- ✅ Continuous Deployment에 적합
+- ✅ 작은 팀이나 빠른 반복 개발에 최적
+- ❌ 스프린트 단위 관리 부재
+- ❌ 릴리스 주기 제어 어려움
+
+**참고:** [React Flow GitHub](https://github.com/wbkd/react-flow)
+
+---
+
+#### 2. Affine (Git Flow)
+
+**브랜치 구조:**
+- `main`: 프로덕션 배포용
+- `develop`: 개발 통합 브랜치
+- `feature/*`: 기능 개발 (develop에서 분기)
+- `bugfix/*`: 버그 수정 (develop에서 분기)
+- `hotfix/*`: 긴급 수정 (main에서 분기)
+- `release/*`: 릴리스 준비 (develop에서 분기)
+
+**워크플로우:**
+```
+main (프로덕션)
+  ↑
+release/v1.2.0 (릴리스 준비)
+  ↑
+develop (개발 통합)
+  ↑
+feature/new-feature (PR → develop)
+```
+
+**특징:**
+- ✅ 구조화된 릴리스 관리
+- ✅ 병렬 개발 지원
+- ✅ 안정적인 릴리스 프로세스
+- ❌ 복잡한 브랜치 구조
+- ❌ 릴리스 프로세스가 느릴 수 있음
+
+**참고:** [AFFiNE Contributing Guide](https://docs.affine.pro/contributing)
+
+---
+
+#### 3. SSOTA (현재: Sprint Branch Strategy)
+
+**브랜치 구조:**
+- `main`: 프로덕션 배포용
+- `dev`: 개발 통합 브랜치
+- `sprint/v<version>-sprint-<number>`: 스프린트별 브랜치
+- `feature/*`: Story 기반 기능 개발
+- `bugfix/*`, `hotfix/*`: 버그 수정
+
+**워크플로우:**
+```
+main (프로덕션)
+  ↑
+dev (개발 통합)
+  ↑
+sprint/v1.2.0-sprint-001 (스프린트 브랜치)
+  ↑
+feature/ORG-005-member-role-change (PR → sprint 브랜치)
+```
+
+**특징:**
+- ✅ Sprint = Minor Version 전략과 완벽히 일치
+- ✅ 스프린트 단위 작업 관리
+- ✅ 스프린트 완료 시점 명확한 버전 태그
+- ✅ 스프린트 단위 롤백 가능
+- ⚠️ 오픈소스 프로젝트에서는 덜 일반적
+- ⚠️ 스프린트 브랜치 관리 오버헤드
+
+---
+
+### 전략 비교표
+
+| 항목 | GitHub Flow (React Flow) | Git Flow (Affine) | Sprint Branch (SSOTA) |
+|------|-------------------------|-------------------|----------------------|
+| **브랜치 수** | 최소 (main + feature) | 중간 (5-6개) | 중간 (main + dev + sprint + feature) |
+| **복잡도** | 낮음 | 높음 | 중간 |
+| **릴리스 주기** | Continuous | Scheduled | Sprint-based |
+| **스프린트 연동** | 없음 | 없음 | ✅ 완벽한 연동 |
+| **버전 관리** | 태그 기반 | Release 브랜치 | Sprint 브랜치 + 태그 |
+| **롤백** | Feature 단위 | Release 단위 | Sprint 단위 |
+| **적합한 팀** | 작은 팀, 빠른 반복 | 큰 팀, 정식 릴리스 | 스프린트 기반 팀 |
+| **오픈소스 일반성** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ |
+
+---
+
+### SSOTA 프로젝트에 대한 제안
+
+#### 현재 전략 유지 (권장)
+
+**이유:**
+1. **Sprint = Minor Version 전략과의 일관성**
+   - 현재 버전 매핑 전략과 완벽히 일치
+   - 스프린트 완료 시점에 명확한 버전 태그 생성
+
+2. **프로젝트 특성에 적합**
+   - 스프린트 기반 개발 프로세스
+   - 명확한 스프린트 목표와 완료 기준
+   - 스프린트 단위로 작업을 그룹화하는 것이 자연스러움
+
+3. **롤백 및 관리 용이성**
+   - 스프린트 단위 롤백 가능
+   - 문제 발생 시 해당 스프린트 브랜치만 되돌리면 됨
+
+#### 개선 제안
+
+##### 1. GitHub Flow 하이브리드 접근 (선택적)
+
+스프린트 브랜치를 유지하되, 간단한 기능은 dev에서 직접 개발:
+
+```bash
+# 간단한 기능: dev에서 직접
+dev → feature/simple-fix → PR → dev
+
+# 복잡한 기능: Sprint 브랜치 사용
+dev → sprint/v1.2.0-sprint-001 → feature/complex-feature → PR → sprint → PR → dev
+```
+
+**장점:**
+- 빠른 수정은 즉시 dev로 병합
+- 복잡한 기능은 스프린트 브랜치로 관리
+- 유연성 증가
+
+##### 2. Release 브랜치 도입 (선택적)
+
+프로덕션 배포 전 최종 테스트를 위한 release 브랜치:
+
+```
+main (프로덕션)
+  ↑
+release/v1.2.0 (릴리스 준비, 최종 테스트)
+  ↑
+dev (개발 통합)
+  ↑
+sprint/v1.2.0-sprint-001
+```
+
+**장점:**
+- 프로덕션 배포 전 최종 검증
+- 버그 수정 후 재배포 용이
+- Affine과 유사한 안정성 확보
+
+**단점:**
+- 브랜치 구조 복잡도 증가
+- 현재 워크플로우에 추가 단계 필요
+
+##### 3. Feature 브랜치 생명주기 단축
+
+오픈소스 모범 사례: Feature 브랜치는 2-3일 이내로 유지
+
+**권장 사항:**
+- 큰 Story는 작은 단위로 분할
+- Feature 브랜치를 자주 dev/sprint 브랜치에 병합
+- 장기간 유지되는 Feature 브랜치 지양
+
+---
+
+### 오픈소스 기여자 관점에서의 고려사항
+
+#### 현재 Sprint 브랜치 전략의 장단점
+
+**장점:**
+- ✅ 스프린트 목표가 명확하면 기여자가 이해하기 쉬움
+- ✅ 스프린트 브랜치에 여러 관련 기능이 그룹화되어 있음
+
+**단점:**
+- ⚠️ 오픈소스 기여자는 보통 `main` 또는 `develop`에서 직접 작업하는 것을 기대
+- ⚠️ Sprint 브랜치의 존재 이유를 이해하기 어려울 수 있음
+- ⚠️ 기여자가 어떤 브랜치에 PR을 보내야 할지 혼란스러울 수 있음
+
+#### 개선 제안
+
+1. **CONTRIBUTING.md에 명확한 가이드 추가**
+   ```markdown
+   ## 브랜치 전략
+   
+   - 일반 기여자: `dev` 브랜치에서 `feature/*` 브랜치 생성 후 PR
+   - 스프린트 작업: `sprint/vX.X.X-sprint-XXX` 브랜치에서 작업
+   - 버그 수정: `dev` 브랜치에서 `bugfix/*` 브랜치 생성
+   ```
+
+2. **Sprint 브랜치를 선택적으로 사용**
+   - 작은 기능/버그 수정: dev에서 직접
+   - 큰 기능/스프린트 작업: Sprint 브랜치 사용
+
+3. **Sprint 브랜치 자동화**
+   - 스프린트 시작 시 자동으로 Sprint 브랜치 생성
+   - 스프린트 완료 시 자동으로 dev로 병합 및 태그 생성
+
+---
+
+### 최종 권장사항
+
+#### 현재 전략 유지 + 점진적 개선
+
+1. **단기 (현재 유지)**
+   - Sprint 브랜치 전략 계속 사용
+   - Sprint = Minor Version 전략과의 일관성 유지
+
+2. **중기 (선택적 개선)**
+   - 간단한 기능은 dev에서 직접 개발하는 옵션 제공
+   - CONTRIBUTING.md에 브랜치 전략 명확히 문서화
+
+3. **장기 (프로젝트 성숙도에 따라)**
+   - 팀 규모가 커지면 Git Flow 고려
+   - 오픈소스 기여자가 많아지면 GitHub Flow로 전환 검토
+
+---
+
+### 참고 자료
+
+- [React Flow GitHub](https://github.com/wbkd/react-flow)
+- [AFFiNE Contributing Guide](https://docs.affine.pro/contributing)
+- [Git Flow vs GitHub Flow](https://www.atlassian.com/git/tutorials/comparing-workflows)
+- [GitHub Flow](https://docs.github.com/en/get-started/using-github/github-flow)
+- [Sprint-Based Branching Strategy](https://www.vishalzambre.com/git/2025/07/10/github-sprint-release-branching.html)
+
+---
+
+**작성일**: 2025.12.08  
+**다음 검토**: 프로젝트 성숙도 및 팀 규모 변화 시
+
