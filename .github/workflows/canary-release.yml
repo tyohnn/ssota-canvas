@@ -47,11 +47,40 @@ jobs:
           fi
 
           echo "🔍 Checking PR #$PR_NUMBER for skip-canary label..."
+          echo "📍 Repository: ${{ github.repository }}"
 
-          # GitHub API로 라벨 확인 (PAT_TOKEN 사용 - merge 후에도 작동)
-          LABELS=$(gh pr view "$PR_NUMBER" --repo ${{ github.repository }} --json labels --jq '.labels[].name' 2>/dev/null | tr '\n' ',' || echo "")
+          # Method 1: gh CLI로 시도
+          echo "🔎 Method 1: Fetching PR labels via gh CLI..."
+          if gh auth status 2>&1; then
+            PR_DATA=$(gh pr view "$PR_NUMBER" --repo ${{ github.repository }} --json labels,state 2>&1 || echo '{"error":"gh_failed"}')
+            echo "📦 gh CLI response:"
+            echo "$PR_DATA"
+            
+            # jq로 파싱
+            LABELS=$(echo "$PR_DATA" | jq -r '.labels[].name' 2>/dev/null | tr '\n' ',' || echo "")
+            PR_STATE=$(echo "$PR_DATA" | jq -r '.state' 2>/dev/null || echo "")
+          else
+            echo "⚠️ gh CLI auth issue, trying alternative method..."
+            LABELS=""
+            PR_STATE=""
+          fi
 
-          echo "📋 PR Labels: $LABELS"
+          # Method 2: GitHub REST API 직접 호출 (fallback)
+          if [ -z "$LABELS" ]; then
+            echo "🔎 Method 2: Fetching PR labels via REST API..."
+            API_RESPONSE=$(curl -s -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER")
+            
+            echo "📦 API response (labels only):"
+            echo "$API_RESPONSE" | jq -c '.labels'
+            
+            LABELS=$(echo "$API_RESPONSE" | jq -r '.labels[].name' 2>/dev/null | tr '\n' ',' || echo "")
+            PR_STATE=$(echo "$API_RESPONSE" | jq -r '.state' 2>/dev/null || echo "")
+          fi
+
+          echo "📋 Parsed Labels: [$LABELS]"
+          echo "📊 PR State: $PR_STATE"
 
           # skip-canary 라벨이 있는지 확인
           if echo "$LABELS" | grep -qiE "skip-canary|no-release"; then
