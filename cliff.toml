@@ -49,8 +49,8 @@ tag_pattern = "[0-9]*"
 # regex for skipping tags
 skip_tags = "v0.1.0-beta.1"
 
-# regex for ignoring tags
-ignore_tags = ""
+# regex for ignoring tags (카나리 버전 제외)
+ignore_tags = ".*-canary.*"
 
 # regex for preprocessing the commit messages before the commit parsers, replacing lines with new lines
 topo_order = false
