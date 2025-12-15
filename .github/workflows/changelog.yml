@@ -18,10 +18,11 @@ jobs:
     steps:
       - name: Check if PR is merged
         id: check-merged
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           # CHANGELOG 동기화 PR은 스킵 (무한 루프 방지)
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
 
           if echo "$PR_TITLE" | grep -qiE "(sync.*changelog|docs:.*sync|changelog.*sync)"; then
             echo "⏭️ Skipping: This is a CHANGELOG sync PR from main → dev"
@@ -102,15 +103,15 @@ jobs:
         if: |
           steps.check-merged.outputs.merged == 'true' &&
           steps.git-cliff.outputs.has_changes == 'true'
+        env:
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # dev 브랜치로 push (진실의 원천)
-          TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
           echo "🚀 Pushing CHANGELOG to dev branch: $TARGET_BRANCH..."
           git push origin HEAD:$TARGET_BRANCH
           echo "✅ Changes pushed successfully to dev"
           echo "ℹ️  dev is the source of truth for CHANGELOG"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log skip reason
         if: |
