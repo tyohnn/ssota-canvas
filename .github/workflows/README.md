@@ -10,24 +10,25 @@ This directory contains the automated workflows for the project.
 
 **Behavior:**
 - Automatically updates CHANGELOG.md using git-cliff
-- Extracts changes based on Conventional Commits
+- Generates **full CHANGELOG** with all version sections
 - Commits changes to **dev branch** (dev is the source of truth)
-- CHANGELOG naturally flows to main when dev → main PR is merged
+- Extracts changes based on Conventional Commits
 
 **Features:**
 - ✅ **dev is the source of truth** for CHANGELOG
-- ✅ No need for main → dev synchronization
-- ✅ Maintains branching strategy (dev → main only)
+- ✅ Full CHANGELOG with version sections (not just unreleased)
 - ✅ Skips "Update CHANGELOG" meta entries
 - ✅ Prevents duplicate execution
+- ✅ Appears in PR checks (runs only after merge)
 
 **Configuration:**
 - Uses `cliff.toml` for commit parsing rules
 - Groups commits by type (Features, Bug Fixes, etc.)
 
 **Workflow Strategy:**
-- sprint → dev: CHANGELOG auto-generated ✅
-- dev → main: CHANGELOG naturally flows (no sync needed) ✅
+- sprint → dev merge: Full CHANGELOG generated on dev ✅
+- dev → main merge: CHANGELOG updated with new version on main ✅
+- main → dev: CHANGELOG synced back via auto PR ✅
 
 ---
 
@@ -87,7 +88,7 @@ git push origin v0.5.3
 
 ---
 
-### 4. `release-automation.yml` - Release Automation
+### 4. `release-automation.yml` - Production Release Automation
 
 **Two ways to use:**
 
@@ -97,14 +98,8 @@ Run from GitHub Actions tab:
 
 1. GitHub → Actions → Select "Release Automation"
 2. Click "Run workflow" button
-3. Enter:
-   - **Version**: `v0.5.3` (release version)
+3. Enter version: `v0.5.3`
 4. Run workflow
-
-**Automatically performs:**
-- ✅ Creates and pushes `v0.5.3` tag
-- ✅ Automatically creates GitHub Release (release.yml is triggered)
-- ✅ Everything is automatically completed!
 
 #### Method 2: PR Label-based Automation
 
@@ -114,10 +109,18 @@ Add labels to dev → main PR:
 - `release:minor` → v0.6.0 (minor update)
 - `release:patch` → v0.5.3 (patch update)
 
-**When PR is merged, automatically:**
-- ✅ Calculates version automatically
-- ✅ Creates tag automatically
-- ✅ Creates GitHub Release automatically
+**Automatically performs:**
+1. ✅ Creates and pushes production tag (e.g., `v0.5.3`)
+2. ✅ Regenerates CHANGELOG: `[unreleased]` → `[0.5.3]`
+3. ✅ Commits CHANGELOG to main branch
+4. ✅ Creates auto PR: main → dev (CHANGELOG sync only)
+5. ✅ Triggers GitHub Release creation (via `release.yml`)
+
+**Key Features:**
+- ✅ Automatic version calculation (PR label method)
+- ✅ CHANGELOG automatically updated with version sections
+- ✅ No manual CHANGELOG sync needed (auto PR created)
+- ✅ Maintains dev as source of truth (only CHANGELOG synced back)
 
 ---
 
@@ -127,26 +130,30 @@ Add labels to dev → main PR:
 
 ```mermaid
 graph TD
-    A[Sprint Development] --> B[PR to dev]
+    A[Sprint Development] --> B[sprint → dev PR]
     B --> C{PR Merge}
-    C -->|Merged| D[canary-release.yml<br/>🐤 Canary Release]
-    D --> E[dev Branch]
-    E --> F[dev → main PR]
-    F --> G{Add Label?}
-    G -->|Yes| H[changelog.yml<br/>CHANGELOG Update]
-    G -->|No| H
-    H --> I{Label Type}
-    I -->|release:*| J[release-automation.yml<br/>Auto Tag Creation]
-    I -->|No Label| K[Manual Release<br/>via Actions]
-    J --> L[Tag Push]
-    K --> L
-    L --> M[release.yml<br/>GitHub Release]
-    M --> N[🎉 Production Release!]
+    C -->|Merged| D[changelog.yml<br/>📚 CHANGELOG Update]
+    C -->|Merged| E[canary-release.yml<br/>🐤 Canary Release]
+    D --> F[dev Branch<br/>Source of Truth]
+    E --> F
+    F --> G[dev → main PR]
+    G --> H{Label Added?}
+    H -->|release:*| I[release-automation.yml<br/>Auto Release]
+    H -->|No Label| J[Manual Trigger]
+    I --> K[1. Create Tag v0.5.3]
+    J --> K
+    K --> L[2. Regenerate CHANGELOG<br/>unreleased → 0.5.3]
+    L --> M[3. Commit to main]
+    M --> N[4. Auto PR: main → dev<br/>CHANGELOG Sync]
+    M --> O[release.yml<br/>GitHub Release]
+    O --> P[🎉 Production Release!]
+    N --> Q[Merge PR to dev]
+    Q --> F
 ```
 
 ### Step-by-Step Explanation
 
-#### 1️⃣ Sprint Development (No Automation)
+#### 1️⃣ Sprint Development
 ```bash
 git checkout dev
 git checkout -b sprint/v0.5.3-sprint-017
@@ -154,44 +161,46 @@ git checkout -b sprint/v0.5.3-sprint-017
 git push origin sprint/v0.5.3-sprint-017
 ```
 
-#### 2️⃣ PR to dev → Canary Release 🐤
-- Create Sprint branch → dev PR
-- Merge PR
-- **Automatically:**
-  - ✅ `canary-release.yml` runs
-  - ✅ Creates canary tag: `v2025.12.14-canary.001`
-  - ✅ Creates Pre-release on GitHub
-  - ✅ Testers can install and test
+#### 2️⃣ sprint → dev PR Merge
+**Automatically triggers:**
 
-#### 3️⃣ PR to main (Production Release)
+**A. CHANGELOG Generation** (`changelog.yml`)
+- ✅ Updates CHANGELOG.md on **dev branch**
+- ✅ Full CHANGELOG with all version sections
+- ✅ dev becomes the source of truth
+
+**B. Canary Release** (`canary-release.yml`)
+- ✅ Creates canary tag: `v2025.12.14-canary.001`
+- ✅ Creates Pre-release on GitHub
+- ✅ Testers can install and test early
+
+#### 3️⃣ dev → main PR (Production Release)
 - Create dev → main PR
-- Add label (optional): `release:minor`
+- Add label (optional): `release:patch`, `release:minor`, or `release:major`
 - Merge PR
 
-#### 2️⃣ PR to dev → CHANGELOG Generation ✅
-- `changelog.yml` runs automatically
-- Updates CHANGELOG.md on **dev branch**
-- dev becomes the source of truth
+#### 4️⃣ Production Release Automation (`release-automation.yml`)
 
-#### 3️⃣ PR to main (Production Release)
-- Create dev → main PR
-- CHANGELOG already up-to-date (from dev)
-- Add label (optional): `release:minor`
-- Merge PR
+**Triggers when:**
+- PR has `release:*` label (automatic), OR
+- Manual trigger from GitHub Actions
 
-#### 5️⃣ Release Automation (Optional) ✅
-**Automatic (if label exists):**
-- Automatically runs if PR has `release:*` label
-- Automatically calculates version and creates tag
+**Automatically performs:**
+1. ✅ Creates production tag: `v0.5.3`
+2. ✅ Regenerates CHANGELOG: `[unreleased]` → `[0.5.3]`
+3. ✅ Commits CHANGELOG to main
+4. ✅ Creates auto PR: main → dev (CHANGELOG sync)
+5. ✅ Triggers `release.yml` for GitHub Release
 
-**Manual (if no label):**
-- Manually run "Release Automation" from GitHub Actions
-- Enter version
+#### 5️⃣ CHANGELOG Sync
+- ✅ Auto PR created: main → dev
+- ✅ Only CHANGELOG.md is synced
+- ✅ Merge PR to complete the cycle
 
-#### 6️⃣ GitHub Release Creation ✅
-- `release.yml` runs automatically
-- Creates official release on GitHub Release page
-- Includes release notes from CHANGELOG
+#### 6️⃣ GitHub Release (`release.yml`)
+- ✅ Automatically creates official release
+- ✅ Includes release notes from CHANGELOG
+- ✅ Published to GitHub Release page
 
 ---
 
@@ -202,7 +211,8 @@ git push origin sprint/v0.5.3-sprint-017
 ```bash
 # 1. Sprint development
 sprint/v0.5.3-sprint-017 → dev (PR & Merge)
-# → 🐤 Canary release created automatically
+# → ✅ CHANGELOG updated on dev
+# → 🐤 Canary release created (v2025.12.14-canary.001)
 
 # 2. Testing phase
 # Testers install canary and provide feedback
@@ -210,9 +220,14 @@ sprint/v0.5.3-sprint-017 → dev (PR & Merge)
 # 3. Production release
 dev → main PR + label: release:patch
 # → ✅ Everything automatic:
-#    - CHANGELOG update
-#    - Tag creation (v0.5.3)
-#    - GitHub Release creation
+#    - Production tag created (v0.5.3)
+#    - CHANGELOG regenerated: [unreleased] → [0.5.3]
+#    - CHANGELOG committed to main
+#    - Auto PR created: main → dev (CHANGELOG sync)
+#    - GitHub Release created
+
+# 4. Complete the cycle
+# → Merge the CHANGELOG sync PR to dev
 ```
 
 ### Scenario 2: Canary-Only Testing
