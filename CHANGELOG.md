@@ -1,26 +1,21 @@
-## [0.5.4] - 2025-12-15
+## [0.5.5] - 2025-12-15
 
 ### 🐛 Bug Fixes
 
-- *(ci)* Remove canary tag at changelog
-- *(ci)* Add exclude canary tag logic
-- *(ci)* Fix code review
-
-### 📚 Documentation
-
-- Update CHANGELOG for v0.5.3 [skip ci]
+- *(ci)* Remove changelog update at dev and compact canary-release
+- *(ci)* Canary bug
+- *(ci)* Skip canary bug
+## [0.5.4] - 2025-12-15
 ## [0.5.3] - 2025-12-15
 
 ### 🐛 Bug Fixes
 
 - *(ci)* Fix semantic version error
+- *(ci)* Remove canary tag at changlog
+- *(ci)* Add exclude canary tag logic
+- *(ci)* Fix code review
+- *(ci)* Skip-canary label check & update doc skip
 ## [0.5.1] - 2025-12-10
-
-### 📚 Documentation
-
-### 📚 Documentation
-
-- Update CHANGELOG
 ## [0.3.0] - 2025-11-21
 
 ### ♻️ Refactoring
@@ -53,8 +48,6 @@
 ### 📚 Documentation
 
 - Branching strategy research
-- Update CHANGELOG
-- Update CHANGELOG
 
 ### 🔧 Maintenance
 
@@ -287,18 +280,13 @@ add copy and paste logic
 
 ### 📚 Documentation
 
-- Update CHANGELOG
 - *(structure)* Restructure documentation folders for better developer understanding
-- Update CHANGELOG
 - Refactor and create guide of docs
 - Refactor planning & event storming guide
 - Add domain branch rule
 - Add frontend specification guide and read model view
 - Add updating progress task at guide
-- Update CHANGELOG
-- Update CHANGELOG
 - Edit branch policy
-- Update CHANGELOG
 - *(event-storm)* Complete user management domain event storming
 - *(process-model)* Complete user management domain process model
 - *(user-management)* Complete software design of user management domain
@@ -307,32 +295,23 @@ add copy and paste logic
 - *(user-management)* Complete software design of user management domain
 - *(progress)* Update User Management Domain to 95% completion
 - *(epic)* Add epic-001-user-management document
-- Update CHANGELOG
 - Remove branching guide
 - Add story of user management domain
 - Add sprint of user management domain
 - Add frontend specification of user management domain
 - Add frontend plan
 - Ready for user management domain implementation
-- Update CHANGELOG
-- Update CHANGELOG
 - Add story
 - Add story
 - Apply story implementation changes
 - Add structing discussion
-- Update CHANGELOG
 - Add snapshot collaboration discussion
 - Add organization creation dialog spec to frontend spec
 - *(story)* Update story-006-organization-creation to match latest design
-- Update CHANGELOG
-- Update CHANGELOG
-- Update CHANGELOG
 - Ready for STORY 001
 - Ready for STORY 002
 - Finish story
 - Update WORK STORY 004
-- Update CHANGELOG
-- Update CHANGELOG
 - Version 1.0 event storming
 - Revise event storming guide and template
 - Process model v1.0 of canvas management domain
@@ -347,7 +326,6 @@ add copy and paste logic
 - V1.1 frontend specification update
 - Update canvas management planning
 - Revise canvas management doamin system structure
-- Update CHANGELOG
 - Ready for EPIC-003
 - Design block system
 - SPRINT-011 마무리
@@ -385,7 +363,6 @@ add copy and paste logic
 ### 📚 Documentation
 
 - Document versioning workflow and release tagging
-- Update CHANGELOG
 
 ### 🔧 Maintenance
 
@@ -453,8 +430,6 @@ add copy and paste logic
 - Event storming -> DDD 설계
 - Create comprehensive commit convention guide
 - Update AI collaboration guidelines for commit message patterns
-- Update CHANGELOG.md with comprehensive project history
-- Update CHANGELOG.md with latest commit history
 
 ### 🔧 Maintenance
 
