@@ -20,6 +20,7 @@ This directory contains the automated workflows for the project.
 - ✅ Skips "Update CHANGELOG" meta entries
 - ✅ Prevents duplicate execution
 - ✅ Appears in PR checks (runs only after merge)
+- ✅ **Skips CHANGELOG sync PRs** (prevents infinite loop)
 
 **Configuration:**
 - Uses `cliff.toml` for commit parsing rules
@@ -48,6 +49,7 @@ This directory contains the automated workflows for the project.
 - ✅ Auto-incremented build numbers per day
 - ✅ Pre-release flag set automatically
 - ✅ Manual trigger available
+- ✅ **Skips CHANGELOG sync PRs** (prevents duplicate releases)
 
 **Example:**
 ```bash
@@ -195,6 +197,10 @@ git push origin sprint/v0.5.3-sprint-017
 #### 5️⃣ CHANGELOG Sync
 - ✅ Auto PR created: main → dev
 - ✅ Only CHANGELOG.md is synced
+- ✅ **Automatically skipped by changelog.yml and canary-release.yml**
+  - Prevents infinite loop
+  - No duplicate CHANGELOG generation
+  - No duplicate canary releases
 - ✅ Merge PR to complete the cycle
 
 #### 6️⃣ GitHub Release (`release.yml`)
