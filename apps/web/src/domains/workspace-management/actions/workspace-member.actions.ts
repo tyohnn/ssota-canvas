@@ -214,7 +214,15 @@ async function searchOrganizationMembersInternal(
       });
     }
 
-    // 3. Organization 멤버 중 이메일로 검색 (효율적: JOIN 쿼리 1번)
+    // 3. 권한 확인: 워크스페이스 멤버인지 확인
+    const isMember = await memberRepo.isMember(workspaceId, user.id);
+    if (!isMember) {
+      return err('User is not a member of this workspace', {
+        code: 'NOT_WORKSPACE_MEMBER',
+      });
+    }
+
+    // 4. Organization 멤버 중 이메일로 검색 (효율적: JOIN 쿼리 1번)
     // 이전: 전체 사용자 검색 → 각 사용자마다 Organization 멤버십 확인 (N+1 문제)
     // 개선: Organization 멤버를 JOIN하여 한 번에 조회
     const organizationMembers =
@@ -223,7 +231,7 @@ async function searchOrganizationMembersInternal(
         request.query
       );
 
-    // 4. Workspace 멤버십 + pending 초대 확인 후 결과 반환
+    // 5. Workspace 멤버십 + pending 초대 확인 후 결과 반환
     // Batch fetch instead of per-member queries
     const userIds = organizationMembers.map(m => m.userId);
 
