@@ -1,19 +1,16 @@
 name: Generate CHANGELOG
 
 on:
-  # main 브랜치에만 직접 push 허용 (release용)
-  push:
-    branches: [main]
-
-  # PR이 merge될 때 changelog 생성
+  # sprint → dev PR merge 시 CHANGELOG 생성
+  # dev가 진실의 원천 (source of truth)
   pull_request:
-    branches: [main, dev]
+    branches: [dev]
     types: [closed]
 
 jobs:
   changelog:
     # PR이 merge되었을 때만 실행
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -71,16 +68,12 @@ jobs:
       - name: Push changes
         if: steps.git-cliff.outputs.has_changes == 'true'
         run: |
-          # PR merge인 경우 base 브랜치로 push, 일반 push인 경우 현재 브랜치로 push
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
-            echo "🚀 Pushing CHANGELOG to base branch: $TARGET_BRANCH..."
-            git push origin HEAD:$TARGET_BRANCH
-          else
-            echo "🚀 Pushing CHANGELOG to ${{ github.ref_name }}..."
-            git push origin ${{ github.ref_name }}
-          fi
-          echo "✅ Changes pushed successfully"
+          # dev 브랜치로 push (진실의 원천)
+          TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+          echo "🚀 Pushing CHANGELOG to dev branch: $TARGET_BRANCH..."
+          git push origin HEAD:$TARGET_BRANCH
+          echo "✅ Changes pushed successfully to dev"
+          echo "ℹ️  dev is the source of truth for CHANGELOG"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -97,9 +90,12 @@ jobs:
       - name: Log success
         if: steps.git-cliff.outputs.has_changes == 'true'
         run: |
-          echo "✅ CHANGELOG successfully updated and pushed!"
+          echo "✅ CHANGELOG successfully updated and pushed to dev!"
           echo "Event: ${{ github.event_name }}"
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "PR: ${{ github.event.pull_request.title }}"
-            echo "Base branch: ${{ github.event.pull_request.base.ref }}"
-          fi
+          echo "PR: ${{ github.event.pull_request.title }}"
+          echo "Base branch: ${{ github.event.pull_request.base.ref }}"
+          echo ""
+          echo "📝 Workflow Strategy:"
+          echo "  - dev is the source of truth for CHANGELOG"
+          echo "  - sprint → dev: CHANGELOG auto-generated"
+          echo "  - dev → main: CHANGELOG naturally flows (no sync needed)"
