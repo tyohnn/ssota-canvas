@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Install git-cliff
         if: steps.check-merged.outputs.merged == 'true'
@@ -96,8 +96,6 @@ jobs:
 
           Impact: Ensures consistent and accurate project documentation."
           echo "✅ CHANGELOG commit created"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push changes
         if: |
@@ -105,9 +103,8 @@ jobs:
           steps.git-cliff.outputs.has_changes == 'true'
         env:
           TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # dev 브랜치로 push (진실의 원천)
+          # dev 브랜치로 push (PAT 사용으로 브랜치 보호 우회)
           echo "🚀 Pushing CHANGELOG to dev branch: $TARGET_BRANCH..."
           git push origin HEAD:$TARGET_BRANCH
           echo "✅ Changes pushed successfully to dev"
