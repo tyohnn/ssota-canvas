@@ -246,4 +246,66 @@ export class DefaultPageHierarchyService implements PageHierarchyService {
       return R.err('UNKNOWN_ERROR');
     }
   }
+
+  /**
+   * Page 순서 재정렬 (Scenario 4)
+   *
+   * @param workspaceId - Workspace ID
+   * @param parentId - 부모 페이지 ID (undefined면 루트 레벨)
+   * @param orderedPageIds - 순서가 정해진 페이지 ID 배열
+   * @param userId - 사용자 ID
+   * @returns void (성공) | Error code (실패)
+   */
+  async reorderPages(
+    workspaceId: WorkspaceId,
+    parentId: PageId | undefined,
+    orderedPageIds: string[],
+    userId: string
+  ): Promise<Result<void>> {
+    try {
+      // 1. Workspace 멤버십 확인
+      const isMember = await this.workspaceMemberRepo.isMember(
+        workspaceId,
+        userId
+      );
+      if (!isMember) {
+        return R.err('NOT_WORKSPACE_MEMBER');
+      }
+
+      // 2. 페이지들이 모두 같은 부모를 가지고 있는지 확인
+      if (orderedPageIds.length > 0) {
+        const allPages = await this.pageRepo.findTreeByWorkspaceId(workspaceId);
+        const targetPages = allPages.filter(p =>
+          orderedPageIds.includes(p.pageId.value)
+        );
+
+        // Verify all requested pages were found
+        if (targetPages.length !== orderedPageIds.length) {
+          return R.err('PAGE_NOT_FOUND');
+        }
+
+        // 모든 페이지가 같은 부모를 가지고 있는지 확인
+        const expectedParentId = parentId?.value || null;
+        for (const page of targetPages) {
+          const pageParentId = page.parentId?.value || null;
+          if (pageParentId !== expectedParentId) {
+            return R.err('INVALID_PAGE_ORDER');
+          }
+        }
+      }
+
+      // 3. Repository를 통해 순서 업데이트 (트랜잭션 포함)
+      await this.pageRepo.reorderPages(parentId, orderedPageIds);
+
+      return R.ok(undefined);
+    } catch (error) {
+      if (isWorkspaceManagementError(error)) {
+        return R.err(error.code);
+      }
+      if (error instanceof Error) {
+        return R.err(error.message);
+      }
+      return R.err('UNKNOWN_ERROR');
+    }
+  }
 }

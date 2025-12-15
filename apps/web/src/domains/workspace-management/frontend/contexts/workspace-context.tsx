@@ -17,32 +17,28 @@ import {
   type CreateWorkspaceRequest,
   type UpdateWorkspaceInfoRequest,
   type CreateWorkspaceResponse,
-  type InviteWorkspaceMemberRequest,
-  type InviteWorkspaceMemberResponse,
-  type ProcessInvitationRequest,
-  type SearchOrganizationMembersRequest,
   type OrganizationMemberSearchResultDTO,
-  type GetWorkspaceMembersRequest,
   type WorkspaceMemberView,
-  type CreatePageRequest,
-  type MovePageRequest,
-  type UpdatePageInfoRequest,
 } from '@/domains/workspace-management/shared/dtos';
 import {
   createWorkspaceAction,
   updateWorkspaceInfoAction,
+} from '@/domains/workspace-management/actions/workspace.actions';
+import {
   inviteWorkspaceMemberAction,
   searchOrganizationMembersAction,
   acceptWorkspaceInvitationAction,
   rejectWorkspaceInvitationAction,
   getWorkspaceMembersAction,
+} from '@/domains/workspace-management/actions/workspace-member.actions';
+import {
   createPageAction,
   movePageAction,
   updatePageInfoAction,
   reorderPagesAction,
   deletePageAction,
   duplicatePageAction,
-} from '@/domains/workspace-management/actions/workspace-management.actions';
+} from '@/domains/workspace-management/actions/page.actions';
 import { generateTempPageId } from '@/domains/workspace-management/shared/utils/temp-page-id.utils';
 
 /**
@@ -658,19 +654,17 @@ export function WorkspaceProvider({
           selectPage(result.data.firstPageId, result.data.workspaceId);
 
           // 4. 성공 토스트
-          toast.success('워크스페이스가 생성되었습니다');
+          toast.success('Workspace created');
 
           return result.data;
         } else {
           const errorMessage =
-            'error' in result
-              ? result.error
-              : '워크스페이스 생성에 실패했습니다';
+            'error' in result ? result.error : 'Failed to create workspace';
           toast.error(errorMessage);
           return null;
         }
       } catch (err) {
-        toast.error('워크스페이스 생성 중 오류가 발생했습니다');
+        toast.error('An error occurred while creating workspace');
         return null;
       } finally {
         setIsLoading(false);
@@ -703,25 +697,25 @@ export function WorkspaceProvider({
           );
 
           // 3. 성공 토스트
-          toast.success('워크스페이스 정보가 업데이트되었습니다');
+          toast.success('Workspace information updated');
           return true;
         } else {
           // 사용자 친화적인 에러 메시지
           const errorMessages: Record<string, string> = {
-            NOT_WORKSPACE_MEMBER: '워크스페이스 멤버만 수정할 수 있습니다',
-            NOT_ORG_ADMIN: '조직 관리자 권한이 필요합니다',
-            WORKSPACE_NOT_FOUND: '워크스페이스를 찾을 수 없습니다',
-            UNAUTHORIZED: '로그인이 필요합니다',
+            NOT_WORKSPACE_MEMBER: 'Only workspace members can edit',
+            NOT_ORG_ADMIN: 'Organization admin permission required',
+            WORKSPACE_NOT_FOUND: 'Workspace not found',
+            UNAUTHORIZED: 'Login required',
           };
           const errorMessage =
             'error' in result
               ? errorMessages[result.error] || result.error
-              : '워크스페이스 수정에 실패했습니다';
-          toast.error('수정 실패', { description: errorMessage });
+              : 'Failed to update workspace';
+          toast.error('Update failed', { description: errorMessage });
           return false;
         }
       } catch (err) {
-        toast.error('워크스페이스 수정 중 오류가 발생했습니다');
+        toast.error('An error occurred while updating workspace');
         return false;
       } finally {
         setIsLoading(false);
@@ -765,23 +759,23 @@ export function WorkspaceProvider({
         if (!result.success) {
           // 사용자 친화적인 에러 메시지
           const errorMessages: Record<string, string> = {
-            NOT_ORG_ADMIN: '조직 관리자만 멤버를 초대할 수 있습니다',
-            NOT_WORKSPACE_MEMBER: '워크스페이스 멤버만 초대할 수 있습니다',
-            WORKSPACE_NOT_FOUND: '워크스페이스를 찾을 수 없습니다',
-            UNAUTHORIZED: '로그인이 필요합니다',
-            INVALID_INPUT: '초대할 멤버를 선택해주세요',
+            NOT_ORG_ADMIN: 'Only organization admins can invite members',
+            NOT_WORKSPACE_MEMBER: 'Only workspace members can invite',
+            WORKSPACE_NOT_FOUND: 'Workspace not found',
+            UNAUTHORIZED: 'Login required',
+            INVALID_INPUT: 'Please select members to invite',
           };
           const errorMessage =
-            errorMessages[result.error] || '멤버 초대에 실패했습니다';
-          toast.error('초대 실패', { description: errorMessage });
+            errorMessages[result.error] || 'Failed to invite members';
+          toast.error('Invitation failed', { description: errorMessage });
           return null;
         }
 
-        toast.success(`${result.data.invitedCount}명 초대 완료`);
+        toast.success(`${result.data.invitedCount} members invited`);
         return result.data.invitedCount;
       } catch (error) {
         console.error('[inviteMembers] Error:', error);
-        toast.error('초대 중 오류가 발생했습니다');
+        toast.error('An error occurred while inviting members');
         return null;
       }
     },
@@ -821,11 +815,11 @@ export function WorkspaceProvider({
         const result = await acceptWorkspaceInvitationAction({ invitationId });
 
         if (!result.success) {
-          toast.error(`초대 수락 실패: ${result.error}`);
+          toast.error(`Failed to accept invitation: ${result.error}`);
           return false;
         }
 
-        toast.success('Workspace 초대를 수락했습니다');
+        toast.success('Workspace invitation accepted');
 
         // TODO: Optimistic Update로 워크스페이스 목록에 추가
         // 현재는 페이지 새로고침 필요 (향후 개선)
@@ -833,7 +827,7 @@ export function WorkspaceProvider({
         return true;
       } catch (error) {
         console.error('[acceptInvitation] Error:', error);
-        toast.error('초대 수락 중 오류가 발생했습니다');
+        toast.error('An error occurred while accepting invitation');
         return false;
       }
     },
@@ -847,15 +841,15 @@ export function WorkspaceProvider({
         const result = await rejectWorkspaceInvitationAction({ invitationId });
 
         if (!result.success) {
-          toast.error(`초대 거절 실패: ${result.error}`);
+          toast.error(`Failed to reject invitation: ${result.error}`);
           return false;
         }
 
-        toast.success('Workspace 초대를 거절했습니다');
+        toast.success('Workspace invitation rejected');
         return true;
       } catch (error) {
         console.error('[rejectInvitation] Error:', error);
-        toast.error('초대 거절 중 오류가 발생했습니다');
+        toast.error('An error occurred while rejecting invitation');
         return false;
       }
     },
@@ -870,14 +864,14 @@ export function WorkspaceProvider({
 
         if (!result.success) {
           console.error('[getWorkspaceMembers] Error:', result.error);
-          toast.error('멤버 목록을 불러오는데 실패했습니다');
+          toast.error('Failed to load member list');
           return null;
         }
 
         return result.data;
       } catch (error) {
         console.error('[getWorkspaceMembers] Error:', error);
-        toast.error('멤버 목록 조회 중 오류가 발생했습니다');
+        toast.error('An error occurred while loading member list');
         return null;
       }
     },
@@ -973,7 +967,7 @@ export function WorkspaceProvider({
             result.error === 'NOT_WORKSPACE_MEMBER' ||
             result.error === 'UNAUTHORIZED'
           ) {
-            toast.error('페이지를 생성할 권한이 없습니다');
+            toast.error('You do not have permission to create pages');
           }
           return null;
         }
@@ -1012,7 +1006,7 @@ export function WorkspaceProvider({
         });
 
         console.error('[createPage] Error:', error);
-        toast.error('페이지 생성 중 오류가 발생했습니다');
+        toast.error('An error occurred while creating page');
         return null;
       }
     },
@@ -1091,12 +1085,12 @@ export function WorkspaceProvider({
 
           // 순환 참조와 권한 에러만 토스트로 표시
           if (result.error === 'CIRCULAR_REFERENCE_DETECTED') {
-            toast.error('순환 참조가 발생할 수 없습니다');
+            toast.error('Circular reference cannot occur');
           } else if (
             result.error === 'NOT_WORKSPACE_MEMBER' ||
             result.error === 'UNAUTHORIZED'
           ) {
-            toast.error('페이지를 이동할 권한이 없습니다');
+            toast.error('You do not have permission to move pages');
           }
           return false;
         }
@@ -1141,7 +1135,7 @@ export function WorkspaceProvider({
         if (!result.success) {
           // 실패 시 롤백
           setWorkspaces(previousWorkspaces);
-          toast.error(`페이지 수정 실패: ${result.error}`);
+          toast.error(`Failed to update page: ${result.error}`);
           return false;
         }
 
@@ -1151,7 +1145,7 @@ export function WorkspaceProvider({
         // 에러 시 롤백
         console.error('[updatePageInfo] Error:', error);
         setWorkspaces(previousWorkspaces);
-        toast.error('페이지 수정 중 오류가 발생했습니다');
+        toast.error('An error occurred while updating page');
         return false;
       }
     },
@@ -1201,7 +1195,7 @@ export function WorkspaceProvider({
             result.error === 'NOT_WORKSPACE_MEMBER' ||
             result.error === 'UNAUTHORIZED'
           ) {
-            toast.error('페이지 순서를 변경할 권한이 없습니다');
+            toast.error('You do not have permission to reorder pages');
           }
           return false;
         }
@@ -1269,23 +1263,23 @@ export function WorkspaceProvider({
             result.error === 'NOT_WORKSPACE_MEMBER' ||
             result.error === 'UNAUTHORIZED'
           ) {
-            toast.error('페이지를 삭제할 권한이 없습니다');
+            toast.error('You do not have permission to delete this page');
           } else if (result.error === 'PAGE_NOT_FOUND') {
-            toast.error('페이지를 찾을 수 없습니다');
+            toast.error('Page not found');
           } else {
-            toast.error('페이지 삭제에 실패했습니다');
+            toast.error('Failed to delete page');
           }
           return false;
         }
 
         // 5. 성공 토스트
-        toast.success('페이지가 삭제되었습니다');
+        toast.success('Page deleted');
         return true;
       } catch (error) {
         // 에러 시 롤백
         console.error('[deletePage] Error:', error);
         setWorkspaces(previousWorkspaces);
-        toast.error('페이지 삭제 중 오류가 발생했습니다');
+        toast.error('An error occurred while deleting the page');
         return false;
       }
     },
@@ -1314,7 +1308,7 @@ export function WorkspaceProvider({
         }
 
         if (!originalPage) {
-          toast.error('페이지를 찾을 수 없습니다');
+          toast.error('Page not found');
           return null;
         }
 
@@ -1362,11 +1356,11 @@ export function WorkspaceProvider({
             result.error === 'NOT_WORKSPACE_MEMBER' ||
             result.error === 'UNAUTHORIZED'
           ) {
-            toast.error('페이지를 복제할 권한이 없습니다');
+            toast.error('You do not have permission to duplicate this page');
           } else if (result.error === 'PAGE_NOT_FOUND') {
-            toast.error('페이지를 찾을 수 없습니다');
+            toast.error('Page not found');
           } else {
-            toast.error('페이지 복제에 실패했습니다');
+            toast.error('Failed to duplicate page');
           }
           return null;
         }
@@ -1388,13 +1382,13 @@ export function WorkspaceProvider({
         });
 
         // 6. 성공 토스트
-        toast.success('페이지가 복제되었습니다');
+        toast.success('Page duplicated');
         return result.data.pageId;
       } catch (error) {
         // 에러 시 롤백
         console.error('[duplicatePage] Error:', error);
         setWorkspaces(previousWorkspaces);
-        toast.error('페이지 복제 중 오류가 발생했습니다');
+        toast.error('An error occurred while duplicating the page');
         return null;
       }
     },

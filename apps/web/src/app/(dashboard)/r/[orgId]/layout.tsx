@@ -6,7 +6,7 @@ import { DashboardSidebar } from '@/domains/organization-management/frontend/com
 import { OrganizationProvider } from '@/domains/organization-management/frontend/contexts/organization-context';
 import { WorkspaceProvider } from '@/domains/workspace-management/frontend/contexts/workspace-context';
 import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
-import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-management.actions';
+import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-navigation.actions';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { BetaRedirectClient } from '../beta-redirect-client';

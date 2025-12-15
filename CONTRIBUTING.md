@@ -4,11 +4,13 @@ Thank you for your interest in contributing to Xbowl! This document outlines our
 
 ## 🌿 Branch Strategy
 
-We follow a **Story-based Feature Branch Workflow**. Each Story gets its own branch for independent development and PR review.
+We follow a **Sprint-based Branch Strategy** that aligns with our Agile development process. This strategy combines Sprint branches for planned work with flexible feature branches for quick contributions.
 
-📖 **Detailed Guide**: See [docs/BRANCH_STRATEGY.md](./docs/BRANCH_STRATEGY.md)
+📖 **Detailed Guide**: See [Branch Strategy Guide](./docs/agile-planning/guide/07-branch-strategy.md)
 
-### Quick Start
+### Quick Start for Contributors
+
+#### For General Contributions (Recommended)
 
 ```bash
 # 1. Create feature branch from dev
@@ -26,11 +28,74 @@ git push origin feature/ORG-XXX-description
 # → CHANGELOG auto-generated on merge!
 ```
 
+#### For Sprint Work
+
+```bash
+# 1. Check current sprint branch
+git checkout sprint/v1.2.0-sprint-001
+git pull origin sprint/v1.2.0-sprint-001
+
+# 2. Create feature branch from sprint branch
+git checkout -b feature/ORG-005-member-role-change
+
+# 3. Work and commit
+git commit -m "feat(org): implement member role change"
+
+# 4. Push and create PR to sprint branch
+git push origin feature/ORG-005-member-role-change
+```
+
+### Branch Structure
+
+```
+main (프로덕션)
+  ↑
+dev (개발 통합) ← 일반 기여자는 여기서 시작
+  ↑
+sprint/v1.2.0-sprint-001 (스프린트 브랜치) ← 스프린트 작업용
+  ↑
+feature/ORG-005-member-role-change (기능 브랜치)
+```
+
 ### Branch Naming
+
+#### Feature Branches
 - `feature/ORG-XXX-*`: Organization stories
 - `feature/USER-XXX-*`: User management stories
-- `bugfix/ORG-XXX-*`: Bug fixes
+- `feature/NOTIF-XXX-*`: Notification stories
+- `feature/WS-XXX-*`: Workspace structure stories
+
+#### Other Branches
+- `bugfix/ORG-XXX-*`: Bug fixes (from dev)
+- `hotfix/*`: Critical fixes (from main)
 - `docs/*`: Documentation updates
+- `refactor/*`: Refactoring work
+
+### Which Branch Should I Use?
+
+| 작업 유형 | 시작 브랜치 | 타겟 브랜치 | 설명 |
+|---------|-----------|-----------|------|
+| 일반 기능 추가 | `dev` | `dev` | 가장 일반적인 워크플로우 |
+| 버그 수정 | `dev` | `dev` | 빠른 수정은 dev에서 직접 |
+| 스프린트 작업 | `sprint/vX.X.X-sprint-XXX` | `sprint/vX.X.X-sprint-XXX` | 스프린트 계획된 작업 |
+| 긴급 수정 | `main` | `main` | 프로덕션 크리티컬 이슈 |
+| 문서 작업 | `dev` | `dev` | 문서 업데이트 |
+
+### Comparison with Other Open Source Projects
+
+| 프로젝트 | 전략 | 특징 |
+|---------|------|------|
+| **React Flow** | GitHub Flow | 단순한 main + feature 구조 |
+| **Affine** | Git Flow | main + develop + release 구조 |
+| **SSOTA** | Sprint Branch | main + dev + sprint + feature 구조 |
+
+**Why Sprint Branches?**
+- ✅ Aligns with our Sprint = Minor Version strategy
+- ✅ Groups related work within a sprint
+- ✅ Enables sprint-level rollback
+- ✅ Clear version tagging at sprint completion
+
+For detailed comparison, see [Branch Strategy Guide](./docs/agile-planning/guide/07-branch-strategy.md#-오픈소스-프로젝트-브랜치-전략-비교-및-제안).
 
 ---
 
@@ -319,135 +384,70 @@ Developer: "Yes, please analyze the recent feat commits and suggest a message fo
 
 This approach ensures AI-generated commit messages maintain consistency with human-written messages and respect the project's established conventions.
 
-## Branch Strategy
+## Detailed Branch Strategy
 
-We follow an Agile-based branching strategy that aligns with our sprint and story structure. This ensures clean development workflows and proper code review processes.
+For comprehensive branch strategy documentation, see [Branch Strategy Guide](./docs/agile-planning/guide/07-branch-strategy.md).
 
-### Branch Structure
+### Sprint Branch Workflow (For Sprint Work)
 
-```
-main
-└── sprint-{number} (Sprint Branch)
-    ├── story-{story-id}-{description} (Story Branch)
-    │   ├── subtask-{component}-{description} (Subtask Commit)
-    │   ├── subtask-{component}-{description} (Subtask Commit)
-    │   └── subtask-{component}-{description} (Subtask Commit)
-    ├── story-{story-id}-{description} (Story Branch)
-    └── story-{story-id}-{description} (Story Branch)
-```
+When working on sprint-planned features:
 
-### Branch Naming Convention
-
-#### Sprint Branches
-```
-sprint-1 (Current Sprint Working Branch)
-sprint-2 (Next Sprint Preparation Branch)
-```
-
-#### Story Branches
-```
-story-WS-1.1-org-management
-story-WS-1.2-workspace-creation
-story-WS-1.3-clerk-integration
-```
-
-**Format**: `story-{epic-code}-{story-number}-{kebab-case-description}`
-
-### Branch Lifecycle
-
-1. **Create Sprint Branch**
+1. **Create Feature Branch from Sprint Branch**
    ```bash
-   git checkout main
-   git checkout -b sprint-1
+   git checkout sprint/v1.2.0-sprint-001
+   git pull origin sprint/v1.2.0-sprint-001
+   git checkout -b feature/ORG-005-member-role-change
    ```
 
-2. **Create Story Branch**
+2. **Develop and Commit**
    ```bash
-   git checkout sprint-1
-   git checkout -b story-WS-1.1-org-management
+   # Work on your feature
+   git add .
+   git commit -m "feat(org): implement member role change
+   
+   - Add changeMemberRole method
+   - Implement validation logic
+   
+   Implements: Story ORG-005"
    ```
 
-3. **Subtask Development and Commit**
+3. **Push and Create PR**
    ```bash
-   # Commit for each completed subtask (following the commit convention above)
-   git commit -m "feat: implement Organization entity with validation..."
+   git push origin feature/ORG-005-member-role-change
+   # Create PR targeting sprint/v1.2.0-sprint-001
    ```
 
-4. **Create Pull Request After Story Completion**
-   ```bash
-   # After completing work on the story branch
-   git push origin story-WS-1.1-org-management
-
-   # Create Pull Request on GitHub
-   # - Target: sprint-1 branch
-   # - Write using PR template
-   # - Request senior developer review
-   ```
-
-5. **Merge After Senior Developer Code Review and Approval**
-   ```bash
-   # Merged only after senior developer approval
-   # - Verify all checklist items are completed
-   # - Confirm tests pass
-   # - Review code quality
-   # - Auto-merge to Sprint branch
-   ```
+4. **After Sprint Completion**
+   - Sprint branch is merged to `dev`
+   - Version tag is created (e.g., `v1.2.0-sprint-001`)
 
 ### Best Practices
 
-- **Branch Lifespan**: Complete within 1-3 days
-- **Commit Unit**: Commit for each completed subtask
-- **Merge Process**: Always merge through PR with senior developer review
-- **Branch Cleanup**: Set automatic branch deletion after PR merge
-- **Conflict Resolution**: Resolve conflicts in story branch before creating PR
+- **Branch Lifespan**: Complete feature branches within 2-3 days
+- **Commit Frequency**: Commit for each logical unit of work
+- **Merge Process**: Always merge through PR with code review
+- **Branch Cleanup**: Automatic branch deletion after PR merge
+- **Conflict Resolution**: Resolve conflicts in feature branch before creating PR
 
 ### Subtask-Driven Development
 
-Our development process is driven by subtasks defined in the sprint stories. Each commit should correspond to a completed subtask, ensuring granular progress tracking and easier debugging.
+Our development process is driven by subtasks defined in sprint stories. Each commit should correspond to a completed subtask, ensuring granular progress tracking.
 
-#### Subtask to Commit Mapping
-
-Each story contains multiple subtasks that become individual commits:
+#### Example Subtask to Commit Mapping
 
 ```bash
-# Story WS-1.1: Organization Management
+# Story ORG-005: Member Role Change
 # Backend Domain
-- [x] Implement Organization Entity
-- [x] Implement Organization Aggregate
-- [x] Implement CreateOrganization Command Handler
+- [x] Implement changeMemberRole method
+- [x] Add role validation logic
+- [x] Implement authorization checks
 
-# Database & Repository
-- [x] Create organizations table
-- [x] Implement OrganizationRepository
-
-# API & Server Action
-- [x] Implement createOrganizationAction
-- [x] Implement Clerk webhook handler
+# Frontend
+- [x] Create role change UI component
+- [x] Add click-to-edit functionality
 ```
 
-#### Commit Message Structure for Subtasks
-
-```bash
-feat: implement Organization entity with validation
-
-Organization entity lacked proper domain modeling and validation rules,
-causing inconsistent data handling across the application. This implementation
-adds comprehensive entity with business rules and validation.
-
-- **Technical Implementation**: Created Organization class with value objects
-- **Design Decisions**: Applied DDD patterns for domain integrity
-- **Alternatives**: Considered ORM entities but chose pure domain objects
-
-Impact: Ensures data consistency and enables better testing strategies.
-```
-
-#### Progress Tracking Benefits
-
-1. **Granular Tracking**: Each subtask completion is visible in git history
-2. **Easier Rollbacks**: Can rollback to specific subtask state if needed
-3. **Clear Accountability**: Each developer knows exactly what they worked on
-4. **Better Code Review**: Reviewers can see logical progression of work
-5. **Debugging**: Easy to trace which subtask introduced issues
+Each subtask becomes a commit following our commit message convention.
 
 ---
 

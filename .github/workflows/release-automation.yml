@@ -1,0 +1,286 @@
+name: Release Automation
+
+on:
+  # 옵션 1: 수동 트리거 (GitHub UI에서 실행)
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v0.5.3, v0.6.0)'
+        required: true
+        type: string
+
+  # 옵션 2: PR Label 기반 자동화
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+jobs:
+  # PR Label 기반 버전 계산
+  calculate-version:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.version.outputs.new_version }}
+    steps:
+      - name: Check if should calculate version
+        id: should-calculate
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "⏭️ Not a pull_request event. Skipping version calculation."
+            echo "should_calculate=false" >> $GITHUB_OUTPUT
+            echo "new_version=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [ "${{ github.event.pull_request.merged }}" != "true" ]; then
+            echo "⏭️ PR not merged. Skipping version calculation."
+            echo "should_calculate=false" >> $GITHUB_OUTPUT
+            echo "new_version=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Label 체크
+          HAS_MAJOR="${{ contains(github.event.pull_request.labels.*.name, 'release:major') }}"
+          HAS_MINOR="${{ contains(github.event.pull_request.labels.*.name, 'release:minor') }}"
+          HAS_PATCH="${{ contains(github.event.pull_request.labels.*.name, 'release:patch') }}"
+
+          if [ "$HAS_MAJOR" != "true" ] && [ "$HAS_MINOR" != "true" ] && [ "$HAS_PATCH" != "true" ]; then
+            echo "⏭️ No release label found. Skipping version calculation."
+            echo "should_calculate=false" >> $GITHUB_OUTPUT
+            echo "new_version=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "✅ Conditions met. Calculating version."
+          echo "should_calculate=true" >> $GITHUB_OUTPUT
+
+      - name: Checkout repository
+        if: steps.should-calculate.outputs.should_calculate == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate new version
+        if: steps.should-calculate.outputs.should_calculate == 'true'
+        id: version
+        run: |
+          # 최신 태그 가져오기
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "⚠️  No tags found in repository"
+            echo "Using default version: v0.0.0"
+            LATEST_TAG="v0.0.0"
+          else
+            echo "✅ Latest tag: $LATEST_TAG"
+          fi
+
+          # 버전 파싱 및 검증 (v0.5.2 -> 0 5 2)
+          VERSION=${LATEST_TAG#v}
+
+          # SemVer 패턴 검증 (X.Y.Z 형식)
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "❌ Error: Invalid version format: $VERSION"
+            echo "Expected format: vX.Y.Z (e.g., v0.5.2)"
+            exit 1
+          fi
+
+          IFS='.' read -r -a VERSION_PARTS <<< "$VERSION"
+          MAJOR=${VERSION_PARTS[0]:-0}
+          MINOR=${VERSION_PARTS[1]:-0}
+          PATCH=${VERSION_PARTS[2]:-0}
+
+          # Label에 따라 버전 증가
+          HAS_MAJOR="${{ contains(github.event.pull_request.labels.*.name, 'release:major') }}"
+          HAS_MINOR="${{ contains(github.event.pull_request.labels.*.name, 'release:minor') }}"
+          HAS_PATCH="${{ contains(github.event.pull_request.labels.*.name, 'release:patch') }}"
+
+          if [ "$HAS_MAJOR" == "true" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "$HAS_MINOR" == "true" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+  # 수동 트리거 또는 자동 트리거 후 실행
+  create-release:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.calculate-version.outputs.new_version != ''
+    needs: [calculate-version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set version variables
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ needs.calculate-version.outputs.new_version }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Install git-cliff
+        run: |
+          wget -q https://github.com/orhun/git-cliff/releases/download/v2.10.1/git-cliff-2.10.1-x86_64-unknown-linux-musl.tar.gz
+          tar -xzf git-cliff-2.10.1-x86_64-unknown-linux-musl.tar.gz
+          chmod +x git-cliff-2.10.1/git-cliff
+          sudo mv git-cliff-2.10.1/git-cliff /usr/local/bin/
+
+      - name: Create and push tag
+        run: |
+          VERSION="${{ steps.vars.outputs.version }}"
+
+          # CHANGELOG에서 최신 변경사항 추출 (태그 메시지용)
+          RELEASE_NOTES=$(awk '/^## \[unreleased\]/,/^## \[/ {print}' CHANGELOG.md | head -n -1)
+
+          # 릴리스 노트 검증 및 폴백
+          if [ -z "$RELEASE_NOTES" ] || [ "$(echo "$RELEASE_NOTES" | wc -l)" -lt 2 ]; then
+            echo "⚠️  Warning: No release notes found in CHANGELOG.md [unreleased] section"
+            echo "Checking for alternative formats..."
+            
+            # 대체 패턴 시도
+            RELEASE_NOTES=$(awk '/^## Unreleased/,/^## / {print}' CHANGELOG.md | head -n -1)
+            
+            if [ -z "$RELEASE_NOTES" ] || [ "$(echo "$RELEASE_NOTES" | wc -l)" -lt 2 ]; then
+              echo "⚠️  No release notes found. Using default message."
+              RELEASE_NOTES="See CHANGELOG.md for details."
+            fi
+          fi
+
+          # 태그 생성
+          git tag -a "$VERSION" -m "Release $VERSION
+
+          $RELEASE_NOTES"
+
+          echo "✅ Created tag: $VERSION"
+
+          # 태그 push (이게 release.yml 트리거함)
+          git push origin "$VERSION"
+          echo "✅ Pushed tag: $VERSION"
+          echo "🚀 GitHub Release will be created automatically by release.yml"
+
+      - name: Regenerate CHANGELOG with version sections
+        run: |
+          echo "📚 Regenerating CHANGELOG with version sections..."
+
+          # CHANGELOG 재생성 (태그 기반으로 [unreleased] → [version] 변환)
+          git cliff --config cliff.toml --strip header > CHANGELOG.md
+
+          echo "✅ CHANGELOG regenerated with version sections"
+
+      - name: Commit and push CHANGELOG to main
+        run: |
+          if git diff --quiet CHANGELOG.md; then
+            echo "⏭️ No CHANGELOG changes"
+          else
+            git add CHANGELOG.md
+            git commit -m "docs: update CHANGELOG for ${{ steps.vars.outputs.version }} [skip ci]"
+            git push origin main
+            echo "✅ CHANGELOG pushed to main"
+          fi
+
+      - name: Create PR to sync CHANGELOG to dev
+        id: sync-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # dev 브랜치 최신화
+          git fetch origin dev:dev
+
+          # 임시 브랜치 생성
+          BRANCH_NAME="sync/changelog-${{ steps.vars.outputs.version }}"
+          git checkout -b "$BRANCH_NAME" origin/dev
+
+          # main의 CHANGELOG를 가져오기
+          git checkout origin/main -- CHANGELOG.md
+
+          # 변경사항 확인
+          if git diff --quiet HEAD CHANGELOG.md; then
+            echo "⏭️ CHANGELOG already in sync"
+            echo "pr_created=false" >> $GITHUB_OUTPUT
+          else
+            # 커밋 & push
+            git add CHANGELOG.md
+            git commit -m "docs: sync CHANGELOG from ${{ steps.vars.outputs.version }} release [skip ci]"
+            git push origin "$BRANCH_NAME"
+            
+            # PR 생성
+            PR_NUMBER=$(gh pr create \
+              --base dev \
+              --head "$BRANCH_NAME" \
+              --title "docs: sync CHANGELOG from ${{ steps.vars.outputs.version }} release" \
+              --body "🤖 **Automated CHANGELOG sync from main**
+
+            This PR synchronizes the CHANGELOG.md after releasing **${{ steps.vars.outputs.version }}**.
+
+            ### Changes
+            - [unreleased] → [${{ steps.vars.outputs.version }}]
+            - Version section properly organized
+
+            ### ✅ Safe to merge
+            This only updates CHANGELOG.md, no code changes.
+
+            ---
+            *Generated by release-automation workflow*" \
+              --json number --jq '.[0].number')
+            
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "pr_created=true" >> $GITHUB_OUTPUT
+            echo "✅ Created PR: sync/changelog-${{ steps.vars.outputs.version }} (#$PR_NUMBER)"
+          fi
+
+      - name: Auto-merge CHANGELOG sync PR
+        if: steps.sync-pr.outputs.pr_created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.sync-pr.outputs.pr_number }}"
+
+          echo "🔄 Auto-merging PR #$PR_NUMBER..."
+
+          # PR 자동 merge (merge commit 방식)
+          gh pr merge "$PR_NUMBER" \
+            --merge \
+            --delete-branch \
+            --subject "docs: sync CHANGELOG from ${{ steps.vars.outputs.version }} release [skip ci]"
+
+          echo "✅ PR #$PR_NUMBER merged successfully"
+
+      - name: Summary
+        run: |
+          echo "## 🎉 Release Automation Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Created:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🏷️ Tag: \`${{ steps.vars.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 📚 CHANGELOG updated on main" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔄 PR created to sync CHANGELOG to dev" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ GitHub Release created automatically" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.sync-pr.outputs.pr_created }}" == "true" ]; then
+            echo "2. ✅ CHANGELOG sync PR auto-merged to dev" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "2. ℹ️ CHANGELOG already in sync" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "3. 📝 Create next sprint branch when ready" >> $GITHUB_STEP_SUMMARY

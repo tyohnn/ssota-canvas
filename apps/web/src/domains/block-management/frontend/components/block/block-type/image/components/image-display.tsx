@@ -30,7 +30,7 @@ export function ImageDisplay({
       src={src}
       alt={alt}
       onLoad={() => {
-        console.log('[ImageBlock] Image loaded successfully');
+        // console.log('[ImageBlock] Image loaded successfully');
         onLoad();
       }}
       onError={e => {

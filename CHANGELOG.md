@@ -1,4 +1,138 @@
 ## [unreleased]
+### ♻️ Refactoring
+
+- Move CHANGELOG generation to dev branch
+- Streamline CHANGELOG workflow and regenerate with version sections
+- Workspace-page action refactoring
+
+### ✨ Features
+
+- Complete automated release workflow with CHANGELOG sync
+- Add temp logo
+
+### 🐛 Bug Fixes
+
+- Make changelog workflow appear in PR checks
+- Canary-release workflow YAML syntax and merge-only execution
+- Canary-release YAML syntax error on line 132
+- Resolve canary-release YAML syntax error completely
+- Prevent infinite loop on CHANGELOG sync PRs
+- Address CodeRabbit security and reliability issues
+- Pass untrusted PR metadata through env variables in changelog.yml
+- *(workspace-management)* Fix PR review issues and refactor architecture
+- *(workspace-management)* [**breaking**] Sanitize error logging and fix validation issues
+- *(workspace-management)* [**breaking**] Add authorization check for organization member search
+- *(ci)* Use PAT token for CHANGELOG workflow to bypass branch protection
+
+### 📚 Documentation
+
+- Branching strategy research
+
+### 🔧 Maintenance
+
+- Add v0.5.1 and v0.5.2 tags and releases
+- Remove log
+- Toast message to english
+## [0.5.2] - 2025-12-10
+
+### 🐛 Bug Fixes
+
+- Build error at image asset migration
+- Page creation error
+- Edit supabase toml, add dev preview
+## [0.5.0] - 2025-12-10
+
+### Dev
+
+- Add cloud agent environmnet setting
+- Fix environmnets
+
+### Release
+
+- V0.5.0
+
+### ✨ Features
+
+- 인터랙티브 랜딩페이지 기본 골자 잡기 & section1-phase1 (기획)까지 구현
+- 랜딩페이지 section1 phase2 design
+- Image assets storage 추가 및 이미지 앱스페이스에 연결
+- Image block rendering
+- *(ui)* Sprint 017 UI/UX improvements (E010-004,005,006,007,008)
+- Update sprint 017 progress - completed E010-001,004,005,006,007,008
+- *(E010-002)* Implement edge handle hiding with hover detection
+- *(ui)* Sprint 017 UI/UX improvements (E010-003 final)
+- *(E010-009)* Implement block page move with server-side search
+
+### 🐛 Bug Fixes
+
+- Build error
+- 빌드 에러
+
+### 📚 Documentation
+
+- Initiative 002 > epic / story
+- Edit story naming convention
+- Define initiative-002 of sprint
+- Flesh out story
+
+### 🔧 Maintenance
+
+- 문서 정리
+- Docs organize
+- Remove logs
+## [0.3.6] - 2025-11-28
+
+### ♻️ Refactoring
+
+- BaseBlock Refactoring
+- Block type refactoring
+
+### ✨ Features
+
+- Add static new blocks for landing page
+## [0.3.5] - 2025-11-26
+
+### ✨ Features
+
+- Add beta access mode server
+- Add beta access mode client
+
+### 🐛 Bug Fixes
+
+- Build warning
+## [0.3.4] - 2025-11-25
+
+### ✨ Features
+
+- Implement AuthSessionMonitor for session management and enhance authentication error handling
+- Enhance user onboarding and setup status checks with new user management service integration
+- Improve Supabase client initialization and error handling for session expiration
+
+### 🐛 Bug Fixes
+
+- 엣지 연결 시  block mount id를 사용하도록 수정
+## [0.3.3] - 2025-11-24
+
+### 🐛 Bug Fixes
+
+- Default viewport 추가해서 끊기지 않도록
+- 사이드바와 마크다운 블록 단축키 겹치는 문제 해결 & 블록 사이즈 조정
+- 클립보드 복사할 때 마크다운 블록의 content_raw 생성되지 않는 문제 해결
+- 엣지 연결 툴 콜 에러 수정
+## [0.3.2] - 2025-11-23
+
+### ✨ Features
+
+- 캔버스 fitToView 삭제하고 페이지별 위치/줌을 로컬스토리지에서 로드하는 기능
+- 페이지 복제/삭제 기능
+
+### 🐛 Bug Fixes
+
+- Deploy build
+- Page redirection client error
+- Db 타임아웃 늘리고 로그 추가
+- Db connection pooler
+## [0.3.1] - 2025-11-22
 
 ### Deploy
 
@@ -82,14 +216,6 @@ add copy and paste logic
 - 캔버스 상단 툴바 동작하도록 수정 (패닝/선택 모드)
 - Add supabase storage
 - Add seo metatags
-- 캔버스 fitToView 삭제하고 페이지별 위치/줌을 로컬스토리지에서 로드하는 기능
-- 페이지 복제/삭제 기능
-- Implement AuthSessionMonitor for session management and enhance authentication error handling
-- Enhance user onboarding and setup status checks with new user management service integration
-- Improve Supabase client initialization and error handling for session expiration
-- Add beta access mode server
-- Add beta access mode client
-- Add static new blocks for landing page
 
 ### 🐛 Bug Fixes
 
@@ -132,16 +258,6 @@ add copy and paste logic
 - 페이지 부모 내에서 이동할 때 가장 아래로 이동하면 안되는 이동이 호출되지 않는 문제 해결 안됨
 - /r/ 리다이렉션, 스켈레톤 로직
 - Fix build error
-- Deploy build
-- Page redirection client error
-- Db 타임아웃 늘리고 로그 추가
-- Db connection pooler
-- Default viewport 추가해서 끊기지 않도록
-- 사이드바와 마크다운 블록 단축키 겹치는 문제 해결 & 블록 사이즈 조정
-- 클립보드 복사할 때 마크다운 블록의 content_raw 생성되지 않는 문제 해결
-- 엣지 연결 툴 콜 에러 수정
-- 엣지 연결 시  block mount id를 사용하도록 수정
-- Build warning
 
 ### 📚 Documentation
 
@@ -210,13 +326,6 @@ add copy and paste logic
 - Design block system
 - SPRINT-011 마무리
 - Design AI chat feature
-- Update CHANGELOG
-- Update CHANGELOG
-- Update CHANGELOG
-- Update CHANGELOG
-- Update CHANGELOG
-- Update CHANGELOG
-- Update CHANGELOG
 
 ### 🔧 Maintenance
 
@@ -241,3 +350,88 @@ add copy and paste logic
 - Complete sprint1-2 implementation
 - Add test_deployments table to verify supabase branching
 - Env 맞추기
+## [0.1.0-alpha.1] - 2025-09-24
+
+### ✨ Features
+
+- Finalize alpha release structure
+
+### 📚 Documentation
+
+- Document versioning workflow and release tagging
+- Update CHANGELOG
+
+### 🔧 Maintenance
+
+- Add release automation workflow based on CHANGELOG
+- Enhance CHANGELOG workflow with PR preview and automated updates
+- Fix git-cliff workflow input
+- Revert git-cliff configuration parameter
+- Capture ci commits in changelog maintenance section
+- Update git-cliff action inputs
+- Rely on default config path for git-cliff
+- Test changelog pipeline
+- Fix release workflow checkout step
+- Enhance changelog workflow authentication
+- Add comprehensive logging to changelog workflow
+- Integrate personal access token for workflow permissions
+- Integrate personal access token for workflow permissions
+- Revert to default GITHUB_TOKEN due to access issues
+- Use unreleased commits for changelog generation
+- Implement custom changelog change detection
+- Add Node.js and pnpm setup to changelog workflow
+- Simplify changelog workflow (remove pnpm/node; rely on action detection)
+- Test detection path
+- Set git-cliff output to CHANGELOG.md for change detection
+- Reset CHANGELOG.md to force regeneration
+- Replace tj-actions with direct git-cliff execution
+
+### 🧪 Testing
+
+- Add TEST_CI.md to verify Actions write permissions
+## [0.1.0-sprint-1] - 2025-09-24
+
+### Bug
+
+- 컴포넌트 블럭 버그 수정
+
+### ♻️ Refactoring
+
+- DDD 기반 리팩토링 준비
+- *(ssota-cli)* Rename xbowl-cli
+- *(ssota-cli)* Rename xbowl-cli
+- Rename xbowl to ssota
+
+### ✨ Features
+
+- Complete task 2 - Create Canvas Server Actions
+- Complete task 9 - Create Canvas Page and Layout with dynamic routes
+- *(contracts)* Add @xbowl/domain-contracts (types/constants/zod) and switch CLI to use it [Phase A]
+- *(web)* Add @workspace/domain-contracts dependency [Phase C start]
+- *(web)* Fix node exports and wire shared zod schemas; unify metadata types to contracts [Phase C]
+- Implement automated CHANGELOG generation system
+- Implement automated CHANGELOG generation system
+
+### 🐛 Bug Fixes
+
+- Disable remote API calls in CHANGELOG generation
+
+### 💅 Style
+
+- Format solution approach sections with bullet points
+- Translate all Korean text to English in CONTRIBUTING.md
+
+### 📚 Documentation
+
+- Update domain-contracts migration checklist (Phase A/B done), begin Phase C
+- Event storming -> DDD 설계
+- Create comprehensive commit convention guide
+- Update AI collaboration guidelines for commit message patterns
+- Update CHANGELOG.md with comprehensive project history
+- Update CHANGELOG.md with latest commit history
+
+### 🔧 Maintenance
+
+- Ignore settings
+- Ignore settings
+- Unnecessary file deletion

@@ -27,6 +27,18 @@ export interface WorkspaceMemberRepository {
   isMember(workspaceId: WorkspaceId, userId: string): Promise<boolean>;
 
   /**
+   * 여러 사용자의 Workspace 멤버십 상태를 배치로 조회
+   *
+   * @param workspaceId - Workspace ID
+   * @param userIds - 사용자 ID 배열
+   * @returns userId를 키로 하는 멤버십 여부 Map
+   */
+  getMembershipStatusBatch(
+    workspaceId: WorkspaceId,
+    userIds: string[]
+  ): Promise<Map<string, boolean>>;
+
+  /**
    * Workspace 멤버 목록 조회 (Profile JOIN)
    *
    * @param workspaceId - Workspace ID

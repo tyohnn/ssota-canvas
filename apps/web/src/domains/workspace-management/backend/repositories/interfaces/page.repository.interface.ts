@@ -76,4 +76,15 @@ export interface PageRepository {
     query: string,
     limit: number
   ): Promise<Array<{ page: Page; workspaceName: string }>>;
+
+  /**
+   * 페이지들의 순서를 배치로 업데이트
+   *
+   * @param parentId - 부모 페이지 ID (undefined면 루트 레벨)
+   * @param orderedPageIds - 순서가 정해진 페이지 ID 배열
+   */
+  reorderPages(
+    parentId: PageId | undefined,
+    orderedPageIds: string[]
+  ): Promise<void>;
 }

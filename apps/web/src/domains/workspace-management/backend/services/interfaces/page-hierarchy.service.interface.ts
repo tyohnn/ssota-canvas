@@ -59,5 +59,20 @@ export interface PageHierarchyService {
     icon: string | null | undefined,
     userId: string
   ): Promise<Result<void>>;
-}
 
+  /**
+   * Page 순서 재정렬 (Scenario 4)
+   *
+   * @param workspaceId - Workspace ID
+   * @param parentId - 부모 페이지 ID (undefined면 루트 레벨)
+   * @param orderedPageIds - 순서가 정해진 페이지 ID 배열
+   * @param userId - 사용자 ID
+   * @returns void (성공) | Error code (실패)
+   */
+  reorderPages(
+    workspaceId: WorkspaceId,
+    parentId: PageId | undefined,
+    orderedPageIds: string[],
+    userId: string
+  ): Promise<Result<void>>;
+}

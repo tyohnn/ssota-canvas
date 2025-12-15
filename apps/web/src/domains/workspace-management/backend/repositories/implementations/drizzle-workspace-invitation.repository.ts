@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { adminDb } from '@/db';
 import { workspaceInvitations, profiles } from '@/db/schema';
 import type { WorkspaceInvitation as DBWorkspaceInvitation } from '@/db/schema';
@@ -196,6 +196,35 @@ export class DrizzleWorkspaceInvitationRepository
     }
 
     return this.mapToDomain(result[0]!);
+  }
+
+  /**
+   * 여러 사용자에 대한 pending 초대를 배치로 조회
+   *
+   * @param workspaceId - Workspace ID
+   * @param userIds - 사용자 ID 배열
+   * @returns pending 상태인 초대 목록
+   */
+  async findPendingInvitationsForUsers(
+    workspaceId: WorkspaceId,
+    userIds: string[]
+  ): Promise<WorkspaceInvitation[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    const result = await adminDb
+      .select()
+      .from(workspaceInvitations)
+      .where(
+        and(
+          eq(workspaceInvitations.workspace_id, workspaceId.value),
+          eq(workspaceInvitations.status, 'pending'),
+          inArray(workspaceInvitations.invited_user_id, userIds)
+        )
+      );
+
+    return result.map(row => this.mapToDomain(row));
   }
 
   /**
