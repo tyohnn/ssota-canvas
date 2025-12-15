@@ -40,7 +40,9 @@ See CHANGELOG.md for detailed release notes."
 echo "Creating tags from version commits..."
 echo ""
 
-# v0.5.0 (최신)
+# v0.5.x series
+create_tag "v0.5.2" "7579ae191b6377fdec0cf6fdac94ca3a5ca181eb" "2025-12-10"
+create_tag "v0.5.1" "8d423fe0cb3b5e49eee13fba6a4afee5b8d6e260" "2025-12-10"
 create_tag "v0.5.0" "2880ce2e187f3e8be2df234931b306178aee4619" "2025-12-10"
 
 # v0.3.x series
