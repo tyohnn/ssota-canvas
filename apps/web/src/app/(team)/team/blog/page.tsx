@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { type SanityDocument } from 'next-sanity';
 import { client } from '@/sanity/client';
-import imageUrlBuilder from '@sanity/image-url';
+import { createImageUrlBuilder } from '@sanity/image-url';
 import type { SanityImageSource } from '@sanity/image-url';
 
 const POSTS_QUERY = `*[
@@ -12,7 +12,7 @@ const POSTS_QUERY = `*[
 const { projectId, dataset } = client.config();
 const urlFor = (source: SanityImageSource) =>
   projectId && dataset
-    ? imageUrlBuilder({ projectId, dataset }).image(source)
+    ? createImageUrlBuilder({ projectId, dataset }).image(source)
     : null;
 
 const options = { next: { revalidate: 30 } };
