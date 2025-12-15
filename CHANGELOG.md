@@ -1,5 +1,15 @@
+## [0.5.4] - 2025-12-15
+
+### 🐛 Bug Fixes
+
+- *(ci)* Remove canary tag at changlog
+- *(ci)* Add exclude canary tag logic
+- *(ci)* Fix code review
+
+### 📚 Documentation
+
+- Update CHANGELOG for v0.5.3 [skip ci]
 ## [0.5.3] - 2025-12-15
-## [2025.12.15-canary.003] - 2025-12-15
 
 ### 🐛 Bug Fixes
 
@@ -17,30 +27,12 @@
 - Update CHANGELOG
 ## [0.3.0] - 2025-11-21
 
-### 📚 Documentation
-
-- Update CHANGELOG
-## [2025.12.15-canary.002] - 2025-12-15
-
-### ♻️ Refactoring
-
-- *(ci)* Move CHANGELOG generation to main branch (industry standard)
-
-### 🐛 Bug Fixes
-
-- *(ci)* Use PAT token for CHANGELOG workflow to bypass branch protection
-- *(ci)* Fix code review
-
-### 📚 Documentation
-
-- Update CHANGELOG
-## [2025.12.15-canary.001] - 2025-12-15
-
 ### ♻️ Refactoring
 
 - Move CHANGELOG generation to dev branch
 - Streamline CHANGELOG workflow and regenerate with version sections
 - Workspace-page action refactoring
+- *(ci)* Move CHANGELOG generation to main branch (industry standard)
 
 ### ✨ Features
 
@@ -59,10 +51,14 @@
 - *(workspace-management)* Fix PR review issues and refactor architecture
 - *(workspace-management)* [**breaking**] Sanitize error logging and fix validation issues
 - *(workspace-management)* [**breaking**] Add authorization check for organization member search
+- *(ci)* Use PAT token for CHANGELOG workflow to bypass branch protection
+- *(ci)* Fix code review
 
 ### 📚 Documentation
 
 - Branching strategy research
+- Update CHANGELOG
+- Update CHANGELOG
 
 ### 🔧 Maintenance
 
