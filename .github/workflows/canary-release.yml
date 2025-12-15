@@ -126,11 +126,13 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.canary_version }}"
           
-          # 태그 생성
-          git tag -a "v${VERSION}" -m "Canary release ${VERSION}
+          # 태그 생성 (멀티라인 메시지)
+          TAG_MESSAGE="Canary release ${VERSION}
 
 Pre-release build for testing.
 Generated automatically from dev branch."
+          
+          git tag -a "v${VERSION}" -m "$TAG_MESSAGE"
           
           echo "✅ Created tag: v${VERSION}"
           
