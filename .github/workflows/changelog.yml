@@ -1,32 +1,60 @@
 name: Generate CHANGELOG
 
 on:
-  # main 브랜치에만 직접 push 허용 (release용)
-  push:
-    branches: [main]
-
-  # PR이 merge될 때 changelog 생성
+  # sprint → dev PR merge 시 CHANGELOG 생성
+  # dev가 진실의 원천 (source of truth)
   pull_request:
-    branches: [main, dev]
-    types: [closed]
+    branches: [dev]
+    types: [opened, synchronize, closed]
 
 jobs:
   changelog:
-    # PR이 merge되었을 때만 실행
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    # PR 체크에는 나타나지만, 실제 실행은 merge 후에만
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
 
     steps:
+      - name: Check if PR is merged
+        id: check-merged
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          # CHANGELOG 동기화 PR은 스킵 (무한 루프 방지)
+
+          if echo "$PR_TITLE" | grep -qiE "(sync.*changelog|docs:.*sync|changelog.*sync)"; then
+            echo "⏭️ Skipping: This is a CHANGELOG sync PR from main → dev"
+            echo "PR title: $PR_TITLE"
+            echo "merged=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [ "$PR_AUTHOR" == "github-actions[bot]" ]; then
+            echo "⏭️ Skipping: PR created by github-actions[bot] (likely sync PR)"
+            echo "merged=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [ "${{ github.event.pull_request.merged }}" != "true" ]; then
+            echo "⏭️ PR not merged yet. This workflow will run automatically after PR merge."
+            echo "merged=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "✅ PR merged. Proceeding with CHANGELOG generation."
+          echo "merged=true" >> $GITHUB_OUTPUT
+
       - name: Checkout repository
+        if: steps.check-merged.outputs.merged == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install git-cliff
+        if: steps.check-merged.outputs.merged == 'true'
         run: |
           wget -q https://github.com/orhun/git-cliff/releases/download/v2.10.1/git-cliff-2.10.1-x86_64-unknown-linux-musl.tar.gz
           tar -xzf git-cliff-2.10.1-x86_64-unknown-linux-musl.tar.gz
@@ -34,10 +62,11 @@ jobs:
           sudo mv git-cliff-2.10.1/git-cliff /usr/local/bin/
 
       - name: Generate CHANGELOG
+        if: steps.check-merged.outputs.merged == 'true'
         id: git-cliff
         run: |
           echo "🔍 Generating CHANGELOG..."
-          git cliff --config cliff.toml --unreleased --strip header > CHANGELOG_NEW.md
+          git cliff --config cliff.toml --strip header > CHANGELOG_NEW.md
           if ! cmp -s CHANGELOG.md CHANGELOG_NEW.md 2>/dev/null; then
             echo "✅ CHANGELOG has changes"
             mv CHANGELOG_NEW.md CHANGELOG.md
@@ -49,7 +78,9 @@ jobs:
           fi
 
       - name: Commit CHANGELOG changes
-        if: steps.git-cliff.outputs.has_changes == 'true'
+        if: |
+          steps.check-merged.outputs.merged == 'true' &&
+          steps.git-cliff.outputs.has_changes == 'true'
         run: |
           echo "💾 Committing CHANGELOG changes..."
           git config --local user.email "action@github.com"
@@ -69,23 +100,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push changes
-        if: steps.git-cliff.outputs.has_changes == 'true'
-        run: |
-          # PR merge인 경우 base 브랜치로 push, 일반 push인 경우 현재 브랜치로 push
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
-            echo "🚀 Pushing CHANGELOG to base branch: $TARGET_BRANCH..."
-            git push origin HEAD:$TARGET_BRANCH
-          else
-            echo "🚀 Pushing CHANGELOG to ${{ github.ref_name }}..."
-            git push origin ${{ github.ref_name }}
-          fi
-          echo "✅ Changes pushed successfully"
+        if: |
+          steps.check-merged.outputs.merged == 'true' &&
+          steps.git-cliff.outputs.has_changes == 'true'
         env:
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # dev 브랜치로 push (진실의 원천)
+          echo "🚀 Pushing CHANGELOG to dev branch: $TARGET_BRANCH..."
+          git push origin HEAD:$TARGET_BRANCH
+          echo "✅ Changes pushed successfully to dev"
+          echo "ℹ️  dev is the source of truth for CHANGELOG"
 
       - name: Log skip reason
-        if: steps.git-cliff.outputs.has_changes != 'true'
+        if: |
+          steps.check-merged.outputs.merged == 'true' &&
+          steps.git-cliff.outputs.has_changes != 'true'
         run: |
           echo "⏭️ Skipping CHANGELOG commit - no changes detected"
           echo "Change detection result: '${{ steps.git-cliff.outputs.has_changes }}'"
@@ -95,11 +126,19 @@ jobs:
           echo "  - Commits don't match any configured commit_parsers patterns"
 
       - name: Log success
-        if: steps.git-cliff.outputs.has_changes == 'true'
+        if: |
+          steps.check-merged.outputs.merged == 'true' &&
+          steps.git-cliff.outputs.has_changes == 'true'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: |
-          echo "✅ CHANGELOG successfully updated and pushed!"
+          echo "✅ CHANGELOG successfully updated and pushed to dev!"
           echo "Event: ${{ github.event_name }}"
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "PR: ${{ github.event.pull_request.title }}"
-            echo "Base branch: ${{ github.event.pull_request.base.ref }}"
-          fi
+          echo "PR: $PR_TITLE"
+          echo "Base branch: $BASE_BRANCH"
+          echo ""
+          echo "📝 Workflow Strategy:"
+          echo "  - dev is the source of truth for CHANGELOG"
+          echo "  - sprint → dev: CHANGELOG auto-generated"
+          echo "  - dev → main: CHANGELOG naturally flows (no sync needed)"

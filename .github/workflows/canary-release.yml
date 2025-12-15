@@ -1,0 +1,194 @@
+name: Canary Release
+
+on:
+  # dev 브랜치에 merge될 때마다 canary 릴리스 생성
+  pull_request:
+    branches: [dev]
+    types: [opened, synchronize, closed]
+
+  # 또는 수동 트리거
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Build number (optional, auto-incremented if not provided)'
+        required: false
+        type: string
+
+jobs:
+  canary-release:
+    # PR 체크에는 나타나지만, 실제 실행은 merge 후에만
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check if PR is merged
+        id: check-merged
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "✅ Manual trigger. Proceeding with canary release."
+            echo "merged=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # CHANGELOG 동기화 PR은 스킵 (무한 루프 방지)
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          
+          if echo "$PR_TITLE" | grep -qiE "(sync.*changelog|docs:.*sync|changelog.*sync)"; then
+            echo "⏭️ Skipping: This is a CHANGELOG sync PR from main → dev"
+            echo "PR title: $PR_TITLE"
+            echo "merged=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          if [ "$PR_AUTHOR" == "github-actions[bot]" ]; then
+            echo "⏭️ Skipping: PR created by github-actions[bot] (likely sync PR)"
+            echo "merged=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [ "${{ github.event.pull_request.merged }}" != "true" ]; then
+            echo "⏭️ PR not merged yet. This workflow will run automatically after PR merge."
+            echo "merged=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "✅ PR merged. Proceeding with canary release."
+          echo "merged=true" >> $GITHUB_OUTPUT
+
+      - name: Checkout repository
+        if: steps.check-merged.outputs.merged == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: dev
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        if: steps.check-merged.outputs.merged == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Calculate canary version
+        if: steps.check-merged.outputs.merged == 'true'
+        id: version
+        run: |
+          # 날짜 기반 버전 (YYYY.MM.DD-canary.BUILD)
+          DATE=$(date +%Y.%m.%d)
+
+          # 빌드 번호 계산
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ inputs.build_number }}" ]; then
+            BUILD_NUMBER="${{ inputs.build_number }}"
+          else
+            # 오늘 날짜의 canary 태그 개수 세기
+            TODAY_TAGS=$(git tag -l "${DATE}-canary.*" | wc -l | tr -d ' ')
+            BUILD_NUMBER=$((TODAY_TAGS + 1))
+          fi
+
+          # 3자리로 포맷팅 (001, 002, ...)
+          BUILD_NUMBER=$(printf "%03d" $BUILD_NUMBER)
+
+          CANARY_VERSION="${DATE}-canary.${BUILD_NUMBER}"
+
+          echo "canary_version=$CANARY_VERSION" >> $GITHUB_OUTPUT
+          echo "date=$DATE" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
+          echo "📦 Canary version: $CANARY_VERSION"
+
+      - name: Generate release notes
+        if: steps.check-merged.outputs.merged == 'true'
+        id: notes
+        run: |
+          # 최신 태그 이후의 커밋들 추출
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LATEST_TAG" ]; then
+            # 태그가 없으면 모든 커밋
+            COMMITS=$(git log --oneline --no-merges -10)
+          else
+            # 최신 태그 이후 커밋
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline --no-merges -10)
+          fi
+
+          # Release notes 생성 (YAML 문법 오류 방지)
+          cat > RELEASE_NOTES.md << EOF
+          ## 🐤 Canary Release: ${{ steps.version.outputs.canary_version }}
+
+          This is a pre-release build for testing purposes.
+
+          ### Recent Changes
+          $(echo "$COMMITS" | sed 's/^/- /')
+
+          ### ⚠️ Warning
+          This is a canary release. It may contain bugs or incomplete features.
+          Use at your own risk.
+
+          ### 📝 How to Test
+          1. Install this canary version
+          2. Test new features
+          3. Report any issues on GitHub Issues
+          4. Provide feedback if possible
+
+          ---
+          *This release was automatically generated from the \`dev\` branch.*
+          EOF
+
+          echo "✅ Generated release notes"
+
+      - name: Create and push tag
+        if: steps.check-merged.outputs.merged == 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.canary_version }}"
+
+          # 태그 메시지 파일로 생성
+          cat > TAG_MESSAGE.txt << 'TAGEOF'
+          Canary release ${{ steps.version.outputs.canary_version }}
+
+          Pre-release build for testing.
+          Generated automatically from dev branch.
+          TAGEOF
+
+          # 태그 생성
+          git tag -a "v${VERSION}" -F TAG_MESSAGE.txt
+          rm -f TAG_MESSAGE.txt
+
+          echo "✅ Created tag: v${VERSION}"
+
+          # 태그 push
+          git push origin "v${VERSION}"
+          echo "✅ Pushed tag: v${VERSION}"
+
+      - name: Publish GitHub Release
+        if: steps.check-merged.outputs.merged == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: 'v${{ steps.version.outputs.canary_version }}'
+          name: '${{ steps.version.outputs.canary_version }}'
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: true # ⭐ Pre-release로 표시
+          make_latest: false # 최신 릴리스로 설정하지 않음
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        if: steps.check-merged.outputs.merged == 'true'
+        run: |
+          echo "## 🐤 Canary Release Created!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Version:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`v${{ steps.version.outputs.canary_version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Details:" >> $GITHUB_STEP_SUMMARY
+          echo "- Date: ${{ steps.version.outputs.date }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: ${{ steps.version.outputs.build_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: dev" >> $GITHUB_STEP_SUMMARY
+          echo "- Pre-release: ✅ Yes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Canary release published" >> $GITHUB_STEP_SUMMARY
+          echo "2. 📝 Testers can now install and test" >> $GITHUB_STEP_SUMMARY
+          echo "3. 🐛 Report issues if found" >> $GITHUB_STEP_SUMMARY
