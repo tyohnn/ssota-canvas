@@ -18,12 +18,8 @@
 
 ### 📚 Documentation
 
-- Update CHANGELOG
-- Update CHANGELOG
-- Update CHANGELOG
-- Update CHANGELOG
-- Update CHANGELOG
-- Update CHANGELOG
+### 📚 Documentation
+
 - Update CHANGELOG
 ## [0.3.0] - 2025-11-21
 
