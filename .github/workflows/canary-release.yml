@@ -4,7 +4,7 @@ on:
   # dev 브랜치에 merge될 때마다 canary 릴리스 생성
   pull_request:
     branches: [dev]
-    types: [closed]
+    types: [opened, synchronize, closed]
 
   # 또는 수동 트리거
   workflow_dispatch:
@@ -16,17 +16,32 @@ on:
 
 jobs:
   canary-release:
-    # PR이 merge되었을 때만 실행
-    if: |
-      (github.event_name == 'workflow_dispatch') ||
-      (github.event.pull_request.merged == true &&
-      github.event.pull_request.base.ref == 'dev')
+    # PR 체크에는 나타나지만, 실제 실행은 merge 후에만
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
+      - name: Check if PR is merged
+        id: check-merged
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "✅ Manual trigger. Proceeding with canary release."
+            echo "merged=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          if [ "${{ github.event.pull_request.merged }}" != "true" ]; then
+            echo "⏭️ PR not merged yet. This workflow will run automatically after PR merge."
+            echo "merged=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "✅ PR merged. Proceeding with canary release."
+          echo "merged=true" >> $GITHUB_OUTPUT
+
       - name: Checkout repository
+        if: steps.check-merged.outputs.merged == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -34,11 +49,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure git
+        if: steps.check-merged.outputs.merged == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
       - name: Calculate canary version
+        if: steps.check-merged.outputs.merged == 'true'
         id: version
         run: |
           # 날짜 기반 버전 (YYYY.MM.DD-canary.BUILD)
@@ -65,6 +82,7 @@ jobs:
           echo "📦 Canary version: $CANARY_VERSION"
 
       - name: Generate release notes
+        if: steps.check-merged.outputs.merged == 'true'
         id: notes
         run: |
           # 최신 태그 이후의 커밋들 추출
@@ -78,31 +96,33 @@ jobs:
             COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline --no-merges -10)
           fi
           
-          # Release notes 생성
-          NOTES="## 🐤 Canary Release: ${{ steps.version.outputs.canary_version }}
-
-This is a pre-release build for testing purposes.
-
-### Recent Changes
-$(echo "$COMMITS" | sed 's/^/- /')
-
-### ⚠️ Warning
-This is a canary release. It may contain bugs or incomplete features.
-Use at your own risk.
-
-### 📝 How to Test
-1. Install this canary version
-2. Test new features
-3. Report any issues on GitHub Issues
-4. Provide feedback if possible
-
----
-*This release was automatically generated from the \`dev\` branch.*"
+          # Release notes 생성 (YAML 문법 오류 방지)
+          cat > RELEASE_NOTES.md << EOF
+          ## 🐤 Canary Release: ${{ steps.version.outputs.canary_version }}
           
-          echo "$NOTES" > RELEASE_NOTES.md
+          This is a pre-release build for testing purposes.
+          
+          ### Recent Changes
+          $(echo "$COMMITS" | sed 's/^/- /')
+          
+          ### ⚠️ Warning
+          This is a canary release. It may contain bugs or incomplete features.
+          Use at your own risk.
+          
+          ### 📝 How to Test
+          1. Install this canary version
+          2. Test new features
+          3. Report any issues on GitHub Issues
+          4. Provide feedback if possible
+          
+          ---
+          *This release was automatically generated from the \`dev\` branch.*
+          EOF
+          
           echo "✅ Generated release notes"
 
       - name: Create and push tag
+        if: steps.check-merged.outputs.merged == 'true'
         run: |
           VERSION="${{ steps.version.outputs.canary_version }}"
           
@@ -119,6 +139,7 @@ Generated automatically from dev branch."
           echo "✅ Pushed tag: v${VERSION}"
 
       - name: Publish GitHub Release
+        if: steps.check-merged.outputs.merged == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: "v${{ steps.version.outputs.canary_version }}"
@@ -131,6 +152,7 @@ Generated automatically from dev branch."
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Summary
+        if: steps.check-merged.outputs.merged == 'true'
         run: |
           echo "## 🐤 Canary Release Created!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
