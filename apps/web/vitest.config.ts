@@ -14,8 +14,8 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./src/__tests__/setup.ts'],
       env: {
         NODE_ENV: 'development',
-        POSTGRES_URL: config.database.url,
-        POSTGRES_URL_NON_POOLING: config.database.nonPoolingUrl,
+        POSTGRES_URL: process.env.POSTGRES_URL || '',
+        POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING || '',
       },
       exclude: [
         '**/node_modules/**',
@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
         '**/.{idea,git,cache,output,temp}/**',
         '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
         '**/src/__tests__/e2e/**', // E2E 테스트 제외
+        '**/*.e2e.spec.ts', // Playwright E2E 테스트 제외
       ],
       coverage: {
         provider: 'v8',

@@ -7,15 +7,15 @@ import {
 
 /**
  * Page Entity
- * 
+ *
  * Page 도메인 엔티티로 Page의 핵심 정보와 계층 구조 로직을 캡슐화
- * 
+ *
  * 비즈니스 규칙:
  * - 제목은 최대 200자
  * - depth는 0 이상 (0=최상위)
  * - parentId가 null이면 depth=0
  * - parentId가 있으면 depth > 0
- * - order는 0 이상
+ * - order는 fractional index 문자열 (예: 'a0', 'a1', 'a0V')
  */
 export class Page {
   constructor(
@@ -24,7 +24,7 @@ export class Page {
     private _parentId: PageId | null,
     private _title: string,
     private _icon: string | null,
-    public order: number,
+    public order: string,
     private _depth: number,
     public readonly createdBy: string,
     public readonly createdAt: Date,
@@ -64,7 +64,7 @@ export class Page {
 
   /**
    * depth 계산
-   * 
+   *
    * @param parent - 부모 페이지 (null이면 최상위)
    * @returns 계산된 depth (부모 depth + 1, 최상위는 0)
    */
@@ -88,7 +88,7 @@ export class Page {
 
   /**
    * 제목 업데이트
-   * 
+   *
    * @param title - 새 제목 (최대 200자)
    */
   updateTitle(title: string): void {
@@ -100,7 +100,7 @@ export class Page {
 
   /**
    * 아이콘 업데이트
-   * 
+   *
    * @param icon - 새 아이콘 (이모지 또는 null)
    */
   updateIcon(icon: string | null): void {
@@ -110,24 +110,32 @@ export class Page {
 
   /**
    * 순서 업데이트
-   * 
-   * @param order - 새 순서 (0부터 시작하는 인덱스)
+   *
+   * @param order - 새 순서 (fractional index 문자열, 예: 'a0', 'a1', 'a0V')
    */
-  updateOrder(order: number): void {
-    if (order < 0) {
+  updateOrder(order: string): void {
+    // Fractional index 형식 검증: alphanumeric, max 100 characters
+    if (!/^[a-zA-Z0-9]+$/.test(order)) {
       throw new WorkspaceManagementError(
         'INVALID_PAGE_ORDER',
-        'Order must be non-negative'
+        'Order must be a valid fractional index (alphanumeric only)'
       );
     }
-    
+
+    if (order.length > 100) {
+      throw new WorkspaceManagementError(
+        'INVALID_PAGE_ORDER',
+        'Order string cannot exceed 100 characters'
+      );
+    }
+
     this.order = order;
     this._updatedAt = new Date();
   }
 
   /**
    * 부모 페이지 변경 및 depth 재계산
-   * 
+   *
    * @param newParentId - 새 부모 페이지 ID (null이면 최상위로 이동)
    * @param newDepth - 새 depth (부모로부터 계산됨)
    */
@@ -191,4 +199,3 @@ export class Page {
     }
   }
 }
-

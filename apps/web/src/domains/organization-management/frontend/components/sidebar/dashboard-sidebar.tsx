@@ -24,9 +24,8 @@ import {
 } from '@workspace/ui/components/ui/dialog';
 import { SidebarHeaderGroup } from './sidebar-header-group';
 import { OrgWorkspacesSkeleton } from './org-workspaces-skeleton';
-import { OrgWorkspacesMenu } from './org-workspaces-menu';
 import { OrganizationSwitcher } from '../organization/organization-switcher';
-import { WorkspaceSidebarContent } from '@/domains/workspace-management/frontend/components/sidebar/workspace-sidebar-content';
+import { WorkspaceSidebarContent } from '@/domains/workspace-management/frontend/components/sidebar';
 import {
   MessageCircleQuestion,
   Plus,

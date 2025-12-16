@@ -4,7 +4,7 @@ import {
 } from '@workspace/ui/components/ui/sidebar';
 import { DashboardSidebar } from '@/domains/organization-management/frontend/components/sidebar/dashboard-sidebar';
 import { OrganizationProvider } from '@/domains/organization-management/frontend/contexts/organization-context';
-import { WorkspaceProvider } from '@/domains/workspace-management/frontend/contexts/workspace-context';
+import { WorkspaceProvider } from '@/domains/workspace-management/frontend/contexts/workspace';
 import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
 import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-navigation.actions';
 import { redirect } from 'next/navigation';

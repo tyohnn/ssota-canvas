@@ -49,7 +49,7 @@ export interface PageDTO {
   parentId: string | null;
   title: string;
   icon: string | null;
-  order: number;
+  order: string; // Fractional index (e.g., 'a0', 'a1', 'a0V')
   depth: number;
   createdBy: string;
   createdAt: string; // ISO string
@@ -67,7 +67,7 @@ export interface PageTreeNodeDTO {
 
   // ExplorerTree용 추가 필드
   parentId: string | null;
-  order: number;
+  order: string; // Fractional index (e.g., 'a0', 'a1', 'a0V')
 }
 
 // ────────────────────────────────────────────────────────────

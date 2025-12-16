@@ -557,7 +557,7 @@ export const pages = pgTable(
     parent_id: uuid('parent_id'), // Self-referencing FK (handled in migration)
     title: text('title').notNull(),
     icon: text('icon'),
-    order: integer('order').notNull().default(0),
+    order: text('order').notNull(),
     depth: integer('depth').notNull().default(0), // Cached depth (0 = root)
     created_by: uuid('created_by')
       .notNull()
@@ -587,9 +587,9 @@ export const pages = pgTable(
       'pages_depth_root_consistency',
       sql`(${table.parent_id} IS NULL AND ${table.depth} = 0) OR (${table.parent_id} IS NOT NULL AND ${table.depth} > 0)`
     ),
-    orderNonNegativeCheck: check(
-      'pages_order_non_negative',
-      sql`${table.order} >= 0`
+    orderValidFormatCheck: check(
+      'pages_order_valid_format',
+      sql`${table.order} ~ '^[a-zA-Z0-9]+$' AND LENGTH(${table.order}) <= 100`
     ),
 
     // Indexes for tree query optimization

@@ -104,9 +104,6 @@ async function createPageInternal(
       });
     }
 
-    // 4. 캐시 무효화
-    revalidatePath('/r');
-
     return ok({ pageId: result.data });
   } catch (error) {
     console.error('[createPageInternal] Internal error:', error);
@@ -183,7 +180,10 @@ async function movePageInternal(
     const result = await service.movePage(
       new PageId(request.pageId),
       request.newParentId ? new PageId(request.newParentId) : null,
-      user.id
+      user.id,
+      request.insertIndex,
+      request.prevPageId ? new PageId(request.prevPageId) : undefined,
+      request.nextPageId ? new PageId(request.nextPageId) : undefined
     );
 
     // 3. Result 처리
@@ -194,7 +194,7 @@ async function movePageInternal(
       });
     }
 
-    // 4. 캐시 무효화
+    // 4. 캐시 무효화: Next.js가 페이지 데이터를 다시 가져오도록 함
     revalidatePath('/r');
 
     return ok(undefined);
@@ -334,8 +334,19 @@ export async function reorderPagesAction(
   try {
     const user = await getAuthenticatedUser();
 
-    // 4. Internal 함수 호출
-    return await reorderPagesInternal(validatedRequest, user);
+    // 4. 권한 확인: 워크스페이스 멤버인지 확인 (Action layer에서 수행)
+    const memberRepo = new DrizzleWorkspaceMemberRepository();
+    const workspaceId = new WorkspaceId(validatedRequest.workspaceId);
+    const isMember = await memberRepo.isMember(workspaceId, user.id);
+
+    if (!isMember) {
+      return err('User is not a member of this workspace', {
+        code: 'NOT_WORKSPACE_MEMBER',
+      });
+    }
+
+    // 5. Internal 함수 호출 (비즈니스 로직은 Service로 위임)
+    return await reorderPagesInternal(validatedRequest);
   } catch (error) {
     console.error('[reorderPagesAction] Authentication error:', error);
 
@@ -350,34 +361,27 @@ export async function reorderPagesAction(
  * 내부 구현 (검증된 데이터만 처리)
  */
 async function reorderPagesInternal(
-  request: ReorderPagesRequest,
-  user: AuthenticatedUser
+  request: ReorderPagesRequest
 ): Promise<ActionResult<void>> {
   try {
     // 1. 의존성 주입
     const pageRepo = new DrizzlePageRepository();
     const memberRepo = new DrizzleWorkspaceMemberRepository();
-
     const service = new DefaultPageHierarchyService(pageRepo, memberRepo);
 
     // 2. Service 호출
     const result = await service.reorderPages(
       new WorkspaceId(request.workspaceId),
-      request.parentId ? new PageId(request.parentId) : undefined,
-      request.orderedPageIds,
-      user.id
+      request.parentId ? new PageId(request.parentId) : null,
+      request.orderedPageIds
     );
 
-    // 3. Result 처리
     if (!result.success) {
       return err(result.error, {
         code: result.error,
         meta: { details: `Failed to reorder pages: ${result.error}` },
       });
     }
-
-    // 4. 캐시 무효화
-    revalidatePath('/r');
 
     return ok(undefined);
   } catch (error) {

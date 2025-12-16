@@ -3,11 +3,12 @@
 ## 목차
 - [개요](#개요)
 - [핵심 원칙](#핵심-원칙)
+- [Container/Presentational 패턴](#containerpresentational-패턴)
 - [컴포넌트 패턴](#컴포넌트-패턴)
 - [폴더 구조](#폴더-구조)
 - [Props 설계](#props-설계)
 - [상태 관리](#상태-관리)
-- [노코드 워크플로우를 위한 로직 분리](#노코드-워크플로우를-위한-로직-분리)
+- [로우코드 워크플로우 (Storybook)](#로우코드-워크플로우-storybook)
 - [Optimistic Updates with TanStack Query](#optimistic-updates-with-tanstack-query)
 - [실전 예제](#실전-예제)
 - [안티패턴](#안티패턴)
@@ -16,10 +17,11 @@
 
 ## 개요
 
-이 가이드라인은 SSOTA 프로젝트의 프론트엔드 컴포넌트 개발 표준을 정의합니다. 특히 다음 두 가지 목표를 염두에 두고 설계되었습니다:
+이 가이드라인은 SSOTA 프로젝트의 프론트엔드 컴포넌트 개발 표준을 정의합니다. 특히 다음 세 가지 목표를 염두에 두고 설계되었습니다:
 
-1. **노코드 툴 호환성**: Framer, Webflow와 같은 노코드 개발 툴에서 사용 가능한 컴포넌트 구조
-2. **선언적 UI 구성**: 비즈니스 로직과 UI 표현을 명확히 분리하여 가독성과 유지보수성 향상
+1. **로우코드 툴 호환성**: Storybook, Playroom과 같은 컴포넌트 테스팅 환경에서 독립적으로 테스트 가능한 구조
+2. **Container/Presentational 패턴**: 비즈니스 로직(Container)과 UI 렌더링(Presentational)을 명확히 분리
+3. **디자이너 참여 워크플로우**: 디자이너가 Props만으로 컴포넌트를 테스트하고 스타일링할 수 있는 환경 제공
 
 ---
 
@@ -45,37 +47,46 @@
 />
 ```
 
-### 2. Context를 통한 상태 공유
+### 2. Container/Presentational 패턴
 
-부모-자식 간 로직 공유는 Props Drilling이 아닌 Context를 사용합니다.
+컴포넌트를 **로직을 담당하는 Container**와 **렌더링만 담당하는 Presentational**로 분리합니다.
 
-**✅ 좋은 예:**
+**✅ 좋은 예 (Presentational):**
 ```tsx
-// 내부 훅으로 로직 캡슐화
-const usePropertyAddPopoverContext = () => {
-  const context = useContext(PropertyAddPopoverContext);
-  if (!context) {
-    throw new Error('Must be used within PropertyAddPopover');
-  }
-  return context;
-};
+// Props만 받아서 렌더링 (테스트 쉬움!)
+interface MemberListTableProps {
+  members: Member[];
+  isLoading: boolean;
+}
 
-// 자식 컴포넌트에서 자동으로 연결
-const PropertyNameInput = () => {
-  const { propertyName, setPropertyName } = usePropertyAddPopoverContext();
-  return <Input value={propertyName} onChange={setPropertyName} />;
-};
+export function MemberListTable({ members, isLoading }: MemberListTableProps) {
+  return <Table>{/* 렌더링만 */}</Table>;
+}
 ```
 
-**❌ 나쁜 예:**
+**✅ 좋은 예 (Container):**
 ```tsx
-// Props로 함수와 상태를 직접 전달
-<PropertyNameInput 
-  value={propertyName}
-  onChange={setPropertyName}
-  onEscape={handleClose}
-/>
+// Hook으로 데이터 가져와서 Props로 전달
+export function MembersTab({ workspaceId }: MembersTabProps) {
+  const { members, isLoading } = useMembersTab(workspaceId);
+  
+  return <MemberListTable members={members} isLoading={isLoading} />;
+}
 ```
+
+**❌ 나쁜 예 (로직과 렌더링 혼재):**
+```tsx
+// 컴포넌트 내부에서 직접 Hook 사용 → 테스트 어려움
+export function MemberListTable() {
+  const { members, isLoading } = useMembersTabContext(); // Context 의존
+  return <Table>{/* ... */}</Table>;
+}
+```
+
+**Context는 언제 사용하는가?**
+- ✅ **전역 데이터**: 앱 전체에서 사용 (WorkspaceContext, ThemeContext)
+- ✅ **도메인 레벨**: 큰 기능 단위 (SettingsDialogContext)
+- ❌ **로컬 레벨**: 작은 컴포넌트 (Props로 전달하는 게 더 간단함)
 
 ### 3. 로직 분리와 테스트 가능성
 
@@ -92,11 +103,143 @@ component/
 ```
 
 **장점:**
-- ✅ **노코드 툴 호환**: 디자이너는 `.ui.ts`만 사용
+- ✅ **로우코드 툴 호환**: 디자이너는 Storybook에서 Props만으로 테스트
 - ✅ **테스트 용이**: UI/Business 로직 각각 독립 테스트
 - ✅ **Mock 지원**: 비즈니스 로직을 쉽게 교체 가능
 
-> 💡 **자세한 내용**: [노코드 워크플로우를 위한 로직 분리](#노코드-워크플로우를-위한-로직-분리) 참조
+> 💡 **자세한 내용**: [로우코드 워크플로우 (Storybook)](#로우코드-워크플로우-storybook) 참조
+
+---
+
+## Container/Presentational 패턴
+
+### 개념
+
+컴포넌트를 두 가지 역할로 분리합니다:
+
+```
+┌─────────────────────────────────┐
+│  Container Component            │
+│  (로직 담당)                     │
+│  - Hook으로 데이터 가져오기      │
+│  - 비즈니스 로직 처리            │
+│  - Props로 Presentational에 전달 │
+└──────────┬──────────────────────┘
+           │ Props (단순 값만)
+           ↓
+┌─────────────────────────────────┐
+│  Presentational Component       │
+│  (렌더링만 담당)                 │
+│  - Props만 받음                  │
+│  - 순수 함수                     │
+│  - 로직 없음                     │
+│  - Storybook 테스트 쉬움 ✅      │
+└─────────────────────────────────┘
+```
+
+### 예시
+
+#### Container (index.tsx)
+```tsx
+// members-tab/index.tsx
+export function MembersTab({ workspaceId }: MembersTabProps) {
+  // Hook으로 데이터 가져오기
+  const { memberView, isLoading } = useMembersTab(workspaceId);
+
+  // Props로 전달 (로직 없음)
+  return (
+    <MembersTabContent
+      members={memberView?.currentMembers || []}
+      pendingInvitations={memberView?.pendingInvitations || []}
+      isLoading={isLoading}
+    />
+  );
+}
+```
+
+#### Presentational (components/)
+```tsx
+// members-tab/components/members-tab-content.tsx
+interface MembersTabContentProps {
+  members: Member[];
+  pendingInvitations: Invitation[];
+  isLoading: boolean;
+}
+
+export function MembersTabContent({
+  members,
+  pendingInvitations,
+  isLoading,
+}: MembersTabContentProps) {
+  // 렌더링만! Hook 없음
+  return (
+    <Box>
+      <MembersTabHeader />
+      <WorkspaceMemberListTable
+        currentMembers={members}
+        pendingInvitations={pendingInvitations}
+        isLoading={isLoading}
+      />
+    </Box>
+  );
+}
+```
+
+### Storybook 테스트
+
+```tsx
+// members-tab-content.stories.tsx
+export default {
+  title: 'Workspace/MembersTabContent',
+  component: MembersTabContent,
+};
+
+// 디자이너가 직접 작성 가능!
+export const Default = () => (
+  <MembersTabContent
+    members={[{ userId: '1', name: 'John', ... }]}
+    pendingInvitations={[]}
+    isLoading={false}
+  />
+);
+
+export const Loading = () => (
+  <MembersTabContent
+    members={[]}
+    pendingInvitations={[]}
+    isLoading={true}  // 로딩 상태 테스트
+  />
+);
+```
+
+### Context는 언제 필요한가?
+
+#### ✅ Context 사용 (전역/도메인 레벨)
+```tsx
+// 앱 전체 또는 큰 기능 단위
+<WorkspaceContext>           // 전역: workspace 데이터
+  <SettingsDialogContext>    // 도메인: 설정 다이얼로그 전체
+    <MembersTab />           // 로컬: Props로 전달
+  </SettingsDialogContext>
+</WorkspaceContext>
+```
+
+#### ❌ Context 불필요 (로컬 레벨)
+```tsx
+// 작은 컴포넌트는 Props로 충분
+<MembersTab workspaceId={workspaceId}>  // Container
+  <MembersTabContent                    // Presentational
+    members={members}                   // Props로 전달
+    isLoading={isLoading}
+  />
+</MembersTab>
+```
+
+**가이드라인:**
+- **Props drilling 1-2단계**: Props 전달 (간단함)
+- **Props drilling 3단계 이상**: Context 고려
+- **전역 데이터** (workspaceId, 테마): Context
+- **테스트하고 싶은 컴포넌트**: Presentational (Props만)
 
 ---
 
@@ -351,11 +494,38 @@ const [propertyName, setPropertyName] = useState('');
 
 ### 공유 상태 (Context)
 
-서브 컴포넌트 간 공유가 필요한 상태는 Context로 관리합니다.
+**Context 사용 레벨:**
 
+#### 1️⃣ 전역 레벨 (App-wide)
 ```tsx
-const PropertyAddPopoverContext = createContext<ContextValue>(null);
+// 앱 전체에서 사용
+<WorkspaceContext>    // ✅ workspace 데이터
+<UserContext>         // ✅ 인증 정보
+<ThemeContext>        // ✅ 테마
 ```
+
+#### 2️⃣ 도메인 레벨 (Feature-wide)
+```tsx
+// 큰 기능 단위 (다이얼로그, 섹션)
+<WorkspaceSettingsDialogContext>  // ✅ 설정 다이얼로그 전체
+  <GeneralSettingsForm />
+  <MembersTab />
+</WorkspaceSettingsDialogContext>
+```
+
+#### 3️⃣ 로컬 레벨 (Component-local)
+```tsx
+// ❌ Context 불필요 (Props로 충분!)
+// Props drilling 1-2단계는 괜찮음
+<MembersTab workspaceId={workspaceId}>
+  <MembersTabContent members={members} />
+</MembersTab>
+```
+
+**가이드라인:**
+- **전역/도메인**: Context 사용 (Props drilling 3단계 이상)
+- **로컬**: Props 전달 (Props drilling 1-2단계)
+- **원칙**: Presentational 컴포넌트는 Props만 받음
 
 ### 도메인 상태 (Custom Hook)
 
@@ -367,95 +537,115 @@ const { createField } = useCustomProperty();
 
 ---
 
-## 노코드 워크플로우를 위한 로직 분리
+## 로우코드 워크플로우 (Storybook)
 
 ### Why: 디자이너-엔지니어 협업
 
-노코드 툴(Framer 등)에서 디자이너가 UI를 작업하고, 엔지니어가 비즈니스 로직을 배선하는 워크플로우를 지원합니다.
+**Storybook/Playroom** 환경에서 디자이너가 Presentational 컴포넌트를 독립적으로 테스트하고, 엔지니어가 Container에서 비즈니스 로직을 배선하는 워크플로우를 지원합니다.
 
 **핵심 아이디어:**
-- 🎨 **디자이너**: UI 상태만 다루며 Framer에서 독립적으로 작업
-- 💼 **엔지니어**: 비즈니스 로직만 집중하여 나중에 배선
-- 🔌 **통합**: Optional Injection으로 유연하게 연결
+- 🎨 **디자이너**: Storybook에서 Props만으로 UI 테스트
+- 💼 **엔지니어**: Hook으로 비즈니스 로직 구현
+- 🔌 **통합**: Container가 Hook → Props 변환
 
 ```
 ┌─────────────────────────────────────────┐
-│  Designer (Framer)                      │
-│  ↓ UI State Hook (.ui.ts)               │
-│  → open, propertyName 등                │
-│  → Mock 비즈니스 로직으로 테스트          │
+│  Designer (Storybook)                   │
+│  ↓ Presentational Component             │
+│  → Props로 Mock 데이터 주입              │
+│  → Context/Hook 몰라도 됨                │
+│  → 즉시 시각적 피드백                    │
 └─────────────────────────────────────────┘
                  ↓
 ┌─────────────────────────────────────────┐
 │  Engineer (Production)                  │
-│  ↓ Business Logic (.business.ts)        │
-│  → API 호출, 검증, 에러 처리             │
-│  → Combined Hook에서 통합                │
+│  ↓ Container Component                  │
+│  → Hook으로 데이터 가져오기              │
+│  → Props로 Presentational에 전달         │
 └─────────────────────────────────────────┘
 ```
 
 ### 워크플로우
 
-#### Phase 1: 디자이너 작업 (Framer)
+#### Phase 1: 디자이너 작업 (Storybook)
 
-디자이너는 UI State Hook만 사용하여 Framer에서 독립적으로 작업합니다:
+디자이너는 Presentational 컴포넌트를 Storybook에서 독립적으로 테스트합니다:
 
 ```tsx
-// Framer 환경
-function CustomPropertyAddPopover_Designer({ blockId }: { blockId: string }) {
-  // UI 상태만 사용 (비즈니스 로직 없음)
-  const uiState = usePropertyAddPopoverUI();
+// workspace-member-list-table.stories.tsx
+export default {
+  title: 'Workspace/MemberListTable',
+  component: WorkspaceMemberListTable,
+};
 
-  // Mock 비즈니스 로직
-  const mockBusiness = useMockPropertyAddBusiness();
+// 디자이너가 직접 작성 가능!
+export const Default = () => (
+  <WorkspaceMemberListTable
+    currentMembers={[
+      { userId: '1', name: 'John Doe', email: 'john@example.com', ... }
+    ]}
+    pendingInvitations={[]}
+    isLoading={false}
+  />
+);
 
-  return (
-    <Popover open={uiState.open} onOpenChange={uiState.handleOpenChange}>
-      <PopoverTrigger>+ Add Property</PopoverTrigger>
-      <PopoverContent>
-        <Input
-          ref={uiState.inputRef}
-          value={uiState.propertyName}
-          onChange={(e) => uiState.setPropertyName(e.target.value)}
-        />
-        <TypeGrid onSelect={mockBusiness.onSubmit} />
-      </PopoverContent>
-    </Popover>
-  );
-}
+export const Loading = () => (
+  <WorkspaceMemberListTable
+    currentMembers={[]}
+    pendingInvitations={[]}
+    isLoading={true}  // 로딩 상태 테스트
+  />
+);
+
+export const WithPending = () => (
+  <WorkspaceMemberListTable
+    currentMembers={[...]}
+    pendingInvitations={[
+      { id: '1', invitedUserEmail: 'jane@example.com', ... }
+    ]}
+    isLoading={false}
+  />
+);
 ```
 
 **디자이너가 할 수 있는 것:**
-- ✅ UI 레이아웃 디자인
-- ✅ 인터랙션 테스트 (open/close, input)
-- ✅ 애니메이션, 스타일링
-- ✅ Framer에서 실시간 프리뷰
+- ✅ Props 값만 바꿔서 다양한 UI 상태 테스트
+- ✅ Context/Hook/Provider 몰라도 됨
+- ✅ 즉시 시각적 피드백
+- ✅ 애니메이션, 스타일 조정
+- ✅ 반응형 디자인 테스트
 
 **디자이너가 할 필요 없는 것:**
 - ❌ API 연동
-- ❌ 데이터 검증
-- ❌ 에러 처리
+- ❌ 비즈니스 로직
+- ❌ Context 설정
+- ❌ Hook 이해
 
-#### Phase 2: 엔지니어 배선
+#### Phase 2: 엔지니어 배선 (Production)
 
-엔지니어는 비즈니스 로직을 주입하여 Production 환경을 구성합니다:
+엔지니어는 Container에서 Hook으로 데이터를 가져와 Props로 전달합니다:
 
 ```tsx
-// Production 환경
-function CustomPropertyAddPopover({ blockId }: { blockId: string }) {
-  // 실제 비즈니스 로직 주입 (또는 생략하면 기본값 사용)
-  const business = usePropertyAddBusiness(blockId);
+// members-tab/index.tsx (Container)
+export function MembersTab({ workspaceId, disableInvite }: MembersTabProps) {
+  // Hook으로 비즈니스 로직 처리
+  const {
+    memberView,
+    isLoadingMembers,
+    isLoadingMembersQuery,
+  } = useMembersTab({ workspaceId, disableInvite });
 
+  const isLoading = isLoadingMembers || isLoadingMembersQuery;
+
+  // Props로 Presentational에 전달
   return (
-    <CustomPropertyAddPopoverComponent
-      blockId={blockId}
-      businessLogic={business} // 🔌 비즈니스 로직 배선
+    <MembersTabContent
+      members={memberView?.currentMembers || []}
+      pendingInvitations={memberView?.pendingInvitations || []}
+      isLoading={isLoading}
     />
   );
 }
-
-// 또는 기본값 사용 (businessLogic 생략 시 자동으로 production 로직 사용)
-<CustomPropertyAddPopover blockId={blockId} />
 ```
 
 ### 1️⃣ UI State Hook (`.ui.ts`)
@@ -695,10 +885,78 @@ const business = usePropertyAddBusiness(blockId);
 ```
 
 **장점:**
-- ✅ **노코드 툴 호환**: 디자이너가 Framer에서 독립적으로 작업
-- ✅ **테스트 용이**: UI/Business 각각 독립 테스트
-- ✅ **유연성**: Mock/Prod 로직 쉽게 교체
-- ✅ **재사용성**: UI 훅을 다른 컴포넌트에서 재사용
+- ✅ **로우코드 툴 호환**: 디자이너가 Storybook에서 독립적으로 작업
+- ✅ **테스트 용이**: Presentational 컴포넌트 독립 테스트
+- ✅ **유연성**: Mock 데이터 쉽게 교체
+- ✅ **재사용성**: Presentational 컴포넌트를 다양한 Context에서 재사용
+- ✅ **디버깅 쉬움**: Props로 데이터 흐름 추적 용이
+
+### Container/Presentational 분리 전략
+
+#### Presentational 컴포넌트 (components/)
+```tsx
+// workspace-member-list-table.tsx
+interface WorkspaceMemberListTableProps {
+  currentMembers: Member[];          // ✅ 단순 배열
+  pendingInvitations: Invitation[];  // ✅ 단순 배열
+  isLoading: boolean;                // ✅ 단순 boolean
+}
+
+export function WorkspaceMemberListTable({
+  currentMembers,
+  pendingInvitations,
+  isLoading,
+}: WorkspaceMemberListTableProps) {
+  // Hook 사용 금지! Props만 사용
+  // Context 사용 금지! Props만 사용
+  
+  return (
+    <Table>
+      {isLoading ? <LoadingSkeleton /> : <MemberRows members={currentMembers} />}
+    </Table>
+  );
+}
+```
+
+#### Container 컴포넌트 (index.tsx)
+```tsx
+// members-tab/index.tsx
+export function MembersTab({ workspaceId }: MembersTabProps) {
+  // Hook 사용 ✅
+  const business = useMembersTabBusiness(workspaceId);
+  const ui = useMembersTabUI();
+  
+  // Props로 변환
+  return (
+    <MembersTabContent
+      members={business.memberView?.currentMembers || []}
+      isLoading={business.isLoading}
+      onInviteClick={ui.handleOpenInviteDialog}
+    />
+  );
+}
+```
+
+### 폴더 구조
+
+```
+members-tab/
+├── components/                       # Presentational (Props만)
+│   ├── workspace-member-list-table.tsx
+│   ├── members-tab-header.tsx
+│   └── members-tab-content.tsx
+├── core/                             # 비즈니스 로직
+│   ├── use-members-tab.ts            # Hook
+│   ├── use-members-tab.ui.ts
+│   ├── use-members-tab.business.ts
+│   └── types.ts
+└── index.tsx                         # Container (Hook → Props)
+```
+
+**규칙:**
+- **Presentational**: Context 사용 금지, Hook 사용 금지, Props만
+- **Container**: Hook으로 데이터 가져와서 Props로 전달
+- **Core**: 비즈니스 로직, UI 로직 분리
 
 ---
 
@@ -1155,20 +1413,25 @@ export const GlobalPropertyAddPopoverContext = ...
 
 ### 기본 구조
 - [ ] 폴더 구조가 가이드라인을 따르는가?
-- [ ] Props에 함수가 포함되어 있지 않은가?
-- [ ] 서브 컴포넌트가 Context를 통해 상태를 공유하는가?
-- [ ] index.tsx가 UI 구조만 표현하는가?
-- [ ] Context가 폴더 로컬로 제한되어 있는가?
+- [ ] index.tsx가 Container 역할 (Hook → Props)을 하는가?
+- [ ] Context가 전역/도메인 레벨에만 사용되는가?
+- [ ] 로컬 레벨에서는 Props로 전달하는가?
 - [ ] 타입이 명확히 정의되어 있는가?
-- [ ] 노코드 툴에서 사용 가능한 구조인가?
 
-### 로직 분리 (노코드 워크플로우)
+### Container/Presentational 분리
+- [ ] Presentational 컴포넌트가 Props만 받는가?
+- [ ] Presentational 컴포넌트에 Hook/Context가 없는가?
+- [ ] Container가 Hook으로 데이터를 가져오는가?
+- [ ] Container가 Props로 Presentational에 전달하는가?
+- [ ] Props drilling이 1-2단계 이내인가?
+
+### 로우코드 워크플로우 (Storybook)
+- [ ] Presentational 컴포넌트가 Storybook에서 테스트 가능한가?
+- [ ] Mock 데이터로 다양한 UI 상태를 테스트할 수 있는가?
+- [ ] Props만으로 컴포넌트를 제어할 수 있는가?
+- [ ] 디자이너가 Context/Hook 없이 테스트할 수 있는가?
 - [ ] UI 로직이 `.ui.ts` 파일로 분리되어 있는가?
 - [ ] 비즈니스 로직이 `.business.ts` 파일로 분리되어 있는가?
-- [ ] 통합 훅이 Optional Injection을 지원하는가?
-- [ ] Mock 비즈니스 로직이 제공되는가?
-- [ ] UI 훅이 비즈니스 로직 없이 독립적으로 동작하는가?
-- [ ] 디자이너가 Framer에서 테스트할 수 있는 구조인가?
 
 ### Optimistic Updates
 - [ ] 복잡한 상태 업데이트에 TanStack Query를 사용하는가?
@@ -1192,7 +1455,8 @@ export const GlobalPropertyAddPopoverContext = ...
 ### 추가 읽을거리
 
 - [Compound Components Pattern](https://kentcdodds.com/blog/compound-components-with-react-hooks)
-- [Framer Component Guidelines](https://www.framer.com/developers/)
+- [Container/Presentational Pattern](https://www.patterns.dev/react/presentational-container-pattern)
+- [Storybook 공식 문서](https://storybook.js.org/docs)
 - [Radix UI Architecture](https://www.radix-ui.com/docs/primitives/overview/introduction)
 - [TanStack Query 공식 문서](https://tanstack.com/query/latest)
 - [Optimistic Updates 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/optimistic-updates)
@@ -1203,6 +1467,7 @@ export const GlobalPropertyAddPopoverContext = ...
 
 | 날짜 | 버전 | 변경 내용 |
 |------|------|-----------|
+| 2025-12-14 | 4.0.0 | **메이저 업데이트**: 노코드(Framer) → 로우코드(Storybook) 스타일로 전환<br>- Container/Presentational 패턴 도입<br>- 국소적 Context 사용 최소화 (Props 전달 권장)<br>- Storybook 기반 워크플로우로 변경<br>- Context 사용 레벨 명확화 (전역/도메인/로컬) |
 | 2025-11-27 | 3.1.0 | 폴더 구조 섹션 업데이트: components/ + core/ 계층 구조 패턴 및 프랙탈 아키텍처 추가 |
 | 2025-11-10 | 3.0.0 | TanStack Query를 활용한 Optimistic Updates 패턴 추가 |
 | 2025-11-10 | 2.0.0 | 노코드 워크플로우를 위한 로직 분리 패턴 추가 (UI/Business 3-Layer 아키텍처) |

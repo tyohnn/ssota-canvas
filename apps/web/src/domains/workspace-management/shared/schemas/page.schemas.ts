@@ -24,6 +24,9 @@ export const CreatePageRequestSchema = z.object({
 export const MovePageRequestSchema = z.object({
   pageId: z.uuid('Invalid page ID'),
   newParentId: z.string().uuid('Invalid parent page ID').optional(),
+  insertIndex: z.number().int().min(0).optional(), // 삽입 위치 (0부터 시작, 없으면 맨 뒤)
+  prevPageId: z.string().uuid('Invalid prev page ID').optional(), // 이전 페이지 ID (UI 드롭 순서)
+  nextPageId: z.string().uuid('Invalid next page ID').optional(), // 다음 페이지 ID (UI 드롭 순서)
 });
 
 /**

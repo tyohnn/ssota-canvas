@@ -65,8 +65,8 @@ export class PageAggregate {
     // 3. depth 계산
     const depth = parentId === null ? 0 : (parentPage?.depth ?? 0) + 1;
 
-    // 4. order 계산 (현재는 0, Repository에서 실제 계산 필요)
-    const order = 0;
+    // 4. order는 Service에서 계산하여 command에 포함되거나, 생성 후 updateOrder 호출
+    const order = 'a0';
 
     // 5. Page Entity 생성
     const page = new Page(
@@ -144,7 +144,12 @@ export class PageAggregate {
     // 4. Page Entity의 moveToParent 호출
     this._page.moveToParent(newParentId, newDepth);
 
-    // 5. PageMoved 이벤트 발행
+    // 5. order 업데이트 (command에 newOrder가 있으면)
+    if (command.newOrder) {
+      this._page.updateOrder(command.newOrder);
+    }
+
+    // 6. PageMoved 이벤트 발행
     this.addEvent({
       type: 'PageMoved',
       pageId: this._page.pageId.value,
