@@ -1,3 +1,8 @@
+## [0.6.2] - 2025-12-17
+
+### Hotfix
+
+- *(migrations)* Update order_text assignment to include deleted pages
 ## [0.6.1] - 2025-12-17
 
 ### Hotfix
