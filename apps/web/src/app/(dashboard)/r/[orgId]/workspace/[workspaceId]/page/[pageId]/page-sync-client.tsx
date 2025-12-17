@@ -28,7 +28,7 @@ export function PageSyncClient({
     // 1. Context 동기화: 이미 선택된 페이지가 아닐 때만 선택
     if (selectedPageId !== pageId) {
       // skipNavigation = true로 설정하여 router.push 방지 (무한 루프 방지)
-      selectPage(pageId, workspaceId, true);
+      selectPage(pageId, workspaceId);
     }
 
     // 2. 쿠키에 최근 방문 페이지 저장
