@@ -37,10 +37,10 @@ SET order_text = numbered_pages.new_order_text
 FROM numbered_pages
 WHERE pages.id = numbered_pages.id;
 
--- 3. Set order_text for any remaining NULL values (shouldn't happen, but safety)
+-- 3. Set order_text for any remaining NULL values (including deleted pages)
 UPDATE pages
 SET order_text = 'a0'
-WHERE order_text IS NULL AND deleted_at IS NULL;
+WHERE order_text IS NULL;
 
 -- 4. Drop old integer order column
 ALTER TABLE pages DROP COLUMN IF EXISTS "order";
