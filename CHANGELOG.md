@@ -1,3 +1,23 @@
+## [0.6.1] - 2025-12-17
+
+### Hotfix
+
+- Remove porse
+
+### ♻️ Refactoring
+
+- Refactor(workspace-management): refactor workspace-page-tree
+- code format / solid
+- fix ordering bug completely
+- fix duplication error
+
+### 🐛 Bug Fixes
+
+- Build error
+
+### 🔧 Maintenance
+
+- Add new skip commit
 ## [0.6.0] - 2025-12-15
 
 ### ✨ Features
@@ -176,10 +196,6 @@
 ### Dev
 
 - Supabase branch에 storage 추가
-
-### Version
-
-- 0.3.0
 
 ### ♻️ Refactoring
 
