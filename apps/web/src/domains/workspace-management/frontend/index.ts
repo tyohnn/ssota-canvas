@@ -5,11 +5,5 @@
  */
 
 // Context & Hooks
-export {
-  WorkspaceProvider,
-  useWorkspaceContext,
-} from './contexts/workspace-context';
+export { WorkspaceProvider, useWorkspaceContext } from './contexts/workspace';
 export { useWorkspace } from './hooks/use-workspace';
-
-// Components
-export * from './components';

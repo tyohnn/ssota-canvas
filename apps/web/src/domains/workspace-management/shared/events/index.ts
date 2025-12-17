@@ -54,7 +54,7 @@ export interface PageCreatedEvent {
   parentId?: string;
   title: string;
   depth: number;
-  order: number;
+  order: string; // Fractional index (e.g., 'a0', 'a1', 'a0V')
   occurredAt: Date;
 }
 

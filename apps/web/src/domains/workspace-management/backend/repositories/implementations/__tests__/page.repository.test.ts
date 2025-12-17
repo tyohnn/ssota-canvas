@@ -292,7 +292,7 @@ describe('PageRepository Integration Tests', () => {
     });
 
     it('같은 레벨 내에서는 order로 정렬되어야 한다', async () => {
-      // Given: 같은 레벨에 3개 페이지 생성 (order: 0, 1, 2)
+      // Given: 같은 레벨에 3개 페이지 생성 (fractional index로 자동 생성됨)
       const page1 = PageAggregate.create(
         {
           workspaceId: testWorkspaceId.value,

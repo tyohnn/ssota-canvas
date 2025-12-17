@@ -219,7 +219,7 @@ export function LandingCanvasWrapper({
 
           {/* 캔버스 상단 툴바 - 원래 컴포넌트 사용 (클릭 불가, 헤더 아래 배치) */}
           <Panel
-            position="top-center"
+            position="center-left"
             className="m-0! pointer-events-none! z-10"
           >
             <CanvasToolbar

@@ -29,7 +29,7 @@ export function buildPageTreeDTO(pages: Page[]): PageTreeNodeDTO[] {
           ? page.updatedAt.toISOString()
           : page.updatedAt,
       parentId: page.parentId?.value || null,
-      order: page.order,
+      order: String(page.order), // Ensure string type (fractional index)
     };
     pageMap.set(page.pageId.value, dto);
   }

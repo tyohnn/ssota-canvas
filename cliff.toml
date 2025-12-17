@@ -36,6 +36,9 @@ commit_parsers = [
   { message = "^docs:.*sync.*CHANGELOG", skip = true},
   { message = ".*Update CHANGELOG.*", skip = true},  # 대소문자 상관없이 "Update CHANGELOG" 포함 메시지
   { message = ".*update changelog.*", skip = true},  # 소문자 버전
+  { message = "^chore\\(skip\\)", skip = true },     # chore(skip) 커밋 스킵
+  { message = "^wip", skip = true },                 # wip 커밋 스킵
+  { message = "^version", skip = true },                 # version커밋 스킵
   { message = "^doc", group = "📚 Documentation"},
   { message = "^perf", group = "⚡ Performance"},
   { message = "^refactor", group = "♻️ Refactoring"},

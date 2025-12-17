@@ -9,6 +9,7 @@ import type { Result } from './interfaces/common.types';
 import { Result as R } from './interfaces/common.types';
 import { PageAggregate } from '../../shared/aggregates/page.aggregate';
 import { isWorkspaceManagementError } from '../../shared/errors/workspace-management.error';
+import { generateKeyBetween } from 'fractional-indexing';
 
 /**
  * Page Hierarchy Service Implementation (Scenario 4)
@@ -62,18 +63,27 @@ export class DefaultPageHierarchyService implements PageHierarchyService {
         }
       }
 
-      // 4. 같은 부모의 children 조회하여 maxOrder 계산
-      const allPages = await this.pageRepo.findTreeByWorkspaceId(workspaceId);
-      const siblings = allPages.filter(p => {
-        const pParentId = p.parentId?.value || null;
-        const targetParentId = parentId?.value || null;
-        return pParentId === targetParentId;
-      });
-      const maxOrder =
-        siblings.length > 0 ? Math.max(...siblings.map(p => p.order)) : -1;
-      const newOrder = maxOrder + 1;
+      // 4. 같은 부모의 children 조회하여 fractional index 계산 (직접 자식만 조회 - 효율적)
+      const siblings = await this.pageRepo.findChildrenByParentId(
+        parentId,
+        workspaceId
+      );
 
-      // 5. Page Aggregate 생성
+      // 5. 형제 페이지들을 order로 정렬 (이미 정렬되어 있지만 명시적으로)
+      const sortedSiblings = [...siblings].sort((a, b) =>
+        a.order.localeCompare(b.order)
+      );
+
+      // 6. 마지막 형제의 order 가져오기 (없으면 null)
+      const lastSiblingOrder =
+        sortedSiblings.length > 0
+          ? sortedSiblings[sortedSiblings.length - 1]!.order
+          : null;
+
+      // 7. 새 order 생성 (맨 뒤에 추가)
+      const newOrder = generateKeyBetween(lastSiblingOrder, null);
+
+      // 8. Page Aggregate 생성
       const pageAgg = PageAggregate.create(
         {
           workspaceId: workspaceId.value,
@@ -85,7 +95,7 @@ export class DefaultPageHierarchyService implements PageHierarchyService {
         parentPage
       );
 
-      // 6. order 업데이트 (같은 부모의 마지막 순서로)
+      // 9. order 업데이트 (fractional index)
       pageAgg.page.updateOrder(newOrder);
 
       // 7. Page 저장
@@ -112,12 +122,18 @@ export class DefaultPageHierarchyService implements PageHierarchyService {
    * @param pageId - 이동할 페이지 ID
    * @param newParentId - 새 부모 페이지 ID (null이면 최상위)
    * @param userId - 사용자 ID
+   * @param insertIndex - 삽입 위치 (0부터 시작, 없으면 맨 뒤) - deprecated
+   * @param prevPageId - 이전 페이지 ID (UI 드롭 순서)
+   * @param nextPageId - 다음 페이지 ID (UI 드롭 순서)
    * @returns void (성공) | Error code (실패)
    */
   async movePage(
     pageId: PageId,
     newParentId: PageId | null,
-    userId: string
+    userId: string,
+    insertIndex?: number,
+    prevPageId?: PageId,
+    nextPageId?: PageId
   ): Promise<Result<void>> {
     try {
       // 1. Page 조회
@@ -153,20 +169,81 @@ export class DefaultPageHierarchyService implements PageHierarchyService {
         ancestors = await this.pageRepo.findAncestors(newParentId);
       }
 
-      // 6. Page Aggregate 재구성
+      // 6. 새 위치의 형제 페이지 조회 (직접 자식만 조회 - 효율적)
+      const newSiblings = await this.pageRepo.findChildrenByParentId(
+        newParentId,
+        page.workspaceId
+      );
+      // 이동할 페이지 자체는 제외
+      const siblingsExcludingSelf = newSiblings.filter(
+        p => p.pageId.value !== pageId.value
+      );
+
+      // 7. 형제 페이지들을 order로 정렬 (이미 정렬되어 있지만 명시적으로)
+      const sortedNewSiblings = [...siblingsExcludingSelf].sort((a, b) =>
+        a.order.localeCompare(b.order)
+      );
+
+      // 8. fractional index 계산
+      let newOrder: string;
+
+      // prevPageId/nextPageId가 제공된 경우 우선 사용 (UI 드롭 순서 기반)
+      if (prevPageId || nextPageId) {
+        const prevPage = prevPageId
+          ? sortedNewSiblings.find(p => p.pageId.value === prevPageId.value)
+          : null;
+        const nextPage = nextPageId
+          ? sortedNewSiblings.find(p => p.pageId.value === nextPageId.value)
+          : null;
+
+        const prevOrder = prevPage?.order || null;
+        const nextOrder = nextPage?.order || null;
+
+        newOrder = generateKeyBetween(prevOrder, nextOrder);
+      } else if (
+        insertIndex !== undefined &&
+        insertIndex >= 0 &&
+        insertIndex <= sortedNewSiblings.length
+      ) {
+        // fallback: insertIndex 사용 (deprecated)
+        const prevOrder =
+          insertIndex > 0
+            ? sortedNewSiblings[insertIndex - 1]?.order || null
+            : null;
+        const nextOrder =
+          insertIndex < sortedNewSiblings.length
+            ? sortedNewSiblings[insertIndex]?.order || null
+            : null;
+
+        newOrder = generateKeyBetween(prevOrder, nextOrder);
+      } else {
+        // insertIndex가 없거나 범위를 벗어난 경우: 맨 뒤에 추가
+        const lastSiblingOrder =
+          sortedNewSiblings.length > 0
+            ? sortedNewSiblings[sortedNewSiblings.length - 1]!.order
+            : null;
+
+        newOrder = generateKeyBetween(lastSiblingOrder, null);
+      }
+
+      // 10. Page Aggregate 재구성
       const pageAgg = new PageAggregate(page);
 
-      // 7. move 호출 (순환 참조 체크 포함)
+      // 11. move 호출 (순환 참조 체크 포함)
       pageAgg.move(
         {
           pageId: pageId.value,
           newParentId: newParentId?.value,
+          newOrder,
         },
         newParentPage,
         ancestors
       );
 
-      // 8. Page 저장 (parent_id, depth 업데이트)
+      // 12. order 업데이트
+      pageAgg.page.updateOrder(newOrder);
+
+      // 13. Page 저장 (parent_id, depth, order 업데이트)
       await this.pageRepo.save(pageAgg);
 
       // 9. 하위 페이지들 depth 재귀 업데이트
@@ -250,52 +327,48 @@ export class DefaultPageHierarchyService implements PageHierarchyService {
   /**
    * Page 순서 재정렬 (Scenario 4)
    *
-   * @param workspaceId - Workspace ID
-   * @param parentId - 부모 페이지 ID (undefined면 루트 레벨)
-   * @param orderedPageIds - 순서가 정해진 페이지 ID 배열
-   * @param userId - 사용자 ID
-   * @returns void (성공) | Error code (실패)
+   * ⚠️ 주의: 권한(Workspace 멤버십) 확인은 Action layer에서 수행한다.
    */
   async reorderPages(
     workspaceId: WorkspaceId,
-    parentId: PageId | undefined,
-    orderedPageIds: string[],
-    userId: string
+    parentId: PageId | null,
+    orderedPageIds: string[]
   ): Promise<Result<void>> {
     try {
-      // 1. Workspace 멤버십 확인
-      const isMember = await this.workspaceMemberRepo.isMember(
-        workspaceId,
-        userId
-      );
-      if (!isMember) {
-        return R.err('NOT_WORKSPACE_MEMBER');
+      // 1. 입력 검증 (중복/빈 값)
+      const filteredIds = orderedPageIds.filter(Boolean);
+      const unique = new Set(filteredIds);
+      if (unique.size !== filteredIds.length) {
+        return R.err('INVALID_REQUEST');
       }
 
-      // 2. 페이지들이 모두 같은 부모를 가지고 있는지 확인
-      if (orderedPageIds.length > 0) {
-        const allPages = await this.pageRepo.findTreeByWorkspaceId(workspaceId);
-        const targetPages = allPages.filter(p =>
-          orderedPageIds.includes(p.pageId.value)
-        );
+      // 2. 같은 부모의 siblings 조회 (직접 자식만 조회 - 효율적)
+      const siblings = await this.pageRepo.findChildrenByParentId(
+        parentId,
+        workspaceId
+      );
 
-        // Verify all requested pages were found
-        if (targetPages.length !== orderedPageIds.length) {
+      const siblingsById = new Map(siblings.map(p => [p.pageId.value, p]));
+
+      // 3. 요청된 pageId들이 siblings에 속하는지 검증
+      for (const id of filteredIds) {
+        if (!siblingsById.has(id)) {
           return R.err('PAGE_NOT_FOUND');
         }
-
-        // 모든 페이지가 같은 부모를 가지고 있는지 확인
-        const expectedParentId = parentId?.value || null;
-        for (const page of targetPages) {
-          const pageParentId = page.parentId?.value || null;
-          if (pageParentId !== expectedParentId) {
-            return R.err('INVALID_PAGE_ORDER');
-          }
-        }
       }
 
-      // 3. Repository를 통해 순서 업데이트 (트랜잭션 포함)
-      await this.pageRepo.reorderPages(parentId, orderedPageIds);
+      // 4. fractional index 계산 (앞에서부터 단조 증가)
+      const updates: Array<{ pageId: string; order: string }> = [];
+      let prev: string | null = null;
+      for (const id of filteredIds) {
+        const next = null;
+        const newOrder = generateKeyBetween(prev, next);
+        updates.push({ pageId: id, order: newOrder });
+        prev = newOrder;
+      }
+
+      // 5. Batch update
+      await this.pageRepo.batchUpdateOrder(updates);
 
       return R.ok(undefined);
     } catch (error) {

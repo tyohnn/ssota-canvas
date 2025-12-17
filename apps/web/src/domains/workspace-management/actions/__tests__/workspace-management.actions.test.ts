@@ -867,12 +867,12 @@ describe('Workspace Management Server Actions Integration Tests', () => {
         user_id: testUserId,
       });
 
-      // 3개의 루트 페이지 생성 (order: 0, 1, 2)
+      // 3개의 루트 페이지 생성 (fractional index로 자동 생성됨)
       const page1 = PageAggregate.create(
         {
           workspaceId: workspace.workspace.workspaceId.value,
           title: 'Page 1',
-          icon: '1️⃣',
+          icon: '🚀',
           createdBy: testUserId,
         },
         null
@@ -883,7 +883,7 @@ describe('Workspace Management Server Actions Integration Tests', () => {
         {
           workspaceId: workspace.workspace.workspaceId.value,
           title: 'Page 2',
-          icon: '2️⃣',
+          icon: '🚀',
           createdBy: testUserId,
         },
         null
@@ -894,7 +894,7 @@ describe('Workspace Management Server Actions Integration Tests', () => {
         {
           workspaceId: workspace.workspace.workspaceId.value,
           title: 'Page 3',
-          icon: '3️⃣',
+          icon: '🚀',
           createdBy: testUserId,
         },
         null
@@ -915,19 +915,26 @@ describe('Workspace Management Server Actions Integration Tests', () => {
       // Then
       expect(result.success).toBe(true);
 
-      // DB에서 순서 확인
+      // DB에서 순서 확인 (fractional index로 정렬)
       const reorderedPages = await adminDb
         .select()
         .from(pages)
         .where(eq(pages.workspace_id, workspace.workspace.workspaceId.value))
         .orderBy(pages.order);
 
+      // 순서 확인 (fractional index는 정확한 값보다 순서가 중요)
       expect(reorderedPages[0]?.id).toBe(page3.page.pageId.value);
-      expect(reorderedPages[0]?.order).toBe(0);
       expect(reorderedPages[1]?.id).toBe(page1.page.pageId.value);
-      expect(reorderedPages[1]?.order).toBe(1);
       expect(reorderedPages[2]?.id).toBe(page2.page.pageId.value);
-      expect(reorderedPages[2]?.order).toBe(2);
+      
+      // Fractional index는 문자열이어야 함
+      expect(typeof reorderedPages[0]?.order).toBe('string');
+      expect(typeof reorderedPages[1]?.order).toBe('string');
+      expect(typeof reorderedPages[2]?.order).toBe('string');
+      
+      // 순서가 올바른지 확인 (문자열 비교)
+      expect(reorderedPages[0]?.order.localeCompare(reorderedPages[1]?.order || '')).toBeLessThan(0);
+      expect(reorderedPages[1]?.order.localeCompare(reorderedPages[2]?.order || '')).toBeLessThan(0);
 
       // Cleanup
       await adminDb.delete(pages).where(eq(pages.workspace_id, workspace.workspace.workspaceId.value));
@@ -1020,16 +1027,24 @@ describe('Workspace Management Server Actions Integration Tests', () => {
         .from(pages)
         .where(eq(pages.parent_id, parentPage.page.pageId.value));
 
-      // order로 정렬해서 확인
-      const sorted = reorderedChildren.sort((a, b) => (a.order || 0) - (b.order || 0));
+      // order로 정렬해서 확인 (fractional index는 문자열 정렬)
+      const sorted = reorderedChildren.sort((a, b) => 
+        (a.order || 'a0').localeCompare(b.order || 'a0')
+      );
       
       expect(sorted.length).toBe(3);
       expect(sorted[0]?.id).toBe(child2.page.pageId.value);
-      expect(sorted[0]?.order).toBe(0);
       expect(sorted[1]?.id).toBe(child3.page.pageId.value);
-      expect(sorted[1]?.order).toBe(1);
       expect(sorted[2]?.id).toBe(child1.page.pageId.value);
-      expect(sorted[2]?.order).toBe(2);
+      
+      // Fractional index는 문자열이어야 함
+      expect(typeof sorted[0]?.order).toBe('string');
+      expect(typeof sorted[1]?.order).toBe('string');
+      expect(typeof sorted[2]?.order).toBe('string');
+      
+      // 순서가 올바른지 확인
+      expect(sorted[0]?.order.localeCompare(sorted[1]?.order || '')).toBeLessThan(0);
+      expect(sorted[1]?.order.localeCompare(sorted[2]?.order || '')).toBeLessThan(0);
 
       // Cleanup
       await adminDb.delete(pages).where(eq(pages.workspace_id, workspace.workspace.workspaceId.value));

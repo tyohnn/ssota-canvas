@@ -401,8 +401,83 @@ export function CanvasReactFlowWrapper({
   // - 핀치 제스처: 줌인/줌아웃
   // - 두 손가락 스크롤: 캔버스 패닝
 
+  // 플랫폼 감지 (Windows vs Mac)
+  const isWindows = React.useMemo(() => {
+    if (typeof window === 'undefined') return false;
+
+    // 최신 방법: navigator.userAgentData 사용 (Chrome/Edge)
+    if ('userAgentData' in navigator) {
+      const uaData = navigator.userAgentData as { platform?: string };
+      return uaData.platform?.toLowerCase().includes('win') ?? false;
+    }
+
+    // Fallback: navigator.userAgent 사용
+    const userAgent = navigator.userAgent.toLowerCase();
+    return userAgent.includes('win') || userAgent.includes('windows');
+  }, []);
+
+  // 플랫폼별 줌 감도 설정
+  // Windows: 더 높은 감도 (0.15-0.2), Mac: 기본 감도 (0.1)
+  const zoomMultiplier = React.useMemo(() => {
+    return isWindows ? 0.18 : 0.1;
+  }, [isWindows]);
+
+  // 커스텀 wheel 이벤트 핸들러 (Ctrl/Cmd + Wheel로 줌)
+  const handleWheel = React.useCallback(
+    (event: React.WheelEvent<HTMLDivElement>) => {
+      // Ctrl (Windows) 또는 Cmd (Mac) 키가 눌려있을 때만 줌 활성화
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isCtrlOrCmd = isMac ? event.metaKey : event.ctrlKey;
+
+      // Ctrl/Cmd가 눌려있지 않으면 기본 동작 (패닝) 허용
+      if (!isCtrlOrCmd) {
+        return;
+      }
+
+      // Input, Textarea, ContentEditable에서는 무시
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // 줌 동작 수행
+      event.preventDefault();
+      event.stopPropagation();
+
+      const currentViewport = reactFlowInstance.getViewport();
+      const currentZoom = currentViewport.zoom;
+      const deltaY = event.deltaY;
+
+      // deltaY가 음수면 줌인, 양수면 줌아웃
+      // zoomDelta를 플랫폼별 감도로 조절
+      let newZoom: number;
+      if (deltaY < 0) {
+        // 줌인: zoomDelta를 플랫폼별 감도로 조절
+        newZoom = Math.min(currentZoom + zoomMultiplier, 2); // maxZoom
+      } else {
+        // 줌아웃: zoomDelta를 플랫폼별 감도로 조절
+        newZoom = Math.max(currentZoom - zoomMultiplier, 0.1); // minZoom
+      }
+
+      // viewport 업데이트 (duration: 0으로 즉시 적용)
+      reactFlowInstance.setViewport(
+        {
+          x: currentViewport.x,
+          y: currentViewport.y,
+          zoom: newZoom,
+        },
+        { duration: 0 }
+      );
+    },
+    [reactFlowInstance, zoomMultiplier]
+  );
+
   return (
-    <div className="h-full w-full relative">
+    <div className="h-full w-full relative" onWheel={handleWheel}>
       {/* React Flow 기본 선택 박스 스타일링 */}
       <style jsx global>{`
         /* React Flow 기본 배경색 */
