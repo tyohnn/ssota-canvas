@@ -125,6 +125,34 @@ export class DrizzlePageRepository implements PageRepository {
   }
 
   /**
+   * 특정 부모의 직접 자식 페이지들만 조회
+   *
+   * @param parentId - 부모 페이지 ID (null이면 최상위)
+   * @param workspaceId - Workspace ID (검증용)
+   * @returns order로 정렬된 직접 자식 페이지 배열
+   */
+  async findChildrenByParentId(
+    parentId: PageId | null,
+    workspaceId: WorkspaceId
+  ): Promise<Page[]> {
+    const result = await adminDb
+      .select()
+      .from(pages)
+      .where(
+        and(
+          eq(pages.workspace_id, workspaceId.value),
+          parentId
+            ? eq(pages.parent_id, parentId.value)
+            : isNull(pages.parent_id),
+          isNull(pages.deleted_at)
+        )
+      )
+      .orderBy(pages.order);
+
+    return result.map(row => this.toDomain(row));
+  }
+
+  /**
    * 페이지의 모든 조상 조회 (재귀 CTE 사용!)
    *
    * 사용 시나리오:
@@ -299,42 +327,30 @@ export class DrizzlePageRepository implements PageRepository {
   }
 
   /**
-   * 페이지들의 순서를 배치로 업데이트
+   * 여러 페이지의 order를 한 번에 업데이트 (Batch Update)
    *
-   * ⚠️ 주의: Service Layer에서 권한 체크 완료 후에만 호출!
-   *
-   * @param parentId - 부모 페이지 ID (undefined면 루트 레벨)
-   * @param orderedPageIds - 순서가 정해진 페이지 ID 배열
+   * @param updates - 업데이트할 페이지 ID와 새 order 배열
    */
-  async reorderPages(
-    parentId: PageId | undefined,
-    orderedPageIds: string[]
+  async batchUpdateOrder(
+    updates: Array<{ pageId: string; order: string }>
   ): Promise<void> {
-    // Wrap in transaction for atomicity
-    await adminDb.transaction(async tx => {
-      // 각 페이지의 order를 배열 인덱스로 업데이트
-      for (let i = 0; i < orderedPageIds.length; i++) {
-        const pageId = orderedPageIds[i];
-        if (!pageId) continue;
+    if (updates.length === 0) {
+      return;
+    }
 
-        // parentId 조건 추가
-        const whereConditions = [
-          eq(pages.id, pageId),
-          parentId
-            ? eq(pages.parent_id, parentId.value)
-            : isNull(pages.parent_id),
-        ];
+    const pageIds = updates.map(u => u.pageId);
+    const orders = updates.map(u => u.order);
 
-        // DB에서 직접 order 업데이트
-        await tx
-          .update(pages)
-          .set({
-            order: i,
-            updated_at: new Date(),
-          })
-          .where(and(...whereConditions));
-      }
-    });
+    // PostgreSQL의 unnest를 사용한 batch update
+    await adminDb.execute(sql`
+      UPDATE pages
+      SET "order" = updates.new_order, updated_at = NOW()
+      FROM (
+        SELECT unnest(${pageIds}::uuid[]) as id, 
+              unnest(${orders}::text[]) as new_order
+      ) AS updates
+      WHERE pages.id = updates.id
+    `);
   }
 
   /**

@@ -16,7 +16,6 @@ export function QueryProvider({ children }: { children: ReactNode }) {
         defaultOptions: {
           queries: {
             // SSR에서는 클라이언트에서만 refetch
-            refetchOnWindowFocus: false,
             retry: 1,
             staleTime: 5 * 60 * 1000, // 5분
           },

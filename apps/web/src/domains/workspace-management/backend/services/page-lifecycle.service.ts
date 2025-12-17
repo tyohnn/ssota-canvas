@@ -16,6 +16,7 @@ import type {
   PageDeletedEvent,
   PageDuplicatedEvent,
 } from '../../shared/events';
+import { generateKeyBetween } from 'fractional-indexing';
 
 /**
  * Page Lifecycle Service Implementation (Scenario 7)
@@ -129,35 +130,35 @@ export class DefaultPageLifecycleService implements PageLifecycleService {
         }
       }
 
-      // 4. 같은 부모의 children 조회하여 원본 페이지 바로 다음 order 계산
-      const allPages = await this.pageRepo.findTreeByWorkspaceId(
+      // 4. 같은 부모의 children 조회하여 원본 페이지 바로 다음 fractional index 계산 (직접 자식만 조회 - 효율적)
+      const siblings = await this.pageRepo.findChildrenByParentId(
+        originalPage.parentId,
         originalPage.workspaceId
       );
-      const siblings = allPages.filter(p => {
-        const pParentId = p.parentId?.value || null;
-        const targetParentId = originalPage.parentId?.value || null;
-        return pParentId === targetParentId;
-      });
 
-      // 원본 페이지보다 큰 order를 가진 형제들 중 가장 작은 order 찾기
-      const originalOrder = originalPage.order;
-      const nextOrders = siblings
-        .map(p => p.order)
-        .filter(order => order > originalOrder)
-        .sort((a, b) => a - b);
+      // 5. 형제 페이지들을 order로 정렬 (이미 정렬되어 있지만 명시적으로)
+      const sortedSiblings = [...siblings].sort((a, b) =>
+        a.order.localeCompare(b.order)
+      );
 
-      // 새 order: 원본과 다음 order 사이의 중간값
-      let newOrder: number;
-      if (nextOrders.length > 0) {
-        // 다음 order가 있으면 중간값
-        const nextOrder = nextOrders[0]!;
-        newOrder = originalOrder + (nextOrder - originalOrder) / 2;
-      } else {
-        // 마지막이면 +1
-        newOrder = originalOrder + 1;
-      }
+      // 6. 원본 페이지의 인덱스 찾기
+      const originalIndex = sortedSiblings.findIndex(
+        p => p.pageId.value === originalPage.pageId.value
+      );
 
-      // 5. Duplicate Command 생성
+      // 7. 원본의 다음 페이지 찾기
+      const nextSibling =
+        originalIndex >= 0 && originalIndex < sortedSiblings.length - 1
+          ? sortedSiblings[originalIndex + 1]
+          : null;
+
+      // 8. 원본과 다음 페이지 사이의 fractional index 생성
+      const newOrder = generateKeyBetween(
+        originalPage.order,
+        nextSibling?.order || null
+      );
+
+      // 9. Duplicate Command 생성
       const duplicateCommand: DuplicatePageCommand = {
         pageId: params.pageId.value,
         newTitle: `${originalPage.title} (Copy)`,

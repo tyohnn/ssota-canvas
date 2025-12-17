@@ -50,7 +50,7 @@ export interface UpdatePageCommand {
 export interface MovePageCommand {
   pageId: string;
   newParentId?: string;
-  newOrder?: number;
+  newOrder?: string;
 }
 
 export interface DeletePageCommand {
@@ -61,6 +61,6 @@ export interface DeletePageCommand {
 export interface DuplicatePageCommand {
   pageId: string;
   newTitle: string;
-  newOrder: number;
+  newOrder: string;
   duplicatedBy: string;
 }
