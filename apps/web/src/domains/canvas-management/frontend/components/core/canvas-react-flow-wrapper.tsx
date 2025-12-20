@@ -546,6 +546,15 @@ export function CanvasReactFlowWrapper({
           cursor: grabbing !important;
         }
 
+        /* 기본 모드: 커서를 default로 명시적으로 설정 (패닝 모드 해제 후 커서 복원) */
+        .react-flow:not(.panning-mode):not(.block-creation-mode) {
+          cursor: default !important;
+        }
+        .react-flow:not(.panning-mode):not(.block-creation-mode)
+          .react-flow__pane {
+          cursor: default !important;
+        }
+
         /* 🎨 블록 생성 모드: 기존 블록들을 반투명하게 만들고 상호작용 차단 */
         .react-flow.block-creation-mode .react-flow__node {
           opacity: 0.4 !important;

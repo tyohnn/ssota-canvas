@@ -146,7 +146,8 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
                 variant={
                   currentMode.type === 'default' ||
                   currentMode.type === 'single-selection' ||
-                  currentMode.type === 'multi-selection'
+                  currentMode.type === 'multi-selection' ||
+                  currentMode.type === 'block-editing'
                     ? 'default'
                     : 'ghost'
                 }
@@ -155,7 +156,8 @@ export function CanvasToolbar({ pageId, onAddBlockClick }: CanvasToolbarProps) {
                   'h-8 w-8 p-0 rounded-sm transition-colors',
                   currentMode.type === 'default' ||
                     currentMode.type === 'single-selection' ||
-                    currentMode.type === 'multi-selection'
+                    currentMode.type === 'multi-selection' ||
+                    currentMode.type === 'block-editing'
                     ? 'bg-accent text-accent-foreground hover:bg-accent'
                     : 'hover:bg-accent/50 hover:text-accent-foreground'
                 )}

@@ -326,6 +326,8 @@ export function useCanvasCallbacks({
         } else {
           console.log('🎯 [onSelectionChange] Already deselected - no change');
         }
+        // 빈 선택일 때 항상 previousSelectionRef 리셋 (onPaneClick과의 일관성 유지)
+        previousSelectionRef.current = { count: 0 };
       }
     },
     [canvasMode]
@@ -361,6 +363,9 @@ export function useCanvasCallbacks({
       reactFlowInstance.setNodes(nodes =>
         nodes.map(node => ({ ...node, selected: false }))
       );
+
+      // previousSelectionRef 리셋 (중요! - onSelectionChange와의 race condition 방지)
+      previousSelectionRef.current = { count: 0 };
 
       // 선택 해제 후 상태 확인 (비동기적으로 실행될 수 있으므로 setTimeout 사용)
       setTimeout(() => {
