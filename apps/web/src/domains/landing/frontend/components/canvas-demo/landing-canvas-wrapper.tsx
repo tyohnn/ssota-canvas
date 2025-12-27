@@ -26,7 +26,7 @@ import { useTheme } from 'next-themes';
 import { Rocket, FileText, type LucideIcon } from 'lucide-react';
 
 // Canvas management
-import { CustomEdge } from '@/domains/canvas-management/frontend/components/edge/custom-edge';
+import { CustomEdge } from '@/domains/canvas-management/frontend/components';
 import {
   useCanvasMode,
   type CanvasMode,

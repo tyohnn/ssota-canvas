@@ -46,11 +46,11 @@ import { ShadowBlockContainer } from '../shadow-block/shadow-block-container';
 import { BlockAddDialog } from './block-add-dialog';
 // Shared node types config
 import { CANVAS_NODE_TYPES } from '../../config/node-types.config';
-import { SnapGuidelines } from '../snap/snap-guidelines';
-import { MultiSelectionToolbar } from '../multi-select/multi-selection-toolbar';
+import { SnapGuidelines } from '../canvas/components/snap/snap-guidelines';
+import { MultiSelectionToolbar } from '../canvas/components/multi-select/multi-selection-toolbar';
 import { BlockMountToolbar } from '@/domains/block-management/frontend/components/block/block-mount-toolbar';
-import { SelectionBoundingBox } from '../multi-select/selection-bounding-box';
-import { CustomEdge } from '../edge/custom-edge';
+import { SelectionBoundingBox } from '../canvas/components/multi-select/selection-bounding-box';
+import { CustomEdge } from '../canvas/components/edge/custom-edge';
 
 // AI Management Components
 import { AIAgentRunner } from '@/domains/ai-management/frontend/components/ai-agent-runner';

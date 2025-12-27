@@ -7,16 +7,16 @@ export { CanvasReactFlowWrapper } from './core/canvas-react-flow-wrapper';
 export { BlockAddDialog } from './core/block-add-dialog';
 export type { BlockAddDialogProps } from './core/block-add-dialog';
 
-export { SnapGuidelines } from './snap/snap-guidelines';
+export { SnapGuidelines } from './canvas/components/snap/snap-guidelines';
 
-export { MultiSelectionToolbar } from './multi-select/multi-selection-toolbar';
+export { MultiSelectionToolbar } from './canvas/components/multi-select/multi-selection-toolbar';
 
-export { SelectionBoundingBox } from './multi-select/selection-bounding-box';
+export { SelectionBoundingBox } from './canvas/components/multi-select/selection-bounding-box';
 
 export { ViewportControls } from './core/viewport-controls';
 export type { ViewportControlsProps } from './core/viewport-controls';
 
-export { EdgeToolbar } from './edge/edge-toolbar';
-export type { EdgeToolbarProps } from './edge/edge-toolbar';
+export { EdgeToolbar } from './canvas/components/edge/edge-toolbar';
+export type { EdgeToolbarProps } from './canvas/components/edge/edge-toolbar';
 
-export { CustomEdge } from './edge/custom-edge';
+export { CustomEdge } from './canvas/components/edge/custom-edge';
