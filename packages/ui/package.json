@@ -105,6 +105,10 @@
       "types": "./src/components/ui/*",
       "default": "./src/components/ui/*"
     },
+    "./components/ssota-ui/*": {
+      "types": "./src/components/ssota-ui/*",
+      "default": "./src/components/ssota-ui/*"
+    },
     "./hooks/*": {
       "types": "./src/hooks/*",
       "default": "./src/hooks/*"
