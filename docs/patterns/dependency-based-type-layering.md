@@ -51,11 +51,18 @@ export interface CoreDataModel {
 // =============================================================================
 
 /**
- * Encapsulates external library or global state dependencies.
+ * Framework-level dependencies (e.g., React Flow, State Management).
  */
-export interface ExternalDependencies {
-  data: any[];
-  action: (param: any) => void;
+export interface FlowDependencies {
+  nodes: any[];
+  setNodes: (nodes: any[]) => void;
+}
+
+/**
+ * Domain-level dependencies (e.g., Internal Service hooks).
+ */
+export interface DomainDependencies {
+  executeAction: () => void;
 }
 
 // =============================================================================
