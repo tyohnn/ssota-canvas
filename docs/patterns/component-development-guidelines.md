@@ -314,6 +314,279 @@ property-add-popover/
 
 ---
 
+### Controlled vs Semi-Controlled vs Uncontrolled Pattern
+
+컴포넌트의 상태 관리 방식에 따라 **Controlled**, **Semi-Controlled**, **Uncontrolled** 세 가지 패턴으로 나뉩니다. 각 패턴은 상태의 "소유권"이 어디에 있는지에 따라 결정됩니다.
+
+#### 개념 정리
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Controlled:     부모가 모든 상태 제어                   │
+│  Semi-Controlled: 내부가 즉시 반응, 부모가 최종 제어     │
+│  Uncontrolled:   내부가 모든 상태 제어                   │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 1. Controlled Component (완전 제어)
+
+부모 컴포넌트가 모든 상태를 제어합니다. 컴포넌트는 내부 상태를 가지지 않고, props로 받은 값을 그대로 사용합니다.
+
+```tsx
+// ✅ Controlled: 부모가 모든 상태 제어
+interface ControlledInputProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+export function ControlledInput({ value, onChange }: ControlledInputProps) {
+  // 내부 상태 없음, 모든 것이 props
+  return (
+    <input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  );
+}
+
+// 사용 예시
+function Parent() {
+  const [value, setValue] = useState('');
+  
+  return (
+    <ControlledInput
+      value={value}              // 부모가 상태 소유
+      onChange={setValue}        // 부모가 변경 처리
+    />
+  );
+}
+```
+
+**특징:**
+- ✅ 부모가 상태를 완전히 제어
+- ✅ 외부에서 값을 직접 설정 가능
+- ✅ 단일 소스 of truth (부모)
+- ❌ 부모의 상태 업데이트가 느리면 UI 반응 지연 가능
+
+**사용 시기:**
+- 부모가 값을 검증하거나 변환해야 할 때
+- 여러 컴포넌트 간 상태 동기화가 필요할 때
+- 외부에서 값을 강제로 설정해야 할 때
+
+#### 2. Semi-Controlled Component (반제어)
+
+컴포넌트가 내부 상태를 가지지만, 부모의 props와 동기화됩니다. UI 반응성을 위해 내부 상태를 즉시 업데이트하되, 부모에도 변경을 알립니다.
+
+```tsx
+// ✅ Semi-Controlled: 내부가 즉시 반응, 부모가 최종 제어
+interface ToolbarOptionPopoverProps<T> {
+  currentValue: T;                      // 부모의 현재 값
+  onValueChange: (value: T) => void;   // 부모에 변경 알림
+  options: ToolbarOption<T>[];
+}
+
+export function ToolbarOptionPopover<T>({
+  currentValue,
+  onValueChange,
+  options,
+}: ToolbarOptionPopoverProps<T>) {
+  // 내부 상태로 즉시 UI 반응
+  const [selectedValue, setSelectedValue] = useState<T>(currentValue);
+  
+  // 외부 변경 시 동기화
+  useEffect(() => {
+    setSelectedValue(currentValue);
+  }, [currentValue]);
+  
+  const handleClick = (optionValue: T) => {
+    setSelectedValue(optionValue);  // 즉시 UI 업데이트 (optimistic)
+    onValueChange(optionValue);     // 부모에 알림 (부모가 async 처리 가능)
+  };
+  
+  return (
+    <Popover>
+      {options.map(option => (
+        <button
+          key={option.value}
+          onClick={() => handleClick(option.value)}
+          className={selectedValue === option.value ? 'active' : ''}
+        >
+          {option.label}
+        </button>
+      ))}
+    </Popover>
+  );
+}
+
+// 사용 예시
+function Parent() {
+  const [shape, setShape] = useState<EdgeShape>('default');
+  
+  const handleShapeChange = async (newShape: EdgeShape) => {
+    // 비동기 업데이트 가능 (서버 저장 등)
+    await saveShapeToServer(newShape);
+    setShape(newShape);  // 실제 반영은 나중에
+  };
+  
+  return (
+    <ToolbarOptionPopover
+      currentValue={shape}        // 부모의 현재 값
+      onValueChange={handleShapeChange}
+      options={EDGE_SHAPES}
+    />
+  );
+}
+```
+
+**특징:**
+- ✅ 즉시 UI 반응 (내부 상태 업데이트)
+- ✅ 부모는 비동기 처리 가능 (서버 저장 등)
+- ✅ 부모가 최종적으로 상태 제어
+- ✅ Optimistic Update 패턴과 잘 맞음
+
+**사용 시기:**
+- UI 반응성이 중요한 인터랙션 (드래그, 선택 등)
+- 부모의 상태 업데이트가 비동기일 때
+- Optimistic Update가 필요할 때
+- **권장**: 대부분의 Presentational 컴포넌트에 적합
+
+#### 3. Uncontrolled Component (비제어)
+
+컴포넌트가 모든 상태를 내부에서 관리합니다. 부모는 초기값(`defaultValue`)만 제공하고, 이후 변경사항은 내부에서만 처리합니다.
+
+```tsx
+// ✅ Uncontrolled: 내부가 모든 상태 제어
+interface UncontrolledInputProps {
+  defaultValue: string;           // 초기값만 제공
+  onSubmit?: (value: string) => void;  // 최종 제출 시에만 알림
+}
+
+export function UncontrolledInput({
+  defaultValue,
+  onSubmit,
+}: UncontrolledInputProps) {
+  // 내부 상태로 모든 것 제어
+  const [value, setValue] = useState(defaultValue);
+  
+  const handleSubmit = () => {
+    onSubmit?.(value);  // 필요할 때만 부모에 알림
+  };
+  
+  return (
+    <div>
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}  // 내부에서만 관리
+      />
+      <button onClick={handleSubmit}>Submit</button>
+    </div>
+  );
+}
+
+// 사용 예시
+function Parent() {
+  const handleSubmit = (value: string) => {
+    console.log('Final value:', value);  // 제출 시에만 값 확인
+  };
+  
+  return (
+    <UncontrolledInput
+      defaultValue=""           // 초기값만 제공
+      onSubmit={handleSubmit}   // 제출 시에만 알림
+    />
+  );
+}
+```
+
+**특징:**
+- ✅ 부모 컴포넌트 간단 (상태 관리 불필요)
+- ✅ 내부에서 모든 상태 제어
+- ✅ 불필요한 리렌더링 최소화
+- ❌ 외부에서 값을 강제로 설정하기 어려움
+- ❌ 부모가 중간 값을 확인하기 어려움
+
+**사용 시기:**
+- 단순한 폼 입력 (검색창, 댓글 입력 등)
+- 부모가 중간 상태를 알 필요가 없을 때
+- 성능 최적화가 중요할 때
+
+#### 패턴 비교표
+
+| 패턴 | 상태 소유권 | 부모 역할 | 사용 시기 | Presentational 호환 |
+|------|------------|----------|----------|-------------------|
+| **Controlled** | 부모 | 모든 상태 제어 | 검증/변환이 필요할 때 | ✅ |
+| **Semi-Controlled** | 내부 + 부모 동기화 | 최종 제어 | UI 반응성 + 부모 제어 필요 | ✅ (권장) |
+| **Uncontrolled** | 내부 | 초기값만 제공 | 단순 입력, 성능 최적화 | ✅ |
+
+#### Presentational 컴포넌트와의 관계
+
+**중요:** 세 가지 패턴 모두 Presentational 컴포넌트가 될 수 있습니다!
+
+```tsx
+// ✅ 모두 Presentational입니다!
+
+// Controlled Presentational
+export function ControlledInput({ value, onChange }) {
+  return <input value={value} onChange={onChange} />;
+}
+
+// Semi-Controlled Presentational (권장)
+export function ToolbarOptionPopover({ currentValue, onValueChange }) {
+  const [selectedValue, setSelectedValue] = useState(currentValue);
+  useEffect(() => setSelectedValue(currentValue), [currentValue]);
+  // ... 비즈니스 로직 없음, Context 의존성 없음
+  return <UI />;
+}
+
+// Uncontrolled Presentational
+export function SearchInput({ defaultValue, onSubmit }) {
+  const [value, setValue] = useState(defaultValue);
+  // ... 비즈니스 로직 없음, Context 의존성 없음
+  return <input value={value} onChange={e => setValue(e.target.value)} />;
+}
+```
+
+**Presentational의 핵심:**
+- 비즈니스 로직 없음 (API 호출 X)
+- Context 의존성 없음 (전역 상태 X)
+- Props로 외부 제어 가능
+- Storybook에서 독립 테스트 가능
+
+**상태 관리 방식(Controlled/Semi/Uncontrolled)은 Presentational 여부와 무관합니다!**
+
+#### 실제 프로젝트 예시
+
+**ToolbarOptionPopover** (Semi-Controlled):
+```tsx
+// packages/ui/src/components/ssota-ui/toolbar-option-popover.tsx
+export function ToolbarOptionPopover<T>({
+  currentValue,      // 부모의 현재 값
+  onValueChange,     // 부모에 변경 알림
+  options,
+}: ToolbarOptionPopoverProps<T>) {
+  const [selectedValue, setSelectedValue] = useState(currentValue);
+  
+  useEffect(() => {
+    setSelectedValue(currentValue);  // 외부 동기화
+  }, [currentValue]);
+  
+  const handleClick = (value: T) => {
+    setSelectedValue(value);    // 즉시 UI 반응
+    onValueChange(value);        // 부모 알림
+  };
+  
+  // ... 비즈니스 로직 없음, Context 의존성 없음
+  // ✅ Presentational 컴포넌트!
+}
+```
+
+**장점:**
+- 사용자가 옵션을 클릭하면 **즉시** UI가 반응 (내부 state)
+- 부모는 비동기로 상태 업데이트 가능 (서버 저장 등)
+- 부모가 외부에서 값을 변경하면 자동으로 동기화 (`useEffect`)
+
+---
+
 ## 폴더 구조
 
 ### 기본 구조 (Flat Structure)
