@@ -1,4 +1,9 @@
-import { type ReactNode, forwardRef } from 'react';
+import {
+  type ReactNode,
+  cloneElement,
+  forwardRef,
+  isValidElement,
+} from 'react';
 
 import type { TooltipContentProps } from '@radix-ui/react-tooltip';
 import type { VariantProps } from 'class-variance-authority';
@@ -9,6 +14,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 /**
  * Toolbar Icon Button Component
@@ -46,6 +52,11 @@ export interface ToolbarIconButtonProps extends React.ComponentPropsWithoutRef<
   className?: string;
 
   /**
+   * 아이콘에 적용할 추가 className (주로 크기 조절용)
+   */
+  iconClassName?: string;
+
+  /**
    * Button variant
    * @default "ghost"
    */
@@ -67,6 +78,24 @@ export interface ToolbarIconButtonProps extends React.ComponentPropsWithoutRef<
    * @default "bottom"
    */
   tooltipSide?: TooltipContentProps['side'];
+
+  /**
+   * Whether to disable the tooltip
+   * @default false
+   */
+  tooltipDisabled?: boolean;
+
+  /**
+   * Tooltip offset
+   * @default 0
+   */
+  tooltipOffset?: number;
+
+  /**
+   * Active state (applies active styling)
+   * @default false
+   */
+  isActive?: boolean;
 }
 
 export const ToolbarIconButton = forwardRef<
@@ -79,15 +108,26 @@ export const ToolbarIconButton = forwardRef<
       tooltip,
       onClick,
       tooltipClassName,
+      iconClassName,
       disabled = false,
       className = 'h-7 w-7 p-0',
       variant = 'ghost',
       size = 'sm',
       tooltipSide = 'bottom',
+      tooltipDisabled = false,
+      tooltipOffset = 0,
+      isActive = false,
       ...props
     },
     ref
   ) => {
+    const renderedIcon =
+      isValidElement(icon) && iconClassName
+        ? cloneElement(icon as React.ReactElement<any>, {
+            className: cn((icon.props as any)?.className, iconClassName),
+          })
+        : icon;
+
     return (
       <Tooltip>
         <TooltipTrigger asChild>
@@ -96,20 +136,28 @@ export const ToolbarIconButton = forwardRef<
             variant={variant}
             size={size}
             onClick={onClick}
-            className={className}
+            className={cn(
+              className,
+              isActive
+                ? 'bg-secondary text-secondary-foreground hover:bg-accent hover:text-secondary-foreground'
+                : 'hover:bg-accent hover:text-accent-foreground'
+            )}
             disabled={disabled}
             {...props}
           >
-            {icon}
+            {renderedIcon}
           </Button>
         </TooltipTrigger>
-        <TooltipContent
-          className={`${tooltipClassName} select-none z-70`}
-          side={tooltipSide}
-          hasArrow={false}
-        >
-          {tooltip}
-        </TooltipContent>
+        {!tooltipDisabled && tooltip && (
+          <TooltipContent
+            className={`${tooltipClassName} select-none z-70`}
+            side={tooltipSide}
+            hasArrow={false}
+            sideOffset={tooltipOffset}
+          >
+            {tooltip}
+          </TooltipContent>
+        )}
       </Tooltip>
     );
   }

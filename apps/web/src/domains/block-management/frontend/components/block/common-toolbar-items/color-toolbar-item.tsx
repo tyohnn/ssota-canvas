@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
+
 import {
   Popover,
   PopoverContent,
@@ -11,10 +12,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
+
 import {
   ColorToken,
-  getColorPreviewClass,
   getColorLabel,
+  getColorPreviewClass,
   getSelectedRingClasses,
 } from '@/domains/block-management/shared/types/style-tokens.types';
 import { cn } from '@/lib/utils';
