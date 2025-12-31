@@ -5,10 +5,7 @@ import type { Edge, Node } from '@xyflow/react';
 
 import { createEdgeAction } from '@/domains/canvas-management/actions/edge/create-edge.action';
 import { EdgeShape } from '@/domains/canvas-management/frontend/components/canvas/components/edge/edge-toolbar/core/types';
-import {
-  type CreateEdgeRequestInput,
-  CreateEdgeRequestSchema,
-} from '@/domains/canvas-management/shared/dtos/requests';
+import { CreateEdgeRequestSchema } from '@/domains/canvas-management/shared/dtos/requests';
 import type { EdgeView } from '@/domains/canvas-management/shared/dtos/views';
 import type { EdgeData } from '@/domains/canvas-management/shared/types/common.types';
 import { isFailure } from '@/lib/action-result';
@@ -27,9 +24,9 @@ export type UseCreateEdgeParams = {
 export type CreateEdgeInput = {
   sourceBlockMountId: string;
   targetBlockMountId: string;
+  sourceHandle: string;
+  targetHandle: string;
   edgeShape?: string;
-  sourceHandle?: string;
-  targetHandle?: string;
 };
 
 export type UseCreateEdgeResult = {
@@ -62,16 +59,16 @@ export function useCreateEdge(
       } = input;
 
       // Validation
-      const rawRequest: CreateEdgeRequestInput = {
+      const rawRequest = {
         pageId,
         sourceBlockMountId,
         targetBlockMountId,
-        sourceHandle,
-        targetHandle,
+        sourceHandle, // string -> safeParse에서 EdgeHandle로 변환
+        targetHandle, // string -> safeParse에서 EdgeHandle로 변환
         edgeShape,
       };
 
-      const parseResult = CreateEdgeRequestSchema.safeParse(rawRequest);
+      const parseResult = CreateEdgeRequestSchema.safeParse(rawRequest); //
       if (!parseResult.success) {
         const firstError = parseResult.error.issues[0];
         throw new Error(firstError?.message || 'Invalid edge data');
@@ -114,7 +111,7 @@ export function useCreateEdge(
         targetHandle,
         type: 'custom',
         data: {
-          isOptimistic: true,
+          edgeId: optimisticEdgeId,
           actualEdgeShape: edgeShape as EdgeShape,
           pageId,
         },

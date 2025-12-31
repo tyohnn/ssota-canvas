@@ -1,4 +1,9 @@
+import { relations, sql } from 'drizzle-orm';
 import {
+  boolean,
+  check,
+  decimal,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -8,13 +13,9 @@ import {
   timestamp,
   unique,
   uuid,
-  boolean,
-  index,
-  check,
-  decimal,
 } from 'drizzle-orm/pg-core';
-import { relations, sql } from 'drizzle-orm';
 import { anonRole, authenticatedRole } from 'drizzle-orm/supabase';
+
 import { users } from './external-schema';
 
 // Enums
@@ -1143,8 +1144,8 @@ export const edges = pgTable(
     target_block_mount_id: uuid('target_block_mount_id')
       .notNull()
       .references(() => blockMounts.id, { onDelete: 'cascade' }),
-    source_handle: text('source_handle'), // React Flow handle ID ('left', 'right', 'top', 'bottom')
-    target_handle: text('target_handle'), // React Flow handle ID ('left', 'right', 'top', 'bottom')
+    source_handle: text('source_handle').notNull().default('right'),
+    target_handle: text('target_handle').notNull().default('left'),
     edge_shape: canvasEdgeShapeEnum('edge_shape').notNull().default('default'),
     edge_label: text('edge_label').default(''),
     edge_style_color: text('edge_style_color').default('#9ca3af'),

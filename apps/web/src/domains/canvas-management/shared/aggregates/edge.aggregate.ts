@@ -1,16 +1,20 @@
+import type {
+  CreateEdgeCommand,
+  DeleteEdgeCommand,
+  UpdateEdgeLabelCommand,
+  UpdateEdgeShapeCommand,
+  UpdateEdgeStyleCommand,
+} from '../commands';
 import { Edge } from '../entities/edge.entity';
+import {
+  EdgeCreatedEvent,
+  EdgeDeletedEvent,
+  EdgeLabelChangedEvent,
+  EdgeShapeChangedEvent,
+  EdgeStyleChangedEvent,
+} from '../events';
 import { EdgeId } from '../value-objects/edge-id.vo';
 import { EdgeShape } from '../value-objects/edge-shape.vo';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { BlockMountId } from '../value-objects/block-mount-id.vo';
-import {
-  DomainEvent,
-  EdgeCreatedEvent,
-  EdgeShapeChangedEvent,
-  EdgeLabelChangedEvent,
-  EdgeStyleChangedEvent,
-  EdgeDeletedEvent,
-} from '../events';
 
 /**
  * Edge Aggregate
@@ -37,42 +41,44 @@ export class EdgeAggregate {
   constructor(public readonly edge: Edge) {}
 
   /**
-   * 새로운 엣지 생성
-   * self-loop 허용
+   * 새로운 엣지 생성 (Command Handler)
+   *
+   * ✅ Event Storming + DDD 패턴:
+   * - Command를 입력으로 받음
+   * - Domain Event를 발생 (1 Command : 1 Event)
+   * - self-loop 허용
+   *
+   * @param command - CreateEdgeCommand (비즈니스 의도)
+   * @returns EdgeAggregate
    */
-  static createEdge(
-    edgeId: EdgeId,
-    pageId: PageId,
-    sourceBlockMountId: BlockMountId,
-    targetBlockMountId: BlockMountId,
-    edgeShape?: EdgeShape,
-    sourceHandle?: string,
-    targetHandle?: string
-  ): EdgeAggregate {
-    // 1. Edge Entity 생성 (self-loop 허용)
+  static createEdge(command: CreateEdgeCommand): EdgeAggregate {
+    // 1. EdgeId 생성
+    const edgeId = EdgeId.generate();
+
+    // 2. Edge Entity 생성 (self-loop 허용)
     const edge = new Edge(
       edgeId,
-      pageId,
-      sourceBlockMountId,
-      targetBlockMountId,
-      sourceHandle,
-      targetHandle,
-      edgeShape || EdgeShape.default()
+      command.pageId,
+      command.sourceBlockMountId,
+      command.targetBlockMountId,
+      command.sourceHandle,
+      command.targetHandle,
+      command.edgeShape || EdgeShape.default()
     );
 
-    // 2. Aggregate 생성
+    // 3. Aggregate 생성
     const aggregate = new EdgeAggregate(edge);
 
-    // 3. EdgeCreated 이벤트 생성 및 추가
+    // 4. Domain Event 발생 (Command → Event 1:1 대응)
     const event = new EdgeCreatedEvent(
       edgeId,
       {
         edgeId,
-        pageId,
-        sourceBlockMountId,
-        targetBlockMountId,
-        sourceHandle,
-        targetHandle,
+        pageId: command.pageId,
+        sourceBlockMountId: command.sourceBlockMountId,
+        targetBlockMountId: command.targetBlockMountId,
+        sourceHandle: command.sourceHandle,
+        targetHandle: command.targetHandle,
         edgeShape: edge.edgeShape,
       },
       edge.createdAt
@@ -83,17 +89,23 @@ export class EdgeAggregate {
   }
 
   /**
-   * 엣지 모양 업데이트
+   * 엣지 모양 업데이트 (Command Handler)
+   *
+   * ✅ Event Storming + DDD 패턴:
+   * - Command를 입력으로 받음
+   * - Domain Event를 발생 (1 Command : 1 Event)
+   *
+   * @param command - UpdateEdgeShapeCommand
    */
-  updateEdgeShape(newShape: EdgeShape): void {
-    this.edge.updateShape(newShape);
+  updateEdgeShape(command: UpdateEdgeShapeCommand): void {
+    this.edge.updateShape(command.newShape);
 
-    // EdgeShapeChanged 이벤트 추가
+    // Domain Event 발생 (Command → Event 1:1 대응)
     const event = new EdgeShapeChangedEvent(
       this.edge.id,
       {
         edgeId: this.edge.id,
-        newShape,
+        newShape: command.newShape,
       },
       this.edge.updatedAt
     );
@@ -101,17 +113,23 @@ export class EdgeAggregate {
   }
 
   /**
-   * 엣지 레이블 업데이트
+   * 엣지 레이블 업데이트 (Command Handler)
+   *
+   * ✅ Event Storming + DDD 패턴:
+   * - Command를 입력으로 받음
+   * - Domain Event를 발생 (1 Command : 1 Event)
+   *
+   * @param command - UpdateEdgeLabelCommand
    */
-  updateEdgeLabel(newLabel: string): void {
-    this.edge.updateLabel(newLabel);
+  updateEdgeLabel(command: UpdateEdgeLabelCommand): void {
+    this.edge.updateLabel(command.newLabel);
 
-    // EdgeLabelChanged 이벤트 추가
+    // Domain Event 발생 (Command → Event 1:1 대응)
     const event = new EdgeLabelChangedEvent(
       this.edge.id,
       {
         edgeId: this.edge.id,
-        newLabel,
+        newLabel: command.newLabel,
       },
       this.edge.updatedAt
     );
@@ -119,17 +137,23 @@ export class EdgeAggregate {
   }
 
   /**
-   * 엣지 스타일 업데이트
+   * 엣지 스타일 업데이트 (Command Handler)
+   *
+   * ✅ Event Storming + DDD 패턴:
+   * - Command를 입력으로 받음
+   * - Domain Event를 발생 (1 Command : 1 Event)
+   *
+   * @param command - UpdateEdgeStyleCommand
    */
-  updateEdgeStyle(style: { stroke?: string; strokeWidth?: number }): void {
-    this.edge.updateStyle(style);
+  updateEdgeStyle(command: UpdateEdgeStyleCommand): void {
+    this.edge.updateStyle(command.style);
 
-    // EdgeStyleChanged 이벤트 추가
+    // Domain Event 발생 (Command → Event 1:1 대응)
     const event = new EdgeStyleChangedEvent(
       this.edge.id,
       {
         edgeId: this.edge.id,
-        style,
+        style: command.style,
       },
       this.edge.updatedAt
     );
@@ -137,10 +161,16 @@ export class EdgeAggregate {
   }
 
   /**
-   * 엣지 삭제
+   * 엣지 삭제 (Command Handler)
+   *
+   * ✅ Event Storming + DDD 패턴:
+   * - Command를 입력으로 받음
+   * - Domain Event를 발생 (1 Command : 1 Event)
+   *
+   * @param command - DeleteEdgeCommand
    */
-  deleteEdge(): void {
-    // EdgeDeleted 이벤트 추가
+  deleteEdge(command: DeleteEdgeCommand): void {
+    // Domain Event 발생 (Command → Event 1:1 대응)
     const event = new EdgeDeletedEvent(
       this.edge.id,
       {

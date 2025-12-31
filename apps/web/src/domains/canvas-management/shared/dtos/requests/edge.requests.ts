@@ -20,8 +20,8 @@ export const CreateEdgeRequestSchema = z.object({
   pageId: z.uuid('Invalid page ID'),
   sourceBlockMountId: z.uuid('Invalid source block mount ID'),
   targetBlockMountId: z.uuid('Invalid target block mount ID'),
-  sourceHandle: z.string().optional(), // React Flow handle ID ('left', 'right', 'top', 'bottom')
-  targetHandle: z.string().optional(), // React Flow handle ID ('left', 'right', 'top', 'bottom')
+  sourceHandle: z.enum(['left', 'right', 'top', 'bottom']),
+  targetHandle: z.enum(['left', 'right', 'top', 'bottom']),
   edgeShape: z.string().default('default'),
 });
 

@@ -1,17 +1,18 @@
-import type { Node, Edge, BuiltInNode, BuiltInEdge } from '@xyflow/react';
-import type { BlockView } from '../../shared/dtos/views/block.views';
-import type {
-  BlockMountView,
-  EdgeView,
-  TransformBlockDTO,
-  CreateEdgeRequest,
-  CanvasViewData,
-} from '../../shared/dtos';
+import type { BuiltInEdge, BuiltInNode, Edge, Node } from '@xyflow/react';
+
 import {
   BaseNodeData,
   BlockNodeData,
 } from '@/domains/block-management/shared/types/block-data.types';
 import type { BlockType } from '@/domains/block-management/shared/types/block-types';
+
+import type {
+  BlockMountView,
+  CanvasViewData,
+  EdgeView,
+  TransformBlockDTO,
+} from '../../shared/dtos';
+import type { BlockView } from '../../shared/dtos/views/block.views';
 
 /**
  * Custom Node Type (자동 생성)
@@ -138,37 +139,6 @@ export function fromReactFlowNode(node: Node<BaseNodeData>): TransformBlockDTO {
     size: { width: node.width || 0, height: node.height || 0 },
     zOrder: node.zIndex || 0,
     transformedAt: new Date().toISOString(),
-  };
-}
-
-/**
- * React Flow Connection을 CreateEdge 요청으로 변환
- *
- * ⚠️ Schema Change: connection.source/target are blockMountIds
- */
-export function fromReactFlowConnection(
-  pageId: string,
-  connection: {
-    source: string;
-    target: string;
-    sourceHandle?: string | null;
-    targetHandle?: string | null;
-  },
-  additionalData: {
-    workspaceId: string;
-    orgId: string;
-    edgeShape?: string;
-  }
-): CreateEdgeRequest {
-  return {
-    pageId,
-    sourceBlockMountId: connection.source, // ✅ React Flow node ID = blockMountId
-    targetBlockMountId: connection.target, // ✅ React Flow node ID = blockMountId
-    sourceHandle: connection.sourceHandle || undefined,
-    targetHandle: connection.targetHandle || undefined,
-    edgeShape: additionalData.edgeShape || 'default',
-    workspaceId: additionalData.workspaceId,
-    orgId: additionalData.orgId,
   };
 }
 

@@ -66,8 +66,8 @@ export function useUpdateEdgeStyle(
         );
       }
 
-      // Server Action (updateEdgeStyleAction은 직접 edgeId와 style을 받음)
-      const result = await updateEdgeStyleAction(edgeId, style);
+      // Server Action (updateEdgeStyleAction은 단일 request 객체를 받음)
+      const result = await updateEdgeStyleAction(parseResult.data);
       if (isFailure(result)) {
         throw new Error(result.error);
       }

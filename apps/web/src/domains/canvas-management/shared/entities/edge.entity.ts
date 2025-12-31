@@ -1,7 +1,9 @@
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+
+import { BlockMountId } from '../value-objects/block-mount-id.vo';
+import { EdgeHandle } from '../value-objects/edge-handle.vo';
 import { EdgeId } from '../value-objects/edge-id.vo';
 import { EdgeShape } from '../value-objects/edge-shape.vo';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { BlockMountId } from '../value-objects/block-mount-id.vo';
 
 /**
  * Edge Entity
@@ -16,7 +18,7 @@ import { BlockMountId } from '../value-objects/block-mount-id.vo';
  * - self-loop 허용 (DB 스키마 설계에 따름)
  * - edgeShape은 유효한 React Flow 엣지 모양이어야 함
  * - source/target은 block mount ID를 참조함 (React Flow 노드 ID와 동일)
- * - sourceHandle/targetHandle은 React Flow handle ID ('left', 'right', 'top', 'bottom')
+ * - sourceHandle/targetHandle은 항상 존재해야 함 (EdgeHandle Value Object)
  */
 export class Edge {
   constructor(
@@ -24,8 +26,8 @@ export class Edge {
     public readonly pageId: PageId,
     public readonly sourceBlockMountId: BlockMountId,
     public readonly targetBlockMountId: BlockMountId,
-    public readonly sourceHandle?: string, // React Flow handle ID ('left', 'right', 'top', 'bottom')
-    public readonly targetHandle?: string, // React Flow handle ID ('left', 'right', 'top', 'bottom')
+    public readonly sourceHandle: EdgeHandle,
+    public readonly targetHandle: EdgeHandle,
     public edgeShape: EdgeShape = EdgeShape.default(),
     public edgeLabel: string = '',
     public edgeStyle: {

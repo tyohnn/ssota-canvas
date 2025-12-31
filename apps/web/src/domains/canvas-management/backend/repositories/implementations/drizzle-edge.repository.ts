@@ -1,13 +1,15 @@
-import { EdgeRepository } from '../interfaces/edge.repository.interface';
-import { EdgeAggregate } from '../../../shared/aggregates/edge.aggregate';
-import { Edge } from '../../../shared/entities/edge.entity';
-import { EdgeId } from '../../../shared/value-objects/edge-id.vo';
-import { EdgeShape } from '../../../shared/value-objects/edge-shape.vo';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
+import { and, eq, inArray, isNull, or } from 'drizzle-orm';
+
 import { adminDb } from '@/db';
-import { edges, type CanvasEdgeShape } from '@/db/schema';
-import { eq, and, or, inArray, isNull } from 'drizzle-orm';
+import { type CanvasEdgeShape, edges } from '@/db/schema';
+import { EdgeRepository } from '@/domains/canvas-management/backend/repositories/interfaces/edge.repository.interface';
+import { EdgeAggregate } from '@/domains/canvas-management/shared/aggregates/edge.aggregate';
+import { Edge } from '@/domains/canvas-management/shared/entities/edge.entity';
+import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
+import { EdgeHandle } from '@/domains/canvas-management/shared/value-objects/edge-handle.vo';
+import { EdgeId } from '@/domains/canvas-management/shared/value-objects/edge-id.vo';
+import { EdgeShape } from '@/domains/canvas-management/shared/value-objects/edge-shape.vo';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 
 /**
  * DrizzleEdgeRepository
@@ -32,8 +34,8 @@ export class DrizzleEdgeRepository implements EdgeRepository {
           page_id: edge.pageId.value,
           source_block_mount_id: edge.sourceBlockMountId.value,
           target_block_mount_id: edge.targetBlockMountId.value,
-          source_handle: edge.sourceHandle || null,
-          target_handle: edge.targetHandle || null,
+          source_handle: edge.sourceHandle.value,
+          target_handle: edge.targetHandle.value,
           edge_shape: edge.edgeShape.value as CanvasEdgeShape,
           edge_label: edge.edgeLabel,
           edge_style_color: edge.edgeStyle.color,
@@ -91,8 +93,8 @@ export class DrizzleEdgeRepository implements EdgeRepository {
           page_id: edge.pageId.value,
           source_block_mount_id: edge.sourceBlockMountId.value,
           target_block_mount_id: edge.targetBlockMountId.value,
-          source_handle: edge.sourceHandle || null,
-          target_handle: edge.targetHandle || null,
+          source_handle: edge.sourceHandle.value,
+          target_handle: edge.targetHandle.value,
           edge_shape: edge.edgeShape.value as CanvasEdgeShape,
           edge_label: edge.edgeLabel,
           edge_style_color: edge.edgeStyle.color,
@@ -101,8 +103,6 @@ export class DrizzleEdgeRepository implements EdgeRepository {
           deleted_at: null,
         })
         .where(eq(edges.id, edge.id.value));
-
-      console.log('[DrizzleEdgeRepository] Edge updated successfully');
     } catch (error) {
       console.error(
         '❌ [DrizzleEdgeRepository.update] Failed to update edge:',
@@ -203,8 +203,8 @@ export class DrizzleEdgeRepository implements EdgeRepository {
       new PageId(row.page_id),
       new BlockMountId(row.source_block_mount_id),
       new BlockMountId(row.target_block_mount_id),
-      row.source_handle || undefined,
-      row.target_handle || undefined,
+      EdgeHandle.fromString(row.source_handle),
+      EdgeHandle.fromString(row.target_handle),
       new EdgeShape(row.edge_shape),
       row.edge_label || '',
       {

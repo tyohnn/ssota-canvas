@@ -1,8 +1,10 @@
+import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+
 import { PageId } from '../../../workspace-management/shared/value-objects/page-id.vo';
 import { BlockMountId } from '../value-objects/block-mount-id.vo';
+import { EdgeHandle } from '../value-objects/edge-handle.vo';
 import { EdgeId } from '../value-objects/edge-id.vo';
 import { EdgeShape } from '../value-objects/edge-shape.vo';
-import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { Position } from '../value-objects/position.vo';
 import { Size } from '../value-objects/size.vo';
 import { ZOrder } from '../value-objects/z-order.vo';
@@ -181,8 +183,8 @@ export class EdgeCreatedEvent implements DomainEvent {
       pageId: PageId;
       sourceBlockMountId: BlockMountId;
       targetBlockMountId: BlockMountId;
-      sourceHandle?: string;
-      targetHandle?: string;
+      sourceHandle: EdgeHandle;
+      targetHandle: EdgeHandle;
       edgeShape: EdgeShape;
     },
     public readonly occurredAt: Date

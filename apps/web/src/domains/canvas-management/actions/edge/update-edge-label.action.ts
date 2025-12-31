@@ -1,14 +1,10 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-
 import { getAuthErrorMessage } from '@/domains/common/auth/error';
 import {
-  type AuthenticatedUser,
   getAuthenticatedUser,
   verifyAccessByPageId,
 } from '@/domains/common/auth/helpers';
-import type { Workspace } from '@/domains/workspace-management/shared/entities/workspace.entity';
 import { ActionResult, err, ok } from '@/lib/action-result';
 
 import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
@@ -93,11 +89,7 @@ export async function updateEdgeLabelAction(
     }
 
     // 6. 검증 완료 - Internal 함수 호출 (검증된 workspace 전달)
-    return await updateEdgeLabelInternal(
-      validatedRequest,
-      authenticatedUser,
-      accessResult.workspace! // ✅ 검증된 workspace entity
-    );
+    return await updateEdgeLabelInternal(validatedRequest);
   } catch (error) {
     console.error('[updateEdgeLabelAction] Authentication error:', error);
 
@@ -123,9 +115,7 @@ export async function updateEdgeLabelAction(
  * @param workspace - 검증된 워크스페이스 entity
  */
 async function updateEdgeLabelInternal(
-  safeDto: UpdateEdgeLabelRequest, // ✅ 이미 검증됨 (SafeDTO)
-  authenticatedUser: AuthenticatedUser, // ✅ 이미 인증됨
-  workspace: Workspace // ✅ 이미 검증된 workspace entity
+  safeDto: UpdateEdgeLabelRequest // ✅ 이미 검증됨 (SafeDTO)
 ): Promise<ActionResult<EdgeView>> {
   try {
     // 1. Service 의존성 생성
@@ -160,8 +150,8 @@ async function updateEdgeLabelInternal(
       pageId: aggregate.edge.pageId.value,
       sourceBlockMountId: aggregate.edge.sourceBlockMountId.value,
       targetBlockMountId: aggregate.edge.targetBlockMountId.value,
-      sourceHandle: aggregate.edge.sourceHandle,
-      targetHandle: aggregate.edge.targetHandle,
+      sourceHandle: aggregate.edge.sourceHandle.value,
+      targetHandle: aggregate.edge.targetHandle.value,
       edgeShape: aggregate.edge.edgeShape.value,
       label: aggregate.edge.edgeLabel,
       style: aggregate.edge.style,

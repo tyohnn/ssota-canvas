@@ -7,6 +7,7 @@ import { EdgeAggregate } from '@/domains/canvas-management/shared/aggregates/edg
 import type { CreateEdgeCommand } from '@/domains/canvas-management/shared/commands';
 import type { CreateEdgeRequest } from '@/domains/canvas-management/shared/dtos/requests/edge.requests';
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
+import { EdgeHandle } from '@/domains/canvas-management/shared/value-objects/edge-handle.vo';
 import { EdgeShape } from '@/domains/canvas-management/shared/value-objects/edge-shape.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { Result } from '@/utils/result';
@@ -41,6 +42,9 @@ export async function createEdge(
       ? new EdgeShape(safeDto.edgeShape)
       : undefined;
 
+    const sourceHandle = EdgeHandle.fromString(safeDto.sourceHandle);
+    const targetHandle = EdgeHandle.fromString(safeDto.targetHandle);
+
     // 2. 비즈니스 검증: 소스/타겟 블럭 마운트가 같은 페이지에 존재하는지 확인
     const sourceBlockMount =
       await blockMountRepository.findById(sourceBlockMountId);
@@ -74,8 +78,8 @@ export async function createEdge(
       pageId,
       sourceBlockMountId,
       targetBlockMountId,
-      sourceHandle: safeDto.sourceHandle,
-      targetHandle: safeDto.targetHandle,
+      sourceHandle,
+      targetHandle,
       edgeShape,
     };
 

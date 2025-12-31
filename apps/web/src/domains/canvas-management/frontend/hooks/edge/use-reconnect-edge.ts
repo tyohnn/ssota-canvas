@@ -19,8 +19,8 @@ export type ReconnectEdgeInput = {
   edgeId: string;
   newSourceBlockMountId: string;
   newTargetBlockMountId: string;
-  sourceHandle?: string | null;
-  targetHandle?: string | null;
+  sourceHandle: string;
+  targetHandle: string;
 };
 
 export type UseReconnectEdgeParams = {
@@ -85,8 +85,8 @@ export function useReconnectEdge(
       const newEdgeView = await createEdge({
         sourceBlockMountId: newSourceBlockMountId,
         targetBlockMountId: newTargetBlockMountId,
-        sourceHandle: sourceHandle || undefined,
-        targetHandle: targetHandle || undefined,
+        sourceHandle: sourceHandle,
+        targetHandle: targetHandle,
         edgeShape,
       });
 
@@ -133,8 +133,8 @@ export function useReconnectEdge(
         ...oldEdge,
         source: newSourceBlockMountId,
         target: newTargetBlockMountId,
-        sourceHandle: sourceHandle || oldEdge.sourceHandle,
-        targetHandle: targetHandle || oldEdge.targetHandle,
+        sourceHandle: sourceHandle,
+        targetHandle: targetHandle,
       };
 
       setEdges(

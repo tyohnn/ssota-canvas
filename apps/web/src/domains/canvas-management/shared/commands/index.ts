@@ -1,15 +1,15 @@
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
-import { BlockType } from '@/domains/block-management/shared/value-objects/block-type.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+
+import { BlockMount } from '../entities/block-mount.entity';
 import { BlockMountId } from '../value-objects/block-mount-id.vo';
+import { EdgeHandle } from '../value-objects/edge-handle.vo';
 import { EdgeId } from '../value-objects/edge-id.vo';
 import { EdgeShape } from '../value-objects/edge-shape.vo';
 import { Position } from '../value-objects/position.vo';
 import { Size } from '../value-objects/size.vo';
 import { ZOrder } from '../value-objects/z-order.vo';
-import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
-import { BlockMount } from '../entities/block-mount.entity';
 
 export interface InitializeCanvasCommand {
   pageId: PageId;
@@ -63,22 +63,19 @@ export interface CreateEdgeCommand {
   pageId: PageId;
   sourceBlockMountId: BlockMountId;
   targetBlockMountId: BlockMountId;
-  sourceHandle?: string; // React Flow handle ID ('left', 'right', 'top', 'bottom')
-  targetHandle?: string; // React Flow handle ID ('left', 'right', 'top', 'bottom')
+  sourceHandle: EdgeHandle;
+  targetHandle: EdgeHandle;
   edgeShape?: EdgeShape;
-  userId: string;
 }
 
 export interface UpdateEdgeShapeCommand {
   edgeId: EdgeId;
   newShape: EdgeShape;
-  userId: string;
 }
 
 export interface UpdateEdgeLabelCommand {
   edgeId: EdgeId;
   newLabel: string;
-  userId: string;
 }
 
 export interface UpdateEdgeStyleCommand {
@@ -87,12 +84,10 @@ export interface UpdateEdgeStyleCommand {
     stroke?: string;
     strokeWidth?: number;
   };
-  userId: string;
 }
 
 export interface DeleteEdgeCommand {
   edgeId: EdgeId;
-  userId: string;
 }
 
 // Block Mount Deletion Commands

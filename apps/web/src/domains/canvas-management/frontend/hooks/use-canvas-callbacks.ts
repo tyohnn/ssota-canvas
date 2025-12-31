@@ -1,19 +1,25 @@
 import { useCallback, useMemo, useRef } from 'react';
+
 import {
-  type Node,
   type Edge,
+  type Node,
   type OnConnect,
   type OnReconnect,
   useReactFlow,
 } from '@xyflow/react';
-import { isFailure } from '@/lib/action-result';
+
 import {
-  BlockType,
   BLOCK_TYPE_SIZES,
+  BlockType,
 } from '@/domains/block-management/shared/types/block-types';
+import { isFailure } from '@/lib/action-result';
+
 import type { EdgeView } from '../../shared/dtos';
-import { useCanvasBlockLifecycle } from './use-canvas-block-lifecycle';
 import { useClipboardPaste } from '../clipboard/hooks/use-clipboard-paste';
+import type { CreateEdgeInput } from './edge/use-create-edge';
+import type { DeleteEdgeInput } from './edge/use-delete-edge';
+import type { ReconnectEdgeInput } from './edge/use-reconnect-edge';
+import { useCanvasBlockLifecycle } from './use-canvas-block-lifecycle';
 
 interface UseCanvasCallbacksProps {
   pageId: string;
@@ -53,21 +59,9 @@ interface UseCanvasCallbacksProps {
     hideGuidelines: () => void;
   };
   edgeManagement: {
-    createEdge: (
-      sourceBlockMountId: string,
-      targetBlockMountId: string,
-      edgeShape?: string,
-      sourceHandle?: string,
-      targetHandle?: string
-    ) => Promise<EdgeView | null>;
-    reconnectEdge: (
-      edgeId: string,
-      newSourceBlockMountId: string,
-      newTargetBlockMountId: string,
-      sourceHandle?: string | null,
-      targetHandle?: string | null
-    ) => Promise<boolean>;
-    deleteEdge: (edgeId: string) => Promise<boolean>;
+    createEdge: (input: CreateEdgeInput) => Promise<EdgeView | null>;
+    reconnectEdge: (input: ReconnectEdgeInput) => Promise<boolean>;
+    deleteEdge: (input: DeleteEdgeInput) => Promise<boolean>;
   };
   blockLifecycle: {
     duplicateBlockAndMount: (
@@ -408,13 +402,13 @@ export function useCanvasCallbacks({
 
       // 2. Optimistic UI로 엣지 생성
       // Hook 내부에서 blockMountId → blockId 변환 처리
-      const result = await edgeManagement.createEdge(
-        connection.source, // blockMountId (React Flow 노드 ID)
-        connection.target, // blockMountId (React Flow 노드 ID)
-        'default', // 기본 타입, 나중에 사용자가 변경 가능
-        connection.sourceHandle || undefined, // React Flow handle ID
-        connection.targetHandle || undefined // React Flow handle ID
-      );
+      const result = await edgeManagement.createEdge({
+        sourceBlockMountId: connection.source, // blockMountId (React Flow 노드 ID)
+        targetBlockMountId: connection.target, // blockMountId (React Flow 노드 ID)
+        edgeShape: 'default', // 기본 타입, 나중에 사용자가 변경 가능
+        sourceHandle: connection.sourceHandle ?? 'right',
+        targetHandle: connection.targetHandle ?? 'left',
+      });
 
       if (!result) {
         console.error(
@@ -431,7 +425,6 @@ export function useCanvasCallbacks({
    */
   const onReconnectStart = useCallback(() => {
     edgeReconnectSuccessful.current = false;
-    console.log('🔄 [onReconnectStart] Edge reconnection started');
   }, []);
 
   /**
@@ -439,26 +432,19 @@ export function useCanvasCallbacks({
    */
   const onReconnect: OnReconnect = useCallback(
     async (oldEdge: Edge, newConnection) => {
-      console.log('🔄 [onReconnect] Reconnecting edge', {
-        oldEdge,
-        newConnection,
-      });
-
       edgeReconnectSuccessful.current = true;
 
       // 재연결 수행
-      const success = await edgeManagement.reconnectEdge(
-        oldEdge.id,
-        newConnection.source,
-        newConnection.target,
-        newConnection.sourceHandle,
-        newConnection.targetHandle
-      );
+      const success = await edgeManagement.reconnectEdge({
+        edgeId: oldEdge.id,
+        newSourceBlockMountId: newConnection.source,
+        newTargetBlockMountId: newConnection.target,
+        sourceHandle: newConnection.sourceHandle ?? 'right',
+        targetHandle: newConnection.targetHandle ?? 'left',
+      });
 
       if (success) {
-        console.log('✅ [onReconnect] Edge reconnected successfully');
       } else {
-        console.error('❌ [onReconnect] Edge reconnection failed');
         edgeReconnectSuccessful.current = false;
       }
     },
@@ -471,17 +457,8 @@ export function useCanvasCallbacks({
    */
   const onReconnectEnd = useCallback(
     async (_event: MouseEvent | TouchEvent, edge: Edge) => {
-      console.log('🔄 [onReconnectEnd] Edge reconnection ended', {
-        success: edgeReconnectSuccessful.current,
-        edgeId: edge.id,
-      });
-
       if (!edgeReconnectSuccessful.current) {
-        // 재연결 실패 시 엣지 삭제 (빈 공간에 드롭한 경우)
-        console.log(
-          '🗑️ [onReconnectEnd] Deleting edge due to failed reconnection'
-        );
-        await edgeManagement.deleteEdge(edge.id);
+        await edgeManagement.deleteEdge({ edgeId: edge.id });
       }
 
       // 다음 재연결을 위해 초기화
@@ -530,7 +507,6 @@ export function useCanvasCallbacks({
 
       // Ctrl+V 또는 Cmd+V (Mac): 붙여넣기
       if (isCtrlOrCmd && event.key === 'v') {
-        console.log('[Canvas] Paste shortcut detected (Cmd/Ctrl+V)');
         event.preventDefault();
         clipboardPaste.handlePaste();
         return;

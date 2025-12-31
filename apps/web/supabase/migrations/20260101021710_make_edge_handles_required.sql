@@ -1,0 +1,48 @@
+-- Migration: Make edge handles required (NOT NULL)
+-- Description: 
+-- - Set source_handle and target_handle to NOT NULL
+-- - Fill existing NULL values with default values ('right' for source, 'left' for target)
+-- - This ensures all edges have explicit handle positions for consistent rendering
+--
+-- Rationale:
+-- - Entity level requires handles to always exist
+-- - DB schema should match domain model requirements
+-- - Ensures consistent edge rendering after page refresh
+
+-- 1. Fill existing NULL values with default values
+-- Source handle: default to 'right' (most common for outgoing connections)
+-- Target handle: default to 'left' (most common for incoming connections)
+UPDATE edges
+SET 
+  source_handle = COALESCE(source_handle, 'right'),
+  target_handle = COALESCE(target_handle, 'left')
+WHERE 
+  (source_handle IS NULL OR target_handle IS NULL)
+  AND deleted_at IS NULL; -- Only update non-deleted edges
+
+-- 2. Add NOT NULL constraints
+ALTER TABLE edges
+  ALTER COLUMN source_handle SET NOT NULL,
+  ALTER COLUMN target_handle SET NOT NULL;
+
+-- 3. Add default values for future inserts
+ALTER TABLE edges
+  ALTER COLUMN source_handle SET DEFAULT 'right',
+  ALTER COLUMN target_handle SET DEFAULT 'left';
+
+-- 4. Add check constraint to ensure valid handle values
+-- Drop existing constraints if they exist (idempotent)
+ALTER TABLE edges
+  DROP CONSTRAINT IF EXISTS edges_source_handle_valid;
+
+ALTER TABLE edges
+  DROP CONSTRAINT IF EXISTS edges_target_handle_valid;
+
+-- Add new constraints
+ALTER TABLE edges
+  ADD CONSTRAINT edges_source_handle_valid 
+    CHECK (source_handle IN ('left', 'right', 'top', 'bottom'));
+
+ALTER TABLE edges
+  ADD CONSTRAINT edges_target_handle_valid 
+    CHECK (target_handle IN ('left', 'right', 'top', 'bottom'));
