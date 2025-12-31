@@ -4,6 +4,7 @@
 - [개요](#개요)
 - [핵심 원칙](#핵심-원칙)
 - [Container/Presentational 패턴](#containerpresentational-패턴)
+- [훅 레이어 아키텍처](#훅-레이어-아키텍처)
 - [컴포넌트 패턴](#컴포넌트-패턴)
 - [폴더 구조](#폴더-구조)
 - [Props 설계](#props-설계)
@@ -47,71 +48,497 @@
 />
 ```
 
-### 2. Container/Presentational 패턴
-
-컴포넌트를 **로직을 담당하는 Container**와 **렌더링만 담당하는 Presentational**로 분리합니다.
-
-**✅ 좋은 예 (Presentational):**
-```tsx
-// Props만 받아서 렌더링 (테스트 쉬움!)
-interface MemberListTableProps {
-  members: Member[];
-  isLoading: boolean;
-}
-
-export function MemberListTable({ members, isLoading }: MemberListTableProps) {
-  return <Table>{/* 렌더링만 */}</Table>;
-}
-```
-
-**✅ 좋은 예 (Container):**
-```tsx
-// Hook으로 데이터 가져와서 Props로 전달
-export function MembersTab({ workspaceId }: MembersTabProps) {
-  const { members, isLoading } = useMembersTab(workspaceId);
-  
-  return <MemberListTable members={members} isLoading={isLoading} />;
-}
-```
-
-**❌ 나쁜 예 (로직과 렌더링 혼재):**
-```tsx
-// 컴포넌트 내부에서 직접 Hook 사용 → 테스트 어려움
-export function MemberListTable() {
-  const { members, isLoading } = useMembersTabContext(); // Context 의존
-  return <Table>{/* ... */}</Table>;
-}
-```
-
-**Context는 언제 사용하는가?**
-- ✅ **전역 데이터**: 앱 전체에서 사용 (WorkspaceContext, ThemeContext)
-- ✅ **도메인 레벨**: 큰 기능 단위 (SettingsDialogContext)
-- ❌ **로컬 레벨**: 작은 컴포넌트 (Props로 전달하는 게 더 간단함)
-
-### 3. 로직 분리와 테스트 가능성
-
-컴포넌트는 **UI 상태**와 **비즈니스 로직**을 분리하여 테스트와 재사용이 쉬워야 합니다.
-
-**파일 구조:**
-```
-component/
-├── index.tsx                      # UI 구조 (선언적)
-├── use-component.ui.ts            # UI 상태 (로컬 상태 관리)
-├── use-component.business.ts      # 비즈니스 로직 (API, 검증)
-├── use-component.ts               # 통합 (UI + Business)
-└── context.tsx                    # Context Provider
-```
-
-**장점:**
-- ✅ **로우코드 툴 호환**: 디자이너는 Storybook에서 Props만으로 테스트
-- ✅ **테스트 용이**: UI/Business 로직 각각 독립 테스트
-- ✅ **Mock 지원**: 비즈니스 로직을 쉽게 교체 가능
-
-> 💡 **자세한 내용**: [로우코드 워크플로우 (Storybook)](#로우코드-워크플로우-storybook) 참조
+> 💡 **자세한 내용**: 
+> - [Container/Presentational 패턴](#containerpresentational-패턴) 섹션 참조
+> - [훅 레이어 아키텍처](#훅-레이어-아키텍처) 섹션 참조
+> - [로우코드 워크플로우 (Storybook)](#로우코드-워크플로우-storybook) 섹션 참조
 
 ---
 
 ## Container/Presentational 패턴
+
+### 개념
+
+컴포넌트를 두 가지 역할로 분리합니다:
+
+```
+┌─────────────────────────────────┐
+│  Container Component            │
+│  (로직 담당)                     │
+│  - Hook으로 데이터 가져오기      │
+│  - 비즈니스 로직 처리            │
+│  - Props로 Presentational에 전달 │
+└──────────┬──────────────────────┘
+           │ Props (단순 값만)
+           ↓
+┌─────────────────────────────────┐
+│  Presentational Component       │
+│  (렌더링만 담당)                 │
+│  - Props만 받음                  │
+│  - 순수 함수                     │
+│  - 로직 없음                     │
+│  - Storybook 테스트 쉬움 ✅      │
+└─────────────────────────────────┘
+```
+
+### 예시
+
+#### Container (index.tsx)
+```tsx
+// members-tab/index.tsx
+export function MembersTab({ workspaceId }: MembersTabProps) {
+  // Hook으로 데이터 가져오기
+  const { memberView, isLoading } = useMembersTab(workspaceId);
+
+  // Props로 전달 (로직 없음)
+  return (
+    <MembersTabContent
+      members={memberView?.currentMembers || []}
+      pendingInvitations={memberView?.pendingInvitations || []}
+      isLoading={isLoading}
+    />
+  );
+}
+```
+
+#### Presentational (components/)
+```tsx
+// members-tab/components/members-tab-content.tsx
+interface MembersTabContentProps {
+  members: Member[];
+  pendingInvitations: Invitation[];
+  isLoading: boolean;
+}
+
+export function MembersTabContent({
+  members,
+  pendingInvitations,
+  isLoading,
+}: MembersTabContentProps) {
+  // 렌더링만! Hook 없음
+  return (
+    <Box>
+      <MembersTabHeader />
+      <WorkspaceMemberListTable
+        currentMembers={members}
+        pendingInvitations={pendingInvitations}
+        isLoading={isLoading}
+      />
+    </Box>
+  );
+}
+```
+
+### Storybook 테스트
+
+```tsx
+// members-tab-content.stories.tsx
+export default {
+  title: 'Workspace/MembersTabContent',
+  component: MembersTabContent,
+};
+
+// 디자이너가 직접 작성 가능!
+export const Default = () => (
+  <MembersTabContent
+    members={[{ userId: '1', name: 'John', ... }]}
+    pendingInvitations={[]}
+    isLoading={false}
+  />
+);
+
+export const Loading = () => (
+  <MembersTabContent
+    members={[]}
+    pendingInvitations={[]}
+    isLoading={true}  // 로딩 상태 테스트
+  />
+);
+```
+
+### Context는 언제 필요한가?
+
+#### ✅ Context 사용 (전역/도메인 레벨)
+```tsx
+// 앱 전체 또는 큰 기능 단위
+<WorkspaceContext>           // 전역: workspace 데이터
+  <SettingsDialogContext>    // 도메인: 설정 다이얼로그 전체
+    <MembersTab />           // 로컬: Props로 전달
+  </SettingsDialogContext>
+</WorkspaceContext>
+```
+
+#### ❌ Context 불필요 (로컬 레벨)
+```tsx
+// 작은 컴포넌트는 Props로 충분
+<MembersTab workspaceId={workspaceId}>  // Container
+  <MembersTabContent                    // Presentational
+    members={members}                   // Props로 전달
+    isLoading={isLoading}
+  />
+</MembersTab>
+```
+
+**가이드라인:**
+- **Props drilling 1-2단계**: Props 전달 (간단함)
+- **Props drilling 3단계 이상**: Context 고려
+- **전역 데이터** (workspaceId, 테마): Context
+- **테스트하고 싶은 컴포넌트**: Presentational (Props만)
+
+---
+
+## 훅 레이어 아키텍처
+
+복잡한 컴포넌트의 비즈니스 로직을 체계적으로 관리하기 위해 훅을 계층적으로 구분합니다.
+
+#### 훅 계층 구조
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  도메인 훅 (Domain Hooks)                                    │
+│  위치: domains/{domain}/frontend/hooks/                     │
+│  역할: 서버 액션을 TanStack Query로 호출                     │
+│  특징: 재사용 가능, 여러 컴포넌트에서 공유                   │
+└────────────────┬────────────────────────────────────────────┘
+                 │ 사용
+                 ↓
+┌─────────────────────────────────────────────────────────────┐
+│  국소 컴포넌트 훅 (Component-local Hooks)                    │
+│  위치: component/core/                                       │
+│  ├── UI 훅 (use-*.ui.ts)                                     │
+│  │   역할: UI 상태 관리, 계산 로직                           │
+│  ├── 비즈니스 훅 (use-*.business.ts)                         │
+│  │   역할: 도메인 훅을 조합하여 컴포넌트 특화 로직 제공       │
+│  └── 메인 훅 (use-*.ts)                                      │
+│      역할: 의존성 주입, UI/비즈니스 훅 오케스트레이션         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 1. 도메인 훅 (Domain Hooks)
+
+**위치**: `domains/{domain}/frontend/hooks/`
+
+서버 액션을 TanStack Query로 래핑하여 재사용 가능한 훅으로 제공합니다.
+
+**특징:**
+- ✅ **재사용성**: 여러 컴포넌트에서 공유
+- ✅ **TanStack Query**: Optimistic Update, 자동 롤백, 로딩 상태 관리
+- ✅ **도메인 특화**: 특정 도메인의 서버 액션 집중
+
+**예시:**
+```tsx
+// domains/block-management/frontend/hooks/use-block-title-update.ts
+export function useBlockTitleUpdate(): UseBlockTitleUpdateResult {
+  const { updateNode } = useReactFlow();
+
+  const updateTitle = useCallback(
+    async (nodeId: string, title: string, blockData: BlockNodeData) => {
+      // Optimistic Update
+      const originalTitle = blockData.title;
+      updateNode(nodeId, { data: { ...blockData, title } });
+
+      try {
+        // Server Action 호출
+        const result = await updateBlockTitleAction({
+          blockId: blockData.blockId,
+          title,
+          workspaceId: blockData.workspaceId,
+          orgId: blockData.orgId,
+        });
+
+        if (isFailure(result)) {
+          // 롤백
+          updateNode(nodeId, { data: { ...blockData, title: originalTitle } });
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        // 롤백
+        updateNode(nodeId, { data: { ...blockData, title: originalTitle } });
+        throw error;
+      }
+    },
+    [updateNode]
+  );
+
+  return { updateTitle };
+}
+```
+
+**TanStack Query를 사용하는 경우:**
+```tsx
+// domains/workspace-management/frontend/hooks/use-create-workspace.ts (예시)
+export function useCreateWorkspace() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async (values: CreateWorkspaceFormValues) => {
+      return await createWorkspaceAction(values);
+    },
+    onMutate: async (values) => {
+      // Optimistic Update
+      // ...
+    },
+    onError: (error, variables, context) => {
+      // 롤백
+      // ...
+    },
+    onSuccess: () => {
+      // 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+    },
+  });
+
+  return {
+    createWorkspace: mutation.mutateAsync,
+    isCreating: mutation.isPending,
+  };
+}
+```
+
+#### 2. 국소 컴포넌트 훅 (Component-local Hooks)
+
+특정 컴포넌트에서만 사용되는 로직을 관리합니다. 세 가지 레이어로 구분됩니다:
+
+##### 2-1. UI 훅 (`use-*.ui.ts`)
+
+**역할**: UI 상태 관리와 UI 관련 계산 로직
+
+**특징:**
+- ✅ **비즈니스 로직 없음**: API 호출, 서버 액션 호출 없음
+- ✅ **로컬 상태**: `useState`, `useReducer` 사용
+- ✅ **UI 계산**: 조건부 렌더링을 위한 계산, 유효성 검사 등
+
+**예시:**
+```tsx
+// component/core/use-create-workspace-dialog.ui.ts
+export function useCreateWorkspaceDialogUI() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+
+  const form = useForm<CreateWorkspaceFormValues>({
+    resolver: zodResolver(createWorkspaceSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      icon: 'Folder',
+    },
+  });
+
+  const resetForm = useCallback(() => {
+    form.reset();
+  }, [form]);
+
+  return {
+    form,
+    isLoading,
+    isInviteDialogOpen,
+    setIsLoading,
+    setIsInviteDialogOpen,
+    resetForm,
+  };
+}
+```
+
+##### 2-2. 비즈니스 훅 (`use-*.business.ts`)
+
+**역할**: 도메인 훅을 조합하여 컴포넌트 특화 비즈니스 로직 제공
+
+**특징:**
+- ✅ **도메인 훅 사용**: 도메인 훅들을 호출하여 조합
+- ✅ **컴포넌트 특화**: 해당 컴포넌트에 맞는 워크플로우 제공
+- ✅ **검증/에러 처리**: 컴포넌트 수준의 검증 및 에러 메시지 처리
+
+**예시:**
+```tsx
+// component/core/use-create-workspace-dialog.business.ts
+export function useCreateWorkspaceDialogBusiness(): CreateWorkspaceBusinessLogic {
+  // 도메인 훅 사용
+  const { createWorkspace, isCreating } = useCreateWorkspace();
+
+  const handleCreateWorkspace = useCallback(
+    async (values: CreateWorkspaceFormValues) => {
+      // 컴포넌트 특화 검증
+      if (!values.name.trim()) {
+        throw new Error('워크스페이스 이름을 입력해주세요');
+      }
+
+      // 도메인 훅 호출
+      const result = await createWorkspace(values);
+
+      if (!result.success) {
+        // 컴포넌트 특화 에러 처리
+        toast.error('워크스페이스 생성에 실패했습니다');
+        throw new Error(result.error);
+      }
+
+      return result;
+    },
+    [createWorkspace]
+  );
+
+  return {
+    createWorkspace: handleCreateWorkspace,
+    isCreating,
+  };
+}
+```
+
+**❌ 잘못된 패턴 (리팩토링 예정):**
+
+컴포넌트 내부에서 직접 서버 액션을 호출하는 패턴은 사용하지 않습니다. 모든 서버 액션 호출은 도메인 훅으로 추출하여 재사용 가능하게 만들어야 합니다.
+
+```tsx
+// ❌ 잘못된 패턴: 컴포넌트 내부에서 직접 서버 액션 호출
+export function useInviteMemberDialogBusiness(uiState: InviteMemberDialogUIState) {
+  const queryClient = useQueryClient();
+
+  const searchMembers = async (query: string, workspaceId: string) => {
+    if (!query || query.length < 3) {
+      uiState.setSearchResults([]);
+      return;
+    }
+
+    uiState.setIsSearching(true);
+    try {
+      // 직접 서버 액션 호출 (도메인 훅 없이) → 리팩토링 필요
+      const result = await searchOrganizationMembersAction({
+        workspaceId,
+        query,
+      });
+      if (result.success) {
+        uiState.setSearchResults(result.data);
+      }
+    } finally {
+      uiState.setIsSearching(false);
+    }
+  };
+
+  return { searchMembers };
+}
+
+// ✅ 올바른 패턴: 도메인 훅으로 추출
+// domains/workspace-management/frontend/hooks/use-search-organization-members.ts
+// 비즈니스 훅에서는 도메인 훅을 사용
+```
+
+##### 2-3. 메인 훅 (`use-*.ts`)
+
+**역할**: 의존성 주입 및 UI/비즈니스 훅 오케스트레이션
+
+**특징:**
+- ✅ **의존성 주입**: 비즈니스 로직을 선택적으로 주입 가능 (테스트, Mock 지원)
+- ✅ **오케스트레이션**: UI 훅과 비즈니스 훅을 연결하여 통합 로직 제공
+- ✅ **Context Value 생성**: Provider에 전달할 Context Value 생성
+
+**예시:**
+```tsx
+// component/core/use-create-workspace-dialog.ts
+export function useCreateWorkspaceDialog(
+  { open, onOpenChange }: CreateWorkspaceDialogProps,
+  businessLogic?: CreateWorkspaceBusinessLogic // 🎯 Optional injection
+): CreateWorkspaceDialogContextValue {
+  // UI 훅
+  const uiState = useCreateWorkspaceDialogUI();
+
+  // 비즈니스 훅 (또는 주입된 로직)
+  const defaultBusiness = useCreateWorkspaceDialogBusiness();
+  const business = businessLogic ?? defaultBusiness;
+
+  // 오케스트레이션: 폼 제출 처리
+  const handleSubmit = useCallback(
+    async (values: CreateWorkspaceFormValues) => {
+      // 비즈니스 로직 검증
+      const error = business.validateName?.(values.name);
+      if (error) {
+        console.warn('Validation error:', error);
+        return;
+      }
+
+      uiState.setIsLoading(true);
+      try {
+        // 비즈니스 로직 실행
+        const result = await business.createWorkspace(values);
+
+        if (result.success) {
+          // UI 상태 업데이트
+          uiState.setCreatedWorkspace(result.createdInfo);
+          uiState.resetForm();
+          handleOpenInviteDialog();
+        }
+      } finally {
+        uiState.setIsLoading(false);
+      }
+    },
+    [uiState, business]
+  );
+
+  // Context Value 반환
+  return {
+    ...uiState,
+    ...business,
+    handleSubmit,
+    handleCloseDialog,
+  };
+}
+```
+
+#### 언제 도메인 훅을 만들어야 하는가?
+
+**✅ 도메인 훅 생성 권장:**
+- 여러 컴포넌트에서 동일한 서버 액션을 호출하는 경우
+- TanStack Query의 Optimistic Update가 필요한 경우
+- 재사용 가능성이 높은 서버 액션 호출 로직
+
+**예시:**
+- `useBlockTitleUpdate`: 여러 곳에서 블록 제목 업데이트
+- `useCreateWorkspace`: 워크스페이스 생성 로직 재사용
+- `useSearchOrganizationMembers`: 멤버 검색 로직 재사용
+
+**❌ 도메인 훅 불필요:**
+- 재사용 가능성이 낮은 경우
+
+**예시:**
+- 특정 다이얼로그에서만 사용하는 단순 폼 제출
+
+#### 파일 구조 예시
+
+```
+component/
+├── core/
+│   ├── use-component.ui.ts          # UI 훅 (상태 관리)
+│   ├── use-component.business.ts    # 비즈니스 훅 (도메인 훅 조합)
+│   ├── use-component.ts             # 메인 훅 (오케스트레이션)
+│   └── types.ts
+└── index.tsx
+
+domains/{domain}/frontend/
+└── hooks/
+    ├── use-server-action-1.ts       # 도메인 훅 (재사용 가능)
+    ├── use-server-action-2.ts
+    └── ...
+```
+
+**실제 예시:**
+```
+create-workspace-dialog/
+├── core/
+│   ├── use-create-workspace-dialog.ui.ts
+│   ├── use-create-workspace-dialog.business.ts
+│   └── use-create-workspace-dialog.ts
+
+domains/workspace-management/frontend/
+└── hooks/
+    └── use-create-workspace.ts      # 도메인 훅 (다른 곳에서도 사용 가능)
+```
+
+#### 장점
+
+- ✅ **재사용성**: 도메인 훅을 여러 컴포넌트에서 공유
+- ✅ **테스트 용이**: 각 레이어를 독립적으로 테스트 가능
+- ✅ **명확한 책임 분리**: UI/비즈니스/오케스트레이션 역할 명확
+- ✅ **유연성**: 비즈니스 로직 주입을 통한 Mock 지원
+
+---
 
 ### 개념
 
@@ -713,6 +1140,295 @@ Level 1: custom-properties-section/
 
 ## Props 설계
 
+### Props 전달 전략 (Container-Hook-View)
+
+컴포넌트 계층에 따라 Props 전달 방식을 다르게 처리하여 코드 명확성과 유지보수성을 높입니다.
+
+#### 핵심 원칙
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Container (Thin)                                       │
+│  - Destructuring 최소화                                 │
+│  - Props를 Hook과 View에 연결만                         │
+│  - 라이브러리 인터페이스 그대로 유지                     │
+└────────────────┬────────────────────────────────────────┘
+                 │
+                 ↓
+┌─────────────────────────────────────────────────────────┐
+│  Hook (Explicit)                                        │
+│  - 명시적 Destructuring                                 │
+│  - 사용하는 Props만 선택적으로 추출                     │
+│  - "무엇을 사용하는가" 명확히 표현                      │
+└────────────────┬────────────────────────────────────────┘
+                 │
+                 ↓
+┌─────────────────────────────────────────────────────────┐
+│  View (Semantic Grouping)                               │
+│  - 의미 단위로 Props 그룹화                             │
+│  - 관련 Props를 객체로 묶어 전달                        │
+│  - 가독성과 유지보수성 향상                             │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 1. Container 레벨: Thin하게 유지
+
+Container는 외부 라이브러리 인터페이스를 그대로 받아들이고, 최소한의 destructuring만 수행합니다.
+
+**✅ 좋은 예:**
+```tsx
+// custom-edge/index.tsx
+export const CustomEdge = memo(function CustomEdge(props: CustomEdgeProps) {
+  // 훅에 필요한 것만 추출
+  const { id, selected } = props;
+  
+  // 나머지는 그대로 전달
+  const hookResult = useCustomEdge({
+    edgeId: id,
+    ...props,
+  });
+  
+  return <CustomEdgeView {...hookResult} />;
+});
+```
+
+**❌ 나쁜 예:**
+```tsx
+// Container에서 모든 props를 destructure하면 장황함
+export const CustomEdge = memo(function CustomEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  style,
+  markerEnd,
+  selected,
+}: CustomEdgeProps) {
+  // 10개 이상의 props를 나열 → 가독성 저하
+  const hookResult = useCustomEdge({
+    edgeId: id,
+    sourceX,
+    sourceY,
+    // ... 계속 나열
+  });
+});
+```
+
+**이유:**
+- React Flow 같은 라이브러리는 표준 인터페이스를 제공
+- Container에서 모든 것을 destructure하면 코드가 장황해짐
+- Props 추가/제거 시 여러 곳 수정 필요
+- **외부 인터페이스를 그대로 유지하는 것이 라이브러리 호환성 보장**
+
+#### 2. Hook 레벨: 명시적으로 선언
+
+Hook에서는 **"무엇을 사용하는가"**를 명확히 하기 위해 사용하는 Props만 명시적으로 destructure합니다.
+
+**✅ 좋은 예:**
+```tsx
+// use-custom-edge.ts
+export function useCustomEdge(props: CustomEdgeHookProps): UseCustomEdgeReturn {
+  // 명시적으로 사용하는 것만 추출
+  const {
+    edgeId,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    style,
+    selected,
+  } = props;
+  
+  // 각 값이 어디서 사용되는지 명확
+  const { pathData } = useEdgePath({
+    edgeId,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+  });
+  
+  // ...
+}
+```
+
+**❌ 나쁜 예:**
+```tsx
+// 무엇을 사용하는지 불명확
+export function useCustomEdge(props: CustomEdgeHookProps) {
+  // props를 그대로 사용하면 의존성 파악 어려움
+  const { pathData } = useEdgePath(props);
+}
+```
+
+**이유:**
+- 비즈니스 로직에서는 "어떤 데이터를 사용하는가"가 중요
+- 명시적 destructuring으로 의존성 명확화
+- 테스트 작성 시 필요한 props 파악 용이
+- 리팩토링 시 영향 범위 파악 쉬움
+
+#### 3. View 레벨: 의미 단위로 그룹화
+
+View 컴포넌트로 전달할 때는 관련된 Props를 의미 단위로 그룹화하여 가독성을 높입니다.
+
+**✅ 좋은 예:**
+```tsx
+// custom-edge-view.tsx
+interface EdgeGeometry {
+  edgeId: string;
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  sourcePosition: Position;
+  targetPosition: Position;
+}
+
+interface EdgeVisual {
+  strokeColor: string;
+  strokeWidth: number;
+  markerEnd?: string;
+  style?: React.CSSProperties;
+}
+
+interface EdgeLabel {
+  label: string;
+  labelX: number;
+  labelY: number;
+  isSelected: boolean;
+}
+
+interface CustomEdgeViewProps {
+  geometry: EdgeGeometry;
+  visual: EdgeVisual;
+  label: EdgeLabel;
+  showToolbar: boolean;
+  toolbarProps: EdgeToolbarProps | null;
+}
+
+export function CustomEdgeView({
+  geometry,
+  visual,
+  label,
+  showToolbar,
+  toolbarProps,
+}: CustomEdgeViewProps) {
+  return (
+    <>
+      <EdgePath {...geometry} {...visual} />
+      <EdgeLabel {...label} />
+      {showToolbar && <EdgeToolbar {...toolbarProps} />}
+    </>
+  );
+}
+```
+
+**현재 상태 (개선 전):**
+```tsx
+// ❌ 개별 Props 나열 → 가독성 저하
+export function CustomEdgeView({
+  edgeId,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  labelX,
+  labelY,
+  strokeColor,
+  strokeWidth,
+  markerEnd,
+  style,
+  label,
+  isSelected,
+  showToolbar,
+  toolbarProps,
+}: CustomEdgeViewProps) {
+  // 18개 props → 그룹화 필요
+}
+```
+
+**이유:**
+- 관련 Props를 그룹화하면 의미 파악 쉬움
+- Props 수가 많을 때 가독성 향상
+- 리팩토링 시 그룹 단위로 이동 가능
+- **View는 "의미 있는 단위"로 데이터를 받아야 함**
+
+#### 실제 적용 예시 (글로벌 기업 패턴)
+
+이 패턴은 다음 글로벌 기업들의 오픈소스에서 검증된 방식입니다:
+
+**Microsoft (Fluent UI, React Flow):**
+```tsx
+// Container: Thin
+export const Button = (props: ButtonProps) => {
+  const state = useButton(props);
+  return renderButton(state);
+};
+
+// Hook: Explicit
+function useButton(props: ButtonProps) {
+  const { disabled, onClick, children } = props;
+  // ...
+}
+```
+
+**Shopify (Polaris):**
+```tsx
+// Container: Minimal destructure
+export function TextField(props: TextFieldProps) {
+  const textFieldProps = useTextField(props);
+  return <TextFieldView {...textFieldProps} />;
+}
+
+// View: Semantic grouping
+interface TextFieldViewProps {
+  input: InputProps;
+  label: LabelProps;
+  error: ErrorProps;
+}
+```
+
+**Adobe (React Spectrum):**
+```tsx
+// Container: Spread 패턴
+export function Button(props: ButtonProps) {
+  let { buttonProps } = useButton(props, ref);
+  return <ButtonBase {...buttonProps} ref={ref} />;
+}
+
+// Hook: Explicit params
+function useButton(props: AriaButtonProps, ref: RefObject) {
+  let {
+    elementType = 'button',
+    isDisabled,
+    onPress,
+  } = props;
+  // ...
+}
+```
+
+#### 언제 이 패턴을 사용하는가?
+
+**✅ 패턴 적용 권장:**
+- Props가 5개 이상인 컴포넌트
+- 외부 라이브러리 인터페이스를 래핑하는 경우
+- 복잡한 비즈니스 로직이 있는 경우
+- 여러 컴포넌트 간 데이터 전달이 많은 경우
+
+**❌ 패턴 불필요:**
+- Props가 3개 이하인 단순 컴포넌트
+- 단일 책임만 가진 작은 컴포넌트
+- UI만 담당하는 Presentational 컴포넌트
+
 ### 노코드 친화적 Props
 
 **✅ 노출해야 할 Props:**
@@ -802,11 +1518,9 @@ const [propertyName, setPropertyName] = useState('');
 
 ### 도메인 상태 (Custom Hook)
 
-서버 데이터나 도메인 로직은 별도 훅으로 분리합니다.
+서버 데이터나 도메인 로직은 도메인 훅으로 분리합니다.
 
-```tsx
-const { createField } = useCustomProperty();
-```
+> 💡 **자세한 내용**: [훅 레이어 아키텍처](#훅-레이어-아키텍처) 섹션의 "도메인 훅" 참조
 
 ---
 
@@ -1622,7 +2336,7 @@ const mutation = useMutation({
 → [컴포넌트 패턴](#컴포넌트-패턴) 섹션 참조
 
 ### 2. 로직 분리 (UI + Business)
-→ [노코드 워크플로우를 위한 로직 분리](#노코드-워크플로우를-위한-로직-분리) 섹션 참조
+→ [로우코드 워크플로우 (Storybook)](#로우코드-워크플로우-storybook) 섹션 참조
 
 ### 3. Optimistic Updates
 → [Optimistic Updates with TanStack Query](#optimistic-updates-with-tanstack-query) 섹션 참조
