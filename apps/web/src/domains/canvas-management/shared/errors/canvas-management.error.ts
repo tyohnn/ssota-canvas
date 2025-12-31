@@ -17,6 +17,8 @@ export type CanvasManagementErrorCode =
   | 'INVALID_ZORDER'
   | 'INVALID_EDGE_SHAPE'
   | 'INVALID_EDGE_HANDLE'
+  | 'INVALID_EDGE_COLOR'
+  | 'INVALID_EDGE_THICKNESS'
   | 'BLOCK_NOT_FOUND'
   | 'EDGE_CONNECTION_FAILED'
   | 'VIEWPORT_LIMIT_EXCEEDED'
@@ -38,6 +40,8 @@ export const CANVAS_MANAGEMENT_ERROR_MESSAGES: Record<
   INVALID_ZORDER: 'z-order 값이 유효하지 않습니다.',
   INVALID_EDGE_SHAPE: '올바르지 않은 엣지 모양입니다.',
   INVALID_EDGE_HANDLE: '올바르지 않은 엣지 핸들 위치입니다.',
+  INVALID_EDGE_COLOR: '올바르지 않은 엣지 색상입니다.',
+  INVALID_EDGE_THICKNESS: '올바르지 않은 엣지 두께입니다.',
   BLOCK_NOT_FOUND: '블럭을 찾을 수 없습니다.',
   EDGE_CONNECTION_FAILED: '엣지 연결에 실패했습니다.',
   VIEWPORT_LIMIT_EXCEEDED: '뷰포트 제한을 초과했습니다.',

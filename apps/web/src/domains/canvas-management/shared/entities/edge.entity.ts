@@ -4,6 +4,7 @@ import { BlockMountId } from '../value-objects/block-mount-id.vo';
 import { EdgeHandle } from '../value-objects/edge-handle.vo';
 import { EdgeId } from '../value-objects/edge-id.vo';
 import { EdgeShape } from '../value-objects/edge-shape.vo';
+import { EdgeStyle } from '../value-objects/edge-style.vo';
 
 /**
  * Edge Entity
@@ -30,16 +31,44 @@ export class Edge {
     public readonly targetHandle: EdgeHandle,
     public edgeShape: EdgeShape = EdgeShape.default(),
     public edgeLabel: string = '',
-    public edgeStyle: {
-      color: string;
-      thickness: number;
-    } = {
-      color: '#9ca3af',
-      thickness: 2,
-    },
+    public edgeStyle: EdgeStyle = EdgeStyle.default(),
     public readonly createdAt: Date = new Date(),
     public updatedAt: Date = new Date()
   ) {}
+
+  /**
+   * 기존 데이터로 Edge 재구성 (Repository에서 사용)
+   *
+   * @param params - Edge 재구성에 필요한 모든 파라미터
+   * @returns Edge 인스턴스
+   */
+  static reconstitute(params: {
+    id: EdgeId;
+    pageId: PageId;
+    sourceBlockMountId: BlockMountId;
+    targetBlockMountId: BlockMountId;
+    sourceHandle: EdgeHandle;
+    targetHandle: EdgeHandle;
+    edgeShape: EdgeShape;
+    edgeLabel: string;
+    edgeStyle: EdgeStyle;
+    createdAt: Date;
+    updatedAt: Date;
+  }): Edge {
+    return new Edge(
+      params.id,
+      params.pageId,
+      params.sourceBlockMountId,
+      params.targetBlockMountId,
+      params.sourceHandle,
+      params.targetHandle,
+      params.edgeShape,
+      params.edgeLabel,
+      params.edgeStyle,
+      params.createdAt,
+      params.updatedAt
+    );
+  }
 
   /**
    * 엣지 모양 변경
@@ -61,12 +90,16 @@ export class Edge {
    * 엣지 스타일 변경
    */
   updateStyle(style: { stroke?: string; strokeWidth?: number }): void {
+    let newStyle = this.edgeStyle;
+
     if (style.stroke !== undefined) {
-      this.edgeStyle.color = style.stroke;
+      newStyle = newStyle.withColor(style.stroke);
     }
     if (style.strokeWidth !== undefined) {
-      this.edgeStyle.thickness = style.strokeWidth;
+      newStyle = newStyle.withThickness(style.strokeWidth);
     }
+
+    this.edgeStyle = newStyle;
     this.updatedAt = new Date();
   }
 
@@ -74,10 +107,7 @@ export class Edge {
    * React Flow 스타일 가져오기 (stroke, strokeWidth)
    */
   get style(): { stroke: string; strokeWidth: number } {
-    return {
-      stroke: this.edgeStyle.color,
-      strokeWidth: this.edgeStyle.thickness,
-    };
+    return this.edgeStyle.toReactFlowStyle();
   }
 
   /**

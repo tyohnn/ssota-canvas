@@ -8,7 +8,6 @@ import type { CreateEdgeCommand } from '@/domains/canvas-management/shared/comma
 import type { CreateEdgeRequest } from '@/domains/canvas-management/shared/dtos/requests/edge.requests';
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { EdgeHandle } from '@/domains/canvas-management/shared/value-objects/edge-handle.vo';
-import { EdgeShape } from '@/domains/canvas-management/shared/value-objects/edge-shape.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { Result } from '@/utils/result';
 
@@ -38,9 +37,6 @@ export async function createEdge(
     const pageId = new PageId(safeDto.pageId);
     const sourceBlockMountId = new BlockMountId(safeDto.sourceBlockMountId);
     const targetBlockMountId = new BlockMountId(safeDto.targetBlockMountId);
-    const edgeShape = safeDto.edgeShape
-      ? new EdgeShape(safeDto.edgeShape)
-      : undefined;
 
     const sourceHandle = EdgeHandle.fromString(safeDto.sourceHandle);
     const targetHandle = EdgeHandle.fromString(safeDto.targetHandle);
@@ -80,7 +76,6 @@ export async function createEdge(
       targetBlockMountId,
       sourceHandle,
       targetHandle,
-      edgeShape,
     };
 
     // 5. Aggregate에 Command 전달 (Command → Event)

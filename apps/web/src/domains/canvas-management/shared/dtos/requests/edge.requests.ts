@@ -22,7 +22,6 @@ export const CreateEdgeRequestSchema = z.object({
   targetBlockMountId: z.uuid('Invalid target block mount ID'),
   sourceHandle: z.enum(['left', 'right', 'top', 'bottom']),
   targetHandle: z.enum(['left', 'right', 'top', 'bottom']),
-  edgeShape: z.string().default('default'),
 });
 
 /**

@@ -65,7 +65,6 @@ export interface CreateEdgeCommand {
   targetBlockMountId: BlockMountId;
   sourceHandle: EdgeHandle;
   targetHandle: EdgeHandle;
-  edgeShape?: EdgeShape;
 }
 
 export interface UpdateEdgeShapeCommand {

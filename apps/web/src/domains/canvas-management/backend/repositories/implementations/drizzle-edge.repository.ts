@@ -9,6 +9,7 @@ import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/b
 import { EdgeHandle } from '@/domains/canvas-management/shared/value-objects/edge-handle.vo';
 import { EdgeId } from '@/domains/canvas-management/shared/value-objects/edge-id.vo';
 import { EdgeShape } from '@/domains/canvas-management/shared/value-objects/edge-shape.vo';
+import { EdgeStyle } from '@/domains/canvas-management/shared/value-objects/edge-style.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 
 /**
@@ -198,22 +199,22 @@ export class DrizzleEdgeRepository implements EdgeRepository {
    * DB Row → Domain Model 변환
    */
   private toDomain(row: typeof edges.$inferSelect): EdgeAggregate {
-    const edge = new Edge(
-      new EdgeId(row.id),
-      new PageId(row.page_id),
-      new BlockMountId(row.source_block_mount_id),
-      new BlockMountId(row.target_block_mount_id),
-      EdgeHandle.fromString(row.source_handle),
-      EdgeHandle.fromString(row.target_handle),
-      new EdgeShape(row.edge_shape),
-      row.edge_label || '',
-      {
+    const edge = Edge.reconstitute({
+      id: new EdgeId(row.id),
+      pageId: new PageId(row.page_id),
+      sourceBlockMountId: new BlockMountId(row.source_block_mount_id),
+      targetBlockMountId: new BlockMountId(row.target_block_mount_id),
+      sourceHandle: EdgeHandle.fromString(row.source_handle),
+      targetHandle: EdgeHandle.fromString(row.target_handle),
+      edgeShape: new EdgeShape(row.edge_shape),
+      edgeLabel: row.edge_label || '',
+      edgeStyle: EdgeStyle.fromObject({
         color: row.edge_style_color || '#9ca3af',
         thickness: row.edge_style_thickness || 2,
-      },
-      row.created_at,
-      row.updated_at
-    );
+      }),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    });
 
     return new EdgeAggregate(edge);
   }

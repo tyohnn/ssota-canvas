@@ -405,7 +405,6 @@ export function useCanvasCallbacks({
       const result = await edgeManagement.createEdge({
         sourceBlockMountId: connection.source, // blockMountId (React Flow 노드 ID)
         targetBlockMountId: connection.target, // blockMountId (React Flow 노드 ID)
-        edgeShape: 'default', // 기본 타입, 나중에 사용자가 변경 가능
         sourceHandle: connection.sourceHandle ?? 'right',
         targetHandle: connection.targetHandle ?? 'left',
       });

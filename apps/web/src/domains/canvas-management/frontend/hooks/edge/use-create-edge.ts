@@ -26,7 +26,6 @@ export type CreateEdgeInput = {
   targetBlockMountId: string;
   sourceHandle: string;
   targetHandle: string;
-  edgeShape?: string;
 };
 
 export type UseCreateEdgeResult = {
@@ -53,7 +52,6 @@ export function useCreateEdge(
       const {
         sourceBlockMountId,
         targetBlockMountId,
-        edgeShape = 'default',
         sourceHandle,
         targetHandle,
       } = input;
@@ -65,7 +63,6 @@ export function useCreateEdge(
         targetBlockMountId,
         sourceHandle, // string -> safeParse에서 EdgeHandle로 변환
         targetHandle, // string -> safeParse에서 EdgeHandle로 변환
-        edgeShape,
       };
 
       const parseResult = CreateEdgeRequestSchema.safeParse(rawRequest); //
@@ -88,7 +85,6 @@ export function useCreateEdge(
       const {
         sourceBlockMountId,
         targetBlockMountId,
-        edgeShape = 'default',
         sourceHandle,
         targetHandle,
       } = input;
@@ -112,7 +108,7 @@ export function useCreateEdge(
         type: 'custom',
         data: {
           edgeId: optimisticEdgeId,
-          actualEdgeShape: edgeShape as EdgeShape,
+          actualEdgeShape: 'default',
           pageId,
         },
       };

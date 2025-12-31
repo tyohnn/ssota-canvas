@@ -185,7 +185,6 @@ export class EdgeCreatedEvent implements DomainEvent {
       targetBlockMountId: BlockMountId;
       sourceHandle: EdgeHandle;
       targetHandle: EdgeHandle;
-      edgeShape: EdgeShape;
     },
     public readonly occurredAt: Date
   ) {}

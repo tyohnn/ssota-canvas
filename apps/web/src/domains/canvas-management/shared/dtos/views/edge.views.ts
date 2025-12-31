@@ -18,7 +18,7 @@ export interface EdgeView {
   targetBlockMountId: string;
   sourceHandle: string;
   targetHandle: string;
-  edgeShape: string; // 'default' | 'straight' | 'step' | 'smoothstep' | 'simplebezier'
+  edgeShape: string;
   label?: string;
   style?: EdgeStyle;
   createdAt: string;

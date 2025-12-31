@@ -62,8 +62,7 @@ export class EdgeAggregate {
       command.sourceBlockMountId,
       command.targetBlockMountId,
       command.sourceHandle,
-      command.targetHandle,
-      command.edgeShape || EdgeShape.default()
+      command.targetHandle
     );
 
     // 3. Aggregate 생성
@@ -79,7 +78,6 @@ export class EdgeAggregate {
         targetBlockMountId: command.targetBlockMountId,
         sourceHandle: command.sourceHandle,
         targetHandle: command.targetHandle,
-        edgeShape: edge.edgeShape,
       },
       edge.createdAt
     );

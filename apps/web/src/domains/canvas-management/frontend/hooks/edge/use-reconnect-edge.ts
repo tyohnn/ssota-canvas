@@ -73,8 +73,6 @@ export function useReconnectEdge(
         throw new Error(`Edge not found: ${edgeId}`);
       }
 
-      const edgeShape = (oldEdge.data?.actualEdgeShape as string) || 'default';
-
       // 2. 기존 엣지 삭제 (외부 훅 사용)
       const deleteSuccess = await deleteEdge({ edgeId });
       if (!deleteSuccess) {
@@ -87,7 +85,6 @@ export function useReconnectEdge(
         targetBlockMountId: newTargetBlockMountId,
         sourceHandle: sourceHandle,
         targetHandle: targetHandle,
-        edgeShape,
       });
 
       if (!newEdgeView) {
@@ -97,7 +94,6 @@ export function useReconnectEdge(
       return {
         oldEdge,
         newEdgeView,
-        edgeShape,
       };
     },
 

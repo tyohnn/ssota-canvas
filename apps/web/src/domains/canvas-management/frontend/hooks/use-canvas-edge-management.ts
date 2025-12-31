@@ -38,7 +38,12 @@ export interface UseCanvasEdgeManagementParams {
  */
 export function useCanvasEdgeManagement(params: UseCanvasEdgeManagementParams) {
   const { pageId } = params;
-  const { getEdges, setEdges, getNodes } = useReactFlow();
+  const { getEdges: getEdgesRaw, setEdges, getNodes } = useReactFlow();
+
+  // 타입 안전한 래퍼 함수
+  const getEdges = useCallback((): Edge<EdgeData>[] => {
+    return getEdgesRaw() as Edge<EdgeData>[];
+  }, [getEdgesRaw]);
 
   // ============================================================================
   // 도메인 훅 사용

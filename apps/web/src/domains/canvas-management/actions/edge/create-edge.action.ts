@@ -138,6 +138,8 @@ async function createEdgeInternal(
       sourceHandle: aggregate.edge.sourceHandle.value,
       targetHandle: aggregate.edge.targetHandle.value,
       edgeShape: aggregate.edge.edgeShape.value,
+      label: aggregate.edge.edgeLabel,
+      style: aggregate.edge.edgeStyle.toReactFlowStyle(),
       createdAt: aggregate.edge.createdAt.toISOString(),
       updatedAt: aggregate.edge.updatedAt.toISOString(),
     };
