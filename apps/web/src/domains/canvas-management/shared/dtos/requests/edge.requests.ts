@@ -6,7 +6,6 @@
  * - Input types: 프론트엔드에서 사용 (더 유연한 타입)
  * - Output types: 서버에서 사용 (검증된 타입)
  */
-
 import { z } from 'zod';
 
 /**
@@ -24,8 +23,6 @@ export const CreateEdgeRequestSchema = z.object({
   sourceHandle: z.string().optional(), // React Flow handle ID ('left', 'right', 'top', 'bottom')
   targetHandle: z.string().optional(), // React Flow handle ID ('left', 'right', 'top', 'bottom')
   edgeShape: z.string().default('default'),
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
 });
 
 /**
@@ -34,8 +31,6 @@ export const CreateEdgeRequestSchema = z.object({
 export const UpdateEdgeShapeRequestSchema = z.object({
   edgeId: z.uuid('Invalid edge ID'),
   newShape: z.string(),
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
 });
 
 /**
@@ -44,8 +39,6 @@ export const UpdateEdgeShapeRequestSchema = z.object({
 export const UpdateEdgeLabelRequestSchema = z.object({
   edgeId: z.uuid('Invalid edge ID'),
   newLabel: z.string(),
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
 });
 
 /**
@@ -53,8 +46,17 @@ export const UpdateEdgeLabelRequestSchema = z.object({
  */
 export const DeleteEdgeRequestSchema = z.object({
   edgeId: z.uuid('Invalid edge ID'),
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
+});
+
+/**
+ * 엣지 스타일 업데이트 요청 스키마
+ */
+export const UpdateEdgeStyleRequestSchema = z.object({
+  edgeId: z.uuid('Invalid edge ID'),
+  style: z.object({
+    stroke: z.string().optional(),
+    strokeWidth: z.number().optional(),
+  }),
 });
 
 // Input types (프론트엔드에서 사용)
@@ -65,6 +67,9 @@ export type UpdateEdgeShapeRequestInput = z.input<
 export type UpdateEdgeLabelRequestInput = z.input<
   typeof UpdateEdgeLabelRequestSchema
 >;
+export type UpdateEdgeStyleRequestInput = z.input<
+  typeof UpdateEdgeStyleRequestSchema
+>;
 export type DeleteEdgeRequestInput = z.input<typeof DeleteEdgeRequestSchema>;
 
 // Output types (서버에서 사용)
@@ -74,5 +79,8 @@ export type UpdateEdgeShapeRequest = z.output<
 >;
 export type UpdateEdgeLabelRequest = z.output<
   typeof UpdateEdgeLabelRequestSchema
+>;
+export type UpdateEdgeStyleRequest = z.output<
+  typeof UpdateEdgeStyleRequestSchema
 >;
 export type DeleteEdgeRequest = z.output<typeof DeleteEdgeRequestSchema>;
