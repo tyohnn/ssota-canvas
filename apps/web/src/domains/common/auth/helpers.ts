@@ -5,25 +5,26 @@
  * - 외부 입력을 신뢰하지 않는 원칙
  * - Defense in Depth (심층 방어)
  */
-
-import { createClient } from '@/utils/supabase/server';
-import { DrizzleUserRepository } from '@/domains/user-management/backend/repositories/implementations/drizzle-user.repository';
-import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
-import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
-import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace-member.repository';
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
-import {
-  OrganizationId,
-  UserId,
-} from '@/domains/organization-management/shared/value-objects/ids.vo';
-import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
 import type {
   MemberRole,
   MemberRoleOrNull,
 } from '@/domains/organization-management/shared/types';
-import type { Workspace } from '@/domains/workspace-management/shared/entities/workspace.entity';
+import {
+  OrganizationId,
+  UserId,
+} from '@/domains/organization-management/shared/value-objects/ids.vo';
+import { DrizzleUserRepository } from '@/domains/user-management/backend/repositories/implementations/drizzle-user.repository';
 import type { UserProfile } from '@/domains/user-management/shared/types';
+import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
+import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace-member.repository';
+import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
+import type { Workspace } from '@/domains/workspace-management/shared/entities/workspace.entity';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+import { createClient } from '@/utils/supabase/server';
 
 // ============================================
 // Types
@@ -41,7 +42,11 @@ export interface OrganizationMembership {
 
 export interface AccessVerificationResult {
   success: boolean;
-  error?: 'UNAUTHORIZED' | 'NOT_ORG_MEMBER' | 'NOT_WORKSPACE_MEMBER';
+  error?:
+    | 'UNAUTHORIZED'
+    | 'NOT_ORG_MEMBER'
+    | 'NOT_WORKSPACE_MEMBER'
+    | 'PAGE_NOT_FOUND';
   orgRole?: MemberRole;
   workspace?: Workspace; // 검증된 워크스페이스 entity
 }
@@ -137,7 +142,7 @@ export async function verifyOrganizationMembership(
  *
  * 로직:
  * - Default workspace: 조직 멤버면 자동 접근
- * - 일반 workspace: 명시적 멤버십 필요
+ * - 일반 workspace: 조직 멤버십 확인 후 명시적 워크스페이스 멤버십 필요
  *
  * @param workspaceId - 워크스페이스 ID
  * @param userId - 사용자 ID
@@ -149,9 +154,11 @@ export async function verifyWorkspaceAccess(
 ): Promise<Workspace | null> {
   const workspaceRepo = new DrizzleWorkspaceRepository();
   const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
+  const orgMemberRepo = new DrizzleOrganizationMemberRepository();
 
   try {
     const wsId = new WorkspaceId(workspaceId);
+    const userIdVO = new UserId(userId);
 
     // 1. Workspace 조회
     const workspace = await workspaceRepo.findById(wsId);
@@ -159,12 +166,24 @@ export async function verifyWorkspaceAccess(
       return null;
     }
 
-    // 2. Default workspace는 조직 멤버면 자동 접근
+    // 2. Organization ID 추출
+    const organizationId = workspace.organizationId.value;
+    const orgId = new OrganizationId(organizationId);
+
+    // 3. 조직 멤버십 확인 (모든 workspace 접근 전 필요)
+    const isOrgMember = await orgMemberRepo.isMember(orgId, userIdVO);
+
+    if (!isOrgMember) {
+      return null; // 조직 멤버가 아니면 접근 불가
+    }
+
+    // 4. Default workspace는 조직 멤버면 자동 접근
     if (workspace.isDefault) {
       return workspace; // ✅ entity 반환
     }
 
-    // 3. 일반 workspace는 멤버십 확인
+    // 5. 일반 workspace는 명시적 워크스페이스 멤버십 확인
+    // (조직 멤버십이 이미 확인된 상태에서만 호출)
     const isMember = await workspaceMemberRepo.isMember(wsId, userId);
     return isMember ? workspace : null; // ✅ entity 반환
   } catch (error) {
@@ -219,6 +238,100 @@ export async function verifyAccess(
     orgRole: orgMembership.role!,
     workspace, // ✅ 검증된 workspace entity
   };
+}
+
+/**
+ * Page ID 기반 접근 권한 확인
+ *
+ * pageId로부터 Page를 조회하고, Page가 속한 Workspace와 Organization을 자동으로 찾아
+ * 사용자의 접근 권한을 검증합니다.
+ *
+ * @param pageId - 페이지 ID
+ * @param userId - 사용자 ID
+ * @returns 접근 검증 결과
+ */
+export async function verifyAccessByPageId(
+  pageId: string,
+  userId: string
+): Promise<AccessVerificationResult> {
+  try {
+    const pageRepo = new DrizzlePageRepository();
+    const pageIdVO = new PageId(pageId);
+
+    // 1. Page 조회
+    const page = await pageRepo.findById(pageIdVO);
+    if (!page) {
+      return {
+        success: false,
+        error: 'PAGE_NOT_FOUND',
+      };
+    }
+
+    // 2. Page에서 workspaceId 추출
+    const workspaceId = page.workspaceId.value;
+
+    // 3. Workspace 조회 (organizationId 얻기 위해)
+    const workspaceRepo = new DrizzleWorkspaceRepository();
+    const workspaceIdVO = new WorkspaceId(workspaceId);
+    const workspace = await workspaceRepo.findById(workspaceIdVO);
+
+    if (!workspace) {
+      return {
+        success: false,
+        error: 'PAGE_NOT_FOUND', // Workspace가 없으면 Page도 접근 불가
+      };
+    }
+
+    // 4. 조직 멤버십 및 역할 확인 (먼저 검증)
+    const organizationId = workspace.organizationId.value;
+    const orgMembership = await verifyOrganizationMembership(
+      organizationId,
+      userId
+    );
+
+    if (!orgMembership.isMember) {
+      return {
+        success: false,
+        error: 'NOT_ORG_MEMBER',
+      };
+    }
+
+    // 5. Workspace 접근 권한 확인
+    // - Default workspace: 조직 멤버면 자동 접근 (이미 확인됨)
+    // - 일반 workspace: 명시적 워크스페이스 멤버십 필요
+    if (workspace.isDefault) {
+      // Default workspace는 조직 멤버면 자동 접근 (이미 확인됨)
+      return {
+        success: true,
+        orgRole: orgMembership.role!,
+        workspace,
+      };
+    }
+
+    // 일반 workspace는 명시적 멤버십 확인
+    const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
+    const isMember = await workspaceMemberRepo.isMember(workspaceIdVO, userId);
+
+    if (!isMember) {
+      return {
+        success: false,
+        error: 'NOT_WORKSPACE_MEMBER',
+      };
+    }
+
+    // 6. 성공 (검증된 workspace entity 포함)
+    return {
+      success: true,
+      orgRole: orgMembership.role!,
+      workspace,
+    };
+  } catch (error) {
+    console.error('[verifyAccessByPageId] Error:', error);
+    return {
+      success: false,
+      error: 'PAGE_NOT_FOUND',
+    };
+  }
 }
 
 // ============================================
