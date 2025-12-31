@@ -3,7 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import type { Edge } from '@xyflow/react';
 
-import { updateEdgeLabelAction } from '@/domains/canvas-management/actions/edge.actions';
+import { updateEdgeLabelAction } from '@/domains/canvas-management/actions/edge/update-edge-label.action';
 import {
   type UpdateEdgeLabelRequestInput,
   UpdateEdgeLabelRequestSchema,

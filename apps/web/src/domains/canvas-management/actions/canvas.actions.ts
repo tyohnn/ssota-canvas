@@ -7,20 +7,13 @@
  *
  * 모듈화된 Actions:
  * - canvas-query.actions.ts: 캔버스 조회 (getCanvasViewAction)
- * - edge.actions.ts: 엣지 관리 (createEdgeAction, updateEdgeTypeAction, deleteEdgeAction)
+ * - edge/: 엣지 관리 (createEdgeAction, updateEdgeShapeAction, updateEdgeLabelAction, updateEdgeStyleAction, deleteEdgeAction)
  * - block.actions.ts: 블럭 마운트 관리 (createBlockAction, updateBlockPositionAction, etc.)
  */
-
+import { ActionResult, err, ok } from '@/lib/action-result';
 import { createClient } from '@/utils/supabase/server';
-import { revalidatePath } from 'next/cache';
+
 import { ViewportView } from '../shared/dtos/index';
-import { ActionResult, ok, err } from '@/lib/action-result';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
-import { BlockMountId } from '../shared/value-objects/block-mount-id.vo';
-import { Position } from '../shared/value-objects/position.vo';
-import { Size } from '../shared/value-objects/size.vo';
-import { BlockMountAggregate } from '../shared/aggregates/block-mount.aggregate';
 
 /**
  * Viewport 조회 Server Action

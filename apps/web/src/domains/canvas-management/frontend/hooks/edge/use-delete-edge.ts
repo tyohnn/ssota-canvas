@@ -3,7 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import type { Edge } from '@xyflow/react';
 
-import { deleteEdgeAction } from '@/domains/canvas-management/actions/edge.actions';
+import { deleteEdgeAction } from '@/domains/canvas-management/actions/edge/delete-edge.action';
 import {
   type DeleteEdgeRequestInput,
   DeleteEdgeRequestSchema,

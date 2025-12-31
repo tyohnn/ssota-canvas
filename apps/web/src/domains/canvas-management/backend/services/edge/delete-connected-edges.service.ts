@@ -1,0 +1,74 @@
+/**
+ * 연결된 Edge 삭제 서비스 로직
+ */
+import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
+import type { EdgeRepository } from '@/domains/canvas-management/backend/repositories/interfaces/edge.repository.interface';
+import type { DeleteEdgeCommand } from '@/domains/canvas-management/shared/commands';
+import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
+import { Result } from '@/utils/result';
+
+import { CanvasManagementError, handleDomainEvents } from './common';
+
+/**
+ * 블럭 마운트 삭제 시 연결된 엣지 모두 삭제
+ *
+ * ✅ Event Storming + DDD 패턴:
+ * - 각 엣지 삭제 시 Command를 통해 처리
+ *
+ * ⚠️ Schema Change: now uses BlockMountId instead of BlockId
+ *
+ * @param blockMountId - 블럭 마운트 ID
+ * @param blockMountRepository - BlockMount Repository
+ * @param edgeRepository - Edge Repository
+ */
+export async function deleteConnectedEdges(
+  blockMountId: BlockMountId,
+  blockMountRepository: BlockMountRepository,
+  edgeRepository: EdgeRepository
+): Promise<Result<void, Error>> {
+  try {
+    // 1. EdgeRepository.findByConnectedBlockMountId() 호출
+    const connectedEdges =
+      await edgeRepository.findByConnectedBlockMountId(blockMountId);
+
+    if (connectedEdges.length === 0) {
+      return Result.success(undefined);
+    }
+
+    // 2. 모든 엣지 삭제: Command 패턴 사용
+    for (const aggregate of connectedEdges) {
+      // Command 생성
+      const command: DeleteEdgeCommand = {
+        edgeId: aggregate.edge.id,
+      };
+
+      // Aggregate에 Command 전달 (이벤트 발행)
+      aggregate.deleteEdge(command);
+
+      // 도메인 이벤트 처리
+      const events = aggregate.getUncommittedEvents();
+      await handleDomainEvents(events);
+
+      // 이벤트 커밋
+      aggregate.markEventsAsCommitted();
+    }
+
+    // 3. EdgeRepository.deleteAll() 호출
+    const edgeIds = connectedEdges.map(agg => agg.edge.id);
+    await edgeRepository.deleteAll(edgeIds);
+
+    // 4. Result.success() 반환
+    return Result.success(undefined);
+  } catch (error) {
+    console.error(
+      '❌ [deleteConnectedEdges] Connected edges deletion failed:',
+      error
+    );
+    return Result.error(
+      new CanvasManagementError(
+        'CONNECTED_EDGES_DELETION_FAILED',
+        `Failed to delete connected edges: ${error}`
+      )
+    );
+  }
+}

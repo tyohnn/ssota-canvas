@@ -3,7 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import type { Edge, Node } from '@xyflow/react';
 
-import { createEdgeAction } from '@/domains/canvas-management/actions/edge.actions';
+import { createEdgeAction } from '@/domains/canvas-management/actions/edge/create-edge.action';
 import { EdgeShape } from '@/domains/canvas-management/frontend/components/canvas/components/edge/edge-toolbar/core/types';
 import {
   type CreateEdgeRequestInput,

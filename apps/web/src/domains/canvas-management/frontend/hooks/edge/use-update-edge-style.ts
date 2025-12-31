@@ -3,7 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import type { Edge } from '@xyflow/react';
 
-import { updateEdgeStyleAction } from '@/domains/canvas-management/actions/edge.actions';
+import { updateEdgeStyleAction } from '@/domains/canvas-management/actions/edge/update-edge-style.action';
 import {
   type UpdateEdgeStyleRequestInput,
   UpdateEdgeStyleRequestSchema,
