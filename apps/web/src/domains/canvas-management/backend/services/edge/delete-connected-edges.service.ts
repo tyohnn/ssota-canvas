@@ -18,12 +18,10 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  * ⚠️ Schema Change: now uses BlockMountId instead of BlockId
  *
  * @param blockMountId - 블럭 마운트 ID
- * @param blockMountRepository - BlockMount Repository
  * @param edgeRepository - Edge Repository
  */
 export async function deleteConnectedEdges(
   blockMountId: BlockMountId,
-  blockMountRepository: BlockMountRepository,
   edgeRepository: EdgeRepository
 ): Promise<Result<void, Error>> {
   try {

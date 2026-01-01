@@ -13,7 +13,7 @@ import { ActionResult, err, ok } from '@/lib/action-result';
 
 import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '../../backend/repositories/implementations/drizzle-edge.repository';
-import { CanvasEdgeService } from '../../backend/services/canvas-edge.service';
+import { EdgeManagementService } from '../../backend/services/edge.service';
 import {
   DeleteEdgeRequest,
   DeleteEdgeRequestSchema,
@@ -130,13 +130,13 @@ async function deleteEdgeInternal(
     // 1. Service 의존성 생성
     const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
-    const canvasEdgeService = new CanvasEdgeService(
+    const edgeManagementService = new EdgeManagementService(
       blockMountRepository,
       edgeRepository
     );
 
     // 2. ✅ Service에 SafeDTO만 전달 (Value Objects 생성은 Service에서 수행)
-    const result = await canvasEdgeService.deleteEdge(safeDto);
+    const result = await edgeManagementService.deleteEdge(safeDto);
 
     if (result.isError()) {
       console.error(

@@ -1,18 +1,17 @@
-// apps/web/src/domains/canvas-management/backend/services/interfaces/canvas-edge.service.interface.ts
-import type { Result } from '@/utils/result';
-
-import type { EdgeAggregate } from '../../../shared/aggregates/edge.aggregate';
+// apps/web/src/domains/canvas-management/backend/services/interfaces/edge-management.service.interface.ts
+import type { EdgeAggregate } from '@/domains/canvas-management/shared/aggregates/edge.aggregate';
 import type {
   CreateEdgeRequest,
   DeleteEdgeRequest,
   UpdateEdgeLabelRequest,
   UpdateEdgeShapeRequest,
   UpdateEdgeStyleRequest,
-} from '../../../shared/dtos/requests/edge.requests';
-import type { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
+} from '@/domains/canvas-management/shared/dtos/requests/edge.requests';
+import type { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
+import type { Result } from '@/utils/result';
 
 /**
- * Canvas Edge Service Interface
+ * Edge Management Service Interface
  *
  * ✅ Event Storming + DDD 패턴:
  * - SafeDTO를 입력으로 받음 (Trust Boundary 통과)
@@ -23,7 +22,7 @@ import type { BlockMountId } from '../../../shared/value-objects/block-mount-id.
  *
  * ⚠️ Schema Change: edges now reference block_mounts instead of blocks
  */
-export interface ICanvasEdgeService {
+export interface IEdgeManagementService {
   /**
    * 엣지 생성
    *

@@ -1,7 +1,6 @@
 /**
  * Edge 삭제 서비스 로직
  */
-import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
 import type { EdgeRepository } from '@/domains/canvas-management/backend/repositories/interfaces/edge.repository.interface';
 import type { DeleteEdgeCommand } from '@/domains/canvas-management/shared/commands';
 import type { DeleteEdgeRequest } from '@/domains/canvas-management/shared/dtos/requests/edge.requests';
@@ -19,12 +18,10 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  * - Aggregate에 Command 전달
  *
  * @param safeDto - 검증된 엣지 삭제 요청 (SafeDTO)
- * @param blockMountRepository - BlockMount Repository
  * @param edgeRepository - Edge Repository
  */
 export async function deleteEdge(
   safeDto: DeleteEdgeRequest,
-  blockMountRepository: BlockMountRepository,
   edgeRepository: EdgeRepository
 ): Promise<Result<void, Error>> {
   try {

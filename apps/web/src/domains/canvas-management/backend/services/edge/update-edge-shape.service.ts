@@ -1,7 +1,6 @@
 /**
  * Edge 모양 업데이트 서비스 로직
  */
-import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
 import type { EdgeRepository } from '@/domains/canvas-management/backend/repositories/interfaces/edge.repository.interface';
 import { EdgeAggregate } from '@/domains/canvas-management/shared/aggregates/edge.aggregate';
 import type { UpdateEdgeShapeCommand } from '@/domains/canvas-management/shared/commands';
@@ -21,13 +20,11 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  * - Aggregate에 Command 전달
  *
  * @param safeDto - 검증된 엣지 모양 업데이트 요청 (SafeDTO)
- * @param blockMountRepository - BlockMount Repository
  * @param edgeRepository - Edge Repository
  * @returns 업데이트된 엣지 Aggregate
  */
 export async function updateEdgeShape(
   safeDto: UpdateEdgeShapeRequest,
-  blockMountRepository: BlockMountRepository,
   edgeRepository: EdgeRepository
 ): Promise<Result<EdgeAggregate, Error>> {
   try {

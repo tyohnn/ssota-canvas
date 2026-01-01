@@ -18,16 +18,16 @@ import { deleteEdge } from './edge/delete-edge.service';
 import { updateEdgeLabel } from './edge/update-edge-label.service';
 import { updateEdgeShape } from './edge/update-edge-shape.service';
 import { updateEdgeStyle } from './edge/update-edge-style.service';
-import type { ICanvasEdgeService } from './interfaces/canvas-edge.service.interface';
+import type { IEdgeManagementService } from './interfaces/edge.service.interface';
 
 /**
- * Canvas Edge Service
+ * Edge Management Service
  *
  * 엣지 생성 및 관리 비즈니스 로직을 담당하는 서비스 구현 (Drizzle ORM 사용)
  *
  * ⚠️ Schema Change: edges now reference block_mounts instead of blocks
  */
-export class CanvasEdgeService implements ICanvasEdgeService {
+export class EdgeManagementService implements IEdgeManagementService {
   constructor(
     private blockMountRepository: BlockMountRepository,
     private edgeRepository: EdgeRepository
@@ -48,11 +48,7 @@ export class CanvasEdgeService implements ICanvasEdgeService {
   async updateEdgeShape(
     safeDto: UpdateEdgeShapeRequest
   ): Promise<Result<EdgeAggregate, Error>> {
-    return updateEdgeShape(
-      safeDto,
-      this.blockMountRepository,
-      this.edgeRepository
-    );
+    return updateEdgeShape(safeDto, this.edgeRepository);
   }
 
   /**
@@ -61,11 +57,7 @@ export class CanvasEdgeService implements ICanvasEdgeService {
   async updateEdgeLabel(
     safeDto: UpdateEdgeLabelRequest
   ): Promise<Result<EdgeAggregate, Error>> {
-    return updateEdgeLabel(
-      safeDto,
-      this.blockMountRepository,
-      this.edgeRepository
-    );
+    return updateEdgeLabel(safeDto, this.edgeRepository);
   }
 
   /**
@@ -74,18 +66,14 @@ export class CanvasEdgeService implements ICanvasEdgeService {
   async updateEdgeStyle(
     safeDto: UpdateEdgeStyleRequest
   ): Promise<Result<EdgeAggregate, Error>> {
-    return updateEdgeStyle(
-      safeDto,
-      this.blockMountRepository,
-      this.edgeRepository
-    );
+    return updateEdgeStyle(safeDto, this.edgeRepository);
   }
 
   /**
    * 엣지 삭제
    */
   async deleteEdge(safeDto: DeleteEdgeRequest): Promise<Result<void, Error>> {
-    return deleteEdge(safeDto, this.blockMountRepository, this.edgeRepository);
+    return deleteEdge(safeDto, this.edgeRepository);
   }
 
   /**
@@ -94,10 +82,6 @@ export class CanvasEdgeService implements ICanvasEdgeService {
   async deleteConnectedEdges(
     blockMountId: BlockMountId
   ): Promise<Result<void, Error>> {
-    return deleteConnectedEdges(
-      blockMountId,
-      this.blockMountRepository,
-      this.edgeRepository
-    );
+    return deleteConnectedEdges(blockMountId, this.edgeRepository);
   }
 }

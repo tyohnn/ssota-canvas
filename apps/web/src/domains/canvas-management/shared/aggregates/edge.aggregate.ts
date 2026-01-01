@@ -5,6 +5,7 @@ import type {
   UpdateEdgeShapeCommand,
   UpdateEdgeStyleCommand,
 } from '../commands';
+import { EdgeView } from '../dtos/views/edge.views';
 import { Edge } from '../entities/edge.entity';
 import {
   EdgeCreatedEvent,
@@ -191,5 +192,29 @@ export class EdgeAggregate {
    */
   markEventsAsCommitted(): void {
     this._uncommittedEvents = [];
+  }
+
+  /**
+   * EdgeAggregate를 EdgeView DTO로 변환
+   *
+   * Aggregate → DTO 변환 로직을 Aggregate에 캡슐화하여
+   * 중복 코드를 제거하고 일관성 있는 변환을 보장합니다.
+   *
+   * @returns EdgeView DTO
+   */
+  toView(): EdgeView {
+    return {
+      edgeId: this.edge.id.value,
+      pageId: this.edge.pageId.value,
+      sourceBlockMountId: this.edge.sourceBlockMountId.value,
+      targetBlockMountId: this.edge.targetBlockMountId.value,
+      sourceHandle: this.edge.sourceHandle.value,
+      targetHandle: this.edge.targetHandle.value,
+      edgeShape: this.edge.edgeShape.value,
+      label: this.edge.edgeLabel,
+      style: this.edge.edgeStyle.toReactFlowStyle(),
+      createdAt: this.edge.createdAt.toISOString(),
+      updatedAt: this.edge.updatedAt.toISOString(),
+    };
   }
 }
