@@ -1,13 +1,17 @@
 'use client';
 
 import React from 'react';
+
 import { ReactFlowProvider } from '@xyflow/react';
-import { CanvasReactFlowWrapper } from './canvas-react-flow-wrapper';
-import { CanvasModeProvider } from '../../contexts/canvas-mode-context';
-import { EditorPanel } from '@/domains/block-management/frontend/components/editor-panel';
-import { useCanvasMode } from '../../hooks/use-canvas-mode';
 import type { Edge } from '@xyflow/react';
+
+import { EditorPanel } from '@/domains/block-management/frontend/components/editor-panel';
+
 import type { CustomNodeType } from '../../acl/react-flow.acl';
+import { CanvasMetadataProvider } from '../../contexts/canvas-metadata-context';
+import { CanvasModeProvider } from '../../contexts/canvas-mode-context';
+import { useCanvasMode } from '../../hooks/use-canvas-mode';
+import { CanvasReactFlowWrapper } from './canvas-react-flow-wrapper';
 
 export interface CanvasClientProps {
   pageId: string;
@@ -50,21 +54,23 @@ export function CanvasClient({
   return (
     <ReactFlowProvider>
       <CanvasModeProvider>
-        <div className="h-full flex flex-col bg-background">
-          {/* 메인 캔버스 영역 */}
-          <main className="flex-1 relative overflow-hidden">
-            <CanvasReactFlowWrapper
-              pageId={pageId}
-              orgId={orgId}
-              workspaceId={workspaceId}
-              initialNodes={initialNodes}
-              initialEdges={initialEdges}
-            />
-          </main>
+        <CanvasMetadataProvider value={{ pageId, orgId, workspaceId }}>
+          <div className="h-full flex flex-col bg-background">
+            {/* 메인 캔버스 영역 */}
+            <main className="flex-1 relative overflow-hidden">
+              <CanvasReactFlowWrapper
+                pageId={pageId}
+                orgId={orgId}
+                workspaceId={workspaceId}
+                initialNodes={initialNodes}
+                initialEdges={initialEdges}
+              />
+            </main>
 
-          {/* Editor Panel (React Flow 바깥에서 렌더링) */}
-          <EditorPanelWrapper />
-        </div>
+            {/* Editor Panel (React Flow 바깥에서 렌더링) */}
+            <EditorPanelWrapper />
+          </div>
+        </CanvasMetadataProvider>
       </CanvasModeProvider>
     </ReactFlowProvider>
   );

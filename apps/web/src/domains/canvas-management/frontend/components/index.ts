@@ -16,7 +16,7 @@ export { SelectionBoundingBox } from './canvas/components/multi-select/selection
 export { ViewportControls } from './core/viewport-controls';
 export type { ViewportControlsProps } from './core/viewport-controls';
 
-export { EdgeToolbar } from './canvas/components/edge/edge-toolbar';
-export type { EdgeToolbarProps } from './canvas/components/edge/edge-toolbar';
+export { EdgeToolbar } from './canvas/components/custom-edge/components/edge-toolbar';
+export type { EdgeToolbarProps } from './canvas/components/custom-edge/components/edge-toolbar';
 
-export { CustomEdge } from './canvas/components/edge/custom-edge';
+export { CustomEdge } from './canvas/components/custom-edge';

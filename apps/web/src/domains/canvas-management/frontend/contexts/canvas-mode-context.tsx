@@ -1,13 +1,14 @@
 'use client';
 
 import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useMemo,
   type ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
 } from 'react';
+
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
 export type CanvasMode =
@@ -166,14 +167,8 @@ export function CanvasModeProvider({ children }: CanvasModeProviderProps) {
       enterEdgeCreationMode,
       exitToDefaultMode,
       setTextareaEditing,
-      getCurrentMode,
-      isPanningMode,
-      isBlockCreationMode,
-      isSingleSelectionMode,
-      isMultiSelectionMode,
-      isBlockEditingMode,
-      isDraggingMode,
-      isEdgeCreationMode,
+      // 헬퍼 함수들(getCurrentMode, isPanningMode 등)은 mode에 의존하므로
+      // 의존성 배열에서 제외. mode가 변경되면 자동으로 새 함수가 생성됨
     ]
   );
 

@@ -36,8 +36,6 @@ export type { EdgeToolbarProps } from './core/types';
 export const EdgeToolbar = memo(function EdgeToolbar({
   pageId,
   edgeId,
-  orgId,
-  workspaceId,
   businessLogic,
 }: EdgeToolbarProps) {
   const {
@@ -49,7 +47,7 @@ export const EdgeToolbar = memo(function EdgeToolbar({
     handleDelete,
     isZoomVisible,
     zoom,
-  } = useEdgeToolbar({ pageId, edgeId, orgId, workspaceId }, businessLogic);
+  } = useEdgeToolbar({ pageId, edgeId }, businessLogic);
 
   return (
     <EdgeToolbarView

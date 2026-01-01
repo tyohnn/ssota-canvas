@@ -1,60 +1,59 @@
 'use client';
 
 import React from 'react';
+
+import { useTheme } from 'next-themes';
+
 import {
-  ReactFlow,
   Background,
-  Panel,
-  SelectionMode,
   ConnectionMode,
-  type Node,
   type Edge,
+  type Node,
+  Panel,
+  ReactFlow,
+  SelectionMode,
   useEdgesState,
   useNodesState,
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useTheme } from 'next-themes';
+
+// AI Management Components
+import { AIAgentRunner } from '@/domains/ai-management/frontend/components/ai-agent-runner';
+import { BlockMountToolbar } from '@/domains/block-management/frontend/components/block/block-mount-toolbar';
+import { PdfBlock } from '@/domains/block-management/frontend/components/block/block-type/pdf';
+import {
+  BLOCK_TYPE_SIZES,
+  BlockType,
+} from '@/domains/block-management/shared/types/block-types';
 
 // Type imports
 import type { CustomNodeType } from '../../acl/react-flow.acl';
-import {
-  BlockType,
-  BLOCK_TYPE_SIZES,
-} from '@/domains/block-management/shared/types/block-types';
-
+// Shared node types config
+import { CANVAS_NODE_TYPES } from '../../config/node-types.config';
+import { useCanvasBlockLifecycle } from '../../hooks/use-canvas-block-lifecycle';
+import { useCanvasBlockTransform } from '../../hooks/use-canvas-block-transform';
+import { useCanvasCallbacks } from '../../hooks/use-canvas-callbacks';
+import { useCanvasEdgeManagement } from '../../hooks/use-canvas-edge-management';
 // Canvas Management Hooks
 import { useCanvasMode } from '../../hooks/use-canvas-mode';
 import { useCanvasSelection } from '../../hooks/use-canvas-selection';
-import { useCanvasViewport } from '../../hooks/use-canvas-viewport';
-import { useCanvasBlockTransform } from '../../hooks/use-canvas-block-transform';
 import { useCanvasSnapGuides } from '../../hooks/use-canvas-snap-guides';
-import { useCanvasEdgeManagement } from '../../hooks/use-canvas-edge-management';
-import { useCanvasBlockLifecycle } from '../../hooks/use-canvas-block-lifecycle';
-import { useCanvasCallbacks } from '../../hooks/use-canvas-callbacks';
-
+import { useCanvasViewport } from '../../hooks/use-canvas-viewport';
 // Canvas Storage
 import {
   getViewportStateFromStorage,
   setViewportStateToStorage,
 } from '../../utils/canvas-storage';
-
+import { CustomEdge } from '../canvas/components/custom-edge';
+import { MultiSelectionToolbar } from '../canvas/components/multi-select/multi-selection-toolbar';
+import { SelectionBoundingBox } from '../canvas/components/multi-select/selection-bounding-box';
+import { SnapGuidelines } from '../canvas/components/snap/snap-guidelines';
+import { ShadowBlockContainer } from '../shadow-block/shadow-block-container';
+import { BlockAddDialog } from './block-add-dialog';
 // Canvas Management Components
 import { CanvasToolbar } from './canvas-toolbar';
 import { ViewportControls } from './viewport-controls';
-import { ShadowBlockContainer } from '../shadow-block/shadow-block-container';
-import { BlockAddDialog } from './block-add-dialog';
-// Shared node types config
-import { CANVAS_NODE_TYPES } from '../../config/node-types.config';
-import { SnapGuidelines } from '../canvas/components/snap/snap-guidelines';
-import { MultiSelectionToolbar } from '../canvas/components/multi-select/multi-selection-toolbar';
-import { BlockMountToolbar } from '@/domains/block-management/frontend/components/block/block-mount-toolbar';
-import { SelectionBoundingBox } from '../canvas/components/multi-select/selection-bounding-box';
-import { CustomEdge } from '../canvas/components/edge/custom-edge';
-
-// AI Management Components
-import { AIAgentRunner } from '@/domains/ai-management/frontend/components/ai-agent-runner';
-import { PdfBlock } from '@/domains/block-management/frontend/components/block/block-type/pdf';
 
 interface CanvasReactFlowWrapperProps {
   pageId: string;
@@ -137,8 +136,6 @@ export function CanvasReactFlowWrapper({
   const snapGuides = useCanvasSnapGuides();
   const edgeManagement = useCanvasEdgeManagement({
     pageId,
-    orgId,
-    workspaceId,
   });
   const blockLifecycle = useCanvasBlockLifecycle({
     pageId,

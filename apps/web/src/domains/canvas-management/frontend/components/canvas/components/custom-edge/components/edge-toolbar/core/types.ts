@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { Edge } from '@xyflow/react';
 
 import type { ColorToken } from '@/domains/block-management/shared/types/style-tokens.types';
+import type { EdgeShape } from '@/domains/canvas-management/shared/types/common.types';
 
 // =============================================================================
 // 1. Atomic Types & Re-exports
@@ -12,13 +13,12 @@ import type { ColorToken } from '@/domains/block-management/shared/types/style-t
  * Edge shape type
  * Re-exported from domain value object for consistency
  */
-export type EdgeShape = 'default' | 'straight' | 'smoothstep' | 'simplebezier';
 
 /**
  * Edge width value
  */
 export type EdgeWidth = 1 | 2 | 3;
-
+export { type EdgeShape };
 /**
  * Color token type re-export
  */
@@ -83,12 +83,15 @@ export interface FlowDependencies {
  */
 export interface DomainDependencies {
   getEdgeById: (edgeId: string) => Edge | undefined;
-  updateEdgeShape: (edgeId: string, shape: string) => Promise<boolean>;
-  updateEdgeStyle: (
-    edgeId: string,
-    style: { stroke?: string; strokeWidth?: number }
-  ) => Promise<boolean>;
-  deleteEdge: (edgeId: string) => Promise<boolean>;
+  updateEdgeShape: (input: {
+    edgeId: string;
+    newShape: string;
+  }) => Promise<boolean>;
+  updateEdgeStyle: (input: {
+    edgeId: string;
+    style: { stroke?: string; strokeWidth?: number };
+  }) => Promise<boolean>;
+  deleteEdge: (input: { edgeId: string }) => Promise<boolean>;
 }
 
 /**
@@ -197,20 +200,6 @@ export interface EdgeToolbarProps {
    * Unique ID of the edge to edit
    */
   edgeId: string;
-
-  /**
-   * Unique ID of the organization
-   * Used for permission validation and data access control
-   * Optional: can be extracted from edge data if not provided
-   */
-  orgId?: string;
-
-  /**
-   * Unique ID of the workspace
-   * Used for context identification during edge operations
-   * Optional: can be extracted from edge data if not provided
-   */
-  workspaceId?: string;
 
   /**
    * Business logic injection (optional)

@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 
 import { useTheme } from 'next-themes';
 
-import { useReactFlow, useViewport } from '@xyflow/react';
+import { useViewport } from '@xyflow/react';
 
 import {
   ColorToken,
@@ -20,7 +20,6 @@ import type {
   EdgeToolbarBusinessLogic,
   EdgeToolbarProps,
   EdgeWidth,
-  FlowDependencies,
   ThemeDependencies,
   UseEdgeToolbarReturn,
 } from './types';
@@ -38,7 +37,6 @@ export function useEdgeToolbar(
 ): UseEdgeToolbarReturn {
   // 1. Gather External Dependencies (The only place where external hooks are called)
   // Framework / Library Hooks
-  const { getEdge } = useReactFlow();
   const { zoom } = useViewport();
   const { theme } = useTheme();
 
@@ -46,24 +44,12 @@ export function useEdgeToolbar(
   // Hide toolbar when zoomed out too much (below 0.5) to ensure UI clarity
   const isZoomVisible = zoom >= 1.0;
 
-  // Get edge from React Flow to extract orgId/workspaceId if not provided
-  const reactFlowEdge = getEdge(props.edgeId);
-  const orgId = props.orgId || (reactFlowEdge?.data as any)?.orgId || '';
-  const workspaceId =
-    props.workspaceId || (reactFlowEdge?.data as any)?.workspaceId || '';
-
   // Domain / Service Hooks
   const edgeManagement = useCanvasEdgeManagement({
     pageId: props.pageId,
-    orgId,
-    workspaceId,
   });
 
   // 2. Bundle Dependencies into semantic objects (Separated by concern)
-  const flowDependencies: FlowDependencies = {
-    getEdge,
-  };
-
   const domainDependencies: DomainDependencies = {
     getEdgeById: edgeManagement.getEdgeById,
     updateEdgeShape: edgeManagement.updateEdgeShape,
@@ -87,7 +73,6 @@ export function useEdgeToolbar(
   // 4. Inject into Business Logic Hook (Engineer area)
   // Pass separated dependency objects for cleaner interface
   const defaultBusiness = useEdgeToolbarBusiness(
-    flowDependencies,
     domainDependencies,
     themeDependencies
   );
@@ -95,18 +80,17 @@ export function useEdgeToolbar(
 
   // 5. Get current edge state
   const edge = edgeManagement.getEdgeById(props.edgeId);
-  const currentShape = (edge?.data as any)?.actualEdgeShape || 'default';
-  const currentColorHex =
-    (edge?.style as any)?.stroke || getHexColor(ColorToken.GRAY);
+  const currentShape = edge?.data?.actualEdgeShape || 'default';
+  const currentColorHex = edge?.style?.stroke || getHexColor(ColorToken.GRAY);
   const currentColorToken = getColorTokenFromHex(currentColorHex);
-  const currentWidth = (edge?.style as any)?.strokeWidth || 1.5;
+  const currentWidth = edge?.style?.strokeWidth || 1.5;
 
   const edgeState: EdgeState = useMemo(
     () => ({
-      shape: currentShape as EdgeShape,
+      shape: currentShape,
       colorHex: currentColorHex,
       colorToken: currentColorToken,
-      width: currentWidth,
+      width: currentWidth as number,
     }),
     [currentShape, currentColorHex, currentColorToken, currentWidth]
   );

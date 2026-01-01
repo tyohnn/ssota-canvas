@@ -6,7 +6,6 @@ import type {
   EdgeShape,
   EdgeToolbarBusinessLogic,
   EdgeWidth,
-  FlowDependencies,
   ThemeDependencies,
 } from './types';
 
@@ -15,18 +14,12 @@ import type {
  * Makes actual API calls and updates domain state
  */
 export function useEdgeToolbarBusiness(
-  { getEdge }: FlowDependencies,
-  {
-    getEdgeById,
-    updateEdgeShape,
-    updateEdgeStyle,
-    deleteEdge,
-  }: DomainDependencies,
+  { updateEdgeShape, updateEdgeStyle, deleteEdge }: DomainDependencies,
   { theme, getHexColor, getHexColorDark }: ThemeDependencies
 ): EdgeToolbarBusinessLogic {
   const updateShape = useCallback(
     async (edgeId: string, shape: EdgeShape): Promise<boolean> => {
-      return await updateEdgeShape(edgeId, shape);
+      return await updateEdgeShape({ edgeId, newShape: shape });
     },
     [updateEdgeShape]
   );
@@ -38,8 +31,11 @@ export function useEdgeToolbarBusiness(
           ? getHexColorDark(colorToken)
           : getHexColor(colorToken);
 
-      return await updateEdgeStyle(edgeId, {
-        stroke: hexColor,
+      return await updateEdgeStyle({
+        edgeId,
+        style: {
+          stroke: hexColor,
+        },
       });
     },
     [updateEdgeStyle, theme, getHexColor, getHexColorDark]
@@ -47,8 +43,11 @@ export function useEdgeToolbarBusiness(
 
   const updateWidth = useCallback(
     async (edgeId: string, width: EdgeWidth): Promise<boolean> => {
-      return await updateEdgeStyle(edgeId, {
-        strokeWidth: width,
+      return await updateEdgeStyle({
+        edgeId,
+        style: {
+          strokeWidth: width,
+        },
       });
     },
     [updateEdgeStyle]
@@ -56,7 +55,7 @@ export function useEdgeToolbarBusiness(
 
   const deleteEdgeHandler = useCallback(
     async (edgeId: string): Promise<boolean> => {
-      return await deleteEdge(edgeId);
+      return await deleteEdge({ edgeId });
     },
     [deleteEdge]
   );
