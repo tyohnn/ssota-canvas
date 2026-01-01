@@ -1,7 +1,7 @@
 'use server';
 
 import { ActionResult, err, ok } from '@/lib';
-import { withSecureAction } from '@/lib/server-actions';
+import { type ActionContext, withSecureAction } from '@/lib/server-actions';
 
 import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '../../backend/repositories/implementations/drizzle-edge.repository';
@@ -43,9 +43,11 @@ export const createEdgeAction = withSecureAction(
  * ⚠️ 이 함수는 이미 검증된 요청과 인증된 사용자만 받습니다
  *
  * @param safeDto - 검증된 SafeDTO
+ * @param context - 검증된 사용자, 워크스페이스, 페이지 정보
  */
 async function createEdgeInternal(
-  safeDto: CreateEdgeRequest // ✅ 이미 검증됨 (SafeDTO)
+  safeDto: CreateEdgeRequest, // ✅ 이미 검증됨 (SafeDTO)
+  context: ActionContext // ✅ 검증된 context
 ): Promise<ActionResult<EdgeView>> {
   try {
     // 1. Service 의존성 생성

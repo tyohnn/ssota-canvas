@@ -75,9 +75,9 @@ export interface IEdgeManagementService {
    * ⚠️ Schema Change: now uses BlockMountId instead of BlockId
    *
    * @param blockMountId - 블럭 마운트 ID
-   * @returns void (성공) | Error (실패)
+   * @returns 삭제된 엣지 개수 (성공) | Error (실패)
    */
   deleteConnectedEdges(
     blockMountId: BlockMountId
-  ): Promise<Result<void, Error>>;
+  ): Promise<Result<number, Error>>;
 }

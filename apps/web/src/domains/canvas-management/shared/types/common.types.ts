@@ -5,18 +5,28 @@
 /**
  * 기본 위치 정보
  */
-export interface Position {
+export type Position = {
   x: number;
   y: number;
-}
+};
 
 /**
  * 기본 크기 정보
  */
-export interface Size {
+export type Size = {
   width: number;
   height: number;
-}
+};
+
+export type AlignmentType =
+  | 'left'
+  | 'right'
+  | 'top'
+  | 'bottom'
+  | 'center'
+  | 'middle';
+
+export type DistributionDirection = 'horizontal' | 'vertical';
 
 /**
  * 기본 엣지 스타일

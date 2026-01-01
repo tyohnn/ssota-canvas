@@ -1,21 +1,32 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useReactFlow } from '@xyflow/react';
+
 import { useMutation } from '@tanstack/react-query';
-import {
-  updateBlockPropertyAction,
-  updateBlockPropertiesAction,
-} from '../../actions/block.actions';
+import type { Node } from '@xyflow/react';
+
+import { toast } from '@workspace/ui/components/ui/sonner';
+
 import { isFailure } from '@/lib';
+
+import { updateBlockPropertiesAction } from '../../actions/block/update-block-properties.action';
+import { updateBlockPropertyAction } from '../../actions/block/update-block-property.action';
 import {
-  UpdateBlockPropertyRequestSchema,
+  type UpdateBlockPropertiesRequestInput,
   UpdateBlockPropertiesRequestSchema,
   type UpdateBlockPropertyRequestInput,
-  type UpdateBlockPropertiesRequestInput,
+  UpdateBlockPropertyRequestSchema,
 } from '../../shared/dtos/requests';
 import { BlockNodeData } from '../../shared/types/block-data.types';
-import { toast } from '@workspace/ui/components/ui/sonner';
+
+export type ReactFlowDependencies = {
+  getNode: (nodeId: string) => Node | undefined;
+  updateNode: (nodeId: string, options: { data: BlockNodeData }) => void;
+};
+
+export type UseUpdateBlockPropertyParams = {
+  reactFlow: ReactFlowDependencies;
+};
 
 export interface UseBlockPropertyUpdateResult {
   updateProperty: <T>(
@@ -90,8 +101,11 @@ function updateNestedProperty<T>(
  * - 실패 시 자동 롤백 (onError)
  * - 로딩 상태 자동 관리
  */
-export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
-  const { updateNode, getNode } = useReactFlow();
+export function useUpdateBlockProperty(
+  params: UseUpdateBlockPropertyParams
+): UseBlockPropertyUpdateResult {
+  const { reactFlow } = params;
+  const { updateNode, getNode } = reactFlow;
 
   // ============================================================================
   // Mutation: Update Single Property
@@ -110,16 +124,11 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
       value: unknown;
     }) => {
       // Validation
-      if (!blockData.workspaceId || !blockData.orgId) {
-        throw new Error('Missing workspaceId or orgId');
-      }
-
       const request: UpdateBlockPropertyRequestInput = {
         blockId: blockData.blockId,
         propertyPath,
         value,
-        workspaceId: blockData.workspaceId,
-        orgId: blockData.orgId,
+        pageId: blockData.pageId, // ✅ 추가
       };
 
       const parseResult = UpdateBlockPropertyRequestSchema.safeParse(request);
@@ -188,15 +197,10 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
       properties: Record<string, unknown>;
     }) => {
       // Validation
-      if (!blockData.workspaceId || !blockData.orgId) {
-        throw new Error('Missing workspaceId or orgId');
-      }
-
       const request: UpdateBlockPropertiesRequestInput = {
         blockId: blockData.blockId,
         properties,
-        workspaceId: blockData.workspaceId,
-        orgId: blockData.orgId,
+        pageId: blockData.pageId, // ✅ 추가
       };
 
       const parseResult = UpdateBlockPropertiesRequestSchema.safeParse(request);
@@ -304,18 +308,11 @@ export function useBlockPropertyUpdate(): UseBlockPropertyUpdateResult {
       const latestNode = getNode(nodeId);
       const currentBlockData = (latestNode?.data as BlockNodeData) || blockData;
 
-      // Validation
-      if (!currentBlockData.workspaceId || !currentBlockData.orgId) {
-        console.error('Missing workspaceId or orgId');
-        return;
-      }
-
       const request: UpdateBlockPropertyRequestInput = {
         blockId: currentBlockData.blockId,
         propertyPath,
         value,
-        workspaceId: currentBlockData.workspaceId,
-        orgId: currentBlockData.orgId,
+        pageId: currentBlockData.pageId, // ✅ 추가
       };
 
       const parseResult = UpdateBlockPropertyRequestSchema.safeParse(request);

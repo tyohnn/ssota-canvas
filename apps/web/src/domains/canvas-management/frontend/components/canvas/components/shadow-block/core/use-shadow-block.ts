@@ -30,8 +30,6 @@ export function useShadowBlock(
   const canvasMode = useCanvasMode();
   const blockLifecycle = useCanvasBlockLifecycle({
     pageId: props.pageId,
-    orgId: props.orgId,
-    workspaceId: props.workspaceId,
   });
 
   // 2. Bundle Dependencies into semantic objects

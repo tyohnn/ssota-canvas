@@ -51,10 +51,26 @@ export interface UpdateBlockPositionCommand {
   userId: string;
 }
 
+/**
+ * 단일 BlockMount 위치 업데이트 Command
+ * (Aggregate에서 사용)
+ */
+export interface UpdateSingleBlockPositionCommand {
+  newPosition: Position;
+}
+
 export interface UpdateBlockSizeCommand {
   blockMountId: BlockMountId;
   newSize: Size;
   userId: string;
+}
+
+/**
+ * 단일 BlockMount 크기 업데이트 Command
+ * (Aggregate에서 사용)
+ */
+export interface UpdateSingleBlockSizeCommand {
+  newSize: Size;
 }
 
 // Edge Commands

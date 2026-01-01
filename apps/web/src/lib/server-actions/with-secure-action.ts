@@ -7,7 +7,7 @@ import {
 } from '@/domains/common/auth/helpers';
 
 import { ActionResult, err } from './result';
-import type { SecureAction, SecureActionOptions } from './types';
+import type { ActionContext, SecureAction, SecureActionOptions } from './types';
 
 /**
  * Higher-Order Function: Secure Action Wrapper
@@ -39,7 +39,10 @@ import type { SecureAction, SecureActionOptions } from './types';
 export function withSecureAction<TRequest, TResponse>(
   schema: z.ZodSchema<TRequest>,
   options: SecureActionOptions<TRequest>,
-  handler: (validatedRequest: TRequest) => Promise<ActionResult<TResponse>>
+  handler: (
+    validatedRequest: TRequest,
+    context: ActionContext
+  ) => Promise<ActionResult<TResponse>>
 ): SecureAction<TRequest, TResponse> {
   return async (request: unknown): Promise<ActionResult<TResponse>> => {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -108,9 +111,29 @@ export function withSecureAction<TRequest, TResponse>(
       }
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // ✅ All Security Checks Passed - Execute Handler
+      // ✅ All Security Checks Passed - Create Context & Execute Handler
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      return await handler(validatedRequest);
+      if (!accessResult.workspace || !accessResult.page) {
+        console.error(
+          '[Security] Internal error: workspace or page not found in access result',
+          {
+            pageId,
+            hasWorkspace: !!accessResult.workspace,
+            hasPage: !!accessResult.page,
+          }
+        );
+        return err('Internal server error', {
+          code: 'INTERNAL_SERVER_ERROR',
+        });
+      }
+
+      const context: ActionContext = {
+        authenticatedUser,
+        workspace: accessResult.workspace,
+        page: accessResult.page,
+      };
+
+      return await handler(validatedRequest, context);
     } catch (error) {
       console.error(`[${options.actionName}] Authentication error:`, error);
 

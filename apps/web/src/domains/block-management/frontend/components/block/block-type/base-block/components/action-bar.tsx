@@ -8,6 +8,7 @@
 'use client';
 
 import { BlockActionBar } from '@/domains/block-management/frontend/components/block/block-action-bar';
+
 import { useBaseBlockContext } from '../core/use-base-block.context';
 
 export function ActionBar() {

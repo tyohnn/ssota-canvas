@@ -29,12 +29,10 @@ import { useSelectionBoundingBox } from './core/use-selection-bounding-box';
  * All side effects (drag handling, pinch zoom prevention) are handled in the hook.
  */
 export const SelectionBoundingBox = memo(function SelectionBoundingBox({
-  orgId,
-  workspaceId,
   businessLogic,
 }: SelectionBoundingBoxProps) {
   const { bounds, boundingBoxRef, handleMouseDown, isVisible } =
-    useSelectionBoundingBox({ orgId, workspaceId, businessLogic });
+    useSelectionBoundingBox({ businessLogic });
 
   // Don't render if bounding box should not be visible
   if (!isVisible || !bounds) {

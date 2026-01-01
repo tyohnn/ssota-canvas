@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
+
+import { toast } from '@workspace/ui/components/ui/sonner';
+
 import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
 import {
   getRecentPagesAction,
   searchPagesAction,
 } from '@/domains/workspace-management/actions/workspace-navigation.actions';
 import type { RecentPageDTO } from '@/domains/workspace-management/shared/dtos';
-import { toast } from '@workspace/ui/components/ui/sonner';
 import { isFailure } from '@/lib';
 
 export interface PageMoveBusinessLogic {
@@ -26,8 +28,6 @@ export function usePageMoveBusiness(
   const [pages, setPages] = useState<RecentPageDTO[]>([]);
   const blockLifecycle = useCanvasBlockLifecycle({
     pageId: currentPageId,
-    workspaceId,
-    orgId,
   });
 
   const fetchPages = useCallback(async () => {

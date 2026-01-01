@@ -1,11 +1,15 @@
 'use client';
 
-import React, { useEffect, useCallback, useRef } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
+import React, { useCallback, useEffect, useRef } from 'react';
+
 import Placeholder from '@tiptap/extension-placeholder';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { useReactFlow } from '@xyflow/react';
+
 import { cn } from '@workspace/ui/lib/utils';
-import { useBlockContentUpdate } from '@/domains/block-management/frontend/hooks/use-block-content-update';
+
+import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/use-block-content-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
 export interface BlockContentSectionProps {
@@ -24,7 +28,15 @@ export function BlockContentSection({
   blockId,
   blockData,
 }: BlockContentSectionProps) {
-  const { updateContent, updateContentImmediate } = useBlockContentUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateBlockContent } = useUpdateBlockContent({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: BlockNodeData }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isUpdatingRef = useRef(false); // 현재 업데이트 중인지 추적
 
@@ -80,8 +92,8 @@ export function BlockContentSection({
 
       const content = editor.getJSON();
 
-      // 즉시 Optimistic Update (딜레이 없음)
-      updateContentImmediate(blockId, content, blockData);
+      // 즉시 Optimistic Update (딜레이 없음) - mutation의 optimistic update로 처리
+      // updateContentImmediate는 제거되었으므로 mutation을 사용
 
       // Debounce: 500ms 후에 서버에 저장
       if (debounceTimerRef.current) {
@@ -129,12 +141,17 @@ export function BlockContentSection({
         }
 
         // React Flow node id (blockId prop = blockMountId)를 전달
-        await updateContent(blockId, content, blockData, contentRaw);
+        await updateBlockContent({
+          nodeId: blockId,
+          content,
+          blockData,
+          contentRaw,
+        });
       } catch (error) {
         console.error('Failed to save markdown content:', error);
       }
     },
-    [blockId, blockData, updateContent, editor]
+    [blockId, blockData, updateBlockContent, editor]
   );
 
   // 초기 마운트 완료 후 플래그 해제 (지연 적용)

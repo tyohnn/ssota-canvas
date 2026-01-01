@@ -2,28 +2,33 @@
 
 import React, {
   memo,
-  useState,
   useCallback,
   useEffect,
-  useRef,
   useMemo,
+  useRef,
+  useState,
 } from 'react';
+
 import type { NodeProps } from '@xyflow/react';
-import type { LinkBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
-import type { LinkBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { cn } from '@workspace/ui/lib/utils';
-import { Link as LinkIcon, ExternalLink } from 'lucide-react';
-import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useReactFlow } from '@xyflow/react';
+import { ExternalLink, Link as LinkIcon } from 'lucide-react';
+
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
-import {
-  ColorToken,
-  getSelectedRingClasses,
-  getGlowColor,
-} from '@/domains/block-management/shared/types/style-tokens.types';
+import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
+import { cn } from '@workspace/ui/lib/utils';
+
 import { fetchOpenGraphMetadata } from '@/domains/block-management/actions/opengraph.actions';
 import type { OpenGraphMetadata } from '@/domains/block-management/actions/opengraph.actions';
-import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import type { LinkBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import {
+  ColorToken,
+  getGlowColor,
+  getSelectedRingClasses,
+} from '@/domains/block-management/shared/types/style-tokens.types';
+import type { LinkBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+
+import { BaseBlock } from '../base-block';
 
 /**
  * Link Block Component
@@ -89,7 +94,15 @@ export const LinkBlock = memo(function LinkBlock({
   const lastPersistedFaviconRef = useRef<string | null>(null);
 
   // Hooks
-  const { updateProperty, updateProperties } = useBlockPropertyUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateProperty, updateProperties } = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
 
   // Color for styling (기본값)
   const color = ColorToken.GRAY;

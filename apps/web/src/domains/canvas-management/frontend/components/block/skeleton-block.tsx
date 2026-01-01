@@ -49,8 +49,6 @@ export function SkeletonBlock({
   const canvasMode = useCanvasMode();
   const blockLifecycle = useCanvasBlockLifecycle({
     pageId,
-    orgId,
-    workspaceId,
   });
   const reactFlow = useReactFlow();
   const [mousePosition, setMousePosition] = useState<{

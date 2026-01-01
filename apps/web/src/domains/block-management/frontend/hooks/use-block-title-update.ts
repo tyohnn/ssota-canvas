@@ -1,157 +1,108 @@
 'use client';
 
-import { useCallback } from 'react';
-import { useReactFlow } from '@xyflow/react';
-import { updateBlockTitleAction } from '../../actions/block.actions';
+import { useMutation } from '@tanstack/react-query';
+import type { Node } from '@xyflow/react';
+
 import { isFailure } from '@/lib';
+
+import { updateBlockTitleAction } from '../../actions/block/update-block-title.action';
 import {
-  UpdateBlockTitleRequestSchema,
   type UpdateBlockTitleRequestInput,
+  UpdateBlockTitleRequestSchema,
 } from '../../shared/dtos/requests';
 import { BlockNodeData } from '../../shared/types/block-data.types';
 
-export interface UseBlockTitleUpdateResult {
-  updateTitle: (
-    nodeId: string, // React Flow node id (blockMountId)
-    title: string,
-    blockData: BlockNodeData
-  ) => Promise<void>;
-  updateTitleImmediate: (
-    nodeId: string, // React Flow node id (blockMountId)
-    title: string,
-    blockData: BlockNodeData
-  ) => void;
-}
+export type ReactFlowDependencies = {
+  getNode: (nodeId: string) => Node | undefined;
+  updateNode: (nodeId: string, options: { data: BlockNodeData }) => void;
+};
+
+export type UseUpdateBlockTitleParams = {
+  reactFlow: ReactFlowDependencies;
+};
+
+export type UpdateBlockTitleInput = {
+  nodeId: string; // React Flow node id (blockMountId)
+  title: string;
+  blockData: BlockNodeData;
+};
+
+export type UseUpdateBlockTitleResult = {
+  updateBlockTitle: (input: UpdateBlockTitleInput) => Promise<boolean>;
+  isUpdating: boolean;
+};
 
 /**
- * 블록 제목 업데이트 Hook (Optimistic Update)
+ * 블록 제목 업데이트 도메인 훅 (TanStack Query Optimistic Update)
  *
- * - React Flow Store 즉시 업데이트
+ * - React Flow Store 즉시 업데이트 (onMutate)
  * - Server Action 백그라운드 동기화
- * - 실패 시 롤백
+ * - 실패 시 자동 롤백 (onError)
+ * - 로딩 상태 자동 관리
  *
  * block.title 컬럼을 업데이트
  */
-export function useBlockTitleUpdate(): UseBlockTitleUpdateResult {
-  const { updateNode } = useReactFlow();
+export function useUpdateBlockTitle(
+  params: UseUpdateBlockTitleParams
+): UseUpdateBlockTitleResult {
+  const { reactFlow } = params;
+  const { updateNode, getNode } = reactFlow;
 
-  const updateTitle = useCallback(
-    async (
-      nodeId: string, // React Flow node id (blockMountId)
-      title: string,
-      blockData: BlockNodeData
-    ): Promise<void> => {
-      console.log('[useBlockTitleUpdate] updateTitle called', {
-        nodeId,
-        blockId: blockData.blockId,
-        title,
-        workspaceId: blockData.workspaceId,
-        orgId: blockData.orgId,
-      });
-
-      // 1. 원본 데이터 백업 (롤백용)
-      const originalTitle = blockData.title;
-
-      // 2. Optimistic Update: React Flow Store 즉시 업데이트
-      const updatedData = { ...blockData, title };
-      updateNode(nodeId, { data: updatedData });
-      console.log('[useBlockTitleUpdate] Optimistic update applied to node');
-
-      // 3. 서버 액션 호출
-      try {
-        // workspaceId와 orgId 확인
-        if (!blockData.workspaceId || !blockData.orgId) {
-          throw new Error('Missing workspaceId or orgId in blockData');
-        }
-
-        // 프론트엔드 검증 (데이터 무결성)
-        const rawRequest: UpdateBlockTitleRequestInput = {
-          blockId: blockData.blockId, // 실제 blockId 사용
-          title,
-          workspaceId: blockData.workspaceId,
-          orgId: blockData.orgId,
-        };
-
-        const parseResult = UpdateBlockTitleRequestSchema.safeParse(rawRequest);
-        if (!parseResult.success) {
-          const firstError = parseResult.error.issues[0];
-          console.error('[Frontend Validation] Invalid title update data:', {
-            message: firstError?.message || 'Invalid title update data',
-            issues: parseResult.error.issues,
-          });
-          throw new Error(firstError?.message || 'Invalid title update data');
-        }
-
-        // Server Action 호출
-        const result = await updateBlockTitleAction(parseResult.data);
-
-        if (isFailure(result)) {
-          console.error(
-            '[useBlockTitleUpdate] Server action failed:',
-            result.error
-          );
-          // 4. 실패 시 롤백
-          const rollbackData = { ...blockData, title: originalTitle };
-          updateNode(nodeId, { data: rollbackData });
-          throw new Error(result.error);
-        }
-
-        console.log(
-          '[useBlockTitleUpdate] Title successfully updated on server'
-        );
-      } catch (error) {
-        console.error('[useBlockTitleUpdate] Error:', error);
-        // 롤백
-        const rollbackData = { ...blockData, title: originalTitle };
-        updateNode(nodeId, { data: rollbackData });
-        throw error;
-      }
-    },
-    [updateNode]
-  );
-
-  const updateTitleImmediate = useCallback(
-    (
-      nodeId: string, // React Flow node id (blockMountId)
-      title: string,
-      blockData: BlockNodeData
-    ): void => {
-      // 1. workspaceId와 orgId 확인
-      if (!blockData.workspaceId || !blockData.orgId) {
-        console.error('Missing workspaceId or orgId in blockData');
-        return;
-      }
-
-      // 2. 프론트엔드 검증 (데이터 무결성)
+  const mutation = useMutation({
+    mutationFn: async ({ nodeId, title, blockData }: UpdateBlockTitleInput) => {
+      // Validation
       const rawRequest: UpdateBlockTitleRequestInput = {
         blockId: blockData.blockId,
         title,
-        workspaceId: blockData.workspaceId,
-        orgId: blockData.orgId,
+        pageId: blockData.pageId,
       };
 
       const parseResult = UpdateBlockTitleRequestSchema.safeParse(rawRequest);
       if (!parseResult.success) {
         const firstError = parseResult.error.issues[0];
-        console.error(
-          '[Frontend Validation] Invalid immediate title update data:',
-          {
-            message: firstError?.message || 'Invalid title update data',
-            issues: parseResult.error.issues,
-          }
-        );
-        return;
+        throw new Error(firstError?.message || 'Invalid title update data');
       }
 
-      // 3. Optimistic Update: React Flow Store 즉시 업데이트
-      const updatedData = { ...blockData, title };
-      updateNode(nodeId, { data: updatedData });
+      // Server Action
+      const result = await updateBlockTitleAction(parseResult.data);
+      if (isFailure(result)) {
+        throw new Error(result.error);
+      }
+
+      return result.data;
     },
-    [updateNode]
-  );
+
+    // Optimistic Update
+    onMutate: async ({ nodeId, title, blockData }) => {
+      const latestNode = getNode(nodeId);
+      const currentData = (latestNode?.data as BlockNodeData) || blockData;
+
+      const updatedData = { ...currentData, title };
+      updateNode(nodeId, { data: updatedData });
+
+      // 롤백을 위한 컨텍스트 반환
+      return { previousData: currentData, nodeId };
+    },
+
+    // 자동 롤백
+    onError: (error, variables, context) => {
+      if (context?.previousData && context?.nodeId) {
+        updateNode(context.nodeId, { data: context.previousData });
+      }
+    },
+  });
 
   return {
-    updateTitle,
-    updateTitleImmediate,
+    updateBlockTitle: async (
+      input: UpdateBlockTitleInput
+    ): Promise<boolean> => {
+      try {
+        await mutation.mutateAsync(input);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    },
+    isUpdating: mutation.isPending,
   };
 }

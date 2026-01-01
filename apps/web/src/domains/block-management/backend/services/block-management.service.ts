@@ -1,23 +1,24 @@
-import { BlockId } from '../../shared/value-objects/block-id.vo';
-import { BlockType } from '../../shared/value-objects/block-type.vo';
-import { Block } from '../../shared/entities/block.entity';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+
 import { BlockAggregate } from '../../shared/aggregates/block.aggregate';
-import { BlockRepository } from '../repositories/interfaces/block.repository.interface';
 import {
   CreateBlockCommand,
-  UpdateBlockCommand,
   DeleteBlockCommand,
   DuplicateBlockCommand,
+  UpdateBlockCommand,
 } from '../../shared/commands';
+import { Block } from '../../shared/entities/block.entity';
+import { BlockManagementError } from '../../shared/errors/block-management.error';
 import {
   BlockCreatedEvent,
-  BlockUpdatedEvent,
   BlockDeletedEvent,
   BlockDuplicatedEvent,
+  BlockUpdatedEvent,
 } from '../../shared/events';
-import { BlockManagementError } from '../../shared/errors/block-management.error';
-import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
-import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { BlockId } from '../../shared/value-objects/block-id.vo';
+import { BlockType } from '../../shared/value-objects/block-type.vo';
+import { BlockRepository } from '../repositories/interfaces/block.repository.interface';
 
 // BlockManagementService가 처리할 이벤트 타입 정의
 type BlockManagementEvents =
@@ -118,6 +119,62 @@ export class BlockManagementService {
       throw new BlockManagementError(
         'BLOCK_CREATION_FAILED',
         `Failed to create block: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * 블록 제목 업데이트
+   *
+   * @param blockId - 블록 ID
+   * @param title - 새로운 제목
+   * @param workspaceId - 워크스페이스 ID (소유권 검증용)
+   * @returns 업데이트된 블록 Aggregate
+   */
+  async updateBlockTitle(
+    blockId: BlockId,
+    title: string,
+    workspaceId: string
+  ): Promise<BlockAggregate> {
+    try {
+      // 블록 조회
+      const aggregate = await this.getBlock(blockId);
+
+      // 블록 소유권 확인: 블록이 해당 워크스페이스에 속하는지 검증
+      if (aggregate.getWorkspaceId() !== workspaceId) {
+        throw new BlockManagementError(
+          'WORKSPACE_MISMATCH',
+          'Block does not belong to this workspace'
+        );
+      }
+
+      // 업데이트 Command 생성
+      const command: UpdateBlockCommand = {
+        blockId,
+        updateData: { title },
+      };
+
+      // 블록 업데이트
+      aggregate.update(command);
+
+      // 블록 업데이트
+      await this.blockRepository.update(aggregate.getBlock());
+
+      // 도메인 이벤트 처리
+      const events = aggregate.getUncommittedEvents();
+      await this.handleDomainEvents(events);
+
+      // 이벤트 커밋
+      aggregate.markEventsAsCommitted();
+
+      return aggregate;
+    } catch (error) {
+      if (error instanceof BlockManagementError) {
+        throw error;
+      }
+      throw new BlockManagementError(
+        'BLOCK_UPDATE_FAILED',
+        `Failed to update block title: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }

@@ -7,4 +7,5 @@ export type {
   MetadataExtractor,
   RateLimitConfig,
   CacheConfig,
+  ActionContext,
 } from './types';

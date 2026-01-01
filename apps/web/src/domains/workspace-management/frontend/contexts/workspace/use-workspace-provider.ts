@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
 import type { WorkspaceWithPagesDTO } from '@/domains/workspace-management/shared/dtos';
+
 import type {
-  WorkspaceContextValue,
   UseWorkspaceProviderParams,
+  WorkspaceContextValue,
 } from './types';
 
 /**
@@ -166,7 +168,6 @@ export function useWorkspaceProvider(
       setSelectedPageId(selection.pageId);
       setSelectedWorkspaceId(selection.workspaceId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Context 값 메모이제이션

@@ -1,173 +1,115 @@
 'use client';
 
-import { useCallback } from 'react';
-import { useReactFlow } from '@xyflow/react';
-import { updateBlockContentAction } from '../../actions/block.actions';
+import { useMutation } from '@tanstack/react-query';
+import type { Node } from '@xyflow/react';
+
 import { isFailure } from '@/lib';
+
+import { updateBlockContentAction } from '../../actions/block/update-block-content.action';
 import {
-  UpdateBlockContentRequestSchema,
   type UpdateBlockContentRequestInput,
+  UpdateBlockContentRequestSchema,
 } from '../../shared/dtos/requests';
 import { BlockNodeData } from '../../shared/types/block-data.types';
 
-export interface UseBlockContentUpdateResult {
-  updateContent: (
-    nodeId: string, // React Flow node id (blockMountId)
-    content: unknown,
-    blockData: BlockNodeData,
-    contentRaw?: string // Markdown text (optional, for AI context)
-  ) => Promise<void>;
-  updateContentImmediate: (
-    nodeId: string, // React Flow node id (blockMountId)
-    content: unknown,
-    blockData: BlockNodeData
-  ) => void;
-}
+export type ReactFlowDependencies = {
+  getNode: (nodeId: string) => Node | undefined;
+  updateNode: (nodeId: string, options: { data: BlockNodeData }) => void;
+};
+
+export type UseUpdateBlockContentParams = {
+  reactFlow: ReactFlowDependencies;
+};
+
+export type UpdateBlockContentInput = {
+  nodeId: string; // React Flow node id (blockMountId)
+  content: unknown;
+  blockData: BlockNodeData;
+  contentRaw?: string; // Markdown text (optional, for AI context)
+};
+
+export type UseUpdateBlockContentResult = {
+  updateBlockContent: (input: UpdateBlockContentInput) => Promise<boolean>;
+  isUpdating: boolean;
+};
 
 /**
- * 블록 콘텐츠 업데이트 Hook (Optimistic Update)
+ * 블록 콘텐츠 업데이트 도메인 훅 (TanStack Query Optimistic Update)
  *
- * - React Flow Store 즉시 업데이트
+ * - React Flow Store 즉시 업데이트 (onMutate)
  * - Server Action 백그라운드 동기화
- * - 실패 시 롤백
+ * - 실패 시 자동 롤백 (onError)
+ * - 로딩 상태 자동 관리
  *
  * block.content JSONB 컬럼을 업데이트 (TipTap JSON, 기타 구조화된 콘텐츠)
  */
-export function useBlockContentUpdate(): UseBlockContentUpdateResult {
-  const { updateNode } = useReactFlow();
+export function useUpdateBlockContent(
+  params: UseUpdateBlockContentParams
+): UseUpdateBlockContentResult {
+  const { reactFlow } = params;
+  const { updateNode, getNode } = reactFlow;
 
-  const updateContent = useCallback(
-    async (
-      nodeId: string, // React Flow node id (blockMountId)
-      content: unknown,
-      blockData: BlockNodeData,
-      contentRaw?: string // Markdown text (optional)
-    ): Promise<void> => {
-      console.log('[useBlockContentUpdate] updateContent called', {
-        nodeId,
-        blockId: blockData.blockId,
-        workspaceId: blockData.workspaceId,
-        orgId: blockData.orgId,
-        contentPreview: JSON.stringify(content).slice(0, 100),
-        hasContentRaw: !!contentRaw,
-      });
-
-      // 1. 원본 데이터 백업 (롤백용)
-      const originalData = blockData;
-
-      // 2. Optimistic Update: React Flow Store 즉시 업데이트
-      const updatedData = { ...blockData, content };
-      updateNode(nodeId, { data: updatedData });
-      console.log(
-        '[useBlockContentUpdate] Optimistic update applied to node:',
-        nodeId
-      );
-
-      try {
-        // 3. workspaceId와 orgId 확인
-        if (!blockData.workspaceId || !blockData.orgId) {
-          console.error(
-            '[useBlockContentUpdate] Missing workspaceId or orgId',
-            {
-              blockData,
-              nodeId,
-            }
-          );
-          updateNode(nodeId, { data: originalData });
-          return;
-        }
-
-        // 4. 프론트엔드 검증 (UX 최적화)
-        const rawRequest: UpdateBlockContentRequestInput = {
-          blockId: blockData.blockId,
-          content,
-          contentRaw, // Markdown text (optional)
-          workspaceId: blockData.workspaceId,
-          orgId: blockData.orgId,
-        };
-
-        console.log('[useBlockContentUpdate] Validating request:', rawRequest);
-
-        const parseResult =
-          UpdateBlockContentRequestSchema.safeParse(rawRequest);
-        if (!parseResult.success) {
-          // 검증 실패 시 롤백
-          updateNode(nodeId, { data: originalData });
-          const firstError = parseResult.error.issues[0];
-          console.error('[useBlockContentUpdate] Validation failed:', {
-            message: firstError?.message || 'Invalid content update data',
-            issues: parseResult.error.issues,
-          });
-          return;
-        }
-
-        console.log('[useBlockContentUpdate] Calling server action...');
-
-        // 5. Server Action 호출 (검증된 데이터)
-        const result = await updateBlockContentAction(parseResult.data);
-
-        if (isFailure(result)) {
-          // 실패 시 롤백
-          updateNode(nodeId, { data: originalData });
-          console.error(
-            '[useBlockContentUpdate] Server action failed:',
-            result.error
-          );
-        } else {
-          console.log('[useBlockContentUpdate] Server action succeeded');
-        }
-      } catch (error) {
-        // 에러 시 롤백
-        updateNode(nodeId, { data: originalData });
-        console.error('[useBlockContentUpdate] Error:', error);
-      }
-    },
-    [updateNode]
-  );
-
-  const updateContentImmediate = useCallback(
-    (
-      nodeId: string, // React Flow node id (blockMountId)
-      content: unknown,
-      blockData: BlockNodeData
-    ): void => {
-      // 1. workspaceId와 orgId 확인
-      if (!blockData.workspaceId || !blockData.orgId) {
-        console.error('Missing workspaceId or orgId in blockData');
-        return;
-      }
-
-      // 2. 프론트엔드 검증 (데이터 무결성)
+  const mutation = useMutation({
+    mutationFn: async ({
+      nodeId,
+      content,
+      blockData,
+      contentRaw,
+    }: UpdateBlockContentInput) => {
+      // Validation
       const rawRequest: UpdateBlockContentRequestInput = {
         blockId: blockData.blockId,
         content,
-        workspaceId: blockData.workspaceId,
-        orgId: blockData.orgId,
+        contentRaw, // Markdown text (optional)
+        pageId: blockData.pageId,
       };
 
       const parseResult = UpdateBlockContentRequestSchema.safeParse(rawRequest);
       if (!parseResult.success) {
         const firstError = parseResult.error.issues[0];
-        console.error(
-          '[Frontend Validation] Invalid immediate content update data:',
-          {
-            message: firstError?.message || 'Invalid content update data',
-            issues: parseResult.error.issues,
-          }
-        );
-        // TODO: toast.error로 사용자에게 피드백
-        return;
+        throw new Error(firstError?.message || 'Invalid content update data');
       }
 
-      // 3. Optimistic Update: React Flow Store 즉시 업데이트
-      const updatedData = { ...blockData, content };
-      updateNode(nodeId, { data: updatedData });
+      // Server Action
+      const result = await updateBlockContentAction(parseResult.data);
+      if (isFailure(result)) {
+        throw new Error(result.error);
+      }
+
+      return result.data;
     },
-    [updateNode]
-  );
+
+    // Optimistic Update
+    onMutate: async ({ nodeId, content, blockData }) => {
+      const latestNode = getNode(nodeId);
+      const currentData = (latestNode?.data as BlockNodeData) || blockData;
+
+      const updatedData = { ...currentData, content };
+      updateNode(nodeId, { data: updatedData });
+
+      // 롤백을 위한 컨텍스트 반환
+      return { previousData: currentData, nodeId };
+    },
+
+    // 자동 롤백
+    onError: (error, variables, context) => {
+      if (context?.previousData && context?.nodeId) {
+        updateNode(context.nodeId, { data: context.previousData });
+      }
+    },
+  });
 
   return {
-    updateContent,
-    updateContentImmediate,
+    updateBlockContent: async (
+      input: UpdateBlockContentInput
+    ): Promise<boolean> => {
+      try {
+        await mutation.mutateAsync(input);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    },
+    isUpdating: mutation.isPending,
   };
 }

@@ -1,22 +1,25 @@
 'use client';
 
+import { useCallback, useMemo } from 'react';
+
 import { useChat } from '@ai-sdk/react';
+import { useReactFlow } from '@xyflow/react';
 import {
-  UIMessage,
   DefaultChatTransport,
+  UIMessage,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
-import { useCallback, useMemo } from 'react';
-import { ClientContext } from './types';
-import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
-import { useCanvasEdgeManagement } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-management';
-import { useAutoPositionCalculator } from '@/domains/canvas-management/frontend/hooks/use-auto-position-calculator';
-import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
-import { useBlockTitleUpdate } from '@/domains/block-management/frontend/hooks/use-block-title-update';
-import { useBlockContentUpdate } from '@/domains/block-management/frontend/hooks/use-block-content-update';
+
 import { useBlockActionExecutor } from '@/domains/ai-management/frontend/hooks/use-block-action-executor';
-import { useReactFlow } from '@xyflow/react';
-import { ToolHandlers, ToolHandlerContext } from './tool-handlers';
+import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/use-block-content-update';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/use-block-title-update';
+import { useAutoPositionCalculator } from '@/domains/canvas-management/frontend/hooks/use-auto-position-calculator';
+import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
+import { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-lifecycle';
+
+import { ToolHandlerContext, ToolHandlers } from './tool-handlers';
+import { ClientContext } from './types';
 
 /**
  * AI Agent Business Logic
@@ -61,26 +64,44 @@ export function useAIAgentBusiness(props: {
   // Canvas & Block Actions Hooks
   const blockLifecycle = useCanvasBlockLifecycle({
     pageId: props.pageId,
-    orgId: props.organizationId,
-    workspaceId: props.workspaceId,
   });
 
-  const edgeManagement = useCanvasEdgeManagement({
+  const edgeManagement = useCanvasEdgeLifecycle({
     pageId: props.pageId,
-    orgId: props.organizationId,
-    workspaceId: props.workspaceId,
   });
 
-  const blockPropertyUpdate = useBlockPropertyUpdate();
-  const blockTitleUpdate = useBlockTitleUpdate();
-  const blockContentUpdate = useBlockContentUpdate();
+  const { getNode, updateNode, getNodes, setNodes } = useReactFlow();
+
+  const blockPropertyUpdate = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
+  const blockTitleUpdate = useUpdateBlockTitle({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
+  const blockContentUpdate = useUpdateBlockContent({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
   const positionCalculator = useAutoPositionCalculator();
   const blockActionExecutor = useBlockActionExecutor({
     blockLifecycle,
     blockPropertyUpdate,
     positionCalculator,
   });
-  const { getNode, getNodes, setNodes } = useReactFlow();
 
   // Tool Handler Context 구성
   const toolContext: ToolHandlerContext = {

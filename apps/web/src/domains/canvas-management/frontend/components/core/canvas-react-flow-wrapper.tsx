@@ -31,10 +31,10 @@ import {
 import type { CustomNodeType } from '../../acl/react-flow.acl';
 // Shared node types config
 import { CANVAS_NODE_TYPES } from '../../config/node-types.config';
+import { useBlockTransformOperations } from '../../hooks/block/use-block-transform-operations';
 import { useCanvasBlockLifecycle } from '../../hooks/use-canvas-block-lifecycle';
-import { useCanvasBlockTransform } from '../../hooks/use-canvas-block-transform';
 import { useCanvasCallbacks } from '../../hooks/use-canvas-callbacks';
-import { useCanvasEdgeManagement } from '../../hooks/use-canvas-edge-management';
+import { useCanvasEdgeLifecycle } from '../../hooks/use-canvas-edge-lifecycle';
 // Canvas Management Hooks
 import { useCanvasMode } from '../../hooks/use-canvas-mode';
 import { useCanvasSelection } from '../../hooks/use-canvas-selection';
@@ -129,25 +129,25 @@ export function CanvasReactFlowWrapper({
   const panOnDragEnabled = canvasMode.isPanningMode();
   // 🎨 블록 생성 모드 확인
   const isBlockCreationMode = canvasMode.isBlockCreationMode();
-  const blockTransform = useCanvasBlockTransform({
-    orgId,
-    workspaceId,
+  const blockTransform = useBlockTransformOperations({
+    reactFlow: {
+      getNodes: reactFlowInstance.getNodes,
+      setNodes: reactFlowInstance.setNodes,
+      addNodes: reactFlowInstance.addNodes,
+      deleteElements: reactFlowInstance.deleteElements,
+    },
   });
   const snapGuides = useCanvasSnapGuides();
-  const edgeManagement = useCanvasEdgeManagement({
+  const edgeManagement = useCanvasEdgeLifecycle({
     pageId,
   });
   const blockLifecycle = useCanvasBlockLifecycle({
     pageId,
-    orgId,
-    workspaceId,
   });
 
   // React Flow Callbacks Hook
   const canvasCallbacks = useCanvasCallbacks({
     pageId,
-    orgId,
-    workspaceId,
     canvasMode,
     canvasSelection,
     blockTransform,
@@ -649,11 +649,7 @@ export function CanvasReactFlowWrapper({
 
         {/* 모드별 컴포넌트 렌더링 */}
         {canvasMode.isBlockCreationMode() && (
-          <ShadowBlockContainer
-            pageId={pageId}
-            orgId={orgId}
-            workspaceId={workspaceId}
-          />
+          <ShadowBlockContainer pageId={pageId} />
         )}
 
         {canvasMode.isMultiSelectionMode() && (
@@ -663,7 +659,7 @@ export function CanvasReactFlowWrapper({
               orgId={orgId}
               workspaceId={workspaceId}
             />
-            <SelectionBoundingBox orgId={orgId} workspaceId={workspaceId} />
+            <SelectionBoundingBox />
           </>
         )}
 

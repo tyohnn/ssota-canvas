@@ -1,9 +1,8 @@
 /**
  * Block 관련 Response 타입들 (Server Actions 출력)
  */
-
-import type { BlockView } from '../views';
 import type { Position, Size } from '../../types';
+import type { BlockView } from '../views';
 
 /**
  * 블럭 생성 및 마운트 완료 DTO (BlockView와 동일 - SSOT)
@@ -50,15 +49,9 @@ export interface BlockMountSoftDeletedDTO {
 }
 
 /**
- * 블럭 복제 및 마운트 완료 DTO
+ * 블럭 복제 및 마운트 완료 DTO (BlockView와 동일 - SSOT)
  */
-export interface BlockDuplicatedAndMountedDTO {
-  duplicatedBlockMountId: string;
-  duplicatedBlockId: string;
-  position: Position;
-  size: Size;
-  zOrder: number;
-}
+export type BlockDuplicatedAndMountedDTO = BlockView;
 
 /**
  * 블럭 페이지 이동 완료 DTO

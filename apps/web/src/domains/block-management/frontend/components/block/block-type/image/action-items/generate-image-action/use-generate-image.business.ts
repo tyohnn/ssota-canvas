@@ -12,7 +12,7 @@ import { useMutation } from '@tanstack/react-query';
 import type { GenerateImageBusinessLogic, ApplyMode } from './types';
 import type { ImageAsset } from '@/domains/image-app-space/shared/types/image-search.types';
 import { generateImageAssetsAction } from '@/domains/image-app-space/actions/image-generation.actions';
-import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
 import { isFailure } from '@/lib';
 import { toast } from '@workspace/ui/components/ui/sonner';
 import { useReactFlow } from '@xyflow/react';
@@ -35,8 +35,15 @@ export function useGenerateImageBusiness(
   blockIds: string[]
 ): GenerateImageBusinessLogic {
   const [results, setResults] = useState<ImageAsset[]>([]);
-  const { updateProperties } = useBlockPropertyUpdate();
-  const { getNode } = useReactFlow();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateProperties } = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
 
   // 이미지 생성 Mutation (React Query)
   const generateMutation = useMutation({

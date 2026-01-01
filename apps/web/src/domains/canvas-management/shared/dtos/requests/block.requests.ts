@@ -6,10 +6,9 @@
  * - Input types: 프론트엔드에서 사용 (더 유연한 타입)
  * - Output types: 서버에서 사용 (검증된 타입)
  */
-
 import { z } from 'zod';
+
 import { blockTypeEnum } from '@/db/schema';
-import type { Position, Size } from '../../types/common.types';
 
 /**
  * Block Type 검증 스키마
@@ -59,8 +58,6 @@ export const CreateAndMountBlockRequestSchema = z.object({
   blockType: BlockTypeSchema,
   position: PositionSchema,
   size: SizeSchema, // 프론트엔드에서 항상 전달됨
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
   // 선택적 초기 title
   title: z.string().optional(),
   // 선택적 초기 properties (예: 클립보드 붙여넣기 시 URL 등)
@@ -79,8 +76,7 @@ export const UpdateBlockPositionRequestSchema = z.object({
       position: PositionSchema,
     })
   ),
-  orgId: z.uuid('Invalid organization ID'),
-  workspaceId: z.uuid('Invalid workspace ID'),
+  pageId: z.uuid('Invalid page ID'),
 });
 
 /**
@@ -89,8 +85,6 @@ export const UpdateBlockPositionRequestSchema = z.object({
 export const UpdateBlockSizeRequestSchema = z.object({
   blockMountId: z.uuid('Invalid block mount ID'),
   newSize: SizeSchema,
-  orgId: z.uuid('Invalid organization ID'),
-  workspaceId: z.uuid('Invalid workspace ID'),
 });
 
 /**
@@ -98,8 +92,7 @@ export const UpdateBlockSizeRequestSchema = z.object({
  */
 export const SoftDeleteBlockMountRequestSchema = z.object({
   blockMountIds: z.array(z.uuid('Invalid block mount ID')),
-  orgId: z.uuid('Invalid organization ID'),
-  workspaceId: z.uuid('Invalid workspace ID'),
+  pageId: z.uuid('Invalid page ID'),
 });
 
 /**
@@ -107,8 +100,7 @@ export const SoftDeleteBlockMountRequestSchema = z.object({
  */
 export const DuplicateBlockAndMountRequestSchema = z.object({
   blockMountId: z.uuid('Invalid block mount ID'),
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
+  pageId: z.uuid('Invalid page ID'),
   offsetX: z.number().optional(),
   offsetY: z.number().optional(),
 });
@@ -119,8 +111,6 @@ export const DuplicateBlockAndMountRequestSchema = z.object({
 export const MoveBlockToPageRequestSchema = z.object({
   blockMountId: z.uuid('Invalid block mount ID'),
   targetPageId: z.uuid('Invalid target page ID'),
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
 });
 
 // Input types (프론트엔드에서 사용)

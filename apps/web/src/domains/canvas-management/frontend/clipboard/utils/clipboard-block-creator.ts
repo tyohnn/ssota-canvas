@@ -5,17 +5,15 @@
  *
  * 각 타입별로 적절한 블록을 생성하고 캔버스에 배치
  */
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
 import type {
   ClipboardAnalysisResult,
   PastePosition,
 } from '../types/clipboard.types';
-import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
 export interface CreateBlockContext {
   pageId: string;
-  orgId: string;
-  workspaceId: string;
 }
 
 /**

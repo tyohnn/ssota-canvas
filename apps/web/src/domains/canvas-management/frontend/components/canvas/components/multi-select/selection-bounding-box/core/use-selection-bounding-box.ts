@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useReactFlow, useStore, useViewport } from '@xyflow/react';
 
-import { useCanvasBlockTransform } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-transform';
+import { useBlockTransformOperations } from '@/domains/canvas-management/frontend/hooks/block/use-block-transform-operations';
 import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
 import { useCanvasSelection } from '@/domains/canvas-management/frontend/hooks/use-canvas-selection';
 import { usePreventPinchZoom } from '@/domains/canvas-management/frontend/hooks/use-prevent-pinch-zoom';
@@ -26,8 +26,6 @@ import { useSelectionBoundingBoxUILogic } from './use-selection-bounding-box.ui'
  * This hook provides handlers to drag multiple selected blocks together.
  *
  * @param props - Bounding box configuration and required parameters
- * @param props.orgId - Organization ID
- * @param props.workspaceId - Workspace ID
  * @param props.businessLogic - Optional business logic injection
  *   - **Production**: Uses default business logic when omitted (includes API calls)
  *   - **Test/Mock**: Inject mock business logic for unit testing
@@ -40,8 +38,6 @@ import { useSelectionBoundingBoxUILogic } from './use-selection-bounding-box.ui'
  * // Basic usage (Production)
  * function MyCanvas() {
  *   const boundingBox = useSelectionBoundingBox({
- *     orgId: 'org-456',
- *     workspaceId: 'workspace-789',
  *   });
  *
  *   return (
@@ -63,8 +59,6 @@ import { useSelectionBoundingBoxUILogic } from './use-selection-bounding-box.ui'
  * function StorybookExample() {
  *   const mockBusiness = useMockSelectionBoundingBoxBusiness();
  *   const boundingBox = useSelectionBoundingBox({
- *     orgId: 'test',
- *     workspaceId: 'test',
  *     businessLogic: mockBusiness,
  *   });
  *   // ...
@@ -105,9 +99,13 @@ export function useSelectionBoundingBox(
   };
 
   // Gather Domain Dependencies
-  const transform = useCanvasBlockTransform({
-    orgId: props.orgId,
-    workspaceId: props.workspaceId,
+  const transform = useBlockTransformOperations({
+    reactFlow: {
+      getNodes,
+      setNodes,
+      addNodes: () => {},
+      deleteElements: () => {},
+    },
   });
 
   const domainDependencies: DomainDependencies = {

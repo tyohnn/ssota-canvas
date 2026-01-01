@@ -23,8 +23,6 @@ import { useCanvasBlockLifecycle } from './use-canvas-block-lifecycle';
 
 interface UseCanvasCallbacksProps {
   pageId: string;
-  orgId: string;
-  workspaceId: string;
   canvasMode: {
     enterDraggingMode: (draggedIds: string[]) => void;
     enterSingleSelectionMode: (nodeId: string) => void;
@@ -86,8 +84,6 @@ interface BlockNodeData {
  */
 export function useCanvasCallbacks({
   pageId,
-  orgId,
-  workspaceId,
   canvasMode,
   canvasSelection,
   blockTransform,
@@ -106,15 +102,11 @@ export function useCanvasCallbacks({
     createAndMountBlock: blockLifecycleCreateAndMountBlock,
   } = useCanvasBlockLifecycle({
     pageId,
-    orgId,
-    workspaceId,
   });
 
   // Clipboard paste hook - wrap to match expected signature
   const clipboardPaste = useClipboardPaste({
     pageId,
-    orgId,
-    workspaceId,
     createAndMountBlock: async (
       blockType,
       position,
@@ -552,7 +544,6 @@ export function useCanvasCallbacks({
       canvasSelection.getSelectedBlocks,
       reactFlowInstance,
       blockLifecycle.duplicateBlockAndMount,
-      workspaceId,
     ]
   );
 

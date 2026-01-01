@@ -19,18 +19,19 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  *
  * @param blockMountId - 블럭 마운트 ID
  * @param edgeRepository - Edge Repository
+ * @returns 삭제된 엣지 개수
  */
 export async function deleteConnectedEdges(
   blockMountId: BlockMountId,
   edgeRepository: EdgeRepository
-): Promise<Result<void, Error>> {
+): Promise<Result<number, Error>> {
   try {
     // 1. EdgeRepository.findByConnectedBlockMountId() 호출
     const connectedEdges =
       await edgeRepository.findByConnectedBlockMountId(blockMountId);
 
     if (connectedEdges.length === 0) {
-      return Result.success(undefined);
+      return Result.success(0);
     }
 
     // 2. 모든 엣지 삭제: Command 패턴 사용
@@ -55,8 +56,8 @@ export async function deleteConnectedEdges(
     const edgeIds = connectedEdges.map(agg => agg.edge.id);
     await edgeRepository.deleteAll(edgeIds);
 
-    // 4. Result.success() 반환
-    return Result.success(undefined);
+    // 4. Result.success() 반환 (삭제된 엣지 개수)
+    return Result.success(connectedEdges.length);
   } catch (error) {
     console.error(
       '❌ [deleteConnectedEdges] Connected edges deletion failed:',

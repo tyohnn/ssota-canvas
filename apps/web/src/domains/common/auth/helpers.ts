@@ -21,6 +21,7 @@ import type { UserProfile } from '@/domains/user-management/shared/types';
 import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace-member.repository';
 import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
+import type { Page } from '@/domains/workspace-management/shared/entities/page.entity';
 import type { Workspace } from '@/domains/workspace-management/shared/entities/workspace.entity';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
@@ -49,6 +50,7 @@ export interface AccessVerificationResult {
     | 'PAGE_NOT_FOUND';
   orgRole?: MemberRole;
   workspace?: Workspace; // 검증된 워크스페이스 entity
+  page?: Page; // 검증된 페이지 entity
 }
 
 // ============================================
@@ -305,6 +307,7 @@ export async function verifyAccessByPageId(
         success: true,
         orgRole: orgMembership.role!,
         workspace,
+        page, // ✅ 검증된 page entity 포함
       };
     }
 
@@ -319,11 +322,12 @@ export async function verifyAccessByPageId(
       };
     }
 
-    // 6. 성공 (검증된 workspace entity 포함)
+    // 6. 성공 (검증된 workspace entity 및 page entity 포함)
     return {
       success: true,
       orgRole: orgMembership.role!,
       workspace,
+      page, // ✅ 검증된 page entity 포함
     };
   } catch (error) {
     console.error('[verifyAccessByPageId] Error:', error);

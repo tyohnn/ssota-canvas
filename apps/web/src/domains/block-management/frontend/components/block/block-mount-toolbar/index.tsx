@@ -1,14 +1,11 @@
 'use client';
 
 import React, { useRef } from 'react';
+
 import { NodeToolbar, Position, useReactFlow } from '@xyflow/react';
+import { ChevronRight, Copy, Edit, MoreHorizontal, Trash2 } from 'lucide-react';
+
 import { Button } from '@workspace/ui/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@workspace/ui/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,15 +13,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/ui/dropdown-menu';
-import { MoreHorizontal, Edit, Copy, Trash2, ChevronRight } from 'lucide-react';
-import { PageMovePopover } from './page-move-popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@workspace/ui/components/ui/tooltip';
 
+import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
 // Canvas Management Hooks
 import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
-import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
 import { usePreventPinchZoom } from '@/domains/canvas-management/frontend/hooks/use-prevent-pinch-zoom';
+
 import { BlockToolbarMapper } from './block-toolbar-mapper';
-import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { PageMovePopover } from './page-move-popover';
 
 export interface BlockMountToolbarProps {
   blockId: string;
@@ -66,8 +69,6 @@ export function BlockMountToolbar({
   const canvasMode = useCanvasMode();
   const blockLifecycle = useCanvasBlockLifecycle({
     pageId,
-    orgId,
-    workspaceId,
   });
   const { deleteElements } = useReactFlow();
 

@@ -1,6 +1,7 @@
-import { BlockMountId } from '../value-objects/block-mount-id.vo';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+
+import { BlockMountId } from '../value-objects/block-mount-id.vo';
 import { Position } from '../value-objects/position.vo';
 import { Size } from '../value-objects/size.vo';
 import { ZOrder } from '../value-objects/z-order.vo';
@@ -14,7 +15,8 @@ export class BlockMount {
     public size: Size,
     public zOrder: ZOrder,
     public readonly createdAt: Date = new Date(),
-    public updatedAt: Date = new Date()
+    public updatedAt: Date = new Date(),
+    public deletedAt: Date | null = null
   ) {}
 
   transform(newPosition?: Position, newSize?: Size, newZOrder?: ZOrder): void {
@@ -39,6 +41,49 @@ export class BlockMount {
     // 1. 삭제 가능 조건 확인 (현재는 항상 true)
     // 향후 비즈니스 규칙이 추가되면 여기에 구현
     return true;
+  }
+
+  /**
+   * BlockMount 소프트 삭제 (비즈니스 로직)
+   *
+   * deletedAt을 설정하여 소프트 삭제 상태로 표시합니다.
+   */
+  markAsDeleted(): void {
+    if (this.deletedAt !== null) {
+      throw new Error('BlockMount is already deleted');
+    }
+    this.deletedAt = new Date();
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * 기존 데이터로 BlockMount 재구성 (Repository에서 사용)
+   *
+   * @param params - BlockMount 재구성에 필요한 모든 파라미터
+   * @returns BlockMount 인스턴스
+   */
+  static reconstitute(params: {
+    id: BlockMountId;
+    pageId: PageId;
+    blockId: BlockId;
+    position: Position;
+    size: Size;
+    zOrder: ZOrder;
+    createdAt: Date;
+    updatedAt: Date;
+    deletedAt: Date | null;
+  }): BlockMount {
+    return new BlockMount(
+      params.id,
+      params.pageId,
+      params.blockId,
+      params.position,
+      params.size,
+      params.zOrder,
+      params.createdAt,
+      params.updatedAt,
+      params.deletedAt
+    );
   }
 
   /**

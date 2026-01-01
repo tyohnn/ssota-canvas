@@ -78,10 +78,12 @@ export class EdgeManagementService implements IEdgeManagementService {
 
   /**
    * 블럭 마운트 삭제 시 연결된 엣지 모두 삭제
+   *
+   * @returns 삭제된 엣지 개수
    */
   async deleteConnectedEdges(
     blockMountId: BlockMountId
-  ): Promise<Result<void, Error>> {
+  ): Promise<Result<number, Error>> {
     return deleteConnectedEdges(blockMountId, this.edgeRepository);
   }
 }

@@ -9,9 +9,13 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useBlockCommands } from '@/domains/block-management/frontend/hooks/use-block-commands';
-import { prefetchToolbar } from '@/domains/block-management/frontend/components/block/block-mount-toolbar/toolbar-prefetch';
+
+import { useReactFlow } from '@xyflow/react';
+
 import { prefetchAction } from '@/domains/block-management/frontend/components/block/block-action-bar/action-prefetch';
+import { prefetchToolbar } from '@/domains/block-management/frontend/components/block/block-mount-toolbar/toolbar-prefetch';
+import { useUpdateBlockSize } from '@/domains/block-management/frontend/hooks/use-block-commands';
+
 import type { BlockSizeUpdateParams, ResizeData } from './types';
 
 export interface BaseBlockBusinessLogic {
@@ -30,7 +34,13 @@ export interface BaseBlockBusinessLogic {
  * Production 비즈니스 로직
  */
 export function useBaseBlockBusiness(): BaseBlockBusinessLogic {
-  const { updateBlockSize } = useBlockCommands();
+  const { getNodes, setNodes } = useReactFlow();
+  const { updateBlockSize } = useUpdateBlockSize({
+    reactFlow: {
+      getNodes,
+      setNodes,
+    },
+  });
 
   // 리사이즈 완료 시 DB에 저장
   const saveBlockSize = useCallback(
@@ -46,17 +56,20 @@ export function useBaseBlockBusiness(): BaseBlockBusinessLogic {
         return { ok: false, error: 'Missing blockMountId' };
       }
 
-      const result = await updateBlockSize(blockMountId, {
+      const success = await updateBlockSize({
+        blockMountId,
         width: resizeData.width,
         height: resizeData.height,
-        ...params,
+        pageId: params.pageId,
+        optimistic: false, // Resizer가 이미 UI를 업데이트했으므로 optimistic 불필요
       });
 
-      if (!result.ok) {
-        console.error('블록 마운트 크기 업데이트 실패:', result.error);
+      if (!success) {
+        console.error('블록 마운트 크기 업데이트 실패');
+        return { ok: false, error: 'Failed to update block size' };
       }
 
-      return result;
+      return { ok: true };
     },
     [updateBlockSize]
   );

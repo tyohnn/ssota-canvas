@@ -1,23 +1,31 @@
 'use client';
 
-import React, { memo, useState, useRef, useEffect, useCallback } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+
 import type { NodeProps } from '@xyflow/react';
-import type { TextBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
-import {
-  TextBlockProperties,
-  TextAlign,
-  FontSize,
-} from '@/domains/block-management/shared/value-objects/block-properties';
+import { useReactFlow } from '@xyflow/react';
+
+import { cn } from '@workspace/ui/lib/utils';
+
+import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/use-block-title-update';
+import type {
+  BlockNodeData,
+  TextBlockNodeData,
+} from '@/domains/block-management/shared/types/block-data.types';
 import {
   ColorToken,
-  getSelectedRingClasses,
   getGlowColor,
   getRichStyleClasses,
+  getSelectedRingClasses,
 } from '@/domains/block-management/shared/types/style-tokens.types';
-import { cn } from '@workspace/ui/lib/utils';
-import { useBlockTitleUpdate } from '@/domains/block-management/frontend/hooks/use-block-title-update';
+import {
+  FontSize,
+  TextAlign,
+  TextBlockProperties,
+} from '@/domains/block-management/shared/value-objects/block-properties';
 import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
+
+import { BaseBlock } from '../base-block';
 
 /**
  * Text Block Node Component
@@ -64,7 +72,15 @@ export const TextBlock = memo(function TextBlock({
         : 'text-left';
 
   // Block title update hook
-  const { updateTitle } = useBlockTitleUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateBlockTitle } = useUpdateBlockTitle({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: BlockNodeData }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
 
   // Canvas mode context
   const { setTextareaEditing } = useCanvasMode();
@@ -107,12 +123,16 @@ export const TextBlock = memo(function TextBlock({
       }
 
       try {
-        await updateTitle(id, newContent, nodeData);
+        await updateBlockTitle({
+          nodeId: id,
+          title: newContent,
+          blockData: nodeData,
+        });
       } catch (error) {
         console.error('Failed to save title:', error);
       }
     },
-    [id, updateTitle, content, nodeData]
+    [id, updateBlockTitle, content, nodeData]
   );
 
   // 선택 시 편집 모드 진입 (더블클릭 모드가 활성화된 경우에만)

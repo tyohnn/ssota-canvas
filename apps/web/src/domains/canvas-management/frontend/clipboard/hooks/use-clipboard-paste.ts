@@ -11,26 +11,21 @@
 
 'use client';
 
-import { useCallback, useState, useEffect, useRef } from 'react';
-import { useReactFlow } from '@xyflow/react';
-import { analyzeClipboard } from '../utils/clipboard-analyzer';
-import {
-  createBlockFromClipboard,
-  type CreateBlockContext,
-} from '../utils/clipboard-block-creator';
-import type { PastePosition } from '../types/clipboard.types';
-import { BlockType } from '@/domains/block-management/shared/types/block-types';
-import { updateBlockPropertyAction } from '@/domains/block-management/actions/block.actions';
-import { updateBlockContentAction } from '@/domains/block-management/actions/block.actions';
-import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
-import { StorageBucket } from '@/domains/storage/types/storage.types';
+import { useCallback, useState } from 'react';
+
 import { generateJSON } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { useReactFlow } from '@xyflow/react';
+
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
+import { StorageBucket } from '@/domains/storage/types/storage.types';
+
+import type { PastePosition } from '../types/clipboard.types';
+import { analyzeClipboard } from '../utils/clipboard-analyzer';
 
 export interface UseClipboardPasteProps {
   pageId: string;
-  orgId: string;
-  workspaceId: string;
   createAndMountBlock: (
     blockType: BlockType,
     position: PastePosition,
@@ -53,8 +48,6 @@ export interface UseClipboardPasteReturn {
  */
 export function useClipboardPaste({
   pageId,
-  orgId,
-  workspaceId,
   createAndMountBlock,
 }: UseClipboardPasteProps): UseClipboardPasteReturn {
   const reactFlowInstance = useReactFlow();
@@ -184,13 +177,6 @@ export function useClipboardPaste({
       const position = getCanvasCenterPosition();
 
       console.log('[Clipboard] Paste position (canvas center):', position);
-
-      // 3. 블록 생성 컨텍스트
-      const context: CreateBlockContext = {
-        pageId,
-        orgId,
-        workspaceId,
-      };
 
       // 4. 블록 타입별 initialProperties, initialContent 준비
       let blockType: BlockType;
@@ -334,8 +320,6 @@ export function useClipboardPaste({
     isPasting,
     getCanvasCenterPosition,
     pageId,
-    orgId,
-    workspaceId,
     createAndMountBlock,
     uploadImageToSupabase,
     reactFlowInstance,

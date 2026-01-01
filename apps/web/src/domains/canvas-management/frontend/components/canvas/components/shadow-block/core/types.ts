@@ -13,8 +13,6 @@ export interface ShadowPreviewProps {
 
 export interface ShadowBlockContainerProps {
   pageId: string;
-  orgId: string;
-  workspaceId: string;
 }
 
 // 마우스 상태

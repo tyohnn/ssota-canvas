@@ -217,18 +217,6 @@ export interface SelectionBoundingBoxBusinessLogic {
  */
 export interface SelectionBoundingBoxProps {
   /**
-   * Unique ID of the organization
-   * Used for permission validation and data access control
-   */
-  orgId: string;
-
-  /**
-   * Unique ID of the workspace
-   * Used for context identification during block transformation operations
-   */
-  workspaceId: string;
-
-  /**
    * Business logic injection (optional)
    *
    * By default, the actual business logic for production environments is used,
@@ -239,13 +227,11 @@ export interface SelectionBoundingBoxProps {
    * @example
    * ```tsx
    * // Production (default)
-   * <SelectionBoundingBox orgId="org-1" workspaceId="ws-1" />
+   * <SelectionBoundingBox />
    *
    * // Test/Storybook (Mock injection)
    * const mockBusiness = useMockSelectionBoundingBoxBusiness();
    * <SelectionBoundingBox
-   *   orgId="org-1"
-   *   workspaceId="ws-1"
    *   businessLogic={mockBusiness}
    * />
    * ```

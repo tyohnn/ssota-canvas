@@ -8,15 +8,15 @@ import type { useReactFlow } from '@xyflow/react';
 
 import type { useBlockActionExecutor } from '@/domains/ai-management/frontend/hooks/use-block-action-executor';
 import { convertMarkdownToTiptapJSON } from '@/domains/ai-management/frontend/utils/markdown-to-tiptap';
-import type { useBlockContentUpdate } from '@/domains/block-management/frontend/hooks/use-block-content-update';
-import type { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
-import type { useBlockTitleUpdate } from '@/domains/block-management/frontend/hooks/use-block-title-update';
+import type { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/use-block-content-update';
+import type { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import type { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/use-block-title-update';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import type { CustomNodeType } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 import type { useAutoPositionCalculator } from '@/domains/canvas-management/frontend/hooks/use-auto-position-calculator';
 import type { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
-import type { useCanvasEdgeManagement } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-management';
+import type { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-lifecycle';
 
 /**
  * Tool Handler Result Types
@@ -81,10 +81,10 @@ export type ToolResultTypeMap = {
  */
 export interface ToolHandlerContext {
   blockLifecycle: ReturnType<typeof useCanvasBlockLifecycle>;
-  edgeManagement: ReturnType<typeof useCanvasEdgeManagement>;
-  blockPropertyUpdate: ReturnType<typeof useBlockPropertyUpdate>;
-  blockTitleUpdate: ReturnType<typeof useBlockTitleUpdate>;
-  blockContentUpdate: ReturnType<typeof useBlockContentUpdate>;
+  edgeManagement: ReturnType<typeof useCanvasEdgeLifecycle>;
+  blockPropertyUpdate: ReturnType<typeof useUpdateBlockProperty>;
+  blockTitleUpdate: ReturnType<typeof useUpdateBlockTitle>;
+  blockContentUpdate: ReturnType<typeof useUpdateBlockContent>;
   blockActionExecutor: ReturnType<typeof useBlockActionExecutor>;
   positionCalculator: ReturnType<typeof useAutoPositionCalculator>;
   getNode: ReturnType<typeof useReactFlow>['getNode'];
@@ -204,11 +204,11 @@ export const ToolHandlers = {
     const blockData = node.data as BlockNodeData;
 
     // Optimistic Update를 포함한 훅 사용
-    await context.blockTitleUpdate.updateTitle(
-      args.blockMountId, // nodeId (blockMountId)
-      args.title,
-      blockData
-    );
+    await context.blockTitleUpdate.updateBlockTitle({
+      nodeId: args.blockMountId, // nodeId (blockMountId)
+      title: args.title,
+      blockData,
+    });
 
     return {
       success: true,
@@ -233,12 +233,12 @@ export const ToolHandlers = {
     const finalContent = convertMarkdownToTiptapJSON(args.content);
 
     // Optimistic Update를 포함한 훅 사용
-    await context.blockContentUpdate.updateContent(
-      args.blockMountId, // nodeId (blockMountId)
-      finalContent,
+    await context.blockContentUpdate.updateBlockContent({
+      nodeId: args.blockMountId, // nodeId (blockMountId)
+      content: finalContent,
       blockData,
-      args.content // contentRaw (markdown text)
-    );
+      contentRaw: args.content, // contentRaw (markdown text)
+    });
 
     return {
       success: true,
@@ -281,7 +281,7 @@ export const ToolHandlers = {
 
       // Properties 업데이트
       await context.blockPropertyUpdate.updateProperties(
-        update.blockMountId,
+        blockData.blockId, // blockId 사용 (blockMountId가 아님)
         update.properties,
         blockData
       );

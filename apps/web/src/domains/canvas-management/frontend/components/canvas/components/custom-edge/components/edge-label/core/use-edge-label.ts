@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
-import { useCanvasEdgeManagement } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-management';
+import { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-lifecycle';
 
 import type {
   DomainDependencies,
@@ -29,11 +29,9 @@ export function useEdgeLabel(
 ): UseEdgeLabelReturn {
   // 1. Gather External Dependencies (Centralized)
   // Context에서 메타데이터 가져오기 (optional override 지원)
-  const { pageId } = useCanvasMetadata(
-    props.canvasMetadata
-  );
+  const { pageId } = useCanvasMetadata(props.canvasMetadata);
 
-  const edgeManagement = useCanvasEdgeManagement({
+  const edgeManagement = useCanvasEdgeLifecycle({
     pageId,
   });
 

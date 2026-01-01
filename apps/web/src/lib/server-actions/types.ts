@@ -1,8 +1,23 @@
+import type { AuthenticatedUser } from '@/domains/common/auth/helpers';
+import type { Page } from '@/domains/workspace-management/shared/entities/page.entity';
+import type { Workspace } from '@/domains/workspace-management/shared/entities/workspace.entity';
+
 import type { ActionResult } from './result';
 
 /**
  * Server Actions 보안 및 미들웨어 관련 타입 정의
  */
+
+/**
+ * Action Handler에 주입되는 Context
+ *
+ * withSecureAction에서 검증 완료된 사용자, 워크스페이스, 페이지 정보를 포함
+ */
+export interface ActionContext {
+  authenticatedUser: AuthenticatedUser;
+  workspace: Workspace;
+  page: Page;
+}
 
 /**
  * pageId 추출 함수 타입

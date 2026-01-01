@@ -2,8 +2,8 @@ import { useCallback, useEffect } from 'react';
 
 import { useReactFlow, useStore, useViewport } from '@xyflow/react';
 
+import { useBlockTransformOperations } from '@/domains/canvas-management/frontend/hooks/block/use-block-transform-operations';
 import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
-import { useCanvasBlockTransform } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-transform';
 import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
 import { useCanvasSelection } from '@/domains/canvas-management/frontend/hooks/use-canvas-selection';
 import { usePreventPinchZoom } from '@/domains/canvas-management/frontend/hooks/use-prevent-pinch-zoom';
@@ -85,7 +85,7 @@ export function useMultiSelectionToolbar(
     state.nodes.filter(node => node.selected)
   );
   const viewport = useViewport();
-  const { deleteElements, setNodes } = useReactFlow();
+  const { deleteElements, setNodes, getNodes } = useReactFlow();
 
   const flowDependencies: FlowDependencies = {
     setNodes,
@@ -93,14 +93,16 @@ export function useMultiSelectionToolbar(
   };
 
   // Gather Domain Dependencies
-  const transform = useCanvasBlockTransform({
-    orgId: props.orgId,
-    workspaceId: props.workspaceId,
+  const transform = useBlockTransformOperations({
+    reactFlow: {
+      getNodes,
+      setNodes,
+      addNodes: () => {},
+      deleteElements,
+    },
   });
   const lifecycle = useCanvasBlockLifecycle({
     pageId: props.pageId,
-    orgId: props.orgId,
-    workspaceId: props.workspaceId,
   });
   const { isMultiSelectionMode, exitToDefaultMode } = useCanvasMode();
 

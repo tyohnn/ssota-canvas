@@ -1,6 +1,6 @@
 import type { Node, Viewport } from '@xyflow/react';
 
-import type { AlignmentType } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-transform';
+import type { AlignmentType } from '@/domains/canvas-management/shared/types/common.types';
 
 // =============================================================================
 // 1. Atomic Types & Re-exports

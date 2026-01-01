@@ -10,7 +10,7 @@ import {
   getHexColor,
   getHexColorDark,
 } from '@/domains/block-management/shared/types/style-tokens.types';
-import { useCanvasEdgeManagement } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-management';
+import { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-lifecycle';
 import { usePreventPinchZoom } from '@/domains/canvas-management/frontend/hooks/use-prevent-pinch-zoom';
 
 import type {
@@ -45,7 +45,7 @@ export function useEdgeToolbar(
   const isZoomVisible = zoom >= 1.0;
 
   // Domain / Service Hooks
-  const edgeManagement = useCanvasEdgeManagement({
+  const edgeManagement = useCanvasEdgeLifecycle({
     pageId: props.pageId,
   });
 

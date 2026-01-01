@@ -7,9 +7,12 @@
 'use client';
 
 import { useCallback } from 'react';
+
 import { useReactFlow } from '@xyflow/react';
-import { useBaseBlockContext } from '../../../core/use-base-block.context';
+
 import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
+
+import { useBaseBlockContext } from '../../../core/use-base-block.context';
 import type { HoverDirection } from './types';
 
 // 블록 생성 간격 (상수) - 경계에서 100px 떨어진 위치
@@ -32,8 +35,6 @@ export function useAddButtonsBusiness(): UseAddButtonsBusinessReturn {
 
   const blockLifecycle = useCanvasBlockLifecycle({
     pageId: data.pageId,
-    orgId: data.orgId,
-    workspaceId: data.workspaceId,
   });
 
   const handleAddBlock = useCallback(
