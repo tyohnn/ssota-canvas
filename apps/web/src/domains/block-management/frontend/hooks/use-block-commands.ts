@@ -11,7 +11,7 @@
 import { useCallback } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { updateBlockSizeAction } from '../../../canvas-management/actions/block.actions';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 
 export interface BlockSizeUpdate {
   width: number;

@@ -1,36 +1,38 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { DrizzleWorkspaceRepository } from '../backend/repositories/implementations/drizzle-workspace.repository';
-import { DrizzleWorkspaceMemberRepository } from '../backend/repositories/implementations/drizzle-workspace-member.repository';
-import { DrizzleWorkspaceInvitationRepository } from '../backend/repositories/implementations/drizzle-workspace-invitation.repository';
+
+import {
+  type AuthenticatedUser,
+  getAuthenticatedUser,
+} from '@/domains/common/auth/helpers';
+import { DrizzleNotificationRepository } from '@/domains/notification-management/backend/repositories/implementations/drizzle-notification.repository';
+import { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
 import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
 import { DrizzleOrganizationRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository';
 import { DefaultOrganizationQueryService } from '@/domains/organization-management/backend/services/organization-query.service';
-import { DrizzleNotificationRepository } from '@/domains/notification-management/backend/repositories/implementations/drizzle-notification.repository';
-import { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
+import { ActionResult, err, ok } from '@/lib';
+
+import { DrizzleWorkspaceInvitationRepository } from '../backend/repositories/implementations/drizzle-workspace-invitation.repository';
+import { DrizzleWorkspaceMemberRepository } from '../backend/repositories/implementations/drizzle-workspace-member.repository';
+import { DrizzleWorkspaceRepository } from '../backend/repositories/implementations/drizzle-workspace.repository';
 import { DefaultWorkspaceInvitationService } from '../backend/services';
-import { WorkspaceId } from '../shared/value-objects/workspace-id.vo';
 import type {
   InviteWorkspaceMemberResponse,
   OrganizationMemberSearchResultDTO,
   WorkspaceMemberView,
 } from '../shared/dtos';
 import {
-  InviteWorkspaceMemberRequestSchema,
-  ProcessInvitationRequestSchema,
-  SearchOrganizationMembersRequestSchema,
+  type GetWorkspaceMembersRequest,
   GetWorkspaceMembersRequestSchema,
   type InviteWorkspaceMemberRequest,
+  InviteWorkspaceMemberRequestSchema,
   type ProcessInvitationRequest,
+  ProcessInvitationRequestSchema,
   type SearchOrganizationMembersRequest,
-  type GetWorkspaceMembersRequest,
+  SearchOrganizationMembersRequestSchema,
 } from '../shared/schemas/workspace-member.schemas';
-import { ActionResult, ok, err } from '@/lib/action-result';
-import {
-  getAuthenticatedUser,
-  type AuthenticatedUser,
-} from '@/domains/common/auth/helpers';
+import { WorkspaceId } from '../shared/value-objects/workspace-id.vo';
 
 /**
  * Workspace 멤버 초대 Server Action

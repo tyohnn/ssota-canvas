@@ -1,27 +1,28 @@
 'use server';
 
-import { DrizzleBlockRepository } from '../backend/repositories/implementations/drizzle-block.repository';
-import { BlockCustomPropertyService } from '../backend/services/block-custom-property.service';
-import { BlockId } from '../shared/value-objects/block-id.vo';
+import { getAuthErrorMessage } from '@/domains/common/auth/error';
 import {
-  CreateCustomPropertyRequestSchema,
-  DeleteCustomPropertyRequestSchema,
-  UpdateCustomPropertyRequestSchema,
-  type CreateCustomPropertyRequest,
-  type DeleteCustomPropertyRequest,
-  type UpdateCustomPropertyRequest,
-} from '../shared/dtos/requests';
-import {
-  type CustomPropertyMutationDTO,
-  type CustomPropertyDeletedDTO,
-} from '../shared/dtos';
-import { ActionResult, ok, err } from '@/lib/action-result';
-import {
+  type AuthenticatedUser,
   getAuthenticatedUser,
   verifyAccess,
-  type AuthenticatedUser,
 } from '@/domains/common/auth/helpers';
-import { getAuthErrorMessage } from '@/domains/common/auth/error';
+import { ActionResult, err, ok } from '@/lib';
+
+import { DrizzleBlockRepository } from '../backend/repositories/implementations/drizzle-block.repository';
+import { BlockCustomPropertyService } from '../backend/services/block-custom-property.service';
+import {
+  type CustomPropertyDeletedDTO,
+  type CustomPropertyMutationDTO,
+} from '../shared/dtos';
+import {
+  type CreateCustomPropertyRequest,
+  CreateCustomPropertyRequestSchema,
+  type DeleteCustomPropertyRequest,
+  DeleteCustomPropertyRequestSchema,
+  type UpdateCustomPropertyRequest,
+  UpdateCustomPropertyRequestSchema,
+} from '../shared/dtos/requests';
+import { BlockId } from '../shared/value-objects/block-id.vo';
 
 export async function createCustomPropertyAction(
   request: unknown

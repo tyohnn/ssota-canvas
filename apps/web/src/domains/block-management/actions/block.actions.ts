@@ -1,36 +1,37 @@
 'use server';
 
+import { getAuthErrorMessage } from '@/domains/common/auth/error';
+import {
+  type AuthenticatedUser,
+  getAuthenticatedUser,
+  verifyAccess,
+} from '@/domains/common/auth/helpers';
+import { ActionResult, err, ok } from '@/lib';
+
 import { DrizzleBlockRepository } from '../backend/repositories/implementations/drizzle-block.repository';
 import { BlockManagementService } from '../backend/services/block-management.service';
 import { BlockPropertyService } from '../backend/services/block-property.service';
-import { ActionResult, ok, err } from '@/lib/action-result';
-import { BlockId } from '../shared/value-objects/block-id.vo';
 import {
-  UpdateBlockPropertyCommand,
   UpdateBlockContentCommand,
+  UpdateBlockPropertyCommand,
 } from '../shared/commands';
 import {
-  UpdateBlockPropertyRequestSchema,
-  UpdateBlockPropertiesRequestSchema,
-  UpdateBlockTitleRequestSchema,
-  UpdateBlockContentRequestSchema,
-  type UpdateBlockPropertyRequest,
-  type UpdateBlockPropertiesRequest,
-  type UpdateBlockTitleRequest,
-  type UpdateBlockContentRequest,
-} from '../shared/dtos/requests';
-import {
-  type BlockPropertyUpdatedDTO,
-  type BlockPropertiesUpdatedDTO,
-  type BlockTitleUpdatedDTO,
   type BlockContentUpdatedDTO,
+  type BlockPropertiesUpdatedDTO,
+  type BlockPropertyUpdatedDTO,
+  type BlockTitleUpdatedDTO,
 } from '../shared/dtos';
 import {
-  getAuthenticatedUser,
-  verifyAccess,
-  type AuthenticatedUser,
-} from '@/domains/common/auth/helpers';
-import { getAuthErrorMessage } from '@/domains/common/auth/error';
+  type UpdateBlockContentRequest,
+  UpdateBlockContentRequestSchema,
+  type UpdateBlockPropertiesRequest,
+  UpdateBlockPropertiesRequestSchema,
+  type UpdateBlockPropertyRequest,
+  UpdateBlockPropertyRequestSchema,
+  type UpdateBlockTitleRequest,
+  UpdateBlockTitleRequestSchema,
+} from '../shared/dtos/requests';
+import { BlockId } from '../shared/value-objects/block-id.vo';
 
 /**
  * 블록 속성 업데이트 Server Action

@@ -5,7 +5,9 @@
 /**
  * Remove undefined values from an object
  */
-export function omitUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+export function omitUndefined<T extends Record<string, any>>(
+  obj: T
+): Partial<T> {
   return Object.fromEntries(
     Object.entries(obj).filter(([_, value]) => value !== undefined)
   ) as Partial<T>;
@@ -28,7 +30,7 @@ export function pickDefined<T extends Record<string, any>>(obj: T): Partial<T> {
 export function createDbUpdatePayload<
   T extends Record<string, any>,
   TopLevel extends keyof T = never,
-  Metadata extends keyof T = never
+  Metadata extends keyof T = never,
 >(
   updates: T,
   topLevelFields: TopLevel[],
@@ -42,40 +44,40 @@ export function createDbUpdatePayload<
   } & Record<string, any>;
 } {
   const result: any = {};
-  
+
   // Add top-level fields
   topLevelFields.forEach(field => {
     if (updates[field] !== undefined) {
       result[field] = updates[field];
     }
   });
-  
+
   // Start with existing metadata to preserve untouched fields
   const metadata: Record<string, any> = { ...existingMetadata };
-  
+
   // Process metadata fields with merging and default values
   metadataFields.forEach(field => {
     const fieldKey = field as string;
     if (updates[field] !== undefined) {
       const existingValue = existingMetadata[fieldKey];
       const updateValue = updates[field];
-      
+
       // Apply default values and merge
       if (fieldKey === 'formData') {
         metadata[fieldKey] = {
           ...existingValue,
-          ...updateValue
+          ...updateValue,
         };
       } else if (fieldKey === 'formSchema') {
         metadata[fieldKey] = {
           fields: [],
           ...existingValue,
-          ...updateValue
+          ...updateValue,
         };
       } else if (fieldKey === 'nodeUI') {
         metadata[fieldKey] = {
           ...existingValue,
-          ...updateValue
+          ...updateValue,
         };
       } else {
         metadata[fieldKey] = updateValue;
@@ -89,20 +91,22 @@ export function createDbUpdatePayload<
       }
     }
   });
-  
+
   // Add any other fields that aren't in topLevelFields or metadataFields
   Object.keys(updates).forEach(key => {
-    if (!topLevelFields.includes(key as TopLevel) && 
-        !metadataFields.includes(key as Metadata) && 
-        updates[key] !== undefined) {
+    if (
+      !topLevelFields.includes(key as TopLevel) &&
+      !metadataFields.includes(key as Metadata) &&
+      updates[key] !== undefined
+    ) {
       metadata[key] = updates[key];
     }
   });
-  
+
   if (Object.keys(metadata).length > 0) {
     result.metadata = metadata;
   }
-  
+
   return result;
 }
 
@@ -112,7 +116,7 @@ export function createDbUpdatePayload<
 export function createTypedDbUpdatePayload<
   T extends Record<string, any>,
   TopLevel extends keyof T,
-  Metadata extends keyof T
+  Metadata extends keyof T,
 >(
   updates: T,
   topLevelFields: TopLevel[],
@@ -125,5 +129,10 @@ export function createTypedDbUpdatePayload<
     [K in Metadata]?: T[K];
   } & Record<string, any>;
 } {
-  return createDbUpdatePayload(updates, topLevelFields, metadataFields, existingMetadata) as any;
+  return createDbUpdatePayload(
+    updates,
+    topLevelFields,
+    metadataFields,
+    existingMetadata
+  ) as any;
 }

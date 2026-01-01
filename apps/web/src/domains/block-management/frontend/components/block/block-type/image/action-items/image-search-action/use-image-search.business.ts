@@ -16,7 +16,7 @@ import type {
 } from '@/domains/image-app-space/shared/types/image-search.types';
 import { searchImageAssetsAction } from '@/domains/image-app-space/actions/image-search.actions';
 import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 import { toast } from '@workspace/ui/components/ui/sonner';
 import { useReactFlow } from '@xyflow/react';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';

@@ -3,7 +3,7 @@
 import { useCallback } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { updateBlockTitleAction } from '../../actions/block.actions';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 import {
   UpdateBlockTitleRequestSchema,
   type UpdateBlockTitleRequestInput,

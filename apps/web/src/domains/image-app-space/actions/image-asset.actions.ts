@@ -7,32 +7,33 @@
 
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
-import { ActionResult, err, ok } from '@/lib/action-result';
-import { DrizzleImageAssetRepository } from '../backend/repositories/implementations/drizzle-image-asset.repository';
-import { ImageAssetService } from '../backend/services/image-asset.service';
-import { getAuthenticatedUser } from '@/domains/common/auth/helpers';
 import type { ImageAsset } from '@/db/schemas/image-app-space-schema';
-import type { ImageAssetWithStats } from '../backend/repositories/interfaces/image-asset.repository.interface';
-import {
-  CreateImageAssetRequestSchema,
-  type CreateImageAssetRequest,
-  UpdateImageMetadataRequestSchema,
-  type UpdateImageMetadataRequest,
-  ChangeImageVisibilityRequestSchema,
-  type ChangeImageVisibilityRequest,
-  BrowseCommunityFeedRequestSchema,
-  type BrowseCommunityFeedRequest,
-  BrowseFollowingFeedRequestSchema,
-  type BrowseFollowingFeedRequest,
-  GetWorkspaceImagesRequestSchema,
-  type GetWorkspaceImagesRequest,
-  GetImageUrlRequestSchema,
-  type GetImageUrlRequest,
-} from '../shared/schemas/image-asset.schemas';
-import { isWorkspaceMember } from '@/domains/workspace-management/backend/services/workspace-membership.service';
-import { AdminStorageService } from '@/domains/storage/backend/services/admin-storage.service';
 import { getAuthErrorMessage } from '@/domains/common/auth/error';
+import { getAuthenticatedUser } from '@/domains/common/auth/helpers';
+import { AdminStorageService } from '@/domains/storage/backend/services/admin-storage.service';
+import { isWorkspaceMember } from '@/domains/workspace-management/backend/services/workspace-membership.service';
+import { ActionResult, err, ok } from '@/lib';
+import { createClient } from '@/utils/supabase/server';
+
+import { DrizzleImageAssetRepository } from '../backend/repositories/implementations/drizzle-image-asset.repository';
+import type { ImageAssetWithStats } from '../backend/repositories/interfaces/image-asset.repository.interface';
+import { ImageAssetService } from '../backend/services/image-asset.service';
+import {
+  type BrowseCommunityFeedRequest,
+  BrowseCommunityFeedRequestSchema,
+  type BrowseFollowingFeedRequest,
+  BrowseFollowingFeedRequestSchema,
+  type ChangeImageVisibilityRequest,
+  ChangeImageVisibilityRequestSchema,
+  type CreateImageAssetRequest,
+  CreateImageAssetRequestSchema,
+  type GetImageUrlRequest,
+  GetImageUrlRequestSchema,
+  type GetWorkspaceImagesRequest,
+  GetWorkspaceImagesRequestSchema,
+  type UpdateImageMetadataRequest,
+  UpdateImageMetadataRequestSchema,
+} from '../shared/schemas/image-asset.schemas';
 
 /**
  * Helper: 메타데이터 추출
@@ -397,9 +398,8 @@ export async function recordImageUsageAction(
   request: unknown
 ): Promise<ActionResult<void>> {
   // 1. Trust Boundary 검증
-  const { RecordImageUsageRequestSchema } = await import(
-    '../shared/schemas/image-asset-usage.schemas'
-  );
+  const { RecordImageUsageRequestSchema } =
+    await import('../shared/schemas/image-asset-usage.schemas');
   const parseResult = RecordImageUsageRequestSchema.safeParse(request);
 
   if (!parseResult.success) {
@@ -425,9 +425,8 @@ export async function recordImageUsageAction(
 
     // 3. 이미지 사용 기록
     const { adminDb } = await import('@/db');
-    const { imageAssetUsage } = await import(
-      '@/db/schemas/image-app-space-schema'
-    );
+    const { imageAssetUsage } =
+      await import('@/db/schemas/image-app-space-schema');
 
     try {
       await adminDb.insert(imageAssetUsage).values({
@@ -817,9 +816,8 @@ export async function createOrGetUnsplashImageAssetAction(
   request: unknown
 ): Promise<ActionResult<ImageAsset>> {
   // 1. Trust Boundary 검증
-  const { CreateOrGetUnsplashImageAssetRequestSchema } = await import(
-    '../shared/schemas/image-asset.schemas'
-  );
+  const { CreateOrGetUnsplashImageAssetRequestSchema } =
+    await import('../shared/schemas/image-asset.schemas');
   const parseResult =
     CreateOrGetUnsplashImageAssetRequestSchema.safeParse(request);
 

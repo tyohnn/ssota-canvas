@@ -14,7 +14,7 @@ import { searchImageAssetsAction } from '@/domains/image-app-space/actions/image
 import { generateImageAssetsAction } from '@/domains/image-app-space/actions/image-generation.actions';
 import type { ImageAsset } from '@/domains/image-app-space/shared/types/image-search.types';
 import { IMAGE_GENERATION_MODELS } from '@/domains/image-app-space/shared/config/image-generation-models';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 
 export interface ActionResult {
   success: boolean;

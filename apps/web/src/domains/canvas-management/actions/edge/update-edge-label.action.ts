@@ -1,6 +1,7 @@
 'use server';
 
-import { ActionResult, err, ok } from '@/lib/action-result';
+import { ActionResult, err, ok } from '@/lib';
+import { withSecureAction } from '@/lib/server-actions';
 
 import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '../../backend/repositories/implementations/drizzle-edge.repository';
@@ -11,7 +12,6 @@ import {
   UpdateEdgeLabelRequestSchema,
 } from '../../shared/dtos/requests';
 import { EdgeId } from '../../shared/value-objects/edge-id.vo';
-import { withSecureAction } from './with-secure-action';
 
 /**
  * 엣지 라벨 업데이트 Server Action

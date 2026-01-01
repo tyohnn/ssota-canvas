@@ -5,7 +5,9 @@ import {
   getAuthenticatedUser,
   verifyAccessByPageId,
 } from '@/domains/common/auth/helpers';
-import { ActionResult, err } from '@/lib/action-result';
+
+import { ActionResult, err } from './result';
+import type { SecureAction, SecureActionOptions } from './types';
 
 /**
  * Higher-Order Function: Secure Action Wrapper
@@ -36,28 +38,9 @@ import { ActionResult, err } from '@/lib/action-result';
  */
 export function withSecureAction<TRequest, TResponse>(
   schema: z.ZodSchema<TRequest>,
-  options: {
-    /**
-     * pageId 추출 함수
-     * - Direct: request에서 직접 추출 (예: req.pageId)
-     * - Indirect: 비동기 조회로 추출 (예: Edge 조회 후 pageId 가져오기)
-     */
-    getPageId: (
-      request: TRequest
-    ) => string | Promise<string | { pageId: string; notFoundError?: string }>;
-
-    /**
-     * Action 이름 (로깅용)
-     */
-    actionName: string;
-
-    /**
-     * 추가 로그 메타데이터 추출 (선택사항)
-     */
-    getLogMetadata?: (request: TRequest) => Record<string, unknown>;
-  },
+  options: SecureActionOptions<TRequest>,
   handler: (validatedRequest: TRequest) => Promise<ActionResult<TResponse>>
-): (request: unknown) => Promise<ActionResult<TResponse>> {
+): SecureAction<TRequest, TResponse> {
   return async (request: unknown): Promise<ActionResult<TResponse>> => {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // 🛡️ Layer 1: Runtime Validation

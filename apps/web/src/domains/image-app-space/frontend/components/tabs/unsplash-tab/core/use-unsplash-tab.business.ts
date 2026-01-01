@@ -5,7 +5,7 @@ import {
   trackUnsplashDownloadAction,
 } from '@/domains/image-app-space/actions/image-search.actions';
 import { createOrGetUnsplashImageAssetAction } from '@/domains/image-app-space/actions/image-asset.actions';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 import { imageCache, getCacheKey } from './cache';
 import { CATEGORY_MAP } from './constants';
 import type { UnsplashTabBusinessLogic } from './types';

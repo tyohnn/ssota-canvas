@@ -1,6 +1,7 @@
 'use server';
 
-import { ActionResult, err, ok } from '@/lib/action-result';
+import { ActionResult, err, ok } from '@/lib';
+import { withSecureAction } from '@/lib/server-actions';
 
 import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '../../backend/repositories/implementations/drizzle-edge.repository';
@@ -10,7 +11,6 @@ import {
   CreateEdgeRequest,
   CreateEdgeRequestSchema,
 } from '../../shared/dtos/requests';
-import { withSecureAction } from './with-secure-action';
 
 /**
  * 엣지 생성 Server Action

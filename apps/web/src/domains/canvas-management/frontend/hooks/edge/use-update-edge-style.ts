@@ -9,7 +9,7 @@ import {
   UpdateEdgeStyleRequestSchema,
 } from '@/domains/canvas-management/shared/dtos/requests';
 import type { EdgeData } from '@/domains/canvas-management/shared/types/common.types';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 
 export type ReactFlowDependencies = {
   getEdges: () => Edge<EdgeData>[];

@@ -1,41 +1,42 @@
 'use server';
 
-import { DrizzleWorkspaceRepository } from '../backend/repositories/implementations/drizzle-workspace.repository';
-import { DrizzlePageRepository } from '../backend/repositories/implementations/drizzle-page.repository';
-import { DrizzleWorkspaceMemberRepository } from '../backend/repositories/implementations/drizzle-workspace-member.repository';
+import { getAuthErrorMessage } from '@/domains/common/auth/error';
+import {
+  type AuthenticatedUser,
+  getAuthenticatedUser,
+  verifyAccess,
+} from '@/domains/common/auth/helpers';
 import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
 import { DrizzleOrganizationRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository';
-import { DefaultWorkspaceNavigationService } from '../backend/services';
 import { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
-import { WorkspaceId } from '../shared/value-objects/workspace-id.vo';
-import { PageId } from '../shared/value-objects/page-id.vo';
+import { ActionResult, err, ok } from '@/lib';
+
+import { DrizzlePageRepository } from '../backend/repositories/implementations/drizzle-page.repository';
+import { DrizzleWorkspaceMemberRepository } from '../backend/repositories/implementations/drizzle-workspace-member.repository';
+import { DrizzleWorkspaceRepository } from '../backend/repositories/implementations/drizzle-workspace.repository';
+import { DefaultWorkspaceNavigationService } from '../backend/services';
 import type {
+  GetRecentPagesResponse,
   OrganizationWorkspacePageViewDTO,
   PageAccessResultDTO,
-  GetRecentPagesResponse,
   RecentPageDTO,
   SearchPagesResponse,
 } from '../shared/dtos';
 import {
-  GetWorkspacePagesRequestSchema,
+  type SearchPagesRequest,
+  SearchPagesRequestSchema,
+} from '../shared/dtos/requests/page.requests';
+import type { Workspace } from '../shared/entities/workspace.entity';
+import {
+  type GetPageDetailsRequest,
   GetPageDetailsRequestSchema,
+  type GetRecentPagesRequest,
   GetRecentPagesRequestSchema,
   type GetWorkspacePagesRequest,
-  type GetPageDetailsRequest,
-  type GetRecentPagesRequest,
+  GetWorkspacePagesRequestSchema,
 } from '../shared/schemas/workspace-navigation.schemas';
-import {
-  SearchPagesRequestSchema,
-  type SearchPagesRequest,
-} from '../shared/dtos/requests/page.requests';
-import { ActionResult, ok, err } from '@/lib/action-result';
-import {
-  getAuthenticatedUser,
-  verifyAccess,
-  type AuthenticatedUser,
-} from '@/domains/common/auth/helpers';
-import { getAuthErrorMessage } from '@/domains/common/auth/error';
-import type { Workspace } from '../shared/entities/workspace.entity';
+import { PageId } from '../shared/value-objects/page-id.vo';
+import { WorkspaceId } from '../shared/value-objects/workspace-id.vo';
 import { buildPageTreeDTO } from './utils';
 
 /**

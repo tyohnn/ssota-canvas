@@ -14,7 +14,7 @@ import { createGateway } from '@ai-sdk/gateway';
  *
  * 사용 방법:
  * ```typescript
- * import { createHeliconeGateway } from '@/lib/helicone-gateway-provider';
+ * import { createHeliconeGateway } from '@/lib/ai/helicone/gateway-provider';
  * import { generateText } from 'ai';
  *
  * const gateway = createHeliconeGateway({
@@ -79,7 +79,7 @@ interface HeliconeGatewayConfig {
  * @example
  * ```typescript
  * // API Route에서 사용
- * import { createHeliconeGateway } from '@/lib/helicone-gateway-provider';
+ * import { createHeliconeGateway } from '@/lib/ai/helicone/gateway-provider';
  * import { generateText } from 'ai';
  *
  * const gateway = createHeliconeGateway({
@@ -161,7 +161,7 @@ export function createHeliconeGateway(config?: HeliconeGatewayConfig) {
  *
  * @example
  * ```typescript
- * import { createHeliconeGateway, buildHeliconeHeaders } from '@/lib/helicone-gateway-provider';
+ * import { createHeliconeGateway, buildHeliconeHeaders } from '@/lib/ai/helicone/gateway-provider';
  *
  * const gateway = createHeliconeGateway({
  *   additionalHeaders: buildHeliconeHeaders({

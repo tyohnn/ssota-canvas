@@ -1,11 +1,12 @@
 'use client';
 
-import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
+
 import { Toaster } from '@workspace/ui/components/ui/sonner';
-import { QueryProvider } from '@/lib/query-client';
-import { MixpanelProvider } from '@/lib/mixpanel-provider';
+import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
+
 import { AuthSessionMonitor } from '@/domains/auth/components/auth-session-monitor';
+import { MixpanelProvider, QueryProvider } from '@/lib';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

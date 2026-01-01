@@ -10,7 +10,7 @@ import {
   moveBlockToPageAction,
 } from '../../actions/block.actions';
 import { useCanvasMode } from '../contexts/canvas-mode-context';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 import type {
   BlockNodeData,
   BlockProperties,
@@ -32,7 +32,7 @@ import {
 } from '../../shared/dtos/requests';
 import type { Position, Size } from '../../shared/types/common.types';
 import { CustomNodeType } from '../acl/react-flow.acl';
-import type { ActionResult } from '@/lib/action-result';
+import type { ActionResult } from '@/lib';
 import type {
   BlockCreatedAndMountedDTO,
   BlockDuplicatedAndMountedDTO,

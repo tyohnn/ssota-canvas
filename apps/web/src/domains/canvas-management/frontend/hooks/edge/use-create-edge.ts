@@ -10,7 +10,7 @@ import type {
   EdgeData,
   EdgeShape,
 } from '@/domains/canvas-management/shared/types/common.types';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 
 export type ReactFlowDependencies = {
   getEdges: () => Edge<EdgeData>[];

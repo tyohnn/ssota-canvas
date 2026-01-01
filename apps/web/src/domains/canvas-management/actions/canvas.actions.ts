@@ -9,7 +9,7 @@
  * - canvas-query.actions.ts: 캔버스 조회 (getCanvasViewAction)
  * - block.actions.ts: 블럭 마운트 관리 (createBlockAction, updateBlockPositionAction, etc.)
  */
-import { ActionResult, err, ok } from '@/lib/action-result';
+import { ActionResult, err, ok } from '@/lib';
 import { createClient } from '@/utils/supabase/server';
 
 import { ViewportView } from '../shared/dtos/index';

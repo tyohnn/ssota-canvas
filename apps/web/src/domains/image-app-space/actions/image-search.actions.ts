@@ -8,24 +8,25 @@
 
 'use server';
 
-import { ImageSearchService } from '../backend/services/image-search.service';
-import { ActionResult, ok, err } from '@/lib/action-result';
 import { config } from '@/config';
+import { getAuthErrorMessage } from '@/domains/common/auth/error';
 import {
-  SearchImageAssetsRequestSchema,
+  type AuthenticatedUser,
+  getAuthenticatedUser,
+  verifyAccess,
+} from '@/domains/common/auth/helpers';
+import { ActionResult, err, ok } from '@/lib';
+
+import { ImageSearchService } from '../backend/services/image-search.service';
+import {
   type SearchImageAssetsRequest,
+  SearchImageAssetsRequestSchema,
 } from '../shared/dtos/requests/image-search.requests';
 import type {
   SearchResult,
   UnsplashImage,
   UnsplashSearchResponse,
 } from '../shared/types/image-search.types';
-import {
-  getAuthenticatedUser,
-  verifyAccess,
-  type AuthenticatedUser,
-} from '@/domains/common/auth/helpers';
-import { getAuthErrorMessage } from '@/domains/common/auth/error';
 
 /**
  * 이미지 검색 Server Action

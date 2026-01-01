@@ -8,7 +8,7 @@ import {
 } from '@/domains/workspace-management/actions/workspace-navigation.actions';
 import type { RecentPageDTO } from '@/domains/workspace-management/shared/dtos';
 import { toast } from '@workspace/ui/components/ui/sonner';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 
 export interface PageMoveBusinessLogic {
   fetchPages: () => Promise<RecentPageDTO[]>;

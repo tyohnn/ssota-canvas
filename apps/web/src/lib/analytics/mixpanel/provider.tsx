@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
+
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+
 import { createClient } from '@/utils/supabase/browser';
-import { initMixpanel, identifyUser, resetUser } from './mixpanelClient';
+
+import { identifyUser, initMixpanel, resetUser } from './client';
 
 export function MixpanelProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {

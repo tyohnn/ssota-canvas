@@ -4,8 +4,8 @@
  * Server-side analytics tracking using Mixpanel Node SDK
  * Used in Service Layer for tracking business events
  */
-
 import Mixpanel from 'mixpanel';
+
 import { config } from '@/config';
 
 const MIXPANEL_TOKEN = config.analytics.mixpanel;

@@ -7,7 +7,7 @@ import {
   updateBlockPropertyAction,
   updateBlockPropertiesAction,
 } from '../../actions/block.actions';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 import {
   UpdateBlockPropertyRequestSchema,
   UpdateBlockPropertiesRequestSchema,

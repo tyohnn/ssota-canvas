@@ -12,7 +12,7 @@ import {
   BLOCK_TYPE_SIZES,
   BlockType,
 } from '@/domains/block-management/shared/types/block-types';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 
 import type { EdgeView } from '../../shared/dtos';
 import { useClipboardPaste } from '../clipboard/hooks/use-clipboard-paste';

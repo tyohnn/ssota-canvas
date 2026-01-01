@@ -1,23 +1,23 @@
 'use server';
 
-import { CanvasViewData } from '../shared/dtos/index';
-import { ActionResult, ok, err } from '@/lib/action-result';
 import { checkAuth } from '@/domains/auth/server/auth-guard';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
 import { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
+import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace-member.repository';
+import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
+import { DefaultWorkspaceNavigationService } from '@/domains/workspace-management/backend/services/workspace-navigation.service';
+import { isTempPageId } from '@/domains/workspace-management/shared/utils/temp-page-id.utils';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+import { ActionResult, err, ok } from '@/lib';
 
 import { DrizzleBlockMountRepository } from '../backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '../backend/repositories/implementations/drizzle-edge.repository';
 import { DrizzleViewportRepository } from '../backend/repositories/implementations/drizzle-viewport.repository';
-import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
-import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
-import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace-member.repository';
-import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
-import { DefaultWorkspaceNavigationService } from '@/domains/workspace-management/backend/services/workspace-navigation.service';
 import { CanvasQueryService } from '../backend/services/canvas-query.service';
-import { isTempPageId } from '@/domains/workspace-management/shared/utils/temp-page-id.utils';
+import { CanvasViewData } from '../shared/dtos/index';
 
 /**
  * 캔버스 뷰 데이터 조회 Server Action

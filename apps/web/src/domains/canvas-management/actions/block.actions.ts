@@ -1,46 +1,47 @@
 'use server';
 
+import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
+import { BlockManagementService } from '@/domains/block-management/backend/services/block-management.service';
+import { BlockType } from '@/domains/block-management/shared/value-objects/block-type.vo';
+import { getAuthErrorMessage } from '@/domains/common/auth/error';
 import {
-  BlockCreatedAndMountedDTO,
-  BlockPositionUpdatedDTO,
-  BlockSizeUpdatedDTO,
-  BlockMountSoftDeletedDTO,
-  BlockDuplicatedAndMountedDTO,
-  BlockMovedToPageDTO,
-} from '../shared/dtos/responses';
-import {
-  CreateAndMountBlockRequestSchema,
-  CreateAndMountBlockRequest,
-  UpdateBlockPositionRequestSchema,
-  UpdateBlockPositionRequest,
-  UpdateBlockSizeRequestSchema,
-  UpdateBlockSizeRequest,
-  SoftDeleteBlockMountRequestSchema,
-  SoftDeleteBlockMountRequest,
-  DuplicateBlockAndMountRequestSchema,
-  DuplicateBlockAndMountRequest,
-  MoveBlockToPageRequestSchema,
-  MoveBlockToPageRequest,
-} from '../shared/dtos/requests';
-import { ActionResult, ok, err } from '@/lib/action-result';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import {
+  type AuthenticatedUser,
   getAuthenticatedUser,
   verifyAccess,
-  type AuthenticatedUser,
 } from '@/domains/common/auth/helpers';
-import { getAuthErrorMessage } from '@/domains/common/auth/error';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import type { Workspace } from '@/domains/workspace-management/shared/entities/workspace.entity';
-import { Position } from '../shared/value-objects/position.vo';
-import { Size } from '../shared/value-objects/size.vo';
-import { BlockMountId } from '../shared/value-objects/block-mount-id.vo';
-import { BlockType } from '@/domains/block-management/shared/value-objects/block-type.vo';
-import { BlockManagementService } from '@/domains/block-management/backend/services/block-management.service';
-import { CanvasBlockMountService } from '../backend/services/canvas-block-mount.service';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+import { ActionResult, err, ok } from '@/lib';
+
 import { DrizzleBlockMountRepository } from '../backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '../backend/repositories/implementations/drizzle-edge.repository';
-import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
+import { CanvasBlockMountService } from '../backend/services/canvas-block-mount.service';
+import {
+  CreateAndMountBlockRequest,
+  CreateAndMountBlockRequestSchema,
+  DuplicateBlockAndMountRequest,
+  DuplicateBlockAndMountRequestSchema,
+  MoveBlockToPageRequest,
+  MoveBlockToPageRequestSchema,
+  SoftDeleteBlockMountRequest,
+  SoftDeleteBlockMountRequestSchema,
+  UpdateBlockPositionRequest,
+  UpdateBlockPositionRequestSchema,
+  UpdateBlockSizeRequest,
+  UpdateBlockSizeRequestSchema,
+} from '../shared/dtos/requests';
+import {
+  BlockCreatedAndMountedDTO,
+  BlockDuplicatedAndMountedDTO,
+  BlockMountSoftDeletedDTO,
+  BlockMovedToPageDTO,
+  BlockPositionUpdatedDTO,
+  BlockSizeUpdatedDTO,
+} from '../shared/dtos/responses';
+import { BlockMountId } from '../shared/value-objects/block-mount-id.vo';
+import { Position } from '../shared/value-objects/position.vo';
+import { Size } from '../shared/value-objects/size.vo';
 
 /**
  * Block 생성 및 마운팅 통합 Server Action
