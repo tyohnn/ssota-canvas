@@ -4,19 +4,19 @@
  * AI Agent의 클라이언트 사이드 툴 실행 로직
  * 각 툴의 비즈니스 로직을 캡슐화하여 재사용성과 테스트 가능성 향상
  */
+import type { useReactFlow } from '@xyflow/react';
 
-import { BlockType } from '@/domains/block-management/shared/types/block-types';
-import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import type { useBlockActionExecutor } from '@/domains/ai-management/frontend/hooks/use-block-action-executor';
 import { convertMarkdownToTiptapJSON } from '@/domains/ai-management/frontend/utils/markdown-to-tiptap';
-import type { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
-import type { useCanvasEdgeManagement } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-management';
+import type { useBlockContentUpdate } from '@/domains/block-management/frontend/hooks/use-block-content-update';
 import type { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
 import type { useBlockTitleUpdate } from '@/domains/block-management/frontend/hooks/use-block-title-update';
-import type { useBlockContentUpdate } from '@/domains/block-management/frontend/hooks/use-block-content-update';
-import type { useBlockActionExecutor } from '@/domains/ai-management/frontend/hooks/use-block-action-executor';
-import type { useAutoPositionCalculator } from '@/domains/canvas-management/frontend/hooks/use-auto-position-calculator';
-import type { useReactFlow } from '@xyflow/react';
+import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import type { CustomNodeType } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
+import type { useAutoPositionCalculator } from '@/domains/canvas-management/frontend/hooks/use-auto-position-calculator';
+import type { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
+import type { useCanvasEdgeManagement } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-management';
 
 /**
  * Tool Handler Result Types
@@ -320,13 +320,12 @@ export const ToolHandlers = {
         );
       }
 
-      await context.edgeManagement.createEdge(
-        connection.sourceBlockMountId, // blockMountId (React Flow node ID)
-        connection.targetBlockMountId, // blockMountId (React Flow node ID)
-        connection.edgeType || 'default',
-        connection.sourceHandle, // 'top' | 'bottom' | 'left' | 'right' | undefined
-        connection.targetHandle // 'top' | 'bottom' | 'left' | 'right' | undefined
-      );
+      await context.edgeManagement.createEdge({
+        sourceBlockMountId: connection.sourceBlockMountId,
+        targetBlockMountId: connection.targetBlockMountId,
+        sourceHandle: connection.sourceHandle || 'right',
+        targetHandle: connection.targetHandle || 'left',
+      });
 
       connectedCount++;
     }

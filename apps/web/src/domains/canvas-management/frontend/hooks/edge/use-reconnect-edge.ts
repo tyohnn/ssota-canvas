@@ -1,9 +1,10 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
-import type { Edge, Node } from '@xyflow/react';
+import type { Connection, Edge, Node } from '@xyflow/react';
 
 import { EdgeShape } from '@/domains/canvas-management/frontend/components/canvas/components/edge/edge-toolbar/core/types';
+import { CreateEdgeRequestSchema } from '@/domains/canvas-management/shared/dtos/requests';
 import type { EdgeData } from '@/domains/canvas-management/shared/types/common.types';
 
 import { useCreateEdge } from './use-create-edge';
@@ -19,8 +20,8 @@ export type ReconnectEdgeInput = {
   edgeId: string;
   newSourceBlockMountId: string;
   newTargetBlockMountId: string;
-  sourceHandle: string;
-  targetHandle: string;
+  sourceHandle: Connection['sourceHandle'];
+  targetHandle: Connection['targetHandle'];
 };
 
 export type UseReconnectEdgeParams = {
@@ -80,6 +81,21 @@ export function useReconnectEdge(
       }
 
       // 3. 새 엣지 생성 (외부 훅 사용)
+      // Validation
+      const rawRequest = {
+        pageId,
+        sourceBlockMountId: newSourceBlockMountId,
+        targetBlockMountId: newTargetBlockMountId,
+        sourceHandle: sourceHandle,
+        targetHandle: targetHandle,
+      };
+
+      const parseResult = CreateEdgeRequestSchema.safeParse(rawRequest);
+      if (!parseResult.success) {
+        const firstError = parseResult.error.issues[0];
+        throw new Error(firstError?.message || 'Invalid edge data');
+      }
+
       const newEdgeView = await createEdge({
         sourceBlockMountId: newSourceBlockMountId,
         targetBlockMountId: newTargetBlockMountId,

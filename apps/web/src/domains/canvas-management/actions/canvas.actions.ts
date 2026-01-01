@@ -7,7 +7,6 @@
  *
  * 모듈화된 Actions:
  * - canvas-query.actions.ts: 캔버스 조회 (getCanvasViewAction)
- * - edge/: 엣지 관리 (createEdgeAction, updateEdgeShapeAction, updateEdgeLabelAction, updateEdgeStyleAction, deleteEdgeAction)
  * - block.actions.ts: 블럭 마운트 관리 (createBlockAction, updateBlockPositionAction, etc.)
  */
 import { ActionResult, err, ok } from '@/lib/action-result';

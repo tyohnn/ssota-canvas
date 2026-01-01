@@ -1,13 +1,15 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
-import type { Edge, Node } from '@xyflow/react';
+import type { Connection, Edge, Node } from '@xyflow/react';
 
 import { createEdgeAction } from '@/domains/canvas-management/actions/edge/create-edge.action';
-import { EdgeShape } from '@/domains/canvas-management/frontend/components/canvas/components/edge/edge-toolbar/core/types';
 import { CreateEdgeRequestSchema } from '@/domains/canvas-management/shared/dtos/requests';
 import type { EdgeView } from '@/domains/canvas-management/shared/dtos/views';
-import type { EdgeData } from '@/domains/canvas-management/shared/types/common.types';
+import type {
+  EdgeData,
+  EdgeShape,
+} from '@/domains/canvas-management/shared/types/common.types';
 import { isFailure } from '@/lib/action-result';
 
 export type ReactFlowDependencies = {
@@ -24,8 +26,8 @@ export type UseCreateEdgeParams = {
 export type CreateEdgeInput = {
   sourceBlockMountId: string;
   targetBlockMountId: string;
-  sourceHandle: string;
-  targetHandle: string;
+  sourceHandle: Connection['sourceHandle']; // React Flow에서 string으로 전달
+  targetHandle: Connection['targetHandle']; // React Flow에서 string으로 전달
 };
 
 export type UseCreateEdgeResult = {
@@ -61,8 +63,8 @@ export function useCreateEdge(
         pageId,
         sourceBlockMountId,
         targetBlockMountId,
-        sourceHandle, // string -> safeParse에서 EdgeHandle로 변환
-        targetHandle, // string -> safeParse에서 EdgeHandle로 변환
+        sourceHandle, // string | null -> 하단 safeParse에서 EdgeHandle로 변환
+        targetHandle, // string | null -> 하단 safeParse에서 EdgeHandle로 변환
       };
 
       const parseResult = CreateEdgeRequestSchema.safeParse(rawRequest); //
@@ -88,6 +90,7 @@ export function useCreateEdge(
         sourceHandle,
         targetHandle,
       } = input;
+
       // 노드 존재 확인
       const currentNodes = getNodes();
       const sourceNode = currentNodes.find(n => n.id === sourceBlockMountId);

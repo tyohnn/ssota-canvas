@@ -31,11 +31,18 @@ export interface EdgeStyle {
  */
 export interface EdgeData extends Record<string, unknown> {
   edgeId: string;
-  actualEdgeShape: string;
+  actualEdgeShape: EdgeShape;
   pageId: string;
   createdAt?: string;
   updatedAt?: string;
 }
+
+export type EdgeShape =
+  | 'default'
+  | 'straight'
+  | 'step'
+  | 'smoothstep'
+  | 'simplebezier';
 
 export type EdgeHandle = 'left' | 'right' | 'top' | 'bottom';
 

@@ -405,8 +405,8 @@ export function useCanvasCallbacks({
       const result = await edgeManagement.createEdge({
         sourceBlockMountId: connection.source, // blockMountId (React Flow 노드 ID)
         targetBlockMountId: connection.target, // blockMountId (React Flow 노드 ID)
-        sourceHandle: connection.sourceHandle ?? 'right',
-        targetHandle: connection.targetHandle ?? 'left',
+        sourceHandle: connection.sourceHandle,
+        targetHandle: connection.targetHandle,
       });
 
       if (!result) {
@@ -438,8 +438,8 @@ export function useCanvasCallbacks({
         edgeId: oldEdge.id,
         newSourceBlockMountId: newConnection.source,
         newTargetBlockMountId: newConnection.target,
-        sourceHandle: newConnection.sourceHandle ?? 'right',
-        targetHandle: newConnection.targetHandle ?? 'left',
+        sourceHandle: newConnection.sourceHandle,
+        targetHandle: newConnection.targetHandle,
       });
 
       if (success) {

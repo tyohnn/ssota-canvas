@@ -15,7 +15,6 @@ import {
   EdgeStyleChangedEvent,
 } from '../events';
 import { EdgeId } from '../value-objects/edge-id.vo';
-import { EdgeShape } from '../value-objects/edge-shape.vo';
 
 /**
  * Edge Aggregate
