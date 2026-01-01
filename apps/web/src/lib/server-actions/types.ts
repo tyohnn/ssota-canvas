@@ -1,4 +1,4 @@
-import type { ActionResult } from '../result';
+import type { ActionResult } from './result';
 
 /**
  * Server Actions 보안 및 미들웨어 관련 타입 정의

@@ -29,6 +29,14 @@ const nextConfig = {
       bodySizeLimit: '50mb', // 기본값 1mb → 50mb로 증가 (Base64 인코딩 고려)
     },
   },
+  // ✅ Turbopack 설정: 클라이언트 빌드에서 Node.js API 경고 억제
+  turbopack: {
+    resolveAlias: {
+      fs: false,
+      net: false,
+      tls: false,
+    },
+  },
 };
 
 export default nextConfig;
