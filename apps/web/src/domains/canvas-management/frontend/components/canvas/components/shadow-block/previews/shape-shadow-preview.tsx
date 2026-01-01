@@ -3,14 +3,17 @@
  *
  * 도형 블록의 Shadow Block 미리보기
  */
-
 import React from 'react';
-import type { ShadowPreviewProps } from '../shadow-block-preview-registry';
+
 import { Square } from 'lucide-react';
+
+import { Box } from '@/components/ui/box';
+
+import type { ShadowPreviewProps } from '../core/types';
 
 export function ShapeShadowPreview({ width, height }: ShadowPreviewProps) {
   return (
-    <div
+    <Box
       className="relative border-2 border-blue-400 border-dashed bg-blue-50/50 rounded-lg flex items-center justify-center"
       style={{ width, height }}
     >
@@ -35,10 +38,9 @@ export function ShapeShadowPreview({ width, height }: ShadowPreviewProps) {
       </svg>
 
       {/* 아이콘 표시 */}
-      <div className="absolute top-2 left-2">
+      <Box className="absolute top-2 left-2">
         <Square className="h-3 w-3 text-blue-400" />
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
-

@@ -48,8 +48,8 @@ import {
 import { CustomEdge } from '../canvas/components/custom-edge';
 import { MultiSelectionToolbar } from '../canvas/components/multi-select/multi-selection-toolbar';
 import { SelectionBoundingBox } from '../canvas/components/multi-select/selection-bounding-box';
+import { ShadowBlockContainer } from '../canvas/components/shadow-block';
 import { SnapGuidelines } from '../canvas/components/snap/snap-guidelines';
-import { ShadowBlockContainer } from '../shadow-block/shadow-block-container';
 import { BlockAddDialog } from './block-add-dialog';
 // Canvas Management Components
 import { CanvasToolbar } from './canvas-toolbar';

@@ -3,22 +3,17 @@
  *
  * 블록 타입별 Shadow Preview 컴포넌트 매핑
  */
-
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
-import { DefaultShadowPreview } from './previews/default-shadow-preview';
-import { TextShadowPreview } from './previews/text-shadow-preview';
-import { ShapeShadowPreview } from './previews/shape-shadow-preview';
-import { ImageShadowPreview } from './previews/image-shadow-preview';
-import { MarkdownShadowPreview } from './previews/markdown-shadow-preview';
-import { LinkShadowPreview } from './previews/link-shadow-preview';
-import { PdfShadowPreview } from './previews/pdf-shadow-preview';
-import { AudioShadowPreview } from './previews/audio-shadow-preview';
 
-export interface ShadowPreviewProps {
-  blockType: BlockType;
-  width: number;
-  height: number;
-}
+import { AudioShadowPreview } from '../previews/audio-shadow-preview';
+import { DefaultShadowPreview } from '../previews/default-shadow-preview';
+import { ImageShadowPreview } from '../previews/image-shadow-preview';
+import { LinkShadowPreview } from '../previews/link-shadow-preview';
+import { MarkdownShadowPreview } from '../previews/markdown-shadow-preview';
+import { PdfShadowPreview } from '../previews/pdf-shadow-preview';
+import { ShapeShadowPreview } from '../previews/shape-shadow-preview';
+import { TextShadowPreview } from '../previews/text-shadow-preview';
+import type { ShadowPreviewProps } from './types';
 
 /**
  * 블록 타입별 Shadow Preview 매핑

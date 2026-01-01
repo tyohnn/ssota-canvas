@@ -20,3 +20,6 @@ export { EdgeToolbar } from './canvas/components/custom-edge/components/edge-too
 export type { EdgeToolbarProps } from './canvas/components/custom-edge/components/edge-toolbar';
 
 export { CustomEdge } from './canvas/components/custom-edge';
+
+export { ShadowBlockContainer } from './canvas/components/shadow-block';
+export type { ShadowBlockContainerProps } from './canvas/components/shadow-block/core/types';

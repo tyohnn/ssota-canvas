@@ -1,8 +1,12 @@
 'use client';
 
 import React from 'react';
-import type { ShadowPreviewProps } from '../shadow-block-preview-registry';
+
 import { Link as LinkIcon } from 'lucide-react';
+
+import { Box } from '@/components/ui/box';
+
+import type { ShadowPreviewProps } from '../core/types';
 
 /**
  * Link Block Shadow Preview Component
@@ -11,14 +15,14 @@ import { Link as LinkIcon } from 'lucide-react';
  */
 export function LinkShadowPreview({ width, height }: ShadowPreviewProps) {
   return (
-    <div
+    <Box
       className="relative border-2 border-blue-400 border-dashed bg-blue-50/50 rounded-lg flex items-center justify-center"
       style={{ width, height }}
     >
-      <div className="text-center">
+      <Box className="text-center">
         <LinkIcon className="h-8 w-8 text-blue-500 mx-auto mb-2" />
         <span className="text-xs font-medium text-blue-600">Link Preview</span>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
