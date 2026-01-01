@@ -1,10 +1,5 @@
 'use server';
 
-import { getAuthErrorMessage } from '@/domains/common/auth/error';
-import {
-  getAuthenticatedUser,
-  verifyAccessByPageId,
-} from '@/domains/common/auth/helpers';
 import { ActionResult, err, ok } from '@/lib/action-result';
 
 import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
@@ -15,13 +10,12 @@ import {
   CreateEdgeRequest,
   CreateEdgeRequestSchema,
 } from '../../shared/dtos/requests';
+import { withSecureAction } from './with-secure-action';
 
 /**
  * 엣지 생성 Server Action
  *
- * ⚠️ Security: 이 함수는 HTTP를 통해 공개되므로 모든 입력을 검증합니다
- *
- * Defense in Depth:
+ * ⚠️ Security: withSecureAction HOF를 통해 Defense in Depth 적용
  * 1. Request 스키마 검증
  * 2. 사용자 인증 확인
  * 3. 조직 멤버십 확인
@@ -30,62 +24,15 @@ import {
  * @param request - 클라이언트 요청 (런타임 검증 필요)
  * @returns EdgeView (성공) | Error (실패)
  */
-export async function createEdgeAction(
-  request: unknown // ⚠️ 외부 입력 - 신뢰하지 않음
-): Promise<ActionResult<EdgeView>> {
-  // 1. Runtime Validation (필수)
-  const parseResult = CreateEdgeRequestSchema.safeParse(request);
-
-  if (!parseResult.success) {
-    console.warn('[Security] Invalid request to createEdgeAction', {
-      errors: parseResult.error.issues,
-      timestamp: new Date().toISOString(),
-    });
-
-    return err('Invalid request data', {
-      code: 'INVALID_REQUEST',
-      meta: { errors: parseResult.error.issues },
-    });
-  }
-
-  // 2. 검증된 데이터는 타입 안전
-  const validatedRequest = parseResult.data; // type: CreateEdgeRequest
-
-  // 3. 인증 확인 (Supabase Auth)
-  try {
-    const authenticatedUser = await getAuthenticatedUser();
-
-    // 4. Page 기반 권한 확인
-    const accessResult = await verifyAccessByPageId(
-      validatedRequest.pageId,
-      authenticatedUser.id
-    );
-
-    if (!accessResult.success) {
-      console.warn('[Security] Access denied', {
-        userId: authenticatedUser.id,
-        pageId: validatedRequest.pageId,
-        error: accessResult.error,
-      });
-
-      return err(getAuthErrorMessage(accessResult.error), {
-        code: accessResult.error || 'ACCESS_DENIED',
-      });
-    }
-
-    // 5. 검증 완료 - Internal 함수 호출 (검증된 workspace 전달)
-    return await createEdgeInternal(validatedRequest);
-  } catch (error) {
-    console.error('[createEdgeAction] Authentication error:', error);
-
-    return err(
-      error instanceof Error ? error.message : 'Authentication failed',
-      {
-        code: 'UNAUTHORIZED',
-      }
-    );
-  }
-}
+export const createEdgeAction = withSecureAction(
+  CreateEdgeRequestSchema,
+  {
+    getPageId: req => req.pageId,
+    actionName: 'createEdgeAction',
+    getLogMetadata: req => ({ pageId: req.pageId }),
+  },
+  createEdgeInternal
+);
 
 /**
  * 내부 구현 (검증된 데이터만 처리)
@@ -96,8 +43,6 @@ export async function createEdgeAction(
  * ⚠️ 이 함수는 이미 검증된 요청과 인증된 사용자만 받습니다
  *
  * @param safeDto - 검증된 SafeDTO
- * @param authenticatedUser - 인증된 사용자
- * @param workspace - 검증된 워크스페이스 entity
  */
 async function createEdgeInternal(
   safeDto: CreateEdgeRequest // ✅ 이미 검증됨 (SafeDTO)

@@ -1183,6 +1183,354 @@ async function createBlockInternal(
  */
 ```
 
+#### 6.1.1 이중 보안 레이어 패턴 (기본 방식)
+
+Server Actions는 **Defense in Depth** 전략을 사용하여 여러 보안 레이어를 거칩니다:
+
+```
+┌─────────────────────────────────────────┐
+│  Layer 1: Runtime Validation (Zod)      │
+│    unknown → Validated Type             │
+├─────────────────────────────────────────┤
+│  Layer 2: Authentication (Supabase)     │
+│    Verify User Session                  │
+├─────────────────────────────────────────┤
+│  Layer 3: Authorization (Page-based)    │
+│    Check Organization/Workspace Access  │
+├─────────────────────────────────────────┤
+│  Layer 4: Business Logic (Internal)     │
+│    Execute Safe Operation               │
+└─────────────────────────────────────────┘
+```
+
+**기본 구현 패턴:**
+
+```typescript
+/**
+ * 엣지 생성 Server Action
+ *
+ * ⚠️ Security: 이 함수는 HTTP를 통해 공개되므로 모든 입력을 검증합니다
+ *
+ * Defense in Depth:
+ * 1. Request 스키마 검증
+ * 2. 사용자 인증 확인
+ * 3. 조직 멤버십 확인
+ * 4. 워크스페이스 접근 권한 확인
+ */
+export async function createEdgeAction(
+  request: unknown // ⚠️ 외부 입력 - 신뢰하지 않음
+): Promise<ActionResult<EdgeView>> {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 🛡️ Layer 1: Runtime Validation (필수)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const parseResult = CreateEdgeRequestSchema.safeParse(request);
+
+  if (!parseResult.success) {
+    console.warn('[Security] Invalid request to createEdgeAction', {
+      errors: parseResult.error.issues,
+      timestamp: new Date().toISOString(),
+    });
+
+    return err('Invalid request data', {
+      code: 'INVALID_REQUEST',
+      meta: { errors: parseResult.error.issues },
+    });
+  }
+
+  // 2. 검증된 데이터는 타입 안전
+  const validatedRequest = parseResult.data; // type: CreateEdgeRequest
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 🛡️ Layer 2: Authentication & Authorization
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  try {
+    // 2-1. 인증 확인
+    const authenticatedUser = await getAuthenticatedUser();
+
+    // 2-2. 권한 확인
+    const accessResult = await verifyAccessByPageId(
+      validatedRequest.pageId,
+      authenticatedUser.id
+    );
+
+    if (!accessResult.success) {
+      console.warn('[Security] Access denied', {
+        userId: authenticatedUser.id,
+        pageId: validatedRequest.pageId,
+        error: accessResult.error,
+      });
+
+      return err(getAuthErrorMessage(accessResult.error), {
+        code: accessResult.error || 'ACCESS_DENIED',
+      });
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ✅ All Security Checks Passed - Execute Handler
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    return await createEdgeInternal(validatedRequest);
+  } catch (error) {
+    console.error('[createEdgeAction] Authentication error:', error);
+
+    return err(
+      error instanceof Error ? error.message : 'Authentication failed',
+      {
+        code: 'UNAUTHORIZED',
+      }
+    );
+  }
+}
+
+/**
+ * 내부 구현 (검증된 데이터만 처리)
+ */
+async function createEdgeInternal(
+  safeDto: CreateEdgeRequest // ✅ 이미 검증됨 (SafeDTO)
+): Promise<ActionResult<EdgeView>> {
+  // 비즈니스 로직만 구현
+  // ...
+}
+```
+
+**장점:**
+- ✅ 명시적이고 명확한 보안 검증 흐름
+- ✅ 각 레이어의 책임이 분리되어 있음
+- ✅ 디버깅 시 스택 트레이스가 명확함
+
+**단점:**
+- ⚠️ 여러 Action에서 동일한 보안 로직이 반복됨
+- ⚠️ 보안 정책 변경 시 모든 Action 수정 필요
+- ⚠️ 코드 중복으로 인한 유지보수 부담
+
+#### 6.1.2 이중 보안 레이어 패턴 (HOF 방식) ⭐️ 새로운 패턴
+
+**Higher-Order Function (HOF)**을 사용하여 보안 레이어를 추상화하는 패턴입니다.
+
+**HOF 유틸리티:**
+
+```typescript
+// actions/edge/with-secure-action.ts
+import { z } from 'zod';
+import { getAuthErrorMessage } from '@/domains/common/auth/error';
+import { getAuthenticatedUser, verifyAccessByPageId } from '@/domains/common/auth/helpers';
+import { ActionResult, err } from '@/lib/action-result';
+
+/**
+ * Higher-Order Function: Secure Action Wrapper
+ *
+ * Defense in Depth 보안 레이어를 자동으로 적용하는 HOF
+ *
+ * 적용되는 보안 레이어:
+ * 1. Runtime Validation (Zod 스키마 검증)
+ * 2. User Authentication (Supabase Auth)
+ * 3. Access Control (Page-based permissions)
+ */
+export function withSecureAction<TRequest, TResponse>(
+  schema: z.ZodSchema<TRequest>,
+  options: {
+    /**
+     * pageId 추출 함수
+     * - Direct: request에서 직접 추출 (예: req.pageId)
+     * - Indirect: 비동기 조회로 추출 (예: Edge 조회 후 pageId 가져오기)
+     */
+    getPageId: (
+      request: TRequest
+    ) => string | Promise<string | { pageId: string; notFoundError?: string }>;
+
+    /**
+     * Action 이름 (로깅용)
+     */
+    actionName: string;
+
+    /**
+     * 추가 로그 메타데이터 추출 (선택사항)
+     */
+    getLogMetadata?: (request: TRequest) => Record<string, unknown>;
+  },
+  handler: (validatedRequest: TRequest) => Promise<ActionResult<TResponse>>
+): (request: unknown) => Promise<ActionResult<TResponse>> {
+  return async (request: unknown): Promise<ActionResult<TResponse>> => {
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🛡️ Layer 1: Runtime Validation
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const parseResult = schema.safeParse(request);
+
+    if (!parseResult.success) {
+      console.warn(`[Security] Invalid request to ${options.actionName}`, {
+        errors: parseResult.error.issues,
+        timestamp: new Date().toISOString(),
+      });
+
+      return err('Invalid request data', {
+        code: 'INVALID_REQUEST',
+        meta: { errors: parseResult.error.issues },
+      });
+    }
+
+    const validatedRequest = parseResult.data;
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🛡️ Layer 2: Authentication & Authorization
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    try {
+      // 2-1. 인증 확인
+      const authenticatedUser = await getAuthenticatedUser();
+
+      // 2-2. pageId 추출 (Direct or Indirect)
+      const pageIdResult = await options.getPageId(validatedRequest);
+
+      let pageId: string;
+      if (typeof pageIdResult === 'string') {
+        pageId = pageIdResult;
+      } else {
+        // Indirect 방식에서 Entity Not Found 처리
+        if (!pageIdResult.pageId) {
+          return err(pageIdResult.notFoundError || 'Resource not found', {
+            code: 'RESOURCE_NOT_FOUND',
+          });
+        }
+        pageId = pageIdResult.pageId;
+      }
+
+      // 2-3. 권한 확인
+      const accessResult = await verifyAccessByPageId(
+        pageId,
+        authenticatedUser.id
+      );
+
+      if (!accessResult.success) {
+        const logMetadata = options.getLogMetadata
+          ? options.getLogMetadata(validatedRequest)
+          : {};
+
+        console.warn('[Security] Access denied', {
+          userId: authenticatedUser.id,
+          pageId,
+          error: accessResult.error,
+          ...logMetadata,
+        });
+
+        return err(getAuthErrorMessage(accessResult.error), {
+          code: accessResult.error || 'ACCESS_DENIED',
+        });
+      }
+
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // ✅ All Security Checks Passed - Execute Handler
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      return await handler(validatedRequest);
+    } catch (error) {
+      console.error(`[${options.actionName}] Authentication error:`, error);
+
+      return err(
+        error instanceof Error ? error.message : 'Authentication failed',
+        {
+          code: 'UNAUTHORIZED',
+        }
+      );
+    }
+  };
+}
+```
+
+**HOF 패턴 사용 예시:**
+
+```typescript
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ✅ Direct Access: pageId가 request에 직접 있는 경우
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export const createEdgeAction = withSecureAction(
+  CreateEdgeRequestSchema,
+  {
+    getPageId: req => req.pageId, // ✅ Direct
+    actionName: 'createEdgeAction',
+    getLogMetadata: req => ({ pageId: req.pageId }),
+  },
+  createEdgeInternal
+);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ✅ Indirect Access: Entity 조회 후 pageId 추출
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export const updateEdgeLabelAction = withSecureAction(
+  UpdateEdgeLabelRequestSchema,
+  {
+    getPageId: async req => {
+      // Edge 조회하여 pageId 얻기 (Indirect access)
+      const edgeRepository = new DrizzleEdgeRepository();
+      const edgeIdVO = new EdgeId(req.edgeId);
+      const edgeAggregate = await edgeRepository.findById(edgeIdVO);
+
+      if (!edgeAggregate) {
+        return { pageId: '', notFoundError: 'Edge not found' };
+      }
+
+      return edgeAggregate.edge.pageId.value;
+    },
+    actionName: 'updateEdgeLabelAction',
+    getLogMetadata: req => ({ edgeId: req.edgeId }),
+  },
+  updateEdgeLabelInternal
+);
+
+/**
+ * 내부 구현 (검증된 데이터만 처리)
+ */
+async function createEdgeInternal(
+  safeDto: CreateEdgeRequest // ✅ 이미 검증됨 (SafeDTO)
+): Promise<ActionResult<EdgeView>> {
+  // 비즈니스 로직만 구현
+  // ...
+}
+```
+
+**Before & After 비교:**
+
+| 항목 | 기본 방식 | HOF 방식 | 개선 |
+|------|----------|---------|------|
+| **코드 줄 수** | ~162줄 | ~100줄 | **-38%** |
+| **중복 보안 코드** | ~500줄 (5개 파일) | 0줄 | **-100%** |
+| **유지보수 포인트** | 5개 파일 | 1개 파일 (HOF) | **-80%** |
+| **보안 정책 변경** | 5곳 수정 | 1곳 수정 | **5배 빠름** |
+
+**HOF 패턴의 장점:**
+
+1. **DRY (Don't Repeat Yourself)**
+   - 보안 로직을 한 곳에서 관리
+   - 모든 Action에 일관되게 적용
+
+2. **Type Safety**
+   - TypeScript 제네릭으로 타입 안전성 보장
+   - Validated type이 handler까지 전파
+
+3. **Separation of Concerns**
+   - 보안 로직 ↔ 비즈니스 로직 명확히 분리
+   - 각 레이어의 책임 명확화
+
+4. **Maintainability**
+   - 보안 정책 변경 시 HOF만 수정
+   - 모든 Actions에 자동 반영
+
+5. **Testability**
+   - HOF는 한 번만 테스트
+   - Internal handler는 순수 함수로 테스트 용이
+
+**HOF 패턴의 단점:**
+
+1. **추가 추상화 레이어**
+   - 러닝 커브 존재
+   - 디버깅 시 스택 트레이스 한 단계 증가
+
+**언제 어떤 패턴을 사용할까?**
+
+- **기본 방식**: 간단한 Action, 보안 로직이 Action마다 다를 때
+- **HOF 방식**: 여러 Action에서 동일한 보안 정책을 사용할 때, 보안 정책이 자주 변경될 때
+
+**관련 패턴:**
+- **Middleware Pattern**: Express.js, Koa.js의 미들웨어와 유사
+- **Decorator Pattern**: 함수를 감싸서 기능 추가
+- **Chain of Responsibility**: 여러 보안 검증을 순차적으로 실행
+
 ### 6.2 Service Layer 패턴 (SafeDTO → Command → Aggregate)
 
 ```typescript

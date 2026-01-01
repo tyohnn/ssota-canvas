@@ -1,10 +1,5 @@
 'use server';
 
-import { getAuthErrorMessage } from '@/domains/common/auth/error';
-import {
-  getAuthenticatedUser,
-  verifyAccessByPageId,
-} from '@/domains/common/auth/helpers';
 import { ActionResult, err, ok } from '@/lib/action-result';
 
 import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
@@ -16,13 +11,12 @@ import {
   UpdateEdgeStyleRequestSchema,
 } from '../../shared/dtos/requests';
 import { EdgeId } from '../../shared/value-objects/edge-id.vo';
+import { withSecureAction } from './with-secure-action';
 
 /**
  * 엣지 스타일 업데이트 Server Action
  *
- * ⚠️ Security: 이 함수는 HTTP를 통해 공개되므로 모든 입력을 검증합니다
- *
- * Defense in Depth:
+ * ⚠️ Security: withSecureAction HOF를 통해 Defense in Depth 적용
  * 1. Request 스키마 검증
  * 2. 사용자 인증 확인
  * 3. 조직 멤버십 확인
@@ -31,76 +25,26 @@ import { EdgeId } from '../../shared/value-objects/edge-id.vo';
  * @param request - 클라이언트 요청 (런타임 검증 필요)
  * @returns EdgeView (성공) | Error (실패)
  */
-export async function updateEdgeStyleAction(
-  request: unknown // ⚠️ 외부 입력 - 신뢰하지 않음
-): Promise<ActionResult<EdgeView>> {
-  // 1. Runtime Validation (필수)
-  const parseResult = UpdateEdgeStyleRequestSchema.safeParse(request);
+export const updateEdgeStyleAction = withSecureAction(
+  UpdateEdgeStyleRequestSchema,
+  {
+    getPageId: async req => {
+      // Edge 조회하여 pageId 얻기 (Indirect access)
+      const edgeRepository = new DrizzleEdgeRepository();
+      const edgeIdVO = new EdgeId(req.edgeId);
+      const edgeAggregate = await edgeRepository.findById(edgeIdVO);
 
-  if (!parseResult.success) {
-    console.warn('[Security] Invalid request to updateEdgeStyleAction', {
-      errors: parseResult.error.issues,
-      timestamp: new Date().toISOString(),
-    });
-
-    return err('Invalid request data', {
-      code: 'INVALID_REQUEST',
-      meta: { errors: parseResult.error.issues },
-    });
-  }
-
-  // 2. 검증된 데이터는 타입 안전
-  const validatedRequest = parseResult.data; // type: UpdateEdgeStyleRequest
-
-  // 3. 인증 확인 (Supabase Auth)
-  try {
-    const authenticatedUser = await getAuthenticatedUser();
-
-    // 4. Edge 조회하여 pageId 얻기
-    const edgeRepository = new DrizzleEdgeRepository();
-    const edgeIdVO = new EdgeId(validatedRequest.edgeId);
-    const edgeAggregate = await edgeRepository.findById(edgeIdVO);
-
-    if (!edgeAggregate) {
-      return err('Edge not found', {
-        code: 'EDGE_NOT_FOUND',
-      });
-    }
-
-    const pageId = edgeAggregate.edge.pageId.value;
-
-    // 5. Page 기반 권한 확인
-    const accessResult = await verifyAccessByPageId(
-      pageId,
-      authenticatedUser.id
-    );
-
-    if (!accessResult.success) {
-      console.warn('[Security] Access denied', {
-        userId: authenticatedUser.id,
-        edgeId: validatedRequest.edgeId,
-        pageId,
-        error: accessResult.error,
-      });
-
-      return err(getAuthErrorMessage(accessResult.error), {
-        code: accessResult.error || 'ACCESS_DENIED',
-      });
-    }
-
-    // 6. 검증 완료 - Internal 함수 호출 (검증된 workspace 전달)
-    return await updateEdgeStyleInternal(validatedRequest);
-  } catch (error) {
-    console.error('[updateEdgeStyleAction] Authentication error:', error);
-
-    return err(
-      error instanceof Error ? error.message : 'Authentication failed',
-      {
-        code: 'UNAUTHORIZED',
+      if (!edgeAggregate) {
+        return { pageId: '', notFoundError: 'Edge not found' };
       }
-    );
-  }
-}
+
+      return edgeAggregate.edge.pageId.value;
+    },
+    actionName: 'updateEdgeStyleAction',
+    getLogMetadata: req => ({ edgeId: req.edgeId }),
+  },
+  updateEdgeStyleInternal
+);
 
 /**
  * 내부 구현 (검증된 데이터만 처리)
