@@ -19,10 +19,12 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useUpdatePageIcon } from '../../hooks/use-update-page-icon';
 import { useUpdatePageTitle } from '../../hooks/use-update-page-title';
+import { PublishFlow } from '@/domains/share/frontend/components/publish-flow';
 
 interface WorkspacePageHeaderProps {
   pageId?: string;
   workspaceId?: string;
+  isOwner?: boolean;
 }
 
 /**
@@ -150,6 +152,7 @@ function EditablePageTitle({ title, pageId }: EditablePageTitleProps) {
 export function WorkspacePageHeader({
   pageId: propPageId,
   workspaceId: propWorkspaceId,
+  isOwner = true,
 }: WorkspacePageHeaderProps) {
   const context = useWorkspace();
 
@@ -317,6 +320,12 @@ export function WorkspacePageHeader({
           </BreadcrumbList>
         </Breadcrumb>
       </div>
+
+      {actualPageId && (
+        <div className="flex items-center gap-2 pr-3">
+          <PublishFlow pageId={actualPageId} isOwner={isOwner} />
+        </div>
+      )}
     </header>
   );
 }

@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { PageSyncClient } from './page-sync-client';
 import { WorkspacePageHeader } from '@/domains/workspace-management/frontend/components/page-viewer/workspace-page-header';
 import { CanvasLoadingSkeleton } from '@/domains/workspace-management/frontend/components/page-viewer/canvas-loading-skeleton';
+import { ShareProvider } from '@/domains/share/frontend/contexts/share-context';
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -30,15 +31,17 @@ export default async function PageLayout({
       {/* 사이드바 하이라이트 동기화 + 최근 방문 페이지 쿠키 저장 */}
       <PageSyncClient orgId={orgId} workspaceId={workspaceId} pageId={pageId} />
 
-      <div className="flex flex-col h-full">
-        {/* Workspace 헤더 (Breadcrumb) */}
-        <WorkspacePageHeader workspaceId={workspaceId} pageId={pageId} />
+      <ShareProvider>
+        <div className="flex flex-col h-full">
+          {/* Workspace 헤더 (Breadcrumb) */}
+          <WorkspacePageHeader workspaceId={workspaceId} pageId={pageId} />
 
-        {/* 페이지 콘텐츠 with Suspense */}
-        <div className="flex-1 overflow-hidden">
-          <Suspense fallback={<CanvasLoadingSkeleton />}>{children}</Suspense>
+          {/* 페이지 콘텐츠 with Suspense */}
+          <div className="flex-1 overflow-hidden">
+            <Suspense fallback={<CanvasLoadingSkeleton />}>{children}</Suspense>
+          </div>
         </div>
-      </div>
+      </ShareProvider>
     </>
   );
 }
