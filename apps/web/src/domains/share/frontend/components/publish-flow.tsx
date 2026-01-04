@@ -17,13 +17,28 @@ interface PublishFlowProps {
 }
 
 export function PublishFlow({ pageId, isOwner, onPublished }: PublishFlowProps) {
-  const { publishPage, unpublishPage, copyLinkToClipboard } = useShare();
+  const { publishPage, unpublishPage, loadPublishedLink, copyLinkToClipboard } =
+    useShare();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUnpublishing, setIsUnpublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [publishUrl, setPublishUrl] = useState<string | null>(null);
   const [isLinkCopied, setIsLinkCopied] = useState(false);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    if (publishUrl) return;
+    loadPublishedLink(pageId)
+      .then(result => {
+        if (result?.publishUrl) {
+          setPublishUrl(result.publishUrl);
+        }
+      })
+      .catch(() => {
+        // noop: fallback to manual publish
+      });
+  }, [isOpen, publishUrl, loadPublishedLink, pageId]);
 
   const handlePublish = async () => {
     setIsSubmitting(true);

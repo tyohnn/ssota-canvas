@@ -49,3 +49,10 @@ export interface CopyPublishedPageRequest {
 export interface UnpublishPageRequest {
   pageId: string;
 }
+
+export interface PublishedLinkView {
+  pageId: string;
+  publishToken: string;
+  publishUrl: string;
+  publishedAt: string;
+}

@@ -12,6 +12,7 @@ import {
   CopyPublishedPageRequest,
   CopyResult,
   UnpublishPageRequest,
+  PublishedLinkView,
 } from '../shared/dtos';
 import { ShareManagementError } from '../shared/errors/share-management.error';
 import { PublishToken } from '../shared/value-objects/publish-token.vo';
@@ -42,6 +43,10 @@ const copyPublishedPageSchema = z.object({
 });
 
 const unpublishPageSchema = z.object({
+  pageId: z.string().min(1),
+});
+
+const publishedLinkSchema = z.object({
   pageId: z.string().min(1),
 });
 
@@ -103,6 +108,41 @@ export async function unpublishPageAction(
   if (deleteError) {
     throw new ShareManagementError('PUBLISH_LINK_NOT_FOUND', deleteError.message);
   }
+}
+
+export async function getPublishedLinkAction(
+  input: { pageId: string }
+): Promise<PublishedLinkView | null> {
+  const parsed = publishedLinkSchema.parse(input);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    throw new ShareManagementError('LOGIN_REQUIRED', 'Login required');
+  }
+
+  const repository = new SupabasePublishedPageRepository(supabase as any);
+  const publishedPage = await repository.findByPageId(parsed.pageId);
+
+  if (!publishedPage) {
+    return null;
+  }
+
+  if (publishedPage.ownerId !== user.id) {
+    throw new ShareManagementError('NOT_PAGE_OWNER', 'Not page owner');
+  }
+
+  const publishToken = publishedPage.publishToken.toString();
+  return {
+    pageId: publishedPage.pageId,
+    publishToken,
+    publishUrl: `/p/${publishToken}`,
+    publishedAt: publishedPage.publishedAt.toISOString(),
+  };
 }
 
 export async function getPublishedPageAction(

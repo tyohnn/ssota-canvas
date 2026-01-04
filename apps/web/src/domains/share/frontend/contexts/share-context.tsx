@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 import {
   publishPageAction,
   unpublishPageAction,
+  getPublishedLinkAction,
   getPublishedPageAction,
   getWorkspaceSelectionAction,
   copyPublishedPageAction,
@@ -16,6 +17,7 @@ import {
   PublishPageRequest,
   CopyPublishedPageRequest,
   UnpublishPageRequest,
+  PublishedLinkView,
 } from '../../shared/dtos';
 
 interface ShareContextType {
@@ -25,6 +27,7 @@ interface ShareContextType {
   error: string | null;
 
   loadPublishedPage: (token: string) => Promise<void>;
+  loadPublishedLink: (pageId: string) => Promise<PublishedLinkView | null>;
   loadWorkspaces: () => Promise<void>;
   publishPage: (request: PublishPageRequest) => Promise<PublishResult>;
   unpublishPage: (request: UnpublishPageRequest) => Promise<void>;
@@ -62,6 +65,20 @@ export function ShareProvider({
       setPublishedPage(data);
     } catch (err) {
       setError((err as Error).message ?? 'Failed to load published page');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadPublishedLink = async (pageId: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      return await getPublishedLinkAction({ pageId });
+    } catch (err) {
+      setError((err as Error).message ?? 'Failed to load published link');
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -132,6 +149,7 @@ export function ShareProvider({
         isLoading,
         error,
         loadPublishedPage,
+        loadPublishedLink,
         loadWorkspaces,
         publishPage,
         unpublishPage,
