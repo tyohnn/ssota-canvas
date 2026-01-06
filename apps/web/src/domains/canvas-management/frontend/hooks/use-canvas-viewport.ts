@@ -112,6 +112,9 @@ export function useCanvasViewport(
   // 페이지별 초기 viewport 로드 여부 추적
   const lastLoadedPageIdRef = useRef<string | null>(null);
 
+  // viewport가 방금 flush되었는지 추적 (복원 방지용)
+  const justFlushedRef = useRef<boolean>(false);
+
   // 초기 viewport 설정 (깜빡임 방지)
   const defaultViewport = useMemo((): {
     x: number;
@@ -132,6 +135,14 @@ export function useCanvasViewport(
 
   // 페이지 변경 시 viewport 복원 또는 fitView (내부적으로 useEffect로 관리)
   useEffect(() => {
+    // 방금 flush된 경우 복원 스킵 (mode 변경 시 애니메이션 방지)
+    // 이 체크를 먼저 수행해야 같은 페이지에서 mode 변경 시에도 처리됨
+    if (justFlushedRef.current) {
+      justFlushedRef.current = false;
+      lastLoadedPageIdRef.current = pageId;
+      return;
+    }
+
     // 이미 로드된 페이지면 스킵
     if (lastLoadedPageIdRef.current === pageId) {
       return;
@@ -159,7 +170,7 @@ export function useCanvasViewport(
     }, 100); // React Flow 초기화 대기
 
     return () => clearTimeout(timer);
-  }, [pageId, canvasState, viewportStorage]);
+  }, [pageId]); // pageId만 의존성으로 사용 (canvasState, viewportStorage는 stable references)
 
   // Viewport 변경 시 자동 저장 (debounced, 내부적으로 관리)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -194,6 +205,8 @@ export function useCanvasViewport(
 
     if (lastViewportRef.current) {
       viewportStorage.setViewportState(pageId, lastViewportRef.current);
+      // flush 플래그 설정 (다음 useEffect 실행 시 복원 방지)
+      justFlushedRef.current = true;
     }
   }, [viewportStorage, pageId]);
 
