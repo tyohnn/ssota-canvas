@@ -23,7 +23,7 @@ import {
 } from '@workspace/ui/hooks/use-file-upload';
 import { cn } from '@workspace/ui/lib/utils';
 
-import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { PdfBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { PdfBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
@@ -116,9 +116,6 @@ export const PdfBlock = memo(function PdfBlock({
           const result = await upload({
             bucket: StorageBucket.CANVAS_ASSETS,
             file: fileWithPreview.file,
-            orgId: nodeData.orgId,
-            workspaceId: nodeData.workspaceId,
-            pageId: nodeData.pageId,
             blockId: nodeData.blockId,
           });
 

@@ -9,7 +9,7 @@ import { useReactFlow } from '@xyflow/react';
 
 import { cn } from '@workspace/ui/lib/utils';
 
-import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/use-block-content-update';
+import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
 export interface BlockContentSectionProps {

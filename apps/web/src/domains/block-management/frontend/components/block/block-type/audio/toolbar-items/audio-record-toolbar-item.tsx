@@ -1,13 +1,12 @@
 'use client';
 
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
+
 import { Mic, Square } from 'lucide-react';
+
+import { LiveWaveform } from '@workspace/ui/components/eleven-labs/live-waveform';
+import { MicSelector } from '@workspace/ui/components/eleven-labs/mic-selector';
 import { Button } from '@workspace/ui/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@workspace/ui/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -16,18 +15,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@workspace/ui/components/ui/dialog';
-import { LiveWaveform } from '@workspace/ui/components/eleven-labs/live-waveform';
-import { MicSelector } from '@workspace/ui/components/eleven-labs/mic-selector';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@workspace/ui/components/ui/tooltip';
+
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
 
 interface AudioRecordToolbarItemProps {
   blockId: string;
-  blockMountId?: string;
   disabled?: boolean;
-  orgId: string;
-  workspaceId: string;
-  pageId: string;
   onValueChange?: (url: string) => Promise<void>;
 }
 
@@ -41,11 +40,7 @@ interface AudioRecordToolbarItemProps {
  */
 export function AudioRecordToolbarItem({
   blockId,
-  blockMountId,
   disabled = false,
-  orgId,
-  workspaceId,
-  pageId,
   onValueChange,
 }: AudioRecordToolbarItemProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -110,9 +105,6 @@ export function AudioRecordToolbarItem({
       const result = await upload({
         bucket: StorageBucket.CANVAS_ASSETS,
         file,
-        orgId,
-        workspaceId,
-        pageId,
         blockId,
       });
 
@@ -123,15 +115,7 @@ export function AudioRecordToolbarItem({
       console.error('Failed to upload recorded audio:', error);
       // TODO: Show error toast
     }
-  }, [
-    recordedBlob,
-    onValueChange,
-    upload,
-    orgId,
-    workspaceId,
-    pageId,
-    blockId,
-  ]);
+  }, [recordedBlob, onValueChange, upload, blockId]);
 
   const handleCancel = useCallback(() => {
     if (isRecording) {

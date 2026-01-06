@@ -7,6 +7,10 @@
  */
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
+import { DrizzleEdgeRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-edge.repository';
+import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
+import { EdgeId } from '@/domains/canvas-management/shared/value-objects/edge-id.vo';
 import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
 import type {
   MemberRole,
@@ -25,7 +29,10 @@ import type { Page } from '@/domains/workspace-management/shared/entities/page.e
 import type { Workspace } from '@/domains/workspace-management/shared/entities/workspace.entity';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+import type { AuthorizeResult } from '@/lib/server-actions/types';
 import { createClient } from '@/utils/supabase/server';
+
+import type { PageActionContext, WorkspaceActionContext } from './types';
 
 // ============================================
 // Types
@@ -391,4 +398,125 @@ export async function verifyBlockOwnership(
       error: 'BLOCK_NOT_FOUND',
     };
   }
+}
+
+// ============================================
+// 6. Authorization Helpers (for withSecureAction)
+// ============================================
+
+/**
+ * Page-based authorization (for edge, blockMount actions)
+ * Verifies page access and returns PageActionContext
+ */
+export async function authorizeByPageId(
+  pageId: string,
+  userId: string
+): Promise<AuthorizeResult<PageActionContext>> {
+  const accessResult = await verifyAccessByPageId(pageId, userId);
+
+  if (!accessResult.success || !accessResult.workspace || !accessResult.page) {
+    return { success: false, error: accessResult.error };
+  }
+
+  const orgId = accessResult.workspace.organizationId.value;
+  const orgMembership = await verifyOrganizationMembership(orgId, userId);
+
+  if (!orgMembership.isMember || !orgMembership.role) {
+    return { success: false, error: 'NOT_ORG_MEMBER' };
+  }
+
+  return {
+    success: true,
+    context: {
+      workspace: accessResult.workspace,
+      organization: { id: orgId, role: orgMembership.role },
+      page: accessResult.page,
+    } as PageActionContext,
+  };
+}
+
+/**
+ * Workspace-based authorization (for block actions without page validation)
+ * Verifies workspace access and returns WorkspaceActionContext
+ */
+export async function authorizeByWorkspaceId(
+  workspaceId: string,
+  userId: string
+): Promise<AuthorizeResult<WorkspaceActionContext>> {
+  const workspace = await verifyWorkspaceAccess(workspaceId, userId);
+
+  if (!workspace) {
+    return { success: false, error: 'NOT_WORKSPACE_MEMBER' };
+  }
+
+  const orgId = workspace.organizationId.value;
+  const orgMembership = await verifyOrganizationMembership(orgId, userId);
+
+  if (!orgMembership.isMember || !orgMembership.role) {
+    return { success: false, error: 'NOT_ORG_MEMBER' };
+  }
+
+  return {
+    success: true,
+    context: {
+      workspace,
+      organization: { id: orgId, role: orgMembership.role },
+    } as WorkspaceActionContext,
+  };
+}
+
+/**
+ * Edge-based authorization (for edge update/delete actions)
+ * First gets the edge by edgeId to extract pageId,
+ * then verifies page access
+ * Returns PageActionContext
+ */
+export async function authorizeByEdgeId(
+  edgeId: string,
+  userId: string
+): Promise<AuthorizeResult<PageActionContext>> {
+  // 1. Get edge to extract pageId
+  const edgeRepository = new DrizzleEdgeRepository();
+  const edgeIdVO = new EdgeId(edgeId);
+  const edgeAggregate = await edgeRepository.findById(edgeIdVO);
+
+  if (!edgeAggregate) {
+    return {
+      success: false,
+      error: 'Edge not found',
+    };
+  }
+
+  const pageId = edgeAggregate.edge.pageId.value;
+
+  // 2. Verify page access
+  return await authorizeByPageId(pageId, userId);
+}
+
+/**
+ * BlockMount-based authorization (for blockMount update/delete actions)
+ * First gets the blockMount by blockMountId to extract pageId,
+ * then verifies page access
+ * Returns PageActionContext
+ */
+export async function authorizeByBlockMountId(
+  blockMountId: string,
+  userId: string
+): Promise<AuthorizeResult<PageActionContext>> {
+  // 1. Get blockMount to extract pageId
+  const blockMountRepository = new DrizzleBlockMountRepository();
+  const blockMountIdVO = new BlockMountId(blockMountId);
+  const aggregate = await blockMountRepository.findById(blockMountIdVO);
+
+  if (!aggregate) {
+    return {
+      success: false,
+      error: 'Block mount not found',
+    };
+  }
+
+  const pageId = aggregate.getBlockMount().pageId.value;
+
+  // 2. Verify page access
+  return await authorizeByPageId(pageId, userId);
 }

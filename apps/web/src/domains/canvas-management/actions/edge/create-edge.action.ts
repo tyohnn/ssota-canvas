@@ -1,11 +1,13 @@
 'use server';
 
+import type { PageActionContext } from '@/domains/common/auth/types';
+import { withPageSecureAction } from '@/domains/common/server-actions';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
-import { type ActionContext, withSecureAction } from '@/lib/server-actions';
 
 import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '../../backend/repositories/implementations/drizzle-edge.repository';
-import { EdgeManagementService } from '../../backend/services/edge.service';
+import { createEdge } from '../../backend/services/edge';
 import { EdgeView } from '../../shared/dtos/index';
 import {
   CreateEdgeRequest,
@@ -24,14 +26,13 @@ import {
  * @param request - 클라이언트 요청 (런타임 검증 필요)
  * @returns EdgeView (성공) | Error (실패)
  */
-export const createEdgeAction = withSecureAction(
+export const createEdgeAction = withPageSecureAction(
   CreateEdgeRequestSchema,
+  'createEdgeAction',
+  createEdgeInternal,
   {
-    getPageId: req => req.pageId,
-    actionName: 'createEdgeAction',
     getLogMetadata: req => ({ pageId: req.pageId }),
-  },
-  createEdgeInternal
+  }
 );
 
 /**
@@ -47,19 +48,21 @@ export const createEdgeAction = withSecureAction(
  */
 async function createEdgeInternal(
   safeDto: CreateEdgeRequest, // ✅ 이미 검증됨 (SafeDTO)
-  context: ActionContext // ✅ 검증된 context
+  context: PageActionContext // ✅ 검증된 context
 ): Promise<ActionResult<EdgeView>> {
   try {
+    const userId: UserId = new UserId(context.authenticatedUser.id);
     // 1. Service 의존성 생성
     const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
-    const edgeManagementService = new EdgeManagementService(
+
+    // 2. ✅ Service에 SafeDTO와 검증된 userId 전달 (Value Objects 생성은 Service에서 수행)
+    const result = await createEdge(
+      safeDto,
+      userId,
       blockMountRepository,
       edgeRepository
     );
-
-    // 2. ✅ Service에 SafeDTO만 전달 (Value Objects 생성은 Service에서 수행)
-    const result = await edgeManagementService.createEdge(safeDto);
 
     if (result.isError()) {
       console.error(

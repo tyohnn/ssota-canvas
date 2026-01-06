@@ -1,16 +1,16 @@
 /**
  * 블럭 위치 업데이트 서비스 로직
  */
-import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
-import { BlockMountAggregate } from '@/domains/canvas-management/shared/aggregates/block-mount.aggregate';
-import type { UpdateBlockPositionRequest } from '@/domains/canvas-management/shared/dtos/requests';
-import { MultipleBlockPositionsUpdatedEvent } from '@/domains/canvas-management/shared/events';
-import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
-import { Position } from '@/domains/canvas-management/shared/value-objects/position.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
-import { CanvasManagementError, handleDomainEvents } from './common';
+import { BlockMountAggregate } from '../../../shared/aggregates/block-mount.aggregate';
+import type { UpdateBlockPositionRequest } from '../../../shared/dtos/requests';
+import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
+import { MultipleBlockPositionsUpdatedEvent } from '../../../shared/events';
+import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
+import { Position } from '../../../shared/value-objects/position.vo';
+import type { BlockMountRepository } from '../../repositories/interfaces/block-mount.repository.interface';
 
 /**
  * 블럭 위치 업데이트 (단일 또는 다중)
@@ -22,18 +22,17 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  * - Domain Event 처리
  *
  * @param safeDto - 검증된 블럭 위치 업데이트 요청 (SafeDTO)
+ * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
  * @param blockMountRepository - BlockMount Repository
  * @returns 업데이트된 BlockMountAggregate 배열
  */
 export async function updateBlockPosition(
-  safeDto: UpdateBlockPositionRequest & {
-    userId: string;
-  },
+  safeDto: UpdateBlockPositionRequest,
+  safeUserId: UserId,
   blockMountRepository: BlockMountRepository
 ): Promise<Result<BlockMountAggregate[], Error>> {
   try {
     // 1. SafeDTO → Value Objects 생성
-    const userIdVO = new UserId(safeDto.userId);
     const blockPositions = safeDto.blockPositions.map(bp => ({
       blockMountId: new BlockMountId(bp.blockMountId),
       position: new Position(bp.position.x, bp.position.y),
@@ -50,9 +49,6 @@ export async function updateBlockPosition(
       const position = blockPositions[i]!.position;
 
       if (!aggregate) {
-        console.warn(
-          `⚠️ [updateBlockPosition] Block mount not found: ${blockPositions[i]!.blockMountId}`
-        );
         continue;
       }
 
@@ -88,14 +84,14 @@ export async function updateBlockPosition(
             blockMountId: bp.blockMountId.value,
             position: bp.position,
           })),
-          userId: userIdVO.value,
+          userId: safeUserId,
         },
         new Date()
       );
       allEvents = [...individualEvents, multiplePositionsEvent];
     }
 
-    await handleDomainEvents(allEvents);
+    await Promise.allSettled(allEvents.map(event => event.handle()));
 
     // 6. 이벤트 커밋
     validAggregates.forEach(agg => agg.markEventsAsCommitted());
@@ -103,10 +99,6 @@ export async function updateBlockPosition(
     // 7. Result.success(aggregates) 반환
     return Result.success(validAggregates);
   } catch (error) {
-    console.error(
-      '❌ [updateBlockPosition] Block position update failed:',
-      error
-    );
     return Result.error(
       new CanvasManagementError(
         'POSITION_UPDATE_FAILED',

@@ -3,8 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
 
-import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { updateBlockPositionAction } from '@/domains/canvas-management/actions/block/update-block-position.action';
+import { updateBlockPositionAction } from '@/domains/canvas-management/actions/block-mount/update-block-position.action';
 import {
   type UpdateBlockPositionRequestInput,
   UpdateBlockPositionRequestSchema,
@@ -21,6 +20,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseUpdateBlockPositionParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
   onSuccess?: (result: BlockPositionUpdatedDTO[]) => void;
   onError?: () => void;
@@ -52,23 +52,11 @@ export type UseUpdateBlockPositionResult = {
 export function useUpdateBlockPosition(
   params: UseUpdateBlockPositionParams
 ): UseUpdateBlockPositionResult {
-  const { reactFlow, onSuccess, onError } = params;
+  const { pageId, reactFlow, onSuccess, onError } = params;
   const { getNodes, setNodes } = reactFlow;
 
   const mutation = useMutation({
     mutationFn: async (input: UpdateBlockPositionInput) => {
-      // pageId는 첫 번째 blockMountId의 노드에서 가져오기
-      const nodes = getNodes();
-      const firstNode = nodes.find(
-        n => n.id === input.blockPositions[0]?.blockMountId
-      );
-      const pageId =
-        (firstNode?.data as BlockNodeData | undefined)?.pageId || '';
-
-      if (!pageId) {
-        throw new Error('Page ID not found');
-      }
-
       // Validation
       const rawRequest: UpdateBlockPositionRequestInput = {
         blockPositions: input.blockPositions,

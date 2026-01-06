@@ -1,25 +1,27 @@
-import { eq, and, isNull, desc } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
+
 import { adminDb } from '@/db';
 import {
-  blocks,
-  blockTypeEnum,
-  profiles,
   type Block as DatabaseBlock,
   type Profile as DatabaseProfile,
+  blockTypeEnum,
+  blocks,
+  profiles,
 } from '@/db/schema';
-import { BlockId } from '../../../shared/value-objects/block-id.vo';
-import { BlockType } from '../../../shared/value-objects/block-type.vo';
-import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
-import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import { Block } from '../../../shared/entities/block.entity';
-import { BlockPropertiesFactory } from '../../../shared/value-objects/block-properties';
-import { CustomPropertyDefinitionVO } from '../../../shared/value-objects/custom-property-definition.vo';
-import { BlockRepository } from '../interfaces/block.repository.interface';
-import { BlockManagementError } from '../../../shared/errors/block-management.error';
 import {
   CustomPropertyDefinition,
   PropertyType,
 } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+
+import { Block } from '../../../shared/entities/block.entity';
+import { BlockManagementError } from '../../../shared/errors/block-management.error';
+import { BlockId } from '../../../shared/value-objects/block-id.vo';
+import { BlockPropertiesFactory } from '../../../shared/value-objects/block-properties';
+import { BlockType } from '../../../shared/value-objects/block-type.vo';
+import { CustomPropertyDefinitionVO } from '../../../shared/value-objects/custom-property-definition.vo';
+import { BlockRepository } from '../interfaces/block.repository.interface';
 
 // 데이터베이스 스키마에서 추출한 블록 타입 (SSOT)
 type DatabaseBlockType = (typeof blockTypeEnum.enumValues)[number];

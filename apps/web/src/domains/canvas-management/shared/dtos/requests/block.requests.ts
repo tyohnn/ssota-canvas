@@ -97,10 +97,11 @@ export const SoftDeleteBlockMountRequestSchema = z.object({
 
 /**
  * 블럭 복제 요청 스키마
+ *
+ * ⚠️ Zero Trust: pageId는 서버에서 blockMount 조회 후 자동 추출
  */
 export const DuplicateBlockAndMountRequestSchema = z.object({
   blockMountId: z.uuid('Invalid block mount ID'),
-  pageId: z.uuid('Invalid page ID'),
   offsetX: z.number().optional(),
   offsetY: z.number().optional(),
 });

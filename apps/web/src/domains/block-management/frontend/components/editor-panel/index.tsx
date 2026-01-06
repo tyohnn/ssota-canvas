@@ -9,14 +9,19 @@
 'use client';
 
 import React from 'react';
-import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
-import { EditorPanelProvider } from './core/provider';
-import { useEditorPanelContext } from './core/context';
-import { useViewportAdjustment } from './core/use-viewport-adjustment';
-import { Header } from './components/header';
+
+import {
+  useCanvasModeContext,
+  useCanvasSelection,
+} from '@/domains/canvas-management/frontend/hooks';
+
 import { ContentArea } from './components/content-area';
+import { Header } from './components/header';
+import { useEditorPanelContext } from './core/context';
+import { EditorPanelProvider } from './core/provider';
 import type { EditorPanelProps } from './core/types';
 import type { EditorPanelBusinessLogic } from './core/use-editor-panel.business';
+import { useViewportAdjustment } from './core/use-viewport-adjustment';
 
 function EditorPanelWrapper() {
   const {
@@ -101,13 +106,28 @@ export function EditorPanel({
   isOpen,
   businessLogic,
 }: EditorPanelProps & { businessLogic?: EditorPanelBusinessLogic }) {
-  const canvasMode = useCanvasMode();
+  const canvasMode = useCanvasModeContext();
+  const { selectedNodes } = useCanvasSelection();
+
+  // 에디터 패널 close 핸들러: 선택된 노드가 있으면 single-selection 모드로 전환
+  const handleClose = React.useCallback(() => {
+    if (selectedNodes.length === 1) {
+      // 단일 선택: single-selection 모드로 전환
+      canvasMode.enterSingleSelectionMode(selectedNodes[0]!.id);
+    } else if (selectedNodes.length > 1) {
+      // 다중 선택: multi-selection 모드로 전환
+      canvasMode.enterMultiSelectionMode(selectedNodes.map(n => n.id));
+    } else {
+      // 선택 없음: default 모드로 전환
+      canvasMode.exitToDefaultMode();
+    }
+  }, [canvasMode, selectedNodes]);
 
   return (
     <EditorPanelProvider
       blockId={blockId}
       isOpen={isOpen}
-      onClose={() => canvasMode.exitToDefaultMode()}
+      onClose={handleClose}
       businessLogic={businessLogic}
     >
       <EditorPanelWrapper />

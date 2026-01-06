@@ -1,8 +1,9 @@
-import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
-import { BlockMount } from '@/domains/canvas-management/shared/entities/block-mount.entity';
-import { BlockMountAggregate } from '@/domains/canvas-management/shared/aggregates/block-mount.aggregate';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+
+import { BlockMountAggregate } from '../../../shared/aggregates/block-mount.aggregate';
+import { BlockMount } from '../../../shared/entities/block-mount.entity';
+import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
 
 export interface BlockMountRepository {
   /**

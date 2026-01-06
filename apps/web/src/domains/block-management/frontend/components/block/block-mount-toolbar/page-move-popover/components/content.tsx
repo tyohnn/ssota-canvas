@@ -1,15 +1,36 @@
 'use client';
 
 import React from 'react';
-import { PopoverContent } from '@workspace/ui/components/ui/popover';
-import { usePageMovePopoverContext } from '../core/context';
-import { PageSearchInput } from './page-search-input';
-import { PageList } from './page-list';
+
 import { Box } from '@workspace/ui/components/ui/box';
+import { PopoverContent } from '@workspace/ui/components/ui/popover';
 
-export function Content() {
-  const { handleOpenChange } = usePageMovePopoverContext();
+import type { RecentPageDTO } from '@/domains/workspace-management/shared/dtos';
 
+import { PageList } from './page-list';
+import { PageSearchInput } from './page-search-input';
+
+export interface ContentProps {
+  currentPageId: string;
+  handleOpenChange: (open: boolean) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  filteredPages: RecentPageDTO[];
+  isSearching: boolean;
+  canMoveTo: (pageId: string) => boolean;
+  handleSelectPage: (pageId: string) => Promise<void>;
+}
+
+export function Content({
+  currentPageId,
+  handleOpenChange,
+  searchQuery,
+  setSearchQuery,
+  filteredPages,
+  isSearching,
+  canMoveTo,
+  handleSelectPage,
+}: ContentProps) {
   return (
     <PopoverContent
       align="start"
@@ -25,8 +46,18 @@ export function Content() {
       }}
     >
       <Box className="p-1.5">
-        <PageSearchInput />
-        <PageList />
+        <PageSearchInput
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
+        <PageList
+          filteredPages={filteredPages}
+          isSearching={isSearching}
+          searchQuery={searchQuery}
+          currentPageId={currentPageId}
+          canMoveTo={canMoveTo}
+          handleSelectPage={handleSelectPage}
+        />
       </Box>
     </PopoverContent>
   );

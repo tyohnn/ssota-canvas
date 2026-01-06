@@ -10,7 +10,7 @@
 import { useMutation } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
 
-import { updateBlockSizeAction } from '@/domains/canvas-management/actions/block/update-block-size.action';
+import { updateBlockSizeAction } from '@/domains/canvas-management/actions/block-mount/update-block-size.action';
 import { isFailure } from '@/lib';
 
 export type ReactFlowDependencies = {
@@ -26,8 +26,6 @@ export type UpdateBlockSizeInput = {
   blockMountId: string;
   width: number;
   height: number;
-  pageId: string;
-  optimistic?: boolean; // Optimistic update 여부 (기본값: false)
 };
 
 export type UseUpdateBlockSizeResult = {
@@ -79,10 +77,6 @@ export function useUpdateBlockSize(
 
     // Optimistic Update (optimistic=true일 때만)
     onMutate: async (input: UpdateBlockSizeInput) => {
-      if (!input.optimistic) {
-        return { previousNode: null };
-      }
-
       const nodes = getNodes();
       const currentNode = nodes.find(n => n.id === input.blockMountId);
 
@@ -112,7 +106,7 @@ export function useUpdateBlockSize(
 
     // 자동 롤백 (optimistic update가 있었을 때만)
     onError: (error, variables, context) => {
-      if (context?.previousNode && variables.optimistic) {
+      if (context?.previousNode) {
         setNodes(nodes =>
           nodes.map(node =>
             node.id === variables.blockMountId ? context.previousNode! : node

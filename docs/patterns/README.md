@@ -10,6 +10,15 @@ Standardized ordering for `types.ts` files. It ensures a logical "bottom-up" flo
 ### 🧩 [Object-based Dependency Injection](./object-based-dependency-injection.md)
 A pattern for centralizing external framework dependencies (like React Flow or Store hooks) into a single Entry Hook. This enables pure logic layers and simplifies unit testing.
 
+### 🧩 [Server-Side DDD Conventions](./server-side-ddd-conventions.md)
+Comprehensive guide for Domain-Driven Design patterns in Next.js Server Actions, including Trust Boundary, data flow, type safety, and Event Storming integration.
+
+### 🧩 [Next.js Server Actions Framework Proposal](./next-action-framework-proposal.md)
+Proposal for a DDD-integrated framework/library for Next.js Server Actions. Includes market analysis, API design, and detailed explanation of Command/Aggregate/Event patterns.
+
+### 🧪 [Testing Guide](./test/testing-guide.md)
+Comprehensive guide for testing strategies and patterns used in the SSOTA project. Covers unit tests, integration tests, E2E tests, component tests, and best practices for mocking vs. real imports.
+
 ---
 
 ## Principles for Pattern Adoption

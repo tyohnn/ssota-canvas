@@ -1,22 +1,27 @@
 'use client';
 
 import { useCallback, useEffect, useMemo } from 'react';
+
 import { useReactFlow } from '@xyflow/react';
-import { useAIAgentUI, AIAgentUIState } from './use-ai-agent.ui';
+
 import {
-  useAIAgentBusiness,
-  AIAgentBusinessLogic,
-} from './use-ai-agent.business';
+  CanvasMetadata,
+  useCanvasMetadata,
+} from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useCanvasSelection } from '@/domains/canvas-management/frontend/hooks/use-canvas-selection';
+
 import { ClientContext } from './types';
+import {
+  AIAgentBusinessLogic,
+  useAIAgentBusiness,
+} from './use-ai-agent.business';
+import { useAIAgentUI } from './use-ai-agent.ui';
 
 /**
  * useAIAgent Props
  */
 export interface UseAIAgentProps {
-  pageId: string;
-  workspaceId: string;
-  organizationId: string;
+  canvasMetadataOverride?: CanvasMetadata;
   businessLogic?: AIAgentBusinessLogic; // Optional injection
 }
 
@@ -29,13 +34,19 @@ export interface UseAIAgentProps {
  * - Test/Mock: 커스텀 로직 주입 가능
  * - NoCode: UI 로직만 분리하여 사용
  */
-export function useAIAgent(props: UseAIAgentProps) {
+export function useAIAgent({
+  canvasMetadataOverride,
+  businessLogic,
+}: UseAIAgentProps) {
+  const canvasMetadata = useCanvasMetadata(canvasMetadataOverride);
+  const { pageId, workspaceId, orgId } = canvasMetadata;
+
   // UI State (디자이너 영역)
   const uiState = useAIAgentUI();
 
   // Business Logic (엔지니어 영역)
-  const defaultBusiness = useAIAgentBusiness(props);
-  const business = props.businessLogic ?? defaultBusiness;
+  const defaultBusiness = useAIAgentBusiness({ pageId, workspaceId, orgId });
+  const business = businessLogic ?? defaultBusiness;
 
   // Agent 상태 계산
   const agentState = useMemo(
@@ -128,9 +139,9 @@ export function useAIAgent(props: UseAIAgentProps) {
       const recentlyModifiedBlockIds: string[] = [];
 
       const context: ClientContext = {
-        pageId: props.pageId,
-        workspaceId: props.workspaceId,
-        organizationId: props.organizationId,
+        pageId,
+        workspaceId,
+        orgId,
         selectedBlockIds,
         visibleBlockIds,
         recentlyModifiedBlockIds,
@@ -138,7 +149,7 @@ export function useAIAgent(props: UseAIAgentProps) {
 
       business.sendMessage(text, context);
     },
-    [props, business, getSelectedBlocks, getNodes, getViewport]
+    [business, getSelectedBlocks, getNodes, getViewport]
   );
 
   return {
@@ -154,10 +165,5 @@ export function useAIAgent(props: UseAIAgentProps) {
     sendMessage,
     setHovered: uiState.setHovered,
     focusConversation: uiState.focusConversation,
-
-    // Props
-    pageId: props.pageId,
-    workspaceId: props.workspaceId,
-    organizationId: props.organizationId,
   };
 }

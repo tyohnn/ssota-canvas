@@ -12,13 +12,13 @@ import type {
   BlockDuplicatedAndMountedDTO,
 } from '../../shared/dtos/responses';
 import type { Position } from '../../shared/types/common.types';
-import { useCanvasMode } from '../contexts/canvas-mode-context';
-import { useBlockCanvasOperations } from './block/use-block-canvas-operations';
+import { useBlockCanvasState } from './block/use-block-canvas-state';
 import { useCreateBlock } from './block/use-create-block';
 import { useDuplicateBlock } from './block/use-duplicate-block';
 import { useDuplicateBlocks } from './block/use-duplicate-blocks';
 import { useMoveBlockToPage } from './block/use-move-block-to-page';
 import { useSoftDeleteBlock } from './block/use-soft-delete-block';
+import { useCanvasModeContext } from './mode/canvas-mode-context';
 
 export interface UseCanvasBlockLifecycleParams {
   pageId: string;
@@ -33,7 +33,10 @@ export interface UseCanvasBlockLifecycleResult {
     initialContent?: unknown, // 선택적 초기 content (JSONB)
     title?: string // 선택적 초기 title
   ) => Promise<BlockCreatedAndMountedDTO | void>;
-  softDeleteBlockMounts: (blockMountIds: string | string[]) => Promise<void>;
+  softDeleteBlockMounts: (
+    blockMountIds: string | string[],
+    pageId?: string
+  ) => Promise<void>;
   duplicateBlockAndMount: (
     blockMountId: string,
     offsetX?: number,
@@ -84,7 +87,7 @@ export function useCanvasBlockLifecycle(
   const { addNodes, deleteElements, getNodes, setNodes } = useReactFlow();
 
   // Canvas Mode hook
-  const canvasMode = useCanvasMode();
+  const canvasMode = useCanvasModeContext();
   const {
     enterSingleSelectionMode,
     enterMultiSelectionMode,
@@ -186,7 +189,7 @@ export function useCanvasBlockLifecycle(
     getAllBlocks: getAllBlocksOperation,
     getBlockById: getBlockByIdOperation,
     getBlockCount: getBlockCountOperation,
-  } = useBlockCanvasOperations({
+  } = useBlockCanvasState({
     reactFlow: {
       getNodes: getNodesTyped,
       setNodes,
@@ -220,8 +223,8 @@ export function useCanvasBlockLifecycle(
   );
 
   const softDeleteBlockMounts = useCallback(
-    async (blockMountIds: string | string[]) => {
-      await softDeleteBlock({ blockMountIds });
+    async (blockMountIds: string | string[], pageId?: string) => {
+      await softDeleteBlock({ blockMountIds, pageId });
     },
     [softDeleteBlock]
   );

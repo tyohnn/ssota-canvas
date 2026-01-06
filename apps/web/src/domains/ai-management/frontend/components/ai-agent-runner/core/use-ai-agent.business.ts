@@ -11,12 +11,14 @@ import {
 } from 'ai';
 
 import { useBlockActionExecutor } from '@/domains/ai-management/frontend/hooks/use-block-action-executor';
-import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/use-block-content-update';
-import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
-import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/use-block-title-update';
-import { useAutoPositionCalculator } from '@/domains/canvas-management/frontend/hooks/use-auto-position-calculator';
-import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
-import { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-lifecycle';
+import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
+import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/block-property/use-block-title-update';
+import {
+  useAutoPositionCalculator,
+  useCanvasBlockLifecycle,
+  useCanvasEdgeLifecycle,
+} from '@/domains/canvas-management/frontend/hooks';
 
 import { ToolHandlerContext, ToolHandlers } from './tool-handlers';
 import { ClientContext } from './types';
@@ -59,7 +61,7 @@ function extractBlockMountId(toolName: string, result: any): string | null {
 export function useAIAgentBusiness(props: {
   pageId: string;
   workspaceId: string;
-  organizationId: string;
+  orgId: string;
 }): AIAgentBusinessLogic {
   // Canvas & Block Actions Hooks
   const blockLifecycle = useCanvasBlockLifecycle({
@@ -114,7 +116,7 @@ export function useAIAgentBusiness(props: {
     positionCalculator,
     getNode,
     getNodes,
-    organizationId: props.organizationId,
+    orgId: props.orgId,
     workspaceId: props.workspaceId,
   };
 

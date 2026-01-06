@@ -12,12 +12,14 @@
 'use client';
 
 import { ImagePlus } from 'lucide-react';
+
 import { Button } from '@workspace/ui/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
+
 import { useImageToolbarContext } from '../core/image-toolbar.context';
 import { useImageChangeToolbarItem } from './core/use-image-change-toolbar-item';
 
@@ -27,13 +29,10 @@ import { useImageChangeToolbarItem } from './core/use-image-change-toolbar-item'
  * Context에서 필요한 데이터 가져오기 (Props 없음)
  */
 export function ImageChangeToolbarItem() {
-  // ✅ Context에서 필요한 것만 가져오기
-  const { workspaceId, disabled, onPropertiesUpdate } =
-    useImageToolbarContext();
+  const { disabled, onPropertiesUpdate } = useImageToolbarContext();
 
   // Combined Hook (Business Logic)
   const { handleImageChange, isUploading } = useImageChangeToolbarItem(
-    workspaceId,
     disabled,
     onPropertiesUpdate
   );

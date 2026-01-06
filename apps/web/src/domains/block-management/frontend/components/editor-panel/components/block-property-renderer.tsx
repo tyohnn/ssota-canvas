@@ -24,7 +24,7 @@ import {
   User,
 } from 'lucide-react';
 
-import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { PropertyUIDefinition } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
 
 // Import all input components

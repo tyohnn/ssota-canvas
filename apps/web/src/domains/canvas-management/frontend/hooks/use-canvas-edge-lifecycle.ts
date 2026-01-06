@@ -34,7 +34,6 @@ export interface UseCanvasEdgeLifecycleParams {
  *
  * React Flow 기반 엣지 관리 Hook
  * - 도메인 훅들을 조합하여 통합 API 제공
- * - 기존 API 유지 (breaking change 없음)
  * - 프로그램적 제어 및 상태 읽기 기능 포함
  */
 export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
@@ -117,7 +116,7 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
   });
 
   // ============================================================================
-  // 기존 API 유지 (래퍼 함수)
+  // 반환값 구성
   // ============================================================================
 
   return {
@@ -129,24 +128,23 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
     updateEdgeStyle,
     reconnectEdge,
 
+    // 로딩 상태 (개별 상태 노출)
+    isCreating,
+    isDeleting,
+    isUpdatingShape,
+    isUpdatingLabel,
+    isUpdatingStyle,
+    isReconnecting,
+
     // 프로그램적 제어 (UI만 변경, 서버 호출 X)
     addEdgeToCanvas: addEdgeToCanvasOperation,
     removeEdgeFromCanvas: removeEdgeFromCanvasOperation,
     setEdgeType: setEdgeTypeOperation,
 
-    // 상태 읽기 (기존 API 유지)
+    // 상태 읽기
     getAllEdges: getAllEdgesOperation,
     getEdgeById: getEdgeByIdOperation,
     getEdgesByBlock: getEdgesByBlockOperation,
     getEdgeCount: getEdgeCountOperation,
-
-    // 로딩 상태 (기존 API 유지)
-    isUpdating:
-      isCreating ||
-      isDeleting ||
-      isUpdatingShape ||
-      isUpdatingLabel ||
-      isUpdatingStyle ||
-      isReconnecting,
   };
 }

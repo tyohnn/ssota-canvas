@@ -4,17 +4,17 @@
  * UI State + Business Logic 통합
  * Optional injection 지원
  */
-
 import { useEffect } from 'react';
-import { useImageBlockUI } from './use-image-block.ui';
-import { useImageBlockBusiness } from './use-image-block.business';
-import type { ImageBlockBusinessLogic, ImageBlockUIState } from './types';
+
 import type { ImageBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { ImageBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 
+import type { ImageBlockBusinessLogic, ImageBlockUIState } from './types';
+import { useImageBlockBusiness } from './use-image-block.business';
+import { useImageBlockUI } from './use-image-block.ui';
+
 export interface UseImageBlockResult
-  extends ImageBlockUIState,
-    ImageBlockBusinessLogic {
+  extends ImageBlockUIState, ImageBlockBusinessLogic {
   // Combined logic
 }
 

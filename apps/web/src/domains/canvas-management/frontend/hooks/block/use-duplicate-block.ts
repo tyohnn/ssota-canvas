@@ -5,7 +5,7 @@ import type { Node } from '@xyflow/react';
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { buildBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { duplicateBlockAndMountAction } from '@/domains/canvas-management/actions/block/duplicate-block-and-mount.action';
+import { duplicateBlockAndMountAction } from '@/domains/canvas-management/actions/block-mount/duplicate-block-and-mount.action';
 import { CustomNodeType } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 import {
   type DuplicateBlockAndMountRequestInput,
@@ -86,9 +86,6 @@ export function useDuplicateBlock(
       {
         blockMountId: optimisticBlockMountId,
         blockId: optimisticId,
-        pageId: originalNodeData.pageId,
-        orgId: originalNodeData.orgId, // Keep from original node
-        workspaceId: originalNodeData.workspaceId, // Keep from original node
         title: originalNodeData.title,
         properties: originalNodeData.properties,
         customProperties: originalNodeData.customProperties,
@@ -123,7 +120,6 @@ export function useDuplicateBlock(
       // Validation
       const rawRequest: DuplicateBlockAndMountRequestInput = {
         blockMountId: input.blockMountId,
-        pageId: originalNodeData.pageId,
         offsetX: input.offsetX || 20,
         offsetY: input.offsetY || 20,
       };
@@ -236,9 +232,6 @@ export function useDuplicateBlock(
         {
           blockMountId: result.blockMountId,
           blockId: result.blockId,
-          pageId: optimisticNodeData?.pageId || '',
-          orgId: optimisticNodeData?.orgId || '', // Keep from optimistic node
-          workspaceId: optimisticNodeData?.workspaceId || '', // Keep from optimistic node
           title: optimisticNodeData?.title,
           properties: optimisticNodeData?.properties,
           customProperties: optimisticNodeData?.customProperties,

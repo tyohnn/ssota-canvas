@@ -94,7 +94,7 @@ export class BlockMount {
    */
   duplicate(newBlockId: BlockId, offsetX: number, offsetY: number): BlockMount {
     // 1. 새로운 BlockMountId 생성
-    const newBlockMountId = new BlockMountId(crypto.randomUUID());
+    const newBlockMountId = BlockMountId.generate();
 
     // 2. 복제된 위치 계산
     const duplicatedPosition = new Position(

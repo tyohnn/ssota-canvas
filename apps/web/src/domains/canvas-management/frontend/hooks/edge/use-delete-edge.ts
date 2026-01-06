@@ -58,6 +58,7 @@ export function useDeleteEdge(
 
       // Server Action
       const result = await deleteEdgeAction(parseResult.data);
+
       if (isFailure(result)) {
         throw new Error(result.error);
       }
@@ -82,7 +83,7 @@ export function useDeleteEdge(
     },
 
     // 자동 복원
-    onError: (error, edgeId, context) => {
+    onError: (error, variables, context) => {
       if (context?.previousEdges) {
         setEdges(context.previousEdges);
       }

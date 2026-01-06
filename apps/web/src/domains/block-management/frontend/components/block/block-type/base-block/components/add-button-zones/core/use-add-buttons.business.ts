@@ -10,6 +10,7 @@ import { useCallback } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
 
 import { useBaseBlockContext } from '../../../core/use-base-block.context';
@@ -30,11 +31,14 @@ export interface UseAddButtonsBusinessReturn {
  * 블록 추가 비즈니스 로직만 담당
  */
 export function useAddButtonsBusiness(): UseAddButtonsBusinessReturn {
+  const canvasMetadata = useCanvasMetadata();
+  const { pageId } = canvasMetadata;
+
   const { data, width, height } = useBaseBlockContext();
   const { getNode } = useReactFlow();
 
   const blockLifecycle = useCanvasBlockLifecycle({
-    pageId: data.pageId,
+    pageId,
   });
 
   const handleAddBlock = useCallback(

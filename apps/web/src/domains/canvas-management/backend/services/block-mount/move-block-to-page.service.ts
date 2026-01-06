@@ -1,17 +1,17 @@
 /**
  * 블럭 페이지 이동 서비스 로직
  */
-import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
-import { BlockMountAggregate } from '@/domains/canvas-management/shared/aggregates/block-mount.aggregate';
-import { MoveBlockToPageCommand } from '@/domains/canvas-management/shared/commands';
-import type { MoveBlockToPageRequest } from '@/domains/canvas-management/shared/dtos/requests';
-import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
-import { Position } from '@/domains/canvas-management/shared/value-objects/position.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { Result } from '@/utils/result';
 
-import { CanvasManagementError, handleDomainEvents } from './common';
+import { BlockMountAggregate } from '../../../shared/aggregates/block-mount.aggregate';
+import { MoveBlockToPageCommand } from '../../../shared/commands';
+import type { MoveBlockToPageRequest } from '../../../shared/dtos/requests';
+import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
+import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
+import { Position } from '../../../shared/value-objects/position.vo';
+import type { BlockMountRepository } from '../../repositories/interfaces/block-mount.repository.interface';
 
 /**
  * 블럭 페이지 이동
@@ -24,20 +24,19 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  * - Domain Event 처리
  *
  * @param safeDto - 검증된 블럭 페이지 이동 요청 (SafeDTO)
+ * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
  * @param blockMountRepository - BlockMount Repository
  * @returns 이동된 BlockMountAggregate
  */
 export async function moveBlockToPage(
-  safeDto: MoveBlockToPageRequest & {
-    userId: string;
-  },
+  safeDto: MoveBlockToPageRequest,
+  safeUserId: UserId,
   blockMountRepository: BlockMountRepository
 ): Promise<Result<BlockMountAggregate, Error>> {
   try {
     // 1. SafeDTO → Value Objects 생성
     const blockMountIdVO = new BlockMountId(safeDto.blockMountId);
     const targetPageIdVO = new PageId(safeDto.targetPageId);
-    const userIdVO = new UserId(safeDto.userId);
 
     // 2. 원본 BlockMount 조회
     const originalAggregate =
@@ -84,23 +83,22 @@ export async function moveBlockToPage(
       blockMountId: blockMountIdVO,
       targetPageId: targetPageIdVO,
       newPosition,
-      userId: userIdVO,
+      userId: safeUserId,
     };
     originalAggregate.moveToPage(moveCommand);
 
     // 6. Repository 저장
     await blockMountRepository.update(originalAggregate.getBlockMount());
 
-    // 7. 도메인 이벤트 발행
+    // 7. 도메인 이벤트 처리
     const events = originalAggregate.getUncommittedEvents();
-    await handleDomainEvents(events);
+    await Promise.allSettled(events.map(event => event.handle()));
 
     // 8. 이벤트 커밋
     originalAggregate.markEventsAsCommitted();
 
     return Result.success(originalAggregate);
   } catch (error) {
-    console.error('❌ [moveBlockToPage] Block move to page failed:', error);
     return Result.error(
       new CanvasManagementError(
         'BLOCK_MOVE_FAILED',

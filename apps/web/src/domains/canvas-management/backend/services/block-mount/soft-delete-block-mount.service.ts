@@ -1,17 +1,18 @@
 /**
  * 블럭 마운트 삭제 서비스 로직
  */
-import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
-import { EdgeManagementService } from '@/domains/canvas-management/backend/services/edge.service';
-import { BlockMountAggregate } from '@/domains/canvas-management/shared/aggregates/block-mount.aggregate';
-import { SoftDeleteBlockMountCommand } from '@/domains/canvas-management/shared/commands';
-import type { SoftDeleteBlockMountRequest } from '@/domains/canvas-management/shared/dtos/requests';
-import { MultipleBlockMountsDeletedEvent } from '@/domains/canvas-management/shared/events';
-import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
-import { CanvasManagementError, handleDomainEvents } from './common';
+import { BlockMountAggregate } from '../../../shared/aggregates/block-mount.aggregate';
+import { SoftDeleteBlockMountCommand } from '../../../shared/commands';
+import type { SoftDeleteBlockMountRequest } from '../../../shared/dtos/requests';
+import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
+import { MultipleBlockMountsDeletedEvent } from '../../../shared/events';
+import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
+import type { BlockMountRepository } from '../../repositories/interfaces/block-mount.repository.interface';
+import type { EdgeRepository } from '../../repositories/interfaces/edge.repository.interface';
+import { deleteConnectedEdges } from '../../services/edge';
 
 /**
  * 블럭 마운트 삭제 (단일 또는 다중, 연결된 엣지 자동 정리)
@@ -24,16 +25,16 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  * - Domain Event 처리
  *
  * @param safeDto - 검증된 블럭 마운트 삭제 요청 (SafeDTO)
+ * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
  * @param blockMountRepository - BlockMount Repository
- * @param edgeManagementService - Edge Management Service
+ * @param edgeRepository - Edge Repository
  * @returns 삭제 결과
  */
 export async function softDeleteBlockMount(
-  safeDto: SoftDeleteBlockMountRequest & {
-    userId: string;
-  },
+  safeDto: SoftDeleteBlockMountRequest,
+  safeUserId: UserId,
   blockMountRepository: BlockMountRepository,
-  edgeManagementService: EdgeManagementService
+  edgeRepository: EdgeRepository
 ): Promise<
   Result<
     {
@@ -46,7 +47,6 @@ export async function softDeleteBlockMount(
 > {
   try {
     // 1. SafeDTO → Value Objects 생성
-    const userIdVO = new UserId(safeDto.userId);
     const blockMountIds = safeDto.blockMountIds.map(id => new BlockMountId(id));
 
     // 2. 다중 BlockMount 조회
@@ -75,22 +75,21 @@ export async function softDeleteBlockMount(
         const blockMount = aggregate.getBlockMount();
         const deleteBlockMountCommand: SoftDeleteBlockMountCommand = {
           blockMountId: blockMount.id,
-          userId: userIdVO,
+          userId: safeUserId,
         };
         aggregate.deleteBlockMount(deleteBlockMountCommand);
 
-        // 2. 연결된 엣지 삭제 (Edge Management Service 사용)
-        const deleteEdgesResult =
-          await edgeManagementService.deleteConnectedEdges(blockMount.id);
+        // 2. 연결된 엣지 삭제
+        const deleteEdgesResult = await deleteConnectedEdges(
+          blockMount.id,
+          safeUserId,
+          edgeRepository
+        );
 
         let deletedEdgesCount = 0;
         if (deleteEdgesResult.isSuccess()) {
           deletedEdgesCount = deleteEdgesResult.value;
         } else {
-          console.error(
-            `⚠️ [softDeleteBlockMount] Failed to delete connected edges for blockMount ${blockMount.id.value}:`,
-            deleteEdgesResult.error
-          );
           // 엣지 삭제 실패해도 BlockMount 삭제는 계속 진행
         }
 
@@ -150,14 +149,14 @@ export async function softDeleteBlockMount(
           ),
           deletedEdgesCount: totalDeletedEdgesCount,
           deletedAt: new Date(),
-          userId: userIdVO.value,
+          userId: safeUserId.value,
         },
         new Date()
       );
       allEvents = [...individualEvents, multipleDeletionsEvent];
     }
 
-    await handleDomainEvents(allEvents);
+    await Promise.allSettled(allEvents.map(event => event.handle()));
 
     // 9. 이벤트 커밋
     successfulResults.forEach(result =>

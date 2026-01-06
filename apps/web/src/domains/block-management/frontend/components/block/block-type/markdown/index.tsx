@@ -9,7 +9,7 @@ import { useReactFlow } from '@xyflow/react';
 
 import { cn } from '@workspace/ui/lib/utils';
 
-import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/use-block-content-update';
+import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
 import type {
   BlockNodeData,
   MarkdownBlockNodeData,
@@ -19,7 +19,7 @@ import {
   MARKDOWN_EXTENSIONS,
 } from '@/domains/block-management/shared/utils/tiptap-markdown.utils';
 import type { MarkdownBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
+import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 
 import { BaseBlock } from '../base-block';
 
@@ -66,7 +66,7 @@ export const MarkdownBlock = memo(function MarkdownBlock({
   });
 
   // Canvas mode context
-  const { setTextareaEditing } = useCanvasMode();
+  const { setTextareaEditing } = useCanvasModeContext();
 
   // 편집 상태 (SSOT)
   const [isEditing, setIsEditing] = useState(false);

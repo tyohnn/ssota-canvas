@@ -1,83 +1,87 @@
 'use server';
 
+import type { WorkspaceActionContext } from '@/domains/common/auth/types';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
-import { type ActionContext, withSecureAction } from '@/lib/server-actions';
 
 import { DrizzleBlockRepository } from '../../backend/repositories/implementations/drizzle-block.repository';
-import { BlockPropertyService } from '../../backend/services/block-property.service';
-import { UpdateBlockPropertyCommand } from '../../shared/commands';
+import { updateBlockProperty } from '../../backend/services/block/property/update-block-property.service';
 import {
   UpdateBlockPropertyRequest,
   UpdateBlockPropertyRequestSchema,
 } from '../../shared/dtos/requests/block.requests';
 import { BlockPropertyUpdatedDTO } from '../../shared/dtos/responses/block.responses';
-import { BlockId } from '../../shared/value-objects/block-id.vo';
+import { withBlockSecureAction } from './secure-action';
 
 /**
  * 블록 속성 업데이트 Server Action
  *
- * ⚠️ Security: withSecureAction HOF를 통해 Defense in Depth 적용
+ * ⚠️ Security: withBlockSecureAction HOF를 통해 Defense in Depth 적용
  * 1. Request 스키마 검증
  * 2. 사용자 인증 확인
  * 3. 조직 멤버십 확인
  * 4. 워크스페이스 접근 권한 확인
+ * 5. 블록 소유권 확인 (Block이 Workspace에 속하는지)
+ *
+ * Block은 Workspace에 속하며, Page와 직접적인 의존성이 없습니다.
  *
  * @param request - 클라이언트 요청 (런타임 검증 필요)
  * @returns BlockPropertyUpdatedDTO (성공) | Error (실패)
  */
-export const updateBlockPropertyAction = withSecureAction(
+export const updateBlockPropertyAction = withBlockSecureAction(
   UpdateBlockPropertyRequestSchema,
+  'updateBlockPropertyAction',
+  updateBlockPropertyInternal,
   {
-    getPageId: req => req.pageId, // ✅ Direct access
-    actionName: 'updateBlockPropertyAction',
     getLogMetadata: req => ({
       blockId: req.blockId,
       propertyPath: req.propertyPath,
     }),
-  },
-  updateBlockPropertyInternal
+  }
 );
 
 /**
  * 내부 구현 (검증된 데이터만 처리)
  *
  * ✅ Event Storming + DDD 패턴:
- * - Service에 Command 전달 (Value Objects 생성은 Action에서)
+ * - Service에 SafeDTO 전달 (Command 변환은 Service 내부에서 수행)
  *
  * ⚠️ 이 함수는 이미 검증된 요청과 인증된 사용자만 받습니다
  *
  * @param safeDto - 검증된 SafeDTO
- * @param context - 검증된 사용자, 워크스페이스, 페이지 정보
+ * @param context - 검증된 사용자, 워크스페이스 정보
  */
 async function updateBlockPropertyInternal(
   safeDto: UpdateBlockPropertyRequest, // ✅ 이미 검증됨 (SafeDTO)
-  context: ActionContext // ✅ 검증된 context
+  context: WorkspaceActionContext // ✅ 검증된 context
 ): Promise<ActionResult<BlockPropertyUpdatedDTO>> {
   try {
-    // 1. Service 의존성 생성
-    const repository = new DrizzleBlockRepository();
-    const blockPropertyService = new BlockPropertyService(repository);
+    const userId: UserId = new UserId(context.authenticatedUser.id);
 
-    // 2. BlockId Value Object 생성
-    const blockId = new BlockId(safeDto.blockId);
+    // 1. Repository 생성
+    const blockRepository = new DrizzleBlockRepository();
 
-    // 3. 속성 업데이트 Command 생성
-    const command: UpdateBlockPropertyCommand = {
-      blockId,
-      propertyPath: safeDto.propertyPath,
-      value: safeDto.value,
-      workspaceId: context.workspace.workspaceId.value, // ✅ Context에서 workspaceId 사용
-    };
+    // 2. Service Function을 통한 속성 업데이트 (SafeDTO 전달)
+    const updateResult = await updateBlockProperty(
+      safeDto,
+      userId,
+      blockRepository
+    );
 
-    // 4. BlockPropertyService를 통한 속성 업데이트
-    const updateResult = await blockPropertyService.updateProperty(command);
+    // 3. Result 처리
+    if (updateResult.isError()) {
+      return err(String(updateResult.error), {
+        code: 'BLOCK_UPDATE_FAILED',
+        meta: { originalError: updateResult.error },
+      });
+    }
 
-    // 5. Response DTO 생성
+    // 4. Response DTO 생성
     const responseData: BlockPropertyUpdatedDTO = {
       blockId: safeDto.blockId,
       propertyPath: safeDto.propertyPath,
       value: safeDto.value,
-      updatedAt: updateResult.updatedAt,
+      updatedAt: updateResult.value.updatedAt,
     };
 
     return ok(responseData);

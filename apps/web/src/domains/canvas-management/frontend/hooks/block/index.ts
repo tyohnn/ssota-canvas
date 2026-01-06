@@ -1,5 +1,5 @@
-export { useBlockCanvasOperations } from './use-block-canvas-operations';
-export { useBlockTransformOperations } from './use-block-transform-operations';
+export { useBlockCanvasState } from './use-block-canvas-state';
+export { useBlockTransformState } from './use-block-transform-state';
 export { useCreateBlock } from './use-create-block';
 export { useDuplicateBlock } from './use-duplicate-block';
 export { useDuplicateBlocks } from './use-duplicate-blocks';

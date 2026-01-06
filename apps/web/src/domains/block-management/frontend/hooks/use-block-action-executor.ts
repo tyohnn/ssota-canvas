@@ -20,7 +20,7 @@ import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/ho
 
 import { BlockNodeData } from '../../shared/types/block-data.types';
 import { validateActionParams } from '../components/block/block-type/action-schemas-registry';
-import { useUpdateBlockProperty } from './use-block-property-update';
+import { useUpdateBlockProperty } from './block-property/use-block-property-update';
 
 /**
  * Block Action Module Map

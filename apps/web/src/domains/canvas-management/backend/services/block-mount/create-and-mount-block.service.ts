@@ -1,22 +1,23 @@
 /**
  * 블럭 생성 및 마운트 서비스 로직
  */
-import type { BlockManagementService } from '@/domains/block-management/backend/services/block-management.service';
+import type { BlockRepository } from '@/domains/block-management/backend/repositories/interfaces/block.repository.interface';
+import { createBlock } from '@/domains/block-management/backend/services/block';
 import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
-import { BlockType } from '@/domains/block-management/shared/value-objects/block-type.vo';
-import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
-import { BlockMountAggregate } from '@/domains/canvas-management/shared/aggregates/block-mount.aggregate';
-import { MountBlockCommand } from '@/domains/canvas-management/shared/commands';
-import type { CreateAndMountBlockRequest } from '@/domains/canvas-management/shared/dtos/requests';
-import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
-import { Position } from '@/domains/canvas-management/shared/value-objects/position.vo';
-import { Size } from '@/domains/canvas-management/shared/value-objects/size.vo';
-import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import type { CreateBlockRequest } from '@/domains/block-management/shared/dtos/requests/block.requests';
+import type { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import { Result } from '@/utils/result';
 
-import { handleDomainEvents } from './common';
+import { BlockMountAggregate } from '../../../shared/aggregates/block-mount.aggregate';
+import { MountBlockCommand } from '../../../shared/commands';
+import type { CreateAndMountBlockRequest } from '../../../shared/dtos/requests';
+import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
+import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
+import { Position } from '../../../shared/value-objects/position.vo';
+import { Size } from '../../../shared/value-objects/size.vo';
+import type { BlockMountRepository } from '../../repositories/interfaces/block-mount.repository.interface';
 
 /**
  * 블럭 생성 및 마운트
@@ -28,16 +29,17 @@ import { handleDomainEvents } from './common';
  * - Domain Event 처리
  *
  * @param safeDto - 검증된 블럭 생성 및 마운트 요청 (SafeDTO)
- * @param blockManagementService - Block Management Service
+ * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
+ * @param safeWorkspaceId - 검증된 워크스페이스 ID (권한 검증됨)
+ * @param blockRepository - Block Repository
  * @param blockMountRepository - BlockMount Repository
  * @returns 생성된 BlockMountAggregate와 BlockAggregate
  */
 export async function createAndMountBlock(
-  safeDto: CreateAndMountBlockRequest & {
-    userId: string;
-    workspaceId: string;
-  },
-  blockManagementService: BlockManagementService,
+  safeDto: CreateAndMountBlockRequest,
+  safeUserId: UserId,
+  safeWorkspaceId: WorkspaceId,
+  blockRepository: BlockRepository,
   blockMountRepository: BlockMountRepository
 ): Promise<
   Result<
@@ -50,32 +52,37 @@ export async function createAndMountBlock(
 > {
   try {
     // 1. SafeDTO → Command 변환 (Value Objects 생성)
-    const userIdVO = new UserId(safeDto.userId);
-    const workspaceIdVO = new WorkspaceId(safeDto.workspaceId);
     const pageIdVO = new PageId(safeDto.pageId);
-    const blockTypeVO = new BlockType(safeDto.blockType);
     const positionVO = new Position(safeDto.position.x, safeDto.position.y);
     const sizeVO = new Size(safeDto.size.width, safeDto.size.height);
 
-    // 2. Block Management Service를 통해 블럭 생성 (완전한 Block 엔티티 반환)
-    const blockAggregate = await blockManagementService.createBlock({
-      userId: userIdVO,
-      workspaceId: workspaceIdVO,
-      blockType: blockTypeVO,
+    // 2. Block Management Service Function을 통해 블럭 생성
+    const createBlockRequest: CreateBlockRequest = {
+      workspaceId: safeWorkspaceId.value,
+      blockType: safeDto.blockType,
       title: safeDto.title || '새 블럭', // 전달받은 title 사용, 없으면 기본 제목
       initialProperties: safeDto.initialProperties, // 초기 properties 전달
       initialContent: safeDto.initialContent, // ✨ 초기 content 전달
-    });
+    };
+    const blockResult = await createBlock(
+      createBlockRequest,
+      safeUserId,
+      blockRepository
+    );
+    if (blockResult.isError()) {
+      return Result.error(blockResult.error);
+    }
+    const blockAggregate = blockResult.value;
 
     // 3. Canvas Management Aggregate 생성 (자체 이벤트 생성)
-    const blockMountId = new BlockMountId(crypto.randomUUID());
+    const blockMountId = BlockMountId.generate();
     const mountBlockCommand: MountBlockCommand = {
       blockMountId,
       pageId: pageIdVO,
       blockId: blockAggregate.getBlock().id,
       position: positionVO,
       size: sizeVO,
-      userId: userIdVO,
+      userId: safeUserId,
     };
     const blockMountAggregate =
       BlockMountAggregate.mountBlock(mountBlockCommand);
@@ -84,20 +91,18 @@ export async function createAndMountBlock(
     try {
       await blockMountRepository.create(blockMountAggregate.getBlockMount());
     } catch (saveError) {
-      console.error(
-        '❌ [createAndMountBlock] Failed to save block mount:',
-        saveError
-      );
       return Result.error(
-        saveError instanceof Error
-          ? saveError
-          : new Error('Failed to save block mount')
+        new CanvasManagementError(
+          'BLOCK_MOUNT_CREATION_FAILED',
+          `Failed to save block mount: ${saveError instanceof Error ? saveError.message : 'Unknown error'}`,
+          { originalError: saveError }
+        )
       );
     }
 
-    // 5. 이벤트 핸들러 실행 (Canvas Management 도메인 내부)
+    // 5. 도메인 이벤트 처리
     const events = blockMountAggregate.getUncommittedEvents();
-    await handleDomainEvents(events);
+    await Promise.allSettled(events.map(event => event.handle()));
 
     // 6. 이벤트 커밋
     blockMountAggregate.markEventsAsCommitted();
@@ -105,10 +110,12 @@ export async function createAndMountBlock(
     // 7. 명시적 변수명으로 반환
     return Result.success({ blockMountAggregate, blockAggregate });
   } catch (error) {
-    console.error(
-      '💥 [createAndMountBlock] Block creation and mounting failed:',
-      error
+    return Result.error(
+      new CanvasManagementError(
+        'BLOCK_MOUNT_CREATION_FAILED',
+        `Block creation and mounting failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { originalError: error }
+      )
     );
-    return Result.error(new Error('Block creation and mounting failed'));
   }
 }

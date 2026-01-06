@@ -43,13 +43,20 @@ And 휠 스크롤에 비례하여 줌이 적용된다
 - [x] 사용자 경험 개선 검증
 
 ## 📊 진행 상황
-**현재**: 100% 완료 (이미 구현됨)
+**현재**: ✅ 100% 완료  
+**완료일**: 2025-01-XX
 
 ## 📝 구현 내역
 
-**파일**: `apps/web/src/domains/canvas-management/frontend/components/core/canvas-react-flow-wrapper.tsx`
+### 주요 변경 사항
+- ✅ **Deprecated API 마이그레이션**: `navigator.platform` → `navigator.userAgentData` (또는 `navigator.userAgent` fallback)
+- ✅ **플랫폼별 감도 설정**: Windows (0.18), Mac (0.1)
+- ✅ **커스텀 wheel 이벤트 핸들러**: Ctrl/Cmd + Wheel로 줌 제어
 
-### 플랫폼 감지 (Line 405-417)
+### 구현 파일
+**파일**: `apps/web/src/domains/canvas-management/frontend/components/react-flow-wrapper/core/use-react-flow-wrapper.ui.ts`
+
+### 플랫폼 감지
 ```typescript
 const isWindows = React.useMemo(() => {
   if (typeof window === 'undefined') return false;
@@ -66,14 +73,14 @@ const isWindows = React.useMemo(() => {
 }, []);
 ```
 
-### 플랫폼별 줌 감도 설정 (Line 419-423)
+### 플랫폼별 줌 감도 설정
 ```typescript
 const zoomMultiplier = React.useMemo(() => {
   return isWindows ? 0.18 : 0.1;
 }, [isWindows]);
 ```
 
-### 커스텀 wheel 이벤트 핸들러 (Line 426-477)
+### 커스텀 wheel 이벤트 핸들러
 - Ctrl/Cmd + Wheel로 줌 제어
 - 플랫폼별 감도 적용
 - 즉시 viewport 업데이트 (duration: 0)

@@ -24,8 +24,6 @@ export function Toolbar() {
   // 필수 데이터가 없거나 조건이 맞지 않으면 렌더링하지 않음
   if (
     !data.blockMountId ||
-    !data.pageId ||
-    !data.workspaceId ||
     !selected ||
     !isCurrentBlockSelected ||
     !isSingleSelection
@@ -40,8 +38,6 @@ export function Toolbar() {
       blockType={data.blockType || 'basic'}
       blockData={data}
       pageId={data.pageId}
-      orgId={data.orgId}
-      workspaceId={data.workspaceId}
       width={width}
       height={height}
     />

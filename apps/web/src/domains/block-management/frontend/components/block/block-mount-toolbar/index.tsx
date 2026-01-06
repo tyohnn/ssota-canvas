@@ -21,10 +21,11 @@ import {
 } from '@workspace/ui/components/ui/tooltip';
 
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
-// Canvas Management Hooks
-import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
-import { usePreventPinchZoom } from '@/domains/canvas-management/frontend/hooks/use-prevent-pinch-zoom';
+import {
+  useCanvasBlockLifecycle,
+  useCanvasModeContext,
+  usePreventPinchZoom,
+} from '@/domains/canvas-management/frontend/hooks';
 
 import { BlockToolbarMapper } from './block-toolbar-mapper';
 import { PageMovePopover } from './page-move-popover';
@@ -35,8 +36,6 @@ export interface BlockMountToolbarProps {
   blockType: string;
   blockData: BlockNodeData;
   pageId: string;
-  orgId: string;
-  workspaceId: string;
   width?: number;
   height?: number;
 }
@@ -61,12 +60,10 @@ export function BlockMountToolbar({
   blockType,
   blockData,
   pageId,
-  orgId,
-  workspaceId,
   width,
   height,
 }: BlockMountToolbarProps) {
-  const canvasMode = useCanvasMode();
+  const canvasMode = useCanvasModeContext();
   const blockLifecycle = useCanvasBlockLifecycle({
     pageId,
   });
@@ -197,12 +194,7 @@ export function BlockMountToolbar({
                 onClick={e => e.stopPropagation()}
                 onMouseDown={e => e.stopPropagation()}
               >
-                <PageMovePopover
-                  blockMountId={blockMountId}
-                  currentPageId={pageId}
-                  workspaceId={workspaceId}
-                  orgId={orgId}
-                />
+                <PageMovePopover blockMountId={blockMountId} />
               </div>
 
               <DropdownMenuItem onClick={handleCreateComponent}>

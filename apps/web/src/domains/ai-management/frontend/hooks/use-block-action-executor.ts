@@ -21,10 +21,12 @@ import { useCallback } from 'react';
 import { useReactFlow } from '@xyflow/react';
 
 import { validateActionParams } from '@/domains/block-management/frontend/components/block/block-type/action-schemas-registry';
-import type { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import type { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import type { useAutoPositionCalculator } from '@/domains/canvas-management/frontend/hooks/use-auto-position-calculator';
-import type { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
+import type {
+  useAutoPositionCalculator,
+  useCanvasBlockLifecycle,
+} from '@/domains/canvas-management/frontend/hooks';
 
 /**
  * Block Action Module Map

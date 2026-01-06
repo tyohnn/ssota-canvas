@@ -9,7 +9,7 @@ import { Size } from '@/domains/canvas-management/shared/value-objects/size.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
-import { CanvasManagementError, handleDomainEvents } from './common';
+import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
 
 /**
  * 블럭 크기 업데이트
@@ -21,20 +21,19 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  * - Domain Event 처리
  *
  * @param safeDto - 검증된 블럭 크기 업데이트 요청 (SafeDTO)
+ * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
  * @param blockMountRepository - BlockMount Repository
  * @returns 업데이트된 BlockMountAggregate
  */
 export async function updateBlockSize(
-  safeDto: UpdateBlockSizeRequest & {
-    userId: string;
-  },
+  safeDto: UpdateBlockSizeRequest,
+  safeUserId: UserId,
   blockMountRepository: BlockMountRepository
 ): Promise<Result<BlockMountAggregate, Error>> {
   try {
     // 1. SafeDTO → Value Objects 생성
     const blockMountIdVO = new BlockMountId(safeDto.blockMountId);
     const sizeVO = new Size(safeDto.newSize.width, safeDto.newSize.height);
-    const userIdVO = new UserId(safeDto.userId);
 
     // 2. BlockMountRepository.findById() 호출
     const aggregate = await blockMountRepository.findById(blockMountIdVO);
@@ -49,14 +48,14 @@ export async function updateBlockSize(
     }
 
     // 3. BlockMountAggregate.updateBlockSize() 호출 (Command 전달)
-    aggregate.updateBlockSize({ newSize: sizeVO });
+    aggregate.updateBlockSize({ newSize: sizeVO, userId: safeUserId });
 
     // 4. 배치 저장 (트랜잭션)
     await blockMountRepository.update(aggregate.getBlockMount());
 
-    // 5. 이벤트 처리
+    // 5. 도메인 이벤트 처리
     const individualEvents = aggregate.getUncommittedEvents();
-    await handleDomainEvents(individualEvents);
+    await Promise.allSettled(individualEvents.map(event => event.handle()));
 
     // 6. 이벤트 커밋
     aggregate.markEventsAsCommitted();

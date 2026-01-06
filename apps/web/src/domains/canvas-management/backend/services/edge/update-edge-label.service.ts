@@ -6,9 +6,10 @@ import { EdgeAggregate } from '@/domains/canvas-management/shared/aggregates/edg
 import type { UpdateEdgeLabelCommand } from '@/domains/canvas-management/shared/commands';
 import type { UpdateEdgeLabelRequest } from '@/domains/canvas-management/shared/dtos/requests/edge.requests';
 import { EdgeId } from '@/domains/canvas-management/shared/value-objects/edge-id.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
-import { CanvasManagementError, handleDomainEvents } from './common';
+import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
 
 /**
  * 엣지 레이블 업데이트
@@ -24,6 +25,7 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  */
 export async function updateEdgeLabel(
   safeDto: UpdateEdgeLabelRequest,
+  safeUserId: UserId,
   edgeRepository: EdgeRepository
 ): Promise<Result<EdgeAggregate, Error>> {
   try {
@@ -43,6 +45,7 @@ export async function updateEdgeLabel(
     const command: UpdateEdgeLabelCommand = {
       edgeId,
       newLabel: safeDto.newLabel,
+      userId: safeUserId,
     };
 
     // 4. Aggregate에 Command 전달 (Command → Event)
@@ -51,9 +54,9 @@ export async function updateEdgeLabel(
     // 5. Repository 업데이트
     await edgeRepository.update(aggregate);
 
-    // 6. Domain Event 처리
+    // 6. 도메인 이벤트 처리
     const events = aggregate.getUncommittedEvents();
-    await handleDomainEvents(events);
+    await Promise.allSettled(events.map(event => event.handle()));
 
     // 7. Event 커밋
     aggregate.markEventsAsCommitted();

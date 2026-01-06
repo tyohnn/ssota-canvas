@@ -5,9 +5,10 @@ import type { EdgeRepository } from '@/domains/canvas-management/backend/reposit
 import type { DeleteEdgeCommand } from '@/domains/canvas-management/shared/commands';
 import type { DeleteEdgeRequest } from '@/domains/canvas-management/shared/dtos/requests/edge.requests';
 import { EdgeId } from '@/domains/canvas-management/shared/value-objects/edge-id.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
-import { CanvasManagementError, handleDomainEvents } from './common';
+import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
 
 /**
  * 엣지 삭제
@@ -22,6 +23,7 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  */
 export async function deleteEdge(
   safeDto: DeleteEdgeRequest,
+  safeUserId: UserId,
   edgeRepository: EdgeRepository
 ): Promise<Result<void, Error>> {
   try {
@@ -40,14 +42,15 @@ export async function deleteEdge(
     // 3. SafeDTO → Command 변환
     const command: DeleteEdgeCommand = {
       edgeId,
+      userId: safeUserId,
     };
 
     // 4. Aggregate에 Command 전달 (이벤트 발행)
     aggregate.deleteEdge(command);
 
-    // 5. Domain Event 처리
+    // 5. 도메인 이벤트 처리
     const events = aggregate.getUncommittedEvents();
-    await handleDomainEvents(events);
+    await Promise.allSettled(events.map(event => event.handle()));
 
     // 6. Event 커밋
     aggregate.markEventsAsCommitted();

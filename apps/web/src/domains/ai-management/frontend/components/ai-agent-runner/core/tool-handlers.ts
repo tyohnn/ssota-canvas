@@ -8,15 +8,16 @@ import type { useReactFlow } from '@xyflow/react';
 
 import type { useBlockActionExecutor } from '@/domains/ai-management/frontend/hooks/use-block-action-executor';
 import { convertMarkdownToTiptapJSON } from '@/domains/ai-management/frontend/utils/markdown-to-tiptap';
-import type { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/use-block-content-update';
-import type { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
-import type { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/use-block-title-update';
+import type { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
+import type { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
+import type { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/block-property/use-block-title-update';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
-import type { CustomNodeType } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
-import type { useAutoPositionCalculator } from '@/domains/canvas-management/frontend/hooks/use-auto-position-calculator';
-import type { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
-import type { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-lifecycle';
+import type {
+  useAutoPositionCalculator,
+  useCanvasBlockLifecycle,
+  useCanvasEdgeLifecycle,
+} from '@/domains/canvas-management/frontend/hooks';
 
 /**
  * Tool Handler Result Types
@@ -89,7 +90,7 @@ export interface ToolHandlerContext {
   positionCalculator: ReturnType<typeof useAutoPositionCalculator>;
   getNode: ReturnType<typeof useReactFlow>['getNode'];
   getNodes: ReturnType<typeof useReactFlow>['getNodes'];
-  organizationId: string;
+  orgId: string;
   workspaceId: string;
 }
 

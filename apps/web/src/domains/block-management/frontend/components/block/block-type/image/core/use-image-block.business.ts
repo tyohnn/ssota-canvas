@@ -10,9 +10,10 @@ import { useReactFlow } from '@xyflow/react';
 
 import type { FileWithPreview } from '@workspace/ui/hooks/use-file-upload';
 
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import { useUpdateBlockSize } from '@/domains/block-management/frontend/hooks/use-block-commands';
-import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
 import type { ImageBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { getImageUrlAction } from '@/domains/image-app-space/actions/image-asset.actions';
 import { migrateSingleImageAction } from '@/domains/image-app-space/actions/image-migration.actions';
 import { uploadImageAction } from '@/domains/image-app-space/actions/image-upload.actions';
@@ -42,6 +43,8 @@ export function useImageBlockBusiness(
   nodeData: ImageBlockNodeData,
   uiState: ImageBlockUIState
 ): ImageBlockBusinessLogic {
+  const canvasMetadata = useCanvasMetadata();
+  const { workspaceId } = canvasMetadata;
   const { getNode, updateNode, getNodes, setNodes } = useReactFlow();
   const { updateProperty, updateProperties } = useUpdateBlockProperty({
     reactFlow: {
@@ -341,7 +344,7 @@ export function useImageBlockBusiness(
           fileName: fileWithPreview.file.name,
           fileSize: fileWithPreview.file.size,
           mimeType: fileWithPreview.file.type,
-          workspaceId: nodeData.workspaceId,
+          workspaceId,
           width: metadata.width,
           height: metadata.height,
         });
@@ -380,8 +383,6 @@ export function useImageBlockBusiness(
             blockMountId: nodeData.blockMountId,
             width: newSize.width,
             height: newSize.height,
-            pageId: nodeData.pageId,
-            optimistic: true, // 이미지 업로드 시 optimistic update 필요
           });
         }
       } catch (error) {
@@ -393,7 +394,6 @@ export function useImageBlockBusiness(
           const result = await upload({
             bucket: StorageBucket.CANVAS_ASSETS,
             file: fileWithPreview.file,
-            pageId: nodeData.pageId,
             blockId: nodeData.blockId,
           });
 
@@ -422,7 +422,6 @@ export function useImageBlockBusiness(
               blockMountId: nodeData.blockMountId,
               width: newSize.width,
               height: newSize.height,
-              pageId: nodeData.pageId,
             });
           }
         } catch (fallbackError) {

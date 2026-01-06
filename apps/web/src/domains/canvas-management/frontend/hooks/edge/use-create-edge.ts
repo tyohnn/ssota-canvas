@@ -26,8 +26,8 @@ export type UseCreateEdgeParams = {
 export type CreateEdgeInput = {
   sourceBlockMountId: string;
   targetBlockMountId: string;
-  sourceHandle: Connection['sourceHandle']; // React Flow에서 string으로 전달
-  targetHandle: Connection['targetHandle']; // React Flow에서 string으로 전달
+  sourceHandle: Connection['sourceHandle']; // React Flow에서 string으로 전달하고 있음
+  targetHandle: Connection['targetHandle']; // React Flow에서 string으로 전달하고 있음
 };
 
 export type UseCreateEdgeResult = {

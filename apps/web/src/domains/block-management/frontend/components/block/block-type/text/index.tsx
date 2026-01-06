@@ -7,7 +7,7 @@ import { useReactFlow } from '@xyflow/react';
 
 import { cn } from '@workspace/ui/lib/utils';
 
-import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/use-block-title-update';
+import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/block-property/use-block-title-update';
 import type {
   BlockNodeData,
   TextBlockNodeData,
@@ -23,7 +23,7 @@ import {
   TextAlign,
   TextBlockProperties,
 } from '@/domains/block-management/shared/value-objects/block-properties';
-import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
+import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 
 import { BaseBlock } from '../base-block';
 
@@ -83,7 +83,7 @@ export const TextBlock = memo(function TextBlock({
   });
 
   // Canvas mode context
-  const { setTextareaEditing } = useCanvasMode();
+  const { setTextareaEditing } = useCanvasModeContext();
 
   // ✨ title을 content로 사용 (이전에는 properties.content 사용)
   // Backward compatibility: properties.content가 있으면 우선 사용하고, 없으면 nodeData.title 사용

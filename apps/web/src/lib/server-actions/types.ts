@@ -1,39 +1,46 @@
-import type { AuthenticatedUser } from '@/domains/common/auth/helpers';
-import type { Page } from '@/domains/workspace-management/shared/entities/page.entity';
-import type { Workspace } from '@/domains/workspace-management/shared/entities/workspace.entity';
-
 import type { ActionResult } from './result';
 
 /**
  * Server Actions 보안 및 미들웨어 관련 타입 정의
- */
-
-/**
- * Action Handler에 주입되는 Context
  *
- * withSecureAction에서 검증 완료된 사용자, 워크스페이스, 페이지 정보를 포함
+ * ⚠️ Project-Agnostic Types
+ * These types are generic and don't depend on specific domain models.
+ * For project-specific context types, see @/domains/common/auth/types
  */
-export interface ActionContext {
-  authenticatedUser: AuthenticatedUser;
-  workspace: Workspace;
-  page: Page;
-}
 
 /**
- * pageId 추출 함수 타입
- * - Direct: request에서 직접 추출 (예: req.pageId)
- * - Indirect: 비동기 조회로 추출 (예: Edge 조회 후 pageId 가져오기)
+ * Project-specific authentication function
+ * Returns the authenticated user for the current request
+ *
+ * @template TAuthenticatedUser - Authenticated user type (project-specific)
  */
-export type PageIdExtractor<TRequest> = (
-  request: TRequest
-) => string | Promise<string | PageIdResult>;
+export type GetAuthenticatedUserFunction<TAuthenticatedUser> =
+  () => Promise<TAuthenticatedUser>;
 
 /**
- * Indirect 방식의 pageId 추출 결과
+ * Generic authorize function - returns custom context type
+ * Allows each action to define its own authorization logic and context shape
+ *
+ * @template TRequest - Request type
+ * @template TContext - Context type returned by authorization
+ * @template TAuthenticatedUser - Authenticated user type (project-specific)
  */
-export interface PageIdResult {
-  pageId: string;
-  notFoundError?: string;
+export type AuthorizeFunction<
+  TRequest,
+  TContext,
+  TAuthenticatedUser = unknown,
+> = (
+  request: TRequest,
+  authenticatedUser: TAuthenticatedUser
+) => Promise<AuthorizeResult<TContext>>;
+
+/**
+ * Authorization result with dynamic context type
+ */
+export interface AuthorizeResult<TContext> {
+  success: boolean;
+  error?: string;
+  context?: TContext;
 }
 
 /**
@@ -61,15 +68,25 @@ export interface CacheConfig {
 }
 
 /**
- * SecureAction 옵션
+ * SecureAction 옵션 (Generic version)
  */
-export interface SecureActionOptions<TRequest> {
+export interface SecureActionOptions<
+  TRequest,
+  TContext = unknown,
+  TAuthenticatedUser = unknown,
+> {
   /**
-   * pageId 추출 함수
-   * - Direct: request에서 직접 추출 (예: req.pageId)
-   * - Indirect: 비동기 조회로 추출 (예: Edge 조회 후 pageId 가져오기)
+   * Project-specific authentication function (Required)
+   * Returns the authenticated user for the current request
    */
-  getPageId: PageIdExtractor<TRequest>;
+  getAuthenticatedUser: GetAuthenticatedUserFunction<TAuthenticatedUser>;
+
+  /**
+   * Authorization function (Required)
+   * Allows custom authorization logic and returns custom context type
+   * Each action can define what resources to verify and what context to return
+   */
+  authorize: AuthorizeFunction<TRequest, TContext, TAuthenticatedUser>;
 
   /**
    * Action 이름 (로깅용)
@@ -103,3 +120,27 @@ export interface SecureActionOptions<TRequest> {
 export type SecureAction<TRequest, TResponse> = (
   request: unknown
 ) => Promise<ActionResult<TResponse>>;
+
+/**
+ * withSecureAction function signature with generic context support
+ *
+ * @template TRequest - Request type
+ * @template TResponse - Response type
+ * @template TContext - Context type (project-specific)
+ * @template TAuthenticatedUser - Authenticated user type (project-specific)
+ * @template TBaseContext - Base context type that includes authenticated user (project-specific)
+ */
+export type WithSecureActionFunction = <
+  TRequest,
+  TResponse,
+  TContext = unknown,
+  TAuthenticatedUser = unknown,
+  TBaseContext = { authenticatedUser: TAuthenticatedUser },
+>(
+  schema: import('zod').ZodSchema<TRequest>,
+  options: SecureActionOptions<TRequest, TContext, TAuthenticatedUser>,
+  handler: (
+    validatedRequest: TRequest,
+    context: TContext & TBaseContext
+  ) => Promise<ActionResult<TResponse>>
+) => SecureAction<TRequest, TResponse>;

@@ -16,14 +16,13 @@ import { prefetchAction } from '@/domains/block-management/frontend/components/b
 import { prefetchToolbar } from '@/domains/block-management/frontend/components/block/block-mount-toolbar/toolbar-prefetch';
 import { useUpdateBlockSize } from '@/domains/block-management/frontend/hooks/use-block-commands';
 
-import type { BlockSizeUpdateParams, ResizeData } from './types';
+import type { ResizeData } from './types';
 
 export interface BaseBlockBusinessLogic {
   // 리사이즈 저장
   saveBlockSize: (
     blockMountId: string,
-    resizeData: ResizeData,
-    params: Omit<BlockSizeUpdateParams, 'width' | 'height'>
+    resizeData: ResizeData
   ) => Promise<{ ok: boolean; error?: string }>;
 
   // Prefetch
@@ -44,11 +43,7 @@ export function useBaseBlockBusiness(): BaseBlockBusinessLogic {
 
   // 리사이즈 완료 시 DB에 저장
   const saveBlockSize = useCallback(
-    async (
-      blockMountId: string,
-      resizeData: ResizeData,
-      params: Omit<BlockSizeUpdateParams, 'width' | 'height'>
-    ) => {
+    async (blockMountId: string, resizeData: ResizeData) => {
       if (!blockMountId) {
         console.warn(
           'blockMountId가 없어서 리사이즈 정보를 저장할 수 없습니다.'
@@ -60,8 +55,6 @@ export function useBaseBlockBusiness(): BaseBlockBusinessLogic {
         blockMountId,
         width: resizeData.width,
         height: resizeData.height,
-        pageId: params.pageId,
-        optimistic: false, // Resizer가 이미 UI를 업데이트했으므로 optimistic 불필요
       });
 
       if (!success) {

@@ -11,7 +11,7 @@ import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { fetchYouTubeMetadata } from '@/domains/block-management/actions/youtube.actions';
-import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { YoutubeBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
   ColorToken,

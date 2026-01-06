@@ -1,17 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+
 import { useReactFlow } from '@xyflow/react';
-import { useCanvasMode } from '../../hooks/use-canvas-mode';
-import { useCanvasBlockLifecycle } from '../../hooks/use-canvas-block-lifecycle';
-import type { Position } from '../../../shared/types/common.types';
+
 import { BLOCK_TYPE_SIZES } from '@/domains/block-management/shared/types/block-types';
+
+import type { Position } from '../../../shared/types/common.types';
+import { useCanvasModeContext } from '../../hooks/mode/canvas-mode-context';
+import { useCanvasBlockLifecycle } from '../../hooks/use-canvas-block-lifecycle';
 
 /**
  * 블록 타입별 기본 크기 정의
  * @deprecated 이제 block-types.ts의 BLOCK_TYPE_SIZES 사용
  */
-const LEGACY_BLOCK_TYPE_SIZES: Record<string, { width: number; height: number }> = {
+const LEGACY_BLOCK_TYPE_SIZES: Record<
+  string,
+  { width: number; height: number }
+> = {
   basic: { width: 200, height: 150 },
   'shape-square': { width: 150, height: 150 },
   'shape-circle': { width: 150, height: 150 },
@@ -46,7 +52,7 @@ export function SkeletonBlock({
   orgId,
   workspaceId,
 }: SkeletonBlockProps) {
-  const canvasMode = useCanvasMode();
+  const canvasMode = useCanvasModeContext();
   const blockLifecycle = useCanvasBlockLifecycle({
     pageId,
   });

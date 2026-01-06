@@ -32,7 +32,7 @@ const mockBlockManagementService = {
   createBlock: vi.fn(),
 };
 
-vi.mock('@/domains/block-management/backend/services/block-management.service', () => ({
+vi.mock('@/domains/block-management/backend/services/blocks', () => ({
   BlockManagementService: vi.fn(() => mockBlockManagementService),
 }));
 

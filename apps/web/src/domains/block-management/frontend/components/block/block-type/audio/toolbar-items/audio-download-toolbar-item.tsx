@@ -1,25 +1,23 @@
 'use client';
 
+import { useCallback } from 'react';
+
 import { Download } from 'lucide-react';
+
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
-import { useCallback } from 'react';
 
 interface AudioDownloadToolbarItemProps {
-  blockId: string;
-  blockMountId?: string;
   audioUrl: string;
   title?: string;
   disabled?: boolean;
 }
 
 export function AudioDownloadToolbarItem({
-  blockId,
-  blockMountId,
   audioUrl,
   title,
   disabled = false,

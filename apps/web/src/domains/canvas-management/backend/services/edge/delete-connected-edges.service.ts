@@ -1,13 +1,13 @@
 /**
  * 연결된 Edge 삭제 서비스 로직
  */
-import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
 import type { EdgeRepository } from '@/domains/canvas-management/backend/repositories/interfaces/edge.repository.interface';
 import type { DeleteEdgeCommand } from '@/domains/canvas-management/shared/commands';
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
-import { CanvasManagementError, handleDomainEvents } from './common';
+import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
 
 /**
  * 블럭 마운트 삭제 시 연결된 엣지 모두 삭제
@@ -23,6 +23,7 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  */
 export async function deleteConnectedEdges(
   blockMountId: BlockMountId,
+  safeUserId: UserId,
   edgeRepository: EdgeRepository
 ): Promise<Result<number, Error>> {
   try {
@@ -39,6 +40,7 @@ export async function deleteConnectedEdges(
       // Command 생성
       const command: DeleteEdgeCommand = {
         edgeId: aggregate.edge.id,
+        userId: safeUserId,
       };
 
       // Aggregate에 Command 전달 (이벤트 발행)
@@ -46,7 +48,7 @@ export async function deleteConnectedEdges(
 
       // 도메인 이벤트 처리
       const events = aggregate.getUncommittedEvents();
-      await handleDomainEvents(events);
+      await Promise.allSettled(events.map(event => event.handle()));
 
       // 이벤트 커밋
       aggregate.markEventsAsCommitted();

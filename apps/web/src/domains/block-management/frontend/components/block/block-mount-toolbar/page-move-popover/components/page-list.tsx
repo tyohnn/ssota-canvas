@@ -1,15 +1,31 @@
 'use client';
 
 import React from 'react';
-import { ScrollArea } from '@workspace/ui/components/ui/scroll-area';
-import { usePageMovePopoverContext } from '../core/context';
-import { PageListItem } from './page-list-item';
+
 import { Box } from '@workspace/ui/components/ui/box';
+import { ScrollArea } from '@workspace/ui/components/ui/scroll-area';
 
-export function PageList() {
-  const { filteredPages, isSearching, searchQuery } =
-    usePageMovePopoverContext();
+import type { RecentPageDTO } from '@/domains/workspace-management/shared/dtos';
 
+import { PageListItem } from './page-list-item';
+
+export interface PageListProps {
+  filteredPages: RecentPageDTO[];
+  isSearching: boolean;
+  searchQuery: string;
+  currentPageId: string;
+  canMoveTo: (pageId: string) => boolean;
+  handleSelectPage: (pageId: string) => Promise<void>;
+}
+
+export function PageList({
+  filteredPages,
+  isSearching,
+  searchQuery,
+  currentPageId,
+  canMoveTo,
+  handleSelectPage,
+}: PageListProps) {
   return (
     <ScrollArea className="h-[200px]">
       <Box className="space-y-1">
@@ -23,7 +39,13 @@ export function PageList() {
           </p>
         ) : (
           filteredPages.map(page => (
-            <PageListItem key={page.pageId} page={page} />
+            <PageListItem
+              key={page.pageId}
+              page={page}
+              currentPageId={currentPageId}
+              canMoveTo={canMoveTo}
+              handleSelectPage={handleSelectPage}
+            />
           ))
         )}
       </Box>

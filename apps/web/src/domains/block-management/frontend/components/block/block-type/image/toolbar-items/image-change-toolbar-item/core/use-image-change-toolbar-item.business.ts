@@ -29,12 +29,7 @@ export function useImageChangeToolbarItemBusiness(
   disabled: boolean,
   onPropertiesChange?: (properties: Record<string, any>) => Promise<void>
 ): ImageChangeBusinessLogic {
-  const {
-    blockMountId,
-    pageId,
-    orgId,
-    height: currentHeight,
-  } = useImageToolbarContext();
+  const { blockMountId, height: currentHeight } = useImageToolbarContext();
   const { getNodes, setNodes } = useReactFlow();
   const { updateBlockSize } = useUpdateBlockSize({
     reactFlow: {
@@ -63,8 +58,6 @@ export function useImageChangeToolbarItemBusiness(
           blockMountId,
           width: newSize.width,
           height: newSize.height,
-          pageId,
-          optimistic: true, // 이미지 업로드 시 optimistic update 필요
         });
       }
     },

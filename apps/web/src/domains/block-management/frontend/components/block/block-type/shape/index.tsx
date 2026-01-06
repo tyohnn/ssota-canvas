@@ -14,7 +14,7 @@ import { useReactFlow } from '@xyflow/react';
 
 import { cn } from '@workspace/ui/lib/utils';
 
-import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/use-block-title-update';
+import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/block-property/use-block-title-update';
 import type { ShapeBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
@@ -26,7 +26,7 @@ import {
   ShapeBlockProperties,
   ShapeType,
 } from '@/domains/block-management/shared/value-objects/block-properties';
-import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
+import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 
 import { BaseBlock } from '../base-block';
 
@@ -83,7 +83,7 @@ export const ShapeBlock = memo(function ShapeBlock({
   });
 
   // Canvas mode context
-  const { setTextareaEditing } = useCanvasMode();
+  const { setTextareaEditing } = useCanvasModeContext();
 
   // 텍스트 편집 상태 (SSOT)
   const [isEditing, setIsEditing] = useState(false);

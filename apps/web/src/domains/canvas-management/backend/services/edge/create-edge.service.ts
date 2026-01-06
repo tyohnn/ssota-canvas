@@ -8,10 +8,11 @@ import type { CreateEdgeCommand } from '@/domains/canvas-management/shared/comma
 import type { CreateEdgeRequest } from '@/domains/canvas-management/shared/dtos/requests/edge.requests';
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { EdgeHandle } from '@/domains/canvas-management/shared/value-objects/edge-handle.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { Result } from '@/utils/result';
 
-import { CanvasManagementError, handleDomainEvents } from './common';
+import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
 
 /**
  * 엣지 생성
@@ -23,12 +24,14 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  * - Domain Event 처리
  *
  * @param safeDto - 검증된 엣지 생성 요청 (SafeDTO)
+ * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
  * @param blockMountRepository - BlockMount Repository
  * @param edgeRepository - Edge Repository
  * @returns 생성된 엣지 Aggregate
  */
 export async function createEdge(
   safeDto: CreateEdgeRequest,
+  safeUserId: UserId,
   blockMountRepository: BlockMountRepository,
   edgeRepository: EdgeRepository
 ): Promise<Result<EdgeAggregate, Error>> {
@@ -76,6 +79,7 @@ export async function createEdge(
       targetBlockMountId,
       sourceHandle,
       targetHandle,
+      userId: safeUserId,
     };
 
     // 5. Aggregate에 Command 전달 (Command → Event)
@@ -84,9 +88,9 @@ export async function createEdge(
     // 6. Repository에 저장
     await edgeRepository.create(aggregate);
 
-    // 7. Domain Event 처리
+    // 7. 도메인 이벤트 처리
     const events = aggregate.getUncommittedEvents();
-    await handleDomainEvents(events);
+    await Promise.allSettled(events.map(event => event.handle()));
 
     // 8. Event 커밋
     aggregate.markEventsAsCommitted();

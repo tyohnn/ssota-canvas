@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
-import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { recordImageUsageAction } from '@/domains/image-app-space/actions/image-asset.actions';
 

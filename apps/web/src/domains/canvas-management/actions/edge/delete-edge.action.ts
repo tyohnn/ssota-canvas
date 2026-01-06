@@ -1,16 +1,16 @@
 'use server';
 
+import type { PageActionContext } from '@/domains/common/auth/types';
+import { withEdgeSecureAction } from '@/domains/common/server-actions';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
-import { type ActionContext, withSecureAction } from '@/lib/server-actions';
 
-import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '../../backend/repositories/implementations/drizzle-edge.repository';
-import { EdgeManagementService } from '../../backend/services/edge.service';
+import { deleteEdge } from '../../backend/services/edge';
 import {
   DeleteEdgeRequest,
   DeleteEdgeRequestSchema,
 } from '../../shared/dtos/requests';
-import { EdgeId } from '../../shared/value-objects/edge-id.vo';
 
 /**
  * 엣지 삭제 Server Action
@@ -24,25 +24,13 @@ import { EdgeId } from '../../shared/value-objects/edge-id.vo';
  * @param request - 클라이언트 요청 (런타임 검증 필요)
  * @returns void (성공) | Error (실패)
  */
-export const deleteEdgeAction = withSecureAction(
+export const deleteEdgeAction = withEdgeSecureAction(
   DeleteEdgeRequestSchema,
+  'deleteEdgeAction',
+  deleteEdgeInternal,
   {
-    getPageId: async req => {
-      // Edge 조회하여 pageId 얻기 (Indirect access)
-      const edgeRepository = new DrizzleEdgeRepository();
-      const edgeIdVO = new EdgeId(req.edgeId);
-      const edgeAggregate = await edgeRepository.findById(edgeIdVO);
-
-      if (!edgeAggregate) {
-        return { pageId: '', notFoundError: 'Edge not found' };
-      }
-
-      return edgeAggregate.edge.pageId.value;
-    },
-    actionName: 'deleteEdgeAction',
     getLogMetadata: req => ({ edgeId: req.edgeId }),
-  },
-  deleteEdgeInternal
+  }
 );
 
 /**
@@ -58,19 +46,17 @@ export const deleteEdgeAction = withSecureAction(
  */
 async function deleteEdgeInternal(
   safeDto: DeleteEdgeRequest, // ✅ 이미 검증됨 (SafeDTO)
-  context: ActionContext // ✅ 검증된 context
+  context: PageActionContext // ✅ 검증된 context
 ): Promise<ActionResult<void>> {
   try {
+    const { authenticatedUser } = context;
+    const userId: UserId = new UserId(authenticatedUser.id);
+
     // 1. Service 의존성 생성
-    const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
-    const edgeManagementService = new EdgeManagementService(
-      blockMountRepository,
-      edgeRepository
-    );
 
     // 2. ✅ Service에 SafeDTO만 전달 (Value Objects 생성은 Service에서 수행)
-    const result = await edgeManagementService.deleteEdge(safeDto);
+    const result = await deleteEdge(safeDto, userId, edgeRepository);
 
     if (result.isError()) {
       console.error(

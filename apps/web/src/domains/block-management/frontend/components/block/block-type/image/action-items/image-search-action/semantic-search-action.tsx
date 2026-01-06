@@ -7,7 +7,9 @@
 'use client';
 
 import React from 'react';
+
 import { Brain } from 'lucide-react';
+
 import { ImageSearchAction } from './index';
 
 /**
@@ -15,8 +17,6 @@ import { ImageSearchAction } from './index';
  */
 export interface ImageSemanticSearchActionProps {
   blockIds: string[];
-  orgId: string;
-  workspaceId: string;
 }
 
 /**
@@ -26,14 +26,10 @@ export interface ImageSemanticSearchActionProps {
  */
 export function ImageSemanticSearchAction({
   blockIds,
-  orgId,
-  workspaceId,
 }: ImageSemanticSearchActionProps): React.ReactElement {
   return (
     <ImageSearchAction
       blockIds={blockIds}
-      orgId={orgId}
-      workspaceId={workspaceId}
       defaultSearchType="semantic"
       triggerIcon={Brain}
       triggerTooltip="Semantic Search"

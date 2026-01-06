@@ -7,7 +7,7 @@ import { useReactFlow } from '@xyflow/react';
 import { AlertCircle, FileCode, Play } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import { PythonBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { PythonBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { cn } from '@/lib/utils';

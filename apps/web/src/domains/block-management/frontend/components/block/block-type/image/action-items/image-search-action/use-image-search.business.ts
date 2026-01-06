@@ -13,7 +13,7 @@ import { useReactFlow } from '@xyflow/react';
 
 import { toast } from '@workspace/ui/components/ui/sonner';
 
-import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { searchImageAssetsAction } from '@/domains/image-app-space/actions/image-search.actions';
 import type {

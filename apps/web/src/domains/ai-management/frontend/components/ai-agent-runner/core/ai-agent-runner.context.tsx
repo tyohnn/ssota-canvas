@@ -1,7 +1,9 @@
 'use client';
 
 import { createContext, useContext } from 'react';
+
 import { UIMessage } from 'ai';
+
 import { AgentState } from './types';
 
 /**
@@ -21,11 +23,6 @@ export interface AIAgentRunnerContextValue {
   sendMessage: (text: string) => void;
   setHovered: (hovered: boolean) => void;
   focusConversation: () => void;
-
-  // Props
-  pageId: string;
-  workspaceId: string;
-  organizationId: string;
 }
 
 /**

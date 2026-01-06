@@ -2,15 +2,16 @@ import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
 import { adminDb } from '@/db';
 import { type CanvasEdgeShape, edges } from '@/db/schema';
-import { EdgeRepository } from '@/domains/canvas-management/backend/repositories/interfaces/edge.repository.interface';
-import { EdgeAggregate } from '@/domains/canvas-management/shared/aggregates/edge.aggregate';
-import { Edge } from '@/domains/canvas-management/shared/entities/edge.entity';
-import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
-import { EdgeHandle } from '@/domains/canvas-management/shared/value-objects/edge-handle.vo';
-import { EdgeId } from '@/domains/canvas-management/shared/value-objects/edge-id.vo';
-import { EdgeShape } from '@/domains/canvas-management/shared/value-objects/edge-shape.vo';
-import { EdgeStyle } from '@/domains/canvas-management/shared/value-objects/edge-style.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+
+import { EdgeAggregate } from '../../../shared/aggregates/edge.aggregate';
+import { Edge } from '../../../shared/entities/edge.entity';
+import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
+import { EdgeHandle } from '../../../shared/value-objects/edge-handle.vo';
+import { EdgeId } from '../../../shared/value-objects/edge-id.vo';
+import { EdgeShape } from '../../../shared/value-objects/edge-shape.vo';
+import { EdgeStyle } from '../../../shared/value-objects/edge-style.vo';
+import { EdgeRepository } from '../interfaces/edge.repository.interface';
 
 /**
  * DrizzleEdgeRepository

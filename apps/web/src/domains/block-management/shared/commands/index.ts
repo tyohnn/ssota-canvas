@@ -1,14 +1,13 @@
-import { BlockId } from '../value-objects/block-id.vo';
-import { BlockType } from '../value-objects/block-type.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
-import { BlockPropertiesVO } from '../value-objects/block-properties';
-import { CustomPropertyDefinitionVO } from '../value-objects/custom-property-definition.vo';
+
+import { BlockId } from '../value-objects/block-id.vo';
+import { BlockType } from '../value-objects/block-type.vo';
 
 export interface CreateBlockCommand {
-  blockId: BlockId;
-  userId: UserId;
   workspaceId: WorkspaceId;
+  userId: UserId;
+  blockId: BlockId;
   blockType: BlockType;
   title: string;
   // ✅ Properties 초기화는 Block.create() 내부에서 처리됨
@@ -18,32 +17,31 @@ export interface CreateBlockCommand {
   initialContent?: unknown; // JSONB - TipTap JSON, 텍스트, 코드 등
 }
 
-export interface UpdateBlockCommand {
-  blockId: BlockId;
-  updateData: {
-    title?: string;
-    properties?: Record<string, any>;
-  };
+export interface UpdateBlockTitleCommand {
+  title: string;
+  userId: UserId;
 }
 
 export interface UpdateBlockPropertyCommand {
-  blockId: BlockId;
   propertyPath: string;
   value: unknown;
-  workspaceId: string; // 블록 소유권 검증용
+  userId: UserId;
 }
 
 export interface UpdateBlockContentCommand {
-  blockId: BlockId;
   content: unknown; // JSONB - TipTap JSON, 기타 구조화된 콘텐츠
   contentRaw?: string; // Markdown text (optional, for AI context)
-  workspaceId: string; // 블록 소유권 검증용
+  userId: UserId;
 }
 
 export interface DeleteBlockCommand {
-  blockId: BlockId;
+  userId: UserId;
 }
 
 export interface DuplicateBlockCommand {
+  userId: UserId;
+}
+
+export interface RestoreBlockCommand {
   userId: UserId;
 }

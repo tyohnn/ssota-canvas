@@ -7,9 +7,10 @@ import type { UpdateEdgeShapeCommand } from '@/domains/canvas-management/shared/
 import type { UpdateEdgeShapeRequest } from '@/domains/canvas-management/shared/dtos/requests/edge.requests';
 import { EdgeId } from '@/domains/canvas-management/shared/value-objects/edge-id.vo';
 import { EdgeShape } from '@/domains/canvas-management/shared/value-objects/edge-shape.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
-import { CanvasManagementError, handleDomainEvents } from './common';
+import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
 
 /**
  * 엣지 모양 업데이트
@@ -25,6 +26,7 @@ import { CanvasManagementError, handleDomainEvents } from './common';
  */
 export async function updateEdgeShape(
   safeDto: UpdateEdgeShapeRequest,
+  safeUserId: UserId,
   edgeRepository: EdgeRepository
 ): Promise<Result<EdgeAggregate, Error>> {
   try {
@@ -45,6 +47,7 @@ export async function updateEdgeShape(
     const command: UpdateEdgeShapeCommand = {
       edgeId,
       newShape,
+      userId: safeUserId,
     };
 
     // 4. Aggregate에 Command 전달 (Command → Event)
@@ -53,9 +56,9 @@ export async function updateEdgeShape(
     // 5. Repository 업데이트
     await edgeRepository.update(aggregate);
 
-    // 6. Domain Event 처리
+    // 6. 도메인 이벤트 처리
     const events = aggregate.getUncommittedEvents();
-    await handleDomainEvents(events);
+    await Promise.allSettled(events.map(event => event.handle()));
 
     // 7. Event 커밋
     aggregate.markEventsAsCommitted();

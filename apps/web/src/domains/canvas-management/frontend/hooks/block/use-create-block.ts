@@ -9,21 +9,19 @@ import {
   BlockType,
   getBlockSize,
 } from '@/domains/block-management/shared/types/block-types';
-import { createAndMountBlockAction } from '@/domains/canvas-management/actions/block/create-and-mount-block.action';
-import { softDeleteBlockMountAction } from '@/domains/canvas-management/actions/block/soft-delete-block-mount.action';
-import { CustomNodeType } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
+import { isFailure } from '@/lib';
+
+import { createAndMountBlockAction } from '../../../actions/block-mount/create-and-mount-block.action';
+import { softDeleteBlockMountAction } from '../../../actions/block-mount/soft-delete-block-mount.action';
 import {
   type CreateAndMountBlockRequestInput,
   CreateAndMountBlockRequestSchema,
   type SoftDeleteBlockMountRequestInput,
   SoftDeleteBlockMountRequestSchema,
-} from '@/domains/canvas-management/shared/dtos/requests';
-import type {
-  BlockCreatedAndMountedDTO,
-  BlockMountSoftDeletedDTO,
-} from '@/domains/canvas-management/shared/dtos/responses';
-import type { Position } from '@/domains/canvas-management/shared/types/common.types';
-import { isFailure } from '@/lib';
+} from '../../../shared/dtos/requests';
+import type { BlockCreatedAndMountedDTO } from '../../../shared/dtos/responses';
+import type { Position } from '../../../shared/types/common.types';
+import { CustomNodeType } from '../../acl/react-flow.acl';
 
 export type ReactFlowDependencies = {
   getNodes: () => Node[];
@@ -91,9 +89,6 @@ export function useCreateBlock(
     const optimisticNodeData: BlockNodeData = buildBlockNodeData(blockType, {
       blockMountId: '',
       blockId: '',
-      pageId,
-      orgId: '', // Optimistic node - will be replaced by server response
-      workspaceId: '', // Optimistic node - will be replaced by server response
       properties: initialProperties,
       content: initialContent,
       title,
@@ -238,9 +233,6 @@ export function useCreateBlock(
         {
           blockMountId: blockView.blockMountId,
           blockId: blockView.blockId,
-          pageId,
-          orgId: optimisticNodeData?.orgId || '', // Keep from optimistic or empty
-          workspaceId: optimisticNodeData?.workspaceId || '', // Keep from optimistic or empty
           title: blockView.title,
           properties: blockView.properties,
           customProperties: blockView.customProperties,

@@ -8,19 +8,21 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { useCanvasSelection } from '@/domains/canvas-management/frontend/hooks/use-canvas-selection';
+
 import {
   ColorToken,
   getRichStyleClasses,
-  getTextColorClass,
   getSelectedRingClasses,
+  getTextColorClass,
 } from '@/domains/block-management/shared/types/style-tokens.types';
-import { useBaseBlockUI, type BaseBlockUIState } from './use-base-block.ui';
+import { useCanvasSelection } from '@/domains/canvas-management/frontend/hooks/use-canvas-selection';
+
+import type { BaseBlockProps, ResizeData } from './types';
 import {
-  useBaseBlockBusiness,
   type BaseBlockBusinessLogic,
+  useBaseBlockBusiness,
 } from './use-base-block.business';
-import type { BaseBlockProps, ResizeData, HoverDirection } from './types';
+import { type BaseBlockUIState, useBaseBlockUI } from './use-base-block.ui';
 
 export interface UseBaseBlockOptions {
   businessLogic?: BaseBlockBusinessLogic;
@@ -140,12 +142,7 @@ export function useBaseBlock(
       // Business: Save to DB
       const result = await business.saveBlockSize(
         data.blockMountId || '',
-        resizeData,
-        {
-          pageId: data.pageId,
-          orgId: data.orgId,
-          workspaceId: data.workspaceId,
-        }
+        resizeData
       );
 
       if (!result.ok) {

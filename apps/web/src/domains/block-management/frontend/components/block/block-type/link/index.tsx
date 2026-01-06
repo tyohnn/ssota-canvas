@@ -19,7 +19,7 @@ import { cn } from '@workspace/ui/lib/utils';
 
 import { fetchOpenGraphMetadata } from '@/domains/block-management/actions/opengraph.actions';
 import type { OpenGraphMetadata } from '@/domains/block-management/actions/opengraph.actions';
-import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { LinkBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
   ColorToken,

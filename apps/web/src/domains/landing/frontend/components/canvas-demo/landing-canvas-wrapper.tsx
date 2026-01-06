@@ -11,32 +11,34 @@
 'use client';
 
 import React, { useEffect, useMemo } from 'react';
+
+import { useTheme } from 'next-themes';
+
 import {
-  ReactFlow,
   Background,
-  Panel,
-  useNodesState,
-  useEdgesState,
-  useReactFlow,
-  type Node,
   type Edge,
+  type Node,
+  Panel,
+  ReactFlow,
+  useEdgesState,
+  useNodesState,
+  useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useTheme } from 'next-themes';
-import { Rocket, FileText, type LucideIcon } from 'lucide-react';
+import { FileText, type LucideIcon, Rocket } from 'lucide-react';
 
-// Canvas management
-import { CustomEdge } from '@/domains/canvas-management/frontend/components';
-import {
-  useCanvasMode,
-  type CanvasMode,
-} from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
-import { CANVAS_NODE_TYPES } from '@/domains/canvas-management/frontend/config/node-types.config';
-
-// Original Canvas components
-import { CanvasToolbar } from '@/domains/canvas-management/frontend/components/core/canvas-toolbar';
-import { ViewportControls } from '@/domains/canvas-management/frontend/components/core/viewport-controls';
 import { AIAgentRunner } from '@/domains/ai-management/frontend/components/ai-agent-runner';
+// Canvas management
+import { CustomEdge } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/custom-edge';
+// Original Canvas components
+import { CanvasToolbar } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/toolbar/canvas-toolbar';
+import { ViewportControlToolbar } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/toolbar/viewport-control-toolbar';
+import { CANVAS_NODE_TYPES } from '@/domains/canvas-management/frontend/config/node-types.config';
+import {
+  type CanvasMode,
+  useCanvasModeContext,
+} from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
+
 import { ShowcaseCanvasHeader } from './showcase-canvas-header';
 
 interface LandingCanvasWrapperProps {
@@ -79,7 +81,7 @@ export function LandingCanvasWrapper({
 }: LandingCanvasWrapperProps) {
   const { theme } = useTheme();
   const reactFlow = useReactFlow();
-  const canvasModeContext = useCanvasMode();
+  const canvasModeContext = useCanvasModeContext();
 
   // Enrich edges with metadata (same as canvas-react-flow-wrapper.tsx)
   const enrichedEdges = useMemo(
@@ -223,23 +225,18 @@ export function LandingCanvasWrapper({
             className="m-0! pointer-events-none! z-10"
           >
             <CanvasToolbar
-              pageId={pageId}
               onAddBlockClick={() => {}} // 비활성화
             />
           </Panel>
 
           {/* 좌측 하단 AI Agent Runner - 원래 컴포넌트 사용 (클릭 불가) */}
           <Panel position="bottom-left" className="pointer-events-none!">
-            <AIAgentRunner
-              pageId={pageId}
-              workspaceId={workspaceId}
-              organizationId={orgId}
-            />
+            <AIAgentRunner />
           </Panel>
 
           {/* 우측 하단 뷰포트 컨트롤 - 원래 컴포넌트 사용 (클릭 불가) */}
           <Panel position="bottom-right" className="pointer-events-none!">
-            <ViewportControls />
+            <ViewportControlToolbar />
           </Panel>
         </ReactFlow>
       </div>

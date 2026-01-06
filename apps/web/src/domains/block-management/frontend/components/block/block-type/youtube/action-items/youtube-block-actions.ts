@@ -2,7 +2,6 @@
  * YouTube Block Actions (Non-Hook Version)
  * AI Agent가 호출하는 순수 함수 버전
  */
-
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
 export interface ActionResult {
@@ -23,15 +22,6 @@ export async function executeAction(
   params: Record<string, any>,
   callbacks?: any // ActionCallbacks 타입은 필요시 import
 ): Promise<ActionResult> {
-  const { workspaceId, orgId, pageId } = blockData;
-
-  if (!workspaceId || !orgId || !pageId) {
-    return {
-      success: false,
-      error: 'Missing workspaceId, orgId, or pageId in block data',
-    };
-  }
-
   switch (action) {
     case 'extractScript': {
       // TODO: YouTube 자막/스크립트 추출

@@ -3,7 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
 
-import { updateBlockSizeAction } from '@/domains/canvas-management/actions/block/update-block-size.action';
+import { updateBlockSizeAction } from '@/domains/canvas-management/actions/block-mount/update-block-size.action';
 import {
   type UpdateBlockSizeRequestInput,
   UpdateBlockSizeRequestSchema,

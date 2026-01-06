@@ -1,17 +1,17 @@
 'use server';
 
+import type { PageActionContext } from '@/domains/common/auth/types';
+import { withEdgeSecureAction } from '@/domains/common/server-actions';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
-import { type ActionContext, withSecureAction } from '@/lib/server-actions';
 
-import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '../../backend/repositories/implementations/drizzle-edge.repository';
-import { EdgeManagementService } from '../../backend/services/edge.service';
+import { updateEdgeStyle } from '../../backend/services/edge';
 import { EdgeView } from '../../shared/dtos/index';
 import {
   UpdateEdgeStyleRequest,
   UpdateEdgeStyleRequestSchema,
 } from '../../shared/dtos/requests';
-import { EdgeId } from '../../shared/value-objects/edge-id.vo';
 
 /**
  * 엣지 스타일 업데이트 Server Action
@@ -25,25 +25,13 @@ import { EdgeId } from '../../shared/value-objects/edge-id.vo';
  * @param request - 클라이언트 요청 (런타임 검증 필요)
  * @returns EdgeView (성공) | Error (실패)
  */
-export const updateEdgeStyleAction = withSecureAction(
+export const updateEdgeStyleAction = withEdgeSecureAction(
   UpdateEdgeStyleRequestSchema,
+  'updateEdgeStyleAction',
+  updateEdgeStyleInternal,
   {
-    getPageId: async req => {
-      // Edge 조회하여 pageId 얻기 (Indirect access)
-      const edgeRepository = new DrizzleEdgeRepository();
-      const edgeIdVO = new EdgeId(req.edgeId);
-      const edgeAggregate = await edgeRepository.findById(edgeIdVO);
-
-      if (!edgeAggregate) {
-        return { pageId: '', notFoundError: 'Edge not found' };
-      }
-
-      return edgeAggregate.edge.pageId.value;
-    },
-    actionName: 'updateEdgeStyleAction',
     getLogMetadata: req => ({ edgeId: req.edgeId }),
-  },
-  updateEdgeStyleInternal
+  }
 );
 
 /**
@@ -59,19 +47,16 @@ export const updateEdgeStyleAction = withSecureAction(
  */
 async function updateEdgeStyleInternal(
   safeDto: UpdateEdgeStyleRequest, // ✅ 이미 검증됨 (SafeDTO)
-  context: ActionContext // ✅ 검증된 context
+  context: PageActionContext // ✅ 검증된 context
 ): Promise<ActionResult<EdgeView>> {
   try {
+    const userId: UserId = new UserId(context.authenticatedUser.id);
+
     // 1. Service 의존성 생성
-    const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
-    const edgeManagementService = new EdgeManagementService(
-      blockMountRepository,
-      edgeRepository
-    );
 
     // 2. ✅ Service에 SafeDTO만 전달 (Value Objects 생성은 Service에서 수행)
-    const result = await edgeManagementService.updateEdgeStyle(safeDto);
+    const result = await updateEdgeStyle(safeDto, userId, edgeRepository);
 
     if (result.isError()) {
       console.error(

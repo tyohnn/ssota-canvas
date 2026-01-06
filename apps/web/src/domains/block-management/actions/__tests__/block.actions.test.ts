@@ -25,11 +25,8 @@ vi.mock('../../backend/repositories/implementations/drizzle-block.repository', (
   DrizzleBlockRepository: vi.fn(() => mockBlockRepository),
 }));
 
-vi.mock('../../backend/services/block-management.service', () => ({
+vi.mock('../../backend/services/blocks', () => ({
   BlockManagementService: vi.fn(() => mockBlockManagementService),
-}));
-
-vi.mock('../../backend/services/block-property.service', () => ({
   BlockPropertyService: vi.fn(() => mockBlockPropertyService),
 }));
 

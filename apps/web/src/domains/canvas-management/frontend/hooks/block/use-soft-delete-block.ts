@@ -6,7 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { softDeleteBlockMountAction } from '@/domains/canvas-management/actions/block/soft-delete-block-mount.action';
+import { softDeleteBlockMountAction } from '@/domains/canvas-management/actions/block-mount/soft-delete-block-mount.action';
 import {
   type SoftDeleteBlockMountRequestInput,
   SoftDeleteBlockMountRequestSchema,
@@ -29,6 +29,7 @@ export type UseSoftDeleteBlockParams = {
 
 export type SoftDeleteBlockInput = {
   blockMountIds: string | string[]; // 단일/다중 지원
+  pageId: string;
 };
 
 export type UseSoftDeleteBlockResult = {
@@ -130,7 +131,7 @@ export function useSoftDeleteBlock(
       // Validation
       const rawRequest: SoftDeleteBlockMountRequestInput = {
         blockMountIds: realBlockMountIds,
-        pageId: nodeData.pageId,
+        pageId: input.pageId,
       };
 
       const parseResult =

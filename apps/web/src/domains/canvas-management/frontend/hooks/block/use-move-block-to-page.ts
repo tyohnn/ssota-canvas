@@ -3,7 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
 
-import { moveBlockToPageAction } from '@/domains/canvas-management/actions/block/move-block-to-page.action';
+import { moveBlockToPageAction } from '@/domains/canvas-management/actions/block-mount/move-block-to-page.action';
 import {
   type MoveBlockToPageRequestInput,
   MoveBlockToPageRequestSchema,

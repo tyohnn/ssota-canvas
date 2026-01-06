@@ -46,23 +46,8 @@ function cleanNestedProperties(properties: any): any {
  */
 export function transformBlockViewToNodeData(
   blockView: BlockView,
-  blockMountId: string,
-  additionalData: {
-    pageId?: string;
-    orgId?: string;
-    workspaceId?: string;
-  } = {}
+  blockMountId: string
 ): BaseNodeData {
-  if (
-    !additionalData.pageId ||
-    !additionalData.orgId ||
-    !additionalData.workspaceId
-  ) {
-    throw new Error(
-      'pageId, orgId, and workspaceId are required for BaseNodeData'
-    );
-  }
-
   return {
     blockMountId,
     blockId: blockView.blockId,
@@ -71,9 +56,6 @@ export function transformBlockViewToNodeData(
     properties: cleanNestedProperties(blockView.properties),
     customProperties: blockView.customProperties,
     content: blockView.content, // JSONB content
-    pageId: additionalData.pageId,
-    orgId: additionalData.orgId,
-    workspaceId: additionalData.workspaceId,
     createdAt: blockView.createdAt,
     updatedAt: blockView.updatedAt,
     createdByProfile: blockView.createdByProfile || {
@@ -156,11 +138,6 @@ export function toReactFlowNodeFromMountDTO(
     size: { width: number; height: number };
     zOrder: number;
     mountedAt: string;
-  },
-  additionalData: {
-    pageId: string;
-    orgId: string;
-    workspaceId: string;
   }
 ): CustomNodeType {
   const node: Node<BaseNodeData> = {
@@ -175,9 +152,6 @@ export function toReactFlowNodeFromMountDTO(
       properties: block.properties,
       customProperties: block.customProperties,
       content: block.content, // JSONB content
-      pageId: additionalData.pageId,
-      orgId: additionalData.orgId,
-      workspaceId: additionalData.workspaceId,
       createdByProfile: block.createdByProfile || {
         userId: 'unknown',
         email: null,
@@ -239,12 +213,7 @@ export function isCustomNodeType(
  * 런타임에서는 blockType에 따라 올바른 구체 타입으로 동작합니다.
  */
 export function toReactFlowNodeFromCanvasView(
-  block: CanvasViewData['blocks'][0],
-  additionalData: {
-    pageId: string;
-    orgId: string;
-    workspaceId: string;
-  }
+  block: CanvasViewData['blocks'][0]
 ): CustomNodeType {
   const node: Node<BaseNodeData> = {
     id: block.blockMountId,
@@ -258,9 +227,6 @@ export function toReactFlowNodeFromCanvasView(
       properties: block.properties,
       customProperties: block.customProperties,
       content: block.content, // JSONB content
-      pageId: additionalData.pageId,
-      orgId: additionalData.orgId,
-      workspaceId: additionalData.workspaceId,
       createdAt: block.createdAt,
       updatedAt: block.updatedAt,
       createdByProfile: block.createdByProfile || {
