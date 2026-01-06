@@ -6,10 +6,12 @@
 
 'use client';
 
-import { useMemo, useCallback } from 'react';
-import { ImageToolbarContext } from './image-toolbar.context';
-import type { ImageToolbarItemsProps, ImageToolbarContextValue } from './types';
+import { useCallback, useMemo } from 'react';
+
 import type { ImageBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+
+import { ImageToolbarContext } from './image-toolbar.context';
+import type { ImageToolbarContextValue, ImageToolbarItemsProps } from './types';
 
 /**
  * Image Toolbar Provider Component
@@ -58,9 +60,6 @@ export function ImageToolbarProvider({
       blockMountId,
       blockData,
       disabled,
-      workspaceId: blockData.workspaceId,
-      orgId: blockData.orgId,
-      pageId: blockData.pageId,
       width,
       height,
       imageProperties,

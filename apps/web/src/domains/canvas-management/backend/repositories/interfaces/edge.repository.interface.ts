@@ -1,7 +1,8 @@
-import { EdgeAggregate } from '../../../shared/aggregates/edge.aggregate';
-import { EdgeId } from '../../../shared/value-objects/edge-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+
+import { EdgeAggregate } from '../../../shared/aggregates/edge.aggregate';
 import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
+import { EdgeId } from '../../../shared/value-objects/edge-id.vo';
 
 /**
  * EdgeRepository Interface

@@ -1,32 +1,34 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+
+import {
+  type AuthenticatedUser,
+  getAuthenticatedUser,
+} from '@/domains/common/auth/helpers';
+import { ActionResult, err, ok } from '@/lib';
+
 import { DrizzlePageRepository } from '../backend/repositories/implementations/drizzle-page.repository';
 import { DrizzleWorkspaceMemberRepository } from '../backend/repositories/implementations/drizzle-workspace-member.repository';
 import { DefaultPageHierarchyService } from '../backend/services';
 import { DefaultPageLifecycleService } from '../backend/services/page-lifecycle.service';
-import { WorkspaceId } from '../shared/value-objects/workspace-id.vo';
-import { PageId } from '../shared/value-objects/page-id.vo';
 import type { CreatePageResponse, DuplicatePageResponse } from '../shared/dtos';
 import {
-  CreatePageRequestSchema,
-  MovePageRequestSchema,
-  UpdatePageInfoRequestSchema,
-  ReorderPagesRequestSchema,
-  DeletePageRequestSchema,
-  DuplicatePageRequestSchema,
   type CreatePageRequest,
-  type MovePageRequest,
-  type UpdatePageInfoRequest,
-  type ReorderPagesRequest,
+  CreatePageRequestSchema,
   type DeletePageRequest,
+  DeletePageRequestSchema,
   type DuplicatePageRequest,
+  DuplicatePageRequestSchema,
+  type MovePageRequest,
+  MovePageRequestSchema,
+  type ReorderPagesRequest,
+  ReorderPagesRequestSchema,
+  type UpdatePageInfoRequest,
+  UpdatePageInfoRequestSchema,
 } from '../shared/schemas/page.schemas';
-import { ActionResult, ok, err } from '@/lib/action-result';
-import {
-  getAuthenticatedUser,
-  type AuthenticatedUser,
-} from '@/domains/common/auth/helpers';
+import { PageId } from '../shared/value-objects/page-id.vo';
+import { WorkspaceId } from '../shared/value-objects/workspace-id.vo';
 
 /**
  * Page 생성 Server Action

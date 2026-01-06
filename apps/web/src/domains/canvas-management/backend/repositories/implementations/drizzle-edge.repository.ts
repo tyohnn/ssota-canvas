@@ -1,13 +1,17 @@
-import { EdgeRepository } from '../interfaces/edge.repository.interface';
+import { and, eq, inArray, isNull, or } from 'drizzle-orm';
+
+import { adminDb } from '@/db';
+import { type CanvasEdgeShape, edges } from '@/db/schema';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+
 import { EdgeAggregate } from '../../../shared/aggregates/edge.aggregate';
 import { Edge } from '../../../shared/entities/edge.entity';
+import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
+import { EdgeHandle } from '../../../shared/value-objects/edge-handle.vo';
 import { EdgeId } from '../../../shared/value-objects/edge-id.vo';
 import { EdgeShape } from '../../../shared/value-objects/edge-shape.vo';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
-import { adminDb } from '@/db';
-import { edges, type CanvasEdgeShape } from '@/db/schema';
-import { eq, and, or, inArray, isNull } from 'drizzle-orm';
+import { EdgeStyle } from '../../../shared/value-objects/edge-style.vo';
+import { EdgeRepository } from '../interfaces/edge.repository.interface';
 
 /**
  * DrizzleEdgeRepository
@@ -32,8 +36,8 @@ export class DrizzleEdgeRepository implements EdgeRepository {
           page_id: edge.pageId.value,
           source_block_mount_id: edge.sourceBlockMountId.value,
           target_block_mount_id: edge.targetBlockMountId.value,
-          source_handle: edge.sourceHandle || null,
-          target_handle: edge.targetHandle || null,
+          source_handle: edge.sourceHandle.value,
+          target_handle: edge.targetHandle.value,
           edge_shape: edge.edgeShape.value as CanvasEdgeShape,
           edge_label: edge.edgeLabel,
           edge_style_color: edge.edgeStyle.color,
@@ -91,8 +95,8 @@ export class DrizzleEdgeRepository implements EdgeRepository {
           page_id: edge.pageId.value,
           source_block_mount_id: edge.sourceBlockMountId.value,
           target_block_mount_id: edge.targetBlockMountId.value,
-          source_handle: edge.sourceHandle || null,
-          target_handle: edge.targetHandle || null,
+          source_handle: edge.sourceHandle.value,
+          target_handle: edge.targetHandle.value,
           edge_shape: edge.edgeShape.value as CanvasEdgeShape,
           edge_label: edge.edgeLabel,
           edge_style_color: edge.edgeStyle.color,
@@ -101,8 +105,6 @@ export class DrizzleEdgeRepository implements EdgeRepository {
           deleted_at: null,
         })
         .where(eq(edges.id, edge.id.value));
-
-      console.log('[DrizzleEdgeRepository] Edge updated successfully');
     } catch (error) {
       console.error(
         '❌ [DrizzleEdgeRepository.update] Failed to update edge:',
@@ -198,22 +200,22 @@ export class DrizzleEdgeRepository implements EdgeRepository {
    * DB Row → Domain Model 변환
    */
   private toDomain(row: typeof edges.$inferSelect): EdgeAggregate {
-    const edge = new Edge(
-      new EdgeId(row.id),
-      new PageId(row.page_id),
-      new BlockMountId(row.source_block_mount_id),
-      new BlockMountId(row.target_block_mount_id),
-      row.source_handle || undefined,
-      row.target_handle || undefined,
-      new EdgeShape(row.edge_shape),
-      row.edge_label || '',
-      {
+    const edge = Edge.reconstitute({
+      id: new EdgeId(row.id),
+      pageId: new PageId(row.page_id),
+      sourceBlockMountId: new BlockMountId(row.source_block_mount_id),
+      targetBlockMountId: new BlockMountId(row.target_block_mount_id),
+      sourceHandle: EdgeHandle.fromString(row.source_handle),
+      targetHandle: EdgeHandle.fromString(row.target_handle),
+      edgeShape: new EdgeShape(row.edge_shape),
+      edgeLabel: row.edge_label || '',
+      edgeStyle: EdgeStyle.fromObject({
         color: row.edge_style_color || '#9ca3af',
         thickness: row.edge_style_thickness || 2,
-      },
-      row.created_at,
-      row.updated_at
-    );
+      }),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    });
 
     return new EdgeAggregate(edge);
   }

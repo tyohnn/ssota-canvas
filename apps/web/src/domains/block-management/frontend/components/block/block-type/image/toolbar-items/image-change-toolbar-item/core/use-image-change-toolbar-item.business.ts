@@ -11,11 +11,15 @@
 'use client';
 
 import { useCallback } from 'react';
-import type { ImageChangeBusinessLogic } from './types';
+
+import { useReactFlow } from '@xyflow/react';
+
+import { useUpdateBlockSize } from '@/domains/block-management/frontend/hooks/use-block-commands';
+
 import { useImageUpload } from '../../../core/use-image-upload';
-import { useImageToolbarContext } from '../../core/image-toolbar.context';
-import { useBlockCommands } from '@/domains/block-management/frontend/hooks/use-block-commands';
 import { calculateBlockSizeFromImage } from '../../../utils/image-file.utils';
+import { useImageToolbarContext } from '../../core/image-toolbar.context';
+import type { ImageChangeBusinessLogic } from './types';
 
 /**
  * Business Logic Hook (Production)
@@ -25,13 +29,14 @@ export function useImageChangeToolbarItemBusiness(
   disabled: boolean,
   onPropertiesChange?: (properties: Record<string, any>) => Promise<void>
 ): ImageChangeBusinessLogic {
-  const {
-    blockMountId,
-    pageId,
-    orgId,
-    height: currentHeight,
-  } = useImageToolbarContext();
-  const { updateBlockSizeWithOptimistic } = useBlockCommands();
+  const { blockMountId, height: currentHeight } = useImageToolbarContext();
+  const { getNodes, setNodes } = useReactFlow();
+  const { updateBlockSize } = useUpdateBlockSize({
+    reactFlow: {
+      getNodes,
+      setNodes,
+    },
+  });
 
   // 공통 이미지 업로드 훅 사용
   const { uploadImage, isUploading } = useImageUpload({
@@ -49,12 +54,10 @@ export function useImageChangeToolbarItemBusiness(
           currentHeight
         );
 
-        await updateBlockSizeWithOptimistic(blockMountId, {
+        await updateBlockSize({
+          blockMountId,
           width: newSize.width,
           height: newSize.height,
-          pageId,
-          orgId,
-          workspaceId,
         });
       }
     },

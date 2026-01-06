@@ -1,7 +1,10 @@
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+
+import { BlockMountId } from '../value-objects/block-mount-id.vo';
+import { EdgeHandle } from '../value-objects/edge-handle.vo';
 import { EdgeId } from '../value-objects/edge-id.vo';
 import { EdgeShape } from '../value-objects/edge-shape.vo';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { BlockMountId } from '../value-objects/block-mount-id.vo';
+import { EdgeStyle } from '../value-objects/edge-style.vo';
 
 /**
  * Edge Entity
@@ -16,7 +19,7 @@ import { BlockMountId } from '../value-objects/block-mount-id.vo';
  * - self-loop 허용 (DB 스키마 설계에 따름)
  * - edgeShape은 유효한 React Flow 엣지 모양이어야 함
  * - source/target은 block mount ID를 참조함 (React Flow 노드 ID와 동일)
- * - sourceHandle/targetHandle은 React Flow handle ID ('left', 'right', 'top', 'bottom')
+ * - sourceHandle/targetHandle은 항상 존재해야 함 (EdgeHandle Value Object)
  */
 export class Edge {
   constructor(
@@ -24,20 +27,48 @@ export class Edge {
     public readonly pageId: PageId,
     public readonly sourceBlockMountId: BlockMountId,
     public readonly targetBlockMountId: BlockMountId,
-    public readonly sourceHandle?: string, // React Flow handle ID ('left', 'right', 'top', 'bottom')
-    public readonly targetHandle?: string, // React Flow handle ID ('left', 'right', 'top', 'bottom')
+    public readonly sourceHandle: EdgeHandle,
+    public readonly targetHandle: EdgeHandle,
     public edgeShape: EdgeShape = EdgeShape.default(),
     public edgeLabel: string = '',
-    public edgeStyle: {
-      color: string;
-      thickness: number;
-    } = {
-      color: '#9ca3af',
-      thickness: 2,
-    },
+    public edgeStyle: EdgeStyle = EdgeStyle.default(),
     public readonly createdAt: Date = new Date(),
     public updatedAt: Date = new Date()
   ) {}
+
+  /**
+   * 기존 데이터로 Edge 재구성 (Repository에서 사용)
+   *
+   * @param params - Edge 재구성에 필요한 모든 파라미터
+   * @returns Edge 인스턴스
+   */
+  static reconstitute(params: {
+    id: EdgeId;
+    pageId: PageId;
+    sourceBlockMountId: BlockMountId;
+    targetBlockMountId: BlockMountId;
+    sourceHandle: EdgeHandle;
+    targetHandle: EdgeHandle;
+    edgeShape: EdgeShape;
+    edgeLabel: string;
+    edgeStyle: EdgeStyle;
+    createdAt: Date;
+    updatedAt: Date;
+  }): Edge {
+    return new Edge(
+      params.id,
+      params.pageId,
+      params.sourceBlockMountId,
+      params.targetBlockMountId,
+      params.sourceHandle,
+      params.targetHandle,
+      params.edgeShape,
+      params.edgeLabel,
+      params.edgeStyle,
+      params.createdAt,
+      params.updatedAt
+    );
+  }
 
   /**
    * 엣지 모양 변경
@@ -59,12 +90,16 @@ export class Edge {
    * 엣지 스타일 변경
    */
   updateStyle(style: { stroke?: string; strokeWidth?: number }): void {
+    let newStyle = this.edgeStyle;
+
     if (style.stroke !== undefined) {
-      this.edgeStyle.color = style.stroke;
+      newStyle = newStyle.withColor(style.stroke);
     }
     if (style.strokeWidth !== undefined) {
-      this.edgeStyle.thickness = style.strokeWidth;
+      newStyle = newStyle.withThickness(style.strokeWidth);
     }
+
+    this.edgeStyle = newStyle;
     this.updatedAt = new Date();
   }
 
@@ -72,10 +107,7 @@ export class Edge {
    * React Flow 스타일 가져오기 (stroke, strokeWidth)
    */
   get style(): { stroke: string; strokeWidth: number } {
-    return {
-      stroke: this.edgeStyle.color,
-      strokeWidth: this.edgeStyle.thickness,
-    };
+    return this.edgeStyle.toReactFlowStyle();
   }
 
   /**

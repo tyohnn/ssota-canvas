@@ -1,16 +1,19 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { ImageIcon, ImageOff, AlertCircleIcon, Trash2 } from 'lucide-react';
-import { cn } from '@workspace/ui/lib/utils';
+import { useCallback, useState } from 'react';
+
+import { AlertCircleIcon, ImageIcon, ImageOff, Trash2 } from 'lucide-react';
+
+import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import {
-  useFileUpload,
   type FileWithPreview,
+  useFileUpload,
 } from '@workspace/ui/hooks/use-file-upload';
+import { cn } from '@workspace/ui/lib/utils';
+
 import type { PropertyUIDefinition } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
-import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 
 interface BlockContext {
   orgId: string;
@@ -77,10 +80,6 @@ export function ImageUploadProperty({
           const result = await upload({
             bucket: StorageBucket.CANVAS_ASSETS,
             file: fileWithPreview.file,
-            orgId: blockData?.orgId,
-            workspaceId: blockData?.workspaceId,
-            pageId: blockData?.pageId,
-            blockId: blockData?.blockId,
           });
 
           await onChange(result.url);
@@ -134,10 +133,6 @@ export function ImageUploadProperty({
             const result = await upload({
               bucket: StorageBucket.CANVAS_ASSETS,
               file,
-              orgId: blockData?.orgId,
-              workspaceId: blockData?.workspaceId,
-              pageId: blockData?.pageId,
-              blockId: blockData?.blockId,
             });
             await onChange(result.url);
           } catch (error) {

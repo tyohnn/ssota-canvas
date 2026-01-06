@@ -16,7 +16,7 @@ import {
   type DeleteCustomPropertyRequestInput,
 } from '../../shared/dtos/requests';
 import { BlockNodeData } from '../../shared/types/block-data.types';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 
 export interface PropertyOption {
   id: string;

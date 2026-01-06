@@ -7,16 +7,16 @@
 'use client';
 
 import React from 'react';
+
 import { Search } from 'lucide-react';
-import { ImageSearchAction, type ImageSearchActionFullProps } from './index';
+
+import { ImageSearchAction } from './index';
 
 /**
  * Keyword Search Action Props
  */
 export interface ImageKeywordSearchActionProps {
   blockIds: string[];
-  orgId: string;
-  workspaceId: string;
 }
 
 /**
@@ -26,14 +26,10 @@ export interface ImageKeywordSearchActionProps {
  */
 export function ImageKeywordSearchAction({
   blockIds,
-  orgId,
-  workspaceId,
 }: ImageKeywordSearchActionProps): React.ReactElement {
   return (
     <ImageSearchAction
       blockIds={blockIds}
-      orgId={orgId}
-      workspaceId={workspaceId}
       defaultSearchType="keyword"
       triggerIcon={Search}
       triggerTooltip="Keyword Search"

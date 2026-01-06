@@ -7,15 +7,17 @@
 
 'use client';
 
-import type { ImageChangeUIState, ImageChangeBusinessLogic } from './types';
+import { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
+
+import type { ImageChangeBusinessLogic, ImageChangeUIState } from './types';
 import {
   useImageChangeToolbarItemBusiness,
   type useMockImageChangeToolbarItemBusiness,
 } from './use-image-change-toolbar-item.business';
 
 export interface UseImageChangeToolbarItemResult
-  extends ImageChangeUIState,
-    ImageChangeBusinessLogic {
+  extends ImageChangeUIState, ImageChangeBusinessLogic {
   // Combined result
 }
 
@@ -26,11 +28,15 @@ export interface UseImageChangeToolbarItemResult
  * Test/Mock: 커스텀 로직 주입 가능
  */
 export function useImageChangeToolbarItem(
-  workspaceId: string,
   disabled: boolean,
   onPropertiesChange?: (properties: Record<string, any>) => Promise<void>,
-  businessLogic?: ImageChangeBusinessLogic // 🎯 Optional injection
+  // optional injection
+  canvasMetadataOverride?: CanvasMetadata,
+  businessLogic?: ImageChangeBusinessLogic
 ): UseImageChangeToolbarItemResult {
+  const canvasMetadata = useCanvasMetadata(canvasMetadataOverride);
+  const { workspaceId } = canvasMetadata;
+
   // Business Logic (엔지니어 영역)
   const defaultBusiness = useImageChangeToolbarItemBusiness(
     workspaceId,

@@ -1,21 +1,26 @@
 'use client';
 
-import React, { memo, useState, useCallback, useEffect, useRef } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+
 import type { NodeProps } from '@xyflow/react';
-import type { YoutubeBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
-import type { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { cn } from '@workspace/ui/lib/utils';
-import { Youtube, Play } from 'lucide-react';
-import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useReactFlow } from '@xyflow/react';
+import { Play, Youtube } from 'lucide-react';
+
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
+import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
+import { cn } from '@workspace/ui/lib/utils';
+
+import { fetchYouTubeMetadata } from '@/domains/block-management/actions/youtube.actions';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
+import type { YoutubeBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
   ColorToken,
-  getSelectedRingClasses,
   getGlowColor,
+  getSelectedRingClasses,
 } from '@/domains/block-management/shared/types/style-tokens.types';
-import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
-import { fetchYouTubeMetadata } from '@/domains/block-management/actions/youtube.actions';
+import type { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+
+import { BaseBlock } from '../base-block';
 
 /**
  * YouTube Block Component
@@ -76,7 +81,15 @@ export const YoutubeBlock = memo(function YoutubeBlock({
   const prevUrlRef = useRef<string>(url);
 
   // Hooks
-  const { updateProperty, updateProperties } = useBlockPropertyUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateProperty, updateProperties } = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
 
   // Color for styling (기본값)
   const color = ColorToken.GRAY;

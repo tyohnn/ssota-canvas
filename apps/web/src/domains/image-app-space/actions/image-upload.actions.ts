@@ -9,7 +9,7 @@
 'use server';
 
 import { z } from 'zod';
-import { ActionResult, err, ok } from '@/lib/action-result';
+import { ActionResult, err, ok } from '@/lib';
 import { getAuthenticatedUser } from '@/domains/common/auth/helpers';
 import {
   isAuthenticationError,

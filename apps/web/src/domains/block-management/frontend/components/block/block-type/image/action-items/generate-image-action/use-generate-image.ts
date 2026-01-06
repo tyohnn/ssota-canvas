@@ -4,18 +4,20 @@
  * UI State + Business Logic 통합
  * Optional Injection 지원
  */
-
 import { useCallback } from 'react';
-import type { GenerateImageUIState, GenerateImageBusinessLogic } from './types';
-import { useGenerateImageUI } from './use-generate-image.ui';
+
+import { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
+
+import type { GenerateImageBusinessLogic, GenerateImageUIState } from './types';
 import { useGenerateImageBusiness } from './use-generate-image.business';
+import { useGenerateImageUI } from './use-generate-image.ui';
 
 /**
  * 통합 Hook 결과
  */
 export interface UseGenerateImageResult
-  extends GenerateImageUIState,
-    GenerateImageBusinessLogic {
+  extends GenerateImageUIState, GenerateImageBusinessLogic {
   // 통합 액션
   handleGenerate: () => Promise<void>;
   handleApply: () => Promise<void>;
@@ -25,16 +27,22 @@ export interface UseGenerateImageResult
  * Generate Image Hook (통합)
  *
  * @param initialBlockIds - 초기 블록 ID 목록
- * @param orgId - 조직 ID
- * @param workspaceId - 워크스페이스 ID
+ * @param canvasMetadataOverride - 캔버스 메타데이터 오버라이드 (선택적, 테스트/Mock용)
  * @param businessLogic - 비즈니스 로직 (선택적, 테스트/Mock용)
  */
-export function useGenerateImage(
-  initialBlockIds: string[],
-  orgId: string,
-  workspaceId: string,
-  businessLogic?: GenerateImageBusinessLogic
-): UseGenerateImageResult {
+export function useGenerateImage({
+  initialBlockIds,
+  canvasMetadataOverride,
+  businessLogic,
+}: {
+  initialBlockIds: string[];
+  // Optional injection
+  canvasMetadataOverride?: CanvasMetadata;
+  businessLogic?: GenerateImageBusinessLogic;
+}): UseGenerateImageResult {
+  const canvasMetadata = useCanvasMetadata(canvasMetadataOverride);
+  const { workspaceId, orgId } = canvasMetadata;
+
   // UI State
   const uiState = useGenerateImageUI(initialBlockIds);
 

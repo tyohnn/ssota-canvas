@@ -4,18 +4,20 @@
  * UI State + Business Logic 통합
  * Optional Injection 지원
  */
-
 import { useCallback } from 'react';
-import type { ImageSearchUIState, ImageSearchBusinessLogic } from './types';
-import { useImageSearchUI } from './use-image-search.ui';
+
+import { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
+
+import type { ImageSearchBusinessLogic, ImageSearchUIState } from './types';
 import { useImageSearchBusiness } from './use-image-search.business';
+import { useImageSearchUI } from './use-image-search.ui';
 
 /**
  * 통합 Hook 결과
  */
 export interface UseImageSearchResult
-  extends ImageSearchUIState,
-    ImageSearchBusinessLogic {
+  extends ImageSearchUIState, ImageSearchBusinessLogic {
   // 통합 액션
   handleSearch: () => Promise<void>;
   handleApply: () => Promise<void>;
@@ -29,12 +31,18 @@ export interface UseImageSearchResult
  * @param workspaceId - 워크스페이스 ID
  * @param businessLogic - 비즈니스 로직 (선택적, 테스트/Mock용)
  */
-export function useImageSearch(
-  initialBlockIds: string[],
-  orgId: string,
-  workspaceId: string,
-  businessLogic?: ImageSearchBusinessLogic
-): UseImageSearchResult {
+export function useImageSearch({
+  initialBlockIds,
+  canvasMetadataOverride,
+  businessLogic,
+}: {
+  initialBlockIds: string[];
+  canvasMetadataOverride?: CanvasMetadata;
+  businessLogic?: ImageSearchBusinessLogic;
+}): UseImageSearchResult {
+  const canvasMetadata = useCanvasMetadata(canvasMetadataOverride);
+  const { workspaceId, orgId } = canvasMetadata;
+
   // UI State
   const uiState = useImageSearchUI(initialBlockIds);
 

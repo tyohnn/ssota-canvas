@@ -1,11 +1,11 @@
 'use client';
 
-import { AIAgentRunnerProvider } from './core/provider';
+import { Box } from '@/components/ui/box';
+import { cn } from '@/lib/utils';
+
 import { AgentConversation } from './components/agent-conversation';
 import { AgentPromptInput } from './components/agent-prompt-input';
-import { AIAgentRunnerProps } from './core/types';
-import { cn } from '@/lib/utils';
-import { Box } from '@/components/ui/box';
+import { AIAgentRunnerProvider } from './core/provider';
 
 /**
  * AIAgentRunner
@@ -29,17 +29,9 @@ import { Box } from '@/components/ui/box';
  *   organizationId={organizationId}
  * />
  */
-export function AIAgentRunner({
-  pageId,
-  workspaceId,
-  organizationId,
-}: AIAgentRunnerProps) {
+export function AIAgentRunner() {
   return (
-    <AIAgentRunnerProvider
-      pageId={pageId}
-      workspaceId={workspaceId}
-      organizationId={organizationId}
-    >
+    <AIAgentRunnerProvider>
       <Box
         className={cn(
           'ai-agent-runner',

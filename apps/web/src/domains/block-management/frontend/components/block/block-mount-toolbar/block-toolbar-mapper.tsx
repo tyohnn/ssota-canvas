@@ -1,8 +1,12 @@
 'use client';
 
-import React, { useCallback, useState, useEffect } from 'react';
-import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import React, { useCallback, useEffect, useState } from 'react';
+
+import { useReactFlow } from '@xyflow/react';
+
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+
 import { getToolbarComponent, isToolbarLoaded } from './toolbar-prefetch';
 
 interface BlockToolbarMapperProps {
@@ -51,7 +55,15 @@ export function BlockToolbarMapper({
   width,
   height,
 }: BlockToolbarMapperProps) {
-  const { updateProperty, updateProperties } = useBlockPropertyUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateProperty, updateProperties } = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
   const [, forceUpdate] = useState(0);
 
   // 속성 업데이트 핸들러 (단일 속성)

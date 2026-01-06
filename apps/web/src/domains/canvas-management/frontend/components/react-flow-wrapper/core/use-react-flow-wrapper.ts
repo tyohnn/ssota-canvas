@@ -1,0 +1,522 @@
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+
+import { useTheme } from 'next-themes';
+
+import type { Edge, Node } from '@xyflow/react';
+import { useEdgesState, useNodesState, useReactFlow } from '@xyflow/react';
+
+import { PdfBlock } from '@/domains/block-management/frontend/components/block/block-type/pdf';
+import {
+  BLOCK_TYPE_SIZES,
+  BlockType,
+} from '@/domains/block-management/shared/types/block-types';
+import { CANVAS_NODE_TYPES } from '@/domains/canvas-management/frontend/config/node-types.config';
+import {
+  CanvasMetadata,
+  useCanvasMetadata,
+} from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
+import { useCanvasSnapGuides } from '@/domains/canvas-management/frontend/hooks/control/use-canvas-snap-guides';
+import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
+import { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-lifecycle';
+import { useCanvasSelection } from '@/domains/canvas-management/frontend/hooks/use-canvas-selection';
+import { useCanvasTransform } from '@/domains/canvas-management/frontend/hooks/use-canvas-transform';
+import { useCanvasViewport } from '@/domains/canvas-management/frontend/hooks/use-canvas-viewport';
+
+import { CustomEdge } from '../components/custom-edge';
+import {
+  type ReactFlowWrapperBusinessLogic,
+  useReactFlowWrapperBusiness,
+} from './use-react-flow-wrapper.business';
+import {
+  type ReactFlowWrapperUIState,
+  useReactFlowWrapperUI,
+} from './use-react-flow-wrapper.ui';
+
+/**
+ * Combined Hook: UI + Business Logic
+ *
+ * This hook serves as the single point of entry for all external dependencies
+ * and manages all component logic.
+ */
+export interface UseReactFlowWrapperProps {
+  initialNodes: Node[];
+  initialEdges: Edge[];
+}
+
+export interface UseReactFlowWrapperReturn
+  extends
+    Omit<ReactFlowWrapperUIState, 'handleNodeDragStopUI'>,
+    ReactFlowWrapperBusinessLogic {
+  // React Flow State (SSOT)
+  nodes: Node[];
+  edges: Edge[];
+  onNodesChange: (changes: any) => void;
+  onEdgesChange: (changes: any) => void;
+  nodeTypes: Record<string, React.ComponentType<any>>;
+  edgeTypes: Record<string, React.ComponentType<any>>;
+
+  // Theme
+  colorMode: 'light' | 'dark';
+
+  // Interaction settings
+  panOnScrollEnabled: boolean;
+  panOnDragEnabled: boolean;
+  isBlockCreationMode: boolean;
+  isPanningMode: boolean; // Used for key prop to force re-render
+
+  // Viewport
+  defaultViewport: { x: number; y: number; zoom: number };
+  onMove: (
+    event: unknown,
+    viewport: { x: number; y: number; zoom: number }
+  ) => void;
+
+  // Drag callbacks (override UI State)
+  onNodeDragStop: (
+    event: React.MouseEvent,
+    node: Node,
+    draggedNodes: Node[]
+  ) => Promise<void>;
+
+  // Custom handlers (with block creation mode override)
+  handlePaneClick: (event: React.MouseEvent) => void;
+  handleNodeClick: (event: React.MouseEvent, node: Node) => void;
+  handleSelectBlockType: (blockType: BlockType) => void;
+  handleWheel: (event: React.WheelEvent<HTMLDivElement>) => void;
+
+  // Additional state from wrapper
+  guidelines: any[];
+}
+
+export function useReactFlowWrapper(
+  props: UseReactFlowWrapperProps,
+  canvasMetadataOverride?: CanvasMetadata
+): UseReactFlowWrapperReturn {
+  // =========================================================================
+  // 1. Gather External Dependencies and canvas metadata
+  // =========================================================================
+  const { initialNodes, initialEdges } = props;
+  const { pageId } = useCanvasMetadata(canvasMetadataOverride);
+
+  // =========================================================================
+  // 2. React Flow State Management (SSOT)
+  // =========================================================================
+  const [nodes, setNode, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdge, onEdgesChange] = useEdgesState(initialEdges);
+  const reactFlowInstance = useReactFlow();
+
+  // =========================================================================
+  // 3. Theme
+  // =========================================================================
+  const { theme } = useTheme();
+  const colorMode = theme === 'dark' ? 'dark' : 'light';
+
+  // =========================================================================
+  // 4. Domain / Service Hooks (External Dependencies)
+  // =========================================================================
+  const canvasMode = useCanvasModeContext();
+  const canvasSelection = useCanvasSelection();
+  const snapGuides = useCanvasSnapGuides();
+
+  const blockTransform = useCanvasTransform({
+    pageId,
+  });
+
+  const edgeLifecycle = useCanvasEdgeLifecycle({
+    pageId,
+  });
+
+  const blockLifecycle = useCanvasBlockLifecycle({
+    pageId,
+  });
+
+  const canvasViewport = useCanvasViewport({
+    pageId,
+  });
+
+  // =========================================================================
+  // 5. Interaction Settings
+  // =========================================================================
+  // PanOnScroll 동적 제어: textarea 편집 중에는 비활성화
+  const panOnScrollEnabled = !canvasMode.isTextareaEditing;
+  // PanOnDrag 동적 제어: 패닝 모드에서는 드래그로 패닝 가능
+  const panOnDragEnabled = canvasMode.isPanningMode();
+  // 🎨 블록 생성 모드 확인
+  const isBlockCreationMode = canvasMode.isBlockCreationMode();
+
+  // =========================================================================
+  // 6. Node/Edge Types
+  // =========================================================================
+  // 노드 타입 정의 - 공통 config 사용 + PDF 추가
+  const nodeTypes = useMemo(
+    () => ({
+      ...CANVAS_NODE_TYPES,
+      [BlockType.PDF]: PdfBlock, // Dynamic import로 추가
+    }),
+    []
+  );
+
+  // 엣지 타입 정의
+  const edgeTypes = useMemo(
+    () => ({
+      custom: CustomEdge,
+      // 다른 엣지 타입들도 여기에 추가 가능
+    }),
+    []
+  );
+
+  // =========================================================================
+  // 7. Bundle Dependencies for UI/Business Hooks
+  // =========================================================================
+  const uiDependencies = useMemo(
+    () => ({
+      canvasMode,
+      reactFlow: {
+        getNodes: reactFlowInstance.getNodes,
+        setNodes: reactFlowInstance.setNodes,
+        getViewport: reactFlowInstance.getViewport,
+        setViewport: reactFlowInstance.setViewport,
+        screenToFlowPosition: reactFlowInstance.screenToFlowPosition,
+      },
+      snapGuides,
+    }),
+    [
+      canvasMode,
+      reactFlowInstance.getNodes,
+      reactFlowInstance.setNodes,
+      reactFlowInstance.getViewport,
+      reactFlowInstance.setViewport,
+      reactFlowInstance.screenToFlowPosition,
+      snapGuides,
+    ]
+  );
+
+  const businessDependencies = useMemo(
+    () => ({
+      pageId,
+      canvasSelection,
+      edgeLifecycle,
+      blockLifecycle,
+      reactFlow: {
+        getNodes: reactFlowInstance.getNodes,
+        setNodes: reactFlowInstance.setNodes,
+        getViewport: reactFlowInstance.getViewport,
+        setViewport: reactFlowInstance.setViewport,
+        screenToFlowPosition: reactFlowInstance.screenToFlowPosition,
+      },
+      updateBlockSize: blockTransform.updateBlockSize,
+    }),
+    [
+      pageId,
+      canvasSelection,
+      edgeLifecycle,
+      blockLifecycle,
+      reactFlowInstance.getNodes,
+      reactFlowInstance.setNodes,
+      reactFlowInstance.getViewport,
+      reactFlowInstance.setViewport,
+      reactFlowInstance.screenToFlowPosition,
+      blockTransform.updateBlockSize,
+    ]
+  );
+
+  // =========================================================================
+  // 8. Inject into UI State Hook and Business Logic Hook
+  // =========================================================================
+  const uiState = useReactFlowWrapperUI(uiDependencies);
+  const businessLogic = useReactFlowWrapperBusiness(businessDependencies);
+
+  // =========================================================================
+  // 9. Viewport Management
+  // =========================================================================
+  // Viewport 생명주기는 use-canvas-viewport.ts에서 완전히 관리
+  const { defaultViewport, handleViewportChange, flushViewportSave } =
+    canvasViewport;
+
+  const onMove = useCallback(
+    (_event: unknown, viewport: { x: number; y: number; zoom: number }) => {
+      handleViewportChange(viewport);
+    },
+    [handleViewportChange]
+  );
+
+  // =========================================================================
+  // 9.5. Viewport Flush on Panning Mode Exit
+  // =========================================================================
+  // panning 모드에서 다른 모드로 바뀔 때 viewport를 즉시 저장 (debounce flush)
+  // panning 중에는 viewport가 자주 변경되므로, 모드 전환 시점에 저장하여
+  // React Flow 리마운트 시 최신 viewport가 복원되도록 함
+  const currentMode = canvasMode.getCurrentMode();
+  const previousModeRef = React.useRef(currentMode);
+
+  React.useEffect(() => {
+    const previousMode = previousModeRef.current;
+    const isExitingPanning =
+      previousMode.type === 'panning' && currentMode.type !== 'panning';
+
+    // panning 모드에서 다른 모드로 전환될 때만 flush
+    if (isExitingPanning) {
+      flushViewportSave();
+    }
+
+    previousModeRef.current = currentMode;
+  }, [currentMode, flushViewportSave]);
+
+  // =========================================================================
+  // 10. Custom Handlers (Block Creation Mode Override)
+  // =========================================================================
+  // 블럭 타입 선택 핸들러 (다이얼로그 닫기 + 블록 생성 모드 진입)
+  const handleSelectBlockType = useCallback(
+    (blockType: BlockType) => {
+      // UI 상태: 다이얼로그 닫기
+      uiState.setShowAddDialog(false);
+      // 비즈니스 로직: 블록 생성 모드 진입
+      canvasMode.enterBlockCreationMode(blockType);
+    },
+    [uiState, canvasMode]
+  );
+
+  // ✅ 블록 생성 모드용 onPaneClick override
+  const handlePaneClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (isBlockCreationMode) {
+        const currentMode = canvasMode.getCurrentMode();
+        if (currentMode.type !== 'block-creation' || !currentMode.blockType) {
+          return;
+        }
+
+        const blockType = currentMode.blockType;
+        const blockSize =
+          BLOCK_TYPE_SIZES[blockType] ?? BLOCK_TYPE_SIZES['text'];
+
+        const mouseFlowPosition = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
+
+        const adjustedPosition = {
+          x: mouseFlowPosition.x - (blockSize?.width ?? 200) / 2,
+          y: mouseFlowPosition.y - (blockSize?.height ?? 150) / 2,
+        };
+
+        blockLifecycle.createAndMountBlock(blockType, adjustedPosition);
+        canvasMode.exitToDefaultMode();
+        return;
+      }
+
+      // 일반 모드는 기존 콜백 사용
+      uiState.onPaneClick(event);
+    },
+    [
+      isBlockCreationMode,
+      canvasMode,
+      blockLifecycle.createAndMountBlock,
+      reactFlowInstance,
+      uiState,
+    ]
+  );
+
+  // ✅ 블록 생성 모드용 onNodeClick override
+  const handleNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      if (isBlockCreationMode) {
+        const currentMode = canvasMode.getCurrentMode();
+        if (currentMode.type !== 'block-creation' || !currentMode.blockType) {
+          return;
+        }
+
+        const blockType = currentMode.blockType;
+        const blockSize =
+          BLOCK_TYPE_SIZES[blockType] ?? BLOCK_TYPE_SIZES['text'];
+
+        const mouseFlowPosition = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
+
+        const adjustedPosition = {
+          x: mouseFlowPosition.x - (blockSize?.width ?? 200) / 2,
+          y: mouseFlowPosition.y - (blockSize?.height ?? 150) / 2,
+        };
+
+        blockLifecycle.createAndMountBlock(blockType, adjustedPosition);
+        canvasMode.exitToDefaultMode();
+        return;
+      }
+
+      // 일반 모드는 기존 콜백 사용 (UI State에서)
+      uiState.onNodeClick(event, node);
+    },
+    [
+      isBlockCreationMode,
+      canvasMode,
+      blockLifecycle.createAndMountBlock,
+      reactFlowInstance,
+      uiState,
+    ]
+  );
+
+  // =========================================================================
+  // 11. Global Keyboard Event Listener (React Flow Focus Workaround)
+  // =========================================================================
+  useEffect(() => {
+    const handleGlobalKeyDown = (event: globalThis.KeyboardEvent) => {
+      // Input, Textarea, ContentEditable에서는 무시
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // 플랫폼 감지 (최신 방법)
+      let isMac = false;
+      if (typeof navigator !== 'undefined') {
+        if ('userAgentData' in navigator) {
+          const uaData = navigator.userAgentData as { platform?: string };
+          isMac = uaData.platform?.toLowerCase().includes('mac') ?? false;
+        } else {
+          // Fallback: navigator.userAgent 사용
+          const userAgent = navigator.userAgent.toLowerCase();
+          isMac = userAgent.includes('mac');
+        }
+      }
+      const isCtrlOrCmd = isMac ? event.metaKey : event.ctrlKey;
+
+      // Cmd+V: 붙여넣기
+      if (isCtrlOrCmd && event.key === 'v') {
+        event.preventDefault();
+        businessLogic.handlePaste();
+      }
+
+      // Cmd+D: 복제
+      if (isCtrlOrCmd && event.key === 'd') {
+        event.preventDefault();
+        businessLogic.handleDuplicate();
+      }
+    };
+
+    const handleGlobalKeyUp = (event: globalThis.KeyboardEvent) => {
+      // Input, Textarea, ContentEditable에서는 무시
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Space keyup: panning 모드 종료 시 viewport 즉시 저장
+      if (event.code === 'Space' && canvasMode.isPanningMode()) {
+        // 현재 viewport를 즉시 저장 (debounce flush)
+        flushViewportSave();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener('keyup', handleGlobalKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+      window.removeEventListener('keyup', handleGlobalKeyUp);
+    };
+  }, [businessLogic, canvasMode, flushViewportSave]);
+
+  // =========================================================================
+  // 12. Wrap UI Handlers with Business Logic
+  // =========================================================================
+  // onNodeDragStop: UI 로직(스냅, 가이드라인) + 서버 저장
+  const onNodeDragStop = useCallback(
+    async (
+      event: React.MouseEvent,
+      node: Node,
+      draggedNodes: Node[]
+    ): Promise<void> => {
+      // 1. UI 로직 먼저 실행 (스냅 적용, 가이드라인 숨김, 모드 변경)
+      uiState.handleNodeDragStopUI(event, node, draggedNodes);
+
+      // 2. 서버 저장
+      // node.id는 이미 blockMountId이므로 직접 사용
+      const blockPositions = draggedNodes.map(draggedNode => ({
+        blockMountId: draggedNode.id,
+        position: draggedNode.position,
+      }));
+
+      await blockTransform.updateBlockPosition({ blockPositions });
+    },
+    [uiState, blockTransform]
+  );
+
+  // =========================================================================
+  // 13. Compose and Return
+  // =========================================================================
+
+  return {
+    // =========================================================================
+    // State
+    // =========================================================================
+    // React Flow State
+    nodes,
+    edges,
+    nodeTypes,
+    edgeTypes,
+
+    // Theme
+    colorMode,
+
+    // Interaction settings
+    panOnScrollEnabled,
+    panOnDragEnabled,
+    isBlockCreationMode,
+    isPanningMode: canvasMode.isPanningMode(), // Used for key prop to force re-render
+
+    // Viewport
+    defaultViewport,
+
+    // UI State
+    showAddDialog: uiState.showAddDialog,
+    guidelines: snapGuides.guidelines,
+
+    // =========================================================================
+    // Callbacks
+    // =========================================================================
+    // React Flow callbacks
+    onNodesChange,
+    onEdgesChange,
+    onMove,
+
+    // Drag callbacks
+    onNodeDragStart: uiState.onNodeDragStart,
+    onNodeDrag: uiState.onNodeDrag,
+    onNodeDragStop, // 래핑된 버전 사용
+
+    // Selection callbacks
+    onNodeClick: uiState.onNodeClick,
+    onSelectionChange: uiState.onSelectionChange,
+    onPaneClick: uiState.onPaneClick,
+    onWheel: uiState.onWheel,
+
+    // Business Logic callbacks
+    onConnect: businessLogic.onConnect,
+    onReconnect: businessLogic.onReconnect,
+    onReconnectStart: businessLogic.onReconnectStart,
+    onReconnectEnd: businessLogic.onReconnectEnd,
+    onNodesDelete: businessLogic.onNodesDelete,
+    onEdgesDelete: businessLogic.onEdgesDelete,
+
+    // =========================================================================
+    // Custom Handlers
+    // =========================================================================
+    handlePaneClick,
+    handleNodeClick,
+    handleSelectBlockType,
+    handleWheel: uiState.onWheel,
+    setShowAddDialog: uiState.setShowAddDialog,
+    handlePaste: businessLogic.handlePaste,
+    handleDuplicate: businessLogic.handleDuplicate,
+    handleNodeResize: businessLogic.handleNodeResize,
+  };
+}

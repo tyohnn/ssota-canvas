@@ -1,6 +1,9 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+
+import { Crop, Maximize, ScanEye } from 'lucide-react';
+
 import { Button } from '@workspace/ui/components/ui/button';
 import {
   Popover,
@@ -12,9 +15,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
-import { cn } from '@/lib/utils';
+
 import type { ObjectFit } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
-import { ScanEye, Crop, Maximize } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
 import { useImageToolbarContext } from './core/image-toolbar.context';
 
 const OBJECT_FIT_OPTIONS: Array<{
@@ -42,10 +46,10 @@ function renderPreview(value: ObjectFit, size: number = 16) {
  * Context에서 필요한 데이터 가져오기 (Props 없음)
  */
 export function ObjectFitToolbarItem() {
-  // ✅ Context에서 필요한 것만 가져오기
-  const { imageProperties, disabled, updateProperty } = useImageToolbarContext();
+  const { imageProperties, disabled, updateProperty } =
+    useImageToolbarContext();
   const currentValue = imageProperties.objectFit as ObjectFit;
-  
+
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSelect = useCallback(

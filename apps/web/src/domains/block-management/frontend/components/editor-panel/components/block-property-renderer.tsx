@@ -7,36 +7,39 @@
 'use client';
 
 import { useCallback } from 'react';
+
+import { useReactFlow } from '@xyflow/react';
 import * as LucideIcons from 'lucide-react';
 import {
-  Type,
-  List,
-  CheckSquare,
-  Link,
-  Hash,
-  Palette,
   Calendar,
-  Mail,
-  Phone,
+  CheckSquare,
   FileText,
+  Hash,
+  Link,
+  List,
+  Mail,
+  Palette,
+  Phone,
+  Type,
   User,
 } from 'lucide-react';
+
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { PropertyUIDefinition } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
-import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
 
 // Import all input components
 import {
-  TextProperty,
+  CheckboxProperty,
+  ColorProperty,
+  EmailProperty,
+  ImageUploadProperty,
+  MultiSelectProperty,
+  NumberProperty,
+  PhoneProperty,
   SelectProperty,
   StatusProperty,
-  MultiSelectProperty,
-  CheckboxProperty,
-  NumberProperty,
+  TextProperty,
   UrlProperty,
-  EmailProperty,
-  PhoneProperty,
-  ColorProperty,
-  ImageUploadProperty,
 } from './property-input';
 
 export interface BlockPropertyRendererProps {
@@ -54,7 +57,15 @@ export function BlockPropertyRenderer({
   value,
   blockData,
 }: BlockPropertyRendererProps) {
-  const { updateProperty, updatePropertyImmediate } = useBlockPropertyUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateProperty, updatePropertyImmediate } = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
 
   const handleValueChange = useCallback(
     async (newValue: any) => {

@@ -1,23 +1,25 @@
+import { and, eq, isNull } from 'drizzle-orm';
+
 import { adminDb } from '@/db';
 import { blockMounts, blocks, profiles } from '@/db/schema';
-import { eq, isNull, and } from 'drizzle-orm';
+import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
+import { Block } from '@/domains/block-management/shared/entities/block.entity';
+import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { BlockPropertiesFactory } from '@/domains/block-management/shared/value-objects/block-properties';
+import { CustomPropertyDefinition } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
+import { BlockType } from '@/domains/block-management/shared/value-objects/block-type.vo';
+import { CustomPropertyDefinitionVO } from '@/domains/block-management/shared/value-objects/custom-property-definition.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+
 import { BlockMountAggregate } from '../../../shared/aggregates/block-mount.aggregate';
-import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
 import { BlockMount } from '../../../shared/entities/block-mount.entity';
+import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
 import { Position } from '../../../shared/value-objects/position.vo';
 import { Size } from '../../../shared/value-objects/size.vo';
 import { ZOrder } from '../../../shared/value-objects/z-order.vo';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { BlockMountRepository } from '../interfaces/block-mount.repository.interface';
-import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
-import { Block } from '@/domains/block-management/shared/entities/block.entity';
-import { BlockType } from '@/domains/block-management/shared/value-objects/block-type.vo';
-import { BlockPropertiesFactory } from '@/domains/block-management/shared/value-objects/block-properties';
-import { CustomPropertyDefinition } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
-import { CustomPropertyDefinitionVO } from '@/domains/block-management/shared/value-objects/custom-property-definition.vo';
-import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
-import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 
 export class DrizzleBlockMountRepository implements BlockMountRepository {
   /**
@@ -243,16 +245,17 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     const size = new Size(Number(row.size_width), Number(row.size_height));
     const zOrder = new ZOrder(row.z_order);
 
-    const blockMount = new BlockMount(
-      blockMountId,
+    const blockMount = BlockMount.reconstitute({
+      id: blockMountId,
       pageId,
       blockId,
       position,
       size,
       zOrder,
-      row.created_at,
-      row.updated_at
-    );
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      deletedAt: row.deleted_at,
+    });
 
     return new BlockMountAggregate(blockMount);
   }

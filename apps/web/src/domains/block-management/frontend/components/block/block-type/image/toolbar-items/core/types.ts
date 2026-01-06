@@ -1,7 +1,6 @@
 /**
  * Image Toolbar Items Types
  */
-
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { ImageBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 
@@ -28,11 +27,6 @@ export interface ImageToolbarContextValue {
   blockMountId?: string;
   blockData: BlockNodeData;
   disabled: boolean;
-
-  // Context 정보
-  workspaceId: string;
-  orgId: string;
-  pageId: string;
 
   // Block dimensions
   width?: number;

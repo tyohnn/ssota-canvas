@@ -3,32 +3,32 @@
  *
  * DB → DTO → React Flow Node까지의 타입 안전성 보장
  */
+import { UserProfile } from '@/domains/user-management/shared/types';
 
-import { BlockType } from './block-types';
 import {
-  TextBlockProperties,
-  ShapeBlockProperties,
-  ImageBlockProperties,
-  MarkdownBlockProperties,
-  YoutubeBlockProperties,
-  PdfBlockProperties,
   AudioBlockProperties,
-  VideoBlockProperties,
   FileBlockProperties,
-  PythonBlockProperties,
-  LinkBlockProperties,
-  PageMentionBlockProperties,
-  LatexBlockProperties,
-  GithubPrBlockProperties,
-  ReactComponentBlockProperties,
   GithubBranchBlockProperties,
   GithubCommitBlockProperties,
+  GithubPrBlockProperties,
+  ImageBlockProperties,
+  LatexBlockProperties,
+  LinkBlockProperties,
+  MarkdownBlockProperties,
+  PageMentionBlockProperties,
+  PdfBlockProperties,
+  PythonBlockProperties,
+  ReactComponentBlockProperties,
+  ShapeBlockProperties,
+  TextBlockProperties,
   VercelDeploymentBlockProperties,
+  VideoBlockProperties,
+  YoutubeBlockProperties,
 } from '../value-objects/block-properties';
-import { CustomPropertyDefinition } from '../value-objects/block-properties/common-types';
 import { BlockPropertiesFactory } from '../value-objects/block-properties';
+import { CustomPropertyDefinition } from '../value-objects/block-properties/common-types';
 import { BlockType as BlockTypeVO } from '../value-objects/block-type.vo';
-import { UserProfile } from '@/domains/user-management/shared/types';
+import { BlockType } from './block-types';
 
 // CustomPropertyDefinition은 block-properties.types.ts에서 import
 
@@ -74,10 +74,6 @@ export interface BaseNodeData extends Record<string, unknown> {
   properties: BlockProperties<BlockType>;
   customProperties: CustomPropertyDefinition[];
   content?: unknown; // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
-  // Canvas Management 특화 속성들
-  pageId: string;
-  orgId: string;
-  workspaceId: string;
   // 메타데이터
   createdAt?: string;
   updatedAt?: string;
@@ -226,9 +222,6 @@ export function buildBlockNodeData<T extends BlockType>(
   baseData: {
     blockMountId: string;
     blockId: string;
-    pageId: string;
-    orgId: string;
-    workspaceId: string;
     title?: string;
     properties?: BlockProperties<T>;
     customProperties?: CustomPropertyDefinition[];
@@ -254,9 +247,6 @@ export function buildBlockNodeData<T extends BlockType>(
     properties: properties,
     customProperties: baseData.customProperties || [],
     content: baseData.content, // JSONB content
-    pageId: baseData.pageId,
-    orgId: baseData.orgId,
-    workspaceId: baseData.workspaceId,
     createdByProfile: baseData.createdByProfile || {
       id: 'unknown',
       email: 'unknown',

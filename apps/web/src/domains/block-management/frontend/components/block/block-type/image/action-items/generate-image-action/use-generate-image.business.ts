@@ -6,21 +6,24 @@
  * - 이미지 적용 로직
  * - 에러 처리
  */
+import { useCallback, useState } from 'react';
 
-import { useState, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import type { GenerateImageBusinessLogic, ApplyMode } from './types';
-import type { ImageAsset } from '@/domains/image-app-space/shared/types/image-search.types';
-import { generateImageAssetsAction } from '@/domains/image-app-space/actions/image-generation.actions';
-import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
-import { isFailure } from '@/lib/action-result';
-import { toast } from '@workspace/ui/components/ui/sonner';
 import { useReactFlow } from '@xyflow/react';
+
+import { toast } from '@workspace/ui/components/ui/sonner';
+
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { generateImageAssetsAction } from '@/domains/image-app-space/actions/image-generation.actions';
 import {
   IMAGE_GENERATION_MODELS,
   type ImageGenerationModel,
 } from '@/domains/image-app-space/shared/config/image-generation-models';
+import type { ImageAsset } from '@/domains/image-app-space/shared/types/image-search.types';
+import { isFailure } from '@/lib';
+
+import type { ApplyMode, GenerateImageBusinessLogic } from './types';
 
 /**
  * Business Logic Hook (Production)
@@ -35,8 +38,15 @@ export function useGenerateImageBusiness(
   blockIds: string[]
 ): GenerateImageBusinessLogic {
   const [results, setResults] = useState<ImageAsset[]>([]);
-  const { updateProperties } = useBlockPropertyUpdate();
-  const { getNode } = useReactFlow();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateProperties } = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
 
   // 이미지 생성 Mutation (React Query)
   const generateMutation = useMutation({

@@ -1,30 +1,35 @@
 'use client';
 
-import React, { memo, useState, useCallback, useRef, useEffect } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+
 import type { NodeProps } from '@xyflow/react';
-import type { PdfBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
-import type { PdfBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { cn } from '@workspace/ui/lib/utils';
-import { FileText, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
-import {
-  useFileUpload,
-  type FileWithPreview,
-} from '@workspace/ui/hooks/use-file-upload';
-import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
-import {
-  TooltipProvider,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@workspace/ui/components/ui/tooltip';
-import { Button } from '@workspace/ui/components/ui/button';
-import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
-import { StorageBucket } from '@/domains/storage/types/storage.types';
-import { Skeleton } from '@workspace/ui/components/ui/skeleton';
+import { useReactFlow } from '@xyflow/react';
+import { AlertCircle, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+
+import { Button } from '@workspace/ui/components/ui/button';
+import { Skeleton } from '@workspace/ui/components/ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@workspace/ui/components/ui/tooltip';
+import {
+  type FileWithPreview,
+  useFileUpload,
+} from '@workspace/ui/hooks/use-file-upload';
+import { cn } from '@workspace/ui/lib/utils';
+
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
+import type { PdfBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import type { PdfBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
+import { StorageBucket } from '@/domains/storage/types/storage.types';
+
+import { BaseBlock } from '../base-block';
 
 /**
  * PDF Block Component
@@ -69,7 +74,15 @@ export const PdfBlock = memo(function PdfBlock({
   }, []);
 
   // Hooks
-  const { updateProperty } = useBlockPropertyUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateProperty } = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
   const { upload, isUploading } = useSupabaseStorage();
 
   // File upload hook
@@ -103,9 +116,6 @@ export const PdfBlock = memo(function PdfBlock({
           const result = await upload({
             bucket: StorageBucket.CANVAS_ASSETS,
             file: fileWithPreview.file,
-            orgId: nodeData.orgId,
-            workspaceId: nodeData.workspaceId,
-            pageId: nodeData.pageId,
             blockId: nodeData.blockId,
           });
 

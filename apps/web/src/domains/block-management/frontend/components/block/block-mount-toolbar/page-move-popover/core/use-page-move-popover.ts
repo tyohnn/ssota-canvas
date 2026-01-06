@@ -1,20 +1,26 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { usePageMovePopoverUI } from './use-page-move-popover.ui';
-import {
-  usePageMoveBusiness,
-  type PageMoveBusinessLogic,
-} from './use-page-move-popover.business';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import type { RecentPageDTO } from '@/domains/workspace-management/shared/dtos';
+
+import {
+  type PageMoveBusinessLogic,
+  usePageMoveBusiness,
+} from './use-page-move-popover.business';
+import { usePageMovePopoverUI } from './use-page-move-popover.ui';
 
 export function usePageMovePopover(
   blockMountId: string,
-  currentPageId: string,
-  workspaceId: string,
-  orgId: string,
-  businessLogic?: PageMoveBusinessLogic // Optional injection
+  // Optional injection
+  canvasMetadataOverride?: CanvasMetadata,
+  businessLogic?: PageMoveBusinessLogic
 ) {
+  const canvasMetadata = useCanvasMetadata(canvasMetadataOverride);
+  const { pageId: currentPageId, workspaceId, orgId } = canvasMetadata;
+
   // Business Logic
   const defaultBusiness = usePageMoveBusiness(
     blockMountId,
@@ -111,6 +117,7 @@ export function usePageMovePopover(
 
   return {
     ...uiState,
+    pageId: currentPageId,
     handleSelectPage,
     canMoveTo: business.canMoveTo,
   };

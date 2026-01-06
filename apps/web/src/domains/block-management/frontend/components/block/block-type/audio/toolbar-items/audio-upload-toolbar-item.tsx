@@ -1,23 +1,22 @@
 'use client';
 
 import { useCallback } from 'react';
+
 import { Upload } from 'lucide-react';
+
 import { Button } from '@workspace/ui/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
+
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
 
 interface AudioUploadToolbarItemProps {
   blockId: string;
-  blockMountId?: string;
   disabled?: boolean;
-  orgId: string;
-  workspaceId: string;
-  pageId: string;
   onValueChange?: (url: string) => Promise<void>;
 }
 
@@ -30,11 +29,7 @@ interface AudioUploadToolbarItemProps {
  */
 export function AudioUploadToolbarItem({
   blockId,
-  blockMountId,
   disabled = false,
-  orgId,
-  workspaceId,
-  pageId,
   onValueChange,
 }: AudioUploadToolbarItemProps) {
   const { upload, isUploading } = useSupabaseStorage();
@@ -55,9 +50,6 @@ export function AudioUploadToolbarItem({
           const result = await upload({
             bucket: StorageBucket.CANVAS_ASSETS,
             file,
-            orgId,
-            workspaceId,
-            pageId,
             blockId,
           });
 
@@ -70,16 +62,7 @@ export function AudioUploadToolbarItem({
     };
 
     input.click();
-  }, [
-    disabled,
-    onValueChange,
-    upload,
-    isUploading,
-    orgId,
-    workspaceId,
-    pageId,
-    blockId,
-  ]);
+  }, [disabled, onValueChange, upload, isUploading, blockId]);
 
   return (
     <Tooltip>
@@ -92,13 +75,13 @@ export function AudioUploadToolbarItem({
             handleAudioUpload();
           }}
           disabled={disabled || isUploading}
-          aria-label="오디오 업로드"
+          aria-label="Upload audio"
         >
           <Upload className="h-4 w-4" />
         </Button>
       </TooltipTrigger>
       <TooltipContent side="top">
-        <p>{isUploading ? '업로드 중...' : '오디오 업로드'}</p>
+        <p>{isUploading ? 'Uploading...' : 'Upload audio'}</p>
       </TooltipContent>
     </Tooltip>
   );

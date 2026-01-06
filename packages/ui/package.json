@@ -1,6 +1,6 @@
 {
   "name": "@workspace/ui",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -104,6 +104,10 @@
     "./components/ui/*": {
       "types": "./src/components/ui/*",
       "default": "./src/components/ui/*"
+    },
+    "./components/ssota-ui/*": {
+      "types": "./src/components/ssota-ui/*",
+      "default": "./src/components/ssota-ui/*"
     },
     "./hooks/*": {
       "types": "./src/hooks/*",

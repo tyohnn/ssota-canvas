@@ -1,18 +1,21 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
+
+import { Expand } from 'lucide-react';
+
 import { Button } from '@workspace/ui/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@workspace/ui/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from '@workspace/ui/components/ui/dialog';
-import { Expand } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@workspace/ui/components/ui/tooltip';
+
 import { useImageToolbarContext } from './core/image-toolbar.context';
 
 /**
@@ -21,7 +24,6 @@ import { useImageToolbarContext } from './core/image-toolbar.context';
  * Context에서 필요한 데이터 가져오기 (Props 없음)
  */
 export function ExpandImageToolbarItem() {
-  // ✅ Context에서 필요한 것만 가져오기
   const { imageProperties, disabled } = useImageToolbarContext();
   const imageUrl = imageProperties.imageUrl || '';
   const alt = imageProperties.alt;

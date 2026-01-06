@@ -1,20 +1,28 @@
 'use client';
 
 import React from 'react';
+
 import * as Icons from 'lucide-react';
 import { File } from 'lucide-react';
-import { Button } from '@workspace/ui/components/ui/button';
-import { usePageMovePopoverContext } from '../core/context';
-import type { RecentPageDTO } from '@/domains/workspace-management/shared/dtos';
-import { Box } from '@workspace/ui/components/ui/box';
 
-interface PageListItemProps {
+import { Box } from '@workspace/ui/components/ui/box';
+import { Button } from '@workspace/ui/components/ui/button';
+
+import type { RecentPageDTO } from '@/domains/workspace-management/shared/dtos';
+
+export interface PageListItemProps {
   page: RecentPageDTO;
+  currentPageId: string;
+  canMoveTo: (pageId: string) => boolean;
+  handleSelectPage: (pageId: string) => Promise<void>;
 }
 
-export function PageListItem({ page }: PageListItemProps) {
-  const { currentPageId, canMoveTo, handleSelectPage } =
-    usePageMovePopoverContext();
+export function PageListItem({
+  page,
+  currentPageId,
+  canMoveTo,
+  handleSelectPage,
+}: PageListItemProps) {
   const isCurrentPage = page.pageId === currentPageId;
   const disabled = !canMoveTo(page.pageId);
 

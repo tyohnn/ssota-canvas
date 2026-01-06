@@ -7,7 +7,8 @@
 export type AuthErrorCode =
   | 'UNAUTHORIZED'
   | 'NOT_ORG_MEMBER'
-  | 'NOT_WORKSPACE_MEMBER';
+  | 'NOT_WORKSPACE_MEMBER'
+  | 'PAGE_NOT_FOUND';
 
 export type BlockOwnershipErrorCode = 'BLOCK_NOT_FOUND' | 'WORKSPACE_MISMATCH';
 
@@ -18,6 +19,7 @@ export const AUTH_ERROR_MESSAGES: Record<AuthErrorCode, string> = {
   UNAUTHORIZED: 'User not authenticated',
   NOT_ORG_MEMBER: 'You are not a member of this organization',
   NOT_WORKSPACE_MEMBER: 'You do not have access to this workspace',
+  PAGE_NOT_FOUND: 'Page not found or has been deleted',
 } as const;
 
 /**

@@ -1,23 +1,22 @@
 'use client';
 
-import React, { memo, useState, useRef, useCallback, useEffect } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+
 import type { NodeProps } from '@xyflow/react';
-import type { AudioBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
-import type { AudioBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { cn } from '@workspace/ui/lib/utils';
+import { useReactFlow } from '@xyflow/react';
 import {
-  Play,
-  Pause,
-  Music,
   AudioLines,
-  Upload,
-  Mic,
-  Square,
   Check,
+  Mic,
+  Music,
+  Pause,
+  Play,
+  Square,
+  Upload,
 } from 'lucide-react';
-import { AudioScrubber } from '@workspace/ui/components/eleven-labs/waveform';
+
 import { LiveWaveform } from '@workspace/ui/components/eleven-labs/live-waveform';
+import { AudioScrubber } from '@workspace/ui/components/eleven-labs/waveform';
 import { Button } from '@workspace/ui/components/ui/button';
 import {
   Dialog,
@@ -27,15 +26,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@workspace/ui/components/ui/dialog';
-import {
-  useFileUpload,
-  type FileWithPreview,
-} from '@workspace/ui/hooks/use-file-upload';
-import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
+import {
+  type FileWithPreview,
+  useFileUpload,
+} from '@workspace/ui/hooks/use-file-upload';
+import { cn } from '@workspace/ui/lib/utils';
+
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
+import type { AudioBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import type { AudioBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
-import { Skeleton } from '@workspace/ui/components/ui/skeleton';
+
+import { BaseBlock } from '../base-block';
 
 /**
  * Audio Block Component
@@ -80,7 +85,15 @@ export const AudioBlock = memo(function AudioBlock({
   const audioChunksRef = useRef<Blob[]>([]);
 
   // Hooks
-  const { updateProperty } = useBlockPropertyUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateProperty } = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
   const { upload, isUploading } = useSupabaseStorage();
 
   // audioUrl이 변경되면 로딩 상태로 전환
@@ -119,9 +132,6 @@ export const AudioBlock = memo(function AudioBlock({
           const result = await upload({
             bucket: StorageBucket.CANVAS_ASSETS,
             file: fileWithPreview.file,
-            orgId: nodeData.orgId,
-            workspaceId: nodeData.workspaceId,
-            pageId: nodeData.pageId,
             blockId: nodeData.blockId,
           });
 
@@ -276,9 +286,6 @@ export const AudioBlock = memo(function AudioBlock({
       const result = await upload({
         bucket: StorageBucket.CANVAS_ASSETS,
         file,
-        orgId: nodeData.orgId,
-        workspaceId: nodeData.workspaceId,
-        pageId: nodeData.pageId,
         blockId: nodeData.blockId,
       });
 

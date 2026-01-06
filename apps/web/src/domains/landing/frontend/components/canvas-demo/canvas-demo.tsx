@@ -7,7 +7,9 @@
 'use client';
 
 import { ReactFlowProvider } from '@xyflow/react';
-import { CanvasModeProvider } from '@/domains/canvas-management/frontend/contexts/canvas-mode-context';
+
+import { CanvasModeProvider } from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
+
 import { CanvasDemoController } from './canvas-demo-controller';
 
 export function CanvasDemo() {

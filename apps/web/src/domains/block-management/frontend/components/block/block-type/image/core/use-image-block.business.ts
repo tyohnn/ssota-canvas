@@ -4,25 +4,30 @@
  * 비즈니스 로직만 관리 (API 호출, 파일 업로드 등)
  * 이미지 업로드 시 블록 크기를 이미지 종횡비에 맞춤
  */
-
 import { useCallback, useRef } from 'react';
+
+import { useReactFlow } from '@xyflow/react';
+
 import type { FileWithPreview } from '@workspace/ui/hooks/use-file-upload';
-import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
-import { useBlockCommands } from '@/domains/block-management/frontend/hooks/use-block-commands';
+
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
+import { useUpdateBlockSize } from '@/domains/block-management/frontend/hooks/use-block-commands';
+import type { ImageBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
+import { getImageUrlAction } from '@/domains/image-app-space/actions/image-asset.actions';
+import { migrateSingleImageAction } from '@/domains/image-app-space/actions/image-migration.actions';
+import { uploadImageAction } from '@/domains/image-app-space/actions/image-upload.actions';
+import { isSignedUrlExpired } from '@/domains/image-app-space/frontend/utils/signed-url.utils';
+import { refreshImageUrlAction } from '@/domains/storage/actions/storage.actions';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
-import { getImageUrlAction } from '@/domains/image-app-space/actions/image-asset.actions';
-import { uploadImageAction } from '@/domains/image-app-space/actions/image-upload.actions';
-import { migrateSingleImageAction } from '@/domains/image-app-space/actions/image-migration.actions';
-import { refreshImageUrlAction } from '@/domains/storage/actions/storage.actions';
-import { isSignedUrlExpired } from '@/domains/image-app-space/frontend/utils/signed-url.utils';
+
 import {
-  fileToBase64,
-  extractImageMetadata,
   calculateBlockSizeFromImage,
+  extractImageMetadata,
+  fileToBase64,
 } from '../utils/image-file.utils';
 import type { ImageBlockBusinessLogic, ImageBlockUIState } from './types';
-import type { ImageBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
 /**
  * Production 비즈니스 로직
@@ -38,8 +43,23 @@ export function useImageBlockBusiness(
   nodeData: ImageBlockNodeData,
   uiState: ImageBlockUIState
 ): ImageBlockBusinessLogic {
-  const { updateProperty, updateProperties } = useBlockPropertyUpdate();
-  const { updateBlockSizeWithOptimistic } = useBlockCommands();
+  const canvasMetadata = useCanvasMetadata();
+  const { workspaceId } = canvasMetadata;
+  const { getNode, updateNode, getNodes, setNodes } = useReactFlow();
+  const { updateProperty, updateProperties } = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
+  const { updateBlockSize } = useUpdateBlockSize({
+    reactFlow: {
+      getNodes,
+      setNodes,
+    },
+  });
   const { upload, isUploading } = useSupabaseStorage();
 
   // 마이그레이션 진행 중 플래그 (중복 실행 방지)
@@ -324,7 +344,7 @@ export function useImageBlockBusiness(
           fileName: fileWithPreview.file.name,
           fileSize: fileWithPreview.file.size,
           mimeType: fileWithPreview.file.type,
-          workspaceId: nodeData.workspaceId,
+          workspaceId,
           width: metadata.width,
           height: metadata.height,
         });
@@ -359,12 +379,10 @@ export function useImageBlockBusiness(
             // 새 이미지 업로드 시에는 currentHeight를 넘기지 않음 (기본 너비 기준)
           );
 
-          await updateBlockSizeWithOptimistic(nodeData.blockMountId, {
+          await updateBlockSize({
+            blockMountId: nodeData.blockMountId,
             width: newSize.width,
             height: newSize.height,
-            pageId: nodeData.pageId,
-            orgId: nodeData.orgId,
-            workspaceId: nodeData.workspaceId,
           });
         }
       } catch (error) {
@@ -376,9 +394,6 @@ export function useImageBlockBusiness(
           const result = await upload({
             bucket: StorageBucket.CANVAS_ASSETS,
             file: fileWithPreview.file,
-            orgId: nodeData.orgId,
-            workspaceId: nodeData.workspaceId,
-            pageId: nodeData.pageId,
             blockId: nodeData.blockId,
           });
 
@@ -403,12 +418,10 @@ export function useImageBlockBusiness(
               metadata.width,
               metadata.height
             );
-            await updateBlockSizeWithOptimistic(nodeData.blockMountId, {
+            await updateBlockSize({
+              blockMountId: nodeData.blockMountId,
               width: newSize.width,
               height: newSize.height,
-              pageId: nodeData.pageId,
-              orgId: nodeData.orgId,
-              workspaceId: nodeData.workspaceId,
             });
           }
         } catch (fallbackError) {
@@ -433,13 +446,7 @@ export function useImageBlockBusiness(
         }
       }
     },
-    [
-      nodeData,
-      updateProperty,
-      updateProperties,
-      updateBlockSizeWithOptimistic,
-      upload,
-    ]
+    [nodeData, updateProperty, updateProperties, updateBlockSize, upload]
   );
 
   return {

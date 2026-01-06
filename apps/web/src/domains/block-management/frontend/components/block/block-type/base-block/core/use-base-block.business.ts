@@ -9,17 +9,20 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useBlockCommands } from '@/domains/block-management/frontend/hooks/use-block-commands';
-import { prefetchToolbar } from '@/domains/block-management/frontend/components/block/block-mount-toolbar/toolbar-prefetch';
+
+import { useReactFlow } from '@xyflow/react';
+
 import { prefetchAction } from '@/domains/block-management/frontend/components/block/block-action-bar/action-prefetch';
-import type { BlockSizeUpdateParams, ResizeData } from './types';
+import { prefetchToolbar } from '@/domains/block-management/frontend/components/block/block-mount-toolbar/toolbar-prefetch';
+import { useUpdateBlockSize } from '@/domains/block-management/frontend/hooks/use-block-commands';
+
+import type { ResizeData } from './types';
 
 export interface BaseBlockBusinessLogic {
   // 리사이즈 저장
   saveBlockSize: (
     blockMountId: string,
-    resizeData: ResizeData,
-    params: Omit<BlockSizeUpdateParams, 'width' | 'height'>
+    resizeData: ResizeData
   ) => Promise<{ ok: boolean; error?: string }>;
 
   // Prefetch
@@ -30,15 +33,17 @@ export interface BaseBlockBusinessLogic {
  * Production 비즈니스 로직
  */
 export function useBaseBlockBusiness(): BaseBlockBusinessLogic {
-  const { updateBlockSize } = useBlockCommands();
+  const { getNodes, setNodes } = useReactFlow();
+  const { updateBlockSize } = useUpdateBlockSize({
+    reactFlow: {
+      getNodes,
+      setNodes,
+    },
+  });
 
   // 리사이즈 완료 시 DB에 저장
   const saveBlockSize = useCallback(
-    async (
-      blockMountId: string,
-      resizeData: ResizeData,
-      params: Omit<BlockSizeUpdateParams, 'width' | 'height'>
-    ) => {
+    async (blockMountId: string, resizeData: ResizeData) => {
       if (!blockMountId) {
         console.warn(
           'blockMountId가 없어서 리사이즈 정보를 저장할 수 없습니다.'
@@ -46,17 +51,18 @@ export function useBaseBlockBusiness(): BaseBlockBusinessLogic {
         return { ok: false, error: 'Missing blockMountId' };
       }
 
-      const result = await updateBlockSize(blockMountId, {
+      const success = await updateBlockSize({
+        blockMountId,
         width: resizeData.width,
         height: resizeData.height,
-        ...params,
       });
 
-      if (!result.ok) {
-        console.error('블록 마운트 크기 업데이트 실패:', result.error);
+      if (!success) {
+        console.error('블록 마운트 크기 업데이트 실패');
+        return { ok: false, error: 'Failed to update block size' };
       }
 
-      return result;
+      return { ok: true };
     },
     [updateBlockSize]
   );

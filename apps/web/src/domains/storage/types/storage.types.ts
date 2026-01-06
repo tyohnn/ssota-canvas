@@ -26,9 +26,6 @@ export interface UploadOptions {
   onProgress?: (progress: number) => void;
   compress?: boolean; // For images
   // Context for path generation
-  orgId?: string;
-  workspaceId?: string;
-  pageId?: string;
   blockId?: string;
 }
 

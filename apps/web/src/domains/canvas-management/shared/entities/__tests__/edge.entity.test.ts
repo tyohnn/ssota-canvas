@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { Edge } from '../edge.entity';
 import { EdgeId } from '../../value-objects/edge-id.vo';
 import { EdgeShape } from '../../value-objects/edge-shape.vo';
+import { EdgeStyle } from '../../value-objects/edge-style.vo';
+import { EdgeHandle } from '../../value-objects/edge-handle.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockMountId } from '../../value-objects/block-mount-id.vo';
 
@@ -21,14 +23,11 @@ describe('Edge Entity', () => {
   describe('생성', () => {
     it('모든 필수 속성으로 Edge를 생성할 수 있어야 한다', () => {
       // Given
-      const sourceHandle = 'right';
-      const targetHandle = 'left';
+      const sourceHandle = EdgeHandle.right();
+      const targetHandle = EdgeHandle.left();
       const edgeShape = EdgeShape.default();
       const edgeLabel = 'test edge';
-      const edgeStyle = {
-        color: '#FF0000',
-        thickness: 3,
-      };
+      const edgeStyle = new EdgeStyle('#FF0000', 3);
 
       // When
       const edge = new Edge(
@@ -50,16 +49,24 @@ describe('Edge Entity', () => {
       expect(edge.targetBlockMountId).toBe(targetBlockMountId);
       expect(edge.edgeShape.equals(edgeShape)).toBe(true);
       expect(edge.edgeLabel).toBe(edgeLabel);
-      expect(edge.edgeStyle).toEqual(edgeStyle);
+      expect(edge.edgeStyle.equals(edgeStyle)).toBe(true);
     });
 
     it('기본값으로 Edge를 생성할 수 있어야 한다', () => {
       // When
-      const edge = new Edge(edgeId, pageId, sourceBlockMountId, targetBlockMountId);
+      const edge = new Edge(
+        edgeId,
+        pageId,
+        sourceBlockMountId,
+        targetBlockMountId,
+        EdgeHandle.right(),
+        EdgeHandle.left()
+      );
 
       // Then
       expect(edge.edgeShape.isDefault()).toBe(true);
       expect(edge.edgeLabel).toBe('');
+      expect(edge.edgeStyle.equals(EdgeStyle.default())).toBe(true);
       expect(edge.edgeStyle.color).toBe('#9ca3af');
       expect(edge.edgeStyle.thickness).toBe(2);
     });
@@ -73,7 +80,9 @@ describe('Edge Entity', () => {
         edgeId,
         pageId,
         sameBlockMountId,
-        sameBlockMountId
+        sameBlockMountId,
+        EdgeHandle.right(),
+        EdgeHandle.left()
       );
 
       // Then
@@ -84,7 +93,14 @@ describe('Edge Entity', () => {
 
     it('다른 블럭 마운트 간 연결은 self-loop가 아니어야 한다', () => {
       // When
-      const edge = new Edge(edgeId, pageId, sourceBlockMountId, targetBlockMountId);
+      const edge = new Edge(
+        edgeId,
+        pageId,
+        sourceBlockMountId,
+        targetBlockMountId,
+        EdgeHandle.right(),
+        EdgeHandle.left()
+      );
 
       // Then
       expect(edge.isSelfLoop()).toBe(false);
@@ -94,7 +110,15 @@ describe('Edge Entity', () => {
   describe('updateShape', () => {
     it('엣지 모양을 업데이트할 수 있어야 한다', () => {
       // Given
-      const edge = new Edge(edgeId, pageId, sourceBlockMountId, targetBlockMountId, undefined, undefined, EdgeShape.default());
+      const edge = new Edge(
+        edgeId,
+        pageId,
+        sourceBlockMountId,
+        targetBlockMountId,
+        EdgeHandle.right(),
+        EdgeHandle.left(),
+        EdgeShape.default()
+      );
       const newShape = EdgeShape.straight();
 
       // When
@@ -110,7 +134,14 @@ describe('Edge Entity', () => {
   describe('updateLabel', () => {
     it('엣지 레이블을 업데이트할 수 있어야 한다', () => {
       // Given
-      const edge = new Edge(edgeId, pageId, sourceBlockMountId, targetBlockMountId);
+      const edge = new Edge(
+        edgeId,
+        pageId,
+        sourceBlockMountId,
+        targetBlockMountId,
+        EdgeHandle.right(),
+        EdgeHandle.left()
+      );
       const newLabel = 'updated label';
 
       // When
@@ -125,7 +156,14 @@ describe('Edge Entity', () => {
   describe('updateStyle', () => {
     it('엣지 색상을 업데이트할 수 있어야 한다', () => {
       // Given
-      const edge = new Edge(edgeId, pageId, sourceBlockMountId, targetBlockMountId);
+      const edge = new Edge(
+        edgeId,
+        pageId,
+        sourceBlockMountId,
+        targetBlockMountId,
+        EdgeHandle.right(),
+        EdgeHandle.left()
+      );
       const newStyle = { stroke: '#00FF00' };
 
       // When
@@ -139,7 +177,14 @@ describe('Edge Entity', () => {
 
     it('엣지 두께를 업데이트할 수 있어야 한다', () => {
       // Given
-      const edge = new Edge(edgeId, pageId, sourceBlockMountId, targetBlockMountId);
+      const edge = new Edge(
+        edgeId,
+        pageId,
+        sourceBlockMountId,
+        targetBlockMountId,
+        EdgeHandle.right(),
+        EdgeHandle.left()
+      );
       const newStyle = { strokeWidth: 5 };
 
       // When
@@ -153,7 +198,14 @@ describe('Edge Entity', () => {
 
     it('색상과 두께를 동시에 업데이트할 수 있어야 한다', () => {
       // Given
-      const edge = new Edge(edgeId, pageId, sourceBlockMountId, targetBlockMountId);
+      const edge = new Edge(
+        edgeId,
+        pageId,
+        sourceBlockMountId,
+        targetBlockMountId,
+        EdgeHandle.right(),
+        EdgeHandle.left()
+      );
       const newStyle = { stroke: '#0000FF', strokeWidth: 4 };
 
       // When
@@ -169,7 +221,14 @@ describe('Edge Entity', () => {
   describe('isConnectedTo', () => {
     it('소스 블록 마운트와 연결되어 있는지 확인할 수 있어야 한다', () => {
       // Given
-      const edge = new Edge(edgeId, pageId, sourceBlockMountId, targetBlockMountId);
+      const edge = new Edge(
+        edgeId,
+        pageId,
+        sourceBlockMountId,
+        targetBlockMountId,
+        EdgeHandle.right(),
+        EdgeHandle.left()
+      );
       const otherBlockMountId = new BlockMountId('550e8400-e29b-41d4-a716-446655440004');
 
       // When & Then

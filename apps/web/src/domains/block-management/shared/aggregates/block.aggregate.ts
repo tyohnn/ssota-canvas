@@ -1,21 +1,26 @@
-import { Block } from '../entities/block.entity';
-import { BlockId } from '../value-objects/block-id.vo';
 import {
   CreateBlockCommand,
-  UpdateBlockCommand,
-  UpdateBlockPropertyCommand,
-  UpdateBlockContentCommand,
   DeleteBlockCommand,
   DuplicateBlockCommand,
+  RestoreBlockCommand,
+  UpdateBlockContentCommand,
+  UpdateBlockPropertyCommand,
+  UpdateBlockTitleCommand,
 } from '../commands';
+import { Block } from '../entities/block.entity';
+import { BlockManagementError } from '../errors/block-management.error';
 import {
+  BlockContentUpdatedEvent,
   BlockCreatedEvent,
-  BlockUpdatedEvent,
-  BlockPropertyUpdatedEvent,
   BlockDeletedEvent,
   BlockDuplicatedEvent,
+  BlockPropertiesUpdatedEvent,
+  BlockPropertyUpdatedEvent,
+  BlockRestoredEvent,
+  BlockTitleUpdatedEvent,
+  BlockUpdatedEvent,
 } from '../events';
-import { BlockManagementError } from '../errors/block-management.error';
+import { BlockId } from '../value-objects/block-id.vo';
 import { BlockPropertiesFactory } from '../value-objects/block-properties';
 
 /**
@@ -29,8 +34,12 @@ type BlockManagementEvents =
   | BlockCreatedEvent
   | BlockUpdatedEvent
   | BlockPropertyUpdatedEvent
+  | BlockContentUpdatedEvent
+  | BlockTitleUpdatedEvent
+  | BlockPropertiesUpdatedEvent
   | BlockDeletedEvent
-  | BlockDuplicatedEvent;
+  | BlockDuplicatedEvent
+  | BlockRestoredEvent;
 
 export class BlockAggregate {
   private _block: Block;
@@ -100,36 +109,24 @@ export class BlockAggregate {
     return new BlockAggregate(block);
   }
 
-  /**
-   * 블록 업데이트
-   */
-  update(command: UpdateBlockCommand): void {
+  updateTitle(command: UpdateBlockTitleCommand): void {
     if (this._block.isDeleted()) {
       throw new BlockManagementError(
         'BLOCK_ALREADY_DELETED',
-        'Cannot update deleted block'
+        'Cannot update title of deleted block'
       );
     }
-
-    // 속성 업데이트
-    if (command.updateData.title !== undefined) {
-      this._block.update({ title: command.updateData.title });
-    }
-
-    if (command.updateData.properties) {
-      this._block.update({ properties: command.updateData.properties });
-    }
-
-    // 도메인 이벤트 발생
-    const event = new BlockUpdatedEvent(
+    const oldTitle = this._block.title;
+    this._block.updateTitle(command.title);
+    const event = new BlockTitleUpdatedEvent(
       this._block.id,
       {
         blockId: this._block.id,
-        updateData: command.updateData,
+        oldTitle,
+        newTitle: command.title,
       },
       this._block.updatedAt
     );
-
     this._uncommittedEvents.push(event);
   }
 
@@ -184,7 +181,7 @@ export class BlockAggregate {
         ...currentProperties,
         [propertyKey]: command.value,
       };
-      this._block.update({ properties: updatedProperties });
+      this._block.updatePropertiesFromRecord(updatedProperties);
 
       // 도메인 이벤트 발생
       const event = new BlockPropertyUpdatedEvent(
@@ -219,20 +216,15 @@ export class BlockAggregate {
     }
 
     // content 및 contentRaw 필드 업데이트
-    this._block.update({
-      content: command.content,
-      contentRaw: command.contentRaw,
-    });
+    this._block.updateContent(command.content, command.contentRaw);
 
-    // 도메인 이벤트 발생 (BlockUpdatedEvent 재사용)
-    const event = new BlockUpdatedEvent(
+    // 도메인 이벤트 발생
+    const event = new BlockContentUpdatedEvent(
       this._block.id,
       {
         blockId: this._block.id,
-        updateData: {
-          content: command.content,
-          contentRaw: command.contentRaw,
-        },
+        content: command.content,
+        contentRaw: command.contentRaw,
       },
       this._block.updatedAt
     );
@@ -269,7 +261,7 @@ export class BlockAggregate {
   /**
    * 블록 복원
    */
-  restore(): void {
+  restore(command: RestoreBlockCommand): void {
     if (!this._block.isDeleted()) {
       throw new BlockManagementError(
         'INVALID_OPERATION',
@@ -280,11 +272,11 @@ export class BlockAggregate {
     this._block.restore();
 
     // 복원 이벤트는 별도로 정의하지 않고 업데이트 이벤트로 처리
-    const event = new BlockUpdatedEvent(
+    const event = new BlockRestoredEvent(
       this._block.id,
       {
         blockId: this._block.id,
-        updateData: { restored: true },
+        userId: command.userId,
       },
       this._block.updatedAt
     );

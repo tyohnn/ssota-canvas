@@ -1,21 +1,22 @@
 'use client';
 
 import React, { useRef } from 'react';
+
 import { NodeToolbar, Position } from '@xyflow/react';
+
 import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 
-// Canvas Management Hooks
-import { usePreventPinchZoom } from '@/domains/canvas-management/frontend/hooks/use-prevent-pinch-zoom';
-import { BlockActionMapper } from './block-action-mapper';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+// Canvas Management Hooks
+import { usePreventPinchZoom } from '@/domains/canvas-management/frontend/hooks/control/use-prevent-pinch-zoom';
+
+import { BLOCK_ACTION_MODULES } from './action-prefetch';
+import { BlockActionMapper } from './block-action-mapper';
 
 export interface BlockActionBarProps {
   blockId: string;
   blockType: string;
   blockData: BlockNodeData;
-  pageId: string;
-  orgId: string;
-  workspaceId: string;
 }
 
 /**
@@ -31,16 +32,11 @@ export interface BlockActionBarProps {
  *
  * 렌더링 조건: 블록이 선택되었을 때
  */
-// 액션 아이템이 있는 블록 타입들
-const BLOCKS_WITH_ACTIONS = ['youtube', 'pdf', 'link', 'markdown'] as const;
 
 export function BlockActionBar({
   blockId,
   blockType,
   blockData,
-  pageId,
-  orgId,
-  workspaceId,
 }: BlockActionBarProps) {
   const toolbarRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +44,7 @@ export function BlockActionBar({
   usePreventPinchZoom(toolbarRef);
 
   // 액션 아이템이 없는 블록 타입이면 렌더링하지 않음
-  if (!BLOCKS_WITH_ACTIONS.includes(blockType as any)) {
+  if (!BLOCK_ACTION_MODULES[blockType]) {
     return null;
   }
 
@@ -71,9 +67,6 @@ export function BlockActionBar({
             blockId={blockId}
             blockType={blockType}
             blockData={blockData}
-            pageId={pageId}
-            orgId={orgId}
-            workspaceId={workspaceId}
           />
         </TooltipProvider>
       </div>

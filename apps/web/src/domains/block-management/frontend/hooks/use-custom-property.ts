@@ -22,7 +22,7 @@ import {
   type CustomPropertyDefinition,
   type PropertyOption,
 } from '../../shared/value-objects/block-properties/common-types';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 import { toast } from '@workspace/ui/components/ui/sonner';
 
 export interface UseCustomPropertyResult {

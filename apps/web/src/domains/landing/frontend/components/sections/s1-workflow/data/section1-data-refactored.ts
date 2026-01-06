@@ -12,13 +12,16 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { Node, Edge } from '@xyflow/react';
-import type { CanvasMode } from '@/domains/canvas-management/frontend/contexts/canvas-mode-context';
+
+import type { Edge, Node } from '@xyflow/react';
+
+import type { CanvasMode } from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
+
+import { DESIGN_PHASE_BLOCKS_SEQUENCE } from './blocks/design-phase-blocks';
 import { SSOTA_HEXAGON_BLOCK } from './blocks/intro-block';
 import { PLAN_PHASE_BLOCKS_SEQUENCE } from './blocks/plan-phase-blocks';
-import { PLAN_PHASE_EDGES_SEQUENCE } from './edges/plan-phase-edges';
-import { DESIGN_PHASE_BLOCKS_SEQUENCE } from './blocks/design-phase-blocks';
 import { DESIGN_PHASE_EDGES_SEQUENCE } from './edges/design-phase-edges';
+import { PLAN_PHASE_EDGES_SEQUENCE } from './edges/plan-phase-edges';
 
 /**
  * Canvas Animation Timing Configuration

@@ -1,16 +1,13 @@
 // Hooks
 
-// Utils
+// Utils (deprecated - use useCanvasViewport hook instead)
+// These exports are kept for backward compatibility but will be removed in the future
 export {
-  getViewportStateFromStorage,
-  setViewportStateToStorage,
-  getSelectedBlocksFromStorage,
-  setSelectedBlocksToStorage,
-  getSnapSettingsFromStorage,
-  setSnapSettingsToStorage,
-  clearCanvasStorageForPage,
   CANVAS_STORAGE_KEYS,
-} from './utils/canvas-storage';
+  type ViewportState,
+  type ViewportStateMap,
+  type SnapSettings,
+} from './hooks/control/use-canvas-viewport-storage';
 
 // Types
 export type {

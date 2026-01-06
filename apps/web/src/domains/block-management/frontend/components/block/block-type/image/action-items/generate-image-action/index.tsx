@@ -12,25 +12,25 @@
 'use client';
 
 import React from 'react';
-import { Wand2, LucideIcon } from 'lucide-react';
-import { GenerateImageActionProvider } from './provider';
-import { Trigger } from './components/trigger';
-import { DialogContent } from './components/dialog-content';
-import { PromptInput } from './components/prompt-input';
-import { OptionsBar } from './components/options-bar';
+
+import { LucideIcon, Wand2 } from 'lucide-react';
+
+import { Box } from '@workspace/ui/components/ui/box';
+
 import { AspectRatioPreview } from './components/aspect-ratio-preview';
+import { DialogContent } from './components/dialog-content';
+import { OptionsBar } from './components/options-bar';
+import { PromptInput } from './components/prompt-input';
 import { ResultGrid } from './components/result-grid';
 import { SelectionPanel } from './components/selection-panel';
+import { Trigger } from './components/trigger';
+import { GenerateImageActionProvider } from './provider';
 import type { GenerateImageActionProps } from './types';
-import { Box } from '@workspace/ui/components/ui/box';
 
 /**
  * 범용 Generate Image Action Props
  */
 export interface GenerateImageActionFullProps extends GenerateImageActionProps {
-  orgId: string;
-  workspaceId: string;
-
   /** 트리거 아이콘 */
   triggerIcon?: LucideIcon;
 
@@ -56,17 +56,11 @@ export interface GenerateImageActionFullProps extends GenerateImageActionProps {
  */
 export function GenerateImageAction({
   blockIds,
-  orgId,
-  workspaceId,
   triggerIcon = Wand2,
   triggerTooltip = 'Generate image',
 }: GenerateImageActionFullProps): React.ReactElement {
   return (
-    <GenerateImageActionProvider
-      blockIds={blockIds}
-      orgId={orgId}
-      workspaceId={workspaceId}
-    >
+    <GenerateImageActionProvider blockIds={blockIds}>
       {/* Trigger */}
       <Trigger icon={triggerIcon} tooltip={triggerTooltip} />
 

@@ -2,15 +2,12 @@
 
 import { AIAgentRunnerContext } from './ai-agent-runner.context';
 import { useAIAgent } from './use-ai-agent';
-import { AIAgentRunnerProps } from './types';
-import { AIAgentBusinessLogic } from './use-ai-agent.business';
 
 /**
  * AIAgentRunnerProvider Props
  */
-export interface AIAgentRunnerProviderProps extends AIAgentRunnerProps {
+export interface AIAgentRunnerProviderProps {
   children: React.ReactNode;
-  businessLogic?: AIAgentBusinessLogic; // Optional injection
 }
 
 /**
@@ -24,13 +21,8 @@ export interface AIAgentRunnerProviderProps extends AIAgentRunnerProps {
  */
 export function AIAgentRunnerProvider({
   children,
-  businessLogic,
-  ...props
 }: AIAgentRunnerProviderProps) {
-  const agentState = useAIAgent({
-    ...props,
-    businessLogic,
-  });
+  const agentState = useAIAgent({});
 
   return (
     <AIAgentRunnerContext.Provider value={agentState}>

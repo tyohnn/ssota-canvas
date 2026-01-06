@@ -1,23 +1,26 @@
-import { BlockMount } from '../entities/block-mount.entity';
-import { Position } from '../value-objects/position.vo';
-import { Size } from '../value-objects/size.vo';
-import { ZOrder } from '../value-objects/z-order.vo';
+import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
+
 import {
-  DomainEvent,
+  DuplicateBlockMountCommand,
+  MountBlockCommand,
+  MoveBlockToPageCommand,
+  SoftDeleteBlockMountCommand,
+  UpdateSingleBlockPositionCommand,
+  UpdateSingleBlockSizeCommand,
+} from '../commands/index';
+import { BlockView } from '../dtos/views/block.views';
+import { BlockMount } from '../entities/block-mount.entity';
+import {
+  BlockMountDeletedEvent,
+  BlockMountDuplicatedEvent,
   BlockMountedEvent,
+  BlockMovedToPageEvent,
   BlockPositionUpdatedEvent,
   BlockSizeUpdatedEvent,
   BlockZOrderUpdatedEvent,
-  BlockMountDeletedEvent,
-  BlockMountDuplicatedEvent,
-  BlockMovedToPageEvent,
+  DomainEvent,
 } from '../events';
-import {
-  SoftDeleteBlockMountCommand,
-  MountBlockCommand,
-  DuplicateBlockMountCommand,
-  MoveBlockToPageCommand,
-} from '../commands/index';
+import { ZOrder } from '../value-objects/z-order.vo';
 
 export class BlockMountAggregate {
   private _uncommittedEvents: DomainEvent[] = [];
@@ -67,46 +70,56 @@ export class BlockMountAggregate {
     return aggregate;
   }
 
-  updateBlockPosition(newPosition: Position): BlockPositionUpdatedEvent {
-    // 1. BlockMount Entity 위치 업데이트
-    this._blockMount.transform(newPosition, undefined, undefined);
+  /**
+   * 블럭 위치 업데이트 (Command Handler)
+   *
+   * ✅ Event Storming + DDD 패턴:
+   * - Command를 입력으로 받음
+   * - Entity에서 비즈니스 로직 실행
+   * - Domain Event를 발생 (1 Command : 1 Event)
+   *
+   * @param command - UpdateSingleBlockPositionCommand
+   */
+  updateBlockPosition(command: UpdateSingleBlockPositionCommand): void {
+    // 1. BlockMount Entity 위치 업데이트 (비즈니스 로직 실행)
+    this._blockMount.transform(command.newPosition, undefined, undefined);
 
-    // 2. BlockPositionUpdated 이벤트 생성
+    // 2. Domain Event 발생 (Command → Event 1:1 대응)
     const event = new BlockPositionUpdatedEvent(
       this._blockMount.id,
       {
         blockMountId: this._blockMount.id,
-        newPosition,
+        newPosition: command.newPosition,
       },
-      new Date()
+      this._blockMount.updatedAt
     );
-
-    // 3. 이벤트 추가
     this._uncommittedEvents.push(event);
-
-    // 4. 이벤트 반환
-    return event;
   }
 
-  updateBlockSize(newSize: Size): BlockSizeUpdatedEvent {
-    // 1. BlockMount Entity 크기 업데이트
-    this._blockMount.transform(undefined, newSize, undefined);
+  /**
+   * 블럭 크기 업데이트 (Command Handler)
+   *
+   * ✅ Event Storming + DDD 패턴:
+   * - Command를 입력으로 받음
+   * - Entity에서 비즈니스 로직 실행
+   * - Domain Event를 발생 (1 Command : 1 Event)
+   *
+   * @param command - UpdateSingleBlockSizeCommand
+   */
+  updateBlockSize(command: UpdateSingleBlockSizeCommand): void {
+    // 1. BlockMount Entity 크기 업데이트 (비즈니스 로직 실행)
+    this._blockMount.transform(undefined, command.newSize, undefined);
 
-    // 2. BlockSizeUpdated 이벤트 생성
+    // 2. Domain Event 발생 (Command → Event 1:1 대응)
     const event = new BlockSizeUpdatedEvent(
       this._blockMount.id,
       {
         blockMountId: this._blockMount.id,
-        newSize,
+        newSize: command.newSize,
       },
-      new Date()
+      this._blockMount.updatedAt
     );
-
-    // 3. 이벤트 추가
     this._uncommittedEvents.push(event);
-
-    // 4. 이벤트 반환
-    return event;
   }
 
   updateBlockZOrder(newZOrder: ZOrder): BlockZOrderUpdatedEvent {
@@ -130,28 +143,34 @@ export class BlockMountAggregate {
     return event;
   }
 
-  deleteBlockMount(
-    command: SoftDeleteBlockMountCommand
-  ): BlockMountDeletedEvent {
+  /**
+   * 블럭 마운트 삭제 (Command Handler)
+   *
+   * ✅ Event Storming + DDD 패턴:
+   * - Command를 입력으로 받음
+   * - Entity에서 비즈니스 로직 실행 (soft delete)
+   * - Domain Event를 발생 (1 Command : 1 Event)
+   *
+   * @param command - SoftDeleteBlockMountCommand
+   */
+  deleteBlockMount(command: SoftDeleteBlockMountCommand): void {
     // 1. 삭제 가능 여부 확인
     if (!this._blockMount.canBeDeleted()) {
       throw new Error('BlockMount cannot be deleted');
     }
 
-    // 2. BlockMountDeleted 이벤트 생성
+    // 2. BlockMount Entity 소프트 삭제 (비즈니스 로직 실행)
+    this._blockMount.markAsDeleted();
+
+    // 3. Domain Event 발생 (Command → Event 1:1 대응)
     const event = new BlockMountDeletedEvent(
       this._blockMount.id,
       {
         blockMountId: this._blockMount.id,
       },
-      new Date()
+      this._blockMount.deletedAt!
     );
-
-    // 3. uncommitted 이벤트에 추가 (BlockAggregate 패턴과 일치)
     this._uncommittedEvents.push(event);
-
-    // 4. 이벤트 반환
-    return event;
   }
 
   duplicateBlockMount(
@@ -248,5 +267,46 @@ export class BlockMountAggregate {
    */
   markEventsAsCommitted(): void {
     this._uncommittedEvents = [];
+  }
+
+  /**
+   * BlockMountAggregate와 BlockAggregate를 BlockView DTO로 변환
+   *
+   * Aggregate → DTO 변환 로직을 Aggregate에 캡슐화하여
+   * 중복 코드를 제거하고 일관성 있는 변환을 보장합니다.
+   *
+   * @param blockAggregate - BlockAggregate (Block 정보 포함)
+   * @returns BlockView DTO
+   */
+  toView(blockAggregate: BlockAggregate): BlockView {
+    const blockMount = this._blockMount;
+    const block = blockAggregate.getBlock();
+
+    return {
+      // Mount 정보 (Canvas Management Domain)
+      blockMountId: blockMount.id.value,
+      position: {
+        x: blockMount.position.x,
+        y: blockMount.position.y,
+      },
+      size: {
+        width: blockMount.size.width,
+        height: blockMount.size.height,
+      },
+      zOrder: blockMount.zOrder.value,
+
+      // Block 정보 (Block Management Domain)
+      blockId: block.id.value,
+      blockType: block.blockType.value,
+      title: block.title,
+      properties: block.properties.toJSON(),
+      customProperties: block.customProperties.map(cp => cp.toJSON()) || [],
+      content: block.content,
+
+      // 메타데이터 (Block Management Domain)
+      createdAt: block.createdAt.toISOString(),
+      updatedAt: block.updatedAt.toISOString(),
+      createdByProfile: block.createdByProfile,
+    };
   }
 }

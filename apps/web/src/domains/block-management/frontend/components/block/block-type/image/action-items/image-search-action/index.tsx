@@ -12,24 +12,25 @@
 'use client';
 
 import React from 'react';
-import { Search, LucideIcon } from 'lucide-react';
-import { ImageSearchActionProvider } from './provider';
-import { Trigger } from './components/trigger';
-import { PopoverContent } from './components/popover-content';
-import { SearchBar } from './components/search-bar';
-import { ResultGrid } from './components/result-grid';
-import { SelectionPanel } from './components/selection-panel';
-import type { ImageSearchActionProps } from './types';
-import type { SearchType } from '@/domains/image-app-space/shared/types/image-search.types';
+
+import { LucideIcon, Search } from 'lucide-react';
+
 import { Box } from '@workspace/ui/components/ui/box';
+
+import type { SearchType } from '@/domains/image-app-space/shared/types/image-search.types';
+
+import { PopoverContent } from './components/popover-content';
+import { ResultGrid } from './components/result-grid';
+import { SearchBar } from './components/search-bar';
+import { SelectionPanel } from './components/selection-panel';
+import { Trigger } from './components/trigger';
+import { ImageSearchActionProvider } from './provider';
+import type { ImageSearchActionProps } from './types';
 
 /**
  * 범용 Image Search Action Props
  */
 export interface ImageSearchActionFullProps extends ImageSearchActionProps {
-  orgId: string;
-  workspaceId: string;
-
   /** 기본 검색 타입 */
   defaultSearchType?: SearchType;
 
@@ -59,18 +60,12 @@ export interface ImageSearchActionFullProps extends ImageSearchActionProps {
  */
 export function ImageSearchAction({
   blockIds,
-  orgId,
-  workspaceId,
   defaultSearchType = 'combined',
   triggerIcon = Search,
   triggerTooltip = 'Search images',
 }: ImageSearchActionFullProps): React.ReactElement {
   return (
-    <ImageSearchActionProvider
-      blockIds={blockIds}
-      orgId={orgId}
-      workspaceId={workspaceId}
-    >
+    <ImageSearchActionProvider blockIds={blockIds}>
       {/* Trigger */}
       <Trigger
         defaultSearchType={defaultSearchType}

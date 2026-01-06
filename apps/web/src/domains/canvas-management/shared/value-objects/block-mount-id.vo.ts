@@ -26,6 +26,15 @@ export class BlockMountId {
     this._value = value.trim().toLowerCase();
   }
 
+  /**
+   * 새로운 BlockMountId 생성
+   */
+  static generate(): BlockMountId {
+    // UUID v4 생성
+    const uuid = crypto.randomUUID();
+    return new BlockMountId(uuid);
+  }
+
   get value(): string {
     return this._value;
   }

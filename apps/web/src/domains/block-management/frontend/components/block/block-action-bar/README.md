@@ -35,7 +35,7 @@ BlockMountToolbar와 동일한 **Component Registry + Hover Prefetch** 패턴을
 ## 렌더링 조건
 
 ```typescript
-BLOCKS_WITH_ACTIONS.includes(blockType) && isSelected(blockId)
+BLOCK_ACTION_MODULES[blockType] && isSelected(blockId)
 ```
 
 액션이 있는 블럭 타입만 표시됩니다:
@@ -43,7 +43,7 @@ BLOCKS_WITH_ACTIONS.includes(blockType) && isSelected(blockId)
 - youtube
 - pdf  
 - link
-- markdown
+- markdown (TODO: 구현 예정)
 
 ## Features
 

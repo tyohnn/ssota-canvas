@@ -1,20 +1,27 @@
 'use client';
 
-import React, { memo, useState, useCallback, useEffect, useRef } from 'react';
-import type { NodeProps } from '@xyflow/react';
-import type { MarkdownBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
-import type { MarkdownBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { cn } from '@workspace/ui/lib/utils';
-import { useEditor, EditorContent } from '@tiptap/react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+
 import Placeholder from '@tiptap/extension-placeholder';
-import { useBlockContentUpdate } from '@/domains/block-management/frontend/hooks/use-block-content-update';
-import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
+import { EditorContent, useEditor } from '@tiptap/react';
+import type { NodeProps } from '@xyflow/react';
+import { useReactFlow } from '@xyflow/react';
+
+import { cn } from '@workspace/ui/lib/utils';
+
+import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
+import type {
+  BlockNodeData,
+  MarkdownBlockNodeData,
+} from '@/domains/block-management/shared/types/block-data.types';
 import {
-  MARKDOWN_EXTENSIONS,
   EMPTY_TIPTAP_DOC,
+  MARKDOWN_EXTENSIONS,
 } from '@/domains/block-management/shared/utils/tiptap-markdown.utils';
-import type { JSONContent } from '@tiptap/core';
+import type { MarkdownBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
+
+import { BaseBlock } from '../base-block';
 
 /**
  * Markdown Block Component
@@ -48,10 +55,18 @@ export const MarkdownBlock = memo(function MarkdownBlock({
   const { color } = properties;
 
   // Block content update hook
-  const { updateContent, updateContentImmediate } = useBlockContentUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateBlockContent } = useUpdateBlockContent({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: BlockNodeData }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
 
   // Canvas mode context
-  const { setTextareaEditing } = useCanvasMode();
+  const { setTextareaEditing } = useCanvasModeContext();
 
   // 편집 상태 (SSOT)
   const [isEditing, setIsEditing] = useState(false);
@@ -108,9 +123,10 @@ export const MarkdownBlock = memo(function MarkdownBlock({
       // Tiptap JSON 추출
       const tiptapJson = editor.getJSON();
 
-      // 즉시 Optimistic Update (딜레이 없음)
+      // 즉시 Optimistic Update (딜레이 없음) - mutation의 optimistic update로 처리
+      // updateContentImmediate는 제거되었으므로 mutation을 사용
       if (nodeData.blockId && nodeData.blockId !== '') {
-        updateContentImmediate(id, tiptapJson, nodeData);
+        // mutation의 optimistic update가 자동으로 처리됨
       }
 
       // Debounce: 500ms 후에 서버에 저장
@@ -144,8 +160,13 @@ export const MarkdownBlock = memo(function MarkdownBlock({
           }
         }
 
-        // 서버 저장만 수행 (Optimistic Update는 onUpdate에서 이미 수행됨)
-        await updateContent(id, content, nodeData, contentRaw);
+        // 서버 저장만 수행 (Optimistic Update는 mutation에서 자동 처리됨)
+        await updateBlockContent({
+          nodeId: id,
+          content,
+          blockData: nodeData,
+          contentRaw,
+        });
       } catch (error) {
         console.error(
           '[MarkdownBlock] Failed to save markdown content:',
@@ -153,7 +174,7 @@ export const MarkdownBlock = memo(function MarkdownBlock({
         );
       }
     },
-    [id, nodeData, updateContent, editor]
+    [id, nodeData, updateBlockContent, editor]
   );
 
   // 초기 마운트 완료 후 플래그 해제 (지연 적용)
