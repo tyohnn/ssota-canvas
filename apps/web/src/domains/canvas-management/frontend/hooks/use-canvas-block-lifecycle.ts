@@ -33,10 +33,7 @@ export interface UseCanvasBlockLifecycleResult {
     initialContent?: unknown, // 선택적 초기 content (JSONB)
     title?: string // 선택적 초기 title
   ) => Promise<BlockCreatedAndMountedDTO | void>;
-  softDeleteBlockMounts: (
-    blockMountIds: string | string[],
-    pageId?: string
-  ) => Promise<void>;
+  softDeleteBlockMounts: (blockMountIds: string | string[]) => Promise<void>;
   duplicateBlockAndMount: (
     blockMountId: string,
     offsetX?: number,
@@ -124,6 +121,7 @@ export function useCanvasBlockLifecycle(
   });
 
   const { softDeleteBlock, isDeleting } = useSoftDeleteBlock({
+    pageId,
     reactFlow: {
       getNodes: getNodesTyped,
       setNodes,
@@ -223,8 +221,8 @@ export function useCanvasBlockLifecycle(
   );
 
   const softDeleteBlockMounts = useCallback(
-    async (blockMountIds: string | string[], pageId?: string) => {
-      await softDeleteBlock({ blockMountIds, pageId });
+    async (blockMountIds: string | string[]) => {
+      await softDeleteBlock({ blockMountIds });
     },
     [softDeleteBlock]
   );

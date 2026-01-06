@@ -22,6 +22,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseSoftDeleteBlockParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
   onSuccess?: () => void;
   onError?: () => void;
@@ -29,7 +30,6 @@ export type UseSoftDeleteBlockParams = {
 
 export type SoftDeleteBlockInput = {
   blockMountIds: string | string[]; // 단일/다중 지원
-  pageId: string;
 };
 
 export type UseSoftDeleteBlockResult = {
@@ -50,7 +50,7 @@ export type UseSoftDeleteBlockResult = {
 export function useSoftDeleteBlock(
   params: UseSoftDeleteBlockParams
 ): UseSoftDeleteBlockResult {
-  const { reactFlow, onSuccess, onError } = params;
+  const { pageId, reactFlow, onSuccess, onError } = params;
   const { getNodes, setNodes, addNodes, deleteElements } = reactFlow;
 
   // 중복 삭제 방지를 위한 Set (현재 삭제 진행 중인 blockMountId들)
@@ -131,7 +131,7 @@ export function useSoftDeleteBlock(
       // Validation
       const rawRequest: SoftDeleteBlockMountRequestInput = {
         blockMountIds: realBlockMountIds,
-        pageId: input.pageId,
+        pageId,
       };
 
       const parseResult =

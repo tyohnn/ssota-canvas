@@ -127,11 +127,7 @@ async function PageContent({
 
   // ACL 변환: CanvasViewData → React Flow 초기 데이터
   const initialNodes: CustomNodeType[] = canvasViewData.blocks.map(block =>
-    toReactFlowNodeFromCanvasView(block, {
-      pageId,
-      orgId,
-      workspaceId,
-    })
+    toReactFlowNodeFromCanvasView(block)
   );
 
   const initialEdges: Edge[] = canvasViewData.edges.map(edge =>
