@@ -68,6 +68,40 @@ export interface WorkspaceQueryService {
   ): Promise<Result<boolean, WorkspaceManagementError>>;
 
   /**
+   * 사용자가 참여 중인 모든 Workspace 목록 조회
+   * @param userId - 사용자 ID
+   * @returns Workspace 목록 (id, name, icon, organizationName)
+   */
+  getWorkspacesForUser(userId: string): Promise<
+    Result<
+      Array<{
+        id: string;
+        name: string;
+        icon?: string;
+        organizationName?: string;
+      }>,
+      WorkspaceManagementError
+    >
+  >;
+
+  /**
+   * 페이지 기본 정보 조회
+   * @param pageId - 페이지 ID
+   * @returns 페이지 정보 (pageId, title, icon, workspaceId)
+   */
+  getPageInfo(pageId: string): Promise<
+    Result<
+      {
+        pageId: string;
+        title: string;
+        icon?: string;
+        workspaceId?: string;
+      },
+      WorkspaceManagementError
+    >
+  >;
+
+  /**
    * Page가 속한 Workspace 정보 조회
    * @param pageId - Page ID
    * @returns Workspace 정보

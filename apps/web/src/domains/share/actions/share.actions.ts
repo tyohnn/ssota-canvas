@@ -24,19 +24,29 @@ import { DrizzlePublishedPageRepository } from '../backend/repositories/implemen
 import { SharePublishingService } from '../backend/services/share-publishing.service';
 import { ShareQueryService } from '../backend/services/share-query.service';
 import { ShareCopyService } from '../backend/services/share-copy.service';
-import { DefaultWorkspaceManagementAcl } from '../backend/services/default-workspace-management.acl';
+import { DefaultWorkspaceQueryService } from '@/domains/workspace-management/backend/services/workspace-query.service';
+import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
+import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace-member.repository';
+import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 import {
   getAuthenticatedUser,
 } from '@/domains/common/auth/helpers';
-import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { CanvasQueryService } from '@/domains/canvas-management/backend/services/canvas-query.service';
 import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-edge.repository';
 import { DrizzleViewportRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-viewport.repository';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+
+// Factory for WorkspaceQueryService to avoid repetition
+const createWorkspaceQueryService = () => {
+  return new DefaultWorkspaceQueryService(
+    new DrizzleWorkspaceRepository(),
+    new DrizzleWorkspaceMemberRepository(),
+    new DrizzlePageRepository()
+  );
+};
 
 export async function publishPageAction(
   input: unknown
@@ -96,7 +106,7 @@ export async function getPublishedLinkActionInternal(
 
   const queryService = new ShareQueryService(
     repository,
-    new DefaultWorkspaceManagementAcl(),
+    createWorkspaceQueryService(),
     new CanvasQueryService(
       new DrizzleBlockMountRepository(),
       new DrizzleEdgeRepository(),
@@ -121,7 +131,7 @@ export async function getPublishedPageActionInternal(
 
   const queryService = new ShareQueryService(
     repository,
-    new DefaultWorkspaceManagementAcl(),
+    createWorkspaceQueryService(),
     new CanvasQueryService(
       new DrizzleBlockMountRepository(),
       new DrizzleEdgeRepository(),
@@ -145,7 +155,7 @@ export async function getWorkspaceSelectionActionInternal(
   const repository = new DrizzlePublishedPageRepository();
   const service = new ShareCopyService(
     repository,
-    new DefaultWorkspaceManagementAcl()
+    createWorkspaceQueryService()
   );
 
   return service.getWorkspaceSelection(userId);
@@ -167,7 +177,7 @@ export async function copyPublishedPageActionInternal(
   const repository = new DrizzlePublishedPageRepository();
   const service = new ShareCopyService(
     repository,
-    new DefaultWorkspaceManagementAcl()
+    createWorkspaceQueryService()
   );
 
   return service.copyPublishedPage(userId, {

@@ -2,7 +2,7 @@ import { PublishedPageRepository } from '../repositories/interfaces/published-pa
 import { PublishedLinkView, PublishedPageView } from '../../shared/dtos';
 import { ShareManagementError } from '../../shared/errors/share-management.error';
 import { PublishToken } from '../../shared/value-objects/publish-token.vo';
-import { WorkspaceManagementAcl } from './workspace-management.acl';
+import { WorkspaceQueryService } from '@/domains/workspace-management/backend/services/interfaces/workspace-query.service.interface';
 import { CanvasQueryService } from '@/domains/canvas-management/backend/services/canvas-query.service';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
@@ -10,7 +10,7 @@ import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 export class ShareQueryService {
   constructor(
     private readonly publishedPageRepository: PublishedPageRepository,
-    private readonly workspaceManagementAcl: WorkspaceManagementAcl,
+    private readonly workspaceQueryService: WorkspaceQueryService,
     private readonly canvasQueryService: CanvasQueryService
   ) { }
 
@@ -43,10 +43,19 @@ export class ShareQueryService {
       throw new ShareManagementError('PUBLISH_LINK_NOT_FOUND', 'Link not found');
     }
 
-    // Use ACL instead of direct repository access
-    const pageInfo = await this.workspaceManagementAcl.getPageInfo(publishedPage.pageId);
-    const workspaceInfo = pageInfo?.workspaceId
-      ? await this.workspaceManagementAcl.getWorkspaceInfo(pageInfo.workspaceId)
+    // Use Workspace Service instead of ACL
+    const pageInfoResult = await this.workspaceQueryService.getPageInfo(
+      publishedPage.pageId
+    );
+    const pageInfo = pageInfoResult.isSuccess() ? pageInfoResult.value : null;
+
+    const workspaceInfoResult = pageInfo?.workspaceId
+      ? await this.workspaceQueryService.getWorkspaceByPageId(
+          publishedPage.pageId
+        )
+      : null;
+    const workspaceInfo = workspaceInfoResult?.isSuccess()
+      ? workspaceInfoResult.value
       : null;
 
     const canvasResult = await this.canvasQueryService.getCanvasView(

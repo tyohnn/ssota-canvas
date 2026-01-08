@@ -10,6 +10,10 @@ import type { OrganizationId } from '@/domains/organization-management/shared/va
 import type { WorkspaceQueryService } from './interfaces/workspace-query.service.interface';
 import { PageId } from '../../shared/value-objects/page-id.vo';
 
+import { organizations, workspaces, workspaceMembers } from '@/db/schema';
+import { and, desc, eq, isNull, or } from 'drizzle-orm';
+import { adminDb } from '@/db';
+
 /**
  * Workspace Query Service Implementation
  *
@@ -153,6 +157,106 @@ export class DefaultWorkspaceQueryService implements WorkspaceQueryService {
         new WorkspaceManagementError(
           'WORKSPACE_RETRIEVAL_FAILED',
           'Failed to check workspace membership',
+          { error }
+        )
+      );
+    }
+  }
+
+  /**
+   * 사용자가 참여 중인 모든 Workspace 목록 조회
+   */
+  async getWorkspacesForUser(userId: string): Promise<
+    Result<
+      Array<{
+        id: string;
+        name: string;
+        icon?: string;
+        organizationName?: string;
+      }>,
+      WorkspaceManagementError
+    >
+  > {
+    try {
+      const rows = await adminDb
+        .select({
+          id: workspaces.id,
+          name: workspaces.name,
+          icon: workspaces.icon,
+          organizationName: organizations.name,
+          isDefault: workspaces.is_default,
+          createdAt: workspaces.created_at,
+        })
+        .from(workspaces)
+        .leftJoin(
+          workspaceMembers,
+          eq(workspaces.id, workspaceMembers.workspace_id)
+        )
+        .leftJoin(organizations, eq(workspaces.organization_id, organizations.id))
+        .where(
+          and(
+            isNull(workspaces.deleted_at),
+            or(
+              eq(workspaceMembers.user_id, userId),
+              eq(workspaces.owner_id, userId)
+            )
+          )
+        )
+        .orderBy(desc(workspaces.is_default), workspaces.created_at);
+
+      const result = rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        icon: row.icon ?? undefined,
+        organizationName: row.organizationName ?? undefined,
+      }));
+
+      return Result.success(result);
+    } catch (error) {
+      return Result.error(
+        new WorkspaceManagementError(
+          'WORKSPACE_RETRIEVAL_FAILED',
+          'Failed to get workspaces for user',
+          { error }
+        )
+      );
+    }
+  }
+
+  /**
+   * 페이지 기본 정보 조회
+   */
+  async getPageInfo(pageId: string): Promise<
+    Result<
+      {
+        pageId: string;
+        title: string;
+        icon?: string;
+        workspaceId?: string;
+      },
+      WorkspaceManagementError
+    >
+  > {
+    try {
+      const page = await this.pageRepository.findById(new PageId(pageId));
+
+      if (!page) {
+        return Result.error(
+          new WorkspaceManagementError('PAGE_NOT_FOUND', 'Page not found')
+        );
+      }
+
+      return Result.success({
+        pageId: page.pageId.value,
+        title: page.title,
+        icon: page.icon ?? undefined,
+        workspaceId: page.workspaceId?.value,
+      });
+    } catch (error) {
+      return Result.error(
+        new WorkspaceManagementError(
+          'WORKSPACE_RETRIEVAL_FAILED',
+          'Failed to get page info',
           { error }
         )
       );

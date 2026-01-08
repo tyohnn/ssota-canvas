@@ -103,8 +103,10 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
    * ⚠️ 주의: Service Layer에서 조직 멤버십 확인 후에만 호출!
    * 정렬 순서: Default Workspace 최상단, 나머지는 생성일 순
    */
+  /**
+   * 조직의 모든 Workspace 조회
+   */
   async findByOrganizationId(orgId: OrganizationId): Promise<Workspace[]> {
-    // Admin DB: Application 레벨에서 조직 멤버십 확인이 완료된 경우
     const result = await adminDb
       .select()
       .from(workspaces)
@@ -117,6 +119,31 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       .orderBy(desc(workspaces.is_default), workspaces.created_at);
 
     return result.map(row => this.toDomain(row));
+  }
+
+  /**
+   * 사용자가 멤버(또는 소유자)로 참여 중인 모든 Workspace 조회
+   */
+  async findByUserId(userId: UserId): Promise<Workspace[]> {
+    const result = await adminDb
+      .select({ workspace: workspaces })
+      .from(workspaces)
+      .leftJoin(
+        workspaceMembers,
+        eq(workspaces.id, workspaceMembers.workspace_id)
+      )
+      .where(
+        and(
+          isNull(workspaces.deleted_at),
+          or(
+            eq(workspaceMembers.user_id, userId.value),
+            eq(workspaces.owner_id, userId.value)
+          )
+        )
+      )
+      .orderBy(desc(workspaces.is_default), workspaces.created_at);
+
+    return result.map(row => this.toDomain(row.workspace));
   }
 
   /**

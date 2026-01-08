@@ -7,7 +7,7 @@ import {
 } from '../../shared/dtos';
 import { ShareManagementError } from '../../shared/errors/share-management.error';
 import { PublishedPageRepository } from '../repositories/interfaces/published-page.repository.interface';
-import { WorkspaceManagementAcl } from './workspace-management.acl';
+import { WorkspaceQueryService } from '@/domains/workspace-management/backend/services/interfaces/workspace-query.service.interface';
 import { PublishToken } from '../../shared/value-objects/publish-token.vo';
 import { PageCopyService } from '@/domains/workspace-management/backend/services/page-copy.service';
 import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
@@ -15,16 +15,18 @@ import { DrizzlePageRepository } from '@/domains/workspace-management/backend/re
 export class ShareCopyService {
   constructor(
     private readonly publishedPageRepository: PublishedPageRepository,
-    private readonly workspaceManagementAcl: WorkspaceManagementAcl
+    private readonly workspaceQueryService: WorkspaceQueryService
   ) { }
 
   async getWorkspaceSelection(userId: string): Promise<WorkspaceSelectionView> {
     // Authentication is handled by the action layer
-    const workspaces = await this.workspaceManagementAcl.getWorkspacesForUser(
-      userId
-    );
+    const result = await this.workspaceQueryService.getWorkspacesForUser(userId);
 
-    return { workspaces };
+    if (result.isError()) {
+      return { workspaces: [] };
+    }
+
+    return { workspaces: result.value };
   }
 
   async copyPublishedPage(
