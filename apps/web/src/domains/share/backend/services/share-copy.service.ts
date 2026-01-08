@@ -6,27 +6,20 @@ import {
   WorkspaceSelectionView,
 } from '../../shared/dtos';
 import { ShareManagementError } from '../../shared/errors/share-management.error';
-import { PublishedPageRepository } from '../repositories/published-page.repository';
-import { CopyWorkflowRepository } from '../repositories/copy-workflow.repository';
-import { AuthDomainAcl } from '../acl/auth-domain.acl';
-import { WorkspaceManagementAcl } from '../acl/workspace-management.acl';
-import { CopyWorkflow } from '../../shared/entities/copy-workflow.entity';
+import { PublishedPageRepository } from '../repositories/interfaces/published-page.repository.interface';
+import { WorkspaceManagementAcl } from './workspace-management.acl';
 import { PublishToken } from '../../shared/value-objects/publish-token.vo';
+import { PageCopyService } from '@/domains/workspace-management/backend/services/page-copy.service';
+import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 
 export class ShareCopyService {
   constructor(
     private readonly publishedPageRepository: PublishedPageRepository,
-    private readonly copyWorkflowRepository: CopyWorkflowRepository,
-    private readonly authDomainAcl: AuthDomainAcl,
     private readonly workspaceManagementAcl: WorkspaceManagementAcl
-  ) {}
+  ) { }
 
   async getWorkspaceSelection(userId: string): Promise<WorkspaceSelectionView> {
-    const isMember = await this.authDomainAcl.isMember(userId);
-    if (!isMember) {
-      throw new ShareManagementError('LOGIN_REQUIRED', 'Login required');
-    }
-
+    // Authentication is handled by the action layer
     const workspaces = await this.workspaceManagementAcl.getWorkspacesForUser(
       userId
     );
@@ -38,11 +31,7 @@ export class ShareCopyService {
     userId: string,
     request: CopyPublishedPageRequest
   ): Promise<CopyResult> {
-    const isMember = await this.authDomainAcl.isMember(userId);
-    if (!isMember) {
-      throw new ShareManagementError('LOGIN_REQUIRED', 'Login required');
-    }
-
+    // Authentication is handled by the action layer
     const publishToken = new PublishToken(request.publishToken);
     const publishedPage = await this.publishedPageRepository.findByToken(
       publishToken
@@ -52,40 +41,35 @@ export class ShareCopyService {
       throw new ShareManagementError('PUBLISH_LINK_NOT_FOUND', 'Link not found');
     }
 
-    const workflow = new CopyWorkflow(
-      crypto.randomUUID(),
-      publishToken,
-      'copying',
-      userId,
-      request.targetWorkspaceId
-    );
-
-    await this.copyWorkflowRepository.save(workflow);
-
     try {
-      const copiedPageId = await this.workspaceManagementAcl.copyPageToWorkspace(
+      // Use PageCopyService from Workspace domain
+      const pageCopyService = new PageCopyService(new DrizzlePageRepository());
+      const copyResult = await pageCopyService.copyPageToWorkspace(
         publishedPage.pageId,
         request.targetWorkspaceId,
         userId
       );
 
-      workflow.markCompleted();
-      await this.copyWorkflowRepository.save(workflow);
+      if (!copyResult.success) {
+        return {
+          copiedPageId: '',
+          targetWorkspaceId: request.targetWorkspaceId,
+          status: 'failed',
+          errorMessage: copyResult.error,
+        };
+      }
 
       return {
-        copiedPageId,
+        copiedPageId: copyResult.data,
         targetWorkspaceId: request.targetWorkspaceId,
         status: 'completed',
       };
     } catch (error) {
-      workflow.markFailed('COPY_FAILED');
-      await this.copyWorkflowRepository.save(workflow);
-
       return {
         copiedPageId: '',
         targetWorkspaceId: request.targetWorkspaceId,
         status: 'failed',
-        errorMessage: 'Failed to copy page',
+        errorMessage: error instanceof Error ? error.message : 'Failed to copy page',
       };
     }
   }

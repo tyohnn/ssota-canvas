@@ -19,8 +19,11 @@ import {
   toReactFlowEdgeFromCanvasView,
   type CustomNodeType,
 } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
+import { PublishedPageView } from '../../shared/dtos';
+
 interface PublishedPageViewerProps {
   publishToken: string;
+  initialData: PublishedPageView | null;
   onCopyRequested?: () => void;
 }
 
@@ -51,15 +54,17 @@ function ReadOnlyViewportController({
 
 export function PublishedPageViewer({
   publishToken,
+  initialData,
   onCopyRequested,
 }: PublishedPageViewerProps) {
-  const { publishedPage, loadPublishedPage, copyLinkToClipboard } = useShare();
+  const { copyLinkToClipboard } = useShare();
   const [isCopied, setIsCopied] = useState(false);
   const [isCopyPressed, setIsCopyPressed] = useState(false);
 
-  useEffect(() => {
-    loadPublishedPage(publishToken);
-  }, [loadPublishedPage, publishToken]);
+  // 데이터는 서버에서 전달받은 Props(initialData)를 직접 사용하거나, 
+  // 만약 클라이언트 상태 관리가 필요하다면 Context의 publishedPage를 병행 사용
+  const { publishedPage } = useShare();
+  const data = publishedPage || initialData;
 
   const handleCopyLink = async () => {
     try {
@@ -77,30 +82,30 @@ export function PublishedPageViewer({
 
   const nodes = useMemo<CustomNodeType[]>(() => {
     if (
-      !publishedPage ||
-      !publishedPage.organizationId ||
-      !publishedPage.workspaceId
+      !data ||
+      !data.organizationId ||
+      !data.workspaceId
     ) {
       return [];
     }
 
-    return publishedPage.blocks.map(block =>
+    return data.blocks.map(block =>
       toReactFlowNodeFromCanvasView(block as any, {
-        pageId: publishedPage.pageId,
-        orgId: publishedPage.organizationId!,
-        workspaceId: publishedPage.workspaceId!,
+        pageId: data.pageId,
+        orgId: data.organizationId!,
+        workspaceId: data.workspaceId!,
       })
     );
-  }, [publishedPage]);
+  }, [data]);
 
   const edges = useMemo<Edge[]>(() => {
-    if (!publishedPage?.edges) return [];
-    return publishedPage.edges.map(edge =>
+    if (!data?.edges) return [];
+    return data.edges.map(edge =>
       toReactFlowEdgeFromCanvasView(edge as any)
     );
-  }, [publishedPage]);
+  }, [data]);
 
-  if (!publishedPage) {
+  if (!data) {
     return <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
   }
 
@@ -113,7 +118,7 @@ export function PublishedPageViewer({
           onClick={handleCopyLink}
           className={`transition-shadow active:shadow-inner hover:bg-accent/60 hover:text-accent-foreground ${isCopied ? 'bg-accent text-accent-foreground shadow-sm' : ''}`}
         >
-          {isCopied ? '링크 복사됨' : '링크 복사'}
+          {isCopied ? 'Link Copied' : 'Copy Link'}
         </Button>
         <Button
           size="sm"
@@ -122,11 +127,10 @@ export function PublishedPageViewer({
             window.setTimeout(() => setIsCopyPressed(false), 150);
             onCopyRequested?.();
           }}
-          className={`transition-shadow active:shadow-inner ${
-            isCopyPressed ? 'bg-primary/90 text-primary-foreground shadow-sm' : ''
-          }`}
+          className={`transition-shadow active:shadow-inner ${isCopyPressed ? 'bg-primary/90 text-primary-foreground shadow-sm' : ''
+            }`}
         >
-          복제
+          Copy
         </Button>
       </div>
       <div className="h-full">

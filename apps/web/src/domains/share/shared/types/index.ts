@@ -3,13 +3,5 @@
 export type PageId = string;
 export type UserId = string;
 export type WorkspaceId = string;
-export type CopyWorkflowId = string;
 
-export type PublishedStatus = 'published';
-export type WorkflowStatus =
-  | 'pending'
-  | 'waiting_login'
-  | 'selecting_workspace'
-  | 'copying'
-  | 'completed'
-  | 'failed';
+export type PublishedStatus = 'published' | 'unpublished';

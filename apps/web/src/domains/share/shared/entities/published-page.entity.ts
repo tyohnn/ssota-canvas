@@ -9,16 +9,11 @@ export class PublishedPage {
     public readonly ownerId: UserId,
     public status: PublishedStatus,
     public publishToken: PublishToken,
-    public publishedAt: Date
-  ) {}
+    public publishedAt: Date,
+    public readonly snapshotVersion: string | null = null
+  ) { }
 
-  publish(token: PublishToken, publishedAt: Date): void {
-    this.status = 'published';
-    this.publishToken = token;
-    this.publishedAt = publishedAt;
-  }
-
-  canPublishBy(userId: UserId): boolean {
-    return this.ownerId === userId;
+  unpublish(): void {
+    this.status = 'unpublished';
   }
 }

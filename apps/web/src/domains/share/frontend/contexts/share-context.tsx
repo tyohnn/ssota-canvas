@@ -26,7 +26,6 @@ interface ShareContextType {
   isLoading: boolean; // 현재 화면 기준 단일 로딩 상태 (동시 액션은 고려하지 않음)
   error: string | null;
 
-  loadPublishedPage: (token: string) => Promise<void>;
   loadPublishedLink: (pageId: string) => Promise<PublishedLinkView | null>;
   loadWorkspaces: () => Promise<void>;
   publishPage: (request: PublishPageRequest) => Promise<PublishResult>;
@@ -56,19 +55,6 @@ export function ShareProvider({
 
   // ShareContext는 Share Management Domain 내 UI 상태를 통합 관리하는 Facade Context이다
 
-  const loadPublishedPage = async (token: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const data = await getPublishedPageAction(token);
-      setPublishedPage(data);
-    } catch (err) {
-      setError((err as Error).message ?? 'Failed to load published page');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const loadPublishedLink = async (pageId: string) => {
     setIsLoading(true);
@@ -148,7 +134,6 @@ export function ShareProvider({
         workspaces,
         isLoading,
         error,
-        loadPublishedPage,
         loadPublishedLink,
         loadWorkspaces,
         publishPage,

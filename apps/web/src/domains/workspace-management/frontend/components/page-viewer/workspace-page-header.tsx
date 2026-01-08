@@ -20,11 +20,12 @@ import { Input } from '@/components/ui/input';
 import { useUpdatePageIcon } from '../../hooks/use-update-page-icon';
 import { useUpdatePageTitle } from '../../hooks/use-update-page-title';
 import { PublishFlow } from '@/domains/share/frontend/components/publish-flow';
+import { ShareProvider } from '@/domains/share/frontend/contexts/share-context';
 
 interface WorkspacePageHeaderProps {
   pageId?: string;
   workspaceId?: string;
-  isOwner?: boolean;
+  isPublishable?: boolean;
 }
 
 /**
@@ -152,7 +153,7 @@ function EditablePageTitle({ title, pageId }: EditablePageTitleProps) {
 export function WorkspacePageHeader({
   pageId: propPageId,
   workspaceId: propWorkspaceId,
-  isOwner = true,
+  isPublishable = true,
 }: WorkspacePageHeaderProps) {
   const context = useWorkspace();
 
@@ -323,7 +324,9 @@ export function WorkspacePageHeader({
 
       {actualPageId && (
         <div className="flex items-center gap-2 pr-3">
-          <PublishFlow pageId={actualPageId} isOwner={isOwner} />
+          <ShareProvider>
+            <PublishFlow pageId={actualPageId} isPublishable={isPublishable} />
+          </ShareProvider>
         </div>
       )}
     </header>

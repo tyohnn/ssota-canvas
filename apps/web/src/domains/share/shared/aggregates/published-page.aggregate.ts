@@ -5,14 +5,13 @@ import { PublishedPage } from '../entities/published-page.entity';
 import {
   PagePublishedEvent,
   PublishLinkAccessedEvent,
-  PublishLinkGeneratedEvent,
 } from '../events';
 import { PublishToken } from '../value-objects/publish-token.vo';
 import { ShareManagementError } from '../errors/share-management.error';
 
 export class PublishedPageAggregate {
   private readonly events: Array<
-    PagePublishedEvent | PublishLinkGeneratedEvent | PublishLinkAccessedEvent
+    PagePublishedEvent | PublishLinkAccessedEvent
   > = [];
 
   publish(command: PublishPageCommand): PublishedPage {
@@ -21,30 +20,42 @@ export class PublishedPageAggregate {
     }
 
     const token = this.generateToken();
+    const publishedAt = new Date();
+
+    // Entity 생성
     const publishedPage = new PublishedPage(
       command.pageId,
       command.requesterId,
       'published',
       token,
-      new Date()
+      publishedAt
     );
 
+    // Entity 값을 사용하여 이벤트 생성 (Command 값이 아님)
     this.events.push(
-      new PagePublishedEvent(command.pageId, command.requesterId, token.toString())
+      new PagePublishedEvent(
+        publishedPage.pageId,
+        publishedPage.ownerId,
+        publishedPage.publishToken,
+        publishedPage.publishedAt
+      )
     );
-    this.events.push(new PublishLinkGeneratedEvent(command.pageId, token.toString()));
 
     return publishedPage;
   }
 
   recordAccess(publishToken: PublishToken): void {
-    this.events.push(new PublishLinkAccessedEvent(publishToken.toString()));
+    this.events.push(new PublishLinkAccessedEvent(publishToken));
   }
 
   getUncommittedEvents(): Array<
-    PagePublishedEvent | PublishLinkGeneratedEvent | PublishLinkAccessedEvent
+    PagePublishedEvent | PublishLinkAccessedEvent
   > {
     return [...this.events];
+  }
+
+  markEventsAsCommitted(): void {
+    this.events.length = 0;
   }
 
   private generateToken(): PublishToken {

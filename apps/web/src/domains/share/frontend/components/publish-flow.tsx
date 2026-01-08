@@ -12,11 +12,11 @@ import { cn } from '@/lib/utils';
 
 interface PublishFlowProps {
   pageId: string;
-  isOwner: boolean;
+  isPublishable: boolean;
   onPublished?: (publishUrl: string) => void;
 }
 
-export function PublishFlow({ pageId, isOwner, onPublished }: PublishFlowProps) {
+export function PublishFlow({ pageId, isPublishable, onPublished }: PublishFlowProps) {
   const { publishPage, unpublishPage, loadPublishedLink, copyLinkToClipboard } =
     useShare();
   const [isOpen, setIsOpen] = useState(false);
@@ -67,7 +67,7 @@ export function PublishFlow({ pageId, isOwner, onPublished }: PublishFlowProps) 
 
   const handleUnpublish = async () => {
     if (!publishUrl) return;
-    const confirmed = window.confirm('게시를 취소하시겠습니까?');
+    const confirmed = window.confirm('Are you sure you want to unpublish?');
     if (!confirmed) return;
 
     setIsUnpublishing(true);
@@ -97,14 +97,14 @@ export function PublishFlow({ pageId, isOwner, onPublished }: PublishFlowProps) 
           type="button"
           size="sm"
           variant="outline"
-          disabled={!isOwner}
-          title={!isOwner ? '페이지 소유자만 게시할 수 있습니다' : undefined}
+          disabled={!isPublishable}
+          title={!isPublishable ? 'You do not have permission to publish' : undefined}
           className={cn(
             'h-8 px-3 text-sm font-medium',
             'hover:bg-accent/60 hover:text-accent-foreground'
           )}
         >
-          게시
+          Publish
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -115,7 +115,7 @@ export function PublishFlow({ pageId, isOwner, onPublished }: PublishFlowProps) 
         <div className="border-b border-border/60 px-4 pt-3">
           <div className="flex items-center gap-4 text-sm font-medium">
             <span className="relative pb-2 text-foreground">
-              게시
+              Publish
               <span className="absolute left-0 right-0 -bottom-[1px] h-[2px] bg-foreground" />
             </span>
           </div>
@@ -123,9 +123,9 @@ export function PublishFlow({ pageId, isOwner, onPublished }: PublishFlowProps) 
 
         <div className="space-y-4 px-4 py-4">
           <div className="space-y-1">
-            <h3 className="text-sm font-semibold">웹사이트 게시</h3>
+            <h3 className="text-sm font-semibold">Publish to Web</h3>
             <p className="text-xs text-muted-foreground">
-              게시된 페이지는 링크로 누구나 접근할 수 있습니다.
+              Published pages can be accessed by anyone with the link.
             </p>
           </div>
 
@@ -160,31 +160,20 @@ export function PublishFlow({ pageId, isOwner, onPublished }: PublishFlowProps) 
                   size="sm"
                   variant="secondary"
                   onClick={handleCopy}
-                  className={`transition-shadow active:shadow-inner ${
-                    isLinkCopied ? 'bg-accent text-accent-foreground shadow-sm' : ''
-                  }`}
+                  className={`flex-1 transition-shadow active:shadow-inner ${isLinkCopied ? 'bg-accent text-accent-foreground shadow-sm' : ''
+                    }`}
                 >
-                  {isLinkCopied ? '링크 복사됨' : '링크 복사'}
+                  {isLinkCopied ? 'Link Copied' : 'Copy Link'}
                 </Button>
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => {
-                    if (publishUrl) window.open(publishUrl, '_blank');
-                  }}
-                  className="transition-shadow active:shadow-inner"
-                >
-                  게시된 페이지 보기
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
+                  variant="destructive"
                   onClick={handleUnpublish}
                   disabled={isUnpublishing}
-                  className="transition-shadow active:shadow-inner"
+                  className="flex-1 transition-shadow active:shadow-inner"
                 >
-                  게시 취소
+                  Unpublish
                 </Button>
               </div>
             </div>
@@ -197,7 +186,7 @@ export function PublishFlow({ pageId, isOwner, onPublished }: PublishFlowProps) 
                 disabled={isSubmitting}
                 className="w-full"
               >
-                게시
+                Publish
               </Button>
               <Button
                 type="button"
@@ -206,7 +195,7 @@ export function PublishFlow({ pageId, isOwner, onPublished }: PublishFlowProps) 
                 onClick={() => setIsOpen(false)}
                 className="w-full"
               >
-                닫기
+                Close
               </Button>
             </div>
           )}

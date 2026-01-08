@@ -1,77 +1,18 @@
-'use client';
+import React from 'react';
+import { getPublishedPageActionInternal } from '@/domains/share/actions/share.actions';
+import PublishPageClient from './publish-page-client';
 
-import React, { useState } from 'react';
-import { useRouter, useSearchParams, useParams } from 'next/navigation';
-import { ShareProvider } from '@/domains/share/frontend/contexts/share-context';
-import { PublishedPageViewer } from '@/domains/share/frontend/components/published-page-viewer';
-import { CopyFlowDialog } from '@/domains/share/frontend/components/copy-flow-dialog';
-import { LoginPromptDialog } from '@/domains/share/frontend/components/login-prompt-dialog';
-import { createClient } from '@/utils/supabase/browser';
-
-function PublishPageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const params = useParams<{ token: string }>();
-  const [isCopyOpen, setIsCopyOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-
-  const action = searchParams.get('action');
-
-  React.useEffect(() => {
-    if (action === 'copy') {
-      handleCopyRequested();
-    }
-  }, [action]);
-
-  const handleLogin = () => {
-    const redirectTo = `/p/${params.token}?action=copy&token=${params.token}`;
-    router.push(`/login?redirect=${encodeURIComponent(redirectTo)}`);
-  };
-
-  const handleCopyRequested = async () => {
-    try {
-      const supabase = createClient();
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        setIsLoginOpen(true);
-        return;
-      }
-      setIsCopyOpen(true);
-    } catch (err) {
-      setIsLoginOpen(true);
-    }
-  };
-
-  return (
-    <>
-      <PublishedPageViewer
-        publishToken={params.token}
-        onCopyRequested={handleCopyRequested}
-      />
-
-      <CopyFlowDialog
-        publishToken={params.token}
-        isOpen={isCopyOpen}
-        onClose={() => setIsCopyOpen(false)}
-        onLoginRequired={() => {
-          setIsCopyOpen(false);
-          setIsLoginOpen(true);
-        }}
-      />
-
-      <LoginPromptDialog
-        isOpen={isLoginOpen}
-        onLogin={handleLogin}
-        onClose={() => setIsLoginOpen(false)}
-      />
-    </>
-  );
+interface PublishPageProps {
+  params: Promise<{
+    token: string;
+  }>;
 }
 
-export default function PublishPage() {
-  return (
-    <ShareProvider>
-      <PublishPageContent />
-    </ShareProvider>
-  );
+export default async function PublishPage({ params }: PublishPageProps) {
+  const { token } = await params;
+
+  // 서버에서 초기 데이터를 직접 가져옵니다 (Second Layer Defense의 Internal 함수 활용)
+  const initialData = await getPublishedPageActionInternal(token);
+
+  return <PublishPageClient initialData={initialData} token={token} />;
 }

@@ -1473,6 +1473,63 @@ export const eventLogsRelations = relations(eventLogs, ({ one }) => ({
   }),
 }));
 
+// Share Management Domain Tables
+// =============================
+
+export const publishedPages = pgTable(
+  'published_pages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    page_id: uuid('page_id')
+      .notNull()
+      .references(() => pages.id, { onDelete: 'cascade' }),
+    owner_id: uuid('owner_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    publish_token: text('publish_token').notNull().unique(),
+    status: text('status').notNull().default('published'),
+    published_at: timestamp('published_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    snapshot_version: text('snapshot_version'),
+    created_at: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  table => ({
+    pageIdIdx: index('idx_published_pages_page_id').on(table.page_id),
+    ownerIdIdx: index('idx_published_pages_owner_id').on(table.owner_id),
+    publishTokenIdx: index('idx_published_pages_publish_token').on(
+      table.publish_token
+    ),
+
+    // RLS Policies
+    selectPolicy: pgPolicy('Enable read for all users', {
+      for: 'select',
+      to: [anonRole, authenticatedRole],
+      using: sql`true`,
+    }),
+    insertPolicy: pgPolicy('Enable insert for page owner', {
+      for: 'insert',
+      to: authenticatedRole,
+      withCheck: sql`owner_id = auth.uid()`,
+    }),
+    updatePolicy: pgPolicy('Enable update for page owner', {
+      for: 'update',
+      to: authenticatedRole,
+      using: sql`owner_id = auth.uid()`,
+    }),
+    deletePolicy: pgPolicy('Enable delete for page owner', {
+      for: 'delete',
+      to: authenticatedRole,
+      using: sql`owner_id = auth.uid()`,
+    }),
+  })
+).enableRLS();
+
 export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
 export type Organization = typeof organizations.$inferSelect;
@@ -1509,6 +1566,10 @@ export type NewViewport = typeof viewports.$inferInsert;
 // AI Management Domain Types
 export type EventLog = typeof eventLogs.$inferSelect;
 export type NewEventLog = typeof eventLogs.$inferInsert;
+
+// Share Management Domain Types
+export type PublishedPageRow = typeof publishedPages.$inferSelect;
+export type NewPublishedPageRow = typeof publishedPages.$inferInsert;
 
 // Enum Types
 export type OrganizationType = (typeof organizationTypeEnum.enumValues)[number];

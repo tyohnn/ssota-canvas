@@ -4,6 +4,14 @@ import React, { useEffect, useState } from 'react';
 import { useShare } from '../hooks/use-share';
 import { ShareManagementError } from '../../shared/errors/share-management.error';
 import { Button } from '@workspace/ui/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@workspace/ui/components/ui/dialog';
 
 interface CopyFlowDialogProps {
   publishToken: string;
@@ -96,19 +104,17 @@ export function CopyFlowDialog({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-md rounded-xl border border-border bg-background p-5 shadow-xl">
-        <div className="space-y-1">
-          <h3 className="text-base font-semibold">페이지 복제</h3>
-          <p className="text-sm text-muted-foreground">
-            복제된 페이지는 선택한 워크스페이스에 생성됩니다.
-          </p>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Copy Page</DialogTitle>
+          <DialogDescription>
+            The copied page will be created in the selected workspace.
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="mt-4 space-y-3">
+        <div className="space-y-3">
           {isLoading && !hasWorkspaces && (
             <div className="space-y-2">
               <div className="h-12 w-full rounded-lg border border-border/60 bg-muted/40 animate-pulse" />
@@ -117,7 +123,7 @@ export function CopyFlowDialog({
           )}
           {!isLoading && !hasWorkspaces && (
             <p className="text-sm text-muted-foreground">
-              선택 가능한 워크스페이스가 없습니다.
+              No workspaces available.
             </p>
           )}
           {hasWorkspaces && (
@@ -131,14 +137,14 @@ export function CopyFlowDialog({
                   <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-sm font-semibold text-foreground">
                     {selectedWorkspace
                       ? selectedWorkspace.icon ||
-                        getWorkspaceInitial(selectedWorkspace.name)
+                      getWorkspaceInitial(selectedWorkspace.name)
                       : getWorkspaceInitial(workspaces[0]?.name || 'W')}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">
                       {selectedWorkspace
                         ? selectedWorkspace.name
-                        : '워크스페이스 선택'}
+                        : 'Select Workspace'}
                     </p>
                     {selectedWorkspace?.organizationName && (
                       <p className="text-xs text-muted-foreground">
@@ -166,11 +172,10 @@ export function CopyFlowDialog({
                           setSelectedWorkspaceId(workspace.id);
                           setIsDropdownOpen(false);
                         }}
-                        className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition ${
-                          isSelected
+                        className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition ${isSelected
                             ? 'bg-primary/10 text-primary'
                             : 'hover:bg-muted/50'
-                        }`}
+                          }`}
                       >
                         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-xs font-semibold text-foreground">
                           {iconLabel}
@@ -187,7 +192,7 @@ export function CopyFlowDialog({
                         </div>
                         {isSelected && (
                           <span className="text-xs font-semibold text-primary">
-                            선택됨
+                            Selected
                           </span>
                         )}
                       </button>
@@ -200,27 +205,27 @@ export function CopyFlowDialog({
         </div>
 
         {result === 'success' && (
-          <p className="mt-3 text-sm text-emerald-600">
-            복제가 완료되었습니다.
+          <p className="text-sm text-emerald-600">
+            Copy completed successfully.
           </p>
         )}
         {result === 'failed' && (
-          <p className="mt-3 text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive">{error}</p>
         )}
 
-        <div className="mt-5 flex items-center justify-end gap-2">
+        <DialogFooter>
           <Button type="button" variant="ghost" onClick={onClose}>
-            취소
+            Cancel
           </Button>
           <Button
             type="button"
             onClick={handleCopy}
             disabled={!selectedWorkspaceId || isLoading}
           >
-            복제
+            Copy
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
