@@ -97,7 +97,7 @@ export function EdgeToolbarView({
           onClick={onDelete}
           onMouseDown={e => e.stopPropagation()}
           className="size-8 p-0 transition-colors hover:bg-red-50! hover:text-red-700! [&_svg]:text-red-600 [&_svg]:hover:text-red-700"
-          iconClassName="size-5"
+          iconClassName="size-4"
         />
       </TooltipProvider>
     </ToolbarContainer>

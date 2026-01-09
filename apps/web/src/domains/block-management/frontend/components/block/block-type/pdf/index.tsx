@@ -29,7 +29,7 @@ import type { PdfBlockProperties } from '@/domains/block-management/shared/value
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
 
-import { BaseBlock } from '../base-block';
+import { BaseBlock } from '../../base-block';
 
 /**
  * PDF Block Component

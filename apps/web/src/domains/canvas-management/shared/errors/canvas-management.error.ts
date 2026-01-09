@@ -38,6 +38,7 @@ export type CanvasManagementErrorCode =
   | 'BLOCK_MOVE_FAILED'
   | 'POSITION_UPDATE_FAILED'
   | 'SIZE_UPDATE_FAILED'
+  | 'VIEW_MODE_UPDATE_FAILED'
   | 'EDGE_STYLE_UPDATE_FAILED'
   | 'EDGE_SHAPE_UPDATE_FAILED'
   | 'CONNECTED_EDGES_DELETION_FAILED'
@@ -77,6 +78,7 @@ export const CANVAS_MANAGEMENT_ERROR_MESSAGES: Record<
   BLOCK_MOVE_FAILED: '블럭 이동에 실패했습니다.',
   POSITION_UPDATE_FAILED: '위치 업데이트에 실패했습니다.',
   SIZE_UPDATE_FAILED: '크기 업데이트에 실패했습니다.',
+  VIEW_MODE_UPDATE_FAILED: '보기 방식 업데이트에 실패했습니다.',
   EDGE_STYLE_UPDATE_FAILED: '엣지 스타일 업데이트에 실패했습니다.',
   EDGE_SHAPE_UPDATE_FAILED: '엣지 모양 업데이트에 실패했습니다.',
   CONNECTED_EDGES_DELETION_FAILED: '연결된 엣지 삭제에 실패했습니다.',

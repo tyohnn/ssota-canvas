@@ -7,11 +7,14 @@
 'use client';
 
 import React, { memo } from 'react';
+
 import type { NodeProps } from '@xyflow/react';
+import { Calendar, Check, GitCommit, User, X } from 'lucide-react';
+
 import type { GithubCommitBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
-import { GitCommit, User, Calendar, Check, X } from 'lucide-react';
 import { GithubCommitBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+
+import { BaseBlock } from '../../base-block';
 
 export const GitHubCommitBlock = memo(function GitHubCommitBlock({
   id,

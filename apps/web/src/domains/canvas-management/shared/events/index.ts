@@ -16,6 +16,7 @@ export {
   BlockPositionUpdatedEvent,
   BlockSizeUpdatedEvent,
   BlockZOrderUpdatedEvent,
+  BlockViewModeUpdatedEvent,
   MultipleBlockPositionsUpdatedEvent,
 } from './view/view.events';
 

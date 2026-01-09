@@ -60,7 +60,7 @@ export const ToolbarContainer = forwardRef<
         ref={toolbarRef || ref}
         className={cn(
           preventDrag && 'nodrag nowheel',
-          'bg-background/90 backdrop-blur-md border border-border rounded-lg shadow-lg px-2 py-1 flex items-center justify-center gap-1',
+          'bg-background/90 backdrop-blur-md border border-border rounded-md shadow-lg px-1.5 py-1 flex items-center justify-center gap-0.5',
           className
         )}
         style={{ touchAction: 'none', ...props.style }}

@@ -109,6 +109,7 @@ export class CanvasQueryService implements ICanvasQueryService {
                 height: blockMount.size.height,
               },
               zOrder: blockMount.zOrder.value,
+              viewMode: blockMount.viewMode.value,
               createdAt: block.createdAt.toISOString(),
               updatedAt: block.updatedAt.toISOString(),
               createdByProfile: block.createdByProfile,

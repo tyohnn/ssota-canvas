@@ -16,6 +16,10 @@ import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects
 import { BlockMountAggregate } from '../../../shared/aggregates/block-mount.aggregate';
 import { BlockMount } from '../../../shared/entities/block-mount.entity';
 import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
+import {
+  BlockViewMode,
+  BlockViewModeValue,
+} from '../../../shared/value-objects/block-view-mode.vo';
 import { Position } from '../../../shared/value-objects/position.vo';
 import { Size } from '../../../shared/value-objects/size.vo';
 import { ZOrder } from '../../../shared/value-objects/z-order.vo';
@@ -41,6 +45,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
           size_width: String(blockMount.size.width),
           size_height: String(blockMount.size.height),
           z_order: blockMount.zOrder.value,
+          view_mode: blockMount.viewMode.value,
           created_at: blockMount.createdAt,
           updated_at: blockMount.updatedAt,
         });
@@ -95,6 +100,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
           size_width: String(blockMount.size.width),
           size_height: String(blockMount.size.height),
           z_order: blockMount.zOrder.value,
+          view_mode: blockMount.viewMode.value,
           updated_at: blockMount.updatedAt,
         })
         .where(eq(blockMounts.id, blockMount.id.value));
@@ -165,6 +171,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         sizeWidth: blockMounts.size_width,
         sizeHeight: blockMounts.size_height,
         zOrder: blockMounts.z_order,
+        viewMode: blockMounts.view_mode,
         blockMountCreatedAt: blockMounts.created_at,
         blockMountUpdatedAt: blockMounts.updated_at,
         blockMountDeletedAt: blockMounts.deleted_at,
@@ -207,6 +214,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         size_width: row.sizeWidth,
         size_height: row.sizeHeight,
         z_order: row.zOrder,
+        view_mode: row.viewMode,
         created_at: row.blockMountCreatedAt,
         updated_at: row.blockMountUpdatedAt,
         deleted_at: row.blockMountDeletedAt,
@@ -244,6 +252,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     );
     const size = new Size(Number(row.size_width), Number(row.size_height));
     const zOrder = new ZOrder(row.z_order);
+    const viewMode = BlockViewMode.create(row.view_mode as BlockViewModeValue);
 
     const blockMount = BlockMount.reconstitute({
       id: blockMountId,
@@ -252,6 +261,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       position,
       size,
       zOrder,
+      viewMode,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       deletedAt: row.deleted_at,
@@ -269,6 +279,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     size_width: string;
     size_height: string;
     z_order: number;
+    view_mode: string;
     created_at: Date;
     updated_at: Date;
     deleted_at: Date | null;
@@ -282,10 +293,11 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       size_width: row.size_width,
       size_height: row.size_height,
       z_order: row.z_order,
+      view_mode: row.view_mode,
       created_at: row.created_at,
       updated_at: row.updated_at,
       deleted_at: row.deleted_at,
-    });
+    } as typeof blockMounts.$inferSelect);
   }
 
   private toBlockDomain(row: {

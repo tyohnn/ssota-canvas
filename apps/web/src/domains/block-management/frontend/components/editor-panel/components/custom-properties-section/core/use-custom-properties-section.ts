@@ -10,13 +10,17 @@ import { toast } from '@workspace/ui/components/ui/sonner';
 export function useCustomPropertiesSection(
   blockId: string
 ): CustomPropertiesSectionContextValue {
-  const { getNode } = useReactFlow();
+  const { getNodes } = useReactFlow();
   const hasNotifiedRef = useRef(false);
   const [lastAddedPropertyId, setLastAddedPropertyId] = useState<string | null>(
     null
   );
 
-  const node = getNode(blockId);
+  // blockId로 노드 찾기: node.id === blockId 또는 node.data.blockId === blockId
+  const nodes = getNodes();
+  const node = nodes.find(n => 
+    n.id === blockId || (n.data as any)?.blockId === blockId
+  );
   const blockData = node?.data as BlockNodeData | undefined;
 
   if (!blockData) {

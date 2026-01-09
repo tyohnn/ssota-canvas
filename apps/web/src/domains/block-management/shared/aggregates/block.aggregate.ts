@@ -116,7 +116,14 @@ export class BlockAggregate {
         'Cannot update title of deleted block'
       );
     }
+
     const oldTitle = this._block.title;
+
+    // 변화가 없으면 업데이트하지 않음
+    if (oldTitle === command.title) {
+      return;
+    }
+
     this._block.updateTitle(command.title);
     const event = new BlockTitleUpdatedEvent(
       this._block.id,

@@ -4,11 +4,14 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
+
 import { useNodes } from '@xyflow/react';
+
+import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+
 import { EditorPanelContext } from './context';
 import { useEditorPanel } from './use-editor-panel';
-import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { EditorPanelBusinessLogic } from './use-editor-panel.business';
 
 export interface EditorPanelProviderProps {
@@ -30,9 +33,14 @@ export function EditorPanelProvider({
 
   // React Flow Store에서 블록 데이터 읽기 (reactive)
   const blockNode = useMemo(() => {
-    const node = nodes.find(node => node.id === blockId);
+    // blockId로 노드 찾기: node.id === blockId 또는 node.data.blockId === blockId
+    const node = nodes.find(
+      node =>
+        node.id === blockId || (node.data as BlockNodeData)?.blockId === blockId
+    );
     return node;
   }, [nodes, blockId]);
+
   const blockData = blockNode?.data as BlockNodeData | undefined;
 
   // Combined hook

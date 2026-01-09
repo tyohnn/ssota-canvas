@@ -13,6 +13,7 @@ import type {
   TransformBlockDTO,
 } from '../../shared/dtos';
 import type { BlockView } from '../../shared/dtos/views/block.views';
+import type { BlockViewModeValue } from '../../shared/value-objects/block-view-mode.vo';
 
 /**
  * Custom Node Type (자동 생성)
@@ -56,6 +57,7 @@ export function transformBlockViewToNodeData(
     properties: cleanNestedProperties(blockView.properties),
     customProperties: blockView.customProperties,
     content: blockView.content, // JSONB content
+    viewMode: blockView.viewMode, // BlockMount의 viewMode
     createdAt: blockView.createdAt,
     updatedAt: blockView.updatedAt,
     createdByProfile: blockView.createdByProfile || {
@@ -125,50 +127,6 @@ export function fromReactFlowNode(node: Node<BaseNodeData>): TransformBlockDTO {
 }
 
 /**
- * BlockMountDTO를 React Flow Node로 변환 (서버 액션 결과 처리용)
- *
- * 반환 타입을 CustomNodeType으로 선언하여 타입 안전성을 보장
- */
-export function toReactFlowNodeFromMountDTO(
-  block: BlockView,
-  mountDTO: {
-    blockMountId: string;
-    blockId: string;
-    position: { x: number; y: number };
-    size: { width: number; height: number };
-    zOrder: number;
-    mountedAt: string;
-  }
-): CustomNodeType {
-  const node: Node<BaseNodeData> = {
-    id: mountDTO.blockMountId,
-    type: block.blockType,
-    position: mountDTO.position,
-    data: {
-      blockMountId: mountDTO.blockMountId,
-      blockId: mountDTO.blockId,
-      blockType: block.blockType,
-      title: block.title,
-      properties: block.properties,
-      customProperties: block.customProperties,
-      content: block.content, // JSONB content
-      createdByProfile: block.createdByProfile || {
-        userId: 'unknown',
-        email: null,
-        name: null,
-        profileImageUrl: null,
-      },
-    },
-    width: mountDTO.size.width,
-    height: mountDTO.size.height,
-    zIndex: mountDTO.zOrder,
-  };
-
-  // 타입 가드를 통과하면 CustomNodeType으로 취급
-  return node as CustomNodeType;
-}
-
-/**
  * 타입 가드: Node가 CustomNodeType인지 확인
  *
  * 런타임 검증을 통해 타입 안전성을 보장하면서도
@@ -227,6 +185,7 @@ export function toReactFlowNodeFromCanvasView(
       properties: block.properties,
       customProperties: block.customProperties,
       content: block.content, // JSONB content
+      viewMode: block.viewMode, // BlockMount의 viewMode
       createdAt: block.createdAt,
       updatedAt: block.updatedAt,
       createdByProfile: block.createdByProfile || {

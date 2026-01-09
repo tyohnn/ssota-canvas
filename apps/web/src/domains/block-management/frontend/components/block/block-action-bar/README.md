@@ -13,7 +13,7 @@ block-action-bar/
 
 ## Performance Optimization
 
-BlockMountToolbar와 동일한 **Component Registry + Hover Prefetch** 패턴을 사용합니다:
+BlockOriginalToolbar와 동일한 **Component Registry + Hover Prefetch** 패턴을 사용합니다:
 
 **핵심 아이디어**
 - ❌ Lazy Loading 제거 → No Suspense!
@@ -117,7 +117,7 @@ Result: "YouTube 스크립트를 추출했습니다."
 
 ## 관련 컴포넌트
 
-- **BlockMountToolbar**: 블럭 상단 툴바 (기본 속성 편집)
+- **BlockOriginalToolbar**: 블럭 상단 툴바 (기본 속성 편집, original view 모드)
 - **BlockActionMapper**: 타입별 액션 아이템 매핑
 - **block-type/*/action-items**: 각 블럭의 액션 구현
 

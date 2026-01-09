@@ -9,5 +9,6 @@ export { createAndMountBlock } from './create-and-mount-block.service';
 export { duplicateBlockAndMount } from './duplicate-block-and-mount.service';
 export { updateBlockPosition } from './update-block-position.service';
 export { updateBlockSize } from './update-block-size.service';
+export { updateBlockViewMode } from './update-block-view-mode.service';
 export { softDeleteBlockMount } from './soft-delete-block-mount.service';
 export { moveBlockToPage } from './move-block-to-page.service';

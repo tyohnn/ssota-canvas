@@ -7,8 +7,8 @@
 'use client';
 
 import { getBlockEditorSchema } from './block-editor-schema-registry';
-import { PropertyGroup } from './property-group';
 import { BlockPropertyRenderer } from './block-property-renderer';
+import { PropertyGroup } from './property-group';
 
 export interface BlockPropertiesSectionProps {
   blockId: string;
@@ -27,8 +27,10 @@ export function BlockPropertiesSection({
     return null; // UI 스키마가 없으면 렌더링하지 않음
   }
 
-  // 그룹을 순서대로 정렬
-  const sortedGroups = [...uiSchema.groups].sort((a, b) => a.order - b.order);
+  // 그룹을 순서대로 정렬하고 metadata 그룹 제외
+  const sortedGroups = [...uiSchema.groups]
+    .filter(group => group.id !== 'metadata')
+    .sort((a, b) => a.order - b.order);
 
   return (
     <div>
@@ -53,16 +55,7 @@ export function BlockPropertiesSection({
             .filter(Boolean)
             .sort((a, b) => a!.propertyDef.order - b!.propertyDef.order)
             .map(item => {
-              // 메타데이터는 실제 블록 데이터에서 가져오기
-              let value = blockData.properties?.[item!.propertyKey];
-
-              if (item!.propertyKey === 'createdAt') {
-                value = blockData.createdAt;
-              } else if (item!.propertyKey === 'updatedAt') {
-                value = blockData.updatedAt;
-              } else if (item!.propertyKey === 'createdBy') {
-                value = blockData.createdByProfile || blockData.createdBy;
-              }
+              const value = blockData.properties?.[item!.propertyKey];
 
               return (
                 <BlockPropertyRenderer

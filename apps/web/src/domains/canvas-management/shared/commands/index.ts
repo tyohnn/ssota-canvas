@@ -25,4 +25,5 @@ export type {
   UpdateSingleBlockPositionCommand,
   UpdateBlockSizeCommand,
   UpdateSingleBlockSizeCommand,
+  UpdateBlockMountViewModeCommand,
 } from './block-mount.commands';

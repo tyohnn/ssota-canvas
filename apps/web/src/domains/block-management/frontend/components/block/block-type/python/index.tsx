@@ -12,7 +12,7 @@ import { PythonBlockNodeData } from '@/domains/block-management/shared/types/blo
 import { PythonBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { cn } from '@/lib/utils';
 
-import { BaseBlock } from '../base-block';
+import { BaseBlock } from '../../base-block';
 
 /**
  * Python Block Component

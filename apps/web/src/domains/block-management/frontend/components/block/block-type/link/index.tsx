@@ -28,7 +28,7 @@ import {
 } from '@/domains/block-management/shared/types/style-tokens.types';
 import type { LinkBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 
-import { BaseBlock } from '../base-block';
+import { BaseBlock } from '../../base-block';
 
 /**
  * Link Block Component

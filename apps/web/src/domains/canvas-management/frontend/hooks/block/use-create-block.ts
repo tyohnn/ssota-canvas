@@ -92,6 +92,7 @@ export function useCreateBlock(
       properties: initialProperties,
       content: initialContent,
       title,
+      viewMode: 'original',
     });
 
     return {
@@ -237,6 +238,7 @@ export function useCreateBlock(
           properties: blockView.properties,
           customProperties: blockView.customProperties,
           content: blockView.content,
+          viewMode: blockView.viewMode,
           createdByProfile: blockView.createdByProfile,
           createdAt: blockView.createdAt,
           updatedAt: blockView.updatedAt,

@@ -7,28 +7,32 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
+
 import type { NodeProps } from '@xyflow/react';
-import type { ReactComponentBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
+import { Code, Eye, FileText } from 'lucide-react';
+
 import {
-  SandboxProvider,
-  SandboxLayout,
-  SandboxTabs,
-  SandboxTabsList,
-  SandboxTabsTrigger,
-  SandboxTabsContent,
   SandboxCodeEditor,
-  SandboxPreview,
   SandboxConsole,
   SandboxFileExplorer,
+  SandboxLayout,
+  SandboxPreview,
+  SandboxProvider,
+  SandboxTabs,
+  SandboxTabsContent,
+  SandboxTabsList,
+  SandboxTabsTrigger,
 } from '@workspace/ui/components/kibo-ui/sandbox';
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from '@workspace/ui/components/ui/resizable';
-import { Code, Eye, FileText } from 'lucide-react';
+
+import type { ReactComponentBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { ReactComponentBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+
+import { BaseBlock } from '../../base-block';
 
 export const ReactComponentBlock = memo(function ReactComponentBlock({
   id,

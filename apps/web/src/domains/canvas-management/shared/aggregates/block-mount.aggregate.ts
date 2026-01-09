@@ -5,6 +5,7 @@ import {
   MountBlockCommand,
   MoveBlockToPageCommand,
   SoftDeleteBlockMountCommand,
+  UpdateBlockMountViewModeCommand,
   UpdateSingleBlockPositionCommand,
   UpdateSingleBlockSizeCommand,
 } from '../commands/index';
@@ -17,6 +18,7 @@ import {
   BlockMovedToPageEvent,
   BlockPositionUpdatedEvent,
   BlockSizeUpdatedEvent,
+  BlockViewModeUpdatedEvent,
   BlockZOrderUpdatedEvent,
   DomainEvent,
 } from '../events';
@@ -36,9 +38,11 @@ export class BlockMountAggregate {
 
   static mountBlock(command: MountBlockCommand): BlockMountAggregate {
     // 1. 최상위 ZOrder 계산
+    // TODO: service 레이어에서 최상위 ZOrder 계산 로직 구현
     const zOrder = new ZOrder(0);
 
     // 2. BlockMount Entity 생성
+    // viewMode는 Entity constructor에서 기본값으로 처리됨
     const blockMount = new BlockMount(
       command.blockMountId,
       command.pageId,
@@ -225,6 +229,7 @@ export class BlockMountAggregate {
       command.newPosition, // 새로운 위치
       this._blockMount.size,
       this._blockMount.zOrder,
+      this._blockMount.viewMode, // View Mode 유지
       this._blockMount.createdAt,
       new Date() // updatedAt 갱신
     );
@@ -249,6 +254,26 @@ export class BlockMountAggregate {
 
     // 7. 이벤트 반환
     return event;
+  }
+
+  /**
+   * View Mode 업데이트 (Command Handler)
+   * @param command - UpdateBlockMountViewModeCommand
+   */
+  updateViewMode(command: UpdateBlockMountViewModeCommand): void {
+    // 1. BlockMount Entity View Mode 업데이트 (비즈니스 로직 실행)
+    this._blockMount.updateViewMode(command.viewMode);
+
+    // 2. Domain Event 발생 (Command → Event 1:1 대응)
+    const event = new BlockViewModeUpdatedEvent(
+      this._blockMount.id,
+      {
+        blockMountId: this._blockMount.id,
+        newViewMode: command.viewMode,
+      },
+      this._blockMount.updatedAt
+    );
+    this._uncommittedEvents.push(event);
   }
 
   clearEvents(): void {
@@ -294,6 +319,7 @@ export class BlockMountAggregate {
         height: blockMount.size.height,
       },
       zOrder: blockMount.zOrder.value,
+      viewMode: blockMount.viewMode.value,
 
       // Block 정보 (Block Management Domain)
       blockId: block.id.value,

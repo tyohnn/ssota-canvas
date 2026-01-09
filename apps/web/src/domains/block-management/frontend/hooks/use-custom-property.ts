@@ -1,29 +1,34 @@
 'use client';
 
 import { useCallback } from 'react';
+
 import { useMutation } from '@tanstack/react-query';
 import { useReactFlow } from '@xyflow/react';
+
+import { toast } from '@workspace/ui/components/ui/sonner';
+
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { isFailure } from '@/lib';
+
 import {
   createCustomPropertyAction,
-  updateCustomPropertyAction,
   deleteCustomPropertyAction,
+  updateCustomPropertyAction,
 } from '../../actions/property.actions';
 import {
-  CreateCustomPropertyRequestSchema,
-  UpdateCustomPropertyRequestSchema,
-  DeleteCustomPropertyRequestSchema,
   type CreateCustomPropertyRequestInput,
-  type UpdateCustomPropertyRequestInput,
+  CreateCustomPropertyRequestSchema,
   type DeleteCustomPropertyRequestInput,
+  DeleteCustomPropertyRequestSchema,
+  type UpdateCustomPropertyRequestInput,
+  UpdateCustomPropertyRequestSchema,
 } from '../../shared/dtos/requests';
 import { BlockNodeData } from '../../shared/types/block-data.types';
 import {
-  PropertyType,
   type CustomPropertyDefinition,
   type PropertyOption,
+  PropertyType,
 } from '../../shared/value-objects/block-properties/common-types';
-import { isFailure } from '@/lib';
-import { toast } from '@workspace/ui/components/ui/sonner';
 
 export interface UseCustomPropertyResult {
   saveLabel: (
@@ -65,6 +70,7 @@ export interface UseCustomPropertyResult {
  */
 export function useCustomProperty(): UseCustomPropertyResult {
   const { getNode, updateNode } = useReactFlow();
+  const { orgId, workspaceId } = useCanvasMetadata();
 
   // ============================================================================
   // Mutation: Save Label
@@ -85,8 +91,8 @@ export function useCustomProperty(): UseCustomPropertyResult {
       const rawRequest: UpdateCustomPropertyRequestInput = {
         blockId: blockData.blockId,
         propertyId,
-        workspaceId: blockData.workspaceId,
-        orgId: blockData.orgId,
+        workspaceId,
+        orgId,
         name: label,
       };
 
@@ -140,8 +146,8 @@ export function useCustomProperty(): UseCustomPropertyResult {
       const rawRequest: UpdateCustomPropertyRequestInput = {
         blockId: blockData.blockId,
         propertyId,
-        workspaceId: blockData.workspaceId,
-        orgId: blockData.orgId,
+        workspaceId,
+        orgId,
         icon,
       };
 
@@ -193,8 +199,8 @@ export function useCustomProperty(): UseCustomPropertyResult {
       const rawRequest: DeleteCustomPropertyRequestInput = {
         blockId: blockData.blockId,
         propertyId,
-        workspaceId: blockData.workspaceId,
-        orgId: blockData.orgId,
+        workspaceId,
+        orgId,
       };
 
       const parseResult =
@@ -260,8 +266,8 @@ export function useCustomProperty(): UseCustomPropertyResult {
     }) => {
       const rawRequest: CreateCustomPropertyRequestInput = {
         blockId: blockData.blockId,
-        workspaceId: blockData.workspaceId,
-        orgId: blockData.orgId,
+        workspaceId,
+        orgId,
         id: duplicatedProperty.id,
         name: duplicatedProperty.name,
         type: duplicatedProperty.type,
@@ -340,8 +346,8 @@ export function useCustomProperty(): UseCustomPropertyResult {
       const rawRequest: UpdateCustomPropertyRequestInput = {
         blockId: blockData.blockId,
         propertyId,
-        workspaceId: blockData.workspaceId,
-        orgId: blockData.orgId,
+        workspaceId,
+        orgId,
         options,
       };
 
@@ -394,8 +400,8 @@ export function useCustomProperty(): UseCustomPropertyResult {
     }) => {
       const rawRequest: CreateCustomPropertyRequestInput = {
         blockId: blockData.blockId,
-        workspaceId: blockData.workspaceId,
-        orgId: blockData.orgId,
+        workspaceId,
+        orgId,
         id: propertyId,
         name: newProperty.name,
         type: newProperty.type,
@@ -473,9 +479,6 @@ export function useCustomProperty(): UseCustomPropertyResult {
       }
 
       const blockData = blockNode.data as BlockNodeData;
-      if (!blockData.workspaceId || !blockData.orgId) {
-        throw new Error('Workspace context is missing');
-      }
 
       await saveLabelMutation.mutateAsync({
         blockId,
@@ -499,9 +502,6 @@ export function useCustomProperty(): UseCustomPropertyResult {
       }
 
       const blockData = blockNode.data as BlockNodeData;
-      if (!blockData.workspaceId || !blockData.orgId) {
-        throw new Error('Workspace context is missing');
-      }
 
       await saveIconMutation.mutateAsync({
         blockId,
@@ -521,9 +521,6 @@ export function useCustomProperty(): UseCustomPropertyResult {
       }
 
       const blockData = blockNode.data as BlockNodeData;
-      if (!blockData.workspaceId || !blockData.orgId) {
-        throw new Error('Workspace context is missing');
-      }
 
       await deletePropertyMutation.mutateAsync({
         blockId,
@@ -542,9 +539,6 @@ export function useCustomProperty(): UseCustomPropertyResult {
       }
 
       const blockData = blockNode.data as BlockNodeData;
-      if (!blockData.workspaceId || !blockData.orgId) {
-        throw new Error('Workspace context is missing');
-      }
 
       const property = findPropertyInArray(
         blockData,
@@ -591,9 +585,6 @@ export function useCustomProperty(): UseCustomPropertyResult {
       }
 
       const blockData = blockNode.data as BlockNodeData;
-      if (!blockData.workspaceId || !blockData.orgId) {
-        throw new Error('Workspace context is missing');
-      }
 
       await commitOptionsMutation.mutateAsync({
         blockId,
@@ -620,9 +611,6 @@ export function useCustomProperty(): UseCustomPropertyResult {
       }
 
       const currentBlockData = blockNode.data as BlockNodeData;
-      if (!currentBlockData.workspaceId || !currentBlockData.orgId) {
-        throw new Error('Workspace context is missing');
-      }
 
       const propertyId = generateId();
       const name = params.name.trim();

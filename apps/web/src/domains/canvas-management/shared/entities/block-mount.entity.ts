@@ -2,6 +2,7 @@ import { BlockId } from '@/domains/block-management/shared/value-objects/block-i
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 
 import { BlockMountId } from '../value-objects/block-mount-id.vo';
+import { BlockViewMode } from '../value-objects/block-view-mode.vo';
 import { Position } from '../value-objects/position.vo';
 import { Size } from '../value-objects/size.vo';
 import { ZOrder } from '../value-objects/z-order.vo';
@@ -14,6 +15,7 @@ export class BlockMount {
     public position: Position,
     public size: Size,
     public zOrder: ZOrder,
+    public viewMode: BlockViewMode = BlockViewMode.default(),
     public readonly createdAt: Date = new Date(),
     public updatedAt: Date = new Date(),
     public deletedAt: Date | null = null
@@ -34,6 +36,16 @@ export class BlockMount {
     }
 
     // 2. updatedAt 갱신
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * View Mode 업데이트
+   *
+   * @param viewMode - 새로운 View Mode
+   */
+  updateViewMode(viewMode: BlockViewMode): void {
+    this.viewMode = viewMode;
     this.updatedAt = new Date();
   }
 
@@ -69,6 +81,7 @@ export class BlockMount {
     position: Position;
     size: Size;
     zOrder: ZOrder;
+    viewMode: BlockViewMode;
     createdAt: Date;
     updatedAt: Date;
     deletedAt: Date | null;
@@ -80,6 +93,7 @@ export class BlockMount {
       params.position,
       params.size,
       params.zOrder,
+      params.viewMode,
       params.createdAt,
       params.updatedAt,
       params.deletedAt
@@ -113,6 +127,7 @@ export class BlockMount {
       duplicatedPosition,
       this.size, // 크기는 동일하게 유지
       duplicatedZOrder,
+      this.viewMode, // View Mode도 복제
       new Date(), // 새로운 생성 시간
       new Date() // 새로운 업데이트 시간
     );
