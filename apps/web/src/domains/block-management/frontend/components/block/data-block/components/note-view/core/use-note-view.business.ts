@@ -41,10 +41,14 @@ export function useNoteViewBusiness(
           return;
         }
 
+        // CRITICAL: Serialize content to ensure attrs.level is preserved through Server Action
+        // Next.js Server Actions can lose nested object properties during serialization
+        const serializedContent = JSON.parse(JSON.stringify(content));
+
         // 서버 저장만 수행 (Optimistic Update는 mutation에서 자동 처리됨)
         await updateBlockContent({
           nodeId: data.blockMountId,
-          content,
+          content: serializedContent,
           blockData: data,
           contentRaw,
         });

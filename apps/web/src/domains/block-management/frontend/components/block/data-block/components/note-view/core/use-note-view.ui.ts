@@ -8,11 +8,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { NoteViewUIState } from './types';
+import type { CanvasMode } from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
+
+import type { NoteViewUIStateBase } from './types';
 
 export interface UseNoteViewUIDependencies {
   canvasMode: {
     setTextareaEditing: (editing: boolean) => void;
+    mode?: CanvasMode;
   };
 }
 
@@ -28,27 +31,31 @@ export interface UseNoteViewUIDependencies {
 export function useNoteViewUI(
   selected: boolean,
   dependencies: UseNoteViewUIDependencies
-): NoteViewUIState {
+): NoteViewUIStateBase {
   // 편집 상태
   const [isEditing, setIsEditing] = useState(false);
   const [isDoubleClickMode, setIsDoubleClickMode] = useState(false);
 
-  // Refs
+  // Refs (note-view 전용)
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  const previousContentRef = useRef<string>('');
-  const editorReadyRef = useRef(false);
-  const isInitialMountRef = useRef(true);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Note: previousContentRef, editorReadyRef, isInitialMountRef, debounceTimerRef는
+  // 이제 useTipTapEditor에서 관리됨
 
   // 블럭 더블클릭 핸들러 (편집 모드 진입)
   const handleBlockDoubleClick = useCallback(
     (e: React.MouseEvent) => {
+      // 에디터 패널이 열려있는지 확인 (block-editing 모드)
+      if (dependencies.canvasMode.mode?.type === 'block-editing') {
+        // 다른 블록이 편집 중이면 노트 뷰 편집 비활성화
+        return;
+      }
+
       if (selected) {
         e.stopPropagation();
         setIsDoubleClickMode(true);
       }
     },
-    [selected]
+    [selected, dependencies.canvasMode.mode, isEditing, isDoubleClickMode]
   );
 
   // 에디터 클릭 핸들러 (편집 모드일 때만 propagation 차단)
@@ -71,13 +78,8 @@ export function useNoteViewUI(
   const handleExitEditing = useCallback(() => {
     setIsEditing(false);
     dependencies.canvasMode.setTextareaEditing(false);
-
-    // Debounce timer 취소
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
-    }
-  }, [setIsEditing, debounceTimerRef, dependencies.canvasMode]);
+    // Note: debounceTimerRef는 이제 useTipTapEditor에서 관리됨
+  }, [setIsEditing, dependencies.canvasMode]);
 
   // ESC 키 핸들러
   useEffect(() => {
@@ -164,10 +166,8 @@ export function useNoteViewUI(
     isDoubleClickMode,
     setIsDoubleClickMode,
     editorContainerRef,
-    previousContentRef,
-    editorReadyRef,
-    isInitialMountRef,
-    debounceTimerRef,
+    // Note: previousContentRef, editorReadyRef, isInitialMountRef, debounceTimerRef는
+    // useTipTapEditor의 state에서 제공됨
     handleBlockDoubleClick,
     handleEditorClick,
     handleEnterEditing,
