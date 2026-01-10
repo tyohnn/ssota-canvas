@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 
-import { usePreventPinchZoom } from '../../../../../../hooks/control/use-prevent-pinch-zoom';
+import { usePreventPinchZoom } from '@/domains/canvas-management/frontend/hooks/control/use-prevent-pinch-zoom';
+
 import type { ViewportDependencies } from './types';
 
 /**
@@ -54,7 +55,8 @@ export function useViewportControlToolbarUI(
     viewportDependencies.fitToScreen();
   }, [viewportDependencies]);
 
-  const zoomLevel = viewportDependencies.getZoomLevel();
+  // Use reactive zoomLevel directly from viewportDependencies
+  const zoomLevel = viewportDependencies.zoomLevel;
 
   return {
     showMiniMap,

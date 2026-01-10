@@ -15,7 +15,7 @@
  * Used to reduce coupling with internal service hooks
  */
 export interface ViewportDependencies {
-  getZoomLevel: () => number;
+  zoomLevel: number;
   zoomIn: () => void;
   zoomOut: () => void;
   fitToScreen: () => void;
