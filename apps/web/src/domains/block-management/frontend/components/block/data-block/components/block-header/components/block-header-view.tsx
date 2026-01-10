@@ -1,0 +1,101 @@
+'use client';
+
+import React, { useState } from 'react';
+
+import { Badge } from '@workspace/ui/components/ui/badge';
+import { cn } from '@workspace/ui/lib/utils';
+
+import { Box } from '@/components/ui/box';
+
+export interface BlockHeaderViewProps {
+  title: string;
+  blockType?: string;
+  width?: number;
+  onTitleChange: (title: string) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onBlur: () => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  isUpdating: boolean;
+  className?: string;
+}
+
+/**
+ * Block Header View Component
+ *
+ * Presentational component: Renders the block header input
+ * - No Context dependencies
+ * - Renders based on Props only
+ * - Can be tested independently in Storybook
+ */
+export function BlockHeaderView({
+  title,
+  blockType,
+  width,
+  onTitleChange,
+  onKeyDown,
+  onBlur,
+  inputRef,
+  isUpdating,
+  className,
+}: BlockHeaderViewProps) {
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    onBlur();
+  };
+
+  // width가 270px 이하일 때 배지 숨김
+  const shouldShowBadge = blockType && width !== undefined && width > 270;
+
+  return (
+    <Box
+      className={cn(
+        'nodrag',
+        'absolute top-[-40px] left-0 z-50',
+        'flex items-center',
+        'pointer-events-auto',
+        className
+      )}
+    >
+      {/* 블록 타입 배지 */}
+      {shouldShowBadge && blockType && (
+        <Badge variant="secondary" className="shrink-0 cursor-default mr-0.5">
+          {blockType}
+        </Badge>
+      )}
+
+      <input
+        ref={inputRef}
+        type="text"
+        value={title}
+        onChange={e => onTitleChange(e.target.value)}
+        onKeyDown={onKeyDown}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        disabled={isUpdating}
+        placeholder="Click to edit"
+        className={cn(
+          'h-7 px-1 text-sm font-medium',
+          'min-w-[100px] max-w-[100px]',
+          'bg-transparent',
+          'border-0 border-b',
+          'outline-none',
+          'focus-visible:ring-0',
+          'focus-visible:outline-none',
+          'placeholder:text-muted-foreground/50',
+          'cursor-text',
+          'truncate',
+          isFocused ? 'border-b-foreground/30' : 'border-b-transparent',
+          className
+        )}
+        onClick={e => e.stopPropagation()}
+        onMouseDown={e => e.stopPropagation()}
+      />
+    </Box>
+  );
+}

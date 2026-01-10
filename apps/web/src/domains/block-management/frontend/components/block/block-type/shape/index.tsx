@@ -28,7 +28,8 @@ import {
 } from '@/domains/block-management/shared/value-objects/block-properties';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 
-import { BaseBlock } from '../base-block';
+import { DataBlock } from '../../data-block';
+import { CardView } from '../../data-block/components/card-view';
 
 /**
  * Shape Block Node Component
@@ -85,7 +86,7 @@ export const ShapeBlock = memo(function ShapeBlock({
   // Canvas mode context
   const { setTextareaEditing } = useCanvasModeContext();
 
-  // 텍스트 편집 상태 (SSOT)
+  // 텍스트 편집 상태 (SSOT) - Original View에서만 사용
   const [isEditing, setIsEditing] = useState(false);
   const [draftContent, setDraftContent] = useState(content);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -404,17 +405,9 @@ export const ShapeBlock = memo(function ShapeBlock({
     }
   }, [shapeType, width, height, colors, strokeDasharray]);
 
-  return (
-    <BaseBlock
-      data={nodeData}
-      selected={selected}
-      isConnectable={true}
-      width={width}
-      height={height}
-      noBorder={true}
-      noBackground={true}
-    >
-      {/* Shape Block Content */}
+  // Original View 렌더러 (기존 편집 로직 포함)
+  const renderOriginalView = () => {
+    return (
       <div
         className={cn(
           'w-full h-full flex flex-col rounded-lg',
@@ -514,6 +507,22 @@ export const ShapeBlock = memo(function ShapeBlock({
           </div>
         </div>
       </div>
-    </BaseBlock>
+    );
+  };
+
+  // Card View 렌더러
+  const renderCardView = () => {
+    return <CardView data={nodeData} selected={selected} />;
+  };
+
+  return (
+    <DataBlock
+      data={nodeData}
+      selected={selected}
+      width={width}
+      height={height}
+      renderOriginalView={renderOriginalView}
+      renderCardView={renderCardView}
+    />
   );
 });

@@ -143,14 +143,14 @@ export interface ToolbarOptionPopoverProps<T = unknown> {
  * ```
  */
 // Default className constants
-const DEFAULT_TRIGGER_CLASS_NAME = 'size-8 p-0 transition-colors';
+const DEFAULT_TRIGGER_CLASS_NAME = 'h-7 w-7 p-0 transition-colors';
 const DEFAULT_CONTENT_CLASS_NAME =
-  'p-2 w-fit will-change-transform rounded-3xl';
-const DEFAULT_TRIGGER_ICON_CLASS_NAME = 'size-5';
-const DEFAULT_OPTION_ICON_CLASS_NAME = 'size-8';
+  'p-1.5 w-fit will-change-transform rounded-2xl';
+const DEFAULT_TRIGGER_ICON_CLASS_NAME = 'size-4';
+const DEFAULT_OPTION_ICON_CLASS_NAME = 'size-7';
 const DEFAULT_OPTION_BUTTON_CLASS_NAME =
-  'rounded-xl p-0.5 size-14 transition-colors will-change-transform';
-const DEFAULT_OPTION_GAP = 'gap-0';
+  'rounded-xl size-14 transition-colors will-change-transform px-0';
+const DEFAULT_OPTION_GAP = 'gap-0.5';
 
 export function ToolbarOptionPopover<T = unknown>({
   currentValue,

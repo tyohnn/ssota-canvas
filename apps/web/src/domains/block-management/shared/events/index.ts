@@ -42,14 +42,14 @@ export class BlockCreatedEvent implements DomainEvent {
    */
   async handle(): Promise<void> {
     // 순수 로깅 (항상 성공)
-    console.log('[Block Management] Block Created:', {
-      blockId: this.data.blockId,
-      blockType: this.data.blockType,
-      title: this.data.title,
-      workspaceId: this.data.workspaceId,
-      userId: this.data.userId,
-      occurredAt: this.occurredAt,
-    });
+    // console.log('[Block Management] Block Created:', {
+    //   blockId: this.data.blockId,
+    //   blockType: this.data.blockType,
+    //   title: this.data.title,
+    //   workspaceId: this.data.workspaceId,
+    //   userId: this.data.userId,
+    //   occurredAt: this.occurredAt,
+    // });
 
     // 외부 도메인 Policy 실행 (부수 효과)
     // ✅ Promise.allSettled 사용: 실패해도 에러 throw 안 함
@@ -79,11 +79,11 @@ export class BlockUpdatedEvent implements DomainEvent {
    * Event 발생 시 Policy 실행
    */
   async handle(): Promise<void> {
-    console.log('[Block Management] Block Updated:', {
-      blockId: this.aggregateId.value,
-      updateData: this.data.updateData,
-      occurredAt: this.occurredAt,
-    });
+    // console.log('[Block Management] Block Updated:', {
+    //   blockId: this.aggregateId.value,
+    //   updateData: this.data.updateData,
+    //   occurredAt: this.occurredAt,
+    // });
 
     // 외부 도메인 Policy 실행 (부수 효과)
     await Promise.allSettled([
@@ -114,13 +114,13 @@ export class BlockPropertyUpdatedEvent implements DomainEvent {
    * Event 발생 시 Policy 실행
    */
   async handle(): Promise<void> {
-    console.log('[Block Management] Block Property Updated:', {
-      blockId: this.aggregateId.value,
-      propertyPath: this.data.propertyPath,
-      oldValue: this.data.oldValue,
-      newValue: this.data.newValue,
-      occurredAt: this.occurredAt,
-    });
+    // console.log('[Block Management] Block Property Updated:', {
+    //   blockId: this.aggregateId.value,
+    //   propertyPath: this.data.propertyPath,
+    //   oldValue: this.data.oldValue,
+    //   newValue: this.data.newValue,
+    //   occurredAt: this.occurredAt,
+    // });
 
     // 외부 도메인 Policy 실행 (부수 효과)
     await Promise.allSettled([
@@ -152,12 +152,12 @@ export class BlockContentUpdatedEvent implements DomainEvent {
    * Event 발생 시 Policy 실행
    */
   async handle(): Promise<void> {
-    console.log('[Block Management] Block Content Updated:', {
-      blockId: this.aggregateId.value,
-      content: this.data.content,
-      contentRaw: this.data.contentRaw,
-      occurredAt: this.occurredAt,
-    });
+    // console.log('[Block Management] Block Content Updated:', {
+    //   blockId: this.aggregateId.value,
+    //   content: this.data.content,
+    //   contentRaw: this.data.contentRaw,
+    //   occurredAt: this.occurredAt,
+    // });
 
     // 외부 도메인 Policy 실행 (부수 효과)
     await Promise.allSettled([
@@ -225,11 +225,11 @@ export class BlockPropertiesUpdatedEvent implements DomainEvent {
    * Event 발생 시 Policy 실행
    */
   async handle(): Promise<void> {
-    console.log('[Block Management] Block Properties Updated:', {
-      blockId: this.aggregateId.value,
-      updatedProperties: this.data.updatedProperties,
-      occurredAt: this.occurredAt,
-    });
+    // console.log('[Block Management] Block Properties Updated:', {
+    //   blockId: this.aggregateId.value,
+    //   updatedProperties: this.data.updatedProperties,
+    //   occurredAt: this.occurredAt,
+    // });
 
     // 외부 도메인 Policy 실행 (부수 효과)
     await Promise.allSettled([
@@ -260,11 +260,11 @@ export class BlockDeletedEvent implements DomainEvent {
    * Event 발생 시 Policy 실행
    */
   async handle(): Promise<void> {
-    console.log('[Block Management] Block Deleted:', {
-      blockId: this.aggregateId.value,
-      workspaceId: this.data.workspaceId.value,
-      occurredAt: this.occurredAt,
-    });
+    // console.log('[Block Management] Block Deleted:', {
+    //   blockId: this.aggregateId.value,
+    //   workspaceId: this.data.workspaceId.value,
+    //   occurredAt: this.occurredAt,
+    // });
 
     // 외부 도메인 Policy 실행 (부수 효과)
     await Promise.allSettled([
@@ -298,11 +298,11 @@ export class BlockDuplicatedEvent implements DomainEvent {
    */
   async handle(): Promise<void> {
     // 순수 로깅 (항상 성공)
-    console.log('[Block Management] Block Duplicated:', {
-      originalBlockId: this.data.originalBlockId.value,
-      duplicatedBlockId: this.data.duplicatedBlockId.value,
-      occurredAt: this.occurredAt,
-    });
+    // console.log('[Block Management] Block Duplicated:', {
+    //   originalBlockId: this.data.originalBlockId.value,
+    //   duplicatedBlockId: this.data.duplicatedBlockId.value,
+    //   occurredAt: this.occurredAt,
+    // });
 
     // 외부 도메인 Policy 실행 (부수 효과)
     // ✅ Promise.allSettled 사용: 실패해도 에러 throw 안 함
@@ -331,9 +331,9 @@ export class BlockRestoredEvent implements DomainEvent {
    * Event 발생 시 Policy 실행
    */
   async handle(): Promise<void> {
-    console.log('[Block Management] Block Restored:', {
-      blockId: this.aggregateId.value,
-      occurredAt: this.occurredAt,
-    });
+    // console.log('[Block Management] Block Restored:', {
+    //   blockId: this.aggregateId.value,
+    //   occurredAt: this.occurredAt,
+    // });
   }
 }

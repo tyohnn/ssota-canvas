@@ -45,6 +45,13 @@ export function useEditorPanelBusiness(
       }
 
       const trimmedTitle = title.trim();
+      const currentTitle = (blockData.title as string) || '';
+
+      // 변화가 없으면 업데이트하지 않음
+      if (currentTitle.trim() === trimmedTitle) {
+        return;
+      }
+
       const blockIdValue = (blockData.blockId as string) || blockId;
 
       try {

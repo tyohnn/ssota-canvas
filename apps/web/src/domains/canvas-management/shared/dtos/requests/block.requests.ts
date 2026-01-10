@@ -53,6 +53,11 @@ export const SizeSchema = z.object({
  *
  * ⚠️ SSOT: size는 optional로 두고, 실제 사용 시 getBlockSize()로 기본값 설정
  */
+/**
+ * View Mode 검증 스키마
+ */
+export const ViewModeSchema = z.enum(['note', 'original', 'card']);
+
 export const CreateAndMountBlockRequestSchema = z.object({
   pageId: z.uuid('Invalid page ID'),
   blockType: BlockTypeSchema,
@@ -114,6 +119,14 @@ export const MoveBlockToPageRequestSchema = z.object({
   targetPageId: z.uuid('Invalid target page ID'),
 });
 
+/**
+ * 블럭 View Mode 업데이트 요청 스키마
+ */
+export const UpdateBlockMountViewModeRequestSchema = z.object({
+  blockMountId: z.uuid('Invalid block mount ID'),
+  viewMode: ViewModeSchema,
+});
+
 // Input types (프론트엔드에서 사용)
 export type CreateAndMountBlockRequestInput = z.input<
   typeof CreateAndMountBlockRequestSchema
@@ -132,6 +145,9 @@ export type DuplicateBlockAndMountRequestInput = z.input<
 >;
 export type MoveBlockToPageRequestInput = z.input<
   typeof MoveBlockToPageRequestSchema
+>;
+export type UpdateBlockMountViewModeRequestInput = z.input<
+  typeof UpdateBlockMountViewModeRequestSchema
 >;
 
 // Output types (서버에서 사용)
@@ -152,4 +168,7 @@ export type DuplicateBlockAndMountRequest = z.output<
 >;
 export type MoveBlockToPageRequest = z.output<
   typeof MoveBlockToPageRequestSchema
+>;
+export type UpdateBlockMountViewModeRequest = z.output<
+  typeof UpdateBlockMountViewModeRequestSchema
 >;

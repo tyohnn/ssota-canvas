@@ -66,6 +66,13 @@ export const alignmentTypeEnum = pgEnum('alignment_type', [
   'VERTICAL_DISTRIBUTE',
 ]);
 
+// Canvas Management Domain Enums - Block View Mode
+export const blockViewModeEnum = pgEnum('block_view_mode', [
+  'note',
+  'original',
+  'card',
+]);
+
 // Block Management Domain Enums
 export const blockTypeEnum = pgEnum('block_type', [
   'text', // 텍스트 블록
@@ -1039,6 +1046,7 @@ export const blockMounts = pgTable(
       .notNull()
       .default('100'),
     z_order: integer('z_order').notNull().default(0),
+    view_mode: blockViewModeEnum('view_mode').notNull().default('original'),
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1083,6 +1091,9 @@ export const blockMounts = pgTable(
       .where(sql`deleted_at IS NULL`),
     pageZOrderIdx: index('idx_block_mounts_page_z_order')
       .on(table.page_id, table.z_order)
+      .where(sql`deleted_at IS NULL`),
+    viewModeIdx: index('idx_block_mounts_view_mode')
+      .on(table.view_mode)
       .where(sql`deleted_at IS NULL`),
 
     // RLS Policies - Page creator access only

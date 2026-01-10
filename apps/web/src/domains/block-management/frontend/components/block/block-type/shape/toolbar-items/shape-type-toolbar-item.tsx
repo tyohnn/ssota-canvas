@@ -1,18 +1,11 @@
 'use client';
 
-import { useCallback } from 'react';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@workspace/ui/components/ui/popover';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@workspace/ui/components/ui/tooltip';
+import React from 'react';
+
+import { ToolbarOptionPopover } from '@workspace/ui/components/ssota-ui/toolbar-option-popover';
+import type { ToolbarOption } from '@workspace/ui/components/ssota-ui/toolbar-option-popover';
+
 import { ShapeType } from '@/domains/block-management/shared/value-objects/block-properties';
-import { cn } from '@/lib/utils';
 
 interface ShapeTypeToolbarItemProps {
   blockId: string;
@@ -20,38 +13,8 @@ interface ShapeTypeToolbarItemProps {
   currentShapeType: ShapeType;
   disabled?: boolean;
   onShapeTypeChange?: (shapeType: ShapeType) => Promise<void>;
+  zoom?: number;
 }
-
-const SHAPE_OPTIONS = [
-  {
-    value: ShapeType.RECTANGLE,
-    label: '사각형',
-  },
-  {
-    value: ShapeType.ELLIPSE,
-    label: '타원',
-  },
-  {
-    value: ShapeType.TRIANGLE,
-    label: '삼각형',
-  },
-  {
-    value: ShapeType.DIAMOND,
-    label: '다이아몬드',
-  },
-  {
-    value: ShapeType.HEXAGON,
-    label: '육각형',
-  },
-  {
-    value: ShapeType.PARALLELOGRAM,
-    label: '평행사변형',
-  },
-  {
-    value: ShapeType.CYLINDER,
-    label: '원기둥',
-  },
-];
 
 // SVG 미리보기 렌더링 함수
 function renderShapePreview(shapeType: ShapeType, size: number = 24) {
@@ -147,82 +110,69 @@ function renderShapePreview(shapeType: ShapeType, size: number = 24) {
   }
 }
 
+const SHAPE_OPTIONS: ToolbarOption<ShapeType>[] = [
+  {
+    value: ShapeType.RECTANGLE,
+    label: '사각형',
+    icon: renderShapePreview(ShapeType.RECTANGLE, 24),
+  },
+  {
+    value: ShapeType.ELLIPSE,
+    label: '타원',
+    icon: renderShapePreview(ShapeType.ELLIPSE, 24),
+  },
+  {
+    value: ShapeType.TRIANGLE,
+    label: '삼각형',
+    icon: renderShapePreview(ShapeType.TRIANGLE, 24),
+  },
+  {
+    value: ShapeType.DIAMOND,
+    label: '다이아몬드',
+    icon: renderShapePreview(ShapeType.DIAMOND, 24),
+  },
+  {
+    value: ShapeType.HEXAGON,
+    label: '육각형',
+    icon: renderShapePreview(ShapeType.HEXAGON, 24),
+  },
+  {
+    value: ShapeType.PARALLELOGRAM,
+    label: '평행사변형',
+    icon: renderShapePreview(ShapeType.PARALLELOGRAM, 24),
+  },
+  {
+    value: ShapeType.CYLINDER,
+    label: '원기둥',
+    icon: renderShapePreview(ShapeType.CYLINDER, 24),
+  },
+];
+
 export function ShapeTypeToolbarItem({
   blockId,
   blockMountId,
   currentShapeType,
   disabled = false,
   onShapeTypeChange,
+  zoom = 1,
 }: ShapeTypeToolbarItemProps) {
-  const handleShapeSelect = useCallback(
-    async (shapeType: ShapeType) => {
-      if (onShapeTypeChange) {
-        await onShapeTypeChange(shapeType);
-      }
-    },
-    [onShapeTypeChange]
-  );
+  const handleShapeTypeChange = async (shapeType: ShapeType) => {
+    if (onShapeTypeChange) {
+      await onShapeTypeChange(shapeType);
+    }
+  };
 
   return (
-    <Popover>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            <button
-              className="flex items-center justify-center p-1 rounded-md hover:bg-black/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              onMouseDown={e => e.stopPropagation()}
-              disabled={disabled}
-            >
-              {renderShapePreview(currentShapeType, 16)}
-            </button>
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="top" hasArrow={false} sideOffset={10}>
-          <p>도형 타입</p>
-        </TooltipContent>
-      </Tooltip>
-      <PopoverContent
-        className="p-2 w-fit"
-        side="top"
-        align="center"
-        onMouseDown={e => e.stopPropagation()}
-        onClick={e => e.stopPropagation()}
-        onOpenAutoFocus={e => e.preventDefault()}
-      >
-        <div className="flex gap-1.5">
-          {SHAPE_OPTIONS.map(shapeOption => {
-            return (
-              <Tooltip key={shapeOption.value}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={e => {
-                      e.stopPropagation();
-                      handleShapeSelect(shapeOption.value);
-                    }}
-                    onMouseDown={e => e.stopPropagation()}
-                    className={cn(
-                      'h-7 w-7 rounded transition hover:scale-110 flex items-center justify-center',
-                      {
-                        'ring-1 ring-black/10':
-                          currentShapeType !== shapeOption.value,
-                        'ring-2 ring-blue-400':
-                          currentShapeType === shapeOption.value,
-                      }
-                    )}
-                    aria-label={shapeOption.label}
-                  >
-                    {renderShapePreview(shapeOption.value, 16)}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" hasArrow={false} sideOffset={10}>
-                  <p>{shapeOption.label}</p>
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
+    <ToolbarOptionPopover<ShapeType>
+      currentValue={currentShapeType}
+      options={SHAPE_OPTIONS}
+      onValueChange={handleShapeTypeChange}
+      tooltip="도형 타입"
+      tooltipSide="top"
+      tooltipOffset={5}
+      popoverSide="top"
+      popoverAlign="center"
+      zoom={zoom}
+    />
   );
 }
-

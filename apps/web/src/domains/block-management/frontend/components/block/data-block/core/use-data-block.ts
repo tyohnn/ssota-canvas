@@ -1,0 +1,80 @@
+/**
+ * DataBlock Hook
+ *
+ * DataBlock의 상태 관리 및 로직
+ */
+import { useCallback, useMemo } from 'react';
+
+import { useReactFlow, useViewport } from '@xyflow/react';
+
+import { getDefaultViewMode } from '@/domains/block-management/shared/types/block-view-modes';
+import {
+  CanvasMetadata,
+  useCanvasMetadata,
+} from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
+import { useUpdateBlockViewMode } from '@/domains/canvas-management/frontend/hooks/use-update-block-view-mode';
+import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
+
+import type { DataBlockProps } from './types';
+
+export function useDataBlock(
+  props: DataBlockProps,
+  // optional injection
+  canvasMetadataOverride?: CanvasMetadata
+) {
+  const { data, selected = false } = props;
+  const { getNode, updateNode } = useReactFlow();
+  const { zoom } = useViewport();
+
+  // Canvas Metadata Context에서 pageId 가져오기
+  const { pageId } = useCanvasMetadata(canvasMetadataOverride);
+
+  // Canvas Mode Context
+  const canvasMode = useCanvasModeContext();
+
+  // View Mode 결정: data.viewMode > 기본값
+  const viewMode: BlockViewModeValue = useMemo(() => {
+    const computed = data.viewMode || getDefaultViewMode(data.blockType);
+    return computed;
+  }, [data.viewMode, data.blockType]);
+
+  // View Mode 업데이트 훅
+  const { updateViewMode } = useUpdateBlockViewMode({
+    blockMountId: data.blockMountId,
+    pageId: pageId,
+    reactFlow: {
+      getNode,
+      updateNode,
+    },
+  });
+
+  // View Mode 변경 핸들러
+  const handleViewModeChange = async (newViewMode: BlockViewModeValue) => {
+    if (!pageId) {
+      console.warn('[DataBlock] pageId is required to update viewMode');
+      return;
+    }
+    await updateViewMode(newViewMode);
+  };
+
+  // 편집 모드 진입 핸들러
+  const handleEdit = useCallback(() => {
+    canvasMode.enterBlockEditingMode(data.blockMountId);
+  }, [canvasMode, data.blockMountId]);
+
+  // Single selection 여부 확인
+  const isSingleSelection = selected && canvasMode.isSingleSelectionMode();
+
+  // 멀티셀렉트 여부 확인
+  const isMultiSelection = canvasMode.isMultiSelectionMode();
+
+  return {
+    viewMode,
+    isSingleSelection,
+    onViewModeChange: handleViewModeChange,
+    zoom,
+    isMultiSelection,
+    onEdit: handleEdit,
+  };
+}

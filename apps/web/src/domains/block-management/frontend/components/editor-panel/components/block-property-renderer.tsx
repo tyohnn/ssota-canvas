@@ -73,11 +73,6 @@ export function BlockPropertyRenderer({
         return; // 읽기 전용은 수정 불가
       }
 
-      // 메타데이터 필드는 업데이트하지 않음
-      if (['createdAt', 'updatedAt', 'createdBy'].includes(propertyKey)) {
-        return;
-      }
-
       if (!blockData) {
         console.error('blockData is required for property update');
         return;
@@ -102,10 +97,6 @@ export function BlockPropertyRenderer({
   const handleImmediateUpdate = useCallback(
     (newValue: any) => {
       if (propertyDef.readonly) {
-        return;
-      }
-
-      if (['createdAt', 'updatedAt', 'createdBy'].includes(propertyKey)) {
         return;
       }
 

@@ -20,7 +20,8 @@ import {
 } from '@/domains/block-management/shared/types/style-tokens.types';
 import type { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 
-import { BaseBlock } from '../base-block';
+import { DataBlock } from '../../data-block';
+import { CardView } from '../../data-block/components/card-view';
 
 /**
  * YouTube Block Component
@@ -601,16 +602,9 @@ export const YoutubeBlock = memo(function YoutubeBlock({
     }
   }
 
-  return (
-    <BaseBlock
-      data={nodeData}
-      selected={selected}
-      isConnectable={true}
-      width={width}
-      height={height}
-      noBorder={true}
-      noBackground={true}
-    >
+  // Original View 렌더러 (기존 UI)
+  const renderOriginalView = () => {
+    return (
       <TooltipProvider>
         <div
           className={cn(
@@ -625,6 +619,22 @@ export const YoutubeBlock = memo(function YoutubeBlock({
           {url && !isLoading && renderPreviewCard()}
         </div>
       </TooltipProvider>
-    </BaseBlock>
+    );
+  };
+
+  // Card View 렌더러
+  const renderCardView = () => {
+    return <CardView data={nodeData} selected={selected} />;
+  };
+
+  return (
+    <DataBlock
+      data={nodeData}
+      selected={selected}
+      width={width}
+      height={height}
+      renderOriginalView={renderOriginalView}
+      renderCardView={renderCardView}
+    />
   );
 });

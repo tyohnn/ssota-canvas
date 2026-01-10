@@ -11,12 +11,14 @@ export function ShapeToolbarItems({
   blockData,
   disabled,
   onPropertyUpdate,
+  zoom = 1,
 }: {
   blockId: string;
   blockMountId?: string;
   blockData: any;
   disabled: boolean;
   onPropertyUpdate: (path: string, value: any) => Promise<void>;
+  zoom?: number;
 }) {
   const shapeProperties = blockData.properties;
 
@@ -30,6 +32,7 @@ export function ShapeToolbarItems({
         onShapeTypeChange={async (shapeType: any) => {
           await onPropertyUpdate('properties.shapeType', shapeType);
         }}
+        zoom={zoom}
       />
       <ColorToolbarItem
         blockId={blockId}
@@ -39,6 +42,7 @@ export function ShapeToolbarItems({
         onColorChange={async (color: any) => {
           await onPropertyUpdate('properties.color', color);
         }}
+        zoom={zoom}
       />
       <BorderStyleToolbarItem
         blockId={blockId}
@@ -48,6 +52,7 @@ export function ShapeToolbarItems({
         onBorderStyleChange={async (borderStyle: any) => {
           await onPropertyUpdate('properties.borderStyle', borderStyle);
         }}
+        zoom={zoom}
       />
     </>
   );

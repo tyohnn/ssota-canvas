@@ -128,10 +128,13 @@ export function useCanvasToolbar(
         // 스페이스바를 떼면 무조건 default 모드로 (isPanningMode 체크 제거)
         // React Flow의 이벤트 핸들러가 남아있을 수 있으므로 강제로 모드 전환
         event.preventDefault();
-        event.stopPropagation();
-        
+        // stopPropagation 제거: wrapper의 keyup 핸들러가 실행되어야 flushViewportSave가 호출됨
+
         if (isPanningMode) {
-          modeDependencies.exitToDefaultMode();
+          // mode 변경을 약간 지연시켜 wrapper의 keyup과 flushViewportSave가 먼저 실행되도록 함
+          setTimeout(() => {
+            modeDependencies.exitToDefaultMode();
+          }, 10);
         }
       }
     },

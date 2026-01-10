@@ -28,7 +28,7 @@ export interface BlockActionBarProps {
  * Features:
  * - 선택된 블럭 우측에 표시되는 컨텍스트 액션 바
  * - 블럭 타입별 액션 아이템 (이미지 검색, AI 생성 등)
- * - BlockMountToolbar와 유사한 디자인
+ * - BlockOriginalToolbar와 유사한 디자인
  *
  * 렌더링 조건: 블록이 선택되었을 때
  */

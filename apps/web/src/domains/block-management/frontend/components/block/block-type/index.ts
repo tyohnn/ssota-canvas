@@ -4,9 +4,6 @@
  * 블록 관리 컴포넌트들의 중앙 export
  */
 
-// Base Block Components
-export * from './base-block';
-
 // Text Block Components
 export * from './text';
 

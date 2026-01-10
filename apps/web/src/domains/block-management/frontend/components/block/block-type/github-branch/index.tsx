@@ -7,12 +7,16 @@
 'use client';
 
 import React, { memo } from 'react';
+
 import type { NodeProps } from '@xyflow/react';
-import type { GithubBranchBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
+import { Clock, GitBranch, GitCommit } from 'lucide-react';
+
 import { cn } from '@workspace/ui/lib/utils';
-import { GitBranch, GitCommit, Clock } from 'lucide-react';
+
+import type { GithubBranchBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { GithubBranchBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+
+import { BaseBlock } from '../../base-block';
 
 export const GitHubBranchBlock = memo(function GitHubBranchBlock({
   id,

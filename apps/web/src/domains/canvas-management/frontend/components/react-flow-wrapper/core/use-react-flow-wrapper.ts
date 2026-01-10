@@ -242,28 +242,6 @@ export function useReactFlowWrapper(
   );
 
   // =========================================================================
-  // 9.5. Viewport Flush on Panning Mode Exit
-  // =========================================================================
-  // panning 모드에서 다른 모드로 바뀔 때 viewport를 즉시 저장 (debounce flush)
-  // panning 중에는 viewport가 자주 변경되므로, 모드 전환 시점에 저장하여
-  // React Flow 리마운트 시 최신 viewport가 복원되도록 함
-  const currentMode = canvasMode.getCurrentMode();
-  const previousModeRef = React.useRef(currentMode);
-
-  React.useEffect(() => {
-    const previousMode = previousModeRef.current;
-    const isExitingPanning =
-      previousMode.type === 'panning' && currentMode.type !== 'panning';
-
-    // panning 모드에서 다른 모드로 전환될 때만 flush
-    if (isExitingPanning) {
-      flushViewportSave();
-    }
-
-    previousModeRef.current = currentMode;
-  }, [currentMode, flushViewportSave]);
-
-  // =========================================================================
   // 10. Custom Handlers (Block Creation Mode Override)
   // =========================================================================
   // 블럭 타입 선택 핸들러 (다이얼로그 닫기 + 블록 생성 모드 진입)
@@ -410,8 +388,9 @@ export function useReactFlowWrapper(
         return;
       }
 
-      // Space keyup: panning 모드 종료 시 viewport 즉시 저장
-      if (event.code === 'Space' && canvasMode.isPanningMode()) {
+      // Space keyup: viewport 즉시 저장
+      // isPanningMode 체크를 제거 (use-canvas-toolbar에서 mode를 먼저 변경할 수 있음)
+      if (event.code === 'Space') {
         // 현재 viewport를 즉시 저장 (debounce flush)
         flushViewportSave();
       }

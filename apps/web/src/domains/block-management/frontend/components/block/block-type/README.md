@@ -53,7 +53,7 @@ export function useYoutubeExtractScript(blockId, blockData) {
 ### 3. toolbar-items/
 - 블럭 상단 툴바에 표시되는 항목들
 - 블럭 속성 편집 (URL, 스타일 등)
-- BlockMountToolbar에서 사용
+- BlockOriginalToolbar에서 사용
 
 ### 4. action-items/
 - 블럭 우측 액션 바에 표시되는 항목들

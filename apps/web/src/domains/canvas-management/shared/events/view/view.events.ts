@@ -1,6 +1,7 @@
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 
 import { BlockMountId } from '../../value-objects/block-mount-id.vo';
+import { BlockViewMode } from '../../value-objects/block-view-mode.vo';
 import { Position } from '../../value-objects/position.vo';
 import { Size } from '../../value-objects/size.vo';
 import { ZOrder } from '../../value-objects/z-order.vo';
@@ -125,6 +126,37 @@ export class BlockZOrderUpdatedEvent implements DomainEvent {
       // - 레이어 순서 업데이트
       // - 가이드라인 업데이트
       // - 성능 최적화를 위한 배치 처리
+    ]);
+  }
+}
+
+// BlockViewModeUpdatedEvent
+export class BlockViewModeUpdatedEvent implements DomainEvent {
+  readonly type = 'BlockViewModeUpdated';
+
+  constructor(
+    public readonly aggregateId: BlockMountId,
+    public readonly data: {
+      blockMountId: BlockMountId;
+      newViewMode: BlockViewMode;
+    },
+    public readonly occurredAt: Date
+  ) {}
+
+  /**
+   * Event 발생 시 Policy 실행
+   */
+  async handle(): Promise<void> {
+    console.log('[Canvas Management] Block View Mode Updated:', {
+      blockMountId: this.aggregateId.value,
+      newViewMode: this.data.newViewMode.value,
+      occurredAt: this.occurredAt,
+    });
+
+    await Promise.allSettled([
+      // Policy 구현 예시:
+      // - 캔버스 렌더링 최적화
+      // - 통계 업데이트
     ]);
   }
 }

@@ -25,7 +25,7 @@ import {
 } from '@/domains/block-management/shared/value-objects/block-properties';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 
-import { BaseBlock } from '../base-block';
+import { BaseBlock } from '../../base-block';
 
 /**
  * Text Block Node Component

@@ -90,6 +90,7 @@ export function useDuplicateBlock(
         properties: originalNodeData.properties,
         customProperties: originalNodeData.customProperties,
         content: originalNodeData.content,
+        viewMode: originalNodeData.viewMode,
       }
     );
 
@@ -236,6 +237,7 @@ export function useDuplicateBlock(
           properties: optimisticNodeData?.properties,
           customProperties: optimisticNodeData?.customProperties,
           content: optimisticNodeData?.content,
+          viewMode: optimisticNodeData?.viewMode || 'original',
         }
       );
 

@@ -4,6 +4,7 @@ import { PageId } from '@/domains/workspace-management/shared/value-objects/page
 
 import { BlockMount } from '../entities/block-mount.entity';
 import { BlockMountId } from '../value-objects/block-mount-id.vo';
+import { BlockViewMode } from '../value-objects/block-view-mode.vo';
 import { Position } from '../value-objects/position.vo';
 import { Size } from '../value-objects/size.vo';
 import { ZOrder } from '../value-objects/z-order.vo';
@@ -77,5 +78,14 @@ export interface UpdateBlockSizeCommand {
  */
 export interface UpdateSingleBlockSizeCommand {
   newSize: Size;
+  userId: UserId;
+}
+
+/**
+ * BlockMount View Mode 업데이트 Command
+ */
+export interface UpdateBlockMountViewModeCommand {
+  blockMountId: BlockMountId;
+  viewMode: BlockViewMode;
   userId: UserId;
 }

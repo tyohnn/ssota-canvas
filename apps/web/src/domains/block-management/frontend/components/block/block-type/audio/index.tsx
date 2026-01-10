@@ -40,7 +40,7 @@ import type { AudioBlockProperties } from '@/domains/block-management/shared/val
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
 
-import { BaseBlock } from '../base-block';
+import { BaseBlock } from '../../base-block';
 
 /**
  * Audio Block Component
