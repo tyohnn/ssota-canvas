@@ -1047,6 +1047,7 @@ export const blockMounts = pgTable(
       .default('100'),
     z_order: integer('z_order').notNull().default(0),
     view_mode: blockViewModeEnum('view_mode').notNull().default('original'),
+    view_mode_sizes: jsonb('view_mode_sizes').default(null),
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),

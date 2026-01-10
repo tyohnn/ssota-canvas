@@ -5,6 +5,7 @@ import { BlockMountId } from '../value-objects/block-mount-id.vo';
 import { BlockViewMode } from '../value-objects/block-view-mode.vo';
 import { Position } from '../value-objects/position.vo';
 import { Size } from '../value-objects/size.vo';
+import { ViewModeSizes } from '../value-objects/view-mode-sizes.vo';
 import { ZOrder } from '../value-objects/z-order.vo';
 
 export class BlockMount {
@@ -13,22 +14,49 @@ export class BlockMount {
     public readonly pageId: PageId,
     public readonly blockId: BlockId,
     public position: Position,
-    public size: Size,
+    public viewModeSizes: ViewModeSizes,
     public zOrder: ZOrder,
-    public viewMode: BlockViewMode = BlockViewMode.default(),
+    public viewMode: BlockViewMode, // 기본값 제거: 항상 명시적으로 전달
     public readonly createdAt: Date = new Date(),
     public updatedAt: Date = new Date(),
     public deletedAt: Date | null = null
   ) {}
 
-  transform(newPosition?: Position, newSize?: Size, newZOrder?: ZOrder): void {
+  /**
+   * 현재 viewMode에 해당하는 크기 조회 (하위 호환성)
+   *
+   * @returns 현재 viewMode의 크기 (없으면 기본 크기)
+   */
+  get size(): Size {
+    const currentSize = this.viewModeSizes.getSizeForViewMode(
+      this.viewMode.value
+    );
+    if (currentSize) {
+      return currentSize;
+    }
+    // 기본 크기 반환 (하위 호환성)
+    return new Size(100, 100);
+  }
+
+  transform(
+    newPosition?: Position,
+    newSize?: Size,
+    newZOrder?: ZOrder,
+    targetViewMode?: BlockViewMode
+  ): void {
     // 1. 각 속성이 제공된 경우 업데이트
     if (newPosition !== undefined) {
       this.position = newPosition;
     }
 
     if (newSize !== undefined) {
-      this.size = newSize;
+      // targetViewMode가 제공되면 해당 뷰 모드의 크기만 업데이트
+      // 없으면 현재 viewMode의 크기 업데이트
+      const viewModeToUpdate = targetViewMode ?? this.viewMode;
+      this.viewModeSizes = this.viewModeSizes.updateSizeForViewMode(
+        viewModeToUpdate.value,
+        newSize
+      );
     }
 
     if (newZOrder !== undefined) {
@@ -79,7 +107,7 @@ export class BlockMount {
     pageId: PageId;
     blockId: BlockId;
     position: Position;
-    size: Size;
+    viewModeSizes: ViewModeSizes;
     zOrder: ZOrder;
     viewMode: BlockViewMode;
     createdAt: Date;
@@ -91,7 +119,7 @@ export class BlockMount {
       params.pageId,
       params.blockId,
       params.position,
-      params.size,
+      params.viewModeSizes,
       params.zOrder,
       params.viewMode,
       params.createdAt,
@@ -119,13 +147,18 @@ export class BlockMount {
     // 3. 복제된 ZOrder 계산 (현재 ZOrder + 1)
     const duplicatedZOrder = new ZOrder(this.zOrder.value + 1);
 
-    // 4. 새로운 BlockMount 생성
+    // 4. viewModeSizes 복제 (JSON을 통한 깊은 복사)
+    const duplicatedViewModeSizes = ViewModeSizes.fromJSON(
+      this.viewModeSizes.toJSON()
+    );
+
+    // 5. 새로운 BlockMount 생성
     return new BlockMount(
       newBlockMountId,
       this.pageId,
       newBlockId,
       duplicatedPosition,
-      this.size, // 크기는 동일하게 유지
+      duplicatedViewModeSizes, // 모든 뷰 모드 크기 복제
       duplicatedZOrder,
       this.viewMode, // View Mode도 복제
       new Date(), // 새로운 생성 시간

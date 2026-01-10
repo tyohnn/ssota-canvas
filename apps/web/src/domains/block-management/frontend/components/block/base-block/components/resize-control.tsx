@@ -39,9 +39,12 @@ export function ResizeControl({
     return null;
   }
 
-  const shouldKeepAspectRatio = ASPECT_RATIO_LOCKED_BLOCK_TYPES.includes(
+  // 이미지 블록이고 오리지널 뷰일 때만 가로세로비 고정
+  const isImageBlock = ASPECT_RATIO_LOCKED_BLOCK_TYPES.includes(
     data.blockType as (typeof ASPECT_RATIO_LOCKED_BLOCK_TYPES)[number]
   );
+  const isOriginalView = data.viewMode === 'original';
+  const shouldKeepAspectRatio = isImageBlock && isOriginalView;
 
   return (
     <NodeResizeControl

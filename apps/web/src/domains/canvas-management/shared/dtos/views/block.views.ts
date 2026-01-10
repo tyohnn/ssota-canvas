@@ -8,6 +8,7 @@ import type { UserProfile } from '@/domains/user-management/shared/types';
 
 import type { Position, Size } from '../../types';
 import type { BlockViewModeValue } from '../../value-objects/block-view-mode.vo';
+import type { ViewModeSizeMap } from '../../value-objects/view-mode-sizes.vo';
 
 /**
  * BlockView - SSOT (Single Source of Truth) for Block Data
@@ -23,6 +24,7 @@ export interface BlockView {
   size: Size;
   zOrder: number;
   viewMode: BlockViewModeValue;
+  viewModeSizes?: ViewModeSizeMap; // 뷰 모드별 크기 정보 (original, card, note)
 
   // Block 정보 (Block Management Domain)
   blockId: string;

@@ -139,10 +139,14 @@ export function useBaseBlock(
   // Combined Logic: Resize End (Save to DB)
   const handleResizeEnd = useCallback(
     async (event: any, resizeData: ResizeData) => {
-      // Business: Save to DB
+      // 현재 viewMode 가져오기
+      const currentViewMode = data.viewMode;
+
+      // Business: Save to DB (현재 viewMode 전달)
       const result = await business.saveBlockSize(
         data.blockMountId || '',
-        resizeData
+        resizeData,
+        currentViewMode
       );
 
       if (!result.ok) {

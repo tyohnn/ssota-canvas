@@ -4,6 +4,7 @@
  * DB → DTO → React Flow Node까지의 타입 안전성 보장
  */
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
+import type { ViewModeSizeMap } from '@/domains/canvas-management/shared/value-objects/view-mode-sizes.vo';
 import { UserProfile } from '@/domains/user-management/shared/types';
 
 import {
@@ -73,6 +74,7 @@ export interface BaseNodeData extends Record<string, unknown> {
   blockType: BlockType;
   title: string;
   viewMode: BlockViewModeValue;
+  sizes?: ViewModeSizeMap; // 뷰 모드별 크기 정보 (original, card, note)
   properties: BlockProperties<BlockType>;
   customProperties: CustomPropertyDefinition[];
   content?: unknown; // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
@@ -226,6 +228,7 @@ export function buildBlockNodeData<T extends BlockType>(
     blockId: string;
     title?: string;
     viewMode: BlockViewModeValue;
+    sizes?: ViewModeSizeMap; // 뷰 모드별 크기 정보
     properties?: BlockProperties<T>;
     customProperties?: CustomPropertyDefinition[];
     content?: unknown; // JSONB content
@@ -248,6 +251,7 @@ export function buildBlockNodeData<T extends BlockType>(
     blockType,
     title: baseData.title || '',
     viewMode: baseData.viewMode,
+    sizes: baseData.sizes, // 뷰 모드별 크기 정보
     properties: properties,
     customProperties: baseData.customProperties || [],
     content: baseData.content, // JSONB content

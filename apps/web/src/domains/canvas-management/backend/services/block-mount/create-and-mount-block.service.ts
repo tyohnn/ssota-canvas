@@ -5,6 +5,11 @@ import type { BlockRepository } from '@/domains/block-management/backend/reposit
 import { createBlock } from '@/domains/block-management/backend/services/block';
 import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
 import type { CreateBlockRequest } from '@/domains/block-management/shared/dtos/requests/block.requests';
+import {
+  type BlockType,
+  getBlockSize,
+  getBlockSizeForViewMode,
+} from '@/domains/block-management/shared/types/block-types';
 import type { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
@@ -15,8 +20,10 @@ import { MountBlockCommand } from '../../../shared/commands';
 import type { CreateAndMountBlockRequest } from '../../../shared/dtos/requests';
 import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
 import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
+import { BlockViewMode } from '../../../shared/value-objects/block-view-mode.vo';
 import { Position } from '../../../shared/value-objects/position.vo';
 import { Size } from '../../../shared/value-objects/size.vo';
+import { ViewModeSizes } from '../../../shared/value-objects/view-mode-sizes.vo';
 import type { BlockMountRepository } from '../../repositories/interfaces/block-mount.repository.interface';
 
 /**
@@ -76,12 +83,33 @@ export async function createAndMountBlock(
 
     // 3. Canvas Management Aggregate 생성 (자체 이벤트 생성)
     const blockMountId = BlockMountId.generate();
+    const viewMode = safeDto.viewMode
+      ? BlockViewMode.create(safeDto.viewMode)
+      : BlockViewMode.default();
+
+    // 4. 모든 viewMode의 기본 크기 계산 및 ViewModeSizes 생성
+    // safeDto.blockType은 Zod로 검증된 값이므로 BlockType으로 안전하게 캐스팅 가능
+    const blockType: BlockType = safeDto.blockType as BlockType;
+    const originalSize = getBlockSize(blockType);
+    const cardSize = getBlockSizeForViewMode(blockType, 'card');
+    const noteSize = getBlockSizeForViewMode(blockType, 'note');
+
+    const viewModeSizes = ViewModeSizes.empty()
+      .updateSizeForViewMode(
+        'original',
+        new Size(originalSize.width, originalSize.height)
+      )
+      .updateSizeForViewMode('card', new Size(cardSize.width, cardSize.height))
+      .updateSizeForViewMode('note', new Size(noteSize.width, noteSize.height));
+
     const mountBlockCommand: MountBlockCommand = {
       blockMountId,
       pageId: pageIdVO,
       blockId: blockAggregate.getBlock().id,
       position: positionVO,
       size: sizeVO,
+      viewMode, // viewMode 전달
+      viewModeSizes, // 모든 viewMode의 크기 전달
       userId: safeUserId,
     };
     const blockMountAggregate =

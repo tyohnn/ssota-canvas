@@ -5,6 +5,7 @@ import type { BlockMountRepository } from '@/domains/canvas-management/backend/r
 import { BlockMountAggregate } from '@/domains/canvas-management/shared/aggregates/block-mount.aggregate';
 import type { UpdateBlockSizeRequest } from '@/domains/canvas-management/shared/dtos/requests';
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
+import { BlockViewMode } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
 import { Size } from '@/domains/canvas-management/shared/value-objects/size.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
@@ -47,20 +48,31 @@ export async function updateBlockSize(
       );
     }
 
-    // 3. BlockMountAggregate.updateBlockSize() 호출 (Command 전달)
-    aggregate.updateBlockSize({ newSize: sizeVO, userId: safeUserId });
+    // 3. viewMode 결정: safeDto에 viewMode가 제공되면 사용, 없으면 현재 BlockMount의 viewMode 사용
+    const blockMount = aggregate.getBlockMount();
+    const viewMode =
+      safeDto.viewMode !== undefined
+        ? BlockViewMode.create(safeDto.viewMode)
+        : blockMount.viewMode;
 
-    // 4. 배치 저장 (트랜잭션)
+    // 4. BlockMountAggregate.updateBlockSize() 호출 (Command 전달)
+    aggregate.updateBlockSize({
+      newSize: sizeVO,
+      viewMode,
+      userId: safeUserId,
+    });
+
+    // 5. 배치 저장 (트랜잭션)
     await blockMountRepository.update(aggregate.getBlockMount());
 
-    // 5. 도메인 이벤트 처리
+    // 6. 도메인 이벤트 처리
     const individualEvents = aggregate.getUncommittedEvents();
     await Promise.allSettled(individualEvents.map(event => event.handle()));
 
-    // 6. 이벤트 커밋
+    // 7. 이벤트 커밋
     aggregate.markEventsAsCommitted();
 
-    // 7. Result.success(aggregate) 반환
+    // 8. Result.success(aggregate) 반환
     return Result.success(aggregate);
   } catch (error) {
     console.error('❌ [updateBlockSize] Block size update failed:', error);

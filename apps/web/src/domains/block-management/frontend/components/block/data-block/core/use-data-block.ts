@@ -24,7 +24,7 @@ export function useDataBlock(
   canvasMetadataOverride?: CanvasMetadata
 ) {
   const { data, selected = false } = props;
-  const { getNode, updateNode } = useReactFlow();
+  const { getNode, setNodes } = useReactFlow();
   const { zoom } = useViewport();
 
   // Canvas Metadata Context에서 pageId 가져오기
@@ -45,7 +45,7 @@ export function useDataBlock(
     pageId: pageId,
     reactFlow: {
       getNode,
-      updateNode,
+      setNodes,
     },
   });
 

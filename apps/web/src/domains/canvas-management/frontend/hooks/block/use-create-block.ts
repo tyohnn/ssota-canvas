@@ -8,6 +8,7 @@ import { buildBlockNodeData } from '@/domains/block-management/shared/types/bloc
 import {
   BlockType,
   getBlockSize,
+  getBlockSizeForViewMode,
 } from '@/domains/block-management/shared/types/block-types';
 import { isFailure } from '@/lib';
 
@@ -40,6 +41,7 @@ export type UseCreateBlockParams = {
 export type CreateBlockInput = {
   blockType: BlockType;
   position: Position;
+  viewMode?: 'note' | 'original' | 'card'; // 초기 viewMode (선택적, 기본값: original)
   initialProperties?: Record<string, any>;
   initialContent?: unknown;
   title?: string;
@@ -81,25 +83,38 @@ export function useCreateBlock(
     blockType: BlockType,
     position: Position,
     optimisticId: string,
+    viewMode: 'note' | 'original' | 'card' = 'original',
     initialProperties?: Record<string, any>,
     initialContent?: unknown,
     title?: string
   ): CustomNodeType => {
-    const blockSize = getBlockSize(blockType);
+    // viewMode에 따른 크기 결정
+    const blockSize = getBlockSizeForViewMode(blockType, viewMode);
     const optimisticNodeData: BlockNodeData = buildBlockNodeData(blockType, {
       blockMountId: '',
       blockId: '',
       properties: initialProperties,
       content: initialContent,
       title,
-      viewMode: 'original',
+      viewMode,
     });
+
+    // sizes 초기화
+    const sizes = {
+      [viewMode]: {
+        width: blockSize.width,
+        height: blockSize.height,
+      },
+    };
 
     return {
       id: optimisticId,
       type: blockType,
       position,
-      data: optimisticNodeData,
+      data: {
+        ...optimisticNodeData,
+        sizes, // sizes 추가
+      },
       width: blockSize.width,
       height: blockSize.height,
       zIndex: 1,
@@ -149,12 +164,17 @@ export function useCreateBlock(
 
   const mutation = useMutation({
     mutationFn: async (input: CreateBlockInput) => {
+      const viewMode = input.viewMode || 'original';
+      // viewMode에 따른 크기 결정
+      const blockSize = getBlockSizeForViewMode(input.blockType, viewMode);
+
       // Validation
       const rawRequest: CreateAndMountBlockRequestInput = {
         pageId,
         blockType: input.blockType,
         position: input.position,
-        size: getBlockSize(input.blockType),
+        size: blockSize,
+        viewMode, // viewMode 전달
         title: input.title,
         initialProperties: input.initialProperties,
         initialContent: input.initialContent,
@@ -178,11 +198,13 @@ export function useCreateBlock(
 
     // Optimistic Update
     onMutate: async (input: CreateBlockInput) => {
+      const viewMode = input.viewMode || 'original';
       const optimisticId = generateOptimisticId();
       const optimisticNode = createOptimisticNode(
         input.blockType,
         input.position,
         optimisticId,
+        viewMode,
         input.initialProperties,
         input.initialContent,
         input.title
@@ -239,6 +261,7 @@ export function useCreateBlock(
           customProperties: blockView.customProperties,
           content: blockView.content,
           viewMode: blockView.viewMode,
+          sizes: blockView.viewModeSizes, // sizes 추가
           createdByProfile: blockView.createdByProfile,
           createdAt: blockView.createdAt,
           updatedAt: blockView.updatedAt,

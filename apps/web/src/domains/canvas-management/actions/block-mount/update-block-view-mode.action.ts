@@ -11,6 +11,7 @@ import {
   UpdateBlockMountViewModeRequest,
   UpdateBlockMountViewModeRequestSchema,
 } from '../../shared/dtos/requests';
+import { BlockViewModeUpdatedDTO } from '../../shared/dtos/responses/block.responses';
 
 /**
  * Block View Mode 업데이트 Server Action
@@ -40,7 +41,7 @@ export const updateBlockMountViewModeAction = withBlockMountSecureAction(
 async function updateBlockViewModeInternal(
   safeDto: UpdateBlockMountViewModeRequest, // ✅ 이미 검증됨 (SafeDTO)
   context: PageActionContext // ✅ 검증된 context
-): Promise<ActionResult<{ blockMountId: string; viewMode: string }>> {
+): Promise<ActionResult<BlockViewModeUpdatedDTO>> {
   try {
     // ✅ 이미 검증된 사용자 정보 사용 (중복 조회 제거)
     const { authenticatedUser } = context;
@@ -69,9 +70,18 @@ async function updateBlockViewModeInternal(
     // 6. Aggregate → DTO 변환
     const aggregate = result.value;
     const blockMount = aggregate.getBlockMount();
-    const dto = {
+
+    // 현재 viewMode에 맞는 크기 조회
+    const currentSize = blockMount.size;
+
+    const dto: BlockViewModeUpdatedDTO = {
       blockMountId: blockMount.id.value,
       viewMode: blockMount.viewMode.value,
+      size: {
+        width: currentSize.width,
+        height: currentSize.height,
+      },
+      updatedAt: blockMount.updatedAt.toISOString(),
     };
 
     return ok(dto);

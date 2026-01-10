@@ -63,6 +63,7 @@ export const CreateAndMountBlockRequestSchema = z.object({
   blockType: BlockTypeSchema,
   position: PositionSchema,
   size: SizeSchema, // 프론트엔드에서 항상 전달됨
+  viewMode: ViewModeSchema.optional(), // 초기 viewMode (선택적, 기본값: original)
   // 선택적 초기 title
   title: z.string().optional(),
   // 선택적 초기 properties (예: 클립보드 붙여넣기 시 URL 등)
@@ -90,6 +91,7 @@ export const UpdateBlockPositionRequestSchema = z.object({
 export const UpdateBlockSizeRequestSchema = z.object({
   blockMountId: z.uuid('Invalid block mount ID'),
   newSize: SizeSchema,
+  viewMode: ViewModeSchema.optional(), // 어떤 뷰 모드의 크기를 업데이트할지 (기본값: 현재 viewMode)
 });
 
 /**

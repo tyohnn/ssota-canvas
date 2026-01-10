@@ -10,6 +10,7 @@
 import { useMutation } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
 
+import { BaseNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { updateBlockSizeAction } from '@/domains/canvas-management/actions/block-mount/update-block-size.action';
 import { isFailure } from '@/lib';
 
@@ -26,6 +27,7 @@ export type UpdateBlockSizeInput = {
   blockMountId: string;
   width: number;
   height: number;
+  viewMode?: 'note' | 'original' | 'card'; // 현재 viewMode (선택적, 없으면 현재 BlockMount의 viewMode 사용)
 };
 
 export type UseUpdateBlockSizeResult = {
@@ -66,6 +68,7 @@ export function useUpdateBlockSize(
           width: input.width,
           height: input.height,
         },
+        viewMode: input.viewMode, // 현재 viewMode 전달 (선택적)
       });
 
       if (isFailure(result)) {
@@ -84,6 +87,19 @@ export function useUpdateBlockSize(
         return { previousNode: null };
       }
 
+      const nodeData = currentNode.data as BaseNodeData;
+      const currentViewMode = nodeData.viewMode || 'original';
+      const targetViewMode = input.viewMode || currentViewMode;
+
+      // sizes 업데이트
+      const updatedSizes = {
+        ...(nodeData.sizes || {}),
+        [targetViewMode]: {
+          width: input.width,
+          height: input.height,
+        },
+      };
+
       // Optimistic update: React Flow 노드 즉시 업데이트
       setNodes(nodes =>
         nodes.map(node =>
@@ -92,7 +108,7 @@ export function useUpdateBlockSize(
                 ...node,
                 data: {
                   ...node.data,
-                  size: { width: input.width, height: input.height },
+                  sizes: updatedSizes,
                 },
                 width: input.width,
                 height: input.height,
