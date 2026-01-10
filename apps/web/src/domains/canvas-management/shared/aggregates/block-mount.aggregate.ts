@@ -22,6 +22,8 @@ import {
   BlockZOrderUpdatedEvent,
   DomainEvent,
 } from '../events';
+import { BlockViewMode } from '../value-objects/block-view-mode.vo';
+import { ViewModeSizes } from '../value-objects/view-mode-sizes.vo';
 import { ZOrder } from '../value-objects/z-order.vo';
 
 export class BlockMountAggregate {
@@ -41,36 +43,50 @@ export class BlockMountAggregate {
     // TODO: service 레이어에서 최상위 ZOrder 계산 로직 구현
     const zOrder = new ZOrder(0);
 
-    // 2. BlockMount Entity 생성
-    // viewMode는 Entity constructor에서 기본값으로 처리됨
+    // 2. viewMode 결정 (command에서 제공되지 않으면 기본값 사용)
+    const viewMode = command.viewMode ?? BlockViewMode.default();
+
+    // 3. ViewModeSizes 생성
+    // command.viewModeSizes가 제공되면 사용, 없으면 현재 viewMode만 설정
+    const viewModeSizes = command.viewModeSizes
+      ? command.viewModeSizes
+      : ViewModeSizes.empty().updateSizeForViewMode(
+          viewMode.value,
+          command.size
+        );
+
+    // 4. BlockMount Entity 생성
+    // viewMode 명시적으로 전달
     const blockMount = new BlockMount(
       command.blockMountId,
       command.pageId,
       command.blockId,
       command.position,
-      command.size,
-      zOrder
+      viewModeSizes,
+      zOrder,
+      viewMode
     );
 
-    // 3. BlockMounted 이벤트 생성
+    // 5. BlockMounted 이벤트 생성
     const blockMountedEvent = new BlockMountedEvent(
       command.blockMountId,
       {
-        blockMountId: command.blockMountId,
-        pageId: command.pageId,
-        blockId: command.blockId,
-        position: command.position,
-        size: command.size,
+        blockMountId: blockMount.id,
+        pageId: blockMount.pageId,
+        blockId: blockMount.blockId,
+        position: blockMount.position,
+        size: blockMount.size, // 하위 호환성을 위해 유지
+        viewMode: blockMount.viewMode,
         zOrder: zOrder,
       },
       new Date()
     );
 
-    // 4. Aggregate 생성 및 이벤트 추가
+    // 6. Aggregate 생성 및 이벤트 추가
     const aggregate = new BlockMountAggregate(blockMount);
     aggregate._uncommittedEvents.push(blockMountedEvent);
 
-    // 5. BlockMountAggregate 반환
+    // 7. BlockMountAggregate 반환
     return aggregate;
   }
 
@@ -112,7 +128,13 @@ export class BlockMountAggregate {
    */
   updateBlockSize(command: UpdateSingleBlockSizeCommand): void {
     // 1. BlockMount Entity 크기 업데이트 (비즈니스 로직 실행)
-    this._blockMount.transform(undefined, command.newSize, undefined);
+    // viewMode에 따라 해당 뷰 모드의 크기만 업데이트
+    this._blockMount.transform(
+      undefined,
+      command.newSize,
+      undefined,
+      command.viewMode
+    );
 
     // 2. Domain Event 발생 (Command → Event 1:1 대응)
     const event = new BlockSizeUpdatedEvent(
@@ -120,6 +142,7 @@ export class BlockMountAggregate {
       {
         blockMountId: this._blockMount.id,
         newSize: command.newSize,
+        viewMode: command.viewMode,
       },
       this._blockMount.updatedAt
     );
@@ -221,13 +244,18 @@ export class BlockMountAggregate {
     // 2. 이전 페이지 ID 저장
     const previousPageId = this._blockMount.pageId;
 
-    // 3. 새로운 BlockMount 인스턴스 생성 (pageId가 readonly이므로 새 인스턴스 필요)
+    // 3. viewModeSizes 복제 (모든 뷰 모드 크기 유지)
+    const duplicatedViewModeSizes = ViewModeSizes.fromJSON(
+      this._blockMount.viewModeSizes.toJSON()
+    );
+
+    // 4. 새로운 BlockMount 인스턴스 생성 (pageId가 readonly이므로 새 인스턴스 필요)
     const newBlockMount = new BlockMount(
       this._blockMount.id,
       command.targetPageId, // 새로운 pageId
       this._blockMount.blockId,
       command.newPosition, // 새로운 위치
-      this._blockMount.size,
+      duplicatedViewModeSizes, // 모든 뷰 모드 크기 유지
       this._blockMount.zOrder,
       this._blockMount.viewMode, // View Mode 유지
       this._blockMount.createdAt,
@@ -320,6 +348,7 @@ export class BlockMountAggregate {
       },
       zOrder: blockMount.zOrder.value,
       viewMode: blockMount.viewMode.value,
+      viewModeSizes: blockMount.viewModeSizes.toJSON(),
 
       // Block 정보 (Block Management Domain)
       blockId: block.id.value,

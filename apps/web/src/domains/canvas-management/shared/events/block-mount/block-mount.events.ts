@@ -2,6 +2,7 @@ import { BlockId } from '@/domains/block-management/shared/value-objects/block-i
 
 import { PageId } from '../../../../workspace-management/shared/value-objects/page-id.vo';
 import { BlockMountId } from '../../value-objects/block-mount-id.vo';
+import { BlockViewMode } from '../../value-objects/block-view-mode.vo';
 import { Position } from '../../value-objects/position.vo';
 import { Size } from '../../value-objects/size.vo';
 import { ZOrder } from '../../value-objects/z-order.vo';
@@ -19,6 +20,7 @@ export class BlockMountedEvent implements DomainEvent {
       blockId: BlockId;
       position: Position;
       size: Size;
+      viewMode: BlockViewMode;
       zOrder: ZOrder;
     },
     public readonly occurredAt: Date
@@ -28,12 +30,13 @@ export class BlockMountedEvent implements DomainEvent {
    * Event 발생 시 Policy 실행
    */
   async handle(): Promise<void> {
-    console.log('[Canvas Management] Block Mounted:', {
-      blockMountId: this.aggregateId.value,
-      pageId: this.data.pageId.value,
-      blockId: this.data.blockId.value,
-      occurredAt: this.occurredAt,
-    });
+    // console.log('[Canvas Management] Block Mounted:', {
+    //   blockMountId: this.aggregateId.value,
+    //   pageId: this.data.pageId.value,
+    //   blockId: this.data.blockId.value,
+    //   viewMode: this.data.viewMode.value,
+    //   occurredAt: this.occurredAt,
+    // });
 
     await Promise.allSettled([
       // Policy 구현 예시:

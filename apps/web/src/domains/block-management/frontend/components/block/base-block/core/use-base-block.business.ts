@@ -22,7 +22,8 @@ export interface BaseBlockBusinessLogic {
   // 리사이즈 저장
   saveBlockSize: (
     blockMountId: string,
-    resizeData: ResizeData
+    resizeData: ResizeData,
+    viewMode?: 'note' | 'original' | 'card'
   ) => Promise<{ ok: boolean; error?: string }>;
 
   // Prefetch
@@ -43,7 +44,11 @@ export function useBaseBlockBusiness(): BaseBlockBusinessLogic {
 
   // 리사이즈 완료 시 DB에 저장
   const saveBlockSize = useCallback(
-    async (blockMountId: string, resizeData: ResizeData) => {
+    async (
+      blockMountId: string,
+      resizeData: ResizeData,
+      viewMode?: 'note' | 'original' | 'card'
+    ) => {
       if (!blockMountId) {
         console.warn(
           'blockMountId가 없어서 리사이즈 정보를 저장할 수 없습니다.'
@@ -55,6 +60,7 @@ export function useBaseBlockBusiness(): BaseBlockBusinessLogic {
         blockMountId,
         width: resizeData.width,
         height: resizeData.height,
+        viewMode, // 현재 viewMode 전달
       });
 
       if (!success) {

@@ -62,3 +62,13 @@ export interface BlockMovedToPageDTO {
   newPosition: Position;
   movedAt: string;
 }
+
+/**
+ * 블럭 View Mode 업데이트 후 반환되는 DTO
+ */
+export interface BlockViewModeUpdatedDTO {
+  blockMountId: string;
+  viewMode: string;
+  size: Size; // 현재 viewMode에 맞는 크기
+  updatedAt: string;
+}

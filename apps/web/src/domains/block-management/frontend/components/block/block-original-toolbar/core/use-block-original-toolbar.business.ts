@@ -32,7 +32,7 @@ export function useBlockOriginalToolbarBusiness(
   const { blockMountId, blockData, blockId } = props;
   const canvasMode = useCanvasModeContext();
   const { zoom } = useViewport();
-  const { getNode, updateNode } = useReactFlow();
+  const { getNode, setNodes } = useReactFlow();
   const { pageId } = useCanvasMetadata();
 
   // View Mode 결정: data.viewMode > 기본값
@@ -48,7 +48,7 @@ export function useBlockOriginalToolbarBusiness(
     pageId: pageId || '',
     reactFlow: {
       getNode,
-      updateNode,
+      setNodes,
     },
   });
 

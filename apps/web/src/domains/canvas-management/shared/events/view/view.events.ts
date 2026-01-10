@@ -79,6 +79,7 @@ export class BlockSizeUpdatedEvent implements DomainEvent {
     public readonly data: {
       blockMountId: BlockMountId;
       newSize: Size;
+      viewMode?: BlockViewMode; // 어떤 뷰 모드의 크기가 업데이트되었는지
     },
     public readonly occurredAt: Date
   ) {}
@@ -90,6 +91,7 @@ export class BlockSizeUpdatedEvent implements DomainEvent {
     console.log('[Canvas Management] Block Size Updated:', {
       blockMountId: this.aggregateId.value,
       newSize: this.data.newSize,
+      viewMode: this.data.viewMode?.value,
       occurredAt: this.occurredAt,
     });
 

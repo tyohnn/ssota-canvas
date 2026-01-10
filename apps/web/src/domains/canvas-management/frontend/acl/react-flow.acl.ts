@@ -58,6 +58,7 @@ export function transformBlockViewToNodeData(
     customProperties: blockView.customProperties,
     content: blockView.content, // JSONB content
     viewMode: blockView.viewMode, // BlockMount의 viewMode
+    sizes: blockView.viewModeSizes, // 뷰 모드별 크기 정보
     createdAt: blockView.createdAt,
     updatedAt: blockView.updatedAt,
     createdByProfile: blockView.createdByProfile || {
@@ -186,6 +187,7 @@ export function toReactFlowNodeFromCanvasView(
       customProperties: block.customProperties,
       content: block.content, // JSONB content
       viewMode: block.viewMode, // BlockMount의 viewMode
+      sizes: block.viewModeSizes, // 뷰 모드별 크기 정보
       createdAt: block.createdAt,
       updatedAt: block.updatedAt,
       createdByProfile: block.createdByProfile || {

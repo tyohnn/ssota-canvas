@@ -7,6 +7,7 @@ import { BlockMountId } from '../value-objects/block-mount-id.vo';
 import { BlockViewMode } from '../value-objects/block-view-mode.vo';
 import { Position } from '../value-objects/position.vo';
 import { Size } from '../value-objects/size.vo';
+import { ViewModeSizes } from '../value-objects/view-mode-sizes.vo';
 import { ZOrder } from '../value-objects/z-order.vo';
 
 export interface MountBlockCommand {
@@ -15,6 +16,8 @@ export interface MountBlockCommand {
   blockId: BlockId;
   position: Position;
   size: Size;
+  viewMode?: BlockViewMode; // 초기 viewMode (선택적, 기본값: original)
+  viewModeSizes?: ViewModeSizes; // 모든 viewMode의 크기 (선택적, 제공되지 않으면 현재 viewMode만 설정)
   userId: UserId;
 }
 
@@ -78,6 +81,7 @@ export interface UpdateBlockSizeCommand {
  */
 export interface UpdateSingleBlockSizeCommand {
   newSize: Size;
+  viewMode: BlockViewMode;
   userId: UserId;
 }
 
