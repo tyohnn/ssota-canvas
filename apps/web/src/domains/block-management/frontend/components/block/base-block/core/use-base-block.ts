@@ -98,6 +98,27 @@ export function useBaseBlock(
   const selectedBlocks = canvasSelection.getSelectedBlocks();
   const isSingleSelection = selectedBlocks.length === 1;
 
+  // viewMode 변경 시 sizes에서 크기를 즉시 사용하여 딜레이 방지
+  const effectiveWidth = useMemo(() => {
+    if (width) return width;
+    const currentViewMode = data.viewMode;
+    const sizes = data.sizes;
+    if (sizes && sizes[currentViewMode]) {
+      return sizes[currentViewMode].width;
+    }
+    return width;
+  }, [width, data.viewMode, data.sizes]);
+
+  const effectiveHeight = useMemo(() => {
+    if (height) return height;
+    const currentViewMode = data.viewMode;
+    const sizes = data.sizes;
+    if (sizes && sizes[currentViewMode]) {
+      return sizes[currentViewMode].height;
+    }
+    return height;
+  }, [height, data.viewMode, data.sizes]);
+
   // 색상 토큰 및 스타일 계산
   const colorToken = (styleProps?.color as ColorToken) || ColorToken.GRAY;
   const richStyle = styleProps?.richStyle || false;
@@ -168,9 +189,9 @@ export function useBaseBlock(
     selected,
     isConnectable,
 
-    // 크기
-    width,
-    height,
+    // 크기 (viewMode 변경 시 sizes에서 즉시 사용)
+    width: effectiveWidth,
+    height: effectiveHeight,
 
     // 스타일
     styleProps,

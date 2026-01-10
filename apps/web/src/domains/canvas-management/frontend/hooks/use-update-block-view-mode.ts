@@ -8,6 +8,7 @@
 
 'use client';
 
+import { flushSync } from 'react-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
 
@@ -97,22 +98,25 @@ export function useUpdateBlockViewMode({
         }
       }
 
-      // Optimistic update: viewMode와 크기 즉시 업데이트
-      setNodes(nodes =>
-        nodes.map(n =>
-          n.id === blockMountId
-            ? {
-                ...n,
-                data: {
-                  ...n.data,
-                  viewMode,
-                },
-                width: newSize.width,
-                height: newSize.height,
-              }
-            : n
-        )
-      );
+      // Optimistic update: viewMode와 크기를 동기적으로 즉시 업데이트
+      // flushSync를 사용하여 React의 배치 업데이트를 우회하고 즉시 DOM에 반영
+      flushSync(() => {
+        setNodes(nodes =>
+          nodes.map(n =>
+            n.id === blockMountId
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    viewMode,
+                  },
+                  width: newSize.width,
+                  height: newSize.height,
+                }
+              : n
+          )
+        );
+      });
 
       return {
         previousViewMode,
