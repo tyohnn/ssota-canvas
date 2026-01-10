@@ -95,7 +95,7 @@ export function useNoteView(
   // 6. 공통 TipTap Editor 훅
   const isEditable =
     uiState.isEditing && canvasMode.mode?.type !== 'block-editing';
-  const { editor } = useTipTapEditor({
+  const { editor, state: editorState } = useTipTapEditor({
     blockData: data,
     placeholder: 'Click to add markdown content...',
     editable: isEditable,
@@ -108,7 +108,13 @@ export function useNoteView(
     },
   });
 
-  // 7. 선택 시 편집 모드 진입 (더블클릭 모드가 활성화된 경우에만)
+  // 7. uiState에 editorState의 ref들 병합
+  const fullUIState = {
+    ...uiState,
+    ...editorState,
+  };
+
+  // 8. 선택 시 편집 모드 진입 (더블클릭 모드가 활성화된 경우에만)
   useEffect(() => {
     if (canvasMode.mode?.type === 'block-editing') {
       return;
@@ -126,7 +132,7 @@ export function useNoteView(
     canvasMode.mode?.type,
   ]);
 
-  // 8. 선택 해제 시 편집 종료 및 더블클릭 모드 리셋
+  // 9. 선택 해제 시 편집 종료 및 더블클릭 모드 리셋
   useEffect(() => {
     if (uiState.isEditing && !selected) {
       uiState.handleExitEditing();
@@ -139,7 +145,7 @@ export function useNoteView(
 
   return {
     editor,
-    uiState,
+    uiState: fullUIState,
     business,
   };
 }
