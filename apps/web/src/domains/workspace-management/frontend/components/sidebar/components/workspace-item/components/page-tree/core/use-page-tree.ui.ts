@@ -1,12 +1,14 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
 import type { PageTreeNodeDTO } from '@/domains/workspace-management/shared/dtos';
+
+import { findPageAncestors, findPageInTreeHelper } from './tree-helpers';
 import {
   flattenPageTree,
   getCookieValue,
   getPageCollapsedKey,
   getRecentPageKey,
 } from './utils';
-import { findPageInTreeHelper, findPageAncestors } from './tree-helpers';
 
 /**
  * PageTree UI State
@@ -82,8 +84,9 @@ export function usePageTreeUI(
       const key = getPageCollapsedKey(page.id);
       const collapsed = localStorage.getItem(key);
 
-      // 'false'이거나 키가 없으면(기본값) 펼친 상태
-      if (collapsed !== 'true') {
+      // 명시적으로 'false'로 저장된 경우만 펼친 상태
+      // 키가 없거나 null이면 접힌 상태 (기본값)
+      if (collapsed === 'false') {
         expanded.add(page.id);
       }
     });
