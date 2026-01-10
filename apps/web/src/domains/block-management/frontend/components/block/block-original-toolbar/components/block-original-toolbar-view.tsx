@@ -22,7 +22,10 @@ import type { BlockNodeData } from '@/domains/block-management/shared/types/bloc
 import type { BlockType } from '@/domains/block-management/shared/types/block-types';
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
 
-import { MoreMenuToolbarItem, ViewModeToolbarItem } from '../../common-toolbar-items';
+import {
+  MoreMenuToolbarItem,
+  ViewModeToolbarItem,
+} from '../../common-toolbar-items';
 import { BlockToolbarMapper } from './block-toolbar-mapper';
 
 export interface BlockOriginalToolbarViewProps {
@@ -35,7 +38,7 @@ export interface BlockOriginalToolbarViewProps {
   viewMode: BlockViewModeValue;
   zoom: number;
   pageId: string | undefined;
-  toolbarRef: React.RefObject<HTMLDivElement>;
+  toolbarRef: React.RefObject<HTMLDivElement | null>;
   onViewModeChange: (newViewMode: BlockViewModeValue) => Promise<void>;
   onDetails: () => void;
 }

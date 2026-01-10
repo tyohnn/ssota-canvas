@@ -3,7 +3,6 @@
  *
  * BlockOriginalToolbar 컴포넌트의 타입 정의
  */
-
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { BlockType } from '@/domains/block-management/shared/types/block-types';
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
@@ -24,7 +23,7 @@ export interface BlockOriginalToolbarProps {
  * BlockOriginalToolbar UI State
  */
 export interface BlockOriginalToolbarUIState {
-  toolbarRef: React.RefObject<HTMLDivElement>;
+  toolbarRef: React.RefObject<HTMLDivElement | null>;
 }
 
 /**
