@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 
-import { useReactFlow } from '@xyflow/react';
+import { useReactFlow, useViewport } from '@xyflow/react';
 
 /**
  * Canvas State 관리 Hook
@@ -15,6 +15,9 @@ export function useCanvasState() {
   // React Flow 인스턴스 사용 (안전하게 처리)
   // Hook은 항상 호출해야 함 (Hook Rules)
   const reactFlow = useReactFlow();
+
+  // 반응적인 zoom 값 (React Flow의 내부 상태 구독)
+  const { zoom: reactiveZoom } = useViewport();
 
   // 상태 읽기 메서드들 (읽기 전용) - 안전성 체크 추가
   const getZoomLevel = useCallback(() => {
@@ -169,6 +172,7 @@ export function useCanvasState() {
   return {
     // 상태 읽기
     getZoomLevel,
+    zoomLevel: reactiveZoom, // 반응적인 zoom 값 (React Flow 내부 상태 구독)
     getViewportCenter,
     getViewportBounds,
     getViewport,

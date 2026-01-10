@@ -14,13 +14,13 @@ import { useViewportControlToolbarUI } from './use-viewport-control-toolbar.ui';
 export function useViewportControlToolbar(): UseViewportControlToolbarReturn {
   // 1. Gather External Dependencies (The only place where external hooks are called)
   const { pageId } = useCanvasMetadata();
-  
+
   // Domain / Service Hooks
   const canvasViewport = useCanvasViewport({ pageId });
 
   // 2. Bundle Dependencies into semantic objects
   const viewportDependencies: ViewportDependencies = {
-    getZoomLevel: () => canvasViewport.getZoomLevel(),
+    zoomLevel: canvasViewport.zoomLevel,
     zoomIn: () => canvasViewport.zoomIn(),
     zoomOut: () => canvasViewport.zoomOut(),
     fitToScreen: () => canvasViewport.fitToScreen(),

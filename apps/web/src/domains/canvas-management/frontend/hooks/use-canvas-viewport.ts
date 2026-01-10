@@ -2,21 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
-import {
-  CanvasMetadata,
-  useCanvasMetadata,
-} from '../contexts/canvas-metadata-context';
 import { useCanvasState } from './control/use-canvas-state';
 import { useCanvasViewportStorage } from './control/use-canvas-viewport-storage';
 
 export interface UseCanvasViewportParams {
   pageId: string;
-  canvasMetadataOverride?: CanvasMetadata;
 }
 
 export interface UseCanvasViewportResult {
   // 상태 읽기
   getZoomLevel: () => number;
+  zoomLevel: number; // 반응적인 zoom 값 (React Flow 내부 상태 구독)
   getViewportCenter: () => { x: number; y: number };
   getViewportBounds: () => {
     x: number;
@@ -92,7 +88,6 @@ export interface UseCanvasViewportResult {
 export function useCanvasViewport(
   params: UseCanvasViewportParams
 ): UseCanvasViewportResult {
-  const canvasMetadata = useCanvasMetadata(params.canvasMetadataOverride);
   const { pageId } = params;
 
   // ============================================================================
@@ -272,6 +267,7 @@ export function useCanvasViewport(
   return {
     // 상태 읽기
     getZoomLevel: canvasState.getZoomLevel,
+    zoomLevel: canvasState.zoomLevel,
     getViewportCenter: canvasState.getViewportCenter,
     getViewportBounds: canvasState.getViewportBounds,
     getViewport: canvasState.getViewport,
