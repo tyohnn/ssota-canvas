@@ -7,7 +7,9 @@
 
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+
+import { useUpdateNodeInternals } from '@xyflow/react';
 
 import {
   ColorToken,
@@ -118,6 +120,16 @@ export function useBaseBlock(
     }
     return height;
   }, [height, data.viewMode, data.sizes]);
+
+  // React Flow 노드 내부 업데이트 (방어적)
+  // effectiveWidth/effectiveHeight가 변경될 때마다 React Flow에 알림
+  // 이렇게 하면 viewMode나 sizes 변경으로 인한 크기 변경 시에도 엣지가 올바르게 연결됨
+  const updateNodeInternals = useUpdateNodeInternals();
+  useEffect(() => {
+    if (data.blockMountId) {
+      updateNodeInternals(data.blockMountId);
+    }
+  }, [effectiveWidth, effectiveHeight, data.blockMountId, updateNodeInternals]);
 
   // 색상 토큰 및 스타일 계산
   const colorToken = (styleProps?.color as ColorToken) || ColorToken.GRAY;

@@ -9,6 +9,7 @@
 
 import { useMutation } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
+import { useUpdateNodeInternals } from '@xyflow/react';
 
 import { BaseNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { updateBlockSizeAction } from '@/domains/canvas-management/actions/block-mount/update-block-size.action';
@@ -59,6 +60,7 @@ export function useUpdateBlockSize(
 ): UseUpdateBlockSizeResult {
   const { reactFlow } = params;
   const { getNodes, setNodes } = reactFlow;
+  const updateNodeInternals = useUpdateNodeInternals();
 
   const mutation = useMutation({
     mutationFn: async (input: UpdateBlockSizeInput) => {
@@ -116,6 +118,10 @@ export function useUpdateBlockSize(
             : node
         )
       );
+
+      // React Flow에게 노드 내부가 변경되었음을 알림
+      // 크기가 변경되었으므로 엣지가 새로운 핸들 위치에 올바르게 연결되도록 함
+      updateNodeInternals(input.blockMountId);
 
       return { previousNode: currentNode };
     },
