@@ -9,8 +9,10 @@
 'use client';
 
 import { flushSync } from 'react-dom';
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
+import { useUpdateNodeInternals } from '@xyflow/react';
 
 import { BaseNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { isFailure } from '@/lib';
@@ -47,6 +49,7 @@ export function useUpdateBlockViewMode({
 }: UseUpdateBlockViewModeParams): UseUpdateBlockViewModeResult {
   const { getNode, setNodes } = reactFlow;
   const queryClient = useQueryClient();
+  const updateNodeInternals = useUpdateNodeInternals();
 
   const mutation = useMutation<
     BlockViewModeUpdatedDTO,
@@ -118,6 +121,10 @@ export function useUpdateBlockViewMode({
         );
       });
 
+      // React Flow에게 노드 내부가 변경되었음을 알림
+      // 이렇게 하면 엣지가 새로운 핸들 위치에 올바르게 연결됨
+      updateNodeInternals(blockMountId);
+
       return {
         previousViewMode,
         previousNode: node,
@@ -173,6 +180,10 @@ export function useUpdateBlockViewMode({
           })
         );
       }
+
+      // 서버에서 반환한 크기로 업데이트 후에도 노드 내부 업데이트
+      // 크기가 변경되었을 수 있으므로 엣지 연결을 다시 계산
+      updateNodeInternals(blockMountId);
 
       // Invalidate queries to refetch
       queryClient.invalidateQueries({ queryKey: ['canvas', pageId] });
