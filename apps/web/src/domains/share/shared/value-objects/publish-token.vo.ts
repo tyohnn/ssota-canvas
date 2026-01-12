@@ -31,4 +31,10 @@ export class PublishToken {
   toString(): string {
     return this.value;
   }
+
+  static generate(): PublishToken {
+    const uuid = crypto.randomUUID();
+    const encoded = Buffer.from(uuid).toString('base64');
+    return new PublishToken(encoded);
+  }
 }

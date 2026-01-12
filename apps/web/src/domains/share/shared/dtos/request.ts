@@ -9,7 +9,8 @@ export const PublishPageRequestSchema = z.object({
   pageId: z.string().uuid(),
 });
 
-export type PublishPageRequest = z.infer<typeof PublishPageRequestSchema>;
+export type PublishPageRequestInput = z.input<typeof PublishPageRequestSchema>;
+export type PublishPageRequest = z.output<typeof PublishPageRequestSchema>;
 
 /**
  * 페이지 게시 취소 요청
@@ -18,7 +19,8 @@ export const UnpublishPageRequestSchema = z.object({
   pageId: z.string().uuid(),
 });
 
-export type UnpublishPageRequest = z.infer<typeof UnpublishPageRequestSchema>;
+export type UnpublishPageRequestInput = z.input<typeof UnpublishPageRequestSchema>;
+export type UnpublishPageRequest = z.output<typeof UnpublishPageRequestSchema>;
 
 /**
  * 게시 링크 조회 요청
@@ -27,7 +29,8 @@ export const GetPublishedLinkRequestSchema = z.object({
   pageId: z.string().uuid(),
 });
 
-export type GetPublishedLinkRequest = z.infer<typeof GetPublishedLinkRequestSchema>;
+export type GetPublishedLinkRequestInput = z.input<typeof GetPublishedLinkRequestSchema>;
+export type GetPublishedLinkRequest = z.output<typeof GetPublishedLinkRequestSchema>;
 
 /**
  * 게시된 페이지 복제 요청
@@ -37,4 +40,5 @@ export const CopyPublishedPageRequestSchema = z.object({
   targetWorkspaceId: z.string().uuid(),
 });
 
-export type CopyPublishedPageRequest = z.infer<typeof CopyPublishedPageRequestSchema>;
+export type CopyPublishedPageRequestInput = z.input<typeof CopyPublishedPageRequestSchema>;
+export type CopyPublishedPageRequest = z.output<typeof CopyPublishedPageRequestSchema>;

@@ -19,11 +19,11 @@ import {
   toReactFlowEdgeFromCanvasView,
   type CustomNodeType,
 } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
-import { PublishedPageView } from '../../shared/dtos';
+import { PublishedPageViewDTO } from '../../shared/dtos';
 
 interface PublishedPageViewerProps {
   publishToken: string;
-  initialData: PublishedPageView | null;
+  initialData: PublishedPageViewDTO | null;
   onCopyRequested?: () => void;
 }
 
@@ -61,10 +61,7 @@ export function PublishedPageViewer({
   const [isCopied, setIsCopied] = useState(false);
   const [isCopyPressed, setIsCopyPressed] = useState(false);
 
-  // 데이터는 서버에서 전달받은 Props(initialData)를 직접 사용하거나, 
-  // 만약 클라이언트 상태 관리가 필요하다면 Context의 publishedPage를 병행 사용
-  const { publishedPage } = useShare();
-  const data = publishedPage || initialData;
+  const data = initialData;
 
   const handleCopyLink = async () => {
     try {

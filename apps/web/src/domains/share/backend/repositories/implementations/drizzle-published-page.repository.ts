@@ -22,7 +22,6 @@ export class DrizzlePublishedPageRepository implements PublishedPageRepository {
         .set({
           publish_token: publishedPage.publishToken.toString(),
           status: publishedPage.status,
-          snapshot_version: publishedPage.snapshotVersion,
           updated_at: new Date(),
         })
         .where(eq(publishedPages.page_id, publishedPage.pageId));
@@ -32,7 +31,6 @@ export class DrizzlePublishedPageRepository implements PublishedPageRepository {
         owner_id: publishedPage.ownerId,
         publish_token: publishedPage.publishToken.toString(),
         status: publishedPage.status,
-        snapshot_version: publishedPage.snapshotVersion,
         published_at: publishedPage.publishedAt,
         created_at: new Date(),
         updated_at: new Date(),
@@ -74,8 +72,7 @@ export class DrizzlePublishedPageRepository implements PublishedPageRepository {
       row.owner_id,
       row.status as any,
       new PublishToken(row.publish_token),
-      row.published_at,
-      row.snapshot_version
+      row.published_at
     );
   }
 }

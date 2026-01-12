@@ -19,7 +19,7 @@ export class PublishedPageAggregate {
       throw new ShareManagementError('NOT_PAGE_OWNER', 'Missing requester');
     }
 
-    const token = this.generateToken();
+    const token = PublishToken.generate();
     const publishedAt = new Date();
 
     // Entity 생성
@@ -56,11 +56,5 @@ export class PublishedPageAggregate {
 
   markEventsAsCommitted(): void {
     this.events.length = 0;
-  }
-
-  private generateToken(): PublishToken {
-    const uuid = crypto.randomUUID();
-    const encoded = Buffer.from(uuid).toString('base64');
-    return new PublishToken(encoded);
   }
 }

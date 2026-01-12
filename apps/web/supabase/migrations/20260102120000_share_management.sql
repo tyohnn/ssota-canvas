@@ -29,12 +29,12 @@ COMMENT ON COLUMN published_pages.snapshot_version IS '게시 시점 페이지 �
 -- Enable Row Level Security
 ALTER TABLE published_pages ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for published_pages
--- Public can read all published pages (for /p/[token] access)
-CREATE POLICY "Enable read for all users" ON published_pages 
+-- Only owner can read (SELECT) for management purposes. 
+-- Public view (/p/[token]) is handled via Server Actions that bypass RLS or use different credentials.
+CREATE POLICY "Enable selective read for owner" ON published_pages 
   AS PERMISSIVE FOR SELECT 
-  TO anon, authenticated 
-  USING (true);
+  TO authenticated 
+  USING (owner_id = auth.uid());
 
 -- Only page owner can publish (insert)
 CREATE POLICY "Enable insert for page owner" ON published_pages 

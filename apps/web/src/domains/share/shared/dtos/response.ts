@@ -3,7 +3,10 @@
 /**
  * 게시된 페이지 뷰 (공개 페이지 조회 응답)
  */
-export interface PublishedPageView {
+/**
+ * 게시된 페이지 뷰 (공개 페이지 조회 응답)
+ */
+export interface PublishedPageViewDTO {
   pageId: string;
   title: string;
   icon?: string;
@@ -20,7 +23,7 @@ export interface PublishedPageView {
 /**
  * 페이지 게시 결과
  */
-export interface PublishResult {
+export interface PublishResultDTO {
   pageId: string;
   publishToken: string;
   publishUrl: string; // /p/[token]
@@ -30,7 +33,7 @@ export interface PublishResult {
 /**
  * 게시 링크 조회 결과
  */
-export interface PublishedLinkView {
+export interface PublishedLinkViewDTO {
   pageId: string;
   publishToken: string;
   publishUrl: string;
@@ -40,7 +43,7 @@ export interface PublishedLinkView {
 /**
  * 워크스페이스 선택 목록
  */
-export interface WorkspaceSelectionView {
+export interface WorkspaceSelectionViewDTO {
   workspaces: {
     id: string;
     name: string;
@@ -52,7 +55,7 @@ export interface WorkspaceSelectionView {
 /**
  * 페이지 복제 결과
  */
-export interface CopyResult {
+export interface CopyResultDTO {
   copiedPageId: string;
   targetWorkspaceId: string;
   status: 'completed' | 'failed';

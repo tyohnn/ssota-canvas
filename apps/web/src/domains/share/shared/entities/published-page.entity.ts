@@ -9,8 +9,7 @@ export class PublishedPage {
     public readonly ownerId: UserId,
     public status: PublishedStatus,
     public publishToken: PublishToken,
-    public publishedAt: Date,
-    public readonly snapshotVersion: string | null = null
+    public publishedAt: Date
   ) { }
 
   unpublish(): void {

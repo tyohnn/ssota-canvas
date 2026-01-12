@@ -1,12 +1,13 @@
 // apps/web/src/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository.ts
 
-import { eq, and, isNull, desc, exists } from 'drizzle-orm';
+import { eq, and, or, isNull, desc, exists } from 'drizzle-orm';
 import { createDrizzleSupabaseClient, adminDb } from '@/db';
 import {
   workspaces,
   pages,
   workspaceMembers,
   organizationMembers,
+  organizations,
 } from '@/db/schema';
 import type { Workspace as DBWorkspace } from '@/db/schema';
 import { WorkspaceRepository } from '../interfaces/workspace.repository.interface';
@@ -82,8 +83,15 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
   async findById(workspaceId: WorkspaceId): Promise<Workspace | null> {
     // Admin DB: Application 레벨에서 권한 검증이 완료된 경우
     const result = await adminDb
-      .select()
+      .select({ 
+        workspace: workspaces,
+        orgName: organizations.name 
+      })
       .from(workspaces)
+      .leftJoin(
+        organizations,
+        eq(workspaces.organization_id, organizations.id)
+      )
       .where(
         and(eq(workspaces.id, workspaceId.value), isNull(workspaces.deleted_at))
       )
@@ -94,7 +102,7 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
     }
 
     const row = result[0]!;
-    return this.toDomain(row);
+    return this.toDomain(row.workspace, row.orgName ?? undefined);
   }
 
   /**
@@ -108,8 +116,15 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
    */
   async findByOrganizationId(orgId: OrganizationId): Promise<Workspace[]> {
     const result = await adminDb
-      .select()
+      .select({ 
+        workspace: workspaces,
+        orgName: organizations.name 
+      })
       .from(workspaces)
+      .leftJoin(
+        organizations,
+        eq(workspaces.organization_id, organizations.id)
+      )
       .where(
         and(
           eq(workspaces.organization_id, orgId.value),
@@ -118,7 +133,7 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       )
       .orderBy(desc(workspaces.is_default), workspaces.created_at);
 
-    return result.map(row => this.toDomain(row));
+    return result.map(row => this.toDomain(row.workspace, row.orgName ?? undefined));
   }
 
   /**
@@ -126,11 +141,18 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
    */
   async findByUserId(userId: UserId): Promise<Workspace[]> {
     const result = await adminDb
-      .select({ workspace: workspaces })
+      .select({ 
+        workspace: workspaces,
+        orgName: organizations.name 
+      })
       .from(workspaces)
       .leftJoin(
         workspaceMembers,
         eq(workspaces.id, workspaceMembers.workspace_id)
+      )
+      .leftJoin(
+        organizations,
+        eq(workspaces.organization_id, organizations.id)
       )
       .where(
         and(
@@ -143,16 +165,20 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       )
       .orderBy(desc(workspaces.is_default), workspaces.created_at);
 
-    return result.map(row => this.toDomain(row.workspace));
+    return result.map(row => this.toDomain(row.workspace, row.orgName ?? undefined));
   }
 
   /**
    * DB 모델 → Domain Entity 변환
    *
    * @param row - DB 조회 결과
+   * @param orgName - 조직명 (선택사항)
    * @returns Workspace Entity
    */
-  private toDomain(row: typeof workspaces.$inferSelect): Workspace {
+  private toDomain(
+    row: typeof workspaces.$inferSelect,
+    orgName?: string
+  ): Workspace {
     return new Workspace(
       new WorkspaceId(row.id),
       new OrganizationId(row.organization_id),
@@ -160,13 +186,14 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       row.description,
       row.icon,
       row.is_default,
-      row.is_personal, // v1.2
-      row.owner_id, // v1.2
+      row.is_personal,
+      row.owner_id,
       row.deletable,
       row.created_by,
       row.created_at,
       row.updated_at,
-      row.deleted_at
+      row.deleted_at,
+      orgName
     );
   }
 

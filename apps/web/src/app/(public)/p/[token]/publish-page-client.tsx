@@ -2,15 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ShareProvider } from '@/domains/share/frontend/contexts/share-context';
 import { PublishedPageViewer } from '@/domains/share/frontend/components/published-page-viewer';
 import { CopyFlowDialog } from '@/domains/share/frontend/components/copy-flow-dialog';
 import { LoginPromptDialog } from '@/domains/share/frontend/components/login-prompt-dialog';
 import { createClient } from '@/utils/supabase/browser';
-import { PublishedPageView } from '@/domains/share/shared/dtos';
+import { PublishedPageViewDTO } from '@/domains/share/shared/dtos';
 
 interface PublishPageClientProps {
-  initialData: PublishedPageView;
+  initialData: PublishedPageViewDTO;
   token: string;
 }
 
@@ -32,15 +31,17 @@ export default function PublishPageClient({
   }, [action]);
 
   const handleLogin = () => {
-    const redirectTo = `/p/${token}?action=copy&token=${token}`;
+    const redirectTo = `/p/${token}?action=copy`;
     router.push(`/login?redirect=${encodeURIComponent(redirectTo)}`);
   };
 
   const handleCopyRequested = async () => {
     try {
       const supabase = createClient();
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
         setIsLoginOpen(true);
         return;
       }
@@ -51,7 +52,7 @@ export default function PublishPageClient({
   };
 
   return (
-    <ShareProvider initialPublishedPage={initialData}>
+    <>
       <PublishedPageViewer
         publishToken={token}
         initialData={initialData}
@@ -73,6 +74,6 @@ export default function PublishPageClient({
         onLogin={handleLogin}
         onClose={() => setIsLoginOpen(false)}
       />
-    </ShareProvider>
+    </>
   );
 }

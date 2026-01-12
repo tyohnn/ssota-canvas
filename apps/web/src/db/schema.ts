@@ -1491,7 +1491,6 @@ export const publishedPages = pgTable(
     published_at: timestamp('published_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
-    snapshot_version: text('snapshot_version'),
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1507,10 +1506,10 @@ export const publishedPages = pgTable(
     ),
 
     // RLS Policies
-    selectPolicy: pgPolicy('Enable read for all users', {
+    selectPolicy: pgPolicy('Enable read for owner only', {
       for: 'select',
-      to: [anonRole, authenticatedRole],
-      using: sql`true`,
+      to: authenticatedRole,
+      using: sql`(select auth.uid()) = owner_id`,
     }),
     insertPolicy: pgPolicy('Enable insert for page owner', {
       for: 'insert',

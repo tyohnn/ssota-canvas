@@ -7,50 +7,40 @@ import { z } from 'zod';
 import {
   PublishPageRequest,
   PublishPageRequestSchema,
-  PublishResult,
-  PublishedPageView,
-  WorkspaceSelectionView,
+  PublishResultDTO,
+  PublishedPageViewDTO,
+  WorkspaceSelectionViewDTO,
   CopyPublishedPageRequest,
   CopyPublishedPageRequestSchema,
-  CopyResult,
+  CopyResultDTO,
   UnpublishPageRequest,
   UnpublishPageRequestSchema,
-  PublishedLinkView,
+  PublishedLinkViewDTO,
+  GetPublishedLinkRequest,
   GetPublishedLinkRequestSchema,
 } from '../shared/dtos';
 import { ShareManagementError } from '../shared/errors/share-management.error';
 import { PublishToken } from '../shared/value-objects/publish-token.vo';
 import { DrizzlePublishedPageRepository } from '../backend/repositories/implementations/drizzle-published-page.repository';
-import { SharePublishingService } from '../backend/services/share-publishing.service';
-import { ShareQueryService } from '../backend/services/share-query.service';
-import { ShareCopyService } from '../backend/services/share-copy.service';
-import { DefaultWorkspaceQueryService } from '@/domains/workspace-management/backend/services/workspace-query.service';
+import { publishPage } from '../backend/services/publish-page';
+import { unpublishPage } from '../backend/services/unpublish-page';
+import { getPublishedLink } from '../backend/services/get-published-link';
+import { getPublishedPage } from '../backend/services/get-published-page';
+import { getWorkspaceSelection } from '../backend/services/get-workspace-selection';
+import { copyPublishedPage } from '../backend/services/copy-published-page';
 import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
-import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace-member.repository';
 import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 import {
   getAuthenticatedUser,
 } from '@/domains/common/auth/helpers';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { CanvasQueryService } from '@/domains/canvas-management/backend/services/canvas-query.service';
 import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-edge.repository';
 import { DrizzleViewportRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-viewport.repository';
-import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
-
-// Factory for WorkspaceQueryService to avoid repetition
-const createWorkspaceQueryService = () => {
-  return new DefaultWorkspaceQueryService(
-    new DrizzleWorkspaceRepository(),
-    new DrizzleWorkspaceMemberRepository(),
-    new DrizzlePageRepository()
-  );
-};
 
 export async function publishPageAction(
   input: unknown
-): Promise<PublishResult> {
+): Promise<PublishResultDTO> {
   const parsed = PublishPageRequestSchema.parse(input);
   const user = await getAuthenticatedUser();
 
@@ -58,16 +48,11 @@ export async function publishPageAction(
 }
 
 export async function publishPageActionInternal(
-  input: PublishPageRequest,
+  safeDto: PublishPageRequest,
   requesterId: string
-): Promise<PublishResult> {
+): Promise<PublishResultDTO> {
   const repository = new DrizzlePublishedPageRepository();
-  const service = new SharePublishingService(repository);
-
-  return service.publishPage({
-    pageId: input.pageId,
-    requesterId,
-  });
+  return publishPage(safeDto, requesterId, repository);
 }
 
 export async function unpublishPageAction(
@@ -80,18 +65,16 @@ export async function unpublishPageAction(
 }
 
 export async function unpublishPageActionInternal(
-  input: UnpublishPageRequest,
+  safeDto: UnpublishPageRequest,
   userId: string
 ): Promise<void> {
   const repository = new DrizzlePublishedPageRepository();
-  const service = new SharePublishingService(repository);
-
-  return service.unpublishPage(input.pageId, userId);
+  return unpublishPage(safeDto.pageId, userId, repository);
 }
 
 export async function getPublishedLinkAction(
   input: unknown
-): Promise<PublishedLinkView | null> {
+): Promise<PublishedLinkViewDTO | null> {
   const parsed = GetPublishedLinkRequestSchema.parse(input);
   const user = await getAuthenticatedUser();
 
@@ -99,71 +82,57 @@ export async function getPublishedLinkAction(
 }
 
 export async function getPublishedLinkActionInternal(
-  input: { pageId: string },
+  safeDto: GetPublishedLinkRequest,
   userId: string
-): Promise<PublishedLinkView | null> {
+): Promise<PublishedLinkViewDTO | null> {
   const repository = new DrizzlePublishedPageRepository();
-
-  const queryService = new ShareQueryService(
-    repository,
-    createWorkspaceQueryService(),
-    new CanvasQueryService(
-      new DrizzleBlockMountRepository(),
-      new DrizzleEdgeRepository(),
-      new DrizzleViewportRepository()
-    )
-  );
-
-  return queryService.getPublishedLink(input.pageId, userId);
+  return getPublishedLink(safeDto, userId, repository);
 }
 
 export async function getPublishedPageAction(
   input: unknown
-): Promise<PublishedPageView> {
+): Promise<PublishedPageViewDTO> {
   const publishToken = z.string().min(1).parse(input);
   return getPublishedPageActionInternal(publishToken);
 }
 
 export async function getPublishedPageActionInternal(
   publishToken: string
-): Promise<PublishedPageView> {
+): Promise<PublishedPageViewDTO> {
   const repository = new DrizzlePublishedPageRepository();
-
-  const queryService = new ShareQueryService(
-    repository,
-    createWorkspaceQueryService(),
-    new CanvasQueryService(
-      new DrizzleBlockMountRepository(),
-      new DrizzleEdgeRepository(),
-      new DrizzleViewportRepository()
-    )
+  const pageRepository = new DrizzlePageRepository();
+  const workspaceRepository = new DrizzleWorkspaceRepository();
+  const canvasQueryService = new CanvasQueryService(
+    new DrizzleBlockMountRepository(),
+    new DrizzleEdgeRepository(),
+    new DrizzleViewportRepository()
   );
 
-  return queryService.getPublishedPage(publishToken);
+  return getPublishedPage(
+    publishToken,
+    repository,
+    pageRepository,
+    workspaceRepository,
+    canvasQueryService
+  );
 }
 
 export async function getWorkspaceSelectionAction(
   _input?: unknown
-): Promise<WorkspaceSelectionView> {
+): Promise<WorkspaceSelectionViewDTO> {
   const user = await getAuthenticatedUser();
   return getWorkspaceSelectionActionInternal(user.id);
 }
 
 export async function getWorkspaceSelectionActionInternal(
   userId: string
-): Promise<WorkspaceSelectionView> {
-  const repository = new DrizzlePublishedPageRepository();
-  const service = new ShareCopyService(
-    repository,
-    createWorkspaceQueryService()
-  );
-
-  return service.getWorkspaceSelection(userId);
+): Promise<WorkspaceSelectionViewDTO> {
+  return getWorkspaceSelection(userId, new DrizzleWorkspaceRepository());
 }
 
 export async function copyPublishedPageAction(
   input: unknown
-): Promise<CopyResult> {
+): Promise<CopyResultDTO> {
   const parsed = CopyPublishedPageRequestSchema.parse(input);
   const user = await getAuthenticatedUser();
 
@@ -171,17 +140,9 @@ export async function copyPublishedPageAction(
 }
 
 export async function copyPublishedPageActionInternal(
-  input: CopyPublishedPageRequest,
+  safeDto: CopyPublishedPageRequest,
   userId: string
-): Promise<CopyResult> {
+): Promise<CopyResultDTO> {
   const repository = new DrizzlePublishedPageRepository();
-  const service = new ShareCopyService(
-    repository,
-    createWorkspaceQueryService()
-  );
-
-  return service.copyPublishedPage(userId, {
-    publishToken: input.publishToken,
-    targetWorkspaceId: input.targetWorkspaceId,
-  });
+  return copyPublishedPage(userId, safeDto, repository);
 }

@@ -20,7 +20,6 @@ import { Input } from '@/components/ui/input';
 import { useUpdatePageIcon } from '../../hooks/use-update-page-icon';
 import { useUpdatePageTitle } from '../../hooks/use-update-page-title';
 import { PublishFlow } from '@/domains/share/frontend/components/publish-flow';
-import { ShareProvider } from '@/domains/share/frontend/contexts/share-context';
 
 interface WorkspacePageHeaderProps {
   pageId?: string;
@@ -324,9 +323,7 @@ export function WorkspacePageHeader({
 
       {actualPageId && (
         <div className="flex items-center gap-2 pr-3">
-          <ShareProvider>
-            <PublishFlow pageId={actualPageId} isPublishable={isPublishable} />
-          </ShareProvider>
+          <PublishFlow pageId={actualPageId} isPublishable={isPublishable} />
         </div>
       )}
     </header>
