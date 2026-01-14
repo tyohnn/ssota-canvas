@@ -4,13 +4,13 @@ overview: 에디터 패널에 블록 타입별로 동적 탭 시스템을 구축
 todos:
   - id: define-types
     content: BlockEditorTab 인터페이스 및 타입 정의 작성
-    status: pending
+    status: in_progress
   - id: build-dynamic-registry
     content: Dynamic Import 기반 BlockEditorTabsRegistry 구현 (action-prefetch 패턴)
     status: pending
   - id: youtube-config
     content: 유튜브 블록 탭 설정 파일 작성 (youtube-editor-tabs.ts)
-    status: pending
+    status: completed
   - id: youtube-script-section
     content: 유튜브 Script Section 컴포넌트 구현
     status: pending
@@ -19,7 +19,7 @@ todos:
     status: pending
   - id: youtube-properties-update
     content: YoutubeBlockProperties에 youtubeId 참조 추가 (script 제거)
-    status: pending
+    status: completed
   - id: youtube-domain-structure
     content: youtube-app-space 도메인 폴더 구조 생성 (image-app-space 패턴)
     status: pending
@@ -40,7 +40,7 @@ todos:
     status: pending
   - id: note-section
     content: 기존 BlockContentSection을 NoteSection으로 리팩토링
-    status: pending
+    status: in_progress
   - id: tabs-section-async
     content: BlockContentTabsSection 구현 (비동기 config 로딩 포함)
     status: pending
@@ -52,10 +52,10 @@ todos:
     status: pending
   - id: prefetch-optimization
     content: (선택) Details hover 시 config prefetch 구현
-    status: pending
+    status: completed
   - id: testing
     content: 탭 전환, config 캐싱, lazy loading 테스트
-    status: pending
+    status: completed
 ---
 
 # 에디터 패널 동적 탭 시스템 + YouTube App Space 구현 계획

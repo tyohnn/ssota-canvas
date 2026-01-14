@@ -1,6 +1,7 @@
-import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 import { loadEnv } from 'vite';
+import { defineConfig } from 'vitest/config';
+
 import { config } from '@/config';
 
 export default defineConfig(({ mode }) => {
@@ -16,6 +17,10 @@ export default defineConfig(({ mode }) => {
         NODE_ENV: 'development',
         POSTGRES_URL: process.env.POSTGRES_URL || '',
         POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING || '',
+        YOUTUBE_API_KEY:
+          env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY || '',
+        ZENROWS_API_KEY:
+          env.ZENROWS_API_KEY || process.env.ZENROWS_API_KEY || '',
       },
       exclude: [
         '**/node_modules/**',
@@ -46,7 +51,7 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
-      testTimeout: 10000,
+      testTimeout: 60000, // 네트워크 요청을 위한 긴 타임아웃
       hookTimeout: 10000,
     },
     resolve: {
