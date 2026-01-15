@@ -16,6 +16,7 @@ import {
   TabsTrigger,
 } from '@workspace/ui/components/ui/tabs';
 
+import { useEditorPanelContext } from '@/domains/block-management/frontend/components/editor-panel/core/context';
 import type {
   BlockEditorTab,
   BlockEditorTabsConfig,
@@ -38,6 +39,7 @@ export function BlockContentTabsSectionView({
   blockData,
   blockType,
 }: BlockContentTabsSectionViewProps) {
+  const { setTabSwitchCallback } = useEditorPanelContext();
   const [tabsConfig, setTabsConfig] = useState<BlockEditorTabsConfig | null>(
     null
   );
@@ -61,6 +63,15 @@ export function BlockContentTabsSectionView({
       setLoading(false);
     });
   }, [blockType]);
+
+  // Tab 전환 함수를 Context에 등록
+  // ⚠️ useState에 함수를 저장할 때는 () => fn 형태로 감싸야 함
+  useEffect(() => {
+    setTabSwitchCallback(() => setSelectedTabId);
+    return () => {
+      setTabSwitchCallback(null);
+    };
+  }, [setTabSwitchCallback]);
 
   // ContentArea 스크롤 컨테이너 찾기
   useEffect(() => {

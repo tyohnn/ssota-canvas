@@ -21,5 +21,5 @@ interface ScriptSectionContainerProps {
 export function ScriptSectionContainer({
   children,
 }: ScriptSectionContainerProps) {
-  return <Box className="pl-6 pr-4 py-3 min-h-[200px]">{children}</Box>;
+  return <Box className="pl-6 pr-12 py-3 min-h-[200px]">{children}</Box>;
 }

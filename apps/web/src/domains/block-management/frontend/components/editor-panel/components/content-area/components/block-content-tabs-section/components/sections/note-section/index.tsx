@@ -57,7 +57,7 @@ export default function NoteSection({
   }
 
   return (
-    <Box className="pl-6 pr-4 py-3 min-h-[200px]">
+    <Box className="pl-6 pr-4 py-3 min-h-[200px]" data-note-section="true">
       {/* Notion-style Editor Container */}
       <Box onClick={handleEditorClick} className="min-h-[200px] cursor-text">
         <TipTapEditor

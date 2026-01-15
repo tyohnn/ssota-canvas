@@ -45,7 +45,10 @@ export function ScriptContent({ script, youtubeTitle }: ScriptContentProps) {
           Smart Summary
         </Button>
       </Box>
-      <ScriptTranscript transcript={script?.transcript} />
+      <ScriptTranscript
+        transcript={script?.transcript}
+        youtubeTitle={youtubeTitle}
+      />
       <ScriptTableOfContents
         transcript={script?.transcript}
         showTOC={showTOC}

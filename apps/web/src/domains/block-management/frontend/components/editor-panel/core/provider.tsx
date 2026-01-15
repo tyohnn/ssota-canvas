@@ -4,7 +4,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 
 import { useNodes } from '@xyflow/react';
 
@@ -42,6 +42,32 @@ export function EditorPanelProvider({
 
   const blockData = blockNode?.data as BlockNodeData | undefined;
 
+  // Tab 전환 함수 관리 (ref 사용하여 최신 값 보장)
+  const tabSwitchCallbackRef = React.useRef<
+    ((tabId: string) => void) | null
+  >(null);
+  const [tabSwitchCallback, setTabSwitchCallback] = useState<
+    ((tabId: string) => void) | null
+  >(null);
+
+  // Tab 전환 함수 (Context에 제공)
+  const switchToTab = useCallback((tabId: string) => {
+    // ref를 통해 최신 callback 사용
+    if (tabSwitchCallbackRef.current) {
+      tabSwitchCallbackRef.current(tabId);
+    } else {
+      console.warn(
+        '[EditorPanel] Tab switch callback not registered yet. Tab ID:',
+        tabId
+      );
+    }
+  }, []);
+
+  // Tab switch callback 업데이트 시 ref도 업데이트
+  React.useEffect(() => {
+    tabSwitchCallbackRef.current = tabSwitchCallback;
+  }, [tabSwitchCallback]);
+
   // Combined hook
   const editorPanel = useEditorPanel(
     blockId,
@@ -58,8 +84,10 @@ export function EditorPanelProvider({
       blockData,
       isOpen,
       ...editorPanel,
+      switchToTab,
+      setTabSwitchCallback,
     }),
-    [blockId, blockMountId, blockData, isOpen, editorPanel]
+    [blockId, blockMountId, blockData, isOpen, editorPanel, switchToTab]
   );
 
   return (
