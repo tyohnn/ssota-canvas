@@ -45,9 +45,6 @@ export function usePublishFlowBusiness({
   }, [publishUrl, copyLinkToClipboard, setIsLinkCopied]);
 
   const handleUnpublish = useCallback(async () => {
-    const confirmed = window.confirm('Are you sure you want to unpublish?');
-    if (!confirmed) return;
-
     setError(null);
     try {
       await unpublishMutation.mutateAsync({ pageId });

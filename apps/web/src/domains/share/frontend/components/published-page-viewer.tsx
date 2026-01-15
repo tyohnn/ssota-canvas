@@ -107,30 +107,40 @@ export function PublishedPageViewer({
   }
 
   return (
-    <div className="h-screen w-full bg-background relative">
-      <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleCopyLink}
-          className={`transition-shadow active:shadow-inner hover:bg-accent/60 hover:text-accent-foreground ${isCopied ? 'bg-accent text-accent-foreground shadow-sm' : ''}`}
-        >
-          {isCopied ? 'Link Copied' : 'Copy Link'}
-        </Button>
-        <Button
-          size="sm"
-          onClick={() => {
-            setIsCopyPressed(true);
-            window.setTimeout(() => setIsCopyPressed(false), 150);
-            onCopyRequested?.();
-          }}
-          className={`transition-shadow active:shadow-inner ${isCopyPressed ? 'bg-primary/90 text-primary-foreground shadow-sm' : ''
-            }`}
-        >
-          Copy
-        </Button>
-      </div>
-      <div className="h-full">
+    <div className="h-screen w-full bg-background flex flex-col">
+      {/* Header Bar */}
+      <header className="flex h-12 shrink-0 items-center justify-between border-b px-4 bg-background z-20">
+        <div className="flex items-center gap-2">
+          <h1 className="text-base font-semibold truncate max-w-[300px]">
+            {data.title || 'Untitled'}
+          </h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleCopyLink}
+            className={`transition-shadow active:shadow-inner hover:bg-accent/60 hover:text-accent-foreground ${isCopied ? 'bg-accent text-accent-foreground shadow-sm' : ''}`}
+          >
+            {isCopied ? 'Link Copied' : 'Copy Link'}
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setIsCopyPressed(true);
+              window.setTimeout(() => setIsCopyPressed(false), 150);
+              onCopyRequested?.();
+            }}
+            className={`transition-shadow active:shadow-inner ${isCopyPressed ? 'bg-primary/90 text-primary-foreground shadow-sm' : ''
+              }`}
+          >
+            Copy
+          </Button>
+        </div>
+      </header>
+
+      {/* Canvas Content */}
+      <div className="flex-1 relative">
         <ReactFlowProvider>
           <CanvasModeProvider>
             <ReactFlow
