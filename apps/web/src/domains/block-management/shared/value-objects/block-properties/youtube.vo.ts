@@ -28,6 +28,7 @@ export interface YoutubeBlockProperties {
 
   // YouTube 통계 정보 (readonly, 표시용)
   channelName?: string; // 채널 이름
+  youtubeChannelId?: string; // YouTube Channel ID (예: UCehBVAPy-bxmnbNARF-_tvA)
   viewCount?: number; // 조회수 (숫자)
   commentCount?: number; // 댓글 수 (숫자)
   likeCount?: number; // 좋아요 수 (숫자)
@@ -49,6 +50,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     public readonly youtubeThumbnail?: string,
     public readonly channelThumbnail?: string,
     public readonly channelName?: string,
+    public readonly youtubeChannelId?: string,
     public readonly viewCount?: number,
     public readonly commentCount?: number,
     public readonly likeCount?: number,
@@ -81,6 +83,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       data.youtubeThumbnail,
       data.channelThumbnail,
       data.channelName,
+      data.youtubeChannelId,
       data.viewCount,
       data.commentCount,
       data.likeCount,
@@ -164,6 +167,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       youtubeThumbnail: this.youtubeThumbnail,
       channelThumbnail: this.channelThumbnail,
       channelName: this.channelName,
+      youtubeChannelId: this.youtubeChannelId,
       viewCount: this.viewCount,
       commentCount: this.commentCount,
       likeCount: this.likeCount,
@@ -186,6 +190,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       this.youtubeThumbnail === other.youtubeThumbnail &&
       this.channelThumbnail === other.channelThumbnail &&
       this.channelName === other.channelName &&
+      this.youtubeChannelId === other.youtubeChannelId &&
       this.viewCount === other.viewCount &&
       this.commentCount === other.commentCount &&
       this.likeCount === other.likeCount &&
@@ -208,6 +213,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       this.youtubeThumbnail,
       this.channelThumbnail,
       this.channelName,
+      this.youtubeChannelId,
       this.viewCount,
       this.commentCount,
       this.likeCount,
@@ -228,6 +234,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     channelThumbnail?: string;
     viewCount?: string;
     channelName?: string;
+    youtubeChannelId?: string;
     subscriberCount?: string;
     commentCount?: string;
     likeCount?: string;
@@ -241,6 +248,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       metadata.youtubeThumbnail ?? this.youtubeThumbnail,
       metadata.channelThumbnail ?? this.channelThumbnail,
       metadata.channelName ?? this.channelName,
+      metadata.youtubeChannelId ?? this.youtubeChannelId,
       metadata.viewCount ? Number(metadata.viewCount) : this.viewCount,
       metadata.commentCount ? Number(metadata.commentCount) : this.commentCount,
       metadata.likeCount ? Number(metadata.likeCount) : this.likeCount,
@@ -265,6 +273,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       this.youtubeThumbnail,
       this.channelThumbnail,
       this.channelName,
+      this.youtubeChannelId,
       this.viewCount,
       this.commentCount,
       this.likeCount,

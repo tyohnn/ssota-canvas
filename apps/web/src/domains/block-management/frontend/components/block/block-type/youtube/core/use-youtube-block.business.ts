@@ -122,10 +122,12 @@ export function useYoutubeBlockBusiness(
         // GetYoutubeMetadataDTO → 기존 메타데이터 형식으로 변환
         const metadata: YoutubeMetadata = {
           youtubeTitle: video.title,
+          youtubeDescription: video.description,
           youtubeThumbnail:
             video.thumbnailHighUrl || video.thumbnailUrl || undefined,
           channelName: dto.channelName,
           channelThumbnail: dto.channelThumbnail,
+          youtubeChannelId: dto.youtubeChannelId,
           viewCount: video.viewCount,
           likeCount: video.likeCount,
           subscriberCount: undefined, // 새로운 액션에서 제공되지 않음

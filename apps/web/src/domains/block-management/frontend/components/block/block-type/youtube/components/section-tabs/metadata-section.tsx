@@ -7,6 +7,12 @@
 
 'use client';
 
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@workspace/ui/components/ui/avatar';
+
 import { Box } from '@/components/ui/box';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
@@ -43,6 +49,8 @@ export default function MetadataSection({
     viewCount?: number;
     likeCount?: number;
     channelName?: string;
+    youtubeChannelId?: string;
+    channelThumbnail?: string;
     subscriberCount?: number;
     commentCount?: number;
     publishedAt?: string;
@@ -57,6 +65,8 @@ export default function MetadataSection({
         viewCount: youtubeProperties.viewCount,
         likeCount: youtubeProperties.likeCount,
         channelName: youtubeProperties.channelName,
+        youtubeChannelId: youtubeProperties.youtubeChannelId,
+        channelThumbnail: youtubeProperties.channelThumbnail,
         subscriberCount: youtubeProperties.subscriberCount,
         commentCount: youtubeProperties.commentCount,
         publishedAt: youtubeProperties.publishedAt,
@@ -78,19 +88,7 @@ export default function MetadataSection({
             <h3 className="text-sm font-medium text-muted-foreground">
               Video Title
             </h3>
-            <p className="text-sm">{metadata.youtubeTitle}</p>
-          </Box>
-        )}
-
-        {/* Description */}
-        {metadata.youtubeDescription && (
-          <Box className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Video Description
-            </h3>
-            <p className="text-sm whitespace-pre-wrap">
-              {metadata.youtubeDescription}
-            </p>
+            <p className="text-sm font-medium">{metadata.youtubeTitle}</p>
           </Box>
         )}
 
@@ -143,7 +141,38 @@ export default function MetadataSection({
             <h3 className="text-sm font-medium text-muted-foreground">
               Channel
             </h3>
-            <p className="text-sm">{metadata.channelName}</p>
+            {metadata.youtubeChannelId ? (
+              <a
+                href={`https://www.youtube.com/channel/${metadata.youtubeChannelId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-sm text-foreground hover:opacity-80 transition-opacity"
+              >
+                <Avatar className="w-10 h-10">
+                  <AvatarImage
+                    src={metadata.channelThumbnail}
+                    alt={metadata.channelName}
+                  />
+                  <AvatarFallback>
+                    {metadata.channelName?.charAt(0).toUpperCase() || 'C'}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="font-medium">{metadata.channelName}</span>
+              </a>
+            ) : (
+              <Box className="flex items-center gap-3">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage
+                    src={metadata.channelThumbnail}
+                    alt={metadata.channelName}
+                  />
+                  <AvatarFallback>
+                    {metadata.channelName?.charAt(0).toUpperCase() || 'C'}
+                  </AvatarFallback>
+                </Avatar>
+                <p className="text-sm font-medium">{metadata.channelName}</p>
+              </Box>
+            )}
           </Box>
         )}
 
@@ -157,9 +186,20 @@ export default function MetadataSection({
           </Box>
         )}
 
+        {/* Description - 가장 하단 */}
+        {metadata.youtubeDescription && (
+          <Box className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Description
+            </h3>
+            <p className="text-sm whitespace-pre-wrap">
+              {metadata.youtubeDescription}
+            </p>
+          </Box>
+        )}
+
         {/* Empty State */}
         {!metadata.youtubeTitle &&
-          !metadata.youtubeDescription &&
           !metadata.viewCount &&
           !metadata.likeCount &&
           !metadata.channelName &&

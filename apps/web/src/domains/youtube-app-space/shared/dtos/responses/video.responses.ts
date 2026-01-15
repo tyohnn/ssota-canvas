@@ -14,6 +14,7 @@ export interface GetYoutubeMetadataDTO {
   // Channel 정보는 별도 조회 필요 (YoutubeView에는 channelId만 있음)
   channelName?: string;
   channelThumbnail?: string;
+  youtubeChannelId?: string; // YouTube Channel ID (예: UCehBVAPy-bxmnbNARF-_tvA)
 }
 
 /**

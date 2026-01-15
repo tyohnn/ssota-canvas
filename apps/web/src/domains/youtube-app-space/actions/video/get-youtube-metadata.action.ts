@@ -114,6 +114,7 @@ async function getYoutubeMetadataInternal(
         video: video.toView(),
         channelName: channel?.toView().channelName,
         channelThumbnail: channel?.toView().channelThumbnailUrl,
+        youtubeChannelId: channel?.toView().channelId,
       };
 
       return ok(response);
@@ -222,6 +223,7 @@ async function getYoutubeMetadataInternal(
       video: video.toView(),
       channelName: channelAggregate?.toView().channelName,
       channelThumbnail: channelAggregate?.toView().channelThumbnailUrl,
+      youtubeChannelId: channelAggregate?.toView().channelId,
     };
 
     return ok(response);
