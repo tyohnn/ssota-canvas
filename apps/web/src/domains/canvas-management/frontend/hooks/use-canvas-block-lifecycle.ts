@@ -113,7 +113,7 @@ export function useCanvasBlockLifecycle(
       // 단일 선택 모드로 전환
       enterSingleSelectionMode(block.blockMountId);
       // 자동으로 에디터 패널 열기
-      enterBlockEditingMode(block.blockId);
+      enterBlockEditingMode(block.blockId, block.blockMountId);
     },
     onError: () => {
       exitToDefaultMode();

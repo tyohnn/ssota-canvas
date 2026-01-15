@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createActionTransaction } from '../create-action-transaction.service';
 import type { IActionTransactionRepository } from '../../../repositories/interfaces/action-transaction.repository.interface';
 import type { ActionTransactionAggregate } from '../../../../shared/aggregates/action-transaction.aggregate';
-import type { CreateActionTransactionRequest } from '../../../../shared/dtos/requests/video.requests';
+import type { CreateActionTransactionRequest } from '../../../../shared/dtos/requests/action-transaction.requests';
 import { YoutubeError } from '../../../../shared/errors/youtube-app-space.error';
 
 describe('createActionTransaction Service', () => {
@@ -12,6 +12,10 @@ describe('createActionTransaction Service', () => {
   beforeEach(() => {
     // 로그만 출력하는 Mock Repository 생성
     mockRepository = {
+      findByBlockIdAndActionType: vi.fn(async (blockId: string, actionType: string) => {
+        console.log('[MockRepository] findByBlockIdAndActionType called:', { blockId, actionType });
+        return null;
+      }),
       create: vi.fn(async (aggregate: ActionTransactionAggregate) => {
         console.log('[MockRepository] create called:', {
           transactionId: aggregate.getTransaction().id.value,
@@ -44,7 +48,7 @@ describe('createActionTransaction Service', () => {
       const safeDto: CreateActionTransactionRequest = {
         blockId: '550e8400-e29b-41d4-a716-446655440000',
         videoId: '660e8400-e29b-41d4-a716-446655440000',
-        actionType: 'get_script',
+        actionType: 'extract_script',
       };
 
       // When
@@ -95,7 +99,7 @@ describe('createActionTransaction Service', () => {
       const safeDto: CreateActionTransactionRequest = {
         blockId: '550e8400-e29b-41d4-a716-446655440000',
         videoId: '660e8400-e29b-41d4-a716-446655440000',
-        actionType: 'get_script',
+        actionType: 'extract_script',
       };
 
       // When
@@ -117,7 +121,7 @@ describe('createActionTransaction Service', () => {
       const safeDto: CreateActionTransactionRequest = {
         blockId: '550e8400-e29b-41d4-a716-446655440000',
         videoId: '660e8400-e29b-41d4-a716-446655440000',
-        actionType: 'get_script',
+        actionType: 'extract_script',
       };
 
       const errorRepository: IActionTransactionRepository = {
@@ -147,7 +151,7 @@ describe('createActionTransaction Service', () => {
       const safeDto: CreateActionTransactionRequest = {
         blockId: '550e8400-e29b-41d4-a716-446655440000',
         videoId: '660e8400-e29b-41d4-a716-446655440000',
-        actionType: 'get_script',
+        actionType: 'extract_script',
       };
 
       const youtubeError = new YoutubeError(

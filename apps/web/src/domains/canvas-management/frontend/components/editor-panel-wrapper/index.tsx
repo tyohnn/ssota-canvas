@@ -17,6 +17,12 @@ export function EditorPanelWrapper() {
 
   const blockId =
     canvasMode.mode.type === 'block-editing' ? canvasMode.mode.blockId : '';
+  const blockMountId =
+    canvasMode.mode.type === 'block-editing'
+      ? canvasMode.mode.blockMountId
+      : '';
 
-  return <EditorPanel blockId={blockId} isOpen={true} />;
+  return (
+    <EditorPanel blockId={blockId} blockMountId={blockMountId} isOpen={true} />
+  );
 }

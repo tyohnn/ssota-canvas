@@ -81,7 +81,7 @@ export async function prefetchAction(blockType: string): Promise<void> {
   const promise = import(
     /* webpackPrefetch: true */
     /* webpackChunkName: "action-items-[request]" */
-    `../block-type/${blockType}/action-items`
+    `../block-type/${blockType}/components/action-items`
   )
     .then(module => {
       // 컴포넌트를 레지스트리에 저장

@@ -5,7 +5,6 @@
  * - 사용자가 입력한 URL과 자동으로 fetch된 YouTube 메타데이터 포함
  * - Link Block과 유사한 구조로 메타데이터 관리
  */
-
 import { BlockManagementError } from '../../errors/block-management.error';
 import { BlockPropertiesVO } from './base.vo';
 
@@ -18,6 +17,9 @@ export interface YoutubeBlockProperties {
   // 기본 정보 (사용자 입력)
   url: string; // 사용자가 입력하는 URL
 
+  // YouTube App Space 참조
+  youtubeId?: string; // YouTube App Space의 YouTube ID (UUID)
+
   // YouTube 메타데이터 (자동 fetch, 수정 가능)
   youtubeTitle?: string; // 영상 제목 (fetch 후 수정 가능)
   youtubeDescription?: string; // 영상 설명 (fetch 후 수정 가능)
@@ -25,11 +27,11 @@ export interface YoutubeBlockProperties {
   channelThumbnail?: string; // 채널 프로필 이미지 URL
 
   // YouTube 통계 정보 (readonly, 표시용)
-  viewCount?: number; // 조회수 (숫자)
   channelName?: string; // 채널 이름
-  subscriberCount?: number; // 구독자 수 (숫자)
+  viewCount?: number; // 조회수 (숫자)
   commentCount?: number; // 댓글 수 (숫자)
   likeCount?: number; // 좋아요 수 (숫자)
+  subscriberCount?: number; // 구독자 수 (숫자)
   publishedAt?: string; // 게시일 ISO string
 }
 
@@ -41,15 +43,16 @@ export interface YoutubeBlockProperties {
 export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
   constructor(
     public readonly url: string,
+    public readonly youtubeId?: string,
     public readonly youtubeTitle?: string,
     public readonly youtubeDescription?: string,
     public readonly youtubeThumbnail?: string,
     public readonly channelThumbnail?: string,
-    public readonly viewCount?: number,
     public readonly channelName?: string,
-    public readonly subscriberCount?: number,
+    public readonly viewCount?: number,
     public readonly commentCount?: number,
     public readonly likeCount?: number,
+    public readonly subscriberCount?: number,
     public readonly publishedAt?: string
   ) {
     super();
@@ -72,15 +75,16 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
   static fromJSON(data: YoutubeBlockProperties): YoutubeBlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       data.url || '',
+      data.youtubeId,
       data.youtubeTitle,
       data.youtubeDescription,
       data.youtubeThumbnail,
       data.channelThumbnail,
-      data.viewCount,
       data.channelName,
-      data.subscriberCount,
+      data.viewCount,
       data.commentCount,
       data.likeCount,
+      data.subscriberCount,
       data.publishedAt
     );
   }
@@ -154,15 +158,16 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
   toJSON(): YoutubeBlockProperties {
     return {
       url: this.url,
+      youtubeId: this.youtubeId,
       youtubeTitle: this.youtubeTitle,
       youtubeDescription: this.youtubeDescription,
       youtubeThumbnail: this.youtubeThumbnail,
       channelThumbnail: this.channelThumbnail,
-      viewCount: this.viewCount,
       channelName: this.channelName,
-      subscriberCount: this.subscriberCount,
+      viewCount: this.viewCount,
       commentCount: this.commentCount,
       likeCount: this.likeCount,
+      subscriberCount: this.subscriberCount,
       publishedAt: this.publishedAt,
     };
   }
@@ -175,15 +180,16 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
   equals(other: YoutubeBlockPropertiesVO): boolean {
     return (
       this.url === other.url &&
+      this.youtubeId === other.youtubeId &&
       this.youtubeTitle === other.youtubeTitle &&
       this.youtubeDescription === other.youtubeDescription &&
       this.youtubeThumbnail === other.youtubeThumbnail &&
       this.channelThumbnail === other.channelThumbnail &&
-      this.viewCount === other.viewCount &&
       this.channelName === other.channelName &&
-      this.subscriberCount === other.subscriberCount &&
+      this.viewCount === other.viewCount &&
       this.commentCount === other.commentCount &&
       this.likeCount === other.likeCount &&
+      this.subscriberCount === other.subscriberCount &&
       this.publishedAt === other.publishedAt
     );
   }
@@ -196,15 +202,16 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
   updateUrl(url: string): YoutubeBlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       url,
+      this.youtubeId,
       this.youtubeTitle,
       this.youtubeDescription,
       this.youtubeThumbnail,
       this.channelThumbnail,
-      this.viewCount,
       this.channelName,
-      this.subscriberCount,
+      this.viewCount,
       this.commentCount,
       this.likeCount,
+      this.subscriberCount,
       this.publishedAt
     );
   }
@@ -228,18 +235,41 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
   }): YoutubeBlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       this.url,
+      this.youtubeId,
       metadata.youtubeTitle ?? this.youtubeTitle,
       metadata.youtubeDescription ?? this.youtubeDescription,
       metadata.youtubeThumbnail ?? this.youtubeThumbnail,
       metadata.channelThumbnail ?? this.channelThumbnail,
-      metadata.viewCount ? Number(metadata.viewCount) : this.viewCount,
       metadata.channelName ?? this.channelName,
+      metadata.viewCount ? Number(metadata.viewCount) : this.viewCount,
+      metadata.commentCount ? Number(metadata.commentCount) : this.commentCount,
+      metadata.likeCount ? Number(metadata.likeCount) : this.likeCount,
       metadata.subscriberCount
         ? Number(metadata.subscriberCount)
         : this.subscriberCount,
-      metadata.commentCount ? Number(metadata.commentCount) : this.commentCount,
-      metadata.likeCount ? Number(metadata.likeCount) : this.likeCount,
       metadata.publishedAt ?? this.publishedAt
+    );
+  }
+
+  /**
+   * YouTube ID 업데이트 (불변성 유지)
+   * @param youtubeId - YouTube App Space의 YouTube ID
+   * @returns 새로운 YoutubeBlockPropertiesVO 인스턴스
+   */
+  updateYoutubeId(youtubeId: string): YoutubeBlockPropertiesVO {
+    return new YoutubeBlockPropertiesVO(
+      this.url,
+      youtubeId,
+      this.youtubeTitle,
+      this.youtubeDescription,
+      this.youtubeThumbnail,
+      this.channelThumbnail,
+      this.channelName,
+      this.viewCount,
+      this.commentCount,
+      this.likeCount,
+      this.subscriberCount,
+      this.publishedAt
     );
   }
 

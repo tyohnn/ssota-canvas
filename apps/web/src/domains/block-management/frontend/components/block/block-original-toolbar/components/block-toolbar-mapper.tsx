@@ -4,6 +4,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
+import { Skeleton } from '@workspace/ui/components/ui/skeleton';
+
+import { Box } from '@/components/ui/box';
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
@@ -124,11 +127,7 @@ export function BlockToolbarMapper({
 
   // 아직 로드되지 않음 (fallback)
   if (!ToolbarItemsComponent) {
-    return (
-      <div className="flex items-center gap-1">
-        <div className="h-6 w-6 animate-pulse bg-muted rounded" />
-      </div>
-    );
+    return <Skeleton className="h-7 w-7 rounded-sm" />;
   }
 
   // 컴포넌트 즉시 렌더링 (no Suspense!)

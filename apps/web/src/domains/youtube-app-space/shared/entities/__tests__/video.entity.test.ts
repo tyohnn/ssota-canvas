@@ -151,8 +151,8 @@ describe('VideoEntity', () => {
         undefined,
         undefined,
         undefined, // script
-        undefined,
-        undefined,
+        undefined, // scriptLanguage
+        undefined, // scriptExtractedAt
         0,
         0,
         0,
@@ -193,8 +193,8 @@ describe('VideoEntity', () => {
         undefined,
         undefined,
         script,
-        'en',
-        now,
+        'en', // scriptLanguage
+        undefined, // scriptExtractedAt
         0,
         0,
         0,
@@ -221,8 +221,8 @@ describe('VideoEntity', () => {
         undefined,
         undefined,
         undefined, // script
-        undefined,
-        undefined,
+        undefined, // scriptLanguage
+        undefined, // scriptExtractedAt
         0,
         0,
         0,
@@ -289,8 +289,8 @@ describe('VideoEntity', () => {
         undefined,
         undefined,
         existingScript,
-        'en',
-        now,
+        'en', // scriptLanguage
+        undefined, // scriptExtractedAt
         0,
         0,
         0,
@@ -334,9 +334,9 @@ describe('VideoEntity', () => {
         undefined,
         undefined,
         undefined,
-        undefined,
-        undefined,
-        undefined,
+        undefined, // script
+        undefined, // scriptLanguage
+        undefined, // scriptExtractedAt
         0,
         0,
         0,
@@ -374,4 +374,5 @@ describe('VideoEntity', () => {
       );
     });
   });
+
 });

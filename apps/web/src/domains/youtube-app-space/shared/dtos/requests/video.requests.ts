@@ -54,18 +54,19 @@ export const GetYoutubeMetadataRequestSchema = z.object({
 
 /**
  * get-video-script.action.ts용 Request Schema
+ * youtubeId는 YouTube App Space의 Video ID (UUID)
  */
 export const GetVideoScriptRequestSchema = z.object({
+  youtubeId: z.uuid('Invalid YouTube ID (must be UUID)'),
   blockId: z.uuid('Invalid block ID'),
 });
 
 /**
- * create-action-transaction.action.ts용 Request Schema
+ * extract-video-script.action.ts용 Request Schema
  */
-export const CreateActionTransactionRequestSchema = z.object({
+export const ExtractVideoScriptRequestSchema = z.object({
+  youtubeId: z.uuid('Invalid YouTube ID (must be UUID)'),
   blockId: z.uuid('Invalid block ID'),
-  videoId: z.uuid('Invalid video ID'),
-  actionType: z.enum(['get_script', 'smart_summary']),
 });
 
 /**
@@ -85,8 +86,8 @@ export type GetYoutubeMetadataRequestInput = z.input<
 export type GetVideoScriptRequestInput = z.input<
   typeof GetVideoScriptRequestSchema
 >;
-export type CreateActionTransactionRequestInput = z.input<
-  typeof CreateActionTransactionRequestSchema
+export type ExtractVideoScriptRequestInput = z.input<
+  typeof ExtractVideoScriptRequestSchema
 >;
 export type SmartSummaryRequestInput = z.input<
   typeof SmartSummaryRequestSchema
@@ -101,7 +102,7 @@ export type GetYoutubeMetadataRequest = z.output<
 export type GetVideoScriptRequest = z.output<
   typeof GetVideoScriptRequestSchema
 >;
-export type CreateActionTransactionRequest = z.output<
-  typeof CreateActionTransactionRequestSchema
+export type ExtractVideoScriptRequest = z.output<
+  typeof ExtractVideoScriptRequestSchema
 >;
 export type SmartSummaryRequest = z.output<typeof SmartSummaryRequestSchema>;

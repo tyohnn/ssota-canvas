@@ -60,8 +60,8 @@ export function useDataBlock(
 
   // 편집 모드 진입 핸들러
   const handleEdit = useCallback(() => {
-    canvasMode.enterBlockEditingMode(data.blockMountId);
-  }, [canvasMode, data.blockMountId]);
+    canvasMode.enterBlockEditingMode(data.blockId, data.blockMountId);
+  }, [canvasMode, data.blockId, data.blockMountId]);
 
   // Single selection 여부 확인
   const isSingleSelection = selected && canvasMode.isSingleSelectionMode();

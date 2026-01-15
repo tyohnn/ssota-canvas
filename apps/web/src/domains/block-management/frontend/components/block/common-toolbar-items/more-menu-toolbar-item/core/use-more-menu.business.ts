@@ -17,8 +17,8 @@ export function useMoreMenuBusiness(
   const { blockLifecycle, canvasMode, reactFlow } = dependencies;
 
   const handleEdit = useCallback(() => {
-    canvasMode.enterBlockEditingMode(props.blockId);
-  }, [canvasMode, props.blockId]);
+    canvasMode.enterBlockEditingMode(props.blockId, props.blockMountId);
+  }, [canvasMode, props.blockId, props.blockMountId]);
 
   const handleDuplicate = useCallback(async () => {
     try {
@@ -43,13 +43,14 @@ export function useMoreMenuBusiness(
 
   const handleDelete = useCallback(async () => {
     // 1. React Flow에서 즉시 제거 (Optimistic UI)
-    reactFlow.deleteElements({ nodes: [{ id: props.blockId }] });
+    // React Flow의 노드 ID는 blockMountId여야 함 (block_mounts.id)
+    reactFlow.deleteElements({ nodes: [{ id: props.blockMountId }] });
 
     // 2. 기본 모드로 복귀
     canvasMode.exitToDefaultMode();
 
     // 3. 서버 액션은 onNodesDelete 콜백에서 처리됨
-  }, [canvasMode, reactFlow, props.blockId]);
+  }, [canvasMode, reactFlow, props.blockMountId]);
 
   return {
     handleEdit,

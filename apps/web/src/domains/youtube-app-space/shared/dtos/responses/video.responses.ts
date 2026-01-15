@@ -24,10 +24,10 @@ export interface GetScriptDTO {
 }
 
 /**
- * create-action-transaction.action.ts용 Response DTO
+ * extract-video-script.action.ts용 Response DTO
  */
-export interface CreateActionTransactionDTO {
-  transactionId: string;
+export interface ExtractScriptDTO {
+  youtube: YoutubeView;
 }
 
 /**

@@ -16,6 +16,7 @@ import type { EditorPanelBusinessLogic } from './use-editor-panel.business';
 
 export interface EditorPanelProviderProps {
   blockId: string;
+  blockMountId: string;
   isOpen: boolean;
   onClose: () => void;
   businessLogic?: EditorPanelBusinessLogic;
@@ -24,6 +25,7 @@ export interface EditorPanelProviderProps {
 
 export function EditorPanelProvider({
   blockId,
+  blockMountId,
   isOpen,
   onClose,
   businessLogic,
@@ -32,14 +34,11 @@ export function EditorPanelProvider({
   const nodes = useNodes();
 
   // React Flow Store에서 블록 데이터 읽기 (reactive)
+  // ✅ blockMountId로 노드 찾기 (node.id === blockMountId)
   const blockNode = useMemo(() => {
-    // blockId로 노드 찾기: node.id === blockId 또는 node.data.blockId === blockId
-    const node = nodes.find(
-      node =>
-        node.id === blockId || (node.data as BlockNodeData)?.blockId === blockId
-    );
+    const node = nodes.find(node => node.id === blockMountId);
     return node;
-  }, [nodes, blockId]);
+  }, [nodes, blockMountId]);
 
   const blockData = blockNode?.data as BlockNodeData | undefined;
 
@@ -55,11 +54,12 @@ export function EditorPanelProvider({
   const contextValue = useMemo(
     () => ({
       blockId,
+      blockMountId,
       blockData,
       isOpen,
       ...editorPanel,
     }),
-    [blockId, blockData, isOpen, editorPanel]
+    [blockId, blockMountId, blockData, isOpen, editorPanel]
   );
 
   return (

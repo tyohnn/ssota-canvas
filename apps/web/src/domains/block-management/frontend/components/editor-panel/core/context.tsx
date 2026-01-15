@@ -9,6 +9,7 @@ import type { BlockNodeData } from '@/domains/block-management/shared/types/bloc
 
 export interface EditorPanelContextValue {
   blockId: string;
+  blockMountId: string;
   blockData: BlockNodeData | undefined;
   isOpen: boolean;
 

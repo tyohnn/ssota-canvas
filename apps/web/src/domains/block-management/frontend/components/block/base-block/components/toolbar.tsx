@@ -39,7 +39,7 @@ export function Toolbar({
 
   return (
     <BlockOriginalToolbar
-      blockId={data.blockMountId}
+      blockId={data.blockId}
       blockMountId={data.blockMountId}
       blockType={data.blockType || 'basic'}
       blockData={data}

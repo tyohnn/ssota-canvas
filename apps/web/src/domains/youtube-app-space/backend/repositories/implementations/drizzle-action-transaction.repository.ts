@@ -3,7 +3,7 @@
  *
  * Infrastructure Layer: Drizzle ORM을 사용한 Action Transaction 데이터 액세스 구현
  */
-import { eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
 import { adminDb } from '@/db';
 import { actionTransactions } from '@/db/schemas/youtube-app-space-schema';
@@ -116,6 +116,36 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
   }
 
   /**
+   * Block ID와 Action Type으로 Aggregate 조회
+   *
+   * 가장 최근에 생성된 transaction을 반환 (created_at DESC)
+   */
+  async findByBlockIdAndActionType(
+    blockId: string,
+    actionType: 'extract_script' | 'smart_summary'
+  ): Promise<ActionTransactionAggregate | null> {
+    const [found] = await adminDb
+      .select()
+      .from(actionTransactions)
+      .where(
+        and(
+          eq(actionTransactions.block_id, blockId),
+          eq(actionTransactions.action_type, actionType)
+        )
+      )
+      .orderBy(desc(actionTransactions.created_at))
+      .limit(1);
+
+    if (!found) {
+      return null;
+    }
+
+    // Drizzle Row → Entity → Aggregate 변환
+    const entity = this.toEntity(found);
+    return ActionTransactionAggregate.reconstitute(entity);
+  }
+
+  /**
    * Aggregate 업데이트
    */
   async update(aggregate: ActionTransactionAggregate): Promise<void> {
@@ -139,7 +169,7 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
       id: new ActionTransactionId(row.id),
       blockId: new BlockId(row.block_id),
       videoId: new VideoId(row.video_id),
-      actionType: row.action_type as 'get_script' | 'smart_summary',
+      actionType: row.action_type as 'extract_script' | 'smart_summary',
       createdAt: row.created_at,
       completedAt: row.completed_at ?? undefined,
     });

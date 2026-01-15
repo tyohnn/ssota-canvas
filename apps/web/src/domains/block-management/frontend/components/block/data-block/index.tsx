@@ -12,8 +12,8 @@
 import { memo } from 'react';
 
 import { BaseBlock } from '../base-block';
-import { BlockActions } from './components/block-actions';
 import { BlockHeader } from './components/block-header';
+import { DataBlockToolbar } from './components/data-block-toolbar';
 import { DataBlockView } from './components/data-block-view';
 import type { DataBlockProps } from './core/types';
 import { useDataBlock } from './core/use-data-block';
@@ -44,9 +44,9 @@ export const DataBlock = memo(function DataBlock(props: DataBlockProps) {
         <BlockHeader data={data} selected={isSingleSelection} width={width} />
       )}
 
-      {/* Block Actions (우측 상단) - original view가 아닐 때만 표시 */}
+      {/* Block Toolbar (우측 상단) - original view가 아닐 때만 표시 */}
       {viewMode !== 'original' && (
-        <BlockActions
+        <DataBlockToolbar
           data={data}
           viewMode={viewMode}
           selected={isSingleSelection}

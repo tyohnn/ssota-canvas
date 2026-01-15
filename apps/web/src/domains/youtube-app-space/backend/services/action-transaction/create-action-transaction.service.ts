@@ -5,7 +5,7 @@ import { Result } from '@/utils/result';
 
 import { ActionTransactionAggregate } from '../../../shared/aggregates/action-transaction.aggregate';
 import type { CreateActionTransactionCommand } from '../../../shared/commands/action-transaction.commands';
-import type { CreateActionTransactionRequest } from '../../../shared/dtos/requests/video.requests';
+import type { CreateActionTransactionRequest } from '../../../shared/dtos/requests/action-transaction.requests';
 import { YoutubeError } from '../../../shared/errors/youtube-app-space.error';
 import type { IActionTransactionRepository } from '../../repositories/interfaces/action-transaction.repository.interface';
 

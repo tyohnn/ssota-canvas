@@ -50,7 +50,7 @@ export const BLOCK_TYPE_SIZES: Record<
   [BlockType.TEXT]: { width: 200, height: 100 }, // 텍스트 블록
   [BlockType.SHAPE]: { width: 154, height: 70 }, // 도형 블록
   [BlockType.MARKDOWN]: { width: 342, height: 456 }, // 마크다운 블록 (3:4 비율)
-  [BlockType.YOUTUBE]: { width: 405, height: 314 }, // YouTube 썸네일 + 메타정보
+  [BlockType.YOUTUBE]: { width: 400, height: 278 }, // YouTube iframe + 하단 정보 섹션 (400px 기준)
   [BlockType.IMAGE]: { width: 300, height: 200 },
   [BlockType.PDF]: { width: 300, height: 400 }, // PDF 문서
   [BlockType.AUDIO]: { width: 300, height: 120 }, // 오디오 플레이어

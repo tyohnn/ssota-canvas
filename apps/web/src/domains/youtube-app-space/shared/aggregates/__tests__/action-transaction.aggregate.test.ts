@@ -30,7 +30,7 @@ describe('ActionTransactionAggregate', () => {
       const command: CreateActionTransactionCommand = {
         blockId: blockId.value,
         videoId: videoId.value,
-        actionType: 'get_script',
+        actionType: 'extract_script',
       };
 
       // When
@@ -51,7 +51,7 @@ describe('ActionTransactionAggregate', () => {
       const command: CreateActionTransactionCommand = {
         blockId: blockId.value,
         videoId: videoId.value,
-        actionType: 'get_script',
+        actionType: 'extract_script',
       };
 
       // When
@@ -69,7 +69,7 @@ describe('ActionTransactionAggregate', () => {
       const command: CreateActionTransactionCommand = {
         blockId: blockId.value,
         videoId: videoId.value,
-        actionType: 'get_script',
+        actionType: 'extract_script',
       };
 
       // When
@@ -111,7 +111,7 @@ describe('ActionTransactionAggregate', () => {
       const command: CreateActionTransactionCommand = {
         blockId: blockId.value,
         videoId: videoId.value,
-        actionType: 'get_script',
+        actionType: 'extract_script',
       };
       const aggregate = ActionTransactionAggregate.createTransaction(command);
       aggregate.markEventsAsCommitted(); // 이전 이벤트 클리어
@@ -144,7 +144,7 @@ describe('ActionTransactionAggregate', () => {
       const command: CreateActionTransactionCommand = {
         blockId: blockId.value,
         videoId: videoId.value,
-        actionType: 'get_script',
+        actionType: 'extract_script',
       };
       const aggregate = ActionTransactionAggregate.createTransaction(command);
 
@@ -174,7 +174,7 @@ describe('ActionTransactionAggregate', () => {
       const command: CreateActionTransactionCommand = {
         blockId: blockId.value,
         videoId: videoId.value,
-        actionType: 'get_script',
+        actionType: 'extract_script',
       };
       const aggregate = ActionTransactionAggregate.createTransaction(command);
 
@@ -191,7 +191,7 @@ describe('ActionTransactionAggregate', () => {
       const command: CreateActionTransactionCommand = {
         blockId: blockId.value,
         videoId: videoId.value,
-        actionType: 'get_script',
+        actionType: 'extract_script',
       };
       const aggregate = ActionTransactionAggregate.createTransaction(command);
 
@@ -211,7 +211,7 @@ describe('ActionTransactionAggregate', () => {
       const command: CreateActionTransactionCommand = {
         blockId: blockId.value,
         videoId: videoId.value,
-        actionType: 'get_script',
+        actionType: 'extract_script',
       };
       const aggregate = ActionTransactionAggregate.createTransaction(command);
       const events = aggregate.getUncommittedEvents();
@@ -234,7 +234,7 @@ describe('ActionTransactionAggregate', () => {
         id: transactionId,
         blockId: blockId,
         videoId: videoId,
-        actionType: 'get_script',
+        actionType: 'extract_script',
         createdAt: now,
         completedAt: undefined,
       });

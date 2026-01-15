@@ -42,10 +42,10 @@ export class VideoEntity {
     channelId: string;
     publishedAt?: Date;
     durationSeconds?: number;
-    thumbnailUrl?: string;
-    thumbnailHighUrl?: string;
-    script?: YoutubeScript;
-    scriptLanguage?: string;
+      thumbnailUrl?: string;
+      thumbnailHighUrl?: string;
+      script?: YoutubeScript;
+      scriptLanguage?: string;
     scriptExtractedAt?: Date;
     viewCount: number;
     likeCount: number;

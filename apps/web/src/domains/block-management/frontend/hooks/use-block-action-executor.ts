@@ -19,7 +19,7 @@ import { useReactFlow } from '@xyflow/react';
 import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
 
 import { BlockNodeData } from '../../shared/types/block-data.types';
-import { validateActionParams } from '../components/block/block-type/action-schemas-registry';
+import { validateActionParams } from '../components/block/block-action-bar/action-schemas-registry';
 import { useUpdateBlockProperty } from './block-property/use-block-property-update';
 
 /**

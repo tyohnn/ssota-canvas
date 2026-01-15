@@ -14,8 +14,6 @@ import type { YoutubeView } from '../dtos/views';
 import { VideoEntity } from '../entities/video.entity';
 import type { DomainEvent } from '../events/domain-event';
 import { ScriptUpdatedEvent, VideoCreatedEvent } from '../events/video.events';
-import { VideoId } from '../value-objects/video-id.vo';
-import { VideoSlug } from '../value-objects/video-slug.vo';
 
 export class VideoAggregate {
   private _uncommittedEvents: DomainEvent[] = [];

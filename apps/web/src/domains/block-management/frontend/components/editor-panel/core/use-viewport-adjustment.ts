@@ -7,11 +7,14 @@
 'use client';
 
 import { useEffect, useMemo, useRef } from 'react';
+
 import { useReactFlow } from '@xyflow/react';
+
 import { useSidebar } from '@workspace/ui/components/ui/sidebar';
+
 import type { LayoutConfig } from './types';
 
-export function useViewportAdjustment(blockId: string, isOpen: boolean) {
+export function useViewportAdjustment(blockMountId: string, isOpen: boolean) {
   const { setCenter, getNode } = useReactFlow();
   const { state: sidebarState } = useSidebar();
   const prevSidebarStateRef = useRef(sidebarState);
@@ -21,9 +24,9 @@ export function useViewportAdjustment(blockId: string, isOpen: boolean) {
     if (sidebarState === 'collapsed') {
       return {
         editorRatio: 0.45,
-        leftPaddingRatio: 0.13,
+        leftPaddingRatio: 0.05,
         rightPaddingRatio: 0.05,
-        centerRatio: 0.66,
+        centerRatio: 0.45,
         preferredZoom: 1.4,
       };
     }
@@ -32,7 +35,7 @@ export function useViewportAdjustment(blockId: string, isOpen: boolean) {
       editorRatio: 0.4,
       leftPaddingRatio: 0.1,
       rightPaddingRatio: 0.05,
-      centerRatio: 0.52,
+      centerRatio: 0.35,
       preferredZoom: 1.15,
     };
   }, [sidebarState]);
@@ -49,7 +52,7 @@ export function useViewportAdjustment(blockId: string, isOpen: boolean) {
     const SIDEBAR_TRANSITION_DURATION = sidebarStateChanged ? 350 : 0;
 
     const timer = setTimeout(() => {
-      const node = getNode(blockId);
+      const node = getNode(blockMountId);
       if (!node) return;
 
       const viewportElement = document.querySelector(
@@ -95,5 +98,5 @@ export function useViewportAdjustment(blockId: string, isOpen: boolean) {
     }, SIDEBAR_TRANSITION_DURATION);
 
     return () => clearTimeout(timer);
-  }, [isOpen, sidebarState, blockId, getNode, setCenter, layoutConfig]);
+  }, [isOpen, sidebarState, blockMountId, getNode, setCenter, layoutConfig]);
 }
