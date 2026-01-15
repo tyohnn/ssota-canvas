@@ -22,7 +22,12 @@ export function useYoutubeBlockBusiness(
     nodeId: string,
     properties: Record<string, unknown>,
     blockData: YoutubeBlockNodeData
-  ) => Promise<void>
+  ) => Promise<void>,
+  updateBlockTitle?: (input: {
+    nodeId: string;
+    title: string;
+    blockData: YoutubeBlockNodeData;
+  }) => Promise<boolean>
 ): YoutubeBlockBusinessLogic {
   // 메타데이터 fetch 실행 여부 추적 (중복 방지)
   const isFetchingRef = useRef(false);
@@ -140,6 +145,15 @@ export function useYoutubeBlockBusiness(
           nodeData
         );
 
+        // YouTube 제목을 블록 title로 설정
+        if (video.title && updateBlockTitle) {
+          await updateBlockTitle({
+            nodeId: nodeData.blockMountId,
+            title: video.title,
+            blockData: nodeData,
+          });
+        }
+
         return { success: true, metadata };
       } catch (error) {
         return {
@@ -150,7 +164,7 @@ export function useYoutubeBlockBusiness(
         isFetchingRef.current = false;
       }
     },
-    [nodeData, updateProperties]
+    [nodeData, updateProperties, updateBlockTitle]
   );
 
   return {

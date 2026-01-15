@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
 
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
+import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/block-property/use-block-title-update';
 import { YoutubeBlockPropertiesVO } from '@/domains/block-management/shared/value-objects/block-properties/youtube.vo';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 
@@ -39,6 +40,14 @@ export function useYoutubeBlock(
       },
     },
   });
+  const { updateBlockTitle } = useUpdateBlockTitle({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
   const canvasMode = useCanvasModeContext();
 
   // Value Object 인스턴스 생성 (메모이제이션)
@@ -59,7 +68,8 @@ export function useYoutubeBlock(
   const defaultBusiness = useYoutubeBlockBusiness(
     nodeData,
     vo,
-    updateProperties
+    updateProperties,
+    updateBlockTitle
   );
   const business = businessLogicOverride ?? defaultBusiness;
 
