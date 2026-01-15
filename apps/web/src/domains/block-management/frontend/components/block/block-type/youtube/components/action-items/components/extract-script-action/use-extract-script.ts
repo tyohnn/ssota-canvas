@@ -2,9 +2,16 @@
 
 import { useCallback, useState } from 'react';
 
+import { useQueryClient } from '@tanstack/react-query';
+
 import { toast } from '@workspace/ui/components/ui/sonner';
 
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import {
+  type YoutubeBlockProperties,
+  YoutubeBlockPropertiesVO,
+} from '@/domains/block-management/shared/value-objects/block-properties';
+import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 
 import { extractScriptAction } from './extract-script-action.business';
 
@@ -17,8 +24,29 @@ export function useExtractScript({
   blockId,
   blockData,
 }: UseExtractScriptParams) {
+  const queryClient = useQueryClient();
+  const canvasMode = useCanvasModeContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // blockData에서 youtubeId 추출
+  const youtubeId = (() => {
+    try {
+      const properties = blockData?.properties as
+        | YoutubeBlockProperties
+        | undefined;
+      if (properties) {
+        const youtubeProperties = YoutubeBlockPropertiesVO.fromJSON(properties);
+        return youtubeProperties.youtubeId;
+      }
+    } catch (error) {
+      console.warn(
+        '[useExtractScript] Failed to parse YouTube properties:',
+        error
+      );
+    }
+    return undefined;
+  })();
 
   const extractScript = useCallback(async () => {
     setIsLoading(true);
@@ -31,6 +59,35 @@ export function useExtractScript({
         setIsSuccess(true);
         // 2초 후 체크 아이콘 숨기기 (copy-youtube-link-toolbar-item.tsx 패턴)
         setTimeout(() => setIsSuccess(false), 2000);
+
+        // 1. TanStack Query 캐시 무효화 (스크립트 섹션 업데이트)
+        if (youtubeId) {
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: [
+                'youtube-action-transaction',
+                blockId,
+                'extract_script',
+              ],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ['youtube-script', blockId, youtubeId],
+            }),
+          ]);
+        }
+
+        // 2. 에디터 패널이 열려있지 않거나 다른 블록을 편집 중이면 자동으로 열기
+        const isEditorPanelOpen =
+          canvasMode.isBlockEditingMode() &&
+          canvasMode.mode.type === 'block-editing' &&
+          canvasMode.mode.blockId === blockId;
+
+        if (!isEditorPanelOpen) {
+          const blockMountId = blockData.blockMountId;
+          if (blockMountId) {
+            canvasMode.enterBlockEditingMode(blockId, blockMountId);
+          }
+        }
       } else {
         console.error('[useExtractScript] Failed to extract script:', result);
         // 권한 에러 또는 블록을 찾을 수 없는 경우 toast 표시
@@ -57,7 +114,7 @@ export function useExtractScript({
     } finally {
       setIsLoading(false);
     }
-  }, [blockId, blockData]);
+  }, [blockId, blockData, youtubeId, queryClient, canvasMode]);
 
   return {
     extractScript,
