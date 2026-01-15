@@ -43,9 +43,9 @@ export function EditorPanelProvider({
   const blockData = blockNode?.data as BlockNodeData | undefined;
 
   // Tab 전환 함수 관리 (ref 사용하여 최신 값 보장)
-  const tabSwitchCallbackRef = React.useRef<
-    ((tabId: string) => void) | null
-  >(null);
+  const tabSwitchCallbackRef = React.useRef<((tabId: string) => void) | null>(
+    null
+  );
   const [tabSwitchCallback, setTabSwitchCallback] = useState<
     ((tabId: string) => void) | null
   >(null);
