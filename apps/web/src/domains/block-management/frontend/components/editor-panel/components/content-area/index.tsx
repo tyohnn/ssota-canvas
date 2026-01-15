@@ -26,7 +26,10 @@ export function ContentArea() {
   }, [blockData?.blockType]);
 
   return (
-    <Box className="flex-1 min-h-0 overflow-y-auto">
+    <Box
+      className="flex-1 min-h-0 overflow-y-auto"
+      data-content-area-scroll-container="true"
+    >
       {/* Title Section */}
       <TitleInput />
 
