@@ -23,20 +23,20 @@ export function useViewportAdjustment(blockMountId: string, isOpen: boolean) {
   const layoutConfig = useMemo<LayoutConfig>(() => {
     if (sidebarState === 'collapsed') {
       return {
-        editorRatio: 0.45,
-        leftPaddingRatio: 0.05,
-        rightPaddingRatio: 0.05,
+        editorRatio: 0.37,
+        leftPaddingRatio: 0.03,
+        rightPaddingRatio: 0.1,
         centerRatio: 0.45,
-        preferredZoom: 1.4,
+        preferredZoom: 2.0,
       };
     }
 
     return {
-      editorRatio: 0.4,
-      leftPaddingRatio: 0.1,
+      editorRatio: 0.36,
+      leftPaddingRatio: 0.07,
       rightPaddingRatio: 0.05,
       centerRatio: 0.35,
-      preferredZoom: 1.15,
+      preferredZoom: 1.7,
     };
   }, [sidebarState]);
 
