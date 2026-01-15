@@ -3,8 +3,7 @@
  *
  * 블록 에디터 패널의 동적 탭 시스템을 위한 타입 정의
  */
-
-import type { React.ComponentType } from 'react';
+import type { ComponentType } from 'react';
 
 /**
  * Block Editor Tab 정의
@@ -19,7 +18,7 @@ export interface BlockEditorTab {
   /** 탭 컴포넌트 경로 (동적 import용, block-content-tabs-section/core/tabs-prefetch.ts에서 사용) */
   componentPath: string;
   /** 탭 컴포넌트 (레거시, deprecated - componentPath 사용 권장) */
-  component?: React.ComponentType<any>;
+  component?: ComponentType<any>;
   /** 기본 탭 여부 */
   isDefault?: boolean;
 }

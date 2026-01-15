@@ -70,12 +70,10 @@ export async function prefetchTabComponent(
   // 블록 타입별 컴포넌트 경로를 절대 경로로 변환
   // 예: "youtube/components/section-tabs/script-section"
   //  -> "@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/script-section"
-  const importPath = `@/domains/block-management/frontend/components/block/block-type/${componentPath}`;
-
   const promise = import(
     /* webpackPrefetch: true */
     /* webpackChunkName: "editor-tabs-[request]" */
-    importPath
+    `@/domains/block-management/frontend/components/block/block-type/${componentPath}`
   )
     .then(module => {
       // 컴포넌트를 레지스트리에 저장

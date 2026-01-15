@@ -30,7 +30,9 @@
         "UNSPLASH_ACCESS_KEY",
         "NEXT_PUBLIC_MIXPANEL_TOKEN",
         "NEXT_PUBLIC_SENTRY_DSN",
-        "NEXT_PUBLIC_APP_URL"
+        "NEXT_PUBLIC_APP_URL",
+        "ZENROWS_API_KEY",
+        "CI"
       ]
     },
     "lint": {

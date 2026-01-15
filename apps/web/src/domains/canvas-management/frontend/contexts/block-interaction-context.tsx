@@ -148,7 +148,7 @@ export async function loadBlockInteractions(
 ): Promise<BlockInteractions> {
   try {
     // Convention-based dynamic import
-    const module = await import(
+    const importedModule = await import(
       /* webpackChunkName: "block-interactions-[request]" */
       `@/domains/block-management/frontend/components/block/block-type/${blockType}/config/${blockType}-block-interactions`
     );
@@ -157,7 +157,7 @@ export async function loadBlockInteractions(
     const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
     const componentName = `${capitalize(blockType)}BlockInteractions`;
 
-    const interactions = module[componentName];
+    const interactions = importedModule[componentName];
 
     if (!interactions) {
       throw new Error(
