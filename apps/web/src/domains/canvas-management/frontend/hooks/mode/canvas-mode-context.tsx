@@ -12,7 +12,7 @@ export type CanvasMode =
   | { type: 'block-creation'; blockType: BlockType } // 블럭 추가 모드
   | { type: 'single-selection'; blockId: string } // 단일 선택 모드
   | { type: 'multi-selection'; blockIds: string[] } // 복수 선택 모드
-  | { type: 'block-editing'; blockId: string } // 블럭 편집 모드
+  | { type: 'block-editing'; blockId: string; blockMountId: string } // 블럭 편집 모드
   | { type: 'dragging'; blockIds: string[] } // 드래그 중
   | { type: 'edge-creation'; sourceBlockId: string }; // 엣지 생성 중
 
@@ -26,7 +26,7 @@ export interface CanvasModeContextValue {
   enterBlockCreationMode: (blockType: BlockType) => void;
   enterSingleSelectionMode: (blockId: string) => void;
   enterMultiSelectionMode: (blockIds: string[]) => void;
-  enterBlockEditingMode: (blockId: string) => void;
+  enterBlockEditingMode: (blockId: string, blockMountId: string) => void;
   enterDraggingMode: (blockIds: string[]) => void;
   enterEdgeCreationMode: (sourceBlockId: string) => void;
   exitToDefaultMode: () => void;

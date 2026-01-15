@@ -97,7 +97,7 @@ export function useNoteView(
     uiState.isEditing && canvasMode.mode?.type !== 'block-editing';
   const { editor, state: editorState } = useTipTapEditor({
     blockData: data,
-    placeholder: 'Click to add markdown content...',
+    placeholder: 'Click to add note...',
     editable: isEditable,
     onContentChange: content => {
       const updatedData = { ...data, content };

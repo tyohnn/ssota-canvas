@@ -34,6 +34,7 @@ export function useCardView(
   // 비즈니스 로직 (의존성 주입 지원)
   const defaultBusiness = useCardViewBusiness({
     blockId: data.blockId,
+    blockMountId: data.blockMountId,
     canvasMode: {
       mode: canvasMode.mode,
       isBlockEditingMode: canvasMode.isBlockEditingMode,

@@ -32,7 +32,7 @@ export interface CanvasModeDependencies {
   enterSingleSelectionMode: (nodeId: string) => void;
   enterMultiSelectionMode: (nodeIds: string[]) => void;
   enterBlockCreationMode: (blockType: BlockType) => void;
-  enterBlockEditingMode: (blockId: string) => void;
+  enterBlockEditingMode: (blockId: string, blockMountId: string) => void;
   exitToDefaultMode: () => void;
   isBlockCreationMode: () => boolean;
   isMultiSelectionMode: () => boolean;

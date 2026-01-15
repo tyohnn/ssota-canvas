@@ -47,10 +47,11 @@ export interface UseCardViewReturn {
 
 export interface UseCardViewBusinessOptions {
   blockId?: string;
+  blockMountId?: string;
   canvasMode?: {
     mode: { type: string; blockId?: string };
     isBlockEditingMode: () => boolean;
-    enterBlockEditingMode: (blockId: string) => void;
+    enterBlockEditingMode: (blockId: string, blockMountId: string) => void;
   };
 }
 

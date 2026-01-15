@@ -27,7 +27,7 @@ export interface DomainDependencies {
     ) => Promise<void>;
   };
   canvasMode: {
-    enterBlockEditingMode: (blockId: string) => void;
+    enterBlockEditingMode: (blockId: string, blockMountId: string) => void;
     exitToDefaultMode: () => void;
   };
   reactFlow: {

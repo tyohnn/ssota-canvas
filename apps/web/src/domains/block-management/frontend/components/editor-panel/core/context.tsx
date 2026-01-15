@@ -9,6 +9,7 @@ import type { BlockNodeData } from '@/domains/block-management/shared/types/bloc
 
 export interface EditorPanelContextValue {
   blockId: string;
+  blockMountId: string;
   blockData: BlockNodeData | undefined;
   isOpen: boolean;
 
@@ -25,6 +26,11 @@ export interface EditorPanelContextValue {
   handleTitleSave: () => Promise<void>;
   handleKeyDown: (e: React.KeyboardEvent) => void;
   onClose: () => void;
+
+  // Tab 전환
+  switchToTab: (tabId: string) => void;
+  // Tab 전환 callback 등록 (내부 사용, BlockContentTabsSectionView에서만 사용)
+  setTabSwitchCallback: (callback: ((tabId: string) => void) | null) => void;
 }
 
 export const EditorPanelContext = createContext<EditorPanelContextValue | null>(

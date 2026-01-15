@@ -7,8 +7,8 @@
  * - Hover Prefetch: 블록 hover 시 prefetch
  * - Component Registry: 미리 로드한 컴포넌트를 캐싱하여 즉시 사용
  */
-
 import React from 'react';
+
 import { type BlockType } from '@/domains/block-management/shared/types/block-types';
 
 /**
@@ -82,7 +82,7 @@ export async function prefetchToolbar(blockType: string): Promise<void> {
   const promise = import(
     /* webpackPrefetch: true */
     /* webpackChunkName: "toolbar-items-[request]" */
-    `../block-type/${blockType}/toolbar-items`
+    `../block-type/${blockType}/components/toolbar-items`
   )
     .then(module => {
       // 컴포넌트를 레지스트리에 저장

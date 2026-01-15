@@ -65,7 +65,7 @@ export function useBlockOriginalToolbarBusiness(
 
   // Details 버튼 핸들러 (에디터 패널 열기)
   const handleDetails = () => {
-    canvasMode.enterBlockEditingMode(blockId);
+    canvasMode.enterBlockEditingMode(blockId, blockMountId);
   };
 
   return {

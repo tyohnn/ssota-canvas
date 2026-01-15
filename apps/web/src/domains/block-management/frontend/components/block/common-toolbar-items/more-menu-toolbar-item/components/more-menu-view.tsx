@@ -9,7 +9,7 @@
 
 'use client';
 
-import { Copy, Edit, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Copy, Edit, EllipsisVertical, Trash2 } from 'lucide-react';
 
 import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
 import {
@@ -36,7 +36,7 @@ export function MoreMenuView({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <ToolbarIconButton
-          icon={<MoreHorizontal />}
+          icon={<EllipsisVertical />}
           tooltip="More"
           tooltipSide="top"
           tooltipOffset={5}

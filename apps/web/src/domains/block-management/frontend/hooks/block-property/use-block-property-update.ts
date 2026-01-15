@@ -111,21 +111,24 @@ export function useUpdateBlockProperty(
   // Mutation: Update Single Property
   // ============================================================================
 
+  type UpdatePropertyVariables = {
+    blockId: string;
+    propertyPath: string;
+    value: unknown;
+    blockMountId: string; // onMutate에서만 사용
+    blockData: BlockNodeData; // onMutate에서만 사용
+  };
+
   const propertyMutation = useMutation({
     mutationFn: async ({
       blockId,
-      blockData,
       propertyPath,
       value,
-    }: {
-      blockId: string;
-      blockData: BlockNodeData;
-      propertyPath: string;
-      value: unknown;
-    }) => {
+      // blockMountId, blockData는 onMutate에서만 사용
+    }: UpdatePropertyVariables) => {
       // Validation
       const request: UpdateBlockPropertyRequestInput = {
-        blockId: blockData.blockId,
+        blockId: blockId,
         propertyPath,
         value,
       };
@@ -146,13 +149,18 @@ export function useUpdateBlockProperty(
     },
 
     // Optimistic Update
-    onMutate: async ({ blockId, propertyPath, value, blockData }) => {
+    onMutate: async ({
+      propertyPath,
+      value,
+      blockMountId,
+      blockData,
+    }: UpdatePropertyVariables) => {
       // React Flow node id는 blockMountId (blockId와 다를 수 있음)
-      const nodeId = blockData.blockMountId;
+      const nodeId = blockMountId;
 
-      // Get latest data
-      const latestNode = getNode(nodeId);
-      const currentBlockData = (latestNode?.data as BlockNodeData) || blockData;
+      // blockData를 직접 사용 (onMutate는 mutationFn 직전에 실행되므로 매우 빠른 시점)
+      // 이 시점에는 다른 업데이트가 발생할 가능성이 거의 없으므로 전달받은 blockData를 신뢰
+      const currentBlockData = blockData;
 
       // Backup original data
       const previousData = currentBlockData;
@@ -185,19 +193,22 @@ export function useUpdateBlockProperty(
   // Mutation: Update Multiple Properties
   // ============================================================================
 
+  type UpdatePropertiesVariables = {
+    blockId: string;
+    properties: Record<string, unknown>;
+    blockMountId: string; // onMutate에서만 사용
+    blockData: BlockNodeData; // onMutate에서만 사용
+  };
+
   const propertiesMutation = useMutation({
     mutationFn: async ({
       blockId,
-      blockData,
       properties,
-    }: {
-      blockId: string;
-      blockData: BlockNodeData;
-      properties: Record<string, unknown>;
-    }) => {
+      // blockMountId, blockData는 onMutate에서만 사용
+    }: UpdatePropertiesVariables) => {
       // Validation
       const request: UpdateBlockPropertiesRequestInput = {
-        blockId: blockData.blockId,
+        blockId: blockId,
         properties,
       };
 
@@ -219,9 +230,13 @@ export function useUpdateBlockProperty(
     },
 
     // Optimistic Update
-    onMutate: async ({ blockId, properties, blockData }) => {
+    onMutate: async ({
+      properties,
+      blockMountId,
+      blockData,
+    }: UpdatePropertiesVariables) => {
       // React Flow node id는 blockMountId (blockId와 다를 수 있음)
-      const nodeId = blockData.blockMountId;
+      const nodeId = blockMountId;
 
       // Backup original data
       const previousData = blockData;
@@ -267,7 +282,8 @@ export function useUpdateBlockProperty(
         blockId,
         propertyPath,
         value,
-        blockData,
+        blockMountId: blockData.blockMountId, // onMutate에서만 사용
+        blockData, // onMutate에서만 사용
       });
     },
     [propertyMutation]
@@ -282,7 +298,8 @@ export function useUpdateBlockProperty(
       await propertiesMutation.mutateAsync({
         blockId,
         properties,
-        blockData,
+        blockMountId: blockData.blockMountId, // onMutate에서만 사용
+        blockData, // onMutate에서만 사용
       });
     },
     [propertiesMutation]
@@ -302,8 +319,16 @@ export function useUpdateBlockProperty(
       // React Flow node id는 blockMountId (blockId와 다를 수 있음)
       const nodeId = blockData.blockMountId;
 
-      // Get latest data
+      // Get latest data from React Flow Store (SSOT)
+      // ⚠️ 중요: updatePropertyImmediate는 서버 동기화 없이 즉시 업데이트하므로,
+      // 여러 번 빠르게 호출될 수 있습니다. 따라서 항상 Store에서 최신 데이터를
+      // 가져와야 동시성 문제를 방지할 수 있습니다.
       const latestNode = getNode(nodeId);
+      if (!latestNode) {
+        console.warn(
+          `[useUpdateBlockProperty] Node not found in React Flow Store: ${nodeId}. Using provided blockData as fallback.`
+        );
+      }
       const currentBlockData = (latestNode?.data as BlockNodeData) || blockData;
 
       const request: UpdateBlockPropertyRequestInput = {

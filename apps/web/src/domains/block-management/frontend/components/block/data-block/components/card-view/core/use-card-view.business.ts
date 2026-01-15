@@ -24,7 +24,7 @@ import type {
 export function useCardViewBusiness(
   options: UseCardViewBusinessOptions
 ): CardViewBusinessLogic {
-  const { blockId, canvasMode } = options;
+  const { blockId, blockMountId, canvasMode } = options;
 
   const getCustomPropertyValues = useCallback(
     (
@@ -55,14 +55,18 @@ export function useCardViewBusiness(
       console.warn('[CardView] blockId is required to open editor panel');
       return;
     }
+    if (!blockMountId) {
+      console.warn('[CardView] blockMountId is required to open editor panel');
+      return;
+    }
     if (!canvasMode) {
       console.warn('[CardView] canvasMode is required to open editor panel');
       return;
     }
 
     // 항상 enterBlockEditingMode를 호출 (모드 상태와 UI 동기화)
-    canvasMode.enterBlockEditingMode(blockId);
-  }, [blockId, canvasMode]);
+    canvasMode.enterBlockEditingMode(blockId, blockMountId);
+  }, [blockId, blockMountId, canvasMode]);
 
   return {
     getCustomPropertyValues,

@@ -100,7 +100,7 @@ export function CanvasLoadingSkeleton() {
           <div className="flex items-center gap-3">
             <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
             <p className="text-sm font-medium text-foreground">
-              캔버스를 로딩하고 있습니다...
+              Loading canvas...
             </p>
           </div>
         </div>

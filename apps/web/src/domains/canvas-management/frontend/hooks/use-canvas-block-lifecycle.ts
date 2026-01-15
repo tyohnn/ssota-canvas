@@ -110,10 +110,17 @@ export function useCanvasBlockLifecycle(
       deleteElements,
     },
     onSuccess: block => {
+      // React Flow 노드 선택 상태를 명시적으로 설정 (다른 노드들은 선택 해제)
+      setNodes(nodes =>
+        nodes.map(node => ({
+          ...node,
+          selected: node.id === block.blockMountId,
+        }))
+      );
       // 단일 선택 모드로 전환
       enterSingleSelectionMode(block.blockMountId);
       // 자동으로 에디터 패널 열기
-      enterBlockEditingMode(block.blockId);
+      enterBlockEditingMode(block.blockId, block.blockMountId);
     },
     onError: () => {
       exitToDefaultMode();

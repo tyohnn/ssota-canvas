@@ -10,21 +10,21 @@
 import { Badge } from '@workspace/ui/components/ui/badge';
 
 import { Box } from '@/components/ui/box';
-import { PropertyType } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
+import { PropertyIcon } from '@/domains/block-management/frontend/components/editor-panel/components/content-area/components/custom-properties-section/components/custom-property-item/components/property-icon';
 import {
-  TextProperty,
+  CheckboxProperty,
+  ColorProperty,
+  EmailProperty,
+  MultiSelectProperty,
+  NumberProperty,
+  PhoneProperty,
   SelectProperty,
   StatusProperty,
-  MultiSelectProperty,
-  CheckboxProperty,
-  NumberProperty,
+  TextProperty,
   UrlProperty,
-  EmailProperty,
-  PhoneProperty,
-  ColorProperty,
-} from '@/domains/block-management/frontend/components/editor-panel/components/property-input';
+} from '@/domains/block-management/frontend/components/editor-panel/components/content-area/components/property-input';
 import type { PropertyUIDefinition } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
-import { PropertyIcon } from '@/domains/block-management/frontend/components/editor-panel/components/custom-properties-section/components/custom-property-item/components/property-icon';
+import { PropertyType } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
 
 import type { CustomPropertyRowProps } from '../core/types';
 
@@ -185,9 +185,7 @@ export function CustomPropertyRow({ property, value }: CustomPropertyRowProps) {
       default:
         return (
           <Box className="px-2 py-1 text-xs text-muted-foreground">
-            {value !== null && value !== undefined
-              ? String(value)
-              : '-'}
+            {value !== null && value !== undefined ? String(value) : '-'}
           </Box>
         );
     }

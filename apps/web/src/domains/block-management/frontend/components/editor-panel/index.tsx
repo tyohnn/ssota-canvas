@@ -26,6 +26,7 @@ import { useViewportAdjustment } from './core/use-viewport-adjustment';
 function EditorPanelWrapper() {
   const {
     blockId,
+    blockMountId,
     isOpen,
     isAnimating,
     shouldRender,
@@ -36,7 +37,7 @@ function EditorPanelWrapper() {
   } = useEditorPanelContext();
 
   // Viewport 조정 (에디터 열림 시 블록을 적절한 위치로 이동)
-  useViewportAdjustment(blockId, isOpen);
+  useViewportAdjustment(blockMountId, isOpen);
 
   // ESC 키 핸들러: 확대 상태면 축소, 축소 상태면 패널 닫기
   React.useEffect(() => {
@@ -103,6 +104,7 @@ function EditorPanelWrapper() {
 
 export function EditorPanel({
   blockId,
+  blockMountId,
   isOpen,
   businessLogic,
 }: EditorPanelProps & { businessLogic?: EditorPanelBusinessLogic }) {
@@ -126,6 +128,7 @@ export function EditorPanel({
   return (
     <EditorPanelProvider
       blockId={blockId}
+      blockMountId={blockMountId}
       isOpen={isOpen}
       onClose={handleClose}
       businessLogic={businessLogic}

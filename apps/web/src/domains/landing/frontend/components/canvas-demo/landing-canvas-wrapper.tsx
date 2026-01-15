@@ -28,6 +28,7 @@ import '@xyflow/react/dist/style.css';
 import { FileText, type LucideIcon, Rocket } from 'lucide-react';
 
 import { AIAgentRunner } from '@/domains/ai-management/frontend/components/ai-agent-runner';
+import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 // Canvas management
 import { CustomEdge } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/custom-edge';
 // Original Canvas components
@@ -148,11 +149,15 @@ export function LandingCanvasWrapper({
     if (canvasMode === 'single-selection' && selectedNodeId) {
       canvasModeContext.enterSingleSelectionMode(selectedNodeId);
     } else if (canvasMode === 'block-editing' && selectedNodeId) {
-      canvasModeContext.enterBlockEditingMode(selectedNodeId);
+      // selectedNodeId는 blockMountId이므로, 노드에서 blockId를 가져와야 함
+      const selectedNode = nodes.find(node => node.id === selectedNodeId);
+      const blockId =
+        (selectedNode?.data as BlockNodeData)?.blockId || selectedNodeId; // fallback to selectedNodeId
+      canvasModeContext.enterBlockEditingMode(blockId, selectedNodeId);
     } else if (canvasMode === 'default') {
       canvasModeContext.exitToDefaultMode();
     }
-  }, [canvasMode, selectedNodeId]); // canvasModeContext 제거하여 무한 루프 방지
+  }, [canvasMode, selectedNodeId, nodes, canvasModeContext]); // canvasModeContext 제거하여 무한 루프 방지
 
   return (
     <div className="h-full w-full relative flex flex-col">

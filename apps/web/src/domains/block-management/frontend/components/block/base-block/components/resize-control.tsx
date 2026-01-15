@@ -17,7 +17,10 @@ import type { ResizeData } from '../core/types';
 import { ResizeIcon } from './resize-icon';
 
 // 종횡비 유지가 필요한 블록 타입들
-const ASPECT_RATIO_LOCKED_BLOCK_TYPES = [BlockType.IMAGE] as const;
+const ASPECT_RATIO_LOCKED_BLOCK_TYPES = [
+  BlockType.IMAGE,
+  BlockType.YOUTUBE,
+] as const;
 
 export interface ResizeControlProps {
   data: BlockNodeData;
@@ -39,12 +42,12 @@ export function ResizeControl({
     return null;
   }
 
-  // 이미지 블록이고 오리지널 뷰일 때만 가로세로비 고정
-  const isImageBlock = ASPECT_RATIO_LOCKED_BLOCK_TYPES.includes(
+  // 이미지/YouTube 블록이고 오리지널 뷰일 때만 가로세로비 고정
+  const isAspectRatioLockedBlock = ASPECT_RATIO_LOCKED_BLOCK_TYPES.includes(
     data.blockType as (typeof ASPECT_RATIO_LOCKED_BLOCK_TYPES)[number]
   );
   const isOriginalView = data.viewMode === 'original';
-  const shouldKeepAspectRatio = isImageBlock && isOriginalView;
+  const shouldKeepAspectRatio = isAspectRatioLockedBlock && isOriginalView;
 
   return (
     <NodeResizeControl

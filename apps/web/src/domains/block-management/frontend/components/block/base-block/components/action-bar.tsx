@@ -25,7 +25,7 @@ export function ActionBar({
 }: ActionBarProps) {
   // 필수 데이터가 없거나 조건이 맞지 않으면 렌더링하지 않음
   if (
-    !data.blockMountId ||
+    !data.blockId ||
     !selected ||
     !isCurrentBlockSelected ||
     !isSingleSelection
@@ -35,7 +35,7 @@ export function ActionBar({
 
   return (
     <BlockActionBar
-      blockId={data.blockMountId}
+      blockId={data.blockId}
       blockType={data.blockType || 'basic'}
       blockData={data}
     />

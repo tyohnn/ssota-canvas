@@ -2,10 +2,11 @@
 
 import React, { useRef } from 'react';
 
-import { NodeToolbar, Position } from '@xyflow/react';
-
+import { ToolbarContainer } from '@workspace/ui/components/ssota-ui/toolbar-container';
 import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
+import { cn } from '@workspace/ui/lib/utils';
 
+import { Box } from '@/components/ui/box';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 // Canvas Management Hooks
 import { usePreventPinchZoom } from '@/domains/canvas-management/frontend/hooks/control/use-prevent-pinch-zoom';
@@ -23,12 +24,12 @@ export interface BlockActionBarProps {
  * BlockActionBar Component
  *
  * 선택된 블럭에 대한 액션을 제공하는 툴바 컴포넌트
- * 블록 우측에 표시되며 블록 타입별로 다른 액션 아이템을 제공합니다.
+ * 블록 아래쪽에 표시되며 블록 타입별로 다른 액션 아이템을 제공합니다.
  *
  * Features:
- * - 선택된 블럭 우측에 표시되는 컨텍스트 액션 바
+ * - 선택된 블럭 아래쪽에 표시되는 컨텍스트 액션 바
  * - 블럭 타입별 액션 아이템 (이미지 검색, AI 생성 등)
- * - BlockOriginalToolbar와 유사한 디자인
+ * - BlockOriginalToolbar와 동일한 UX/UI (Absolute + ToolbarContainer)
  *
  * 렌더링 조건: 블록이 선택되었을 때
  */
@@ -49,17 +50,18 @@ export function BlockActionBar({
   }
 
   return (
-    <NodeToolbar
-      isVisible={true}
-      position={Position.Bottom}
-      className="nodrag nowheel"
+    <Box
+      className={cn(
+        'absolute bottom-[-50px] left-1/2 -translate-x-1/2 z-50',
+        'pointer-events-auto'
+      )}
     >
-      {/* z-index: React Flow NodeToolbar (자동 관리) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
-      <div
-        ref={toolbarRef}
-        className="bg-background/90 backdrop-blur-md border border-border rounded-lg shadow-lg px-1 py-1.5 flex items-center gap-0.5"
-        style={{ touchAction: 'none' }}
-        onWheel={e => e.stopPropagation()}
+      <ToolbarContainer
+        toolbarRef={toolbarRef}
+        preventDrag
+        preventMouseDown
+        preventClick
+        className="gap-0.5"
       >
         <TooltipProvider>
           {/* 블록 타입별 액션 아이템 매퍼 */}
@@ -69,7 +71,7 @@ export function BlockActionBar({
             blockData={blockData}
           />
         </TooltipProvider>
-      </div>
-    </NodeToolbar>
+      </ToolbarContainer>
+    </Box>
   );
 }

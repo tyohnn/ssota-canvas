@@ -36,15 +36,22 @@ export function useCanvasMode(): CanvasModeContextValue {
     setMode({ type: 'multi-selection', blockIds });
   }, []);
 
-  const enterBlockEditingMode = useCallback((blockId: string) => {
-    // 이미 같은 blockId로 편집 모드인 경우 업데이트하지 않음 (무한 루프 방지)
-    setMode(prevMode => {
-      if (prevMode.type === 'block-editing' && prevMode.blockId === blockId) {
-        return prevMode; // 상태 변경 없음
-      }
-      return { type: 'block-editing', blockId };
-    });
-  }, []);
+  const enterBlockEditingMode = useCallback(
+    (blockId: string, blockMountId: string) => {
+      // 이미 같은 blockId와 blockMountId로 편집 모드인 경우 업데이트하지 않음 (무한 루프 방지)
+      setMode(prevMode => {
+        if (
+          prevMode.type === 'block-editing' &&
+          prevMode.blockId === blockId &&
+          prevMode.blockMountId === blockMountId
+        ) {
+          return prevMode; // 상태 변경 없음
+        }
+        return { type: 'block-editing', blockId, blockMountId };
+      });
+    },
+    []
+  );
 
   const enterDraggingMode = useCallback((blockIds: string[]) => {
     setMode({ type: 'dragging', blockIds });

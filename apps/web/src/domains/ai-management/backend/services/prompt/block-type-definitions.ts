@@ -10,20 +10,19 @@
  * - 각 블럭 타입 폴더에서 AI definition을 정의
  * - 이 파일에서는 단순히 병합하여 export
  */
-
-import { PropertyType } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
 import { z } from 'zod';
 
+import { audioAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/audio/config/audio-ai-definition';
+import { imageAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/image/config/image-ai-definition';
+import { linkAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/link/config/link-ai-definition';
 // Import block type definitions from each block type folder
 import { markdownAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/markdown/config/markdown-ai-definition';
-import { textAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/text/config/text-ai-definition';
-import { shapeAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/shape/config/shape-ai-definition';
-import { imageAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/image/config/image-ai-definition';
-import { youtubeAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/youtube/config/youtube-ai-definition';
-import { linkAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/link/config/link-ai-definition';
 import { pdfAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/pdf/config/pdf-ai-definition';
 import { pythonAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/python/config/python-ai-definition';
-import { audioAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/audio/config/audio-ai-definition';
+import { shapeAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/shape/config/shape-ai-definition';
+import { textAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/text/config/text-ai-definition';
+import { youtubeAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/youtube/config/youtube-ai-definition';
+import { PropertyType } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
 
 /**
  * Property Schema for AI Agent

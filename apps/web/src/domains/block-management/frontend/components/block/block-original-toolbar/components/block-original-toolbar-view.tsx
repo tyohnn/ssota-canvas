@@ -18,6 +18,7 @@ import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { Box } from '@/components/ui/box';
+import { Separator } from '@/components/ui/separator';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { BlockType } from '@/domains/block-management/shared/types/block-types';
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
@@ -78,16 +79,18 @@ export function BlockOriginalToolbarView({
       >
         <TooltipProvider>
           {/* 블럭 타입별 기본 속성 툴바 아이템 (좌측부터) */}
-          <BlockToolbarMapper
-            blockId={blockId}
-            blockType={blockType}
-            blockData={blockData}
-            disabled={false}
-            width={width}
-            height={height}
-            zoom={zoom}
-          />
-
+          <Box className="flex items-center gap-1">
+            <BlockToolbarMapper
+              blockId={blockId}
+              blockType={blockType}
+              blockData={blockData}
+              disabled={false}
+              width={width}
+              height={height}
+              zoom={zoom}
+            />
+          </Box>
+          <Separator orientation="vertical" className="h-6!" />
           {/* 보기 방식 변경 */}
           {pageId && (
             <ViewModeToolbarItem
@@ -101,7 +104,7 @@ export function BlockOriginalToolbarView({
           {/* Details 버튼 */}
           <ToolbarIconButton
             icon={<ChevronRight />}
-            tooltip="블럭 세부사항"
+            tooltip="Details"
             tooltipSide="top"
             tooltipOffset={5}
             onClick={onDetails}
@@ -109,7 +112,7 @@ export function BlockOriginalToolbarView({
             className="h-7 w-7 p-0"
             iconClassName="size-3"
           />
-
+          <Separator orientation="vertical" className="h-6!" />
           {/* 더보기 메뉴 */}
           <MoreMenuToolbarItem
             blockId={blockId}
