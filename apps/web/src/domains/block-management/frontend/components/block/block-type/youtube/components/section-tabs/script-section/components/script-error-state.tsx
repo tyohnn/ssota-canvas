@@ -6,6 +6,10 @@
 
 'use client';
 
+import { AlertCircle } from 'lucide-react';
+
+import { Box } from '@/components/ui/box';
+
 import { ExtractScriptButton } from './extract-script-button';
 
 /**
@@ -29,7 +33,16 @@ export function ScriptErrorState({
 }: ScriptErrorStateProps) {
   return (
     <>
-      <p className="text-sm text-red-500">{error}</p>
+      <Box className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 mb-4">
+        <p className="text-center text-sm text-destructive">
+          <AlertCircle
+            aria-hidden="true"
+            className="-mt-0.5 me-3 inline-flex opacity-80"
+            size={16}
+          />
+          {error}
+        </p>
+      </Box>
       {!hasScript && (
         <ExtractScriptButton
           onExtractScript={onExtractScript}

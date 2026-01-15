@@ -8,6 +8,8 @@
 
 import { useRef } from 'react';
 
+import { Info } from 'lucide-react';
+
 import { Box } from '@/components/ui/box';
 import type { GetScriptDTO } from '@/domains/youtube-app-space/shared/dtos/responses/video.responses';
 
@@ -91,9 +93,17 @@ export function ScriptNoScriptState({
 
   return (
     <>
-      <p className="text-sm text-muted-foreground mb-4">
-        No script available. Extract script from YouTube video.
-      </p>
+      <Box className="bg-muted border border-border rounded-lg px-4 py-3 mb-4">
+        <p className="text-center text-sm text-foreground">
+          <Info
+            aria-hidden="true"
+            className="-mt-0.5 me-3 inline-flex opacity-60"
+            size={16}
+          />
+          No script available. Extract script from YouTube video to view the
+          transcript.
+        </p>
+      </Box>
       <ExtractScriptButton
         onExtractScript={onExtractScript}
         isLoading={isExtracting}
