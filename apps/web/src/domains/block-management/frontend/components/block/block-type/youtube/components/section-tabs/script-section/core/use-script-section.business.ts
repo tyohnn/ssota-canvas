@@ -6,7 +6,7 @@
  * ✅ TanStack Query 사용:
  * - 컴포넌트가 렌더링될 때만 스크립트 로드 (enabled 옵션)
  * - 자동 캐싱: 같은 blockId/youtubeId로 여러 번 호출해도 한 번만 요청
- * - staleTime: 5분 (5분 이내에는 캐시된 데이터 즉시 표시)
+ * - staleTime: 24시간 (스크립트는 한번 추출되면 거의 변경되지 않음)
  */
 
 'use client';
@@ -79,7 +79,7 @@ export function useScriptSectionBusiness(
         return result.data;
       },
       enabled: !!blockId,
-      staleTime: 5 * 60 * 1000, // 5분 캐싱
+      staleTime: 24 * 60 * 60 * 1000, // 24시간 캐싱 (스크립트는 거의 변경되지 않음)
       retry: 1,
     });
 
@@ -113,7 +113,7 @@ export function useScriptSectionBusiness(
     // ✅ 추출 액션이 실행된 적이 있고, blockId와 youtubeId가 모두 있을 때만 로드
     enabled:
       !!blockId && !!youtubeId && hasExtractAction && !isCheckingTransaction,
-    staleTime: 5 * 60 * 1000, // 5분 캐싱
+    staleTime: 24 * 60 * 60 * 1000, // 24시간 캐싱 (스크립트는 거의 변경되지 않음)
     retry: 1,
   });
 
