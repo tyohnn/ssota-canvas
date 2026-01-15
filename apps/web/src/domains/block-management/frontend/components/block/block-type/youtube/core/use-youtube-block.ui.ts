@@ -53,8 +53,9 @@ export function useYoutubeBlockUI(
     return false;
   }, [canvasMode, blockMountId]);
 
-  // URL이 있고 선택된 상태면 항상 플레이어 표시 (드래그 중이 아닐 때만)
-  const showPlayer = selected && !!url && !isDragging;
+  // URL이 있고 선택된 상태면 항상 플레이어 표시 (드래그 중이 아니고 복수 선택 모드가 아닐 때만)
+  const isMultiSelection = canvasMode.isMultiSelectionMode();
+  const showPlayer = selected && !!url && !isDragging && !isMultiSelection;
 
   // showPlayer의 최신 값을 ref에 동기화
   showPlayerRef.current = showPlayer;
@@ -92,14 +93,14 @@ export function useYoutubeBlockUI(
     }
   }, [url, showPlayer]);
 
-  // 3. showPlayer 상태 변경 시 일시정지/재생 처리 (드래그 및 선택 해제 통합 처리)
+  // 3. showPlayer 상태 변경 시 일시정지/재생 처리 (드래그, 선택 해제, 멀티 선택 통합 처리)
   useEffect(() => {
     if (!url) return;
 
     const prevShowPlayer = prevShowPlayerRef.current;
     const currentShowPlayer = showPlayer;
 
-    // showPlayer가 false로 변경된 경우 (드래그 시작 또는 선택 해제)
+    // showPlayer가 false로 변경된 경우 (드래그 시작, 선택 해제, 또는 멀티 선택 모드 전환)
     if (playerRef.current && prevShowPlayer && !currentShowPlayer) {
       // 플레이어가 준비되어 있으면 일시정지
       const player = playerRef.current;
@@ -109,12 +110,24 @@ export function useYoutubeBlockUI(
           if (player && typeof player.getPlayerState === 'function') {
             const currentState = player.getPlayerState();
             // YT.PlayerState.PLAYING = 1 (재생 중)
-            if (currentState === 1) {
-              previousPlayerStateRef.current = currentState;
+            // 멀티 선택 모드로 전환될 때는 재생 중이든 아니든 pause (확실히 멈추도록)
+            if (
+              currentState === 1 ||
+              (isMultiSelection && currentState !== -1)
+            ) {
+              // -1은 YT.PlayerState.UNSTARTED (시작 전)
+              if (currentState === 1) {
+                previousPlayerStateRef.current = currentState;
+              }
               // pauseVideo 호출 직전에 다시 한 번 체크
               if (player && typeof player.pauseVideo === 'function') {
                 player.pauseVideo();
               }
+            }
+          } else if (isMultiSelection) {
+            // getPlayerState가 실패하더라도 멀티 선택 모드 전환 시에는 pause 시도
+            if (player && typeof player.pauseVideo === 'function') {
+              player.pauseVideo();
             }
           }
         } catch (error) {
@@ -151,7 +164,7 @@ export function useYoutubeBlockUI(
 
     // 이전 상태 업데이트
     prevShowPlayerRef.current = currentShowPlayer;
-  }, [showPlayer, url]);
+  }, [showPlayer, url, isMultiSelection]);
 
   /**
    * 동적으로 로드한 인터랙션을 BlockInteractionContext에 등록하는 헬퍼 함수
