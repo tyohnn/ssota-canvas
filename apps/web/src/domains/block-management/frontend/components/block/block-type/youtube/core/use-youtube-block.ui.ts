@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import {
+  loadBlockInteractions,
+  useBlockInteraction,
+} from '@/domains/canvas-management/frontend/contexts/block-interaction-context';
 import type { CanvasModeContextValue } from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
 
 import type { YouTubePlayer, YoutubeBlockUIState } from './types';
@@ -18,6 +22,10 @@ export function useYoutubeBlockUI(
   blockMountId: string,
   canvasMode: CanvasModeContextValue
 ): YoutubeBlockUIState {
+  // Block Interaction Context
+  const { registerBlockInteractions, unregisterBlockInteractions } =
+    useBlockInteraction();
+
   // UI State
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -146,6 +154,65 @@ export function useYoutubeBlockUI(
   }, [showPlayer, url]);
 
   /**
+   * 동적으로 로드한 인터랙션을 BlockInteractionContext에 등록하는 헬퍼 함수
+   */
+  const registerInteractions = useCallback(async () => {
+    if (!selected || !playerRef.current) {
+      return;
+    }
+
+    try {
+      // 동적으로 YouTube 블록 인터랙션 로드
+      const interactions = await loadBlockInteractions('youtube');
+
+      // playerRef를 바인딩하여 등록 가능한 형태로 변환
+      const boundInteractions: Record<string, (...args: any[]) => void> = {};
+
+      // seekTo 인터랙션 바인딩
+      if (interactions.seekTo && typeof interactions.seekTo === 'function') {
+        const seekToFn = interactions.seekTo;
+        boundInteractions.seekTo = (seconds: number) => {
+          seekToFn(playerRef, seconds);
+        };
+      }
+
+      // 다른 인터랙션들도 동일하게 바인딩 가능
+      // if (interactions.play) {
+      //   boundInteractions.play = () => interactions.play(playerRef);
+      // }
+
+      // 등록
+      registerBlockInteractions(blockMountId, boundInteractions);
+    } catch (error) {
+      console.warn(
+        '[YouTube Block] Failed to load and register interactions:',
+        error
+      );
+    }
+  }, [selected, blockMountId, registerBlockInteractions]);
+
+  // 4. 선택 상태 변경 시 인터랙션 등록/해제
+  useEffect(() => {
+    if (selected && playerRef.current) {
+      // 선택되었고 플레이어가 준비되어 있으면 동적 로드 후 등록
+      registerInteractions();
+    } else {
+      // 선택 해제 시 함수 등록 해제
+      unregisterBlockInteractions(blockMountId);
+    }
+
+    // 컴포넌트 unmount 시 정리
+    return () => {
+      unregisterBlockInteractions(blockMountId);
+    };
+  }, [
+    selected,
+    blockMountId,
+    registerInteractions,
+    unregisterBlockInteractions,
+  ]);
+
+  /**
    * iframe 로드 완료 핸들러
    */
   const handleIframeLoad = useCallback(() => {
@@ -156,37 +223,48 @@ export function useYoutubeBlockUI(
    * Player Ready 핸들러 (react-youtube의 onReady 이벤트)
    * 플레이어가 준비되면 showPlayer 상태와 이전 재생 상태를 확인하여 자동 재생
    */
-  const handlePlayerReady = useCallback((event: { target: YouTubePlayer }) => {
-    playerRef.current = event.target;
-    setIsIframeLoading(false);
+  const handlePlayerReady = useCallback(
+    (event: { target: YouTubePlayer }) => {
+      playerRef.current = event.target;
+      setIsIframeLoading(false);
 
-    // showPlayer가 true이고 이전에 재생 중이었으면 자동 재생
-    // ref를 사용하여 최신 showPlayer 값 참조 (stale closure 방지)
-    const player = playerRef.current;
-    if (
-      player &&
-      showPlayerRef.current &&
-      previousPlayerStateRef.current === 1
-    ) {
-      try {
-        // playVideo 호출 직전에 다시 한 번 체크 (비동기 타이밍 이슈 방지)
-        if (player && typeof player.playVideo === 'function') {
-          // playVideo 호출 직전에 playerRef.current를 다시 확인
-          const currentPlayer = playerRef.current;
-          if (currentPlayer && typeof currentPlayer.playVideo === 'function') {
-            currentPlayer.playVideo();
+      // 플레이어가 준비되고 선택된 상태면 인터랙션 등록
+      if (selected) {
+        registerInteractions();
+      }
+
+      // showPlayer가 true이고 이전에 재생 중이었으면 자동 재생
+      // ref를 사용하여 최신 showPlayer 값 참조 (stale closure 방지)
+      const player = playerRef.current;
+      if (
+        player &&
+        showPlayerRef.current &&
+        previousPlayerStateRef.current === 1
+      ) {
+        try {
+          // playVideo 호출 직전에 다시 한 번 체크 (비동기 타이밍 이슈 방지)
+          if (player && typeof player.playVideo === 'function') {
+            // playVideo 호출 직전에 playerRef.current를 다시 확인
+            const currentPlayer = playerRef.current;
+            if (
+              currentPlayer &&
+              typeof currentPlayer.playVideo === 'function'
+            ) {
+              currentPlayer.playVideo();
+            }
+            previousPlayerStateRef.current = null;
           }
+        } catch (error) {
+          console.warn(
+            '[YouTube Block] Failed to auto-resume video on player ready:',
+            error
+          );
           previousPlayerStateRef.current = null;
         }
-      } catch (error) {
-        console.warn(
-          '[YouTube Block] Failed to auto-resume video on player ready:',
-          error
-        );
-        previousPlayerStateRef.current = null;
       }
-    }
-  }, []);
+    },
+    [selected, registerInteractions]
+  );
 
   /**
    * URL 입력 변경 핸들러

@@ -7,6 +7,7 @@ import type { Edge } from '@xyflow/react';
 
 import { Box } from '@/components/ui/box';
 import type { CustomNodeType } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
+import { BlockInteractionProvider } from '@/domains/canvas-management/frontend/contexts/block-interaction-context';
 import { CanvasMetadataProvider } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { CanvasModeProvider } from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
 
@@ -36,17 +37,19 @@ export function CanvasClient({
   return (
     <ReactFlowProvider>
       <CanvasModeProvider>
-        <CanvasMetadataProvider value={{ pageId, orgId, workspaceId }}>
-          <Box className="h-full flex flex-col bg-background">
-            {/* 메인 캔버스 영역 */}
-            <CanvasReactFlowWrapper
-              initialNodes={initialNodes}
-              initialEdges={initialEdges}
-            />
-            {/* Editor Panel (React Flow 바깥에서 렌더링) */}
-            <EditorPanelWrapper />
-          </Box>
-        </CanvasMetadataProvider>
+        <BlockInteractionProvider>
+          <CanvasMetadataProvider value={{ pageId, orgId, workspaceId }}>
+            <Box className="h-full flex flex-col bg-background">
+              {/* 메인 캔버스 영역 */}
+              <CanvasReactFlowWrapper
+                initialNodes={initialNodes}
+                initialEdges={initialEdges}
+              />
+              {/* Editor Panel (React Flow 바깥에서 렌더링) */}
+              <EditorPanelWrapper />
+            </Box>
+          </CanvasMetadataProvider>
+        </BlockInteractionProvider>
       </CanvasModeProvider>
     </ReactFlowProvider>
   );
