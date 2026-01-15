@@ -27,8 +27,8 @@ export const YoutubeBlock = memo(function YoutubeBlock({
   const nodeData = data as YoutubeBlockNodeData;
 
   // Dimensions
-  const width = typeof nodeW === 'number' ? nodeW : 400;
-  const height = typeof nodeH === 'number' ? nodeH : 278;
+  const width = typeof nodeW === 'number' ? nodeW : 410;
+  const height = typeof nodeH === 'number' ? nodeH : 288;
 
   // Main Hook
   const hookResult = useYoutubeBlock({
