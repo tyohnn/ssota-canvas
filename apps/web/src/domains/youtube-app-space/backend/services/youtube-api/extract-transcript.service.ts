@@ -120,7 +120,8 @@ function mergeSegmentsByPeriod(
       const periodIndex = accumulatedText.indexOf('.');
       const sentenceText = accumulatedText.substring(0, periodIndex + 1).trim();
 
-      if (sentenceText) {
+      // 마침표만 있는 경우는 제외 (공백이나 마침표만 있는 경우 필터링)
+      if (sentenceText && sentenceText !== '.') {
         const firstSegment = segments[sentenceStartIndex]!;
         const lastSegment = segment;
 
