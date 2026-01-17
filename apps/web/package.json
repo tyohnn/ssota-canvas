@@ -24,10 +24,10 @@
     "db:push": "drizzle-kit push",
     "db:migrate": "pnpm db:generate && pnpm db:migrate:copy",
     "db:migrate:copy": "npx tsx scripts/migrate-to-supabase.ts",
-    "supabase:start": "supabase start",
-    "supabase:stop": "supabase stop",
-    "supabase:reset": "supabase db reset",
-    "supabase:status": "supabase status",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:reset": "npx supabase db reset",
+    "supabase:status": "npx supabase status",
     "supabase:studio": "open http://127.0.0.1:54323"
   },
   "dependencies": {
@@ -110,7 +110,7 @@
     "drizzle-kit": "^0.31.4",
     "msw": "^2.3.5",
     "raw-loader": "^4.0.2",
-    "supabase": "^2.70.5",
+    "supabase": "^2.72.7",
     "tailwindcss": "^4.1.18",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
