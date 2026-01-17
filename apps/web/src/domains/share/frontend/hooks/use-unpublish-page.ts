@@ -1,35 +1,82 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { unpublishPageAction } from '../../actions/share.actions';
-import { UnpublishPageRequestInput } from '../../shared/dtos';
+import { useMutation } from '@tanstack/react-query';
+import { unpublishPageAction } from '../../actions/unpublish-page.action';
+import {
+  UnpublishPageRequestInput,
+  UnpublishPageRequestSchema,
+} from '../../shared/dtos/request';
+import { isFailure } from '@/lib';
 
-export function useUnpublishPage() {
-  const queryClient = useQueryClient();
+export type UseUnpublishPageParams = {
+  onSuccess?: () => void;
+  onError?: () => void;
+};
 
-  return useMutation<void, Error, UnpublishPageRequestInput, { previousLink: any }>({
-    mutationFn: (request) => unpublishPageAction(request),
-    onMutate: async (variables) => {
-      // 쿼리 취소
-      await queryClient.cancelQueries({ queryKey: ['published-link', variables.pageId] });
+export type UnpublishPageInput = {
+  pageId: string;
+};
 
-      // 이전 값 보관
-      const previousLink = queryClient.getQueryData(['published-link', variables.pageId]);
+export type UseUnpublishPageResult = {
+  unpublishPage: (input: UnpublishPageInput) => Promise<boolean>;
+  isUnpublishing: boolean;
+};
 
-      // 낙관적 업데이트
-      queryClient.setQueryData(['published-link', variables.pageId], null);
+/**
+ * 페이지 게시 취소 도메인 훅 (TanStack Query Mutation)
+ *
+ * - Server Action 백그라운드 동기화
+ * - 실패 시 자동 에러 처리
+ * - 로딩 상태 자동 관리
+ */
+export function useUnpublishPage(
+  params?: UseUnpublishPageParams
+): UseUnpublishPageResult {
+  const { onSuccess, onError } = params || {};
 
-      return { previousLink };
-    },
-    onError: (_err, variables, context) => {
-      // 오류 발생 시 롤백
-      if (context?.previousLink) {
-        queryClient.setQueryData(['published-link', variables.pageId], context.previousLink);
+  const mutation = useMutation({
+    mutationFn: async (input: UnpublishPageInput) => {
+      // Validation
+      const rawRequest: UnpublishPageRequestInput = {
+        pageId: input.pageId,
+      };
+
+      const parseResult = UnpublishPageRequestSchema.safeParse(rawRequest);
+      if (!parseResult.success) {
+        const firstError = parseResult.error.issues[0];
+        throw new Error(firstError?.message || 'Invalid unpublish request');
       }
+
+      const validatedRequest = parseResult.data;
+
+      // Server Action
+      const result = await unpublishPageAction(validatedRequest);
+      if (isFailure(result)) {
+        throw new Error(result.error);
+      }
+
+      return result.data;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['published-link', variables.pageId] });
-      queryClient.invalidateQueries({ queryKey: ['published-page'] });
+
+    onSuccess: () => {
+      onSuccess?.();
+    },
+
+    onError: (error) => {
+      console.error('Failed to unpublish page:', error);
+      onError?.();
     },
   });
+
+  return {
+    unpublishPage: async (input: UnpublishPageInput): Promise<boolean> => {
+      try {
+        await mutation.mutateAsync(input);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    },
+    isUnpublishing: mutation.isPending,
+  };
 }
