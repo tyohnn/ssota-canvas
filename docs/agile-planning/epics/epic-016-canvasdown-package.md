@@ -1,4 +1,4 @@
-# Epic-012: Canvasdown 패키지 개발 (Phase 1 - MVP)
+# Epic-016: Canvasdown 패키지 개발 (Phase 1 - MVP)
 
 ## 🎯 Epic 개요
 **Epic Goal**: As a 개발자, I want to 텍스트 기반 DSL로 다이어그램을 정의하고 React Flow로 렌더링할 수 있어야 so that AI가 생성한 다이어그램을 SSOTA 캔버스에서 바로 시각화할 수 있다
@@ -149,18 +149,18 @@
 ## 📊 Story 목록
 
 ### Core 패키지 개발
-- **E012-001**: [패키지 구조 셋업 및 기본 타입 정의](../stories/canvasdown/story-e012-001-package-setup.md) (3pts, P1)
-- **E012-002**: [Chevrotain 파서 기본 구조 구현](../stories/canvasdown/story-e012-002-chevrotain-parser.md) (8pts, P1)
-- **E012-003**: [타입 레지스트리 시스템 구현](../stories/canvasdown/story-e012-003-type-registry.md) (5pts, P1)
-- **E012-004**: [AST → Graph Data 빌더 구현](../stories/canvasdown/story-e012-004-ast-builder.md) (5pts, P1)
-- **E012-005**: [dagre 레이아웃 통합](../stories/canvasdown/story-e012-005-dagre-layout.md) (3pts, P1)
+- **E016-001**: [패키지 구조 셋업 및 기본 타입 정의](../stories/canvasdown/story-e016-001-package-setup.md) (3pts, P1)
+- **E016-002**: [Chevrotain 파서 기본 구조 구현](../stories/canvasdown/story-e016-002-chevrotain-parser.md) (8pts, P1)
+- **E016-003**: [타입 레지스트리 시스템 구현](../stories/canvasdown/story-e016-003-type-registry.md) (5pts, P1)
+- **E016-004**: [AST → Graph Data 빌더 구현](../stories/canvasdown/story-e016-004-ast-builder.md) (5pts, P1)
+- **E016-005**: [dagre 레이아웃 통합](../stories/canvasdown/story-e016-005-dagre-layout.md) (3pts, P1)
 
 ### React Flow 어댑터
-- **E012-006**: [React Flow 어댑터 구현](../stories/canvasdown/story-e012-006-react-flow-adapter.md) (5pts, P1)
-- **E012-007**: [useCanvasdown 훅 구현](../stories/canvasdown/story-e012-007-usecanvasdown-hook.md) (3pts, P1)
+- **E016-006**: [React Flow 어댑터 구현](../stories/canvasdown/story-e016-006-react-flow-adapter.md) (5pts, P1)
+- **E016-007**: [useCanvasdown 훅 구현](../stories/canvasdown/story-e016-007-usecanvasdown-hook.md) (3pts, P1)
 
 ### SSOTA 통합
-- **E012-008**: [SSOTA 블록 타입 등록 및 통합](../stories/canvasdown/story-e012-008-ssota-integration.md) (2pts, P1)
+- **E016-008**: [SSOTA 블록 타입 등록 및 통합](../stories/canvasdown/story-e016-008-ssota-integration.md) (2pts, P1)
 
 **총 Story Points**: 34pts
 
@@ -180,7 +180,7 @@
 ### Story 상세 계획
 
 각 Story는 아래 형식으로 정의됩니다:
-- Story ID: `E012-[순번]` 형식
+- Story ID: `E016-[순번]` 형식
 - 예상 기간: 1-3일
 - 도메인: Canvasdown Domain (새로운 도메인)
 - 모든 Story 문서: `docs/agile-planning/stories/canvasdown/` 폴더
@@ -188,12 +188,12 @@
 ### Sprint 구성
 
 **Sprint 026: Canvasdown Core** (2주)
-- Story: E012-001 ~ E012-005
+- Story: E016-001 ~ E016-005
 - 목표: Core 패키지 완성
 - Sprint 문서: [sprint-026-canvasdown-core.md](../sprints/sprint-026-canvasdown-core.md)
 
 **Sprint 027: 어댑터 및 통합** (2주)
-- Story: E012-006 ~ E012-008
+- Story: E016-006 ~ E016-008
 - 목표: SSOTA 통합 및 POC 완성
 - Sprint 문서: [sprint-027-canvasdown-adapter-integration.md](../sprints/sprint-027-canvasdown-adapter-integration.md)
 
