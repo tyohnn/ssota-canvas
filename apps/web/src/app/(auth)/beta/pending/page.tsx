@@ -7,16 +7,25 @@
  * - State sharing via Context
  * - Requires authentication
  * - Requires application submission
+ *
+ * ⚠️ Access blocked: Beta verification is currently disabled
+ * This page is preserved for potential future use.
+ * To re-enable, uncomment the code below and remove the notFound() call.
  */
+import { notFound } from 'next/navigation';
 
-import { redirect } from 'next/navigation';
-import { BetaPendingStatus } from '@/domains/user-management/frontend/components/beta-pending-status';
-import { Box } from '@/components/ui/box';
-import { checkBetaRedirectAction } from '@/domains/user-management/actions/beta.actions';
-import { checkUserSetupStatusAction } from '@/domains/user-management/actions/user-management.actions';
-import { getAuthenticatedUserOrRedirect } from '@/domains/common/auth/server-auth.helpers';
+// import { redirect } from 'next/navigation';
+// import { BetaPendingStatus } from '@/domains/user-management/frontend/components/beta-pending-status';
+// import { Box } from '@/components/ui/box';
+// import { checkBetaRedirectAction } from '@/domains/user-management/actions/beta.actions';
+// import { checkUserSetupStatusAction } from '@/domains/user-management/actions/user-management.actions';
+// import { getAuthenticatedUserOrRedirect } from '@/domains/common/auth/server-auth.helpers';
 
 export default async function BetaPendingPage() {
+  // Block access to beta pages - beta verification is disabled
+  notFound();
+
+  /* Original implementation (commented out):
   // Authentication check
   await getAuthenticatedUserOrRedirect(
     'Please login to view your application status'
@@ -54,4 +63,5 @@ export default async function BetaPendingPage() {
       <BetaPendingStatus />
     </Box>
   );
+  */
 }
