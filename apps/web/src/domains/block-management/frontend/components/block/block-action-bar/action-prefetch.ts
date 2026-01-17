@@ -7,14 +7,18 @@
  * - Hover Prefetch: 블록 hover 시 prefetch
  * - Component Registry: 미리 로드한 컴포넌트를 캐싱하여 즉시 사용
  */
-
 import React from 'react';
+
 import { type BlockType } from '@/domains/block-management/shared/types/block-types';
 
 /**
  * Action Items가 있는 블록 타입만 정의
+ *
+ * 이 정의는 다음 파일들에서 공유됩니다:
+ * - block-action-mapper.tsx: 컴포넌트 렌더링 여부 결정
+ * - index.tsx: BlockActionBar 렌더링 여부 결정
  */
-const BLOCK_ACTION_MODULES: Record<string, boolean> = {
+export const BLOCK_ACTION_MODULES: Record<string, boolean> = {
   image: true,
   youtube: true,
   pdf: true,
@@ -77,7 +81,7 @@ export async function prefetchAction(blockType: string): Promise<void> {
   const promise = import(
     /* webpackPrefetch: true */
     /* webpackChunkName: "action-items-[request]" */
-    `../block-type/${blockType}/action-items`
+    `../block-type/${blockType}/components/action-items`
   )
     .then(module => {
       // 컴포넌트를 레지스트리에 저장

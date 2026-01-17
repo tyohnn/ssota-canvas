@@ -86,7 +86,7 @@ common-toolbar-items/
 
 3. **BlockToolbarMapper에서 사용**
    ```tsx
-   // block-mount-toolbar/block-toolbar-mapper.tsx
+   // block-original-toolbar/block-toolbar-mapper.tsx
    import { NewToolbarItem } from '../common-toolbar-items';
    
    case 'text':

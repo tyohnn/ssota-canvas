@@ -5,26 +5,28 @@
  * or shows error if user has no organizations
  *
  * This page handles:
- * 1. Authenticated users with approved beta access → redirect to their org
- * 2. Authenticated users without beta approval → redirect to beta pages
- * 3. Users with no organizations → redirect to onboarding
- * 4. Unauthenticated users → redirect to login
+ * 1. Authenticated users → redirect to their org
+ * 2. Users with no organizations → redirect to onboarding
+ * 3. Unauthenticated users → redirect to login
  */
+import { redirect } from 'next/navigation';
 
 import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
-import { BetaRedirectClient } from './beta-redirect-client';
+
 import { OrgRedirectClient } from './[orgId]/org-redirect-client';
+
+// import { BetaRedirectClient } from './beta-redirect-client';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardRootPage() {
   try {
     // Get user's organizations
-    // This will throw BETA_ACCESS_REQUIRED if user is not approved
+    // This will throw BETA_ACCESS_REQUIRED if user is not approved (beta check removed)
     const organizations = await getUserOrganizationsAction();
 
     if (organizations.length === 0) {
-      // No organizations - user is approved but hasn't completed onboarding
+      // No organizations - user hasn't completed onboarding
       return <OrgRedirectClient redirectUrl="/onboarding" />;
     }
 
@@ -43,6 +45,7 @@ export default async function DashboardRootPage() {
     console.error('[/r] Dashboard access error:', error);
 
     if (error instanceof Error) {
+      /* Original implementation (commented out):
       if (error.message === 'BETA_ACCESS_REQUIRED') {
         // Beta not approved - use client redirect
         return (
@@ -52,19 +55,26 @@ export default async function DashboardRootPage() {
           />
         );
       }
+      */
 
       if (
         error.message === 'UNAUTHORIZED: User not authenticated' ||
         error.message === 'USER_PROFILE_NOT_FOUND'
       ) {
-        // Not authenticated - use client redirect
+        // Not authenticated - redirect to login
+        /* Original implementation (commented out):
         return (
           <BetaRedirectClient redirectUrl="/login" message="Please login" />
         );
+        */
+        redirect('/login');
       }
     }
 
-    // Unknown error - use client redirect
+    // Unknown error - redirect to login
+    /* Original implementation (commented out):
     return <BetaRedirectClient redirectUrl="/login" message="Redirecting..." />;
+    */
+    redirect('/login');
   }
 }

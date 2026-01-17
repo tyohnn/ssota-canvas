@@ -1,4 +1,9 @@
+import { relations, sql } from 'drizzle-orm';
 import {
+  boolean,
+  check,
+  decimal,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -8,13 +13,9 @@ import {
   timestamp,
   unique,
   uuid,
-  boolean,
-  index,
-  check,
-  decimal,
 } from 'drizzle-orm/pg-core';
-import { relations, sql } from 'drizzle-orm';
 import { anonRole, authenticatedRole } from 'drizzle-orm/supabase';
+
 import { users } from './external-schema';
 
 // Enums
@@ -63,6 +64,13 @@ export const alignmentTypeEnum = pgEnum('alignment_type', [
   'VERTICAL_CENTER',
   'HORIZONTAL_DISTRIBUTE',
   'VERTICAL_DISTRIBUTE',
+]);
+
+// Canvas Management Domain Enums - Block View Mode
+export const blockViewModeEnum = pgEnum('block_view_mode', [
+  'note',
+  'original',
+  'card',
 ]);
 
 // Block Management Domain Enums
@@ -1038,6 +1046,8 @@ export const blockMounts = pgTable(
       .notNull()
       .default('100'),
     z_order: integer('z_order').notNull().default(0),
+    view_mode: blockViewModeEnum('view_mode').notNull().default('original'),
+    view_mode_sizes: jsonb('view_mode_sizes').default(null),
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1082,6 +1092,9 @@ export const blockMounts = pgTable(
       .where(sql`deleted_at IS NULL`),
     pageZOrderIdx: index('idx_block_mounts_page_z_order')
       .on(table.page_id, table.z_order)
+      .where(sql`deleted_at IS NULL`),
+    viewModeIdx: index('idx_block_mounts_view_mode')
+      .on(table.view_mode)
       .where(sql`deleted_at IS NULL`),
 
     // RLS Policies - Page creator access only
@@ -1143,8 +1156,8 @@ export const edges = pgTable(
     target_block_mount_id: uuid('target_block_mount_id')
       .notNull()
       .references(() => blockMounts.id, { onDelete: 'cascade' }),
-    source_handle: text('source_handle'), // React Flow handle ID ('left', 'right', 'top', 'bottom')
-    target_handle: text('target_handle'), // React Flow handle ID ('left', 'right', 'top', 'bottom')
+    source_handle: text('source_handle').notNull().default('right'),
+    target_handle: text('target_handle').notNull().default('left'),
     edge_shape: canvasEdgeShapeEnum('edge_shape').notNull().default('default'),
     edge_label: text('edge_label').default(''),
     edge_style_color: text('edge_style_color').default('#9ca3af'),

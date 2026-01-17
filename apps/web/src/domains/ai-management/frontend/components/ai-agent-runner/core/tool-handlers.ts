@@ -4,19 +4,20 @@
  * AI Agent의 클라이언트 사이드 툴 실행 로직
  * 각 툴의 비즈니스 로직을 캡슐화하여 재사용성과 테스트 가능성 향상
  */
-
-import { BlockType } from '@/domains/block-management/shared/types/block-types';
-import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { convertMarkdownToTiptapJSON } from '@/domains/ai-management/frontend/utils/markdown-to-tiptap';
-import type { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
-import type { useCanvasEdgeManagement } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-management';
-import type { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
-import type { useBlockTitleUpdate } from '@/domains/block-management/frontend/hooks/use-block-title-update';
-import type { useBlockContentUpdate } from '@/domains/block-management/frontend/hooks/use-block-content-update';
-import type { useBlockActionExecutor } from '@/domains/ai-management/frontend/hooks/use-block-action-executor';
-import type { useAutoPositionCalculator } from '@/domains/canvas-management/frontend/hooks/use-auto-position-calculator';
 import type { useReactFlow } from '@xyflow/react';
-import type { CustomNodeType } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
+
+import type { useBlockActionExecutor } from '@/domains/ai-management/frontend/hooks/use-block-action-executor';
+import { convertMarkdownToTiptapJSON } from '@/domains/ai-management/frontend/utils/markdown-to-tiptap';
+import type { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
+import type { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
+import type { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/block-property/use-block-title-update';
+import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import type {
+  useAutoPositionCalculator,
+  useCanvasBlockLifecycle,
+  useCanvasEdgeLifecycle,
+} from '@/domains/canvas-management/frontend/hooks';
 
 /**
  * Tool Handler Result Types
@@ -81,15 +82,15 @@ export type ToolResultTypeMap = {
  */
 export interface ToolHandlerContext {
   blockLifecycle: ReturnType<typeof useCanvasBlockLifecycle>;
-  edgeManagement: ReturnType<typeof useCanvasEdgeManagement>;
-  blockPropertyUpdate: ReturnType<typeof useBlockPropertyUpdate>;
-  blockTitleUpdate: ReturnType<typeof useBlockTitleUpdate>;
-  blockContentUpdate: ReturnType<typeof useBlockContentUpdate>;
+  edgeManagement: ReturnType<typeof useCanvasEdgeLifecycle>;
+  blockPropertyUpdate: ReturnType<typeof useUpdateBlockProperty>;
+  blockTitleUpdate: ReturnType<typeof useUpdateBlockTitle>;
+  blockContentUpdate: ReturnType<typeof useUpdateBlockContent>;
   blockActionExecutor: ReturnType<typeof useBlockActionExecutor>;
   positionCalculator: ReturnType<typeof useAutoPositionCalculator>;
   getNode: ReturnType<typeof useReactFlow>['getNode'];
   getNodes: ReturnType<typeof useReactFlow>['getNodes'];
-  organizationId: string;
+  orgId: string;
   workspaceId: string;
 }
 
@@ -204,11 +205,11 @@ export const ToolHandlers = {
     const blockData = node.data as BlockNodeData;
 
     // Optimistic Update를 포함한 훅 사용
-    await context.blockTitleUpdate.updateTitle(
-      args.blockMountId, // nodeId (blockMountId)
-      args.title,
-      blockData
-    );
+    await context.blockTitleUpdate.updateBlockTitle({
+      nodeId: args.blockMountId, // nodeId (blockMountId)
+      title: args.title,
+      blockData,
+    });
 
     return {
       success: true,
@@ -233,12 +234,12 @@ export const ToolHandlers = {
     const finalContent = convertMarkdownToTiptapJSON(args.content);
 
     // Optimistic Update를 포함한 훅 사용
-    await context.blockContentUpdate.updateContent(
-      args.blockMountId, // nodeId (blockMountId)
-      finalContent,
+    await context.blockContentUpdate.updateBlockContent({
+      nodeId: args.blockMountId, // nodeId (blockMountId)
+      content: finalContent,
       blockData,
-      args.content // contentRaw (markdown text)
-    );
+      contentRaw: args.content, // contentRaw (markdown text)
+    });
 
     return {
       success: true,
@@ -281,7 +282,7 @@ export const ToolHandlers = {
 
       // Properties 업데이트
       await context.blockPropertyUpdate.updateProperties(
-        update.blockMountId,
+        blockData.blockId, // blockId 사용 (blockMountId가 아님)
         update.properties,
         blockData
       );
@@ -320,13 +321,12 @@ export const ToolHandlers = {
         );
       }
 
-      await context.edgeManagement.createEdge(
-        connection.sourceBlockMountId, // blockMountId (React Flow node ID)
-        connection.targetBlockMountId, // blockMountId (React Flow node ID)
-        connection.edgeType || 'default',
-        connection.sourceHandle, // 'top' | 'bottom' | 'left' | 'right' | undefined
-        connection.targetHandle // 'top' | 'bottom' | 'left' | 'right' | undefined
-      );
+      await context.edgeManagement.createEdge({
+        sourceBlockMountId: connection.sourceBlockMountId,
+        targetBlockMountId: connection.targetBlockMountId,
+        sourceHandle: connection.sourceHandle || 'right',
+        targetHandle: connection.targetHandle || 'left',
+      });
 
       connectedCount++;
     }

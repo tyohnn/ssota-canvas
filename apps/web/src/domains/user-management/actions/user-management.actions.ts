@@ -1,32 +1,25 @@
 // apps/web/src/domains/user-management/actions/user-management.actions.ts
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
-
-import { DrizzleUserRepository } from '../backend/repositories/implementations/drizzle-user.repository';
-import { SupabaseAuthService } from '../backend/anti-corruption-layers/supabase-auth-acl';
-import { UserManagementService } from '../backend/services/user-management.service';
-import { DrizzleUserProfileViewRepository } from '../backend/read-models/user-profile.view';
-import { CreateUserProfileCommand } from '../shared/commands';
-import { UserId } from '../shared/value-objects/ids.vo';
-import { UserProfileView } from '../backend/read-models/user-profile.view';
-import {
-  ActionResult,
-  ok,
-  err,
-  isSuccess,
-  isFailure,
-} from '@/lib/action-result';
-
 // Organization management imports
 import {
-  getUserOrganizationsAction as getOrganizationsAction,
   createDefaultOrganizationAction,
   createOrganizationAction,
+  getUserOrganizationsAction as getOrganizationsAction,
 } from '@/domains/organization-management/actions/organization-management.actions';
 import { DrizzleOrganizationRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository';
-import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
 import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
+import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
+import { ActionResult, err, isFailure, isSuccess, ok } from '@/lib';
+import { createClient } from '@/utils/supabase/server';
+
+import { SupabaseAuthService } from '../backend/anti-corruption-layers/supabase-auth-acl';
+import { DrizzleUserProfileViewRepository } from '../backend/read-models/user-profile.view';
+import { UserProfileView } from '../backend/read-models/user-profile.view';
+import { DrizzleUserRepository } from '../backend/repositories/implementations/drizzle-user.repository';
+import { UserManagementService } from '../backend/services/user-management.service';
+import { CreateUserProfileCommand } from '../shared/commands';
+import { UserId } from '../shared/value-objects/ids.vo';
 
 export async function createUserProfileAction(): Promise<UserProfileView> {
   try {

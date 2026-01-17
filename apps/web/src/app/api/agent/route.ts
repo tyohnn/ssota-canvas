@@ -8,7 +8,7 @@ import { ContextAssemblyService } from '@/domains/ai-management/backend/services
 import { ToolExecutionService } from '@/domains/ai-management/backend/services/tool-execution.service';
 import { AssembledContext } from '@/domains/ai-management/backend/services/interfaces/context-assembly.service.interface';
 import { createHeliconeOpenAI } from '@/domains/ai-management/backend/providers/helicone-provider';
-// import { createHeliconeGateway } from '@/lib/helicone-gateway-provider';
+// import { createHeliconeGateway } from '@/lib';
 import {
   addBlocksTool,
   updateTitleTool,

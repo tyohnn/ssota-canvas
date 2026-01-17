@@ -8,20 +8,25 @@
 'use client';
 
 import { memo } from 'react';
+
 import type { NodeProps } from '@xyflow/react';
+
+import { Skeleton } from '@workspace/ui/components/ui/skeleton';
+import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
+import { cn } from '@workspace/ui/lib/utils';
+
+import { Box } from '@/components/ui/box';
 import type { ImageBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { ImageBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { BaseBlock } from '../base-block';
-import { cn } from '@workspace/ui/lib/utils';
-import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
-import { Skeleton } from '@workspace/ui/components/ui/skeleton';
-import { useImageBlock } from './core/use-image-block';
-import { ImageDisplay } from './components/image-display';
-import { ImageUploadPlaceholder } from './components/image-upload-placeholder';
+
+import { DataBlock } from '../../data-block';
+import { CardView } from '../../data-block/components/card-view';
 import { ImageCaption } from './components/image-caption';
+import { ImageDisplay } from './components/image-display';
 import { ImageErrorOverlay } from './components/image-error-overlay';
+import { ImageUploadPlaceholder } from './components/image-upload-placeholder';
 import { UnsplashAttribution } from './components/unsplash-attribution';
-import { Box } from '@/components/ui/box';
+import { useImageBlock } from './core/use-image-block';
 
 /**
  * ImageBlock Component
@@ -64,16 +69,9 @@ export const ImageBlock = memo(function ImageBlock({
     await imageBlock.saveCaptionToServer(imageBlock.draftCaption);
   };
 
-  return (
-    <BaseBlock
-      data={nodeData}
-      selected={selected}
-      isConnectable={true}
-      width={width}
-      height={height}
-      noBorder={true}
-      noBackground={true}
-    >
+  // Original View 렌더러 (기존 UI)
+  const renderOriginalView = () => {
+    return (
       <TooltipProvider>
         <Box
           className={cn(
@@ -161,6 +159,22 @@ export const ImageBlock = memo(function ImageBlock({
           />
         </Box>
       </TooltipProvider>
-    </BaseBlock>
+    );
+  };
+
+  // Card View 렌더러
+  const renderCardView = () => {
+    return <CardView data={nodeData} selected={selected} />;
+  };
+
+  return (
+    <DataBlock
+      data={nodeData}
+      selected={selected}
+      width={width}
+      height={height}
+      renderOriginalView={renderOriginalView}
+      renderCardView={renderCardView}
+    />
   );
 });

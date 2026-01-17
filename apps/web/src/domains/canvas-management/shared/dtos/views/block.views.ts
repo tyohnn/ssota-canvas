@@ -1,12 +1,14 @@
 /**
  * Block 관련 View 타입들 (조회용)
  */
-
-import { CustomPropertyDefinition } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
-import type { Position, Size } from '../../types';
-import type { UserProfile } from '@/domains/user-management/shared/types';
-import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { BlockProperties } from '@/domains/block-management/shared/types/block-data.types';
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import { CustomPropertyDefinition } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
+import type { UserProfile } from '@/domains/user-management/shared/types';
+
+import type { Position, Size } from '../../types';
+import type { BlockViewModeValue } from '../../value-objects/block-view-mode.vo';
+import type { ViewModeSizeMap } from '../../value-objects/view-mode-sizes.vo';
 
 /**
  * BlockView - SSOT (Single Source of Truth) for Block Data
@@ -21,6 +23,8 @@ export interface BlockView {
   position: Position;
   size: Size;
   zOrder: number;
+  viewMode: BlockViewModeValue;
+  viewModeSizes?: ViewModeSizeMap; // 뷰 모드별 크기 정보 (original, card, note)
 
   // Block 정보 (Block Management Domain)
   blockId: string;
@@ -46,6 +50,7 @@ export interface BlockMountView {
   position: Position;
   size: Size;
   zOrder: number;
+  viewMode: BlockViewModeValue;
   createdAt: string;
   updatedAt: string;
 }

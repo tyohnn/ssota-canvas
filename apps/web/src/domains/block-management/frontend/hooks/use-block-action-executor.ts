@@ -12,13 +12,15 @@
  * - 초기 번들 크기: ~5KB (Registry만)
  * - 실행 시 오버헤드: 첫 실행 50-100ms (import), 이후 0ms (캐시)
  */
-
 import { useCallback } from 'react';
+
 import { useReactFlow } from '@xyflow/react';
-import { BlockNodeData } from '../../shared/types/block-data.types';
-import { validateActionParams } from '../components/block/block-type/action-schemas-registry';
-import { useBlockPropertyUpdate } from './use-block-property-update';
+
 import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
+
+import { BlockNodeData } from '../../shared/types/block-data.types';
+import { validateActionParams } from '../components/block/block-action-bar/action-schemas-registry';
+import { useUpdateBlockProperty } from './block-property/use-block-property-update';
 
 /**
  * Block Action Module Map
@@ -49,8 +51,15 @@ const BLOCK_ACTION_MODULES: Record<string, string> = {
  * 각 블록의 action-items에서 실제 액션 로직을 import합니다.
  */
 export function useBlockActionExecutor() {
-  const { getNode } = useReactFlow();
-  const { updateProperties } = useBlockPropertyUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateProperties } = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
 
   const executeAction = useCallback(
     async (params: {

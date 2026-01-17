@@ -3,7 +3,7 @@ import { useImageSpaceContext } from '../../../core/image-space.context';
 import type { UnsplashImage, CategoryKey } from './types';
 import { getCacheKey, imageCache } from './utils';
 import { searchUnsplashImagesAction } from '@/domains/image-app-space/actions/image-search.actions';
-import { isFailure } from '@/lib/action-result';
+import { isFailure } from '@/lib';
 import { config } from '@/config';
 
 /**

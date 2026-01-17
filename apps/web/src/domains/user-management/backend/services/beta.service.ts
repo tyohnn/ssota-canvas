@@ -1,19 +1,19 @@
 /**
  * Beta Access Management Service
  */
-
+import { trackEvent } from '@/lib/analytics/mixpanel/server';
 import { Result } from '@/utils/result';
-import { UserId } from '../../shared/value-objects/ids.vo';
-import { trackEvent } from '@/lib/mixpanel-server';
-import type { BetaRepository } from '../repositories/interfaces/beta.repository.interface';
+
 import type {
-  UserBetaInfo,
-  BetaStatusResponse,
-} from '../../shared/types/beta.types';
-import type {
-  SubmitBetaApplicationCommand,
   ApproveBetaApplicationCommand,
+  SubmitBetaApplicationCommand,
 } from '../../shared/commands/beta.commands';
+import type {
+  BetaStatusResponse,
+  UserBetaInfo,
+} from '../../shared/types/beta.types';
+import { UserId } from '../../shared/value-objects/ids.vo';
+import type { BetaRepository } from '../repositories/interfaces/beta.repository.interface';
 
 /**
  * Beta Service Error

@@ -1,13 +1,13 @@
 // apps/web/src/domains/canvas-management/backend/services/canvas-query.service.ts
-
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { Result } from '@/utils/result';
-import type { ICanvasQueryService } from './interfaces/canvas-query.service.interface';
+
+import type { CanvasViewData } from '../../shared/dtos';
 import type { BlockMountRepository } from '../repositories/interfaces/block-mount.repository.interface';
 import type { EdgeRepository } from '../repositories/interfaces/edge.repository.interface';
 import type { ViewportRepository } from '../repositories/interfaces/viewport.repository.interface';
-import type { CanvasViewData } from '../../shared/dtos';
-import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import type { ICanvasQueryService } from './interfaces/canvas-query.service.interface';
 
 class CanvasManagementError extends Error {
   constructor(
@@ -93,7 +93,7 @@ export class CanvasQueryService implements ICanvasQueryService {
 
             return {
               blockMountId: blockMount.id.value,
-              blockId: blockMount.blockId.value,
+              blockId: block.id.value, // ✅ blocks.id 직접 사용
               blockType: block.blockType.value,
               title: block.title,
               properties: fullProperties,
@@ -109,6 +109,8 @@ export class CanvasQueryService implements ICanvasQueryService {
                 height: blockMount.size.height,
               },
               zOrder: blockMount.zOrder.value,
+              viewMode: blockMount.viewMode.value,
+              viewModeSizes: blockMount.viewModeSizes.toJSON(),
               createdAt: block.createdAt.toISOString(),
               updatedAt: block.updatedAt.toISOString(),
               createdByProfile: block.createdByProfile,
@@ -149,8 +151,8 @@ export class CanvasQueryService implements ICanvasQueryService {
             pageId: edge.pageId.value,
             sourceBlockMountId: edge.sourceBlockMountId.value, // ✅ 직접 사용 (이미 blockMountId)
             targetBlockMountId: edge.targetBlockMountId.value, // ✅ 직접 사용 (이미 blockMountId)
-            sourceHandle: edge.sourceHandle, // ✅ React Flow handle ID (optional)
-            targetHandle: edge.targetHandle, // ✅ React Flow handle ID (optional)
+            sourceHandle: edge.sourceHandle.value,
+            targetHandle: edge.targetHandle.value,
             edgeShape: edge.edgeShape.value,
             label: edge.edgeLabel || '',
             style: edge.style,

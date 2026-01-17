@@ -1,17 +1,19 @@
-import type { Node, Edge, BuiltInNode, BuiltInEdge } from '@xyflow/react';
-import type { BlockView } from '../../shared/dtos/views/block.views';
-import type {
-  BlockMountView,
-  EdgeView,
-  TransformBlockDTO,
-  CreateEdgeRequest,
-  CanvasViewData,
-} from '../../shared/dtos';
+import type { BuiltInEdge, BuiltInNode, Edge, Node } from '@xyflow/react';
+
 import {
   BaseNodeData,
   BlockNodeData,
 } from '@/domains/block-management/shared/types/block-data.types';
 import type { BlockType } from '@/domains/block-management/shared/types/block-types';
+
+import type {
+  BlockMountView,
+  CanvasViewData,
+  EdgeView,
+  TransformBlockDTO,
+} from '../../shared/dtos';
+import type { BlockView } from '../../shared/dtos/views/block.views';
+import type { BlockViewModeValue } from '../../shared/value-objects/block-view-mode.vo';
 
 /**
  * Custom Node Type (자동 생성)
@@ -45,23 +47,8 @@ function cleanNestedProperties(properties: any): any {
  */
 export function transformBlockViewToNodeData(
   blockView: BlockView,
-  blockMountId: string,
-  additionalData: {
-    pageId?: string;
-    orgId?: string;
-    workspaceId?: string;
-  } = {}
+  blockMountId: string
 ): BaseNodeData {
-  if (
-    !additionalData.pageId ||
-    !additionalData.orgId ||
-    !additionalData.workspaceId
-  ) {
-    throw new Error(
-      'pageId, orgId, and workspaceId are required for BaseNodeData'
-    );
-  }
-
   return {
     blockMountId,
     blockId: blockView.blockId,
@@ -70,9 +57,8 @@ export function transformBlockViewToNodeData(
     properties: cleanNestedProperties(blockView.properties),
     customProperties: blockView.customProperties,
     content: blockView.content, // JSONB content
-    pageId: additionalData.pageId,
-    orgId: additionalData.orgId,
-    workspaceId: additionalData.workspaceId,
+    viewMode: blockView.viewMode, // BlockMount의 viewMode
+    sizes: blockView.viewModeSizes, // 뷰 모드별 크기 정보
     createdAt: blockView.createdAt,
     updatedAt: blockView.updatedAt,
     createdByProfile: blockView.createdByProfile || {
@@ -142,89 +128,6 @@ export function fromReactFlowNode(node: Node<BaseNodeData>): TransformBlockDTO {
 }
 
 /**
- * React Flow Connection을 CreateEdge 요청으로 변환
- *
- * ⚠️ Schema Change: connection.source/target are blockMountIds
- */
-export function fromReactFlowConnection(
-  pageId: string,
-  connection: {
-    source: string;
-    target: string;
-    sourceHandle?: string | null;
-    targetHandle?: string | null;
-  },
-  additionalData: {
-    workspaceId: string;
-    orgId: string;
-    edgeShape?: string;
-  }
-): CreateEdgeRequest {
-  return {
-    pageId,
-    sourceBlockMountId: connection.source, // ✅ React Flow node ID = blockMountId
-    targetBlockMountId: connection.target, // ✅ React Flow node ID = blockMountId
-    sourceHandle: connection.sourceHandle || undefined,
-    targetHandle: connection.targetHandle || undefined,
-    edgeShape: additionalData.edgeShape || 'default',
-    workspaceId: additionalData.workspaceId,
-    orgId: additionalData.orgId,
-  };
-}
-
-/**
- * BlockMountDTO를 React Flow Node로 변환 (서버 액션 결과 처리용)
- *
- * 반환 타입을 CustomNodeType으로 선언하여 타입 안전성을 보장
- */
-export function toReactFlowNodeFromMountDTO(
-  block: BlockView,
-  mountDTO: {
-    blockMountId: string;
-    blockId: string;
-    position: { x: number; y: number };
-    size: { width: number; height: number };
-    zOrder: number;
-    mountedAt: string;
-  },
-  additionalData: {
-    pageId: string;
-    orgId: string;
-    workspaceId: string;
-  }
-): CustomNodeType {
-  const node: Node<BaseNodeData> = {
-    id: mountDTO.blockMountId,
-    type: block.blockType,
-    position: mountDTO.position,
-    data: {
-      blockMountId: mountDTO.blockMountId,
-      blockId: mountDTO.blockId,
-      blockType: block.blockType,
-      title: block.title,
-      properties: block.properties,
-      customProperties: block.customProperties,
-      content: block.content, // JSONB content
-      pageId: additionalData.pageId,
-      orgId: additionalData.orgId,
-      workspaceId: additionalData.workspaceId,
-      createdByProfile: block.createdByProfile || {
-        userId: 'unknown',
-        email: null,
-        name: null,
-        profileImageUrl: null,
-      },
-    },
-    width: mountDTO.size.width,
-    height: mountDTO.size.height,
-    zIndex: mountDTO.zOrder,
-  };
-
-  // 타입 가드를 통과하면 CustomNodeType으로 취급
-  return node as CustomNodeType;
-}
-
-/**
  * 타입 가드: Node가 CustomNodeType인지 확인
  *
  * 런타임 검증을 통해 타입 안전성을 보장하면서도
@@ -269,12 +172,7 @@ export function isCustomNodeType(
  * 런타임에서는 blockType에 따라 올바른 구체 타입으로 동작합니다.
  */
 export function toReactFlowNodeFromCanvasView(
-  block: CanvasViewData['blocks'][0],
-  additionalData: {
-    pageId: string;
-    orgId: string;
-    workspaceId: string;
-  }
+  block: CanvasViewData['blocks'][0]
 ): CustomNodeType {
   const node: Node<BaseNodeData> = {
     id: block.blockMountId,
@@ -288,9 +186,8 @@ export function toReactFlowNodeFromCanvasView(
       properties: block.properties,
       customProperties: block.customProperties,
       content: block.content, // JSONB content
-      pageId: additionalData.pageId,
-      orgId: additionalData.orgId,
-      workspaceId: additionalData.workspaceId,
+      viewMode: block.viewMode, // BlockMount의 viewMode
+      sizes: block.viewModeSizes, // 뷰 모드별 크기 정보
       createdAt: block.createdAt,
       updatedAt: block.updatedAt,
       createdByProfile: block.createdByProfile || {

@@ -16,14 +16,17 @@
  * - 초기 번들 크기: ~5KB (Registry만)
  * - 실행 시 오버헤드: 첫 실행 50-100ms (import), 이후 0ms (캐시)
  */
-
 import { useCallback } from 'react';
+
 import { useReactFlow } from '@xyflow/react';
+
+import { validateActionParams } from '@/domains/block-management/frontend/components/block/block-action-bar/action-schemas-registry';
+import type { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { validateActionParams } from '@/domains/block-management/frontend/components/block/block-type/action-schemas-registry';
-import type { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
-import type { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
-import type { useAutoPositionCalculator } from '@/domains/canvas-management/frontend/hooks/use-auto-position-calculator';
+import type {
+  useAutoPositionCalculator,
+  useCanvasBlockLifecycle,
+} from '@/domains/canvas-management/frontend/hooks';
 
 /**
  * Block Action Module Map
@@ -56,7 +59,7 @@ const BLOCK_ACTION_MODULES: Record<string, string> = {
  */
 export function useBlockActionExecutor(executorParams: {
   blockLifecycle: ReturnType<typeof useCanvasBlockLifecycle>;
-  blockPropertyUpdate: ReturnType<typeof useBlockPropertyUpdate>;
+  blockPropertyUpdate: ReturnType<typeof useUpdateBlockProperty>;
   positionCalculator: ReturnType<typeof useAutoPositionCalculator>;
 }) {
   const { getNode } = useReactFlow();
@@ -116,7 +119,7 @@ export function useBlockActionExecutor(executorParams: {
 
         const actionsModule = await import(
           /* webpackChunkName: "block-actions-[request]" */
-          `@/domains/block-management/frontend/components/block/block-type/${blockType}/action-items/${blockType}-block-actions`
+          `@/domains/block-management/frontend/components/block/block-type/${blockType}/components/action-items/${blockType}-block-actions`
         );
 
         // executeAction 함수 확인

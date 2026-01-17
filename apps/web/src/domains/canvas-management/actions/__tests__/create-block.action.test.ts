@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // TODO: Update test to use new API (createAndMountBlockAction instead of createBlockAction)
 // import { createAndMountBlockAction } from '../block.actions';
 // import { CreateAndMountBlockRequest, BlockCreatedAndMountedDTO } from '../../shared/dtos';
-import { ActionResult, ok, err, isFailure } from '@/lib/action-result';
+import { ActionResult, ok, err, isFailure } from '@/lib';
 
 // Mock dependencies
 const mockSupabaseClient = {
@@ -32,7 +32,7 @@ const mockBlockManagementService = {
   createBlock: vi.fn(),
 };
 
-vi.mock('@/domains/block-management/backend/services/block-management.service', () => ({
+vi.mock('@/domains/block-management/backend/services/blocks', () => ({
   BlockManagementService: vi.fn(() => mockBlockManagementService),
 }));
 

@@ -1,20 +1,22 @@
 // apps/web/src/domains/notification-management/actions/notification.actions.ts
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+
+import { createClient } from '@/utils/supabase/server';
+
 import { DrizzleNotificationRepository } from '../backend/repositories/implementations/drizzle-notification.repository';
 import { NotificationService } from '../backend/services/notification.service';
 import {
   CreateInvitationNotificationCommand,
   CreateWorkspaceInvitationNotificationCommand,
-  MarkNotificationAsReadCommand,
   GetUserNotificationsCommand,
+  MarkNotificationAsReadCommand,
 } from '../shared/commands';
 import {
-  UserNotificationView,
   CreateInvitationNotificationRequest,
   CreateWorkspaceInvitationNotificationRequest,
+  UserNotificationView,
 } from '../shared/dtos';
 
 export async function createInvitationNotificationAction(

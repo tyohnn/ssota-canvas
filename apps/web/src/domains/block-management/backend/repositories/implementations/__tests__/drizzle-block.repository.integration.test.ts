@@ -37,12 +37,9 @@ describe('DrizzleBlockRepository - Integration Tests', () => {
     it('블록 정보를 성공적으로 업데이트해야 한다', async () => {
       // Given
       await repository.create(testBlock);
-      const updateData = {
-        title: 'Updated Title'
-      };
 
       // When
-      testBlock.update(updateData);
+      testBlock.updateTitle('Updated Title');
       await repository.update(testBlock);
 
       // Then
@@ -56,11 +53,10 @@ describe('DrizzleBlockRepository - Integration Tests', () => {
       const nonExistentId = new BlockId('550e8400-e29b-41d4-a716-446655440001');
       const workspaceId = new WorkspaceId('550e8400-e29b-41d4-a716-446655440011');
       const userId = new UserId('550e8400-e29b-41d4-a716-446655440021');
-      const updateData = { title: 'Updated Title' };
 
       // When & Then
       const nonExistentBlock = Block.create(nonExistentId, workspaceId, userId, new BlockType('text'), 'Test Block');
-      nonExistentBlock.update(updateData);
+      nonExistentBlock.updateTitle('Updated Title');
       await expect(repository.update(nonExistentBlock))
         .rejects.toThrow();
     });
@@ -79,7 +75,7 @@ describe('DrizzleBlockRepository - Integration Tests', () => {
       await repository.create(testBlock);
 
       // When & Then
-      // null/undefined 데이터로는 Block.update를 호출할 수 없으므로 이 테스트는 제거
+      // null/undefined 데이터로는 Block.updateTitle 등을 호출할 수 없으므로 이 테스트는 제거
       expect(true).toBe(true); // placeholder
     });
   });

@@ -1,12 +1,24 @@
 'use client';
 
-import { useStore } from '@xyflow/react';
+import { type Node, useStore } from '@xyflow/react';
 import { useCallback } from 'react';
+
+// Custom equality function for comparing arrays of nodes by their IDs
+// This prevents re-renders when the array reference changes but the content is the same
+const areSelectedNodesEqual = (a: Node[], b: Node[]): boolean => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i]?.id !== b[i]?.id) return false;
+  }
+  return true;
+};
 
 export function useCanvasSelection() {
   // React Flow Store에서 선택 상태 읽기
-  const selectedNodes = useStore(state =>
-    state.nodes.filter(node => node.selected)
+  // Fix: Use custom equality function to avoid infinite re-renders caused by filter() creating new array references
+  const selectedNodes = useStore(
+    state => state.nodes.filter(node => node.selected),
+    areSelectedNodesEqual
   );
 
   const nodeLookup = useStore(state => state.nodeLookup);

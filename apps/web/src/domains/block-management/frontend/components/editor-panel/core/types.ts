@@ -4,6 +4,7 @@
 
 export interface EditorPanelProps {
   blockId: string;
+  blockMountId: string;
   isOpen: boolean;
 }
 

@@ -7,19 +7,23 @@
 'use client';
 
 import React, { memo } from 'react';
+
 import type { NodeProps } from '@xyflow/react';
-import type { VercelDeploymentBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
-import { cn } from '@workspace/ui/lib/utils';
 import {
-  Rocket,
+  AlertCircle,
+  Check,
+  Clock,
   ExternalLink,
   GitBranch,
-  Clock,
-  Check,
-  AlertCircle,
+  Rocket,
 } from 'lucide-react';
+
+import { cn } from '@workspace/ui/lib/utils';
+
+import type { VercelDeploymentBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { VercelDeploymentBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+
+import { BaseBlock } from '../../base-block';
 
 export const VercelDeploymentBlock = memo(function VercelDeploymentBlock({
   id,

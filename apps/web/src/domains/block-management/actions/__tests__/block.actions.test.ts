@@ -1,8 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  updateBlockPropertyAction,
-  updateBlockTitleAction,
-} from '../block.actions';
+import { updateBlockPropertyAction } from '../block/update-block-property.action';
+import { updateBlockTitleAction } from '../block/update-block-title.action';
 
 // Mock Next.js
 vi.mock('next/cache', () => ({
@@ -27,11 +25,8 @@ vi.mock('../../backend/repositories/implementations/drizzle-block.repository', (
   DrizzleBlockRepository: vi.fn(() => mockBlockRepository),
 }));
 
-vi.mock('../../backend/services/block-management.service', () => ({
+vi.mock('../../backend/services/blocks', () => ({
   BlockManagementService: vi.fn(() => mockBlockManagementService),
-}));
-
-vi.mock('../../backend/services/block-property.service', () => ({
   BlockPropertyService: vi.fn(() => mockBlockPropertyService),
 }));
 
@@ -61,6 +56,7 @@ describe('Block Actions', () => {
         blockId,
         propertyPath: 'title',
         value: 'Updated Title',
+        pageId: '550e8400-e29b-41d4-a716-446655440001',
       });
 
       expect(result.success).toBe(true);
@@ -76,6 +72,7 @@ describe('Block Actions', () => {
         blockId: 'invalid-uuid',
         propertyPath: 'title',
         value: 'Updated Title',
+        pageId: '550e8400-e29b-41d4-a716-446655440001',
       });
 
       expect(result.success).toBe(false);
@@ -88,6 +85,7 @@ describe('Block Actions', () => {
         blockId,
         propertyPath: 'title',
         value: 'Updated Title',
+        pageId: '550e8400-e29b-41d4-a716-446655440001',
       });
 
       expect(result.success).toBe(false);
@@ -107,6 +105,7 @@ describe('Block Actions', () => {
       const result = await updateBlockTitleAction({
         blockId,
         title: 'Updated Title',
+        pageId: '550e8400-e29b-41d4-a716-446655440001',
       });
 
       expect(result.success).toBe(true);
@@ -120,6 +119,7 @@ describe('Block Actions', () => {
       const result = await updateBlockTitleAction({
         blockId: 'invalid-uuid',
         title: 'Updated Title',
+        pageId: '550e8400-e29b-41d4-a716-446655440001',
       });
 
       expect(result.success).toBe(false);
@@ -131,6 +131,7 @@ describe('Block Actions', () => {
       const result = await updateBlockTitleAction({
         blockId,
         title: 'Updated Title',
+        pageId: '550e8400-e29b-41d4-a716-446655440001',
       });
 
       expect(result.success).toBe(false);

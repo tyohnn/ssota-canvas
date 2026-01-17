@@ -3,9 +3,9 @@
  *
  * 스크롤 기반 인터랙티브 마케팅 랜딩페이지
  */
-
-import { ShowcasePage as ShowcasePageContent } from '@/domains/landing/frontend/components/showcase-page';
 import type { Metadata } from 'next';
+
+import { ShowcasePageClient } from './showcase-page-client';
 
 export const metadata: Metadata = {
   title: 'SSOTA - ONE CANVAS WHERE YOUR WORK LIVES',
@@ -38,5 +38,5 @@ export const metadata: Metadata = {
 };
 
 export default function ShowcasePage() {
-  return <ShowcasePageContent />;
+  return <ShowcasePageClient />;
 }

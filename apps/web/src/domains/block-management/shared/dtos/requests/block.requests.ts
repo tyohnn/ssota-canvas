@@ -6,8 +6,8 @@
  * - Input types: 프론트엔드에서 사용 (더 유연한 타입)
  * - Output types: 서버에서 사용 (검증된 타입)
  */
-
 import { z } from 'zod';
+
 import { blockTypeEnum } from '@/db/schema';
 
 /**
@@ -22,6 +22,41 @@ export const BlockTypeSchema = z.enum(
 );
 
 /**
+ * 블록 생성 요청 스키마
+ */
+export const CreateBlockRequestSchema = z.object({
+  workspaceId: z.uuid('Invalid workspace ID'),
+  blockType: BlockTypeSchema,
+  title: z.string().min(1, 'Title is required'),
+  initialProperties: z.record(z.string(), z.unknown()).optional(),
+  initialContent: z.unknown().optional(),
+});
+
+/**
+ * 블록 복제 요청 스키마
+ */
+export const DuplicateBlockRequestSchema = z.object({
+  workspaceId: z.uuid('Invalid workspace ID'),
+  blockId: z.uuid('Invalid block ID'),
+});
+
+/**
+ * 블록 복원 요청 스키마
+ */
+export const RestoreBlockRequestSchema = z.object({
+  workspaceId: z.uuid('Invalid workspace ID'),
+  blockId: z.uuid('Invalid block ID'),
+});
+
+/**
+ * 블록 소프트 삭제 요청 스키마
+ */
+export const SoftDeleteBlockRequestSchema = z.object({
+  workspaceId: z.uuid('Invalid workspace ID'),
+  blockId: z.uuid('Invalid block ID'),
+});
+
+/**
  * 블록 속성 업데이트 요청 스키마
  * - Frontend에서 1차 검증 (UX)
  * - Server Action에서 2차 검증 (보안)
@@ -30,8 +65,6 @@ export const UpdateBlockPropertyRequestSchema = z.object({
   blockId: z.uuid('Invalid block ID'),
   propertyPath: z.string().min(1, 'Property path is required'),
   value: z.unknown(),
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
 });
 
 /**
@@ -43,8 +76,6 @@ export const UpdateBlockPropertyRequestSchema = z.object({
 export const UpdateBlockPropertiesRequestSchema = z.object({
   blockId: z.uuid('Invalid block ID'),
   properties: z.record(z.string(), z.unknown()),
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
 });
 
 /**
@@ -55,8 +86,6 @@ export const UpdateBlockPropertiesRequestSchema = z.object({
 export const UpdateBlockTitleRequestSchema = z.object({
   blockId: z.uuid('Invalid block ID'),
   title: z.string().min(1, 'Title is required'),
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
 });
 
 /**
@@ -70,8 +99,6 @@ export const UpdateBlockContentRequestSchema = z.object({
   blockId: z.uuid('Invalid block ID'),
   content: z.unknown(), // JSONB - 자유로운 JSON 구조 허용 (TipTap JSON)
   contentRaw: z.string().optional(), // Markdown 텍스트 (AI context용)
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
 });
 
 // Input types (프론트엔드에서 사용)
@@ -88,6 +115,18 @@ export type UpdateBlockContentRequestInput = z.input<
   typeof UpdateBlockContentRequestSchema
 >;
 
+// Input types
+export type CreateBlockRequestInput = z.input<typeof CreateBlockRequestSchema>;
+export type DuplicateBlockRequestInput = z.input<
+  typeof DuplicateBlockRequestSchema
+>;
+export type RestoreBlockRequestInput = z.input<
+  typeof RestoreBlockRequestSchema
+>;
+export type SoftDeleteBlockRequestInput = z.input<
+  typeof SoftDeleteBlockRequestSchema
+>;
+
 // Output types (서버에서 사용)
 export type UpdateBlockPropertyRequest = z.output<
   typeof UpdateBlockPropertyRequestSchema
@@ -100,4 +139,14 @@ export type UpdateBlockTitleRequest = z.output<
 >;
 export type UpdateBlockContentRequest = z.output<
   typeof UpdateBlockContentRequestSchema
+>;
+
+// Output types (SafeDTO)
+export type CreateBlockRequest = z.output<typeof CreateBlockRequestSchema>;
+export type DuplicateBlockRequest = z.output<
+  typeof DuplicateBlockRequestSchema
+>;
+export type RestoreBlockRequest = z.output<typeof RestoreBlockRequestSchema>;
+export type SoftDeleteBlockRequest = z.output<
+  typeof SoftDeleteBlockRequestSchema
 >;

@@ -1,8 +1,8 @@
 // OAuth login callback route for Supabase
 // next
 import { NextResponse } from 'next/server';
-// utils
-import { createClient } from '@/utils/supabase/server';
+
+import { config } from '@/config';
 // constants
 import {
   appDefaultUrl,
@@ -10,11 +10,12 @@ import {
   loginUrl,
   onBoardingUrl,
 } from '@/domains/auth/constant';
+import { SupabaseAuthService } from '@/domains/user-management/backend/anti-corruption-layers/supabase-auth-acl';
+import { DrizzleUserRepository } from '@/domains/user-management/backend/repositories/implementations/drizzle-user.repository';
 // user-management service
 import { UserManagementService } from '@/domains/user-management/backend/services/user-management.service';
-import { DrizzleUserRepository } from '@/domains/user-management/backend/repositories/implementations/drizzle-user.repository';
-import { SupabaseAuthService } from '@/domains/user-management/backend/anti-corruption-layers/supabase-auth-acl';
-import { config } from '@/config';
+// utils
+import { createClient } from '@/utils/supabase/server';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -72,7 +73,8 @@ export async function GET(request: Request) {
       if (setupStatusResult.isSuccess()) {
         const setupStatus = setupStatusResult.value;
 
-        // 🆕 Beta status check - redirect to appropriate beta page
+        /* Original implementation (commented out):
+        // Beta status check - redirect to appropriate beta page
         if (!setupStatus.isBetaApproved) {
           if (!setupStatus.beta_application) {
             // No application yet → redirect to application page
@@ -84,6 +86,9 @@ export async function GET(request: Request) {
         }
 
         // Beta approved - proceed with normal flow
+        */
+
+        // Proceed with normal flow (beta check removed)
         if (setupStatus.isSetupComplete) {
           // Existing user with complete setup - redirect to home or their last page
           const forwardedHost = request.headers.get('x-forwarded-host');

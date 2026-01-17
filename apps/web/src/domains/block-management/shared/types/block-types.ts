@@ -5,7 +5,6 @@
  * - 데이터베이스 스키마가 단일 진실 공급원 (Single Source of Truth)
  * - 여기서는 데이터베이스에서 추출한 타입을 사용
  */
-
 import { blockTypeEnum } from '@/db/schema';
 
 /**
@@ -51,7 +50,7 @@ export const BLOCK_TYPE_SIZES: Record<
   [BlockType.TEXT]: { width: 200, height: 100 }, // 텍스트 블록
   [BlockType.SHAPE]: { width: 154, height: 70 }, // 도형 블록
   [BlockType.MARKDOWN]: { width: 342, height: 456 }, // 마크다운 블록 (3:4 비율)
-  [BlockType.YOUTUBE]: { width: 405, height: 314 }, // YouTube 썸네일 + 메타정보
+  [BlockType.YOUTUBE]: { width: 410, height: 288 }, // YouTube iframe (222px) + 하단 정보 섹션
   [BlockType.IMAGE]: { width: 300, height: 200 },
   [BlockType.PDF]: { width: 300, height: 400 }, // PDF 문서
   [BlockType.AUDIO]: { width: 300, height: 120 }, // 오디오 플레이어
@@ -70,6 +69,16 @@ export const BLOCK_TYPE_SIZES: Record<
 } as const;
 
 /**
+ * 뷰 모드별 기본 크기 정의
+ * - original: 블록 타입별 BLOCK_TYPE_SIZES 사용
+ * - card, note: 범용 기본 크기 사용
+ */
+export const VIEW_MODE_DEFAULT_SIZES = {
+  card: { width: 300, height: 200 }, // 카드 뷰 범용 기본 크기
+  note: { width: 400, height: 300 }, // 노트 뷰 범용 기본 크기
+} as const;
+
+/**
  * 블록 타입별 기본 크기 가져오기
  * @param blockType - 블록 타입
  * @returns 블록 크기 정보
@@ -80,6 +89,22 @@ export function getBlockSize(blockType: BlockType): {
 } {
   const size = BLOCK_TYPE_SIZES[blockType as BlockType];
   return size || { width: 200, height: 150 };
+}
+
+/**
+ * 뷰 모드와 블록 타입에 따른 기본 크기 가져오기
+ * @param blockType - 블록 타입
+ * @param viewMode - 뷰 모드
+ * @returns 블록 크기 정보
+ */
+export function getBlockSizeForViewMode(
+  blockType: BlockType,
+  viewMode: 'original' | 'card' | 'note'
+): { width: number; height: number } {
+  if (viewMode === 'original') {
+    return getBlockSize(blockType);
+  }
+  return VIEW_MODE_DEFAULT_SIZES[viewMode];
 }
 
 /**

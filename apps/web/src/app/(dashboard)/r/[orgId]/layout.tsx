@@ -1,15 +1,18 @@
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+
 import {
   SidebarInset,
   SidebarProvider,
 } from '@workspace/ui/components/ui/sidebar';
+
+import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
 import { DashboardSidebar } from '@/domains/organization-management/frontend/components/sidebar/dashboard-sidebar';
 import { OrganizationProvider } from '@/domains/organization-management/frontend/contexts/organization-context';
-import { WorkspaceProvider } from '@/domains/workspace-management/frontend/contexts/workspace';
-import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
 import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-navigation.actions';
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { BetaRedirectClient } from '../beta-redirect-client';
+import { WorkspaceProvider } from '@/domains/workspace-management/frontend/contexts/workspace';
+
+// import { BetaRedirectClient } from '../beta-redirect-client';
 
 export default async function DashboardLayout({
   children,
@@ -22,11 +25,12 @@ export default async function DashboardLayout({
 
   // getUserOrganizationsAction은 인증 및 베타 체크를 수행
   // - 미인증: redirect to /login
-  // - 베타 미승인: BETA_ACCESS_REQUIRED 에러 발생 → 여기서 처리
+  // - 베타 미승인: BETA_ACCESS_REQUIRED 에러 발생 → 여기서 처리 (beta check removed)
   let organizations;
   try {
     organizations = await getUserOrganizationsAction();
   } catch (error) {
+    /* Original implementation (commented out):
     if (error instanceof Error && error.message === 'BETA_ACCESS_REQUIRED') {
       // Use client redirect to avoid hydration issues
       return (
@@ -36,6 +40,8 @@ export default async function DashboardLayout({
         />
       );
     }
+    */
+    // Re-throw error to be handled by Next.js error boundary
     throw error;
   }
 

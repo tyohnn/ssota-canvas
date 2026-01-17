@@ -7,8 +7,10 @@
 'use client';
 
 import { useCallback } from 'react';
+
 import { useReactFlow } from '@xyflow/react';
-import { updateBlockTitleAction } from '@/domains/block-management/actions/block.actions';
+
+import { updateBlockTitleAction } from '@/domains/block-management/actions/block/update-block-title.action';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
 export interface EditorPanelBusinessLogic {
@@ -43,6 +45,13 @@ export function useEditorPanelBusiness(
       }
 
       const trimmedTitle = title.trim();
+      const currentTitle = (blockData.title as string) || '';
+
+      // 변화가 없으면 업데이트하지 않음
+      if (currentTitle.trim() === trimmedTitle) {
+        return;
+      }
+
       const blockIdValue = (blockData.blockId as string) || blockId;
 
       try {
@@ -64,18 +73,11 @@ export function useEditorPanelBusiness(
           );
         }
 
-        // Validation
-        if (!blockData.workspaceId || !blockData.orgId) {
-          console.error('Missing workspaceId or orgId in blockData');
-          return;
-        }
-
         // Server action 호출
         const result = await updateBlockTitleAction({
           blockId: blockIdValue,
           title: trimmedTitle,
-          workspaceId: blockData.workspaceId,
-          orgId: blockData.orgId,
+          pageId: blockData.pageId, // ✅ 추가
         });
 
         if (!result.success) {

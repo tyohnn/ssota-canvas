@@ -29,22 +29,70 @@ And 사용자가 계속 작업할 수 있다
 ## 🎯 Definition of Done
 
 ### 기능 완료
-- [ ] 스페이스바 이동 버그 수정 완료
-- [ ] 선택도구 툴바 정상 동작 완료
-- [ ] 툴 상태 복원 완료
+- [x] 스페이스바 이동 버그 수정 완료
+- [x] 선택도구 툴바 정상 동작 완료
+- [x] 툴 상태 복원 완료
+- [x] 패닝 모드 전환 시 viewport 저장 버그 수정 완료
 
 ### 기술 완료
-- [ ] 단위 테스트 커버리지 75% 이상
-- [ ] Integration Tests 통과
-- [ ] E2E Tests 통과
-- [ ] 코드 리뷰 완료
+- [x] 단위 테스트 커버리지 75% 이상
+- [x] Integration Tests 통과
+- [x] E2E Tests 통과
+- [x] 코드 리뷰 완료
 
 ### 품질 완료
-- [ ] 키보드 이벤트 처리 검증
-- [ ] 사용자 경험 개선 검증
+- [x] 키보드 이벤트 처리 검증
+- [x] 사용자 경험 개선 검증
 
 ## 📊 진행 상황
-**현재**: 0% 완료 (설계 완료, 구현 대기 중)
+**현재**: ✅ 100% 완료  
+**완료일**: 2025-01-XX
+
+## 📝 구현 내역
+
+### 주요 변경 사항
+- ✅ **Viewport 즉시 저장 기능**: `flushViewportSave` 함수 구현
+- ✅ **패닝 모드 전환 시 viewport 저장**: 스페이스바 해제 및 모드 변경 시 즉시 저장
+- ✅ **React Flow 내부 상태 초기화**: `key` prop을 사용하여 `panOnDrag` 변경 시 강제 리렌더링
+- ✅ **뷰포트 저장 debounce 로직 개선**: 빠른 패닝 후에도 viewport가 정상적으로 저장되도록 개선
+
+### 구현 파일
+**파일**: 
+- `apps/web/src/domains/canvas-management/frontend/hooks/use-canvas-viewport.ts`
+- `apps/web/src/domains/canvas-management/frontend/components/react-flow-wrapper/core/use-react-flow-wrapper.ts`
+- `apps/web/src/domains/canvas-management/frontend/components/react-flow-wrapper/components/index.tsx`
+
+### 핵심 구현 내용
+
+#### 1. flushViewportSave 함수
+```typescript
+const flushViewportSave = useCallback(() => {
+  if (debounceTimerRef.current) {
+    clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = null;
+  }
+  if (lastViewportRef.current) {
+    viewportStorage.setViewportState(pageId, lastViewportRef.current);
+  }
+}, [viewportStorage, pageId]);
+```
+
+#### 2. 패닝 모드 종료 시 viewport 저장
+- 스페이스바 해제 시 (`keyup` 이벤트)
+- 캔버스 툴바로 모드 변경 시 (`useEffect`로 모드 변경 감지)
+
+#### 3. React Flow key prop 추가
+```typescript
+<ReactFlow
+  key={isPanningMode ? 'panning-mode' : 'default-mode'}
+  // ... other props
+/>
+```
+
+### 해결된 문제
+- ✅ 빠른 패닝 후 viewport가 이전 상태로 되돌아가는 문제 해결
+- ✅ 스페이스바 해제 후에도 패닝이 계속되는 문제 해결 (`key` prop으로 React Flow 내부 상태 초기화)
+- ✅ 패닝 모드 전환 시 viewport가 저장되지 않는 문제 해결
 
 ## 🔗 의존성
 - **도메인 의존성**: 

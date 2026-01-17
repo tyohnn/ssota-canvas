@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useInviteMemberDialogUI } from './use-invite-member-dialog.ui';
-import {
-  useInviteMemberDialogBusiness,
-  type InviteMemberDialogBusinessLogic,
-} from './use-invite-member-dialog.business';
+
 import type { InviteMemberDialogProps } from './types';
+import {
+  type InviteMemberDialogBusinessLogic,
+  useInviteMemberDialogBusiness,
+} from './use-invite-member-dialog.business';
+import { useInviteMemberDialogUI } from './use-invite-member-dialog.ui';
 
 /**
  * Combined Hook for InviteMemberDialog (Domain Level v4.0.0)
@@ -52,7 +53,6 @@ export function useInviteMemberDialog({
     }, 300);
 
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uiState.email, workspaceId, open]);
 
   // Handle dialog close

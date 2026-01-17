@@ -4,6 +4,9 @@ export { FontSizeToolbarItem } from './font-size-toolbar-item';
 export { TextAlignToolbarItem } from './text-align-toolbar-item';
 export { RichStyleToolbarItem } from './rich-style-toolbar-item';
 export { BorderStyleToolbarItem } from './border-style-toolbar-item';
+export { MoreMenuToolbarItem } from './more-menu-toolbar-item';
+export { ViewModeToolbarItem } from './view-mode-toolbar-item';
 
-// Text Block Toolbar Items
-// (현재는 공통 아이템만 사용)
+// Type exports
+export type { MoreMenuToolbarItemProps } from './more-menu-toolbar-item/core/types';
+export type { ViewModeToolbarItemProps } from './view-mode-toolbar-item';

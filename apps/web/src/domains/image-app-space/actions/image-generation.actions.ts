@@ -8,18 +8,19 @@
 
 'use server';
 
-import { ImageGenerationService } from '../backend/services/image-generation.service';
-import { ActionResult, ok, err } from '@/lib/action-result';
+import { getAuthErrorMessage } from '@/domains/common/auth/error';
 import {
-  GenerateImageRequestSchema,
-  type GenerateImageRequest,
-} from '../shared/dtos/requests/image-generation.requests';
-import {
+  type AuthenticatedUser,
   getAuthenticatedUser,
   verifyAccess,
-  type AuthenticatedUser,
 } from '@/domains/common/auth/helpers';
-import { getAuthErrorMessage } from '@/domains/common/auth/error';
+import { ActionResult, err, ok } from '@/lib';
+
+import { ImageGenerationService } from '../backend/services/image-generation.service';
+import {
+  type GenerateImageRequest,
+  GenerateImageRequestSchema,
+} from '../shared/dtos/requests/image-generation.requests';
 
 /**
  * 이미지 생성 Server Action

@@ -1,0 +1,127 @@
+/**
+ * Block Original Toolbar View Component
+ *
+ * Presentational component: 렌더링만 담당
+ * - Props만 받음
+ * - Hook 사용 없음
+ * - Context 사용 없음
+ * - Storybook에서 독립적으로 테스트 가능
+ */
+
+'use client';
+
+import { ChevronRight } from 'lucide-react';
+
+import { ToolbarContainer } from '@workspace/ui/components/ssota-ui/toolbar-container';
+import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
+import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
+import { cn } from '@workspace/ui/lib/utils';
+
+import { Box } from '@/components/ui/box';
+import { Separator } from '@/components/ui/separator';
+import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import type { BlockType } from '@/domains/block-management/shared/types/block-types';
+import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
+
+import {
+  MoreMenuToolbarItem,
+  ViewModeToolbarItem,
+} from '../../common-toolbar-items';
+import { BlockToolbarMapper } from './block-toolbar-mapper';
+
+export interface BlockOriginalToolbarViewProps {
+  blockId: string;
+  blockMountId: string;
+  blockType: BlockType;
+  blockData: BlockNodeData;
+  width?: number;
+  height?: number;
+  viewMode: BlockViewModeValue;
+  zoom: number;
+  pageId: string | undefined;
+  toolbarRef: React.RefObject<HTMLDivElement | null>;
+  onViewModeChange: (newViewMode: BlockViewModeValue) => Promise<void>;
+  onDetails: () => void;
+}
+
+/**
+ * Block Original Toolbar View
+ *
+ * Presentational 컴포넌트 (렌더링만)
+ */
+export function BlockOriginalToolbarView({
+  blockId,
+  blockMountId,
+  blockType,
+  blockData,
+  width,
+  height,
+  viewMode,
+  zoom,
+  pageId,
+  toolbarRef,
+  onViewModeChange,
+  onDetails,
+}: BlockOriginalToolbarViewProps) {
+  return (
+    <Box
+      className={cn(
+        'absolute top-[-50px] left-1/2 -translate-x-1/2 z-50',
+        'pointer-events-auto'
+      )}
+    >
+      <ToolbarContainer
+        toolbarRef={toolbarRef}
+        preventDrag
+        preventMouseDown
+        preventClick
+        className="gap-0.5"
+      >
+        <TooltipProvider>
+          {/* 블럭 타입별 기본 속성 툴바 아이템 (좌측부터) */}
+          <Box className="flex items-center gap-1">
+            <BlockToolbarMapper
+              blockId={blockId}
+              blockType={blockType}
+              blockData={blockData}
+              disabled={false}
+              width={width}
+              height={height}
+              zoom={zoom}
+            />
+          </Box>
+          <Separator orientation="vertical" className="h-6!" />
+          {/* 보기 방식 변경 */}
+          {pageId && (
+            <ViewModeToolbarItem
+              blockType={blockData.blockType}
+              currentViewMode={viewMode}
+              onViewModeChange={onViewModeChange}
+              zoom={zoom}
+            />
+          )}
+
+          {/* Details 버튼 */}
+          <ToolbarIconButton
+            icon={<ChevronRight />}
+            tooltip="Details"
+            tooltipSide="top"
+            tooltipOffset={5}
+            onClick={onDetails}
+            onMouseDown={e => e.stopPropagation()}
+            className="h-7 w-7 p-0"
+            iconClassName="size-3"
+          />
+          <Separator orientation="vertical" className="h-6!" />
+          {/* 더보기 메뉴 */}
+          <MoreMenuToolbarItem
+            blockId={blockId}
+            blockMountId={blockMountId}
+            width={width}
+            height={height}
+          />
+        </TooltipProvider>
+      </ToolbarContainer>
+    </Box>
+  );
+}

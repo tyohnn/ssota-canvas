@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BlockAggregate } from '../block.aggregate';
 import { Block } from '../../entities/block.entity';
-import { CreateBlockCommand, UpdateBlockCommand, DeleteBlockCommand } from '../../commands';
+import { CreateBlockCommand, DeleteBlockCommand } from '../../commands';
 import { BlockId } from '../../value-objects/block-id.vo';
 import { BlockType } from '../../value-objects/block-type.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import { BlockCreatedEvent, BlockUpdatedEvent, BlockDeletedEvent } from '../../events';
+import { BlockCreatedEvent, BlockDeletedEvent } from '../../events';
 import { BlockManagementError } from '../../errors/block-management.error';
 
 describe('BlockAggregate', () => {
@@ -69,61 +69,6 @@ describe('BlockAggregate', () => {
     });
   });
 
-  describe('update', () => {
-    let aggregate: BlockAggregate;
-
-    beforeEach(() => {
-      const command: CreateBlockCommand = {
-        blockId,
-        workspaceId,
-        userId,
-        blockType,
-        title: 'Test Video'
-      };
-      aggregate = BlockAggregate.create(command);
-      aggregate.markEventsAsCommitted(); // 초기 이벤트 커밋
-    });
-
-    it('should update block properties and emit BlockUpdatedEvent', () => {
-      const updateCommand: UpdateBlockCommand = {
-        blockId,
-        updateData: {
-          title: 'Updated Title',
-          properties: {}
-        }
-      };
-      
-      aggregate.update(updateCommand);
-      
-      expect(aggregate.getBlock().title).toBe('Updated Title');
-      
-      const events = aggregate.getUncommittedEvents();
-      expect(events).toHaveLength(1);
-      expect(events[0]).toBeInstanceOf(BlockUpdatedEvent);
-      
-      const updatedEvent = events[0] as BlockUpdatedEvent;
-      expect(updatedEvent.aggregateId).toBe(blockId);
-      expect(updatedEvent.data.updateData.title).toBe('Updated Title');
-    });
-
-    it('should throw error when updating deleted block', () => {
-      const deleteCommand: DeleteBlockCommand = {
-        blockId
-      };
-      aggregate.delete(deleteCommand);
-      aggregate.markEventsAsCommitted();
-      
-      const updateCommand: UpdateBlockCommand = {
-        blockId,
-        updateData: { title: 'Updated Title' }
-      };
-      
-      expect(() => {
-        aggregate.update(updateCommand);
-      }).toThrow(BlockManagementError);
-    });
-
-  });
 
   describe('delete', () => {
     let aggregate: BlockAggregate;
@@ -141,9 +86,7 @@ describe('BlockAggregate', () => {
     });
 
     it('should delete block and emit BlockDeletedEvent', () => {
-      const deleteCommand: DeleteBlockCommand = {
-        blockId
-      };
+      const deleteCommand: DeleteBlockCommand = {};
       
       aggregate.delete(deleteCommand);
       
@@ -160,9 +103,7 @@ describe('BlockAggregate', () => {
     });
 
     it('should throw error when deleting already deleted block', () => {
-      const deleteCommand: DeleteBlockCommand = {
-        blockId
-      };
+      const deleteCommand: DeleteBlockCommand = {};
       aggregate.delete(deleteCommand);
       aggregate.markEventsAsCommitted();
       
@@ -223,9 +164,7 @@ describe('BlockAggregate', () => {
     it('should return deletion status', () => {
       expect(aggregate.isDeleted()).toBe(false);
       
-      const deleteCommand: DeleteBlockCommand = {
-        blockId
-      };
+      const deleteCommand: DeleteBlockCommand = {};
       aggregate.delete(deleteCommand);
       
       expect(aggregate.isDeleted()).toBe(true);

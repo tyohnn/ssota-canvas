@@ -7,11 +7,10 @@
 ```
 docs/
 ├── event-domain-design/     # 🎯 도메인별 설계 문서
-│   └── README.md           # 도메인 설계 협업 가이드
 ├── project-technical-design/ # 🏗️ 프로젝트 전체 기술 설계
-│   └── README.md           # 기술 아키텍처 관리 가이드
 ├── agile-planning/          # 📋 애자일 계획 및 스토리
-│   └── README.md           # 애자일 프로세스 가이드
+├── patterns/                # 🧩 아키텍처 및 구현 패턴
+│   └── README.md           # 프로젝트 공통 패턴 가이드
 └── README.md               # 이 문서 (전체 시스템 가이드)
 ```
 
@@ -19,6 +18,7 @@ docs/
 - **[event-domain-design/](../event-domain-design/README.md)**: 도메인별 Event Storming → DDD 구현
 - **[project-technical-design/](../project-technical-design/README.md)**: 시스템 아키텍처 및 기술 스택
 - **[agile-planning/](../agile-planning/README.md)**: 스프린트 계획 및 사용자 스토리
+- **[patterns/](./patterns/README.md)**: Common design and implementation patterns (DI, Type Layering, etc.)
 
 ## 🎯 협업 방식
 

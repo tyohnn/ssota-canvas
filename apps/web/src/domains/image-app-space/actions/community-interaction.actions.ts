@@ -7,14 +7,15 @@
 
 'use server';
 
+import { ActionResult, err, ok } from '@/lib';
 import { createClient } from '@/utils/supabase/server';
-import { ActionResult, err, ok } from '@/lib/action-result';
+
 import { DrizzleCommunityInteractionRepository } from '../backend/repositories/implementations/drizzle-community-interaction.repository';
 import { CommunityInteractionService } from '../backend/services/community-interaction.service';
 import {
-  LikeImageRequestSchema,
   BookmarkImageRequestSchema,
   FollowUserRequestSchema,
+  LikeImageRequestSchema,
 } from '../shared/schemas/image-asset.schemas';
 
 /**
@@ -133,9 +134,8 @@ export async function toggleBookmarkAction(
     if (validatedRequest.imageAssetId.startsWith('unsplash:')) {
       const unsplashId = validatedRequest.imageAssetId.replace('unsplash:', '');
       try {
-        const { trackUnsplashDownloadAction } = await import(
-          './image-search.actions'
-        );
+        const { trackUnsplashDownloadAction } =
+          await import('./image-search.actions');
         await trackUnsplashDownloadAction(unsplashId);
       } catch (error) {
         console.warn('[toggleBookmarkAction] Failed to track download:', error);

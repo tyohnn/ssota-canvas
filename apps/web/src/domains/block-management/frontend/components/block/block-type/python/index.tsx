@@ -1,14 +1,18 @@
 'use client';
 
 import React, { memo, useState } from 'react';
+
 import type { NodeProps } from '@xyflow/react';
-import { PythonBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
-import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
+import { useReactFlow } from '@xyflow/react';
+import { AlertCircle, FileCode, Play } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
-import { Play, FileCode, AlertCircle } from 'lucide-react';
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
+import { PythonBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { PythonBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { cn } from '@/lib/utils';
+
+import { BaseBlock } from '../../base-block';
 
 /**
  * Python Block Component
@@ -42,7 +46,15 @@ export const PythonBlock = memo(function PythonBlock({
   const height = nodeH || size.height;
   const pythonBlockProperties = properties as PythonBlockProperties;
 
-  const { updateProperty } = useBlockPropertyUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateProperty } = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
   const [code, setCode] = useState(pythonBlockProperties.code || '');
   const [output, setOutput] = useState(pythonBlockProperties.output || '');
   const [isRunning, setIsRunning] = useState(false);

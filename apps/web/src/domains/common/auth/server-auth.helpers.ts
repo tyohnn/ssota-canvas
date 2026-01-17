@@ -3,10 +3,11 @@
  *
  * Common authentication helpers for Server Components
  */
-
 import { redirect } from 'next/navigation';
-import { createClient } from '@/utils/supabase/server';
+
 import type { User } from '@supabase/supabase-js';
+
+import { createClient } from '@/utils/supabase/server';
 
 /**
  * Get Authenticated User or Redirect

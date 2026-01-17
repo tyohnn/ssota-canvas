@@ -4,15 +4,19 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+
 import { useNodes } from '@xyflow/react';
+
+import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+
 import { EditorPanelContext } from './context';
 import { useEditorPanel } from './use-editor-panel';
-import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { EditorPanelBusinessLogic } from './use-editor-panel.business';
 
 export interface EditorPanelProviderProps {
   blockId: string;
+  blockMountId: string;
   isOpen: boolean;
   onClose: () => void;
   businessLogic?: EditorPanelBusinessLogic;
@@ -21,6 +25,7 @@ export interface EditorPanelProviderProps {
 
 export function EditorPanelProvider({
   blockId,
+  blockMountId,
   isOpen,
   onClose,
   businessLogic,
@@ -29,11 +34,39 @@ export function EditorPanelProvider({
   const nodes = useNodes();
 
   // React Flow Store에서 블록 데이터 읽기 (reactive)
+  // ✅ blockMountId로 노드 찾기 (node.id === blockMountId)
   const blockNode = useMemo(() => {
-    const node = nodes.find(node => node.id === blockId);
+    const node = nodes.find(node => node.id === blockMountId);
     return node;
-  }, [nodes, blockId]);
+  }, [nodes, blockMountId]);
+
   const blockData = blockNode?.data as BlockNodeData | undefined;
+
+  // Tab 전환 함수 관리 (ref 사용하여 최신 값 보장)
+  const tabSwitchCallbackRef = React.useRef<((tabId: string) => void) | null>(
+    null
+  );
+  const [tabSwitchCallback, setTabSwitchCallback] = useState<
+    ((tabId: string) => void) | null
+  >(null);
+
+  // Tab 전환 함수 (Context에 제공)
+  const switchToTab = useCallback((tabId: string) => {
+    // ref를 통해 최신 callback 사용
+    if (tabSwitchCallbackRef.current) {
+      tabSwitchCallbackRef.current(tabId);
+    } else {
+      console.warn(
+        '[EditorPanel] Tab switch callback not registered yet. Tab ID:',
+        tabId
+      );
+    }
+  }, []);
+
+  // Tab switch callback 업데이트 시 ref도 업데이트
+  React.useEffect(() => {
+    tabSwitchCallbackRef.current = tabSwitchCallback;
+  }, [tabSwitchCallback]);
 
   // Combined hook
   const editorPanel = useEditorPanel(
@@ -47,11 +80,14 @@ export function EditorPanelProvider({
   const contextValue = useMemo(
     () => ({
       blockId,
+      blockMountId,
       blockData,
       isOpen,
       ...editorPanel,
+      switchToTab,
+      setTabSwitchCallback,
     }),
-    [blockId, blockData, isOpen, editorPanel]
+    [blockId, blockMountId, blockData, isOpen, editorPanel, switchToTab]
   );
 
   return (

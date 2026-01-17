@@ -684,7 +684,7 @@ export const yourBlockEditorPanelSchema: BlockEditorSchema = {
 
 ### 6.2 Editor Schema Registry에 등록
 
-**파일**: `apps/web/src/domains/block-management/frontend/components/editor-panel/components/block-editor-schema-registry.ts`
+**파일**: `apps/web/src/domains/block-management/frontend/components/editor-panel/core/block-editor-schema-registry.ts`
 
 ```typescript
 import { yourBlockEditorPanelSchema } from '../../block/block-type/your-block/config/your-block-editor-panel-schema';
@@ -944,7 +944,7 @@ config/
 **export:** \`yourBlockEditorPanelSchema: BlockEditorSchema\`
 
 **사용처:**
-- \`block-editor-schema-registry.ts\`에서 import하여 등록
+- \`editor-panel/core/block-editor-schema-registry.ts\`에서 import하여 등록
 
 ### your-block-action-schemas.ts
 
@@ -1176,7 +1176,7 @@ const BLOCK_TYPES = [
   - `groups`와 `properties` 정의
 
 - [ ] **Editor Schema Registry 등록**
-  - `apps/web/src/domains/block-management/frontend/components/editor-panel/components/block-editor-schema-registry.ts`
+  - `apps/web/src/domains/block-management/frontend/components/editor-panel/core/block-editor-schema-registry.ts`
   - `registerDefaultSchemas()`에 추가
 
 - [ ] **Action Schemas 정의 (AI Agent용, 선택)**

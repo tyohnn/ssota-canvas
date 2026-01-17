@@ -1,29 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { getActionComponent, isActionLoaded } from './action-prefetch';
+
+import {
+  BLOCK_ACTION_MODULES,
+  getActionComponent,
+  isActionLoaded,
+} from './action-prefetch';
 
 export interface BlockActionMapperProps {
   blockId: string;
   blockType: string;
   blockData: BlockNodeData;
-  pageId: string;
-  orgId: string;
-  workspaceId: string;
 }
-
-/**
- * Block Action Items Registry
- * 런타임에 동적으로 import할 경로만 정의 (실제 import 없음)
- */
-const BLOCK_ACTION_MODULES: Record<string, boolean> = {
-  image: false,
-  youtube: true,
-  pdf: true,
-  link: true,
-  markdown: false, // TODO: 구현 예정
-};
 
 /**
  * BlockActionMapper Component (Registry 기반)
@@ -39,9 +30,6 @@ export function BlockActionMapper({
   blockId,
   blockType,
   blockData,
-  pageId,
-  orgId,
-  workspaceId,
 }: BlockActionMapperProps) {
   const [, forceUpdate] = useState(0);
 
@@ -77,21 +65,9 @@ export function BlockActionMapper({
 
   // 아직 로드되지 않음 (fallback)
   if (!ActionItemsComponent) {
-    return (
-      <div className="flex items-center gap-0.5">
-        <div className="h-8 w-8 animate-pulse bg-muted rounded" />
-      </div>
-    );
+    return null;
   }
 
   // 컴포넌트 즉시 렌더링 (no Suspense!)
-  return (
-    <ActionItemsComponent
-      blockId={blockId}
-      blockData={blockData}
-      pageId={pageId}
-      orgId={orgId}
-      workspaceId={workspaceId}
-    />
-  );
+  return <ActionItemsComponent blockId={blockId} blockData={blockData} />;
 }

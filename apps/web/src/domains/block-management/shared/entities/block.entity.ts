@@ -1,16 +1,17 @@
-import { BlockId } from '../value-objects/block-id.vo';
-import { BlockType } from '../value-objects/block-type.vo';
-import {
-  BlockPropertiesVO,
-  BlockPropertiesFactory,
-} from '../value-objects/block-properties';
-import { BlockManagementError } from '../errors/block-management.error';
+import { UserProfile } from '@/domains/user-management/shared/types';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 // validateBlockProperties는 Value Objects로 이동됨
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
-import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import { CustomPropertyDefinitionVO } from '../value-objects/custom-property-definition.vo';
-import { UserProfile } from '@/domains/user-management/shared/types';
+
+import { BlockManagementError } from '../errors/block-management.error';
 import { tiptapToMarkdown } from '../utils/tiptap-markdown.utils';
+import { BlockId } from '../value-objects/block-id.vo';
+import {
+  BlockPropertiesFactory,
+  BlockPropertiesVO,
+} from '../value-objects/block-properties';
+import { BlockType } from '../value-objects/block-type.vo';
+import { CustomPropertyDefinitionVO } from '../value-objects/custom-property-definition.vo';
 
 /**
  * Block Entity
@@ -157,11 +158,107 @@ export class Block {
   }
 
   /**
-   * 블록 정보 업데이트
+   * 블록 제목 업데이트
+   *
+   * @param title - 새로운 제목
+   */
+  updateTitle(title: string): void {
+    if (this.isDeleted()) {
+      throw new BlockManagementError(
+        'BLOCK_ALREADY_DELETED',
+        'Cannot modify deleted block'
+      );
+    }
+
+    this.title = title;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * 블록 콘텐츠 업데이트
+   *
+   * @param content - JSONB 콘텐츠 (TipTap JSON, 기타 구조화된 콘텐츠)
+   * @param contentRaw - Markdown 텍스트 (AI context용, 선택적)
+   */
+  updateContent(content: unknown, contentRaw?: string): void {
+    if (this.isDeleted()) {
+      throw new BlockManagementError(
+        'BLOCK_ALREADY_DELETED',
+        'Cannot modify deleted block'
+      );
+    }
+
+    this.content = content;
+    if (contentRaw !== undefined) {
+      (this as any).contentRaw = contentRaw;
+    }
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * 블록 속성 업데이트 (Record 병합)
+   *
+   * 기존 properties와 새로운 properties를 병합하여 업데이트합니다.
+   * Properties Value Object는 불변이므로 새로 생성합니다.
+   *
+   * @param properties - 업데이트할 속성들 (Record)
+   */
+  updatePropertiesFromRecord(properties: Record<string, any>): void {
+    if (this.isDeleted()) {
+      throw new BlockManagementError(
+        'BLOCK_ALREADY_DELETED',
+        'Cannot modify deleted block'
+      );
+    }
+
+    // 기존 properties와 새로운 properties를 병합하여 새 Value Object 생성
+    const currentPropertiesJSON = this.properties.toJSON() as Record<
+      string,
+      any
+    >;
+    // 기존 _extraFields (커스텀 속성 값) 포함
+    const existingExtraFields = (this.properties as any)._extraFields || {};
+    const currentPropertiesWithExtras = {
+      ...currentPropertiesJSON,
+      ...existingExtraFields,
+    };
+    const mergedProperties = {
+      ...currentPropertiesWithExtras,
+      ...properties,
+    };
+
+    // Properties VO 생성 (알 수 없는 필드는 _extraFields에 저장됨)
+    const newPropertiesVO = BlockPropertiesFactory.createFromJSON(
+      this.blockType,
+      mergedProperties
+    );
+
+    // 알 수 없는 필드(커스텀 속성 값 등)를 _extraFields에 저장
+    const knownPropertyKeys = new Set(Object.keys(currentPropertiesJSON));
+    const extraFields: Record<string, any> = {};
+    for (const [key, value] of Object.entries(mergedProperties)) {
+      if (!knownPropertyKeys.has(key)) {
+        extraFields[key] = value;
+      }
+    }
+
+    // _extraFields 설정 (protected 필드이므로 타입 단언 사용)
+    (newPropertiesVO as any)._extraFields = extraFields;
+
+    this.properties = newPropertiesVO;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * 블록 정보 업데이트 (레거시 호환용 - 내부 사용)
+   *
+   * @deprecated 이 메서드는 레거시 호환성을 위해 유지됩니다.
+   * 새로운 코드에서는 세분화된 메서드들(updateTitle, updateContent, updatePropertiesFromRecord)을 사용하세요.
    *
    * @param updateData - 업데이트할 데이터
+   * @internal
    */
-  update(updateData: {
+  private update(updateData: {
     title?: string;
     properties?: Record<string, any>;
     content?: unknown; // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
@@ -179,43 +276,11 @@ export class Block {
       this.title = updateData.title;
     }
 
-    // 속성 업데이트 - Properties Value Object는 불변이므로 새로 생성
+    // 속성 업데이트
     if (updateData.properties !== undefined) {
-      // 기존 properties와 새로운 properties를 병합하여 새 Value Object 생성
-      const currentPropertiesJSON = this.properties.toJSON() as Record<
-        string,
-        any
-      >;
-      // 기존 _extraFields (커스텀 속성 값) 포함
-      const existingExtraFields = (this.properties as any)._extraFields || {};
-      const currentPropertiesWithExtras = {
-        ...currentPropertiesJSON,
-        ...existingExtraFields,
-      };
-      const mergedProperties = {
-        ...currentPropertiesWithExtras,
-        ...updateData.properties,
-      };
-
-      // Properties VO 생성 (알 수 없는 필드는 _extraFields에 저장됨)
-      const newPropertiesVO = BlockPropertiesFactory.createFromJSON(
-        this.blockType,
-        mergedProperties
-      );
-
-      // 알 수 없는 필드(커스텀 속성 값 등)를 _extraFields에 저장
-      const knownPropertyKeys = new Set(Object.keys(currentPropertiesJSON));
-      const extraFields: Record<string, any> = {};
-      for (const [key, value] of Object.entries(mergedProperties)) {
-        if (!knownPropertyKeys.has(key)) {
-          extraFields[key] = value;
-        }
-      }
-
-      // _extraFields 설정 (protected 필드이므로 타입 단언 사용)
-      (newPropertiesVO as any)._extraFields = extraFields;
-
-      this.properties = newPropertiesVO;
+      this.updatePropertiesFromRecord(updateData.properties);
+      // updatedAt은 updatePropertiesFromRecord에서 이미 설정됨
+      return;
     }
 
     // 콘텐츠 업데이트

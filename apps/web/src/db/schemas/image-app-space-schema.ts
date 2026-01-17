@@ -12,24 +12,23 @@
  * 1. Settings → API → Exposed schemas에 'image_app_space' 추가
  * 2. 마이그레이션에서 권한 설정 (GRANT USAGE 등)
  */
-
-import {
-  pgSchema,
-  uuid,
-  text,
-  integer,
-  boolean,
-  timestamp,
-  jsonb,
-  index,
-  check,
-  pgPolicy,
-} from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
+import {
+  boolean,
+  check,
+  index,
+  integer,
+  jsonb,
+  pgPolicy,
+  pgSchema,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { anonRole, authenticatedRole } from 'drizzle-orm/supabase';
 
 // Import public schema tables for FK references
-import { profiles, workspaces, blocks, pages } from '../schema';
+import { blocks, pages, profiles, workspaces } from '../schema';
 
 /**
  * Image App Space Schema
@@ -166,6 +165,9 @@ export const imageAssets = imageAppSpaceSchema
         .on(table.category, table.created_at)
         .where(sql`${table.is_deleted} = false`),
       tagsIdx: index('idx_image_assets_tags').using('gin', sql`${table.tags}`),
+      signedUrlExpiresIdx: index('idx_image_assets_signed_url_expires')
+        .on(table.signed_url_expires_at)
+        .where(sql`${table.signed_url} IS NOT NULL`),
 
       // RLS Policies
       selectPolicy: pgPolicy('image_assets_select_policy', {

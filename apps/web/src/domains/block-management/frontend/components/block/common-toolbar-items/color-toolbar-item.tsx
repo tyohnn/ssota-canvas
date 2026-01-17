@@ -1,21 +1,14 @@
 'use client';
 
-import { useCallback } from 'react';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@workspace/ui/components/ui/popover';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@workspace/ui/components/ui/tooltip';
+import React from 'react';
+
+import { ToolbarOptionPopover } from '@workspace/ui/components/ssota-ui/toolbar-option-popover';
+import type { ToolbarOption } from '@workspace/ui/components/ssota-ui/toolbar-option-popover';
+
 import {
   ColorToken,
-  getColorPreviewClass,
   getColorLabel,
-  getSelectedRingClasses,
+  getColorPreviewClass,
 } from '@/domains/block-management/shared/types/style-tokens.types';
 import { cn } from '@/lib/utils';
 
@@ -25,22 +18,52 @@ interface ColorToolbarItemProps {
   currentColor: ColorToken;
   disabled?: boolean;
   onColorChange?: (color: ColorToken) => Promise<void>;
+  zoom?: number;
 }
 
-const COLOR_OPTIONS = [
-  // GRAY를 맨 앞에 배치
+/**
+ * 각 색상 토큰에 대한 border 클래스 (진한 색상, opacity 적용)
+ */
+const COLOR_BORDER_CLASSES: Record<ColorToken, string> = {
+  [ColorToken.RED]: 'border-red-500/50 dark:border-red-500/50',
+  [ColorToken.ORANGE]: 'border-orange-500/50 dark:border-orange-500/50',
+  [ColorToken.AMBER]: 'border-amber-500/50 dark:border-amber-500/50',
+  [ColorToken.GREEN]: 'border-green-500/50 dark:border-green-500/50',
+  [ColorToken.BLUE]: 'border-blue-500/50 dark:border-blue-500/50',
+  [ColorToken.PURPLE]: 'border-purple-500/50 dark:border-purple-500/50',
+  [ColorToken.PINK]: 'border-pink-500/50 dark:border-pink-500/50',
+  [ColorToken.GRAY]: 'border-gray-500/50 dark:border-gray-500/50',
+};
+
+// Color options (GRAY를 맨 앞에 배치)
+const COLOR_OPTIONS: ToolbarOption<ColorToken>[] = [
   {
     value: ColorToken.GRAY,
     label: getColorLabel(ColorToken.GRAY),
-    previewClass: getColorPreviewClass(ColorToken.GRAY),
+    icon: (
+      <div
+        className={cn(
+          'size-8 rounded border-2',
+          getColorPreviewClass(ColorToken.GRAY),
+          COLOR_BORDER_CLASSES[ColorToken.GRAY]
+        )}
+      />
+    ),
   },
-  // 나머지 색상들
   ...Object.values(ColorToken)
     .filter(token => token !== ColorToken.GRAY)
     .map(token => ({
       value: token,
       label: getColorLabel(token),
-      previewClass: getColorPreviewClass(token),
+      icon: (
+        <div
+          className={cn(
+            'size-8 rounded border-2',
+            getColorPreviewClass(token),
+            COLOR_BORDER_CLASSES[token]
+          )}
+        />
+      ),
     })),
 ];
 
@@ -50,77 +73,26 @@ export function ColorToolbarItem({
   currentColor,
   disabled = false,
   onColorChange,
+  zoom = 1,
 }: ColorToolbarItemProps) {
-  const handleColorSelect = useCallback(
-    async (color: ColorToken) => {
-      if (onColorChange) {
-        await onColorChange(color);
-      }
-    },
-    [onColorChange]
-  );
+  const handleColorChange = async (color: ColorToken) => {
+    if (onColorChange) {
+      await onColorChange(color);
+    }
+  };
 
   return (
-    <Popover>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            <button
-              className="flex items-center justify-center p-1 rounded-md hover:bg-black/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              onMouseDown={e => e.stopPropagation()}
-              disabled={disabled}
-            >
-              <div
-                className={cn(
-                  'h-4 w-4 rounded ring-1 ring-black/10',
-                  getColorPreviewClass(currentColor)
-                )}
-              />
-            </button>
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="top" hasArrow={false} sideOffset={10}>
-          <p>색상</p>
-        </TooltipContent>
-      </Tooltip>
-      <PopoverContent
-        className="p-2 w-fit"
-        side="top"
-        align="center"
-        onMouseDown={e => e.stopPropagation()}
-        onClick={e => e.stopPropagation()}
-        onOpenAutoFocus={e => e.preventDefault()}
-      >
-        <div className="flex gap-1.5">
-          {COLOR_OPTIONS.map(colorOption => (
-            <Tooltip key={colorOption.value}>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={e => {
-                    e.stopPropagation();
-                    handleColorSelect(colorOption.value);
-                  }}
-                  onMouseDown={e => e.stopPropagation()}
-                  className={cn(
-                    'h-7 w-7 rounded transition hover:scale-110',
-                    colorOption.previewClass,
-                    {
-                      'ring-1 ring-black/10':
-                        currentColor !== colorOption.value,
-                      [getSelectedRingClasses(colorOption.value)]:
-                        currentColor === colorOption.value,
-                    }
-                  )}
-                  aria-label={colorOption.label}
-                />
-              </TooltipTrigger>
-              <TooltipContent side="top" hasArrow={false} sideOffset={10}>
-                <p>{colorOption.label}</p>
-              </TooltipContent>
-            </Tooltip>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+    <ToolbarOptionPopover<ColorToken>
+      currentValue={currentColor}
+      options={COLOR_OPTIONS}
+      onValueChange={handleColorChange}
+      tooltip="색상"
+      tooltipSide="top"
+      tooltipOffset={5}
+      popoverSide="top"
+      popoverAlign="center"
+      zoom={zoom}
+      triggerIconClassName="border-1"
+    />
   );
 }

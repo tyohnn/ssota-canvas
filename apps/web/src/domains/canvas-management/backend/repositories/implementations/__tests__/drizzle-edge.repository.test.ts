@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DrizzleEdgeRepository } from '../drizzle-edge.repository';
 import { EdgeAggregate } from '../../../../shared/aggregates/edge.aggregate';
+import { CreateEdgeCommand } from '../../../../shared/commands';
 import { EdgeId } from '../../../../shared/value-objects/edge-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockMountId } from '../../../../shared/value-objects/block-mount-id.vo';
-import { EdgeShape } from '@/domains/canvas-management/shared/value-objects/edge-shape.vo';
+import { EdgeHandle } from '../../../../shared/value-objects/edge-handle.vo';
 
 // Mock Drizzle DB
 vi.mock('@/db', () => ({
@@ -71,14 +72,14 @@ describe('DrizzleEdgeRepository', () => {
   describe('create', () => {
     it('EdgeAggregate를 생성할 수 있어야 한다', async () => {
       // Given
-      const edgeId = new EdgeId('550e8400-e29b-41d4-a716-446655440003');
-      const aggregate = EdgeAggregate.createEdge(
-        edgeId,
-        mockPageId,
-        mockSourceBlockMountId,
-        mockTargetBlockMountId,
-        EdgeShape.default()
-      );
+      const command: CreateEdgeCommand = {
+        pageId: mockPageId,
+        sourceBlockMountId: mockSourceBlockMountId,
+        targetBlockMountId: mockTargetBlockMountId,
+        sourceHandle: EdgeHandle.right(),
+        targetHandle: EdgeHandle.left(),
+      };
+      const aggregate = EdgeAggregate.createEdge(command);
 
       // When
       await repository.create(aggregate);
@@ -92,14 +93,14 @@ describe('DrizzleEdgeRepository', () => {
   describe('update', () => {
     it('EdgeAggregate를 업데이트할 수 있어야 한다', async () => {
       // Given
-      const edgeId = new EdgeId('550e8400-e29b-41d4-a716-446655440003');
-      const aggregate = EdgeAggregate.createEdge(
-        edgeId,
-        mockPageId,
-        mockSourceBlockMountId,
-        mockTargetBlockMountId,
-        EdgeShape.default()
-      );
+      const command: CreateEdgeCommand = {
+        pageId: mockPageId,
+        sourceBlockMountId: mockSourceBlockMountId,
+        targetBlockMountId: mockTargetBlockMountId,
+        sourceHandle: EdgeHandle.right(),
+        targetHandle: EdgeHandle.left(),
+      };
+      const aggregate = EdgeAggregate.createEdge(command);
 
       // When
       await repository.update(aggregate);

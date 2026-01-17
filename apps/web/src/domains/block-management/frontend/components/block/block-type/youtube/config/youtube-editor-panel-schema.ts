@@ -3,7 +3,6 @@
  *
  * YouTube video embed block editor panel UI rendering schema
  */
-
 import type { BlockEditorSchema } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
@@ -17,34 +16,14 @@ export const youtubeEditorPanelSchema: BlockEditorSchema = {
       description: 'YouTube video information',
       defaultCollapsed: false,
       order: 1,
-      properties: [
-        'url',
-        'youtubeTitle',
-        'youtubeDescription',
-        'youtubeThumbnail',
-      ],
-    },
-    {
-      id: 'youtube-metadata',
-      label: 'YouTube Statistics',
-      description: 'YouTube statistics information (read-only)',
-      defaultCollapsed: true,
-      order: 2,
-      properties: [
-        'viewCount',
-        'likeCount',
-        'channelName',
-        'subscriberCount',
-        'commentCount',
-        'publishedAt',
-      ],
+      properties: ['url'],
     },
     {
       id: 'metadata',
       label: 'Metadata',
       description: 'Creation and modification information',
-      defaultCollapsed: true,
-      order: 3,
+      defaultCollapsed: false,
+      order: 2,
       properties: ['createdAt', 'updatedAt', 'createdBy'],
     },
   ],
@@ -59,110 +38,13 @@ export const youtubeEditorPanelSchema: BlockEditorSchema = {
       placeholder: 'https://www.youtube.com/watch?v=...',
       order: 1,
     },
-    youtubeTitle: {
-      label: 'Video Title',
-      inputType: 'text',
-      icon: 'Heading',
-      description: 'YouTube video title (editable after fetch)',
-      placeholder: 'Enter title...',
-      order: 2,
-    },
-    youtubeDescription: {
-      label: 'Video Description',
-      inputType: 'textarea',
-      icon: 'FileText',
-      description: 'YouTube video description (editable after fetch)',
-      placeholder: 'Enter description...',
-      order: 3,
-    },
     youtubeThumbnail: {
       label: 'Thumbnail',
       inputType: 'image-upload',
       icon: 'Image',
       description: 'YouTube thumbnail image (editable after fetch)',
       placeholder: 'Upload thumbnail image',
-      order: 4,
-    },
-
-    // YouTube 통계 정보 (읽기 전용)
-    viewCount: {
-      label: 'View Count',
-      inputType: 'readonly-text',
-      icon: 'Eye',
-      description: 'View count',
-      order: 5,
-      readonly: true,
-      defaultDisplay: (value: any) => {
-        if (!value) return '-';
-        return typeof value === 'number' ? value.toLocaleString() : value;
-      },
-    },
-    likeCount: {
-      label: 'Like Count',
-      inputType: 'readonly-text',
-      icon: 'ThumbsUp',
-      description: 'Like count',
-      order: 6,
-      readonly: true,
-      defaultDisplay: (value: any) => {
-        if (!value) return '-';
-        return typeof value === 'number' ? value.toLocaleString() : value;
-      },
-    },
-    channelName: {
-      label: '채널 이름',
-      inputType: 'readonly-text',
-      icon: 'User',
-      description: '채널 이름',
-      order: 7,
-      readonly: true,
-      defaultDisplay: (value: any) => {
-        if (!value) return '-';
-        return value;
-      },
-    },
-    subscriberCount: {
-      label: 'Subscriber Count',
-      inputType: 'readonly-text',
-      icon: 'Users',
-      description: 'Subscriber count',
-      order: 8,
-      readonly: true,
-      defaultDisplay: (value: any) => {
-        if (!value) return '-';
-        return typeof value === 'number' ? value.toLocaleString() : value;
-      },
-    },
-    commentCount: {
-      label: 'Comment Count',
-      inputType: 'readonly-text',
-      icon: 'MessageCircle',
-      description: 'Comment count',
-      order: 9,
-      readonly: true,
-      defaultDisplay: (value: any) => {
-        if (!value) return '-';
-        return typeof value === 'number' ? value.toLocaleString() : value;
-      },
-    },
-    publishedAt: {
-      label: '게시일',
-      inputType: 'readonly-datetime',
-      icon: 'Calendar',
-      description: '영상 게시일',
-      order: 10,
-      readonly: true,
-      defaultDisplay: (value: any) => {
-        if (!value) return '-';
-        const date = new Date(value);
-        return date.toLocaleString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-      },
+      order: 2,
     },
 
     // 메타데이터 (읽기 전용)

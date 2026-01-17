@@ -1,8 +1,12 @@
 import { useCallback } from 'react';
+
+import { useReactFlow } from '@xyflow/react';
+
+import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { useBlockPropertyUpdate } from '@/domains/block-management/frontend/hooks/use-block-property-update';
 import { recordImageUsageAction } from '@/domains/image-app-space/actions/image-asset.actions';
-import type { SelectImageParams, ImageItem } from './types';
+
+import type { ImageItem, SelectImageParams } from './types';
 
 /**
  * Business Logic Interface
@@ -31,7 +35,15 @@ export function useImageSpaceBusiness(
   blockId: string,
   blockData: BlockNodeData
 ): ImageSpaceBusinessLogic {
-  const { updateProperties } = useBlockPropertyUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateProperties } = useUpdateBlockProperty({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: any }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
 
   const onSelectImage = useCallback(
     async ({ imageUrl, source, metadata = {} }: SelectImageParams) => {
@@ -54,7 +66,11 @@ export function useImageSpaceBusiness(
           }
         }
 
-        await updateProperties(blockId, propertiesToUpdate, blockData);
+        await updateProperties(
+          blockData.blockId,
+          propertiesToUpdate,
+          blockData
+        );
 
         // Scenario 4: ImageAssetUsage 기록 (use_count 증가)
         if (metadata.imageAssetId && blockData.pageId) {

@@ -6,10 +6,9 @@
  * - Input types: 프론트엔드에서 사용 (더 유연한 타입)
  * - Output types: 서버에서 사용 (검증된 타입)
  */
-
 import { z } from 'zod';
+
 import { blockTypeEnum } from '@/db/schema';
-import type { Position, Size } from '../../types/common.types';
 
 /**
  * Block Type 검증 스키마
@@ -54,13 +53,17 @@ export const SizeSchema = z.object({
  *
  * ⚠️ SSOT: size는 optional로 두고, 실제 사용 시 getBlockSize()로 기본값 설정
  */
+/**
+ * View Mode 검증 스키마
+ */
+export const ViewModeSchema = z.enum(['note', 'original', 'card']);
+
 export const CreateAndMountBlockRequestSchema = z.object({
   pageId: z.uuid('Invalid page ID'),
   blockType: BlockTypeSchema,
   position: PositionSchema,
   size: SizeSchema, // 프론트엔드에서 항상 전달됨
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
+  viewMode: ViewModeSchema.optional(), // 초기 viewMode (선택적, 기본값: original)
   // 선택적 초기 title
   title: z.string().optional(),
   // 선택적 초기 properties (예: 클립보드 붙여넣기 시 URL 등)
@@ -79,8 +82,7 @@ export const UpdateBlockPositionRequestSchema = z.object({
       position: PositionSchema,
     })
   ),
-  orgId: z.uuid('Invalid organization ID'),
-  workspaceId: z.uuid('Invalid workspace ID'),
+  pageId: z.uuid('Invalid page ID'),
 });
 
 /**
@@ -89,8 +91,7 @@ export const UpdateBlockPositionRequestSchema = z.object({
 export const UpdateBlockSizeRequestSchema = z.object({
   blockMountId: z.uuid('Invalid block mount ID'),
   newSize: SizeSchema,
-  orgId: z.uuid('Invalid organization ID'),
-  workspaceId: z.uuid('Invalid workspace ID'),
+  viewMode: ViewModeSchema.optional(), // 어떤 뷰 모드의 크기를 업데이트할지 (기본값: 현재 viewMode)
 });
 
 /**
@@ -98,17 +99,16 @@ export const UpdateBlockSizeRequestSchema = z.object({
  */
 export const SoftDeleteBlockMountRequestSchema = z.object({
   blockMountIds: z.array(z.uuid('Invalid block mount ID')),
-  orgId: z.uuid('Invalid organization ID'),
-  workspaceId: z.uuid('Invalid workspace ID'),
+  pageId: z.uuid('Invalid page ID'),
 });
 
 /**
  * 블럭 복제 요청 스키마
+ *
+ * ⚠️ Zero Trust: pageId는 서버에서 blockMount 조회 후 자동 추출
  */
 export const DuplicateBlockAndMountRequestSchema = z.object({
   blockMountId: z.uuid('Invalid block mount ID'),
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
   offsetX: z.number().optional(),
   offsetY: z.number().optional(),
 });
@@ -119,8 +119,14 @@ export const DuplicateBlockAndMountRequestSchema = z.object({
 export const MoveBlockToPageRequestSchema = z.object({
   blockMountId: z.uuid('Invalid block mount ID'),
   targetPageId: z.uuid('Invalid target page ID'),
-  workspaceId: z.uuid('Invalid workspace ID'),
-  orgId: z.uuid('Invalid organization ID'),
+});
+
+/**
+ * 블럭 View Mode 업데이트 요청 스키마
+ */
+export const UpdateBlockMountViewModeRequestSchema = z.object({
+  blockMountId: z.uuid('Invalid block mount ID'),
+  viewMode: ViewModeSchema,
 });
 
 // Input types (프론트엔드에서 사용)
@@ -142,6 +148,9 @@ export type DuplicateBlockAndMountRequestInput = z.input<
 export type MoveBlockToPageRequestInput = z.input<
   typeof MoveBlockToPageRequestSchema
 >;
+export type UpdateBlockMountViewModeRequestInput = z.input<
+  typeof UpdateBlockMountViewModeRequestSchema
+>;
 
 // Output types (서버에서 사용)
 export type CreateAndMountBlockRequest = z.output<
@@ -161,4 +170,7 @@ export type DuplicateBlockAndMountRequest = z.output<
 >;
 export type MoveBlockToPageRequest = z.output<
   typeof MoveBlockToPageRequestSchema
+>;
+export type UpdateBlockMountViewModeRequest = z.output<
+  typeof UpdateBlockMountViewModeRequestSchema
 >;

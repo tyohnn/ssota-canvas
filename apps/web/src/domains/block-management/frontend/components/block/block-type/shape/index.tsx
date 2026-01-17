@@ -2,27 +2,34 @@
 
 import React, {
   memo,
-  useMemo,
-  useState,
-  useRef,
-  useEffect,
   useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
+
 import type { NodeProps } from '@xyflow/react';
+import { useReactFlow } from '@xyflow/react';
+
+import { cn } from '@workspace/ui/lib/utils';
+
+import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/block-property/use-block-title-update';
 import type { ShapeBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { BaseBlock } from '../base-block';
+import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import {
+  ColorToken,
+  getGlowColor,
+  getSelectedRingClasses,
+} from '@/domains/block-management/shared/types/style-tokens.types';
 import {
   ShapeBlockProperties,
   ShapeType,
 } from '@/domains/block-management/shared/value-objects/block-properties';
-import {
-  ColorToken,
-  getSelectedRingClasses,
-  getGlowColor,
-} from '@/domains/block-management/shared/types/style-tokens.types';
-import { cn } from '@workspace/ui/lib/utils';
-import { useBlockTitleUpdate } from '@/domains/block-management/frontend/hooks/use-block-title-update';
-import { useCanvasMode } from '@/domains/canvas-management/frontend/hooks/use-canvas-mode';
+import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
+
+import { DataBlock } from '../../data-block';
+import { CardView } from '../../data-block/components/card-view';
 
 /**
  * Shape Block Node Component
@@ -66,12 +73,20 @@ export const ShapeBlock = memo(function ShapeBlock({
   const borderStyle = shapeBlockProperties.borderStyle;
 
   // Block title update hook
-  const { updateTitle } = useBlockTitleUpdate();
+  const { getNode, updateNode } = useReactFlow();
+  const { updateBlockTitle } = useUpdateBlockTitle({
+    reactFlow: {
+      getNode,
+      updateNode: (nodeId: string, options: { data: BlockNodeData }) => {
+        updateNode(nodeId, options);
+      },
+    },
+  });
 
   // Canvas mode context
-  const { setTextareaEditing } = useCanvasMode();
+  const { setTextareaEditing } = useCanvasModeContext();
 
-  // 텍스트 편집 상태 (SSOT)
+  // 텍스트 편집 상태 (SSOT) - Original View에서만 사용
   const [isEditing, setIsEditing] = useState(false);
   const [draftContent, setDraftContent] = useState(content);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -108,12 +123,16 @@ export const ShapeBlock = memo(function ShapeBlock({
       }
 
       try {
-        await updateTitle(id, newContent, nodeData);
+        await updateBlockTitle({
+          nodeId: id,
+          title: newContent,
+          blockData: nodeData,
+        });
       } catch (error) {
         console.error('Failed to save title:', error);
       }
     },
-    [id, updateTitle, content, nodeData]
+    [id, updateBlockTitle, content, nodeData]
   );
 
   // 선택 시 편집 모드 진입 (더블클릭 모드가 활성화된 경우에만)
@@ -386,17 +405,9 @@ export const ShapeBlock = memo(function ShapeBlock({
     }
   }, [shapeType, width, height, colors, strokeDasharray]);
 
-  return (
-    <BaseBlock
-      data={nodeData}
-      selected={selected}
-      isConnectable={true}
-      width={width}
-      height={height}
-      noBorder={true}
-      noBackground={true}
-    >
-      {/* Shape Block Content */}
+  // Original View 렌더러 (기존 편집 로직 포함)
+  const renderOriginalView = () => {
+    return (
       <div
         className={cn(
           'w-full h-full flex flex-col rounded-lg',
@@ -496,6 +507,22 @@ export const ShapeBlock = memo(function ShapeBlock({
           </div>
         </div>
       </div>
-    </BaseBlock>
+    );
+  };
+
+  // Card View 렌더러
+  const renderCardView = () => {
+    return <CardView data={nodeData} selected={selected} />;
+  };
+
+  return (
+    <DataBlock
+      data={nodeData}
+      selected={selected}
+      width={width}
+      height={height}
+      renderOriginalView={renderOriginalView}
+      renderCardView={renderCardView}
+    />
   );
 });
