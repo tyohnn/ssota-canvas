@@ -6,19 +6,16 @@ import type { Result } from './interfaces/common.types';
 import { Result as R } from './interfaces/common.types';
 import { PageAggregate } from '../../shared/aggregates/page.aggregate';
 import { CanvasQueryService } from '@/domains/canvas-management/backend/services/canvas-query.service';
-import { CanvasBlockMountService } from '@/domains/canvas-management/backend/services/canvas-block-mount.service';
-import { CanvasEdgeService } from '@/domains/canvas-management/backend/services/canvas-edge.service';
-import { BlockManagementService } from '@/domains/block-management/backend/services/block-management.service';
+import { createAndMountBlock } from '@/domains/canvas-management/backend/services/block-mount';
+import { createEdge } from '@/domains/canvas-management/backend/services/edge';
 import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-edge.repository';
 import { DrizzleViewportRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-viewport.repository';
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '../../shared/value-objects/workspace-id.vo';
-import { BlockType } from '@/domains/block-management/shared/value-objects/block-type.vo';
-import { Position } from '@/domains/canvas-management/shared/value-objects/position.vo';
-import { Size } from '@/domains/canvas-management/shared/value-objects/size.vo';
-import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
+import type { CreateAndMountBlockRequest } from '@/domains/canvas-management/shared/dtos/requests';
+import type { CreateEdgeRequest } from '@/domains/canvas-management/shared/dtos/requests/edge.requests';
 
 /**
  * 페이지를 다른 워크스페이스로 복제
@@ -69,18 +66,6 @@ export async function copyPageToWorkspace(
       viewportRepo
     );
 
-    const blockManagementService = new BlockManagementService(blockRepo);
-    const canvasBlockMountService = new CanvasBlockMountService(
-      blockManagementService,
-      blockMountRepo,
-      edgeRepo
-    );
-
-    const canvasEdgeService = new CanvasEdgeService(
-      blockMountRepo,
-      edgeRepo
-    );
-
     // 원본 캔버스 데이터 조회
     const canvasViewResult = await canvasQueryService.getCanvasView(
       new PageId(sourcePageId),
@@ -94,20 +79,35 @@ export async function copyPageToWorkspace(
     const { blocks: sourceBlocks, edges: sourceEdges } = canvasViewResult.value;
 
     const blockMountIdMap = new Map<string, string>();
+    const userIdVO = new UserId(userId);
+    const workspaceIdVO = new WorkspaceId(targetWorkspaceId);
 
     // 3-1. 블록 복제
     for (const block of sourceBlocks) {
-      const createResult = await canvasBlockMountService.createAndMountBlock({
-        userId: new UserId(userId),
-        workspaceId: new WorkspaceId(targetWorkspaceId),
-        pageId: new PageId(newPageId),
-        blockType: new BlockType(block.blockType),
-        position: new Position(block.position.x, block.position.y),
-        size: new Size(block.size.width, block.size.height),
+      const createRequest: CreateAndMountBlockRequest = {
+        pageId: newPageId,
+        blockType: block.blockType,
+        position: {
+          x: block.position.x,
+          y: block.position.y,
+        },
+        size: {
+          width: block.size.width,
+          height: block.size.height,
+        },
         title: block.title,
         initialProperties: block.properties,
         initialContent: block.content,
-      });
+        viewMode: block.viewMode,
+      };
+
+      const createResult = await createAndMountBlock(
+        createRequest,
+        userIdVO,
+        workspaceIdVO,
+        blockRepo,
+        blockMountRepo
+      );
 
       if (createResult.isError()) {
         console.error(`❌ [copyPageToWorkspace] Failed to duplicate block: ${createResult.error.message}`);
@@ -127,15 +127,20 @@ export async function copyPageToWorkspace(
         continue;
       }
 
-      const edgeResult = await canvasEdgeService.createEdge({
-        pageId: new PageId(newPageId),
-        sourceBlockMountId: new BlockMountId(newSourceId),
-        targetBlockMountId: new BlockMountId(newTargetId),
-        sourceHandle: edge.sourceHandle ?? undefined,
-        targetHandle: edge.targetHandle ?? undefined,
-        edgeShape: undefined, // Need to handle edge shape if available
-        userId,
-      });
+      const edgeRequest: CreateEdgeRequest = {
+        pageId: newPageId,
+        sourceBlockMountId: newSourceId,
+        targetBlockMountId: newTargetId,
+        sourceHandle: edge.sourceHandle as 'left' | 'right' | 'top' | 'bottom',
+        targetHandle: edge.targetHandle as 'left' | 'right' | 'top' | 'bottom',
+      };
+
+      const edgeResult = await createEdge(
+        edgeRequest,
+        userIdVO,
+        blockMountRepo,
+        edgeRepo
+      );
 
       if (edgeResult.isError()) {
         console.warn(`⚠️ [copyPageToWorkspace] Failed to duplicate edge: ${edgeResult.error.message}`);
