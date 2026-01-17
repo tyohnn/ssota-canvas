@@ -6,10 +6,6 @@ export { DefaultPageHierarchyService } from './page-hierarchy.service';
 export { copyPageToWorkspace } from './copy-page';
 
 // Queries
-export * from './queries/get-workspace-name';
-export * from './queries/get-workspace-basic-info';
-export * from './queries/get-organization-workspaces';
-export * from './queries/is-member';
 export * from './queries/get-workspaces-for-user';
 export * from './queries/get-page-info';
 export * from './queries/get-workspace-by-page-id';
