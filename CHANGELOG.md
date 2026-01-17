@@ -1,3 +1,8 @@
+## [0.7.1] - 2026-01-17
+
+### Hotfix
+
+- Edit db migrations
 ## [0.7.0] - 2026-01-17
 
 ### Update
