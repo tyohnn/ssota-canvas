@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PublishedPageViewer } from '@/domains/share/frontend/components/published-page-viewer';
 import { CopyFlowDialog } from '@/domains/share/frontend/components/copy-flow-dialog';
 import { LoginPromptDialog } from '@/domains/share/frontend/components/login-prompt-dialog';
-import { createClient } from '@/utils/supabase/browser';
+import { getUser } from '@/domains/auth/client/auth-helpers';
 import { PublishedPageViewDTO } from '@/domains/share/shared/dtos';
 
 interface PublishPageClientProps {
@@ -37,10 +37,7 @@ export default function PublishPageClient({
 
   const handleCopyRequested = async () => {
     try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getUser();
       if (!user) {
         setIsLoginOpen(true);
         return;
