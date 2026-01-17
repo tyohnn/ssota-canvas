@@ -277,6 +277,25 @@ export interface SearchPagesResponse {
 }
 
 // ────────────────────────────────────────────────────────────
+// Workspace By Organization DTOs
+// ────────────────────────────────────────────────────────────
+
+/**
+ * 조직별로 그룹핑된 워크스페이스 목록
+ */
+export interface AllWorkspacesByOrgDTO {
+  organizations: {
+    id: string;
+    name: string;
+    workspaces: {
+      id: string;
+      name: string;
+      icon?: string;
+    }[];
+  }[];
+}
+
+// ────────────────────────────────────────────────────────────
 // Server Action Result Type
 // ────────────────────────────────────────────────────────────
 

@@ -17,10 +17,10 @@ import {
 import { Button } from '@workspace/ui/components/ui/button';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { WorkspaceSelectionViewDTO } from '../../../../shared/dtos';
+import type { WorkspaceWithOrgDTO } from '@/domains/workspace-management/shared/dtos';
 
 interface WorkspaceSelectorProps {
-  workspaces: WorkspaceSelectionViewDTO['workspaces'];
+  workspaces: WorkspaceWithOrgDTO[];
   selectedWorkspaceId: string | null;
   onSelect: (workspaceId: string) => void;
   isLoading?: boolean;
