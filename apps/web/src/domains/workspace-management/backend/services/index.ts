@@ -3,7 +3,7 @@ export { DefaultWorkspaceNavigationService } from './workspace-navigation.servic
 export { DefaultWorkspaceCrudService } from './workspace-crud.service';
 export { DefaultWorkspaceInvitationService } from './workspace-invitation.service';
 export { DefaultPageHierarchyService } from './page-hierarchy.service';
-export { copyPageToWorkspace } from './copy-page';
+export { copyPageToWorkspace } from './copy-page.service';
 
 // Interfaces
 export type { WorkspaceNavigationService } from './interfaces/workspace-navigation.service.interface';

@@ -16,7 +16,7 @@ import type { PageActionContext } from '@/domains/common/auth/types';
 import { ActionResult, err, ok } from '@/lib';
 
 import { DrizzlePublishedPageRepository } from '../backend/repositories/implementations/drizzle-published-page.repository';
-import { unpublishPage } from '../backend/services/unpublish-page';
+import { unpublishPage } from '../backend/services';
 import {
   UnpublishPageRequest,
   UnpublishPageRequestSchema,

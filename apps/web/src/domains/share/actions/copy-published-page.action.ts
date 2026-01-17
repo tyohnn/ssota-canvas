@@ -13,7 +13,7 @@
 import { ActionResult, err, ok } from '@/lib';
 
 import { DrizzlePublishedPageRepository } from '../backend/repositories/implementations/drizzle-published-page.repository';
-import { copyPublishedPage } from '../backend/services/copy-published-page';
+import { copyPublishedPage } from '../backend/services';
 import {
   CopyPublishedPageRequest,
   CopyPublishedPageRequestSchema,

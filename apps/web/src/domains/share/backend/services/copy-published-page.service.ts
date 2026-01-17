@@ -7,7 +7,7 @@ import {
 import { ShareManagementError } from '../../shared/errors/share-management.error';
 import { PublishedPageRepository } from '../repositories/interfaces/published-page.repository.interface';
 import { PublishToken } from '../../shared/value-objects/publish-token.vo';
-import { copyPageToWorkspace } from '@/domains/workspace-management/backend/services/copy-page';
+import { copyPageToWorkspace } from '@/domains/workspace-management/backend/services/copy-page.service';
 import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 
 export async function copyPublishedPage(

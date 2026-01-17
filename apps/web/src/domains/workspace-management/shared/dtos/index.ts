@@ -281,6 +281,16 @@ export interface SearchPagesResponse {
 // ────────────────────────────────────────────────────────────
 
 /**
+ * 워크스페이스 정보 (조직 정보 포함)
+ */
+export interface WorkspaceWithOrgDTO {
+  id: string;
+  name: string;
+  icon?: string;
+  organizationName?: string;
+}
+
+/**
  * 조직별로 그룹핑된 워크스페이스 목록
  */
 export interface AllWorkspacesByOrgDTO {

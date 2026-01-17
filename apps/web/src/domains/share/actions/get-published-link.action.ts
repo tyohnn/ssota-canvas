@@ -16,7 +16,7 @@ import type { PageActionContext } from '@/domains/common/auth/types';
 import { ActionResult, err, ok } from '@/lib';
 
 import { DrizzlePublishedPageRepository } from '../backend/repositories/implementations/drizzle-published-page.repository';
-import { getPublishedLink } from '../backend/services/get-published-link';
+import { getPublishedLink } from '../backend/services';
 import {
   GetPublishedLinkRequest,
   GetPublishedLinkRequestSchema,
