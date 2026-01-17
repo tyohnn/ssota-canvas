@@ -3,7 +3,7 @@
 import { useCallback } from 'react';
 import { useCopyPublishedPage } from '../../../hooks/use-copy-published-page';
 import { ShareManagementError } from '../../../../shared/errors/share-management.error';
-import { CopyResultDTO } from '../../../../shared/dtos';
+import type { CopyResultDTO } from '../../../../shared/dtos/response';
 
 interface UseCopyFlowBusinessProps {
   publishToken: string;
@@ -20,16 +20,35 @@ export function useCopyFlowBusiness({
   setError,
   setResult,
 }: UseCopyFlowBusinessProps) {
-  const copyMutation = useCopyPublishedPage();
+  const { copyPublishedPage, isCopying } = useCopyPublishedPage({
+    onSuccess: (response: CopyResultDTO) => {
+      if (response.status === 'failed') {
+        setResult('failed');
+        setError(response.errorMessage ?? 'Failed to copy page');
+        return;
+      }
+      setResult('success');
+    },
+    onError: () => {
+      setResult('failed');
+      setError('Failed to copy page');
+    },
+  });
 
   const handleCopy = useCallback(async () => {
     if (!selectedWorkspaceId) return;
 
     try {
-      const response: CopyResultDTO = await copyMutation.mutateAsync({
+      const response = await copyPublishedPage({
         publishToken,
         targetWorkspaceId: selectedWorkspaceId,
       });
+
+      if (!response) {
+        setResult('failed');
+        setError('Failed to copy page');
+        return;
+      }
 
       if (response.status === 'failed') {
         setResult('failed');
@@ -53,10 +72,10 @@ export function useCopyFlowBusiness({
       setResult('failed');
       setError(message);
     }
-  }, [selectedWorkspaceId, publishToken, copyMutation, onLoginRequired, setError, setResult]);
+  }, [selectedWorkspaceId, publishToken, copyPublishedPage, onLoginRequired, setError, setResult]);
 
   return {
-    copyMutation,
+    isCopying,
     handleCopy,
   };
 }

@@ -21,18 +21,27 @@ export function usePublishFlowBusiness({
   setIsLinkCopied,
 }: UsePublishFlowBusinessProps) {
   const { copyLinkToClipboard } = useShare();
-  const publishMutation = usePublishPage();
-  const unpublishMutation = useUnpublishPage();
+  const { publishPage, isPublishing } = usePublishPage({
+    onSuccess: (result) => {
+      onPublished?.(result.publishUrl);
+    },
+    onError: () => {
+      setError('Failed to publish');
+    },
+  });
+  const { unpublishPage, isUnpublishing } = useUnpublishPage({
+    onError: () => {
+      setError('Failed to unpublish');
+    },
+  });
 
   const handlePublish = useCallback(async () => {
     setError(null);
-    try {
-      const result = await publishMutation.mutateAsync({ pageId });
-      onPublished?.(result.publishUrl);
-    } catch (err) {
-      setError((err as Error).message ?? 'Failed to publish');
+    const result = await publishPage({ pageId });
+    if (!result) {
+      setError('Failed to publish');
     }
-  }, [pageId, publishMutation, onPublished, setError]);
+  }, [pageId, publishPage, setError]);
 
   const handleCopy = useCallback(async () => {
     if (!publishUrl) return;
@@ -46,16 +55,15 @@ export function usePublishFlowBusiness({
 
   const handleUnpublish = useCallback(async () => {
     setError(null);
-    try {
-      await unpublishMutation.mutateAsync({ pageId });
-    } catch (err) {
-      setError((err as Error).message ?? 'Failed to unpublish');
+    const success = await unpublishPage({ pageId });
+    if (!success) {
+      setError('Failed to unpublish');
     }
-  }, [pageId, unpublishMutation, setError]);
+  }, [pageId, unpublishPage, setError]);
 
   return {
-    publishMutation,
-    unpublishMutation,
+    isPublishing,
+    isUnpublishing,
     handlePublish,
     handleCopy,
     handleUnpublish,

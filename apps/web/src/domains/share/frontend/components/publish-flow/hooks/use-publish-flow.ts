@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { usePublishedLink } from '../../../hooks/use-published-link';
+import { useMemo, useEffect, useState } from 'react';
+import { usePublishedLink } from '../../../hooks/use-get-published-link';
 import { usePublishFlowUI } from './use-publish-flow.ui';
 import { usePublishFlowBusiness } from './use-publish-flow.business';
 
@@ -12,13 +12,28 @@ interface UsePublishFlowProps {
 
 export function usePublishFlow({ pageId, onPublished }: UsePublishFlowProps) {
   const ui = usePublishFlowUI();
-  const { data: linkData, isLoading: isLinkLoading } = usePublishedLink(pageId);
-  const publishUrl = linkData?.publishUrl ?? null;
+  const { getPublishedLink, isGettingLink } = usePublishedLink();
+  const [publishUrl, setPublishUrl] = useState<string | null>(null);
+  const [isLoadingLink, setIsLoadingLink] = useState(false);
+
+  // 초기 로드 시 링크 조회
+  useEffect(() => {
+    const loadLink = async () => {
+      setIsLoadingLink(true);
+      const linkData = await getPublishedLink({ pageId });
+      setPublishUrl(linkData?.publishUrl ?? null);
+      setIsLoadingLink(false);
+    };
+    loadLink();
+  }, [pageId, getPublishedLink]);
 
   const business = usePublishFlowBusiness({
     pageId,
     publishUrl,
-    onPublished,
+    onPublished: (url) => {
+      setPublishUrl(url);
+      onPublished?.(url);
+    },
     setError: ui.setError,
     setIsLinkCopied: ui.setIsLinkCopied,
   });
@@ -34,10 +49,10 @@ export function usePublishFlow({ pageId, onPublished }: UsePublishFlowProps) {
   return {
     ...ui,
     ...business,
-    isLoading: isLinkLoading,
-    isSubmitting: business.publishMutation.isPending,
-    isUnpublishing: business.unpublishMutation.isPending,
-    error: ui.error || (business.publishMutation.error?.message) || (business.unpublishMutation.error?.message) || null,
+    isLoading: isLoadingLink || isGettingLink,
+    isSubmitting: business.isPublishing,
+    isUnpublishing: business.isUnpublishing,
+    error: ui.error,
     publishUrl,
     normalizedUrl,
   };
