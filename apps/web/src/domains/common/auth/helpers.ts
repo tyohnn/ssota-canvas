@@ -67,9 +67,7 @@ export interface AccessVerificationResult {
 /**
  * Supabase 인증된 사용자 가져오기
  *
- * ⚠️ Beta Access Check: 베타 승인되지 않은 사용자는 차단됩니다
- *
- * @throws Error - 인증 실패 또는 베타 미승인 시
+ * @throws Error - 인증 실패 시
  * @returns 인증된 사용자 정보
  */
 export async function getAuthenticatedUser(): Promise<AuthenticatedUser> {
@@ -90,10 +88,12 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser> {
     throw new Error('USER_PROFILE_NOT_FOUND');
   }
 
+  /* Original implementation (commented out):
   // 🆕 Beta access check
   if (userAggregate.entity.betaStatus !== 'approved') {
     throw new Error('BETA_ACCESS_REQUIRED');
   }
+  */
 
   const userProfile = await userRepository.getUserProfile(new UserId(user.id));
   if (!userProfile) {
