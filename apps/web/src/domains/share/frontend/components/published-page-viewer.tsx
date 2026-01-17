@@ -11,19 +11,17 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { CANVAS_NODE_TYPES } from '@/domains/canvas-management/frontend/config/node-types.config';
-import { CustomEdge } from '@/domains/canvas-management/frontend/components/edge/custom-edge';
-import { CanvasModeProvider } from '@/domains/canvas-management/frontend/contexts/canvas-mode-context';
+import { CustomEdge } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/custom-edge';
+import { CanvasModeProvider } from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
 import { Button } from '@workspace/ui/components/ui/button';
-import {
-  toReactFlowNodeFromCanvasView,
-  toReactFlowEdgeFromCanvasView,
-  type CustomNodeType,
-} from '@/domains/canvas-management/frontend/acl/react-flow.acl';
-import { PublishedPageViewDTO } from '../../shared/dtos';
+import type { CustomNodeType } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 
 interface PublishedPageViewerProps {
   publishToken: string;
-  initialData: PublishedPageViewDTO | null;
+  title: string;
+  icon?: string;
+  initialNodes: CustomNodeType[];
+  initialEdges: Edge[];
   onCopyRequested?: () => void;
 }
 
@@ -54,14 +52,15 @@ function ReadOnlyViewportController({
 
 export function PublishedPageViewer({
   publishToken,
-  initialData,
+  title,
+  icon,
+  initialNodes,
+  initialEdges,
   onCopyRequested,
 }: PublishedPageViewerProps) {
   const { copyLinkToClipboard } = useShare();
   const [isCopied, setIsCopied] = useState(false);
   const [isCopyPressed, setIsCopyPressed] = useState(false);
-
-  const data = initialData;
 
   const handleCopyLink = async () => {
     try {
@@ -77,42 +76,13 @@ export function PublishedPageViewer({
   const nodeTypes = useMemo(() => CANVAS_NODE_TYPES, []);
   const edgeTypes = useMemo(() => ({ custom: CustomEdge }), []);
 
-  const nodes = useMemo<CustomNodeType[]>(() => {
-    if (
-      !data ||
-      !data.organizationId ||
-      !data.workspaceId
-    ) {
-      return [];
-    }
-
-    return data.blocks.map(block =>
-      toReactFlowNodeFromCanvasView(block as any, {
-        pageId: data.pageId,
-        orgId: data.organizationId!,
-        workspaceId: data.workspaceId!,
-      })
-    );
-  }, [data]);
-
-  const edges = useMemo<Edge[]>(() => {
-    if (!data?.edges) return [];
-    return data.edges.map(edge =>
-      toReactFlowEdgeFromCanvasView(edge as any)
-    );
-  }, [data]);
-
-  if (!data) {
-    return <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
-  }
-
   return (
     <div className="h-screen w-full bg-background flex flex-col">
       {/* Header Bar */}
       <header className="flex h-12 shrink-0 items-center justify-between border-b px-4 bg-background z-20">
         <div className="flex items-center gap-2">
           <h1 className="text-base font-semibold truncate max-w-[300px]">
-            {data.title || 'Untitled'}
+            {title || 'Untitled'}
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -144,8 +114,8 @@ export function PublishedPageViewer({
         <ReactFlowProvider>
           <CanvasModeProvider>
             <ReactFlow
-              nodes={nodes}
-              edges={edges}
+              nodes={initialNodes}
+              edges={initialEdges}
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
               nodesDraggable={false}
@@ -162,7 +132,7 @@ export function PublishedPageViewer({
               className="bg-muted/30"
             >
               <ReadOnlyViewportController
-                hasNodes={nodes.length > 0}
+                hasNodes={initialNodes.length > 0}
               />
               <Background />
             </ReactFlow>

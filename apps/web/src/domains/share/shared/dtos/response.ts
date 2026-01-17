@@ -1,23 +1,14 @@
 // apps/web/src/domains/share/shared/dtos/response.ts
 
+import type { CanvasViewData } from '@/domains/canvas-management/shared/dtos/views/canvas.views';
+
 /**
  * 게시된 페이지 뷰 (공개 페이지 조회 응답)
+ * CanvasViewData를 확장하여 페이지 메타데이터 추가
  */
-/**
- * 게시된 페이지 뷰 (공개 페이지 조회 응답)
- */
-export interface PublishedPageViewDTO {
-  pageId: string;
+export interface PublishedPageViewDTO extends CanvasViewData {
   title: string;
   icon?: string;
-  blocks: unknown[];
-  edges?: unknown[];
-  viewport?: { x: number; y: number; zoom: number } | null;
-  publishToken: string;
-  status: 'published';
-  isReadOnly: true;
-  workspaceId?: string;
-  organizationId?: string;
 }
 
 /**
@@ -38,18 +29,6 @@ export interface PublishedLinkViewDTO {
   publishToken: string;
   publishUrl: string;
   publishedAt: string;
-}
-
-/**
- * 워크스페이스 선택 목록
- */
-export interface WorkspaceSelectionViewDTO {
-  workspaces: {
-    id: string;
-    name: string;
-    icon?: string;
-    organizationName?: string;
-  }[];
 }
 
 /**
