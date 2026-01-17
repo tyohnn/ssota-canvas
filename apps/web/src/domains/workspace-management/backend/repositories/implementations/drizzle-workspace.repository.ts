@@ -7,7 +7,6 @@ import {
   pages,
   workspaceMembers,
   organizationMembers,
-  organizations,
 } from '@/db/schema';
 import type { Workspace as DBWorkspace } from '@/db/schema';
 import { WorkspaceRepository } from '../interfaces/workspace.repository.interface';
@@ -83,15 +82,8 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
   async findById(workspaceId: WorkspaceId): Promise<Workspace | null> {
     // Admin DB: Application 레벨에서 권한 검증이 완료된 경우
     const result = await adminDb
-      .select({ 
-        workspace: workspaces,
-        orgName: organizations.name 
-      })
+      .select()
       .from(workspaces)
-      .leftJoin(
-        organizations,
-        eq(workspaces.organization_id, organizations.id)
-      )
       .where(
         and(eq(workspaces.id, workspaceId.value), isNull(workspaces.deleted_at))
       )
@@ -102,7 +94,7 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
     }
 
     const row = result[0]!;
-    return this.toDomain(row.workspace, row.orgName ?? undefined);
+    return this.toDomain(row);
   }
 
   /**
@@ -116,15 +108,8 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
    */
   async findByOrganizationId(orgId: OrganizationId): Promise<Workspace[]> {
     const result = await adminDb
-      .select({ 
-        workspace: workspaces,
-        orgName: organizations.name 
-      })
+      .select()
       .from(workspaces)
-      .leftJoin(
-        organizations,
-        eq(workspaces.organization_id, organizations.id)
-      )
       .where(
         and(
           eq(workspaces.organization_id, orgId.value),
@@ -133,7 +118,7 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       )
       .orderBy(desc(workspaces.is_default), workspaces.created_at);
 
-    return result.map(row => this.toDomain(row.workspace, row.orgName ?? undefined));
+    return result.map(row => this.toDomain(row));
   }
 
   /**
@@ -141,18 +126,13 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
    */
   async findByUserId(userId: UserId): Promise<Workspace[]> {
     const result = await adminDb
-      .select({ 
+      .select({
         workspace: workspaces,
-        orgName: organizations.name 
       })
       .from(workspaces)
       .leftJoin(
         workspaceMembers,
         eq(workspaces.id, workspaceMembers.workspace_id)
-      )
-      .leftJoin(
-        organizations,
-        eq(workspaces.organization_id, organizations.id)
       )
       .where(
         and(
@@ -165,19 +145,17 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       )
       .orderBy(desc(workspaces.is_default), workspaces.created_at);
 
-    return result.map(row => this.toDomain(row.workspace, row.orgName ?? undefined));
+    return result.map(row => this.toDomain(row.workspace));
   }
 
   /**
    * DB 모델 → Domain Entity 변환
    *
    * @param row - DB 조회 결과
-   * @param orgName - 조직명 (선택사항)
    * @returns Workspace Entity
    */
   private toDomain(
-    row: typeof workspaces.$inferSelect,
-    orgName?: string
+    row: typeof workspaces.$inferSelect
   ): Workspace {
     return new Workspace(
       new WorkspaceId(row.id),
@@ -192,8 +170,7 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       row.created_by,
       row.created_at,
       row.updated_at,
-      row.deleted_at,
-      orgName
+      row.deleted_at
     );
   }
 

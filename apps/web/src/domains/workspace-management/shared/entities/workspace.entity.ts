@@ -32,8 +32,7 @@ export class Workspace {
     public readonly createdBy: string,
     public readonly createdAt: Date,
     private _updatedAt: Date,
-    private _deletedAt: Date | null,
-    public readonly organizationName?: string // v1.3: 가독성을 위한 조직명 추가
+    private _deletedAt: Date | null
   ) {
     // 생성자 검증
     this.validateName(_name);
