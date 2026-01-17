@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS published_pages (
   publish_token TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'published',
   published_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  snapshot_version TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT published_pages_publish_token_unique UNIQUE (publish_token),
@@ -24,7 +23,6 @@ CREATE INDEX IF NOT EXISTS idx_published_pages_publish_token ON published_pages(
 COMMENT ON TABLE published_pages IS 'Share Management - published pages';
 COMMENT ON COLUMN published_pages.publish_token IS 'Base64(UUID) token, /p/[token]';
 COMMENT ON COLUMN published_pages.status IS '향후 unpublish/expired 확장을 고려한 필드';
-COMMENT ON COLUMN published_pages.snapshot_version IS '게시 시점 페이지 스냅샷 식별자 (Page Domain snapshot id 또는 version string)';
 
 -- Enable Row Level Security
 ALTER TABLE published_pages ENABLE ROW LEVEL SECURITY;
