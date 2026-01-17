@@ -1,3 +1,86 @@
+## [0.7.0] - 2026-01-17
+
+### Update
+
+- Pnpm and supabase
+
+### ♻️ Refactoring
+
+- *(canvas)* Reorganize independent components to canvas/components (phase 1)
+- *(canvas-management)* Refactor Multi Selection Toolbar component
+- *(canvas-management)* Restructure Selection Bounding Box component
+- *(canvas-management)* Introduce Edge Toolbar component for edge editing
+- *(canvas-management)* Replace CanvasEdgeService with EdgeManagementService
+- *(canvas-management)* Update edge creation and reconnection logic
+- *(canvas-management)* Implement higher-order function for secure edge actions
+- *(canvas-management)* Introduce Shadow Block system for dynamic block creation
+- Reorganize imports and enhance module structure
+- *(canvas-management)* Streamline block management and enhance action handling
+- Refactor(canvas-management): huge refactoring to acheive code readability
+- Bug fix Sprint-018
+
+### ✨ Features
+
+- *(canvas-management)* Enhance cursor behavior and mode handling in canvas components
+- *(ui)* Add ToolbarIconButton component and update package.json types
+- *(docs)* Add architecture and implementation patterns documentation
+- *(auth)* Add PAGE_NOT_FOUND error handling and verifyAccessByPageId
+- *(canvas-management)* Implement edge management hooks for CRUD operations
+- *(canvas-management)* Enhance edge management with CRUD actions and services
+- *(canvas-management)* Enforce required edge handles
+- *(canvas-management)* Enhance edge management with style and label support
+- *(canvas-management)* Implement custom edge component with enhanced label and toolbar features
+- *(block-management)* Adopt block view system
+- *(block)* Seperate size by view mode
+- *(block)* Implement youtube app space at backend / shared
+- *(block)* Implement youtube app space and youtube block at frontend
+- *(block)* Add youtube title to block title immediately
+- *(block)* Dynamic block-editor interaction system
+- *(block)* Maintain memory of tab scroll position
+- *(block)* Edit metadata tab more beautiful
+- *(block)* Add banner at script tab of editor panel
+- *(block)* Add targetted text to note view by quote block
+- *(canvasdown)* First release of canvasdown
+- *(spatial-context)* Initiate spaital context repo
+- *(auth)* Remove beta
+- *(page)* Add not found page
+
+### 🐛 Bug Fixes
+
+- Build error
+- Build error
+- *(canvas-management)* Prevent viewport animation after spacebar panning
+- Fix build error [skip ci]
+- *(canvas-management)* Fix canvas viewport control toolbar doesn't rerender
+- *(canvas-management)* Fix markdown editor bug
+- Fix build error [skip ci]
+- *(workspace)* Null local storage always opened bug
+- *(block)* Sync view mode change and size change
+- *(canvas)* Add automatic update when view mode change
+- *(viewport)* Adjust viewport when editor panel opened
+- *(block)* Remove puctuation only timestamp
+- *(block)* Do not render youtube iframe when multi selection mode
+- *(canvas)* Multiselection bug when adding block with copy/paste hooks
+- *(block)* Invalidate after extract script at action toolbar
+- *(block)* Solve convert tab doesn't rerender toc component
+- *(block)* Edit youtube block default size in order for iframe player toolbar to be displayed completely
+- Fix build error
+- Remove korean
+
+### 📚 Documentation
+
+- Move pattern docs
+- Revise pattern
+- Initiate sprint
+- Initiate sprint
+
+### 🔧 Maintenance
+
+- Clean file
+- Integrate @trivago/prettier-plugin-sort-imports for improved import organization
+- Add .nvmrc 24
+- *(block)* Keep script cache 24 hours
+- Build warning deprecate
 ## [0.6.2] - 2025-12-17
 
 ### Hotfix
