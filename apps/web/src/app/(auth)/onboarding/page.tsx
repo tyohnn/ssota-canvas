@@ -30,21 +30,21 @@ export default function OnboardingPage() {
       }
       */
 
-      // 사용자 프로필 + 기본 조직 + 워크스페이스 + Welcome 페이지 생성
+      // Create user profile + default organization + workspace + Welcome page
       const result = await processUserRegistrationAction();
 
       if (result.success) {
         setStatus('success');
 
-        // 이미 설정이 완료된 사용자는 즉시 리다이렉트 (카운트다운 없음)
-        // 새로운 사용자는 카운트다운 표시 후 리다이렉트
+        // Existing users with complete setup redirect immediately (no countdown)
+        // New users see countdown before redirect
         const isExistingUser = result.data.user && result.data.organization;
 
         if (isExistingUser) {
-          // 기존 사용자: 즉시 리다이렉트
+          // Existing user: redirect immediately
           router.push(result.data.redirectUrl);
         } else {
-          // 신규 사용자: 카운트다운 시작 (3초)
+          // New user: start countdown (3 seconds)
           let count = 3;
           const countdownInterval = setInterval(() => {
             count -= 1;
@@ -73,7 +73,7 @@ export default function OnboardingPage() {
   const handleRetry = () => {
     setStatus('loading');
     setError(null);
-    // useEffect가 다시 실행되도록 강제로 리렌더링
+    // Force re-render to trigger useEffect again
     window.location.reload();
   };
 
@@ -85,9 +85,9 @@ export default function OnboardingPage() {
             <>
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                계정을 설정하고 있습니다
+                Setting up your account
               </h2>
-              <p className="text-gray-600">잠시만 기다려주세요...</p>
+              <p className="text-gray-600">Please wait...</p>
             </>
           )}
 
@@ -109,10 +109,10 @@ export default function OnboardingPage() {
                 </svg>
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                설정이 완료되었습니다!
+                Setup complete!
               </h2>
               <p className="text-gray-600">
-                {countdown}초 후 홈페이지로 이동합니다...
+                Redirecting to homepage in {countdown} seconds...
               </p>
               <div className="mt-4 w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                 <div
@@ -141,16 +141,16 @@ export default function OnboardingPage() {
                 </svg>
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                설정 중 오류가 발생했습니다
+                An error occurred during setup
               </h2>
               <p className="text-gray-600 mb-4">
-                {error || '알 수 없는 오류가 발생했습니다.'}
+                {error || 'An unknown error occurred.'}
               </p>
               <button
                 onClick={handleRetry}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
               >
-                다시 시도
+                Retry
               </button>
             </>
           )}
