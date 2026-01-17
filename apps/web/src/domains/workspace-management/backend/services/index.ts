@@ -5,11 +5,6 @@ export { DefaultWorkspaceInvitationService } from './workspace-invitation.servic
 export { DefaultPageHierarchyService } from './page-hierarchy.service';
 export { copyPageToWorkspace } from './copy-page';
 
-// Queries
-export * from './queries/get-workspaces-for-user';
-export * from './queries/get-page-info';
-export * from './queries/get-workspace-by-page-id';
-
 // Interfaces
 export type { WorkspaceNavigationService } from './interfaces/workspace-navigation.service.interface';
 export type { WorkspaceCrudService } from './interfaces/workspace-crud.service.interface';

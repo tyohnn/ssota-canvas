@@ -19,17 +19,18 @@ import {
   GetPublishedLinkRequest,
   GetPublishedLinkRequestSchema,
 } from '../shared/dtos';
-import { ShareManagementError } from '../shared/errors/share-management.error';
-import { PublishToken } from '../shared/value-objects/publish-token.vo';
 import { DrizzlePublishedPageRepository } from '../backend/repositories/implementations/drizzle-published-page.repository';
 import { publishPage } from '../backend/services/publish-page';
 import { unpublishPage } from '../backend/services/unpublish-page';
 import { getPublishedLink } from '../backend/services/get-published-link';
 import { getPublishedPage } from '../backend/services/get-published-page';
-import { getWorkspaceSelection } from '../backend/services/get-workspace-selection';
 import { copyPublishedPage } from '../backend/services/copy-published-page';
 import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
 import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
+import {
+  DrizzleWorkspaceSelectionViewRepository,
+} from '@/domains/workspace-management/backend/read-models/workspace-selection.view';
+import { UserId } from '@/domains/organization-management/shared/value-objects/ids.vo';
 import {
   getAuthenticatedUser,
 } from '@/domains/common/auth/helpers';
@@ -127,7 +128,25 @@ export async function getWorkspaceSelectionAction(
 export async function getWorkspaceSelectionActionInternal(
   userId: string
 ): Promise<WorkspaceSelectionViewDTO> {
-  return getWorkspaceSelection(userId, new DrizzleWorkspaceRepository());
+  try {
+    // Read Model을 직접 사용 (같은 레이어이므로 Query Service 불필요)
+    const viewRepository = new DrizzleWorkspaceSelectionViewRepository();
+    const views = await viewRepository.getByUserId(new UserId(userId));
+
+    // Read Model View를 Share 도메인 DTO로 변환
+    // organization 객체를 organizationName 문자열로 변환
+    return {
+      workspaces: views.map(view => ({
+        id: view.id,
+        name: view.name,
+        icon: view.icon,
+        organizationName: view.organization?.name,
+      })),
+    };
+  } catch (error) {
+    console.error('[getWorkspaceSelectionActionInternal] Error:', error);
+    return { workspaces: [] };
+  }
 }
 
 export async function copyPublishedPageAction(

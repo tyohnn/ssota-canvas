@@ -16,6 +16,12 @@ Comprehensive guide for Domain-Driven Design patterns in Next.js Server Actions,
 ### 🧩 [Next.js Server Actions Framework Proposal](./next-action-framework-proposal.md)
 Proposal for a DDD-integrated framework/library for Next.js Server Actions. Includes market analysis, API design, and detailed explanation of Command/Aggregate/Event patterns.
 
+### 🧩 [Read Model Pattern Guide](./backend/read-model-pattern-guide.md)
+Guide for implementing Read Model pattern in CQRS architecture. Covers when to use Read Models, performance optimization (JOIN vs separate queries), index strategies, and trade-offs.
+
+### 🧩 [Database Migration Validation Guide](./backend/database-migration-validation-guide.md)
+Comprehensive checklist and workflow for validating database migrations before applying to production. Includes 15 validation checks, pre-migration scripts, and safe migration templates.
+
 ### 🧪 [Testing Guide](./test/testing-guide.md)
 Comprehensive guide for testing strategies and patterns used in the SSOTA project. Covers unit tests, integration tests, E2E tests, component tests, and best practices for mocking vs. real imports.
 

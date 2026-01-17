@@ -4,7 +4,6 @@ import { PublishedPageViewDTO } from '../../shared/dtos';
 import { PublishedPageRepository } from '../repositories/interfaces/published-page.repository.interface';
 import { ShareManagementError } from '../../shared/errors/share-management.error';
 import { PublishToken } from '../../shared/value-objects/publish-token.vo';
-import { getPageInfo, getWorkspaceByPageId } from '@/domains/workspace-management/backend/services';
 import { PageRepository } from '@/domains/workspace-management/backend/repositories/interfaces/page.repository.interface';
 import { WorkspaceRepository } from '@/domains/workspace-management/backend/repositories/interfaces/workspace.repository.interface';
 import { CanvasQueryService } from '@/domains/canvas-management/backend/services/canvas-query.service';
@@ -26,23 +25,10 @@ export async function getPublishedPage(
     throw new ShareManagementError('PUBLISH_LINK_NOT_FOUND', 'Link not found');
   }
 
-  // Use Workspace Service
-  // Use the functional query services from Workspace domain
-  const pageInfoResult = await getPageInfo(
-    publishedPage.pageId,
-    pageRepository
-  );
-  const pageInfo = pageInfoResult.isSuccess() ? pageInfoResult.value : null;
-
-  const workspaceInfoResult = pageInfo?.workspaceId
-    ? await getWorkspaceByPageId(
-        publishedPage.pageId,
-        pageRepository,
-        workspaceRepository
-      )
-    : null;
-  const workspaceInfo = workspaceInfoResult?.isSuccess()
-    ? workspaceInfoResult.value
+  // Directly use Repository from Workspace domain
+  const page = await pageRepository.findById(new PageId(publishedPage.pageId));
+  const workspace = page
+    ? await workspaceRepository.findById(page.workspaceId)
     : null;
 
   const canvasResult = await canvasQueryService.getCanvasView(
@@ -61,15 +47,15 @@ export async function getPublishedPage(
 
   return {
     pageId: publishedPage.pageId,
-    title: pageInfo?.title ?? 'Untitled',
-    icon: pageInfo?.icon,
+    title: page?.title ?? 'Untitled',
+    icon: page?.icon ?? undefined,
     blocks: canvasView.blocks,
     edges: canvasView.edges,
     viewport: canvasView.viewport,
     publishToken: publishedPage.publishToken.toString(),
     status: 'published',
     isReadOnly: true,
-    workspaceId: pageInfo?.workspaceId,
-    organizationId: workspaceInfo?.organizationId,
+    workspaceId: page?.workspaceId.value,
+    organizationId: workspace?.organizationId.value,
   };
 }
