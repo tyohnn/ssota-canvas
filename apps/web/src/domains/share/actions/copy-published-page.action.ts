@@ -11,9 +11,12 @@
 'use server';
 
 import { ActionResult, err, ok } from '@/lib';
+import { copyPageToWorkspace } from '@/domains/workspace-management/backend/services/copy-page.service';
+import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 
 import { DrizzlePublishedPageRepository } from '../backend/repositories/implementations/drizzle-published-page.repository';
-import { copyPublishedPage } from '../backend/services';
+import { PublishToken } from '../shared/value-objects/publish-token.vo';
+import { ShareManagementError } from '../shared/errors/share-management.error';
 import {
   CopyPublishedPageRequest,
   CopyPublishedPageRequestSchema,
@@ -54,19 +57,49 @@ async function copyPublishedPageInternal(
   context: { authenticatedUser: { id: string; profile: any } }
 ): Promise<ActionResult<CopyResultDTO>> {
   try {
-    // 1. Repository 생성
-    const repository = new DrizzlePublishedPageRepository();
+    // 1. PublishedPage 조회
+    const publishedPageRepository = new DrizzlePublishedPageRepository();
+    const publishToken = new PublishToken(safeDto.publishToken);
+    const publishedPage = await publishedPageRepository.findByToken(publishToken);
 
-    // 2. Service Function을 통한 게시된 페이지 복제 (SafeDTO 전달)
-    const result = await copyPublishedPage(
+    if (!publishedPage) {
+      return err('Link not found', {
+        code: 'PUBLISH_LINK_NOT_FOUND',
+      });
+    }
+
+    // 2. Workspace 도메인의 copyPageToWorkspace 서비스 직접 사용
+    const pageRepository = new DrizzlePageRepository();
+    const copyResult = await copyPageToWorkspace(
+      publishedPage.pageId,
+      safeDto.targetWorkspaceId,
       context.authenticatedUser.id,
-      safeDto,
-      repository
+      pageRepository
     );
 
-    // 3. Response DTO 생성
-    return ok(result);
+    // 3. Result 처리 및 DTO 변환
+    if (!copyResult.success) {
+      return ok({
+        copiedPageId: '',
+        targetWorkspaceId: safeDto.targetWorkspaceId,
+        status: 'failed',
+        errorMessage: copyResult.error,
+      });
+    }
+
+    return ok({
+      copiedPageId: copyResult.data,
+      targetWorkspaceId: safeDto.targetWorkspaceId,
+      status: 'completed',
+    });
   } catch (error) {
+    // ShareManagementError 처리
+    if (error instanceof ShareManagementError) {
+      return err(error.message, {
+        code: error.code,
+      });
+    }
+
     console.error('[copyPublishedPageInternal] Internal error:', error);
     return err('Internal server error', {
       code: 'INTERNAL_SERVER_ERROR',
