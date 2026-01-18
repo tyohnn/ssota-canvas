@@ -249,6 +249,14 @@ export interface DuplicatePageResponse {
   pageId: string; // 복제된 페이지 ID
 }
 
+export interface DuplicatePageWithCanvasRequest {
+  pageId: string;
+}
+
+export interface DuplicatePageWithCanvasResponse {
+  pageId: string; // 복제된 페이지 ID
+}
+
 // ────────────────────────────────────────────────────────────
 // Recent Pages (경량화된 페이지 조회)
 // ────────────────────────────────────────────────────────────
