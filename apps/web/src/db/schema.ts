@@ -115,6 +115,12 @@ export const betaStatusEnum = pgEnum('beta_status', [
   'approved', // 승인됨 (전체 기능 사용 가능)
 ]);
 
+// Share Management Domain Enums
+export const publishedPageStatusEnum = pgEnum('published_page_status', [
+  'published', // 게시됨
+  'unpublished', // 게시 취소됨
+]);
+
 // AI Management Domain Enums
 export const eventTypeEnum = pgEnum('event_type', [
   'user_utterance', // 사용자 발화
@@ -1493,11 +1499,13 @@ export const publishedPages = pgTable(
     page_id: uuid('page_id')
       .notNull()
       .references(() => pages.id, { onDelete: 'cascade' }),
-    owner_id: uuid('owner_id')
+    publisher_id: uuid('publisher_id')
       .notNull()
       .references(() => profiles.id, { onDelete: 'cascade' }),
     publish_token: text('publish_token').notNull().unique(),
-    status: text('status').notNull().default('published'),
+    status: publishedPageStatusEnum('status')
+      .notNull()
+      .default('published'),
     published_at: timestamp('published_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1510,31 +1518,31 @@ export const publishedPages = pgTable(
   },
   table => ({
     pageIdIdx: index('idx_published_pages_page_id').on(table.page_id),
-    ownerIdIdx: index('idx_published_pages_owner_id').on(table.owner_id),
+    publisherIdIdx: index('idx_published_pages_publisher_id').on(table.publisher_id),
     publishTokenIdx: index('idx_published_pages_publish_token').on(
       table.publish_token
     ),
 
     // RLS Policies
-    selectPolicy: pgPolicy('Enable read for owner only', {
+    selectPolicy: pgPolicy('Enable read for publisher only', {
       for: 'select',
       to: authenticatedRole,
-      using: sql`(select auth.uid()) = owner_id`,
+      using: sql`(select auth.uid()) = publisher_id`,
     }),
-    insertPolicy: pgPolicy('Enable insert for page owner', {
+    insertPolicy: pgPolicy('Enable insert for page publisher', {
       for: 'insert',
       to: authenticatedRole,
-      withCheck: sql`owner_id = auth.uid()`,
+      withCheck: sql`publisher_id = auth.uid()`,
     }),
-    updatePolicy: pgPolicy('Enable update for page owner', {
+    updatePolicy: pgPolicy('Enable update for page publisher', {
       for: 'update',
       to: authenticatedRole,
-      using: sql`owner_id = auth.uid()`,
+      using: sql`publisher_id = auth.uid()`,
     }),
-    deletePolicy: pgPolicy('Enable delete for page owner', {
+    deletePolicy: pgPolicy('Enable delete for page publisher', {
       for: 'delete',
       to: authenticatedRole,
-      using: sql`owner_id = auth.uid()`,
+      using: sql`publisher_id = auth.uid()`,
     }),
   })
 ).enableRLS();

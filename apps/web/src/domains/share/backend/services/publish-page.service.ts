@@ -46,6 +46,9 @@ export async function publishPage(
     const aggregate = PublishedPageAggregate.publish(command);
 
     // 4. Entity 저장
+    // repository.save()가 기존 레코드를 확인하여 UPDATE/INSERT 결정
+    // - 기존 레코드 있음: publisher_id, publish_token, status, published_at 업데이트
+    // - 기존 레코드 없음: 새로운 레코드 INSERT
     const publishedPage = aggregate.getPublishedPage();
     await publishedPageRepository.save(publishedPage);
 

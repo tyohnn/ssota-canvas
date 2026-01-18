@@ -21,11 +21,11 @@ export class PagePublishedEvent implements DomainEvent {
 
   constructor(
     public readonly pageId: PageId,
-    public readonly ownerId: UserId,
+    public readonly publisherId: UserId,
     public readonly publishToken: PublishToken,
     public readonly publishedAt: Date,
     public readonly occurredAt: Date = new Date()
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행
@@ -61,11 +61,11 @@ export class PageUnpublishedEvent implements DomainEvent {
 
   constructor(
     public readonly pageId: PageId,
-    public readonly ownerId: UserId,
+    public readonly publisherId: UserId,
     public readonly publishToken: PublishToken,
     public readonly unpublishedAt: Date,
     public readonly occurredAt: Date = new Date()
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행

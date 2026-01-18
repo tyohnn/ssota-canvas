@@ -147,12 +147,12 @@ async function copyPublishedPageInternal(
       viewportRepo
     );
 
-    // 원본 캔버스 데이터 조회 (공유 게시 페이지이므로 원본 페이지의 ownerId 사용)
+    // 원본 캔버스 데이터 조회 (공유 게시 페이지이므로 원본 페이지의 publisherId 사용)
     const originalPageId = new PageId(publishedPage.pageId);
-    const originalOwnerId = new UserId(publishedPage.ownerId);
+    const originalPublisherId = new UserId(publishedPage.publisherId);
     const canvasViewResult = await canvasQueryService.getCanvasView(
       originalPageId,
-      originalOwnerId
+      originalPublisherId
     );
 
     if (canvasViewResult.isError()) {

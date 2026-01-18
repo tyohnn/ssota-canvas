@@ -20,15 +20,17 @@ export class DrizzlePublishedPageRepository implements PublishedPageRepository {
       await adminDb
         .update(publishedPages)
         .set({
+          publisher_id: publishedPage.publisherId,
           publish_token: publishedPage.publishToken.toString(),
           status: publishedPage.status,
+          published_at: publishedPage.publishedAt,
           updated_at: new Date(),
         })
         .where(eq(publishedPages.page_id, publishedPage.pageId));
     } else {
       await adminDb.insert(publishedPages).values({
         page_id: publishedPage.pageId,
-        owner_id: publishedPage.ownerId,
+        publisher_id: publishedPage.publisherId,
         publish_token: publishedPage.publishToken.toString(),
         status: publishedPage.status,
         published_at: publishedPage.publishedAt,
@@ -69,7 +71,7 @@ export class DrizzlePublishedPageRepository implements PublishedPageRepository {
   private toDomain(row: any): PublishedPage {
     return PublishedPage.reconstitute(
       row.page_id,
-      row.owner_id,
+      row.publisher_id,
       row.status as any,
       new PublishToken(row.publish_token),
       row.published_at

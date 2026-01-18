@@ -42,7 +42,7 @@ export class PublishedPageAggregate {
     aggregate.addDomainEvent(
       new PagePublishedEvent(
         publishedPage.pageId,
-        publishedPage.ownerId,
+        publishedPage.publisherId,
         publishedPage.publishToken,
         publishedPage.publishedAt
       )
@@ -58,7 +58,7 @@ export class PublishedPageAggregate {
     return new PublishedPageAggregate(publishedPage);
   }
 
-  private constructor(private readonly publishedPage: PublishedPage) {}
+  private constructor(private readonly publishedPage: PublishedPage) { }
 
   /**
    * 페이지 게시 취소 (인스턴스 메서드)
@@ -78,7 +78,7 @@ export class PublishedPageAggregate {
     this.addDomainEvent(
       new PageUnpublishedEvent(
         this.publishedPage.pageId,
-        this.publishedPage.ownerId,
+        this.publishedPage.publisherId,
         this.publishedPage.publishToken,
         unpublishedAt
       )

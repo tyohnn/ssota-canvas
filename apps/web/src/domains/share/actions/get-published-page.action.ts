@@ -92,7 +92,7 @@ async function getPublishedPageInternal(
     // 4. Canvas 데이터 조회 (CanvasQueryService 직접 사용)
     const canvasResult = await canvasQueryService.getCanvasView(
       new PageId(publishedPage.pageId),
-      new UserId(publishedPage.ownerId)
+      new UserId(publishedPage.publisherId)
     );
 
     if (canvasResult.isError()) {
