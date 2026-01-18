@@ -7,6 +7,7 @@ import {
   toReactFlowNodeFromCanvasView,
 } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 import PublishPageClient from './publish-page-client';
+import { Box } from '@/components/ui/box';
 
 interface PublishPageProps {
   params: Promise<{
@@ -22,15 +23,15 @@ export default async function PublishPage({ params }: PublishPageProps) {
 
   if (!result.success) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4 max-w-md">
-          <div className="text-destructive text-5xl">⚠️</div>
+      <Box className="h-screen flex items-center justify-center bg-background">
+        <Box className="text-center space-y-4 max-w-md">
+          <Box className="text-destructive text-5xl">⚠️</Box>
           <h2 className="text-2xl font-bold text-foreground">Failed to load page</h2>
           <p className="text-muted-foreground">
             {result.error || 'Failed to load published page'}
           </p>
-        </div>
-      </div>
+        </Box>
+      </Box>
     );
   }
 
@@ -50,6 +51,7 @@ export default async function PublishPage({ params }: PublishPageProps) {
       token={token}
       title={initialData.title}
       icon={initialData.icon}
+      pageId={initialData.pageId}
       initialNodes={initialNodes}
       initialEdges={initialEdges}
     />

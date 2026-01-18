@@ -45,6 +45,7 @@ export const CanvasToolbar = memo(function CanvasToolbar({
     onHandClick,
     onFitToViewClick,
     onAddBlockClick: handleAddBlockClick,
+    readonly,
   } = useCanvasToolbar({
     onAddBlockClick,
   });
@@ -59,6 +60,7 @@ export const CanvasToolbar = memo(function CanvasToolbar({
       onHandClick={onHandClick}
       onFitToViewClick={onFitToViewClick}
       onAddBlockClick={handleAddBlockClick}
+      readonly={readonly}
     />
   );
 });

@@ -14,12 +14,10 @@ import { PublishSettings } from './components/publish-settings';
 
 interface PublishFlowProps {
   pageId: string;
-  isPublishable: boolean;
   onPublished?: (publishUrl: string) => void;
 }
 
 export function PublishFlow(props: PublishFlowProps) {
-  const { isPublishable } = props;
   const {
     isOpen,
     setIsOpen,
@@ -41,8 +39,6 @@ export function PublishFlow(props: PublishFlowProps) {
           type="button"
           size="sm"
           variant="outline"
-          disabled={!isPublishable}
-          title={!isPublishable ? 'You do not have permission to publish' : undefined}
           className={cn(
             'h-8 px-3 text-sm font-medium',
             'hover:bg-accent/60 hover:text-accent-foreground'

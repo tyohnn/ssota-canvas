@@ -66,6 +66,8 @@ export function CanvasReactFlowWrapper({
       onAddBlockClick={() => hook.setShowAddDialog(true)}
       onCloseAddDialog={() => hook.setShowAddDialog(false)}
       onSelectBlockType={hook.handleSelectBlockType}
+      showAIAgent={hook.showAIAgent}
+      showBlockCreation={hook.showBlockCreation}
     />
   );
 }

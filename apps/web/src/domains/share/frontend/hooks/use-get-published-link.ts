@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { getPublishedLinkAction } from '../../actions/get-published-link.action';
 import {
@@ -70,16 +71,19 @@ export function usePublishedLink(
     },
   });
 
-  return {
-    getPublishedLink: async (
-      input: GetPublishedLinkInput
-    ): Promise<PublishedLinkViewDTO | null> => {
+  const getPublishedLink = useCallback(
+    async (input: GetPublishedLinkInput): Promise<PublishedLinkViewDTO | null> => {
       try {
         return await mutation.mutateAsync(input);
       } catch (error) {
         return null;
       }
     },
+    [mutation]
+  );
+
+  return {
+    getPublishedLink,
     isGettingLink: mutation.isPending,
   };
 }

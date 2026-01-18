@@ -20,11 +20,11 @@ import { Input } from '@/components/ui/input';
 import { useUpdatePageIcon } from '../../hooks/use-update-page-icon';
 import { useUpdatePageTitle } from '../../hooks/use-update-page-title';
 import { PublishFlow } from '@/domains/share/frontend/components/publish-flow';
+import { Box } from '@/components/ui/box';
 
 interface WorkspacePageHeaderProps {
   pageId?: string;
   workspaceId?: string;
-  isPublishable?: boolean;
 }
 
 /**
@@ -131,7 +131,7 @@ function EditablePageTitle({ title, pageId }: EditablePageTitleProps) {
         'hover:bg-accent hover:text-accent-foreground rounded-sm px-1 -mx-1 transition-colors'
       )}
       onClick={() => setIsEditing(true)}
-      title="클릭하여 페이지명 수정"
+        title="Click to edit page title"
     >
       {title}
     </BreadcrumbPage>
@@ -152,7 +152,6 @@ function EditablePageTitle({ title, pageId }: EditablePageTitleProps) {
 export function WorkspacePageHeader({
   pageId: propPageId,
   workspaceId: propWorkspaceId,
-  isPublishable = true,
 }: WorkspacePageHeaderProps) {
   const context = useWorkspace();
 
@@ -231,7 +230,7 @@ export function WorkspacePageHeader({
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-2 border-b">
-      <div className="flex flex-1 items-center gap-2 px-3 overflow-hidden">
+      <Box className="flex flex-1 items-center gap-2 px-3 overflow-hidden">
         {/* Sidebar toggle button */}
         <SidebarTrigger />
         <Separator
@@ -288,7 +287,7 @@ export function WorkspacePageHeader({
 
                 {/* 현재 Page - 아이콘 + 제목 */}
                 <BreadcrumbItem>
-                  <div className="flex items-center gap-1.5">
+                  <Box className="flex items-center gap-1.5">
                     <IconPicker
                       value={page.icon || undefined}
                       onChange={handleIconChange}
@@ -302,7 +301,7 @@ export function WorkspacePageHeader({
                             'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                             'h-5 w-5 -ml-0.5 text-foreground'
                           )}
-                          title="페이지 아이콘 변경"
+                          title="Edit Page Icon"
                         >
                           <WorkspaceIcon
                             icon={page.icon}
@@ -313,18 +312,18 @@ export function WorkspacePageHeader({
                       }
                     />
                     <EditablePageTitle title={page.title} pageId={page.id} />
-                  </div>
+                  </Box>
                 </BreadcrumbItem>
               </>
             )}
           </BreadcrumbList>
         </Breadcrumb>
-      </div>
+      </Box>
 
       {actualPageId && (
-        <div className="flex items-center gap-2 pr-3">
-          <PublishFlow pageId={actualPageId} isPublishable={isPublishable} />
-        </div>
+        <Box className="flex items-center gap-2 pr-3">
+          <PublishFlow pageId={actualPageId} />
+        </Box>
       )}
     </header>
   );

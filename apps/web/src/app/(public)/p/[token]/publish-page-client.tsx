@@ -13,6 +13,7 @@ interface PublishPageClientProps {
   token: string;
   title: string;
   icon?: string;
+  pageId: string;
   initialNodes: CustomNodeType[];
   initialEdges: Edge[];
 }
@@ -21,6 +22,7 @@ export default function PublishPageClient({
   token,
   title,
   icon,
+  pageId,
   initialNodes,
   initialEdges,
 }: PublishPageClientProps) {
@@ -61,11 +63,13 @@ export default function PublishPageClient({
         publishToken={token}
         title={title}
         icon={icon}
+        pageId={pageId}
+        orgId="readonly" // Placeholder for readonly mode
+        workspaceId="readonly" // Placeholder for readonly mode
         initialNodes={initialNodes}
         initialEdges={initialEdges}
         onCopyRequested={handleCopyRequested}
       />
-
       <CopyFlowDialog
         publishToken={token}
         isOpen={isCopyOpen}
@@ -75,7 +79,6 @@ export default function PublishPageClient({
           setIsLoginOpen(true);
         }}
       />
-
       <LoginPromptDialog
         isOpen={isLoginOpen}
         onLogin={handleLogin}
