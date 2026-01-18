@@ -28,7 +28,9 @@
     "supabase:stop": "npx supabase stop",
     "supabase:reset": "npx supabase db reset",
     "supabase:status": "npx supabase status",
-    "supabase:studio": "open http://127.0.0.1:54323"
+    "supabase:studio": "open http://127.0.0.1:54323",
+    "supabase:migration:down": "npx supabase migration down --local --last 1 2>&1",
+    "supabase:migration:up": "npx supabase migration up --local"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^1.0.41",
