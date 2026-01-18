@@ -521,14 +521,15 @@ export const workspaces = pgTable(
     defaultIdx: index('idx_workspaces_default')
       .on(table.organization_id, table.is_default)
       .where(sql`is_default = true`),
-    // Read Model: Workspace Selection View 최적화
-    // owner_id 필터 최적화 (personal이 아닌 경우도 포함)
+    // Read Model: Workspace By Org View 최적화
+    // owner_id 필터 최적화 (WHERE 절 OR 조건)
     ownerIdIdx: index('idx_workspaces_owner_id')
       .on(table.owner_id)
       .where(sql`deleted_at IS NULL AND owner_id IS NOT NULL`),
-    // 정렬 최적화 (is_default DESC, created_at ASC)
-    selectionSortIdx: index('idx_workspaces_selection_sort')
-      .on(table.is_default, table.created_at)
+    // GROUP BY + jsonb_agg 내부 정렬 최적화
+    // organization_id로 그룹핑하면서 그룹 내 정렬(is_default DESC, created_at ASC) 지원
+    orgGroupAggSortIdx: index('idx_workspaces_org_group_agg_sort')
+      .on(table.organization_id, table.is_default, table.created_at)
       .where(sql`deleted_at IS NULL`),
 
     // RLS Policies
@@ -676,12 +677,6 @@ export const workspaceMembers = pgTable(
     userIdIdx: index('idx_workspace_members_user_id').on(table.user_id),
     workspaceIdIdx: index('idx_workspace_members_workspace_id').on(
       table.workspace_id
-    ),
-    // Read Model: Workspace Selection View 최적화
-    // JOIN 최적화 (workspace_id + user_id 복합 인덱스)
-    workspaceUserIdx: index('idx_workspace_members_workspace_user').on(
-      table.workspace_id,
-      table.user_id
     ),
 
     // RLS Policies
