@@ -15,9 +15,7 @@ export interface PublishedPageViewDTO extends CanvasViewData {
  * 페이지 게시 결과
  */
 export interface PublishResultDTO {
-  pageId: string;
   publishToken: string;
-  publishUrl: string; // /p/[token]
   publishedAt: string;
 }
 
@@ -25,9 +23,7 @@ export interface PublishResultDTO {
  * 게시 링크 조회 결과
  */
 export interface PublishedLinkViewDTO {
-  pageId: string;
   publishToken: string;
-  publishUrl: string;
   publishedAt: string;
 }
 

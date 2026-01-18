@@ -13,6 +13,7 @@
 'use server';
 
 import type { PageActionContext } from '@/domains/common/auth/types';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
 import { DrizzlePublishedPageRepository } from '../backend/repositories/implementations/drizzle-published-page.repository';
@@ -65,14 +66,19 @@ async function publishPageInternal(
     const repository = new DrizzlePublishedPageRepository();
 
     // 2. Service Function을 통한 페이지 게시 (SafeDTO 전달)
-    const result = await publishPage(
-      safeDto,
-      context.authenticatedUser.id,
-      repository
-    );
+    const safeUserId = new UserId(context.authenticatedUser.id);
+    const result = await publishPage(safeDto, safeUserId, repository);
 
-    // 3. Response DTO 생성
-    return ok(result);
+    // 3. Result 처리
+    if (result.isError()) {
+      return err(String(result.error), {
+        code: 'PUBLISH_PAGE_FAILED',
+        meta: { originalError: result.error },
+      });
+    }
+
+    // 4. Response DTO 반환
+    return ok(result.value);
   } catch (error) {
     console.error('[publishPageInternal] Internal error:', error);
     return err('Internal server error', {

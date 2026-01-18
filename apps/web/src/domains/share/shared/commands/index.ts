@@ -5,7 +5,11 @@ import { PublishToken } from '../value-objects/publish-token.vo';
 
 export interface PublishPageCommand {
   pageId: PageId;
-  requesterId: UserId;
+  publisherId: UserId;
+}
+
+export interface UnpublishPageCommand {
+  publisherId: UserId;
 }
 
 export interface ExecuteCopyPageCommand {

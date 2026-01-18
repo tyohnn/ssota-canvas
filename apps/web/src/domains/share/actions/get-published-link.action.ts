@@ -65,14 +65,18 @@ async function getPublishedLinkInternal(
     const repository = new DrizzlePublishedPageRepository();
 
     // 2. Service Function을 통한 게시 링크 조회 (SafeDTO 전달)
-    const result = await getPublishedLink(
-      safeDto,
-      context.authenticatedUser.id,
-      repository
-    );
+    const result = await getPublishedLink(safeDto, repository);
 
-    // 3. Response DTO 생성
-    return ok(result);
+    // 3. Result 처리
+    if (result.isError()) {
+      return err(String(result.error), {
+        code: 'GET_PUBLISHED_LINK_FAILED',
+        meta: { originalError: result.error },
+      });
+    }
+
+    // 4. Response DTO 반환
+    return ok(result.value);
   } catch (error) {
     console.error('[getPublishedLinkInternal] Internal error:', error);
     return err('Internal server error', {

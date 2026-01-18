@@ -67,7 +67,7 @@ export class DrizzlePublishedPageRepository implements PublishedPageRepository {
   }
 
   private toDomain(row: any): PublishedPage {
-    return new PublishedPage(
+    return PublishedPage.reconstitute(
       row.page_id,
       row.owner_id,
       row.status as any,

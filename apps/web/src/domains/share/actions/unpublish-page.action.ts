@@ -13,6 +13,7 @@
 'use server';
 
 import type { PageActionContext } from '@/domains/common/auth/types';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
 import { DrizzlePublishedPageRepository } from '../backend/repositories/implementations/drizzle-published-page.repository';
@@ -64,13 +65,18 @@ async function unpublishPageInternal(
     const repository = new DrizzlePublishedPageRepository();
 
     // 2. Service Function을 통한 페이지 게시 취소 (SafeDTO 전달)
-    await unpublishPage(
-      safeDto.pageId,
-      context.authenticatedUser.id,
-      repository
-    );
+    const safeUserId = new UserId(context.authenticatedUser.id);
+    const result = await unpublishPage(safeDto, safeUserId, repository);
 
-    // 3. 성공 반환
+    // 3. Result 처리
+    if (result.isError()) {
+      return err(String(result.error), {
+        code: 'UNPUBLISH_PAGE_FAILED',
+        meta: { originalError: result.error },
+      });
+    }
+
+    // 4. 성공 반환
     return ok(undefined);
   } catch (error) {
     console.error('[unpublishPageInternal] Internal error:', error);
