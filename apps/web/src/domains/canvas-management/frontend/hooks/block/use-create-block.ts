@@ -5,6 +5,7 @@ import type { Node } from '@xyflow/react';
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { buildBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { getDefaultViewMode } from '@/domains/block-management/shared/types/block-view-modes';
 import {
   BlockType,
   getBlockSize,
@@ -83,7 +84,7 @@ export function useCreateBlock(
     blockType: BlockType,
     position: Position,
     optimisticId: string,
-    viewMode: 'note' | 'original' | 'card' = 'original',
+    viewMode: 'note' | 'original' | 'card' = getDefaultViewMode(blockType),
     initialProperties?: Record<string, any>,
     initialContent?: unknown,
     title?: string
@@ -164,7 +165,9 @@ export function useCreateBlock(
 
   const mutation = useMutation({
     mutationFn: async (input: CreateBlockInput) => {
-      const viewMode = input.viewMode || 'original';
+      // viewMode 결정: input에서 제공되면 사용, 없으면 blockType에 따른 기본값 사용
+      // 마크다운 블록은 'note'가 기본값, 다른 블록은 'original'이 기본값
+      const viewMode = input.viewMode || getDefaultViewMode(input.blockType);
       // viewMode에 따른 크기 결정
       const blockSize = getBlockSizeForViewMode(input.blockType, viewMode);
 
@@ -174,7 +177,8 @@ export function useCreateBlock(
         blockType: input.blockType,
         position: input.position,
         size: blockSize,
-        viewMode, // viewMode 전달
+        // viewMode는 input에서 제공된 경우에만 전달 (undefined면 전달하지 않음)
+        ...(input.viewMode && { viewMode: input.viewMode }),
         title: input.title,
         initialProperties: input.initialProperties,
         initialContent: input.initialContent,
@@ -198,7 +202,8 @@ export function useCreateBlock(
 
     // Optimistic Update
     onMutate: async (input: CreateBlockInput) => {
-      const viewMode = input.viewMode || 'original';
+      // viewMode 결정: input에서 제공되면 사용, 없으면 blockType에 따른 기본값 사용
+      const viewMode = input.viewMode || getDefaultViewMode(input.blockType);
       const optimisticId = generateOptimisticId();
       const optimisticNode = createOptimisticNode(
         input.blockType,

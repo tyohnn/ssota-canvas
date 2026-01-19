@@ -4,9 +4,11 @@
 
 ## 설정
 
-`.prettierrc.json`에 `@trivago/prettier-plugin-sort-imports` 플러그인이 설정되어 있습니다.
+`prettier.config.js`에 `@ianvs/prettier-plugin-sort-imports` 플러그인이 설정되어 있습니다.
 
-**참고**: `@ianvs/prettier-plugin-sort-imports`는 그룹 간 빈 줄 옵션을 지원하지 않아 `@trivago/prettier-plugin-sort-imports`로 사용합니다.
+**참고**: Prettier 3.x와의 호환성을 위해 `@ianvs/prettier-plugin-sort-imports`를 사용합니다. 이 플러그인은 `@trivago/prettier-plugin-sort-imports`의 유지보수되는 포크입니다.
+
+**v4.7.0 변경사항**: `importOrderSeparation`와 `importOrderSortSpecifiers` 옵션이 제거되었습니다. 대신 `importOrder` 배열에 빈 문자열(`""`)을 추가하여 그룹 간 빈 줄을 제어합니다.
 
 ## Import 순서 규칙
 
@@ -103,19 +105,25 @@ VS Code에서 저장 시 자동 포맷팅을 사용하려면:
 
 # Prettier Import Order 설정 상세 설명
 
-## 현재 설정 (`.prettierrc.json`)
+## 현재 설정 (`prettier.config.js`)
 
-```json
+```javascript
 {
-  "importOrder": [
-    "^react$",
-    "^react-dom$",
-    "^next",
-    "<THIRD_PARTY_MODULES>",
-    "^@workspace/(.*)$",
-    "^@/(.*)$",
-    "^[./]"
-  ]
+  importOrder: [
+    '^react$',
+    '^react-dom$',
+    '^next',
+    '',  // 빈 줄 (그룹 분리)
+    '<THIRD_PARTY_MODULES>',
+    '',  // 빈 줄
+    '^@workspace/(.*)$',
+    '',  // 빈 줄
+    '^@/(.*)$',
+    '',  // 빈 줄
+    '^[./]',
+  ],
+  importOrderParserPlugins: ['typescript', 'jsx'],
+  importOrderCaseSensitive: false,
 }
 ```
 
