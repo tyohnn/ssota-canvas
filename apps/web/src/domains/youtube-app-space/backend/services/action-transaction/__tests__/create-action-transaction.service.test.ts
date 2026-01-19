@@ -12,14 +12,14 @@ describe('createActionTransaction Service', () => {
   beforeEach(() => {
     // 로그만 출력하는 Mock Repository 생성
     mockRepository = {
-      findByBlockIdAndActionType: vi.fn(async (blockId: string, actionType: string) => {
-        console.log('[MockRepository] findByBlockIdAndActionType called:', { blockId, actionType });
+      findByOrgAndVideo: vi.fn(async (orgId: string, videoId: string, actionType: string) => {
+        console.log('[MockRepository] findByOrgAndVideo called:', { orgId, videoId, actionType });
         return null;
       }),
       create: vi.fn(async (aggregate: ActionTransactionAggregate) => {
         console.log('[MockRepository] create called:', {
           transactionId: aggregate.getTransaction().id.value,
-          blockId: aggregate.getTransaction().blockId.value,
+          orgId: aggregate.getTransaction().orgId,
           videoId: aggregate.getTransaction().videoId.value,
           actionType: aggregate.getTransaction().actionType,
         });
@@ -35,7 +35,7 @@ describe('createActionTransaction Service', () => {
       }),
     };
 
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
   });
 
   afterEach(() => {
@@ -46,7 +46,7 @@ describe('createActionTransaction Service', () => {
     it('유효한 SafeDTO로 Action Transaction을 생성해야 한다', async () => {
       // Given
       const safeDto: CreateActionTransactionRequest = {
-        blockId: '550e8400-e29b-41d4-a716-446655440000',
+        orgId: '550e8400-e29b-41d4-a716-446655440000',
         videoId: '660e8400-e29b-41d4-a716-446655440000',
         actionType: 'extract_script',
       };
@@ -59,7 +59,7 @@ describe('createActionTransaction Service', () => {
       if (result.isSuccess()) {
         const aggregate = result.value;
         expect(aggregate).toBeDefined();
-        expect(aggregate.getTransaction().blockId.value).toBe(safeDto.blockId);
+        expect(aggregate.getTransaction().orgId).toBe(safeDto.orgId);
         expect(aggregate.getTransaction().videoId.value).toBe(safeDto.videoId);
         expect(aggregate.getTransaction().actionType).toBe(safeDto.actionType);
         expect(aggregate.getTransaction().isCompleted()).toBe(false);
@@ -76,7 +76,7 @@ describe('createActionTransaction Service', () => {
     it('smart_summary 액션 타입도 생성되어야 한다', async () => {
       // Given
       const safeDto: CreateActionTransactionRequest = {
-        blockId: '550e8400-e29b-41d4-a716-446655440000',
+        orgId: '550e8400-e29b-41d4-a716-446655440000',
         videoId: '660e8400-e29b-41d4-a716-446655440000',
         actionType: 'smart_summary',
       };
@@ -97,7 +97,7 @@ describe('createActionTransaction Service', () => {
     it('ActionTransactionCreatedEvent가 발행되어야 한다', async () => {
       // Given
       const safeDto: CreateActionTransactionRequest = {
-        blockId: '550e8400-e29b-41d4-a716-446655440000',
+        orgId: '550e8400-e29b-41d4-a716-446655440000',
         videoId: '660e8400-e29b-41d4-a716-446655440000',
         actionType: 'extract_script',
       };
@@ -119,7 +119,7 @@ describe('createActionTransaction Service', () => {
     it('Repository 에러 시 YoutubeError를 반환해야 한다', async () => {
       // Given
       const safeDto: CreateActionTransactionRequest = {
-        blockId: '550e8400-e29b-41d4-a716-446655440000',
+        orgId: '550e8400-e29b-41d4-a716-446655440000',
         videoId: '660e8400-e29b-41d4-a716-446655440000',
         actionType: 'extract_script',
       };
@@ -149,7 +149,7 @@ describe('createActionTransaction Service', () => {
     it('YoutubeError는 그대로 전파되어야 한다', async () => {
       // Given
       const safeDto: CreateActionTransactionRequest = {
-        blockId: '550e8400-e29b-41d4-a716-446655440000',
+        orgId: '550e8400-e29b-41d4-a716-446655440000',
         videoId: '660e8400-e29b-41d4-a716-446655440000',
         actionType: 'extract_script',
       };
@@ -157,7 +157,7 @@ describe('createActionTransaction Service', () => {
       const youtubeError = new YoutubeError(
         'INVALID_ACTION_TRANSACTION_ID',
         'Invalid action transaction ID',
-        { blockId: safeDto.blockId }
+        { orgId: safeDto.orgId }
       );
 
       const errorRepository: IActionTransactionRepository = {

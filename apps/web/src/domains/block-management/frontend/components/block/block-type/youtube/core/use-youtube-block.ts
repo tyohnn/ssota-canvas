@@ -85,7 +85,7 @@ export function useYoutubeBlock(
 
   // URL 변경 시 메타데이터 자동 fetch (오케스트레이션)
   // 주의: handleUrlSubmit에서 이미 fetchMetadata를 호출하므로,
-  // 여기서는 toolbar 등에서 URL이 변경된 경우만 처리
+  // 여기서는 empty state에서 초기 URL 입력 시 자동 fetch 처리
   useEffect(() => {
     if (vo.url) {
       const urlChanged = fetchedUrlRef.current !== vo.url;
@@ -93,12 +93,12 @@ export function useYoutubeBlock(
       const isInitialMount = fetchedUrlRef.current === null;
 
       // 초기 마운트: 메타데이터가 없을 때만 fetch (이미 메타데이터가 있으면 불필요한 API 호출 방지)
-      // URL 변경: 메타데이터가 있어도 fetch (상단 툴바 등에서 URL을 변경한 경우 업데이트 필요)
+      // URL 변경: empty state에서 초기 URL 입력 시 메타데이터 fetch
       // 이미 같은 URL을 fetch 중이면 스킵
       const shouldFetch =
         urlChanged &&
         !isFetchingRef.current &&
-        (isInitialMount ? hasNoMetadata : true); // 초기 마운트는 메타데이터 없을 때만, URL 변경은 항상
+        (isInitialMount ? hasNoMetadata : true); // 초기 마운트는 메타데이터 없을 때만
 
       // URL 추적: fetch 여부와 관계없이 현재 URL을 추적하여 다음 변경을 감지할 수 있도록 함
       // 초기 마운트에서 메타데이터가 있어도 URL은 추적해야 함

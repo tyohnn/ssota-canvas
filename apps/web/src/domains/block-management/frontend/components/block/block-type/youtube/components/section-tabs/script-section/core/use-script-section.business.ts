@@ -22,7 +22,10 @@ import {
 } from '@/domains/block-management/shared/value-objects/block-properties';
 import { checkActionTransactionAction } from '@/domains/youtube-app-space/actions/transaction/check-action-transaction.action';
 import { extractVideoScriptAction } from '@/domains/youtube-app-space/actions/video/extract-video-script.action';
-import { getVideoScriptAction } from '@/domains/youtube-app-space/actions/video/get-video-script.action';
+import {
+  getVideoScriptAction,
+  getVideoScriptWithoutTransactionAction,
+} from '@/domains/youtube-app-space/actions/video/get-video-script.action';
 import type { GetScriptDTO } from '@/domains/youtube-app-space/shared/dtos/responses/video.responses';
 
 import type { ScriptSectionBusinessLogic } from './types';
@@ -47,17 +50,20 @@ export function useScriptSectionBusiness(
   // YoutubeBlockPropertiesVO로 변환하여 타입 안전하게 youtubeId와 youtubeTitle 추출
   let youtubeId: string | undefined;
   let youtubeTitle: string | undefined;
+  let scriptAccessGranted: boolean | undefined;
   try {
     if (properties) {
       const youtubeProperties = YoutubeBlockPropertiesVO.fromJSON(properties);
       youtubeId = youtubeProperties.youtubeId;
       youtubeTitle = youtubeProperties.youtubeTitle;
+      scriptAccessGranted = youtubeProperties.scriptAccessGranted;
     }
   } catch (error) {
     console.warn('[ScriptSection] Failed to parse YouTube properties:', error);
   }
 
   // Action Transaction 확인 (추출 액션이 실행된 적이 있는지)
+  // ⚠️ scriptAccessGranted가 true면 건너뛰기 (Action Transaction 확인 불필요)
   const { data: actionTransactionData, isLoading: isCheckingTransaction } =
     useQuery({
       queryKey: ['youtube-action-transaction', blockId, 'extract_script'],
@@ -78,31 +84,41 @@ export function useScriptSectionBusiness(
 
         return result.data;
       },
-      enabled: !!blockId,
+      enabled: !!blockId && scriptAccessGranted !== true, // scriptAccessGranted가 true면 Action Transaction 확인 불필요
       staleTime: 24 * 60 * 60 * 1000, // 24시간 캐싱 (스크립트는 거의 변경되지 않음)
       retry: 1,
     });
 
-  const hasExtractAction = actionTransactionData?.exists ?? false;
+  const hasExtractAction =
+    scriptAccessGranted === true || (actionTransactionData?.exists ?? false);
 
   // TanStack Query로 스크립트 로드
   // ✅ 추출 액션이 실행된 적이 있는 블록만 로드
+  // ⚠️ scriptAccessGranted가 true면 Action Transaction 확인 없이 직접 조회
   const {
     data: scriptData,
     isLoading,
     error: queryError,
     refetch,
   } = useQuery<GetScriptDTO>({
-    queryKey: ['youtube-script', blockId, youtubeId],
+    queryKey: ['youtube-script', blockId, youtubeId, scriptAccessGranted],
     queryFn: async (): Promise<GetScriptDTO> => {
       if (!youtubeId || !blockId) {
         throw new Error('YouTube ID or Block ID not found');
       }
 
-      const result = await getVideoScriptAction({
-        blockId,
-        youtubeId,
-      });
+      // scriptAccessGranted가 true면 Action Transaction 확인 없이 직접 조회
+      // (조직 내 공유 확인 불필요, 블록 권한만으로 충분)
+      const result =
+        scriptAccessGranted === true
+          ? await getVideoScriptWithoutTransactionAction({
+            blockId,
+            youtubeId,
+          })
+          : await getVideoScriptAction({
+            blockId,
+            youtubeId,
+          });
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to load script');
@@ -111,8 +127,12 @@ export function useScriptSectionBusiness(
       return result.data;
     },
     // ✅ 추출 액션이 실행된 적이 있고, blockId와 youtubeId가 모두 있을 때만 로드
+    // scriptAccessGranted가 true면 Action Transaction 확인 없이 바로 로드
     enabled:
-      !!blockId && !!youtubeId && hasExtractAction && !isCheckingTransaction,
+      !!blockId &&
+      !!youtubeId &&
+      (scriptAccessGranted === true ||
+        (hasExtractAction && !isCheckingTransaction)),
     staleTime: 24 * 60 * 60 * 1000, // 24시간 캐싱 (스크립트는 거의 변경되지 않음)
     retry: 1,
   });

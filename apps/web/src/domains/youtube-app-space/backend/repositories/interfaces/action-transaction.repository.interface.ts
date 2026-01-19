@@ -25,14 +25,16 @@ export interface IActionTransactionRepository {
   findById(id: string): Promise<ActionTransactionAggregate | null>;
 
   /**
-   * Block ID와 Action Type으로 Aggregate 조회
+   * Org ID와 Video ID, Action Type으로 Aggregate 조회
    *
-   * @param blockId - 블록 ID
+   * @param orgId - Organization ID
+   * @param videoId - Video ID
    * @param actionType - 액션 타입 ('extract_script' | 'smart_summary')
    * @returns 찾은 Aggregate 또는 null
    */
-  findByBlockIdAndActionType(
-    blockId: string,
+  findByOrgAndVideo(
+    orgId: string,
+    videoId: string,
     actionType: 'extract_script' | 'smart_summary'
   ): Promise<ActionTransactionAggregate | null>;
 

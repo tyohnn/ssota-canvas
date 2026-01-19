@@ -10,9 +10,10 @@ import { z } from 'zod';
 
 /**
  * create-action-transaction.action.ts용 Request Schema
+ * org_id 기반으로 org 단위 권한 관리
  */
 export const CreateActionTransactionRequestSchema = z.object({
-  blockId: z.uuid('Invalid block ID'),
+  orgId: z.uuid('Invalid organization ID'),
   videoId: z.uuid('Invalid video ID'),
   actionType: z.enum(['extract_script', 'smart_summary']),
 });

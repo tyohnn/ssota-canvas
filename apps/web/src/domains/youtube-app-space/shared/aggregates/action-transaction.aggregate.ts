@@ -5,8 +5,8 @@
  * - Command를 받아 비즈니스 로직 실행
  * - Domain Event 발생 (1 Command : 1 Event)
  * - 불변성 보장
+ * - org_id 기반으로 org 단위 권한 관리
  */
-import { BlockId } from '../../../block-management/shared/value-objects/block-id.vo';
 import type {
   CompleteActionTransactionCommand,
   CreateActionTransactionCommand,
@@ -53,13 +53,12 @@ export class ActionTransactionAggregate {
     const transactionId = ActionTransactionId.generate();
 
     // 2. Value Objects 생성
-    const blockId = new BlockId(command.blockId);
     const videoId = new VideoId(command.videoId);
 
-    // 3. ActionTransactionEntity 생성
+    // 3. ActionTransactionEntity 생성 (org_id 기반)
     const transaction = ActionTransactionEntity.reconstitute({
       id: transactionId,
-      blockId: blockId,
+      orgId: command.orgId,
       videoId: videoId,
       actionType: command.actionType,
       createdAt: new Date(),
@@ -71,7 +70,7 @@ export class ActionTransactionAggregate {
       transaction.id.value,
       {
         transactionId: transaction.id.value,
-        blockId: transaction.blockId.value,
+        orgId: transaction.orgId,
         videoId: transaction.videoId.value,
         actionType: transaction.actionType,
       },
@@ -109,7 +108,7 @@ export class ActionTransactionAggregate {
       this._transaction.id.value,
       {
         transactionId: this._transaction.id.value,
-        blockId: this._transaction.blockId.value,
+        orgId: this._transaction.orgId,
         videoId: this._transaction.videoId.value,
         actionType: this._transaction.actionType,
       },
