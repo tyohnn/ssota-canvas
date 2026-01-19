@@ -34,7 +34,7 @@ export const createActionTransactionAction = withYoutubeBlockSecureAction(
   createActionTransactionInternal,
   {
     getLogMetadata: req => ({
-      blockId: req.blockId,
+      orgId: req.orgId,
       videoId: req.videoId,
       actionType: req.actionType,
     }),

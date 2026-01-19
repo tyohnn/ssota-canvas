@@ -18,7 +18,7 @@ export class ActionTransactionCreatedEvent implements DomainEvent {
     public readonly aggregateId: string,
     public readonly data: {
       transactionId: string;
-      blockId: string;
+      orgId: string; // Organization ID (org 단위 권한 관리)
       videoId: string;
       actionType: string;
     },
@@ -48,7 +48,7 @@ export class ActionTransactionCompletedEvent implements DomainEvent {
     public readonly aggregateId: string,
     public readonly data: {
       transactionId: string;
-      blockId: string;
+      orgId: string; // Organization ID (org 단위 권한 관리)
       videoId: string;
       actionType: string;
     },

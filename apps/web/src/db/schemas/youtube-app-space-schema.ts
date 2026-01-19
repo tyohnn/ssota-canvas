@@ -169,9 +169,10 @@ export const videosRelations = relations(videos, ({ one }) => ({
 /**
  * Action Transactions Table
  *
- * YouTube 블록의 유료 액션 추적 (최소화)
- * - 어떤 블록과 비디오가 어떤 액션이 있었는지만 기록
- * - blockId로 workspace와 user 정보 추출 가능
+ * YouTube 블록의 유료 액션 추적 (Org 기반)
+ * - org_id + video_id로 org 단위 권한 관리
+ * - 같은 org 내 워크스페이스 간 자동 공유
+ * - 크레딧 정책과 일치 (org 단위)
  */
 export const actionTransactions = youtubeAppSpaceSchema
   .table(
@@ -180,8 +181,8 @@ export const actionTransactions = youtubeAppSpaceSchema
       // Primary Key
       id: uuid('id').primaryKey().defaultRandom(),
 
-      // Block & Video (Resource)
-      block_id: uuid('block_id').notNull(),
+      // Org & Video (Resource)
+      org_id: uuid('org_id').notNull(), // Organization ID (org 단위 권한 관리)
       video_id: uuid('video_id')
         .notNull()
         .references(() => videos.id, { onDelete: 'cascade' }),
@@ -197,7 +198,11 @@ export const actionTransactions = youtubeAppSpaceSchema
     },
     table => ({
       // Indexes
-      blockIdIdx: index('idx_action_transactions_block_id').on(table.block_id),
+      orgVideoIdx: index('idx_action_transactions_org_video').on(
+        table.org_id,
+        table.video_id,
+        table.action_type
+      ),
       videoIdIdx: index('idx_action_transactions_video_id').on(table.video_id),
       actionTypeIdx: index('idx_action_transactions_action_type').on(
         table.action_type

@@ -2,9 +2,9 @@
  * Action Transaction Entity
  *
  * YouTube 블록의 유료 액션 추적을 나타내는 도메인 엔티티
- * - 어떤 블록과 비디오가 어떤 액션이 있었는지만 기록
+ * - org_id + video_id로 org 단위 권한 관리
+ * - 같은 org 내 워크스페이스 간 자동 공유
  */
-import { BlockId } from '../../../block-management/shared/value-objects/block-id.vo';
 import { ActionTransactionId } from '../value-objects/action-transaction-id.vo';
 import { VideoId } from '../value-objects/video-id.vo';
 
@@ -13,12 +13,12 @@ export type ActionType = 'extract_script' | 'smart_summary';
 export class ActionTransactionEntity {
   constructor(
     public readonly id: ActionTransactionId,
-    public readonly blockId: BlockId,
+    public readonly orgId: string, // Organization ID (org 단위 권한 관리)
     public readonly videoId: VideoId,
     public readonly actionType: ActionType,
     public readonly createdAt: Date,
     public completedAt: Date | undefined
-  ) {}
+  ) { }
 
   /**
    * 기존 데이터로 Action Transaction 재구성 (Repository에서 사용)
@@ -28,7 +28,7 @@ export class ActionTransactionEntity {
    */
   static reconstitute(params: {
     id: ActionTransactionId;
-    blockId: BlockId;
+    orgId: string;
     videoId: VideoId;
     actionType: ActionType;
     createdAt: Date;
@@ -36,7 +36,7 @@ export class ActionTransactionEntity {
   }): ActionTransactionEntity {
     return new ActionTransactionEntity(
       params.id,
-      params.blockId,
+      params.orgId,
       params.videoId,
       params.actionType,
       params.createdAt,

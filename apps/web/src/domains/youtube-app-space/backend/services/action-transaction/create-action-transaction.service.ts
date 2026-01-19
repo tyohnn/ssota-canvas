@@ -18,7 +18,7 @@ import type { IActionTransactionRepository } from '../../repositories/interfaces
  * - Aggregate에 Command 전달
  * - Domain Event 처리
  *
- * @param safeDto - 검증된 Action Transaction 생성 요청 (SafeDTO)
+ * @param safeDto - 검증된 Action Transaction 생성 요청 (SafeDTO, org_id 포함)
  * @param transactionRepository - Action Transaction Repository
  * @returns ActionTransactionAggregate
  */
@@ -29,7 +29,7 @@ export async function createActionTransaction(
   try {
     // 1. SafeDTO → Command 변환
     const command: CreateActionTransactionCommand = {
-      blockId: safeDto.blockId,
+      orgId: safeDto.orgId,
       videoId: safeDto.videoId,
       actionType: safeDto.actionType,
     };
@@ -62,7 +62,7 @@ export async function createActionTransaction(
           ? error.message
           : 'Failed to create action transaction',
         {
-          blockId: safeDto.blockId,
+          orgId: safeDto.orgId,
           videoId: safeDto.videoId,
           actionType: safeDto.actionType,
           originalError: error instanceof Error ? error.message : String(error),

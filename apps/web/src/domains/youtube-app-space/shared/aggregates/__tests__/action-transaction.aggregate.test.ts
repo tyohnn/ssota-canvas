@@ -3,7 +3,6 @@ import { ActionTransactionAggregate } from '../action-transaction.aggregate';
 import { ActionTransactionEntity } from '../../entities/action-transaction.entity';
 import { ActionTransactionId } from '../../value-objects/action-transaction-id.vo';
 import { VideoId } from '../../value-objects/video-id.vo';
-import { BlockId } from '../../../../block-management/shared/value-objects/block-id.vo';
 import type {
   CreateActionTransactionCommand,
   CompleteActionTransactionCommand,
@@ -14,12 +13,12 @@ import {
 } from '../../events/action-transaction.events';
 
 describe('ActionTransactionAggregate', () => {
-  let blockId: BlockId;
+  let orgId: string;
   let videoId: VideoId;
   let now: Date;
 
   beforeEach(() => {
-    blockId = new BlockId('550e8400-e29b-41d4-a716-446655440000');
+    orgId = '550e8400-e29b-41d4-a716-446655440000';
     videoId = VideoId.generate();
     now = new Date();
   });
@@ -28,7 +27,7 @@ describe('ActionTransactionAggregate', () => {
     it('유효한 Command로 Action Transaction을 생성해야 한다', () => {
       // Given
       const command: CreateActionTransactionCommand = {
-        blockId: blockId.value,
+        orgId: orgId,
         videoId: videoId.value,
         actionType: 'extract_script',
       };
@@ -40,7 +39,7 @@ describe('ActionTransactionAggregate', () => {
       expect(aggregate).toBeInstanceOf(ActionTransactionAggregate);
       const transaction = aggregate.getTransaction();
       expect(transaction.id).toBeInstanceOf(ActionTransactionId);
-      expect(transaction.blockId.value).toBe(command.blockId);
+      expect(transaction.orgId).toBe(command.orgId);
       expect(transaction.videoId.value).toBe(command.videoId);
       expect(transaction.actionType).toBe(command.actionType);
       expect(transaction.completedAt).toBeUndefined();
@@ -49,7 +48,7 @@ describe('ActionTransactionAggregate', () => {
     it('ActionTransactionId가 자동으로 생성되어야 한다', () => {
       // Given
       const command: CreateActionTransactionCommand = {
-        blockId: blockId.value,
+        orgId: orgId,
         videoId: videoId.value,
         actionType: 'extract_script',
       };
@@ -67,7 +66,7 @@ describe('ActionTransactionAggregate', () => {
     it('ActionTransactionCreatedEvent가 발행되어야 한다', () => {
       // Given
       const command: CreateActionTransactionCommand = {
-        blockId: blockId.value,
+        orgId: orgId,
         videoId: videoId.value,
         actionType: 'extract_script',
       };
@@ -83,7 +82,7 @@ describe('ActionTransactionAggregate', () => {
       const event = events[0] as ActionTransactionCreatedEvent;
       expect(event.aggregateId).toBe(aggregate.getTransaction().id.value);
       expect(event.data.transactionId).toBe(aggregate.getTransaction().id.value);
-      expect(event.data.blockId).toBe(command.blockId);
+      expect(event.data.orgId).toBe(command.orgId);
       expect(event.data.videoId).toBe(command.videoId);
       expect(event.data.actionType).toBe(command.actionType);
     });
@@ -91,7 +90,7 @@ describe('ActionTransactionAggregate', () => {
     it('smart_summary 액션 타입도 생성되어야 한다', () => {
       // Given
       const command: CreateActionTransactionCommand = {
-        blockId: blockId.value,
+        orgId: orgId,
         videoId: videoId.value,
         actionType: 'smart_summary',
       };
@@ -109,7 +108,7 @@ describe('ActionTransactionAggregate', () => {
     it('완료되지 않은 Transaction을 완료해야 한다', () => {
       // Given
       const command: CreateActionTransactionCommand = {
-        blockId: blockId.value,
+        orgId: orgId,
         videoId: videoId.value,
         actionType: 'extract_script',
       };
@@ -134,7 +133,7 @@ describe('ActionTransactionAggregate', () => {
       expect(events[0]!.type).toBe('ActionTransactionCompleted');
       const event = events[0] as ActionTransactionCompletedEvent;
       expect(event.data.transactionId).toBe(transaction.id.value);
-      expect(event.data.blockId).toBe(transaction.blockId.value);
+      expect(event.data.orgId).toBe(transaction.orgId);
       expect(event.data.videoId).toBe(transaction.videoId.value);
       expect(event.data.actionType).toBe(transaction.actionType);
     });
@@ -142,7 +141,7 @@ describe('ActionTransactionAggregate', () => {
     it('이미 완료된 Transaction은 다시 완료하지 않아야 한다', () => {
       // Given
       const command: CreateActionTransactionCommand = {
-        blockId: blockId.value,
+        orgId: orgId,
         videoId: videoId.value,
         actionType: 'extract_script',
       };
@@ -172,7 +171,7 @@ describe('ActionTransactionAggregate', () => {
     it('발행된 이벤트 목록을 반환해야 한다', () => {
       // Given
       const command: CreateActionTransactionCommand = {
-        blockId: blockId.value,
+        orgId: orgId,
         videoId: videoId.value,
         actionType: 'extract_script',
       };
@@ -189,7 +188,7 @@ describe('ActionTransactionAggregate', () => {
     it('이벤트를 반환해도 이벤트 목록은 유지되어야 한다', () => {
       // Given
       const command: CreateActionTransactionCommand = {
-        blockId: blockId.value,
+        orgId: orgId,
         videoId: videoId.value,
         actionType: 'extract_script',
       };
@@ -209,7 +208,7 @@ describe('ActionTransactionAggregate', () => {
     it('이벤트들을 커밋된 것으로 표시해야 한다', () => {
       // Given
       const command: CreateActionTransactionCommand = {
-        blockId: blockId.value,
+        orgId: orgId,
         videoId: videoId.value,
         actionType: 'extract_script',
       };
@@ -232,7 +231,7 @@ describe('ActionTransactionAggregate', () => {
       const transactionId = ActionTransactionId.generate();
       const transaction = ActionTransactionEntity.reconstitute({
         id: transactionId,
-        blockId: blockId,
+        orgId: orgId,
         videoId: videoId,
         actionType: 'extract_script',
         createdAt: now,
@@ -254,7 +253,7 @@ describe('ActionTransactionAggregate', () => {
       const completedAt = new Date();
       const transaction = ActionTransactionEntity.reconstitute({
         id: transactionId,
-        blockId: blockId,
+        orgId: orgId,
         videoId: videoId,
         actionType: 'smart_summary',
         createdAt: now,

@@ -1,5 +1,5 @@
 /**
- * Video 스크립트 조회 Action
+ * Video 스크립트 조회 Action (Action Transaction 확인 포함)
  *
  * 패턴: withYoutubeBlockSecureAction HOF 사용
  *
@@ -10,14 +10,15 @@
  *
  * ✅ 서버 액션에서 서비스들을 조합해서 사용하는 방식
  * 1. Video 조회 (youtubeId로)
- * 2. Action Transaction 확인 (블록 단위로 추출 액션이 실행된 적이 있는지)
- * 3. 추출 액션이 있으면 스크립트 확인
- * 4. 스크립트가 있으면 반환
- * 5. 스크립트가 없으면 재추출 시도 (이전 추출이 실패했을 수 있음)
- * 6. 추출 액션이 없으면 에러 반환 (자동 추출하지 않음)
+ * 2. 2단계 권한 확인:
+ *    - 1단계: 블록의 scriptAccessGranted 확인 (빠른 경로)
+ *    - 2단계: org의 action_transactions 확인 (자동 복구 및 조직 내 공유)
+ * 3. 스크립트가 있으면 반환
+ * 4. 스크립트가 없으면 재추출 시도 (이전 추출이 실패했을 수 있음)
+ * 5. 권한이 없으면 에러 반환 (자동 추출하지 않음)
  *
- * ⚠️ 중요: 스크립트가 DB에 있어도, 해당 블록에 대한 추출 액션이 없으면 반환하지 않음
- * 다른 유저가 같은 YouTube 비디오에 대해 추출한 스크립트를 무임승차하는 것을 방지
+ * ⚠️ 중요: org 기반 권한 관리로 같은 org 내 워크스페이스 간 자동 공유
+ * - Action Transaction을 확인하여 같은 조직의 다른 블록에서 추출한 스크립트 재사용 가능
  *
  * ✅ 추출 이력이 있지만 스크립트가 없는 경우:
  * - 사용자가 이미 크레딧을 사용하여 추출을 시도했지만 실패했을 수 있음
@@ -49,7 +50,11 @@ import { YoutubeError } from '../../shared/errors/youtube-app-space.error';
 import { withYoutubeBlockSecureAction } from '../secure-action';
 
 /**
- * Video 스크립트 조회 Action (blockId 기반)
+ * Video 스크립트 조회 Action (Action Transaction 확인 포함)
+ * 
+ * - 인증 필요
+ * - Action Transaction을 확인하여 조직 내 공유된 스크립트 재사용 가능
+ * - 블록의 scriptAccessGranted가 false여도 org의 action_transactions를 확인하여 자동 복구
  */
 export const getVideoScriptAction = withYoutubeBlockSecureAction(
   GetVideoScriptRequestSchema,
@@ -62,6 +67,153 @@ export const getVideoScriptAction = withYoutubeBlockSecureAction(
     }),
   }
 );
+
+/**
+ * Video 스크립트 조회 Action (Action Transaction 확인 없이)
+ * 
+ * ⚠️ Security: scriptAccessGranted가 true인 블록만 접근 가능
+ * - Action Transaction을 확인하지 않고 블록의 scriptAccessGranted만 확인
+ * - Org 레벨 공유 확인 없이 직접 비디오 데이터만 조회
+ * - scriptAccessGranted가 false면 에러 반환
+ * 
+ * 사용 사례:
+ * - scriptAccessGranted가 이미 true로 설정된 블록 (빠른 경로)
+ * - Action Transaction 확인이 불필요한 경우
+ */
+export async function getVideoScriptWithoutTransactionAction(
+  input: unknown
+): Promise<ActionResult<GetScriptDTO>> {
+  // 1. Runtime Validation
+  const parseResult = GetVideoScriptRequestSchema.safeParse(input);
+
+  if (!parseResult.success) {
+    console.warn('[Security] Invalid request to getVideoScriptWithoutTransactionAction', {
+      errors: parseResult.error.issues,
+      timestamp: new Date().toISOString(),
+    });
+
+    return err('Invalid request data', {
+      code: 'INVALID_REQUEST',
+      meta: { errors: parseResult.error.issues },
+    });
+  }
+
+  const safeDto = parseResult.data;
+
+  // 2. Internal 함수 호출 (Action Transaction 확인 없이, scriptAccessGranted만 확인)
+  return await getVideoScriptWithoutTransactionInternal(safeDto);
+}
+
+/**
+ * Action Transaction 확인 없이 스크립트 조회 내부 구현
+ * 
+ * ⚠️ Security: 블록 검증은 여전히 수행 (서버 보안 검증)
+ * - Block 조회 및 타입 확인
+ * - Block Properties 검증
+ * - scriptAccessGranted 확인
+ * - youtubeId 일치 확인
+ * 
+ * Action Transaction을 확인하지 않으므로:
+ * - Org 레벨 공유 확인 없음
+ * - 같은 조직의 다른 블록에서 추출한 스크립트 재사용 불가
+ * - 블록의 scriptAccessGranted가 true인 경우에만 사용
+ */
+async function getVideoScriptWithoutTransactionInternal(
+  safeDto: GetVideoScriptRequest
+): Promise<ActionResult<GetScriptDTO>> {
+  try {
+    // 1. Block 조회 (서버 보안 검증: 아무나 데이터를 가져갈 수 없게 하기 위해 블록에 한정)
+    const blockRepository = new DrizzleBlockRepository();
+    const block = await blockRepository.findById(new BlockId(safeDto.blockId));
+
+    if (!block) {
+      return err('Block not found', { code: 'BLOCK_NOT_FOUND' });
+    }
+
+    // 2. Block 타입이 youtube인지 확인 (서버 보안 검증)
+    if (block.blockType.value !== 'youtube') {
+      return err('Block is not a YouTube block', {
+        code: 'INVALID_BLOCK_TYPE',
+      });
+    }
+
+    // 3. Block Properties를 타입 안전하게 변환 (서버 보안 검증)
+    const properties = block.properties;
+    let youtubeProperties: YoutubeBlockPropertiesVO;
+    try {
+      const propertiesJSON = properties.toJSON() as YoutubeBlockProperties;
+      youtubeProperties = YoutubeBlockPropertiesVO.fromJSON(propertiesJSON);
+    } catch (error) {
+      return err('Invalid YouTube block properties', {
+        code: 'INVALID_BLOCK_PROPERTIES',
+        meta: {
+          originalError:
+            error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
+    }
+
+    // 4. scriptAccessGranted 확인 (Action Transaction 확인 없이 블록 권한만 확인)
+    if (youtubeProperties.scriptAccessGranted !== true) {
+      return err('Script not extracted. Please extract script first.', {
+        code: 'SCRIPT_NOT_EXTRACTED',
+        meta: {
+          blockId: safeDto.blockId,
+          videoId: safeDto.youtubeId,
+        },
+      });
+    }
+
+    // 5. youtubeId 추출 및 검증 (서버 보안 검증)
+    const blockYoutubeId = youtubeProperties.youtubeId;
+    if (!blockYoutubeId) {
+      return err('YouTube ID not found in block properties', {
+        code: 'YOUTUBE_ID_NOT_FOUND',
+      });
+    }
+
+    if (blockYoutubeId !== safeDto.youtubeId) {
+      return err('YouTube ID mismatch', {
+        code: 'YOUTUBE_ID_MISMATCH',
+      });
+    }
+
+    // 6. Video 조회 (Action Transaction 확인 없이 직접 조회)
+    const videoRepository = new DrizzleVideoRepository();
+    const aggregate = await videoRepository.findById(safeDto.youtubeId);
+
+    if (!aggregate) {
+      return err('Video not found', { code: 'VIDEO_NOT_FOUND' });
+    }
+
+    // 7. 스크립트 확인 및 반환
+    const video = aggregate.getVideo();
+    if (video.hasScript()) {
+      const response: GetScriptDTO = {
+        youtube: aggregate.toView(),
+      };
+      return ok(response);
+    }
+
+    // 스크립트가 없으면 에러
+    return err('Script not found', {
+      code: 'SCRIPT_NOT_FOUND',
+      meta: {
+        blockId: safeDto.blockId,
+        videoId: safeDto.youtubeId,
+      },
+    });
+  } catch (error) {
+    console.error('[getVideoScriptWithoutTransactionInternal] Internal error:', error);
+    return err('Internal server error', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+        request: safeDto,
+      },
+    });
+  }
+}
 
 /**
  * 내부 구현 (검증된 데이터만 처리)
@@ -132,41 +284,75 @@ async function getVideoScriptInternal(
       return err('Video not found', { code: 'VIDEO_NOT_FOUND' });
     }
 
-    // 5. Action Transaction 확인 (블록 단위로 추출 액션이 실행된 적이 있는지 확인)
-    // ⚠️ 중요: 스크립트가 DB에 있어도, 해당 블록에 대한 추출 액션이 없으면 반환하지 않음
-    // 다른 유저가 같은 YouTube 비디오에 대해 추출한 스크립트를 무임승차하는 것을 방지
+    // 5. 2단계 권한 확인: 블록 레벨 → Org 레벨 (Action Transaction 확인)
+    const video = aggregate.getVideo();
     const actionTransactionRepository =
       new DrizzleActionTransactionRepository();
-    const actionTransaction =
-      await actionTransactionRepository.findByBlockIdAndActionType(
-        safeDto.blockId,
-        'extract_script'
-      );
 
-    // 추출 액션이 실행된 적이 없으면 스크립트가 없다는 에러 반환
-    // (자동 추출하지 않음)
-    if (!actionTransaction) {
-      return err('Script not extracted. Please extract script first.', {
-        code: 'SCRIPT_NOT_EXTRACTED',
-        meta: {
-          blockId: safeDto.blockId,
-          videoId: safeDto.youtubeId,
-        },
-      });
+    // 5-1. 1단계: 블록의 scriptAccessGranted 확인 (빠른 경로)
+    // ⚠️ 중요: scriptAccessGranted가 true면 action_transactions 조회 없이 바로 반환
+    // (이 경우 getVideoScriptWithoutTransactionAction을 사용하는 것이 더 효율적)
+    if (youtubeProperties.scriptAccessGranted === true) {
+      // 블록 권한이 있으면 바로 스크립트 반환 (action_transactions 조회 없음)
+      if (video.hasScript()) {
+        const response: GetScriptDTO = {
+          youtube: aggregate.toView(),
+        };
+        return ok(response);
+      }
+      // 스크립트가 없으면 재추출 시도 (아래 로직으로 진행)
+    } else {
+      // 5-2. 2단계: org의 action_transactions 확인 (자동 복구)
+      // ⚠️ 익명 유저의 경우 context.organization.id가 없을 수 있으므로 체크
+      if (!context.organization?.id) {
+        // 익명 유저이고 scriptAccessGranted가 false면 권한 없음
+        return err('Script not extracted. Please extract script first.', {
+          code: 'SCRIPT_NOT_EXTRACTED',
+          meta: {
+            blockId: safeDto.blockId,
+            videoId: safeDto.youtubeId,
+          },
+        });
+      }
+
+      const actionTransaction =
+        await actionTransactionRepository.findByOrgAndVideo(
+          context.organization.id,
+          safeDto.youtubeId,
+          'extract_script'
+        );
+
+      if (actionTransaction) {
+        // org가 이미 추출했으면 블록에 권한 부여 (자동 복구)
+        block.updatePropertiesFromRecord({
+          scriptAccessGranted: true,
+        });
+        await blockRepository.update(block);
+
+        // 스크립트 확인
+        if (video.hasScript()) {
+          const response: GetScriptDTO = {
+            youtube: aggregate.toView(),
+          };
+          return ok(response);
+        }
+        // 스크립트가 없으면 재추출 시도 (아래 로직으로 진행)
+      } else {
+        // 권한 없음
+        return err('Script not extracted. Please extract script first.', {
+          code: 'SCRIPT_NOT_EXTRACTED',
+          meta: {
+            blockId: safeDto.blockId,
+            videoId: safeDto.youtubeId,
+          },
+        });
+      }
     }
 
-    // 6. 추출 액션이 실행된 적이 있으면 스크립트 확인
-    const video = aggregate.getVideo();
-    if (video.hasScript()) {
-      const response: GetScriptDTO = {
-        youtube: aggregate.toView(),
-      };
-      return ok(response);
-    }
+    // 6. 스크립트가 없는 경우 재추출 시도
+    // (블록 권한이 있거나 org 권한이 있는데 스크립트가 없는 경우)
 
-    // 7. 추출 액션이 실행된 적이 있지만 스크립트가 없는 경우
-    // 사용자가 이미 크레딧을 사용하여 추출을 시도했지만 실패했을 수 있음
-    // 재추출을 시도하여 사용자 경험을 개선
+    // 6-1. 재추출 시도 (권한은 있지만 스크립트가 없는 경우)
     const videoSlug = video.slug.value;
     let script;
     try {
@@ -177,14 +363,23 @@ async function getVideoScriptInternal(
         error
       );
 
-      // Action Transaction 완료 처리 (재시도 실패로 표시)
-      // Note: actionTransaction은 Aggregate이므로 getTransaction()으로 Entity 접근
-      const transactionEntity = actionTransaction.getTransaction();
-      const completeCommand: CompleteActionTransactionCommand = {
-        transactionId: transactionEntity.id.value,
-      };
-      actionTransaction.complete(completeCommand);
-      await actionTransactionRepository.update(actionTransaction);
+      // org의 action_transaction 조회 (완료 처리용)
+      const actionTransaction =
+        await actionTransactionRepository.findByOrgAndVideo(
+          context.organization.id,
+          safeDto.youtubeId,
+          'extract_script'
+        );
+
+      if (actionTransaction) {
+        // Action Transaction 완료 처리 (재시도 실패로 표시)
+        const transactionEntity = actionTransaction.getTransaction();
+        const completeCommand: CompleteActionTransactionCommand = {
+          transactionId: transactionEntity.id.value,
+        };
+        actionTransaction.complete(completeCommand);
+        await actionTransactionRepository.update(actionTransaction);
+      }
 
       return err(
         error instanceof YoutubeError
@@ -202,7 +397,7 @@ async function getVideoScriptInternal(
       );
     }
 
-    // 8. 스크립트 업데이트
+    // 6-2. 스크립트 업데이트
     const updateScriptCommand: UpdateScriptCommand = {
       videoId: video.id.value,
       script,
@@ -211,19 +406,27 @@ async function getVideoScriptInternal(
 
     aggregate.updateScript(updateScriptCommand);
 
-    // 9. Repository에 저장
+    // 6-3. Repository에 저장
     await videoRepository.update(aggregate);
 
-    // 10. Action Transaction 완료 처리
-    // Note: actionTransaction은 Aggregate이므로 getTransaction()으로 Entity 접근
-    const transactionEntity = actionTransaction.getTransaction();
-    const completeCommand: CompleteActionTransactionCommand = {
-      transactionId: transactionEntity.id.value,
-    };
-    actionTransaction.complete(completeCommand);
-    await actionTransactionRepository.update(actionTransaction);
+    // 6-4. Action Transaction 완료 처리 (재추출 성공)
+    const actionTransaction =
+      await actionTransactionRepository.findByOrgAndVideo(
+        context.organization.id,
+        safeDto.youtubeId,
+        'extract_script'
+      );
 
-    // 11. Response DTO 생성
+    if (actionTransaction) {
+      const transactionEntity = actionTransaction.getTransaction();
+      const completeCommand: CompleteActionTransactionCommand = {
+        transactionId: transactionEntity.id.value,
+      };
+      actionTransaction.complete(completeCommand);
+      await actionTransactionRepository.update(actionTransaction);
+    }
+
+    // 7. Response DTO 생성
     const response: GetScriptDTO = {
       youtube: aggregate.toView(),
     };

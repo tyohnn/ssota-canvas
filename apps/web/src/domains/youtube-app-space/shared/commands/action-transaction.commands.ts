@@ -9,9 +9,10 @@ import type { ActionType } from '../entities/action-transaction.entity';
  * Action Transaction 생성 Command
  *
  * 유료 액션 실행을 추적하기 위한 Transaction 생성
+ * org_id 기반으로 org 단위 권한 관리
  */
 export interface CreateActionTransactionCommand {
-  blockId: string;
+  orgId: string; // Organization ID (org 단위 권한 관리)
   videoId: string;
   actionType: ActionType;
 }
