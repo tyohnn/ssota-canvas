@@ -6,6 +6,9 @@ import { createBlock } from '@/domains/block-management/backend/services/block';
 import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
 import type { CreateBlockRequest } from '@/domains/block-management/shared/dtos/requests/block.requests';
 import {
+  getDefaultViewMode,
+} from '@/domains/block-management/shared/types/block-view-modes';
+import {
   type BlockType,
   getBlockSize,
   getBlockSizeForViewMode,
@@ -82,14 +85,16 @@ export async function createAndMountBlock(
     const blockAggregate = blockResult.value;
 
     // 3. Canvas Management Aggregate 생성 (자체 이벤트 생성)
-    const blockMountId = BlockMountId.generate();
-    const viewMode = safeDto.viewMode
-      ? BlockViewMode.create(safeDto.viewMode)
-      : BlockViewMode.default();
-
-    // 4. 모든 viewMode의 기본 크기 계산 및 ViewModeSizes 생성
     // safeDto.blockType은 Zod로 검증된 값이므로 BlockType으로 안전하게 캐스팅 가능
     const blockType: BlockType = safeDto.blockType as BlockType;
+    const blockMountId = BlockMountId.generate();
+    // viewMode 결정: safeDto에서 제공되면 사용, 없으면 blockType에 따른 기본값 사용
+    // 마크다운 블록은 'note'가 기본값, 다른 블록은 'original'이 기본값
+    const viewMode = safeDto.viewMode
+      ? BlockViewMode.create(safeDto.viewMode)
+      : BlockViewMode.create(getDefaultViewMode(blockType));
+
+    // 4. 모든 viewMode의 기본 크기 계산 및 ViewModeSizes 생성
     const originalSize = getBlockSize(blockType);
     const cardSize = getBlockSizeForViewMode(blockType, 'card');
     const noteSize = getBlockSizeForViewMode(blockType, 'note');
