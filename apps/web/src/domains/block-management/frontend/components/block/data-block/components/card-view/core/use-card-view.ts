@@ -9,6 +9,7 @@
 import { useMemo } from 'react';
 
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 import type {
   CardViewProps,
@@ -30,6 +31,7 @@ export function useCardView(
 
   // Canvas Mode Context (항상 실제 context 사용)
   const canvasMode = useCanvasModeContext();
+  const { readonly } = useCanvasReadOnly();
 
   // 비즈니스 로직 (의존성 주입 지원)
   const defaultBusiness = useCardViewBusiness({
@@ -61,6 +63,7 @@ export function useCardView(
       className: props.className,
       selected: props.selected ?? false,
       onOpenEditorPanel: business.openEditorPanel,
+      readonly,
     }),
     [
       data.title,
@@ -69,6 +72,7 @@ export function useCardView(
       props.className,
       props.selected,
       business.openEditorPanel,
+      readonly,
     ]
   );
 

@@ -13,6 +13,7 @@
 import { Handle, Position } from '@xyflow/react';
 
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 import type { HoverDirection } from '../core/types';
 
@@ -33,6 +34,12 @@ export interface HandlesProps {
 
 export function Handles({ isConnectable, hoverDirection }: HandlesProps) {
   const canvasMode = useCanvasModeContext();
+  const { readonly } = useCanvasReadOnly();
+
+  // readonly 모드에서는 핸들을 완전히 숨김
+  if (readonly) {
+    return null;
+  }
 
   // 연결 모드인지 확인
   const isEdgeCreationMode = canvasMode.isEdgeCreationMode();

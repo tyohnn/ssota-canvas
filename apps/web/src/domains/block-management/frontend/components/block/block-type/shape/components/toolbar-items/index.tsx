@@ -2,6 +2,7 @@ import React from 'react';
 
 import { BorderStyleToolbarItem } from '@/domains/block-management/frontend/components/block/common-toolbar-items/border-style-toolbar-item';
 import { ColorToolbarItem } from '@/domains/block-management/frontend/components/block/common-toolbar-items/color-toolbar-item';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 import { ShapeTypeToolbarItem } from './shape-type-toolbar-item';
 
@@ -22,6 +23,13 @@ export function ShapeToolbarItems({
   onPropertyUpdate: (path: string, value: any) => Promise<void>;
   zoom?: number;
 }) {
+  const { readonly } = useCanvasReadOnly();
+
+  // readonly 모드에서는 전체 toolbar items를 숨김
+  if (readonly) {
+    return null;
+  }
+
   const shapeProperties = blockData.properties;
 
   return (

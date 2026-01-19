@@ -10,6 +10,7 @@ import { Box } from '@/components/ui/box';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 // Canvas Management Hooks
 import { usePreventPinchZoom } from '@/domains/canvas-management/frontend/hooks/control/use-prevent-pinch-zoom';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 import { BLOCK_ACTION_MODULES } from './action-prefetch';
 import { BlockActionMapper } from './block-action-mapper';
@@ -40,9 +41,15 @@ export function BlockActionBar({
   blockData,
 }: BlockActionBarProps) {
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const { readonly } = useCanvasReadOnly();
 
   // 트랙패드 핀치 줌 방지
   usePreventPinchZoom(toolbarRef);
+
+  // readonly 모드에서는 action toolbar를 숨김
+  if (readonly) {
+    return null;
+  }
 
   // 액션 아이템이 없는 블록 타입이면 렌더링하지 않음
   if (!BLOCK_ACTION_MODULES[blockType]) {

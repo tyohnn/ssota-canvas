@@ -22,10 +22,17 @@ import { TypeGrid } from './components/type-grid';
 import { Label } from './components/label';
 import type { CustomPropertyAddPopoverProps } from './core/types';
 import { useCustomPropertyAddPopoverContext } from './core/context';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { cn } from '@/lib/utils';
 
 function CustomPropertyAddPopoverWrapper(): React.JSX.Element {
   const { open, handleOpenChange } = useCustomPropertyAddPopoverContext();
+  const { readonly } = useCanvasReadOnly();
+
+  // readonly 모드에서는 버튼을 숨김
+  if (readonly) {
+    return <></>;
+  }
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>

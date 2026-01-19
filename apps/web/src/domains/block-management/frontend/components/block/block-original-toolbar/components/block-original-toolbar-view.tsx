@@ -42,6 +42,7 @@ export interface BlockOriginalToolbarViewProps {
   toolbarRef: React.RefObject<HTMLDivElement | null>;
   onViewModeChange: (newViewMode: BlockViewModeValue) => Promise<void>;
   onDetails: () => void;
+  readonly?: boolean;
 }
 
 /**
@@ -62,6 +63,7 @@ export function BlockOriginalToolbarView({
   toolbarRef,
   onViewModeChange,
   onDetails,
+  readonly = false,
 }: BlockOriginalToolbarViewProps) {
   return (
     <Box
@@ -88,11 +90,15 @@ export function BlockOriginalToolbarView({
               width={width}
               height={height}
               zoom={zoom}
+              readonly={readonly}
             />
           </Box>
-          <Separator orientation="vertical" className="h-6!" />
-          {/* 보기 방식 변경 */}
-          {pageId && (
+          {/* readonly일 때는 Separator 숨김 */}
+          {!readonly && (
+            <Separator orientation="vertical" className="h-6!" />
+          )}
+          {/* 보기 방식 변경 - readonly일 때 숨김 */}
+          {!readonly && pageId && (
             <ViewModeToolbarItem
               blockType={blockData.blockType}
               currentViewMode={viewMode}
@@ -112,14 +118,18 @@ export function BlockOriginalToolbarView({
             className="h-7 w-7 p-0"
             iconClassName="size-3"
           />
-          <Separator orientation="vertical" className="h-6!" />
-          {/* 더보기 메뉴 */}
-          <MoreMenuToolbarItem
-            blockId={blockId}
-            blockMountId={blockMountId}
-            width={width}
-            height={height}
-          />
+          {/* 더보기 메뉴 - readonly일 때 Separator와 함께 숨김 */}
+          {!readonly && (
+            <>
+              <Separator orientation="vertical" className="h-6!" />
+              <MoreMenuToolbarItem
+                blockId={blockId}
+                blockMountId={blockMountId}
+                width={width}
+                height={height}
+              />
+            </>
+          )}
         </TooltipProvider>
       </ToolbarContainer>
     </Box>

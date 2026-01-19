@@ -22,6 +22,7 @@ export interface CardViewViewProps {
   className?: string;
   selected?: boolean;
   onOpenEditorPanel: () => void;
+  readonly?: boolean;
 }
 
 export interface CustomPropertyRowProps {

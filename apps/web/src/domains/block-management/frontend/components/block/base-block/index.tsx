@@ -36,6 +36,7 @@ import { Toolbar } from './components/toolbar';
 import type { BaseBlockProps } from './core/types';
 import type { UseBaseBlockOptions } from './core/use-base-block';
 import { useBaseBlock } from './core/use-base-block';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 export interface BaseBlockComponentProps extends BaseBlockProps {
   businessLogic?: UseBaseBlockOptions['businessLogic'];
@@ -51,6 +52,7 @@ const BaseBlockContainer = memo(
     ({ children, businessLogic, ...props }, ref) => {
       // Hook으로 데이터 가져오기
       const contextValue = useBaseBlock(props, { businessLogic });
+      const { readonly } = useCanvasReadOnly();
 
       const showToolbar = props.data?.viewMode === 'original';
 
@@ -64,6 +66,7 @@ const BaseBlockContainer = memo(
           onMouseMove={contextValue.handleMouseMove}
           onMouseLeave={contextValue.handleMouseLeave}
           showAddButtonZones={
+            !readonly &&
             contextValue.isCurrentBlockSelected &&
             contextValue.isSingleSelection
           }
@@ -78,11 +81,13 @@ const BaseBlockContainer = memo(
             handleResizeEnd={contextValue.handleResizeEnd}
           />
 
-          {/* 연결점 */}
-          <Handles
-            isConnectable={contextValue.isConnectable}
-            hoverDirection={contextValue.hoverDirection}
-          />
+          {/* 연결점 - readonly일 때 숨김 */}
+          {!readonly && (
+            <Handles
+              isConnectable={contextValue.isConnectable}
+              hoverDirection={contextValue.hoverDirection}
+            />
+          )}
 
           {/* 상단 툴바 - original view일 때만 표시 */}
           {showToolbar && (

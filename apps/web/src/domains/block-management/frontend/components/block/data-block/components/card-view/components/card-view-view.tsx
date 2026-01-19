@@ -32,6 +32,7 @@ export function CardViewView({
   className,
   selected = false,
   onOpenEditorPanel,
+  readonly = false,
 }: CardViewViewProps) {
   return (
     <Box
@@ -65,30 +66,33 @@ export function CardViewView({
       {/* 커스텀 속성들 */}
       <Box className="flex-1">
         {customProperties.length === 0 ? (
-          <Box
-            className="py-2"
-            onClick={
-              selected
-                ? e => {
+          // readonly일 때는 add property 버튼 숨김
+          !readonly && (
+            <Box
+              className="py-2"
+              onClick={
+                selected
+                  ? e => {
                     e.stopPropagation();
                     onOpenEditorPanel();
                   }
-                : undefined
-            }
-            onMouseDown={selected ? e => e.stopPropagation() : undefined}
-          >
-            <Box
-              className={cn(
-                'w-fit flex items-center justify-start text-xs pl-1 pr-2 py-1 gap-1 rounded-md transition-colors',
-                selected
-                  ? 'cursor-pointer text-muted-foreground hover:bg-accent/50 hover:text-foreground dark:hover:bg-accent/50'
-                  : 'hidden opacity-50'
-              )}
+                  : undefined
+              }
+              onMouseDown={selected ? e => e.stopPropagation() : undefined}
             >
-              <Plus className="w-3 h-3" />
-              Add Property
+              <Box
+                className={cn(
+                  'w-fit flex items-center justify-start text-xs pl-1 pr-2 py-1 gap-1 rounded-md transition-colors',
+                  selected
+                    ? 'cursor-pointer text-muted-foreground hover:bg-accent/50 hover:text-foreground dark:hover:bg-accent/50'
+                    : 'hidden opacity-50'
+                )}
+              >
+                <Plus className="w-3 h-3" />
+                Add Property
+              </Box>
             </Box>
-          </Box>
+          )
         ) : (
           <Box className="space-y-0">
             {customProperties.map(({ property, value }) => (

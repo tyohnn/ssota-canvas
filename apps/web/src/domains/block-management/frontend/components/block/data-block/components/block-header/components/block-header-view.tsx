@@ -17,6 +17,7 @@ export interface BlockHeaderViewProps {
   inputRef: React.RefObject<HTMLInputElement | null>;
   isUpdating: boolean;
   className?: string;
+  readonly?: boolean;
 }
 
 /**
@@ -37,6 +38,7 @@ export function BlockHeaderView({
   inputRef,
   isUpdating,
   className,
+  readonly = false,
 }: BlockHeaderViewProps) {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -78,6 +80,7 @@ export function BlockHeaderView({
         onFocus={handleFocus}
         onBlur={handleBlur}
         disabled={isUpdating}
+        readOnly={readonly}
         placeholder="Click to edit"
         className={cn(
           'h-7 px-1 text-sm font-medium',
@@ -88,7 +91,7 @@ export function BlockHeaderView({
           'focus-visible:ring-0',
           'focus-visible:outline-none',
           'placeholder:text-muted-foreground/50',
-          'cursor-text',
+          readonly ? 'cursor-default' : 'cursor-text',
           'truncate',
           isFocused ? 'border-b-foreground/30' : 'border-b-transparent',
           className
