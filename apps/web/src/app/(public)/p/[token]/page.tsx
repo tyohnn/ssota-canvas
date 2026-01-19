@@ -6,7 +6,7 @@ import {
   toReactFlowEdgeFromCanvasView,
   toReactFlowNodeFromCanvasView,
 } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
-import PublishPageClient from './publish-page-client';
+import { PublishPageClient } from '@/domains/share/frontend/components/publish-page-client';
 import { Box } from '@/components/ui/box';
 
 interface PublishPageProps {

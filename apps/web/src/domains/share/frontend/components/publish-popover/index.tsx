@@ -7,17 +7,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { Box } from '@/components/ui/box';
 import { cn } from '@/lib/utils';
-import { usePublishFlow } from './hooks/use-publish-flow';
-import { PublishInfoCard } from './components/publish-info-card';
-import { PublishSettings } from './components/publish-settings';
+import { usePublishFlow } from './core/use-publish-flow';
+import { PublishedContent } from './components/published-content';
+import { UnpublishedContent } from './components/unpublished-content';
 
-interface PublishFlowProps {
+interface PublishPopoverProps {
   pageId: string;
   onPublished?: (publishUrl: string) => void;
 }
 
-export function PublishFlow(props: PublishFlowProps) {
+export function PublishPopover(props: PublishPopoverProps) {
   const {
     isOpen,
     setIsOpen,
@@ -52,34 +53,36 @@ export function PublishFlow(props: PublishFlowProps) {
         sideOffset={8}
         className="w-[360px] p-0 overflow-hidden rounded-xl border border-border/70 shadow-xl"
       >
-        <div className="border-b border-border/60 px-4 pt-3">
-          <div className="flex items-center gap-4 text-sm font-medium">
+        <Box className="border-b border-border/60 px-4 pt-3">
+          <Box className="flex items-center gap-4 text-sm font-medium">
             <span className="relative pb-2 text-foreground">
               Publish
-              <span className="absolute left-0 right-0 -bottom-[1px] h-[2px] bg-foreground" />
+              <span className="absolute left-0 right-0 -bottom-1px h-[2px] bg-foreground" />
             </span>
-          </div>
-        </div>
+          </Box>
+        </Box>
 
-        <div className="space-y-6 px-4 py-4">
-          <PublishInfoCard />
-          
-          <PublishSettings 
-            publishUrl={publishUrl}
-            normalizedUrl={normalizedUrl}
-            isSubmitting={isSubmitting}
-            isUnpublishing={isUnpublishing}
-            isLinkCopied={isLinkCopied}
-            onPublish={handlePublish}
-            onCopy={handleCopy}
-            onUnpublish={handleUnpublish}
-            onClose={() => setIsOpen(false)}
-          />
+        <Box className="px-4 py-4">
+          {publishUrl ? (
+            <PublishedContent
+              normalizedUrl={normalizedUrl}
+              isUnpublishing={isUnpublishing}
+              isLinkCopied={isLinkCopied}
+              onCopy={handleCopy}
+              onUnpublish={handleUnpublish}
+            />
+          ) : (
+            <UnpublishedContent
+              isSubmitting={isSubmitting}
+              onPublish={handlePublish}
+              onClose={() => setIsOpen(false)}
+            />
+          )}
 
           {error && (
             <p className="text-xs text-destructive mt-2">{error}</p>
           )}
-        </div>
+        </Box>
       </PopoverContent>
     </Popover>
   );

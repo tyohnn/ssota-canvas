@@ -12,12 +12,12 @@ export type PublishPageRequest = z.infer<typeof PublishPageRequestSchema>;
 /**
  * 게시된 페이지 복제 요청
  */
-export const CopyPublishedPageRequestSchema = z.object({
+export const DuplicatePublishedPageRequestSchema = z.object({
   publishToken: z.string().min(1),
   targetWorkspaceId: z.string().min(1),
 });
 
-export type CopyPublishedPageRequest = z.infer<typeof CopyPublishedPageRequestSchema>;
+export type DuplicatePublishedPageRequest = z.infer<typeof DuplicatePublishedPageRequestSchema>;
 
 /**
  * 페이지 게시 중단 요청

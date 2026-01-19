@@ -1,26 +1,26 @@
 'use client';
 
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Separator } from '@/components/ui/separator';
+import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
+import { Box } from '@/components/ui/box';
 import {
   Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbLink,
-  BreadcrumbSeparator,
-  BreadcrumbPage,
   BreadcrumbEllipsis,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { useWorkspace } from '../../hooks/use-workspace';
-import { WorkspaceIcon, IconPicker } from '../shared/icon-picker';
-import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
-import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { PublishPopover } from '@/domains/share/frontend/components/publish-popover';
+import { cn } from '@/lib/utils';
 import { useUpdatePageIcon } from '../../hooks/use-update-page-icon';
 import { useUpdatePageTitle } from '../../hooks/use-update-page-title';
-import { PublishFlow } from '@/domains/share/frontend/components/publish-flow';
-import { Box } from '@/components/ui/box';
+import { useWorkspace } from '../../hooks/use-workspace';
+import { IconPicker, WorkspaceIcon } from '../shared/icon-picker';
 
 interface WorkspacePageHeaderProps {
   pageId?: string;
@@ -131,7 +131,7 @@ function EditablePageTitle({ title, pageId }: EditablePageTitleProps) {
         'hover:bg-accent hover:text-accent-foreground rounded-sm px-1 -mx-1 transition-colors'
       )}
       onClick={() => setIsEditing(true)}
-        title="Click to edit page title"
+      title="Click to edit page title"
     >
       {title}
     </BreadcrumbPage>
@@ -322,7 +322,7 @@ export function WorkspacePageHeader({
 
       {actualPageId && (
         <Box className="flex items-center gap-2 pr-3">
-          <PublishFlow pageId={actualPageId} />
+          <PublishPopover pageId={actualPageId} />
         </Box>
       )}
     </header>

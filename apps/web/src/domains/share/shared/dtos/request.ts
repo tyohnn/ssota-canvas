@@ -35,13 +35,13 @@ export type GetPublishedLinkRequest = z.output<typeof GetPublishedLinkRequestSch
 /**
  * 게시된 페이지 복제 요청
  */
-export const CopyPublishedPageRequestSchema = z.object({
+export const DuplicatePublishedPageRequestSchema = z.object({
   publishToken: z.string().min(1),
   targetWorkspaceId: z.uuid(),
 });
 
-export type CopyPublishedPageRequestInput = z.input<typeof CopyPublishedPageRequestSchema>;
-export type CopyPublishedPageRequest = z.output<typeof CopyPublishedPageRequestSchema>;
+export type DuplicatePublishedPageRequestInput = z.input<typeof DuplicatePublishedPageRequestSchema>;
+export type DuplicatePublishedPageRequest = z.output<typeof DuplicatePublishedPageRequestSchema>;
 
 /**
  * 게시된 페이지 조회 요청 (공개)

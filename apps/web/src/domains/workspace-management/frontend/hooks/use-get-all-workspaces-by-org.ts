@@ -1,36 +1,38 @@
 'use client';
 
-import { useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { getAllWorkspacesByOrgAction } from '../../actions/get-all-workspaces-by-org.action';
 import { GetAllWorkspacesByOrgRequestSchema } from '../../shared/schemas/workspace-navigation.schemas';
 import type { AllWorkspacesByOrgDTO } from '../../shared/dtos';
 import { isFailure } from '@/lib';
 
-export type UseGetAllWorkspacesByOrgParams = {
-  onSuccess?: (result: AllWorkspacesByOrgDTO) => void;
-  onError?: () => void;
-};
 
 export type UseGetAllWorkspacesByOrgResult = {
-  getAllWorkspacesByOrg: () => Promise<AllWorkspacesByOrgDTO | null>;
-  isGettingWorkspaces: boolean;
+  data: AllWorkspacesByOrgDTO | null;
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  refetch: () => Promise<void>;
 };
 
 /**
- * 모든 워크스페이스를 조직별로 조회 도메인 훅 (TanStack Query Mutation)
+ * 모든 워크스페이스를 조직별로 조회 도메인 훅 (TanStack Query)
  *
- * - Server Action 백그라운드 동기화
- * - 실패 시 자동 에러 처리
- * - 로딩 상태 자동 관리
- * - 사용자 액션 기반 조회 (mutation 패턴)
+ * - 자동 캐싱: 같은 queryKey로 여러 컴포넌트에서 호출해도 한 번만 요청
+ * - 자동 refetch: staleTime 이후 백그라운드 refetch
+ * - 로딩/에러 상태 자동 관리
  */
-export function useGetAllWorkspacesByOrg(
-  params?: UseGetAllWorkspacesByOrgParams
-): UseGetAllWorkspacesByOrgResult {
-  const { onSuccess, onError } = params || {};
+export function useGetAllWorkspacesByOrg(): UseGetAllWorkspacesByOrgResult {
 
-  const mutation = useMutation({
-    mutationFn: async () => {
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch: refetchQuery,
+  } = useQuery({
+    queryKey: ['all-workspaces-by-org'],
+    queryFn: async (): Promise<AllWorkspacesByOrgDTO> => {
       // Validation (void 스키마)
       const rawRequest = undefined;
       const parseResult = GetAllWorkspacesByOrgRequestSchema.safeParse(rawRequest);
@@ -49,25 +51,20 @@ export function useGetAllWorkspacesByOrg(
 
       return result.data;
     },
-
-    onSuccess: (data) => {
-      onSuccess?.(data);
-    },
-
-    onError: (error) => {
-      console.error('Failed to get all workspaces by org:', error);
-      onError?.();
-    },
+    staleTime: 5 * 60 * 1000, // 5분
+    retry: 1,
   });
 
+
+  const refetch = async () => {
+    await refetchQuery();
+  };
+
   return {
-    getAllWorkspacesByOrg: async (): Promise<AllWorkspacesByOrgDTO | null> => {
-      try {
-        return await mutation.mutateAsync();
-      } catch (error) {
-        return null;
-      }
-    },
-    isGettingWorkspaces: mutation.isPending,
+    data: data ?? null,
+    isLoading,
+    isError,
+    error: error as Error | null,
+    refetch,
   };
 }

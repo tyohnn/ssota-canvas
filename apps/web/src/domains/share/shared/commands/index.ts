@@ -12,7 +12,7 @@ export interface UnpublishPageCommand {
   publisherId: UserId;
 }
 
-export interface ExecuteCopyPageCommand {
+export interface ExecuteDuplicatePageCommand {
   publishToken: PublishToken;
   targetWorkspaceId: WorkspaceId;
   requesterId: UserId;

@@ -32,10 +32,10 @@ import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management
 import { DrizzlePublishedPageRepository } from '../backend/repositories/implementations/drizzle-published-page.repository';
 import { ShareManagementError } from '../shared/errors/share-management.error';
 import {
-  CopyPublishedPageRequest,
-  CopyPublishedPageRequestSchema,
+  DuplicatePublishedPageRequest,
+  DuplicatePublishedPageRequestSchema,
 } from '../shared/dtos/request';
-import { CopyResultDTO } from '../shared/dtos/response';
+import { DuplicateResultDTO } from '../shared/dtos/response';
 import { PublishToken } from '../shared/value-objects/publish-token.vo';
 import { withShareAuthenticatedAction } from './secure-action';
 
@@ -43,10 +43,10 @@ import { withShareAuthenticatedAction } from './secure-action';
  * 게시된 페이지 복제 Action
  * 인증된 사용자가 publishToken으로 게시된 페이지를 복제
  */
-export const copyPublishedPageAction = withShareAuthenticatedAction(
-  CopyPublishedPageRequestSchema,
-  'copyPublishedPageAction',
-  copyPublishedPageInternal,
+export const duplicatePublishedPageAction = withShareAuthenticatedAction(
+  DuplicatePublishedPageRequestSchema,
+  'duplicatePublishedPageAction',
+  duplicatePublishedPageInternal,
   {
     getLogMetadata: req => ({
       publishToken: req.publishToken,
@@ -71,10 +71,10 @@ export const copyPublishedPageAction = withShareAuthenticatedAction(
  * @param context - 검증된 컨텍스트 정보
  *   - context.authenticatedUser: 인증된 사용자 정보 (id, profile)
  */
-async function copyPublishedPageInternal(
-  safeDto: CopyPublishedPageRequest,
+async function duplicatePublishedPageInternal(
+  safeDto: DuplicatePublishedPageRequest,
   context: { authenticatedUser: { id: string; profile: any } }
-): Promise<ActionResult<CopyResultDTO>> {
+): Promise<ActionResult<DuplicateResultDTO>> {
   try {
     const safeUserId = new UserId(context.authenticatedUser.id);
 
@@ -120,7 +120,7 @@ async function copyPublishedPageInternal(
       newPageIdVO,
       targetWorkspaceIdVO,
       null, // 부모 없이 루트에 생성
-      `${originalPage.title} (Copy)`,
+      `${originalPage.title} (Duplicate)`,
       originalPage.icon,
       newOrder,
       0, // 루트 레벨
@@ -156,7 +156,7 @@ async function copyPublishedPageInternal(
     );
 
     if (canvasViewResult.isError()) {
-      console.error(`❌ [copyPublishedPage] Failed to load source canvas: ${canvasViewResult.error.message}`);
+      console.error(`❌ [duplicatePublishedPage] Failed to load source canvas: ${canvasViewResult.error.message}`);
       // 캔버스 데이터 로드 실패해도 페이지는 복제되었으므로 성공으로 반환
     } else {
       const { blocks: sourceBlocks, edges: sourceEdges } = canvasViewResult.value;
@@ -190,7 +190,7 @@ async function copyPublishedPageInternal(
         );
 
         if (createResult.isError()) {
-          console.error(`❌ [copyPublishedPage] Failed to duplicate block: ${createResult.error.message}`);
+          console.error(`❌ [duplicatePublishedPage] Failed to duplicate block: ${createResult.error.message}`);
           continue;
         }
 
@@ -223,14 +223,14 @@ async function copyPublishedPageInternal(
         );
 
         if (edgeResult.isError()) {
-          console.warn(`⚠️ [copyPublishedPage] Failed to duplicate edge: ${edgeResult.error.message}`);
+          console.warn(`⚠️ [duplicatePublishedPage] Failed to duplicate edge: ${edgeResult.error.message}`);
         }
       }
     }
 
     // 7. Response DTO 반환
     return ok({
-      copiedPageId: newPageId,
+      duplicatedPageId: newPageId,
       targetWorkspaceId: safeDto.targetWorkspaceId,
       status: 'completed',
     });
@@ -242,7 +242,7 @@ async function copyPublishedPageInternal(
       });
     }
 
-    console.error('[copyPublishedPageInternal] Internal error:', error);
+    console.error('[duplicatePublishedPageInternal] Internal error:', error);
     return err('Internal server error', {
       code: 'INTERNAL_SERVER_ERROR',
       meta: {

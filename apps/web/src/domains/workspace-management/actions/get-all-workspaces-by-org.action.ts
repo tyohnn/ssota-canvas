@@ -13,7 +13,6 @@
 import type { AuthenticatedUser } from '@/domains/common/auth/helpers';
 import { getAuthenticatedUser } from '@/domains/common/auth/helpers';
 import { ActionResult, err, ok } from '@/lib';
-import { createSecureActionBuilder } from '@/lib/server-actions/create-secure-action-builder';
 
 import {
   DrizzleWorkspaceByOrgViewRepository,
@@ -26,33 +25,45 @@ import {
 import type { AllWorkspacesByOrgDTO } from '../shared/dtos';
 
 /**
- * Workspace Management 전용 Secure Action Builder
- */
-const workspaceSecureActionBuilder =
-  createSecureActionBuilder<AuthenticatedUser>(getAuthenticatedUser);
-
-/**
- * Authenticated user only secure action wrapper
- */
-const withAuthenticatedAction =
-  workspaceSecureActionBuilder
-    .forContext<AuthenticatedUser>()
-    .withAuth(() => Promise.resolve(ok(undefined))) // 인증만 확인 (권한 체크 불필요)
-    .build();
-
-/**
  * 모든 워크스페이스를 조직별로 조회 Action
  * 인증된 사용자의 모든 워크스페이스를 조직별로 그룹핑하여 반환
  */
-export const getAllWorkspacesByOrgAction =
-  withAuthenticatedAction(
-    GetAllWorkspacesByOrgRequestSchema,
-    'getAllWorkspacesByOrgAction',
-    getAllWorkspacesByOrgInternal,
-    {
-      getLogMetadata: () => ({}),
-    }
-  );
+export async function getAllWorkspacesByOrgAction(
+  request: unknown
+): Promise<ActionResult<AllWorkspacesByOrgDTO>> {
+  // 1. Runtime Validation (필수)
+  const parseResult = GetAllWorkspacesByOrgRequestSchema.safeParse(request);
+
+  if (!parseResult.success) {
+    console.warn('[Security] Invalid request to getAllWorkspacesByOrgAction', {
+      errors: parseResult.error.issues,
+      timestamp: new Date().toISOString(),
+    });
+
+    return err('Invalid request data', {
+      code: 'INVALID_REQUEST',
+      meta: { errors: parseResult.error.issues },
+    });
+  }
+
+  // 2. 검증된 데이터는 타입 안전
+  const validatedRequest = parseResult.data;
+
+  // 3. 인증 확인
+  try {
+    const user = await getAuthenticatedUser();
+
+    // 4. Internal 함수 호출
+    return await getAllWorkspacesByOrgInternal(validatedRequest, user);
+  } catch (error) {
+    console.error('[getAllWorkspacesByOrgAction] Authentication error:', error);
+
+    return err(
+      error instanceof Error ? error.message : 'Authentication failed',
+      { code: 'UNAUTHORIZED' }
+    );
+  }
+}
 
 /**
  * 내부 구현 (검증된 데이터만 처리)
@@ -60,19 +71,18 @@ export const getAllWorkspacesByOrgAction =
  * ⚠️ 이 함수는 이미 검증된 요청과 인증된 사용자만 받습니다
  * - 사용자 인증 완료
  *
- * @param safeDto - 검증된 요청 데이터 (void)
- * @param context - 검증된 컨텍스트 정보
- *   - context: 인증된 사용자 정보 (id, profile)
+ * @param _safeDto - 검증된 요청 데이터 (void)
+ * @param user - 인증된 사용자 정보
  */
 async function getAllWorkspacesByOrgInternal(
   _safeDto: GetAllWorkspacesByOrgRequest,
-  context: AuthenticatedUser
+  user: AuthenticatedUser
 ): Promise<ActionResult<AllWorkspacesByOrgDTO>> {
   try {
     // Read Model을 직접 사용 (같은 레이어이므로 Query Service 불필요)
     const viewRepository = new DrizzleWorkspaceByOrgViewRepository();
     const organizationsWithWorkspaces = await viewRepository.getByUserId(
-      new UserId(context.id)
+      new UserId(user.id)
     );
 
     // Read Model View를 Share 도메인 DTO로 변환

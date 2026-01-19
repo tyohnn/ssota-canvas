@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useShare } from '../../../hooks/use-share';
-import { usePublishPage } from '../../../hooks/use-publish-page';
-import { useUnpublishPage } from '../../../hooks/use-unpublish-page';
+
+import { usePublishPage } from '@/domains/share/frontend/hooks/use-publish-page';
+import { useShare } from '@/domains/share/frontend/hooks/use-share';
+import { useUnpublishPage } from '@/domains/share/frontend/hooks/use-unpublish-page';
 
 interface UsePublishFlowBusinessProps {
   pageId: string;
@@ -22,8 +23,10 @@ export function usePublishFlowBusiness({
 }: UsePublishFlowBusinessProps) {
   const { copyLinkToClipboard } = useShare();
   const { publishPage, isPublishing } = usePublishPage({
-    onSuccess: (result) => {
-      onPublished?.(result.publishUrl);
+    onSuccess: result => {
+      // 프론트엔드에서 publishToken으로 URL 생성
+      const publishUrl = `/p/${result.publishToken}`;
+      onPublished?.(publishUrl);
     },
     onError: () => {
       setError('Failed to publish');

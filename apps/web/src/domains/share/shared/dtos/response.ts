@@ -30,8 +30,8 @@ export interface PublishedLinkViewDTO {
 /**
  * 페이지 복제 결과
  */
-export interface CopyResultDTO {
-  copiedPageId: string;
+export interface DuplicateResultDTO {
+  duplicatedPageId: string;
   targetWorkspaceId: string;
   status: 'completed' | 'failed';
   errorMessage?: string; // status === 'failed' only

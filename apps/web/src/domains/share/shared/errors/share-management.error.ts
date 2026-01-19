@@ -20,7 +20,7 @@ export type ShareManagementErrorCode =
   | 'PUBLISH_LINK_NOT_FOUND'
   | 'LOGIN_REQUIRED'
   | 'WORKSPACE_FORBIDDEN'
-  | 'COPY_FAILED'
+  | 'DUPLICATE_FAILED'
   | 'INVALID_WORKFLOW_STATE'
   | 'INVALID_REQUEST'
   | 'GET_PUBLISHED_LINK_FAILED'
@@ -39,7 +39,7 @@ export const SHARE_MANAGEMENT_ERROR_MESSAGES: Record<
   PUBLISH_LINK_NOT_FOUND: 'Publish link not found.',
   LOGIN_REQUIRED: 'Login required to continue.',
   WORKSPACE_FORBIDDEN: 'No permission for the selected workspace.',
-  COPY_FAILED: 'Failed to copy page.',
+  DUPLICATE_FAILED: 'Failed to duplicate page.',
   INVALID_WORKFLOW_STATE: 'Invalid workflow state.',
   INVALID_REQUEST: 'Invalid request.',
   GET_PUBLISHED_LINK_FAILED: 'Failed to get published link.',
