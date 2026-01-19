@@ -36,16 +36,15 @@ export function Handles({ isConnectable, hoverDirection }: HandlesProps) {
   const canvasMode = useCanvasModeContext();
   const { readonly } = useCanvasReadOnly();
 
-  // readonly 모드에서는 핸들을 완전히 숨김
-  if (readonly) {
-    return null;
-  }
-
   // 연결 모드인지 확인
   const isEdgeCreationMode = canvasMode.isEdgeCreationMode();
 
   // 핸들 표시 조건: 연결 모드이거나 해당 방향에 호버 중
+  // readonly 모드에서는 항상 숨김 (하지만 DOM에는 존재해야 edges가 렌더링됨)
   const shouldShowHandle = (direction: 'left' | 'right' | 'top' | 'bottom') => {
+    if (readonly) {
+      return false; // readonly에서는 항상 숨김 (하지만 handles는 DOM에 존재해야 함)
+    }
     return isEdgeCreationMode || hoverDirection === direction;
   };
 

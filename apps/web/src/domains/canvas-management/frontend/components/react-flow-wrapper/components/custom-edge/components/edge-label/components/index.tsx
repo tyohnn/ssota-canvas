@@ -20,7 +20,7 @@ export type EdgeLabelViewProps = {
   y: number;
 
   // Handlers
-  onClick: (e: React.MouseEvent) => void;
+  onClick?: (e: React.MouseEvent) => void;
   onBlur: () => void;
   onChange: (value: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -28,6 +28,7 @@ export type EdgeLabelViewProps = {
   // Visual
   isSelected: boolean;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  readonly?: boolean;
 };
 
 /**
@@ -49,6 +50,7 @@ export function EdgeLabelView({
   onKeyDown,
   isSelected,
   inputRef,
+  readonly = false,
 }: EdgeLabelViewProps): React.JSX.Element {
   // Show label if it exists, is selected, or is being edited
   const shouldShow = label || isSelected || isEditing;
@@ -75,7 +77,7 @@ export function EdgeLabelView({
               ? 'bg-background/70 backdrop-blur-sm'
               : 'bg-transparent'
         )}
-        onClick={onClick}
+        onClick={readonly ? undefined : onClick}
         style={{ pointerEvents: 'all' }}
       >
         {isEditing ? (
@@ -86,15 +88,17 @@ export function EdgeLabelView({
             onChange={e => onChange(e.target.value)}
             onBlur={onBlur}
             onKeyDown={onKeyDown}
+            readOnly={readonly}
             placeholder="Add Label"
             className={cn(
               'text-xs text-center',
               'bg-transparent border-none outline-none',
               'text-muted-foreground',
               'placeholder:text-muted-foreground/60 placeholder:italic',
-              'transition-colors'
+              'transition-colors',
+              readonly && 'cursor-default'
             )}
-            autoFocus
+            autoFocus={!readonly}
             style={{
               pointerEvents: 'all',
               width: draftLabel
@@ -104,7 +108,10 @@ export function EdgeLabelView({
           />
         ) : (
           <p
-            className="text-xs text-center cursor-text text-muted-foreground italic transition-colors whitespace-nowrap"
+            className={cn(
+              'text-xs text-center text-muted-foreground italic transition-colors whitespace-nowrap',
+              readonly ? 'cursor-default' : 'cursor-text'
+            )}
             style={{ pointerEvents: 'all' }}
           >
             {label || 'Add Label'}

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-lifecycle';
 
 import type {
@@ -50,9 +51,13 @@ export function useEdgeLabel(
   const business = businessLogic ?? defaultBusiness;
 
   // 5. Combined Handlers
+  const { readonly } = useCanvasReadOnly();
   const handleLabelClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
+      if (readonly) {
+        return; // readonly 모드에서는 편집 모드 진입 불가
+      }
       if (!uiState.labelState.isEditing) {
         // Store original label when starting edit (server value)
         uiState.updateOriginalLabel(uiState.labelState.label);
@@ -60,7 +65,7 @@ export function useEdgeLabel(
         uiState.setIsEditing(true);
       }
     },
-    [uiState]
+    [uiState, readonly]
   );
 
   const handleLabelBlur = useCallback(async () => {

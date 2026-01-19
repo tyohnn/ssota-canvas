@@ -36,7 +36,7 @@ export const EdgeLabel = memo(function EdgeLabel(
   props: EdgeLabelProps
 ): React.JSX.Element {
   // Container (Thin): 훅에 필요한 것만 추출
-  const { edgeId, label, canvasMetadata, businessLogic } = props;
+  const { edgeId, label, canvasMetadata, businessLogic, readonly = false } = props;
 
   // Hook: 비즈니스 로직 처리
   const {
@@ -62,12 +62,13 @@ export const EdgeLabel = memo(function EdgeLabel(
       draftLabel={labelState.draftLabel}
       x={props.position.x}
       y={props.position.y}
-      onClick={handleLabelClick}
+      onClick={readonly ? undefined : handleLabelClick}
       onBlur={handleLabelBlur}
       onChange={handleLabelChange}
       onKeyDown={handleLabelKeyDown}
       isSelected={props.isSelected}
       inputRef={inputRef}
+      readonly={readonly}
     />
   );
 });

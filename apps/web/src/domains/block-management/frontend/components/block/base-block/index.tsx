@@ -81,13 +81,11 @@ const BaseBlockContainer = memo(
             handleResizeEnd={contextValue.handleResizeEnd}
           />
 
-          {/* 연결점 - readonly일 때 숨김 */}
-          {!readonly && (
-            <Handles
-              isConnectable={contextValue.isConnectable}
-              hoverDirection={contextValue.hoverDirection}
-            />
-          )}
+          {/* 연결점 - readonly 모드에서도 렌더링 (edges 렌더링을 위해 필요하지만 항상 숨김) */}
+          <Handles
+            isConnectable={contextValue.isConnectable}
+            hoverDirection={contextValue.hoverDirection}
+          />
 
           {/* 상단 툴바 - original view일 때만 표시 */}
           {showToolbar && (

@@ -30,7 +30,7 @@ export class CanvasQueryService implements ICanvasQueryService {
     private blockMountRepository: BlockMountRepository,
     private edgeRepository: EdgeRepository,
     private viewportRepository: ViewportRepository
-  ) {}
+  ) { }
 
   /**
    * 캔버스 뷰 데이터 조회 (BlockMount와 Block을 JOIN해서 조회)
@@ -162,10 +162,10 @@ export class CanvasQueryService implements ICanvasQueryService {
         }),
         viewport: viewportAggregate
           ? {
-              x: viewportAggregate.viewport.centerX,
-              y: viewportAggregate.viewport.centerY,
-              zoom: viewportAggregate.viewport.zoomLevel,
-            }
+            x: viewportAggregate.viewport.centerX,
+            y: viewportAggregate.viewport.centerY,
+            zoom: viewportAggregate.viewport.zoomLevel,
+          }
           : null,
       };
 
