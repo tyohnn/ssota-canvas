@@ -65,12 +65,11 @@ export const PdfBlock = memo(function PdfBlock({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [numPages, setNumPages] = useState<number | null>(null);
 
-  // PDF.js 워커 설정 (공식 권장 방법)
+  // PDF.js 워커 설정 (Next.js 15 + Turbopack 호환)
+  // import.meta.url은 Turbopack에서 제대로 해결되지 않으므로 CDN 사용
   React.useEffect(() => {
-    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-      'pdfjs-dist/build/pdf.worker.min.mjs',
-      import.meta.url
-    ).toString();
+    // CDN을 사용하여 워커 설정 (Turbopack 호환성)
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/build/pdf.worker.min.mjs`;
   }, []);
 
   // Hooks
@@ -254,7 +253,7 @@ export const PdfBlock = memo(function PdfBlock({
                     selected && 'cursor-pointer',
                     selected && 'hover:bg-accent/50',
                     isDragging &&
-                      'bg-blue-50 dark:bg-blue-950/30 border-2 border-dashed border-blue-400 dark:border-blue-500'
+                    'bg-blue-50 dark:bg-blue-950/30 border-2 border-dashed border-blue-400 dark:border-blue-500'
                   )}
                 >
                   <input
