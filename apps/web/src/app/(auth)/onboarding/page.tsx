@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -10,7 +10,7 @@ import { processUserRegistrationAction } from '@/domains/user-management/actions
 
 type OnboardingStatus = 'loading' | 'success' | 'error';
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const [status, setStatus] = useState<OnboardingStatus>('loading');
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(3);
@@ -73,7 +73,7 @@ export default function OnboardingPage() {
     }
 
     setupUserProfile();
-  }, [router]);
+  }, [router, redirectParam]);
 
   const handleRetry = () => {
     setStatus('loading');
@@ -162,5 +162,26 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="max-w-md w-full space-y-8 p-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Loading...
+              </h2>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <OnboardingContent />
+    </Suspense>
   );
 }
