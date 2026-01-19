@@ -16,6 +16,8 @@ import {
 } from '@workspace/ui/components/ui/sidebar';
 import { Home, Inbox, Search, Settings2 } from 'lucide-react';
 import { useOrganization } from '../../contexts/organization-context';
+import { useNotification } from '@/domains/notification-management/frontend/hooks/use-notification';
+import { SidebarNavButton } from './sidebar-nav-button';
 import { InboxPanel } from '@/domains/notification-management/frontend/components/inbox-panel';
 import { respondToInvitationAction } from '../../../actions/organization-management.actions';
 import {
@@ -28,6 +30,7 @@ import { SettingsDialog } from '../member-management/settings-dialog';
 export function SidebarHeaderGroup() {
   const { organizations, selectedOrganizationId, refreshOrganizations } =
     useOrganization();
+  const { unreadCount } = useNotification();
   const activeOrganization = organizations.find(
     org => org.id === selectedOrganizationId
   );
@@ -142,14 +145,13 @@ export function SidebarHeaderGroup() {
           </Dialog>
         </SidebarMenuItem>
         <SidebarMenuItem>
-          <SidebarMenuButton
-            className="text-muted-foreground"
+          <SidebarNavButton
+            icon={<Inbox />}
+            label="Inbox"
+            badge={unreadCount}
             tooltip="Inbox"
             onClick={() => setIsInboxOpen(true)}
-          >
-            <Inbox />
-            <span>Inbox</span>
-          </SidebarMenuButton>
+          />
         </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
