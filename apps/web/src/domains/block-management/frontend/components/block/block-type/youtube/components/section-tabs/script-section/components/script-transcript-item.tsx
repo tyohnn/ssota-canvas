@@ -19,6 +19,7 @@ import {
 } from '@workspace/ui/components/ui/tooltip';
 
 import { Box } from '@/components/ui/box';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 import { formatTime } from '../core/utils';
 
@@ -50,6 +51,7 @@ export function ScriptTranscriptItem({
   isLoading = false,
 }: ScriptTranscriptItemProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const { readonly } = useCanvasReadOnly();
 
   return (
     <Box
@@ -68,7 +70,7 @@ export function ScriptTranscriptItem({
         </button>{' '}
         <span className="transition-colors duration-200">{segment.text}</span>
       </p>
-      {isHovered && (
+      {isHovered && !readonly && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

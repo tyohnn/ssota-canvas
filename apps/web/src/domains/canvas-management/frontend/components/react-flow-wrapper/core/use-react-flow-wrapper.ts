@@ -5,7 +5,6 @@ import { useTheme } from 'next-themes';
 import type { Edge, Node } from '@xyflow/react';
 import { useEdgesState, useNodesState, useReactFlow } from '@xyflow/react';
 
-import { PdfBlock } from '@/domains/block-management/frontend/components/block/block-type/pdf';
 import {
   BLOCK_TYPE_SIZES,
   BlockType,
@@ -15,6 +14,7 @@ import {
   CanvasMetadata,
   useCanvasMetadata,
 } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 import { useCanvasSnapGuides } from '@/domains/canvas-management/frontend/hooks/control/use-canvas-snap-guides';
 import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
@@ -46,8 +46,8 @@ export interface UseReactFlowWrapperProps {
 
 export interface UseReactFlowWrapperReturn
   extends
-    Omit<ReactFlowWrapperUIState, 'handleNodeDragStopUI'>,
-    ReactFlowWrapperBusinessLogic {
+  Omit<ReactFlowWrapperUIState, 'handleNodeDragStopUI'>,
+  ReactFlowWrapperBusinessLogic {
   // React Flow State (SSOT)
   nodes: Node[];
   edges: Edge[];
@@ -87,6 +87,10 @@ export interface UseReactFlowWrapperReturn
 
   // Additional state from wrapper
   guidelines: any[];
+
+  // Feature flags (readonly에 따라 자동 처리)
+  showAIAgent: boolean;
+  showBlockCreation: boolean;
 }
 
 export function useReactFlowWrapper(
@@ -98,6 +102,7 @@ export function useReactFlowWrapper(
   // =========================================================================
   const { initialNodes, initialEdges } = props;
   const { pageId } = useCanvasMetadata(canvasMetadataOverride);
+  const { readonly } = useCanvasReadOnly();
 
   // =========================================================================
   // 2. React Flow State Management (SSOT)
@@ -140,10 +145,10 @@ export function useReactFlowWrapper(
   // =========================================================================
   // PanOnScroll 동적 제어: textarea 편집 중에는 비활성화
   const panOnScrollEnabled = !canvasMode.isTextareaEditing;
-  // PanOnDrag 동적 제어: 패닝 모드에서는 드래그로 패닝 가능
-  const panOnDragEnabled = canvasMode.isPanningMode();
-  // 🎨 블록 생성 모드 확인
-  const isBlockCreationMode = canvasMode.isBlockCreationMode();
+  // PanOnDrag 동적 제어: 패닝 모드에서는 드래그로 패닝 가능, readonly일 때는 항상 패닝 가능
+  const panOnDragEnabled = readonly || canvasMode.isPanningMode();
+  // 🎨 블록 생성 모드 확인 (readonly일 때는 항상 false)
+  const isBlockCreationMode = !readonly && canvasMode.isBlockCreationMode();
 
   // =========================================================================
   // 6. Node/Edge Types
@@ -152,7 +157,6 @@ export function useReactFlowWrapper(
   const nodeTypes = useMemo(
     () => ({
       ...CANVAS_NODE_TYPES,
-      [BlockType.PDF]: PdfBlock, // Dynamic import로 추가
     }),
     []
   );
@@ -258,6 +262,12 @@ export function useReactFlowWrapper(
   // ✅ 블록 생성 모드용 onPaneClick override
   const handlePaneClick = useCallback(
     (event: React.MouseEvent) => {
+      // readonly일 때는 블록 생성 모드가 아니므로 일반 모드 처리
+      if (readonly) {
+        uiState.onPaneClick(event);
+        return;
+      }
+
       if (isBlockCreationMode) {
         const currentMode = canvasMode.getCurrentMode();
         if (currentMode.type !== 'block-creation' || !currentMode.blockType) {
@@ -287,6 +297,7 @@ export function useReactFlowWrapper(
       uiState.onPaneClick(event);
     },
     [
+      readonly,
       isBlockCreationMode,
       canvasMode,
       blockLifecycle.createAndMountBlock,
@@ -298,6 +309,12 @@ export function useReactFlowWrapper(
   // ✅ 블록 생성 모드용 onNodeClick override
   const handleNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
+      // readonly일 때는 블록 생성 모드가 아니므로 일반 모드 처리
+      if (readonly) {
+        uiState.onNodeClick(event, node);
+        return;
+      }
+
       if (isBlockCreationMode) {
         const currentMode = canvasMode.getCurrentMode();
         if (currentMode.type !== 'block-creation' || !currentMode.blockType) {
@@ -327,6 +344,7 @@ export function useReactFlowWrapper(
       uiState.onNodeClick(event, node);
     },
     [
+      readonly,
       isBlockCreationMode,
       canvasMode,
       blockLifecycle.createAndMountBlock,
@@ -363,6 +381,11 @@ export function useReactFlowWrapper(
         }
       }
       const isCtrlOrCmd = isMac ? event.metaKey : event.ctrlKey;
+
+      // readonly일 때는 편집 단축키 비활성화
+      if (readonly) {
+        return;
+      }
 
       // Cmd+V: 붙여넣기
       if (isCtrlOrCmd && event.key === 'v') {
@@ -402,7 +425,7 @@ export function useReactFlowWrapper(
       window.removeEventListener('keydown', handleGlobalKeyDown);
       window.removeEventListener('keyup', handleGlobalKeyUp);
     };
-  }, [businessLogic, canvasMode, flushViewportSave]);
+  }, [readonly, businessLogic, canvasMode, flushViewportSave]);
 
   // =========================================================================
   // 12. Wrap UI Handlers with Business Logic
@@ -414,6 +437,11 @@ export function useReactFlowWrapper(
       node: Node,
       draggedNodes: Node[]
     ): Promise<void> => {
+      // readonly일 때는 드래그 중지 처리하지 않음
+      if (readonly) {
+        return;
+      }
+
       // 1. UI 로직 먼저 실행 (스냅 적용, 가이드라인 숨김, 모드 변경)
       uiState.handleNodeDragStopUI(event, node, draggedNodes);
 
@@ -426,11 +454,50 @@ export function useReactFlowWrapper(
 
       await blockTransform.updateBlockPosition({ blockPositions });
     },
-    [uiState, blockTransform]
+    [readonly, uiState, blockTransform]
   );
 
+  // readonly일 때 편집 관련 핸들러를 no-op으로 처리
+  const readonlyOnNodesDelete = useCallback(
+    async (_deletedNodes: Node[]) => {
+      // readonly일 때는 삭제하지 않음
+    },
+    []
+  );
+
+  const readonlyOnEdgesDelete = useCallback(
+    async (_deletedEdges: Edge[]) => {
+      // readonly일 때는 삭제하지 않음
+    },
+    []
+  );
+
+  const readonlyOnConnect = useCallback(() => {
+    // readonly일 때는 연결하지 않음
+  }, []);
+
+  const readonlyOnReconnect = useCallback(() => {
+    // readonly일 때는 재연결하지 않음
+    return Promise.resolve(false);
+  }, []);
+
+  const readonlyOnReconnectStart = useCallback(() => {
+    // readonly일 때는 재연결 시작하지 않음
+  }, []);
+
+  const readonlyOnReconnectEnd = useCallback(async () => {
+    // readonly일 때는 재연결 종료하지 않음
+  }, []);
+
   // =========================================================================
-  // 13. Compose and Return
+  // 13. Feature Flags (readonly에 따라 자동 처리)
+  // =========================================================================
+  // readonly일 때 편집 전용 기능 비활성화
+  const showAIAgent = !readonly;
+  const showBlockCreation = !readonly;
+
+  // =========================================================================
+  // 14. Compose and Return
   // =========================================================================
 
   return {
@@ -478,13 +545,23 @@ export function useReactFlowWrapper(
     onPaneClick: uiState.onPaneClick,
     onWheel: uiState.onWheel,
 
-    // Business Logic callbacks
-    onConnect: businessLogic.onConnect,
-    onReconnect: businessLogic.onReconnect,
-    onReconnectStart: businessLogic.onReconnectStart,
-    onReconnectEnd: businessLogic.onReconnectEnd,
-    onNodesDelete: businessLogic.onNodesDelete,
-    onEdgesDelete: businessLogic.onEdgesDelete,
+    // Business Logic callbacks (readonly일 때는 no-op)
+    onConnect: readonly ? readonlyOnConnect : businessLogic.onConnect,
+    onReconnect: readonly
+      ? readonlyOnReconnect
+      : businessLogic.onReconnect,
+    onReconnectStart: readonly
+      ? readonlyOnReconnectStart
+      : businessLogic.onReconnectStart,
+    onReconnectEnd: readonly
+      ? readonlyOnReconnectEnd
+      : businessLogic.onReconnectEnd,
+    onNodesDelete: readonly
+      ? readonlyOnNodesDelete
+      : businessLogic.onNodesDelete,
+    onEdgesDelete: readonly
+      ? readonlyOnEdgesDelete
+      : businessLogic.onEdgesDelete,
 
     // =========================================================================
     // Custom Handlers
@@ -497,5 +574,9 @@ export function useReactFlowWrapper(
     handlePaste: businessLogic.handlePaste,
     handleDuplicate: businessLogic.handleDuplicate,
     handleNodeResize: businessLogic.handleNodeResize,
+
+    // Feature flags
+    showAIAgent,
+    showBlockCreation,
   };
 }

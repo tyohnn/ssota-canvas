@@ -2,18 +2,17 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ActionTransactionEntity, type ActionType } from '../action-transaction.entity';
 import { ActionTransactionId } from '../../value-objects/action-transaction-id.vo';
 import { VideoId } from '../../value-objects/video-id.vo';
-import { BlockId } from '../../../../block-management/shared/value-objects/block-id.vo';
 
 describe('ActionTransactionEntity', () => {
   let transactionId: ActionTransactionId;
-  let blockId: BlockId;
+  let orgId: string;
   let videoId: VideoId;
   let actionType: ActionType;
   let now: Date;
 
   beforeEach(() => {
     transactionId = ActionTransactionId.generate();
-    blockId = new BlockId('550e8400-e29b-41d4-a716-446655440000');
+    orgId = '550e8400-e29b-41d4-a716-446655440000';
     videoId = VideoId.generate();
     actionType = 'extract_script';
     now = new Date();
@@ -24,7 +23,7 @@ describe('ActionTransactionEntity', () => {
       // When
       const transaction = new ActionTransactionEntity(
         transactionId,
-        blockId,
+        orgId,
         videoId,
         actionType,
         now,
@@ -33,7 +32,7 @@ describe('ActionTransactionEntity', () => {
 
       // Then
       expect(transaction.id).toBe(transactionId);
-      expect(transaction.blockId).toBe(blockId);
+      expect(transaction.orgId).toBe(orgId);
       expect(transaction.videoId).toBe(videoId);
       expect(transaction.actionType).toBe(actionType);
       expect(transaction.createdAt).toBe(now);
@@ -47,7 +46,7 @@ describe('ActionTransactionEntity', () => {
       // When
       const transaction = new ActionTransactionEntity(
         transactionId,
-        blockId,
+        orgId,
         videoId,
         actionType,
         now,
@@ -64,7 +63,7 @@ describe('ActionTransactionEntity', () => {
       // Given
       const params = {
         id: transactionId,
-        blockId: blockId,
+        orgId: orgId,
         videoId: videoId,
         actionType: actionType as ActionType,
         createdAt: now,
@@ -76,7 +75,7 @@ describe('ActionTransactionEntity', () => {
 
       // Then
       expect(transaction.id).toBe(params.id);
-      expect(transaction.blockId).toBe(params.blockId);
+      expect(transaction.orgId).toBe(params.orgId);
       expect(transaction.videoId).toBe(params.videoId);
       expect(transaction.actionType).toBe(params.actionType);
       expect(transaction.createdAt).toBe(params.createdAt);
@@ -88,7 +87,7 @@ describe('ActionTransactionEntity', () => {
       const completedAt = new Date();
       const params = {
         id: transactionId,
-        blockId: blockId,
+        orgId: orgId,
         videoId: videoId,
         actionType: actionType as ActionType,
         createdAt: now,
@@ -108,7 +107,7 @@ describe('ActionTransactionEntity', () => {
       // Given
       const transaction = new ActionTransactionEntity(
         transactionId,
-        blockId,
+        orgId,
         videoId,
         actionType,
         now,
@@ -123,7 +122,7 @@ describe('ActionTransactionEntity', () => {
       // Given
       const transaction = new ActionTransactionEntity(
         transactionId,
-        blockId,
+        orgId,
         videoId,
         actionType,
         now,
@@ -139,7 +138,7 @@ describe('ActionTransactionEntity', () => {
       const completedAt = new Date();
       const transaction = new ActionTransactionEntity(
         transactionId,
-        blockId,
+        orgId,
         videoId,
         actionType,
         now,
@@ -156,7 +155,7 @@ describe('ActionTransactionEntity', () => {
       // Given
       const transaction = new ActionTransactionEntity(
         transactionId,
-        blockId,
+        orgId,
         videoId,
         actionType,
         now,
@@ -176,7 +175,7 @@ describe('ActionTransactionEntity', () => {
       const originalCompletedAt = new Date('2024-01-01');
       const transaction = new ActionTransactionEntity(
         transactionId,
-        blockId,
+        orgId,
         videoId,
         actionType,
         now,
@@ -197,7 +196,7 @@ describe('ActionTransactionEntity', () => {
       // Given
       const transaction = new ActionTransactionEntity(
         transactionId,
-        blockId,
+        orgId,
         videoId,
         actionType,
         now,

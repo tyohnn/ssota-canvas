@@ -59,4 +59,5 @@ export interface UseCanvasToolbarReturn {
   onHandClick: () => void;
   onFitToViewClick: () => void;
   onAddBlockClick: () => void;
+  readonly: boolean;
 }

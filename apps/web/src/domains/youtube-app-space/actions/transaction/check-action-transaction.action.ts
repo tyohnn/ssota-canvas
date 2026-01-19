@@ -14,6 +14,12 @@
 import type { WorkspaceActionContext } from '@/domains/common/auth/types';
 import { ActionResult, err, ok } from '@/lib';
 
+import { DrizzleBlockRepository } from '../../../block-management/backend/repositories/implementations/drizzle-block.repository';
+import { BlockId } from '../../../block-management/shared/value-objects/block-id.vo';
+import {
+  type YoutubeBlockProperties,
+  YoutubeBlockPropertiesVO,
+} from '../../../block-management/shared/value-objects/block-properties';
 import { DrizzleActionTransactionRepository } from '../../backend/repositories/implementations/drizzle-action-transaction.repository';
 import {
   type CheckActionTransactionRequest,
@@ -51,11 +57,33 @@ async function checkActionTransactionInternal(
   context: WorkspaceActionContext
 ): Promise<ActionResult<CheckActionTransactionDTO>> {
   try {
+    // 1. Block 조회하여 youtubeId 추출
+    const blockRepository = new DrizzleBlockRepository();
+    const block = await blockRepository.findById(new BlockId(safeDto.blockId));
+
+    if (!block) {
+      return err('Block not found', { code: 'BLOCK_NOT_FOUND' });
+    }
+
+    // 2. Block Properties에서 youtubeId 추출
+    const properties = block.properties;
+    const propertiesJSON = properties.toJSON() as YoutubeBlockProperties;
+    const youtubeProperties = YoutubeBlockPropertiesVO.fromJSON(propertiesJSON);
+    const youtubeId = youtubeProperties.youtubeId;
+
+    if (!youtubeId) {
+      return err('YouTube ID not found in block properties', {
+        code: 'YOUTUBE_ID_NOT_FOUND',
+      });
+    }
+
+    // 3. Org 기반으로 action_transactions 확인
     const actionTransactionRepository =
       new DrizzleActionTransactionRepository();
     const actionTransaction =
-      await actionTransactionRepository.findByBlockIdAndActionType(
-        safeDto.blockId,
+      await actionTransactionRepository.findByOrgAndVideo(
+        context.organization.id,
+        youtubeId,
         safeDto.actionType
       );
 

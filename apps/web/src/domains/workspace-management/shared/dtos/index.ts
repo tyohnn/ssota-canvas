@@ -249,6 +249,14 @@ export interface DuplicatePageResponse {
   pageId: string; // 복제된 페이지 ID
 }
 
+export interface DuplicatePageWithCanvasRequest {
+  pageId: string;
+}
+
+export interface DuplicatePageWithCanvasResponse {
+  pageId: string; // 복제된 페이지 ID
+}
+
 // ────────────────────────────────────────────────────────────
 // Recent Pages (경량화된 페이지 조회)
 // ────────────────────────────────────────────────────────────
@@ -274,6 +282,35 @@ export interface GetRecentPagesResponse {
 export interface SearchPagesResponse {
   pages: RecentPageDTO[];
   hasMore: boolean; // limit에 도달하면 더 있을 수 있음
+}
+
+// ────────────────────────────────────────────────────────────
+// Workspace By Organization DTOs
+// ────────────────────────────────────────────────────────────
+
+/**
+ * 워크스페이스 정보 (조직 정보 포함)
+ */
+export interface WorkspaceWithOrgDTO {
+  id: string;
+  name: string;
+  icon?: string;
+  organizationName?: string;
+}
+
+/**
+ * 조직별로 그룹핑된 워크스페이스 목록
+ */
+export interface AllWorkspacesByOrgDTO {
+  organizations: {
+    id: string;
+    name: string;
+    workspaces: {
+      id: string;
+      name: string;
+      icon?: string;
+    }[];
+  }[];
 }
 
 // ────────────────────────────────────────────────────────────

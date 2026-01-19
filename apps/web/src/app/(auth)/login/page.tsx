@@ -23,9 +23,10 @@ export const metadata: Metadata = {
 };
 
 export default async function login(props: {
-  searchParams: Promise<{ message: string }>;
+  searchParams: Promise<{ message?: string; redirect?: string }>;
 }) {
-  // const searchParams = await props.searchParams;
+  const searchParams = await props.searchParams;
+  const redirectUrl = searchParams.redirect;
   const cookieJar = await cookies();
   const lastSignedInMethod = cookieJar.get('lastSignedInMethod')?.value;
 
@@ -35,7 +36,8 @@ export default async function login(props: {
   } = await supabase.auth.getUser();
 
   if (user) {
-    return redirect(appDefaultUrl);
+    // 이미 로그인된 사용자는 redirect URL로 리다이렉트
+    return redirect(redirectUrl || appDefaultUrl);
   }
 
   return (
@@ -61,7 +63,7 @@ export default async function login(props: {
                     {searchParams.message || loginErrorMessage}
                   </div>
                 )} */}
-                <OAuthButtons lastSignedInMethod={lastSignedInMethod} />
+                <OAuthButtons lastSignedInMethod={lastSignedInMethod} redirectUrl={redirectUrl} />
                 {/* <Separator className="my-2" />
                 <form id="login-form" className="grid gap-4">
                   <div className="grid gap-2">

@@ -14,6 +14,7 @@ import { BlockHeaderView } from './components/block-header-view';
 import type { BlockHeaderBusinessLogic } from './core/types';
 import type { BlockHeaderProps } from './core/types';
 import { useBlockHeader } from './core/use-block-header';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 /**
  * Block Header Container Component
@@ -40,6 +41,7 @@ export const BlockHeader = memo(function BlockHeader({
     isUpdating,
     isVisible,
   } = useBlockHeader({ data, selected }, businessLogic);
+  const { readonly } = useCanvasReadOnly();
 
   if (!isVisible) {
     return null;
@@ -56,6 +58,7 @@ export const BlockHeader = memo(function BlockHeader({
       inputRef={inputRef}
       isUpdating={isUpdating}
       className={className}
+      readonly={readonly}
     />
   );
 });

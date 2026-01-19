@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 
 import {
   Background,
@@ -93,6 +93,10 @@ export interface ReactFlowViewProps {
   onAddBlockClick: () => void;
   onCloseAddDialog: () => void;
   onSelectBlockType: (blockType: BlockType) => void;
+
+  // Feature flags
+  showAIAgent?: boolean;
+  showBlockCreation?: boolean;
 }
 
 /**
@@ -132,12 +136,9 @@ export function ReactFlowView({
   onAddBlockClick,
   onCloseAddDialog,
   onSelectBlockType,
+  showAIAgent = true,
+  showBlockCreation = true,
 }: ReactFlowViewProps) {
-  // 디버깅용 데이터 계산
-  const selectedNodesCount = useMemo(
-    () => nodes.filter(node => node.selected).length,
-    [nodes]
-  );
 
   return (
     <main className="flex-1 relative overflow-hidden">
@@ -162,10 +163,10 @@ export function ReactFlowView({
           // 테마 설정
           colorMode={colorMode}
           // 상호작용 설정
-          nodesDraggable={!panOnDragEnabled && !isBlockCreationMode} // 블록 생성 모드에서도 드래그 비활성화
-          nodesConnectable={!panOnDragEnabled && !isBlockCreationMode} // 블록 생성 모드에서도 연결 비활성화
-          elementsSelectable={!panOnDragEnabled && !isBlockCreationMode} // 블록 생성 모드에서도 선택 비활성화
-          selectionOnDrag={!panOnDragEnabled && !isBlockCreationMode} // 블록 생성 모드에서도 선택 박스 비활성화
+          nodesDraggable={!panOnDragEnabled && !isBlockCreationMode} // readonly일 때 panOnDragEnabled=true이므로 드래그 비활성화
+          nodesConnectable={!panOnDragEnabled && !isBlockCreationMode} // readonly일 때 연결 비활성화
+          elementsSelectable={!isBlockCreationMode} // 블록 생성 모드에서는 선택 비활성화 (readonly 모드에서는 isBlockCreationMode가 항상 false이므로 선택 가능)
+          selectionOnDrag={!isBlockCreationMode} // readonly 모드와 일반 모드에서 드래그 선택 가능 (panOnDrag와 함께 사용 가능)
           selectionMode={SelectionMode.Partial}
           connectionMode={ConnectionMode.Loose} // source/target 구분 없이 양방향 연결 허용
           // 트랙패드 제스처 설정 (피그마 스타일)
@@ -213,12 +214,14 @@ export function ReactFlowView({
           <SnapGuidelines guidelines={guidelines} />
 
           {/* 좌측 하단 AI Agent Runner - Panel로 감싸서 React Flow 이벤트 시스템 통합 */}
-          <Panel
-            position="bottom-left"
-            className="ml-4! mb-4! pointer-events-auto!"
-          >
-            <AIAgentRunner />
-          </Panel>
+          {showAIAgent && (
+            <Panel
+              position="bottom-left"
+              className="ml-4! mb-4! pointer-events-auto!"
+            >
+              <AIAgentRunner />
+            </Panel>
+          )}
 
           {/* 우측 하단 뷰포트 컨트롤 - Panel로 감싸서 React Flow 이벤트 시스템 통합 */}
           <Panel
@@ -230,11 +233,13 @@ export function ReactFlowView({
         </ReactFlow>
 
         {/* Block Add Dialog (캔버스 밖에 위치) */}
-        <BlockAddDialog
-          isOpen={showAddDialog}
-          onClose={onCloseAddDialog}
-          onSelectBlockType={onSelectBlockType}
-        />
+        {showBlockCreation && (
+          <BlockAddDialog
+            isOpen={showAddDialog}
+            onClose={onCloseAddDialog}
+            onSelectBlockType={onSelectBlockType}
+          />
+        )}
       </div>
     </main>
   );

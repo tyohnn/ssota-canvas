@@ -8,7 +8,6 @@ import { and, desc, eq } from 'drizzle-orm';
 import { adminDb } from '@/db';
 import { actionTransactions } from '@/db/schemas/youtube-app-space-schema';
 
-import { BlockId } from '../../../../block-management/shared/value-objects/block-id.vo';
 import { ActionTransactionAggregate } from '../../../shared/aggregates/action-transaction.aggregate';
 import { ActionTransactionEntity } from '../../../shared/entities/action-transaction.entity';
 import { ActionTransactionId } from '../../../shared/value-objects/action-transaction-id.vo';
@@ -38,7 +37,7 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
 
         await adminDb.insert(actionTransactions).values({
           id: transaction.id.value,
-          block_id: transaction.blockId.value,
+          org_id: transaction.orgId,
           video_id: transaction.videoId.value,
           action_type: transaction.actionType,
           created_at: transaction.createdAt,
@@ -65,7 +64,7 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
             // Entity 재구성 (새 ID로)
             const newEntity = ActionTransactionEntity.reconstitute({
               id: newId,
-              blockId: transaction.blockId,
+              orgId: transaction.orgId,
               videoId: transaction.videoId,
               actionType: transaction.actionType,
               createdAt: transaction.createdAt,
@@ -116,12 +115,13 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
   }
 
   /**
-   * Block ID와 Action Type으로 Aggregate 조회
+   * Org ID와 Video ID, Action Type으로 Aggregate 조회
    *
    * 가장 최근에 생성된 transaction을 반환 (created_at DESC)
    */
-  async findByBlockIdAndActionType(
-    blockId: string,
+  async findByOrgAndVideo(
+    orgId: string,
+    videoId: string,
     actionType: 'extract_script' | 'smart_summary'
   ): Promise<ActionTransactionAggregate | null> {
     const [found] = await adminDb
@@ -129,7 +129,8 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
       .from(actionTransactions)
       .where(
         and(
-          eq(actionTransactions.block_id, blockId),
+          eq(actionTransactions.org_id, orgId),
+          eq(actionTransactions.video_id, videoId),
           eq(actionTransactions.action_type, actionType)
         )
       )
@@ -167,7 +168,7 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
   ): ActionTransactionEntity {
     return ActionTransactionEntity.reconstitute({
       id: new ActionTransactionId(row.id),
-      blockId: new BlockId(row.block_id),
+      orgId: row.org_id,
       videoId: new VideoId(row.video_id),
       actionType: row.action_type as 'extract_script' | 'smart_summary',
       createdAt: row.created_at,

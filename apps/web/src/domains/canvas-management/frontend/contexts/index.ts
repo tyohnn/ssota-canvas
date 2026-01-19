@@ -6,3 +6,4 @@
 
 export * from './block-interaction-context';
 export * from './canvas-metadata-context';
+export * from './canvas-readonly-context';

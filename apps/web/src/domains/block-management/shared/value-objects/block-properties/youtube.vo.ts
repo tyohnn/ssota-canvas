@@ -20,6 +20,9 @@ export interface YoutubeBlockProperties {
   // YouTube App Space 참조
   youtubeId?: string; // YouTube App Space의 YouTube ID (UUID)
 
+  // 스크립트 접근 권한 (org 기반 권한 관리)
+  scriptAccessGranted?: boolean; // 이 블록에서 스크립트 접근 가능 여부
+
   // YouTube 메타데이터 (자동 fetch, 수정 가능)
   youtubeTitle?: string; // 영상 제목 (fetch 후 수정 가능)
   youtubeDescription?: string; // 영상 설명 (fetch 후 수정 가능)
@@ -45,6 +48,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
   constructor(
     public readonly url: string,
     public readonly youtubeId?: string,
+    public readonly scriptAccessGranted?: boolean,
     public readonly youtubeTitle?: string,
     public readonly youtubeDescription?: string,
     public readonly youtubeThumbnail?: string,
@@ -78,6 +82,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       data.url || '',
       data.youtubeId,
+      data.scriptAccessGranted,
       data.youtubeTitle,
       data.youtubeDescription,
       data.youtubeThumbnail,
@@ -162,6 +167,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return {
       url: this.url,
       youtubeId: this.youtubeId,
+      scriptAccessGranted: this.scriptAccessGranted,
       youtubeTitle: this.youtubeTitle,
       youtubeDescription: this.youtubeDescription,
       youtubeThumbnail: this.youtubeThumbnail,
@@ -185,6 +191,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return (
       this.url === other.url &&
       this.youtubeId === other.youtubeId &&
+      this.scriptAccessGranted === other.scriptAccessGranted &&
       this.youtubeTitle === other.youtubeTitle &&
       this.youtubeDescription === other.youtubeDescription &&
       this.youtubeThumbnail === other.youtubeThumbnail &&
@@ -208,6 +215,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       url,
       this.youtubeId,
+      this.scriptAccessGranted,
       this.youtubeTitle,
       this.youtubeDescription,
       this.youtubeThumbnail,
@@ -243,6 +251,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       this.url,
       this.youtubeId,
+      this.scriptAccessGranted,
       metadata.youtubeTitle ?? this.youtubeTitle,
       metadata.youtubeDescription ?? this.youtubeDescription,
       metadata.youtubeThumbnail ?? this.youtubeThumbnail,
@@ -268,6 +277,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       this.url,
       youtubeId,
+      this.scriptAccessGranted,
       this.youtubeTitle,
       this.youtubeDescription,
       this.youtubeThumbnail,

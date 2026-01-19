@@ -115,6 +115,12 @@ export const betaStatusEnum = pgEnum('beta_status', [
   'approved', // 승인됨 (전체 기능 사용 가능)
 ]);
 
+// Share Management Domain Enums
+export const publishedPageStatusEnum = pgEnum('published_page_status', [
+  'published', // 게시됨
+  'unpublished', // 게시 취소됨
+]);
+
 // AI Management Domain Enums
 export const eventTypeEnum = pgEnum('event_type', [
   'user_utterance', // 사용자 발화
@@ -521,6 +527,16 @@ export const workspaces = pgTable(
     defaultIdx: index('idx_workspaces_default')
       .on(table.organization_id, table.is_default)
       .where(sql`is_default = true`),
+    // Read Model: Workspace By Org View 최적화
+    // owner_id 필터 최적화 (WHERE 절 OR 조건)
+    ownerIdIdx: index('idx_workspaces_owner_id')
+      .on(table.owner_id)
+      .where(sql`deleted_at IS NULL AND owner_id IS NOT NULL`),
+    // GROUP BY + jsonb_agg 내부 정렬 최적화
+    // organization_id로 그룹핑하면서 그룹 내 정렬(is_default DESC, created_at ASC) 지원
+    orgGroupAggSortIdx: index('idx_workspaces_org_group_agg_sort')
+      .on(table.organization_id, table.is_default, table.created_at)
+      .where(sql`deleted_at IS NULL`),
 
     // RLS Policies
     // SELECT: Creator only (Application uses adminDb for org members)
@@ -1473,6 +1489,64 @@ export const eventLogsRelations = relations(eventLogs, ({ one }) => ({
   }),
 }));
 
+// Share Management Domain Tables
+// =============================
+
+export const publishedPages = pgTable(
+  'published_pages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    page_id: uuid('page_id')
+      .notNull()
+      .references(() => pages.id, { onDelete: 'cascade' }),
+    publisher_id: uuid('publisher_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    publish_token: text('publish_token').notNull().unique(),
+    status: publishedPageStatusEnum('status')
+      .notNull()
+      .default('published'),
+    published_at: timestamp('published_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    created_at: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  table => ({
+    pageIdIdx: index('idx_published_pages_page_id').on(table.page_id),
+    publisherIdIdx: index('idx_published_pages_publisher_id').on(table.publisher_id),
+    publishTokenIdx: index('idx_published_pages_publish_token').on(
+      table.publish_token
+    ),
+
+    // RLS Policies
+    selectPolicy: pgPolicy('Enable read for publisher only', {
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`(select auth.uid()) = publisher_id`,
+    }),
+    insertPolicy: pgPolicy('Enable insert for page publisher', {
+      for: 'insert',
+      to: authenticatedRole,
+      withCheck: sql`publisher_id = auth.uid()`,
+    }),
+    updatePolicy: pgPolicy('Enable update for page publisher', {
+      for: 'update',
+      to: authenticatedRole,
+      using: sql`publisher_id = auth.uid()`,
+    }),
+    deletePolicy: pgPolicy('Enable delete for page publisher', {
+      for: 'delete',
+      to: authenticatedRole,
+      using: sql`publisher_id = auth.uid()`,
+    }),
+  })
+).enableRLS();
+
 export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
 export type Organization = typeof organizations.$inferSelect;
@@ -1509,6 +1583,10 @@ export type NewViewport = typeof viewports.$inferInsert;
 // AI Management Domain Types
 export type EventLog = typeof eventLogs.$inferSelect;
 export type NewEventLog = typeof eventLogs.$inferInsert;
+
+// Share Management Domain Types
+export type PublishedPageRow = typeof publishedPages.$inferSelect;
+export type NewPublishedPageRow = typeof publishedPages.$inferInsert;
 
 // Enum Types
 export type OrganizationType = (typeof organizationTypeEnum.enumValues)[number];

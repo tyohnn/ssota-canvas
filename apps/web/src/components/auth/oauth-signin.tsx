@@ -16,9 +16,11 @@ type OAuthProvider = {
 export function OAuthButtons({
   lastSignedInMethod,
   isRegister,
+  redirectUrl,
 }: {
   lastSignedInMethod?: string;
   isRegister?: boolean;
+  redirectUrl?: string;
 }) {
   const oAuthProviders: OAuthProvider[] = [
     {
@@ -36,7 +38,7 @@ export function OAuthButtons({
           className="relative w-full flex items-center justify-center gap-2"
           variant="outline"
           onClick={async () => {
-            await oAuthSignIn(provider.name);
+            await oAuthSignIn(provider.name, redirectUrl);
           }}
         >
           {provider.icon}

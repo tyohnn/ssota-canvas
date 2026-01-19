@@ -1,6 +1,6 @@
 // apps/web/src/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository.ts
 
-import { eq, and, isNull, desc, exists } from 'drizzle-orm';
+import { eq, and, or, isNull, desc, exists } from 'drizzle-orm';
 import { createDrizzleSupabaseClient, adminDb } from '@/db';
 import {
   workspaces,
@@ -103,8 +103,10 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
    * ⚠️ 주의: Service Layer에서 조직 멤버십 확인 후에만 호출!
    * 정렬 순서: Default Workspace 최상단, 나머지는 생성일 순
    */
+  /**
+   * 조직의 모든 Workspace 조회
+   */
   async findByOrganizationId(orgId: OrganizationId): Promise<Workspace[]> {
-    // Admin DB: Application 레벨에서 조직 멤버십 확인이 완료된 경우
     const result = await adminDb
       .select()
       .from(workspaces)
@@ -120,12 +122,41 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
   }
 
   /**
+   * 사용자가 멤버(또는 소유자)로 참여 중인 모든 Workspace 조회
+   */
+  async findByUserId(userId: UserId): Promise<Workspace[]> {
+    const result = await adminDb
+      .select({
+        workspace: workspaces,
+      })
+      .from(workspaces)
+      .leftJoin(
+        workspaceMembers,
+        eq(workspaces.id, workspaceMembers.workspace_id)
+      )
+      .where(
+        and(
+          isNull(workspaces.deleted_at),
+          or(
+            eq(workspaceMembers.user_id, userId.value),
+            eq(workspaces.owner_id, userId.value)
+          )
+        )
+      )
+      .orderBy(desc(workspaces.is_default), workspaces.created_at);
+
+    return result.map(row => this.toDomain(row.workspace));
+  }
+
+  /**
    * DB 모델 → Domain Entity 변환
    *
    * @param row - DB 조회 결과
    * @returns Workspace Entity
    */
-  private toDomain(row: typeof workspaces.$inferSelect): Workspace {
+  private toDomain(
+    row: typeof workspaces.$inferSelect
+  ): Workspace {
     return new Workspace(
       new WorkspaceId(row.id),
       new OrganizationId(row.organization_id),
@@ -133,8 +164,8 @@ export class DrizzleWorkspaceRepository implements WorkspaceRepository {
       row.description,
       row.icon,
       row.is_default,
-      row.is_personal, // v1.2
-      row.owner_id, // v1.2
+      row.is_personal,
+      row.owner_id,
       row.deletable,
       row.created_by,
       row.created_at,

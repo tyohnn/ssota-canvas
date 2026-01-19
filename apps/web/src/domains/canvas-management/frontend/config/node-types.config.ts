@@ -8,7 +8,6 @@
 
 'use client';
 
-import dynamic from 'next/dynamic';
 import type { NodeTypes } from '@xyflow/react';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
@@ -28,20 +27,11 @@ import {
   VercelDeploymentBlock,
 } from '@/domains/block-management/frontend/components/block/block-type';
 
-// PDF Block - Dynamic Import to avoid SSR issues with pdfjs-dist (DOMMatrix)
-const PdfBlock = dynamic(
-  () =>
-    import(
-      '@/domains/block-management/frontend/components/block/block-type/pdf'
-    ).then(m => ({ default: m.PdfBlock })),
-  { ssr: false }
-);
-
 /**
  * React Flow Node Types
  *
  * 모든 블록 타입을 React Flow 노드로 등록
- * (PDF 블록은 SSR 이슈로 dynamic import 처리)
+ * (PDF 블록은 에러로 인해 임시 제거)
  */
 export const CANVAS_NODE_TYPES: NodeTypes = {
   [BlockType.TEXT]: TextBlock,
@@ -56,6 +46,6 @@ export const CANVAS_NODE_TYPES: NodeTypes = {
   [BlockType.GITHUB_COMMIT]: GitHubCommitBlock,
   [BlockType.REACT_COMPONENT]: ReactComponentBlock,
   [BlockType.VERCEL_DEPLOYMENT]: VercelDeploymentBlock,
-  [BlockType.PDF]: PdfBlock,
+  // [BlockType.PDF]: PdfBlock, // 임시 제거 - DOMMatrix 에러로 인해
   // GITHUB_PR, REACT_PREVIEW 등은 추후 구현
 };

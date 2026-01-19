@@ -37,6 +37,14 @@ export interface WorkspaceRepository {
   findByOrganizationId(organizationId: OrganizationId): Promise<Workspace[]>;
 
   /**
+   * 사용자가 멤버(또는 소유자)로 참여 중인 모든 Workspace 조회
+   *
+   * @param userId - 사용자 ID
+   * @returns Workspace Entity 배열
+   */
+  findByUserId(userId: UserId): Promise<Workspace[]>;
+
+  /**
    * 페이지 접근 권한 확인
    *
    * @param pageId - 페이지 ID

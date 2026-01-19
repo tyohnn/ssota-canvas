@@ -4,6 +4,7 @@ import { EdgeLabelRenderer } from '@xyflow/react';
 
 import { Box } from '@/components/ui/box';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 import { EdgeLabel } from './edge-label';
 import { EdgePath } from './edge-path';
@@ -65,6 +66,7 @@ export function CustomEdgeView({
   toolbarEdgeId,
 }: CustomEdgeViewProps): React.JSX.Element {
   const { pageId } = useCanvasMetadata();
+  const { readonly } = useCanvasReadOnly();
 
   return (
     <>
@@ -82,8 +84,8 @@ export function CustomEdgeView({
       />
 
       <EdgeLabelRenderer>
-        {/* Edge Toolbar (above edge center, only on single selection) */}
-        {showToolbar && (
+        {/* Edge Toolbar (above edge center, only on single selection) - readonly일 때 숨김 */}
+        {!readonly && showToolbar && (
           <Box
             className="z-50"
             style={{
@@ -102,6 +104,7 @@ export function CustomEdgeView({
           label={label}
           position={{ x: labelX, y: labelY }}
           isSelected={isSelected}
+          readonly={readonly}
         />
       </EdgeLabelRenderer>
     </>

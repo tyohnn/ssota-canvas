@@ -125,12 +125,12 @@ async function extractVideoScriptInternal(
 
     const video = aggregate.getVideo();
 
-    // 7. Action Transaction 생성
+    // 7. Action Transaction 생성 (org_id 기반)
     const actionTransactionRepository =
       new DrizzleActionTransactionRepository();
     const createTransactionResult = await createActionTransaction(
       {
-        blockId: safeDto.blockId,
+        orgId: context.organization.id, // org_id 사용
         videoId: safeDto.youtubeId,
         actionType: 'extract_script',
       },
@@ -194,14 +194,20 @@ async function extractVideoScriptInternal(
     // 10. Repository에 저장
     await videoRepository.update(aggregate);
 
-    // 11. Action Transaction 완료 처리
+    // 11. 블록 레벨 권한 설정 (scriptAccessGranted)
+    block.updatePropertiesFromRecord({
+      scriptAccessGranted: true,
+    });
+    await blockRepository.update(block);
+
+    // 12. Action Transaction 완료 처리
     const completeCommand: CompleteActionTransactionCommand = {
       transactionId: actionTransactionAggregate.getTransaction().id.value,
     };
     actionTransactionAggregate.complete(completeCommand);
     await actionTransactionRepository.update(actionTransactionAggregate);
 
-    // 12. Response DTO 생성
+    // 13. Response DTO 생성
     const response: ExtractScriptDTO = {
       youtube: aggregate.toView(),
     };

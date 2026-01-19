@@ -12,6 +12,7 @@ import { NodeResizeControl } from '@xyflow/react';
 
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 import type { ResizeData } from '../core/types';
 import { ResizeIcon } from './resize-icon';
@@ -37,6 +38,13 @@ export function ResizeControl({
   handleResizeStart,
   handleResizeEnd,
 }: ResizeControlProps) {
+  const { readonly } = useCanvasReadOnly();
+
+  // readonly 모드에서는 resize 핸들을 숨김
+  if (readonly) {
+    return null;
+  }
+
   // 선택되지 않았거나 다중 선택인 경우 렌더링하지 않음
   if (!selected || !isSingleSelection || !data.blockMountId) {
     return null;

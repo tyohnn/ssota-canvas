@@ -63,6 +63,14 @@ export const DuplicatePageRequestSchema = z.object({
   pageId: z.uuid('Invalid page ID'),
 });
 
+/**
+ * Page 복제 요청 스키마 (캔버스 데이터 포함)
+ * 같은 워크스페이스 내에서 페이지와 캔버스 데이터를 복제
+ */
+export const DuplicatePageWithCanvasRequestSchema = z.object({
+  pageId: z.uuid('Invalid page ID'),
+});
+
 // Output types (서버에서 사용)
 export type CreatePageRequest = z.output<typeof CreatePageRequestSchema>;
 export type MovePageRequest = z.output<typeof MovePageRequestSchema>;
@@ -72,3 +80,4 @@ export type UpdatePageInfoRequest = z.output<
 export type ReorderPagesRequest = z.output<typeof ReorderPagesRequestSchema>;
 export type DeletePageRequest = z.output<typeof DeletePageRequestSchema>;
 export type DuplicatePageRequest = z.output<typeof DuplicatePageRequestSchema>;
+export type DuplicatePageWithCanvasRequest = z.output<typeof DuplicatePageWithCanvasRequestSchema>;

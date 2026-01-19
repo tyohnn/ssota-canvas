@@ -39,6 +39,7 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar() {
     handleDelete,
     selectionCount,
     isVisible,
+    readonly,
   } = useMultiSelectionToolbar();
 
   // Don't render if toolbar should not be visible
@@ -66,6 +67,7 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar() {
         onDuplicate={handleDuplicate}
         onDelete={handleDelete}
         selectedBlockCount={selectionCount}
+        readonly={readonly}
       />
     </Box>
   );

@@ -18,6 +18,7 @@ import { cn } from '@workspace/ui/lib/utils';
 import { Box } from '@/components/ui/box';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 import {
   MoreMenuToolbarItem,
@@ -50,6 +51,7 @@ export function DataBlockToolbar({
   onEdit,
 }: DataBlockToolbarProps) {
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const { readonly } = useCanvasReadOnly();
 
   // 렌더링 조건 체크
   if (!selected) {
@@ -83,8 +85,8 @@ export function DataBlockToolbar({
         className="px-1 py-1 cursor-default gap-0.5"
       >
         <TooltipProvider>
-          {/* 보기 방식 변경 */}
-          {onViewModeChange && (
+          {/* 보기 방식 변경 - readonly일 때 숨김 */}
+          {!readonly && onViewModeChange && (
             <ViewModeToolbarItem
               blockType={data.blockType}
               currentViewMode={viewMode}
@@ -107,13 +109,15 @@ export function DataBlockToolbar({
             iconClassName="size-3.5"
           />
 
-          {/* 더보기 메뉴 */}
-          <MoreMenuToolbarItem
-            blockId={data.blockId}
-            blockMountId={data.blockMountId}
-            width={width}
-            height={height}
-          />
+          {/* 더보기 메뉴 - readonly일 때 숨김 */}
+          {!readonly && (
+            <MoreMenuToolbarItem
+              blockId={data.blockId}
+              blockMountId={data.blockMountId}
+              width={width}
+              height={height}
+            />
+          )}
         </TooltipProvider>
       </ToolbarContainer>
     </Box>

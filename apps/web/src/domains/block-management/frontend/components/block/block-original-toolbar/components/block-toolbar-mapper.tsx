@@ -20,6 +20,7 @@ interface BlockToolbarMapperProps {
   width?: number;
   height?: number;
   zoom?: number;
+  readonly?: boolean;
 }
 
 /**
@@ -59,6 +60,7 @@ export function BlockToolbarMapper({
   width,
   height,
   zoom = 1,
+  readonly = false,
 }: BlockToolbarMapperProps) {
   const { getNode, updateNode } = useReactFlow();
   const { updateProperty, updateProperties } = useUpdateBlockProperty({
@@ -142,6 +144,7 @@ export function BlockToolbarMapper({
       width={width}
       height={height}
       zoom={zoom}
+      readonly={readonly}
     />
   );
 }

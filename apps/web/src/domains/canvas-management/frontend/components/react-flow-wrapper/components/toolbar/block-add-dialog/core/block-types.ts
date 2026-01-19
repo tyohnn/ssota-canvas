@@ -37,6 +37,7 @@ export const DEFAULT_BLOCK_TYPES: BlockTypeInfo[] = [
     icon: FileText,
     description: 'Quick text note',
     category: 'Basic',
+    isPreparing: true,
   },
   {
     type: BlockType.SHAPE,
@@ -66,6 +67,7 @@ export const DEFAULT_BLOCK_TYPES: BlockTypeInfo[] = [
     icon: Music,
     description: 'Audio files and players',
     category: 'Media',
+    isPreparing: true,
   },
   {
     type: BlockType.PDF,
@@ -73,6 +75,7 @@ export const DEFAULT_BLOCK_TYPES: BlockTypeInfo[] = [
     icon: FileText,
     description: 'PDF document viewer',
     category: 'Media',
+    isPreparing: true,
   },
   // Content
   {
@@ -89,6 +92,7 @@ export const DEFAULT_BLOCK_TYPES: BlockTypeInfo[] = [
     icon: Code,
     description: 'Execute Python code',
     category: 'Code',
+    isPreparing: true,
   },
   // Preparing - Blocks in development
   {

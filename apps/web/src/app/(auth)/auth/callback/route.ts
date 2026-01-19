@@ -20,6 +20,7 @@ import { createClient } from '@/utils/supabase/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
+  const redirectParam = searchParams.get('redirect');
 
   if (code) {
     const supabase = await createClient();
@@ -91,10 +92,11 @@ export async function GET(request: Request) {
         // Proceed with normal flow (beta check removed)
         if (setupStatus.isSetupComplete) {
           // Existing user with complete setup - redirect to home or their last page
+          // redirect query parameter가 있으면 우선 사용, 없으면 setupStatus.redirectUrl 사용
           const forwardedHost = request.headers.get('x-forwarded-host');
           const isLocalEnv = config.environment === 'development';
 
-          const targetPath = setupStatus.redirectUrl || appDefaultUrl;
+          const targetPath = redirectParam || setupStatus.redirectUrl || appDefaultUrl;
 
           let redirectUrl: string;
           if (isLocalEnv) {
@@ -111,16 +113,22 @@ export async function GET(request: Request) {
     }
 
     // New user or user without complete setup - go to onboarding
+    // redirect query parameter가 있으면 onboarding URL에 포함
     const forwardedHost = request.headers.get('x-forwarded-host');
     const isLocalEnv = config.environment === 'development';
 
+    let onboardingUrlWithRedirect = onBoardingUrl;
+    if (redirectParam) {
+      onboardingUrlWithRedirect = `${onBoardingUrl}?redirect=${encodeURIComponent(redirectParam)}`;
+    }
+
     let redirectUrl: string;
     if (isLocalEnv) {
-      redirectUrl = `${origin}${onBoardingUrl}`;
+      redirectUrl = `${origin}${onboardingUrlWithRedirect}`;
     } else if (forwardedHost) {
-      redirectUrl = `https://${forwardedHost}${onBoardingUrl}`;
+      redirectUrl = `https://${forwardedHost}${onboardingUrlWithRedirect}`;
     } else {
-      redirectUrl = `${origin}${onBoardingUrl}`;
+      redirectUrl = `${origin}${onboardingUrlWithRedirect}`;
     }
 
     return NextResponse.redirect(redirectUrl);

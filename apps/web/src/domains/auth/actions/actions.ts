@@ -115,7 +115,7 @@ export async function signOutAction() {
   redirect('/login');
 }
 
-export async function oAuthSignIn(provider: Provider) {
+export async function oAuthSignIn(provider: Provider, redirectUrl?: string) {
   if (!provider) {
     return redirect(
       `${loginUrl}?message=${encodeURIComponent(serverErrorMessage)}`
@@ -123,12 +123,17 @@ export async function oAuthSignIn(provider: Provider) {
   }
 
   const supabase = await createClient();
-  let redirectUrl = getURL(authenticationCallbackUrl);
+  let callbackUrl = getURL(authenticationCallbackUrl);
+
+  // redirect URL이 있으면 callback URL에 query parameter로 포함
+  if (redirectUrl) {
+    callbackUrl = `${callbackUrl}?redirect=${encodeURIComponent(redirectUrl)}`;
+  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: redirectUrl,
+      redirectTo: callbackUrl,
       queryParams: {
         // we need this to be able to select an account from google consent page when logging in after logging out
         access_type: 'offline',

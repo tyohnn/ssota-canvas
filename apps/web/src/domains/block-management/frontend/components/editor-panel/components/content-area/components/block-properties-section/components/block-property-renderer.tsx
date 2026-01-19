@@ -26,6 +26,7 @@ import {
 
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { PropertyUIDefinition } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 // Import all input components
 import {
@@ -58,6 +59,7 @@ export function BlockPropertyRenderer({
   blockData,
 }: BlockPropertyRendererProps) {
   const { getNode, updateNode } = useReactFlow();
+  const { readonly: canvasReadonly } = useCanvasReadOnly();
   const { updateProperty, updatePropertyImmediate } = useUpdateBlockProperty({
     reactFlow: {
       getNode,
@@ -69,7 +71,7 @@ export function BlockPropertyRenderer({
 
   const handleValueChange = useCallback(
     async (newValue: any) => {
-      if (propertyDef.readonly) {
+      if (canvasReadonly || propertyDef.readonly) {
         return; // 읽기 전용은 수정 불가
       }
 
@@ -91,12 +93,19 @@ export function BlockPropertyRenderer({
         console.error('Failed to update property:', error);
       }
     },
-    [blockId, propertyKey, propertyDef.readonly, updateProperty, blockData]
+    [
+      blockId,
+      propertyKey,
+      canvasReadonly,
+      propertyDef.readonly,
+      updateProperty,
+      blockData,
+    ]
   );
 
   const handleImmediateUpdate = useCallback(
     (newValue: any) => {
-      if (propertyDef.readonly) {
+      if (canvasReadonly || propertyDef.readonly) {
         return;
       }
 
@@ -116,6 +125,7 @@ export function BlockPropertyRenderer({
     [
       blockId,
       propertyKey,
+      canvasReadonly,
       propertyDef.readonly,
       updatePropertyImmediate,
       blockData,
@@ -165,7 +175,8 @@ export function BlockPropertyRenderer({
   };
 
   const renderFieldInput = () => {
-    if (propertyDef.readonly) {
+    const isReadonly = canvasReadonly || propertyDef.readonly;
+    if (isReadonly) {
       // 읽기 전용 속성 렌더링
       return renderReadonlyField();
     }
@@ -179,7 +190,7 @@ export function BlockPropertyRenderer({
             propertyDef={propertyDef}
             onChange={handleValueChange}
             onImmediateChange={handleImmediateUpdate}
-            disabled={propertyDef.readonly}
+            disabled={isReadonly}
           />
         );
 
@@ -189,7 +200,7 @@ export function BlockPropertyRenderer({
             value={value}
             propertyDef={propertyDef}
             onChange={handleValueChange}
-            disabled={propertyDef.readonly}
+            disabled={isReadonly}
           />
         );
 
@@ -199,7 +210,7 @@ export function BlockPropertyRenderer({
             value={value}
             propertyDef={propertyDef}
             onChange={handleValueChange}
-            disabled={propertyDef.readonly}
+            disabled={isReadonly}
           />
         );
 
@@ -209,7 +220,7 @@ export function BlockPropertyRenderer({
             value={value}
             propertyDef={propertyDef}
             onChange={handleValueChange}
-            disabled={propertyDef.readonly}
+            disabled={isReadonly}
           />
         );
 
@@ -219,7 +230,7 @@ export function BlockPropertyRenderer({
             value={value}
             propertyDef={propertyDef}
             onChange={handleValueChange}
-            disabled={propertyDef.readonly}
+            disabled={isReadonly}
           />
         );
 
@@ -229,7 +240,7 @@ export function BlockPropertyRenderer({
             value={value}
             propertyDef={propertyDef}
             onChange={handleValueChange}
-            disabled={propertyDef.readonly}
+            disabled={isReadonly}
           />
         );
 
@@ -239,7 +250,7 @@ export function BlockPropertyRenderer({
             value={value}
             propertyDef={propertyDef}
             onChange={handleValueChange}
-            disabled={propertyDef.readonly}
+            disabled={isReadonly}
           />
         );
 
@@ -249,7 +260,7 @@ export function BlockPropertyRenderer({
             value={value}
             propertyDef={propertyDef}
             onChange={handleValueChange}
-            disabled={propertyDef.readonly}
+            disabled={isReadonly}
           />
         );
 
@@ -259,7 +270,7 @@ export function BlockPropertyRenderer({
             value={value}
             propertyDef={propertyDef}
             onChange={handleValueChange}
-            disabled={propertyDef.readonly}
+            disabled={isReadonly}
           />
         );
 
@@ -269,7 +280,7 @@ export function BlockPropertyRenderer({
             value={value}
             propertyDef={propertyDef}
             onChange={handleValueChange}
-            disabled={propertyDef.readonly}
+            disabled={isReadonly}
           />
         );
 
@@ -279,7 +290,7 @@ export function BlockPropertyRenderer({
             value={value}
             propertyDef={propertyDef}
             onChange={handleValueChange}
-            disabled={propertyDef.readonly}
+            disabled={isReadonly}
             blockData={blockData}
           />
         );

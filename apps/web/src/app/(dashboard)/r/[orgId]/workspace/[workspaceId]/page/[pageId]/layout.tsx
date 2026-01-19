@@ -3,6 +3,7 @@ import { PageSyncClient } from './page-sync-client';
 import { WorkspacePageHeader } from '@/domains/workspace-management/frontend/components/page-viewer/workspace-page-header';
 import { CanvasLoadingSkeleton } from '@/domains/workspace-management/frontend/components/page-viewer/canvas-loading-skeleton';
 
+
 interface PageLayoutProps {
   children: React.ReactNode;
   params: Promise<{
