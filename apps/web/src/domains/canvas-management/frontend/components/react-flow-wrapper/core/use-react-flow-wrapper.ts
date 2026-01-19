@@ -5,7 +5,6 @@ import { useTheme } from 'next-themes';
 import type { Edge, Node } from '@xyflow/react';
 import { useEdgesState, useNodesState, useReactFlow } from '@xyflow/react';
 
-import { PdfBlock } from '@/domains/block-management/frontend/components/block/block-type/pdf';
 import {
   BLOCK_TYPE_SIZES,
   BlockType,
@@ -47,8 +46,8 @@ export interface UseReactFlowWrapperProps {
 
 export interface UseReactFlowWrapperReturn
   extends
-    Omit<ReactFlowWrapperUIState, 'handleNodeDragStopUI'>,
-    ReactFlowWrapperBusinessLogic {
+  Omit<ReactFlowWrapperUIState, 'handleNodeDragStopUI'>,
+  ReactFlowWrapperBusinessLogic {
   // React Flow State (SSOT)
   nodes: Node[];
   edges: Edge[];
@@ -158,7 +157,6 @@ export function useReactFlowWrapper(
   const nodeTypes = useMemo(
     () => ({
       ...CANVAS_NODE_TYPES,
-      [BlockType.PDF]: PdfBlock, // Dynamic import로 추가
     }),
     []
   );

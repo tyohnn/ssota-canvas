@@ -29,8 +29,8 @@ export function useBlockAddDialog(
 
   // 3. Compute block types by category
   const blockTypesByCategory = useMemo(
-    () =>
-      DEFAULT_BLOCK_TYPES.reduce(
+    () => {
+      const grouped = DEFAULT_BLOCK_TYPES.reduce(
         (acc, blockTypeInfo) => {
           const category = blockTypeInfo.category;
           if (!category) {
@@ -43,7 +43,12 @@ export function useBlockAddDialog(
           return acc;
         },
         {} as Record<string, BlockTypeInfo[]>
-      ),
+      );
+      
+      // Remove 'Code' category from the dialog
+      const { Code, ...filtered } = grouped;
+      return filtered;
+    },
     []
   );
 
