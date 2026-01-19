@@ -75,11 +75,11 @@ export function NotificationItem({
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return '방금 전';
-    if (minutes < 60) return `${minutes}분 전`;
-    if (hours < 24) return `${hours}시간 전`;
-    if (days < 7) return `${days}일 전`;
-    return date.toLocaleDateString('ko-KR');
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString('en-US');
   };
 
   return (
@@ -99,7 +99,7 @@ export function NotificationItem({
             variant="ghost"
             onClick={handleMarkAsRead}
             className="h-7 w-7"
-            aria-label="읽음 처리"
+            aria-label="Mark as read"
           >
             <Eye className="h-3.5 w-3.5" />
           </Button>
@@ -138,7 +138,7 @@ export function NotificationItem({
                 className="h-7 text-xs px-3"
               >
                 <Check className="h-3 w-3 mr-1" />
-                수락
+                Accept
               </Button>
               <Button
                 size="sm"
@@ -148,7 +148,7 @@ export function NotificationItem({
                 className="h-7 text-xs px-3"
               >
                 <X className="h-3 w-3 mr-1" />
-                거절
+                Decline
               </Button>
             </div>
           )}

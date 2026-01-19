@@ -32,21 +32,23 @@ export function RoleChangeConfirmationDialog({
   if (!memberInfo) return null;
 
   const roleText = {
-    owner: '소유자',
-    admin: '관리자',
-    member: '멤버',
+    owner: 'Owner',
+    admin: 'Admin',
+    member: 'Member',
   };
 
   const permissionMessage = memberInfo.isUpgrade
-    ? '관리자로 승격하면 멤버 초대 및 관리 권한이 부여됩니다.'
-    : '멤버로 강등하면 멤버 관리 권한이 제거됩니다.';
+    ? 'Promoting to admin will grant invitation and management permissions.'
+    : 'Demoting to member will remove management permissions.';
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
       <DialogContent className="sm:max-w-md rounded-md">
         <DialogHeader>
-          <DialogTitle>멤버 역할 변경</DialogTitle>
-          <DialogDescription>멤버의 역할을 변경하시겠습니까?</DialogDescription>
+          <DialogTitle>Change Member Role</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to change this member's role?
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -76,10 +78,10 @@ export function RoleChangeConfirmationDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={onCancel} disabled={isLoading}>
-            취소
+            Cancel
           </Button>
           <Button onClick={onConfirm} disabled={isLoading}>
-            {isLoading ? '변경 중...' : '확인'}
+            {isLoading ? 'Changing...' : 'Confirm'}
           </Button>
         </DialogFooter>
       </DialogContent>

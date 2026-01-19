@@ -20,15 +20,14 @@ import { isWorkspaceManagementError } from '../../shared/errors/workspace-manage
  * Workspace 멤버 초대, 수락, 거절을 담당
  */
 export class DefaultWorkspaceInvitationService
-  implements WorkspaceInvitationService
-{
+  implements WorkspaceInvitationService {
   constructor(
     private workspaceRepo: WorkspaceRepository,
     private workspaceMemberRepo: WorkspaceMemberRepository,
     private orgQueryService: OrganizationQueryService,
     private invitationRepo?: IWorkspaceInvitationRepository,
     private notificationService?: NotificationService
-  ) {}
+  ) { }
 
   /**
    * Workspace 멤버 초대 (Scenario 3)
@@ -88,7 +87,7 @@ export class DefaultWorkspaceInvitationService
       const inviterProfile = inviterProfilesResult.isSuccess()
         ? inviterProfilesResult.value[0]
         : null;
-      const inviterName = inviterProfile?.name || '관리자';
+      const inviterName = inviterProfile?.name || 'Administrator';
 
       // 5.2. 조직 정보 조회 (알림 메시지용) - OrganizationQueryService 사용
       const orgNameResult = await this.orgQueryService.getOrganizationName(

@@ -102,7 +102,7 @@ export function useRoleChange(): UseRoleChangeReturn {
     ) => {
       // 클라이언트 측 검증
       if (!canChangeRole(currentUserRole, member.role)) {
-        toast.error('역할 변경 권한이 없습니다');
+        toast.error('You do not have permission to change roles');
         return;
       }
 
@@ -142,8 +142,8 @@ export function useRoleChange(): UseRoleChangeReturn {
 
         toast.success(
           memberInfo.isUpgrade
-            ? '멤버를 관리자로 승격했습니다'
-            : '관리자를 멤버로 강등했습니다'
+            ? 'Member promoted to admin'
+            : 'Admin demoted to member'
         );
 
         setIsDialogOpen(false);
@@ -155,7 +155,7 @@ export function useRoleChange(): UseRoleChangeReturn {
         }
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : '역할 변경에 실패했습니다';
+          err instanceof Error ? err.message : 'Failed to change role';
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {
