@@ -1,18 +1,20 @@
 // Signup, Email magic link confirmatiom route for Supabase
 // next
-import { type NextRequest, NextResponse } from 'next/server';
 import { redirect } from 'next/navigation';
+import { NextResponse, type NextRequest } from 'next/server';
+
 // supabase
 import { type EmailOtpType } from '@supabase/supabase-js';
-// utils
-import { createClient } from '@/utils/supabase/server';
+
+import { config } from '@/config';
 // constants
 import {
   appDefaultUrl,
   emailVerificationErrorMessage,
   loginUrl,
 } from '@/domains/auth/constant';
-import { config } from '@/config';
+// utils
+import { createClient } from '@/utils/supabase/server';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { processUserRegistrationAction } from '@/domains/user-management/actions/user-management.actions';
 
@@ -15,6 +15,8 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(3);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
 
   useEffect(() => {
     async function setupUserProfile() {
@@ -36,13 +38,16 @@ export default function OnboardingPage() {
       if (result.success) {
         setStatus('success');
 
+        // redirect query parameter가 있으면 우선 사용, 없으면 result.data.redirectUrl 사용
+        const finalRedirectUrl = redirectParam || result.data.redirectUrl;
+
         // Existing users with complete setup redirect immediately (no countdown)
         // New users see countdown before redirect
         const isExistingUser = result.data.user && result.data.organization;
 
         if (isExistingUser) {
           // Existing user: redirect immediately
-          router.push(result.data.redirectUrl);
+          router.push(finalRedirectUrl);
         } else {
           // New user: start countdown (3 seconds)
           let count = 3;
@@ -52,7 +57,7 @@ export default function OnboardingPage() {
 
             if (count <= 0) {
               clearInterval(countdownInterval);
-              router.push(result.data.redirectUrl);
+              router.push(finalRedirectUrl);
             }
           }, 1000);
         }
