@@ -13,6 +13,7 @@ import { Box } from '@/components/ui/box';
 import { TipTapEditor } from '@/domains/block-management/frontend/components/tiptap-editor';
 import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 import type { MarkdownContentSectionProps } from './core/types';
 import { useMarkdownContentSection } from './core/use-markdown-content-section';
@@ -27,6 +28,7 @@ export default function NoteSection({
   blockData,
 }: MarkdownContentSectionProps) {
   const { getNode, updateNode } = useReactFlow();
+  const { readonly } = useCanvasReadOnly();
   const { updateBlockContent } = useUpdateBlockContent({
     reactFlow: {
       getNode,
@@ -62,7 +64,7 @@ export default function NoteSection({
       <Box onClick={handleEditorClick} className="min-h-[200px] cursor-text">
         <TipTapEditor
           editor={editor}
-          editable={true}
+          editable={!readonly}
           onClick={handleEditorClick}
           placeholderClassName="tiptap-editor-panel"
           placeholderStyleTarget="tiptap-editor-panel"

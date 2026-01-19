@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import {
   useCanvasModeContext,
   usePreventPinchZoom,
@@ -24,6 +25,7 @@ export function useCanvasToolbar(
 ): UseCanvasToolbarReturn {
   // 1. Gather External Dependencies (The only place where external hooks are called)
   // Domain / Service Hooks
+  const { readonly } = useCanvasReadOnly();
   const reactFlow = useReactFlow();
   const canvasMode = useCanvasModeContext();
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -169,5 +171,6 @@ export function useCanvasToolbar(
     onHandClick,
     onFitToViewClick,
     onAddBlockClick,
+    readonly,
   };
 }

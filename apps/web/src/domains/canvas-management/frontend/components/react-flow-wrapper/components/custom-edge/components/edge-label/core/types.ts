@@ -102,6 +102,7 @@ export interface EdgeLabelProps {
   label: string;
   position: { x: number; y: number };
   isSelected: boolean;
+  readonly?: boolean;
   // Optional overrides (테스트/Storybook용)
   canvasMetadata?: {
     pageId: string;

@@ -9,6 +9,7 @@
 
 import { BlockOriginalToolbar } from '@/domains/block-management/frontend/components/block/block-original-toolbar';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 export interface ToolbarProps {
   data: BlockNodeData;
@@ -27,6 +28,8 @@ export function Toolbar({
   width,
   height,
 }: ToolbarProps) {
+  const { readonly } = useCanvasReadOnly();
+
   // 필수 데이터가 없거나 조건이 맞지 않으면 렌더링하지 않음
   if (
     !data.blockMountId ||
@@ -45,6 +48,7 @@ export function Toolbar({
       blockData={data}
       width={width}
       height={height}
+      readonly={readonly}
     />
   );
 }

@@ -322,4 +322,15 @@ export interface UseMultiSelectionToolbarReturn {
    * ```
    */
   isVisible: boolean;
+
+  /**
+   * Whether the canvas is in readonly mode
+   * When true, editing actions (duplicate, delete) should be disabled
+   * @example
+   * ```tsx
+   * const { readonly } = useMultiSelectionToolbar(props);
+   * <Button disabled={readonly} onClick={handleDelete}>Delete</Button>
+   * ```
+   */
+  readonly: boolean;
 }

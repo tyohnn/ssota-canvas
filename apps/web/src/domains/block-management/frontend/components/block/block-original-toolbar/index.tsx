@@ -36,6 +36,7 @@ export function BlockOriginalToolbar(props: BlockOriginalToolbarProps) {
       toolbarRef={uiState.toolbarRef}
       onViewModeChange={business.handleViewModeChange}
       onDetails={business.handleDetails}
+      readonly={props.readonly}
     />
   );
 }

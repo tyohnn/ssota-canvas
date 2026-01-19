@@ -12,26 +12,31 @@ export function YoutubeToolbarItems({
   blockData,
   disabled,
   onPropertyUpdate,
+  readonly = false,
 }: {
   blockId: string;
   blockMountId?: string;
   blockData: any;
   disabled: boolean;
   onPropertyUpdate: (path: string, value: any) => Promise<void>;
+  readonly?: boolean;
 }) {
   const youtubeProperties = blockData.properties;
 
   return (
     <>
-      <YouTubeUrlToolbarItem
-        blockId={blockId}
-        blockMountId={blockMountId}
-        currentValue={youtubeProperties?.url || ''}
-        disabled={disabled}
-        onValueChange={async (url: string) => {
-          await onPropertyUpdate('properties.url', url);
-        }}
-      />
+      {/* readonly 모드에서는 YouTubeUrlToolbarItem만 숨김 */}
+      {!readonly && (
+        <YouTubeUrlToolbarItem
+          blockId={blockId}
+          blockMountId={blockMountId}
+          currentValue={youtubeProperties?.url || ''}
+          disabled={disabled}
+          onValueChange={async (url: string) => {
+            await onPropertyUpdate('properties.url', url);
+          }}
+        />
+      )}
       <OpenYoutubeToolbarItem
         blockId={blockId}
         blockMountId={blockMountId}

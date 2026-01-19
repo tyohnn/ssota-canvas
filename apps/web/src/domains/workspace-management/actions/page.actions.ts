@@ -12,7 +12,12 @@ import { DrizzlePageRepository } from '../backend/repositories/implementations/d
 import { DrizzleWorkspaceMemberRepository } from '../backend/repositories/implementations/drizzle-workspace-member.repository';
 import { DefaultPageHierarchyService } from '../backend/services';
 import { DefaultPageLifecycleService } from '../backend/services/page-lifecycle.service';
-import type { CreatePageResponse, DuplicatePageResponse } from '../shared/dtos';
+import type {
+  CreatePageResponse,
+  DuplicatePageResponse,
+  DuplicatePageWithCanvasRequest,
+  DuplicatePageWithCanvasResponse,
+} from '../shared/dtos';
 import {
   type CreatePageRequest,
   CreatePageRequestSchema,
@@ -20,6 +25,7 @@ import {
   DeletePageRequestSchema,
   type DuplicatePageRequest,
   DuplicatePageRequestSchema,
+  DuplicatePageWithCanvasRequestSchema,
   type MovePageRequest,
   MovePageRequestSchema,
   type ReorderPagesRequest,
@@ -572,6 +578,101 @@ async function duplicatePageInternal(
     return ok(responseData);
   } catch (error) {
     console.error('[duplicatePageInternal] Internal error:', error);
+    return err('Internal server error', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+        pageId: request.pageId,
+      },
+    });
+  }
+}
+
+/**
+ * Page 복제 Server Action (캔버스 데이터 포함)
+ *
+ * ⚠️ Security: 이 함수는 HTTP를 통해 공개되므로 모든 입력을 검증합니다
+ *
+ * @param request - 클라이언트 요청 (런타임 검증 필요)
+ * @returns DuplicatePageWithCanvasResponse (성공) | Error (실패)
+ */
+export async function duplicatePageWithCanvasAction(
+  request: unknown
+): Promise<ActionResult<DuplicatePageWithCanvasResponse>> {
+  // 1. Runtime Validation (필수)
+  const parseResult = DuplicatePageWithCanvasRequestSchema.safeParse(request);
+
+  if (!parseResult.success) {
+    console.warn('[Security] Invalid request to duplicatePageWithCanvasAction', {
+      errors: parseResult.error.issues,
+      timestamp: new Date().toISOString(),
+    });
+
+    return err('Invalid request data', {
+      code: 'INVALID_REQUEST',
+      meta: { errors: parseResult.error.issues },
+    });
+  }
+
+  // 2. 검증된 데이터는 타입 안전
+  const validatedRequest = parseResult.data; // type: DuplicatePageWithCanvasRequest
+
+  // 3. 인증 및 권한 확인
+  try {
+    const user = await getAuthenticatedUser();
+
+    // 4. Internal 함수 호출
+    return await duplicatePageWithCanvasInternal(validatedRequest, user);
+  } catch (error) {
+    console.error('[duplicatePageWithCanvasAction] Authentication error:', error);
+
+    return err(
+      error instanceof Error ? error.message : 'Authentication failed',
+      { code: 'AUTHENTICATION_FAILED' }
+    );
+  }
+}
+
+/**
+ * 내부 구현 (검증된 데이터만 처리)
+ */
+async function duplicatePageWithCanvasInternal(
+  request: DuplicatePageWithCanvasRequest,
+  user: AuthenticatedUser
+): Promise<ActionResult<DuplicatePageWithCanvasResponse>> {
+  try {
+    // 1. 의존성 주입
+    const pageRepo = new DrizzlePageRepository();
+    const memberRepo = new DrizzleWorkspaceMemberRepository();
+
+    const service = new DefaultPageLifecycleService(pageRepo, memberRepo);
+
+    // 2. Service 호출 (params 패턴)
+    const result = await service.duplicatePageWithCanvas({
+      pageId: new PageId(request.pageId),
+      userId: user.id,
+    });
+
+    // 3. Result 처리
+    if (!result.success) {
+      return err(result.error, {
+        code: result.error,
+        meta: { details: `Failed to duplicate page with canvas: ${result.error}` },
+      });
+    }
+
+    // 4. Aggregate → DTO 변환
+    const aggregate = result.data;
+    const responseData: DuplicatePageWithCanvasResponse = {
+      pageId: aggregate.page.pageId.value,
+    };
+
+    // 5. 캐시 무효화
+    revalidatePath('/r');
+
+    return ok(responseData);
+  } catch (error) {
+    console.error('[duplicatePageWithCanvasInternal] Internal error:', error);
     return err('Internal server error', {
       code: 'INTERNAL_SERVER_ERROR',
       meta: {

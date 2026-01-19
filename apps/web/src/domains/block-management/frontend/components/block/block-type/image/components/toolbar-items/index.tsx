@@ -8,6 +8,7 @@ import React from 'react';
 
 import { ImageChangeToolbarItem } from './components/image-change-toolbar-item';
 import { ImageToolbarProvider } from './core/provider';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 // import { ObjectFitToolbarItem } from './object-fit-toolbar-item';
 // import { CaptionVisibilityToolbarItem } from './caption-visibility-toolbar-item';
 // import { ExpandImageToolbarItem } from './expand-image-toolbar-item';
@@ -26,13 +27,16 @@ import type { ImageToolbarItemsProps } from './core/types';
  *
  */
 export function ImageToolbarItems(props: ImageToolbarItemsProps) {
+  const { readonly } = useCanvasReadOnly();
+
   return (
     <ImageToolbarProvider {...props}>
       {/* <ImageSpaceContainer blockId={blockId} blockData={blockData}>
         <ImageSpaceExploreTrigger />
         <ImageSpaceEditorTrigger />
       </ImageSpaceContainer> */}
-      <ImageChangeToolbarItem />
+      {/* readonly 모드에서는 ImageChangeToolbarItem 숨김 */}
+      {!readonly && <ImageChangeToolbarItem />}
       {/* <ObjectFitToolbarItem /> */}
       {/* <Separator orientation="vertical" className="h-6" /> */}
       {/* <CaptionVisibilityToolbarItem /> */}

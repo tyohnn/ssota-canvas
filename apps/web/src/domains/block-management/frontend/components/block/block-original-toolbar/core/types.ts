@@ -17,6 +17,7 @@ export interface BlockOriginalToolbarProps {
   blockData: BlockNodeData;
   width?: number;
   height?: number;
+  readonly?: boolean;
 }
 
 /**

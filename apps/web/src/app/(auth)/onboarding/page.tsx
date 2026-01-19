@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { processUserRegistrationAction } from '@/domains/user-management/actions/user-management.actions';
 
@@ -10,11 +10,13 @@ import { processUserRegistrationAction } from '@/domains/user-management/actions
 
 type OnboardingStatus = 'loading' | 'success' | 'error';
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const [status, setStatus] = useState<OnboardingStatus>('loading');
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(3);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
 
   useEffect(() => {
     async function setupUserProfile() {
@@ -36,13 +38,16 @@ export default function OnboardingPage() {
       if (result.success) {
         setStatus('success');
 
+        // redirect query parameter가 있으면 우선 사용, 없으면 result.data.redirectUrl 사용
+        const finalRedirectUrl = redirectParam || result.data.redirectUrl;
+
         // Existing users with complete setup redirect immediately (no countdown)
         // New users see countdown before redirect
         const isExistingUser = result.data.user && result.data.organization;
 
         if (isExistingUser) {
           // Existing user: redirect immediately
-          router.push(result.data.redirectUrl);
+          router.push(finalRedirectUrl);
         } else {
           // New user: start countdown (3 seconds)
           let count = 3;
@@ -52,7 +57,7 @@ export default function OnboardingPage() {
 
             if (count <= 0) {
               clearInterval(countdownInterval);
-              router.push(result.data.redirectUrl);
+              router.push(finalRedirectUrl);
             }
           }, 1000);
         }
@@ -68,7 +73,7 @@ export default function OnboardingPage() {
     }
 
     setupUserProfile();
-  }, [router]);
+  }, [router, redirectParam]);
 
   const handleRetry = () => {
     setStatus('loading');
@@ -157,5 +162,26 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="max-w-md w-full space-y-8 p-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Loading...
+              </h2>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <OnboardingContent />
+    </Suspense>
   );
 }

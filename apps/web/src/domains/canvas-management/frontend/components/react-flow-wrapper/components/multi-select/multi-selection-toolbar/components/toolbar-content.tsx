@@ -21,6 +21,7 @@ export interface ToolbarContentProps {
   onDuplicate: () => void | Promise<void>;
   onDelete: () => void | Promise<void>;
   selectedBlockCount: number;
+  readonly?: boolean;
 }
 
 export function ToolbarContent({
@@ -29,6 +30,7 @@ export function ToolbarContent({
   onDuplicate,
   onDelete,
   selectedBlockCount,
+  readonly,
 }: ToolbarContentProps): React.JSX.Element {
   return (
     <Box className="bg-background border border-border rounded-lg shadow-lg p-1 flex items-center gap-1">
@@ -42,12 +44,14 @@ export function ToolbarContent({
           icon={<Copy className="h-3 w-3" />}
           tooltip="Duplicate"
           onClick={onDuplicate}
+          disabled={readonly}
           tooltipSide="top"
         />
         <ToolbarIconButton
           icon={<Trash2 className="h-3 w-3" />}
           tooltip="Delete"
           onClick={onDelete}
+          disabled={readonly}
           variant="destructive"
           tooltipSide="top"
         />

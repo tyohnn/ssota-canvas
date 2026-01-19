@@ -21,6 +21,7 @@ export interface CanvasToolbarViewProps {
   onHandClick: () => void;
   onFitToViewClick: () => void;
   onAddBlockClick: () => void;
+  readonly?: boolean;
 }
 
 /**
@@ -40,6 +41,7 @@ export function CanvasToolbarView({
   onHandClick,
   onFitToViewClick,
   onAddBlockClick,
+  readonly = false,
 }: CanvasToolbarViewProps) {
   const isSelectActive =
     currentMode.type === 'default' ||
@@ -60,12 +62,14 @@ export function CanvasToolbarView({
           {/* Fit to View Button */}
           <FitToViewButton onClick={onFitToViewClick} />
 
-          {/* Add Block Button */}
-          <AddBlockButton
-            isActive={isBlockCreationMode}
-            disabled={isBlockCreationMode}
-            onClick={onAddBlockClick}
-          />
+          {/* Add Block Button - readonly일 때 숨김 */}
+          {!readonly && (
+            <AddBlockButton
+              isActive={isBlockCreationMode}
+              disabled={isBlockCreationMode}
+              onClick={onAddBlockClick}
+            />
+          )}
         </TooltipProvider>
       </ToolbarContainer>
     </Box>

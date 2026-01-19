@@ -6,6 +6,7 @@ import {
   CanvasMetadata,
   useCanvasMetadata,
 } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 import { usePreventPinchZoom } from '@/domains/canvas-management/frontend/hooks/control/use-prevent-pinch-zoom';
 import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
@@ -85,6 +86,7 @@ export function useMultiSelectionToolbar(
   const { pageId } = canvasMetadata;
 
   // 1. Gather External Dependencies (Centralized)
+  const { readonly } = useCanvasReadOnly();
   const selectedNodes = useStore(state =>
     state.nodes.filter(node => node.selected)
   );
@@ -207,5 +209,6 @@ export function useMultiSelectionToolbar(
     selectionCount,
     isMultiSelectionMode: isMultiSelectionMode(),
     isVisible,
+    readonly,
   };
 }
