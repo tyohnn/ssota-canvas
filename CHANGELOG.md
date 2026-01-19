@@ -1,3 +1,61 @@
+## [0.8.0] - 2026-01-19
+
+### Update
+
+- Supabas cli upgrade
+
+### ♻️ Refactoring
+
+- *(share)* Transition to functional services, tanstack query hooks, and organization-aware workspace retrieval
+- Use auth user utils
+- Remove unneccesary service (workspace domain)
+- Remove external domain field at workspace entity
+- Remove duplicated query service and add read models
+- Refactor: hook pattern
+- remove tanstack query
+- add mutation
+-  refactor: share action and apply new authentication layer
+- Add service suffix
+- Remove overlapping logic
+- Move toReactFlowNodeFromCanvasView into server component
+- Pass onSuccess, onError props to mutation hook
+- Apply pattern
+- Copy page service and action
+- Rename copy to duplicate & unify one dialog
+
+### ✨ Features
+
+- Improve publish flow UX - remove unpublish confirmation dialog and add header to published page
+- Add canvas base component
+- Pass redirection url to google login callback and onboarding in order to smooth flow for new user or revisited user
+- Detail readonly UI
+- Youtube block script duplication within same page ro outside page
+
+### 🐛 Bug Fixes
+
+- Remove snapshot version at published_pages
+- Make compatiable new version
+- Get all workspace by orgs
+- Remvoe string()
+- Remove over indexing
+- Owner_id to publisher_id, add unpublished status
+- Readonly edge rendering
+- Build error
+- Remove pdf block and unready blocks
+- Build error
+- Add getDefaultViewMode to useCreateBlock
+
+### 📚 Documentation
+
+- Move refactor summary to docs and cleanup temp files
+- Remove unneccesary docs
+
+### 🔧 Maintenance
+
+- Move refactor summary back to root
+- Remove unneccesary
+- Add supbase script
+- Edit docs
 ## [0.7.1] - 2026-01-17
 
 ### Hotfix
