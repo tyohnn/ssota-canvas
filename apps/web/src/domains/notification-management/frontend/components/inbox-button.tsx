@@ -1,8 +1,7 @@
 'use client';
 
 import { Inbox } from 'lucide-react';
-import { SidebarMenuButton } from '@workspace/ui/components/ui/sidebar';
-import { Badge } from '@workspace/ui/components/ui/badge';
+import { SidebarNavButton } from '@/domains/organization-management/frontend/components/sidebar/sidebar-nav-button';
 import { useNotification } from '../hooks/use-notification';
 
 interface InboxButtonProps {
@@ -12,22 +11,23 @@ interface InboxButtonProps {
 export function InboxButton({ onClick }: InboxButtonProps) {
   const { unreadCount } = useNotification();
 
+  // 배지에 표시될 텍스트 계산
+  const badgeText = unreadCount > 0 ? (unreadCount > 99 ? '+99' : unreadCount.toString()) : undefined;
+
+  // 배지 tooltip 텍스트 계산 (콤마 구분 형식)
+  const badgeTooltip = unreadCount > 0
+    ? `${unreadCount.toLocaleString('en-US')} unread notifications`
+    : undefined;
+
   return (
-    <SidebarMenuButton
-      className="text-muted-foreground"
+    <SidebarNavButton
+      icon={<Inbox />}
+      label="Inbox"
+      badge={unreadCount}
+      badgeText={badgeText}
+      badgeTooltip={badgeTooltip}
       tooltip="Inbox"
       onClick={onClick}
-    >
-      <Inbox />
-      <span>Inbox</span>
-      {unreadCount > 0 && (
-        <Badge
-          variant="destructive"
-          className="ml-auto min-w-[1.5rem] h-5 rounded-md px-1.5 text-xs"
-        >
-          {unreadCount > 9 ? '9+' : unreadCount}
-        </Badge>
-      )}
-    </SidebarMenuButton>
+    />
   );
 }

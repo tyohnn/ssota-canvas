@@ -3,12 +3,20 @@
 import * as React from 'react';
 import { SidebarMenuButton } from '@workspace/ui/components/ui/sidebar';
 import { Badge } from '@workspace/ui/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@workspace/ui/components/ui/tooltip';
 
 interface SidebarNavButtonProps {
   icon: React.ReactNode;
   label: string;
   onClick?: () => void;
   badge?: number;
+  badgeText?: string; // 배지에 표시될 텍스트 (badge prop보다 우선)
+  badgeTooltip?: string; // 배지 tooltip 텍스트
   tooltip?: string;
   className?: string;
 }
@@ -40,9 +48,12 @@ export function SidebarNavButton({
   label,
   onClick,
   badge,
+  badgeText,
+  badgeTooltip,
   tooltip,
   className,
 }: SidebarNavButtonProps) {
+
   return (
     <SidebarMenuButton
       className={className || 'text-muted-foreground'}
@@ -51,13 +62,24 @@ export function SidebarNavButton({
     >
       {icon}
       <span>{label}</span>
-      {badge !== undefined && badge > 0 && (
-        <Badge
-          variant="destructive"
-          className="ml-auto min-w-[1.5rem] h-5 rounded-md px-1.5 text-xs"
-        >
-          {badge > 9 ? '9+' : badge}
-        </Badge>
+      {badgeText && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant="default"
+                className="ml-auto min-w-5 h-5 rounded-md px-0.5 text-xs"
+              >
+                {badgeText}
+              </Badge>
+            </TooltipTrigger>
+            {badgeTooltip && (
+              <TooltipContent side="right">
+                <p>{badgeTooltip}</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       )}
     </SidebarMenuButton>
   );
