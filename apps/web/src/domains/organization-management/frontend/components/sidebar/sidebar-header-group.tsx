@@ -14,8 +14,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@workspace/ui/components/ui/sidebar';
-import { Home, Inbox, Search, Settings2 } from 'lucide-react';
+import { Home, Search, Settings2 } from 'lucide-react';
 import { useOrganization } from '../../contexts/organization-context';
+import { InboxButton } from '@/domains/notification-management/frontend/components/inbox-button';
 import { InboxPanel } from '@/domains/notification-management/frontend/components/inbox-panel';
 import { respondToInvitationAction } from '../../../actions/organization-management.actions';
 import {
@@ -142,14 +143,7 @@ export function SidebarHeaderGroup() {
           </Dialog>
         </SidebarMenuItem>
         <SidebarMenuItem>
-          <SidebarMenuButton
-            className="text-muted-foreground"
-            tooltip="Inbox"
-            onClick={() => setIsInboxOpen(true)}
-          >
-            <Inbox />
-            <span>Inbox</span>
-          </SidebarMenuButton>
+          <InboxButton onClick={() => setIsInboxOpen(true)} />
         </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton

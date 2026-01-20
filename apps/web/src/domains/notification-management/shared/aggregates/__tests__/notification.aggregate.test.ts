@@ -198,20 +198,20 @@ describe('NotificationAggregate', () => {
   });
 
   describe('알림 메시지 포맷', () => {
-    it('한국어 메시지 형식이 올바르게 생성되어야 한다', () => {
+    it('영어 메시지 형식이 올바르게 생성되어야 한다', () => {
       // When
       const aggregate = NotificationAggregate.createInvitationNotification(
         userId,
         invitationId,
-        'XBowl 팀',
-        '김철수',
+        'XBowl Team',
+        'John Doe',
         'member'
       );
 
       // Then
-      expect(aggregate.entity.title).toBe('XBowl 팀에 초대되었습니다');
+      expect(aggregate.entity.title).toBe('Invited to XBowl Team');
       expect(aggregate.entity.message).toBe(
-        '김철수님이 XBowl 팀 조직에 member 역할로 초대했습니다.'
+        'John Doe invited you to XBowl Team organization as member.'
       );
     });
   });
