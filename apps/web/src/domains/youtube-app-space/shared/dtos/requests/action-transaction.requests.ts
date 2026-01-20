@@ -15,7 +15,8 @@ import { z } from 'zod';
 export const CreateActionTransactionRequestSchema = z.object({
   orgId: z.uuid('Invalid organization ID'),
   videoId: z.uuid('Invalid video ID'),
-  actionType: z.enum(['extract_script', 'smart_summary']),
+  actionType: z.enum(['extract_script', 'extract_summary', 'smart_summary']),
+  language: z.string().length(2).optional(), // ISO 639-1 language code (2 characters)
 });
 
 /**
@@ -23,7 +24,7 @@ export const CreateActionTransactionRequestSchema = z.object({
  */
 export const CheckActionTransactionRequestSchema = z.object({
   blockId: z.uuid('Invalid block ID'),
-  actionType: z.enum(['extract_script', 'smart_summary']),
+  actionType: z.enum(['extract_script', 'extract_summary', 'smart_summary']),
 });
 
 // Input types (프론트엔드에서 사용)

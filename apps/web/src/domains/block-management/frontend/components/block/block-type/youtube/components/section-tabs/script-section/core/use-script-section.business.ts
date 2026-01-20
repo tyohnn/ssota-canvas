@@ -11,22 +11,16 @@
 
 'use client';
 
-import { useState } from 'react';
-
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
   type YoutubeBlockProperties,
   YoutubeBlockPropertiesVO,
 } from '@/domains/block-management/shared/value-objects/block-properties';
-import { checkActionTransactionAction } from '@/domains/youtube-app-space/actions/transaction/check-action-transaction.action';
-import { extractVideoScriptAction } from '@/domains/youtube-app-space/actions/video/extract-video-script.action';
 import {
-  getVideoScriptAction,
-  getVideoScriptWithoutTransactionAction,
-} from '@/domains/youtube-app-space/actions/video/get-video-script.action';
-import type { GetScriptDTO } from '@/domains/youtube-app-space/shared/dtos/responses/video.responses';
+  useCheckVideoScriptTransaction,
+  useExtractVideoScript,
+  useVideoScript,
+} from '@/domains/youtube-app-space/frontend/hooks';
 
 import type { ScriptSectionBusinessLogic } from './types';
 
@@ -39,9 +33,6 @@ export function useScriptSectionBusiness(
   blockId: string,
   blockData: BlockNodeData | undefined
 ): ScriptSectionBusinessLogic {
-  const queryClient = useQueryClient();
-  const [isExtracting, setIsExtracting] = useState(false);
-
   // Block properties에서 YouTube 정보 추출
   const properties = blockData?.properties as
     | YoutubeBlockProperties
@@ -64,134 +55,51 @@ export function useScriptSectionBusiness(
 
   // Action Transaction 확인 (추출 액션이 실행된 적이 있는지)
   // ⚠️ scriptAccessGranted가 true면 건너뛰기 (Action Transaction 확인 불필요)
-  const { data: actionTransactionData, isLoading: isCheckingTransaction } =
-    useQuery({
-      queryKey: ['youtube-action-transaction', blockId, 'extract_script'],
-      queryFn: async () => {
-        if (!blockId) {
-          return { exists: false };
-        }
-
-        const result = await checkActionTransactionAction({
-          blockId,
-          actionType: 'extract_script',
-        });
-
-        if (!result.success) {
-          // 에러 발생 시 false로 처리 (안전하게 처리)
-          return { exists: false };
-        }
-
-        return result.data;
-      },
-      enabled: !!blockId && scriptAccessGranted !== true, // scriptAccessGranted가 true면 Action Transaction 확인 불필요
-      staleTime: 24 * 60 * 60 * 1000, // 24시간 캐싱 (스크립트는 거의 변경되지 않음)
-      retry: 1,
+  const { exists: hasActionTransaction, isLoading: isCheckingTransaction } =
+    useCheckVideoScriptTransaction({
+      blockId,
+      enabled: !!blockId && scriptAccessGranted !== true,
     });
 
-  const hasExtractAction =
-    scriptAccessGranted === true || (actionTransactionData?.exists ?? false);
+  const hasExtractAction = scriptAccessGranted === true || hasActionTransaction;
 
-  // TanStack Query로 스크립트 로드
-  // ✅ 추출 액션이 실행된 적이 있는 블록만 로드
-  // ⚠️ scriptAccessGranted가 true면 Action Transaction 확인 없이 직접 조회
+  // 스크립트 로드
   const {
-    data: scriptData,
-    isLoading,
-    error: queryError,
-    refetch,
-  } = useQuery<GetScriptDTO>({
-    queryKey: ['youtube-script', blockId, youtubeId, scriptAccessGranted],
-    queryFn: async (): Promise<GetScriptDTO> => {
-      if (!youtubeId || !blockId) {
-        throw new Error('YouTube ID or Block ID not found');
-      }
-
-      // scriptAccessGranted가 true면 Action Transaction 확인 없이 직접 조회
-      // (조직 내 공유 확인 불필요, 블록 권한만으로 충분)
-      const result =
-        scriptAccessGranted === true
-          ? await getVideoScriptWithoutTransactionAction({
-            blockId,
-            youtubeId,
-          })
-          : await getVideoScriptAction({
-            blockId,
-            youtubeId,
-          });
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to load script');
-      }
-
-      return result.data;
-    },
-    // ✅ 추출 액션이 실행된 적이 있고, blockId와 youtubeId가 모두 있을 때만 로드
-    // scriptAccessGranted가 true면 Action Transaction 확인 없이 바로 로드
+    script,
+    isLoading: isLoadingScript,
+    error: scriptError,
+  } = useVideoScript({
+    blockId,
+    youtubeId: youtubeId || '',
+    scriptAccessGranted,
     enabled:
       !!blockId &&
       !!youtubeId &&
       (scriptAccessGranted === true ||
         (hasExtractAction && !isCheckingTransaction)),
-    staleTime: 24 * 60 * 60 * 1000, // 24시간 캐싱 (스크립트는 거의 변경되지 않음)
-    retry: 1,
   });
 
-  // 스크립트 데이터 추출
-  const script = scriptData?.youtube.script;
+  // 스크립트 추출 훅
+  const { extractScript, isExtracting } = useExtractVideoScript({
+    blockId,
+    youtubeId: youtubeId || '',
+  });
 
   // 에러 처리
-  const error = queryError
-    ? queryError instanceof Error
-      ? queryError.message
-      : 'Failed to load script'
+  const error = scriptError
+    ? scriptError.message
     : null;
 
-  // 스크립트 추출/새로고침 핸들러
+  // 스크립트 추출 핸들러
   const handleExtractScript = async () => {
-    if (!blockData || !youtubeId) {
-      console.error('[handleExtractScript] Block data or YouTube ID not found');
-      return;
-    }
-
-    setIsExtracting(true);
-
-    try {
-      // extract-video-script.action.ts 직접 호출 (transaction 생성 및 스크립트 추출)
-      const result = await extractVideoScriptAction({
-        blockId,
-        youtubeId,
-      });
-
-      if (result.success) {
-        // 추출 성공 시 관련 쿼리들을 invalidate하여 다시 로드
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: ['youtube-action-transaction', blockId, 'extract_script'],
-          }),
-          queryClient.invalidateQueries({
-            queryKey: ['youtube-script', blockId, youtubeId],
-          }),
-        ]);
-      } else {
-        console.error(
-          '[handleExtractScript] Failed to extract script:',
-          result
-        );
-        // 에러는 toast로 표시되므로 여기서는 로그만 남김
-      }
-    } catch (error) {
-      console.error('[handleExtractScript] Error extracting script:', error);
-    } finally {
-      setIsExtracting(false);
-    }
+    await extractScript();
   };
 
   return {
     youtubeId,
     youtubeTitle,
     script,
-    isLoading: isLoading || isCheckingTransaction,
+    isLoading: isLoadingScript || isCheckingTransaction,
     error,
     handleExtractScript,
     hasExtractAction,

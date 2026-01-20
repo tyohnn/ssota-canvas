@@ -26,6 +26,12 @@ export type YoutubeAppSpaceErrorCode =
   // Action Transaction 엔티티 관련
   | 'ACTION_TRANSACTION_CREATION_FAILED'
   | 'ACTION_TRANSACTION_UPDATE_FAILED'
+  // Video Summary ID 관련 (UUID)
+  | 'INVALID_VIDEO_SUMMARY_ID'
+  // Video Summary 엔티티 관련
+  | 'VIDEO_SUMMARY_CREATION_FAILED'
+  // Language 관련
+  | 'UNSUPPORTED_LANGUAGE'
   // YouTube 엔티티 관련
   | 'YOUTUBE_NOT_FOUND'
   | 'VIDEO_QUERY_FAILED'
@@ -43,6 +49,10 @@ export type YoutubeAppSpaceErrorCode =
   | 'SCRIPT_NOT_FOUND'
   | 'SCRIPT_ALREADY_EXISTS'
   | 'SCRIPT_LANGUAGE_NOT_SUPPORTED'
+  | 'SCRIPT_TRANSCRIPT_EMPTY'
+  // 요약 관련
+  | 'SUMMARY_GENERATION_FAILED'
+  | 'EXTRACT_SUMMARY_FAILED'
   // YouTube API 관련
   | 'YOUTUBE_API_ERROR'
   | 'YOUTUBE_API_KEY_MISSING'
@@ -121,6 +131,14 @@ export const YOUTUBE_APP_SPACE_ERROR_MESSAGES: Record<
   // Action Transaction entity related
   ACTION_TRANSACTION_CREATION_FAILED: 'Failed to create action transaction.',
   ACTION_TRANSACTION_UPDATE_FAILED: 'Failed to update action transaction.',
+  // Video Summary ID related (UUID)
+  INVALID_VIDEO_SUMMARY_ID: 'Invalid video summary ID format (UUID).',
+  // Video Summary entity related
+  VIDEO_SUMMARY_CREATION_FAILED: 'Failed to create video summary.',
+  SUMMARY_GENERATION_FAILED: 'Failed to generate video summary.',
+  EXTRACT_SUMMARY_FAILED: 'Failed to extract video summary.',
+  // Language related
+  UNSUPPORTED_LANGUAGE: 'Unsupported language code.',
   // YouTube entity related
   YOUTUBE_NOT_FOUND: 'YouTube video not found.',
   VIDEO_QUERY_FAILED: 'Failed to query video.',
@@ -138,6 +156,7 @@ export const YOUTUBE_APP_SPACE_ERROR_MESSAGES: Record<
   SCRIPT_NOT_FOUND: 'Script not found.',
   SCRIPT_ALREADY_EXISTS: 'Script already exists.',
   SCRIPT_LANGUAGE_NOT_SUPPORTED: 'Script language not supported.',
+  SCRIPT_TRANSCRIPT_EMPTY: 'Script transcript is empty.',
   // YouTube API related
   YOUTUBE_API_ERROR: 'YouTube API error occurred.',
   YOUTUBE_API_KEY_MISSING: 'YouTube API key is missing.',

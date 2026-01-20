@@ -32,6 +32,7 @@ export async function createActionTransaction(
       orgId: safeDto.orgId,
       videoId: safeDto.videoId,
       actionType: safeDto.actionType,
+      language: safeDto.language,
     };
 
     // 2. Aggregate 생성 (Command 전달)

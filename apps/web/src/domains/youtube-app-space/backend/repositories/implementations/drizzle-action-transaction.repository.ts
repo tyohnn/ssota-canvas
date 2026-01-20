@@ -9,7 +9,7 @@ import { adminDb } from '@/db';
 import { actionTransactions } from '@/db/schemas/youtube-app-space-schema';
 
 import { ActionTransactionAggregate } from '../../../shared/aggregates/action-transaction.aggregate';
-import { ActionTransactionEntity } from '../../../shared/entities/action-transaction.entity';
+import { ActionTransactionEntity, type ActionType } from '../../../shared/entities/action-transaction.entity';
 import { ActionTransactionId } from '../../../shared/value-objects/action-transaction-id.vo';
 import { VideoId } from '../../../shared/value-objects/video-id.vo';
 import type { IActionTransactionRepository } from '../interfaces/action-transaction.repository.interface';
@@ -35,13 +35,16 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
       try {
         const transaction = currentAggregate.getTransaction();
 
+        // completed_at은 명시적으로 null을 전달 (undefined일 때)
+        // Drizzle이 필드를 생략하면 default를 사용하려고 하는데, 스키마에 default가 없어서 에러 발생
         await adminDb.insert(actionTransactions).values({
           id: transaction.id.value,
           org_id: transaction.orgId,
           video_id: transaction.videoId.value,
           action_type: transaction.actionType,
+          language: transaction.language ?? null,
           created_at: transaction.createdAt,
-          completed_at: transaction.completedAt ?? null,
+          completed_at: transaction.completedAt ?? null, // undefined일 때 명시적으로 null 전달
         });
 
         // 성공 시 종료
@@ -67,6 +70,7 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
               orgId: transaction.orgId,
               videoId: transaction.videoId,
               actionType: transaction.actionType,
+              language: transaction.language,
               createdAt: transaction.createdAt,
               completedAt: transaction.completedAt,
             });
@@ -118,11 +122,12 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
    * Org ID와 Video ID, Action Type으로 Aggregate 조회
    *
    * 가장 최근에 생성된 transaction을 반환 (created_at DESC)
+   * language가 null인 경우 (extract_script 등) 사용
    */
   async findByOrgAndVideo(
     orgId: string,
     videoId: string,
-    actionType: 'extract_script' | 'smart_summary'
+    actionType: Exclude<ActionType, 'extract_summary'>
   ): Promise<ActionTransactionAggregate | null> {
     const [found] = await adminDb
       .select()
@@ -132,6 +137,42 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
           eq(actionTransactions.org_id, orgId),
           eq(actionTransactions.video_id, videoId),
           eq(actionTransactions.action_type, actionType)
+        )
+      )
+      .orderBy(desc(actionTransactions.created_at))
+      .limit(1);
+
+    if (!found) {
+      return null;
+    }
+
+    // Drizzle Row → Entity → Aggregate 변환
+    const entity = this.toEntity(found);
+    return ActionTransactionAggregate.reconstitute(entity);
+  }
+
+  /**
+   * Org ID, Video ID, Action Type, Language로 Aggregate 조회
+   *
+   * 언어별 트랜잭션 조회 (extract_summary, smart_summary 등 language가 필요한 액션 타입)
+   * 
+   * Note: 현재는 extract_summary만 사용하지만, 향후 다른 액션 타입도 language가 필요할 수 있음
+   */
+  async findByOrgVideoAndLanguage(
+    orgId: string,
+    videoId: string,
+    actionType: ActionType,
+    language: string
+  ): Promise<ActionTransactionAggregate | null> {
+    const [found] = await adminDb
+      .select()
+      .from(actionTransactions)
+      .where(
+        and(
+          eq(actionTransactions.org_id, orgId),
+          eq(actionTransactions.video_id, videoId),
+          eq(actionTransactions.action_type, actionType),
+          eq(actionTransactions.language, language)
         )
       )
       .orderBy(desc(actionTransactions.created_at))
@@ -170,7 +211,8 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
       id: new ActionTransactionId(row.id),
       orgId: row.org_id,
       videoId: new VideoId(row.video_id),
-      actionType: row.action_type as 'extract_script' | 'smart_summary',
+      actionType: row.action_type as 'extract_script' | 'extract_summary' | 'smart_summary',
+      language: row.language ?? undefined,
       createdAt: row.created_at,
       completedAt: row.completed_at ?? undefined,
     });

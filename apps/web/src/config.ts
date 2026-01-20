@@ -34,6 +34,7 @@ export const config = {
     google: process.env.GOOGLE_GENERATIVE_AI_API_KEY || '',
     gateway: process.env.AI_GATEWAY_API_KEY || '',
     helicone: process.env.HELICONE_API_KEY || '',
+    xai: process.env.XAI_API_KEY || '',
   },
   providers: {
     unsplash: process.env.UNSPLASH_ACCESS_KEY || '',

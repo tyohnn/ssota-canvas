@@ -21,6 +21,7 @@ import {
   pgSchema,
   text,
   timestamp,
+  unique,
   uuid,
 } from 'drizzle-orm/pg-core';
 import { authenticatedRole } from 'drizzle-orm/supabase';
@@ -159,10 +160,110 @@ export const channelsRelations = relations(channels, ({ many }) => ({
   videos: many(videos),
 }));
 
-export const videosRelations = relations(videos, ({ one }) => ({
+export const videosRelations = relations(videos, ({ one, many }) => ({
   channel: one(channels, {
     fields: [videos.channel_id],
     references: [channels.id],
+  }),
+  summaries: many(videoSummaries),
+}));
+
+/**
+ * Video Summaries Table
+ *
+ * Multi-language AI-generated summaries for YouTube videos
+ * - One summary per video per language
+ * - Independent lifecycle management per language
+ */
+export const videoSummaries = youtubeAppSpaceSchema
+  .table(
+    'video_summaries',
+    {
+      // Primary Key
+      id: uuid('id').primaryKey().defaultRandom(),
+
+      // Foreign Key to videos
+      video_id: uuid('video_id')
+        .notNull()
+        .references(() => videos.id, { onDelete: 'cascade' }),
+
+      // Language code (ISO 639-1, 2 characters)
+      language: text('language').notNull(),
+
+      // Summary content
+      summary: text('summary').notNull(),
+
+      // Timestamps
+      created_at: timestamp('created_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+      updated_at: timestamp('updated_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+    },
+    table => ({
+      // Unique constraint: 비디오당 언어당 하나의 summary
+      videoLanguageUnique: unique('video_summaries_video_id_language_unique').on(
+        table.video_id,
+        table.language
+      ),
+      // Indexes
+      videoIdIdx: index('idx_video_summaries_video_id').on(table.video_id),
+      languageIdx: index('idx_video_summaries_language').on(table.language),
+
+      // Full-text search indexes: Hybrid approach
+      // 주요 언어(ko, en, es, ja, zh)는 언어별 인덱스로 정확한 stemming 지원
+      // 나머지 언어(fr, de, pt, ru, ar)는 simple 인덱스로 처리
+      // Note: PostgreSQL 기본 제공 언어만 사용 (korean, japanese는 기본 제공되지 않음)
+
+      // Korean (한국어) - simple 인덱스 (korean config 없음)
+      summaryKoIdx: index('idx_video_summaries_summary_ko')
+        .using('gin', sql`to_tsvector('simple', ${table.summary})`)
+        .where(sql`${table.language} = 'ko'`),
+
+      // English - 언어별 인덱스
+      summaryEnIdx: index('idx_video_summaries_summary_en')
+        .using('gin', sql`to_tsvector('english', ${table.summary})`)
+        .where(sql`${table.language} = 'en'`),
+
+      // Spanish (Español) - 언어별 인덱스
+      summaryEsIdx: index('idx_video_summaries_summary_es')
+        .using('gin', sql`to_tsvector('spanish', ${table.summary})`)
+        .where(sql`${table.language} = 'es'`),
+
+      // Japanese (日本語) - simple 인덱스 (japanese config 없음)
+      summaryJaIdx: index('idx_video_summaries_summary_ja')
+        .using('gin', sql`to_tsvector('simple', ${table.summary})`)
+        .where(sql`${table.language} = 'ja'`),
+
+      // Chinese (中文) - simple 인덱스 (chinese config 없음)
+      summaryZhIdx: index('idx_video_summaries_summary_zh')
+        .using('gin', sql`to_tsvector('simple', ${table.summary})`)
+        .where(sql`${table.language} = 'zh'`),
+
+      // 나머지 언어(fr, de, pt, ru, ar) - simple 인덱스
+      summaryOtherIdx: index('idx_video_summaries_summary_other')
+        .using('gin', sql`to_tsvector('simple', ${table.summary})`)
+        .where(sql`${table.language} NOT IN ('ko', 'en', 'es', 'ja', 'zh')`),
+
+      // RLS: 최후의 방어선 (Defense in Depth)
+      blockDirectAccessPolicy: pgPolicy(
+        'video_summaries_block_direct_access',
+        {
+          for: 'all',
+          to: authenticatedRole,
+          using: sql`false`,
+          withCheck: sql`false`,
+        }
+      ),
+    })
+  )
+  .enableRLS();
+
+export const videoSummariesRelations = relations(videoSummaries, ({ one }) => ({
+  video: one(videos, {
+    fields: [videoSummaries.video_id],
+    references: [videos.id],
   }),
 }));
 
@@ -188,7 +289,10 @@ export const actionTransactions = youtubeAppSpaceSchema
         .references(() => videos.id, { onDelete: 'cascade' }),
 
       // Action Type (모든 유료 액션)
-      action_type: text('action_type').notNull(), // 'extract_script', 'smart_summary', ...
+      action_type: text('action_type').notNull(), // 'extract_script', 'extract_summary', 'smart_summary', ...
+
+      // Language (for multi-language actions like extract_summary)
+      language: text('language'), // nullable - extract_script는 null, extract_summary는 언어 코드
 
       // Timestamps
       created_at: timestamp('created_at', { withTimezone: true })
@@ -234,3 +338,5 @@ export type Video = typeof videos.$inferSelect;
 export type NewVideo = typeof videos.$inferInsert;
 export type ActionTransaction = typeof actionTransactions.$inferSelect;
 export type NewActionTransaction = typeof actionTransactions.$inferInsert;
+export type VideoSummary = typeof videoSummaries.$inferSelect;
+export type NewVideoSummary = typeof videoSummaries.$inferInsert;

@@ -8,7 +8,7 @@
 import { ActionTransactionId } from '../value-objects/action-transaction-id.vo';
 import { VideoId } from '../value-objects/video-id.vo';
 
-export type ActionType = 'extract_script' | 'smart_summary';
+export type ActionType = 'extract_script' | 'extract_summary' | 'smart_summary';
 
 export class ActionTransactionEntity {
   constructor(
@@ -16,6 +16,7 @@ export class ActionTransactionEntity {
     public readonly orgId: string, // Organization ID (org 단위 권한 관리)
     public readonly videoId: VideoId,
     public readonly actionType: ActionType,
+    public readonly language: string | undefined, // Language code for multi-language actions (e.g., 'ko' for extract_summary)
     public readonly createdAt: Date,
     public completedAt: Date | undefined
   ) { }
@@ -31,6 +32,7 @@ export class ActionTransactionEntity {
     orgId: string;
     videoId: VideoId;
     actionType: ActionType;
+    language?: string;
     createdAt: Date;
     completedAt?: Date;
   }): ActionTransactionEntity {
@@ -39,6 +41,7 @@ export class ActionTransactionEntity {
       params.orgId,
       params.videoId,
       params.actionType,
+      params.language,
       params.createdAt,
       params.completedAt
     );
