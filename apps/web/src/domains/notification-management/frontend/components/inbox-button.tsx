@@ -2,14 +2,14 @@
 
 import { Inbox } from 'lucide-react';
 import { SidebarNavButton } from '@/domains/organization-management/frontend/components/sidebar/sidebar-nav-button';
-import { useNotification } from '../hooks/use-notification';
+import { useUnreadCount } from '../hooks';
 
 interface InboxButtonProps {
   onClick: () => void;
 }
 
 export function InboxButton({ onClick }: InboxButtonProps) {
-  const { unreadCount } = useNotification();
+  const unreadCount = useUnreadCount();
 
   // 배지에 표시될 텍스트 계산
   const badgeText = unreadCount > 0 ? (unreadCount > 99 ? '+99' : unreadCount.toString()) : undefined;
