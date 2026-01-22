@@ -6,7 +6,7 @@
 
 'use client';
 
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 
 import { Box } from '@/components/ui/box';
 
@@ -21,6 +21,7 @@ interface SummaryErrorStateProps {
   language: string;
   onExtractSummary: (language: string) => Promise<void>;
   isExtracting?: boolean;
+  readonly?: boolean;
 }
 
 /**
@@ -32,11 +33,12 @@ export function SummaryErrorState({
   language,
   onExtractSummary,
   isExtracting = false,
+  readonly = false,
 }: SummaryErrorStateProps) {
   return (
     <>
       <Box className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 mb-4">
-        <p className="text-center text-sm text-destructive">
+        <p className="text-center text-sm text-destructive whitespace-pre-line">
           <AlertCircle
             aria-hidden="true"
             className="-mt-0.5 me-3 inline-flex"
@@ -45,11 +47,24 @@ export function SummaryErrorState({
           {error}
         </p>
       </Box>
+      {!hasSummary && readonly && (
+        <Box className="bg-muted border border-border rounded-lg px-4 py-3 mb-4">
+          <p className="text-center text-sm text-foreground whitespace-pre-line">
+            <Info
+              aria-hidden="true"
+              className="-mt-0.5 me-3 inline-flex opacity-60"
+              size={16}
+            />
+            {`To extract a summary, please duplicate this page.`}
+          </p>
+        </Box>
+      )}
       {!hasSummary && (
         <ExtractSummaryButton
           language={language}
           onExtractSummary={() => onExtractSummary(language)}
           isLoading={isExtracting}
+          disabled={readonly}
         />
       )}
     </>

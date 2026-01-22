@@ -9,7 +9,7 @@
 import { z } from 'zod';
 
 /**
- * extract-video-summary.action.ts용 Request Schema
+ * process-video-summary.action.ts용 Request Schema
  * language는 optional (사용자 프로필 기반으로 결정)
  */
 export const ExtractVideoSummaryRequestSchema = z.object({
@@ -18,45 +18,74 @@ export const ExtractVideoSummaryRequestSchema = z.object({
   language: z.string().length(2).optional(), // ISO 639-1 (2자리)
 });
 
+
 /**
- * get-video-summary-by-language.action.ts용 Request Schema
- * 특정 언어의 요약 조회
+ * get-available-summary-languages.action.ts용 Request Schema
+ * 사용 가능한 요약 언어 목록 조회 (Private workspace용)
  */
-export const GetVideoSummaryByLanguageRequestSchema = z.object({
+export const GetAvailableSummaryLangListRequestSchema = z.object({
   youtubeId: z.uuid('Invalid YouTube ID (must be UUID)'),
   blockId: z.uuid('Invalid block ID'),
-  language: z.string().length(2), // ISO 639-1 (2자리)
 });
 
 /**
- * get-video-summaries.action.ts용 Request Schema
- * 모든 언어의 요약 조회
+ * Published Page 전용 Request Schemas
  */
-export const GetVideoSummariesRequestSchema = z.object({
+
+export const GetAvailableSummaryLangListForPublishedPageRequestSchema = z.object({
+  publishToken: z.string().min(1, 'Publish token is required'),
+  blockId: z.uuid('Invalid block ID'),
+  youtubeId: z.uuid('Invalid YouTube ID (must be UUID)'),
+});
+
+export const ProcessVideoSummaryForPublishedPageRequestSchema = z.object({
+  publishToken: z.string().min(1, 'Publish token is required'),
   youtubeId: z.uuid('Invalid YouTube ID (must be UUID)'),
   blockId: z.uuid('Invalid block ID'),
+  language: z.string().length(2).optional(), // ISO 639-1 (2자리)
+});
+
+export const GetSummariesForPublishedPageRequestSchema = z.object({
+  publishToken: z.string().min(1, 'Publish token is required'),
+  blockId: z.uuid('Invalid block ID'),
+  youtubeId: z.uuid('Invalid YouTube ID (must be UUID)'),
 });
 
 // Input types (프론트엔드에서 사용)
 export type ExtractVideoSummaryRequestInput = z.input<
   typeof ExtractVideoSummaryRequestSchema
 >;
-export type GetVideoSummaryByLanguageRequestInput = z.input<
-  typeof GetVideoSummaryByLanguageRequestSchema
+export type GetAvailableSummaryLangListRequestInput = z.input<
+  typeof GetAvailableSummaryLangListRequestSchema
 >;
-export type GetVideoSummariesRequestInput = z.input<
-  typeof GetVideoSummariesRequestSchema
+export type ProcessVideoSummaryForPublishedPageRequestInput = z.input<
+  typeof ProcessVideoSummaryForPublishedPageRequestSchema
+>;
+export type GetAvailableSummaryLangListForPublishedPageRequestInput = z.input<
+  typeof GetAvailableSummaryLangListForPublishedPageRequestSchema
+>;
+export type GetSummariesForPublishedPageRequestInput = z.input<
+  typeof GetSummariesForPublishedPageRequestSchema
 >;
 
 // Output types (서버에서 사용, SafeDTO)
-export type ExtractVideoSummaryRequest = z.output<
+export type ProcessVideoSummaryRequest = z.output<
   typeof ExtractVideoSummaryRequestSchema
 >;
-export type GetVideoSummaryByLanguageRequest = z.output<
-  typeof GetVideoSummaryByLanguageRequestSchema
+
+// Backward compatibility
+export type ExtractVideoSummaryRequest = ProcessVideoSummaryRequest;
+export type GetAvailableSummaryLangListRequest = z.output<
+  typeof GetAvailableSummaryLangListRequestSchema
 >;
-export type GetVideoSummariesRequest = z.output<
-  typeof GetVideoSummariesRequestSchema
+export type ProcessVideoSummaryForPublishedPageRequest = z.output<
+  typeof ProcessVideoSummaryForPublishedPageRequestSchema
+>;
+export type GetAvailableSummaryLangListForPublishedPageRequest = z.output<
+  typeof GetAvailableSummaryLangListForPublishedPageRequestSchema
+>;
+export type GetSummariesForPublishedPageRequest = z.output<
+  typeof GetSummariesForPublishedPageRequestSchema
 >;
 
 /**
@@ -67,4 +96,5 @@ export interface CreateVideoSummaryRequest {
   videoId: string;
   language: string;
   summary: string;
+  keywords?: string[]; // AI-extracted keywords (optional)
 }

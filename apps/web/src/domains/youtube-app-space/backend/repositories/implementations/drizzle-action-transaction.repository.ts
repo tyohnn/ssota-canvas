@@ -114,7 +114,7 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
     }
 
     // Drizzle Row → Entity → Aggregate 변환
-    const entity = this.toEntity(found);
+    const entity = this.toDomain(found);
     return ActionTransactionAggregate.reconstitute(entity);
   }
 
@@ -147,7 +147,7 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
     }
 
     // Drizzle Row → Entity → Aggregate 변환
-    const entity = this.toEntity(found);
+    const entity = this.toDomain(found);
     return ActionTransactionAggregate.reconstitute(entity);
   }
 
@@ -183,7 +183,7 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
     }
 
     // Drizzle Row → Entity → Aggregate 변환
-    const entity = this.toEntity(found);
+    const entity = this.toDomain(found);
     return ActionTransactionAggregate.reconstitute(entity);
   }
 
@@ -202,9 +202,44 @@ export class DrizzleActionTransactionRepository implements IActionTransactionRep
   }
 
   /**
-   * Drizzle Row → Entity 변환
+   * Org ID, Video ID로 Summary 타입의 모든 언어 목록 조회
+   *
+   * extract_summary 액션의 경우 여러 언어로 추출할 수 있으므로,
+   * 해당 org + video의 모든 summary 언어 목록을 반환합니다.
    */
-  private toEntity(
+  async findAllLanguagesByOrgAndVideoOfSummaryType(
+    orgId: string,
+    videoId: string
+  ): Promise<string[]> {
+    const results = await adminDb
+      .select({
+        language: actionTransactions.language,
+      })
+      .from(actionTransactions)
+      .where(
+        and(
+          eq(actionTransactions.org_id, orgId),
+          eq(actionTransactions.video_id, videoId),
+          eq(actionTransactions.action_type, 'extract_summary')
+        )
+      );
+
+    // 언어 목록 추출 (중복 제거, null 제거, 정렬)
+    const languages = Array.from(
+      new Set(
+        results
+          .map(row => row.language)
+          .filter((lang): lang is string => lang !== null)
+      )
+    ).sort();
+
+    return languages;
+  }
+
+  /**
+   * Drizzle Row → Domain 변환
+   */
+  private toDomain(
     row: typeof actionTransactions.$inferSelect
   ): ActionTransactionEntity {
     return ActionTransactionEntity.reconstitute({

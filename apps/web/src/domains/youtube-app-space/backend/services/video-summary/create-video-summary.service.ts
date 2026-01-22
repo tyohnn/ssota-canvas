@@ -38,6 +38,7 @@ export async function createVideoSummary(
       videoId,
       language,
       summary: safeDto.summary,
+      keywords: safeDto.keywords,
     };
 
     // 3. Aggregate 생성 (Command 전달)

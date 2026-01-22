@@ -24,6 +24,7 @@ export interface CanvasBaseProps {
   initialNodes: CustomNodeType[];
   initialEdges: Edge[];
   readonly?: boolean;
+  publishToken?: string;
   children?: React.ReactNode;
 }
 
@@ -41,6 +42,7 @@ export function CanvasBase({
   initialNodes,
   initialEdges,
   readonly = false,
+  publishToken,
   children,
 }: CanvasBaseProps) {
   // 여기서는 props로 전달할 필요 없음 (하위 호환성을 위해 props는 유지)
@@ -49,7 +51,7 @@ export function CanvasBase({
       <CanvasModeProvider>
         <BlockInteractionProvider>
           <CanvasMetadataProvider value={{ pageId, orgId, workspaceId }}>
-            <CanvasReadOnlyProvider readonly={readonly}>
+            <CanvasReadOnlyProvider readonly={readonly} publishToken={publishToken}>
               <Box className="h-full flex flex-col bg-background">
                 {/* 메인 캔버스 영역 */}
                 <CanvasReactFlowWrapper

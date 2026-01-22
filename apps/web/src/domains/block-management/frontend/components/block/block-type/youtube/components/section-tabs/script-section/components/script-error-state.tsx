@@ -10,7 +10,6 @@ import { AlertCircle } from 'lucide-react';
 
 import { Box } from '@/components/ui/box';
 
-import { ExtractScriptButton } from './extract-script-button';
 
 /**
  * Script Error State Props
@@ -43,13 +42,6 @@ export function ScriptErrorState({
           {error}
         </p>
       </Box>
-      {!hasScript && (
-        <ExtractScriptButton
-          onExtractScript={onExtractScript}
-          isLoading={isExtracting}
-          className="mt-2"
-        />
-      )}
     </>
   );
 }

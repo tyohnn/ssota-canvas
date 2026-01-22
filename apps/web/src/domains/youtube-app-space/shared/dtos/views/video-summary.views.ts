@@ -17,6 +17,7 @@ export interface VideoSummaryView {
   videoId: string; // VideoId Value Object → string (UUID)
   language: string; // LanguageCode Value Object → string (ISO 639-1, 2자리)
   summary: string;
+  keywords: string[]; // AI-extracted keywords
   createdAt: string; // Date → ISO string
   updatedAt: string; // Date → ISO string
 }

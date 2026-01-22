@@ -39,6 +39,7 @@ export default function SummarySection({
       youtubeId={business.youtubeId}
       youtubeTitle={business.youtubeTitle}
       summaries={business.summaries}
+      availableLanguages={business.availableLanguages}
       selectedLanguage={business.selectedLanguage}
       setSelectedLanguage={business.setSelectedLanguage}
       currentSummary={business.currentSummary}
@@ -46,6 +47,9 @@ export default function SummarySection({
       error={business.error}
       onExtractSummary={business.handleExtractSummary}
       isExtracting={business.isExtracting}
+      hasAccessForSelectedLanguage={business.hasAccessForSelectedLanguage}
+      summaryAccessGrantedLanguages={business.summaryAccessGrantedLanguages}
+      readonly={business.readonly}
     />
   );
 }

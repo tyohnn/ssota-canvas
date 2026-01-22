@@ -193,6 +193,9 @@ export const videoSummaries = youtubeAppSpaceSchema
       // Summary content
       summary: text('summary').notNull(),
 
+      // Keywords (AI-extracted keywords from summary)
+      keywords: text('keywords').array(), // TEXT[] - array of keyword strings
+
       // Timestamps
       created_at: timestamp('created_at', { withTimezone: true })
         .notNull()

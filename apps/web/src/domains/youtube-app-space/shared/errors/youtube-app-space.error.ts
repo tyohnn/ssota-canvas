@@ -26,6 +26,7 @@ export type YoutubeAppSpaceErrorCode =
   // Action Transaction 엔티티 관련
   | 'ACTION_TRANSACTION_CREATION_FAILED'
   | 'ACTION_TRANSACTION_UPDATE_FAILED'
+  | 'ACTION_TRANSACTION_LANGUAGES_QUERY_FAILED'
   // Video Summary ID 관련 (UUID)
   | 'INVALID_VIDEO_SUMMARY_ID'
   // Video Summary 엔티티 관련
@@ -50,9 +51,13 @@ export type YoutubeAppSpaceErrorCode =
   | 'SCRIPT_ALREADY_EXISTS'
   | 'SCRIPT_LANGUAGE_NOT_SUPPORTED'
   | 'SCRIPT_TRANSCRIPT_EMPTY'
+  | 'LANGUAGE_DETECTION_FAILED'
   // 요약 관련
   | 'SUMMARY_GENERATION_FAILED'
   | 'EXTRACT_SUMMARY_FAILED'
+  | 'SUMMARY_EMPTY'
+  | 'KEYWORDS_EXTRACTION_FAILED'
+  | 'SUMMARY_TRANSLATION_FAILED'
   // YouTube API 관련
   | 'YOUTUBE_API_ERROR'
   | 'YOUTUBE_API_KEY_MISSING'
@@ -67,6 +72,7 @@ export type YoutubeAppSpaceErrorCode =
   | 'TRANSCRIPT_API_ERROR'
   | 'TRANSCRIPT_NOT_AVAILABLE'
   | 'TRANSCRIPT_LANGUAGE_NOT_AVAILABLE'
+  | 'TRANSCRIPT_EXTRACTION_FAILED'
   // 권한 관련
   | 'UNAUTHORIZED_ACCESS'
   | 'WORKSPACE_ACCESS_DENIED'
@@ -131,12 +137,16 @@ export const YOUTUBE_APP_SPACE_ERROR_MESSAGES: Record<
   // Action Transaction entity related
   ACTION_TRANSACTION_CREATION_FAILED: 'Failed to create action transaction.',
   ACTION_TRANSACTION_UPDATE_FAILED: 'Failed to update action transaction.',
+  ACTION_TRANSACTION_LANGUAGES_QUERY_FAILED: 'Failed to query action transaction languages.',
   // Video Summary ID related (UUID)
   INVALID_VIDEO_SUMMARY_ID: 'Invalid video summary ID format (UUID).',
   // Video Summary entity related
   VIDEO_SUMMARY_CREATION_FAILED: 'Failed to create video summary.',
   SUMMARY_GENERATION_FAILED: 'Failed to generate video summary.',
   EXTRACT_SUMMARY_FAILED: 'Failed to extract video summary.',
+  SUMMARY_EMPTY: 'Summary is empty, cannot extract keywords.',
+  KEYWORDS_EXTRACTION_FAILED: 'Failed to extract keywords from summary.',
+  SUMMARY_TRANSLATION_FAILED: 'Failed to translate video summary.',
   // Language related
   UNSUPPORTED_LANGUAGE: 'Unsupported language code.',
   // YouTube entity related
@@ -157,6 +167,7 @@ export const YOUTUBE_APP_SPACE_ERROR_MESSAGES: Record<
   SCRIPT_ALREADY_EXISTS: 'Script already exists.',
   SCRIPT_LANGUAGE_NOT_SUPPORTED: 'Script language not supported.',
   SCRIPT_TRANSCRIPT_EMPTY: 'Script transcript is empty.',
+  LANGUAGE_DETECTION_FAILED: 'Failed to detect language from transcript.',
   // YouTube API related
   YOUTUBE_API_ERROR: 'YouTube API error occurred.',
   YOUTUBE_API_KEY_MISSING: 'YouTube API key is missing.',
@@ -167,10 +178,12 @@ export const YOUTUBE_APP_SPACE_ERROR_MESSAGES: Record<
   YOUTUBE_API_NOT_FOUND: 'YouTube API resource not found.',
   YOUTUBE_API_BAD_REQUEST: 'YouTube API bad request.',
   YOUTUBE_API_INTERNAL_ERROR: 'YouTube API internal error.',
+  // Summary API related
   // Transcript API related
   TRANSCRIPT_API_ERROR: 'Transcript API error occurred.',
   TRANSCRIPT_NOT_AVAILABLE: 'Transcript not available.',
   TRANSCRIPT_LANGUAGE_NOT_AVAILABLE: 'Transcript language not available.',
+  TRANSCRIPT_EXTRACTION_FAILED: 'Failed to extract transcript.',
   // Authorization related
   UNAUTHORIZED_ACCESS: 'Unauthorized access.',
   WORKSPACE_ACCESS_DENIED: 'Workspace access denied.',

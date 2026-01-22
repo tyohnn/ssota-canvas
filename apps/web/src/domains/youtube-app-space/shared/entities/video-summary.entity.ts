@@ -15,6 +15,7 @@ export class VideoSummaryEntity {
     public readonly videoId: VideoId,
     public readonly language: LanguageCode,
     public summary: string,
+    public keywords: string[], // AI-extracted keywords
     public readonly createdAt: Date,
     public updatedAt: Date
   ) { }
@@ -30,6 +31,7 @@ export class VideoSummaryEntity {
     videoId: VideoId;
     language: LanguageCode;
     summary: string;
+    keywords?: string[] | null;
     createdAt: Date;
     updatedAt: Date;
   }): VideoSummaryEntity {
@@ -38,6 +40,7 @@ export class VideoSummaryEntity {
       params.videoId,
       params.language,
       params.summary,
+      params.keywords || [],
       params.createdAt,
       params.updatedAt
     );
@@ -47,9 +50,13 @@ export class VideoSummaryEntity {
    * Summary 업데이트
    *
    * @param newSummary - 새로운 요약 내용
+   * @param newKeywords - 새로운 키워드 목록 (optional)
    */
-  updateSummary(newSummary: string): void {
+  updateSummary(newSummary: string, newKeywords?: string[]): void {
     this.summary = newSummary;
+    if (newKeywords !== undefined) {
+      this.keywords = newKeywords;
+    }
     this.updatedAt = new Date();
   }
 

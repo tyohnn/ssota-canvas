@@ -16,6 +16,7 @@ interface ExtractSummaryButtonProps {
   language: string;
   onExtractSummary: () => Promise<void>;
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
 /**
@@ -25,6 +26,7 @@ export function ExtractSummaryButton({
   language,
   onExtractSummary,
   isLoading = false,
+  disabled = false,
 }: ExtractSummaryButtonProps) {
   const getLanguageName = (code: string): string => {
     const names: Record<string, string> = {
@@ -42,11 +44,13 @@ export function ExtractSummaryButton({
     return names[code] || code.toUpperCase();
   };
 
+  const isDisabled = isLoading || disabled;
+
   return (
     <Button
       onClick={onExtractSummary}
-      disabled={isLoading}
-      className="w-full"
+      disabled={isDisabled}
+      className={`w-full ${isDisabled ? 'cursor-not-allowed' : ''}`}
     >
       {isLoading ? (
         <>

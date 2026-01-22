@@ -57,6 +57,7 @@ export class VideoSummaryAggregate {
       videoId: command.videoId,
       language: command.language,
       summary: command.summary,
+      keywords: command.keywords || [],
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -90,7 +91,7 @@ export class VideoSummaryAggregate {
    */
   updateSummary(command: UpdateVideoSummaryCommand): void {
     // Entity 데이터 업데이트
-    this._summary.updateSummary(command.summary);
+    this._summary.updateSummary(command.summary, command.keywords);
 
     // VideoSummaryUpdatedEvent 생성
     const event = new VideoSummaryUpdatedEvent(
@@ -146,6 +147,7 @@ export class VideoSummaryAggregate {
       videoId: summary.videoId.value,
       language: summary.language.value,
       summary: summary.summary,
+      keywords: summary.keywords,
       createdAt: summary.createdAt.toISOString(),
       updatedAt: summary.updatedAt.toISOString(),
     };

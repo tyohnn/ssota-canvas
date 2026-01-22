@@ -18,6 +18,7 @@ export interface CreateVideoSummaryCommand {
   videoId: VideoId; // Value Object
   language: LanguageCode; // Value Object
   summary: string;
+  keywords?: string[]; // AI-extracted keywords (optional)
 }
 
 /**
@@ -29,4 +30,5 @@ export interface CreateVideoSummaryCommand {
  */
 export interface UpdateVideoSummaryCommand {
   summary: string;
+  keywords?: string[]; // AI-extracted keywords (optional)
 }

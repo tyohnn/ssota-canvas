@@ -63,4 +63,19 @@ export interface IActionTransactionRepository {
    * Aggregate 업데이트
    */
   update(aggregate: ActionTransactionAggregate): Promise<void>;
+
+  /**
+   * Org ID, Video ID로 Summary 타입의 모든 언어 목록 조회
+   *
+   * extract_summary 액션의 경우 여러 언어로 추출할 수 있으므로,
+   * 해당 org + video의 모든 summary 언어 목록을 반환합니다.
+   *
+   * @param orgId - Organization ID
+   * @param videoId - Video ID
+   * @returns 언어 코드 배열 (중복 제거, 정렬됨)
+   */
+  findAllLanguagesByOrgAndVideoOfSummaryType(
+    orgId: string,
+    videoId: string
+  ): Promise<string[]>;
 }

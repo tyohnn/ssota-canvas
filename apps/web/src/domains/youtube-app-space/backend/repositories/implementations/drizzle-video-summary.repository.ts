@@ -43,6 +43,7 @@ export class DrizzleVideoSummaryRepository implements IVideoSummaryRepository {
           video_id: summary.videoId.value,
           language: summary.language.value,
           summary: summary.summary,
+          keywords: summary.keywords.length > 0 ? summary.keywords : null,
           created_at: summary.createdAt,
           updated_at: summary.updatedAt,
         });
@@ -157,6 +158,7 @@ export class DrizzleVideoSummaryRepository implements IVideoSummaryRepository {
       .update(videoSummaries)
       .set({
         summary: summary.summary,
+        keywords: summary.keywords.length > 0 ? summary.keywords : null,
         updated_at: summary.updatedAt,
       })
       .where(eq(videoSummaries.id, summary.id.value));
@@ -171,6 +173,7 @@ export class DrizzleVideoSummaryRepository implements IVideoSummaryRepository {
       videoId: new VideoId(data.video_id),
       language: new LanguageCode(data.language),
       summary: data.summary,
+      keywords: data.keywords || null,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
     });

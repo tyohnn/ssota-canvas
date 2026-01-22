@@ -6,7 +6,7 @@
  */
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { extractVideoScriptAction } from '@/domains/youtube-app-space/actions/script/extract-video-script.action';
+import { processVideoScriptAction } from '@/domains/youtube-app-space/actions/script/process-video-script.action';
 
 export interface ExtractScriptResult {
   success: boolean;
@@ -35,7 +35,7 @@ export async function extractScriptAction(
   }
 
   try {
-    const result = await extractVideoScriptAction({
+    const result = await processVideoScriptAction({
       blockId,
       youtubeId,
     });

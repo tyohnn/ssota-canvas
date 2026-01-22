@@ -51,20 +51,10 @@ export const GetYoutubeMetadataRequestSchema = z.object({
     .min(11, { message: 'Video slug must be at least 11 characters' })
     .max(11, { message: 'Video slug must be at most 11 characters' }),
 });
-
 /**
- * get-video-script.action.ts용 Request Schema
- * youtubeId는 YouTube App Space의 Video ID (UUID)
+ * process-video-script.action.ts용 Request Schema
  */
-export const GetVideoScriptRequestSchema = z.object({
-  youtubeId: z.uuid('Invalid YouTube ID (must be UUID)'),
-  blockId: z.uuid('Invalid block ID'),
-});
-
-/**
- * extract-video-script.action.ts용 Request Schema
- */
-export const ExtractVideoScriptRequestSchema = z.object({
+export const ProcessVideoScriptRequestSchema = z.object({
   youtubeId: z.uuid('Invalid YouTube ID (must be UUID)'),
   blockId: z.uuid('Invalid block ID'),
 });
@@ -77,20 +67,29 @@ export const SmartSummaryRequestSchema = z.object({
   blockId: z.uuid('Invalid block ID'),
 });
 
+/**
+ * process-video-script-for-published-page.action.ts용 Request Schema
+ */
+export const ProcessVideoScriptForPublishedPageRequestSchema = z.object({
+  publishToken: z.string().min(1, 'Publish token is required'),
+  blockId: z.uuid('Invalid block ID'),
+  youtubeId: z.uuid('Invalid YouTube ID (must be UUID)'),
+});
+
 // Input types (프론트엔드에서 사용)
 export type GetVideoRequestInput = z.input<typeof GetVideoRequestSchema>;
 export type CreateVideoRequestInput = z.input<typeof CreateVideoRequestSchema>;
 export type GetYoutubeMetadataRequestInput = z.input<
   typeof GetYoutubeMetadataRequestSchema
 >;
-export type GetVideoScriptRequestInput = z.input<
-  typeof GetVideoScriptRequestSchema
->;
-export type ExtractVideoScriptRequestInput = z.input<
-  typeof ExtractVideoScriptRequestSchema
+export type ProcessVideoScriptRequestInput = z.input<
+  typeof ProcessVideoScriptRequestSchema
 >;
 export type SmartSummaryRequestInput = z.input<
   typeof SmartSummaryRequestSchema
+>;
+export type ProcessVideoScriptForPublishedPageRequestInput = z.input<
+  typeof ProcessVideoScriptForPublishedPageRequestSchema
 >;
 
 // Output types (서버에서 사용, SafeDTO)
@@ -99,10 +98,11 @@ export type CreateVideoRequest = z.output<typeof CreateVideoRequestSchema>;
 export type GetYoutubeMetadataRequest = z.output<
   typeof GetYoutubeMetadataRequestSchema
 >;
-export type GetVideoScriptRequest = z.output<
-  typeof GetVideoScriptRequestSchema
->;
-export type ExtractVideoScriptRequest = z.output<
-  typeof ExtractVideoScriptRequestSchema
+
+export type ProcessVideoScriptRequest = z.output<
+  typeof ProcessVideoScriptRequestSchema
 >;
 export type SmartSummaryRequest = z.output<typeof SmartSummaryRequestSchema>;
+export type ProcessVideoScriptForPublishedPageRequest = z.output<
+  typeof ProcessVideoScriptForPublishedPageRequestSchema
+>;

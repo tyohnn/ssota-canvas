@@ -17,17 +17,11 @@ export interface GetYoutubeMetadataDTO {
   youtubeChannelId?: string; // YouTube Channel ID (예: UCehBVAPy-bxmnbNARF-_tvA)
 }
 
-/**
- * get-script.action.ts, get-video-script.action.ts용 Response DTO
- */
-export interface GetScriptDTO {
-  youtube: YoutubeView;
-}
 
 /**
- * extract-video-script.action.ts용 Response DTO
+ * process-video-script.action.ts용 Response DTO
  */
-export interface ExtractScriptDTO {
+export interface ProcessVideoScriptDTO {
   youtube: YoutubeView;
 }
 

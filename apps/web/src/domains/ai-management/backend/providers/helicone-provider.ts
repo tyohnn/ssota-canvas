@@ -8,6 +8,7 @@
 
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { config } from '@/config';
 
 /**
@@ -175,6 +176,64 @@ export function createHeliconeXAI(
   });
 
   return xai;
+}
+
+/**
+ * Helicone Anthropic Provider 생성
+ *
+ * Anthropic Claude API를 Helicone을 통해 추적하는 Provider
+ * - Helicone 프록시를 통해 자동 로깅
+ * - 모든 이벤트 자동 지원
+ *
+ * @param headers - 추가 Helicone 헤더 (선택적)
+ * @returns Anthropic Provider 인스턴스
+ *
+ * @example
+ * ```typescript
+ * import { createHeliconeAnthropic, buildHeliconeHeaders } from '@/domains/ai-management/backend/providers/helicone-provider';
+ * import { generateText } from 'ai';
+ *
+ * const headers = buildHeliconeHeaders({
+ *   feature: 'video-summary-translation',
+ *   model: 'claude-haiku-4-5',
+ * });
+ *
+ * const anthropic = createHeliconeAnthropic(headers);
+ *
+ * const result = await generateText({
+ *   model: anthropic('claude-haiku-4-5'),
+ *   prompt: 'Translate this summary...',
+ * });
+ * ```
+ */
+export function createHeliconeAnthropic(
+  headers?: Record<string, string>
+): ReturnType<typeof createAnthropic> {
+  const heliconeApiKey = config.ai.helicone;
+  const anthropicApiKey = config.ai.anthropic;
+
+  if (!heliconeApiKey) {
+    throw new Error('HELICONE_API_KEY is required');
+  }
+
+  if (!anthropicApiKey) {
+    throw new Error(
+      'ANTHROPIC_API_KEY is required. Set it in environment variables.'
+    );
+  }
+
+  // Helicone의 Anthropic 프록시 엔드포인트 사용
+  // Anthropic API는 /v1 엔드포인트가 아닌 루트 경로를 사용합니다
+  const anthropic = createAnthropic({
+    apiKey: anthropicApiKey, // Anthropic API key
+    baseURL: 'https://anthropic.helicone.ai', // Helicone Anthropic 프록시 (루트 경로)
+    headers: {
+      'Helicone-Auth': `Bearer ${heliconeApiKey}`, // Helicone 인증
+      ...headers,
+    },
+  });
+
+  return anthropic;
 }
 
 // Re-export tokenizer utilities

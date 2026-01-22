@@ -11,16 +11,17 @@
 
 'use client';
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
   type YoutubeBlockProperties,
   YoutubeBlockPropertiesVO,
 } from '@/domains/block-management/shared/value-objects/block-properties';
-import {
-  useCheckVideoScriptTransaction,
-  useExtractVideoScript,
-  useVideoScript,
-} from '@/domains/youtube-app-space/frontend/hooks';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
+import { processVideoScriptAction } from '@/domains/youtube-app-space/actions/script/process-video-script.action';
+import { processVideoScriptForPublishedPageAction } from '@/domains/youtube-app-space/actions/script/process-video-script-for-published-page.action';
+import { useVideoScript } from '@/domains/youtube-app-space/frontend/hooks';
 
 import type { ScriptSectionBusinessLogic } from './types';
 
@@ -33,6 +34,9 @@ export function useScriptSectionBusiness(
   blockId: string,
   blockData: BlockNodeData | undefined
 ): ScriptSectionBusinessLogic {
+  // Readonly 모드 확인 및 publish token 가져오기 (퍼블릭 페이지 등)
+  const { readonly, publishToken } = useCanvasReadOnly();
+
   // Block properties에서 YouTube 정보 추출
   const properties = blockData?.properties as
     | YoutubeBlockProperties
@@ -53,56 +57,94 @@ export function useScriptSectionBusiness(
     console.warn('[ScriptSection] Failed to parse YouTube properties:', error);
   }
 
-  // Action Transaction 확인 (추출 액션이 실행된 적이 있는지)
-  // ⚠️ scriptAccessGranted가 true면 건너뛰기 (Action Transaction 확인 불필요)
-  const { exists: hasActionTransaction, isLoading: isCheckingTransaction } =
-    useCheckVideoScriptTransaction({
-      blockId,
-      enabled: !!blockId && scriptAccessGranted !== true,
-    });
+  // 스크립트 액션은 항상 성공을 반환하므로 별도 확인 불필요
 
-  const hasExtractAction = scriptAccessGranted === true || hasActionTransaction;
-
-  // 스크립트 로드
+  // 스크립트 로드 (항상 성공 반환)
   const {
     script,
     isLoading: isLoadingScript,
     error: scriptError,
+    refetch: refetchScript,
   } = useVideoScript({
     blockId,
     youtubeId: youtubeId || '',
-    scriptAccessGranted,
-    enabled:
-      !!blockId &&
-      !!youtubeId &&
-      (scriptAccessGranted === true ||
-        (hasExtractAction && !isCheckingTransaction)),
+    readonly,
+    publishToken: readonly ? publishToken : undefined,
+    enabled: !!blockId && !!youtubeId,
   });
 
-  // 스크립트 추출 훅
-  const { extractScript, isExtracting } = useExtractVideoScript({
-    blockId,
-    youtubeId: youtubeId || '',
+  const queryClient = useQueryClient();
+
+  // 스크립트 추출 mutation
+  const extractMutation = useMutation({
+    mutationFn: async (): Promise<void> => {
+      if (!youtubeId || !blockId) {
+        throw new Error('YouTube ID or Block ID not found');
+      }
+
+      if (readonly) {
+        // Published page 모드
+        if (!publishToken) {
+          throw new Error('Publish token is required for published page mode');
+        }
+
+        const result = await processVideoScriptForPublishedPageAction({
+          publishToken,
+          blockId,
+          youtubeId,
+        });
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to extract script');
+        }
+      } else {
+        // 일반 모드
+        const result = await processVideoScriptAction({
+          blockId,
+          youtubeId,
+        });
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to extract script');
+        }
+      }
+    },
+    onSuccess: async () => {
+      // 성공 시 관련 쿼리들을 invalidate하여 다시 로드
+      if (youtubeId) {
+        const queryKey = readonly
+          ? ['youtube-script-published', blockId, youtubeId, publishToken]
+          : ['youtube-script', blockId, youtubeId];
+
+        await queryClient.invalidateQueries({
+          queryKey,
+        });
+      }
+    },
   });
+
+  // 스크립트 추출 핸들러
+  const handleExtractScript = async (): Promise<void> => {
+    if (!youtubeId || !blockId) {
+      console.warn('[ScriptSection] YouTube ID or Block ID not found');
+      return;
+    }
+
+    extractMutation.mutate();
+  };
 
   // 에러 처리
   const error = scriptError
     ? scriptError.message
     : null;
 
-  // 스크립트 추출 핸들러
-  const handleExtractScript = async () => {
-    await extractScript();
-  };
-
   return {
     youtubeId,
     youtubeTitle,
     script,
-    isLoading: isLoadingScript || isCheckingTransaction,
+    isLoading: isLoadingScript,
     error,
     handleExtractScript,
-    hasExtractAction,
-    isExtracting,
+    isExtracting: extractMutation.isPending,
   };
 }
