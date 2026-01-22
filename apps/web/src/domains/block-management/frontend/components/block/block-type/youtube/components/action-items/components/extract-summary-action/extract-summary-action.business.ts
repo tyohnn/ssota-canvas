@@ -6,7 +6,7 @@
  */
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { processVideoSummaryAction } from '@/domains/youtube-app-space/actions/summary/process-video-summary.action';
+import { extractVideoSummaryAction } from '@/domains/youtube-app-space/actions/summary/extract-video-summary.action';
 
 export interface ExtractSummaryResult {
   success: boolean;
@@ -37,10 +37,10 @@ export async function extractSummaryAction(
   }
 
   try {
-    const result = await processVideoSummaryAction({
+    const result = await extractVideoSummaryAction({
       blockId,
       youtubeId,
-      language, // 언어 파라미터 전달
+      language: language || 'en', // 언어 파라미터 전달 (기본값: en)
     });
 
     if (result.success) {

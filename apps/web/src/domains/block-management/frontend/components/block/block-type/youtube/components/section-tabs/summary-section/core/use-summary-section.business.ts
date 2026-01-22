@@ -19,6 +19,7 @@ import {
   YoutubeBlockPropertiesVO,
 } from '@/domains/block-management/shared/value-objects/block-properties';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
+import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 import {
   useAvailableSummaryLanguages,
   useExtractVideoSummary,
@@ -45,6 +46,9 @@ export function useSummarySectionBusiness(
   // Optimistic update를 위한 로컬 state: 새로 추가된 언어를 추적
   // TanStack Query mutation의 onMutate/onError 콜백에서 관리
   const [optimisticallyAddedLanguages, setOptimisticallyAddedLanguages] = useState<Set<string>>(new Set());
+
+  // Canvas Mode Context (탭 옵션 수신용)
+  const canvasMode = useCanvasModeContext();
 
   // Readonly 모드 확인 및 publish token 가져오기 (퍼블릭 페이지 등)
   const { readonly, publishToken } = useCanvasReadOnly();
@@ -121,6 +125,29 @@ export function useSummarySectionBusiness(
       setSelectedLanguage(stored);
     }
   }, [blockId, availableSummaryLanguages, isLoadingLanguages, selectedLanguage]);
+
+  // Canvas Mode에서 전달된 언어 옵션 확인 및 적용
+  useEffect(() => {
+    if (
+      canvasMode.mode.type === 'block-editing' &&
+      canvasMode.mode.blockId === blockId &&
+      canvasMode.mode.initialTab?.tab === 'summary' &&
+      canvasMode.mode.initialTab.tabOptions?.language
+    ) {
+      const language = canvasMode.mode.initialTab.tabOptions.language as string;
+
+      // 언어 상태 설정
+      languageStateMap.set(blockId, language);
+      setSelectedLanguage(language);
+    }
+  }, [canvasMode.mode, blockId]);
+
+  // Canvas Mode에서 전달된 isExtracting 플래그 확인 (외부에서 요약 추출 중일 때)
+  const isExtractingFromTabOptions =
+    canvasMode.mode.type === 'block-editing' &&
+    canvasMode.mode.blockId === blockId &&
+    canvasMode.mode.initialTab?.tab === 'summary' &&
+    canvasMode.mode.initialTab.tabOptions?.isExtracting === true;
 
   // 언어 변경 시 상태 Map에 저장 (탭 전환 시 유지)
   const handleSetSelectedLanguage = (language: string) => {
@@ -227,7 +254,8 @@ export function useSummarySectionBusiness(
   // - 아직 추출되지 않은 언어 → 로딩 없음 (바로 NoSummary + Extract 버튼 표시)
   // - 이미 추출된 언어이고 currentSummary가 undefined면 → 아직 로드 안 함 (loading 표시)
   // - 이미 추출된 언어이고 currentSummary가 VideoSummaryView면 → 요약 있음 (캐시됨, 즉시 표시)
-  const isLoading = isLoadingLanguages || (isAlreadyExtracted && isProcessingSummary && currentSummary === undefined && !isExtractingSummary);
+  // - 외부에서 요약 추출 중일 때 (isExtractingFromTabOptions) → 로딩 표시
+  const isLoading = isLoadingLanguages || (isAlreadyExtracted && isProcessingSummary && currentSummary === undefined && !isExtractingSummary) || isExtractingFromTabOptions;
 
   // summaryAccessGrantedLanguages, availableSummaryLanguages, optimistic state를 병합하여 LanguageSelector에 전달
   // 서버 요청 없이 즉시 UI 업데이트 가능
@@ -253,7 +281,7 @@ export function useSummarySectionBusiness(
     isLoading,
     error,
     handleExtractSummary,
-    isExtracting: isExtractingSummary, // 요약 추출 중 상태
+    isExtracting: isExtractingSummary || isExtractingFromTabOptions, // 요약 추출 중 상태 (mutation 또는 외부 추출)
     hasAccessForSelectedLanguage: isAlreadyExtracted, // 이미 추출된 언어인지 여부
     summaryAccessGrantedLanguages: mergedSummaryAccessGrantedLanguages, // 병합된 언어 목록 (체크 표시용)
     readonly, // Readonly 모드 플래그
