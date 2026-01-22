@@ -8,7 +8,7 @@ import { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
 import type { RestoreBlockRequest } from '../../../../shared/dtos/requests/block.requests';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
 import { BlockId } from '../../../../shared/value-objects/block-id.vo';
-import type { BlockRepository } from '../../../repositories/interfaces/block.repository.interface';
+import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
 
 /**
  * 블록 복원
@@ -24,7 +24,7 @@ import type { BlockRepository } from '../../../repositories/interfaces/block.rep
 export async function restoreBlock(
   safeDto: RestoreBlockRequest,
   safeUserId: UserId,
-  blockRepository: BlockRepository
+  blockRepository: IBlockRepository
 ): Promise<Result<void, Error>> {
   try {
     // 1. SafeDTO → Value Objects 생성

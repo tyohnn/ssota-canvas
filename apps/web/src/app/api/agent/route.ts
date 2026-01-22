@@ -135,7 +135,7 @@ export async function POST(req: Request) {
       model: helicone('gpt-5-mini'), // OpenAI 직접 사용 (tool 데이터 추적을 위해)
       // model: gateway('openai/gpt-5-mini'), // TODO: tool 데이터 문제 해결 후 Gateway 사용
       system: systemPrompt,
-      messages: convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages),
       providerOptions: {
         openai: {
           reasoningEffort: 'medium',

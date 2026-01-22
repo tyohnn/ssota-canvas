@@ -1,7 +1,7 @@
 /**
  * 블럭 복제 및 마운트 서비스 로직
  */
-import type { BlockRepository } from '@/domains/block-management/backend/repositories/interfaces/block.repository.interface';
+import type { IBlockRepository } from '@/domains/block-management/backend/repositories/interfaces/block.repository.interface';
 import { duplicateBlock } from '@/domains/block-management/backend/services/block';
 import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
 import type { DuplicateBlockRequest } from '@/domains/block-management/shared/dtos/requests/block.requests';
@@ -37,7 +37,7 @@ export async function duplicateBlockAndMount(
   safeDto: DuplicateBlockAndMountRequest,
   safeUserId: UserId,
   safeWorkspaceId: WorkspaceId,
-  blockRepository: BlockRepository,
+  blockRepository: IBlockRepository,
   blockMountRepository: BlockMountRepository
 ): Promise<
   Result<

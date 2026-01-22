@@ -10,7 +10,7 @@ import type { DuplicateBlockRequest } from '../../../../shared/dtos/requests/blo
 import type { Block } from '../../../../shared/entities/block.entity';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
 import { BlockId } from '../../../../shared/value-objects/block-id.vo';
-import type { BlockRepository } from '../../../repositories/interfaces/block.repository.interface';
+import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
 
 /**
  * 블록 복제
@@ -28,7 +28,7 @@ import type { BlockRepository } from '../../../repositories/interfaces/block.rep
 export async function duplicateBlock(
   safeDto: DuplicateBlockRequest,
   safeUserId: UserId,
-  blockRepository: BlockRepository
+  blockRepository: IBlockRepository
 ): Promise<Result<Block, Error>> {
   try {
     // 1. SafeDTO → Value Objects 생성
