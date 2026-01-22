@@ -21,8 +21,11 @@ export type UseGetAllWorkspacesByOrgResult = {
  * - 자동 캐싱: 같은 queryKey로 여러 컴포넌트에서 호출해도 한 번만 요청
  * - 자동 refetch: staleTime 이후 백그라운드 refetch
  * - 로딩/에러 상태 자동 관리
+ * - enabled 옵션으로 조건부 호출 가능 (인증되지 않은 사용자 처리)
  */
-export function useGetAllWorkspacesByOrg(): UseGetAllWorkspacesByOrgResult {
+export function useGetAllWorkspacesByOrg(
+  enabled: boolean = true
+): UseGetAllWorkspacesByOrgResult {
 
   const {
     data,
@@ -51,6 +54,7 @@ export function useGetAllWorkspacesByOrg(): UseGetAllWorkspacesByOrgResult {
 
       return result.data;
     },
+    enabled, // 인증되지 않은 경우 호출하지 않음
     staleTime: 5 * 60 * 1000, // 5분
     retry: 1,
   });

@@ -26,6 +26,7 @@
         "GOOGLE_GENERATIVE_AI_API_KEY",
         "AI_GATEWAY_API_KEY",
         "HELICONE_API_KEY",
+        "XAI_API_KEY",
         "YOUTUBE_API_KEY",
         "UNSPLASH_ACCESS_KEY",
         "NEXT_PUBLIC_MIXPANEL_TOKEN",

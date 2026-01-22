@@ -1,7 +1,7 @@
 /**
  * 블럭 생성 및 마운트 서비스 로직
  */
-import type { BlockRepository } from '@/domains/block-management/backend/repositories/interfaces/block.repository.interface';
+import type { IBlockRepository } from '@/domains/block-management/backend/repositories/interfaces/block.repository.interface';
 import { createBlock } from '@/domains/block-management/backend/services/block';
 import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
 import type { CreateBlockRequest } from '@/domains/block-management/shared/dtos/requests/block.requests';
@@ -49,7 +49,7 @@ export async function createAndMountBlock(
   safeDto: CreateAndMountBlockRequest,
   safeUserId: UserId,
   safeWorkspaceId: WorkspaceId,
-  blockRepository: BlockRepository,
+  blockRepository: IBlockRepository,
   blockMountRepository: BlockMountRepository
 ): Promise<
   Result<

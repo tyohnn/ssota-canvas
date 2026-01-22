@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BlockRepository } from '../../repositories/interfaces/block.repository.interface';
 import { BlockId } from '../../../shared/value-objects/block-id.vo';
 import { BlockType } from '../../../shared/value-objects/block-type.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
@@ -29,7 +28,6 @@ describe('Block Management Service Functions', () => {
   let blockType: BlockType;
   let workspaceId: WorkspaceId;
   let userId: UserId;
-  let safeUserId: string;
   let block: Block;
 
   beforeEach(() => {
@@ -37,9 +35,8 @@ describe('Block Management Service Functions', () => {
     blockType = new BlockType('youtube');
     workspaceId = new WorkspaceId('550e8400-e29b-41d4-a716-446655440000');
     userId = new UserId('550e8400-e29b-41d4-a716-446655440020');
-    safeUserId = '550e8400-e29b-41d4-a716-446655440020';
     block = Block.create(blockId, workspaceId, userId, blockType, 'Test Video');
-    
+
     // Reset all mocks
     vi.clearAllMocks();
   });
@@ -54,7 +51,7 @@ describe('Block Management Service Functions', () => {
         title: 'Test Video',
       };
 
-      const result = await createBlock(safeDto, safeUserId, mockRepository);
+      const result = await createBlock(safeDto, userId, mockRepository);
 
       expect(result.isError()).toBe(false);
       if (!result.isError()) {
@@ -72,7 +69,7 @@ describe('Block Management Service Functions', () => {
         title: 'Test Video',
       };
 
-      const result = await createBlock(safeDto, safeUserId, mockRepository);
+      const result = await createBlock(safeDto, userId, mockRepository);
 
       expect(result.isError()).toBe(true);
       if (result.isError()) {
@@ -93,7 +90,7 @@ describe('Block Management Service Functions', () => {
         blockId: blockId.value,
       };
 
-      const result = await softDeleteBlock(safeDto, mockRepository);
+      const result = await softDeleteBlock(safeDto, userId, mockRepository);
 
       expect(result.isError()).toBe(false);
       expect(mockRepository.findById).toHaveBeenCalled();
@@ -108,7 +105,7 @@ describe('Block Management Service Functions', () => {
         blockId: blockId.value,
       };
 
-      const result = await softDeleteBlock(safeDto, mockRepository);
+      const result = await softDeleteBlock(safeDto, userId, mockRepository);
 
       expect(result.isError()).toBe(true);
       if (result.isError()) {
@@ -121,7 +118,7 @@ describe('Block Management Service Functions', () => {
     it('should restore deleted block successfully', async () => {
       const deletedBlock = Block.create(blockId, workspaceId, userId, blockType);
       deletedBlock.markAsDeleted();
-      
+
       mockRepository.findById.mockResolvedValue(deletedBlock);
       mockRepository.update.mockResolvedValue(undefined);
 
@@ -130,7 +127,7 @@ describe('Block Management Service Functions', () => {
         blockId: blockId.value,
       };
 
-      const result = await restoreBlock(safeDto, mockRepository);
+      const result = await restoreBlock(safeDto, userId, mockRepository);
 
       expect(result.isError()).toBe(false);
       expect(mockRepository.findById).toHaveBeenCalled();
@@ -145,7 +142,7 @@ describe('Block Management Service Functions', () => {
         blockId: blockId.value,
       };
 
-      const result = await restoreBlock(safeDto, mockRepository);
+      const result = await restoreBlock(safeDto, userId, mockRepository);
 
       expect(result.isError()).toBe(true);
       if (result.isError()) {
@@ -164,7 +161,7 @@ describe('Block Management Service Functions', () => {
         blockId: blockId.value,
       };
 
-      const result = await duplicateBlock(safeDto, safeUserId, mockRepository);
+      const result = await duplicateBlock(safeDto, userId, mockRepository);
 
       expect(result.isError()).toBe(false);
       if (!result.isError()) {
@@ -182,7 +179,7 @@ describe('Block Management Service Functions', () => {
         blockId: blockId.value,
       };
 
-      const result = await duplicateBlock(safeDto, safeUserId, mockRepository);
+      const result = await duplicateBlock(safeDto, userId, mockRepository);
 
       expect(result.isError()).toBe(true);
       if (result.isError()) {
@@ -199,7 +196,7 @@ describe('Block Management Service Functions', () => {
         blockId: blockId.value,
       };
 
-      const result = await duplicateBlock(safeDto, safeUserId, mockRepository);
+      const result = await duplicateBlock(safeDto, userId, mockRepository);
 
       expect(result.isError()).toBe(true);
       if (result.isError()) {

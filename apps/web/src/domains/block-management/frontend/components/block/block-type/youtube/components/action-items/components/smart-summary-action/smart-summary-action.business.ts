@@ -7,7 +7,7 @@
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { createActionTransactionAction } from '@/domains/youtube-app-space/actions/transaction/create-action-transaction.action';
-import { smartSummaryAction } from '@/domains/youtube-app-space/actions/video/smart-summary.action';
+import { smartSummaryAction } from '@/domains/youtube-app-space/actions/summary/smart-summary.action';
 import { isFailure } from '@/lib';
 
 export interface SmartSummaryResult {

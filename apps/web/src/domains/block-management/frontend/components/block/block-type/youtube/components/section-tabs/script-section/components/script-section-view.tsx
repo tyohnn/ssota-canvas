@@ -7,7 +7,7 @@
 
 'use client';
 
-import type { GetScriptDTO } from '@/domains/youtube-app-space/shared/dtos/responses/video.responses';
+import type { ProcessVideoScriptDTO } from '@/domains/youtube-app-space/shared/dtos/responses/video.responses';
 
 import { ScriptContent } from './script-content';
 import { ScriptErrorState } from './script-error-state';
@@ -21,7 +21,7 @@ import { ScriptSectionContainer } from './script-section-container';
 interface ScriptSectionViewProps {
   youtubeId: string | undefined;
   youtubeTitle: string | undefined;
-  script: GetScriptDTO['youtube']['script'] | undefined;
+  script: ProcessVideoScriptDTO['youtube']['script'] | undefined;
   isLoading: boolean;
   error: string | null;
   onExtractScript: () => Promise<void>;
@@ -43,9 +43,11 @@ export function ScriptSectionView({
   isExtracting,
 }: ScriptSectionViewProps) {
   if (isLoading) {
+    // 스크립트가 없고 로딩 중이면 추출 중으로 간주
+    const isActuallyExtracting = isExtracting || (!script && isLoading);
     return (
       <ScriptSectionContainer>
-        <ScriptLoadingState />
+        <ScriptLoadingState isExtracting={isActuallyExtracting} />
       </ScriptSectionContainer>
     );
   }

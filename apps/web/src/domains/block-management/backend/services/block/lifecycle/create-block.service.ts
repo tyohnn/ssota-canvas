@@ -11,7 +11,7 @@ import type { CreateBlockRequest } from '../../../../shared/dtos/requests/block.
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
 import { BlockId } from '../../../../shared/value-objects/block-id.vo';
 import { BlockType } from '../../../../shared/value-objects/block-type.vo';
-import type { BlockRepository } from '../../../repositories/interfaces/block.repository.interface';
+import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
 
 /**
  * 블록 생성
@@ -29,7 +29,7 @@ import type { BlockRepository } from '../../../repositories/interfaces/block.rep
 export async function createBlock(
   safeDto: CreateBlockRequest,
   safeUserId: UserId,
-  blockRepository: BlockRepository
+  blockRepository: IBlockRepository
 ): Promise<Result<BlockAggregate, Error>> {
   try {
     // 1. SafeDTO → Value Objects 생성

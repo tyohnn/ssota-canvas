@@ -11,9 +11,8 @@ import { useRef } from 'react';
 import { Info } from 'lucide-react';
 
 import { Box } from '@/components/ui/box';
-import type { GetScriptDTO } from '@/domains/youtube-app-space/shared/dtos/responses/video.responses';
+import type { ProcessVideoScriptDTO } from '@/domains/youtube-app-space/shared/dtos/responses/video.responses';
 
-import { ExtractScriptButton } from './extract-script-button';
 import { ScriptContent } from './script-content';
 import { useScrollSpy } from './script-table-of-contents/core/use-scroll-spy';
 
@@ -28,7 +27,7 @@ interface ScriptNoScriptStateProps {
 /**
  * 예시 스크립트 데이터 생성
  */
-function createExampleScript(): GetScriptDTO['youtube']['script'] {
+function createExampleScript(): ProcessVideoScriptDTO['youtube']['script'] {
   return {
     transcript: [
       {
@@ -104,10 +103,6 @@ export function ScriptNoScriptState({
           transcript.
         </p>
       </Box>
-      <ExtractScriptButton
-        onExtractScript={onExtractScript}
-        isLoading={isExtracting}
-      />
 
       {/* 브라우저 스타일 미리보기 카드 - 좌측 상단이 확대된 것처럼 보이도록 */}
       <Box className="mt-6 relative group overflow-hidden h-[400px] rounded-tl-lg">

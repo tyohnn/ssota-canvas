@@ -15,6 +15,7 @@ export interface CreateActionTransactionCommand {
   orgId: string; // Organization ID (org 단위 권한 관리)
   videoId: string;
   actionType: ActionType;
+  language?: string; // Language code for multi-language actions (e.g., 'ko' for extract_summary)
 }
 
 /**

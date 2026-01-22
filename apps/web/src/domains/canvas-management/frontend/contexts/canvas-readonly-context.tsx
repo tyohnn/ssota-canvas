@@ -7,6 +7,7 @@ import React, { createContext, useContext, useMemo } from 'react';
  */
 export interface CanvasReadOnlyContextValue {
   readonly: boolean;
+  publishToken?: string; // 퍼블릭 페이지용 publish token
   canEdit: () => boolean;
   canDelete: () => boolean;
   canCreate: () => boolean;
@@ -21,26 +22,29 @@ const CanvasReadOnlyContext = createContext<
  */
 export interface CanvasReadOnlyProviderProps {
   readonly: boolean;
+  publishToken?: string;
   children: React.ReactNode;
 }
 
 /**
  * Canvas ReadOnly Provider
  *
- * Provides readonly state to all child components
+ * Provides readonly state and publish token to all child components
  */
 export function CanvasReadOnlyProvider({
   readonly,
+  publishToken,
   children,
 }: CanvasReadOnlyProviderProps) {
   const value = useMemo<CanvasReadOnlyContextValue>(
     () => ({
       readonly,
+      publishToken,
       canEdit: () => !readonly,
       canDelete: () => !readonly,
       canCreate: () => !readonly,
     }),
-    [readonly]
+    [readonly, publishToken]
   );
 
   return (

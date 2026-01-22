@@ -23,6 +23,9 @@ export interface YoutubeBlockProperties {
   // 스크립트 접근 권한 (org 기반 권한 관리)
   scriptAccessGranted?: boolean; // 이 블록에서 스크립트 접근 가능 여부
 
+  // 요약 접근 권한 (org 기반 권한 관리, 언어별)
+  summaryAccessGrantedLanguages?: string[]; // 이 블록에서 요약 접근 가능한 언어 목록 (ISO 639-1 코드 배열, 예: ['ko', 'en'])
+
   // YouTube 메타데이터 (자동 fetch, 수정 가능)
   youtubeTitle?: string; // 영상 제목 (fetch 후 수정 가능)
   youtubeDescription?: string; // 영상 설명 (fetch 후 수정 가능)
@@ -49,6 +52,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     public readonly url: string,
     public readonly youtubeId?: string,
     public readonly scriptAccessGranted?: boolean,
+    public readonly summaryAccessGrantedLanguages?: string[],
     public readonly youtubeTitle?: string,
     public readonly youtubeDescription?: string,
     public readonly youtubeThumbnail?: string,
@@ -83,6 +87,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       data.url || '',
       data.youtubeId,
       data.scriptAccessGranted,
+      data.summaryAccessGrantedLanguages,
       data.youtubeTitle,
       data.youtubeDescription,
       data.youtubeThumbnail,
@@ -168,6 +173,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       url: this.url,
       youtubeId: this.youtubeId,
       scriptAccessGranted: this.scriptAccessGranted,
+      summaryAccessGrantedLanguages: this.summaryAccessGrantedLanguages,
       youtubeTitle: this.youtubeTitle,
       youtubeDescription: this.youtubeDescription,
       youtubeThumbnail: this.youtubeThumbnail,
@@ -192,6 +198,10 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       this.url === other.url &&
       this.youtubeId === other.youtubeId &&
       this.scriptAccessGranted === other.scriptAccessGranted &&
+      this.arraysEqual(
+        this.summaryAccessGrantedLanguages,
+        other.summaryAccessGrantedLanguages
+      ) &&
       this.youtubeTitle === other.youtubeTitle &&
       this.youtubeDescription === other.youtubeDescription &&
       this.youtubeThumbnail === other.youtubeThumbnail &&
@@ -216,6 +226,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       url,
       this.youtubeId,
       this.scriptAccessGranted,
+      this.summaryAccessGrantedLanguages,
       this.youtubeTitle,
       this.youtubeDescription,
       this.youtubeThumbnail,
@@ -252,6 +263,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       this.url,
       this.youtubeId,
       this.scriptAccessGranted,
+      this.summaryAccessGrantedLanguages,
       metadata.youtubeTitle ?? this.youtubeTitle,
       metadata.youtubeDescription ?? this.youtubeDescription,
       metadata.youtubeThumbnail ?? this.youtubeThumbnail,
@@ -278,6 +290,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       this.url,
       youtubeId,
       this.scriptAccessGranted,
+      this.summaryAccessGrantedLanguages,
       this.youtubeTitle,
       this.youtubeDescription,
       this.youtubeThumbnail,
@@ -289,6 +302,27 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
       this.likeCount,
       this.subscriberCount,
       this.publishedAt
+    );
+  }
+
+  /**
+   * 배열 비교 헬퍼 메서드
+   */
+  private arraysEqual(a?: string[], b?: string[]): boolean {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    return a.every((val, idx) => val === b[idx]);
+  }
+
+  /**
+   * 특정 언어의 요약 접근 권한 확인
+   * @param language - 언어 코드 (ISO 639-1)
+   * @returns 해당 언어에 대한 접근 권한이 있는지 여부
+   */
+  hasSummaryAccessForLanguage(language: string): boolean {
+    return (
+      this.summaryAccessGrantedLanguages?.includes(language) ?? false
     );
   }
 
