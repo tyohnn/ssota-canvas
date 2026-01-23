@@ -1,12 +1,5 @@
+## [0.9.2] - 2026-01-23
 ## [0.9.1] - 2026-01-23
-
-### ✨ Features
-
-- Integrate & redesign block toolbar
-
-### 🐛 Bug Fixes
-
-- Design toolbar
 ## [0.9.0] - 2026-01-23
 
 ### ✨ Features
@@ -18,11 +11,14 @@
 - Public page summary access / summary header toc item / extract summary keyword
 - Feat: summary action button with implementing editor tab options at canvas mode context
 - editor tab options  at canvas mode context could be used for manipulating editor panel with ai client tools
+- Integrate & redesign block toolbar
 
 ### 🐛 Bug Fixes
 
 - Translate korean to english
 - Build error
+- Design toolbar
+- Reorder default view mode of other blocks
 ## [0.8.0] - 2026-01-19
 
 ### Update
