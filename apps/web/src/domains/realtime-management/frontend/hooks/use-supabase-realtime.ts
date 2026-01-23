@@ -106,13 +106,10 @@ export function useSupabaseRealtime({
             ...(appliedFilter && { filter: appliedFilter }),
           },
           (payload: any) => {
-            console.log(`🔔 [${table}] Realtime event received:`, payload);
             onEvent(payload);
           }
         )
-        .subscribe((status) => {
-          console.log(`🔌 [${table}] Subscription status:`, status);
-        });
+        .subscribe();
 
       channelRef.current = realtimeChannel;
     };
@@ -122,7 +119,6 @@ export function useSupabaseRealtime({
     // 클린업: 컴포넌트 언마운트 시 또는 의존성 변경 시 구독 해제
     return () => {
       if (channelRef.current) {
-        console.log(`🔌 [${table}] Unsubscribing from channel`);
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
