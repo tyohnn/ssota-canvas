@@ -1,3 +1,28 @@
+## [0.9.1] - 2026-01-23
+
+### ✨ Features
+
+- Integrate & redesign block toolbar
+
+### 🐛 Bug Fixes
+
+- Design toolbar
+## [0.9.0] - 2026-01-23
+
+### ✨ Features
+
+- 실시간 알림 시스템 구현
+- Add supabase migration - notification publication
+- Inbox button design
+- Add summarize youtube script with ai
+- Public page summary access / summary header toc item / extract summary keyword
+- Feat: summary action button with implementing editor tab options at canvas mode context
+- editor tab options  at canvas mode context could be used for manipulating editor panel with ai client tools
+
+### 🐛 Bug Fixes
+
+- Translate korean to english
+- Build error
 ## [0.8.0] - 2026-01-19
 
 ### Update
