@@ -57,7 +57,6 @@ export function BlockHeaderView({
   return (
     <Box
       className={cn(
-        'nodrag',
         'flex items-center gap-1',
         'pointer-events-auto',
         'w-full',
@@ -66,7 +65,7 @@ export function BlockHeaderView({
     >
       {/* 블록 타입 배지 */}
       {shouldShowBadge && blockType && (
-        <Badge variant="secondary" className="shrink-0 cursor-default">
+        <Badge variant="secondary" className="shrink-0">
           {blockType}
         </Badge>
       )}
@@ -93,6 +92,7 @@ export function BlockHeaderView({
           'placeholder:text-muted-foreground/50',
           readonly ? 'cursor-default' : 'cursor-text',
           'truncate',
+          'nodrag',
           isFocused ? 'border-b-foreground/30' : 'border-b-transparent'
         )}
         onClick={e => e.stopPropagation()}
