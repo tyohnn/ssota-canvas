@@ -1,3 +1,12 @@
+## [0.9.1] - 2026-01-23
+
+### ✨ Features
+
+- Integrate & redesign block toolbar
+
+### 🐛 Bug Fixes
+
+- Design toolbar
 ## [0.9.0] - 2026-01-23
 
 ### ✨ Features
