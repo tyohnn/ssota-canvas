@@ -18,14 +18,14 @@ import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts
 import type { HoverDirection } from '../core/types';
 
 // 핸들 크기: w-5 h-5 (20px × 20px)
-// 선택 테두리와 동일한 blue-400 색상 사용
+// 하늘색 계열 유리구슬 느낌
 const handleClassName =
-  'w-4! h-4! bg-blue-400/80! border-2! border-blue-800! dark:bg-blue-400/80! dark:border-blue-800! transition-all z-50!';
+  'w-4! h-4! bg-sky-500/70! backdrop-blur-md! border! border-sky-400/100! rounded-full! shadow-lg! transition-all z-[60]!';
 
 // 숨김 상태: 크기를 최소화하여 엣지가 블록 경계에 가깝게 연결되도록 함
 // 핸들이 노드 경계 바깥에 위치하므로, 작게 만들어야 엣지가 경계에 닿음
 const hiddenHandleClassName =
-  'w-px! h-px! bg-transparent! border-0! opacity-0! pointer-events-none! transition-all z-50!';
+  'w-px! h-px! bg-transparent! border-0! opacity-0! pointer-events-none! transition-all z-[60]!';
 
 export interface HandlesProps {
   isConnectable: boolean;

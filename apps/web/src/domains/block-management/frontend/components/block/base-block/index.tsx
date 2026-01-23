@@ -32,7 +32,6 @@ import { BaseBlockView } from './components/base-block-view';
 import { Content } from './components/content';
 import { Handles } from './components/handles';
 import { ResizeControl } from './components/resize-control';
-import { Toolbar } from './components/toolbar';
 import type { BaseBlockProps } from './core/types';
 import type { UseBaseBlockOptions } from './core/use-base-block';
 import { useBaseBlock } from './core/use-base-block';
@@ -53,8 +52,6 @@ const BaseBlockContainer = memo(
       // Hook으로 데이터 가져오기
       const contextValue = useBaseBlock(props, { businessLogic });
       const { readonly } = useCanvasReadOnly();
-
-      const showToolbar = props.data?.viewMode === 'original';
 
       return (
         <BaseBlockView
@@ -86,18 +83,6 @@ const BaseBlockContainer = memo(
             isConnectable={contextValue.isConnectable}
             hoverDirection={contextValue.hoverDirection}
           />
-
-          {/* 상단 툴바 - original view일 때만 표시 */}
-          {showToolbar && (
-            <Toolbar
-              data={contextValue.data}
-              selected={contextValue.selected}
-              isCurrentBlockSelected={contextValue.isCurrentBlockSelected}
-              isSingleSelection={contextValue.isSingleSelection}
-              width={contextValue.width}
-              height={contextValue.height}
-            />
-          )}
 
           {/* 우측 액션바 */}
           <ActionBar
