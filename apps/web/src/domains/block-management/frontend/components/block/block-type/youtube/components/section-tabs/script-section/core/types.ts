@@ -2,7 +2,7 @@
  * Script Section Types
  */
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import type { GetScriptDTO } from '@/domains/youtube-app-space/shared/dtos/responses/video.responses';
+import type { ProcessVideoScriptDTO } from '@/domains/youtube-app-space/shared/dtos/responses/video.responses';
 
 /**
  * Script Section Props
@@ -18,10 +18,9 @@ export interface ScriptSectionProps {
 export interface ScriptSectionBusinessLogic {
   youtubeId: string | undefined;
   youtubeTitle: string | undefined;
-  script: GetScriptDTO['youtube']['script'] | undefined;
+  script: ProcessVideoScriptDTO['youtube']['script'] | undefined;
   isLoading: boolean;
   error: string | null;
   handleExtractScript: () => Promise<void>;
-  hasExtractAction: boolean;
   isExtracting: boolean;
 }

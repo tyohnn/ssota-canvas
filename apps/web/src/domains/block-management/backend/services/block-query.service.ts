@@ -1,4 +1,4 @@
-import { BlockRepository } from '../repositories/interfaces/block.repository.interface';
+import { IBlockRepository } from '../repositories/interfaces/block.repository.interface';
 import { Block } from '../../shared/entities/block.entity';
 import { BlockId } from '../../shared/value-objects/block-id.vo';
 
@@ -7,7 +7,7 @@ import { BlockId } from '../../shared/value-objects/block-id.vo';
  * 다른 도메인에서 블럭 정보를 조회할 때 사용하는 서비스
  */
 export class BlockQueryService {
-  constructor(private blockRepository: BlockRepository) {}
+  constructor(private blockRepository: IBlockRepository) {}
 
   /**
    * 여러 블럭 ID로 블럭 정보를 배치 조회

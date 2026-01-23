@@ -6,4 +6,5 @@
  */
 
 export { default as ScriptSection } from './script-section';
+export { default as SummarySection } from './summary-section';
 export { default as MetadataSection } from './metadata-section';

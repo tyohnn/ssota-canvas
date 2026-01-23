@@ -11,6 +11,7 @@
 import { marked } from 'marked';
 import { generateJSON } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Highlight from '@tiptap/extension-highlight';
 
 /**
  * 마크다운 문자열을 Tiptap JSON으로 변환
@@ -61,14 +62,20 @@ export function convertMarkdownToTiptapJSON(markdown: string | any): any {
   }
 
   try {
+    // Pre-processing: **bold** → <strong> 변환 (CJK 문자와 괄호 문제 해결)
+    // marked.js는 CJK 문자 뒤에 나오는 **bold**와 괄호 조합을 파싱하지 못하는 버그가 있음
+    // 참고: https://github.com/markedjs/marked/issues/3798, https://github.com/markedjs/marked/issues/2531
+    let preprocessed = markdown.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
     // 1️⃣ 마크다운 → HTML 변환 (marked 라이브러리 사용)
-    const html = marked.parse(markdown, {
+    const html = marked.parse(preprocessed, {
       gfm: true, // GitHub Flavored Markdown 지원
       breaks: true, // 줄바꿈을 <br>로 변환
     }) as string;
 
     // 2️⃣ HTML → Tiptap JSON 변환
-    const tiptapJson = generateJSON(html, [StarterKit]);
+    // Highlight extension 추가: <mark> 태그를 지원하기 위해
+    const tiptapJson = generateJSON(html, [StarterKit, Highlight]);
 
     return tiptapJson;
   } catch (error) {

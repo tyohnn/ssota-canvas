@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 
-import { BlockRepository } from '../repositories/interfaces/block.repository.interface';
+import { IBlockRepository } from '../repositories/interfaces/block.repository.interface';
 import { BlockId } from '../../shared/value-objects/block-id.vo';
 import { BlockManagementError } from '../../shared/errors/block-management.error';
 import { CustomPropertyDefinitionVO } from '../../shared/value-objects/custom-property-definition.vo';
@@ -65,7 +65,7 @@ interface DeleteCustomPropertyCommand {
 }
 
 export class BlockCustomPropertyService {
-  constructor(private readonly blockRepository: BlockRepository) {}
+  constructor(private readonly blockRepository: IBlockRepository) {}
 
   async addCustomProperty(command: AddCustomPropertyCommand): Promise<{
     property: CustomPropertyDefinitionVO;

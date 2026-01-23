@@ -6,13 +6,31 @@ import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
 import { useCanvasMode } from './use-canvas-mode';
 
+/**
+ * Enter Block Editing Mode Options
+ *
+ * 에디터 패널을 열 때 전달할 수 있는 옵션
+ */
+export interface EnterBlockEditingOptions {
+  tab?: string;
+  tabOptions?: Record<string, any>;
+}
+
 export type CanvasMode =
   | { type: 'default' } // 초기 모드
   | { type: 'panning' } // 패닝(Hand Tool) 모드
   | { type: 'block-creation'; blockType: BlockType } // 블럭 추가 모드
   | { type: 'single-selection'; blockId: string } // 단일 선택 모드
   | { type: 'multi-selection'; blockIds: string[] } // 복수 선택 모드
-  | { type: 'block-editing'; blockId: string; blockMountId: string } // 블럭 편집 모드
+  | {
+    type: 'block-editing';
+    blockId: string;
+    blockMountId: string;
+    initialTab?: {
+      tab: string;
+      tabOptions?: Record<string, any>;
+    };
+  } // 블럭 편집 모드
   | { type: 'dragging'; blockIds: string[] } // 드래그 중
   | { type: 'edge-creation'; sourceBlockId: string }; // 엣지 생성 중
 
@@ -26,7 +44,16 @@ export interface CanvasModeContextValue {
   enterBlockCreationMode: (blockType: BlockType) => void;
   enterSingleSelectionMode: (blockId: string) => void;
   enterMultiSelectionMode: (blockIds: string[]) => void;
-  enterBlockEditingMode: (blockId: string, blockMountId: string) => void;
+  enterBlockEditingMode: (
+    blockId: string,
+    blockMountId: string,
+    options?: EnterBlockEditingOptions
+  ) => void;
+  /** block-editing 모드일 때 initialTab.tabOptions를 병합 업데이트. blockId/blockMountId가 주어지면 해당 블록일 때만 적용 */
+  updateBlockEditingTabOptions: (
+    partial: Record<string, unknown>,
+    opts?: { blockId?: string; blockMountId?: string }
+  ) => void;
   enterDraggingMode: (blockIds: string[]) => void;
   enterEdgeCreationMode: (sourceBlockId: string) => void;
   exitToDefaultMode: () => void;

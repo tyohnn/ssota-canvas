@@ -21,6 +21,7 @@ import {
   YoutubeBlockPropertiesVO,
 } from '../../../block-management/shared/value-objects/block-properties';
 import { DrizzleActionTransactionRepository } from '../../backend/repositories/implementations/drizzle-action-transaction.repository';
+import { DrizzleVideoSummaryRepository } from '../../backend/repositories/implementations/drizzle-video-summary.repository';
 import {
   type CheckActionTransactionRequest,
   CheckActionTransactionRequestSchema,
@@ -80,12 +81,43 @@ async function checkActionTransactionInternal(
     // 3. Org 기반으로 action_transactions 확인
     const actionTransactionRepository =
       new DrizzleActionTransactionRepository();
-    const actionTransaction =
-      await actionTransactionRepository.findByOrgAndVideo(
+
+    let actionTransaction = null;
+
+    // extract_summary는 language가 필요하므로 다른 메서드 사용
+    if (safeDto.actionType === 'extract_summary') {
+      // extract_summary는 언어별로 관리되므로, 모든 언어의 요약을 확인
+      // 하나라도 해당 조직에서 추출한 요약이 있으면 exists: true 반환
+      if (!context.organization?.id) {
+        // 익명 유저는 action_transaction 확인 불가
+        actionTransaction = null;
+      } else {
+        const videoSummaryRepository = new DrizzleVideoSummaryRepository();
+        const allSummaries = await videoSummaryRepository.findAllByVideoId(youtubeId);
+
+        // 각 언어별로 action_transaction 확인
+        for (const summary of allSummaries) {
+          const summaryEntity = summary.getSummary();
+          const transaction = await actionTransactionRepository.findByOrgVideoAndLanguage(
+            context.organization.id,
+            youtubeId,
+            'extract_summary',
+            summaryEntity.language.value
+          );
+          if (transaction) {
+            actionTransaction = transaction;
+            break; // 하나라도 있으면 충분
+          }
+        }
+      }
+    } else {
+      // extract_script, smart_summary는 language가 필요 없음
+      actionTransaction = await actionTransactionRepository.findByOrgAndVideo(
         context.organization.id,
         youtubeId,
         safeDto.actionType
       );
+    }
 
     const response: CheckActionTransactionDTO = {
       exists: !!actionTransaction,

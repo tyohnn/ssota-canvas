@@ -11,11 +11,35 @@ import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { Box } from '@/components/ui/box';
 
 /**
+ * Script Loading State Props
+ */
+interface ScriptLoadingStateProps {
+  isExtracting?: boolean;
+}
+
+/**
  * Script Loading State Component
  */
-export function ScriptLoadingState() {
+export function ScriptLoadingState({
+  isExtracting = false,
+}: ScriptLoadingStateProps) {
   return (
     <Box className="space-y-4">
+      {/* 안내 텍스트 (Banner) */}
+      <Box className="flex flex-col gap-1">
+        <p className="text-sm text-muted-foreground">
+          {isExtracting
+            ? 'Extracting video transcript... This may take a moment.'
+            : 'Loading script...'}
+        </p>
+        {isExtracting && (
+          <p className="text-xs text-muted-foreground">
+            Fetching captions from YouTube and processing transcript
+          </p>
+        )}
+      </Box>
+
+      {/* Skeleton 콘텐츠 */}
       <Box className="flex items-center justify-between">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-4 w-16" />

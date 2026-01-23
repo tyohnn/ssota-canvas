@@ -48,6 +48,7 @@ export function PublishPageClientView({
             initialNodes={initialNodes}
             initialEdges={initialEdges}
             readonly={true}
+            publishToken={publishToken}
           />
         </Box>
       </Box>

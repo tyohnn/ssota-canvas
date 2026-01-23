@@ -61,6 +61,7 @@ export class ActionTransactionAggregate {
       orgId: command.orgId,
       videoId: videoId,
       actionType: command.actionType,
+      language: command.language,
       createdAt: new Date(),
       completedAt: undefined,
     });

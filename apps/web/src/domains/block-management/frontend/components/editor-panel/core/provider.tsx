@@ -4,11 +4,12 @@
 
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useNodes } from '@xyflow/react';
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 
 import { EditorPanelContext } from './context';
 import { useEditorPanel } from './use-editor-panel';
@@ -42,6 +43,9 @@ export function EditorPanelProvider({
 
   const blockData = blockNode?.data as BlockNodeData | undefined;
 
+  // Canvas Mode Context
+  const canvasMode = useCanvasModeContext();
+
   // Tab 전환 함수 관리 (ref 사용하여 최신 값 보장)
   const tabSwitchCallbackRef = React.useRef<((tabId: string) => void) | null>(
     null
@@ -67,6 +71,27 @@ export function EditorPanelProvider({
   React.useEffect(() => {
     tabSwitchCallbackRef.current = tabSwitchCallback;
   }, [tabSwitchCallback]);
+
+  // initialTab 옵션 처리 (Canvas Mode에서 전달된 탭 전환 요청)
+  useEffect(() => {
+    if (
+      isOpen &&
+      canvasMode.mode.type === 'block-editing' &&
+      canvasMode.mode.blockId === blockId &&
+      canvasMode.mode.initialTab
+    ) {
+      const { tab } = canvasMode.mode.initialTab;
+
+      // 약간의 지연 후 탭 전환 (탭이 mount될 시간 확보)
+      const timeoutId = setTimeout(() => {
+        switchToTab(tab);
+      }, 100);
+
+      return () => {
+        clearTimeout(timeoutId);
+      };
+    }
+  }, [isOpen, canvasMode.mode, blockId, switchToTab]);
 
   // Combined hook
   const editorPanel = useEditorPanel(

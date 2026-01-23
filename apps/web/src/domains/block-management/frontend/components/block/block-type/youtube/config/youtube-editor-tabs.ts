@@ -19,10 +19,15 @@ const youtubeEditorTabsConfig: BlockEditorTabsConfig = {
   blockType: BlockType.YOUTUBE,
   tabs: [
     {
+      id: 'summary',
+      label: 'Summary',
+      componentPath: 'youtube/components/section-tabs/summary-section',
+      isDefault: true,
+    },
+    {
       id: 'script',
       label: 'Script',
       componentPath: 'youtube/components/section-tabs/script-section',
-      isDefault: true,
     },
     {
       id: 'note',
@@ -35,7 +40,7 @@ const youtubeEditorTabsConfig: BlockEditorTabsConfig = {
       componentPath: 'youtube/components/section-tabs/metadata-section',
     },
   ],
-  defaultTabId: 'script',
+  defaultTabId: 'summary',
 };
 
 export default youtubeEditorTabsConfig;

@@ -21,7 +21,7 @@ import { BlockId } from '../../../shared/value-objects/block-id.vo';
 import { BlockPropertiesFactory } from '../../../shared/value-objects/block-properties';
 import { BlockType } from '../../../shared/value-objects/block-type.vo';
 import { CustomPropertyDefinitionVO } from '../../../shared/value-objects/custom-property-definition.vo';
-import { BlockRepository } from '../interfaces/block.repository.interface';
+import { IBlockRepository } from '../interfaces/block.repository.interface';
 
 // 데이터베이스 스키마에서 추출한 블록 타입 (SSOT)
 type DatabaseBlockType = (typeof blockTypeEnum.enumValues)[number];
@@ -31,7 +31,7 @@ type DatabaseBlockType = (typeof blockTypeEnum.enumValues)[number];
  *
  * Drizzle ORM을 사용한 BlockRepository 구현
  */
-export class DrizzleBlockRepository implements BlockRepository {
+export class DrizzleBlockRepository implements IBlockRepository {
   /**
    * 블록 생성
    */
@@ -334,62 +334,62 @@ export class DrizzleBlockRepository implements BlockRepository {
     const blockType = new BlockType(blockData.block_type); // 데이터베이스 컬럼명에 맞게 수정
     const customPropertiesVO = Array.isArray(blockData.custom_properties)
       ? blockData.custom_properties
-          .map((data: unknown) => {
-            // 타입가드: CustomPropertyDefinition의 주요 필드 존재 여부 확인
-            const isCustomPropertyDefinition = (
-              obj: any
-            ): obj is CustomPropertyDefinition => {
-              return (
-                obj &&
-                typeof obj === 'object' &&
-                'id' in obj &&
-                'name' in obj &&
-                'type' in obj &&
-                typeof obj.id === 'string' &&
-                typeof obj.name === 'string'
-              );
-            };
-            if (isCustomPropertyDefinition(data)) {
-              try {
-                return CustomPropertyDefinitionVO.fromJSON(data);
-              } catch (error) {
-                console.warn(
-                  '[DrizzleBlockRepository] Failed to parse custom property definition:',
-                  {
-                    data,
-                    error:
-                      error instanceof Error ? error.message : 'Unknown error',
-                  }
-                );
-                return null; // 파싱 실패 시 null 반환
-              }
-            } else {
-              // 타입 미스매치에 대한 핸들링
+        .map((data: unknown) => {
+          // 타입가드: CustomPropertyDefinition의 주요 필드 존재 여부 확인
+          const isCustomPropertyDefinition = (
+            obj: any
+          ): obj is CustomPropertyDefinition => {
+            return (
+              obj &&
+              typeof obj === 'object' &&
+              'id' in obj &&
+              'name' in obj &&
+              'type' in obj &&
+              typeof obj.id === 'string' &&
+              typeof obj.name === 'string'
+            );
+          };
+          if (isCustomPropertyDefinition(data)) {
+            try {
+              return CustomPropertyDefinitionVO.fromJSON(data);
+            } catch (error) {
               console.warn(
-                '[DrizzleBlockRepository] Invalid custom property definition structure:',
-                data
+                '[DrizzleBlockRepository] Failed to parse custom property definition:',
+                {
+                  data,
+                  error:
+                    error instanceof Error ? error.message : 'Unknown error',
+                }
               );
-              return null; // 잘못된 구조는 null 반환
+              return null; // 파싱 실패 시 null 반환
             }
-          })
-          .filter((vo): vo is CustomPropertyDefinitionVO => vo !== null) // null 제거
+          } else {
+            // 타입 미스매치에 대한 핸들링
+            console.warn(
+              '[DrizzleBlockRepository] Invalid custom property definition structure:',
+              data
+            );
+            return null; // 잘못된 구조는 null 반환
+          }
+        })
+        .filter((vo): vo is CustomPropertyDefinitionVO => vo !== null) // null 제거
       : [];
 
     // createdBy를 프로필 정보 객체로 변환
     const createdByProfile = profile
       ? {
-          userId: profile.id,
-          email: profile.email,
-          name: profile.name,
-          profileImageUrl: profile.avatar_url,
-        }
+        userId: profile.id,
+        email: profile.email,
+        name: profile.name,
+        profileImageUrl: profile.avatar_url,
+      }
       : {
-          userId:
-            blockData.created_by || '00000000-0000-0000-0000-000000000000',
-          email: null,
-          name: null,
-          profileImageUrl: null,
-        };
+        userId:
+          blockData.created_by || '00000000-0000-0000-0000-000000000000',
+        email: null,
+        name: null,
+        profileImageUrl: null,
+      };
 
     // JSON 데이터를 BlockPropertiesVO로 변환
     const properties = blockData.properties || {};

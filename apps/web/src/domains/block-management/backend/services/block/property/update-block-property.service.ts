@@ -9,7 +9,7 @@ import type { UpdateBlockPropertyCommand } from '../../../../shared/commands';
 import type { UpdateBlockPropertyRequest } from '../../../../shared/dtos/requests/block.requests';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
 import { BlockId } from '../../../../shared/value-objects/block-id.vo';
-import type { BlockRepository } from '../../../repositories/interfaces/block.repository.interface';
+import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
 
 /**
  * 블록 속성 업데이트
@@ -26,7 +26,7 @@ import type { BlockRepository } from '../../../repositories/interfaces/block.rep
 export async function updateBlockProperty(
   safeDto: UpdateBlockPropertyRequest,
   safeUserId: UserId,
-  blockRepository: BlockRepository
+  blockRepository: IBlockRepository
 ): Promise<Result<{ updatedAt: Date }, Error>> {
   try {
     // 1. 속성 경로 검증

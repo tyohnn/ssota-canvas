@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGetAllWorkspacesByOrg } from '@/domains/workspace-management/frontend/hooks/use-get-all-workspaces-by-org';
 import { getUser } from '@/domains/auth/client/auth-helpers';
@@ -20,11 +20,6 @@ export function useDuplicateDialog({
   const [user, setUser] = useState<User | null>(null);
   const [isCheckingUser, setIsCheckingUser] = useState(true);
 
-  const {
-    data: workspacesByOrg,
-    isLoading: isLoadingWorkspaces,
-  } = useGetAllWorkspacesByOrg();
-
   // Check user status when component mounts
   useEffect(() => {
     setIsCheckingUser(true);
@@ -38,6 +33,12 @@ export function useDuplicateDialog({
         setIsCheckingUser(false);
       });
   }, []);
+
+  // Only fetch workspaces if user is authenticated and user check is complete
+  const {
+    data: workspacesByOrg,
+    isLoading: isLoadingWorkspaces,
+  } = useGetAllWorkspacesByOrg(!isCheckingUser && user !== null);
 
   const handleLogin = useCallback(() => {
     const redirectTo = `/p/${publishToken}?action=duplicate`;

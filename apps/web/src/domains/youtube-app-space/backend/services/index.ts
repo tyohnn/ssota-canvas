@@ -13,3 +13,9 @@ export * from './channel';
 
 // Action Transaction Services
 export * from './action-transaction';
+
+// Script Services
+export * from './script';
+
+// Video Summary Services
+export * from './video-summary';

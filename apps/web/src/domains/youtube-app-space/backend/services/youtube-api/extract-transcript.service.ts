@@ -3,9 +3,16 @@
  *
  * ZenRows 프록시를 사용하여 자막을 추출합니다.
  */
+import { generateText } from 'ai';
+import {
+  createHeliconeXAI,
+  buildHeliconeHeaders,
+} from '@/domains/ai-management/backend/providers/helicone-provider';
+import { Result } from '@/utils/result';
 import { YoutubeError } from '../../../shared/errors/youtube-app-space.error';
 import type { YoutubeScript } from '../../../shared/types/transcript.types';
 import type { TranscriptSegment } from '../../../shared/types/transcript.types';
+import { SUPPORTED_LANGUAGES } from '../../../shared/value-objects/language-code.vo';
 import { ZenRowsCaptionAdapter } from './script-adapter/zenrows-caption.adapter';
 
 /**
@@ -15,7 +22,7 @@ import { ZenRowsCaptionAdapter } from './script-adapter/zenrows-caption.adapter'
  * premium_proxy를 사용하여 YouTube의 bot detection을 우회합니다.
  *
  * @param videoId - YouTube Video ID
- * @param language - 언어 코드 (선택적, 예: 'en', 'ko')
+ * @param language - 언어 코드 (선택적, 예: 'en', 'ko', 'auto')
  * @returns YouTube 스크립트 데이터
  * @throws YoutubeError - 자막 추출 실패 시
  */
@@ -28,7 +35,21 @@ export async function extractTranscript(
   try {
     const segments = await adapter.getTranscript(videoId, language);
     if (segments.length > 0) {
-      return buildYoutubeScript(segments, videoId, language || 'auto');
+      // language가 'auto'인 경우 LLM으로 언어 감지
+      let detectedLanguage = language || 'auto';
+      if (detectedLanguage === 'auto') {
+        const languageResult = await detectLanguageFromScript(segments, videoId);
+        if (languageResult.isSuccess()) {
+          detectedLanguage = languageResult.value;
+        } else {
+          // 언어 감지 실패 시에도 'auto'로 진행
+          console.warn(
+            `Failed to detect language for video ${videoId}: ${languageResult.error.message}`
+          );
+        }
+      }
+
+      return buildYoutubeScript(segments, videoId, detectedLanguage);
     }
 
     throw new YoutubeError(
@@ -157,4 +178,106 @@ function mergeSegmentsByPeriod(
   }
 
   return merged;
+}
+
+/**
+ * 스크립트에서 언어 감지
+ *
+ * LLM을 사용하여 스크립트의 처음 몇 줄을 분석하여 언어를 감지합니다.
+ * 지원되는 언어 코드(ISO 639-1) 중 하나를 반환합니다.
+ *
+ * @param segments - 자막 세그먼트 배열
+ * @param videoId - YouTube Video ID (로깅용)
+ * @returns 감지된 언어 코드 또는 에러
+ */
+async function detectLanguageFromScript(
+  segments: TranscriptSegment[],
+  videoId: string
+): Promise<Result<string, YoutubeError>> {
+  try {
+    // 스크립트의 처음 10개 세그먼트만 사용 (약 1-2분 분량)
+    const sampleSegments = segments.slice(0, 10);
+    if (sampleSegments.length === 0) {
+      return Result.error(
+        new YoutubeError(
+          'LANGUAGE_DETECTION_FAILED',
+          'No segments available for language detection',
+          { videoId }
+        )
+      );
+    }
+
+    // 샘플 텍스트 생성
+    const sampleText = sampleSegments
+      .map((seg) => seg.text.trim())
+      .join(' ')
+      .slice(0, 500); // 최대 500자만 사용
+
+    // 1. Helicone 헤더 생성
+    const headers = buildHeliconeHeaders({
+      feature: 'transcript-language-detection',
+      model: 'grok-4-1-fast-non-reasoning',
+      properties: {
+        videoId,
+        sampleLength: sampleText.length.toString(),
+      },
+    });
+
+    // 2. xAI Provider 생성
+    const xai = createHeliconeXAI(headers);
+
+    // 3. 언어 감지 프롬프트 구성
+    const prompt = `You are a language detection expert. Analyze the following text sample from a YouTube video transcript and identify the language.
+
+TEXT SAMPLE:
+${sampleText}
+
+SUPPORTED LANGUAGE CODES (ISO 639-1):
+${SUPPORTED_LANGUAGES.join(', ')}
+
+INSTRUCTIONS:
+1. Identify the primary language of the text
+2. Return ONLY the 2-letter ISO 639-1 language code
+3. Must be one of the supported languages listed above
+4. Return only the code, no explanation, no additional text
+
+Return the language code now:`;
+
+    // 4. AI 언어 감지
+    const result = await generateText({
+      model: xai('grok-4-1-fast-non-reasoning'),
+      prompt,
+      temperature: 0.1, // 일관성을 위해 매우 낮은 온도
+    });
+
+    const detectedCode = result.text.trim().toLowerCase();
+
+    // 5. 지원되는 언어인지 확인
+    if (!SUPPORTED_LANGUAGES.includes(detectedCode as (typeof SUPPORTED_LANGUAGES)[number])) {
+      return Result.error(
+        new YoutubeError(
+          'LANGUAGE_DETECTION_FAILED',
+          `Detected language code '${detectedCode}' is not supported. Supported languages: ${SUPPORTED_LANGUAGES.join(', ')}`,
+          {
+            videoId,
+            detectedCode,
+            supportedLanguages: SUPPORTED_LANGUAGES,
+          }
+        )
+      );
+    }
+
+    return Result.success(detectedCode);
+  } catch (error) {
+    return Result.error(
+      new YoutubeError(
+        'LANGUAGE_DETECTION_FAILED',
+        error instanceof Error ? error.message : 'Failed to detect language',
+        {
+          videoId,
+          originalError: error instanceof Error ? error.message : String(error),
+        }
+      )
+    );
+  }
 }

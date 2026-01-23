@@ -6,7 +6,7 @@ import { Block } from '../../../shared/entities/block.entity';
  *
  * 블록 데이터 접근을 위한 Repository 인터페이스
  */
-export interface BlockRepository {
+export interface IBlockRepository {
   /**
    * 블록 생성
    *

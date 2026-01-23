@@ -4,7 +4,10 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
-import type { CanvasMode } from './canvas-mode-context';
+import type {
+  CanvasMode,
+  EnterBlockEditingOptions,
+} from './canvas-mode-context';
 import type { CanvasModeContextValue } from './canvas-mode-context';
 
 /**
@@ -37,17 +40,34 @@ export function useCanvasMode(): CanvasModeContextValue {
   }, []);
 
   const enterBlockEditingMode = useCallback(
-    (blockId: string, blockMountId: string) => {
-      // 이미 같은 blockId와 blockMountId로 편집 모드인 경우 업데이트하지 않음 (무한 루프 방지)
+    (
+      blockId: string,
+      blockMountId: string,
+      options?: EnterBlockEditingOptions
+    ) => {
+      // 이미 같은 blockId와 blockMountId로 편집 모드인 경우
+      // options가 없으면 업데이트하지 않음 (무한 루프 방지)
+      // options가 있으면 업데이트 (탭 전환 등)
       setMode(prevMode => {
         if (
           prevMode.type === 'block-editing' &&
           prevMode.blockId === blockId &&
-          prevMode.blockMountId === blockMountId
+          prevMode.blockMountId === blockMountId &&
+          !options
         ) {
           return prevMode; // 상태 변경 없음
         }
-        return { type: 'block-editing', blockId, blockMountId };
+        return {
+          type: 'block-editing',
+          blockId,
+          blockMountId,
+          initialTab: options
+            ? {
+              tab: options.tab || '',
+              tabOptions: options.tabOptions,
+            }
+            : undefined,
+        };
       });
     },
     []
@@ -64,6 +84,60 @@ export function useCanvasMode(): CanvasModeContextValue {
   const exitToDefaultMode = useCallback(() => {
     setMode({ type: 'default' });
   }, []);
+
+  /**
+   * block-editing 모드일 때 initialTab.tabOptions를 병합 업데이트
+   * 
+   * @param partial - 병합할 tabOptions 객체
+   * @param opts - blockId/blockMountId 필터 옵션 (주어지면 해당 블록일 때만 적용)
+   */
+  const updateBlockEditingTabOptions = useCallback(
+    (
+      partial: Record<string, unknown>,
+      opts?: { blockId?: string; blockMountId?: string }
+    ) => {
+      setMode((prevMode) => {
+        // block-editing 모드가 아니면 아무것도 하지 않음
+        if (prevMode.type !== 'block-editing') {
+          return prevMode;
+        }
+
+        // opts가 주어진 경우, blockId/blockMountId가 일치하는지 확인
+        if (opts) {
+          if (opts.blockId && prevMode.blockId !== opts.blockId) {
+            return prevMode;
+          }
+          if (opts.blockMountId && prevMode.blockMountId !== opts.blockMountId) {
+            return prevMode;
+          }
+        }
+
+        // initialTab이 없으면 생성
+        if (!prevMode.initialTab) {
+          return {
+            ...prevMode,
+            initialTab: {
+              tab: '',
+              tabOptions: partial,
+            },
+          };
+        }
+
+        // tabOptions 병합
+        return {
+          ...prevMode,
+          initialTab: {
+            ...prevMode.initialTab,
+            tabOptions: {
+              ...prevMode.initialTab.tabOptions,
+              ...partial,
+            },
+          },
+        };
+      });
+    },
+    []
+  );
 
   // Textarea 편집 상태 관리
   const setTextareaEditing = useCallback((editing: boolean) => {
@@ -108,6 +182,7 @@ export function useCanvasMode(): CanvasModeContextValue {
       enterSingleSelectionMode,
       enterMultiSelectionMode,
       enterBlockEditingMode,
+      updateBlockEditingTabOptions,
       enterDraggingMode,
       enterEdgeCreationMode,
       exitToDefaultMode,
@@ -129,6 +204,7 @@ export function useCanvasMode(): CanvasModeContextValue {
       enterSingleSelectionMode,
       enterMultiSelectionMode,
       enterBlockEditingMode,
+      updateBlockEditingTabOptions,
       enterDraggingMode,
       enterEdgeCreationMode,
       exitToDefaultMode,
