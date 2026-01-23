@@ -7,12 +7,12 @@ import React, {
   useCallback,
   useEffect,
 } from 'react';
-import { createClient } from '@/utils/supabase/browser';
 import { UserNotificationView, NotificationSummary } from '../../shared/dtos';
 import {
   getUserNotificationsAction,
   markNotificationAsReadAction,
 } from '../../actions/notification.actions';
+import { useSupabaseRealtime } from '@/domains/realtime-management/frontend/hooks';
 
 interface NotificationContextType {
   notifications: NotificationSummary[];
@@ -78,44 +78,19 @@ export function NotificationProvider({
     refreshNotifications();
   }, [refreshNotifications]);
 
+
   // Supabase Realtime 구독: 새 알림이 추가되면 자동으로 갱신
-  useEffect(() => {
-    const supabase = createClient();
-
-    // 현재 사용자 ID 가져오기
-    const setupRealtimeSubscription = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return;
-
-      // notifications 테이블의 INSERT 이벤트 구독
-      const channel = supabase
-        .channel('notifications-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`, // 현재 사용자의 알림만
-          },
-          (payload) => {
-            console.log('🔔 New notification received:', payload);
-            // 새 알림이 추가되면 목록 갱신
-            refreshNotifications();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    };
-
-    setupRealtimeSubscription();
-  }, [refreshNotifications]);
+  // useSupabaseRealtime 훅이 내부에서 사용자 인증 및 필터링을 처리합니다
+  useSupabaseRealtime({
+    table: 'notifications',
+    event: 'INSERT',
+    schema: 'public',
+    filterByCurrentUser: true,  // 현재 사용자의 알림만 구독
+    onEvent: () => {
+      // 새 알림이 추가되면 목록 갱신
+      refreshNotifications();
+    },
+  });
 
   return (
     <NotificationContext.Provider
@@ -142,3 +117,4 @@ export function useNotificationContext() {
   }
   return context;
 }
+ 
