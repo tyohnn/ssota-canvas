@@ -45,6 +45,9 @@ export function usePublishFlow({ pageId, onPublished }: UsePublishFlowProps) {
       setPublishUrl(url);
       onPublished?.(url);
     },
+    onUnpublished: () => {
+      setPublishUrl(null);
+    },
     setError: ui.setError,
     setIsLinkCopied: ui.setIsLinkCopied,
   });
