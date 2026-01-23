@@ -1,0 +1,165 @@
+/**
+ * Block Toolbar Component
+ *
+ * 블록 상단에 표시되는 통합 툴바 (모든 view mode에서 사용)
+ * - 좌측: BlockHeader (제목 + Badge)
+ * - 우측: Toolbar buttons (ViewMode + Details + More + BlockToolbarMapper)
+ */
+
+'use client';
+
+import { useRef } from 'react';
+
+import { ChevronRight } from 'lucide-react';
+
+import { ToolbarContainer } from '@workspace/ui/components/ssota-ui/toolbar-container';
+import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
+import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
+import { cn } from '@workspace/ui/lib/utils';
+
+import { Box } from '@/components/ui/box';
+import { Separator } from '@/components/ui/separator';
+import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
+
+import { BlockHeader } from './block-header';
+import {
+  MoreMenuToolbarItem,
+  ViewModeToolbarItem,
+} from '../../common-toolbar-items';
+import { BlockToolbarMapper } from '../../block-original-toolbar/components/block-toolbar-mapper';
+
+export interface BlockToolbarProps {
+  data: BlockNodeData;
+  selected: boolean;
+  viewMode: BlockViewModeValue;
+  onViewModeChange?: (viewMode: BlockViewModeValue) => void;
+  width?: number;
+  height?: number;
+  className?: string;
+  zoom: number;
+  isMultiSelection: boolean;
+  onEdit: () => void;
+  showBlockToolbarMapper?: boolean;
+}
+
+export function BlockToolbar({
+  data,
+  selected,
+  viewMode,
+  onViewModeChange,
+  width,
+  height,
+  className,
+  zoom,
+  isMultiSelection,
+  onEdit,
+  showBlockToolbarMapper = false,
+}: BlockToolbarProps) {
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const { readonly } = useCanvasReadOnly();
+
+  // 렌더링 조건 체크
+  if (!selected) {
+    return null;
+  }
+
+  // 멀티셀렉트일 때는 표시하지 않음
+  if (isMultiSelection) {
+    return null;
+  }
+
+  // zoom이 60% 이하일 때는 표시하지 않음
+  if (zoom <= 0.6) {
+    return null;
+  }
+
+  return (
+    <Box
+      className={cn(
+        'absolute top-[-47px] left-0 z-50 w-full',
+        'pointer-events-auto',
+        className
+      )}
+    >
+      <Box className="w-full flex items-center gap-2 bg-background/60 backdrop-blur-md border border-border/75 rounded-md shadow-lg px-1.5 py-0.5">
+        {/* 좌측: BlockHeader (flex-1으로 나머지 공간 사용) */}
+        <Box className="flex-1 min-w-0">
+          <BlockHeader
+            data={data}
+            selected={selected}
+            width={width}
+          />
+        </Box>
+
+        {/* 우측: Toolbar Buttons (고정 너비) - 버튼 영역은 드래그 방지 */}
+        <Box
+          className={cn(
+            'bg-background/70 backdrop-blur-md rounded-md shadow-xl border-border/40 border',
+            'px-1.5 py-1 flex items-center justify-center gap-0.5',
+            'shrink-0',
+            // 'nodrag'
+          )}
+        >
+          <TooltipProvider>
+            {/* Original view: BlockToolbarMapper */}
+            {showBlockToolbarMapper && (
+              <>
+                <BlockToolbarMapper
+                  blockId={data.blockId}
+                  blockType={data.blockType || 'basic'}
+                  blockData={data}
+                  width={width}
+                  height={height}
+                  zoom={zoom}
+                  readonly={readonly}
+                />
+                {!readonly && (
+                  <Separator orientation="vertical" className="h-6!" />
+                )}
+              </>
+            )}
+
+            {/* 보기 방식 변경 - readonly일 때 숨김 */}
+            {!readonly && onViewModeChange && (
+              <ViewModeToolbarItem
+                blockType={data.blockType}
+                currentViewMode={viewMode}
+                onViewModeChange={onViewModeChange}
+                zoom={zoom}
+              />
+            )}
+
+            {/* 에디터 열기 */}
+            <ToolbarIconButton
+              icon={<ChevronRight />}
+              tooltip="Details"
+              tooltipSide="top"
+              tooltipOffset={5}
+              onClick={() => {
+                onEdit();
+              }}
+              onMouseDown={e => e.stopPropagation()}
+              className="h-6 w-6 p-0 rounded-sm"
+              iconClassName="size-3.5"
+            />
+
+            {/* 더보기 메뉴 - readonly일 때 숨김 */}
+            {!readonly && (
+              <>
+                <Separator orientation="vertical" className="h-6!" />
+                <MoreMenuToolbarItem
+                  blockId={data.blockId}
+                  blockMountId={data.blockMountId}
+                  width={width}
+                  height={height}
+                />
+              </>
+            )}
+          </TooltipProvider>
+        </Box>
+      </Box>
+    </Box>
+  );
+}

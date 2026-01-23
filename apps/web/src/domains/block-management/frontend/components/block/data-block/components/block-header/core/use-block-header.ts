@@ -34,8 +34,8 @@ export function useBlockHeader(
   const business = businessLogic ?? defaultBusiness;
 
   // 4. Visibility calculation
-  const isVisible =
-    props.selected && !canvasMode.isMultiSelectionMode() && zoom > 0.8;
+  // zoom 체크는 BlockToolbar에서 통합 관리
+  const isVisible = props.selected && !canvasMode.isMultiSelectionMode();
 
   // 5. Compose Handlers
   const handleSave = useCallback(async () => {
