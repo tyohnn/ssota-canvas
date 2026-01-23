@@ -493,7 +493,7 @@ export function useReactFlowWrapper(
   // 13. Feature Flags (readonly에 따라 자동 처리)
   // =========================================================================
   // readonly일 때 편집 전용 기능 비활성화
-  const showAIAgent = !readonly;
+  const showAIAgent = false; // !readonly;
   const showBlockCreation = !readonly;
 
   // =========================================================================
