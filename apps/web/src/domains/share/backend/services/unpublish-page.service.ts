@@ -46,29 +46,35 @@ export async function unpublishPage(
       );
     }
 
-    // 3. Aggregate 재구성
+    // 3. 이미 unpublished 상태인지 확인 (Idempotent 처리)
+    if (publishedPage.isUnpublished()) {
+      // 이미 unpublished 상태라면 추가 작업 없이 성공 반환
+      return Result.success(undefined);
+    }
+
+    // 4. Aggregate 재구성
     const aggregate = PublishedPageAggregate.reconstitute(publishedPage);
 
-    // 4. SafeDTO → Command 변환
+    // 5. SafeDTO → Command 변환
     const command: UnpublishPageCommand = {
       publisherId: safeUserId.value,
     };
 
-    // 5. Aggregate에 Command 전달 (Command → Event)
+    // 6. Aggregate에 Command 전달 (Command → Event)
     aggregate.unpublish(command);
 
-    // 6. Entity 저장
+    // 7. Entity 저장
     const updatedPage = aggregate.getPublishedPage();
     await publishedPageRepository.save(updatedPage);
 
-    // 7. Domain Event 처리
+    // 8. Domain Event 처리
     const events = aggregate.getUncommittedEvents();
     await Promise.allSettled(events.map(event => event.handle()));
 
-    // 8. Event 커밋
+    // 9. Event 커밋
     aggregate.markEventsAsCommitted();
 
-    // 9. 결과 반환
+    // 10. 결과 반환
     return Result.success(undefined);
   } catch (error) {
     if (error instanceof ShareManagementError) {
