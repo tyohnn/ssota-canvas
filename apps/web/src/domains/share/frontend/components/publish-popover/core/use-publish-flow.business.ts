@@ -10,6 +10,7 @@ interface UsePublishFlowBusinessProps {
   pageId: string;
   publishUrl: string | null;
   onPublished?: (publishUrl: string) => void;
+  onUnpublished?: () => void;
   setError: (error: string | null) => void;
   setIsLinkCopied: (copied: boolean) => void;
 }
@@ -18,6 +19,7 @@ export function usePublishFlowBusiness({
   pageId,
   publishUrl,
   onPublished,
+  onUnpublished,
   setError,
   setIsLinkCopied,
 }: UsePublishFlowBusinessProps) {
@@ -33,6 +35,9 @@ export function usePublishFlowBusiness({
     },
   });
   const { unpublishPage, isUnpublishing } = useUnpublishPage({
+    onSuccess: () => {
+      onUnpublished?.();
+    },
     onError: () => {
       setError('Failed to unpublish');
     },
