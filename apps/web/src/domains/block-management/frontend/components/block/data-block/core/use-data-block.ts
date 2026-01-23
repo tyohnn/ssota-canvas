@@ -64,7 +64,13 @@ export function useDataBlock(
   }, [canvasMode, data.blockId, data.blockMountId]);
 
   // Single selection 여부 확인
-  const isSingleSelection = selected && canvasMode.isSingleSelectionMode();
+  // 에디터가 열려도 현재 블록이 편집 중이면 툴바를 표시
+  const isSingleSelection =
+    selected &&
+    (canvasMode.isSingleSelectionMode() ||
+      (canvasMode.isBlockEditingMode() &&
+        canvasMode.mode.type === 'block-editing' &&
+        canvasMode.mode.blockId === data.blockId));
 
   // 멀티셀렉트 여부 확인
   const isMultiSelection = canvasMode.isMultiSelectionMode();

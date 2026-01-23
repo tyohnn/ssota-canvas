@@ -124,8 +124,8 @@ export const ToolbarIconButton = forwardRef<
     const renderedIcon =
       isValidElement(icon) && iconClassName
         ? cloneElement(icon as React.ReactElement<any>, {
-            className: cn((icon.props as any)?.className, iconClassName),
-          })
+          className: cn((icon.props as any)?.className, iconClassName),
+        })
         : icon;
 
     return (

@@ -12,8 +12,7 @@
 import { memo } from 'react';
 
 import { BaseBlock } from '../base-block';
-import { BlockHeader } from './components/block-header';
-import { DataBlockToolbar } from './components/data-block-toolbar';
+import { BlockToolbar } from './components/block-toolbar';
 import { DataBlockView } from './components/data-block-view';
 import type { DataBlockProps } from './core/types';
 import { useDataBlock } from './core/use-data-block';
@@ -39,25 +38,19 @@ export const DataBlock = memo(function DataBlock(props: DataBlockProps) {
 
   return (
     <BaseBlock data={data} selected={selected} width={width} height={height}>
-      {/* Block Header (좌측 상단) - note view에서만 표시 */}
-      {viewMode === 'note' && (
-        <BlockHeader data={data} selected={isSingleSelection} width={width} />
-      )}
-
-      {/* Block Toolbar (우측 상단) - original view가 아닐 때만 표시 */}
-      {viewMode !== 'original' && (
-        <DataBlockToolbar
-          data={data}
-          viewMode={viewMode}
-          selected={isSingleSelection}
-          onViewModeChange={onViewModeChange}
-          width={width}
-          height={height}
-          zoom={zoom}
-          isMultiSelection={isMultiSelection}
-          onEdit={onEdit}
-        />
-      )}
+      {/* Block Toolbar (상단) - 모든 view mode에서 표시 */}
+      <BlockToolbar
+        data={data}
+        viewMode={viewMode}
+        selected={isSingleSelection}
+        onViewModeChange={onViewModeChange}
+        width={width}
+        height={height}
+        zoom={zoom}
+        isMultiSelection={isMultiSelection}
+        onEdit={onEdit}
+        showBlockToolbarMapper={viewMode === 'original'}
+      />
 
       {/* View Content */}
       <DataBlockView

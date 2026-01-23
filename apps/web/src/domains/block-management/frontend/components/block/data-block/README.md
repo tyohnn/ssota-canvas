@@ -28,7 +28,7 @@ data-block/
 ├── index.tsx                  # 메인 컴포넌트
 ├── components/
 │   ├── block-header.tsx       # 제목 표시 (좌측 상단)
-│   ├── data-block-toolbar.tsx # 툴바 버튼 (우측 상단)
+│   ├── block-toolbar.tsx     # 통합 툴바 (모든 view mode에서 사용)
 │   ├── view-mode-switcher.tsx # 보기 방식 변경 팝오버
 │   ├── note-view.tsx          # 노트 보기
 │   ├── original-view.tsx      # 오리지널 보기

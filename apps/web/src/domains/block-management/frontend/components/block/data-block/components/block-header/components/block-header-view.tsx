@@ -51,22 +51,22 @@ export function BlockHeaderView({
     onBlur();
   };
 
-  // width가 270px 이하일 때 배지 숨김
-  const shouldShowBadge = blockType && width !== undefined && width > 270;
+  // width가 350px 이하일 때 배지 숨김
+  const shouldShowBadge = blockType && width !== undefined && width > 400;
 
   return (
     <Box
       className={cn(
         'nodrag',
-        'absolute top-[-40px] left-0 z-50',
-        'flex items-center',
+        'flex items-center gap-1',
         'pointer-events-auto',
+        'w-full',
         className
       )}
     >
       {/* 블록 타입 배지 */}
       {shouldShowBadge && blockType && (
-        <Badge variant="secondary" className="shrink-0 cursor-default mr-0.5">
+        <Badge variant="secondary" className="shrink-0 cursor-default">
           {blockType}
         </Badge>
       )}
@@ -84,7 +84,7 @@ export function BlockHeaderView({
         placeholder="Click to edit"
         className={cn(
           'h-7 px-1 text-sm font-medium',
-          'min-w-[100px] max-w-[100px]',
+          'flex-1 min-w-0',
           'bg-transparent',
           'border-0 border-b',
           'outline-none',
@@ -93,8 +93,7 @@ export function BlockHeaderView({
           'placeholder:text-muted-foreground/50',
           readonly ? 'cursor-default' : 'cursor-text',
           'truncate',
-          isFocused ? 'border-b-foreground/30' : 'border-b-transparent',
-          className
+          isFocused ? 'border-b-foreground/30' : 'border-b-transparent'
         )}
         onClick={e => e.stopPropagation()}
         onMouseDown={e => e.stopPropagation()}
