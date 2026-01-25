@@ -58,6 +58,27 @@ export const UpdateEdgeStyleRequestSchema = z.object({
   }),
 });
 
+/**
+ * 엣지 마커(화살표) 업데이트 요청 스키마
+ * - marker: 'start' | 'end' (어느 쪽을 바꿀지)
+ * - value: MarkerType (none | arrow | arrow-open | circle | circle-open | diamond | diamond-open)
+ */
+const markerTypeEnum = [
+  'none',
+  'arrow',
+  'arrow-open',
+  'circle',
+  'circle-open',
+  'diamond',
+  'diamond-open',
+] as const;
+
+export const UpdateEdgeMarkerRequestSchema = z.object({
+  edgeId: z.uuid('Invalid edge ID'),
+  marker: z.enum(['start', 'end']),
+  value: z.enum(markerTypeEnum),
+});
+
 // Input types (프론트엔드에서 사용)
 export type CreateEdgeRequestInput = z.input<typeof CreateEdgeRequestSchema>;
 export type UpdateEdgeShapeRequestInput = z.input<
@@ -68,6 +89,9 @@ export type UpdateEdgeLabelRequestInput = z.input<
 >;
 export type UpdateEdgeStyleRequestInput = z.input<
   typeof UpdateEdgeStyleRequestSchema
+>;
+export type UpdateEdgeMarkerRequestInput = z.input<
+  typeof UpdateEdgeMarkerRequestSchema
 >;
 export type DeleteEdgeRequestInput = z.input<typeof DeleteEdgeRequestSchema>;
 
@@ -81,5 +105,8 @@ export type UpdateEdgeLabelRequest = z.output<
 >;
 export type UpdateEdgeStyleRequest = z.output<
   typeof UpdateEdgeStyleRequestSchema
+>;
+export type UpdateEdgeMarkerRequest = z.output<
+  typeof UpdateEdgeMarkerRequestSchema
 >;
 export type DeleteEdgeRequest = z.output<typeof DeleteEdgeRequestSchema>;

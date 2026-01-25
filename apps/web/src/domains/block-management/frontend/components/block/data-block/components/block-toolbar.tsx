@@ -57,7 +57,6 @@ export function BlockToolbar({
   onEdit,
   showBlockToolbarMapper = false,
 }: BlockToolbarProps) {
-  const toolbarRef = useRef<HTMLDivElement>(null);
   const { readonly } = useCanvasReadOnly();
 
   // 렌더링 조건 체크
@@ -116,7 +115,7 @@ export function BlockToolbar({
                   readonly={readonly}
                 />
                 {!readonly && (
-                  <Separator orientation="vertical" className="h-6!" />
+                  <Separator orientation="vertical" className="h-4!" />
                 )}
               </>
             )}
@@ -148,7 +147,7 @@ export function BlockToolbar({
             {/* 더보기 메뉴 - readonly일 때 숨김 */}
             {!readonly && (
               <>
-                <Separator orientation="vertical" className="h-6!" />
+                <Separator orientation="vertical" className="h-4!" />
                 <MoreMenuToolbarItem
                   blockId={data.blockId}
                   blockMountId={data.blockMountId}

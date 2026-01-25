@@ -9,7 +9,8 @@ import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 
 import type { ColorToken } from '@/domains/block-management/shared/types/style-tokens.types';
 
-import type { EdgeShape, EdgeWidth } from '../core/types';
+import type { EdgeShape, EdgeWidth, MarkerValue } from '../core/types';
+import { MarkerSelector } from './arrow-selector';
 import { ColorSelector } from './color-selector';
 import { ShapeSelector } from './shape-selector';
 import { WidthSelector } from './width-selector';
@@ -17,9 +18,13 @@ import { WidthSelector } from './width-selector';
 export interface EdgeToolbarViewProps {
   edgeId: string;
   currentShape: EdgeShape;
+  markerStart: MarkerValue;
+  markerEnd: MarkerValue;
   currentColorToken: ColorToken;
   currentWidth: number;
   onShapeChange: (shape: EdgeShape) => Promise<void>;
+  onStartMarkerChange: (value: MarkerValue) => Promise<void>;
+  onEndMarkerChange: (value: MarkerValue) => Promise<void>;
   onColorChange: (colorToken: ColorToken) => Promise<void>;
   onWidthChange: (width: EdgeWidth) => Promise<void>;
   onDelete: () => Promise<void>;
@@ -39,9 +44,13 @@ export interface EdgeToolbarViewProps {
 export function EdgeToolbarView({
   edgeId,
   currentShape,
+  markerStart,
+  markerEnd,
   currentColorToken,
   currentWidth,
   onShapeChange,
+  onStartMarkerChange,
+  onEndMarkerChange,
   onColorChange,
   onWidthChange,
   onDelete,
@@ -68,7 +77,29 @@ export function EdgeToolbarView({
           zoom={zoom}
         />
 
-        <Separator orientation="vertical" className="h-4" />
+        <Separator orientation="vertical" className="h-4!" />
+
+        {/* Source marker (start of path = source node, 엣지가 나가는 쪽) */}
+        <MarkerSelector
+          which="start"
+          value={markerStart}
+          onChange={v => {
+            void onStartMarkerChange(v);
+          }}
+          zoom={zoom}
+        />
+
+        {/* Target marker (end of path = target node, 화살촉이 있는 쪽) — 왼쪽에 배치해 엣지 방향(→)과 맞춤 */}
+        <MarkerSelector
+          which="end"
+          value={markerEnd}
+          onChange={v => {
+            void onEndMarkerChange(v);
+          }}
+          zoom={zoom}
+        />
+
+        <Separator orientation="vertical" className="h-4!" />
 
         {/* Edge color change Popover */}
         <ColorSelector
@@ -77,7 +108,6 @@ export function EdgeToolbarView({
           zoom={zoom}
         />
 
-        <Separator orientation="vertical" className="h-4" />
 
         {/* Edge width change Popover */}
         <WidthSelector
@@ -86,7 +116,7 @@ export function EdgeToolbarView({
           zoom={zoom}
         />
 
-        <Separator orientation="vertical" className="h-4" />
+        <Separator orientation="vertical" className="h-4!" />
 
         {/* Delete button */}
         <ToolbarIconButton

@@ -41,6 +41,7 @@ export type CanvasManagementErrorCode =
   | 'VIEW_MODE_UPDATE_FAILED'
   | 'EDGE_STYLE_UPDATE_FAILED'
   | 'EDGE_SHAPE_UPDATE_FAILED'
+  | 'EDGE_MARKERS_UPDATE_FAILED'
   | 'CONNECTED_EDGES_DELETION_FAILED'
   | 'PAGE_MISMATCH'
   | 'EDGE_CREATION_FAILED'
@@ -81,6 +82,7 @@ export const CANVAS_MANAGEMENT_ERROR_MESSAGES: Record<
   VIEW_MODE_UPDATE_FAILED: '보기 방식 업데이트에 실패했습니다.',
   EDGE_STYLE_UPDATE_FAILED: '엣지 스타일 업데이트에 실패했습니다.',
   EDGE_SHAPE_UPDATE_FAILED: '엣지 모양 업데이트에 실패했습니다.',
+  EDGE_MARKERS_UPDATE_FAILED: '엣지 화살표 업데이트에 실패했습니다.',
   CONNECTED_EDGES_DELETION_FAILED: '연결된 엣지 삭제에 실패했습니다.',
   PAGE_MISMATCH: '페이지가 일치하지 않습니다.',
   EDGE_CREATION_FAILED: '엣지 생성에 실패했습니다.',

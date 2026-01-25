@@ -2,14 +2,13 @@
 
 import { useMutation } from '@tanstack/react-query';
 import type { Connection, Edge, Node } from '@xyflow/react';
+import { MarkerType } from '@xyflow/react';
 
 import { createEdgeAction } from '@/domains/canvas-management/actions/edge/create-edge.action';
+import { toReactFlowEdge } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 import { CreateEdgeRequestSchema } from '@/domains/canvas-management/shared/dtos/requests';
 import type { EdgeView } from '@/domains/canvas-management/shared/dtos/views';
-import type {
-  EdgeData,
-  EdgeShape,
-} from '@/domains/canvas-management/shared/types/common.types';
+import type { EdgeData } from '@/domains/canvas-management/shared/types/common.types';
 import { isFailure } from '@/lib';
 
 export type ReactFlowDependencies = {
@@ -100,8 +99,9 @@ export function useCreateEdge(
         throw new Error('Source or target node not found');
       }
 
-      // Optimistic Edge 생성
+      // Optimistic Edge 생성 (기본: end에 arrow)
       const optimisticEdgeId = `optimistic-edge-${Date.now()}-${Math.random()}`;
+      const defaultStroke = '#9ca3af';
       const optimisticEdge: Edge<EdgeData> = {
         id: optimisticEdgeId,
         source: sourceBlockMountId,
@@ -109,10 +109,18 @@ export function useCreateEdge(
         sourceHandle,
         targetHandle,
         type: 'custom',
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 20,
+          height: 20,
+          color: defaultStroke,
+        },
         data: {
           edgeId: optimisticEdgeId,
           actualEdgeShape: 'default',
           pageId,
+          markerEndType: 'arrow',
+          markerStartType: undefined,
         },
       };
 
@@ -131,26 +139,12 @@ export function useCreateEdge(
       }
     },
 
-    // Optimistic Edge를 실제 Edge로 교체
-    onSuccess: (edgeView, variables, context) => {
+    // Optimistic Edge를 실제 Edge로 교체 (markerEnd/markerStart, style 등 ACL로 일괄 반영)
+    onSuccess: (edgeView, _variables, context) => {
       if (!context?.optimisticEdgeId) return;
 
       const currentEdges = getEdges();
-      const realEdge: Edge<EdgeData> = {
-        id: edgeView.edgeId,
-        source: variables.sourceBlockMountId,
-        target: variables.targetBlockMountId,
-        sourceHandle: edgeView.sourceHandle,
-        targetHandle: edgeView.targetHandle,
-        type: 'custom',
-        data: {
-          edgeId: edgeView.edgeId,
-          actualEdgeShape: edgeView.edgeShape as EdgeShape,
-          pageId,
-          createdAt: edgeView.createdAt,
-          updatedAt: edgeView.updatedAt,
-        },
-      };
+      const realEdge = toReactFlowEdge(edgeView) as Edge<EdgeData>;
 
       setEdges(
         currentEdges.map(edge =>

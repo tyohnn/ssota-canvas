@@ -44,6 +44,8 @@ export const EdgeToolbar = memo(function EdgeToolbar({
     handleShapeChange,
     handleColorChange,
     handleWidthChange,
+    handleStartMarkerChange,
+    handleEndMarkerChange,
     handleDelete,
     isZoomVisible,
     zoom,
@@ -53,9 +55,13 @@ export const EdgeToolbar = memo(function EdgeToolbar({
     <EdgeToolbarView
       edgeId={edgeId}
       currentShape={edgeState.shape}
+      markerStart={edgeState.markerStart}
+      markerEnd={edgeState.markerEnd}
       currentColorToken={edgeState.colorToken}
       currentWidth={edgeState.width}
       onShapeChange={handleShapeChange}
+      onStartMarkerChange={handleStartMarkerChange}
+      onEndMarkerChange={handleEndMarkerChange}
       onColorChange={handleColorChange}
       onWidthChange={handleWidthChange}
       onDelete={handleDelete}

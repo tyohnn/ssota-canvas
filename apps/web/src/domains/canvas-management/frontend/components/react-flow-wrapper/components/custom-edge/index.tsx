@@ -48,6 +48,7 @@ export const CustomEdge = memo(function CustomEdge(props: CustomEdgeProps) {
     visualState,
     style,
     markerEnd,
+    markerStart,
     label,
     showToolbar,
     edgeId: toolbarEdgeId,
@@ -61,8 +62,13 @@ export const CustomEdge = memo(function CustomEdge(props: CustomEdgeProps) {
     targetPosition: props.targetPosition,
     style: props.style,
     markerEnd: props.markerEnd,
+    markerStart: props.markerStart,
     selected: selected ?? false,
   });
+
+  // Extract marker types from edge data
+  const markerEndType = props.data?.markerEndType;
+  const markerStartType = props.data?.markerStartType;
 
   return (
     <CustomEdgeView
@@ -74,6 +80,9 @@ export const CustomEdge = memo(function CustomEdge(props: CustomEdgeProps) {
       strokeColor={visualState.strokeColor}
       strokeWidth={visualState.strokeWidth}
       markerEnd={markerEnd}
+      markerStart={markerStart}
+      markerEndType={markerEndType}
+      markerStartType={markerStartType}
       style={style}
       label={label}
       isSelected={visualState.isSelected}

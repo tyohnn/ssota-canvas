@@ -2,6 +2,7 @@ import type {
   CreateEdgeCommand,
   DeleteEdgeCommand,
   UpdateEdgeLabelCommand,
+  UpdateEdgeMarkerCommand,
   UpdateEdgeShapeCommand,
   UpdateEdgeStyleCommand,
 } from '../commands';
@@ -11,6 +12,7 @@ import {
   EdgeCreatedEvent,
   EdgeDeletedEvent,
   EdgeLabelChangedEvent,
+  EdgeMarkersChangedEvent,
   EdgeShapeChangedEvent,
   EdgeStyleChangedEvent,
 } from '../events';
@@ -33,6 +35,7 @@ type EdgeManagementEvents =
   | EdgeShapeChangedEvent
   | EdgeLabelChangedEvent
   | EdgeStyleChangedEvent
+  | EdgeMarkersChangedEvent
   | EdgeDeletedEvent;
 
 export class EdgeAggregate {
@@ -159,6 +162,33 @@ export class EdgeAggregate {
   }
 
   /**
+   * 엣지 마커(화살표) 업데이트 (Command Handler) — start/end 중 하나만 변경
+   * start = Source(소스), end = Target(타겟). path는 source→target.
+   *
+   * @param command - UpdateEdgeMarkerCommand
+   */
+  updateEdgeMarker(command: UpdateEdgeMarkerCommand): void {
+    if (command.marker === 'start') {
+      this.edge.changeMarkerStart(
+        command.value === 'none' ? null : command.value
+      );
+    } else {
+      this.edge.changeMarkerEnd(command.value);
+    }
+
+    const event = new EdgeMarkersChangedEvent(
+      this.edge.id,
+      {
+        edgeId: this.edge.id,
+        markerEnd: this.edge.markerEnd,
+        markerStart: this.edge.markerStart,
+      },
+      this.edge.updatedAt
+    );
+    this._uncommittedEvents.push(event);
+  }
+
+  /**
    * 엣지 삭제 (Command Handler)
    *
    * ✅ Event Storming + DDD 패턴:
@@ -212,6 +242,8 @@ export class EdgeAggregate {
       edgeShape: this.edge.edgeShape.value,
       label: this.edge.edgeLabel,
       style: this.edge.edgeStyle.toReactFlowStyle(),
+      markerEnd: this.edge.markerEnd,
+      markerStart: this.edge.markerStart,
       createdAt: this.edge.createdAt.toISOString(),
       updatedAt: this.edge.updatedAt.toISOString(),
     };

@@ -3,6 +3,7 @@
  *
  * ⚠️ Schema Change: edges now reference block_mounts instead of blocks
  */
+import type { MarkerType } from '../../types/marker-type';
 import type { EdgeStyle } from '../../types';
 
 /**
@@ -21,6 +22,8 @@ export interface EdgeView {
   edgeShape: string;
   label?: string;
   style?: EdgeStyle;
+  markerEnd: MarkerType;
+  markerStart: MarkerType | null;
   createdAt: string;
   updatedAt: string;
 }

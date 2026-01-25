@@ -20,6 +20,7 @@ import type {
   EdgeToolbarBusinessLogic,
   EdgeToolbarProps,
   EdgeWidth,
+  MarkerValue,
   ThemeDependencies,
   UseEdgeToolbarReturn,
 } from './types';
@@ -54,6 +55,7 @@ export function useEdgeToolbar(
     getEdgeById: edgeManagement.getEdgeById,
     updateEdgeShape: edgeManagement.updateEdgeShape,
     updateEdgeStyle: edgeManagement.updateEdgeStyle,
+    updateEdgeMarker: edgeManagement.updateEdgeMarker,
     deleteEdge: edgeManagement.deleteEdge,
   };
 
@@ -85,14 +87,23 @@ export function useEdgeToolbar(
   const currentColorToken = getColorTokenFromHex(currentColorHex);
   const currentWidth = edge?.style?.strokeWidth || 1.5;
 
+  const markerStart: MarkerValue =
+    (edge?.data?.markerStartType as MarkerValue | undefined) ??
+    (edge?.markerStart ? 'arrow' : 'none');
+  const markerEnd: MarkerValue =
+    (edge?.data?.markerEndType as MarkerValue | undefined) ??
+    (edge?.markerEnd ? 'arrow' : 'none');
+
   const edgeState: EdgeState = useMemo(
     () => ({
       shape: currentShape,
       colorHex: currentColorHex,
       colorToken: currentColorToken,
       width: currentWidth as number,
+      markerStart,
+      markerEnd,
     }),
-    [currentShape, currentColorHex, currentColorToken, currentWidth]
+    [currentShape, currentColorHex, currentColorToken, currentWidth, markerStart, markerEnd]
   );
 
   // 6. Compose Handlers
@@ -131,6 +142,26 @@ export function useEdgeToolbar(
     [business, props.edgeId]
   );
 
+  const handleStartMarkerChange = useCallback(
+    async (value: MarkerValue) => {
+      const success = await business.updateMarker(props.edgeId, 'start', value);
+      if (!success) {
+        console.error('❌ [EdgeToolbar] Failed to update start marker');
+      }
+    },
+    [business, props.edgeId]
+  );
+
+  const handleEndMarkerChange = useCallback(
+    async (value: MarkerValue) => {
+      const success = await business.updateMarker(props.edgeId, 'end', value);
+      if (!success) {
+        console.error('❌ [EdgeToolbar] Failed to update end marker');
+      }
+    },
+    [business, props.edgeId]
+  );
+
   const handleDelete = useCallback(async () => {
     const success = await business.deleteEdge(props.edgeId);
 
@@ -146,6 +177,8 @@ export function useEdgeToolbar(
     handleShapeChange,
     handleColorChange,
     handleWidthChange,
+    handleStartMarkerChange,
+    handleEndMarkerChange,
     handleDelete,
     isZoomVisible,
     zoom,

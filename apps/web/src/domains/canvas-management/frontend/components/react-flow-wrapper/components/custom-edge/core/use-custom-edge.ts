@@ -108,6 +108,7 @@ export function useCustomEdge(props: CustomEdgeHookProps): UseCustomEdgeReturn {
     visualState: uiState.visualState,
     style,
     markerEnd: props.markerEnd,
+    markerStart: props.markerStart,
     label,
     showToolbar,
     edgeId,

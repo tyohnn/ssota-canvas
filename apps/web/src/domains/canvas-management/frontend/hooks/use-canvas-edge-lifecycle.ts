@@ -20,6 +20,7 @@ import {
   type UpdateEdgeShapeInput,
   useUpdateEdgeShape,
 } from './edge/use-update-edge-shape';
+import { useUpdateEdgeMarkers } from './edge/use-update-edge-markers';
 import {
   type UpdateEdgeStyleInput,
   useUpdateEdgeStyle,
@@ -86,6 +87,14 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
     },
   });
 
+  const { updateEdgeMarker, isUpdating: isUpdatingMarkers } =
+    useUpdateEdgeMarkers({
+      reactFlow: {
+        getEdges,
+        setEdges,
+      },
+    });
+
   const { reconnectEdge, isReconnecting } = useReconnectEdge({
     pageId,
     reactFlow: {
@@ -126,6 +135,7 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
     updateEdgeShape,
     updateEdgeLabel,
     updateEdgeStyle,
+    updateEdgeMarker,
     reconnectEdge,
 
     // 로딩 상태 (개별 상태 노출)
@@ -134,6 +144,7 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
     isUpdatingShape,
     isUpdatingLabel,
     isUpdatingStyle,
+    isUpdatingMarkers,
     isReconnecting,
 
     // 프로그램적 제어 (UI만 변경, 서버 호출 X)

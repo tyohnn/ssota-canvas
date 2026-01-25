@@ -55,6 +55,16 @@ export const canvasEdgeShapeEnum = pgEnum('canvas_edge_shape', [
   'simplebezier',
 ]);
 
+export const edgeMarkerEnum = pgEnum('edge_marker', [
+  'none',
+  'arrow',
+  'arrow-open',
+  'circle',
+  'circle-open',
+  'diamond',
+  'diamond-open',
+]);
+
 export const alignmentTypeEnum = pgEnum('alignment_type', [
   'TOP',
   'BOTTOM',
@@ -1178,6 +1188,8 @@ export const edges = pgTable(
     edge_label: text('edge_label').default(''),
     edge_style_color: text('edge_style_color').default('#9ca3af'),
     edge_style_thickness: integer('edge_style_thickness').default(2),
+    marker_end: edgeMarkerEnum('marker_end').notNull().default('arrow'),
+    marker_start: edgeMarkerEnum('marker_start'),
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1595,6 +1607,7 @@ export type InvitationStatus = (typeof invitationStatusEnum.enumValues)[number];
 export type NotificationType = (typeof notificationTypeEnum.enumValues)[number];
 export type BetaStatus = (typeof betaStatusEnum.enumValues)[number];
 export type CanvasEdgeShape = (typeof canvasEdgeShapeEnum.enumValues)[number];
+export type EdgeMarker = (typeof edgeMarkerEnum.enumValues)[number];
 export type AlignmentType = (typeof alignmentTypeEnum.enumValues)[number];
 export type EventType = (typeof eventTypeEnum.enumValues)[number];
 export type EventAction = (typeof eventActionEnum.enumValues)[number];
