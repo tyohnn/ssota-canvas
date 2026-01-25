@@ -54,6 +54,7 @@ export function CanvasReactFlowWrapper({
       onNodeClick={hook.handleNodeClick}
       onSelectionChange={hook.onSelectionChange}
       onPaneClick={hook.handlePaneClick}
+      onConnectStart={hook.onConnectStart}
       onConnect={hook.onConnect}
       onReconnect={hook.onReconnect}
       onReconnectStart={hook.onReconnectStart}

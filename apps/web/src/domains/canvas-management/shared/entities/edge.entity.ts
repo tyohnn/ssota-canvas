@@ -1,5 +1,6 @@
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 
+import type { MarkerType } from '../types/marker-type';
 import { BlockMountId } from '../value-objects/block-mount-id.vo';
 import { EdgeHandle } from '../value-objects/edge-handle.vo';
 import { EdgeId } from '../value-objects/edge-id.vo';
@@ -32,6 +33,8 @@ export class Edge {
     public edgeShape: EdgeShape = EdgeShape.default(),
     public edgeLabel: string = '',
     public edgeStyle: EdgeStyle = EdgeStyle.default(),
+    public markerEnd: MarkerType = 'arrow',
+    public markerStart: MarkerType | null = null,
     public readonly createdAt: Date = new Date(),
     public updatedAt: Date = new Date()
   ) {}
@@ -52,6 +55,8 @@ export class Edge {
     edgeShape: EdgeShape;
     edgeLabel: string;
     edgeStyle: EdgeStyle;
+    markerEnd: MarkerType;
+    markerStart: MarkerType | null;
     createdAt: Date;
     updatedAt: Date;
   }): Edge {
@@ -65,6 +70,8 @@ export class Edge {
       params.edgeShape,
       params.edgeLabel,
       params.edgeStyle,
+      params.markerEnd,
+      params.markerStart,
       params.createdAt,
       params.updatedAt
     );
@@ -100,6 +107,22 @@ export class Edge {
     }
 
     this.edgeStyle = newStyle;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * 엣지 끝(타겟) 화살표 변경
+   */
+  changeMarkerEnd(markerEnd: MarkerType): void {
+    this.markerEnd = markerEnd;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * 엣지 시작(소스) 화살표 변경
+   */
+  changeMarkerStart(markerStart: MarkerType | null): void {
+    this.markerStart = markerStart;
     this.updatedAt = new Date();
   }
 

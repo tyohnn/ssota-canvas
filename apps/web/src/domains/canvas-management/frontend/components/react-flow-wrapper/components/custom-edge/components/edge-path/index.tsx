@@ -9,14 +9,17 @@ import { BaseEdge } from '@xyflow/react';
  * - Props only, no hooks or context
  * - Storybook testable
  *
- * Path calculation is handled by parent component (CustomEdge) via useEdgePath hook.
+ * Path: source → target (useEdgePath). BaseEdge:
+ * - markerStart = path 시작 = source
+ * - markerEnd   = path 끝   = target
  */
 export interface EdgePathProps {
   edgeId: string;
   path: string;
   forceRenderKey: string;
   style: React.CSSProperties;
-  markerEnd?: string;
+  markerEnd?: string | { type?: string; width?: number; height?: number; color?: string };
+  markerStart?: string | { type?: string; width?: number; height?: number; color?: string };
 }
 
 function EdgePathComponent({
@@ -25,12 +28,14 @@ function EdgePathComponent({
   forceRenderKey,
   style,
   markerEnd,
+  markerStart,
 }: EdgePathProps): React.JSX.Element {
   return (
     <BaseEdge
       id={edgeId}
       path={path}
-      markerEnd={markerEnd}
+      markerEnd={markerEnd as React.ComponentProps<typeof BaseEdge>['markerEnd']}
+      markerStart={markerStart as React.ComponentProps<typeof BaseEdge>['markerStart']}
       key={forceRenderKey}
       style={style}
     />

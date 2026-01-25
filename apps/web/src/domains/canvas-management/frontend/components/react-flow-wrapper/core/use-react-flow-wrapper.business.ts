@@ -22,6 +22,10 @@ import type {
  */
 export interface ReactFlowWrapperBusinessLogic {
   // Edge 관련
+  onConnectStart: (
+    event: MouseEvent | TouchEvent,
+    params: { nodeId: string | null; handleId: string | null }
+  ) => void;
   onConnect: OnConnect;
   onReconnect: OnReconnect;
   onReconnectStart: () => void;
@@ -82,6 +86,12 @@ export function useReactFlowWrapperBusiness(
   // 엣지 재연결 성공 여부 추적 (공식 문서 패턴)
   const edgeReconnectSuccessful = useRef(true);
 
+  // 연결 시작 정보 저장 (ConnectionMode.Loose에서 source/target 정규화용)
+  const connectStartRef = useRef<{
+    nodeId: string | null;
+    handleId: string | null;
+  } | null>(null);
+
   // Clipboard paste hook - wrap to match expected signature
   const clipboardPaste = useClipboardPaste({
     pageId,
@@ -101,7 +111,28 @@ export function useReactFlowWrapperBusiness(
   });
 
   /**
+   * 연결 시작 → 드래그 시작 정보 저장
+   * ConnectionMode.Loose에서 source/target 정규화에 사용
+   */
+  const onConnectStart = useCallback(
+    (
+      _event: MouseEvent | TouchEvent,
+      params: { nodeId: string | null; handleId: string | null }
+    ) => {
+      connectStartRef.current = {
+        nodeId: params.nodeId,
+        handleId: params.handleId,
+      };
+    },
+    []
+  );
+
+  /**
    * 엣지 연결 → 엣지 생성 및 서버 저장
+   *
+   * ConnectionMode.Loose에서는 React Flow가 source/target을 임의로 결정할 수 있음.
+   * 사용자 의도는 "드래그 시작 노드 → 드래그 끝 노드" 방향이므로,
+   * connectStartRef를 사용해 source/target을 정규화함.
    */
   const onConnect: OnConnect = useCallback(
     async connection => {
@@ -114,13 +145,33 @@ export function useReactFlowWrapperBusiness(
         return;
       }
 
-      // 2. Optimistic UI로 엣지 생성
-      // Hook 내부에서 blockMountId → blockId 변환 처리
+      // 2. ConnectionMode.Loose에서 source/target 정규화
+      // 드래그 시작 노드 = source, 드래그 끝 노드 = target
+      const startNodeId = connectStartRef.current?.nodeId;
+      const startHandleId = connectStartRef.current?.handleId ?? null;
+
+      let finalSource = connection.source;
+      let finalTarget = connection.target;
+      let finalSourceHandle = connection.sourceHandle;
+      let finalTargetHandle = connection.targetHandle;
+
+      // 드래그 시작 노드가 connection.target과 같으면 swap 필요
+      if (startNodeId && startNodeId === connection.target) {
+        finalSource = connection.target;
+        finalTarget = connection.source;
+        finalSourceHandle = startHandleId;
+        finalTargetHandle = connection.sourceHandle;
+      }
+
+      // 연결 시작 정보 초기화
+      connectStartRef.current = null;
+
+      // 3. Optimistic UI로 엣지 생성
       const result = await edgeLifecycle.createEdge({
-        sourceBlockMountId: connection.source, // blockMountId (React Flow 노드 ID)
-        targetBlockMountId: connection.target, // blockMountId (React Flow 노드 ID)
-        sourceHandle: connection.sourceHandle,
-        targetHandle: connection.targetHandle,
+        sourceBlockMountId: finalSource,
+        targetBlockMountId: finalTarget,
+        sourceHandle: finalSourceHandle,
+        targetHandle: finalTargetHandle,
       });
 
       if (!result) {
@@ -271,6 +322,7 @@ export function useReactFlowWrapperBusiness(
   );
 
   return {
+    onConnectStart,
     onConnect,
     onReconnect,
     onReconnectStart,

@@ -1,9 +1,10 @@
-import type { RefObject } from 'react';
-
 import type { Edge, EdgeProps } from '@xyflow/react';
 
 import type { ColorToken } from '@/domains/block-management/shared/types/style-tokens.types';
-import type { EdgeShape } from '@/domains/canvas-management/shared/types/common.types';
+import type {
+  EdgeData,
+  EdgeShape,
+} from '@/domains/canvas-management/shared/types/common.types';
 
 // =============================================================================
 // 1. Atomic Types & Re-exports
@@ -113,7 +114,8 @@ export interface CustomEdgeHookProps {
   sourcePosition: EdgeProps['sourcePosition'];
   targetPosition: EdgeProps['targetPosition'];
   style?: React.CSSProperties;
-  markerEnd?: string;
+  markerEnd?: EdgeProps['markerEnd'];
+  markerStart?: EdgeProps['markerStart'];
   selected: boolean | undefined;
 }
 
@@ -156,7 +158,8 @@ export interface UseCustomEdgeReturn {
 
   // Style props
   style?: React.CSSProperties;
-  markerEnd?: string;
+  markerEnd?: EdgeProps['markerEnd'];
+  markerStart?: EdgeProps['markerStart'];
 
   // Label data
   label: string;
@@ -168,6 +171,7 @@ export interface UseCustomEdgeReturn {
 
 /**
  * Custom Edge Component Props
- * Extends EdgeProps from React Flow
+ * Extends EdgeProps from React Flow with typed data.
+ * EdgeData is defined in @/domains/canvas-management/shared/types/common.types
  */
-export interface CustomEdgeProps extends EdgeProps {}
+export interface CustomEdgeProps extends EdgeProps<Edge<EdgeData>> { }

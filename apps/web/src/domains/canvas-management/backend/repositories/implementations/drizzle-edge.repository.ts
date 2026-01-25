@@ -42,6 +42,8 @@ export class DrizzleEdgeRepository implements EdgeRepository {
           edge_label: edge.edgeLabel,
           edge_style_color: edge.edgeStyle.color,
           edge_style_thickness: edge.edgeStyle.thickness,
+          marker_end: edge.markerEnd,
+          marker_start: edge.markerStart,
           created_at: edge.createdAt,
           updated_at: edge.updatedAt,
           deleted_at: null,
@@ -101,6 +103,8 @@ export class DrizzleEdgeRepository implements EdgeRepository {
           edge_label: edge.edgeLabel,
           edge_style_color: edge.edgeStyle.color,
           edge_style_thickness: edge.edgeStyle.thickness,
+          marker_end: edge.markerEnd,
+          marker_start: edge.markerStart,
           updated_at: edge.updatedAt,
           deleted_at: null,
         })
@@ -213,6 +217,8 @@ export class DrizzleEdgeRepository implements EdgeRepository {
         color: row.edge_style_color || '#9ca3af',
         thickness: row.edge_style_thickness || 2,
       }),
+      markerEnd: row.marker_end ?? 'arrow',
+      markerStart: row.marker_start ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     });
