@@ -2,6 +2,7 @@
 
 import type { Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useUIPreferences } from '@/contexts/ui-preferences-context'; // New import
 
 import type { CustomNodeType } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 
@@ -30,9 +31,13 @@ export function CanvasReactFlowWrapper({
     initialEdges,
   });
 
+  const { mouseSensitivity } = useUIPreferences(); // Consuming context
+
   // View에 Props 전달
   return (
     <ReactFlowView
+      // ... existing props ...
+      panOnScrollSpeed={mouseSensitivity} // Passing the prop
       // react flow state
       nodes={hook.nodes}
       edges={hook.edges}

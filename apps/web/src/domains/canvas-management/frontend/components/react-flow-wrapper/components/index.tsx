@@ -97,6 +97,9 @@ export interface ReactFlowViewProps {
   // Feature flags
   showAIAgent?: boolean;
   showBlockCreation?: boolean;
+
+  // Pan Sensitivity
+  panOnScrollSpeed?: number;
 }
 
 /**
@@ -138,6 +141,7 @@ export function ReactFlowView({
   onSelectBlockType,
   showAIAgent = true,
   showBlockCreation = true,
+  panOnScrollSpeed = 0.5, // Default for React Flow
 }: ReactFlowViewProps) {
 
   return (
@@ -172,6 +176,7 @@ export function ReactFlowView({
           // 트랙패드 제스처 설정 (피그마 스타일)
           panOnDrag={panOnDragEnabled} // 패닝 모드에서는 드래그로 패닝
           panOnScroll={panOnScrollEnabled} // 두 손가락 스크롤로 패닝 (textarea 편집 중 비활성화)
+          panOnScrollSpeed={panOnScrollSpeed} // Sensitivity control here
           zoomOnScroll={false} // 스크롤로 줌 비활성화
           zoomOnPinch={true} // 핀치 제스처로 줌 활성화
           // 이벤트 핸들러 (CM-003, CM-007 추가) - 블록 생성 모드용 override
