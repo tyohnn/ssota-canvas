@@ -97,6 +97,9 @@ export function toReactFlowNode(
  */
 export function toReactFlowEdge(edge: EdgeView): Edge {
   const strokeColor = edge.style?.stroke ?? '#9ca3af';
+  // Migration 이후 기존 row는 marker_end='arrow', marker_start=NULL. 방어적으로 null/undefined 처리.
+  const markerEnd = edge.markerEnd ?? 'arrow';
+  const markerStart = edge.markerStart ?? null;
 
   // Convert marker type to React Flow format
   const convertMarker = (markerType: string | null | undefined) => {
@@ -121,8 +124,8 @@ export function toReactFlowEdge(edge: EdgeView): Edge {
     type: 'custom', // 항상 custom 타입 사용 (CustomEdge 컴포넌트 사용)
     label: edge.label,
     style: edge.style,
-    markerEnd: convertMarker(edge.markerEnd),
-    markerStart: convertMarker(edge.markerStart),
+    markerEnd: convertMarker(markerEnd),
+    markerStart: convertMarker(markerStart),
     data: {
       edgeId: edge.edgeId,
       actualEdgeShape: edge.edgeShape || 'default', // 실제 엣지 모양 저장
@@ -130,8 +133,8 @@ export function toReactFlowEdge(edge: EdgeView): Edge {
       createdAt: edge.createdAt,
       updatedAt: edge.updatedAt,
       // Store marker types for custom rendering
-      markerEndType: edge.markerEnd,
-      markerStartType: edge.markerStart,
+      markerEndType: markerEnd,
+      markerStartType: markerStart,
     },
   };
 }
