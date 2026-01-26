@@ -1,3 +1,23 @@
+## [0.10.0] - 2026-01-26
+
+### ♻️ Refactoring
+
+- Extract supabase realtime to domain and optimize unread count hook
+- 리뷰 피드백 반영 - console.log 제거 및 useUnreadCount 훅 삭제
+
+### ✨ Features
+
+- Add edge custom marker
+
+### 🐛 Bug Fixes
+
+- Not working unpublish page update
+- Defense migration error
+- Edge toolbar visible threshold
+
+### 📚 Documentation
+
+- Initiate sprint docs
 ## [0.9.3] - 2026-01-23
 ## [0.9.2] - 2026-01-23
 
