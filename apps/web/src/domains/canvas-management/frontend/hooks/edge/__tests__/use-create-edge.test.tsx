@@ -74,6 +74,8 @@ describe('useCreateEdge', () => {
     sourceHandle,
     targetHandle,
     edgeShape: 'default',
+    markerEnd: 'arrow',
+    markerStart: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

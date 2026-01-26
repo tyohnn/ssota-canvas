@@ -1,4 +1,5 @@
 import type { BuiltInEdge, BuiltInNode, Edge, Node } from '@xyflow/react';
+import { MarkerType } from '@xyflow/react';
 
 import {
   BaseNodeData,
@@ -92,8 +93,28 @@ export function toReactFlowNode(
  * EdgeView를 React Flow Edge로 변환
  *
  * ⚠️ Schema Change: edges now use block_mount IDs (React Flow node IDs)
+ * markerStart = path 시작 = source, markerEnd = path 끝 = target
  */
 export function toReactFlowEdge(edge: EdgeView): Edge {
+  const strokeColor = edge.style?.stroke ?? '#9ca3af';
+  // Migration 이후 기존 row는 marker_end='arrow', marker_start=NULL. 방어적으로 null/undefined 처리.
+  const markerEnd = edge.markerEnd ?? 'arrow';
+  const markerStart = edge.markerStart ?? null;
+
+  // Convert marker type to React Flow format
+  const convertMarker = (markerType: string | null | undefined) => {
+    if (!markerType || markerType === 'none') return undefined;
+
+    return {
+      type: MarkerType.ArrowClosed, // React Flow default, we override with custom markers
+      width: 20,
+      height: 20,
+      color: strokeColor,
+      // Store the actual marker type for our custom renderer
+      markerType,
+    };
+  };
+
   return {
     id: edge.edgeId,
     source: edge.sourceBlockMountId, // ✅ blockMountId = React Flow node ID
@@ -103,12 +124,17 @@ export function toReactFlowEdge(edge: EdgeView): Edge {
     type: 'custom', // 항상 custom 타입 사용 (CustomEdge 컴포넌트 사용)
     label: edge.label,
     style: edge.style,
+    markerEnd: convertMarker(markerEnd),
+    markerStart: convertMarker(markerStart),
     data: {
       edgeId: edge.edgeId,
       actualEdgeShape: edge.edgeShape || 'default', // 실제 엣지 모양 저장
       pageId: edge.pageId,
       createdAt: edge.createdAt,
       updatedAt: edge.updatedAt,
+      // Store marker types for custom rendering
+      markerEndType: markerEnd,
+      markerStartType: markerStart,
     },
   };
 }
@@ -216,6 +242,24 @@ export function toReactFlowNodeFromCanvasView(
 export function toReactFlowEdgeFromCanvasView(
   edge: CanvasViewData['edges'][0]
 ): Edge {
+  const strokeColor = edge.style?.stroke ?? '#9ca3af';
+  const markerEnd = edge.markerEnd ?? 'arrow';
+  const markerStart = edge.markerStart ?? null;
+
+  // Convert marker type to React Flow format
+  const convertMarker = (markerType: string | null | undefined) => {
+    if (!markerType || markerType === 'none') return undefined;
+
+    return {
+      type: MarkerType.ArrowClosed, // React Flow default, we override with custom markers
+      width: 20,
+      height: 20,
+      color: strokeColor,
+      // Store the actual marker type for our custom renderer
+      markerType,
+    };
+  };
+
   return {
     id: edge.edgeId,
     source: edge.sourceBlockMountId, // ✅ blockMountId = React Flow node ID
@@ -225,10 +269,15 @@ export function toReactFlowEdgeFromCanvasView(
     type: 'custom', // 항상 custom 타입 사용 (CustomEdge 컴포넌트 사용)
     label: edge.label,
     style: edge.style,
+    markerEnd: convertMarker(markerEnd),
+    markerStart: convertMarker(markerStart),
     data: {
       edgeId: edge.edgeId,
       actualEdgeShape: edge.edgeShape || 'default', // 실제 엣지 모양 저장
       pageId: edge.pageId,
+      // Store marker types for custom rendering
+      markerEndType: markerEnd,
+      markerStartType: markerStart,
     },
   };
 }

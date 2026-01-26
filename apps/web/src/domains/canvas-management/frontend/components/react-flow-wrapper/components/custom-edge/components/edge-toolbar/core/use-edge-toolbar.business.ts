@@ -6,6 +6,7 @@ import type {
   EdgeShape,
   EdgeToolbarBusinessLogic,
   EdgeWidth,
+  MarkerValue,
   ThemeDependencies,
 } from './types';
 
@@ -14,7 +15,12 @@ import type {
  * Makes actual API calls and updates domain state
  */
 export function useEdgeToolbarBusiness(
-  { updateEdgeShape, updateEdgeStyle, deleteEdge }: DomainDependencies,
+  {
+    updateEdgeShape,
+    updateEdgeStyle,
+    updateEdgeMarker,
+    deleteEdge,
+  }: DomainDependencies,
   { theme, getHexColor, getHexColorDark }: ThemeDependencies
 ): EdgeToolbarBusinessLogic {
   const updateShape = useCallback(
@@ -53,6 +59,17 @@ export function useEdgeToolbarBusiness(
     [updateEdgeStyle]
   );
 
+  const updateMarker = useCallback(
+    async (
+      edgeId: string,
+      marker: 'start' | 'end',
+      value: MarkerValue
+    ): Promise<boolean> => {
+      return await updateEdgeMarker({ edgeId, marker, value });
+    },
+    [updateEdgeMarker]
+  );
+
   const deleteEdgeHandler = useCallback(
     async (edgeId: string): Promise<boolean> => {
       return await deleteEdge({ edgeId });
@@ -64,6 +81,7 @@ export function useEdgeToolbarBusiness(
     updateShape,
     updateColor,
     updateWidth,
+    updateMarker,
     deleteEdge: deleteEdgeHandler,
   };
 }
@@ -100,6 +118,19 @@ export function useMockEdgeToolbarBusiness(): EdgeToolbarBusinessLogic {
     []
   );
 
+  const updateMarker = useCallback(
+    async (
+      _edgeId: string,
+      _marker: 'start' | 'end',
+      _value: MarkerValue
+    ): Promise<boolean> => {
+      console.log('[Mock] Updating edge marker:', _marker, _value);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return true;
+    },
+    []
+  );
+
   const deleteEdgeHandler = useCallback(
     async (edgeId: string): Promise<boolean> => {
       console.log('[Mock] Deleting edge:', edgeId);
@@ -113,6 +144,7 @@ export function useMockEdgeToolbarBusiness(): EdgeToolbarBusinessLogic {
     updateShape,
     updateColor,
     updateWidth,
+    updateMarker,
     deleteEdge: deleteEdgeHandler,
   };
 }

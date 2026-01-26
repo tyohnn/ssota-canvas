@@ -45,6 +45,8 @@ export interface EdgeData extends Record<string, unknown> {
   pageId: string;
   createdAt?: string;
   updatedAt?: string;
+  markerEndType?: string;
+  markerStartType?: string;
 }
 
 export type EdgeShape =

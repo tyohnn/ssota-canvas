@@ -156,6 +156,8 @@ export class CanvasQueryService implements ICanvasQueryService {
             edgeShape: edge.edgeShape.value,
             label: edge.edgeLabel || '',
             style: edge.style,
+            markerEnd: edge.markerEnd,
+            markerStart: edge.markerStart,
             createdAt: edge.createdAt.toISOString(),
             updatedAt: edge.updatedAt.toISOString(),
           };

@@ -73,6 +73,10 @@ export interface ReactFlowViewProps {
   onPaneClick: (event: React.MouseEvent) => void;
 
   // Event handlers - Edge
+  onConnectStart: (
+    event: MouseEvent | TouchEvent,
+    params: { nodeId: string | null; handleId: string | null }
+  ) => void;
   onConnect: (connection: any) => void | Promise<void>;
   onReconnect: (oldEdge: Edge, newConnection: any) => void | Promise<boolean>;
   onReconnectStart: () => void;
@@ -124,6 +128,7 @@ export function ReactFlowView({
   onNodeClick,
   onSelectionChange,
   onPaneClick,
+  onConnectStart,
   onConnect,
   onReconnect,
   onReconnectStart,
@@ -181,6 +186,7 @@ export function ReactFlowView({
           onNodeDragStart={onNodeDragStart}
           onNodeDrag={onNodeDrag}
           onNodeDragStop={onNodeDragStop}
+          onConnectStart={onConnectStart}
           onConnect={onConnect}
           onReconnect={onReconnect}
           onReconnectStart={onReconnectStart}

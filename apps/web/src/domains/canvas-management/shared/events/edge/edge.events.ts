@@ -1,4 +1,5 @@
 import { PageId } from '../../../../workspace-management/shared/value-objects/page-id.vo';
+import type { MarkerType } from '../../types/marker-type';
 import { BlockMountId } from '../../value-objects/block-mount-id.vo';
 import { EdgeHandle } from '../../value-objects/edge-handle.vo';
 import { EdgeId } from '../../value-objects/edge-id.vo';
@@ -21,7 +22,7 @@ export class EdgeCreatedEvent implements DomainEvent {
       targetHandle: EdgeHandle;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행
@@ -53,7 +54,7 @@ export class EdgeShapeChangedEvent implements DomainEvent {
       newShape: EdgeShape;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행
@@ -85,7 +86,7 @@ export class EdgeLabelChangedEvent implements DomainEvent {
       newLabel: string;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행
@@ -118,7 +119,7 @@ export class EdgeStyleChangedEvent implements DomainEvent {
       };
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행
@@ -137,6 +138,31 @@ export class EdgeStyleChangedEvent implements DomainEvent {
   }
 }
 
+// EdgeMarkersChangedEvent
+export class EdgeMarkersChangedEvent implements DomainEvent {
+  readonly type = 'EdgeMarkersChanged';
+
+  constructor(
+    public readonly aggregateId: EdgeId,
+    public readonly data: {
+      edgeId: EdgeId;
+      markerEnd: MarkerType;
+      markerStart: MarkerType | null;
+    },
+    public readonly occurredAt: Date
+  ) { }
+
+  async handle(): Promise<void> {
+    // console.log('[Canvas Edge Management] Edge Markers Changed:', {
+    //   edgeId: this.aggregateId.value,
+    //   markerEnd: this.data.markerEnd,
+    //   markerStart: this.data.markerStart,
+    //   occurredAt: this.occurredAt,
+    // });
+    await Promise.allSettled([]);
+  }
+}
+
 // EdgeDeletedEvent
 export class EdgeDeletedEvent implements DomainEvent {
   readonly type = 'EdgeDeleted';
@@ -147,7 +173,7 @@ export class EdgeDeletedEvent implements DomainEvent {
       edgeId: EdgeId;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행

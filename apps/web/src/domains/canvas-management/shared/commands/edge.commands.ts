@@ -1,6 +1,7 @@
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 
+import type { MarkerType } from '../types/marker-type';
 import { BlockMountId } from '../value-objects/block-mount-id.vo';
 import { EdgeHandle } from '../value-objects/edge-handle.vo';
 import { EdgeId } from '../value-objects/edge-id.vo';
@@ -35,6 +36,13 @@ export interface UpdateEdgeStyleCommand {
     stroke?: string;
     strokeWidth?: number;
   };
+  userId: UserId;
+}
+
+export interface UpdateEdgeMarkerCommand {
+  edgeId: EdgeId;
+  marker: 'start' | 'end';
+  value: MarkerType;
   userId: UserId;
 }
 

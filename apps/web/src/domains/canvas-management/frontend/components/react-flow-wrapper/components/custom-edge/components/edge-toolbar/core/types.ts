@@ -29,6 +29,18 @@ export { type ColorToken };
 // =============================================================================
 
 /**
+ * Marker value: supports various marker types (UI and API)
+ */
+export type MarkerValue =
+  | 'none'
+  | 'arrow'
+  | 'arrow-open'
+  | 'circle'
+  | 'circle-open'
+  | 'diamond'
+  | 'diamond-open';
+
+/**
  * Current edge state information
  */
 export interface EdgeState {
@@ -36,6 +48,8 @@ export interface EdgeState {
   colorHex: string;
   colorToken: ColorToken;
   width: number;
+  markerStart: MarkerValue;
+  markerEnd: MarkerValue;
 }
 
 /**
@@ -65,6 +79,7 @@ export interface EdgeColorOption {
   icon: ReactNode;
 }
 
+
 // =============================================================================
 // 3. Dependency Interfaces (External Systems)
 // =============================================================================
@@ -90,6 +105,11 @@ export interface DomainDependencies {
   updateEdgeStyle: (input: {
     edgeId: string;
     style: { stroke?: string; strokeWidth?: number };
+  }) => Promise<boolean>;
+  updateEdgeMarker: (input: {
+    edgeId: string;
+    marker: 'start' | 'end';
+    value: MarkerValue;
   }) => Promise<boolean>;
   deleteEdge: (input: { edgeId: string }) => Promise<boolean>;
 }
@@ -166,6 +186,15 @@ export interface EdgeToolbarBusinessLogic {
    * ```
    */
   updateWidth: (edgeId: string, width: EdgeWidth) => Promise<boolean>;
+
+  /**
+   * Updates one edge marker (start or end)
+   */
+  updateMarker: (
+    edgeId: string,
+    marker: 'start' | 'end',
+    value: MarkerValue
+  ) => Promise<boolean>;
 
   /**
    * Deletes the edge
@@ -282,6 +311,16 @@ export interface UseEdgeToolbarReturn {
    * ```
    */
   handleWidthChange: (width: EdgeWidth) => Promise<void>;
+
+  /**
+   * Handler to update start marker (none | arrow)
+   */
+  handleStartMarkerChange: (value: MarkerValue) => Promise<void>;
+
+  /**
+   * Handler to update end marker (none | arrow)
+   */
+  handleEndMarkerChange: (value: MarkerValue) => Promise<void>;
 
   /**
    * Handler to delete edge

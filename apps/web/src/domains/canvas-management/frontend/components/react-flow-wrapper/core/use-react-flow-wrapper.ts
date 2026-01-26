@@ -546,6 +546,7 @@ export function useReactFlowWrapper(
     onWheel: uiState.onWheel,
 
     // Business Logic callbacks (readonly일 때는 no-op)
+    onConnectStart: readonly ? () => {} : businessLogic.onConnectStart,
     onConnect: readonly ? readonlyOnConnect : businessLogic.onConnect,
     onReconnect: readonly
       ? readonlyOnReconnect

@@ -11,6 +11,190 @@ import { EdgePath } from './edge-path';
 import { EdgeToolbar } from './edge-toolbar';
 
 /**
+ * Check if a marker exists (either as URL string or object)
+ */
+function hasMarker(
+  marker: string | { type?: string; width?: number; height?: number; color?: string } | undefined
+): boolean {
+  if (!marker) return false;
+  if (typeof marker === 'object') return true;
+  if (typeof marker === 'string' && marker.startsWith('url(')) return true;
+  return false;
+}
+
+/**
+ * Custom Marker Components
+ *
+ * Renders SVG marker definitions that can be referenced by edge paths.
+ * This allows us to dynamically change the marker color based on edge state.
+ */
+
+interface MarkerProps {
+  id: string;
+  color: string;
+}
+
+// Closed Arrow (filled triangle)
+function ArrowMarker({ id, color }: MarkerProps): React.JSX.Element {
+  return (
+    <marker
+      id={id}
+      markerWidth="20"
+      markerHeight="20"
+      viewBox="-10 -10 20 20"
+      orient="auto-start-reverse"
+      markerUnits="strokeWidth"
+      refX="0"
+      refY="0"
+    >
+      <polyline
+        stroke={color}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1"
+        fill={color}
+        points="-5,-4 0,0 -5,4 -5,-4"
+      />
+    </marker>
+  );
+}
+
+// Open Arrow (outline only)
+function ArrowOpenMarker({ id, color }: MarkerProps): React.JSX.Element {
+  return (
+    <marker
+      id={id}
+      markerWidth="20"
+      markerHeight="20"
+      viewBox="-10 -10 20 20"
+      orient="auto-start-reverse"
+      markerUnits="strokeWidth"
+      refX="0"
+      refY="0"
+    >
+      <polyline
+        stroke={color}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+        fill="none"
+        points="-5,-4 0,0 -5,4"
+      />
+    </marker>
+  );
+}
+
+// Circle (filled)
+function CircleMarker({ id, color }: MarkerProps): React.JSX.Element {
+  return (
+    <marker
+      id={id}
+      markerWidth="20"
+      markerHeight="20"
+      viewBox="-10 -10 20 20"
+      orient="auto-start-reverse"
+      markerUnits="strokeWidth"
+      refX="0"
+      refY="0"
+    >
+      <circle cx="0" cy="0" r="4" fill={color} stroke={color} strokeWidth="1" />
+    </marker>
+  );
+}
+
+// Circle Open (outline only)
+function CircleOpenMarker({ id, color }: MarkerProps): React.JSX.Element {
+  return (
+    <marker
+      id={id}
+      markerWidth="20"
+      markerHeight="20"
+      viewBox="-10 -10 20 20"
+      orient="auto-start-reverse"
+      markerUnits="strokeWidth"
+      refX="0"
+      refY="0"
+    >
+      <circle cx="0" cy="0" r="4" fill="white" stroke={color} strokeWidth="1.5" />
+    </marker>
+  );
+}
+
+// Diamond (filled)
+function DiamondMarker({ id, color }: MarkerProps): React.JSX.Element {
+  return (
+    <marker
+      id={id}
+      markerWidth="20"
+      markerHeight="20"
+      viewBox="-10 -10 20 20"
+      orient="auto-start-reverse"
+      markerUnits="strokeWidth"
+      refX="0"
+      refY="0"
+    >
+      <polygon
+        points="0,-5 4,0 0,5 -4,0"
+        fill={color}
+        stroke={color}
+        strokeWidth="1"
+      />
+    </marker>
+  );
+}
+
+// Diamond Open (outline only)
+function DiamondOpenMarker({ id, color }: MarkerProps): React.JSX.Element {
+  return (
+    <marker
+      id={id}
+      markerWidth="20"
+      markerHeight="20"
+      viewBox="-10 -10 20 20"
+      orient="auto-start-reverse"
+      markerUnits="strokeWidth"
+      refX="0"
+      refY="0"
+    >
+      <polygon
+        points="0,-5 4,0 0,5 -4,0"
+        fill="white"
+        stroke={color}
+        strokeWidth="1.5"
+      />
+    </marker>
+  );
+}
+
+/**
+ * Render appropriate marker component based on marker type
+ */
+function renderMarker(
+  id: string,
+  color: string,
+  markerType?: string
+): React.JSX.Element {
+  const actualType = markerType || 'arrow';
+
+  switch (actualType) {
+    case 'arrow':
+      return <ArrowMarker id={id} color={color} />;
+    case 'arrow-open':
+      return <ArrowOpenMarker id={id} color={color} />;
+    case 'circle':
+      return <CircleMarker id={id} color={color} />;
+    case 'circle-open':
+      return <CircleOpenMarker id={id} color={color} />;
+    case 'diamond':
+      return <DiamondMarker id={id} color={color} />;
+    case 'diamond-open':
+      return <DiamondOpenMarker id={id} color={color} />;
+    default:
+      return <ArrowMarker id={id} color={color} />;
+  }
+}
+
+/**
  * Custom Edge View Props
  *
  * Flat props structure for better clarity and simplicity
@@ -28,7 +212,10 @@ export type CustomEdgeViewProps = {
   // Visual
   strokeColor: string;
   strokeWidth: number;
-  markerEnd?: string;
+  markerEnd?: string | { type?: string; width?: number; height?: number; color?: string };
+  markerStart?: string | { type?: string; width?: number; height?: number; color?: string };
+  markerEndType?: string;
+  markerStartType?: string;
   style?: React.CSSProperties;
 
   // Label
@@ -59,6 +246,9 @@ export function CustomEdgeView({
   strokeColor,
   strokeWidth,
   markerEnd,
+  markerStart,
+  markerEndType,
+  markerStartType,
   style,
   label,
   isSelected,
@@ -68,14 +258,29 @@ export function CustomEdgeView({
   const { pageId } = useCanvasMetadata();
   const { readonly } = useCanvasReadOnly();
 
+  // Generate unique marker IDs for this edge
+  const markerEndId = `${edgeId}-marker-end`;
+  const markerStartId = `${edgeId}-marker-start`;
+
+  // Check if markers exist
+  const showMarkerEnd = hasMarker(markerEnd);
+  const showMarkerStart = hasMarker(markerStart);
+
   return (
     <>
+      {/* Custom SVG Marker Definitions - rendered inline for dynamic color */}
+      <defs>
+        {showMarkerEnd && renderMarker(markerEndId, strokeColor, markerEndType)}
+        {showMarkerStart && renderMarker(markerStartId, strokeColor, markerStartType)}
+      </defs>
+
       {/* Edge Path */}
       <EdgePath
         edgeId={edgeId}
         path={edgePath}
         forceRenderKey={forceRenderKey}
-        markerEnd={markerEnd}
+        markerEnd={showMarkerEnd ? `url(#${markerEndId})` : undefined}
+        markerStart={showMarkerStart ? `url(#${markerStartId})` : undefined}
         style={{
           ...style,
           strokeWidth,
