@@ -40,14 +40,17 @@ export const GroupBlock = memo(function GroupBlock({
 
   const nodeData = data as GroupBlockNodeData;
   const {
-    size = { width: 500, height: 400 },
+    sizes,
+    viewMode = 'original',
     properties = {},
     isCollisionTarget = false,
   } = nodeData;
 
-  // 노드 크기 설정 (React Flow props 우선, 그 다음 data.size, 마지막 기본값)
-  const width = nodeW || size.width;
-  const height = nodeH || size.height;
+  // 노드 크기 설정 (React Flow props 우선, 그 다음 data.sizes[viewMode], 마지막 기본값)
+  // BaseBlock과 동일한 로직: viewModeSizes를 사용하여 일관성 유지
+  const currentSize = sizes?.[viewMode];
+  const width = nodeW || currentSize?.width || 500;
+  const height = nodeH || currentSize?.height || 400;
 
   const groupBlockProperties = properties as GroupBlockProperties;
 
