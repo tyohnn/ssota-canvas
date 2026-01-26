@@ -121,7 +121,11 @@ export function useCanvasSnapGuides() {
       // 1단계: 거리 기반 필터링 (성능 최적화)
       // 드래그 블럭에서 MAX_SNAP_DISTANCE 이내의 노드만 계산 (절대 좌표 기준)
       const nearbyNodes = nodes.filter(node => {
+        // 드래그 중인 노드 자체 제외
         if (node.id === draggedBlockId) return false;
+
+        // 그룹이 드래그될 때 그룹의 자식 노드들도 제외
+        if (node.parentId === draggedBlockId) return false;
 
         // 절대 좌표로 변환
         const nodeAbsPos = getAbsoluteNodePosition(node, nodes);
