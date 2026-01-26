@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react';
 
 import { Node } from '@xyflow/react';
 
+import { getAbsoluteNodePosition } from '../group/utils/get-absolute-node-position';
+
 export type GuidelineType =
   | 'center-vertical'
   | 'center-horizontal'
@@ -105,22 +107,28 @@ export function useCanvasSnapGuides() {
         return { position: currentPosition, guidelines: [] };
       }
 
-      // 드래그 블럭의 주요 포인트 계산 (현재 position 기준)
-      const draggedLeft = currentPosition.x;
-      const draggedRight = currentPosition.x + draggedWidth;
-      const draggedCenterX = currentPosition.x + draggedWidth / 2;
-      const draggedTop = currentPosition.y;
-      const draggedBottom = currentPosition.y + draggedHeight;
-      const draggedCenterY = currentPosition.y + draggedHeight / 2;
+      // 드래그 블럭의 절대 좌표 계산 (parentId 있으면 상대->절대 변환)
+      const draggedAbsPos = getAbsoluteNodePosition(draggedNode, nodes);
+
+      // 드래그 블럭의 주요 포인트 계산 (절대 좌표 기준)
+      const draggedLeft = draggedAbsPos.x;
+      const draggedRight = draggedAbsPos.x + draggedWidth;
+      const draggedCenterX = draggedAbsPos.x + draggedWidth / 2;
+      const draggedTop = draggedAbsPos.y;
+      const draggedBottom = draggedAbsPos.y + draggedHeight;
+      const draggedCenterY = draggedAbsPos.y + draggedHeight / 2;
 
       // 1단계: 거리 기반 필터링 (성능 최적화)
-      // 드래그 블럭에서 MAX_SNAP_DISTANCE 이내의 노드만 계산
+      // 드래그 블럭에서 MAX_SNAP_DISTANCE 이내의 노드만 계산 (절대 좌표 기준)
       const nearbyNodes = nodes.filter(node => {
         if (node.id === draggedBlockId) return false;
 
+        // 절대 좌표로 변환
+        const nodeAbsPos = getAbsoluteNodePosition(node, nodes);
+
         // 맨해튼 거리로 간단히 체크 (정확한 유클리드 거리보다 빠름)
-        const dx = Math.abs(node.position.x - currentPosition.x);
-        const dy = Math.abs(node.position.y - currentPosition.y);
+        const dx = Math.abs(nodeAbsPos.x - draggedAbsPos.x);
+        const dy = Math.abs(nodeAbsPos.y - draggedAbsPos.y);
 
         return dx <= MAX_SNAP_DISTANCE && dy <= MAX_SNAP_DISTANCE;
       });
@@ -167,12 +175,15 @@ export function useCanvasSnapGuides() {
           return;
         }
 
-        const nodeLeft = node.position.x;
-        const nodeRight = node.position.x + nodeWidth;
-        const nodeCenterX = node.position.x + nodeWidth / 2;
-        const nodeTop = node.position.y;
-        const nodeBottom = node.position.y + nodeHeight;
-        const nodeCenterY = node.position.y + nodeHeight / 2;
+        // 절대 좌표로 변환 (parentId 있으면 상대->절대)
+        const nodeAbsPos = getAbsoluteNodePosition(node, nodes);
+
+        const nodeLeft = nodeAbsPos.x;
+        const nodeRight = nodeAbsPos.x + nodeWidth;
+        const nodeCenterX = nodeAbsPos.x + nodeWidth / 2;
+        const nodeTop = nodeAbsPos.y;
+        const nodeBottom = nodeAbsPos.y + nodeHeight;
+        const nodeCenterY = nodeAbsPos.y + nodeHeight / 2;
 
         // ===== X축 스냅 포인트 수집 =====
 
@@ -398,11 +409,26 @@ export function useCanvasSnapGuides() {
 
       const newGuidelines = Array.from(guidelineMap.values());
 
-      // 9단계: 상태 업데이트
+      // 9단계: 스냅된 위치를 올바른 좌표계로 변환
+      // 드래그 노드가 parentId를 가지면 상대 좌표로 변환, 아니면 절대 좌표 그대로
+      let finalPosition = { x: snappedX, y: snappedY };
+
+      if (draggedNode.parentId) {
+        const parent = nodes.find(n => n.id === draggedNode.parentId);
+        if (parent) {
+          const parentAbsPos = getAbsoluteNodePosition(parent, nodes);
+          finalPosition = {
+            x: snappedX - parentAbsPos.x,
+            y: snappedY - parentAbsPos.y,
+          };
+        }
+      }
+
+      // 10단계: 상태 업데이트
       setGuidelines(newGuidelines);
 
       return {
-        position: { x: snappedX, y: snappedY },
+        position: finalPosition,
         guidelines: newGuidelines,
       };
     },

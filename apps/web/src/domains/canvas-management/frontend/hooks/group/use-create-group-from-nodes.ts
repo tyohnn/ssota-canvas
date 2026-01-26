@@ -6,6 +6,7 @@ import { isFailure } from '@/lib';
 
 import { createGroupFromNodesAction } from '../../../actions/group-node/create-group-from-nodes.action';
 import type { CreateGroupFromNodesRequest } from '../../../shared/dtos/requests';
+import { getAbsoluteNodePosition } from './utils/get-absolute-node-position';
 import type { ReactFlowDependencies } from './types';
 
 export interface UseCreateGroupFromNodesParams {
@@ -23,25 +24,6 @@ interface CreateGroupContext {
     position: { x: number; y: number };
     parentBlockMountId: string | undefined;
   }>;
-}
-
-function getAbsolutePosition(
-  node: Node,
-  getNode: (id: string) => Node | undefined,
-  getNodes: () => Node[]
-): { x: number; y: number } {
-  if (!node.parentId) return node.position;
-  
-  // getNode이 실패하면 getNodes에서 찾기 시도
-  let parent = getNode(node.parentId);
-  if (!parent) {
-    const allNodes = getNodes();
-    parent = allNodes.find(n => n.id === node.parentId);
-  }
-
-  if (!parent) return node.position;
-  const pAbs = getAbsolutePosition(parent, getNode, getNodes);
-  return { x: node.position.x + pAbs.x, y: node.position.y + pAbs.y };
 }
 
 /**
@@ -87,7 +69,8 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
       });
 
       // absolute positions and bbox
-      const absPositions = toGroup.map(n => getAbsolutePosition(n, getNode, getNodes));
+      const allNodes = getNodes();
+      const absPositions = toGroup.map(n => getAbsoluteNodePosition(n, allNodes));
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       toGroup.forEach((n, i) => {
         const a = absPositions[i]!;

@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import type { Node } from '@xyflow/react';
 
+import { getAbsoluteNodePosition } from './utils/get-absolute-node-position';
+
 import type {
   ReactFlowReadonlyDependencies,
   GroupCollisionDependencies,
@@ -70,24 +72,8 @@ export function useGroupCollision(params: UseGroupCollisionParams) {
    */
   const getAbsolutePosition = useCallback(
     (node: Node): { x: number; y: number } => {
-      if (!node.parentId) {
-        return { x: node.position.x, y: node.position.y };
-      }
-
-      // 부모 노드를 찾아서 절대 좌표 계산
       const allNodes = reactFlow.getNodes();
-      const parentNode = allNodes.find(n => n.id === node.parentId);
-
-      if (!parentNode) {
-        return { x: node.position.x, y: node.position.y };
-      }
-
-      // 부모의 절대 좌표 + 자식의 상대 좌표 = 자식의 절대 좌표
-      const parentAbsolute = getAbsolutePosition(parentNode);
-      return {
-        x: parentAbsolute.x + node.position.x,
-        y: parentAbsolute.y + node.position.y,
-      };
+      return getAbsoluteNodePosition(node, allNodes);
     },
     [reactFlow]
   );

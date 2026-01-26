@@ -2,6 +2,8 @@ import { type RefObject, useCallback, useMemo, useRef } from 'react';
 
 import type { Node } from '@xyflow/react';
 
+import { getAbsoluteNodePosition } from '@/domains/canvas-management/frontend/hooks/group/utils/get-absolute-node-position';
+
 import type {
   BlockPosition,
   BoundingBoxBounds,
@@ -36,29 +38,6 @@ export function useSelectionBoundingBoxUILogic({
   // Drag interaction state (UI-only)
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
-
-  // Helper: 부모 노드의 절대 위치를 재귀적으로 계산
-  const getAbsolutePosition = useCallback(
-    (node: Node, allNodes: Node[]): { x: number; y: number } => {
-      if (!node.parentId) {
-        return { x: node.position.x, y: node.position.y };
-      }
-
-      const parentNode = allNodes.find(n => n.id === node.parentId);
-      if (!parentNode) {
-        // 부모가 없으면 현재 위치를 절대 좌표로 간주
-        return { x: node.position.x, y: node.position.y };
-      }
-
-      // 부모의 절대 위치를 재귀적으로 계산
-      const parentAbsPos = getAbsolutePosition(parentNode, allNodes);
-      return {
-        x: parentAbsPos.x + node.position.x,
-        y: parentAbsPos.y + node.position.y,
-      };
-    },
-    []
-  );
 
   // Measure actual size of each node from DOM (only when selection changes)
   const nodesWithSize = useMemo<NodeWithSize[]>(() => {
@@ -102,7 +81,7 @@ export function useSelectionBoundingBoxUILogic({
       }
 
       // 절대 좌표 계산 (부모가 있으면 부모 위치 더하기)
-      const absolutePosition = getAbsolutePosition(node, allNodes);
+      const absolutePosition = getAbsoluteNodePosition(node, allNodes);
 
       return {
         id: node.id,
@@ -111,7 +90,7 @@ export function useSelectionBoundingBoxUILogic({
         actualHeight: height,
       };
     });
-  }, [selectedNodes, getNodes, getAbsolutePosition]);
+  }, [selectedNodes, getNodes]);
 
   // Calculate boundary of selected nodes (considering viewport coordinate system)
   const bounds = useMemo<BoundingBoxBounds | null>(() => {
