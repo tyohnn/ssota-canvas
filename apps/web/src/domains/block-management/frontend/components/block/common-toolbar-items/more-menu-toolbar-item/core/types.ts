@@ -9,6 +9,8 @@ export interface MoreMenuToolbarItemProps {
   blockMountId: string;
   width?: number;
   height?: number;
+  /** 그룹에 포함된 블록일 때 Ungroup 메뉴 표시용 */
+  parentBlockMountId?: string;
 }
 
 export interface MoreMenuBusinessLogic {
@@ -16,6 +18,8 @@ export interface MoreMenuBusinessLogic {
   handleDuplicate: () => Promise<void>;
   handleCreateComponent: () => void;
   handleDelete: () => Promise<void>;
+  /** 그룹에 포함된 블록일 때만 정의됨 */
+  handleUngroup?: () => void | Promise<void>;
 }
 
 export interface DomainDependencies {
@@ -25,6 +29,11 @@ export interface DomainDependencies {
       offsetX: number,
       offsetY: number
     ) => Promise<void>;
+    removeNodeFromGroup: (params: {
+      childBlockMountId: string;
+      parentPosition: { x: number; y: number };
+      childRelativePosition: { x: number; y: number };
+    }) => Promise<void>;
   };
   canvasMode: {
     enterBlockEditingMode: (blockId: string, blockMountId: string) => void;
@@ -32,6 +41,7 @@ export interface DomainDependencies {
   };
   reactFlow: {
     deleteElements: (elements: { nodes: Array<{ id: string }> }) => void;
+    getNode: (id: string) => { id: string; parentId?: string; position: { x: number; y: number } } | undefined;
   };
 }
 

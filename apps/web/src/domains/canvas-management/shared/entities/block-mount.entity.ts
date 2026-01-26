@@ -17,6 +17,7 @@ export class BlockMount {
     public viewModeSizes: ViewModeSizes,
     public zOrder: ZOrder,
     public viewMode: BlockViewMode, // 기본값 제거: 항상 명시적으로 전달
+    public parentBlockMountId: BlockMountId | null = null, // Group 관계
     public readonly createdAt: Date = new Date(),
     public updatedAt: Date = new Date(),
     public deletedAt: Date | null = null
@@ -110,6 +111,7 @@ export class BlockMount {
     viewModeSizes: ViewModeSizes;
     zOrder: ZOrder;
     viewMode: BlockViewMode;
+    parentBlockMountId: BlockMountId | null;
     createdAt: Date;
     updatedAt: Date;
     deletedAt: Date | null;
@@ -122,6 +124,7 @@ export class BlockMount {
       params.viewModeSizes,
       params.zOrder,
       params.viewMode,
+      params.parentBlockMountId,
       params.createdAt,
       params.updatedAt,
       params.deletedAt
@@ -161,6 +164,7 @@ export class BlockMount {
       duplicatedViewModeSizes, // 모든 뷰 모드 크기 복제
       duplicatedZOrder,
       this.viewMode, // View Mode도 복제
+      this.parentBlockMountId, // Group 관계도 복제
       new Date(), // 새로운 생성 시간
       new Date() // 새로운 업데이트 시간
     );

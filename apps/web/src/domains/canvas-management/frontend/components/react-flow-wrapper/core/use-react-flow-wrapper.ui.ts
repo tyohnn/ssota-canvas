@@ -207,15 +207,11 @@ export function useReactFlowWrapperUI(
    * Note: 블록 생성 모드는 canvas-react-flow-wrapper에서 override하여 처리
    */
   const onPaneClick = useCallback(
-    (event: React.MouseEvent) => {
+    (_event: React.MouseEvent) => {
       // 블록 생성 모드는 override에서 처리
       if (canvasMode.isBlockCreationMode()) {
         return;
       }
-
-      // 현재 선택 상태 확인
-      const currentNodes = reactFlow.getNodes();
-      const selectedBeforeCount = currentNodes.filter(n => n.selected).length;
 
       // React Flow 선택 상태를 명시적으로 해제
       reactFlow.setNodes(nodes =>
@@ -224,12 +220,6 @@ export function useReactFlowWrapperUI(
 
       // previousSelectionRef 리셋 (중요! - onSelectionChange와의 race condition 방지)
       previousSelectionRef.current = { count: 0 };
-
-      // 선택 해제 후 상태 확인 (비동기적으로 실행될 수 있으므로 setTimeout 사용)
-      setTimeout(() => {
-        const nodesAfter = reactFlow.getNodes();
-        const selectedAfterCount = nodesAfter.filter(n => n.selected).length;
-      }, 0);
 
       // 기본 모드로 전환
       canvasMode.exitToDefaultMode();

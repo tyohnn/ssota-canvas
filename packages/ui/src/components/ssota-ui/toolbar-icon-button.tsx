@@ -115,7 +115,7 @@ export const ToolbarIconButton = forwardRef<
       size = 'sm',
       tooltipSide = 'bottom',
       tooltipDisabled = false,
-      tooltipOffset = 0,
+      tooltipOffset = 5,
       isActive = false,
       ...props
     },

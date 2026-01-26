@@ -3,6 +3,7 @@ import type { Edge } from '@xyflow/react';
 import { getPublishedPageAction } from '@/domains/share/actions/get-published-page.action';
 import {
   type CustomNodeType,
+  sortNodesForReactFlow,
   toReactFlowEdgeFromCanvasView,
   toReactFlowNodeFromCanvasView,
 } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
@@ -38,9 +39,11 @@ export default async function PublishPage({ params }: PublishPageProps) {
   const initialData = result.data;
 
   // ACL 변환: CanvasViewData → React Flow 초기 데이터 (서버에서 처리)
-  const initialNodes: CustomNodeType[] = initialData.blocks.map(block =>
+  // 부모 노드가 자식보다 먼저 오도록 정렬 (React Flow 요구사항)
+  const unsortedNodes: CustomNodeType[] = initialData.blocks.map(block =>
     toReactFlowNodeFromCanvasView(block)
   );
+  const initialNodes = sortNodesForReactFlow(unsortedNodes);
 
   const initialEdges: Edge[] = (initialData.edges || []).map(edge =>
     toReactFlowEdgeFromCanvasView(edge)

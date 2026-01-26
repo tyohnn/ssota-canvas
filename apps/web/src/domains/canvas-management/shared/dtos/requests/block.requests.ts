@@ -129,6 +129,37 @@ export const UpdateBlockMountViewModeRequestSchema = z.object({
   viewMode: ViewModeSchema,
 });
 
+/**
+ * 노드를 그룹에 추가 요청 (절대→상대 좌표 변환 후 저장)
+ */
+export const AddNodeToGroupRequestSchema = z.object({
+  pageId: z.uuid('Invalid page ID'),
+  childBlockMountId: z.uuid('Invalid child block mount ID'),
+  parentBlockMountId: z.uuid('Invalid parent block mount ID'),
+  childAbsolutePosition: PositionSchema,
+  parentPosition: PositionSchema,
+});
+
+/**
+ * 노드를 그룹에서 분리 요청 (상대→절대 좌표 변환 후 저장)
+ */
+export const RemoveNodeFromGroupRequestSchema = z.object({
+  pageId: z.uuid('Invalid page ID'),
+  childBlockMountId: z.uuid('Invalid child block mount ID'),
+  parentPosition: PositionSchema,
+  childRelativePosition: PositionSchema,
+});
+
+/**
+ * 선택된 노드들로 그룹 생성 요청 스키마
+ */
+export const CreateGroupFromNodesRequestSchema = z.object({
+  pageId: z.uuid('Invalid page ID'),
+  nodeIds: z.array(z.uuid('Invalid node ID')).min(1, 'At least one node is required'),
+  groupTitle: z.string().optional(),
+  groupColor: z.string().optional(),
+});
+
 // Input types (프론트엔드에서 사용)
 export type CreateAndMountBlockRequestInput = z.input<
   typeof CreateAndMountBlockRequestSchema
@@ -150,6 +181,15 @@ export type MoveBlockToPageRequestInput = z.input<
 >;
 export type UpdateBlockMountViewModeRequestInput = z.input<
   typeof UpdateBlockMountViewModeRequestSchema
+>;
+export type AddNodeToGroupRequestInput = z.input<
+  typeof AddNodeToGroupRequestSchema
+>;
+export type RemoveNodeFromGroupRequestInput = z.input<
+  typeof RemoveNodeFromGroupRequestSchema
+>;
+export type CreateGroupFromNodesRequestInput = z.input<
+  typeof CreateGroupFromNodesRequestSchema
 >;
 
 // Output types (서버에서 사용)
@@ -173,4 +213,13 @@ export type MoveBlockToPageRequest = z.output<
 >;
 export type UpdateBlockMountViewModeRequest = z.output<
   typeof UpdateBlockMountViewModeRequestSchema
+>;
+export type AddNodeToGroupRequest = z.output<
+  typeof AddNodeToGroupRequestSchema
+>;
+export type RemoveNodeFromGroupRequest = z.output<
+  typeof RemoveNodeFromGroupRequestSchema
+>;
+export type CreateGroupFromNodesRequest = z.output<
+  typeof CreateGroupFromNodesRequestSchema
 >;

@@ -37,6 +37,7 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar() {
     handleDistribute,
     handleDuplicate,
     handleDelete,
+    handleCreateGroup,
     selectionCount,
     isVisible,
     readonly,
@@ -66,6 +67,7 @@ export const MultiSelectionToolbar = memo(function MultiSelectionToolbar() {
         onDistribute={handleDistribute}
         onDuplicate={handleDuplicate}
         onDelete={handleDelete}
+        onCreateGroup={handleCreateGroup}
         selectedBlockCount={selectionCount}
         readonly={readonly}
       />

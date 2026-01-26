@@ -38,6 +38,7 @@ export const BlockType = {
   GITHUB_PR: 'github_pr' as const,
   REACT_PREVIEW: 'react_preview' as const,
   VERCEL_DEPLOYMENT: 'vercel_deployment' as const,
+  GROUP: 'group' as const,
 } as const;
 
 /**
@@ -66,6 +67,7 @@ export const BLOCK_TYPE_SIZES: Record<
   [BlockType.GITHUB_COMMIT]: { width: 320, height: 160 }, // GitHub 커밋 블록
   [BlockType.REACT_PREVIEW]: { width: 500, height: 400 }, // React 프리뷰 블록
   [BlockType.VERCEL_DEPLOYMENT]: { width: 350, height: 200 }, // Vercel 배포 블록
+  [BlockType.GROUP]: { width: 500, height: 400 }, // 그룹 블록 (Parent-Child 컨테이너)
 } as const;
 
 /**

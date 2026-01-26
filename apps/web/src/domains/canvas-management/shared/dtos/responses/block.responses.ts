@@ -18,6 +18,8 @@ export interface TransformBlockDTO {
   size: Size;
   zOrder: number;
   transformedAt: string;
+  /** Parent-Child: 부모 그룹의 blockMountId (DB: block_mounts.parent_block_mount_id) */
+  parentBlockMountId?: string;
 }
 
 /**

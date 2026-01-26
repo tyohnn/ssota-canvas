@@ -112,6 +112,7 @@ export function useMultiSelectionToolbar(
     alignBlocks: transform.alignBlocks,
     distributeBlocks: transform.distributeBlocks,
     duplicateMultipleBlocksAndMount: lifecycle.duplicateMultipleBlocksAndMount,
+    createGroupFromNodes: lifecycle.createGroupFromNodes,
     exitToDefaultMode,
   };
 
@@ -168,6 +169,14 @@ export function useMultiSelectionToolbar(
     exitToDefaultMode();
   }, [business, selectedBlockIds, exitToDefaultMode]);
 
+  const handleCreateGroup = useCallback(async () => {
+    try {
+      await business.createGroupFromSelectedBlocks(selectedBlockIds);
+    } catch (error) {
+      console.error('Group creation failed:', error);
+    }
+  }, [business, selectedBlockIds]);
+
   const handleEscape = useCallback(() => {
     business.exitSelection();
   }, [business]);
@@ -204,6 +213,7 @@ export function useMultiSelectionToolbar(
     handleDistribute,
     handleDuplicate,
     handleDelete,
+    handleCreateGroup,
     handleEscape,
     selectedBlockIds,
     selectionCount,

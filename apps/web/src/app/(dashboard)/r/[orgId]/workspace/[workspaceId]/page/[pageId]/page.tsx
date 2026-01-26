@@ -5,6 +5,7 @@ import type { Edge } from '@xyflow/react';
 import { getCanvasViewAction } from '@/domains/canvas-management/actions/canvas-query.actions';
 import {
   type CustomNodeType,
+  sortNodesForReactFlow,
   toReactFlowEdgeFromCanvasView,
   toReactFlowNodeFromCanvasView,
 } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
@@ -126,9 +127,11 @@ async function PageContent({
   const canvasViewData = canvasViewResult.data;
 
   // ACL 변환: CanvasViewData → React Flow 초기 데이터
-  const initialNodes: CustomNodeType[] = canvasViewData.blocks.map(block =>
+  // 부모 노드가 자식보다 먼저 오도록 정렬 (React Flow 요구사항)
+  const unsortedNodes: CustomNodeType[] = canvasViewData.blocks.map(block =>
     toReactFlowNodeFromCanvasView(block)
   );
+  const initialNodes = sortNodesForReactFlow(unsortedNodes);
 
   const initialEdges: Edge[] = canvasViewData.edges.map(edge =>
     toReactFlowEdgeFromCanvasView(edge)

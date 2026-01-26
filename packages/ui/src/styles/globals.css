@@ -232,3 +232,18 @@ body {
 .react-flow.hide-default-selection .react-flow__selection {
   display: none !important;
 }
+
+/* React Flow group 노드 기본 스타일 제거 (커스텀 GroupBlock 스타일 사용) */
+.react-flow__node-group,
+.react-flow__node-group.selected,
+.react-flow__node-group.selectable,
+.react-flow__node-group.selectable:focus,
+.react-flow__node-group.selectable:focus-visible {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}

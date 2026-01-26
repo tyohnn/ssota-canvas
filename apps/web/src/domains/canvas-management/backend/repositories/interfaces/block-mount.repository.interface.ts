@@ -50,6 +50,7 @@ export interface BlockMountRepository {
    * 페이지의 BlockMount들과 함께 Block 정보를 JOIN해서 조회
    * @param pageId - 페이지 ID
    * @returns BlockMount와 Block 정보가 포함된 배열
+   * @note parentBlockMountId는 blockMountAggregate.getBlockMount().parentBlockMountId로 접근
    */
   findByPageIdWithBlocks(pageId: PageId): Promise<
     Array<{
@@ -57,4 +58,15 @@ export interface BlockMountRepository {
       blockAggregate: BlockAggregate;
     }>
   >;
+
+  /**
+   * Parent-Child: parent_block_mount_id와 position만 업데이트 (Group 진입/해제용)
+   */
+  updateParentAndPosition(
+    blockMountId: BlockMountId,
+    params: {
+      parentBlockMountId: string | null;
+      position: { x: number; y: number };
+    }
+  ): Promise<void>;
 }

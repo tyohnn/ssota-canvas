@@ -23,6 +23,7 @@ import { PageMentionBlockPropertiesVO } from './page-mention.vo';
 import { LatexBlockPropertiesVO } from './latex.vo';
 import { GithubPrBlockPropertiesVO } from './github-pr.vo';
 import { ReactComponentBlockPropertiesVO } from './react-component.vo';
+import { GroupBlockPropertiesVO } from './group.vo';
 
 /**
  * Block Properties Factory
@@ -111,6 +112,11 @@ export class BlockPropertiesFactory {
     this.registry.set(BlockType.REACT_COMPONENT, () =>
       ReactComponentBlockPropertiesVO.createDefault()
     );
+
+    // Group Block
+    this.registry.set(BlockType.GROUP, () =>
+      GroupBlockPropertiesVO.createDefault()
+    );
   }
 
   /**
@@ -177,6 +183,8 @@ export class BlockPropertiesFactory {
         return GithubPrBlockPropertiesVO.fromJSON(jsonData as any);
       case BlockType.REACT_COMPONENT:
         return ReactComponentBlockPropertiesVO.fromJSON(jsonData as any);
+      case BlockType.GROUP:
+        return GroupBlockPropertiesVO.fromJSON(jsonData as any);
       default:
         throw new Error(
           `Unsupported block type for JSON conversion: ${blockTypeVO.value}`

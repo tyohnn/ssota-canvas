@@ -1,4 +1,4 @@
-import { Copy, Trash2 } from 'lucide-react';
+import { Copy, Trash2, Group } from 'lucide-react';
 
 import { ToolbarIconButton } from '@/components/ssota-ui/toolbar-icon-button';
 import { Box } from '@/components/ui/box';
@@ -20,6 +20,7 @@ export interface ToolbarContentProps {
   onDistribute: (direction: 'horizontal' | 'vertical') => void;
   onDuplicate: () => void | Promise<void>;
   onDelete: () => void | Promise<void>;
+  onCreateGroup: () => void | Promise<void>;
   selectedBlockCount: number;
   readonly?: boolean;
 }
@@ -29,6 +30,7 @@ export function ToolbarContent({
   onDistribute,
   onDuplicate,
   onDelete,
+  onCreateGroup,
   selectedBlockCount,
   readonly,
 }: ToolbarContentProps): React.JSX.Element {
@@ -39,6 +41,13 @@ export function ToolbarContent({
           onAlign={onAlign}
           onDistribute={onDistribute}
           selectedBlockCount={selectedBlockCount}
+        />
+        <ToolbarIconButton
+          icon={<Group className="h-3 w-3" />}
+          tooltip="Create Group"
+          onClick={onCreateGroup}
+          disabled={readonly}
+          tooltipSide="top"
         />
         <ToolbarIconButton
           icon={<Copy className="h-3 w-3" />}

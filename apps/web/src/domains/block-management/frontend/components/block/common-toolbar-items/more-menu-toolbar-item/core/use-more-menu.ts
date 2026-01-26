@@ -34,12 +34,14 @@ export function useMoreMenu(
     pageId,
   });
   const canvasMode = useCanvasModeContext();
-  const { deleteElements } = useReactFlow();
+  const { deleteElements, getNodes } = useReactFlow();
+  const getNode = (id: string) => getNodes().find(n => n.id === id);
 
   // 2. Bundle Dependencies into semantic objects (Separated by concern)
   const domainDependencies: DomainDependencies = {
     blockLifecycle: {
       duplicateBlockAndMount: blockLifecycle.duplicateBlockAndMount,
+      removeNodeFromGroup: blockLifecycle.removeNodeFromGroup,
     },
     canvasMode: {
       enterBlockEditingMode: canvasMode.enterBlockEditingMode,
@@ -47,6 +49,7 @@ export function useMoreMenu(
     },
     reactFlow: {
       deleteElements,
+      getNode,
     },
   };
 

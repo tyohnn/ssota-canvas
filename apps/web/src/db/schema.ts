@@ -104,6 +104,7 @@ export const blockTypeEnum = pgEnum('block_type', [
   'github_pr', // 깃헙 PR 블록
   'react_preview', // 리액트 프리뷰 블록 (Sandbox)
   'vercel_deployment', // Vercel 배포 블록
+  'group', // 그룹 블록 (Parent-Child 컨테이너)
 ]);
 
 export const propertyTypeEnum = pgEnum('property_type', [
@@ -1059,6 +1060,10 @@ export const blockMounts = pgTable(
     block_id: uuid('block_id')
       .notNull()
       .references(() => blocks.id, { onDelete: 'cascade' }),
+    parent_block_mount_id: uuid('parent_block_mount_id').references(
+      (): any => blockMounts.id,
+      { onDelete: 'set null' }
+    ),
     position_x: decimal('position_x', { precision: 10, scale: 2 })
       .notNull()
       .default('0'),
@@ -1355,6 +1360,12 @@ export const blockMountsRelations = relations(blockMounts, ({ one, many }) => ({
     fields: [blockMounts.block_id],
     references: [blocks.id],
   }),
+  parentBlockMount: one(blockMounts, {
+    fields: [blockMounts.parent_block_mount_id],
+    references: [blockMounts.id],
+    relationName: 'parentBlockMount',
+  }),
+  childBlockMounts: many(blockMounts, { relationName: 'parentBlockMount' }),
   sourceEdges: many(edges, { relationName: 'sourceBlockMount' }),
   targetEdges: many(edges, { relationName: 'targetBlockMount' }),
 }));

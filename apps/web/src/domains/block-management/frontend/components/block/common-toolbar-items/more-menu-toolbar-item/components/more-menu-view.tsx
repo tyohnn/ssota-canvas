@@ -9,7 +9,7 @@
 
 'use client';
 
-import { Copy, Edit, EllipsisVertical, Trash2 } from 'lucide-react';
+import { Copy, Edit, EllipsisVertical, Trash2, Ungroup } from 'lucide-react';
 
 import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
 import {
@@ -26,12 +26,16 @@ import type { MoreMenuBusinessLogic } from '../core/types';
 export interface MoreMenuViewProps {
   blockMountId: string;
   business: MoreMenuBusinessLogic;
+  parentBlockMountId?: string;
 }
 
 export function MoreMenuView({
   blockMountId,
   business,
+  parentBlockMountId,
 }: MoreMenuViewProps): React.JSX.Element {
+  const showUngroup = Boolean(parentBlockMountId && business.handleUngroup);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -63,6 +67,13 @@ export function MoreMenuView({
           <Edit className="h-4 w-4 mr-2" />
           Create Component
         </DropdownMenuItem> */}
+
+        {showUngroup && (
+          <DropdownMenuItem onClick={business.handleUngroup}>
+            <Ungroup className="h-4 w-4 mr-2" />
+            Ungroup
+          </DropdownMenuItem>
+        )}
 
         <DropdownMenuSeparator />
 
