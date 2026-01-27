@@ -1,3 +1,28 @@
+## [0.11.0] - 2026-01-27
+
+### ✨ Features
+
+- Add group block and collision group system
+- Group color change option
+
+### 🐛 Bug Fixes
+
+- Area button position calculation
+- Guideline calculation with group
+- Fix: group block size update always default bug
+- unify block size to sizes
+- Group snap guideline calculate its child
+- Fix: wrong coordinate system when updating positions after move node's  group to other group
+- group node's indexing problem
+- also fix multi selection position miscalculation when dragging
+- Build error and warnings
+- Add default note tab
+- Remove always restoring cookie
+- Color option error after optimistic group creation
+
+### 🔧 Maintenance
+
+- Add missing diff
 ## [0.10.0] - 2026-01-26
 
 ### ♻️ Refactoring
