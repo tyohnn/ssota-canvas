@@ -27,7 +27,7 @@ import { withGroupSecureAction } from './secure-action';
  * 7. 페이지 일치 검증
  *
  * @param request - 클라이언트 요청 (런타임 검증 필요)
- * @returns { groupBlockMountId: string } (성공) | Error (실패)
+ * @returns { groupBlockMountId: string; groupBlockId: string } (성공) | Error (실패)
  */
 export const createGroupFromNodesAction = withGroupSecureAction(
   CreateGroupFromNodesRequestSchema,
@@ -53,7 +53,7 @@ export const createGroupFromNodesAction = withGroupSecureAction(
 async function createGroupFromNodesInternal(
   safeDto: CreateGroupFromNodesRequest, // ✅ 이미 검증됨 (SafeDTO)
   context: GroupActionContext // ✅ 검증된 context + nodeAggregates
-): Promise<ActionResult<{ groupBlockMountId: string }>> {
+): Promise<ActionResult<{ groupBlockMountId: string; groupBlockId: string }>> {
   try {
     // 1. Service 의존성 생성
     const blockRepository = new DrizzleBlockRepository();
@@ -87,7 +87,10 @@ async function createGroupFromNodesInternal(
       });
     }
 
-    return ok({ groupBlockMountId: result.value.groupBlockMountId });
+    return ok({ 
+      groupBlockMountId: result.value.groupBlockMountId,
+      groupBlockId: result.value.groupBlockId,
+    });
   } catch (error) {
     console.error('[createGroupFromNodesInternal] Internal error:', error);
     return err('Internal server error', {

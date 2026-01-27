@@ -86,7 +86,7 @@ export function ColorToolbarItem({
       currentValue={currentColor}
       options={COLOR_OPTIONS}
       onValueChange={handleColorChange}
-      tooltip="색상"
+      tooltip="color"
       tooltipSide="top"
       tooltipOffset={5}
       popoverSide="top"
