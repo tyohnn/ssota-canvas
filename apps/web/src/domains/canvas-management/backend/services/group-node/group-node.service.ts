@@ -158,7 +158,7 @@ export async function createGroupFromNodes(
   safeWorkspaceId: WorkspaceId,
   blockRepository: IBlockRepository,
   blockMountRepository: BlockMountRepository
-): Promise<Result<{ groupBlockMountId: string }, Error>> {
+): Promise<Result<{ groupBlockMountId: string; groupBlockId: string }, Error>> {
   try {
 
     // 1. 부모 노드들의 위치 정보 조회 (상대→절대 좌표 변환용)
@@ -271,9 +271,9 @@ export async function createGroupFromNodes(
       return Result.error(groupResult.error);
     }
 
-    const groupBlockMountId = groupResult.value.blockMountAggregate
-      .getBlockMount()
-      .id.value;
+    const groupBlockMount = groupResult.value.blockMountAggregate.getBlockMount();
+    const groupBlockMountId = groupBlockMount.id.value;
+    const groupBlockId = groupBlockMount.blockId.value;
 
     // 5. 각 노드를 그룹의 자식으로 설정 (절대좌표 → 상대좌표 변환)
     await Promise.all(
@@ -292,7 +292,7 @@ export async function createGroupFromNodes(
       })
     );
 
-    return Result.success({ groupBlockMountId });
+    return Result.success({ groupBlockMountId, groupBlockId });
   } catch (error) {
     return Result.error(
       new CanvasManagementError(

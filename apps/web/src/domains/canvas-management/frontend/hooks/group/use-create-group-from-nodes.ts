@@ -34,7 +34,7 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
   const { getNodes, getNode, setNodes } = reactFlow;
 
   return useMutation<
-    { groupBlockMountId: string },
+    { groupBlockMountId: string; groupBlockId: string },
     Error,
     Omit<CreateGroupFromNodesRequest, 'pageId'>,
     CreateGroupContext | undefined
@@ -186,8 +186,9 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
         return next;
       });
     },
-    onSuccess: (data: { groupBlockMountId: string }, _variables: Omit<CreateGroupFromNodesRequest, 'pageId'>, context: CreateGroupContext | undefined) => {
-      const realId = data.groupBlockMountId;
+    onSuccess: (data: { groupBlockMountId: string; groupBlockId: string }, _variables: Omit<CreateGroupFromNodesRequest, 'pageId'>, context: CreateGroupContext | undefined) => {
+      const groupBlockMountId = data.groupBlockMountId;
+      const groupBlockId = data.groupBlockId;
       if (!context) return;
       setNodes(prev => {
         const updated = prev.map(n => {
@@ -195,17 +196,18 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
             // 그룹 노드의 id와 blockMountId 업데이트, sizes는 optimistic 값 유지
             return { 
               ...n, 
-              id: realId, 
+              id: groupBlockMountId, 
               data: { 
                 ...n.data, 
-                blockMountId: realId,
+                blockMountId: groupBlockMountId,
+                blockId: groupBlockId, // 서버에서 반환한 실제 blockId 사용
                 // sizes는 optimistic 값 유지 (서버에서 저장된 값과 동일해야 함)
                 sizes: n.data.sizes || (n.data.size ? { original: n.data.size } : undefined)
               } 
             };
           }
           if (n.parentId === context.tempGroupId)
-            return { ...n, parentId: realId, data: { ...n.data, parentBlockMountId: realId } };
+            return { ...n, parentId: groupBlockMountId, data: { ...n.data, parentBlockMountId: groupBlockMountId } };
           return n;
         });
 
