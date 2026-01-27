@@ -42,3 +42,6 @@ export * from './react-component';
 
 // Vercel Deployment Block Components
 export * from './vercel-deployment';
+
+// Group Block Components
+export * from './group';

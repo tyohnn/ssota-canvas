@@ -44,6 +44,11 @@ export function ReactFlowStyles() {
         /* 우리 커스텀 호버 스타일 사용 */
       }
 
+      /* 노드가 add-button 등으로 블록 밖으로 나가는 부분이 잘리지 않도록 */
+      .react-flow__node {
+        overflow: visible !important;
+      }
+
       /* ===== Background Pattern ===== */
       .dark .react-flow__background-pattern {
         stroke: rgba(255, 255, 255, 0.05) !important;

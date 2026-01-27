@@ -26,5 +26,11 @@ export function MoreMenuToolbarItem(
   const { business } = useMoreMenu(props);
 
   // Render Presentational component with props
-  return <MoreMenuView blockMountId={props.blockMountId} business={business} />;
+  return (
+    <MoreMenuView
+      blockMountId={props.blockMountId}
+      business={business}
+      parentBlockMountId={props.parentBlockMountId}
+    />
+  );
 }

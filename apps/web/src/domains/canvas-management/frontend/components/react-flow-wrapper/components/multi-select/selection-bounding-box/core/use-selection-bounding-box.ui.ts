@@ -2,6 +2,8 @@ import { type RefObject, useCallback, useMemo, useRef } from 'react';
 
 import type { Node } from '@xyflow/react';
 
+import { getAbsoluteNodePosition } from '@/domains/canvas-management/frontend/hooks/group/utils/get-absolute-node-position';
+
 import type {
   BlockPosition,
   BoundingBoxBounds,
@@ -43,6 +45,9 @@ export function useSelectionBoundingBoxUILogic({
       return [];
     }
 
+    // 모든 노드 가져오기 (부모 찾기용)
+    const allNodes = getNodes();
+
     return selectedNodes.map(node => {
       const element = document.querySelector(`[data-id="${node.id}"]`);
       let width = 0;
@@ -75,14 +80,17 @@ export function useSelectionBoundingBoxUILogic({
           150;
       }
 
+      // 절대 좌표 계산 (부모가 있으면 부모 위치 더하기)
+      const absolutePosition = getAbsoluteNodePosition(node, allNodes);
+
       return {
         id: node.id,
-        position: node.position,
+        position: absolutePosition, // 상대 좌표 대신 절대 좌표 사용
         actualWidth: width,
         actualHeight: height,
       };
     });
-  }, [selectedNodes]);
+  }, [selectedNodes, getNodes]);
 
   // Calculate boundary of selected nodes (considering viewport coordinate system)
   const bounds = useMemo<BoundingBoxBounds | null>(() => {
@@ -150,14 +158,20 @@ export function useSelectionBoundingBoxUILogic({
       isDraggingRef.current = true;
       dragStartRef.current = { x: e.clientX, y: e.clientY };
 
-      const positions = selectedNodes.map(node => ({
-        id: node.id,
-        x: node.position.x,
-        y: node.position.y,
-      }));
+      const allNodes = getNodes();
+
+      // 절대 좌표로 저장 (그룹 내부 노드의 경우 상대 좌표를 절대 좌표로 변환)
+      const positions = selectedNodes.map(node => {
+        const absolutePos = getAbsoluteNodePosition(node, allNodes);
+        return {
+          id: node.id,
+          x: absolutePos.x,
+          y: absolutePos.y,
+        };
+      });
       return positions;
     },
-    [selectedNodes]
+    [selectedNodes, getNodes]
   );
 
   // Move dragging: calculate updated positions based on mouse movement
@@ -176,7 +190,51 @@ export function useSelectionBoundingBoxUILogic({
       const flowDeltaX = deltaX / viewport.zoom;
       const flowDeltaY = deltaY / viewport.zoom;
 
-      // Calculate updated positions for all nodes
+      const allNodes = getNodes();
+      
+      // 그룹과 그룹 내부 노드가 모두 선택된 경우 처리
+      const selectedNodeIds = new Set(initialPositions.map(p => p.id));
+      const selectedNodes = allNodes.filter(n => selectedNodeIds.has(n.id));
+      const selectedGroups = selectedNodes.filter(n => n.type === 'group');
+      const selectedChildren = selectedNodes.filter(n => n.parentId && selectedNodeIds.has(n.parentId));
+
+      // 그룹과 그룹 내부 노드가 모두 선택된 경우: 그룹만 이동, 자식은 상대 좌표 유지
+      if (selectedGroups.length > 0 && selectedChildren.length > 0) {
+        const updated: Array<{ id: string; x: number; y: number }> = [];
+        const groupIds = new Set(selectedGroups.map(g => g.id));
+        
+        initialPositions.forEach(initialPos => {
+          const node = allNodes.find(n => n.id === initialPos.id);
+          if (!node) return;
+          
+          // 그룹 노드: 절대 좌표로 이동
+          if (node.type === 'group') {
+            updated.push({
+              id: initialPos.id,
+              x: initialPos.x + flowDeltaX,
+              y: initialPos.y + flowDeltaY,
+            });
+          }
+          // 그룹 내부 노드: 상대 좌표 유지 (업데이트하지 않음)
+          // 부모 그룹이 이동하면 자동으로 따라감
+          else if (node.parentId && groupIds.has(node.parentId)) {
+            // 상대 좌표 유지 - 업데이트하지 않음
+            return;
+          }
+          // 일반 노드: 절대 좌표로 이동
+          else {
+            updated.push({
+              id: initialPos.id,
+              x: initialPos.x + flowDeltaX,
+              y: initialPos.y + flowDeltaY,
+            });
+          }
+        });
+        
+        return updated;
+      }
+
+      // 일반 케이스: 모든 노드를 절대 좌표로 이동
       const updated = initialPositions.map(initialPos => ({
         id: initialPos.id,
         x: initialPos.x + flowDeltaX,
@@ -184,7 +242,7 @@ export function useSelectionBoundingBoxUILogic({
       }));
       return updated;
     },
-    [viewport.zoom]
+    [viewport.zoom, getNodes]
   );
 
   // End dragging: reset state and calculate changed positions

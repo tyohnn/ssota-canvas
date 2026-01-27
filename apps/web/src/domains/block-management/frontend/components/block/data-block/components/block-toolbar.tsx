@@ -153,6 +153,7 @@ export function BlockToolbar({
                   blockMountId={data.blockMountId}
                   width={width}
                   height={height}
+                  parentBlockMountId={data.parentBlockMountId}
                 />
               </>
             )}

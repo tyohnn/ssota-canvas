@@ -6,6 +6,20 @@ import type {
   MoreMenuToolbarItemProps,
 } from './types';
 
+function getAbsolutePosition(
+  node: { parentId?: string; position: { x: number; y: number } },
+  getNode: DomainDependencies['reactFlow']['getNode']
+): { x: number; y: number } {
+  if (!node.parentId) return node.position;
+  const parent = getNode(node.parentId);
+  if (!parent) return node.position;
+  const pAbs = getAbsolutePosition(parent, getNode);
+  return {
+    x: node.position.x + pAbs.x,
+    y: node.position.y + pAbs.y,
+  };
+}
+
 /**
  * Production business logic
  * Makes actual API calls and updates domain state
@@ -52,10 +66,34 @@ export function useMoreMenuBusiness(
     // 3. 서버 액션은 onNodesDelete 콜백에서 처리됨
   }, [canvasMode, reactFlow, props.blockMountId]);
 
+  const handleUngroup = useCallback(() => {
+    const parentId = props.parentBlockMountId;
+    if (!parentId) return;
+
+    const child = reactFlow.getNode(props.blockMountId);
+    const parent = reactFlow.getNode(parentId);
+    if (!child || !parent) return;
+
+    const parentPosition = getAbsolutePosition(parent, reactFlow.getNode);
+    const childRelativePosition = child.position;
+
+    return blockLifecycle.removeNodeFromGroup({
+      childBlockMountId: props.blockMountId,
+      parentPosition,
+      childRelativePosition,
+    });
+  }, [
+    blockLifecycle,
+    props.blockMountId,
+    props.parentBlockMountId,
+    reactFlow,
+  ]);
+
   return {
     handleEdit,
     handleDuplicate,
     handleCreateComponent,
     handleDelete,
+    handleUngroup: props.parentBlockMountId ? handleUngroup : undefined,
   };
 }

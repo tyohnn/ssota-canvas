@@ -77,6 +77,11 @@ export interface DomainDependencies {
   duplicateMultipleBlocksAndMount: (
     blockMountIds: BlockDuplicateInfo[]
   ) => Promise<void>;
+  createGroupFromNodes: (params: {
+    nodeIds: string[];
+    groupTitle?: string;
+    groupColor?: string;
+  }) => Promise<void>;
   exitToDefaultMode: () => void;
 }
 
@@ -86,6 +91,7 @@ export interface DomainDependencies {
 export interface UIStateDependencies {
   selectedNodes: Node[];
   viewport: Viewport;
+  getNodes: () => Node[];
 }
 
 // =============================================================================
@@ -185,6 +191,19 @@ export interface MultiSelectionToolbarBusinessLogic {
   deleteBlocks: (blockIds: string[]) => void;
 
   /**
+   * Creates a group from selected blocks.
+   * Automatically ungroupsany existing groups and creates a new group containing all selected blocks.
+   *
+   * @param selectedBlockIds - Array of selected block IDs
+   * @returns Promise<void> - Resolves when group creation is complete
+   * @example
+   * ```tsx
+   * await business.createGroupFromSelectedBlocks(['block-1', 'block-2']);
+   * ```
+   */
+  createGroupFromSelectedBlocks: (selectedBlockIds: string[]) => Promise<void>;
+
+  /**
    * Exits selection mode and returns to default mode.
    * Deselects all nodes and changes the canvas mode.
    *
@@ -266,6 +285,18 @@ export interface UseMultiSelectionToolbarReturn {
    * ```
    */
   handleDelete: () => Promise<void>;
+
+  /**
+   * Handler to create a group from selected blocks
+   * Automatically ungroups existing groups and creates a new group
+   * @returns Promise<void> - Resolves when group creation is complete
+   * @example
+   * ```tsx
+   * const { handleCreateGroup } = useMultiSelectionToolbar(props);
+   * await handleCreateGroup(); // Create group from selected blocks
+   * ```
+   */
+  handleCreateGroup: () => Promise<void>;
 
   /**
    * Handler to exit selection mode and return to default mode

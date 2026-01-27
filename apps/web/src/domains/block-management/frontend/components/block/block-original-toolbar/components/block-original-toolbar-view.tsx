@@ -125,6 +125,7 @@ export function BlockOriginalToolbarView({
                 blockMountId={blockMountId}
                 width={width}
                 height={height}
+                parentBlockMountId={blockData.parentBlockMountId}
               />
             </>
           )}

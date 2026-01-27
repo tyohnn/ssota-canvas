@@ -2,6 +2,8 @@ import { useCallback } from 'react';
 
 import type { Node } from '@xyflow/react';
 
+import { ColorToken } from '@/domains/block-management/shared/types/style-tokens.types';
+
 import type {
   AlignmentType,
   BlockDuplicateInfo,
@@ -10,6 +12,22 @@ import type {
   FlowDependencies,
   MultiSelectionToolbarBusinessLogic,
 } from './types';
+
+/**
+ * 그룹 색상 팔레트 (Shape 블록과 동일한 색상 토큰 사용)
+ * GRAY를 제외한 모든 색상 중에서 랜덤하게 선택됩니다.
+ */
+const GROUP_COLOR_PALETTE = Object.values(ColorToken).filter(
+  token => token !== ColorToken.GRAY
+);
+
+/**
+ * 랜덤 그룹 색상 선택
+ */
+function getRandomGroupColor(): ColorToken {
+  const randomIndex = Math.floor(Math.random() * GROUP_COLOR_PALETTE.length);
+  return GROUP_COLOR_PALETTE[randomIndex]!;
+}
 
 /**
  * Production 비즈니스 로직
@@ -21,6 +39,7 @@ export function useMultiSelectionToolbarBusiness(
     alignBlocks: alignBlocksTransform,
     distributeBlocks: distributeBlocksTransform,
     duplicateMultipleBlocksAndMount,
+    createGroupFromNodes,
     exitToDefaultMode,
   }: DomainDependencies
 ): MultiSelectionToolbarBusinessLogic {
@@ -89,6 +108,19 @@ export function useMultiSelectionToolbarBusiness(
     [deleteElements]
   );
 
+  const createGroupFromSelectedBlocks = useCallback(
+    async (selectedBlockIds: string[]) => {
+      if (selectedBlockIds.length > 0) {
+        await createGroupFromNodes({
+          nodeIds: selectedBlockIds,
+          groupTitle: 'New Group',
+          groupColor: getRandomGroupColor(),
+        });
+      }
+    },
+    [createGroupFromNodes]
+  );
+
   const exitSelection = useCallback(() => {
     // ESC 또는 툴바 외부 클릭 시 선택 해제
     setNodes(nodes => nodes.map(node => ({ ...node, selected: false })));
@@ -101,6 +133,7 @@ export function useMultiSelectionToolbarBusiness(
     duplicateBlocks,
     duplicateSelectedBlocks,
     deleteBlocks,
+    createGroupFromSelectedBlocks,
     exitSelection,
   };
 }
@@ -141,6 +174,14 @@ export function useMockMultiSelectionToolbarBusiness(): MultiSelectionToolbarBus
     console.log('[Mock] Deleting blocks:', blockIds);
   }, []);
 
+  const createGroupFromSelectedBlocks = useCallback(
+    async (selectedBlockIds: string[]) => {
+      console.log('[Mock] Creating group from blocks:', selectedBlockIds);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    },
+    []
+  );
+
   const exitSelection = useCallback(() => {
     console.log('[Mock] Exiting selection');
   }, []);
@@ -151,6 +192,7 @@ export function useMockMultiSelectionToolbarBusiness(): MultiSelectionToolbarBus
     duplicateBlocks,
     duplicateSelectedBlocks,
     deleteBlocks,
+    createGroupFromSelectedBlocks,
     exitSelection,
   };
 }

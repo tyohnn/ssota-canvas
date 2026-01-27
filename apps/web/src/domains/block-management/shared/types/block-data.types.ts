@@ -13,6 +13,7 @@ import {
   GithubBranchBlockProperties,
   GithubCommitBlockProperties,
   GithubPrBlockProperties,
+  GroupBlockProperties,
   ImageBlockProperties,
   LatexBlockProperties,
   LinkBlockProperties,
@@ -61,6 +62,7 @@ type BlockPropertiesMap = {
   github_branch: GithubBranchBlockProperties;
   github_commit: GithubCommitBlockProperties;
   vercel_deployment: VercelDeploymentBlockProperties;
+  group: GroupBlockProperties;
 };
 
 export type BlockProperties<T extends BlockType> =
@@ -75,9 +77,14 @@ export interface BaseNodeData extends Record<string, unknown> {
   title: string;
   viewMode: BlockViewModeValue;
   sizes?: ViewModeSizeMap; // 뷰 모드별 크기 정보 (original, card, note)
+  size?: { width: number; height: number }; // 현재 블록 크기 (GroupBlock 등에서 사용)
   properties: BlockProperties<BlockType>;
   customProperties: CustomPropertyDefinition[];
   content?: unknown; // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
+  /** Parent-Child: 부모 그룹의 blockMountId (DB: block_mounts.parent_block_mount_id) */
+  parentBlockMountId?: string;
+  /** 그룹 collision 시각 피드백용 (UI only, not persisted) */
+  isCollisionTarget?: boolean;
   // 메타데이터
   createdAt?: string;
   updatedAt?: string;
@@ -192,6 +199,12 @@ export interface VercelDeploymentBlockNodeData extends BaseNodeData {
   [key: string]: any; // React Flow Node data constraint
 }
 
+export interface GroupBlockNodeData extends BaseNodeData {
+  blockType: 'group';
+  properties: GroupBlockProperties;
+  [key: string]: any; // React Flow Node data constraint
+}
+
 /**
  * 모든 블록 노드 데이터 타입 유니온
  */
@@ -213,7 +226,8 @@ export type BlockNodeData =
   | ReactComponentBlockNodeData
   | GithubBranchBlockNodeData
   | GithubCommitBlockNodeData
-  | VercelDeploymentBlockNodeData;
+  | VercelDeploymentBlockNodeData
+  | GroupBlockNodeData;
 
 /**
  * 타입 안전한 블록 노드 데이터 빌드 함수

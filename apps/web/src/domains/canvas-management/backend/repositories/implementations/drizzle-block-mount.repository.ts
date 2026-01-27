@@ -43,6 +43,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
           id: currentId,
           page_id: blockMount.pageId.value,
           block_id: blockMount.blockId.value,
+          parent_block_mount_id: blockMount.parentBlockMountId?.value ?? null,
           position_x: String(blockMount.position.x),
           position_y: String(blockMount.position.y),
           view_mode_sizes: blockMount.viewModeSizes.toJSON(),
@@ -97,6 +98,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         .set({
           page_id: blockMount.pageId.value,
           block_id: blockMount.blockId.value,
+          parent_block_mount_id: blockMount.parentBlockMountId?.value ?? null,
           position_x: String(blockMount.position.x),
           position_y: String(blockMount.position.y),
           view_mode_sizes: blockMount.viewModeSizes.toJSON(),
@@ -155,6 +157,24 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       .where(eq(blockMounts.id, blockMountId.value));
   }
 
+  async updateParentAndPosition(
+    blockMountId: BlockMountId,
+    params: {
+      parentBlockMountId: string | null;
+      position: { x: number; y: number };
+    }
+  ): Promise<void> {
+    await adminDb
+      .update(blockMounts)
+      .set({
+        parent_block_mount_id: params.parentBlockMountId,
+        position_x: String(params.position.x),
+        position_y: String(params.position.y),
+        updated_at: new Date(),
+      })
+      .where(eq(blockMounts.id, blockMountId.value));
+  }
+
   async findByPageIdWithBlocks(pageId: PageId): Promise<
     Array<{
       blockMountAggregate: BlockMountAggregate;
@@ -167,6 +187,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         blockMountId: blockMounts.id,
         pageId: blockMounts.page_id,
         blockId: blockMounts.block_id,
+        parentBlockMountId: blockMounts.parent_block_mount_id,
         positionX: blockMounts.position_x,
         positionY: blockMounts.position_y,
         viewModeSizes: blockMounts.view_mode_sizes,
@@ -209,6 +230,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         id: row.blockMountId,
         page_id: row.pageId,
         block_id: row.blockId,
+        parent_block_mount_id: row.parentBlockMountId,
         position_x: row.positionX,
         position_y: row.positionY,
         view_mode_sizes: row.viewModeSizes as ViewModeSizeMap,
@@ -244,6 +266,9 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     const blockMountId = new BlockMountId(row.id);
     const pageId = new PageId(row.page_id);
     const blockId = new BlockId(row.block_id);
+    const parentBlockMountId = row.parent_block_mount_id
+      ? new BlockMountId(row.parent_block_mount_id)
+      : null;
 
     const position = new Position(
       Number(row.position_x),
@@ -267,6 +292,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       viewModeSizes,
       zOrder,
       viewMode,
+      parentBlockMountId,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       deletedAt: row.deleted_at,
@@ -279,6 +305,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     id: string;
     page_id: string;
     block_id: string;
+    parent_block_mount_id: string | null;
     position_x: string;
     position_y: string;
     view_mode_sizes: ViewModeSizeMap; // JSONB (null이면 빈 객체로 변환)
@@ -292,6 +319,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       id: row.id,
       page_id: row.page_id,
       block_id: row.block_id,
+      parent_block_mount_id: row.parent_block_mount_id,
       position_x: row.position_x,
       position_y: row.position_y,
       view_mode_sizes: row.view_mode_sizes,

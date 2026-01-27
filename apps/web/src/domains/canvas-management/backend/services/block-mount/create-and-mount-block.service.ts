@@ -95,14 +95,15 @@ export async function createAndMountBlock(
       : BlockViewMode.create(getDefaultViewMode(blockType));
 
     // 4. 모든 viewMode의 기본 크기 계산 및 ViewModeSizes 생성
-    const originalSize = getBlockSize(blockType);
+    // 전달받은 size를 original viewMode에 사용하고, 다른 viewMode는 기본값 사용
+    const originalSize = sizeVO; // 전달받은 크기 사용 (그룹 생성 시 계산된 크기)
     const cardSize = getBlockSizeForViewMode(blockType, 'card');
     const noteSize = getBlockSizeForViewMode(blockType, 'note');
 
     const viewModeSizes = ViewModeSizes.empty()
       .updateSizeForViewMode(
         'original',
-        new Size(originalSize.width, originalSize.height)
+        originalSize // 전달받은 크기 사용
       )
       .updateSizeForViewMode('card', new Size(cardSize.width, cardSize.height))
       .updateSizeForViewMode('note', new Size(noteSize.width, noteSize.height));
