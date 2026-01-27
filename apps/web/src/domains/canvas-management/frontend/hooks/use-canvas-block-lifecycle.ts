@@ -102,7 +102,7 @@ export function useCanvasBlockLifecycle(
   const { pageId } = params;
 
   // React Flow hooks
-  const { addNodes, deleteElements, getNodes, setNodes } = useReactFlow();
+  const { addNodes, deleteElements, getNodes, setNodes, updateNode } = useReactFlow();
 
   // Canvas Mode hook
   const canvasMode = useCanvasModeContext();
@@ -210,12 +210,14 @@ export function useCanvasBlockLifecycle(
     reactFlow: {
       getNode: (id: string) => getNodes().find(n => n.id === id),
       setNodes,
+      updateNode,
     },
   });
   const removeFromGroupMutation = useRemoveNodeFromGroup({
     reactFlow: {
       getNode: (id: string) => getNodes().find(n => n.id === id),
       setNodes,
+      updateNode,
     },
   });
   const createGroupMutation = useCreateGroupFromNodes({
