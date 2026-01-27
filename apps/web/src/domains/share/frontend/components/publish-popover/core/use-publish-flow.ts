@@ -35,7 +35,6 @@ export function usePublishFlow({ pageId, onPublished }: UsePublishFlowProps) {
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageId]); // getPublishedLink는 useCallback으로 메모이제이션되어 있지만, pageId 변경 시에만 재조회하도록 함
 
   const business = usePublishFlowBusiness({

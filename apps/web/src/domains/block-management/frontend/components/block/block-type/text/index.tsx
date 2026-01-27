@@ -51,9 +51,9 @@ export const TextBlock = memo(function TextBlock({
   const { blockType, size, properties = {} } = nodeData;
 
   // 노드 크기 설정 (React Flow props 우선, 그 다음 data.size, 마지막 기본값)
-  const width = nodeW || size.width;
+  const width = nodeW ?? size?.width ?? 200;
   // 높이는 고정하지 않음 - 콘텐츠에 따라 자동 조정
-  const height = nodeH || size.height;
+  const height = nodeH ?? size?.height ?? 100;
 
   const textBlockProperties = properties as TextBlockProperties;
 

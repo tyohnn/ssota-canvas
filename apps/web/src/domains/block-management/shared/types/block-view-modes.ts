@@ -35,6 +35,7 @@ export const BLOCK_VIEW_MODES: Record<BlockType, BlockViewModeValue[]> = {
   github_pr: ['original'],
   react_preview: ['original'],
   vercel_deployment: ['original'],
+  group: ['original'],
 };
 
 /**
