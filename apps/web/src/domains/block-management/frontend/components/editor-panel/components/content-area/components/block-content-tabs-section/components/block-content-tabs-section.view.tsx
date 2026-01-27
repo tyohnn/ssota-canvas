@@ -55,10 +55,15 @@ export function BlockContentTabsSectionView({
   useEffect(() => {
     loadTabsConfig(blockType).then(config => {
       setTabsConfig(config);
+      // tabsConfig가 null이면 기본 노트뷰 탭 설정 사용
       if (config) {
         const initialTabId = config.defaultTabId || config.tabs[0]?.id || null;
         setSelectedTabId(initialTabId);
         previousTabIdRef.current = initialTabId;
+      } else {
+        // 탭이 없는 블록 타입: 기본 노트뷰 탭만 사용
+        setSelectedTabId('note');
+        previousTabIdRef.current = 'note';
       }
       setLoading(false);
     });
@@ -133,17 +138,34 @@ export function BlockContentTabsSectionView({
     previousTabIdRef.current = selectedTabId;
   }, [selectedTabId]);
 
-  if (loading || !tabsConfig) {
+  if (loading) {
     return <TabsLoadingSkeleton />;
   }
 
+  // tabsConfig가 null이면 기본 노트뷰 탭만 포함하는 설정 생성
+  const defaultNoteTabConfig: BlockEditorTabsConfig = {
+    blockType: blockType,
+    tabs: [
+      {
+        id: 'note',
+        label: 'Note',
+        componentPath: 'note-section',
+        isDefault: true,
+      },
+    ],
+    defaultTabId: 'note',
+  };
+
+  // tabsConfig가 있으면 사용, 없으면 기본 노트뷰 탭 설정 사용
+  const baseConfig = tabsConfig || defaultNoteTabConfig;
+
   // Note 탭이 없으면 마지막에 추가 (config에 정의되지 않은 경우)
-  const hasNoteTab = tabsConfig.tabs.some(tab => tab.id === 'note');
+  const hasNoteTab = baseConfig.tabs.some(tab => tab.id === 'note');
   const effectiveConfig: BlockEditorTabsConfig = {
-    ...tabsConfig,
+    ...baseConfig,
     tabs: hasNoteTab
-      ? tabsConfig.tabs
-      : [...tabsConfig.tabs, { id: 'note', label: 'Note' } as BlockEditorTab],
+      ? baseConfig.tabs
+      : [...baseConfig.tabs, { id: 'note', label: 'Note' } as BlockEditorTab],
   };
 
   const defaultTabId =
