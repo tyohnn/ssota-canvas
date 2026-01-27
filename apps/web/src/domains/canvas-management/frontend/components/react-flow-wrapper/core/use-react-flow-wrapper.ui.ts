@@ -103,7 +103,11 @@ export function useReactFlowWrapperUI(
   const handleNodeDragStopUI = useCallback(
     (event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
       // 1. 단일 블럭인 경우 최종 스냅 위치 계산 및 적용
-      if (draggedNodes.length === 1) {
+      // 중요: parentId가 있는 노드(그룹 내 노드)는 스냅을 건너뜀
+      // - 그룹 내 노드의 position은 부모 기준 상대좌표
+      // - 그룹 간 이동 시 뮤테이션에서 좌표 변환이 별도로 처리됨
+      // - 스냅의 setNodes가 뮤테이션의 updateNode를 덮어쓰는 것을 방지
+      if (draggedNodes.length === 1 && !node.parentId) {
         const currentNodes = reactFlow.getNodes();
         const snapResult = snapGuides.calculateSnapGuides(
           node.id,

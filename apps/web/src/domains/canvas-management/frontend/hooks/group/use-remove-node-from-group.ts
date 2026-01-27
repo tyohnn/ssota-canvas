@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 
 import { isFailure } from '@/lib';
 
@@ -26,7 +26,6 @@ interface RemoveNodeFromGroupContext {
  */
 export function useRemoveNodeFromGroup(params: UseRemoveNodeFromGroupParams) {
   const { reactFlow } = params;
-  const queryClient = useQueryClient();
 
   return useMutation<
     { success: true },
@@ -41,9 +40,10 @@ export function useRemoveNodeFromGroup(params: UseRemoveNodeFromGroupParams) {
       }
       return result.data;
     },
-    onMutate: async (variables) => {
+    onMutate: async (variables: RemoveNodeFromGroupRequest) => {
       // Optimistic update: React Flow 상태 즉시 변경
       const childNode = reactFlow.getNode(variables.childBlockMountId);
+      const parentNode = childNode?.parentId ? reactFlow.getNode(childNode.parentId) : null;
 
       if (!childNode) {
         return { previousNodes: null };
@@ -63,26 +63,41 @@ export function useRemoveNodeFromGroup(params: UseRemoveNodeFromGroupParams) {
       };
 
       // React Flow 노드 업데이트
-      reactFlow.setNodes((nodes) =>
-        nodes.map((node) => {
-          if (node.id === variables.childBlockMountId) {
-            return {
-              ...node,
-              parentId: undefined,
-              position: absolutePosition,
-              data: {
-                ...node.data,
-                parentBlockMountId: undefined,
-              },
-            };
-          }
-          return node;
-        })
-      );
+      // updateNode를 사용하여 직접 업데이트 (setNodes보다 더 즉시 반영됨)
+      if (reactFlow.updateNode) {
+        reactFlow.updateNode(variables.childBlockMountId, {
+          parentId: undefined,
+          position: absolutePosition,
+          data: {
+            ...childNode.data,
+            parentBlockMountId: undefined,
+          },
+        });
+      } else {
+        // Fallback: setNodes 사용
+        reactFlow.setNodes((nodes) => {
+          const updated = nodes.map((node) => {
+            if (node.id === variables.childBlockMountId) {
+              return {
+                ...node,
+                parentId: undefined,
+                position: absolutePosition,
+                data: {
+                  ...node.data,
+                  parentBlockMountId: undefined,
+                },
+              };
+            }
+            return node;
+          });
+
+          return updated;
+        });
+      }
 
       return { previousNodes };
     },
-    onError: (error, variables, context) => {
+    onError: (error: Error, variables: RemoveNodeFromGroupRequest, context: RemoveNodeFromGroupContext | undefined) => {
       // 롤백: 이전 상태로 복원
       if (context?.previousNodes) {
         const { childId, previousParentId, previousPosition } =
@@ -108,11 +123,8 @@ export function useRemoveNodeFromGroup(params: UseRemoveNodeFromGroupParams) {
 
       console.error('Failed to remove node from group:', error);
     },
-    onSuccess: (_, variables) => {
-      // 서버 데이터와 동기화 (최종 확인)
-      queryClient.invalidateQueries({
-        queryKey: ['canvas', variables.pageId],
-      });
+    onSuccess: (data: { success: true }, variables: RemoveNodeFromGroupRequest) => {
+      // Server confirmed - optimistic update already applied
     },
   });
 }

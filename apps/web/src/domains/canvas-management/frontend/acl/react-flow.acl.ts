@@ -58,7 +58,8 @@ export function transformBlockViewToNodeData(
     customProperties: blockView.customProperties,
     content: blockView.content, // JSONB content
     viewMode: blockView.viewMode, // BlockMount의 viewMode
-    sizes: blockView.viewModeSizes, // 뷰 모드별 크기 정보
+    sizes: blockView.viewModeSizes, // 뷰 모드별 크기 정보 (GroupBlock 등에서 사용)
+    size: blockView.size, // 현재 크기 (TextBlock, ShapeBlock 등에서 사용, 레거시)
     parentBlockMountId: blockView.parentBlockMountId,
     createdAt: blockView.createdAt,
     updatedAt: blockView.updatedAt,
@@ -84,10 +85,7 @@ export function toReactFlowNode(
     id: blockMount.blockMountId, // React Flow node ID
     type: block.blockType, // 노드 타입 (커스텀 컴포넌트)
     position: blockMount.position,
-    data: {
-      ...data,
-      size: blockMount.size, // 현재 크기 (GroupBlock 등에서 사용)
-    },
+    data,
     width: blockMount.size.width,
     height: blockMount.size.height,
     zIndex: blockMount.zOrder,
@@ -208,31 +206,12 @@ export function isCustomNodeType(
 export function toReactFlowNodeFromCanvasView(
   block: CanvasViewData['blocks'][0]
 ): CustomNodeType {
+  const data = transformBlockViewToNodeData(block, block.blockMountId);
   const node: Node<BaseNodeData> = {
     id: block.blockMountId,
     type: block.blockType,
     position: block.position,
-    data: {
-      blockMountId: block.blockMountId,
-      blockId: block.blockId,
-      blockType: block.blockType,
-      title: block.title,
-      properties: block.properties,
-      customProperties: block.customProperties,
-      content: block.content, // JSONB content
-      viewMode: block.viewMode, // BlockMount의 viewMode
-      sizes: block.viewModeSizes, // 뷰 모드별 크기 정보
-      size: block.size, // 현재 크기 (GroupBlock 등에서 사용)
-      parentBlockMountId: block.parentBlockMountId,
-      createdAt: block.createdAt,
-      updatedAt: block.updatedAt,
-      createdByProfile: block.createdByProfile || {
-        userId: 'unknown',
-        email: null,
-        name: null,
-        profileImageUrl: null,
-      },
-    },
+    data,
     width: block.size.width,
     height: block.size.height,
     zIndex: block.zOrder,
@@ -250,43 +229,50 @@ export function toReactFlowNodeFromCanvasView(
  * 
  * React Flow에서 parentId가 있는 노드는 해당 부모 노드가 배열에서 먼저 와야
  * 올바르게 상대 좌표로 렌더링됩니다.
+ * 
+ * 그룹 노드는 항상 최상위에 배치하여 어떤 그룹으로 이동하든 부모가 자식보다 앞에 있도록 보장합니다.
  */
-export function sortNodesForReactFlow<T extends { id: string; parentId?: string | null }>(
+export function sortNodesForReactFlow<T extends { id: string; parentId?: string | null; type?: string }>(
   nodes: T[]
 ): T[] {
-  // 1. 부모가 없는 노드들 (루트 노드, 그룹 포함)
-  const rootNodes = nodes.filter(n => !n.parentId);
-  
-  // 2. 부모가 있는 노드들 (자식 노드)
-  const childNodes = nodes.filter(n => n.parentId);
-  
-  // 3. 부모-자식 관계에 따라 정렬
-  // 부모 노드가 먼저 오고, 그 다음 자식 노드들이 오도록
+  // 1. 그룹 노드들 (최상위에 배치)
+  const groupNodes = nodes.filter(n => n.type === 'group');
+
+  // 2. 그룹이 아닌 노드들
+  const nonGroupNodes = nodes.filter(n => n.type !== 'group');
+
+  // 3. 비그룹 노드들을 부모-자식 순서로 정렬
+  // 부모가 없는 노드들 (루트 노드)
+  const rootNodes = nonGroupNodes.filter(n => !n.parentId);
+  // 부모가 있는 노드들 (자식 노드)
+  const childNodes = nonGroupNodes.filter(n => n.parentId);
+
   const result: T[] = [];
   const processed = new Set<string>();
-  
+
   // 재귀적으로 노드와 그 자식들을 추가
   function addNodeWithChildren(node: T) {
     if (processed.has(node.id)) return;
     processed.add(node.id);
     result.push(node);
-    
+
     // 이 노드를 부모로 가지는 자식들 추가
     const children = childNodes.filter(c => c.parentId === node.id);
     children.forEach(child => addNodeWithChildren(child));
   }
-  
+
   // 루트 노드들부터 시작
   rootNodes.forEach(rootNode => addNodeWithChildren(rootNode));
-  
+
   // 혹시 처리되지 않은 노드가 있으면 추가 (orphaned nodes)
-  nodes.forEach(n => {
+  nonGroupNodes.forEach(n => {
     if (!processed.has(n.id)) {
       result.push(n);
     }
   });
-  
-  return result;
+
+  // 그룹 노드들 + 정렬된 비그룹 노드들 반환
+  return [...groupNodes, ...result];
 }
 
 /**

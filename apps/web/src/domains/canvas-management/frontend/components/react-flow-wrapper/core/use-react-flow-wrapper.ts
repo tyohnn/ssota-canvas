@@ -118,6 +118,7 @@ export function useReactFlowWrapper(
 
   const reactFlowInstance = useReactFlow();
 
+
   // =========================================================================
   // 3. Theme
   // =========================================================================
@@ -152,6 +153,7 @@ export function useReactFlowWrapper(
     pageId,
     reactFlow: {
       getNodes: () => reactFlowInstance.getNodes(),
+      setNodes: reactFlowInstance.setNodes,
     },
     groupActions: {
       addNodeToGroup: blockLifecycle.addNodeToGroup,
@@ -449,7 +451,7 @@ export function useReactFlowWrapper(
   // =========================================================================
   // 12. Wrap UI Handlers with Business Logic
   // =========================================================================
-  
+
   // onNodeDrag: 스냅 가이드라인 + 그룹 collision 시각 피드백
   const onNodeDrag = useCallback(
     (event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
@@ -461,7 +463,7 @@ export function useReactFlowWrapper(
       // 2. 그룹 collision 시각 피드백
       const allNodes = reactFlowInstance.getNodes();
       const groupNodes = allNodes.filter(n => n.type === 'group' && !draggedNodes.some(d => d.id === n.id));
-      
+
       // 드래그 중인 노드가 그룹인 경우는 collision 표시 안 함
       const isDraggingGroup = draggedNodes.some(n => n.type === 'group');
       if (isDraggingGroup) {
@@ -633,7 +635,7 @@ export function useReactFlowWrapper(
     onWheel: uiState.onWheel,
 
     // Business Logic callbacks (readonly일 때는 no-op)
-    onConnectStart: readonly ? () => {} : businessLogic.onConnectStart,
+    onConnectStart: readonly ? () => { } : businessLogic.onConnectStart,
     onConnect: readonly ? readonlyOnConnect : businessLogic.onConnect,
     onReconnect: readonly
       ? readonlyOnReconnect

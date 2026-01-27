@@ -167,6 +167,7 @@ export function useGroupCollision(params: UseGroupCollisionParams) {
             })
           )
         );
+
         return true; // 충돌 처리됨
       }
       // Case 2: 같은 그룹에 속했는데 그룹 밖으로 나간 경우 → 모든 노드를 Ungroup
@@ -197,9 +198,53 @@ export function useGroupCollision(params: UseGroupCollisionParams) {
           // 중요: 미리 절대 좌표를 계산해둠 (removeNodeFromGroup 호출 전에)
           const absolutePositions = new Map<string, { x: number; y: number }>();
           draggedNodes.forEach(node => {
-            absolutePositions.set(node.id, getAbsolutePosition(node));
+            const absPos = getAbsolutePosition(node);
+            absolutePositions.set(node.id, absPos);
           });
 
+          // 중요: collidingGroup의 위치도 절대 좌표로 변환 필요 (그룹이 다른 그룹의 자식일 수 있음)
+          const collidingGroupAbsPos = getAbsolutePosition(collidingGroup);
+
+          // 최종 상대 좌표 미리 계산
+          const finalRelativePositions = new Map<string, { x: number; y: number }>();
+          draggedNodes.forEach(node => {
+            const absolutePos = absolutePositions.get(node.id)!;
+            finalRelativePositions.set(node.id, {
+              x: absolutePos.x - collidingGroupAbsPos.x,
+              y: absolutePos.y - collidingGroupAbsPos.y,
+            });
+          });
+
+          // ====================================================================
+          // 그룹 노드는 이미 배열 앞에 있으므로 재정렬 불필요
+          // 자식 노드의 parentId와 position만 업데이트하면 됨
+          // ====================================================================
+          const draggedNodeIds = new Set(draggedNodes.map(n => n.id));
+
+          // 현재 노드 배열을 가져와서 직접 수정
+          const currentNodes = reactFlow.getNodes();
+          
+          // 자식 노드의 parentId와 position만 업데이트
+          const updatedNodes = currentNodes.map(node => {
+            if (draggedNodeIds.has(node.id)) {
+              const finalRelPos = finalRelativePositions.get(node.id)!;
+              return {
+                ...node,
+                parentId: collidingGroup.id,
+                position: finalRelPos,
+                data: {
+                  ...node.data,
+                  parentBlockMountId: collidingGroup.id,
+                },
+              };
+            }
+            return node;
+          });
+
+          // 직접 배열 전달 (콜백 아님) - 동기적 업데이트
+          reactFlow.setNodes(updatedNodes);
+
+          // 서버에 변경사항 저장 (UI는 이미 업데이트됨, 서버 동기화만 수행)
           // 먼저 기존 그룹에서 모든 노드 제거 (병렬 처리)
           await Promise.all(
             draggedNodes.map(node =>
@@ -219,10 +264,11 @@ export function useGroupCollision(params: UseGroupCollisionParams) {
                 childBlockMountId: node.id,
                 parentBlockMountId: collidingGroup.id,
                 childAbsolutePosition: absolutePos,
-                parentPosition: collidingGroup.position,
+                parentPosition: collidingGroupAbsPos,
               });
             })
           );
+
           return true; // 충돌 처리됨
         }
       }

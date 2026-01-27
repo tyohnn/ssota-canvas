@@ -1,5 +1,5 @@
 import type { Node } from '@xyflow/react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { isFailure } from '@/lib';
@@ -32,7 +32,6 @@ interface CreateGroupContext {
 export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
   const { pageId, reactFlow } = params;
   const { getNodes, getNode, setNodes } = reactFlow;
-  const queryClient = useQueryClient();
 
   return useMutation<
     { groupBlockMountId: string },
@@ -40,14 +39,14 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
     Omit<CreateGroupFromNodesRequest, 'pageId'>,
     CreateGroupContext | undefined
   >({
-    mutationFn: async (request) => {
+    mutationFn: async (request: Omit<CreateGroupFromNodesRequest, 'pageId'>) => {
       const result = await createGroupFromNodesAction({ ...request, pageId });
       if (isFailure(result)) {
         throw new Error(result.error || 'Failed to create group from nodes');
       }
       return result.data;
     },
-    onMutate: async (variables) => {
+    onMutate: async (variables: Omit<CreateGroupFromNodesRequest, 'pageId'>) => {
       const nodes = getNodes();
       let toGroup = variables.nodeIds
         .map(id => nodes.find(n => n.id === id))
@@ -71,6 +70,7 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
       // absolute positions and bbox
       const allNodes = getNodes();
       const absPositions = toGroup.map(n => getAbsoluteNodePosition(n, allNodes));
+
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       toGroup.forEach((n, i) => {
         const a = absPositions[i]!;
@@ -94,6 +94,16 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
         parentBlockMountId: (n.data as any)?.parentBlockMountId,
       }));
 
+      // sizes 초기화 (viewModeSizes와 일관성 유지)
+      const viewMode = 'original';
+      const sizes = {
+        [viewMode]: {
+          width: gW,
+          height: gH,
+        },
+        // card, note는 서버에서 기본값으로 설정됨
+      };
+
       const groupNode: Node = {
         id: tempGroupId,
         type: 'group',
@@ -105,7 +115,8 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
           blockId: tempGroupId,
           blockType: BlockType.GROUP,
           title,
-          viewMode: 'original',
+          viewMode,
+          sizes, // viewModeSizes (GroupBlock이 data.sizes를 사용)
           properties: { title, color },
           customProperties: [],
           createdByProfile: { userId: '', email: null, name: null, profileImageUrl: null },
@@ -119,8 +130,8 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
       setNodes(prev => {
         const childNodes = prev.map(n => {
           if (!variables.nodeIds.includes(n.id)) return n;
-          const idx = variables.nodeIds.indexOf(n.id);
-          const abs = absPositions[idx]!;
+          const toGroupIdx = toGroup.findIndex(tn => tn.id === n.id);
+          const abs = absPositions[toGroupIdx]!;
           const rel = { x: abs.x - minX, y: abs.y - minY };
           return {
             ...n,
@@ -136,8 +147,13 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
         const nonGroupedNodes = childNodes.filter(n => !variables.nodeIds.includes(n.id));
         const groupedNodes = childNodes.filter(n => variables.nodeIds.includes(n.id));
         
-        // 순서: [그룹화되지 않은 노드들] + [그룹 노드] + [그룹의 자식 노드들]
-        return [...nonGroupedNodes, groupNode, ...groupedNodes];
+        // 그룹 노드들을 앞에, 비그룹 노드들을 뒤에 배치
+        // 순서: [기존 그룹 노드들] + [새 그룹 노드] + [비그룹 노드들] + [그룹의 자식 노드들]
+        const existingGroups = nonGroupedNodes.filter(n => n.type === 'group');
+        const nonGroups = nonGroupedNodes.filter(n => n.type !== 'group');
+        const finalNodes = [...existingGroups, groupNode, ...nonGroups, ...groupedNodes];
+
+        return finalNodes;
       });
 
       // Step 2: Reselect the nodes with updated data
@@ -153,7 +169,7 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
 
       return { tempGroupId, previousChildren };
     },
-    onError: (_err, _variables, context) => {
+    onError: (_err: Error, _variables: Omit<CreateGroupFromNodesRequest, 'pageId'>, context: CreateGroupContext | undefined) => {
       if (!context) return;
       setNodes(prev => {
         let next = prev.filter(n => n.id !== context.tempGroupId);
@@ -170,19 +186,31 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
         return next;
       });
     },
-    onSuccess: (data, _variables, context) => {
+    onSuccess: (data: { groupBlockMountId: string }, _variables: Omit<CreateGroupFromNodesRequest, 'pageId'>, context: CreateGroupContext | undefined) => {
       const realId = data.groupBlockMountId;
-
       if (!context) return;
-      setNodes(prev =>
-        prev.map(n => {
-          if (n.id === context.tempGroupId)
-            return { ...n, id: realId, data: { ...n.data, blockMountId: realId } };
+      setNodes(prev => {
+        const updated = prev.map(n => {
+          if (n.id === context.tempGroupId) {
+            // 그룹 노드의 id와 blockMountId 업데이트, sizes는 optimistic 값 유지
+            return { 
+              ...n, 
+              id: realId, 
+              data: { 
+                ...n.data, 
+                blockMountId: realId,
+                // sizes는 optimistic 값 유지 (서버에서 저장된 값과 동일해야 함)
+                sizes: n.data.sizes || (n.data.size ? { original: n.data.size } : undefined)
+              } 
+            };
+          }
           if (n.parentId === context.tempGroupId)
             return { ...n, parentId: realId, data: { ...n.data, parentBlockMountId: realId } };
           return n;
-        })
-      );
+        });
+
+        return updated;
+      });
     },
   });
 }

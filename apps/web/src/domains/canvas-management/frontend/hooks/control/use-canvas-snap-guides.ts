@@ -374,8 +374,10 @@ export function useCanvasSnapGuides() {
       ySnapPoints.sort(sortSnapPoints);
 
       // 6단계: 스냅 위치 결정 (가장 가까운 것)
-      let snappedX = currentPosition.x;
-      let snappedY = currentPosition.y;
+      // 중요: snappedX/Y는 항상 절대좌표로 유지해야 함
+      // snapPosition은 절대좌표이므로, 초기값도 절대좌표(draggedAbsPos)로 설정
+      let snappedX = draggedAbsPos.x;
+      let snappedY = draggedAbsPos.y;
 
       const closestXSnap = xSnapPoints[0];
       const closestYSnap = ySnapPoints[0];

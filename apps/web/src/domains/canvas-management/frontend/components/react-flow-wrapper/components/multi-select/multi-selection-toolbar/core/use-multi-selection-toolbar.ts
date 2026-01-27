@@ -120,6 +120,7 @@ export function useMultiSelectionToolbar(
   const uiState = useMultiSelectionToolbarUI({
     selectedNodes,
     viewport,
+    getNodes,
   });
 
   // Prevent pinch zoom on toolbar element (Side effect handled in entry hook)

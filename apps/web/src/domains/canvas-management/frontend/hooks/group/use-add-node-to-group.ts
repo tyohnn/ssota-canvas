@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 
 import { isFailure } from '@/lib';
 
@@ -26,7 +26,6 @@ interface AddNodeToGroupContext {
  */
 export function useAddNodeToGroup(params: UseAddNodeToGroupParams) {
   const { reactFlow } = params;
-  const queryClient = useQueryClient();
 
   return useMutation<
     { success: true },
@@ -41,7 +40,7 @@ export function useAddNodeToGroup(params: UseAddNodeToGroupParams) {
       }
       return result.data;
     },
-    onMutate: async (variables) => {
+    onMutate: async (variables: AddNodeToGroupRequest) => {
       // Optimistic update: React Flow 상태 즉시 변경
       const childNode = reactFlow.getNode(variables.childBlockMountId);
       const parentNode = reactFlow.getNode(variables.parentBlockMountId);
@@ -63,45 +62,58 @@ export function useAddNodeToGroup(params: UseAddNodeToGroupParams) {
         y: variables.childAbsolutePosition.y - variables.parentPosition.y,
       };
 
-      // React Flow 노드 업데이트 (부모가 자식보다 먼저 오도록 정렬)
-      reactFlow.setNodes((nodes) => {
-        // 1. 업데이트된 노드 생성
-        const updatedNodes = nodes.map((node) => {
-          if (node.id === variables.childBlockMountId) {
-            return {
-              ...node,
-              parentId: variables.parentBlockMountId,
-              position: relativePosition,
-              data: {
-                ...node.data,
-                parentBlockMountId: variables.parentBlockMountId,
-              },
-            };
-          }
-          return node;
+      // React Flow 노드 업데이트
+      // updateNode를 사용하여 직접 업데이트 (setNodes보다 더 즉시 반영됨)
+      if (reactFlow.updateNode) {
+        reactFlow.updateNode(variables.childBlockMountId, {
+          parentId: variables.parentBlockMountId,
+          position: relativePosition,
+          data: {
+            ...childNode.data,
+            parentBlockMountId: variables.parentBlockMountId,
+          },
         });
+      } else {
+        // Fallback: setNodes 사용 (부모가 자식보다 먼저 오도록 정렬)
+        reactFlow.setNodes((nodes) => {
+          // 1. 업데이트된 노드 생성
+          const updatedNodes = nodes.map((node) => {
+            if (node.id === variables.childBlockMountId) {
+              return {
+                ...node,
+                parentId: variables.parentBlockMountId,
+                position: relativePosition,
+                data: {
+                  ...node.data,
+                  parentBlockMountId: variables.parentBlockMountId,
+                },
+              };
+            }
+            return node;
+          });
 
-        // 2. 부모가 자식보다 먼저 오도록 재정렬
-        const parentIndex = updatedNodes.findIndex(n => n.id === variables.parentBlockMountId);
-        const childIndex = updatedNodes.findIndex(n => n.id === variables.childBlockMountId);
+          // 2. 부모가 자식보다 먼저 오도록 재정렬
+          const parentIndex = updatedNodes.findIndex(n => n.id === variables.parentBlockMountId);
+          const childIndex = updatedNodes.findIndex(n => n.id === variables.childBlockMountId);
 
-        // 부모가 자식보다 뒤에 있으면 순서 수정
-        if (parentIndex > childIndex && parentIndex !== -1 && childIndex !== -1) {
-          // 자식을 제거하고 부모 바로 뒤에 삽입
-          const [removedChild] = updatedNodes.splice(childIndex, 1);
-          if (removedChild) {
-            // 자식 제거 후 인덱스가 변경되므로 다시 찾음
-            const newParentIndex = updatedNodes.findIndex(n => n.id === variables.parentBlockMountId);
-            updatedNodes.splice(newParentIndex + 1, 0, removedChild);
+          // 부모가 자식보다 뒤에 있으면 순서 수정
+          if (parentIndex > childIndex && parentIndex !== -1 && childIndex !== -1) {
+            // 자식을 제거하고 부모 바로 뒤에 삽입
+            const [removedChild] = updatedNodes.splice(childIndex, 1);
+            if (removedChild) {
+              // 자식 제거 후 인덱스가 변경되므로 다시 찾음
+              const newParentIndex = updatedNodes.findIndex(n => n.id === variables.parentBlockMountId);
+              updatedNodes.splice(newParentIndex + 1, 0, removedChild);
+            }
           }
-        }
 
-        return updatedNodes;
-      });
+          return updatedNodes;
+        });
+      }
 
       return { previousNodes };
     },
-    onError: (error, variables, context) => {
+    onError: (error: Error, variables: AddNodeToGroupRequest, context: AddNodeToGroupContext | undefined) => {
       // 롤백: 이전 상태로 복원
       if (context?.previousNodes) {
         const { childId, previousParentId, previousPosition } =
@@ -127,10 +139,8 @@ export function useAddNodeToGroup(params: UseAddNodeToGroupParams) {
 
       console.error('Failed to add node to group:', error);
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ['canvas', variables.pageId],
-      });
+    onSuccess: (data: { success: true }, variables: AddNodeToGroupRequest) => {
+      // Server confirmed - optimistic update already applied
     },
   });
 }

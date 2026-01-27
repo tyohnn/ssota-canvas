@@ -91,6 +91,7 @@ export interface DomainDependencies {
 export interface UIStateDependencies {
   selectedNodes: Node[];
   viewport: Viewport;
+  getNodes: () => Node[];
 }
 
 // =============================================================================

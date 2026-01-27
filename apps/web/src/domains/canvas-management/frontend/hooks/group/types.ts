@@ -16,14 +16,16 @@ export interface ReactFlowBaseDependencies {
 export interface ReactFlowDependencies {
   getNode: (id: string) => Node | undefined;
   setNodes: (payload: Node[] | ((nodes: Node[]) => Node[])) => void;
+  updateNode?: (id: string, update: Partial<Node> | ((node: Node) => Partial<Node>)) => void;
 }
 
 /**
  * React Flow 의존성 주입을 위한 인터페이스
- * (충돌 감지 훅용 - 읽기 전용)
+ * (충돌 감지 훅용)
  */
 export interface ReactFlowReadonlyDependencies {
   getNodes: () => Node[];
+  setNodes: (payload: Node[] | ((nodes: Node[]) => Node[])) => void;
 }
 
 /**
