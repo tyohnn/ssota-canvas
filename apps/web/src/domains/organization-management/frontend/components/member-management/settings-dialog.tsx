@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Users, UserCircle, Building2, UserPlus } from 'lucide-react';
+import {
+  Settings,
+  Users,
+  UserCircle,
+  Building2,
+  UserPlus,
+  SlidersHorizontal,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,10 +18,12 @@ import {
 import { Button } from '@workspace/ui/components/ui/button';
 import { ScrollArea } from '@workspace/ui/components/ui/scroll-area';
 import { Separator } from '@workspace/ui/components/ui/separator';
+import { Slider } from '@workspace/ui/components/ui/slider';
 import { MemberListTable } from './member-list-table';
 import { InviteMemberDialog } from './invite-member-dialog';
 import { useMemberManagementContext } from '../../contexts/member-management-context';
 import { useMemberManagement } from '../../hooks/use-member-management';
+import { useUIPreferences } from '@/contexts/ui-preferences-context';
 import { cn } from '@workspace/ui/lib/utils';
 
 interface SettingsDialogProps {
@@ -23,7 +32,7 @@ interface SettingsDialogProps {
   organizationId: string;
 }
 
-type SettingsTab = 'general' | 'members' | 'profile';
+type SettingsTab = 'general' | 'members' | 'profile' | 'preferences';
 
 export function SettingsDialog({
   open,
@@ -34,6 +43,7 @@ export function SettingsDialog({
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const { refreshOrganizationMembers } = useMemberManagementContext();
   const { canInviteMembers } = useMemberManagement();
+  const { mouseSensitivity, setMouseSensitivity } = useUIPreferences();
 
   // Load member data when dialog opens
   useEffect(() => {
@@ -44,6 +54,7 @@ export function SettingsDialog({
 
   const tabs = [
     { id: 'general' as const, label: 'General', icon: Building2 },
+    { id: 'preferences' as const, label: 'Preferences', icon: SlidersHorizontal },
     { id: 'members' as const, label: 'Members', icon: Users },
     { id: 'profile' as const, label: 'Profile', icon: UserCircle },
   ];
@@ -95,6 +106,52 @@ export function SettingsDialog({
                     <p className="text-sm text-muted-foreground">
                       Coming soon...
                     </p>
+                  </div>
+                )}
+
+                {activeTab === 'preferences' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-semibold">Preferences</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Customize your interface experience.
+                      </p>
+                    </div>
+                    <Separator />
+
+                    {/* Canvas Pan Sensitivity */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                          Canvas Pan Sensitivity
+                        </label>
+                        <span className="text-sm text-muted-foreground w-8 text-right">
+                          {mouseSensitivity.toFixed(1)}x
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <span className="text-xs text-muted-foreground">
+                          Static
+                        </span>
+                        <Slider
+                          value={[mouseSensitivity]}
+                          min={0.1}
+                          max={2}
+                          step={0.1}
+                          onValueChange={([val]) => val !== undefined && setMouseSensitivity(val)}
+                          className="flex-1"
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          Dynamic
+                        </span>
+                      </div>
+
+                      <p className="text-[0.8rem] text-muted-foreground">
+                        Adjusts the speed of canvas panning when using trackpad or
+                        scroll gestures.
+                      </p>
+                    </div>
                   </div>
                 )}
 
