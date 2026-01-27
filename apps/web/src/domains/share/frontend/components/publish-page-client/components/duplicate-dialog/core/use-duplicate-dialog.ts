@@ -63,7 +63,6 @@ export function useDuplicateDialog({
         ui.setSelectedWorkspaceId(firstWorkspace.id);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ui.selectedWorkspaceId, workspacesByOrg]);
 
   return {

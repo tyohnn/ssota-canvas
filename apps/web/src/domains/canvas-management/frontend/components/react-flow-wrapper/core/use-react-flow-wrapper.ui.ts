@@ -103,7 +103,11 @@ export function useReactFlowWrapperUI(
   const handleNodeDragStopUI = useCallback(
     (event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
       // 1. 단일 블럭인 경우 최종 스냅 위치 계산 및 적용
-      if (draggedNodes.length === 1) {
+      // 중요: parentId가 있는 노드(그룹 내 노드)는 스냅을 건너뜀
+      // - 그룹 내 노드의 position은 부모 기준 상대좌표
+      // - 그룹 간 이동 시 뮤테이션에서 좌표 변환이 별도로 처리됨
+      // - 스냅의 setNodes가 뮤테이션의 updateNode를 덮어쓰는 것을 방지
+      if (draggedNodes.length === 1 && !node.parentId) {
         const currentNodes = reactFlow.getNodes();
         const snapResult = snapGuides.calculateSnapGuides(
           node.id,
@@ -207,15 +211,11 @@ export function useReactFlowWrapperUI(
    * Note: 블록 생성 모드는 canvas-react-flow-wrapper에서 override하여 처리
    */
   const onPaneClick = useCallback(
-    (event: React.MouseEvent) => {
+    (_event: React.MouseEvent) => {
       // 블록 생성 모드는 override에서 처리
       if (canvasMode.isBlockCreationMode()) {
         return;
       }
-
-      // 현재 선택 상태 확인
-      const currentNodes = reactFlow.getNodes();
-      const selectedBeforeCount = currentNodes.filter(n => n.selected).length;
 
       // React Flow 선택 상태를 명시적으로 해제
       reactFlow.setNodes(nodes =>
@@ -224,12 +224,6 @@ export function useReactFlowWrapperUI(
 
       // previousSelectionRef 리셋 (중요! - onSelectionChange와의 race condition 방지)
       previousSelectionRef.current = { count: 0 };
-
-      // 선택 해제 후 상태 확인 (비동기적으로 실행될 수 있으므로 setTimeout 사용)
-      setTimeout(() => {
-        const nodesAfter = reactFlow.getNodes();
-        const selectedAfterCount = nodesAfter.filter(n => n.selected).length;
-      }, 0);
 
       // 기본 모드로 전환
       canvasMode.exitToDefaultMode();

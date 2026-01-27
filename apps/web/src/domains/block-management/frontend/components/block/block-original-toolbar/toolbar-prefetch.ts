@@ -18,6 +18,7 @@ const BLOCK_TOOLBAR_MODULES: Record<string, boolean> = {
   text: true,
   markdown: true,
   shape: true,
+  group: true,
   youtube: true,
   pdf: true,
   image: true,

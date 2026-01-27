@@ -25,6 +25,7 @@ import {
   GitHubCommitBlock,
   ReactComponentBlock,
   VercelDeploymentBlock,
+  GroupBlock,
 } from '@/domains/block-management/frontend/components/block/block-type';
 
 /**
@@ -46,6 +47,7 @@ export const CANVAS_NODE_TYPES: NodeTypes = {
   [BlockType.GITHUB_COMMIT]: GitHubCommitBlock,
   [BlockType.REACT_COMPONENT]: ReactComponentBlock,
   [BlockType.VERCEL_DEPLOYMENT]: VercelDeploymentBlock,
+  [BlockType.GROUP]: GroupBlock,
   // [BlockType.PDF]: PdfBlock, // 임시 제거 - DOMMatrix 에러로 인해
   // GITHUB_PR, REACT_PREVIEW 등은 추후 구현
 };

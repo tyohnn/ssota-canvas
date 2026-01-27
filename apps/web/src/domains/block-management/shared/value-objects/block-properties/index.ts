@@ -45,6 +45,7 @@ export {
   ReactComponentBlockPropertiesVO,
   type ReactComponentBlockProperties,
 } from './react-component.vo';
+export { GroupBlockPropertiesVO, type GroupBlockProperties } from './group.vo';
 export type { GithubBranchBlockProperties } from './github-branch.vo';
 export type { GithubCommitBlockProperties } from './github-commit.vo';
 export type { VercelDeploymentBlockProperties } from './vercel-deployment.vo';

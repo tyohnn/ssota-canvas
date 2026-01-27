@@ -5,9 +5,7 @@ import type { PageTreeNodeDTO } from '@/domains/workspace-management/shared/dtos
 import { findPageAncestors, findPageInTreeHelper } from './tree-helpers';
 import {
   flattenPageTree,
-  getCookieValue,
   getPageCollapsedKey,
-  getRecentPageKey,
 } from './utils';
 
 /**
@@ -121,47 +119,31 @@ export function usePageTreeUI(
   // ========================================
   // 초기화: 선택된 페이지 복원 + 부모 펼치기
   // ========================================
+  // 전역 선택 상태(initialSelectedPageId)가 제공된 경우에만 로컬 선택 상태 설정
+  // 워크스페이스별 자동 선택(fallback) 제거하여 중복 선택 방지
   useEffect(() => {
     if (typeof window === 'undefined' || isInitialized.current) return;
     if (!pages || pages.length === 0) return;
 
     isInitialized.current = true;
 
-    let pageToSelect = initialSelectedPageId;
+    // initialSelectedPageId가 제공된 경우에만 선택 상태 설정
+    // 전역 선택 상태를 단일 소스로 사용
+    if (initialSelectedPageId) {
+      const pageExists = findPageInTreeHelper(pages, initialSelectedPageId);
+      if (pageExists) {
+        setSelectedPageId(initialSelectedPageId);
 
-    if (!pageToSelect) {
-      const recentPageKey = getRecentPageKey(organizationId);
-      const recentPageId = getCookieValue(recentPageKey);
-
-      if (recentPageId) {
-        const pageExists = findPageInTreeHelper(pages, recentPageId);
-        if (pageExists) {
-          pageToSelect = recentPageId;
+        // 부모 페이지들 펼치기
+        const ancestors = findPageAncestors(pages, initialSelectedPageId);
+        if (ancestors && ancestors.length > 0) {
+          ancestors.forEach(ancestorId => {
+            expandPage(ancestorId);
+          });
         }
       }
     }
-
-    if (!pageToSelect && pages.length > 0) {
-      pageToSelect = pages[0]?.id;
-    }
-
-    if (pageToSelect) {
-      const pageExists = findPageInTreeHelper(pages, pageToSelect);
-      if (pageExists) {
-        setSelectedPageId(pageToSelect);
-      }
-    }
-
-    // 부모 페이지들 펼치기
-    if (pageToSelect) {
-      const ancestors = findPageAncestors(pages, pageToSelect);
-      if (ancestors && ancestors.length > 0) {
-        ancestors.forEach(ancestorId => {
-          expandPage(ancestorId);
-        });
-      }
-    }
-  }, [pages, initialSelectedPageId, organizationId, expandPage]);
+  }, [pages, initialSelectedPageId, expandPage]);
 
   return {
     selectedPageId,

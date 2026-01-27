@@ -64,7 +64,8 @@ export class BlockMountAggregate {
       command.position,
       viewModeSizes,
       zOrder,
-      viewMode
+      viewMode,
+      null // 새로 생성되는 블록은 그룹에 속하지 않음
     );
 
     // 5. BlockMounted 이벤트 생성
@@ -258,6 +259,7 @@ export class BlockMountAggregate {
       duplicatedViewModeSizes, // 모든 뷰 모드 크기 유지
       this._blockMount.zOrder,
       this._blockMount.viewMode, // View Mode 유지
+      null, // 페이지 이동 시 그룹 관계 해제
       this._blockMount.createdAt,
       new Date() // updatedAt 갱신
     );

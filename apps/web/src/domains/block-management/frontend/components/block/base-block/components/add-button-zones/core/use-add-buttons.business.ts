@@ -7,8 +7,7 @@
 'use client';
 
 import { useCallback } from 'react';
-
-import { useReactFlow } from '@xyflow/react';
+import type { Node } from '@xyflow/react';
 
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
@@ -19,12 +18,33 @@ import type { HoverDirection } from './types';
 // 블록 생성 간격 (상수) - 경계에서 50px 떨어진 위치
 const BLOCK_ADD_GAP_PX = 50;
 
+/**
+ * 부모 체인을 따라 캔버스(절대) 좌표 계산.
+ * 그룹 안의 노드는 position이 부모 기준 상대 좌표이므로, createAndMountBlock에
+ * 절대 좌표를 넘기기 위해 사용.
+ */
+function getAbsolutePosition(node: Node, getNode: (id: string) => Node | undefined): { x: number; y: number } {
+  if (!node.parentId) return node.position;
+  const parent = getNode(node.parentId);
+  if (!parent) return node.position;
+  const p = getAbsolutePosition(parent, getNode);
+  return { x: p.x + node.position.x, y: p.y + node.position.y };
+}
+
 export type AddButtonDirection = Exclude<HoverDirection, null>;
+
+/**
+ * React Flow 의존성 인터페이스
+ */
+export interface ReactFlowDependencies {
+  getNode: (id: string) => Node | undefined;
+}
 
 export interface UseAddButtonsBusinessOptions {
   data: BlockNodeData;
   width?: number;
   height?: number;
+  reactFlow: ReactFlowDependencies;
 }
 
 export interface UseAddButtonsBusinessReturn {
@@ -35,15 +55,16 @@ export interface UseAddButtonsBusinessReturn {
  * Add Buttons Business Logic Hook
  *
  * 블록 추가 비즈니스 로직만 담당
+ * - 의존성 주입 패턴으로 테스트 가능성 향상
  */
 export function useAddButtonsBusiness(
   options: UseAddButtonsBusinessOptions
 ): UseAddButtonsBusinessReturn {
-  const { data, width, height } = options;
+  const { data, width, height, reactFlow } = options;
+  const { getNode } = reactFlow;
+  
   const canvasMetadata = useCanvasMetadata();
   const { pageId } = canvasMetadata;
-
-  const { getNode } = useReactFlow();
 
   const blockLifecycle = useCanvasBlockLifecycle({
     pageId,
@@ -68,36 +89,23 @@ export function useAddButtonsBusiness(
       const blockWidth = width || currentNode.width || 200;
       const blockHeight = height || currentNode.height || 150;
 
-      // 3. 방향에 맞는 위치 계산 (경계 기준 +100px)
+      // 2.5. 캔버스 절대 좌표 (그룹 안의 노드는 상대 좌표이므로 변환)
+      const base = getAbsolutePosition(currentNode, getNode);
+
+      // 3. 방향에 맞는 위치 계산 (경계 기준 +GAP). 새 블록은 항상 루트(그룹 밖)에 생성.
       let newPosition: { x: number; y: number };
       switch (direction) {
         case 'top':
-          // 위쪽: x는 같고, 상단 경계에서 -100px
-          newPosition = {
-            x: currentNode.position.x,
-            y: currentNode.position.y - blockHeight - BLOCK_ADD_GAP_PX,
-          };
+          newPosition = { x: base.x, y: base.y - blockHeight - BLOCK_ADD_GAP_PX };
           break;
         case 'bottom':
-          // 아래쪽: x는 같고, 하단 경계에서 +100px
-          newPosition = {
-            x: currentNode.position.x,
-            y: currentNode.position.y + blockHeight + BLOCK_ADD_GAP_PX,
-          };
+          newPosition = { x: base.x, y: base.y + blockHeight + BLOCK_ADD_GAP_PX };
           break;
         case 'left':
-          // 왼쪽: y는 같고, 좌측 경계에서 -100px
-          newPosition = {
-            x: currentNode.position.x - blockWidth - BLOCK_ADD_GAP_PX,
-            y: currentNode.position.y,
-          };
+          newPosition = { x: base.x - blockWidth - BLOCK_ADD_GAP_PX, y: base.y };
           break;
         case 'right':
-          // 오른쪽: y는 같고, 우측 경계에서 +100px
-          newPosition = {
-            x: currentNode.position.x + blockWidth + BLOCK_ADD_GAP_PX,
-            y: currentNode.position.y,
-          };
+          newPosition = { x: base.x + blockWidth + BLOCK_ADD_GAP_PX, y: base.y };
           break;
       }
 
@@ -113,7 +121,7 @@ export function useAddButtonsBusiness(
         undefined // title도 복제하지 않음 (기본값 사용)
       );
     },
-    [data, width, height, getNode, blockLifecycle]
+    [data, width, height, reactFlow, blockLifecycle]
   );
 
   return {

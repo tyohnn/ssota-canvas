@@ -54,7 +54,7 @@ export const BaseBlockView = forwardRef<HTMLDivElement, BaseBlockViewProps>(
     return (
       <div
         ref={ref}
-        className={cn('relative w-full h-full min-w-[100px] min-h-[70px]')}
+        className={cn('relative w-full h-full min-w-[100px] min-h-[70px] overflow-visible')}
         style={{
           width: width || 'auto',
           height: height || 'auto',

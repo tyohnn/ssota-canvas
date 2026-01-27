@@ -11,6 +11,8 @@
 
 'use client';
 
+import { useReactFlow } from '@xyflow/react';
+
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
 import { AddButtonZoneView } from './components/add-button-zone-view';
@@ -39,7 +41,15 @@ export function AddButtonZonesContainer({
   setHoverDirection,
 }: AddButtonZonesContainerProps) {
   const uiState = useAddButtonsUI();
-  const { handleAddBlock } = useAddButtonsBusiness({ data, width, height });
+  
+  // React Flow 의존성 주입
+  const { getNode } = useReactFlow();
+  const { handleAddBlock } = useAddButtonsBusiness({ 
+    data, 
+    width, 
+    height,
+    reactFlow: { getNode },
+  });
 
   if (!show) {
     return null;

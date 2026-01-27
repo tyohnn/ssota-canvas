@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 
 import { useTheme } from 'next-themes';
 
@@ -17,6 +17,7 @@ import {
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 import { useCanvasSnapGuides } from '@/domains/canvas-management/frontend/hooks/control/use-canvas-snap-guides';
+import { useGroupCollision } from '@/domains/canvas-management/frontend/hooks/group';
 import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
 import { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-lifecycle';
 import { useCanvasSelection } from '@/domains/canvas-management/frontend/hooks/use-canvas-selection';
@@ -73,6 +74,11 @@ export interface UseReactFlowWrapperReturn
   ) => void;
 
   // Drag callbacks (override UI State)
+  onNodeDrag: (
+    event: React.MouseEvent,
+    node: Node,
+    draggedNodes: Node[]
+  ) => void;
   onNodeDragStop: (
     event: React.MouseEvent,
     node: Node,
@@ -109,7 +115,9 @@ export function useReactFlowWrapper(
   // =========================================================================
   const [nodes, setNode, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdge, onEdgesChange] = useEdgesState(initialEdges);
+
   const reactFlowInstance = useReactFlow();
+
 
   // =========================================================================
   // 3. Theme
@@ -138,6 +146,19 @@ export function useReactFlowWrapper(
 
   const canvasViewport = useCanvasViewport({
     pageId,
+  });
+
+  // Group collision detection (의존성 주입)
+  const groupCollision = useGroupCollision({
+    pageId,
+    reactFlow: {
+      getNodes: () => reactFlowInstance.getNodes(),
+      setNodes: reactFlowInstance.setNodes,
+    },
+    groupActions: {
+      addNodeToGroup: blockLifecycle.addNodeToGroup,
+      removeNodeFromGroup: blockLifecycle.removeNodeFromGroup,
+    },
   });
 
   // =========================================================================
@@ -430,7 +451,62 @@ export function useReactFlowWrapper(
   // =========================================================================
   // 12. Wrap UI Handlers with Business Logic
   // =========================================================================
-  // onNodeDragStop: UI 로직(스냅, 가이드라인) + 서버 저장
+
+  // onNodeDrag: 스냅 가이드라인 + 그룹 collision 시각 피드백
+  const onNodeDrag = useCallback(
+    (event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
+      if (readonly) return;
+
+      // 1. 기존 UI 로직 실행 (스냅 가이드라인 표시)
+      uiState.onNodeDrag(event, node, draggedNodes);
+
+      // 2. 그룹 collision 시각 피드백
+      const allNodes = reactFlowInstance.getNodes();
+      const groupNodes = allNodes.filter(n => n.type === 'group' && !draggedNodes.some(d => d.id === n.id));
+
+      // 드래그 중인 노드가 그룹인 경우는 collision 표시 안 함
+      const isDraggingGroup = draggedNodes.some(n => n.type === 'group');
+      if (isDraggingGroup) {
+        // 모든 그룹의 collision 상태 제거
+        reactFlowInstance.setNodes(prev =>
+          prev.map(n =>
+            n.type === 'group' && (n.data as any)?.isCollisionTarget
+              ? { ...n, data: { ...n.data, isCollisionTarget: false } }
+              : n
+          )
+        );
+        return;
+      }
+
+      // 중심점 계산 (useGroupCollision의 유틸리티 함수 사용)
+      const checkPoint = groupCollision.calculateCentroid(draggedNodes);
+
+      // 충돌하는 그룹 찾기 (useGroupCollision의 유틸리티 함수 사용)
+      let collidingGroupId: string | null = null;
+      for (const g of groupNodes) {
+        if (groupCollision.isPointInsideGroup(checkPoint, g)) {
+          collidingGroupId = g.id;
+          break;
+        }
+      }
+
+      // 그룹 노드들의 isCollisionTarget 상태 업데이트
+      reactFlowInstance.setNodes(prev =>
+        prev.map(n => {
+          if (n.type !== 'group') return n;
+          const shouldHighlight = n.id === collidingGroupId;
+          const currentHighlight = (n.data as any)?.isCollisionTarget === true;
+          if (shouldHighlight !== currentHighlight) {
+            return { ...n, data: { ...n.data, isCollisionTarget: shouldHighlight } };
+          }
+          return n;
+        })
+      );
+    },
+    [readonly, uiState, reactFlowInstance, groupCollision]
+  );
+
+  // onNodeDragStop: UI 로직(스냅, 가이드라인) + Collision 감지 + 서버 저장
   const onNodeDragStop = useCallback(
     async (
       event: React.MouseEvent,
@@ -445,16 +521,29 @@ export function useReactFlowWrapper(
       // 1. UI 로직 먼저 실행 (스냅 적용, 가이드라인 숨김, 모드 변경)
       uiState.handleNodeDragStopUI(event, node, draggedNodes);
 
-      // 2. 서버 저장
-      // node.id는 이미 blockMountId이므로 직접 사용
-      const blockPositions = draggedNodes.map(draggedNode => ({
-        blockMountId: draggedNode.id,
-        position: draggedNode.position,
-      }));
+      // 2. 모든 그룹의 collision 하이라이트 제거
+      reactFlowInstance.setNodes(prev =>
+        prev.map(n =>
+          n.type === 'group' && (n.data as any)?.isCollisionTarget
+            ? { ...n, data: { ...n.data, isCollisionTarget: false } }
+            : n
+        )
+      );
 
-      await blockTransform.updateBlockPosition({ blockPositions });
+      // 3. Collision Detection (다중 선택의 중심점 기준으로 처리)
+      const collisionHandled = await groupCollision.handleNodeDragStop(draggedNodes);
+
+      // 4. 서버 저장 (collision이 처리되지 않은 경우만)
+      if (!collisionHandled) {
+        const blockPositions = draggedNodes.map(draggedNode => ({
+          blockMountId: draggedNode.id,
+          position: draggedNode.position,
+        }));
+
+        await blockTransform.updateBlockPosition({ blockPositions });
+      }
     },
-    [readonly, uiState, blockTransform]
+    [readonly, uiState, blockTransform, groupCollision, reactFlowInstance]
   );
 
   // readonly일 때 편집 관련 핸들러를 no-op으로 처리
@@ -536,7 +625,7 @@ export function useReactFlowWrapper(
 
     // Drag callbacks
     onNodeDragStart: uiState.onNodeDragStart,
-    onNodeDrag: uiState.onNodeDrag,
+    onNodeDrag, // collision 시각 피드백 포함
     onNodeDragStop, // 래핑된 버전 사용
 
     // Selection callbacks
@@ -546,7 +635,7 @@ export function useReactFlowWrapper(
     onWheel: uiState.onWheel,
 
     // Business Logic callbacks (readonly일 때는 no-op)
-    onConnectStart: readonly ? () => {} : businessLogic.onConnectStart,
+    onConnectStart: readonly ? () => { } : businessLogic.onConnectStart,
     onConnect: readonly ? readonlyOnConnect : businessLogic.onConnect,
     onReconnect: readonly
       ? readonlyOnReconnect

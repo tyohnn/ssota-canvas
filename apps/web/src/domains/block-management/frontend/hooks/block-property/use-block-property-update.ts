@@ -278,15 +278,18 @@ export function useUpdateBlockProperty(
       value: T,
       blockData: BlockNodeData
     ): Promise<void> => {
+      // 그룹 생성 직후 blockId가 임시 ID일 수 있으므로, 최신 노드 데이터에서 blockId를 가져옴
+      const latestNode = getNode(blockData.blockMountId);
+      const actualBlockId: string = (latestNode?.data?.blockId ?? blockData.blockId ?? blockId) as string;
       await propertyMutation.mutateAsync({
-        blockId,
+        blockId: actualBlockId, // 최신 노드 데이터의 blockId 사용
         propertyPath,
         value,
         blockMountId: blockData.blockMountId, // onMutate에서만 사용
         blockData, // onMutate에서만 사용
       });
     },
-    [propertyMutation]
+    [propertyMutation, getNode]
   );
 
   const updateProperties = useCallback(

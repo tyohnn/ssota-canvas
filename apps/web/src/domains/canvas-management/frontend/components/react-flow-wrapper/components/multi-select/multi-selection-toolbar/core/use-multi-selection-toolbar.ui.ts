@@ -1,5 +1,7 @@
 import { type RefObject, useMemo, useRef } from 'react';
 
+import { getAbsoluteNodePosition } from '@/domains/canvas-management/frontend/hooks/group/utils/get-absolute-node-position';
+
 import type {
   NodeWithSize,
   ToolbarPosition,
@@ -27,6 +29,7 @@ export interface MultiSelectionToolbarUIState {
 export function useMultiSelectionToolbarUI({
   selectedNodes,
   viewport,
+  getNodes,
 }: UIStateDependencies): MultiSelectionToolbarUIState {
   const toolbarRef = useRef<HTMLDivElement>(null);
 
@@ -35,6 +38,41 @@ export function useMultiSelectionToolbarUI({
     if (selectedNodes.length === 0) {
       return [];
     }
+
+    const allNodes = getNodes();
+    
+    // 성능 최적화: 선택된 노드들의 부모 체인만 수집
+    const relevantNodesMap = new Map<string, typeof allNodes[0]>();
+    const selectedNodeIds = new Set(selectedNodes.map(n => n.id));
+    
+    // 선택된 노드들을 allNodes에서 찾아서 추가 (타입 일치)
+    selectedNodes.forEach(selectedNode => {
+      const node = allNodes.find(n => n.id === selectedNode.id);
+      if (node) {
+        relevantNodesMap.set(node.id, node);
+      }
+    });
+    
+    // 선택된 노드들의 모든 부모 노드 수집
+    const collectParents = (node: typeof allNodes[0]) => {
+      if (node.parentId) {
+        const parent = allNodes.find(n => n.id === node.parentId);
+        if (parent && !relevantNodesMap.has(parent.id)) {
+          relevantNodesMap.set(parent.id, parent);
+          collectParents(parent); // 재귀적으로 부모의 부모도 수집
+        }
+      }
+    };
+    
+    // 선택된 노드들의 부모 수집
+    selectedNodes.forEach(selectedNode => {
+      const node = allNodes.find(n => n.id === selectedNode.id);
+      if (node) {
+        collectParents(node);
+      }
+    });
+    
+    const relevantNodes = Array.from(relevantNodesMap.values());
 
     return selectedNodes.map(node => {
       const element = document.querySelector(`[data-id="${node.id}"]`);
@@ -68,14 +106,18 @@ export function useMultiSelectionToolbarUI({
           150;
       }
 
+      // 절대 좌표 계산 (그룹 내부 노드의 경우 상대 좌표를 절대 좌표로 변환)
+      // 성능 최적화: 관련 노드들만 전달 (선택된 노드 + 부모 체인)
+      const absolutePosition = getAbsoluteNodePosition(node, relevantNodes);
+
       return {
         id: node.id,
-        position: node.position,
+        position: absolutePosition, // 절대 좌표 사용
         actualWidth: width,
         actualHeight: height,
       };
     });
-  }, [selectedNodes]);
+  }, [selectedNodes, getNodes]);
 
   // Calculate the boundary of selected nodes (considering viewport coordinate system)
   const toolbarPosition = useMemo<ToolbarPosition | null>(() => {
@@ -83,7 +125,7 @@ export function useMultiSelectionToolbarUI({
       return null;
     }
 
-    // Flow 좌표계에서 경계 계산
+    // Flow 좌표계에서 경계 계산 (절대 좌표 사용)
     const minX = Math.min(...nodesWithSize.map(n => n.position.x));
     const minY = Math.min(...nodesWithSize.map(n => n.position.y));
     const maxX = Math.max(

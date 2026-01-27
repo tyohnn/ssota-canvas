@@ -25,6 +25,8 @@ export interface BlockView {
   zOrder: number;
   viewMode: BlockViewModeValue;
   viewModeSizes?: ViewModeSizeMap; // 뷰 모드별 크기 정보 (original, card, note)
+  /** Parent-Child: 부모 그룹의 blockMountId (DB: block_mounts.parent_block_mount_id) */
+  parentBlockMountId?: string;
 
   // Block 정보 (Block Management Domain)
   blockId: string;
@@ -51,6 +53,8 @@ export interface BlockMountView {
   size: Size;
   zOrder: number;
   viewMode: BlockViewModeValue;
+  /** Parent-Child: 부모 그룹의 blockMountId (DB: block_mounts.parent_block_mount_id) */
+  parentBlockMountId?: string;
   createdAt: string;
   updatedAt: string;
 }

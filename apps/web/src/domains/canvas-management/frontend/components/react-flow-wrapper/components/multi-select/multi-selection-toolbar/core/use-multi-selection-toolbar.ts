@@ -112,6 +112,7 @@ export function useMultiSelectionToolbar(
     alignBlocks: transform.alignBlocks,
     distributeBlocks: transform.distributeBlocks,
     duplicateMultipleBlocksAndMount: lifecycle.duplicateMultipleBlocksAndMount,
+    createGroupFromNodes: lifecycle.createGroupFromNodes,
     exitToDefaultMode,
   };
 
@@ -119,6 +120,7 @@ export function useMultiSelectionToolbar(
   const uiState = useMultiSelectionToolbarUI({
     selectedNodes,
     viewport,
+    getNodes,
   });
 
   // Prevent pinch zoom on toolbar element (Side effect handled in entry hook)
@@ -168,6 +170,14 @@ export function useMultiSelectionToolbar(
     exitToDefaultMode();
   }, [business, selectedBlockIds, exitToDefaultMode]);
 
+  const handleCreateGroup = useCallback(async () => {
+    try {
+      await business.createGroupFromSelectedBlocks(selectedBlockIds);
+    } catch (error) {
+      console.error('Group creation failed:', error);
+    }
+  }, [business, selectedBlockIds]);
+
   const handleEscape = useCallback(() => {
     business.exitSelection();
   }, [business]);
@@ -204,6 +214,7 @@ export function useMultiSelectionToolbar(
     handleDistribute,
     handleDuplicate,
     handleDelete,
+    handleCreateGroup,
     handleEscape,
     selectedBlockIds,
     selectionCount,

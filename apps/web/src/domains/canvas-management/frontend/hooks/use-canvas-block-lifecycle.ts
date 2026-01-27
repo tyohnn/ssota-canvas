@@ -18,6 +18,9 @@ import { useDuplicateBlock } from './block/use-duplicate-block';
 import { useDuplicateBlocks } from './block/use-duplicate-blocks';
 import { useMoveBlockToPage } from './block/use-move-block-to-page';
 import { useSoftDeleteBlock } from './block/use-soft-delete-block';
+import { useAddNodeToGroup } from './group/use-add-node-to-group';
+import { useRemoveNodeFromGroup } from './group/use-remove-node-from-group';
+import { useCreateGroupFromNodes } from './group/use-create-group-from-nodes';
 import { useCanvasModeContext } from './mode/canvas-mode-context';
 
 export interface UseCanvasBlockLifecycleParams {
@@ -51,6 +54,24 @@ export interface UseCanvasBlockLifecycleResult {
     targetPageId: string
   ) => Promise<void>;
 
+  // Group 관리 (Optimistic UI)
+  addNodeToGroup: (params: {
+    childBlockMountId: string;
+    parentBlockMountId: string;
+    childAbsolutePosition: { x: number; y: number };
+    parentPosition: { x: number; y: number };
+  }) => Promise<void>;
+  removeNodeFromGroup: (params: {
+    childBlockMountId: string;
+    parentPosition: { x: number; y: number };
+    childRelativePosition: { x: number; y: number };
+  }) => Promise<void>;
+  createGroupFromNodes: (params: {
+    nodeIds: string[];
+    groupTitle?: string;
+    groupColor?: string;
+  }) => Promise<void>;
+
   // 프로그램적 제어 (UI만 변경, 서버 호출 X)
   addBlockToCanvas: (
     blockId: string,
@@ -81,7 +102,7 @@ export function useCanvasBlockLifecycle(
   const { pageId } = params;
 
   // React Flow hooks
-  const { addNodes, deleteElements, getNodes, setNodes } = useReactFlow();
+  const { addNodes, deleteElements, getNodes, setNodes, updateNode } = useReactFlow();
 
   // Canvas Mode hook
   const canvasMode = useCanvasModeContext();
@@ -184,6 +205,30 @@ export function useCanvasBlockLifecycle(
     }
   );
 
+  // Group 관리 훅 (React Flow 의존성 주입)
+  const addToGroupMutation = useAddNodeToGroup({
+    reactFlow: {
+      getNode: (id: string) => getNodes().find(n => n.id === id),
+      setNodes,
+      updateNode,
+    },
+  });
+  const removeFromGroupMutation = useRemoveNodeFromGroup({
+    reactFlow: {
+      getNode: (id: string) => getNodes().find(n => n.id === id),
+      setNodes,
+      updateNode,
+    },
+  });
+  const createGroupMutation = useCreateGroupFromNodes({
+    pageId,
+    reactFlow: {
+      getNodes,
+      getNode: (id: string) => getNodes().find(n => n.id === id),
+      setNodes,
+    },
+  });
+
   // ============================================================================
   // 프로그램적 제어 & 상태 읽기
   // ============================================================================
@@ -265,6 +310,47 @@ export function useCanvasBlockLifecycle(
     [moveBlockToPageHook]
   );
 
+  // Group 관리 래퍼
+  const addNodeToGroup = useCallback(
+    async (params: {
+      childBlockMountId: string;
+      parentBlockMountId: string;
+      childAbsolutePosition: { x: number; y: number };
+      parentPosition: { x: number; y: number };
+    }) => {
+      await addToGroupMutation.mutateAsync({
+        pageId,
+        ...params,
+      });
+    },
+    [addToGroupMutation, pageId]
+  );
+
+  const removeNodeFromGroup = useCallback(
+    async (params: {
+      childBlockMountId: string;
+      parentPosition: { x: number; y: number };
+      childRelativePosition: { x: number; y: number };
+    }) => {
+      await removeFromGroupMutation.mutateAsync({
+        pageId,
+        ...params,
+      });
+    },
+    [removeFromGroupMutation, pageId]
+  );
+
+  const createGroupFromNodes = useCallback(
+    async (params: {
+      nodeIds: string[];
+      groupTitle?: string;
+      groupColor?: string;
+    }) => {
+      await createGroupMutation.mutateAsync(params);
+    },
+    [createGroupMutation]
+  );
+
   return {
     // Optimistic UI 제어 (기존 API 유지)
     createAndMountBlock,
@@ -272,6 +358,11 @@ export function useCanvasBlockLifecycle(
     duplicateBlockAndMount,
     duplicateMultipleBlocksAndMount,
     moveBlockToPage,
+
+    // Group 관리 (Optimistic UI)
+    addNodeToGroup,
+    removeNodeFromGroup,
+    createGroupFromNodes,
 
     // 프로그램적 제어 (기존 API 유지)
     addBlockToCanvas: addBlockToCanvasOperation,
