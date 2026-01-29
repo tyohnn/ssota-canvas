@@ -20,6 +20,7 @@ import { useBlockTransformState } from './block/use-block-transform-state';
 import { useDistributeBlocks } from './block/use-distribute-blocks';
 import { useUpdateBlockPosition } from './block/use-update-block-position';
 import { useUpdateBlockSize } from './block/use-update-block-size';
+import { useCanvasSnapshot } from '../snapshot';
 
 export interface UseCanvasTransformParams {
   pageId: string;
@@ -75,6 +76,7 @@ export function useCanvasTransform(
 
   // React Flow hooks
   const { getNodes, setNodes, addNodes, deleteElements } = useReactFlow();
+  const snapshot = useCanvasSnapshot();
 
   // 타입 안전한 래퍼 함수
   const getNodesTyped = useCallback((): ReturnType<typeof getNodes> => {
@@ -109,15 +111,31 @@ export function useCanvasTransform(
   });
 
   // 고급 기능 훅
-  const { alignBlocks, isAligning } = useAlignBlocks({
+  const { alignBlocks: alignBlocksHook, isAligning } = useAlignBlocks({
     pageId,
     reactFlow: reactFlowDependencies,
   });
 
-  const { distributeBlocks, isDistributing } = useDistributeBlocks({
+  const { distributeBlocks: distributeBlocksHook, isDistributing } = useDistributeBlocks({
     pageId,
     reactFlow: reactFlowDependencies,
   });
+
+  const alignBlocks = useCallback(
+    async (blockIds: string[], alignmentType: AlignmentType) => {
+      snapshot.takeSnapshot();
+      return alignBlocksHook(blockIds, alignmentType);
+    },
+    [alignBlocksHook, snapshot]
+  );
+
+  const distributeBlocks = useCallback(
+    async (blockIds: string[], direction: DistributionDirection) => {
+      snapshot.takeSnapshot();
+      return distributeBlocksHook(blockIds, direction);
+    },
+    [distributeBlocksHook, snapshot]
+  );
 
   return {
     // 프로그램적 제어
@@ -125,8 +143,14 @@ export function useCanvasTransform(
     setBlockSize,
 
     // 서버 연동 (blockMountId 사용)
-    updateBlockPosition,
-    updateBlockSize,
+    updateBlockPosition: async (input: any) => {
+      snapshot.takeSnapshot();
+      return updateBlockPosition(input);
+    },
+    updateBlockSize: async (input: any) => {
+      snapshot.takeSnapshot();
+      return updateBlockSize(input);
+    },
     isUpdatingPosition,
     isUpdatingSize,
 

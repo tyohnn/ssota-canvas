@@ -23,6 +23,7 @@ import { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hoo
 import { useCanvasSelection } from '@/domains/canvas-management/frontend/hooks/use-canvas-selection';
 import { useCanvasTransform } from '@/domains/canvas-management/frontend/hooks/use-canvas-transform';
 import { useCanvasViewport } from '@/domains/canvas-management/frontend/hooks/use-canvas-viewport';
+import { useCanvasSnapshot } from '@/domains/canvas-management/frontend/snapshot';
 
 import { CustomEdge } from '../components/custom-edge';
 import {
@@ -132,6 +133,7 @@ export function useReactFlowWrapper(
   const canvasMode = useCanvasModeContext();
   const canvasSelection = useCanvasSelection();
   const snapGuides = useCanvasSnapGuides();
+  const snapshot = useCanvasSnapshot();
 
   const blockTransform = useCanvasTransform({
     pageId,
@@ -310,6 +312,8 @@ export function useReactFlowWrapper(
           y: mouseFlowPosition.y - (blockSize?.height ?? 150) / 2,
         };
 
+        // 블록 생성 전 스냅샷 저장
+        snapshot.takeSnapshot();
         blockLifecycle.createAndMountBlock(blockType, adjustedPosition);
         canvasMode.exitToDefaultMode();
         return;
@@ -322,9 +326,10 @@ export function useReactFlowWrapper(
       readonly,
       isBlockCreationMode,
       canvasMode,
-      blockLifecycle.createAndMountBlock,
+      blockLifecycle,
       reactFlowInstance,
       uiState,
+      snapshot,
     ]
   );
 
@@ -357,6 +362,8 @@ export function useReactFlowWrapper(
           y: mouseFlowPosition.y - (blockSize?.height ?? 150) / 2,
         };
 
+        // 블록 생성 전 스냅샷 저장
+        snapshot.takeSnapshot();
         blockLifecycle.createAndMountBlock(blockType, adjustedPosition);
         canvasMode.exitToDefaultMode();
         return;
@@ -369,9 +376,10 @@ export function useReactFlowWrapper(
       readonly,
       isBlockCreationMode,
       canvasMode,
-      blockLifecycle.createAndMountBlock,
+      blockLifecycle,
       reactFlowInstance,
       uiState,
+      snapshot,
     ]
   );
 
@@ -406,6 +414,49 @@ export function useReactFlowWrapper(
 
       // readonly일 때는 편집 단축키 비활성화
       if (readonly) {
+        return;
+      }
+
+      // Cmd+Z: Undo (실행 취소)
+      if (isCtrlOrCmd && event.key.toLowerCase() === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        snapshot.undo();
+        return;
+      }
+
+      // Cmd+Shift+Z: Redo (다시 실행)
+      if (isCtrlOrCmd && event.key.toLowerCase() === 'z' && event.shiftKey) {
+        event.preventDefault();
+        snapshot.redo();
+        return;
+      }
+
+      // Delete 또는 Backspace: 삭제 전 스냅샷 저장 후 삭제 실행
+      // React Flow의 기본 삭제 키(deleteKeyCode)를 비활성화하고 여기서 직접 처리
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        const selectedNodes = reactFlowInstance.getNodes().filter(n => n.selected);
+        const selectedEdges = reactFlowInstance.getEdges().filter(e => e.selected);
+        
+        if (selectedNodes.length > 0 || selectedEdges.length > 0) {
+          event.preventDefault();
+          // 삭제 전 스냅샷 저장 (Undo를 위해)
+          snapshot.takeSnapshot();
+          // React Flow의 deleteElements API로 삭제 실행
+          reactFlowInstance.deleteElements({
+            nodes: selectedNodes,
+            edges: selectedEdges,
+          });
+          // 서버에도 삭제 요청 전송
+          if (selectedNodes.length > 0) {
+            const blockMountIds = selectedNodes.map(n => n.id);
+            blockLifecycle.softDeleteBlockMounts(blockMountIds);
+          }
+          if (selectedEdges.length > 0) {
+            selectedEdges.forEach(edge => {
+              edgeLifecycle.deleteEdge({ edgeId: edge.id });
+            });
+          }
+        }
         return;
       }
 
@@ -447,11 +498,25 @@ export function useReactFlowWrapper(
       window.removeEventListener('keydown', handleGlobalKeyDown);
       window.removeEventListener('keyup', handleGlobalKeyUp);
     };
-  }, [readonly, businessLogic, canvasMode, flushViewportSave]);
+  }, [readonly, businessLogic, canvasMode, flushViewportSave, snapshot, reactFlowInstance, blockLifecycle, edgeLifecycle]);
 
   // =========================================================================
   // 12. Wrap UI Handlers with Business Logic
   // =========================================================================
+
+  // onNodeDragStart: 드래그 시작 시 스냅샷 저장 (Undo를 위해)
+  const onNodeDragStart = useCallback(
+    (event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
+      if (readonly) return;
+
+      // 드래그 전 상태를 스냅샷으로 저장
+      snapshot.takeSnapshot();
+
+      // 기존 UI 로직 실행
+      uiState.onNodeDragStart(event, node, draggedNodes);
+    },
+    [readonly, snapshot, uiState]
+  );
 
   // onNodeDrag: 스냅 가이드라인 + 그룹 collision 시각 피드백
   const onNodeDrag = useCallback(
@@ -555,6 +620,10 @@ export function useReactFlowWrapper(
     [readonly, uiState, blockTransform, groupCollision, reactFlowInstance]
   );
 
+  // =========================================================================
+  // 13. Snapshot-wrapped Business Logic Callbacks
+  // =========================================================================
+
   // readonly일 때 편집 관련 핸들러를 no-op으로 처리
   const readonlyOnNodesDelete = useCallback(
     async (_deletedNodes: Node[]) => {
@@ -648,7 +717,7 @@ export function useReactFlowWrapper(
     onMove,
 
     // Drag callbacks
-    onNodeDragStart: uiState.onNodeDragStart,
+    onNodeDragStart, // 스냅샷 포함 래핑 버전
     onNodeDrag, // collision 시각 피드백 포함
     onNodeDragStop, // 래핑된 버전 사용
 
@@ -659,7 +728,7 @@ export function useReactFlowWrapper(
     onWheel: uiState.onWheel,
     onWheelCapture: uiState.onWheelCapture,
 
-    // Business Logic callbacks (readonly일 때는 no-op)
+    // Business Logic callbacks (readonly일 때는 no-op, 아닐 때는 스냅샷 포함)
     onConnectStart: readonly ? () => { } : businessLogic.onConnectStart,
     onConnect: readonly ? readonlyOnConnect : businessLogic.onConnect,
     onReconnect: readonly

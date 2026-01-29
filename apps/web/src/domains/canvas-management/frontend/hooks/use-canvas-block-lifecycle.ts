@@ -22,6 +22,7 @@ import { useAddNodeToGroup } from './group/use-add-node-to-group';
 import { useRemoveNodeFromGroup } from './group/use-remove-node-from-group';
 import { useCreateGroupFromNodes } from './group/use-create-group-from-nodes';
 import { useCanvasModeContext } from './mode/canvas-mode-context';
+import { useCanvasSnapshot } from '../snapshot';
 
 export interface UseCanvasBlockLifecycleParams {
   pageId: string;
@@ -106,6 +107,7 @@ export function useCanvasBlockLifecycle(
 
   // Canvas Mode hook
   const canvasMode = useCanvasModeContext();
+  const snapshot = useCanvasSnapshot();
   const {
     enterSingleSelectionMode,
     enterMultiSelectionMode,
@@ -260,6 +262,7 @@ export function useCanvasBlockLifecycle(
       initialContent?: unknown,
       title?: string
     ): Promise<BlockCreatedAndMountedDTO | void> => {
+      snapshot.takeSnapshot();
       const result = await createBlock({
         blockType,
         position,
@@ -274,6 +277,7 @@ export function useCanvasBlockLifecycle(
 
   const softDeleteBlockMounts = useCallback(
     async (blockMountIds: string | string[]) => {
+      snapshot.takeSnapshot();
       await softDeleteBlock({ blockMountIds });
     },
     [softDeleteBlock]
@@ -285,6 +289,7 @@ export function useCanvasBlockLifecycle(
       offsetX: number = 20,
       offsetY: number = 20
     ) => {
+      snapshot.takeSnapshot();
       await duplicateBlock({ blockMountId, offsetX, offsetY });
     },
     [duplicateBlock]
@@ -298,6 +303,7 @@ export function useCanvasBlockLifecycle(
         offsetY?: number;
       }>
     ) => {
+      snapshot.takeSnapshot();
       await duplicateBlocks({ blocks });
     },
     [duplicateBlocks]

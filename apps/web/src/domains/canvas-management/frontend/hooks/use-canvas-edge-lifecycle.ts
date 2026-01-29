@@ -25,6 +25,7 @@ import {
   type UpdateEdgeStyleInput,
   useUpdateEdgeStyle,
 } from './edge/use-update-edge-style';
+import { useCanvasSnapshot } from '../snapshot';
 
 export interface UseCanvasEdgeLifecycleParams {
   pageId: string;
@@ -41,6 +42,7 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
   const { pageId } = params;
   const { getEdges: getEdgesRaw, setEdges: setEdgesRaw, getNodes } =
     useReactFlow();
+  const snapshot = useCanvasSnapshot();
 
   // 타입 안전한 래퍼 함수
   const getEdges = useCallback((): Edge<EdgeData>[] => {
@@ -142,13 +144,34 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
 
   return {
     // Optimistic UI 제어 (사용자 액션, AI Tool Call)
-    createEdge,
-    deleteEdge,
-    updateEdgeShape,
-    updateEdgeLabel,
-    updateEdgeStyle,
-    updateEdgeMarker,
-    reconnectEdge,
+    createEdge: (input: CreateEdgeInput) => {
+      snapshot.takeSnapshot();
+      return createEdge(input);
+    },
+    deleteEdge: (input: DeleteEdgeInput) => {
+      snapshot.takeSnapshot();
+      return deleteEdge(input);
+    },
+    updateEdgeShape: (input: UpdateEdgeShapeInput) => {
+      snapshot.takeSnapshot();
+      return updateEdgeShape(input);
+    },
+    updateEdgeLabel: (input: UpdateEdgeLabelInput) => {
+      snapshot.takeSnapshot();
+      return updateEdgeLabel(input);
+    },
+    updateEdgeStyle: (input: UpdateEdgeStyleInput) => {
+      snapshot.takeSnapshot();
+      return updateEdgeStyle(input);
+    },
+    updateEdgeMarker: (input: any) => {
+      snapshot.takeSnapshot();
+      return updateEdgeMarker(input);
+    },
+    reconnectEdge: (input: ReconnectEdgeInput) => {
+      snapshot.takeSnapshot();
+      return reconnectEdge(input);
+    },
 
     // 로딩 상태 (개별 상태 노출)
     isCreating,

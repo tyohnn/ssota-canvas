@@ -206,8 +206,9 @@ export function ReactFlowView({
           onNodesDelete={onNodesDelete}
           onEdgesDelete={onEdgesDelete}
           onMove={onMove}
-          // onKeyDown은 전역 리스너로 처리 (포커스 문제 우회)
-          deleteKeyCode={['Delete', 'Backspace']}
+          // ⚠️ 삭제 키는 전역 리스너에서 처리 (use-react-flow-wrapper.ts)
+          // 전역 리스너에서 스냅샷 저장 후 삭제하여 완벽한 Undo 지원
+          deleteKeyCode={null}
           className={`bg-muted/30 ${panOnDragEnabled ? 'panning-mode' : ''} ${isBlockCreationMode ? 'block-creation-mode' : ''}`}
         >
           <Background />
