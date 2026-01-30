@@ -66,6 +66,7 @@ export function useDuplicateBlocks(
 
   /**
    * Optimistic 복제 노드 생성
+   * 그룹 자식이면 parentId·parentBlockMountId 유지, position은 상대 좌표 유지
    */
   const createOptimisticDuplicateNode = (
     originalNode: Node,
@@ -80,7 +81,7 @@ export function useDuplicateBlocks(
       y: originalNode.position.y + offsetY,
     };
 
-    const optimisticNodeData: BlockNodeData = buildBlockNodeData(
+    const baseNodeData = buildBlockNodeData(
       originalNodeData.blockType,
       {
         blockMountId: optimisticBlockMountId,
@@ -93,6 +94,14 @@ export function useDuplicateBlocks(
       }
     );
 
+    const optimisticNodeData: BlockNodeData =
+      originalNode.parentId != null
+        ? {
+            ...baseNodeData,
+            parentBlockMountId: originalNode.parentId,
+          }
+        : baseNodeData;
+
     return {
       optimisticBlockMountId,
       optimisticNodeData,
@@ -101,6 +110,7 @@ export function useDuplicateBlocks(
         width: originalNode.width || 200,
         height: originalNode.height || 150,
       },
+      parentId: originalNode.parentId,
     };
   };
 
@@ -232,7 +242,7 @@ export function useDuplicateBlocks(
           optimisticId
         );
 
-        // 노드 생성
+        // 노드 생성 (그룹 자식이면 parentId 유지)
         const node: CustomNodeType = {
           id: optimisticData.optimisticBlockMountId,
           type: originalNodeData.blockType,
@@ -241,6 +251,9 @@ export function useDuplicateBlocks(
           width: optimisticData.size.width,
           height: optimisticData.size.height,
           zIndex: 1,
+          ...(optimisticData.parentId != null && {
+            parentId: optimisticData.parentId,
+          }),
         } as CustomNodeType;
 
         optimisticNodes.push(node);
@@ -255,7 +268,7 @@ export function useDuplicateBlocks(
         throw new Error('No valid blocks to duplicate');
       }
 
-      // 모든 optimistic 노드를 한 번에 추가
+      // 즉시 React Flow Store에 추가 (맨 끝에 추가)
       addNodes(optimisticNodes);
 
       // 복제된 모든 블럭을 한 번에 멀티 셀렉션 모드로 선택
@@ -312,7 +325,7 @@ export function useDuplicateBlocks(
             | BlockNodeData
             | undefined;
 
-          // 실제 블럭 데이터 생성
+          // 실제 블럭 데이터 생성 (parentBlockMountId 유지)
           const realNodeData: BlockNodeData = buildBlockNodeData(
             duplicateRequest.originalBlockType,
             {
@@ -325,8 +338,10 @@ export function useDuplicateBlocks(
               viewMode: optimisticNodeData?.viewMode || 'original',
             }
           );
+          const parentId = optimisticNode?.parentId;
+          const parentBlockMountId = optimisticNodeData?.parentBlockMountId;
 
-          // Optimistic 노드를 실제 노드로 교체
+          // Optimistic 노드를 실제 노드로 교체 (parentId·parentBlockMountId 유지)
           setNodes(
             (nodes: Node[]) =>
               nodes.map((node: Node) => {
@@ -334,7 +349,13 @@ export function useDuplicateBlocks(
                   return {
                     ...node,
                     id: blockResult.blockMountId,
-                    data: realNodeData,
+                    data: {
+                      ...realNodeData,
+                      ...(parentBlockMountId != null && {
+                        parentBlockMountId,
+                      }),
+                    },
+                    ...(parentId != null && { parentId }),
                   } as CustomNodeType;
                 }
                 return node;
