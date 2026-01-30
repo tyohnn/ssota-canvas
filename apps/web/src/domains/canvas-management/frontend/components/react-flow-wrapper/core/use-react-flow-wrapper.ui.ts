@@ -43,6 +43,8 @@ export interface ReactFlowWrapperUIState {
 
   // Callbacks - Wheel 관련
   onWheel: (event: React.WheelEvent<HTMLDivElement>) => void;
+  /** Capture-phase: 스크롤 가능 블록 내부 휠 시 전파 차단 후 해당 요소 수동 스크롤 (panOnScroll과 충돌 방지) */
+  onWheelCapture: (event: React.WheelEvent<HTMLDivElement>) => void;
 }
 
 export interface ReactFlowWrapperUIDependencies {
@@ -321,6 +323,36 @@ export function useReactFlowWrapperUI(
     [reactFlow, zoomMultiplier]
   );
 
+  /** Capture-phase: 휠 타깃이 스크롤 가능 overflow 컨테이너 내부면 전파 차단 후 해당 요소 수동 스크롤 */
+  const onWheelCapture = useCallback(
+    (event: React.WheelEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement;
+      if (!target || typeof target.closest !== 'function') return;
+      let el: HTMLElement | null = target as HTMLElement;
+      while (el) {
+        const oy =
+          typeof getComputedStyle !== 'undefined'
+            ? getComputedStyle(el).overflowY
+            : '';
+        const canScroll =
+          (oy === 'auto' || oy === 'scroll') &&
+          el.scrollHeight > el.clientHeight;
+        if (canScroll) {
+          event.preventDefault();
+          event.stopPropagation();
+          const max = el.scrollHeight - el.clientHeight;
+          el.scrollTop = Math.min(
+            Math.max(0, el.scrollTop + event.deltaY),
+            max
+          );
+          return;
+        }
+        el = el.parentElement;
+      }
+    },
+    []
+  );
+
   return {
     showAddDialog,
     setShowAddDialog,
@@ -331,5 +363,6 @@ export function useReactFlowWrapperUI(
     onSelectionChange,
     onPaneClick,
     onWheel,
+    onWheelCapture,
   };
 }
