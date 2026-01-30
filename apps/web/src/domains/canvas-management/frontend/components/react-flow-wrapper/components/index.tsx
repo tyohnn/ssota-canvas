@@ -12,6 +12,7 @@ import {
 
 import { AIAgentRunner } from '@/domains/ai-management/frontend/components/ai-agent-runner';
 import type { BlockType } from '@/domains/block-management/shared/types/block-types';
+import { StatusWindow } from '@/domains/ai-actions/frontend/components/status-window';
 
 import { MultiSelectionToolbar } from './multi-select/multi-selection-toolbar';
 import { SelectionBoundingBox } from './multi-select/selection-bounding-box';
@@ -209,7 +210,7 @@ export function ReactFlowView({
           {/* z-index: 블럭(0) < canvas-toolbar(10) < multi-selection-toolbar(50) */}
           <Panel
             position="top-center"
-            className="m-0! pointer-events-auto! z-10"
+            className="mt-4! pointer-events-auto! z-10"
           >
             <CanvasToolbar onAddBlockClick={onAddBlockClick} />
           </Panel>
@@ -240,6 +241,14 @@ export function ReactFlowView({
             className="mr-4! mb-4! pointer-events-auto!"
           >
             <ViewportControlToolbar />
+          </Panel>
+
+          {/* 우측 상단 Status Window */}
+          <Panel
+            position="top-right"
+            className="mr-4! mt-4! pointer-events-auto! z-50"
+          >
+            <StatusWindow />
           </Panel>
         </ReactFlow>
 

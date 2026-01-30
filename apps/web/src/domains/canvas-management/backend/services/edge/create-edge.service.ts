@@ -72,7 +72,7 @@ export async function createEdge(
       );
     }
 
-    // 4. SafeDTO → Command 변환
+    // 4. SafeDTO → Command 변환 (선택 필드: label, style, markerEnd, markerStart)
     const command: CreateEdgeCommand = {
       pageId,
       sourceBlockMountId,
@@ -80,6 +80,11 @@ export async function createEdge(
       sourceHandle,
       targetHandle,
       userId: safeUserId,
+      ...(safeDto.label != null && { label: safeDto.label }),
+      ...(safeDto.style != null && { style: safeDto.style }),
+      ...(safeDto.shape != null && { shape: safeDto.shape }),
+      ...(safeDto.markerEnd != null && { markerEnd: safeDto.markerEnd }),
+      ...(safeDto.markerStart != null && { markerStart: safeDto.markerStart }),
     };
 
     // 5. Aggregate에 Command 전달 (Command → Event)

@@ -64,7 +64,7 @@ export function AgentConversation() {
             <Message key={message.id} from={message.role}>
               <MessageContent>
                 {/* message.parts 기반 렌더링 */}
-                {message.parts.map((part, partIndex: number) => {
+                {(message.parts || []).map((part, partIndex: number) => {
                   // 안정적인 key 생성: message.id + partIndex 조합
                   // toolCallId가 있으면 사용, 없으면 fallback
                   const partKey =

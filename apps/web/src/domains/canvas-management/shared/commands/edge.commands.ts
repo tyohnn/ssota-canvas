@@ -16,6 +16,12 @@ export interface CreateEdgeCommand {
   sourceHandle: EdgeHandle;
   targetHandle: EdgeHandle;
   userId: UserId;
+  /** 생성 시 지정할 수 있는 선택 필드 */
+  label?: string;
+  style?: { stroke?: string; strokeWidth?: number };
+  shape?: string; // 'default' | 'straight' | 'step' | 'smoothstep' | 'simplebezier'
+  markerEnd?: MarkerType;
+  markerStart?: MarkerType | null;
 }
 
 export interface UpdateEdgeShapeCommand {

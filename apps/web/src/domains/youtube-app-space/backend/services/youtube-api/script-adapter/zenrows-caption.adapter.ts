@@ -94,11 +94,15 @@ export class ZenRowsCaptionAdapter implements TranscriptAdapter {
     // prettyPrint 파라미터는 ZenRows와 호환되지 않으므로 제거
     const innerTubeUrl = `https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8`;
 
+    // Android client 사용 (2025년 기준 더 안정적, bot detection 우회에 유리)
+    // WEB client는 YouTube의 bot detection에 걸리기 쉬움
     const payload = {
       context: {
         client: {
-          clientName: 'WEB',
-          clientVersion: '2.20250222.10.00',
+          clientName: 'ANDROID',
+          clientVersion: '19.09.37',
+          androidSdkVersion: 30,
+          userAgent: 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
         },
       },
       videoId,
@@ -125,6 +129,13 @@ export class ZenRowsCaptionAdapter implements TranscriptAdapter {
     }
 
     const data = await response.json();
+
+    // YouTube가 UNPLAYABLE 상태를 반환한 경우 에러 발생
+    if (data?.playabilityStatus?.status === 'UNPLAYABLE') {
+      const reason = data.playabilityStatus.reason || 'Video unavailable';
+      throw new Error(`YouTube API returned UNPLAYABLE status: ${reason}`);
+    }
+
     return data;
   }
 

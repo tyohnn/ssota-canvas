@@ -5,7 +5,6 @@
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
 import { extractScriptAction } from './extract-script-action/extract-script-action.business';
-import { executeSmartSummaryAction } from './smart-summary-action/smart-summary-action.business';
 
 export interface ActionResult {
   success: boolean;
@@ -45,32 +44,11 @@ export async function executeAction(
       }
     }
 
-    case 'summarize': {
-      // Block ID 추출 (blockData에서 가져오기)
-      const blockId = blockData.blockId;
-
-      const result = await executeSmartSummaryAction(blockId, blockData);
-
-      if (result.success) {
-        return {
-          success: true,
-          message: 'Summary generated successfully',
-          data: {
-            summary: result.summary,
-          },
-        };
-      } else {
-        return {
-          success: false,
-          error: result.error || 'Failed to generate summary',
-        };
-      }
-    }
-
-    default:
+    default: {
       return {
         success: false,
         error: `Unknown action for youtube block: ${action}`,
       };
+    }
   }
 }
