@@ -13,6 +13,8 @@ import {
   CanvasReadOnlyProvider,
 } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { CanvasModeProvider } from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
+import { CanvasdownProvider } from '@/domains/canvasdown/frontend/contexts/canvasdown-context';
+import { VisualSummaryProvider } from '@/domains/ai-visual-summary/frontend/contexts/visual-summary-context';
 
 import { EditorPanelWrapper } from './editor-panel-wrapper';
 import { CanvasReactFlowWrapper } from './react-flow-wrapper';
@@ -52,17 +54,21 @@ export function CanvasBase({
         <BlockInteractionProvider>
           <CanvasMetadataProvider value={{ pageId, orgId, workspaceId }}>
             <CanvasReadOnlyProvider readonly={readonly} publishToken={publishToken}>
-              <Box className="h-full flex flex-col bg-background">
-                {/* 메인 캔버스 영역 */}
-                <CanvasReactFlowWrapper
-                  initialNodes={initialNodes}
-                  initialEdges={initialEdges}
-                />
-                {/* Editor Panel (React Flow 바깥에서 렌더링) */}
-                <EditorPanelWrapper />
-                {/* Children (e.g., PublishedPageHeader) */}
-                {children}
-              </Box>
+              <CanvasdownProvider pageId={pageId}>
+                <VisualSummaryProvider>
+                  <Box className="h-full flex flex-col bg-background">
+                    {/* 메인 캔버스 영역 */}
+                    <CanvasReactFlowWrapper
+                      initialNodes={initialNodes}
+                      initialEdges={initialEdges}
+                    />
+                    {/* Editor Panel (React Flow 바깥에서 렌더링) */}
+                    <EditorPanelWrapper />
+                    {/* Children (e.g., PublishedPageHeader) */}
+                    {children}
+                  </Box>
+                </VisualSummaryProvider>
+              </CanvasdownProvider>
             </CanvasReadOnlyProvider>
           </CanvasMetadataProvider>
         </BlockInteractionProvider>

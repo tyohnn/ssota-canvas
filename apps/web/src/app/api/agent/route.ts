@@ -1,5 +1,4 @@
 import { streamText, UIMessage, convertToModelMessages, stepCountIs } from 'ai';
-import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
 import { config } from '@/config';
 import { DrizzleEventLogRepository } from '@/domains/ai-management/backend/repositories/implementations/drizzle-event-log.repository';

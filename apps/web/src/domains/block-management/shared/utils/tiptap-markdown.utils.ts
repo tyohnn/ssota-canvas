@@ -4,6 +4,7 @@
  * 서버 사이드 안전한 변환:
  * - generateHTML: Tiptap JSON → HTML (서버 사이드 안전)
  * - turndown: HTML → Markdown
+ * - markdownToTiptap: marked로 Markdown → HTML 후 generateJSON (HTML 기대)
  *
  * @module tiptap-markdown.utils
  */
@@ -13,6 +14,7 @@ import type { JSONContent } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from '@tiptap/markdown';
 import TurndownService from 'turndown';
+import { marked } from 'marked';
 
 /**
  * Tiptap에서 사용할 확장 목록 (단일 정의)
@@ -73,7 +75,12 @@ export function tiptapToMarkdown(json: JSONContent): string {
       return '';
     }
 
-    // 1. Tiptap JSON → HTML (서버 사이드 안전)
+    // 서버(SSR/Node)에서는 generateHTML이 window를 참조해 에러가 나므로, 순수 텍스트만 반환
+    if (typeof window === 'undefined') {
+      return extractPlainText(json);
+    }
+
+    // 1. Tiptap JSON → HTML (브라우저에서만)
     const html = generateHTML(json, [StarterKit]);
 
     // 2. HTML → Markdown (turndown 사용)
@@ -98,7 +105,8 @@ export function tiptapToMarkdown(json: JSONContent): string {
 /**
  * Markdown → Tiptap JSON 변환
  *
- * generateJSON 사용 (서버 사이드 안전)
+ * generateJSON는 HTML 입력을 기대함. Markdown을 넘기면 파싱 실패 → 단일 <p> fallback.
+ * 따라서 marked로 Markdown → HTML 후 generateJSON(html) 사용.
  *
  * @param markdown - Markdown 문자열
  * @returns Tiptap JSON 콘텐츠
@@ -115,25 +123,26 @@ export function markdownToTiptap(markdown: string): JSONContent {
       return EMPTY_TIPTAP_DOC;
     }
 
-    // generateJSON 사용 (서버 사이드 안전)
-    const json = generateJSON(markdown, [StarterKit, Markdown]);
+    // Preprocessing: **bold** → <strong> (CJK/괄호 조합 시 marked 파싱 이슈 회피)
+    const preprocessed = markdown.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    const html = marked.parse(preprocessed, {
+      gfm: true,
+      breaks: true,
+    }) as string;
+
+    const json = generateJSON(html, [StarterKit]);
 
     return json;
   } catch (error) {
     console.error('[markdownToTiptap] Parsing error:', error);
 
-    // Fallback: 텍스트를 paragraph로 감싸서 반환
     return {
       type: 'doc',
       content: [
         {
           type: 'paragraph',
-          content: [
-            {
-              type: 'text',
-              text: markdown,
-            },
-          ],
+          content: [{ type: 'text', text: markdown }],
         },
       ],
     };

@@ -9,6 +9,7 @@ import { toReactFlowEdge } from '@/domains/canvas-management/frontend/acl/react-
 import { CreateEdgeRequestSchema } from '@/domains/canvas-management/shared/dtos/requests';
 import type { EdgeView } from '@/domains/canvas-management/shared/dtos/views';
 import type { EdgeData } from '@/domains/canvas-management/shared/types/common.types';
+import type { MarkerType as MarkerTypeValue } from '@/domains/canvas-management/shared/types/marker-type';
 import { isFailure } from '@/lib';
 
 export type ReactFlowDependencies = {
@@ -27,6 +28,12 @@ export type CreateEdgeInput = {
   targetBlockMountId: string;
   sourceHandle: Connection['sourceHandle']; // React Flow에서 string으로 전달하고 있음
   targetHandle: Connection['targetHandle']; // React Flow에서 string으로 전달하고 있음
+  /** 생성 시 지정 가능한 선택 필드 */
+  label?: string;
+  style?: { stroke?: string; strokeWidth?: number };
+  shape?: 'default' | 'straight' | 'step' | 'smoothstep' | 'simplebezier';
+  markerEnd?: MarkerTypeValue;
+  markerStart?: MarkerTypeValue | null;
 };
 
 export type UseCreateEdgeResult = {
@@ -55,6 +62,11 @@ export function useCreateEdge(
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        label,
+        style,
+        shape,
+        markerEnd,
+        markerStart,
       } = input;
 
       // Validation
@@ -64,6 +76,11 @@ export function useCreateEdge(
         targetBlockMountId,
         sourceHandle, // string | null -> 하단 safeParse에서 EdgeHandle로 변환
         targetHandle, // string | null -> 하단 safeParse에서 EdgeHandle로 변환
+        ...(label != null && { label }),
+        ...(style != null && { style }),
+        ...(shape != null && { shape }),
+        ...(markerEnd != null && { markerEnd }),
+        ...(markerStart != null && { markerStart }),
       };
 
       const parseResult = CreateEdgeRequestSchema.safeParse(rawRequest); //
@@ -88,6 +105,11 @@ export function useCreateEdge(
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        label,
+        style,
+        shape,
+        markerEnd,
+        markerStart,
       } = input;
 
       // 노드 존재 확인
@@ -99,9 +121,23 @@ export function useCreateEdge(
         throw new Error('Source or target node not found');
       }
 
-      // Optimistic Edge 생성 (기본: end에 arrow)
       const optimisticEdgeId = `optimistic-edge-${Date.now()}-${Math.random()}`;
       const defaultStroke = '#9ca3af';
+      const strokeColor = style?.stroke ?? defaultStroke;
+      const strokeWidth = style?.strokeWidth ?? 2;
+
+      const toMarkerConfig = (m: MarkerTypeValue | null | undefined) => {
+        if (!m || m === 'none') return undefined;
+        return {
+          type: MarkerType.ArrowClosed,
+          width: 20,
+          height: 20,
+          color: strokeColor,
+          markerType: m,
+        };
+      };
+
+      // Optimistic Edge 생성 (label, style, markerEnd, markerStart 반영)
       const optimisticEdge: Edge<EdgeData> = {
         id: optimisticEdgeId,
         source: sourceBlockMountId,
@@ -109,23 +145,22 @@ export function useCreateEdge(
         sourceHandle,
         targetHandle,
         type: 'custom',
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          width: 20,
-          height: 20,
-          color: defaultStroke,
-        },
+        ...(label != null && label !== '' && { label }),
+        style: { stroke: strokeColor, strokeWidth },
+        markerEnd: toMarkerConfig(markerEnd ?? 'arrow'),
+        markerStart: toMarkerConfig(markerStart ?? null),
         data: {
           edgeId: optimisticEdgeId,
-          actualEdgeShape: 'default',
+          actualEdgeShape: shape ?? 'default',
           pageId,
-          markerEndType: 'arrow',
-          markerStartType: undefined,
+          markerEndType: markerEnd ?? 'arrow',
+          markerStartType: markerStart ?? undefined,
         },
       };
 
       // 즉시 React Flow Store에 추가
       const currentEdges = getEdges();
+
       setEdges([...currentEdges, optimisticEdge]);
 
       // 롤백을 위한 컨텍스트 반환

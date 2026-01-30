@@ -138,11 +138,6 @@ export function useCreateBlock(
         SoftDeleteBlockMountRequestSchema.safeParse(rollbackRequest);
 
       if (!parseResult.success) {
-        const firstError = parseResult.error.issues[0];
-        console.error('[Rollback Validation] Invalid delete request:', {
-          message: firstError?.message || 'Invalid rollback request',
-          issues: parseResult.error.issues,
-        });
         return false;
       }
 
@@ -151,14 +146,9 @@ export function useCreateBlock(
       if (rollbackResult.success) {
         return true;
       } else {
-        console.error(
-          '❌ Block creation rollback failed:',
-          rollbackResult.error
-        );
         return false;
       }
-    } catch (rollbackError) {
-      console.error('Failed to rollback block creation:', rollbackError);
+    } catch {
       return false;
     }
   };
@@ -275,21 +265,24 @@ export function useCreateBlock(
 
       // optimistic 노드를 실제 노드로 업데이트 (ID 변경 포함)
       setNodes(
-        (nodes: Node[]) =>
-          nodes.map((node: Node) =>
+        (nodes: Node[]) => {
+          const updatedNodes = nodes.map((node: Node) =>
             node.id === context.optimisticId
               ? ({
-                  ...node,
-                  id: blockView.blockMountId,
-                  type: blockView.blockType,
-                  position: blockView.position,
-                  data: realNodeData,
-                  width: blockView.size.width,
-                  height: blockView.size.height,
-                  zIndex: blockView.zOrder,
-                } as CustomNodeType)
+                ...node,
+                id: blockView.blockMountId,
+                type: blockView.blockType,
+                position: blockView.position,
+                data: realNodeData,
+                width: blockView.size.width,
+                height: blockView.size.height,
+                zIndex: blockView.zOrder,
+              } as CustomNodeType)
               : node
-          ) as Node[]
+          ) as Node[];
+
+          return updatedNodes;
+        }
       );
 
       onSuccess?.(blockView);

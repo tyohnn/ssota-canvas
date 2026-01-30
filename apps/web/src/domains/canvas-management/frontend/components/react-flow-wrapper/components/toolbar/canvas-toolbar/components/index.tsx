@@ -50,7 +50,7 @@ export function CanvasToolbarView({
     currentMode.type === 'block-editing';
 
   return (
-    <Box className="mt-8">
+    <Box>
       <ToolbarContainer toolbarRef={toolbarRef}>
         <TooltipProvider>
           {/* Selection Tool */}

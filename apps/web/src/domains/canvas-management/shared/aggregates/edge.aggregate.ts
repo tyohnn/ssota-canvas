@@ -17,6 +17,8 @@ import {
   EdgeStyleChangedEvent,
 } from '../events';
 import { EdgeId } from '../value-objects/edge-id.vo';
+import { EdgeShape } from '../value-objects/edge-shape.vo';
+import { EdgeStyle } from '../value-objects/edge-style.vo';
 
 /**
  * Edge Aggregate
@@ -58,20 +60,37 @@ export class EdgeAggregate {
     // 1. EdgeId 생성
     const edgeId = EdgeId.generate();
 
-    // 2. Edge Entity 생성 (self-loop 허용)
+    // 2. 선택 필드: 라벨, 스타일, shape, 마커 (없으면 기본값)
+    const defaultStyle = EdgeStyle.default();
+    const edgeStyle = command.style
+      ? EdgeStyle.fromObject({
+          color: command.style.stroke ?? defaultStyle.color,
+          thickness: command.style.strokeWidth ?? defaultStyle.thickness,
+        })
+      : defaultStyle;
+    const edgeShape = command.shape
+      ? new EdgeShape(command.shape)
+      : EdgeShape.default();
+
+    // 3. Edge Entity 생성 (self-loop 허용)
     const edge = new Edge(
       edgeId,
       command.pageId,
       command.sourceBlockMountId,
       command.targetBlockMountId,
       command.sourceHandle,
-      command.targetHandle
+      command.targetHandle,
+      edgeShape,
+      command.label ?? '',
+      edgeStyle,
+      command.markerEnd ?? 'arrow',
+      command.markerStart ?? null
     );
 
-    // 3. Aggregate 생성
+    // 4. Aggregate 생성
     const aggregate = new EdgeAggregate(edge);
 
-    // 4. Domain Event 발생 (Command → Event 1:1 대응)
+    // 5. Domain Event 발생 (Command → Event 1:1 대응)
     const event = new EdgeCreatedEvent(
       edgeId,
       {
