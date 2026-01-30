@@ -141,12 +141,12 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
             data: { ...n.data, parentBlockMountId: tempGroupId },
           };
         });
-        
+
         // 부모(그룹) 노드를 자식들보다 먼저 배열에 배치해야 함
         // 다른 노드들 중 그룹화되지 않은 것들을 분리
         const nonGroupedNodes = childNodes.filter(n => !variables.nodeIds.includes(n.id));
         const groupedNodes = childNodes.filter(n => variables.nodeIds.includes(n.id));
-        
+
         // 그룹 노드들을 앞에, 비그룹 노드들을 뒤에 배치
         // 순서: [기존 그룹 노드들] + [새 그룹 노드] + [비그룹 노드들] + [그룹의 자식 노드들]
         const existingGroups = nonGroupedNodes.filter(n => n.type === 'group');
@@ -156,13 +156,12 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
         return finalNodes;
       });
 
-      // Step 2: Reselect the nodes with updated data
-      // This ensures the selection bounding box uses the new positions
+      // Step 2: 그룹만 선택 (멀티선택 해제 → 새 그룹 단일 선택)
       setTimeout(() => {
         setNodes(prev =>
           prev.map(n => ({
             ...n,
-            selected: variables.nodeIds.includes(n.id) || n.id === tempGroupId,
+            selected: n.id === tempGroupId,
           }))
         );
       }, 0);
@@ -194,16 +193,16 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
         const updated = prev.map(n => {
           if (n.id === context.tempGroupId) {
             // 그룹 노드의 id와 blockMountId 업데이트, sizes는 optimistic 값 유지
-            return { 
-              ...n, 
-              id: groupBlockMountId, 
-              data: { 
-                ...n.data, 
+            return {
+              ...n,
+              id: groupBlockMountId,
+              data: {
+                ...n.data,
                 blockMountId: groupBlockMountId,
                 blockId: groupBlockId, // 서버에서 반환한 실제 blockId 사용
                 // sizes는 optimistic 값 유지 (서버에서 저장된 값과 동일해야 함)
                 sizes: n.data.sizes || (n.data.size ? { original: n.data.size } : undefined)
-              } 
+              }
             };
           }
           if (n.parentId === context.tempGroupId)

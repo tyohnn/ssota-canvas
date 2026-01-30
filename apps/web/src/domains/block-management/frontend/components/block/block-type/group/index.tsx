@@ -3,6 +3,7 @@
 import React, { memo } from 'react';
 
 import type { NodeProps } from '@xyflow/react';
+import { useStore } from '@xyflow/react';
 
 import { cn } from '@workspace/ui/lib/utils';
 
@@ -54,6 +55,10 @@ export const GroupBlock = memo(function GroupBlock({
 
   const groupBlockProperties = properties as GroupBlockProperties;
 
+  // 자식 노드가 없을 때만 "Drag nodes here to group" 표시
+  const nodes = useStore(state => state.nodes);
+  const hasChildren = nodes.some(n => n.parentId === id);
+
   // 스타일 속성 추출
   const title = groupBlockProperties.title || nodeData.title || 'Group';
   const color = groupBlockProperties.color || ColorToken.BLUE;
@@ -98,16 +103,18 @@ export const GroupBlock = memo(function GroupBlock({
 
         {/* Content Area - 자식 노드들이 여기에 렌더링됨 */}
         <Box className="flex-1 p-4 relative">
-          {/* 빈 공간 표시 (자식 노드가 없을 때) */}
-          <Box
-            className="absolute inset-0 flex items-center justify-center pointer-events-none"
-            style={{
-              opacity: 0.3,
-              color: colors.text,
-            }}
-          >
-            <span className="text-xs">Drag nodes here to group</span>
-          </Box>
+          {/* 빈 공간 표시 (자식 노드가 없을 때만) */}
+          {!hasChildren && (
+            <Box
+              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              style={{
+                opacity: 0.3,
+                color: colors.text,
+              }}
+            >
+              <span className="text-xs">Drag nodes here to group</span>
+            </Box>
+          )}
         </Box>
       </Box>
     );
