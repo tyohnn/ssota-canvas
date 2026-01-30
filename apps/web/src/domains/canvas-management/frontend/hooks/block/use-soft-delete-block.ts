@@ -146,7 +146,6 @@ export function useSoftDeleteBlock(
       if (isFailure(result)) {
         throw new Error(result.error);
       }
-
       return result.data;
     },
 

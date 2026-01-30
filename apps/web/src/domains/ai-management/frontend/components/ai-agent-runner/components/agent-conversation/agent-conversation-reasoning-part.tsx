@@ -28,7 +28,7 @@ export const AgentConversationReasoningPart = memo(
 
   // 스트리밍 중인지 확인 (마지막 메시지의 마지막 part)
   const isLastMessage = message.id === messages[messages.length - 1]?.id;
-  const isLastPart = partIndex === message.parts.length - 1;
+  const isLastPart = partIndex === (message.parts?.length || 0) - 1;
   const isStreaming = isAgentRunning && isLastMessage && isLastPart;
 
   return (

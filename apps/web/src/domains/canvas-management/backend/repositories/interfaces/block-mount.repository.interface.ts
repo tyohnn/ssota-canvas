@@ -15,6 +15,15 @@ export interface BlockMountRepository {
   create(blockMount: BlockMount): Promise<void>;
 
   /**
+   * 여러 BlockMount 일괄 생성 (bulk INSERT)
+   * 23505 시 전체 ID 재생성 후 재시도, 실제 반영된 ID 목록 반환 (입력 순서)
+   *
+   * @param blockMounts - 생성할 BlockMount 배열
+   * @returns Promise<string[]> - 실제 반영된 blockMountId 목록 (재시도 시 새 ID)
+   */
+  createMany(blockMounts: BlockMount[]): Promise<string[]>;
+
+  /**
    * BlockMount 업데이트
    *
    * @param blockMount - 업데이트할 BlockMount
@@ -31,6 +40,16 @@ export interface BlockMountRepository {
   findById(blockMountId: BlockMountId): Promise<BlockMountAggregate | null>;
 
   /**
+   * 여러 BlockMount ID로 조회 (입력 ID 순서대로 반환, 없으면 null)
+   *
+   * @param blockMountIds - BlockMount ID 배열
+   * @returns Promise<(BlockMountAggregate | null)[]>
+   */
+  findByIds(
+    blockMountIds: BlockMountId[]
+  ): Promise<(BlockMountAggregate | null)[]>;
+
+  /**
    * 페이지 ID로 BlockMount 목록 조회
    *
    * @param pageId - 페이지 ID
@@ -45,6 +64,14 @@ export interface BlockMountRepository {
    * @returns Promise<void>
    */
   softDelete(blockMountId: BlockMountId): Promise<void>;
+
+  /**
+   * 여러 BlockMount 일괄 삭제 (소프트 삭제)
+   *
+   * @param blockMountIds - BlockMount ID 배열
+   * @returns Promise<void>
+   */
+  softDeleteMany(blockMountIds: BlockMountId[]): Promise<void>;
 
   /**
    * 페이지의 BlockMount들과 함께 Block 정보를 JOIN해서 조회

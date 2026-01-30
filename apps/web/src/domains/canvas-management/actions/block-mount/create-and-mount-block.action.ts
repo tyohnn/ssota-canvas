@@ -8,10 +8,15 @@ import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects
 import { ActionResult, err, ok } from '@/lib';
 
 import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
-import { createAndMountBlock } from '../../backend/services/block-mount';
+import {
+  createAndMountBlock,
+  createBlocksAndMounts,
+} from '../../backend/services/block-mount';
 import {
   CreateAndMountBlockRequest,
   CreateAndMountBlockRequestSchema,
+  CreateAndMountBlocksRequest,
+  CreateAndMountBlocksRequestSchema,
 } from '../../shared/dtos/requests';
 import { BlockCreatedAndMountedDTO } from '../../shared/dtos/responses';
 
@@ -84,6 +89,65 @@ async function createAndMountBlockInternal(
     return ok(blockView);
   } catch (error) {
     console.error('[createAndMountBlockInternal] Internal error:', error);
+    return err('Internal server error', {
+      code: 'INTERNAL_SERVER_ERROR',
+      meta: {
+        originalError: error instanceof Error ? error.message : 'Unknown error',
+        request: safeDto,
+      },
+    });
+  }
+}
+
+/**
+ * Block 생성 및 마운트 (다중, 배치) Server Action
+ *
+ * - pageId 한 번으로 페이지 권한 검증
+ * - BlockMount는 createMany 1회
+ */
+export const createBlocksAndMountsAction = withPageSecureAction(
+  CreateAndMountBlocksRequestSchema,
+  'createBlocksAndMountsAction',
+  createBlocksAndMountsInternal,
+  {
+    getLogMetadata: req => ({
+      pageId: req.pageId,
+      blockCount: req.blocks.length,
+    }),
+  }
+);
+
+async function createBlocksAndMountsInternal(
+  safeDto: CreateAndMountBlocksRequest,
+  context: PageActionContext
+): Promise<ActionResult<BlockCreatedAndMountedDTO[]>> {
+  try {
+    const { authenticatedUser, workspace } = context;
+    const userId = new UserId(authenticatedUser.id);
+    const workspaceId: WorkspaceId = workspace.workspaceId;
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const blockRepository = new DrizzleBlockRepository();
+
+    const result = await createBlocksAndMounts({
+      safeDto,
+      safeUserId: userId,
+      safeWorkspaceId: workspaceId,
+      blockRepository,
+      blockMountRepository,
+    });
+
+    if (result.isError()) {
+      return err(String(result.error), {
+        code: 'BLOCK_MOUNT_CREATION_FAILED',
+        meta: { originalError: result.error, request: safeDto },
+      });
+    }
+
+    const views = result.value.map(({ blockMountAggregate, blockAggregate }) =>
+      blockMountAggregate.toView(blockAggregate)
+    );
+    return ok(views);
+  } catch (error) {
     return err('Internal server error', {
       code: 'INTERNAL_SERVER_ERROR',
       meta: {

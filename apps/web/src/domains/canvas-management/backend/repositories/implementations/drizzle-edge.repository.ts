@@ -172,6 +172,31 @@ export class DrizzleEdgeRepository implements EdgeRepository {
   }
 
   /**
+   * 여러 블럭 마운트 ID 중 하나라도 source/target인 Edge 조회
+   */
+  async findByConnectedBlockMountIds(
+    blockMountIds: BlockMountId[]
+  ): Promise<EdgeAggregate[]> {
+    if (blockMountIds.length === 0) return [];
+
+    const idValues = blockMountIds.map(id => id.value);
+    const result = await adminDb
+      .select()
+      .from(edges)
+      .where(
+        and(
+          or(
+            inArray(edges.source_block_mount_id, idValues),
+            inArray(edges.target_block_mount_id, idValues)
+          ),
+          isNull(edges.deleted_at)
+        )
+      );
+
+    return result.map(row => this.toDomain(row));
+  }
+
+  /**
    * Edge 삭제 (소프트 삭제)
    */
   async delete(edgeId: EdgeId): Promise<void> {

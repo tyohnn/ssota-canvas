@@ -9,12 +9,45 @@
 import { z } from 'zod';
 
 /**
+ * 엣지 스타일 (생성/업데이트 공통)
+ */
+const edgeStyleSchema = z.object({
+  stroke: z.string().optional(),
+  strokeWidth: z.number().optional(),
+});
+
+/**
+ * 마커 타입 enum (생성/업데이트 공통)
+ */
+const markerTypeEnum = [
+  'none',
+  'arrow',
+  'arrow-open',
+  'circle',
+  'circle-open',
+  'diamond',
+  'diamond-open',
+] as const;
+
+/**
+ * 엣지 shape enum (생성 시 지정 가능)
+ */
+const edgeShapeEnum = [
+  'default',
+  'straight',
+  'step',
+  'smoothstep',
+  'simplebezier',
+] as const;
+
+/**
  * 엣지 생성 요청 스키마
  *
  * ⚠️ Schema Change: now uses BlockMountId instead of BlockId
  *
  * - Frontend에서 1차 검증 (UX)
  * - Server Action에서 2차 검증 (보안)
+ * - label, style, shape, markerEnd, markerStart는 선택(생성 시 한 번에 지정 가능)
  */
 export const CreateEdgeRequestSchema = z.object({
   pageId: z.uuid('Invalid page ID'),
@@ -22,6 +55,11 @@ export const CreateEdgeRequestSchema = z.object({
   targetBlockMountId: z.uuid('Invalid target block mount ID'),
   sourceHandle: z.enum(['left', 'right', 'top', 'bottom']),
   targetHandle: z.enum(['left', 'right', 'top', 'bottom']),
+  label: z.string().optional(),
+  style: edgeStyleSchema.optional(),
+  shape: z.enum(edgeShapeEnum).optional(),
+  markerEnd: z.enum(markerTypeEnum).optional(),
+  markerStart: z.enum(markerTypeEnum).nullable().optional(),
 });
 
 /**
@@ -63,16 +101,6 @@ export const UpdateEdgeStyleRequestSchema = z.object({
  * - marker: 'start' | 'end' (어느 쪽을 바꿀지)
  * - value: MarkerType (none | arrow | arrow-open | circle | circle-open | diamond | diamond-open)
  */
-const markerTypeEnum = [
-  'none',
-  'arrow',
-  'arrow-open',
-  'circle',
-  'circle-open',
-  'diamond',
-  'diamond-open',
-] as const;
-
 export const UpdateEdgeMarkerRequestSchema = z.object({
   edgeId: z.uuid('Invalid edge ID'),
   marker: z.enum(['start', 'end']),

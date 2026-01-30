@@ -59,6 +59,7 @@ const BaseBlockContainer = memo(
           data={contextValue.data}
           width={contextValue.width}
           height={contextValue.height}
+          draggable={props.draggable}
           onMouseEnter={contextValue.handleMouseEnter}
           onMouseMove={contextValue.handleMouseMove}
           onMouseLeave={contextValue.handleMouseLeave}

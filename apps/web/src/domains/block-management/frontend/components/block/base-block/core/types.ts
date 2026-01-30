@@ -19,6 +19,7 @@ export interface BaseBlockProps {
   data: BlockNodeData;
   selected?: boolean;
   isConnectable?: boolean;
+  draggable?: boolean;
   children?: React.ReactNode;
   width?: number;
   height?: number;

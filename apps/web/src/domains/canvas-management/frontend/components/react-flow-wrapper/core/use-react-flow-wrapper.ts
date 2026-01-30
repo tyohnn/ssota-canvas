@@ -534,13 +534,21 @@ export function useReactFlowWrapper(
       const collisionHandled = await groupCollision.handleNodeDragStop(draggedNodes);
 
       // 4. 서버 저장 (collision이 처리되지 않은 경우만)
+      // optimistic ID는 서버에 없으므로 제외 (복제/생성 응답 전 드래그 시 실패 방지)
       if (!collisionHandled) {
-        const blockPositions = draggedNodes.map(draggedNode => ({
-          blockMountId: draggedNode.id,
-          position: draggedNode.position,
-        }));
-
-        await blockTransform.updateBlockPosition({ blockPositions });
+        const blockPositions = draggedNodes
+          .map(draggedNode => ({
+            blockMountId: draggedNode.id,
+            position: draggedNode.position,
+          }))
+          .filter(
+            bp =>
+              !String(bp.blockMountId).startsWith('optimistic-') &&
+              !String(bp.blockMountId).startsWith('group-optimistic-')
+          );
+        if (blockPositions.length > 0) {
+          await blockTransform.updateBlockPosition({ blockPositions });
+        }
       }
     },
     [readonly, uiState, blockTransform, groupCollision, reactFlowInstance]

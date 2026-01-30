@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 
 import { adminDb } from '@/db';
 import { blockMounts, blocks, profiles } from '@/db/schema';
@@ -53,7 +53,6 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
           updated_at: blockMount.updatedAt,
         });
 
-        // 성공 시 종료
         return;
       } catch (error) {
         // UUID 충돌인지 확인 (PostgreSQL unique constraint violation)
@@ -64,7 +63,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
           attempts++;
           if (attempts < maxAttempts) {
             // 새로운 ID 생성
-            const newId = BlockId.generate().value;
+            const newId = BlockMountId.generate().value;
             console.warn(
               `[DrizzleBlockMountRepository] ID collision detected (attempt ${attempts}), retrying with new ID: ${newId}`
             );
@@ -86,6 +85,62 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         }
       }
     }
+  }
+
+  /**
+   * 여러 BlockMount 일괄 생성 (bulk INSERT)
+   * 23505 시 전체 ID 재생성 후 재시도, 실제 반영된 ID 목록 반환 (입력 순서)
+   */
+  async createMany(blockMountsList: BlockMount[]): Promise<string[]> {
+    if (blockMountsList.length === 0) return [];
+
+    let values = blockMountsList.map(blockMount => ({
+      id: blockMount.id.value,
+      page_id: blockMount.pageId.value,
+      block_id: blockMount.blockId.value,
+      parent_block_mount_id: blockMount.parentBlockMountId?.value ?? null,
+      position_x: String(blockMount.position.x),
+      position_y: String(blockMount.position.y),
+      view_mode_sizes: blockMount.viewModeSizes.toJSON(),
+      z_order: blockMount.zOrder.value,
+      view_mode: blockMount.viewMode.value,
+      created_at: blockMount.createdAt,
+      updated_at: blockMount.updatedAt,
+    }));
+
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+      try {
+        await adminDb.insert(blockMounts).values(values);
+        return values.map(v => v.id);
+      } catch (error) {
+        if (
+          (error as any).code === '23505' &&
+          (error as any).constraint === 'block_mounts_pkey'
+        ) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            values = values.map((v, i) => ({
+              ...v,
+              id: BlockMountId.generate().value,
+            }));
+            console.warn(
+              `[DrizzleBlockMountRepository] createMany ID collision (attempt ${attempts}), retrying with new IDs`
+            );
+          } else {
+            throw new Error(
+              'Failed to generate unique IDs for block mounts after multiple attempts'
+            );
+          }
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    return values.map(v => v.id);
   }
 
   /**
@@ -136,6 +191,27 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     return this.toDomain(row);
   }
 
+  async findByIds(
+    blockMountIds: BlockMountId[]
+  ): Promise<(BlockMountAggregate | null)[]> {
+    if (blockMountIds.length === 0) return [];
+
+    const idValues = blockMountIds.map(id => id.value);
+    const results = await adminDb
+      .select()
+      .from(blockMounts)
+      .where(
+        and(inArray(blockMounts.id, idValues), isNull(blockMounts.deleted_at))
+      );
+
+    const byId = new Map(
+      results.map(row => [row.id, this.toDomain(row)])
+    );
+    return blockMountIds.map(
+      id => byId.get(id.value) ?? null
+    );
+  }
+
   async findByPageId(pageId: PageId): Promise<BlockMountAggregate[]> {
     const results = await adminDb
       .select()
@@ -155,6 +231,16 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       .update(blockMounts)
       .set({ deleted_at: new Date(), updated_at: new Date() })
       .where(eq(blockMounts.id, blockMountId.value));
+  }
+
+  async softDeleteMany(blockMountIds: BlockMountId[]): Promise<void> {
+    if (blockMountIds.length === 0) return;
+
+    const idValues = blockMountIds.map(id => id.value);
+    await adminDb
+      .update(blockMounts)
+      .set({ deleted_at: new Date(), updated_at: new Date() })
+      .where(inArray(blockMounts.id, idValues));
   }
 
   async updateParentAndPosition(

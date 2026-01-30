@@ -70,7 +70,7 @@ export interface UseCanvasBlockLifecycleResult {
     nodeIds: string[];
     groupTitle?: string;
     groupColor?: string;
-  }) => Promise<void>;
+  }) => Promise<{ groupBlockMountId: string; groupBlockId: string }>;
 
   // 프로그램적 제어 (UI만 변경, 서버 호출 X)
   addBlockToCanvas: (
@@ -345,9 +345,7 @@ export function useCanvasBlockLifecycle(
       nodeIds: string[];
       groupTitle?: string;
       groupColor?: string;
-    }) => {
-      await createGroupMutation.mutateAsync(params);
-    },
+    }) => createGroupMutation.mutateAsync(params),
     [createGroupMutation]
   );
 

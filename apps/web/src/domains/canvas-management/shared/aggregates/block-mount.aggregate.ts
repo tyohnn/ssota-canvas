@@ -22,6 +22,7 @@ import {
   BlockZOrderUpdatedEvent,
   DomainEvent,
 } from '../events';
+import { BlockMountId } from '../value-objects/block-mount-id.vo';
 import { BlockViewMode } from '../value-objects/block-view-mode.vo';
 import { ViewModeSizes } from '../value-objects/view-mode-sizes.vo';
 import { ZOrder } from '../value-objects/z-order.vo';
@@ -36,6 +37,26 @@ export class BlockMountAggregate {
 
   getBlockMount(): BlockMount {
     return this._blockMount;
+  }
+
+  /**
+   * createMany 23505 재시도 시 DB에 반영된 ID로 aggregate 내부 BlockMount 보정
+   */
+  applyPersistedId(newId: BlockMountId): void {
+    const bm = this._blockMount;
+    this._blockMount = BlockMount.reconstitute({
+      id: newId,
+      pageId: bm.pageId,
+      blockId: bm.blockId,
+      position: bm.position,
+      viewModeSizes: bm.viewModeSizes,
+      zOrder: bm.zOrder,
+      viewMode: bm.viewMode,
+      parentBlockMountId: bm.parentBlockMountId,
+      createdAt: bm.createdAt,
+      updatedAt: bm.updatedAt,
+      deletedAt: bm.deletedAt,
+    });
   }
 
   static mountBlock(command: MountBlockCommand): BlockMountAggregate {

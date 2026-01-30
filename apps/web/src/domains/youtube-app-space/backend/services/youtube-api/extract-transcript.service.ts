@@ -14,6 +14,7 @@ import type { YoutubeScript } from '../../../shared/types/transcript.types';
 import type { TranscriptSegment } from '../../../shared/types/transcript.types';
 import { SUPPORTED_LANGUAGES } from '../../../shared/value-objects/language-code.vo';
 import { ZenRowsCaptionAdapter } from './script-adapter/zenrows-caption.adapter';
+import { YoutubeCaptionExtractorAdapter } from './script-adapter/youtube-caption-extractor.adapter';
 
 /**
  * YouTube 영상 스크립트 추출
@@ -30,44 +31,55 @@ export async function extractTranscript(
   videoId: string,
   language?: string
 ): Promise<YoutubeScript> {
-  const adapter = new ZenRowsCaptionAdapter();
+  // Fallback 메커니즘: 무료 어댑터를 먼저 시도하고, 실패 시 ZenRows 사용
+  const adapters = [
+    new YoutubeCaptionExtractorAdapter(), // 1차: 무료, 로컬/배포 환경 모두 작동
+    new ZenRowsCaptionAdapter(), // 2차: 유료, 배포 환경에서 bot detection 우회
+  ];
 
-  try {
-    const segments = await adapter.getTranscript(videoId, language);
-    if (segments.length > 0) {
-      // language가 'auto'인 경우 LLM으로 언어 감지
-      let detectedLanguage = language || 'auto';
-      if (detectedLanguage === 'auto') {
-        const languageResult = await detectLanguageFromScript(segments, videoId);
-        if (languageResult.isSuccess()) {
-          detectedLanguage = languageResult.value;
-        } else {
-          // 언어 감지 실패 시에도 'auto'로 진행
-          console.warn(
-            `Failed to detect language for video ${videoId}: ${languageResult.error.message}`
-          );
+  let lastError: Error | null = null;
+
+  for (const adapter of adapters) {
+    try {
+      const segments = await adapter.getTranscript(videoId, language);
+
+      if (segments.length > 0) {
+        // language가 'auto'인 경우 LLM으로 언어 감지
+        let detectedLanguage = language || 'auto';
+        if (detectedLanguage === 'auto') {
+          const languageResult = await detectLanguageFromScript(segments, videoId);
+          if (languageResult.isSuccess()) {
+            detectedLanguage = languageResult.value;
+          } else {
+            // 언어 감지 실패 시에도 'auto'로 진행
+            console.warn(
+              `Failed to detect language for video ${videoId}: ${languageResult.error.message}`
+            );
+          }
         }
+
+        return buildYoutubeScript(segments, videoId, detectedLanguage);
       }
 
-      return buildYoutubeScript(segments, videoId, detectedLanguage);
+      // 세그먼트가 비어있으면 다음 어댑터 시도
+      lastError = new Error('No transcript segments found');
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      // 다음 어댑터로 계속 시도
+      continue;
     }
-
-    throw new YoutubeError(
-      'TRANSCRIPT_NOT_AVAILABLE',
-      'No transcript segments found',
-      { videoId, language }
-    );
-  } catch (error) {
-    throw new YoutubeError(
-      'TRANSCRIPT_NOT_AVAILABLE',
-      `Failed to extract transcript: ${error instanceof Error ? error.message : String(error)}`,
-      {
-        videoId,
-        language,
-        originalError: error instanceof Error ? error.message : String(error),
-      }
-    );
   }
+
+  // 모든 어댑터가 실패한 경우
+  throw new YoutubeError(
+    'TRANSCRIPT_NOT_AVAILABLE',
+    `Failed to extract transcript: ${lastError?.message || 'All adapters failed'}`,
+    {
+      videoId,
+      language,
+      originalError: lastError?.message || 'All adapters failed',
+    }
+  );
 }
 
 /**

@@ -178,6 +178,7 @@ function renderMarker(
 
   switch (actualType) {
     case 'arrow':
+    case 'arrowclosed':
       return <ArrowMarker id={id} color={color} />;
     case 'arrow-open':
       return <ArrowOpenMarker id={id} color={color} />;

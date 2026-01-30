@@ -23,6 +23,7 @@ import type { BlockNodeData } from '@/domains/block-management/shared/types/bloc
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
+import { GroupBlockToolbar } from './group-block-toolbar';
 import { BlockHeader } from './block-header';
 import {
   MoreMenuToolbarItem,
@@ -72,6 +73,25 @@ export function BlockToolbar({
   // zoom이 60% 이하일 때는 표시하지 않음
   if (zoom <= 0.6) {
     return null;
+  }
+
+  // 그룹 블록: 전용 툴바 레이아웃 (좌측 제목만, 중앙 툴바, 배지 없음)
+  if (data.blockType === 'group') {
+    return (
+      <GroupBlockToolbar
+        data={data}
+        selected={selected}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
+        width={width}
+        height={height}
+        className={className}
+        zoom={zoom}
+        isMultiSelection={isMultiSelection}
+        onEdit={onEdit}
+        showBlockToolbarMapper={showBlockToolbarMapper}
+      />
+    );
   }
 
   return (

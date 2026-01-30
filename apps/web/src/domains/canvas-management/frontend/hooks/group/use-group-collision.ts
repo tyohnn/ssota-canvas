@@ -142,13 +142,22 @@ export function useGroupCollision(params: UseGroupCollisionParams) {
       // 다중 선택된 노드들의 중심점 계산
       const centroid = calculateCentroid(draggedNodes);
 
-      // 중심점이 충돌하는 그룹 찾기
+      // 중심점이 충돌하는 그룹 찾기 (첫 번째로 겹치는 그룹 사용)
+      // 그룹이 다른 그룹의 자식일 수 있으므로 절대 좌표로 경계 비교
+      // 참고: 자식이 있어도 centroid가 안이면 추가 허용 — 그룹에서 빼었다가 다시 넣기(re-add)가 동작하도록
       let collidingGroup: Node | null = null;
       for (const groupNode of groupNodes) {
-        if (isPointInsideGroup(centroid, groupNode)) {
-          collidingGroup = groupNode;
-          break;
-        }
+        const groupAbs = getAbsolutePosition(groupNode);
+        const groupRight = groupAbs.x + (groupNode.width || 0);
+        const groupBottom = groupAbs.y + (groupNode.height || 0);
+        const inside =
+          centroid.x >= groupAbs.x &&
+          centroid.x <= groupRight &&
+          centroid.y >= groupAbs.y &&
+          centroid.y <= groupBottom;
+        if (!inside) continue;
+        collidingGroup = groupNode;
+        break;
       }
 
       // 모든 드래그된 노드가 같은 부모를 가지고 있는지 확인
@@ -223,7 +232,7 @@ export function useGroupCollision(params: UseGroupCollisionParams) {
 
           // 현재 노드 배열을 가져와서 직접 수정
           const currentNodes = reactFlow.getNodes();
-          
+
           // 자식 노드의 parentId와 position만 업데이트
           const updatedNodes = currentNodes.map(node => {
             if (draggedNodeIds.has(node.id)) {

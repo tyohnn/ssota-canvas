@@ -29,6 +29,7 @@ export const BlockHeader = memo(function BlockHeader({
   width,
   className,
   businessLogic,
+  showBadge = true,
 }: BlockHeaderProps & {
   businessLogic?: BlockHeaderBusinessLogic;
 }) {
@@ -59,6 +60,7 @@ export const BlockHeader = memo(function BlockHeader({
       isUpdating={isUpdating}
       className={className}
       readonly={readonly}
+      showBadge={showBadge}
     />
   );
 });

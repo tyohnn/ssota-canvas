@@ -51,6 +51,7 @@ export const AudioBlock = memo(function AudioBlock({
   id,
   data,
   selected,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -325,6 +326,7 @@ export const AudioBlock = memo(function AudioBlock({
     <BaseBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       isConnectable={true}
       width={width}
       height={height}

@@ -16,6 +16,15 @@ export interface IBlockRepository {
   create(block: Block): Promise<void>;
 
   /**
+   * 여러 블록 일괄 생성 (bulk INSERT)
+   * 23505 시 전체 ID 재생성 후 재시도, 실제 반영된 ID 목록 반환 (입력 순서)
+   *
+   * @param blocks - 생성할 Block 배열
+   * @returns Promise<string[]> - 실제 반영된 blockId 목록 (재시도 시 새 ID)
+   */
+  createMany(blocks: Block[]): Promise<string[]>;
+
+  /**
    * 블록 업데이트
    *
    * @param block - 업데이트할 블록
@@ -30,6 +39,14 @@ export interface IBlockRepository {
    * @returns Promise<Block | null>
    */
   findById(id: BlockId): Promise<Block | null>;
+
+  /**
+   * 여러 블록 ID로 조회 (입력 ID 순서대로 반환, 없으면 null)
+   *
+   * @param ids - Block ID 배열
+   * @returns Promise<(Block | null)[]>
+   */
+  findByIds(ids: BlockId[]): Promise<(Block | null)[]>;
 
   /**
    * 워크스페이스 ID로 블록 목록 조회

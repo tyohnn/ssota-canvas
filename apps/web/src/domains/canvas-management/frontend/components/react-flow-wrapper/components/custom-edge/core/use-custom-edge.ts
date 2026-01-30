@@ -97,7 +97,8 @@ export function useCustomEdge(props: CustomEdgeHookProps): UseCustomEdgeReturn {
   const isSingleSelection = selectedNodeCount === 0 && selectedEdgeCount === 1;
 
   // 6. Get edge label from React Flow (for EdgeLabel component)
-  const label = (edge?.label as string) || '';
+  // Always use string; Edge.label can be string | ReactNode elsewhere, but we only support string
+  const label = typeof edge?.label === 'string' ? edge.label : '';
 
   // 7. Toolbar visibility
   const showToolbar = !!((selected ?? false) && isSingleSelection && edgeId);

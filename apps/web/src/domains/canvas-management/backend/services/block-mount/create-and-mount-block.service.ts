@@ -2,7 +2,10 @@
  * 블럭 생성 및 마운트 서비스 로직
  */
 import type { IBlockRepository } from '@/domains/block-management/backend/repositories/interfaces/block.repository.interface';
-import { createBlock } from '@/domains/block-management/backend/services/block';
+import {
+  createBlock,
+  createBlocks,
+} from '@/domains/block-management/backend/services/block';
 import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
 import type { CreateBlockRequest } from '@/domains/block-management/shared/dtos/requests/block.requests';
 import {
@@ -20,7 +23,10 @@ import { Result } from '@/utils/result';
 
 import { BlockMountAggregate } from '../../../shared/aggregates/block-mount.aggregate';
 import { MountBlockCommand } from '../../../shared/commands';
-import type { CreateAndMountBlockRequest } from '../../../shared/dtos/requests';
+import type {
+  CreateAndMountBlockRequest,
+  CreateAndMountBlocksRequest,
+} from '../../../shared/dtos/requests';
 import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
 import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
 import { BlockViewMode } from '../../../shared/value-objects/block-view-mode.vo';
@@ -152,4 +158,132 @@ export async function createAndMountBlock(
       )
     );
   }
+}
+
+export type CreateBlocksAndMountParams = {
+  safeDto: CreateAndMountBlocksRequest;
+  safeUserId: UserId;
+  safeWorkspaceId: WorkspaceId;
+  blockRepository: IBlockRepository;
+  blockMountRepository: BlockMountRepository;
+};
+
+/**
+ * 블럭 생성 및 마운트 (다중, 배치)
+ *
+ * - Block: block-management createBlocks 1회 (bulk INSERT)
+ * - BlockMount: createMany 1회로 일괄 INSERT
+ */
+export async function createBlocksAndMounts(
+  params: CreateBlocksAndMountParams
+): Promise<
+  Result<
+    Array<{
+      blockMountAggregate: BlockMountAggregate;
+      blockAggregate: BlockAggregate;
+    }>,
+    Error
+  >
+> {
+  const {
+    safeDto,
+    safeUserId,
+    safeWorkspaceId,
+    blockRepository,
+    blockMountRepository,
+  } = params;
+
+  const createBlockRequests: CreateBlockRequest[] = safeDto.blocks.map(
+    block => ({
+      workspaceId: safeWorkspaceId.value,
+      blockType: block.blockType,
+      title: block.title || '새 블럭',
+      initialProperties: block.initialProperties,
+      initialContent: block.initialContent,
+    })
+  );
+
+  const blockResult = await createBlocks(
+    createBlockRequests,
+    safeUserId,
+    blockRepository
+  );
+  if (blockResult.isError()) {
+    return Result.error(blockResult.error);
+  }
+  const blockAggregates = blockResult.value;
+
+  const pageIdVO = new PageId(safeDto.pageId);
+  const results: Array<{
+    blockMountAggregate: BlockMountAggregate;
+    blockAggregate: BlockAggregate;
+  }> = [];
+  const blockMountsToCreate: ReturnType<
+    BlockMountAggregate['getBlockMount']
+  >[] = [];
+
+  for (let i = 0; i < safeDto.blocks.length; i++) {
+    const block = safeDto.blocks[i]!;
+    const blockAggregate = blockAggregates[i]!;
+    const positionVO = new Position(block.position.x, block.position.y);
+    const sizeVO = new Size(block.size.width, block.size.height);
+    const blockType = block.blockType as BlockType;
+    const blockMountId = BlockMountId.generate();
+    const viewMode = block.viewMode
+      ? BlockViewMode.create(block.viewMode)
+      : BlockViewMode.create(getDefaultViewMode(blockType));
+
+    const originalSize = sizeVO;
+    const cardSize = getBlockSizeForViewMode(blockType, 'card');
+    const noteSize = getBlockSizeForViewMode(blockType, 'note');
+    const viewModeSizes = ViewModeSizes.empty()
+      .updateSizeForViewMode('original', originalSize)
+      .updateSizeForViewMode('card', new Size(cardSize.width, cardSize.height))
+      .updateSizeForViewMode('note', new Size(noteSize.width, noteSize.height));
+
+    const mountBlockCommand: MountBlockCommand = {
+      blockMountId,
+      pageId: pageIdVO,
+      blockId: blockAggregate.getBlock().id,
+      position: positionVO,
+      size: sizeVO,
+      viewMode,
+      viewModeSizes,
+      userId: safeUserId,
+    };
+    const blockMountAggregate = BlockMountAggregate.mountBlock(mountBlockCommand);
+    blockMountsToCreate.push(blockMountAggregate.getBlockMount());
+    results.push({ blockMountAggregate, blockAggregate });
+  }
+
+  let persistedBlockMountIds: string[];
+  try {
+    persistedBlockMountIds =
+      await blockMountRepository.createMany(blockMountsToCreate);
+  } catch (saveError) {
+    return Result.error(
+      new CanvasManagementError(
+        'BLOCK_MOUNT_CREATION_FAILED',
+        `Failed to save block mounts: ${saveError instanceof Error ? saveError.message : 'Unknown error'}`,
+        { originalError: saveError }
+      )
+    );
+  }
+
+  // 23505 재시도 시 새 ID가 반영되었을 수 있음 → aggregate에 보정
+  for (let i = 0; i < results.length; i++) {
+    const { blockMountAggregate } = results[i]!;
+    const persistedId = persistedBlockMountIds[i]!;
+    if (persistedId !== blockMountAggregate.getBlockMount().id.value) {
+      blockMountAggregate.applyPersistedId(new BlockMountId(persistedId));
+    }
+  }
+
+  for (const { blockMountAggregate } of results) {
+    const events = blockMountAggregate.getUncommittedEvents();
+    await Promise.allSettled(events.map(event => event.handle()));
+    blockMountAggregate.markEventsAsCommitted();
+  }
+
+  return Result.success(results);
 }

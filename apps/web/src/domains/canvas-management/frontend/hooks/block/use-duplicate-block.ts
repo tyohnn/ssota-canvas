@@ -67,6 +67,7 @@ export function useDuplicateBlock(
 
   /**
    * Optimistic 복제 노드 생성
+   * 그룹 자식이면 parentId·parentBlockMountId 유지, position은 상대 좌표 유지
    */
   const createOptimisticDuplicateNode = (
     originalNode: Node,
@@ -81,7 +82,7 @@ export function useDuplicateBlock(
       y: originalNode.position.y + offsetY,
     };
 
-    const optimisticNodeData: BlockNodeData = buildBlockNodeData(
+    const baseNodeData = buildBlockNodeData(
       originalNodeData.blockType,
       {
         blockMountId: optimisticBlockMountId,
@@ -94,6 +95,14 @@ export function useDuplicateBlock(
       }
     );
 
+    const optimisticNodeData: BlockNodeData =
+      originalNode.parentId != null
+        ? {
+            ...baseNodeData,
+            parentBlockMountId: originalNode.parentId,
+          }
+        : baseNodeData;
+
     return {
       optimisticBlockMountId,
       optimisticNodeData,
@@ -102,6 +111,7 @@ export function useDuplicateBlock(
         width: originalNode.width || 200,
         height: originalNode.height || 150,
       },
+      parentId: originalNode.parentId,
     };
   };
 
@@ -171,7 +181,7 @@ export function useDuplicateBlock(
         optimisticId
       );
 
-      // 노드 생성
+      // 노드 생성 (그룹 자식이면 parentId 유지)
       const optimisticNode: CustomNodeType = {
         id: optimisticData.optimisticBlockMountId,
         type: originalNodeData.blockType,
@@ -180,9 +190,13 @@ export function useDuplicateBlock(
         width: optimisticData.size.width,
         height: optimisticData.size.height,
         zIndex: 1,
+        draggable: false,
+        ...(optimisticData.parentId != null && {
+          parentId: optimisticData.parentId,
+        }),
       } as CustomNodeType;
 
-      // 즉시 React Flow Store에 추가
+      // 즉시 React Flow Store에 추가 (맨 끝에 추가)
       addNodes([optimisticNode]);
 
       // 복제된 블럭을 자동으로 선택
@@ -241,7 +255,10 @@ export function useDuplicateBlock(
         }
       );
 
-      // Optimistic 노드를 실제 노드로 교체
+      // Optimistic 노드를 실제 노드로 교체 (parentId·parentBlockMountId 유지)
+      const parentId = optimisticNode?.parentId;
+      const parentBlockMountId = (optimisticNode?.data as BlockNodeData)
+        ?.parentBlockMountId;
       setNodes(
         (nodes: Node[]) =>
           nodes.map((node: Node) => {
@@ -249,7 +266,14 @@ export function useDuplicateBlock(
               return {
                 ...node,
                 id: result.blockMountId,
-                data: realNodeData,
+                data: {
+                  ...realNodeData,
+                  ...(parentBlockMountId != null && {
+                    parentBlockMountId,
+                  }),
+                },
+                ...(parentId != null && { parentId }),
+                draggable: true,
               } as CustomNodeType;
             }
             return node;

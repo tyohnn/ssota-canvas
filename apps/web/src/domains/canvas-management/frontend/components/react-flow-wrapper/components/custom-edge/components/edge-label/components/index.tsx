@@ -65,12 +65,13 @@ export function EdgeLabelView({
         position: 'absolute',
         transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
         pointerEvents: 'all',
+        zIndex: 10,
       }}
       className="nodrag nopan"
     >
       <Box
         className={cn(
-          'px-3 py-2 flex items-center justify-center rounded-md transition-all',
+          'px-3 py-2 flex items-center justify-center rounded-md transition-all min-w-[70px]',
           isSelected || isEditing
             ? 'bg-background/90 backdrop-blur-sm border border-border shadow-sm'
             : label

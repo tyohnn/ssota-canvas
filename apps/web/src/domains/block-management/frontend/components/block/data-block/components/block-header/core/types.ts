@@ -12,6 +12,8 @@ export interface BlockHeaderProps {
   selected: boolean;
   width?: number;
   className?: string;
+  /** When false, badge is never shown. Default true. */
+  showBadge?: boolean;
 }
 
 // =============================================================================

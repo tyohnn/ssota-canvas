@@ -72,6 +72,30 @@ export const CreateAndMountBlockRequestSchema = z.object({
   initialContent: z.any().optional(), // JSONB - TipTap JSON, 텍스트, 코드 등
 });
 
+/** 블럭 생성·마운트 배치용: 한 항목 (pageId는 상위에서 공통) */
+const CreateAndMountBlockItemSchema = z.object({
+  blockType: BlockTypeSchema,
+  position: PositionSchema,
+  size: SizeSchema,
+  viewMode: ViewModeSchema.optional(),
+  title: z.string().optional(),
+  initialProperties: z.record(z.string(), z.any()).optional(),
+  initialContent: z.any().optional(),
+});
+
+/**
+ * 블럭 생성 및 마운트 요청 스키마 (다중, 배치)
+ *
+ * - pageId 한 번으로 페이지 검증
+ * - Block은 block-management에서 N회, BlockMount는 createMany 1회
+ */
+export const CreateAndMountBlocksRequestSchema = z.object({
+  pageId: z.uuid('Invalid page ID'),
+  blocks: z
+    .array(CreateAndMountBlockItemSchema)
+    .min(1, 'At least one block is required'),
+});
+
 /**
  * 블럭 위치 업데이트 요청 스키마 (단일 또는 다중)
  */
@@ -103,7 +127,7 @@ export const SoftDeleteBlockMountRequestSchema = z.object({
 });
 
 /**
- * 블럭 복제 요청 스키마
+ * 블럭 복제 요청 스키마 (단일)
  *
  * ⚠️ Zero Trust: pageId는 서버에서 blockMount 조회 후 자동 추출
  */
@@ -111,6 +135,23 @@ export const DuplicateBlockAndMountRequestSchema = z.object({
   blockMountId: z.uuid('Invalid block mount ID'),
   offsetX: z.number().optional(),
   offsetY: z.number().optional(),
+});
+
+/**
+ * 블럭 복제 요청 스키마 (다중, 배치)
+ *
+ * ⚠️ Zero Trust: pageId는 서버에서 blockMount 조회 후 자동 추출
+ */
+export const DuplicateBlocksAndMountRequestSchema = z.object({
+  blocks: z
+    .array(
+      z.object({
+        blockMountId: z.uuid('Invalid block mount ID'),
+        offsetX: z.number().optional(),
+        offsetY: z.number().optional(),
+      })
+    )
+    .min(1, 'At least one block is required'),
 });
 
 /**
@@ -164,6 +205,9 @@ export const CreateGroupFromNodesRequestSchema = z.object({
 export type CreateAndMountBlockRequestInput = z.input<
   typeof CreateAndMountBlockRequestSchema
 >;
+export type CreateAndMountBlocksRequestInput = z.input<
+  typeof CreateAndMountBlocksRequestSchema
+>;
 export type UpdateBlockPositionRequestInput = z.input<
   typeof UpdateBlockPositionRequestSchema
 >;
@@ -175,6 +219,9 @@ export type SoftDeleteBlockMountRequestInput = z.input<
 >;
 export type DuplicateBlockAndMountRequestInput = z.input<
   typeof DuplicateBlockAndMountRequestSchema
+>;
+export type DuplicateBlocksAndMountRequestInput = z.input<
+  typeof DuplicateBlocksAndMountRequestSchema
 >;
 export type MoveBlockToPageRequestInput = z.input<
   typeof MoveBlockToPageRequestSchema
@@ -196,6 +243,9 @@ export type CreateGroupFromNodesRequestInput = z.input<
 export type CreateAndMountBlockRequest = z.output<
   typeof CreateAndMountBlockRequestSchema
 >;
+export type CreateAndMountBlocksRequest = z.output<
+  typeof CreateAndMountBlocksRequestSchema
+>;
 export type UpdateBlockPositionRequest = z.output<
   typeof UpdateBlockPositionRequestSchema
 >;
@@ -207,6 +257,9 @@ export type SoftDeleteBlockMountRequest = z.output<
 >;
 export type DuplicateBlockAndMountRequest = z.output<
   typeof DuplicateBlockAndMountRequestSchema
+>;
+export type DuplicateBlocksAndMountRequest = z.output<
+  typeof DuplicateBlocksAndMountRequestSchema
 >;
 export type MoveBlockToPageRequest = z.output<
   typeof MoveBlockToPageRequestSchema

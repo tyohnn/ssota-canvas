@@ -14,13 +14,15 @@ import { softDeleteBlock } from '../block/lifecycle/soft-delete-block.service';
 // Mock Repository
 const mockRepository = {
   create: vi.fn(),
+  createMany: vi.fn().mockResolvedValue([]),
   update: vi.fn(),
   findById: vi.fn(),
+  findByIds: vi.fn(),
   findByWorkspaceId: vi.fn(),
   findByBlockType: vi.fn(),
   delete: vi.fn(),
   hardDelete: vi.fn(),
-  restore: vi.fn()
+  restore: vi.fn(),
 } as any;
 
 describe('Block Management Service Functions', () => {

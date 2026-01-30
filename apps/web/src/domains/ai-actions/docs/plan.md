@@ -377,17 +377,18 @@ Edge Rules:
 ### 5.2 템플릿 저장 위치
 
 ```
-apps/web/src/domains/ai-visual-summary/
-├── templates/
-│   ├── index.ts                    # 템플릿 export
-│   ├── lecture-map.template.ts     # Lecture Map 템플릿 spec
-│   ├── argument-map.template.ts    # Argument Map 템플릿 spec
-│   ├── framework-canvas.template.ts
-│   ├── concept-graph.template.ts
-│   └── synthesis-board.template.ts
-└── shared/
-    └── types/
-        └── template.types.ts       # 템플릿 타입 정의
+apps/web/src/backend/prompt/visual-summary/
+├── index.ts                    # 템플릿 export
+├── lecture-map.template.ts     # Lecture Map 템플릿 spec
+├── argument-map.template.ts    # Argument Map 템플릿 spec
+├── framework-canvas.template.ts
+├── concept-graph.template.ts
+├── synthesis-board.template.ts
+└── tools.ts                    # Visual Summary tool schemas
+
+apps/web/src/domains/ai-actions/shared/
+└── types/
+    └── template.types.ts       # 템플릿 타입 정의
 ```
 
 **템플릿 구조:**
@@ -484,7 +485,7 @@ export async function POST(req: Request) {
 #### 6.3.2 클라이언트 훅
 
 ```typescript
-// domains/ai-visual-summary/frontend/hooks/use-visual-summary.ts
+// domains/ai-actions/frontend/hooks/use-visual-summary.ts
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, UIMessage } from 'ai';
 import { useMemo, useCallback } from 'react';
@@ -668,7 +669,7 @@ canvas LR  // Left to Right 방향
 ## 9. 파일 구조
 
 ```
-apps/web/src/domains/ai-visual-summary/
+apps/web/src/domains/ai-actions/
 ├── docs/
 │   ├── plan.md                 # 이 문서
 │   ├── draft-plan.md           # 초안 (참고용)
@@ -715,26 +716,52 @@ apps/web/src/domains/ai-visual-summary/
 
 ## 10. 구현 단계
 
-### Phase 1: 기반 구축
-1. [ ] Canvasdown 패키지 설치 및 통합
-2. [ ] SSOTA 블록 타입 Canvasdown 등록 (shape, markdown)
-3. [ ] Group 노드 구현 (BlockType.GROUP 추가)
-4. [ ] 위치 자동 계산 로직 구현
+### Phase 1: 기반 구축 ✅
+1. [x] Canvasdown 패키지 설치 및 통합
+   - `@ssota-labs/canvasdown@^0.3.2`, `@ssota-labs/canvasdown-reactflow@^0.3.1` 설치 완료
+   - `use-canvasdown-integration.ts` 훅으로 통합 완료
+2. [x] SSOTA 블록 타입 Canvasdown 등록 (shape, markdown, group)
+   - `canvasdown-registry.service.ts`에서 shape, markdown, group 타입 등록 완료
+   - propertySchema를 통한 타입 안전성 확보
+3. [x] Group 노드 구현 (BlockType.GROUP 추가)
+   - `BlockType.GROUP` 추가 및 관련 컴포넌트 구현 완료
+   - 그룹 노드 관련 훅 및 서비스 구현 완료
+4. [x] 위치 자동 계산 로직 구현
+   - `use-position-calculator.ts` 훅으로 YouTube 블록 기준 위치 계산 완료
+   - 충돌 방지 로직 포함
 
-### Phase 2: 템플릿 시스템
-5. [ ] 템플릿 타입 정의
-6. [ ] 5개 템플릿 spec 작성 (자연어 규칙)
-7. [ ] 템플릿 선택 Popover UI 구현
+### Phase 2: 템플릿 시스템 ✅
+5. [x] 템플릿 타입 정의
+   - `template.types.ts`에 `VisualTemplate` 인터페이스 정의 완료
+6. [x] 5개 템플릿 spec 작성 (자연어 규칙)
+   - Lecture Map, Argument Map, Framework Canvas, Concept Graph, Synthesis Board 템플릿 모두 작성 완료
+   - 각 템플릿에 promptSpec 포함
+7. [x] 템플릿 선택 Popover UI 구현
+   - `template-picker.tsx` 컴포넌트로 템플릿 선택 UI 완료
 
-### Phase 3: LLM 통합
-8. [ ] Visual Summary 생성 서비스 구현 (Grok)
-9. [ ] 스트리밍 렌더링 구현
-10. [ ] 에러 처리 및 fallback 로직
+### Phase 3: LLM 통합 ✅
+8. [x] Visual Summary 생성 서비스 구현 (Grok)
+   - `/api/visual-summary/route.ts` API 라우트 구현 완료
+   - `backend/services/visual-summary/prompt-builder.service.ts`로 프롬프트 생성 로직 구현 완료
+   - Grok 4.1 Fast Reasoning 모델 사용
+9. [x] 스트리밍 렌더링 구현
+   - `use-visual-summary.ts` 훅으로 스트리밍 처리 완료
+   - `use-canvasdown-renderer.ts` 훅으로 DSL 파싱 및 렌더링 완료
+   - 점진적 렌더링 지원
+10. [x] 에러 처리 및 fallback 로직
+    - 프롬프트에 에러 처리 지침 포함
+    - 파싱 에러 처리 로직 구현
 
-### Phase 4: UX 완성
-11. [ ] YouTube 블록에 Visual Summary 액션 추가
-12. [ ] 생성 중 로딩 UI
-13. [ ] 완료 후 캔버스 포커스
+### Phase 4: UX 완성 ✅
+11. [x] YouTube 블록에 Visual Summary 액션 추가
+    - `VisualSummaryAction` 컴포넌트 구현 완료
+    - `youtube/components/action-items/index.tsx`에 통합 완료
+12. [x] 생성 중 로딩 UI
+    - `TemplatePicker`에 `isLoading` prop으로 로딩 상태 표시 완료
+    - 스피너 및 상태 메시지 포함
+13. [x] 완료 후 캔버스 포커스
+    - `onComplete` 콜백 구현 완료
+    - 렌더링 완료 후 자동 처리
 
 ### Phase 5: 테스트 및 개선
 14. [ ] 다양한 영상으로 테스트
