@@ -21,6 +21,7 @@ import { NoteView } from '../../data-block/components/note-view';
 export const MarkdownBlock = memo(function MarkdownBlock({
   data,
   selected,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -50,6 +51,7 @@ export const MarkdownBlock = memo(function MarkdownBlock({
     <DataBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       width={width}
       height={height}
       renderOriginalView={renderOriginalView}

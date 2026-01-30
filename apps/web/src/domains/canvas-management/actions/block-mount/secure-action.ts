@@ -72,6 +72,40 @@ async function authorizeDuplicateBlockMount(
 }
 
 /**
+ * Duplicate (배치)용: 모든 blockMountId에 대해 권한 검증
+ *
+ * - blocks가 비어 있으면 실패
+ * - 각 blockMount에 대해 authorizeDuplicateBlockMount를 직렬로 수행 (연결 풀·부하 완화)
+ * - 하나라도 실패하면 해당 오류 반환
+ * - 모두 통과하면 첫 번째 블록의 PageActionContext 반환 (동일 페이지 가정)
+ */
+async function authorizeDuplicateBlockMounts(
+  blocks: Array<{ blockMountId: string }>,
+  userId: string
+): Promise<AuthorizeResult<PageActionContext>> {
+  if (blocks.length === 0) {
+    return { success: false, error: 'At least one block is required' };
+  }
+
+  let firstContext: PageActionContext | undefined;
+
+  for (const { blockMountId } of blocks) {
+    const result = await authorizeDuplicateBlockMount(blockMountId, userId);
+    if (!result.success) {
+      return result;
+    }
+    if (result.context && firstContext === undefined) {
+      firstContext = result.context;
+    }
+  }
+
+  if (!firstContext) {
+    return { success: false, error: 'Page context not found' };
+  }
+  return { success: true, context: firstContext };
+}
+
+/**
  * Move용: 원본 page + target page 모두 검증 (Defense in Depth)
  *
  * 1. BlockMount 조회 → 원본 pageId 추출 (DB = SSOT)
@@ -211,6 +245,19 @@ export const withDuplicateBlockSecureAction = blockMountSecureActionBuilder
   .forContext<PageActionContext>()
   .withAuth((req: { blockMountId: string }, user: AuthenticatedUser) =>
     authorizeDuplicateBlockMount(req.blockMountId, user.id)
+  )
+  .build();
+
+/**
+ * Duplicate (배치) 전용: 모든 blockMountId에 대해 페이지·블록 권한 검증
+ */
+export const withDuplicateBlocksSecureAction = blockMountSecureActionBuilder
+  .forContext<PageActionContext>()
+  .withAuth(
+    (
+      req: { blocks: Array<{ blockMountId: string }> },
+      user: AuthenticatedUser
+    ) => authorizeDuplicateBlockMounts(req.blocks, user.id)
   )
   .build();
 

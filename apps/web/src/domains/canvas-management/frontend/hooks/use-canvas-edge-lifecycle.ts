@@ -39,12 +39,24 @@ export interface UseCanvasEdgeLifecycleParams {
  */
 export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
   const { pageId } = params;
-  const { getEdges: getEdgesRaw, setEdges, getNodes } = useReactFlow();
+  const { getEdges: getEdgesRaw, setEdges: setEdgesRaw, getNodes } =
+    useReactFlow();
 
   // 타입 안전한 래퍼 함수
   const getEdges = useCallback((): Edge<EdgeData>[] => {
     return getEdgesRaw() as Edge<EdgeData>[];
   }, [getEdgesRaw]);
+
+  const setEdges = useCallback(
+    (
+      payload:
+        | Edge<EdgeData>[]
+        | ((prev: Edge<EdgeData>[]) => Edge<EdgeData>[])
+    ) => {
+      setEdgesRaw(payload as Edge[] | ((edges: Edge[]) => Edge[]));
+    },
+    [setEdgesRaw]
+  );
 
   // ============================================================================
   // 도메인 훅 사용

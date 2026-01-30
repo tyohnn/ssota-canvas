@@ -7,8 +7,12 @@ import type { Edge } from '@xyflow/react';
 import type { EdgeData } from '../../../shared/types/common.types';
 
 export type ReactFlowDependencies = {
-  getEdges: () => Edge[];
-  setEdges: (edges: Edge[]) => void;
+  getEdges: () => Edge<EdgeData>[];
+  setEdges: (
+    edges:
+      | Edge<EdgeData>[]
+      | ((prev: Edge<EdgeData>[]) => Edge<EdgeData>[])
+  ) => void;
 };
 
 export type UseEdgeCanvasOperationsParams = {

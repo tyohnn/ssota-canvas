@@ -17,6 +17,14 @@ export interface EdgeRepository {
   findByConnectedBlockMountId(
     blockMountId: BlockMountId
   ): Promise<EdgeAggregate[]>;
+
+  /**
+   * 여러 BlockMount ID 중 하나라도 source/target인 Edge 조회
+   */
+  findByConnectedBlockMountIds(
+    blockMountIds: BlockMountId[]
+  ): Promise<EdgeAggregate[]>;
+
   delete(edgeId: EdgeId): Promise<void>;
   deleteAll(edgeIds: EdgeId[]): Promise<void>;
 }

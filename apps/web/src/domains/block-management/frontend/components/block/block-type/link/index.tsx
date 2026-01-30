@@ -39,6 +39,7 @@ export const LinkBlock = memo(function LinkBlock({
   id,
   data,
   selected,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -664,6 +665,7 @@ export const LinkBlock = memo(function LinkBlock({
     <BaseBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       isConnectable={true}
       width={width}
       height={height}

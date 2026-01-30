@@ -35,6 +35,7 @@ export const ImageBlock = memo(function ImageBlock({
   id,
   data,
   selected,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -171,6 +172,7 @@ export const ImageBlock = memo(function ImageBlock({
     <DataBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       width={width}
       height={height}
       renderOriginalView={renderOriginalView}

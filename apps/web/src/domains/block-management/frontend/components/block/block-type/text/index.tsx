@@ -38,6 +38,7 @@ export const TextBlock = memo(function TextBlock({
   data,
   selected,
   dragging,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -307,6 +308,7 @@ export const TextBlock = memo(function TextBlock({
     <BaseBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       isConnectable={true}
       width={width}
       height={height}

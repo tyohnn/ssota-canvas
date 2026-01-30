@@ -6,12 +6,13 @@ import type { Node } from '@xyflow/react';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { buildBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
-import { duplicateBlockAndMountAction } from '@/domains/canvas-management/actions/block-mount/duplicate-block-and-mount.action';
+import { duplicateBlocksAndMountAction } from '@/domains/canvas-management/actions/block-mount/duplicate-block-and-mount.action';
 import { CustomNodeType } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 import {
   type DuplicateBlockAndMountRequestInput,
   DuplicateBlockAndMountRequestSchema,
 } from '@/domains/canvas-management/shared/dtos/requests';
+import type { BlockDuplicatedAndMountedDTO } from '@/domains/canvas-management/shared/dtos/responses';
 import type { Position } from '@/domains/canvas-management/shared/types/common.types';
 import { isFailure } from '@/lib';
 
@@ -36,6 +37,11 @@ export type DuplicateBlocksInput = {
   }>;
 };
 
+/** mutation 내부용: onMutate에서 생성한 ID를 mutationFn에서 동일하게 사용 */
+type DuplicateBlocksMutationInput = DuplicateBlocksInput & {
+  optimisticBlockMountIds: string[];
+};
+
 export type UseDuplicateBlocksResult = {
   duplicateBlocks: (input: DuplicateBlocksInput) => Promise<boolean>;
   isDuplicating: boolean;
@@ -58,24 +64,24 @@ export function useDuplicateBlocks(
   const { getNodes, setNodes, addNodes, deleteElements } = reactFlow;
 
   /**
-   * 고유한 Optimistic ID 생성
+   * 고유한 Optimistic 노드 ID (단일 접두어, node.id = blockMountId)
    */
-  const generateOptimisticId = () => {
+  const generateOptimisticNodeId = () => {
     return `optimistic-${crypto.randomUUID()}`;
   };
 
   /**
    * Optimistic 복제 노드 생성
    * 그룹 자식이면 parentId·parentBlockMountId 유지, position은 상대 좌표 유지
+   * @param optimisticNodeId - node.id 및 data.blockMountId로 사용 (onMutate/mutationFn 일치용)
    */
   const createOptimisticDuplicateNode = (
     originalNode: Node,
     originalNodeData: BlockNodeData,
     offsetX: number,
     offsetY: number,
-    optimisticId: string
+    optimisticNodeId: string
   ) => {
-    const optimisticBlockMountId = `optimistic-${optimisticId}`;
     const duplicatedPosition: Position = {
       x: originalNode.position.x + offsetX,
       y: originalNode.position.y + offsetY,
@@ -84,8 +90,8 @@ export function useDuplicateBlocks(
     const baseNodeData = buildBlockNodeData(
       originalNodeData.blockType,
       {
-        blockMountId: optimisticBlockMountId,
-        blockId: optimisticId,
+        blockMountId: optimisticNodeId,
+        blockId: optimisticNodeId,
         title: originalNodeData.title,
         properties: originalNodeData.properties,
         customProperties: originalNodeData.customProperties,
@@ -103,7 +109,7 @@ export function useDuplicateBlocks(
         : baseNodeData;
 
     return {
-      optimisticBlockMountId,
+      optimisticBlockMountId: optimisticNodeId,
       optimisticNodeData,
       duplicatedPosition,
       size: {
@@ -115,12 +121,33 @@ export function useDuplicateBlocks(
   };
 
   const mutation = useMutation({
-    mutationFn: async (input: DuplicateBlocksInput) => {
+    mutationFn: async (
+      input: DuplicateBlocksMutationInput
+    ): Promise<{
+      duplicateRequests: Array<{
+        optimisticBlockMountId: string;
+        originalNodeData: BlockNodeData;
+        originalBlockType: BlockType;
+      }>;
+      results: Array<{
+        status: 'fulfilled';
+        value: {
+          optimisticBlockMountId: string;
+          result: BlockDuplicatedAndMountedDTO;
+        };
+      }>;
+    }> => {
       if (input.blocks.length === 0) {
         throw new Error('No blocks to duplicate');
       }
+      if (
+        !input.optimisticBlockMountIds ||
+        input.optimisticBlockMountIds.length !== input.blocks.length
+      ) {
+        throw new Error('optimisticBlockMountIds must match blocks length');
+      }
 
-      // 원본 블럭 정보 조회
+      // 원본 블럭 정보 조회 (onMutate와 동일한 optimisticBlockMountIds 사용)
       const originalNodes = getNodes();
       const duplicateRequests: Array<{
         optimisticBlockMountId: string;
@@ -129,8 +156,9 @@ export function useDuplicateBlocks(
         originalBlockType: BlockType;
       }> = [];
 
-      // 모든 블록에 대해 요청 준비
-      for (const block of input.blocks) {
+      for (let i = 0; i < input.blocks.length; i++) {
+        const block = input.blocks[i]!;
+        const optimisticBlockMountId = input.optimisticBlockMountIds[i]!;
         const originalNode = originalNodes.find(
           node =>
             (node.data as BlockNodeData).blockMountId === block.blockMountId
@@ -144,13 +172,11 @@ export function useDuplicateBlocks(
           continue;
         }
 
-        // Validation
         const rawRequest: DuplicateBlockAndMountRequestInput = {
           blockMountId: block.blockMountId,
           offsetX: block.offsetX || 20,
           offsetY: block.offsetY || 20,
         };
-
         const parseResult =
           DuplicateBlockAndMountRequestSchema.safeParse(rawRequest);
         if (!parseResult.success) {
@@ -158,18 +184,8 @@ export function useDuplicateBlocks(
           continue;
         }
 
-        // Optimistic ID 생성
-        const optimisticId = generateOptimisticId();
-        const optimisticData = createOptimisticDuplicateNode(
-          originalNode,
-          originalNodeData,
-          block.offsetX || 20,
-          block.offsetY || 20,
-          optimisticId
-        );
-
         duplicateRequests.push({
-          optimisticBlockMountId: optimisticData.optimisticBlockMountId,
+          optimisticBlockMountId,
           request: parseResult.data,
           originalNodeData,
           originalBlockType: originalNodeData.blockType,
@@ -180,19 +196,25 @@ export function useDuplicateBlocks(
         throw new Error('No valid blocks to duplicate');
       }
 
-      // 병렬 서버 요청 처리
-      const results = await Promise.allSettled(
-        duplicateRequests.map(async ({ request, optimisticBlockMountId }) => {
-          const result = await duplicateBlockAndMountAction(request);
-          if (isFailure(result)) {
-            throw new Error(result.error);
-          }
-          return {
-            optimisticBlockMountId,
-            result: result.data,
-          };
-        })
-      );
+      const actionResult = await duplicateBlocksAndMountAction({
+        blocks: duplicateRequests.map(({ request }) => ({
+          blockMountId: request.blockMountId,
+          offsetX: request.offsetX,
+          offsetY: request.offsetY,
+        })),
+      });
+      if (isFailure(actionResult)) {
+        throw new Error(actionResult.error);
+      }
+      const dtos = actionResult.data;
+
+      const results = dtos.map((dto, index) => ({
+        status: 'fulfilled' as const,
+        value: {
+          optimisticBlockMountId: duplicateRequests[index]!.optimisticBlockMountId,
+          result: dto,
+        },
+      }));
 
       return {
         duplicateRequests,
@@ -200,13 +222,18 @@ export function useDuplicateBlocks(
       };
     },
 
-    // Optimistic Update
-    onMutate: async (input: DuplicateBlocksInput) => {
+    // Optimistic Update: 동일한 optimisticBlockMountIds를 mutationFn에 전달
+    onMutate: async (input: DuplicateBlocksMutationInput) => {
       if (input.blocks.length === 0) {
         throw new Error('No blocks to duplicate');
       }
+      if (
+        !input.optimisticBlockMountIds ||
+        input.optimisticBlockMountIds.length !== input.blocks.length
+      ) {
+        throw new Error('optimisticBlockMountIds must match blocks length');
+      }
 
-      // 원본 블럭 정보 조회
       const originalNodes = getNodes();
       const optimisticNodes: CustomNodeType[] = [];
       const duplicateRequests: Array<{
@@ -215,8 +242,9 @@ export function useDuplicateBlocks(
         originalBlockType: BlockType;
       }> = [];
 
-      // 모든 optimistic 노드 생성 (배치)
-      for (const block of input.blocks) {
+      for (let i = 0; i < input.blocks.length; i++) {
+        const block = input.blocks[i]!;
+        const optimisticNodeId = input.optimisticBlockMountIds[i]!;
         const originalNode = originalNodes.find(
           node =>
             (node.data as BlockNodeData).blockMountId === block.blockMountId
@@ -230,19 +258,14 @@ export function useDuplicateBlocks(
           continue;
         }
 
-        // Optimistic ID 생성
-        const optimisticId = generateOptimisticId();
-
-        // Optimistic 복제 노드 생성
         const optimisticData = createOptimisticDuplicateNode(
           originalNode,
           originalNodeData,
           block.offsetX || 20,
           block.offsetY || 20,
-          optimisticId
+          optimisticNodeId
         );
 
-        // 노드 생성 (그룹 자식이면 parentId 유지)
         const node: CustomNodeType = {
           id: optimisticData.optimisticBlockMountId,
           type: originalNodeData.blockType,
@@ -251,6 +274,7 @@ export function useDuplicateBlocks(
           width: optimisticData.size.width,
           height: optimisticData.size.height,
           zIndex: 1,
+          draggable: false,
           ...(optimisticData.parentId != null && {
             parentId: optimisticData.parentId,
           }),
@@ -268,11 +292,9 @@ export function useDuplicateBlocks(
         throw new Error('No valid blocks to duplicate');
       }
 
-      // 즉시 React Flow Store에 추가 (맨 끝에 추가)
       addNodes(optimisticNodes);
 
-      // 복제된 모든 블럭을 한 번에 멀티 셀렉션 모드로 선택
-      const optimisticBlockMountIds = optimisticNodes.map(node => node.id);
+      const optimisticBlockMountIds = optimisticNodes.map(n => n.id);
       setTimeout(() => {
         setNodes(
           (nodes: Node[]) =>
@@ -284,7 +306,6 @@ export function useDuplicateBlocks(
         );
       }, 100);
 
-      // 롤백을 위한 컨텍스트 반환
       return {
         optimisticBlockMountIds,
         previousNodes: getNodes(),
@@ -356,6 +377,7 @@ export function useDuplicateBlocks(
                       }),
                     },
                     ...(parentId != null && { parentId }),
+                    draggable: true,
                   } as CustomNodeType;
                 }
                 return node;
@@ -395,7 +417,13 @@ export function useDuplicateBlocks(
   return {
     duplicateBlocks: async (input: DuplicateBlocksInput): Promise<boolean> => {
       try {
-        await mutation.mutateAsync(input);
+        const optimisticBlockMountIds = input.blocks.map(() =>
+          generateOptimisticNodeId()
+        );
+        await mutation.mutateAsync({
+          blocks: input.blocks,
+          optimisticBlockMountIds,
+        });
         return true;
       } catch (error) {
         return false;

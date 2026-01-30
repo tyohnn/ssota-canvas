@@ -122,6 +122,7 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
           createdByProfile: { userId: '', email: null, name: null, profileImageUrl: null },
         },
         parentId: undefined,
+        draggable: false,
       };
 
       // Step 1: Update nodes with new positions/parentIds AND deselect them
@@ -202,7 +203,8 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
                 blockId: groupBlockId, // 서버에서 반환한 실제 blockId 사용
                 // sizes는 optimistic 값 유지 (서버에서 저장된 값과 동일해야 함)
                 sizes: n.data.sizes || (n.data.size ? { original: n.data.size } : undefined)
-              }
+              },
+              draggable: true,
             };
           }
           if (n.parentId === context.tempGroupId)

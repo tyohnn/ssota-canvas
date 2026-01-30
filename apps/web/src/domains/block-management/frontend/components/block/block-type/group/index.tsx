@@ -30,6 +30,7 @@ export const GroupBlock = memo(function GroupBlock({
   data,
   selected,
   dragging,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -129,6 +130,7 @@ export const GroupBlock = memo(function GroupBlock({
     <DataBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       width={width}
       height={height}
       renderOriginalView={renderOriginalView}
