@@ -18,7 +18,7 @@ export function buildVisualSummarySystemPrompt(
   const zoneLabelRule =
     templateName != null && templateName !== ''
       ? `
-**Zone label**: For @zone titles, include the source title from the user message so the zone is identifiable. A good pattern is "[Source Title - ${templateName}]" (e.g. "How to Learn - ${templateName}"); you may shorten or rephrase the source title if needed, but keep it recognizable.`
+**Zone label (apply in Step 2)**: For every @zone, set the zone \`title\` using the **Source Title** from the user message (see "Source metadata" / "Title" below), not a phrase you extract from the content. Use the format "Source Title - ${templateName}" (e.g. if user provides Title "How to Learn", zone title must be "How to Learn - ${templateName}").`
       : '';
 
   return `You are an AI assistant that creates visual summaries from structured content (lectures, research papers, articles, presentations, etc.).
@@ -54,9 +54,10 @@ Canvasdown is a DSL (Domain-Specific Language) that renders directly to a React 
   - arrow-open (outline arrow)
   - circle, circle-open (filled/outline circle)
   - diamond, diamond-open (filled/outline diamond)
-- style.stroke: color token (red | orange | amber | green | blue | purple | pink | gray)
-- style.strokeWidth: number (e.g., 2)
+- stroke: color token (red | orange | amber | green | blue | purple | pink | gray) — flat, no nested object
+- strokeWidth: number (e.g., 2) — flat
 - shape: "default" | "straight" | "step" | "smoothstep" | "simplebezier"
+- Example: a -> b { label: "supports", markerEnd: "arrowclosed", shape: "smoothstep", stroke: "purple", strokeWidth: 2 }
 
 === TEMPLATE SPECIFICATION ===
 
@@ -74,6 +75,7 @@ Follow this exact sequence using the available tools:
 
 **Step 2: Create Zone Skeleton + ALL Edges (renderCanvasdown / renderCanvasdownRight / renderCanvasdownBelow)**
 - **Rule**: Include zone(s), blocks, and **all edges** in the same render. Do NOT defer edges to a later step; layout (dagre) depends on edges from the start.
+- **Zone title**: Use the exact **Source Title** from the user message (see Source metadata) plus " - " plus the template name (e.g. "Video Title - Argument Map"). Do not derive the zone title from the content summary.
 - **Single-zone templates**: One renderCanvasdown call with one zone, all blocks, and all edges. No renderCanvasdownRight/Below.
 - **Multi-zone templates**: First zone → renderCanvasdown. Second and later zones → renderCanvasdownRight(anchorBlockId) or renderCanvasdownBelow(anchorBlockId), using the previous zone's blockMountId from blockIdMap as anchorBlockId. Include edges within each zone when you create it.
 - Use placeholder titles only (minimal content) for the skeleton. Mark the corresponding todo as completed after each render.
@@ -82,8 +84,8 @@ Follow this exact sequence using the available tools:
 - Complete **one layer at a time**. For each content-fill layer todo, use @update only for blocks that belong to that layer; then call updateTodo to mark that todo completed.
 - Use blockMountId from previous tool results (blockIdMap), NOT the original canvasdown IDs.
 - **Titles**: Keyword-based only from the source (2-5 words). No generic labels like "Claim 1", "Evidence".
-- **Content**: Always use markdown format. Include as much concrete detail from the source as possible; do not omit important information. Convey the source faithfully and completely.
-- **Patch syntax**: No \`->\` or \`<-\` in title or content (use "to", "→", etc.). Single-line double-quoted strings; use "\\n" for new lines.
+- **Content**: Always use markdown format. Write at least one full paragraph (multiple sentences) per block; include concrete detail from the source and do not omit important information.
+- **Patch syntax**: No \`->\` or \`<-\` in title or content (use "to", "→"). Single-line quoted strings; inside the string use only \\n (backslash then n) for line breaks.
 
 **Step 4: Connect Zones (multi-zone only)**
 - **Single-zone templates**: Edges are already in Step 2. Skip this step.
@@ -98,9 +100,9 @@ ${zoneLabelRule}
   - CORRECT: "Do Not Trust"
   - WRONG: "Don't Trust" (breaks parser)
 
-2b. **Patch @update only**: Never use \`->\` or \`<-\` in title or content (parser error). Use "to", "implies", "→", "←" instead. Keep title/content single-line, double-quoted; use "\\n" for new lines, not actual line breaks inside the string.
+2b. **Patch @update only**: No \`->\` or \`<-\` in title/content (use "to", "→"). Inside strings use only \\n (backslash then n) for line breaks.
 
-3a. **Titles and Content**: Titles are keyword-based only from the source (e.g. 2-5 words); no generic labels like "Claim 1". Content is always markdown; include concrete details from the source and do not omit important information.
+3a. **Titles and Content**: Titles are keyword-based only from the source (e.g. 2-5 words); no generic labels like "Claim 1". Content is always markdown; write at least one full paragraph per block and include concrete details from the source.
 
 4. **Tool Output**: Use renderCanvasdown (first zone), or renderCanvasdownRight / renderCanvasdownBelow (later zones, with anchorBlockId). Never output DSL as plain text.
 
@@ -142,16 +144,21 @@ export function buildVisualSummaryUserPrompt(
   const sourceSection =
     sourceTitle != null || sourceChannelName != null
       ? [
-          '**Source metadata** (for reference when labeling zones):',
-          sourceTitle != null && sourceTitle !== '' ? `- Title: ${sourceTitle}` : null,
-          sourceChannelName != null && sourceChannelName !== '' ? `- Channel: ${sourceChannelName}` : null,
-        ]
-          .filter(Boolean)
-          .join('\n') + '\n\n'
+        '**Source metadata** (for reference when labeling zones):',
+        sourceTitle != null && sourceTitle !== '' ? `- Title: ${sourceTitle}` : null,
+        sourceChannelName != null && sourceChannelName !== '' ? `- Channel: ${sourceChannelName}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n') + '\n\n'
+      : '';
+
+  const zoneTitleLine =
+    sourceTitle != null && sourceTitle !== ''
+      ? `\n**Zone title to use for @zone**: Use exactly: "${sourceTitle} - ${templateName}"\n`
       : '';
 
   return `Create a visual summary for the following content.
-Use the "${templateName}" template structure. When setting zone titles, include the source title when possible so the zone is identifiable (e.g. "${sourceTitle || 'Source'} - ${templateName}" or similar).
+Use the "${templateName}" template structure.${zoneTitleLine}
 
 ${sourceSection}**Content summary:**
 

@@ -24,6 +24,7 @@ import { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hoo
 import { calculateStartPosition } from './utils/position-calculator';
 import { renderFullCanvasdown } from './renderers/full-renderer';
 import { isPatchDSL, checkPatchDslDoubleQuotes } from './renderers/patch-renderer';
+import { normalizeNewlinesInString } from './utils/normalize-newlines';
 
 /** data 상위 예약 필드만 유지, 나머지(color/shape 등)는 data.properties로 */
 const DATA_TOP_LEVEL_KEYS = new Set([
@@ -137,11 +138,10 @@ export function useCanvasdownExecutor(
       properties: intoProperties,
     };
     if (title != null && typeof title === 'string') {
-      nextData.title = title;
+      nextData.title = normalizeNewlinesInString(title);
     }
     if (content != null && typeof content === 'string') {
-      const unescaped = content.replace(/\\n/g, '\n');
-      nextData.content = markdownToTiptap(unescaped);
+      nextData.content = markdownToTiptap(normalizeNewlinesInString(content));
     }
     if (operation.customProperties?.length) {
       const currentCustom = (currentData.customProperties ?? []) as Array<{ key: string; value: unknown }>;
@@ -178,24 +178,23 @@ export function useCanvasdownExecutor(
         const { content: _c, title: _t, ...restProperties } = props as Record<string, unknown>;
 
         if (contentRaw != null && typeof contentRaw === 'string') {
-          // 리터럴 \n(백슬래시+n) → 실제 줄바꿈. AI/프롬프트 "use \"\\n\" for new lines" 로 인해 들어옴.
-          const unescaped = contentRaw.replace(/\\n/g, '\n');
+          const unescaped = normalizeNewlinesInString(contentRaw);
           void updateBlockContent({
             nodeId: blockMountId,
             content: markdownToTiptap(unescaped),
             blockData,
             contentRaw: unescaped,
-          }).catch(() => {});
+          }).catch(() => { });
         }
         if (title != null && typeof title === 'string') {
           void updateBlockTitle({
             nodeId: blockMountId,
-            title,
+            title: normalizeNewlinesInString(title),
             blockData,
-          }).catch(() => {});
+          }).catch(() => { });
         }
         if (Object.keys(restProperties).length > 0) {
-          void updateProperties(blockData.blockId, restProperties, blockData).catch(() => {});
+          void updateProperties(blockData.blockId, restProperties, blockData).catch(() => { });
         }
       }
     },

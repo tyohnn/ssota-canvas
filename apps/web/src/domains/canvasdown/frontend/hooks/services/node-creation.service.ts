@@ -10,6 +10,7 @@ import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { markdownToTiptap } from '@/domains/block-management/shared/utils/tiptap-markdown.utils';
 import type { UseCanvasBlockLifecycleResult } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
 import type { Position } from '../utils/position-adjuster';
+import { normalizeNewlinesInString } from '../utils/normalize-newlines';
 
 export interface CreateNodeParams {
   canvasdownNode: Node;
@@ -45,8 +46,10 @@ function mapCanvasdownTypeToBlockType(
 /**
  * 노드 데이터에서 title 추출 (Canvasdown 파서 출력: title 또는 label)
  *
- * @ssota-labs/canvasdown-reactflow 어댑터는 title이 없을 때 node.id로 채우므로,
- * title이 노드 id와 같으면(실제 제목이 아닌 id 폴백) @shape id "..." 의 따옴표 문자열(label)을 우선 사용한다.
+ * - @ssota-labs/canvasdown-reactflow 어댑터는 title이 없을 때 node.id로 채우므로,
+ *   title이 노드 id와 같으면(실제 제목이 아닌 id 폴백) @shape id "..." 의 따옴표 문자열(label)을 우선 사용한다.
+ * - zone/group: 레지스트리 defaultProperties.title('New Zone')이 파싱된 제목을 덮어쓸 수 있으므로,
+ *   title이 'New Zone'이고 label이 있으면 label(LLM 출력)을 우선 사용한다.
  */
 function extractTitle(canvasdownNode: Node): string {
   const raw = canvasdownNode.data as Record<string, unknown> | undefined;
@@ -54,6 +57,12 @@ function extractTitle(canvasdownNode: Node): string {
     const title = typeof raw.title === 'string' ? raw.title : undefined;
     const label = typeof raw.label === 'string' ? raw.label : undefined;
     if (label && title === canvasdownNode.id) return label;
+    if (
+      (canvasdownNode.type === 'zone' || canvasdownNode.type === 'group') &&
+      title === 'New Zone' &&
+      label
+    )
+      return label;
     if (title) return title;
     if (label) return label;
   }
@@ -128,21 +137,35 @@ export async function createNodeFromCanvasdown(
   }
 
   // 노드 데이터 추출
-  const title = extractTitle(canvasdownNode);
+  let title = extractTitle(canvasdownNode);
   const properties = extractProperties(canvasdownNode);
   let content = extractContent(canvasdownNode);
+
+  // 문자열 title/content: \\n → 줄바꿈, 줄 끝 \ 제거 (한 군데에서만 처리)
+  if (typeof title === 'string' && title.length > 0) {
+    title = normalizeNewlinesInString(title);
+  }
+  if (typeof content === 'string' && content.length > 0) {
+    content = normalizeNewlinesInString(content as string);
+  }
 
   // 파서가 node.data.content를 채우지 않을 때: 마크다운 블록은 title을 초기 content로 사용
   if (content === undefined && blockType === BlockType.MARKDOWN && title) {
     content = markdownToTiptap(title);
   }
 
+  // GROUP(zone): GroupBlock이 properties.title을 우선 표시하므로 initialProperties에 title 포함
+  const initialProperties =
+    blockType === BlockType.GROUP
+      ? { ...properties, title } as Record<string, unknown>
+      : properties;
+
   try {
     // SSOTA 블록 생성
     const result = await blockLifecycle.createAndMountBlock(
       blockType,
       adjustedPosition,
-      properties,
+      initialProperties,
       content,
       title
     );

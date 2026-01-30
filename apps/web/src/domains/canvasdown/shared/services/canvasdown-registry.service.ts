@@ -25,6 +25,10 @@ import {
 } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
 import { ColorToken } from '@/domains/block-management/shared/types/style-tokens.types';
 
+/** 엣지 두께 허용 값 (EdgeStyle MIN/MAX와 동기화: 1–3) */
+export const EDGE_STROKE_WIDTHS = [1, 2, 3] as const;
+export type EdgeStrokeWidth = (typeof EDGE_STROKE_WIDTHS)[number];
+
 /**
  * SSOTA 블록 타입을 Canvasdown Core에 등록
  *
@@ -138,7 +142,7 @@ export type SSOTAEdgeMarker = (typeof SSOTA_EDGE_MARKERS)[number];
  *
  * @param core - CanvasdownCore 인스턴스
  */
-/** Edge type config for 0.6.0+ (edgePropertySchema for markerEnd/markerStart) */
+/** Edge type config for 0.6.0+ (edgePropertySchema for markerEnd/markerStart, stroke/strokeWidth) */
 interface EdgeTypeConfigWithMarkers {
   name: string;
   defaultShape: string;
@@ -147,6 +151,8 @@ interface EdgeTypeConfigWithMarkers {
   edgePropertySchema?: {
     markerEnd?: { type: 'enum'; enum: readonly string[]; description: string };
     markerStart?: { type: 'enum'; enum: readonly string[]; description: string };
+    stroke?: { type: 'enum'; enum: readonly string[]; description: string };
+    strokeWidth?: { type: 'enum'; enum: readonly number[]; description: string };
   };
 }
 
@@ -172,6 +178,16 @@ export function registerSSOTAEdgeTypes(core: CanvasdownCore): void {
         type: 'enum',
         enum: [...SSOTA_EDGE_MARKERS],
         description: 'Marker at the start of the edge (source side)',
+      },
+      stroke: {
+        type: 'enum',
+        enum: Object.values(ColorToken),
+        description: 'Edge stroke color (color token)',
+      },
+      strokeWidth: {
+        type: 'enum',
+        enum: [...EDGE_STROKE_WIDTHS],
+        description: 'Edge stroke width (1-3, same as EdgeStyle)',
       },
     },
   };

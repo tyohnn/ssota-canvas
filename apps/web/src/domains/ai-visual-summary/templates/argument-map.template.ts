@@ -32,20 +32,21 @@ Single zone. Thesis → Claims → Evidence → Counterpoints → Action. Define
 4. **Counterpoints (optional)**: 0-3 @shape (shapeType: diamond, color: red) — counterpoint_1, … Counterarguments or limitations.
 5. **Action plan**: 1 @markdown — id action_plan. Markdown-formatted next steps.
 
-**Titles**: Keyword-based only from the source (e.g. 2-5 words). No generic labels like "Claim 1", "Evidence".
+**Titles**: From source, 2-5 words. No generic labels like "Claim 1".
 
-**Content**: Always use markdown for content. Include as much concrete detail from the source as possible; do not omit important information.
+**Content**: Markdown, at least one full paragraph per block; include concrete detail from the source.
 
 **Edges (include in the SAME canvasdown as the zone):**
-- thesis_main -> claim_1, thesis_main -> claim_2, … (label e.g. "supports", markerEnd: "arrowclosed", shape: "smoothstep" or "default" | "straight" | "step" | "smoothstep" | "simplebezier")
-- claim_1 -> evidence_1_1, claim_1 -> evidence_1_2, … (label e.g. "based on")
-- counterpoint_1 -> thesis_main, … (label e.g. "contradicts")
+- Use flat stroke and strokeWidth (no nested object): stroke: "red" | "orange" | "amber" | "green" | "blue" | "purple" | "pink" | "gray", strokeWidth: number.
+- thesis_main -> claim_1, … (label: "supports", markerEnd: "arrowclosed", shape: "smoothstep", stroke: "purple")
+- claim_1 -> evidence_1_1, … (label: "based on", stroke: same as claim, e.g. "green" for claim_1)
+- counterpoint_1 -> thesis_main (label: "contradicts", stroke: "red")
 - Optional: claim_1 -> action_plan or thesis_main -> action_plan if relevant.
 
 === WORKFLOW ===
 
 **Phase 1: Single zone skeleton + ALL edges (one renderCanvasdown call)**
-1. Create @zone argument_map_zone with a title extracted from the source. Add all blocks with **titles extracted from the source** (short phrases from the content), not generic labels like "Claim 1". Use minimal content for skeleton.
+1. Create @zone argument_map_zone with title from user message (use "Source Title - Template Name" from Source metadata). Add all blocks with **titles extracted from the source** (short phrases from the content), not generic labels like "Claim 1". Use minimal content for skeleton.
 2. Apply structure: thesis purple; each claim a different color; evidence same color as its claim, dashed.
 3. In the SAME canvasdown, define ALL edges (thesis→claims, claims→evidence, counterpoints→thesis, etc.).
 4. Call renderCanvasdown ONCE with this full canvasdown. Do NOT split zones or defer edges.
@@ -54,14 +55,13 @@ Single zone. Thesis → Claims → Evidence → Counterpoints → Action. Define
 Content fill layers (create one todo per layer when planning): Thesis, Claims, Evidence, Counterpoints, Action plan.
 1. Complete one layer at a time; use @update for blocks in that layer only.
 2. Use blockMountId from the tool result blockIdMap (NOT canvasdown ids).
-3. @update blocks with title and **content** (markdown). Content must convey the source as completely as possible; include concrete details and do not omit important information.
-4. Patch rules: no \`->\` or \`<-\` in title/content (use "to", "→"); single-line quoted strings; use "\\n" for new lines.
+3. @update blocks with title and **content** (markdown). Content must be at least one full paragraph per block; convey the source completely and include concrete details.
 
 === EXAMPLE SKELETON (edges in same block) ===
 
 canvas TB
 
-@zone argument_map_zone "<extract short title from source>" { direction: TB, color: gray }
+@zone argument_map_zone "<Source Title - Argument Map>" { direction: TB, color: gray }
   @shape thesis_main "<extract main thesis phrase>" { shapeType: ellipse, color: purple, title: "<extract main thesis phrase>" }
   @shape claim_1 "<extract first claim phrase from source>" { shapeType: rectangle, color: green, title: "<extract first claim phrase>" }
   @shape claim_2 "<extract second claim phrase from source>" { shapeType: rectangle, color: blue, title: "<extract second claim phrase>" }
@@ -73,13 +73,13 @@ canvas TB
   @markdown action_plan "<extract action plan title>" { title: "<extract action plan title>" }
 @end
 
-thesis_main -> claim_1 { label: "supports", markerEnd: "arrowclosed", shape: "smoothstep" }
-thesis_main -> claim_2 { label: "supports", markerEnd: "arrowclosed", shape: "smoothstep" }
-thesis_main -> claim_3 { label: "supports", markerEnd: "arrowclosed", shape: "smoothstep" }
-claim_1 -> evidence_1_1 { label: "based on", markerEnd: "arrowclosed", shape: "smoothstep" }
-claim_1 -> evidence_1_2 { label: "based on", markerEnd: "arrowclosed", shape: "smoothstep" }
-claim_2 -> evidence_2_1 { label: "based on", markerEnd: "arrowclosed", shape: "smoothstep" }
-counterpoint_1 -> thesis_main { label: "contradicts", markerEnd: "arrowclosed", shape: "default" }
+thesis_main -> claim_1 { label: "supports", markerEnd: "arrowclosed", shape: "smoothstep", stroke: "purple" }
+thesis_main -> claim_2 { label: "supports", markerEnd: "arrowclosed", shape: "smoothstep", stroke: "purple" }
+thesis_main -> claim_3 { label: "supports", markerEnd: "arrowclosed", shape: "smoothstep", stroke: "purple" }
+claim_1 -> evidence_1_1 { label: "based on", markerEnd: "arrowclosed", shape: "smoothstep", stroke: "green" }
+claim_1 -> evidence_1_2 { label: "based on", markerEnd: "arrowclosed", shape: "smoothstep", stroke: "green" }
+claim_2 -> evidence_2_1 { label: "based on", markerEnd: "arrowclosed", shape: "smoothstep", stroke: "blue" }
+counterpoint_1 -> thesis_main { label: "contradicts", markerEnd: "arrowclosed", shape: "default", stroke: "red" }
 
 === LIMITS ===
 - Max concepts: 12

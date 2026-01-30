@@ -174,18 +174,23 @@ export function useCreateEdge(
       }
     },
 
-    // Optimistic Edge를 실제 Edge로 교체 (markerEnd/markerStart, style 등 ACL로 일괄 반영)
+    // Optimistic Edge를 실제 Edge(서버 edgeId)로 교체
+    // getEdges()는 setEdges(onMutate) 반영 전일 수 있으므로, previousEdges 기준으로 교체해
+    // visual summary 등 연속 생성 시에도 서버 ID가 확실히 반영되도록 함
     onSuccess: (edgeView, _variables, context) => {
-      if (!context?.optimisticEdgeId) return;
+      if (!context?.optimisticEdgeId || !context?.previousEdges) return;
 
-      const currentEdges = getEdges();
       const realEdge = toReactFlowEdge(edgeView) as Edge<EdgeData>;
-
-      setEdges(
-        currentEdges.map(edge =>
-          edge.id === context.optimisticEdgeId ? realEdge : edge
-        )
+      const currentEdges = getEdges();
+      const replaced = currentEdges.map(edge =>
+        edge.id === context.optimisticEdgeId ? realEdge : edge
       );
+      const didReplace = replaced.some(e => e.id === realEdge.id);
+      if (didReplace) {
+        setEdges(replaced);
+      } else {
+        setEdges([...context.previousEdges, realEdge]);
+      }
     },
   });
 

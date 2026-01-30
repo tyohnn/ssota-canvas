@@ -97,7 +97,7 @@ Example:
   - Use "to", "implies", "leads to", or Unicode arrow "→" (U+2192) / "←" (U+2190) instead.
   - BAD: content: "A -> B" or "Step 1 -> Step 2"
   - GOOD: content: "A leads to B" or "A → B"
-- Keep **title** and **content** as **single-line**, **double-quoted** strings. Do not put actual line breaks (Enter) inside the string; use "\\n" when you need a new line in content.
+- Keep **title** and **content** as single-line double-quoted strings. Inside the string use only \\n (backslash then n) for line breaks.
 
 === IMPORTANT: PATCH ID MAPPING ===
 

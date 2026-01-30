@@ -73,6 +73,9 @@ type CanvasdownEdgeExt = Edge & {
     markerEndType?: string;
     markerStartType?: string;
     style?: { stroke?: string; strokeWidth?: number };
+    /** Flat edge attributes (parser allows; we map to style) */
+    stroke?: string;
+    strokeWidth?: number;
   };
   style?: { stroke?: string; strokeWidth?: number };
 };
@@ -87,6 +90,12 @@ export async function createEdgeFromCanvasdown(
   const { canvasdownEdge, nodeIdMap, edgeLifecycle } = params;
   const e = canvasdownEdge as CanvasdownEdgeExt;
 
+  const rawStyle =
+    e.style ??
+    e.data?.style ??
+    (e.data?.stroke != null || e.data?.strokeWidth != null
+      ? { stroke: e.data.stroke, strokeWidth: e.data.strokeWidth }
+      : undefined);
   const sourceBlockMountId = nodeIdMap.get(canvasdownEdge.source);
   const targetBlockMountId = nodeIdMap.get(canvasdownEdge.target);
 
@@ -102,7 +111,6 @@ export async function createEdgeFromCanvasdown(
   const sourceHandle = canvasdownEdge.sourceHandle ?? null;
   const targetHandle = canvasdownEdge.targetHandle ?? null;
 
-  const rawStyle = e.style ?? e.data?.style;
   const normalizedStyle = normalizeEdgeStyle(
     rawStyle ? { stroke: rawStyle.stroke, strokeWidth: rawStyle.strokeWidth } : undefined
   );
@@ -135,13 +143,11 @@ export async function createEdgeFromCanvasdown(
       ...(markerEnd != null && { markerEnd }),
       ...(markerStart != null && { markerStart }),
     });
-
     return { success: true };
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error';
     console.error(`[EdgeCreationService] Error creating edge:`, error);
-
     return {
       success: false,
       error: error instanceof Error ? error : new Error(errorMessage),

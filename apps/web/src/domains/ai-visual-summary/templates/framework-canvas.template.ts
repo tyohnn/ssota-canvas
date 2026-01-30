@@ -32,20 +32,21 @@ Single zone. Framework components (center) + definitions, examples, risks, actio
 4. **Risks**: 1-3 @shape (shapeType: diamond, color: red) — risk_1, risk_2, … Risks, limitations, tradeoffs.
 5. **Action guide**: 1 @markdown — id action_guide. How to apply the framework.
 
-**Titles**: Keyword-based only from the source (e.g. 2-5 words). No generic labels.
+**Titles**: From source, 2-5 words. No generic labels.
 
-**Content**: Always use markdown for content. Include as much concrete detail from the source as possible.
+**Content**: Markdown, at least one full paragraph per block; include concrete detail from the source.
 
 **Edges (include in the SAME canvasdown as the zone):**
-- component_1 -> component_2, … (label e.g. "connects to", markerEnd: "arrowclosed", shape: "smoothstep")
-- definition_1 -> component_1, … (label e.g. "defines")
-- component_2 -> example_1, … (label e.g. "illustrates")
-- risk_1 -> component_3, … (label e.g. "warns")
+- Use flat stroke and strokeWidth (no nested object): stroke: "red" | "orange" | "amber" | "green" | "blue" | "purple" | "pink" | "gray", strokeWidth: number.
+- component_1 -> component_2, … (label e.g. "connects to", markerEnd: "arrowclosed", shape: "smoothstep", stroke: color)
+- definition_1 -> component_1, … (label e.g. "defines", stroke: color)
+- component_2 -> example_1, … (label e.g. "illustrates", stroke: color)
+- risk_1 -> component_3, … (label e.g. "warns", stroke: "red")
 
 === WORKFLOW ===
 
 **Phase 1: Single zone skeleton + ALL edges (one renderCanvasdown call)**
-1. Create @zone framework_canvas_zone with a title extracted from the source. Add all blocks with **titles extracted from the source**. Use minimal content for skeleton.
+1. Create @zone framework_canvas_zone with title from user message (use "Source Title - Template Name" from Source metadata). Add all blocks with **titles extracted from the source**. Use minimal content for skeleton.
 2. Apply structure: components orange ellipse/rectangle; risks red diamond; definitions/examples/action_guide as markdown.
 3. In the SAME canvasdown, define ALL edges (component↔component, definition→component, component→example, risk→component).
 4. Call renderCanvasdown ONCE with this full canvasdown. Do NOT split zones or defer edges.
@@ -54,14 +55,13 @@ Single zone. Framework components (center) + definitions, examples, risks, actio
 Content fill layers (create one todo per layer when planning): Framework core, Definitions, Examples, Risks, Action guide.
 1. Complete one layer at a time; use @update for blocks in that layer only.
 2. Use blockMountId from the tool result blockIdMap (NOT canvasdown ids).
-3. @update blocks with title and **content** (markdown). Content must convey the source as completely as possible.
-4. Patch rules: no \`->\` or \`<-\` in title/content (use "to", "→"); single-line quoted strings; use "\\n" for new lines.
+3. @update blocks with title and **content** (markdown). Content must be at least one full paragraph per block; convey the source completely.
 
 === EXAMPLE SKELETON (edges in same block) ===
 
 canvas LR
 
-@zone framework_canvas_zone "<extract framework title>" { direction: LR, color: gray }
+@zone framework_canvas_zone "<Source Title - Framework Canvas>" { direction: LR, color: gray }
   @shape component_1 "<extract component name>" { shapeType: ellipse, color: orange, title: "<extract component name>" }
   @shape component_2 "<extract component name>" { shapeType: ellipse, color: orange, title: "<extract component name>" }
   @shape component_3 "<extract component name>" { shapeType: rectangle, color: orange, title: "<extract component name>" }
@@ -71,11 +71,11 @@ canvas LR
   @markdown action_guide "<extract action guide title>" { title: "<extract action guide title>" }
 @end
 
-component_1 -> component_2 { label: "connects to", markerEnd: "arrowclosed", shape: "smoothstep" }
-component_2 -> component_3 { label: "connects to", markerEnd: "arrowclosed", shape: "smoothstep" }
-definition_1 -> component_1 { label: "defines", markerEnd: "arrowclosed", shape: "smoothstep" }
-component_2 -> example_1 { label: "illustrates", markerEnd: "arrowclosed", shape: "step" }
-risk_1 -> component_3 { label: "warns", markerEnd: "arrowclosed", shape: "default" }
+component_1 -> component_2 { label: "connects to", markerEnd: "arrowclosed", shape: "smoothstep", stroke: "orange" }
+component_2 -> component_3 { label: "connects to", markerEnd: "arrowclosed", shape: "smoothstep", stroke: "orange" }
+definition_1 -> component_1 { label: "defines", markerEnd: "arrowclosed", shape: "smoothstep", stroke: "gray" }
+component_2 -> example_1 { label: "illustrates", markerEnd: "arrowclosed", shape: "step", stroke: "blue" }
+risk_1 -> component_3 { label: "warns", markerEnd: "arrowclosed", shape: "default", stroke: "red" }
 
 === LIMITS ===
 - Max concepts: 12
