@@ -5,8 +5,11 @@
  */
 
 // Lifecycle Service Functions
-export { createBlock } from './lifecycle/create-block.service';
-export { duplicateBlock } from './lifecycle/duplicate-block.service';
+export { createBlock, createBlocks } from './lifecycle/create-block.service';
+export {
+  duplicateBlock,
+  duplicateBlocks,
+} from './lifecycle/duplicate-block.service';
 export { restoreBlock } from './lifecycle/restore-block.service';
 export { softDeleteBlock } from './lifecycle/soft-delete-block.service';
 

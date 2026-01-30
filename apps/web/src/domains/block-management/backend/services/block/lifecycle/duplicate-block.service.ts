@@ -7,7 +7,7 @@ import { Result } from '@/utils/result';
 import { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
 import type { DuplicateBlockCommand } from '../../../../shared/commands';
 import type { DuplicateBlockRequest } from '../../../../shared/dtos/requests/block.requests';
-import type { Block } from '../../../../shared/entities/block.entity';
+import { Block } from '../../../../shared/entities/block.entity';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
 import { BlockId } from '../../../../shared/value-objects/block-id.vo';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
@@ -79,4 +79,88 @@ export async function duplicateBlock(
       )
     );
   }
+}
+
+/**
+ * 블록 일괄 복제 (bulk)
+ *
+ * - findByIds 1회로 원본 조회, createMany 1회로 복제본 INSERT
+ * - 요청 순서대로 Block[] 반환
+ */
+export async function duplicateBlocks(
+  safeDtos: DuplicateBlockRequest[],
+  safeUserId: UserId,
+  blockRepository: IBlockRepository
+): Promise<Result<Block[], Error>> {
+  if (safeDtos.length === 0) {
+    return Result.success([]);
+  }
+
+  const blockIds = safeDtos.map(dto => new BlockId(dto.blockId));
+  const originalBlocks = await blockRepository.findByIds(blockIds);
+
+  const firstMissing = originalBlocks.findIndex(b => b === null);
+  if (firstMissing !== -1) {
+    return Result.error(
+      new BlockManagementError(
+        'BLOCK_NOT_FOUND',
+        `Block not found: ${safeDtos[firstMissing]!.blockId}`
+      )
+    );
+  }
+
+  const aggregates: BlockAggregate[] = [];
+  const blocksToCreate: Block[] = [];
+
+  const command: DuplicateBlockCommand = { userId: safeUserId };
+
+  for (const originalBlock of originalBlocks as Block[]) {
+    const originalAggregate = BlockAggregate.reconstitute(originalBlock);
+    const duplicatedAggregate = originalAggregate.duplicate(command);
+    aggregates.push(duplicatedAggregate);
+    blocksToCreate.push(duplicatedAggregate.getBlock());
+  }
+
+  let persistedBlockIds: string[];
+  try {
+    persistedBlockIds = await blockRepository.createMany(blocksToCreate);
+  } catch (error) {
+    if (error instanceof BlockManagementError) {
+      return Result.error(error);
+    }
+    return Result.error(
+      new BlockManagementError(
+        'BLOCK_DUPLICATION_FAILED',
+        `Failed to duplicate blocks: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
+    );
+  }
+
+  // 23505 재시도 시 새 ID가 반영되었을 수 있음 → 반환 Block[] id 보정
+  const resultBlocks = blocksToCreate.map((block, i) => {
+    const persistedId = persistedBlockIds[i]!;
+    if (persistedId === block.id.value) return block;
+    return Block.reconstitute(
+      new BlockId(persistedId),
+      block.workspaceId,
+      block.userId,
+      block.blockType,
+      block.title,
+      block.properties,
+      block.customProperties,
+      block.createdAt,
+      block.updatedAt,
+      block.deletedAt,
+      block.content,
+      block.createdByProfile
+    );
+  });
+
+  for (const aggregate of aggregates) {
+    const events = aggregate.getUncommittedEvents();
+    await Promise.allSettled(events.map(event => event.handle()));
+    aggregate.markEventsAsCommitted();
+  }
+
+  return Result.success(resultBlocks);
 }

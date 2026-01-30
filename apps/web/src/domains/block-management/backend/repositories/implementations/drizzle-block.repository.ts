@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 
 import { adminDb } from '@/db';
 import {
@@ -71,7 +71,6 @@ export class DrizzleBlockRepository implements IBlockRepository {
 
         await adminDb.insert(blocks).values(blockData);
 
-        // 성공 시 종료
         return;
       } catch (error) {
         // UUID 충돌인지 확인 (PostgreSQL unique constraint violation)
@@ -81,7 +80,6 @@ export class DrizzleBlockRepository implements IBlockRepository {
         ) {
           attempts++;
           if (attempts < maxAttempts) {
-            // 새로운 ID 생성
             const newId = BlockId.generate().value;
             console.warn(
               `[DrizzleBlockRepository] ID collision detected (attempt ${attempts}), retrying with new ID: ${newId}`
@@ -104,6 +102,70 @@ export class DrizzleBlockRepository implements IBlockRepository {
         }
       }
     }
+  }
+
+  /**
+   * 여러 블록 일괄 생성 (bulk INSERT)
+   * 23505 시 전체 ID 재생성 후 재시도, 실제 반영된 ID 목록 반환 (입력 순서)
+   */
+  async createMany(blocksList: Block[]): Promise<string[]> {
+    if (blocksList.length === 0) return [];
+
+    let values = blocksList.map(block => {
+      const propertiesJSON = block.properties.toJSON();
+      const extraFields = (block.properties as any)._extraFields || {};
+      const fullProperties = { ...propertiesJSON, ...extraFields };
+      const contentRaw: string | null = (block as any).contentRaw || null;
+      return {
+        id: block.id.value,
+        workspace_id: block.workspaceId.value,
+        created_by: block.userId.value,
+        block_type: block.blockType.value,
+        title: block.title,
+        properties: fullProperties,
+        custom_properties: block.customProperties.map(vo => vo.toJSON()),
+        content: block.content as any,
+        content_raw: contentRaw,
+        created_at: block.createdAt,
+        updated_at: block.updatedAt,
+        deleted_at: block.deletedAt,
+      };
+    });
+
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+      try {
+        await adminDb.insert(blocks).values(values);
+        return values.map(v => v.id);
+      } catch (error) {
+        if (
+          (error as any).code === '23505' &&
+          (error as any).constraint === 'blocks_pkey'
+        ) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            values = values.map(v => ({
+              ...v,
+              id: BlockId.generate().value,
+            }));
+            console.warn(
+              `[DrizzleBlockRepository] createMany ID collision (attempt ${attempts}), retrying with new IDs`
+            );
+          } else {
+            throw new BlockManagementError(
+              'BLOCK_SAVE_FAILED',
+              'Failed to generate unique IDs for blocks after multiple attempts'
+            );
+          }
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    return values.map(v => v.id);
   }
 
   /**
@@ -179,6 +241,31 @@ export class DrizzleBlockRepository implements IBlockRepository {
         `Failed to fetch block: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
+  }
+
+  /**
+   * 여러 블록 ID로 조회 (입력 ID 순서대로 반환, 없으면 null)
+   */
+  async findByIds(ids: BlockId[]): Promise<(Block | null)[]> {
+    if (ids.length === 0) return [];
+
+    const idValues = ids.map(id => id.value);
+    const results = await adminDb
+      .select({
+        block: blocks,
+        profile: profiles,
+      })
+      .from(blocks)
+      .leftJoin(profiles, eq(blocks.created_by, profiles.id))
+      .where(and(inArray(blocks.id, idValues), isNull(blocks.deleted_at)));
+
+    const byId = new Map(
+      results.map(row => [
+        row.block.id,
+        this.mapToBlock(row.block, row.profile),
+      ])
+    );
+    return ids.map(id => byId.get(id.value) ?? null);
   }
 
   /**

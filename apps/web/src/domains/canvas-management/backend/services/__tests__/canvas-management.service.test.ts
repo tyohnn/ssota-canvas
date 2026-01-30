@@ -28,12 +28,30 @@ class MockBlockMountRepository implements BlockMountRepository {
     // Mock implementation
   }
 
+  async createMany(blockMounts: any[]): Promise<string[]> {
+    if (blockMounts.length === 0) return [];
+    return blockMounts.map((bm: any) => {
+      const id = bm?.id;
+      return id != null && typeof id === 'object' && 'value' in id
+        ? (id as { value: string }).value
+        : typeof id === 'string'
+          ? id
+          : '';
+    });
+  }
+
   async update(blockMount: any): Promise<void> {
     // Mock implementation
   }
 
   async findById(blockMountId: any): Promise<BlockMountAggregate | null> {
     return this.storage.get(blockMountId.value) || null;
+  }
+
+  async findByIds(
+    blockMountIds: any[]
+  ): Promise<(BlockMountAggregate | null)[]> {
+    return blockMountIds.map(id => this.storage.get(id.value) ?? null);
   }
 
   async findByPageId(pageId: PageId): Promise<BlockMountAggregate[]> {
@@ -44,6 +62,22 @@ class MockBlockMountRepository implements BlockMountRepository {
 
   async softDelete(blockMountId: any): Promise<void> {
     this.storage.delete(blockMountId.value);
+  }
+
+  async softDeleteMany(blockMountIds: any[]): Promise<void> {
+    for (const id of blockMountIds) {
+      this.storage.delete(id.value);
+    }
+  }
+
+  async updateParentAndPosition(
+    _blockMountId: any,
+    _params: {
+      parentBlockMountId: string | null;
+      position: { x: number; y: number };
+    }
+  ): Promise<void> {
+    // Mock implementation
   }
 
   async findByPageIdWithBlocks(pageId: PageId): Promise<Array<{
@@ -82,6 +116,11 @@ class MockBlockMountRepository implements BlockMountRepository {
   clear(): void {
     this.storage.clear();
   }
+
+  /** 테스트용: BlockMountAggregate 저장 (getCanvasView 등에서 조회됨) */
+  setBlockMountForTest(blockMountId: BlockMountId, aggregate: BlockMountAggregate): void {
+    this.storage.set(blockMountId.value, aggregate);
+  }
 }
 
 class MockEdgeRepository implements EdgeRepository {
@@ -102,6 +141,12 @@ class MockEdgeRepository implements EdgeRepository {
   }
 
   async findByConnectedBlockMountId(blockMountId: any): Promise<EdgeAggregate[]> {
+    return [];
+  }
+
+  async findByConnectedBlockMountIds(
+    _blockMountIds: any[]
+  ): Promise<EdgeAggregate[]> {
     return [];
   }
 
@@ -198,10 +243,9 @@ describe('CanvasQueryService', () => {
       };
 
       const blockMountAggregate = BlockMountAggregate.mountBlock(mountCommand);
-      
-      // Store in the mock repository
-      mockBlockMountRepository['storage'].set(
-        blockMountId.value,
+
+      mockBlockMountRepository.setBlockMountForTest(
+        blockMountId,
         blockMountAggregate
       );
 
