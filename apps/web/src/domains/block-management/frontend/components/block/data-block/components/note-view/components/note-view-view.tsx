@@ -72,6 +72,7 @@ export function NoteViewView({
           editor={editor}
           editable={uiState.isEditing}
           onClick={uiState.isEditing ? uiState.handleEditorClick : undefined}
+          onDoubleClick={uiState.handleBlockDoubleClick}
           placeholderClassName={
             selected && uiState.isDoubleClickMode
               ? 'tiptap-markdown-block'

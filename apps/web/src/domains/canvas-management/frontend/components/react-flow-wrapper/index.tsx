@@ -67,6 +67,7 @@ export function CanvasReactFlowWrapper({
       onNodesDelete={hook.onNodesDelete}
       onEdgesDelete={hook.onEdgesDelete}
       onWheel={hook.handleWheel}
+      onWheelCapture={hook.handleWheelCapture}
       guidelines={hook.guidelines}
       showAddDialog={hook.showAddDialog}
       onAddBlockClick={() => hook.setShowAddDialog(true)}

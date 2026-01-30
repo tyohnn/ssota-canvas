@@ -15,6 +15,7 @@ export interface TipTapEditorProps {
   editor: Editor | null;
   editable?: boolean;
   onClick?: (e: React.MouseEvent) => void;
+  onDoubleClick?: (e: React.MouseEvent) => void;
   className?: string;
   placeholderClassName?: string;
   placeholderStyleTarget?: string;
@@ -29,6 +30,7 @@ export function TipTapEditor({
   editor,
   editable = true,
   onClick,
+  onDoubleClick,
   className,
   placeholderClassName = 'tiptap-editor',
   placeholderStyleTarget,
@@ -60,12 +62,12 @@ export function TipTapEditor({
       <EditorContent
         editor={editor}
         onClick={onClick}
+        onDoubleClick={!editable ? onDoubleClick : undefined}
         className={cn(
           placeholderClassName, // Placeholder 스타일 타겟
           'prose prose-sm max-w-none',
           editable && 'nodrag',
           editable && 'focus:outline-none',
-          !editable && 'pointer-events-none',
           // TipTap 기본 스타일
           '[&_.ProseMirror]:outline-none',
           '[&_.ProseMirror]:min-h-[100px]',
