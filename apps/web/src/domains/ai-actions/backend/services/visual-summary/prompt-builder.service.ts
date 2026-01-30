@@ -1,6 +1,6 @@
 /**
  * Visual Summary Prompt Builder Service
- * 
+ *
  * LLM에게 전달할 시스템 프롬프트와 사용자 프롬프트를 생성하는 서비스
  */
 

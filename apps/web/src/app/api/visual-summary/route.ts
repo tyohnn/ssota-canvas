@@ -24,16 +24,16 @@ import { config } from '@/config';
 import {
   buildVisualSummarySystemPrompt,
   buildVisualSummaryUserPrompt,
-} from '@/domains/ai-visual-summary/backend/services/prompt-builder.service';
+} from '@/domains/ai-actions/backend/services/visual-summary/prompt-builder.service';
 import {
   renderCanvasdownTool,
   renderCanvasdownRightTool,
   renderCanvasdownBelowTool,
   planTodoTool,
   updateTodoTool,
-} from '@/domains/ai-visual-summary/backend/services/prompt/tools';
+} from '@/domains/ai-actions/backend/prompt/visual-summary/tools';
 import { requireAuth } from '@/domains/auth/server/auth-guard';
-import type { GenerateVisualSummaryRequest } from '@/domains/ai-visual-summary/shared/types/visual-summary.types';
+import type { GenerateVisualSummaryRequest } from '@/domains/ai-actions/shared/types/visual-summary.types';
 
 export const maxDuration = 300; // 5분 타임아웃
 

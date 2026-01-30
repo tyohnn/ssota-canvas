@@ -5,8 +5,7 @@
  * All blocks and edges are defined in one zone and rendered together so layout (dagre) sees edges from the start.
  */
 
-import { VisualTemplate } from '../shared/types/template.types';
-import { TEMPLATE_IDS } from '../shared/types/template.types';
+import { VisualTemplate, TEMPLATE_IDS } from '@/domains/ai-actions/shared/types/template.types';
 
 export const lectureMapTemplate: VisualTemplate = {
   id: TEMPLATE_IDS.LECTURE_MAP,

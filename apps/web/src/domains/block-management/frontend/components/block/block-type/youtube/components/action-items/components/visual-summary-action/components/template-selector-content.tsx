@@ -9,7 +9,7 @@
 import { Check } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { Box } from '@/components/ui/box';
-import type { VisualTemplate } from '@/domains/ai-visual-summary/shared/types/template.types';
+import type { VisualTemplate } from '@/domains/ai-actions/shared/types/template.types';
 
 interface TemplateSelectorContentProps {
   templates: VisualTemplate[];

@@ -10,7 +10,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2, AlertCircle, X } from 'lucide-react';
 import { Box } from '@/components/ui/box';
-import { useVisualSummaryContext } from '../contexts/visual-summary-context';
+import { useAIActionContext } from '../contexts/ai-action-context';
 import {
   Queue,
   QueueSection,
@@ -40,7 +40,7 @@ export function StatusWindow() {
     windowDismissed,
     statusOperationType,
     statusTemplateName,
-  } = useVisualSummaryContext();
+  } = useAIActionContext();
 
   // 실행 중이 아니거나, 사용자가 닫았으면 표시하지 않음
   if (windowDismissed || (!isGenerating && !error && todos.length === 0)) {

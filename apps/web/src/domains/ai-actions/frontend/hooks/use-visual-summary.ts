@@ -22,7 +22,7 @@ import {
   renderCanvasdownBelowTool,
   planTodoTool,
   updateTodoTool,
-} from '../../backend/services/prompt/tools';
+} from '@/domains/ai-actions/backend/prompt/visual-summary/tools';
 import type { VisualTemplate } from '../../shared/types/template.types';
 import type { GenerateVisualSummaryRequest } from '../../shared/types/visual-summary.types';
 import type { QueueTodo } from '@workspace/ui/components/ai-elements/queue';

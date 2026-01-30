@@ -16,7 +16,7 @@ import {
 } from '@workspace/ui/components/ui/popover';
 import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
 import { Box } from '@/components/ui/box';
-import { getAllTemplates } from '../../../templates';
+import { getAllTemplates } from '@/domains/ai-actions/backend/prompt/visual-summary';
 import type { VisualTemplate } from '../../../shared/types/template.types';
 
 interface TemplatePickerProps {

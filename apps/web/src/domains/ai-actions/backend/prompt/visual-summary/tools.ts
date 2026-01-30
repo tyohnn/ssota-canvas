@@ -1,6 +1,6 @@
 /**
  * Visual Summary Tool Schemas
- * 
+ *
  * Client-side tool definitions for Visual Summary generation
  */
 
@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 /**
  * renderCanvasdown Tool
- * 
+ *
  * Client-side tool that renders Canvasdown code on the canvas.
  * This tool takes a Canvasdown code string and creates nodes/edges on the canvas.
  */
@@ -165,7 +165,7 @@ anchorBlockId MUST be the blockMountId of the zone/group block from a previous t
 
 /**
  * planTodo Tool
- * 
+ *
  * AI가 작업 계획을 todo 리스트로 생성
  */
 export const planTodoTool = {
@@ -215,7 +215,7 @@ export const planTodoTool = {
 
 /**
  * updateTodo Tool
- * 
+ *
  * AI가 todo 상태를 업데이트
  */
 export const updateTodoTool = {

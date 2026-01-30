@@ -1,6 +1,6 @@
 /**
  * Visual Summary Templates
- * 
+ *
  * 모든 템플릿을 export하고 관리하는 중앙 파일
  */
 
@@ -9,7 +9,7 @@ import { argumentMapTemplate } from './argument-map.template';
 import { frameworkCanvasTemplate } from './framework-canvas.template';
 import { conceptGraphTemplate } from './concept-graph.template';
 import { synthesisBoardTemplate } from './synthesis-board.template';
-import type { VisualTemplate } from '../shared/types/template.types';
+import type { VisualTemplate } from '@/domains/ai-actions/shared/types/template.types';
 
 /**
  * 모든 템플릿 목록

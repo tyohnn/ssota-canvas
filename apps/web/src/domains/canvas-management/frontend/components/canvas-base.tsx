@@ -14,7 +14,7 @@ import {
 } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { CanvasModeProvider } from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
 import { CanvasdownProvider } from '@/domains/canvasdown/frontend/contexts/canvasdown-context';
-import { VisualSummaryProvider } from '@/domains/ai-visual-summary/frontend/contexts/visual-summary-context';
+import { AIActionProvider } from '@/domains/ai-actions/frontend/contexts/ai-action-context';
 
 import { EditorPanelWrapper } from './editor-panel-wrapper';
 import { CanvasReactFlowWrapper } from './react-flow-wrapper';
@@ -55,7 +55,7 @@ export function CanvasBase({
           <CanvasMetadataProvider value={{ pageId, orgId, workspaceId }}>
             <CanvasReadOnlyProvider readonly={readonly} publishToken={publishToken}>
               <CanvasdownProvider pageId={pageId}>
-                <VisualSummaryProvider>
+                <AIActionProvider>
                   <Box className="h-full flex flex-col bg-background">
                     {/* 메인 캔버스 영역 */}
                     <CanvasReactFlowWrapper
@@ -67,7 +67,7 @@ export function CanvasBase({
                     {/* Children (e.g., PublishedPageHeader) */}
                     {children}
                   </Box>
-                </VisualSummaryProvider>
+                </AIActionProvider>
               </CanvasdownProvider>
             </CanvasReadOnlyProvider>
           </CanvasMetadataProvider>

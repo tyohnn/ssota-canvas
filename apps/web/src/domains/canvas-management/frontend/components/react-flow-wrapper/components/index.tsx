@@ -12,7 +12,7 @@ import {
 
 import { AIAgentRunner } from '@/domains/ai-management/frontend/components/ai-agent-runner';
 import type { BlockType } from '@/domains/block-management/shared/types/block-types';
-import { StatusWindow } from '@/domains/ai-visual-summary/frontend/components/status-window';
+import { StatusWindow } from '@/domains/ai-actions/frontend/components/status-window';
 
 import { MultiSelectionToolbar } from './multi-select/multi-selection-toolbar';
 import { SelectionBoundingBox } from './multi-select/selection-bounding-box';

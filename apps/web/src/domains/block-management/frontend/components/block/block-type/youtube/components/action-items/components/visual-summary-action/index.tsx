@@ -19,7 +19,6 @@ import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-ico
 
 import { Box } from '@/components/ui/box';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { useVisualSummaryContext } from '@/domains/ai-visual-summary/frontend/contexts/visual-summary-context';
 import { useVisualSummaryAction } from './core/use-visual-summary-action';
 import { TemplateSelectorContent } from './components';
 

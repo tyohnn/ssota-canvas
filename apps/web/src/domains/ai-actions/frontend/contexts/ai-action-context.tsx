@@ -1,8 +1,8 @@
 /**
- * Visual Summary Context
+ * AI Action Context
  *
- * Visual summary 실행 상태를 전역으로 관리하는 컨텍스트
- * 로직은 useVisualSummary hook에 있습니다.
+ * AI 액션(visual summary, 일반 summary, script 등) 실행 상태를 전역으로 관리하는 컨텍스트.
+ * Status window를 범용으로 사용합니다. 로직은 useVisualSummary hook에 있습니다.
  */
 
 'use client';
@@ -14,7 +14,7 @@ import type { VisualTemplate } from '../../shared/types/template.types';
 import type { QueueTodo } from '@workspace/ui/components/ai-elements/queue';
 import type { UIMessage } from 'ai';
 
-interface VisualSummaryContextValue {
+interface AIActionContextValue {
   // Actions
   generateVisualSummary: (params: {
     summary: string;
@@ -43,25 +43,25 @@ interface VisualSummaryContextValue {
   statusTemplateName: string | null;
 }
 
-const VisualSummaryContext = createContext<VisualSummaryContextValue | null>(null);
+const AIActionContext = createContext<AIActionContextValue | null>(null);
 
-interface VisualSummaryProviderProps {
+interface AIActionProviderProps {
   children: React.ReactNode;
 }
 
 /**
- * Visual Summary Provider
+ * AI Action Provider
  *
- * Visual summary 실행 상태를 관리합니다.
+ * AI 액션 실행 상태를 관리합니다.
  * 로직은 useVisualSummary hook에 있습니다.
  */
-export function VisualSummaryProvider({ children }: VisualSummaryProviderProps) {
+export function AIActionProvider({ children }: AIActionProviderProps) {
   const { pageId } = useCanvasMetadata();
 
   // useVisualSummary hook 사용 (pageId만 필요)
   const visualSummaryHook = useVisualSummary({ pageId });
 
-  const value: VisualSummaryContextValue = {
+  const value: AIActionContextValue = {
     generateVisualSummary: visualSummaryHook.generateVisualSummary,
     dismissStatusWindow: visualSummaryHook.dismissStatusWindow,
     isGenerating: visualSummaryHook.isGenerating,
@@ -74,16 +74,16 @@ export function VisualSummaryProvider({ children }: VisualSummaryProviderProps) 
     statusTemplateName: visualSummaryHook.statusTemplateName,
   };
 
-  return <VisualSummaryContext.Provider value={value}>{children}</VisualSummaryContext.Provider>;
+  return <AIActionContext.Provider value={value}>{children}</AIActionContext.Provider>;
 }
 
 /**
- * Hook to access Visual Summary context
+ * Hook to access AI Action context
  */
-export function useVisualSummaryContext(): VisualSummaryContextValue {
-  const context = useContext(VisualSummaryContext);
+export function useAIActionContext(): AIActionContextValue {
+  const context = useContext(AIActionContext);
   if (!context) {
-    throw new Error('useVisualSummaryContext must be used within VisualSummaryProvider');
+    throw new Error('useAIActionContext must be used within AIActionProvider');
   }
   return context;
 }

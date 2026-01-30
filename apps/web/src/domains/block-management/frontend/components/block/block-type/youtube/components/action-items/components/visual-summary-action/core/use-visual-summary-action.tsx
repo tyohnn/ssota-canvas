@@ -11,13 +11,14 @@ import { Check, Loader2, Sparkles } from 'lucide-react';
 import { useReactFlow } from '@xyflow/react';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
-import { useVisualSummaryContext } from '@/domains/ai-visual-summary/frontend/contexts/visual-summary-context';
+import { useAIActionContext } from '@/domains/ai-actions/frontend/contexts/ai-action-context';
 import {
   type YoutubeBlockProperties,
   YoutubeBlockPropertiesVO,
 } from '@/domains/block-management/shared/value-objects/block-properties';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import type { VisualTemplate } from '@/domains/ai-visual-summary/shared/types/template.types';
+import type { VisualTemplate } from '@/domains/ai-actions/shared/types/template.types';
+import { getAllTemplates } from '@/domains/ai-actions/backend/prompt/visual-summary';
 import { useVisualSummaryActionUI } from './use-visual-summary-action.ui';
 import { useVisualSummaryActionBusiness } from './use-visual-summary-action.business';
 import type { VisualSummaryActionUIReturn } from './use-visual-summary-action.ui';
@@ -67,7 +68,7 @@ export function useVisualSummaryAction(
   const {
     isGenerating: isGeneratingFromContext,
     currentRunSourceBlockId,
-  } = useVisualSummaryContext();
+  } = useAIActionContext();
 
   // ============================================================================
   // 2. Extract Data from Dependencies
@@ -164,7 +165,7 @@ export function useVisualSummaryAction(
   // ============================================================================
 
   // 템플릿 목록 (정적 데이터)
-  const templates = require('@/domains/ai-visual-summary/templates').getAllTemplates();
+  const templates = getAllTemplates();
 
   return {
     // UI 상태 (UI 훅에서 제공)

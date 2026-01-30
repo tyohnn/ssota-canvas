@@ -7,12 +7,12 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { useVisualSummaryContext } from '@/domains/ai-visual-summary/frontend/contexts/visual-summary-context';
+import { useAIActionContext } from '@/domains/ai-actions/frontend/contexts/ai-action-context';
 import {
   useAvailableSummaryLanguages,
   useProcessVideoSummary,
 } from '@/domains/youtube-app-space/frontend/hooks/summary';
-import type { VisualTemplate } from '@/domains/ai-visual-summary/shared/types/template.types';
+import type { VisualTemplate } from '@/domains/ai-actions/shared/types/template.types';
 import type { QueueTodo } from '@workspace/ui/components/ai-elements/queue';
 
 export interface VisualSummaryActionBusinessReturn {
@@ -108,7 +108,7 @@ export function useVisualSummaryActionBusiness(
     error: visualSummaryError,
     messages,
     todos,
-  } = useVisualSummaryContext();
+  } = useAIActionContext();
 
   // 템플릿 선택 핸들러 (비즈니스 로직만 수행)
   // UI 상태 업데이트는 메인 훅에서 처리. returns true if generation was started.
