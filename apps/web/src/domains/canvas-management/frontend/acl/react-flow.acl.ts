@@ -235,43 +235,52 @@ export function toReactFlowNodeFromCanvasView(
 export function sortNodesForReactFlow<T extends { id: string; parentId?: string | null; type?: string }>(
   nodes: T[]
 ): T[] {
-  // 1. 그룹 노드들 (최상위에 배치)
-  const groupNodes = nodes.filter(n => n.type === 'group');
+  // 1. 그룹 노드들: 부모가 자식보다 먼저 오도록 정렬 (중첩 그룹 대비)
+  const groupNodesRaw = nodes.filter(n => n.type === 'group');
+  const groupIds = new Set(groupNodesRaw.map(n => n.id));
+  const groupNodes: T[] = [];
+  const groupProcessed = new Set<string>();
+  function addGroupWithChildren(node: T) {
+    if (groupProcessed.has(node.id)) return;
+    const parentId = node.parentId ?? null;
+    if (parentId != null && groupIds.has(parentId)) {
+      const parent = groupNodesRaw.find(n => n.id === parentId);
+      if (parent) addGroupWithChildren(parent);
+    }
+    if (groupProcessed.has(node.id)) return;
+    groupProcessed.add(node.id);
+    groupNodes.push(node);
+  }
+  // 그룹 노드들도 부모-자식 순서로 정렬 (중첩 그룹 시 자식 그룹이 부모보다 앞에 오면 React Flow 깨짐)
+  groupNodesRaw.forEach(addGroupWithChildren);
 
   // 2. 그룹이 아닌 노드들
   const nonGroupNodes = nodes.filter(n => n.type !== 'group');
 
   // 3. 비그룹 노드들을 부모-자식 순서로 정렬
-  // 부모가 없는 노드들 (루트 노드)
   const rootNodes = nonGroupNodes.filter(n => !n.parentId);
-  // 부모가 있는 노드들 (자식 노드)
   const childNodes = nonGroupNodes.filter(n => n.parentId);
 
   const result: T[] = [];
   const processed = new Set<string>();
 
-  // 재귀적으로 노드와 그 자식들을 추가
   function addNodeWithChildren(node: T) {
     if (processed.has(node.id)) return;
     processed.add(node.id);
     result.push(node);
 
-    // 이 노드를 부모로 가지는 자식들 추가
     const children = childNodes.filter(c => c.parentId === node.id);
     children.forEach(child => addNodeWithChildren(child));
   }
 
-  // 루트 노드들부터 시작
   rootNodes.forEach(rootNode => addNodeWithChildren(rootNode));
 
-  // 혹시 처리되지 않은 노드가 있으면 추가 (orphaned nodes)
   nonGroupNodes.forEach(n => {
     if (!processed.has(n.id)) {
       result.push(n);
     }
   });
 
-  // 그룹 노드들 + 정렬된 비그룹 노드들 반환
   return [...groupNodes, ...result];
 }
 
