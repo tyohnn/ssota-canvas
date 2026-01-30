@@ -25,6 +25,7 @@ export const PythonBlock = memo(function PythonBlock({
   data,
   selected,
   dragging,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -194,6 +195,7 @@ export const PythonBlock = memo(function PythonBlock({
     <BaseBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       isConnectable={true}
       width={width}
       height={height}

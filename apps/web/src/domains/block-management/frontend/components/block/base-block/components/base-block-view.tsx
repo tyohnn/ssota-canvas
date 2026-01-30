@@ -24,6 +24,7 @@ export interface BaseBlockViewProps {
   data: BlockNodeData;
   width?: number;
   height?: number;
+  draggable?: boolean;
   onMouseEnter: () => void;
   onMouseMove: (event: React.MouseEvent<HTMLDivElement>) => void;
   onMouseLeave: () => void;
@@ -43,6 +44,7 @@ export const BaseBlockView = forwardRef<HTMLDivElement, BaseBlockViewProps>(
       data,
       width,
       height,
+      draggable,
       onMouseEnter,
       onMouseMove,
       onMouseLeave,
@@ -54,7 +56,10 @@ export const BaseBlockView = forwardRef<HTMLDivElement, BaseBlockViewProps>(
     return (
       <div
         ref={ref}
-        className={cn('relative w-full h-full min-w-[100px] min-h-[70px] overflow-visible')}
+        className={cn(
+          'relative w-full h-full min-w-[100px] min-h-[70px] overflow-visible',
+          draggable === false && 'cursor-not-allowed'
+        )}
         style={{
           width: width || 'auto',
           height: height || 'auto',

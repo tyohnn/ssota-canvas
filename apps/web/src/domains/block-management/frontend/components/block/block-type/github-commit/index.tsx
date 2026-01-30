@@ -20,6 +20,7 @@ export const GitHubCommitBlock = memo(function GitHubCommitBlock({
   id,
   data,
   selected,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -45,6 +46,7 @@ export const GitHubCommitBlock = memo(function GitHubCommitBlock({
     <BaseBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       isConnectable={true}
       width={width}
       height={height}

@@ -29,6 +29,7 @@ export const VercelDeploymentBlock = memo(function VercelDeploymentBlock({
   id,
   data,
   selected,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -84,6 +85,7 @@ export const VercelDeploymentBlock = memo(function VercelDeploymentBlock({
     <BaseBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       width={width}
       height={height}
     >

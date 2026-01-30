@@ -21,6 +21,7 @@ export const DataBlock = memo(function DataBlock(props: DataBlockProps) {
   const {
     data,
     selected = false,
+    draggable,
     width,
     height,
     renderOriginalView,
@@ -37,7 +38,13 @@ export const DataBlock = memo(function DataBlock(props: DataBlockProps) {
   } = useDataBlock(props);
 
   return (
-    <BaseBlock data={data} selected={selected} width={width} height={height}>
+    <BaseBlock
+      data={data}
+      selected={selected}
+      draggable={draggable}
+      width={width}
+      height={height}
+    >
       {/* Block Toolbar (상단) - 모든 view mode에서 표시 */}
       <BlockToolbar
         data={data}

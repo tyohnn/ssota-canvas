@@ -21,6 +21,7 @@ import { useYoutubeBlock } from './core/use-youtube-block';
 export const YoutubeBlock = memo(function YoutubeBlock({
   data,
   selected,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -74,6 +75,7 @@ export const YoutubeBlock = memo(function YoutubeBlock({
     <DataBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       width={width}
       height={height}
       renderOriginalView={renderOriginalView}

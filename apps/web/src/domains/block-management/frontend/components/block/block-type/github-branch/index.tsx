@@ -22,6 +22,7 @@ export const GitHubBranchBlock = memo(function GitHubBranchBlock({
   id,
   data,
   selected,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -47,6 +48,7 @@ export const GitHubBranchBlock = memo(function GitHubBranchBlock({
     <BaseBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       isConnectable={true}
       width={width}
       height={height}

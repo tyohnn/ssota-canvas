@@ -274,6 +274,7 @@ export function useDuplicateBlocks(
           width: optimisticData.size.width,
           height: optimisticData.size.height,
           zIndex: 1,
+          draggable: false,
           ...(optimisticData.parentId != null && {
             parentId: optimisticData.parentId,
           }),
@@ -376,6 +377,7 @@ export function useDuplicateBlocks(
                       }),
                     },
                     ...(parentId != null && { parentId }),
+                    draggable: true,
                   } as CustomNodeType;
                 }
                 return node;

@@ -13,6 +13,7 @@ export interface DataBlockProps {
   data: BlockNodeData; // BlockNodeData에 이미 viewMode가 required로 포함됨
   selected?: boolean;
   isConnectable?: boolean;
+  draggable?: boolean;
   width?: number;
   height?: number;
   children?: React.ReactNode;

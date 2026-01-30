@@ -42,6 +42,7 @@ export const ShapeBlock = memo(function ShapeBlock({
   data,
   selected,
   dragging,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -519,6 +520,7 @@ export const ShapeBlock = memo(function ShapeBlock({
     <DataBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       width={width}
       height={height}
       renderOriginalView={renderOriginalView}

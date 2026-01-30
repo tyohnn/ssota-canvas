@@ -38,6 +38,7 @@ export const ReactComponentBlock = memo(function ReactComponentBlock({
   id,
   data,
   selected,
+  draggable,
   width: nodeW,
   height: nodeH,
 }: NodeProps) {
@@ -100,6 +101,7 @@ export const ReactComponentBlock = memo(function ReactComponentBlock({
     <BaseBlock
       data={nodeData}
       selected={selected}
+      draggable={draggable}
       isConnectable={true}
       width={width}
       height={height}

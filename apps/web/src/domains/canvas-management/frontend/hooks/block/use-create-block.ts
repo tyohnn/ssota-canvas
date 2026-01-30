@@ -119,6 +119,7 @@ export function useCreateBlock(
       width: blockSize.width,
       height: blockSize.height,
       zIndex: 1,
+      draggable: false,
     } as CustomNodeType;
   };
 
@@ -277,6 +278,7 @@ export function useCreateBlock(
                 width: blockView.size.width,
                 height: blockView.size.height,
                 zIndex: blockView.zOrder,
+                draggable: true,
               } as CustomNodeType)
               : node
           ) as Node[];
