@@ -81,7 +81,7 @@ export interface DomainDependencies {
     nodeIds: string[];
     groupTitle?: string;
     groupColor?: string;
-  }) => Promise<void>;
+  }) => Promise<{ groupBlockMountId: string; groupBlockId: string }>;
   exitToDefaultMode: () => void;
 }
 
@@ -201,7 +201,9 @@ export interface MultiSelectionToolbarBusinessLogic {
    * await business.createGroupFromSelectedBlocks(['block-1', 'block-2']);
    * ```
    */
-  createGroupFromSelectedBlocks: (selectedBlockIds: string[]) => Promise<void>;
+  createGroupFromSelectedBlocks: (
+    selectedBlockIds: string[]
+  ) => Promise<{ groupBlockMountId: string; groupBlockId: string } | undefined>;
 
   /**
    * Exits selection mode and returns to default mode.

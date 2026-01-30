@@ -18,6 +18,8 @@ export interface BlockHeaderViewProps {
   isUpdating: boolean;
   className?: string;
   readonly?: boolean;
+  /** When false, badge is never shown. Default true. */
+  showBadge?: boolean;
 }
 
 /**
@@ -39,6 +41,7 @@ export function BlockHeaderView({
   isUpdating,
   className,
   readonly = false,
+  showBadge = true,
 }: BlockHeaderViewProps) {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -51,8 +54,9 @@ export function BlockHeaderView({
     onBlur();
   };
 
-  // width가 350px 이하일 때 배지 숨김
-  const shouldShowBadge = blockType && width !== undefined && width > 400;
+  // showBadge가 false이거나 width가 400px 이하일 때 배지 숨김
+  const shouldShowBadge =
+    showBadge !== false && !!blockType && width !== undefined && width > 400;
 
   return (
     <Box

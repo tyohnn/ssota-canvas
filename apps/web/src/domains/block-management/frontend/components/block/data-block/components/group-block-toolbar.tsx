@@ -1,18 +1,15 @@
 /**
- * Block Toolbar Component
+ * Group Block Toolbar Component
  *
- * 블록 상단에 표시되는 통합 툴바 (모든 view mode에서 사용)
- * - 좌측: BlockHeader (제목 + Badge)
- * - 우측: Toolbar buttons (ViewMode + Details + More + BlockToolbarMapper)
+ * 그룹 블록 전용 툴바 레이아웃
+ * - 제목 인풋: 툴바 바와 같은 위계(형제), 좌측 absolute
+ * - 툴바 바: 전체 너비, 내부 버튼만 콘텐츠 크기로 중앙 배치
  */
 
 'use client';
 
-import { useRef } from 'react';
-
 import { ChevronRight } from 'lucide-react';
 
-import { ToolbarContainer } from '@workspace/ui/components/ssota-ui/toolbar-container';
 import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
 import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
@@ -23,7 +20,6 @@ import type { BlockNodeData } from '@/domains/block-management/shared/types/bloc
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
-import { GroupBlockToolbar } from './group-block-toolbar';
 import { BlockHeader } from './block-header';
 import {
   MoreMenuToolbarItem,
@@ -31,7 +27,7 @@ import {
 } from '../../common-toolbar-items';
 import { BlockToolbarMapper } from '../../block-original-toolbar/components/block-toolbar-mapper';
 
-export interface BlockToolbarProps {
+export interface GroupBlockToolbarProps {
   data: BlockNodeData;
   selected: boolean;
   viewMode: BlockViewModeValue;
@@ -45,7 +41,7 @@ export interface BlockToolbarProps {
   showBlockToolbarMapper?: boolean;
 }
 
-export function BlockToolbar({
+export function GroupBlockToolbar({
   data,
   selected,
   viewMode,
@@ -57,42 +53,8 @@ export function BlockToolbar({
   isMultiSelection,
   onEdit,
   showBlockToolbarMapper = false,
-}: BlockToolbarProps) {
+}: GroupBlockToolbarProps) {
   const { readonly } = useCanvasReadOnly();
-
-  // 렌더링 조건 체크
-  if (!selected) {
-    return null;
-  }
-
-  // 멀티셀렉트일 때는 표시하지 않음
-  if (isMultiSelection) {
-    return null;
-  }
-
-  // zoom이 60% 이하일 때는 표시하지 않음
-  if (zoom <= 0.6) {
-    return null;
-  }
-
-  // 그룹 블록: 전용 툴바 레이아웃 (좌측 제목만, 중앙 툴바, 배지 없음)
-  if (data.blockType === 'group') {
-    return (
-      <GroupBlockToolbar
-        data={data}
-        selected={selected}
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange}
-        width={width}
-        height={height}
-        className={className}
-        zoom={zoom}
-        isMultiSelection={isMultiSelection}
-        onEdit={onEdit}
-        showBlockToolbarMapper={showBlockToolbarMapper}
-      />
-    );
-  }
 
   return (
     <Box
@@ -102,27 +64,20 @@ export function BlockToolbar({
         className
       )}
     >
-      <Box className="w-full flex items-center gap-2 bg-background/60 backdrop-blur-md border border-border/75 rounded-md shadow-lg px-1.5 py-0.5">
-        {/* 좌측: BlockHeader (flex-1으로 나머지 공간 사용) */}
-        <Box className="flex-1 min-w-0">
-          <BlockHeader
-            data={data}
-            selected={selected}
-            width={width}
-          />
-        </Box>
+      {/* 제목 인풋: 툴바 바와 같은 위계(형제), 좌측 absolute */}
+      <Box className="absolute left-0 top-0 bottom-0 flex items-center pl-1 max-w-[200px] z-10">
+        <BlockHeader
+          data={data}
+          selected={selected}
+          width={width}
+          showBadge={false}
+        />
+      </Box>
 
-        {/* 우측: Toolbar Buttons (고정 너비) - 버튼 영역은 드래그 방지 */}
-        <Box
-          className={cn(
-            'bg-background/70 backdrop-blur-md rounded-md shadow-xl border-border/40 border',
-            'px-1.5 py-1 flex items-center justify-center gap-0.5',
-            'shrink-0',
-            // 'nodrag'
-          )}
-        >
+      {/* 툴바 바: 전체 너비, 버튼은 콘텐츠 크기만 갖고 중앙 배치 */}
+      <Box className="flex justify-center items-center bg-transparent py-0.5 min-h-[40px]">
+        <Box className="shrink-0 flex items-center gap-0.5 px-1.5 py-1 bg-background/70 backdrop-blur-md rounded-md shadow-xl border border-border/40">
           <TooltipProvider>
-            {/* Original view: BlockToolbarMapper */}
             {showBlockToolbarMapper && (
               <>
                 <BlockToolbarMapper
@@ -140,7 +95,6 @@ export function BlockToolbar({
               </>
             )}
 
-            {/* 보기 방식 변경 - readonly일 때 숨김 */}
             {!readonly && onViewModeChange && (
               <ViewModeToolbarItem
                 blockType={data.blockType}
@@ -150,7 +104,6 @@ export function BlockToolbar({
               />
             )}
 
-            {/* 에디터 열기 */}
             <ToolbarIconButton
               icon={<ChevronRight />}
               tooltip="Details"
@@ -164,7 +117,6 @@ export function BlockToolbar({
               iconClassName="size-3.5"
             />
 
-            {/* 더보기 메뉴 - readonly일 때 숨김 */}
             {!readonly && (
               <>
                 <Separator orientation="vertical" className="h-4!" />

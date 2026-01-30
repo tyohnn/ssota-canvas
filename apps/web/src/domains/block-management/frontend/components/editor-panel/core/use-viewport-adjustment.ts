@@ -12,10 +12,12 @@ import { useReactFlow } from '@xyflow/react';
 
 import { useSidebar } from '@workspace/ui/components/ui/sidebar';
 
+import { getAbsoluteNodePosition } from '@/domains/canvas-management/frontend/hooks/group/utils/get-absolute-node-position';
+
 import type { LayoutConfig } from './types';
 
 export function useViewportAdjustment(blockMountId: string, isOpen: boolean) {
-  const { setCenter, getNode } = useReactFlow();
+  const { setCenter, getNode, getNodes } = useReactFlow();
   const { state: sidebarState } = useSidebar();
   const prevSidebarStateRef = useRef(sidebarState);
 
@@ -55,6 +57,10 @@ export function useViewportAdjustment(blockMountId: string, isOpen: boolean) {
       const node = getNode(blockMountId);
       if (!node) return;
 
+      const allNodes = getNodes();
+      // 그룹 자식이면 상대좌표 → 절대좌표로 변환 후 뷰포트 계산
+      const position = getAbsoluteNodePosition(node, allNodes);
+
       const viewportElement = document.querySelector(
         '.react-flow__viewport'
       )?.parentElement;
@@ -84,8 +90,8 @@ export function useViewportAdjustment(blockMountId: string, isOpen: boolean) {
         leftPadding + availableWidth * layoutConfig.centerRatio;
       const screenCenterY = viewportHeight / 2;
 
-      const nodeCenterX = node.position.x + nodeWidth / 2;
-      const nodeCenterY = node.position.y + nodeHeight / 2;
+      const nodeCenterX = position.x + nodeWidth / 2;
+      const nodeCenterY = position.y + nodeHeight / 2;
 
       const offsetX = (canvasWidth / 2 - screenCenterX) / targetZoom;
       const targetX = nodeCenterX + offsetX;
@@ -98,5 +104,5 @@ export function useViewportAdjustment(blockMountId: string, isOpen: boolean) {
     }, SIDEBAR_TRANSITION_DURATION);
 
     return () => clearTimeout(timer);
-  }, [isOpen, sidebarState, blockMountId, getNode, setCenter, layoutConfig]);
+  }, [isOpen, sidebarState, blockMountId, getNode, getNodes, setCenter, layoutConfig]);
 }
