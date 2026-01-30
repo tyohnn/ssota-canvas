@@ -106,7 +106,11 @@ export function useMultiSelectionToolbar(
     pageId,
   });
 
-  const { isMultiSelectionMode, exitToDefaultMode } = useCanvasModeContext();
+  const {
+    isMultiSelectionMode,
+    exitToDefaultMode,
+    enterSingleSelectionMode,
+  } = useCanvasModeContext();
 
   const domainDependencies: DomainDependencies = {
     alignBlocks: transform.alignBlocks,
@@ -172,11 +176,15 @@ export function useMultiSelectionToolbar(
 
   const handleCreateGroup = useCallback(async () => {
     try {
-      await business.createGroupFromSelectedBlocks(selectedBlockIds);
+      const result =
+        await business.createGroupFromSelectedBlocks(selectedBlockIds);
+      if (result?.groupBlockMountId) {
+        enterSingleSelectionMode(result.groupBlockMountId);
+      }
     } catch (error) {
       console.error('Group creation failed:', error);
     }
-  }, [business, selectedBlockIds]);
+  }, [business, selectedBlockIds, enterSingleSelectionMode]);
 
   const handleEscape = useCallback(() => {
     business.exitSelection();

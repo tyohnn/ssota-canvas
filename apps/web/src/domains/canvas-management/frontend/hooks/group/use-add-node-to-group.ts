@@ -42,19 +42,17 @@ export function useAddNodeToGroup(params: UseAddNodeToGroupParams) {
     },
     onMutate: async (variables: AddNodeToGroupRequest) => {
       // Optimistic update: React Flow 상태 즉시 변경
+      // getNode가 실패해도 setNodes는 id로 찾을 수 있으므로 skip하지 않음
       const childNode = reactFlow.getNode(variables.childBlockMountId);
-      const parentNode = reactFlow.getNode(variables.parentBlockMountId);
 
-      if (!childNode || !parentNode) {
-        return { previousNodes: null };
-      }
-
-      // 이전 상태 저장 (롤백용)
-      const previousNodes = {
-        childId: childNode.id,
-        previousParentId: childNode.parentId,
-        previousPosition: { ...childNode.position },
-      };
+      // 이전 상태 저장 (롤백용) - childNode가 있으면 저장, 없으면 null
+      const previousNodes = childNode
+        ? {
+          childId: childNode.id,
+          previousParentId: childNode.parentId,
+          previousPosition: { ...childNode.position },
+        }
+        : null;
 
       // 절대 → 상대 좌표 변환
       const relativePosition = {
@@ -62,54 +60,42 @@ export function useAddNodeToGroup(params: UseAddNodeToGroupParams) {
         y: variables.childAbsolutePosition.y - variables.parentPosition.y,
       };
 
-      // React Flow 노드 업데이트
-      // updateNode를 사용하여 직접 업데이트 (setNodes보다 더 즉시 반영됨)
-      if (reactFlow.updateNode) {
-        reactFlow.updateNode(variables.childBlockMountId, {
-          parentId: variables.parentBlockMountId,
-          position: relativePosition,
-          data: {
-            ...childNode.data,
-            parentBlockMountId: variables.parentBlockMountId,
-          },
-        });
-      } else {
-        // Fallback: setNodes 사용 (부모가 자식보다 먼저 오도록 정렬)
-        reactFlow.setNodes((nodes) => {
-          // 1. 업데이트된 노드 생성
-          const updatedNodes = nodes.map((node) => {
-            if (node.id === variables.childBlockMountId) {
-              return {
-                ...node,
-                parentId: variables.parentBlockMountId,
-                position: relativePosition,
-                data: {
-                  ...node.data,
-                  parentBlockMountId: variables.parentBlockMountId,
-                },
-              };
-            }
-            return node;
-          });
-
-          // 2. 부모가 자식보다 먼저 오도록 재정렬
-          const parentIndex = updatedNodes.findIndex(n => n.id === variables.parentBlockMountId);
-          const childIndex = updatedNodes.findIndex(n => n.id === variables.childBlockMountId);
-
-          // 부모가 자식보다 뒤에 있으면 순서 수정
-          if (parentIndex > childIndex && parentIndex !== -1 && childIndex !== -1) {
-            // 자식을 제거하고 부모 바로 뒤에 삽입
-            const [removedChild] = updatedNodes.splice(childIndex, 1);
-            if (removedChild) {
-              // 자식 제거 후 인덱스가 변경되므로 다시 찾음
-              const newParentIndex = updatedNodes.findIndex(n => n.id === variables.parentBlockMountId);
-              updatedNodes.splice(newParentIndex + 1, 0, removedChild);
-            }
+      // setNodes로 직접 업데이트 (getNode가 실패해도 nodes 배열에서 id로 찾을 수 있음)
+      // 부모가 자식보다 먼저 오도록 정렬
+      reactFlow.setNodes((nodes) => {
+        // 1. 업데이트된 노드 생성
+        const updatedNodes = nodes.map((node) => {
+          if (node.id === variables.childBlockMountId) {
+            return {
+              ...node,
+              parentId: variables.parentBlockMountId,
+              position: relativePosition,
+              data: {
+                ...node.data,
+                parentBlockMountId: variables.parentBlockMountId,
+              },
+            };
           }
-
-          return updatedNodes;
+          return node;
         });
-      }
+
+        // 2. 부모가 자식보다 먼저 오도록 재정렬
+        const parentIndex = updatedNodes.findIndex(n => n.id === variables.parentBlockMountId);
+        const childIndex = updatedNodes.findIndex(n => n.id === variables.childBlockMountId);
+
+        // 부모가 자식보다 뒤에 있으면 순서 수정
+        if (parentIndex > childIndex && parentIndex !== -1 && childIndex !== -1) {
+          // 자식을 제거하고 부모 바로 뒤에 삽입
+          const [removedChild] = updatedNodes.splice(childIndex, 1);
+          if (removedChild) {
+            // 자식 제거 후 인덱스가 변경되므로 다시 찾음
+            const newParentIndex = updatedNodes.findIndex(n => n.id === variables.parentBlockMountId);
+            updatedNodes.splice(newParentIndex + 1, 0, removedChild);
+          }
+        }
+
+        return updatedNodes;
+      });
 
       return { previousNodes };
     },

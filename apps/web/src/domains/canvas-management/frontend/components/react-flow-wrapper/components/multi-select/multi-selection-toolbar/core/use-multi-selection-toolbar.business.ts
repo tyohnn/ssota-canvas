@@ -109,14 +109,17 @@ export function useMultiSelectionToolbarBusiness(
   );
 
   const createGroupFromSelectedBlocks = useCallback(
-    async (selectedBlockIds: string[]) => {
+    async (
+      selectedBlockIds: string[]
+    ): Promise<{ groupBlockMountId: string; groupBlockId: string } | undefined> => {
       if (selectedBlockIds.length > 0) {
-        await createGroupFromNodes({
+        return createGroupFromNodes({
           nodeIds: selectedBlockIds,
           groupTitle: 'New Group',
           groupColor: getRandomGroupColor(),
         });
       }
+      return undefined;
     },
     [createGroupFromNodes]
   );
@@ -175,9 +178,12 @@ export function useMockMultiSelectionToolbarBusiness(): MultiSelectionToolbarBus
   }, []);
 
   const createGroupFromSelectedBlocks = useCallback(
-    async (selectedBlockIds: string[]) => {
+    async (
+      selectedBlockIds: string[]
+    ): Promise<{ groupBlockMountId: string; groupBlockId: string } | undefined> => {
       console.log('[Mock] Creating group from blocks:', selectedBlockIds);
       await new Promise(resolve => setTimeout(resolve, 300));
+      return undefined;
     },
     []
   );
