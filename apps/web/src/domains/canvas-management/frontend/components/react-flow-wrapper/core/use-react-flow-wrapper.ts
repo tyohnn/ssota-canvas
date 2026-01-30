@@ -90,6 +90,7 @@ export interface UseReactFlowWrapperReturn
   handleNodeClick: (event: React.MouseEvent, node: Node) => void;
   handleSelectBlockType: (blockType: BlockType) => void;
   handleWheel: (event: React.WheelEvent<HTMLDivElement>) => void;
+  handleWheelCapture: (event: React.WheelEvent<HTMLDivElement>) => void;
 
   // Additional state from wrapper
   guidelines: any[];
@@ -633,6 +634,7 @@ export function useReactFlowWrapper(
     onSelectionChange: uiState.onSelectionChange,
     onPaneClick: uiState.onPaneClick,
     onWheel: uiState.onWheel,
+    onWheelCapture: uiState.onWheelCapture,
 
     // Business Logic callbacks (readonly일 때는 no-op)
     onConnectStart: readonly ? () => { } : businessLogic.onConnectStart,
@@ -660,6 +662,7 @@ export function useReactFlowWrapper(
     handleNodeClick,
     handleSelectBlockType,
     handleWheel: uiState.onWheel,
+    handleWheelCapture: uiState.onWheelCapture,
     setShowAddDialog: uiState.setShowAddDialog,
     handlePaste: businessLogic.handlePaste,
     handleDuplicate: businessLogic.handleDuplicate,

@@ -89,6 +89,7 @@ export interface ReactFlowViewProps {
 
   // Custom wheel handler
   onWheel: (event: React.WheelEvent<HTMLDivElement>) => void;
+  onWheelCapture?: (event: React.WheelEvent<HTMLDivElement>) => void;
 
   // Guidelines
   guidelines: any[];
@@ -140,6 +141,7 @@ export function ReactFlowView({
   onNodesDelete,
   onEdgesDelete,
   onWheel,
+  onWheelCapture,
   guidelines,
   showAddDialog,
   onAddBlockClick,
@@ -152,7 +154,11 @@ export function ReactFlowView({
 
   return (
     <main className="flex-1 relative overflow-hidden">
-      <div className="h-full w-full relative" onWheel={onWheel}>
+      <div
+        className="h-full w-full relative"
+        onWheel={onWheel}
+        onWheelCapture={onWheelCapture}
+      >
         {/* React Flow 기본 선택 박스 스타일링 */}
         <ReactFlowStyles />
 
