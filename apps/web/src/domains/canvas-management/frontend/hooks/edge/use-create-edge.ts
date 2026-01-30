@@ -14,7 +14,11 @@ import { isFailure } from '@/lib';
 
 export type ReactFlowDependencies = {
   getEdges: () => Edge<EdgeData>[];
-  setEdges: (edges: Edge<EdgeData>[]) => void;
+  setEdges: (
+    edges:
+      | Edge<EdgeData>[]
+      | ((prev: Edge<EdgeData>[]) => Edge<EdgeData>[])
+  ) => void;
   getNodes: () => Node[];
 };
 
@@ -158,13 +162,12 @@ export function useCreateEdge(
         },
       };
 
-      // 즉시 React Flow Store에 추가
-      const currentEdges = getEdges();
-
-      setEdges([...currentEdges, optimisticEdge]);
+      // 즉시 React Flow Store에 추가 (함수형 업데이트로 최신 prev 기준)
+      const previousEdges = getEdges();
+      setEdges(prev => [...prev, optimisticEdge]);
 
       // 롤백을 위한 컨텍스트 반환
-      return { previousEdges: currentEdges, optimisticEdgeId };
+      return { previousEdges, optimisticEdgeId };
     },
 
     // 자동 롤백
@@ -175,22 +178,18 @@ export function useCreateEdge(
     },
 
     // Optimistic Edge를 실제 Edge(서버 edgeId)로 교체
-    // getEdges()는 setEdges(onMutate) 반영 전일 수 있으므로, previousEdges 기준으로 교체해
-    // visual summary 등 연속 생성 시에도 서버 ID가 확실히 반영되도록 함
+    // 함수형 업데이트로 항상 최신 prev 기준 교체 (visual summary 등 연속 생성 시 stale getEdges 방지)
     onSuccess: (edgeView, _variables, context) => {
-      if (!context?.optimisticEdgeId || !context?.previousEdges) return;
+      if (!context?.optimisticEdgeId) return;
 
       const realEdge = toReactFlowEdge(edgeView) as Edge<EdgeData>;
-      const currentEdges = getEdges();
-      const replaced = currentEdges.map(edge =>
-        edge.id === context.optimisticEdgeId ? realEdge : edge
-      );
-      const didReplace = replaced.some(e => e.id === realEdge.id);
-      if (didReplace) {
-        setEdges(replaced);
-      } else {
-        setEdges([...context.previousEdges, realEdge]);
-      }
+      setEdges(prev => {
+        const hasOptimistic = prev.some(e => e.id === context.optimisticEdgeId);
+        if (!hasOptimistic) return prev;
+        return prev.map(e =>
+          e.id === context.optimisticEdgeId ? realEdge : e
+        );
+      });
     },
   });
 
