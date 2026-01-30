@@ -1,3 +1,8 @@
+## [0.12.1] - 2026-01-30
+
+### 🐛 Bug Fixes
+
+- Readonly markdown scroll available
 ## [0.12.0] - 2026-01-30
 
 ### ♻️ Refactoring
