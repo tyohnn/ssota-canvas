@@ -10,6 +10,10 @@ export interface GenerateVisualSummaryRequest {
   sourceBlockId: string;
   sourceBlockPosition: { x: number; y: number };
   sourceBlockSize: { width: number; height: number };
+  /** Source content title (e.g. video title). Used in user prompt and zone label. */
+  sourceTitle?: string;
+  /** Source channel or author name. Included in user prompt. */
+  sourceChannelName?: string;
 }
 
 export interface VisualSummaryStreamChunk {

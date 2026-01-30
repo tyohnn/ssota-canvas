@@ -63,6 +63,8 @@ interface UseVisualSummaryReturn {
     sourceBlockId: string;
     sourceBlockPosition: { x: number; y: number };
     sourceBlockSize: { width: number; height: number };
+    sourceTitle?: string;
+    sourceChannelName?: string;
   }) => void;
   isGenerating: boolean;
   error: Error | null;
@@ -86,6 +88,8 @@ interface GenerateVisualSummaryParams {
   sourceBlockId: string;
   sourceBlockPosition: { x: number; y: number };
   sourceBlockSize: { width: number; height: number };
+  sourceTitle?: string;
+  sourceChannelName?: string;
 }
 
 /**
@@ -451,7 +455,15 @@ export function useVisualSummary(
   // Visual Summary 생성 함수
   const generateVisualSummary = useCallback(
     (params: GenerateVisualSummaryParams) => {
-      const { summary, template, sourceBlockId, sourceBlockPosition, sourceBlockSize } = params;
+      const {
+        summary,
+        template,
+        sourceBlockId,
+        sourceBlockPosition,
+        sourceBlockSize,
+        sourceTitle,
+        sourceChannelName,
+      } = params;
 
       // 새로운 생성 시작 시 todos 초기화, 상태창 다시 표시, 이번 실행 블록 ID·작업 유형·템플릿 설정
       setTodos([]);
@@ -477,6 +489,8 @@ export function useVisualSummary(
         sourceBlockId,
         sourceBlockPosition,
         sourceBlockSize,
+        sourceTitle,
+        sourceChannelName,
       };
 
       // 메시지 전송 (useChat의 sendMessage 사용)

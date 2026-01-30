@@ -112,6 +112,8 @@ export function useVisualSummaryAction(
     selectedLanguage: uiState.selectedLanguage,
     readonly,
     publishToken,
+    sourceTitle: properties.youtubeTitle,
+    sourceChannelName: properties.channelName,
   });
 
   // ============================================================================

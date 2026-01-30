@@ -22,6 +22,8 @@ interface VisualSummaryContextValue {
     sourceBlockId: string;
     sourceBlockPosition: { x: number; y: number };
     sourceBlockSize: { width: number; height: number };
+    sourceTitle?: string;
+    sourceChannelName?: string;
   }) => void;
   /** 상태창 닫기 (숨김) */
   dismissStatusWindow: () => void;

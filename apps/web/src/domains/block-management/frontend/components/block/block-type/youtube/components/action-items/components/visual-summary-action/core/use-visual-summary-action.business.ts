@@ -41,6 +41,8 @@ interface UseVisualSummaryActionBusinessProps {
   selectedLanguage: string;
   readonly: boolean;
   publishToken?: string;
+  sourceTitle?: string;
+  sourceChannelName?: string;
 }
 
 /**
@@ -60,6 +62,8 @@ export function useVisualSummaryActionBusiness(
     selectedLanguage,
     readonly,
     publishToken,
+    sourceTitle,
+    sourceChannelName,
   } = props;
 
   // 추출된 요약 언어 목록 (Summary 섹션과 동일한 소스)
@@ -131,10 +135,12 @@ export function useVisualSummaryActionBusiness(
         sourceBlockId: blockId,
         sourceBlockPosition,
         sourceBlockSize,
+        sourceTitle,
+        sourceChannelName,
       });
       return true;
     },
-    [videoSummary, youtubeId, generateVisualSummaryFromContext, blockId, sourceBlockPosition, sourceBlockSize]
+    [videoSummary, youtubeId, generateVisualSummaryFromContext, blockId, sourceBlockPosition, sourceBlockSize, sourceTitle, sourceChannelName]
   );
 
   return {

@@ -6,11 +6,21 @@
 
 /**
  * Visual Summary 시스템 프롬프트 생성
- * 
+ *
  * @param templateSpec - 템플릿의 promptSpec (템플릿 규칙)
+ * @param templateName - 템플릿 표시 이름 (Zone 라벨 규칙용, optional)
  * @returns 시스템 프롬프트 문자열
  */
-export function buildVisualSummarySystemPrompt(templateSpec: string): string {
+export function buildVisualSummarySystemPrompt(
+  templateSpec: string,
+  templateName?: string
+): string {
+  const zoneLabelRule =
+    templateName != null && templateName !== ''
+      ? `
+**Zone label**: For @zone titles, include the source title from the user message so the zone is identifiable. A good pattern is "[Source Title - ${templateName}]" (e.g. "How to Learn - ${templateName}"); you may shorten or rephrase the source title if needed, but keep it recognizable.`
+      : '';
+
   return `You are an AI assistant that creates visual summaries from structured content (lectures, research papers, articles, presentations, etc.).
 
 === WHAT IS CANVASDOWN? ===
@@ -80,6 +90,7 @@ Follow this exact sequence using the available tools:
 - **Multi-zone templates**: If the template requires links between zones, use @connect with blockMountIds to add cross-zone edges. Otherwise skip.
 
 === CRITICAL RULES ===
+${zoneLabelRule}
 
 1. **Follow Template**: The template specification above defines the exact structure. Follow it precisely.
 
@@ -115,18 +126,36 @@ If DSL parsing fails:
 
 /**
  * Visual Summary 사용자 프롬프트 생성
- * 
+ *
  * @param summary - 소스 콘텐츠 요약 텍스트
  * @param templateName - 선택된 템플릿 이름
+ * @param sourceTitle - 소스 제목 (예: 영상 제목). Zone 라벨 [Source Title - Template Name] 에 사용
+ * @param sourceChannelName - 소스 채널/작성자명
  * @returns 사용자 프롬프트 문자열
  */
 export function buildVisualSummaryUserPrompt(
   summary: string,
-  templateName: string
+  templateName: string,
+  sourceTitle?: string,
+  sourceChannelName?: string
 ): string {
-  return `Create a visual summary for the following content:
+  const sourceSection =
+    sourceTitle != null || sourceChannelName != null
+      ? [
+          '**Source metadata** (for reference when labeling zones):',
+          sourceTitle != null && sourceTitle !== '' ? `- Title: ${sourceTitle}` : null,
+          sourceChannelName != null && sourceChannelName !== '' ? `- Channel: ${sourceChannelName}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n') + '\n\n'
+      : '';
+
+  return `Create a visual summary for the following content.
+Use the "${templateName}" template structure. When setting zone titles, include the source title when possible so the zone is identifiable (e.g. "${sourceTitle || 'Source'} - ${templateName}" or similar).
+
+${sourceSection}**Content summary:**
 
 ${summary}
 
-Use the "${templateName}" template structure. Extract key concepts, arguments, and relationships from the content above.`;
+Extract key concepts, arguments, and relationships from the content above.`;
 }

@@ -91,8 +91,8 @@ export async function POST(req: Request) {
     const summary = request?.summary || textPart?.text || '';
     const templateId = request?.templateId || '';
     const templateSpec = request?.templateSpec || '';
-    const pageId = request?.pageId || '';
-    const sourceBlockId = request?.sourceBlockId || '';
+    const sourceTitle = request?.sourceTitle;
+    const sourceChannelName = request?.sourceChannelName;
 
     // 4. 입력 검증
     if (!summary || !templateId || !templateSpec) {
@@ -119,9 +119,32 @@ export async function POST(req: Request) {
       .join(' ');
 
     // 7. 프롬프트 빌드
-    const systemPrompt = buildVisualSummarySystemPrompt(templateSpec);
+    const systemPrompt = buildVisualSummarySystemPrompt(templateSpec, templateName);
+    const userPrompt = buildVisualSummaryUserPrompt(
+      summary,
+      templateName,
+      sourceTitle,
+      sourceChannelName
+    );
 
-    // 8. Vercel AI SDK streamText 실행 (/api/agent와 동일한 패턴)
+    // 8. 마지막 user 메시지의 텍스트를 빌드된 userPrompt로 교체 (multi-turn/tool 호출 유지)
+    type TextPart = { type: 'text'; text: string };
+    const modifiedMessages = (messages as UIMessage[]).map((msg: UIMessage) => {
+      if (msg.role !== 'user' || msg !== lastUserMessage) {
+        return msg;
+      }
+      const parts = Array.isArray(msg.parts) ? [...msg.parts] : [];
+      const textIndex = parts.findIndex((p: unknown) => (p as TextPart).type === 'text' && 'text' in (p as TextPart));
+      const newTextPart: TextPart = { type: 'text', text: userPrompt };
+      if (textIndex >= 0) {
+        parts[textIndex] = newTextPart as (typeof parts)[number];
+      } else {
+        parts.push(newTextPart as (typeof parts)[number]);
+      }
+      return { ...msg, parts };
+    });
+
+    // 9. Vercel AI SDK streamText 실행 (/api/agent와 동일한 패턴)
     // - messages: convertToModelMessages로 변환 (tool result 포함)
     // - stopWhen: stepCountIs로 multi-step 지원
     // - Client-side tool (no execute) → onToolCall에서 처리
@@ -130,7 +153,7 @@ export async function POST(req: Request) {
       // 가격 동일 ($0.20/M input, $0.50/M output), Context window 동일 (2M tokens), Tool calling 지원
       model: gateway('xai/grok-4.1-fast-non-reasoning'), // xAI via Vercel AI Gateway
       system: systemPrompt,
-      messages: await convertToModelMessages(messages),
+      messages: await convertToModelMessages(modifiedMessages),
       tools: {
         // Client-side tool (no execute function)
         // Tool call이 생성되면 클라이언트 onToolCall에서 처리
@@ -145,7 +168,7 @@ export async function POST(req: Request) {
       stopWhen: stepCountIs(10),
     });
 
-    // 9. UI Message Stream 응답 반환
+    // 10. UI Message Stream 응답 반환
     return result.toUIMessageStreamResponse();
   } catch (error) {
     console.error('[POST /api/visual-summary] Error:', error);
