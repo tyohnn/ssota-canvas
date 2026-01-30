@@ -1,108 +1,111 @@
 'use server';
 
-import { checkAuth } from '@/domains/auth/server/auth-guard';
-import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
-import { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
+import { createSecureActionBuilder } from '@/lib/server-actions/create-secure-action-builder';
+import {
+  authorizeByPageId,
+  getAuthenticatedUser,
+} from '@/domains/common/auth/helpers';
+import type { AuthenticatedUser } from '@/domains/common/auth/helpers';
+import type { PageActionContext } from '@/domains/common/auth/types';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
-import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace-member.repository';
-import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
-import { DefaultWorkspaceNavigationService } from '@/domains/workspace-management/backend/services/workspace-navigation.service';
 import { isTempPageId } from '@/domains/workspace-management/shared/utils/temp-page-id.utils';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import { ActionResult, err, ok } from '@/lib';
 
 import { DrizzleBlockMountRepository } from '../backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzleEdgeRepository } from '../backend/repositories/implementations/drizzle-edge.repository';
 import { DrizzleViewportRepository } from '../backend/repositories/implementations/drizzle-viewport.repository';
 import { CanvasQueryService } from '../backend/services/canvas-query.service';
-import { CanvasViewData } from '../shared/dtos/index';
+import {
+  type GetCanvasViewPayload,
+  CanvasViewData,
+} from '../shared/dtos/index';
+import {
+  GetCanvasViewRequestSchema,
+  type GetCanvasViewRequest,
+} from '../shared/dtos/requests/canvas.requests';
+
+/**
+ * 임시 페이지: 사이드바에서 "새 페이지 추가" 후 서버 저장 전까지 사용하는 ID.
+ * 형식: 00000000-xxxx-4xxx-xxxx-xxxxxxxxxxxx (temp-page-id.utils).
+ * DB에 없으므로 authorizeByPageId 대신 인증만 하고 빈 캔버스를 반환할 때 사용.
+ */
+type TempPageContext = {
+  isTempPage: true;
+  authenticatedUser: AuthenticatedUser;
+};
+
+const emptyCanvasView = (pageId: string): CanvasViewData => ({
+  pageId,
+  blocks: [],
+  edges: [],
+  viewport: { x: 0, y: 0, zoom: 1 },
+});
+
+const canvasViewSecureActionBuilder = createSecureActionBuilder<AuthenticatedUser>(
+  getAuthenticatedUser
+)
+  .forContext<PageActionContext | TempPageContext>()
+  .withAuth(
+    (req: { pageId: string }, user: AuthenticatedUser) =>
+      isTempPageId(req.pageId)
+        ? Promise.resolve({
+            success: true as const,
+            context: { isTempPage: true as const, authenticatedUser: user },
+          })
+        : authorizeByPageId(req.pageId, user.id)
+  )
+  .build();
 
 /**
  * 캔버스 뷰 데이터 조회 Server Action
- * CanvasQueryService를 사용하여 페이지의 전체 캔버스 데이터를 조회
  *
- * @param pageId - 페이지 ID
- * @param orgId - 조직 ID (권한 검증용)
- * @param workspaceId - 워크스페이스 ID (권한 검증용)
- * @returns CanvasViewData (성공) | Error (실패)
+ * 패턴: secure action + internal
+ * - orgId, workspaceId는 전달하지 않고, pageId만 전달 후 authorize로 검증된 context 사용
+ * - 성공 시 GetCanvasViewPayload(캔버스 데이터 + orgId, workspaceId) 반환해 호출부에서 재검증 불필요
+ * - 임시 페이지(temp)는 authorize에서 통과 후 handler에서 빈 캔버스 + orgId/workspaceId 빈 문자열 반환
+ *
+ * @param request - { pageId: string }
+ * @returns GetCanvasViewPayload (성공) | Error (실패)
  */
-export async function getCanvasViewAction(
-  pageId: string,
-  orgId?: string,
-  workspaceId?: string
-): Promise<ActionResult<CanvasViewData>> {
+export const getCanvasViewAction = canvasViewSecureActionBuilder(
+  GetCanvasViewRequestSchema,
+  'getCanvasView',
+  getCanvasViewHandler,
+  { getLogMetadata: req => ({ pageId: req.pageId }) }
+);
+
+async function getCanvasViewHandler(
+  req: GetCanvasViewRequest,
+  context: PageActionContext | TempPageContext
+): Promise<ActionResult<GetCanvasViewPayload>> {
+  if ('isTempPage' in context && context.isTempPage) {
+    return ok({
+      ...emptyCanvasView(req.pageId),
+      orgId: '',
+      workspaceId: '',
+    });
+  }
+  return getCanvasViewInternal(req, context as PageActionContext);
+}
+
+/**
+ * 내부 구현 (검증된 데이터만 처리)
+ *
+ * context는 authorizeByPageId로 검증된 PageActionContext (workspace, organization, page 포함).
+ */
+async function getCanvasViewInternal(
+  _req: GetCanvasViewRequest,
+  context: PageActionContext
+): Promise<ActionResult<GetCanvasViewPayload>> {
   try {
-    // 1. 인증 확인
-    const authResult = await checkAuth('getCanvasViewAction');
-    if (!authResult.success) {
-      return err(authResult.error!, { code: authResult.errorCode! });
-    }
-    const user = authResult.user!;
+    const pageIdVO = new PageId(context.page.pageId.value);
+    const userIdVO = new UserId(context.authenticatedUser.id);
 
-    // 2. 입력 검증
-    if (!pageId || pageId.trim().length === 0) {
-      return err('Page ID is required', { code: 'INVALID_PAGE_ID' });
-    }
-
-    // 2.5. 임시 페이지 ID 감지 및 처리
-    if (isTempPageId(pageId)) {
-      // 임시 페이지는 빈 캔버스 데이터 반환
-      return ok({
-        pageId,
-        blocks: [],
-        edges: [],
-        viewport: {
-          x: 0,
-          y: 0,
-          zoom: 1,
-        },
-      });
-    }
-
-    // 3. Value Objects 생성
-    const pageIdVO = new PageId(pageId);
-    const userIdVO = new UserId(user.id);
-
-    // 4. 권한 검증 (orgId와 workspaceId가 제공된 경우)
-    if (orgId && workspaceId) {
-      const orgIdVO = new OrganizationId(orgId);
-      const workspaceIdVO = new WorkspaceId(workspaceId);
-
-      // Workspace Navigation Service를 사용한 권한 검증
-      const workspaceRepo = new DrizzleWorkspaceRepository();
-      const pageRepo = new DrizzlePageRepository();
-      const workspaceMemberRepo = new DrizzleWorkspaceMemberRepository();
-      const orgMemberRepo = new DrizzleOrganizationMemberRepository();
-
-      const navigationService = new DefaultWorkspaceNavigationService(
-        workspaceRepo,
-        pageRepo,
-        workspaceMemberRepo,
-        orgMemberRepo
-      );
-
-      const accessResult = await navigationService.verifyPageAccess(
-        orgIdVO,
-        workspaceIdVO,
-        pageIdVO,
-        user.id
-      );
-
-      if (!accessResult.success) {
-        return err(`Access denied: ${accessResult.error}`, {
-          code: 'ACCESS_DENIED',
-        });
-      }
-    }
-
-    // 5. 의존성 주입 (Repository 및 Service)
     const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
     const viewportRepository = new DrizzleViewportRepository();
 
-    // 6. CanvasQueryService 인스턴스 생성 및 실행
     const canvasQueryService = new CanvasQueryService(
       blockMountRepository,
       edgeRepository,
@@ -111,20 +114,20 @@ export async function getCanvasViewAction(
 
     const result = await canvasQueryService.getCanvasView(pageIdVO, userIdVO);
 
-    // 7. 결과 처리 (Result 타입을 ActionResult로 변환)
     if (result.isError()) {
       return err(String(result.error), {
         code: 'CANVAS_VIEW_ERROR',
-        meta: {
-          originalError: result.error,
-        },
+        meta: { originalError: result.error },
       });
     }
 
-    // 8. 성공적으로 CanvasViewData 반환
-    return ok(result.value);
+    return ok({
+      ...result.value,
+      orgId: context.workspace.organizationId.value,
+      workspaceId: context.workspace.workspaceId.value,
+    });
   } catch (error) {
-    console.error('[getCanvasViewAction] Error:', error);
+    console.error('[getCanvasViewInternal] Error:', error);
     return err('Internal server error', {
       code: 'INTERNAL_SERVER_ERROR',
       meta: {

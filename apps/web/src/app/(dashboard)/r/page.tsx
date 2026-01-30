@@ -1,80 +1,81 @@
 /**
  * /r Root Page
  *
- * Redirects to the user's default organization
- * or shows error if user has no organizations
- *
- * This page handles:
- * 1. Authenticated users → redirect to their org
- * 2. Users with no organizations → redirect to onboarding
- * 3. Unauthenticated users → redirect to login
+ * Redirects to /r/[orgId]/[pageId]:
+ * - Default org + cookie (ssota-recent-page-{orgId}) or first page
  */
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
+import {
+  getPageIdFromLastVisitedPageCookie,
+  WORKSPACE_COOKIE_KEYS,
+} from '@/domains/workspace-management/frontend/utils/cookie-helpers';
+import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-navigation.actions';
 
-import { OrgRedirectClient } from './[orgId]/org-redirect-client';
-
-// import { BetaRedirectClient } from './beta-redirect-client';
+import { RedirectClient } from './redirect-client';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardRootPage() {
   try {
-    // Get user's organizations
-    // This will throw BETA_ACCESS_REQUIRED if user is not approved (beta check removed)
     const organizations = await getUserOrganizationsAction();
 
     if (organizations.length === 0) {
-      // No organizations - user hasn't completed onboarding
-      return <OrgRedirectClient redirectUrl="/onboarding" />;
+      return <RedirectClient redirectUrl="/onboarding" />;
     }
 
-    // Find default organization or use first
-    const defaultOrg = organizations.find(org => org.isDefault);
-    const targetOrg = defaultOrg || organizations[0];
-
+    const targetOrg =
+      organizations.find(org => org.isDefault) ?? organizations[0];
     if (!targetOrg) {
-      return <OrgRedirectClient redirectUrl="/onboarding" />;
+      return <RedirectClient redirectUrl="/onboarding" />;
     }
 
-    // Redirect to organization page
-    return <OrgRedirectClient redirectUrl={`/r/${targetOrg.id}`} />;
+    const cookieStore = await cookies();
+    const recentPageKey = `ssota-recent-page-${targetOrg.id}`;
+    const cookiePageId =
+      cookieStore.get(recentPageKey)?.value ??
+      getPageIdFromLastVisitedPageCookie(
+        cookieStore.get(WORKSPACE_COOKIE_KEYS.LAST_VISITED_PAGE)?.value ??
+          null
+      ) ??
+      undefined;
+
+    const workspacePageResult = await getOrganizationWorkspacePageViewAction({
+      organizationId: targetOrg.id,
+      cookiePageId,
+    });
+
+    if (!workspacePageResult.success) {
+      return <RedirectClient redirectUrl="/onboarding" />;
+    }
+
+    const { workspaces, selectedPageId } = workspacePageResult.data;
+
+    if (workspaces.length === 0) {
+      return <RedirectClient redirectUrl="/onboarding" />;
+    }
+
+    const pageId = selectedPageId ?? workspaces[0]!.pageTree[0]?.id;
+    if (pageId) {
+      return (
+        <RedirectClient redirectUrl={`/r/${targetOrg.id}/${pageId}`} />
+      );
+    }
+
+    return <RedirectClient redirectUrl="/onboarding" />;
   } catch (error) {
-    // Handle authentication and beta access errors
     console.error('[/r] Dashboard access error:', error);
 
-    if (error instanceof Error) {
-      /* Original implementation (commented out):
-      if (error.message === 'BETA_ACCESS_REQUIRED') {
-        // Beta not approved - use client redirect
-        return (
-          <BetaRedirectClient
-            redirectUrl="/beta/application"
-            message="Beta access required"
-          />
-        );
-      }
-      */
-
-      if (
-        error.message === 'UNAUTHORIZED: User not authenticated' ||
-        error.message === 'USER_PROFILE_NOT_FOUND'
-      ) {
-        // Not authenticated - redirect to login
-        /* Original implementation (commented out):
-        return (
-          <BetaRedirectClient redirectUrl="/login" message="Please login" />
-        );
-        */
-        redirect('/login');
-      }
+    if (
+      error instanceof Error &&
+      (error.message === 'UNAUTHORIZED: User not authenticated' ||
+        error.message === 'USER_PROFILE_NOT_FOUND')
+    ) {
+      redirect('/login');
     }
 
-    // Unknown error - redirect to login
-    /* Original implementation (commented out):
-    return <BetaRedirectClient redirectUrl="/login" message="Redirecting..." />;
-    */
     redirect('/login');
   }
 }

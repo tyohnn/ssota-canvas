@@ -1,0 +1,70 @@
+import React, { Suspense } from 'react';
+import { redirect } from 'next/navigation';
+
+import {
+  getAuthenticatedUser,
+  verifyAccessByPageId,
+} from '@/domains/common/auth/helpers';
+import { CanvasLoadingSkeleton } from '@/domains/workspace-management/frontend/components/page-viewer/canvas-loading-skeleton';
+import { WorkspacePageHeader } from '@/domains/workspace-management/frontend/components/page-viewer/workspace-page-header';
+
+import { PageSyncClient } from './page-sync-client';
+
+interface OrgPageIdLayoutProps {
+  children: React.ReactNode;
+  params: Promise<{ orgId: string; pageId: string }>;
+}
+
+/**
+ * /r/[orgId]/[pageId] 레이아웃
+ *
+ * page 검증(verifyAccessByPageId), page 소속 org가 URL orgId와 일치하는지 확인.
+ * PageSyncClient, WorkspacePageHeader, Suspense(children) 렌더.
+ */
+export default async function OrgPageIdLayout({
+  children,
+  params,
+}: OrgPageIdLayoutProps) {
+  const { orgId, pageId } = await params;
+
+  const user = await getAuthenticatedUser();
+  const accessResult = await verifyAccessByPageId(pageId, user.id);
+
+  if (!accessResult.success) {
+    console.error('[/r/[orgId]/[pageId]/layout] Page access denied:', {
+      pageId,
+      error: accessResult.error,
+    });
+    redirect('/unauthorized');
+  }
+
+  const pageOrgId = accessResult.workspace!.organizationId.value;
+  const workspaceId = accessResult.page!.workspaceId.value;
+
+  if (pageOrgId !== orgId) {
+    console.error('[/r/[orgId]/[pageId]/layout] Page org mismatch:', {
+      urlOrgId: orgId,
+      pageOrgId,
+    });
+    redirect('/unauthorized');
+  }
+
+  return (
+    <>
+      <PageSyncClient
+        orgId={orgId}
+        workspaceId={workspaceId}
+        pageId={pageId}
+      />
+      <div className="flex flex-col h-full">
+        <WorkspacePageHeader
+          workspaceId={workspaceId}
+          pageId={pageId}
+        />
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <Suspense fallback={<CanvasLoadingSkeleton />}>{children}</Suspense>
+        </div>
+      </div>
+    </>
+  );
+}

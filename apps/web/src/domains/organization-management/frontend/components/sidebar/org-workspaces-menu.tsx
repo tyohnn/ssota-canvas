@@ -37,7 +37,13 @@ export function OrgWorkspacesMenu() {
               className="text-muted-foreground hover:text-muted-foreground hover:bg-sidebar-accent/80 [&_svg]:text-muted-foreground [&_svg]:hover:text-muted-foreground"
               tooltip={ws.name}
             >
-              <a href={`/r/${activeOrganization?.id}/workspace/${ws.id}`}>
+              <a
+                href={
+                  activeOrganization?.id
+                    ? `/r/${activeOrganization.id}`
+                    : '/r'
+                }
+              >
                 <span className="inline-flex items-center justify-center size-4 shrink-0 relative">
                   <Suspense
                     fallback={

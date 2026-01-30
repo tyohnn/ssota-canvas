@@ -167,7 +167,7 @@ export async function createDefaultOrganizationAction(
     // 7. 관련 페이지 재검증
     revalidatePath('/dashboard');
     revalidatePath('/organizations');
-    revalidatePath(`/r/${result.value.organization.id}`);
+    revalidatePath('/r');
 
     return result.value;
   } catch (error) {
@@ -269,7 +269,7 @@ export async function createOrganizationAction(
     // 7. 관련 페이지 재검증
     revalidatePath('/dashboard');
     revalidatePath('/organizations');
-    revalidatePath(`/r/${result.value.organization.id}`);
+    revalidatePath('/r');
 
     return {
       success: true,

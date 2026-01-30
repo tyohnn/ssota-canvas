@@ -152,7 +152,7 @@ export class UserManagementService {
           const firstPage = pages.length > 0 ? pages[0]! : null;
 
           if (firstPage) {
-            redirectUrl = `/r/${firstOrg.id.value}/workspace/${defaultWorkspace.workspaceId.value}/page/${firstPage.pageId.value}`;
+            redirectUrl = `/r/${firstOrg.id.value}/${firstPage.pageId.value}`;
           }
         }
       }
