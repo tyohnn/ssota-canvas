@@ -9,6 +9,8 @@
 
 'use client';
 
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
+
 import { NoteViewView } from './components/note-view-view';
 import type { NoteViewProps } from './core/types';
 import type { UseNoteViewOptions } from './core/types';
@@ -26,6 +28,7 @@ export interface NoteViewComponentProps extends NoteViewProps {
  */
 export function NoteView(props: NoteViewComponentProps) {
   const { businessLogic, canvasMetadataOverride, ...restProps } = props;
+  const { readonly } = useCanvasReadOnly();
   const { uiState, business, editor } = useNoteView(restProps, {
     businessLogic,
     canvasMetadataOverride,
@@ -35,6 +38,7 @@ export function NoteView(props: NoteViewComponentProps) {
     <NoteViewView
       className={restProps.className}
       selected={restProps.selected || false}
+      readonly={readonly}
       uiState={uiState}
       business={business}
       editor={editor}

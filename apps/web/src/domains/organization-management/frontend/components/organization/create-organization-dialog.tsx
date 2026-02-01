@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { toast } from '@workspace/ui/components/ui/sonner';
 
 import {
   Dialog,
@@ -79,21 +78,11 @@ export function CreateOrganizationDialog({
       const result = await createOrganization(data);
 
       if (result.success) {
-        toast('Organization created successfully', {
-          description: `${data.name} organization has been created.`,
-        });
         form.reset();
         onOpenChange(false);
       } else {
-        toast.error('Failed to create organization', {
-          description: result.error || 'An unknown error occurred.',
-        });
       }
     } catch (error) {
-      toast.error('Error creating organization', {
-        description:
-          error instanceof Error ? error.message : 'An unknown error occurred.',
-      });
     } finally {
       setIsSubmitting(false);
     }

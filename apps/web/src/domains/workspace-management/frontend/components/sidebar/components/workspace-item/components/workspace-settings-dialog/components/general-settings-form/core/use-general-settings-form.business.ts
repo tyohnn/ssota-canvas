@@ -82,11 +82,11 @@ export function useGeneralSettingsFormBusiness(): GeneralSettingsFormBusinessLog
         prev.map(ws =>
           ws.workspaceId === params.workspaceId
             ? {
-                ...ws,
-                name: params.name ?? ws.name,
-                description: params.description ?? ws.description,
-                icon: params.icon ?? ws.icon,
-              }
+              ...ws,
+              name: params.name ?? ws.name,
+              description: params.description ?? ws.description,
+              icon: params.icon ?? ws.icon,
+            }
             : ws
         )
       );
@@ -95,7 +95,7 @@ export function useGeneralSettingsFormBusiness(): GeneralSettingsFormBusinessLog
     },
 
     onSuccess: () => {
-      toast.success('Workspace information updated');
+      toast.success('Workspace information updated successfully');
     },
 
     // Auto rollback on error
@@ -103,7 +103,7 @@ export function useGeneralSettingsFormBusiness(): GeneralSettingsFormBusinessLog
       if (context?.previousWorkspaces) {
         setWorkspaces(context.previousWorkspaces);
       }
-      toast.error('Modification failed', { description: error.message });
+      toast.error('Failed to update workspace', { description: error.message });
     },
   });
 

@@ -11,8 +11,6 @@ import { useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useReactFlow } from '@xyflow/react';
 
-import { toast } from '@workspace/ui/components/ui/sonner';
-
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { searchImageAssetsAction } from '@/domains/image-app-space/actions/image-search.actions';
@@ -67,14 +65,10 @@ export function useImageSearchBusiness(
       setResults(data.images);
 
       if (data.images.length === 0) {
-        toast.info('No images found. Try a different search term.');
       }
     },
     onError: error => {
       console.error('[ImageSearchBusiness] Search failed:', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to search images'
-      );
       setResults([]);
     },
   });
@@ -122,23 +116,16 @@ export function useImageSearchBusiness(
         console.warn(
           '[ImageSearchBusiness] Create new block not yet implemented'
         );
-        toast.info('Create new block feature is coming soon!');
       }
     },
     onSuccess: (_, variables) => {
       const { blockIds, mode } = variables;
 
       if (mode === 'replace') {
-        toast.success(
-          `Image applied to ${blockIds.length} block${blockIds.length > 1 ? 's' : ''}`
-        );
       }
     },
     onError: error => {
       console.error('[ImageSearchBusiness] Apply failed:', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to apply image'
-      );
     },
   });
 

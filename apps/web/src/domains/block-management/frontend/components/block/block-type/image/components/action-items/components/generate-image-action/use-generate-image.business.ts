@@ -11,8 +11,6 @@ import { useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useReactFlow } from '@xyflow/react';
 
-import { toast } from '@workspace/ui/components/ui/sonner';
-
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { generateImageAssetsAction } from '@/domains/image-app-space/actions/image-generation.actions';
@@ -102,16 +100,10 @@ export function useGenerateImageBusiness(
       setResults(data.images);
 
       if (data.images.length === 0) {
-        toast.info('No images generated. Try adjusting your prompt.');
-      } else {
-        toast.success(`Generated ${data.images.length} image(s)`);
       }
     },
     onError: error => {
       console.error('[GenerateImageBusiness] Generation failed:', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to generate images'
-      );
       setResults([]);
     },
   });
@@ -159,23 +151,16 @@ export function useGenerateImageBusiness(
         console.warn(
           '[GenerateImageBusiness] Create new block not yet implemented'
         );
-        toast.info('Create new block feature is coming soon!');
       }
     },
     onSuccess: (_, variables) => {
       const { blockIds, mode } = variables;
 
       if (mode === 'replace') {
-        toast.success(
-          `Image applied to ${blockIds.length} block${blockIds.length > 1 ? 's' : ''}`
-        );
       }
     },
     onError: error => {
       console.error('[GenerateImageBusiness] Apply failed:', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to apply image'
-      );
     },
   });
 
