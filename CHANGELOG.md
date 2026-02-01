@@ -1,3 +1,43 @@
+## [0.13.0] - 2026-02-01
+
+### ✨ Features
+
+- Redesign route structure
+
+### 🐛 Bug Fixes
+
+- Refactor skeleton loading layout
+## [0.12.1] - 2026-01-30
+
+### 🐛 Bug Fixes
+
+- Readonly markdown scroll available
+## [0.12.0] - 2026-01-30
+
+### ♻️ Refactoring
+
+- Rename ai-visual-summary to ai-actions
+
+### ✨ Features
+
+- 캔버스 팬 감도 조절 기능 추가 및 타입 에러 수정
+- Add visual summary
+- Add youtube title and channel to grok
+- Only render group placeholder when empty group state
+- Add group specific toolbar
+- Select group block after creation by multiselection
+
+### 🐛 Bug Fixes
+
+- Apply edge stroke and content markdown rendering
+- Render proper coordinate system when editor panel open
+- Duplicate block inside group optimistic update properly
+- Published page rendering bug
+- Replace successfully optimistic edge id to server id
+- Fix: increase multi block mount deletion and duplication speed
+- add bulk creation block and block mount
+- Disallow move when optimistic
+- Build error
 ## [0.11.0] - 2026-01-27
 
 ### ✨ Features
