@@ -1,15 +1,10 @@
 import { redirect } from 'next/navigation';
 
-import {
-  SidebarInset,
-  SidebarProvider,
-} from '@workspace/ui/components/ui/sidebar';
-
 import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
-import { DashboardSidebar } from '@/domains/organization-management/frontend/components/sidebar/dashboard-sidebar';
-import { OrganizationProvider } from '@/domains/organization-management/frontend/contexts/organization-context';
 import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-navigation.actions';
-import { WorkspaceProvider } from '@/domains/workspace-management/frontend/contexts/workspace';
+
+import { OrgIdSyncClient } from '../../components/sync-client/org-id-sync-client';
+import { WorkspaceSyncClient } from '../../components/sync-client/workspace-sync-client';
 
 interface OrgIdLayoutProps {
   children: React.ReactNode;
@@ -19,7 +14,7 @@ interface OrgIdLayoutProps {
 /**
  * /r/[orgId] 레이아웃
  *
- * org 검증, workspace 목록 로드, 사이드바 렌더.
+ * Provider는 /r/layout에서 제공. URL의 orgId로 데이터 fetch 후 SyncClient로 context 동기화.
  */
 export default async function OrgIdLayout({
   children,
@@ -42,31 +37,15 @@ export default async function OrgIdLayout({
     organizationId: orgId,
   });
 
-  const workspacePageData = workspacePageResult.success
-    ? workspacePageResult.data
-    : {
-        organizationId: orgId,
-        workspaces: [],
-        selectedPageId: null,
-      };
+  const workspaces = workspacePageResult.success
+    ? workspacePageResult.data?.workspaces ?? []
+    : [];
 
   return (
-    <OrganizationProvider
-      initialOrganizations={organizations}
-      initialSelectedId={selectedOrganization.id}
-    >
-      <WorkspaceProvider
-        initialWorkspaces={workspacePageData.workspaces}
-        initialSelectedPageId={null}
-        organizationId={orgId}
-      >
-        <SidebarProvider>
-          <DashboardSidebar />
-          <SidebarInset className="overflow-hidden overscroll-none h-svh">
-            {children}
-          </SidebarInset>
-        </SidebarProvider>
-      </WorkspaceProvider>
-    </OrganizationProvider>
+    <>
+      <OrgIdSyncClient orgId={orgId} />
+      <WorkspaceSyncClient orgId={orgId} workspaces={workspaces} />
+      {children}
+    </>
   );
 }

@@ -1,9 +1,9 @@
-import { DashboardShellSkeleton } from '../../components/dashboard-shell-skeleton';
+import { ContentAreaSkeleton } from '../../components/skeletons';
 
 /**
- * /r/orgId 레이아웃 로딩: org/workspace 데이터 로드 중.
- * 실제 [orgId]/layout과 동일한 셸(사이드바 + Inset)로 표시해 전환 시 레이아웃 시프트 없음.
+ * /r/[orgId] 세그먼트 로딩.
+ * r/layout은 이미 렌더됨. SidebarInset 안에서 헤더+캔버스 스켈레톤만 표시.
  */
 export default function OrgIdLoading() {
-  return <DashboardShellSkeleton />;
+  return <ContentAreaSkeleton />;
 }
