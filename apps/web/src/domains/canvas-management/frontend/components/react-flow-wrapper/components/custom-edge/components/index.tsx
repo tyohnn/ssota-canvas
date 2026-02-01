@@ -290,28 +290,31 @@ export function CustomEdgeView({
       />
 
       <EdgeLabelRenderer>
-        {/* Edge Toolbar (above edge center, only on single selection) - readonly일 때 숨김 */}
-        {!readonly && showToolbar && (
-          <Box
-            className="z-50"
-            style={{
-              position: 'absolute',
-              transform: `translate(-50%, -100%) translate(${labelX}px, ${labelY - 20}px)`,
-              pointerEvents: 'all',
-            }}
-          >
-            <EdgeToolbar edgeId={toolbarEdgeId} pageId={pageId} />
-          </Box>
-        )}
+        {/* z-index: edge-label > edge > block 를 위한 레이어 (전역 스타일에서 z-index: 2) */}
+        <div className="react-flow-edge-label-layer" style={{ position: 'absolute', inset: 0 }}>
+          {/* Edge Toolbar (above edge center, only on single selection) - readonly일 때 숨김 */}
+          {!readonly && showToolbar && (
+            <Box
+              className="z-50"
+              style={{
+                position: 'absolute',
+                transform: `translate(-50%, -100%) translate(${labelX}px, ${labelY - 20}px)`,
+                pointerEvents: 'all',
+              }}
+            >
+              <EdgeToolbar edgeId={toolbarEdgeId} pageId={pageId} />
+            </Box>
+          )}
 
-        {/* Edge Label (center, visibility handled internally) */}
-        <EdgeLabel
-          edgeId={edgeId}
-          label={label}
-          position={{ x: labelX, y: labelY }}
-          isSelected={isSelected}
-          readonly={readonly}
-        />
+          {/* Edge Label (center, visibility handled internally) */}
+          <EdgeLabel
+            edgeId={edgeId}
+            label={label}
+            position={{ x: labelX, y: labelY }}
+            isSelected={isSelected}
+            readonly={readonly}
+          />
+        </div>
       </EdgeLabelRenderer>
     </>
   );

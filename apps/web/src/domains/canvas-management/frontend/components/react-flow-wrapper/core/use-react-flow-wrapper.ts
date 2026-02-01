@@ -595,15 +595,30 @@ export function useReactFlowWrapper(
   const showBlockCreation = !readonly;
 
   // =========================================================================
-  // 14. Compose and Return
+  // 14. 노드 표시용 (부모가 선택된 자식은 z-index 상승용 className 추가)
+  // =========================================================================
+  const nodesDisplay = useMemo(() => {
+    return nodes.map(n => {
+      if (!n.parentId) return n;
+      const parent = nodes.find(p => p.id === n.parentId);
+      if (!parent?.selected) return n;
+      const existingClass = (n as Node & { className?: string }).className ?? '';
+      const added = 'react-flow__node--parent-selected';
+      const newClass = existingClass ? `${existingClass} ${added}` : added;
+      return { ...n, className: newClass };
+    });
+  }, [nodes]);
+
+  // =========================================================================
+  // 15. Compose and Return
   // =========================================================================
 
   return {
     // =========================================================================
     // State
     // =========================================================================
-    // React Flow State
-    nodes,
+    // React Flow State (표시용 nodes: 부모 선택 시 자식도 상단 레이어)
+    nodes: nodesDisplay,
     edges,
     nodeTypes,
     edgeTypes,

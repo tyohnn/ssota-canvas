@@ -49,6 +49,31 @@ export function ReactFlowStyles() {
         overflow: visible !important;
       }
 
+      /* ===== z-index: edge-label > edge > block ===== */
+      .react-flow__node {
+        z-index: 0 !important;
+      }
+      .react-flow__edges,
+      .react-flow__edge {
+        z-index: 1 !important;
+      }
+      /* EdgeLabelRenderer 내부 레이어 (엣지 라벨/툴바가 엣지 선보다 위에) */
+      .react-flow-edge-label-layer {
+        z-index: 2 !important;
+        pointer-events: none !important;
+      }
+      .react-flow-edge-label-layer > * {
+        pointer-events: all !important;
+      }
+      /* 선택된 블록은 항상 최상단 (edge-label 위) */
+      .react-flow__node.selected {
+        z-index: 3 !important;
+      }
+      /* 그룹 선택 시 그룹 안의 자식 노드도 같은 레이어 (뒤로 빠지지 않도록) */
+      .react-flow__node.react-flow__node--parent-selected {
+        z-index: 3 !important;
+      }
+
       /* ===== Background Pattern ===== */
       .dark .react-flow__background-pattern {
         stroke: rgba(255, 255, 255, 0.05) !important;
