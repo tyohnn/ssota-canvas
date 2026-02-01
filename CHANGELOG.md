@@ -1,3 +1,12 @@
+## [0.13.0] - 2026-02-01
+
+### ✨ Features
+
+- Redesign route structure
+
+### 🐛 Bug Fixes
+
+- Refactor skeleton loading layout
 ## [0.12.1] - 2026-01-30
 
 ### 🐛 Bug Fixes
