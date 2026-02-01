@@ -71,9 +71,9 @@ export function BlockToolbar({
   }
 
   // zoom이 60% 이하일 때는 표시하지 않음
-  if (zoom <= 0.6) {
-    return null;
-  }
+  // if (zoom <= 0.6) {
+  //   return null;
+  // }
 
   // 그룹 블록: 전용 툴바 레이아웃 (좌측 제목만, 중앙 툴바, 배지 없음)
   if (data.blockType === 'group') {
