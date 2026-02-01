@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { WorkspaceWithPagesDTO } from '@/domains/workspace-management/shared/dtos';
 
@@ -139,7 +139,10 @@ function getInitialPageSelection(
 export function useWorkspaceProvider(
   params: UseWorkspaceProviderParams
 ): WorkspaceContextValue {
-  const { organizationId, initialWorkspaces, initialSelectedPageId } = params;
+  const { organizationId: initialOrgId, initialWorkspaces, initialSelectedPageId } = params;
+
+  // organizationId를 state로 두어 SyncClient에서 URL 기준으로 업데이트 가능
+  const [organizationId, setOrganizationId] = useState(initialOrgId);
 
   // Workspace 상태 관리
   const [workspaces, setWorkspaces] =
@@ -151,6 +154,16 @@ export function useWorkspaceProvider(
   );
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
     null
+  );
+
+  const syncWorkspaces = useCallback(
+    (newWorkspaces: WorkspaceWithPagesDTO[], orgId: string) => {
+      setOrganizationId(orgId);
+      setWorkspaces(newWorkspaces);
+      setSelectedPageId(null);
+      setSelectedWorkspaceId(null);
+    },
+    []
   );
 
   // 초기화: 선택된 페이지 복원
@@ -176,12 +189,13 @@ export function useWorkspaceProvider(
       organizationId,
       workspaces,
       setWorkspaces,
+      syncWorkspaces,
       selectedPageId,
       selectedWorkspaceId,
       setSelectedPageId,
       setSelectedWorkspaceId,
     }),
-    [organizationId, workspaces, selectedPageId, selectedWorkspaceId]
+    [organizationId, workspaces, syncWorkspaces, selectedPageId, selectedWorkspaceId]
   );
 
   return contextValue;

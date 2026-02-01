@@ -140,7 +140,7 @@ export function usePageTree({
 
       // URL 변경
       if (!skipNavigation && typeof window !== 'undefined') {
-        const targetUrl = `/r/${organizationId}/workspace/${workspaceIdParam}/page/${pageId}`;
+        const targetUrl = `/r/${organizationId}/${pageId}`;
         if (window.location.pathname !== targetUrl) {
           router.push(targetUrl);
         }

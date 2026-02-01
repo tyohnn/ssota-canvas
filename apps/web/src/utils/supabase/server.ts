@@ -40,15 +40,14 @@ export const createClient = async () => {
               }
             );
           } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-
-            // refresh_token_not_found 에러는 정상적인 세션 만료이므로
-            // 로그를 남기지 않음 (노이즈 방지)
+            // Server Component에서는 쿠키 수정 불가 (Next.js 15).
+            // Middleware에서 이미 세션 갱신하므로 무시해도 됨.
             const errorMessage =
               error instanceof Error ? error.message : String(error);
-            if (!errorMessage.includes('refresh_token_not_found')) {
+            const isExpected =
+              errorMessage.includes('refresh_token_not_found') ||
+              errorMessage.includes('Cookies can only be modified');
+            if (!isExpected) {
               console.error('[Supabase Server Client] Cookie error:', error);
             }
           }

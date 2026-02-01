@@ -73,8 +73,7 @@ export function OrganizationSwitcher() {
                     key={org.id}
                     onClick={() => {
                       selectOrganization(org.id);
-                      // Navigate to: /r/[orgId]/workspace
-                      router.push(`/r/${org.id}/workspace`);
+                      router.push(`/r/${org.id}`);
                     }}
                     className="gap-2 p-2"
                   >
