@@ -108,7 +108,7 @@ export function SidebarHeaderGroup() {
             className="text-muted-foreground"
             tooltip="Home"
           >
-            <a href={`/r/${activeOrganization?.id}`}>
+            <a href={activeOrganization?.id ? `/r/${activeOrganization.id}` : '/r'}>
               <Home />
               <span>Home</span>
             </a>

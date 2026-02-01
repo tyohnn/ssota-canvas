@@ -1,6 +1,5 @@
 'use client';
 
-import { Suspense } from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -23,7 +22,6 @@ import {
   DialogTitle,
 } from '@workspace/ui/components/ui/dialog';
 import { SidebarHeaderGroup } from './sidebar-header-group';
-import { OrgWorkspacesSkeleton } from './org-workspaces-skeleton';
 import { OrganizationSwitcher } from '../organization/organization-switcher';
 import { WorkspaceSidebarContent } from '@/domains/workspace-management/frontend/components/sidebar';
 import {
@@ -36,45 +34,10 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
-import { useIsClient } from '@/hooks/use-is-client';
-
-function DashboardSidebarSkeleton() {
-  return (
-    <aside
-      className="hidden md:flex w-56 shrink-0 flex-col border-r border-border/60 bg-muted/20 px-3 py-4 gap-4"
-      aria-hidden
-    >
-      <div className="space-y-3">
-        <div className="h-6 w-24 rounded bg-muted-foreground/20 animate-pulse" />
-        <div className="h-10 rounded bg-muted-foreground/10 animate-pulse" />
-      </div>
-      <div className="space-y-2">
-        <div className="h-4 w-20 rounded bg-muted-foreground/20 animate-pulse" />
-        <div className="space-y-2">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <div
-              key={index}
-              className="h-9 rounded bg-muted-foreground/10 animate-pulse"
-            />
-          ))}
-        </div>
-      </div>
-      <div className="mt-auto space-y-2">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div
-            key={index}
-            className="h-9 rounded bg-muted-foreground/10 animate-pulse"
-          />
-        ))}
-      </div>
-    </aside>
-  );
-}
 
 export function DashboardSidebar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const isClient = useIsClient();
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isUpdatesOpen, setIsUpdatesOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -87,21 +50,14 @@ export function DashboardSidebar() {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
-  if (!isClient) {
-    return <DashboardSidebarSkeleton />;
-  }
-
   return (
     <Sidebar className="border-r-0 p-0">
       <SidebarHeader>
-        <Suspense fallback={<OrgWorkspacesSkeleton />}>
-          <OrganizationSwitcher />
-        </Suspense>
+        <OrganizationSwitcher />
         <SidebarHeaderGroup />
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Workspace Management Domain: Workspace-Page 트리 */}
         <WorkspaceSidebarContent />
       </SidebarContent>
 
@@ -126,7 +82,6 @@ export function DashboardSidebar() {
               </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-
           <SidebarMenuItem>
             <SidebarMenuButton
               className="text-muted-foreground"

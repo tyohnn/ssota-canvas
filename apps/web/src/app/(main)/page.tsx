@@ -2,13 +2,13 @@ import type { Metadata } from 'next';
 import Landing from './_components/Landing';
 
 export const metadata: Metadata = {
-  title: 'SSOTA - Where Humans and AI Agents Collaborate on One Canvas',
+  title: 'SSOTA - Structure research. Build the next big thing.',
   description:
-    'Break down tool silos and workflow handoffs. SSOTA unifies planning, design, development, and deployment on a single AI-native canvas. Work with AI agents that understand your entire project context.',
+    'Not another summarizer. A partner for structure. Drop your sources—links, videos, PDFs, audio—on one canvas. SSOTA\'s AI agent turns them into a structured board, so you can reach a plan, make a decision, and make your next big move.',
   openGraph: {
-    title: 'SSOTA - Where Humans and AI Agents Collaborate on One Canvas',
+    title: 'SSOTA - Structure research. Build the next big thing.',
     description:
-      'Break down tool silos and workflow handoffs. SSOTA unifies planning, design, development, and deployment on a single AI-native canvas.',
+      "Not another summarizer. A partner for structure. Drop your sources on one canvas. SSOTA's AI agent turns them into a structured board—so you can reach a plan, make a decision, and make your next big move.",
   },
 };
 

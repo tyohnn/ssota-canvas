@@ -490,7 +490,7 @@ describe('Server Actions Integration Tests', () => {
           title: 'Untitled',
           icon: 'File',
         },
-        redirectUrl: '/r/org-123/workspace/workspace-123/page/page-123',
+        redirectUrl: '/r/page-123',
       };
 
       vi.mocked(createDefaultOrganizationAction).mockResolvedValue(mockOrgWithWorkspaceAndPage);
@@ -511,7 +511,7 @@ describe('Server Actions Integration Tests', () => {
       expect(result.page.title).toBe('Welcome');
       expect(result.personalWorkspace.id).toBe('personal-workspace-123'); // v1.2
       expect(result.personalPage.id).toBe('personal-page-123'); // v1.2
-      expect(result.redirectUrl).toMatch(/^\/r\/[a-z0-9-]+\/workspace\/[a-z0-9-]+\/page\/[a-z0-9-]+$/);
+      expect(result.redirectUrl).toMatch(/^\/r\/[a-z0-9-]+$/);
     });
 
     it('프로필 생성 실패 시 전체 플로우가 중단되어야 한다', async () => {

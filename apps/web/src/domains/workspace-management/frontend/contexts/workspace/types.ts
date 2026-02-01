@@ -12,6 +12,8 @@ export interface WorkspaceContextValue {
   organizationId: string;
   workspaces: WorkspaceWithPagesDTO[];
   setWorkspaces: React.Dispatch<React.SetStateAction<WorkspaceWithPagesDTO[]>>;
+  /** URL/서버 데이터로 context 동기화 (WorkspaceSyncClient에서 사용) */
+  syncWorkspaces: (workspaces: WorkspaceWithPagesDTO[], orgId: string) => void;
 
   // 전역 Page 선택 상태 (앱 전체에서 하나만 선택)
   selectedPageId: string | null;

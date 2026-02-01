@@ -120,7 +120,7 @@ async function createWorkspaceInternal(
     };
 
     // 4. 캐시 무효화
-    revalidatePath(`/r/${request.organizationId}`);
+    revalidatePath('/r');
 
     return ok(response);
   } catch (error) {
@@ -221,7 +221,7 @@ async function updateWorkspaceInfoInternal(
       new WorkspaceId(request.workspaceId)
     );
     if (workspace) {
-      revalidatePath(`/r/${workspace.organizationId.value}`);
+      revalidatePath('/r');
     }
 
     return ok(undefined);

@@ -201,21 +201,14 @@ export function WorkspacePageHeader({
     ? ancestorPath.slice(-1) // 길면 마지막 1개만
     : ancestorPath; // 짧으면 전체 표시
 
-  // 워크스페이스 링크 URL 계산 (첫 번째 페이지로)
+  // 워크스페이스 링크 URL: 첫 번째 페이지로 이동 (/r/[orgId]/[pageId])
   const workspaceUrl = useMemo(() => {
-    if (!workspace || !actualWorkspaceId) {
-      return `/r/${context.organizationId}/workspace/${actualWorkspaceId}`;
-    }
-
-    // 워크스페이스의 첫 번째 페이지로 이동
+    if (!workspace) return '/r';
+    const orgId = context.organizationId;
     const firstPage = workspace.pageTree[0];
-    if (firstPage) {
-      return `/r/${context.organizationId}/workspace/${actualWorkspaceId}/page/${firstPage.id}`;
-    }
-
-    // 페이지가 없으면 워크스페이스 루트로
-    return `/r/${context.organizationId}/workspace/${actualWorkspaceId}`;
-  }, [workspace, actualWorkspaceId, context.organizationId]);
+    if (firstPage) return `/r/${orgId}/${firstPage.id}`;
+    return `/r/${orgId}`;
+  }, [workspace, context.organizationId]);
 
   // 페이지 아이콘 변경 핸들러 (WorkspaceContext가 optimistic update 처리)
   const handleIconChange = (newIcon: string) => {
@@ -274,7 +267,7 @@ export function WorkspacePageHeader({
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
                         <Link
-                          href={`/r/${context.organizationId}/workspace/${actualWorkspaceId}/page/${ancestor.id}`}
+                          href={`/r/${context.organizationId}/${ancestor.id}`}
                           className="truncate max-w-[100px]"
                         >
                           {ancestor.title}

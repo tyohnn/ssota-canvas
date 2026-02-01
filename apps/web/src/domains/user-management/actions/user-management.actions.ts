@@ -351,7 +351,7 @@ async function createOrGetDefaultOrganization(
       }
 
       // 리다이렉션 URL 생성
-      const redirectUrl = `/r/${orgId.value}/workspace/${defaultWorkspace.workspaceId.value}/page/${firstPage.pageId.value}`;
+      const redirectUrl = `/r/${existingDefaultOrg.id.value}/${firstPage.pageId.value}`;
 
       // 기존 조직 정보를 동일한 형식으로 반환
       return ok({

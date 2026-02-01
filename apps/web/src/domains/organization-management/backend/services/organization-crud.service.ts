@@ -146,7 +146,7 @@ export class DefaultOrganizationCrudService implements OrganizationCrudService {
       } = personalWorkspaceResult.data;
 
       // 8. 리다이렉션 URL 생성
-      const redirectUrl = `/r/${organization.id.value}/workspace/${workspaceId}/page/${firstPageId}`;
+      const redirectUrl = `/r/${organization.id.value}/${firstPageId}`;
 
       // 9. 결과 반환 (SSOT: workspace service에서 반환된 실제 값 사용)
       return Result.success({
