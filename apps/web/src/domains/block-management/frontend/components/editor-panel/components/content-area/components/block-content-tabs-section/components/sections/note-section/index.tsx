@@ -38,10 +38,11 @@ export default function NoteSection({
     },
   });
 
-  // Markdown Content Section Hook 사용
+  // Markdown Content Section Hook 사용 (readonly면 에디터 수정 불가)
   const { editor, handleEditorClick } = useMarkdownContentSection({
     blockId,
     blockData,
+    readonly,
     dependencies: {
       reactFlow: {
         getNode,
@@ -60,8 +61,11 @@ export default function NoteSection({
 
   return (
     <Box className="pl-6 pr-4 py-3 min-h-[200px]" data-note-section="true">
-      {/* Notion-style Editor Container */}
-      <Box onClick={handleEditorClick} className="min-h-[200px] cursor-text">
+      {/* Notion-style Editor Container (readonly면 클릭해도 포커스/편집 불가) */}
+      <Box
+        onClick={readonly ? undefined : handleEditorClick}
+        className={readonly ? 'min-h-[200px] cursor-default' : 'min-h-[200px] cursor-text'}
+      >
         <TipTapEditor
           editor={editor}
           editable={!readonly}

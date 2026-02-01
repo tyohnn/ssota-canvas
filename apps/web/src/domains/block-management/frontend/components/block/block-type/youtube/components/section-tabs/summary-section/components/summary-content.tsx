@@ -74,9 +74,10 @@ export function SummaryContent({
     if (editor && tiptapContent) {
       editor.commands.setContent(tiptapContent);
 
-      // DOM에 헤더 ID 부여 (다음 tick에서 실행)
+      // DOM에 헤더 ID 부여 (에디터 view가 마운트된 후에만 실행)
       if (headings.length > 0) {
         setTimeout(() => {
+          if (!editor.view?.dom) return;
           const editorDom = editor.view.dom;
           const allHeadings = editorDom.querySelectorAll('h1, h2, h3');
 
