@@ -20,6 +20,7 @@ import type { NoteViewBusinessLogic, NoteViewUIState } from '../core/types';
 export interface NoteViewViewProps {
   className?: string;
   selected: boolean;
+  readonly?: boolean;
   editor: Editor | null;
   uiState: NoteViewUIState;
   business: NoteViewBusinessLogic;
@@ -33,6 +34,7 @@ export interface NoteViewViewProps {
 export function NoteViewView({
   className,
   selected,
+  readonly,
   editor,
   uiState,
   business,
@@ -40,6 +42,8 @@ export function NoteViewView({
   if (!editor) {
     return null;
   }
+
+  const canScroll = readonly || uiState.isEditing;
 
   return (
     <div
@@ -61,7 +65,8 @@ export function NoteViewView({
       <div
         ref={uiState.editorContainerRef}
         className={cn(
-          'flex-1 p-4 overflow-auto',
+          'flex-1 p-4',
+          canScroll ? 'overflow-auto' : 'overflow-hidden',
           uiState.isEditing ? 'cursor-text' : 'cursor-pointer',
           // 편집 모드일 때만 드래그 방지 (React Flow 선택 허용)
           uiState.isEditing && 'nodrag'
