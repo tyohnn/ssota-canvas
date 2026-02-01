@@ -1,3 +1,13 @@
+## [0.14.0] - 2026-02-01
+
+### ✨ Features
+
+- Add redirection after published page duplication
+- Hide script tab on readonly mode
+
+### 🐛 Bug Fixes
+
+- Publish dialog copy button back to copy icon
 ## [0.13.1] - 2026-02-01
 
 ### Hotfix
