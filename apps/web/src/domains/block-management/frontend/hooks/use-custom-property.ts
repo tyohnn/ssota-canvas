@@ -5,7 +5,6 @@ import { useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useReactFlow } from '@xyflow/react';
 
-import { toast } from '@workspace/ui/components/ui/sonner';
 
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { isFailure } from '@/lib';
@@ -123,7 +122,6 @@ export function useCustomProperty(): UseCustomPropertyResult {
       if (context?.previousData && context?.blockId) {
         updateNode(context.blockId, { data: context.previousData });
       }
-      toast.error(error.message);
     },
   });
 
@@ -178,7 +176,6 @@ export function useCustomProperty(): UseCustomPropertyResult {
       if (context?.previousData && context?.blockId) {
         updateNode(context.blockId, { data: context.previousData });
       }
-      toast.error(error.message);
     },
   });
 
@@ -242,7 +239,6 @@ export function useCustomProperty(): UseCustomPropertyResult {
       if (context?.previousData && context?.blockId) {
         updateNode(context.blockId, { data: context.previousData });
       }
-      toast.error(error.message);
     },
   });
 
@@ -323,7 +319,6 @@ export function useCustomProperty(): UseCustomPropertyResult {
       if (context?.previousData && context?.blockId) {
         updateNode(context.blockId, { data: context.previousData });
       }
-      toast.error(error.message);
     },
   });
 
@@ -378,7 +373,6 @@ export function useCustomProperty(): UseCustomPropertyResult {
       if (context?.previousData && context?.blockId) {
         updateNode(context.blockId, { data: context.previousData });
       }
-      toast.error(error.message);
     },
   });
 
@@ -459,7 +453,6 @@ export function useCustomProperty(): UseCustomPropertyResult {
       if (context?.previousData && context?.blockId) {
         updateNode(context.blockId, { data: context.previousData });
       }
-      toast.error(error.message);
     },
   });
 
@@ -558,7 +551,7 @@ export function useCustomProperty(): UseCustomPropertyResult {
 
       const defaultValue =
         duplicatedProperty?.defaultValue !== undefined &&
-        duplicatedProperty?.defaultValue !== null
+          duplicatedProperty?.defaultValue !== null
           ? duplicatedProperty.defaultValue
           : getDefaultValueForType(duplicatedProperty.type);
 

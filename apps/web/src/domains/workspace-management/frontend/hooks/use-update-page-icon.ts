@@ -27,7 +27,7 @@ export function useUpdatePageIcon() {
       });
 
       if (!result.success) {
-        throw new Error('아이콘 변경에 실패했습니다');
+        throw new Error('Failed to update page icon');
       }
 
       // Optimistic Update: 상태 업데이트
@@ -55,13 +55,13 @@ export function useUpdatePageIcon() {
         })
       );
 
-      toast.success('아이콘이 변경되었습니다');
+      toast.success('Page icon updated successfully');
 
       return { pageId, newIcon };
     },
     onError: (error: Error) => {
       console.error('[useUpdatePageIcon] Error:', error);
-      toast.error('아이콘 변경 중 오류가 발생했습니다');
+      toast.error('Failed to update page icon');
     },
   });
 }

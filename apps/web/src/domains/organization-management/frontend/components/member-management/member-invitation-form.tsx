@@ -25,7 +25,6 @@ import {
   FieldSet,
   FieldTitle,
 } from '@workspace/ui/components/ui/field';
-import { toast } from '@workspace/ui/components/ui/sonner';
 import { useMemberManagement } from '../../hooks/use-member-management';
 import { inviteMemberAction } from '../../../actions/organization-management.actions';
 import { UserProfile } from '../../../shared/dtos';
@@ -78,22 +77,15 @@ export function MemberInvitationForm({
 
   const handleUserSelect = (user: UserProfile) => {
     if (isMember(user.email)) {
-      toast.error('Already a member', {
-        description: 'This user is already an organization member.',
-      });
       return;
     }
 
     if (hasPendingInvitation(user.email)) {
-      toast.error('Invitation pending', {
-        description: 'This user already has a pending invitation.',
-      });
       return;
     }
 
     // Duplicate check
     if (selectedUsers.some(u => u.userId === user.userId)) {
-      toast.error('User already selected');
       return;
     }
 
@@ -110,14 +102,10 @@ export function MemberInvitationForm({
     e.preventDefault();
 
     if (selectedUsers.length === 0) {
-      toast.error('Please select a user');
       return;
     }
 
     if (!canInviteMembers) {
-      toast.error('Permission denied', {
-        description: 'You do not have permission to invite members.',
-      });
       return;
     }
 
@@ -132,21 +120,11 @@ export function MemberInvitationForm({
         });
       }
 
-      toast.success('Invitations sent', {
-        description: `Sent invitations to ${selectedUsers.length} member${selectedUsers.length > 1 ? 's' : ''}.`,
-      });
-
       // Reset form
       setSelectedUsers([]);
       setRole('admin');
       onSuccess?.();
     } catch (error) {
-      toast.error('Invitation failed', {
-        description:
-          error instanceof Error
-            ? error.message
-            : 'Failed to send invitations.',
-      });
     } finally {
       setIsSubmitting(false);
     }

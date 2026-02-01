@@ -2,8 +2,6 @@
 
 import { useCallback, useState } from 'react';
 
-import { toast } from '@workspace/ui/components/ui/sonner';
-
 import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
 import {
   getRecentPagesAction,
@@ -42,7 +40,6 @@ export function usePageMoveBusiness(
     }
 
     console.error('Failed to fetch pages:', result.error);
-    toast.error('페이지 목록을 불러오는데 실패했습니다');
     return [];
   }, [workspaceId]);
 
@@ -66,7 +63,6 @@ export function usePageMoveBusiness(
       // isFailure 타입 가드 사용
       if (isFailure(result)) {
         console.error('Failed to search pages:', result.error);
-        toast.error('페이지 검색에 실패했습니다');
       }
 
       return [];
@@ -78,10 +74,8 @@ export function usePageMoveBusiness(
     async (targetPageId: string) => {
       try {
         await blockLifecycle.moveBlockToPage(blockMountId, targetPageId);
-        toast.success('블록이 이동되었습니다');
       } catch (error) {
         console.error('Failed to move block:', error);
-        toast.error('블록 이동에 실패했습니다');
         throw error;
       }
     },

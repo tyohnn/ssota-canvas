@@ -48,17 +48,17 @@ export function SidebarHeaderGroup() {
         await refreshOrganizations();
       }
 
-      toast.success(accept ? '초대를 수락했습니다' : '초대를 거절했습니다', {
+      toast.success(accept ? 'Accepted invitation' : 'Rejected invitation', {
         description: accept
-          ? '조직 멤버로 추가되었습니다.'
-          : '초대가 거절되었습니다.',
+          ? 'You are now a member of the organization.'
+          : 'Invitation rejected.',
       });
     } catch (error) {
-      toast.error('초대 응답 실패', {
+      toast.error('Invitation response failed', {
         description:
           error instanceof Error
             ? error.message
-            : '알 수 없는 오류가 발생했습니다.',
+            : 'An unknown error occurred.',
       });
     }
   };
@@ -71,8 +71,8 @@ export function SidebarHeaderGroup() {
       if (accept) {
         const result = await acceptWorkspaceInvitationAction({ invitationId });
         if (result.success) {
-          toast.success('Workspace 초대를 수락했습니다', {
-            description: 'Workspace 멤버로 추가되었습니다.',
+          toast.success('Accepted workspace invitation', {
+            description: 'You are now a member of the workspace.',
           });
           // TODO: Workspace 목록 새로고침 또는 해당 Workspace로 이동
           window.location.reload(); // 임시: 전체 새로고침
@@ -82,19 +82,19 @@ export function SidebarHeaderGroup() {
       } else {
         const result = await rejectWorkspaceInvitationAction({ invitationId });
         if (result.success) {
-          toast.success('Workspace 초대를 거절했습니다', {
-            description: '초대가 거절되었습니다.',
+          toast.success('Rejected workspace invitation', {
+            description: 'Invitation rejected.',
           });
         } else {
           throw new Error(result.error);
         }
       }
     } catch (error) {
-      toast.error('Workspace 초대 처리 중 오류가 발생했습니다', {
+      toast.error('Error processing workspace invitation', {
         description:
           error instanceof Error
             ? error.message
-            : '알 수 없는 오류가 발생했습니다.',
+            : 'An unknown error occurred.',
       });
     }
   };
