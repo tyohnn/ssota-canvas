@@ -1,3 +1,15 @@
+## [0.15.0] - 2026-02-01
+
+### ✨ Features
+
+- New landing page
+
+### 🐛 Bug Fixes
+
+- Editor panel note view make uneditable
+- Always visible regardless zoom
+- Z-index of block and edge
+- Readonly cursor pointer
 ## [0.14.0] - 2026-02-01
 
 ### ✨ Features
