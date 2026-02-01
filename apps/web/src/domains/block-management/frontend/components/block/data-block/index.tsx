@@ -12,7 +12,6 @@
 import { memo } from 'react';
 
 import { BaseBlock } from '../base-block';
-import { BlockToolbar } from './components/block-toolbar';
 import { DataBlockView } from './components/data-block-view';
 import type { DataBlockProps } from './core/types';
 import { useDataBlock } from './core/use-data-block';
@@ -44,22 +43,16 @@ export const DataBlock = memo(function DataBlock(props: DataBlockProps) {
       draggable={draggable}
       width={width}
       height={height}
+      toolbarProps={{
+        viewMode,
+        onViewModeChange,
+        zoom,
+        isMultiSelection,
+        onEdit,
+        showBlockToolbarMapper: viewMode === 'original',
+      }}
     >
-      {/* Block Toolbar (상단) - 모든 view mode에서 표시 */}
-      <BlockToolbar
-        data={data}
-        viewMode={viewMode}
-        selected={isSingleSelection}
-        onViewModeChange={onViewModeChange}
-        width={width}
-        height={height}
-        zoom={zoom}
-        isMultiSelection={isMultiSelection}
-        onEdit={onEdit}
-        showBlockToolbarMapper={viewMode === 'original'}
-      />
-
-      {/* View Content */}
+      {/* children에는 DataBlockView만 전달 */}
       <DataBlockView
         data={data}
         viewMode={viewMode}

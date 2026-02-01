@@ -13,14 +13,9 @@ import type { BlockNodeData } from '@/domains/block-management/shared/types/bloc
 
 import type {
   UseMarkdownContentSectionDependencies,
+  UseMarkdownContentSectionOptions,
   UseMarkdownContentSectionReturn,
 } from './types';
-
-export interface UseMarkdownContentSectionOptions {
-  blockId: string;
-  blockData: BlockNodeData;
-  dependencies: UseMarkdownContentSectionDependencies;
-}
 
 /**
  * Markdown Content Section Hook
@@ -30,7 +25,7 @@ export interface UseMarkdownContentSectionOptions {
 export function useMarkdownContentSection(
   options: UseMarkdownContentSectionOptions
 ): UseMarkdownContentSectionReturn {
-  const { blockId, blockData, dependencies } = options;
+  const { blockId, blockData, dependencies, readonly = false } = options;
   const { reactFlow, updateBlockContent } = dependencies;
 
   // ✅ blockMountId를 사용 (React Flow node id)
@@ -77,11 +72,11 @@ export function useMarkdownContentSection(
     [blockMountId, blockData, updateBlockContent, reactFlow]
   );
 
-  // 공통 TipTap Editor Hook 사용
+  // 공통 TipTap Editor Hook 사용 (readonly면 수정 불가)
   const { editor, handleEditorClick } = useTipTapEditor({
     blockData,
     placeholder: 'Click to add note...',
-    editable: true,
+    editable: !readonly,
     onContentChange: content => {
       // 1. 즉시 Optimistic Update: React Flow store 즉시 업데이트
       // ✅ blockMountId를 사용하여 노드 업데이트

@@ -12,19 +12,16 @@ import type { ProcessVideoScriptDTO } from '@/domains/youtube-app-space/shared/d
 import { ScriptTableOfContents } from './script-table-of-contents';
 import { ScriptTranscript } from './script-transcript';
 
-/**
- * Script Content Props
- */
 interface ScriptContentProps {
   script: ProcessVideoScriptDTO['youtube']['script'];
   youtubeTitle: string | undefined;
   onRefresh: () => Promise<void>;
 }
 
-/**
- * Script Content Component
- */
-export function ScriptContent({ script, youtubeTitle }: ScriptContentProps) {
+export function ScriptContent({
+  script,
+  youtubeTitle,
+}: ScriptContentProps) {
   return (
     <Box className="space-y-4 relative">
       <ScriptTranscript

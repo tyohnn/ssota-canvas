@@ -10,6 +10,8 @@
 import { useEffect, useMemo } from 'react';
 
 import { useEditor } from '@tiptap/react';
+
+import { useSummaryTOCSlot } from './summary-toc-slot-context';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
 
@@ -69,14 +71,23 @@ export function SummaryContent({
     return extractHeadingsFromTiptapJSON(tiptapContent);
   }, [tiptapContent]);
 
+  // TOC slot context: 상위에서 TOC를 렌더할 때 사용 (z-index 이슈 회피)
+  const tocSlot = useSummaryTOCSlot();
+  useEffect(() => {
+    if (!tocSlot || headings.length === 0) return;
+    tocSlot.setTOCData({ tiptapContent, showTOC: true });
+    return () => tocSlot.setTOCData(null);
+  }, [tocSlot?.setTOCData, tiptapContent, headings.length]);
+
   // summary가 변경되면 editor content 업데이트 및 헤더에 ID 부여
   useEffect(() => {
     if (editor && tiptapContent) {
       editor.commands.setContent(tiptapContent);
 
-      // DOM에 헤더 ID 부여 (다음 tick에서 실행)
+      // DOM에 헤더 ID 부여 (에디터 view가 마운트된 후에만 실행)
       if (headings.length > 0) {
         setTimeout(() => {
+          if (!editor.view?.dom) return;
           const editorDom = editor.view.dom;
           const allHeadings = editorDom.querySelectorAll('h1, h2, h3');
 
@@ -118,11 +129,13 @@ export function SummaryContent({
         editable={false}
         className="[&_.ProseMirror]:min-h-[200px] [&_.ProseMirror]:cursor-text [&_.ProseMirror_mark]:font-bold [&_.ProseMirror_mark]:bg-primary/20 [&_.ProseMirror_mark]:dark:bg-primary/30 [&_.ProseMirror_mark]:px-0.5 [&_.ProseMirror_mark]:rounded"
       />
-      {/* TOC - 항상 표시 (Script 섹션과 동일한 패턴) */}
-      <SummaryTableOfContents
-        tiptapContent={tiptapContent}
-        showTOC={true}
-      />
+      {/* TOC - slot 사용 시 상위에서 렌더, 그렇지 않으면 여기서 렌더 */}
+      {!tocSlot && (
+        <SummaryTableOfContents
+          tiptapContent={tiptapContent}
+          showTOC={true}
+        />
+      )}
     </Box>
   );
 }

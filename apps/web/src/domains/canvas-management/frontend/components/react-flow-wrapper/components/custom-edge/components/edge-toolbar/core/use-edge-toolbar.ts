@@ -43,7 +43,8 @@ export function useEdgeToolbar(
 
   // Calculate visibility based on zoom level (semantic zooming)
   // Hide toolbar when zoomed out too much (below 0.5) to ensure UI clarity
-  const isZoomVisible = zoom >= 0.6;
+  // const isZoomVisible = zoom >= 1.0;
+  const isZoomVisible = true;
 
   // Domain / Service Hooks
   const edgeManagement = useCanvasEdgeLifecycle({

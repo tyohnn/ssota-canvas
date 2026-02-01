@@ -25,6 +25,14 @@ export interface UseMarkdownContentSectionDependencies {
   }) => Promise<boolean>;
 }
 
+export interface UseMarkdownContentSectionOptions {
+  blockId: string;
+  blockData: BlockNodeData;
+  dependencies: UseMarkdownContentSectionDependencies;
+  /** true이면 에디터 수정 불가 (published page readonly 등) */
+  readonly?: boolean;
+}
+
 export interface UseMarkdownContentSectionReturn {
   editor: Editor | null;
   handleEditorClick: () => void;
