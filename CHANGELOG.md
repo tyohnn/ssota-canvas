@@ -1,3 +1,12 @@
+## [0.13.1] - 2026-02-01
+
+### Hotfix
+
+- Markdown block always be able to scroll problem
+
+### 🐛 Bug Fixes
+
+- Remove toast message or translate to english
 ## [0.13.0] - 2026-02-01
 
 ### ✨ Features
