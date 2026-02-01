@@ -27,12 +27,15 @@ export interface MoreMenuViewProps {
   blockMountId: string;
   business: MoreMenuBusinessLogic;
   parentBlockMountId?: string;
+  /** PageMovePopover 표시 여부 (기본: true). Mock 환경에서는 false로 설정 */
+  showPageMove?: boolean;
 }
 
 export function MoreMenuView({
   blockMountId,
   business,
   parentBlockMountId,
+  showPageMove = true,
 }: MoreMenuViewProps): React.JSX.Element {
   const showUngroup = Boolean(parentBlockMountId && business.handleUngroup);
 
@@ -61,7 +64,7 @@ export function MoreMenuView({
         </DropdownMenuItem>
 
         {/* 페이지 옮기기 */}
-        <PageMovePopover blockMountId={blockMountId} />
+        {showPageMove && <PageMovePopover blockMountId={blockMountId} />}
 
         {/* <DropdownMenuItem onClick={business.handleCreateComponent}>
           <Edit className="h-4 w-4 mr-2" />

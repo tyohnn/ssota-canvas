@@ -25,11 +25,15 @@ export const YoutubeBlockInteractions = {
    * @param seconds - 이동할 시간 (초)
    */
   seekTo: (playerRef: { current: YouTubePlayer | null }, seconds: number) => {
-    if (playerRef.current) {
-      // 시간 이동
-      playerRef.current.seekTo(seconds, true);
-      // 자동 재생 (일시정지 상태에서도 항상 재생)
-      playerRef.current.playVideo();
+    const player = playerRef.current;
+    if (!player || typeof player.seekTo !== 'function') return;
+    try {
+      player.seekTo(seconds, true);
+      if (typeof player.playVideo === 'function') {
+        player.playVideo();
+      }
+    } catch (error) {
+      console.warn('[YouTube Block] seekTo/playVideo failed (player may be unmounted):', error);
     }
   },
 

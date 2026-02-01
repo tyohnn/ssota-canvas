@@ -15,9 +15,6 @@ import { ScriptLoadingState } from './script-loading-state';
 import { ScriptNoScriptState } from './script-no-script-state';
 import { ScriptSectionContainer } from './script-section-container';
 
-/**
- * Script Section View Props
- */
 interface ScriptSectionViewProps {
   youtubeId: string | undefined;
   youtubeTitle: string | undefined;

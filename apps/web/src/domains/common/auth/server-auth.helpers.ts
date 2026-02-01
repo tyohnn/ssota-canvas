@@ -10,6 +10,20 @@ import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/utils/supabase/server';
 
 /**
+ * Get current user (optional)
+ *
+ * Returns the authenticated user or null. Use in Server Components when you need
+ * to branch on login state without redirecting (e.g. landing page, header).
+ */
+export async function getCurrentUser(): Promise<User | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+}
+
+/**
  * Get Authenticated User or Redirect
  *
  * Helper for Server Components that need authentication
