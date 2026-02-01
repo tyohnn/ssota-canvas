@@ -21,6 +21,8 @@ export interface BlockEditorTab {
   component?: ComponentType<any>;
   /** 기본 탭 여부 */
   isDefault?: boolean;
+  /** readonly 모드에서 탭 숨김 (퍼블릭 페이지 등) */
+  hideInReadonly?: boolean;
 }
 
 /**
