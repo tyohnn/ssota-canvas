@@ -33,6 +33,7 @@ export interface PublishedLinkViewDTO {
 export interface DuplicateResultDTO {
   duplicatedPageId: string;
   targetWorkspaceId: string;
+  organizationId: string;
   status: 'completed' | 'failed';
   errorMessage?: string; // status === 'failed' only
 }

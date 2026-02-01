@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback } from 'react';
+import type { DuplicateResultDTO } from '@/domains/share/shared/dtos/response';
 import { useDuplicatePublishedPage } from '@/domains/share/frontend/hooks/use-duplicate-published-page';
 
 interface UseDuplicateDialogBusinessProps {
   publishToken: string;
   selectedWorkspaceId: string | null;
-  onSuccess?: () => void;
+  onSuccess?: (result: DuplicateResultDTO) => void;
 }
 
 export function useDuplicateDialogBusiness({
@@ -15,8 +16,8 @@ export function useDuplicateDialogBusiness({
   onSuccess,
 }: UseDuplicateDialogBusinessProps) {
   const { duplicatePublishedPage, isDuplicating } = useDuplicatePublishedPage({
-    onSuccess: () => {
-      onSuccess?.();
+    onSuccess: (result) => {
+      onSuccess?.(result);
     },
     onError: () => {
       // Error handled silently or by toast notification

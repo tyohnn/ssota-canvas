@@ -28,6 +28,7 @@ import type { CreateEdgeRequest } from '@/domains/canvas-management/shared/dtos/
 import { generateKeyBetween } from 'fractional-indexing';
 import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace-member.repository';
+import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
 
 import { DrizzlePublishedPageRepository } from '../backend/repositories/implementations/drizzle-published-page.repository';
 import { ShareManagementError } from '../shared/errors/share-management.error';
@@ -112,6 +113,16 @@ async function duplicatePublishedPageInternal(
         code: 'WORKSPACE_FORBIDDEN',
       });
     }
+
+    // 3.5. 워크스페이스에서 organizationId 조회 (리다이렉트 URL용)
+    const workspaceRepo = new DrizzleWorkspaceRepository();
+    const workspace = await workspaceRepo.findById(targetWorkspaceIdVO);
+    if (!workspace) {
+      return err('Workspace not found', {
+        code: 'WORKSPACE_NOT_FOUND',
+      });
+    }
+    const organizationId = workspace.organizationId.value;
 
     // 4. 새 페이지 생성 (외부 워크스페이스로 복제: 부모 없이 루트에 생성)
     const newOrder = generateKeyBetween(null, null);
@@ -232,6 +243,7 @@ async function duplicatePublishedPageInternal(
     return ok({
       duplicatedPageId: newPageId,
       targetWorkspaceId: safeDto.targetWorkspaceId,
+      organizationId,
       status: 'completed',
     });
   } catch (error) {

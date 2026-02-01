@@ -48,9 +48,9 @@ export function useDuplicateDialog({
   const business = useDuplicateDialogBusiness({
     publishToken,
     selectedWorkspaceId: ui.selectedWorkspaceId,
-    onSuccess: () => {
-      // 성공 시 다이얼로그 닫기
+    onSuccess: (result) => {
       ui.onDialogOpenChange(false);
+      router.push(`/r/${result.organizationId}/${result.duplicatedPageId}`);
     },
   });
 

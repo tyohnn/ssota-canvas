@@ -28,6 +28,7 @@ const youtubeEditorTabsConfig: BlockEditorTabsConfig = {
       id: 'script',
       label: 'Script',
       componentPath: 'youtube/components/section-tabs/script-section',
+      hideInReadonly: true,
     },
     {
       id: 'note',
