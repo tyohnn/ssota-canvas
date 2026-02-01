@@ -172,9 +172,9 @@ export function usePageTreeBusiness(
         error.message === 'NOT_WORKSPACE_MEMBER' ||
         error.message === 'UNAUTHORIZED'
       ) {
-        toast.error('페이지를 생성할 권한이 없습니다');
+        toast.error('You have no permission to create a page');
       } else {
-        toast.error('페이지 생성 중 오류가 발생했습니다');
+        toast.error('Failed to create page');
       }
     },
   });
@@ -285,12 +285,12 @@ export function usePageTreeBusiness(
       }
 
       if (error.message === 'CIRCULAR_REFERENCE_DETECTED') {
-        toast.error('순환 참조가 발생할 수 없습니다');
+        toast.error('Circular reference detected');
       } else if (
         error.message === 'NOT_WORKSPACE_MEMBER' ||
         error.message === 'UNAUTHORIZED'
       ) {
-        toast.error('페이지를 이동할 권한이 없습니다');
+        toast.error('You have no permission to move a page');
       }
     },
   });
@@ -341,7 +341,7 @@ export function usePageTreeBusiness(
         setPages(context.previousPages);
         onPagesUpdate?.(context.previousPages);
       }
-      toast.error(`페이지 수정 실패: ${error.message}`);
+      toast.error(`Failed to update page: ${error.message}`);
     },
   });
 
@@ -410,7 +410,7 @@ export function usePageTreeBusiness(
         error.message === 'NOT_WORKSPACE_MEMBER' ||
         error.message === 'UNAUTHORIZED'
       ) {
-        toast.error('페이지 순서를 변경할 권한이 없습니다');
+        toast.error('You have no permission to reorder pages');
       }
     },
   });
@@ -444,7 +444,7 @@ export function usePageTreeBusiness(
     },
 
     onSuccess: () => {
-      toast.success('Page deleted');
+      toast.success('Page deleted successfully');
     },
 
     onError: (error, variables, context) => {
@@ -457,11 +457,11 @@ export function usePageTreeBusiness(
         error.message === 'NOT_WORKSPACE_MEMBER' ||
         error.message === 'UNAUTHORIZED'
       ) {
-        toast.error('You do not have permission to delete this page');
+        toast.error('You have no permission to delete this page');
       } else if (error.message === 'PAGE_NOT_FOUND') {
         toast.error('Page not found');
       } else {
-        toast.error('Failed to delete page');
+        toast.error('Failed to delete this page');
       }
     },
   });

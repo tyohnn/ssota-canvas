@@ -59,7 +59,7 @@ export function useCreateWorkspaceBusiness(): CreateWorkspaceBusinessLogic {
 
       if (!result.success || !result.data) {
         const errorMessage =
-          'error' in result ? result.error : '워크스페이스 생성에 실패했습니다';
+          'error' in result ? result.error : 'Failed to create workspace';
         throw new Error(errorMessage);
       }
 
@@ -156,7 +156,7 @@ export function useCreateWorkspaceBusiness(): CreateWorkspaceBusinessLogic {
       );
 
       // Show success toast
-      toast.success('워크스페이스가 생성되었습니다');
+      toast.success('Workspace created successfully');
     },
 
     // Auto rollback on error
@@ -164,7 +164,7 @@ export function useCreateWorkspaceBusiness(): CreateWorkspaceBusinessLogic {
       if (context?.previousWorkspaces) {
         setWorkspaces(context.previousWorkspaces);
       }
-      toast.error(error.message || '워크스페이스 생성 중 오류가 발생했습니다');
+      toast.error(error.message || 'Error creating workspace');
     },
   });
 
@@ -186,7 +186,7 @@ export function useCreateWorkspaceBusiness(): CreateWorkspaceBusinessLogic {
           error:
             error instanceof Error
               ? error.message
-              : '워크스페이스 생성에 실패했습니다',
+              : 'Failed to create workspace',
         };
       }
     },

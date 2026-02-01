@@ -7,7 +7,6 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
-import { toast } from '@workspace/ui/components/ui/sonner';
 import { updatePageInfoAction } from '@/domains/workspace-management/actions/page.actions';
 import { useWorkspace } from './use-workspace';
 
@@ -55,13 +54,10 @@ export function useUpdatePageTitle() {
         })
       );
 
-      toast.success('페이지명이 변경되었습니다');
-
       return { pageId, newTitle };
     },
     onError: (error: Error) => {
       console.error('[useUpdatePageTitle] Error:', error);
-      toast.error('페이지명 변경 중 오류가 발생했습니다');
     },
   });
 }

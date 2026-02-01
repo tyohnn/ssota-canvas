@@ -64,13 +64,13 @@ export function useInvitationDetailBusiness(): InvitationDetailBusinessLogic {
     },
 
     onSuccess: () => {
-      toast.success('Workspace 초대를 수락했습니다');
+      toast.success('Workspace invitation accepted');
       // TODO: Optimistic Update로 워크스페이스 목록에 추가
       // 현재는 페이지 새로고침 필요 (향후 개선)
     },
 
     onError: (error: Error) => {
-      toast.error(error.message || '초대 수락 중 오류가 발생했습니다');
+      toast.error(error.message || 'Error accepting workspace invitation');
     },
   });
 
@@ -91,7 +91,7 @@ export function useInvitationDetailBusiness(): InvitationDetailBusinessLogic {
     },
 
     onSuccess: () => {
-      toast.success('Workspace invitation rejected');
+      toast.success('Workspace invitation rejected successfully');
     },
 
     onError: (error: Error) => {

@@ -4,7 +4,6 @@
 import { useState, useCallback } from 'react';
 import { changeMemberRoleAction } from '../../actions/organization-management.actions';
 import { MemberSummary } from '../../shared/dtos';
-import { toast } from '@workspace/ui/components/ui/sonner';
 
 export interface RoleChangeConfirmation {
   memberName: string;
@@ -102,7 +101,6 @@ export function useRoleChange(): UseRoleChangeReturn {
     ) => {
       // 클라이언트 측 검증
       if (!canChangeRole(currentUserRole, member.role)) {
-        toast.error('You do not have permission to change roles');
         return;
       }
 
@@ -140,12 +138,6 @@ export function useRoleChange(): UseRoleChangeReturn {
           newRole: memberInfo.newRole,
         });
 
-        toast.success(
-          memberInfo.isUpgrade
-            ? 'Member promoted to admin'
-            : 'Admin demoted to member'
-        );
-
         setIsDialogOpen(false);
         setMemberInfo(null);
 
@@ -157,7 +149,6 @@ export function useRoleChange(): UseRoleChangeReturn {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to change role';
         setError(errorMessage);
-        toast.error(errorMessage);
       } finally {
         setIsChanging(false);
       }

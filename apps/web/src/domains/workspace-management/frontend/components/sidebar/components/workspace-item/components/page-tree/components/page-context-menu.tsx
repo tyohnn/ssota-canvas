@@ -59,7 +59,7 @@ export function PageContextMenu({
         await onDuplicate();
       } catch (error) {
         console.error('[duplicatePage] Error:', error);
-        toast.error('페이지 복제 중 오류가 발생했습니다');
+        toast.error('Error duplicating page');
       } finally {
         setIsProcessing(false);
       }
@@ -69,13 +69,13 @@ export function PageContextMenu({
       try {
         const result = await duplicatePageAction({ pageId: page.id });
         if (result.success && result.data) {
-          toast.success('페이지가 복제되었습니다');
+          toast.success('Page duplicated successfully');
         } else {
-          toast.error('페이지 복제에 실패했습니다');
+          toast.error('Failed to duplicate page');
         }
       } catch (error) {
         console.error('[duplicatePage] Error:', error);
-        toast.error('페이지 복제 중 오류가 발생했습니다');
+        toast.error('Error duplicating page');
       } finally {
         setIsProcessing(false);
       }
@@ -93,7 +93,7 @@ export function PageContextMenu({
         await onDelete();
       } catch (error) {
         console.error('[deletePage] Error:', error);
-        toast.error('페이지 삭제 중 오류가 발생했습니다');
+        toast.error('Error deleting page');
       } finally {
         setIsProcessing(false);
       }
@@ -103,13 +103,13 @@ export function PageContextMenu({
       try {
         const result = await deletePageAction({ pageId: page.id });
         if (result.success) {
-          toast.success('페이지가 삭제되었습니다');
+          toast.success('Page deleted successfully');
         } else {
-          toast.error('페이지 삭제에 실패했습니다');
+          toast.error('Failed to delete page');
         }
       } catch (error) {
         console.error('[deletePage] Error:', error);
-        toast.error('페이지 삭제 중 오류가 발생했습니다');
+        toast.error('Error deleting page');
       } finally {
         setIsProcessing(false);
       }

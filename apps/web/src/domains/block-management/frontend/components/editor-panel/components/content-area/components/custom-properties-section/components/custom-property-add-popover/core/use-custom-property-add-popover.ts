@@ -7,7 +7,6 @@ import {
   usePropertyAddBusiness,
   type PropertyAddBusinessLogic,
 } from './use-custom-property-add-popover.business';
-import { toast } from '@workspace/ui/components/ui/sonner';
 
 /**
  * Combined Hook: UI + Business Logic
@@ -104,7 +103,6 @@ export function useCustomPropertyAddPopover(
       // Business: Validation (before mutation)
       const error = business.validate?.(finalName);
       if (error) {
-        toast.error(error);
         uiState.inputRef.current?.focus();
         return;
       }
