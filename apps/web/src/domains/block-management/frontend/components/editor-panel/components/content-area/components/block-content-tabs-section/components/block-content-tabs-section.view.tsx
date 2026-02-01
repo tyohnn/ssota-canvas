@@ -16,6 +16,7 @@ import {
   TabsTrigger,
 } from '@workspace/ui/components/ui/tabs';
 
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { useEditorPanelContext } from '@/domains/block-management/frontend/components/editor-panel/core/context';
 import type {
   BlockEditorTab,
@@ -39,6 +40,7 @@ export function BlockContentTabsSectionView({
   blockData,
   blockType,
 }: BlockContentTabsSectionViewProps) {
+  const { readonly } = useCanvasReadOnly();
   const { setTabSwitchCallback } = useEditorPanelContext();
   const [tabsConfig, setTabsConfig] = useState<BlockEditorTabsConfig | null>(
     null
@@ -138,11 +140,7 @@ export function BlockContentTabsSectionView({
     previousTabIdRef.current = selectedTabId;
   }, [selectedTabId]);
 
-  if (loading) {
-    return <TabsLoadingSkeleton />;
-  }
-
-  // tabsConfig가 null이면 기본 노트뷰 탭만 포함하는 설정 생성
+  // 훅 순서 유지를 위해 early return 전에 derived 값과 useEffect 정의
   const defaultNoteTabConfig: BlockEditorTabsConfig = {
     blockType: blockType,
     tabs: [
@@ -155,11 +153,7 @@ export function BlockContentTabsSectionView({
     ],
     defaultTabId: 'note',
   };
-
-  // tabsConfig가 있으면 사용, 없으면 기본 노트뷰 탭 설정 사용
   const baseConfig = tabsConfig || defaultNoteTabConfig;
-
-  // Note 탭이 없으면 마지막에 추가 (config에 정의되지 않은 경우)
   const hasNoteTab = baseConfig.tabs.some(tab => tab.id === 'note');
   const effectiveConfig: BlockEditorTabsConfig = {
     ...baseConfig,
@@ -167,22 +161,45 @@ export function BlockContentTabsSectionView({
       ? baseConfig.tabs
       : [...baseConfig.tabs, { id: 'note', label: 'Note' } as BlockEditorTab],
   };
-
+  const visibleTabs = effectiveConfig.tabs.filter(
+    tab => !(tab.hideInReadonly && readonly)
+  );
   const defaultTabId =
     effectiveConfig.defaultTabId ||
     effectiveConfig.tabs[0]?.id ||
     effectiveConfig.tabs[0]?.id;
+  const effectiveDefaultTabId =
+    visibleTabs[0]?.id || defaultTabId || null;
+  const effectiveSelectedTabId =
+    visibleTabs.some(t => t.id === selectedTabId)
+      ? selectedTabId
+      : effectiveDefaultTabId;
+
+  // selectedTabId가 숨겨진 탭이면 첫 번째 visible 탭으로 전환 (훅은 early return 위에 두어야 함)
+  useEffect(() => {
+    if (
+      visibleTabs.length > 0 &&
+      selectedTabId &&
+      !visibleTabs.some(t => t.id === selectedTabId)
+    ) {
+      setSelectedTabId(effectiveDefaultTabId);
+    }
+  }, [readonly, selectedTabId, visibleTabs, effectiveDefaultTabId]);
+
+  if (loading) {
+    return <TabsLoadingSkeleton />;
+  }
 
   return (
     <Box className="my-4">
       <Tabs
-        value={selectedTabId || defaultTabId || undefined}
+        value={effectiveSelectedTabId || defaultTabId || undefined}
         onValueChange={setSelectedTabId}
       >
         {/* 탭 헤더 - 스크롤 시 상단 고정 */}
         <Box className="sticky top-0 z-10 bg-background px-6 py-2">
           <TabsList className="justify-start">
-            {effectiveConfig.tabs.map(tab => (
+            {visibleTabs.map(tab => (
               <TabsTrigger key={tab.id} value={tab.id}>
                 {tab.label}
               </TabsTrigger>
@@ -191,7 +208,7 @@ export function BlockContentTabsSectionView({
         </Box>
 
         {/* 탭 콘텐츠 */}
-        {effectiveConfig.tabs.map(tab => (
+        {visibleTabs.map(tab => (
           <ShadcnTabsContent key={tab.id} value={tab.id}>
             {blockData &&
               (tab.id === 'note' ? (
