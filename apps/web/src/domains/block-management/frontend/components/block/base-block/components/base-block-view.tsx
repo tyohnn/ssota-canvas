@@ -58,7 +58,7 @@ export const BaseBlockView = forwardRef<HTMLDivElement, BaseBlockViewProps>(
         ref={ref}
         className={cn(
           'relative w-full h-full min-w-[100px] min-h-[70px] overflow-visible',
-          draggable === false && 'cursor-not-allowed'
+          draggable === false && 'cursor-default'
         )}
         style={{
           width: width || 'auto',
