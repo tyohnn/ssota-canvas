@@ -4,13 +4,6 @@ import { useState } from 'react';
 
 import { Check, Loader2, Sparkles } from 'lucide-react';
 
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@workspace/ui/components/ui/popover';
-import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
-
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
   type YoutubeBlockProperties,
@@ -18,9 +11,9 @@ import {
 } from '@/domains/block-management/shared/value-objects/block-properties';
 import { SUPPORTED_LANGUAGES } from '@/domains/youtube-app-space/shared/value-objects/language-code.vo';
 import { useAvailableSummaryLanguages } from '@/domains/youtube-app-space/frontend/hooks';
-import { Box } from '@/components/ui/box';
 
 import { useExtractSummary } from './use-extract-summary';
+import { ExtractSummaryActionView } from './extract-summary-action.view';
 
 interface ExtractSummaryActionProps {
   blockId: string;
@@ -105,48 +98,21 @@ export function ExtractSummaryAction({
     return <Sparkles />;
   };
 
+  const languages = SUPPORTED_LANGUAGES.map(code => ({
+    code,
+    label: getLanguageName(code),
+  }));
+
   return (
-    <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-      <PopoverTrigger asChild>
-        <ToolbarIconButton
-          icon={getIcon()}
-          tooltip={isSuccess ? 'Summary Extracted!' : 'Extract Summary'}
-          tooltipSide="top"
-          tooltipOffset={5}
-          disabled={isLoading}
-          onMouseDown={e => e.stopPropagation()}
-          className="h-7 w-7 p-0"
-          iconClassName="size-3.5"
-        />
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-56 p-2"
-        align="start"
-        onOpenAutoFocus={e => e.preventDefault()}
-      >
-        <Box className="space-y-1">
-          <Box className="px-2 py-1.5 text-sm font-semibold">
-            Select Language
-          </Box>
-          <Box className="max-h-[300px] overflow-y-auto">
-            {SUPPORTED_LANGUAGES.map(lang => {
-              const isAvailable = availableLanguages.includes(lang);
-              return (
-                <Box
-                  key={lang}
-                  className="flex cursor-pointer items-center justify-between rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => handleLanguageSelect(lang)}
-                >
-                  <span>{getLanguageName(lang)}</span>
-                  {isAvailable && (
-                    <Check className="ml-2 h-3 w-3 text-green-600" />
-                  )}
-                </Box>
-              );
-            })}
-          </Box>
-        </Box>
-      </PopoverContent>
-    </Popover>
+    <ExtractSummaryActionView
+      isPopoverOpen={isPopoverOpen}
+      onPopoverOpenChange={setIsPopoverOpen}
+      icon={getIcon()}
+      tooltip={isSuccess ? 'Summary Extracted!' : 'Extract Summary'}
+      disabled={isLoading}
+      languages={languages}
+      availableLanguages={availableLanguages}
+      onLanguageSelect={handleLanguageSelect}
+    />
   );
 }

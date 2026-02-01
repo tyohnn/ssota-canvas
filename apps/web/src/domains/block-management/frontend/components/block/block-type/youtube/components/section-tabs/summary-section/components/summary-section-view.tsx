@@ -114,12 +114,12 @@ export function SummarySectionView({
       {/* 
         동작 방식:
         1. 아직 추출되지 않은 언어 (availableLanguages에 없음)
-           → API 호출 없이 currentSummary = null로 설정
-           → 바로 NoSummaryState 표시 (Extract 버튼)
+          → API 호출 없이 currentSummary = null로 설정
+          → 바로 NoSummaryState 표시 (Extract 버튼)
         
         2. 이미 추출된 언어 (availableLanguages에 있음)
-           - currentSummary가 VideoSummaryView면 → 요약 표시
-           - currentSummary가 undefined면 → 위에서 이미 loading 처리됨
+          - currentSummary가 VideoSummaryView면 → 요약 표시
+          - currentSummary가 undefined면 → 위에서 이미 loading 처리됨
       */}
       {currentSummary ? (
         <SummaryContent

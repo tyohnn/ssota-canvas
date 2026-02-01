@@ -69,13 +69,15 @@ export const BaseBlockView = forwardRef<HTMLDivElement, BaseBlockViewProps>(
         onMouseLeave={onMouseLeave}
       >
         {children}
-        <AddButtonZonesContainer
-          show={showAddButtonZones}
-          data={data}
-          width={width}
-          height={height}
-          setHoverDirection={setHoverDirection}
-        />
+        {showAddButtonZones && (
+          <AddButtonZonesContainer
+            show={showAddButtonZones}
+            data={data}
+            width={width}
+            height={height}
+            setHoverDirection={setHoverDirection}
+          />
+        )}
       </div>
     );
   }

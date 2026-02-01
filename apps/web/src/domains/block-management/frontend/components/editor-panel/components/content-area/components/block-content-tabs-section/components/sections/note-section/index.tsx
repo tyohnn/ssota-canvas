@@ -1,5 +1,5 @@
 /**
- * Note Section
+ * Note Section Container
  *
  * Editor Panel의 Note 탭 컴포넌트
  * 기존 BlockContentSection의 기능을 유지하면서 탭 시스템에 통합
@@ -9,14 +9,13 @@
 
 import { useReactFlow } from '@xyflow/react';
 
-import { Box } from '@/components/ui/box';
-import { TipTapEditor } from '@/domains/block-management/frontend/components/tiptap-editor';
 import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
 import type { MarkdownContentSectionProps } from './core/types';
 import { useMarkdownContentSection } from './core/use-markdown-content-section';
+import { NoteSectionView } from './note-section.view';
 
 /**
  * Note Section Component
@@ -54,40 +53,11 @@ export default function NoteSection({
     },
   });
 
-  // Early return은 모든 Hook 호출 이후
-  if (!editor) {
-    return null;
-  }
-
   return (
-    <Box className="pl-6 pr-4 py-3 min-h-[200px]" data-note-section="true">
-      {/* Notion-style Editor Container (readonly면 클릭해도 포커스/편집 불가) */}
-      <Box
-        onClick={readonly ? undefined : handleEditorClick}
-        className={readonly ? 'min-h-[200px] cursor-default' : 'min-h-[200px] cursor-text'}
-      >
-        <TipTapEditor
-          editor={editor}
-          editable={!readonly}
-          onClick={handleEditorClick}
-          placeholderClassName="tiptap-editor-panel"
-          placeholderStyleTarget="tiptap-editor-panel"
-          className={`
-            [&_.ProseMirror]:min-h-[200px]
-            [&_.ProseMirror_p:last-child]:mb-0
-            [&_.ProseMirror_h1]:my-4
-            [&_.ProseMirror_h2]:my-3
-            [&_.ProseMirror_ul]:my-2
-            [&_.ProseMirror_ol]:my-2
-            [&_.ProseMirror_li]:my-1
-            [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:text-sm [&_.ProseMirror_code]:font-mono
-            [&_.ProseMirror_pre]:my-3 [&_.ProseMirror_pre]:overflow-x-auto
-            [&_.ProseMirror_pre_code]:bg-transparent [&_.ProseMirror_pre_code]:p-0
-            [&_.ProseMirror_blockquote]:border-muted-foreground/30 [&_.ProseMirror_blockquote]:my-3
-            [&_.ProseMirror_hr]:border-border [&_.ProseMirror_hr]:my-4
-          `}
-        />
-      </Box>
-    </Box>
+    <NoteSectionView
+      editor={editor}
+      readonly={readonly}
+      onEditorClick={handleEditorClick}
+    />
   );
 }

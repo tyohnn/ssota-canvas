@@ -6,19 +6,13 @@
 
 'use client';
 
-import { useRef } from 'react';
-
 import { Info } from 'lucide-react';
 
 import { Box } from '@/components/ui/box';
 import type { ProcessVideoScriptDTO } from '@/domains/youtube-app-space/shared/dtos/responses/video.responses';
 
 import { ScriptContent } from './script-content';
-import { useScrollSpy } from './script-table-of-contents/core/use-scroll-spy';
 
-/**
- * Script No Script State Props
- */
 interface ScriptNoScriptStateProps {
   onExtractScript: () => Promise<void>;
   isExtracting?: boolean;
@@ -87,7 +81,6 @@ export function ScriptNoScriptState({
   onExtractScript,
   isExtracting = false,
 }: ScriptNoScriptStateProps) {
-  const headerRef = useRef<HTMLHeadingElement>(null);
   const exampleScript = createExampleScript();
 
   return (

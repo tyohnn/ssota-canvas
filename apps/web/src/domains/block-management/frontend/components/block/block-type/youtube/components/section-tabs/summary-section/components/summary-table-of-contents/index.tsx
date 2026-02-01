@@ -39,7 +39,7 @@ export function SummaryTableOfContents({
 
   return (
     <Box
-      className="fixed right-4 top-1/2 -translate-y-1/2 z-10 transition-opacity duration-300"
+      className="fixed right-4 top-1/2 -translate-y-1/2 z-100 transition-opacity duration-300"
       style={{
         opacity: showTOC ? 1 : 0,
         pointerEvents: showTOC ? 'auto' : 'none',

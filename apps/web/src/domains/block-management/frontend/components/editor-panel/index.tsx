@@ -17,6 +17,7 @@ import {
 
 import { ContentArea } from './components/content-area';
 import { Header } from './components/header';
+import { EditorPanelView } from './editor-panel.view';
 import { useEditorPanelContext } from './core/context';
 import { EditorPanelProvider } from './core/provider';
 import type { EditorPanelProps } from './core/types';
@@ -78,27 +79,10 @@ function EditorPanelWrapper() {
   if (!shouldRender || !blockData) return null;
 
   return (
-    <div
-      className={`absolute z-50 bg-background backdrop-blur-md border-border shadow-2xl ${
-        isExpanded
-          ? 'inset-0 border rounded-none'
-          : 'bottom-0 right-0 w-[50%] h-[90%] border-l border-t rounded-tl-lg'
-      } ${
-        isAnimating ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
-      }`}
-      style={{
-        transition:
-          'all 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease-out, opacity 0.3s ease-out',
-      }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="editor-panel-title"
-    >
-      <div className="flex flex-col h-full">
-        <Header />
-        <ContentArea />
-      </div>
-    </div>
+    <EditorPanelView isExpanded={isExpanded} isVisible={isAnimating}>
+      <Header />
+      <ContentArea />
+    </EditorPanelView>
   );
 }
 

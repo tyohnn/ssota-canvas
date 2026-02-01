@@ -16,6 +16,7 @@ const fontMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://ssota.io'),
   title: {
     default: 'SSOTA - Where Humans and AI Agents Collaborate on One Canvas',
     template: '%s | SSOTA',

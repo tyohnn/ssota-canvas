@@ -4,7 +4,7 @@ import { Button } from '@workspace/ui/components/ui/button';
 
 import { createClient } from '@/utils/supabase/server';
 
-import RotatingBracket from './landing/RotatingBracket';
+import RotatingBracket from './RotatingBracket';
 
 // import { checkBetaApprovalAction } from '@/domains/user-management/actions/beta.actions';
 

@@ -27,11 +27,14 @@
 
 import { forwardRef, memo } from 'react';
 
+import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
+
 import { ActionBar } from './components/action-bar';
 import { BaseBlockView } from './components/base-block-view';
 import { Content } from './components/content';
 import { Handles } from './components/handles';
 import { ResizeControl } from './components/resize-control';
+import { Toolbar } from './components/toolbar';
 import type { BaseBlockProps } from './core/types';
 import type { UseBaseBlockOptions } from './core/use-base-block';
 import { useBaseBlock } from './core/use-base-block';
@@ -39,6 +42,15 @@ import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts
 
 export interface BaseBlockComponentProps extends BaseBlockProps {
   businessLogic?: UseBaseBlockOptions['businessLogic'];
+  // Toolbar props - DataBlock에서 전달
+  toolbarProps?: {
+    viewMode: BlockViewModeValue;
+    onViewModeChange?: (viewMode: BlockViewModeValue) => void;
+    zoom: number;
+    isMultiSelection: boolean;
+    onEdit: () => void;
+    showBlockToolbarMapper?: boolean;
+  };
 }
 
 /**
@@ -48,7 +60,7 @@ export interface BaseBlockComponentProps extends BaseBlockProps {
  */
 const BaseBlockContainer = memo(
   forwardRef<HTMLDivElement, BaseBlockComponentProps>(
-    ({ children, businessLogic, ...props }, ref) => {
+    ({ children, businessLogic, toolbarProps, ...props }, ref) => {
       // Hook으로 데이터 가져오기
       const contextValue = useBaseBlock(props, { businessLogic });
       const { readonly } = useCanvasReadOnly();
@@ -70,6 +82,17 @@ const BaseBlockContainer = memo(
           }
           setHoverDirection={contextValue.setHoverDirection}
         >
+          {/* 상단 툴바 - BaseBlock 내부에서 직접 렌더링 (ActionBar처럼) */}
+          <Toolbar
+            data={contextValue.data}
+            selected={contextValue.selected}
+            isCurrentBlockSelected={contextValue.isCurrentBlockSelected}
+            isSingleSelection={contextValue.isSingleSelection}
+            width={contextValue.width}
+            height={contextValue.height}
+            toolbarProps={toolbarProps}
+          />
+
           {/* 리사이즈 핸들 */}
           <ResizeControl
             data={contextValue.data}
