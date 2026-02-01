@@ -13,6 +13,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+const COPY_FEEDBACK_MS = 1500;
+
 interface PublishedContentProps {
   normalizedUrl: string | null;
   isUnpublishing: boolean;
@@ -30,14 +32,26 @@ export function PublishedContent({
 }: PublishedContentProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState<boolean>(false);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // isLinkCopied가 true가 되면 체크 표시 후 2초 뒤 복사 아이콘으로 복귀.
+  // 부모가 그 전에 isLinkCopied를 false로 바꿔도 타이머는 취소하지 않고 유지.
   useEffect(() => {
     if (isLinkCopied) {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
       setCopied(true);
-      const timer = setTimeout(() => setCopied(false), 1500);
-      return () => clearTimeout(timer);
+      resetTimerRef.current = setTimeout(() => {
+        setCopied(false);
+        resetTimerRef.current = null;
+      }, COPY_FEEDBACK_MS);
     }
   }, [isLinkCopied]);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
 
   const handleCopy = () => {
     if (inputRef.current) {
