@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
+import { useBlockContentChangeContext } from '@/domains/block-management/frontend/contexts/block-content-change-context';
 import { useTipTapEditor } from '@/domains/block-management/frontend/components/tiptap-editor/core/use-tiptap-editor';
 import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
@@ -49,6 +50,7 @@ export function useNoteView(
     options?.canvasMetadataOverride as CanvasMetadata | undefined
   );
   const canvasMode = useCanvasModeContext();
+  const blockContentChange = useBlockContentChangeContext();
 
   // 2. 의존성을 의미 있는 객체로 번들링
   const domainDependencies: DomainDependencies = {
@@ -102,6 +104,7 @@ export function useNoteView(
     onContentChange: content => {
       const updatedData = { ...data, content };
       updateNode(data.blockMountId, { data: updatedData });
+      blockContentChange?.onContentChange?.();
     },
     onSave: (content, contentRaw) => {
       business.saveContentToServer(content, contentRaw);

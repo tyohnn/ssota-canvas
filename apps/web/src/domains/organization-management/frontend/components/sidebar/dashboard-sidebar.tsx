@@ -31,9 +31,11 @@ import {
   Blocks,
   Moon,
   Sun,
+  GraduationCap,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
+import { TutorialDialogStandalone } from '@/domains/tutorial-management/frontend/components/tutorial-dialog/tutorial-dialog-dynamic';
 
 export function DashboardSidebar() {
   const { theme, setTheme } = useTheme();
@@ -41,6 +43,8 @@ export function DashboardSidebar() {
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isUpdatesOpen, setIsUpdatesOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [tutorialPrefetched, setTutorialPrefetched] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -48,6 +52,16 @@ export function DashboardSidebar() {
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  const handleTutorialHover = () => {
+    if (!tutorialPrefetched) {
+      setTutorialPrefetched(true);
+      // Prefetch tutorial dialog on hover for instant loading
+      import(
+        '@/domains/tutorial-management/frontend/components/tutorial-dialog'
+      );
+    }
   };
 
   return (
@@ -105,6 +119,17 @@ export function DashboardSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               className="text-muted-foreground"
+              tooltip="Tutorials"
+              onClick={() => setIsTutorialOpen(true)}
+              onMouseEnter={handleTutorialHover}
+            >
+              <GraduationCap />
+              <span>Tutorials</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              className="text-muted-foreground"
               tooltip="Help"
               onClick={() => setIsHelpOpen(true)}
             >
@@ -116,6 +141,14 @@ export function DashboardSidebar() {
       </SidebarFooter>
 
       <SidebarRail />
+
+      {/* Tutorial Dialog */}
+      {isTutorialOpen && (
+        <TutorialDialogStandalone
+          open={isTutorialOpen}
+          onOpenChange={setIsTutorialOpen}
+        />
+      )}
 
       {/* Templates Dialog */}
       <Dialog open={isTemplatesOpen} onOpenChange={setIsTemplatesOpen}>
