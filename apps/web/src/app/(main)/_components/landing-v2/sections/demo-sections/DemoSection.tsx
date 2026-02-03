@@ -1,7 +1,6 @@
 "use client";
 
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/ui/tabs";
-import { motion } from "framer-motion";
 import { Section } from "../../Section";
 import { CanvasDemo } from "./CanvasDemo";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -23,7 +22,12 @@ const TAB_DURATIONS_MS: Record<typeof TAB_ORDER[number], number> = {
   deliverables: DELIVERABLES_COMPLETION_DELAY_MS,
 };
 
-export function DemoSection() {
+interface DemoSectionProps {
+  /** When true, render only Tabs + CanvasDemo (no Section wrapper, no title). Used inside HeroSection. */
+  embeddedInHero?: boolean;
+}
+
+export function DemoSection({ embeddedInHero = false }: DemoSectionProps) {
   const [activeTab, setActiveTab] = useState("summarize");
   const [currentTabProgress, setCurrentTabProgress] = useState(0); // 0-1 for current tab only
   const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
@@ -117,61 +121,49 @@ export function DemoSection() {
   // Each tab: 0% → 100%. When tab ends = 100%, next tab starts at 0%
   const progressPercent = currentTabProgress * 100;
 
-  return (
-    <Section className="bg-muted/30 dark:bg-muted/30 py-20" id="demo">
-      <div ref={sectionRef} className="flex flex-col flex-1 min-h-0">
-        <div className="flex flex-col items-center mb-12 space-y-4 text-center">
-          <motion.div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 dark:bg-primary/20 text-primary text-sm font-medium border border-primary/20"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <span>Interactive demo</span>
-            <span className="text-muted-foreground">·</span>
-            <span>Click & scroll to explore</span>
-          </motion.div>
-          <motion.h2
-            className="text-3xl md:text-5xl font-bold tracking-tight"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            Try SSOTA in 30 seconds.
-          </motion.h2>
-        </div>
+  const demoContent = (
+    <div
+      ref={sectionRef}
+      className="flex flex-col flex-1 min-h-0 w-full "
+    >
+      <Tabs
+        defaultValue="summarize"
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="w-full flex flex-col h-[80vh] mt-8"
+      >
+        <TabsList className="grid w-11/12 grid-cols-4 h-12 mx-auto">
+          <TabsTrigger value="summarize" className="text-base">Summarize</TabsTrigger>
+          <TabsTrigger value="structure" className="text-base">Structure</TabsTrigger>
+          <TabsTrigger value="organize" className="text-base">Organize</TabsTrigger>
+          <TabsTrigger value="deliverables" className="text-base">Deliverables</TabsTrigger>
+        </TabsList>
 
-        <Tabs
-          defaultValue="summarize"
-          value={activeTab}
-          onValueChange={handleTabChange}
-          className="w-full max-w-7xl mx-auto px-4 md:px-6 h-[70vh] flex flex-col"
-        >
-          <TabsList className="grid w-full grid-cols-4 h-12">
-            <TabsTrigger value="summarize" className="text-base">Summarize</TabsTrigger>
-            <TabsTrigger value="structure" className="text-base">Structure</TabsTrigger>
-            <TabsTrigger value="organize" className="text-base">Organize</TabsTrigger>
-            <TabsTrigger value="deliverables" className="text-base">Deliverables</TabsTrigger>
-          </TabsList>
-
-          <div className="flex-1 relative border rounded-xl overflow-hidden shadow-lg bg-background">
-            {/* Progress indicator: smooth, continuous animation independent of steps */}
-            <div className="absolute top-0 left-0 right-0 h-0.5 z-50 bg-muted/30 dark:bg-muted/30">
-              <div
-                className="h-full bg-primary rounded-b"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <CanvasDemo
-              mode={activeTab}
-              onTabComplete={handleTabComplete}
-              startAnimation={hasEnteredViewport}
+        <div className="flex-1 relative border rounded-xl overflow-hidden shadow-lg bg-background">
+          {/* Progress indicator: smooth, continuous animation independent of steps */}
+          <div className="absolute top-0 left-0 right-0 h-0.5 z-50 bg-muted/30 dark:bg-muted/30">
+            <div
+              className="h-full bg-primary rounded-b"
+              style={{ width: `${progressPercent}%` }}
             />
           </div>
-        </Tabs>
-      </div>
+          <CanvasDemo
+            mode={activeTab}
+            onTabComplete={handleTabComplete}
+            startAnimation={hasEnteredViewport}
+          />
+        </div>
+      </Tabs>
+    </div>
+  );
+
+  if (embeddedInHero) {
+    return demoContent;
+  }
+
+  return (
+    <Section className="bg-muted/30 dark:bg-muted/30 py-20" id="demo">
+      {demoContent}
     </Section>
   );
 }
