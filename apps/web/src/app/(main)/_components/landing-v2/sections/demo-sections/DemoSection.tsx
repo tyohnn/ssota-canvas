@@ -104,9 +104,14 @@ export function DemoSection({ embeddedInHero = false }: DemoSectionProps) {
       animationFrameRef.current = null;
     }
 
-    // Current tab finished → show 100%, no auto-advance to next tab
     setCurrentTabProgress(1);
-  }, []);
+
+    // Auto-advance to next tab (loop to first after last)
+    const currentIndex = TAB_ORDER.indexOf(activeTab as (typeof TAB_ORDER)[number]);
+    const nextIndex = currentIndex < TAB_ORDER.length - 1 ? currentIndex + 1 : 0;
+    const nextTab = TAB_ORDER[nextIndex] ?? TAB_ORDER[0];
+    setActiveTab(nextTab);
+  }, [activeTab]);
 
   // When user manually clicks a tab, reset progress to 0
   const handleTabChange = useCallback((value: string) => {
