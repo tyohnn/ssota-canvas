@@ -42,8 +42,10 @@ export function DashboardSidebar() {
   const [mounted, setMounted] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isUpdatesOpen, setIsUpdatesOpen] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+
+  const HELP_CENTER_URL = 'https://helpcenter.ssota.ai/';
+  const UPDATES_URL = 'https://feedback.ssota.ai/changelog';
   const [tutorialPrefetched, setTutorialPrefetched] = useState(false);
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export function DashboardSidebar() {
   };
 
   return (
-    <Sidebar className="border-r-0 p-0">
+    <Sidebar className="border-r-0 p-0 select-none">
       <SidebarHeader>
         <OrganizationSwitcher />
         <SidebarHeaderGroup />
@@ -80,8 +82,9 @@ export function DashboardSidebar() {
           {/* Theme Toggle */}
           <SidebarMenuItem>
             <SidebarMenuButton
+              size="sm"
               onClick={toggleTheme}
-              className="text-muted-foreground"
+              className="text-sidebar-foreground"
               tooltip={mounted && theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             >
               {!mounted ? (
@@ -98,7 +101,8 @@ export function DashboardSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className="text-muted-foreground"
+              size="sm"
+              className="text-sidebar-foreground"
               tooltip="Templates"
               onClick={() => setIsTemplatesOpen(true)}
             >
@@ -108,9 +112,10 @@ export function DashboardSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className="text-muted-foreground"
+              size="sm"
+              className="text-sidebar-foreground"
               tooltip="Updates"
-              onClick={() => setIsUpdatesOpen(true)}
+              onClick={() => window.open(UPDATES_URL, '_blank', 'noopener,noreferrer')}
             >
               <RefreshCw />
               <span>Updates</span>
@@ -118,7 +123,8 @@ export function DashboardSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className="text-muted-foreground"
+              size="sm"
+              className="text-sidebar-foreground"
               tooltip="Tutorials"
               onClick={() => setIsTutorialOpen(true)}
               onMouseEnter={handleTutorialHover}
@@ -129,12 +135,13 @@ export function DashboardSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className="text-muted-foreground"
-              tooltip="Help"
-              onClick={() => setIsHelpOpen(true)}
+              size="sm"
+              className="text-sidebar-foreground"
+              tooltip="Help center"
+              onClick={() => window.open(HELP_CENTER_URL, '_blank', 'noopener,noreferrer')}
             >
               <MessageCircleQuestion />
-              <span>Help</span>
+              <span>Help center</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -168,41 +175,6 @@ export function DashboardSidebar() {
         </DialogContent>
       </Dialog>
 
-      {/* Updates Dialog */}
-      <Dialog open={isUpdatesOpen} onOpenChange={setIsUpdatesOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Updates</DialogTitle>
-            <DialogDescription>
-              Stay up to date with the latest features and improvements.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-6 text-center">
-            <p className="text-sm text-muted-foreground">🚧 Preparing...</p>
-            <p className="text-xs text-muted-foreground mt-2">
-              This feature is under development
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Help Dialog */}
-      <Dialog open={isHelpOpen} onOpenChange={setIsHelpOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Help & Support</DialogTitle>
-            <DialogDescription>
-              Get help and learn how to use SSOTA effectively.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-6 text-center">
-            <p className="text-sm text-muted-foreground">🚧 Preparing...</p>
-            <p className="text-xs text-muted-foreground mt-2">
-              This feature is under development
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
     </Sidebar>
   );
 }

@@ -47,9 +47,9 @@ export function FavoritePageList({ pages }: FavoritePageListProps) {
           key={page.id}
           onClick={() => handlePageClick(page)}
           className={cn(
-            'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
-            'hover:bg-accent hover:text-accent-foreground',
-            selectedPageId === page.id && 'bg-accent text-accent-foreground'
+            'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-sidebar-foreground transition-colors',
+            'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+            selectedPageId === page.id && 'bg-sidebar-accent text-sidebar-accent-foreground'
           )}
         >
           {page.icon ? (

@@ -132,7 +132,7 @@ export function PageTreeItemRenderer({
                   className={cn(
                     isActive
                       ? 'text-accent-foreground'
-                      : 'text-muted-foreground'
+                      : 'text-sidebar-foreground'
                   )}
                 />
               </div>
@@ -156,7 +156,7 @@ export function PageTreeItemRenderer({
                     'w-full h-full transition-all',
                     isActive
                       ? 'text-accent-foreground'
-                      : 'text-muted-foreground',
+                      : 'text-sidebar-foreground',
                     !isExpanded && '-rotate-90'
                   )}
                 />
@@ -166,8 +166,8 @@ export function PageTreeItemRenderer({
             {/* 페이지 제목 - 클릭 시 페이지 이동 */}
             <div
               className={cn(
-                'truncate text-sm font-medium tracking-wide cursor-pointer flex-1 text-left',
-                isActive ? 'text-accent-foreground' : 'text-muted-foreground'
+                'truncate text-xs font-medium tracking-wide cursor-pointer flex-1 text-left',
+                isActive ? 'text-accent-foreground' : 'text-sidebar-foreground'
               )}
               onClick={handlePageClick}
             >

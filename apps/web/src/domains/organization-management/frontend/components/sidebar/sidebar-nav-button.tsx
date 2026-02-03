@@ -56,7 +56,8 @@ export function SidebarNavButton({
 
   return (
     <SidebarMenuButton
-      className={className || 'text-muted-foreground'}
+      size="sm"
+      className={className || 'text-sidebar-foreground'}
       tooltip={tooltip}
       onClick={onClick}
     >
