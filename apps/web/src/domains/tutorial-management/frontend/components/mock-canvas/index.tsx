@@ -20,10 +20,10 @@ import { BLOCK_TYPE_SIZES } from '@/domains/block-management/shared/types/block-
 import {
   MarkdownBlock,
   ShapeBlock,
-  YoutubeBlock,
   ImageBlock,
   LinkBlock,
 } from '@/domains/block-management/frontend/components/block/block-type';
+import { TutorialYoutubeBlockNode } from '../mock-youtube-block/components/tutorial-youtube-block-node';
 import { CanvasMetadataProvider } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { CanvasReadOnlyProvider } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { CustomEdge } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/custom-edge';
@@ -41,6 +41,12 @@ import { TutorialStartOverlay } from '../common/tutorial-start-overlay';
 import { TutorialStepOverlay } from '../common/tutorial-step-overlay';
 import { InteractionGuard } from '../common/interaction-guard';
 import { useTutorialDialogContext } from '../tutorial-dialog/core/context';
+import { useMockViewportAdjustment } from '../mock-editor-panel/core/use-mock-viewport-adjustment';
+import { TUTORIAL_YOUTUBE_PROPERTIES } from '../../config/tutorial-mock-data';
+import {
+  getTutorialVisualSummaryNodesAndEdges,
+  isTutorialVisualSummaryNodeId,
+} from '../../config/tutorial-visual-summary-nodes';
 import type { NodeProps } from '@xyflow/react';
 
 /**
@@ -60,12 +66,13 @@ function withBlockNodeGuard<P extends NodeProps>(NodeComponent: ComponentType<P>
 /**
  * MockCanvas Node Types (5 types only)
  *
- * Reuses actual block components from the app; each is wrapped so step overlay can target block-node.
+ * YouTube uses TutorialYoutubeBlockNode (toolbar, action bar, tutorial state).
+ * Others use real block components wrapped with block-node guard.
  */
 const MOCK_CANVAS_NODE_TYPES = {
   [BlockType.MARKDOWN]: withBlockNodeGuard(MarkdownBlock),
   [BlockType.SHAPE]: withBlockNodeGuard(ShapeBlock),
-  [BlockType.YOUTUBE]: withBlockNodeGuard(YoutubeBlock),
+  [BlockType.YOUTUBE]: TutorialYoutubeBlockNode,
   [BlockType.IMAGE]: withBlockNodeGuard(ImageBlock),
   [BlockType.LINK]: withBlockNodeGuard(LinkBlock),
 };
@@ -79,15 +86,36 @@ const MOCK_CANVAS_METADATA = {
 
 /**
  * Runs fitView when nodes are present so the placed block stays in view with padding.
- * Renders nothing.
+ * Skips when visual summary is rendered (handled by VisualSummaryFitViewEffect).
  */
-function FitViewEffect({ nodeCount }: { nodeCount: number }) {
+function FitViewEffect({
+  nodeCount,
+  skipFitView,
+}: {
+  nodeCount: number;
+  skipFitView: boolean;
+}) {
   const { fitView } = useReactFlow();
   useEffect(() => {
-    if (nodeCount > 0) {
-      fitView({ duration: 500, padding: 0.2, maxZoom: 0.9 });
-    }
-  }, [nodeCount, fitView]);
+    if (skipFitView || nodeCount === 0) return;
+    fitView({ duration: 500, padding: 0.2, maxZoom: 0.9 });
+  }, [nodeCount, fitView, skipFitView]);
+  return null;
+}
+
+/**
+ * When the YouTube tutorial reaches "visual summary rendered", fit view so the full
+ * canvas (YouTube block + argument map) is visible. Runs once when entering this state.
+ */
+function VisualSummaryFitViewEffect({ active }: { active: boolean }) {
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    if (!active) return;
+    const timer = setTimeout(() => {
+      fitView({ duration: 800, padding: 0.2, maxZoom: 0.5 });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [active, fitView]);
   return null;
 }
 
@@ -116,7 +144,17 @@ function MockCanvasInnerWithFlow({
     startTutorial,
     completeCurrentStep,
     updateTutorialState,
+    tutorialState,
   } = useTutorialDialogContext();
+
+  const lastPlacedNodeIdRef = useRef<string | null>(null);
+  const blockMountIdFromState = (tutorialState.lastPlacedNodeId as string) ?? null;
+  const blockMountId = blockMountIdFromState ?? lastPlacedNodeIdRef.current;
+  const editorPanelOpen = Boolean(tutorialState.editorPanelOpen);
+  const visualSummaryRendered = Boolean(tutorialState.visualSummaryRendered);
+  const isYoutubeBlockTutorial = currentTutorial?.id === 'youtube-block';
+
+  useMockViewportAdjustment(blockMountId, editorPanelOpen);
 
   const {
     isBlockCreationMode,
@@ -128,7 +166,25 @@ function MockCanvasInnerWithFlow({
 
   const reactFlow = useReactFlow();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // When YouTube block tutorial reaches "visual summary rendered", inject argument map nodes/edges (demo result).
+  // Position the argument map 100px to the right of the user's YouTube block.
+  useEffect(() => {
+    if (!isYoutubeBlockTutorial || !visualSummaryRendered) return;
+    const hasVsNodes = nodes.some((n) => isTutorialVisualSummaryNodeId(n.id));
+    if (hasVsNodes) return;
+    const youtubeNode = nodes.find((n) => n.type === BlockType.YOUTUBE);
+    if (!youtubeNode) return;
+    const ytWidth = (youtubeNode.style?.width as number) ?? BLOCK_TYPE_SIZES[BlockType.YOUTUBE].width;
+    const anchor = {
+      x: youtubeNode.position.x + ytWidth + 100,
+      y: youtubeNode.position.y,
+    };
+    const { nodes: vsNodes, edges: vsEdges } = getTutorialVisualSummaryNodesAndEdges(anchor);
+    setNodes((prev) => [...prev, ...vsNodes]);
+    setEdges((prev) => [...prev, ...vsEdges]);
+  }, [isYoutubeBlockTutorial, visualSummaryRendered, nodes, setNodes, setEdges]);
 
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1 }), []);
 
@@ -188,12 +244,19 @@ function MockCanvasInnerWithFlow({
           style: {
             width: blockSize?.width ?? 200,
             height: blockSize?.height ?? 150,
+            overflow: 'visible',
           },
         } as Node,
       ]);
 
       exitToDefaultMode();
-      updateTutorialState({ lastPlacedNodeId: nodeId });
+      lastPlacedNodeIdRef.current = nodeId;
+      updateTutorialState({
+        lastPlacedNodeId: nodeId,
+        ...(blockType === BlockType.YOUTUBE
+          ? { youtubeUrl: TUTORIAL_YOUTUBE_PROPERTIES.url }
+          : {}),
+      });
       handleBlockPlaced?.();
       setTimeout(() => completeCurrentStep(), 300);
     },
@@ -314,7 +377,13 @@ function MockCanvasInnerWithFlow({
         )}
       >
         <Background gap={20} size={1} />
-        <FitViewEffect nodeCount={nodes.length} />
+        <FitViewEffect
+          nodeCount={nodes.length}
+          skipFitView={isYoutubeBlockTutorial && visualSummaryRendered}
+        />
+        <VisualSummaryFitViewEffect
+          active={Boolean(isYoutubeBlockTutorial && visualSummaryRendered)}
+        />
         <MockViewportNavigationProvider />
 
         {isBlockCreation && <MockShadowBlock />}

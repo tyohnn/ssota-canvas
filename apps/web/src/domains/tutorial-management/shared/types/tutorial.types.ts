@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { MutableRefObject, ReactNode } from 'react';
 import type { Node, Edge } from '@xyflow/react';
 
 /**
@@ -147,6 +147,9 @@ export interface TutorialDialogContextValue {
 
   // State Update
   updateTutorialState: (updates: Partial<TutorialState>) => void;
+
+  /** Ref that always holds the last placed block node id (set when placing; cleared on close/select). Used so script seek works even if tutorialState.lastPlacedNodeId is overwritten. */
+  lastPlacedNodeIdRef: MutableRefObject<string | null>;
 
   // Interaction Control (Hard Restriction)
   isElementInteractable: (selector: string) => boolean;

@@ -13,7 +13,12 @@ const CARD_GAP = 12;
 const CARD_ESTIMATED_HEIGHT = 180;
 
 /** Steps where the Add Block dialog is open; overlay must render in portal with higher z-index so it appears above the dialog. */
-const STEPS_WITH_ADD_DIALOG = ['add-block', 'select-block-type'];
+const STEPS_WITH_ADD_DIALOG = ['add-block', 'select-block-type', 'select-youtube'];
+/** Steps where a Select (language) popover is open; overlay must be above the popover. */
+const STEPS_WITH_SELECT_POPOVER = ['click-language', 'select-english'];
+/** Steps right after editor panel opens; re-measure after panel slide-in so highlight/card position is correct. */
+const STEPS_AFTER_PANEL_OPEN = ['click-script'];
+const PANEL_OPEN_MEASURE_DELAY_MS = 420;
 const OVERLAY_ABOVE_DIALOG_Z = 60;
 
 interface TargetRect {
@@ -68,17 +73,17 @@ function HighlightBox({
   const useAbsolute = containerRect != null;
   const style = useAbsolute
     ? {
-        left: rect.left - containerRect!.left - 4,
-        top: rect.top - containerRect!.top - 4,
-        width: rect.width + 8,
-        height: rect.height + 8,
-      }
+      left: rect.left - containerRect!.left - 4,
+      top: rect.top - containerRect!.top - 4,
+      width: rect.width + 8,
+      height: rect.height + 8,
+    }
     : {
-        left: rect.left - 4,
-        top: rect.top - 4,
-        width: rect.width + 8,
-        height: rect.height + 8,
-      };
+      left: rect.left - 4,
+      top: rect.top - 4,
+      width: rect.width + 8,
+      height: rect.height + 8,
+    };
 
   return (
     <>
@@ -161,6 +166,12 @@ export function TutorialStepOverlay({ containerRef }: TutorialStepOverlayProps =
   }, [targetSelector, currentStep?.id]);
 
   useEffect(() => {
+    if (!currentStep?.id || !STEPS_AFTER_PANEL_OPEN.includes(currentStep.id)) return;
+    const t = setTimeout(measure, PANEL_OPEN_MEASURE_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [currentStep?.id]);
+
+  useEffect(() => {
     const onUpdate = () => measure();
     window.addEventListener('resize', onUpdate);
     window.addEventListener('scroll', onUpdate, true);
@@ -183,7 +194,10 @@ export function TutorialStepOverlay({ containerRef }: TutorialStepOverlayProps =
   const cardContent = (
     <Box
       ref={cardRef}
-      className="bg-card border-2 border-primary rounded-lg shadow-xl p-4 max-w-md pointer-events-auto z-100"
+      className={cn(
+        "bg-card border-2 border-primary rounded-lg shadow-xl p-4 max-w-md z-100",
+        showNextButton ? "pointer-events-auto" : "pointer-events-none"
+      )}
     >
       <Box className="flex items-start gap-3">
         <Box className="shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm">
@@ -206,7 +220,7 @@ export function TutorialStepOverlay({ containerRef }: TutorialStepOverlayProps =
           size="sm"
           onClick={() => completeCurrentStep({ fromNextButton: true })}
         >
-          {isLastStep ? 'Finish' : 'Next'}
+          {isLastStep && !isObserveStep ? 'Finish' : 'Next'}
         </Button>
       )}
 
@@ -228,7 +242,7 @@ export function TutorialStepOverlay({ containerRef }: TutorialStepOverlayProps =
     rect != null &&
     containerRect != null &&
     rect.bottom - containerRect.top + CARD_GAP + CARD_ESTIMATED_HEIGHT >
-      containerRect.height - 16 &&
+    containerRect.height - 16 &&
     rect.top - containerRect.top > CARD_ESTIMATED_HEIGHT + CARD_GAP;
   const placeCardAboveFixed =
     rect != null &&
@@ -238,9 +252,11 @@ export function TutorialStepOverlay({ containerRef }: TutorialStepOverlayProps =
   /** No target (undefined or empty) = default mode: no highlight, card at bottom-center (absolute, no portal). */
   const useContentBottomCard = !targetSelector;
 
-  /** When true, overlay is portaled above Add Block dialog; use fixed positioning for highlight/card. */
+  /** When true, overlay is portaled above dialog or select popover; use fixed positioning for highlight/card. */
   const usePortalAboveDialog =
-    currentStep != null && STEPS_WITH_ADD_DIALOG.includes(currentStep.id);
+    currentStep != null &&
+    (STEPS_WITH_ADD_DIALOG.includes(currentStep.id) ||
+      STEPS_WITH_SELECT_POPOVER.includes(currentStep.id));
   const useAbsoluteInCanvas =
     containerRect != null && !usePortalAboveDialog;
 
@@ -271,54 +287,54 @@ export function TutorialStepOverlay({ containerRef }: TutorialStepOverlayProps =
 
   const targetAnchoredPosition = rect
     ? (() => {
-        const useAbs = useAbsoluteInCanvas;
-        const base = 'z-100 pointer-events-none';
-        if (useAbs) {
-          const left = rect.left - containerRect!.left + rect.width / 2;
-          const top = placeCardAbove
-            ? undefined
-            : rect.bottom - containerRect!.top + CARD_GAP;
-          const bottom = placeCardAbove
-            ? containerRect!.bottom - rect.top + CARD_GAP
-            : undefined;
-          return (
-            <Box
-              key={cardKey}
-              className={`absolute ${base}`}
-              style={{
-                left,
-                top,
-                bottom,
-                transform: 'translate(-50%, 0)',
-              }}
-            >
-              {cardContent}
-            </Box>
-          );
-        }
+      const useAbs = useAbsoluteInCanvas;
+      const base = 'z-100 pointer-events-none';
+      if (useAbs) {
+        const left = rect.left - containerRect!.left + rect.width / 2;
+        const top = placeCardAbove
+          ? undefined
+          : rect.bottom - containerRect!.top + CARD_GAP;
+        const bottom = placeCardAbove
+          ? containerRect!.bottom - rect.top + CARD_GAP
+          : undefined;
         return (
           <Box
             key={cardKey}
-            className={`fixed ${base}`}
+            className={`absolute ${base}`}
             style={{
-              left: rect.left + rect.width / 2,
-              top: placeCardAboveFixed ? undefined : rect.bottom + CARD_GAP,
-              bottom: placeCardAboveFixed
-                ? window.innerHeight - rect.top + CARD_GAP
-                : undefined,
+              left,
+              top,
+              bottom,
               transform: 'translate(-50%, 0)',
             }}
           >
             {cardContent}
           </Box>
         );
-      })()
+      }
+      return (
+        <Box
+          key={cardKey}
+          className={`fixed ${base}`}
+          style={{
+            left: rect.left + rect.width / 2,
+            top: placeCardAboveFixed ? undefined : rect.bottom + CARD_GAP,
+            bottom: placeCardAboveFixed
+              ? window.innerHeight - rect.top + CARD_GAP
+              : undefined,
+            transform: 'translate(-50%, 0)',
+          }}
+        >
+          {cardContent}
+        </Box>
+      );
+    })()
     : null;
 
   const showHighlight = rect != null;
 
   const content = (
-    <>
+    <Box className="pointer-events-none" style={{ pointerEvents: 'none' } as React.CSSProperties}>
       {showHighlight && (
         <HighlightBox
           rect={rect!}
@@ -330,7 +346,7 @@ export function TutorialStepOverlay({ containerRef }: TutorialStepOverlayProps =
         : rect != null
           ? targetAnchoredPosition
           : fallbackPosition}
-    </>
+    </Box>
   );
 
   if (typeof document === 'undefined') return content;
@@ -338,7 +354,7 @@ export function TutorialStepOverlay({ containerRef }: TutorialStepOverlayProps =
     return createPortal(
       <Box
         className="fixed inset-0 pointer-events-none"
-        style={{ zIndex: OVERLAY_ABOVE_DIALOG_Z }}
+        style={{ zIndex: OVERLAY_ABOVE_DIALOG_Z, pointerEvents: 'none' }}
       >
         {content}
       </Box>,
@@ -349,7 +365,7 @@ export function TutorialStepOverlay({ containerRef }: TutorialStepOverlayProps =
     return (
       <Box
         className="absolute inset-0 pointer-events-none"
-        style={{ zIndex: 100 }}
+        style={{ zIndex: 100, pointerEvents: 'none' }}
       >
         {content}
       </Box>

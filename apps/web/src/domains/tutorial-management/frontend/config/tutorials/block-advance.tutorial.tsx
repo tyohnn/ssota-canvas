@@ -35,7 +35,7 @@ function makeBlockAdvanceTutorial(
 
 export const addBlockMethodTutorial = makeBlockAdvanceTutorial(
   'add-block-method',
-  'Add block method (Various ways to add blocks)',
+  'Various ways to add blocks',
   'Learn different ways to add blocks to your canvas.',
   'coming-soon'
 );

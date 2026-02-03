@@ -35,12 +35,12 @@ export function TutorialContentArea() {
       onContentChange: isLastStep
         ? undefined
         : () => {
-            if (didCompleteFromContentChangeRef.current) return;
-            contentChangeCallCountRef.current += 1;
-            if (contentChangeCallCountRef.current < 2) return;
-            didCompleteFromContentChangeRef.current = true;
-            completeCurrentStep();
-          },
+          if (didCompleteFromContentChangeRef.current) return;
+          contentChangeCallCountRef.current += 1;
+          if (contentChangeCallCountRef.current < 2) return;
+          didCompleteFromContentChangeRef.current = true;
+          completeCurrentStep();
+        },
     }),
     [isLastStep, currentStepIndex, completeCurrentStep, currentStep?.id]
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type {
   TutorialDialogContextValue,
   TutorialProgress,
@@ -16,6 +16,7 @@ import { useTutorialDialogBusiness } from './use-tutorial-dialog.business';
 export function useTutorialDialog(): TutorialDialogContextValue {
   // UI State
   const ui = useTutorialDialogUI();
+  const lastPlacedNodeIdRef = useRef<string | null>(null);
 
   // Business Logic
   const business = useTutorialDialogBusiness();
@@ -47,6 +48,7 @@ export function useTutorialDialog(): TutorialDialogContextValue {
     ui.setSelectedTutorialId(null);
     ui.setCurrentStepIndex(-1);
     ui.setTutorialState({});
+    lastPlacedNodeIdRef.current = null;
   }, [ui]);
 
   // Tutorial Selection
@@ -61,6 +63,7 @@ export function useTutorialDialog(): TutorialDialogContextValue {
       ui.setSelectedTutorialId(tutorialId);
       ui.setCurrentStepIndex(-1); // Start at -1 to show start overlay
       ui.setTutorialState(tutorial.content.initialState);
+      lastPlacedNodeIdRef.current = null;
 
       // Update progress: mark as started
       const existingProgress = progress[tutorialId];
@@ -89,7 +92,7 @@ export function useTutorialDialog(): TutorialDialogContextValue {
 
     const nextIndex = ui.currentStepIndex + 1;
     if (nextIndex >= currentTutorial.steps.length) {
-      // Tutorial completed: save progress and advance to next tutorial
+      // Tutorial completed: save progress, fire confetti, then advance or close
       const completedProgress: TutorialProgress = {
         tutorialId: currentTutorial.id,
         completedSteps: currentTutorial.steps.map((s) => s.id),
@@ -97,17 +100,33 @@ export function useTutorialDialog(): TutorialDialogContextValue {
         lastAccessedAt: new Date().toISOString(),
       };
       business.saveProgress(currentTutorial.id, completedProgress);
+
+      // Confetti on completion
+      import('canvas-confetti').then(({ default: confetti }) => {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+      });
+
       const groups = business.getTutorialGroups();
       const orderedTutorials = groups.flatMap((g) => g.tutorials);
       const currentIdx = orderedTutorials.findIndex((t) => t.id === currentTutorial.id);
       const nextTutorial = orderedTutorials[currentIdx + 1];
       if (nextTutorial) {
-        selectTutorial(nextTutorial.id);
+        if (nextTutorial.status === 'coming-soon') {
+          closeDialog();
+        } else {
+          selectTutorial(nextTutorial.id);
+        }
+      } else {
+        closeDialog();
       }
     } else {
       ui.setCurrentStepIndex(nextIndex);
     }
-  }, [currentTutorial, ui, business, selectTutorial]);
+  }, [currentTutorial, ui, business, selectTutorial, closeDialog]);
 
   const previousStep = useCallback(() => {
     if (ui.currentStepIndex > -1) {
@@ -170,6 +189,9 @@ export function useTutorialDialog(): TutorialDialogContextValue {
   // State Update
   const updateTutorialState = useCallback(
     (updates: Partial<typeof ui.tutorialState>) => {
+      if (updates.lastPlacedNodeId !== undefined) {
+        lastPlacedNodeIdRef.current = updates.lastPlacedNodeId as string | null;
+      }
       ui.setTutorialState((prev) => ({ ...prev, ...updates }));
     },
     [ui]
@@ -180,10 +202,10 @@ export function useTutorialDialog(): TutorialDialogContextValue {
     (selector: string): boolean => {
       if (selector === 'add-block-button') return true;
       if (!currentStep) return false;
-      if (currentStep.interactableSelectors?.length) {
-        return currentStep.interactableSelectors.includes(selector);
-      }
-      return currentStep.targetSelector === selector;
+      const hasInteractableSelectors = currentStep.interactableSelectors?.length;
+      return hasInteractableSelectors
+        ? (currentStep.interactableSelectors?.includes(selector) ?? false)
+        : currentStep.targetSelector === selector;
     },
     [currentStep]
   );
@@ -215,6 +237,8 @@ export function useTutorialDialog(): TutorialDialogContextValue {
 
     // State Update
     updateTutorialState,
+
+    lastPlacedNodeIdRef,
 
     // Interaction Control
     isElementInteractable,
