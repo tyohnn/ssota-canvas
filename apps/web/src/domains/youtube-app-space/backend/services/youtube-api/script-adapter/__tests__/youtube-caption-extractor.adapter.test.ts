@@ -2,9 +2,10 @@
  * YouTube Caption Extractor Adapter 테스트
  *
  * youtube-caption-extractor 라이브러리를 사용한 자막 추출 테스트
- * 
+ *
  * ⚠️ 주의: 이 테스트는 실제 네트워크 요청을 수행합니다.
- * 
+ * YOUTUBE_API_KEY가 없거나 CI 환경에서는 스킵됩니다.
+ *
  * 📝 참고:
  * - youtube-caption-extractor는 프록시 옵션을 직접 지원하지 않습니다
  * - ZenRows 같은 프록시를 사용하려면 zenrows-caption.adapter.test.ts를 참고하세요
@@ -12,7 +13,14 @@
 import { describe, it, expect } from 'vitest';
 import { YoutubeCaptionExtractorAdapter } from '../youtube-caption-extractor.adapter';
 
-describe('YoutubeCaptionExtractorAdapter', () => {
+// 네트워크/할당량 이슈 방지: API 키가 있어도 기본 run에서는 스킵. 실행 시 RUN_YOUTUBE_CAPTION_TESTS=1 설정
+const hasYoutubeKey = !!process.env.YOUTUBE_API_KEY;
+const shouldSkip =
+  !hasYoutubeKey ||
+  process.env.CI === 'true' ||
+  process.env.RUN_YOUTUBE_CAPTION_TESTS !== '1';
+
+describe.skipIf(shouldSkip)('YoutubeCaptionExtractorAdapter', () => {
   const adapter = new YoutubeCaptionExtractorAdapter();
 
   describe('성공 케이스', () => {

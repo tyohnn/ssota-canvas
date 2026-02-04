@@ -11,9 +11,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as configModule from '@/config';
 import { ZenRowsCaptionAdapter } from '../zenrows-caption.adapter';
 
-// ZenRows API Key가 없으면 스킵
+// ZenRows API Key가 없으면 스킵. 기본 run에서 네트워크 방지: RUN_ZENROWS_CAPTION_TESTS=1 일 때만 실행
 const hasZenRowsKey = !!process.env.ZENROWS_API_KEY;
-const shouldSkip = !hasZenRowsKey || process.env.CI === 'true';
+const shouldSkip =
+  !hasZenRowsKey ||
+  process.env.CI === 'true' ||
+  process.env.RUN_ZENROWS_CAPTION_TESTS !== '1';
 
 describe.skipIf(shouldSkip)('ZenRowsCaptionAdapter', () => {
   const adapter = new ZenRowsCaptionAdapter();

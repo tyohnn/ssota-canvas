@@ -119,11 +119,11 @@ describe('ToolExecutionService', () => {
       const result = await service.searchBlockTypes({});
       const blockTypes = result.result?.blockTypes as any[];
 
-      // Then
+      // Then (서비스 반환: type, name, description, useCases)
       blockTypes.forEach((blockType: any) => {
         expect(blockType.type).toBeDefined();
+        expect(blockType.name).toBeDefined();
         expect(blockType.description).toBeDefined();
-        expect(Array.isArray(blockType.features)).toBe(true);
         expect(Array.isArray(blockType.useCases)).toBe(true);
       });
     });

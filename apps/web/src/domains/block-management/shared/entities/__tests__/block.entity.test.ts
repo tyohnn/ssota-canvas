@@ -72,7 +72,8 @@ describe('Block Entity', () => {
       expect(block.id).toBe(blockId);
       expect(block.workspaceId).toBe(workspaceId);
       expect(block.blockType).toBe(blockType);
-      expect(block.properties.toJSON()).toEqual(properties);
+      // createFromJSON(blockType, {}) may merge type defaults; assert reconstituted VO matches
+      expect(block.properties.toJSON()).toEqual(propertiesVO.toJSON());
       expect(block.customProperties).toEqual(customProperties);
       expect(block.createdAt).toBe(createdAt);
       expect(block.updatedAt).toBe(updatedAt);

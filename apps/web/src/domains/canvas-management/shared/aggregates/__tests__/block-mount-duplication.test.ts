@@ -1,14 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { BlockMountAggregate } from '../block-mount.aggregate';
 import { BlockMount } from '../../entities/block-mount.entity';
 import { BlockMountId } from '../../value-objects/block-mount-id.vo';
+import { BlockViewMode } from '../../value-objects/block-view-mode.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { Position } from '../../value-objects/position.vo';
 import { Size } from '../../value-objects/size.vo';
+import { ViewModeSizes } from '../../value-objects/view-mode-sizes.vo';
 import { ZOrder } from '../../value-objects/z-order.vo';
 import { CanvasManagementError } from '../../errors/canvas-management.error';
 import { DuplicateBlockMountCommand } from '../../commands';
+
+const testUserId = new UserId('550e8400-e29b-41d4-a716-446655440099');
 
 describe('BlockMountAggregate - Duplication', () => {
   let blockMountAggregate: BlockMountAggregate;
@@ -25,13 +30,20 @@ describe('BlockMountAggregate - Duplication', () => {
     originalSize = new Size(150, 100);
     originalZOrder = new ZOrder(5);
 
+    const viewModeSizes = ViewModeSizes.empty().updateSizeForViewMode(
+      'original',
+      originalSize
+    );
+    const viewMode = BlockViewMode.default();
     const blockMount = new BlockMount(
       new BlockMountId('550e8400-e29b-41d4-a716-446655440002'),
       pageId,
       originalBlockId,
       originalPosition,
-      originalSize,
+      viewModeSizes,
       originalZOrder,
+      viewMode,
+      null,
       new Date(),
       new Date()
     );
@@ -52,6 +64,7 @@ describe('BlockMountAggregate - Duplication', () => {
         originalBlockMount: blockMountAggregate.getBlockMount(),
         offsetX,
         offsetY,
+        userId: testUserId,
       };
       const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
@@ -80,6 +93,7 @@ describe('BlockMountAggregate - Duplication', () => {
         originalBlockMount,
         offsetX: 50,
         offsetY: 50,
+        userId: testUserId,
       };
       blockMountAggregate.duplicateBlockMount(command);
 
@@ -100,6 +114,7 @@ describe('BlockMountAggregate - Duplication', () => {
         originalBlockMount: blockMountAggregate.getBlockMount(),
         offsetX: 0,
         offsetY: 0,
+        userId: testUserId,
       };
       const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
@@ -119,6 +134,7 @@ describe('BlockMountAggregate - Duplication', () => {
         originalBlockMount: blockMountAggregate.getBlockMount(),
         offsetX: 0,
         offsetY: 0,
+        userId: testUserId,
       };
       const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
@@ -140,6 +156,7 @@ describe('BlockMountAggregate - Duplication', () => {
         originalBlockMount: blockMountAggregate.getBlockMount(),
         offsetX: 0,
         offsetY: 0,
+        userId: testUserId,
       };
       const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
@@ -161,6 +178,7 @@ describe('BlockMountAggregate - Duplication', () => {
         originalBlockMount: blockMountAggregate.getBlockMount(),
         offsetX,
         offsetY,
+        userId: testUserId,
       };
       const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
@@ -182,6 +200,7 @@ describe('BlockMountAggregate - Duplication', () => {
         originalBlockMount: blockMountAggregate.getBlockMount(),
         offsetX,
         offsetY,
+        userId: testUserId,
       };
       const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
@@ -203,6 +222,7 @@ describe('BlockMountAggregate - Duplication', () => {
         originalBlockMount: blockMountAggregate.getBlockMount(),
         offsetX: 20,
         offsetY: 20,
+        userId: testUserId,
       };
       const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 
@@ -224,6 +244,7 @@ describe('BlockMountAggregate - Duplication', () => {
         originalBlockMount: blockMountAggregate.getBlockMount(),
         offsetX: customOffsetX,
         offsetY: customOffsetY,
+        userId: testUserId,
       };
       const duplicatedMount = blockMountAggregate.duplicateBlockMount(command);
 

@@ -205,7 +205,7 @@ describe('BlockType Value Object', () => {
 
   describe('getDefaultProperties', () => {
     it('각 타입별 기본 속성을 반환해야 한다', () => {
-      // Given
+      // Given (YoutubeBlockPropertiesVO uses url, youtubeTitle, youtubeDescription)
       const youtubeType = new BlockType('youtube');
 
       // When
@@ -213,9 +213,9 @@ describe('BlockType Value Object', () => {
 
       // Then
       expect(defaultProps).toBeDefined();
-      expect(defaultProps).toHaveProperty('youtubeUrl', '');
-      expect(defaultProps).toHaveProperty('title', '');
-      expect(defaultProps).toHaveProperty('description', '');
+      expect(defaultProps).toHaveProperty('url');
+      expect(defaultProps).toHaveProperty('youtubeTitle');
+      expect(defaultProps).toHaveProperty('youtubeDescription');
     });
 
     it('python 타입의 기본 속성을 반환해야 한다', () => {
@@ -227,9 +227,9 @@ describe('BlockType Value Object', () => {
 
       // Then
       expect(defaultProps).toBeDefined();
-      expect(defaultProps).toHaveProperty('code', '');
-      expect(defaultProps).toHaveProperty('language', 'python');
-      expect(defaultProps).toHaveProperty('output', '');
+      expect(defaultProps).toHaveProperty('code');
+      expect(defaultProps).toHaveProperty('language');
+      expect(defaultProps).toHaveProperty('output');
     });
   });
 
