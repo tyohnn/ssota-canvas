@@ -70,7 +70,7 @@ export function MockYoutubeActionBar() {
               <Box className="max-h-[300px] overflow-y-auto overflow-x-visible py-2 space-y-1">
                 {templates.map((template, index) => {
                   const IconComponent = getLucideIcon(template.icon);
-                  const isSecond = index === 1;
+                  const selector = `template-item-${index + 1}`;
                   const row = (
                     <Box
                       key={template.id}
@@ -91,12 +91,10 @@ export function MockYoutubeActionBar() {
                       </Box>
                     </Box>
                   );
-                  return isSecond ? (
-                    <InteractionGuard key={template.id} selector="template-item-2">
-                      {row}
+                  return (
+                    <InteractionGuard key={template.id} selector={selector}>
+                      <Box data-tutorial={selector}>{row}</Box>
                     </InteractionGuard>
-                  ) : (
-                    row
                   );
                 })}
               </Box>

@@ -157,22 +157,26 @@ export function MockSummarySection({
               <SelectValue placeholder="Select language" />
             </SelectTrigger>
             <SelectContent>
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <SelectItem
-                  key={lang}
-                  value={lang}
-                  {...(lang === 'en' ? { 'data-tutorial': 'language-english' } : {})}
-                  onPointerDown={
-                    lang === 'en' && currentStep?.id === 'select-english'
-                      ? () => setTimeout(() => completeCurrentStep(), 150)
-                      : undefined
-                  }
-                >
-                  <Box className="flex items-center justify-between w-full">
-                    {getLanguageName(lang)}
-                  </Box>
-                </SelectItem>
-              ))}
+              {SUPPORTED_LANGUAGES.map((lang) => {
+                const selector = lang === 'en' ? 'language-english' : `language-${lang}`;
+                return (
+                  <InteractionGuard key={lang} selector={selector}>
+                    <SelectItem
+                      value={lang}
+                      data-tutorial={selector}
+                      onPointerDown={
+                        lang === 'en' && currentStep?.id === 'select-english'
+                          ? () => setTimeout(() => completeCurrentStep(), 150)
+                          : undefined
+                      }
+                    >
+                      <Box className="flex items-center justify-between w-full">
+                        {getLanguageName(lang)}
+                      </Box>
+                    </SelectItem>
+                  </InteractionGuard>
+                );
+              })}
             </SelectContent>
           </Select>
         </InteractionGuard>

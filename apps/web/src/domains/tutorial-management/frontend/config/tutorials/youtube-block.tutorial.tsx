@@ -169,7 +169,7 @@ export const youtubeBlockTutorial: Tutorial = {
       description: 'Click the Visual Summary button in the action bar below the block.',
       targetSelector: 'visual-summary-button',
       action: 'click',
-      interactableSelectors: ['visual-summary-button', 'block-node'],
+      interactableSelectors: ['visual-summary-button'],
       onComplete: (state) => ({ ...state, visualSummaryPopoverOpen: true }),
     },
     {
