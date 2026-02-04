@@ -432,7 +432,7 @@ export function useReactFlowWrapper(
       }
 
       // Delete 또는 Backspace: 삭제 전 스냅샷 저장 후 삭제 실행
-      // React Flow의 기본 삭제 키(deleteKeyCode)를 비활성화하고 여기서 직접 처리
+      // 노드 삭제 서버 동기화는 onNodesDelete(syncNodeDelete)에서만 수행 (이중 호출 방지)
       if (event.key === 'Delete' || event.key === 'Backspace') {
         const selectedNodes = reactFlowInstance.getNodes().filter(n => n.selected);
         const selectedEdges = reactFlowInstance.getEdges().filter(e => e.selected);
@@ -441,16 +441,12 @@ export function useReactFlowWrapper(
           event.preventDefault();
           // 삭제 전 스냅샷 저장 (Undo를 위해)
           snapshot.takeSnapshot();
-          // React Flow의 deleteElements API로 삭제 실행
+          // React Flow의 deleteElements API로 삭제 실행 → onNodesDelete/onEdgesDelete가 서버 동기화
           reactFlowInstance.deleteElements({
             nodes: selectedNodes,
             edges: selectedEdges,
           });
-          // 서버에도 삭제 요청 전송
-          if (selectedNodes.length > 0) {
-            const blockMountIds = selectedNodes.map(n => n.id);
-            blockLifecycle.softDeleteBlockMounts(blockMountIds);
-          }
+          // 엣지만 키보드로 삭제된 경우 서버 동기화 (노드는 onNodesDelete에서만 처리)
           if (selectedEdges.length > 0) {
             selectedEdges.forEach(edge => {
               edgeLifecycle.deleteEdge({ edgeId: edge.id });

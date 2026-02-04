@@ -63,13 +63,13 @@ export async function softDeleteBlockMount(
       (agg): agg is BlockMountAggregate => agg !== null
     );
 
+    // 이미 삭제되었거나 없는 ID만 있는 경우 멱등 처리 (이중 호출/중복 요청 시 에러 방지)
     if (validAggregates.length === 0) {
-      return Result.error(
-        new CanvasManagementError(
-          'BLOCK_MOUNT_NOT_FOUND',
-          'No valid block mounts found'
-        )
-      );
+      return Result.success({
+        deletedCount: 0,
+        deletedEdgesCount: 0,
+        deletedBlockMountIds: [],
+      });
     }
 
     // 4. 삭제하는 block mounts 들에 연결된 모든 엣지 한 번에 조회 (bulk)
