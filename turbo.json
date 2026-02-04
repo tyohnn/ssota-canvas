@@ -33,7 +33,9 @@
         "NEXT_PUBLIC_SENTRY_DSN",
         "NEXT_PUBLIC_APP_URL",
         "ZENROWS_API_KEY",
-        "CI"
+        "CI",
+        "RUN_YOUTUBE_CAPTION_TESTS",
+        "RUN_ZENROWS_CAPTION_TESTS"
       ]
     },
     "lint": {
@@ -44,6 +46,18 @@
     },
     "typecheck": {
       "dependsOn": ["^typecheck"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "env": [
+        "CI",
+        "POSTGRES_URL",
+        "POSTGRES_URL_NON_POOLING",
+        "YOUTUBE_API_KEY",
+        "ZENROWS_API_KEY",
+        "RUN_YOUTUBE_CAPTION_TESTS",
+        "RUN_ZENROWS_CAPTION_TESTS"
+      ]
     }
   }
 }

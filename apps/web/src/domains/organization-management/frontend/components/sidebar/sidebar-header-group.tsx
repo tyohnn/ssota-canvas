@@ -104,8 +104,9 @@ export function SidebarHeaderGroup() {
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton
+            size="sm"
             asChild
-            className="text-muted-foreground"
+            className="text-sidebar-foreground"
             tooltip="Home"
           >
             <a href={activeOrganization?.id ? `/r/${activeOrganization.id}` : '/r'}>
@@ -118,7 +119,8 @@ export function SidebarHeaderGroup() {
           <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
             <DialogTrigger asChild>
               <SidebarMenuButton
-                className="text-muted-foreground"
+                size="sm"
+                className="text-sidebar-foreground"
                 tooltip="Search"
               >
                 <Search />
@@ -147,7 +149,8 @@ export function SidebarHeaderGroup() {
         </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
-            className="text-muted-foreground"
+            size="sm"
+            className="text-sidebar-foreground"
             tooltip="Settings"
             onClick={() => setIsSettingsOpen(true)}
           >

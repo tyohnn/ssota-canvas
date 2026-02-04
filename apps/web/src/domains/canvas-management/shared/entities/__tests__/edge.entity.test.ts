@@ -176,7 +176,7 @@ describe('Edge Entity', () => {
     });
 
     it('엣지 두께를 업데이트할 수 있어야 한다', () => {
-      // Given
+      // Given (EdgeStyle thickness 허용 범위: 1–3)
       const edge = new Edge(
         edgeId,
         pageId,
@@ -185,7 +185,7 @@ describe('Edge Entity', () => {
         EdgeHandle.right(),
         EdgeHandle.left()
       );
-      const newStyle = { strokeWidth: 5 };
+      const newStyle = { strokeWidth: 3 };
 
       // When
       edge.updateStyle(newStyle);
@@ -197,7 +197,7 @@ describe('Edge Entity', () => {
     });
 
     it('색상과 두께를 동시에 업데이트할 수 있어야 한다', () => {
-      // Given
+      // Given (EdgeStyle thickness 허용 범위: 1–3)
       const edge = new Edge(
         edgeId,
         pageId,
@@ -206,7 +206,7 @@ describe('Edge Entity', () => {
         EdgeHandle.right(),
         EdgeHandle.left()
       );
-      const newStyle = { stroke: '#0000FF', strokeWidth: 4 };
+      const newStyle = { stroke: '#0000FF', strokeWidth: 3 };
 
       // When
       edge.updateStyle(newStyle);

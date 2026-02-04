@@ -10,6 +10,7 @@ import { EdgeAggregate } from '../../../shared/aggregates/edge.aggregate';
 import { ViewportAggregate } from '../../../shared/aggregates/viewport.aggregate';
 import { Block } from '@/domains/block-management/shared/entities/block.entity';
 import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
+import { BlockPropertiesFactory } from '@/domains/block-management/shared/value-objects/block-properties';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { BlockType } from '@/domains/block-management/shared/value-objects/block-type.vo';
 import { EdgeId } from '../../../shared/value-objects/edge-id.vo';
@@ -93,23 +94,24 @@ class MockBlockMountRepository implements BlockMountRepository {
 
   private createMockBlockAggregate(blockId: string): BlockAggregate {
     const blockIdVO = new BlockId(blockId);
-    const workspaceId = new WorkspaceId('test-workspace-id');
-    const userId = new BlockUserId('test-user-id');
+    const workspaceId = new WorkspaceId('550e8400-e29b-41d4-a716-446655440000');
+    const userId = new BlockUserId('660e8400-e29b-41d4-a716-446655440000');
     const blockType = new BlockType('text');
-    
+    const propertiesVO = BlockPropertiesFactory.createFromJSON(blockType, {});
+
     const block = Block.reconstitute(
       blockIdVO,
       workspaceId,
       userId,
       blockType,
       'Test Block',
-      { value: {} } as any,
+      propertiesVO,
       [],
       new Date(),
       new Date(),
       null
     );
-    
+
     return BlockAggregate.reconstitute(block);
   }
 
@@ -257,7 +259,7 @@ describe('CanvasQueryService', () => {
       if (result.isSuccess()) {
         const canvasViewData = result.value;
         expect(canvasViewData.blocks).toHaveLength(1);
-        
+
         const block = canvasViewData.blocks[0];
         expect(block).toBeDefined();
         if (block) {

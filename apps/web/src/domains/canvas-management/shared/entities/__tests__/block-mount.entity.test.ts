@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BlockMount } from '../block-mount.entity';
 import { BlockMountId } from '../../value-objects/block-mount-id.vo';
+import { BlockViewMode } from '../../value-objects/block-view-mode.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { Position } from '../../value-objects/position.vo';
 import { Size } from '../../value-objects/size.vo';
+import { ViewModeSizes } from '../../value-objects/view-mode-sizes.vo';
 import { ZOrder } from '../../value-objects/z-order.vo';
 
 describe('BlockMount Entity', () => {
@@ -14,6 +16,8 @@ describe('BlockMount Entity', () => {
   let position: Position;
   let size: Size;
   let zOrder: ZOrder;
+  let viewModeSizes: ViewModeSizes;
+  let viewMode: BlockViewMode;
   let createdAt: Date;
   let updatedAt: Date;
 
@@ -24,6 +28,8 @@ describe('BlockMount Entity', () => {
     position = new Position(100, 200);
     size = new Size(300, 400);
     zOrder = new ZOrder(1);
+    viewMode = BlockViewMode.default();
+    viewModeSizes = ViewModeSizes.empty().updateSizeForViewMode(viewMode.value, size);
     createdAt = new Date('2025-01-14T10:00:00Z');
     updatedAt = new Date('2025-01-14T10:00:00Z');
   });
@@ -36,8 +42,10 @@ describe('BlockMount Entity', () => {
         pageId,
         blockId,
         position,
-        size,
+        viewModeSizes,
         zOrder,
+        viewMode,
+        null,
         createdAt,
         updatedAt
       );
@@ -47,7 +55,7 @@ describe('BlockMount Entity', () => {
       expect(blockMount.pageId).toBe(pageId);
       expect(blockMount.blockId).toBe(blockId);
       expect(blockMount.position).toBe(position);
-      expect(blockMount.size).toBe(size);
+      expect(blockMount.size).toEqual(size);
       expect(blockMount.zOrder).toBe(zOrder);
       expect(blockMount.createdAt).toBe(createdAt);
       expect(blockMount.updatedAt).toBe(updatedAt);
@@ -61,8 +69,9 @@ describe('BlockMount Entity', () => {
         pageId,
         blockId,
         position,
-        size,
-        zOrder
+        viewModeSizes,
+        zOrder,
+        viewMode
       );
 
       // Then
@@ -79,8 +88,10 @@ describe('BlockMount Entity', () => {
         pageId,
         blockId,
         position,
-        size,
+        viewModeSizes,
         zOrder,
+        viewMode,
+        null,
         createdAt,
         updatedAt
       );
@@ -92,7 +103,7 @@ describe('BlockMount Entity', () => {
 
       // Then
       expect(blockMount.position).toBe(newPosition);
-      expect(blockMount.size).toBe(size);
+      expect(blockMount.size).toEqual(size);
       expect(blockMount.zOrder).toBe(zOrder);
       expect(blockMount.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
     });
@@ -104,8 +115,10 @@ describe('BlockMount Entity', () => {
         pageId,
         blockId,
         position,
-        size,
+        viewModeSizes,
         zOrder,
+        viewMode,
+        null,
         createdAt,
         updatedAt
       );
@@ -117,7 +130,7 @@ describe('BlockMount Entity', () => {
 
       // Then
       expect(blockMount.position).toBe(position);
-      expect(blockMount.size).toBe(newSize);
+      expect(blockMount.size).toEqual(newSize);
       expect(blockMount.zOrder).toBe(zOrder);
       expect(blockMount.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
     });
@@ -129,8 +142,10 @@ describe('BlockMount Entity', () => {
         pageId,
         blockId,
         position,
-        size,
+        viewModeSizes,
         zOrder,
+        viewMode,
+        null,
         createdAt,
         updatedAt
       );
@@ -142,7 +157,7 @@ describe('BlockMount Entity', () => {
 
       // Then
       expect(blockMount.position).toBe(position);
-      expect(blockMount.size).toBe(size);
+      expect(blockMount.size).toEqual(size);
       expect(blockMount.zOrder).toBe(newZOrder);
       expect(blockMount.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
     });
@@ -154,8 +169,10 @@ describe('BlockMount Entity', () => {
         pageId,
         blockId,
         position,
-        size,
+        viewModeSizes,
         zOrder,
+        viewMode,
+        null,
         createdAt,
         updatedAt
       );
@@ -169,7 +186,7 @@ describe('BlockMount Entity', () => {
 
       // Then
       expect(blockMount.position).toBe(newPosition);
-      expect(blockMount.size).toBe(newSize);
+      expect(blockMount.size).toEqual(newSize);
       expect(blockMount.zOrder).toBe(newZOrder);
       expect(blockMount.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
     });
@@ -181,8 +198,10 @@ describe('BlockMount Entity', () => {
         pageId,
         blockId,
         position,
-        size,
+        viewModeSizes,
         zOrder,
+        viewMode,
+        null,
         createdAt,
         updatedAt
       );
@@ -193,7 +212,7 @@ describe('BlockMount Entity', () => {
 
       // Then
       expect(blockMount.position).toBe(position);
-      expect(blockMount.size).toBe(size);
+      expect(blockMount.size).toEqual(size);
       expect(blockMount.zOrder).toBe(zOrder);
       expect(blockMount.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
     });
@@ -207,8 +226,10 @@ describe('BlockMount Entity', () => {
         pageId,
         blockId,
         position,
-        size,
+        viewModeSizes,
         zOrder,
+        viewMode,
+        null,
         createdAt,
         updatedAt
       );

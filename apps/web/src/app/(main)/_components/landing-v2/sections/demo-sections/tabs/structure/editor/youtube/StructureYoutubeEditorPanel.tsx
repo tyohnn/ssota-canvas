@@ -3,7 +3,7 @@
 import { cn } from "@workspace/ui/lib/utils";
 import { EditorPanelView } from "@/domains/block-management/frontend/components/editor-panel/editor-panel.view";
 import { LandingEditorPanelHeader } from "../../../../../../../mocks/editor-panel/sections/LandingEditorPanelHeader";
-import { LandingEditorPanelContent as BaseLandingEditorPanelContent, LandingEditorPanelContent } from "../../../../../../../mocks/editor-panel/sections/LandingEditorPanelContent";
+import { LandingEditorPanelContent } from "../../../../../../../mocks/editor-panel/sections/LandingEditorPanelContent";
 
 interface StructureYoutubeEditorPanelProps {
   isOpen: boolean;

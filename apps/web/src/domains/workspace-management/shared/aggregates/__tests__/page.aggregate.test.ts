@@ -199,7 +199,7 @@ describe('Page Aggregate', () => {
         createdBy,
       };
       const aggregate = PageAggregate.create(command, null);
-      aggregate.getUncommittedEvents(); // 이전 이벤트 클리어
+      aggregate.markEventsAsCommitted(); // 이전 이벤트 클리어
       const userId = createdBy;
 
       // When
@@ -221,7 +221,7 @@ describe('Page Aggregate', () => {
         createdBy,
       };
       const aggregate = PageAggregate.create(command, null);
-      aggregate.getUncommittedEvents(); // 이전 이벤트 클리어
+      aggregate.markEventsAsCommitted(); // 이전 이벤트 클리어
       const userId = '880e8400-e29b-41d4-a716-446655440000';
 
       // When
@@ -246,7 +246,7 @@ describe('Page Aggregate', () => {
         createdBy,
       };
       const aggregate = PageAggregate.create(command, null);
-      aggregate.getUncommittedEvents(); // 이전 이벤트 클리어
+      aggregate.markEventsAsCommitted(); // 이전 이벤트 클리어
 
       const newParentId = new PageId('770e8400-e29b-41d4-a716-446655440000');
       const newParentPage = new Page(
@@ -440,7 +440,7 @@ describe('Page Aggregate', () => {
         createdBy,
       };
       const aggregate = PageAggregate.create(command, null);
-      aggregate.getUncommittedEvents(); // 이전 이벤트 클리어
+      aggregate.markEventsAsCommitted(); // 이전 이벤트 클리어
 
       const newParentId = new PageId('770e8400-e29b-41d4-a716-446655440000');
       const newParentPage = new Page(
@@ -485,7 +485,7 @@ describe('Page Aggregate', () => {
         createdBy,
       };
       const aggregate = PageAggregate.create(command, null);
-      aggregate.getUncommittedEvents(); // 이전 이벤트 클리어
+      aggregate.markEventsAsCommitted(); // 이전 이벤트 클리어
 
       const updateCommand = {
         pageId: aggregate.page.pageId.value,
@@ -509,7 +509,7 @@ describe('Page Aggregate', () => {
         createdBy,
       };
       const aggregate = PageAggregate.create(command, null);
-      aggregate.getUncommittedEvents();
+      aggregate.markEventsAsCommitted();
 
       const updateCommand = {
         pageId: aggregate.page.pageId.value,
@@ -533,7 +533,7 @@ describe('Page Aggregate', () => {
         createdBy,
       };
       const aggregate = PageAggregate.create(command, null);
-      aggregate.getUncommittedEvents();
+      aggregate.markEventsAsCommitted();
 
       const updateCommand = {
         pageId: aggregate.page.pageId.value,
@@ -582,7 +582,7 @@ describe('Page Aggregate', () => {
         createdBy,
       };
       const aggregate = PageAggregate.create(command, null);
-      aggregate.getUncommittedEvents(); // 이전 이벤트 클리어
+      aggregate.markEventsAsCommitted(); // 이전 이벤트 클리어
 
       const updateCommand = {
         pageId: aggregate.page.pageId.value,
@@ -655,6 +655,7 @@ describe('Page Aggregate', () => {
 
       // When
       const events1 = aggregate.getUncommittedEvents();
+      aggregate.markEventsAsCommitted(); // 명시적 클리어
       const events2 = aggregate.getUncommittedEvents();
 
       // Then

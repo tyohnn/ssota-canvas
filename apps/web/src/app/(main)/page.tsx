@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { CTASection } from './_components/landing-v2/CTASection';
-import { DemoSection } from './_components/landing-v2/sections/demo-sections/DemoSection';
 import { FeatureSection } from './_components/landing-v2/FeatureSection';
 import { HeroSection } from './_components/landing-v2/HeroSection';
 import { PricingSection } from './_components/landing-v2/PricingSection';
@@ -30,7 +29,6 @@ export default async function Page() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between">
       <HeroSection isLoggedIn={!!user} />
-      <DemoSection />
       <FeatureSection />
       <CTASection isLoggedIn={!!user} />
       {/* <TestimonialSection /> */}

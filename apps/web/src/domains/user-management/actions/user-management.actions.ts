@@ -85,6 +85,8 @@ export type UserRegistrationResult = {
     name: string;
     avatarUrl: string | null;
   };
+  /** true = 조직을 방금 생성함(신규), false = 기존 조직 조회 */
+  createdNewOrganization?: boolean;
 } & Awaited<ReturnType<typeof createDefaultOrganizationAction>>;
 
 // ============================================
@@ -264,7 +266,7 @@ async function createOrGetDefaultOrganization(
       organizationName: orgName,
     });
 
-    return ok(orgResult);
+    return ok({ ...orgResult, createdNewOrganization: true });
   } catch (organizationError) {
     // 2. 이미 default org가 있는 경우, 기존 조직 정보를 조회해서 반환
     if (
@@ -384,6 +386,7 @@ async function createOrGetDefaultOrganization(
           icon: personalPageIcon,
         },
         redirectUrl,
+        createdNewOrganization: false,
       });
     }
 

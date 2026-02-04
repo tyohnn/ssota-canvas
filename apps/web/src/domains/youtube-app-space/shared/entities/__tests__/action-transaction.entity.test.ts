@@ -20,12 +20,13 @@ describe('ActionTransactionEntity', () => {
 
   describe('생성', () => {
     it('모든 필수 속성으로 생성되어야 한다', () => {
-      // When
+      // When (signature: id, orgId, videoId, actionType, language?, createdAt, completedAt)
       const transaction = new ActionTransactionEntity(
         transactionId,
         orgId,
         videoId,
         actionType,
+        undefined, // language
         now,
         undefined
       );
@@ -49,6 +50,7 @@ describe('ActionTransactionEntity', () => {
         orgId,
         videoId,
         actionType,
+        undefined, // language
         now,
         completedAt
       );
@@ -66,6 +68,7 @@ describe('ActionTransactionEntity', () => {
         orgId: orgId,
         videoId: videoId,
         actionType: actionType as ActionType,
+        language: undefined,
         createdAt: now,
         completedAt: undefined,
       };
@@ -90,6 +93,7 @@ describe('ActionTransactionEntity', () => {
         orgId: orgId,
         videoId: videoId,
         actionType: actionType as ActionType,
+        language: undefined,
         createdAt: now,
         completedAt: completedAt,
       };
@@ -110,6 +114,7 @@ describe('ActionTransactionEntity', () => {
         orgId,
         videoId,
         actionType,
+        undefined,
         now,
         undefined
       );
@@ -125,6 +130,7 @@ describe('ActionTransactionEntity', () => {
         orgId,
         videoId,
         actionType,
+        undefined,
         now,
         null as any
       );
@@ -141,6 +147,7 @@ describe('ActionTransactionEntity', () => {
         orgId,
         videoId,
         actionType,
+        undefined,
         now,
         completedAt
       );
@@ -158,6 +165,7 @@ describe('ActionTransactionEntity', () => {
         orgId,
         videoId,
         actionType,
+        undefined,
         now,
         undefined
       );
@@ -178,6 +186,7 @@ describe('ActionTransactionEntity', () => {
         orgId,
         videoId,
         actionType,
+        undefined,
         now,
         originalCompletedAt
       );
@@ -199,6 +208,7 @@ describe('ActionTransactionEntity', () => {
         orgId,
         videoId,
         actionType,
+        undefined,
         now,
         undefined
       );

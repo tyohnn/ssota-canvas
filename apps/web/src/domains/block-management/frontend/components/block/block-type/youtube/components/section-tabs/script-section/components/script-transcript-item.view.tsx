@@ -48,21 +48,19 @@ export function ScriptTranscriptItemView({
 
   return (
     <Box
-      className="text-sm group relative py-1"
+      className="text-sm group relative py-1 pr-10"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       data-segment-time={segment.start}
     >
-      <p className="pr-10">
-        <button
-          type="button"
-          onClick={() => onTimeClick(segment.start)}
-          className="text-muted-foreground hover:text-primary hover:underline cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded px-1"
-        >
-          [{formatTime(segment.start)}]
-        </button>{' '}
+      <button
+        type="button"
+        onClick={() => onTimeClick(segment.start)}
+        className="w-full text-left text-muted-foreground hover:text-primary hover:underline cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded px-1 py-0.5 -my-0.5"
+      >
+        <span className="font-medium tabular-nums">[{formatTime(segment.start)}]</span>{' '}
         <span className="transition-colors duration-200">{segment.text}</span>
-      </p>
+      </button>
       {isHovered && !readonly && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -70,7 +68,10 @@ export function ScriptTranscriptItemView({
               variant="ghost"
               size="icon"
               className="absolute right-0 top-0 h-6 w-6"
-              onClick={() => onAddQuote(segment.text)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddQuote(segment.text);
+              }}
               disabled={isLoading}
             >
               {isLoading ? (

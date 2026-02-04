@@ -16,9 +16,9 @@ export async function MainHeader() {
   return (
     <header className="fixed top-0 left-0 right-0 z-100 bg-background/80 backdrop-blur-sm border-b border-border">
       <div className="container mx-auto px-4 max-w-7xl">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link href="/" className="font-bold text-xl">
+          <Link href="/" className="font-bold text-base">
             ssota
           </Link>
 

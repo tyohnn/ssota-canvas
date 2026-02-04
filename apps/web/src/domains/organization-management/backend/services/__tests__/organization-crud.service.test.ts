@@ -310,9 +310,8 @@ describe('DefaultOrganizationCrudService', () => {
         expect(result.value.page).toBeDefined();
         expect(result.value.personalWorkspace).toBeDefined(); // v1.2
         expect(result.value.personalPage).toBeDefined(); // v1.2
-        expect(result.value.redirectUrl).toMatch(
-          /^\/r\/[a-f0-9-]+\/workspace\/[a-f0-9-]+\/page\/[a-f0-9-]+$/
-        );
+        // redirectUrl 형식: /r/{organizationId}/{firstPageId}
+        expect(result.value.redirectUrl).toMatch(/^\/r\/[a-f0-9-]+\/[a-f0-9-]+$/);
       }
     });
 

@@ -16,7 +16,6 @@ import {
   SidebarMenuItem,
 } from '@workspace/ui/components/ui/sidebar';
 import { ChevronDown, Plus } from 'lucide-react';
-import { Badge } from '@workspace/ui/components/ui/badge';
 import { useOrganization } from '@/domains/organization-management/frontend/hooks/use-organization';
 import { CreateOrganizationDialog } from './create-organization-dialog';
 
@@ -45,13 +44,13 @@ export function OrganizationSwitcher() {
         <SidebarMenuItem>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <SidebarMenuButton className="w-full px-1.5">
+              <SidebarMenuButton size="sm" className="w-full px-1.5">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-5 items-center justify-center rounded-md">
-                  <span className="text-[10px] font-semibold">
+                  <span className="text-[9px] font-semibold">
                     {displayInitial}
                   </span>
                 </div>
-                <span className="truncate font-medium flex-1">
+                <span className="truncate text-xs font-medium flex-1">
                   {displayName}
                 </span>
                 <ChevronDown className="opacity-50" />
@@ -85,14 +84,6 @@ export function OrganizationSwitcher() {
                     <div className="flex flex-col flex-1">
                       <div className="flex items-center gap-2">
                         <span>{org.name}</span>
-                        {org.isDefault && org.role === 'owner' && (
-                          <Badge
-                            variant="secondary"
-                            className="text-xs px-1.5 py-0.5"
-                          >
-                            Default
-                          </Badge>
-                        )}
                         {isCurrentOrg && (
                           <span className="ml-auto text-primary">✓</span>
                         )}
