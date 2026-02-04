@@ -33,6 +33,7 @@ export default defineConfig(({ mode }) => {
       ],
       coverage: {
         provider: 'v8',
+        include: ['src/**/*.{ts,tsx}'],
         reporter: ['text', 'json', 'html'],
         exclude: [
           'node_modules/',

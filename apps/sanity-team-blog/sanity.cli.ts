@@ -5,6 +5,7 @@ export default defineCliConfig({
     projectId: 'kxait77j',
     dataset: 'production'
   },
+  reactStrictMode: true,
   deployment: {
     /**
      * Enable auto-updates for studios.

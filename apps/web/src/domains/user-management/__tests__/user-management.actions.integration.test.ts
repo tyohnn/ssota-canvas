@@ -9,7 +9,9 @@ const mockSupabaseClient = {
 };
 
 vi.mock('@/utils/supabase/server', () => ({
-  createClient: vi.fn(() => mockSupabaseClient),
+  createClient: vi.fn(function () {
+    return mockSupabaseClient;
+  }),
 }));
 
 // Mock database to prevent POSTGRES_URL error
@@ -24,24 +26,24 @@ vi.mock('@/db/schema', () => ({
   organizations: {},
 }));
 
-// Mock repositories
+// Mock repositories (Vitest 4: constructor mocks must use function/class)
 vi.mock('../backend/repositories/implementations/drizzle-user.repository', () => ({
-  DrizzleUserRepository: vi.fn(),
+  DrizzleUserRepository: vi.fn(function () {}),
 }));
 
 vi.mock('../backend/repositories/implementations/drizzle-organization.repository', () => ({
-  DrizzleOrganizationRepository: vi.fn(),
+  DrizzleOrganizationRepository: vi.fn(function () {}),
 }));
 
 // Mock read models
 vi.mock('../backend/read-models/user-profile.view', () => ({
-  DrizzleUserProfileViewRepository: vi.fn(),
-  UserProfileView: vi.fn(),
+  DrizzleUserProfileViewRepository: vi.fn(function () {}),
+  UserProfileView: vi.fn(function () {}),
 }));
 
 // Mock ACL
 vi.mock('../backend/anti-corruption-layers/supabase-auth-acl', () => ({
-  SupabaseAuthService: vi.fn(),
+  SupabaseAuthService: vi.fn(function () {}),
 }));
 
 // Mock UserManagementService
@@ -52,7 +54,9 @@ const mockUserManagementService = {
 };
 
 vi.mock('../backend/services/user-management.service', () => ({
-  UserManagementService: vi.fn(() => mockUserManagementService),
+  UserManagementService: vi.fn(function () {
+    return mockUserManagementService;
+  }),
 }));
 
 // Mock Organization Management Actions
