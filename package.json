@@ -28,7 +28,16 @@
   "pnpm": {
     "overrides": {
       "@types/minimatch": "5.1.2"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "core-js-pure",
+      "es5-ext",
+      "esbuild",
+      "msw",
+      "sharp",
+      "supabase"
+    ]
   },
   "engines": {
     "node": ">=22.0.0"
