@@ -7,12 +7,16 @@ import { TutorialDialogView } from './components/tutorial-dialog-view';
 import { TutorialNav } from './components/tutorial-nav';
 import { TutorialContentArea } from './components/tutorial-content-area';
 
+const GETTING_STARTED_TUTORIAL_ID = 'getting-started';
+
 /**
  * Tutorial Dialog Standalone Props
  */
 export interface TutorialDialogStandaloneProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When set, open with this tutorial selected (e.g. welcome flow). */
+  initialTutorialId?: string;
 }
 
 /**
@@ -24,17 +28,26 @@ export interface TutorialDialogStandaloneProps {
 export function TutorialDialogStandalone({
   open,
   onOpenChange,
+  initialTutorialId,
 }: TutorialDialogStandaloneProps) {
   const dialogState = useTutorialDialog();
 
-  // Sync external open state with internal state
+  // Sync external open state with internal state + initial selection
   useEffect(() => {
     if (open && !dialogState.isOpen) {
       dialogState.openDialog();
+      if (initialTutorialId) {
+        dialogState.selectTutorial(initialTutorialId);
+      } else {
+        const progress = dialogState.progress;
+        if (Object.keys(progress).length === 0) {
+          dialogState.selectTutorial(GETTING_STARTED_TUTORIAL_ID);
+        }
+      }
     } else if (!open && dialogState.isOpen) {
       dialogState.closeDialog();
     }
-  }, [open, dialogState]);
+  }, [open, initialTutorialId]);
 
   // Sync internal state with external callback
   const handleOpenChange = (isOpen: boolean) => {
