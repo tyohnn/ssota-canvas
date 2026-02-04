@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { EdgeAggregate } from '../edge.aggregate';
 import { EdgeId } from '../../value-objects/edge-id.vo';
 import { EdgeShape } from '../../value-objects/edge-shape.vo';
@@ -19,6 +20,8 @@ import {
   EdgeDeletedEvent,
   EdgeShapeChangedEvent,
 } from '../../events';
+
+const testUserId = new UserId('550e8400-e29b-41d4-a716-446655440099');
 
 describe('EdgeAggregate', () => {
   let edgeId: EdgeId;
@@ -44,6 +47,7 @@ describe('EdgeAggregate', () => {
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
 
       // When
@@ -68,6 +72,7 @@ describe('EdgeAggregate', () => {
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
 
       // When
@@ -87,6 +92,7 @@ describe('EdgeAggregate', () => {
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
 
       // When
@@ -112,6 +118,7 @@ describe('EdgeAggregate', () => {
         targetBlockMountId: sameBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
 
       // When
@@ -135,6 +142,7 @@ describe('EdgeAggregate', () => {
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
       const aggregate = EdgeAggregate.createEdge(createCommand);
       aggregate.markEventsAsCommitted(); // 생성 이벤트 클리어
@@ -142,6 +150,7 @@ describe('EdgeAggregate', () => {
       const updateCommand: UpdateEdgeShapeCommand = {
         edgeId: aggregate.edge.id,
         newShape,
+        userId: testUserId,
       };
 
       // When
@@ -161,6 +170,7 @@ describe('EdgeAggregate', () => {
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
       const aggregate = EdgeAggregate.createEdge(createCommand);
       aggregate.markEventsAsCommitted(); // 생성 이벤트 클리어
@@ -168,6 +178,7 @@ describe('EdgeAggregate', () => {
       const updateCommand: UpdateEdgeShapeCommand = {
         edgeId: aggregate.edge.id,
         newShape,
+        userId: testUserId,
       };
 
       // When
@@ -192,6 +203,7 @@ describe('EdgeAggregate', () => {
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
       const aggregate = EdgeAggregate.createEdge(createCommand);
       aggregate.markEventsAsCommitted(); // 생성 이벤트 클리어
@@ -199,6 +211,7 @@ describe('EdgeAggregate', () => {
       const updateCommand: UpdateEdgeLabelCommand = {
         edgeId: aggregate.edge.id,
         newLabel,
+        userId: testUserId,
       };
 
       // When
@@ -218,6 +231,7 @@ describe('EdgeAggregate', () => {
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
       const aggregate = EdgeAggregate.createEdge(createCommand);
       aggregate.markEventsAsCommitted();
@@ -225,6 +239,7 @@ describe('EdgeAggregate', () => {
       const updateCommand: UpdateEdgeLabelCommand = {
         edgeId: aggregate.edge.id,
         newLabel,
+        userId: testUserId,
       };
 
       // When
@@ -249,13 +264,15 @@ describe('EdgeAggregate', () => {
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
       const aggregate = EdgeAggregate.createEdge(createCommand);
       aggregate.markEventsAsCommitted(); // 생성 이벤트 클리어
-      const newStyle = { stroke: '#FF0000', strokeWidth: 5 };
+      const newStyle = { stroke: '#FF0000', strokeWidth: 3 };
       const updateCommand: UpdateEdgeStyleCommand = {
         edgeId: aggregate.edge.id,
         style: newStyle,
+        userId: testUserId,
       };
 
       // When
@@ -276,6 +293,7 @@ describe('EdgeAggregate', () => {
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
       const aggregate = EdgeAggregate.createEdge(createCommand);
       aggregate.markEventsAsCommitted();
@@ -283,6 +301,7 @@ describe('EdgeAggregate', () => {
       const updateCommand: UpdateEdgeStyleCommand = {
         edgeId: aggregate.edge.id,
         style: newStyle,
+        userId: testUserId,
       };
 
       // When
@@ -307,11 +326,13 @@ describe('EdgeAggregate', () => {
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
       const aggregate = EdgeAggregate.createEdge(createCommand);
       aggregate.markEventsAsCommitted();
       const deleteCommand: DeleteEdgeCommand = {
         edgeId: aggregate.edge.id,
+        userId: testUserId,
       };
 
       // When
@@ -335,6 +356,7 @@ describe('EdgeAggregate', () => {
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
       const aggregate = EdgeAggregate.createEdge(createCommand);
 
@@ -358,6 +380,7 @@ describe('EdgeAggregate', () => {
         targetBlockMountId,
         sourceHandle,
         targetHandle,
+        userId: testUserId,
       };
       const aggregate = EdgeAggregate.createEdge(createCommand);
       expect(aggregate.getUncommittedEvents().length).toBe(1);

@@ -1,0 +1,445 @@
+'use client';
+
+import type { ComponentType } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import {
+  Background,
+  type Edge,
+  type Node,
+  Panel,
+  ReactFlow,
+  ReactFlowProvider,
+  useEdgesState,
+  useNodesState,
+  useReactFlow,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { cn } from '@workspace/ui/lib/utils';
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import { BLOCK_TYPE_SIZES } from '@/domains/block-management/shared/types/block-types';
+import {
+  MarkdownBlock,
+  ShapeBlock,
+  ImageBlock,
+  LinkBlock,
+} from '@/domains/block-management/frontend/components/block/block-type';
+import { TutorialYoutubeBlockNode } from '../mock-youtube-block/components/tutorial-youtube-block-node';
+import { CanvasMetadataProvider } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { CanvasReadOnlyProvider } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
+import { CustomEdge } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/custom-edge';
+import {
+  CanvasModeProvider,
+  useCanvasModeContext,
+} from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
+import { useMockCanvas } from './core/use-mock-canvas';
+import { MockCanvasToolbar } from '../mock-canvas-toolbar';
+import { MockViewportControlToolbarConnected } from '../mock-viewport-control-toolbar';
+import { MockBlockAddDialog } from '../mock-block-add-dialog';
+import { MockShadowBlock } from './components/mock-shadow-block';
+import { MockViewportNavigationProvider } from './core/mock-viewport-navigation-context';
+import { TutorialStartOverlay } from '../common/tutorial-start-overlay';
+import { TutorialStepOverlay } from '../common/tutorial-step-overlay';
+import { InteractionGuard } from '../common/interaction-guard';
+import { useTutorialDialogContext } from '../tutorial-dialog/core/context';
+import { useMockViewportAdjustment } from '../mock-editor-panel/core/use-mock-viewport-adjustment';
+import { TUTORIAL_YOUTUBE_PROPERTIES } from '../../config/tutorial-mock-data';
+import {
+  getTutorialVisualSummaryNodesAndEdges,
+  isTutorialVisualSummaryNodeId,
+} from '../../config/tutorial-visual-summary-nodes';
+import type { NodeProps } from '@xyflow/react';
+
+/**
+ * Wraps a block node so the step overlay can target it with [data-tutorial="block-node"].
+ * Highlight/card show on the block itself (same as select step).
+ */
+function withBlockNodeGuard<P extends NodeProps>(NodeComponent: ComponentType<P>) {
+  return function BlockNodeWithGuard(props: P) {
+    return (
+      <InteractionGuard selector="block-node">
+        <NodeComponent {...props} />
+      </InteractionGuard>
+    );
+  };
+}
+
+/**
+ * MockCanvas Node Types (5 types only)
+ *
+ * YouTube uses TutorialYoutubeBlockNode (toolbar, action bar, tutorial state).
+ * Others use real block components wrapped with block-node guard.
+ */
+const MOCK_CANVAS_NODE_TYPES = {
+  [BlockType.MARKDOWN]: withBlockNodeGuard(MarkdownBlock),
+  [BlockType.SHAPE]: withBlockNodeGuard(ShapeBlock),
+  [BlockType.YOUTUBE]: TutorialYoutubeBlockNode,
+  [BlockType.IMAGE]: withBlockNodeGuard(ImageBlock),
+  [BlockType.LINK]: withBlockNodeGuard(LinkBlock),
+};
+
+/** Tutorial mock canvas metadata (no real API). Used so blocks (DataBlock, etc.) can use useCanvasMetadata. */
+const MOCK_CANVAS_METADATA = {
+  pageId: 'tutorial',
+  orgId: 'tutorial',
+  workspaceId: 'tutorial',
+} as const;
+
+/**
+ * Runs fitView when nodes are present so the placed block stays in view with padding.
+ * Skips when visual summary is rendered (handled by VisualSummaryFitViewEffect).
+ */
+function FitViewEffect({
+  nodeCount,
+  skipFitView,
+}: {
+  nodeCount: number;
+  skipFitView: boolean;
+}) {
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    if (skipFitView || nodeCount === 0) return;
+    fitView({ duration: 500, padding: 0.2, maxZoom: 0.9 });
+  }, [nodeCount, fitView, skipFitView]);
+  return null;
+}
+
+/**
+ * When the YouTube tutorial reaches "visual summary rendered", fit view so the full
+ * canvas (YouTube block + argument map) is visible. Runs once when entering this state.
+ */
+function VisualSummaryFitViewEffect({ active }: { active: boolean }) {
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    if (!active) return;
+    const timer = setTimeout(() => {
+      fitView({ duration: 800, padding: 0.2, maxZoom: 0.5 });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [active, fitView]);
+  return null;
+}
+
+interface MockCanvasInnerProps {
+  initialNodes?: Node[];
+  initialEdges?: Edge[];
+}
+
+function MockCanvasInnerWithFlow({
+  initialNodes = [],
+  initialEdges = [],
+}: MockCanvasInnerProps) {
+  const {
+    showBlockMenu,
+    hasBlock,
+    handleAddBlockClick,
+    handleCloseDialog,
+    handleSelectBlockType,
+    handleBlockPlaced,
+  } = useMockCanvas();
+
+  const {
+    currentTutorial,
+    currentStepIndex,
+    currentStep,
+    startTutorial,
+    completeCurrentStep,
+    updateTutorialState,
+    tutorialState,
+  } = useTutorialDialogContext();
+
+  const lastPlacedNodeIdRef = useRef<string | null>(null);
+  const blockMountIdFromState = (tutorialState.lastPlacedNodeId as string) ?? null;
+  const blockMountId = blockMountIdFromState ?? lastPlacedNodeIdRef.current;
+  const editorPanelOpen = Boolean(tutorialState.editorPanelOpen);
+  const visualSummaryRendered = Boolean(tutorialState.visualSummaryRendered);
+  const isYoutubeBlockTutorial = currentTutorial?.id === 'youtube-block';
+
+  useMockViewportAdjustment(blockMountId, editorPanelOpen);
+
+  const {
+    isBlockCreationMode,
+    getCurrentMode,
+    exitToDefaultMode,
+    enterBlockCreationMode,
+    enterSingleSelectionMode,
+  } = useCanvasModeContext();
+
+  const reactFlow = useReactFlow();
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // When YouTube block tutorial reaches "visual summary rendered", inject argument map nodes/edges (demo result).
+  // Position the argument map 100px to the right of the user's YouTube block.
+  useEffect(() => {
+    if (!isYoutubeBlockTutorial || !visualSummaryRendered) return;
+    const hasVsNodes = nodes.some((n) => isTutorialVisualSummaryNodeId(n.id));
+    if (hasVsNodes) return;
+    const youtubeNode = nodes.find((n) => n.type === BlockType.YOUTUBE);
+    if (!youtubeNode) return;
+    const ytWidth = (youtubeNode.style?.width as number) ?? BLOCK_TYPE_SIZES[BlockType.YOUTUBE].width;
+    const anchor = {
+      x: youtubeNode.position.x + ytWidth + 100,
+      y: youtubeNode.position.y,
+    };
+    const { nodes: vsNodes, edges: vsEdges } = getTutorialVisualSummaryNodesAndEdges(anchor);
+    setNodes((prev) => [...prev, ...vsNodes]);
+    setEdges((prev) => [...prev, ...vsEdges]);
+  }, [isYoutubeBlockTutorial, visualSummaryRendered, nodes, setNodes, setEdges]);
+
+  const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1 }), []);
+
+  const nodeTypes = useMemo(() => MOCK_CANVAS_NODE_TYPES, []);
+
+  const edgeTypes = useMemo(
+    () => ({
+      custom: CustomEdge,
+    }),
+    []
+  );
+
+  const handlePaneClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (!isBlockCreationMode()) return;
+      const mode = getCurrentMode();
+      if (mode.type !== 'block-creation' || !mode.blockType) return;
+
+      const target = event.target as HTMLElement;
+      const isPane =
+        target.classList.contains('react-flow__pane') ||
+        target.classList.contains('react-flow__background') ||
+        target.closest('.react-flow__pane') ||
+        target.closest('.react-flow__background');
+      if (!isPane) return;
+
+      const blockType = mode.blockType;
+      const blockSize = BLOCK_TYPE_SIZES[blockType] ?? BLOCK_TYPE_SIZES['text'];
+      const position = reactFlow.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+      const adjustedPosition = {
+        x: position.x - (blockSize?.width ?? 200) / 2,
+        y: position.y - (blockSize?.height ?? 150) / 2,
+      };
+
+      const nodeId = `tutorial-block-${Date.now()}`;
+      const nodeData = {
+        blockId: nodeId,
+        blockMountId: nodeId,
+        blockType,
+        title: '',
+        viewMode: 'original' as const,
+        properties: {},
+        customProperties: [],
+      };
+      setNodes((prev) => [
+        ...prev,
+        {
+          id: nodeId,
+          type: blockType,
+          position: adjustedPosition,
+          data: nodeData,
+          draggable: false,
+          selectable: false,
+          style: {
+            width: blockSize?.width ?? 200,
+            height: blockSize?.height ?? 150,
+            overflow: 'visible',
+          },
+        } as Node,
+      ]);
+
+      exitToDefaultMode();
+      lastPlacedNodeIdRef.current = nodeId;
+      updateTutorialState({
+        lastPlacedNodeId: nodeId,
+        ...(blockType === BlockType.YOUTUBE
+          ? { youtubeUrl: TUTORIAL_YOUTUBE_PROPERTIES.url }
+          : {}),
+      });
+      handleBlockPlaced?.();
+      setTimeout(() => completeCurrentStep(), 300);
+    },
+    [
+      isBlockCreationMode,
+      getCurrentMode,
+      reactFlow,
+      setNodes,
+      exitToDefaultMode,
+      updateTutorialState,
+      handleBlockPlaced,
+      completeCurrentStep,
+    ]
+  );
+
+  useEffect(() => {
+    if (!isBlockCreationMode()) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') exitToDefaultMode();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isBlockCreationMode, exitToDefaultMode]);
+
+  const isBlockNodeStep =
+    currentStep?.targetSelector === 'block-node' ||
+    currentStep?.interactableSelectors?.includes('block-node');
+
+  const handleNodeClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      const blockNodeInteractable =
+        currentStep?.targetSelector === 'block-node' ||
+        currentStep?.interactableSelectors?.includes('block-node');
+      if (!currentStep || !blockNodeInteractable) return;
+      setNodes((nodes) =>
+        nodes.map((n) => ({ ...n, selected: n.id === node.id }))
+      );
+      enterSingleSelectionMode(node.id);
+      if (currentStep.action === 'click') {
+        setTimeout(() => completeCurrentStep(), 300);
+      }
+    },
+    [currentStep, setNodes, enterSingleSelectionMode, completeCurrentStep]
+  );
+
+  const showStartOverlay = currentStepIndex === -1;
+  const showStepOverlay = currentStepIndex >= 0;
+  const isBlockCreation = isBlockCreationMode();
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <div
+      ref={canvasWrapperRef}
+      className="h-full w-full relative"
+      data-tutorial="canvas-pane"
+    >
+      {/* Tutorial Start Overlay */}
+      {showStartOverlay && currentTutorial && (
+        <TutorialStartOverlay
+          title={currentTutorial.name}
+          description={currentTutorial.description}
+          onStart={startTutorial}
+        />
+      )}
+
+      {/* Tutorial Step Overlay: in-place absolute (no portal), card keyed for instant step change */}
+      {showStepOverlay && (
+        <TutorialStepOverlay containerRef={canvasWrapperRef} />
+      )}
+
+      {/* Block-creation mode styles (match real app) */}
+      {isBlockCreation && (
+        <style>{`
+          .react-flow.mock-canvas-block-creation .react-flow__node {
+            opacity: 0.4 !important;
+            pointer-events: auto !important;
+          }
+          .react-flow.mock-canvas-block-creation .react-flow__node > * {
+            pointer-events: none !important;
+          }
+          .react-flow.mock-canvas-block-creation,
+          .react-flow.mock-canvas-block-creation .react-flow__pane,
+          .react-flow.mock-canvas-block-creation .react-flow__node,
+          .react-flow.mock-canvas-block-creation .react-flow__node * {
+            cursor: crosshair !important;
+          }
+          .react-flow.mock-canvas-block-creation .react-flow__edge {
+            opacity: 0.3 !important;
+            pointer-events: none !important;
+          }
+        `}</style>
+      )}
+
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onPaneClick={handlePaneClick}
+        onNodeClick={handleNodeClick}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultViewport={defaultViewport}
+        minZoom={0.5}
+        maxZoom={1.5}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={!isBlockCreation || isBlockNodeStep}
+        panOnDrag={isBlockCreation}
+        panOnScroll={true}
+        zoomOnScroll={true}
+        zoomOnPinch={true}
+        zoomOnDoubleClick={false}
+        proOptions={{ hideAttribution: true }}
+        className={cn(
+          'bg-muted/30',
+          isBlockCreation && 'mock-canvas-block-creation'
+        )}
+      >
+        <Background gap={20} size={1} />
+        <FitViewEffect
+          nodeCount={nodes.length}
+          skipFitView={isYoutubeBlockTutorial && visualSummaryRendered}
+        />
+        <VisualSummaryFitViewEffect
+          active={Boolean(isYoutubeBlockTutorial && visualSummaryRendered)}
+        />
+        <MockViewportNavigationProvider />
+
+        {isBlockCreation && <MockShadowBlock />}
+
+        {/* Canvas Toolbar - Top Center (above step overlay so it stays clickable) */}
+        <Panel position="top-center" className="mt-4! pointer-events-auto! z-50">
+          <MockCanvasToolbar onAddBlockClick={handleAddBlockClick} />
+        </Panel>
+
+        {/* Viewport Control Toolbar - Bottom Right (above step overlay so it stays clickable) */}
+        <Panel position="bottom-right" className="mr-4! mb-4! pointer-events-auto! z-50">
+          <MockViewportControlToolbarConnected />
+        </Panel>
+      </ReactFlow>
+
+      {/* Block Add Dialog (outside ReactFlow, same as real app) */}
+      <MockBlockAddDialog
+        isOpen={showBlockMenu}
+        onClose={handleCloseDialog}
+        onSelectBlockType={handleSelectBlockType}
+        enterBlockCreationMode={enterBlockCreationMode}
+      />
+    </div>
+  );
+}
+
+/**
+ * Mock Canvas Props
+ */
+export interface MockCanvasProps {
+  initialNodes?: Node[];
+  initialEdges?: Edge[];
+}
+
+/**
+ * Mock Canvas (Container)
+ *
+ * Tutorial-specific ReactFlow canvas with:
+ * - 5 block types (Markdown, Shape, YouTube, Image, Link)
+ * - CustomEdge support
+ * - Mode context (block-creation)
+ * - Tutorial-specific initial nodes/edges
+ */
+export function MockCanvas({ initialNodes, initialEdges }: MockCanvasProps) {
+  return (
+    <ReactFlowProvider>
+      <CanvasMetadataProvider value={MOCK_CANVAS_METADATA}>
+        <CanvasReadOnlyProvider readonly={false}>
+          <CanvasModeProvider>
+            <MockCanvasInnerWithFlow
+              initialNodes={initialNodes}
+              initialEdges={initialEdges}
+            />
+          </CanvasModeProvider>
+        </CanvasReadOnlyProvider>
+      </CanvasMetadataProvider>
+    </ReactFlowProvider>
+  );
+}

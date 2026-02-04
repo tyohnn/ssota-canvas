@@ -41,15 +41,17 @@ function OnboardingContent() {
         // redirect query parameter가 있으면 우선 사용, 없으면 result.data.redirectUrl 사용
         const finalRedirectUrl = redirectParam || result.data.redirectUrl;
 
-        // Existing users with complete setup redirect immediately (no countdown)
-        // New users see countdown before redirect
-        const isExistingUser = result.data.user && result.data.organization;
+        // createdNewOrganization === true → 방금 조직 생성(신규) → 카운트다운 + tutorial=true
+        // createdNewOrganization === false → 기존 조직 조회 → 즉시 리다이렉트
+        const isNewUser = result.data.createdNewOrganization === true;
 
-        if (isExistingUser) {
+        if (!isNewUser) {
           // Existing user: redirect immediately
           router.push(finalRedirectUrl);
         } else {
-          // New user: start countdown (3 seconds)
+          // New user: redirect with ?tutorial=true for welcome tutorial, then countdown
+          const welcomeUrl =
+            finalRedirectUrl + (finalRedirectUrl.includes('?') ? '&' : '?') + 'tutorial=true';
           let count = 3;
           const countdownInterval = setInterval(() => {
             count -= 1;
@@ -57,7 +59,7 @@ function OnboardingContent() {
 
             if (count <= 0) {
               clearInterval(countdownInterval);
-              router.push(finalRedirectUrl);
+              router.push(welcomeUrl);
             }
           }, 1000);
         }

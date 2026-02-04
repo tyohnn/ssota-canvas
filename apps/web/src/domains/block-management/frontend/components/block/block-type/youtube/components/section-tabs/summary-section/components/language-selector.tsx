@@ -29,9 +29,9 @@ interface LanguageSelectorProps {
 }
 
 /**
- * 언어 코드를 언어 이름으로 변환
+ * 언어 코드를 언어 이름으로 변환 (앱 전역에서 공통 사용)
  */
-function getLanguageName(code: string): string {
+export function getLanguageName(code: string): string {
   const languageNames: Record<string, string> = {
     en: 'English',
     ko: '한국어',

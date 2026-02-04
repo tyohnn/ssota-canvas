@@ -30,9 +30,31 @@ export default defineConfig(({ mode }) => {
         '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
         '**/src/__tests__/e2e/**', // E2E 테스트 제외
         '**/*.e2e.spec.ts', // Playwright E2E 테스트 제외
+        // DB/통합 테스트: POSTGRES_URL 없을 때 기본 run에서 제외 (test:integration으로 별도 실행)
+        ...(process.env.POSTGRES_URL
+          ? []
+          : [
+              '**/drizzle-*.repository*.test.ts',
+              '**/drizzle-*.integration.test.ts',
+              '**/workspace-management.actions.test.ts',
+              '**/block.actions.test.ts',
+              '**/context-assembly.service.test.ts',
+              '**/page-hierarchy.service.test.ts',
+              '**/workspace-crud.service.test.ts',
+              '**/workspace-invitation.service.test.ts',
+              '**/workspace-navigation.service.test.ts',
+              '**/drizzle-organization.repository.test.ts',
+              '**/drizzle-image-asset.repository.test.ts',
+              '**/page.repository.test.ts',
+              '**/workspace.repository.test.ts',
+              '**/workspace-invitation.repository.test.ts',
+              '**/workspace-member.repository.test.ts',
+              '**/user-management.actions.integration.test.ts',
+            ]),
       ],
       coverage: {
         provider: 'v8',
+        include: ['src/**/*.{ts,tsx}'],
         reporter: ['text', 'json', 'html'],
         exclude: [
           'node_modules/',

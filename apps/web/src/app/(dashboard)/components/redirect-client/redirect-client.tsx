@@ -51,6 +51,11 @@ interface RedirectToDefaultPageClientProps {
 /**
  * /r 또는 /r/[orgId]에서 /r/[orgId]/[pageId]로 리다이렉트.
  * 컨텍스트(선택 조직, 워크스페이스·페이지)에서 대상 URL 계산.
+ *
+ * When orgIdFromUrl is set (/r/[orgId] index), only redirect once context
+ * matches the URL org. Otherwise we would use stale context (previous org's
+ * workspaces/selectedPageId) and redirect to /r/newOrg/oldOrgPageId, causing
+ * "Page org mismatch" in the layout.
  */
 export function RedirectToDefaultPageClient({
   orgIdFromUrl,
@@ -61,8 +66,14 @@ export function RedirectToDefaultPageClient({
 
   const redirectUrl = useMemo(() => {
     const orgId = orgIdFromUrl ?? selectedOrganization?.id ?? null;
+    if (!orgId) return null;
+    // On /r/[orgId], wait for context to match URL org before using workspaces
+    // so we don't redirect to a page that belongs to the previous org.
+    if (orgIdFromUrl != null && selectedOrganization?.id !== orgIdFromUrl) {
+      return null;
+    }
     const pageId = getFirstPageId(workspaces, selectedPageId);
-    if (orgId && pageId) return `/r/${orgId}/${pageId}`;
+    if (pageId) return `/r/${orgId}/${pageId}`;
     return null;
   }, [orgIdFromUrl, selectedOrganization?.id, workspaces, selectedPageId]);
 

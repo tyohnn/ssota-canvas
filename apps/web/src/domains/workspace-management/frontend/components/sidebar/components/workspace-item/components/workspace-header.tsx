@@ -59,7 +59,7 @@ export function WorkspaceHeader({
       <CollapsibleTrigger asChild>
         <button
           className={cn(
-            'flex items-center gap-1.5 px-2 py-1 rounded-sm text-sm flex-1 min-w-0 text-muted-foreground transition-colors'
+            'flex items-center gap-1.5 px-2 py-1 rounded-sm text-xs flex-1 min-w-0 text-sidebar-foreground transition-colors'
           )}
         >
           {/* 아이콘/Chevron 컨테이너 (고정 너비로 레이아웃 틀어짐 방지) */}

@@ -98,9 +98,11 @@ describe('useCreateEdge', () => {
     nodes = [mockSourceNode, mockTargetNode];
 
     mockGetEdges = vi.fn(() => [...edges]);
-    mockSetEdges = vi.fn((newEdges: Edge<EdgeData>[]) => {
-      edges = [...newEdges];
-    });
+    mockSetEdges = vi.fn(
+      (arg: Edge<EdgeData>[] | ((prev: Edge<EdgeData>[]) => Edge<EdgeData>[])) => {
+        edges = typeof arg === 'function' ? arg([...edges]) : [...arg];
+      }
+    );
     mockGetNodes = vi.fn(() => [...nodes]);
 
     reactFlow = {
@@ -262,13 +264,15 @@ describe('useCreateEdge', () => {
         result.current.createEdge(input);
       });
 
-      // setEdges가 호출되었는지 확인
+      // setEdges가 호출되었는지 확인 (함수형 업데이트: prev => [...prev, optimisticEdge])
       await waitFor(() => {
         expect(mockSetEdges).toHaveBeenCalled();
-        const callArgs = vi.mocked(mockSetEdges).mock.calls[0]?.[0];
-        expect(callArgs).toBeDefined();
-        expect(callArgs).toHaveLength(1);
-        expect(callArgs?.[0]?.id).toContain('optimistic-edge-');
+        const arg = vi.mocked(mockSetEdges).mock.calls[0]?.[0];
+        expect(arg).toBeDefined();
+        const newEdges =
+          typeof arg === 'function' ? arg([]) : (arg as Edge<EdgeData>[]);
+        expect(newEdges).toHaveLength(1);
+        expect(newEdges[0]?.id).toContain('optimistic-edge-');
       });
     });
 
