@@ -32,7 +32,11 @@ import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects
 import type { AuthorizeResult } from '@/lib/server-actions/types';
 import { createClient } from '@/utils/supabase/server';
 
-import type { PageActionContext, WorkspaceActionContext } from './types';
+import type {
+  OrganizationActionContext,
+  PageActionContext,
+  WorkspaceActionContext,
+} from './types';
 
 // ============================================
 // Types
@@ -519,4 +523,36 @@ export async function authorizeByBlockMountId(
 
   // 2. Verify page access
   return await authorizeByPageId(pageId, userId);
+}
+
+/**
+ * Organization-based authorization (for organization settings, etc.)
+ * Verifies organization membership and returns OrganizationActionContext.
+ *
+ * @param options.requireOwner - If true, only organization owner can proceed (e.g. for update settings).
+ */
+export async function authorizeByOrganizationId(
+  organizationId: string,
+  userId: string,
+  options?: { requireOwner?: boolean }
+): Promise<AuthorizeResult<OrganizationActionContext>> {
+  const orgMembership = await verifyOrganizationMembership(
+    organizationId,
+    userId
+  );
+
+  if (!orgMembership.isMember || !orgMembership.role) {
+    return { success: false, error: 'Not a member of this organization' };
+  }
+
+  if (options?.requireOwner && orgMembership.role !== 'owner') {
+    return { success: false, error: 'Only the organization owner can perform this action' };
+  }
+
+  return {
+    success: true,
+    context: {
+      organization: { id: organizationId, role: orgMembership.role },
+    } as OrganizationActionContext,
+  };
 }

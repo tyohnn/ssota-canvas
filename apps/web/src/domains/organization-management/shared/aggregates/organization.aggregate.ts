@@ -24,7 +24,8 @@ export class OrganizationAggregate {
       ownerId,
       true, // isDefault
       new Date(),
-      new Date()
+      new Date(),
+      null
     );
     return new OrganizationAggregate(organization);
   }
@@ -41,13 +42,31 @@ export class OrganizationAggregate {
       ownerId,
       false, // isDefault - 새로운 조직은 기본 조직이 아님
       new Date(),
-      new Date()
+      new Date(),
+      null
     );
     return new OrganizationAggregate(organization);
   }
 
   updateName(name: string): OrganizationUpdatedEvent {
     this.organization.updateName(name);
+    return new OrganizationUpdatedEvent(
+      this.organization.id,
+      this.organization.name
+    );
+  }
+
+  updateIcon(iconUrl: string | null): OrganizationUpdatedEvent {
+    this.organization.updateIcon(iconUrl);
+    return new OrganizationUpdatedEvent(
+      this.organization.id,
+      this.organization.name
+    );
+  }
+
+  updateDetails(name: string, iconUrl: string | null): OrganizationUpdatedEvent {
+    this.organization.updateName(name);
+    this.organization.updateIcon(iconUrl);
     return new OrganizationUpdatedEvent(
       this.organization.id,
       this.organization.name

@@ -30,7 +30,11 @@ const FIXED_BLOCKS = [
  * 랜덤 블록 위치로 실제 캔버스처럼 보이는 로딩 화면
  * 모든 캔버스 로딩 상태에서 공통으로 사용
  */
-export function CanvasLoadingSkeleton() {
+export function CanvasLoadingSkeleton({
+  loadingMessage = 'Loading canvas...',
+}: {
+  loadingMessage?: string;
+} = {}) {
   return (
     <div className="h-full w-full relative overflow-hidden">
       {/* React Flow 스타일 배경 (Dot Pattern) */}
@@ -100,7 +104,7 @@ export function CanvasLoadingSkeleton() {
           <div className="flex items-center gap-3">
             <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
             <p className="text-sm font-medium text-foreground">
-              Loading canvas...
+              {loadingMessage}
             </p>
           </div>
         </div>

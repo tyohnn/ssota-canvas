@@ -24,12 +24,13 @@ export class DrizzleUserRepository implements UserRepository {
       return null;
     }
 
-    // schema.ts 구조: name, avatar_url, beta fields (optional)
+    // schema.ts 구조: name, avatar_url, language, beta fields (optional)
     const user = new User(
       new UserId(data.id),
       new UserEmail(data.email),
       data.name || 'User',
       data.avatar_url,
+      data.language || 'en',
       new Date(data.created_at),
       new Date(data.updated_at),
       data.beta_status,
@@ -52,12 +53,13 @@ export class DrizzleUserRepository implements UserRepository {
       return null;
     }
 
-    // schema.ts 구조: name, avatar_url, beta fields (optional)
+    // schema.ts 구조: name, avatar_url, language, beta fields (optional)
     const user = new User(
       new UserId(data.id),
       new UserEmail(data.email),
       data.name || 'User',
       data.avatar_url,
+      data.language || 'en',
       new Date(data.created_at),
       new Date(data.updated_at),
       data.beta_status,
@@ -68,12 +70,13 @@ export class DrizzleUserRepository implements UserRepository {
   }
 
   async save(userAggregate: UserAggregate): Promise<void> {
-    // schema.ts를 SSOT로 사용: name, avatar_url 컬럼
+    // schema.ts를 SSOT로 사용: name, avatar_url, language 컬럼
     const profileData = {
       id: userAggregate.id.value,
       email: userAggregate.entity.email.value,
       name: userAggregate.entity.name,
       avatar_url: userAggregate.entity.avatarUrl,
+      language: userAggregate.entity.language,
       created_at: userAggregate.entity.createdAt,
       updated_at: userAggregate.entity.updatedAt,
     };
@@ -88,6 +91,7 @@ export class DrizzleUserRepository implements UserRepository {
             email: userAggregate.entity.email.value,
             name: userAggregate.entity.name,
             avatar_url: userAggregate.entity.avatarUrl,
+            language: userAggregate.entity.language,
             updated_at: userAggregate.entity.updatedAt,
           },
         });

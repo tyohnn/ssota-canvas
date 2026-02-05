@@ -93,3 +93,9 @@ export interface DeleteOrganizationCommand {
   organizationId: string;
   ownerId: string;
 }
+
+export interface UpdateOrganizationCommand {
+  organizationId: string;
+  name?: string;
+  iconUrl?: string | null;
+}

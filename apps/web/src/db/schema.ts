@@ -173,6 +173,7 @@ export const profiles = pgTable(
     email: text('email').notNull().unique(),
     name: text('name'),
     avatar_url: text('avatar_url'),
+    language: text('language').notNull().default('en'), // User's preferred language
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -249,6 +250,7 @@ export const organizations = pgTable(
     updated_at: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
+    icon_url: text('icon_url'),
   },
   table => [
     unique('organizations_unique_default_per_owner').on(

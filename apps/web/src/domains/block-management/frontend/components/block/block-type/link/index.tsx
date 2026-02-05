@@ -23,8 +23,6 @@ import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hook
 import type { LinkBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
   ColorToken,
-  getGlowColor,
-  getSelectedRingClasses,
 } from '@/domains/block-management/shared/types/style-tokens.types';
 import type { LinkBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 
@@ -45,6 +43,8 @@ export const LinkBlock = memo(function LinkBlock({
 }: NodeProps) {
   const nodeData = data as LinkBlockNodeData;
   const properties = nodeData.properties as LinkBlockProperties;
+  /** 블록 추가 시 노드 id가 optimistic- 접두사를 가짐(use-create-block). 서버 저장은 실제 노드로 교체된 뒤에만 */
+  const canPersistProperties = !id.startsWith('optimistic-');
 
   // Properties destructuring
   const {
@@ -182,26 +182,29 @@ export const LinkBlock = memo(function LinkBlock({
       setMetadata(prev =>
         prev
           ? {
-              ...prev,
-              faviconUrl: targetFavicon,
-            }
+            ...prev,
+            faviconUrl: targetFavicon,
+          }
           : prev
       );
 
       if (targetFavicon && lastPersistedFaviconRef.current !== targetFavicon) {
         lastPersistedFaviconRef.current = targetFavicon;
-        updateProperties(
-          id,
-          {
-            faviconUrl: targetFavicon,
-          },
-          nodeData
-        ).catch(error => {
-          console.error('Failed to persist sanitized favicon URL:', error);
-        });
+        if (canPersistProperties) {
+          updateProperties(
+            nodeData.blockId,
+            {
+              faviconUrl: targetFavicon,
+            },
+            nodeData
+          ).catch(error => {
+            console.error('Failed to persist sanitized favicon URL:', error);
+          });
+        }
       }
     }
   }, [
+    canPersistProperties,
     id,
     metadata,
     sanitizedMetadataFavicon,
@@ -289,22 +292,24 @@ export const LinkBlock = memo(function LinkBlock({
         if (result.success) {
           setMetadata(result.data);
 
-          // 메타데이터를 properties에 저장 (DB에 저장하여 재렌더링 시 빠르게 표시)
-          await updateProperties(
-            id,
-            {
-              ogTitle: result.data.title,
-              ogDescription: result.data.description,
-              ogImage: result.data.imageUrl,
-              siteName: result.data.siteName,
-              domain: result.data.domain,
-              faviconUrl: result.data.faviconUrl,
-              author: result.data.author,
-              publishedAt: result.data.publishedAt,
-              pageType: result.data.type,
-            },
-            nodeData
-          );
+          // 메타데이터를 properties에 저장 (낙관적 노드일 때는 skip)
+          if (canPersistProperties) {
+            await updateProperties(
+              nodeData.blockId,
+              {
+                ogTitle: result.data.title,
+                ogDescription: result.data.description,
+                ogImage: result.data.imageUrl,
+                siteName: result.data.siteName,
+                domain: result.data.domain,
+                faviconUrl: result.data.faviconUrl,
+                author: result.data.author,
+                publishedAt: result.data.publishedAt,
+                pageType: result.data.type,
+              },
+              nodeData
+            );
+          }
         } else {
           setHasError(true);
           // Fallback 데이터
@@ -320,20 +325,22 @@ export const LinkBlock = memo(function LinkBlock({
           };
           setMetadata(fallbackMetadata);
 
-          // Fallback 데이터도 properties에 저장
-          await updateProperties(
-            id,
-            {
-              ogTitle: fallbackMetadata.title,
-              ogDescription: fallbackMetadata.description,
-              ogImage: fallbackMetadata.imageUrl,
-              siteName: fallbackMetadata.siteName,
-              domain: fallbackMetadata.domain,
-              faviconUrl: fallbackMetadata.faviconUrl,
-              pageType: fallbackMetadata.type,
-            },
-            nodeData
-          );
+          // Fallback 데이터도 properties에 저장 (낙관적 노드일 때는 skip)
+          if (canPersistProperties) {
+            await updateProperties(
+              nodeData.blockId,
+              {
+                ogTitle: fallbackMetadata.title,
+                ogDescription: fallbackMetadata.description,
+                ogImage: fallbackMetadata.imageUrl,
+                siteName: fallbackMetadata.siteName,
+                domain: fallbackMetadata.domain,
+                faviconUrl: fallbackMetadata.faviconUrl,
+                pageType: fallbackMetadata.type,
+              },
+              nodeData
+            );
+          }
         }
       } catch (error) {
         console.error('Failed to fetch Open Graph metadata:', error);
@@ -351,29 +358,30 @@ export const LinkBlock = memo(function LinkBlock({
         };
         setMetadata(fallbackMetadata);
 
-        // Fallback 데이터도 properties에 저장
-        try {
-          await updateProperties(
-            id,
-            {
-              ogTitle: fallbackMetadata.title,
-              ogDescription: fallbackMetadata.description,
-              ogImage: fallbackMetadata.imageUrl,
-              siteName: fallbackMetadata.siteName,
-              domain: fallbackMetadata.domain,
-              faviconUrl: fallbackMetadata.faviconUrl,
-              pageType: fallbackMetadata.type,
-            },
-            nodeData
-          );
-        } catch (updateError) {
-          console.error('Failed to save fallback metadata:', updateError);
+        if (canPersistProperties) {
+          try {
+            await updateProperties(
+              nodeData.blockId,
+              {
+                ogTitle: fallbackMetadata.title,
+                ogDescription: fallbackMetadata.description,
+                ogImage: fallbackMetadata.imageUrl,
+                siteName: fallbackMetadata.siteName,
+                domain: fallbackMetadata.domain,
+                faviconUrl: fallbackMetadata.faviconUrl,
+                pageType: fallbackMetadata.type,
+              },
+              nodeData
+            );
+          } catch (updateError) {
+            console.error('Failed to save fallback metadata:', updateError);
+          }
         }
       } finally {
         setIsLoading(false);
       }
     },
-    [getDomain, updateProperties, id, nodeData]
+    [canPersistProperties, getDomain, updateProperties, nodeData]
   );
 
   /**
@@ -458,15 +466,24 @@ export const LinkBlock = memo(function LinkBlock({
       }
 
       if (!draftUrl.trim()) return;
+      if (!canPersistProperties) {
+        setDraftUrl('');
+        return;
+      }
 
       try {
-        await updateProperty(id, 'properties.url', draftUrl.trim(), nodeData);
+        await updateProperty(
+          nodeData.blockId,
+          'properties.url',
+          draftUrl.trim(),
+          nodeData
+        );
         setDraftUrl('');
       } catch (error) {
         console.error('Failed to save URL:', error);
       }
     },
-    [draftUrl, id, updateProperty, nodeData]
+    [canPersistProperties, draftUrl, updateProperty, nodeData]
   );
 
   /**
