@@ -62,12 +62,12 @@ export function LanguageStep({ initialLanguage, onComplete }: LanguageStepProps)
   return (
     <>
       {/* Left Panel - Form */}
-      <div className="flex flex-col gap-4 p-6 md:p-10 w-full lg:w-1/3">
+      <div className="flex flex-col gap-4 p-6 md:p-10 w-full lg:w-2/5">
         <div className="flex justify-center gap-2 md:justify-start">
           <span className="font-medium">ssota</span>
         </div>
         <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
+          <div className="w-full max-w-sm">
             <Card>
               <CardHeader>
                 <CardTitle className="text-2xl">Choose Your Language</CardTitle>
@@ -98,7 +98,7 @@ export function LanguageStep({ initialLanguage, onComplete }: LanguageStepProps)
       </div>
 
       {/* Right Panel - Canvas */}
-      <div className="hidden lg:block lg:w-2/3 bg-muted relative min-h-0">
+      <div className="hidden lg:block lg:w-3/5 bg-muted relative min-h-0">
         <div className="absolute inset-0">
           <OnboardingCanvas
             step="language"

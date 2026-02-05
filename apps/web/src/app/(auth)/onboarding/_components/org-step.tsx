@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@workspace/ui/components/ui/button';
 import { Label } from '@workspace/ui/components/ui/label';
 import { Input } from '@workspace/ui/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/components/ui/card';
 import { OnboardingCanvas } from './onboarding-canvas';
+import { ArrowLeft } from 'lucide-react';
+
+const DEBOUNCE_MS = 500;
 
 const TITLE_TRANSLATIONS: Record<string, string> = {
   en: 'Name Your Organization',
@@ -37,10 +40,22 @@ type OrgStepProps = {
   language: string;
   name: string;
   onComplete: (organizationName: string) => void;
+  onBack?: () => void;
 };
 
-export function OrgStep({ language, name, onComplete }: OrgStepProps) {
-  const [orgName, setOrgName] = useState(`${name}'s Organization`);
+export function OrgStep({ language, name, onComplete, onBack }: OrgStepProps) {
+  const initialOrg = `${name}'s Organization`;
+  const [orgName, setOrgName] = useState(initialOrg);
+  const [debouncedOrgName, setDebouncedOrgName] = useState(initialOrg);
+
+  useEffect(() => {
+    if (!orgName.trim()) {
+      setDebouncedOrgName('');
+      return;
+    }
+    const id = setTimeout(() => setDebouncedOrgName(orgName.trim()), DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [orgName]);
 
   const handleContinue = () => {
     if (orgName.trim()) {
@@ -54,12 +69,12 @@ export function OrgStep({ language, name, onComplete }: OrgStepProps) {
   return (
     <>
       {/* Left Panel - Form */}
-      <div className="flex flex-col gap-4 p-6 md:p-10 w-full lg:w-1/3">
+      <div className="flex flex-col gap-4 p-6 md:p-10 w-full lg:w-2/5">
         <div className="flex justify-center gap-2 md:justify-start">
           <span className="font-medium">ssota</span>
         </div>
         <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
+          <div className="w-full max-w-sm">
             <Card>
               <CardHeader>
                 <CardTitle className="text-2xl">{title}</CardTitle>
@@ -81,13 +96,26 @@ export function OrgStep({ language, name, onComplete }: OrgStepProps) {
                     autoFocus
                   />
                 </div>
-                <Button
-                  onClick={handleContinue}
-                  disabled={!orgName.trim()}
-                  className="w-full"
-                >
-                  Complete Setup
-                </Button>
+                <div className="flex gap-2">
+                  {onBack && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onBack}
+                      className="gap-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Back
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleContinue}
+                    disabled={!orgName.trim()}
+                    className="flex-1"
+                  >
+                    Complete Setup
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -95,12 +123,12 @@ export function OrgStep({ language, name, onComplete }: OrgStepProps) {
       </div>
 
       {/* Right Panel - Canvas */}
-      <div className="hidden lg:block lg:w-2/3 bg-muted relative min-h-0">
+      <div className="hidden lg:block lg:w-3/5 bg-muted relative min-h-0">
         <div className="absolute inset-0">
           <OnboardingCanvas
             step="organization"
             language={language}
-            organizationName={orgName || '...'}
+            organizationName={debouncedOrgName || ''}
           />
         </div>
       </div>

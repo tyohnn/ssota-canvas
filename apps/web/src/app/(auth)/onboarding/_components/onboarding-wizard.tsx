@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { processUserRegistrationAction } from '@/domains/user-management/actions/process-user-registration.action';
+import { DashboardLoadingSkeleton } from '@/app/(dashboard)/components/skeletons';
 import { LanguageStep } from './language-step';
 import { NameStep } from './name-step';
 import { OrgStep } from './org-step';
@@ -70,11 +71,8 @@ export function OnboardingWizard() {
 
   if (isSubmitting) {
     return (
-      <div className="min-h-svh w-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Setting up your workspace...</p>
-        </div>
+      <div className="min-h-svh w-full">
+        <DashboardLoadingSkeleton loadingMessage="Setting up your workspace..." />
       </div>
     );
   }
@@ -88,13 +86,18 @@ export function OnboardingWizard() {
         />
       )}
       {currentStep === 'name' && (
-        <NameStep language={data.language} onComplete={handleNameComplete} />
+        <NameStep
+          language={data.language}
+          onComplete={handleNameComplete}
+          onBack={() => setCurrentStep('language')}
+        />
       )}
       {currentStep === 'organization' && (
         <OrgStep
           language={data.language}
           name={data.name}
           onComplete={handleOrgComplete}
+          onBack={() => setCurrentStep('name')}
         />
       )}
     </div>

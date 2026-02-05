@@ -10,12 +10,16 @@ import { HeaderSkeleton } from './header-skeleton';
  * 헤더 + 캔버스 로딩 스켈레톤 조합.
  * r/loading.tsx, DashboardLoadingSkeleton 등에서 재사용.
  */
-export function SidebarInsetSkeleton() {
+export function SidebarInsetSkeleton({
+  loadingMessage,
+}: {
+  loadingMessage?: string;
+} = {}) {
   return (
     <SidebarInset className="overflow-hidden overscroll-none h-svh flex flex-col">
       <HeaderSkeleton />
       <Box className="flex-1 relative overflow-hidden">
-        <CanvasLoadingSkeleton />
+        <CanvasLoadingSkeleton loadingMessage={loadingMessage} />
       </Box>
     </SidebarInset>
   );

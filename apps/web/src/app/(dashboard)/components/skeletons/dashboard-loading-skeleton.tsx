@@ -8,11 +8,15 @@ import { SidebarSkeleton } from './sidebar';
  * (dashboard)/loading.tsx 및 리다이렉트 전 표시용.
  * SidebarSkeleton + SidebarInsetSkeleton 조합.
  */
-export function DashboardLoadingSkeleton() {
+export function DashboardLoadingSkeleton({
+  loadingMessage,
+}: {
+  loadingMessage?: string;
+} = {}) {
   return (
     <SidebarProvider>
       <SidebarSkeleton />
-      <SidebarInsetSkeleton />
+      <SidebarInsetSkeleton loadingMessage={loadingMessage} />
     </SidebarProvider>
   );
 }

@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@workspace/ui/components/ui/button';
 import { Label } from '@workspace/ui/components/ui/label';
 import { Input } from '@workspace/ui/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/components/ui/card';
 import { OnboardingCanvas } from './onboarding-canvas';
+import { ArrowLeft } from 'lucide-react';
+
+const DEBOUNCE_MS = 500;
 
 const TITLE_TRANSLATIONS: Record<string, string> = {
   en: 'What should we call you?',
@@ -49,10 +52,21 @@ const GREETING_TRANSLATIONS: Record<string, (name: string) => string> = {
 type NameStepProps = {
   language: string;
   onComplete: (name: string) => void;
+  onBack?: () => void;
 };
 
-export function NameStep({ language, onComplete }: NameStepProps) {
+export function NameStep({ language, onComplete, onBack }: NameStepProps) {
   const [name, setName] = useState('');
+  const [debouncedName, setDebouncedName] = useState('');
+
+  useEffect(() => {
+    if (!name.trim()) {
+      setDebouncedName('');
+      return;
+    }
+    const id = setTimeout(() => setDebouncedName(name.trim()), DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [name]);
 
   const handleContinue = () => {
     if (name.trim()) {
@@ -63,17 +77,17 @@ export function NameStep({ language, onComplete }: NameStepProps) {
   const title = TITLE_TRANSLATIONS[language] || TITLE_TRANSLATIONS.en;
   const label = LABEL_TRANSLATIONS[language] || LABEL_TRANSLATIONS.en;
   const getGreeting = GREETING_TRANSLATIONS[language] ?? GREETING_TRANSLATIONS.en;
-  const greeting = name.trim() && getGreeting ? getGreeting(name.trim()) : '';
+  const greeting = debouncedName && getGreeting ? getGreeting(debouncedName) : '';
 
   return (
     <>
       {/* Left Panel - Form */}
-      <div className="flex flex-col gap-4 p-6 md:p-10 w-full lg:w-1/3">
+      <div className="flex flex-col gap-4 p-6 md:p-10 w-full lg:w-2/5">
         <div className="flex justify-center gap-2 md:justify-start">
           <span className="font-medium">ssota</span>
         </div>
         <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
+          <div className="w-full max-w-sm">
             <Card>
               <CardHeader>
                 <CardTitle className="text-2xl">{title}</CardTitle>
@@ -95,13 +109,26 @@ export function NameStep({ language, onComplete }: NameStepProps) {
                     autoFocus
                   />
                 </div>
-                <Button
-                  onClick={handleContinue}
-                  disabled={!name.trim()}
-                  className="w-full"
-                >
-                  Continue
-                </Button>
+                <div className="flex gap-2">
+                  {onBack && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onBack}
+                      className="gap-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Back
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleContinue}
+                    disabled={!name.trim()}
+                    className="flex-1"
+                  >
+                    Continue
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -109,7 +136,7 @@ export function NameStep({ language, onComplete }: NameStepProps) {
       </div>
 
       {/* Right Panel - Canvas */}
-      <div className="hidden lg:block lg:w-2/3 bg-muted relative min-h-0">
+      <div className="hidden lg:block lg:w-3/5 bg-muted relative min-h-0">
         <div className="absolute inset-0">
           <OnboardingCanvas
             step="name"

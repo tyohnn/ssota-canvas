@@ -45,12 +45,13 @@ const OnboardingShapeNode = memo(function OnboardingShapeNode({
     return () => clearTimeout(timer);
   }, []);
 
-  // Typewriter: animate displayed text towards target (one character at a time when target grows)
+  // Typewriter: when target changes (e.g. language or debounced name), type from scratch
   useEffect(() => {
-    if (targetText.length <= displayedText.length) {
-      setDisplayedText(targetText);
+    if (!targetText) {
+      setDisplayedText('');
       return;
     }
+    setDisplayedText('');
     const id = setInterval(() => {
       setDisplayedText(prev => {
         const next = targetText.slice(0, prev.length + 1);
@@ -129,7 +130,7 @@ const OnboardingShapeNode = memo(function OnboardingShapeNode({
   );
 });
 
-// Org Switcher Mock Node - For organization step
+// Org Switcher Mock Node - For organization step (typewriter effect on org name)
 const OnboardingOrgNode = memo(function OnboardingOrgNode({
   data,
   width = 420,
@@ -138,6 +139,7 @@ const OnboardingOrgNode = memo(function OnboardingOrgNode({
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const [isVisible, setIsVisible] = useState(false);
+  const [displayedText, setDisplayedText] = useState('');
 
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100);
@@ -145,7 +147,26 @@ const OnboardingOrgNode = memo(function OnboardingOrgNode({
   }, []);
 
   const nodeData = data as { title?: string };
-  const displayInitial = nodeData?.title?.charAt(0)?.toUpperCase() || 'O';
+  const targetText = nodeData?.title ?? '';
+
+  // Typewriter: when target changes (debounced org name), type from scratch
+  useEffect(() => {
+    if (!targetText) {
+      setDisplayedText('');
+      return;
+    }
+    setDisplayedText('');
+    const id = setInterval(() => {
+      setDisplayedText(prev => {
+        const next = targetText.slice(0, prev.length + 1);
+        return next;
+      });
+    }, TYPEWRITER_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [targetText]);
+
+  const displayInitial = displayedText.charAt(0)?.toUpperCase() || 'O';
+  const displayName = targetText === '' ? 'Organization' : displayedText;
 
   return (
     <div
@@ -157,7 +178,7 @@ const OnboardingOrgNode = memo(function OnboardingOrgNode({
       style={
         {
           '--glow-color': getGlowColor(ColorToken.BLUE),
-          filter: `drop-shadow(0 0 30px ${getGlowColor(ColorToken.BLUE)})`,
+          filter: `drop-shadow(0 0 12px ${getGlowColor(ColorToken.BLUE)})`,
         } as React.CSSProperties
       }
     >
@@ -174,7 +195,7 @@ const OnboardingOrgNode = memo(function OnboardingOrgNode({
               </span>
             </div>
             <span className="truncate text-lg font-medium flex-1">
-              {nodeData?.title || 'Organization'}
+              {displayName}
             </span>
             <ChevronDown className="opacity-50" size={20} />
           </div>
