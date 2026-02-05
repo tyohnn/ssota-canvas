@@ -64,23 +64,10 @@ export function TipTapEditor({
         onClick={onClick}
         onDoubleClick={!editable ? onDoubleClick : undefined}
         className={cn(
-          placeholderClassName, // Placeholder 스타일 타겟
-          'prose prose-sm max-w-none',
+          placeholderClassName, // Placeholder 스타일 타겟 (global .prose와 통일)
+          'prose prose-neutral dark:prose-invert max-w-none',
           editable && 'nodrag',
           editable && 'focus:outline-none',
-          // TipTap 기본 스타일
-          '[&_.ProseMirror]:outline-none',
-          '[&_.ProseMirror]:min-h-[100px]',
-          '[&_.ProseMirror_p]:my-2',
-          '[&_.ProseMirror_p:first-child]:mt-0',
-          '[&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:my-3',
-          '[&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-bold [&_.ProseMirror_h2]:my-2',
-          '[&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-bold [&_.ProseMirror_h3]:my-2',
-          '[&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:ml-4',
-          '[&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:ml-4',
-          '[&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:rounded',
-          '[&_.ProseMirror_pre]:bg-muted [&_.ProseMirror_pre]:p-3 [&_.ProseMirror_pre]:rounded',
-          '[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-border [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic',
           className
         )}
       />
