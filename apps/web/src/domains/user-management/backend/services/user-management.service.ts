@@ -5,26 +5,36 @@ import { SupabaseAuthService } from '../anti-corruption-layers/supabase-auth-acl
 import { UserAggregate } from '../../shared/aggregates/user.aggregate';
 import { UserId } from '../../shared/value-objects/ids.vo';
 import { UserManagementError } from '../../shared/errors/user-management.error';
+import type { AuthUserInfo } from '../../shared/types';
 import { Result } from '@/utils/result';
 import { CreateUserProfileCommand } from '../../shared/commands';
 import { DrizzleOrganizationRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository';
 import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
 import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 
+/** 온보딩용 인증 사용자 (프로필 없을 수 있음) */
+export interface OnboardingAuthUser {
+  id: string;
+  email: string;
+  user_metadata: Record<string, unknown>;
+}
+
 export class UserManagementService {
   constructor(
     private userRepository: UserRepository,
     private supabaseAuthService: SupabaseAuthService
-  ) {}
+  ) { }
 
+  /**
+   * 프로필 생성 (SafeDTO → Command 변환은 서비스 내부에서 수행)
+   */
   async createUserProfile(
-    command: CreateUserProfileCommand
+    authUser: OnboardingAuthUser,
+    language?: string
   ): Promise<Result<UserAggregate, UserManagementError>> {
     try {
-      // 1. Supabase Auth에서 사용자 확인
       const supabaseUser = await this.supabaseAuthService.getCurrentUser();
-
-      if (!supabaseUser || supabaseUser.id !== command.userId) {
+      if (!supabaseUser || supabaseUser.id !== authUser.id) {
         return Result.error(
           new UserManagementError(
             'USER_NOT_FOUND',
@@ -33,41 +43,39 @@ export class UserManagementService {
         );
       }
 
-      // 2. 기존 프로필 확인
+      const metadata = authUser.user_metadata as
+        | { name?: string; avatar_url?: string | null }
+        | undefined;
+      const command: CreateUserProfileCommand = {
+        userId: authUser.id,
+        email: authUser.email,
+        name: metadata?.name ?? 'User',
+        avatarUrl: metadata?.avatar_url ?? null,
+        language: language ?? 'en',
+      };
+
+      const authUserInfo: AuthUserInfo = {
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        name: command.name ?? supabaseUser.name,
+        avatarUrl: command.avatarUrl ?? supabaseUser.avatarUrl,
+        createdAt: supabaseUser.createdAt,
+      };
+
       const existingUser = await this.userRepository.findById(
         new UserId(command.userId)
       );
       if (existingUser) {
-        // 업데이트 (Supabase User 객체 생성 필요)
-        const supabaseUserObj = {
-          id: supabaseUser.id,
-          email: supabaseUser.email,
-          user_metadata: {
-            name: supabaseUser.name,
-            avatar_url: supabaseUser.avatarUrl,
-          },
-          created_at: supabaseUser.createdAt.toISOString(),
-        };
-        // @ts-expect-error - simplified supabase user object
-        existingUser.updateFromSupabaseAuth(supabaseUserObj);
+        existingUser.updateFromAuthUserInfo(authUserInfo, command.language);
         await this.userRepository.save(existingUser);
         return Result.success(existingUser);
       }
 
-      // 3. 신규 프로필 생성
-      const supabaseUserObj = {
-        id: supabaseUser.id,
-        email: supabaseUser.email,
-        user_metadata: {
-          name: supabaseUser.name,
-          avatar_url: supabaseUser.avatarUrl,
-        },
-        created_at: supabaseUser.createdAt.toISOString(),
-      };
-      // @ts-expect-error - simplified supabase user object
-      const newUser = UserAggregate.createFromSupabaseAuth(supabaseUserObj);
+      const newUser = UserAggregate.createFromAuthUserInfo(
+        authUserInfo,
+        command.language || 'en'
+      );
       await this.userRepository.save(newUser);
-
       return Result.success(newUser);
     } catch (error) {
       console.error('[UserManagementService] Profile creation error:', {
@@ -75,7 +83,6 @@ export class UserManagementService {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
-
       return Result.error(
         new UserManagementError(
           'PROFILE_CREATION_FAILED',

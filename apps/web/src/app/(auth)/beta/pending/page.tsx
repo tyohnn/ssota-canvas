@@ -18,7 +18,7 @@ import { notFound } from 'next/navigation';
 // import { BetaPendingStatus } from '@/domains/user-management/frontend/components/beta-pending-status';
 // import { Box } from '@/components/ui/box';
 // import { checkBetaRedirectAction } from '@/domains/user-management/actions/beta.actions';
-// import { checkUserSetupStatusAction } from '@/domains/user-management/actions/user-management.actions';
+// import { checkUserSetupStatusAction } from '@/domains/user-management/actions/check-user-setup-status.action';
 // import { getAuthenticatedUserOrRedirect } from '@/domains/common/auth/server-auth.helpers';
 
 export default async function BetaPendingPage() {

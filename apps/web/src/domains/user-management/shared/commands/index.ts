@@ -5,4 +5,5 @@ export interface CreateUserProfileCommand {
   email: string;
   name: string;
   avatarUrl: string | null;
+  language?: string;
 }

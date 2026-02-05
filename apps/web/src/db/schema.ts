@@ -173,6 +173,7 @@ export const profiles = pgTable(
     email: text('email').notNull().unique(),
     name: text('name'),
     avatar_url: text('avatar_url'),
+    language: text('language').notNull().default('en'), // User's preferred language
     created_at: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
