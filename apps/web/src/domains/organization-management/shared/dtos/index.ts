@@ -1,5 +1,7 @@
 // apps/web/src/domains/organization-management/shared/dtos/index.ts
 
+import { z } from 'zod';
+
 export interface OrganizationSummary {
   id: string;
   name: string;
@@ -7,7 +9,22 @@ export interface OrganizationSummary {
   isDefault: boolean;
   role?: 'owner' | 'admin' | 'member';
   createdAt: string;
+  iconUrl?: string | null;
 }
+
+export const GetOrganizationRequestSchema = z.object({
+  organizationId: z.string().uuid(),
+});
+export type GetOrganizationRequest = z.infer<typeof GetOrganizationRequestSchema>;
+
+export const UpdateOrganizationRequestSchema = z.object({
+  organizationId: z.string().uuid(),
+  name: z.string().min(1).max(200).optional(),
+  iconUrl: z.string().url().nullable().optional(),
+});
+export type UpdateOrganizationRequest = z.infer<
+  typeof UpdateOrganizationRequestSchema
+>;
 
 export interface CreateOrganizationRequest {
   name: string;

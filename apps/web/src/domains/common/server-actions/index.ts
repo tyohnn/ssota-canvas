@@ -23,6 +23,7 @@ import { createSecureActionBuilder } from '@/lib/server-actions/create-secure-ac
 import {
   authorizeByBlockMountId,
   authorizeByEdgeId,
+  authorizeByOrganizationId,
   authorizeByPageId,
   authorizeByWorkspaceId,
   getAuthenticatedUser,
@@ -30,6 +31,7 @@ import {
 import type { AuthenticatedUser } from '../auth/helpers';
 import type {
   BaseActionContext,
+  OrganizationActionContext,
   PageActionContext,
   WorkspaceActionContext,
 } from '../auth/types';
@@ -156,10 +158,37 @@ export const withBlockMountSecureAction = secureActionBuilder
   )
   .build();
 
+/**
+ * Organization-based secure action (any org member).
+ * Use when request has `organizationId` and any member can perform the action.
+ */
+export const withOrganizationSecureAction = secureActionBuilder
+  .forContext<OrganizationActionContext, BaseActionContext>()
+  .withAuth(
+    (req: { organizationId: string }, user: AuthenticatedUser) =>
+      authorizeByOrganizationId(req.organizationId, user.id)
+  )
+  .build();
+
+/**
+ * Organization owner-only secure action (e.g. update organization settings).
+ * Use when request has `organizationId` and only the owner may perform the action.
+ */
+export const withOrganizationOwnerSecureAction = secureActionBuilder
+  .forContext<OrganizationActionContext, BaseActionContext>()
+  .withAuth(
+    (req: { organizationId: string }, user: AuthenticatedUser) =>
+      authorizeByOrganizationId(req.organizationId, user.id, {
+        requireOwner: true,
+      })
+  )
+  .build();
+
 // Re-export types from common/auth/types
 export type {
   BaseActionContext,
   DefaultActionContext,
+  OrganizationActionContext,
   PageActionContext,
   WorkspaceActionContext,
 } from '@/domains/common/auth/types';

@@ -15,6 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@workspace/ui/components/ui/sidebar';
+import { Avatar, AvatarFallback, AvatarImage } from '@workspace/ui/components/ui/avatar';
 import { ChevronDown, Plus } from 'lucide-react';
 import { useOrganization } from '@/domains/organization-management/frontend/hooks/use-organization';
 import { CreateOrganizationDialog } from './create-organization-dialog';
@@ -45,11 +46,18 @@ export function OrganizationSwitcher() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton size="sm" className="w-full px-1.5">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-5 items-center justify-center rounded-md">
-                  <span className="text-[9px] font-semibold">
+                <Avatar className="size-5 rounded-md">
+                  {selectedOrganization?.iconUrl ? (
+                    <AvatarImage
+                      src={selectedOrganization.iconUrl}
+                      alt={selectedOrganization.name}
+                      className="object-cover"
+                    />
+                  ) : null}
+                  <AvatarFallback className="rounded-md bg-sidebar-primary text-sidebar-primary-foreground text-[9px] font-semibold">
                     {displayInitial}
-                  </span>
-                </div>
+                  </AvatarFallback>
+                </Avatar>
                 <span className="truncate text-xs font-medium flex-1">
                   {displayName}
                 </span>
@@ -76,11 +84,18 @@ export function OrganizationSwitcher() {
                     }}
                     className="gap-2 p-2"
                   >
-                    <div className="flex size-6 items-center justify-center rounded-xs border">
-                      <span className="text-xs font-semibold">
+                    <Avatar className="size-6 rounded-xs border">
+                      {org.iconUrl ? (
+                        <AvatarImage
+                          src={org.iconUrl}
+                          alt={org.name}
+                          className="object-cover"
+                        />
+                      ) : null}
+                      <AvatarFallback className="rounded-xs text-xs font-semibold">
                         {org.name.charAt(0)}
-                      </span>
-                    </div>
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex flex-col flex-1">
                       <div className="flex items-center gap-2">
                         <span>{org.name}</span>

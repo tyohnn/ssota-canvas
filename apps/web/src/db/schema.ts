@@ -250,6 +250,7 @@ export const organizations = pgTable(
     updated_at: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
+    icon_url: text('icon_url'),
   },
   table => [
     unique('organizations_unique_default_per_owner').on(

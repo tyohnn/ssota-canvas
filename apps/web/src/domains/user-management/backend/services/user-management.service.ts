@@ -189,4 +189,48 @@ export class UserManagementService {
       );
     }
   }
+
+  /**
+   * 프로필 업데이트 (이름, 아바타, 언어)
+   * 제공된 필드만 반영하고 나머지는 기존 값 유지.
+   */
+  async updateUserProfile(
+    userId: string,
+    updateData: { name?: string; avatarUrl?: string | null; language?: string }
+  ): Promise<Result<UserAggregate, UserManagementError>> {
+    try {
+      const userIdVO = new UserId(userId);
+      const aggregate = await this.userRepository.findById(userIdVO);
+      if (!aggregate) {
+        return Result.error(
+          new UserManagementError('USER_NOT_FOUND', 'User profile not found')
+        );
+      }
+      const entity = aggregate.entity;
+      const name = updateData.name ?? entity.name;
+      const avatarUrl =
+        updateData.avatarUrl !== undefined
+          ? updateData.avatarUrl
+          : entity.avatarUrl;
+      const language = updateData.language ?? entity.language;
+      entity.updateProfile(name, avatarUrl, language);
+      await this.userRepository.save(aggregate);
+      return Result.success(aggregate);
+    } catch (error) {
+      console.error('[UserManagementService] updateUserProfile error:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return Result.error(
+        new UserManagementError(
+          'PROFILE_UPDATE_FAILED',
+          'Failed to update user profile',
+          {
+            error,
+            message: error instanceof Error ? error.message : 'Unknown error',
+          }
+        )
+      );
+    }
+  }
 }

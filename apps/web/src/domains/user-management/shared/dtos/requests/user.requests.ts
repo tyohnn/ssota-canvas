@@ -41,6 +41,15 @@ export const CreateOrGetDefaultOrganizationRequestSchema = z.object({
   organizationName: z.string().min(1).max(255),
 });
 
+/**
+ * 프로필 업데이트 요청 스키마 (선택 필드만)
+ */
+export const UpdateUserProfileRequestSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  avatarUrl: z.string().url().nullable().optional(),
+  language: z.string().min(2).max(10).optional(),
+});
+
 // Input types (프론트엔드에서 사용)
 export type CreateUserProfileRequestInput = z.input<
   typeof CreateUserProfileRequestSchema
@@ -53,6 +62,9 @@ export type CheckUserSetupStatusRequestInput = z.input<
 >;
 export type CreateOrGetDefaultOrganizationRequestInput = z.input<
   typeof CreateOrGetDefaultOrganizationRequestSchema
+>;
+export type UpdateUserProfileRequestInput = z.input<
+  typeof UpdateUserProfileRequestSchema
 >;
 
 // Output types (서버에서 사용)
@@ -67,4 +79,7 @@ export type CheckUserSetupStatusRequest = z.output<
 >;
 export type CreateOrGetDefaultOrganizationRequest = z.output<
   typeof CreateOrGetDefaultOrganizationRequestSchema
+>;
+export type UpdateUserProfileRequest = z.output<
+  typeof UpdateUserProfileRequestSchema
 >;
