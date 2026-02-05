@@ -31,7 +31,7 @@ import { Input } from '@workspace/ui/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@workspace/ui/components/ui/avatar';
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { toast } from '@workspace/ui/components/ui/sonner';
-import { MemberListTable } from './member-list-table';
+import { MemberList } from './member-list';
 import { InviteMemberDialog } from './invite-member-dialog';
 import { useMemberManagementContext } from '../../contexts/member-management-context';
 import { useMemberManagement } from '../../hooks/use-member-management';
@@ -226,12 +226,12 @@ export function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-6xl! h-[85vh] p-0 gap-0 overflow-hidden rounded-md"
+        className="fixed left-0 top-0 right-0 bottom-0 w-full max-w-[100vw] h-dvh p-0 gap-0 overflow-hidden rounded-none translate-x-0 translate-y-0 md:left-1/2 md:top-1/2 md:right-auto md:bottom-auto md:max-w-6xl md:h-[85vh] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-md"
         overlayClassName="backdrop-blur-sm"
       >
-        <div className="flex h-full min-h-0">
-          {/* Left Sidebar */}
-          <div className="w-56 shrink-0 border-r border-border/30 bg-muted/30 p-4 flex flex-col">
+        <div className="flex flex-col md:flex-row h-full min-h-0 min-w-0">
+          {/* Left Sidebar - desktop only */}
+          <div className="hidden md:flex w-56 shrink-0 border-r border-border/30 bg-muted/30 p-4 flex-col">
             <DialogHeader className="mb-4 shrink-0">
               <DialogTitle className="flex items-center gap-2 text-base">
                 <Settings className="h-4 w-4" />
@@ -258,9 +258,37 @@ export function SettingsDialog({
           </div>
 
           {/* Right Content Area */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <ScrollArea className="h-full w-full">
-              <div className="p-6 pb-8 min-h-full">
+          <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+            {/* Mobile tab bar - visible only on small screens, horizontal scroll */}
+            <div className="relative md:hidden shrink-0 min-w-0 w-full max-w-full border-b bg-background overflow-hidden">
+              <div
+                className="flex flex-nowrap gap-1 overflow-x-auto overflow-y-hidden px-3 py-2 sticky top-0 z-10 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 w-full max-w-full min-w-0"
+                style={{ WebkitOverflowScrolling: 'touch' }}
+                role="tablist"
+                aria-label="Settings sections"
+              >
+                {tabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+                      activeTab === tab.id
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground'
+                    )}
+                  >
+                    <tab.icon className="h-4 w-4 shrink-0" />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <ScrollArea className="h-full w-full min-w-0">
+              <div className="p-4 pb-8 md:p-6 md:pb-8 min-h-full min-w-0">
                 {activeTab === 'general' && (
                   <div className="space-y-6">
                     <div>
@@ -300,7 +328,7 @@ export function SettingsDialog({
                         </div>
                         <div className="space-y-2">
                           <Label>Organization Icon</Label>
-                          <div className="flex items-center gap-4">
+                          <div className="flex flex-wrap items-center gap-3">
                             <Avatar className="size-24">
                               {localOrgIconUrl ? (
                                 <AvatarImage
@@ -351,7 +379,7 @@ export function SettingsDialog({
                 )}
 
                 {activeTab === 'preferences' && (
-                  <div className="space-y-6">
+                  <div className="space-y-6 max-w-sm">
                     <div>
                       <h2 className="text-lg font-semibold">Preferences</h2>
                       <p className="text-sm text-muted-foreground">
@@ -370,7 +398,7 @@ export function SettingsDialog({
                           value={preferredLanguage}
                           onValueChange={handlePreferredLanguageChange}
                         >
-                          <SelectTrigger id="preferred-language" className="w-[200px]">
+                          <SelectTrigger id="preferred-language" className="w-full">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -391,17 +419,17 @@ export function SettingsDialog({
 
                     {/* Canvas Pan Sensitivity */}
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      <div className="flex flex-wrap justify-between items-center gap-2">
+                        <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 shrink-0">
                           Canvas Pan Sensitivity
                         </label>
-                        <span className="text-sm text-muted-foreground w-8 text-right">
+                        <span className="text-sm text-muted-foreground shrink-0 tabular-nums">
                           {mouseSensitivity.toFixed(1)}x
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-4">
-                        <span className="text-xs text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                        <span className="text-xs text-muted-foreground shrink-0">
                           Static
                         </span>
                         <Slider
@@ -410,9 +438,9 @@ export function SettingsDialog({
                           max={2}
                           step={0.1}
                           onValueChange={([val]) => val !== undefined && setMouseSensitivity(val)}
-                          className="flex-1"
+                          className="flex-1 min-w-0"
                         />
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground shrink-0">
                           Dynamic
                         </span>
                       </div>
@@ -426,20 +454,20 @@ export function SettingsDialog({
                 )}
 
                 {activeTab === 'members' && (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div>
+                  <div className="space-y-6 min-w-0 w-full">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+                      <div className="min-w-0">
                         <h2 className="text-lg font-semibold">
                           Member Management
                         </h2>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground mt-1">
                           Invite and manage organization members.
                         </p>
                       </div>
                       {canInviteMembers && (
                         <Button
                           onClick={() => setIsInviteDialogOpen(true)}
-                          className="gap-2"
+                          className="gap-2 w-full sm:w-auto sm:shrink-0"
                         >
                           <UserPlus className="h-4 w-4" />
                           Invite Member
@@ -449,7 +477,7 @@ export function SettingsDialog({
                     <Separator />
 
                     {/* Member List */}
-                    <MemberListTable />
+                    <MemberList />
                   </div>
                 )}
 
@@ -495,7 +523,7 @@ export function SettingsDialog({
                         </div>
                         <div className="space-y-2">
                           <Label>Profile photo</Label>
-                          <div className="flex items-center gap-4">
+                          <div className="flex flex-wrap items-center gap-3">
                             <Avatar className="size-24">
                               {profile?.profileImageUrl ? (
                                 <AvatarImage
@@ -507,12 +535,12 @@ export function SettingsDialog({
                               <AvatarFallback className="text-2xl bg-muted">
                                 {localProfileName
                                   ? localProfileName
-                                      .trim()
-                                      .split(/\s+/)
-                                      .map(s => s[0])
-                                      .join('')
-                                      .slice(0, 2)
-                                      .toUpperCase() || '?'
+                                    .trim()
+                                    .split(/\s+/)
+                                    .map(s => s[0])
+                                    .join('')
+                                    .slice(0, 2)
+                                    .toUpperCase() || '?'
                                   : '?'}
                               </AvatarFallback>
                             </Avatar>

@@ -67,6 +67,8 @@ function SidebarProvider({
   onOpenChange?: (open: boolean) => void;
 }) {
   const isMobile = useIsMobile();
+  const isMobileRef = React.useRef(isMobile);
+  isMobileRef.current = isMobile;
   const [openMobile, setOpenMobile] = React.useState(false);
 
   // This is the internal state of the sidebar.
@@ -88,10 +90,17 @@ function SidebarProvider({
     [setOpenProp, open]
   );
 
-  // Helper to toggle the sidebar.
+  // Helper to toggle the sidebar. Determine mobile at call time (window.innerWidth) so the
+  // first click uses the correct branch even before useIsMobile effect has run.
   const toggleSidebar = React.useCallback(() => {
-    return isMobile ? setOpenMobile(open => !open) : setOpen(open => !open);
-  }, [isMobile, setOpen, setOpenMobile]);
+    const isMobileNow =
+      typeof window !== 'undefined' && window.innerWidth < 768;
+    if (isMobileNow) {
+      setOpenMobile(open => !open);
+    } else {
+      setOpen(open => !open);
+    }
+  }, [setOpen, setOpenMobile]);
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -165,6 +174,8 @@ function Sidebar({
   collapsible?: 'offcanvas' | 'icon' | 'none';
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  const [mounted, setMounted] = React.useState(false);
+  React.useLayoutEffect(() => setMounted(true), []);
 
   if (collapsible === 'none') {
     return (
@@ -181,7 +192,17 @@ function Sidebar({
     );
   }
 
-  if (isMobile) {
+  const isMobileViewport =
+    mounted &&
+    typeof window !== 'undefined' &&
+    window.innerWidth < 768;
+  const isNarrowViewport =
+    typeof window !== 'undefined' && window.innerWidth < 768;
+  const showSheet =
+    isMobile ||
+    (openMobile && (isMobileViewport || isNarrowViewport));
+
+  if (showSheet) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
         <SheetContent
@@ -206,11 +227,14 @@ function Sidebar({
     );
   }
 
+  const effectiveState = mounted ? state : 'expanded';
+  const effectiveCollapsible = mounted && state === 'collapsed' ? collapsible : '';
+
   return (
     <div
       className="group peer text-sidebar-foreground hidden md:block"
-      data-state={state}
-      data-collapsible={state === 'collapsed' ? collapsible : ''}
+      data-state={effectiveState}
+      data-collapsible={effectiveCollapsible}
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
@@ -570,7 +594,7 @@ function SidebarMenuAction({
         'peer-data-[size=lg]/menu-button:top-2.5',
         'group-data-[collapsible=icon]:hidden',
         showOnHover &&
-          'peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0',
+        'peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0',
         className
       )}
       {...props}
