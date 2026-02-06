@@ -247,3 +247,52 @@ body {
   margin: 0 !important;
   border-radius: 0 !important;
 }
+
+/* Prose: legal pages + TipTap editor 통일 스타일 */
+@layer components {
+  .prose h1,
+  .prose .ProseMirror h1 {
+    @apply text-3xl font-bold tracking-tight pt-6 pb-2 mt-0 mb-2 scroll-mt-24;
+  }
+  .prose h2,
+  .prose .ProseMirror h2 {
+    @apply text-2xl font-semibold pt-5 pb-1.5 mt-0 mb-2 scroll-mt-24;
+  }
+  .prose h3,
+  .prose .ProseMirror h3 {
+    @apply text-xl font-semibold pt-3 pb-1 mt-0 mb-1.5 scroll-mt-24;
+  }
+  .prose p,
+  .prose .ProseMirror p {
+    @apply leading-relaxed my-3;
+  }
+  .prose ul,
+  .prose .ProseMirror ul {
+    @apply my-4;
+  }
+  .prose li,
+  .prose .ProseMirror li {
+    @apply my-1;
+  }
+  .prose .ProseMirror {
+    @apply outline-none min-h-[100px];
+  }
+  .prose .ProseMirror p:first-child {
+    @apply mt-0;
+  }
+  .prose .ProseMirror ul {
+    @apply list-disc ml-4;
+  }
+  .prose .ProseMirror ol {
+    @apply list-decimal ml-4 my-4;
+  }
+  .prose .ProseMirror code {
+    @apply bg-muted px-1 rounded;
+  }
+  .prose .ProseMirror pre {
+    @apply bg-muted p-3 rounded;
+  }
+  .prose .ProseMirror blockquote {
+    @apply border-l-4 border-border pl-4 italic;
+  }
+}

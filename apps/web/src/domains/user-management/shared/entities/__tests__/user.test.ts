@@ -17,6 +17,7 @@ describe('User', () => {
       userEmail,
       'Test User',
       'https://example.com/avatar.jpg',
+      'en',
       new Date('2024-01-01T00:00:00Z'),
       new Date('2024-01-01T00:00:00Z')
     );
@@ -40,6 +41,7 @@ describe('User', () => {
         userEmail,
         'Test User',
         null,
+        'en',
         new Date('2024-01-01T00:00:00Z'),
         new Date('2024-01-01T00:00:00Z')
       );

@@ -2,14 +2,15 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 // utils
 import { createClient } from '@/utils/supabase/server';
 // components
-import { GalleryVerticalEnd } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OAuthButtons } from '@/components/auth/oauth-signin';
+import { SummarizeTab } from '@/app/(main)/_components/landing-v2/sections/demo-sections/tabs/SummarizeTab';
 // constants
-import { appDefaultUrl, loginErrorMessage } from '@/domains/auth/constant';
+import { appDefaultUrl } from '@/domains/auth/constant';
 
 export const metadata: Metadata = {
   title: 'Login',
@@ -41,21 +42,18 @@ export default async function login(props: {
   }
 
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
+    <div className="grid min-h-svh lg:grid-cols-[1fr_2fr]">
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
-          <a href="#" className="flex items-center gap-2 font-medium">
-            <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-              <GalleryVerticalEnd className="size-4" />
-            </div>
-            SSOTA
-          </a>
+          <Link href="/" className="font-medium">
+            ssota
+          </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl">로그인</CardTitle>
+                <CardTitle className="text-2xl">Login</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 {/* {searchParams?.message && (
@@ -64,6 +62,27 @@ export default async function login(props: {
                   </div>
                 )} */}
                 <OAuthButtons lastSignedInMethod={lastSignedInMethod} redirectUrl={redirectUrl} />
+                <p className="text-center text-muted-foreground text-xs">
+                  By continuing, you agree to our{' '}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-foreground"
+                  >
+                    Terms of Use
+                  </Link>
+                  {' '}and{' '}
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-foreground"
+                  >
+                    Privacy Policy
+                  </Link>
+                  .
+                </p>
                 {/* <Separator className="my-2" />
                 <form id="login-form" className="grid gap-4">
                   <div className="grid gap-2">
@@ -115,12 +134,10 @@ export default async function login(props: {
           </div>
         </div>
       </div>
-      <div className="bg-muted relative hidden lg:block">
-        <img
-          src="/placeholder.svg"
-          alt="Image"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
+      <div className="bg-muted relative hidden lg:block min-h-0">
+        <div className="absolute inset-0">
+          <SummarizeTab startAnimation={true} />
+        </div>
       </div>
     </div>
   );

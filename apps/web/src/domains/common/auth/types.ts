@@ -45,3 +45,11 @@ export interface WorkspaceActionContext extends BaseActionContext {
   workspace: Workspace;
   organization: { id: string; role: MemberRole };
 }
+
+/**
+ * Organization-based actions context (organization settings, etc.)
+ * Includes organization id and role only (no workspace/page).
+ */
+export interface OrganizationActionContext extends BaseActionContext {
+  organization: { id: string; role: MemberRole };
+}

@@ -11,6 +11,7 @@ import type {
   CreateDefaultOrganizationCommand,
   CreateOrganizationCommand,
   GetUserOrganizationsCommand,
+  UpdateOrganizationCommand,
 } from '../../shared/commands';
 import type { OrganizationSummary } from '../../shared/dtos';
 import type { WorkspaceCrudService } from '@/domains/workspace-management/backend/services/interfaces/workspace-crud.service.interface';
@@ -377,6 +378,7 @@ export class DefaultOrganizationCrudService implements OrganizationCrudService {
             isDefault: org.entity.isDefault,
             role: 'owner',
             createdAt: org.entity.createdAt.toISOString(),
+            iconUrl: org.entity.iconUrl ?? undefined,
           },
           sortKey: org.entity.createdAt, // 소유자 조직은 생성일로 정렬
         });
@@ -406,6 +408,7 @@ export class DefaultOrganizationCrudService implements OrganizationCrudService {
               isDefault: org.entity.isDefault,
               role: memberInfo.role.value as 'owner' | 'admin' | 'member',
               createdAt: org.entity.createdAt.toISOString(),
+              iconUrl: org.entity.iconUrl ?? undefined,
             },
             sortKey: memberInfo.joinedAt, // 멤버 조직은 참여일로 정렬
           });
@@ -437,6 +440,36 @@ export class DefaultOrganizationCrudService implements OrganizationCrudService {
         )
       );
     }
+  }
+
+  /**
+   * 조직 정보 수정 (이름, 아이콘)
+   * - 조직이 존재하고 호출자가 소유자인 경우에만 수정 (RLS로 findById 제한됨)
+   */
+  async updateOrganization(
+    command: UpdateOrganizationCommand
+  ): Promise<Result<OrganizationAggregate, OrganizationManagementError>> {
+    const orgId = new OrganizationId(command.organizationId);
+    const aggregate = await this.organizationRepository.findById(orgId);
+
+    if (!aggregate) {
+      return Result.error(
+        new OrganizationManagementError(
+          'ORGANIZATION_NOT_FOUND',
+          'Organization not found'
+        )
+      );
+    }
+
+    if (command.name !== undefined) {
+      aggregate.updateName(command.name);
+    }
+    if (command.iconUrl !== undefined) {
+      aggregate.updateIcon(command.iconUrl);
+    }
+
+    await this.organizationRepository.save(aggregate);
+    return Result.success(aggregate);
   }
 
   /**

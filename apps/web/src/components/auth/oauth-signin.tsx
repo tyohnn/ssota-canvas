@@ -33,23 +33,23 @@ export function OAuthButtons({
   return (
     <>
       {oAuthProviders.map(provider => (
-        <Button
-          key={provider.name}
-          className="relative w-full flex items-center justify-center gap-2"
-          variant="outline"
-          onClick={async () => {
-            await oAuthSignIn(provider.name, redirectUrl);
-          }}
-        >
-          {provider.icon}
-          {provider.displayName} account for {isRegister ? 'register' : 'login'}
+        <div key={provider.name} className="flex flex-col items-center gap-1.5">
+          <Button
+            className="w-full flex items-center justify-center gap-2"
+            variant="outline"
+            onClick={async () => {
+              await oAuthSignIn(provider.name, redirectUrl);
+            }}
+          >
+            {provider.icon}
+            {provider.displayName} account for {isRegister ? 'register' : 'login'}
+          </Button>
           {lastSignedInMethod === 'google' && (
-            <div className="absolute top-1/2 -translate-y-1/2 left-full whitespace-nowrap ml-8 bg-accent px-4 py-1 rounded-md text-xs text-foreground/80">
-              <div className="absolute -left-5 top-0 border-background border-[10px] border-r-accent" />
+            <span className="text-xs text-muted-foreground">
               Last login method
-            </div>
+            </span>
           )}
-        </Button>
+        </div>
       ))}
     </>
   );

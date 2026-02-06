@@ -1,12 +1,14 @@
 // apps/web/src/domains/organization-management/backend/services/interfaces/organization-crud.service.interface.ts
 
 import type { Result } from '@/utils/result';
+import type { OrganizationAggregate } from '../../../shared/aggregates/organization.aggregate';
 import type { OrganizationManagementError } from '../../../shared/errors/organization-management.error';
 import type { OrganizationSummary } from '../../../shared/dtos';
 import type {
   CreateDefaultOrganizationCommand,
   CreateOrganizationCommand,
   GetUserOrganizationsCommand,
+  UpdateOrganizationCommand,
 } from '../../../shared/commands';
 import type {
   CreateDefaultOrganizationResult,
@@ -49,4 +51,12 @@ export interface OrganizationCrudService {
   getUserOrganizations(
     command: GetUserOrganizationsCommand
   ): Promise<Result<OrganizationSummary[], OrganizationManagementError>>;
+
+  /**
+   * 조직 정보 수정 (이름, 아이콘)
+   * - 조직 소유자만 수정 가능 (호출 전 권한 검증 필요)
+   */
+  updateOrganization(
+    command: UpdateOrganizationCommand
+  ): Promise<Result<OrganizationAggregate, OrganizationManagementError>>;
 }

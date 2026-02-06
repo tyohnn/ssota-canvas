@@ -72,11 +72,11 @@ vi.mock('next/cache', () => ({
 }));
 
 // Now import the actions after mocking dependencies
+import { createUserProfileAction } from '../actions/create-user-profile.action';
 import {
-  createUserProfileAction,
+  createDefaultOrganizationAction,
   getUserOrganizationsAction,
-} from '../actions/user-management.actions';
-import { createDefaultOrganizationAction } from '@/domains/organization-management/actions/organization-management.actions';
+} from '@/domains/organization-management/actions/organization-management.actions';
 import { UserAggregate } from '../shared/aggregates/user.aggregate';
 import { UserManagementError } from '../shared/errors/user-management.error';
 import { Result } from '@/utils/result';
@@ -146,17 +146,22 @@ describe('Server Actions Integration Tests', () => {
       (DrizzleUserProfileViewRepository as any).mockImplementation(() => mockViewRepository);
 
       // When
-      const result = await createUserProfileAction();
+      const result = await createUserProfileAction({});
 
-      // Then
-      expect(result).toEqual(mockUserProfileView);
+      // Then (ActionResult)
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual(mockUserProfileView);
+      }
       expect(mockSupabaseClient.auth.getUser).toHaveBeenCalled();
-      expect(mockUserManagementService.createUserProfile).toHaveBeenCalledWith({
-        userId: 'test-user-id',
-        email: 'test@example.com',
-        name: 'Test User',
-        avatarUrl: 'https://example.com/avatar.jpg',
-      });
+      expect(mockUserManagementService.createUserProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'test-user-id',
+          email: 'test@example.com',
+          user_metadata: expect.any(Object),
+        }),
+        undefined
+      );
     });
 
     it('미인증 사용자는 거부해야 한다', async () => {
@@ -168,8 +173,14 @@ describe('Server Actions Integration Tests', () => {
 
       mockSupabaseClient.auth.getUser.mockResolvedValue(mockAuthUser);
 
-      // When & Then
-      await expect(createUserProfileAction()).rejects.toThrow('Authentication required');
+      // When
+      const result = await createUserProfileAction({});
+
+      // Then (ActionResult: success false, no throw)
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.code).toBe('UNAUTHORIZED');
+      }
       expect(mockUserManagementService.createUserProfile).not.toHaveBeenCalled();
     });
 
@@ -211,11 +222,12 @@ describe('Server Actions Integration Tests', () => {
       const { DrizzleUserProfileViewRepository } = await import('../backend/read-models/user-profile.view');
       (DrizzleUserProfileViewRepository as any).mockImplementation(() => mockViewRepository);
 
-      // When & Then
-      // 실제 구현에서는 user.email!로 강제 변환하므로 null이어도 처리됨
-      // 이는 실제 구현의 동작을 반영한 테스트
-      const result = await createUserProfileAction();
-      expect(result).toEqual(mockUserProfileView);
+      // When & Then (ActionResult)
+      const result = await createUserProfileAction({});
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual(mockUserProfileView);
+      }
     });
 
     it('서비스 레이어 오류를 적절히 전파해야 한다', async () => {
@@ -240,8 +252,14 @@ describe('Server Actions Integration Tests', () => {
         Result.error(error)
       );
 
-      // When & Then
-      await expect(createUserProfileAction()).rejects.toThrow('Failed to create profile');
+      // When
+      const result = await createUserProfileAction({});
+
+      // Then (ActionResult: success false)
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('Failed to create profile');
+      }
     });
   });
 
@@ -358,8 +376,14 @@ describe('Server Actions Integration Tests', () => {
       // Given
       mockSupabaseClient.auth.getUser.mockRejectedValue(new Error('Network error'));
 
-      // When & Then
-      await expect(createUserProfileAction()).rejects.toThrow('Network error');
+      // When (secure action catches and returns ActionResult)
+      const result = await createUserProfileAction({});
+
+      // Then
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.code).toBe('UNAUTHORIZED');
+      }
     });
 
     it('Supabase 인증 오류를 처리해야 한다', async () => {
@@ -416,10 +440,13 @@ describe('Server Actions Integration Tests', () => {
       (DrizzleUserProfileViewRepository as any).mockImplementation(() => mockViewRepository);
 
       // When - 사용자 등록 처리
-      const profileResult = await createUserProfileAction();
+      const profileResult = await createUserProfileAction({});
 
-      // Then - 등록 성공
-      expect(profileResult).toEqual(mockUserProfileView);
+      // Then - 등록 성공 (ActionResult)
+      expect(profileResult.success).toBe(true);
+      if (profileResult.success) {
+        expect(profileResult.data).toEqual(mockUserProfileView);
+      }
 
       // When - 조직 목록 조회
       const mockOrganizations = [
@@ -500,22 +527,24 @@ describe('Server Actions Integration Tests', () => {
       vi.mocked(createDefaultOrganizationAction).mockResolvedValue(mockOrgWithWorkspaceAndPage);
 
       // When
-      const { processUserRegistrationAction } = await import('../actions/user-management.actions');
-      const result = await processUserRegistrationAction();
+      const { processUserRegistrationAction } = await import('../actions/process-user-registration.action');
+      const result = await processUserRegistrationAction({});
 
-      // Then
+      // Then (ActionResult: result.data)
       expect(result.success).toBe(true);
-      expect(result.user.id).toBe('test-user-id');
-      expect(result.user.email).toBe('test@example.com');
-      expect(result.organization.id).toBe('org-123');
-      expect(result.organization.isDefault).toBe(true);
-      expect(result.workspace.id).toBe('workspace-123');
-      expect(result.workspace.name).toBe('Default Workspace');
-      expect(result.page.id).toBe('page-123');
-      expect(result.page.title).toBe('Welcome');
-      expect(result.personalWorkspace.id).toBe('personal-workspace-123'); // v1.2
-      expect(result.personalPage.id).toBe('personal-page-123'); // v1.2
-      expect(result.redirectUrl).toMatch(/^\/r\/[a-z0-9-]+$/);
+      if (!result.success) return;
+      const data = result.data;
+      expect(data.user.id).toBe('test-user-id');
+      expect(data.user.email).toBe('test@example.com');
+      expect(data.organization.id).toBe('org-123');
+      expect(data.organization.isDefault).toBe(true);
+      expect(data.workspace.id).toBe('workspace-123');
+      expect(data.workspace.name).toBe('Default Workspace');
+      expect(data.page.id).toBe('page-123');
+      expect(data.page.title).toBe('Welcome');
+      expect(data.personalWorkspace.id).toBe('personal-workspace-123'); // v1.2
+      expect(data.personalPage.id).toBe('personal-page-123'); // v1.2
+      expect(data.redirectUrl).toMatch(/^\/r\/[a-z0-9-]+$/);
     });
 
     it('프로필 생성 실패 시 전체 플로우가 중단되어야 한다', async () => {
@@ -539,9 +568,15 @@ describe('Server Actions Integration Tests', () => {
         ))
       );
 
-      // When & Then
-      const { processUserRegistrationAction } = await import('../actions/user-management.actions');
-      await expect(processUserRegistrationAction()).rejects.toThrow('Failed to create user profile');
+      // When
+      const { processUserRegistrationAction } = await import('../actions/process-user-registration.action');
+      const result = await processUserRegistrationAction({});
+
+      // Then (ActionResult: success false)
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('Failed to create user profile');
+      }
     });
   });
 });

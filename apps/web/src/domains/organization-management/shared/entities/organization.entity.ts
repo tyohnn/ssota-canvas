@@ -11,7 +11,8 @@ export class Organization {
     private _ownerId: UserId,
     private _isDefault: boolean,
     public readonly createdAt: Date,
-    private _updatedAt: Date
+    private _updatedAt: Date,
+    private _iconUrl: string | null = null
   ) {}
 
   // Getters
@@ -35,9 +36,18 @@ export class Organization {
     return this._updatedAt;
   }
 
+  get iconUrl(): string | null {
+    return this._iconUrl;
+  }
+
   // 상태 변경 메서드
   updateName(name: string): void {
     this._name = name;
+    this._updatedAt = new Date();
+  }
+
+  updateIcon(iconUrl: string | null): void {
+    this._iconUrl = iconUrl;
     this._updatedAt = new Date();
   }
 

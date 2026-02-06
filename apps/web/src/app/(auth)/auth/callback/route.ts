@@ -46,14 +46,12 @@ export async function GET(request: Request) {
       );
 
       // 🆕 Ensure profile exists (before beta check)
-      // This ensures beta status can be checked
-      // Note: createUserProfile handles upsert internally
+      // Note: createUserProfile builds command from authUser internally
       const createProfileResult = await userManagementService.createUserProfile(
         {
-          userId: user.id,
+          id: user.id,
           email: user.email!,
-          name: user.user_metadata?.name || 'User',
-          avatarUrl: user.user_metadata?.avatar_url || null,
+          user_metadata: user.user_metadata ?? {},
         }
       );
 

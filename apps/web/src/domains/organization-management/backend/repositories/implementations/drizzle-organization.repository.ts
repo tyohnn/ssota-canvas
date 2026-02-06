@@ -36,7 +36,8 @@ export class DrizzleOrganizationRepository implements OrganizationRepository {
       new UserId(data.owner_id),
       data.is_default ?? false,
       new Date(data.created_at),
-      new Date(data.updated_at)
+      new Date(data.updated_at),
+      data.icon_url ?? null
     );
 
     return new OrganizationAggregate(organization);
@@ -72,7 +73,8 @@ export class DrizzleOrganizationRepository implements OrganizationRepository {
       new UserId(data.owner_id),
       data.is_default ?? false,
       new Date(data.created_at),
-      new Date(data.updated_at)
+      new Date(data.updated_at),
+      data.icon_url ?? null
     );
 
     return new OrganizationAggregate(organization);
@@ -98,7 +100,8 @@ export class DrizzleOrganizationRepository implements OrganizationRepository {
         new UserId(row.owner_id),
         row.is_default ?? false,
         new Date(row.created_at),
-        new Date(row.updated_at)
+        new Date(row.updated_at),
+        row.icon_url ?? null
       );
 
       return new OrganizationAggregate(organization);
@@ -107,7 +110,26 @@ export class DrizzleOrganizationRepository implements OrganizationRepository {
 
   async save(organizationAggregate: OrganizationAggregate): Promise<void> {
     const db = await createDrizzleSupabaseClient();
-    let currentId = organizationAggregate.id.value;
+    const id = organizationAggregate.id.value;
+    const entity = organizationAggregate.entity;
+
+    // Try update first (for existing organizations)
+    const [updated] = await adminDb
+      .update(organizations)
+      .set({
+        name: entity.name,
+        icon_url: entity.iconUrl,
+        updated_at: entity.updatedAt,
+      })
+      .where(eq(organizations.id, id))
+      .returning({ id: organizations.id });
+
+    if (updated) {
+      return;
+    }
+
+    // Insert for new organizations
+    let currentId = id;
     let attempts = 0;
     const maxAttempts = 3;
 
@@ -116,16 +138,16 @@ export class DrizzleOrganizationRepository implements OrganizationRepository {
         await db.rls(tx =>
           tx.insert(organizations).values({
             id: currentId,
-            name: organizationAggregate.entity.name,
-            organization_type: organizationAggregate.entity.organizationType,
-            owner_id: organizationAggregate.entity.ownerId.value,
-            is_default: organizationAggregate.entity.isDefault,
-            created_at: organizationAggregate.entity.createdAt,
-            updated_at: organizationAggregate.entity.updatedAt,
+            name: entity.name,
+            organization_type: entity.organizationType,
+            owner_id: entity.ownerId.value,
+            is_default: entity.isDefault,
+            created_at: entity.createdAt,
+            updated_at: entity.updatedAt,
+            icon_url: entity.iconUrl,
           })
         );
 
-        // 성공 시 종료
         return;
       } catch (error) {
         // UUID 충돌인지 확인 (PostgreSQL unique constraint violation)
@@ -135,7 +157,6 @@ export class DrizzleOrganizationRepository implements OrganizationRepository {
         ) {
           attempts++;
           if (attempts < maxAttempts) {
-            // 새로운 ID 생성
             const newId = OrganizationId.generate().value;
             console.warn(
               `[DrizzleOrganizationRepository] ID collision detected (attempt ${attempts}), retrying with new ID: ${newId}`
