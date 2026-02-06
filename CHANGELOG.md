@@ -1,3 +1,33 @@
+## [0.16.0] - 2026-02-06
+
+### ✨ Features
+
+- Add interactive tutorial
+- Add youtube block tutorial
+- Add auto opening tutorial dioalog
+- Add privacy, terms & demo at login page
+- Add interactive onboarding
+- Add organization icon management and update related actions
+
+### 🐛 Bug Fixes
+
+- Smaller sidebar font size & add select none
+- Org switcher error
+- Demo first landing page
+- Auto tab change at demo & copy revise
+- Youtube tutorial step bug
+- Design of onboarding step
+- Tutorial dialog not working
+- Link block update error
+- Optimize mobile sidebar setting dialog
+- Align storage rls migration
+
+### 🔧 Maintenance
+
+- Remove deprecated packages and update
+- Validate test files
+- Add post script install
+- Fix build error
 ## [0.15.0] - 2026-02-01
 
 ### ✨ Features
