@@ -379,7 +379,7 @@ export function SettingsDialog({
                 )}
 
                 {activeTab === 'preferences' && (
-                  <div className="space-y-6 max-w-sm">
+                  <div className="space-y-6">
                     <div>
                       <h2 className="text-lg font-semibold">Preferences</h2>
                       <p className="text-sm text-muted-foreground">
@@ -388,8 +388,9 @@ export function SettingsDialog({
                     </div>
                     <Separator />
 
-                    {/* Preferred Language */}
-                    <div className="space-y-4">
+                    <div className="space-y-6 max-w-sm">
+                      {/* Preferred Language */}
+                      <div className="space-y-4">
                       <div className="grid gap-2">
                         <Label htmlFor="preferred-language">
                           Preferred Language
@@ -449,6 +450,7 @@ export function SettingsDialog({
                         Adjusts the speed of canvas panning when using trackpad or
                         scroll gestures.
                       </p>
+                    </div>
                     </div>
                   </div>
                 )}

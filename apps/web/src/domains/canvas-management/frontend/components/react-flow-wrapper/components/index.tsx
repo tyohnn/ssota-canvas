@@ -12,7 +12,7 @@ import {
 
 import { AIAgentRunner } from '@/domains/ai-management/frontend/components/ai-agent-runner';
 import type { BlockType } from '@/domains/block-management/shared/types/block-types';
-import { StatusWindow } from '@/domains/ai-actions/frontend/components/status-window';
+import { StatusWindowPanel } from '@/domains/ai-actions/frontend/components/status-window-panel';
 
 import { MultiSelectionToolbar } from './multi-select/multi-selection-toolbar';
 import { SelectionBoundingBox } from './multi-select/selection-bounding-box';
@@ -249,12 +249,12 @@ export function ReactFlowView({
             <ViewportControlToolbar />
           </Panel>
 
-          {/* 우측 상단 Status Window */}
+          {/* 우측 상단 Status Window + 트리거 버튼 */}
           <Panel
             position="top-right"
             className="mr-4! mt-4! pointer-events-auto! z-50"
           >
-            <StatusWindow />
+            <StatusWindowPanel />
           </Panel>
         </ReactFlow>
 

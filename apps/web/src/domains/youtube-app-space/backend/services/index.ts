@@ -19,3 +19,9 @@ export * from './script';
 
 // Video Summary Services
 export * from './video-summary';
+
+// Summary (queue job) Services
+export * from './summary';
+
+// Youtube Metadata Fetched (event publish + policy)
+export * from './youtube-metadata-fetched';

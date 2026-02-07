@@ -64,12 +64,16 @@ ALTER TABLE edges
   ALTER COLUMN target_handle SET DEFAULT 'left';
 
 -- 5. Add check constraint to ensure valid handle values
--- Drop existing constraints if they exist (idempotent)
-ALTER TABLE edges
-  DROP CONSTRAINT IF EXISTS edges_source_handle_valid;
-
-ALTER TABLE edges
-  DROP CONSTRAINT IF EXISTS edges_target_handle_valid;
+-- Drop existing constraints only if they exist (avoids NOTICE)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.edges'::regclass AND conname = 'edges_source_handle_valid') THEN
+    ALTER TABLE edges DROP CONSTRAINT edges_source_handle_valid;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.edges'::regclass AND conname = 'edges_target_handle_valid') THEN
+    ALTER TABLE edges DROP CONSTRAINT edges_target_handle_valid;
+  END IF;
+END $$;
 
 -- Add new constraints
 ALTER TABLE edges

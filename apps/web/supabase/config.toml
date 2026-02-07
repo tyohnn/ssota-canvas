@@ -8,13 +8,19 @@ project_id = "web"
 [remotes.staging]
 project_id = "xtknhwadrjyosghqseoe"
 
+# Production remote (update with your production project ID)
+[remotes.production]
+project_id = "uqffxkleuwgeqivimpck"
+
 [api]
 enabled = true
 # Port to use for the API URL.
 port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
-schemas = ["public", "graphql_public"]
+# - pgmq_public: Queues API (send, read, pop, etc.) for local/self-hosted.
+# - youtube_app_space: Drizzle 전용으로 접근하므로 PostgREST에 노출하지 않음.
+schemas = ["public", "graphql_public", "pgmq_public", "youtube_app_space", "image_app_space"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
@@ -61,10 +67,8 @@ schema_paths = []
 
 [db.seed]
 # If enabled, seeds the database after migrations during a db reset.
-# Disabled by default - developers should use Google OAuth to create accounts
-# This matches production behavior and maintains SSOT principles
-enabled = false
-# To seed manually when needed: supabase db reset --seed
+# enabled = true so that supabase:dev (start + db reset --seed + functions serve) applies seed.
+enabled = true
 sql_paths = ["./seed.sql"]
 
 [db.network_restrictions]
@@ -114,34 +118,8 @@ file_size_limit = "50MiB"
 # [storage.image_transformation]
 # enabled = true
 
-# Configure local storage buckets
-[storage.buckets.canvas-assets]
-public = false
-file_size_limit = "50MiB"
-allowed_mime_types = [
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/gif",
-  "image/webp",
-  "image/svg+xml",
-  "application/pdf",
-  "audio/mpeg",
-  "audio/wav",
-  "audio/ogg",
-  "audio/webm",
-  "audio/mp3"
-]
-
-[storage.buckets.user-avatars]
-public = true
-file_size_limit = "5MiB"
-allowed_mime_types = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
-
-[storage.buckets.image-assets]
-public = false
-file_size_limit = "10MiB"
-allowed_mime_types = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"]
+# Storage buckets are created by migrations (20251121141354_setup_storage_buckets.sql).
+# Config bucket definitions removed to avoid "already exists, overwrite?" on start.
 
 [auth]
 enabled = true
@@ -381,7 +359,8 @@ deno_version = 2
 # secret_key = "env(SECRET_VALUE)"
 
 [analytics]
-enabled = true
+enabled = false
+# enabled = true 시 Docker socket(/var/run/docker.sock) 마운트 필요 → WARNING 제거하려면 false
 port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"

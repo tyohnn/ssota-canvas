@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import {
   DefaultChatTransport,
@@ -26,6 +26,7 @@ import {
 import type { VisualTemplate } from '../../shared/types/template.types';
 import type { GenerateVisualSummaryRequest } from '../../shared/types/visual-summary.types';
 import type { QueueTodo } from '@workspace/ui/components/ai-elements/queue';
+import type { StatusJob } from '../../shared/types/status-job.types';
 
 // Tool Input 타입 정의 (Zod schema에서 추출)
 type RenderCanvasdownInput = z.infer<typeof renderCanvasdownTool.inputSchema>;
@@ -54,6 +55,10 @@ export type StatusOperationType = 'visual-summary' | 'summary' | 'script' | 'ai'
 
 interface UseVisualSummaryProps {
   pageId: string;
+  /** Injected by AIActionProvider to avoid circular context dependency */
+  pushJob: (job: Omit<StatusJob, 'id' | 'createdAt'>) => string;
+  /** Injected by AIActionProvider to avoid circular context dependency */
+  updateJob: (id: string, patch: Partial<StatusJob>) => void;
 }
 
 interface UseVisualSummaryReturn {
@@ -72,8 +77,10 @@ interface UseVisualSummaryReturn {
   todos: QueueTodo[];
   /** 이번/마지막 실행을 시작한 블록 ID (해당 블록에만 로딩·완료 아이콘 표시) */
   currentRunSourceBlockId: string | null;
-  /** 상태창 닫기 (숨김, 새 실행 시 자동으로 다시 표시) */
+  /** 상태창 닫기 (숨김) */
   dismissStatusWindow: () => void;
+  /** 상태창 다시 열기 (닫힌 후 트리거 버튼으로 호출) */
+  showStatusWindow: () => void;
   /** 상태창이 사용자에 의해 닫혀 있는지 */
   windowDismissed: boolean;
   /** 현재/마지막 작업 유형 (상태창 라벨용) */
@@ -101,21 +108,14 @@ interface GenerateVisualSummaryParams {
 export function useVisualSummary(
   props: UseVisualSummaryProps
 ): UseVisualSummaryReturn {
-  const { pageId } = props;
+  const { pageId, pushJob, updateJob } = props;
 
-  // 누적된 blockIdMap (각 tool call마다 업데이트)
   const blockIdMapRef = useRef<Map<string, string>>(new Map());
+  const currentJobIdRef = useRef<string | null>(null);
 
-  // Todo 상태 관리
   const [todos, setTodos] = useState<QueueTodo[]>([]);
-
-  // 어떤 블록이 이번/마지막 실행을 시작했는지 (액션 아이콘을 해당 블록에만 표시)
   const [currentRunSourceBlockId, setCurrentRunSourceBlockId] = useState<string | null>(null);
-
-  // 상태창 닫힘 여부 (닫기 버튼으로 숨김, 새 실행 시 다시 표시)
   const [windowDismissed, setWindowDismissed] = useState(false);
-
-  // 상태창에 표시할 작업 유형·템플릿 (라벨/서브텍스트용)
   const [statusOperationType, setStatusOperationType] = useState<StatusOperationType | null>(null);
   const [statusTemplateName, setStatusTemplateName] = useState<string | null>(null);
 
@@ -164,13 +164,14 @@ export function useVisualSummary(
             toolCallInput || {}
           );
 
-          // Todo 리스트 설정
-          setTodos(
-            input.todos.map((todo) => ({
-              ...todo,
-              status: 'pending' as const,
-            }))
-          );
+          const nextTodos = input.todos.map((todo) => ({
+            ...todo,
+            status: 'pending' as const,
+          }));
+          setTodos(nextTodos);
+          if (currentJobIdRef.current) {
+            updateJob(currentJobIdRef.current, { tasks: nextTodos });
+          }
 
           addToolOutput({
             tool: 'planTodo',
@@ -198,18 +199,23 @@ export function useVisualSummary(
             toolCallInput || {}
           );
 
-          // Todo 상태 업데이트
-          setTodos((prev) =>
+          const nextTodos = (prev: QueueTodo[]) =>
             prev.map((todo) =>
               todo.id === input.id
                 ? {
-                  ...todo,
-                  status: input.status,
-                  description: input.description || todo.description,
-                }
+                    ...todo,
+                    status: input.status,
+                    description: input.description || todo.description,
+                  }
                 : todo
-            )
-          );
+            );
+          setTodos(prev => {
+            const next = nextTodos(prev);
+            if (currentJobIdRef.current) {
+              updateJob(currentJobIdRef.current, { tasks: next });
+            }
+            return next;
+          });
 
           addToolOutput({
             tool: 'updateTodo',
@@ -452,6 +458,11 @@ export function useVisualSummary(
     setWindowDismissed(true);
   }, []);
 
+  // 상태창 다시 열기 (트리거 버튼용)
+  const showStatusWindow = useCallback(() => {
+    setWindowDismissed(false);
+  }, []);
+
   // Visual Summary 생성 함수
   const generateVisualSummary = useCallback(
     (params: GenerateVisualSummaryParams) => {
@@ -465,22 +476,28 @@ export function useVisualSummary(
         sourceChannelName,
       } = params;
 
-      // 새로운 생성 시작 시 todos 초기화, 상태창 다시 표시, 이번 실행 블록 ID·작업 유형·템플릿 설정
+      const jobId = pushJob({
+        type: 'visual-summary',
+        status: 'running',
+        tasks: [],
+        error: null,
+        sourceBlockId,
+        templateName: template.name,
+      });
+      currentJobIdRef.current = jobId;
+
       setTodos([]);
       setWindowDismissed(false);
       setCurrentRunSourceBlockId(sourceBlockId);
       setStatusOperationType('visual-summary');
       setStatusTemplateName(template.name);
-      // blockIdMap도 초기화
       blockIdMapRef.current.clear();
-      // Session info 저장
       currentSessionRef.current = {
         sourceBlockId,
         sourceBlockPosition,
         sourceBlockSize,
       };
 
-      // Request 정보를 metadata로 전달
       const request: GenerateVisualSummaryRequest = {
         summary,
         templateId: template.id,
@@ -501,8 +518,20 @@ export function useVisualSummary(
         },
       });
     },
-    [sendMessage, pageId]
+    [sendMessage, pageId, pushJob]
   );
+
+  useEffect(() => {
+    const id = currentJobIdRef.current;
+    if (!id) return;
+    if (status === 'ready' || status === 'error') {
+      updateJob(id, {
+        status: chatError ? 'failed' : 'completed',
+        error: chatError || null,
+      });
+      currentJobIdRef.current = null;
+    }
+  }, [status, chatError, updateJob]);
 
   return {
     generateVisualSummary,
@@ -512,6 +541,7 @@ export function useVisualSummary(
     todos,
     currentRunSourceBlockId,
     dismissStatusWindow,
+    showStatusWindow,
     windowDismissed,
     statusOperationType,
     statusTemplateName,

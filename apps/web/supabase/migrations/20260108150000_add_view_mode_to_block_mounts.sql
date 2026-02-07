@@ -34,8 +34,13 @@ ALTER COLUMN view_mode SET NOT NULL;
 ALTER TABLE block_mounts
 ALTER COLUMN view_mode SET DEFAULT 'original';
 
--- 5. Add index for view_mode queries (idempotent)
-DROP INDEX IF EXISTS idx_block_mounts_view_mode;
+-- 5. Add index for view_mode queries (drop only if exists to avoid NOTICE)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_block_mounts_view_mode') THEN
+    DROP INDEX idx_block_mounts_view_mode;
+  END IF;
+END $$;
 CREATE INDEX idx_block_mounts_view_mode 
 ON block_mounts(view_mode) 
 WHERE deleted_at IS NULL;

@@ -50,6 +50,7 @@ export const GetYoutubeMetadataRequestSchema = z.object({
     .string()
     .min(11, { message: 'Video slug must be at least 11 characters' })
     .max(11, { message: 'Video slug must be at most 11 characters' }),
+  language: z.string().length(2).optional(), // ISO 639-1 for ensure summary policy
 });
 /**
  * process-video-script.action.ts용 Request Schema

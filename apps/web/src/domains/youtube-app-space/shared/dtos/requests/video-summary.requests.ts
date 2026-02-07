@@ -9,6 +9,16 @@
 import { z } from 'zod';
 
 /**
+ * 진행 중인 Summary Job 조회 (페이지 기준, 새로고침 시 Status 창 복원용)
+ */
+export const GetInProgressSummaryJobRequestSchema = z.object({
+  pageId: z.uuid('Invalid page ID'),
+});
+export type GetInProgressSummaryJobRequest = z.infer<
+  typeof GetInProgressSummaryJobRequestSchema
+>;
+
+/**
  * process-video-summary.action.ts용 Request Schema
  * language는 optional (사용자 프로필 기반으로 결정)
  */
