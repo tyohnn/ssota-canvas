@@ -2,38 +2,48 @@
  * Status Window Component
  *
  * 캔버스 우측 상단에 표시되는 진행 상태 창.
- * 비주얼 요약, 일반 요약, 스크립트 추출, AI 호출 등 작업 유형별 상태를 표시합니다.
+ * jobs[] 기반 아코디언 카드 스택 (Visual summary, Auto summary 등).
  */
 
 'use client';
 
+import { useEffect } from 'react';
+
 import { useAIActionContext } from '../contexts/ai-action-context';
 import { StatusWindowView } from './status-window.view';
 
-export function StatusWindow() {
+export interface StatusWindowProps {
+  /** 패널에서 닫기 애니메이션 후 context 반영을 위해 사용. 없으면 context dismiss 직접 호출 */
+  onDismiss?: () => void;
+}
+
+export function StatusWindow({ onDismiss }: StatusWindowProps = {}) {
   const {
-    isGenerating,
-    error,
-    todos,
+    jobs,
+    expandedJobIds,
+    dismissJob,
+    toggleExpandedJobId,
     dismissStatusWindow,
     windowDismissed,
-    statusOperationType,
-    statusTemplateName,
+    reportInitialNoContent,
   } = useAIActionContext();
 
-  // 실행 중이 아니거나, 사용자가 닫았으면 표시하지 않음
-  if (windowDismissed || (!isGenerating && !error && todos.length === 0)) {
-    return null;
-  }
+  const handleDismiss = onDismiss ?? dismissStatusWindow;
+  const hasContent = jobs.length > 0;
+
+  useEffect(() => {
+    if (!hasContent) reportInitialNoContent();
+  }, [hasContent, reportInitialNoContent]);
+
+  if (windowDismissed) return null;
 
   return (
     <StatusWindowView
-      isGenerating={isGenerating}
-      error={error}
-      todos={todos}
-      operationType={statusOperationType}
-      templateName={statusTemplateName}
-      onDismiss={dismissStatusWindow}
+      jobs={jobs}
+      expandedJobIds={expandedJobIds}
+      onDismissJob={dismissJob}
+      onToggleExpand={toggleExpandedJobId}
+      onDismiss={handleDismiss}
     />
   );
 }

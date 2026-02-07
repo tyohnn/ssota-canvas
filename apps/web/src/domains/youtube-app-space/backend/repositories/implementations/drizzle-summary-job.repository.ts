@@ -3,9 +3,10 @@
  *
  * Uses adminDb; call only after application-level permission checks.
  */
-import { eq } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 
 import { adminDb } from '@/db';
+import { blockMounts } from '@/db/schema';
 import {
   type SummaryJob as SummaryJobRow,
   summaryJobs,
@@ -89,6 +90,38 @@ export class DrizzleSummaryJobRepository implements ISummaryJobRepository {
         pgmq_msg_id: job.pgmqMsgId ?? null,
       })
       .where(eq(summaryJobs.id, job.id.value));
+  }
+
+  async findAllInProgressJobsByPageId(pageId: string) {
+    const rows = await adminDb
+      .select({
+        id: summaryJobs.id,
+        block_id: summaryJobs.block_id,
+        status: summaryJobs.status,
+        error_message: summaryJobs.error_message,
+        created_at: summaryJobs.created_at,
+        started_at: summaryJobs.started_at,
+        completed_at: summaryJobs.completed_at,
+      })
+      .from(summaryJobs)
+      .innerJoin(blockMounts, eq(summaryJobs.block_id, blockMounts.block_id))
+      .where(
+        and(
+          eq(blockMounts.page_id, pageId),
+          isNull(blockMounts.deleted_at),
+          inArray(summaryJobs.status, ['pending', 'processing'])
+        )
+      )
+      .orderBy(desc(summaryJobs.created_at));
+    return rows.map(row => ({
+      id: row.id,
+      block_id: row.block_id,
+      status: row.status,
+      error_message: row.error_message,
+      created_at: row.created_at,
+      started_at: row.started_at,
+      completed_at: row.completed_at,
+    }));
   }
 
   private toDomain(row: SummaryJobRow): SummaryJobAggregate {

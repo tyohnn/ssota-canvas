@@ -45,3 +45,22 @@ export interface GetSummariesForPublishedPageDTO {
   summaries: VideoSummaryView[];
   video: YoutubeView;
 }
+
+/** 진행 중 job 한 건 (Realtime 초기 상태용, 날짜는 ISO 문자열) */
+export interface InProgressSummaryJobView {
+  id: string;
+  block_id: string;
+  status: string;
+  error_message?: string;
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+}
+
+/**
+ * get-in-progress-summary-job.action.ts용 Response DTO
+ * 새로고침 시 Status 창 복원용 (진행 중인 job 전체 배열)
+ */
+export interface GetInProgressSummaryJobDTO {
+  jobs: InProgressSummaryJobView[];
+}

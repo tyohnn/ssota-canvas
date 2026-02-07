@@ -13,3 +13,7 @@ export {
   type ProcessSummaryJobDeps,
   type ProcessSummaryJobResult,
 } from './process-summary-job.service';
+export {
+  getInProgressSummaryJobService,
+  type GetInProgressSummaryJobDeps,
+} from './get-in-progress-summary-job.service';
