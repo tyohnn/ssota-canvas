@@ -143,6 +143,13 @@ BEGIN
   END IF;
 END $$;
 
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_net') THEN
+    CREATE EXTENSION pg_net;
+  END IF;
+END $$;
+
 -- config 스키마: Edge Function cron 등 인프라 설정 (api.schemas에 넣지 않아 PostgREST 비노출)
 CREATE SCHEMA IF NOT EXISTS config;
 
