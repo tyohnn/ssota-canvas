@@ -1,3 +1,25 @@
+## [0.17.0] - 2026-02-07
+
+### Hotfix
+
+- Add logs
+
+### ✨ Features
+
+- Add background summary job
+- Add tracking multiple status job
+
+### 🐛 Bug Fixes
+
+- Preference tab ui mismatch
+- Add pg_net extension
+- Production deploy edge function
+- Add vercel protection bypass secret
+- Remove debug logger
+
+### 🔧 Maintenance
+
+- Clean docs
 ## [0.16.0] - 2026-02-06
 
 ### ✨ Features
