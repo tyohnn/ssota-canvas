@@ -14,6 +14,7 @@ import type { YoutubeBlockBusinessLogic, YoutubeMetadata } from './types';
  *
  * 비즈니스 로직 및 서버 액션 호출을 담당합니다.
  * UI 상태 직접 조작 없음 - 메인 훅에서 조합
+ * Summary ensure는 getYoutubeMetadataAction 내부 Policy로 처리됨
  */
 export function useYoutubeBlockBusiness(
   nodeData: YoutubeBlockNodeData,
@@ -110,6 +111,7 @@ export function useYoutubeBlockBusiness(
         const result = await getYoutubeMetadataAction({
           blockId,
           slug: videoId,
+          language: 'en',
         });
 
         if (isFailure(result)) {

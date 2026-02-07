@@ -51,16 +51,26 @@ ALTER TABLE pages RENAME COLUMN order_text TO "order";
 -- 6. Add NOT NULL constraint
 ALTER TABLE pages ALTER COLUMN "order" SET NOT NULL;
 
--- 7. Drop old integer-specific CHECK constraint
-ALTER TABLE pages DROP CONSTRAINT IF EXISTS pages_order_non_negative;
+-- 7. Drop old integer-specific CHECK constraint (only if exists to avoid NOTICE)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.pages'::regclass AND conname = 'pages_order_non_negative') THEN
+    ALTER TABLE pages DROP CONSTRAINT pages_order_non_negative;
+  END IF;
+END $$;
 
 -- 8. Add new CHECK constraint for fractional index format
 -- Valid format: alphanumeric string, max 100 characters
 ALTER TABLE pages ADD CONSTRAINT pages_order_valid_format 
   CHECK ("order" ~ '^[a-zA-Z0-9]+$' AND LENGTH("order") <= 100);
 
--- 9. Recreate index with text order
-DROP INDEX IF EXISTS idx_pages_tree_query;
+-- 9. Recreate index with text order (drop only if exists to avoid NOTICE)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_pages_tree_query') THEN
+    DROP INDEX idx_pages_tree_query;
+  END IF;
+END $$;
 CREATE INDEX idx_pages_tree_query 
   ON pages(workspace_id, depth, "order") 
   WHERE deleted_at IS NULL;

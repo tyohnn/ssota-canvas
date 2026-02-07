@@ -22,6 +22,7 @@ import {
   getChannel,
   getChannelById,
 } from '../../backend/services/channel';
+import { publishYoutubeMetadataFetched } from '../../backend/services/youtube-metadata-fetched';
 import { createVideo, getVideo } from '../../backend/services/video';
 import {
   getChannelMetadata,
@@ -116,6 +117,15 @@ async function getYoutubeMetadataInternal(
         channelThumbnail: channel?.toView().channelThumbnailUrl,
         youtubeChannelId: channel?.toView().channelId,
       };
+
+      await Promise.allSettled([
+        publishYoutubeMetadataFetched({
+          blockId: safeDto.blockId,
+          orgId: context.organization.id,
+          youtubeId: safeDto.slug,
+          language: safeDto.language ?? 'en',
+        }),
+      ]);
 
       return ok(response);
     }
@@ -225,6 +235,15 @@ async function getYoutubeMetadataInternal(
       channelThumbnail: channelAggregate?.toView().channelThumbnailUrl,
       youtubeChannelId: channelAggregate?.toView().channelId,
     };
+
+    await Promise.allSettled([
+      publishYoutubeMetadataFetched({
+        blockId: safeDto.blockId,
+        orgId: context.organization.id,
+        youtubeId: safeDto.slug,
+        language: safeDto.language ?? 'en',
+      }),
+    ]);
 
     return ok(response);
   } catch (error) {

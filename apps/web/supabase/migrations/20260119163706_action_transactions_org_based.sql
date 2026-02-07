@@ -50,8 +50,13 @@ DROP COLUMN IF EXISTS block_id;
 -- ============================================
 -- Step 6: Recreate indexes
 -- ============================================
--- Drop old block_id index
-DROP INDEX IF EXISTS youtube_app_space.idx_action_transactions_block_id;
+-- Drop old block_id index (only if exists to avoid NOTICE)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'youtube_app_space' AND indexname = 'idx_action_transactions_block_id') THEN
+    DROP INDEX youtube_app_space.idx_action_transactions_block_id;
+  END IF;
+END $$;
 
 -- Create new org + video + action_type composite index
 CREATE INDEX IF NOT EXISTS idx_action_transactions_org_video 

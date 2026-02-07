@@ -3,9 +3,18 @@
   "ui": "tui",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "dist/**", "!.next/cache/**"],
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*"
+      ],
+      "outputs": [
+        ".next/**",
+        "dist/**",
+        "!.next/cache/**"
+      ],
       "env": [
         "NODE_ENV",
         "POSTGRES_URL",
@@ -33,22 +42,31 @@
         "NEXT_PUBLIC_SENTRY_DSN",
         "NEXT_PUBLIC_APP_URL",
         "ZENROWS_API_KEY",
+        "INTERNAL_API_SECRET",
         "CI",
         "RUN_YOUTUBE_CAPTION_TESTS",
         "RUN_ZENROWS_CAPTION_TESTS"
       ]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": [
+        "^lint"
+      ]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": [
+        "^check-types"
+      ]
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"]
+      "dependsOn": [
+        "^typecheck"
+      ]
     },
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "env": [
         "CI",
         "POSTGRES_URL",

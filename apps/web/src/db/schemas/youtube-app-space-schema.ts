@@ -8,12 +8,12 @@
  * - 스크립트 데이터 저장 및 재사용
  * - 채널 정보 관리
  *
- * Supabase에서 이 스키마를 노출하려면:
- * 1. Settings → API → Exposed schemas에 'youtube_app_space' 추가
- * 2. 마이그레이션에서 권한 설정 (GRANT USAGE 등)
+ * 접근: Drizzle(서버)로만 사용. PostgREST에 노출하지 않음 (config.toml schemas에 포함하지 않음).
+ * Realtime은 publication(supabase_realtime)으로 summary_jobs 등이 노출됨.
  */
 import { relations, sql } from 'drizzle-orm';
 import {
+  bigint,
   index,
   integer,
   jsonb,
@@ -331,6 +331,48 @@ export const actionTransactions = youtubeAppSpaceSchema
   )
   .enableRLS();
 
+/**
+ * Summary Jobs Table
+ *
+ * Auto summary queue state (Realtime). One row per (block_id, language).
+ * Actual queue is handled by queue domain (e.g. pgmq); this table is for UI/Realtime.
+ */
+export const summaryJobs = youtubeAppSpaceSchema.table(
+  'summary_jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    block_id: uuid('block_id').notNull(),
+    org_id: uuid('org_id').notNull(),
+    youtube_id: text('youtube_id').notNull(),
+    language: text('language').notNull().default('en'),
+    pgmq_msg_id: bigint('pgmq_msg_id', { mode: 'number' }),
+    status: text('status').notNull().default('pending'),
+    created_at: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    started_at: timestamp('started_at', { withTimezone: true }),
+    completed_at: timestamp('completed_at', { withTimezone: true }),
+    error_message: text('error_message'),
+  },
+  table => ({
+    blockIdLanguageUnique: unique('summary_jobs_block_id_language_unique').on(
+      table.block_id,
+      table.language
+    ),
+    blockIdIdx: index('idx_summary_jobs_block_id').on(table.block_id),
+    statusIdx: index('idx_summary_jobs_status').on(table.status),
+    blockDirectAccessPolicy: pgPolicy(
+      'summary_jobs_block_direct_access',
+      {
+        for: 'all',
+        to: authenticatedRole,
+        using: sql`false`,
+        withCheck: sql`false`,
+      }
+    ),
+  })
+).enableRLS();
+
 // ============================================
 // TypeScript Types
 // ============================================
@@ -343,3 +385,5 @@ export type ActionTransaction = typeof actionTransactions.$inferSelect;
 export type NewActionTransaction = typeof actionTransactions.$inferInsert;
 export type VideoSummary = typeof videoSummaries.$inferSelect;
 export type NewVideoSummary = typeof videoSummaries.$inferInsert;
+export type SummaryJob = typeof summaryJobs.$inferSelect;
+export type NewSummaryJob = typeof summaryJobs.$inferInsert;
