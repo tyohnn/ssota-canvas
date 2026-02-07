@@ -45,6 +45,17 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Image Assets Bucket (Private - for workspace image blocks)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'image-assets',
+  'image-assets',
+  false,
+  10485760, -- 10MB
+  ARRAY['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- ============================================================================
 -- 2. RLS Policies for canvas-assets bucket (Simplified for local development)
 -- ============================================================================

@@ -1,0 +1,93 @@
+name: Deploy Edge Functions (Staging)
+
+on:
+  # dev 브랜치에 push될 때마다 staging 환경에 배포
+  push:
+    branches: [dev]
+    paths:
+      - 'apps/web/supabase/functions/**'
+      - 'apps/web/supabase/config.toml'
+      - '.github/workflows/deploy-edge-functions-staging.yml'
+  
+  # 수동 트리거 지원
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_STAGING_PROJECT_ID }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      
+      - name: Verify Edge Functions exist
+        run: |
+          if [ ! -d "apps/web/supabase/functions" ]; then
+            echo "❌ Error: Edge Functions directory not found"
+            exit 1
+          fi
+          
+          echo "📦 Found Edge Functions:"
+          ls -la apps/web/supabase/functions/
+      
+      - name: Deploy Edge Functions to Staging
+        working-directory: apps/web
+        run: |
+          echo "🚀 Deploying Edge Functions to staging environment..."
+          
+          # config.toml 기반으로 모든 함수 배포
+          supabase functions deploy \
+            --project-ref $SUPABASE_PROJECT_ID \
+            --debug
+      
+      - name: Set Edge Function Secrets (Staging)
+        working-directory: apps/web
+        run: |
+          echo "🔐 Setting Edge Function secrets for staging..."
+          
+          # NEXT_PUBLIC_APP_URL 설정 (staging 앱 URL)
+          supabase secrets set \
+            NEXT_PUBLIC_APP_URL="${{ secrets.STAGING_APP_URL }}" \
+            --project-ref $SUPABASE_PROJECT_ID
+          
+          # INTERNAL_API_SECRET 설정
+          supabase secrets set \
+            INTERNAL_API_SECRET="${{ secrets.STAGING_INTERNAL_API_SECRET }}" \
+            --project-ref $SUPABASE_PROJECT_ID
+          
+          echo "✅ Secrets configured for staging"
+      
+      - name: Test Edge Function Deployment
+        run: |
+          echo "🧪 Testing Edge Function deployment..."
+          
+          # 함수 목록 확인
+          supabase functions list --project-ref $SUPABASE_PROJECT_ID
+          
+          echo "✅ Deployment verified"
+      
+      - name: Summary
+        run: |
+          echo "## 🚀 Edge Functions Deployed (Staging)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Environment:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🌍 **Staging**" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 Project: \`$SUPABASE_PROJECT_ID\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 🌿 Branch: \`dev\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployed Functions:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`process-summary-queue\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Test the functions in staging" >> $GITHUB_STEP_SUMMARY
+          echo "2. 🧪 Run integration tests" >> $GITHUB_STEP_SUMMARY
+          echo "3. 🚀 Merge to \`main\` when ready for production" >> $GITHUB_STEP_SUMMARY

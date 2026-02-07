@@ -4,5 +4,11 @@
 
 # dotenvx
 .env.keys
+.env
 .env.local
 .env.*.local
+
+# Edge Functions: lockfile can be v5 (local Deno) but runtime expects older format
+functions/**/deno.lock
+# Edge Functions use esm.sh/npm via Deno; node_modules not used at runtime
+functions/**/node_modules

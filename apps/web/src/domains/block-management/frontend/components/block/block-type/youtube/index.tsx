@@ -17,6 +17,7 @@ import { useYoutubeBlock } from './core/use-youtube-block';
  * YouTube 영상 임베드 블록 컴포넌트
  * - 훅 호출 및 props 배선 담당
  * - Presentational 컴포넌트로 props 전달
+ * - Summary ensure는 getYoutubeMetadataAction 내부 Policy로 처리됨
  */
 export const YoutubeBlock = memo(function YoutubeBlock({
   data,
@@ -31,7 +32,6 @@ export const YoutubeBlock = memo(function YoutubeBlock({
   const width = typeof nodeW === 'number' ? nodeW : 410;
   const height = typeof nodeH === 'number' ? nodeH : 288;
 
-  // Main Hook
   const hookResult = useYoutubeBlock({
     nodeData,
     selected,

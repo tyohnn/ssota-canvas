@@ -2,7 +2,12 @@
 -- Created: 2026-01-02
 -- Updated: 2026-01-18 (publisher_id, status enum, workspace optimization)
 
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pgcrypto') THEN
+    CREATE EXTENSION pgcrypto;
+  END IF;
+END $$;
 
 -- ============================================
 -- Share Management Domain Enums

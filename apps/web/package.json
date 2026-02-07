@@ -25,6 +25,7 @@
     "db:migrate": "pnpm db:generate && pnpm db:migrate:copy",
     "db:migrate:copy": "npx tsx scripts/migrate-to-supabase.ts",
     "supabase:start": "npx supabase start",
+    "supabase:dev": "pnpm exec supabase start && pnpm exec supabase functions serve --env-file supabase/.env.local",
     "supabase:stop": "npx supabase stop",
     "supabase:reset": "npx supabase db reset",
     "supabase:status": "npx supabase status",

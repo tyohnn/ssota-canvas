@@ -105,8 +105,13 @@ COMMENT ON COLUMN youtube_app_space.video_summaries.summary IS 'AI-generated sum
 ALTER TABLE youtube_app_space.action_transactions
   ADD COLUMN language TEXT;
 
--- Drop existing unique index if exists
-DROP INDEX IF EXISTS idx_action_transactions_org_video;
+-- Drop existing unique index if exists (only if exists to avoid NOTICE)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'youtube_app_space' AND indexname = 'idx_action_transactions_org_video') THEN
+    DROP INDEX youtube_app_space.idx_action_transactions_org_video;
+  END IF;
+END $$;
 
 -- Create unique index for actions with language (extract_summary)
 CREATE UNIQUE INDEX idx_action_transactions_unique_with_language

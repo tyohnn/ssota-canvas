@@ -23,6 +23,8 @@ export type YoutubeAppSpaceErrorCode =
   // Action Transaction ID 관련 (UUID)
   | 'INVALID_ACTION_TRANSACTION_ID'
   | 'ACTION_TRANSACTION_ID_NOT_FOUND'
+  // Summary Job ID 관련 (UUID)
+  | 'INVALID_SUMMARY_JOB_ID'
   // Action Transaction 엔티티 관련
   | 'ACTION_TRANSACTION_CREATION_FAILED'
   | 'ACTION_TRANSACTION_UPDATE_FAILED'
@@ -134,6 +136,8 @@ export const YOUTUBE_APP_SPACE_ERROR_MESSAGES: Record<
   // Action Transaction ID related (UUID)
   INVALID_ACTION_TRANSACTION_ID: 'Invalid action transaction ID format (UUID).',
   ACTION_TRANSACTION_ID_NOT_FOUND: 'Action transaction ID not found.',
+  // Summary Job ID related (UUID)
+  INVALID_SUMMARY_JOB_ID: 'Invalid summary job ID format (UUID).',
   // Action Transaction entity related
   ACTION_TRANSACTION_CREATION_FAILED: 'Failed to create action transaction.',
   ACTION_TRANSACTION_UPDATE_FAILED: 'Failed to update action transaction.',

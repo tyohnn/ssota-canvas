@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "supabase": "npm:@supabase/supabase-js@2",
+    "lodash": "https://cdn.skypack.dev/lodash"
+  },
+  "lock": false
+}

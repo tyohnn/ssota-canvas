@@ -101,14 +101,24 @@ export function useVisualSummaryActionBusiness(
     enabled: !!youtubeId && hasAnySummary,
   });
 
-  // Visual Summary Context 사용
+  // Visual Summary Context 사용 (jobs 기반에서 이 블록의 visual-summary job만 사용)
   const {
     generateVisualSummary: generateVisualSummaryFromContext,
     isGenerating,
-    error: visualSummaryError,
+    jobs,
     messages,
-    todos,
   } = useAIActionContext();
+
+  const visualSummaryJob = useMemo(
+    () =>
+      jobs.find(
+        (j) => j.type === 'visual-summary' && j.sourceBlockId === blockId
+      ),
+    [jobs, blockId]
+  );
+  const visualSummaryError =
+    visualSummaryJob?.status === 'failed' ? visualSummaryJob.error ?? null : null;
+  const todos = visualSummaryJob?.tasks ?? [];
 
   // 템플릿 선택 핸들러 (비즈니스 로직만 수행)
   // UI 상태 업데이트는 메인 훅에서 처리. returns true if generation was started.

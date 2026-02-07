@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
+import { useAIActionContext } from '@/domains/ai-actions/frontend/contexts/ai-action-context';
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/block-property/use-block-title-update';
 import { YoutubeBlockPropertiesVO } from '@/domains/block-management/shared/value-objects/block-properties/youtube.vo';
@@ -49,6 +50,7 @@ export function useYoutubeBlock(
     },
   });
   const canvasMode = useCanvasModeContext();
+  const { setAutoSummaryBlockId } = useAIActionContext();
 
   // Value Object 인스턴스 생성 (메모이제이션)
   const vo = useMemo(
@@ -117,6 +119,7 @@ export function useYoutubeBlock(
             const result = await fetchMetadata(vo.url);
 
             if (result.success) {
+              if (nodeData.blockId) setAutoSummaryBlockId(nodeData.blockId);
               // 비즈니스 훅에서 이미 updateProperties 호출됨 (URL + 메타데이터)
               setIsLoading(false);
             } else {
@@ -174,6 +177,7 @@ export function useYoutubeBlock(
         const result = await fetchMetadata(trimmedUrl);
 
         if (result.success) {
+          if (nodeData.blockId) setAutoSummaryBlockId(nodeData.blockId);
           // 비즈니스 훅에서 이미 updateProperties 호출됨 (URL + 메타데이터)
           uiState.setIsLoading(false);
         } else {
@@ -185,7 +189,7 @@ export function useYoutubeBlock(
         uiState.setIsLoading(false);
       }
     },
-    [uiState, fetchMetadata, nodeData, updateProperties]
+    [uiState, fetchMetadata, nodeData, updateProperties, setAutoSummaryBlockId]
   );
 
   return {

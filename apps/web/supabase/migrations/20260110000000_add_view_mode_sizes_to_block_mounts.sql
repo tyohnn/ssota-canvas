@@ -40,8 +40,13 @@ WHERE bm.block_id = b.id
   AND bm.size_width IS NOT NULL 
   AND bm.size_height IS NOT NULL;
 
--- 3. Add GIN index for JSONB queries (idempotent)
-DROP INDEX IF EXISTS idx_block_mounts_view_mode_sizes;
+-- 3. Add GIN index for JSONB queries (drop only if exists to avoid NOTICE)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_block_mounts_view_mode_sizes') THEN
+    DROP INDEX idx_block_mounts_view_mode_sizes;
+  END IF;
+END $$;
 CREATE INDEX idx_block_mounts_view_mode_sizes 
 ON block_mounts USING GIN (view_mode_sizes) 
 WHERE deleted_at IS NULL;
