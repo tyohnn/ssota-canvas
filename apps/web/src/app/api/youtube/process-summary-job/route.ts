@@ -14,7 +14,14 @@ import {
 
 export async function POST(request: NextRequest) {
   const secret = request.headers.get('X-Internal-Secret');
-  if (secret !== config.app.internalApiSecret) {
+  const authOk = secret === config.app.internalApiSecret;
+  console.log('[process-summary-job] auth check:', {
+    headerPresent: secret !== null,
+    headerLength: secret?.length ?? 0,
+    expectedSecretSet: !!config.app.internalApiSecret,
+    authOk,
+  });
+  if (!authOk) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

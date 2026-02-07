@@ -1,9 +1,24 @@
 import { createClient } from "supabase";
 
 const BATCH_SIZE = 20;
-const VISIBILITY_TIMEOUT = 300; // 5 minutes
-const API_URL = Deno.env.get("NEXT_PUBLIC_APP_URL")!;
-const API_SECRET = Deno.env.get("INTERNAL_API_SECRET")!;
+const VISIBILITY_TIMEOUT = 60; // 1.5 min — 요약 처리에 충분, 실패 시 재시도는 이 시간 후
+const API_URL = Deno.env.get("NEXT_PUBLIC_APP_URL") ?? "";
+const API_SECRET = Deno.env.get("INTERNAL_API_SECRET") ?? "";
+
+function logEnv() {
+  let apiUrlHost = "(empty)";
+  try {
+    if (API_URL) apiUrlHost = new URL(API_URL).hostname;
+  } catch {
+    apiUrlHost = "(invalid)";
+  }
+  console.log("[process-summary-queue] env check:", {
+    hasApiUrl: !!API_URL,
+    apiUrlHost,
+    hasApiSecret: !!API_SECRET,
+    apiSecretLength: API_SECRET?.length ?? 0,
+  });
+}
 
 interface QueueMessage {
   msg_id: number;
@@ -44,6 +59,10 @@ Deno.serve(async () => {
       return new Response(JSON.stringify({ processed: 0 }));
     }
 
+    logEnv();
+    const jobUrl = `${API_URL}/api/youtube/process-summary-job`;
+    console.log("[process-summary-queue] calling app API:", { url: jobUrl, count: rows.length });
+
     // 2. Update summary_jobs to processing
     const jobIds = rows.map((row) => row.message.jobId);
     await supabase
@@ -55,19 +74,35 @@ Deno.serve(async () => {
       })
       .in("id", jobIds);
 
-    // 3. Fire-and-forget: call API Route (no await)
-    rows.forEach((row) => {
-      fetch(`${API_URL}/api/youtube/process-summary-job`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Internal-Secret": API_SECRET,
-        },
-        body: JSON.stringify({
-          jobId: row.message.jobId,
-          msgId: row.msg_id,
-        }),
-      });
+    // 3. Call API Route and log response for debugging (e.g. 401)
+    const results = await Promise.allSettled(
+      rows.map((row) =>
+        fetch(jobUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Internal-Secret": API_SECRET,
+          },
+          body: JSON.stringify({
+            jobId: row.message.jobId,
+            msgId: row.msg_id,
+          }),
+        })
+      )
+    );
+    results.forEach((r, i) => {
+      if (r.status === "fulfilled") {
+        console.log("[process-summary-queue] app API response:", {
+          jobId: rows[i]?.message.jobId,
+          status: r.value.status,
+          statusText: r.value.statusText,
+        });
+      } else {
+        console.error("[process-summary-queue] app API request failed:", {
+          jobId: rows[i]?.message.jobId,
+          reason: String(r.reason),
+        });
+      }
     });
 
     return new Response(JSON.stringify({ dispatched: rows.length }));
