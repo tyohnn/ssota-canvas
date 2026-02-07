@@ -1,20 +1,13 @@
 name: Deploy Edge Functions (Production)
 
 on:
-  # main 브랜치에 push될 때 production 환경에 배포
   push:
     branches: [main]
+    tags: ['v*.*.*']
     paths:
       - 'apps/web/supabase/functions/**'
       - 'apps/web/supabase/config.toml'
       - '.github/workflows/deploy-edge-functions-production.yml'
-  
-  # 릴리스 태그가 생성될 때도 배포
-  push:
-    tags:
-      - 'v*.*.*'
-  
-  # 수동 트리거 지원
   workflow_dispatch:
 
 jobs:
