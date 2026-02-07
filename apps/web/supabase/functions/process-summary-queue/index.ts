@@ -90,20 +90,31 @@ Deno.serve(async () => {
         })
       )
     );
-    results.forEach((r, i) => {
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      const row = rows[i];
       if (r.status === "fulfilled") {
+        const res = r.value;
         console.log("[process-summary-queue] app API response:", {
-          jobId: rows[i]?.message.jobId,
-          status: r.value.status,
-          statusText: r.value.statusText,
+          jobId: row?.message.jobId,
+          status: res.status,
+          statusText: res.statusText,
         });
+        if (res.status === 401) {
+          try {
+            const text = await res.text();
+            console.log("[process-summary-queue] 401 response body (앱 쪽 원인):", text);
+          } catch (_) {
+            /* ignore */
+          }
+        }
       } else {
         console.error("[process-summary-queue] app API request failed:", {
-          jobId: rows[i]?.message.jobId,
+          jobId: row?.message.jobId,
           reason: String(r.reason),
         });
       }
-    });
+    }
 
     return new Response(JSON.stringify({ dispatched: rows.length }));
   } catch (error) {
