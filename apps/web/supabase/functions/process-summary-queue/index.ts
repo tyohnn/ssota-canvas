@@ -4,6 +4,8 @@ const BATCH_SIZE = 20;
 const VISIBILITY_TIMEOUT = 60; // 1.5 min — 요약 처리에 충분, 실패 시 재시도는 이 시간 후
 const API_URL = Deno.env.get("NEXT_PUBLIC_APP_URL") ?? "";
 const API_SECRET = Deno.env.get("INTERNAL_API_SECRET") ?? "";
+// Preview(dev) 배포에 Vercel Deployment Protection이 켜져 있으면, Vercel의 Protection Bypass for Automation 시크릿을 여기 넣고 Supabase Secrets에 설정.
+const VERCEL_BYPASS = Deno.env.get("VERCEL_PROTECTION_BYPASS_SECRET") ?? "";
 
 function logEnv() {
   let apiUrlHost = "(empty)";
@@ -17,6 +19,7 @@ function logEnv() {
     apiUrlHost,
     hasApiSecret: !!API_SECRET,
     apiSecretLength: API_SECRET?.length ?? 0,
+    vercelBypassSet: !!VERCEL_BYPASS,
   });
 }
 
@@ -75,14 +78,18 @@ Deno.serve(async () => {
       .in("id", jobIds);
 
     // 3. Call API Route and log response for debugging (e.g. 401)
+    const appHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Internal-Secret": API_SECRET,
+    };
+    if (VERCEL_BYPASS) {
+      appHeaders["x-vercel-protection-bypass"] = VERCEL_BYPASS;
+    }
     const results = await Promise.allSettled(
       rows.map((row) =>
         fetch(jobUrl, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Internal-Secret": API_SECRET,
-          },
+          headers: appHeaders,
           body: JSON.stringify({
             jobId: row.message.jobId,
             msgId: row.msg_id,
