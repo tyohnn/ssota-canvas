@@ -7,22 +7,6 @@ const API_SECRET = Deno.env.get("INTERNAL_API_SECRET") ?? "";
 // Preview(dev) 배포에 Vercel Deployment Protection이 켜져 있으면, Vercel의 Protection Bypass for Automation 시크릿을 여기 넣고 Supabase Secrets에 설정.
 const VERCEL_BYPASS = Deno.env.get("VERCEL_PROTECTION_BYPASS_SECRET") ?? "";
 
-function logEnv() {
-  let apiUrlHost = "(empty)";
-  try {
-    if (API_URL) apiUrlHost = new URL(API_URL).hostname;
-  } catch {
-    apiUrlHost = "(invalid)";
-  }
-  console.log("[process-summary-queue] env check:", {
-    hasApiUrl: !!API_URL,
-    apiUrlHost,
-    hasApiSecret: !!API_SECRET,
-    apiSecretLength: API_SECRET?.length ?? 0,
-    vercelBypassSet: !!VERCEL_BYPASS,
-  });
-}
-
 interface QueueMessage {
   msg_id: number;
   message: {
@@ -62,9 +46,7 @@ Deno.serve(async () => {
       return new Response(JSON.stringify({ processed: 0 }));
     }
 
-    logEnv();
     const jobUrl = `${API_URL}/api/youtube/process-summary-job`;
-    console.log("[process-summary-queue] calling app API:", { url: jobUrl, count: rows.length });
 
     // 2. Update summary_jobs to processing
     const jobIds = rows.map((row) => row.message.jobId);
@@ -77,7 +59,7 @@ Deno.serve(async () => {
       })
       .in("id", jobIds);
 
-    // 3. Call API Route and log response for debugging (e.g. 401)
+    // 3. Call API Route
     const appHeaders: Record<string, string> = {
       "Content-Type": "application/json",
       "X-Internal-Secret": API_SECRET,
@@ -85,7 +67,7 @@ Deno.serve(async () => {
     if (VERCEL_BYPASS) {
       appHeaders["x-vercel-protection-bypass"] = VERCEL_BYPASS;
     }
-    const results = await Promise.allSettled(
+    await Promise.allSettled(
       rows.map((row) =>
         fetch(jobUrl, {
           method: "POST",
@@ -97,31 +79,6 @@ Deno.serve(async () => {
         })
       )
     );
-    for (let i = 0; i < results.length; i++) {
-      const r = results[i];
-      const row = rows[i];
-      if (r.status === "fulfilled") {
-        const res = r.value;
-        console.log("[process-summary-queue] app API response:", {
-          jobId: row?.message.jobId,
-          status: res.status,
-          statusText: res.statusText,
-        });
-        if (res.status === 401) {
-          try {
-            const text = await res.text();
-            console.log("[process-summary-queue] 401 response body (앱 쪽 원인):", text);
-          } catch (_) {
-            /* ignore */
-          }
-        }
-      } else {
-        console.error("[process-summary-queue] app API request failed:", {
-          jobId: row?.message.jobId,
-          reason: String(r.reason),
-        });
-      }
-    }
 
     return new Response(JSON.stringify({ dispatched: rows.length }));
   } catch (error) {

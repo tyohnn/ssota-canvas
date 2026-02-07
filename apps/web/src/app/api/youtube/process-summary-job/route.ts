@@ -14,18 +14,8 @@ import {
 
 export async function POST(request: NextRequest) {
   const secret = request.headers.get('X-Internal-Secret');
-  const authOk = secret === config.app.internalApiSecret;
-  console.log('[process-summary-job] auth check:', {
-    headerPresent: secret !== null,
-    headerLength: secret?.length ?? 0,
-    expectedSecretSet: !!config.app.internalApiSecret,
-    authOk,
-  });
-  if (!authOk) {
-    const isDev = process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview';
-    const body: { error: string; _debug?: { expectedSecretSet: boolean } } = { error: 'Unauthorized' };
-    if (isDev) body._debug = { expectedSecretSet: !!config.app.internalApiSecret };
-    return NextResponse.json(body, { status: 401 });
+  if (secret !== config.app.internalApiSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   let body: { jobId?: string; msgId?: number };

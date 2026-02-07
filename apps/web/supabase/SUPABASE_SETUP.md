@@ -346,6 +346,7 @@ Summary Queue 사용 시 Cron은 **마이그레이션**에 포함되어 있습�
 
 - **앱 측 환경변수**(Vercel 등): `INTERNAL_API_SECRET`, `NEXT_PUBLIC_APP_URL`. Edge Function이 `POST {APP_URL}/api/youtube/process-summary-job` 호출 시 사용.
 - **Edge Function이 쓰는 값**: Remote는 **Supabase Dashboard → Project Settings → Edge Functions → Secrets** (또는 `supabase secrets set`)에 `NEXT_PUBLIC_APP_URL`, `INTERNAL_API_SECRET` 설정. 로컬은 `pnpm supabase:dev` (내부적으로 `--env-file supabase/.env.local` 사용). supabase/.env.example 을 supabase/.env.local 로 복사 후 값 설정. **로컬에서 Edge Function은 Docker 안에서 실행되므로**, Next.js(호스트의 3000 포트)를 가리키려면 `NEXT_PUBLIC_APP_URL=http://host.docker.internal:3000` 으로 두어야 함. `localhost:3000` 이면 Connection refused 발생.
+- **Preview(dev)에서 Vercel Deployment Protection 사용 시**: Edge가 앱을 호출하면 Vercel이 먼저 401 HTML("Authentication Required")을 반환할 수 있음. 이때 **Vercel** → Project Settings → Deployment Protection → **Protection Bypass for Automation** 에서 시크릿을 생성한 뒤, 그 값을 **Supabase Edge Function Secrets**에 `VERCEL_PROTECTION_BYPASS_SECRET` 으로 넣으면 Edge가 `x-vercel-protection-bypass` 헤더로 전달해 보호를 통과함.
 
 ---
 
