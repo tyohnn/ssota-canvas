@@ -22,7 +22,10 @@ export async function POST(request: NextRequest) {
     authOk,
   });
   if (!authOk) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const isDev = process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview';
+    const body: { error: string; _debug?: { expectedSecretSet: boolean } } = { error: 'Unauthorized' };
+    if (isDev) body._debug = { expectedSecretSet: !!config.app.internalApiSecret };
+    return NextResponse.json(body, { status: 401 });
   }
 
   let body: { jobId?: string; msgId?: number };
