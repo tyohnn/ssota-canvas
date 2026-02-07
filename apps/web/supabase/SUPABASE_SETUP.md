@@ -322,7 +322,19 @@ Cron이 호출하는 앱 API(`/api/youtube/process-summary-job`)가 동작하려
 - **INTERNAL_API_SECRET**: 내부 API 인증용 시크릿 (Cron/Edge Function에서 `X-Internal-Secret` 헤더로 전달).
 - **NEXT_PUBLIC_APP_URL** (또는 앱 베이스 URL): Edge Function이 `POST {APP_URL}/api/youtube/process-summary-job` 호출 시 사용.
 
-### 3. GitHub 연동 (마이그레이션 자동 적용)
+### 3. config.toml이 리모트에 적용되지 않게 하기 (Branching)
+
+GitHub 연동 시 `config.toml` 변경분이 리모트(API, Auth 등)에 자동 적용되는 것을 막으려면:
+
+- **공식 문서**: [Configuration - Configuration merging](https://supabase.com/docs/guides/deployment/branching/configuration#configuration-merging)  
+  > **If no remote is declared or the project ID is incorrect, the configuration step is skipped.**
+
+- **방법**: `config.toml`에 **`[remotes]` 블록을 두지 않거나**, 적용받지 않을 브랜치용 remote는 **선언하지 않는다**.
+  - 예: production에 config를 적용하지 않으려면 `[remotes.production]`을 제거한다.
+  - staging만 config 적용을 원하면 `[remotes.staging]`만 두고 production용 remote는 두지 않는다.
+- **결과**: Configuration 단계가 스킵되며, **마이그레이션은 Dashboard 브랜치 매핑에 따라 그대로 적용**된다. CLI로 특정 프로젝트를 쓰려면 `supabase link --project-ref <id>` 로 링크하면 된다 (config의 remotes와 무관).
+
+### 4. GitHub 연동 (마이그레이션 자동 적용)
 
 Remote 브랜치에 마이그레이션이 자동 적용되려면:
 
