@@ -38,9 +38,9 @@ import { createEdgeAction } from '@/domains/canvas-management/actions/edge/creat
 
 describe('useCreateEdge', () => {
   let queryClient: QueryClient;
-  let mockGetEdges: ReturnType<typeof vi.fn>;
-  let mockSetEdges: ReturnType<typeof vi.fn>;
-  let mockGetNodes: ReturnType<typeof vi.fn>;
+  let mockGetEdges: ReactFlowDependencies['getEdges'];
+  let mockSetEdges: ReactFlowDependencies['setEdges'];
+  let mockGetNodes: ReactFlowDependencies['getNodes'];
   let reactFlow: ReactFlowDependencies;
   let wrapper: ({ children }: { children: ReactNode }) => ReactElement;
   let edges: Edge<EdgeData>[];
@@ -97,13 +97,13 @@ describe('useCreateEdge', () => {
     edges = [];
     nodes = [mockSourceNode, mockTargetNode];
 
-    mockGetEdges = vi.fn(() => [...edges]);
-    mockSetEdges = vi.fn(
-      (arg: Edge<EdgeData>[] | ((prev: Edge<EdgeData>[]) => Edge<EdgeData>[])) => {
-        edges = typeof arg === 'function' ? arg([...edges]) : [...arg];
-      }
-    );
-    mockGetNodes = vi.fn(() => [...nodes]);
+    mockGetEdges = vi.fn<() => Edge<EdgeData>[]>(() => [...edges]);
+    mockSetEdges = vi.fn<
+      (edges: Edge<EdgeData>[] | ((prev: Edge<EdgeData>[]) => Edge<EdgeData>[])) => void
+    >((arg) => {
+      edges = typeof arg === 'function' ? arg([...edges]) : [...arg];
+    });
+    mockGetNodes = vi.fn<() => Node[]>(() => [...nodes]);
 
     reactFlow = {
       getEdges: mockGetEdges,
@@ -154,11 +154,12 @@ describe('useCreateEdge', () => {
       await waitFor(() => {
         const currentEdges = mockGetEdges();
         expect(currentEdges).toHaveLength(1);
-        expect(currentEdges[0].id).toContain('optimistic-edge-');
-        expect(currentEdges[0].source).toBe(sourceBlockMountId);
-        expect(currentEdges[0].target).toBe(targetBlockMountId);
-        expect(currentEdges[0].sourceHandle).toBe(sourceHandle);
-        expect(currentEdges[0].targetHandle).toBe(targetHandle);
+        const edge = currentEdges[0]!;
+        expect(edge.id).toContain('optimistic-edge-');
+        expect(edge.source).toBe(sourceBlockMountId);
+        expect(edge.target).toBe(targetBlockMountId);
+        expect(edge.sourceHandle).toBe(sourceHandle);
+        expect(edge.targetHandle).toBe(targetHandle);
       });
 
       // 서버 응답 완료
@@ -186,11 +187,10 @@ describe('useCreateEdge', () => {
       await waitFor(() => {
         const currentEdges = mockGetEdges();
         expect(currentEdges).toHaveLength(1);
-        expect(currentEdges[0].id).toBe(mockEdgeView.edgeId);
-        expect(currentEdges[0].data.edgeId).toBe(mockEdgeView.edgeId);
-        expect(currentEdges[0].data.actualEdgeShape).toBe(
-          mockEdgeView.edgeShape
-        );
+        const edge = currentEdges[0]!;
+        expect(edge.id).toBe(mockEdgeView.edgeId);
+        expect(edge.data?.edgeId).toBe(mockEdgeView.edgeId);
+        expect(edge.data?.actualEdgeShape).toBe(mockEdgeView.edgeShape);
       });
     });
 
@@ -300,7 +300,7 @@ describe('useCreateEdge', () => {
 
       await waitFor(() => {
         const edges = mockGetEdges();
-        const optimisticEdge = edges[0];
+        const optimisticEdge = edges[0]!;
         expect(optimisticEdge).toMatchObject({
           source: sourceBlockMountId,
           target: targetBlockMountId,
@@ -312,7 +312,7 @@ describe('useCreateEdge', () => {
             actualEdgeShape: 'default',
           },
         });
-        expect(optimisticEdge.data.edgeId).toBeDefined();
+        expect(optimisticEdge.data?.edgeId).toBeDefined();
       });
     });
   });
@@ -374,7 +374,7 @@ describe('useCreateEdge', () => {
       // 노드 제거
       nodes = [];
       // mockGetNodes를 재생성하여 새로운 nodes 배열을 참조하도록 함
-      mockGetNodes = vi.fn(() => [...nodes]);
+      mockGetNodes = vi.fn<() => Node[]>(() => [...nodes]);
       reactFlow.getNodes = mockGetNodes;
 
       const { result } = renderHook(
@@ -546,7 +546,7 @@ describe('useCreateEdge', () => {
       // Optimistic edge 확인 (서버 응답 전)
       await waitFor(() => {
         const edges = mockGetEdges();
-        expect(edges[0].id).toContain('optimistic-edge-');
+        expect(edges[0]!.id).toContain('optimistic-edge-');
       });
 
       // 서버 응답 완료
@@ -561,11 +561,12 @@ describe('useCreateEdge', () => {
       await waitFor(() => {
         const edges = mockGetEdges();
         expect(edges).toHaveLength(1);
-        expect(edges[0].id).toBe(mockEdgeView.edgeId);
-        expect(edges[0].data.edgeId).toBe(mockEdgeView.edgeId);
-        expect(edges[0].data.actualEdgeShape).toBe(mockEdgeView.edgeShape);
-        expect(edges[0].data.createdAt).toBe(mockEdgeView.createdAt);
-        expect(edges[0].data.updatedAt).toBe(mockEdgeView.updatedAt);
+        const edge = edges[0]!;
+        expect(edge.id).toBe(mockEdgeView.edgeId);
+        expect(edge.data?.edgeId).toBe(mockEdgeView.edgeId);
+        expect(edge.data?.actualEdgeShape).toBe(mockEdgeView.edgeShape);
+        expect(edge.data?.createdAt).toBe(mockEdgeView.createdAt);
+        expect(edge.data?.updatedAt).toBe(mockEdgeView.updatedAt);
       });
     });
 

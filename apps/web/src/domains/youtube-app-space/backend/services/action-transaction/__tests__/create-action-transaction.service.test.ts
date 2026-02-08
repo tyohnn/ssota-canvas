@@ -16,6 +16,8 @@ describe('createActionTransaction Service', () => {
         console.log('[MockRepository] findByOrgAndVideo called:', { orgId, videoId, actionType });
         return null;
       }),
+      findByOrgVideoAndLanguage: vi.fn(async () => null),
+      findAllLanguagesByOrgAndVideoOfSummaryType: vi.fn(async () => []),
       create: vi.fn(async (aggregate: ActionTransactionAggregate) => {
         console.log('[MockRepository] create called:', {
           transactionId: aggregate.getTransaction().id.value,

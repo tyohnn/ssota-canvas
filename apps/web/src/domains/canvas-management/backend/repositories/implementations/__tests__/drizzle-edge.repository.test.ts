@@ -6,6 +6,7 @@ import { EdgeId } from '../../../../shared/value-objects/edge-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockMountId } from '../../../../shared/value-objects/block-mount-id.vo';
 import { EdgeHandle } from '../../../../shared/value-objects/edge-handle.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 
 // Mock Drizzle DB
 vi.mock('@/db', () => ({
@@ -59,13 +60,14 @@ describe('DrizzleEdgeRepository', () => {
   let mockPageId: PageId;
   let mockSourceBlockMountId: BlockMountId;
   let mockTargetBlockMountId: BlockMountId;
+  let mockUserId: UserId;
 
   beforeEach(() => {
     repository = new DrizzleEdgeRepository();
     mockPageId = new PageId('550e8400-e29b-41d4-a716-446655440000');
     mockSourceBlockMountId = new BlockMountId('550e8400-e29b-41d4-a716-446655440001');
     mockTargetBlockMountId = new BlockMountId('550e8400-e29b-41d4-a716-446655440002');
-    
+    mockUserId = new UserId('550e8400-e29b-41d4-a716-446655440020');
     vi.clearAllMocks();
   });
 
@@ -78,6 +80,7 @@ describe('DrizzleEdgeRepository', () => {
         targetBlockMountId: mockTargetBlockMountId,
         sourceHandle: EdgeHandle.right(),
         targetHandle: EdgeHandle.left(),
+        userId: mockUserId,
       };
       const aggregate = EdgeAggregate.createEdge(command);
 
@@ -99,6 +102,7 @@ describe('DrizzleEdgeRepository', () => {
         targetBlockMountId: mockTargetBlockMountId,
         sourceHandle: EdgeHandle.right(),
         targetHandle: EdgeHandle.left(),
+        userId: mockUserId,
       };
       const aggregate = EdgeAggregate.createEdge(command);
 

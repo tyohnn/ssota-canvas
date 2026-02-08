@@ -8,6 +8,7 @@ import { Position } from '../../../../shared/value-objects/position.vo';
 import { Size } from '../../../../shared/value-objects/size.vo';
 import { ZOrder } from '../../../../shared/value-objects/z-order.vo';
 import { MountBlockCommand } from '../../../../shared/commands';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 
 // Mock Drizzle DB
 vi.mock('@/db', () => {
@@ -61,6 +62,7 @@ describe.skip('DrizzleBlockMountRepository', () => {
   let mockBlockId: BlockId;
   let mockPosition: Position;
   let mockSize: Size;
+  let mockUserId: UserId;
 
   beforeEach(() => {
     repository = new DrizzleBlockMountRepository();
@@ -68,7 +70,7 @@ describe.skip('DrizzleBlockMountRepository', () => {
     mockBlockId = new BlockId('550e8400-e29b-41d4-a716-446655440001');
     mockPosition = new Position(100, 200);
     mockSize = new Size(300, 400);
-    
+    mockUserId = new UserId('550e8400-e29b-41d4-a716-446655440020');
     vi.clearAllMocks();
   });
 
@@ -82,6 +84,7 @@ describe.skip('DrizzleBlockMountRepository', () => {
         blockId: mockBlockId,
         position: mockPosition,
         size: mockSize,
+        userId: mockUserId,
       };
       const aggregate = BlockMountAggregate.mountBlock(command);
 
@@ -102,6 +105,7 @@ describe.skip('DrizzleBlockMountRepository', () => {
         blockId: mockBlockId,
         position: mockPosition,
         size: mockSize,
+        userId: mockUserId,
       };
       const aggregate = BlockMountAggregate.mountBlock(command);
 
@@ -225,6 +229,7 @@ describe.skip('DrizzleBlockMountRepository', () => {
         blockId: mockBlockId,
         position: mockPosition,
         size: mockSize,
+        userId: mockUserId,
       };
       const aggregate = BlockMountAggregate.mountBlock(command);
 

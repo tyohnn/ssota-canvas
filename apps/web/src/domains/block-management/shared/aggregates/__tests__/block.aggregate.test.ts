@@ -86,7 +86,7 @@ describe('BlockAggregate', () => {
     });
 
     it('should delete block and emit BlockDeletedEvent', () => {
-      const deleteCommand: DeleteBlockCommand = {};
+      const deleteCommand: DeleteBlockCommand = { userId };
       
       aggregate.delete(deleteCommand);
       
@@ -103,7 +103,7 @@ describe('BlockAggregate', () => {
     });
 
     it('should throw error when deleting already deleted block', () => {
-      const deleteCommand: DeleteBlockCommand = {};
+      const deleteCommand: DeleteBlockCommand = { userId };
       aggregate.delete(deleteCommand);
       aggregate.markEventsAsCommitted();
       
@@ -164,7 +164,7 @@ describe('BlockAggregate', () => {
     it('should return deletion status', () => {
       expect(aggregate.isDeleted()).toBe(false);
       
-      const deleteCommand: DeleteBlockCommand = {};
+      const deleteCommand: DeleteBlockCommand = { userId };
       aggregate.delete(deleteCommand);
       
       expect(aggregate.isDeleted()).toBe(true);
