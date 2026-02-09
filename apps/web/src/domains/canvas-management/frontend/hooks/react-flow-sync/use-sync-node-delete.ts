@@ -36,8 +36,12 @@ export function useSyncNodeDelete(
 
   const syncNodeDelete = useCallback(
     async (deletedNodes: Node[]) => {
-      // 삭제할 노드 ID들 추출
-      const blockMountIds = deletedNodes.map(node => node.id);
+      // 삭제할 노드 ID 추출 후 optimistic 노드 제외 (서버에 없는 ID는 전송하지 않음, useSoftDeleteBlock과 동일)
+      const allIds = deletedNodes.map(node => node.id);
+      const blockMountIds = allIds.filter(
+        id =>
+          !id.startsWith('optimistic-') && !id.startsWith('group-optimistic-')
+      );
 
       if (blockMountIds.length === 0) {
         return;
