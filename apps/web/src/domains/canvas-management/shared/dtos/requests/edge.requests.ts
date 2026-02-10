@@ -138,3 +138,14 @@ export type UpdateEdgeMarkerRequest = z.output<
   typeof UpdateEdgeMarkerRequestSchema
 >;
 export type DeleteEdgeRequest = z.output<typeof DeleteEdgeRequestSchema>;
+
+/**
+ * 엣지 복구 요청 스키마
+ */
+export const RestoreEdgeRequestSchema = z.object({
+  edgeIds: z.array(z.uuid('Invalid edge ID')),
+  pageId: z.uuid('Invalid page ID'),
+});
+
+export type RestoreEdgeRequestInput = z.input<typeof RestoreEdgeRequestSchema>;
+export type RestoreEdgeRequest = z.output<typeof RestoreEdgeRequestSchema>;

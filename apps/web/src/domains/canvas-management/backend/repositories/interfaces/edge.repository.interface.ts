@@ -27,4 +27,6 @@ export interface EdgeRepository {
 
   delete(edgeId: EdgeId): Promise<void>;
   deleteAll(edgeIds: EdgeId[]): Promise<void>;
+  restore(edgeId: EdgeId): Promise<void>;
+  restoreMany(edgeIds: EdgeId[]): Promise<void>;
 }

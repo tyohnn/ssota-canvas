@@ -261,6 +261,23 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       .where(eq(blockMounts.id, blockMountId.value));
   }
 
+  async restore(blockMountId: BlockMountId): Promise<void> {
+    await adminDb
+      .update(blockMounts)
+      .set({ deleted_at: null, updated_at: new Date() })
+      .where(eq(blockMounts.id, blockMountId.value));
+  }
+
+  async restoreMany(blockMountIds: BlockMountId[]): Promise<void> {
+    if (blockMountIds.length === 0) return;
+
+    const idValues = blockMountIds.map(id => id.value);
+    await adminDb
+      .update(blockMounts)
+      .set({ deleted_at: null, updated_at: new Date() })
+      .where(inArray(blockMounts.id, idValues));
+  }
+
   async findByPageIdWithBlocks(pageId: PageId): Promise<
     Array<{
       blockMountAggregate: BlockMountAggregate;

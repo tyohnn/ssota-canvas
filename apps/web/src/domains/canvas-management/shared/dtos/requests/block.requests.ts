@@ -171,6 +171,14 @@ export const UpdateBlockMountViewModeRequestSchema = z.object({
 });
 
 /**
+ * 블럭 복구 요청 스키마 (소프트 삭제 해제)
+ */
+export const RestoreBlockMountRequestSchema = z.object({
+  blockMountIds: z.array(z.uuid('Invalid block mount ID')),
+  pageId: z.uuid('Invalid page ID'),
+});
+
+/**
  * 노드를 그룹에 추가 요청 (절대→상대 좌표 변환 후 저장)
  */
 export const AddNodeToGroupRequestSchema = z.object({
@@ -238,6 +246,9 @@ export type RemoveNodeFromGroupRequestInput = z.input<
 export type CreateGroupFromNodesRequestInput = z.input<
   typeof CreateGroupFromNodesRequestSchema
 >;
+export type RestoreBlockMountRequestInput = z.input<
+  typeof RestoreBlockMountRequestSchema
+>;
 
 // Output types (서버에서 사용)
 export type CreateAndMountBlockRequest = z.output<
@@ -275,4 +286,7 @@ export type RemoveNodeFromGroupRequest = z.output<
 >;
 export type CreateGroupFromNodesRequest = z.output<
   typeof CreateGroupFromNodesRequestSchema
+>;
+export type RestoreBlockMountRequest = z.output<
+  typeof RestoreBlockMountRequestSchema
 >;

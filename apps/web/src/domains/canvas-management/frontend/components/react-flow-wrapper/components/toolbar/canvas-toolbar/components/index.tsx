@@ -11,6 +11,7 @@ import { AddBlockButton } from './add-block-button';
 import { FitToViewButton } from './fit-to-view-button';
 import { HandButton } from './hand-button';
 import { SelectButton } from './select-button';
+import { HistoryButtons } from './history-buttons';
 
 export interface CanvasToolbarViewProps {
   toolbarRef: React.RefObject<HTMLDivElement | null>;
@@ -22,6 +23,11 @@ export interface CanvasToolbarViewProps {
   onFitToViewClick: () => void;
   onAddBlockClick: () => void;
   readonly?: boolean;
+  // History
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndoClick: () => void;
+  onRedoClick: () => void;
 }
 
 /**
@@ -42,6 +48,10 @@ export function CanvasToolbarView({
   onFitToViewClick,
   onAddBlockClick,
   readonly = false,
+  canUndo,
+  canRedo,
+  onUndoClick,
+  onRedoClick,
 }: CanvasToolbarViewProps) {
   const isSelectActive =
     currentMode.type === 'default' ||
@@ -64,11 +74,20 @@ export function CanvasToolbarView({
 
           {/* Add Block Button - readonly일 때 숨김 */}
           {!readonly && (
-            <AddBlockButton
-              isActive={isBlockCreationMode}
-              disabled={isBlockCreationMode}
-              onClick={onAddBlockClick}
-            />
+            <>
+              <AddBlockButton
+                isActive={isBlockCreationMode}
+                disabled={isBlockCreationMode}
+                onClick={onAddBlockClick}
+              />
+              <Separator orientation="vertical" className="h-4 mx-1" />
+              <HistoryButtons 
+                canUndo={canUndo} 
+                canRedo={canRedo} 
+                onUndoClick={onUndoClick} 
+                onRedoClick={onRedoClick} 
+              />
+            </>
           )}
         </TooltipProvider>
       </ToolbarContainer>

@@ -96,4 +96,20 @@ export interface BlockMountRepository {
       position: { x: number; y: number };
     }
   ): Promise<void>;
+
+  /**
+   * BlockMount 복구 (소프트 삭제 해제)
+   *
+   * @param blockMountId - 복구할 BlockMount ID
+   * @returns Promise<void>
+   */
+  restore(blockMountId: BlockMountId): Promise<void>;
+
+  /**
+   * 여러 BlockMount 일괄 복구 (소프트 삭제 해제)
+   *
+   * @param blockMountIds - 복구할 BlockMount ID 배열
+   * @returns Promise<void>
+   */
+  restoreMany(blockMountIds: BlockMountId[]): Promise<void>;
 }

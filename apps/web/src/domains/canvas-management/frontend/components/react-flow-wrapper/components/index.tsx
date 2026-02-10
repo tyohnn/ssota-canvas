@@ -106,6 +106,11 @@ export interface ReactFlowViewProps {
 
   // Pan Sensitivity
   panOnScrollSpeed?: number;
+
+  // History
+  history: any;
+  executeUndo: () => Promise<void>;
+  executeRedo: () => Promise<void>;
 }
 
 /**
@@ -150,6 +155,9 @@ export function ReactFlowView({
   showAIAgent = true,
   showBlockCreation = true,
   panOnScrollSpeed = 0.5, // Default for React Flow
+  history,
+  executeUndo,
+  executeRedo,
 }: ReactFlowViewProps) {
 
   return (
@@ -218,7 +226,12 @@ export function ReactFlowView({
             position="top-center"
             className="mt-4! pointer-events-auto! z-10"
           >
-            <CanvasToolbar onAddBlockClick={onAddBlockClick} />
+            <CanvasToolbar 
+              onAddBlockClick={onAddBlockClick} 
+              history={history}
+              executeUndo={executeUndo}
+              executeRedo={executeRedo}
+            />
           </Panel>
 
           {/* 모드별 컴포넌트 렌더링 */}
