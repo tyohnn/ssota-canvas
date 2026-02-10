@@ -189,11 +189,12 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
       // 재연결 전에 이전 연결 정보 백업
       const previousEdge = getEdges().find(e => e.id === input.edgeId);
       
-      const success = await reconnectEdge(input);
+      const newEdgeId = await reconnectEdge(input);
+      const success = !!newEdgeId;
       
       // Edge 재연결 성공 시 히스토리 기록 (Undo/Redo 중이 아닐 때만)
       if (success && previousEdge && !history.getIsSkipping()) {
-        console.log('[EdgeLifecycle] Edge reconnected, recording to history:', input.edgeId);
+        console.log('[EdgeLifecycle] Edge reconnected, recording to history:', input.edgeId, '->', newEdgeId);
         history.recordOperation({
           type: 'EDGE_RECONNECT',
           edgeId: input.edgeId,
@@ -206,6 +207,7 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
             newTarget: input.newTargetBlockMountId,
             newSourceHandle: input.sourceHandle || null,
             newTargetHandle: input.targetHandle || null,
+            newEdgeId: newEdgeId, // 새 ID 기록
           },
         });
       }

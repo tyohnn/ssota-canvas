@@ -280,13 +280,25 @@ export function useReactFlowWrapper(
             await edgeLifecycle.restoreEdges(operation.edgeId);
             break;
           case 'EDGE_RECONNECT':
-            // Undo: 새 연결을 이전 연결로 되돌림
+            // Undo: "새 연결"을 "이전 연결"로 Updates (ID 유지)
+            setEdges(edges => 
+              edges.map(e => e.id === operation.edgeId ? { 
+                ...e, 
+                source: operation.data.previousSource, 
+                target: operation.data.previousTarget,
+                sourceHandle: operation.data.previousSourceHandle || undefined,
+                targetHandle: operation.data.previousTargetHandle || undefined,
+              } : e)
+            );
+            
+            // 서버 업데이트 (단순 Update 호출)
             await edgeLifecycle.reconnectEdge({
               edgeId: operation.edgeId,
               newSourceBlockMountId: operation.data.previousSource,
               newTargetBlockMountId: operation.data.previousTarget,
               sourceHandle: operation.data.previousSourceHandle,
               targetHandle: operation.data.previousTargetHandle,
+              skipOptimisticUpdate: true,
             });
             break;
         }
@@ -405,13 +417,25 @@ export function useReactFlowWrapper(
             await edgeLifecycle.deleteEdge({ edgeId: operation.edgeId });
             break;
           case 'EDGE_RECONNECT':
-            // Redo: 이전 연결을 새 연결로 다시 연결
+            // Redo: "이전 연결"을 "새 연결"로 Update (ID 유지)
+            setEdges(edges => 
+              edges.map(e => e.id === operation.edgeId ? { 
+                ...e, 
+                source: operation.data.newSource, 
+                target: operation.data.newTarget,
+                sourceHandle: operation.data.newSourceHandle || undefined,
+                targetHandle: operation.data.newTargetHandle || undefined,
+              } : e)
+            );
+
+            // 서버 업데이트 (단순 Update 호출)
             await edgeLifecycle.reconnectEdge({
               edgeId: operation.edgeId,
               newSourceBlockMountId: operation.data.newSource,
               newTargetBlockMountId: operation.data.newTarget,
               sourceHandle: operation.data.newSourceHandle,
               targetHandle: operation.data.newTargetHandle,
+              skipOptimisticUpdate: true,
             });
             break;
         }

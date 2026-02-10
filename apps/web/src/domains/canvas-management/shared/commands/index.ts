@@ -12,6 +12,7 @@ export type {
   UpdateEdgeLabelCommand,
   UpdateEdgeStyleCommand,
   UpdateEdgeMarkerCommand,
+  UpdateEdgeConnectionCommand,
   DeleteEdgeCommand,
 } from './edge.commands';
 

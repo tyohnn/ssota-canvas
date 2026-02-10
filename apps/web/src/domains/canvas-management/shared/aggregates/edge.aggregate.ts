@@ -5,6 +5,7 @@ import type {
   UpdateEdgeMarkerCommand,
   UpdateEdgeShapeCommand,
   UpdateEdgeStyleCommand,
+  UpdateEdgeConnectionCommand,
 } from '../commands';
 import { EdgeView } from '../dtos/views/edge.views';
 import { Edge } from '../entities/edge.entity';
@@ -15,6 +16,7 @@ import {
   EdgeMarkersChangedEvent,
   EdgeShapeChangedEvent,
   EdgeStyleChangedEvent,
+  EdgeConnectionChangedEvent,
 } from '../events';
 import { EdgeId } from '../value-objects/edge-id.vo';
 import { EdgeShape } from '../value-objects/edge-shape.vo';
@@ -37,7 +39,11 @@ type EdgeManagementEvents =
   | EdgeShapeChangedEvent
   | EdgeLabelChangedEvent
   | EdgeStyleChangedEvent
+  | EdgeLabelChangedEvent
+  | EdgeStyleChangedEvent
   | EdgeMarkersChangedEvent
+  | EdgeMarkersChangedEvent
+  | EdgeConnectionChangedEvent
   | EdgeDeletedEvent;
 
 export class EdgeAggregate {
@@ -201,6 +207,33 @@ export class EdgeAggregate {
         edgeId: this.edge.id,
         markerEnd: this.edge.markerEnd,
         markerStart: this.edge.markerStart,
+      },
+      this.edge.updatedAt
+    );
+    this._uncommittedEvents.push(event);
+  }
+
+  /**
+   * 엣지 연결 정보 업데이트 (Command Handler)
+   *
+   * @param command - UpdateEdgeConnectionCommand
+   */
+  updateEdgeConnection(command: UpdateEdgeConnectionCommand): void {
+    this.edge.updateConnection(
+      command.newSourceBlockMountId,
+      command.newTargetBlockMountId,
+      command.newSourceHandle,
+      command.newTargetHandle
+    );
+
+    const event = new EdgeConnectionChangedEvent(
+      this.edge.id,
+      {
+        edgeId: this.edge.id,
+        newSourceBlockMountId: command.newSourceBlockMountId,
+        newTargetBlockMountId: command.newTargetBlockMountId,
+        newSourceHandle: command.newSourceHandle,
+        newTargetHandle: command.newTargetHandle,
       },
       this.edge.updatedAt
     );

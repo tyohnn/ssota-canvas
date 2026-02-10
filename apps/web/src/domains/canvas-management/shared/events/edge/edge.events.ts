@@ -163,6 +163,37 @@ export class EdgeMarkersChangedEvent implements DomainEvent {
   }
 }
 
+// EdgeConnectionChangedEvent
+export class EdgeConnectionChangedEvent implements DomainEvent {
+  readonly type = 'EdgeConnectionChanged';
+
+  constructor(
+    public readonly aggregateId: EdgeId,
+    public readonly data: {
+      edgeId: EdgeId;
+      newSourceBlockMountId: BlockMountId;
+      newTargetBlockMountId: BlockMountId;
+      newSourceHandle: EdgeHandle;
+      newTargetHandle: EdgeHandle;
+    },
+    public readonly occurredAt: Date
+  ) { }
+
+  /**
+   * Event 발생 시 Policy 실행
+   */
+  async handle(): Promise<void> {
+    console.log('[Canvas Edge Management] Edge Connection Changed:', {
+      edgeId: this.aggregateId.value,
+      source: this.data.newSourceBlockMountId.value,
+      target: this.data.newTargetBlockMountId.value,
+      occurredAt: this.occurredAt,
+    });
+
+    await Promise.allSettled([]);
+  }
+}
+
 // EdgeDeletedEvent
 export class EdgeDeletedEvent implements DomainEvent {
   readonly type = 'EdgeDeleted';

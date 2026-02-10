@@ -140,6 +140,7 @@ export interface EdgeReconnectOperation {
     newTarget: string;
     newSourceHandle: string | null;
     newTargetHandle: string | null;
+    newEdgeId?: string; // 재연결로 생성된 새 엣지 ID (있으면 이 ID를 복구/삭제)
   };
 }
 

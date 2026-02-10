@@ -26,10 +26,10 @@ export class Edge {
   constructor(
     public readonly id: EdgeId,
     public readonly pageId: PageId,
-    public readonly sourceBlockMountId: BlockMountId,
-    public readonly targetBlockMountId: BlockMountId,
-    public readonly sourceHandle: EdgeHandle,
-    public readonly targetHandle: EdgeHandle,
+    public sourceBlockMountId: BlockMountId,
+    public targetBlockMountId: BlockMountId,
+    public sourceHandle: EdgeHandle,
+    public targetHandle: EdgeHandle,
     public edgeShape: EdgeShape = EdgeShape.default(),
     public edgeLabel: string = '',
     public edgeStyle: EdgeStyle = EdgeStyle.default(),
@@ -38,6 +38,22 @@ export class Edge {
     public readonly createdAt: Date = new Date(),
     public updatedAt: Date = new Date()
   ) {}
+
+  /**
+   * 엣지 연결 정보 변경 (Reconnect)
+   */
+  updateConnection(
+    sourceBlockMountId: BlockMountId,
+    targetBlockMountId: BlockMountId,
+    sourceHandle: EdgeHandle,
+    targetHandle: EdgeHandle
+  ): void {
+    this.sourceBlockMountId = sourceBlockMountId;
+    this.targetBlockMountId = targetBlockMountId;
+    this.sourceHandle = sourceHandle;
+    this.targetHandle = targetHandle;
+    this.updatedAt = new Date();
+  }
 
   /**
    * 기존 데이터로 Edge 재구성 (Repository에서 사용)
