@@ -45,6 +45,10 @@ export interface ModeDependencies {
  */
 export interface CanvasToolbarProps {
   onAddBlockClick?: () => void;
+  // History integration
+  history?: any;
+  executeUndo?: () => Promise<void>;
+  executeRedo?: () => Promise<void>;
 }
 
 /**
@@ -60,4 +64,9 @@ export interface UseCanvasToolbarReturn {
   onFitToViewClick: () => void;
   onAddBlockClick: () => void;
   readonly: boolean;
+  // History
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndoClick: () => void;
+  onRedoClick: () => void;
 }

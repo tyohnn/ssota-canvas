@@ -15,6 +15,7 @@ import {
 import { CanvasModeProvider } from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
 import { CanvasdownProvider } from '@/domains/canvasdown/frontend/contexts/canvasdown-context';
 import { AIActionProvider } from '@/domains/ai-actions/frontend/contexts/ai-action-context';
+import { CanvasHistoryProvider } from '@/domains/canvas-management/frontend/history';
 
 import { EditorPanelWrapper } from './editor-panel-wrapper';
 import { CanvasReactFlowWrapper } from './react-flow-wrapper';
@@ -50,29 +51,31 @@ export function CanvasBase({
   // 여기서는 props로 전달할 필요 없음 (하위 호환성을 위해 props는 유지)
   return (
     <ReactFlowProvider>
-      <CanvasModeProvider>
-        <BlockInteractionProvider>
-          <CanvasMetadataProvider value={{ pageId, orgId, workspaceId }}>
-            <CanvasReadOnlyProvider readonly={readonly} publishToken={publishToken}>
-              <CanvasdownProvider pageId={pageId}>
-                <AIActionProvider>
-                  <Box className="h-full flex flex-col bg-background">
-                    {/* 메인 캔버스 영역 */}
-                    <CanvasReactFlowWrapper
-                      initialNodes={initialNodes}
-                      initialEdges={initialEdges}
-                    />
-                    {/* Editor Panel (React Flow 바깥에서 렌더링) */}
-                    <EditorPanelWrapper />
-                    {/* Children (e.g., PublishedPageHeader) */}
-                    {children}
-                  </Box>
-                </AIActionProvider>
-              </CanvasdownProvider>
-            </CanvasReadOnlyProvider>
-          </CanvasMetadataProvider>
-        </BlockInteractionProvider>
-      </CanvasModeProvider>
+      <CanvasHistoryProvider>
+        <CanvasModeProvider>
+          <BlockInteractionProvider>
+            <CanvasMetadataProvider value={{ pageId, orgId, workspaceId }}>
+              <CanvasReadOnlyProvider readonly={readonly} publishToken={publishToken}>
+                <CanvasdownProvider pageId={pageId}>
+                  <AIActionProvider>
+                    <Box className="h-full flex flex-col bg-background">
+                      {/* 메인 캔버스 영역 */}
+                      <CanvasReactFlowWrapper
+                        initialNodes={initialNodes}
+                        initialEdges={initialEdges}
+                      />
+                      {/* Editor Panel (React Flow 바깥에서 렌더링) */}
+                      <EditorPanelWrapper />
+                      {/* Children (e.g., PublishedPageHeader) */}
+                      {children}
+                    </Box>
+                  </AIActionProvider>
+                </CanvasdownProvider>
+              </CanvasReadOnlyProvider>
+            </CanvasMetadataProvider>
+          </BlockInteractionProvider>
+        </CanvasModeProvider>
+      </CanvasHistoryProvider>
     </ReactFlowProvider>
   );
 }

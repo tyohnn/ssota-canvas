@@ -18,13 +18,22 @@ import { useDuplicateBlock } from './block/use-duplicate-block';
 import { useDuplicateBlocks } from './block/use-duplicate-blocks';
 import { useMoveBlockToPage } from './block/use-move-block-to-page';
 import { useSoftDeleteBlock } from './block/use-soft-delete-block';
+import { useRestoreBlock } from './block/use-restore-block';
 import { useAddNodeToGroup } from './group/use-add-node-to-group';
 import { useRemoveNodeFromGroup } from './group/use-remove-node-from-group';
 import { useCreateGroupFromNodes } from './group/use-create-group-from-nodes';
 import { useCanvasModeContext } from './mode/canvas-mode-context';
+import { useCanvasHistory } from '../history';
 
 export interface UseCanvasBlockLifecycleParams {
   pageId: string;
+  reactFlow?: {
+    getNodes: () => any[];
+    setNodes: (updater: any) => void;
+    addNodes: (nodes: any[]) => void;
+    deleteElements: (params: any) => void;
+    updateNode: (id: string, nodeUpdate: any) => void;
+  };
 }
 
 export interface UseCanvasBlockLifecycleResult {
@@ -37,6 +46,7 @@ export interface UseCanvasBlockLifecycleResult {
     title?: string // 선택적 초기 title
   ) => Promise<BlockCreatedAndMountedDTO | void>;
   softDeleteBlockMounts: (blockMountIds: string | string[]) => Promise<void>;
+  restoreBlockMounts: (blockMountIds: string | string[]) => Promise<void>;
   duplicateBlockAndMount: (
     blockMountId: string,
     offsetX?: number,
@@ -101,8 +111,15 @@ export function useCanvasBlockLifecycle(
 ): UseCanvasBlockLifecycleResult {
   const { pageId } = params;
 
-  // React Flow hooks
-  const { addNodes, deleteElements, getNodes, setNodes, updateNode } = useReactFlow();
+  // React Flow hooks - 외부에서 주입받거나, 없으면 기본 훅 사용
+  const reactFlowFromInstance = useReactFlow();
+  const { 
+    addNodes, 
+    deleteElements, 
+    getNodes, 
+    setNodes,
+    updateNode
+  } = params.reactFlow || reactFlowFromInstance;
 
   // Canvas Mode hook
   const canvasMode = useCanvasModeContext();
@@ -112,6 +129,9 @@ export function useCanvasBlockLifecycle(
     enterBlockEditingMode,
     exitToDefaultMode,
   } = canvasMode;
+
+  // Canvas History hook
+  const history = useCanvasHistory();
 
   // 타입 안전한 래퍼 함수
   const getNodesTyped = useCallback((): ReturnType<typeof getNodes> => {
@@ -158,6 +178,15 @@ export function useCanvasBlockLifecycle(
     },
     onSuccess: () => {
       exitToDefaultMode();
+    },
+  });
+
+  const { restoreBlock, isRestoring } = useRestoreBlock({
+    pageId,
+    reactFlow: {
+      getNodes: getNodesTyped,
+      setNodes,
+      addNodes,
     },
   });
 
@@ -260,6 +289,7 @@ export function useCanvasBlockLifecycle(
       initialContent?: unknown,
       title?: string
     ): Promise<BlockCreatedAndMountedDTO | void> => {
+      console.log('[BlockLifecycle] Creating block:', blockType, position);
       const result = await createBlock({
         blockType,
         position,
@@ -267,16 +297,99 @@ export function useCanvasBlockLifecycle(
         initialContent,
         title,
       });
+      
+      // 블록 생성 성공 시 히스토리에 기록 (Undo/Redo 중이 아닐 때만)
+      if (result && !history.getIsSkipping()) {
+        console.log('[BlockLifecycle] Block created, recording to history:', result.blockMountId);
+        
+        // 서버 응답 데이터를 기반으로 표준 노드 구조 생성
+        const nodeToRecord = {
+          id: result.blockMountId,
+          type: blockType,
+          position: result.position || position,
+          width: result.size?.width || 200,
+          height: result.size?.height || 80,
+          selected: true, // 생성 직후이므로 선택 상태로 기록
+          dragging: false,
+          data: {
+            blockId: result.blockId,
+            blockMountId: result.blockMountId,
+            pageId: pageId,
+            type: blockType,
+            content: result.content || initialContent,
+            properties: result.properties || initialProperties,
+            title: result.title || title || '',
+          },
+        };
+        
+        history.recordOperation({
+          type: 'BLOCK_ADD',
+          blockMountId: result.blockMountId,
+          data: {
+            node: nodeToRecord as any,
+            blockId: result.blockId,
+            blockType,
+            position: result.position || position,
+            initialProperties: result.properties || initialProperties,
+            initialContent: result.content || initialContent,
+            title: result.title || title,
+          },
+        });
+      }
+      
       return result || undefined;
     },
-    [createBlock]
+    [createBlock, getNodes, history, pageId]
   );
 
   const softDeleteBlockMounts = useCallback(
-    async (blockMountIds: string | string[]) => {
-      await softDeleteBlock({ blockMountIds });
+    async (blockMountIds: string | string[]): Promise<void> => {
+      const ids = Array.isArray(blockMountIds) ? blockMountIds : [blockMountIds];
+      console.log('[BlockLifecycle] Deleting block mounts:', ids);
+      
+      // 1. 히스토리 기록을 위해 노드 데이터 백업
+      const nodesToBackup = getNodes().filter(n => ids.includes(n.id));
+      
+      // 2. 히스토리 기록 (배치 처리) - Undo/Redo 중이 아닐 때만
+      if (nodesToBackup.length > 0 && !history.getIsSkipping()) {
+        if (nodesToBackup.length > 1) {
+          history.startBatch();
+        }
+
+        nodesToBackup.forEach(node => {
+          const blockData = node.data as BlockNodeData;
+          history.recordOperation({
+            type: 'BLOCK_DELETE',
+            blockMountId: node.id,
+            data: {
+              node: node,
+              blockId: blockData.blockId,
+            },
+          });
+        });
+
+        if (nodesToBackup.length > 1) {
+          history.endBatch(`Delete ${nodesToBackup.length} Blocks`);
+        }
+      }
+
+      await softDeleteBlock({
+        blockMountIds: ids,
+      });
     },
-    [softDeleteBlock]
+    [getNodes, softDeleteBlock, history]
+  );
+
+  const restoreBlockMounts = useCallback(
+    async (blockMountIds: string | string[]): Promise<void> => {
+      const ids = Array.isArray(blockMountIds) ? blockMountIds : [blockMountIds];
+      console.log('[BlockLifecycle] Restoring block mounts:', ids);
+      
+      await restoreBlock({
+        blockMountIds: ids,
+      });
+    },
+    [restoreBlock]
   );
 
   const duplicateBlockAndMount = useCallback(
@@ -353,6 +466,7 @@ export function useCanvasBlockLifecycle(
     // Optimistic UI 제어 (기존 API 유지)
     createAndMountBlock,
     softDeleteBlockMounts,
+    restoreBlockMounts,
     duplicateBlockAndMount,
     duplicateMultipleBlocksAndMount,
     moveBlockToPage,

@@ -27,5 +27,6 @@ export {
   EdgeLabelChangedEvent,
   EdgeStyleChangedEvent,
   EdgeMarkersChangedEvent,
+  EdgeConnectionChangedEvent,
   EdgeDeletedEvent,
 } from './edge/edge.events';

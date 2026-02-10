@@ -54,7 +54,13 @@ export async function createEdge(
       return Result.error(
         new CanvasManagementError(
           'BLOCK_MOUNT_NOT_FOUND',
-          'Source or target block mount not found'
+          'Source or target block mount not found',
+          {
+            sourceId: safeDto.sourceBlockMountId,
+            targetId: safeDto.targetBlockMountId,
+            sourceFound: !!sourceBlockMount,
+            targetFound: !!targetBlockMount,
+          }
         )
       );
     }

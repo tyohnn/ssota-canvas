@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { useUpdateNodeInternals } from '@xyflow/react';
 
@@ -169,17 +169,29 @@ export function useBaseBlock(
     uiState.clearHoverDirection();
   }, [uiState]);
 
+  // Combined Logic: Resize Start (Backup size for history)
+  const resizeStartSizeRef = useRef<{ width: number; height: number } | null>(null);
+
+  const handleResizeStart = useCallback(() => {
+    resizeStartSizeRef.current = {
+      width: effectiveWidth || 0,
+      height: effectiveHeight || 0,
+    };
+    uiState.handleResizeStart();
+  }, [effectiveWidth, effectiveHeight, uiState]);
+
   // Combined Logic: Resize End (Save to DB)
   const handleResizeEnd = useCallback(
     async (event: any, resizeData: ResizeData) => {
       // 현재 viewMode 가져오기
       const currentViewMode = data.viewMode;
 
-      // Business: Save to DB (현재 viewMode 전달)
+      // Business: Save to DB (현재 viewMode 및 이전 크기 전달)
       const result = await business.saveBlockSize(
         data.blockMountId || '',
         resizeData,
-        currentViewMode
+        currentViewMode,
+        resizeStartSizeRef.current || undefined
       );
 
       if (!result.ok) {
@@ -225,6 +237,7 @@ export function useBaseBlock(
     handleMouseEnter,
     handleMouseMove,
     handleMouseLeave,
+    handleResizeStart,
     handleResizeEnd,
   };
 }

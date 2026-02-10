@@ -12,3 +12,5 @@ export { updateEdgeLabel } from './update-edge-label.service';
 export { updateEdgeShape } from './update-edge-shape.service';
 export { updateEdgeStyle } from './update-edge-style.service';
 export { updateEdgeMarker } from './update-edge-markers.service';
+export { updateEdgeConnection } from './update-edge-connection.service';
+export { restoreEdge } from './restore-edge.service';

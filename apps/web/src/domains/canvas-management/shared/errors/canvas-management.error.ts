@@ -51,7 +51,9 @@ export type CanvasManagementErrorCode =
   | 'GROUP_NODE_PAGE_MISMATCH'
   | 'ADD_NODE_TO_GROUP_FAILED'
   | 'REMOVE_NODE_FROM_GROUP_FAILED'
-  | 'CREATE_GROUP_FROM_NODES_FAILED';
+  | 'CREATE_GROUP_FROM_NODES_FAILED'
+  | 'BLOCK_MOUNT_RESTORATION_FAILED'
+  | 'EDGE_RESTORATION_FAILED';
 
 // 사용자 메시지 매핑
 export const CANVAS_MANAGEMENT_ERROR_MESSAGES: Record<
@@ -98,4 +100,6 @@ export const CANVAS_MANAGEMENT_ERROR_MESSAGES: Record<
   ADD_NODE_TO_GROUP_FAILED: '노드를 그룹에 추가하는데 실패했습니다.',
   REMOVE_NODE_FROM_GROUP_FAILED: '노드를 그룹에서 제거하는데 실패했습니다.',
   CREATE_GROUP_FROM_NODES_FAILED: '노드들로 그룹을 생성하는데 실패했습니다.',
+  BLOCK_MOUNT_RESTORATION_FAILED: '블럭 마운트 복구에 실패했습니다.',
+  EDGE_RESTORATION_FAILED: '엣지 복구에 실패했습니다.',
 };

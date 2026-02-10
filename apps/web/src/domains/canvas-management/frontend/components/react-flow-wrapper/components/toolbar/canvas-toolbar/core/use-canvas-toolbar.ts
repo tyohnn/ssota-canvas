@@ -172,5 +172,11 @@ export function useCanvasToolbar(
     onFitToViewClick,
     onAddBlockClick,
     readonly,
+
+    // History
+    canUndo: !!props.history?.canUndo,
+    canRedo: !!props.history?.canRedo,
+    onUndoClick: props.executeUndo || (() => {}),
+    onRedoClick: props.executeRedo || (() => {}),
   };
 }

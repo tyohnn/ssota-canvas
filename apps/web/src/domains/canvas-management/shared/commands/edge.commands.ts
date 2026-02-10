@@ -56,3 +56,12 @@ export interface DeleteEdgeCommand {
   edgeId: EdgeId;
   userId: UserId;
 }
+
+export interface UpdateEdgeConnectionCommand {
+  edgeId: EdgeId;
+  newSourceBlockMountId: BlockMountId;
+  newTargetBlockMountId: BlockMountId;
+  newSourceHandle: EdgeHandle;
+  newTargetHandle: EdgeHandle;
+  userId: UserId;
+}

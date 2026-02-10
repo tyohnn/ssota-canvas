@@ -226,6 +226,35 @@ export class DrizzleEdgeRepository implements EdgeRepository {
   }
 
   /**
+   * Edge 복구 (소프트 삭제 해제)
+   */
+  async restore(edgeId: EdgeId): Promise<void> {
+    await adminDb
+      .update(edges)
+      .set({
+        deleted_at: null,
+        updated_at: new Date(),
+      })
+      .where(eq(edges.id, edgeId.value));
+  }
+
+  /**
+   * 여러 Edge 일괄 복구 (소프트 삭제 해제)
+   */
+  async restoreMany(edgeIds: EdgeId[]): Promise<void> {
+    if (edgeIds.length === 0) return;
+
+    const idValues = edgeIds.map(id => id.value);
+    await adminDb
+      .update(edges)
+      .set({
+        deleted_at: null,
+        updated_at: new Date(),
+      })
+      .where(inArray(edges.id, idValues));
+  }
+
+  /**
    * DB Row → Domain Model 변환
    */
   private toDomain(row: typeof edges.$inferSelect): EdgeAggregate {

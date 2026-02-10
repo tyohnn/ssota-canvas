@@ -14,7 +14,8 @@ import { useReactFlow } from '@xyflow/react';
 
 import { prefetchAction } from '@/domains/block-management/frontend/components/block/block-action-bar/action-prefetch';
 import { prefetchToolbar } from '@/domains/block-management/frontend/components/block/block-original-toolbar/toolbar-prefetch';
-import { useUpdateBlockSize } from '@/domains/block-management/frontend/hooks/use-block-commands';
+import { useCanvasTransform } from '@/domains/canvas-management/frontend/hooks/use-canvas-transform';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 
 import type { ResizeData } from './types';
 
@@ -23,7 +24,8 @@ export interface BaseBlockBusinessLogic {
   saveBlockSize: (
     blockMountId: string,
     resizeData: ResizeData,
-    viewMode?: 'note' | 'original' | 'card'
+    viewMode?: 'note' | 'original' | 'card',
+    previousSize?: { width: number; height: number }
   ) => Promise<{ ok: boolean; error?: string }>;
 
   // Prefetch
@@ -35,11 +37,9 @@ export interface BaseBlockBusinessLogic {
  */
 export function useBaseBlockBusiness(): BaseBlockBusinessLogic {
   const { getNodes, setNodes } = useReactFlow();
-  const { updateBlockSize } = useUpdateBlockSize({
-    reactFlow: {
-      getNodes,
-      setNodes,
-    },
+  const canvasMetadata = useCanvasMetadata();
+  const { updateBlockSize } = useCanvasTransform({
+    pageId: canvasMetadata.pageId,
   });
 
   // 리사이즈 완료 시 DB에 저장
@@ -47,7 +47,8 @@ export function useBaseBlockBusiness(): BaseBlockBusinessLogic {
     async (
       blockMountId: string,
       resizeData: ResizeData,
-      viewMode?: 'note' | 'original' | 'card'
+      viewMode?: 'note' | 'original' | 'card',
+      previousSize?: { width: number; height: number }
     ) => {
       if (!blockMountId) {
         console.warn(
@@ -56,14 +57,17 @@ export function useBaseBlockBusiness(): BaseBlockBusinessLogic {
         return { ok: false, error: 'Missing blockMountId' };
       }
 
-      const success = await updateBlockSize({
+      // 히스토리 기록은 use-canvas-transform.ts에서 처리됨
+      const result = await updateBlockSize({
         blockMountId,
-        width: resizeData.width,
-        height: resizeData.height,
-        viewMode, // 현재 viewMode 전달
+        newSize: {
+          width: resizeData.width,
+          height: resizeData.height,
+        },
+        previousSize, // 히스토리 기록을 위해 전달
       });
 
-      if (!success) {
+      if (!result) {
         console.error('블록 마운트 크기 업데이트 실패');
         return { ok: false, error: 'Failed to update block size' };
       }

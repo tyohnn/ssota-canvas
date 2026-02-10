@@ -83,9 +83,10 @@ export interface SnapGuidesDependencies {
  * Edge Management dependency interface
  */
 export interface EdgeLifecycleDependencies {
-  createEdge: (input: CreateEdgeInput) => Promise<EdgeView | null>;
+  createEdge: (input: CreateEdgeInput) => Promise<void>;
   reconnectEdge: (input: ReconnectEdgeInput) => Promise<boolean>;
-  deleteEdge: (input: DeleteEdgeInput) => Promise<boolean>;
+  restoreEdges: (edgeIds: string | string[]) => Promise<void>;
+  deleteEdge: (input: DeleteEdgeInput) => Promise<any>;
 }
 
 /**
@@ -107,6 +108,7 @@ export interface BlockLifecycleDependencies {
     blockMountIds: string[],
     pageId?: string
   ) => Promise<void>;
+  restoreBlockMounts: (blockMountIds: string | string[]) => Promise<void>;
 }
 
 /**
@@ -114,6 +116,7 @@ export interface BlockLifecycleDependencies {
  */
 export interface ReactFlowDependencies {
   getNodes: () => Node[];
+  getEdges: () => Edge[];
   setNodes: (updater: (nodes: Node[]) => Node[]) => void;
   getViewport: () => { x: number; y: number; zoom: number };
   setViewport: (

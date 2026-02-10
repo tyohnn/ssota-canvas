@@ -15,6 +15,7 @@ import {
   CanvasMetadata,
   useCanvasMetadata,
 } from '../contexts/canvas-metadata-context';
+import { useCanvasHistory } from '../history';
 import { useAlignBlocks } from './block/use-align-blocks';
 import { useBlockTransformState } from './block/use-block-transform-state';
 import { useDistributeBlocks } from './block/use-distribute-blocks';
@@ -41,6 +42,7 @@ export interface UseCanvasTransformResult {
   updateBlockSize: (input: {
     blockMountId: string;
     newSize: Size;
+    previousSize?: Size; // 히스토리 기록용 이전 크기
   }) => Promise<any>;
   isUpdatingPosition: boolean;
   isUpdatingSize: boolean;
@@ -98,15 +100,122 @@ export function useCanvasTransform(
   });
 
   // 서버 연동 훅
-  const { updateBlockPosition, isUpdating: isUpdatingPosition } =
+  const { updateBlockPosition: originalUpdateBlockPosition, isUpdating: isUpdatingPosition } =
     useUpdateBlockPosition({
       pageId,
       reactFlow: reactFlowDependencies,
     });
 
-  const { updateBlockSize, isUpdating: isUpdatingSize } = useUpdateBlockSize({
+  const { updateBlockSize: originalUpdateBlockSize, isUpdating: isUpdatingSize } = useUpdateBlockSize({
     reactFlow: reactFlowDependencies,
   });
+
+  // Canvas History
+  const history = useCanvasHistory();
+
+  const updateBlockPosition = useCallback(
+    async (input: {
+      blockPositions: Array<{
+        blockMountId: string;
+        position: Position;
+        previousPosition?: Position; // 히스토리 기록용 이전 위치
+      }>;
+    }) => {
+      // 1. 서버 업데이트 실행
+      const result = await originalUpdateBlockPosition(input);
+
+      // 2. 히스토리 기록 (Undo/Redo 중에는 건너뜀)
+      if (history.getIsSkipping?.()) {
+        console.log('[BlockTransform] Skipping history record due to skipping state');
+        return result;
+      }
+
+      input.blockPositions.forEach((bp) => {
+        // 명시적으로 전달된 previousPosition이 있으면 사용, 없으면 현재 노드 위치 찾음
+        let finalPrevPos = bp.previousPosition;
+        
+        if (!finalPrevPos) {
+          const node = getNodes().find(n => n.id === bp.blockMountId);
+          // 주의: 이 시점의 getNodes()는 이미 이동이 완료된 상태일 수 있음
+          finalPrevPos = node ? { ...node.position } : bp.position;
+        }
+
+        // 이동이 실제로 일어났는지 확인 (좌표가 같은 경우 기록하지 않음)
+        if (finalPrevPos.x === bp.position.x && finalPrevPos.y === bp.position.y) {
+          return;
+        }
+
+        history.recordOperation({
+          type: 'BLOCK_MOVE',
+          blockMountId: bp.blockMountId,
+          data: {
+            previousPosition: finalPrevPos,
+            newPosition: bp.position,
+          },
+        });
+      });
+
+      return result;
+    },
+    [originalUpdateBlockPosition, getNodes, history]
+  );
+
+  const updateBlockSize = useCallback(
+    async (input: {
+      blockMountId: string;
+      newSize: Size;
+      previousSize?: Size; // 히스토리 기록용 이전 크기
+    }) => {
+      // 1. 리사이즈 전 크기 백업
+      let finalPrevSize = input.previousSize;
+      
+      // previousSize가 명시적으로 전달되지 않은 경우에만 현재 노드에서 가져옴
+      if (!finalPrevSize) {
+        const node = getNodes().find(n => n.id === input.blockMountId);
+        if (node) {
+          // width/height 속성 우선, 없으면 measured 사용
+          finalPrevSize = {
+            width: node.width ?? node.measured?.width ?? 0,
+            height: node.height ?? node.measured?.height ?? 0,
+          };
+        } else {
+          finalPrevSize = { width: 0, height: 0 };
+        }
+      }
+
+      // 2. 서버 업데이트 실행
+      const result = await originalUpdateBlockSize({
+        blockMountId: input.blockMountId,
+        newSize: input.newSize,
+      });
+
+      // 3. 성공 시 히스토리 기록 (Undo/Redo 중에는 건너뜀)
+      if (
+        result &&
+        !history.getIsSkipping?.() &&
+        (finalPrevSize.width !== input.newSize.width ||
+          finalPrevSize.height !== input.newSize.height)
+      ) {
+        console.log('[BlockResize] Recording to history:', {
+          blockMountId: input.blockMountId,
+          previousSize: finalPrevSize,
+          newSize: input.newSize,
+        });
+        
+        history.recordOperation({
+          type: 'BLOCK_RESIZE',
+          blockMountId: input.blockMountId,
+          data: {
+            previousSize: finalPrevSize,
+            newSize: input.newSize,
+          },
+        });
+      }
+
+      return result;
+    },
+    [originalUpdateBlockSize, getNodes, history]
+  );
 
   // 고급 기능 훅
   const { alignBlocks, isAligning } = useAlignBlocks({

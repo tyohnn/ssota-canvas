@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { useTheme } from 'next-themes';
 
-import type { Edge, Node } from '@xyflow/react';
+import type { Edge, Node, OnConnect, OnReconnect } from '@xyflow/react';
+import type { Position } from '@/domains/canvas-management/shared/types/common.types';
 import { useEdgesState, useNodesState, useReactFlow } from '@xyflow/react';
 
 import {
@@ -23,6 +24,7 @@ import { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hoo
 import { useCanvasSelection } from '@/domains/canvas-management/frontend/hooks/use-canvas-selection';
 import { useCanvasTransform } from '@/domains/canvas-management/frontend/hooks/use-canvas-transform';
 import { useCanvasViewport } from '@/domains/canvas-management/frontend/hooks/use-canvas-viewport';
+import { useCanvasHistory } from '@/domains/canvas-management/frontend/history';
 
 import { CustomEdge } from '../components/custom-edge';
 import {
@@ -98,6 +100,11 @@ export interface UseReactFlowWrapperReturn
   // Feature flags (readonly에 따라 자동 처리)
   showAIAgent: boolean;
   showBlockCreation: boolean;
+
+  // History
+  history: any;
+  executeUndo: () => Promise<void>;
+  executeRedo: () => Promise<void>;
 }
 
 export function useReactFlowWrapper(
@@ -114,8 +121,8 @@ export function useReactFlowWrapper(
   // =========================================================================
   // 2. React Flow State Management (SSOT)
   // =========================================================================
-  const [nodes, setNode, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdge, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const reactFlowInstance = useReactFlow();
 
@@ -139,10 +146,22 @@ export function useReactFlowWrapper(
 
   const edgeLifecycle = useCanvasEdgeLifecycle({
     pageId,
+    reactFlow: {
+      getEdges: reactFlowInstance.getEdges,
+      setEdges: setEdges,
+      getNodes: reactFlowInstance.getNodes,
+    },
   });
 
   const blockLifecycle = useCanvasBlockLifecycle({
     pageId,
+    reactFlow: {
+      getNodes: reactFlowInstance.getNodes,
+      setNodes: setNodes,
+      addNodes: reactFlowInstance.addNodes,
+      deleteElements: reactFlowInstance.deleteElements,
+      updateNode: reactFlowInstance.updateNode,
+    },
   });
 
   const canvasViewport = useCanvasViewport({
@@ -161,6 +180,277 @@ export function useReactFlowWrapper(
       removeNodeFromGroup: blockLifecycle.removeNodeFromGroup,
     },
   });
+
+  // Canvas History
+  const history = useCanvasHistory();
+
+  const isProcessingRef = useRef(false);
+
+  // Undo 실행
+  const executeUndo = useCallback(async () => {
+    if (isProcessingRef.current) return;
+    
+    const entry = history.getUndoEntry();
+    if (!entry) {
+      console.log('[CanvasHistory] Nothing to undo');
+      return;
+    }
+
+    isProcessingRef.current = true;
+    history.setIsSkipping(true); // Undo 중 발생하는 동작 기록 방지
+    
+    console.log('[Undo] Executing operations:', entry.operations);
+
+    try {
+      // 복구 시에는 블록을 먼저 살리고 엣지를 살려야 함 (의존성 때문)
+      // 삭제 시에는 엣지를 먼저 지우고 블록을 지워야 함
+      const sortedOperations = [...entry.operations].reverse().sort((a, b) => {
+        // Undo 시: BLOCK_DELETE(복구)는 EDGE_DELETE(복구)보다 먼저
+        if (a.type === 'BLOCK_DELETE' && b.type === 'EDGE_DELETE') return -1;
+        if (a.type === 'EDGE_DELETE' && b.type === 'BLOCK_DELETE') return 1;
+        
+        // Undo 시: EDGE_ADD(삭제)는 BLOCK_ADD(삭제)보다 먼저 (사실 크게 상관없음)
+        if (a.type === 'EDGE_ADD' && b.type === 'BLOCK_ADD') return -1;
+        if (a.type === 'BLOCK_ADD' && b.type === 'EDGE_ADD') return 1;
+        
+        return 0;
+      });
+
+      for (const operation of sortedOperations) {
+        switch (operation.type) {
+          case 'BLOCK_ADD':
+            // Undo: 생성된 블록 제거 (공식 명령을 써야 엣지까지 같이 지워짐)
+            reactFlowInstance.deleteElements({ nodes: [{ id: operation.blockMountId }] });
+            await blockLifecycle.softDeleteBlockMounts(operation.blockMountId);
+            break;
+          case 'BLOCK_DELETE':
+            // Undo: 삭제된 블록을 UI에 다시 추가/갱신하고 서버에서도 복구
+            setNodes(nodes => {
+              const exists = nodes.some(n => n.id === operation.blockMountId);
+              if (exists) {
+                return nodes.map(n => n.id === operation.blockMountId ? operation.data.node : n);
+              }
+              return [...nodes, operation.data.node];
+            });
+            await blockLifecycle.restoreBlockMounts(operation.blockMountId);
+            break;
+          case 'BLOCK_MOVE':
+            setNodes(nodes => 
+              nodes.map(n => n.id === operation.blockMountId ? { ...n, position: operation.data.previousPosition } : n)
+            );
+            await blockTransform.updateBlockPosition({
+              blockPositions: [{ blockMountId: operation.blockMountId, position: operation.data.previousPosition }]
+            });
+            break;
+          case 'BLOCK_RESIZE':
+            setNodes(nodes => 
+              nodes.map(n => n.id === operation.blockMountId ? { 
+                ...n, 
+                width: operation.data.previousSize.width, 
+                height: operation.data.previousSize.height 
+              } : n)
+            );
+            await blockTransform.updateBlockSize({
+              blockMountId: operation.blockMountId,
+              newSize: operation.data.previousSize
+            });
+            break;
+          case 'BLOCK_CONTENT_UPDATE':
+            // Undo: 새 콘텐츠를 이전 콘텐츠로 되돌림
+            setNodes(nodes => 
+              nodes.map(n => {
+                if (n.id === operation.blockMountId) {
+                  const nodeData = n.data as any;
+                  return { ...n, data: { ...nodeData, content: operation.data.previousContent } };
+                }
+                return n;
+              })
+            );
+            break;
+          case 'EDGE_ADD':
+            // Undo: 생성된 엣지 제거
+            reactFlowInstance.deleteElements({ edges: [{ id: operation.edgeId }] });
+            await edgeLifecycle.deleteEdge({ edgeId: operation.edgeId });
+            break;
+          case 'EDGE_DELETE':
+            // Undo: 삭제된 Edge를 다시 복구 (ID 보존)
+            if (operation.data.edge) {
+              setEdges(prev => [...prev, operation.data.edge]);
+            }
+            await edgeLifecycle.restoreEdges(operation.edgeId);
+            break;
+          case 'EDGE_RECONNECT':
+            // Undo: "새 연결"을 "이전 연결"로 Updates (ID 유지)
+            setEdges(edges => 
+              edges.map(e => e.id === operation.edgeId ? { 
+                ...e, 
+                source: operation.data.previousSource, 
+                target: operation.data.previousTarget,
+                sourceHandle: operation.data.previousSourceHandle || undefined,
+                targetHandle: operation.data.previousTargetHandle || undefined,
+              } : e)
+            );
+            
+            // 서버 업데이트 (단순 Update 호출)
+            await edgeLifecycle.reconnectEdge({
+              edgeId: operation.edgeId,
+              newSourceBlockMountId: operation.data.previousSource,
+              newTargetBlockMountId: operation.data.previousTarget,
+              sourceHandle: operation.data.previousSourceHandle,
+              targetHandle: operation.data.previousTargetHandle,
+              skipOptimisticUpdate: true,
+            });
+            break;
+        }
+      }
+      history.commitUndo();
+    } catch (error) {
+      console.error('[Undo] Error during execution:', error);
+    } finally {
+      setTimeout(() => {
+        history.setIsSkipping(false);
+        isProcessingRef.current = false;
+        console.log('[Undo] Reset skipping and processing state');
+      }, 300);
+    }
+  }, [history, reactFlowInstance, setNodes, setEdges, blockLifecycle, blockTransform, edgeLifecycle]);
+
+  // Redo 실행
+  const executeRedo = useCallback(async () => {
+    if (isProcessingRef.current) return;
+
+    const entry = history.getRedoEntry();
+    if (!entry) {
+      console.log('[CanvasHistory] Nothing to redo');
+      return;
+    }
+
+    isProcessingRef.current = true;
+    history.setIsSkipping(true); // Redo 중 발생하는 동작 기록 방지
+
+    console.log('[Redo] Executing operations:', entry.operations);
+
+    try {
+      const sortedOperations = [...entry.operations].sort((a, b) => {
+        // Redo 시 (다시 실행): EDGE_DELETE는 BLOCK_DELETE보다 먼저 (의존성 제거)
+        if (a.type === 'EDGE_DELETE' && b.type === 'BLOCK_DELETE') return -1;
+        if (a.type === 'BLOCK_DELETE' && b.type === 'EDGE_DELETE') return 1;
+        
+        // Redo 시 (다시 실행): BLOCK_ADD는 EDGE_ADD보다 먼저 (의존성 생성)
+        if (a.type === 'BLOCK_ADD' && b.type === 'EDGE_ADD') return -1;
+        if (a.type === 'EDGE_ADD' && b.type === 'BLOCK_ADD') return 1;
+
+        return 0;
+      });
+
+      for (const operation of sortedOperations) {
+        switch (operation.type) {
+          case 'BLOCK_ADD':
+            // [DEBUG] Redo 데이터 확인
+            console.log('[Redo] Restoring block node:', {
+              id: operation.blockMountId,
+              type: operation.data.node?.type,
+              position: operation.data.node?.position,
+              data: !!operation.data.node?.data
+            });
+
+            // Redo: 블록 다시 추가 (setNodes로 상태 업데이트)
+            if (operation.data.node) {
+              setNodes(nodes => {
+                const filtered = nodes.filter(n => n.id !== operation.blockMountId);
+                return [...filtered, operation.data.node];
+              });
+              // React Flow 인스턴스에도 한 번 더 명시적으로 알림
+              reactFlowInstance.addNodes([operation.data.node]);
+            }
+            
+            await blockLifecycle.restoreBlockMounts(operation.blockMountId);
+            break;
+          case 'BLOCK_DELETE':
+            // Redo: 블록 다시 제거
+            setNodes(nodes => nodes.filter(n => n.id !== operation.blockMountId));
+            await blockLifecycle.softDeleteBlockMounts(operation.blockMountId);
+            break;
+          case 'BLOCK_MOVE':
+            setNodes(nodes => 
+              nodes.map(n => n.id === operation.blockMountId ? { ...n, position: operation.data.newPosition } : n)
+            );
+            await blockTransform.updateBlockPosition({
+              blockPositions: [{ blockMountId: operation.blockMountId, position: operation.data.newPosition }]
+            });
+            break;
+          case 'BLOCK_RESIZE':
+            setNodes(nodes => 
+              nodes.map(n => n.id === operation.blockMountId ? { 
+                ...n, 
+                width: operation.data.newSize.width, 
+                height: operation.data.newSize.height 
+              } : n)
+            );
+            await blockTransform.updateBlockSize({
+              blockMountId: operation.blockMountId,
+              newSize: operation.data.newSize
+            });
+            break;
+          case 'BLOCK_CONTENT_UPDATE':
+            // Redo: 이전 Undo로 업데이트된 콘텐츠를 다시 새 버전으로
+            setNodes(nodes => 
+              nodes.map(n => {
+                if (n.id === operation.blockMountId) {
+                  const nodeData = n.data as any;
+                  return { ...n, data: { ...nodeData, content: operation.data.newContent } };
+                }
+                return n;
+              })
+            );
+            break;
+          case 'EDGE_ADD':
+            // Redo: 이전 Undo로 삭제되었던 Edge를 다시 복구 (ID 보존)
+            if (operation.data.edge) {
+              setEdges(prev => [...prev, operation.data.edge]);
+            }
+            await edgeLifecycle.restoreEdges(operation.edgeId);
+            break;
+          case 'EDGE_DELETE':
+            // Redo: Edge를 다시 삭제
+            setEdges(edges => edges.filter(e => e.id !== operation.edgeId));
+            await edgeLifecycle.deleteEdge({ edgeId: operation.edgeId });
+            break;
+          case 'EDGE_RECONNECT':
+            // Redo: "이전 연결"을 "새 연결"로 Update (ID 유지)
+            setEdges(edges => 
+              edges.map(e => e.id === operation.edgeId ? { 
+                ...e, 
+                source: operation.data.newSource, 
+                target: operation.data.newTarget,
+                sourceHandle: operation.data.newSourceHandle || undefined,
+                targetHandle: operation.data.newTargetHandle || undefined,
+              } : e)
+            );
+
+            // 서버 업데이트 (단순 Update 호출)
+            await edgeLifecycle.reconnectEdge({
+              edgeId: operation.edgeId,
+              newSourceBlockMountId: operation.data.newSource,
+              newTargetBlockMountId: operation.data.newTarget,
+              sourceHandle: operation.data.newSourceHandle,
+              targetHandle: operation.data.newTargetHandle,
+              skipOptimisticUpdate: true,
+            });
+            break;
+        }
+      }
+      history.commitRedo();
+    } catch (error) {
+      console.error('[Redo] Error during execution:', error);
+    } finally {
+      setTimeout(() => {
+        history.setIsSkipping(false);
+        isProcessingRef.current = false;
+        console.log('[Redo] Reset skipping and processing state');
+      }, 300);
+    }
+  }, [history, reactFlowInstance, setNodes, setEdges, blockLifecycle, blockTransform, edgeLifecycle]);
 
   // =========================================================================
   // 5. Interaction Settings
@@ -200,6 +490,7 @@ export function useReactFlowWrapper(
       canvasMode,
       reactFlow: {
         getNodes: reactFlowInstance.getNodes,
+        getEdges: reactFlowInstance.getEdges,
         setNodes: reactFlowInstance.setNodes,
         getViewport: reactFlowInstance.getViewport,
         setViewport: reactFlowInstance.setViewport,
@@ -209,6 +500,7 @@ export function useReactFlowWrapper(
     }),
     [
       canvasMode,
+      history,
       reactFlowInstance.getNodes,
       reactFlowInstance.setNodes,
       reactFlowInstance.getViewport,
@@ -222,11 +514,14 @@ export function useReactFlowWrapper(
     () => ({
       pageId,
       canvasSelection,
+      history, // Pass history here
       edgeLifecycle,
       blockLifecycle,
       reactFlow: {
         getNodes: reactFlowInstance.getNodes,
-        setNodes: reactFlowInstance.setNodes,
+        getEdges: reactFlowInstance.getEdges,
+        setNodes: setNodes,
+        setEdges: setEdges,
         getViewport: reactFlowInstance.getViewport,
         setViewport: reactFlowInstance.setViewport,
         screenToFlowPosition: reactFlowInstance.screenToFlowPosition,
@@ -236,10 +531,13 @@ export function useReactFlowWrapper(
     [
       pageId,
       canvasSelection,
+      history,
       edgeLifecycle,
       blockLifecycle,
       reactFlowInstance.getNodes,
-      reactFlowInstance.setNodes,
+      reactFlowInstance.getEdges,
+      setNodes,
+      setEdges,
       reactFlowInstance.getViewport,
       reactFlowInstance.setViewport,
       reactFlowInstance.screenToFlowPosition,
@@ -378,9 +676,18 @@ export function useReactFlowWrapper(
   // =========================================================================
   // 11. Global Keyboard Event Listener (React Flow Focus Workaround)
   // =========================================================================
+  // executeUndo/executeRedo에 대한 최신 참조 유지 (Stale Closure 방지)
+  const executeUndoRef = useRef(executeUndo);
+  const executeRedoRef = useRef(executeRedo);
+  
+  useEffect(() => {
+    executeUndoRef.current = executeUndo;
+    executeRedoRef.current = executeRedo;
+  }, [executeUndo, executeRedo]);
+
   useEffect(() => {
     const handleGlobalKeyDown = (event: globalThis.KeyboardEvent) => {
-      // Input, Textarea, ContentEditable에서는 무시
+      // ... existing input check ...
       const target = event.target as HTMLElement;
       if (
         target.tagName === 'INPUT' ||
@@ -390,53 +697,50 @@ export function useReactFlowWrapper(
         return;
       }
 
-      // 플랫폼 감지 (최신 방법)
+      // 플랫폼 감지
       let isMac = false;
       if (typeof navigator !== 'undefined') {
         if ('userAgentData' in navigator) {
           const uaData = navigator.userAgentData as { platform?: string };
           isMac = uaData.platform?.toLowerCase().includes('mac') ?? false;
         } else {
-          // Fallback: navigator.userAgent 사용
           const userAgent = navigator.userAgent.toLowerCase();
           isMac = userAgent.includes('mac');
         }
       }
       const isCtrlOrCmd = isMac ? event.metaKey : event.ctrlKey;
 
-      // readonly일 때는 편집 단축키 비활성화
-      if (readonly) {
-        return;
+      if (readonly) return;
+
+      // Cmd+Z: Undo
+      if (isCtrlOrCmd && event.key === 'z' && !event.shiftKey) {
+        console.log('[Shortcut] Cmd+Z detected');
+        event.preventDefault();
+        executeUndoRef.current();
       }
 
-      // Cmd+V: 붙여넣기
+      // Cmd+Shift+Z: Redo
+      if (isCtrlOrCmd && event.key === 'z' && event.shiftKey) {
+        console.log('[Shortcut] Cmd+Shift+Z detected');
+        event.preventDefault();
+        executeRedoRef.current();
+      }
+
+      // ... other shortcuts ...
       if (isCtrlOrCmd && event.key === 'v') {
         event.preventDefault();
         businessLogic.handlePaste();
       }
 
-      // Cmd+D: 복제
       if (isCtrlOrCmd && event.key === 'd') {
         event.preventDefault();
         businessLogic.handleDuplicate();
       }
     };
-
+    
+    // KeyUp handler
     const handleGlobalKeyUp = (event: globalThis.KeyboardEvent) => {
-      // Input, Textarea, ContentEditable에서는 무시
-      const target = event.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
-        return;
-      }
-
-      // Space keyup: viewport 즉시 저장
-      // isPanningMode 체크를 제거 (use-canvas-toolbar에서 mode를 먼저 변경할 수 있음)
       if (event.code === 'Space') {
-        // 현재 viewport를 즉시 저장 (debounce flush)
         flushViewportSave();
       }
     };
@@ -447,11 +751,30 @@ export function useReactFlowWrapper(
       window.removeEventListener('keydown', handleGlobalKeyDown);
       window.removeEventListener('keyup', handleGlobalKeyUp);
     };
-  }, [readonly, businessLogic, canvasMode, flushViewportSave]);
+  }, [readonly, businessLogic, flushViewportSave]);
 
   // =========================================================================
   // 12. Wrap UI Handlers with Business Logic
   // =========================================================================
+
+  // 드래그/리사이즈 시작 시 상태 저장용 Ref
+  const dragStartPositionsRef = useRef<Record<string, Position>>({});
+
+  // onNodeDragStart: 드래그 시작 시 위치 백업
+  const onNodeDragStart = useCallback(
+    (event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
+      if (readonly) return;
+
+      const positions: Record<string, Position> = {};
+      draggedNodes.forEach((n) => {
+        positions[n.id] = { ...n.position };
+      });
+      dragStartPositionsRef.current = positions;
+
+      uiState.onNodeDragStart(event, node, draggedNodes);
+    },
+    [readonly, uiState]
+  );
 
   // onNodeDrag: 스냅 가이드라인 + 그룹 collision 시각 피드백
   const onNodeDrag = useCallback(
@@ -535,22 +858,35 @@ export function useReactFlowWrapper(
       const collisionHandled = await groupCollision.handleNodeDragStop(draggedNodes);
 
       // 4. 서버 저장 (collision이 처리되지 않은 경우만)
-      // optimistic ID는 서버에 없으므로 제외 (복제/생성 응답 전 드래그 시 실패 방지)
       if (!collisionHandled) {
         const blockPositions = draggedNodes
           .map(draggedNode => ({
             blockMountId: draggedNode.id,
             position: draggedNode.position,
+            previousPosition: dragStartPositionsRef.current[draggedNode.id],
           }))
           .filter(
             bp =>
               !String(bp.blockMountId).startsWith('optimistic-') &&
               !String(bp.blockMountId).startsWith('group-optimistic-')
           );
+        
         if (blockPositions.length > 0) {
+          // 다중 이동인 경우 배치로 기록
+          if (blockPositions.length > 1) {
+            history.startBatch();
+          }
+          
           await blockTransform.updateBlockPosition({ blockPositions });
+          
+          if (blockPositions.length > 1) {
+            history.endBatch('Move Blocks');
+          }
         }
       }
+
+      // 5. 백업 초기화
+      dragStartPositionsRef.current = {};
     },
     [readonly, uiState, blockTransform, groupCollision, reactFlowInstance]
   );
@@ -648,7 +984,7 @@ export function useReactFlowWrapper(
     onMove,
 
     // Drag callbacks
-    onNodeDragStart: uiState.onNodeDragStart,
+    onNodeDragStart, // 래핑된 버전 사용 (위치 백업용)
     onNodeDrag, // collision 시각 피드백 포함
     onNodeDragStop, // 래핑된 버전 사용
 
@@ -694,5 +1030,10 @@ export function useReactFlowWrapper(
     // Feature flags
     showAIAgent,
     showBlockCreation,
+
+    // History
+    history,
+    executeUndo,
+    executeRedo,
   };
 }

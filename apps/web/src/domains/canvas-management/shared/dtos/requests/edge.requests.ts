@@ -138,3 +138,33 @@ export type UpdateEdgeMarkerRequest = z.output<
   typeof UpdateEdgeMarkerRequestSchema
 >;
 export type DeleteEdgeRequest = z.output<typeof DeleteEdgeRequestSchema>;
+
+
+/**
+ * 엣지 연결 정보 업데이트 요청 스키마 (Reconnect)
+ */
+export const UpdateEdgeConnectionRequestSchema = z.object({
+  edgeId: z.uuid('Invalid edge ID'),
+  newSourceBlockMountId: z.uuid('Invalid source block mount ID'),
+  newTargetBlockMountId: z.uuid('Invalid target block mount ID'),
+  newSourceHandle: z.enum(['left', 'right', 'top', 'bottom']).optional(),
+  newTargetHandle: z.enum(['left', 'right', 'top', 'bottom']).optional(),
+});
+
+export type UpdateEdgeConnectionRequestInput = z.input<
+  typeof UpdateEdgeConnectionRequestSchema
+>;
+export type UpdateEdgeConnectionRequest = z.output<
+  typeof UpdateEdgeConnectionRequestSchema
+>;
+
+/**
+ * 엣지 복구 요청 스키마
+ */
+export const RestoreEdgeRequestSchema = z.object({
+  edgeIds: z.array(z.uuid('Invalid edge ID')),
+  pageId: z.uuid('Invalid page ID'),
+});
+
+export type RestoreEdgeRequestInput = z.input<typeof RestoreEdgeRequestSchema>;
+export type RestoreEdgeRequest = z.output<typeof RestoreEdgeRequestSchema>;

@@ -7,6 +7,7 @@ import {
   useSyncEdgeDelete,
   useSyncNodeDelete,
 } from '@/domains/canvas-management/frontend/hooks/react-flow-sync';
+import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
 import type {
   BlockLifecycleDependencies,
@@ -50,6 +51,7 @@ export interface ReactFlowWrapperBusinessLogic {
 export interface ReactFlowWrapperBusinessDependencies {
   pageId: string;
   canvasSelection: CanvasSelectionDependencies;
+  history: any; // Add history dependency
   edgeLifecycle: {
     createEdge: EdgeLifecycleDependencies['createEdge'];
     reconnectEdge: EdgeLifecycleDependencies['reconnectEdge'];
@@ -73,6 +75,7 @@ export function useReactFlowWrapperBusiness(
   const {
     pageId,
     canvasSelection,
+    history,
     edgeLifecycle,
     blockLifecycle,
     reactFlow,
@@ -167,18 +170,12 @@ export function useReactFlowWrapperBusiness(
       connectStartRef.current = null;
 
       // 3. Optimistic UI로 엣지 생성
-      const result = await edgeLifecycle.createEdge({
+      await edgeLifecycle.createEdge({
         sourceBlockMountId: finalSource,
         targetBlockMountId: finalTarget,
         sourceHandle: finalSourceHandle,
         targetHandle: finalTargetHandle,
       });
-
-      if (!result) {
-        console.error(
-          '❌ [Canvas] Edge creation failed. Check console for details.'
-        );
-      }
     },
     [edgeLifecycle]
   );
@@ -229,6 +226,31 @@ export function useReactFlowWrapperBusiness(
     [edgeLifecycle]
   );
 
+  // 삭제 작업을 하나의 배치로 묶기 위한 타이머 및 상태
+  const deletionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isBatchingDeleteRef = useRef(false);
+
+  /**
+   * 삭제 작업을 하나의 히스토리 배치로 묶어주는 함수
+   * 노드 삭제와 엣지 삭제가 별도의 콜백으로 오지만, 하나의 Undo 스텝이 되어야 함
+   */
+  const startDeleteBatch = useCallback(() => {
+    if (!isBatchingDeleteRef.current) {
+      history.startBatch?.();
+      isBatchingDeleteRef.current = true;
+    }
+
+    if (deletionTimerRef.current) {
+      clearTimeout(deletionTimerRef.current);
+    }
+
+    deletionTimerRef.current = setTimeout(() => {
+      history.endBatch?.('Delete Elements');
+      isBatchingDeleteRef.current = false;
+      deletionTimerRef.current = null;
+    }, 50); // 50ms 이내의 삭제 요청은 하나로 묶음
+  }, [history]);
+
   /**
    * 노드 삭제 → 블럭 마운트 및 연결된 엣지 삭제
    * Story CM-008: Delete 키 또는 Backspace 키로 블럭 삭제
@@ -238,9 +260,37 @@ export function useReactFlowWrapperBusiness(
    */
   const onNodesDelete = useCallback(
     async (deletedNodes: Node[]) => {
-      await syncNodeDelete(deletedNodes);
+      // 0. 히스토리 스킵 중이면 무시 (Undo/Redo 시 서버 싱크 방지)
+      if (history.getIsSkipping?.()) {
+        console.log('[Canvas] Skipping onNodesDelete due to history state');
+        return;
+      }
+
+      // 낙관적 업데이트에 의해 삭제된 노드는 제외
+      const actualDeletedNodes = deletedNodes.filter(n => !n.id.startsWith('optimistic-'));
+      if (actualDeletedNodes.length === 0) return;
+
+      // 1. 히스토리 기록
+      if (actualDeletedNodes.length > 0) {
+        startDeleteBatch();
+
+        actualDeletedNodes.forEach(node => {
+          const blockData = node.data as BlockNodeData;
+          history.recordOperation({
+            type: 'BLOCK_DELETE',
+            blockMountId: node.id,
+            data: {
+              node,
+              blockId: blockData.blockId,
+            },
+          });
+        });
+      }
+
+      // 2. 서버 동기화
+      await syncNodeDelete(actualDeletedNodes);
     },
-    [syncNodeDelete]
+    [syncNodeDelete, history]
   );
 
   /**
@@ -252,9 +302,37 @@ export function useReactFlowWrapperBusiness(
    */
   const onEdgesDelete = useCallback(
     async (deletedEdges: Edge[]) => {
-      await syncEdgeDelete(deletedEdges);
+      // 0. 히스토리 스킵 중이면 무시 (Undo/Redo 시 서버 싱크 방지)
+      if (history.getIsSkipping?.()) {
+        console.log('[Canvas] Skipping onEdgesDelete due to history state');
+        return;
+      }
+
+      // 낙관적 업데이트에 의해 삭제된 엣지는 제외
+      const actualDeletedEdges = deletedEdges.filter(e => !e.id.startsWith('optimistic-'));
+      if (actualDeletedEdges.length === 0) return;
+
+      // 1. 히스토리 기록
+      if (actualDeletedEdges.length > 0) {
+        startDeleteBatch();
+
+        actualDeletedEdges.forEach(edge => {
+          history.recordOperation({
+            type: 'EDGE_DELETE',
+            edgeId: edge.id,
+            data: {
+              edge,
+              source: edge.source,
+              target: edge.target,
+            },
+          });
+        });
+      }
+
+      // 2. 서버 동기화
+      await syncEdgeDelete(actualDeletedEdges);
     },
-    [syncEdgeDelete]
+    [syncEdgeDelete, history]
   );
 
   /**
