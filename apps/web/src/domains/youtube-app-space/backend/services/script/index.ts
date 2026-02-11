@@ -3,3 +3,4 @@
  */
 export * from './process-video-script.application.service';
 export * from './extract-and-update-script.service';
+export * from './update-video-script.service';

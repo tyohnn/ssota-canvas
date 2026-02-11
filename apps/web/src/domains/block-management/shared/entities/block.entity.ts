@@ -31,7 +31,8 @@ export class Block {
     public updatedAt: Date,
     public deletedAt: Date | null,
     public content: unknown = null, // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
-    public readonly createdByProfile?: UserProfile
+    public readonly createdByProfile?: UserProfile,
+    public sourceId: string | null = null // 링크된 소스 (sources.id, nullable)
   ) {}
 
   /**
@@ -74,7 +75,9 @@ export class Block {
       now,
       now,
       null,
-      content ?? null // ✨ content: 전달받은 값 또는 null
+      content ?? null, // ✨ content: 전달받은 값 또는 null
+      undefined, // createdByProfile
+      null // sourceId
     );
 
     // 마크다운 블록인 경우 content_raw 자동 생성 (AI 컨텍스트용)
@@ -117,7 +120,8 @@ export class Block {
     updatedAt: Date,
     deletedAt: Date | null,
     content: unknown = null,
-    createdByProfile?: UserProfile
+    createdByProfile?: UserProfile,
+    sourceId: string | null = null
   ): Block {
     return new Block(
       id,
@@ -131,7 +135,8 @@ export class Block {
       updatedAt,
       deletedAt,
       content,
-      createdByProfile
+      createdByProfile,
+      sourceId
     );
   }
 
@@ -153,8 +158,24 @@ export class Block {
       this.createdAt,
       this.updatedAt,
       this.deletedAt,
-      this.content // 콘텐츠도 복제
+      this.content, // 콘텐츠도 복제
+      undefined,
+      this.sourceId
     );
+  }
+
+  /**
+   * 소스 링크 설정 (source-management sources.id)
+   */
+  updateSourceId(sourceId: string | null): void {
+    if (this.isDeleted()) {
+      throw new BlockManagementError(
+        'BLOCK_ALREADY_DELETED',
+        'Cannot modify deleted block'
+      );
+    }
+    this.sourceId = sourceId;
+    this.updatedAt = new Date();
   }
 
   /**

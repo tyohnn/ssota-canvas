@@ -116,3 +116,16 @@ blocks
 | **Blocks** | 유저의 조직 단위 (source 참조, 자체 content) | 유저 워크스페이스, 캔버스 |
 
 Sources는 "추출 결과의 캐시이자 블록 시스템의 인터페이스 레이어"이고, App Space는 그 뒤에서 도메인별 데이터를 독립적으로 관리하는 웨어하우스다.
+
+---
+
+## 6. 플랫폼 기능 vs AI 기능 (책임 분리)
+
+| 구분 | 담당 레이어 | 예시 | 성격 |
+|------|-------------|------|------|
+| **플랫폼 기능** | **App Space** | 제목, 채널 정보, 썸네일, 조회수, 구조화 스크립트(타임스탬프 JSON) | "그 콘텐츠가 **무엇인지**" — 플랫폼(YouTube, PDF 등)이 제공하는 고유 데이터 |
+| **AI/부가 기능** | **Sources (source-management)** | 추출(transcript → raw_content), 요약 생성, 검색·과금 플로우 | "플랫폼 위에 쌓는 **추가 기능**" — AI·추출·요약은 source 도메인 책임 |
+
+- **App Space**: 플랫폼 정보 조회·저장만 담당. 제목·채널 정보 등은 해당 플랫폼 도메인(youtube-app-space 등)에서 API 호출 후 저장.
+- **Source 도메인**: 모든 소스 타입에 대한 **추출 로직과 요약 로직**을 소유. source_type별 어댑터(YouTube, PDF, X 등)에서 실제 추출을 수행하고, 결과를 `sources.raw_content` / `source_summaries`에 저장.
+- **연동**: Source 쪽에서 추출·요약을 완료한 뒤, App Space에 구조화 원본(예: `videos.script`)을 저장해야 할 때는 **Event/Policy(Application Use Case Policy)** 로 처리한다. Source 도메인이 이벤트를 발행하고, Policy에서 해당 App Space 도메인을 호출해 저장한다.

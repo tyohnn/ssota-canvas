@@ -67,6 +67,7 @@ export class DrizzleBlockRepository implements IBlockRepository {
           created_at: block.createdAt,
           updated_at: block.updatedAt,
           deleted_at: block.deletedAt,
+          source_id: block.sourceId,
         };
 
         await adminDb.insert(blocks).values(blockData);
@@ -196,6 +197,7 @@ export class DrizzleBlockRepository implements IBlockRepository {
         created_at: block.createdAt,
         updated_at: block.updatedAt,
         deleted_at: block.deletedAt,
+        source_id: block.sourceId,
       };
 
       await adminDb
@@ -513,7 +515,8 @@ export class DrizzleBlockRepository implements IBlockRepository {
       blockData.updated_at,
       blockData.deleted_at,
       blockData.content, // JSONB content
-      createdByProfile
+      createdByProfile,
+      blockData.source_id ?? null
     );
   }
 }

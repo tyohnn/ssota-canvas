@@ -7,8 +7,9 @@
 import { Result } from '@/utils/result';
 
 import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
+import { extractYoutubeTranscript } from '@/domains/source-management/backend/services/extract/adapters/youtube/extract-transcript';
+import { SourceManagementError } from '@/domains/source-management/shared/errors/source-management.error';
 import { createActionTransaction } from '../action-transaction';
-import { extractTranscript } from '../youtube-api/extract-transcript.service';
 import { CompleteActionTransactionCommand } from '../../../shared/commands/action-transaction.commands';
 import { UpdateScriptCommand } from '../../../shared/commands/video.commands';
 import { YoutubeError } from '../../../shared/errors/youtube-app-space.error';
@@ -88,7 +89,7 @@ export async function extractAndUpdateScript(
     // 2. extractTranscript 호출하여 스크립트 추출
     let script;
     try {
-      script = await extractTranscript(videoSlug);
+      script = await extractYoutubeTranscript(videoSlug);
     } catch (error) {
       // Action Transaction 완료 처리 (실패로 표시)
       const completeCommand: CompleteActionTransactionCommand = {
@@ -97,22 +98,28 @@ export async function extractAndUpdateScript(
       actionTransactionAggregate.complete(completeCommand);
       await actionTransactionRepository.update(actionTransactionAggregate);
 
-      return Result.error(
+      const err =
         error instanceof YoutubeError
           ? error
-          : new YoutubeError(
-            'TRANSCRIPT_EXTRACTION_FAILED',
-            error instanceof Error
-              ? error.message
-              : 'Failed to extract transcript',
-            {
-              videoId,
-              videoSlug,
-              originalError:
-                error instanceof Error ? error.message : String(error),
-            }
-          )
-      );
+          : error instanceof SourceManagementError
+            ? new YoutubeError(
+                'TRANSCRIPT_EXTRACTION_FAILED',
+                error.message,
+                { videoId, videoSlug, originalError: error.message }
+              )
+            : new YoutubeError(
+                'TRANSCRIPT_EXTRACTION_FAILED',
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to extract transcript',
+                {
+                  videoId,
+                  videoSlug,
+                  originalError:
+                    error instanceof Error ? error.message : String(error),
+                }
+              );
+      return Result.error(err);
     }
 
     // 3. 스크립트 업데이트
