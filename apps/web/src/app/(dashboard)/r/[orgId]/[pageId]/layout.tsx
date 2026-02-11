@@ -9,6 +9,7 @@ import { CanvasLoadingSkeleton } from '@/domains/workspace-management/frontend/c
 import { WorkspacePageHeader } from '@/domains/workspace-management/frontend/components/page-viewer/workspace-page-header';
 
 import { PageSyncClient } from '../../../components/sync-client/page-sync-client';
+import { CanvasPageContent } from './components/canvas-page-content';
 import { Box } from '@/components/ui/box';
 
 interface OrgPageIdLayoutProps {
@@ -61,11 +62,11 @@ export default async function OrgPageIdLayout({
         workspaceId={workspaceId}
         pageId={pageId}
       />
-      <Box className="flex-1 min-h-0 min-w-0 overflow-hidden w-full">
+      <CanvasPageContent>
         <Suspense fallback={<CanvasLoadingSkeleton />}>
           {children}
         </Suspense>
-      </Box>
+      </CanvasPageContent>
     </Box>
   );
 }

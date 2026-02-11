@@ -10,8 +10,11 @@ Standardized ordering for `types.ts` files. It ensures a logical "bottom-up" flo
 ### 🧩 [Object-based Dependency Injection](./object-based-dependency-injection.md)
 A pattern for centralizing external framework dependencies (like React Flow or Store hooks) into a single Entry Hook. This enables pure logic layers and simplifies unit testing.
 
-### 🧩 [Server-Side DDD Conventions](./server-side-ddd-conventions.md)
+### 🧩 [Server-Side DDD Conventions](./backend/server-side-ddd-conventions.md)
 Comprehensive guide for Domain-Driven Design patterns in Next.js Server Actions, including Trust Boundary, data flow, type safety, and Event Storming integration.
+
+### 🧩 [Module Boundary Enforcement Guide](./module-boundary-enforcement-guide.md)
+논리적 경계(컨벤션) vs 물리적 경계(컴파일/빌드 강제) 비교, SSOTA 현재 구조 요약, 순환 의존성·AI Agent 관점 정리. 컴파일러가 보장하는 모듈화를 고민할 때 참고.
 
 ### 🧩 [Next.js Server Actions Framework Proposal](./next-action-framework-proposal.md)
 Proposal for a DDD-integrated framework/library for Next.js Server Actions. Includes market analysis, API design, and detailed explanation of Command/Aggregate/Event patterns.

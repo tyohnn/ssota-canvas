@@ -1,14 +1,89 @@
-import { createXai } from '@ai-sdk/xai';
-import { streamText, convertToModelMessages, stepCountIs } from 'ai';
+import { xai } from '@ai-sdk/xai';
+import { streamText, convertToModelMessages } from 'ai';
+import type {
+  SystemModelMessage,
+  UserModelMessage,
+  AssistantModelMessage,
+  ToolModelMessage,
+} from 'ai';
 import { requireAuth } from '@/domains/auth/server/auth-guard';
 import { SOPHI_V2_SYSTEM_PROMPT } from './prompt';
-import { xaiWebSearchTool, doneTool } from './tools';
-import { executeWebSearch } from './executeTools';
+import { buildDynamicContext, parseDynamicContext } from './context-builder';
+import { renderCanvasdownTool, patchCanvasdownTool, xaiSearchTool, grepBlockContentTool, globBlocksTool, readBlockLinesTool } from './tools';
+import {
+  executeXaiSearch,
+  executeGrepBlockContent,
+  executeGlobBlocks,
+  executeReadBlockLines,
+} from '@/domains/ai-management/backend/services/tools';
+import { DrizzleBlockSearchRepository } from '@/domains/ai-management/backend/repositories/implementations/drizzle-block-search.repository';
+import { AGENT_MODEL } from './constants';
 
 export const maxDuration = 300;
 
-const xai = createXai();
-const AGENT_MODEL = 'grok-4-1-fast-reasoning';
+type ModelMessage =
+  | SystemModelMessage
+  | UserModelMessage
+  | AssistantModelMessage
+  | ToolModelMessage;
+
+/**
+ * Inject dynamic context into the last user message
+ * 
+ * @param messages - Model messages
+ * @param dynamicContext - Dynamic context string
+ * @returns Messages with context injected
+ */
+function injectDynamicContext(
+  messages: ModelMessage[],
+  dynamicContext: string
+): ModelMessage[] {
+  if (!dynamicContext || dynamicContext.trim() === '') {
+    return messages;
+  }
+
+  // Find the last user message (manual implementation for ES2022 compatibility)
+  let lastUserIndex = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role === 'user') {
+      lastUserIndex = i;
+      break;
+    }
+  }
+
+  if (lastUserIndex === -1) {
+    return messages;
+  }
+
+  const updatedMessages = [...messages];
+  const lastUserMsg = updatedMessages[lastUserIndex]!; // Safe: we checked lastUserIndex !== -1
+
+  // Only process user messages
+  if (lastUserMsg.role !== 'user') {
+    return messages;
+  }
+
+  // Prepend dynamic context to the user message content
+  const contextBlock = `[Context]\n${dynamicContext}\n\n---\n\n`;
+
+  if (typeof lastUserMsg.content === 'string') {
+    updatedMessages[lastUserIndex] = {
+      ...lastUserMsg,
+      content: contextBlock + lastUserMsg.content,
+    } as ModelMessage;
+  } else if (Array.isArray(lastUserMsg.content)) {
+    // For multi-part content, prepend context as a text part
+    updatedMessages[lastUserIndex] = {
+      ...lastUserMsg,
+      content: [
+        { type: 'text', text: contextBlock },
+        ...lastUserMsg.content,
+      ],
+    } as ModelMessage;
+  }
+
+  return updatedMessages;
+}
 
 export async function POST(req: Request) {
   try {
@@ -24,24 +99,61 @@ export async function POST(req: Request) {
       );
     }
 
-    const { messages } = await req.json();
+    // Parse request body - extract messages and clientContext
+    const body = await req.json();
+    const { messages, clientContext } = body;
 
+    // Convert UI messages to model messages
+    const modelMessages = await convertToModelMessages(messages);
+
+    // Build dynamic context from client state
+    const dynamicContextString = buildDynamicContext(clientContext);
+    const dynamicContext = parseDynamicContext(clientContext);
+    const pageId = dynamicContext.pageId;
+
+    // Inject dynamic context into the last user message
+    const enrichedMessages = injectDynamicContext(
+      modelMessages,
+      dynamicContextString
+    );
+
+    // Instantiate repository (per-request; stateless)
+    const blockSearchRepo = new DrizzleBlockSearchRepository();
+
+    // Main agent uses Chat API only; search is a server-side tool (xaiSearch) so we can mix with client-side canvas tools.
     const result = streamText({
       model: xai(AGENT_MODEL),
       system: SOPHI_V2_SYSTEM_PROMPT,
-      messages: await convertToModelMessages(messages),
-      stopWhen: stepCountIs(10),
-      toolChoice: 'required', // Forced Tool Calling: 매 턴 도구 호출, 종료 시 done 호출
+      messages: enrichedMessages,
       tools: {
-        xaiWebSearch: {
-          ...xaiWebSearchTool,
-          execute: executeWebSearch,
+        xaiSearch: {
+          ...xaiSearchTool,
+          execute: (args, opts) => executeXaiSearch(args, { abortSignal: opts?.abortSignal }),
         },
-        done: doneTool, // execute 없음 → 호출 시 루프 종료, 최종 답변은 tool call input에서 추출
+        renderCanvasdown: renderCanvasdownTool,
+        patchCanvasdown: patchCanvasdownTool,
+        grepBlockContent: {
+          ...grepBlockContentTool,
+          execute: (args) => executeGrepBlockContent(blockSearchRepo, args, { pageId }),
+        },
+        globBlocks: {
+          ...globBlocksTool,
+          execute: (args) => executeGlobBlocks(blockSearchRepo, args, { pageId }),
+        },
+        readBlockLines: {
+          ...readBlockLinesTool,
+          execute: (args) => executeReadBlockLines(blockSearchRepo, args, { pageId }),
+        },
+        // Step 1-6+: Additional tools will be added incrementally
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    // sendSources: true — stream-level sources if any. sendReasoning: true — Grok reasoning parts.
+    // sendReasoning: true — Grok reasoning model reasoning_content → reasoning parts (streaming).
+    return result.toUIMessageStreamResponse({
+      sendSources: true,
+      sendReasoning: true,
+    });
   } catch (error) {
     console.error('Error in /api/agent/v2:', error);
     return new Response(
