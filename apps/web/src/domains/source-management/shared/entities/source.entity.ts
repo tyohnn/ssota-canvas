@@ -1,5 +1,3 @@
-import type { SourceMetadata } from '../types/source-metadata.types';
-import { LanguageCode } from '../value-objects/language-code.vo';
 import { SourceId } from '../value-objects/source-id.vo';
 import { SourceType } from '../value-objects/source-type.vo';
 import { SourceUrl } from '../value-objects/source-url.vo';
@@ -10,20 +8,20 @@ export class Source {
     public readonly url: SourceUrl,
     public readonly sourceType: SourceType,
     public rawContent: string | null,
-    public metadata: SourceMetadata,
-    public contentLanguage: LanguageCode | null,
+    public metadata: Record<string, unknown>,
+    public contentLanguage: string | null,
     public extractedAt: Date | null,
     public readonly createdAt: Date,
     public updatedAt: Date,
     public readonly urlHash: string | null
-  ) {}
+  ) { }
 
   static create(
     id: SourceId,
     url: SourceUrl,
     sourceType: SourceType,
-    metadata: SourceMetadata = {},
-    contentLanguage: LanguageCode | null = null
+    metadata: Record<string, unknown> = {},
+    contentLanguage: string | null = null
   ): Source {
     const now = new Date();
     return new Source(
@@ -45,8 +43,8 @@ export class Source {
     url: SourceUrl,
     sourceType: SourceType,
     rawContent: string | null,
-    metadata: SourceMetadata,
-    contentLanguage: LanguageCode | null,
+    metadata: Record<string, unknown>,
+    contentLanguage: string | null,
     extractedAt: Date | null,
     createdAt: Date,
     updatedAt: Date,
@@ -72,8 +70,8 @@ export class Source {
     this.updatedAt = new Date();
   }
 
-  updateMetadata(metadata: Partial<SourceMetadata>): void {
-    this.metadata = { ...this.metadata, ...metadata } as SourceMetadata;
+  updateMetadata(metadata: Record<string, unknown>): void {
+    this.metadata = { ...this.metadata, ...metadata };
     this.updatedAt = new Date();
   }
 

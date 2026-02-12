@@ -48,7 +48,7 @@ export default function SummarySection({
       onExtractSummary={business.handleExtractSummary}
       isExtracting={business.isExtracting}
       hasAccessForSelectedLanguage={business.hasAccessForSelectedLanguage}
-      summaryAccessGrantedLanguages={business.summaryAccessGrantedLanguages}
+      sourceSummaryAccessLanguages={business.sourceSummaryAccessLanguages}
       readonly={business.readonly}
     />
   );

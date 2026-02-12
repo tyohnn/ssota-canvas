@@ -15,6 +15,8 @@ import type { WorkspaceActionContext } from '@/domains/common/auth/types';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
+import type { Block } from '@/domains/block-management/shared/entities/block.entity';
+import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
 import { DrizzleChannelRepository } from '../../backend/repositories/implementations/drizzle-channel.repository';
 import { DrizzleVideoRepository } from '../../backend/repositories/implementations/drizzle-video.repository';
 import {
@@ -29,11 +31,15 @@ import {
   getVideoMetadata,
 } from '../../backend/services/youtube-api';
 import { ChannelAggregate } from '../../shared/aggregates/channel.aggregate';
+import type { VideoAggregate } from '../../shared/aggregates/video.aggregate';
 import { GetYoutubeMetadataRequestSchema } from '../../shared/dtos/requests/video.requests';
 import type { GetYoutubeMetadataRequest } from '../../shared/dtos/requests/video.requests';
 import type { GetYoutubeMetadataDTO } from '../../shared/dtos/responses/video.responses';
 import { ChannelId } from '../../shared/value-objects/channel-id.vo';
+import { DrizzleSourceRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source.repository';
+import { findOrCreateSource } from '@/domains/source-management/backend/services/source';
 import { withYoutubeBlockSecureAction } from '../secure-action';
+import type { YoutubeBlockActionContext } from '../secure-action';
 
 /**
  * YouTube 메타데이터 조회 Action
@@ -73,6 +79,7 @@ async function getYoutubeMetadataInternal(
 ): Promise<ActionResult<GetYoutubeMetadataDTO>> {
   try {
     const userId: UserId = new UserId(context.authenticatedUser.id);
+    const youtubeContext = context as YoutubeBlockActionContext;
 
     // 1. Repository 생성
     const videoRepository = new DrizzleVideoRepository();
@@ -117,6 +124,14 @@ async function getYoutubeMetadataInternal(
         channelThumbnail: channel?.toView().channelThumbnailUrl,
         youtubeChannelId: channel?.toView().channelId,
       };
+
+      const ytCtx = context as YoutubeBlockActionContext;
+      const sourceId = await linkSourceToBlock(
+        video,
+        safeDto.slug,
+        ytCtx.block
+      );
+      if (sourceId) response.sourceId = sourceId;
 
       await Promise.allSettled([
         publishYoutubeMetadataFetched({
@@ -236,6 +251,14 @@ async function getYoutubeMetadataInternal(
       youtubeChannelId: channelAggregate?.toView().channelId,
     };
 
+    const ytCtx = context as YoutubeBlockActionContext;
+    const sourceId = await linkSourceToBlock(
+      video,
+      safeDto.slug,
+      ytCtx.block
+    );
+    if (sourceId) response.sourceId = sourceId;
+
     await Promise.allSettled([
       publishYoutubeMetadataFetched({
         blockId: safeDto.blockId,
@@ -256,4 +279,40 @@ async function getYoutubeMetadataInternal(
       },
     });
   }
+}
+
+/**
+ * Find or create Source for the YouTube video and link it to the block (block.source_id).
+ * Returns sourceId when successful, undefined on failure (logged).
+ */
+async function linkSourceToBlock(
+  video: VideoAggregate,
+  slug: string,
+  block: Block
+): Promise<string | undefined> {
+  const youtubeUrl = `https://www.youtube.com/watch?v=${slug}`;
+  const sourceRepository = new DrizzleSourceRepository();
+  const result = await findOrCreateSource(
+    {
+      url: youtubeUrl,
+      sourceType: 'youtube',
+      metadata: {
+        appSpaceId: video.getVideo().id.value,
+        videoSlug: slug,
+      },
+    },
+    sourceRepository
+  );
+  if (result.isError()) {
+    console.warn(
+      '[linkSourceToBlock] findOrCreateSource failed:',
+      result.error
+    );
+    return undefined;
+  }
+  const sourceId = result.value.getSource().id.value;
+  block.updateSourceId(sourceId);
+  const blockRepository = new DrizzleBlockRepository();
+  await blockRepository.update(block);
+  return sourceId;
 }

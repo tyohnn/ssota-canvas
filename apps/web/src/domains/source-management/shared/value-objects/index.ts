@@ -9,3 +9,4 @@ export {
   SUPPORTED_LANGUAGES,
   type SupportedLanguage,
 } from './language-code.vo';
+export { SourceJobId } from './source-job-id.vo';

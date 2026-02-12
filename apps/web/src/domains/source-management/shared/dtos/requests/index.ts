@@ -29,3 +29,11 @@ export {
   type CheckSourceActionTransactionRequest,
   type CreateSourceActionTransactionRequest,
 } from './source-action-transaction.requests';
+export {
+  GetInProgressSourceJobByBlockIdRequestSchema,
+  type GetInProgressSourceJobByBlockIdRequest,
+} from './source-job.requests';
+export {
+  GetInProgressSourceJobRequestSchema,
+  type GetInProgressSourceJobRequest,
+} from './source-job.requests';

@@ -67,11 +67,24 @@ export function useYoutubeBlock(
   );
 
   // Business Hook (또는 주입된 로직)
+  const updateSourceId = useCallback(
+    (sourceId: string) => {
+      const node = getNode(nodeData.blockMountId);
+      if (node?.data) {
+        updateNode(nodeData.blockMountId, {
+          data: { ...node.data, sourceId },
+        });
+      }
+    },
+    [getNode, updateNode, nodeData.blockMountId]
+  );
+
   const defaultBusiness = useYoutubeBlockBusiness(
     nodeData,
     vo,
     updateProperties,
-    updateBlockTitle
+    updateBlockTitle,
+    updateSourceId
   );
   const business = businessLogicOverride ?? defaultBusiness;
 

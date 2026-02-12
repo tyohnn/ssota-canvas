@@ -28,7 +28,8 @@ export function useYoutubeBlockBusiness(
     nodeId: string;
     title: string;
     blockData: YoutubeBlockNodeData;
-  }) => Promise<boolean>
+  }) => Promise<boolean>,
+  updateSourceId?: (sourceId: string) => void
 ): YoutubeBlockBusinessLogic {
   // 메타데이터 fetch 실행 여부 추적 (중복 방지)
   const isFetchingRef = useRef(false);
@@ -158,6 +159,11 @@ export function useYoutubeBlockBusiness(
           });
         }
 
+        // source-management sourceId를 노드 데이터에 반영 (스크립트/요약 훅에서 사용)
+        if (dto.sourceId) {
+          updateSourceId?.(dto.sourceId);
+        }
+
         return { success: true, metadata };
       } catch (error) {
         return {
@@ -168,7 +174,7 @@ export function useYoutubeBlockBusiness(
         isFetchingRef.current = false;
       }
     },
-    [nodeData, updateProperties, updateBlockTitle]
+    [nodeData, updateProperties, updateBlockTitle, updateSourceId]
   );
 
   return {

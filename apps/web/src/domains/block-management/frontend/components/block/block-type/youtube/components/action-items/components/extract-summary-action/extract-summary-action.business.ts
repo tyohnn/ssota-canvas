@@ -1,59 +1,56 @@
 /**
  * Extract Summary Action Business Logic
  *
- * 순수 함수로 추출된 비즈니스 로직
- * - Hook과 executeAction 모두에서 사용 가능
- * - ensureVideoSummaryAction 사용: 이미 요약 있으면 completed, 없으면 queue job (Realtime 추적)
+ * sourceId 있을 때만 processSourceSummaryAction 호출.
  */
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { ensureVideoSummaryAction } from '@/domains/youtube-app-space/actions/summary/ensure-video-summary.action';
-import { isFailure } from '@/lib';
+import { processSourceSummaryAction } from '@/domains/source-management/actions/summary/process-source-summary.action';
 
 export interface ExtractSummaryResult {
   success: boolean;
+  alreadyExists?: boolean;
   error?: string;
 }
 
 /**
- * YouTube 요약 확보 비즈니스 로직 (ensure: 있으면 완료 표시, 없으면 큐 등록)
+ * YouTube 요약 추출 (source 경로만)
  *
  * @param blockId - 블록 ID
- * @param blockData - 블록 데이터
- * @param language - 언어 코드 (optional, 기본값 en)
- * @returns 추출 결과
+ * @param blockData - 블록 데이터 (sourceId 필요)
+ * @param language - 언어 코드 (기본값 en)
  */
 export async function extractSummaryAction(
   blockId: string,
   blockData: BlockNodeData,
   language?: string
 ): Promise<ExtractSummaryResult> {
-  const properties = blockData.properties as YoutubeBlockProperties;
-  const youtubeId = properties.youtubeId;
+  const sourceId = blockData.sourceId;
 
-  if (!youtubeId) {
+  if (!sourceId) {
     return {
       success: false,
-      error: 'YouTube ID not found',
+      error: 'URL을 입력해 메타데이터를 불러온 후 요약을 추출할 수 있습니다.',
     };
   }
 
   try {
-    const result = await ensureVideoSummaryAction({
+    const result = await processSourceSummaryAction({
       blockId,
-      youtubeId,
       language: language || 'en',
     });
 
-    if (isFailure(result)) {
+    if (result.success) {
       return {
-        success: false,
-        error: result.error || 'Failed to ensure summary',
+        success: true,
+        alreadyExists: result.data?.alreadyExists ?? false,
       };
     }
-    return { success: true };
+    return {
+      success: false,
+      error: result.error || 'Failed to extract summary',
+    };
   } catch (error) {
-    console.error('[extractSummaryAction] Error ensuring summary:', error);
+    console.error('[extractSummaryAction] Error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

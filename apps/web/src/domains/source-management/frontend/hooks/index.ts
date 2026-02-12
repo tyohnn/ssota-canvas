@@ -7,3 +7,10 @@ export type {
   UseSourceSummaryLanguagesParams,
   UseSourceSummaryLanguagesResult,
 } from './use-source-summary-languages';
+export {
+  useSourceJobRealtime,
+  useMultiSourceJobRealtime,
+  type SourceJob,
+  type SourceJobStatus,
+  type InitialSourceJob,
+} from './use-source-job-realtime';

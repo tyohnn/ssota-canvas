@@ -6,10 +6,10 @@
  * 스코프·ID는 Value Object의 .value로 DB에 전달.
  */
 
-import { and, eq, inArray, isNull, ilike, or } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, ilike, or } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import { adminDb } from '@/db';
-import { blocks, blockMounts } from '@/db/schema';
+import { blocks, blockMounts, sources, sourceSummaries } from '@/db/schema';
 import type { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import type { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import type {
@@ -18,6 +18,8 @@ import type {
   GrepBlockRow,
   GlobBlockRow,
   ReadBlockRow,
+  SourceContentRow,
+  SourceSummaryRow,
 } from '../interfaces/block-search.repository.interface';
 
 export class DrizzleBlockSearchRepository implements BlockSearchRepository {
@@ -116,6 +118,87 @@ export class DrizzleBlockSearchRepository implements BlockSearchRepository {
       .limit(1);
 
     return rows[0] ?? null;
+  }
+
+  /**
+   * sources.raw_content ILIKE 필터링으로 매칭 블록 조회
+   */
+  async findBySourceContentPattern(
+    patterns: string[],
+    scope: BlockSearchScope
+  ): Promise<SourceContentRow[]> {
+    const conditions = this.buildScopeConditions(scope);
+    conditions.push(isNotNull(blocks.source_id));
+    conditions.push(isNotNull(sources.raw_content));
+
+    if (patterns.length === 0) {
+      return [];
+    }
+    if (patterns.length === 1) {
+      conditions.push(ilike(sources.raw_content, `%${patterns[0]}%`));
+    } else {
+      conditions.push(
+        or(...patterns.map(p => ilike(sources.raw_content, `%${p}%`)))!
+      );
+    }
+
+    const rows = await adminDb
+      .select({
+        blockMountId: blockMounts.id,
+        blockType: blocks.block_type,
+        title: blocks.title,
+        rawContent: sources.raw_content,
+      })
+      .from(blockMounts)
+      .innerJoin(blocks, eq(blockMounts.block_id, blocks.id))
+      .innerJoin(sources, eq(blocks.source_id, sources.id))
+      .where(and(...conditions));
+
+    return rows as SourceContentRow[];
+  }
+
+  /**
+   * source_summaries.summary ILIKE 필터링으로 매칭 블록·요약 조회
+   */
+  async findBySourceSummaryPattern(
+    patterns: string[],
+    scope: BlockSearchScope,
+    languages?: string[]
+  ): Promise<SourceSummaryRow[]> {
+    const conditions = this.buildScopeConditions(scope);
+    conditions.push(isNotNull(blocks.source_id));
+
+    if (patterns.length === 0) {
+      return [];
+    }
+    if (patterns.length === 1) {
+      conditions.push(ilike(sourceSummaries.summary, `%${patterns[0]}%`));
+    } else {
+      conditions.push(
+        or(
+          ...patterns.map(p => ilike(sourceSummaries.summary, `%${p}%`))
+        )!
+      );
+    }
+    if (languages?.length) {
+      conditions.push(inArray(sourceSummaries.language, languages));
+    }
+
+    const rows = await adminDb
+      .select({
+        blockMountId: blockMounts.id,
+        blockType: blocks.block_type,
+        title: blocks.title,
+        language: sourceSummaries.language,
+        summary: sourceSummaries.summary,
+      })
+      .from(blockMounts)
+      .innerJoin(blocks, eq(blockMounts.block_id, blocks.id))
+      .innerJoin(sources, eq(blocks.source_id, sources.id))
+      .innerJoin(sourceSummaries, eq(sources.id, sourceSummaries.source_id))
+      .where(and(...conditions));
+
+    return rows;
   }
 
   /**

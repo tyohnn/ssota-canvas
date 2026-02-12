@@ -61,6 +61,7 @@ export function transformBlockViewToNodeData(
     sizes: blockView.viewModeSizes, // 뷰 모드별 크기 정보 (GroupBlock 등에서 사용)
     size: blockView.size, // 현재 크기 (TextBlock, ShapeBlock 등에서 사용, 레거시)
     parentBlockMountId: blockView.parentBlockMountId,
+    sourceId: blockView.sourceId,
     createdAt: blockView.createdAt,
     updatedAt: blockView.updatedAt,
     createdByProfile: blockView.createdByProfile || {

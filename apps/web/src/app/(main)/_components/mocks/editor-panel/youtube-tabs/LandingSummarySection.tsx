@@ -164,7 +164,7 @@ export function LandingSummarySection({ step }: LandingSummarySectionProps) {
       onExtractSummary={async (_language: string) => { }}
       isExtracting={isExtracting}
       hasAccessForSelectedLanguage={true}
-      summaryAccessGrantedLanguages={['en']}
+      sourceSummaryAccessLanguages={['en']}
       readonly={false}
     />
   );

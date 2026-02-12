@@ -17,9 +17,11 @@ import React, {
 } from 'react';
 import { useVisualSummary } from '../hooks/use-visual-summary';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
-import { useMultiSummaryJobRealtime } from '@/domains/youtube-app-space/frontend/hooks';
-import type { SummaryJob } from '@/domains/youtube-app-space/frontend/hooks';
-import { getInProgressSummaryJobAction } from '@/domains/youtube-app-space/actions/summary/get-in-progress-summary-job.action';
+import {
+  useMultiSourceJobRealtime,
+  type SourceJob,
+} from '@/domains/source-management/frontend/hooks';
+import { getInProgressSourceJobAction } from '@/domains/source-management/actions/summary/get-in-progress-source-job.action';
 import { isSuccess } from '@/lib';
 import { isTempPageId } from '@/domains/workspace-management/shared/utils/temp-page-id.utils';
 import type { VisualTemplate } from '../../shared/types/template.types';
@@ -28,13 +30,23 @@ import type { UIMessage } from 'ai';
 
 const AUTO_SUMMARY_TODO_ID = 'auto-summary';
 
-function summaryJobToStatusJobStatus(
+function sourceJobStatusToStatusJobStatus(
   s: string
 ): StatusJob['status'] {
   if (s === 'pending' || s === 'processing') return 'running';
   if (s === 'completed') return 'completed';
   if (s === 'failed') return 'failed';
   return 'running';
+}
+
+function getTaskDescription(raw: SourceJob): string {
+  if ('current_step' in raw && raw.current_step === 'extracting') {
+    return 'Extracting script...';
+  }
+  if ('current_step' in raw && raw.current_step === 'summarizing') {
+    return 'Generating summary...';
+  }
+  return 'Generating summary...';
 }
 
 interface AIActionContextValue {
@@ -120,35 +132,37 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
     )
     .map(j => j.sourceBlockId);
 
-  const onJobUpdate = useCallback((blockId: string, raw: SummaryJob) => {
-    setJobs(prev => {
-      const idx = prev.findIndex(
-        j => j.type === 'summary' && j.sourceBlockId === blockId
-      );
-      if (idx === -1) return prev;
-      const job = prev[idx];
-      if (!job) return prev;
-      const status = summaryJobToStatusJobStatus(raw.status);
-      const next = [...prev];
-      next[idx] = {
-        id: job.id,
-        type: job.type,
-        status,
-        error:
-          raw.error_message && status === 'failed'
-            ? new Error(raw.error_message)
-            : null,
-        tasks:
-          status === 'running' || status === 'pending'
-            ? [
+  const onJobUpdate = useCallback(
+    (blockId: string, raw: SourceJob) => {
+      setJobs(prev => {
+        const idx = prev.findIndex(
+          j => j.type === 'summary' && j.sourceBlockId === blockId
+        );
+        if (idx === -1) return prev;
+        const job = prev[idx];
+        if (!job) return prev;
+        const status = sourceJobStatusToStatusJobStatus(raw.status);
+        const taskDesc = getTaskDescription(raw);
+        const next = [...prev];
+        next[idx] = {
+          id: job.id,
+          type: job.type,
+          status,
+          error:
+            raw.error_message && status === 'failed'
+              ? new Error(raw.error_message)
+              : null,
+          tasks:
+            status === 'running' || status === 'pending'
+              ? [
                 {
                   id: AUTO_SUMMARY_TODO_ID,
                   title: 'Auto Summary',
-                  description: 'Generating summary...',
+                  description: taskDesc,
                   status: 'pending' as const,
                 },
               ]
-            : [
+              : [
                 {
                   id: AUTO_SUMMARY_TODO_ID,
                   title: 'Auto Summary',
@@ -159,29 +173,37 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
                   status: 'completed' as const,
                 },
               ],
-        sourceBlockId: job.sourceBlockId,
-        templateName: job.templateName,
-        createdAt: job.createdAt,
-      };
-      return next;
-    });
-  }, []);
+          sourceBlockId: job.sourceBlockId,
+          templateName: job.templateName,
+          createdAt: job.createdAt,
+        };
+        return next;
+      });
+    },
+    []
+  );
 
-  useMultiSummaryJobRealtime(summaryBlockIds, onJobUpdate);
+  useMultiSourceJobRealtime(summaryBlockIds, onJobUpdate);
 
   useEffect(() => {
     if (!pageId || isTempPageId(pageId)) return;
-    getInProgressSummaryJobAction({ pageId }).then(result => {
-      if (!isSuccess(result) || !result.data.jobs.length) return;
-      const initialJobs: StatusJob[] = result.data.jobs.map(j => ({
+    getInProgressSourceJobAction({ pageId }).then(sourceResult => {
+      const sourceJobs = isSuccess(sourceResult) ? sourceResult.data.jobs : [];
+      if (!sourceJobs.length) return;
+      const initialJobs: StatusJob[] = sourceJobs.map(j => ({
         id: `summary-${j.block_id}-${j.id}`,
         type: 'summary' as const,
-        status: summaryJobToStatusJobStatus(j.status),
+        status: sourceJobStatusToStatusJobStatus(j.status),
         tasks: [
           {
             id: AUTO_SUMMARY_TODO_ID,
             title: 'Auto Summary',
-            description: 'Generating summary...',
+            description:
+              j.current_step === 'extracting'
+                ? 'Extracting script...'
+                : j.current_step === 'summarizing'
+                  ? 'Generating summary...'
+                  : 'Generating summary...',
             status: 'pending' as const,
           },
         ],
@@ -201,10 +223,10 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
   const setAutoSummaryBlockIdWithOpen = useCallback(
     (blockId: string | null) => {
       if (blockId) {
-        const exists = jobs.some(
+        const existingJob = jobs.find(
           j => j.type === 'summary' && j.sourceBlockId === blockId
         );
-        if (!exists) {
+        if (!existingJob) {
           pushJob({
             type: 'summary',
             status: 'running',
@@ -219,11 +241,27 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
             error: null,
             sourceBlockId: blockId,
           });
+        } else if (
+          existingJob.status === 'completed' ||
+          existingJob.status === 'failed'
+        ) {
+          updateJob(existingJob.id, {
+            status: 'running',
+            error: null,
+            tasks: [
+              {
+                id: AUTO_SUMMARY_TODO_ID,
+                title: 'Auto Summary',
+                description: 'Generating summary...',
+                status: 'pending',
+              },
+            ],
+          });
         }
         visualSummaryHook.showStatusWindow();
       }
     },
-    [jobs, pushJob, visualSummaryHook.showStatusWindow]
+    [jobs, pushJob, updateJob, visualSummaryHook.showStatusWindow]
   );
 
   const initialNoContentDismissedRef = useRef(false);

@@ -1,57 +1,51 @@
 /**
  * Extract Script Action Business Logic
  *
- * 순수 함수로 추출된 비즈니스 로직
- * - Hook과 executeAction 모두에서 사용 가능
+ * sourceId 있을 때만 extractSourceContentAction 호출.
  */
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { processVideoScriptAction } from '@/domains/youtube-app-space/actions/script/process-video-script.action';
+import { extractSourceContentAction } from '@/domains/source-management/actions/source/extract-source-content.action';
 
 export interface ExtractScriptResult {
   success: boolean;
+  alreadyExists?: boolean;
   error?: string;
 }
 
 /**
- * YouTube 스크립트 추출 비즈니스 로직
+ * YouTube 스크립트 추출 (source 경로만)
  *
  * @param blockId - 블록 ID
- * @param blockData - 블록 데이터
- * @returns 추출 결과
+ * @param blockData - 블록 데이터 (sourceId 필요)
  */
 export async function extractScriptAction(
   blockId: string,
   blockData: BlockNodeData
 ): Promise<ExtractScriptResult> {
-  const properties = blockData.properties as YoutubeBlockProperties;
-  const youtubeId = properties.youtubeId;
+  const sourceId = blockData.sourceId;
 
-  if (!youtubeId) {
+  if (!sourceId) {
     return {
       success: false,
-      error: 'YouTube ID not found',
+      error: 'URL을 입력해 메타데이터를 불러온 후 스크립트를 추출할 수 있습니다.',
     };
   }
 
   try {
-    const result = await processVideoScriptAction({
-      blockId,
-      youtubeId,
-    });
+    const result = await extractSourceContentAction({ blockId });
 
     if (result.success) {
       return {
         success: true,
-      };
-    } else {
-      return {
-        success: false,
-        error: result.error || 'Failed to extract script',
+        alreadyExists: result.data?.alreadyExists ?? false,
       };
     }
+    return {
+      success: false,
+      error: result.error || 'Failed to extract script',
+    };
   } catch (error) {
-    console.error('[extractScriptAction] Error extracting script:', error);
+    console.error('[extractScriptAction] Error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

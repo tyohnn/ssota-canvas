@@ -19,7 +19,7 @@ export interface SummarySectionBusinessLogic {
   youtubeId: string | undefined;
   youtubeTitle: string | undefined;
   summaries: VideoSummaryView[]; // 현재 선택된 언어의 요약만 포함 (UI 호환성)
-  availableLanguages: string[]; // 이미 추출된 언어 목록 (summaryAccessGrantedLanguages 또는 action_transactions 기록)
+  availableLanguages: string[]; // 이미 추출된 언어 목록 (sourceSummaryAccessLanguages 또는 action_transactions 기록)
   selectedLanguage: string; // 현재 선택된 언어
   setSelectedLanguage: (language: string) => void;
   currentSummary: VideoSummaryView | null | undefined; // 선택된 언어의 요약 (null: 아직 추출 안 됨, undefined: 로딩 중)
@@ -28,6 +28,6 @@ export interface SummarySectionBusinessLogic {
   handleExtractSummary: (language: string) => Promise<void>;
   isExtracting: boolean;
   hasAccessForSelectedLanguage: boolean; // 선택된 언어가 이미 추출되었는지 여부
-  summaryAccessGrantedLanguages: string[] | undefined; // summaryAccessGrantedLanguages 원본 (체크 표시용)
+  sourceSummaryAccessLanguages: string[] | undefined; // sourceSummaryAccessLanguages 원본 (체크 표시용)
   readonly: boolean; // Readonly 모드 플래그 (퍼블릭 페이지 등)
 }

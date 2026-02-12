@@ -9,11 +9,9 @@
  * - 채널 정보 관리
  *
  * 접근: Drizzle(서버)로만 사용. PostgREST에 노출하지 않음 (config.toml schemas에 포함하지 않음).
- * Realtime은 publication(supabase_realtime)으로 summary_jobs 등이 노출됨.
  */
 import { relations, sql } from 'drizzle-orm';
 import {
-  bigint,
   index,
   integer,
   jsonb,
@@ -21,7 +19,6 @@ import {
   pgSchema,
   text,
   timestamp,
-  unique,
   uuid,
 } from 'drizzle-orm/pg-core';
 import { authenticatedRole } from 'drizzle-orm/supabase';
@@ -160,218 +157,12 @@ export const channelsRelations = relations(channels, ({ many }) => ({
   videos: many(videos),
 }));
 
-export const videosRelations = relations(videos, ({ one, many }) => ({
+export const videosRelations = relations(videos, ({ one }) => ({
   channel: one(channels, {
     fields: [videos.channel_id],
     references: [channels.id],
   }),
-  summaries: many(videoSummaries),
 }));
-
-/**
- * Video Summaries Table
- *
- * Multi-language AI-generated summaries for YouTube videos
- * - One summary per video per language
- * - Independent lifecycle management per language
- */
-export const videoSummaries = youtubeAppSpaceSchema
-  .table(
-    'video_summaries',
-    {
-      // Primary Key
-      id: uuid('id').primaryKey().defaultRandom(),
-
-      // Foreign Key to videos
-      video_id: uuid('video_id')
-        .notNull()
-        .references(() => videos.id, { onDelete: 'cascade' }),
-
-      // Language code (ISO 639-1, 2 characters)
-      language: text('language').notNull(),
-
-      // Summary content
-      summary: text('summary').notNull(),
-
-      // Keywords (AI-extracted keywords from summary)
-      keywords: text('keywords').array(), // TEXT[] - array of keyword strings
-
-      // Timestamps
-      created_at: timestamp('created_at', { withTimezone: true })
-        .notNull()
-        .defaultNow(),
-      updated_at: timestamp('updated_at', { withTimezone: true })
-        .notNull()
-        .defaultNow(),
-    },
-    table => ({
-      // Unique constraint: 비디오당 언어당 하나의 summary
-      videoLanguageUnique: unique('video_summaries_video_id_language_unique').on(
-        table.video_id,
-        table.language
-      ),
-      // Indexes
-      videoIdIdx: index('idx_video_summaries_video_id').on(table.video_id),
-      languageIdx: index('idx_video_summaries_language').on(table.language),
-
-      // Full-text search indexes: Hybrid approach
-      // 주요 언어(ko, en, es, ja, zh)는 언어별 인덱스로 정확한 stemming 지원
-      // 나머지 언어(fr, de, pt, ru, ar)는 simple 인덱스로 처리
-      // Note: PostgreSQL 기본 제공 언어만 사용 (korean, japanese는 기본 제공되지 않음)
-
-      // Korean (한국어) - simple 인덱스 (korean config 없음)
-      summaryKoIdx: index('idx_video_summaries_summary_ko')
-        .using('gin', sql`to_tsvector('simple', ${table.summary})`)
-        .where(sql`${table.language} = 'ko'`),
-
-      // English - 언어별 인덱스
-      summaryEnIdx: index('idx_video_summaries_summary_en')
-        .using('gin', sql`to_tsvector('english', ${table.summary})`)
-        .where(sql`${table.language} = 'en'`),
-
-      // Spanish (Español) - 언어별 인덱스
-      summaryEsIdx: index('idx_video_summaries_summary_es')
-        .using('gin', sql`to_tsvector('spanish', ${table.summary})`)
-        .where(sql`${table.language} = 'es'`),
-
-      // Japanese (日本語) - simple 인덱스 (japanese config 없음)
-      summaryJaIdx: index('idx_video_summaries_summary_ja')
-        .using('gin', sql`to_tsvector('simple', ${table.summary})`)
-        .where(sql`${table.language} = 'ja'`),
-
-      // Chinese (中文) - simple 인덱스 (chinese config 없음)
-      summaryZhIdx: index('idx_video_summaries_summary_zh')
-        .using('gin', sql`to_tsvector('simple', ${table.summary})`)
-        .where(sql`${table.language} = 'zh'`),
-
-      // 나머지 언어(fr, de, pt, ru, ar) - simple 인덱스
-      summaryOtherIdx: index('idx_video_summaries_summary_other')
-        .using('gin', sql`to_tsvector('simple', ${table.summary})`)
-        .where(sql`${table.language} NOT IN ('ko', 'en', 'es', 'ja', 'zh')`),
-
-      // RLS: 최후의 방어선 (Defense in Depth)
-      blockDirectAccessPolicy: pgPolicy(
-        'video_summaries_block_direct_access',
-        {
-          for: 'all',
-          to: authenticatedRole,
-          using: sql`false`,
-          withCheck: sql`false`,
-        }
-      ),
-    })
-  )
-  .enableRLS();
-
-export const videoSummariesRelations = relations(videoSummaries, ({ one }) => ({
-  video: one(videos, {
-    fields: [videoSummaries.video_id],
-    references: [videos.id],
-  }),
-}));
-
-/**
- * Action Transactions Table
- *
- * YouTube 블록의 유료 액션 추적 (Org 기반)
- * - org_id + video_id로 org 단위 권한 관리
- * - 같은 org 내 워크스페이스 간 자동 공유
- * - 크레딧 정책과 일치 (org 단위)
- */
-export const actionTransactions = youtubeAppSpaceSchema
-  .table(
-    'action_transactions',
-    {
-      // Primary Key
-      id: uuid('id').primaryKey().defaultRandom(),
-
-      // Org & Video (Resource)
-      org_id: uuid('org_id').notNull(), // Organization ID (org 단위 권한 관리)
-      video_id: uuid('video_id')
-        .notNull()
-        .references(() => videos.id, { onDelete: 'cascade' }),
-
-      // Action Type (모든 유료 액션)
-      action_type: text('action_type').notNull(), // 'extract_script', 'extract_summary', 'smart_summary', ...
-
-      // Language (for multi-language actions like extract_summary)
-      language: text('language'), // nullable - extract_script는 null, extract_summary는 언어 코드
-
-      // Timestamps
-      created_at: timestamp('created_at', { withTimezone: true })
-        .notNull()
-        .defaultNow(),
-      completed_at: timestamp('completed_at', { withTimezone: true }), // null = pending
-    },
-    table => ({
-      // Indexes
-      orgVideoIdx: index('idx_action_transactions_org_video').on(
-        table.org_id,
-        table.video_id,
-        table.action_type
-      ),
-      videoIdIdx: index('idx_action_transactions_video_id').on(table.video_id),
-      actionTypeIdx: index('idx_action_transactions_action_type').on(
-        table.action_type
-      ),
-
-      // RLS: 최후의 방어선 (Defense in Depth)
-      // 모든 직접 접근 차단 - 서버를 통하지 않은 DB 직접 접근 방지
-      // 서버에서 권한 검증 후 admin client (RLS 우회)로만 접근 가능
-      blockDirectAccessPolicy: pgPolicy(
-        'action_transactions_block_direct_access',
-        {
-          for: 'all',
-          to: authenticatedRole,
-          using: sql`false`,
-          withCheck: sql`false`,
-        }
-      ),
-    })
-  )
-  .enableRLS();
-
-/**
- * Summary Jobs Table
- *
- * Auto summary queue state (Realtime). One row per (block_id, language).
- * Actual queue is handled by queue domain (e.g. pgmq); this table is for UI/Realtime.
- */
-export const summaryJobs = youtubeAppSpaceSchema.table(
-  'summary_jobs',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    block_id: uuid('block_id').notNull(),
-    org_id: uuid('org_id').notNull(),
-    youtube_id: text('youtube_id').notNull(),
-    language: text('language').notNull().default('en'),
-    pgmq_msg_id: bigint('pgmq_msg_id', { mode: 'number' }),
-    status: text('status').notNull().default('pending'),
-    created_at: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    started_at: timestamp('started_at', { withTimezone: true }),
-    completed_at: timestamp('completed_at', { withTimezone: true }),
-    error_message: text('error_message'),
-  },
-  table => ({
-    blockIdLanguageUnique: unique('summary_jobs_block_id_language_unique').on(
-      table.block_id,
-      table.language
-    ),
-    blockIdIdx: index('idx_summary_jobs_block_id').on(table.block_id),
-    statusIdx: index('idx_summary_jobs_status').on(table.status),
-    blockDirectAccessPolicy: pgPolicy(
-      'summary_jobs_block_direct_access',
-      {
-        for: 'all',
-        to: authenticatedRole,
-        using: sql`false`,
-        withCheck: sql`false`,
-      }
-    ),
-  })
-).enableRLS();
 
 // ============================================
 // TypeScript Types
@@ -381,9 +172,3 @@ export type Channel = typeof channels.$inferSelect;
 export type NewChannel = typeof channels.$inferInsert;
 export type Video = typeof videos.$inferSelect;
 export type NewVideo = typeof videos.$inferInsert;
-export type ActionTransaction = typeof actionTransactions.$inferSelect;
-export type NewActionTransaction = typeof actionTransactions.$inferInsert;
-export type VideoSummary = typeof videoSummaries.$inferSelect;
-export type NewVideoSummary = typeof videoSummaries.$inferInsert;
-export type SummaryJob = typeof summaryJobs.$inferSelect;
-export type NewSummaryJob = typeof summaryJobs.$inferInsert;

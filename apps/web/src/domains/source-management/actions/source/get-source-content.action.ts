@@ -30,7 +30,7 @@ async function getSourceContentInternal(
   const dto: SourceContentDTO = {
     sourceId: source.id.value,
     rawContent: source.rawContent,
-    contentLanguage: source.contentLanguage?.value ?? null,
+    contentLanguage: source.contentLanguage ?? null,
     extractedAt: source.extractedAt,
   };
   return ok(dto);

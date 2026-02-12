@@ -5,12 +5,8 @@ import { useState } from 'react';
 import { Check, Loader2, Sparkles } from 'lucide-react';
 
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import {
-  type YoutubeBlockProperties,
-  YoutubeBlockPropertiesVO,
-} from '@/domains/block-management/shared/value-objects/block-properties';
+import { useSourceSummaryLanguages } from '@/domains/source-management/frontend/hooks';
 import { SUPPORTED_LANGUAGES } from '@/domains/youtube-app-space/shared/value-objects/language-code.vo';
-import { useAvailableSummaryLanguages } from '@/domains/youtube-app-space/frontend/hooks';
 
 import { useExtractSummary } from './use-extract-summary';
 import { ExtractSummaryActionView } from './extract-summary-action.view';
@@ -20,9 +16,6 @@ interface ExtractSummaryActionProps {
   blockData: BlockNodeData;
 }
 
-/**
- * 언어 코드를 언어 이름으로 변환
- */
 function getLanguageName(code: string): string {
   const languageNames: Record<string, string> = {
     en: 'English',
@@ -50,40 +43,19 @@ export function ExtractSummaryAction({
       blockData,
     });
 
-  // blockData에서 youtubeId 추출
-  const youtubeId = (() => {
-    try {
-      const properties = blockData?.properties as
-        | YoutubeBlockProperties
-        | undefined;
-      if (properties) {
-        const youtubeProperties = YoutubeBlockPropertiesVO.fromJSON(properties);
-        return youtubeProperties.youtubeId;
-      }
-    } catch (error) {
-      console.warn(
-        '[ExtractSummaryAction] Failed to parse YouTube properties:',
-        error
-      );
-    }
-    return undefined;
-  })();
+  const sourceId = blockData?.sourceId;
 
-  // 이미 추출된 언어 목록 조회
-  const { languages: availableLanguages } = useAvailableSummaryLanguages({
+  const { languages: availableLanguages } = useSourceSummaryLanguages({
     blockId,
-    youtubeId: youtubeId || '',
-    readonly: false,
+    ...(sourceId ? { sourceId } : {}),
+    enabled: !!blockId && !!sourceId,
   });
 
   const handleLanguageSelect = (language: string) => {
     setIsPopoverOpen(false);
-
-    // 이미 추출된 언어는 API 호출 없이 바로 탭 열기
     if (availableLanguages.includes(language)) {
       openSummaryTab(language);
     } else {
-      // 아직 추출되지 않은 언어는 API 호출 후 탭 열기
       extractSummary(language);
     }
   };
@@ -109,7 +81,7 @@ export function ExtractSummaryAction({
       onPopoverOpenChange={setIsPopoverOpen}
       icon={getIcon()}
       tooltip={isSuccess ? 'Summary Extracted!' : 'Extract Summary'}
-      disabled={isLoading}
+      disabled={isLoading || !sourceId}
       languages={languages}
       availableLanguages={availableLanguages}
       onLanguageSelect={handleLanguageSelect}

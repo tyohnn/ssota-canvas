@@ -289,6 +289,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         blockProperties: blocks.properties,
         blockCustomProperties: blocks.custom_properties,
         blockContent: blocks.content, // JSONB content
+        blockSourceId: blocks.source_id,
         blockCreatedBy: blocks.created_by,
         blockCreatedAt: blocks.created_at,
         blockUpdatedAt: blocks.updated_at,
@@ -335,6 +336,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         custom_properties:
           row.blockCustomProperties as CustomPropertyDefinition[],
         content: row.blockContent, // JSONB content
+        source_id: row.blockSourceId ?? null,
         created_by: row.blockCreatedBy || undefined,
         created_at: row.blockCreatedAt,
         updated_at: row.blockUpdatedAt,
@@ -425,6 +427,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     properties: Record<string, any>;
     custom_properties: CustomPropertyDefinition[];
     content?: unknown; // JSONB content
+    source_id?: string | null;
     created_by?: string;
     created_at: Date;
     updated_at: Date;
@@ -490,7 +493,8 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       row.updated_at,
       row.deleted_at,
       row.content, // JSONB content
-      createdByProfile
+      createdByProfile,
+      row.source_id ?? null
     );
 
     // BlockAggregate 재구성

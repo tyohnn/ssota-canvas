@@ -10,6 +10,7 @@ export class SourceManagementError extends Error {
 }
 
 export type SourceManagementErrorCode =
+  | 'INVALID_SOURCE_JOB_ID'
   | 'INVALID_SOURCE_ID'
   | 'INVALID_SOURCE_TYPE'
   | 'INVALID_SOURCE_URL'
@@ -28,6 +29,7 @@ export const SOURCE_MANAGEMENT_ERROR_MESSAGES: Record<
   SourceManagementErrorCode,
   string
 > = {
+  INVALID_SOURCE_JOB_ID: 'Invalid source job ID.',
   INVALID_SOURCE_ID: 'Invalid source ID.',
   INVALID_SOURCE_TYPE: 'Invalid source type.',
   INVALID_SOURCE_URL: 'Invalid source URL.',

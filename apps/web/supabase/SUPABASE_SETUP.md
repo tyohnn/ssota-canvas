@@ -280,12 +280,12 @@ pnpm supabase:dev
 | 1 | 마이그레이션 1차 적용 | `20260205140000` (pgmq extension + summary_queue) 적용 |
 | 2 | (Remote만) 수동 확인 | 필요 시 **Database → Extensions**에서 pgmq 확인, **Expose Queues via PostgREST** 토글 |
 | 3 | 마이그레이션 2차 적용 | `20260205140100` (pgmq_public, summary_jobs, pg_cron 등) 적용 |
-| 4 | **Edge Function 배포** | `process-summary-queue` 함수를 **먼저** 배포. Cron 설정 전에 필수. (로컬: `pnpm supabase:dev` 또는 배포 후) |
-| 5 | **Cron** | 마이그레이션에 이미 등록됨. 배포 환경만 **한 번** `config.edge_function_cron_config` 에 INSERT (base_url, anon_key). 로컬은 seed에서 넣음. |
-| 6 | **Edge Function Secrets** (Remote) | `process-summary-queue`가 쓰는 `NEXT_PUBLIC_APP_URL`, `INTERNAL_API_SECRET` 을 **Supabase**에 설정. Dashboard → Project Settings → Edge Functions → **Secrets** 또는 `supabase secrets set NEXT_PUBLIC_APP_URL=... INTERNAL_API_SECRET=...` |
-| 7 | 앱 환경변수 (앱 호출 시) | 앱(Vercel 등)에 `INTERNAL_API_SECRET`, `NEXT_PUBLIC_APP_URL` 설정. Edge Function이 `POST {APP_URL}/api/youtube/process-summary-job` 호출 시 사용. |
+| 4 | **Edge Function 배포** | `process-source-job-queue` 함수 배포 (source 요약 파이프라인). (로컬: `pnpm supabase:dev` 또는 배포 후) |
+| 5 | **Cron** | Source job 큐는 `process-source-job-queue` Edge Function으로 처리. 배포 환경에서 해당 Cron 설정 시 `config.edge_function_cron_config` 등 참고. |
+| 6 | **Edge Function Secrets** (Remote) | `process-source-job-queue`가 쓰는 `NEXT_PUBLIC_APP_URL`, `INTERNAL_API_SECRET` 을 **Supabase**에 설정. |
+| 7 | 앱 환경변수 (앱 호출 시) | 앱(Vercel 등)에 `INTERNAL_API_SECRET`, `NEXT_PUBLIC_APP_URL` 설정. Edge Function이 `POST {APP_URL}/api/source/process-job` 호출 시 사용. |
 
-**요약**: Cron을 쓰려면 **먼저 Edge Function을 배포한 뒤**, Cron Job에서 그 Edge Function을 선택해야 합니다.
+**참고**: Legacy `process-summary-queue` / `summary_queue` / `summary_jobs` 는 제거됨. Source 경로는 `process-source-job-queue` 및 `source_job_queue` 사용.
 
 ---
 
@@ -306,7 +306,7 @@ Summary Queue 관련 마이그레이션은 **두 번** 나뉘어 적용됩니다
 
 ### 2. Cron Job (Summary Queue 워커) — 마이그레이션에 포함, 환경마다 한 번 설정
 
-마이그레이션에 **pg_cron + pg_net**으로 `invoke-process-summary-queue` 가 등록되어 있고, **config.edge_function_cron_config** 에서 base_url/anon_key를 읽어 Edge Function을 HTTP로 호출합니다. **환경마다 한 번만** 설정하면 됩니다.
+Legacy Cron `invoke-process-summary-queue` 는 마이그레이션 `20260211190100` 에서 unschedule 됨. Source job 처리는 `process-source-job-queue` Edge Function을 사용합니다.
 
 - **로컬**: seed.sql에서 `http://kong:8000` 으로 한 번 넣음. 별도 설정 없음.
 - **배포 환경**: 마이그레이션에는 INSERT가 없으므로, 배포 후 **한 번** 아래 SQL 실행 (Dashboard → SQL Editor 또는 서비스 역할로).
@@ -317,10 +317,10 @@ VALUES (1, 'https://<project-ref>.supabase.co', '<anon key>')
 ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, anon_key = EXCLUDED.anon_key;
 ```
 
-Cron이 호출하는 앱 API(`/api/youtube/process-summary-job`)가 동작하려면 **앱(Vercel 등) 환경변수**에 다음이 필요합니다.
+Source job Edge Function이 호출하는 앱 API(`/api/source/process-job`)가 동작하려면 **앱(Vercel 등) 환경변수**에 다음이 필요합니다.
 
 - **INTERNAL_API_SECRET**: 내부 API 인증용 시크릿 (Cron/Edge Function에서 `X-Internal-Secret` 헤더로 전달).
-- **NEXT_PUBLIC_APP_URL** (또는 앱 베이스 URL): Edge Function이 `POST {APP_URL}/api/youtube/process-summary-job` 호출 시 사용.
+- **NEXT_PUBLIC_APP_URL** (또는 앱 베이스 URL): Edge Function이 `POST {APP_URL}/api/source/process-job` 호출 시 사용.
 
 ### 3. config.toml이 리모트에 적용되지 않게 하기 (Branching)
 
@@ -356,7 +356,7 @@ Remote 브랜치에 마이그레이션이 자동 적용되려면:
 Summary Queue 사용 시 Cron은 **마이그레이션**에 포함되어 있습니다 (5초마다 config.edge_function_cron_config 의 URL로 Edge Function HTTP 호출). 로컬은 seed에서 config 행이 들어가고, **배포 환경은 배포 후 위 2번처럼 config INSERT 한 번** 실행하면 됩니다.  
 대시보드(Integrations → Cron)에서는 이 job이 "database function"으로 표시될 수 있는데, pg_cron이 SQL로만 등록되기 때문이며 실제 동작은 **HTTP Request**(net.http_post)와 동일합니다.
 
-- **앱 측 환경변수**(Vercel 등): `INTERNAL_API_SECRET`, `NEXT_PUBLIC_APP_URL`. Edge Function이 `POST {APP_URL}/api/youtube/process-summary-job` 호출 시 사용.
+- **앱 측 환경변수**(Vercel 등): `INTERNAL_API_SECRET`, `NEXT_PUBLIC_APP_URL`. Edge Function이 `POST {APP_URL}/api/source/process-job` 호출 시 사용.
 - **Edge Function이 쓰는 값**: Remote는 **Supabase Dashboard → Project Settings → Edge Functions → Secrets** (또는 `supabase secrets set`)에 `NEXT_PUBLIC_APP_URL`, `INTERNAL_API_SECRET` 설정. 로컬은 `pnpm supabase:dev` (내부적으로 `--env-file supabase/.env.local` 사용). supabase/.env.example 을 supabase/.env.local 로 복사 후 값 설정. **로컬에서 Edge Function은 Docker 안에서 실행되므로**, Next.js(호스트의 3000 포트)를 가리키려면 `NEXT_PUBLIC_APP_URL=http://host.docker.internal:3000` 으로 두어야 함. `localhost:3000` 이면 Connection refused 발생.
 - **Preview(dev)에서 Vercel Deployment Protection 사용 시**: Edge가 앱을 호출하면 Vercel이 먼저 401 HTML("Authentication Required")을 반환할 수 있음. 이때 **Vercel** → Project Settings → Deployment Protection → **Protection Bypass for Automation** 에서 시크릿을 생성한 뒤, 그 값을 **Supabase Edge Function Secrets**에 `VERCEL_PROTECTION_BYPASS_SECRET` 으로 넣으면 Edge가 `x-vercel-protection-bypass` 헤더로 전달해 보호를 통과함.
 

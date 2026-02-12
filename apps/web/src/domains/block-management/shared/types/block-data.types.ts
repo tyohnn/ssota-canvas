@@ -85,6 +85,8 @@ export interface BaseNodeData extends Record<string, unknown> {
   parentBlockMountId?: string;
   /** 그룹 collision 시각 피드백용 (UI only, not persisted) */
   isCollisionTarget?: boolean;
+  /** 링크된 소스 ID (source-management sources.id, optional) */
+  sourceId?: string;
   // 메타데이터
   createdAt?: string;
   updatedAt?: string;
@@ -249,6 +251,7 @@ export function buildBlockNodeData<T extends BlockType>(
     createdByProfile?: UserProfile;
     createdAt?: string;
     updatedAt?: string;
+    sourceId?: string;
   }
 ): BlockNodeData {
   // BlockPropertiesFactory에서 이미 올바른 타입의 properties를 반환하므로
@@ -277,5 +280,6 @@ export function buildBlockNodeData<T extends BlockType>(
     },
     createdAt: baseData.createdAt,
     updatedAt: baseData.updatedAt,
+    sourceId: baseData.sourceId,
   } as BlockNodeData;
 }

@@ -21,8 +21,15 @@ function getVideoIdFromUrl(url: string): string | null {
   }
 }
 
+/** Format transcript with timestamps for context (matches previous youtube-app-space format). */
 function scriptToRawContent(script: YoutubeScript): string {
-  return script.transcript.map(seg => seg.text).join('\n');
+  return script.transcript
+    .map(seg => {
+      const minutes = Math.floor(seg.start / 60);
+      const seconds = Math.floor(seg.start % 60);
+      return `[${minutes}:${seconds.toString().padStart(2, '0')}] ${seg.text}`;
+    })
+    .join('\n');
 }
 
 export class YoutubeExtractAdapter implements IExtractAdapter {

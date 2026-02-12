@@ -92,6 +92,7 @@ export function useDuplicateBlock(
         customProperties: originalNodeData.customProperties,
         content: originalNodeData.content,
         viewMode: originalNodeData.viewMode,
+        sourceId: originalNodeData.sourceId,
       }
     );
 
@@ -241,7 +242,7 @@ export function useDuplicateBlock(
         | BlockNodeData
         | undefined;
 
-      // 실제 블럭 데이터 생성
+      // 실제 블럭 데이터 생성 (서버 응답의 sourceId 우선, 없으면 낙관적 노드 값 사용)
       const realNodeData: BlockNodeData = buildBlockNodeData(
         originalBlockType,
         {
@@ -252,6 +253,7 @@ export function useDuplicateBlock(
           customProperties: optimisticNodeData?.customProperties,
           content: optimisticNodeData?.content,
           viewMode: optimisticNodeData?.viewMode || 'original',
+          sourceId: result.sourceId ?? optimisticNodeData?.sourceId,
         }
       );
 

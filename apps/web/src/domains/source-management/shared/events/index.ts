@@ -11,3 +11,9 @@ export {
   type ApplicationEvent,
   type SourceContentExtractedEventPayload,
 } from './source-content-extracted.application-event';
+export {
+  SourceJobCreatedEvent,
+  SourceJobRegisteredCompletedEvent,
+  SourceJobCompletedEvent,
+  SourceJobFailedEvent,
+} from './source-job.events';

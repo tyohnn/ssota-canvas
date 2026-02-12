@@ -1,21 +1,30 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useQueryClient } from '@tanstack/react-query';
 
 import { toast } from '@workspace/ui/components/ui/sonner';
 
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import {
-  type YoutubeBlockProperties,
-  YoutubeBlockPropertiesVO,
-} from '@/domains/block-management/shared/value-objects/block-properties';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 import { createTabOptions } from '@/domains/canvas-management/frontend/hooks/mode/create-tab-options';
+import { useSourceJobRealtime } from '@/domains/source-management/frontend/hooks';
 
 import { extractSummaryAction } from './extract-summary-action.business';
+
+async function invalidateSummaryQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  blockId: string
+) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['source-summary', blockId] }),
+    queryClient.invalidateQueries({
+      queryKey: ['source-summary-languages', blockId],
+    }),
+  ]);
+}
 
 interface UseExtractSummaryParams {
   blockId: string;
@@ -30,25 +39,31 @@ export function useExtractSummary({
   const canvasMode = useCanvasModeContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const waitingForJobRef = useRef(false);
+  const clearExtractingRef = useRef<(() => void) | null>(null);
 
-  // blockData에서 youtubeId 추출
-  const youtubeId = (() => {
-    try {
-      const properties = blockData?.properties as
-        | YoutubeBlockProperties
-        | undefined;
-      if (properties) {
-        const youtubeProperties = YoutubeBlockPropertiesVO.fromJSON(properties);
-        return youtubeProperties.youtubeId;
-      }
-    } catch (error) {
-      console.warn(
-        '[useExtractSummary] Failed to parse YouTube properties:',
-        error
-      );
+  const { isCompleted, isFailed } = useSourceJobRealtime(blockId, null);
+
+  useEffect(() => {
+    if (!waitingForJobRef.current) return;
+    if (isCompleted) {
+      waitingForJobRef.current = false;
+      invalidateSummaryQueries(queryClient, blockId);
+      setIsSuccess(true);
+      setTimeout(() => setIsSuccess(false), 2000);
+      setIsLoading(false);
+      clearExtractingRef.current?.();
+    } else if (isFailed) {
+      waitingForJobRef.current = false;
+      toast.error('Failed to extract summary', {
+        description: 'The extraction job failed. Please try again.',
+      });
+      setIsLoading(false);
+      clearExtractingRef.current?.();
     }
-    return undefined;
-  })();
+  }, [isCompleted, isFailed, queryClient, blockId]);
+
+  const sourceId = blockData?.sourceId;
 
   const extractSummary = useCallback(
     async (language: string) => {
@@ -75,36 +90,23 @@ export function useExtractSummary({
           { blockId, blockMountId }
         );
       };
+      clearExtractingRef.current = clearExtracting;
 
       try {
-        // 2. 요약 추출 (비동기로 진행)
         const result = await extractSummaryAction(blockId, blockData, language);
 
         if (result.success) {
-          setIsSuccess(true);
-          // 2초 후 체크 아이콘 숨기기
-          setTimeout(() => setIsSuccess(false), 2000);
-
-          // 3. TanStack Query 캐시 무효화 (요약 섹션 자동 업데이트)
-          if (youtubeId) {
-            await Promise.all([
-              queryClient.invalidateQueries({
-                queryKey: [
-                  'youtube-action-transaction',
-                  blockId,
-                  'extract_summary',
-                ],
-              }),
-              queryClient.invalidateQueries({
-                queryKey: ['youtube-summaries', blockId, youtubeId],
-              }),
-              queryClient.invalidateQueries({
-                queryKey: ['available-summary-languages', blockId, youtubeId],
-              }),
-            ]);
+          if (result.alreadyExists) {
+            if (sourceId) {
+              await invalidateSummaryQueries(queryClient, blockId);
+            }
+            setIsSuccess(true);
+            setTimeout(() => setIsSuccess(false), 2000);
+            clearExtracting();
+            setIsLoading(false);
+          } else {
+            waitingForJobRef.current = true;
           }
-          clearExtracting();
-          // 에디터 패널은 이미 열려있고, 캐시 무효화로 자동 업데이트됨
         } else {
           clearExtracting();
           console.error(
@@ -130,15 +132,15 @@ export function useExtractSummary({
                 'An error occurred while extracting the summary.',
             });
           }
+          setIsLoading(false);
         }
       } catch (error) {
         clearExtracting();
         console.error('[useExtractSummary] Error extracting summary:', error);
-      } finally {
         setIsLoading(false);
       }
     },
-    [blockId, blockData, youtubeId, queryClient, canvasMode]
+    [blockId, blockData, sourceId, queryClient, canvasMode]
   );
 
   // 이미 추출된 요약의 탭 열기 (API 호출 없이)

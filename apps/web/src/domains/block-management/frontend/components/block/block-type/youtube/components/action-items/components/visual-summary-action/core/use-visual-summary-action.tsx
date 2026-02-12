@@ -104,12 +104,15 @@ export function useVisualSummaryAction(
   // 4. Business Hook (도메인 훅 조합)
   // ============================================================================
 
+  const sourceId = blockData?.sourceId;
+
   const business = useVisualSummaryActionBusiness({
     pageId,
     blockId,
     sourceBlockPosition: position,
     sourceBlockSize: size,
     youtubeId,
+    sourceId,
     selectedLanguage: uiState.selectedLanguage,
     readonly,
     publishToken,

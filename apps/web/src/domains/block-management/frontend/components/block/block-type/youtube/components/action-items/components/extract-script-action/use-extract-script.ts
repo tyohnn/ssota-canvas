@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -12,12 +12,22 @@ import {
   YoutubeBlockPropertiesVO,
 } from '@/domains/block-management/shared/value-objects/block-properties';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
+import { useSourceJobRealtime } from '@/domains/source-management/frontend/hooks';
 
 import { extractScriptAction } from './extract-script-action.business';
 
 interface UseExtractScriptParams {
   blockId: string;
   blockData: BlockNodeData;
+}
+
+async function invalidateScriptQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  blockId: string
+) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['source-content', blockId] }),
+  ]);
 }
 
 export function useExtractScript({
@@ -28,8 +38,27 @@ export function useExtractScript({
   const canvasMode = useCanvasModeContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const waitingForJobRef = useRef(false);
 
-  // blockData에서 youtubeId 추출
+  const { isCompleted, isFailed } = useSourceJobRealtime(blockId, null);
+
+  useEffect(() => {
+    if (!waitingForJobRef.current) return;
+    if (isCompleted) {
+      waitingForJobRef.current = false;
+      invalidateScriptQueries(queryClient, blockId);
+      setIsSuccess(true);
+      setTimeout(() => setIsSuccess(false), 2000);
+      setIsLoading(false);
+    } else if (isFailed) {
+      waitingForJobRef.current = false;
+      toast.error('Failed to extract script', {
+        description: 'The extraction job failed. Please try again.',
+      });
+      setIsLoading(false);
+    }
+  }, [isCompleted, isFailed, queryClient, blockId]);
+
   const youtubeId = (() => {
     try {
       const properties = blockData?.properties as
@@ -56,27 +85,15 @@ export function useExtractScript({
       const result = await extractScriptAction(blockId, blockData);
 
       if (result.success) {
-        setIsSuccess(true);
-        // 2초 후 체크 아이콘 숨기기 (copy-youtube-link-toolbar-item.tsx 패턴)
-        setTimeout(() => setIsSuccess(false), 2000);
-
-        // 1. TanStack Query 캐시 무효화 (스크립트 섹션 업데이트)
-        if (youtubeId) {
-          await Promise.all([
-            queryClient.invalidateQueries({
-              queryKey: [
-                'youtube-action-transaction',
-                blockId,
-                'extract_script',
-              ],
-            }),
-            queryClient.invalidateQueries({
-              queryKey: ['youtube-script', blockId, youtubeId],
-            }),
-          ]);
+        if (result.alreadyExists) {
+          await invalidateScriptQueries(queryClient, blockId);
+          setIsSuccess(true);
+          setTimeout(() => setIsSuccess(false), 2000);
+          setIsLoading(false);
+        } else {
+          waitingForJobRef.current = true;
         }
 
-        // 2. 에디터 패널이 열려있지 않거나 다른 블록을 편집 중이면 자동으로 열기
         const isEditorPanelOpen =
           canvasMode.isBlockEditingMode() &&
           canvasMode.mode.type === 'block-editing' &&
@@ -90,7 +107,6 @@ export function useExtractScript({
         }
       } else {
         console.error('[useExtractScript] Failed to extract script:', result);
-        // 권한 에러 또는 블록을 찾을 수 없는 경우 toast 표시
         if (
           result.error?.includes('Block not found') ||
           result.error?.includes('Access denied') ||
@@ -108,13 +124,13 @@ export function useExtractScript({
               result.error || 'An error occurred while extracting the script.',
           });
         }
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('[useExtractScript] Error extracting script:', error);
-    } finally {
       setIsLoading(false);
     }
-  }, [blockId, blockData, youtubeId, queryClient, canvasMode]);
+  }, [blockId, blockData, queryClient, canvasMode]);
 
   return {
     extractScript,

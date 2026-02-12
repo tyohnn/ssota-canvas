@@ -8,6 +8,7 @@
  */
 import { relations, sql } from 'drizzle-orm';
 import {
+  bigint,
   index,
   jsonb,
   pgEnum,
@@ -31,6 +32,18 @@ export const sourceTypeEnum = pgEnum('source_type', [
   'thread',
   'audio',
   'link',
+]);
+
+export const sourceJobStatusEnum = pgEnum('source_job_status', [
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+]);
+
+export const sourceJobCurrentStepEnum = pgEnum('source_job_current_step', [
+  'extracting',
+  'summarizing',
 ]);
 
 // ============================================
@@ -145,12 +158,58 @@ export const sourceActionTransactions = pgTable(
 ).enableRLS();
 
 // ============================================
+// Source Jobs (queue state / Realtime)
+// ============================================
+
+/**
+ * Source Jobs Table
+ *
+ * Source extract+summary pipeline queue state (Realtime).
+ * One row per (block_id, language). status + current_step for UI progress.
+ */
+export const sourceJobs = pgTable(
+  'source_jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    source_id: uuid('source_id')
+      .notNull()
+      .references(() => sources.id, { onDelete: 'cascade' }),
+    block_id: uuid('block_id').notNull(),
+    org_id: uuid('org_id').notNull(),
+    language: text('language').notNull().default('en'),
+    pgmq_msg_id: bigint('pgmq_msg_id', { mode: 'number' }),
+    status: sourceJobStatusEnum('status').notNull().default('pending'),
+    current_step: sourceJobCurrentStepEnum('current_step'),
+    created_at: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    started_at: timestamp('started_at', { withTimezone: true }),
+    completed_at: timestamp('completed_at', { withTimezone: true }),
+    error_message: text('error_message'),
+  },
+  table => ({
+    blockIdLanguageUnique: unique(
+      'source_jobs_block_id_language_unique'
+    ).on(table.block_id, table.language),
+    blockIdIdx: index('idx_source_jobs_block_id').on(table.block_id),
+    statusIdx: index('idx_source_jobs_status').on(table.status),
+    blockDirectAccessPolicy: pgPolicy('source_jobs_block_direct_access', {
+      for: 'all',
+      to: authenticatedRole,
+      using: sql`false`,
+      withCheck: sql`false`,
+    }),
+  })
+).enableRLS();
+
+// ============================================
 // Relations
 // ============================================
 
 export const sourcesRelations = relations(sources, ({ many }) => ({
   sourceSummaries: many(sourceSummaries),
   sourceActionTransactions: many(sourceActionTransactions),
+  sourceJobs: many(sourceJobs),
 }));
 
 export const sourceSummariesRelations = relations(
@@ -172,3 +231,10 @@ export const sourceActionTransactionsRelations = relations(
     }),
   })
 );
+
+export const sourceJobsRelations = relations(sourceJobs, ({ one }) => ({
+  source: one(sources, {
+    fields: [sourceJobs.source_id],
+    references: [sources.id],
+  }),
+}));

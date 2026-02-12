@@ -267,7 +267,7 @@ For patches, use the blockMountId value:
 export const grepBlockContentTool = {
   description: `Search for text patterns inside block content. Like terminal grep, but for canvas blocks.
 
-Searches blocks.content_raw (plain text) and returns matching lines with context.
+Searches block content_raw, linked source extracted content (e.g. YouTube transcript, PDF text), and linked source AI summary. Returns matching lines with context (5 lines). Use readBlockLines to fetch more context if needed.
 
 Use when:
 - User asks: "Where does this keyword appear?", "Find all blocks mentioning X", "Search for a phrase in content".
@@ -285,7 +285,6 @@ Returns: blockMountId + line number + matching line + surrounding context lines.
     invert: z.boolean().default(false).optional().describe('If true, return lines that do NOT match the pattern(s) (like grep -v).'),
     targetBlockMountIds: z.array(z.string()).optional().describe('Search only these specific blocks'),
     blockTypes: z.array(z.string()).optional().describe('Filter by block types (e.g. ["markdown", "text"])'),
-    contextLines: z.number().min(0).max(10).default(3).optional().describe('Context lines around each match (default: 3)'),
     pageId: z.string().optional().describe('Search within this page (default: current page)'),
     workspaceId: z.string().optional().describe('Search across entire workspace'),
   }),

@@ -15,6 +15,8 @@ export interface GetYoutubeMetadataDTO {
   channelName?: string;
   channelThumbnail?: string;
   youtubeChannelId?: string; // YouTube Channel ID (예: UCehBVAPy-bxmnbNARF-_tvA)
+  /** source-management sources.id (블록에 연결된 소스) */
+  sourceId?: string;
 }
 
 

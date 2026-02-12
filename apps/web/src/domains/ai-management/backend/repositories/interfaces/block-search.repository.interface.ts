@@ -55,6 +55,23 @@ export interface ReadBlockRow {
   contentRaw: string | null;
 }
 
+/** Scope 내 블록 중 source_id가 있고 sources.raw_content가 NOT NULL인 행 (source_content 검색용) */
+export interface SourceContentRow {
+  blockMountId: string;
+  blockType: string;
+  title: string;
+  rawContent: string;
+}
+
+/** Scope 내 블록의 source_summaries 행 (source_summary 검색용) */
+export interface SourceSummaryRow {
+  blockMountId: string;
+  blockType: string;
+  title: string;
+  language: string;
+  summary: string;
+}
+
 // ─── Interface ────────────────────────────────────────────────────────────
 
 export interface BlockSearchRepository {
@@ -97,4 +114,32 @@ export interface BlockSearchRepository {
     blockMountId: BlockMountId,
     pageId?: PageId
   ): Promise<ReadBlockRow | null>;
+
+  /**
+   * sources.raw_content ILIKE 필터링으로 매칭 블록 조회
+   * block_mounts ⋈ blocks ⋈ sources, raw_content IS NOT NULL
+   *
+   * @param patterns - 검색 패턴 배열 (OR)
+   * @param scope - 검색 스코프
+   * @returns rawContent가 포함된 블록 행 배열
+   */
+  findBySourceContentPattern(
+    patterns: string[],
+    scope: BlockSearchScope
+  ): Promise<SourceContentRow[]>;
+
+  /**
+   * source_summaries.summary ILIKE 필터링으로 매칭 블록·요약 조회
+   * block_mounts ⋈ blocks ⋈ sources ⋈ source_summaries
+   *
+   * @param patterns - 검색 패턴 배열 (OR)
+   * @param scope - 검색 스코프
+   * @param languages - 요약 언어 필터 (optional)
+   * @returns 매칭된 (blockMountId, language, summary) 행 배열
+   */
+  findBySourceSummaryPattern(
+    patterns: string[],
+    scope: BlockSearchScope,
+    languages?: string[]
+  ): Promise<SourceSummaryRow[]>;
 }

@@ -30,7 +30,7 @@ export class YoutubeMetadataFetchedEvent implements ApplicationEvent {
     public readonly data: YoutubeMetadataFetchedEventData,
     public readonly occurredAt: Date,
     private readonly runPolicy?: () => Promise<void>
-  ) {}
+  ) { }
 
   /**
    * Application Event Policy 실행 (ensure video summary 등)

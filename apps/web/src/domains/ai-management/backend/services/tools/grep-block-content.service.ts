@@ -13,10 +13,13 @@ import type { BlockSearchRepository, BlockSearchScope } from '../../repositories
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
+export type GrepMatchSource = 'content_raw' | 'source_content' | 'source_summary';
+
 export interface GrepMatch {
   lineNumber: number;
   content: string;
   context: string;
+  source?: GrepMatchSource;
 }
 
 export interface GrepBlockResult {
@@ -48,6 +51,8 @@ export interface GrepBlockContentArgs {
   matchMode?: 'any' | 'all';
   /** true면 패턴에 매칭되지 않는 줄만 반환 (grep -v). 기본 false */
   invert?: boolean;
+  /** source_summary 검색 시 언어 필터 (예: ["ko","en"]). 미지정 시 전체. 프로그램적 호출용. */
+  summaryLanguages?: string[];
   targetBlockMountIds?: string[];
   blockTypes?: string[];
   contextLines?: number;
@@ -106,7 +111,7 @@ export async function* executeGrepBlockContent(
   args: GrepBlockContentArgs,
   options?: { pageId?: string }
 ): AsyncGenerator<GrepBlockContentYield, GrepBlockContentFinal, void> {
-  const contextLines = Math.max(0, Math.min(10, args?.contextLines ?? 3));
+  const contextLines = 5;
   const matchMode = args?.matchMode === 'all' ? 'all' : 'any';
   const invert = Boolean(args?.invert);
 
@@ -129,80 +134,133 @@ export async function* executeGrepBlockContent(
     return noScope;
   }
 
+  const sourceList: GrepMatchSource[] = [
+    'content_raw',
+    'source_content',
+    'source_summary',
+  ];
+
   yield { message: 'Searching block content...' };
 
-  try {
-    const rows = await repository.findByContentPattern(patterns, scope);
-
-    const results: GrepBlockResult[] = [];
-    let totalMatches = 0;
-    const regexes = patterns.map(p => new RegExp(escapeRegex(p), 'gi'));
-
-    const lineMatches = (line: string): boolean => {
-      if (matchMode === 'any') {
-        for (const re of regexes) {
-          re.lastIndex = 0;
-          if (re.test(line)) return true;
-        }
-        return false;
-      }
+  const regexes = patterns.map(p => new RegExp(escapeRegex(p), 'gi'));
+  const lineMatches = (line: string): boolean => {
+    if (matchMode === 'any') {
       for (const re of regexes) {
         re.lastIndex = 0;
-        if (!re.test(line)) return false;
+        if (re.test(line)) return true;
       }
-      return true;
-    };
+      return false;
+    }
+    for (const re of regexes) {
+      re.lastIndex = 0;
+      if (!re.test(line)) return false;
+    }
+    return true;
+  };
 
-    for (const row of rows) {
-      if (!row.contentRaw) continue;
-
-      const lines = row.contentRaw.split('\n');
-      const blockMatches: GrepMatch[] = [];
-
-      for (let i = 0; i < lines.length; i++) {
-        const matches = lineMatches(lines[i]!);
-        if (invert ? !matches : matches) {
-
-          const ctxStart = Math.max(0, i - contextLines);
-          const ctxEnd = Math.min(lines.length - 1, i + contextLines);
-          const context = lines
-            .slice(ctxStart, ctxEnd + 1)
-            .map((line, idx) => {
-              const lineNum = ctxStart + idx + 1;
-              const marker = lineNum === i + 1 ? '>' : ' ';
-              return `${marker} ${String(lineNum).padStart(4)}| ${line}`;
-            })
-            .join('\n');
-
-          blockMatches.push({
-            lineNumber: i + 1,
-            content: lines[i]!.trim(),
-            context,
-          });
-        }
-      }
-
-      if (blockMatches.length > 0) {
-        results.push({
-          blockMountId: row.blockMountId,
-          blockType: row.blockType,
-          title: row.title,
-          matches: blockMatches,
+  function buildMatchesFromLines(
+    lines: string[],
+    source: GrepMatchSource
+  ): GrepMatch[] {
+    const blockMatches: GrepMatch[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const matches = lineMatches(lines[i]!);
+      if (invert ? !matches : matches) {
+        const ctxStart = Math.max(0, i - contextLines);
+        const ctxEnd = Math.min(lines.length - 1, i + contextLines);
+        const context = lines
+          .slice(ctxStart, ctxEnd + 1)
+          .map((line, idx) => {
+            const lineNum = ctxStart + idx + 1;
+            const marker = lineNum === i + 1 ? '>' : ' ';
+            return `${marker} ${String(lineNum).padStart(4)}| ${line}`;
+          })
+          .join('\n');
+        blockMatches.push({
+          lineNumber: i + 1,
+          content: lines[i]!.trim(),
+          context,
+          source,
         });
-        totalMatches += blockMatches.length;
+      }
+    }
+    return blockMatches;
+  }
+
+  const byBlock = new Map<string, GrepBlockResult>();
+
+  function addToMap(
+    blockMountId: string,
+    blockType: string,
+    title: string,
+    matches: GrepMatch[]
+  ): void {
+    if (matches.length === 0) return;
+    const existing = byBlock.get(blockMountId);
+    if (existing) {
+      existing.matches.push(...matches);
+    } else {
+      byBlock.set(blockMountId, { blockMountId, blockType, title, matches });
+    }
+  }
+
+  try {
+    if (sourceList.includes('content_raw')) {
+      const rows = await repository.findByContentPattern(patterns, scope);
+      for (const row of rows) {
+        if (!row.contentRaw) continue;
+        const lines = row.contentRaw.split('\n');
+        const blockMatches = buildMatchesFromLines(lines, 'content_raw');
+        addToMap(row.blockMountId, row.blockType, row.title, blockMatches);
       }
     }
 
+    if (sourceList.includes('source_content')) {
+      try {
+        const rows = await repository.findBySourceContentPattern(patterns, scope);
+        for (const row of rows) {
+          const lines = row.rawContent.split('\n');
+          const blockMatches = buildMatchesFromLines(lines, 'source_content');
+          addToMap(row.blockMountId, row.blockType, row.title, blockMatches);
+        }
+      } catch (e) {
+        console.warn('[grepBlockContent] source_content search failed:', e);
+      }
+    }
+
+    if (sourceList.includes('source_summary')) {
+      try {
+        const rows = await repository.findBySourceSummaryPattern(
+          patterns,
+          scope,
+          args.summaryLanguages?.length ? args.summaryLanguages : undefined
+        );
+        for (const row of rows) {
+          const lines = row.summary.split('\n');
+          const blockMatches = buildMatchesFromLines(lines, 'source_summary');
+          addToMap(row.blockMountId, row.blockType, row.title, blockMatches);
+        }
+      } catch (e) {
+        console.warn('[grepBlockContent] source_summary search failed:', e);
+      }
+    }
+
+    const results = Array.from(byBlock.values());
+    const totalMatches = results.reduce((s, r) => s + r.matches.length, 0);
     const final: GrepBlockContentFinal = {
       matches: results,
       totalMatches,
-      searchedBlocks: rows.length,
+      searchedBlocks: results.length,
     };
     yield final;
     return final;
   } catch (error) {
     console.error('[grepBlockContent] Error:', error);
-    const errResult: GrepBlockContentFinal = { matches: [], totalMatches: 0, searchedBlocks: 0 };
+    const errResult: GrepBlockContentFinal = {
+      matches: [],
+      totalMatches: 0,
+      searchedBlocks: 0,
+    };
     yield errResult;
     return errResult;
   }

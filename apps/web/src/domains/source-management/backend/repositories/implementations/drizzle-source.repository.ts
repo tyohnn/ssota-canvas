@@ -4,7 +4,6 @@ import { sources as sourcesTable } from '@/db/schema';
 
 import { Source } from '../../../shared/entities/source.entity';
 import { SourceManagementError } from '../../../shared/errors/source-management.error';
-import { LanguageCode } from '../../../shared/value-objects/language-code.vo';
 import { SourceId } from '../../../shared/value-objects/source-id.vo';
 import { SourceType } from '../../../shared/value-objects/source-type.vo';
 import { SourceUrl } from '../../../shared/value-objects/source-url.vo';
@@ -23,7 +22,7 @@ export class DrizzleSourceRepository implements ISourceRepository {
         source_type: source.sourceType.value,
         raw_content: source.rawContent,
         metadata: (source.metadata || {}) as Record<string, unknown>,
-        content_language: source.contentLanguage?.value ?? null,
+        content_language: source.contentLanguage ?? null,
         extracted_at: source.extractedAt,
         created_at: source.createdAt,
         updated_at: source.updatedAt,
@@ -43,7 +42,7 @@ export class DrizzleSourceRepository implements ISourceRepository {
         .set({
           raw_content: source.rawContent,
           metadata: (source.metadata || {}) as Record<string, unknown>,
-          content_language: source.contentLanguage?.value ?? null,
+          content_language: source.contentLanguage ?? null,
           extracted_at: source.extractedAt,
           updated_at: source.updatedAt,
         })
@@ -96,7 +95,7 @@ export class DrizzleSourceRepository implements ISourceRepository {
       sourceType,
       row.raw_content,
       (row.metadata as SourceMetadata) || {},
-      LanguageCode.optional(row.content_language),
+      row.content_language,
       row.extracted_at,
       row.created_at,
       row.updated_at,

@@ -3,56 +3,64 @@
  *
  * getYoutubeMetadata Use Case 완료 시 Application Event를 발행하고,
  * 서비스에서 event.handle()을 호출해 Use Case Policy를 실행한다.
- * - Domain Event와 동일하게 "이벤트 생성 → handle() 호출" 흐름을 유지한다.
- * - 발행 주체는 Aggregate가 아니라 이 서비스(Application 레이어)이다.
+ *
+ * 메타데이터 직후: block.sourceId가 있을 때만 ensureSourceJobService 호출.
+ * sourceId 없는 블록은 요약 잡을 넣지 않음.
  *
  * @see docs/patterns/backend/policy-and-event-types-guide.md
  */
 import { createClient } from '@supabase/supabase-js';
 
-import {
-  createSupabasePgmqQueueAdapter,
-  type IQueueAdapter,
-} from '@/domains/queue';
+import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
+import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { createSupabasePgmqQueueAdapter } from '@/domains/queue';
+import { DrizzleSourceJobRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source-job.repository';
+import { DrizzleSourceSummaryRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source-summary.repository';
+import { ensureSourceJobService } from '@/domains/source-management/backend/services/source-job';
 
-import { DrizzleSummaryJobRepository } from '../../repositories/implementations/drizzle-summary-job.repository';
-import { DrizzleVideoRepository } from '../../repositories/implementations/drizzle-video.repository';
-import { DrizzleVideoSummaryRepository } from '../../repositories/implementations/drizzle-video-summary.repository';
-import { ensureVideoSummaryService } from '../summary';
 import type { YoutubeMetadataFetchedEventData } from '../../../shared/events/youtube-metadata.events';
 import { YoutubeMetadataFetchedEvent } from '../../../shared/events/youtube-metadata.events';
 
-/**
- * YoutubeMetadataFetched Application Event 발행 및 Use Case Policy 실행
- *
- * createVideo의 Domain Event 처리와 동일하게, 이벤트를 생성한 뒤
- * 서비스에서 handle()을 호출한다. (Application Event 패턴)
- */
 export async function publishYoutubeMetadataFetched(
   payload: YoutubeMetadataFetchedEventData
 ): Promise<void> {
-  const summaryJobRepository = new DrizzleSummaryJobRepository();
-  const videoSummaryRepository = new DrizzleVideoSummaryRepository();
-  const videoRepository = new DrizzleVideoRepository();
+  const blockRepository = new DrizzleBlockRepository();
+  const sourceSummaryRepository = new DrizzleSourceSummaryRepository();
+  const sourceJobRepository = new DrizzleSourceJobRepository();
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-  const queueAdapter: IQueueAdapter = createSupabasePgmqQueueAdapter({
-    supabase,
-  });
+  const queueAdapter = createSupabasePgmqQueueAdapter({ supabase });
 
   const event = new YoutubeMetadataFetchedEvent(
     payload.blockId,
     payload,
     new Date(),
     async () => {
-      await ensureVideoSummaryService(payload, {
-        summaryJobRepository,
-        videoSummaryRepository,
-        videoRepository,
-        queueAdapter,
-      });
+      const block = await blockRepository.findById(new BlockId(payload.blockId));
+      if (!block?.sourceId) return;
+
+      const language = payload.language ?? 'en';
+      const result = await ensureSourceJobService(
+        {
+          blockId: payload.blockId,
+          orgId: payload.orgId,
+          sourceId: block.sourceId,
+          language,
+        },
+        {
+          sourceSummaryRepository,
+          sourceJobRepository,
+          queueAdapter,
+        }
+      );
+      if (result.isError()) {
+        console.warn(
+          '[publishYoutubeMetadataFetched] ensureSourceJobService failed:',
+          result.error
+        );
+      }
     }
   );
 

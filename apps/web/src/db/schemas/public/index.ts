@@ -14,6 +14,7 @@ import * as enums from './enums';
 import * as org from './organization-schema';
 import * as profilesModule from './profiles-schema';
 import * as share from './share-schema';
+import * as sourceManagement from './source-management-schema';
 import * as workspace from './workspace-schema';
 
 // Re-export all enums and tables
@@ -113,6 +114,9 @@ export type NewEventLog = typeof ai.eventLogs.$inferInsert;
 
 export type PublishedPageRow = typeof share.publishedPages.$inferSelect;
 export type NewPublishedPageRow = typeof share.publishedPages.$inferInsert;
+
+export type SourceJob = typeof sourceManagement.sourceJobs.$inferSelect;
+export type NewSourceJob = typeof sourceManagement.sourceJobs.$inferInsert;
 
 export type OrganizationType = (typeof enums.organizationTypeEnum.enumValues)[number];
 export type MemberRole = (typeof enums.memberRoleEnum.enumValues)[number];

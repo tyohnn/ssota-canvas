@@ -32,7 +32,7 @@ interface SummarySectionViewProps {
   onExtractSummary: (language: string) => Promise<void>;
   isExtracting: boolean;
   hasAccessForSelectedLanguage: boolean; // 선택된 언어가 이미 추출되었는지 여부
-  summaryAccessGrantedLanguages: string[] | undefined; // summaryAccessGrantedLanguages 원본 (체크 표시용)
+  sourceSummaryAccessLanguages: string[] | undefined; // sourceSummaryAccessLanguages 원본 (체크 표시용)
   readonly: boolean; // Readonly 모드 플래그 (퍼블릭 페이지 등)
 }
 
@@ -54,14 +54,18 @@ export function SummarySectionView({
   onExtractSummary,
   isExtracting,
   hasAccessForSelectedLanguage,
-  summaryAccessGrantedLanguages,
+  sourceSummaryAccessLanguages,
   readonly,
 }: SummarySectionViewProps) {
-
   // 요약 추출 중일 때 로딩 상태 표시 (Extract 버튼 클릭 시)
   if (isExtracting) {
     return (
       <SummarySectionContainer>
+        <LanguageSelector
+          availableLanguages={sourceSummaryAccessLanguages || []}
+          selectedLanguage={selectedLanguage}
+          onChange={setSelectedLanguage}
+        />
         <SummaryLoadingState isExtracting={isExtracting} />
       </SummarySectionContainer>
     );
@@ -73,6 +77,11 @@ export function SummarySectionView({
   if (isLoading && currentSummary === undefined) {
     return (
       <SummarySectionContainer>
+        <LanguageSelector
+          availableLanguages={sourceSummaryAccessLanguages || []}
+          selectedLanguage={selectedLanguage}
+          onChange={setSelectedLanguage}
+        />
         <SummaryLoadingState isExtracting={false} />
       </SummarySectionContainer>
     );
@@ -85,7 +94,7 @@ export function SummarySectionView({
       <SummarySectionContainer>
         {/* 언어 선택 드롭다운 (에러 상태에서도 표시) */}
         <LanguageSelector
-          availableLanguages={summaryAccessGrantedLanguages || []}
+          availableLanguages={sourceSummaryAccessLanguages || []}
           selectedLanguage={selectedLanguage}
           onChange={setSelectedLanguage}
         />
@@ -105,7 +114,7 @@ export function SummarySectionView({
     <SummarySectionContainer>
       {/* 언어 선택 드롭다운 */}
       <LanguageSelector
-        availableLanguages={summaryAccessGrantedLanguages || []}
+        availableLanguages={sourceSummaryAccessLanguages || []}
         selectedLanguage={selectedLanguage}
         onChange={setSelectedLanguage}
       />
