@@ -19,6 +19,15 @@ export interface EdgeRepository {
   ): Promise<EdgeAggregate[]>;
 
   /**
+   * 특정 페이지에서, 해당 blockMountId에 연결된 Edge만 조회.
+   * hop 검색 등 페이지 스코프가 있을 때 사용.
+   */
+  findByConnectedBlockMountIdAndPageId(
+    blockMountId: BlockMountId,
+    pageId: PageId
+  ): Promise<EdgeAggregate[]>;
+
+  /**
    * 여러 BlockMount ID 중 하나라도 source/target인 Edge 조회
    */
   findByConnectedBlockMountIds(

@@ -45,6 +45,7 @@ Block은 캔버스 위에 배치되는 **데이터의 최소 단위**이다. 저
 - 블록은 캔버스의 React Flow 노드로 렌더링된다.
 - 각 블록은 `blockMountId`로 식별되며, 에이전트가 블록을 검색/수정/생성할 때 이 ID를 사용한다.
 - 블록은 엣지(Edge)로 서로 연결되어 관계를 표현한다.
+- **소스 연동**: 블록은 `source_id`로 **소스(source-management)** 를 참조할 수 있다. 소스는 URL 기준 추출 캐시(sources.raw_content)와 다국어 요약(source_summaries)을 가지며, grep/read 도구로 블록 본문 외에 이 추출본·요약도 검색·읽기할 수 있다.
 
 ---
 
@@ -156,6 +157,16 @@ Tool은 정의 방식에 따라 **정적**과 **동적**으로 나뉜다.
 → callSubAgent(agentName: "Explore", task: "웹 검색: AI 트렌드, 결과 요약 반환")
 ```
 
+### 검색·읽기 도구와 소스 연동 (구현 현황)
+
+SSOTA에서는 **소스 도메인(source-management)** 과 연동하여, 블록 본문(content_raw)뿐 아니라 **연결된 소스의 추출 본문(source_content)** 과 **AI 요약(source_summary)** 도 검색·읽기 대상에 포함된다. `blocks.source_id` → `sources`, `source_summaries` 테이블을 통해 조회한다.
+
+| 도구 | 소스 연동 |
+|------|-----------|
+| **grepBlockContent** | `sources` 옵션으로 content_raw / source_content / source_summary 중 검색 대상 선택. 요약은 `summaryLanguages`로 언어 필터. |
+| **globBlocks** | 메타데이터(title, type) 검색. 제목 다중 패턴 시 `query`(배열) + `queryMatchMode`(any/all). |
+| **readBlockLines** | `source` 옵션으로 content_raw / source_content / source_summary 중 읽기. 요약 시 `summaryLanguage` 지정. |
+
 ### 검색 도구의 명령어 스타일
 
 검색 도구(`grep`, `glob` 등)는 **대상(scope)**을 명령어로 지정할 수 있다.
@@ -175,13 +186,13 @@ Tool은 정의 방식에 따라 **정적**과 **동적**으로 나뉜다.
 | **의미 기반** | `semantic search` | 텍스트의 의미적 유사성으로 검색 |
 | **이벤트 기반** | `grepEvents` | 블록 생성/수정/삭제 등 이벤트 이력 검색 |
 
-`read` 도구는 라인별로 여러 모드로 읽을 수 있다.
+`read` 도구(readBlockLines)는 라인별로 **소스(source)** 를 선택하여 읽을 수 있다. 블록에 연결된 소스(source-management)가 있으면 추출 본문·AI 요약도 읽기 대상이 된다.
 
-| 모드 | 설명 |
-|------|------|
-| **content** | 블록의 원본 콘텐츠를 라인 단위로 읽기 |
-| **summary** | 블록의 요약본 읽기 |
-| **raw** | 블록의 raw 데이터 읽기 |
+| 소스 (source) | 설명 |
+|---------------|------|
+| **content_raw** (기본) | 블록의 원본 콘텐츠(blocks.content_raw)를 라인 단위로 읽기 |
+| **source_content** | 연결된 소스의 추출 본문(sources.raw_content, e.g. 유튜브 스크립트) 읽기 |
+| **source_summary** | 연결된 소스의 AI 요약(source_summaries.summary) 읽기. `summaryLanguage`로 언어 지정 가능. |
 
 ### SSOTA 적용
 

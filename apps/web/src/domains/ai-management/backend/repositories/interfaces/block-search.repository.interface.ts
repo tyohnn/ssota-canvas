@@ -92,13 +92,15 @@ export interface BlockSearchRepository {
   /**
    * 메타데이터(title, type)로 블록 검색
    *
-   * @param titlePattern - 제목 패턴 (ILIKE, optional)
+   * @param titlePatterns - 제목 패턴 배열 (각각 ILIKE 서브스트링). empty/undefined면 제목 조건 없음.
+   * @param queryMatchMode - 'any' = 하나라도 포함 (OR), 'all' = 모두 포함 (AND). 패턴 2개 이상일 때만 적용.
    * @param scope - 검색 스코프 (VO 기반)
    * @param limit - 최대 결과 수
    * @returns 블록 메타데이터 배열
    */
   findByMetadata(
-    titlePattern: string | undefined,
+    titlePatterns: string[] | undefined,
+    queryMatchMode: 'any' | 'all',
     scope: BlockSearchScope,
     limit: number
   ): Promise<GlobBlockRow[]>;
@@ -114,6 +116,34 @@ export interface BlockSearchRepository {
     blockMountId: BlockMountId,
     pageId?: PageId
   ): Promise<ReadBlockRow | null>;
+
+  /**
+   * blockMountId로 단일 블록의 sources.raw_content 조회
+   * block_mounts ⋈ blocks ⋈ sources, source_id IS NOT NULL, raw_content IS NOT NULL
+   *
+   * @param blockMountId - 블록 마운트 ID (VO)
+   * @param pageId - 페이지 스코프 (보안 검증, optional, VO)
+   * @returns SourceContentRow 또는 null
+   */
+  findSourceContentByBlockMountId(
+    blockMountId: BlockMountId,
+    pageId?: PageId
+  ): Promise<SourceContentRow | null>;
+
+  /**
+   * blockMountId로 단일 블록의 source_summaries 한 건 조회
+   * block_mounts ⋈ blocks ⋈ sources ⋈ source_summaries. language 지정 시 해당 언어만, 미지정 시 하나 반환 (order by language)
+   *
+   * @param blockMountId - 블록 마운트 ID (VO)
+   * @param pageId - 페이지 스코프 (보안 검증, optional, VO)
+   * @param language - 요약 언어 (optional). 미지정 시 하나 임의 반환
+   * @returns SourceSummaryRow 또는 null
+   */
+  findSourceSummaryByBlockMountId(
+    blockMountId: BlockMountId,
+    pageId?: PageId,
+    language?: string
+  ): Promise<SourceSummaryRow | null>;
 
   /**
    * sources.raw_content ILIKE 필터링으로 매칭 블록 조회

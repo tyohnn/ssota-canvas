@@ -8,17 +8,15 @@
 ## 현재 상태 (Baseline)
 
 ### 구현 완료
-- `/api/agent/v2/route.ts`: xAI Grok 모델 기반 스트리밍 에이전트
-- `/api/agent/v2/search-sub-agent.ts`: 검색 서브 에이전트 (web_search + x_search)
-- `/api/agent/v2/prompt.ts`: 기본 시스템 프롬프트 (검색 전용)
-- `/api/agent/v2/tools.ts`: search 툴만 등록
+- `/api/agent/v2/route.ts`: xAI Grok 모델 기반 스트리밍 에이전트, 동적 컨텍스트 주입
+- `/api/agent/v2/context-builder.ts`: 동적 컨텍스트 조립 (visibleBlocks, selectedBlockIds 등)
+- `/api/agent/v2/prompt.ts`: 정적 시스템 프롬프트 (캐싱 대상) + Tool 사용법
+- `/api/agent/v2/tools.ts`: web_search, x_search(xAI 네이티브), renderCanvasdown, patchCanvasdown, **grepBlockContent**, **globBlocks**, **readBlockLines** 등록
+- **Step 1-5 완료**: 블록 검색/읽기 — grepBlockContent, globBlocks, readBlockLines 서버사이드 구현 (ai-management 도메인). **소스 도메인 연동**: content_raw 외에 연결된 소스의 추출 본문(source_content), AI 요약(source_summary) 검색·읽기 지원.
 
 ### 현재 한계
-- 메인 에이전트가 search 서브 에이전트 하나만 가지고 있음
-- 캔버스 조작 불가 (canvasdown 없음)
-- 블록 검색/읽기 불가 (grep, read 없음)
-- 컨텍스트 레이어 없음 (viewport, 선택 블록, 마우스 등)
-- 메인 에이전트 자체의 Global Tool이 없음
+- (Phase 1 미완료) editBlockLines, hopSearch/searchGroup/searchBySemantic, organizeLayout, createTodos, canvasAction, activeJobs/recentEvents 등 미구현
+- 메인 에이전트가 서브에이전트 없이 핵심 작업 수행 가능한 상태까지는 Step 1-5까지 도달
 
 ---
 
@@ -318,9 +316,18 @@ patchCanvasdownTool = {
 
 ---
 
-### Step 1-5. Global Tool — 블록 검색/읽기 (grep + glob + read)
+### Step 1-5. Global Tool — 블록 검색/읽기 (grep + glob + read) — **구현 완료**
 
 **목적**: 에이전트가 캔버스의 블록 내용을 검색하고 읽을 수 있게 한다.
+
+#### 구현 완료 및 계획 대비 변경 사항
+
+- **구현 위치**: 실행기는 `api/agent/v2/route.ts`에서 blockSearchRepo 주입 후 호출. 실제 로직은 **ai-management 도메인** (`repositories/interfaces/block-search.repository.interface.ts`, `repositories/implementations/drizzle-block-search.repository.ts`, `services/tools/*.service.ts`)에 구현됨. `api/agent/v2/tool-executors/` 디렉터리는 사용하지 않음.
+- **소스 도메인 연동**: 블록 본문(content_raw)뿐 아니라 **연결된 소스(source-management)** 의 추출 본문·AI 요약을 검색·읽기 대상에 포함했다.
+  - **grepBlockContent**: `sources` 옵션으로 `content_raw`(기본), `source_content`(sources.raw_content, e.g. 유튜브 스크립트), `source_summary`(source_summaries.summary) 중 선택 검색. `summaryLanguages`로 요약 언어 필터. 각 매칭에 `source` 필드 부여.
+  - **globBlocks**: 제목 다중 패턴 지원. `query`를 `string | string[]`로, `queryMatchMode`로 `'any'`(OR) / `'all'`(AND). 메타데이터만 검색(소스 필터 없음).
+  - **readBlockLines**: `source` 옵션으로 `content_raw`(기본), `source_content`, `source_summary` 중 하나를 라인 범위로 읽기. `source_summary` 시 `summaryLanguage`로 언어 지정 가능. 응답에 `source`, `summaryLanguage` 포함.
+- **Repository**: 단일 블록용 `findSourceContentByBlockMountId`, `findSourceSummaryByBlockMountId` 추가. 기존 `findBySourceContentPattern`, `findBySourceSummaryPattern`과 함께 소스 도메인(sources, source_summaries) 조회.
 
 #### 터미널 grep과의 비교
 
@@ -328,7 +335,7 @@ patchCanvasdownTool = {
 
 | | 터미널 `grep` | `grepBlockContent` |
 |------|---------------|---------------------|
-| **검색 대상** | 파일 시스템의 파일 | Supabase DB의 `blocks.content` 필드 |
+| **검색 대상** | 파일 시스템의 파일 | DB의 `blocks.content_raw` 및 (옵션) `sources.raw_content`, `source_summaries.summary` |
 | **대상 지정** | 파일 경로/glob (`grep "x" src/*.ts`) | 블록 ID, 블록 타입, **페이지/워크스페이스** 스코프 |
 | **패턴** | `pattern` (regex) | `pattern` (동일) |
 | **주변 컨텍스트** | `-C 3` (앞뒤 3줄) | `contextLines: 3` (동일 개념) |
@@ -345,7 +352,7 @@ patchCanvasdownTool = {
 
 #### block vs block_mount — 어떻게 구분하여 접근하는가
 
-- **blocks 테이블**: 블록의 실체. `id`, `type`, `title`, `content`, `properties` 등 **데이터 자체**를 저장. content 검색(grep)은 이 테이블을 대상으로 한다.
+- **blocks 테이블**: 블록의 실체. `id`, `type`, `title`, `content_raw`, `properties`, `source_id` 등 **데이터 자체**를 저장. content 검색(grep)은 이 테이블의 `content_raw` 및 (소스 연동 시) `blocks.source_id` → `sources`, `source_summaries` JOIN 대상으로 한다.
 - **block_mounts 테이블**: 블록의 **페이지별 배치 인스턴스**. `blockMountId`, `blockId`, `pageId`, `position`, `size` 등. 같은 블록이 여러 페이지에 마운트될 수 있다.
 
 ```
@@ -427,16 +434,20 @@ globBlocksTool = {
 }
 
 readBlockLinesTool = {
-  description: '블록 content의 특정 라인 범위 읽기. blockMountId로 대상 지정.',
+  description: '블록 content의 특정 라인 범위 읽기. blockMountId로 대상 지정. source로 content_raw/source_content/source_summary 선택, summaryLanguage로 요약 언어 지정.',
   inputSchema: z.object({
     blockMountId: z.string(),
     startLine: z.number().min(1),
     endLine: z.number().optional(),
+    source: z.enum(['content_raw', 'source_content', 'source_summary']).optional(),
+    summaryLanguage: z.string().optional(),
   }),
 }
 ```
 
-**완료 조건**: "마케팅이라는 단어가 어디에 있어?" → grep으로 찾고, "거기 뭐라고 써있어?" → read로 내용 응답.
+실제 구현 스키마(patterns 배열, matchMode, sources, query 배열·queryMatchMode 등)는 **구현 완료 및 계획 대비 변경 사항** 참고.
+
+**완료 조건**: "마케팅이라는 단어가 어디에 있어?" → grep으로 찾고, "거기 뭐라고 써있어?" → read로 내용 응답. 유튜브 블록의 스크립트/요약 검색·읽기도 source 옵션으로 가능.
 
 ---
 

@@ -9,14 +9,31 @@ import type {
 import { requireAuth } from '@/domains/auth/server/auth-guard';
 import { SOPHI_V2_SYSTEM_PROMPT } from './prompt';
 import { buildDynamicContext, parseDynamicContext } from './context-builder';
-import { renderCanvasdownTool, patchCanvasdownTool, xaiSearchTool, grepBlockContentTool, globBlocksTool, readBlockLinesTool } from './tools';
+import {
+  renderCanvasdownTool,
+  patchCanvasdownTool,
+  xaiSearchTool,
+  grepBlockContentTool,
+  globBlocksTool,
+  readBlockLinesTool,
+  hopSearchTool,
+  searchGroupTool,
+  searchBySemanticTool,
+  editBlockLinesTool,
+} from './tools';
 import {
   executeXaiSearch,
   executeGrepBlockContent,
   executeGlobBlocks,
   executeReadBlockLines,
+  executeHopSearch,
+  executeSearchGroup,
+  executeSearchBySemantic,
 } from '@/domains/ai-management/backend/services/tools';
 import { DrizzleBlockSearchRepository } from '@/domains/ai-management/backend/repositories/implementations/drizzle-block-search.repository';
+import { DrizzleConnectionSearchRepository } from '@/domains/ai-management/backend/repositories/implementations/drizzle-connection-search.repository';
+import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
+import { DrizzleEdgeRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-edge.repository';
 import { AGENT_MODEL } from './constants';
 
 export const maxDuration = 300;
@@ -117,8 +134,12 @@ export async function POST(req: Request) {
       dynamicContextString
     );
 
-    // Instantiate repository (per-request; stateless)
+    // Instantiate repositories (per-request; stateless)
     const blockSearchRepo = new DrizzleBlockSearchRepository();
+    const connectionSearchRepo = new DrizzleConnectionSearchRepository(
+      new DrizzleEdgeRepository(),
+      new DrizzleBlockMountRepository()
+    );
 
     // Main agent uses Chat API only; search is a server-side tool (xaiSearch) so we can mix with client-side canvas tools.
     const result = streamText({
@@ -144,7 +165,21 @@ export async function POST(req: Request) {
           ...readBlockLinesTool,
           execute: (args) => executeReadBlockLines(blockSearchRepo, args, { pageId }),
         },
-        // Step 1-6+: Additional tools will be added incrementally
+        hopSearch: {
+          ...hopSearchTool,
+          execute: (args) =>
+            executeHopSearch(connectionSearchRepo, args, { pageId }),
+        },
+        searchGroup: {
+          ...searchGroupTool,
+          execute: (args) =>
+            executeSearchGroup(connectionSearchRepo, args, { pageId }),
+        },
+        searchBySemantic: {
+          ...searchBySemanticTool,
+          execute: (args) => executeSearchBySemantic(args, { pageId }),
+        },
+        editBlockLines: editBlockLinesTool,
       },
     });
 

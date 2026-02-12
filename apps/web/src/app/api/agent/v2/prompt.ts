@@ -140,8 +140,24 @@ Three tools for exploring and reading block content, analogous to terminal comma
 **Scoping**: All three tools default to the current page. Pass workspaceId for workspace-wide search, or targetBlockMountIds to search specific blocks only.
 
 **Key distinction**: globBlocks searches block **names/types** (metadata). grepBlockContent searches block **content** (text inside blocks). Do not confuse them.
-<!-- Step 1-6: Block edit tools will be added here -->
-<!-- Step 1-7: Connection search tools will be added here -->
+
+globBlocks: \`query\` can be a string or array; use \`queryMatchMode\` "any" (OR) or "all" (AND) for multiple title patterns.
+
+readBlockLines: use \`source\` to read from content_raw (default), source_content (e.g. transcript), or source_summary; \`summaryLanguage\` selects summary language when source is source_summary.
+
+### Connection & Group Search
+
+| Tool | Purpose |
+|------|---------|
+| **hopSearch** | Blocks N-hops away via edges. \`direction\`: out/in/both. \`hops\`: 1-3. |
+| **searchGroup** | Children of a group. Pass \`groupBlockMountId\`. |
+| **searchBySemantic** | Semantic similarity (MVP stub; prefer grep/glob). |
+
+hopSearch = edges; searchGroup = hierarchy.
+
+### Block Edit (editBlockLines)
+
+Edit content by line range (client-side). **replace** (startLine-endLine, newContent), **insert** (at startLine), **delete** (startLine-endLine). Use after grep/read to apply changes.
 <!-- Step 1-8: Layout tools will be added here -->
 <!-- Step 1-9: Todo tools will be added here -->
 <!-- Step 1-11: Canvas action tools will be added here -->

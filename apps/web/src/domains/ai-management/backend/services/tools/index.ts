@@ -41,4 +41,30 @@ export type {
   ReadBlockLinesFinal,
   ReadBlockLinesIntermediate,
   ReadBlockLinesArgs,
+  ReadBlockLinesSource,
 } from './read-block-lines.service';
+
+// hopSearch (Step 1-7)
+export { executeHopSearch } from './hop-search.service';
+export type {
+  HopSearchFinal,
+  HopSearchArgs,
+  HopSearchEntry,
+  HopSearchEdgeInfo,
+} from './hop-search.service';
+
+// searchGroup (Step 1-7)
+export { executeSearchGroup } from './search-group.service';
+export type {
+  SearchGroupFinal,
+  SearchGroupArgs,
+  SearchGroupEntry,
+} from './search-group.service';
+
+// searchBySemantic (Step 1-7)
+export { executeSearchBySemantic } from './search-by-semantic.service';
+export type {
+  SearchBySemanticFinal,
+  SearchBySemanticArgs,
+  SearchBySemanticEntry,
+} from './search-by-semantic.service';

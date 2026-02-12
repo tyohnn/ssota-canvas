@@ -30,7 +30,8 @@ export type GlobBlocksFinal = {
   blocks: GlobBlockEntry[];
   totalBlocks: number;
   filteredBy?: {
-    query?: string;
+    query?: string[];
+    queryMatchMode?: 'any' | 'all';
     blockTypes?: string[];
     scope?: string;
   };
@@ -41,7 +42,8 @@ export type GlobBlocksYield = GlobBlocksIntermediate | GlobBlocksFinal;
 // ─── Args (SafeDTO from tool call) ────────────────────────────────────────
 
 export interface GlobBlocksArgs {
-  query?: string;
+  query?: string | string[];
+  queryMatchMode?: 'any' | 'all';
   blockTypes?: string[];
   pageId?: string;
   workspaceId?: string;
@@ -82,12 +84,31 @@ function buildScopeFromArgs(
   }
 }
 
+/**
+ * Normalize tool query (string | string[]) to string[] for repository.
+ * Returns undefined when no title filter should be applied.
+ */
+function normalizeTitlePatterns(
+  query: string | string[] | undefined | null
+): string[] | undefined {
+  if (query === undefined || query === null) return undefined;
+  if (typeof query === 'string') {
+    const trimmed = query.trim();
+    return trimmed ? [trimmed] : undefined;
+  }
+  const list = query
+    .map(q => (typeof q === 'string' ? q.trim() : ''))
+    .filter(Boolean);
+  return list.length ? list : undefined;
+}
+
 export async function* executeGlobBlocks(
   repository: BlockSearchRepository,
   args: GlobBlocksArgs,
   options?: { pageId?: string }
 ): AsyncGenerator<GlobBlocksYield, GlobBlocksFinal, void> {
-  const titleQuery = args?.query?.trim();
+  const titlePatterns = normalizeTitlePatterns(args?.query);
+  const queryMatchMode = args?.queryMatchMode ?? 'any';
   const limit = Math.max(1, Math.min(100, args?.limit ?? 50));
 
   const scope = buildScopeFromArgs(args, options);
@@ -98,13 +119,26 @@ export async function* executeGlobBlocks(
   }
 
   const filters: string[] = [];
-  if (titleQuery) filters.push(`title: "${titleQuery}"`);
+  if (titlePatterns?.length) {
+    if (titlePatterns.length === 1) {
+      filters.push(`title: "${titlePatterns[0]}"`);
+    } else {
+      filters.push(
+        `title: [${titlePatterns.map(p => `"${p}"`).join(', ')}] (match: ${queryMatchMode})`
+      );
+    }
+  }
   if (scope.blockTypes?.length) filters.push(`types: [${scope.blockTypes.join(', ')}]`);
   const scopeLabel = scope.pageId ? 'page' : 'workspace';
   yield { message: `Searching blocks (${scopeLabel}${filters.length ? ', ' + filters.join(', ') : ''})...` };
 
   try {
-    const rows = await repository.findByMetadata(titleQuery, scope, limit);
+    const rows = await repository.findByMetadata(
+      titlePatterns,
+      queryMatchMode,
+      scope,
+      limit
+    );
 
     const blockEntries: GlobBlockEntry[] = rows.map(row => ({
       blockMountId: row.blockMountId,
@@ -119,7 +153,10 @@ export async function* executeGlobBlocks(
       blocks: blockEntries,
       totalBlocks: blockEntries.length,
       filteredBy: {
-        ...(titleQuery && { query: titleQuery }),
+        ...(titlePatterns?.length && {
+          query: titlePatterns,
+          queryMatchMode,
+        }),
         ...(scope.blockTypes?.length && { blockTypes: scope.blockTypes }),
         scope: scopeLabel,
       },

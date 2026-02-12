@@ -295,6 +295,7 @@ Returns: blockMountId + line number + matching line + surrounding context lines.
  *
  * Searches block metadata (title, type) without looking inside content.
  * Scope: pageId (default: current page) or workspaceId.
+ * Multiple title patterns: pass an array and use queryMatchMode for OR/AND.
  */
 export const globBlocksTool = {
   description: `Search blocks by metadata (title, type). Does NOT search inside content — use grepBlockContent for that.
@@ -303,9 +304,23 @@ Use when: "List all markdown blocks", "Find blocks titled X", "What blocks exist
 
 Scope: pageId (default: current page) or workspaceId.
 
+Multiple title patterns: pass an array and use queryMatchMode for OR/AND.
+
 Returns: blockMountId, blockType, title, parentBlockMountId, timestamps.`,
   inputSchema: z.object({
-    query: z.string().optional().describe('Title pattern to search (case-insensitive substring match)'),
+    query: z
+      .union([z.string(), z.array(z.string())])
+      .optional()
+      .describe(
+        'Title pattern(s). Single string or array. Case-insensitive substring match. Multiple patterns use queryMatchMode.'
+      ),
+    queryMatchMode: z
+      .enum(['any', 'all'])
+      .default('any')
+      .optional()
+      .describe(
+        'For multiple query patterns: "any" = title contains any pattern (OR), "all" = title must contain every pattern (AND).'
+      ),
     blockTypes: z.array(z.string()).optional().describe('Filter by block types (e.g. ["markdown", "youtube"])'),
     pageId: z.string().optional().describe('Search within this page (default: current page)'),
     workspaceId: z.string().optional().describe('Search across entire workspace'),
@@ -316,30 +331,116 @@ Returns: blockMountId, blockType, title, parentBlockMountId, timestamps.`,
 /**
  * readBlockLines — Read specific lines from a block's content.
  *
- * Reads block content_raw by blockMountId, returns line-numbered text.
+ * Reads block content_raw by blockMountId, or linked source content/summary when source is set.
  */
 export const readBlockLinesTool = {
   description: `Read specific lines from a block's content (like terminal cat/head/tail).
 
 Use when: "Show me the content of block X", "Read lines 10-20", "What does this block say?".
 
+Use source to read linked source transcript (source_content) or AI summary (source_summary); use summaryLanguage for a specific summary language.
+
 Returns: line-numbered text content for the requested range.`,
   inputSchema: z.object({
     blockMountId: z.string().describe('The block mount ID to read from'),
     startLine: z.number().min(1).default(1).describe('Starting line number (1-based, default: 1)'),
     endLine: z.number().min(1).optional().describe('Ending line (reads to end if omitted)'),
+    source: z
+      .enum(['content_raw', 'source_content', 'source_summary'])
+      .default('content_raw')
+      .optional()
+      .describe(
+        'Where to read from: block content_raw, linked source extracted content (e.g. transcript), or linked source summary. Default: content_raw.'
+      ),
+    summaryLanguage: z
+      .string()
+      .optional()
+      .describe(
+        'When source is source_summary: language code (e.g. "ko", "en"). Omit to get one available summary.'
+      ),
   }),
 };
 
 // ============================================================================
 // Step 1-6: Block Edit Tool (Client-side)
 // ============================================================================
-// TODO: Add editBlockLinesTool
+
+/**
+ * editBlockLines — Edit block text by line range (replace, insert, delete).
+ * Use after grep/read to modify specific lines. Client-side only.
+ */
+export const editBlockLinesTool = {
+  description: `Edit block content by line range. Use after grepBlockContent or readBlockLines to modify specific lines.
+
+- replace: Overwrite lines startLine through endLine (inclusive) with newContent. If endLine omitted, only startLine is replaced.
+- insert: Insert newContent at line startLine (existing line and below shift down).
+- delete: Remove lines startLine through endLine (inclusive). newContent not used.
+
+Line numbers are 1-based. Returns success or error message.`,
+  inputSchema: z.object({
+    blockMountId: z.uuid().describe('Block mount ID to edit'),
+    operation: z.enum(['replace', 'insert', 'delete']).describe('replace | insert | delete'),
+    startLine: z.number().min(1).describe('Starting line (1-based)'),
+    endLine: z.number().min(1).optional().describe('End line for replace/delete (inclusive). Omit to affect only startLine.'),
+    newContent: z.string().optional().describe('New text for replace/insert. Required for replace and insert.'),
+  }),
+};
 
 // ============================================================================
 // Step 1-7: Connection Search Tools (Server-side)
 // ============================================================================
-// TODO: Add hopSearchTool, searchGroupTool, searchBySemanticTool
+
+/**
+ * hopSearch — Find blocks N-hops away from a starting block via edge connections.
+ */
+export const hopSearchTool = {
+  description: `Find blocks N-hops away from a starting block via edge connections.
+
+Use when: exploring block relationships, finding connected blocks in a workflow, discovering related blocks through graph traversal.
+
+- hops: 1 = directly connected, 2 = through one intermediary, 3 = max depth.
+- direction: "out" (default) = follow outgoing edges, "in" = incoming, "both" = both directions.
+
+Returns: blockMountIds and byHop entries with blockMountId, hop, edges (label, stroke, strokeWidth per connection), and optional blockType/title.`,
+  inputSchema: z.object({
+    startBlockMountId: z.uuid().describe('Starting block mount ID'),
+    hops: z.number().min(1).max(3).default(1).optional().describe('Number of hops (default: 1, max: 3)'),
+    direction: z.enum(['out', 'in', 'both']).default('out').optional().describe('Edge direction: out, in, or both'),
+    pageId: z.uuid().optional().describe('Page scope (default: current page from context)'),
+  }),
+};
+
+/**
+ * searchGroup — Find blocks inside a group/zone by parent block mount ID.
+ */
+export const searchGroupTool = {
+  description: `Find blocks inside a group or zone (blocks whose parent is the given group block mount).
+
+Use when: "What is inside this group?", "List blocks in this zone."
+
+Returns: blockMountIds and metadata (blockType, title) of direct children.`,
+  inputSchema: z.object({
+    groupBlockMountId: z.string().uuid().describe('Parent group/zone block mount ID'),
+    pageId: z.string().uuid().optional().describe('Page scope (default: current page from context)'),
+  }),
+};
+
+/**
+ * searchBySemantic — Find blocks by semantic similarity to a query (MVP: stub or simple text similarity).
+ */
+export const searchBySemanticTool = {
+  description: `Find contextually relevant blocks using semantic similarity to a natural language query.
+
+Use when: finding blocks related to a concept or topic, discovering similar content with different wording.
+
+MVP: May return stub message or simple text-based similarity. Full embedding-based search is planned.`,
+  inputSchema: z.object({
+    query: z.string().describe('Natural language query describing what to find'),
+    topK: z.number().min(1).max(20).default(10).optional().describe('Max results (default: 10, max: 20)'),
+    blockTypes: z.array(z.string()).optional().describe('Filter by block types (e.g. ["markdown", "text"])'),
+    pageId: z.uuid().optional().describe('Page scope (default: current page from context)'),
+  }),
+};
 
 // ============================================================================
 // Step 1-8: Layout Tool (Client-side)
@@ -368,9 +469,13 @@ export type V2ToolName =
   | 'grepBlockContent'
   | 'globBlocks'
   | 'readBlockLines'
+  | 'hopSearch'
+  | 'searchGroup'
+  | 'searchBySemantic'
+  | 'editBlockLines'
   | 'web_search'
   | 'x_search'
-  // Step 1-6+: Additional tool names will be added here
+  // Step 1-8+: organizeLayout, etc.
   ;
 
 /** Tool call shape for client typing */

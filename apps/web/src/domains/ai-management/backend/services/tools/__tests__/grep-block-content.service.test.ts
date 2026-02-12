@@ -18,6 +18,8 @@ describe('grep-block-content.service', () => {
       findByContentPattern: vi.fn(),
       findByMetadata: vi.fn(),
       findContentByBlockMountId: vi.fn(),
+      findSourceContentByBlockMountId: vi.fn(),
+      findSourceSummaryByBlockMountId: vi.fn(),
       findBySourceContentPattern: vi.fn(),
       findBySourceSummaryPattern: vi.fn(),
     } as unknown as BlockSearchRepository;

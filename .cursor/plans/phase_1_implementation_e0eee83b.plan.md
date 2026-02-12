@@ -16,13 +16,13 @@ todos:
     status: completed
   - id: step-1-5
     content: "Step 1-5: 블록 검색/읽기 — grepBlockContent + globBlocks + readBlockLines 서버사이드 tool executor 구현"
-    status: pending
+    status: completed
   - id: step-1-6
     content: "Step 1-6: 블록 수정 — editBlockLines 클라이언트사이드 tool handler 구현"
-    status: pending
+    status: completed
   - id: step-1-7
     content: "Step 1-7: 연결 검색 — hopSearch + searchGroup + searchBySemantic 서버사이드 tool executor 구현"
-    status: pending
+    status: completed
   - id: step-1-8
     content: "Step 1-8: 레이아웃 정리 — organizeLayout 클라이언트사이드 tool handler 구현"
     status: pending
@@ -53,12 +53,38 @@ isProject: false
 
 ## Current State
 
-- **Agent V2** (`/api/agent/v2/`): xAI Grok streaming, only 1 search sub-agent
+- **Agent V2** (`/api/agent/v2/`): xAI Grok `grok-4-1-fast-reasoning` streaming, web_search + x_search 네이티브 등록, renderCanvasdown/patchCanvasdown 클라이언트 실행
 - **Agent V1** (`/api/agent/`): OpenAI-based, client-side tool handler pattern + context assembly (legacy)
-- **Canvasdown**: `@ssota-labs/canvasdown-reactflow` package + executor/renderer already implemented
+- **Canvasdown**: `@ssota-labs/canvasdown-reactflow` package + executor 구현 완료. Chat Panel `onToolCall`에서 실행, addToolOutput으로 결과 전달. 배치는 캔버스 오른쪽 끝 블록 기준
+- **Chat Panel**: Reasoning 파트 렌더링 (Reasoning/ReasoningContent/ReasoningTrigger), 스트리밍 시 자동 펼침/완료 후 접힘
 - **Visual Summarizer**: Production-grade Canvasdown prompt + tool schemas (reference for Step 1-4)
-- **DB**: `blocks`, `block_mounts`, `edges` tables with Drizzle ORM definitions
-- **Search tools**: `searchByHop`, `searchBySemantic`, `searchByKeyword` — interfaces only, implementations mocked/TODO
+- **DB**: `blocks`, `block_mounts`, `edges` tables with Drizzle ORM definitions; `blocks.source_id` → `sources`, `source_summaries` (source-management 스키마)
+- **Step 1-5 완료**: grepBlockContent, globBlocks, readBlockLines 서버사이드 구현 (ai-management 도메인). content_raw 외에 source_content, source_summary 연동.
+- **Step 1-6 완료**: editBlockLines 클라이언트사이드 구현. useReactFlow + useUpdateBlockContent, tiptapToMarkdown/convertMarkdownToTiptapJSON, applyLineEdit(replace/insert/delete). route.ts에는 execute 없이 툴만 등록.
+- **Step 1-7 완료**: hopSearch, searchGroup, searchBySemantic 서버사이드 구현. **ConnectionSearchRepository** (ai-management)로 엣지/블록마운트 조회 캡슐화(edge·block-mount 도메인 레포 직접 의존 제거). hopSearch 결과에 엣지 라벨·스타일(edges[].label, stroke, strokeWidth) 포함. searchBySemantic은 MVP 스텁.
+
+## Implementation Notes (Checkpoint A 완료 후)
+
+### Prompt 개선 (웹 검색 유도)
+
+- **Information Freshness** 원칙 추가: 실세계 주제(회사, 제품, 트렌드, 뉴스)에 대해 web_search 먼저 사용
+- **Actively Gather Information** 워크플로우 단계 추가
+
+### Canvasdown 도구
+
+- **ZONE PARSING 규칙**: `@zone` 블록은 속성 `}`로 반드시 닫은 뒤 자식 블록 작성 (파싱 에러 방지)
+- **Tool Result**: use-chat-v2.ts에서 addToolOutput으로 성공/실패 모두 전달
+- **배치 기준**: anchor 없을 때 캔버스 가장 오른쪽 블록(또는 그룹 내부면 부모 그룹) 기준으로 배치
+
+### Chat Panel UX
+
+- **Reasoning 렌더링**: `types.ts`에 ReasoningPart 추가, `chat-panel-messages.tsx`에서 Reasoning 컴포넌트로 추론 과정 표시. 스트리밍 중 자동 펼침, 완료 후 자동 접힘
+
+### 알려진 이슈
+
+- **웹 검색 미호출**: 실세계 주제 요청 시에도 모델이 web_search를 생략하고 바로 renderCanvasdown만 호출하는 경우 있음. 프롬프트 개선 여지 있음
+
+---
 
 ## Checkpoint 구조
 
@@ -300,23 +326,11 @@ export const patchCanvasdownTool = tool({
 });
 ```
 
-### 클라이언트 핸들러 (tool-handlers.ts)
+### 클라이언트 핸들러 (use-chat-v2.ts 내 onToolCall)
 
-```typescript
-// use-chat-v2.ts의 onToolCall에서 분기
-export async function handleRenderCanvasdown(args, canvasdownExecutor) {
-  const result = await canvasdownExecutor.renderFull(args.dsl, {
-    anchorBlockMountId: args.anchorBlockMountId,
-    position: args.position,
-  });
-  return { success: true, createdBlockMountIds: result.blockMountIds };
-}
-
-export async function handlePatchCanvasdown(args, canvasdownExecutor) {
-  const result = await canvasdownExecutor.applyPatch(args.dsl);
-  return { success: true, patchedBlockMountIds: result.blockMountIds };
-}
-```
+- `onToolCall`에서 `toolName === 'renderCanvasdown'` / `patchCanvasdown` 분기
+- `useCanvasdownContext()`의 executor로 Full/Patch 렌더링 실행
+- `addToolOutput({ tool, toolCallId, output })`으로 성공 시 blockIdMap, 실패 시 errorText 전달
 
 ### Prompt Addition — Canvasdown DSL Grammar (in English)
 
@@ -332,56 +346,89 @@ Add Full DSL / Patch DSL complete grammar, examples, and rules to prompt.ts as s
 
 ---
 
-## Step 1-5. Global Tool — 블록 검색/읽기 (grep + glob + read)
+## Step 1-5. Global Tool — 블록 검색/읽기 (grep + glob + read) — 완료
 
 ### 목표
 
 에이전트가 블록 content를 검색하고 읽을 수 있게 한다. **서버사이드 도구**.
 
-### 변경 파일
+### 구현 완료 상태
 
-- `**[apps/web/src/app/api/agent/v2/tools.ts](apps/web/src/app/api/agent/v2/tools.ts)**` — grepBlockContentTool, globBlocksTool, readBlockLinesTool 정의
-- `**apps/web/src/app/api/agent/v2/tool-executors/**` (신규 디렉토리)
-  - `grep-block-content.ts` — DB 쿼리 + 서버 라인 파싱
-  - `glob-blocks.ts` — 메타데이터 검색
-  - `read-block-lines.ts` — 라인 범위 읽기
-- `**[apps/web/src/app/api/agent/v2/route.ts](apps/web/src/app/api/agent/v2/route.ts)**` — tools 등록
-- `**[apps/web/src/app/api/agent/v2/prompt.ts](apps/web/src/app/api/agent/v2/prompt.ts)**` — 검색/읽기 워크플로우 규칙
+- **grepBlockContent**, **globBlocks**, **readBlockLines** 서버사이드 executor 구현 완료.
+- 실행기는 `apps/web/src/app/api/agent/v2/route.ts`에서 등록하며, 실제 로직은 **ai-management 도메인**의 서비스·레포지토리에서 수행.
 
-### 서버 구현 핵심 (grep-block-content.ts)
+### 변경 파일 (실제 구현 기준)
 
-```typescript
-// 1. 스코프 결정 → block_mounts JOIN blocks로 대상 확정
-// 2. blocks.content_raw에서 ILIKE/regex 매칭 (DB 레벨 필터링)
-// 3. 매칭된 블록의 content_raw를 라인 단위 split → 라인 번호 + contextLines 계산
-// 4. blockMountId + 라인 정보 반환
-```
+- `**[apps/web/src/app/api/agent/v2/tools.ts](apps/web/src/app/api/agent/v2/tools.ts)**` — grepBlockContentTool, globBlocksTool, readBlockLinesTool 정의 (스키마 + 설명)
+- `**[apps/web/src/app/api/agent/v2/route.ts](apps/web/src/app/api/agent/v2/route.ts)**` — tools 등록, blockSearchRepo 주입 후 executeGrepBlockContent / executeGlobBlocks / executeReadBlockLines 호출
+- `**[apps/web/src/app/api/agent/v2/prompt.ts](apps/web/src/app/api/agent/v2/prompt.ts)**` — 검색/읽기 워크플로우 규칙 및 도구별 옵션 설명
+- `**apps/web/src/domains/ai-management/backend/repositories/interfaces/block-search.repository.interface.ts**` — BlockSearchRepository (findByContentPattern, findByMetadata, findContentByBlockMountId, findBySourceContentPattern, findBySourceSummaryPattern, **findSourceContentByBlockMountId**, **findSourceSummaryByBlockMountId**)
+- `**apps/web/src/domains/ai-management/backend/repositories/implementations/drizzle-block-search.repository.ts**` — Drizzle 구현
+- `**apps/web/src/domains/ai-management/backend/services/tools/**`
+  - `grep-block-content.service.ts` — 패턴 검색 (content_raw + source_content + source_summary)
+  - `glob-blocks.service.ts` — 메타데이터 검색 (query 다중 패턴 + queryMatchMode)
+  - `read-block-lines.service.ts` — 라인 범위 읽기 (content_raw / source_content / source_summary)
 
-DB 쿼리는 기존 Drizzle ORM 레포지토리 패턴 활용:
+### 계획 대비 변경 사항: Source 도메인 연동 (content_raw / source_content / source_summary)
 
-- `[apps/web/src/domains/canvas-management/backend/repositories/](apps/web/src/domains/canvas-management/backend/repositories/)`
+구현 과정에서 **소스 도메인(source-management)** 과 연동하여, 블록 본문(content_raw)뿐 아니라 **연결된 소스의 추출 본문(source_content)** 과 **AI 요약(source_summary)** 도 검색·읽기 대상에 포함되었다.
+
+
+| 도구                   | 추가된 동작                                                                                                                                                                                                                                                                      |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **grepBlockContent** | `sources` 옵션: `content_raw`(기본), `source_content`, `source_summary` 중 선택. `source_content`는 `blocks.source_id` → `sources.raw_content` 검색, `source_summary`는 `source_summaries.summary` 검색. `summaryLanguages`로 요약 언어 필터. 각 매칭에 `source` 필드 부여.                             |
+| **globBlocks**       | 제목 다중 패턴: `query`를 `string                                                                                                                                                                                                                                                  |
+| **readBlockLines**   | `source` 옵션: `content_raw`(기본), `source_content`, `source_summary`. `source_content` 시 단일 블록의 `sources.raw_content` 라인 범위 반환, `source_summary` 시 `source_summaries` 한 건(언어 지정 시 해당 언어, 미지정 시 하나) 라인 범위 반환. `summaryLanguage`로 요약 언어 지정. 응답에 `source`, `summaryLanguage` 포함. |
+
+
+Repository에는 `findBySourceContentPattern`, `findBySourceSummaryPattern`(기존) 외에 단일 블록용 **findSourceContentByBlockMountId**, **findSourceSummaryByBlockMountId** 가 추가됨.
+
+### 서버 구현 핵심 (요약)
+
+- **grep**: 스코프(block_mounts ⋈ blocks) 확정 후, 선택된 source별로 content_raw / sources.raw_content / source_summaries.summary 에서 패턴 검색 → 라인 단위 매칭·컨텍스트 라인 계산 → blockMountId + 라인 + source 반환.
+- **glob**: block_mounts ⋈ blocks, 메타데이터(title, blockTypes) 필터. title은 패턴 배열 + queryMatchMode(any/all)로 ILIKE OR/AND.
+- **read**: blockMountId(+ pageId)로 단일 블록 조회. source에 따라 findContentByBlockMountId / findSourceContentByBlockMountId / findSourceSummaryByBlockMountId 호출 후 동일한 라인 슬라이스·포맷팅.
+
+DB·스키마: `blocks.source_id` → `sources`, `source_summaries` (public 스키마). [apps/web/src/db/schemas/public/source-management-schema.ts](apps/web/src/db/schemas/public/source-management-schema.ts) 참고.
 
 ### 테스트
 
-- "마케팅이라는 단어가 어디에 있어?" → grep 결과 (blockMountId + 라인)
-- "마크다운 블록 목록 보여줘" → glob 결과 (메타데이터)
-- "그 블록 내용 보여줘" → read 결과 (라인 범위)
+- "마케팅이라는 단어가 어디에 있어?" → grep 결과 (blockMountId + 라인, source 표시)
+- "유튜브 블록 요약에서 OO 검색해줘" → grep sources에 source_summary 포함
+- "마크다운 블록 목록 보여줘" → glob 결과 (메타데이터). 다중 제목 패턴 + any/all 지원
+- "그 블록 내용 보여줘" / "그 블록 스크립트 처음 10줄 보여줘" → read (source 지정 시 source_content/source_summary)
 - 빈 페이지에서 검색 → 빈 결과 (에러 없음)
 
 ---
 
-## Step 1-6. Global Tool — 블록 수정 (editBlockLines)
+## Step 1-6. Global Tool — 블록 수정 (editBlockLines) — 완료
 
 ### 목표
 
-에이전트가 기존 블록의 텍스트를 라인 단위로 수정. **클라이언트사이드 도구**.
+에이전트가 기존 블록의 텍스트를 라인 단위로 수정. **클라이언트사이드 도구**. **기존 캔버스/블록 훅만 재사용**한다.
+
+### 구현 완료 상태
+
+- **editBlockLinesTool** (tools.ts): blockMountId, operation(replace|insert|delete), startLine, endLine?, newContent?
+- **use-chat-v2.ts**: onToolCall에서 editBlockLines 분기. useReactFlow(getNode, setNodes) + useUpdateBlockContent, node.data.content → tiptapToMarkdown → applyLineEdit → convertMarkdownToTiptapJSON → updateBlockContent. route.ts에는 execute 없이 툴만 등록(클라이언트 전용).
+- **prompt.ts**: Block Edit(editBlockLines) 섹션 추가.
+
+### 사용할 기존 모듈 (모듈화 원칙)
+
+- **useReactFlow()** — getNode, setNodes (ChatPanelSidebar는 ReactFlowProvider 하위이므로 동일 인스턴스 사용)
+- **updateNode** — useCanvasdownExecutor와 동일하게 setNodes로 단일 노드 data 갱신하는 useCallback 파생 ([use-canvasdown-executor.ts](apps/web/src/domains/canvasdown/frontend/hooks/use-canvasdown-executor.ts) 94–106행 패턴)
+- **useUpdateBlockContent** — [use-block-content-update.ts](apps/web/src/domains/block-management/frontend/hooks/block-property/use-block-content-update.ts), reactFlow: { getNode, updateNode } 주입
+- **convertMarkdownToTiptapJSON** — [markdown-to-tiptap.ts](apps/web/src/domains/ai-management/frontend/utils/markdown-to-tiptap.ts)
+
+새 훅은 추가하지 않고, use-chat-v2에서 위 조합으로 editBlockLines 분기만 구현. 라인 연산(replace/insert/delete)은 순수 함수 유틸로 분리 가능.
 
 ### 변경 파일
 
 - `**[apps/web/src/app/api/agent/v2/tools.ts](apps/web/src/app/api/agent/v2/tools.ts)**` — editBlockLinesTool 정의
-- `**apps/web/src/domains/ai-management/frontend/components/chat-panel-sidebar/tool-handlers.ts**` — editBlockLines 핸들러
-  - V1의 `updateContent` 핸들러 참고
-  - content_raw 기반 라인 파싱 → 수정 → React Flow 노드 업데이트
+- `**apps/web/src/domains/ai-management/frontend/components/chat-panel-sidebar/use-chat-v2.ts**` — useReactFlow + useUpdateBlockContent 조합, onToolCall에 editBlockLines 분기 (필요 시 tool-handlers.ts에 핸들러만 분리)
+- 현재 content 확보: node.data.content(TipTap) → 마크다운 변환 유틸이 있으면 사용 후 라인 편집; 없으면 tiptapToMarkdown 유틸 하나만 추가
+
+세부 흐름·파일 구조: [phase_1_steps_1-6_1-7_detail.plan.md](phase_1_steps_1-6_1-7_detail.plan.md)
 
 ### 테스트
 
@@ -390,19 +437,39 @@ DB 쿼리는 기존 Drizzle ORM 레포지토리 패턴 활용:
 
 ---
 
-## Step 1-7. Global Tool — 연결 검색 (hop + group + semantic)
+## Step 1-7. Global Tool — 연결 검색 (hop + group + semantic) — 완료
 
 ### 목표
 
-블록 간 연결 관계 탐색 + 의미 기반 검색. **서버사이드 도구**.
+블록 간 연결 관계 탐색 + 의미 기반 검색. **서버사이드 도구**. **AI 도메인은 ConnectionSearchRepository만 의존**한다(edge/block-mount 도메인 레포 직접 사용 안 함).
 
-### 변경 파일
+### 구현 완료 상태
+
+- **ConnectionSearchRepository** (ai-management): hopSearch·searchGroup 전용. `findEdgesByConnectedBlockMountId`, `findEdgesByConnectedBlockMountIdAndPageId`, `findBlockMountsWithBlocksByPageId` — 내부에서 EdgeRepository·BlockMountRepository 위임. **DrizzleConnectionSearchRepository**가 route에서 Edge+BlockMount 인스턴스로 생성되어 executeHopSearch/executeSearchGroup에 주입.
+- **hopSearch**: N-hop BFS, direction(out/in/both), hops 1–3, pageId 스코프. 결과 **byHop**에 각 항목당 **edges** 배열(label, stroke, strokeWidth) 포함.
+- **searchGroup**: 페이지 내 block_mounts+blocks 조회 후 parent_block_mount_id로 그룹 자식 필터.
+- **searchBySemantic**: MVP 스텁(미구현 안내 메시지).
+
+### 사용할 기존 모듈 (모듈화 원칙)
+
+- **hopSearch**: `ConnectionSearchRepository.findEdgesByConnectedBlockMountId` / `findEdgesByConnectedBlockMountIdAndPageId`. N-hop BFS는 ai-management/backend/services/tools/hop-search.service.ts에서 구현.
+- **searchGroup**: `ConnectionSearchRepository.findBlockMountsWithBlocksByPageId` 후 서비스에서 parent 필터.
+- **searchBySemantic**: ai-management/services/tools/search-by-semantic.service.ts 스텁.
+
+구현 위치: **ai-management/backend/services/tools/** + **ai-management/backend/repositories/** (ConnectionSearchRepository 인터페이스·구현). route.ts에서 connectionSearchRepo 한 번 생성 후 두 실행기에 주입.
+
+### 변경 파일 (실제 구현 기준)
 
 - `**[apps/web/src/app/api/agent/v2/tools.ts](apps/web/src/app/api/agent/v2/tools.ts)**` — hopSearchTool, searchGroupTool, searchBySemanticTool 정의
-- `**apps/web/src/app/api/agent/v2/tool-executors/**`
-  - `hop-search.ts` — edges 테이블 기반 N-hop 탐색 (기존 context-assembly의 `getConnectedBlocks` 참고)
-  - `search-group.ts` — block_mounts.parent_block_mount_id 기반 그룹 검색
-  - `search-by-semantic.ts` — 임베딩 기반 (초기: content_raw 유사도, 이후 벡터 업그레이드)
+- `**apps/web/src/domains/ai-management/backend/repositories/**`
+  - `interfaces/connection-search.repository.interface.ts` — findEdgesByConnectedBlockMountId, findEdgesByConnectedBlockMountIdAndPageId, findBlockMountsWithBlocksByPageId
+  - `implementations/drizzle-connection-search.repository.ts` — EdgeRepository + BlockMountRepository 위임
+- `**apps/web/src/domains/ai-management/backend/services/tools/**`
+  - `hop-search.service.ts` — ConnectionSearchRepository 주입, N-hop 탐색, byHop에 edges(label, stroke, strokeWidth) 포함
+  - `search-group.service.ts` — ConnectionSearchRepository 주입, 그룹 자식 조회
+  - `search-by-semantic.service.ts` — MVP 스텁
+- `**[apps/web/src/app/api/agent/v2/route.ts](apps/web/src/app/api/agent/v2/route.ts)**` — DrizzleConnectionSearchRepository 생성 후 executeHopSearch, executeSearchGroup에 주입
+- `**[apps/web/src/app/api/agent/v2/prompt.ts](apps/web/src/app/api/agent/v2/prompt.ts)**` — Connection & Group Search, Block Edit 섹션(간결 버전)
 
 ### 테스트
 
@@ -507,27 +574,36 @@ DB 쿼리는 기존 Drizzle ORM 레포지토리 패턴 활용:
 
 ```
 apps/web/src/app/api/agent/v2/
-├── route.ts                      # 메인 라우트 (동적 컨텍스트 주입)
+├── route.ts                      # 메인 라우트. blockSearchRepo + connectionSearchRepo 주입, grep/glob/read/hopSearch/searchGroup/searchBySemantic 실행
 ├── prompt.ts                     # 정적 system prompt (캐싱 대상)
 ├── tools.ts                      # 모든 Tool 정의 (Zod schema)
-├── context-builder.ts            # 동적 컨텍스트 조립 (신규)
-├── search-sub-agent.ts           # Step 1-3에서 제거 또는 아카이브
-└── tool-executors/               # 서버사이드 도구 실행기 (신규)
-    ├── grep-block-content.ts
-    ├── glob-blocks.ts
-    ├── read-block-lines.ts
-    ├── hop-search.ts
-    ├── search-group.ts
-    ├── search-by-semantic.ts
-    ├── grep-events.ts
-    └── get-page-events.ts
+├── context-builder.ts            # 동적 컨텍스트 조립
+└── (tool-executors/ — Step 1-13 이벤트 등 미구현 도구용. hop/group/semantic은 ai-management/services/tools에 구현됨)
+
+apps/web/src/domains/ai-management/backend/
+├── repositories/
+│   ├── interfaces/
+│   │   ├── block-search.repository.interface.ts
+│   │   └── connection-search.repository.interface.ts   # hopSearch, searchGroup 전용
+│   └── implementations/
+│       ├── drizzle-block-search.repository.ts
+│       └── drizzle-connection-search.repository.ts    # Edge + BlockMount 위임
+└── services/tools/               # 블록 검색/읽기(1-5) + 연결 검색(1-7) 실행기
+    ├── grep-block-content.service.ts
+    ├── glob-blocks.service.ts
+    ├── read-block-lines.service.ts
+    ├── hop-search.service.ts
+    ├── search-group.service.ts
+    ├── search-by-semantic.service.ts
+    └── __tests__/
 
 apps/web/src/domains/ai-management/frontend/components/chat-panel-sidebar/
-├── use-chat-v2.ts                # 클라이언트 context 수집 + onToolCall
-├── tool-handlers.ts              # 클라이언트사이드 도구 핸들러 (신규)
+├── use-chat-v2.ts                # 클라이언트 context 수집 + onToolCall (renderCanvasdown, patchCanvasdown 인라인 핸들러)
 ├── chat-panel-sidebar.tsx
-├── chat-panel-messages.tsx
-└── chat-panel-tool-part.tsx
+├── chat-panel-messages.tsx       # Reasoning 파트 렌더링 포함
+├── chat-panel-tool-part.tsx
+├── types.ts                      # ReasoningPart, CitationItem 등
+└── index.ts
 ```
 
 ---
@@ -547,14 +623,14 @@ apps/web/src/domains/ai-management/frontend/components/chat-panel-sidebar/
 
 **Checkpoint A 데모**: "AI 스타트업 검색해서 캔버스에 정리해줘"
 
-### Week 2 (Checkpoint B 목표)
+### Week 2 (Checkpoint B 목표) — 완료
 
 
-| 순서  | Step | 작업                             | 예상 소요 | 병렬 가능   |
-| --- | ---- | ------------------------------ | ----- | ------- |
-| 5   | 1-5  | grep + glob + read (서버사이드)     | 2-3일  | 1-7과 병렬 |
-| 6   | 1-7  | hop + group + semantic (서버사이드) | 1.5일  | 1-5와 병렬 |
-| 7   | 1-6  | editBlockLines (클라이언트사이드)      | 1일    | -       |
+| 순서  | Step | 작업                             | 예상 소요 | 병렬 가능   | 상태  |
+| --- | ---- | ------------------------------ | ----- | ------- | --- |
+| 5   | 1-5  | grep + glob + read (서버사이드)     | 2-3일  | 1-7과 병렬 | 완료  |
+| 6   | 1-7  | hop + group + semantic (서버사이드) | 1.5일  | 1-5와 병렬 | 완료  |
+| 7   | 1-6  | editBlockLines (클라이언트사이드)      | 1일    | -       | 완료  |
 
 
 **Checkpoint B 데모**: "마케팅 단어가 어디에 있어?" → grep → read → "연결된 블록 뭐야?" → hop

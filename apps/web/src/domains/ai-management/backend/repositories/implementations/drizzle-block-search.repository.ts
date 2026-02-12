@@ -6,7 +6,7 @@
  * 스코프·ID는 Value Object의 .value로 DB에 전달.
  */
 
-import { and, eq, inArray, isNotNull, isNull, ilike, or } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, ilike, or } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import { adminDb } from '@/db';
 import { blocks, blockMounts, sources, sourceSummaries } from '@/db/schema';
@@ -62,13 +62,25 @@ export class DrizzleBlockSearchRepository implements BlockSearchRepository {
    * 메타데이터(title, type)로 블록 검색
    */
   async findByMetadata(
-    titlePattern: string | undefined,
+    titlePatterns: string[] | undefined,
+    queryMatchMode: 'any' | 'all',
     scope: BlockSearchScope,
     limit: number
   ): Promise<GlobBlockRow[]> {
     const conditions = this.buildScopeConditions(scope);
-    if (titlePattern) {
-      conditions.push(ilike(blocks.title, `%${titlePattern}%`));
+    if (titlePatterns?.length) {
+      if (titlePatterns.length === 1) {
+        conditions.push(ilike(blocks.title, `%${titlePatterns[0]}%`));
+      } else {
+        const titleConditions = titlePatterns.map(p =>
+          ilike(blocks.title, `%${p}%`)
+        );
+        if (queryMatchMode === 'any') {
+          conditions.push(or(...titleConditions)!);
+        } else {
+          conditions.push(and(...titleConditions)!);
+        }
+      }
     }
 
     const rows = await adminDb
@@ -115,6 +127,81 @@ export class DrizzleBlockSearchRepository implements BlockSearchRepository {
       .from(blockMounts)
       .innerJoin(blocks, eq(blockMounts.block_id, blocks.id))
       .where(and(...conditions))
+      .limit(1);
+
+    return rows[0] ?? null;
+  }
+
+  /**
+   * blockMountId로 단일 블록의 sources.raw_content 조회
+   */
+  async findSourceContentByBlockMountId(
+    blockMountId: BlockMountId,
+    pageId?: PageId
+  ): Promise<SourceContentRow | null> {
+    const conditions: ReturnType<typeof eq>[] = [
+      eq(blockMounts.id, blockMountId.value),
+      isNull(blockMounts.deleted_at),
+      isNull(blocks.deleted_at),
+      isNotNull(blocks.source_id),
+      isNotNull(sources.raw_content),
+    ];
+    if (pageId) {
+      conditions.push(eq(blockMounts.page_id, pageId.value));
+    }
+
+    const rows = await adminDb
+      .select({
+        blockMountId: blockMounts.id,
+        blockType: blocks.block_type,
+        title: blocks.title,
+        rawContent: sources.raw_content,
+      })
+      .from(blockMounts)
+      .innerJoin(blocks, eq(blockMounts.block_id, blocks.id))
+      .innerJoin(sources, eq(blocks.source_id, sources.id))
+      .where(and(...conditions))
+      .limit(1);
+
+    const row = rows[0];
+    return row && row.rawContent != null ? (row as SourceContentRow) : null;
+  }
+
+  /**
+   * blockMountId로 단일 블록의 source_summaries 한 건 조회
+   */
+  async findSourceSummaryByBlockMountId(
+    blockMountId: BlockMountId,
+    pageId?: PageId,
+    language?: string
+  ): Promise<SourceSummaryRow | null> {
+    const conditions: ReturnType<typeof eq>[] = [
+      eq(blockMounts.id, blockMountId.value),
+      isNull(blockMounts.deleted_at),
+      isNull(blocks.deleted_at),
+      isNotNull(blocks.source_id),
+    ];
+    if (pageId) {
+      conditions.push(eq(blockMounts.page_id, pageId.value));
+    }
+    if (language != null && language !== '') {
+      conditions.push(eq(sourceSummaries.language, language));
+    }
+
+    const rows = await adminDb
+      .select({
+        blockMountId: blockMounts.id,
+        blockType: blocks.block_type,
+        title: blocks.title,
+        language: sourceSummaries.language,
+        summary: sourceSummaries.summary,
+      })
+      .from(blockMounts)
+      .innerJoin(blocks, eq(blockMounts.block_id, blocks.id))
+      .innerJoin(sources, eq(blocks.source_id, sources.id))
+      .innerJoin(sourceSummaries, eq(sources.id, sourceSummaries.source_id))
+      .where(and(...conditions))
+      .orderBy(asc(sourceSummaries.language))
       .limit(1);
 
     return rows[0] ?? null;
