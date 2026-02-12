@@ -25,7 +25,7 @@ todos:
     status: completed
   - id: step-1-8
     content: "Step 1-8: 레이아웃 정리 — organizeLayout 클라이언트사이드 tool handler 구현"
-    status: pending
+    status: completed
   - id: step-1-9
     content: "Step 1-9: 작업 관리 — createTodos 클라이언트사이드 tool handler 구현"
     status: completed
@@ -37,7 +37,7 @@ todos:
     status: pending
   - id: step-1-13
     content: "Step 1-13: 이벤트 저장/조회 — grepEvents + getPageEvents tool executor + recentEvents 동적 컨텍스트"
-    status: pending
+    status: completed
 isProject: false
 ---
 
@@ -62,6 +62,8 @@ isProject: false
 - **Step 1-5 완료**: grepBlockContent, globBlocks, readBlockLines 서버사이드 구현 (ai-management 도메인). content_raw 외에 source_content, source_summary 연동.
 - **Step 1-6 완료**: editBlockLines 클라이언트사이드 구현. useReactFlow + useUpdateBlockContent, tiptapToMarkdown/convertMarkdownToTiptapJSON, applyLineEdit(replace/insert/delete). route.ts에는 execute 없이 툴만 등록.
 - **Step 1-7 완료**: hopSearch, searchGroup, searchBySemantic 서버사이드 구현. **ConnectionSearchRepository** (ai-management)로 엣지/블록마운트 조회 캡슐화(edge·block-mount 도메인 레포 직접 의존 제거). hopSearch 결과에 엣지 라벨·스타일(edges[].label, stroke, strokeWidth) 포함. searchBySemantic은 MVP 스텁.
+- **Step 1-8 완료**: organizeLayout 클라이언트사이드 구현. layout-engine.ts(ELKjs flow/tree/mindmap + 순수 계산 grid/stack), use-organize-layout-tool.ts, 동일 레이어 검증(validateSameLayer), setNodes 즉시 반영 + useUpdateBlockPosition 배치 저장.
+- **Step 1-13 완료**: 이벤트 도메인 **event-management** 로 이전 완료. **grepEvents**, **getPageEvents** 서버사이드 툴( event-tools.ts + EventSearchService), **recentEvents** 동적 컨텍스트(route에서 EventContextService.getRecentEvents(pageId, 15) 주입 → context-builder 포맷). 핵심 툴 콜·user utterance·AI 응답은 EventLogService로 로깅(logUserUtterance, logToolCall, logAIResponse). DB: event-management-schema (event_logs).
 
 ## Implementation Notes (Checkpoint A 완료 후)
 
@@ -478,21 +480,34 @@ DB·스키마: `blocks.source_id` → `sources`, `source_summaries` (public 스�
 
 ---
 
-## Step 1-8. Global Tool — 레이아웃 정리 (organizeLayout)
+## Step 1-8. Global Tool — 레이아웃 정리 (organizeLayout) — 완료
 
 ### 목표
 
 기존 블록들 자동 레이아웃 재배치. **클라이언트사이드 도구**.
 
-### 변경 파일
+### 구현 완료 상태
+
+- **organizeLayoutTool** (tools.ts): type(grid|flow|tree|mindmap|stack), options(columns, direction, spacing, centerBlockMountId), targetBlockMountIds. V2ToolName에 organizeLayout 추가.
+- **layout-engine.ts** (ai-management/frontend/utils): validateSameLayer, computeGridLayout, computeStackLayout(순수 계산), computeFlowLayout, computeTreeLayout, computeMindmapLayout(ELKjs elk.bundled — layered, mrtree, radial).
+- **use-organize-layout-tool.ts**: getNodes/getEdges/setNodes/updateBlockPosition 의존, 계층 검증 후 레이아웃 계산 → setNodes 즉시 반영 → updateBlockPosition 배치 DB 저장.
+- **use-chat-v2.ts**: useUpdateBlockPosition(pageId, reactFlow) + useOrganizeLayoutTool, onToolCall에서 organizeLayout 분기.
+- **route.ts**: organizeLayout 툴 등록(클라이언트 전용, execute 없음). **prompt.ts**: Layout(organizeLayout) 사용법 섹션 추가.
+
+### 변경 파일 (실제 구현 기준)
 
 - `**[apps/web/src/app/api/agent/v2/tools.ts](apps/web/src/app/api/agent/v2/tools.ts)**` — organizeLayoutTool 정의
-- `**apps/web/src/domains/ai-management/frontend/components/chat-panel-sidebar/tool-handlers.ts**` — organizeLayout 핸들러
-  - React Flow 노드 재배치 로직 (grid/flow/tree/mindmap/stack)
+- `**apps/web/src/domains/ai-management/frontend/utils/layout-engine.ts**` — 레이아웃 알고리즘(ELKjs + 순수 계산), validateSameLayer
+- `**apps/web/src/domains/ai-management/frontend/hooks/tools/use-organize-layout-tool.ts**` — organizeLayout 핸들러
+- `**apps/web/src/domains/ai-management/frontend/hooks/tools/index.ts**` — useOrganizeLayoutTool export
+- `**apps/web/src/domains/ai-management/frontend/components/chat-panel-sidebar/use-chat-v2.ts**` — hook 초기화 및 onToolCall 분기, useUpdateBlockPosition 연동
+- `**[apps/web/src/app/api/agent/v2/route.ts](apps/web/src/app/api/agent/v2/route.ts)**` — organizeLayout 툴 등록
+- `**[apps/web/src/app/api/agent/v2/prompt.ts](apps/web/src/app/api/agent/v2/prompt.ts)**` — organizeLayout 사용법 추가
 
 ### 테스트
 
 - "3열로 정리해줘" → grid 레이아웃 적용
+- 동일 레이어가 아닌 블록 혼합 시 에러 메시지 반환
 
 ---
 
@@ -550,23 +565,35 @@ DB·스키마: `blocks.source_id` → `sources`, `source_summaries` (public 스�
 
 ---
 
-## Step 1-13. 이벤트 저장/조회 + recentEvents 컨텍스트
+## Step 1-13. 이벤트 저장/조회 + recentEvents 컨텍스트 — 완료
 
 ### 목표
 
 핵심 tool call을 이벤트로 저장 + 매 요청마다 recentEvents를 동적 컨텍스트로 전달.
 
-### 변경 파일
+### 구현 완료 상태
 
-- `**[apps/web/src/app/api/agent/v2/tools.ts](apps/web/src/app/api/agent/v2/tools.ts)**` — grepEventsTool, getPageEventsTool 정의
-- `**apps/web/src/app/api/agent/v2/tool-executors/**` — event 관련 executor
-- `**apps/web/src/app/api/agent/v2/context-builder.ts**` — `recentEvents` 필드 추가
-- `**[apps/web/src/app/api/agent/v2/prompt.ts](apps/web/src/app/api/agent/v2/prompt.ts)**` — recentEvents 해석 규칙
+- **event-management 도메인**: ai-management에서 이벤트 관련 코드 분리. `EventLogRepository`, `EventLogService`, `EventSearchService`, `EventContextService`, Drizzle 구현, aggregate/entity/value-objects.
+- **route.ts**: 요청 시 `EventContextService.getRecentEvents(pageId, 15)`로 recentEvents를 clientContext에 주입 후 `buildDynamicContext(clientContext)` 호출. `EventLogService`로 `logUserUtterance`, 서버사이드 툴 실행 시 `logToolCall`, `onFinish`에서 `logAIResponse` (fire-and-forget).
+- **event-tools.ts**: `createGetPageEventsTool(eventSearchService, pageId)`, `createGrepEventsTool(eventSearchService, pageId)` — getPageEvents/grepEvents 툴 등록.
+- **context-builder.ts**: `DynamicContext.recentEvents`, `parseDynamicContext`에서 recentEvents 파싱, `formatContextBlock`에서 "Recent Events (last ~15 actions)" 섹션 출력.
+- **prompt.ts**: Event History (getPageEvents, grepEvents) 사용 규칙 추가.
+- **DB**: event-management-schema (event_logs 테이블).
+
+### 변경 파일 (실제 구현 기준)
+
+- `**[apps/web/src/app/api/agent/v2/tools.ts](apps/web/src/app/api/agent/v2/tools.ts)**` — getPageEventsTool, grepEventsTool 정의
+- `**[apps/web/src/app/api/agent/v2/event-tools.ts](apps/web/src/app/api/agent/v2/event-tools.ts)**` — createGetPageEventsTool, createGrepEventsTool (EventSearchService 주입)
+- `**[apps/web/src/app/api/agent/v2/route.ts](apps/web/src/app/api/agent/v2/route.ts)**` — recentEvents 주입, EventLogService/EventSearchService 생성, getPageEvents/grepEvents 툴 등록, 툴 실행 시 logToolCall
+- `**apps/web/src/app/api/agent/v2/context-builder.ts**` — recentEvents 필드, parse, formatContextBlock
+- `**[apps/web/src/app/api/agent/v2/prompt.ts](apps/web/src/app/api/agent/v2/prompt.ts)**` — Event History 해석 규칙
+- `**apps/web/src/domains/event-management/**` — EventLogService, EventSearchService, EventContextService, DrizzleEventLogRepository, aggregate/entity
 
 ### 테스트
 
-- "어제 이 페이지에서 뭐 했어?" → 이벤트 로그 기반 응답
+- "어제 이 페이지에서 뭐 했어?" → getPageEvents(since) 기반 응답
 - 매 요청 시 recentEvents 포함 확인
+- grepEvents 키워드 검색 동작 확인
 
 ---
 
@@ -574,11 +601,12 @@ DB·스키마: `blocks.source_id` → `sources`, `source_summaries` (public 스�
 
 ```
 apps/web/src/app/api/agent/v2/
-├── route.ts                      # 메인 라우트. blockSearchRepo + connectionSearchRepo 주입, grep/glob/read/hopSearch/searchGroup/searchBySemantic 실행
+├── route.ts                      # 메인 라우트. blockSearchRepo + connectionSearchRepo + EventLogService/EventSearchService, grep/glob/read/hop/searchGroup/searchBySemantic/getPageEvents/grepEvents, recentEvents 주입
 ├── prompt.ts                     # 정적 system prompt (캐싱 대상)
 ├── tools.ts                      # 모든 Tool 정의 (Zod schema)
-├── context-builder.ts            # 동적 컨텍스트 조립
-└── (tool-executors/ — Step 1-13 이벤트 등 미구현 도구용. hop/group/semantic은 ai-management/services/tools에 구현됨)
+├── context-builder.ts            # 동적 컨텍스트 조립 (visibleBlocks, selectedBlockIds, recentEvents)
+├── event-tools.ts                # createGetPageEventsTool, createGrepEventsTool (EventSearchService 주입)
+└── (서버 툴 실행기는 ai-management/backend/services/tools, event-management 서비스 사용)
 
 apps/web/src/domains/ai-management/backend/
 ├── repositories/
@@ -589,23 +617,39 @@ apps/web/src/domains/ai-management/backend/
 │       ├── drizzle-block-search.repository.ts
 │       └── drizzle-connection-search.repository.ts    # Edge + BlockMount 위임
 └── services/tools/               # 블록 검색/읽기(1-5) + 연결 검색(1-7) 실행기
-    ├── grep-block-content.service.ts
-    ├── glob-blocks.service.ts
-    ├── read-block-lines.service.ts
-    ├── hop-search.service.ts
-    ├── search-group.service.ts
-    ├── search-by-semantic.service.ts
+    ├── internal-search/          # grep, glob, read-block-lines, hop, searchGroup, searchBySemantic
+    ├── external-search/          # xai-search 등
+    ├── index.ts
     └── __tests__/
 
-apps/web/src/domains/ai-management/frontend/components/chat-panel-sidebar/
-├── use-chat-v2.ts                # 클라이언트 context 수집 + onToolCall (renderCanvasdown, patchCanvasdown 인라인 핸들러)
-├── chat-panel-sidebar.tsx
-├── chat-panel-messages.tsx       # Reasoning 파트 렌더링 포함
-├── chat-panel-tool-part.tsx
-├── types.ts                      # ReasoningPart, CitationItem 등
+apps/web/src/domains/event-management/              # Step 1-13
+├── backend/
+│   ├── repositories/             # EventLogRepository, DrizzleEventLogRepository
+│   └── services/                 # EventLogService, EventSearchService, EventContextService
+├── shared/                       # aggregate, entity, value-objects, types (RecentEvent 등)
 └── index.ts
-```
 
+apps/web/src/domains/ai-management/frontend/
+├── utils/
+│   ├── markdown-to-tiptap.ts
+│   └── layout-engine.ts          # Step 1-8: organizeLayout (ELKjs + 순수 계산), validateSameLayer
+├── hooks/tools/
+│   ├── use-render-canvasdown-tool.ts
+│   ├── use-patch-canvasdown-tool.ts
+│   ├── use-edit-block-lines-tool.ts
+│   ├── use-create-todos-tool.ts
+│   ├── use-canvas-action-tool.ts
+│   ├── use-organize-layout-tool.ts   # Step 1-8
+│   └── index.ts
+└── components/chat-panel-sidebar/
+    ├── use-chat-v2.ts            # context 수집 + onToolCall (renderCanvasdown, patchCanvasdown, editBlockLines, createTodos, canvasAction, organizeLayout)
+    ├── chat-panel-sidebar.tsx
+    ├── chat-panel-messages.tsx   # Reasoning 파트 렌더링 포함
+    ├── chat-panel-tool-part.tsx
+    ├── types.ts                  # ReasoningPart, CitationItem 등
+    └── index.ts
+```
+ 
 ---
 
 ## 실행 순서 및 병렬 작업 가이드
@@ -640,11 +684,11 @@ apps/web/src/domains/ai-management/frontend/components/chat-panel-sidebar/
 
 | 순서  | Step | 작업                       | 예상 소요 | 병렬 가능         | 상태      |
 | --- | ---- | ------------------------ | ----- | ------------- | ------- |
-| 8   | 1-8  | organizeLayout           | 1.5일  | 1-9, 1-11과 병렬 | pending |
+| 8   | 1-8  | organizeLayout           | 1.5일  | 1-9, 1-11과 병렬 | 완료      |
 | 9   | 1-9  | createTodos              | 0.5일  | 1-8과 병렬       | 완료      |
 | 10  | 1-11 | canvasAction             | 2일    | 1-8과 병렬       | 완료      |
 | 11  | 1-12 | activeJobs 컨텍스트          | 1일    | 1-13과 병렬      | pending |
-| 12  | 1-13 | 이벤트 저장/조회 + recentEvents | 2일    | 1-12와 병렬      | pending |
+| 12  | 1-13 | 이벤트 저장/조회 + recentEvents | 2일    | 1-12와 병렬      | 완료      |
 
 
 **Checkpoint C 데모**: "3열로 정리해줘" → layout / "에디터 열어줘" → canvasAction

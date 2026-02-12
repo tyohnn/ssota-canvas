@@ -1,4 +1,5 @@
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 
 import { PageId } from '../../../../workspace-management/shared/value-objects/page-id.vo';
 import { BlockMountId } from '../../value-objects/block-mount-id.vo';
@@ -27,17 +28,20 @@ export class BlockMountedEvent implements DomainEvent {
   ) {}
 
   /**
-   * Event 발생 시 Policy 실행
+   * Event 발생 시 Policy 실행 (event-log 등). context에 eventLogService가 있으면 block_created 로깅.
    */
-  async handle(): Promise<void> {
-    // console.log('[Canvas Management] Block Mounted:', {
-    //   blockMountId: this.aggregateId.value,
-    //   pageId: this.data.pageId.value,
-    //   blockId: this.data.blockId.value,
-    //   viewMode: this.data.viewMode.value,
-    //   occurredAt: this.occurredAt,
-    // });
-
+  async handle(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    if (ctx?.eventLogService && ctx?.userId && ctx?.blockType) {
+      await ctx.eventLogService
+        .logBlockCreated({
+          pageId: this.data.pageId.value,
+          userId: ctx.userId,
+          blockId: this.data.blockId.value,
+          blockType: ctx.blockType,
+        })
+        .catch(() => {});
+    }
     await Promise.allSettled([
       // Policy 구현 예시:
       // - 자동 엣지 연결 확인
@@ -60,14 +64,24 @@ export class BlockMountDeletedEvent implements DomainEvent {
   ) {}
 
   /**
-   * Event 발생 시 Policy 실행
+   * Event 발생 시 Policy 실행 (event-log 등). context에 eventLogService, pageId, userId, blockId가 있으면 block_deleted 로깅.
    */
-  async handle(): Promise<void> {
-    console.log('[Canvas Management] Block Deleted:', {
-      blockMountId: this.aggregateId.value,
-      occurredAt: this.occurredAt,
-    });
-
+  async handle(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    if (
+      ctx?.eventLogService &&
+      ctx?.userId &&
+      ctx?.pageId &&
+      (ctx?.blockId ?? this.data.blockMountId.value)
+    ) {
+      await ctx.eventLogService
+        .logBlockDeleted({
+          pageId: ctx.pageId,
+          userId: ctx.userId,
+          blockId: ctx.blockId ?? this.data.blockMountId.value,
+        })
+        .catch(() => {});
+    }
     await Promise.allSettled([
       // Policy 구현 예시:
       // - 연결된 엣지 정리 (이미 서비스에서 처리됨)
@@ -95,7 +109,7 @@ export class BlockMountDuplicatedEvent implements DomainEvent {
   /**
    * Event 발생 시 Policy 실행
    */
-  async handle(): Promise<void> {
+  async handle(_context?: unknown): Promise<void> {
     console.log('[Canvas Management] Block Mount Duplicated:', {
       originalBlockMountId: this.data.originalBlockMountId,
       duplicatedBlockMountId: this.data.duplicatedBlockMountId,
@@ -129,7 +143,7 @@ export class MultipleBlockMountsDeletedEvent implements DomainEvent {
   /**
    * Event 발생 시 Policy 실행
    */
-  async handle(): Promise<void> {
+  async handle(_context?: unknown): Promise<void> {
     console.log('[Canvas Management] Multiple Block Mounts Deleted:', {
       deletedBlockMountIds: this.data.deletedBlockMountIds,
       deletedEdgesCount: this.data.deletedEdgesCount,
@@ -163,7 +177,7 @@ export class BlockMovedToPageEvent implements DomainEvent {
   /**
    * Event 발생 시 Policy 실행
    */
-  async handle(): Promise<void> {
+  async handle(_context?: unknown): Promise<void> {
     console.log('[Canvas Management] Block Moved To Page:', {
       blockMountId: this.aggregateId.value,
       previousPageId: this.data.previousPageId.value,

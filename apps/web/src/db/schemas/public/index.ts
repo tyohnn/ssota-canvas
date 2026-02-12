@@ -10,6 +10,7 @@ import { relations } from 'drizzle-orm';
 import { users } from '../../external-schema';
 import * as ai from './ai-management-schema';
 import * as canvas from './canvas-schema';
+import * as eventManagement from './event-management-schema';
 import * as enums from './enums';
 import * as org from './organization-schema';
 import * as profilesModule from './profiles-schema';
@@ -26,6 +27,7 @@ export * from './canvas-schema';
 export * from './ai-management-schema';
 export * from './share-schema';
 export * from './source-management-schema';
+export * from './event-management-schema';
 
 // Cross-domain relations (break cycles)
 export const profilesRelations = relations(
@@ -73,7 +75,7 @@ export const pagesRelations = relations(workspace.pages, ({ one, many }) => ({
   blockMounts: many(canvas.blockMounts),
   edges: many(canvas.edges),
   viewports: many(canvas.viewports),
-  eventLogs: many(ai.eventLogs),
+  eventLogs: many(eventManagement.eventLogs),
 }));
 
 // Type exports
@@ -109,8 +111,8 @@ export type NewEdge = typeof canvas.edges.$inferInsert;
 export type Viewport = typeof canvas.viewports.$inferSelect;
 export type NewViewport = typeof canvas.viewports.$inferInsert;
 
-export type EventLog = typeof ai.eventLogs.$inferSelect;
-export type NewEventLog = typeof ai.eventLogs.$inferInsert;
+export type EventLog = typeof eventManagement.eventLogs.$inferSelect;
+export type NewEventLog = typeof eventManagement.eventLogs.$inferInsert;
 
 export type PublishedPageRow = typeof share.publishedPages.$inferSelect;
 export type NewPublishedPageRow = typeof share.publishedPages.$inferInsert;

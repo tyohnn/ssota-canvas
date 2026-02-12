@@ -443,6 +443,54 @@ MVP: May return stub message or simple text-based similarity. Full embedding-bas
 };
 
 // ============================================================================
+// Event History (getPageEvents, grepEvents) — Server-side
+// ============================================================================
+
+/**
+ * getPageEvents — Time-ordered activity history for the page.
+ */
+export const getPageEventsTool = {
+  description: `Get page activity history — time-ordered events (user messages, agent actions, tool calls).
+
+Use when: "What happened on this page?", "Show recent activity", "What did we do yesterday?", "History for this block."
+
+- since/until: "1d", "1w", or ISO date string.
+- eventTypes: filter by type (e.g. ["user_utterance", "tool_call", "ai_response"]).
+- userId: filter by user.
+- blockMountId: filter to events related to this block.
+- groupByExecution: group events by agent execution (default: true).`,
+  inputSchema: z.object({
+    pageId: z.uuid().optional().describe('Page ID (default: current page)'),
+    since: z.string().optional().describe('Start of range: "1d", "1w", or ISO date'),
+    until: z.string().optional().describe('End of range: ISO date or relative'),
+    eventTypes: z.array(z.string()).optional().describe('Filter by event types'),
+    userId: z.uuid().optional().describe('Filter by user ID'),
+    blockMountId: z.string().optional().describe('Filter to events related to this block'),
+    groupByExecution: z.boolean().default(true).optional().describe('Group by agent execution'),
+    limit: z.number().min(1).max(100).default(30).optional().describe('Max events (default: 30)'),
+  }),
+};
+
+/**
+ * grepEvents — Keyword search over event content (BM25).
+ */
+export const grepEventsTool = {
+  description: `Search events by keyword (BM25). Use for "Who said X?", "Find when we discussed Y", "Events containing Z."
+
+Same filters as getPageEvents: eventTypes, actor (user/agent/system), userId, blockMountId, since.`,
+  inputSchema: z.object({
+    query: z.string().describe('Search query (keywords)'),
+    pageId: z.string().uuid().optional().describe('Page ID (default: current page)'),
+    eventTypes: z.array(z.string()).optional().describe('Filter by event types'),
+    actor: z.enum(['user', 'agent', 'system', 'all']).default('all').optional().describe('Filter by actor'),
+    userId: z.string().uuid().optional().describe('Filter by user ID'),
+    blockMountId: z.string().optional().describe('Filter to events related to this block'),
+    since: z.string().optional().describe('"1d", "1w", or ISO date'),
+    limit: z.number().min(1).max(50).default(20).optional().describe('Max results (default: 20)'),
+  }),
+};
+
+// ============================================================================
 // Step 1-8: Layout Tool (Client-side)
 // ============================================================================
 

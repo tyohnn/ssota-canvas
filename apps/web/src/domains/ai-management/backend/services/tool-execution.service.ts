@@ -5,9 +5,11 @@ import {
   SearchByKeywordParams,
   SearchBySemanticParams,
 } from './interfaces/tool-execution.service.interface';
-import { EventLogRepository } from '../repositories/interfaces/event-log.repository.interface';
-import { EventLogAggregate } from '../../shared/aggregates/event-log.aggregate';
-import { LogToolCallCommand } from '../../shared/commands';
+import {
+  EventLogRepository,
+  EventLogAggregate,
+  LogToolCallCommand,
+} from '@/domains/event-management';
 import {
   AIManagementError,
   AIManagementErrorCode,

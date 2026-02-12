@@ -1,11 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ContextAssemblyService } from '../context-assembly.service';
-import { EventLogRepository } from '../../repositories/interfaces/event-log.repository.interface';
-import { MemorySearchService } from '../memory-search.service';
-import { EventLog } from '../../../shared/entities/event-log.entity';
-import { EventId } from '../../../shared/value-objects/event-id.vo';
-import { EventType } from '../../../shared/value-objects/event-type.vo';
-import { UtteranceContent } from '../../../shared/value-objects/utterance-content.vo';
+import {
+  EventLogRepository,
+  EventSearchService,
+  EventLog,
+  EventId,
+  EventType,
+  UtteranceContent,
+} from '@/domains/event-management';
 import { AIManagementError } from '../../../shared/errors/ai-management.error';
 import { randomUUID } from 'crypto';
 
@@ -16,7 +20,7 @@ import { randomUUID } from 'crypto';
 describe('ContextAssemblyService', () => {
   let service: ContextAssemblyService;
   let mockEventLogRepository: EventLogRepository;
-  let mockMemorySearchService: MemorySearchService;
+  let mockEventSearchService: EventSearchService;
   let pageId: string;
   let userId: string;
 
@@ -29,6 +33,9 @@ describe('ContextAssemblyService', () => {
       save: vi.fn(),
       findById: vi.fn(),
       findRecentByPageId: vi.fn(),
+      findRecentByPageIdAndUserId: vi.fn(),
+      findByBlockMountId: vi.fn(),
+      findByFilters: vi.fn(),
       searchByBM25: vi.fn(),
       searchByMetadata: vi.fn(),
       searchHybrid: vi.fn(),
@@ -36,17 +43,17 @@ describe('ContextAssemblyService', () => {
       findByAgentExecutionId: vi.fn(),
     };
 
-    // Mock MemorySearchService
-    mockMemorySearchService = {
+    // Mock EventSearchService
+    mockEventSearchService = {
       searchLongTermMemory: vi.fn(),
       searchByBM25: vi.fn(),
       searchByMetadata: vi.fn(),
       searchHybrid: vi.fn(),
-    } as any;
+    } as unknown as EventSearchService;
 
     service = new ContextAssemblyService(
       mockEventLogRepository,
-      mockMemorySearchService
+      mockEventSearchService
     );
   });
 
@@ -57,8 +64,8 @@ describe('ContextAssemblyService', () => {
         new EventLog(
           new EventId(randomUUID()),
           new EventType('user_utterance'),
-          pageId,
-          userId,
+          new PageId(pageId),
+          new UserId(userId),
           new Date(),
           new UtteranceContent('테스트 발화')
         ),
@@ -67,7 +74,7 @@ describe('ContextAssemblyService', () => {
       vi.mocked(mockEventLogRepository.findRecentByPageId).mockResolvedValue(
         mockEvents
       );
-      vi.mocked(mockMemorySearchService.searchLongTermMemory).mockResolvedValue(
+      vi.mocked(mockEventSearchService.searchLongTermMemory).mockResolvedValue(
         {
           events: mockEvents,
           totalCount: 1,
@@ -93,7 +100,7 @@ describe('ContextAssemblyService', () => {
         20
       );
       expect(
-        mockMemorySearchService.searchLongTermMemory
+        mockEventSearchService.searchLongTermMemory
       ).toHaveBeenCalledWith('테스트 발화', pageId, 10, 7, 'hybrid');
     });
 
@@ -119,8 +126,8 @@ describe('ContextAssemblyService', () => {
         new EventLog(
           new EventId(randomUUID()),
           new EventType('user_utterance'),
-          pageId,
-          userId,
+          new PageId(pageId),
+          new UserId(userId),
           new Date(),
           new UtteranceContent('발화 1')
         ),
@@ -163,14 +170,14 @@ describe('ContextAssemblyService', () => {
         new EventLog(
           new EventId(randomUUID()),
           new EventType('user_utterance'),
-          pageId,
-          userId,
+          new PageId(pageId),
+          new UserId(userId),
           new Date(),
           new UtteranceContent('유사 발화')
         ),
       ];
 
-      vi.mocked(mockMemorySearchService.searchLongTermMemory).mockResolvedValue(
+      vi.mocked(mockEventSearchService.searchLongTermMemory).mockResolvedValue(
         {
           events: mockEvents,
           totalCount: 1,
@@ -193,7 +200,7 @@ describe('ContextAssemblyService', () => {
 
     it('실패 시 빈 배열을 반환해야 한다', async () => {
       // Given
-      vi.mocked(mockMemorySearchService.searchLongTermMemory).mockRejectedValue(
+      vi.mocked(mockEventSearchService.searchLongTermMemory).mockRejectedValue(
         new Error('Search error')
       );
 

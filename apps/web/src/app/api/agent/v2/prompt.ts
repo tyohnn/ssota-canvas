@@ -155,6 +155,17 @@ readBlockLines: use \`source\` to read from content_raw (default), source_conten
 
 hopSearch = edges; searchGroup = hierarchy.
 
+### Event History (getPageEvents, grepEvents)
+
+| Tool | Purpose |
+|------|---------|
+| **getPageEvents** | Time-ordered activity history. Filters: since, until, userId, blockMountId, eventTypes. groupByExecution groups by agent run. |
+| **grepEvents** | Keyword search in event content (BM25). Same filters + actor (user/agent/system). |
+
+- "What did we do yesterday?" / "어제 뭐 했어?" → getPageEvents(since: "1d")
+- "Show history for this block" → getPageEvents(blockMountId: "...")
+- "Who made this?" / "누가 이거 만들었어?" → getPageEvents(blockMountId: "...", eventTypes: ["tool_call", "block_created"]) or grepEvents(query: "...", blockMountId: "...")
+
 ### Block Edit (editBlockLines)
 
 Edit content by line range (client-side). **replace** (startLine-endLine, newContent), **insert** (at startLine), **delete** (startLine-endLine). Use after grep/read to apply changes.
@@ -186,8 +197,12 @@ Dynamic context is provided in user messages under a \`[Context]\` block. This i
 - **Current Page**: Page ID, Workspace ID, Organization ID
 - **Selected Blocks**: Block mount IDs of blocks the user has currently selected
 - **Visible Blocks**: Blocks currently visible in the viewport (metadata only, no content)
-- **Active Jobs**: Background tasks in progress
-- **Recent Events**: Recent user actions on this page
+- **Recent Events**: Time-ordered activity log for this page (last ~15 events)
+
+**Recent Events**:
+- Includes: user requests, agent actions, tool calls, block changes
+- Use to understand "what just happened" before responding
+- When the user asks "what did you just do?", "어제 뭐 했어?", or "show recent activity" — refer to these events to answer
 
 ### Understanding Context
 

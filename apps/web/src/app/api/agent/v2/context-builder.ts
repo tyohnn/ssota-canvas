@@ -1,3 +1,5 @@
+import type { RecentEvent } from '@/domains/event-management';
+
 /**
  * Context Builder for Agent V2
  *
@@ -20,7 +22,7 @@ export interface VisibleBlockMeta {
  * Fields will be added incrementally per implementation step:
  * - Step 1-2: selectedBlockIds, visibleBlocks ✓
  * - Step 1-12: activeJobs
- * - Step 1-13: recentEvents
+ * - Step 1-13: recentEvents ✓
  */
 export interface DynamicContext {
   // Step 1-2: Basic context layer
@@ -29,12 +31,9 @@ export interface DynamicContext {
   orgId?: string;
   selectedBlockIds?: string[];
   visibleBlocks?: VisibleBlockMeta[];
-  
-  // Step 1-12: Active jobs
-  // activeJobs?: ActiveJob[];
-  
-  // Step 1-13: Recent events
-  // recentEvents?: RecentEvent[];
+
+  // Step 1-13: Recent events (injected server-side)
+  recentEvents?: RecentEvent[];
 }
 
 /**
@@ -47,7 +46,7 @@ export function buildDynamicContext(clientContext: unknown): string {
   if (!clientContext || typeof clientContext !== 'object') {
     return '';
   }
-  
+
   const ctx = parseDynamicContext(clientContext);
   return formatContextBlock(ctx);
 }
@@ -62,6 +61,19 @@ export function parseDynamicContext(raw: unknown): DynamicContext {
 
   const ctx = raw as Record<string, unknown>;
 
+  const recentEvents = Array.isArray(ctx.recentEvents)
+    ? ctx.recentEvents.filter(
+      (e): e is RecentEvent =>
+        e != null &&
+        typeof e === 'object' &&
+        typeof e.type === 'string' &&
+        typeof e.actor === 'string' &&
+        typeof e.summary === 'string' &&
+        typeof e.timestamp === 'string' &&
+        typeof e.timeAgo === 'string'
+    )
+    : undefined;
+
   return {
     pageId: typeof ctx.pageId === 'string' ? ctx.pageId : undefined,
     workspaceId: typeof ctx.workspaceId === 'string' ? ctx.workspaceId : undefined,
@@ -71,16 +83,17 @@ export function parseDynamicContext(raw: unknown): DynamicContext {
       : undefined,
     visibleBlocks: Array.isArray(ctx.visibleBlocks)
       ? ctx.visibleBlocks
-          .filter((block): block is Record<string, unknown> => typeof block === 'object' && block !== null)
-          .map((block) => ({
-            blockMountId: typeof block.blockMountId === 'string' ? block.blockMountId : '',
-            blockType: typeof block.blockType === 'string' ? block.blockType : 'unknown',
-            title: typeof block.title === 'string' ? block.title : 'Untitled',
-            connectedTo: Array.isArray(block.connectedTo)
-              ? block.connectedTo.filter((id): id is string => typeof id === 'string')
-              : undefined,
-          }))
+        .filter((block): block is Record<string, unknown> => typeof block === 'object' && block !== null)
+        .map((block) => ({
+          blockMountId: typeof block.blockMountId === 'string' ? block.blockMountId : '',
+          blockType: typeof block.blockType === 'string' ? block.blockType : 'unknown',
+          title: typeof block.title === 'string' ? block.title : 'Untitled',
+          connectedTo: Array.isArray(block.connectedTo)
+            ? block.connectedTo.filter((id): id is string => typeof id === 'string')
+            : undefined,
+        }))
       : undefined,
+    recentEvents,
   };
 }
 
@@ -121,6 +134,16 @@ function formatContextBlock(ctx: DynamicContext): string {
         parts.push(`- Connected to: ${block.connectedTo.map((id) => `\`${id}\``).join(', ')}`);
       }
       sections.push(parts.join('\n  '));
+    });
+  }
+
+  // Recent events (time-ordered activity log)
+  if (ctx.recentEvents && ctx.recentEvents.length > 0) {
+    sections.push('');
+    sections.push('**Recent Events** (last ~15 actions on this page):');
+    ctx.recentEvents.forEach((ev, index) => {
+      const line = `- [${ev.timeAgo}] (${ev.actor}) ${ev.type}: ${ev.summary}`;
+      sections.push(line);
     });
   }
 

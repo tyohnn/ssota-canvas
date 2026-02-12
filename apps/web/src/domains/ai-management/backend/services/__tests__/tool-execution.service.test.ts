@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ToolExecutionService } from '../tool-execution.service';
-import { EventLogRepository } from '../../repositories/interfaces/event-log.repository.interface';
+import type { EventLogRepository } from '@/domains/event-management';
 import { AIManagementError } from '../../../shared/errors/ai-management.error';
 import { randomUUID } from 'crypto';
 
