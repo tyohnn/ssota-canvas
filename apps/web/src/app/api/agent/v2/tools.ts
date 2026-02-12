@@ -445,7 +445,67 @@ MVP: May return stub message or simple text-based similarity. Full embedding-bas
 // ============================================================================
 // Step 1-8: Layout Tool (Client-side)
 // ============================================================================
-// TODO: Add organizeLayoutTool
+
+/**
+ * organizeLayout — Reorganize existing blocks into a structured layout (client-side).
+ */
+export const organizeLayoutTool = {
+  description: `Reorganize existing blocks into a structured layout. Client-side only.
+
+=== LAYOUT TYPES ===
+- grid: Arrange blocks in rows and columns. Use "columns" option.
+- stack: Arrange blocks in a single line (vertical or horizontal). Use "direction" option (TB or LR).
+- flow: Directed graph layout following edge connections. Uses ELK layered algorithm. Use "direction" option.
+- tree: Hierarchical tree layout following edge connections. Uses ELK tree algorithm. Use "direction" option.
+- mindmap: Radial layout expanding from a center node outward. Requires "centerBlockMountId".
+
+=== LAYER CONSTRAINT ===
+All target blocks MUST be on the same layer (same parent). Cannot mix root-level blocks with group children, or children from different groups.
+
+=== EXAMPLES ===
+- "Organize in 3 columns" -> type: grid, options: { columns: 3 }
+- "Stack vertically" -> type: stack, options: { direction: TB }
+- "Auto-layout as flowchart" -> type: flow, options: { direction: LR }
+- "Make a mindmap from this block" -> type: mindmap, options: { centerBlockMountId: "..." }
+
+=== RESULT ===
+Returns { success: true, movedCount: N } or error message.`,
+  inputSchema: z.object({
+    type: z.enum(['grid', 'flow', 'tree', 'mindmap', 'stack']),
+    options: z
+      .object({
+        columns: z
+          .number()
+          .min(1)
+          .max(20)
+          .optional()
+          .describe('Grid columns (grid only, default: auto-calculate)'),
+        direction: z
+          .enum(['LR', 'RL', 'TB', 'BT'])
+          .optional()
+          .describe(
+            'Layout direction (flow/tree/stack, default: LR for flow/tree, TB for stack)'
+          ),
+        spacing: z
+          .number()
+          .min(10)
+          .max(500)
+          .optional()
+          .describe('Gap between blocks in px (default: 60)'),
+        centerBlockMountId: z
+          .string()
+          .optional()
+          .describe('Center node for mindmap layout (required for mindmap)'),
+      })
+      .optional(),
+    targetBlockMountIds: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'Specific blocks to organize. If omitted, all root-level blocks on the current canvas.'
+      ),
+  }),
+};
 
 // ============================================================================
 // Step 1-9: Todo Tool (Client-side)
@@ -511,10 +571,9 @@ export type V2ToolName =
   | 'editBlockLines'
   | 'createTodos'
   | 'canvasAction'
+  | 'organizeLayout'
   | 'web_search'
-  | 'x_search'
-  // Step 1-8+: organizeLayout, etc.
-  ;
+  | 'x_search';
 
 /** Tool call shape for client typing */
 export interface V2ToolCall {

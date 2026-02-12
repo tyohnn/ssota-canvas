@@ -28,10 +28,10 @@ todos:
     status: pending
   - id: step-1-9
     content: "Step 1-9: 작업 관리 — createTodos 클라이언트사이드 tool handler 구현"
-    status: pending
+    status: completed
   - id: step-1-11
     content: "Step 1-11: 캔버스 UI 조작 — canvasAction 클라이언트사이드 tool handler 구현"
-    status: pending
+    status: completed
   - id: step-1-12
     content: "Step 1-12: activeJobs 컨텍스트 — Status Window 연동, context-builder.ts에 activeJobs 추가"
     status: pending
@@ -638,13 +638,13 @@ apps/web/src/domains/ai-management/frontend/components/chat-panel-sidebar/
 ### Week 3 (Checkpoint C + D 목표)
 
 
-| 순서  | Step | 작업                       | 예상 소요 | 병렬 가능         |
-| --- | ---- | ------------------------ | ----- | ------------- |
-| 8   | 1-8  | organizeLayout           | 1.5일  | 1-9, 1-11과 병렬 |
-| 9   | 1-9  | createTodos              | 0.5일  | 1-8과 병렬       |
-| 10  | 1-11 | canvasAction             | 2일    | 1-8과 병렬       |
-| 11  | 1-12 | activeJobs 컨텍스트          | 1일    | 1-13과 병렬      |
-| 12  | 1-13 | 이벤트 저장/조회 + recentEvents | 2일    | 1-12와 병렬      |
+| 순서  | Step | 작업                       | 예상 소요 | 병렬 가능         | 상태      |
+| --- | ---- | ------------------------ | ----- | ------------- | ------- |
+| 8   | 1-8  | organizeLayout           | 1.5일  | 1-9, 1-11과 병렬 | pending |
+| 9   | 1-9  | createTodos              | 0.5일  | 1-8과 병렬       | 완료      |
+| 10  | 1-11 | canvasAction             | 2일    | 1-8과 병렬       | 완료      |
+| 11  | 1-12 | activeJobs 컨텍스트          | 1일    | 1-13과 병렬      | pending |
+| 12  | 1-13 | 이벤트 저장/조회 + recentEvents | 2일    | 1-12와 병렬      | pending |
 
 
 **Checkpoint C 데모**: "3열로 정리해줘" → layout / "에디터 열어줘" → canvasAction

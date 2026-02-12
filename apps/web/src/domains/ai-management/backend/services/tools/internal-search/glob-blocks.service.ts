@@ -8,7 +8,7 @@
 
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
-import type { BlockSearchRepository, BlockSearchScope } from '../../repositories/interfaces/block-search.repository.interface';
+import type { BlockSearchRepository, BlockSearchScope } from '../../../repositories/interfaces/block-search.repository.interface';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 

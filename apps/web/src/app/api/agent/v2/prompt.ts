@@ -166,7 +166,17 @@ Create a task list for complex multi-step work. \`todos\`: [{ title, description
 ### canvasAction (client-side)
 
 select(blockMountId), zoomTo(blockMountId or zoomTarget: fit), openEditor(blockMountId).
-<!-- Step 1-8: Layout tools will be added here -->
+
+### Layout (organizeLayout)
+
+Reorganize existing blocks into structured layouts. 5 types available:
+- **grid**: Rows/columns. Options: columns (auto if omitted), spacing.
+- **stack**: Single row or column. Options: direction (TB or LR), spacing.
+- **flow**: Directed graph following edges. Options: direction (LR default), spacing.
+- **tree**: Hierarchical tree following edges. Options: direction (TB default), spacing.
+- **mindmap**: Radial from center. Options: centerBlockMountId (required), spacing.
+
+All target blocks must be on the same layer. Use targetBlockMountIds to specify blocks, or omit for all root-level blocks.
 
 ---
 

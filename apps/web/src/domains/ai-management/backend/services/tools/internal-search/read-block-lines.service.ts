@@ -8,7 +8,7 @@
 
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import type { BlockSearchRepository } from '../../repositories/interfaces/block-search.repository.interface';
+import type { BlockSearchRepository } from '../../../repositories/interfaces/block-search.repository.interface';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 

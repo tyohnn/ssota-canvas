@@ -22,6 +22,7 @@ import {
   editBlockLinesTool,
   createTodosTool,
   canvasActionTool,
+  organizeLayoutTool,
 } from './tools';
 import {
   executeXaiSearch,
@@ -184,6 +185,7 @@ export async function POST(req: Request) {
         editBlockLines: editBlockLinesTool,
         createTodos: createTodosTool,
         canvasAction: canvasActionTool,
+        organizeLayout: organizeLayoutTool,
       },
     });
 

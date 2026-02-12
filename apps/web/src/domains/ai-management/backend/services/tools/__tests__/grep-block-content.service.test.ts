@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { executeGrepBlockContent } from '../grep-block-content.service';
-import type { GrepBlockContentFinal } from '../grep-block-content.service';
+import { executeGrepBlockContent } from '../internal-search/grep-block-content.service';
+import type { GrepBlockContentFinal } from '../internal-search/grep-block-content.service';
 import type { BlockSearchRepository } from '../../../repositories/interfaces/block-search.repository.interface';
 import { randomUUID } from 'crypto';
 

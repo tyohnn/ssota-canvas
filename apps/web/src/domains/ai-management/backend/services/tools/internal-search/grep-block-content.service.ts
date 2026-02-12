@@ -9,7 +9,7 @@
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
-import type { BlockSearchRepository, BlockSearchScope } from '../../repositories/interfaces/block-search.repository.interface';
+import type { BlockSearchRepository, BlockSearchScope } from '../../../repositories/interfaces/block-search.repository.interface';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -77,7 +77,7 @@ function buildScopeFromArgs(
   try {
     const targetBlockMountIds =
       targetIds?.length &&
-      targetIds.every(id => id && id.trim())
+        targetIds.every(id => id && id.trim())
         ? targetIds.map(id => new BlockMountId(id.trim()))
         : undefined;
 
@@ -117,8 +117,8 @@ export async function* executeGrepBlockContent(
 
   const patterns: string[] = Array.isArray(args?.patterns)
     ? args.patterns
-        .map(p => (typeof p === 'string' && p.trim() ? p.trim() : ''))
-        .filter(Boolean)
+      .map(p => (typeof p === 'string' && p.trim() ? p.trim() : ''))
+      .filter(Boolean)
     : [];
 
   if (patterns.length === 0) {
