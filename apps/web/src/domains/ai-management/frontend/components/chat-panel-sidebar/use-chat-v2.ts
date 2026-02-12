@@ -6,6 +6,7 @@ import { DefaultChatTransport } from 'ai';
 import { useReactFlow, type Node, type Edge } from '@xyflow/react';
 import { useParams } from 'next/navigation';
 import { useCanvasdownContext } from '@/domains/canvasdown/frontend/contexts/canvasdown-context';
+import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 import { getAbsoluteNodePosition } from '@/domains/canvas-management/frontend/hooks/group/utils/get-absolute-node-position';
 import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
 import { convertMarkdownToTiptapJSON } from '@/domains/ai-management/frontend/utils/markdown-to-tiptap';
@@ -50,7 +51,7 @@ function calculateVisibleBlocks(
   // Calculate viewport bounds (approximate)
   // For simplicity, include all nodes - in production, calculate actual viewport bounds
   // and filter nodes within bounds
-  
+
   const visibleBlocks: VisibleBlockMeta[] = nodes.map((node) => {
     // Find edges where this node is the source
     const connectedTo = edges
@@ -103,7 +104,9 @@ function applyLineEdit(
  */
 export function useChatV2() {
   // Get React Flow instance for canvas state
-  const { getNodes, getEdges, getViewport, getNode, setNodes } = useReactFlow();
+  const { getNodes, getEdges, getViewport, getNode, setNodes, setCenter, fitView } =
+    useReactFlow();
+  const canvasMode = useCanvasModeContext();
 
   const updateNode = useCallback(
     (nodeId: string, options: { data: Partial<BlockNodeData> }) => {
@@ -361,6 +364,167 @@ export function useChatV2() {
           console.error('[useChatV2] editBlockLines error:', error);
           addToolOutput({
             tool: 'editBlockLines',
+            toolCallId: toolCall.toolCallId,
+            state: 'output-error',
+            errorText: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+        return;
+      }
+
+      // Handle createTodos (client-side, Option B: tool output only)
+      if (toolName === 'createTodos') {
+        try {
+          const todosInput = args.todos as Array<{ title: string; description?: string }>;
+          if (!Array.isArray(todosInput) || todosInput.length === 0) {
+            addToolOutput({
+              tool: 'createTodos',
+              toolCallId: toolCall.toolCallId,
+              state: 'output-error',
+              errorText: 'todos array is required and must not be empty',
+            });
+            return;
+          }
+          const todos = todosInput.map((t, i) => ({
+            id: `todo-${i}-${Date.now()}`,
+            title: t.title ?? '',
+            description: t.description,
+            status: 'pending' as const,
+          }));
+          addToolOutput({
+            tool: 'createTodos',
+            toolCallId: toolCall.toolCallId,
+            output: { todos },
+          });
+        } catch (error) {
+          console.error('[useChatV2] createTodos error:', error);
+          addToolOutput({
+            tool: 'createTodos',
+            toolCallId: toolCall.toolCallId,
+            state: 'output-error',
+            errorText: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+        return;
+      }
+
+      // Handle canvasAction (client-side: select, zoomTo, openEditor)
+      if (toolName === 'canvasAction') {
+        try {
+          const action = args.action as 'select' | 'zoomTo' | 'openEditor';
+          const blockMountId = args.blockMountId as string | undefined;
+          const zoomTarget = args.zoomTarget as 'block' | 'fit' | undefined;
+
+          if (action === 'select') {
+            if (!blockMountId) {
+              addToolOutput({
+                tool: 'canvasAction',
+                toolCallId: toolCall.toolCallId,
+                state: 'output-error',
+                errorText: 'blockMountId is required for select',
+              });
+              return;
+            }
+            canvasMode.enterSingleSelectionMode(blockMountId);
+            addToolOutput({
+              tool: 'canvasAction',
+              toolCallId: toolCall.toolCallId,
+              output: { success: true, message: 'Selected block.' },
+            });
+            return;
+          }
+
+          if (action === 'zoomTo') {
+            if (zoomTarget === 'fit') {
+              fitView({ duration: 500, padding: 0.1 });
+              addToolOutput({
+                tool: 'canvasAction',
+                toolCallId: toolCall.toolCallId,
+                output: { success: true, message: 'Fitted view to canvas.' },
+              });
+              return;
+            }
+            if (!blockMountId) {
+              addToolOutput({
+                tool: 'canvasAction',
+                toolCallId: toolCall.toolCallId,
+                state: 'output-error',
+                errorText: 'blockMountId is required for zoomTo block',
+              });
+              return;
+            }
+            const node = getNode(blockMountId);
+            if (!node) {
+              addToolOutput({
+                tool: 'canvasAction',
+                toolCallId: toolCall.toolCallId,
+                state: 'output-error',
+                errorText: `Block not found: ${blockMountId}`,
+              });
+              return;
+            }
+            const nodes = getNodes();
+            const pos = getAbsoluteNodePosition(node, nodes);
+            const centerX = pos.x + (node.width ?? 300) / 2;
+            const centerY = pos.y + (node.height ?? 200) / 2;
+            setCenter(centerX, centerY, { duration: 500, zoom: 1 });
+            addToolOutput({
+              tool: 'canvasAction',
+              toolCallId: toolCall.toolCallId,
+              output: { success: true, message: 'Zoomed to block.' },
+            });
+            return;
+          }
+
+          if (action === 'openEditor') {
+            if (!blockMountId) {
+              addToolOutput({
+                tool: 'canvasAction',
+                toolCallId: toolCall.toolCallId,
+                state: 'output-error',
+                errorText: 'blockMountId is required for openEditor',
+              });
+              return;
+            }
+            const node = getNode(blockMountId);
+            if (!node) {
+              addToolOutput({
+                tool: 'canvasAction',
+                toolCallId: toolCall.toolCallId,
+                state: 'output-error',
+                errorText: `Block not found: ${blockMountId}`,
+              });
+              return;
+            }
+            const blockId = (node.data as BlockNodeData)?.blockId;
+            if (!blockId) {
+              addToolOutput({
+                tool: 'canvasAction',
+                toolCallId: toolCall.toolCallId,
+                state: 'output-error',
+                errorText: `Block has no blockId: ${blockMountId}`,
+              });
+              return;
+            }
+            canvasMode.enterBlockEditingMode(blockId, blockMountId);
+            addToolOutput({
+              tool: 'canvasAction',
+              toolCallId: toolCall.toolCallId,
+              output: { success: true, message: 'Opened block editor.' },
+            });
+            return;
+          }
+
+          addToolOutput({
+            tool: 'canvasAction',
+            toolCallId: toolCall.toolCallId,
+            state: 'output-error',
+            errorText: `Unknown action: ${action}`,
+          });
+        } catch (error) {
+          console.error('[useChatV2] canvasAction error:', error);
+          addToolOutput({
+            tool: 'canvasAction',
             toolCallId: toolCall.toolCallId,
             state: 'output-error',
             errorText: error instanceof Error ? error.message : 'Unknown error',

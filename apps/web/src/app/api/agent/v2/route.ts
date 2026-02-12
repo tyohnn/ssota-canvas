@@ -20,6 +20,8 @@ import {
   searchGroupTool,
   searchBySemanticTool,
   editBlockLinesTool,
+  createTodosTool,
+  canvasActionTool,
 } from './tools';
 import {
   executeXaiSearch,
@@ -180,6 +182,8 @@ export async function POST(req: Request) {
           execute: (args) => executeSearchBySemantic(args, { pageId }),
         },
         editBlockLines: editBlockLinesTool,
+        createTodos: createTodosTool,
+        canvasAction: canvasActionTool,
       },
     });
 

@@ -158,9 +158,15 @@ hopSearch = edges; searchGroup = hierarchy.
 ### Block Edit (editBlockLines)
 
 Edit content by line range (client-side). **replace** (startLine-endLine, newContent), **insert** (at startLine), **delete** (startLine-endLine). Use after grep/read to apply changes.
+
+### createTodos (client-side)
+
+Create a task list for complex multi-step work. \`todos\`: [{ title, description? }]. Returns list to model only (no Status Window in MVP).
+
+### canvasAction (client-side)
+
+select(blockMountId), zoomTo(blockMountId or zoomTarget: fit), openEditor(blockMountId).
 <!-- Step 1-8: Layout tools will be added here -->
-<!-- Step 1-9: Todo tools will be added here -->
-<!-- Step 1-11: Canvas action tools will be added here -->
 
 ---
 

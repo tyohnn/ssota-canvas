@@ -450,12 +450,48 @@ MVP: May return stub message or simple text-based similarity. Full embedding-bas
 // ============================================================================
 // Step 1-9: Todo Tool (Client-side)
 // ============================================================================
-// TODO: Add createTodosTool
+
+/**
+ * createTodos — Create a task list for complex multi-step work (client-side).
+ * Returns the list to the model only; no Status Window in MVP.
+ */
+export const createTodosTool = {
+  description: `Create a todo list for the current complex task. Use when the user request has multiple clear steps (e.g. "organize these 5 blocks and add a summary block"). Returns the list to the model for reference.`,
+  inputSchema: z.object({
+    todos: z
+      .array(
+        z.object({
+          title: z.string().describe('Short task title'),
+          description: z.string().optional().describe('Optional detail'),
+        })
+      )
+      .describe('List of tasks'),
+  }),
+};
 
 // ============================================================================
 // Step 1-11: Canvas Action Tool (Client-side)
 // ============================================================================
-// TODO: Add canvasActionTool
+
+/**
+ * canvasAction — Select block, zoom viewport, or open block editor (client-side).
+ */
+export const canvasActionTool = {
+  description: `Control canvas UI: select a block, zoom to a block or fit all, or open the block editor panel. Use when: "select that block", "zoom to that block", "show the whole canvas", "open that block's editor".`,
+  inputSchema: z.object({
+    action: z
+      .enum(['select', 'zoomTo', 'openEditor'])
+      .describe('Action: select block, zoom viewport, or open editor'),
+    blockMountId: z
+      .uuid()
+      .optional()
+      .describe('Block mount ID. Required for select and openEditor; required for zoomTo when zoomTarget is block'),
+    zoomTarget: z
+      .enum(['block', 'fit'])
+      .optional()
+      .describe('For zoomTo only: block = center on block, fit = fit entire canvas'),
+  }),
+};
 
 // ============================================================================
 // Type Exports
@@ -473,6 +509,8 @@ export type V2ToolName =
   | 'searchGroup'
   | 'searchBySemantic'
   | 'editBlockLines'
+  | 'createTodos'
+  | 'canvasAction'
   | 'web_search'
   | 'x_search'
   // Step 1-8+: organizeLayout, etc.
