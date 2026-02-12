@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { toast } from '@workspace/ui/components/ui/sonner';
 
+import { useAIActionContext } from '@/domains/ai-actions/frontend/contexts/ai-action-context';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
@@ -37,6 +38,7 @@ export function useExtractSummary({
 }: UseExtractSummaryParams) {
   const queryClient = useQueryClient();
   const canvasMode = useCanvasModeContext();
+  const { setAutoSummaryBlockId } = useAIActionContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const waitingForJobRef = useRef(false);
@@ -106,6 +108,8 @@ export function useExtractSummary({
             setIsLoading(false);
           } else {
             waitingForJobRef.current = true;
+            // Status Window에 job 등록 + Realtime 구독으로 진행 상태 표시
+            setAutoSummaryBlockId(blockId);
           }
         } else {
           clearExtracting();
@@ -140,7 +144,7 @@ export function useExtractSummary({
         setIsLoading(false);
       }
     },
-    [blockId, blockData, sourceId, queryClient, canvasMode]
+    [blockId, blockData, sourceId, queryClient, canvasMode, setAutoSummaryBlockId]
   );
 
   // 이미 추출된 요약의 탭 열기 (API 호출 없이)
