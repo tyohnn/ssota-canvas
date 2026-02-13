@@ -31,12 +31,12 @@ export function useCanvasMode(): CanvasModeContextValue {
     setMode({ type: 'block-creation', blockType });
   }, []);
 
-  const enterSingleSelectionMode = useCallback((blockId: string) => {
-    setMode({ type: 'single-selection', blockId });
+  const enterSingleSelectionMode = useCallback((blockMountId: string) => {
+    setMode({ type: 'single-selection', blockMountId });
   }, []);
 
-  const enterMultiSelectionMode = useCallback((blockIds: string[]) => {
-    setMode({ type: 'multi-selection', blockIds });
+  const enterMultiSelectionMode = useCallback((blockMountIds: string[]) => {
+    setMode({ type: 'multi-selection', blockMountIds });
   }, []);
 
   const enterBlockEditingMode = useCallback(
@@ -73,8 +73,8 @@ export function useCanvasMode(): CanvasModeContextValue {
     []
   );
 
-  const enterDraggingMode = useCallback((blockIds: string[]) => {
-    setMode({ type: 'dragging', blockIds });
+  const enterDraggingMode = useCallback((blockMountIds: string[]) => {
+    setMode({ type: 'dragging', blockMountIds });
   }, []);
 
   const enterEdgeCreationMode = useCallback((sourceBlockId: string) => {

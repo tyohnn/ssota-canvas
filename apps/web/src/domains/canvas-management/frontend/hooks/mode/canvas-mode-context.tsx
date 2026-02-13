@@ -20,8 +20,8 @@ export type CanvasMode =
   | { type: 'default' } // 초기 모드
   | { type: 'panning' } // 패닝(Hand Tool) 모드
   | { type: 'block-creation'; blockType: BlockType } // 블럭 추가 모드
-  | { type: 'single-selection'; blockId: string } // 단일 선택 모드
-  | { type: 'multi-selection'; blockIds: string[] } // 복수 선택 모드
+  | { type: 'single-selection'; blockMountId: string } // 단일 선택 모드 (캔버스 노드 = block_mounts.id)
+  | { type: 'multi-selection'; blockMountIds: string[] } // 복수 선택 모드
   | {
     type: 'block-editing';
     blockId: string;
@@ -31,7 +31,7 @@ export type CanvasMode =
       tabOptions?: Record<string, any>;
     };
   } // 블럭 편집 모드
-  | { type: 'dragging'; blockIds: string[] } // 드래그 중
+  | { type: 'dragging'; blockMountIds: string[] } // 드래그 중
   | { type: 'edge-creation'; sourceBlockId: string }; // 엣지 생성 중
 
 export interface CanvasModeContextValue {
@@ -42,8 +42,8 @@ export interface CanvasModeContextValue {
   // 모드 전환
   enterPanningMode: () => void;
   enterBlockCreationMode: (blockType: BlockType) => void;
-  enterSingleSelectionMode: (blockId: string) => void;
-  enterMultiSelectionMode: (blockIds: string[]) => void;
+  enterSingleSelectionMode: (blockMountId: string) => void;
+  enterMultiSelectionMode: (blockMountIds: string[]) => void;
   enterBlockEditingMode: (
     blockId: string,
     blockMountId: string,
@@ -54,7 +54,7 @@ export interface CanvasModeContextValue {
     partial: Record<string, unknown>,
     opts?: { blockId?: string; blockMountId?: string }
   ) => void;
-  enterDraggingMode: (blockIds: string[]) => void;
+  enterDraggingMode: (blockMountIds: string[]) => void;
   enterEdgeCreationMode: (sourceBlockId: string) => void;
   exitToDefaultMode: () => void;
 

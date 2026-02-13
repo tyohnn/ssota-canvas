@@ -7,7 +7,7 @@ import type { BlockNodeData } from '@/domains/block-management/shared/types/bloc
 import type { AddToolOutput } from './use-render-canvasdown-tool';
 
 export interface CanvasModeContextValue {
-  enterSingleSelectionMode: (blockId: string) => void;
+  enterSingleSelectionMode: (blockMountId: string) => void;
   enterBlockEditingMode: (blockId: string, blockMountId: string) => void;
 }
 
