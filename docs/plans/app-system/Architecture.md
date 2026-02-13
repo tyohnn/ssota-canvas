@@ -540,7 +540,7 @@ App은 **블록 타입을 정의하는 청사진**이다. 하나의 앱은 하�
 | **Producible Block Types** | 이 앱이 생산(produce)할 수 있는 블록 타입들. 자기가 정의하지 않은 개방형 타입 포함 가능. Producer 역할 |
 | **App Tools** | 블록과 무관하게 앱 수준에서 실행할 수 있는 도구 |
 | **UI Renderer** | DOM에 렌더링되는 사용자 인터랙션 코드 |
-| **Sub Agents** | (선택) 앱에 포함된 전용 서브 에이전트 |
+| **Sub Agents** | (선택) 앱이 제공하는 데모 서브 에이전트 — 앱 Tool 활용 예시 패키지 (§6.9 참조) |
 
 #### 앱 분류
 
@@ -702,7 +702,175 @@ App Installation은 **어떤 앱이 어디에 설치되어 있는지**를 추적
 
 Built-in App (SSOTA Markdown, SSOTA YouTube 등)은 `app_installations` 레코드 없이 항상 사용 가능하다. 워크스페이스 생성 시 자동으로 활성화된다.
 
-### 6.6 Source Capability (소스 능력)
+### 6.6 Block Context Action (블록 컨텍스트 액션)
+
+#### 정의
+
+Block Context Action은 **설치된 앱이 특정 블록 타입의 컨텍스트 메뉴에 액션을 주입하는 메커니즘**이다. 이를 통해 앱은 자기가 정의하지 않은 블록 타입에서도 App Tool을 트리거할 수 있다.
+
+#### OS에서의 비유
+
+```
+macOS:
+  .html 파일 우클릭 → "Open With..." → Chrome / Safari / Firefox
+  설치된 앱에 따라 메뉴가 동적으로 변경됨
+
+SSOTA:
+  링크 블록 우클릭 → "쏘타 크롤로 사이트 매핑" / "SEO 분석하기" / ...
+  설치된 앱에 따라 컨텍스트 메뉴가 동적으로 확장됨
+```
+
+#### 핵심 구조
+
+```typescript
+interface BlockContextAction {
+  // 이 액션이 노출될 블록 타입
+  targetBlockType: string;    // "link", "image" 등
+
+  // UI 표시 정보
+  label: string;              // "쏘타 크롤로 사이트 매핑"
+  icon?: string;              // 아이콘
+
+  // 실행할 App Tool
+  appToolName: string;        // "mapSite"
+
+  // 블록 데이터 → App Tool 파라미터 자동 매핑
+  paramMapping: Record<string, string>;
+  // 예: { url: "properties.url" }
+  // → 링크 블록의 properties.url 값을 App Tool의 url 파라미터로 전달
+}
+```
+
+#### AppDefinition에 반영
+
+```typescript
+interface AppDefinition {
+  // ... 기존 필드 ...
+
+  // 이 앱이 다른 블록 타입에 주입하는 컨텍스트 액션
+  blockContextActions?: BlockContextAction[];
+}
+```
+
+#### 예시
+
+```
+SSOTA Crawl App:
+├── blockContextActions:
+│   ├── { targetBlockType: "link", label: "쏘타 크롤로 사이트 매핑",
+│   │     appToolName: "mapSite", paramMapping: { url: "properties.url" } }
+│   ├── { targetBlockType: "link", label: "쏘타 크롤로 크롤링 시작",
+│   │     appToolName: "crawlSite", paramMapping: { entryUrl: "properties.url" } }
+│   └── { targetBlockType: "link", label: "쏘타 크롤로 일괄 스크래핑",
+│         appToolName: "batchScrape", paramMapping: { urls: "properties.url" } }
+
+SEO 분석 앱 (커뮤니티 앱 예시):
+├── blockContextActions:
+│   └── { targetBlockType: "link", label: "SEO 분석하기",
+│         appToolName: "analyzeSEO", paramMapping: { url: "properties.url" } }
+```
+
+#### 실행 흐름
+
+```
+1. 유저가 링크 블록 우클릭
+2. 시스템이 AppRegistry에서 targetBlockType === "link"인 모든 blockContextActions 수집
+3. 컨텍스트 메뉴에 해당 액션들 표시 (앱 이름과 함께 그룹핑)
+4. 유저가 "쏘타 크롤로 사이트 매핑" 클릭
+5. paramMapping에 따라 블록 properties에서 파라미터 추출
+6. executeAppTool(appName: "ssota-crawl", toolName: "mapSite", params: { url: "https://..." })
+7. App Tool 실행 → 결과 블록 생성 + 원본 블록과 엣지 연결
+```
+
+#### 의의
+
+Block Context Action은 **앱 생태계의 결합력**을 만들어낸다. 개별 앱이 독립적으로 동작하면서도, 다른 블록 타입과의 자연스러운 상호작용을 선언적으로 정의할 수 있다. 앱이 늘어날수록 각 블록 타입에서 할 수 있는 일이 자연스럽게 늘어나는 구조이다.
+
+### 6.7 Tab Data = Properties 원칙
+
+#### 정의
+
+블록의 에디터 탭(Editor Tab)에 표시되는 모든 데이터는 **블록의 properties에 저장**한다. 별도의 저장소나 외부 참조 없이, 블록이 자기 데이터를 완전히 소유한다.
+
+#### 배경
+
+블록의 에디터 탭은 블록 데이터의 다양한 "뷰"를 제공한다. 예를 들어 링크 블록은 요약, 추출, 스크린샷, 이미지, 디자인, JSON 등의 탭을 가질 수 있다. 이 탭 데이터를 어디에 저장할 것인가에 대한 명확한 원칙이 필요하다.
+
+#### 원칙: Properties에 직접 저장
+
+```
+properties: {
+  // 기본 데이터 (블록 뷰 렌더링에 필요)
+  url: "https://example.com",
+  ogTitle: "Example",
+  ogImage: "https://...",
+  ogDescription: "...",
+
+  // 탭 데이터 (에디터 탭에서 표시)
+  tabs: {
+    summary: {
+      ko: "한국어 요약 내용...",
+      en: "English summary..."
+    },
+    extract: {
+      markdown: "# 추출된 마크다운 원문...",
+      language: "ko"
+    },
+    screenshot: {
+      url: "https://storage.ssota.com/screenshots/abc.png",
+      capturedAt: "2026-02-13T..."
+    },
+    images: [
+      { url: "https://...", alt: "...", width: 800, height: 600 },
+      ...
+    ],
+    design: {
+      colors: ["#fff", "#000"],
+      fonts: ["Inter", "Pretendard"],
+      metadata: { ... }
+    },
+    json: {
+      schema: { ... },
+      data: { ... }
+    }
+  }
+}
+```
+
+#### 이유
+
+1. **용량 우려 불필요**: 탭 데이터의 대부분은 텍스트(요약, 마크다운, JSON)이거나 URL 참조(스크린샷, 이미지)이다. 이미지 파일 자체가 properties에 들어가는 것이 아니라 URL만 저장하므로 용량 문제가 없다.
+
+2. **단순성**: 블록 하나를 조회하면 모든 탭 데이터가 함께 온다. 별도의 join이나 추가 쿼리가 필요 없다.
+
+3. **물질화 일관성**: 블록의 properties는 "이 블록이 알고 있는 모든 것"을 나타낸다. 탭 데이터도 블록의 지식이므로 properties에 있는 것이 자연스럽다.
+
+4. **캔버스에 올리기**: 탭 데이터를 독립 블록으로 물질화할 때, properties에서 바로 꺼내서 새 블록의 properties/content에 넣으면 된다.
+
+#### 자동 인덱싱과의 관계
+
+블록이 생성될 때 자동으로 수행되는 인덱싱(추출, 요약 등)의 결과도 properties.tabs에 저장된다. 자동 인덱싱은 Source 도메인의 서비스가 실행하지만, 결과는 블록의 properties로 돌아온다.
+
+```
+[블록 생성 흐름]
+1. 유저가 링크 블록 추가 (URL 입력)
+2. Source 도메인에서 자동 인덱싱 실행:
+   ├── firecrawl로 마크다운 추출 → properties.tabs.extract에 저장
+   └── 추출 결과에서 요약 생성 → properties.tabs.summary에 저장
+3. 블록 UI가 properties를 읽어 탭 렌더링
+
+[Block Tool 실행 흐름]
+1. 유저가 "스크린샷" Block Tool 실행
+2. 동일한 서비스가 스크린샷 캡처
+3. 결과를 properties.tabs.screenshot에 저장
+4. 에디터 탭 UI 갱신
+```
+
+자동 인덱싱과 Block Tool은 **동일한 서비스를 공유**한다. 차이는 실행 시점뿐이다:
+- 자동 인덱싱: 블록 생성 시 자동 실행
+- Block Tool: 유저가 명시적으로 요청할 때 실행
+
+### 6.8 Source Capability (소스 능력)
 
 #### 현재 Source 도메인의 재해석
 
@@ -727,6 +895,76 @@ Built-in App (SSOTA Markdown, SSOTA YouTube 등)은 `app_installations` 레코�
 Source 도메인 자체를 없앨 필요는 없다. 다만 "Source가 왜 존재하는가?"에 대한 답이 바뀐다:
 - **현재**: "외부 콘텐츠를 관리하기 위해"
 - **새 모델**: "특정 앱들이 sourceCapability를 갖고 있기 때문에"
+
+### 6.9 App Sub Agent (앱 서브 에이전트)
+
+#### 정의
+
+App Sub Agent는 앱 제작자가 자기 앱의 App Tool을 조합하여 만든 **데모 서브 에이전트 패키지**이다. "이 앱의 Tool로 이런 자동화가 가능합니다"를 보여주는 예시이다.
+
+#### 핵심 원칙
+
+| 원칙 | 설명 |
+|------|------|
+| **데모 패키지** | 앱 제작자가 제공하는 Tool 활용 예시. 앱 설치 시 함께 등록됨 |
+| **자기 앱 Tool 중심** | 주로 자기 앱의 App Tool만 사용. 다른 앱 Tool 의존성은 가능하지만 최소화 |
+| **오케스트레이션 레이어** | App Tool이 "단일 기능 실행"이라면, 서브 에이전트는 "여러 Tool을 LLM 판단으로 순차 조합"하는 상위 추상화 |
+| **메인 에이전트가 호출** | 서브 에이전트는 항상 메인 에이전트(Sophie)에 의해 호출되거나, 유저가 직접 지정. 서브 에이전트끼리 재귀 호출하지 않음 |
+| **유저 커스텀의 출발점** | 유저는 이 데모를 참고하여 자기만의 서브 에이전트를 만들 수 있음. 유저 커스텀은 여러 앱의 Tool을 자유롭게 조합 가능 |
+
+#### App Tool vs Sub Agent vs 유저 커스텀 서브 에이전트
+
+```
+App Tool (단위 작업):
+  "사이트 매핑해줘"
+  → executeAppTool("ssota-crawl", "mapSite", { url: "..." })
+  → 단일 기능, 결정적 실행
+
+App Sub Agent (데모 워크플로우):
+  "경쟁사 분석해줘"
+  → callSubAgent("competitor-analysis", "competitor.com 분석")
+  → 앱 제작자가 만든 예시. 자기 앱 Tool을 순차 조합
+  → mapSite → crawlSite → summarize → canvasdown
+
+유저 커스텀 서브 에이전트 (자유 조합):
+  "투자 리서치해줘"
+  → callSubAgent("investment-research", "삼성전자 분석")
+  → 유저가 직접 만든 조합. 여러 앱의 Tool을 자유롭게 사용
+  → 쏘타 크롤.batchScrape + 주식앱.getFinancials + ...
+```
+
+#### UI 경로 vs 에이전트 경로
+
+서브 에이전트가 수행하는 작업은 앱 모달 UI에서 유저가 수동으로도 할 수 있다. 같은 결과에 도달하지만 경로가 다르다.
+
+```
+UI 경로 (인간을 위한 것):
+  앱 모달 → URL 입력 → "매핑" 클릭 → 결과 확인 → "크롤링" 클릭 → 결과 확인 → "저장"
+
+에이전트 경로 (자동화를 위한 것):
+  유저: "분석해줘" → Sophie → callSubAgent → Tool 직접 호출 → 결과 캔버스에 배치
+
+에이전트는 셸 스크립트처럼 Tool을 직접 호출한다.
+UI를 조작하는 것이 아니라, Tool이라는 API를 직접 실행하는 것이다.
+UI는 인간을 위한 인터페이스이고, Tool은 에이전트를 위한 인터페이스이다.
+```
+
+#### 호출 구조
+
+```
+[메인 에이전트 Sophie]
+│
+├── callSubAgent("competitor-analysis", task)
+│   └── [경쟁사 분석 서브 에이전트]
+│       ├── executeAppTool("ssota-crawl", "mapSite", ...)
+│       ├── executeAppTool("ssota-crawl", "crawlSite", ...)
+│       └── canvasdown(...)
+│
+└── 서브 에이전트의 결과를 받아서 후속 작업 진행
+
+※ 서브 에이전트는 다른 서브 에이전트를 호출하지 않는다.
+※ 추가 작업이 필요하면 결과를 메인에 반환하고, 메인이 판단하여 다른 도구를 호출한다.
+```
 
 ---
 
@@ -758,6 +996,9 @@ interface AppDefinition {
   
   // (Phase 5) 앱에 포함된 서브 에이전트
   subAgents?: SubAgentDefinition[];
+  
+  // 다른 블록 타입에 주입하는 컨텍스트 액션 (§6.6 참조)
+  blockContextActions?: BlockContextAction[];
   
   // UI 렌더러 정보
   rendererInfo: {
@@ -1399,3 +1640,6 @@ ALTER TABLE blocks ADD COLUMN created_by_app_id UUID REFERENCES app_definitions(
 | **Type Definer** | 블록 타입의 스키마, 뷰어, Block Tool을 정의하는 앱 |
 | **Producer** | 블록 인스턴스를 생산할 수 있는 앱 (Definer가 아닌 앱도 개방형 타입은 생산 가능) |
 | **Consumer** | 블록 인스턴스를 읽거나 편집할 수 있는 앱 |
+| **Block Context Action** | 설치된 앱이 다른 블록 타입의 컨텍스트 메뉴에 주입하는 액션. OS의 "Open With..." 메뉴와 유사 |
+| **Tab Data = Properties** | 블록 에디터 탭의 모든 데이터는 블록의 properties에 저장한다는 원칙. 이미지 등은 URL 참조 |
+| **App Sub Agent** | 앱 제작자가 자기 앱 Tool 활용 예시로 제공하는 데모 서브 에이전트 패키지 |
