@@ -1,6 +1,7 @@
 /**
  * Block 제목 업데이트 서비스 로직
  */
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
@@ -21,12 +22,14 @@ import type { IBlockRepository } from '../../../repositories/interfaces/block.re
  *
  * @param safeDto - 검증된 블록 제목 업데이트 요청 (SafeDTO)
  * @param blockRepository - Block Repository
+ * @param eventLogPolicyContext - 선택: 제공 시 BlockTitleUpdatedEvent에서 block_updated 로깅
  * @returns 업데이트된 블록 Aggregate
  */
 export async function updateBlockTitle(
   safeDto: UpdateBlockTitleRequest,
   safeUserId: UserId,
-  blockRepository: IBlockRepository
+  blockRepository: IBlockRepository,
+  eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<Result<BlockAggregate, Error>> {
   try {
     // 1. SafeDTO → Value Objects 생성
@@ -57,9 +60,11 @@ export async function updateBlockTitle(
     // 6. 블록 업데이트
     await blockRepository.update(aggregate.getBlock());
 
-    // 7. 도메인 이벤트 처리
+    // 7. 도메인 이벤트 처리 (context 있으면 block_updated 로깅)
     const events = aggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map(event => event.handle(eventLogPolicyContext))
+    );
 
     // 8. 이벤트 커밋
     aggregate.markEventsAsCommitted();

@@ -121,7 +121,8 @@ export const eventTypeEnum = pgEnum('event_type', [
   'user_utterance', // 사용자 발화
   'ai_response', // AI 응답
   'tool_call', // 툴 호출
-  'block', // 블럭 이벤트
+  'block', // 블럭 이벤트 (content/title 등)
+  'block_mount', // 블럭 마운트 이벤트 (position, size, move, group)
   'edge', // 엣지 이벤트
   'component', // 컴포넌트 이벤트
   'instance', // 인스턴스 이벤트
@@ -133,7 +134,8 @@ export const eventTypeEnum = pgEnum('event_type', [
 export const eventActionEnum = pgEnum('event_action', [
   'created', // 생성
   'updated', // 수정
-  'deleted', // 삭제
+  'deleted', // 영구 삭제 (휴지통 완전 삭제 등)
+  'soft_delete', // 소프트 삭제 (캔버스에서 제거, block_mount_soft_deleted)
   'duplicated', // 복제
   'set', // 설정 (속성값)
   'reset', // 리셋 (속성값)

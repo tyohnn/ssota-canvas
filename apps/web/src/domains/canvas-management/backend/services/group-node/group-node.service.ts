@@ -4,12 +4,16 @@
  * 노드를 그룹에 추가/분리 시 좌표 변환 및 DB 저장
  * - addNodeToGroup: 절대 → 상대 좌표 변환
  * - removeNodeFromGroup: 상대 → 절대 좌표 변환
+ * - createGroupFromNodes: 그룹 생성 후 도메인 이벤트로 감사 로그
  */
 import type { IBlockRepository } from '@/domains/block-management/backend/repositories/interfaces/block.repository.interface';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import type { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import type { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import { Result } from '@/utils/result';
+
+import { GroupCreatedFromNodesEvent } from '../../../shared/events';
 
 import type {
   AddNodeToGroupRequest,
@@ -157,7 +161,8 @@ export async function createGroupFromNodes(
   safeUserId: UserId,
   safeWorkspaceId: WorkspaceId,
   blockRepository: IBlockRepository,
-  blockMountRepository: BlockMountRepository
+  blockMountRepository: BlockMountRepository,
+  eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<Result<{ groupBlockMountId: string; groupBlockId: string }, Error>> {
   try {
 
@@ -291,6 +296,18 @@ export async function createGroupFromNodes(
         });
       })
     );
+
+    const groupCreatedEvent = new GroupCreatedFromNodesEvent(
+      groupBlockMountId,
+      {
+        groupBlockMountId,
+        childBlockMountIds: safeDto.nodeIds,
+      },
+      new Date()
+    );
+    await Promise.allSettled([
+      groupCreatedEvent.handle(eventLogPolicyContext),
+    ]);
 
     return Result.success({ groupBlockMountId, groupBlockId });
   } catch (error) {

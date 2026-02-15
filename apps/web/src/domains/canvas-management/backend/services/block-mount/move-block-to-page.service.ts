@@ -1,6 +1,7 @@
 /**
  * 블럭 페이지 이동 서비스 로직
  */
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { Result } from '@/utils/result';
@@ -26,12 +27,14 @@ import type { BlockMountRepository } from '../../repositories/interfaces/block-m
  * @param safeDto - 검증된 블럭 페이지 이동 요청 (SafeDTO)
  * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
  * @param blockMountRepository - BlockMount Repository
+ * @param eventLogPolicyContext - 선택: 감사 로그용 block_updated(movedToPage) 기록
  * @returns 이동된 BlockMountAggregate
  */
 export async function moveBlockToPage(
   safeDto: MoveBlockToPageRequest,
   safeUserId: UserId,
-  blockMountRepository: BlockMountRepository
+  blockMountRepository: BlockMountRepository,
+  eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<Result<BlockMountAggregate, Error>> {
   try {
     // 1. SafeDTO → Value Objects 생성
@@ -92,7 +95,9 @@ export async function moveBlockToPage(
 
     // 7. 도메인 이벤트 처리
     const events = originalAggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map((event) => event.handle(eventLogPolicyContext))
+    );
 
     // 8. 이벤트 커밋
     originalAggregate.markEventsAsCommitted();

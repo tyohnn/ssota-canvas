@@ -2,6 +2,11 @@
 
 import type { PageActionContext } from '@/domains/common/auth/types';
 import { withPageSecureAction } from '@/domains/common/server-actions';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -52,16 +57,23 @@ async function createEdgeInternal(
 ): Promise<ActionResult<EdgeView>> {
   try {
     const userId: UserId = new UserId(context.authenticatedUser.id);
-    // 1. Service 의존성 생성
     const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
 
-    // 2. ✅ Service에 SafeDTO와 검증된 userId 전달 (Value Objects 생성은 Service에서 수행)
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: context.authenticatedUser.id,
+      pageId: context.page.pageId.value,
+    };
+
     const result = await createEdge(
       safeDto,
       userId,
       blockMountRepository,
-      edgeRepository
+      edgeRepository,
+      eventLogPolicyContext
     );
 
     if (result.isError()) {

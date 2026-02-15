@@ -1,6 +1,12 @@
 'use server';
 
 import type { WorkspaceActionContext } from '@/domains/common/auth/types';
+import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -56,15 +62,28 @@ async function updateBlockContentInternal(
 ): Promise<ActionResult<BlockContentUpdatedDTO>> {
   try {
     const userId: UserId = new UserId(context.authenticatedUser.id);
-    // 1. Repository 생성
     const blockRepository = new DrizzleBlockRepository();
 
-    // 2. Service Function을 통한 콘텐츠 업데이트 (SafeDTO 전달)
-    // 여기에 context.authenticatedUser를 전달할 수도 있음. 추후 command로 aggregate에 전달하여 이벤트 발생 시 사용자 정보를 추가하여 감사 로그나 애널리틱스 데이터에 사용할 수 있음.
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const pageId = await blockMountRepository.findOnePageIdByBlockId(
+      safeDto.blockId
+    );
+    let eventLogPolicyContext: EventLogPolicyContext | undefined;
+    if (pageId) {
+      const eventLogRepo = new DrizzleEventLogRepository();
+      const eventLogService = new EventLogService(eventLogRepo);
+      eventLogPolicyContext = {
+        eventLogService,
+        userId: context.authenticatedUser.id,
+        pageId,
+      };
+    }
+
     const updateResult = await updateBlockContent(
       safeDto,
       userId,
-      blockRepository
+      blockRepository,
+      eventLogPolicyContext
     );
 
     // 3. Result 처리

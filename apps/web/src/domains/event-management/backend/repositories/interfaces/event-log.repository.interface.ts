@@ -6,7 +6,15 @@ export interface EventLogRepository {
 
   findById(eventId: EventId): Promise<EventLog | null>;
 
-  findRecentByPageId(pageId: string, limit?: number): Promise<EventLog[]>;
+  /**
+   * 최근 이벤트 조회.
+   * @param options.excludeCombinedTypes - 제외할 복합 타입 (예: ['block_mount_updated']) → 컨텍스트용 조회 시 repo 선에서 제외
+   */
+  findRecentByPageId(
+    pageId: string,
+    limit?: number,
+    options?: { excludeCombinedTypes?: string[] }
+  ): Promise<EventLog[]>;
 
   /** 최근 이벤트 조회 (페이지 + 유저 스코프) */
   findRecentByPageIdAndUserId(

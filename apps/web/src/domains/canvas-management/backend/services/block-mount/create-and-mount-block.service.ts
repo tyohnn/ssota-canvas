@@ -16,6 +16,7 @@ import {
   getBlockSize,
   getBlockSizeForViewMode,
 } from '@/domains/block-management/shared/types/block-types';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import type { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
@@ -49,6 +50,7 @@ import type { BlockMountRepository } from '../../repositories/interfaces/block-m
  * @param safeWorkspaceId - 검증된 워크스페이스 ID (권한 검증됨)
  * @param blockRepository - Block Repository
  * @param blockMountRepository - BlockMount Repository
+ * @param eventLogPolicyContext - 선택: 제공 시 BlockMountedEvent에서 block_created 로깅
  * @returns 생성된 BlockMountAggregate와 BlockAggregate
  */
 export async function createAndMountBlock(
@@ -56,7 +58,8 @@ export async function createAndMountBlock(
   safeUserId: UserId,
   safeWorkspaceId: WorkspaceId,
   blockRepository: IBlockRepository,
-  blockMountRepository: BlockMountRepository
+  blockMountRepository: BlockMountRepository,
+  eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<
   Result<
     {
@@ -123,6 +126,7 @@ export async function createAndMountBlock(
       viewMode, // viewMode 전달
       viewModeSizes, // 모든 viewMode의 크기 전달
       userId: safeUserId,
+      blockType: blockAggregate.getBlock().blockType.value,
     };
     const blockMountAggregate =
       BlockMountAggregate.mountBlock(mountBlockCommand);
@@ -140,9 +144,11 @@ export async function createAndMountBlock(
       );
     }
 
-    // 5. 도메인 이벤트 처리
+    // 5. 도메인 이벤트 처리 (context 있으면 block_created 로깅)
     const events = blockMountAggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map(event => event.handle(eventLogPolicyContext))
+    );
 
     // 6. 이벤트 커밋
     blockMountAggregate.markEventsAsCommitted();
@@ -166,6 +172,8 @@ export type CreateBlocksAndMountParams = {
   safeWorkspaceId: WorkspaceId;
   blockRepository: IBlockRepository;
   blockMountRepository: BlockMountRepository;
+  /** 선택: 제공 시 각 BlockMountedEvent에서 block_created 로깅 */
+  eventLogPolicyContext?: EventLogPolicyContext;
 };
 
 /**
@@ -191,6 +199,7 @@ export async function createBlocksAndMounts(
     safeWorkspaceId,
     blockRepository,
     blockMountRepository,
+    eventLogPolicyContext,
   } = params;
 
   const createBlockRequests: CreateBlockRequest[] = safeDto.blocks.map(
@@ -250,6 +259,7 @@ export async function createBlocksAndMounts(
       viewMode,
       viewModeSizes,
       userId: safeUserId,
+      blockType: blockAggregate.getBlock().blockType.value,
     };
     const blockMountAggregate = BlockMountAggregate.mountBlock(mountBlockCommand);
     blockMountsToCreate.push(blockMountAggregate.getBlockMount());
@@ -281,7 +291,9 @@ export async function createBlocksAndMounts(
 
   for (const { blockMountAggregate } of results) {
     const events = blockMountAggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map(event => event.handle(eventLogPolicyContext))
+    );
     blockMountAggregate.markEventsAsCommitted();
   }
 

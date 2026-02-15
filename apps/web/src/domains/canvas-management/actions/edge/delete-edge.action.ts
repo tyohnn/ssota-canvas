@@ -2,6 +2,11 @@
 
 import type { PageActionContext } from '@/domains/common/auth/types';
 import { withEdgeSecureAction } from '@/domains/common/server-actions';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -49,14 +54,24 @@ async function deleteEdgeInternal(
   context: PageActionContext // ✅ 검증된 context
 ): Promise<ActionResult<void>> {
   try {
-    const { authenticatedUser } = context;
+    const { authenticatedUser, page } = context;
     const userId: UserId = new UserId(authenticatedUser.id);
-
-    // 1. Service 의존성 생성
     const edgeRepository = new DrizzleEdgeRepository();
 
-    // 2. ✅ Service에 SafeDTO만 전달 (Value Objects 생성은 Service에서 수행)
-    const result = await deleteEdge(safeDto, userId, edgeRepository);
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: authenticatedUser.id,
+      pageId: page.pageId.value,
+    };
+
+    const result = await deleteEdge(
+      safeDto,
+      userId,
+      edgeRepository,
+      eventLogPolicyContext
+    );
 
     if (result.isError()) {
       console.error(

@@ -195,6 +195,29 @@ export class EventLogService {
     return aggregate.getEventLog().id.value;
   }
 
+  /** 블럭 마운트 변경 (position, size, movedToPage, group) — 컨텍스트에서 제외됨 */
+  async logBlockMountUpdated(params: {
+    pageId: string;
+    userId: string;
+    blockMountId: string;
+    changes: Record<string, unknown>;
+  }): Promise<string> {
+    const aggregate = new EventLogAggregate();
+    aggregate.logBlockMountUpdated({
+      pageId: new PageId(params.pageId),
+      userId: new UserId(params.userId),
+      blockMountId: params.blockMountId,
+      changes: params.changes,
+    });
+
+    await this.repo.save(aggregate.getEventLog());
+
+    const events = aggregate.getUncommittedEvents();
+    await Promise.allSettled(events.map((e) => e.handle()));
+    aggregate.markEventsAsCommitted();
+    return aggregate.getEventLog().id.value;
+  }
+
   async logBlockDeleted(params: {
     pageId: string;
     userId: string;
@@ -209,6 +232,115 @@ export class EventLogService {
       agentExecutionId: params.agentExecutionId
         ? new AgentExecutionId(params.agentExecutionId)
         : undefined,
+    });
+
+    await this.repo.save(aggregate.getEventLog());
+
+    const events = aggregate.getUncommittedEvents();
+    await Promise.allSettled(events.map((e) => e.handle()));
+    aggregate.markEventsAsCommitted();
+    return aggregate.getEventLog().id.value;
+  }
+
+  /** 블록 마운트 소프트 삭제 (단일) — 캔버스에서 제거 */
+  async logBlockMountSoftDeleted(params: {
+    pageId: string;
+    userId: string;
+    blockMountId: string;
+  }): Promise<string> {
+    const aggregate = new EventLogAggregate();
+    aggregate.logBlockMountSoftDeleted({
+      pageId: new PageId(params.pageId),
+      userId: new UserId(params.userId),
+      blockMountId: params.blockMountId,
+    });
+
+    await this.repo.save(aggregate.getEventLog());
+
+    const events = aggregate.getUncommittedEvents();
+    await Promise.allSettled(events.map((e) => e.handle()));
+    aggregate.markEventsAsCommitted();
+    return aggregate.getEventLog().id.value;
+  }
+
+  /** 블록 마운트 소프트 삭제 (배치) — 캔버스에서 여러 개 제거 */
+  async logBlockMountsSoftDeleted(params: {
+    pageId: string;
+    userId: string;
+    blockMountIds: string[];
+  }): Promise<string> {
+    const aggregate = new EventLogAggregate();
+    aggregate.logBlockMountsSoftDeleted({
+      pageId: new PageId(params.pageId),
+      userId: new UserId(params.userId),
+      blockMountIds: params.blockMountIds,
+    });
+
+    await this.repo.save(aggregate.getEventLog());
+
+    const events = aggregate.getUncommittedEvents();
+    await Promise.allSettled(events.map((e) => e.handle()));
+    aggregate.markEventsAsCommitted();
+    return aggregate.getEventLog().id.value;
+  }
+
+  /** Edge lifecycle logging (e.g. from canvas edge Event.handle() policy). */
+  async logEdgeCreated(params: {
+    pageId: string;
+    userId: string;
+    edgeId: string;
+    sourceBlockMountId: string;
+    targetBlockMountId: string;
+  }): Promise<string> {
+    const aggregate = new EventLogAggregate();
+    aggregate.logEdgeCreated({
+      pageId: new PageId(params.pageId),
+      userId: new UserId(params.userId),
+      edgeId: params.edgeId,
+      sourceBlockMountId: params.sourceBlockMountId,
+      targetBlockMountId: params.targetBlockMountId,
+    });
+
+    await this.repo.save(aggregate.getEventLog());
+
+    const events = aggregate.getUncommittedEvents();
+    await Promise.allSettled(events.map((e) => e.handle()));
+    aggregate.markEventsAsCommitted();
+    return aggregate.getEventLog().id.value;
+  }
+
+  async logEdgeUpdated(params: {
+    pageId: string;
+    userId: string;
+    edgeId: string;
+    changes: Record<string, unknown>;
+  }): Promise<string> {
+    const aggregate = new EventLogAggregate();
+    aggregate.logEdgeUpdated({
+      pageId: new PageId(params.pageId),
+      userId: new UserId(params.userId),
+      edgeId: params.edgeId,
+      changes: params.changes,
+    });
+
+    await this.repo.save(aggregate.getEventLog());
+
+    const events = aggregate.getUncommittedEvents();
+    await Promise.allSettled(events.map((e) => e.handle()));
+    aggregate.markEventsAsCommitted();
+    return aggregate.getEventLog().id.value;
+  }
+
+  async logEdgeDeleted(params: {
+    pageId: string;
+    userId: string;
+    edgeId: string;
+  }): Promise<string> {
+    const aggregate = new EventLogAggregate();
+    aggregate.logEdgeDeleted({
+      pageId: new PageId(params.pageId),
+      userId: new UserId(params.userId),
+      edgeId: params.edgeId,
     });
 
     await this.repo.save(aggregate.getEventLog());

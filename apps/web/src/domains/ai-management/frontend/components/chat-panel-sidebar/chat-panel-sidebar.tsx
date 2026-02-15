@@ -16,7 +16,7 @@ import { ChatPanelMessages } from './chat-panel-messages';
 import { useChatV2 } from './use-chat-v2';
 import { ConversationEmptyState } from '@workspace/ui/components/ai-elements/conversation';
 
-const CHAT_PANEL_WIDTH = 280;
+const CHAT_PANEL_WIDTH = 320;
 
 export interface ChatPanelSidebarProps {
   className?: string;

@@ -2,6 +2,11 @@
 
 import type { PageActionContext } from '@/domains/common/auth/types';
 import { withEdgeSecureAction } from '@/domains/common/server-actions';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -51,11 +56,22 @@ async function updateEdgeLabelInternal(
 ): Promise<ActionResult<EdgeView>> {
   try {
     const userId: UserId = new UserId(context.authenticatedUser.id);
-    // 1. Service 의존성 생성
     const edgeRepository = new DrizzleEdgeRepository();
 
-    // 2. ✅ Service에 SafeDTO만 전달 (Value Objects 생성은 Service에서 수행)
-    const result = await updateEdgeLabel(safeDto, userId, edgeRepository);
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: context.authenticatedUser.id,
+      pageId: context.page.pageId.value,
+    };
+
+    const result = await updateEdgeLabel(
+      safeDto,
+      userId,
+      edgeRepository,
+      eventLogPolicyContext
+    );
 
     if (result.isError()) {
       console.error(

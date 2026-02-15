@@ -2,6 +2,11 @@
 
 import type { PageActionContext } from '@/domains/common/auth/types';
 import { withEdgeSecureAction } from '@/domains/common/server-actions';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -34,7 +39,20 @@ async function updateEdgeMarkersInternal(
     const userId = new UserId(context.authenticatedUser.id);
     const edgeRepository = new DrizzleEdgeRepository();
 
-    const result = await updateEdgeMarker(safeDto, userId, edgeRepository);
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: context.authenticatedUser.id,
+      pageId: context.page.pageId.value,
+    };
+
+    const result = await updateEdgeMarker(
+      safeDto,
+      userId,
+      edgeRepository,
+      eventLogPolicyContext
+    );
 
     if (result.isError()) {
       console.error(

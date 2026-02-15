@@ -1,6 +1,7 @@
 /**
  * 블럭 마운트 삭제 서비스 로직
  */
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
@@ -32,13 +33,15 @@ import type { EdgeRepository } from '../../repositories/interfaces/edge.reposito
  * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
  * @param blockMountRepository - BlockMount Repository
  * @param edgeRepository - Edge Repository
+ * @param eventLogPolicyContext - 선택: 감사 로그용 (단일 시 block_mount_soft_deleted 1건, 다중 시 1건에 blockMountIds)
  * @returns 삭제 결과
  */
 export async function softDeleteBlockMount(
   safeDto: SoftDeleteBlockMountRequest,
   safeUserId: UserId,
   blockMountRepository: BlockMountRepository,
-  edgeRepository: EdgeRepository
+  edgeRepository: EdgeRepository,
+  eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<
   Result<
     {
@@ -118,13 +121,15 @@ export async function softDeleteBlockMount(
     const individualEvents = validAggregates.flatMap(agg =>
       agg.getUncommittedEvents()
     );
-    let allEvents = individualEvents;
-    if (validAggregates.length > 1) {
+    const isBatch = validAggregates.length > 1;
+    if (isBatch) {
+      // 배치: 개별 이벤트는 감사 로그 스킵, MultipleBlockMountsDeletedEvent만 한 건으로 로깅
+      await Promise.allSettled(individualEvents.map((e) => e.handle(undefined)));
       const multipleDeletionsEvent = new MultipleBlockMountsDeletedEvent(
         'batch-delete',
         {
           deletedBlockMountIds: validAggregates.map(
-            agg => agg.getBlockMount().id.value
+            (agg) => agg.getBlockMount().id.value
           ),
           deletedEdgesCount: connectedEdges.length,
           deletedAt: new Date(),
@@ -132,9 +137,15 @@ export async function softDeleteBlockMount(
         },
         new Date()
       );
-      allEvents = [...individualEvents, multipleDeletionsEvent];
+      await Promise.allSettled([
+        multipleDeletionsEvent.handle(eventLogPolicyContext),
+      ]);
+    } else {
+      // 단일: BlockMountDeletedEvent가 logBlockMountSoftDeleted(blockMountId) 호출
+      await Promise.allSettled(
+        individualEvents.map((e) => e.handle(eventLogPolicyContext))
+      );
     }
-    await Promise.allSettled(allEvents.map(event => event.handle()));
 
     // 11. 이벤트 커밋
     validAggregates.forEach(agg => agg.markEventsAsCommitted());

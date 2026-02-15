@@ -58,6 +58,14 @@ export interface BlockMountRepository {
   findByPageId(pageId: PageId): Promise<BlockMountAggregate[]>;
 
   /**
+   * blockId로 마운트된 페이지 ID 1건 조회 (삭제되지 않은 마운트 기준, event-log 등에서 사용)
+   *
+   * @param blockId - 블록 ID
+   * @returns Promise<string | null> - page_id 또는 없으면 null
+   */
+  findOnePageIdByBlockId(blockId: string): Promise<string | null>;
+
+  /**
    * BlockMount 삭제
    *
    * @param blockMountId - BlockMount ID

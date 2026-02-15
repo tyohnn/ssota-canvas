@@ -1,6 +1,7 @@
 /**
  * 블럭 크기 업데이트 서비스 로직
  */
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
 import { BlockMountAggregate } from '@/domains/canvas-management/shared/aggregates/block-mount.aggregate';
 import type { UpdateBlockSizeRequest } from '@/domains/canvas-management/shared/dtos/requests';
@@ -24,12 +25,14 @@ import { CanvasManagementError } from '../../../shared/errors/canvas-management.
  * @param safeDto - 검증된 블럭 크기 업데이트 요청 (SafeDTO)
  * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
  * @param blockMountRepository - BlockMount Repository
+ * @param eventLogPolicyContext - 선택: 감사 로그용 event_log 기록 시 사용
  * @returns 업데이트된 BlockMountAggregate
  */
 export async function updateBlockSize(
   safeDto: UpdateBlockSizeRequest,
   safeUserId: UserId,
-  blockMountRepository: BlockMountRepository
+  blockMountRepository: BlockMountRepository,
+  eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<Result<BlockMountAggregate, Error>> {
   try {
     // 1. SafeDTO → Value Objects 생성
@@ -67,7 +70,9 @@ export async function updateBlockSize(
 
     // 6. 도메인 이벤트 처리
     const individualEvents = aggregate.getUncommittedEvents();
-    await Promise.allSettled(individualEvents.map(event => event.handle()));
+    await Promise.allSettled(
+      individualEvents.map(event => event.handle(eventLogPolicyContext))
+    );
 
     // 7. 이벤트 커밋
     aggregate.markEventsAsCommitted();

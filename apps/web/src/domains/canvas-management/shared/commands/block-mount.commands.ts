@@ -19,6 +19,8 @@ export interface MountBlockCommand {
   viewMode?: BlockViewMode; // 초기 viewMode (선택적, 기본값: original)
   viewModeSizes?: ViewModeSizes; // 모든 viewMode의 크기 (선택적, 제공되지 않으면 현재 viewMode만 설정)
   userId: UserId;
+  /** 블록 타입 (event-log block_created 로깅용, 선택적) */
+  blockType?: string;
 }
 
 // Block Mount Deletion Commands
@@ -34,6 +36,8 @@ export interface DuplicateBlockMountCommand {
   offsetX: number;
   offsetY: number;
   userId: UserId;
+  /** 복제된 블록 타입 (event-log block_created 로깅용) */
+  blockType: string;
 }
 
 // Block Page Move Commands

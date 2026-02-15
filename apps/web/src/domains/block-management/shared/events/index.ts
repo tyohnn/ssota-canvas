@@ -1,3 +1,4 @@
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 
@@ -12,7 +13,7 @@ export interface DomainEvent {
   readonly aggregateId: any;
   readonly data: any;
   readonly occurredAt: Date;
-  handle(): Promise<void>;
+  handle(context?: unknown): Promise<void>;
 }
 
 // BlockCreatedEvent
@@ -40,7 +41,7 @@ export class BlockCreatedEvent implements DomainEvent {
    * ✅ Policy는 부수 효과이므로 실패해도 Aggregate에 영향 없음
    * ✅ 실패한 Policy는 나중에 재시도 가능
    */
-  async handle(): Promise<void> {
+  async handle(_context?: unknown): Promise<void> {
     // 순수 로깅 (항상 성공)
     // console.log('[Block Management] Block Created:', {
     //   blockId: this.data.blockId,
@@ -76,21 +77,30 @@ export class BlockUpdatedEvent implements DomainEvent {
   ) {}
 
   /**
-   * Event 발생 시 Policy 실행
+   * Policy: When BlockUpdated → log block_updated to event_log.
    */
-  async handle(): Promise<void> {
-    // console.log('[Block Management] Block Updated:', {
-    //   blockId: this.aggregateId.value,
-    //   updateData: this.data.updateData,
-    //   occurredAt: this.occurredAt,
-    // });
+  private async applyEventLogPolicy(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    await ctx.eventLogService
+      .logBlockUpdated({
+        pageId: ctx.pageId,
+        userId: ctx.userId,
+        blockId: this.data.blockId.value,
+        changes: this.data.updateData,
+      })
+      .catch(() => {});
+  }
 
-    // 외부 도메인 Policy 실행 (부수 효과)
+  /**
+   * Event 발생 시 Policy 실행. handle()에서 각 정책을 Promise.allSettled로 일괄 실행.
+   */
+  async handle(context?: unknown): Promise<void> {
     await Promise.allSettled([
+      this.applyEventLogPolicy(context),
       // Policy 구현 예시:
       // - 블록 변경 이력 기록
       // - 버전 관리 시스템 업데이트
-      // - 감사 로그 생성
     ]);
   }
 }
@@ -113,7 +123,7 @@ export class BlockPropertyUpdatedEvent implements DomainEvent {
   /**
    * Event 발생 시 Policy 실행
    */
-  async handle(): Promise<void> {
+  async handle(_context?: unknown): Promise<void> {
     // console.log('[Block Management] Block Property Updated:', {
     //   blockId: this.aggregateId.value,
     //   propertyPath: this.data.propertyPath,
@@ -149,23 +159,33 @@ export class BlockContentUpdatedEvent implements DomainEvent {
   ) {}
 
   /**
-   * Event 발생 시 Policy 실행
+   * Policy: When BlockContentUpdated → log block_updated to event_log.
    */
-  async handle(): Promise<void> {
-    // console.log('[Block Management] Block Content Updated:', {
-    //   blockId: this.aggregateId.value,
-    //   content: this.data.content,
-    //   contentRaw: this.data.contentRaw,
-    //   occurredAt: this.occurredAt,
-    // });
+  private async applyEventLogPolicy(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    await ctx.eventLogService
+      .logBlockUpdated({
+        pageId: ctx.pageId,
+        userId: ctx.userId,
+        blockId: this.data.blockId.value,
+        changes: {
+          content: this.data.content,
+          ...(this.data.contentRaw != null && { contentRaw: this.data.contentRaw }),
+        },
+      })
+      .catch(() => {});
+  }
 
-    // 외부 도메인 Policy 실행 (부수 효과)
+  /**
+   * Event 발생 시 Policy 실행. handle()에서 각 정책을 Promise.allSettled로 일괄 실행.
+   */
+  async handle(context?: unknown): Promise<void> {
     await Promise.allSettled([
+      this.applyEventLogPolicy(context),
       // Policy 구현 예시:
       // - 블록 콘텐츠 변경 이력 기록
       // - 버전 관리 시스템 업데이트
-      // - 감사 로그 생성
-      // - 실시간 동기화를 위한 WebSocket 이벤트 전송
       // - 검색 인덱스 업데이트
     ]);
   }
@@ -186,23 +206,30 @@ export class BlockTitleUpdatedEvent implements DomainEvent {
   ) {}
 
   /**
-   * Event 발생 시 Policy 실행
+   * Policy: When BlockTitleUpdated → log block_updated to event_log.
    */
-  async handle(): Promise<void> {
-    console.log('[Block Management] Block Title Updated:', {
-      blockId: this.aggregateId.value,
-      oldTitle: this.data.oldTitle,
-      newTitle: this.data.newTitle,
-      occurredAt: this.occurredAt,
-    });
+  private async applyEventLogPolicy(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    await ctx.eventLogService
+      .logBlockUpdated({
+        pageId: ctx.pageId,
+        userId: ctx.userId,
+        blockId: this.data.blockId.value,
+        changes: { title: this.data.newTitle },
+      })
+      .catch(() => {});
+  }
 
-    // 외부 도메인 Policy 실행 (부수 효과)
+  /**
+   * Event 발생 시 Policy 실행. handle()에서 각 정책을 Promise.allSettled로 일괄 실행.
+   */
+  async handle(context?: unknown): Promise<void> {
     await Promise.allSettled([
+      this.applyEventLogPolicy(context),
       // Policy 구현 예시:
       // - 블록 제목 변경 이력 기록
       // - 버전 관리 시스템 업데이트
-      // - 감사 로그 생성
-      // - 실시간 동기화를 위한 WebSocket 이벤트 전송
       // - 검색 인덱스 업데이트
     ]);
   }
@@ -224,7 +251,7 @@ export class BlockPropertiesUpdatedEvent implements DomainEvent {
   /**
    * Event 발생 시 Policy 실행
    */
-  async handle(): Promise<void> {
+  async handle(_context?: unknown): Promise<void> {
     // console.log('[Block Management] Block Properties Updated:', {
     //   blockId: this.aggregateId.value,
     //   updatedProperties: this.data.updatedProperties,
@@ -259,7 +286,7 @@ export class BlockDeletedEvent implements DomainEvent {
   /**
    * Event 발생 시 Policy 실행
    */
-  async handle(): Promise<void> {
+  async handle(_context?: unknown): Promise<void> {
     // console.log('[Block Management] Block Deleted:', {
     //   blockId: this.aggregateId.value,
     //   workspaceId: this.data.workspaceId.value,
@@ -296,7 +323,7 @@ export class BlockDuplicatedEvent implements DomainEvent {
    * ✅ Policy는 부수 효과이므로 실패해도 Aggregate에 영향 없음
    * ✅ 실패한 Policy는 나중에 재시도 가능
    */
-  async handle(): Promise<void> {
+  async handle(_context?: unknown): Promise<void> {
     // 순수 로깅 (항상 성공)
     // console.log('[Block Management] Block Duplicated:', {
     //   originalBlockId: this.data.originalBlockId.value,
@@ -330,7 +357,7 @@ export class BlockRestoredEvent implements DomainEvent {
   /**
    * Event 발생 시 Policy 실행
    */
-  async handle(): Promise<void> {
+  async handle(_context?: unknown): Promise<void> {
     // console.log('[Block Management] Block Restored:', {
     //   blockId: this.aggregateId.value,
     //   occurredAt: this.occurredAt,

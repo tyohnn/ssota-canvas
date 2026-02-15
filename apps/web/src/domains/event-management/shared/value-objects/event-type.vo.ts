@@ -9,7 +9,9 @@ export type EventTypeValue =
   | 'tool_call'
   | 'block_created'
   | 'block_updated'
-  | 'block_deleted'
+  | 'block_deleted' // 블록 엔티티 영구 삭제 (휴지통 등에서 사용, 예정)
+  | 'block_mount_updated'
+  | 'block_mount_soft_deleted' // 블록 마운트 소프트 삭제 (캔버스에서 제거)
   | 'edge_created'
   | 'edge_updated'
   | 'edge_deleted';
@@ -21,6 +23,8 @@ const VALID_TYPES: EventTypeValue[] = [
   'block_created',
   'block_updated',
   'block_deleted',
+  'block_mount_updated',
+  'block_mount_soft_deleted',
   'edge_created',
   'edge_updated',
   'edge_deleted',
@@ -82,6 +86,15 @@ export class EventType {
     return (
       this.isBlockCreated() || this.isBlockUpdated() || this.isBlockDeleted()
     );
+  }
+
+  isBlockMountUpdated(): boolean {
+    return this._value === 'block_mount_updated';
+  }
+
+  /** 블록 마운트 소프트 삭제 (캔버스에서 제거). 휴지통 영구 삭제는 block_deleted. */
+  isBlockMountSoftDeleted(): boolean {
+    return this._value === 'block_mount_soft_deleted';
   }
 
   toString(): string {

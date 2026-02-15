@@ -1,6 +1,7 @@
 /**
  * Edge 생성 서비스 로직
  */
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
 import type { EdgeRepository } from '@/domains/canvas-management/backend/repositories/interfaces/edge.repository.interface';
 import { EdgeAggregate } from '@/domains/canvas-management/shared/aggregates/edge.aggregate';
@@ -27,13 +28,15 @@ import { CanvasManagementError } from '../../../shared/errors/canvas-management.
  * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
  * @param blockMountRepository - BlockMount Repository
  * @param edgeRepository - Edge Repository
+ * @param eventLogPolicyContext - 선택: 감사 로그용 event_log 기록 시 사용
  * @returns 생성된 엣지 Aggregate
  */
 export async function createEdge(
   safeDto: CreateEdgeRequest,
   safeUserId: UserId,
   blockMountRepository: BlockMountRepository,
-  edgeRepository: EdgeRepository
+  edgeRepository: EdgeRepository,
+  eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<Result<EdgeAggregate, Error>> {
   try {
     // 1. SafeDTO → Value Objects 생성
@@ -95,7 +98,9 @@ export async function createEdge(
 
     // 7. 도메인 이벤트 처리
     const events = aggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map(event => event.handle(eventLogPolicyContext))
+    );
 
     // 8. Event 커밋
     aggregate.markEventsAsCommitted();

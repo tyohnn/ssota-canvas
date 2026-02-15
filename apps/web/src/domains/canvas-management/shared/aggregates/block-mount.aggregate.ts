@@ -72,9 +72,9 @@ export class BlockMountAggregate {
     const viewModeSizes = command.viewModeSizes
       ? command.viewModeSizes
       : ViewModeSizes.empty().updateSizeForViewMode(
-          viewMode.value,
-          command.size
-        );
+        viewMode.value,
+        command.size
+      );
 
     // 4. BlockMount Entity 생성
     // viewMode 명시적으로 전달
@@ -100,6 +100,7 @@ export class BlockMountAggregate {
         size: blockMount.size, // 하위 호환성을 위해 유지
         viewMode: blockMount.viewMode,
         zOrder: zOrder,
+        blockType: command.blockType,
       },
       new Date()
     );
@@ -245,6 +246,7 @@ export class BlockMountAggregate {
         duplicatedBlockMountId: duplicatedBlockMount.id.value,
         originalBlockId: this._blockMount.blockId.value,
         duplicatedBlockId: command.newBlockId.value,
+        duplicatedBlockType: command.blockType,
       },
       new Date()
     );

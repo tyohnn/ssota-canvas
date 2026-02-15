@@ -82,6 +82,11 @@ isProject: false
 
 - **Reasoning 렌더링**: `types.ts`에 ReasoningPart 추가, `chat-panel-messages.tsx`에서 Reasoning 컴포넌트로 추론 과정 표시. 스트리밍 중 자동 펼침, 완료 후 자동 접힘
 
+### Checkpoint D 진행
+
+- **Step 1-13 완료**: 이벤트 저장/조회 및 recentEvents 컨텍스트 구현 완료 (위 Current State 참고).
+- **Step 1-12 미구현**: activeJobs 컨텍스트(Status Window 연동)는 아직 context-builder에 없음. 구현 시 context-builder에 activeJobs 필드 추가, 클라이언트에서 수집·전송, prompt.ts에 해석 규칙 추가 필요.
+
 ### 알려진 이슈
 
 - **웹 검색 미호출**: 실세계 주제 요청 시에도 모델이 web_search를 생략하고 바로 renderCanvasdown만 호출하는 경우 있음. 프롬프트 개선 여지 있음

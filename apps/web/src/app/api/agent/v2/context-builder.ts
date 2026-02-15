@@ -9,18 +9,31 @@ import type { RecentEvent } from '@/domains/event-management';
 
 /**
  * Visible block metadata (excludes content)
+ * blockMountId: canvas/selection reference; blockId: for content tools (readBlockLines, etc.)
  */
 export interface VisibleBlockMeta {
   blockMountId: string;
+  blockId?: string;
   blockType: string;
   title: string;
   connectedTo?: string[];
+  connectedFrom?: string[];
+}
+
+/** Raw block shape from client (before validation) */
+interface RawVisibleBlockMeta {
+  blockMountId?: unknown;
+  blockId?: unknown;
+  blockType?: unknown;
+  title?: unknown;
+  connectedTo?: unknown;
+  connectedFrom?: unknown;
 }
 
 /**
  * Dynamic context interface
  * Fields will be added incrementally per implementation step:
- * - Step 1-2: selectedBlockIds, visibleBlocks ✓
+ * - Step 1-2: selectedBlocks, visibleBlocks ✓
  * - Step 1-12: activeJobs
  * - Step 1-13: recentEvents ✓
  */
@@ -29,8 +42,13 @@ export interface DynamicContext {
   pageId?: string;
   workspaceId?: string;
   orgId?: string;
-  selectedBlockIds?: string[];
+  /** Selected blocks with full meta (blockMountId, blockId, type, title) — IDs derived from this when needed */
+  selectedBlocks?: VisibleBlockMeta[];
   visibleBlocks?: VisibleBlockMeta[];
+  /** Total blocks in viewport before cap (zoom-out edge case) */
+  visibleBlocksTotalInView?: number;
+  /** Number of blocks included in context (capped near center, max 20) */
+  visibleBlocksInContext?: number;
 
   // Step 1-13: Recent events (injected server-side)
   recentEvents?: RecentEvent[];
@@ -78,21 +96,42 @@ export function parseDynamicContext(raw: unknown): DynamicContext {
     pageId: typeof ctx.pageId === 'string' ? ctx.pageId : undefined,
     workspaceId: typeof ctx.workspaceId === 'string' ? ctx.workspaceId : undefined,
     orgId: typeof ctx.orgId === 'string' ? ctx.orgId : undefined,
-    selectedBlockIds: Array.isArray(ctx.selectedBlockIds)
-      ? ctx.selectedBlockIds.filter((id): id is string => typeof id === 'string')
+    selectedBlocks: Array.isArray(ctx.selectedBlocks)
+      ? ctx.selectedBlocks
+          .filter((block): block is RawVisibleBlockMeta => typeof block === 'object' && block !== null)
+          .map((block) => ({
+            blockMountId: typeof block.blockMountId === 'string' ? block.blockMountId : '',
+            blockId: typeof block.blockId === 'string' ? block.blockId : undefined,
+            blockType: typeof block.blockType === 'string' ? block.blockType : 'unknown',
+            title: typeof block.title === 'string' ? block.title : 'Untitled',
+            connectedTo: Array.isArray(block.connectedTo)
+              ? block.connectedTo.filter((id): id is string => typeof id === 'string')
+              : undefined,
+            connectedFrom: Array.isArray(block.connectedFrom)
+              ? block.connectedFrom.filter((id): id is string => typeof id === 'string')
+              : undefined,
+          }))
       : undefined,
     visibleBlocks: Array.isArray(ctx.visibleBlocks)
       ? ctx.visibleBlocks
-        .filter((block): block is Record<string, unknown> => typeof block === 'object' && block !== null)
+        .filter((block): block is RawVisibleBlockMeta => typeof block === 'object' && block !== null)
         .map((block) => ({
           blockMountId: typeof block.blockMountId === 'string' ? block.blockMountId : '',
+          blockId: typeof block.blockId === 'string' ? block.blockId : undefined,
           blockType: typeof block.blockType === 'string' ? block.blockType : 'unknown',
           title: typeof block.title === 'string' ? block.title : 'Untitled',
           connectedTo: Array.isArray(block.connectedTo)
             ? block.connectedTo.filter((id): id is string => typeof id === 'string')
             : undefined,
+          connectedFrom: Array.isArray(block.connectedFrom)
+            ? block.connectedFrom.filter((id): id is string => typeof id === 'string')
+            : undefined,
         }))
       : undefined,
+    visibleBlocksTotalInView:
+      typeof ctx.visibleBlocksTotalInView === 'number' ? ctx.visibleBlocksTotalInView : undefined,
+    visibleBlocksInContext:
+      typeof ctx.visibleBlocksInContext === 'number' ? ctx.visibleBlocksInContext : undefined,
     recentEvents,
   };
 }
@@ -111,27 +150,56 @@ function formatContextBlock(ctx: DynamicContext): string {
     if (ctx.orgId) sections.push(`- Organization ID: \`${ctx.orgId}\``);
   }
 
-  // Selected blocks
-  if (ctx.selectedBlockIds && ctx.selectedBlockIds.length > 0) {
+  // Selected blocks (rich: blockMountId, blockId, type, title — same format as Visible Blocks)
+  const selectedBlocks: VisibleBlockMeta[] = ctx.selectedBlocks ?? [];
+  if (selectedBlocks.length > 0) {
     sections.push('');
     sections.push('**Selected Blocks**:');
-    ctx.selectedBlockIds.forEach((id, index) => {
-      sections.push(`${index + 1}. Block Mount ID: \`${id}\``);
-    });
-  }
-
-  // Visible blocks
-  if (ctx.visibleBlocks && ctx.visibleBlocks.length > 0) {
-    sections.push('');
-    sections.push('**Visible Blocks** (currently in viewport):');
-    ctx.visibleBlocks.forEach((block, index) => {
+    selectedBlocks.forEach((block, index) => {
       const parts: string[] = [
-        `${index + 1}. \`${block.blockMountId}\``,
+        `${index + 1}. Mount Id: \`${block.blockMountId}\``,
         `- Type: ${block.blockType}`,
         `- Title: "${block.title}"`,
       ];
+      if (block.blockId) parts.push(`- Block ID: \`${block.blockId}\``);
+      if (block.connectedFrom && block.connectedFrom.length > 0) {
+        parts.push(`- Connected from (sources): ${block.connectedFrom.map((id: string) => `\`${id}\``).join(', ')}`);
+      }
       if (block.connectedTo && block.connectedTo.length > 0) {
-        parts.push(`- Connected to: ${block.connectedTo.map((id) => `\`${id}\``).join(', ')}`);
+        parts.push(`- Connected to (targets): ${block.connectedTo.map((id: string) => `\`${id}\``).join(', ')}`);
+      }
+      sections.push(parts.join('\n  '));
+    });
+  }
+
+  // Visible blocks (with total/in-context counts when provided for zoom-out cap)
+  if (ctx.visibleBlocks && ctx.visibleBlocks.length > 0) {
+    sections.push('');
+    const totalInView = ctx.visibleBlocksTotalInView;
+    const inContext = ctx.visibleBlocksInContext;
+    if (
+      typeof totalInView === 'number' &&
+      typeof inContext === 'number' &&
+      totalInView > inContext
+    ) {
+      sections.push(
+        `**Visible Blocks**: ${totalInView} total in viewport; ${inContext} blocks near center included.`
+      );
+    } else {
+      sections.push('**Visible Blocks** (currently in viewport):');
+    }
+    ctx.visibleBlocks.forEach((block, index) => {
+      const parts: string[] = [
+        `${index + 1}. Mount Id: \`${block.blockMountId}\``,
+        `- Type: ${block.blockType}`,
+        `- Title: "${block.title}"`,
+      ];
+      if (block.blockId) parts.push(`- Block ID: \`${block.blockId}\``);
+      if (block.connectedFrom && block.connectedFrom.length > 0) {
+        parts.push(`- Connected from (sources): ${block.connectedFrom.map((id: string) => `\`${id}\``).join(', ')}`);
+      }
+      if (block.connectedTo && block.connectedTo.length > 0) {
+        parts.push(`- Connected to (targets): ${block.connectedTo.map((id: string) => `\`${id}\``).join(', ')}`);
       }
       sections.push(parts.join('\n  '));
     });

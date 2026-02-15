@@ -1,6 +1,7 @@
 /**
  * Edge 삭제 서비스 로직
  */
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import type { EdgeRepository } from '@/domains/canvas-management/backend/repositories/interfaces/edge.repository.interface';
 import type { DeleteEdgeCommand } from '@/domains/canvas-management/shared/commands';
 import type { DeleteEdgeRequest } from '@/domains/canvas-management/shared/dtos/requests/edge.requests';
@@ -20,11 +21,13 @@ import { CanvasManagementError } from '../../../shared/errors/canvas-management.
  *
  * @param safeDto - 검증된 엣지 삭제 요청 (SafeDTO)
  * @param edgeRepository - Edge Repository
+ * @param eventLogPolicyContext - 선택: 감사 로그용 event_log 기록 시 사용
  */
 export async function deleteEdge(
   safeDto: DeleteEdgeRequest,
   safeUserId: UserId,
-  edgeRepository: EdgeRepository
+  edgeRepository: EdgeRepository,
+  eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<Result<void, Error>> {
   try {
     // 1. SafeDTO → Value Objects 생성
@@ -50,7 +53,9 @@ export async function deleteEdge(
 
     // 5. 도메인 이벤트 처리
     const events = aggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map(event => event.handle(eventLogPolicyContext))
+    );
 
     // 6. Event 커밋
     aggregate.markEventsAsCommitted();

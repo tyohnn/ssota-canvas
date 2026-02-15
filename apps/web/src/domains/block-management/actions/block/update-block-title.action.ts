@@ -1,6 +1,12 @@
 'use server';
 
 import type { WorkspaceActionContext } from '@/domains/common/auth/types';
+import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -56,15 +62,28 @@ async function updateBlockTitleInternal(
 ): Promise<ActionResult<BlockTitleUpdatedDTO>> {
   try {
     const userId: UserId = new UserId(context.authenticatedUser.id);
-
-    // 1. Repository 생성
     const blockRepository = new DrizzleBlockRepository();
 
-    // 2. Service Function을 통한 제목 업데이트 (SafeDTO 전달)
+    const blockMountRepository = new DrizzleBlockMountRepository();
+    const pageId = await blockMountRepository.findOnePageIdByBlockId(
+      safeDto.blockId
+    );
+    let eventLogPolicyContext: EventLogPolicyContext | undefined;
+    if (pageId) {
+      const eventLogRepo = new DrizzleEventLogRepository();
+      const eventLogService = new EventLogService(eventLogRepo);
+      eventLogPolicyContext = {
+        eventLogService,
+        userId: context.authenticatedUser.id,
+        pageId,
+      };
+    }
+
     const updateResult = await updateBlockTitle(
       safeDto,
       userId,
-      blockRepository
+      blockRepository,
+      eventLogPolicyContext
     );
 
     // 3. Result 처리

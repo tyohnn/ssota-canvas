@@ -8,6 +8,7 @@ import {
 } from '@/domains/block-management/backend/services/block';
 import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
 import type { DuplicateBlockRequest } from '@/domains/block-management/shared/dtos/requests/block.requests';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import { Result } from '@/utils/result';
@@ -37,6 +38,7 @@ import type { BlockMountRepository } from '../../repositories/interfaces/block-m
  * @param safeWorkspaceId - 검증된 워크스페이스 ID (권한 검증됨)
  * @param blockRepository - Block Repository
  * @param blockMountRepository - BlockMount Repository
+ * @param eventLogPolicyContext - 선택: 제공 시 BlockMountDuplicatedEvent에서 block_created 로깅
  * @returns 복제된 BlockMountAggregate와 BlockAggregate
  */
 export async function duplicateBlockAndMount(
@@ -44,7 +46,8 @@ export async function duplicateBlockAndMount(
   safeUserId: UserId,
   safeWorkspaceId: WorkspaceId,
   blockRepository: IBlockRepository,
-  blockMountRepository: BlockMountRepository
+  blockMountRepository: BlockMountRepository,
+  eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<
   Result<
     {
@@ -93,6 +96,7 @@ export async function duplicateBlockAndMount(
       offsetX: safeDto.offsetX || 20,
       offsetY: safeDto.offsetY || 20,
       userId: safeUserId,
+      blockType: duplicatedBlock.blockType.value,
     };
     const duplicatedAggregate = originalAggregate.duplicateBlockMount(
       duplicateBlockMountCommand
@@ -111,7 +115,9 @@ export async function duplicateBlockAndMount(
     }
 
     const mountEvents = duplicatedAggregate.getUncommittedEvents();
-    await Promise.allSettled(mountEvents.map(event => event.handle()));
+    await Promise.allSettled(
+      mountEvents.map(event => event.handle(eventLogPolicyContext))
+    );
     duplicatedAggregate.markEventsAsCommitted();
 
     return Result.success({
@@ -135,6 +141,8 @@ export type DuplicateBlocksAndMountParams = {
   safeWorkspaceId: WorkspaceId;
   blockRepository: IBlockRepository;
   blockMountRepository: BlockMountRepository;
+  /** 선택: 제공 시 각 BlockMountDuplicatedEvent에서 block_created 로깅 */
+  eventLogPolicyContext?: EventLogPolicyContext;
 };
 
 /**
@@ -162,6 +170,7 @@ export async function duplicateBlocksAndMount(
     safeWorkspaceId,
     blockRepository,
     blockMountRepository,
+    eventLogPolicyContext,
   } = params;
 
   const blockMountIds = safeDto.blocks.map(
@@ -216,6 +225,7 @@ export async function duplicateBlocksAndMount(
       offsetX: blockOpts.offsetX ?? 20,
       offsetY: blockOpts.offsetY ?? 20,
       userId: safeUserId,
+      blockType: duplicatedBlock.blockType.value,
     };
     const duplicatedAggregate = originalAggregate.duplicateBlockMount(
       duplicateBlockMountCommand
@@ -247,9 +257,13 @@ export async function duplicateBlocksAndMount(
     }
   }
 
+  // 멀티플 복제: 블록별로 BlockMountDuplicatedEvent 발생 → 각각 block_created 1건씩 감사 로그 (N건).
+  // 배치 삭제처럼 한 건으로 묶지 않고, 복제 단위로 로깅함.
   for (const { blockMountAggregate } of results) {
     const events = blockMountAggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map(event => event.handle(eventLogPolicyContext))
+    );
     blockMountAggregate.markEventsAsCommitted();
   }
 

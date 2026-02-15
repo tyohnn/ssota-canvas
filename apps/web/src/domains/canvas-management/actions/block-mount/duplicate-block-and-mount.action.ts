@@ -2,6 +2,11 @@
 
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
 import type { PageActionContext } from '@/domains/common/auth/types';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import { ActionResult, err, ok } from '@/lib';
@@ -56,21 +61,28 @@ async function duplicateBlockAndMountInternal(
 ): Promise<ActionResult<BlockDuplicatedAndMountedDTO>> {
   try {
     // ✅ 이미 검증된 데이터 사용 (중복 조회 제거)
-    const { authenticatedUser, workspace } = context;
+    const { authenticatedUser, workspace, page } = context;
     const userId: UserId = new UserId(authenticatedUser.id);
     const workspaceId: WorkspaceId = workspace.workspaceId;
 
-    // Repository 인스턴스 생성
     const blockMountRepository = new DrizzleBlockMountRepository();
     const blockRepository = new DrizzleBlockRepository();
 
-    // Service 함수 직접 호출
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: authenticatedUser.id,
+      pageId: page.pageId.value,
+    };
+
     const result = await duplicateBlockAndMount(
       safeDto,
       userId,
       workspaceId,
       blockRepository,
-      blockMountRepository
+      blockMountRepository,
+      eventLogPolicyContext
     );
 
     if (result.isError()) {
@@ -120,12 +132,20 @@ async function duplicateBlocksAndMountInternal(
   context: PageActionContext
 ): Promise<ActionResult<BlockDuplicatedAndMountedDTO[]>> {
   try {
-    const { authenticatedUser, workspace } = context;
+    const { authenticatedUser, workspace, page } = context;
     const userId: UserId = new UserId(authenticatedUser.id);
     const workspaceId: WorkspaceId = workspace.workspaceId;
 
     const blockMountRepository = new DrizzleBlockMountRepository();
     const blockRepository = new DrizzleBlockRepository();
+
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: authenticatedUser.id,
+      pageId: page.pageId.value,
+    };
 
     const result = await duplicateBlocksAndMount({
       safeDto,
@@ -133,6 +153,7 @@ async function duplicateBlocksAndMountInternal(
       safeWorkspaceId: workspaceId,
       blockRepository,
       blockMountRepository,
+      eventLogPolicyContext,
     });
 
     if (result.isError()) {

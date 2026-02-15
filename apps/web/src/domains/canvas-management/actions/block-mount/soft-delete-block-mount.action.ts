@@ -2,6 +2,11 @@
 
 import type { PageActionContext } from '@/domains/common/auth/types';
 import { withPageSecureAction } from '@/domains/common/server-actions';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -44,20 +49,25 @@ async function softDeleteBlockMountInternal(
   context: PageActionContext // ✅ 검증된 context
 ): Promise<ActionResult<BlockMountSoftDeletedDTO>> {
   try {
-    // ✅ 이미 검증된 사용자 정보 사용 (중복 조회 제거)
-    const { authenticatedUser } = context;
+    const { authenticatedUser, page } = context;
     const userId: UserId = new UserId(authenticatedUser.id);
-
-    // Repository 인스턴스 생성
     const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
 
-    // Service 함수 직접 호출
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: authenticatedUser.id,
+      pageId: page.pageId.value,
+    };
+
     const result = await softDeleteBlockMount(
       safeDto,
       userId,
       blockMountRepository,
-      edgeRepository
+      edgeRepository,
+      eventLogPolicyContext
     );
 
     if (result.isError()) {

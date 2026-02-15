@@ -1,6 +1,7 @@
 /**
  * 블럭 위치 업데이트 서비스 로직
  */
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
@@ -24,12 +25,14 @@ import type { BlockMountRepository } from '../../repositories/interfaces/block-m
  * @param safeDto - 검증된 블럭 위치 업데이트 요청 (SafeDTO)
  * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
  * @param blockMountRepository - BlockMount Repository
+ * @param eventLogPolicyContext - 선택: 감사 로그용 event_log 기록 시 사용
  * @returns 업데이트된 BlockMountAggregate 배열
  */
 export async function updateBlockPosition(
   safeDto: UpdateBlockPositionRequest,
   safeUserId: UserId,
-  blockMountRepository: BlockMountRepository
+  blockMountRepository: BlockMountRepository,
+  eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<Result<BlockMountAggregate[], Error>> {
   try {
     // 1. SafeDTO → Value Objects 생성
@@ -91,7 +94,9 @@ export async function updateBlockPosition(
       allEvents = [...individualEvents, multiplePositionsEvent];
     }
 
-    await Promise.allSettled(allEvents.map(event => event.handle()));
+    await Promise.allSettled(
+      allEvents.map(event => event.handle(eventLogPolicyContext))
+    );
 
     // 6. 이벤트 커밋
     validAggregates.forEach(agg => agg.markEventsAsCommitted());

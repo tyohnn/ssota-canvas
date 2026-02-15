@@ -4,11 +4,17 @@ import { useChat } from '@ai-sdk/react';
 import { useCallback, useMemo } from 'react';
 import { DefaultChatTransport } from 'ai';
 import { useReactFlow, type Node, type Edge } from '@xyflow/react';
-import { useParams } from 'next/navigation';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useCanvasdownContext } from '@/domains/canvasdown/frontend/contexts/canvasdown-context';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
+import { useCanvasSelection } from '@/domains/canvas-management/frontend/hooks/use-canvas-selection';
 import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import {
+  useVisibleBlocks,
+  nodeToVisibleMeta,
+  type VisibleBlockMeta,
+} from '@/domains/ai-management/frontend/hooks/context-builder';
 import {
   useRenderCanvasdownTool,
   usePatchCanvasdownTool,
@@ -26,53 +32,12 @@ interface ClientContext {
   pageId: string;
   workspaceId: string;
   orgId: string;
-  selectedBlockIds: string[];
+  selectedBlocks: VisibleBlockMeta[];
   visibleBlocks: VisibleBlockMeta[];
-}
-
-/**
- * Visible block metadata (excludes content)
- */
-interface VisibleBlockMeta {
-  blockMountId: string;
-  blockType: string;
-  title: string;
-  connectedTo?: string[];
-}
-
-/**
- * Calculate visible blocks based on viewport
- * Similar to V1 pattern: include blocks within viewport bounds
- */
-function calculateVisibleBlocks(
-  nodes: Node[],
-  edges: Edge[],
-  viewport: { x: number; y: number; zoom: number }
-): VisibleBlockMeta[] {
-  // Only show visible blocks when zoomed in (>= 0.75)
-  if (viewport.zoom < 0.75) {
-    return [];
-  }
-
-  // Calculate viewport bounds (approximate)
-  // For simplicity, include all nodes - in production, calculate actual viewport bounds
-  // and filter nodes within bounds
-
-  const visibleBlocks: VisibleBlockMeta[] = nodes.map((node) => {
-    // Find edges where this node is the source
-    const connectedTo = edges
-      .filter((edge) => edge.source === node.id)
-      .map((edge) => edge.target);
-
-    return {
-      blockMountId: node.id,
-      blockType: String(node.data?.blockType ?? 'unknown'),
-      title: String(node.data?.title ?? 'Untitled'),
-      connectedTo: connectedTo.length > 0 ? connectedTo : undefined,
-    };
-  });
-
-  return visibleBlocks;
+  /** Total blocks that intersect the viewport (before cap) */
+  visibleBlocksTotalInView?: number;
+  /** Number of blocks included in context (capped by distance from center, max 20) */
+  visibleBlocksInContext?: number;
 }
 
 /**
@@ -85,7 +50,6 @@ export function useChatV2() {
   const {
     getNodes,
     getEdges,
-    getViewport,
     getNode,
     setNodes,
     setCenter,
@@ -94,6 +58,8 @@ export function useChatV2() {
     deleteElements,
   } = useReactFlow();
   const canvasMode = useCanvasModeContext();
+  const { getSelectedBlocks } = useCanvasSelection();
+  const { getVisibleBlocks } = useVisibleBlocks();
 
   const updateNode = useCallback(
     (nodeId: string, options: { data: Partial<BlockNodeData> }) => {
@@ -109,11 +75,8 @@ export function useChatV2() {
     reactFlow: { getNode, updateNode },
   });
 
-  // Get route params for pageId, workspaceId, orgId
-  const params = useParams();
-  const pageId = params.pageId as string ?? '';
-  const workspaceId = params.workspaceId as string ?? '';
-  const orgId = params.orgId as string ?? '';
+  // Canvas metadata (pageId, orgId, workspaceId) from CanvasMetadataProvider (layout/page already provide these)
+  const { pageId, workspaceId, orgId } = useCanvasMetadata();
 
   const transport = useMemo(
     () =>
@@ -209,38 +172,66 @@ export function useChatV2() {
   });
 
   /**
-   * Collect client context from canvas state
+   * Collect client context from canvas state.
+   * Selected blocks: prefer React Flow selection (useCanvasSelection), fallback to canvas mode
+   * when nothing is selected in the store but user is in single-selection or block-editing mode.
    */
-  const collectClientContext = useCallback((): ClientContext => {
+  const collectClientContext = useCallback((): { clientContext: ClientContext } => {
     const nodes = getNodes();
     const edges = getEdges();
-    const viewport = getViewport();
 
-    // Get selected blocks
-    const selectedBlockIds = nodes
-      .filter((node) => node.selected)
-      .map((node) => node.id);
+    // Get selected blocks from the same source as multi-select toolbar (React Flow store)
+    let selectedBlockIds = getSelectedBlocks();
+    // Fallback: when store has no selection but UI is in single-selection or block-editing mode,
+    // include the current block so the agent still receives "focused" block context
+    if (selectedBlockIds.length === 0) {
+      const mode = canvasMode.getCurrentMode();
+      if (mode.type === 'single-selection' && mode.blockMountId) {
+        selectedBlockIds = [mode.blockMountId];
+      } else if (mode.type === 'block-editing' && mode.blockMountId) {
+        selectedBlockIds = [mode.blockMountId];
+      }
+    }
 
-    // Calculate visible blocks
-    const visibleBlocks = calculateVisibleBlocks(nodes, edges, viewport);
+    // Selected blocks with full meta (blockMountId, type, title) — same shape as visibleBlocks
+    const selectedBlocks: VisibleBlockMeta[] = selectedBlockIds.map((id) => {
+      const node = nodes.find((n) => n.id === id);
+      return node
+        ? nodeToVisibleMeta(node, edges)
+        : { blockMountId: id, blockType: 'unknown', title: 'Untitled' };
+    });
+
+    // Visible blocks (viewport bounds + center-distance cap) from context-builder hook
+    const visibleResult = getVisibleBlocks();
 
     return {
-      pageId,
-      workspaceId,
-      orgId,
-      selectedBlockIds,
-      visibleBlocks,
+      clientContext: {
+        pageId,
+        workspaceId,
+        orgId,
+        selectedBlocks,
+        visibleBlocks: visibleResult.visibleBlocks,
+        visibleBlocksTotalInView: visibleResult.visibleBlocksTotalInView,
+        visibleBlocksInContext: visibleResult.visibleBlocksInContext,
+      },
     };
-  }, [getNodes, getEdges, getViewport, pageId, workspaceId, orgId]);
+  }, [
+    getNodes,
+    getEdges,
+    getSelectedBlocks,
+    canvasMode,
+    pageId,
+    workspaceId,
+    orgId,
+    getVisibleBlocks,
+  ]);
 
   /**
    * Send message with client context
    */
   const sendMessage = useCallback(
     (payload: { text: string }) => {
-      const clientContext = collectClientContext();
-
-      // Send message with clientContext in metadata
+      const { clientContext } = collectClientContext();
       chat.sendMessage({
         text: payload.text,
         metadata: {

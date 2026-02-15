@@ -226,6 +226,20 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     return results.map(row => this.toDomain(row));
   }
 
+  async findOnePageIdByBlockId(blockId: string): Promise<string | null> {
+    const rows = await adminDb
+      .select({ page_id: blockMounts.page_id })
+      .from(blockMounts)
+      .where(
+        and(
+          eq(blockMounts.block_id, blockId),
+          isNull(blockMounts.deleted_at)
+        )
+      )
+      .limit(1);
+    return rows[0]?.page_id ?? null;
+  }
+
   async softDelete(blockMountId: BlockMountId): Promise<void> {
     await adminDb
       .update(blockMounts)
@@ -289,6 +303,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         blockProperties: blocks.properties,
         blockCustomProperties: blocks.custom_properties,
         blockContent: blocks.content, // JSONB content
+        blockContentVersion: blocks.content_version,
         blockSourceId: blocks.source_id,
         blockCreatedBy: blocks.created_by,
         blockCreatedAt: blocks.created_at,
@@ -336,6 +351,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         custom_properties:
           row.blockCustomProperties as CustomPropertyDefinition[],
         content: row.blockContent, // JSONB content
+        content_version: row.blockContentVersion ?? 0,
         source_id: row.blockSourceId ?? null,
         created_by: row.blockCreatedBy || undefined,
         created_at: row.blockCreatedAt,
@@ -427,6 +443,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     properties: Record<string, any>;
     custom_properties: CustomPropertyDefinition[];
     content?: unknown; // JSONB content
+    content_version?: number;
     source_id?: string | null;
     created_by?: string;
     created_at: Date;
@@ -494,7 +511,8 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       row.deleted_at,
       row.content, // JSONB content
       createdByProfile,
-      row.source_id ?? null
+      row.source_id ?? null,
+      row.content_version ?? 0
     );
 
     // BlockAggregate 재구성

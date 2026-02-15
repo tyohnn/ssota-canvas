@@ -1,3 +1,4 @@
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 
 import { BlockMountId } from '../../value-objects/block-mount-id.vo';
@@ -20,7 +21,7 @@ export class BlockTransformedEvent implements DomainEvent {
       newZOrder?: ZOrder;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   async handle(): Promise<void> {
     console.log('[Canvas Management] Block Transformed:', {
@@ -52,21 +53,27 @@ export class BlockPositionUpdatedEvent implements DomainEvent {
     public readonly occurredAt: Date
   ) {}
 
-  /**
-   * Event 발생 시 Policy 실행
-   */
-  async handle(): Promise<void> {
-    console.log('[Canvas Management] Block Position Updated:', {
-      blockMountId: this.aggregateId.value,
-      newPosition: this.data.newPosition,
-      occurredAt: this.occurredAt,
-    });
+  /** 감사 로그: block_mount_updated (position) 기록 */
+  private async applyEventLogPolicy(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    await ctx.eventLogService
+      .logBlockMountUpdated({
+        pageId: ctx.pageId,
+        userId: ctx.userId,
+        blockMountId: this.data.blockMountId.value,
+        changes: {
+          position: {
+            x: this.data.newPosition.x,
+            y: this.data.newPosition.y,
+          },
+        },
+      })
+      .catch(() => {});
+  }
 
-    await Promise.allSettled([
-      // Policy 구현 예시:
-      // - 겹침 감지 및 자동 조정
-      // - 가이드라인 업데이트
-    ]);
+  async handle(context?: unknown): Promise<void> {
+    await Promise.allSettled([this.applyEventLogPolicy(context)]);
   }
 }
 
@@ -84,22 +91,29 @@ export class BlockSizeUpdatedEvent implements DomainEvent {
     public readonly occurredAt: Date
   ) {}
 
-  /**
-   * Event 발생 시 Policy 실행
-   */
-  async handle(): Promise<void> {
-    console.log('[Canvas Management] Block Size Updated:', {
-      blockMountId: this.aggregateId.value,
-      newSize: this.data.newSize,
-      viewMode: this.data.viewMode?.value,
-      occurredAt: this.occurredAt,
-    });
+  /** 감사 로그: block_mount_updated (size) 기록 */
+  private async applyEventLogPolicy(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    const changes: Record<string, unknown> = {
+      size: {
+        width: this.data.newSize.width,
+        height: this.data.newSize.height,
+      },
+    };
+    if (this.data.viewMode != null) changes.viewMode = this.data.viewMode.value;
+    await ctx.eventLogService
+      .logBlockMountUpdated({
+        pageId: ctx.pageId,
+        userId: ctx.userId,
+        blockMountId: this.data.blockMountId.value,
+        changes,
+      })
+      .catch(() => {});
+  }
 
-    await Promise.allSettled([
-      // Policy 구현 예시:
-      // - 최소/최대 크기 제한 확인
-      // - 엣지 재계산
-    ]);
+  async handle(context?: unknown): Promise<void> {
+    await Promise.allSettled([this.applyEventLogPolicy(context)]);
   }
 }
 
@@ -114,7 +128,7 @@ export class BlockZOrderUpdatedEvent implements DomainEvent {
       newZOrder: ZOrder;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   async handle(): Promise<void> {
     console.log('[Canvas Management] Block Z Order Updated:', {
@@ -143,7 +157,7 @@ export class BlockViewModeUpdatedEvent implements DomainEvent {
       newViewMode: BlockViewMode;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행
@@ -178,7 +192,7 @@ export class MultipleBlockPositionsUpdatedEvent implements DomainEvent {
       userId: UserId;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행

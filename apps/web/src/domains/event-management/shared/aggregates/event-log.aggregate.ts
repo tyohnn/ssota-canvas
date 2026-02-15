@@ -14,7 +14,13 @@ import {
   LogToolCallCommand,
   LogBlockCreatedCommand,
   LogBlockUpdatedCommand,
+  LogBlockMountUpdatedCommand,
   LogBlockDeletedCommand,
+  LogBlockMountSoftDeletedCommand,
+  LogBlockMountsSoftDeletedCommand,
+  LogEdgeCreatedCommand,
+  LogEdgeUpdatedCommand,
+  LogEdgeDeletedCommand,
 } from '../commands';
 import {
   UserUtteranceLoggedEvent,
@@ -22,7 +28,13 @@ import {
   ToolCallLoggedEvent,
   BlockCreatedLoggedEvent,
   BlockUpdatedLoggedEvent,
+  BlockMountUpdatedLoggedEvent,
   BlockDeletedLoggedEvent,
+  BlockMountSoftDeletedLoggedEvent,
+  BlockMountsSoftDeletedLoggedEvent,
+  EdgeCreatedLoggedEvent,
+  EdgeUpdatedLoggedEvent,
+  EdgeDeletedLoggedEvent,
   DomainEvent,
 } from '../events';
 import { randomUUID } from 'crypto';
@@ -219,6 +231,36 @@ export class EventLogAggregate {
     return this;
   }
 
+  logBlockMountUpdated(command: LogBlockMountUpdatedCommand): this {
+    const eventId = new EventId(randomUUID());
+    const occurredAt = new Date();
+    const payload = {
+      blockMountId: command.blockMountId,
+      changes: command.changes,
+    };
+
+    this._eventLog = new EventLog(
+      eventId,
+      new EventType('block_mount_updated'),
+      command.pageId,
+      command.userId,
+      occurredAt,
+      new ToolCallResult(JSON.stringify(payload)),
+      payload
+    );
+
+    const event = new BlockMountUpdatedLoggedEvent(
+      eventId.value,
+      command.pageId.value,
+      command.userId.value,
+      command.blockMountId,
+      command.changes,
+      occurredAt
+    );
+    this._uncommittedEvents.push(event);
+    return this;
+  }
+
   logBlockDeleted(command: LogBlockDeletedCommand): this {
     const eventId = new EventId(randomUUID());
     const occurredAt = new Date();
@@ -241,6 +283,145 @@ export class EventLogAggregate {
       command.userId.value,
       command.blockId.value,
       command.agentExecutionId?.value,
+      occurredAt
+    );
+    this._uncommittedEvents.push(event);
+    return this;
+  }
+
+  /** 블록 마운트 소프트 삭제 (단일) — type=block_mount_soft_deleted */
+  logBlockMountSoftDeleted(command: LogBlockMountSoftDeletedCommand): this {
+    const eventId = new EventId(randomUUID());
+    const occurredAt = new Date();
+    const payload = { blockMountId: command.blockMountId };
+
+    this._eventLog = new EventLog(
+      eventId,
+      new EventType('block_mount_soft_deleted'),
+      command.pageId,
+      command.userId,
+      occurredAt,
+      new ToolCallResult(JSON.stringify(payload)),
+      payload
+    );
+
+    const event = new BlockMountSoftDeletedLoggedEvent(
+      eventId.value,
+      command.pageId.value,
+      command.userId.value,
+      command.blockMountId,
+      occurredAt
+    );
+    this._uncommittedEvents.push(event);
+    return this;
+  }
+
+  /** 블록 마운트 소프트 삭제 (배치) — type=block_mount_soft_deleted, payload.blockMountIds */
+  logBlockMountsSoftDeleted(command: LogBlockMountsSoftDeletedCommand): this {
+    const eventId = new EventId(randomUUID());
+    const occurredAt = new Date();
+    const payload = { blockMountIds: command.blockMountIds };
+
+    this._eventLog = new EventLog(
+      eventId,
+      new EventType('block_mount_soft_deleted'),
+      command.pageId,
+      command.userId,
+      occurredAt,
+      new ToolCallResult(JSON.stringify(payload)),
+      payload
+    );
+
+    const event = new BlockMountsSoftDeletedLoggedEvent(
+      eventId.value,
+      command.pageId.value,
+      command.userId.value,
+      command.blockMountIds,
+      occurredAt
+    );
+    this._uncommittedEvents.push(event);
+    return this;
+  }
+
+  logEdgeCreated(command: LogEdgeCreatedCommand): this {
+    const eventId = new EventId(randomUUID());
+    const occurredAt = new Date();
+    const payload = {
+      edgeId: command.edgeId,
+      sourceBlockMountId: command.sourceBlockMountId,
+      targetBlockMountId: command.targetBlockMountId,
+    };
+
+    this._eventLog = new EventLog(
+      eventId,
+      new EventType('edge_created'),
+      command.pageId,
+      command.userId,
+      occurredAt,
+      new ToolCallResult(JSON.stringify(payload)),
+      payload
+    );
+
+    const event = new EdgeCreatedLoggedEvent(
+      eventId.value,
+      command.pageId.value,
+      command.userId.value,
+      command.edgeId,
+      command.sourceBlockMountId,
+      command.targetBlockMountId,
+      occurredAt
+    );
+    this._uncommittedEvents.push(event);
+    return this;
+  }
+
+  logEdgeUpdated(command: LogEdgeUpdatedCommand): this {
+    const eventId = new EventId(randomUUID());
+    const occurredAt = new Date();
+    const payload = { edgeId: command.edgeId, changes: command.changes };
+
+    this._eventLog = new EventLog(
+      eventId,
+      new EventType('edge_updated'),
+      command.pageId,
+      command.userId,
+      occurredAt,
+      new ToolCallResult(JSON.stringify(payload)),
+      payload
+    );
+
+    const event = new EdgeUpdatedLoggedEvent(
+      eventId.value,
+      command.pageId.value,
+      command.userId.value,
+      command.edgeId,
+      command.changes,
+      occurredAt
+    );
+    this._uncommittedEvents.push(event);
+    return this;
+  }
+
+  logEdgeDeleted(command: LogEdgeDeletedCommand): this {
+    const eventId = new EventId(randomUUID());
+    const occurredAt = new Date();
+    const payload = { edgeId: command.edgeId };
+
+    this._eventLog = new EventLog(
+      eventId,
+      new EventType('edge_deleted'),
+      command.pageId,
+      command.userId,
+      occurredAt,
+      new ToolCallResult(JSON.stringify(payload)),
+      payload
+    );
+
+    const event = new EdgeDeletedLoggedEvent(
+      eventId.value,
+      command.pageId.value,
+      command.userId.value,
+      command.edgeId,
       occurredAt
     );
     this._uncommittedEvents.push(event);

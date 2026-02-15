@@ -20,6 +20,8 @@ import {
   hopSearchTool,
   searchGroupTool,
   searchBySemanticTool,
+  getPageEventsTool,
+  grepEventsTool,
   editBlockLinesTool,
   createTodosTool,
   canvasActionTool,
@@ -46,6 +48,15 @@ import {
 } from '@/domains/event-management';
 import { createGetPageEventsTool, createGrepEventsTool } from './event-tools';
 import { AGENT_MODEL } from './constants';
+
+/** Serialize tool inputSchema for debug log (Zod or similar). */
+function getSchemaSummary(schema: unknown): unknown {
+  if (!schema || typeof schema !== 'object') return null;
+  const s = schema as Record<string, unknown>;
+  if (typeof s.jsonSchema === 'function') return s.jsonSchema();
+  if (s.shape && typeof s.shape === 'object') return { type: 'object', keys: Object.keys(s.shape as object) };
+  return { _: String(schema).slice(0, 200) };
+}
 
 export const maxDuration = 300;
 
@@ -132,22 +143,117 @@ export async function POST(req: Request) {
 
     // Parse request body - extract messages and clientContext
     const body = await req.json();
-    const { messages, clientContext } = body;
+    const DEBUG_INGEST_PIPELINE = 'http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c';
+    const logStep = (step: number, label: string, data: Record<string, unknown>) => {
+      fetch(DEBUG_INGEST_PIPELINE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'api/agent/v2/route.ts:pipeline', message: `AgentV2 pipeline step ${step}: ${label}`, step, label, data, timestamp: Date.now() }) }).catch(() => { });
+    };
+
+    let { messages, clientContext } = body;
+    let clientContextSource: 'body' | 'lastMessageMetadata' | 'none' = clientContext !== undefined ? 'body' : 'none';
+    // Fallback: client may send clientContext in last user message metadata (e.g. useChat sendMessage)
+    if (clientContext === undefined && Array.isArray(messages)) {
+      const lastUser = [...messages].reverse().find((m: { role?: string }) => m?.role === 'user');
+      const fromMeta = (lastUser as { metadata?: { clientContext?: unknown } } | undefined)?.metadata?.clientContext;
+      if (fromMeta !== undefined) {
+        clientContext = fromMeta;
+        clientContextSource = 'lastMessageMetadata';
+      }
+    }
+    const clientContextRaw =
+      clientContext != null && typeof clientContext === 'object'
+        ? (() => {
+          const c = clientContext as Record<string, unknown>;
+          const vb = c.visibleBlocks;
+          const sb = c.selectedBlocks;
+          const re = c.recentEvents;
+          const visibleDebug = c.visibleDebug;
+          return {
+            pageId: c.pageId,
+            workspaceId: c.workspaceId,
+            orgId: c.orgId,
+            selectedBlocksCount: Array.isArray(sb) ? sb.length : 0,
+            selectedBlocksSample: Array.isArray(sb) && sb.length > 0 ? sb[0] : null,
+            visibleBlocksCount: Array.isArray(vb) ? vb.length : 0,
+            visibleBlocksSample: Array.isArray(vb) && vb.length > 0 ? vb[0] : null,
+            recentEventsInPayload: Array.isArray(re) ? re.length : 0,
+            visibleDebug:
+              visibleDebug != null && typeof visibleDebug === 'object'
+                ? {
+                  viewportZoom: (visibleDebug as Record<string, unknown>).viewportZoom,
+                  viewportX: (visibleDebug as Record<string, unknown>).viewportX,
+                  viewportY: (visibleDebug as Record<string, unknown>).viewportY,
+                  nodesCount: (visibleDebug as Record<string, unknown>).nodesCount,
+                  visibleBlocksCount: (visibleDebug as Record<string, unknown>).visibleBlocksCount,
+                  zoomUnderThreshold: (visibleDebug as Record<string, unknown>).zoomUnderThreshold,
+                }
+                : undefined,
+          };
+        })()
+        : null;
+    logStep(1, 'body parsed, clientContext resolved', {
+      bodyKeys: typeof body === 'object' && body !== null ? Object.keys(body as object) : [],
+      messagesCount: Array.isArray(messages) ? messages.length : 0,
+      clientContextSource,
+      hasClientContext: clientContext !== undefined,
+      clientContext: clientContextRaw,
+      lastMessageHasMetadata: Array.isArray(messages)
+        ? (() => {
+          const last = (messages as { metadata?: unknown }[])[messages.length - 1];
+          return last != null && typeof last === 'object' && 'metadata' in last && last.metadata != null;
+        })()
+        : false,
+    });
 
     // Convert UI messages to model messages
     const modelMessages = await convertToModelMessages(messages);
+    const firstModelContent = modelMessages[0] && 'content' in modelMessages[0] ? modelMessages[0].content : undefined;
+    const firstContentSummary =
+      typeof firstModelContent === 'string'
+        ? { type: 'string', length: firstModelContent.length, preview: firstModelContent.slice(0, 200) }
+        : Array.isArray(firstModelContent)
+          ? { type: 'array', length: firstModelContent.length, preview: JSON.stringify(firstModelContent).slice(0, 300) }
+          : { type: typeof firstModelContent, preview: String(firstModelContent).slice(0, 200) };
+    logStep(2, 'convertToModelMessages', {
+      modelMessagesCount: modelMessages.length,
+      roles: modelMessages.map((m: { role?: string }) => m.role),
+      firstMessageContent: firstContentSummary,
+    });
 
     // Parse client context and enrich with server-side recent events
     const dynamicContext = parseDynamicContext(clientContext);
     const pageId = dynamicContext.pageId;
+    logStep(3, 'parseDynamicContext', {
+      pageId: pageId ?? null,
+      dynamicContext: {
+        pageId: dynamicContext.pageId,
+        workspaceId: dynamicContext.workspaceId,
+        orgId: dynamicContext.orgId,
+        selectedBlocksCount: dynamicContext.selectedBlocks?.length ?? 0,
+        selectedBlocks: dynamicContext.selectedBlocks,
+        visibleBlocksCount: dynamicContext.visibleBlocks?.length ?? 0,
+        visibleBlocks: dynamicContext.visibleBlocks,
+        recentEventsCountBeforeFetch: dynamicContext.recentEvents?.length ?? 0,
+      },
+    });
 
     if (pageId) {
       const eventContextService = new EventContextService(new DrizzleEventLogRepository());
       const recentEvents = await eventContextService.getRecentEvents(pageId, 15);
       (clientContext as Record<string, unknown>).recentEvents = recentEvents;
+      logStep(4, 'recentEvents fetched and attached to clientContext', {
+        pageId,
+        recentEventsCount: recentEvents.length,
+        recentEvents: recentEvents,
+      });
+    } else {
+      logStep(4, 'recentEvents skipped (no pageId)', { pageId: null });
     }
 
     const dynamicContextString = buildDynamicContext(clientContext);
+    logStep(5, 'buildDynamicContext', {
+      dynamicContextStringLength: dynamicContextString.length,
+      dynamicContextStringFull: dynamicContextString,
+    });
 
     // Event logging and event search (fire-and-forget for logging)
     const eventLogRepo = new DrizzleEventLogRepository();
@@ -181,6 +287,20 @@ export async function POST(req: Request) {
       modelMessages,
       dynamicContextString
     );
+    const lastEnriched = enrichedMessages[enrichedMessages.length - 1];
+    const lastEnrichedContent = lastEnriched && 'content' in lastEnriched ? lastEnriched.content : undefined;
+    const lastEnrichedContentFull =
+      typeof lastEnrichedContent === 'string'
+        ? lastEnrichedContent
+        : Array.isArray(lastEnrichedContent)
+          ? JSON.stringify(lastEnrichedContent)
+          : String(lastEnrichedContent ?? '');
+    logStep(6, 'injectDynamicContext → enrichedMessages', {
+      enrichedMessagesCount: enrichedMessages.length,
+      lastMessageRole: lastEnriched && 'role' in lastEnriched ? (lastEnriched as { role: string }).role : undefined,
+      lastMessageContentFull: lastEnrichedContentFull,
+      contextWasInjected: dynamicContextString.length > 0,
+    });
 
     // Log system prompt and dynamic context to debug.log (all reasoning/tool parts logged from stream below)
     // #region agent log
@@ -189,10 +309,26 @@ export async function POST(req: Request) {
       fetch(DEBUG_INGEST, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location, message, data, timestamp: Date.now() }) }).catch(() => { });
     };
     debugLog('AgentV2 system prompt (full)', { value: SOPHI_V2_SYSTEM_PROMPT, length: SOPHI_V2_SYSTEM_PROMPT.length });
-    const toolsSectionStart = SOPHI_V2_SYSTEM_PROMPT.indexOf('## Available Tools');
-    const toolsSection = toolsSectionStart >= 0 ? SOPHI_V2_SYSTEM_PROMPT.slice(toolsSectionStart) : '';
-    debugLog('AgentV2 system prompt — tools section (from ## Available Tools to end)', { value: toolsSection, length: toolsSection.length, sectionStartIndex: toolsSectionStart });
-    debugLog('AgentV2 dynamic context', { value: dynamicContextString });
+    const dynamicContextScenario = dynamicContextString === '' ? '1-empty' : 'n';
+    debugLog('AgentV2 dynamic context', { value: dynamicContextString, scenario: dynamicContextScenario });
+    const toolsDefs: Array<{ name: string; description: string; schema: unknown }> = [
+      { name: 'xaiSearch', ...xaiSearchTool, schema: getSchemaSummary(xaiSearchTool.inputSchema) },
+      { name: 'renderCanvasdown', ...renderCanvasdownTool, schema: getSchemaSummary(renderCanvasdownTool.inputSchema) },
+      { name: 'patchCanvasdown', ...patchCanvasdownTool, schema: getSchemaSummary(patchCanvasdownTool.inputSchema) },
+      { name: 'grepBlockContent', ...grepBlockContentTool, schema: getSchemaSummary(grepBlockContentTool.inputSchema) },
+      { name: 'globBlocks', ...globBlocksTool, schema: getSchemaSummary(globBlocksTool.inputSchema) },
+      { name: 'readBlockLines', ...readBlockLinesTool, schema: getSchemaSummary(readBlockLinesTool.inputSchema) },
+      { name: 'hopSearch', ...hopSearchTool, schema: getSchemaSummary(hopSearchTool.inputSchema) },
+      { name: 'searchGroup', ...searchGroupTool, schema: getSchemaSummary(searchGroupTool.inputSchema) },
+      { name: 'searchBySemantic', ...searchBySemanticTool, schema: getSchemaSummary(searchBySemanticTool.inputSchema) },
+      { name: 'getPageEvents', ...getPageEventsTool, schema: getSchemaSummary(getPageEventsTool.inputSchema) },
+      { name: 'grepEvents', ...grepEventsTool, schema: getSchemaSummary(grepEventsTool.inputSchema) },
+      { name: 'editBlockLines', ...editBlockLinesTool, schema: getSchemaSummary(editBlockLinesTool.inputSchema) },
+      { name: 'createTodos', ...createTodosTool, schema: getSchemaSummary(createTodosTool.inputSchema) },
+      { name: 'canvasAction', ...canvasActionTool, schema: getSchemaSummary(canvasActionTool.inputSchema) },
+      { name: 'organizeLayout', ...organizeLayoutTool, schema: getSchemaSummary(organizeLayoutTool.inputSchema) },
+    ].map((t) => ({ name: t.name, description: t.description, schema: t.schema }));
+    debugLog('AgentV2 tools (request — definitions sent to model)', { tools: toolsDefs });
     // #endregion
 
     // Instantiate repositories (per-request; stateless)
@@ -357,8 +493,18 @@ export async function POST(req: Request) {
         canvasAction: canvasActionTool,
         organizeLayout: organizeLayoutTool,
       },
-      onFinish: async ({ text }) => {
-        if (pageId && userId && (text?.length ?? 0) > 0) {
+      onFinish: async (finishArg) => {
+        debugLog('AgentV2 onFinish (response summary)', {
+          textLength: (finishArg as { text?: string }).text?.length,
+          usage: (finishArg as { usage?: unknown }).usage,
+          totalUsage: (finishArg as { totalUsage?: unknown }).totalUsage,
+          finishReason: (finishArg as { finishReason?: unknown }).finishReason,
+          response: (finishArg as { response?: unknown }).response,
+          steps: Array.isArray((finishArg as { steps?: unknown[] }).steps) ? (finishArg as { steps: unknown[] }).steps?.length : undefined,
+          full: JSON.stringify(finishArg).slice(0, 4000),
+        }, 'api/agent/v2/route.ts:onFinish');
+        const text = (finishArg as { text?: string }).text;
+        if (pageId && userId && text && text.length > 0) {
           eventLogService
             .logAIResponse({
               pageId,
@@ -371,63 +517,10 @@ export async function POST(req: Request) {
       },
     });
 
-    // sendSources: true — stream-level sources if any. sendReasoning: true — Grok reasoning parts.
     const response = result.toUIMessageStreamResponse({
       sendSources: true,
       sendReasoning: true,
     });
-
-    // Tee stream to log reasoning and tool parts without modifying the response body
-    const responseBody = response.body;
-    if (responseBody) {
-      const [streamForClient, streamForLog] = responseBody.tee();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      (async () => {
-        try {
-          const reader = streamForLog.getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split(/\r?\n/);
-            buffer = lines.pop() ?? '';
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed) continue;
-              const raw = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed;
-              if (raw === '[DONE]' || raw === '') continue;
-              try {
-                const obj = JSON.parse(raw) as { type?: string;[key: string]: unknown };
-                const t = obj?.type;
-                if (t === 'reasoning' || (typeof t === 'string' && (t.includes('reasoning') || t.includes('tool')))) {
-                  debugLog(`AgentV2 stream part [${t}]`, { payload: JSON.stringify(obj).slice(0, 800) }, 'api/agent/v2/route.ts:stream');
-                }
-              } catch {
-                if (/reasoning|tool-call|tool-done|tool-result/i.test(raw)) {
-                  debugLog('AgentV2 stream raw', { raw: raw.slice(0, 500) }, 'api/agent/v2/route.ts:stream');
-                }
-              }
-            }
-          }
-          if (buffer.trim()) {
-            try {
-              const obj = JSON.parse(buffer.startsWith('data:') ? buffer.slice(5).trim() : buffer) as { type?: string };
-              if (obj?.type) debugLog(`AgentV2 stream part [${obj.type}] (tail)`, { payload: buffer.slice(0, 300) }, 'api/agent/v2/route.ts:stream');
-            } catch {
-              // ignore
-            }
-          }
-        } catch (err) {
-          debugLog('AgentV2 stream log error', { error: String(err) }, 'api/agent/v2/route.ts:stream');
-        }
-      })();
-      return new Response(streamForClient, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-      });
-    }
 
     return response;
   } catch (error) {

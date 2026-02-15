@@ -8,6 +8,7 @@ export {
   BlockMountDuplicatedEvent,
   MultipleBlockMountsDeletedEvent,
   BlockMovedToPageEvent,
+  GroupCreatedFromNodesEvent,
 } from './block-mount/block-mount.events';
 
 // View Events

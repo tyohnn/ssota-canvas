@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { eq, desc, and, gte, lte, sql, inArray } from 'drizzle-orm';
+import { eq, desc, and, not, or, gte, lte, sql, inArray } from 'drizzle-orm';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { EventLogRepository } from '../interfaces/event-log.repository.interface';
@@ -82,16 +82,57 @@ export class DrizzleEventLogRepository implements EventLogRepository {
 
   async findRecentByPageId(
     pageId: string,
-    limit: number = 20
+    limit: number = 20,
+    options?: { excludeCombinedTypes?: string[] }
   ): Promise<EventLog[]> {
+    const conditions: Parameters<typeof and>[0][] = [eq(eventLogs.page_id, pageId)];
+
+    if (options?.excludeCombinedTypes?.length) {
+      type EventTypeCol = (typeof eventLogs.$inferSelect)['event_type'];
+      type EventActionCol = NonNullable<(typeof eventLogs.$inferSelect)['action']>;
+      const excludeParts: Parameters<typeof and>[0][] = [];
+      for (const combined of options.excludeCombinedTypes) {
+        const parsed = this.parseCombinedType(combined);
+        if (parsed?.action) {
+          const part = and(
+            eq(eventLogs.event_type, parsed.type as EventTypeCol),
+            eq(eventLogs.action, parsed.action as EventActionCol)
+          );
+          if (part != null) excludeParts.push(part);
+        }
+      }
+      if (excludeParts.length > 0) {
+        const excluded = or(...excludeParts);
+        if (excluded != null) conditions.push(not(excluded));
+      }
+    }
+
     const results = await adminDb
       .select()
       .from(eventLogs)
-      .where(eq(eventLogs.page_id, pageId))
+      .where(and(...conditions))
       .orderBy(desc(eventLogs.timestamp))
       .limit(limit);
 
     return results.map(row => this.mapToDomain(row));
+  }
+
+  /** 복합 타입 → DB type + action (exclude 조건 등용) */
+  private parseCombinedType(
+    combined: string
+  ): { type: string; action: string } | null {
+    if (combined === 'block_mount_soft_deleted')
+      return { type: 'block_mount', action: 'soft_delete' };
+    if (combined.endsWith('_updated'))
+      return {
+        type: combined.replace(/_updated$/, ''),
+        action: 'updated',
+      };
+    if (combined.endsWith('_created'))
+      return { type: combined.replace(/_created$/, ''), action: 'created' };
+    if (combined.endsWith('_deleted'))
+      return { type: combined.replace(/_deleted$/, ''), action: 'deleted' };
+    return null;
   }
 
   async findRecentByPageIdAndUserId(
@@ -203,9 +244,12 @@ export class DrizzleEventLogRepository implements EventLogRepository {
 
     const countMap = new Map<string, number>();
     results.forEach(row => {
-      const key = row.action
-        ? `${row.event_type}_${row.action}`
-        : row.event_type;
+      const key =
+        row.event_type === 'block_mount' && row.action === 'soft_delete'
+          ? 'block_mount_soft_deleted'
+          : row.action
+            ? `${row.event_type}_${row.action}`
+            : row.event_type;
       countMap.set(key, Number(row.count));
     });
     return countMap;
@@ -224,7 +268,7 @@ export class DrizzleEventLogRepository implements EventLogRepository {
   private mapToDomain(row: DBEventLog): EventLog {
     const eventId = new EventId(row.id);
     const combinedType = this.combineTypeAndAction(row);
-    const eventType = new EventType(combinedType as 'user_utterance' | 'ai_response' | 'tool_call' | 'block_created' | 'block_updated' | 'block_deleted');
+    const eventType = new EventType(combinedType as 'user_utterance' | 'ai_response' | 'tool_call' | 'block_created' | 'block_updated' | 'block_deleted' | 'block_mount_updated' | 'block_mount_soft_deleted' | 'edge_created' | 'edge_updated' | 'edge_deleted');
 
     let content: EventLog['content'];
     if (eventType.isUserUtterance()) {
@@ -278,6 +322,9 @@ export class DrizzleEventLogRepository implements EventLogRepository {
     if (typeValue.endsWith('_updated')) {
       return { type: typeValue.replace('_updated', ''), action: 'updated' };
     }
+    if (typeValue === 'block_mount_soft_deleted') {
+      return { type: 'block_mount', action: 'soft_delete' };
+    }
     if (typeValue.endsWith('_deleted')) {
       return { type: typeValue.replace('_deleted', ''), action: 'deleted' };
     }
@@ -300,6 +347,10 @@ export class DrizzleEventLogRepository implements EventLogRepository {
   private combineTypeAndAction(row: DBEventLog): string {
     if (!row.action) {
       return row.event_type;
+    }
+    // DB action=soft_delete → 도메인 타입 block_mount_soft_deleted
+    if (row.event_type === 'block_mount' && row.action === 'soft_delete') {
+      return 'block_mount_soft_deleted';
     }
     return `${row.event_type}_${row.action}`;
   }

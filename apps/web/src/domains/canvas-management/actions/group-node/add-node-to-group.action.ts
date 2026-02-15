@@ -2,6 +2,10 @@
 
 import type { PageActionContext } from '@/domains/common/auth/types';
 import { withPageSecureAction } from '@/domains/common/server-actions';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
 import { ActionResult, err, ok } from '@/lib';
 
 import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
@@ -67,6 +71,17 @@ async function addNodeToGroupInternal(
         },
       });
     }
+
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    await eventLogService
+      .logBlockMountUpdated({
+        pageId: context.page.pageId.value,
+        userId: context.authenticatedUser.id,
+        blockMountId: safeDto.childBlockMountId,
+        changes: { groupAdded: safeDto.parentBlockMountId },
+      })
+      .catch(() => {});
 
     return ok({ success: true });
   } catch (error) {

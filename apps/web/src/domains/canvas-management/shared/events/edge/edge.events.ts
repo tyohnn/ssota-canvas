@@ -1,3 +1,4 @@
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { PageId } from '../../../../workspace-management/shared/value-objects/page-id.vo';
 import type { MarkerType } from '../../types/marker-type';
 import { BlockMountId } from '../../value-objects/block-mount-id.vo';
@@ -24,22 +25,24 @@ export class EdgeCreatedEvent implements DomainEvent {
     public readonly occurredAt: Date
   ) { }
 
-  /**
-   * Event 발생 시 Policy 실행
-   */
-  async handle(): Promise<void> {
-    console.log('[Canvas Edge Management] Edge Created:', {
-      edgeId: this.aggregateId.value,
-      pageId: this.data.pageId.value,
-      occurredAt: this.occurredAt,
-    });
+  /** 감사 로그: edge_created 기록 */
+  private async applyEventLogPolicy(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    const pageId = ctx?.pageId ?? this.data.pageId.value;
+    if (!ctx?.eventLogService || !ctx?.userId || !pageId) return;
+    await ctx.eventLogService
+      .logEdgeCreated({
+        pageId,
+        userId: ctx.userId,
+        edgeId: this.data.edgeId.value,
+        sourceBlockMountId: this.data.sourceBlockMountId.value,
+        targetBlockMountId: this.data.targetBlockMountId.value,
+      })
+      .catch(() => { });
+  }
 
-    await Promise.allSettled([
-      // Policy 구현 예시:
-      // - 엣지 생성 통계 업데이트
-      // - 생성자별 활동 추적
-      // - 페이지별 엣지 수 증가
-    ]);
+  async handle(context?: unknown): Promise<void> {
+    await Promise.allSettled([this.applyEventLogPolicy(context)]);
   }
 }
 
@@ -60,12 +63,6 @@ export class EdgeShapeChangedEvent implements DomainEvent {
    * Event 발생 시 Policy 실행
    */
   async handle(): Promise<void> {
-    console.log('[Canvas Edge Management] Edge Shape Changed:', {
-      edgeId: this.aggregateId.value,
-      newShape: this.data.newShape,
-      occurredAt: this.occurredAt,
-    });
-
     await Promise.allSettled([
       // Policy 구현 예시:
       // - 엣지 변경 이력 기록
@@ -88,20 +85,22 @@ export class EdgeLabelChangedEvent implements DomainEvent {
     public readonly occurredAt: Date
   ) { }
 
-  /**
-   * Event 발생 시 Policy 실행
-   */
-  async handle(): Promise<void> {
-    console.log('[Canvas Edge Management] Edge Label Changed:', {
-      edgeId: this.aggregateId.value,
-      newLabel: this.data.newLabel,
-      occurredAt: this.occurredAt,
-    });
+  /** 감사 로그: edge_updated (label) 기록 */
+  private async applyEventLogPolicy(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    await ctx.eventLogService
+      .logEdgeUpdated({
+        pageId: ctx.pageId,
+        userId: ctx.userId,
+        edgeId: this.data.edgeId.value,
+        changes: { label: this.data.newLabel },
+      })
+      .catch(() => { });
+  }
 
-    await Promise.allSettled([
-      // Policy 구현 예시:
-      // - 엣지 레이블 변경 이력 기록
-    ]);
+  async handle(context?: unknown): Promise<void> {
+    await Promise.allSettled([this.applyEventLogPolicy(context)]);
   }
 }
 
@@ -125,11 +124,6 @@ export class EdgeStyleChangedEvent implements DomainEvent {
    * Event 발생 시 Policy 실행
    */
   async handle(): Promise<void> {
-    console.log('[Canvas Edge Management] Edge Style Changed:', {
-      edgeId: this.aggregateId.value,
-      style: this.data.style,
-      occurredAt: this.occurredAt,
-    });
 
     await Promise.allSettled([
       // Policy 구현 예시:
@@ -152,14 +146,25 @@ export class EdgeMarkersChangedEvent implements DomainEvent {
     public readonly occurredAt: Date
   ) { }
 
-  async handle(): Promise<void> {
-    // console.log('[Canvas Edge Management] Edge Markers Changed:', {
-    //   edgeId: this.aggregateId.value,
-    //   markerEnd: this.data.markerEnd,
-    //   markerStart: this.data.markerStart,
-    //   occurredAt: this.occurredAt,
-    // });
-    await Promise.allSettled([]);
+  /** 감사 로그: edge_updated (markers) 기록 */
+  private async applyEventLogPolicy(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    await ctx.eventLogService
+      .logEdgeUpdated({
+        pageId: ctx.pageId,
+        userId: ctx.userId,
+        edgeId: this.data.edgeId.value,
+        changes: {
+          markerEnd: this.data.markerEnd,
+          markerStart: this.data.markerStart,
+        },
+      })
+      .catch(() => { });
+  }
+
+  async handle(context?: unknown): Promise<void> {
+    await Promise.allSettled([this.applyEventLogPolicy(context)]);
   }
 }
 
@@ -175,19 +180,21 @@ export class EdgeDeletedEvent implements DomainEvent {
     public readonly occurredAt: Date
   ) { }
 
-  /**
-   * Event 발생 시 Policy 실행
-   */
-  async handle(): Promise<void> {
-    console.log('[Canvas Edge Management] Edge Deleted:', {
-      edgeId: this.aggregateId.value,
-      occurredAt: this.occurredAt,
-    });
+  /** 감사 로그: edge_deleted 기록 */
+  private async applyEventLogPolicy(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    await ctx.eventLogService
+      .logEdgeDeleted({
+        pageId: ctx.pageId,
+        userId: ctx.userId,
+        edgeId: this.data.edgeId.value,
+      })
+      .catch(() => { });
+  }
 
-    await Promise.allSettled([
-      // Policy 구현 예시:
-      // - 엣지 삭제 이력 기록
-      // - 관련 데이터 정리
-    ]);
+  async handle(context?: unknown): Promise<void> {
+
+    await Promise.allSettled([this.applyEventLogPolicy(context)]);
   }
 }

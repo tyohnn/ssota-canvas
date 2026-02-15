@@ -11,7 +11,7 @@ export class EventContextService {
 
   /**
    * Returns recent events as RecentEvent[] (one-line summaries, timeAgo).
-   * Phase D may add compression (group consecutive tool_call by executionId).
+   * block_mount_updated는 repo 선에서 제외되어 컨텍스트에 포함되지 않음.
    */
   async getRecentEvents(
     pageId: string,
@@ -19,10 +19,10 @@ export class EventContextService {
   ): Promise<RecentEvent[]> {
     const events = await this.repo.findRecentByPageId(
       pageId,
-      limit ?? 15
+      limit ?? 15,
+      { excludeCombinedTypes: ['block_mount_updated'] }
     );
-
-    return events.map(event => this.toRecentEvent(event));
+    return events.map((event) => this.toRecentEvent(event));
   }
 
   private toRecentEvent(event: EventLog): RecentEvent {

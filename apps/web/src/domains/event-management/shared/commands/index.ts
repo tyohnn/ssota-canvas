@@ -63,9 +63,53 @@ export interface LogBlockUpdatedCommand {
   agentExecutionId?: AgentExecutionId;
 }
 
+/** 블럭 마운트 변경 (position, size, movedToPage, group) — block_updated와 분리 */
+export interface LogBlockMountUpdatedCommand {
+  pageId: PageId;
+  userId: UserId;
+  blockMountId: string;
+  changes: Record<string, unknown>;
+}
+
+/** 블록 엔티티 영구 삭제 (휴지통에서 완전 삭제 시 사용 예정) */
 export interface LogBlockDeletedCommand {
   blockId: BlockId;
   pageId: PageId;
   userId: UserId;
   agentExecutionId?: AgentExecutionId;
+}
+
+/** 블록 마운트 소프트 삭제 (단일) — 캔버스에서 제거 */
+export interface LogBlockMountSoftDeletedCommand {
+  pageId: PageId;
+  userId: UserId;
+  blockMountId: string;
+}
+
+/** 블록 마운트 소프트 삭제 (배치) — 캔버스에서 여러 개 제거 */
+export interface LogBlockMountsSoftDeletedCommand {
+  pageId: PageId;
+  userId: UserId;
+  blockMountIds: string[];
+}
+
+export interface LogEdgeCreatedCommand {
+  pageId: PageId;
+  userId: UserId;
+  edgeId: string;
+  sourceBlockMountId: string;
+  targetBlockMountId: string;
+}
+
+export interface LogEdgeUpdatedCommand {
+  pageId: PageId;
+  userId: UserId;
+  edgeId: string;
+  changes: Record<string, unknown>;
+}
+
+export interface LogEdgeDeletedCommand {
+  pageId: PageId;
+  userId: UserId;
+  edgeId: string;
 }
