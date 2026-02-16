@@ -7,7 +7,9 @@ import {
   EventLogService,
 } from '@/domains/event-management';
 import { ActionResult, err, ok } from '@/lib';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 
+import { DrizzleBlockRepository } from '../../backend/repositories/implementations/drizzle-block.repository';
 import {
   LogBlockUpdatedAuditRequest,
   LogBlockUpdatedAuditRequestSchema,
@@ -35,9 +37,18 @@ async function logBlockUpdatedAuditInternal(
   context: WorkspaceActionContext
 ): Promise<ActionResult<{ logged: true }>> {
   try {
+    const blockRepository = new DrizzleBlockRepository();
+    const block = await blockRepository.findByWorkspaceIdAndSlug(
+      new WorkspaceId(safeDto.workspaceId),
+      safeDto.blockId
+    );
+    if (!block) {
+      return err('Block not found', { code: 'BLOCK_NOT_FOUND' });
+    }
+
     const blockMountRepository = new DrizzleBlockMountRepository();
     const pageId = await blockMountRepository.findOnePageIdByBlockId(
-      safeDto.blockId
+      block.id.value
     );
     if (!pageId) {
       return err('Block not mounted on any page', { code: 'BLOCK_NOT_MOUNTED' });

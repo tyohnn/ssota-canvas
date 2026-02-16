@@ -33,8 +33,16 @@ export class Block {
     public content: unknown = null, // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
     public readonly createdByProfile?: UserProfile,
     public sourceId: string | null = null, // 링크된 소스 (sources.id, nullable)
-    public contentVersion: number = 0 // ProseMirror step-based sync (optimistic locking)
+    public contentVersion: number = 0, // ProseMirror step-based sync (optimistic locking)
+    public readonly slug?: string // 8자 hex, DB에서 조회 시 설정. 없으면 id에서 유도
   ) {}
+
+  /** API/응답용 slug (DB 값 또는 id 기반 8자 hex) */
+  getSlug(): string {
+    return (
+      this.slug ?? this.id.value.replace(/-/g, '').toLowerCase().slice(0, 8)
+    );
+  }
 
   /**
    * Block 생성
@@ -79,7 +87,8 @@ export class Block {
       content ?? null, // ✨ content: 전달받은 값 또는 null
       undefined, // createdByProfile
       null, // sourceId
-      0 // contentVersion
+      0, // contentVersion
+      undefined // slug (create 시 repo에서 id로부터 계산해 insert)
     );
 
     // 마크다운 블록인 경우 content_raw 자동 생성 (AI 컨텍스트용)
@@ -124,7 +133,8 @@ export class Block {
     content: unknown = null,
     createdByProfile?: UserProfile,
     sourceId: string | null = null,
-    contentVersion: number = 0
+    contentVersion: number = 0,
+    slug?: string
   ): Block {
     return new Block(
       id,
@@ -140,7 +150,8 @@ export class Block {
       content,
       createdByProfile,
       sourceId,
-      contentVersion
+      contentVersion,
+      slug
     );
   }
 
@@ -165,7 +176,8 @@ export class Block {
       this.content, // 콘텐츠도 복제
       undefined,
       this.sourceId,
-      this.contentVersion
+      this.contentVersion,
+      undefined // slug (복제본은 새 id이므로 repo insert 시 계산)
     );
   }
 

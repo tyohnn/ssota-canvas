@@ -21,6 +21,12 @@ export const BlockTypeSchema = z.enum(
   blockTypeEnum.enumValues as [string, ...string[]]
 );
 
+/** 8자 hex slug (block/mount/edge 식별자, UUID 아님) */
+export const BlockSlugSchema = z
+  .string()
+  .length(8, 'Block slug must be 8 characters')
+  .regex(/^[0-9a-f]+$/i, 'Block slug must be 8 hex characters');
+
 /**
  * 블록 생성 요청 스키마
  */
@@ -37,7 +43,7 @@ export const CreateBlockRequestSchema = z.object({
  */
 export const DuplicateBlockRequestSchema = z.object({
   workspaceId: z.uuid('Invalid workspace ID'),
-  blockId: z.uuid('Invalid block ID'),
+  blockId: BlockSlugSchema,
 });
 
 /**
@@ -45,7 +51,7 @@ export const DuplicateBlockRequestSchema = z.object({
  */
 export const RestoreBlockRequestSchema = z.object({
   workspaceId: z.uuid('Invalid workspace ID'),
-  blockId: z.uuid('Invalid block ID'),
+  blockId: BlockSlugSchema,
 });
 
 /**
@@ -53,7 +59,7 @@ export const RestoreBlockRequestSchema = z.object({
  */
 export const SoftDeleteBlockRequestSchema = z.object({
   workspaceId: z.uuid('Invalid workspace ID'),
-  blockId: z.uuid('Invalid block ID'),
+  blockId: BlockSlugSchema,
 });
 
 /**
@@ -62,7 +68,8 @@ export const SoftDeleteBlockRequestSchema = z.object({
  * - Server Action에서 2차 검증 (보안)
  */
 export const UpdateBlockPropertyRequestSchema = z.object({
-  blockId: z.uuid('Invalid block ID'),
+  workspaceId: z.uuid('Invalid workspace ID'),
+  blockId: BlockSlugSchema,
   propertyPath: z.string().min(1, 'Property path is required'),
   value: z.unknown(),
 });
@@ -74,7 +81,8 @@ export const UpdateBlockPropertyRequestSchema = z.object({
  * - Server Action에서 2차 검증 (보안)
  */
 export const UpdateBlockPropertiesRequestSchema = z.object({
-  blockId: z.uuid('Invalid block ID'),
+  workspaceId: z.uuid('Invalid workspace ID'),
+  blockId: BlockSlugSchema,
   properties: z.record(z.string(), z.unknown()),
 });
 
@@ -84,7 +92,8 @@ export const UpdateBlockPropertiesRequestSchema = z.object({
  * - Server Action에서 2차 검증 (보안)
  */
 export const UpdateBlockTitleRequestSchema = z.object({
-  blockId: z.uuid('Invalid block ID'),
+  workspaceId: z.uuid('Invalid workspace ID'),
+  blockId: BlockSlugSchema,
   title: z.string().min(1, 'Title is required'),
 });
 
@@ -96,7 +105,8 @@ export const UpdateBlockTitleRequestSchema = z.object({
  * - Server Action에서 2차 검증 (보안)
  */
 export const UpdateBlockContentRequestSchema = z.object({
-  blockId: z.uuid('Invalid block ID'),
+  workspaceId: z.uuid('Invalid workspace ID'),
+  blockId: BlockSlugSchema,
   content: z.unknown(), // JSONB - 자유로운 JSON 구조 허용 (TipTap JSON)
   contentRaw: z.string().optional(), // Markdown 텍스트 (AI context용)
 });
@@ -107,7 +117,8 @@ export const UpdateBlockContentRequestSchema = z.object({
  * - baseVersion: 클라이언트가 알고 있는 content_version (낙관적 잠금)
  */
 export const ApplyBlockContentStepsRequestSchema = z.object({
-  blockId: z.uuid('Invalid block ID'),
+  workspaceId: z.uuid('Invalid workspace ID'),
+  blockId: BlockSlugSchema,
   steps: z.array(z.unknown()).min(1, 'At least one step required'),
   baseVersion: z.number().int().min(0),
 });
@@ -116,7 +127,8 @@ export const ApplyBlockContentStepsRequestSchema = z.object({
  * Blur 시 감사 로그만 기록 (block 업데이트 없음). event_log에 patch만 저장.
  */
 export const LogBlockUpdatedAuditRequestSchema = z.object({
-  blockId: z.uuid('Invalid block ID'),
+  workspaceId: z.uuid('Invalid workspace ID'),
+  blockId: BlockSlugSchema,
   patch: z.string(),
 });
 

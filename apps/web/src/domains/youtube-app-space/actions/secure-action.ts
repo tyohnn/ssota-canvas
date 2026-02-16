@@ -16,7 +16,7 @@ import { AuthorizeResult } from '@/lib/server-actions/types';
 
 import { DrizzleBlockRepository } from '../../block-management/backend/repositories/implementations/drizzle-block.repository';
 import { Block } from '../../block-management/shared/entities/block.entity';
-import { BlockId } from '../../block-management/shared/value-objects/block-id.vo';
+import { WorkspaceId } from '../../workspace-management/shared/value-objects/workspace-id.vo';
 import {
   type YoutubeBlockProperties,
   YoutubeBlockPropertiesVO,
@@ -48,8 +48,8 @@ export interface YoutubeBlockActionContext extends WorkspaceActionContext {
 /**
  * Block-based authorization for YouTube actions
  *
- * blockId로 YouTube 블록 권한 검증
- * 1. Block 조회 (권한 검증)
+ * workspaceId + blockId(slug)로 YouTube 블록 권한 검증
+ * 1. Block 조회 (findByWorkspaceIdAndSlug)
  * 2. 블록 타입 검증 (YouTube 전용)
  * 3. Workspace 권한 검증
  * 4. youtubeId 검증 (요청에 youtubeId가 있는 경우)
@@ -57,12 +57,15 @@ export interface YoutubeBlockActionContext extends WorkspaceActionContext {
  * Returns YoutubeBlockActionContext (Block 정보 포함)
  */
 async function authorizeYoutubeBlockById(
-  req: { blockId: string; youtubeId?: string },
+  req: { workspaceId: string; blockId: string; youtubeId?: string },
   userId: string
 ): Promise<AuthorizeResult<YoutubeBlockActionContext>> {
-  // 1. Block 조회 (권한 검증)
+  // 1. Block 조회 (workspaceId + slug)
   const blockRepository = new DrizzleBlockRepository();
-  const block = await blockRepository.findById(new BlockId(req.blockId));
+  const block = await blockRepository.findByWorkspaceIdAndSlug(
+    new WorkspaceId(req.workspaceId),
+    req.blockId
+  );
 
   if (!block) {
     return { success: false, error: 'Block not found' };
@@ -157,7 +160,7 @@ export const withYoutubeBlockSecureAction = youtubeSecureActionBuilder
   .forContext<YoutubeBlockActionContext>()
   .withAuth(
     (
-      req: { blockId: string; youtubeId?: string },
+      req: { workspaceId: string; blockId: string; youtubeId?: string },
       user: AuthenticatedUser
     ) => authorizeYoutubeBlockById(req, user.id)
   )
@@ -226,26 +229,25 @@ async function authorizeByPublishedPage(
     };
   }
 
-  // Layer 2: Block 소속 확인
-  const blockMountRepo = new DrizzleBlockMountRepository();
+  // Layer 2: Page 조회 → workspaceId 확보 후 Block 조회 (req.blockId = slug)
+  const pageRepo = new DrizzlePageRepository();
   const pageId = new PageId(publishedPage.pageId);
-  const blockMounts = await blockMountRepo.findByPageId(pageId);
+  const page = await pageRepo.findById(pageId);
 
-  const blockInPage = blockMounts.some(
-    mount => mount.getBlockMount().blockId.value === req.blockId
-  );
-
-  if (!blockInPage) {
+  if (!page) {
     return {
       success: false,
-      error: 'Block not in published page',
+      error: 'Page not found',
     };
   }
 
-  // Block 조회 및 검증
+  const workspaceIdValue = page.workspaceId.value;
+
   const blockRepository = new DrizzleBlockRepository();
-  const blockId = new BlockId(req.blockId);
-  const block = await blockRepository.findById(blockId);
+  const block = await blockRepository.findByWorkspaceIdAndSlug(
+    new WorkspaceId(workspaceIdValue),
+    req.blockId
+  );
 
   if (!block) {
     return {
@@ -258,6 +260,20 @@ async function authorizeByPublishedPage(
     return {
       success: false,
       error: 'Block is not a YouTube block',
+    };
+  }
+
+  // Block 소속 확인 (mount의 block_id는 UUID)
+  const blockMountRepo = new DrizzleBlockMountRepository();
+  const blockMounts = await blockMountRepo.findByPageId(pageId);
+  const blockInPage = blockMounts.some(
+    mount => mount.getBlockMount().blockId.value === block.id.value
+  );
+
+  if (!blockInPage) {
+    return {
+      success: false,
+      error: 'Block not in published page',
     };
   }
 
@@ -291,18 +307,8 @@ async function authorizeByPublishedPage(
   }
 
   // Org ID 조회 (Layer 4에서 사용)
-  const pageRepo = new DrizzlePageRepository();
-  const page = await pageRepo.findById(pageId);
-
-  if (!page) {
-    return {
-      success: false,
-      error: 'Page not found',
-    };
-  }
-
   const workspaceRepo = new DrizzleWorkspaceRepository();
-  const workspace = await workspaceRepo.findById(page.workspaceId);
+  const workspace = await workspaceRepo.findById(new WorkspaceId(workspaceIdValue));
 
   if (!workspace) {
     return {

@@ -61,12 +61,14 @@ async function updateBlockPropertyInternal(
     // 1. Repository 생성
     const blockRepository = new DrizzleBlockRepository();
 
-    // 2. Service Function을 통한 속성 업데이트 (SafeDTO 전달)
-    const updateResult = await updateBlockProperty(
-      safeDto,
-      userId,
-      blockRepository
-    );
+    const updateResult = await updateBlockProperty({
+      safeWorkspaceId: context.workspace.workspaceId,
+      safeBlockSlug: safeDto.blockId,
+      propertyPath: safeDto.propertyPath,
+      value: safeDto.value,
+      safeUserId: userId,
+      blockRepository,
+    });
 
     // 3. Result 처리
     if (updateResult.isError()) {

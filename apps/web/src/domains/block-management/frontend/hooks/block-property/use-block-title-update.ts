@@ -3,6 +3,8 @@
 import { useMutation } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
 
+import type { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { isFailure } from '@/lib';
 
 import { updateBlockTitleAction } from '../../../actions/block/update-block-title.action';
@@ -19,6 +21,8 @@ export type ReactFlowDependencies = {
 
 export type UseUpdateBlockTitleParams = {
   reactFlow: ReactFlowDependencies;
+  /** 테스트 시 mock 주입용. 미제공 시 useCanvasMetadata() 사용 */
+  canvasMetadata?: CanvasMetadata;
 };
 
 export type UpdateBlockTitleInput = {
@@ -45,13 +49,17 @@ export type UseUpdateBlockTitleResult = {
 export function useUpdateBlockTitle(
   params: UseUpdateBlockTitleParams
 ): UseUpdateBlockTitleResult {
-  const { reactFlow } = params;
+  const { reactFlow, canvasMetadata: canvasMetadataOverride } = params;
   const { updateNode, getNode } = reactFlow;
+  const canvasMetadata = canvasMetadataOverride ?? useCanvasMetadata();
+  const { workspaceId } = canvasMetadata;
 
   const mutation = useMutation({
     mutationFn: async ({ nodeId, title, blockData }: UpdateBlockTitleInput) => {
+      if (!workspaceId) throw new Error('Workspace context required');
       // Validation
       const rawRequest: UpdateBlockTitleRequestInput = {
+        workspaceId,
         blockId: blockData.blockId,
         title,
       };

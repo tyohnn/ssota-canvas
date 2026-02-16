@@ -135,7 +135,8 @@ async function getYoutubeMetadataInternal(
 
       await Promise.allSettled([
         publishYoutubeMetadataFetched({
-          blockId: safeDto.blockId,
+          workspaceId: ytCtx.block.workspaceId.value,
+          blockId: ytCtx.block.getSlug(),
           orgId: context.organization.id,
           youtubeId: safeDto.slug,
           language: safeDto.language ?? 'en',
@@ -261,7 +262,8 @@ async function getYoutubeMetadataInternal(
 
     await Promise.allSettled([
       publishYoutubeMetadataFetched({
-        blockId: safeDto.blockId,
+        workspaceId: ytCtx.block.workspaceId.value,
+        blockId: ytCtx.block.getSlug(),
         orgId: context.organization.id,
         youtubeId: safeDto.slug,
         language: safeDto.language ?? 'en',

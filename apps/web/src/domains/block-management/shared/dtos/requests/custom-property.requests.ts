@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { PropertyType } from '../../value-objects/block-properties/common-types';
+import { BlockSlugSchema } from './block.requests';
 
 const PropertyValidationSchema = z
   .object({
@@ -22,7 +23,7 @@ const PropertyOptionSchema = z.object({
 });
 
 export const CreateCustomPropertyRequestSchema = z.object({
-  blockId: z.uuid('Invalid block ID'),
+  blockId: BlockSlugSchema,
   workspaceId: z.uuid('Invalid workspace ID'),
   orgId: z.uuid('Invalid organization ID'),
   id: z.string().optional(),
@@ -39,7 +40,7 @@ export const CreateCustomPropertyRequestSchema = z.object({
 
 export const UpdateCustomPropertyRequestSchema = z
   .object({
-    blockId: z.uuid('Invalid block ID'),
+    blockId: BlockSlugSchema,
     propertyId: z.string().min(1, 'Invalid property ID'),
     workspaceId: z.uuid('Invalid workspace ID'),
     orgId: z.uuid('Invalid organization ID'),
@@ -72,7 +73,7 @@ export const UpdateCustomPropertyRequestSchema = z
   );
 
 export const DeleteCustomPropertyRequestSchema = z.object({
-  blockId: z.uuid('Invalid block ID'),
+  blockId: BlockSlugSchema,
   propertyId: z.string().min(1, 'Invalid property ID'),
   workspaceId: z.uuid('Invalid workspace ID'),
   orgId: z.uuid('Invalid organization ID'),

@@ -93,7 +93,7 @@ export class CanvasQueryService implements ICanvasQueryService {
 
             return {
               blockMountId: blockMount.id.value,
-              blockId: block.id.value, // ✅ blocks.id 직접 사용
+              blockId: block.getSlug(),
               blockType: block.blockType.value,
               title: block.title,
               properties: fullProperties,

@@ -4,6 +4,8 @@ import type { RefObject } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
 
+import type { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { isFailure } from '@/lib';
 
 import { applyBlockContentStepsAction } from '../../../actions/block/apply-block-content-steps.action';
@@ -25,6 +27,8 @@ export type UseUpdateBlockContentParams = {
   reactFlow: ReactFlowDependencies;
   /** Step 적용 성공 시 newVersion으로 갱신 (ProseMirror step 기반 저장 시 사용) */
   contentVersionRef?: RefObject<number>;
+  /** 테스트 시 mock 주입용. 미제공 시 useCanvasMetadata() 사용 */
+  canvasMetadata?: CanvasMetadata;
 };
 
 export type UpdateBlockContentInput = {
@@ -71,8 +75,10 @@ export type UseUpdateBlockContentResult = {
 export function useUpdateBlockContent(
   params: UseUpdateBlockContentParams
 ): UseUpdateBlockContentResult {
-  const { reactFlow, contentVersionRef } = params;
+  const { reactFlow, contentVersionRef, canvasMetadata: canvasMetadataOverride } = params;
   const { updateNode, getNode } = reactFlow;
+  const canvasMetadata = canvasMetadataOverride ?? useCanvasMetadata();
+  const { workspaceId } = canvasMetadata;
 
   const fullDocMutation = useMutation({
     mutationFn: async ({
@@ -81,7 +87,9 @@ export function useUpdateBlockContent(
       blockData,
       contentRaw,
     }: UpdateBlockContentInput) => {
+      if (!workspaceId) throw new Error('Workspace context required');
       const rawRequest: UpdateBlockContentRequestInput = {
+        workspaceId,
         blockId: blockData.blockId,
         content,
         contentRaw,
@@ -127,7 +135,9 @@ export function useUpdateBlockContent(
       baseVersion,
       blockData,
     }: ApplyBlockContentStepsInput) => {
+      if (!workspaceId) throw new Error('Workspace context required');
       const rawRequest: ApplyBlockContentStepsRequestInput = {
+        workspaceId,
         blockId: blockData.blockId,
         steps,
         baseVersion,

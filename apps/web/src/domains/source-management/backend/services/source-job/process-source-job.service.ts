@@ -32,7 +32,7 @@ const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
 
 export interface ProcessSourceJobInput {
   jobId: string;
-  blockId: string;
+  blockId: string; // UUID (source_jobs.block_id)
   sourceId: string;
   orgId: string;
   language: string;
@@ -125,14 +125,13 @@ export async function processSourceJobService(
         throw new Error(txResult.error.message);
       }
 
-      const updateBlockResult = await updateBlockProperties(
-        {
-          blockId,
-          properties: { sourceContentAccessGranted: true },
-        },
-        new UserId(SYSTEM_USER_ID),
-        blockRepository
-      );
+      const updateBlockResult = await updateBlockProperties({
+        safeWorkspaceId: block.workspaceId,
+        safeBlockSlug: block.getSlug(),
+        properties: { sourceContentAccessGranted: true },
+        safeUserId: new UserId(SYSTEM_USER_ID),
+        blockRepository,
+      });
       if (updateBlockResult.isError()) {
         throw new Error(updateBlockResult.error.message);
       }
@@ -171,16 +170,15 @@ export async function processSourceJobService(
       (block.properties as { sourceSummaryAccessLanguages?: string[] })
         ?.sourceSummaryAccessLanguages ?? [];
     if (!currentLanguages.includes(language)) {
-      const updateBlockResult = await updateBlockProperties(
-        {
-          blockId,
-          properties: {
-            sourceSummaryAccessLanguages: [...currentLanguages, language],
-          },
+      const updateBlockResult = await updateBlockProperties({
+        safeWorkspaceId: block.workspaceId,
+        safeBlockSlug: block.getSlug(),
+        properties: {
+          sourceSummaryAccessLanguages: [...currentLanguages, language],
         },
-        new UserId(SYSTEM_USER_ID),
-        blockRepository
-      );
+        safeUserId: new UserId(SYSTEM_USER_ID),
+        blockRepository,
+      });
       if (updateBlockResult.isError()) {
         throw new Error(updateBlockResult.error.message);
       }

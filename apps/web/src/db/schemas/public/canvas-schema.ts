@@ -35,6 +35,7 @@ export const blocks = pgTable(
     workspace_id: uuid('workspace_id')
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
+    slug: text('slug').notNull(), // 8자 hex, workspace 내 유일 (UNIQUE(workspace_id, slug))
     block_type: blockTypeEnum('block_type').notNull().default('text'),
     title: text('title').notNull().default('새 블럭'),
     metadata: jsonb('metadata').default({}),
@@ -58,6 +59,10 @@ export const blocks = pgTable(
     deleted_at: timestamp('deleted_at', { withTimezone: true }),
   },
   table => ({
+    uniqueWorkspaceSlug: unique('blocks_workspace_id_slug_key').on(
+      table.workspace_id,
+      table.slug
+    ),
     workspaceIdIdx: index('idx_blocks_workspace_id')
       .on(table.workspace_id)
       .where(sql`deleted_at IS NULL`),

@@ -6,38 +6,33 @@ import { Result } from '@/utils/result';
 
 import { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
 import type { DuplicateBlockCommand } from '../../../../shared/commands';
-import type { DuplicateBlockRequest } from '../../../../shared/dtos/requests/block.requests';
 import { Block } from '../../../../shared/entities/block.entity';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
 import { BlockId } from '../../../../shared/value-objects/block-id.vo';
+import type { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
+
+export type DuplicateBlockParams = {
+  safeWorkspaceId: WorkspaceId;
+  safeBlockSlug: string;
+  safeUserId: UserId;
+  blockRepository: IBlockRepository;
+};
 
 /**
  * 블록 복제
  *
- * ✅ Event Storming + DDD 패턴:
- * - SafeDTO를 입력으로 받음
- * - SafeDTO → Command 변환
- * - Aggregate에 Command 전달
- *
- * @param safeDto - 검증된 블록 복제 요청 (SafeDTO)
- * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
- * @param blockRepository - Block Repository
- * @returns 복제된 블록 Entity
+ * ✅ 권한 검증은 액션에서 완료. 서비스는 context에서 전달된 safeWorkspaceId 사용.
  */
 export async function duplicateBlock(
-  safeDto: DuplicateBlockRequest,
-  safeUserId: UserId,
-  blockRepository: IBlockRepository
+  params: DuplicateBlockParams
 ): Promise<Result<Block, Error>> {
+  const { safeWorkspaceId, safeBlockSlug, safeUserId, blockRepository } = params;
   try {
-    // 1. SafeDTO → Value Objects 생성
-    const originalBlockId = new BlockId(safeDto.blockId);
-
-    // 2. 원본 블록 조회
-    // Note: Block ownership is already verified by authorizeBlockInWorkspace
-    // in the action layer. This service should only be called from authorized actions.
-    const originalBlock = await blockRepository.findById(originalBlockId);
+    const originalBlock = await blockRepository.findByWorkspaceIdAndSlug(
+      safeWorkspaceId,
+      safeBlockSlug
+    );
     if (!originalBlock) {
       return Result.error(
         new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found')
@@ -81,30 +76,35 @@ export async function duplicateBlock(
   }
 }
 
+export type DuplicateBlocksParams = {
+  safeWorkspaceId: WorkspaceId;
+  safeBlockSlugs: string[];
+  safeUserId: UserId;
+  blockRepository: IBlockRepository;
+};
+
 /**
  * 블록 일괄 복제 (bulk)
  *
- * - findByIds 1회로 원본 조회, createMany 1회로 복제본 INSERT
- * - 요청 순서대로 Block[] 반환
+ * ✅ 권한 검증은 액션에서 완료. 서비스는 context에서 전달된 safeWorkspaceId 사용.
  */
 export async function duplicateBlocks(
-  safeDtos: DuplicateBlockRequest[],
-  safeUserId: UserId,
-  blockRepository: IBlockRepository
+  params: DuplicateBlocksParams
 ): Promise<Result<Block[], Error>> {
-  if (safeDtos.length === 0) {
+  const { safeWorkspaceId, safeBlockSlugs, safeUserId, blockRepository } = params;
+  if (safeBlockSlugs.length === 0) {
     return Result.success([]);
   }
 
-  const blockIds = safeDtos.map(dto => new BlockId(dto.blockId));
-  const originalBlocks = await blockRepository.findByIds(blockIds);
+  const originalBlocks =
+    await blockRepository.findByWorkspaceIdAndSlugs(safeWorkspaceId, safeBlockSlugs);
 
   const firstMissing = originalBlocks.findIndex(b => b === null);
   if (firstMissing !== -1) {
     return Result.error(
       new BlockManagementError(
         'BLOCK_NOT_FOUND',
-        `Block not found: ${safeDtos[firstMissing]!.blockId}`
+        `Block not found: ${safeBlockSlugs[firstMissing]}`
       )
     );
   }
@@ -154,7 +154,9 @@ export async function duplicateBlocks(
       block.content,
       block.createdByProfile,
       block.sourceId,
-      block.contentVersion
+      block.contentVersion,
+      // slug 미전달: createMany 재시도로 persistedId만 갱신된 경우. getSlug() 호출 시 id에서 8자 hex 유도
+      undefined
     );
   });
 

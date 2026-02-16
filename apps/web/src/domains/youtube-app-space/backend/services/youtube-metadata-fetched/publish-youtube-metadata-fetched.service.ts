@@ -3,16 +3,15 @@
  *
  * getYoutubeMetadata Use Case 완료 시 Application Event를 발행하고,
  * 서비스에서 event.handle()을 호출해 Use Case Policy를 실행한다.
- *
- * 메타데이터 직후: block.sourceId가 있을 때만 ensureSourceJobService 호출.
- * sourceId 없는 블록은 요약 잡을 넣지 않음.
+ * - Domain Event와 동일하게 "이벤트 생성 → handle() 호출" 흐름을 유지한다.
+ * - 발행 주체는 Aggregate가 아니라 이 서비스(Application 레이어)이다.
  *
  * @see docs/patterns/backend/policy-and-event-types-guide.md
  */
 import { createClient } from '@supabase/supabase-js';
 
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
-import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import { createSupabasePgmqQueueAdapter } from '@/domains/queue';
 import { DrizzleSourceJobRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source-job.repository';
 import { DrizzleSourceSummaryRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source-summary.repository';
@@ -38,13 +37,16 @@ export async function publishYoutubeMetadataFetched(
     payload,
     new Date(),
     async () => {
-      const block = await blockRepository.findById(new BlockId(payload.blockId));
+      const block = await blockRepository.findByWorkspaceIdAndSlug(
+        new WorkspaceId(payload.workspaceId),
+        payload.blockId
+      );
       if (!block?.sourceId) return;
 
       const language = payload.language ?? 'en';
       const result = await ensureSourceJobService(
         {
-          blockId: payload.blockId,
+          blockId: block.id.value,
           orgId: payload.orgId,
           sourceId: block.sourceId,
           language,

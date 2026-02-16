@@ -58,11 +58,14 @@ async function updateBlockContentInternal(
     const userId: UserId = new UserId(context.authenticatedUser.id);
     const blockRepository = new DrizzleBlockRepository();
 
-    const updateResult = await updateBlockContent(
-      safeDto,
-      userId,
-      blockRepository
-    );
+    const updateResult = await updateBlockContent({
+      safeWorkspaceId: context.workspace.workspaceId,
+      safeBlockSlug: safeDto.blockId,
+      content: safeDto.content,
+      contentRaw: safeDto.contentRaw,
+      safeUserId: userId,
+      blockRepository,
+    });
 
     // 3. Result 처리
     if (updateResult.isError()) {

@@ -41,11 +41,14 @@ async function applyBlockContentStepsInternal(
     const userId = new UserId(context.authenticatedUser.id);
     const blockRepository = new DrizzleBlockRepository();
 
-    const result = await applyBlockContentSteps(
-      safeDto,
-      userId,
-      blockRepository
-    );
+    const result = await applyBlockContentSteps({
+      safeWorkspaceId: context.workspace.workspaceId,
+      safeBlockSlug: safeDto.blockId,
+      steps: safeDto.steps,
+      baseVersion: safeDto.baseVersion,
+      safeUserId: userId,
+      blockRepository,
+    });
 
     if (result.isError()) {
       const error = result.error;

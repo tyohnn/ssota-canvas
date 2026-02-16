@@ -14,12 +14,13 @@ import { createSecureActionBuilder } from '@/lib/server-actions/create-secure-ac
 import type { AuthorizeResult } from '@/lib/server-actions/types';
 
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
-import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
 import { DrizzlePublishedPageRepository } from '@/domains/share/backend/repositories/implementations/drizzle-published-page.repository';
 import { PublishToken } from '@/domains/share/shared/value-objects/publish-token.vo';
+import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 
 const sourceSecureActionBuilder =
   createSecureActionBuilder<AuthenticatedUser>(getAuthenticatedUser);
@@ -33,11 +34,14 @@ export interface SourceBlockActionContext extends WorkspaceActionContext {
  * Block 기반 인증: blockId → block 조회 → workspace 권한 → source_id 확인
  */
 async function authorizeSourceBlockById(
-  req: { blockId: string },
+  req: { workspaceId: string; blockId: string },
   userId: string
 ): Promise<AuthorizeResult<SourceBlockActionContext>> {
   const blockRepository = new DrizzleBlockRepository();
-  const block = await blockRepository.findById(new BlockId(req.blockId));
+  const block = await blockRepository.findByWorkspaceIdAndSlug(
+    new WorkspaceId(req.workspaceId),
+    req.blockId
+  );
   if (!block) {
     return { success: false, error: 'Block not found' };
   }
@@ -70,8 +74,9 @@ async function authorizeSourceBlockById(
 
 export const withSourceBlockSecureAction = sourceSecureActionBuilder
   .forContext<SourceBlockActionContext>()
-  .withAuth((req: { blockId: string }, user) =>
-    authorizeSourceBlockById(req, user.id)
+  .withAuth(
+    (req: { workspaceId: string; blockId: string }, user) =>
+      authorizeSourceBlockById(req, user.id)
   )
   .build();
 
@@ -105,24 +110,32 @@ async function authorizeByPublishedPageSource(
     return { success: false, error: 'Page is not published' };
   }
 
-  const blockMountRepo = new DrizzleBlockMountRepository();
   const pageId = new PageId(publishedPage.pageId);
-  const blockMounts = await blockMountRepo.findByPageId(pageId);
-  const blockOnPage = blockMounts.some(
-    m => m.getBlockMount().blockId.value === req.blockId
-  );
-  if (!blockOnPage) {
-    return { success: false, error: 'Block not on this published page' };
-  }
+  const pageRepository = new DrizzlePageRepository();
+  const page = await pageRepository.findById(pageId);
+  if (!page) return { success: false, error: 'Page not found' };
+  const workspaceIdValue = page.workspaceId.value;
 
   const blockRepository = new DrizzleBlockRepository();
-  const block = await blockRepository.findById(new BlockId(req.blockId));
+  const block = await blockRepository.findByWorkspaceIdAndSlug(
+    new WorkspaceId(workspaceIdValue),
+    req.blockId
+  );
   if (!block) return { success: false, error: 'Block not found' };
   if (!block.sourceId) {
     return { success: false, error: 'Block has no linked source' };
   }
   if (block.sourceId !== req.sourceId) {
     return { success: false, error: 'Source ID mismatch' };
+  }
+
+  const blockMountRepo = new DrizzleBlockMountRepository();
+  const blockMounts = await blockMountRepo.findByPageId(pageId);
+  const blockOnPage = blockMounts.some(
+    m => m.getBlockMount().blockId.value === block.id.value
+  );
+  if (!blockOnPage) {
+    return { success: false, error: 'Block not on this published page' };
   }
 
   const workspaceRepository = new DrizzleWorkspaceRepository();

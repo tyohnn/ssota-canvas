@@ -78,13 +78,19 @@ export class BlockUpdatedEvent implements DomainEvent {
 
   /**
    * Policy: When BlockUpdated → log block_updated to event_log.
+   * pageId는 context에 있으면 사용, 없으면 getPageIdForBlock(blockId)로 핸들러에서 직접 조회.
    */
   private async applyEventLogPolicy(context?: unknown): Promise<void> {
     const ctx = context as EventLogPolicyContext | undefined;
-    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    if (!ctx?.eventLogService || !ctx?.userId) return;
+    let pageId = ctx.pageId;
+    if (pageId == null && ctx.getPageIdForBlock) {
+      pageId = (await ctx.getPageIdForBlock(this.data.blockId.value)) ?? undefined;
+    }
+    if (!pageId) return;
     await ctx.eventLogService
       .logBlockUpdated({
-        pageId: ctx.pageId,
+        pageId,
         userId: ctx.userId,
         blockId: this.data.blockId.value,
         changes: this.data.updateData,
@@ -186,13 +192,19 @@ export class BlockTitleUpdatedEvent implements DomainEvent {
 
   /**
    * Policy: When BlockTitleUpdated → log block_updated to event_log.
+   * pageId는 context에 있으면 사용, 없으면 getPageIdForBlock(blockId)로 핸들러에서 직접 조회.
    */
   private async applyEventLogPolicy(context?: unknown): Promise<void> {
     const ctx = context as EventLogPolicyContext | undefined;
-    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    if (!ctx?.eventLogService || !ctx?.userId) return;
+    let pageId = ctx.pageId;
+    if (pageId == null && ctx.getPageIdForBlock) {
+      pageId = (await ctx.getPageIdForBlock(this.data.blockId.value)) ?? undefined;
+    }
+    if (!pageId) return;
     await ctx.eventLogService
       .logBlockUpdated({
-        pageId: ctx.pageId,
+        pageId,
         userId: ctx.userId,
         blockId: this.data.blockId.value,
         changes: { title: this.data.newTitle },

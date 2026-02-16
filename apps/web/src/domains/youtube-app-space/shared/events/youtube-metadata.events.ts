@@ -9,7 +9,8 @@
 import type { ApplicationEvent } from './application-event';
 
 export interface YoutubeMetadataFetchedEventData {
-  blockId: string;
+  workspaceId: string;
+  blockId: string; // 8-char slug
   orgId: string;
   youtubeId: string; // slug (11-char)
   language: string;

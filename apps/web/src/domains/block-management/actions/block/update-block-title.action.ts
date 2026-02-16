@@ -63,28 +63,26 @@ async function updateBlockTitleInternal(
   try {
     const userId: UserId = new UserId(context.authenticatedUser.id);
     const blockRepository = new DrizzleBlockRepository();
+    const safeWorkspaceId = context.workspace.workspaceId;
 
     const blockMountRepository = new DrizzleBlockMountRepository();
-    const pageId = await blockMountRepository.findOnePageIdByBlockId(
-      safeDto.blockId
-    );
-    let eventLogPolicyContext: EventLogPolicyContext | undefined;
-    if (pageId) {
-      const eventLogRepo = new DrizzleEventLogRepository();
-      const eventLogService = new EventLogService(eventLogRepo);
-      eventLogPolicyContext = {
-        eventLogService,
-        userId: context.authenticatedUser.id,
-        pageId,
-      };
-    }
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: context.authenticatedUser.id,
+      getPageIdForBlock: (blockId: string) =>
+        blockMountRepository.findOnePageIdByBlockId(blockId),
+    };
 
-    const updateResult = await updateBlockTitle(
-      safeDto,
-      userId,
+    const updateResult = await updateBlockTitle({
+      safeWorkspaceId,
+      safeBlockSlug: safeDto.blockId,
+      title: safeDto.title,
+      safeUserId: userId,
       blockRepository,
-      eventLogPolicyContext
-    );
+      eventLogPolicyContext,
+    });
 
     // 3. Result 처리
     if (updateResult.isError()) {
@@ -94,10 +92,10 @@ async function updateBlockTitleInternal(
       });
     }
 
-    // 4. Response DTO 생성
+    // 4. Response DTO 생성 (blockId = slug)
     const block = updateResult.value.getBlock();
     const responseData: BlockTitleUpdatedDTO = {
-      blockId: block.id.value,
+      blockId: block.getSlug(),
       title: block.title,
       updatedAt: block.updatedAt,
     };

@@ -5,6 +5,8 @@ import { useCallback, useRef } from 'react';
 
 import { logBlockUpdatedAuditAction } from '@/domains/block-management/actions/block/log-block-updated-audit.action';
 import { useTipTapEditor } from '@/domains/block-management/frontend/components/tiptap-editor/core/use-tiptap-editor';
+import type { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import type { TipTapEditorState } from '@/domains/block-management/frontend/components/tiptap-editor/core/types';
 import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
@@ -23,6 +25,8 @@ export interface UseBlockNoteTiptapParams {
   contentVersionRef?: RefObject<number>;
   /** Optional callback after optimistic update (e.g. blockContentChange for Note View). */
   onContentChangeSideEffect?: () => void;
+  /** 테스트 시 mock 주입용. 미제공 시 useCanvasMetadata() 사용 */
+  canvasMetadata?: CanvasMetadata;
 }
 
 export interface UseBlockNoteTiptapReturn {
@@ -45,7 +49,10 @@ export function useBlockNoteTiptap(
     placeholder = 'Click to add note...',
     contentVersionRef: contentVersionRefParam,
     onContentChangeSideEffect,
+    canvasMetadata: canvasMetadataOverride,
   } = params;
+  const canvasMetadata = canvasMetadataOverride ?? useCanvasMetadata();
+  const { workspaceId } = canvasMetadata;
 
   const internalContentVersionRef = useRef<number>(
     blockData.contentVersion ?? 0
@@ -99,7 +106,9 @@ export function useBlockNoteTiptap(
     },
     onSaveSteps: saveStepsToServer,
     onBlurAudit: async ({ blockId, patch }) => {
-      await logBlockUpdatedAuditAction({ blockId, patch });
+      if (workspaceId) {
+        await logBlockUpdatedAuditAction({ workspaceId, blockId, patch });
+      }
     },
     initialVersion:
       contentVersionRef?.current ?? blockData.contentVersion ?? 0,

@@ -7,7 +7,6 @@ import {
   duplicateBlocks,
 } from '@/domains/block-management/backend/services/block';
 import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
-import type { DuplicateBlockRequest } from '@/domains/block-management/shared/dtos/requests/block.requests';
 import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
@@ -71,15 +70,17 @@ export async function duplicateBlockAndMount(
       );
     }
 
-    const duplicateBlockRequest: DuplicateBlockRequest = {
-      workspaceId: safeWorkspaceId.value,
-      blockId: originalAggregate.getBlockMount().blockId.value,
-    };
-    const duplicateResult = await duplicateBlock(
-      duplicateBlockRequest,
+    const safeBlockSlug = originalAggregate
+      .getBlockMount()
+      .blockId.value.replace(/-/g, '')
+      .toLowerCase()
+      .slice(0, 8);
+    const duplicateResult = await duplicateBlock({
+      safeWorkspaceId,
+      safeBlockSlug,
       safeUserId,
-      blockRepository
-    );
+      blockRepository,
+    });
     if (duplicateResult.isError()) {
       return Result.error(duplicateResult.error);
     }
@@ -188,18 +189,22 @@ export async function duplicateBlocksAndMount(
     );
   }
 
-  const duplicateRequests: DuplicateBlockRequest[] = (
+  const safeBlockSlugs = (
     originalBMs as BlockMountAggregate[]
-  ).map(bm => ({
-    workspaceId: safeWorkspaceId.value,
-    blockId: bm.getBlockMount().blockId.value,
-  }));
-
-  const blockResult = await duplicateBlocks(
-    duplicateRequests,
-    safeUserId,
-    blockRepository
+  ).map(bm =>
+    bm
+      .getBlockMount()
+      .blockId.value.replace(/-/g, '')
+      .toLowerCase()
+      .slice(0, 8)
   );
+
+  const blockResult = await duplicateBlocks({
+    safeWorkspaceId,
+    safeBlockSlugs,
+    safeUserId,
+    blockRepository,
+  });
   if (blockResult.isError()) {
     return Result.error(blockResult.error);
   }

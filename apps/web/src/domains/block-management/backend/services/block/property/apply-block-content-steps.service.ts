@@ -8,9 +8,8 @@ import { Result } from '@/utils/result';
 
 import { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
 import type { ApplyContentStepsCommand } from '../../../../shared/commands';
-import type { ApplyBlockContentStepsRequest } from '../../../../shared/dtos/requests/block.requests';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
-import { BlockId } from '../../../../shared/value-objects/block-id.vo';
+import type { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import {
   EMPTY_TIPTAP_DOC,
   extractPlainText,
@@ -18,43 +17,53 @@ import {
 import { pmSchema } from '../../../../shared/utils/prosemirror-schema';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
 
+export type ApplyBlockContentStepsParams = {
+  steps: unknown[];
+  baseVersion: number;
+  safeWorkspaceId: WorkspaceId;
+  safeBlockSlug: string;
+  safeUserId: UserId;
+  blockRepository: IBlockRepository;
+};
+
 /**
  * 블록 콘텐츠에 ProseMirror steps 적용
  *
- * 1. DB에서 block 로드 (content + content_version)
- * 2. baseVersion !== block.contentVersion → CONTENT_VERSION_MISMATCH
- * 3. 현재 content로 ProseMirror Doc 재구성
- * 4. steps 순서대로 적용
- * 5. 결과 doc → JSON, contentRaw는 서버에서 생성
- * 6. Block entity 업데이트 + version 증가
- * 7. Repository 저장 및 이벤트 처리
+ * ✅ 권한 검증은 액션에서 완료. 서비스는 context에서 전달된 safeWorkspaceId 사용.
  */
 export async function applyBlockContentSteps(
-  safeDto: ApplyBlockContentStepsRequest,
-  safeUserId: UserId,
-  blockRepository: IBlockRepository
+  params: ApplyBlockContentStepsParams
 ): Promise<
   Result<
     { newVersion: number; updatedAt: Date },
     BlockManagementError | Error
   >
 > {
+  const {
+    steps,
+    baseVersion,
+    safeWorkspaceId,
+    safeBlockSlug,
+    safeUserId,
+    blockRepository,
+  } = params;
   try {
-    const blockId = new BlockId(safeDto.blockId);
-
-    const block = await blockRepository.findById(blockId);
+    const block = await blockRepository.findByWorkspaceIdAndSlug(
+      safeWorkspaceId,
+      safeBlockSlug
+    );
     if (!block) {
       return Result.error(
         new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found')
       );
     }
 
-    if (safeDto.baseVersion !== block.contentVersion) {
+    if (baseVersion !== block.contentVersion) {
       return Result.error(
         new BlockManagementError('CONTENT_VERSION_MISMATCH', 'Content version mismatch', {
           serverVersion: block.contentVersion,
           serverContent: block.content,
-          clientVersion: safeDto.baseVersion,
+          clientVersion: baseVersion,
         })
       );
     }
@@ -63,7 +72,7 @@ export async function applyBlockContentSteps(
       (block.content as object) || EMPTY_TIPTAP_DOC;
     let doc = Node.fromJSON(pmSchema, currentContent);
 
-    for (const stepJSON of safeDto.steps) {
+    for (const stepJSON of steps) {
       const step = Step.fromJSON(pmSchema, stepJSON as Record<string, unknown>);
       const result = step.apply(doc);
       if (result.failed) {
@@ -87,8 +96,8 @@ export async function applyBlockContentSteps(
       content: newContent,
       contentRaw,
       userId: safeUserId,
-      steps: safeDto.steps,
-      baseVersion: safeDto.baseVersion,
+      steps,
+      baseVersion,
       newVersion: block.contentVersion + 1,
     };
     aggregate.applyContentSteps(command);
