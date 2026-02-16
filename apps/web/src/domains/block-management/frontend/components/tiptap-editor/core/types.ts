@@ -20,6 +20,10 @@ export interface TipTapEditorState {
   isInitialMountRef: RefObject<boolean>;
   debounceTimerRef: RefObject<NodeJS.Timeout | null>;
   isComposingRef: RefObject<boolean>; // 한글 입력 조합 중 플래그
+  /** Buffered ProseMirror step JSONs between flushes (debounce/blur). Cleared after onSaveSteps. */
+  stepsBufferRef: RefObject<unknown[]>;
+  /** Server-synced content_version for optimistic locking. Updated on applyBlockContentSteps success. */
+  contentVersionRef: RefObject<number>;
 }
 
 /**
@@ -37,10 +41,25 @@ export interface TipTapEditorOptions {
    */
   onContentChange?: (content: any) => void;
   /**
-   * 저장이 필요한 시점에 호출되는 콜백
-   * debounce 후 또는 blur 시 호출됨
+   * Step 기반 저장 (ProseMirror steps)
+   * debounce(500ms)·blur·compositionend 시 steps가 있으면 steps + baseVersion으로 전송.
    */
-  onSave?: (content: any, contentRaw?: string) => void | Promise<void>;
+  onSaveSteps?: (steps: unknown[], baseVersion: number) => void | Promise<void>;
+  /**
+   * Blur 시 감사 로그만 기록 (저장과 분리). focus→blur 구간 contentRaw diff의 patch를 전달.
+   */
+  onBlurAudit?: (params: {
+    blockId: string;
+    patch: string;
+  }) => void | Promise<void>;
+  /** 서버와 동기화된 content_version (step 기반 저장 시 사용) */
+  initialVersion?: number;
+  /** step 적용 성공 시 newVersion으로 갱신할 ref (제공 시 내부 ref 대신 사용) */
+  contentVersionRef?: RefObject<number>;
+  /** version mismatch 시 서버 content/version으로 동기화할 핸들러 (ref로 설정) */
+  onVersionMismatchRef?: RefObject<
+    ((content: unknown, version: number) => void) | null
+  >;
 }
 
 /**

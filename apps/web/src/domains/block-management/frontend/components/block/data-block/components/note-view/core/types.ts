@@ -56,8 +56,11 @@ export interface NoteViewUIState extends NoteViewUIStateBase {
 }
 
 export interface NoteViewBusinessLogic {
-  // Content 저장
-  saveContentToServer: (content: any, contentRaw?: string) => Promise<void>;
+  /** Step 기반 저장 (step만 전송). 감사 로그는 blur 시 onBlurAudit으로 별도 기록. */
+  saveStepsToServer: (
+    steps: unknown[],
+    baseVersion: number
+  ) => Promise<void>;
 }
 
 export interface DomainDependencies {
@@ -72,6 +75,8 @@ export interface DomainDependencies {
     setTextareaEditing: (editing: boolean) => void;
     mode?: CanvasMode;
   };
+  /** Ref to update on CONTENT_VERSION_MISMATCH so next save uses correct baseVersion. We only update this ref (not editor content) to avoid overwriting user input. */
+  contentVersionRef?: RefObject<number>;
 }
 
 export type UpdateBlockContentFunction = (input: {
@@ -80,6 +85,16 @@ export type UpdateBlockContentFunction = (input: {
   blockData: BlockNodeData;
   contentRaw?: string;
 }) => Promise<boolean>;
+
+export type ApplyBlockContentStepsFunction = (input: {
+  nodeId: string;
+  steps: unknown[];
+  baseVersion: number;
+  blockData: BlockNodeData;
+}) => Promise<
+  | { ok: true; newVersion: number }
+  | { ok: false; code?: string; serverVersion?: number; serverContent?: unknown }
+>;
 
 export interface UseNoteViewOptions {
   businessLogic?: NoteViewBusinessLogic;

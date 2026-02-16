@@ -101,6 +101,25 @@ export const UpdateBlockContentRequestSchema = z.object({
   contentRaw: z.string().optional(), // Markdown 텍스트 (AI context용)
 });
 
+/**
+ * 블록 콘텐츠 Step 적용 요청 스키마 (ProseMirror steps)
+ * - steps: Step JSON 배열
+ * - baseVersion: 클라이언트가 알고 있는 content_version (낙관적 잠금)
+ */
+export const ApplyBlockContentStepsRequestSchema = z.object({
+  blockId: z.uuid('Invalid block ID'),
+  steps: z.array(z.unknown()).min(1, 'At least one step required'),
+  baseVersion: z.number().int().min(0),
+});
+
+/**
+ * Blur 시 감사 로그만 기록 (block 업데이트 없음). event_log에 patch만 저장.
+ */
+export const LogBlockUpdatedAuditRequestSchema = z.object({
+  blockId: z.uuid('Invalid block ID'),
+  patch: z.string(),
+});
+
 // Input types (프론트엔드에서 사용)
 export type UpdateBlockPropertyRequestInput = z.input<
   typeof UpdateBlockPropertyRequestSchema
@@ -113,6 +132,12 @@ export type UpdateBlockTitleRequestInput = z.input<
 >;
 export type UpdateBlockContentRequestInput = z.input<
   typeof UpdateBlockContentRequestSchema
+>;
+export type ApplyBlockContentStepsRequestInput = z.input<
+  typeof ApplyBlockContentStepsRequestSchema
+>;
+export type LogBlockUpdatedAuditRequestInput = z.input<
+  typeof LogBlockUpdatedAuditRequestSchema
 >;
 
 // Input types
@@ -139,6 +164,12 @@ export type UpdateBlockTitleRequest = z.output<
 >;
 export type UpdateBlockContentRequest = z.output<
   typeof UpdateBlockContentRequestSchema
+>;
+export type ApplyBlockContentStepsRequest = z.output<
+  typeof ApplyBlockContentStepsRequestSchema
+>;
+export type LogBlockUpdatedAuditRequest = z.output<
+  typeof LogBlockUpdatedAuditRequestSchema
 >;
 
 // Output types (SafeDTO)

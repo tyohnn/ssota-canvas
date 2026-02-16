@@ -57,6 +57,7 @@ export function transformBlockViewToNodeData(
     properties: cleanNestedProperties(blockView.properties),
     customProperties: blockView.customProperties,
     content: blockView.content, // JSONB content
+    contentVersion: blockView.contentVersion,
     viewMode: blockView.viewMode, // BlockMount의 viewMode
     sizes: blockView.viewModeSizes, // 뷰 모드별 크기 정보 (GroupBlock 등에서 사용)
     size: blockView.size, // 현재 크기 (TextBlock, ShapeBlock 등에서 사용, 레거시)

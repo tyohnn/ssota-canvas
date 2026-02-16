@@ -17,7 +17,7 @@ import { EventLog } from '../../shared/entities/event-log.entity';
  * (3) handle() → markEventsAsCommitted()
  */
 export class EventLogService {
-  constructor(private readonly repo: EventLogRepository) {}
+  constructor(private readonly repo: EventLogRepository) { }
 
   async logUserUtterance(params: {
     pageId: string;
@@ -37,15 +37,15 @@ export class EventLogService {
     const eventLog = aggregate.getEventLog();
     const toSave = params.agentExecutionId
       ? new EventLog(
-          eventLog.id,
-          eventLog.eventType,
-          eventLog.pageId,
-          eventLog.userId,
-          eventLog.timestamp,
-          eventLog.content,
-          eventLog.metadata,
-          params.agentExecutionId
-        )
+        eventLog.id,
+        eventLog.eventType,
+        eventLog.pageId,
+        eventLog.userId,
+        eventLog.timestamp,
+        eventLog.content,
+        eventLog.metadata,
+        params.agentExecutionId
+      )
       : eventLog;
     await this.repo.save(toSave);
 
@@ -169,13 +169,25 @@ export class EventLogService {
     return aggregate.getEventLog().id.value;
   }
 
-  async logBlockUpdated(params: {
-    pageId: string;
-    userId: string;
-    blockId: string;
-    changes: Record<string, unknown>;
-    agentExecutionId?: string;
-  }): Promise<string> {
+  /**
+   * block_updated audit log: only when force is true (blur/unmount).
+   * When force is false (e.g. 500ms debounce), do not log — so the event log
+   * always reflects "user finished editing", not a partial first-500ms change.
+   */
+  async logBlockUpdated(
+    params: {
+      pageId: string;
+      userId: string;
+      blockId: string;
+      changes: Record<string, unknown>;
+      agentExecutionId?: string;
+    },
+    options?: { force?: boolean }
+  ): Promise<string> {
+    if (!options?.force) {
+      return '';
+    }
+
     const aggregate = new EventLogAggregate();
     aggregate.logBlockUpdated({
       pageId: new PageId(params.pageId),

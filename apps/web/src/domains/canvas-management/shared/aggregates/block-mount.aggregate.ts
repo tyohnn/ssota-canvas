@@ -382,6 +382,7 @@ export class BlockMountAggregate {
       properties: block.properties.toJSON(),
       customProperties: block.customProperties.map(cp => cp.toJSON()) || [],
       content: block.content,
+      contentVersion: block.contentVersion,
       sourceId: block.sourceId ?? undefined,
 
       // 메타데이터 (Block Management Domain)

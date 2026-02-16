@@ -41,6 +41,7 @@ export const blocks = pgTable(
     properties: jsonb('properties').default({}),
     content: jsonb('content'),
     content_raw: text('content_raw'),
+    content_version: integer('content_version').notNull().default(0),
     custom_properties: jsonb('custom_properties').default([]),
     created_by: uuid('created_by').references(() => profiles.id, {
       onDelete: 'set null',

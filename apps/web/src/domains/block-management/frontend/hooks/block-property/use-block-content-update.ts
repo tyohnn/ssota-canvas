@@ -1,12 +1,16 @@
 'use client';
 
+import type { RefObject } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
 
 import { isFailure } from '@/lib';
 
+import { applyBlockContentStepsAction } from '../../../actions/block/apply-block-content-steps.action';
 import { updateBlockContentAction } from '../../../actions/block/update-block-content.action';
 import {
+  type ApplyBlockContentStepsRequestInput,
+  ApplyBlockContentStepsRequestSchema,
   type UpdateBlockContentRequestInput,
   UpdateBlockContentRequestSchema,
 } from '../../../shared/dtos/requests';
@@ -19,6 +23,8 @@ export type ReactFlowDependencies = {
 
 export type UseUpdateBlockContentParams = {
   reactFlow: ReactFlowDependencies;
+  /** Step 적용 성공 시 newVersion으로 갱신 (ProseMirror step 기반 저장 시 사용) */
+  contentVersionRef?: RefObject<number>;
 };
 
 export type UpdateBlockContentInput = {
@@ -28,8 +34,27 @@ export type UpdateBlockContentInput = {
   contentRaw?: string; // Markdown text (optional, for AI context)
 };
 
+export type ApplyBlockContentStepsInput = {
+  nodeId: string;
+  steps: unknown[];
+  baseVersion: number;
+  blockData: BlockNodeData;
+};
+
+export type ApplyBlockContentStepsResult =
+  | { ok: true; newVersion: number }
+  | {
+    ok: false;
+    code?: string;
+    serverVersion?: number;
+    serverContent?: unknown;
+  };
+
 export type UseUpdateBlockContentResult = {
   updateBlockContent: (input: UpdateBlockContentInput) => Promise<boolean>;
+  applyBlockContentSteps: (
+    input: ApplyBlockContentStepsInput
+  ) => Promise<ApplyBlockContentStepsResult>;
   isUpdating: boolean;
 };
 
@@ -46,21 +71,20 @@ export type UseUpdateBlockContentResult = {
 export function useUpdateBlockContent(
   params: UseUpdateBlockContentParams
 ): UseUpdateBlockContentResult {
-  const { reactFlow } = params;
+  const { reactFlow, contentVersionRef } = params;
   const { updateNode, getNode } = reactFlow;
 
-  const mutation = useMutation({
+  const fullDocMutation = useMutation({
     mutationFn: async ({
-      nodeId,
+      nodeId: _nodeId,
       content,
       blockData,
       contentRaw,
     }: UpdateBlockContentInput) => {
-      // Validation
       const rawRequest: UpdateBlockContentRequestInput = {
         blockId: blockData.blockId,
         content,
-        contentRaw, // Markdown text (optional)
+        contentRaw,
       };
 
       const parseResult = UpdateBlockContentRequestSchema.safeParse(rawRequest);
@@ -68,8 +92,6 @@ export function useUpdateBlockContent(
         const firstError = parseResult.error.issues[0];
         throw new Error(firstError?.message || 'Invalid content update data');
       }
-
-      // Server Action
       const result = await updateBlockContentAction(parseResult.data);
       if (isFailure(result)) {
         throw new Error(result.error);
@@ -98,17 +120,70 @@ export function useUpdateBlockContent(
     },
   });
 
+  const stepsMutation = useMutation({
+    mutationFn: async ({
+      nodeId: _nodeId,
+      steps,
+      baseVersion,
+      blockData,
+    }: ApplyBlockContentStepsInput) => {
+      const rawRequest: ApplyBlockContentStepsRequestInput = {
+        blockId: blockData.blockId,
+        steps,
+        baseVersion,
+      };
+      const parseResult =
+        ApplyBlockContentStepsRequestSchema.safeParse(rawRequest);
+      if (!parseResult.success) {
+        const firstError = parseResult.error.issues[0];
+        throw new Error(firstError?.message || 'Invalid steps request');
+      }
+      const result = await applyBlockContentStepsAction(parseResult.data);
+      if (isFailure(result)) {
+        throw {
+          code: result.code,
+          serverVersion: result.meta?.serverVersion,
+          serverContent: result.meta?.serverContent,
+        };
+      }
+      return result.data;
+    },
+    onSuccess: data => {
+      if (contentVersionRef?.current !== undefined) {
+        contentVersionRef.current = data.newVersion;
+      }
+    },
+  });
+
   return {
     updateBlockContent: async (
       input: UpdateBlockContentInput
     ): Promise<boolean> => {
       try {
-        await mutation.mutateAsync(input);
+        await fullDocMutation.mutateAsync(input);
         return true;
       } catch (error) {
         return false;
       }
     },
-    isUpdating: mutation.isPending,
+    applyBlockContentSteps: async (
+      input: ApplyBlockContentStepsInput
+    ): Promise<ApplyBlockContentStepsResult> => {
+      try {
+        const data = await stepsMutation.mutateAsync(input);
+        return { ok: true, newVersion: data.newVersion };
+      } catch (error: unknown) {
+        const obj =
+          error && typeof error === 'object' ? (error as Record<string, unknown>) : {};
+        return {
+          ok: false,
+          code: typeof obj.code === 'string' ? obj.code : undefined,
+          serverVersion:
+            typeof obj.serverVersion === 'number' ? obj.serverVersion : undefined,
+          serverContent: obj.serverContent,
+        };
+      }
+    },
+    isUpdating: fullDocMutation.isPending || stepsMutation.isPending,
   };
 }

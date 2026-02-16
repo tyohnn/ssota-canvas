@@ -32,7 +32,7 @@ export class BlockCreatedEvent implements DomainEvent {
       userId: string;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행
@@ -74,7 +74,7 @@ export class BlockUpdatedEvent implements DomainEvent {
       updateData: Record<string, any>;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Policy: When BlockUpdated → log block_updated to event_log.
@@ -89,7 +89,7 @@ export class BlockUpdatedEvent implements DomainEvent {
         blockId: this.data.blockId.value,
         changes: this.data.updateData,
       })
-      .catch(() => {});
+      .catch(() => { });
   }
 
   /**
@@ -118,7 +118,7 @@ export class BlockPropertyUpdatedEvent implements DomainEvent {
       newValue: any;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행
@@ -144,50 +144,29 @@ export class BlockPropertyUpdatedEvent implements DomainEvent {
   }
 }
 
+/** Block content updated event data: content/raw optional; steps + version always present (event_log stores only steps + version). */
+export type BlockContentUpdatedEventData = {
+  blockId: BlockId;
+  content?: unknown;
+  contentRaw?: string;
+  steps: unknown[];
+  baseVersion: number;
+  newVersion: number;
+};
+
 // BlockContentUpdatedEvent
+// Event log (audit) for block content is written only on blur via logBlockUpdatedAuditAction, not from this event.
 export class BlockContentUpdatedEvent implements DomainEvent {
   readonly type = 'BlockContentUpdated';
 
   constructor(
     public readonly aggregateId: BlockId,
-    public readonly data: {
-      blockId: BlockId;
-      content: unknown;
-      contentRaw?: string;
-    },
+    public readonly data: BlockContentUpdatedEventData,
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
-  /**
-   * Policy: When BlockContentUpdated → log block_updated to event_log.
-   */
-  private async applyEventLogPolicy(context?: unknown): Promise<void> {
-    const ctx = context as EventLogPolicyContext | undefined;
-    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
-    await ctx.eventLogService
-      .logBlockUpdated({
-        pageId: ctx.pageId,
-        userId: ctx.userId,
-        blockId: this.data.blockId.value,
-        changes: {
-          content: this.data.content,
-          ...(this.data.contentRaw != null && { contentRaw: this.data.contentRaw }),
-        },
-      })
-      .catch(() => {});
-  }
-
-  /**
-   * Event 발생 시 Policy 실행. handle()에서 각 정책을 Promise.allSettled로 일괄 실행.
-   */
-  async handle(context?: unknown): Promise<void> {
-    await Promise.allSettled([
-      this.applyEventLogPolicy(context),
-      // Policy 구현 예시:
-      // - 블록 콘텐츠 변경 이력 기록
-      // - 버전 관리 시스템 업데이트
-      // - 검색 인덱스 업데이트
-    ]);
+  async handle(_context?: unknown): Promise<void> {
+    // No event_log policy here; audit is blur-only via logBlockUpdatedAuditAction.
   }
 }
 
@@ -203,7 +182,7 @@ export class BlockTitleUpdatedEvent implements DomainEvent {
       newTitle: string;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Policy: When BlockTitleUpdated → log block_updated to event_log.
@@ -218,7 +197,7 @@ export class BlockTitleUpdatedEvent implements DomainEvent {
         blockId: this.data.blockId.value,
         changes: { title: this.data.newTitle },
       })
-      .catch(() => {});
+      .catch(() => { });
   }
 
   /**
@@ -246,7 +225,7 @@ export class BlockPropertiesUpdatedEvent implements DomainEvent {
       updatedProperties: Record<string, { oldValue: any; newValue: any }>;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행
@@ -281,7 +260,7 @@ export class BlockDeletedEvent implements DomainEvent {
       workspaceId: WorkspaceId;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행
@@ -314,7 +293,7 @@ export class BlockDuplicatedEvent implements DomainEvent {
       duplicatedBlockId: BlockId;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행
@@ -352,7 +331,7 @@ export class BlockRestoredEvent implements DomainEvent {
       userId: UserId;
     },
     public readonly occurredAt: Date
-  ) {}
+  ) { }
 
   /**
    * Event 발생 시 Policy 실행

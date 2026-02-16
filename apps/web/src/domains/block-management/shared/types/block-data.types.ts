@@ -81,6 +81,8 @@ export interface BaseNodeData extends Record<string, unknown> {
   properties: BlockProperties<BlockType>;
   customProperties: CustomPropertyDefinition[];
   content?: unknown; // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
+  /** ProseMirror step sync: server content_version for optimistic locking (optional) */
+  contentVersion?: number;
   /** Parent-Child: 부모 그룹의 blockMountId (DB: block_mounts.parent_block_mount_id) */
   parentBlockMountId?: string;
   /** 그룹 collision 시각 피드백용 (UI only, not persisted) */

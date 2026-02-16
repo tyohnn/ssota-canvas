@@ -100,6 +100,7 @@ export class CanvasQueryService implements ICanvasQueryService {
               customProperties:
                 block.customProperties.map(cp => cp.toJSON()) || [],
               content: block.content, // JSONB content
+              contentVersion: block.contentVersion,
               sourceId: block.sourceId ?? undefined,
               position: {
                 x: blockMount.position.x,

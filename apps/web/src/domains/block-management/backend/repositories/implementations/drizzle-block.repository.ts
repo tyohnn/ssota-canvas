@@ -64,6 +64,7 @@ export class DrizzleBlockRepository implements IBlockRepository {
           custom_properties: block.customProperties.map(vo => vo.toJSON()),
           content: block.content as any, // JSONB content (e.g., TipTap JSON)
           content_raw: contentRaw, // Markdown content for context
+          content_version: block.contentVersion,
           created_at: block.createdAt,
           updated_at: block.updatedAt,
           deleted_at: block.deletedAt,
@@ -127,6 +128,7 @@ export class DrizzleBlockRepository implements IBlockRepository {
         custom_properties: block.customProperties.map(vo => vo.toJSON()),
         content: block.content as any,
         content_raw: contentRaw,
+        content_version: block.contentVersion,
         created_at: block.createdAt,
         updated_at: block.updatedAt,
         deleted_at: block.deletedAt,
@@ -194,6 +196,7 @@ export class DrizzleBlockRepository implements IBlockRepository {
         custom_properties: block.customProperties.map(vo => vo.toJSON()),
         content: block.content as any, // JSONB content (e.g., TipTap JSON)
         content_raw: contentRaw, // Markdown content for context
+        content_version: block.contentVersion,
         created_at: block.createdAt,
         updated_at: block.updatedAt,
         deleted_at: block.deletedAt,
@@ -516,7 +519,8 @@ export class DrizzleBlockRepository implements IBlockRepository {
       blockData.deleted_at,
       blockData.content, // JSONB content
       createdByProfile,
-      blockData.source_id ?? null
+      blockData.source_id ?? null,
+      blockData.content_version ?? 0
     );
   }
 }

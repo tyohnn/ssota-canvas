@@ -32,7 +32,8 @@ export class Block {
     public deletedAt: Date | null,
     public content: unknown = null, // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
     public readonly createdByProfile?: UserProfile,
-    public sourceId: string | null = null // 링크된 소스 (sources.id, nullable)
+    public sourceId: string | null = null, // 링크된 소스 (sources.id, nullable)
+    public contentVersion: number = 0 // ProseMirror step-based sync (optimistic locking)
   ) {}
 
   /**
@@ -77,7 +78,8 @@ export class Block {
       null,
       content ?? null, // ✨ content: 전달받은 값 또는 null
       undefined, // createdByProfile
-      null // sourceId
+      null, // sourceId
+      0 // contentVersion
     );
 
     // 마크다운 블록인 경우 content_raw 자동 생성 (AI 컨텍스트용)
@@ -121,7 +123,8 @@ export class Block {
     deletedAt: Date | null,
     content: unknown = null,
     createdByProfile?: UserProfile,
-    sourceId: string | null = null
+    sourceId: string | null = null,
+    contentVersion: number = 0
   ): Block {
     return new Block(
       id,
@@ -136,7 +139,8 @@ export class Block {
       deletedAt,
       content,
       createdByProfile,
-      sourceId
+      sourceId,
+      contentVersion
     );
   }
 
@@ -160,7 +164,8 @@ export class Block {
       this.deletedAt,
       this.content, // 콘텐츠도 복제
       undefined,
-      this.sourceId
+      this.sourceId,
+      this.contentVersion
     );
   }
 
@@ -197,6 +202,7 @@ export class Block {
 
   /**
    * 블록 콘텐츠 업데이트
+   * - content, contentRaw 설정 시 contentVersion을 1 증가시킴 (한 번의 변경당 한 번만 증가)
    *
    * @param content - JSONB 콘텐츠 (TipTap JSON, 기타 구조화된 콘텐츠)
    * @param contentRaw - Markdown 텍스트 (AI context용, 선택적)
@@ -213,6 +219,22 @@ export class Block {
     if (contentRaw !== undefined) {
       (this as any).contentRaw = contentRaw;
     }
+    this.contentVersion += 1;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * content_version만 증가 (콘텐츠는 변경하지 않을 때 사용)
+   * - updateContent()는 이미 content 변경 시 version을 증가시키므로, 별도 호출 시에만 사용
+   */
+  incrementContentVersion(): void {
+    if (this.isDeleted()) {
+      throw new BlockManagementError(
+        'BLOCK_ALREADY_DELETED',
+        'Cannot modify deleted block'
+      );
+    }
+    this.contentVersion += 1;
     this.updatedAt = new Date();
   }
 

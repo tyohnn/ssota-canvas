@@ -1,12 +1,6 @@
 'use server';
 
 import type { WorkspaceActionContext } from '@/domains/common/auth/types';
-import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
-import {
-  DrizzleEventLogRepository,
-  EventLogService,
-} from '@/domains/event-management';
-import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -64,26 +58,10 @@ async function updateBlockContentInternal(
     const userId: UserId = new UserId(context.authenticatedUser.id);
     const blockRepository = new DrizzleBlockRepository();
 
-    const blockMountRepository = new DrizzleBlockMountRepository();
-    const pageId = await blockMountRepository.findOnePageIdByBlockId(
-      safeDto.blockId
-    );
-    let eventLogPolicyContext: EventLogPolicyContext | undefined;
-    if (pageId) {
-      const eventLogRepo = new DrizzleEventLogRepository();
-      const eventLogService = new EventLogService(eventLogRepo);
-      eventLogPolicyContext = {
-        eventLogService,
-        userId: context.authenticatedUser.id,
-        pageId,
-      };
-    }
-
     const updateResult = await updateBlockContent(
       safeDto,
       userId,
-      blockRepository,
-      eventLogPolicyContext
+      blockRepository
     );
 
     // 3. Result 처리

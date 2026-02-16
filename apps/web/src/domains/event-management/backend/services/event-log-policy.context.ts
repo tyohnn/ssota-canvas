@@ -11,4 +11,6 @@ export interface EventLogPolicyContext {
   blockType?: string;
   pageId?: string;
   blockId?: string;
+  /** When true, block_updated audit log is written immediately (e.g. blur). When false, service may throttle to 60s. */
+  forceBlockUpdatedLog?: boolean;
 }

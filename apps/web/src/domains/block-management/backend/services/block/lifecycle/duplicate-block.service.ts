@@ -152,7 +152,9 @@ export async function duplicateBlocks(
       block.updatedAt,
       block.deletedAt,
       block.content,
-      block.createdByProfile
+      block.createdByProfile,
+      block.sourceId,
+      block.contentVersion
     );
   });
 

@@ -78,6 +78,7 @@
     "canvas-confetti": "^1.9.3",
     "cjk-slug": "^0.3.1",
     "class-variance-authority": "^0.7.1",
+    "diff-match-patch": "^1.0.5",
     "drizzle-orm": "^0.45.1",
     "elkjs": "^0.10.0",
     "fractional-indexing": "^3.2.0",

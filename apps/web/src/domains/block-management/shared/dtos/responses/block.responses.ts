@@ -42,6 +42,15 @@ export interface BlockContentUpdatedDTO {
 }
 
 /**
+ * 블록 콘텐츠 Step 적용 후 반환되는 DTO (ProseMirror steps)
+ */
+export interface BlockContentStepsAppliedDTO {
+  blockId: string;
+  newVersion: number;
+  updatedAt: Date;
+}
+
+/**
  * 커스텀 속성 생성/업데이트 후 반환되는 DTO
  */
 export interface CustomPropertyMutationDTO {

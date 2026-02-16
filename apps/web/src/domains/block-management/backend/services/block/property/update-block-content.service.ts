@@ -1,43 +1,38 @@
 /**
  * Block 콘텐츠 업데이트 서비스 로직
+ *
+ * 항상 step 저장 경로만 사용: full doc을 ReplaceStep 하나로 변환 후 applyBlockContentSteps 호출.
  */
-import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { Node, Slice } from '@tiptap/pm/model';
+import { ReplaceStep } from '@tiptap/pm/transform';
 import { Result } from '@/utils/result';
 
-import { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
-import type { UpdateBlockContentCommand } from '../../../../shared/commands';
 import type { UpdateBlockContentRequest } from '../../../../shared/dtos/requests/block.requests';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
 import { BlockId } from '../../../../shared/value-objects/block-id.vo';
+import { EMPTY_TIPTAP_DOC } from '../../../../shared/utils/tiptap-markdown.utils';
+import { pmSchema } from '../../../../shared/utils/prosemirror-schema';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
+import { applyBlockContentSteps } from './apply-block-content-steps.service';
 
 /**
- * 블록 콘텐츠 업데이트
+ * 블록 콘텐츠 업데이트 (step 경로만 사용)
  *
- * ✅ Event Storming + DDD 패턴:
- * - SafeDTO를 입력으로 받음
- * - SafeDTO → Command 변환
- * - Aggregate에 Command 전달
+ * full doc을 전체 교체용 ReplaceStep 하나로 변환한 뒤 applyBlockContentSteps를 호출.
  *
- * @param safeDto - 검증된 블록 콘텐츠 업데이트 요청 (SafeDTO)
+ * @param safeDto - 검증된 블록 콘텐츠 업데이트 요청
  * @param blockRepository - Block Repository
- * @param eventLogPolicyContext - 선택: 제공 시 BlockUpdatedEvent에서 block_updated 로깅
  * @returns 업데이트된 시간 정보
  */
 export async function updateBlockContent(
   safeDto: UpdateBlockContentRequest,
   safeUserId: UserId,
-  blockRepository: IBlockRepository,
-  eventLogPolicyContext?: EventLogPolicyContext
+  blockRepository: IBlockRepository
 ): Promise<Result<{ updatedAt: Date }, Error>> {
   try {
-    // 1. SafeDTO → Value Objects 생성
     const blockId = new BlockId(safeDto.blockId);
 
-    // 2. 블록 조회
-    // Note: Block ownership is already verified by authorizeBlockInWorkspace
-    // in the action layer. This service should only be called from authorized actions.
     const block = await blockRepository.findById(blockId);
     if (!block) {
       return Result.error(
@@ -45,34 +40,29 @@ export async function updateBlockContent(
       );
     }
 
-    // 3. Aggregate 재구성
-    const aggregate = BlockAggregate.reconstitute(block);
+    const currentContent =
+      (block.content as object) || EMPTY_TIPTAP_DOC;
+    const currentDoc = Node.fromJSON(pmSchema, currentContent);
+    const newDoc = Node.fromJSON(pmSchema, safeDto.content as object);
+    const slice = new Slice(newDoc.content, 0, 0);
+    const step = new ReplaceStep(1, currentDoc.content.size, slice);
+    const stepJSON = step.toJSON();
 
-    // 4. SafeDTO → Command 변환
-    const command: UpdateBlockContentCommand = {
-      content: safeDto.content,
-      contentRaw: safeDto.contentRaw,
-      userId: safeUserId,
-    };
-
-    // 5. 블록 콘텐츠 업데이트
-    aggregate.updateContent(command);
-
-    // 6. 블록 업데이트
-    const updatedBlock = aggregate.getBlock();
-    await blockRepository.update(updatedBlock);
-
-    // 7. 도메인 이벤트 처리 (context 있으면 block_updated 로깅)
-    const events = aggregate.getUncommittedEvents();
-    await Promise.allSettled(
-      events.map(event => event.handle(eventLogPolicyContext))
+    const stepsResult = await applyBlockContentSteps(
+      {
+        blockId: safeDto.blockId,
+        steps: [stepJSON],
+        baseVersion: block.contentVersion,
+      },
+      safeUserId,
+      blockRepository
     );
 
-    // 8. 이벤트 커밋
-    aggregate.markEventsAsCommitted();
+    if (stepsResult.isError()) {
+      return Result.error(stepsResult.error);
+    }
 
-    // 9. 업데이트된 시간 반환
-    return Result.success({ updatedAt: updatedBlock.updatedAt });
+    return Result.success({ updatedAt: stepsResult.value.updatedAt });
   } catch (error) {
     if (error instanceof BlockManagementError) {
       return Result.error(error);

@@ -2,14 +2,14 @@
  * Note Section Container
  *
  * Editor Panel의 Note 탭 컴포넌트
- * 기존 BlockContentSection의 기능을 유지하면서 탭 시스템에 통합
+ * useBlockNoteTiptap을 사용하는 useMarkdownContentSection으로 편집 로직 통합
  */
 
 'use client';
 
+import { useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
 
-import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
@@ -28,18 +28,9 @@ export default function NoteSection({
 }: MarkdownContentSectionProps) {
   const { getNode, updateNode } = useReactFlow();
   const { readonly } = useCanvasReadOnly();
-  const { updateBlockContent } = useUpdateBlockContent({
-    reactFlow: {
-      getNode,
-      updateNode: (nodeId: string, options: { data: BlockNodeData }) => {
-        updateNode(nodeId, options);
-      },
-    },
-  });
+  const contentVersionRef = useRef<number>(blockData.contentVersion ?? 0);
 
-  // Markdown Content Section Hook 사용 (readonly면 에디터 수정 불가)
   const { editor, handleEditorClick } = useMarkdownContentSection({
-    blockId,
     blockData,
     readonly,
     dependencies: {
@@ -49,7 +40,7 @@ export default function NoteSection({
           updateNode(nodeId, options);
         },
       },
-      updateBlockContent,
+      contentVersionRef,
     },
   });
 

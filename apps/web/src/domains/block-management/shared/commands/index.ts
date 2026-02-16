@@ -34,6 +34,17 @@ export interface UpdateBlockContentCommand {
   userId: UserId;
 }
 
+/** Aggregate command for the "apply content steps" use case (content + contentRaw after server applied steps). */
+export interface ApplyContentStepsCommand {
+  content: unknown;
+  contentRaw?: string;
+  userId: UserId;
+  /** For audit log: steps applied (omit full doc in event_log). */
+  steps?: unknown[];
+  baseVersion?: number;
+  newVersion?: number;
+}
+
 export interface DeleteBlockCommand {
   userId: UserId;
 }
