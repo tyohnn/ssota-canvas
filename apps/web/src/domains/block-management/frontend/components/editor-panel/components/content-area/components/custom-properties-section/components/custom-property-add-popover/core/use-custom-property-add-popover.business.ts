@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useCustomProperty } from '@/domains/block-management/frontend/hooks/use-custom-property';
+import { useCustomProperty } from '@/domains/block-management/frontend/hooks';
 import { PropertyType } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
 import { useCustomPropertiesSectionContext } from '../../../core/context';
 

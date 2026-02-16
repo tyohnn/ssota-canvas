@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useCustomProperty } from '@/domains/block-management/frontend/hooks/use-custom-property';
+import { useCustomProperty } from '@/domains/block-management/frontend/hooks';
 import { useCustomPropertyItemContext } from '../../../core/context';
 import type { DetailPopoverField } from './types';
 import type { DetailPopoverContextValue } from './context';
