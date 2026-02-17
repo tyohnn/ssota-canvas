@@ -2,6 +2,11 @@
 
 import type { EdgeActionContext } from './secure-action';
 import { withSingleEdgeSecureAction } from './secure-action';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -35,11 +40,20 @@ async function updateEdgeShapeInternal(
     const userId = new UserId(context.authenticatedUser.id);
     const edgeRepository = new DrizzleEdgeRepository();
 
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: context.authenticatedUser.id,
+      pageId: context.page.pageId.value,
+    };
+
     const result = await updateEdgeShape(
       context.edgeAggregate,
       safeDto.newShape,
       userId,
-      edgeRepository
+      edgeRepository,
+      eventLogPolicyContext
     );
 
     if (result.isError()) {

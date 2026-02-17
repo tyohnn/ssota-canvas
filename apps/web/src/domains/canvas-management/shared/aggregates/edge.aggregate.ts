@@ -120,6 +120,7 @@ export class EdgeAggregate {
    * @param command - UpdateEdgeShapeCommand
    */
   updateEdgeShape(command: UpdateEdgeShapeCommand): void {
+    const oldShape = this.edge.edgeShape;
     this.edge.updateShape(command.newShape);
 
     // Domain Event 발생 (Command → Event 1:1 대응)
@@ -127,6 +128,7 @@ export class EdgeAggregate {
       this.edge.id,
       {
         edgeId: this.edge.id,
+        oldShape,
         newShape: command.newShape,
       },
       this.edge.updatedAt
@@ -144,6 +146,7 @@ export class EdgeAggregate {
    * @param command - UpdateEdgeLabelCommand
    */
   updateEdgeLabel(command: UpdateEdgeLabelCommand): void {
+    const oldLabel = this.edge.edgeLabel;
     this.edge.updateLabel(command.newLabel);
 
     // Domain Event 발생 (Command → Event 1:1 대응)
@@ -151,6 +154,7 @@ export class EdgeAggregate {
       this.edge.id,
       {
         edgeId: this.edge.id,
+        oldLabel,
         newLabel: command.newLabel,
       },
       this.edge.updatedAt
@@ -168,6 +172,7 @@ export class EdgeAggregate {
    * @param command - UpdateEdgeStyleCommand
    */
   updateEdgeStyle(command: UpdateEdgeStyleCommand): void {
+    const oldStyle = this.edge.edgeStyle;
     this.edge.updateStyle(command.style);
 
     // Domain Event 발생 (Command → Event 1:1 대응)
@@ -175,7 +180,8 @@ export class EdgeAggregate {
       this.edge.id,
       {
         edgeId: this.edge.id,
-        style: command.style,
+        oldStyle,
+        newStyle: this.edge.edgeStyle,
       },
       this.edge.updatedAt
     );
@@ -189,24 +195,37 @@ export class EdgeAggregate {
    * @param command - UpdateEdgeMarkerCommand
    */
   updateEdgeMarker(command: UpdateEdgeMarkerCommand): void {
+    const oldMarkerEnd = this.edge.markerEnd;
+    const oldMarkerStart = this.edge.markerStart;
+
     if (command.marker === 'start') {
       this.edge.changeMarkerStart(
         command.value === 'none' ? null : command.value
       );
+      const event = new EdgeMarkersChangedEvent(
+        this.edge.id,
+        {
+          edgeId: this.edge.id,
+          markerStart: {
+            previous: oldMarkerStart,
+            current: this.edge.markerStart,
+          },
+        },
+        this.edge.updatedAt
+      );
+      this._uncommittedEvents.push(event);
     } else {
       this.edge.changeMarkerEnd(command.value);
+      const event = new EdgeMarkersChangedEvent(
+        this.edge.id,
+        {
+          edgeId: this.edge.id,
+          markerEnd: { previous: oldMarkerEnd, current: this.edge.markerEnd },
+        },
+        this.edge.updatedAt
+      );
+      this._uncommittedEvents.push(event);
     }
-
-    const event = new EdgeMarkersChangedEvent(
-      this.edge.id,
-      {
-        edgeId: this.edge.id,
-        markerEnd: this.edge.markerEnd,
-        markerStart: this.edge.markerStart,
-      },
-      this.edge.updatedAt
-    );
-    this._uncommittedEvents.push(event);
   }
 
   /**

@@ -1,6 +1,5 @@
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { AgentExecutionId } from '../../shared/value-objects/agent-execution-id.vo';
 import { EventId } from '../../shared/value-objects/event-id.vo';
 import { EventLogRepository } from '../repositories/interfaces/event-log.repository.interface';
@@ -153,7 +152,7 @@ export class EventLogService {
     aggregate.logBlockCreated({
       pageId: new PageId(params.pageId),
       userId: new UserId(params.userId),
-      blockId: new BlockId(params.blockId),
+      blockId: params.blockId,
       blockType: params.blockType,
       properties: params.properties,
       agentExecutionId: params.agentExecutionId
@@ -170,29 +169,21 @@ export class EventLogService {
   }
 
   /**
-   * block_updated audit log: only when force is true (blur/unmount).
-   * When force is false (e.g. 500ms debounce), do not log — so the event log
-   * always reflects "user finished editing", not a partial first-500ms change.
+   * block_updated audit log.
+   * 호출 시 항상 기록 (콘텐츠 blur는 logBlockUpdatedAuditAction, 제목/속성은 domain event에서 호출).
    */
-  async logBlockUpdated(
-    params: {
-      pageId: string;
-      userId: string;
-      blockId: string;
-      changes: Record<string, unknown>;
-      agentExecutionId?: string;
-    },
-    options?: { force?: boolean }
-  ): Promise<string> {
-    if (!options?.force) {
-      return '';
-    }
-
+  async logBlockUpdated(params: {
+    pageId: string;
+    userId: string;
+    blockId: string;
+    changes: Record<string, unknown>;
+    agentExecutionId?: string;
+  }): Promise<string> {
     const aggregate = new EventLogAggregate();
     aggregate.logBlockUpdated({
       pageId: new PageId(params.pageId),
       userId: new UserId(params.userId),
-      blockId: new BlockId(params.blockId),
+      blockId: params.blockId,
       changes: params.changes,
       agentExecutionId: params.agentExecutionId
         ? new AgentExecutionId(params.agentExecutionId)
@@ -240,7 +231,7 @@ export class EventLogService {
     aggregate.logBlockDeleted({
       pageId: new PageId(params.pageId),
       userId: new UserId(params.userId),
-      blockId: new BlockId(params.blockId),
+      blockId: params.blockId,
       agentExecutionId: params.agentExecutionId
         ? new AgentExecutionId(params.agentExecutionId)
         : undefined,

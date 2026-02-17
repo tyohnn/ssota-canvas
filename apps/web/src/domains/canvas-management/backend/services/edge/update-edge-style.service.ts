@@ -1,6 +1,7 @@
 /**
  * Edge 스타일 업데이트 서비스 로직
  */
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import type { EdgeRepository } from '@/domains/canvas-management/backend/repositories/interfaces/edge.repository.interface';
 import type { EdgeAggregate } from '@/domains/canvas-management/shared/aggregates/edge.aggregate';
 import type { UpdateEdgeStyleCommand } from '@/domains/canvas-management/shared/commands';
@@ -18,7 +19,8 @@ export async function updateEdgeStyle(
   safeEdgeAggregate: EdgeAggregate,
   style: { stroke?: string; strokeWidth?: number },
   safeUserId: UserId,
-  edgeRepository: EdgeRepository
+  edgeRepository: EdgeRepository,
+  eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<Result<EdgeAggregate, Error>> {
   try {
     const command: UpdateEdgeStyleCommand = {
@@ -32,7 +34,9 @@ export async function updateEdgeStyle(
     await edgeRepository.update(safeEdgeAggregate);
 
     const events = safeEdgeAggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map(event => event.handle(eventLogPolicyContext))
+    );
 
     safeEdgeAggregate.markEventsAsCommitted();
 

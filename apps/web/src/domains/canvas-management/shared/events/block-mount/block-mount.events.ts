@@ -1,4 +1,5 @@
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
+import { uuidToSlug } from '@/lib/utils';
 import type { EventLogPolicyContext } from '@/domains/event-management';
 
 import { PageId } from '../../../../workspace-management/shared/value-objects/page-id.vo';
@@ -41,7 +42,7 @@ export class BlockMountedEvent implements DomainEvent {
       .logBlockCreated({
         pageId: this.data.pageId.value,
         userId: ctx.userId,
-        blockId: this.data.blockId.value,
+        blockId: uuidToSlug(this.data.blockId.value),
         blockType,
       })
       .catch(() => { });
@@ -81,7 +82,7 @@ export class BlockMountDeletedEvent implements DomainEvent {
       .logBlockMountSoftDeleted({
         pageId: ctx.pageId,
         userId: ctx.userId,
-        blockMountId: this.data.blockMountId.value,
+        blockMountId: uuidToSlug(this.data.blockMountId.value),
       })
       .catch(() => { });
   }
@@ -127,7 +128,7 @@ export class BlockMountDuplicatedEvent implements DomainEvent {
       .logBlockCreated({
         pageId: ctx.pageId,
         userId: ctx.userId,
-        blockId: this.data.duplicatedBlockId,
+        blockId: uuidToSlug(this.data.duplicatedBlockId),
         blockType: this.data.duplicatedBlockType,
       })
       .catch(() => { });
@@ -171,7 +172,7 @@ export class MultipleBlockMountsDeletedEvent implements DomainEvent {
       .logBlockMountsSoftDeleted({
         pageId: ctx.pageId,
         userId: ctx.userId,
-        blockMountIds: this.data.deletedBlockMountIds,
+        blockMountIds: this.data.deletedBlockMountIds.map(uuidToSlug),
       })
       .catch(() => { });
   }
@@ -205,7 +206,7 @@ export class BlockMovedToPageEvent implements DomainEvent {
       .logBlockMountUpdated({
         pageId,
         userId: ctx.userId,
-        blockMountId: this.data.blockMountId.value,
+        blockMountId: uuidToSlug(this.data.blockMountId.value),
         changes: {
           movedToPage: this.data.newPageId.value,
           previousPageId: this.data.previousPageId.value,
@@ -244,7 +245,7 @@ export class GroupCreatedFromNodesEvent implements DomainEvent {
       .logBlockMountUpdated({
         pageId: ctx.pageId,
         userId: ctx.userId,
-        blockMountId: this.data.groupBlockMountId,
+        blockMountId: uuidToSlug(this.data.groupBlockMountId),
         changes: {
           groupCreated: true,
           childBlockMountIds: this.data.childBlockMountIds,

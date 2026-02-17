@@ -1,3 +1,4 @@
+import { uuidToSlug } from '@/lib/utils';
 import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 
@@ -61,7 +62,7 @@ export class BlockPositionUpdatedEvent implements DomainEvent {
       .logBlockMountUpdated({
         pageId: ctx.pageId,
         userId: ctx.userId,
-        blockMountId: this.data.blockMountId.value,
+        blockMountId: uuidToSlug(this.data.blockMountId.value),
         changes: {
           position: {
             x: this.data.newPosition.x,
@@ -106,7 +107,7 @@ export class BlockSizeUpdatedEvent implements DomainEvent {
       .logBlockMountUpdated({
         pageId: ctx.pageId,
         userId: ctx.userId,
-        blockMountId: this.data.blockMountId.value,
+        blockMountId: uuidToSlug(this.data.blockMountId.value),
         changes,
       })
       .catch(() => {});

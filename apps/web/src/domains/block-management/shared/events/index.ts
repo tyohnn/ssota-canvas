@@ -1,3 +1,4 @@
+import { createTextPatch, uuidToSlug } from '@/lib/utils';
 import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
@@ -92,7 +93,7 @@ export class BlockUpdatedEvent implements DomainEvent {
       .logBlockUpdated({
         pageId,
         userId: ctx.userId,
-        blockId: this.data.blockId.value,
+        blockId: uuidToSlug(this.data.blockId.value),
         changes: this.data.updateData,
       })
       .catch(() => { });
@@ -193,6 +194,7 @@ export class BlockTitleUpdatedEvent implements DomainEvent {
   /**
    * Policy: When BlockTitleUpdated → log block_updated to event_log.
    * pageId는 context에 있으면 사용, 없으면 getPageIdForBlock(blockId)로 핸들러에서 직접 조회.
+   * title은 patch 형식으로 저장 (block content와 동일).
    */
   private async applyEventLogPolicy(context?: unknown): Promise<void> {
     const ctx = context as EventLogPolicyContext | undefined;
@@ -202,12 +204,14 @@ export class BlockTitleUpdatedEvent implements DomainEvent {
       pageId = (await ctx.getPageIdForBlock(this.data.blockId.value)) ?? undefined;
     }
     if (!pageId) return;
+    const patch = createTextPatch(this.data.oldTitle, this.data.newTitle);
+    if (!patch) return;
     await ctx.eventLogService
       .logBlockUpdated({
         pageId,
         userId: ctx.userId,
-        blockId: this.data.blockId.value,
-        changes: { title: this.data.newTitle },
+        blockId: uuidToSlug(this.data.blockId.value),
+        changes: { title: { patch } },
       })
       .catch(() => { });
   }

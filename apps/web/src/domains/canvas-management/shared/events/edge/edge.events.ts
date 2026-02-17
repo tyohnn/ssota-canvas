@@ -1,3 +1,4 @@
+import { createTextPatch, uuidToSlug } from '@/lib/utils';
 import type { EventLogPolicyContext } from '@/domains/event-management';
 import { PageId } from '../../../../workspace-management/shared/value-objects/page-id.vo';
 import type { MarkerType } from '../../types/marker-type';
@@ -5,6 +6,7 @@ import { BlockMountId } from '../../value-objects/block-mount-id.vo';
 import { EdgeHandle } from '../../value-objects/edge-handle.vo';
 import { EdgeId } from '../../value-objects/edge-id.vo';
 import { EdgeShape } from '../../value-objects/edge-shape.vo';
+import type { EdgeStyle } from '../../value-objects/edge-style.vo';
 import type { DomainEvent } from '../domain-event';
 
 // EdgeCreatedEvent
@@ -34,9 +36,9 @@ export class EdgeCreatedEvent implements DomainEvent {
       .logEdgeCreated({
         pageId,
         userId: ctx.userId,
-        edgeId: this.data.edgeId.value,
-        sourceBlockMountId: this.data.sourceBlockMountId.value,
-        targetBlockMountId: this.data.targetBlockMountId.value,
+        edgeId: uuidToSlug(this.data.edgeId.value),
+        sourceBlockMountId: uuidToSlug(this.data.sourceBlockMountId.value),
+        targetBlockMountId: uuidToSlug(this.data.targetBlockMountId.value),
       })
       .catch(() => { });
   }
@@ -54,21 +56,33 @@ export class EdgeShapeChangedEvent implements DomainEvent {
     public readonly aggregateId: EdgeId,
     public readonly data: {
       edgeId: EdgeId;
+      oldShape: EdgeShape;
       newShape: EdgeShape;
     },
     public readonly occurredAt: Date
   ) { }
 
-  /**
-   * Event 발생 시 Policy 실행
-   */
-  async handle(): Promise<void> {
-    await Promise.allSettled([
-      // Policy 구현 예시:
-      // - 엣지 변경 이력 기록
-      // - 버전 관리 시스템 업데이트
-      // - 감사 로그 생성
-    ]);
+  /** 감사 로그: edge_updated (shape) 기록 — 이전값·현재값 */
+  private async applyEventLogPolicy(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    await ctx.eventLogService
+      .logEdgeUpdated({
+        pageId: ctx.pageId,
+        userId: ctx.userId,
+        edgeId: uuidToSlug(this.data.edgeId.value),
+        changes: {
+          shape: {
+            previous: this.data.oldShape.value,
+            current: this.data.newShape.value,
+          },
+        },
+      })
+      .catch(() => { });
+  }
+
+  async handle(context?: unknown): Promise<void> {
+    await Promise.allSettled([this.applyEventLogPolicy(context)]);
   }
 }
 
@@ -80,21 +94,24 @@ export class EdgeLabelChangedEvent implements DomainEvent {
     public readonly aggregateId: EdgeId,
     public readonly data: {
       edgeId: EdgeId;
+      oldLabel: string;
       newLabel: string;
     },
     public readonly occurredAt: Date
   ) { }
 
-  /** 감사 로그: edge_updated (label) 기록 */
+  /** 감사 로그: edge_updated (label) 기록 — patch 형식 (block content와 동일) */
   private async applyEventLogPolicy(context?: unknown): Promise<void> {
     const ctx = context as EventLogPolicyContext | undefined;
     if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    const patch = createTextPatch(this.data.oldLabel, this.data.newLabel);
+    if (!patch) return;
     await ctx.eventLogService
       .logEdgeUpdated({
         pageId: ctx.pageId,
         userId: ctx.userId,
-        edgeId: this.data.edgeId.value,
-        changes: { label: this.data.newLabel },
+        edgeId: uuidToSlug(this.data.edgeId.value),
+        changes: { label: { patch } },
       })
       .catch(() => { });
   }
@@ -112,27 +129,40 @@ export class EdgeStyleChangedEvent implements DomainEvent {
     public readonly aggregateId: EdgeId,
     public readonly data: {
       edgeId: EdgeId;
-      style: {
-        stroke?: string;
-        strokeWidth?: number;
-      };
+      oldStyle: EdgeStyle;
+      newStyle: EdgeStyle;
     },
     public readonly occurredAt: Date
   ) { }
 
-  /**
-   * Event 발생 시 Policy 실행
-   */
-  async handle(): Promise<void> {
+  /** 감사 로그: edge_updated (style) 기록 — 바뀐 것만 저장 (color 또는 thickness) */
+  private async applyEventLogPolicy(context?: unknown): Promise<void> {
+    const ctx = context as EventLogPolicyContext | undefined;
+    if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    const old = this.data.oldStyle;
+    const cur = this.data.newStyle;
+    const style: Record<string, { previous: unknown; current: unknown }> = {};
+    if (old.color !== cur.color) style.color = { previous: old.color, current: cur.color };
+    if (old.thickness !== cur.thickness)
+      style.thickness = { previous: old.thickness, current: cur.thickness };
+    if (Object.keys(style).length === 0) return;
+    await ctx.eventLogService
+      .logEdgeUpdated({
+        pageId: ctx.pageId,
+        userId: ctx.userId,
+        edgeId: uuidToSlug(this.data.edgeId.value),
+        changes: { style },
+      })
+      .catch(() => { });
+  }
 
-    await Promise.allSettled([
-      // Policy 구현 예시:
-      // - 엣지 스타일 변경 이력 기록
-    ]);
+  async handle(context?: unknown): Promise<void> {
+    await Promise.allSettled([this.applyEventLogPolicy(context)]);
   }
 }
 
 // EdgeMarkersChangedEvent
+// 바뀐 것만 저장 (markerEnd 또는 markerStart 중 하나)
 export class EdgeMarkersChangedEvent implements DomainEvent {
   readonly type = 'EdgeMarkersChanged';
 
@@ -140,25 +170,29 @@ export class EdgeMarkersChangedEvent implements DomainEvent {
     public readonly aggregateId: EdgeId,
     public readonly data: {
       edgeId: EdgeId;
-      markerEnd: MarkerType;
-      markerStart: MarkerType | null;
+      markerEnd?: { previous: MarkerType; current: MarkerType };
+      markerStart?: {
+        previous: MarkerType | null;
+        current: MarkerType | null;
+      };
     },
     public readonly occurredAt: Date
   ) { }
 
-  /** 감사 로그: edge_updated (markers) 기록 */
+  /** 감사 로그: edge_updated (markers) 기록 — 바뀐 마커만 저장 */
   private async applyEventLogPolicy(context?: unknown): Promise<void> {
     const ctx = context as EventLogPolicyContext | undefined;
     if (!ctx?.eventLogService || !ctx?.userId || !ctx?.pageId) return;
+    const changes: Record<string, unknown> = {};
+    if (this.data.markerEnd) changes.markerEnd = this.data.markerEnd;
+    if (this.data.markerStart) changes.markerStart = this.data.markerStart;
+    if (Object.keys(changes).length === 0) return;
     await ctx.eventLogService
       .logEdgeUpdated({
         pageId: ctx.pageId,
         userId: ctx.userId,
-        edgeId: this.data.edgeId.value,
-        changes: {
-          markerEnd: this.data.markerEnd,
-          markerStart: this.data.markerStart,
-        },
+        edgeId: uuidToSlug(this.data.edgeId.value),
+        changes,
       })
       .catch(() => { });
   }
@@ -188,7 +222,7 @@ export class EdgeDeletedEvent implements DomainEvent {
       .logEdgeDeleted({
         pageId: ctx.pageId,
         userId: ctx.userId,
-        edgeId: this.data.edgeId.value,
+        edgeId: uuidToSlug(this.data.edgeId.value),
       })
       .catch(() => { });
   }

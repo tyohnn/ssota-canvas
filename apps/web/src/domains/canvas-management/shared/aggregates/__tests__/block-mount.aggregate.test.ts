@@ -51,7 +51,7 @@ describe('BlockMountAggregate', () => {
 
       // Then
       expect(events).toHaveLength(1);
-      expect(events[0]! .type).toBe('BlockMounted');
+      expect(events[0]!.type).toBe('BlockMounted');
       expect(events[0]!.data.pageId).toEqual(pageId);
       expect(events[0]!.data.blockId).toEqual(blockId);
       expect(events[0]!.data.position).toEqual(position);

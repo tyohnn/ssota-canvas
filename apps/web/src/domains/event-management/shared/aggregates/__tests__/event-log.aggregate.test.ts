@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { AgentExecutionId } from '../../value-objects/agent-execution-id.vo';
 import { EventId } from '../../value-objects/event-id.vo';
 import { EventLogAggregate } from '../event-log.aggregate';
@@ -184,7 +183,7 @@ describe('EventLogAggregate', () => {
   describe('logBlockCreated', () => {
     it('블럭 생성을 로깅하고 BlockCreatedLoggedEvent를 발행해야 한다', () => {
       const command: LogBlockCreatedCommand = {
-        blockId: new BlockId('d3aabc99-8c1b-4ef8-cc6d-7cc9cd490b22'),
+        blockId: 'd3aabc99',
         blockType: 'markdown',
         pageId,
         userId,
@@ -198,7 +197,7 @@ describe('EventLogAggregate', () => {
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(BlockCreatedLoggedEvent);
       const event = events[0] as BlockCreatedLoggedEvent;
-      expect(event.blockId).toBe(command.blockId.value);
+      expect(event.blockId).toBe('d3aabc99');
       expect(event.blockType).toBe('markdown');
       expect(event.properties).toEqual(command.properties);
       expect(event.agentExecutionId).toBe('agent-exec-1');

@@ -95,9 +95,9 @@ export class EventLogAggregate {
         ? command.tokens
         : command.tokens
           ? (command.tokens.input ?? 0) +
-            (command.tokens.output ?? 0) +
-            (command.tokens.reasoning ?? 0) +
-            (command.tokens.cached ?? 0) || undefined
+          (command.tokens.output ?? 0) +
+          (command.tokens.reasoning ?? 0) +
+          (command.tokens.cached ?? 0) || undefined
           : undefined;
 
     const eventId = new EventId(randomUUID());
@@ -172,7 +172,7 @@ export class EventLogAggregate {
     const eventId = new EventId(randomUUID());
     const occurredAt = new Date();
     const payload = {
-      blockId: command.blockId.value,
+      blockId: command.blockId,
       blockType: command.blockType,
       ...(command.properties && { properties: command.properties }),
     };
@@ -192,7 +192,7 @@ export class EventLogAggregate {
       eventId.value,
       command.pageId.value,
       command.userId.value,
-      command.blockId.value,
+      command.blockId,
       command.blockType,
       command.properties,
       command.agentExecutionId?.value,
@@ -205,7 +205,7 @@ export class EventLogAggregate {
   logBlockUpdated(command: LogBlockUpdatedCommand): this {
     const eventId = new EventId(randomUUID());
     const occurredAt = new Date();
-    const payload = { blockId: command.blockId.value, changes: command.changes };
+    const payload = { blockId: command.blockId, changes: command.changes };
 
     this._eventLog = new EventLog(
       eventId,
@@ -222,7 +222,7 @@ export class EventLogAggregate {
       eventId.value,
       command.pageId.value,
       command.userId.value,
-      command.blockId.value,
+      command.blockId,
       command.changes,
       command.agentExecutionId?.value,
       occurredAt
@@ -264,7 +264,7 @@ export class EventLogAggregate {
   logBlockDeleted(command: LogBlockDeletedCommand): this {
     const eventId = new EventId(randomUUID());
     const occurredAt = new Date();
-    const payload = { blockId: command.blockId.value };
+    const payload = { blockId: command.blockId };
 
     this._eventLog = new EventLog(
       eventId,
@@ -281,7 +281,7 @@ export class EventLogAggregate {
       eventId.value,
       command.pageId.value,
       command.userId.value,
-      command.blockId.value,
+      command.blockId,
       command.agentExecutionId?.value,
       occurredAt
     );

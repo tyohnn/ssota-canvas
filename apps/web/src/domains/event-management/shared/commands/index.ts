@@ -4,7 +4,6 @@
 
 import type { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import type { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import type { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import type { EventId } from '../value-objects/event-id.vo';
 import type { AgentExecutionId } from '../value-objects/agent-execution-id.vo';
 
@@ -46,8 +45,9 @@ export interface LogToolCallCommand {
   errorMessage?: string;
 }
 
+/** blockId: slug (8~10 hex). Event log stores slug for audit consistency. */
 export interface LogBlockCreatedCommand {
-  blockId: BlockId;
+  blockId: string;
   blockType: string;
   pageId: PageId;
   userId: UserId;
@@ -55,8 +55,9 @@ export interface LogBlockCreatedCommand {
   agentExecutionId?: AgentExecutionId;
 }
 
+/** blockId: slug (8~10 hex) or UUID. Event log stores as opaque identifier for audit. */
 export interface LogBlockUpdatedCommand {
-  blockId: BlockId;
+  blockId: string;
   pageId: PageId;
   userId: UserId;
   changes: Record<string, unknown>;
@@ -71,9 +72,9 @@ export interface LogBlockMountUpdatedCommand {
   changes: Record<string, unknown>;
 }
 
-/** 블록 엔티티 영구 삭제 (휴지통에서 완전 삭제 시 사용 예정) */
+/** 블록 엔티티 영구 삭제 (휴지통에서 완전 삭제 시 사용 예정). blockId: slug (8~10 hex). */
 export interface LogBlockDeletedCommand {
-  blockId: BlockId;
+  blockId: string;
   pageId: PageId;
   userId: UserId;
   agentExecutionId?: AgentExecutionId;

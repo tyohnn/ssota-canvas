@@ -16,7 +16,7 @@ import { withBlockAggregateSecureAction } from './secure-action';
 
 /**
  * Blur 시 감사 로그만 기록 (block 업데이트 없음).
- * event_log에 block_updated 한 건만 기록하며 changes에는 patch만 저장.
+ * event_log에 block_updated 한 건만 기록하며 changes에는 content: { patch } 저장 (title과 동일 구조).
  * Security: withBlockAggregateSecureAction HOF (워크스페이스 권한 + Block 조회 후 blockAggregate 전달)
  */
 export const logBlockUpdatedAuditAction = withBlockAggregateSecureAction(
@@ -45,15 +45,12 @@ async function logBlockUpdatedAuditInternal(
     const eventLogRepo = new DrizzleEventLogRepository();
     const eventLogService = new EventLogService(eventLogRepo);
 
-    await eventLogService.logBlockUpdated(
-      {
-        pageId,
-        userId: context.authenticatedUser.id,
-        blockId: safeDto.blockId,
-        changes: { patch: safeDto.patch },
-      },
-      { force: true }
-    );
+    await eventLogService.logBlockUpdated({
+      pageId,
+      userId: context.authenticatedUser.id,
+      blockId: safeDto.blockId,
+      changes: { content: { patch: safeDto.patch } },
+    });
 
     return ok({ logged: true });
   } catch (error) {

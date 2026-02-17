@@ -16,6 +16,4 @@ export interface EventLogPolicyContext {
   blockId?: string;
   /** blockId(UUID)로 마운트된 pageId 조회. 이벤트 핸들러가 로깅 시 pageId가 없을 때 직접 호출 */
   getPageIdForBlock?: (blockId: string) => Promise<string | null>;
-  /** When true, block_updated audit log is written immediately (e.g. blur). When false, service may throttle to 60s. */
-  forceBlockUpdatedLog?: boolean;
 }
