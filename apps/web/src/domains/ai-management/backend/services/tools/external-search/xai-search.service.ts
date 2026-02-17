@@ -16,24 +16,44 @@ const XAI_SEARCH_MODEL = 'grok-4-1-fast-reasoning';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
-export type XaiSearchIntermediate = {
-  message?: string;
-  step?: string;
-  partialContent?: string;
-  citations?: Array<{ url: string; title?: string }>;
-  steps?: XaiSearchStep[];
+export type XaiSearchSource = {
+  url: string;
+  title?: string;
+  domain: string;
+  faviconUrl?: string;
 };
 
-export type XaiSearchStep = { message?: string; step?: string };
+export type XaiSearchIntermediate = {
+  sources: XaiSearchSource[];
+  summary?: string;
+};
 
 export type XaiSearchFinal = {
-  content: string;
-  citations: Array<{ url: string; title?: string }>;
+  sources: XaiSearchSource[];
   summary: string;
-  steps?: XaiSearchStep[];
 };
 
 export type XaiSearchYield = XaiSearchIntermediate | XaiSearchFinal;
+
+const FAVICON_BASE = 'https://www.google.com/s2/favicons?domain=';
+
+function toDomain(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url || '';
+  }
+}
+
+function citationToSource(c: { url: string; title?: string }): XaiSearchSource {
+  const domain = toDomain(c.url);
+  return {
+    url: c.url,
+    title: c.title,
+    domain,
+    faviconUrl: `${FAVICON_BASE}${encodeURIComponent(domain)}&sz=16`,
+  };
+}
 
 // ─── Service ──────────────────────────────────────────────────────────────
 
@@ -47,13 +67,12 @@ export async function* executeXaiSearch(
 ): AsyncGenerator<XaiSearchYield, XaiSearchFinal, void> {
   const query = typeof args?.query === 'string' && args.query.trim() ? args.query.trim() : '';
   if (!query) {
-    const empty: XaiSearchFinal = { content: '', citations: [], summary: 'No search query provided.' };
+    const empty: XaiSearchFinal = { sources: [], summary: 'No search query provided.' };
     yield empty;
     return empty;
   }
 
-  const steps: XaiSearchStep[] = [{ message: 'Searching…' }];
-  yield { message: 'Searching…' };
+  yield { sources: [], summary: undefined };
 
   const result = streamText({
     model: xai.responses(XAI_SEARCH_MODEL),
@@ -77,7 +96,7 @@ Requirements:
 
   let content = '';
   const citations: Array<{ url: string; title?: string }> = [];
-  let lastYieldedCitationCount = 0;
+  let lastYieldedSourceCount = 0;
 
   for await (const part of result.fullStream) {
     if (part.type === 'text-delta') {
@@ -90,40 +109,25 @@ Requirements:
       });
     }
 
+    const sources: XaiSearchSource[] = citations.map(citationToSource);
+
     if (part.type === 'tool-result') {
-      const stepName = (part as { toolName?: string }).toolName ?? 'search';
-      const stepEntry: XaiSearchStep = { message: `${stepName} completed`, step: stepName };
-      steps.push(stepEntry);
       yield {
-        message: stepEntry.message,
-        step: stepName,
-        partialContent: content.slice(0, 500) + (content.length > 500 ? '…' : ''),
-        citations: [...citations],
-        steps: [...steps],
+        sources,
+        summary: content || undefined,
       };
-    } else if (
-      part.type === 'source' &&
-      citations.length > lastYieldedCitationCount
-    ) {
-      lastYieldedCitationCount = citations.length;
-      const stepEntry: XaiSearchStep = {
-        message: `Found ${citations.length} source${citations.length === 1 ? '' : 's'}`,
-      };
-      steps.push(stepEntry);
+    } else if (part.type === 'source' && sources.length > lastYieldedSourceCount) {
+      lastYieldedSourceCount = sources.length;
       yield {
-        message: stepEntry.message,
-        partialContent: content.slice(0, 300) + (content.length > 300 ? '…' : ''),
-        citations: [...citations],
-        steps: [...steps],
+        sources,
+        summary: content || undefined,
       };
     }
   }
 
   const final: XaiSearchFinal = {
-    content,
-    citations,
-    summary: content.slice(0, 300) + (content.length > 300 ? '…' : ''),
-    steps,
+    sources: citations.map(citationToSource),
+    summary: content,
   };
   yield final;
   return final;

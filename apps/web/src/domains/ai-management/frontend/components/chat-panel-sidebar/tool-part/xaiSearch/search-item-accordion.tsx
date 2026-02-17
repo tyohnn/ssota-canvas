@@ -1,5 +1,6 @@
 'use client';
 
+import { MessageResponse } from '@workspace/ui/components/ai-elements/message';
 import {
   Collapsible,
   CollapsibleContent,
@@ -7,9 +8,11 @@ import {
 } from '@workspace/ui/components/ui/collapsible';
 import { ChevronDownIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ToolCallPart } from '../types';
+import type { ToolCallPart } from '../../types';
+import type { XaiSearchSourceItem, XaiSearchToolOutput } from './types';
 
 const QUERY_MAX = 50;
+const FAVICON_FALLBACK = 'https://www.google.com/s2/favicons?domain=&sz=16';
 
 function getQuery(part: ToolCallPart): string {
   const input = part.input as { query?: string } | undefined;
@@ -18,31 +21,44 @@ function getQuery(part: ToolCallPart): string {
   return '';
 }
 
-export interface SearchItemAccordionProps {
+function getDomain(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url || '';
+  }
+}
+
+function getSources(output: XaiSearchToolOutput | undefined): Array<XaiSearchSourceItem & { domain: string; faviconUrl: string }> {
+  if (!output?.sources?.length) return [];
+  return output.sources.map((s) => ({
+    ...s,
+    domain: s.domain ?? getDomain(s.url),
+    faviconUrl: s.faviconUrl ?? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(s.domain ?? getDomain(s.url))}&sz=16`,
+  }));
+}
+
+export interface XaiSearchAccordionProps {
   part: ToolCallPart;
   partKey: string;
 }
 
 /**
- * One accordion per xaiSearch call. Running = single line "Searching {query} in X".
- * Done = "Searched {query} in X" accordion with fixed-height source list and optional summary.
+ * One accordion per xaiSearch call. Label is "Searching {query}" when in progress, "Searched {query}" when done.
  */
-export function SearchItemAccordion({ part, partKey }: SearchItemAccordionProps) {
+export function XaiSearchAccordion({ part, partKey }: XaiSearchAccordionProps) {
   const state = part.state;
   const query = getQuery(part);
   const queryLabel = query || '…';
-  const output = part.output as
-    | {
-        summary?: string;
-        citations?: Array<{ url: string; title?: string }>;
-      }
-    | undefined;
-  const citations = Array.isArray(output?.citations) ? output.citations : [];
+  const output = part.output as XaiSearchToolOutput | undefined;
+  const sources = getSources(output);
   const summary = output?.summary?.trim();
 
-  const isRunning = state === 'input-streaming' || state === 'input-available';
-  const isDone = state === 'output-available' && part.output != null;
   const isError = state === 'output-error';
+  const isDone = state === 'output-available' && part.output != null && part.preliminary !== true;
+  const isRunning = !isDone && !isError;
+
+  const statusLabel = isRunning ? 'Searching' : 'Searched';
 
   if (isError) {
     return (
@@ -57,7 +73,7 @@ export function SearchItemAccordion({ part, partKey }: SearchItemAccordionProps)
     return (
       <div className="flex w-full items-center gap-2 text-muted-foreground text-sm border-muted border-l-2 pl-4">
         <span className="animate-pulse">⏳</span>
-        <span>Searching {queryLabel} in X</span>
+        <span>{statusLabel} {queryLabel}</span>
       </div>
     );
   }
@@ -73,7 +89,7 @@ export function SearchItemAccordion({ part, partKey }: SearchItemAccordionProps)
           )}
         >
           <ChevronDownIcon className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
-          <span>Searched {queryLabel} in X</span>
+          <span>{statusLabel} {queryLabel}</span>
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent
@@ -81,21 +97,30 @@ export function SearchItemAccordion({ part, partKey }: SearchItemAccordionProps)
           'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0'
         )}
       >
-        <div className="mt-2 space-y-2 border-muted border-l-2 pl-4">
-          {summary && (
-            <p className="text-muted-foreground text-sm line-clamp-2">{summary}</p>
-          )}
+        <div className="mt-2 space-y-2">
+          {summary ? (
+            <div className="text-muted-foreground text-sm max-h-48 overflow-y-auto">
+              <MessageResponse>{summary}</MessageResponse>
+            </div>
+          ) : null}
           <div className="max-h-48 overflow-y-auto space-y-1 text-xs">
-            {citations.map((c, i) => (
-              <div key={`${c.url}-${i}`} className="truncate">
+            {sources.map((s, i) => (
+              <div key={`${s.url}-${i}`} className="flex items-center gap-2 truncate">
+                <img
+                  src={s.faviconUrl || FAVICON_FALLBACK}
+                  alt=""
+                  className="size-4 shrink-0 rounded-sm"
+                  width={16}
+                  height={16}
+                />
                 <a
-                  href={c.url}
+                  href={s.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary hover:underline truncate block"
-                  title={c.url}
+                  className="text-primary hover:underline truncate min-w-0"
+                  title={s.url}
                 >
-                  {c.title || c.url}
+                  {s.domain || getDomain(s.url)}
                 </a>
               </div>
             ))}

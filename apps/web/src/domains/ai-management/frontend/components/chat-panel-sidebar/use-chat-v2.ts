@@ -166,6 +166,10 @@ export function useChatV2() {
         await handleOrganizeLayout(addToolOutput, toolCall.toolCallId, args);
         return;
       }
+      if (toolName === 'xaiSearch') {
+        console.log('[useChatV2] xaiSearch: server-executed (streaming tool result to client)', { toolCallId: toolCall.toolCallId, args });
+        return;
+      }
 
       console.log(`[useChatV2] Tool ${toolName} not handled client-side`);
     },

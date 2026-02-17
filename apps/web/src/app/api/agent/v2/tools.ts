@@ -605,7 +605,7 @@ export const canvasActionTool = {
 // Type Exports
 // ============================================================================
 
-/** V2 agent tool names (includes legacy web_search/x_search for old messages). */
+/** V2 agent tool names  */
 export type V2ToolName =
   | 'xaiSearch'
   | 'renderCanvasdown'
@@ -620,8 +620,6 @@ export type V2ToolName =
   | 'createTodos'
   | 'canvasAction'
   | 'organizeLayout'
-  | 'web_search'
-  | 'x_search';
 
 /** Tool call shape for client typing */
 export interface V2ToolCall {

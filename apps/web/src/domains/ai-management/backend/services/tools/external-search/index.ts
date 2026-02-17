@@ -9,5 +9,5 @@ export type {
   XaiSearchYield,
   XaiSearchFinal,
   XaiSearchIntermediate,
-  XaiSearchStep,
+  XaiSearchSource,
 } from './xai-search.service';

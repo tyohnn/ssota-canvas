@@ -1,5 +1,5 @@
 import { xai } from '@ai-sdk/xai';
-import { streamText, convertToModelMessages } from 'ai';
+import { streamText, convertToModelMessages, stepCountIs } from 'ai';
 import { randomUUID } from 'crypto';
 import type {
   SystemModelMessage,
@@ -304,160 +304,200 @@ export async function POST(req: Request) {
       new DrizzleBlockMountRepository()
     );
 
+    // #region agent log
+    const DEBUG_INGEST = 'http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c';
+    const ctxLog = (message: string, data: Record<string, unknown>) => {
+      fetch(DEBUG_INGEST, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'api/agent/v2/route.ts', message, data, timestamp: Date.now() }) }).catch(() => { });
+    };
+    // #endregion
+
+    // #region agent log — step: request
+    const messageCount = enrichedMessages.length;
+    const lastEnrichedMsg = enrichedMessages[enrichedMessages.length - 1];
+    const lastEnrichedContent = lastEnrichedMsg && 'content' in lastEnrichedMsg ? lastEnrichedMsg.content : undefined;
+    const lastUserContentLength =
+      typeof lastEnrichedContent === 'string'
+        ? lastEnrichedContent.length
+        : Array.isArray(lastEnrichedContent)
+          ? (lastEnrichedContent as { text?: string }[]).reduce((sum, p) => sum + (typeof p?.text === 'string' ? p.text.length : 0), 0)
+          : 0;
+    ctxLog('AgentV2 step: request', {
+      messageCount,
+      lastUserContentLength,
+      contextLength: dynamicContextString.length,
+    });
+    // #endregion
+
     // Main agent uses Responses API for stateful conversation, caching, and full reasoning support.
     const result = streamText({
       model: xai(AGENT_MODEL),
       system: SOPHI_V2_SYSTEM_PROMPT,
       messages: enrichedMessages,
+      stopWhen: stepCountIs(20),
       tools: {
         xaiSearch: {
           ...xaiSearchTool,
-          execute: async (args, opts) => {
-            const res = await executeXaiSearch(args, { abortSignal: opts?.abortSignal });
-            if (pageId) {
-              eventLogService
-                .logToolCall({
-                  pageId,
-                  userId,
-                  toolName: 'xaiSearch',
-                  args: args as Record<string, unknown>,
-                  result: res as unknown as Record<string, unknown>,
-                  success: true,
-                  agentExecutionId: executionId,
-                })
-                .catch(console.error);
-            }
-            return res;
+          onInputStart: (opts) => {
+            ctxLog('AgentV2 tool input: start', { toolName: 'xaiSearch', toolCallId: (opts as { toolCallId?: string }).toolCallId });
           },
-        },
-        renderCanvasdown: renderCanvasdownTool,
-        patchCanvasdown: patchCanvasdownTool,
-        grepBlockContent: {
-          ...grepBlockContentTool,
-          execute: async (args) => {
-            const res = await executeGrepBlockContent(blockSearchRepo, args, { pageId });
-            if (pageId) {
-              eventLogService
-                .logToolCall({
-                  pageId,
-                  userId,
-                  toolName: 'grepBlockContent',
-                  args: args as Record<string, unknown>,
-                  result: res as unknown as Record<string, unknown>,
-                  success: true,
-                  agentExecutionId: executionId,
-                })
-                .catch(console.error);
-            }
-            return res;
+          onInputDelta: ({ inputTextDelta, ...opts }) => {
+            ctxLog('AgentV2 tool input: delta', { toolName: 'xaiSearch', inputTextDelta, toolCallId: (opts as { toolCallId?: string }).toolCallId });
           },
-        },
-        globBlocks: {
-          ...globBlocksTool,
-          execute: async (args) => {
-            const res = await executeGlobBlocks(blockSearchRepo, args, { pageId });
-            if (pageId) {
-              eventLogService
-                .logToolCall({
-                  pageId,
-                  userId,
-                  toolName: 'globBlocks',
-                  args: args as Record<string, unknown>,
-                  result: res as unknown as Record<string, unknown>,
-                  success: true,
-                  agentExecutionId: executionId,
-                })
-                .catch(console.error);
-            }
-            return res;
+          onInputAvailable: (opts: { input: unknown }) => {
+            ctxLog('AgentV2 tool input: available', { toolName: 'xaiSearch', input: opts.input as Record<string, unknown> });
           },
+          execute: (args, opts) =>
+            executeXaiSearch(args, { abortSignal: opts?.abortSignal }),
         },
-        readBlockLines: {
-          ...readBlockLinesTool,
-          execute: async (args) => {
-            const res = await executeReadBlockLines(blockSearchRepo, args, { pageId });
-            if (pageId) {
-              eventLogService
-                .logToolCall({
-                  pageId,
-                  userId,
-                  toolName: 'readBlockLines',
-                  args: args as Record<string, unknown>,
-                  result: res as unknown as Record<string, unknown>,
-                  success: true,
-                  agentExecutionId: executionId,
-                })
-                .catch(console.error);
-            }
-            return res;
-          },
-        },
-        hopSearch: {
-          ...hopSearchTool,
-          execute: async (args) => {
-            const res = await executeHopSearch(connectionSearchRepo, args, { pageId });
-            if (pageId) {
-              eventLogService
-                .logToolCall({
-                  pageId,
-                  userId,
-                  toolName: 'hopSearch',
-                  args: args as Record<string, unknown>,
-                  result: res as unknown as Record<string, unknown>,
-                  success: true,
-                  agentExecutionId: executionId,
-                })
-                .catch(console.error);
-            }
-            return res;
-          },
-        },
-        searchGroup: {
-          ...searchGroupTool,
-          execute: async (args) => {
-            const res = await executeSearchGroup(connectionSearchRepo, args, { pageId });
-            if (pageId) {
-              eventLogService
-                .logToolCall({
-                  pageId,
-                  userId,
-                  toolName: 'searchGroup',
-                  args: args as Record<string, unknown>,
-                  result: res as unknown as Record<string, unknown>,
-                  success: true,
-                  agentExecutionId: executionId,
-                })
-                .catch(console.error);
-            }
-            return res;
-          },
-        },
-        searchBySemantic: {
-          ...searchBySemanticTool,
-          execute: async (args) => {
-            const res = await executeSearchBySemantic(args, { pageId });
-            if (pageId) {
-              eventLogService
-                .logToolCall({
-                  pageId,
-                  userId,
-                  toolName: 'searchBySemantic',
-                  args: args as Record<string, unknown>,
-                  result: res as unknown as Record<string, unknown>,
-                  success: true,
-                  agentExecutionId: executionId,
-                })
-                .catch(console.error);
-            }
-            return res;
-          },
-        },
-        getPageEvents: createGetPageEventsTool(eventSearchService, pageId),
-        grepEvents: createGrepEventsTool(eventSearchService, pageId),
-        editBlockLines: editBlockLinesTool,
-        createTodos: createTodosTool,
-        canvasAction: canvasActionTool,
-        organizeLayout: organizeLayoutTool,
+        // renderCanvasdown: renderCanvasdownTool,
+        // patchCanvasdown: patchCanvasdownTool,
+        // grepBlockContent: {
+        //   ...grepBlockContentTool,
+        //   execute: async (args) => {
+        //     const res = await executeGrepBlockContent(blockSearchRepo, args, { pageId });
+        //     if (pageId) {
+        //       eventLogService
+        //         .logToolCall({
+        //           pageId,
+        //           userId,
+        //           toolName: 'grepBlockContent',
+        //           args: args as Record<string, unknown>,
+        //           result: res as unknown as Record<string, unknown>,
+        //           success: true,
+        //           agentExecutionId: executionId,
+        //         })
+        //         .catch(console.error);
+        //     }
+        //     return res;
+        //   },
+        // },
+        // globBlocks: {
+        //   ...globBlocksTool,
+        //   execute: async (args) => {
+        //     const res = await executeGlobBlocks(blockSearchRepo, args, { pageId });
+        //     if (pageId) {
+        //       eventLogService
+        //         .logToolCall({
+        //           pageId,
+        //           userId,
+        //           toolName: 'globBlocks',
+        //           args: args as Record<string, unknown>,
+        //           result: res as unknown as Record<string, unknown>,
+        //           success: true,
+        //           agentExecutionId: executionId,
+        //         })
+        //         .catch(console.error);
+        //     }
+        //     return res;
+        //   },
+        // },
+        // readBlockLines: {
+        //   ...readBlockLinesTool,
+        //   execute: async (args) => {
+        //     const res = await executeReadBlockLines(blockSearchRepo, args, { pageId });
+        //     if (pageId) {
+        //       eventLogService
+        //         .logToolCall({
+        //           pageId,
+        //           userId,
+        //           toolName: 'readBlockLines',
+        //           args: args as Record<string, unknown>,
+        //           result: res as unknown as Record<string, unknown>,
+        //           success: true,
+        //           agentExecutionId: executionId,
+        //         })
+        //         .catch(console.error);
+        //     }
+        //     return res;
+        //   },
+        // },
+        // hopSearch: {
+        //   ...hopSearchTool,
+        //   execute: async (args) => {
+        //     const res = await executeHopSearch(connectionSearchRepo, args, { pageId });
+        //     if (pageId) {
+        //       eventLogService
+        //         .logToolCall({
+        //           pageId,
+        //           userId,
+        //           toolName: 'hopSearch',
+        //           args: args as Record<string, unknown>,
+        //           result: res as unknown as Record<string, unknown>,
+        //           success: true,
+        //           agentExecutionId: executionId,
+        //         })
+        //         .catch(console.error);
+        //     }
+        //     return res;
+        //   },
+        // },
+        // searchGroup: {
+        //   ...searchGroupTool,
+        //   execute: async (args) => {
+        //     const res = await executeSearchGroup(connectionSearchRepo, args, { pageId });
+        //     if (pageId) {
+        //       eventLogService
+        //         .logToolCall({
+        //           pageId,
+        //           userId,
+        //           toolName: 'searchGroup',
+        //           args: args as Record<string, unknown>,
+        //           result: res as unknown as Record<string, unknown>,
+        //           success: true,
+        //           agentExecutionId: executionId,
+        //         })
+        //         .catch(console.error);
+        //     }
+        //     return res;
+        //   },
+        // },
+        // searchBySemantic: {
+        //   ...searchBySemanticTool,
+        //   execute: async (args) => {
+        //     const res = await executeSearchBySemantic(args, { pageId });
+        //     if (pageId) {
+        //       eventLogService
+        //         .logToolCall({
+        //           pageId,
+        //           userId,
+        //           toolName: 'searchBySemantic',
+        //           args: args as Record<string, unknown>,
+        //           result: res as unknown as Record<string, unknown>,
+        //           success: true,
+        //           agentExecutionId: executionId,
+        //         })
+        //         .catch(console.error);
+        //     }
+        //     return res;
+        //   },
+        // },
+        // getPageEvents: createGetPageEventsTool(eventSearchService, pageId),
+        // grepEvents: createGrepEventsTool(eventSearchService, pageId),
+        // editBlockLines: editBlockLinesTool,
+        // createTodos: createTodosTool,
+        // canvasAction: canvasActionTool,
+        // organizeLayout: organizeLayoutTool,
+      },
+      onStepFinish: ({ toolCalls, toolResults }) => {
+        if (!pageId || !userId) return;
+        const calls = (toolCalls ?? []) as Array<{ toolCallId?: string; toolName?: string; input?: unknown }>;
+        const results = (toolResults ?? []) as Array<{ toolCallId?: string; toolName?: string; result?: unknown }>;
+        for (let i = 0; i < calls.length; i++) {
+          const tc = calls[i];
+          if (tc?.toolName !== 'xaiSearch') continue;
+          const tr = results[i] ?? results.find((r) => r.toolCallId === tc.toolCallId);
+          eventLogService
+            .logToolCall({
+              pageId,
+              userId,
+              toolName: 'xaiSearch',
+              args: (tc.input ?? tc) as Record<string, unknown>,
+              result: (tr?.result ?? tr) as Record<string, unknown>,
+              success: true,
+              agentExecutionId: executionId,
+            })
+            .catch(console.error);
+        }
       },
       onFinish: async (finishArg) => {
         const text = (finishArg as { text?: string }).text;
@@ -471,6 +511,20 @@ export async function POST(req: Request) {
             })
             .catch(console.error);
         }
+        // #region agent log — step: finish + tokens
+        ctxLog('AgentV2 step: finish', {
+          textLength: text?.length ?? 0,
+          textPreview: text ? text.slice(0, 300) : null,
+        });
+        const usage = (finishArg as { usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number } }).usage;
+        if (usage) {
+          ctxLog('AgentV2 tokens', {
+            promptTokens: usage.promptTokens ?? null,
+            completionTokens: usage.completionTokens ?? null,
+            totalTokens: usage.totalTokens ?? null,
+          });
+        }
+        // #endregion
       },
     });
 
@@ -479,7 +533,39 @@ export async function POST(req: Request) {
       sendReasoning: true,
     });
 
-    return response;
+    // #region agent log — step: stream parts (each chunk sent to client)
+    let streamPartIndex = 0;
+    const decoder = new TextDecoder();
+    const loggedBody =
+      response.body &&
+      response.body.pipeThrough(
+        new TransformStream<Uint8Array, Uint8Array>({
+          transform(chunk, controller) {
+            streamPartIndex += 1;
+            const preview = (() => {
+              try {
+                const s = decoder.decode(chunk, { stream: true });
+                return s.length > 200 ? s.slice(0, 200) + '...' : s;
+              } catch {
+                return '(binary)';
+              }
+            })();
+            ctxLog('AgentV2 step: stream_part', {
+              partIndex: streamPartIndex,
+              byteLength: chunk.byteLength,
+              preview: preview.replace(/\n/g, '\\n').slice(0, 250),
+            });
+            controller.enqueue(chunk);
+          },
+        })
+      );
+    const responseToReturn =
+      loggedBody !== undefined
+        ? new Response(loggedBody, { status: response.status, statusText: response.statusText, headers: response.headers })
+        : response;
+    // #endregion
+
+    return responseToReturn;
   } catch (error) {
     console.error('Error in /api/agent/v2:', error);
     return new Response(

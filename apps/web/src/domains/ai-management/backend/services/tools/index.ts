@@ -48,5 +48,5 @@ export type {
   XaiSearchYield,
   XaiSearchFinal,
   XaiSearchIntermediate,
-  XaiSearchStep,
+  XaiSearchSource,
 } from './external-search';

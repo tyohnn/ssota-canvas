@@ -22,11 +22,11 @@ import {
   type ChatPanelMessagePart,
   type ToolCallPart,
   isReasoningPart,
+  isStepStartPart,
   isTextPart,
   isToolPart,
-  isXaiSearchToolPart,
 } from './types';
-import { ChatPanelToolPart } from './tool-part';
+import { ChatPanelToolPart, isXaiSearchToolPart } from './tool-part';
 
 /**
  * Renders assistant messages: text parts as main response (Streamdown), tool parts (e.g. search) as Tasks.
@@ -41,6 +41,7 @@ function AssistantMessageContent({
   isStreaming: boolean;
 }) {
   const parts = (message.parts ?? []) as ChatPanelMessagePart[];
+  const hasStepStart = parts.some(isStepStartPart);
   const reasoningParts = parts.filter(isReasoningPart);
   const textParts = parts.filter(isTextPart);
   const toolParts = parts.filter(isToolPart) as ToolCallPart[];
@@ -51,70 +52,80 @@ function AssistantMessageContent({
 
   const isLastMessage = message.id === messages[messages.length - 1]?.id;
 
+  // Before first step-start arrives: show "Thinking..." while streaming
+  if (isStreaming && isLastMessage && !hasStepStart) {
+    return (
+      <Shimmer as="span" className="text-muted-foreground text-sm">
+        Thinking...
+      </Shimmer>
+    );
+  }
+
   if (!hasContent) {
     return (
       <Shimmer as="span" className="text-muted-foreground text-sm">
-        Generating response...
+        Thinking...
       </Shimmer>
     );
   }
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      {reasoningParts.map((part, i) => {
-        const partIndex = parts.indexOf(part);
-        const isLastPartInMessage =
-          partIndex === parts.length - 1;
-        const partIsStreaming =
-          isStreaming && isLastMessage && isLastPartInMessage;
+      {parts.map((part, partIndex) => {
+        const isLastPartInMessage = partIndex === parts.length - 1;
+        const partIsStreaming = isStreaming && isLastMessage && isLastPartInMessage;
 
-        return (
-          <Reasoning
-            key={`${message.id}-reasoning-${i}`}
-            className="w-full"
-            isStreaming={partIsStreaming}
-          >
-            <ReasoningTrigger />
-            <ReasoningContent>{part.text || '추론 중...'}</ReasoningContent>
-          </Reasoning>
-        );
-      })}
-      {textParts.length > 0 && (
-        <MessageResponse>
-          {textParts.map((p) => p.text).join('')}
-        </MessageResponse>
-      )}
-      {toolParts.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {(() => {
-            const xaiSearchParts = toolParts.filter(isXaiSearchToolPart);
-            const otherParts = toolParts.filter((p) => !isXaiSearchToolPart(p));
+        if (isReasoningPart(part)) {
+          return (
+            <Reasoning
+              key={`${message.id}-reasoning-${partIndex}`}
+              className="w-full"
+              isStreaming={partIsStreaming}
+            >
+              <ReasoningTrigger />
+              <ReasoningContent>{(part as { text?: string }).text || '추론 중...'}</ReasoningContent>
+            </Reasoning>
+          );
+        }
+
+        if (isTextPart(part)) {
+          return (
+            <MessageResponse key={`${message.id}-text-${partIndex}`}>
+              {part.text}
+            </MessageResponse>
+          );
+        }
+
+        if (isToolPart(part)) {
+          const toolPart = part as ToolCallPart;
+          const xaiSearchParts = toolParts.filter(isXaiSearchToolPart);
+          const isFirstXaiSearchInMessage =
+            isXaiSearchToolPart(toolPart) &&
+            toolParts.findIndex(isXaiSearchToolPart) === toolParts.indexOf(toolPart);
+          if (isXaiSearchToolPart(toolPart) && isFirstXaiSearchInMessage) {
             return (
-              <>
-                {xaiSearchParts.length > 0 && (
-                  <ChatPanelToolPart
-                    key={`${message.id}-search`}
-                    parts={xaiSearchParts}
-                    partKey={`${message.id}-search`}
-                  />
-                )}
-                {otherParts.map((part, i) => {
-                  const partKey =
-                    (part as { toolCallId?: string }).toolCallId ??
-                    `${message.id}-tool-${i}`;
-                  return (
-                    <ChatPanelToolPart
-                      key={partKey}
-                      part={part}
-                      partKey={partKey}
-                    />
-                  );
-                })}
-              </>
+              <ChatPanelToolPart
+                key={`${message.id}-search`}
+                parts={xaiSearchParts}
+                partKey={`${message.id}-search`}
+              />
             );
-          })()}
-        </div>
-      )}
+          }
+          if (isXaiSearchToolPart(toolPart)) {
+            return null;
+          }
+          const partKey = (toolPart as { toolCallId?: string }).toolCallId ?? `${message.id}-tool-${partIndex}`;
+          return (
+            <ChatPanelToolPart
+              key={partKey}
+              part={toolPart}
+              partKey={partKey}
+            />
+          );
+        }
+
+        return null;
+      })}
     </div>
   );
 }

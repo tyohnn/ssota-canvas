@@ -4,14 +4,12 @@
  */
 
 import type { V2ToolArgs, V2ToolCall } from '@/app/api/agent/v2/tools';
+import type { XaiSearchToolOutput } from './tool-part/xaiSearch/types';
 
-/** Search tool (web_search, x_search) output shape — citations for "All Citations" UI */
-export interface SearchToolOutput {
-  status?: string;
-  summary?: string;
-  results?: unknown[];
-  citations?: Array<{ url: string; title?: string }>;
-}
+/** Tool result payload per tool type. Extend with new tool output types as needed. */
+export type ToolCallOutput =
+  | XaiSearchToolOutput
+  | { message?: string; [k: string]: unknown };
 
 /** Text part from assistant or user */
 export interface TextPart {
@@ -58,8 +56,9 @@ export interface ToolCallPart {
   /** Legacy/alternate args shape */
   args?: V2ToolArgs;
   state?: ToolPartState;
-  /** For search tool: preliminary yields (status, message) or final (status: 'complete', summary, results, citations) */
-  output?: SearchToolOutput | { message?: string;[k: string]: unknown };
+  /** True when this part is from a preliminary tool-output chunk (e.g. streaming xaiSearch); use to keep "Searching" until final. */
+  preliminary?: boolean;
+  output?: ToolCallOutput;
   errorText?: string;
 }
 
@@ -86,6 +85,10 @@ export function isTextPart(part: unknown): part is TextPart {
   return (part as { type?: string })?.type === 'text';
 }
 
+export function isStepStartPart(part: unknown): part is StepStartPart {
+  return (part as { type?: string })?.type === 'step-start';
+}
+
 export function isReasoningPart(part: unknown): part is ReasoningPart {
   return (part as { type?: string })?.type === 'reasoning';
 }
@@ -98,14 +101,6 @@ export function isToolPart(part: unknown): part is ToolCallPart {
     (p.type === 'tool-call' ||
       p.type === 'tool-done' ||
       p.type.startsWith('tool-'))
-  );
-}
-
-/** xaiSearch tool part only (for grouping multiple searches into one Task in the UI). */
-export function isXaiSearchToolPart(part: ToolCallPart): boolean {
-  return (
-    part.type === 'tool-xaiSearch' ||
-    part.toolName === 'xaiSearch'
   );
 }
 
@@ -125,17 +120,4 @@ export function getToolPartLabel(part: ToolCallPart): string {
     (typeStr.startsWith('tool-') ? typeStr.replace(/^tool-/, '') : 'Tool');
   if (name === 'search' || name === 'xaiSearch') return 'Search';
   return name;
-}
-
-/** Citation shape for "All Citations" from search tool output */
-export interface CitationItem {
-  url: string;
-  title?: string;
-}
-
-/** Extract citations from a search tool part's output (when status is 'complete'). */
-export function getSearchCitations(part: ToolCallPart): CitationItem[] {
-  const out = part.output as SearchToolOutput | undefined;
-  if (!out || !Array.isArray(out.citations)) return [];
-  return out.citations.map((c: CitationItem) => ({ url: c.url, title: c.title }));
 }
