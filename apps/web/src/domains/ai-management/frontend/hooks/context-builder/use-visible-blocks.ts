@@ -133,14 +133,10 @@ export function calculateVisibleBlocks(
   };
 }
 
-/** Build VisibleBlockMeta from a node (for selected blocks or visible list) */
+/** Build VisibleBlockMeta from a node (for selected blocks or visible list). Deduplicates edge targets/sources (same node pair can have multiple edges). */
 export function nodeToVisibleMeta(node: Node, edges: Edge[]): VisibleBlockMeta {
-  const connectedTo = edges
-    .filter((edge) => edge.source === node.id)
-    .map((edge) => edge.target);
-  const connectedFrom = edges
-    .filter((edge) => edge.target === node.id)
-    .map((edge) => edge.source);
+  const connectedTo = [...new Set(edges.filter((e) => e.source === node.id).map((e) => e.target))];
+  const connectedFrom = [...new Set(edges.filter((e) => e.target === node.id).map((e) => e.source))];
   const data = node.data as BlockNodeData | undefined;
   return {
     blockMountId: node.id,

@@ -55,6 +55,9 @@ export interface DynamicContext {
   /** Number of blocks included in context (capped near center, max 20) */
   visibleBlocksInContext?: number;
 
+  /** Per-block content preview (content_raw + optional summary; server-fetched). Key = blockMountId. */
+  blockContentPreviews?: Record<string, { contentRaw?: string; summary?: string }>;
+
   // Step 1-13: Recent events (injected server-side)
   recentEvents?: RecentEvent[];
 }
@@ -141,8 +144,26 @@ export function parseDynamicContext(raw: unknown): DynamicContext {
       typeof ctx.visibleBlocksTotalInView === 'number' ? ctx.visibleBlocksTotalInView : undefined,
     visibleBlocksInContext:
       typeof ctx.visibleBlocksInContext === 'number' ? ctx.visibleBlocksInContext : undefined,
+    blockContentPreviews: parseBlockContentPreviews(ctx.blockContentPreviews),
     recentEvents,
   };
+}
+
+function parseBlockContentPreviews(
+  raw: unknown
+): Record<string, { contentRaw?: string; summary?: string }> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const out: Record<string, { contentRaw?: string; summary?: string }> = {};
+  for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof key !== 'string' || !val || typeof val !== 'object' || Array.isArray(val)) continue;
+    const v = val as Record<string, unknown>;
+    const contentRaw = typeof v.contentRaw === 'string' ? v.contentRaw : undefined;
+    const summary = typeof v.summary === 'string' ? v.summary : undefined;
+    if (contentRaw !== undefined || summary !== undefined) {
+      out[key] = { contentRaw, summary };
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 /**
@@ -184,7 +205,9 @@ function formatContextBlock(ctx: DynamicContext): string {
   sectionStart = afterPage;
   // #endregion
 
-  // Selected blocks (rich: blockMountId, blockId, type, title — same format as Visible Blocks)
+  const previews = ctx.blockContentPreviews ?? {};
+
+  // Selected blocks (rich: blockMountId, blockId, type, title + optional content/summary preview)
   const selectedBlocks: VisibleBlockMeta[] = ctx.selectedBlocks ?? [];
   if (selectedBlocks.length > 0) {
     sections.push('');
@@ -202,6 +225,9 @@ function formatContextBlock(ctx: DynamicContext): string {
       if (block.connectedTo && block.connectedTo.length > 0) {
         parts.push(`- Connected to (targets): ${block.connectedTo.map((id: string) => `\`${id}\``).join(', ')}`);
       }
+      const pre = previews[block.blockMountId];
+      if (pre?.summary) parts.push(`- Summary:\n  ${pre.summary.split('\n').join('\n  ')}`);
+      if (pre?.contentRaw) parts.push(`- Content:\n  ${pre.contentRaw.split('\n').join('\n  ')}`);
       sections.push(parts.join('\n  '));
     });
   }
@@ -239,6 +265,9 @@ function formatContextBlock(ctx: DynamicContext): string {
       if (block.connectedTo && block.connectedTo.length > 0) {
         parts.push(`- Connected to (targets): ${block.connectedTo.map((id: string) => `\`${id}\``).join(', ')}`);
       }
+      const pre = previews[block.blockMountId];
+      if (pre?.summary) parts.push(`- Summary:\n  ${pre.summary.split('\n').join('\n  ')}`);
+      if (pre?.contentRaw) parts.push(`- Content:\n  ${pre.contentRaw.split('\n').join('\n  ')}`);
       sections.push(parts.join('\n  '));
     });
   }

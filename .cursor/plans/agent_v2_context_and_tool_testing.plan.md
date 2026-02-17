@@ -16,12 +16,15 @@ todos:
     status: completed
   - id: scenario-5
     content: "동적 컨텍스트 시나리오 5: Recent Events — pageId로 서버 주입"
-    status: pending
+    status: completed
   - id: scenario-6
     content: "동적 컨텍스트 시나리오 6: 전체 — 4개 섹션 모두"
     status: pending
   - id: phase2-tools
     content: "Phase 2: 툴 테스팅 — 한 툴만 남기고 나머지 주석, 순차 검증"
+    status: pending
+  - id: todo-1771315052955-t02cwww1w
+    content: ""
     status: pending
 isProject: false
 ---
@@ -39,15 +42,29 @@ isProject: false
 ## Phase 1: 동적 컨텍스트 테스팅 (순차)
 
 
-| #   | 시나리오          | clientContext 조건                | 기대 결과 (debug.log `AgentV2 dynamic context` value)                        |
-| --- | ------------- | ------------------------------- | ------------------------------------------------------------------------ |
-| 1   | 빈 컨텍스트 (스킵)   | —                               | 테스트 안 함 (기본은 작업공간 메타데이터)                                                 |
-| 2   | 페이지 정보만       | pageId, workspaceId, orgId만     | `**Current Page**:` + Page/Workspace/Org ID 줄들 (해결 완료)                   |
-| 3   | 선택 블록만        | selectedBlocks                  | `**Selected Blocks**:` + 목록 + 엣지(Connected from/to) (해결 완료, 테스트 8 검증)    |
-| 4   | Visible 블록만   | visibleBlocks                   | `**Visible Blocks**` + 블록 메타 + 엣지(Connected from/to) (해결 완료, 테스트 7·8 검증) |
-| 5   | Recent Events | pageId 있음 → 서버가 recentEvents 주입 | `**Recent Events**` + 이벤트 줄들                                             |
-| 6   | 전체            | 위 항목 모두 유효                      | 4개 섹션 모두 포함                                                              |
+| #   | 시나리오          | clientContext 조건                | 기대 결과 (debug.log `AgentV2 dynamic context` value)                                                                                               |
+| --- | ------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 빈 컨텍스트 (스킵)   | —                               | 테스트 안 함 (기본은 작업공간 메타데이터)                                                                                                                        |
+| 2   | 페이지 정보만       | pageId, workspaceId, orgId만     | `**Current Page**:` + Page/Workspace/Org ID + 서버 주입(Page/Workspace/Org name, User) → **검증 통과**                                                  |
+| 3   | 선택 블록만        | selectedBlocks                  | `**Selected Blocks**:` + 목록 + 엣지 + content_raw·요약 미리보기 (노트 20줄/2,500자, 소스형 content+요약) → **검증 통과** (markdown: Content+엣지 / 유튜브: Summary만 노출 확인) |
+| 4   | Visible 블록만   | visibleBlocks                   | `**Visible Blocks**` + 블록 메타 + 엣지(dedupe) + 가까운 5개 content/요약 미리보기 각 500자 → **검증 통과**                                                           |
+| 5   | Recent Events | pageId 있음 → 서버가 recentEvents 주입 | `**Recent Events**` + 이벤트 줄들 → **검증 통과** (debug.log: 7개 이벤트)                                                                                    |
+| 6   | 전체            | 위 항목 모두 유효                      | 4개 섹션 모두 포함 → **검증 통과** (debug.log: Current Page, Selected 1, Visible 6, Recent 7)                                                              |
 
+
+**최근 debug.log 확인 요약** (context-builder `formatContextBlock` 기준):
+
+- **Current Page**: Page title, Workspace title, Organization name, User "연주환" + ID들 → **검증 통과**.
+- **Selected Blocks (유튜브 블록 클릭)**: 1개 (d4d90e14, Type: youtube) + **Summary(요약)** 미리보기 정상 노출 (소스형: source_summary만 있음, content_raw 없음). → **검증 통과**.
+- **Visible Blocks**: 2개 유튜브 블록. 1번=selected와 동일(Summary 노출), 2번(73954c7e) Summary 노출. → **검증 통과**.
+- **Recent Events**: 13개 이벤트 (block_mount_soft_deleted, tool_call×2, user_utterance, ai_response 등) → **검증 통과**.
+- **시나리오 6**: 4개 섹션 모두 포함 (유튜브 블록 선택 시나리오) → **검증 통과**.
+
+**유튜브 블록 클릭 시나리오 검토** (동일 debug.log):
+
+- 선택 블록 1개: Type `youtube`, Title "육체적 관계와 성욕구 | 온나라가 극단적 쾌락에…", **Summary(요약)**만 노출(다국어 source_summary). content_raw 없음 → 소스형 블록 요약 미리보기 **정상**.
+- Visible 2개: 동일 유튜브 1개 + 다른 유튜브 1개(Jordan Peterson…), 둘 다 Summary 노출.
+- 추출(source_content) 미포함 확인 → 플랜 대로 **요약만** 사용.
 
 ---
 
@@ -298,5 +315,69 @@ isProject: false
   - **Visible Blocks**: 22 total in viewport; 20 blocks near center included. 목록에 엣지 있는 블록들 `Connected from` / `Connected to` 정상 포함.
 - **결론**: 시나리오 3·4 엣지 포함 검증 **통과**. 테스트 8 **완료**.
 - **다음**: Phase 1 시나리오 5(Recent Events), 6(전체) 테스팅 진행.
+
+---
+
+## 컨텍스트 보강: 페이지·블록 정보 확장 (테스트 8 이후)
+
+**목표**: 동적 컨텍스트에 "초점 데이터"를 바로 알 수 있도록 추가 정보를 넣고, UUID만으로는 부족한 부분을 보완한다.
+
+### 1. 현재 페이지 정보 보강
+
+- **현상**: **Current Page**에는 pageId, workspaceId, orgId(UUID/slug)만 있음.
+- **요구**: UUID보다 **페이지 타이틀**, **워크스페이스 타이틀**, **조직 이름**, **유저 프로필명**이 에이전트에게 더 유용함.
+- **계획**:
+  - 클라이언트 또는 서버에서 pageId/workspaceId/orgId/userId로 **페이지 제목**, **워크스페이스 제목**, **조직 이름**, **유저 프로필명**을 조회.
+  - **Current Page** 섹션에 다음을 추가 (ID 줄은 유지). **페이지 타이틀·워크스페이스 title·조직 이름·유저 프로필명 모두 반드시 포함**한다.
+    - `- Page title: "..."`
+    - `- Workspace title: "..."`
+    - `- Organization name: "..."`
+    - `- User (profile name): "..."`
+  - 데이터 소스·캐싱은 기존 메타데이터/API 구조에 맞춰 결정.
+
+### 2. 선택 블록 / Visible 블록: content 미리보기 추가
+
+- **배경**: 지금은 블록 메타(blockMountId, type, title, 엣지)만 들어가서, **초점 컨텍스트(실제 내용)**를 보려면 `readBlockLines` 등 툴을 써야 함. 메타만으로는 "지금 보고 있는/선택한 데이터"를 바로 알 수 없음.
+- **처리 위치**: **모두 서버에서 처리** (트래픽 비용 절감).
+- **content 소스**: 블록 content는 tiptap JSON이고, **content_raw**는 이미 나눠진 플레인 텍스트. 소스형 블록은 **요약(source_summary)** 도 사용. **추출(source_content)** 는 컨텍스트에 넣지 않음.
+- **일반 노트 블록** (소스 없음):
+  - **content_raw만** 사용. 라인 상한 **앞 20줄**, 글자수 상한 **selected 2,500자 / visible 500자**.
+- **소스형 블록** (source_id 있음, 요약 등):
+  - **Selected인 경우**: **content_raw** 20줄 2,500자 + **요약** 20줄 2,500자 (각각 상한 적용). 추출은 넣지 않음.
+  - **Visible인 경우** (뷰포트에서 가까운 5개 안에 들어갈 때만): **요약** 500자 + **content_raw** 500자. 추출은 넣지 않음.
+- **공통 규칙**:
+  1. **Selected / Visible 겹침**: 같은 블록이 선택이면서 동시에 visible 목록에 있으면 **content 미리보기는 한 번만** 넣는다 (중복 제거 — selected에 넣고 visible 쪽은 비움).
+  2. **Visible 중 content 넣는 개수**: visible 블록 최대 20개 중 **뷰포트에서 가까운 5개만** 위 content/요약 미리보기를 넣고, 나머지 15개는 메타만 (Mount Id, Type, Title, Block ID, Connected from/to).
+- **포함할 정보** (블록별):
+  - (기존) Mount Id, Type, Title, Block ID, Connected from/to.
+  - (추가, 해당 시) 노트는 **content_raw** 미리보기만; 소스형은 **content_raw** + **요약** 각각 라벨 달아서 (예: `Content: ...`, `Summary: ...`). 전체 글자수/라인수 표시는 선택.
+- **토큰/길이**: 위 상한으로 컨텍스트 폭발 방지. 더 필요 시 에이전트가 readBlockLines 등으로 요청.
+
+### 3. 검증
+
+- **Current Page**: debug.log **Current Page**에 Page title, Workspace title, Organization name, User (profile name)이 포함되는지 확인.
+- **일반 노트 selected**: content_raw만 20줄·2,500자 상한으로 들어가는지 확인.
+- **소스형 selected**: content_raw 20줄 2,500자 + 요약 20줄 2,500자 들어가고, 추출은 없는지 확인.
+- **소스형 visible (5개)**: 요약 500자 + content_raw 500자 들어가고, 추출은 없는지 확인.
+- **Visible 5개 / 겹침**: 뷰포트 가까운 5개만 content/요약 포함, 나머지 메타만. selected와 겹치면 한 번만 포함되는지 확인.
+- **서버 처리**: content·요약 조회·자르기가 모두 서버에서 이루어지는지 확인.
+
+### 테스트 9: 컨텍스트 보강 검증 — 완료
+
+**조건**: 유튜브 블록 1개 선택, 뷰포트에 2개 visible. 동일 블록에 사용자 노트(content_raw) 추가 후 요청.
+
+**검증 과정 (debug.log `formatContextBlock` 기준)**:
+
+| 항목 | 기대 | 결과 |
+|------|------|------|
+| **Current Page** | Page/Workspace/Org/User 이름 + ID | ✅ 8줄: Page title "Welcome", Workspace "Default Workspace", Organization "SSOTA Labs, Inc", User "연주환" + 3개 ID |
+| **Selected Blocks (소스형)** | Summary + Content(content_raw) 각 20줄/2,500자, 추출 미포함 | ✅ 1개(d4d90e14, youtube): **Summary**(source_summary) + **Content:** `아 나도 진심 이렇게 되고 싶은데, 어떻게 하면 할 수 있지?` — content_raw 정상 노출, 추출 없음 |
+| **Visible Blocks** | 가까운 5개까지 Summary/Content 500자, 겹침 시 selected에만 content | ✅ 2개: 1번(73954c7e) Summary만, 2번(d4d90e14=selected) Summary+Content — 서버에서 content 한 번만 조회·공유하여 양쪽에 표시 |
+| **Recent Events** | pageId 있으면 서버 주입, ~15개 | ✅ 15개 (block_updated, ai_response, user_utterance 등) |
+| **서버 처리** | content/요약 조회·truncate 모두 서버 | ✅ getBlockContentPreviews(route) → blockContentPreviews 포맷(context-builder) |
+
+**결론**: 컨텍스트 보강(페이지 이름·블록 content/요약 미리보기·Recent Events) **검증 통과**. 소스형(유튜브) 선택 시 **Summary + Content** 둘 다 정상 포함됨.
+
+---
 
 이렇게 하면 “줌아웃 시 100개 넘어가는” 상황에서도 컨텍스트가 폭발하지 않고, 에이전트는 “전체 수”와 “실제로 담은 수”를 함께 인지할 수 있음.

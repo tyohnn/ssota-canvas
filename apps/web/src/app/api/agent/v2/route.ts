@@ -8,6 +8,7 @@ import type {
   ToolModelMessage,
 } from 'ai';
 import { requireAuth } from '@/domains/auth/server/auth-guard';
+import { authorizeByPageId, verifyBlockOwnership } from '@/domains/common/auth/helpers';
 import { SOPHI_V2_SYSTEM_PROMPT } from './prompt';
 import { buildDynamicContext, parseDynamicContext } from './context-builder';
 import {
@@ -39,6 +40,8 @@ import {
 import { DrizzleBlockSearchRepository } from '@/domains/ai-management/backend/repositories/implementations/drizzle-block-search.repository';
 import { DrizzleConnectionSearchRepository } from '@/domains/ai-management/backend/repositories/implementations/drizzle-connection-search.repository';
 import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
+import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { DrizzleEdgeRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-edge.repository';
 import {
   DrizzleEventLogRepository,
@@ -46,22 +49,16 @@ import {
   EventContextService,
   EventSearchService,
 } from '@/domains/event-management';
-import { getCurrentPageNames } from '@/domains/ai-management/backend/services/context';
+import {
+  getCurrentPageNames,
+  getBlockContentPreviews,
+} from '@/domains/ai-management/backend/services/context';
 import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
 import { DrizzleOrganizationRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository';
 import { DrizzleUserRepository } from '@/domains/user-management/backend/repositories/implementations/drizzle-user.repository';
 import { createGetPageEventsTool, createGrepEventsTool } from './event-tools';
 import { AGENT_MODEL } from './constants';
-
-/** Serialize tool inputSchema for debug log (Zod or similar). */
-function getSchemaSummary(schema: unknown): unknown {
-  if (!schema || typeof schema !== 'object') return null;
-  const s = schema as Record<string, unknown>;
-  if (typeof s.jsonSchema === 'function') return s.jsonSchema();
-  if (s.shape && typeof s.shape === 'object') return { type: 'object', keys: Object.keys(s.shape as object) };
-  return { _: String(schema).slice(0, 200) };
-}
 
 export const maxDuration = 300;
 
@@ -146,112 +143,87 @@ export async function POST(req: Request) {
 
     const userId = user.id;
 
-    // Parse request body - extract messages and clientContext
+    // Parse request body — messages and clientContext (from last user message metadata; useChat sendMessage)
     const body = await req.json();
-    const DEBUG_INGEST_PIPELINE = 'http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c';
-    const logStep = (step: number, label: string, data: Record<string, unknown>) => {
-      fetch(DEBUG_INGEST_PIPELINE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'api/agent/v2/route.ts:pipeline', message: `AgentV2 pipeline step ${step}: ${label}`, step, label, data, timestamp: Date.now() }) }).catch(() => { });
-    };
-
-    let { messages, clientContext } = body;
-    let clientContextSource: 'body' | 'lastMessageMetadata' | 'none' = clientContext !== undefined ? 'body' : 'none';
-    // Fallback: client may send clientContext in last user message metadata (e.g. useChat sendMessage)
-    if (clientContext === undefined && Array.isArray(messages)) {
-      const lastUser = [...messages].reverse().find((m: { role?: string }) => m?.role === 'user');
-      const fromMeta = (lastUser as { metadata?: { clientContext?: unknown } } | undefined)?.metadata?.clientContext;
-      if (fromMeta !== undefined) {
-        clientContext = fromMeta;
-        clientContextSource = 'lastMessageMetadata';
-      }
-    }
-    const clientContextRaw =
-      clientContext != null && typeof clientContext === 'object'
-        ? (() => {
-          const c = clientContext as Record<string, unknown>;
-          const vb = c.visibleBlocks;
-          const sb = c.selectedBlocks;
-          const re = c.recentEvents;
-          const visibleDebug = c.visibleDebug;
-          return {
-            pageId: c.pageId,
-            workspaceId: c.workspaceId,
-            orgId: c.orgId,
-            selectedBlocksCount: Array.isArray(sb) ? sb.length : 0,
-            selectedBlocksSample: Array.isArray(sb) && sb.length > 0 ? sb[0] : null,
-            visibleBlocksCount: Array.isArray(vb) ? vb.length : 0,
-            visibleBlocksSample: Array.isArray(vb) && vb.length > 0 ? vb[0] : null,
-            recentEventsInPayload: Array.isArray(re) ? re.length : 0,
-            visibleDebug:
-              visibleDebug != null && typeof visibleDebug === 'object'
-                ? {
-                  viewportZoom: (visibleDebug as Record<string, unknown>).viewportZoom,
-                  viewportX: (visibleDebug as Record<string, unknown>).viewportX,
-                  viewportY: (visibleDebug as Record<string, unknown>).viewportY,
-                  nodesCount: (visibleDebug as Record<string, unknown>).nodesCount,
-                  visibleBlocksCount: (visibleDebug as Record<string, unknown>).visibleBlocksCount,
-                  zoomUnderThreshold: (visibleDebug as Record<string, unknown>).zoomUnderThreshold,
-                }
-                : undefined,
-          };
-        })()
-        : null;
-    logStep(1, 'body parsed, clientContext resolved', {
-      bodyKeys: typeof body === 'object' && body !== null ? Object.keys(body as object) : [],
-      messagesCount: Array.isArray(messages) ? messages.length : 0,
-      clientContextSource,
-      hasClientContext: clientContext !== undefined,
-      clientContext: clientContextRaw,
-      lastMessageHasMetadata: Array.isArray(messages)
-        ? (() => {
-          const last = (messages as { metadata?: unknown }[])[messages.length - 1];
-          return last != null && typeof last === 'object' && 'metadata' in last && last.metadata != null;
-        })()
-        : false,
-    });
+    const messages = body.messages;
+    const lastUser = Array.isArray(messages)
+      ? [...messages].reverse().find((m: { role?: string }) => m?.role === 'user')
+      : undefined;
+    const clientContext: unknown =
+      (lastUser as { metadata?: { clientContext?: unknown } } | undefined)?.metadata?.clientContext ?? {};
 
     // Convert UI messages to model messages
     const modelMessages = await convertToModelMessages(messages);
-    const firstModelContent = modelMessages[0] && 'content' in modelMessages[0] ? modelMessages[0].content : undefined;
-    const firstContentSummary =
-      typeof firstModelContent === 'string'
-        ? { type: 'string', length: firstModelContent.length, preview: firstModelContent.slice(0, 200) }
-        : Array.isArray(firstModelContent)
-          ? { type: 'array', length: firstModelContent.length, preview: JSON.stringify(firstModelContent).slice(0, 300) }
-          : { type: typeof firstModelContent, preview: String(firstModelContent).slice(0, 200) };
-    logStep(2, 'convertToModelMessages', {
-      modelMessagesCount: modelMessages.length,
-      roles: modelMessages.map((m: { role?: string }) => m.role),
-      firstMessageContent: firstContentSummary,
-    });
 
     // Parse client context and enrich with server-side recent events
     const dynamicContext = parseDynamicContext(clientContext);
     const pageId = dynamicContext.pageId;
-    logStep(3, 'parseDynamicContext', {
-      pageId: pageId ?? null,
-      dynamicContext: {
-        pageId: dynamicContext.pageId,
-        workspaceId: dynamicContext.workspaceId,
-        orgId: dynamicContext.orgId,
-        selectedBlocksCount: dynamicContext.selectedBlocks?.length ?? 0,
-        selectedBlocks: dynamicContext.selectedBlocks,
-        visibleBlocksCount: dynamicContext.visibleBlocks?.length ?? 0,
-        visibleBlocks: dynamicContext.visibleBlocks,
-        recentEventsCountBeforeFetch: dynamicContext.recentEvents?.length ?? 0,
-      },
-    });
+
+    // Page-scoped context enrichment: verify access first (same as secure actions)
+    let pageAuth: Awaited<ReturnType<typeof authorizeByPageId>> | undefined;
+    if (pageId) {
+      pageAuth = await authorizeByPageId(pageId, userId);
+      if (!pageAuth.success) {
+        return new Response(
+          JSON.stringify({
+            error: 'Access denied',
+            message: pageAuth.error === 'PAGE_NOT_FOUND' ? 'Page not found' : 'You do not have access to this page',
+          }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Block-level: verify each selected/visible block belongs to the page and workspace (same as block-mount secure action)
+    if (pageId && pageAuth?.success && pageAuth.context) {
+      const workspaceId = pageAuth.context.workspace.workspaceId.value;
+      const pageIdVo = new PageId(pageId);
+      const blockMountRepo = new DrizzleBlockMountRepository();
+      const allBlockMountIds = [
+        ...(dynamicContext.selectedBlocks ?? []).map(b => b.blockMountId),
+        ...(dynamicContext.visibleBlocks ?? []).map(b => b.blockMountId),
+      ];
+      const uniqueIds = [...new Set(allBlockMountIds)];
+      const isSlug = (s: string) => s.length === 8 && /^[0-9a-f]+$/i.test(s);
+      const isUuid = (s: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.trim());
+
+      for (const id of uniqueIds) {
+        const mount = isSlug(id)
+          ? await blockMountRepo.findByPageIdAndSlug(pageIdVo, id.toLowerCase())
+          : isUuid(id)
+            ? await blockMountRepo.findById(new BlockMountId(id))
+            : null;
+        if (!mount) {
+          return new Response(
+            JSON.stringify({ error: 'Access denied', message: 'Block not found or not on this page' }),
+            { status: 403, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+        const blockMount = mount.getBlockMount();
+        if (blockMount.pageId.value !== pageId) {
+          return new Response(
+            JSON.stringify({ error: 'Access denied', message: 'Block does not belong to this page' }),
+            { status: 403, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+        const ownership = await verifyBlockOwnership(blockMount.blockId.value, workspaceId);
+        if (!ownership.isValid) {
+          return new Response(
+            JSON.stringify({
+              error: 'Access denied',
+              message: ownership.error === 'BLOCK_NOT_FOUND' ? 'Block not found' : 'Block does not belong to this workspace',
+            }),
+            { status: 403, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
 
     if (pageId) {
       const eventContextService = new EventContextService(new DrizzleEventLogRepository());
       const recentEvents = await eventContextService.getRecentEvents(pageId, 15);
       (clientContext as Record<string, unknown>).recentEvents = recentEvents;
-      logStep(4, 'recentEvents fetched and attached to clientContext', {
-        pageId,
-        recentEventsCount: recentEvents.length,
-        recentEvents: recentEvents,
-      });
-    } else {
-      logStep(4, 'recentEvents skipped (no pageId)', { pageId: null });
     }
 
     // Current Page display names (server-fetched for context enrichment)
@@ -273,18 +245,24 @@ export async function POST(req: Request) {
     (clientContext as Record<string, unknown>).workspaceTitle = names.workspaceTitle;
     (clientContext as Record<string, unknown>).organizationName = names.organizationName;
     (clientContext as Record<string, unknown>).userProfileName = names.userProfileName;
-    logStep(4.5, 'Current Page names attached to clientContext', {
-      pageTitle: names.pageTitle ?? null,
-      workspaceTitle: names.workspaceTitle ?? null,
-      organizationName: names.organizationName ?? null,
-      userProfileName: names.userProfileName ?? null,
-    });
+
+    // Block content previews (selected + first 5 visible, content_raw + source summary; no source_content)
+    const selectedRefs = (dynamicContext.selectedBlocks ?? []).map(b => ({ blockMountId: b.blockMountId }));
+    const visibleRefs = (dynamicContext.visibleBlocks ?? []).map(b => ({ blockMountId: b.blockMountId }));
+    const blockContentPreviews = await getBlockContentPreviews(
+      {
+        blockSearchRepository: new DrizzleBlockSearchRepository(),
+        blockMountRepository: new DrizzleBlockMountRepository(),
+      },
+      {
+        pageId: dynamicContext.pageId,
+        selectedBlocks: selectedRefs,
+        visibleBlocks: visibleRefs,
+      }
+    );
+    (clientContext as Record<string, unknown>).blockContentPreviews = blockContentPreviews;
 
     const dynamicContextString = buildDynamicContext(clientContext);
-    logStep(5, 'buildDynamicContext', {
-      dynamicContextStringLength: dynamicContextString.length,
-      dynamicContextStringFull: dynamicContextString,
-    });
 
     // Event logging and event search (fire-and-forget for logging)
     const eventLogRepo = new DrizzleEventLogRepository();
@@ -314,61 +292,10 @@ export async function POST(req: Request) {
     }
 
     // Inject dynamic context into the last user message
-    // #region agent log
-    const contextBlockPrepend = dynamicContextString
-      ? `[Context]\n${dynamicContextString}\n\n---\n\n`
-      : '';
-    if (contextBlockPrepend) {
-      fetch(DEBUG_INGEST_PIPELINE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'api/agent/v2/route.ts:injectDynamicContext', message: 'context block that will be prepended to last user message', data: { contextBlockLength: contextBlockPrepend.length, contextBlockFull: contextBlockPrepend, userMessageBefore: lastUserMessage.slice(0, 200), userMessageLength: lastUserMessage.length }, timestamp: Date.now() }) }).catch(() => {});
-    }
-    // #endregion
     const enrichedMessages = injectDynamicContext(
       modelMessages,
       dynamicContextString
     );
-    const lastEnriched = enrichedMessages[enrichedMessages.length - 1];
-    const lastEnrichedContent = lastEnriched && 'content' in lastEnriched ? lastEnriched.content : undefined;
-    const lastEnrichedContentFull =
-      typeof lastEnrichedContent === 'string'
-        ? lastEnrichedContent
-        : Array.isArray(lastEnrichedContent)
-          ? JSON.stringify(lastEnrichedContent)
-          : String(lastEnrichedContent ?? '');
-    logStep(6, 'injectDynamicContext → enrichedMessages', {
-      enrichedMessagesCount: enrichedMessages.length,
-      lastMessageRole: lastEnriched && 'role' in lastEnriched ? (lastEnriched as { role: string }).role : undefined,
-      lastMessageContentFull: lastEnrichedContentFull,
-      contextWasInjected: dynamicContextString.length > 0,
-    });
-
-    // Log system prompt and dynamic context to debug.log (all reasoning/tool parts logged from stream below)
-    // #region agent log
-    const DEBUG_INGEST = 'http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c';
-    const debugLog = (message: string, data: Record<string, unknown>, location = 'api/agent/v2/route.ts') => {
-      fetch(DEBUG_INGEST, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location, message, data, timestamp: Date.now() }) }).catch(() => { });
-    };
-    debugLog('AgentV2 system prompt (full)', { value: SOPHI_V2_SYSTEM_PROMPT, length: SOPHI_V2_SYSTEM_PROMPT.length });
-    const dynamicContextScenario = dynamicContextString === '' ? '1-empty' : 'n';
-    debugLog('AgentV2 dynamic context', { value: dynamicContextString, scenario: dynamicContextScenario });
-    const toolsDefs: Array<{ name: string; description: string; schema: unknown }> = [
-      { name: 'xaiSearch', ...xaiSearchTool, schema: getSchemaSummary(xaiSearchTool.inputSchema) },
-      { name: 'renderCanvasdown', ...renderCanvasdownTool, schema: getSchemaSummary(renderCanvasdownTool.inputSchema) },
-      { name: 'patchCanvasdown', ...patchCanvasdownTool, schema: getSchemaSummary(patchCanvasdownTool.inputSchema) },
-      { name: 'grepBlockContent', ...grepBlockContentTool, schema: getSchemaSummary(grepBlockContentTool.inputSchema) },
-      { name: 'globBlocks', ...globBlocksTool, schema: getSchemaSummary(globBlocksTool.inputSchema) },
-      { name: 'readBlockLines', ...readBlockLinesTool, schema: getSchemaSummary(readBlockLinesTool.inputSchema) },
-      { name: 'hopSearch', ...hopSearchTool, schema: getSchemaSummary(hopSearchTool.inputSchema) },
-      { name: 'searchGroup', ...searchGroupTool, schema: getSchemaSummary(searchGroupTool.inputSchema) },
-      { name: 'searchBySemantic', ...searchBySemanticTool, schema: getSchemaSummary(searchBySemanticTool.inputSchema) },
-      { name: 'getPageEvents', ...getPageEventsTool, schema: getSchemaSummary(getPageEventsTool.inputSchema) },
-      { name: 'grepEvents', ...grepEventsTool, schema: getSchemaSummary(grepEventsTool.inputSchema) },
-      { name: 'editBlockLines', ...editBlockLinesTool, schema: getSchemaSummary(editBlockLinesTool.inputSchema) },
-      { name: 'createTodos', ...createTodosTool, schema: getSchemaSummary(createTodosTool.inputSchema) },
-      { name: 'canvasAction', ...canvasActionTool, schema: getSchemaSummary(canvasActionTool.inputSchema) },
-      { name: 'organizeLayout', ...organizeLayoutTool, schema: getSchemaSummary(organizeLayoutTool.inputSchema) },
-    ].map((t) => ({ name: t.name, description: t.description, schema: t.schema }));
-    debugLog('AgentV2 tools (request — definitions sent to model)', { tools: toolsDefs });
-    // #endregion
 
     // Instantiate repositories (per-request; stateless)
     const blockSearchRepo = new DrizzleBlockSearchRepository();
@@ -533,15 +460,6 @@ export async function POST(req: Request) {
         organizeLayout: organizeLayoutTool,
       },
       onFinish: async (finishArg) => {
-        debugLog('AgentV2 onFinish (response summary)', {
-          textLength: (finishArg as { text?: string }).text?.length,
-          usage: (finishArg as { usage?: unknown }).usage,
-          totalUsage: (finishArg as { totalUsage?: unknown }).totalUsage,
-          finishReason: (finishArg as { finishReason?: unknown }).finishReason,
-          response: (finishArg as { response?: unknown }).response,
-          steps: Array.isArray((finishArg as { steps?: unknown[] }).steps) ? (finishArg as { steps: unknown[] }).steps?.length : undefined,
-          full: JSON.stringify(finishArg).slice(0, 4000),
-        }, 'api/agent/v2/route.ts:onFinish');
         const text = (finishArg as { text?: string }).text;
         if (pageId && userId && text && text.length > 0) {
           eventLogService
