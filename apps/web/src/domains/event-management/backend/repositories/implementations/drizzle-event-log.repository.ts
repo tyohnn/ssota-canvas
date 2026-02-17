@@ -117,6 +117,28 @@ export class DrizzleEventLogRepository implements EventLogRepository {
     return results.map(row => this.mapToDomain(row));
   }
 
+  async recentContextForAgent(
+    pageId: string,
+    limit: number = 20
+  ): Promise<EventLog[]> {
+    const conditions: Parameters<typeof and>[0][] = [
+      eq(eventLogs.page_id, pageId),
+      // Exclude block_mount_updated
+      sql`NOT (${eventLogs.event_type} = 'block_mount' AND ${eventLogs.action} = 'updated')`,
+      // edge_updated: include only when payload.changes.label is present (label update)
+      sql`(${eventLogs.event_type} <> 'edge' OR ${eventLogs.action} <> 'updated' OR (${eventLogs.payload}->'changes'->'label') IS NOT NULL)`,
+    ];
+
+    const results = await adminDb
+      .select()
+      .from(eventLogs)
+      .where(and(...conditions))
+      .orderBy(desc(eventLogs.timestamp))
+      .limit(limit);
+
+    return results.map(row => this.mapToDomain(row));
+  }
+
   /** 복합 타입 → DB type + action (exclude 조건 등용) */
   private parseCombinedType(
     combined: string

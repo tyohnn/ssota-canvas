@@ -11,17 +11,13 @@ export class EventContextService {
 
   /**
    * Returns recent events as RecentEvent[] (one-line summaries, timeAgo).
-   * block_mount_updated는 repo 선에서 제외되어 컨텍스트에 포함되지 않음.
+   * Filtering (block_mount_updated exclude, edge_updated label-only) is done in repo.recentContextForAgent.
    */
   async getRecentEvents(
     pageId: string,
     limit?: number
   ): Promise<RecentEvent[]> {
-    const events = await this.repo.findRecentByPageId(
-      pageId,
-      limit ?? 15,
-      { excludeCombinedTypes: ['block_mount_updated'] }
-    );
+    const events = await this.repo.recentContextForAgent(pageId, limit ?? 15);
     return events.map((event) => this.toRecentEvent(event));
   }
 
@@ -68,9 +64,9 @@ function formatTimeAgo(date: Date): string {
   const diffHour = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHour / 24);
 
-  if (diffSec < 60) return '방금 전';
-  if (diffMin < 60) return `${diffMin}분 전`;
-  if (diffHour < 24) return `${diffHour}시간 전`;
-  if (diffDay < 7) return `${diffDay}일 전`;
-  return date.toLocaleDateString();
+  if (diffSec < 60) return 'just now';
+  if (diffMin < 60) return `${diffMin} min ago`;
+  if (diffHour < 24) return `${diffHour} hour${diffHour !== 1 ? 's' : ''} ago`;
+  if (diffDay < 7) return `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }

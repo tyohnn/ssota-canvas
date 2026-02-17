@@ -22,6 +22,7 @@ describe('EventSearchService', () => {
       save: vi.fn(),
       findById: vi.fn(),
       findRecentByPageId: vi.fn(),
+      recentContextForAgent: vi.fn(),
       findRecentByPageIdAndUserId: vi.fn(),
       findByBlockMountId: vi.fn(),
       findByFilters: vi.fn(),

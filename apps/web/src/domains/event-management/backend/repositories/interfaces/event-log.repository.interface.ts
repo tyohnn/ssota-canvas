@@ -16,6 +16,13 @@ export interface EventLogRepository {
     options?: { excludeCombinedTypes?: string[] }
   ): Promise<EventLog[]>;
 
+  /**
+   * 에이전트 동적 컨텍스트용 최근 이벤트 조회.
+   * - block_mount_updated 제외.
+   * - edge_updated는 라벨 변경만 포함 (shape/style/markers 제외).
+   */
+  recentContextForAgent(pageId: string, limit?: number): Promise<EventLog[]>;
+
   /** 최근 이벤트 조회 (페이지 + 유저 스코프) */
   findRecentByPageIdAndUserId(
     pageId: string,
