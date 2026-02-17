@@ -77,24 +77,49 @@ async function createEdgeInternal(
     );
 
     if (result.isError()) {
+      const errorMessage =
+        result.error instanceof Error
+          ? result.error.message
+          : String(result.error);
       console.error(
         '❌ [createEdgeInternal] EdgeService failed:',
-        result.error
+        errorMessage
       );
-      return err(String(result.error), {
+      return err(errorMessage, {
         code: 'EDGE_CREATION_FAILED',
         meta: {
-          originalError: result.error,
+          originalError: errorMessage,
           request: safeDto,
         },
       });
     }
 
-    // 3. Aggregate → DTO 변환
+    // 3. Aggregate → DTO 변환 (클라이언트는 slug 기준 node id 사용 → source/target은 요청의 slug 그대로 반환)
     const aggregate = result.value;
-    const edgeView = aggregate.toView();
+    let edgeView;
+    try {
+      edgeView = aggregate.toView();
+    } catch (toViewError) {
+      console.error('[createEdgeInternal] toView() failed:', toViewError);
+      return err('Failed to build edge response', {
+        code: 'INTERNAL_SERVER_ERROR',
+        meta: {
+          originalError:
+            toViewError instanceof Error
+              ? toViewError.message
+              : String(toViewError),
+        },
+      });
+    }
 
-    return ok(edgeView);
+    // 클라이언트(React Flow)는 node id = blockMount slug 사용 → 응답에 slug 전달
+    const edgeViewWithSlugs: typeof edgeView = {
+      ...edgeView,
+      sourceBlockMountId: safeDto.sourceBlockMountId,
+      targetBlockMountId: safeDto.targetBlockMountId,
+    };
+
+    return ok(edgeViewWithSlugs);
   } catch (error) {
     console.error('[createEdgeInternal] Internal error:', error);
     return err('Internal server error', {
