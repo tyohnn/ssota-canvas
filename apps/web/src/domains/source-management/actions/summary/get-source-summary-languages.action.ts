@@ -4,12 +4,14 @@ import { ActionResult, err, ok } from '@/lib';
 import { z } from 'zod';
 
 import { DrizzleSourceSummaryRepository } from '../../backend/repositories/implementations/drizzle-source-summary.repository';
+import { BlockSlugParamSchema } from '../../shared/dtos/requests/source.requests';
 import { SourceId } from '../../shared/value-objects/source-id.vo';
 import type { SourceBlockActionContext } from '../secure-action';
 import { withSourceBlockSecureAction } from '../secure-action';
 
 const GetSourceSummaryLanguagesByBlockRequestSchema = z.object({
-  blockId: z.string().uuid(),
+  workspaceId: z.uuid(),
+  blockId: BlockSlugParamSchema,
 });
 type GetSourceSummaryLanguagesByBlockRequest = z.infer<
   typeof GetSourceSummaryLanguagesByBlockRequestSchema

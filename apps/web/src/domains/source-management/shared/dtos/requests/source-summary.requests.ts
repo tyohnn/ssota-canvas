@@ -5,7 +5,7 @@ import { SUPPORTED_LANGUAGES } from '../../value-objects/language-code.vo';
 const LanguageSchema = z.enum(SUPPORTED_LANGUAGES as unknown as [string, ...string[]]);
 
 export const CreateSourceSummaryRequestSchema = z.object({
-  sourceId: z.string().uuid({ message: 'Invalid source ID' }),
+  sourceId: z.uuid({ message: 'Invalid source ID' }),
   language: LanguageSchema,
   summary: z.string().min(1, 'Summary is required'),
   keywords: z.array(z.string()).optional().default([]),
@@ -16,7 +16,7 @@ export type CreateSourceSummaryRequest = z.output<
 >;
 
 export const GetSourceSummaryRequestSchema = z.object({
-  sourceId: z.string().uuid({ message: 'Invalid source ID' }),
+  sourceId: z.uuid({ message: 'Invalid source ID' }),
   language: LanguageSchema,
 });
 
@@ -25,9 +25,9 @@ export type GetSourceSummaryRequest = z.output<
 >;
 
 export const ProcessSourceSummaryRequestSchema = z.object({
-  sourceId: z.string().uuid({ message: 'Invalid source ID' }),
+  sourceId: z.uuid({ message: 'Invalid source ID' }),
   language: LanguageSchema,
-  orgId: z.string().uuid({ message: 'Invalid org ID' }),
+  orgId: z.uuid({ message: 'Invalid org ID' }),
 });
 
 export type ProcessSourceSummaryRequest = z.output<
@@ -35,8 +35,8 @@ export type ProcessSourceSummaryRequest = z.output<
 >;
 
 export const EnsureSourceSummaryRequestSchema = z.object({
-  sourceId: z.string().uuid(),
-  orgId: z.string().uuid(),
+  sourceId: z.uuid(),
+  orgId: z.uuid(),
   language: LanguageSchema,
 });
 

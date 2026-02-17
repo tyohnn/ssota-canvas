@@ -15,10 +15,12 @@ export interface ExtractScriptResult {
 /**
  * YouTube 스크립트 추출 (source 경로만)
  *
- * @param blockId - 블록 ID
+ * @param workspaceId - 워크스페이스 ID (에디터 컨텍스트)
+ * @param blockId - 블록 slug
  * @param blockData - 블록 데이터 (sourceId 필요)
  */
 export async function extractScriptAction(
+  workspaceId: string,
   blockId: string,
   blockData: BlockNodeData
 ): Promise<ExtractScriptResult> {
@@ -32,7 +34,7 @@ export async function extractScriptAction(
   }
 
   try {
-    const result = await extractSourceContentAction({ blockId });
+    const result = await extractSourceContentAction({ workspaceId, blockId });
 
     if (result.success) {
       return {

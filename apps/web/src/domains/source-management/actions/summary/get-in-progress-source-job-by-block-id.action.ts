@@ -27,11 +27,11 @@ export const getInProgressSourceJobByBlockIdAction =
   );
 
 async function getInProgressSourceJobByBlockIdInternal(
-  safeDto: GetInProgressSourceJobByBlockIdRequest,
-  _ctx: SourceBlockActionContext
+  _safeDto: GetInProgressSourceJobByBlockIdRequest,
+  ctx: SourceBlockActionContext
 ): Promise<ActionResult<GetInProgressSourceJobByBlockIdDTO>> {
   const sourceJobRepository = new DrizzleSourceJobRepository();
-  const result = await getInProgressSourceJobByBlockIdService(safeDto.blockId, {
+  const result = await getInProgressSourceJobByBlockIdService(ctx.blockUuid, {
     sourceJobRepository,
   });
 

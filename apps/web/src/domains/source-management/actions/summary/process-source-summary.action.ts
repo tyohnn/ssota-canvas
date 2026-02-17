@@ -10,6 +10,7 @@ import { createSupabasePgmqQueueAdapter } from '@/domains/queue';
 import { DrizzleSourceJobRepository } from '../../backend/repositories/implementations/drizzle-source-job.repository';
 import { DrizzleSourceSummaryRepository } from '../../backend/repositories/implementations/drizzle-source-summary.repository';
 import { ensureSourceJobService } from '../../backend/services/source-job';
+import { BlockSlugParamSchema } from '../../shared/dtos/requests/source.requests';
 import { SUPPORTED_LANGUAGES } from '../../shared/value-objects/language-code.vo';
 import type { SourceBlockActionContext } from '../secure-action';
 import { withSourceBlockSecureAction } from '../secure-action';
@@ -18,7 +19,8 @@ const LanguageSchema = z.enum(
   SUPPORTED_LANGUAGES as unknown as [string, ...string[]]
 );
 const ProcessSourceSummaryByBlockRequestSchema = z.object({
-  blockId: z.string().uuid(),
+  workspaceId: z.uuid(),
+  blockId: BlockSlugParamSchema,
   language: LanguageSchema,
 });
 type ProcessSourceSummaryByBlockRequest = z.infer<
@@ -45,7 +47,7 @@ async function processSourceSummaryInternal(
 
   const result = await ensureSourceJobService(
     {
-      blockId: req.blockId,
+      blockId: ctx.blockUuid,
       orgId: ctx.organization.id,
       sourceId: ctx.sourceId,
       language: req.language,

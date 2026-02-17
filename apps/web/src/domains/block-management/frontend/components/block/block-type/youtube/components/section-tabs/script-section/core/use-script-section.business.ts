@@ -18,6 +18,7 @@ import {
   type YoutubeBlockProperties,
   YoutubeBlockPropertiesVO,
 } from '@/domains/block-management/shared/value-objects/block-properties';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { extractSourceContentAction } from '@/domains/source-management/actions/source/extract-source-content.action';
 import { useSourceJobRealtime } from '@/domains/source-management/frontend/hooks';
 import { useVideoScript } from '@/domains/youtube-app-space/frontend/hooks';
@@ -34,6 +35,7 @@ export function useScriptSectionBusiness(
   blockId: string,
   blockData: BlockNodeData | undefined
 ): ScriptSectionBusinessLogic {
+  const { workspaceId } = useCanvasMetadata();
   const properties = blockData?.properties as
     | YoutubeBlockProperties
     | undefined;
@@ -80,7 +82,8 @@ export function useScriptSectionBusiness(
     mutationFn: async (): Promise<void> => {
       if (!blockId) throw new Error('Block ID not found');
       if (!sourceId) throw new Error('Please enter a URL and load metadata before extracting the script.');
-      const result = await extractSourceContentAction({ blockId });
+      if (!workspaceId) throw new Error('Workspace not found');
+      const result = await extractSourceContentAction({ workspaceId, blockId });
       if (!result.success) {
         throw new Error(result.error || 'Failed to extract script');
       }

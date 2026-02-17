@@ -23,6 +23,7 @@ import {
   type YoutubeBlockProperties,
   YoutubeBlockPropertiesVO,
 } from '@/domains/block-management/shared/value-objects/block-properties';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 import { getInProgressSourceJobByBlockIdAction } from '@/domains/source-management/actions/summary/get-in-progress-source-job-by-block-id.action';
@@ -70,6 +71,7 @@ export function useSummarySectionBusiness(
 ): SummarySectionBusinessLogic {
   const [optimisticallyAddedLanguages, setOptimisticallyAddedLanguages] = useState<Set<string>>(new Set());
   const canvasMode = useCanvasModeContext();
+  const { workspaceId } = useCanvasMetadata();
   const { setAutoSummaryBlockId } = useAIActionContext();
   const { readonly, publishToken } = useCanvasReadOnly();
 
@@ -106,10 +108,11 @@ export function useSummarySectionBusiness(
   } = useQuery({
     queryKey: ['source-job-in-progress', blockId],
     queryFn: async () => {
-      const result = await getInProgressSourceJobByBlockIdAction({ blockId: blockId ?? '' });
+      if (!workspaceId) return null;
+      const result = await getInProgressSourceJobByBlockIdAction({ workspaceId, blockId: blockId ?? '' });
       return result.success ? result.data : null;
     },
-    enabled: !!blockId && !!sourceId && !readonly,
+    enabled: !!workspaceId && !!blockId && !!sourceId && !readonly,
     staleTime: 5000,
   });
   const initialJob: SourceJob | null =
@@ -299,7 +302,8 @@ export function useSummarySectionBusiness(
   // -------------------------------------------------------------------------
   const processSourceMutation = useMutation({
     mutationFn: async (language: string) => {
-      const result = await processSourceSummaryAction({ blockId, language });
+      if (!workspaceId) throw new Error('Workspace not found');
+      const result = await processSourceSummaryAction({ workspaceId, blockId, language });
       if (!result.success) throw new Error(result.error);
     },
     onMutate: (language) => {

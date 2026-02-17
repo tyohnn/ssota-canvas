@@ -11,6 +11,7 @@ import {
   type YoutubeBlockProperties,
   YoutubeBlockPropertiesVO,
 } from '@/domains/block-management/shared/value-objects/block-properties';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 import { useSourceJobRealtime } from '@/domains/source-management/frontend/hooks';
 
@@ -35,6 +36,7 @@ export function useExtractScript({
   blockData,
 }: UseExtractScriptParams) {
   const queryClient = useQueryClient();
+  const { workspaceId } = useCanvasMetadata();
   const canvasMode = useCanvasModeContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -82,7 +84,7 @@ export function useExtractScript({
     setIsSuccess(false);
 
     try {
-      const result = await extractScriptAction(blockId, blockData);
+      const result = await extractScriptAction(workspaceId ?? '', blockId, blockData);
 
       if (result.success) {
         if (result.alreadyExists) {

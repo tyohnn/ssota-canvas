@@ -6,6 +6,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+
 import { getSourceSummaryAction } from '../../actions/summary/get-source-summary.action';
 import { getSourceSummaryForPublishedPageAction } from '../../actions/published-page/get-source-summary-for-published-page.action';
 import type { SourceSummaryDTO } from '../../shared/dtos/responses/source-summary.responses';
@@ -44,6 +46,8 @@ export function useSourceSummary(
       ]
     : ['source-summary', (params as { blockId: string }).blockId, params.language];
 
+  const { workspaceId } = useCanvasMetadata();
+
   const {
     data,
     isLoading,
@@ -69,6 +73,7 @@ export function useSourceSummary(
         return result.data;
       }
       const result = await getSourceSummaryAction({
+        workspaceId: workspaceId ?? '',
         blockId: (params as { blockId: string }).blockId,
         language: params.language,
       });
@@ -79,9 +84,10 @@ export function useSourceSummary(
       (params.enabled ?? true) &&
       !!params.blockId &&
       !!params.language &&
-      (!isPublished ||
-        (!!(params as { sourceId?: string }).sourceId &&
-          !!(params as { publishToken?: string }).publishToken)),
+      (isPublished
+        ? !!(params as { sourceId?: string }).sourceId &&
+          !!(params as { publishToken?: string }).publishToken
+        : !!workspaceId),
     staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });

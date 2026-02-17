@@ -7,6 +7,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+
 import { getVideoScriptAction } from '../../../actions/script/get-video-script.action';
 import type { YoutubeScript } from '../../../shared/types/transcript.types';
 
@@ -25,21 +27,27 @@ export type UseVideoScriptResult = {
 export function useVideoScript(
   params: UseVideoScriptParams
 ): UseVideoScriptResult {
+  const { workspaceId } = useCanvasMetadata();
+
   const {
     data,
     isLoading,
     error: queryError,
     refetch,
   } = useQuery<{ script: YoutubeScript | null }>({
-    queryKey: ['video-script', params.blockId],
+    queryKey: ['video-script', workspaceId ?? null, params.blockId],
     queryFn: async () => {
+      if (!workspaceId || !params.blockId) {
+        throw new Error('workspaceId and blockId are required');
+      }
       const result = await getVideoScriptAction({
+        workspaceId,
         blockId: params.blockId,
       });
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    enabled: (params.enabled ?? true) && !!params.blockId,
+    enabled: (params.enabled ?? true) && !!params.blockId && !!workspaceId,
     staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });

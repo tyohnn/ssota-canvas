@@ -5,6 +5,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+
 import { getSourceSummaryLanguagesAction } from '../../actions/summary/get-source-summary-languages.action';
 import { getSourceSummaryLanguagesForPublishedPageAction } from '../../actions/published-page/get-source-summary-languages-for-published-page.action';
 
@@ -40,6 +42,8 @@ export function useSourceSummaryLanguages(
       ]
     : ['source-summary-languages', (params as { blockId: string }).blockId];
 
+  const { workspaceId } = useCanvasMetadata();
+
   const {
     data,
     isLoading,
@@ -64,6 +68,7 @@ export function useSourceSummaryLanguages(
         return result.data.languages;
       }
       const result = await getSourceSummaryLanguagesAction({
+        workspaceId: workspaceId ?? '',
         blockId: (params as { blockId: string }).blockId,
       });
       if (!result.success) throw new Error(result.error);
@@ -72,9 +77,10 @@ export function useSourceSummaryLanguages(
     enabled:
       (params.enabled ?? true) &&
       !!params.blockId &&
-      (!isPublished ||
-        (!!(params as { sourceId?: string }).sourceId &&
-          !!(params as { publishToken?: string }).publishToken)),
+      (isPublished
+        ? !!(params as { sourceId?: string }).sourceId &&
+          !!(params as { publishToken?: string }).publishToken
+        : !!workspaceId),
     staleTime: 60 * 60 * 1000,
     retry: 1,
   });

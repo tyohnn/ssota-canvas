@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { DrizzleSourceActionTransactionRepository } from '../../backend/repositories/implementations/drizzle-source-action-transaction.repository';
 import { createSourceActionTransaction } from '../../backend/services/source-action-transaction';
+import { BlockSlugParamSchema } from '../../shared/dtos/requests/source.requests';
 import { SUPPORTED_LANGUAGES } from '../../shared/value-objects/language-code.vo';
 import type { SourceBlockActionContext } from '../secure-action';
 import { withSourceBlockSecureAction } from '../secure-action';
@@ -13,7 +14,8 @@ const LanguageSchema = z.enum(
   SUPPORTED_LANGUAGES as unknown as [string, ...string[]]
 );
 const CreateSourceActionTransactionByBlockRequestSchema = z.object({
-  blockId: z.string().uuid(),
+  workspaceId: z.uuid(),
+  blockId: BlockSlugParamSchema,
   actionType: z.enum(['extract_content', 'extract_summary']),
   language: LanguageSchema.optional().nullable(),
 });

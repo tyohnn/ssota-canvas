@@ -3,13 +3,16 @@
 import { ActionResult, err, ok } from '@/lib';
 import { z } from 'zod';
 
+import { BlockSlugSchema } from '@/domains/block-management/shared/dtos/requests/block.requests';
+
 import { DrizzleVideoRepository } from '../../backend/repositories/implementations/drizzle-video.repository';
 import type { YoutubeScript } from '../../shared/types/transcript.types';
 import type { YoutubeBlockActionContext } from '../secure-action';
 import { withYoutubeBlockSecureAction } from '../secure-action';
 
 const GetVideoScriptRequestSchema = z.object({
-  blockId: z.string().uuid(),
+  workspaceId: z.uuid(),
+  blockId: BlockSlugSchema,
 });
 type GetVideoScriptRequest = z.infer<typeof GetVideoScriptRequestSchema>;
 

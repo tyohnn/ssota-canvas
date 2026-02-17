@@ -15,11 +15,13 @@ export interface ExtractSummaryResult {
 /**
  * YouTube 요약 추출 (source 경로만)
  *
- * @param blockId - 블록 ID
+ * @param workspaceId - 워크스페이스 ID (에디터 컨텍스트)
+ * @param blockId - 블록 slug
  * @param blockData - 블록 데이터 (sourceId 필요)
  * @param language - 언어 코드 (기본값 en)
  */
 export async function extractSummaryAction(
+  workspaceId: string,
   blockId: string,
   blockData: BlockNodeData,
   language?: string
@@ -35,6 +37,7 @@ export async function extractSummaryAction(
 
   try {
     const result = await processSourceSummaryAction({
+      workspaceId,
       blockId,
       language: language || 'en',
     });

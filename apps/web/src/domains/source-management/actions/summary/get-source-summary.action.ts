@@ -5,13 +5,15 @@ import { z } from 'zod';
 
 import { DrizzleSourceSummaryRepository } from '../../backend/repositories/implementations/drizzle-source-summary.repository';
 import type { SourceSummaryDTO } from '../../shared/dtos/responses/source-summary.responses';
+import { BlockSlugParamSchema } from '../../shared/dtos/requests/source.requests';
 import { LanguageCode } from '../../shared/value-objects/language-code.vo';
 import { SourceId } from '../../shared/value-objects/source-id.vo';
 import type { SourceBlockActionContext } from '../secure-action';
 import { withSourceBlockSecureAction } from '../secure-action';
 
 const GetSourceSummaryByBlockRequestSchema = z.object({
-  blockId: z.string().uuid(),
+  workspaceId: z.uuid(),
+  blockId: BlockSlugParamSchema,
   language: z.string().length(2),
 });
 type GetSourceSummaryByBlockRequest = z.infer<

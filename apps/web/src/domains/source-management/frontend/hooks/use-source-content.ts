@@ -6,6 +6,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+
 import { getSourceContentAction } from '../../actions/source/get-source-content.action';
 import { getSourceContentForPublishedPageAction } from '../../actions/published-page/get-source-content-for-published-page.action';
 import type { SourceContentDTO } from '../../shared/dtos/responses/source.responses';
@@ -42,6 +44,8 @@ export function useSourceContent(
       ]
     : ['source-content', (params as { blockId: string }).blockId];
 
+  const { workspaceId } = useCanvasMetadata();
+
   const {
     data,
     isLoading,
@@ -65,6 +69,7 @@ export function useSourceContent(
         return result.data;
       }
       const result = await getSourceContentAction({
+        workspaceId: workspaceId ?? '',
         blockId: (params as { blockId: string }).blockId,
       });
       if (!result.success) throw new Error(result.error);
@@ -73,9 +78,10 @@ export function useSourceContent(
     enabled:
       (params.enabled ?? true) &&
       !!params.blockId &&
-      (!isPublished ||
-        (!!(params as { sourceId?: string }).sourceId &&
-          !!(params as { publishToken?: string }).publishToken)),
+      (isPublished
+        ? !!(params as { sourceId?: string }).sourceId &&
+          !!(params as { publishToken?: string }).publishToken
+        : !!workspaceId),
     staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });

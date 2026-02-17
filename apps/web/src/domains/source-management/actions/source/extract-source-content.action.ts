@@ -10,11 +10,13 @@ import { createSupabasePgmqQueueAdapter } from '@/domains/queue';
 import { DrizzleSourceJobRepository } from '../../backend/repositories/implementations/drizzle-source-job.repository';
 import { DrizzleSourceSummaryRepository } from '../../backend/repositories/implementations/drizzle-source-summary.repository';
 import { ensureSourceJobService } from '../../backend/services/source-job';
+import { BlockSlugParamSchema } from '../../shared/dtos/requests/source.requests';
 import type { SourceBlockActionContext } from '../secure-action';
 import { withSourceBlockSecureAction } from '../secure-action';
 
 const ExtractSourceContentByBlockRequestSchema = z.object({
-  blockId: z.string().uuid(),
+  workspaceId: z.uuid(),
+  blockId: BlockSlugParamSchema,
 });
 type ExtractSourceContentByBlockRequest = z.infer<
   typeof ExtractSourceContentByBlockRequestSchema
@@ -38,7 +40,7 @@ async function extractSourceContentInternal(
 
   const result = await ensureSourceJobService(
     {
-      blockId: req.blockId,
+      blockId: ctx.blockUuid,
       orgId: ctx.organization.id,
       sourceId: ctx.sourceId,
       language: 'en',

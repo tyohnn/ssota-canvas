@@ -5,6 +5,8 @@
  */
 import { z } from 'zod';
 
+import { BlockSlugParamSchema } from './source.requests';
+
 export const GetInProgressSourceJobRequestSchema = z.object({
   pageId: z.uuid({ message: 'Invalid page ID' }),
 });
@@ -14,7 +16,8 @@ export type GetInProgressSourceJobRequest = z.output<
 >;
 
 export const GetInProgressSourceJobByBlockIdRequestSchema = z.object({
-  blockId: z.uuid({ message: 'Invalid block ID' }),
+  workspaceId: z.uuid(),
+  blockId: BlockSlugParamSchema,
 });
 
 export type GetInProgressSourceJobByBlockIdRequest = z.output<

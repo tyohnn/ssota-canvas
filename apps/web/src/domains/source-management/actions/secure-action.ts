@@ -26,7 +26,10 @@ const sourceSecureActionBuilder =
   createSecureActionBuilder<AuthenticatedUser>(getAuthenticatedUser);
 
 export interface SourceBlockActionContext extends WorkspaceActionContext {
+  /** Block slug (8–10 hex), from request. Use for cache keys / display. */
   blockId: string;
+  /** Resolved block UUID. Use for DB lookups (e.g. source_jobs.block_id). */
+  blockUuid: string;
   sourceId: string;
 }
 
@@ -67,6 +70,7 @@ async function authorizeSourceBlockById(
     context: {
       ...workspaceAuth.context,
       blockId: req.blockId,
+      blockUuid: block.id.value,
       sourceId,
     },
   };

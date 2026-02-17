@@ -5,14 +5,15 @@ import { z } from 'zod';
 
 import { DrizzleSourceSummaryRepository } from '../../backend/repositories/implementations/drizzle-source-summary.repository';
 import type { SourceSummaryDTO } from '../../shared/dtos/responses/source-summary.responses';
+import { BlockSlugParamSchema } from '../../shared/dtos/requests/source.requests';
 import { SourceId } from '../../shared/value-objects/source-id.vo';
 import type { PublishedPageSourceContext } from '../secure-action';
 import { withPublishedPageSourceSecureAction } from '../secure-action';
 
 const GetSourceSummaryForPublishedPageRequestSchema = z.object({
   publishToken: z.string().min(1),
-  blockId: z.string().uuid(),
-  sourceId: z.string().uuid(),
+  blockId: BlockSlugParamSchema,
+  sourceId: z.uuid(),
   language: z.string().length(2),
 });
 type GetSourceSummaryForPublishedPageRequest = z.infer<

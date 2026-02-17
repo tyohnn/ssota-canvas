@@ -3,6 +3,13 @@ import { z } from 'zod';
 import { SOURCE_TYPES } from '../../value-objects/source-type.vo';
 import { SUPPORTED_LANGUAGES } from '../../value-objects/language-code.vo';
 
+/** Block slug (8–10 hex). Used by secure-action with findByWorkspaceIdAndSlug. */
+export const BlockSlugParamSchema = z
+  .string()
+  .min(8, 'Block slug must be at least 8 characters')
+  .max(10, 'Block slug must be at most 10 characters')
+  .regex(/^[0-9a-f]{8,10}$/i, 'Block slug must be 8-10 hex characters');
+
 const SourceTypeSchema = z.enum(SOURCE_TYPES as unknown as [string, ...string[]]);
 const LanguageSchema = z.enum(SUPPORTED_LANGUAGES as unknown as [string, ...string[]]);
 
@@ -20,7 +27,7 @@ export const FindOrCreateSourceRequestSchema = CreateSourceRequestSchema;
 export type FindOrCreateSourceRequest = z.output<typeof FindOrCreateSourceRequestSchema>;
 
 export const UpdateSourceRawContentRequestSchema = z.object({
-  sourceId: z.string().uuid({ message: 'Invalid source ID' }),
+  sourceId: z.uuid({ message: 'Invalid source ID' }),
   rawContent: z.string(),
   extractedAt: z.coerce.date(),
 });
@@ -30,7 +37,7 @@ export type UpdateSourceRawContentRequest = z.output<
 >;
 
 export const ExtractSourceContentRequestSchema = z.object({
-  sourceId: z.string().uuid({ message: 'Invalid source ID' }),
+  sourceId: z.uuid({ message: 'Invalid source ID' }),
   url: z.string().url(),
   sourceType: SourceTypeSchema,
   metadata: z.record(z.string(), z.unknown()).optional(),
@@ -41,7 +48,7 @@ export type ExtractSourceContentRequest = z.output<
 >;
 
 export const GetSourceContentRequestSchema = z.object({
-  sourceId: z.string().uuid({ message: 'Invalid source ID' }),
+  sourceId: z.uuid({ message: 'Invalid source ID' }),
 });
 
 export type GetSourceContentRequest = z.output<
@@ -49,7 +56,8 @@ export type GetSourceContentRequest = z.output<
 >;
 
 export const GetSourceContentByBlockRequestSchema = z.object({
-  blockId: z.string().uuid({ message: 'Invalid block ID' }),
+  workspaceId: z.uuid(),
+  blockId: BlockSlugParamSchema,
 });
 
 export type GetSourceContentByBlockRequest = z.output<

@@ -26,10 +26,15 @@ export async function executeAction(
 ): Promise<ActionResult> {
   switch (action) {
     case 'extractScript': {
-      // Block ID 추출 (blockData에서 가져오기)
+      const workspaceId = params?.workspaceId as string | undefined;
+      if (!workspaceId) {
+        return {
+          success: false,
+          error: 'workspaceId is required for extractScript',
+        };
+      }
       const blockId = blockData.blockId;
-
-      const result = await extractScriptAction(blockId, blockData);
+      const result = await extractScriptAction(workspaceId, blockId, blockData);
 
       if (result.success) {
         return {

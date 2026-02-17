@@ -9,6 +9,7 @@ import { toast } from '@workspace/ui/components/ui/sonner';
 import { useAIActionContext } from '@/domains/ai-actions/frontend/contexts/ai-action-context';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 import { createTabOptions } from '@/domains/canvas-management/frontend/hooks/mode/create-tab-options';
 import { useSourceJobRealtime } from '@/domains/source-management/frontend/hooks';
@@ -37,6 +38,7 @@ export function useExtractSummary({
   blockData,
 }: UseExtractSummaryParams) {
   const queryClient = useQueryClient();
+  const { workspaceId } = useCanvasMetadata();
   const canvasMode = useCanvasModeContext();
   const { setAutoSummaryBlockId } = useAIActionContext();
   const [isLoading, setIsLoading] = useState(false);
@@ -95,7 +97,7 @@ export function useExtractSummary({
       clearExtractingRef.current = clearExtracting;
 
       try {
-        const result = await extractSummaryAction(blockId, blockData, language);
+        const result = await extractSummaryAction(workspaceId ?? '', blockId, blockData, language);
 
         if (result.success) {
           if (result.alreadyExists) {
