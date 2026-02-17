@@ -1,7 +1,7 @@
 'use server';
 
-import type { PageActionContext } from '@/domains/common/auth/types';
-import { withBlockMountSecureAction } from '@/domains/common/server-actions';
+import type { BlockMountActionContext } from './secure-action';
+import { withSingleBlockMountSecureAction } from './secure-action';
 import {
   DrizzleEventLogRepository,
   EventLogService,
@@ -26,7 +26,7 @@ import { BlockSizeUpdatedDTO } from '../../shared/dtos/responses';
  * 2. 사용자 인증 확인
  * 3. Page 기반 권한 확인 (blockMountId → pageId → 권한 검증)
  */
-export const updateBlockSizeAction = withBlockMountSecureAction(
+export const updateBlockSizeAction = withSingleBlockMountSecureAction(
   UpdateBlockSizeRequestSchema,
   'updateBlockSizeAction',
   updateBlockSizeInternal,
@@ -38,17 +38,15 @@ export const updateBlockSizeAction = withBlockMountSecureAction(
 /**
  * 내부 구현 (검증된 데이터만 처리)
  *
- * ⚠️ 이 함수는 이미 검증된 요청만 받습니다
- *
  * @param safeDto - 검증된 SafeDTO
- * @param context - 검증된 사용자, 워크스페이스, 페이지 정보
+ * @param context - BlockMountActionContext (blockMountAggregate 포함, 서비스 재조회 없음)
  */
 async function updateBlockSizeInternal(
-  safeDto: UpdateBlockSizeRequest, // ✅ 이미 검증됨 (SafeDTO)
-  context: PageActionContext // ✅ 검증된 context
+  safeDto: UpdateBlockSizeRequest,
+  context: BlockMountActionContext
 ): Promise<ActionResult<BlockSizeUpdatedDTO>> {
   try {
-    const { authenticatedUser, page } = context;
+    const { authenticatedUser, page, blockMountAggregate } = context;
     const userId: UserId = new UserId(authenticatedUser.id);
     const blockMountRepository = new DrizzleBlockMountRepository();
 
@@ -60,12 +58,13 @@ async function updateBlockSizeInternal(
       pageId: page.pageId.value,
     };
 
-    const result = await updateBlockSize(
+    const result = await updateBlockSize({
       safeDto,
-      userId,
+      safeUserId: userId,
+      safeBlockMountAggregate: blockMountAggregate,
       blockMountRepository,
-      eventLogPolicyContext
-    );
+      eventLogPolicyContext,
+    });
 
     if (result.isError()) {
       console.error(
@@ -82,7 +81,7 @@ async function updateBlockSizeInternal(
     const aggregate = result.value;
     const blockMount = aggregate.getBlockMount();
     const dto: BlockSizeUpdatedDTO = {
-      blockMountId: blockMount.id.value,
+      blockMountId: safeDto.blockMountId,
       newSize: {
         width: blockMount.size.width,
         height: blockMount.size.height,

@@ -7,7 +7,6 @@ import type { EdgeRepository } from '@/domains/canvas-management/backend/reposit
 import { EdgeAggregate } from '@/domains/canvas-management/shared/aggregates/edge.aggregate';
 import type { CreateEdgeCommand } from '@/domains/canvas-management/shared/commands';
 import type { CreateEdgeRequest } from '@/domains/canvas-management/shared/dtos/requests/edge.requests';
-import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { EdgeHandle } from '@/domains/canvas-management/shared/value-objects/edge-handle.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
@@ -39,19 +38,20 @@ export async function createEdge(
   eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<Result<EdgeAggregate, Error>> {
   try {
-    // 1. SafeDTO → Value Objects 생성
     const pageId = new PageId(safeDto.pageId);
-    const sourceBlockMountId = new BlockMountId(safeDto.sourceBlockMountId);
-    const targetBlockMountId = new BlockMountId(safeDto.targetBlockMountId);
-
     const sourceHandle = EdgeHandle.fromString(safeDto.sourceHandle);
     const targetHandle = EdgeHandle.fromString(safeDto.targetHandle);
 
-    // 2. 비즈니스 검증: 소스/타겟 블럭 마운트가 같은 페이지에 존재하는지 확인
     const sourceBlockMount =
-      await blockMountRepository.findById(sourceBlockMountId);
+      await blockMountRepository.findByPageIdAndSlug(
+        pageId,
+        safeDto.sourceBlockMountId
+      );
     const targetBlockMount =
-      await blockMountRepository.findById(targetBlockMountId);
+      await blockMountRepository.findByPageIdAndSlug(
+        pageId,
+        safeDto.targetBlockMountId
+      );
 
     if (!sourceBlockMount || !targetBlockMount) {
       return Result.error(
@@ -75,7 +75,9 @@ export async function createEdge(
       );
     }
 
-    // 4. SafeDTO → Command 변환 (선택 필드: label, style, markerEnd, markerStart)
+    const sourceBlockMountId = sourceBlockMount.getBlockMount().id;
+    const targetBlockMountId = targetBlockMount.getBlockMount().id;
+
     const command: CreateEdgeCommand = {
       pageId,
       sourceBlockMountId,

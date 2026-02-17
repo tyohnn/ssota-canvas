@@ -58,12 +58,18 @@ export class CanvasQueryService implements ICanvasQueryService {
       const viewportAggregate =
         await this.viewportRepository.findByPageId(pageId);
 
-      // 4. 모든 데이터 조합하여 CanvasViewData 생성
-      // ⚠️ Schema Change: edges now use block_mount_id directly (no mapping needed)
+      // 4. blockMount UUID → slug 맵 (edges 응답에서 blockMountId = slug 로 노출용)
+      const blockMountIdToSlug = new Map(
+        blockMountsWithBlocks.map(({ blockMountAggregate, blockMountSlug }) => [
+          blockMountAggregate.getBlockMount().id.value,
+          blockMountSlug,
+        ])
+      );
+
       const canvasViewData: CanvasViewData = {
         pageId: pageId.value,
         blocks: blockMountsWithBlocks.map(
-          ({ blockMountAggregate, blockAggregate }) => {
+          ({ blockMountAggregate, blockMountSlug, blockAggregate }) => {
             if (!blockMountAggregate || !blockAggregate) {
               console.error(
                 '[CanvasQueryService] Invalid block mount or block aggregate:',
@@ -92,7 +98,7 @@ export class CanvasQueryService implements ICanvasQueryService {
             };
 
             return {
-              blockMountId: blockMount.id.value,
+              blockMountId: blockMountSlug,
               blockId: block.getSlug(),
               blockType: block.blockType.value,
               title: block.title,
@@ -113,7 +119,11 @@ export class CanvasQueryService implements ICanvasQueryService {
               zOrder: blockMount.zOrder.value,
               viewMode: blockMount.viewMode.value,
               viewModeSizes: blockMount.viewModeSizes.toJSON(),
-              parentBlockMountId: blockMount.parentBlockMountId?.value ?? undefined,
+              parentBlockMountId:
+                blockMount.parentBlockMountId?.value != null
+                  ? blockMountIdToSlug.get(blockMount.parentBlockMountId.value) ??
+                    blockMount.parentBlockMountId.value
+                  : undefined,
               createdAt: block.createdAt.toISOString(),
               updatedAt: block.updatedAt.toISOString(),
               createdByProfile: block.createdByProfile,
@@ -150,10 +160,14 @@ export class CanvasQueryService implements ICanvasQueryService {
           }
 
           return {
-            edgeId: edge.id.value,
+            edgeId: edge.slug,
             pageId: edge.pageId.value,
-            sourceBlockMountId: edge.sourceBlockMountId.value, // ✅ 직접 사용 (이미 blockMountId)
-            targetBlockMountId: edge.targetBlockMountId.value, // ✅ 직접 사용 (이미 blockMountId)
+            sourceBlockMountId:
+              blockMountIdToSlug.get(edge.sourceBlockMountId.value) ??
+              edge.sourceBlockMountId.value,
+            targetBlockMountId:
+              blockMountIdToSlug.get(edge.targetBlockMountId.value) ??
+              edge.targetBlockMountId.value,
             sourceHandle: edge.sourceHandle.value,
             targetHandle: edge.targetHandle.value,
             edgeShape: edge.edgeShape.value,

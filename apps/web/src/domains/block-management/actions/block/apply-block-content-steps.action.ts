@@ -1,6 +1,5 @@
 'use server';
 
-import type { WorkspaceActionContext } from '@/domains/common/auth/types';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -12,17 +11,18 @@ import {
   ApplyBlockContentStepsRequestSchema,
 } from '../../shared/dtos/requests/block.requests';
 import { BlockContentStepsAppliedDTO } from '../../shared/dtos/responses/block.responses';
-import { withBlockSecureAction } from './secure-action';
+import type { BlockActionContext } from './secure-action';
+import { withBlockAggregateSecureAction } from './secure-action';
 
 /**
  * 블록 콘텐츠 Step 적용 Server Action (ProseMirror steps)
  *
- * Security: withBlockSecureAction HOF (동일한 검증 체인)
+ * Security: withBlockAggregateSecureAction HOF (워크스페이스 권한 + Block 조회 후 blockAggregate 전달)
  *
  * @param request - { blockId, steps, baseVersion }
  * @returns BlockContentStepsAppliedDTO (성공) | Error (실패, CONTENT_VERSION_MISMATCH 시 code로 구분)
  */
-export const applyBlockContentStepsAction = withBlockSecureAction(
+export const applyBlockContentStepsAction = withBlockAggregateSecureAction(
   ApplyBlockContentStepsRequestSchema,
   'applyBlockContentStepsAction',
   applyBlockContentStepsInternal,
@@ -35,17 +35,16 @@ export const applyBlockContentStepsAction = withBlockSecureAction(
 
 async function applyBlockContentStepsInternal(
   safeDto: ApplyBlockContentStepsRequest,
-  context: WorkspaceActionContext
+  context: BlockActionContext
 ): Promise<ActionResult<BlockContentStepsAppliedDTO>> {
   try {
     const userId = new UserId(context.authenticatedUser.id);
     const blockRepository = new DrizzleBlockRepository();
 
     const result = await applyBlockContentSteps({
-      safeWorkspaceId: context.workspace.workspaceId,
-      safeBlockSlug: safeDto.blockId,
       steps: safeDto.steps,
       baseVersion: safeDto.baseVersion,
+      safeBlockAggregate: context.blockAggregate,
       safeUserId: userId,
       blockRepository,
     });

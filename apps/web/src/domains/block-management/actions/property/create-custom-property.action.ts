@@ -1,83 +1,42 @@
 'use server';
 
-import { getAuthErrorMessage } from '@/domains/common/auth/error';
-import {
-  type AuthenticatedUser,
-  getAuthenticatedUser,
-  verifyAccess,
-} from '@/domains/common/auth/helpers';
 import { ActionResult, err, ok } from '@/lib';
 
 import { DrizzleBlockRepository } from '../../backend/repositories/implementations/drizzle-block.repository';
-import { BlockCustomPropertyService } from '../../backend/services/custom-property';
+import { addCustomProperty } from '../../backend/services/custom-property';
 import type { CustomPropertyMutationDTO } from '../../shared/dtos';
 import {
   type CreateCustomPropertyRequest,
   CreateCustomPropertyRequestSchema,
 } from '../../shared/dtos/requests';
 
-export async function createCustomPropertyAction(
-  request: unknown
-): Promise<ActionResult<CustomPropertyMutationDTO>> {
-  const parseResult = CreateCustomPropertyRequestSchema.safeParse(request);
+import type { PropertyActionContext } from './secure-action';
+import { withPropertySecureAction } from './secure-action';
 
-  if (!parseResult.success) {
-    console.warn(
-      '[Security] Invalid request to createCustomPropertyAction',
-      parseResult.error.issues
-    );
-    return err('Invalid request data', {
-      code: 'INVALID_REQUEST',
-      issues: parseResult.error.issues,
-    });
+/**
+ * Custom Property 생성 Server Action
+ *
+ * Security: withPropertySecureAction (workspace 권한 + Block 조회 후 blockAggregate 전달)
+ */
+export const createCustomPropertyAction = withPropertySecureAction(
+  CreateCustomPropertyRequestSchema,
+  'createCustomPropertyAction',
+  createCustomPropertyInternal,
+  {
+    getLogMetadata: req => ({ blockId: req.blockId, workspaceId: req.workspaceId }),
   }
-
-  const validatedRequest = parseResult.data;
-
-  try {
-    const user = await getAuthenticatedUser();
-    const accessResult = await verifyAccess(
-      validatedRequest.orgId,
-      validatedRequest.workspaceId,
-      user.id
-    );
-
-    if (!accessResult.success) {
-      console.warn('[Security] Access denied', {
-        userId: user.id,
-        orgId: validatedRequest.orgId,
-        workspaceId: validatedRequest.workspaceId,
-        error: accessResult.error,
-      });
-
-      return err(getAuthErrorMessage(accessResult.error), {
-        code: accessResult.error || 'ACCESS_DENIED',
-      });
-    }
-
-    return await createCustomPropertyInternal(validatedRequest, user);
-  } catch (error) {
-    console.error('[createCustomPropertyAction] Failed to create property', {
-      error,
-    });
-
-    return err(
-      error instanceof Error ? error.message : 'Failed to create property'
-    );
-  }
-}
+);
 
 async function createCustomPropertyInternal(
   request: CreateCustomPropertyRequest,
-  user: AuthenticatedUser
+  context: PropertyActionContext
 ): Promise<ActionResult<CustomPropertyMutationDTO>> {
   try {
-    const repository = new DrizzleBlockRepository();
-    const service = new BlockCustomPropertyService(repository);
+    const blockRepository = new DrizzleBlockRepository();
 
-    const result = await service.addCustomProperty({
-      blockSlug: request.blockId,
-      workspaceId: request.workspaceId,
+    const result = await addCustomProperty({
+      blockAggregate: context.blockAggregate,
+      blockRepository,
       property: {
         id: request.id,
         name: request.name,
@@ -99,8 +58,8 @@ async function createCustomPropertyInternal(
       updatedAt: result.updatedAt,
     });
   } catch (error) {
-    console.error('[createCustomPropertyAction] Internal error:', {
-      userId: user.id,
+    console.error('[createCustomPropertyInternal] Internal error:', {
+      userId: context.authenticatedUser.id,
       error,
     });
     return err(

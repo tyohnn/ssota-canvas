@@ -1,3 +1,6 @@
+import type { BlockAggregate } from '../../../shared/aggregates/block.aggregate';
+import type { IBlockRepository } from '../../repositories/interfaces/block.repository.interface';
+
 export type PropertyOptionInput = {
   id?: string;
   label: string;
@@ -15,9 +18,9 @@ export type PropertyValidationInput = {
   message?: string;
 };
 
-export interface AddCustomPropertyCommand {
-  blockSlug: string;
-  workspaceId: string;
+export type AddCustomPropertyParams = {
+  blockAggregate: BlockAggregate;
+  blockRepository: IBlockRepository;
   property: {
     id?: string;
     name: string;
@@ -30,11 +33,11 @@ export interface AddCustomPropertyCommand {
     icon?: string | null;
     validation?: PropertyValidationInput;
   };
-}
+};
 
-export interface UpdateCustomPropertyCommand {
-  blockSlug: string;
-  workspaceId: string;
+export type UpdateCustomPropertyParams = {
+  blockAggregate: BlockAggregate;
+  blockRepository: IBlockRepository;
   propertyId: string;
   updates: {
     name?: string;
@@ -47,10 +50,10 @@ export interface UpdateCustomPropertyCommand {
     icon?: string | null;
     validation?: PropertyValidationInput;
   };
-}
+};
 
-export interface DeleteCustomPropertyCommand {
-  blockSlug: string;
-  workspaceId: string;
+export type DeleteCustomPropertyParams = {
+  blockAggregate: BlockAggregate;
+  blockRepository: IBlockRepository;
   propertyId: string;
-}
+};

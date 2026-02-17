@@ -21,11 +21,12 @@ export const BlockTypeSchema = z.enum(
   blockTypeEnum.enumValues as [string, ...string[]]
 );
 
-/** 8자 hex slug (block/mount/edge 식별자, UUID 아님) */
+/** 8~10자 hex slug (block 식별자, UUID 아님. migration 충돌 시 10자 확장) */
 export const BlockSlugSchema = z
   .string()
-  .length(8, 'Block slug must be 8 characters')
-  .regex(/^[0-9a-f]+$/i, 'Block slug must be 8 hex characters');
+  .min(8, 'Block slug must be at least 8 characters')
+  .max(10, 'Block slug must be at most 10 characters')
+  .regex(/^[0-9a-f]{8,10}$/i, 'Block slug must be 8-10 hex characters');
 
 /**
  * 블록 생성 요청 스키마

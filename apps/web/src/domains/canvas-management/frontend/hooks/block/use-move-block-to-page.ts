@@ -18,6 +18,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseMoveBlockToPageParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
   onExit?: () => void; // exitToDefaultMode
   onSuccess?: (block: BlockMovedToPageDTO) => void;
@@ -45,13 +46,13 @@ export type UseMoveBlockToPageResult = {
 export function useMoveBlockToPage(
   params: UseMoveBlockToPageParams
 ): UseMoveBlockToPageResult {
-  const { reactFlow, onExit, onSuccess, onError } = params;
+  const { pageId, reactFlow, onExit, onSuccess, onError } = params;
   const { getNodes, setNodes, addNodes } = reactFlow;
 
   const mutation = useMutation({
     mutationFn: async (input: MoveBlockToPageInput) => {
-      // Validation
       const rawRequest: MoveBlockToPageRequestInput = {
+        pageId,
         blockMountId: input.blockMountId,
         targetPageId: input.targetPageId,
       };

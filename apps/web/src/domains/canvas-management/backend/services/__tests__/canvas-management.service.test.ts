@@ -49,16 +49,54 @@ class MockBlockMountRepository implements BlockMountRepository {
     return this.storage.get(blockMountId.value) || null;
   }
 
-  async findByIds(
-    blockMountIds: any[]
+  private slugFromUuid(uuid: string): string {
+    return uuid.replace(/-/g, '').toLowerCase().slice(0, 8);
+  }
+
+  async findByPageIdAndSlug(
+    pageId: PageId,
+    slug: string
+  ): Promise<BlockMountAggregate | null> {
+    for (const agg of this.storage.values()) {
+      if (
+        agg.getBlockMount().pageId.value === pageId.value &&
+        this.slugFromUuid(agg.getBlockMount().id.value) === slug
+      ) {
+        return agg;
+      }
+    }
+    return null;
+  }
+
+  async findByPageIdAndSlugs(
+    pageId: PageId,
+    slugs: string[]
   ): Promise<(BlockMountAggregate | null)[]> {
-    return blockMountIds.map(id => this.storage.get(id.value) ?? null);
+    const bySlug = new Map<string, BlockMountAggregate>();
+    for (const agg of this.storage.values()) {
+      if (agg.getBlockMount().pageId.value === pageId.value) {
+        bySlug.set(
+          this.slugFromUuid(agg.getBlockMount().id.value),
+          agg
+        );
+      }
+    }
+    return slugs.map(s => bySlug.get(s) ?? null);
   }
 
   async findByPageId(pageId: PageId): Promise<BlockMountAggregate[]> {
     return Array.from(this.storage.values()).filter(
       bm => bm.getBlockMount().pageId.value === pageId.value
     );
+  }
+
+  async findOnePageIdByBlockId(blockId: string): Promise<string | null> {
+    for (const bm of this.storage.values()) {
+      if (bm.getBlockMount().blockId.value === blockId) {
+        return bm.getBlockMount().pageId.value;
+      }
+    }
+    return null;
   }
 
   async softDelete(blockMountId: any): Promise<void> {
@@ -81,13 +119,25 @@ class MockBlockMountRepository implements BlockMountRepository {
     // Mock implementation
   }
 
+  async updateParentAndPositionMany(
+    _items: Array<{
+      blockMountId: any;
+      parentBlockMountId: string | null;
+      position: { x: number; y: number };
+    }>
+  ): Promise<void> {
+    // Mock implementation
+  }
+
   async findByPageIdWithBlocks(pageId: PageId): Promise<Array<{
     blockMountAggregate: BlockMountAggregate;
+    blockMountSlug: string;
     blockAggregate: BlockAggregate;
   }>> {
     const blockMounts = await this.findByPageId(pageId);
     return blockMounts.map(bm => ({
       blockMountAggregate: bm,
+      blockMountSlug: this.slugFromUuid(bm.getBlockMount().id.value),
       blockAggregate: this.createMockBlockAggregate(bm.getBlockMount().blockId.value)
     }));
   }
@@ -134,7 +184,10 @@ class MockEdgeRepository implements EdgeRepository {
     // Mock implementation
   }
 
-  async findById(edgeId: any): Promise<EdgeAggregate | null> {
+  async findByPageIdAndSlug(
+    _pageId: PageId,
+    _slug: string
+  ): Promise<EdgeAggregate | null> {
     return null;
   }
 
@@ -143,6 +196,13 @@ class MockEdgeRepository implements EdgeRepository {
   }
 
   async findByConnectedBlockMountId(blockMountId: any): Promise<EdgeAggregate[]> {
+    return [];
+  }
+
+  async findByConnectedBlockMountIdAndPageId(
+    _blockMountId: any,
+    _pageId: PageId
+  ): Promise<EdgeAggregate[]> {
     return [];
   }
 
@@ -263,8 +323,13 @@ describe('CanvasQueryService', () => {
         const block = canvasViewData.blocks[0];
         expect(block).toBeDefined();
         if (block) {
-          expect(block.blockMountId).toBe(blockMountId.value);
-          expect(block.blockId).toBe(blockId.value);
+          // API 응답은 blockMountId, blockId를 slug로 노출 (8자 hex)
+          expect(block.blockMountId).toBe(
+            blockMountId.value.replace(/-/g, '').toLowerCase().slice(0, 8)
+          );
+          expect(block.blockId).toBe(
+            blockId.value.replace(/-/g, '').toLowerCase().slice(0, 8)
+          );
           expect(block.position).toEqual({ x: 100, y: 200 });
           expect(block.size).toEqual({ width: 150, height: 250 });
           expect(block.zOrder).toBe(0); // ZOrder is 0 by default in mountBlock

@@ -4,44 +4,38 @@
 import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
 import { BlockMountAggregate } from '@/domains/canvas-management/shared/aggregates/block-mount.aggregate';
 import type { UpdateBlockMountViewModeRequest } from '@/domains/canvas-management/shared/dtos/requests';
-import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { BlockViewMode } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
 import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
 
+export type UpdateBlockViewModeParams = {
+  safeDto: UpdateBlockMountViewModeRequest;
+  safeUserId: UserId;
+  safeBlockMountAggregate: BlockMountAggregate;
+  blockMountRepository: BlockMountRepository;
+};
+
 /**
  * 블럭 View Mode 업데이트
  *
- * @param safeDto - 검증된 블럭 View Mode 업데이트 요청 (SafeDTO)
- * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
- * @param blockMountRepository - BlockMount Repository
+ * @param params - safeDto, safeUserId, safeBlockMountAggregate, blockMountRepository
  * @returns 업데이트된 BlockMountAggregate
  */
 export async function updateBlockViewMode(
-  safeDto: UpdateBlockMountViewModeRequest,
-  safeUserId: UserId,
-  blockMountRepository: BlockMountRepository
+  params: UpdateBlockViewModeParams
 ): Promise<Result<BlockMountAggregate, Error>> {
+  const {
+    safeDto,
+    safeUserId,
+    safeBlockMountAggregate: aggregate,
+    blockMountRepository,
+  } = params;
   try {
-    // 1. SafeDTO → Value Objects 생성
-    const blockMountIdVO = new BlockMountId(safeDto.blockMountId);
     const viewModeVO = BlockViewMode.create(safeDto.viewMode);
 
-    // 2. BlockMountRepository.findById() 호출
-    const aggregate = await blockMountRepository.findById(blockMountIdVO);
-
-    if (!aggregate) {
-      return Result.error(
-        new CanvasManagementError(
-          'BLOCK_MOUNT_NOT_FOUND',
-          'Block mount not found'
-        )
-      );
-    }
-
-    // 3. BlockMountAggregate.updateViewMode() 호출
+    const blockMountIdVO = aggregate.getBlockMount().id;
     aggregate.updateViewMode({
       blockMountId: blockMountIdVO,
       viewMode: viewModeVO,

@@ -1,27 +1,14 @@
-import type { IBlockRepository } from '../../repositories/interfaces/block.repository.interface';
-import { addCustomProperty } from './add-custom-property.service';
-import { deleteCustomProperty } from './delete-custom-property.service';
-import { updateCustomProperty } from './update-custom-property.service';
-import type {
-  AddCustomPropertyCommand,
-  DeleteCustomPropertyCommand,
-  UpdateCustomPropertyCommand,
+/**
+ * Custom Property Services - Main Export
+ *
+ * 커스텀 프로퍼티 관련 서비스 함수 re-export
+ */
+export { addCustomProperty } from './add-custom-property.service';
+export { updateCustomProperty } from './update-custom-property.service';
+export { deleteCustomProperty } from './delete-custom-property.service';
+
+export type {
+  AddCustomPropertyParams,
+  UpdateCustomPropertyParams,
+  DeleteCustomPropertyParams,
 } from './types';
-
-export type { AddCustomPropertyCommand, DeleteCustomPropertyCommand, UpdateCustomPropertyCommand } from './types';
-
-export class BlockCustomPropertyService {
-  constructor(private readonly blockRepository: IBlockRepository) {}
-
-  async addCustomProperty(command: AddCustomPropertyCommand) {
-    return addCustomProperty(this.blockRepository, command);
-  }
-
-  async updateCustomProperty(command: UpdateCustomPropertyCommand) {
-    return updateCustomProperty(this.blockRepository, command);
-  }
-
-  async deleteCustomProperty(command: DeleteCustomPropertyCommand) {
-    return deleteCustomProperty(this.blockRepository, command);
-  }
-}

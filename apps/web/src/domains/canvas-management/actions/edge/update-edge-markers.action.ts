@@ -1,7 +1,7 @@
 'use server';
 
-import type { PageActionContext } from '@/domains/common/auth/types';
-import { withEdgeSecureAction } from '@/domains/common/server-actions';
+import type { EdgeActionContext } from './secure-action';
+import { withSingleEdgeSecureAction } from './secure-action';
 import {
   DrizzleEventLogRepository,
   EventLogService,
@@ -20,9 +20,9 @@ import {
 
 /**
  * 엣지 마커(화살표) 업데이트 Server Action
- * - marker: 'start' | 'end', value: MarkerType (none | arrow | arrow-open | circle | diamond 등)
+ * ✅ Aggregate 조회·전달: secure action에서 edgeAggregate 전달, 서비스는 재조회 없음
  */
-export const updateEdgeMarkersAction = withEdgeSecureAction(
+export const updateEdgeMarkersAction = withSingleEdgeSecureAction(
   UpdateEdgeMarkerRequestSchema,
   'updateEdgeMarkersAction',
   updateEdgeMarkersInternal,
@@ -33,7 +33,7 @@ export const updateEdgeMarkersAction = withEdgeSecureAction(
 
 async function updateEdgeMarkersInternal(
   safeDto: UpdateEdgeMarkerRequest,
-  context: PageActionContext
+  context: EdgeActionContext
 ): Promise<ActionResult<EdgeView>> {
   try {
     const userId = new UserId(context.authenticatedUser.id);
@@ -48,7 +48,9 @@ async function updateEdgeMarkersInternal(
     };
 
     const result = await updateEdgeMarker(
-      safeDto,
+      context.edgeAggregate,
+      safeDto.marker,
+      safeDto.value,
       userId,
       edgeRepository,
       eventLogPolicyContext

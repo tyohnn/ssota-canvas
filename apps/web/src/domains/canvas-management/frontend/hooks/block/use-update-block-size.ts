@@ -20,6 +20,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseUpdateBlockSizeParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
   onSuccess?: (result: BlockSizeUpdatedDTO) => void;
   onError?: () => void;
@@ -48,13 +49,13 @@ export type UseUpdateBlockSizeResult = {
 export function useUpdateBlockSize(
   params: UseUpdateBlockSizeParams
 ): UseUpdateBlockSizeResult {
-  const { reactFlow, onSuccess, onError } = params;
+  const { pageId, reactFlow, onSuccess, onError } = params;
   const { getNodes, setNodes } = reactFlow;
 
   const mutation = useMutation({
     mutationFn: async (input: UpdateBlockSizeInput) => {
-      // Validation
       const rawRequest: UpdateBlockSizeRequestInput = {
+        pageId,
         blockMountId: input.blockMountId,
         newSize: input.newSize,
       };

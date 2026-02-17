@@ -28,9 +28,18 @@ import {
 import { ZOrder } from '../../../shared/value-objects/z-order.vo';
 import { BlockMountRepository } from '../interfaces/block-mount.repository.interface';
 
+/** UUID에서 8자 hex slug 생성 (page 내 유일 키) */
+function slugFromUuid(uuid: string): string {
+  return uuid.replace(/-/g, '').toLowerCase().slice(0, 8);
+}
+
+const BLOCK_MOUNTS_PKEY = 'block_mounts_pkey';
+const BLOCK_MOUNTS_PAGE_ID_SLUG_KEY = 'block_mounts_page_id_slug_key';
+
 export class DrizzleBlockMountRepository implements BlockMountRepository {
   /**
    * BlockMount 생성
+   * 23505: pkey 또는 (page_id, slug) 유일 위반 시 id·slug 재생성 후 최대 3회 재시도
    */
   async create(blockMount: BlockMount): Promise<void> {
     let currentId = blockMount.id.value;
@@ -39,9 +48,11 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
 
     while (attempts < maxAttempts) {
       try {
+        const slug = slugFromUuid(currentId);
         await adminDb.insert(blockMounts).values({
           id: currentId,
           page_id: blockMount.pageId.value,
+          slug,
           block_id: blockMount.blockId.value,
           parent_block_mount_id: blockMount.parentBlockMountId?.value ?? null,
           position_x: String(blockMount.position.x),
@@ -55,22 +66,22 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
 
         return;
       } catch (error) {
-        // UUID 충돌인지 확인 (PostgreSQL unique constraint violation)
+        const constraint = (error as any).constraint;
         if (
           (error as any).code === '23505' &&
-          (error as any).constraint === 'block_mounts_pkey'
+          (constraint === BLOCK_MOUNTS_PKEY ||
+            constraint === BLOCK_MOUNTS_PAGE_ID_SLUG_KEY)
         ) {
           attempts++;
           if (attempts < maxAttempts) {
-            // 새로운 ID 생성
             const newId = BlockMountId.generate().value;
             console.warn(
-              `[DrizzleBlockMountRepository] ID collision detected (attempt ${attempts}), retrying with new ID: ${newId}`
+              `[DrizzleBlockMountRepository] ID/slug collision (${constraint}, attempt ${attempts}), retrying with new ID: ${newId}`
             );
             currentId = newId;
           } else {
             console.error(
-              '❌ [DrizzleBlockMountRepository] Failed to generate unique ID after multiple attempts'
+              '❌ [DrizzleBlockMountRepository] Failed to generate unique ID/slug after multiple attempts'
             );
             throw new Error(
               'Failed to generate unique ID after multiple attempts'
@@ -89,24 +100,28 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
 
   /**
    * 여러 BlockMount 일괄 생성 (bulk INSERT)
-   * 23505 시 전체 ID 재생성 후 재시도, 실제 반영된 ID 목록 반환 (입력 순서)
+   * 23505 시 전체 id·slug 재생성 후 재시도, 실제 반영된 id 목록 반환 (입력 순서)
    */
   async createMany(blockMountsList: BlockMount[]): Promise<string[]> {
     if (blockMountsList.length === 0) return [];
 
-    let values = blockMountsList.map(blockMount => ({
-      id: blockMount.id.value,
-      page_id: blockMount.pageId.value,
-      block_id: blockMount.blockId.value,
-      parent_block_mount_id: blockMount.parentBlockMountId?.value ?? null,
-      position_x: String(blockMount.position.x),
-      position_y: String(blockMount.position.y),
-      view_mode_sizes: blockMount.viewModeSizes.toJSON(),
-      z_order: blockMount.zOrder.value,
-      view_mode: blockMount.viewMode.value,
-      created_at: blockMount.createdAt,
-      updated_at: blockMount.updatedAt,
-    }));
+    let values = blockMountsList.map(blockMount => {
+      const id = blockMount.id.value;
+      return {
+        id,
+        slug: slugFromUuid(id),
+        page_id: blockMount.pageId.value,
+        block_id: blockMount.blockId.value,
+        parent_block_mount_id: blockMount.parentBlockMountId?.value ?? null,
+        position_x: String(blockMount.position.x),
+        position_y: String(blockMount.position.y),
+        view_mode_sizes: blockMount.viewModeSizes.toJSON(),
+        z_order: blockMount.zOrder.value,
+        view_mode: blockMount.viewMode.value,
+        created_at: blockMount.createdAt,
+        updated_at: blockMount.updatedAt,
+      };
+    });
 
     let attempts = 0;
     const maxAttempts = 3;
@@ -116,18 +131,24 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         await adminDb.insert(blockMounts).values(values);
         return values.map(v => v.id);
       } catch (error) {
+        const constraint = (error as any).constraint;
         if (
           (error as any).code === '23505' &&
-          (error as any).constraint === 'block_mounts_pkey'
+          (constraint === BLOCK_MOUNTS_PKEY ||
+            constraint === BLOCK_MOUNTS_PAGE_ID_SLUG_KEY)
         ) {
           attempts++;
           if (attempts < maxAttempts) {
-            values = values.map((v, i) => ({
-              ...v,
-              id: BlockMountId.generate().value,
-            }));
+            values = values.map(v => {
+              const newId = BlockMountId.generate().value;
+              return {
+                ...v,
+                id: newId,
+                slug: slugFromUuid(newId),
+              };
+            });
             console.warn(
-              `[DrizzleBlockMountRepository] createMany ID collision (attempt ${attempts}), retrying with new IDs`
+              `[DrizzleBlockMountRepository] createMany ID/slug collision (attempt ${attempts}), retrying with new IDs`
             );
           } else {
             throw new Error(
@@ -169,6 +190,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     }
   }
 
+  /** 내부용: parent_block_mount_id 등 참조 해결 */
   async findById(
     blockMountId: BlockMountId
   ): Promise<BlockMountAggregate | null> {
@@ -182,34 +204,54 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         )
       )
       .limit(1);
+    if (result.length === 0) return null;
+    return this.toDomain(result[0]!);
+  }
+
+  async findByPageIdAndSlug(
+    pageId: PageId,
+    slug: string
+  ): Promise<BlockMountAggregate | null> {
+    const result = await adminDb
+      .select()
+      .from(blockMounts)
+      .where(
+        and(
+          eq(blockMounts.page_id, pageId.value),
+          eq(blockMounts.slug, slug),
+          isNull(blockMounts.deleted_at)
+        )
+      )
+      .limit(1);
 
     if (result.length === 0) {
       return null;
     }
 
-    const row = result[0]!;
-    return this.toDomain(row);
+    return this.toDomain(result[0]!);
   }
 
-  async findByIds(
-    blockMountIds: BlockMountId[]
+  async findByPageIdAndSlugs(
+    pageId: PageId,
+    slugs: string[]
   ): Promise<(BlockMountAggregate | null)[]> {
-    if (blockMountIds.length === 0) return [];
+    if (slugs.length === 0) return [];
 
-    const idValues = blockMountIds.map(id => id.value);
     const results = await adminDb
       .select()
       .from(blockMounts)
       .where(
-        and(inArray(blockMounts.id, idValues), isNull(blockMounts.deleted_at))
+        and(
+          eq(blockMounts.page_id, pageId.value),
+          inArray(blockMounts.slug, slugs),
+          isNull(blockMounts.deleted_at)
+        )
       );
 
-    const byId = new Map(
-      results.map(row => [row.id, this.toDomain(row)])
+    const bySlug = new Map(
+      results.map(row => [row.slug, this.toDomain(row)])
     );
-    return blockMountIds.map(
-      id => byId.get(id.value) ?? null
-    );
+    return slugs.map(s => bySlug.get(s) ?? null);
   }
 
   async findByPageId(pageId: PageId): Promise<BlockMountAggregate[]> {
@@ -275,9 +317,35 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       .where(eq(blockMounts.id, blockMountId.value));
   }
 
+  async updateParentAndPositionMany(
+    items: Array<{
+      blockMountId: BlockMountId;
+      parentBlockMountId: string | null;
+      position: { x: number; y: number };
+    }>
+  ): Promise<void> {
+    if (items.length === 0) return;
+
+    await adminDb.transaction(async tx => {
+      const now = new Date();
+      for (const item of items) {
+        await tx
+          .update(blockMounts)
+          .set({
+            parent_block_mount_id: item.parentBlockMountId,
+            position_x: String(item.position.x),
+            position_y: String(item.position.y),
+            updated_at: now,
+          })
+          .where(eq(blockMounts.id, item.blockMountId.value));
+      }
+    });
+  }
+
   async findByPageIdWithBlocks(pageId: PageId): Promise<
     Array<{
       blockMountAggregate: BlockMountAggregate;
+      blockMountSlug: string;
       blockAggregate: BlockAggregate;
     }>
   > {
@@ -285,6 +353,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
       .select({
         // BlockMount fields
         blockMountId: blockMounts.id,
+        blockMountSlug: blockMounts.slug,
         pageId: blockMounts.page_id,
         blockId: blockMounts.block_id,
         parentBlockMountId: blockMounts.parent_block_mount_id,
@@ -342,6 +411,7 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
         updated_at: row.blockMountUpdatedAt,
         deleted_at: row.blockMountDeletedAt,
       }),
+      blockMountSlug: row.blockMountSlug,
       blockAggregate: this.toBlockDomain({
         id: row.blockId,
         workspace_id: row.blockWorkspaceId,

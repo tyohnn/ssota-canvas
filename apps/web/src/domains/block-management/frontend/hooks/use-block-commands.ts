@@ -21,6 +21,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseUpdateBlockSizeParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
 };
 
@@ -58,19 +59,20 @@ export interface BlockCommandsResult {
 export function useUpdateBlockSize(
   params: UseUpdateBlockSizeParams
 ): UseUpdateBlockSizeResult {
-  const { reactFlow } = params;
+  const { pageId, reactFlow } = params;
   const { getNodes, setNodes } = reactFlow;
   const updateNodeInternals = useUpdateNodeInternals();
 
   const mutation = useMutation({
     mutationFn: async (input: UpdateBlockSizeInput) => {
       const result = await updateBlockSizeAction({
+        pageId,
         blockMountId: input.blockMountId,
         newSize: {
           width: input.width,
           height: input.height,
         },
-        viewMode: input.viewMode, // 현재 viewMode 전달 (선택적)
+        viewMode: input.viewMode,
       });
 
       if (isFailure(result)) {

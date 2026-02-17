@@ -163,6 +163,7 @@ export function useCanvasBlockLifecycle(
 
   const { duplicateBlock, isDuplicating: isDuplicatingSingle } =
     useDuplicateBlock({
+      pageId,
       reactFlow: {
         getNodes: getNodesTyped,
         setNodes,
@@ -179,6 +180,7 @@ export function useCanvasBlockLifecycle(
 
   const { duplicateBlocks, isDuplicating: isDuplicatingMultiple } =
     useDuplicateBlocks({
+      pageId,
       reactFlow: {
         getNodes: getNodesTyped,
         setNodes,
@@ -186,7 +188,6 @@ export function useCanvasBlockLifecycle(
         deleteElements,
       },
       onSuccess: blockMountIds => {
-        // 멀티 선택 모드로 전환 (이미 훅 내부에서 처리됨)
         enterMultiSelectionMode(blockMountIds);
       },
       onError: () => {
@@ -196,6 +197,7 @@ export function useCanvasBlockLifecycle(
 
   const { moveBlockToPage: moveBlockToPageHook, isMoving } = useMoveBlockToPage(
     {
+      pageId,
       reactFlow: {
         getNodes: getNodesTyped,
         setNodes,

@@ -1,15 +1,16 @@
 /**
  * Block 콘텐츠 Step 적용 서비스 (ProseMirror steps)
+ *
+ * ⚠️ blockAggregate는 secure action에서 조회해 전달 (서비스 내부에서 findByWorkspaceIdAndSlug 사용 안 함)
  */
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Node } from '@tiptap/pm/model';
 import { Step } from '@tiptap/pm/transform';
 import { Result } from '@/utils/result';
 
-import { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
+import type { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
 import type { ApplyContentStepsCommand } from '../../../../shared/commands';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
-import type { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import {
   EMPTY_TIPTAP_DOC,
   extractPlainText,
@@ -20,8 +21,7 @@ import type { IBlockRepository } from '../../../repositories/interfaces/block.re
 export type ApplyBlockContentStepsParams = {
   steps: unknown[];
   baseVersion: number;
-  safeWorkspaceId: WorkspaceId;
-  safeBlockSlug: string;
+  safeBlockAggregate: BlockAggregate;
   safeUserId: UserId;
   blockRepository: IBlockRepository;
 };
@@ -29,7 +29,7 @@ export type ApplyBlockContentStepsParams = {
 /**
  * 블록 콘텐츠에 ProseMirror steps 적용
  *
- * ✅ 권한 검증은 액션에서 완료. 서비스는 context에서 전달된 safeWorkspaceId 사용.
+ * ✅ 권한·aggregate 조회는 secure action에서 완료. 서비스는 전달된 safeBlockAggregate 사용.
  */
 export async function applyBlockContentSteps(
   params: ApplyBlockContentStepsParams
@@ -42,21 +42,12 @@ export async function applyBlockContentSteps(
   const {
     steps,
     baseVersion,
-    safeWorkspaceId,
-    safeBlockSlug,
+    safeBlockAggregate: aggregate,
     safeUserId,
     blockRepository,
   } = params;
   try {
-    const block = await blockRepository.findByWorkspaceIdAndSlug(
-      safeWorkspaceId,
-      safeBlockSlug
-    );
-    if (!block) {
-      return Result.error(
-        new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found')
-      );
-    }
+    const block = aggregate.getBlock();
 
     if (baseVersion !== block.contentVersion) {
       return Result.error(
@@ -91,7 +82,6 @@ export async function applyBlockContentSteps(
       newContent as Parameters<typeof extractPlainText>[0]
     );
 
-    const aggregate = BlockAggregate.reconstitute(block);
     const command: ApplyContentStepsCommand = {
       content: newContent,
       contentRaw,

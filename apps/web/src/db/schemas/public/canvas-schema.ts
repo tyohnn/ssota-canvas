@@ -35,7 +35,7 @@ export const blocks = pgTable(
     workspace_id: uuid('workspace_id')
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
-    slug: text('slug').notNull(), // 8자 hex, workspace 내 유일 (UNIQUE(workspace_id, slug))
+    slug: text('slug').notNull(), // 8~10자 hex, workspace 내 유일 (UNIQUE(workspace_id, slug))
     block_type: blockTypeEnum('block_type').notNull().default('text'),
     title: text('title').notNull().default('새 블럭'),
     metadata: jsonb('metadata').default({}),
@@ -105,6 +105,7 @@ export const blockMounts = pgTable(
     page_id: uuid('page_id')
       .notNull()
       .references(() => pages.id, { onDelete: 'cascade' }),
+    slug: text('slug').notNull(), // 8~10자 hex, page 내 유일 (UNIQUE(page_id, slug))
     block_id: uuid('block_id')
       .notNull()
       .references(() => blocks.id, { onDelete: 'cascade' }),
@@ -159,6 +160,10 @@ export const blockMounts = pgTable(
     uniquePageBlockCheck: unique('block_mounts_unique_page_block').on(
       table.page_id,
       table.block_id
+    ),
+    uniquePageSlug: unique('block_mounts_page_id_slug_key').on(
+      table.page_id,
+      table.slug
     ),
     pageIdIdx: index('idx_block_mounts_page_id')
       .on(table.page_id)
@@ -218,6 +223,7 @@ export const edges = pgTable(
     page_id: uuid('page_id')
       .notNull()
       .references(() => pages.id, { onDelete: 'cascade' }),
+    slug: text('slug').notNull(), // 8~10자 hex, page 내 유일 (UNIQUE(page_id, slug))
     source_block_mount_id: uuid('source_block_mount_id')
       .notNull()
       .references(() => blockMounts.id, { onDelete: 'cascade' }),
@@ -241,6 +247,10 @@ export const edges = pgTable(
     deleted_at: timestamp('deleted_at', { withTimezone: true }),
   },
   table => ({
+    uniquePageSlug: unique('edges_page_id_slug_key').on(
+      table.page_id,
+      table.slug
+    ),
     thicknessCheck: check(
       'edges_thickness_range',
       sql`${table.edge_style_thickness} >= 1 AND ${table.edge_style_thickness} <= 10`

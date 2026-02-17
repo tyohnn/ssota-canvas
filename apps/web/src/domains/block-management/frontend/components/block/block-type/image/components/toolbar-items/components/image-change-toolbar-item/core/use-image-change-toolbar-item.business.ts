@@ -14,6 +14,7 @@ import { useCallback } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { useImageUpload } from '@/domains/block-management/frontend/components/block/block-type/image/core/use-image-upload';
 import { calculateBlockSizeFromImage } from '@/domains/block-management/frontend/components/block/block-type/image/utils/image-file.utils';
 import { useUpdateBlockSize } from '@/domains/block-management/frontend/hooks/use-block-commands';
@@ -31,7 +32,9 @@ export function useImageChangeToolbarItemBusiness(
 ): ImageChangeBusinessLogic {
   const { blockMountId, height: currentHeight } = useImageToolbarContext();
   const { getNodes, setNodes } = useReactFlow();
+  const { pageId } = useCanvasMetadata();
   const { updateBlockSize } = useUpdateBlockSize({
+    pageId,
     reactFlow: {
       getNodes,
       setNodes,

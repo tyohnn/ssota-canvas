@@ -19,34 +19,27 @@ import type {
   DuplicateBlocksAndMountRequest,
 } from '../../../shared/dtos/requests';
 import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
-import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
 import type { BlockMountRepository } from '../../repositories/interfaces/block-mount.repository.interface';
+import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
+
+export type DuplicateBlockAndMountParams = {
+  safeDto: DuplicateBlockAndMountRequest;
+  safeUserId: UserId;
+  safeWorkspaceId: WorkspaceId;
+  safeBlockMountAggregate: BlockMountAggregate;
+  blockRepository: IBlockRepository;
+  blockMountRepository: BlockMountRepository;
+  eventLogPolicyContext?: EventLogPolicyContext;
+};
 
 /**
- * 블럭 복제 (Block Management Service와 연동)
- * Story CM-010 구현
+ * 블럭 복제 (단일) — Secure action에서 조회한 aggregate 사용 (재조회 없음)
  *
- * ✅ Event Storming + DDD 패턴:
- * - SafeDTO를 입력으로 받음 (Trust Boundary 통과)
- * - SafeDTO → Command 변환 (Value Objects 생성)
- * - Aggregate에 Command 전달
- * - Domain Event 처리
- *
- * @param safeDto - 검증된 블럭 복제 요청 (SafeDTO)
- * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
- * @param safeWorkspaceId - 검증된 워크스페이스 ID (권한 검증됨)
- * @param blockRepository - Block Repository
- * @param blockMountRepository - BlockMount Repository
- * @param eventLogPolicyContext - 선택: 제공 시 BlockMountDuplicatedEvent에서 block_created 로깅
+ * @param params - safeDto, safeUserId, safeWorkspaceId, safeBlockMountAggregate, blockRepository, blockMountRepository, eventLogPolicyContext
  * @returns 복제된 BlockMountAggregate와 BlockAggregate
  */
 export async function duplicateBlockAndMount(
-  safeDto: DuplicateBlockAndMountRequest,
-  safeUserId: UserId,
-  safeWorkspaceId: WorkspaceId,
-  blockRepository: IBlockRepository,
-  blockMountRepository: BlockMountRepository,
-  eventLogPolicyContext?: EventLogPolicyContext
+  params: DuplicateBlockAndMountParams
 ): Promise<
   Result<
     {
@@ -56,20 +49,16 @@ export async function duplicateBlockAndMount(
     Error
   >
 > {
+  const {
+    safeDto,
+    safeUserId,
+    safeWorkspaceId,
+    safeBlockMountAggregate: originalAggregate,
+    blockRepository,
+    blockMountRepository,
+    eventLogPolicyContext,
+  } = params;
   try {
-    const blockMountIdVO = new BlockMountId(safeDto.blockMountId);
-    const originalAggregate =
-      await blockMountRepository.findById(blockMountIdVO);
-
-    if (!originalAggregate) {
-      return Result.error(
-        new CanvasManagementError(
-          'BLOCK_MOUNT_NOT_FOUND',
-          'Block mount not found'
-        )
-      );
-    }
-
     const safeBlockSlug = originalAggregate
       .getBlockMount()
       .blockId.value.replace(/-/g, '')
@@ -140,6 +129,8 @@ export type DuplicateBlocksAndMountParams = {
   safeDto: DuplicateBlocksAndMountRequest;
   safeUserId: UserId;
   safeWorkspaceId: WorkspaceId;
+  /** Secure action에서 이미 조회한 aggregates (request blocks 순서와 동일, 재조회 방지) */
+  safeBlockMountAggregates: BlockMountAggregate[];
   blockRepository: IBlockRepository;
   blockMountRepository: BlockMountRepository;
   /** 선택: 제공 시 각 BlockMountDuplicatedEvent에서 block_created 로깅 */
@@ -169,29 +160,13 @@ export async function duplicateBlocksAndMount(
     safeDto,
     safeUserId,
     safeWorkspaceId,
+    safeBlockMountAggregates: originalBMs,
     blockRepository,
     blockMountRepository,
     eventLogPolicyContext,
   } = params;
 
-  const blockMountIds = safeDto.blocks.map(
-    b => new BlockMountId(b.blockMountId)
-  );
-  const originalBMs = await blockMountRepository.findByIds(blockMountIds);
-
-  const firstMissing = originalBMs.findIndex(bm => bm === null);
-  if (firstMissing !== -1) {
-    return Result.error(
-      new CanvasManagementError(
-        'BLOCK_MOUNT_NOT_FOUND',
-        `Block mount not found: ${safeDto.blocks[firstMissing]!.blockMountId}`
-      )
-    );
-  }
-
-  const safeBlockSlugs = (
-    originalBMs as BlockMountAggregate[]
-  ).map(bm =>
+  const safeBlockSlugs = originalBMs.map(bm =>
     bm
       .getBlockMount()
       .blockId.value.replace(/-/g, '')
@@ -219,7 +194,7 @@ export async function duplicateBlocksAndMount(
   >[] = [];
 
   for (let i = 0; i < safeDto.blocks.length; i++) {
-    const originalAggregate = originalBMs[i] as BlockMountAggregate;
+    const originalAggregate = originalBMs[i]!;
     const duplicatedBlock = duplicatedBlocks[i]!;
     const blockOpts = safeDto.blocks[i]!;
 

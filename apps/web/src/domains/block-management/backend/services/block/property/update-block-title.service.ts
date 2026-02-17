@@ -1,20 +1,20 @@
 /**
  * Block 제목 업데이트 서비스 로직
+ *
+ * ⚠️ blockAggregate는 secure action에서 조회해 전달 (서비스 내부에서 findByWorkspaceIdAndSlug 사용 안 함)
  */
 import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
-import { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
+import type { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
 import type { UpdateBlockTitleCommand } from '../../../../shared/commands';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
-import type { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
 
 export type UpdateBlockTitleParams = {
   title: string;
-  safeWorkspaceId: WorkspaceId;
-  safeBlockSlug: string;
+  safeBlockAggregate: BlockAggregate;
   safeUserId: UserId;
   blockRepository: IBlockRepository;
   eventLogPolicyContext?: EventLogPolicyContext;
@@ -23,32 +23,19 @@ export type UpdateBlockTitleParams = {
 /**
  * 블록 제목 업데이트
  *
- * ✅ 권한 검증은 액션에서 완료. 서비스는 context에서 전달된 safeWorkspaceId 사용.
+ * ✅ 권한·aggregate 조회는 secure action에서 완료. 서비스는 전달된 safeBlockAggregate 사용.
  */
 export async function updateBlockTitle(
   params: UpdateBlockTitleParams
 ): Promise<Result<BlockAggregate, Error>> {
   const {
     title,
-    safeWorkspaceId,
-    safeBlockSlug,
+    safeBlockAggregate: aggregate,
     safeUserId,
     blockRepository,
     eventLogPolicyContext,
   } = params;
   try {
-    const block = await blockRepository.findByWorkspaceIdAndSlug(
-      safeWorkspaceId,
-      safeBlockSlug
-    );
-    if (!block) {
-      return Result.error(
-        new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found')
-      );
-    }
-
-    const aggregate = BlockAggregate.reconstitute(block);
-
     const command: UpdateBlockTitleCommand = {
       title,
       userId: safeUserId,

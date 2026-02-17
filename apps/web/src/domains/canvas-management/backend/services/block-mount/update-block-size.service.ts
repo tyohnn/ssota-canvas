@@ -5,7 +5,6 @@ import type { EventLogPolicyContext } from '@/domains/event-management';
 import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
 import { BlockMountAggregate } from '@/domains/canvas-management/shared/aggregates/block-mount.aggregate';
 import type { UpdateBlockSizeRequest } from '@/domains/canvas-management/shared/dtos/requests';
-import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { BlockViewMode } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
 import { Size } from '@/domains/canvas-management/shared/value-objects/size.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
@@ -13,43 +12,32 @@ import { Result } from '@/utils/result';
 
 import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
 
+export type UpdateBlockSizeParams = {
+  safeDto: UpdateBlockSizeRequest;
+  safeUserId: UserId;
+  safeBlockMountAggregate: BlockMountAggregate;
+  blockMountRepository: BlockMountRepository;
+  eventLogPolicyContext?: EventLogPolicyContext;
+};
+
 /**
  * 블럭 크기 업데이트
  *
- * ✅ Event Storming + DDD 패턴:
- * - SafeDTO를 입력으로 받음 (Trust Boundary 통과)
- * - SafeDTO → Command 변환 (Value Objects 생성)
- * - Aggregate에 Command 전달
- * - Domain Event 처리
- *
- * @param safeDto - 검증된 블럭 크기 업데이트 요청 (SafeDTO)
- * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
- * @param blockMountRepository - BlockMount Repository
- * @param eventLogPolicyContext - 선택: 감사 로그용 event_log 기록 시 사용
+ * @param params - safeDto, safeUserId, safeBlockMountAggregate, blockMountRepository, eventLogPolicyContext
  * @returns 업데이트된 BlockMountAggregate
  */
 export async function updateBlockSize(
-  safeDto: UpdateBlockSizeRequest,
-  safeUserId: UserId,
-  blockMountRepository: BlockMountRepository,
-  eventLogPolicyContext?: EventLogPolicyContext
+  params: UpdateBlockSizeParams
 ): Promise<Result<BlockMountAggregate, Error>> {
+  const {
+    safeDto,
+    safeUserId,
+    safeBlockMountAggregate: aggregate,
+    blockMountRepository,
+    eventLogPolicyContext,
+  } = params;
   try {
-    // 1. SafeDTO → Value Objects 생성
-    const blockMountIdVO = new BlockMountId(safeDto.blockMountId);
     const sizeVO = new Size(safeDto.newSize.width, safeDto.newSize.height);
-
-    // 2. BlockMountRepository.findById() 호출
-    const aggregate = await blockMountRepository.findById(blockMountIdVO);
-
-    if (!aggregate) {
-      return Result.error(
-        new CanvasManagementError(
-          'BLOCK_MOUNT_NOT_FOUND',
-          'Block mount not found'
-        )
-      );
-    }
 
     // 3. viewMode 결정: safeDto에 viewMode가 제공되면 사용, 없으면 현재 BlockMount의 viewMode 사용
     const blockMount = aggregate.getBlockMount();

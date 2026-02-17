@@ -8,11 +8,15 @@ import { EdgeId } from '../../../shared/value-objects/edge-id.vo';
  * EdgeRepository Interface
  *
  * ⚠️ Schema Change: edges now reference block_mounts instead of blocks
+ * ⚠️ Phase 3: 조회는 (pageId + slug) 기반만 사용. findById 제거.
  */
 export interface EdgeRepository {
   create(edge: EdgeAggregate): Promise<void>;
   update(edge: EdgeAggregate): Promise<void>;
-  findById(edgeId: EdgeId): Promise<EdgeAggregate | null>;
+  findByPageIdAndSlug(
+    pageId: PageId,
+    slug: string
+  ): Promise<EdgeAggregate | null>;
   findByPageId(pageId: PageId): Promise<EdgeAggregate[]>;
   findByConnectedBlockMountId(
     blockMountId: BlockMountId

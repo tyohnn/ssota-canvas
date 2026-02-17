@@ -27,6 +27,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseDuplicateBlockParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
   onSuccess?: (block: BlockDuplicatedAndMountedDTO) => void;
   onError?: () => void;
@@ -55,7 +56,7 @@ export type UseDuplicateBlockResult = {
 export function useDuplicateBlock(
   params: UseDuplicateBlockParams
 ): UseDuplicateBlockResult {
-  const { reactFlow, onSuccess, onError } = params;
+  const { pageId, reactFlow, onSuccess, onError } = params;
   const { getNodes, setNodes, addNodes, deleteElements } = reactFlow;
 
   /**
@@ -131,6 +132,7 @@ export function useDuplicateBlock(
 
       // Validation
       const rawRequest: DuplicateBlockAndMountRequestInput = {
+        pageId,
         blockMountId: input.blockMountId,
         offsetX: input.offsetX || 20,
         offsetY: input.offsetY || 20,

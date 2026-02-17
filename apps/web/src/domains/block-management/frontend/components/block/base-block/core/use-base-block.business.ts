@@ -12,6 +12,7 @@ import { useCallback } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { prefetchAction } from '@/domains/block-management/frontend/components/block/block-action-bar/action-prefetch';
 import { prefetchToolbar } from '@/domains/block-management/frontend/components/block/block-original-toolbar/toolbar-prefetch';
 import { useUpdateBlockSize } from '@/domains/block-management/frontend/hooks/use-block-commands';
@@ -35,7 +36,9 @@ export interface BaseBlockBusinessLogic {
  */
 export function useBaseBlockBusiness(): BaseBlockBusinessLogic {
   const { getNodes, setNodes } = useReactFlow();
+  const { pageId } = useCanvasMetadata();
   const { updateBlockSize } = useUpdateBlockSize({
+    pageId,
     reactFlow: {
       getNodes,
       setNodes,

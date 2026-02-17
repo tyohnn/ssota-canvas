@@ -24,6 +24,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseDuplicateBlocksParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
   onSuccess?: (blockMountIds: string[]) => void;
   onError?: () => void;
@@ -60,7 +61,7 @@ export type UseDuplicateBlocksResult = {
 export function useDuplicateBlocks(
   params: UseDuplicateBlocksParams
 ): UseDuplicateBlocksResult {
-  const { reactFlow, onSuccess, onError } = params;
+  const { pageId, reactFlow, onSuccess, onError } = params;
   const { getNodes, setNodes, addNodes, deleteElements } = reactFlow;
 
   /**
@@ -174,6 +175,7 @@ export function useDuplicateBlocks(
         }
 
         const rawRequest: DuplicateBlockAndMountRequestInput = {
+          pageId,
           blockMountId: block.blockMountId,
           offsetX: block.offsetX || 20,
           offsetY: block.offsetY || 20,
@@ -198,6 +200,7 @@ export function useDuplicateBlocks(
       }
 
       const actionResult = await duplicateBlocksAndMountAction({
+        pageId,
         blocks: duplicateRequests.map(({ request }) => ({
           blockMountId: request.blockMountId,
           offsetX: request.offsetX,

@@ -1,21 +1,23 @@
 import { randomUUID } from 'crypto';
 
-import type { IBlockRepository } from '../../repositories/interfaces/block.repository.interface';
 import { BlockManagementError } from '../../../shared/errors/block-management.error';
 import { CustomPropertyDefinitionVO } from '../../../shared/value-objects/custom-property-definition.vo';
 import { PropertyTypeVO } from '../../../shared/value-objects/property-type.vo';
-import { getBlockForUpdate, mapOptions } from './helpers';
-import type { AddCustomPropertyCommand } from './types';
+import { mapOptions } from './helpers';
+import type { AddCustomPropertyParams } from './types';
 
 export async function addCustomProperty(
-  blockRepository: IBlockRepository,
-  command: AddCustomPropertyCommand
+  params: AddCustomPropertyParams
 ): Promise<{ property: CustomPropertyDefinitionVO; updatedAt: Date }> {
-  const block = await getBlockForUpdate(
-    blockRepository,
-    command.workspaceId,
-    command.blockSlug
-  );
+  const { blockAggregate, blockRepository, property: propertyInput } = params;
+  const block = blockAggregate.getBlock();
+
+  if (block.isDeleted()) {
+    throw new BlockManagementError(
+      'BLOCK_ALREADY_DELETED',
+      'Cannot modify custom properties of a deleted block'
+    );
+  }
 
   if (block.customProperties.length >= 50) {
     throw new BlockManagementError(
@@ -24,24 +26,24 @@ export async function addCustomProperty(
     );
   }
 
-  const propertyId = command.property.id || randomUUID();
-  const propertyType = PropertyTypeVO.fromString(command.property.type);
-  const options = mapOptions(command.property.options);
+  const propertyId = propertyInput.id || randomUUID();
+  const propertyType = PropertyTypeVO.fromString(propertyInput.type);
+  const options = mapOptions(propertyInput.options);
   const order =
-    command.property.order !== undefined
-      ? command.property.order
+    propertyInput.order !== undefined
+      ? propertyInput.order
       : block.customProperties.length;
-  const visible = command.property.visible ?? true;
-  const required = command.property.required ?? false;
+  const visible = propertyInput.visible ?? true;
+  const required = propertyInput.required ?? false;
   const defaultValue =
-    command.property.defaultValue !== undefined
-      ? command.property.defaultValue
+    propertyInput.defaultValue !== undefined
+      ? propertyInput.defaultValue
       : propertyType.getDefaultValue();
-  const icon = command.property.icon ?? null;
+  const icon = propertyInput.icon ?? null;
 
   const property = new CustomPropertyDefinitionVO(
     propertyId,
-    command.property.name,
+    propertyInput.name,
     propertyType,
     options,
     order,
@@ -49,7 +51,7 @@ export async function addCustomProperty(
     required,
     defaultValue,
     icon,
-    command.property.validation
+    propertyInput.validation
   );
 
   block.addCustomPropertyDefinition(property);

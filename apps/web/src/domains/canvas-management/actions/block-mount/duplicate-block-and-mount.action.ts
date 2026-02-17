@@ -1,7 +1,10 @@
 'use server';
 
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
-import type { PageActionContext } from '@/domains/common/auth/types';
+import type {
+  BlockMountActionContext,
+  MultipleBlockMountsActionContext,
+} from './secure-action';
 import {
   DrizzleEventLogRepository,
   EventLogService,
@@ -24,21 +27,16 @@ import {
 } from '../../shared/dtos/requests';
 import { BlockDuplicatedAndMountedDTO } from '../../shared/dtos/responses';
 import {
-  withDuplicateBlockSecureAction,
-  withDuplicateBlocksSecureAction,
+  withMultipleBlockMountSecureAction,
+  withSingleBlockMountSecureAction,
 } from './secure-action';
 
 /**
- * Block 복제 Server Action
+ * Block 복제 Server Action (단일)
  *
- * ⚠️ Security: withDuplicateBlockSecureAction HOF를 통해 Defense in Depth 적용
- * 1. Request 스키마 검증
- * 2. 사용자 인증 확인
- * 3. BlockMount 조회 → pageId, blockId 자동 추출 (Zero Trust)
- * 4. Page 권한 검증 (workspace, organization 자동 검증됨)
- * 5. Block ownership 검증
+ * ⚠️ Security: withSingleBlockMountSecureAction — 페이지·블록 권한 검증 후 aggregate 전달
  */
-export const duplicateBlockAndMountAction = withDuplicateBlockSecureAction(
+export const duplicateBlockAndMountAction = withSingleBlockMountSecureAction(
   DuplicateBlockAndMountRequestSchema,
   'duplicateBlockAndMountAction',
   duplicateBlockAndMountInternal,
@@ -50,18 +48,16 @@ export const duplicateBlockAndMountAction = withDuplicateBlockSecureAction(
 /**
  * 내부 구현 (검증된 데이터만 처리)
  *
- * ⚠️ 이 함수는 이미 검증된 요청만 받습니다
- *
  * @param safeDto - 검증된 SafeDTO
- * @param context - 검증된 사용자, 워크스페이스, 페이지 정보
+ * @param context - BlockMountActionContext (blockMountAggregate 포함, 서비스 재조회 없음)
  */
 async function duplicateBlockAndMountInternal(
-  safeDto: DuplicateBlockAndMountRequest, // ✅ 이미 검증됨 (SafeDTO)
-  context: PageActionContext // ✅ 검증된 context
+  safeDto: DuplicateBlockAndMountRequest,
+  context: BlockMountActionContext
 ): Promise<ActionResult<BlockDuplicatedAndMountedDTO>> {
   try {
-    // ✅ 이미 검증된 데이터 사용 (중복 조회 제거)
-    const { authenticatedUser, workspace, page } = context;
+    const { authenticatedUser, workspace, page, blockMountAggregate } =
+      context;
     const userId: UserId = new UserId(authenticatedUser.id);
     const workspaceId: WorkspaceId = workspace.workspaceId;
 
@@ -76,14 +72,15 @@ async function duplicateBlockAndMountInternal(
       pageId: page.pageId.value,
     };
 
-    const result = await duplicateBlockAndMount(
+    const result = await duplicateBlockAndMount({
       safeDto,
-      userId,
-      workspaceId,
+      safeUserId: userId,
+      safeWorkspaceId: workspaceId,
+      safeBlockMountAggregate: blockMountAggregate,
       blockRepository,
       blockMountRepository,
-      eventLogPolicyContext
-    );
+      eventLogPolicyContext,
+    });
 
     if (result.isError()) {
       console.error(
@@ -96,9 +93,10 @@ async function duplicateBlockAndMountInternal(
       });
     }
 
-    // ✅ Aggregate → DTO 변환 (toView 사용)
-    const { blockMountAggregate, blockAggregate } = result.value;
-    const blockView = blockMountAggregate.toView(blockAggregate);
+    // Aggregate → DTO 변환 (toView 사용)
+    const { blockMountAggregate: duplicatedMount, blockAggregate: duplicatedBlock } =
+      result.value;
+    const blockView = duplicatedMount.toView(duplicatedBlock);
 
     return ok(blockView);
   } catch (error) {
@@ -116,23 +114,28 @@ async function duplicateBlockAndMountInternal(
 /**
  * Block 복제 (다중, 배치) Server Action
  *
- * ⚠️ Security: withDuplicateBlocksSecureAction — 첫 번째 blockMountId로 페이지 권한 검증
+ * ⚠️ Security: withMultipleBlockMountSecureAction — 모든 blockMountId에 대해 페이지·블록 권한 검증 후 aggregates 전달
  */
-export const duplicateBlocksAndMountAction = withDuplicateBlocksSecureAction(
+export const duplicateBlocksAndMountAction = withMultipleBlockMountSecureAction(
   DuplicateBlocksAndMountRequestSchema,
   'duplicateBlocksAndMountAction',
   duplicateBlocksAndMountInternal,
   {
+    getPageIdAndSlugs: req => ({
+      pageId: req.pageId,
+      slugs: req.blocks.map(b => b.blockMountId),
+    }),
     getLogMetadata: req => ({ blocksCount: req.blocks.length }),
   }
 );
 
 async function duplicateBlocksAndMountInternal(
   safeDto: DuplicateBlocksAndMountRequest,
-  context: PageActionContext
+  context: MultipleBlockMountsActionContext
 ): Promise<ActionResult<BlockDuplicatedAndMountedDTO[]>> {
   try {
-    const { authenticatedUser, workspace, page } = context;
+    const { authenticatedUser, workspace, page, blockMountAggregates } =
+      context;
     const userId: UserId = new UserId(authenticatedUser.id);
     const workspaceId: WorkspaceId = workspace.workspaceId;
 
@@ -151,6 +154,7 @@ async function duplicateBlocksAndMountInternal(
       safeDto,
       safeUserId: userId,
       safeWorkspaceId: workspaceId,
+      safeBlockMountAggregates: blockMountAggregates,
       blockRepository,
       blockMountRepository,
       eventLogPolicyContext,

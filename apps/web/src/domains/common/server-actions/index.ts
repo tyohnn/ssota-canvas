@@ -21,8 +21,6 @@
 import { createSecureActionBuilder } from '@/lib/server-actions/create-secure-action-builder';
 
 import {
-  authorizeByBlockMountId,
-  authorizeByEdgeId,
   authorizeByOrganizationId,
   authorizeByPageId,
   authorizeByWorkspaceId,
@@ -105,56 +103,23 @@ export const withWorkspaceSecureAction = secureActionBuilder
 /**
  * Edge-based secure action wrapper
  *
- * Use when request has `edgeId` field.
- * Automatically authorizes access to the edge's page.
+ * Use when request has `pageId` and `edgeId` (slug) fields.
+ * Authorizes by page access (pageId). Edge lookup is done in action/service via findByPageIdAndSlug.
  *
  * @example
  * ```ts
  * export const myAction = withEdgeSecureAction(
- *   MyRequestSchema,
+ *   MyRequestSchema,  // must include pageId, edgeId (slug)
  *   'myAction',
- *   async (req, ctx) => {
- *     // ctx is PageActionContext
- *     return ok(result);
- *   }
+ *   async (req, ctx) => { ... }
  * );
  * ```
  */
 export const withEdgeSecureAction = secureActionBuilder
   .forContext<PageActionContext, BaseActionContext>()
   .withAuth(
-    // Note: req is the full TRequest object, but we only need edgeId for authorization
-    // TypeScript's structural typing allows this partial type annotation
-    (req: { edgeId: string }, user: AuthenticatedUser) =>
-      authorizeByEdgeId(req.edgeId, user.id)
-  )
-  .build();
-
-/**
- * BlockMount-based secure action wrapper
- *
- * Use when request has `blockMountId` field.
- * Automatically authorizes access to the blockMount's page.
- *
- * @example
- * ```ts
- * export const myAction = withBlockMountSecureAction(
- *   MyRequestSchema,
- *   'myAction',
- *   async (req, ctx) => {
- *     // ctx is PageActionContext
- *     return ok(result);
- *   }
- * );
- * ```
- */
-export const withBlockMountSecureAction = secureActionBuilder
-  .forContext<PageActionContext, BaseActionContext>()
-  .withAuth(
-    // Note: req is the full TRequest object, but we only need blockMountId for authorization
-    // TypeScript's structural typing allows this partial type annotation
-    (req: { blockMountId: string }, user: AuthenticatedUser) =>
-      authorizeByBlockMountId(req.blockMountId, user.id)
+    (req: { pageId: string }, user: AuthenticatedUser) =>
+      authorizeByPageId(req.pageId, user.id)
   )
   .build();
 

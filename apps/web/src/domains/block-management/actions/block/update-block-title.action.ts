@@ -1,6 +1,5 @@
 'use server';
 
-import type { WorkspaceActionContext } from '@/domains/common/auth/types';
 import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
 import {
   DrizzleEventLogRepository,
@@ -17,24 +16,21 @@ import {
   UpdateBlockTitleRequestSchema,
 } from '../../shared/dtos/requests/block.requests';
 import { BlockTitleUpdatedDTO } from '../../shared/dtos/responses/block.responses';
-import { withBlockSecureAction } from './secure-action';
+import type { BlockActionContext } from './secure-action';
+import { withBlockAggregateSecureAction } from './secure-action';
 
 /**
  * 블록 제목 업데이트 Server Action
  *
- * ⚠️ Security: withBlockSecureAction HOF를 통해 Defense in Depth 적용
+ * ⚠️ Security: withBlockAggregateSecureAction HOF를 통해 Defense in Depth 적용
  * 1. Request 스키마 검증
- * 2. 사용자 인증 확인
- * 3. 조직 멤버십 확인
- * 4. 워크스페이스 접근 권한 확인
- * 5. 블록 소유권 확인 (Block이 Workspace에 속하는지)
- *
- * Block은 Workspace에 속하며, Page와 직접적인 의존성이 없습니다.
+ * 2. 사용자 인증·워크스페이스 권한
+ * 3. Block 조회 및 context에 blockAggregate 전달 → 서비스 재조회 없음
  *
  * @param request - 클라이언트 요청 (런타임 검증 필요)
  * @returns BlockTitleUpdatedDTO (성공) | Error (실패)
  */
-export const updateBlockTitleAction = withBlockSecureAction(
+export const updateBlockTitleAction = withBlockAggregateSecureAction(
   UpdateBlockTitleRequestSchema,
   'updateBlockTitleAction',
   updateBlockTitleInternal,
@@ -48,23 +44,15 @@ export const updateBlockTitleAction = withBlockSecureAction(
 /**
  * 내부 구현 (검증된 데이터만 처리)
  *
- * ✅ Event Storming + DDD 패턴:
- * - Service에 SafeDTO 전달 (Command 변환은 Service 내부에서 수행)
- *
- * ⚠️ 이 함수는 이미 검증된 요청과 인증된 사용자만 받습니다
- *
  * @param safeDto - 검증된 SafeDTO
- * @param context - 검증된 사용자, 워크스페이스 정보
+ * @param context - 검증된 context (blockAggregate 포함)
  */
 async function updateBlockTitleInternal(
-  safeDto: UpdateBlockTitleRequest, // ✅ 이미 검증됨 (SafeDTO)
-  context: WorkspaceActionContext // ✅ 검증된 context
+  safeDto: UpdateBlockTitleRequest,
+  context: BlockActionContext
 ): Promise<ActionResult<BlockTitleUpdatedDTO>> {
   try {
     const userId: UserId = new UserId(context.authenticatedUser.id);
-    const blockRepository = new DrizzleBlockRepository();
-    const safeWorkspaceId = context.workspace.workspaceId;
-
     const blockMountRepository = new DrizzleBlockMountRepository();
     const eventLogRepo = new DrizzleEventLogRepository();
     const eventLogService = new EventLogService(eventLogRepo);
@@ -75,10 +63,10 @@ async function updateBlockTitleInternal(
         blockMountRepository.findOnePageIdByBlockId(blockId),
     };
 
+    const blockRepository = new DrizzleBlockRepository();
     const updateResult = await updateBlockTitle({
-      safeWorkspaceId,
-      safeBlockSlug: safeDto.blockId,
       title: safeDto.title,
+      safeBlockAggregate: context.blockAggregate,
       safeUserId: userId,
       blockRepository,
       eventLogPolicyContext,

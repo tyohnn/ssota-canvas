@@ -7,10 +7,7 @@
  */
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
-import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
-import { DrizzleEdgeRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-edge.repository';
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
-import { EdgeId } from '@/domains/canvas-management/shared/value-objects/edge-id.vo';
 import { DrizzleOrganizationMemberRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization-member.repository';
 import type {
   MemberRole,
@@ -467,62 +464,6 @@ export async function authorizeByWorkspaceId(
       organization: { id: orgId, role: orgMembership.role },
     } as WorkspaceActionContext,
   };
-}
-
-/**
- * Edge-based authorization (for edge update/delete actions)
- * First gets the edge by edgeId to extract pageId,
- * then verifies page access
- * Returns PageActionContext
- */
-export async function authorizeByEdgeId(
-  edgeId: string,
-  userId: string
-): Promise<AuthorizeResult<PageActionContext>> {
-  // 1. Get edge to extract pageId
-  const edgeRepository = new DrizzleEdgeRepository();
-  const edgeIdVO = new EdgeId(edgeId);
-  const edgeAggregate = await edgeRepository.findById(edgeIdVO);
-
-  if (!edgeAggregate) {
-    return {
-      success: false,
-      error: 'Edge not found',
-    };
-  }
-
-  const pageId = edgeAggregate.edge.pageId.value;
-
-  // 2. Verify page access
-  return await authorizeByPageId(pageId, userId);
-}
-
-/**
- * BlockMount-based authorization (for blockMount update/delete actions)
- * First gets the blockMount by blockMountId to extract pageId,
- * then verifies page access
- * Returns PageActionContext
- */
-export async function authorizeByBlockMountId(
-  blockMountId: string,
-  userId: string
-): Promise<AuthorizeResult<PageActionContext>> {
-  // 1. Get blockMount to extract pageId
-  const blockMountRepository = new DrizzleBlockMountRepository();
-  const blockMountIdVO = new BlockMountId(blockMountId);
-  const aggregate = await blockMountRepository.findById(blockMountIdVO);
-
-  if (!aggregate) {
-    return {
-      success: false,
-      error: 'Block mount not found',
-    };
-  }
-
-  const pageId = aggregate.getBlockMount().pageId.value;
-
-  // 2. Verify page access
-  return await authorizeByPageId(pageId, userId);
 }
 
 /**

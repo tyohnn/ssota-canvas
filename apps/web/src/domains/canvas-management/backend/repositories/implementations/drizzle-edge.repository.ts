@@ -26,6 +26,7 @@ export class DrizzleEdgeRepository implements EdgeRepository {
   async create(edgeAggregate: EdgeAggregate): Promise<void> {
     const edge = edgeAggregate.edge;
     let currentId = edge.id.value;
+    let currentSlug = edge.slug;
     let attempts = 0;
     const maxAttempts = 3;
 
@@ -34,6 +35,7 @@ export class DrizzleEdgeRepository implements EdgeRepository {
         await adminDb.insert(edges).values({
           id: currentId,
           page_id: edge.pageId.value,
+          slug: currentSlug,
           source_block_mount_id: edge.sourceBlockMountId.value,
           target_block_mount_id: edge.targetBlockMountId.value,
           source_handle: edge.sourceHandle.value,
@@ -49,28 +51,29 @@ export class DrizzleEdgeRepository implements EdgeRepository {
           deleted_at: null,
         });
 
-        // 성공 시 종료
         return;
       } catch (error) {
-        // UUID 충돌인지 확인 (PostgreSQL unique constraint violation)
-        if (
-          (error as any).code === '23505' &&
-          (error as any).constraint === 'edges_pkey'
-        ) {
+        const code = (error as any).code;
+        const constraint = (error as any).constraint;
+        const isPkeyCollision = code === '23505' && constraint === 'edges_pkey';
+        const isSlugCollision =
+          code === '23505' && constraint === 'edges_page_id_slug_key';
+
+        if (isPkeyCollision || isSlugCollision) {
           attempts++;
           if (attempts < maxAttempts) {
-            // 새로운 ID 생성
             const newId = EdgeId.generate().value;
-            console.warn(
-              `[DrizzleEdgeRepository] ID collision detected (attempt ${attempts}), retrying with new ID: ${newId}`
-            );
             currentId = newId;
+            currentSlug = newId.replace(/-/g, '').slice(0, 8).toLowerCase();
+            console.warn(
+              `[DrizzleEdgeRepository] Collision detected (attempt ${attempts}), retrying with new id/slug`
+            );
           } else {
             console.error(
-              '❌ [DrizzleEdgeRepository] Failed to generate unique ID after multiple attempts'
+              '❌ [DrizzleEdgeRepository] Failed to generate unique id/slug after multiple attempts'
             );
             throw new Error(
-              'Failed to generate unique ID after multiple attempts'
+              'Failed to generate unique id/slug after multiple attempts'
             );
           }
         } else {
@@ -121,13 +124,22 @@ export class DrizzleEdgeRepository implements EdgeRepository {
   }
 
   /**
-   * ID로 Edge 조회
+   * (pageId, slug)로 Edge 조회
    */
-  async findById(edgeId: EdgeId): Promise<EdgeAggregate | null> {
+  async findByPageIdAndSlug(
+    pageId: PageId,
+    slug: string
+  ): Promise<EdgeAggregate | null> {
     const result = await adminDb
       .select()
       .from(edges)
-      .where(and(eq(edges.id, edgeId.value), isNull(edges.deleted_at)))
+      .where(
+        and(
+          eq(edges.page_id, pageId.value),
+          eq(edges.slug, slug),
+          isNull(edges.deleted_at)
+        )
+      )
       .limit(1);
 
     if (result.length === 0) {
@@ -255,6 +267,7 @@ export class DrizzleEdgeRepository implements EdgeRepository {
   private toDomain(row: typeof edges.$inferSelect): EdgeAggregate {
     const edge = Edge.reconstitute({
       id: new EdgeId(row.id),
+      slug: row.slug,
       pageId: new PageId(row.page_id),
       sourceBlockMountId: new BlockMountId(row.source_block_mount_id),
       targetBlockMountId: new BlockMountId(row.target_block_mount_id),

@@ -76,16 +76,16 @@ async function createGroupFromNodesInternal(
       pageId: context.page.pageId.value,
     };
 
-    // 3. ✅ Service에 검증된 Aggregates + 감사 로그 context 전달
-    const result = await createGroupFromNodes(
-      context.nodeAggregates,
+    // 3. ✅ Service에 검증된 Aggregates + 감사 로그 context 전달 (params 객체)
+    const result = await createGroupFromNodes({
+      nodeAggregates: context.nodeAggregates,
       safeDto,
       safeUserId,
       safeWorkspaceId,
       blockRepository,
       blockMountRepository,
-      eventLogPolicyContext
-    );
+      eventLogPolicyContext,
+    });
 
     if (result.isError()) {
       console.error(
@@ -102,7 +102,10 @@ async function createGroupFromNodesInternal(
     }
 
     return ok({
-      groupBlockMountId: result.value.groupBlockMountId,
+      groupBlockMountId: result.value.groupBlockMountId
+        .replace(/-/g, '')
+        .toLowerCase()
+        .slice(0, 8),
       groupBlockId: result.value.groupBlockId,
     });
   } catch (error) {

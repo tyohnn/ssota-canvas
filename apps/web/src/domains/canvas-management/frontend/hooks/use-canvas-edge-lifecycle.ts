@@ -72,6 +72,7 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
   });
 
   const { deleteEdge, isDeleting } = useDeleteEdge({
+    pageId,
     reactFlow: {
       getEdges,
       setEdges,
@@ -79,6 +80,7 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
   });
 
   const { updateEdgeShape, isUpdating: isUpdatingShape } = useUpdateEdgeShape({
+    pageId,
     reactFlow: {
       getEdges,
       setEdges,
@@ -86,6 +88,7 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
   });
 
   const { updateEdgeLabel, isUpdating: isUpdatingLabel } = useUpdateEdgeLabel({
+    pageId,
     reactFlow: {
       getEdges,
       setEdges,
@@ -93,6 +96,7 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
   });
 
   const { updateEdgeStyle, isUpdating: isUpdatingStyle } = useUpdateEdgeStyle({
+    pageId,
     reactFlow: {
       getEdges,
       setEdges,
@@ -101,6 +105,7 @@ export function useCanvasEdgeLifecycle(params: UseCanvasEdgeLifecycleParams) {
 
   const { updateEdgeMarker, isUpdating: isUpdatingMarkers } =
     useUpdateEdgeMarkers({
+      pageId,
       reactFlow: {
         getEdges,
         setEdges,

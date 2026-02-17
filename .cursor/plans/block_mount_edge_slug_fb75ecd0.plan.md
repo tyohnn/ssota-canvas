@@ -26,6 +26,17 @@ isProject: false
   - **Phase 3 (Edge)**: `safePageId`, `safeEdgeSlug` (일괄 시 `safeEdgeSlugs`).
 - **Context 전달**: 액션에서 authorize 통과 후 받은 context(`WorkspaceActionContext`, `PageActionContext` 등)의 scope ID를 서비스에 그대로 전달. 서비스는 safeDto에서 workspaceId/pageId를 재파싱하지 않음.
 
+#### Aggregate 조회·전달 패턴 (Secure Action → Service)
+
+- **원칙**: “주체가 되는” 엔티티(Block / BlockMount / Edge 등)는 **secure action에서 한 번만 조회**하고, **context에 aggregate로 담아 handler에 넘긴다**. 서비스는 **전달받은 aggregate를 params로만 사용**하며, **내부에서 `findBy...AndSlug`(또는 `findById`)를 다시 호출하지 않는다**.
+- **적용 방법**:
+  1. **Secure action**: (scope + slug)로 권한 검증 후, 레포 `findBy[Scope]AndSlug(scopeId, slug)` 호출 → aggregate 획득 → **전용 context 타입**에 담아 반환 (예: `BlockActionContext`, `BlockMountActionContext`, `AddNodeToGroupActionContext`).
+  2. **전용 wrapper**: 해당 context를 쓰는 **전용 secure action wrapper**를 둔다 (예: `withBlockAggregateSecureAction`, `withSingleBlockMountSecureAction`, `withAddNodeToGroupSecureAction`). request에는 `workspaceId`/`pageId` + `blockId`/`blockMountId` 등 식별자(slug) 필수.
+  3. **Action handler**: context에서 aggregate를 꺼내 서비스 **params 객체**에 넣어 호출 (예: `safeBlockAggregate: context.blockAggregate`, `safeChildAggregate: context.childBlockMountAggregate`).
+  4. **Service**: params에 `safeBlockAggregate` / `safeBlockMountAggregate` 등 **aggregate를 받는 필드**만 사용. **서비스 내부에서는 `findBy...AndSlug` 호출 금지** (이미 액션에서 조회·검증됨).
+- **효과**: 조회 중복 제거, 권한·존재 검증이 액션 레이어에 한곳으로 모임, 서비스는 “검증된 aggregate + 기타 인자”만 받는 단순한 시그니처 유지.
+- **참고 구현**: Block `withBlockAggregateSecureAction` + `BlockActionContext.blockAggregate`, Block Mount `withSingleBlockMountSecureAction` + `BlockMountActionContext.blockMountAggregate`, Group Node `withAddNodeToGroupSecureAction` + `AddNodeToGroupActionContext.childBlockMountAggregate` / `parentBlockMountAggregate`.
+
 ---
 
 ## Phase 1: Blocks
@@ -59,10 +70,11 @@ isProject: false
 
 - [block/secure-action.ts](apps/web/src/domains/block-management/actions/block/secure-action.ts):
   - 권한: blockId(slug) 단일 조회 대신, **safeDto.workspaceId**로 `authorizeByWorkspaceId` 사용. (이미 workspaceId 있는 요청은 그대로, 새로 workspaceId 추가된 요청은 safeDto.workspaceId 검증.)
-  - Block 조회가 필요한 경우: **레포** `findByWorkspaceIdAndSlug(safeDto.workspaceId, safeDto.blockId)` 호출 (blockId는 slug로 통일).
+  - Block 조회가 필요한 단일 block 조작 액션(update-property, update-properties, update-content, apply-content-steps 등)은 **위 “Aggregate 조회·전달 패턴” 적용**: secure action에서 `findByWorkspaceIdAndSlug`로 조회 후 **BlockActionContext.blockAggregate**로 넘기고, 서비스는 **safeBlockAggregate** params만 사용(서비스 내부에서 재조회 없음).
+  - 그 외 Block 조회가 필요한 경우: **레포** `findByWorkspaceIdAndSlug(safeDto.workspaceId, safeDto.blockId)` 호출 (blockId는 slug로 통일).
 - Block 서비스들 (create-block, soft-delete, restore, duplicate, update-block-title, update-block-property, update-block-properties, update-block-content, apply-block-content-steps 등):
-  - **인자**: 단일 params 객체 사용 (3개 이상 시). **safeWorkspaceId**, **safeBlockSlug** 명칭. 액션은 **WorkspaceActionContext**에서 workspaceId 전달, 서비스는 safeDto 재파싱 없이 전달받은 값 사용.
-  - **레포 호출**: `findById` → `findByWorkspaceIdAndSlug(workspaceId, slug)` 로 변경. `findByIds` → `findByWorkspaceIdAndSlugs(workspaceId, slugs)` 로 변경.
+  - **인자**: 단일 params 객체 사용 (3개 이상 시). **safeWorkspaceId**, **safeBlockSlug** 또는 패턴 적용 시 **safeBlockAggregate** 명칭. 액션은 **WorkspaceActionContext** 또는 **BlockActionContext**에서 전달, 서비스는 safeDto 재파싱 없이 전달받은 값 사용.
+  - **레포 호출**: 패턴 미적용 경로만 `findById` → `findByWorkspaceIdAndSlug(workspaceId, slug)` 로 변경. `findByIds` → `findByWorkspaceIdAndSlugs(workspaceId, slugs)` 로 변경.
 - duplicate-block.service 등에서 `findByIds` 사용처를 `findByWorkspaceIdAndSlugs`로 교체.
 
 ### 1.6 Block 조회·응답
@@ -108,10 +120,12 @@ isProject: false
 ### 2.5 Block Mount Secure Action 및 서비스
 
 - [block-mount/secure-action.ts](apps/web/src/domains/canvas-management/actions/block-mount/secure-action.ts):
-  - 권한: page 스코프 액션은 **safeDto.pageId**로 `authorizeByPageId` 사용. blockMount 조회가 필요한 경우 **레포** `findByPageIdAndSlug(safeDto.pageId, safeDto.blockMountId)` 사용 (Resolver 제거).
+  - 권한: page 스코프 액션은 **safeDto.pageId**로 `authorizeByPageId` 사용.
+  - 단일/복수 blockMount 조작 액션은 **위 “Aggregate 조회·전달 패턴” 적용**: secure action에서 `findByPageIdAndSlug` / `findByPageIdAndSlugs`로 조회 후 **BlockMountActionContext.blockMountAggregate** 또는 **MultipleBlockMountsActionContext.blockMountAggregates**로 넘기고, 서비스는 **safeBlockMountAggregate** 등 params만 사용(서비스 내부에서 재조회 없음).
+  - blockMount 조회만 필요한 경우(패턴 미적용): **레포** `findByPageIdAndSlug(safeDto.pageId, safeDto.blockMountId)` 사용 (Resolver 제거).
 - 서비스: duplicate-block-and-mount, soft-delete-block-mount, update-block-size, update-block-view-mode, move-block-to-page, update-block-position, create-edge (source/target blockMount 조회) 등:
-  - **레포 호출**: `findById` → `findByPageIdAndSlug(pageId, slug)`, `findByIds` → `findByPageIdAndSlugs(pageId, slugs)`.
-  - **규칙 적용**: 인자 3개 이상이면 단일 params 객체 사용. scope·식별자는 **safePageId**, **safeBlockMountSlug** 명칭. 액션은 **PageActionContext**에서 pageId 전달, 서비스는 safeDto 재파싱 없이 전달받은 값 사용.
+  - **레포 호출**: 패턴 미적용 경로만 `findById` → `findByPageIdAndSlug(pageId, slug)`, `findByIds` → `findByPageIdAndSlugs(pageId, slugs)`.
+  - **규칙 적용**: 인자 3개 이상이면 단일 params 객체 사용. scope·식별자는 **safePageId**, **safeBlockMountSlug** 또는 패턴 적용 시 **safeBlockMountAggregate** 등. 액션은 **PageActionContext** 또는 **BlockMountActionContext**에서 전달, 서비스는 safeDto 재파싱 없이 전달받은 값 사용.
 - [duplicate-block-and-mount.service.ts](apps/web/src/domains/canvas-management/backend/services/block-mount/duplicate-block-and-mount.service.ts) 등 `findByIds` 사용처를 `findByPageIdAndSlugs`로 교체.
 
 ### 2.6 Block Mount 조회·응답
@@ -155,10 +169,10 @@ isProject: false
 
 ### 3.5 Edge Secure Action 및 서비스
 
-- Edge 액션: **safeDto.pageId**로 권한 검증, 레포 `findByPageIdAndSlug(safeDto.pageId, safeDto.edgeId)` 로 조회 (Resolver 없음).
+- Edge 액션: **safeDto.pageId**로 권한 검증. 단일 edge 조작 시 **“Aggregate 조회·전달 패턴” 적용 권장**: secure action에서 `findByPageIdAndSlug`로 조회 후 **EdgeActionContext.edgeAggregate**로 넘기고, 서비스는 **safeEdgeAggregate** params만 사용. 미적용 시 레포 `findByPageIdAndSlug(safeDto.pageId, safeDto.edgeId)` 로 조회 (Resolver 없음).
 - delete-edge, update-edge-style, update-edge-label, update-edge-markers, update-edge-shape 등:
-  - `findById(edgeId)` → `findByPageIdAndSlug(pageId, slug)` 로 변경.
-  - **규칙 적용**: 인자 3개 이상이면 단일 params 객체 사용. scope·식별자는 **safePageId**, **safeEdgeSlug** 명칭. 액션은 **PageActionContext**에서 pageId 전달, 서비스는 safeDto 재파싱 없이 전달받은 값 사용.
+  - `findById(edgeId)` → `findByPageIdAndSlug(pageId, slug)` 로 변경 (또는 패턴 적용 시 서비스 내부 재조회 없음).
+  - **규칙 적용**: 인자 3개 이상이면 단일 params 객체 사용. scope·식별자는 **safePageId**, **safeEdgeSlug** 또는 **safeEdgeAggregate** 명칭. 액션은 **PageActionContext** 또는 **EdgeActionContext**에서 전달, 서비스는 safeDto 재파싱 없이 전달받은 값 사용.
 
 ### 3.6 Edge 조회·응답
 

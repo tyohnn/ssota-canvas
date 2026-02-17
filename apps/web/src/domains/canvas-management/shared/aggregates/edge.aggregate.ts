@@ -43,7 +43,7 @@ type EdgeManagementEvents =
 export class EdgeAggregate {
   private _uncommittedEvents: Array<EdgeManagementEvents> = [];
 
-  constructor(public readonly edge: Edge) {}
+  constructor(public readonly edge: Edge) { }
 
   /**
    * 새로운 엣지 생성 (Command Handler)
@@ -57,16 +57,17 @@ export class EdgeAggregate {
    * @returns EdgeAggregate
    */
   static createEdge(command: CreateEdgeCommand): EdgeAggregate {
-    // 1. EdgeId 생성
+    // 1. EdgeId 생성 및 slug (8자 hex, page 내 유일)
     const edgeId = EdgeId.generate();
+    const slug = edgeId.value.replace(/-/g, '').slice(0, 8).toLowerCase();
 
     // 2. 선택 필드: 라벨, 스타일, shape, 마커 (없으면 기본값)
     const defaultStyle = EdgeStyle.default();
     const edgeStyle = command.style
       ? EdgeStyle.fromObject({
-          color: command.style.stroke ?? defaultStyle.color,
-          thickness: command.style.strokeWidth ?? defaultStyle.thickness,
-        })
+        color: command.style.stroke ?? defaultStyle.color,
+        thickness: command.style.strokeWidth ?? defaultStyle.thickness,
+      })
       : defaultStyle;
     const edgeShape = command.shape
       ? new EdgeShape(command.shape)
@@ -75,6 +76,7 @@ export class EdgeAggregate {
     // 3. Edge Entity 생성 (self-loop 허용)
     const edge = new Edge(
       edgeId,
+      slug,
       command.pageId,
       command.sourceBlockMountId,
       command.targetBlockMountId,
@@ -252,7 +254,7 @@ export class EdgeAggregate {
    */
   toView(): EdgeView {
     return {
-      edgeId: this.edge.id.value,
+      edgeId: this.edge.slug,
       pageId: this.edge.pageId.value,
       sourceBlockMountId: this.edge.sourceBlockMountId.value,
       targetBlockMountId: this.edge.targetBlockMountId.value,

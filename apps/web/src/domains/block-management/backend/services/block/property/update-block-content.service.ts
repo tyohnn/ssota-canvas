@@ -2,6 +2,7 @@
  * Block 콘텐츠 업데이트 서비스 로직
  *
  * 항상 step 저장 경로만 사용: full doc을 ReplaceStep 하나로 변환 후 applyBlockContentSteps 호출.
+ * ⚠️ blockAggregate는 secure action에서 조회해 전달 (서비스 내부에서 findByWorkspaceIdAndSlug 사용 안 함)
  */
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Node, Slice } from '@tiptap/pm/model';
@@ -9,7 +10,7 @@ import { ReplaceStep } from '@tiptap/pm/transform';
 import { Result } from '@/utils/result';
 
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
-import type { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+import type { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
 import { EMPTY_TIPTAP_DOC } from '../../../../shared/utils/tiptap-markdown.utils';
 import { pmSchema } from '../../../../shared/utils/prosemirror-schema';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
@@ -18,8 +19,7 @@ import { applyBlockContentSteps } from './apply-block-content-steps.service';
 export type UpdateBlockContentParams = {
   content: unknown;
   contentRaw?: string;
-  safeWorkspaceId: WorkspaceId;
-  safeBlockSlug: string;
+  safeBlockAggregate: BlockAggregate;
   safeUserId: UserId;
   blockRepository: IBlockRepository;
 };
@@ -28,29 +28,19 @@ export type UpdateBlockContentParams = {
  * 블록 콘텐츠 업데이트 (step 경로만 사용)
  *
  * full doc을 전체 교체용 ReplaceStep 하나로 변환한 뒤 applyBlockContentSteps 호출.
- * ✅ 권한 검증은 액션에서 완료. 서비스는 context에서 전달된 safeWorkspaceId 사용.
+ * ✅ 권한·aggregate 조회는 secure action에서 완료. 서비스는 전달된 safeBlockAggregate 사용.
  */
 export async function updateBlockContent(
   params: UpdateBlockContentParams
 ): Promise<Result<{ updatedAt: Date }, Error>> {
   const {
     content,
-    safeWorkspaceId,
-    safeBlockSlug,
+    safeBlockAggregate,
     safeUserId,
     blockRepository,
   } = params;
   try {
-    const block = await blockRepository.findByWorkspaceIdAndSlug(
-      safeWorkspaceId,
-      safeBlockSlug
-    );
-    if (!block) {
-      return Result.error(
-        new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found')
-      );
-    }
-
+    const block = safeBlockAggregate.getBlock();
     const currentContent =
       (block.content as object) || EMPTY_TIPTAP_DOC;
     const currentDoc = Node.fromJSON(pmSchema, currentContent);
@@ -62,8 +52,7 @@ export async function updateBlockContent(
     const stepsResult = await applyBlockContentSteps({
       steps: [stepJSON],
       baseVersion: block.contentVersion,
-      safeWorkspaceId,
-      safeBlockSlug,
+      safeBlockAggregate,
       safeUserId,
       blockRepository,
     });

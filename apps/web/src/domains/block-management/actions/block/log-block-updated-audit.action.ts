@@ -1,27 +1,25 @@
 'use server';
 
-import type { WorkspaceActionContext } from '@/domains/common/auth/types';
 import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
 import {
   DrizzleEventLogRepository,
   EventLogService,
 } from '@/domains/event-management';
 import { ActionResult, err, ok } from '@/lib';
-import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 
-import { DrizzleBlockRepository } from '../../backend/repositories/implementations/drizzle-block.repository';
 import {
   LogBlockUpdatedAuditRequest,
   LogBlockUpdatedAuditRequestSchema,
 } from '../../shared/dtos/requests/block.requests';
-import { withBlockSecureAction } from './secure-action';
+import type { BlockActionContext } from './secure-action';
+import { withBlockAggregateSecureAction } from './secure-action';
 
 /**
  * Blur 시 감사 로그만 기록 (block 업데이트 없음).
  * event_log에 block_updated 한 건만 기록하며 changes에는 patch만 저장.
- * Security: withBlockSecureAction HOF (동일한 검증 체인)
+ * Security: withBlockAggregateSecureAction HOF (워크스페이스 권한 + Block 조회 후 blockAggregate 전달)
  */
-export const logBlockUpdatedAuditAction = withBlockSecureAction(
+export const logBlockUpdatedAuditAction = withBlockAggregateSecureAction(
   LogBlockUpdatedAuditRequestSchema,
   'logBlockUpdatedAuditAction',
   logBlockUpdatedAuditInternal,
@@ -34,22 +32,12 @@ export const logBlockUpdatedAuditAction = withBlockSecureAction(
 
 async function logBlockUpdatedAuditInternal(
   safeDto: LogBlockUpdatedAuditRequest,
-  context: WorkspaceActionContext
+  context: BlockActionContext
 ): Promise<ActionResult<{ logged: true }>> {
   try {
-    const blockRepository = new DrizzleBlockRepository();
-    const block = await blockRepository.findByWorkspaceIdAndSlug(
-      new WorkspaceId(safeDto.workspaceId),
-      safeDto.blockId
-    );
-    if (!block) {
-      return err('Block not found', { code: 'BLOCK_NOT_FOUND' });
-    }
-
+    const blockId = context.blockAggregate.getBlock().id.value;
     const blockMountRepository = new DrizzleBlockMountRepository();
-    const pageId = await blockMountRepository.findOnePageIdByBlockId(
-      block.id.value
-    );
+    const pageId = await blockMountRepository.findOnePageIdByBlockId(blockId);
     if (!pageId) {
       return err('Block not mounted on any page', { code: 'BLOCK_NOT_MOUNTED' });
     }

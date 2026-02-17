@@ -1,20 +1,20 @@
 /**
  * Block 속성 업데이트 서비스 로직
+ *
+ * ⚠️ blockAggregate는 secure action에서 조회해 전달 (서비스 내부에서 findByWorkspaceIdAndSlug 사용 안 함)
  */
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
-import { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
+import type { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
 import type { UpdateBlockPropertyCommand } from '../../../../shared/commands';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
-import type { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
 
 export type UpdateBlockPropertyParams = {
   propertyPath: string;
   value: unknown;
-  safeWorkspaceId: WorkspaceId;
-  safeBlockSlug: string;
+  safeBlockAggregate: BlockAggregate;
   safeUserId: UserId;
   blockRepository: IBlockRepository;
 };
@@ -22,7 +22,7 @@ export type UpdateBlockPropertyParams = {
 /**
  * 블록 속성 업데이트
  *
- * ✅ 권한 검증은 액션에서 완료. 서비스는 context에서 전달된 safeWorkspaceId 사용.
+ * ✅ 권한·aggregate 조회는 secure action에서 완료. 서비스는 전달된 safeBlockAggregate 사용.
  */
 export async function updateBlockProperty(
   params: UpdateBlockPropertyParams
@@ -30,8 +30,7 @@ export async function updateBlockProperty(
   const {
     propertyPath,
     value,
-    safeWorkspaceId,
-    safeBlockSlug,
+    safeBlockAggregate: aggregate,
     safeUserId,
     blockRepository,
   } = params;
@@ -45,20 +44,7 @@ export async function updateBlockProperty(
       );
     }
 
-    const block = await blockRepository.findByWorkspaceIdAndSlug(
-      safeWorkspaceId,
-      safeBlockSlug
-    );
-    if (!block) {
-      return Result.error(
-        new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found')
-      );
-    }
-
-    // 4. Aggregate 재구성
-    const aggregate = BlockAggregate.reconstitute(block);
-
-    // 5. SafeDTO → Command 변환
+    // SafeDTO → Command 변환
     const command: UpdateBlockPropertyCommand = {
       propertyPath,
       value,

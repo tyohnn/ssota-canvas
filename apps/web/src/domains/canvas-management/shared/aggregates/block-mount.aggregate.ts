@@ -360,9 +360,15 @@ export class BlockMountAggregate {
     const blockMount = this._blockMount;
     const block = blockAggregate.getBlock();
 
+    // API 노출용 blockMountId = 8자 hex slug (DB block_mounts.slug와 동일 규칙)
+    const blockMountSlug = blockMount.id.value
+      .replace(/-/g, '')
+      .toLowerCase()
+      .slice(0, 8);
+
     return {
       // Mount 정보 (Canvas Management Domain)
-      blockMountId: blockMount.id.value,
+      blockMountId: blockMountSlug,
       position: {
         x: blockMount.position.x,
         y: blockMount.position.y,

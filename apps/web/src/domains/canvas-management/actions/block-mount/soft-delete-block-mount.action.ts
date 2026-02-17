@@ -1,7 +1,6 @@
 'use server';
 
-import type { PageActionContext } from '@/domains/common/auth/types';
-import { withPageSecureAction } from '@/domains/common/server-actions';
+import type { MultipleBlockMountsActionContext } from './secure-action';
 import {
   DrizzleEventLogRepository,
   EventLogService,
@@ -18,20 +17,22 @@ import {
   SoftDeleteBlockMountRequestSchema,
 } from '../../shared/dtos/requests';
 import { BlockMountSoftDeletedDTO } from '../../shared/dtos/responses';
+import { withMultipleBlockMountSecureAction } from './secure-action';
 
 /**
  * Block Mount 삭제 Server Action
  *
- * ⚠️ Security: withSecureAction HOF를 통해 Defense in Depth 적용
- * 1. Request 스키마 검증
- * 2. 사용자 인증 확인
- * 3. Page 기반 권한 확인 (blockMountId → pageId → 권한 검증)
+ * ⚠️ Security: withMultipleBlockMountSecureAction — 모든 blockMountId에 대해 페이지·블록 권한 검증 후 aggregates 전달
  */
-export const softDeleteBlockMountAction = withPageSecureAction(
+export const softDeleteBlockMountAction = withMultipleBlockMountSecureAction(
   SoftDeleteBlockMountRequestSchema,
   'softDeleteBlockMountAction',
   softDeleteBlockMountInternal,
   {
+    getPageIdAndSlugs: req => ({
+      pageId: req.pageId,
+      slugs: req.blockMountIds,
+    }),
     getLogMetadata: req => ({ blockMountIds: req.blockMountIds }),
   }
 );
@@ -39,17 +40,15 @@ export const softDeleteBlockMountAction = withPageSecureAction(
 /**
  * 내부 구현 (검증된 데이터만 처리)
  *
- * ⚠️ 이 함수는 이미 검증된 요청만 받습니다
- *
  * @param safeDto - 검증된 SafeDTO
- * @param context - 검증된 사용자, 워크스페이스, 페이지 정보
+ * @param context - MultipleBlockMountsActionContext (blockMountAggregates 포함, 서비스 재조회 없음)
  */
 async function softDeleteBlockMountInternal(
-  safeDto: SoftDeleteBlockMountRequest, // ✅ 이미 검증됨 (SafeDTO)
-  context: PageActionContext // ✅ 검증된 context
+  safeDto: SoftDeleteBlockMountRequest,
+  context: MultipleBlockMountsActionContext
 ): Promise<ActionResult<BlockMountSoftDeletedDTO>> {
   try {
-    const { authenticatedUser, page } = context;
+    const { authenticatedUser, page, blockMountAggregates } = context;
     const userId: UserId = new UserId(authenticatedUser.id);
     const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
@@ -62,13 +61,14 @@ async function softDeleteBlockMountInternal(
       pageId: page.pageId.value,
     };
 
-    const result = await softDeleteBlockMount(
+    const result = await softDeleteBlockMount({
       safeDto,
-      userId,
+      safeUserId: userId,
+      safeBlockMountAggregates: blockMountAggregates,
       blockMountRepository,
       edgeRepository,
-      eventLogPolicyContext
-    );
+      eventLogPolicyContext,
+    });
 
     if (result.isError()) {
       console.error(
@@ -86,8 +86,8 @@ async function softDeleteBlockMountInternal(
       deletedCount: result.value.deletedCount,
       deletedEdgesCount: result.value.deletedEdgesCount,
       deletedAt: new Date().toISOString(),
-      deletedBlockMountIds: result.value.deletedBlockMountIds.map(
-        id => id.value
+      deletedBlockMountIds: result.value.deletedBlockMountIds.map(id =>
+        id.value.replace(/-/g, '').toLowerCase().slice(0, 8)
       ),
     };
 

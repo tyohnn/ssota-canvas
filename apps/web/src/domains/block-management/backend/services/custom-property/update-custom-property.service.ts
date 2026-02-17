@@ -1,22 +1,24 @@
-import type { IBlockRepository } from '../../repositories/interfaces/block.repository.interface';
 import { BlockManagementError } from '../../../shared/errors/block-management.error';
 import { CustomPropertyDefinitionVO } from '../../../shared/value-objects/custom-property-definition.vo';
 import { PropertyTypeVO } from '../../../shared/value-objects/property-type.vo';
-import { getBlockForUpdate, mapOptions } from './helpers';
-import type { UpdateCustomPropertyCommand } from './types';
+import { mapOptions } from './helpers';
+import type { UpdateCustomPropertyParams } from './types';
 
 export async function updateCustomProperty(
-  blockRepository: IBlockRepository,
-  command: UpdateCustomPropertyCommand
+  params: UpdateCustomPropertyParams
 ): Promise<{ property: CustomPropertyDefinitionVO; updatedAt: Date }> {
-  const block = await getBlockForUpdate(
-    blockRepository,
-    command.workspaceId,
-    command.blockSlug
-  );
+  const { blockAggregate, blockRepository, propertyId, updates } = params;
+  const block = blockAggregate.getBlock();
+
+  if (block.isDeleted()) {
+    throw new BlockManagementError(
+      'BLOCK_ALREADY_DELETED',
+      'Cannot modify custom properties of a deleted block'
+    );
+  }
 
   const existingProperty = block.customProperties.find(
-    prop => prop.id === command.propertyId
+    prop => prop.id === propertyId
   );
 
   if (!existingProperty) {
@@ -26,27 +28,27 @@ export async function updateCustomProperty(
     );
   }
 
-  const nextType = command.updates.type
-    ? PropertyTypeVO.fromString(command.updates.type)
+  const nextType = updates.type
+    ? PropertyTypeVO.fromString(updates.type)
     : existingProperty.type;
 
-  const nextOptions = command.updates.options
-    ? mapOptions(command.updates.options)
+  const nextOptions = updates.options
+    ? mapOptions(updates.options)
     : existingProperty.options;
 
   const nextProperty = new CustomPropertyDefinitionVO(
     existingProperty.id,
-    command.updates.name ?? existingProperty.name,
+    updates.name ?? existingProperty.name,
     nextType,
     nextOptions,
-    command.updates.order ?? existingProperty.order,
-    command.updates.visible ?? existingProperty.visible,
-    command.updates.required ?? existingProperty.required,
-    command.updates.defaultValue !== undefined
-      ? command.updates.defaultValue
+    updates.order ?? existingProperty.order,
+    updates.visible ?? existingProperty.visible,
+    updates.required ?? existingProperty.required,
+    updates.defaultValue !== undefined
+      ? updates.defaultValue
       : existingProperty.defaultValue,
-    command.updates.icon ?? existingProperty.icon,
-    command.updates.validation ?? existingProperty.validation
+    updates.icon ?? existingProperty.icon,
+    updates.validation ?? existingProperty.validation
   );
 
   block.updateCustomPropertyDefinition(existingProperty.id, nextProperty);

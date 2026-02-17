@@ -3,8 +3,9 @@
  *
  * BlockMount 도메인 전용 Server Action wrapper와 유틸리티들
  */
+import type { z } from 'zod';
+
 import {
-  authorizeByBlockMountId,
   authorizeByPageId,
   getAuthenticatedUser,
   verifyBlockOwnership,
@@ -12,51 +13,63 @@ import {
 import type { AuthenticatedUser } from '@/domains/common/auth/helpers';
 import type { PageActionContext } from '@/domains/common/auth/types';
 import type { Page } from '@/domains/workspace-management/shared/entities/page.entity';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+import type { ActionResult } from '@/lib';
 import { createSecureActionBuilder } from '@/lib/server-actions/create-secure-action-builder';
-import { AuthorizeResult } from '@/lib/server-actions/types';
+import type { AuthorizeResult } from '@/lib/server-actions/types';
 
+import type { BlockMountAggregate } from '../../shared/aggregates/block-mount.aggregate';
 import { DrizzleBlockMountRepository } from '../../backend/repositories/implementations/drizzle-block-mount.repository';
-import { BlockMountId } from '../../shared/value-objects/block-mount-id.vo';
 
-/**
- * Duplicate용: blockMountId로 모든 정보 자동 조회 후 검증 (Zero Trust)
- *
- * 1. BlockMount 조회 (DB = SSOT)
- * 2. BlockMount에서 pageId, blockId 추출
- * 3. Page 권한 검증 (workspace, organization 자동 검증됨)
- * 4. Block ownership 검증 (block이 workspace에 속하는지)
- *
- * Returns PageActionContext
- */
-async function authorizeDuplicateBlockMount(
-  blockMountId: string,
+// ---------------------------------------------------------------------------
+// Block Mount 전용 Action Context 타입 (이 파일에서만 사용, 범용 아님)
+// ---------------------------------------------------------------------------
+
+/** 권한 검증 시 이미 조회한 blockMount aggregate를 담아 서비스 재조회 방지 */
+export interface BlockMountActionContext extends PageActionContext {
+  blockMountAggregate: BlockMountAggregate;
+}
+
+/** targetPage + 이미 조회한 blockMount aggregate */
+export interface MoveBlockActionContext extends PageActionContext {
+  targetPage: Page;
+  blockMountAggregate: BlockMountAggregate;
+}
+
+/** 다중 block mount 공통: 권한 검증 시 이미 조회한 N개 aggregate (request 순서와 동일) */
+export interface MultipleBlockMountsActionContext extends PageActionContext {
+  blockMountAggregates: BlockMountAggregate[];
+}
+
+// ---------------------------------------------------------------------------
+// Block Mount 권한 검증 (단일/다중 통일, 액션별로 정의하지 않음)
+// ---------------------------------------------------------------------------
+
+/** 단일: (pageId, blockMountSlug) 조회 후 페이지·블록 소유권 검증. BlockMountActionContext 반환. */
+async function authorizeSingleBlockMount(
+  pageId: string,
+  blockMountSlug: string,
   userId: string
-): Promise<AuthorizeResult<PageActionContext>> {
-  // 1. BlockMount 조회 (DB = SSOT)
+): Promise<AuthorizeResult<BlockMountActionContext>> {
+  const pageResult = await authorizeByPageId(pageId, userId);
+  if (!pageResult.success || !pageResult.context) {
+    return pageResult as AuthorizeResult<BlockMountActionContext>;
+  }
+
   const blockMountRepository = new DrizzleBlockMountRepository();
-  const blockMount = await blockMountRepository.findById(
-    new BlockMountId(blockMountId)
+  const pageIdVO = new PageId(pageId);
+  const blockMount = await blockMountRepository.findByPageIdAndSlug(
+    pageIdVO,
+    blockMountSlug
   );
 
   if (!blockMount) {
     return { success: false, error: 'Block mount not found' };
   }
 
-  // 2. BlockMount에서 pageId, blockId 추출
-  const pageId = blockMount.getBlockMount().pageId.value;
   const blockId = blockMount.getBlockMount().blockId.value;
-
-  // 3. Page 권한 검증 (workspace, organization 자동 검증됨)
-  const pageResult = await authorizeByPageId(pageId, userId);
-
-  if (!pageResult.success || !pageResult.context) {
-    return pageResult;
-  }
-
-  // 4. Block ownership 검증 (block이 workspace에 속하는지)
   const workspaceId = pageResult.context.workspace.workspaceId.value;
   const ownershipResult = await verifyBlockOwnership(blockId, workspaceId);
-
   if (!ownershipResult.isValid) {
     return {
       success: false,
@@ -67,151 +80,96 @@ async function authorizeDuplicateBlockMount(
     };
   }
 
-  // 5. Page context 반환 (service layer에서 blockMount를 다시 조회하므로 blockId는 전달하지 않음)
-  return pageResult;
+  return {
+    success: true,
+    context: { ...pageResult.context, blockMountAggregate: blockMount },
+  };
 }
 
-/**
- * Duplicate (배치)용: 모든 blockMountId에 대해 권한 검증
- *
- * - blocks가 비어 있으면 실패
- * - 각 blockMount에 대해 authorizeDuplicateBlockMount를 직렬로 수행 (연결 풀·부하 완화)
- * - 하나라도 실패하면 해당 오류 반환
- * - 모두 통과하면 첫 번째 블록의 PageActionContext 반환 (동일 페이지 가정)
- */
-async function authorizeDuplicateBlockMounts(
-  blocks: Array<{ blockMountId: string }>,
+/** 다중: slugs 순서대로 단일 검증 후 blockMountAggregates 수집. (Duplicate/SoftDelete/UpdatePosition 등 공통) */
+async function authorizeMultipleBlockMounts(
+  pageId: string,
+  slugs: string[],
   userId: string
-): Promise<AuthorizeResult<PageActionContext>> {
-  if (blocks.length === 0) {
-    return { success: false, error: 'At least one block is required' };
+): Promise<AuthorizeResult<MultipleBlockMountsActionContext>> {
+  if (slugs.length === 0) {
+    return { success: false, error: 'At least one block mount is required' };
   }
 
-  let firstContext: PageActionContext | undefined;
+  const blockMountAggregates: BlockMountAggregate[] = [];
+  let baseContext: PageActionContext | undefined;
 
-  for (const { blockMountId } of blocks) {
-    const result = await authorizeDuplicateBlockMount(blockMountId, userId);
+  for (const slug of slugs) {
+    const result = await authorizeSingleBlockMount(pageId, slug, userId);
     if (!result.success) {
-      return result;
+      return { success: false, error: result.error };
     }
-    if (result.context && firstContext === undefined) {
-      firstContext = result.context;
+    if (result.context) {
+      if (baseContext === undefined) {
+        baseContext = result.context;
+      }
+      blockMountAggregates.push(result.context.blockMountAggregate);
     }
   }
 
-  if (!firstContext) {
+  if (!baseContext) {
     return { success: false, error: 'Page context not found' };
   }
-  return { success: true, context: firstContext };
+  return {
+    success: true,
+    context: { ...baseContext, blockMountAggregates },
+  };
 }
 
 /**
- * Move용: 원본 page + target page 모두 검증 (Defense in Depth)
- *
- * 1. BlockMount 조회 → 원본 pageId 추출 (DB = SSOT)
- * 2. 원본 page 권한 검증
- * 3. Target page 권한 검증
- * 4. 같은 workspace인지 확인 (cross-workspace move 방지)
- *
- * Returns PageActionContext with targetPage
+ * Move용: 원본 page + target page 검증, blockMount aggregate 포함 반환
+ * Returns MoveBlockActionContext (targetPage + blockMountAggregate)
  */
 async function authorizeMoveBlockToPage(
-  blockMountId: string,
+  pageId: string,
+  blockMountSlug: string,
   targetPageId: string,
   userId: string
-): Promise<AuthorizeResult<PageActionContext & { targetPage: Page }>> {
-  // 1. BlockMount 조회 → 원본 pageId 추출 (DB = SSOT)
-  const blockMountRepository = new DrizzleBlockMountRepository();
-  const blockMount = await blockMountRepository.findById(
-    new BlockMountId(blockMountId)
-  );
+): Promise<AuthorizeResult<MoveBlockActionContext>> {
+  const sourcePageResult = await authorizeByPageId(pageId, userId);
+  if (!sourcePageResult.success || !sourcePageResult.context) {
+    return sourcePageResult as AuthorizeResult<MoveBlockActionContext>;
+  }
 
+  const blockMountRepository = new DrizzleBlockMountRepository();
+  const pageIdVO = new PageId(pageId);
+  const blockMount = await blockMountRepository.findByPageIdAndSlug(
+    pageIdVO,
+    blockMountSlug
+  );
   if (!blockMount) {
     return { success: false, error: 'Block mount not found' };
   }
 
-  const sourcePageId = blockMount.getBlockMount().pageId.value;
-
-  // 2. 원본 page 권한 검증
-  const sourcePageResult = await authorizeByPageId(sourcePageId, userId);
-
-  if (!sourcePageResult.success || !sourcePageResult.context) {
-    return sourcePageResult as AuthorizeResult<
-      PageActionContext & { targetPage: Page }
-    >;
-  }
-
-  // 3. Target page 권한 검증
   const targetPageResult = await authorizeByPageId(targetPageId, userId);
-
   if (!targetPageResult.success || !targetPageResult.context) {
     return {
       success: false,
       error: 'Target page access denied',
-    } as AuthorizeResult<PageActionContext & { targetPage: Page }>;
+    } as AuthorizeResult<MoveBlockActionContext>;
   }
 
-  // 4. 같은 workspace인지 확인 (cross-workspace move 방지)
   const sourceWorkspaceId =
     sourcePageResult.context.workspace.workspaceId.value;
   const targetWorkspaceId =
     targetPageResult.context.workspace.workspaceId.value;
-
   if (sourceWorkspaceId !== targetWorkspaceId) {
     return { success: false, error: 'Cannot move block across workspaces' };
   }
 
-  // 5. Context + targetPage 반환 (원본 page context 기준)
   return {
     success: true,
     context: {
       ...sourcePageResult.context,
       targetPage: targetPageResult.context.page,
+      blockMountAggregate: blockMount,
     },
   };
-}
-
-/**
- * BlockMount-based authorization with block ownership validation
- *
- * 1. Verifies page access (which also validates workspace access)
- * 2. Verifies block ownership (blockMount's block belongs to workspace)
- *
- * Returns PageActionContext (includes workspace, organization, page)
- */
-export async function authorizeBlockMountWithBlockOwnership(
-  blockMountId: string,
-  blockId: string,
-  userId: string
-): Promise<AuthorizeResult<PageActionContext>> {
-  // 1. Verify page access through blockMountId
-  const pageResult = await authorizeByBlockMountId(blockMountId, userId);
-
-  if (!pageResult.success) {
-    return pageResult;
-  }
-
-  // 2. Extract workspace ID from context
-  if (!pageResult.context) {
-    return { success: false, error: 'Page context not found' };
-  }
-  const workspaceId = pageResult.context.workspace.workspaceId.value;
-
-  // 3. Verify block ownership (block belongs to workspace)
-  const ownershipResult = await verifyBlockOwnership(blockId, workspaceId);
-
-  if (!ownershipResult.isValid) {
-    return {
-      success: false,
-      error:
-        ownershipResult.error === 'BLOCK_NOT_FOUND'
-          ? 'Block not found'
-          : 'Block does not belong to this workspace',
-    };
-  }
-
-  // 4. Return page context
-  return pageResult;
 }
 
 /**
@@ -221,45 +179,49 @@ const blockMountSecureActionBuilder =
   createSecureActionBuilder<AuthenticatedUser>(getAuthenticatedUser);
 
 /**
- * Duplicate 전용 secure action wrapper
+ * 단일 block mount 전용 secure action wrapper
  *
- * blockMountId만 받고 서버에서 자동 조회 (Zero Trust)
- * - pageId: blockMount에서 자동 추출
- * - blockId: blockMount에서 자동 추출
- * - workspace 권한, block ownership 모두 검증
- *
- * @example
- * ```ts
- * export const duplicateBlockAction = withDuplicateBlockSecureAction(
- *   DuplicateBlockRequestSchema,
- *   'duplicateBlockAction',
- *   async (req, ctx) => {
- *     // ctx는 PageActionContext
- *     // pageId는 ctx.page.id.value에서 가져옴
- *     return ok(result);
- *   }
- * );
- * ```
+ * request에 pageId, blockMountId 있으면 사용. ctx는 BlockMountActionContext (blockMountAggregate 포함).
  */
-export const withDuplicateBlockSecureAction = blockMountSecureActionBuilder
-  .forContext<PageActionContext>()
-  .withAuth((req: { blockMountId: string }, user: AuthenticatedUser) =>
-    authorizeDuplicateBlockMount(req.blockMountId, user.id)
+export const withSingleBlockMountSecureAction = blockMountSecureActionBuilder
+  .forContext<BlockMountActionContext>()
+  .withAuth(
+    (
+      req: { pageId: string; blockMountId: string },
+      user: AuthenticatedUser
+    ) => authorizeSingleBlockMount(req.pageId, req.blockMountId, user.id)
   )
   .build();
 
 /**
- * Duplicate (배치) 전용: 모든 blockMountId에 대해 페이지·블록 권한 검증
+ * 다중 block mount 공통 secure action wrapper
+ *
+ * options.getPageIdAndSlugs로 request에서 pageId, slugs 추출 후 authorizeMultipleBlockMounts 호출.
+ * Duplicate (배치), Soft Delete, Update Position 등에서 재사용.
  */
-export const withDuplicateBlocksSecureAction = blockMountSecureActionBuilder
-  .forContext<PageActionContext>()
-  .withAuth(
-    (
-      req: { blocks: Array<{ blockMountId: string }> },
-      user: AuthenticatedUser
-    ) => authorizeDuplicateBlockMounts(req.blocks, user.id)
-  )
-  .build();
+export function withMultipleBlockMountSecureAction<TRequest extends { pageId: string }, TResponse>(
+  schema: z.ZodSchema<TRequest>,
+  actionName: string,
+  handler: (
+    req: TRequest,
+    ctx: MultipleBlockMountsActionContext
+  ) => Promise<ActionResult<TResponse>>,
+  options: {
+    getPageIdAndSlugs: (req: TRequest) => { pageId: string; slugs: string[] };
+    getLogMetadata?: (req: TRequest) => Record<string, unknown>;
+  }
+) {
+  const built = blockMountSecureActionBuilder
+    .forContext<MultipleBlockMountsActionContext>()
+    .withAuth((req: TRequest, user: AuthenticatedUser) => {
+      const { pageId, slugs } = options.getPageIdAndSlugs(req);
+      return authorizeMultipleBlockMounts(pageId, slugs, user.id);
+    })
+    .build();
+  return built(schema, actionName, handler, {
+    getLogMetadata: options.getLogMetadata,
+  });
+}
 
 /**
  * Move 전용 secure action wrapper
@@ -283,44 +245,16 @@ export const withDuplicateBlocksSecureAction = blockMountSecureActionBuilder
  * ```
  */
 export const withMoveBlockSecureAction = blockMountSecureActionBuilder
-  .forContext<PageActionContext & { targetPage: Page }>()
+  .forContext<MoveBlockActionContext>()
   .withAuth(
     (
-      req: { blockMountId: string; targetPageId: string },
+      req: { pageId: string; blockMountId: string; targetPageId: string },
       user: AuthenticatedUser
-    ) => authorizeMoveBlockToPage(req.blockMountId, req.targetPageId, user.id)
-  )
-  .build();
-
-/**
- * BlockMount 전용 secure action wrapper (with block ownership validation)
- *
- * BlockMount 작업에서 block ownership도 함께 검증해야 할 때 사용합니다.
- * 자동으로 다음을 검증합니다:
- * 1. 사용자 인증
- * 2. Page 접근 권한 (및 Workspace, Organization 접근 권한)
- * 3. Block 소유권 (BlockMount의 Block이 해당 Workspace에 속하는지 확인)
- *
- * @example
- * ```ts
- * export const updateBlockMountAction = withBlockMountSecureAction(
- *   UpdateBlockMountRequestSchema,
- *   'updateBlockMountAction',
- *   async (req, ctx) => {
- *     // ctx는 PageActionContext (workspace, organization, page 포함)
- *     // req.blockId가 ctx.workspace에 속함이 검증됨
- *     return ok(result);
- *   }
- * );
- * ```
- */
-export const withBlockMountSecureAction = blockMountSecureActionBuilder
-  .forContext<PageActionContext>()
-  .withAuth(
-    (req: { blockMountId: string; blockId: string }, user: AuthenticatedUser) =>
-      authorizeBlockMountWithBlockOwnership(
+    ) =>
+      authorizeMoveBlockToPage(
+        req.pageId,
         req.blockMountId,
-        req.blockId,
+        req.targetPageId,
         user.id
       )
   )
