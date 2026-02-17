@@ -1,13 +1,11 @@
 /**
  * Viewport Controls Component
  *
- * Container component that provides viewport controls (zoom, fit to screen, minimap).
+ * Container component that provides viewport controls (zoom in/out only).
  * All business logic and side effects are handled in the hook.
  *
  * Features:
  * - Zoom in/out controls
- * - Fit to screen button
- * - Minimap toggle
  * - Zoom level display
  */
 
@@ -33,28 +31,20 @@ import { useViewportControlToolbar } from './core/use-viewport-control-toolbar';
  */
 export const ViewportControlToolbar = memo(function ViewportControlToolbar() {
   const {
-    showMiniMap,
     zoomLevel,
     toolbarRef,
-    minimapRef,
     containerRef,
-    toggleMiniMap,
     handleZoomIn,
     handleZoomOut,
-    handleFitToScreen,
   } = useViewportControlToolbar();
 
   return (
     <ViewportControlToolbarView
       zoomLevel={zoomLevel}
-      showMiniMap={showMiniMap}
       toolbarRef={toolbarRef}
-      minimapRef={minimapRef}
       containerRef={containerRef}
       onZoomIn={handleZoomIn}
       onZoomOut={handleZoomOut}
-      onFitToScreen={handleFitToScreen}
-      onToggleMiniMap={toggleMiniMap}
     />
   );
 });
