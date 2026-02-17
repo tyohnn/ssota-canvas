@@ -42,6 +42,11 @@ export interface DynamicContext {
   pageId?: string;
   workspaceId?: string;
   orgId?: string;
+  /** Page/workspace/org/user display names (server-fetched for Current Page) */
+  pageTitle?: string;
+  workspaceTitle?: string;
+  organizationName?: string;
+  userProfileName?: string;
   /** Selected blocks with full meta (blockMountId, blockId, type, title) — IDs derived from this when needed */
   selectedBlocks?: VisibleBlockMeta[];
   visibleBlocks?: VisibleBlockMeta[];
@@ -96,6 +101,10 @@ export function parseDynamicContext(raw: unknown): DynamicContext {
     pageId: typeof ctx.pageId === 'string' ? ctx.pageId : undefined,
     workspaceId: typeof ctx.workspaceId === 'string' ? ctx.workspaceId : undefined,
     orgId: typeof ctx.orgId === 'string' ? ctx.orgId : undefined,
+    pageTitle: typeof ctx.pageTitle === 'string' ? ctx.pageTitle : undefined,
+    workspaceTitle: typeof ctx.workspaceTitle === 'string' ? ctx.workspaceTitle : undefined,
+    organizationName: typeof ctx.organizationName === 'string' ? ctx.organizationName : undefined,
+    userProfileName: typeof ctx.userProfileName === 'string' ? ctx.userProfileName : undefined,
     selectedBlocks: Array.isArray(ctx.selectedBlocks)
       ? ctx.selectedBlocks
           .filter((block): block is RawVisibleBlockMeta => typeof block === 'object' && block !== null)
@@ -141,14 +150,39 @@ export function parseDynamicContext(raw: unknown): DynamicContext {
  */
 function formatContextBlock(ctx: DynamicContext): string {
   const sections: string[] = [];
+  // #region agent log
+  const DEBUG_INGEST = 'http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c';
+  const ctxLog = (message: string, data: Record<string, unknown>) => {
+    fetch(DEBUG_INGEST, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'api/agent/v2/context-builder.ts:formatContextBlock', message, data, timestamp: Date.now() }) }).catch(() => {});
+  };
+  ctxLog('context combo: input summary', {
+    hasPage: Boolean(ctx.pageId || ctx.workspaceId || ctx.orgId),
+    pageId: ctx.pageId ?? null,
+    selectedBlocksCount: ctx.selectedBlocks?.length ?? 0,
+    visibleBlocksCount: ctx.visibleBlocks?.length ?? 0,
+    visibleBlocksTotalInView: ctx.visibleBlocksTotalInView ?? null,
+    visibleBlocksInContext: ctx.visibleBlocksInContext ?? null,
+    recentEventsCount: ctx.recentEvents?.length ?? 0,
+  });
+  let sectionStart = 0;
+  // #endregion
 
   // Page info
-  if (ctx.pageId || ctx.workspaceId || ctx.orgId) {
+  if (ctx.pageId || ctx.workspaceId || ctx.orgId || ctx.pageTitle || ctx.workspaceTitle || ctx.organizationName || ctx.userProfileName) {
     sections.push('**Current Page**:');
+    if (ctx.pageTitle) sections.push(`- Page title: "${ctx.pageTitle}"`);
+    if (ctx.workspaceTitle) sections.push(`- Workspace title: "${ctx.workspaceTitle}"`);
+    if (ctx.organizationName) sections.push(`- Organization name: "${ctx.organizationName}"`);
+    if (ctx.userProfileName) sections.push(`- User (profile name): "${ctx.userProfileName}"`);
     if (ctx.pageId) sections.push(`- Page ID: \`${ctx.pageId}\``);
     if (ctx.workspaceId) sections.push(`- Workspace ID: \`${ctx.workspaceId}\``);
     if (ctx.orgId) sections.push(`- Organization ID: \`${ctx.orgId}\``);
   }
+  // #region agent log
+  const afterPage = sections.length;
+  ctxLog('context combo: after Current Page', { linesAdded: afterPage, content: sections.slice(0, afterPage).join('\n') });
+  sectionStart = afterPage;
+  // #endregion
 
   // Selected blocks (rich: blockMountId, blockId, type, title — same format as Visible Blocks)
   const selectedBlocks: VisibleBlockMeta[] = ctx.selectedBlocks ?? [];
@@ -171,6 +205,10 @@ function formatContextBlock(ctx: DynamicContext): string {
       sections.push(parts.join('\n  '));
     });
   }
+  // #region agent log
+  ctxLog('context combo: after Selected Blocks', { linesAdded: sections.length - sectionStart, content: sections.slice(sectionStart).join('\n') });
+  sectionStart = sections.length;
+  // #endregion
 
   // Visible blocks (with total/in-context counts when provided for zoom-out cap)
   if (ctx.visibleBlocks && ctx.visibleBlocks.length > 0) {
@@ -204,6 +242,10 @@ function formatContextBlock(ctx: DynamicContext): string {
       sections.push(parts.join('\n  '));
     });
   }
+  // #region agent log
+  ctxLog('context combo: after Visible Blocks', { linesAdded: sections.length - sectionStart, content: sections.slice(sectionStart).join('\n') });
+  sectionStart = sections.length;
+  // #endregion
 
   // Recent events (time-ordered activity log)
   if (ctx.recentEvents && ctx.recentEvents.length > 0) {
@@ -214,6 +256,11 @@ function formatContextBlock(ctx: DynamicContext): string {
       sections.push(line);
     });
   }
+  // #region agent log
+  ctxLog('context combo: after Recent Events', { linesAdded: sections.length - sectionStart, content: sections.slice(sectionStart).join('\n') });
+  const fullOutput = sections.length > 0 ? sections.join('\n') : '';
+  ctxLog('context combo: final output', { totalLines: sections.length, fullLength: fullOutput.length, fullOutput });
+  // #endregion
 
-  return sections.length > 0 ? sections.join('\n') : '';
+  return fullOutput;
 }

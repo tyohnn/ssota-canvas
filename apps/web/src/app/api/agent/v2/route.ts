@@ -46,6 +46,11 @@ import {
   EventContextService,
   EventSearchService,
 } from '@/domains/event-management';
+import { getCurrentPageNames } from '@/domains/ai-management/backend/services/context';
+import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
+import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
+import { DrizzleOrganizationRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository';
+import { DrizzleUserRepository } from '@/domains/user-management/backend/repositories/implementations/drizzle-user.repository';
 import { createGetPageEventsTool, createGrepEventsTool } from './event-tools';
 import { AGENT_MODEL } from './constants';
 
@@ -249,6 +254,32 @@ export async function POST(req: Request) {
       logStep(4, 'recentEvents skipped (no pageId)', { pageId: null });
     }
 
+    // Current Page display names (server-fetched for context enrichment)
+    const names = await getCurrentPageNames(
+      {
+        pageRepository: new DrizzlePageRepository(),
+        workspaceRepository: new DrizzleWorkspaceRepository(),
+        organizationRepository: new DrizzleOrganizationRepository(),
+        userRepository: new DrizzleUserRepository(),
+      },
+      {
+        pageId: dynamicContext.pageId,
+        workspaceId: dynamicContext.workspaceId,
+        orgId: dynamicContext.orgId,
+        userId,
+      }
+    );
+    (clientContext as Record<string, unknown>).pageTitle = names.pageTitle;
+    (clientContext as Record<string, unknown>).workspaceTitle = names.workspaceTitle;
+    (clientContext as Record<string, unknown>).organizationName = names.organizationName;
+    (clientContext as Record<string, unknown>).userProfileName = names.userProfileName;
+    logStep(4.5, 'Current Page names attached to clientContext', {
+      pageTitle: names.pageTitle ?? null,
+      workspaceTitle: names.workspaceTitle ?? null,
+      organizationName: names.organizationName ?? null,
+      userProfileName: names.userProfileName ?? null,
+    });
+
     const dynamicContextString = buildDynamicContext(clientContext);
     logStep(5, 'buildDynamicContext', {
       dynamicContextStringLength: dynamicContextString.length,
@@ -283,6 +314,14 @@ export async function POST(req: Request) {
     }
 
     // Inject dynamic context into the last user message
+    // #region agent log
+    const contextBlockPrepend = dynamicContextString
+      ? `[Context]\n${dynamicContextString}\n\n---\n\n`
+      : '';
+    if (contextBlockPrepend) {
+      fetch(DEBUG_INGEST_PIPELINE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'api/agent/v2/route.ts:injectDynamicContext', message: 'context block that will be prepended to last user message', data: { contextBlockLength: contextBlockPrepend.length, contextBlockFull: contextBlockPrepend, userMessageBefore: lastUserMessage.slice(0, 200), userMessageLength: lastUserMessage.length }, timestamp: Date.now() }) }).catch(() => {});
+    }
+    // #endregion
     const enrichedMessages = injectDynamicContext(
       modelMessages,
       dynamicContextString
@@ -340,7 +379,7 @@ export async function POST(req: Request) {
 
     // Main agent uses Responses API for stateful conversation, caching, and full reasoning support.
     const result = streamText({
-      model: xai.responses(AGENT_MODEL),
+      model: xai(AGENT_MODEL),
       system: SOPHI_V2_SYSTEM_PROMPT,
       messages: enrichedMessages,
       tools: {
