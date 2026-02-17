@@ -19,6 +19,11 @@ export function useCanvasLayout() {
   return ctx;
 }
 
+/** Provider 밖에서는 null 반환 (에디터 패널 viewport 조정 등에서 우측 패널 없음으로 처리) */
+export function useCanvasLayoutOptional(): CanvasLayoutContextValue | null {
+  return useContext(CanvasLayoutContext);
+}
+
 interface CanvasLayoutProviderProps {
   children: React.ReactNode;
   defaultRightSidebarOpen?: boolean;

@@ -58,8 +58,8 @@ export function CanvasBase({
               <CanvasdownProvider pageId={pageId}>
                 <AIActionProvider>
                   <Box className="h-full w-full flex flex-row bg-background">
-                    {/* Main canvas area */}
-                    <Box className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
+                    {/* Main canvas area (relative: 에디터 패널이 캔버스 기준 absolute 배치) */}
+                    <Box className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
                       <CanvasReactFlowWrapper
                         initialNodes={initialNodes}
                         initialEdges={initialEdges}
