@@ -21,6 +21,7 @@ import type { BlockNodeData } from '@/domains/block-management/shared/types/bloc
 import { markdownToTiptap } from '@/domains/block-management/shared/utils/tiptap-markdown.utils';
 import { useCanvasBlockLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
 import { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-lifecycle';
+import { useUpdateBlockSize } from '@/domains/canvas-management/frontend/hooks/block/use-update-block-size';
 import { calculateStartPosition } from './utils/position-calculator';
 import { renderFullCanvasdown } from './renderers/full-renderer';
 import { isPatchDSL, checkPatchDslDoubleQuotes } from './renderers/patch-renderer';
@@ -87,9 +88,13 @@ export function useCanvasdownExecutor(
 ): UseCanvasdownExecutorReturn {
   const { pageId, core, onComplete } = props;
 
-  const { getNodes, getNode, setNodes } = useReactFlow();
+  const { getNodes, getNode, setNodes, addNodes, deleteElements } = useReactFlow();
   const blockLifecycle = useCanvasBlockLifecycle({ pageId });
   const edgeLifecycle = useCanvasEdgeLifecycle({ pageId });
+  const { updateBlockSize } = useUpdateBlockSize({
+    pageId,
+    reactFlow: { getNodes, setNodes, addNodes, deleteElements },
+  });
 
   const updateNode = useCallback(
     (nodeId: string, options: { data: Partial<BlockNodeData> }) => {
@@ -337,6 +342,9 @@ export function useCanvasdownExecutor(
           blockLifecycle,
           edgeLifecycle,
           nodeIdMap: nodeIdMapRef.current,
+          onGroupExtentComputed: async (blockMountId, size) => {
+            await updateBlockSize({ blockMountId, newSize: size });
+          },
         });
 
         if (!result.success && result.errors.length > 0) {
@@ -361,7 +369,7 @@ export function useCanvasdownExecutor(
         onComplete?.();
       }
     },
-    [core, getNodes, blockLifecycle, edgeLifecycle, applyPatch, onComplete]
+    [core, getNodes, blockLifecycle, edgeLifecycle, applyPatch, onComplete, updateBlockSize]
   );
 
   return {

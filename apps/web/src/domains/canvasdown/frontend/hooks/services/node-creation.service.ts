@@ -153,6 +153,10 @@ export async function createNodeFromCanvasdown(
   if (content === undefined && blockType === BlockType.MARKDOWN && title) {
     content = markdownToTiptap(title);
   }
+  // blocks.content는 블록 종류에 상관없이 항상 TipTap JSON. 파서가 문자열로 주면 변환
+  if (typeof content === 'string') {
+    content = markdownToTiptap(content);
+  }
 
   // GROUP(zone): GroupBlock이 properties.title을 우선 표시하므로 initialProperties에 title 포함
   const initialProperties =

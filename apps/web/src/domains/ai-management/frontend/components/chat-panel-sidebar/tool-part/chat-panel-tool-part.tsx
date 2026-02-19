@@ -2,6 +2,7 @@
 
 import type { ToolCallPart } from '../types';
 import { getToolPartLabel } from '../types';
+import { isRenderCanvasdownToolPart, RenderCanvasdownItem } from './renderCanvasdown';
 import { isXaiSearchToolPart, XaiSearchAccordion } from './xaiSearch';
 
 export interface ChatPanelToolPartProps {
@@ -13,13 +14,14 @@ export interface ChatPanelToolPartProps {
 }
 
 /**
- * Renders tool parts by type: xaiSearch → XaiSearchAccordion; others → minimal label fallback.
+ * Renders tool parts by type: xaiSearch → XaiSearchAccordion; renderCanvasdown → RenderCanvasdownItem; others → minimal label fallback.
  */
 export function ChatPanelToolPart({ part: singlePart, parts: groupedParts, partKey }: ChatPanelToolPartProps) {
   const part = singlePart ?? (groupedParts && groupedParts[0]);
   const parts = groupedParts?.length ? groupedParts : part ? [part] : [];
 
   const isSearch = parts.length > 0 && parts.every(isXaiSearchToolPart);
+  const isRenderCanvasdown = part && isRenderCanvasdownToolPart(part);
 
   if (isSearch) {
     return (
@@ -33,6 +35,10 @@ export function ChatPanelToolPart({ part: singlePart, parts: groupedParts, partK
         ))}
       </>
     );
+  }
+
+  if (isRenderCanvasdown) {
+    return <RenderCanvasdownItem part={part} partKey={partKey} />;
   }
 
   if (part) {
