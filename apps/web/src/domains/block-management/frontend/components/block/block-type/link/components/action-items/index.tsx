@@ -9,9 +9,5 @@ export function LinkActionItems({
   blockId: string;
   blockData: BlockNodeData;
 }) {
-  return (
-    <>
-      <SummarizeLinkAction blockId={blockId} blockData={blockData} />
-    </>
-  );
+  return <SummarizeLinkAction blockId={blockId} blockData={blockData} />;
 }

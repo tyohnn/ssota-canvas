@@ -1,7 +1,11 @@
 /**
  * Link Block Actions (Non-Hook Version)
- * AI Agent가 호출하는 순수 함수 버전
+ *
+ * - summarize: Source 도메인 (SummarizeLinkAction에서 processSourceSummaryAction 직접 호출)
+ * - screenshot, extractImages, extractDesign: executeLinkBlockOnDemandAction 서버 액션
  */
+import { executeLinkBlockOnDemandAction } from '@/domains/block-management/actions/link-on-demand.actions';
+import type { LinkBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
 export interface ActionResult {
@@ -11,38 +15,59 @@ export interface ActionResult {
   data?: any;
 }
 
-/**
- * Link 블록의 모든 액션을 처리하는 통합 실행 함수
- *
- * @param callbacks - Hook 콜백들 (선택적, 각 액션에서 필요한 처리를 직접 수행)
- */
+const ON_DEMAND_ACTIONS = ['screenshot', 'extractImages', 'extractDesign'] as const;
+
 export async function executeAction(
   blockData: BlockNodeData,
   action: string,
   params: Record<string, any>,
-  callbacks?: any // ActionCallbacks 타입은 필요시 import
+  _callbacks?: any
 ): Promise<ActionResult> {
-  switch (action) {
-    case 'summarize': {
-      // TODO: 링크된 페이지 내용 요약
-      return {
-        success: false,
-        error: 'summarize action not yet implemented',
-      };
-    }
-
-    case 'fetchMetadata': {
-      // TODO: 링크 메타데이터 가져오기
-      return {
-        success: false,
-        error: 'fetchMetadata action not yet implemented',
-      };
-    }
-
-    default:
-      return {
-        success: false,
-        error: `Unknown action for link block: ${action}`,
-      };
+  const props = blockData.properties as LinkBlockProperties;
+  const url = props?.url;
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    return {
+      success: false,
+      error: 'URL is required. Enter a URL in the link block first.',
+    };
   }
+
+  const workspaceId = params?.workspaceId as string | undefined;
+  const blockSlug = blockData.blockId ?? '';
+
+  if (action === 'summarize') {
+    return {
+      success: false,
+      error:
+        'Summarize is handled by Source domain. Use the Summary tab or processSourceSummaryAction.',
+    };
+  }
+
+  if (ON_DEMAND_ACTIONS.includes(action as (typeof ON_DEMAND_ACTIONS)[number])) {
+    if (!workspaceId || !blockSlug) {
+      return {
+        success: false,
+        error: 'workspaceId and blockId are required. Call from editor with canvas context.',
+      };
+    }
+    const result = await executeLinkBlockOnDemandAction({
+      workspaceId,
+      blockId: blockSlug,
+      action: action as (typeof ON_DEMAND_ACTIONS)[number],
+      url,
+      params: { ...params, workspaceId: undefined },
+    });
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+    return {
+      success: true,
+      data: result.data,
+    };
+  }
+
+  return {
+    success: false,
+    error: `Unknown action for link block: ${action}`,
+  };
 }

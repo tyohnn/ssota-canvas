@@ -8,49 +8,52 @@ import {
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
 import { Button } from '@workspace/ui/components/ui/button';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Camera, Loader2 } from 'lucide-react';
 import { toast } from '@workspace/ui/components/ui/sonner';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { LinkBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { useLinkSummarySectionBusiness } from '@/domains/block-management/frontend/components/block/block-type/link/components/section-tabs/summary-section/core/use-link-summary-section.business';
+import { useBlockActionExecutor } from '@/domains/block-management/frontend/hooks/use-block-action-executor';
 
-interface SummarizeLinkActionProps {
+interface ScreenshotLinkActionProps {
   blockId: string;
   blockData: BlockNodeData;
 }
 
-export function SummarizeLinkAction({
+export function ScreenshotLinkAction({
   blockId,
   blockData,
-}: SummarizeLinkActionProps) {
+}: ScreenshotLinkActionProps) {
   const properties = blockData.properties as LinkBlockProperties;
   const url = properties?.url;
   const blockMountId = blockData.blockMountId ?? blockId;
-  const { handleExtractSummary, isExtracting, hasSourceId, readonly } =
-    useLinkSummarySectionBusiness(blockMountId, blockData);
+  const { workspaceId } = useCanvasMetadata();
+  const { executeAction } = useBlockActionExecutor();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSummarize = async () => {
+  const handleScreenshot = async () => {
     if (!url) return;
-    if (!hasSourceId) {
-      toast.error('URL 메타데이터를 먼저 불러와 주세요.');
+    if (!workspaceId) {
+      toast.error('캔버스 컨텍스트가 필요합니다.');
       return;
     }
-    if (readonly) return;
     setIsLoading(true);
     try {
-      await handleExtractSummary('ko');
-      toast.success('요약이 완료되었습니다.');
+      await executeAction({
+        blockId: blockMountId,
+        action: 'screenshot',
+        blockType: 'link',
+        params: { fullPage: false, workspaceId },
+      });
+      toast.success('스크린샷이 완료되었습니다.');
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : '요약 실행에 실패했습니다.'
+        err instanceof Error ? err.message : '스크린샷 실행에 실패했습니다.'
       );
     } finally {
       setIsLoading(false);
     }
   };
-
-  const isLoading = isLoading || isExtracting;
 
   return (
     <Tooltip>
@@ -59,18 +62,18 @@ export function SummarizeLinkAction({
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={handleSummarize}
+          onClick={handleScreenshot}
           disabled={!url || isLoading}
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Sparkles className="h-4 w-4" />
+            <Camera className="h-4 w-4" />
           )}
         </Button>
       </TooltipTrigger>
       <TooltipContent side="left" hasArrow={false} sideOffset={10}>
-        <p>AI 요약</p>
+        <p>스크린샷</p>
       </TooltipContent>
     </Tooltip>
   );

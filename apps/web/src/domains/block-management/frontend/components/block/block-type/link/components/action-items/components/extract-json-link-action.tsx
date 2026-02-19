@@ -8,49 +8,46 @@ import {
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
 import { Button } from '@workspace/ui/components/ui/button';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Braces, Loader2 } from 'lucide-react';
 import { toast } from '@workspace/ui/components/ui/sonner';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { LinkBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-import { useLinkSummarySectionBusiness } from '@/domains/block-management/frontend/components/block/block-type/link/components/section-tabs/summary-section/core/use-link-summary-section.business';
+import { useBlockActionExecutor } from '@/domains/block-management/frontend/hooks/use-block-action-executor';
 
-interface SummarizeLinkActionProps {
+interface ExtractJsonLinkActionProps {
   blockId: string;
   blockData: BlockNodeData;
 }
 
-export function SummarizeLinkAction({
+export function ExtractJsonLinkAction({
   blockId,
   blockData,
-}: SummarizeLinkActionProps) {
+}: ExtractJsonLinkActionProps) {
   const properties = blockData.properties as LinkBlockProperties;
   const url = properties?.url;
   const blockMountId = blockData.blockMountId ?? blockId;
-  const { handleExtractSummary, isExtracting, hasSourceId, readonly } =
-    useLinkSummarySectionBusiness(blockMountId, blockData);
+  const { executeAction } = useBlockActionExecutor();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSummarize = async () => {
+  const handleExtract = async () => {
     if (!url) return;
-    if (!hasSourceId) {
-      toast.error('URL 메타데이터를 먼저 불러와 주세요.');
-      return;
-    }
-    if (readonly) return;
     setIsLoading(true);
     try {
-      await handleExtractSummary('ko');
-      toast.success('요약이 완료되었습니다.');
+      await executeAction({
+        blockId: blockMountId,
+        action: 'extractJSON',
+        blockType: 'link',
+        params: {},
+      });
+      toast.success('JSON 추출이 완료되었습니다.');
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : '요약 실행에 실패했습니다.'
+        err instanceof Error ? err.message : 'JSON 추출에 실패했습니다.'
       );
     } finally {
       setIsLoading(false);
     }
   };
-
-  const isLoading = isLoading || isExtracting;
 
   return (
     <Tooltip>
@@ -59,18 +56,18 @@ export function SummarizeLinkAction({
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={handleSummarize}
+          onClick={handleExtract}
           disabled={!url || isLoading}
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Sparkles className="h-4 w-4" />
+            <Braces className="h-4 w-4" />
           )}
         </Button>
       </TooltipTrigger>
       <TooltipContent side="left" hasArrow={false} sideOffset={10}>
-        <p>AI 요약</p>
+        <p>JSON 추출</p>
       </TooltipContent>
     </Tooltip>
   );
