@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Box } from '@workspace/ui/components/ui/box';
 import {
@@ -53,6 +53,19 @@ export function BlockContentTabsSectionView({
   // ContentArea의 스크롤 컨테이너 찾기
   const contentAreaRef = useRef<HTMLElement | null>(null);
   const previousTabIdRef = useRef<string | null>(null);
+
+  // 탭 리스트 가로 스크롤 시 좌/우 엣지 페이드 표시
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
+  const [showLeftFade, setShowLeftFade] = useState(false);
+  const [showRightFade, setShowRightFade] = useState(false);
+  const updateTabsScrollFade = useCallback(() => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    const threshold = 2;
+    setShowLeftFade(scrollLeft > threshold);
+    setShowRightFade(scrollLeft + clientWidth < scrollWidth - threshold);
+  }, []);
 
   useEffect(() => {
     loadTabsConfig(blockType).then(config => {
@@ -186,6 +199,16 @@ export function BlockContentTabsSectionView({
     }
   }, [readonly, selectedTabId, visibleTabs, effectiveDefaultTabId]);
 
+  // 탭 스크롤 영역 마운트/리사이즈 시 페이드 갱신
+  useEffect(() => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    updateTabsScrollFade();
+    const ro = new ResizeObserver(updateTabsScrollFade);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [updateTabsScrollFade, visibleTabs.length]);
+
   if (loading) {
     return <TabsLoadingSkeleton />;
   }
@@ -196,15 +219,39 @@ export function BlockContentTabsSectionView({
         value={effectiveSelectedTabId || defaultTabId || undefined}
         onValueChange={setSelectedTabId}
       >
-        {/* 탭 헤더 - 스크롤 시 상단 고정 */}
-        <Box className="sticky top-0 z-10 bg-background px-6 py-2">
-          <TabsList className="justify-start">
-            {visibleTabs.map(tab => (
-              <TabsTrigger key={tab.id} value={tab.id}>
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        {/* 탭 헤더 - 스크롤 시 상단 고정, 탭이 많으면 가로 스크롤 (스크롤바 숨김, 엣지 페이드) */}
+        <Box className="sticky top-0 z-10 min-w-0 bg-background px-3 py-2">
+          <Box className="relative w-full">
+            <Box
+              ref={tabsScrollRef}
+              onScroll={updateTabsScrollFade}
+              className="w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-md"
+            >
+              <TabsList className="flex-nowrap w-max min-w-full justify-start">
+                {visibleTabs.map(tab => (
+                  <TabsTrigger
+                    key={tab.id}
+                    value={tab.id}
+                    className="shrink-0 flex-none"
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Box>
+            {showLeftFade && (
+              <Box
+                aria-hidden
+                className="pointer-events-none absolute left-0 top-0 bottom-0 z-1 w-6 bg-linear-to-r from-background to-transparent"
+              />
+            )}
+            {showRightFade && (
+              <Box
+                aria-hidden
+                className="pointer-events-none absolute right-0 top-0 bottom-0 z-1 w-6 bg-linear-to-l from-background to-transparent"
+              />
+            )}
+          </Box>
         </Box>
 
         {/* 탭 콘텐츠 */}
