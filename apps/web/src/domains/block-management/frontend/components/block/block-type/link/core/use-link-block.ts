@@ -4,10 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
-import {
-  fetchLinkMetadataAction,
-  fetchLinkMetadataFromFirecrawlAction,
-} from '@/domains/link-app-space/actions/metadata/fetch-link-metadata.action';
+import { fetchLinkMetadataAction } from '@/domains/link-app-space/actions/metadata/fetch-link-metadata.action';
 import type { OpenGraphMetadata } from '@/domains/link-app-space/shared/types/open-graph-metadata';
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { LinkBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
@@ -29,6 +26,17 @@ function buildFallbackMetadata(
     type: 'website',
   };
 }
+
+function getDomain(urlString: string): string {
+  try {
+    const urlObj = new URL(urlString);
+    return urlObj.hostname.replace('www.', '');
+  } catch {
+    return '';
+  }
+}
+
+const VALID_BLOCK_ID_REGEX = /^[0-9a-f]{8,10}$/i;
 
 /**
  * Link Block Main Hook
@@ -52,7 +60,8 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
     pageType,
   } = properties;
 
-  const canPersistProperties = !nodeId.startsWith('optimistic-');
+  const hasValidBlockId =
+    nodeData.blockId && VALID_BLOCK_ID_REGEX.test(nodeData.blockId);
 
   const [metadata, setMetadata] = useState<OpenGraphMetadata | null>(() => {
     if (ogTitle || ogDescription || ogImage) {
@@ -73,30 +82,15 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [draftUrl, setDraftUrl] = useState('');
-  const [faviconIndex, setFaviconIndex] = useState(0);
-  const [isFaviconExhausted, setIsFaviconExhausted] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const prevUrlRef = useRef<string>(url);
-  const lastPersistedFaviconRef = useRef<string | null>(null);
 
   const { workspaceId, orgId } = useCanvasMetadata();
   const { getNode, updateNode } = useReactFlow();
-  const { updateProperty, updateProperties } = useUpdateBlockProperty({
-    reactFlow: {
-      getNode,
-      updateNode: (id: string, options: { data: any }) => updateNode(id, options),
-    },
+  const { updateProperty } = useUpdateBlockProperty({
+    reactFlow: { getNode, updateNode: (id, opt) => updateNode(id, opt) },
   });
-
-  const getDomain = useCallback((urlString: string): string => {
-    try {
-      const urlObj = new URL(urlString);
-      return urlObj.hostname.replace('www.', '');
-    } catch {
-      return '';
-    }
-  }, []);
 
   const normalizedDomain = useMemo(() => {
     const baseDomain = (
@@ -107,146 +101,15 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
       .replace(/^https?:\/\//i, '')
       .replace(/\/.*$/, '')
       .toLowerCase();
-  }, [metadata?.domain, url, getDomain]);
+  }, [metadata?.domain, url]);
 
-  const sanitizeFaviconUrl = useCallback(
-    (favicon?: string | null): string | null => {
-      if (!favicon || !favicon.trim()) {
-        if (!normalizedDomain) return null;
-        return `https://icons.duckduckgo.com/ip3/${normalizedDomain}.ico`;
-      }
-      const normalizedFavicon = favicon.trim();
-      const lowercaseFavicon = normalizedFavicon.toLowerCase();
-      const needsReplacement =
-        lowercaseFavicon.includes('google.com/s2/favicons') ||
-        lowercaseFavicon.includes('gstatic.com/favicon');
-      if (needsReplacement) {
-        if (!normalizedDomain) return null;
-        return `https://icons.duckduckgo.com/ip3/${normalizedDomain}.ico`;
-      }
-      return normalizedFavicon;
-    },
-    [normalizedDomain]
-  );
-
-  const sanitizedMetadataFavicon = useMemo(
-    () => sanitizeFaviconUrl(metadata?.faviconUrl),
-    [metadata?.faviconUrl, sanitizeFaviconUrl]
-  );
-
-  useEffect(() => {
-    if (!metadata) return;
-    const targetFavicon =
-      sanitizedMetadataFavicon ||
-      (normalizedDomain
-        ? `https://icons.duckduckgo.com/ip3/${normalizedDomain}.ico`
-        : '');
-    if (metadata.faviconUrl !== targetFavicon) {
-      setMetadata(prev =>
-        prev ? { ...prev, faviconUrl: targetFavicon } : prev
-      );
-      if (targetFavicon && lastPersistedFaviconRef.current !== targetFavicon) {
-        lastPersistedFaviconRef.current = targetFavicon;
-        if (canPersistProperties) {
-          updateProperties(
-            nodeData.blockId,
-            { faviconUrl: targetFavicon },
-            nodeData
-          ).catch(err => console.error('Failed to persist favicon URL:', err));
-        }
-      }
-    }
-  }, [
-    canPersistProperties,
-    metadata,
-    sanitizedMetadataFavicon,
-    normalizedDomain,
-    updateProperties,
-    nodeData,
-  ]);
-
-  const faviconCandidates = useMemo(() => {
-    const candidates: string[] = [];
-    if (sanitizedMetadataFavicon) candidates.push(sanitizedMetadataFavicon);
-    if (normalizedDomain) {
-      candidates.push(`https://${normalizedDomain}/favicon.ico`);
-      candidates.push(`https://${normalizedDomain}/apple-touch-icon.png`);
-      candidates.push(
-        `https://icons.duckduckgo.com/ip3/${normalizedDomain}.ico`
-      );
-    }
-    const absoluteCandidates = candidates
-      .filter(Boolean)
-      .map(c => {
-        if (!c) return '';
-        if (/^https?:\/\//i.test(c)) return c;
-        if (!normalizedDomain) return c;
-        return `https://${normalizedDomain}/${c.replace(/^\/+/, '')}`;
-      })
-      .filter((c): c is string => Boolean(c));
-    return Array.from(new Set(absoluteCandidates));
-  }, [sanitizedMetadataFavicon, normalizedDomain]);
-
-  const currentFaviconUrl: string | null =
-    !isFaviconExhausted && faviconCandidates.length > 0
-      ? faviconCandidates[Math.min(faviconIndex, faviconCandidates.length - 1)] ??
-        null
-      : null;
-
-  useEffect(() => {
-    setFaviconIndex(0);
-    setIsFaviconExhausted(false);
-  }, [faviconCandidates]);
-
-  const handleFaviconError = useCallback(() => {
-    setFaviconIndex(prevIndex => {
-      const next = prevIndex + 1;
-      if (next < faviconCandidates.length) return next;
-      setIsFaviconExhausted(true);
-      return prevIndex;
-    });
-  }, [faviconCandidates.length]);
-
-  const persistMetadata = useCallback(
-    async (data: OpenGraphMetadata) => {
-      if (!canPersistProperties) return;
-      await updateProperties(
-        nodeData.blockId,
-        {
-          ogTitle: data.title,
-          ogDescription: data.description,
-          ogImage: data.imageUrl,
-          siteName: data.siteName,
-          domain: data.domain,
-          faviconUrl: data.faviconUrl,
-          author: data.author,
-          publishedAt: data.publishedAt,
-          pageType: data.type,
-        },
-        nodeData
-      );
-      const titlePart = (data.title || '').trim();
-      const sitePart = (data.siteName || '').trim();
-      const titleToSet =
-        sitePart && titlePart
-          ? `${sitePart} | ${titlePart}`
-          : titlePart || sitePart;
-      if (titleToSet && updateBlockTitle) {
-        await updateBlockTitle({
-          nodeId,
-          title: titleToSet,
-          blockData: nodeData,
-        });
-      }
-    },
-    [
-      canPersistProperties,
-      updateProperties,
-      nodeData,
-      nodeId,
-      updateBlockTitle,
-    ]
-  );
+  /** metadata.faviconUrl 사용, 없으면 DuckDuckGo fallback */
+  const currentFaviconUrl = useMemo(() => {
+    if (metadata?.faviconUrl?.trim()) return metadata.faviconUrl.trim();
+    if (normalizedDomain)
+      return `https://icons.duckduckgo.com/ip3/${normalizedDomain}.ico`;
+    return null;
+  }, [metadata?.faviconUrl, normalizedDomain]);
 
   const fetchMetadata = useCallback(
     async (urlString: string) => {
@@ -254,87 +117,65 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
         setMetadata(null);
         return;
       }
+      if (!hasValidBlockId || !workspaceId || !orgId) {
+        return;
+      }
       setIsLoading(true);
       setHasError(false);
-      let metadata: OpenGraphMetadata;
-      let hasError = false;
+      let resultMetadata: OpenGraphMetadata;
+      let hasErr = false;
 
       try {
-        // Use fetchLinkMetadataAction for persisted blocks (Source domain integration)
-        if (
-          canPersistProperties &&
-          workspaceId &&
-          orgId &&
-          nodeData.blockId &&
-          /^[0-9a-f]{8,10}$/i.test(nodeData.blockId)
-        ) {
-          const actionResult = await fetchLinkMetadataAction({
-            workspaceId,
-            blockId: nodeData.blockId,
-            url: urlString,
-            language: 'ko',
-          });
-          if (actionResult.success && actionResult.data) {
-            metadata = actionResult.data.metadata;
-            if (actionResult.data.sourceId) {
-              updateNode(nodeId, {
-                data: { ...nodeData, sourceId: actionResult.data.sourceId },
-              });
-              if (updateBlockTitle) {
-                const titlePart = (metadata.title || '').trim();
-                const sitePart = (metadata.siteName || '').trim();
-                const titleToSet =
-                  sitePart && titlePart
-                    ? `${sitePart} | ${titlePart}`
-                    : titlePart || sitePart;
-                if (titleToSet) {
-                  await updateBlockTitle({
-                    nodeId,
-                    title: titleToSet,
-                    blockData: { ...nodeData, sourceId: actionResult.data.sourceId },
-                  });
-                }
+        const actionResult = await fetchLinkMetadataAction({
+          workspaceId,
+          blockId: nodeData.blockId!,
+          url: urlString,
+        });
+        if (actionResult.success && actionResult.data) {
+          resultMetadata = actionResult.data.metadata;
+          if (actionResult.data.sourceId) {
+            updateNode(nodeId, {
+              data: { ...nodeData, sourceId: actionResult.data.sourceId },
+            });
+            if (updateBlockTitle) {
+              const titlePart = (resultMetadata.title || '').trim();
+              const sitePart = (resultMetadata.siteName || '').trim();
+              const titleToSet =
+                sitePart && titlePart
+                  ? `${sitePart} | ${titlePart}`
+                  : titlePart || sitePart;
+              if (titleToSet) {
+                await updateBlockTitle({
+                  nodeId,
+                  title: titleToSet,
+                  blockData: {
+                    ...nodeData,
+                    sourceId: actionResult.data.sourceId,
+                  },
+                });
               }
             }
-          } else {
-            hasError = true;
-            metadata = buildFallbackMetadata(getDomain(urlString), urlString);
           }
         } else {
-          // Fallback: Firecrawl metadata only (optimistic blocks or missing context)
-          const result = await fetchLinkMetadataFromFirecrawlAction(urlString);
-          if (result.success) {
-            metadata = result.data;
-          } else {
-            hasError = true;
-            metadata = buildFallbackMetadata(getDomain(urlString), urlString);
-          }
-          if (canPersistProperties) {
-            try {
-              await persistMetadata(metadata);
-            } catch (e) {
-              console.error('Failed to save metadata:', e);
-            }
-          }
+          hasErr = true;
+          resultMetadata = buildFallbackMetadata(getDomain(urlString), urlString);
         }
       } catch (error) {
         console.error('Failed to fetch metadata:', error);
-        hasError = true;
-        metadata = buildFallbackMetadata(getDomain(urlString), urlString);
+        hasErr = true;
+        resultMetadata = buildFallbackMetadata(getDomain(urlString), urlString);
       }
 
-      setHasError(hasError);
-      setMetadata(metadata);
+      setHasError(hasErr);
+      setMetadata(resultMetadata);
       setIsLoading(false);
     },
     [
-      canPersistProperties,
+      hasValidBlockId,
       workspaceId,
       orgId,
       nodeData,
       nodeId,
-      getDomain,
-      persistMetadata,
       updateBlockTitle,
       updateNode,
     ]
@@ -370,15 +211,17 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
     if (url) {
       const hasUrlChanged = prevUrlRef.current !== url;
       const hasNoMetadata = !ogTitle && !ogDescription && !ogImage;
-      if (hasUrlChanged || hasNoMetadata) {
+      if (hasValidBlockId && (hasUrlChanged || hasNoMetadata)) {
         fetchMetadata(url);
+        prevUrlRef.current = url;
+      } else {
         prevUrlRef.current = url;
       }
     } else {
       setMetadata(null);
       prevUrlRef.current = '';
     }
-  }, [url, fetchMetadata, ogTitle, ogDescription, ogImage]);
+  }, [url, hasValidBlockId, fetchMetadata, ogTitle, ogDescription, ogImage]);
 
   useEffect(() => {
     if (selected && !url && inputRef.current) {
@@ -396,6 +239,8 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
     [selected, url]
   );
 
+  const canPersistProperties = !nodeId.startsWith('optimistic-');
+
   const handleUrlSubmit = useCallback(
     async (e?: { preventDefault(): void }) => {
       if (e) {
@@ -403,7 +248,7 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
         (e as unknown as { stopPropagation?(): void }).stopPropagation?.();
       }
       if (!draftUrl.trim()) return;
-      if (!canPersistProperties) {
+      if (!canPersistProperties || !hasValidBlockId) {
         setDraftUrl('');
         return;
       }
@@ -419,7 +264,7 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
         console.error('Failed to save URL:', error);
       }
     },
-    [canPersistProperties, draftUrl, updateProperty, nodeData]
+    [canPersistProperties, hasValidBlockId, draftUrl, updateProperty, nodeData]
   );
 
   const handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -445,8 +290,6 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
     isLoading,
     hasError,
     draftUrl,
-    faviconIndex,
-    isFaviconExhausted,
     inputRef,
     normalizedDomain,
     currentFaviconUrl,
@@ -454,6 +297,5 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
     handleUrlChange,
     handleUrlKeyDown,
     handleDoubleClick,
-    handleFaviconError,
   };
 }

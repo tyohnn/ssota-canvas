@@ -26,12 +26,10 @@ export function LinkView({
   inputRef,
   normalizedDomain,
   currentFaviconUrl,
-  isFaviconExhausted,
   handleUrlChange,
   handleUrlSubmit,
   handleUrlKeyDown,
   handleDoubleClick,
-  handleFaviconError,
 }: LinkViewProps) {
   const shouldShowEmptyState = !url && !isLoading;
   const shouldShowLoadingState = url && isLoading;
@@ -64,8 +62,6 @@ export function LinkView({
             selected={selected}
             normalizedDomain={normalizedDomain}
             currentFaviconUrl={currentFaviconUrl}
-            isFaviconExhausted={isFaviconExhausted}
-            onFaviconError={handleFaviconError}
             onDoubleClick={handleDoubleClick}
           />
         )}

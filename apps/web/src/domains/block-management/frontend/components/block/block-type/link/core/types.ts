@@ -30,8 +30,6 @@ export interface UseLinkBlockReturn {
   isLoading: boolean;
   hasError: boolean;
   draftUrl: string;
-  faviconIndex: number;
-  isFaviconExhausted: boolean;
 
   // Refs
   inputRef: React.RefObject<HTMLInputElement | null>;
@@ -45,7 +43,6 @@ export interface UseLinkBlockReturn {
   handleUrlChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleUrlKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   handleDoubleClick: (e: React.MouseEvent) => void;
-  handleFaviconError: () => void;
 }
 
 /**

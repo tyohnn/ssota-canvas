@@ -13,8 +13,6 @@ export interface LinkPreviewCardProps {
   selected: boolean;
   normalizedDomain: string;
   currentFaviconUrl: string | null;
-  isFaviconExhausted: boolean;
-  onFaviconError: () => void;
   onDoubleClick: (e: React.MouseEvent) => void;
 }
 
@@ -29,8 +27,6 @@ export function LinkPreviewCard({
   selected,
   normalizedDomain,
   currentFaviconUrl,
-  isFaviconExhausted,
-  onFaviconError,
   onDoubleClick,
 }: LinkPreviewCardProps) {
   const displayDomain = metadata.domain || normalizedDomain;
@@ -91,12 +87,11 @@ export function LinkPreviewCard({
 
       <Box className="p-3 pt-0 mt-auto">
         <Box className="flex items-center gap-1.5">
-          {currentFaviconUrl && !isFaviconExhausted && (
+          {currentFaviconUrl && (
             <img
               src={currentFaviconUrl}
               alt=""
               className="w-4 h-4 shrink-0"
-              onError={onFaviconError}
             />
           )}
           <span className="text-xs text-muted-foreground truncate">
