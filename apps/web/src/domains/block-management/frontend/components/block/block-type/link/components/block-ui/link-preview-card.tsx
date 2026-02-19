@@ -5,7 +5,7 @@ import React from 'react';
 import { ExternalLink } from 'lucide-react';
 
 import { Box } from '@/components/ui/box';
-import type { OpenGraphMetadata } from '@/domains/block-management/actions/opengraph.actions';
+import type { OpenGraphMetadata } from '@/domains/link-app-space/shared/types/open-graph-metadata';
 import { cn } from '@/lib/utils';
 
 export interface LinkPreviewCardProps {

@@ -2,9 +2,9 @@
 
 import { useCallback } from 'react';
 import { Box } from '@workspace/ui/components/ui/box';
-import { ScriptSectionContainer } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/script-section/components/script-section-container';
-import { ScriptTranscriptItemView } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/script-section/components/script-transcript-item.view';
-import { ScriptTableOfContents } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/script-section/components/script-table-of-contents';
+import { ScriptSectionContainer } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/tab-sections/timeline-tab/components/script-section-container';
+import { ScriptTranscriptItemView } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/tab-sections/timeline-tab/components/script-transcript-item.view';
+import { ScriptTableOfContents } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/tab-sections/timeline-tab/components/script-table-of-contents';
 import { useBlockInteraction } from '@/domains/canvas-management/frontend/contexts/block-interaction-context';
 import { useTutorialDialogContext } from '@/domains/tutorial-management/frontend/components/tutorial-dialog/core/context';
 import { InteractionGuard } from '../../common/interaction-guard';

@@ -9,9 +9,10 @@ youtube/
 ├── index.tsx                          # 메인 컴포넌트 (Container)
 ├── components/
 │   ├── youtube.view.tsx               # Presentational 컴포넌트
-│   ├── youtube-empty-state.tsx        # URL 없을 때 입력 폼
-│   ├── youtube-loading-state.tsx      # 로딩 중 스켈레톤
-│   ├── youtube-error-state.tsx        # 에러 상태
+│   ├── ui-states/
+│   │   ├── youtube-empty-state.tsx    # URL 없을 때 입력 폼
+│   │   ├── youtube-loading-state.tsx  # 로딩 중 스켈레톤
+│   │   └── youtube-error-state.tsx    # 에러 상태
 │   ├── youtube-preview-card.tsx       # 비디오 프리뷰 카드
 │   ├── youtube-player-overlay.tsx     # iframe 플레이어 오버레이
 │   ├── action-items/                  # 액션 아이템들

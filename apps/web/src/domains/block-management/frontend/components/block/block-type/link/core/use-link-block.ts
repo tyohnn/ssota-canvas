@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
-import { fetchLinkMetadataAction } from '@/domains/block-management/actions/link.actions';
-import { fetchOpenGraphMetadata } from '@/domains/block-management/actions/opengraph.actions';
-import type { OpenGraphMetadata } from '@/domains/block-management/actions/opengraph.actions';
+import {
+  fetchLinkMetadataAction,
+  fetchLinkMetadataFromFirecrawlAction,
+} from '@/domains/link-app-space/actions/metadata/fetch-link-metadata.action';
+import type { OpenGraphMetadata } from '@/domains/link-app-space/shared/types/open-graph-metadata';
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { LinkBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
@@ -299,8 +301,8 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
             metadata = buildFallbackMetadata(getDomain(urlString), urlString);
           }
         } else {
-          // Fallback: OG fetch only (optimistic blocks or missing context)
-          const result = await fetchOpenGraphMetadata(urlString);
+          // Fallback: Firecrawl metadata only (optimistic blocks or missing context)
+          const result = await fetchLinkMetadataFromFirecrawlAction(urlString);
           if (result.success) {
             metadata = result.data;
           } else {

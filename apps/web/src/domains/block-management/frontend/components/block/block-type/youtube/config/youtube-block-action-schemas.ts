@@ -2,5 +2,7 @@ import { z } from 'zod';
 
 export const YoutubeBlockActionSchemas = {
   extractScript: z.object({}),
-  summarize: z.object({}),
+  summarize: z.object({
+    language: z.string().optional().default('en'),
+  }),
 };

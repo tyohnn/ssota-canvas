@@ -1,10 +1,12 @@
 /**
  * Link Block Actions (Non-Hook Version)
  *
- * - summarize: Source 도메인 (SummarizeLinkAction에서 processSourceSummaryAction 직접 호출)
- * - screenshot, extractImages, extractDesign: executeLinkBlockOnDemandAction 서버 액션
+ * - summarize: Source 도메인 (ExtractSummaryLinkAction에서 processSourceSummaryAction 호출)
+ * - screenshot, extractImages, extractDesign: link-app-space 액션
  */
-import { executeLinkBlockOnDemandAction } from '@/domains/block-management/actions/link-on-demand.actions';
+import { captureScreenshotAction } from '@/domains/link-app-space/actions/screenshot/capture-screenshot.action';
+import { extractDesignAction } from '@/domains/link-app-space/actions/extract/extract-design.action';
+import { extractImagesAction } from '@/domains/link-app-space/actions/extract/extract-images.action';
 import type { LinkBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
@@ -50,13 +52,24 @@ export async function executeAction(
         error: 'workspaceId and blockId are required. Call from editor with canvas context.',
       };
     }
-    const result = await executeLinkBlockOnDemandAction({
-      workspaceId,
-      blockId: blockSlug,
-      action: action as (typeof ON_DEMAND_ACTIONS)[number],
-      url,
-      params: { ...params, workspaceId: undefined },
-    });
+    const baseReq = { workspaceId, blockId: blockSlug, url };
+    let result;
+    switch (action) {
+      case 'screenshot':
+        result = await captureScreenshotAction({
+          ...baseReq,
+          fullPage: params?.fullPage ?? false,
+        });
+        break;
+      case 'extractImages':
+        result = await extractImagesAction(baseReq);
+        break;
+      case 'extractDesign':
+        result = await extractDesignAction(baseReq);
+        break;
+      default:
+        return { success: false, error: `Unknown action for link block: ${action}` };
+    }
     if (!result.success) {
       return { success: false, error: result.error };
     }

@@ -11,7 +11,7 @@ import type { BlockTabOptionsMap } from '../../types/block-tab-options';
  *
  * @example
  * createTabOptions('youtube', 'summary', { language: 'ko' })
- * createTabOptions('youtube', 'script', { scrollToTimestamp: 120 })
+ * createTabOptions('youtube', 'timeline', { scrollToTimestamp: 120 })
  */
 export function createTabOptions<
   B extends keyof BlockTabOptionsMap,

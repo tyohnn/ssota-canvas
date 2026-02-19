@@ -21,13 +21,13 @@ const youtubeEditorTabsConfig: BlockEditorTabsConfig = {
     {
       id: 'summary',
       label: 'Summary',
-      componentPath: 'youtube/components/section-tabs/summary-section',
+      componentPath: 'youtube/components/tab-sections/summary-tab',
       isDefault: true,
     },
     {
-      id: 'script',
-      label: 'Script',
-      componentPath: 'youtube/components/section-tabs/script-section',
+      id: 'timeline',
+      label: 'Timeline',
+      componentPath: 'youtube/components/tab-sections/timeline-tab',
       hideInReadonly: true,
     },
     {
@@ -38,7 +38,7 @@ const youtubeEditorTabsConfig: BlockEditorTabsConfig = {
     {
       id: 'metadata',
       label: 'Metadata',
-      componentPath: 'youtube/components/section-tabs/metadata-section',
+      componentPath: 'youtube/components/tab-sections/metadata-tab',
     },
   ],
   defaultTabId: 'summary',

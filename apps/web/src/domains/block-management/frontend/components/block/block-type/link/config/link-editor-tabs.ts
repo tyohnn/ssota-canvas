@@ -19,12 +19,17 @@ const linkEditorTabsConfig: BlockEditorTabsConfig = {
     {
       id: 'summary',
       label: 'Summary',
-      componentPath: 'link/components/section-tabs/summary-section',
+      componentPath: 'link/components/tab-sections/summary-tab',
     },
     {
       id: 'extract',
       label: 'Extract',
-      componentPath: 'link/components/section-tabs/extract-section',
+      componentPath: 'link/components/tab-sections/markdown-tab',
+    },
+    {
+      id: 'metadata',
+      label: 'Metadata',
+      componentPath: 'link/components/tab-sections/metadata-tab',
     },
   ],
   defaultTabId: 'note',

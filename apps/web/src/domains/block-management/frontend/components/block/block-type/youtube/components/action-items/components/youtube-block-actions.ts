@@ -4,6 +4,8 @@
  */
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
+import { extractSummaryAction } from '@/domains/source-management/frontend/components/extract-summary-action/core/extract-summary-action.business';
+
 import { extractScriptAction } from './extract-script-action/extract-script-action.business';
 
 export interface ActionResult {
@@ -25,6 +27,40 @@ export async function executeAction(
   callbacks?: any // ActionCallbacks 타입은 필요시 import
 ): Promise<ActionResult> {
   switch (action) {
+    case 'summarize': {
+      const workspaceId = params?.workspaceId as string | undefined;
+      const language = (params?.language as string | undefined) || 'en';
+
+      if (!workspaceId) {
+        return {
+          success: false,
+          error: 'workspaceId is required for summarize',
+        };
+      }
+
+      const blockId = blockData.blockId;
+      const result = await extractSummaryAction(
+        workspaceId,
+        blockId,
+        blockData,
+        language
+      );
+
+      if (result.success) {
+        return {
+          success: true,
+          message: result.alreadyExists
+            ? `Summary already exists for ${language}`
+            : `Summary extraction started for ${language}`,
+          data: { alreadyExists: result.alreadyExists },
+        };
+      }
+      return {
+        success: false,
+        error: result.error || 'Failed to extract summary',
+      };
+    }
+
     case 'extractScript': {
       const workspaceId = params?.workspaceId as string | undefined;
       if (!workspaceId) {

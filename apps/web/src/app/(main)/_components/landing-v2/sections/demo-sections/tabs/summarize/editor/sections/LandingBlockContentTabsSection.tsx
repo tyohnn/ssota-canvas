@@ -14,8 +14,11 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { SummaryTableOfContents } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/summary-section/components/summary-table-of-contents';
-import { SummaryTOCSlotProvider, useSummaryTOCSlot } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/summary-section/components/summary-toc-slot-context';
+import {
+  SummaryTableOfContents,
+  SummaryTOCSlotProvider,
+  useSummaryTOCSlot,
+} from '@/domains/source-management/frontend/components/summary-tab';
 import { LANDING_YOUTUBE_PROPERTIES } from '../../../../../../../mocks/landing-youtube-mock-data';
 import { LandingMetadataSection } from '../../../../../../../mocks/editor-panel/common-tabs/LandingMetadataSection';
 import { LandingSummarySection as BaseLandingSummarySection } from '../../../../../../../mocks/editor-panel/youtube-tabs/LandingSummarySection';
@@ -47,7 +50,7 @@ export function LandingBlockContentTabsSection({ step }: LandingBlockContentTabs
   // Mock Tabs Config
   const tabs = [
     { id: 'summary', label: 'Summary' },
-    { id: 'script', label: 'Script' },
+    { id: 'timeline', label: 'Timeline' },
     { id: 'note', label: 'Note' },
     { id: 'metadata', label: 'Metadata' },
   ];
@@ -98,7 +101,7 @@ export function LandingBlockContentTabsSection({ step }: LandingBlockContentTabs
               </StepHighlight>
             </TabsContent>
 
-            <TabsContent value="script">
+            <TabsContent value="timeline">
               <LandingScriptSection />
             </TabsContent>
 

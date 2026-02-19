@@ -11,10 +11,12 @@ import {
   SelectValue,
 } from '@workspace/ui/components/ui/select';
 import { SUPPORTED_LANGUAGES } from '@/domains/youtube-app-space/shared/value-objects/language-code.vo';
-import { getLanguageName } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/summary-section/components/language-selector';
-import { SummarySectionContainer } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/summary-section/components/summary-section-container';
-import { SummaryContent } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/summary-section/components/summary-content';
-import { ExtractSummaryButton } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/summary-section/components/extract-summary-button';
+import {
+  ExtractSummaryButton,
+  getLanguageName,
+  SummaryContent,
+  SummarySectionContainer,
+} from '@/domains/source-management/frontend/components/summary-tab';
 import type { VideoSummaryView } from '@/domains/youtube-app-space/shared/dtos/views/video-summary.views';
 import { TUTORIAL_YOUTUBE_PROPERTIES } from '@/domains/tutorial-management/frontend/config/tutorial-mock-data';
 import { InteractionGuard } from '../../common/interaction-guard';

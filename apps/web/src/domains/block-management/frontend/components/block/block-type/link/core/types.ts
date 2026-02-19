@@ -1,5 +1,5 @@
 import type { LinkBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import type { OpenGraphMetadata } from '@/domains/block-management/actions/opengraph.actions';
+import type { OpenGraphMetadata } from '@/domains/link-app-space/shared/types/open-graph-metadata';
 
 export type UpdateBlockTitleFn = (input: {
   nodeId: string;

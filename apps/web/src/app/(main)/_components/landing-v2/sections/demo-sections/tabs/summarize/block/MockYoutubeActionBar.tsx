@@ -13,7 +13,7 @@ import { ToolbarContainer } from '@workspace/ui/components/ssota-ui/toolbar-cont
 import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { Box } from '@/components/ui/box';
 import { cn } from '@workspace/ui/lib/utils';
-import { ExtractSummaryActionView } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/action-items/components/extract-summary-action/extract-summary-action.view';
+import { ExtractSummaryActionView } from '@/domains/source-management/frontend/components/extract-summary-action';
 import { SUPPORTED_LANGUAGES } from '@/domains/youtube-app-space/shared/value-objects/language-code.vo';
 
 interface MockYoutubeActionBarProps {

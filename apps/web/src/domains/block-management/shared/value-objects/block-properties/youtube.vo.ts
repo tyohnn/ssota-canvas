@@ -20,8 +20,8 @@ export interface YoutubeBlockProperties {
   // YouTube App Space 참조
   youtubeId?: string; // YouTube App Space의 YouTube ID (UUID)
 
-  // 소스 콘텐츠 접근 권한 (source-management, org 기반)
-  sourceContentAccessGranted?: boolean; // 이 블록에서 스크립트/원문 접근 가능 여부
+  // 소스 원문 접근 권한 (source-management, org 기반)
+  sourceRawContentAccessGranted?: boolean; // 이 블록에서 스크립트/원문 접근 가능 여부
 
   // 소스 요약 접근 권한 (source-management, 언어별)
   sourceSummaryAccessLanguages?: string[]; // 이 블록에서 요약 접근 가능한 언어 목록 (ISO 639-1 코드 배열, 예: ['ko', 'en'])
@@ -51,7 +51,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
   constructor(
     public readonly url: string,
     public readonly youtubeId?: string,
-    public readonly sourceContentAccessGranted?: boolean,
+    public readonly sourceRawContentAccessGranted?: boolean,
     public readonly sourceSummaryAccessLanguages?: string[],
     public readonly youtubeTitle?: string,
     public readonly youtubeDescription?: string,
@@ -86,7 +86,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       data.url || '',
       data.youtubeId,
-      data.sourceContentAccessGranted,
+      data.sourceRawContentAccessGranted,
       data.sourceSummaryAccessLanguages,
       data.youtubeTitle,
       data.youtubeDescription,
@@ -172,7 +172,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return {
       url: this.url,
       youtubeId: this.youtubeId,
-      sourceContentAccessGranted: this.sourceContentAccessGranted,
+      sourceRawContentAccessGranted: this.sourceRawContentAccessGranted,
       sourceSummaryAccessLanguages: this.sourceSummaryAccessLanguages,
       youtubeTitle: this.youtubeTitle,
       youtubeDescription: this.youtubeDescription,
@@ -197,7 +197,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return (
       this.url === other.url &&
       this.youtubeId === other.youtubeId &&
-      this.sourceContentAccessGranted === other.sourceContentAccessGranted &&
+      this.sourceRawContentAccessGranted === other.sourceRawContentAccessGranted &&
       this.arraysEqual(
         this.sourceSummaryAccessLanguages,
         other.sourceSummaryAccessLanguages
@@ -225,7 +225,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       url,
       this.youtubeId,
-      this.sourceContentAccessGranted,
+      this.sourceRawContentAccessGranted,
       this.sourceSummaryAccessLanguages,
       this.youtubeTitle,
       this.youtubeDescription,
@@ -262,7 +262,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       this.url,
       this.youtubeId,
-      this.sourceContentAccessGranted,
+      this.sourceRawContentAccessGranted,
       this.sourceSummaryAccessLanguages,
       metadata.youtubeTitle ?? this.youtubeTitle,
       metadata.youtubeDescription ?? this.youtubeDescription,
@@ -289,7 +289,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       this.url,
       youtubeId,
-      this.sourceContentAccessGranted,
+      this.sourceRawContentAccessGranted,
       this.sourceSummaryAccessLanguages,
       this.youtubeTitle,
       this.youtubeDescription,

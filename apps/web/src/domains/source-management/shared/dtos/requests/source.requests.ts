@@ -14,10 +14,11 @@ const SourceTypeSchema = z.enum(SOURCE_TYPES as unknown as [string, ...string[]]
 const LanguageSchema = z.enum(SUPPORTED_LANGUAGES as unknown as [string, ...string[]]);
 
 export const CreateSourceRequestSchema = z.object({
-  url: z.string().url({ message: 'Invalid URL' }).min(1, 'URL is required'),
+  url: z.url({ message: 'Invalid URL' }).min(1, 'URL is required'),
   sourceType: SourceTypeSchema,
   metadata: z.record(z.string(), z.unknown()).optional().default({}),
   contentLanguage: z.string().length(2).optional().nullable(),
+  rawContent: z.string().optional(),
 });
 
 export type CreateSourceRequest = z.output<typeof CreateSourceRequestSchema>;

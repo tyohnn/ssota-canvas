@@ -54,6 +54,10 @@ export interface LinkBlockProperties {
   summary?: Record<string, string>;
   /** 추출 마크다운 (Source 도메인 또는 캐시) */
   extract?: { markdown: string; extractedAt?: string };
+  /** 이 블록에서 요약 접근 가능한 언어 목록 (source job 완료 시 업데이트) */
+  sourceSummaryAccessLanguages?: string[];
+  /** 이 블록에서 원문/스크립트 접근 가능 여부 (source-management, org 기반) */
+  sourceRawContentAccessGranted?: boolean;
 }
 
 /**
@@ -77,7 +81,9 @@ export class LinkBlockPropertiesVO extends BlockPropertiesVO {
     public readonly images?: LinkBlockProperties['images'],
     public readonly design?: LinkBlockProperties['design'],
     public readonly summary?: LinkBlockProperties['summary'],
-    public readonly extract?: LinkBlockProperties['extract']
+    public readonly extract?: LinkBlockProperties['extract'],
+    public readonly sourceSummaryAccessLanguages?: string[],
+    public readonly sourceRawContentAccessGranted?: boolean,
   ) {
     super();
     this.validate();
@@ -112,7 +118,9 @@ export class LinkBlockPropertiesVO extends BlockPropertiesVO {
       data.images,
       data.design,
       data.summary,
-      data.extract
+      data.extract,
+      data.sourceSummaryAccessLanguages,
+      data.sourceRawContentAccessGranted,
     );
   }
 
@@ -166,6 +174,12 @@ export class LinkBlockPropertiesVO extends BlockPropertiesVO {
       ...(this.design && { design: this.design }),
       ...(this.summary && { summary: this.summary }),
       ...(this.extract && { extract: this.extract }),
+      ...(this.sourceSummaryAccessLanguages && {
+        sourceSummaryAccessLanguages: this.sourceSummaryAccessLanguages,
+      }),
+      ...(this.sourceRawContentAccessGranted !== undefined && {
+        sourceRawContentAccessGranted: this.sourceRawContentAccessGranted,
+      }),
     };
   }
 
@@ -191,7 +205,10 @@ export class LinkBlockPropertiesVO extends BlockPropertiesVO {
       JSON.stringify(this.images ?? []) === JSON.stringify(other.images ?? []) &&
       JSON.stringify(this.design ?? {}) === JSON.stringify(other.design ?? {}) &&
       JSON.stringify(this.summary ?? {}) === JSON.stringify(other.summary ?? {}) &&
-      JSON.stringify(this.extract ?? {}) === JSON.stringify(other.extract ?? {})
+      JSON.stringify(this.extract ?? {}) === JSON.stringify(other.extract ?? {}) &&
+      JSON.stringify(this.sourceSummaryAccessLanguages ?? []) ===
+        JSON.stringify(other.sourceSummaryAccessLanguages ?? []) &&
+      this.sourceRawContentAccessGranted === other.sourceRawContentAccessGranted
     );
   }
 
@@ -216,7 +233,9 @@ export class LinkBlockPropertiesVO extends BlockPropertiesVO {
       this.images,
       this.design,
       this.summary,
-      this.extract
+      this.extract,
+      this.sourceSummaryAccessLanguages,
+      this.sourceRawContentAccessGranted,
     );
   }
 
@@ -251,7 +270,9 @@ export class LinkBlockPropertiesVO extends BlockPropertiesVO {
       this.images,
       this.design,
       this.summary,
-      this.extract
+      this.extract,
+      this.sourceSummaryAccessLanguages,
+      this.sourceRawContentAccessGranted,
     );
   }
 

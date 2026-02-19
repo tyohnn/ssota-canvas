@@ -10,9 +10,11 @@ import { cn } from '@workspace/ui/lib/utils';
 import { Box } from '@/components/ui/box';
 import type { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
 
-import { YoutubeEmptyState } from './youtube-empty-state';
-import { YoutubeErrorState } from './youtube-error-state';
-import { YoutubeLoadingState } from './youtube-loading-state';
+import {
+  YoutubeEmptyState,
+  YoutubeErrorState,
+  YoutubeLoadingState,
+} from './ui-states';
 import { YoutubePreviewCard } from './youtube-preview-card';
 
 export interface YoutubeViewProps {

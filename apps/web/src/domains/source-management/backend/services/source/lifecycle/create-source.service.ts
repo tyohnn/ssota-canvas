@@ -32,6 +32,12 @@ export async function createSource(
     };
 
     const aggregate = SourceAggregate.create(command);
+    if (safeDto.rawContent) {
+      aggregate.updateRawContent({
+        rawContent: safeDto.rawContent,
+        extractedAt: new Date(),
+      });
+    }
     await sourceRepository.create(aggregate.getSource());
 
     const events = aggregate.getUncommittedEvents();

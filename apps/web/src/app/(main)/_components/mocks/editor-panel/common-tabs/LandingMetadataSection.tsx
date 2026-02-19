@@ -7,7 +7,7 @@
 
 'use client';
 
-import { MetadataSectionView } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/metadata-section.view';
+import { MetadataTabView } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/tab-sections/metadata-tab/metadata-tab.view';
 
 interface LandingMetadataSectionProps {
   metadata: {
@@ -25,5 +25,5 @@ interface LandingMetadataSectionProps {
 }
 
 export function LandingMetadataSection({ metadata }: LandingMetadataSectionProps) {
-  return <MetadataSectionView metadata={metadata} />;
+  return <MetadataTabView metadata={metadata} />;
 }

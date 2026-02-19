@@ -11,12 +11,14 @@
  */
 import type { IBlockRepository } from '@/domains/block-management/backend/repositories/interfaces/block.repository.interface';
 import { updateBlockProperties } from '@/domains/block-management/backend/services/block';
+import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
 import { BlockId } from '@/domains/block-management/shared/value-objects/block-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import type { DrizzleSourceRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source.repository';
-import type { DrizzleSourceSummaryRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source-summary.repository';
-import type { DrizzleSourceActionTransactionRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source-action-transaction.repository';
+import type { ISourceRepository } from '@/domains/source-management/backend/repositories/interfaces/source.repository.interface';
+import type { ISourceSummaryRepository } from '@/domains/source-management/backend/repositories/interfaces/source-summary.repository.interface';
+import type { ISourceActionTransactionRepository } from '@/domains/source-management/backend/repositories/interfaces/source-action-transaction.repository.interface';
 import type { IExtractAdapter } from '@/domains/source-management/backend/services/extract/adapters/types';
+import { LinkExtractAdapter } from '@/domains/source-management/backend/services/extract/adapters/link-extract.adapter';
 import { YoutubeExtractAdapter } from '@/domains/source-management/backend/services/extract/adapters/youtube-extract.adapter';
 import { extractSourceContent } from '@/domains/source-management/backend/services/extract';
 import { runSourceContentExtractedPolicy } from '@/domains/source-management/backend/services/source-content-extracted/source-content-extracted-policy.runner';
@@ -42,9 +44,9 @@ export interface ProcessSourceJobInput {
 export interface ProcessSourceJobDeps {
   sourceJobRepository: ISourceJobRepository;
   blockRepository: IBlockRepository;
-  sourceRepository: DrizzleSourceRepository;
-  sourceSummaryRepository: DrizzleSourceSummaryRepository;
-  sourceActionTransactionRepository: DrizzleSourceActionTransactionRepository;
+  sourceRepository: ISourceRepository;
+  sourceSummaryRepository: ISourceSummaryRepository;
+  sourceActionTransactionRepository: ISourceActionTransactionRepository;
   archiveQueueMessage: (msgId: number) => Promise<void>;
   deleteQueueMessage: (msgId: number) => Promise<void>;
 }
@@ -83,8 +85,14 @@ export async function processSourceJobService(
     }
 
     const block = await blockRepository.findById(new BlockId(blockId));
-    if (!block || block.blockType.value !== 'youtube') {
-      throw new Error('Block not found or not YouTube block');
+    const supportedBlockTypes = ['youtube', 'link'];
+    if (
+      !block ||
+      !supportedBlockTypes.includes(block.blockType.value)
+    ) {
+      throw new Error(
+        'Block not found or unsupported block type for source job'
+      );
     }
 
     // 1) startExtracting → repo.update (Realtime: "추출 중...")
@@ -95,6 +103,7 @@ export async function processSourceJobService(
     if (!source.hasRawContent()) {
       const adapters: Record<SourceTypeValue, IExtractAdapter> = {
         youtube: new YoutubeExtractAdapter(),
+        link: new LinkExtractAdapter(),
       } as Record<SourceTypeValue, IExtractAdapter>;
 
       const extractResult = await extractSourceContent(
@@ -125,10 +134,10 @@ export async function processSourceJobService(
         throw new Error(txResult.error.message);
       }
 
+      const blockAggregate = BlockAggregate.reconstitute(block);
       const updateBlockResult = await updateBlockProperties({
-        safeWorkspaceId: block.workspaceId,
-        safeBlockSlug: block.getSlug(),
-        properties: { sourceContentAccessGranted: true },
+        safeBlockAggregate: blockAggregate,
+        properties: { sourceRawContentAccessGranted: true },
         safeUserId: new UserId(SYSTEM_USER_ID),
         blockRepository,
       });
@@ -170,9 +179,9 @@ export async function processSourceJobService(
       (block.properties as { sourceSummaryAccessLanguages?: string[] })
         ?.sourceSummaryAccessLanguages ?? [];
     if (!currentLanguages.includes(language)) {
+      const blockAggregate = BlockAggregate.reconstitute(block);
       const updateBlockResult = await updateBlockProperties({
-        safeWorkspaceId: block.workspaceId,
-        safeBlockSlug: block.getSlug(),
+        safeBlockAggregate: blockAggregate,
         properties: {
           sourceSummaryAccessLanguages: [...currentLanguages, language],
         },

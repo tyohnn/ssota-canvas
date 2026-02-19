@@ -16,7 +16,7 @@ export interface YoutubeTabOptions {
     /** 액션에서 탭을 연 뒤 요약 추출 중일 때 true. Summary Section에서 로딩 표시용 */
     isExtracting?: boolean;
   };
-  script: {
+  timeline: {
     scrollToTimestamp?: number;
   };
   note: {
@@ -26,10 +26,21 @@ export interface YoutubeTabOptions {
 }
 
 /**
+ * Link 블록의 탭별 옵션
+ */
+export interface LinkTabOptions {
+  summary: {
+    language?: string;
+    isExtracting?: boolean;
+  };
+  note: Record<string, never>;
+  extract: Record<string, never>;
+}
+
+/**
  * 블록 타입별 탭 옵션 맵
- * 향후 Audio, PDF 등 추가 가능
  */
 export interface BlockTabOptionsMap {
   [BlockType.YOUTUBE]: YoutubeTabOptions;
-  // 다른 블록 타입들은 필요 시 추가
+  [BlockType.LINK]: LinkTabOptions;
 }

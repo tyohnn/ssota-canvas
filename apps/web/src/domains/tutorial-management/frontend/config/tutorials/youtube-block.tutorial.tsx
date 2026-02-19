@@ -114,9 +114,9 @@ export const youtubeBlockTutorial: Tutorial = {
       id: 'click-script',
       title: 'Open Script Tab',
       description: 'Click the Script tab to view the video transcript.',
-      targetSelector: 'script-tab',
+      targetSelector: 'timeline-tab',
       action: 'click',
-      onComplete: (state) => ({ ...state, activeEditorTab: 'script' }),
+      onComplete: (state) => ({ ...state, activeEditorTab: 'timeline' }),
     },
     {
       id: 'click-script-timestamp',
