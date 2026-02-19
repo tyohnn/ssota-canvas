@@ -2,7 +2,7 @@
 
 import { useChat } from '@ai-sdk/react';
 import { useCallback, useMemo } from 'react';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import { useReactFlow, type Node, type Edge } from '@xyflow/react';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useCanvasdownContext } from '@/domains/canvasdown/frontend/contexts/canvasdown-context';
@@ -18,7 +18,7 @@ import {
 import {
   useRenderCanvasdownTool,
   usePatchCanvasdownTool,
-  useEditBlockLinesTool,
+  useEditTool,
   useCreateTodosTool,
   useCanvasActionTool,
   useOrganizeLayoutTool,
@@ -101,7 +101,7 @@ export function useChatV2() {
   const handlePatchCanvasdown = usePatchCanvasdownTool({
     renderCanvasdownFromContext,
   });
-  const handleEditBlockLines = useEditBlockLinesTool({
+  const handleEdit = useEditTool({
     getNode: getNodeOrNull,
     updateBlockContent,
   });
@@ -133,6 +133,7 @@ export function useChatV2() {
     ...chat
   } = useChat({
     transport,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     onError: (err) => {
       console.error('[useChatV2] Error:', err);
     },
@@ -150,8 +151,8 @@ export function useChatV2() {
         await handlePatchCanvasdown(addToolOutput, toolCall.toolCallId, args);
         return;
       }
-      if (toolName === 'editBlockLines') {
-        await handleEditBlockLines(addToolOutput, toolCall.toolCallId, args);
+      if (toolName === 'edit') {
+        await handleEdit(addToolOutput, toolCall.toolCallId, args);
         return;
       }
       if (toolName === 'createTodos') {
@@ -166,8 +167,8 @@ export function useChatV2() {
         await handleOrganizeLayout(addToolOutput, toolCall.toolCallId, args);
         return;
       }
-      if (toolName === 'xaiSearch') {
-        console.log('[useChatV2] xaiSearch: server-executed (streaming tool result to client)', { toolCallId: toolCall.toolCallId, args });
+      if (toolName === 'webSearch') {
+        console.log('[useChatV2] webSearch: server-executed (streaming tool result to client)', { toolCallId: toolCall.toolCallId, args });
         return;
       }
 

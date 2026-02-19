@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { executeReadBlockLines } from '../internal-search/read-block-lines.service';
-import type { ReadBlockLinesFinal } from '../internal-search/read-block-lines.service';
+import { executeReadBlockLines } from '../internal-search/readBlockLines/read-block-lines.service';
+import type { ReadBlockLinesFinal } from '../internal-search/readBlockLines/read-block-lines.service';
 import type { BlockSearchRepository } from '../../../repositories/interfaces/block-search.repository.interface';
 import { randomUUID } from 'crypto';
 

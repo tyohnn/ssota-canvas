@@ -1,10 +1,10 @@
 /**
  * Internal Search Tool Services
  *
- * 페이지/캔버스 내부 검색: grep, glob, hop, group, read, semantic.
+ * Re-exports from per-tool folders.
  */
 
-export { executeGrepBlockContent } from './grep-block-content.service';
+export { createGrepBlockContentTool } from './grepBlockContent';
 export type {
   GrepBlockContentYield,
   GrepBlockContentFinal,
@@ -12,44 +12,35 @@ export type {
   GrepBlockContentArgs,
   GrepBlockResult,
   GrepMatch,
-} from './grep-block-content.service';
+} from './grepBlockContent';
 
-export { executeGlobBlocks } from './glob-blocks.service';
+export { createGlobBlocksTool } from './globBlocks';
 export type {
   GlobBlocksYield,
   GlobBlocksFinal,
   GlobBlocksIntermediate,
   GlobBlocksArgs,
   GlobBlockEntry,
-} from './glob-blocks.service';
+} from './globBlocks';
 
-export { executeReadBlockLines } from './read-block-lines.service';
+export { createReadBlockLinesTool } from './readBlockLines';
 export type {
   ReadBlockLinesYield,
   ReadBlockLinesFinal,
   ReadBlockLinesIntermediate,
   ReadBlockLinesArgs,
   ReadBlockLinesSource,
-} from './read-block-lines.service';
+} from './readBlockLines';
 
-export { executeHopSearch } from './hop-search.service';
-export type {
-  HopSearchFinal,
-  HopSearchArgs,
-  HopSearchEntry,
-  HopSearchEdgeInfo,
-} from './hop-search.service';
+export { createHopSearchTool } from './hopSearch';
+export type { HopSearchFinal, HopSearchArgs, HopSearchEntry, HopSearchEdgeInfo } from './hopSearch';
 
-export { executeSearchGroup } from './search-group.service';
-export type {
-  SearchGroupFinal,
-  SearchGroupArgs,
-  SearchGroupEntry,
-} from './search-group.service';
+export { createSearchGroupTool } from './searchGroup';
+export type { SearchGroupFinal, SearchGroupArgs, SearchGroupEntry } from './searchGroup';
 
-export { executeSearchBySemantic } from './search-by-semantic.service';
+export { createSearchBySemanticTool } from './searchBySemantic';
 export type {
   SearchBySemanticFinal,
   SearchBySemanticArgs,
   SearchBySemanticEntry,
-} from './search-by-semantic.service';
+} from './searchBySemantic';

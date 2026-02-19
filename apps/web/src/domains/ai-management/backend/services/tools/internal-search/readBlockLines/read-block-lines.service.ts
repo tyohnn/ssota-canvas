@@ -2,20 +2,15 @@
  * readBlockLines Tool Service
  *
  * 특정 블록의 content_raw를 라인 번호와 함께 조회.
- * Architecture: Repository에서 단일 블록 content_raw 조회 → Service에서 라인 범위 추출 + 포맷팅.
- * 패턴: SafeDTO(문자열) → Service에서 VO 변환 → Repository에 BlockMountId, PageId(VO) 전달.
  */
 
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
-import type { BlockSearchRepository } from '../../../repositories/interfaces/block-search.repository.interface';
+import type { BlockSearchRepository } from '@/domains/ai-management/backend/repositories/interfaces/block-search.repository.interface';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
-export type ReadBlockLinesIntermediate = {
-  message?: string;
-  step?: string;
-};
+export type ReadBlockLinesIntermediate = { message?: string; step?: string };
 
 export type ReadBlockLinesSource =
   | 'content_raw'
@@ -35,8 +30,6 @@ export type ReadBlockLinesFinal = {
 };
 
 export type ReadBlockLinesYield = ReadBlockLinesIntermediate | ReadBlockLinesFinal;
-
-// ─── Args (SafeDTO from tool call) ────────────────────────────────────────
 
 export interface ReadBlockLinesArgs {
   blockMountId?: string;
@@ -64,10 +57,7 @@ function formatLineRange(
   const actualEnd = endLine ? Math.min(endLine, totalLines) : totalLines;
   const sliced = lines.slice(actualStart - 1, actualEnd);
   const formatted = sliced
-    .map((line, idx) => {
-      const num = actualStart + idx;
-      return `${String(num).padStart(4)}| ${line}`;
-    })
+    .map((line, idx) => `${String(actualStart + idx).padStart(4)}| ${line}`)
     .join('\n');
   return { formatted, totalLines, actualStart, actualEnd };
 }
@@ -103,13 +93,7 @@ export async function* executeReadBlockLines(
   const src: ReadBlockLinesSource = args?.source ?? 'content_raw';
 
   if (!blockMountIdStr) {
-    const err: ReadBlockLinesFinal = buildErrorFinal(
-      '',
-      'unknown',
-      'blockMountId is required',
-      startLine,
-      endLine ?? 0
-    );
+    const err = buildErrorFinal('', 'unknown', 'blockMountId is required', startLine, endLine ?? 0);
     yield err;
     return err;
   }
@@ -118,23 +102,14 @@ export async function* executeReadBlockLines(
   try {
     blockMountIdVO = new BlockMountId(blockMountIdStr);
   } catch {
-    const err = buildErrorFinal(
-      blockMountIdStr,
-      'unknown',
-      'Invalid blockMountId format',
-      startLine,
-      endLine ?? 0
-    );
+    const err = buildErrorFinal(blockMountIdStr, 'unknown', 'Invalid blockMountId format', startLine, endLine ?? 0);
     yield err;
     return err;
   }
 
   let pageIdVO: PageId | undefined;
   try {
-    pageIdVO =
-      options?.pageId && options.pageId.trim()
-        ? new PageId(options.pageId.trim())
-        : undefined;
+    pageIdVO = options?.pageId?.trim() ? new PageId(options.pageId.trim()) : undefined;
   } catch {
     pageIdVO = undefined;
   }
@@ -143,40 +118,19 @@ export async function* executeReadBlockLines(
 
   try {
     if (src === 'content_raw') {
-      const row = await repository.findContentByBlockMountId(
-        blockMountIdVO,
-        pageIdVO
-      );
+      const row = await repository.findContentByBlockMountId(blockMountIdVO, pageIdVO);
       if (!row) {
-        const notFound = buildErrorFinal(
-          blockMountIdStr,
-          'unknown',
-          'Block not found',
-          startLine,
-          endLine ?? 0,
-          src
-        );
+        const notFound = buildErrorFinal(blockMountIdStr, 'unknown', 'Block not found', startLine, endLine ?? 0, src);
         yield notFound;
         return notFound;
       }
       if (!row.contentRaw) {
-        const noContent = buildErrorFinal(
-          blockMountIdStr,
-          row.blockType,
-          row.title,
-          startLine,
-          endLine ?? 0,
-          src
-        );
+        const noContent = buildErrorFinal(blockMountIdStr, row.blockType, row.title, startLine, endLine ?? 0, src);
         noContent.content = '(no text content)';
         yield noContent;
         return noContent;
       }
-      const { formatted, totalLines, actualStart, actualEnd } = formatLineRange(
-        row.contentRaw,
-        startLine,
-        endLine
-      );
+      const { formatted, totalLines, actualStart, actualEnd } = formatLineRange(row.contentRaw, startLine, endLine);
       const final: ReadBlockLinesFinal = {
         blockMountId: blockMountIdStr,
         blockType: row.blockType,
@@ -192,10 +146,7 @@ export async function* executeReadBlockLines(
     }
 
     if (src === 'source_content') {
-      const row = await repository.findSourceContentByBlockMountId(
-        blockMountIdVO,
-        pageIdVO
-      );
+      const row = await repository.findSourceContentByBlockMountId(blockMountIdVO, pageIdVO);
       if (!row) {
         const notFound = buildErrorFinal(
           blockMountIdStr,
@@ -208,11 +159,7 @@ export async function* executeReadBlockLines(
         yield notFound;
         return notFound;
       }
-      const { formatted, totalLines, actualStart, actualEnd } = formatLineRange(
-        row.rawContent,
-        startLine,
-        endLine
-      );
+      const { formatted, totalLines, actualStart, actualEnd } = formatLineRange(row.rawContent, startLine, endLine);
       const final: ReadBlockLinesFinal = {
         blockMountId: blockMountIdStr,
         blockType: row.blockType,
@@ -227,7 +174,6 @@ export async function* executeReadBlockLines(
       return final;
     }
 
-    // source_summary
     const row = await repository.findSourceSummaryByBlockMountId(
       blockMountIdVO,
       pageIdVO,
@@ -245,11 +191,7 @@ export async function* executeReadBlockLines(
       yield notFound;
       return notFound;
     }
-    const { formatted, totalLines, actualStart, actualEnd } = formatLineRange(
-      row.summary,
-      startLine,
-      endLine
-    );
+    const { formatted, totalLines, actualStart, actualEnd } = formatLineRange(row.summary, startLine, endLine);
     const final: ReadBlockLinesFinal = {
       blockMountId: blockMountIdStr,
       blockType: row.blockType,
@@ -265,14 +207,7 @@ export async function* executeReadBlockLines(
     return final;
   } catch (error) {
     console.error('[readBlockLines] Error:', error);
-    const errResult = buildErrorFinal(
-      blockMountIdStr,
-      'unknown',
-      'Error reading block',
-      startLine,
-      endLine ?? 0,
-      src
-    );
+    const errResult = buildErrorFinal(blockMountIdStr, 'unknown', 'Error reading block', startLine, endLine ?? 0, src);
     yield errResult;
     return errResult;
   }

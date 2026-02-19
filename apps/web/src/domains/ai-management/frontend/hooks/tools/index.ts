@@ -8,7 +8,7 @@ export type { AddToolOutput, RenderCanvasdownFromContext } from './use-render-ca
 
 export { usePatchCanvasdownTool } from './use-patch-canvasdown-tool';
 
-export { useEditBlockLinesTool } from './use-edit-block-lines-tool';
+export { useEditTool } from './use-edit-tool';
 
 export { useCreateTodosTool } from './use-create-todos-tool';
 

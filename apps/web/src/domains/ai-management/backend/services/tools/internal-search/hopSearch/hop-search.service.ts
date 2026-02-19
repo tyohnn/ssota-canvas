@@ -2,7 +2,6 @@
  * hopSearch Tool Service
  *
  * Find blocks N-hops away from a starting block via edges.
- * Uses EdgeRepository for BFS. Returns edge label and style per connection.
  */
 
 import type { ConnectionSearchRepository } from '@/domains/ai-management/backend/repositories/interfaces/connection-search.repository.interface';
@@ -10,7 +9,6 @@ import type { EdgeAggregate } from '@/domains/canvas-management/shared/aggregate
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 
-/** Edge label + style (stroke, strokeWidth) for a connection in hop result */
 export interface HopSearchEdgeInfo {
   label: string;
   stroke?: string;
@@ -20,7 +18,6 @@ export interface HopSearchEdgeInfo {
 export interface HopSearchEntry {
   blockMountId: string;
   hop: number;
-  /** Edges that connect from the previous hop to this block (label + style) */
   edges: HopSearchEdgeInfo[];
   blockType?: string;
   title?: string;
@@ -55,8 +52,10 @@ function getNeighborsWithEdges(
     } else if (direction === 'in' && tgt === fromBlockMountId) {
       result.push({ neighborId: src, label: agg.edge.edgeLabel, stroke: s.stroke, strokeWidth: s.strokeWidth });
     } else if (direction === 'both') {
-      if (src === fromBlockMountId) result.push({ neighborId: tgt, label: agg.edge.edgeLabel, stroke: s.stroke, strokeWidth: s.strokeWidth });
-      else if (tgt === fromBlockMountId) result.push({ neighborId: src, label: agg.edge.edgeLabel, stroke: s.stroke, strokeWidth: s.strokeWidth });
+      if (src === fromBlockMountId)
+        result.push({ neighborId: tgt, label: agg.edge.edgeLabel, stroke: s.stroke, strokeWidth: s.strokeWidth });
+      else if (tgt === fromBlockMountId)
+        result.push({ neighborId: src, label: agg.edge.edgeLabel, stroke: s.stroke, strokeWidth: s.strokeWidth });
     }
   }
   return result;
@@ -117,11 +116,7 @@ export async function executeHopSearch(
             if (existing) {
               existing.edges.push(edgeInfo);
             } else {
-              entriesThisHop.set(neighborId, {
-                blockMountId: neighborId,
-                hop,
-                edges: [edgeInfo],
-              });
+              entriesThisHop.set(neighborId, { blockMountId: neighborId, hop, edges: [edgeInfo] });
             }
           }
         }
@@ -135,7 +130,6 @@ export async function executeHopSearch(
   }
 
   const blockMountIds = Array.from(allIds);
-
   return {
     blockMountIds,
     byHop,

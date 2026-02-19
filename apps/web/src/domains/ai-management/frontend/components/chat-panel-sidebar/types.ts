@@ -4,10 +4,12 @@
  */
 
 import type { V2ToolArgs, V2ToolCall } from '@/app/api/agent/v2/tools';
+import type { RenderCanvasdownToolOutput } from './tool-part/renderCanvasdown/types';
 import type { XaiSearchToolOutput } from './tool-part/xaiSearch/types';
 
 /** Tool result payload per tool type. Extend with new tool output types as needed. */
 export type ToolCallOutput =
+  | RenderCanvasdownToolOutput
   | XaiSearchToolOutput
   | { message?: string; [k: string]: unknown };
 
@@ -118,6 +120,6 @@ export function getToolPartLabel(part: ToolCallPart): string {
   const name =
     p.toolName ??
     (typeStr.startsWith('tool-') ? typeStr.replace(/^tool-/, '') : 'Tool');
-  if (name === 'search' || name === 'xaiSearch') return 'Search';
+  if (name === 'webSearch' || name === 'xaiSearch' || name === 'search') return 'Search';
   return name;
 }

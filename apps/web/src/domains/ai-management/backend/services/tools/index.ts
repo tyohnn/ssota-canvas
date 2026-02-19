@@ -1,18 +1,18 @@
 /**
- * Tool Services — 배럴 파일
+ * Tool Services — barrel
  *
- * 모든 서버 사이드 tool executor를 서비스 레이어에서 export.
- * internal-search: grep, glob, hop, group, read, semantic
- * external-search: xai
+ * Re-exports from consolidated tool folders.
+ * Internal search: createXxxTool factories
+ * External search: xaiSearchTool
  */
 
 export {
-  executeGrepBlockContent,
-  executeGlobBlocks,
-  executeReadBlockLines,
-  executeHopSearch,
-  executeSearchGroup,
-  executeSearchBySemantic,
+  createGrepBlockContentTool,
+  createGlobBlocksTool,
+  createReadBlockLinesTool,
+  createHopSearchTool,
+  createSearchGroupTool,
+  createSearchBySemanticTool,
 } from './internal-search';
 export type {
   GrepBlockContentYield,
@@ -43,10 +43,13 @@ export type {
   SearchBySemanticEntry,
 } from './internal-search';
 
-export { executeXaiSearch } from './external-search';
+export { xaiSearchTool } from './external-search/xaiSearch';
 export type {
   XaiSearchYield,
   XaiSearchFinal,
   XaiSearchIntermediate,
   XaiSearchSource,
-} from './external-search';
+} from './external-search/xaiSearch';
+
+export { createGetPageEventsTool } from './events/getPageEvents';
+export { createGrepEventsTool } from './events/grepEvents';

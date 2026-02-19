@@ -2,7 +2,6 @@
  * searchGroup Tool Service
  *
  * Find blocks inside a group/zone by parent_block_mount_id.
- * Uses ConnectionSearchRepository.findBlockMountsWithBlocksByPageId then filters by parent.
  */
 
 import type { ConnectionSearchRepository } from '@/domains/ai-management/backend/repositories/interfaces/connection-search.repository.interface';
@@ -47,8 +46,7 @@ export async function executeSearchGroup(
     return { blockMountIds: [], blocks: [], message: 'Invalid pageId' };
   }
 
-  const rows =
-    await connectionSearchRepository.findBlockMountsWithBlocksByPageId(pageId);
+  const rows = await connectionSearchRepository.findBlockMountsWithBlocksByPageId(pageId);
   const blocks: SearchGroupEntry[] = [];
   for (const { blockMountAggregate, blockAggregate } of rows) {
     const mount = blockMountAggregate.getBlockMount();
@@ -56,17 +54,9 @@ export async function executeSearchGroup(
     if (parentId !== groupIdStr) continue;
     const block = blockAggregate.getBlock();
     const blockMountId = mount.id.value;
-    blocks.push({
-      blockMountId,
-      blockType: block.blockType.value,
-      title: block.title,
-    });
+    blocks.push({ blockMountId, blockType: block.blockType.value, title: block.title });
   }
-  const blockMountIds = blocks.map((b) => b.blockMountId);
+  const blockMountIds = blocks.map(b => b.blockMountId);
 
-  return {
-    blockMountIds,
-    blocks,
-    message: `Found ${blocks.length} block(s) in group`,
-  };
+  return { blockMountIds, blocks, message: `Found ${blocks.length} block(s) in group` };
 }

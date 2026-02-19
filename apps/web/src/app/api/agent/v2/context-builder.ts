@@ -9,7 +9,7 @@ import type { RecentEvent } from '@/domains/event-management';
 
 /**
  * Visible block metadata (excludes content)
- * blockMountId: canvas/selection reference; blockId: for content tools (readBlockLines, etc.)
+ * blockMountId: canvas/selection reference; blockId: for content tools (read, etc.)
  */
 export interface VisibleBlockMeta {
   blockMountId: string;

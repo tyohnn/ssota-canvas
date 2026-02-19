@@ -15,28 +15,19 @@ import {
   renderCanvasdownTool,
   patchCanvasdownTool,
   xaiSearchTool,
-  grepBlockContentTool,
-  globBlocksTool,
-  readBlockLinesTool,
-  hopSearchTool,
-  searchGroupTool,
-  searchBySemanticTool,
-  getPageEventsTool,
-  grepEventsTool,
-  editBlockLinesTool,
+  createGrepBlockContentTool,
+  createGlobBlocksTool,
+  createReadBlockLinesTool,
+  createHopSearchTool,
+  createSearchGroupTool,
+  createSearchBySemanticTool,
+  createGetPageEventsTool,
+  createGrepEventsTool,
+  editTool,
   createTodosTool,
   canvasActionTool,
   organizeLayoutTool,
 } from './tools';
-import {
-  executeXaiSearch,
-  executeGrepBlockContent,
-  executeGlobBlocks,
-  executeReadBlockLines,
-  executeHopSearch,
-  executeSearchGroup,
-  executeSearchBySemantic,
-} from '@/domains/ai-management/backend/services/tools';
 import { DrizzleBlockSearchRepository } from '@/domains/ai-management/backend/repositories/implementations/drizzle-block-search.repository';
 import { DrizzleConnectionSearchRepository } from '@/domains/ai-management/backend/repositories/implementations/drizzle-connection-search.repository';
 import { DrizzleBlockMountRepository } from '@/domains/canvas-management/backend/repositories/implementations/drizzle-block-mount.repository';
@@ -57,7 +48,6 @@ import { DrizzlePageRepository } from '@/domains/workspace-management/backend/re
 import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
 import { DrizzleOrganizationRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository';
 import { DrizzleUserRepository } from '@/domains/user-management/backend/repositories/implementations/drizzle-user.repository';
-import { createGetPageEventsTool, createGrepEventsTool } from './event-tools';
 import { AGENT_MODEL } from './constants';
 
 export const maxDuration = 300;
@@ -311,6 +301,14 @@ export async function POST(req: Request) {
     };
     // #endregion
 
+    // #region Debug — 테스트 시 주석 해제하여 콘솔 로깅 활성화
+    // const DEBUG_AGENT_V2 = true;
+    const DEBUG_AGENT_V2 = false;
+    const debugLog = (message: string, data?: Record<string, unknown>) => {
+      if (DEBUG_AGENT_V2) console.log('[AgentV2]', message, data ?? {});
+    };
+    // #endregion
+
     // #region agent log — step: request
     const messageCount = enrichedMessages.length;
     const lastEnrichedMsg = enrichedMessages[enrichedMessages.length - 1];
@@ -326,6 +324,12 @@ export async function POST(req: Request) {
       lastUserContentLength,
       contextLength: dynamicContextString.length,
     });
+    debugLog('step: request', {
+      messageCount,
+      contextLength: dynamicContextString.length,
+      pageId: pageId ?? null,
+      userId,
+    });
     // #endregion
 
     // Main agent uses Responses API for stateful conversation, caching, and full reasoning support.
@@ -335,162 +339,48 @@ export async function POST(req: Request) {
       messages: enrichedMessages,
       stopWhen: stepCountIs(20),
       tools: {
-        xaiSearch: {
-          ...xaiSearchTool,
-          onInputStart: (opts) => {
-            ctxLog('AgentV2 tool input: start', { toolName: 'xaiSearch', toolCallId: (opts as { toolCallId?: string }).toolCallId });
-          },
-          onInputDelta: ({ inputTextDelta, ...opts }) => {
-            ctxLog('AgentV2 tool input: delta', { toolName: 'xaiSearch', inputTextDelta, toolCallId: (opts as { toolCallId?: string }).toolCallId });
-          },
-          onInputAvailable: (opts: { input: unknown }) => {
-            ctxLog('AgentV2 tool input: available', { toolName: 'xaiSearch', input: opts.input as Record<string, unknown> });
-          },
-          execute: (args, opts) =>
-            executeXaiSearch(args, { abortSignal: opts?.abortSignal }),
-        },
-        // renderCanvasdown: renderCanvasdownTool,
-        // patchCanvasdown: patchCanvasdownTool,
-        // grepBlockContent: {
-        //   ...grepBlockContentTool,
-        //   execute: async (args) => {
-        //     const res = await executeGrepBlockContent(blockSearchRepo, args, { pageId });
-        //     if (pageId) {
-        //       eventLogService
-        //         .logToolCall({
-        //           pageId,
-        //           userId,
-        //           toolName: 'grepBlockContent',
-        //           args: args as Record<string, unknown>,
-        //           result: res as unknown as Record<string, unknown>,
-        //           success: true,
-        //           agentExecutionId: executionId,
-        //         })
-        //         .catch(console.error);
-        //     }
-        //     return res;
-        //   },
-        // },
-        // globBlocks: {
-        //   ...globBlocksTool,
-        //   execute: async (args) => {
-        //     const res = await executeGlobBlocks(blockSearchRepo, args, { pageId });
-        //     if (pageId) {
-        //       eventLogService
-        //         .logToolCall({
-        //           pageId,
-        //           userId,
-        //           toolName: 'globBlocks',
-        //           args: args as Record<string, unknown>,
-        //           result: res as unknown as Record<string, unknown>,
-        //           success: true,
-        //           agentExecutionId: executionId,
-        //         })
-        //         .catch(console.error);
-        //     }
-        //     return res;
-        //   },
-        // },
-        // readBlockLines: {
-        //   ...readBlockLinesTool,
-        //   execute: async (args) => {
-        //     const res = await executeReadBlockLines(blockSearchRepo, args, { pageId });
-        //     if (pageId) {
-        //       eventLogService
-        //         .logToolCall({
-        //           pageId,
-        //           userId,
-        //           toolName: 'readBlockLines',
-        //           args: args as Record<string, unknown>,
-        //           result: res as unknown as Record<string, unknown>,
-        //           success: true,
-        //           agentExecutionId: executionId,
-        //         })
-        //         .catch(console.error);
-        //     }
-        //     return res;
-        //   },
-        // },
-        // hopSearch: {
-        //   ...hopSearchTool,
-        //   execute: async (args) => {
-        //     const res = await executeHopSearch(connectionSearchRepo, args, { pageId });
-        //     if (pageId) {
-        //       eventLogService
-        //         .logToolCall({
-        //           pageId,
-        //           userId,
-        //           toolName: 'hopSearch',
-        //           args: args as Record<string, unknown>,
-        //           result: res as unknown as Record<string, unknown>,
-        //           success: true,
-        //           agentExecutionId: executionId,
-        //         })
-        //         .catch(console.error);
-        //     }
-        //     return res;
-        //   },
-        // },
-        // searchGroup: {
-        //   ...searchGroupTool,
-        //   execute: async (args) => {
-        //     const res = await executeSearchGroup(connectionSearchRepo, args, { pageId });
-        //     if (pageId) {
-        //       eventLogService
-        //         .logToolCall({
-        //           pageId,
-        //           userId,
-        //           toolName: 'searchGroup',
-        //           args: args as Record<string, unknown>,
-        //           result: res as unknown as Record<string, unknown>,
-        //           success: true,
-        //           agentExecutionId: executionId,
-        //         })
-        //         .catch(console.error);
-        //     }
-        //     return res;
-        //   },
-        // },
-        // searchBySemantic: {
-        //   ...searchBySemanticTool,
-        //   execute: async (args) => {
-        //     const res = await executeSearchBySemantic(args, { pageId });
-        //     if (pageId) {
-        //       eventLogService
-        //         .logToolCall({
-        //           pageId,
-        //           userId,
-        //           toolName: 'searchBySemantic',
-        //           args: args as Record<string, unknown>,
-        //           result: res as unknown as Record<string, unknown>,
-        //           success: true,
-        //           agentExecutionId: executionId,
-        //         })
-        //         .catch(console.error);
-        //     }
-        //     return res;
-        //   },
-        // },
-        // getPageEvents: createGetPageEventsTool(eventSearchService, pageId),
-        // grepEvents: createGrepEventsTool(eventSearchService, pageId),
-        // editBlockLines: editBlockLinesTool,
+        webSearch: xaiSearchTool,
+        read: createReadBlockLinesTool(blockSearchRepo, { pageId }),
+        // edit: editTool,
+        // hop: createHopSearchTool(connectionSearchRepo, { pageId }),
+        // group: createSearchGroupTool(connectionSearchRepo, { pageId }),
+        // grep: createGrepBlockContentTool(blockSearchRepo, { pageId }),
+        // glob: createGlobBlocksTool(blockSearchRepo, { pageId }),
         // createTodos: createTodosTool,
+        // semantic: createSearchBySemanticTool({ pageId }),
+        // getEvents: createGetPageEventsTool(eventSearchService, pageId ?? undefined),
+        // grepEvents: createGrepEventsTool(eventSearchService, pageId ?? undefined),
         // canvasAction: canvasActionTool,
         // organizeLayout: organizeLayoutTool,
+        // renderCanvasdown: renderCanvasdownTool,
+        // patchCanvasdown: patchCanvasdownTool,
       },
       onStepFinish: ({ toolCalls, toolResults }) => {
-        if (!pageId || !userId) return;
         const calls = (toolCalls ?? []) as Array<{ toolCallId?: string; toolName?: string; input?: unknown }>;
         const results = (toolResults ?? []) as Array<{ toolCallId?: string; toolName?: string; result?: unknown }>;
+        debugLog('step: finish (toolCalls)', {
+          toolNames: calls.map((c) => c.toolName),
+          toolCallIds: calls.map((c) => c.toolCallId),
+          hasResults: results.length,
+          // renderCanvasdown는 서버에서 execute 없음 → 클라이언트에서 실행 후 result 없음
+          inputsPreview: calls.map((c) =>
+            c.toolName === 'renderCanvasdown'
+              ? { dslLength: typeof (c.input as { dsl?: string })?.dsl === 'string' ? (c.input as { dsl: string }).dsl.length : 0 }
+              : c.toolName === 'webSearch'
+                ? { query: (c.input as { query?: string })?.query }
+                : {}
+          ),
+        });
+        if (!pageId || !userId) return;
         for (let i = 0; i < calls.length; i++) {
           const tc = calls[i];
-          if (tc?.toolName !== 'xaiSearch') continue;
+          if (tc?.toolName !== 'webSearch') continue;
           const tr = results[i] ?? results.find((r) => r.toolCallId === tc.toolCallId);
           eventLogService
             .logToolCall({
               pageId,
               userId,
-              toolName: 'xaiSearch',
+              toolName: 'webSearch',
               args: (tc.input ?? tc) as Record<string, unknown>,
               result: (tr?.result ?? tr) as Record<string, unknown>,
               success: true,
@@ -516,9 +406,18 @@ export async function POST(req: Request) {
           textLength: text?.length ?? 0,
           textPreview: text ? text.slice(0, 300) : null,
         });
+        debugLog('step: finish (fullResponse)', {
+          textLength: text?.length ?? 0,
+          textPreview: text ? text.slice(0, 200) + (text.length > 200 ? '…' : '') : null,
+        });
         const usage = (finishArg as { usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number } }).usage;
         if (usage) {
           ctxLog('AgentV2 tokens', {
+            promptTokens: usage.promptTokens ?? null,
+            completionTokens: usage.completionTokens ?? null,
+            totalTokens: usage.totalTokens ?? null,
+          });
+          debugLog('tokens', {
             promptTokens: usage.promptTokens ?? null,
             completionTokens: usage.completionTokens ?? null,
             totalTokens: usage.totalTokens ?? null,

@@ -33,5 +33,5 @@ interface PartWithToolIdentity {
 }
 
 export function isXaiSearchToolPart(part: PartWithToolIdentity): boolean {
-  return part.toolName === 'xaiSearch' || part.type === 'tool-xaiSearch';
+  return part.toolName === 'webSearch' || part.type === 'tool-webSearch';
 }

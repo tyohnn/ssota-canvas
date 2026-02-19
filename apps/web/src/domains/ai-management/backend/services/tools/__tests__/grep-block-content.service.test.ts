@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { executeGrepBlockContent } from '../internal-search/grep-block-content.service';
-import type { GrepBlockContentFinal } from '../internal-search/grep-block-content.service';
+import { executeGrepBlockContent } from '../internal-search/grepBlockContent/grep-block-content.service';
+import type { GrepBlockContentFinal, GrepMatch } from '../internal-search/grepBlockContent/grep-block-content.service';
 import type { BlockSearchRepository } from '../../../repositories/interfaces/block-search.repository.interface';
 import { randomUUID } from 'crypto';
 
@@ -85,7 +85,7 @@ describe('grep-block-content.service', () => {
       expect(final.matches).toHaveLength(1);
       const block = final.matches[0]!;
       expect(block.blockMountId).toBe('bm1');
-      const sources = block.matches.map(m => m.source);
+      const sources = block.matches.map((m: GrepMatch) => m.source);
       expect(sources).toContain('content_raw');
       expect(sources).toContain('source_content');
       expect(sources).toContain('source_summary');

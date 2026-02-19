@@ -32,7 +32,7 @@ function applyLineEdit(
   return lines.join('\n');
 }
 
-export interface UseEditBlockLinesToolDeps {
+export interface UseEditToolDeps {
   addToolOutput: AddToolOutput;
   getNode: (id: string) => Node | null;
   updateBlockContent: (params: {
@@ -43,10 +43,10 @@ export interface UseEditBlockLinesToolDeps {
   }) => Promise<boolean>;
 }
 
-export function useEditBlockLinesTool({
+export function useEditTool({
   getNode,
   updateBlockContent,
-}: Omit<UseEditBlockLinesToolDeps, 'addToolOutput'>) {
+}: Omit<UseEditToolDeps, 'addToolOutput'>) {
   return useCallback(
     async (
       addToolOutput: AddToolOutput,
@@ -68,7 +68,7 @@ export function useEditBlockLinesTool({
 
         if (!blockMountId) {
           addToolOutput({
-            tool: 'editBlockLines',
+            tool: 'edit',
             toolCallId,
             state: 'output-error',
             errorText: 'blockMountId is required',
@@ -77,7 +77,7 @@ export function useEditBlockLinesTool({
         }
         if ((operation === 'replace' || operation === 'insert') && newContent === undefined) {
           addToolOutput({
-            tool: 'editBlockLines',
+            tool: 'edit',
             toolCallId,
             state: 'output-error',
             errorText: 'newContent is required for replace and insert',
@@ -88,10 +88,10 @@ export function useEditBlockLinesTool({
         const node = getNode(blockMountId);
         if (!node) {
           addToolOutput({
-            tool: 'editBlockLines',
+            tool: 'edit',
             toolCallId,
             state: 'output-error',
-            errorText: `Block not found: ${blockMountId}. Use readBlockLines first to ensure the block is loaded.`,
+            errorText: `Block not found: ${blockMountId}. Use read first to ensure the block is loaded.`,
           });
           return;
         }
@@ -117,7 +117,7 @@ export function useEditBlockLinesTool({
         });
         if (!ok) {
           addToolOutput({
-            tool: 'editBlockLines',
+            tool: 'edit',
             toolCallId,
             state: 'output-error',
             errorText: 'Failed to update block content',
@@ -125,14 +125,14 @@ export function useEditBlockLinesTool({
           return;
         }
         addToolOutput({
-          tool: 'editBlockLines',
+          tool: 'edit',
           toolCallId,
           output: { success: true, message: 'Block lines updated.' },
         });
       } catch (error) {
-        console.error('[useEditBlockLinesTool] error:', error);
+        console.error('[useEditTool] error:', error);
         addToolOutput({
-          tool: 'editBlockLines',
+          tool: 'edit',
           toolCallId,
           state: 'output-error',
           errorText: error instanceof Error ? error.message : 'Unknown error',

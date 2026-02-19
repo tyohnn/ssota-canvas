@@ -6,7 +6,7 @@ import type { BlockNodeData } from '@/domains/block-management/shared/types/bloc
 
 /**
  * Visible block metadata (excludes content).
- * blockMountId: canvas/selection reference; blockId: for content tools (readBlockLines, etc.)
+ * blockMountId: canvas/selection reference; blockId: for content tools (read, etc.)
  */
 export interface VisibleBlockMeta {
   blockMountId: string;

@@ -2,14 +2,12 @@
  * grepBlockContent Tool Service
  *
  * 블록 content_raw에서 패턴 검색. DB 레벨 ILIKE 필터링 후 서버 사이드 라인 파싱.
- * Architecture: Repository에서 DB 필터링 → Service에서 라인 파싱 + 컨텍스트 구성.
- * 패턴: SafeDTO(문자열) → Service에서 VO 변환 → Repository에 VO 기반 scope 전달.
  */
 
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
-import type { BlockSearchRepository, BlockSearchScope } from '../../../repositories/interfaces/block-search.repository.interface';
+import type { BlockSearchRepository, BlockSearchScope } from '@/domains/ai-management/backend/repositories/interfaces/block-search.repository.interface';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -42,16 +40,10 @@ export type GrepBlockContentFinal = {
 
 export type GrepBlockContentYield = GrepBlockContentIntermediate | GrepBlockContentFinal;
 
-// ─── Args (SafeDTO from tool call) ────────────────────────────────────────
-
 export interface GrepBlockContentArgs {
-  /** 검색 패턴 배열. 단일/OR(any) 또는 AND(all)는 matchMode로 결정 */
   patterns?: string[];
-  /** 'any' = 한 패턴이라도 포함하면 매칭(OR), 'all' = 모든 패턴 포함 시 매칭(AND). 기본 'any' */
   matchMode?: 'any' | 'all';
-  /** true면 패턴에 매칭되지 않는 줄만 반환 (grep -v). 기본 false */
   invert?: boolean;
-  /** source_summary 검색 시 언어 필터 (예: ["ko","en"]). 미지정 시 전체. 프로그램적 호출용. */
   summaryLanguages?: string[];
   targetBlockMountIds?: string[];
   blockTypes?: string[];
@@ -62,10 +54,6 @@ export interface GrepBlockContentArgs {
 
 // ─── Service ──────────────────────────────────────────────────────────────
 
-/**
- * SafeDTO 문자열 → BlockSearchScope(VO) 변환.
- * 잘못된 UUID는 무시하고 해당 스코프만 비움.
- */
 function buildScopeFromArgs(
   args: GrepBlockContentArgs,
   options?: { pageId?: string }
@@ -76,8 +64,7 @@ function buildScopeFromArgs(
 
   try {
     const targetBlockMountIds =
-      targetIds?.length &&
-        targetIds.every(id => id && id.trim())
+      targetIds?.length && targetIds.every(id => id && id.trim())
         ? targetIds.map(id => new BlockMountId(id.trim()))
         : undefined;
 
@@ -103,9 +90,6 @@ function buildScopeFromArgs(
   }
 }
 
-/**
- * @param options.pageId - 현재 페이지 ID (route에서 clientContext로 주입). LLM이 args.pageId를 넘기지 않으면 이 값으로 스코프 기본 적용.
- */
 export async function* executeGrepBlockContent(
   repository: BlockSearchRepository,
   args: GrepBlockContentArgs,
@@ -116,9 +100,7 @@ export async function* executeGrepBlockContent(
   const invert = Boolean(args?.invert);
 
   const patterns: string[] = Array.isArray(args?.patterns)
-    ? args.patterns
-      .map(p => (typeof p === 'string' && p.trim() ? p.trim() : ''))
-      .filter(Boolean)
+    ? args.patterns.map(p => (typeof p === 'string' && p.trim() ? p.trim() : '')).filter(Boolean)
     : [];
 
   if (patterns.length === 0) {
@@ -134,11 +116,7 @@ export async function* executeGrepBlockContent(
     return noScope;
   }
 
-  const sourceList: GrepMatchSource[] = [
-    'content_raw',
-    'source_content',
-    'source_summary',
-  ];
+  const sourceList: GrepMatchSource[] = ['content_raw', 'source_content', 'source_summary'];
 
   yield { message: 'Searching block content...' };
 
@@ -158,10 +136,7 @@ export async function* executeGrepBlockContent(
     return true;
   };
 
-  function buildMatchesFromLines(
-    lines: string[],
-    source: GrepMatchSource
-  ): GrepMatch[] {
+  function buildMatchesFromLines(lines: string[], source: GrepMatchSource): GrepMatch[] {
     const blockMatches: GrepMatch[] = [];
     for (let i = 0; i < lines.length; i++) {
       const matches = lineMatches(lines[i]!);
@@ -189,12 +164,7 @@ export async function* executeGrepBlockContent(
 
   const byBlock = new Map<string, GrepBlockResult>();
 
-  function addToMap(
-    blockMountId: string,
-    blockType: string,
-    title: string,
-    matches: GrepMatch[]
-  ): void {
+  function addToMap(blockMountId: string, blockType: string, title: string, matches: GrepMatch[]): void {
     if (matches.length === 0) return;
     const existing = byBlock.get(blockMountId);
     if (existing) {
@@ -256,11 +226,7 @@ export async function* executeGrepBlockContent(
     return final;
   } catch (error) {
     console.error('[grepBlockContent] Error:', error);
-    const errResult: GrepBlockContentFinal = {
-      matches: [],
-      totalMatches: 0,
-      searchedBlocks: 0,
-    };
+    const errResult: GrepBlockContentFinal = { matches: [], totalMatches: 0, searchedBlocks: 0 };
     yield errResult;
     return errResult;
   }

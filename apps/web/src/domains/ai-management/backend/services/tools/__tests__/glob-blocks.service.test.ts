@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { executeGlobBlocks } from '../internal-search/glob-blocks.service';
-import type { GlobBlocksFinal } from '../internal-search/glob-blocks.service';
+import { executeGlobBlocks } from '../internal-search/globBlocks/glob-blocks.service';
+import type { GlobBlocksFinal } from '../internal-search/globBlocks/glob-blocks.service';
 import type { BlockSearchRepository } from '../../../repositories/interfaces/block-search.repository.interface';
 import { randomUUID } from 'crypto';
 
