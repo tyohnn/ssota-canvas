@@ -1,3 +1,4 @@
+import { getBlockToolsForType } from '@/domains/app-system/shared/registry/app-registry';
 import { BlockManagementError } from '../errors/block-management.error';
 import { BlockPropertiesFactory } from './block-properties';
 import {
@@ -69,6 +70,11 @@ export class BlockType {
    * @returns 툴 목록
    */
   getAvailableTools(): string[] {
+    const appTools = getBlockToolsForType(this._value);
+    if (appTools.length > 0) {
+      return appTools.map(t => t.name);
+    }
+
     const tools: Record<string, string[]> = {
       basic: ['edit', 'duplicate', 'delete'],
       default: ['edit', 'duplicate', 'delete'],

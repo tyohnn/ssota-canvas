@@ -3,8 +3,10 @@
  *
  * 블록 타입에 따라 적절한 Properties Value Object를 생성하는 Factory
  * 100개+ 블록 타입을 지원하기 위한 확장 가능한 구조
+ * When app-system has a block type definition with defaultProperties, those are used for that type.
  */
 
+import { getBlockTypeDefinition } from '@/domains/app-system/shared/registry/app-registry';
 import { BlockType as BlockTypeVO } from '../block-type.vo';
 import { BlockType } from '../../types/block-types';
 import { BlockPropertiesVO } from './base.vo';
@@ -127,6 +129,12 @@ export class BlockPropertiesFactory {
    * @throws Error - 지원하지 않는 블록 타입인 경우
    */
   static createForBlockType(blockTypeVO: BlockTypeVO): BlockPropertiesVO {
+    // App-system definition with defaultProperties takes precedence (e.g. link)
+    const def = getBlockTypeDefinition(blockTypeVO.value);
+    if (def?.defaultProperties) {
+      return this.createFromJSON(blockTypeVO, def.defaultProperties);
+    }
+
     // Registry가 초기화되지 않은 경우 초기화
     if (this.registry.size === 0) {
       this.initialize();

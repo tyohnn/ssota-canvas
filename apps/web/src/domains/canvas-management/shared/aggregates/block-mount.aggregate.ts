@@ -381,8 +381,8 @@ export class BlockMountAggregate {
       viewMode: blockMount.viewMode.value,
       viewModeSizes: blockMount.viewModeSizes.toJSON(),
 
-      // Block 정보 (Block Management Domain)
-      blockId: block.id.value,
+      // Block 정보 (Block Management Domain) — API는 slug(8~10자 hex)로 블록 식별
+      blockId: block.getSlug(),
       blockType: block.blockType.value,
       title: block.title,
       properties: block.properties.toJSON(),

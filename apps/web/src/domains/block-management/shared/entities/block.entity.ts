@@ -16,7 +16,11 @@ import { CustomPropertyDefinitionVO } from '../value-objects/custom-property-def
 /**
  * Block Entity
  *
- * 블록의 핵심 정보와 비즈니스 로직을 캡슐화
+ * 블록의 핵심 정보와 비즈니스 로직을 캡슐화.
+ *
+ * 블록 데이터 변경 원칙:
+ * - 본문(content): blocks.content로 관리되며 항상 사용자 수정 가능.
+ * - 블록 데이터(properties 등): properties 필드와 Block Tool(및 시스템)으로만 변경.
  */
 export class Block {
   private constructor(
