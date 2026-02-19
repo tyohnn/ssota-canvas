@@ -19,7 +19,7 @@ todos:
     status: completed
   - id: scenario-6
     content: "동적 컨텍스트 시나리오 6: 전체 — 4개 섹션 모두"
-    status: pending
+    status: completed
   - id: phase2-tools
     content: "Phase 2: 툴 테스팅 — 한 툴만 남기고 나머지 주석, 순차 검증"
     status: pending
@@ -47,8 +47,8 @@ isProject: false
 | 1   | 빈 컨텍스트 (스킵)   | —                               | 테스트 안 함 (기본은 작업공간 메타데이터)                                                                                                                        |
 | 2   | 페이지 정보만       | pageId, workspaceId, orgId만     | `**Current Page**:` + Page/Workspace/Org ID + 서버 주입(Page/Workspace/Org name, User) → **검증 통과**                                                  |
 | 3   | 선택 블록만        | selectedBlocks                  | `**Selected Blocks**:` + 목록 + 엣지 + content_raw·요약 미리보기 (노트 20줄/2,500자, 소스형 content+요약) → **검증 통과** (markdown: Content+엣지 / 유튜브: Summary만 노출 확인) |
-| 4   | Visible 블록만   | visibleBlocks                   | `**Visible Blocks**` + 블록 메타 + 엣지(dedupe) + 가까운 5개 content/요약 미리보기 각 500자 → **검증 통과**                                                           |
-| 5   | Recent Events | pageId 있음 → 서버가 recentEvents 주입 | `**Recent Events**` + 이벤트 줄들 → **검증 통과** (debug.log: 7개 이벤트)                                                                                    |
+| 4   | Visible 블록만   | visibleBlocks                   | `**Visible Blocks`** + 블록 메타 + 엣지(dedupe) + 가까운 5개 content/요약 미리보기 각 500자 → **검증 통과**                                                           |
+| 5   | Recent Events | pageId 있음 → 서버가 recentEvents 주입 | `**Recent Events`** + 이벤트 줄들 → **검증 통과** (debug.log: 7개 이벤트)                                                                                    |
 | 6   | 전체            | 위 항목 모두 유효                      | 4개 섹션 모두 포함 → **검증 통과** (debug.log: Current Page, Selected 1, Visible 6, Recent 7)                                                              |
 
 
@@ -71,7 +71,7 @@ isProject: false
 ## Phase 2: 툴 테스팅 (한 툴만 활성화)
 
 - route.ts `tools` 객체에서 테스트할 툴 1개만 남기고 나머지 14개 주석 처리.
-- 툴 목록: xaiSearch, renderCanvasdown, patchCanvasdown, grepBlockContent, globBlocks, readBlockLines, hopSearch, searchGroup, searchBySemantic, getPageEvents, grepEvents, editBlockLines, createTodos, canvasAction, organizeLayout.
+- 툴 목록 (검증 순서): read, edit, glob, grep, hop, group, getEvents, grepEvents, createTodos, canvasAction, organizeLayout, renderCanvasdown, patchCanvasdown. (webSearch는 별도 검증 완료.)
 
 ---
 
@@ -368,16 +368,103 @@ isProject: false
 
 **검증 과정 (debug.log `formatContextBlock` 기준)**:
 
-| 항목 | 기대 | 결과 |
-|------|------|------|
-| **Current Page** | Page/Workspace/Org/User 이름 + ID | ✅ 8줄: Page title "Welcome", Workspace "Default Workspace", Organization "SSOTA Labs, Inc", User "연주환" + 3개 ID |
-| **Selected Blocks (소스형)** | Summary + Content(content_raw) 각 20줄/2,500자, 추출 미포함 | ✅ 1개(d4d90e14, youtube): **Summary**(source_summary) + **Content:** `아 나도 진심 이렇게 되고 싶은데, 어떻게 하면 할 수 있지?` — content_raw 정상 노출, 추출 없음 |
-| **Visible Blocks** | 가까운 5개까지 Summary/Content 500자, 겹침 시 selected에만 content | ✅ 2개: 1번(73954c7e) Summary만, 2번(d4d90e14=selected) Summary+Content — 서버에서 content 한 번만 조회·공유하여 양쪽에 표시 |
-| **Recent Events** | pageId 있으면 서버 주입, ~15개 | ✅ 15개 (block_updated, ai_response, user_utterance 등) |
-| **서버 처리** | content/요약 조회·truncate 모두 서버 | ✅ getBlockContentPreviews(route) → blockContentPreviews 포맷(context-builder) |
+
+| 항목                        | 기대                                                     | 결과                                                                                                                                  |
+| ------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Current Page**          | Page/Workspace/Org/User 이름 + ID                        | ✅ 8줄: Page title "Welcome", Workspace "Default Workspace", Organization "SSOTA Labs, Inc", User "연주환" + 3개 ID                       |
+| **Selected Blocks (소스형)** | Summary + Content(content_raw) 각 20줄/2,500자, 추출 미포함    | ✅ 1개(d4d90e14, youtube): **Summary**(source_summary) + **Content:** `아 나도 진심 이렇게 되고 싶은데, 어떻게 하면 할 수 있지?` — content_raw 정상 노출, 추출 없음 |
+| **Visible Blocks**        | 가까운 5개까지 Summary/Content 500자, 겹침 시 selected에만 content | ✅ 2개: 1번(73954c7e) Summary만, 2번(d4d90e14=selected) Summary+Content — 서버에서 content 한 번만 조회·공유하여 양쪽에 표시                               |
+| **Recent Events**         | pageId 있으면 서버 주입, ~15개                                 | ✅ 15개 (block_updated, ai_response, user_utterance 등)                                                                                |
+| **서버 처리**                 | content/요약 조회·truncate 모두 서버                           | ✅ getBlockContentPreviews(route) → blockContentPreviews 포맷(context-builder)                                                         |
+
 
 **결론**: 컨텍스트 보강(페이지 이름·블록 content/요약 미리보기·Recent Events) **검증 통과**. 소스형(유튜브) 선택 시 **Summary + Content** 둘 다 정상 포함됨.
 
 ---
 
-이렇게 하면 “줌아웃 시 100개 넘어가는” 상황에서도 컨텍스트가 폭발하지 않고, 에이전트는 “전체 수”와 “실제로 담은 수”를 함께 인지할 수 있음.
+## read 테스트 환경 확인
+
+**결과: read 테스트 가능.**
+
+- **route.ts**: `read: createReadBlockLinesTool(blockSearchRepo, { pageId })` 등록됨 (343행).
+- **전제 조건**: 블록 1개 선택, 해당 블록에 content_raw(또는 source_content/source_summary)가 DB에 존재.
+- **테스트 절차**: 1) 마크다운 블록 생성 후 내용 입력. 2) 해당 블록 선택. 3) "선택한 블록 내용 처음 10줄 읽어줘" 입력. 4) read만 활성화한 상태에서 에이전트가 read 호출 → 서버 execute 반환 → 채팅에 라인 번호 붙은 텍스트 노출 확인.
+- **주의**: read 단독 테스트 시 webSearch 등 다른 툴은 주석 처리. blockSearchRepo·pageId는 route에서 이미 주입됨.
+
+---
+
+## Phase 2: 툴 테스팅 계획 (표)
+
+**진행 방식**: `apps/web/src/app/api/agent/v2/route.ts`의 `tools` 객체에서 **테스트할 툴 1개만 남기고 나머지 14개는 주석 처리**한 뒤, 해당 툴만 호출되도록 유도하는 사용자 입력으로 검증. 통과 후 다음 툴로 순차 진행.
+
+**공통 전제**:
+
+- 동적 컨텍스트는 Phase 1 완료 상태(시나리오 6 통과)로 **전체(Current Page, Selected Blocks, Visible Blocks, Recent Events)** 가 주입된 채로 테스트.
+- 각 툴 테스트 시 **해당 툴만** 활성화되어 있어야 하며, 에이전트가 다른 툴을 호출하려 하면 호출 불가(주석 처리됨)로 실패하므로, 입력은 **반드시 해당 툴 사용을 유도**하는 문장으로 구성.
+
+---
+
+### xaiSearch 동작 검증 완료
+
+**xaiSearch**는 Phase 2 툴 중 서버 실행·스트리밍 방식으로 동작하며, 아래와 같이 구현·검증 완료된 상태다.
+
+#### 서버
+
+- **모델**: `grok-4-1-fast-reasoning` (xAI Responses API), `xai.responses(XAI_SEARCH_MODEL)`.
+- **실행**: `executeXaiSearch` (xai-search.service.ts) — `streamText`로 웹 검색·X 검색 툴(`web_search`, `x_search`) 호출, `fullStream`에서 `text-delta`·`source`·`tool-result` 수집.
+- **반환**: `sources`(url, title, domain, faviconUrl) + `summary`(마크다운 요약). preliminary yield(검색 중) → 최종 yield.
+- **라우트**: route.ts에서 xaiSearch는 **스트리밍 툴**로 등록되어, execute가 AsyncGenerator를 반환하고 툴 결과가 스트림으로 클라이언트에 전달됨.
+
+#### 클라이언트
+
+- **메시지 파트**: 어시스턴트 메시지에 `type: 'tool-xaiSearch'`, `state: 'output-available'`, `input: { query }`, `output: { sources, summary }` 형태로 도착.
+- **렌더링**: `ChatPanelToolPart` → `XaiSearchAccordion` (tool-part/xaiSearch). 아코디언 열면 요약(Streamdown, 스크롤 가능) + 소스 목록(도메인만 클릭 가능, 인덱스 텍스트 없음).
+- **순서**: `chat-panel-messages`에서 **parts 배열 순서대로** 렌더링하므로, 툴(검색 아코디언)이 최종 텍스트 응답 **위에** 오도록 되어 있음.
+
+#### UX
+
+- **step-start 전**: 사용자 입력 후 첫 `step-start` 파트가 오기 전까지 Shimmer **"Thinking..."** 표시.
+- **검색 중**: 툴 파트는 output 전에도 **"Searching {query}"**가 바로 표시됨(Thinking 대신).
+- **결과**: 아코디언 기본 열림, 요약 영역 `max-h-48 overflow-y-auto`, 소스는 링크 텍스트 = 도메인만.
+
+#### 검증 요약
+
+
+| 항목                                           | 상태  |
+| -------------------------------------------- | --- |
+| 에이전트가 xaiSearch 호출                           | ✅   |
+| 스트림에 tool call + output(sources, summary) 반영 | ✅   |
+| 채팅 패널에 검색 아코디언·요약·소스 표시                      | ✅   |
+| 툴 결과가 최종 텍스트 위에 표시                           | ✅   |
+| 검색 중 "Searching {query}" 즉시 표시               | ✅   |
+
+
+---
+
+
+| #   | 툴 이름                 | 테스트 조건 (입력 · 캔버스 · 페이지 상태)                                                               | 기대 결과                                                                                     | 검증 방법                                                                                                    |
+| --- | -------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| 1   | **read**             | 입력: "선택한 블록 내용 처음 10줄 읽어줘". 캔버스: 블록 1개 선택, content_raw 10줄 이상.                           | 에이전트가 read만 호출(blockMountId, startLine/endLine). 라인 번호 붙은 텍스트가 채팅에 노출.                    | 이벤트 로그 `toolName: 'read'`, 결과에 lines/content. createReadBlockLinesTool execute 정상 반환.                    |
+| 2   | **edit**             | 입력: "선택한 블록 1번 줄 내용을 '수정된 첫 줄'로 바꿔줘". 캔버스: 블록 1개 선택, content_raw 1줄 이상.                  | 에이전트가 edit만 호출(operation: replace, startLine: 1, newContent). 클라이언트에서 편집 실행, 블록 내용 변경.    | edit 툴 호출 1회. 클라이언트 처리 후 해당 블록 content_raw 1줄 변경 확인. 이벤트 로그 tool_call (edit).                            |
+| 3   | **glob**             | 입력: "이 페이지에 마크다운 블록이 몇 개 있어? 목록 알려줘". 캔버스: 마크다운 블록 2개 이상.                                | 에이전트가 glob만 호출. blockTypes 또는 query로 검색, blockMountId·blockType·title 목록 반환.              | 이벤트 로그 `toolName: 'glob'`, 결과에 blocks 목록. createGlobBlocksTool 정상 반환.                                    |
+| 4   | **grep**             | 입력: "이 페이지 블록 내용 중 'TODO' 들어간 곳 찾아줘". 캔버스: 마크다운 등 content_raw에 "TODO"가 포함된 블록이 최소 1개 있음. | 에이전트가 grep만 호출. blockMountId, 라인 번호, 매칭 줄+주변 컨텍스트가 반환되어 채팅에 요약.                           | debug.log/이벤트 로그에 `toolName: 'grep'`, 결과에 matches 배열. createGrepBlockContentTool 정상 반환.                  |
+| 5   | **hop**              | 입력: "지금 선택한 블록에서 엣지로 1홉 연결된 블록들 알려줘". 캔버스: 엣지로 연결된 블록 2개 이상, 한 블록 선택.                    | 에이전트가 hop만 호출(startBlockMountId, hops: 1). byHop/blockMountIds 반환.                        | 이벤트 로그 `toolName: 'hop'`, 결과에 연결 블록 정보. createHopSearchTool 정상 반환.                                       |
+| 6   | **group**            | 입력: "이 그룹(zone) 안에 어떤 블록들이 있어?". 캔버스: zone 안에 자식 블록 1개 이상, zone 또는 자식 선택.                | 에이전트가 group만 호출(groupBlockMountId). 자식 blockMountId·blockType·title 목록 반환.                | 이벤트 로그 `toolName: 'group'`, 결과에 children. createSearchGroupTool 정상 반환.                                   |
+| 7   | **getEvents**        | 입력: "이 페이지 최근 활동 내역 보여줘". 캔버스: 과거 채팅/툴 호출 등 이벤트가 쌓인 페이지.                                 | 에이전트가 getEvents만 호출. 시간순 이벤트( user_utterance, tool_call, ai_response 등) 요약 반환.            | 이벤트 로그 `toolName: 'getEvents'`, 결과에 events 또는 grouped. createGetPageEventsTool execute 정상.               |
+| 8   | **grepEvents**       | 입력: "대화 중 '검색'이라는 단어 나온 이벤트 찾아줘". 캔버스: 이벤트 로그에 '검색' 포함된 메시지가 있음.                         | 에이전트가 grepEvents만 호출(query). BM25 검색 결과로 매칭 이벤트 요약 반환.                                    | 이벤트 로그 `toolName: 'grepEvents'`, 결과에 matches. createGrepEventsTool execute 정상.                           |
+| 9   | **createTodos**      | 입력: "이 작업 3단계로 나눠서 할 일 목록 만들어줘: 1 블록 정리, 2 요약 블록 추가, 3 레이아웃 정리".                         | 에이전트가 createTodos만 호출(todos 배열 3개). 채팅에 할 일 목록이 정리되어 반환.                                  | 이벤트 로그 `toolName: 'createTodos'`, 결과에 todos. createTodosTool은 클라이언트만 반환(Status Window 없음)이면 OK.          |
+| 10  | **canvasAction**     | 입력: "지금 선택한 블록으로 뷰포트 줌해줘" 또는 "캔버스 전체가 보이게 fit 해줘". 캔버스: 블록 1개 선택 또는 복수 블록.               | 에이전트가 canvasAction만 호출(action: zoomTo, zoomTarget: block 또는 fit). 클라이언트에서 뷰포트 이동/줌 적용.    | canvasAction 툴 호출 1회. 클라이언트에서 zoomTo/fit 실행, 화면에 줌/패닝 반영 확인. 이벤트 로그 tool_call (canvasAction).            |
+| 11  | **organizeLayout**   | 입력: "선택한 블록들 그리드로 3열 정렬해줘". 캔버스: 같은 레이어의 블록 2개 이상 선택.                                    | 에이전트가 organizeLayout만 호출(type: grid, options: { columns: 3 }). 클라이언트에서 레이아웃 실행, 블록 위치 변경. | organizeLayout 툴 호출 1회. 캔버스 상 블록이 그리드 형태로 재배치됨. 이벤트 로그 tool_call (organizeLayout).                       |
+| 12  | **renderCanvasdown** | 입력: "캔버스에 마크다운 블록 하나 추가해줘, 제목은 '테스트 블록'으로". 캔버스: 빈 상태 또는 기존 블록 있음.                       | 에이전트가 renderCanvasdown만 호출. 클라이언트에서 Canvasdown 실행 후 새 블록이 캔버스에 생성됨.                       | use-chat-v2에서 renderCanvasdown 툴 실행 로그/결과. 캔버스에 해당 블록 노드 생성 확인. 이벤트 로그에 tool_call (renderCanvasdown) 기록. |
+| 13  | **patchCanvasdown**  | 입력: "방금 만든 블록(또는 선택된 블록) 제목을 '수정된 제목'으로 바꿔줘". 캔버스: 블록 1개 이상 존재, 필요 시 해당 블록 선택.           | 에이전트가 patchCanvasdown만 호출. 클라이언트에서 패치 실행 후 블록 제목/속성 변경 반영.                                | patchCanvasdown 툴 호출 1회, 캔버스 상 해당 블록 title 등 변경 확인. 이벤트 로그 tool_call (patchCanvasdown).                  |
+
+
+---
+
+### Phase 2 검증 시 공통 확인 사항
+
+- **route.ts 수정**: 해당 회차 툴만 `tools: { [해당툴]: ... }` 남기고 나머지 키는 주석 처리. 저장 후 요청 1회 보내서 **해당 툴만** 호출되는지 확인.
+- **서버 실행 툴** (read, glob, grep, hop, group, getEvents, grepEvents): route 내 execute 호출 → 이벤트 로그 `logToolCall`에 toolName·args·result·success 기록 여부.
+- **클라이언트 실행 툴** (edit, createTodos, canvasAction, organizeLayout, renderCanvasdown, patchCanvasdown): use-chat-v2(또는 해당 훅)에서 toolName 분기 후 실행 → 캔버스/UI 변경 또는 반환값이 스트림에 포함되는지.
+- **실패 시**: 해당 툴만 활성화된 상태에서 다른 툴을 호출하려 하면 스키마/실행 오류가 날 수 있음. 이 경우 사용자 입력을 더 명확히 해당 툴 유도 문장으로 바꿔 재시도.
+
