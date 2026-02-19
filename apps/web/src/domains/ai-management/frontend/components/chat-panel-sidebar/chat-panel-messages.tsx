@@ -26,7 +26,7 @@ import {
   isTextPart,
   isToolPart,
 } from './types';
-import { ChatPanelToolPart, isXaiSearchToolPart } from './tool-part';
+import { ChatPanelToolPart, isWebSearchToolPart } from './tool-part';
 
 /**
  * Renders assistant messages: text parts as main response (Streamdown), tool parts (e.g. search) as Tasks.
@@ -98,20 +98,20 @@ function AssistantMessageContent({
 
         if (isToolPart(part)) {
           const toolPart = part as ToolCallPart;
-          const xaiSearchParts = toolParts.filter(isXaiSearchToolPart);
-          const isFirstXaiSearchInMessage =
-            isXaiSearchToolPart(toolPart) &&
-            toolParts.findIndex(isXaiSearchToolPart) === toolParts.indexOf(toolPart);
-          if (isXaiSearchToolPart(toolPart) && isFirstXaiSearchInMessage) {
+          const webSearchParts = toolParts.filter(isWebSearchToolPart);
+          const isFirstWebSearchInMessage =
+            isWebSearchToolPart(toolPart) &&
+            toolParts.findIndex(isWebSearchToolPart) === toolParts.indexOf(toolPart);
+          if (isWebSearchToolPart(toolPart) && isFirstWebSearchInMessage) {
             return (
               <ChatPanelToolPart
                 key={`${message.id}-search`}
-                parts={xaiSearchParts}
+                parts={webSearchParts}
                 partKey={`${message.id}-search`}
               />
             );
           }
-          if (isXaiSearchToolPart(toolPart)) {
+          if (isWebSearchToolPart(toolPart)) {
             return null;
           }
           const partKey = (toolPart as { toolCallId?: string }).toolCallId ?? `${message.id}-tool-${partIndex}`;

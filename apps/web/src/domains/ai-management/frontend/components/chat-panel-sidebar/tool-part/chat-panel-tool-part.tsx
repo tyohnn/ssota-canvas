@@ -2,32 +2,34 @@
 
 import type { ToolCallPart } from '../types';
 import { getToolPartLabel } from '../types';
+import { isReadToolPart, ReadTriggerItem } from './read';
 import { isRenderCanvasdownToolPart, RenderCanvasdownItem } from './renderCanvasdown';
-import { isXaiSearchToolPart, XaiSearchAccordion } from './xaiSearch';
+import { isWebSearchToolPart, WebSearchAccordion } from './webSearch';
 
 export interface ChatPanelToolPartProps {
   /** Single tool part (for non-search or when not grouping). */
   part?: ToolCallPart;
-  /** Multiple xaiSearch parts to render as one group (each as XaiSearchAccordion). */
+  /** Multiple webSearch parts to render as one group (each as WebSearchAccordion). */
   parts?: ToolCallPart[];
   partKey: string;
 }
 
 /**
- * Renders tool parts by type: xaiSearch → XaiSearchAccordion; renderCanvasdown → RenderCanvasdownItem; others → minimal label fallback.
+ * Renders tool parts by type: webSearch → WebSearchAccordion; read → ReadTriggerItem; renderCanvasdown → RenderCanvasdownItem; others → minimal label fallback.
  */
 export function ChatPanelToolPart({ part: singlePart, parts: groupedParts, partKey }: ChatPanelToolPartProps) {
   const part = singlePart ?? (groupedParts && groupedParts[0]);
   const parts = groupedParts?.length ? groupedParts : part ? [part] : [];
 
-  const isSearch = parts.length > 0 && parts.every(isXaiSearchToolPart);
+  const isSearch = parts.length > 0 && parts.every(isWebSearchToolPart);
+  const isRead = part && isReadToolPart(part);
   const isRenderCanvasdown = part && isRenderCanvasdownToolPart(part);
 
   if (isSearch) {
     return (
       <>
         {parts.map((p, idx) => (
-          <XaiSearchAccordion
+          <WebSearchAccordion
             key={(p as { toolCallId?: string }).toolCallId ?? `${partKey}-${idx}`}
             part={p}
             partKey={(p as { toolCallId?: string }).toolCallId ?? `${partKey}-${idx}`}
@@ -35,6 +37,10 @@ export function ChatPanelToolPart({ part: singlePart, parts: groupedParts, partK
         ))}
       </>
     );
+  }
+
+  if (isRead) {
+    return <ReadTriggerItem part={part} partKey={partKey} />;
   }
 
   if (isRenderCanvasdown) {

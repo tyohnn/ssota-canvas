@@ -5,12 +5,14 @@
 
 import type { V2ToolArgs, V2ToolCall } from '@/app/api/agent/v2/tools';
 import type { RenderCanvasdownToolOutput } from './tool-part/renderCanvasdown/types';
-import type { XaiSearchToolOutput } from './tool-part/xaiSearch/types';
+import type { ReadToolOutput } from './tool-part/read/types';
+import type { WebSearchToolOutput } from './tool-part/webSearch/types';
 
 /** Tool result payload per tool type. Extend with new tool output types as needed. */
 export type ToolCallOutput =
+  | ReadToolOutput
   | RenderCanvasdownToolOutput
-  | XaiSearchToolOutput
+  | WebSearchToolOutput
   | { message?: string; [k: string]: unknown };
 
 /** Text part from assistant or user */
@@ -58,7 +60,7 @@ export interface ToolCallPart {
   /** Legacy/alternate args shape */
   args?: V2ToolArgs;
   state?: ToolPartState;
-  /** True when this part is from a preliminary tool-output chunk (e.g. streaming xaiSearch); use to keep "Searching" until final. */
+  /** True when this part is from a preliminary tool-output chunk (e.g. streaming webSearch); use to keep "Searching" until final. */
   preliminary?: boolean;
   output?: ToolCallOutput;
   errorText?: string;

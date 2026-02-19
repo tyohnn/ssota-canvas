@@ -9,7 +9,7 @@ import {
 import { ChevronDownIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ToolCallPart } from '../../types';
-import type { XaiSearchSourceItem, XaiSearchToolOutput } from './types';
+import type { WebSearchSourceItem, WebSearchToolOutput } from './types';
 
 const QUERY_MAX = 50;
 const FAVICON_FALLBACK = 'https://www.google.com/s2/favicons?domain=&sz=16';
@@ -29,7 +29,7 @@ function getDomain(url: string): string {
   }
 }
 
-function getSources(output: XaiSearchToolOutput | undefined): Array<XaiSearchSourceItem & { domain: string; faviconUrl: string }> {
+function getSources(output: WebSearchToolOutput | undefined): Array<WebSearchSourceItem & { domain: string; faviconUrl: string }> {
   if (!output?.sources?.length) return [];
   return output.sources.map((s) => ({
     ...s,
@@ -38,19 +38,19 @@ function getSources(output: XaiSearchToolOutput | undefined): Array<XaiSearchSou
   }));
 }
 
-export interface XaiSearchAccordionProps {
+export interface WebSearchAccordionProps {
   part: ToolCallPart;
   partKey: string;
 }
 
 /**
- * One accordion per xaiSearch call. Label is "Searching {query}" when in progress, "Searched {query}" when done.
+ * One accordion per webSearch call. Label is "Searching {query}" when in progress, "Searched {query}" when done.
  */
-export function XaiSearchAccordion({ part, partKey }: XaiSearchAccordionProps) {
+export function WebSearchAccordion({ part, partKey }: WebSearchAccordionProps) {
   const state = part.state;
   const query = getQuery(part);
   const queryLabel = query || '…';
-  const output = part.output as XaiSearchToolOutput | undefined;
+  const output = part.output as WebSearchToolOutput | undefined;
   const sources = getSources(output);
   const summary = output?.summary?.trim();
 
@@ -99,7 +99,7 @@ export function XaiSearchAccordion({ part, partKey }: XaiSearchAccordionProps) {
       >
         <div className="mt-2 space-y-2">
           {summary ? (
-            <div className="text-muted-foreground text-sm max-h-48 overflow-y-auto">
+            <div className="text-muted-foreground text-sm max-h-48 overflow-y-auto **:text-muted-foreground [&_a]:text-muted-foreground [&_a:hover]:text-muted-foreground/90">
               <MessageResponse>{summary}</MessageResponse>
             </div>
           ) : null}

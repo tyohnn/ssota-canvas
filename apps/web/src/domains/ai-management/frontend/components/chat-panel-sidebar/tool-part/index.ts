@@ -1,6 +1,14 @@
 export { ChatPanelToolPart } from './chat-panel-tool-part';
 export type { ChatPanelToolPartProps } from './chat-panel-tool-part';
 export {
+  isReadToolPart,
+  ReadTriggerItem,
+} from './read';
+export type {
+  ReadTriggerItemProps,
+  ReadToolOutput,
+} from './read';
+export {
   isRenderCanvasdownToolPart,
   RenderCanvasdownItem,
 } from './renderCanvasdown';
@@ -9,11 +17,11 @@ export type {
   RenderCanvasdownToolOutput,
 } from './renderCanvasdown';
 export {
-  XaiSearchAccordion,
-  isXaiSearchToolPart,
-} from './xaiSearch';
+  isWebSearchToolPart,
+  WebSearchAccordion,
+} from './webSearch';
 export type {
-  XaiSearchAccordionProps,
-  XaiSearchSourceItem,
-  XaiSearchToolOutput,
-} from './xaiSearch';
+  WebSearchAccordionProps,
+  WebSearchSourceItem,
+  WebSearchToolOutput,
+} from './webSearch';
