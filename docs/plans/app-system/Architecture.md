@@ -616,8 +616,13 @@ Block은 **블록 타입의 인스턴스**이다. 앱이 정의한 블록 타입
 | **blockType** | 앱이 정의한 블록 타입 이름 |
 | **title** | 블록 제목 |
 | **properties** | 앱이 정의한 propertiesSchema에 따른 데이터 |
-| **content** | 블록의 본문 콘텐츠 (마크다운, TipTap JSON 등) |
+| **content** | 블록의 본문 콘텐츠 (마크다운, TipTap JSON 등). DB 필드 `blocks.content`로 관리 |
 | **sourceId** | (선택) 외부 소스 연동 |
+
+#### 블록 데이터 변경 원칙
+
+- **본문(content)**: 블록의 메인 콘텐츠(본문)는 `blocks.content`로 따로 관리되며, **항상 사용자가 수정 가능**하다.
+- **블록 데이터(properties 등)**: 본문을 제외한 블록 데이터는 **properties 필드와 Block Tool(및 시스템)** 으로만 변경된다. 즉, 구조화된 데이터는 properties 업데이트 또는 도구 실행을 통해서만 갱신된다.
 
 #### 블록이 캔버스에 존재한다는 것의 의미
 
@@ -644,7 +649,7 @@ Block Type Definition은 앱이 선언하는 **블록 타입의 청사진**이�
 | **icon** | 블록 타입 아이콘 |
 | **propertiesSchema** | 이 블록 타입의 properties 데이터 스키마 (JSON Schema) |
 | **blockTools** | 이 블록 타입 인스턴스에서 사용 가능한 Block Tool 목록 |
-| **isEditable** | Read-Only vs Editable |
+| **isEditable** | 이 블록 타입의 **properties**를 UI에서 직접 사용자 편집할 수 있는지 여부. true면 속성 패널 등에서 직접 편집 가능, false면 properties·Block Tool로만 변경. (본문(content)은 항상 수정 가능하며 `blocks.content`로 관리됨.) |
 | **openType** | 개방형 여부. true면 다른 앱도 이 타입의 블록을 생산 가능 (image, markdown 등). false면 definer 앱만 생산 가능 (quiz, github_pr 등) |
 | **defaultViewMode** | 기본 뷰 모드 |
 | **supportedViewModes** | 지원하는 뷰 모드 목록 |

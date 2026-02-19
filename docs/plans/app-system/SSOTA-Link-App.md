@@ -48,7 +48,7 @@ SSOTA Link App:
 │   └── link (openType: true)
 │       ├── propertiesSchema: §8 참조
 │       ├── blockTools: §5 참조
-│       ├── isEditable: false (Read-Only, properties로 데이터 관리)
+│       ├── isEditable: false (properties는 UI 직접 편집 불가, properties·Block Tool로만 변경. 본문(content)은 항상 수정 가능.)
 │       ├── defaultViewMode: 'card'
 │       ├── supportedViewModes: ['card', 'compact', 'expanded']
 │       └── sourceCapability:
