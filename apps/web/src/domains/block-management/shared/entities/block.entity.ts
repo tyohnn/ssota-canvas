@@ -4,7 +4,10 @@ import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 
 import { BlockManagementError } from '../errors/block-management.error';
-import { tiptapToMarkdown } from '../utils/tiptap-markdown.utils';
+import {
+  extractPlainText,
+  tiptapToMarkdown,
+} from '../utils/tiptap-markdown.utils';
 import { BlockId } from '../value-objects/block-id.vo';
 import {
   BlockPropertiesFactory,
@@ -95,9 +98,15 @@ export class Block {
       undefined // slug (create 시 repo에서 id로부터 계산해 insert)
     );
 
-    // 마크다운 블록인 경우 content_raw 자동 생성 (AI 컨텍스트용)
-    if (blockType.value === 'markdown' && content) {
-      const contentRaw = tiptapToMarkdown(content as any);
+    // content_raw 자동 생성 (AI 컨텍스트용). 마크다운은 tiptapToMarkdown, 그 외/실패 시 extractPlainText
+    if (content && typeof content === 'object') {
+      let contentRaw =
+        blockType.value === 'markdown'
+          ? tiptapToMarkdown(content as any)
+          : '';
+      if (!contentRaw) {
+        contentRaw = extractPlainText(content as any);
+      }
       if (contentRaw) {
         (block as any).contentRaw = contentRaw;
       }
