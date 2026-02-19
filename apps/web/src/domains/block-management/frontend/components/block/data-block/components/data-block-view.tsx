@@ -37,7 +37,9 @@ export function DataBlockView({
           `[DataBlockView] renderOriginalView is required for viewMode 'original'`
         );
       }
-      return <OriginalView>{renderOriginalView()}</OriginalView>;
+      return (
+        <OriginalView selected={selected}>{renderOriginalView()}</OriginalView>
+      );
     case 'card':
       if (!renderCardView) {
         throw new Error(
@@ -52,6 +54,8 @@ export function DataBlockView({
           `[DataBlockView] renderOriginalView is required for viewMode '${viewMode}'`
         );
       }
-      return <OriginalView>{renderOriginalView()}</OriginalView>;
+      return (
+        <OriginalView selected={selected}>{renderOriginalView()}</OriginalView>
+      );
   }
 }

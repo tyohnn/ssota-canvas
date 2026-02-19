@@ -58,7 +58,7 @@ export const BLOCK_TYPE_SIZES: Record<
   [BlockType.VIDEO]: { width: 400, height: 225 }, // 비디오 플레이어
   [BlockType.FILE]: { width: 250, height: 150 },
   [BlockType.PYTHON]: { width: 350, height: 250 },
-  [BlockType.LINK]: { width: 316, height: 288 }, // 링크 블록 (16:9 비율에 가까운 크기)
+  [BlockType.LINK]: { width: 310, height: 280 }, // 링크 블록
   [BlockType.PAGE_MENTION]: { width: 250, height: 120 },
   [BlockType.LATEX]: { width: 300, height: 180 },
   [BlockType.GITHUB_PR]: { width: 400, height: 200 },

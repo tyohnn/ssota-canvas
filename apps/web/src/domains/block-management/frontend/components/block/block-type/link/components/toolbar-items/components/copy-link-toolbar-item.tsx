@@ -1,12 +1,10 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@workspace/ui/components/ui/tooltip';
-import { Copy, Check } from 'lucide-react';
+
+import { Check, Copy } from 'lucide-react';
+
+import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
 
 interface CopyLinkToolbarItemProps {
   blockId: string;
@@ -36,25 +34,16 @@ export function CopyLinkToolbarItem({
   }, [url]);
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          className="flex items-center justify-center p-1 rounded-md hover:bg-black/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          onMouseDown={e => e.stopPropagation()}
-          onClick={handleCopyLink}
-          disabled={disabled || !url}
-        >
-          {isCopied ? (
-            <Check className="h-4 w-4 text-green-600" />
-          ) : (
-            <Copy className="h-4 w-4" />
-          )}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="top" hasArrow={false} sideOffset={10}>
-        <p>{isCopied ? '복사됨!' : '링크 복사'}</p>
-      </TooltipContent>
-    </Tooltip>
+    <ToolbarIconButton
+      icon={isCopied ? <Check className="text-green-600" /> : <Copy />}
+      tooltip={isCopied ? 'Copied!' : 'Copy Link'}
+      tooltipSide="top"
+      tooltipOffset={5}
+      onClick={handleCopyLink}
+      disabled={disabled || !url}
+      onMouseDown={e => e.stopPropagation()}
+      className="h-7 w-7 p-0"
+      iconClassName="size-3.5"
+    />
   );
 }
-

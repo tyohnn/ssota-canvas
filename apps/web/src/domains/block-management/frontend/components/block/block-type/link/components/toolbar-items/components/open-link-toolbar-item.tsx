@@ -1,12 +1,10 @@
 'use client';
 
 import { useCallback } from 'react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@workspace/ui/components/ui/tooltip';
+
 import { ExternalLink } from 'lucide-react';
+
+import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
 
 interface OpenLinkToolbarItemProps {
   blockId: string;
@@ -28,20 +26,16 @@ export function OpenLinkToolbarItem({
   }, [url]);
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          className="flex items-center justify-center p-1 rounded-md hover:bg-black/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          onMouseDown={e => e.stopPropagation()}
-          onClick={handleOpenLink}
-          disabled={disabled || !url}
-        >
-          <ExternalLink className="h-4 w-4" />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="top" hasArrow={false} sideOffset={10}>
-        <p>링크 열기</p>
-      </TooltipContent>
-    </Tooltip>
+    <ToolbarIconButton
+      icon={<ExternalLink />}
+      tooltip="Open link"
+      tooltipSide="top"
+      tooltipOffset={5}
+      onClick={handleOpenLink}
+      disabled={disabled || !url}
+      onMouseDown={e => e.stopPropagation()}
+      className="h-7 w-7 p-0"
+      iconClassName="size-3.5"
+    />
   );
 }

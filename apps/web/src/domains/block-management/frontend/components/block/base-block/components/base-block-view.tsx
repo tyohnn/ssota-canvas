@@ -18,6 +18,7 @@ import { BlockNodeData } from '@/domains/block-management/shared/types/block-dat
 
 import type { HoverDirection } from '../core/types';
 import { AddButtonZonesContainer } from './add-button-zones';
+import { Box } from '@/components/ui/box';
 
 export interface BaseBlockViewProps {
   children?: React.ReactNode;
@@ -54,7 +55,7 @@ export const BaseBlockView = forwardRef<HTMLDivElement, BaseBlockViewProps>(
     ref
   ) => {
     return (
-      <div
+      <Box
         ref={ref}
         className={cn(
           'relative w-full h-full min-w-[100px] min-h-[70px] overflow-visible',
@@ -78,7 +79,7 @@ export const BaseBlockView = forwardRef<HTMLDivElement, BaseBlockViewProps>(
             setHoverDirection={setHoverDirection}
           />
         )}
-      </div>
+      </Box>
     );
   }
 );
