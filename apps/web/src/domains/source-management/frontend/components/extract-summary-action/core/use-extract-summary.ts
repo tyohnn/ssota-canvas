@@ -45,10 +45,20 @@ export function useExtractSummary({
   const { setAutoSummaryBlockId } = useAIActionContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [blockUuidForRealtime, setBlockUuidForRealtime] = useState<
+    string | null
+  >(null);
   const waitingForJobRef = useRef(false);
   const clearExtractingRef = useRef<(() => void) | null>(null);
 
-  const { isCompleted, isFailed } = useSourceJobRealtime(blockId, null);
+  const { isCompleted, isFailed } = useSourceJobRealtime(
+    blockUuidForRealtime ?? blockId,
+    null
+  );
+
+  useEffect(() => {
+    setBlockUuidForRealtime(null);
+  }, [blockId]);
 
   useEffect(() => {
     if (!waitingForJobRef.current) return;
@@ -116,7 +126,12 @@ export function useExtractSummary({
             setIsLoading(false);
           } else {
             waitingForJobRef.current = true;
-            setAutoSummaryBlockId(blockId);
+            if (result.blockUuid) {
+              setBlockUuidForRealtime(result.blockUuid);
+              setAutoSummaryBlockId(result.blockUuid);
+            } else {
+              setAutoSummaryBlockId(blockId);
+            }
           }
         } else {
           clearExtracting();

@@ -9,6 +9,7 @@ import { processSourceSummaryAction } from '@/domains/source-management/actions/
 export interface ExtractSummaryResult {
   success: boolean;
   alreadyExists?: boolean;
+  blockUuid?: string;
   error?: string;
 }
 
@@ -23,7 +24,7 @@ export async function extractSummaryAction(
   if (!sourceId) {
     return {
       success: false,
-      error: 'URL을 입력해 메타데이터를 불러온 후 요약을 추출할 수 있습니다.',
+      error: 'Load metadata from URL first, then you can extract the summary.',
     };
   }
 
@@ -38,6 +39,7 @@ export async function extractSummaryAction(
       return {
         success: true,
         alreadyExists: result.data?.alreadyExists ?? false,
+        blockUuid: result.data?.blockUuid,
       };
     }
     return {

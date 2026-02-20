@@ -17,10 +17,12 @@ export {
   CreateSourceSummaryRequestSchema,
   EnsureSourceSummaryRequestSchema,
   GetSourceSummaryRequestSchema,
+  ProcessSourceSummaryByBlockRequestSchema,
   ProcessSourceSummaryRequestSchema,
   type CreateSourceSummaryRequest,
   type EnsureSourceSummaryRequest,
   type GetSourceSummaryRequest,
+  type ProcessSourceSummaryByBlockRequest,
   type ProcessSourceSummaryRequest,
 } from './source-summary.requests';
 export {

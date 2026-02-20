@@ -1,31 +1,19 @@
 'use server';
 
-import { createClient } from '@supabase/supabase-js';
-
 import { ActionResult, err, ok } from '@/lib';
-import { z } from 'zod';
 
 import { createSupabasePgmqQueueAdapter } from '@/domains/queue';
+import { supabaseAdmin } from '@/utils/supabase/server';
 
 import { DrizzleSourceJobRepository } from '../../backend/repositories/implementations/drizzle-source-job.repository';
 import { DrizzleSourceSummaryRepository } from '../../backend/repositories/implementations/drizzle-source-summary.repository';
 import { ensureSourceJobService } from '../../backend/services/source-job';
-import { BlockSlugParamSchema } from '../../shared/dtos/requests/source.requests';
-import { SUPPORTED_LANGUAGES } from '../../shared/value-objects/language-code.vo';
+import {
+  ProcessSourceSummaryByBlockRequestSchema,
+  type ProcessSourceSummaryByBlockRequest,
+} from '../../shared/dtos/requests';
 import type { SourceBlockActionContext } from '../secure-action';
 import { withSourceBlockSecureAction } from '../secure-action';
-
-const LanguageSchema = z.enum(
-  SUPPORTED_LANGUAGES as unknown as [string, ...string[]]
-);
-const ProcessSourceSummaryByBlockRequestSchema = z.object({
-  workspaceId: z.uuid(),
-  blockId: BlockSlugParamSchema,
-  language: LanguageSchema,
-});
-type ProcessSourceSummaryByBlockRequest = z.infer<
-  typeof ProcessSourceSummaryByBlockRequestSchema
->;
 
 export const processSourceSummaryAction = withSourceBlockSecureAction(
   ProcessSourceSummaryByBlockRequestSchema,
@@ -37,14 +25,17 @@ async function processSourceSummaryInternal(
   req: ProcessSourceSummaryByBlockRequest,
   ctx: SourceBlockActionContext
 ): Promise<
-  ActionResult<{ ok: true; jobId: string; alreadyExists: boolean }>
+  ActionResult<{
+    ok: true;
+    jobId: string;
+    alreadyExists: boolean;
+    blockUuid: string;
+  }>
 > {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-  const queueAdapter = createSupabasePgmqQueueAdapter({ supabase });
+  // 1. Supabase admin client + PGMQ queue adapter 준비
+  const queueAdapter = createSupabasePgmqQueueAdapter({ supabase: supabaseAdmin });
 
+  // 2. ensureSourceJobService: 기존 job 있으면 반환, 없으면 source_summary 생성 후 extract 큐에 메시지 enqueue
   const result = await ensureSourceJobService(
     {
       blockId: ctx.blockUuid,
@@ -59,6 +50,7 @@ async function processSourceSummaryInternal(
     }
   );
 
+  // 3. 실패 시 에러 반환
   if (result.isError()) {
     return err(result.error.message, {
       code: 'ENSURE_SOURCE_JOB_FAILED',
@@ -66,9 +58,11 @@ async function processSourceSummaryInternal(
     });
   }
 
+  // 4. 성공 시 jobId, alreadyExists, blockUuid 반환
   return ok({
     ok: true,
     jobId: result.value.jobId,
     alreadyExists: result.value.alreadyExists,
+    blockUuid: ctx.blockUuid,
   });
 }

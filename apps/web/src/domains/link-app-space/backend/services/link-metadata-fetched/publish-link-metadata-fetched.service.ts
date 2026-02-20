@@ -6,7 +6,7 @@
  * - Domain Event와 동일하게 "이벤트 생성 → handle() 호출" 흐름을 유지한다.
  * - 발행 주체는 Aggregate가 아니라 이 서비스(Application 레이어)이다.
  *
- * Policy: (1) findOrCreateSource(url, 'link', rawContent) (2) block.sourceId (3) ensureSourceJob
+ * Policy: (1) findOrCreateSource(url, 'link') (2) block.sourceId (3) ensureSourceJob
  *
  * @see docs/patterns/backend/policy-and-event-types-guide.md
  */
@@ -25,6 +25,14 @@ import { LinkMetadataFetchedEvent } from '../../../shared/events/link-metadata.e
 
 export type PublishLinkMetadataFetchedPayload = LinkMetadataFetchedEventData;
 
+/**
+ * LinkMetadataFetched Policy 실행
+ *
+ * 1. findOrCreateSource: URL로 source 조회/생성
+ * 2. block 조회 (workspaceId + blockId slug)
+ * 3. block.sourceId 업데이트
+ * 4. ensureSourceJobService: source_summary/job 생성, extract 큐 enqueue
+ */
 async function runLinkMetadataFetchedPolicy(
   payload: LinkMetadataFetchedEventData
 ): Promise<string | undefined> {
@@ -36,12 +44,13 @@ async function runLinkMetadataFetchedPolicy(
     supabase: supabaseAdmin,
   });
 
+  // 1. findOrCreateSource(url, 'link')
   const sourceResult = await findOrCreateSource(
     {
       url: payload.url,
       sourceType: 'link',
       metadata: {},
-      rawContent: payload.markdown || undefined,
+      rawContent: undefined,
     },
     sourceRepository
   );
@@ -56,15 +65,18 @@ async function runLinkMetadataFetchedPolicy(
 
   const sourceId = sourceResult.value.getSource().id.value;
 
+  // 2. block 조회 (workspaceId + blockId slug)
   const block = await blockRepository.findByWorkspaceIdAndSlug(
     new WorkspaceId(payload.workspaceId),
     payload.blockId
   );
   if (!block) return sourceId;
 
+  // 3. block.sourceId 업데이트
   block.updateSourceId(sourceId);
   await blockRepository.update(block);
 
+  // 4. ensureSourceJobService (source_summary/job 생성, extract 큐 enqueue)
   const language = payload.language ?? 'en';
   const result = await ensureSourceJobService(
     {
@@ -88,6 +100,14 @@ async function runLinkMetadataFetchedPolicy(
   return sourceId;
 }
 
+/**
+ * LinkMetadataFetched Application Event 발행
+ *
+ * 1. runPolicy 생성: runLinkMetadataFetchedPolicy 실행 래퍼
+ * 2. LinkMetadataFetchedEvent 인스턴스 생성 (aggregateId, data, runPolicy)
+ * 3. event.handle() 호출 → runPolicy 실행
+ * 4. resolvedSourceId 반환
+ */
 export async function publishLinkMetadataFetched(
   payload: PublishLinkMetadataFetchedPayload
 ): Promise<string | undefined> {

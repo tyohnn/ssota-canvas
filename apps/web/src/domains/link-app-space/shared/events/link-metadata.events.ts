@@ -13,8 +13,6 @@ export interface LinkMetadataFetchedEventData {
   orgId: string;
   url: string;
   language: string;
-  /** markdown (raw_content) - 있으면 Source 생성 시 함께 저장, processSourceJob에서 extract 건너뜀 */
-  markdown?: string | null;
 }
 
 /**

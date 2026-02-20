@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { BlockSlugParamSchema } from './source.requests';
 import { SUPPORTED_LANGUAGES } from '../../value-objects/language-code.vo';
 
 const LanguageSchema = z.enum(SUPPORTED_LANGUAGES as unknown as [string, ...string[]]);
@@ -32,6 +33,17 @@ export const ProcessSourceSummaryRequestSchema = z.object({
 
 export type ProcessSourceSummaryRequest = z.output<
   typeof ProcessSourceSummaryRequestSchema
+>;
+
+/** Block-based request for processSourceSummaryAction (secure action resolves block/org/sourceId) */
+export const ProcessSourceSummaryByBlockRequestSchema = z.object({
+  workspaceId: z.uuid(),
+  blockId: BlockSlugParamSchema,
+  language: LanguageSchema,
+});
+
+export type ProcessSourceSummaryByBlockRequest = z.output<
+  typeof ProcessSourceSummaryByBlockRequestSchema
 >;
 
 export const EnsureSourceSummaryRequestSchema = z.object({

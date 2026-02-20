@@ -108,7 +108,10 @@ export function useSourceSummarySection({
       : null;
 
   const { isCompleted, isProcessing: isJobProcessing, job } =
-    useSourceJobRealtime(blockSlug, initialJob);
+    useSourceJobRealtime(
+      initialJob?.block_id ?? blockSlug,
+      initialJob
+    );
 
   const prevCompletedRef = useRef(false);
 
@@ -349,10 +352,18 @@ export function useSourceSummarySection({
     !isExtractingSummary;
   const isPanelReopenFetchingJob =
     !!blockSlug && !!sourceId && !readonly && isFetchingInProgressJob;
+  /** 패널 오픈 직후 sourceId가 있으면, fetch 시작 전에도 로딩으로 간주 */
+  const isInitialFetchAfterPanelOpen =
+    !!blockSlug &&
+    !!sourceId &&
+    !shouldTreatAsEmpty &&
+    finalCurrentSummary === undefined &&
+    !languagesError;
   const isLoading =
     isLoadingLanguages ||
     isPanelReopenFetchingJob ||
     isSummaryContentLoading ||
+    isInitialFetchAfterPanelOpen ||
     isExtractingFromTabOptions;
 
   const mergedSourceSummaryAccessLanguages = useMemo(() => {
