@@ -123,6 +123,8 @@ export class DrizzleEventLogRepository implements EventLogRepository {
   ): Promise<EventLog[]> {
     const conditions: Parameters<typeof and>[0][] = [
       eq(eventLogs.page_id, pageId),
+      // Exclude chat-related events (few-shot effect harms dialogue)
+      sql`${eventLogs.event_type} NOT IN ('user_utterance', 'ai_response', 'tool_call')`,
       // Exclude block_mount_updated
       sql`NOT (${eventLogs.event_type} = 'block_mount' AND ${eventLogs.action} = 'updated')`,
       // edge_updated: include only when payload.changes.label is present (label update)

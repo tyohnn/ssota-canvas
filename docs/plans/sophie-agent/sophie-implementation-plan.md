@@ -9,7 +9,7 @@
 
 ### 구현 완료
 - `/api/agent/v2/route.ts`: xAI Grok 모델 기반 스트리밍 에이전트, 동적 컨텍스트 주입
-- `/api/agent/v2/context-builder.ts`: 동적 컨텍스트 조립 (selectedBlocks, visibleBlocks, blockContentPreviews, recentEvents). Selected: note_content 20줄/2,500자, summary 전체. Visible: 2,000자, 가까운 5개. 줌아웃 캡(visibleBlocksTotalInView, visibleBlocksInContext).
+- `/api/agent/v2/context-builder.ts`: 동적 컨텍스트 조립 (selectedBlocks, visibleBlocks, blockContentPreviews, recentEvents). Selected: note_content 20줄/2,500자, summary 전체. Visible: 2,000자, 가까운 5개. 줌아웃 캡(visibleBlocksTotalInView, visibleBlocksInContext). recentEvents는 `recentContextForAgent`에서 조회.
 - `/api/agent/v2/prompt.ts`: 정적 시스템 프롬프트 (Identity, SSOTA Core Concepts, Available Tools, Context Interpretation, Resolving References, Communication Rules). read 툴 50 lines, 5000 chars/call.
 - **툴 등록**: webSearch, read (50 lines/5000 chars), grep, glob, hop, group, semantic, getEvents, grepEvents, edit, createTodos, canvasAction, organizeLayout, renderCanvasdown, patchCanvasdown (route.ts에서 필요한 것만 활성화하여 Phase 2 테스팅 진행 중).
 - **read 툴 검증 완료**: 50 lines, 5000 chars. Phase 2 툴 테스팅 순서: read → edit → glob → grep → hop → group → getEvents → grepEvents → createTodos → canvasAction → organizeLayout → renderCanvasdown → patchCanvasdown.
@@ -602,6 +602,10 @@ organizeLayoutTool = {
 ```typescript
 recentEvents: [{ type: "block_created", ... }, { type: "block_updated", ... }, ...]
 ```
+
+**recentEvents 제외 대상** (repo `recentContextForAgent` 단에서 필터링):
+- `user_utterance`, `ai_response`, `tool_call` — 채팅 관련 이벤트는 few-shot처럼 작동해 대화 품질을 해침.
+- block_mount_updated, edge_updated(라벨 제외) — 노이즈 감소 목적.
 
 **완료 조건**:
 - "어제 이 페이지에서 뭐 했어?" → 이벤트 로그 기반 작업 히스토리 응답.

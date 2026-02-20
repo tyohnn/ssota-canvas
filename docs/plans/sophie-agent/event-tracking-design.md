@@ -148,6 +148,9 @@
 - 연속 반복 이벤트 압축 (예: "블록 5개 생성" 한 줄).
 - Level 1 + Level 2 위주, Level 3은 제외해 토큰 절약.
 
+**제외 대상** (repo `recentContextForAgent`에서 SQL 필터):
+- `user_utterance`, `ai_response`, `tool_call` — 채팅 관련 이벤트가 few-shot처럼 주입되면 대화 품질이 떨어짐.
+
 ---
 
 ## 8. tool_call과 block/edge 이벤트의 중복 방지
