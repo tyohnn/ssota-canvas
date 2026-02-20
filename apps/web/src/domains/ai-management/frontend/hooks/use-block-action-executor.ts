@@ -156,8 +156,21 @@ export function useBlockActionExecutor(executorParams: {
           throw new Error(result.error || 'Action execution failed');
         }
 
-        // 6. 최종 결과 반환 (각 액션에서 이미 처리 완료)
-        // result.data를 그대로 전달하여 이미지 리스트 등 액션 결과 데이터 포함
+        // 6. replace 모드: result.data.properties를 블록에 적용 (link on-demand 등)
+        const resultData = result.data as any;
+        if (
+          resultData?.mode === 'replace' &&
+          resultData?.properties &&
+          executorParams.blockPropertyUpdate?.updateProperties
+        ) {
+          await executorParams.blockPropertyUpdate.updateProperties(
+            blockId,
+            resultData.properties,
+            blockData
+          );
+        }
+
+        // 7. 최종 결과 반환
         return {
           success: true,
           message: result.message || `${blockType}.${action} 실행 완료`,

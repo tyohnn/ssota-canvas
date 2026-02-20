@@ -11,5 +11,6 @@ export {
   type BlockContentPreview,
   type BlockContentPreviewDeps,
   type BlockContentPreviewInput,
+  type BlockContentPreviewLimits,
   type BlockMetaRef,
 } from './block-content-preview';

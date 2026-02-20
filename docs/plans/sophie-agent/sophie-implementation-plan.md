@@ -9,14 +9,14 @@
 
 ### 구현 완료
 - `/api/agent/v2/route.ts`: xAI Grok 모델 기반 스트리밍 에이전트, 동적 컨텍스트 주입
-- `/api/agent/v2/context-builder.ts`: 동적 컨텍스트 조립 (visibleBlocks, selectedBlockIds 등)
-- `/api/agent/v2/prompt.ts`: 정적 시스템 프롬프트 (캐싱 대상) + Tool 사용법
-- `/api/agent/v2/tools.ts`: web_search, x_search(xAI 네이티브), renderCanvasdown, patchCanvasdown, **grepBlockContent**, **globBlocks**, **readBlockLines** 등록
-- **Step 1-5 완료**: 블록 검색/읽기 — grepBlockContent, globBlocks, readBlockLines 서버사이드 구현 (ai-management 도메인). **소스 도메인 연동**: content_raw 외에 연결된 소스의 추출 본문(source_content), AI 요약(source_summary) 검색·읽기 지원.
+- `/api/agent/v2/context-builder.ts`: 동적 컨텍스트 조립 (selectedBlocks, visibleBlocks, blockContentPreviews, recentEvents). Selected: note_content 20줄/2,500자, summary 전체. Visible: 2,000자, 가까운 5개. 줌아웃 캡(visibleBlocksTotalInView, visibleBlocksInContext).
+- `/api/agent/v2/prompt.ts`: 정적 시스템 프롬프트 (Identity, SSOTA Core Concepts, Available Tools, Context Interpretation, Resolving References, Communication Rules). read 툴 50 lines, 5000 chars/call.
+- **툴 등록**: webSearch, read (50 lines/5000 chars), grep, glob, hop, group, semantic, getEvents, grepEvents, edit, createTodos, canvasAction, organizeLayout, renderCanvasdown, patchCanvasdown (route.ts에서 필요한 것만 활성화하여 Phase 2 테스팅 진행 중).
+- **read 툴 검증 완료**: 50 lines, 5000 chars. Phase 2 툴 테스팅 순서: read → edit → glob → grep → hop → group → getEvents → grepEvents → createTodos → canvasAction → organizeLayout → renderCanvasdown → patchCanvasdown.
 
 ### 현재 한계
-- (Phase 1 미완료) editBlockLines, hopSearch/searchGroup/searchBySemantic, organizeLayout, createTodos, canvasAction, activeJobs/recentEvents 등 미구현
-- 메인 에이전트가 서브에이전트 없이 핵심 작업 수행 가능한 상태까지는 Step 1-5까지 도달
+- Phase 2 툴 테스팅 진행 중 (read 완료, 나머지 순차 검증)
+- activeJobs 컨텍스트 미구현
 
 ---
 
@@ -154,80 +154,50 @@ Global Tool은 코드로 정의되며, Zod Schema로 입력을 검증한다.
         └── 초기: 빈 컨텍스트 → Step별로 필드 추가
 ```
 
-**정적 컨텍스트 (system prompt — 캐싱 대상)**:
+**정적 컨텍스트 (system prompt — 캐싱 대상)** (prompt.ts):
 | 항목 | 설명 |
 |------|------|
-| Sophie 캐릭터 | 성격, 말투, 규칙 |
-| SSOTA 핵심 개념 | Block, Edge, Canvas, Page, Workspace |
-| Tool 사용법 | 각 Tool의 스키마와 사용 규칙 |
-| 작업 규칙 | 커뮤니케이션, 에러 핸들링, 언어 매칭 |
+| Identity | Sophie, Conversation context, Context use, Self-introduction, Personality, Core Principle |
+| SSOTA Core Concepts | Canvas, Blocks, Block Mounts, Edges, Block Types, Language codes |
+| Your Capabilities | Read, Write, Search, Context Awareness |
+| Available Tools | read (50 lines, 5000 chars/call), edit, webSearch, glob, grep, hop, group, semantic, getEvents, grepEvents |
+| Context Interpretation | Context Use, Context Definitions, Resolving References |
+| Communication Rules | Do Not Expose IDs, Language Matching, Clarity, Tool Transparency, Proactive Execution |
+| Error Handling, Workflow | |
 
 **동적 컨텍스트 (user message metadata — 매 요청 갱신)**:
-| 항목 | 추가 시점 |
-|------|----------|
-| `selectedBlockIds` | Step 1-2 |
-| `visibleBlocks` (메타데이터만) | Step 1-2 |
-| `activeJobs` | Step 1-12 |
-| `recentEvents` (이벤트 컨텍스트) | Step 1-13 |
-| `defaultSubAgents` (기본 서브에이전트, **항상 포함**) | Phase 2 |
-| `installedApps` (기본 앱, 메타데이터만) | Phase 3 |
-| `userSubAgents` (사용자 추가 서브에이전트, 메타데이터만) | Phase 4 |
-| `mouseContext` | **(향후 계획)** 호버/클릭된 블록 정보 |
-| `voiceTimelineBlocks` | **(향후 계획)** 음성 입력 중 시간순 언급 블록, 대명사 해석 |
+| 항목 | 추가 시점 | 구현 상태 |
+|------|----------|----------|
+| `selectedBlocks` (blockMountId, blockId, type, title, connectedFrom, connectedTo) | Step 1-2 | ✓ |
+| `visibleBlocks` (메타 + content 미리보기) | Step 1-2 | ✓ |
+| `blockContentPreviews` (서버 조회: note_content, summary 라인 범위) | Step 1-2 | ✓ |
+| `visibleBlocksTotalInView`, `visibleBlocksInContext` (줌아웃 캡) | Step 1-2 | ✓ |
+| `recentEvents` (이벤트 컨텍스트) | Step 1-13 | ✓ |
+| `activeJobs` | Step 1-12 | 미구현 |
+| `defaultSubAgents` (기본 서브에이전트) | Phase 2 | — |
+| `installedApps` (기본 앱, 메타데이터만) | Phase 3 | — |
+| `userSubAgents` (사용자 추가 서브에이전트) | Phase 4 | — |
+| `mouseContext` | **(향후 계획)** | — |
+| `voiceTimelineBlocks` | **(향후 계획)** | — |
 
 **완료 조건**: route.ts에서 clientContext를 user message metadata로 전달하는 구조가 동작.
 
 ---
 
-### Step 1-2. 기본 컨텍스트 레이어 (Viewport + 선택 블록)
+### Step 1-2. 기본 컨텍스트 레이어 (Viewport + 선택 블록) — **구현 완료**
 
 **목적**: 에이전트가 "지금 캔버스에 뭐가 있는지" 알 수 있게 한다.
 
-```
-변경/신규 파일:
-├── context-builder.ts
-│   └── + visibleBlocks: 현재 viewport에 보이는 블록들의 메타데이터 (연결 관계 포함)
-│   └── + selectedBlockIds: 현재 선택된 블록 ID 목록
-├── route.ts
-│   └── clientContext에서 visibleBlocks, selectedBlockIds 파싱
-├── prompt.ts
-│   └── + 컨텍스트 해석 규칙 추가
-│       └── "이 블록" = selectedBlockIds[0]
-│       └── visibleBlocks에 메타데이터만 포함됨을 명시
-│       └── visibleBlocks 내 연결(connectedTo/edges)로 viewport 내 관계 파악 가능
-```
+**구현 상태** (context-builder.ts, block-content-preview.ts 기준):
 
-**Viewport 블록 메타데이터 형식**:
-```typescript
-interface VisibleBlockMeta {
-  blockMountId: string;
-  blockType: string;   // "markdown" | "youtube" | "link" | ...
-  title: string;
-  // content는 포함하지 않음 — 필요 시 read로 조회
-  /** 이 블록에서 나가는 엣지로 연결된 블록 ID 목록 (viewports 내 한정 권장) */
-  connectedTo?: string[];  // 또는 edges: { targetId, label? }[]
-}
+- **selectedBlocks**: blockMountId, blockId, blockType, title, connectedFrom, connectedTo. 클라이언트 `useCanvasSelection().getSelectedBlocks()` / mode fallback.
+- **visibleBlocks**: 뷰포트 경계 계산 + 중심 거리 정렬, 최대 20개. `visibleBlocksTotalInView`, `visibleBlocksInContext` 전달.
+- **blockContentPreviews**: 서버에서 `getBlockContentPreviews`로 조회. Selected: note_content 20줄/2,500자, **summary 전체**. Visible(가까운 5개): 2,000자. 겹침 시 selected에만 content.
+- **Current Page**: pageTitle, workspaceTitle, organizationName, userProfileName + ID들 (서버 조회).
 
-// viewport 전체의 연결 관계만 따로 넘길 수도 있음
-interface VisibleEdgesMeta {
-  sourceBlockMountId: string;
-  targetBlockMountId: string;
-  label?: string;
-}
-```
-에이전트가 "이 블록이 뭐랑 연결돼 있어?"를 메타데이터만으로 파악할 수 있으면, hop 검색 전에 맥락을 더 잘 이해할 수 있다.
-
-**프롬프트에 추가할 해석 규칙**:
-```
-## Context Interpretation
-- visibleBlocks: 현재 화면에 보이는 블록들의 메타데이터 (content 미포함). 블록 간 연결(connectedTo 등) 포함.
-- selectedBlockIds: 현재 선택된 블록 ID 목록
-- "이 블록", "이거" → selectedBlockIds[0] 참조
-- viewport 내 "어떤 블록이 뭐랑 연결돼 있어?"는 visibleBlocks의 연결 정보로 파악 가능. 상세/전체 그래프는 hopSearch로 조회.
-- 블록의 상세 내용이 필요하면 readBlockLines로 조회하라
-```
-
-**완료 조건**: 에이전트가 "지금 캔버스에 뭐가 보여?" 질문에 viewport 블록 목록으로 답변 가능.
+**프롬프트 해석 규칙** (prompt.ts):
+- Context Use — Relevance First: 맥락에 관련될 때만 사용
+- Resolving References: 지시대명사(this/that/it) → Selected Blocks 우선, 그다음 Visible Blocks. 애매하면 discourse order, Recent Events, title/content match
 
 ---
 
@@ -326,7 +296,7 @@ patchCanvasdownTool = {
 - **소스 도메인 연동**: 블록 본문(content_raw)뿐 아니라 **연결된 소스(source-management)** 의 추출 본문·AI 요약을 검색·읽기 대상에 포함했다.
   - **grepBlockContent**: `sources` 옵션으로 `content_raw`(기본), `source_content`(sources.raw_content, e.g. 유튜브 스크립트), `source_summary`(source_summaries.summary) 중 선택 검색. `summaryLanguages`로 요약 언어 필터. 각 매칭에 `source` 필드 부여.
   - **globBlocks**: 제목 다중 패턴 지원. `query`를 `string | string[]`로, `queryMatchMode`로 `'any'`(OR) / `'all'`(AND). 메타데이터만 검색(소스 필터 없음).
-  - **readBlockLines**: `source` 옵션으로 `content_raw`(기본), `source_content`, `source_summary` 중 하나를 라인 범위로 읽기. `source_summary` 시 `summaryLanguage`로 언어 지정 가능. 응답에 `source`, `summaryLanguage` 포함.
+  - **readBlockLines** (route 키: `read`): `source` 옵션으로 `note_content`(기본), `source_content`, `source_summary` 중 하나를 라인 범위로 읽기. **50 lines, 5000 chars per call**. `source_summary` 시 `summaryLanguage`로 언어 지정 가능. Pagination: startLine = actualEnd + 1.
 - **Repository**: 단일 블록용 `findSourceContentByBlockMountId`, `findSourceSummaryByBlockMountId` 추가. 기존 `findBySourceContentPattern`, `findBySourceSummaryPattern`과 함께 소스 도메인(sources, source_summaries) 조회.
 
 #### 터미널 grep과의 비교
@@ -434,12 +404,12 @@ globBlocksTool = {
 }
 
 readBlockLinesTool = {
-  description: '블록 content의 특정 라인 범위 읽기. blockMountId로 대상 지정. source로 content_raw/source_content/source_summary 선택, summaryLanguage로 요약 언어 지정.',
+  description: '블록 content의 특정 라인 범위 읽기. **50 lines, 5000 chars per call**. blockMountId로 대상 지정. source: note_content(기본), source_content, source_summary. summaryLanguage로 요약 언어 지정. Pagination: startLine = actualEnd + 1.',
   inputSchema: z.object({
     blockMountId: z.string(),
-    startLine: z.number().min(1),
-    endLine: z.number().optional(),
-    source: z.enum(['content_raw', 'source_content', 'source_summary']).optional(),
+    startLine: z.number().min(1).default(1),
+    endLine: z.number().optional(),  // Max 50 lines per call
+    source: z.enum(['note_content', 'source_content', 'source_summary']).optional(),
     summaryLanguage: z.string().optional(),
   }),
 }
@@ -563,27 +533,11 @@ organizeLayoutTool = {
 
 ---
 
-### Step 1-10. 마우스 컨텍스트 + 대명사 해석 — **(향후 계획)**
+### Step 1-10. 마우스 컨텍스트 — **(향후 계획)**
 
 **목적**: "이거", "이 블록" 등의 대명사를 호버/클릭 블록으로 정확히 해석.
 
-> Architecture.md 기준 **향후 계획**으로 이동. Phase 1 필수 구현에서 제외.
-> 대명사 해석은 당분간 `selectedBlockIds` 우선으로 처리.
-
-```
-(구현 시) 변경/신규 파일:
-├── context-builder.ts
-│   └── + mouseContext (hoveredBlockMountId, clickedBlockMountId)
-├── route.ts
-│   └── clientContext에서 mouseContext 파싱
-├── prompt.ts
-│   └── + 대명사 해석 규칙
-│       └── 우선순위: selectedBlockIds > hoveredBlockMountId > clickedBlockMountId
-└── 클라이언트:
-    └── use-canvas-mouse-context.ts (마우스 상태 추적 훅)
-```
-
-**완료 조건**: 블록 위에 마우스를 올린 상태로 "이거 요약해줘" → 해당 블록 자동 인식.
+> Architecture.md 기준 **향후 계획**. Phase 1에서는 **Resolving References**로 대응: Selected Blocks 우선, Visible Blocks 다음. discourse order, Recent Events, title/content match로 애매함 해소. (prompt.ts Context Interpretation에 반영 완료.)
 
 ---
 
@@ -657,37 +611,50 @@ recentEvents: [{ type: "block_created", ... }, { type: "block_updated", ... }, .
 
 ### Phase 1 완료 시 메인 에이전트 Tool 목록
 
-| 카테고리 | Tool | 실행위치 | Step |
-|---------|------|---------|------|
-| **검색** | `web_search` / `x_search` (xAI 네이티브) | Server | 1-3 |
-| **검색** | `grepBlockContent` | Server | 1-5 |
-| **검색** | `globBlocks` | Server | 1-5 |
-| **검색** | `readBlockLines` | Server | 1-5 |
-| **검색** | `hopSearch` | Server | 1-7 |
-| **검색** | `searchGroup` | Server | 1-7 |
-| **검색** | `searchBySemantic` | Server | 1-7 |
+| 카테고리 | Tool (route.ts 키) | 실행위치 | Step |
+|---------|-------------------|---------|------|
+| **검색** | `webSearch` (xAI) | Server | 1-3 |
+| **검색** | `read` (readBlockLines, 50 lines/5000 chars) | Server | 1-5 |
+| **검색** | `grep` (grepBlockContent) | Server | 1-5 |
+| **검색** | `glob` (globBlocks) | Server | 1-5 |
+| **검색** | `hop` (hopSearch) | Server | 1-7 |
+| **검색** | `group` (searchGroup) | Server | 1-7 |
+| **검색** | `semantic` (searchBySemantic) | Server | 1-7 |
+| **검색** | `getEvents`, `grepEvents` | Server | 1-13 |
 | **캔버스 조작** | `renderCanvasdown` (Full DSL) | Client | 1-4 |
 | **캔버스 조작** | `patchCanvasdown` (Patch DSL) | Client | 1-4 |
 | **캔버스 조작** | `organizeLayout` | Client | 1-8 |
 | **캔버스 조작** | `canvasAction` | Client | 1-11 |
-| **수정** | `editBlockLines` | Client | 1-6 |
+| **수정** | `edit` (editBlockLines) | Client | 1-6 |
 | **작업 관리** | `createTodos` | Client | 1-9 |
-| **이벤트** | `grepEvents` | Server | 1-13 |
-| **이벤트** | `getPageEvents` | Server | 1-13 |
 
 ### Phase 1 완료 시 컨텍스트 레이어
 
-| 컨텍스트 | 위치 | Step |
-|---------|------|------|
-| Sophie 캐릭터 | system prompt (정적) | 1-1 |
-| Tool 사용법 | system prompt (정적) | 1-1 |
-| 작업 규칙 | system prompt (정적) | 1-1 |
-| visibleBlocks | user message (동적) | 1-2 |
-| selectedBlockIds | user message (동적) | 1-2 |
-| activeJobs | user message (동적) | 1-12 |
-| recentEvents (이벤트 컨텍스트) | user message (동적) | 1-13 |
-| mouseContext | **(향후 계획)** | — |
-| voiceTimelineBlocks | **(향후 계획)** | — |
+| 컨텍스트 | 위치 | Step | 구현 |
+|---------|------|------|------|
+| Sophie Identity, Tool 사용법, 작업 규칙 | system prompt (정적) | 1-1 | ✓ |
+| visibleBlocks, selectedBlocks, blockContentPreviews | user message (동적) | 1-2 | ✓ |
+| recentEvents | user message (동적) | 1-13 | ✓ |
+| activeJobs | user message (동적) | 1-12 | 미구현 |
+| mouseContext | **(향후 계획)** | — | — |
+
+### Phase 2 툴 테스팅 순서 (검증용)
+
+| 순서 | Tool | 비고 |
+|-----|------|------|
+| 1 | read | ✓ 검증 완료 |
+| 2 | edit | |
+| 3 | glob | |
+| 4 | grep | |
+| 5 | hop | |
+| 6 | group | |
+| 7 | getEvents | |
+| 8 | grepEvents | |
+| 9 | createTodos | |
+| 10 | canvasAction | |
+| 11 | organizeLayout | |
+| 12 | renderCanvasdown | |
+| 13 | patchCanvasdown | |
 
 ---
 
@@ -1437,7 +1404,7 @@ Phase 5 ──  + Custom Block, 커뮤니티 앱 개발
 ```
 Phase 1 (메인 에이전트 단독)  ──  에이전트의 기초 체력
   └─ 개념: Block, Main Agent, Global Tool, Context Layer, Canvasdown
-  └─ Global Tool (renderCanvasdown / patchCanvasdown 포함) + 동적 컨텍스트(visibleBlocks, selectedBlockIds, activeJobs, recentEvents)
+  └─ Global Tool (renderCanvasdown / patchCanvasdown 포함) + 동적 컨텍스트(selectedBlocks, visibleBlocks, blockContentPreviews, recentEvents)
   └─ 서브 에이전트·앱 없이 모든 작업 수행 가능 (마우스/음성 시간축 컨텍스트는 향후 계획)
 
 Phase 2 (기본 서브 에이전트)  ──  필수 인프라

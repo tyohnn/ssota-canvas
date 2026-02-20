@@ -44,11 +44,17 @@ import {
   getCurrentPageNames,
   getBlockContentPreviews,
 } from '@/domains/ai-management/backend/services/context';
+import {
+  CONTEXT_SELECTED_MAX_LINES,
+  CONTEXT_SELECTED_MAX_CHARS,
+  CONTEXT_VISIBLE_MAX_CHARS,
+} from './context-builder';
 import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
 import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
 import { DrizzleOrganizationRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository';
 import { DrizzleUserRepository } from '@/domains/user-management/backend/repositories/implementations/drizzle-user.repository';
 import { AGENT_MODEL } from './constants';
+import { debugLog } from './debug-log';
 
 export const maxDuration = 300;
 
@@ -236,7 +242,7 @@ export async function POST(req: Request) {
     (clientContext as Record<string, unknown>).organizationName = names.organizationName;
     (clientContext as Record<string, unknown>).userProfileName = names.userProfileName;
 
-    // Block content previews (selected + first 5 visible, content_raw + source summary; no source_content)
+    // Block content previews (selected + first 5 visible, note_content + source summary; no source_content)
     const selectedRefs = (dynamicContext.selectedBlocks ?? []).map(b => ({ blockMountId: b.blockMountId }));
     const visibleRefs = (dynamicContext.visibleBlocks ?? []).map(b => ({ blockMountId: b.blockMountId }));
     const blockContentPreviews = await getBlockContentPreviews(
@@ -248,6 +254,10 @@ export async function POST(req: Request) {
         pageId: dynamicContext.pageId,
         selectedBlocks: selectedRefs,
         visibleBlocks: visibleRefs,
+        noteContentLimits: {
+          selected: { maxLines: CONTEXT_SELECTED_MAX_LINES, maxChars: CONTEXT_SELECTED_MAX_CHARS },
+          visible: { maxChars: CONTEXT_VISIBLE_MAX_CHARS },
+        },
       }
     );
     (clientContext as Record<string, unknown>).blockContentPreviews = blockContentPreviews;
@@ -295,37 +305,9 @@ export async function POST(req: Request) {
     );
 
     // #region agent log
-    const DEBUG_INGEST = 'http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c';
-    const ctxLog = (message: string, data: Record<string, unknown>) => {
-      fetch(DEBUG_INGEST, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'api/agent/v2/route.ts', message, data, timestamp: Date.now() }) }).catch(() => { });
-    };
-    // #endregion
-
-    // #region Debug — 테스트 시 주석 해제하여 콘솔 로깅 활성화
-    // const DEBUG_AGENT_V2 = true;
-    const DEBUG_AGENT_V2 = false;
-    const debugLog = (message: string, data?: Record<string, unknown>) => {
-      if (DEBUG_AGENT_V2) console.log('[AgentV2]', message, data ?? {});
-    };
-    // #endregion
-
-    // #region agent log — step: request
-    const messageCount = enrichedMessages.length;
-    const lastEnrichedMsg = enrichedMessages[enrichedMessages.length - 1];
-    const lastEnrichedContent = lastEnrichedMsg && 'content' in lastEnrichedMsg ? lastEnrichedMsg.content : undefined;
-    const lastUserContentLength =
-      typeof lastEnrichedContent === 'string'
-        ? lastEnrichedContent.length
-        : Array.isArray(lastEnrichedContent)
-          ? (lastEnrichedContent as { text?: string }[]).reduce((sum, p) => sum + (typeof p?.text === 'string' ? p.text.length : 0), 0)
-          : 0;
-    ctxLog('AgentV2 step: request', {
-      messageCount,
-      lastUserContentLength,
-      contextLength: dynamicContextString.length,
-    });
-    debugLog('step: request', {
-      messageCount,
+    const ROUTE_LOC = 'route.ts';
+    debugLog(ROUTE_LOC, 'AgentV2 request', {
+      messageCount: enrichedMessages.length,
       contextLength: dynamicContextString.length,
       pageId: pageId ?? null,
       userId,
@@ -333,6 +315,7 @@ export async function POST(req: Request) {
     // #endregion
 
     // Main agent uses Responses API for stateful conversation, caching, and full reasoning support.
+    let stepIndex = 0;
     const result = streamText({
       model: xai(AGENT_MODEL),
       system: SOPHI_V2_SYSTEM_PROMPT,
@@ -356,21 +339,20 @@ export async function POST(req: Request) {
         // patchCanvasdown: patchCanvasdownTool,
       },
       onStepFinish: ({ toolCalls, toolResults }) => {
+        stepIndex += 1;
         const calls = (toolCalls ?? []) as Array<{ toolCallId?: string; toolName?: string; input?: unknown }>;
         const results = (toolResults ?? []) as Array<{ toolCallId?: string; toolName?: string; result?: unknown }>;
-        debugLog('step: finish (toolCalls)', {
+        // #region agent log
+        debugLog(ROUTE_LOC, `AgentV2 step ${stepIndex} (toolCalls)`, {
+          stepIndex,
           toolNames: calls.map((c) => c.toolName),
           toolCallIds: calls.map((c) => c.toolCallId),
-          hasResults: results.length,
-          // renderCanvasdown는 서버에서 execute 없음 → 클라이언트에서 실행 후 result 없음
+          resultsCount: results.length,
           inputsPreview: calls.map((c) =>
-            c.toolName === 'renderCanvasdown'
-              ? { dslLength: typeof (c.input as { dsl?: string })?.dsl === 'string' ? (c.input as { dsl: string }).dsl.length : 0 }
-              : c.toolName === 'webSearch'
-                ? { query: (c.input as { query?: string })?.query }
-                : {}
+            c.toolName === 'webSearch' ? { query: (c.input as { query?: string })?.query } : c.toolName === 'read' ? { blockMountId: (c.input as { blockMountId?: string })?.blockMountId } : {}
           ),
         });
+        // #endregion
         if (!pageId || !userId) return;
         for (let i = 0; i < calls.length; i++) {
           const tc = calls[i];
@@ -391,6 +373,21 @@ export async function POST(req: Request) {
       },
       onFinish: async (finishArg) => {
         const text = (finishArg as { text?: string }).text;
+        const usage = (finishArg as { usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number } }).usage;
+        // #region agent log
+        debugLog(ROUTE_LOC, 'AgentV2 finish', {
+          textLength: text?.length ?? 0,
+          textPreview: text ? text.slice(0, 200) : null,
+          totalSteps: stepIndex,
+        });
+        if (usage) {
+          debugLog(ROUTE_LOC, 'AgentV2 tokens', {
+            promptTokens: usage.promptTokens ?? null,
+            completionTokens: usage.completionTokens ?? null,
+            totalTokens: usage.totalTokens ?? null,
+          });
+        }
+        // #endregion
         if (pageId && userId && text && text.length > 0) {
           eventLogService
             .logAIResponse({
@@ -401,29 +398,6 @@ export async function POST(req: Request) {
             })
             .catch(console.error);
         }
-        // #region agent log — step: finish + tokens
-        ctxLog('AgentV2 step: finish', {
-          textLength: text?.length ?? 0,
-          textPreview: text ? text.slice(0, 300) : null,
-        });
-        debugLog('step: finish (fullResponse)', {
-          textLength: text?.length ?? 0,
-          textPreview: text ? text.slice(0, 200) + (text.length > 200 ? '…' : '') : null,
-        });
-        const usage = (finishArg as { usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number } }).usage;
-        if (usage) {
-          ctxLog('AgentV2 tokens', {
-            promptTokens: usage.promptTokens ?? null,
-            completionTokens: usage.completionTokens ?? null,
-            totalTokens: usage.totalTokens ?? null,
-          });
-          debugLog('tokens', {
-            promptTokens: usage.promptTokens ?? null,
-            completionTokens: usage.completionTokens ?? null,
-            totalTokens: usage.totalTokens ?? null,
-          });
-        }
-        // #endregion
       },
     });
 
@@ -432,39 +406,7 @@ export async function POST(req: Request) {
       sendReasoning: true,
     });
 
-    // #region agent log — step: stream parts (each chunk sent to client)
-    let streamPartIndex = 0;
-    const decoder = new TextDecoder();
-    const loggedBody =
-      response.body &&
-      response.body.pipeThrough(
-        new TransformStream<Uint8Array, Uint8Array>({
-          transform(chunk, controller) {
-            streamPartIndex += 1;
-            const preview = (() => {
-              try {
-                const s = decoder.decode(chunk, { stream: true });
-                return s.length > 200 ? s.slice(0, 200) + '...' : s;
-              } catch {
-                return '(binary)';
-              }
-            })();
-            ctxLog('AgentV2 step: stream_part', {
-              partIndex: streamPartIndex,
-              byteLength: chunk.byteLength,
-              preview: preview.replace(/\n/g, '\\n').slice(0, 250),
-            });
-            controller.enqueue(chunk);
-          },
-        })
-      );
-    const responseToReturn =
-      loggedBody !== undefined
-        ? new Response(loggedBody, { status: response.status, statusText: response.statusText, headers: response.headers })
-        : response;
-    // #endregion
-
-    return responseToReturn;
+    return response;
   } catch (error) {
     console.error('Error in /api/agent/v2:', error);
     return new Response(

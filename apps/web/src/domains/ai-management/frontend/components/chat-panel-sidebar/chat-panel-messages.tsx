@@ -145,6 +145,10 @@ export function ChatPanelMessages({
     return null;
   }
 
+  const lastMessage = messages[messages.length - 1];
+  const lastIsUser = lastMessage?.role === 'user';
+  const showThinkingPlaceholder = isStreaming && lastIsUser;
+
   return (
     <Conversation className={cn('flex-1 min-h-0', className)}>
       <ConversationContent>
@@ -172,6 +176,15 @@ export function ChatPanelMessages({
             </MessageContent>
           </Message>
         ))}
+        {showThinkingPlaceholder && (
+          <Message key="thinking-placeholder" from="assistant">
+            <MessageContent>
+              <Shimmer as="span" className="text-muted-foreground text-sm">
+                Thinking...
+              </Shimmer>
+            </MessageContent>
+          </Message>
+        )}
       </ConversationContent>
       <ConversationScrollButton />
     </Conversation>

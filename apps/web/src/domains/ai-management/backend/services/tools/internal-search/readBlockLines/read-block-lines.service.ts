@@ -1,32 +1,42 @@
 /**
  * readBlockLines Tool Service
  *
- * 특정 블록의 content_raw를 라인 번호와 함께 조회.
+ * 특정 블록의 note_content를 라인 번호와 함께 조회. (DB: content_raw)
  */
 
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import type { BlockSearchRepository } from '@/domains/ai-management/backend/repositories/interfaces/block-search.repository.interface';
+import { formatContextContentWithLineNumbers } from '@/domains/ai-management/shared/format-context-content-with-lines';
+
+// ─── Limits ───────────────────────────────────────────────────────────────
+
+const MAX_LINES_PER_READ = 50;
+const MAX_CHARS_PER_READ = 5000;
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
-export type ReadBlockLinesIntermediate = { message?: string; step?: string };
+export type ReadBlockLinesIntermediate = { status: 'processing' };
 
 export type ReadBlockLinesSource =
-  | 'content_raw'
+  | 'note_content'
   | 'source_content'
   | 'source_summary';
 
 export type ReadBlockLinesFinal = {
   blockMountId: string;
-  blockType: string;
-  title: string;
-  content: string;
+  status: 'done' | 'error';
   totalLines: number;
-  requestedRange: { start: number; end: number };
-  actualRange: { start: number; end: number };
+  chars: number;
+  /** Lines actually returned (1-based inclusive). For next chunk: startLine = actualEnd + 1 */
+  actualStart?: number;
+  actualEnd?: number;
+  /** Block title for display (e.g. "[제목] Note") */
+  title?: string;
+  /** Source type for display: note_content→Note, source_summary→Summary, source_content→Raw Content */
   source?: ReadBlockLinesSource;
-  summaryLanguage?: string;
+  /** Formatted content with line numbers (e.g. "   1| line1\n   2| line2"). Same format as context builder. */
+  content?: string;
 };
 
 export type ReadBlockLinesYield = ReadBlockLinesIntermediate | ReadBlockLinesFinal;
@@ -41,44 +51,19 @@ export interface ReadBlockLinesArgs {
 
 // ─── Service ──────────────────────────────────────────────────────────────
 
-function formatLineRange(
-  text: string,
-  startLine: number,
-  endLine: number | undefined
-): {
-  formatted: string;
-  totalLines: number;
-  actualStart: number;
-  actualEnd: number;
-} {
-  const lines = text.split('\n');
-  const totalLines = lines.length;
-  const actualStart = Math.min(startLine, totalLines);
-  const actualEnd = endLine ? Math.min(endLine, totalLines) : totalLines;
-  const sliced = lines.slice(actualStart - 1, actualEnd);
-  const formatted = sliced
-    .map((line, idx) => `${String(actualStart + idx).padStart(4)}| ${line}`)
-    .join('\n');
-  return { formatted, totalLines, actualStart, actualEnd };
-}
-
 function buildErrorFinal(
   blockMountIdStr: string,
-  blockType: string,
-  title: string,
-  startLine: number,
-  endLine: number,
+  title?: string,
   source?: ReadBlockLinesSource
 ): ReadBlockLinesFinal {
   return {
     blockMountId: blockMountIdStr,
-    blockType,
-    title,
-    content: '',
+    status: 'error',
     totalLines: 0,
-    requestedRange: { start: startLine, end: endLine },
-    actualRange: { start: 0, end: 0 },
-    ...(source && { source }),
+    chars: 0,
+    title,
+    source,
+    content: 'Error reading block',
   };
 }
 
@@ -90,22 +75,17 @@ export async function* executeReadBlockLines(
   const blockMountIdStr = args?.blockMountId?.trim();
   const startLine = Math.max(1, args?.startLine ?? 1);
   const endLine = args?.endLine ?? undefined;
-  const src: ReadBlockLinesSource = args?.source ?? 'content_raw';
+  const src: ReadBlockLinesSource = args?.source ?? 'note_content';
 
   if (!blockMountIdStr) {
-    const err = buildErrorFinal('', 'unknown', 'blockMountId is required', startLine, endLine ?? 0);
+    const err = buildErrorFinal('');
     yield err;
     return err;
   }
 
-  let blockMountIdVO: BlockMountId;
-  try {
-    blockMountIdVO = new BlockMountId(blockMountIdStr);
-  } catch {
-    const err = buildErrorFinal(blockMountIdStr, 'unknown', 'Invalid blockMountId format', startLine, endLine ?? 0);
-    yield err;
-    return err;
-  }
+  const isSlug = (s: string) => s.length === 8 && /^[0-9a-f]+$/i.test(s);
+  const isUuid = (s: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.trim());
 
   let pageIdVO: PageId | undefined;
   try {
@@ -114,32 +94,80 @@ export async function* executeReadBlockLines(
     pageIdVO = undefined;
   }
 
-  yield { message: 'Reading block content...' };
+  let blockMountIdVO: BlockMountId | null = null;
+  let useSlugLookup = false;
+  if (isSlug(blockMountIdStr) && pageIdVO) {
+    useSlugLookup = true;
+  } else if (isUuid(blockMountIdStr)) {
+    try {
+      blockMountIdVO = new BlockMountId(blockMountIdStr);
+    } catch {
+      const err = buildErrorFinal(blockMountIdStr);
+      yield err;
+      return err;
+    }
+  } else {
+    const err = buildErrorFinal(blockMountIdStr);
+    yield err;
+    return err;
+  }
+
+  // slug인 경우 UUID로 변환 (source_content/source_summary용)
+  if (useSlugLookup && pageIdVO && !blockMountIdVO) {
+    const resolvedId = await repository.findBlockMountIdBySlugAndPageId(blockMountIdStr.toLowerCase(), pageIdVO);
+    if (resolvedId) {
+      try {
+        blockMountIdVO = new BlockMountId(resolvedId);
+      } catch {
+        blockMountIdVO = null;
+      }
+    }
+  }
+
+  if (!blockMountIdVO) {
+    const notFound = buildErrorFinal(blockMountIdStr);
+    yield notFound;
+    return notFound;
+  }
+
+  yield { status: 'processing' as const };
 
   try {
-    if (src === 'content_raw') {
+    if (src === 'note_content') {
       const row = await repository.findContentByBlockMountId(blockMountIdVO, pageIdVO);
       if (!row) {
-        const notFound = buildErrorFinal(blockMountIdStr, 'unknown', 'Block not found', startLine, endLine ?? 0, src);
-        yield notFound;
-        return notFound;
+        yield buildErrorFinal(blockMountIdStr);
+        return buildErrorFinal(blockMountIdStr);
       }
       if (!row.contentRaw) {
-        const noContent = buildErrorFinal(blockMountIdStr, row.blockType, row.title, startLine, endLine ?? 0, src);
-        noContent.content = '(no text content)';
-        yield noContent;
-        return noContent;
+        const final: ReadBlockLinesFinal = {
+          blockMountId: blockMountIdStr,
+          status: 'done',
+          totalLines: 0,
+          chars: 0,
+          title: row.title,
+          source: 'note_content',
+          content: 'Empty block',
+        };
+        yield final;
+        return final;
       }
-      const { formatted, totalLines, actualStart, actualEnd } = formatLineRange(row.contentRaw, startLine, endLine);
+      const { formatted, totalLines, actualStart, actualEnd } = formatContextContentWithLineNumbers(
+        row.contentRaw,
+        startLine,
+        endLine,
+        { maxLines: MAX_LINES_PER_READ, maxChars: MAX_CHARS_PER_READ }
+      );
       const final: ReadBlockLinesFinal = {
         blockMountId: blockMountIdStr,
-        blockType: row.blockType,
-        title: row.title,
-        content: formatted,
+        status: 'done',
         totalLines,
-        requestedRange: { start: startLine, end: endLine ?? totalLines },
-        actualRange: { start: actualStart, end: actualEnd },
-        source: src,
+        chars: formatted.length,
+        actualStart,
+        actualEnd,
+        title: row.title,
+        source: 'note_content',
+        content: formatted,
       };
       yield final;
       return final;
@@ -148,66 +176,81 @@ export async function* executeReadBlockLines(
     if (src === 'source_content') {
       const row = await repository.findSourceContentByBlockMountId(blockMountIdVO, pageIdVO);
       if (!row) {
+        const contentRow = await repository.findContentByBlockMountId(blockMountIdVO, pageIdVO);
         const notFound = buildErrorFinal(
           blockMountIdStr,
-          'unknown',
-          'Block not found or no source content',
-          startLine,
-          endLine ?? 0,
-          src
+          contentRow?.title,
+          'source_content'
         );
         yield notFound;
         return notFound;
       }
-      const { formatted, totalLines, actualStart, actualEnd } = formatLineRange(row.rawContent, startLine, endLine);
+      const { formatted, totalLines, actualStart, actualEnd } = formatContextContentWithLineNumbers(
+        row.rawContent,
+        startLine,
+        endLine,
+        { maxLines: MAX_LINES_PER_READ, maxChars: MAX_CHARS_PER_READ }
+      );
       const final: ReadBlockLinesFinal = {
         blockMountId: blockMountIdStr,
-        blockType: row.blockType,
-        title: row.title,
-        content: formatted,
+        status: 'done',
         totalLines,
-        requestedRange: { start: startLine, end: endLine ?? totalLines },
-        actualRange: { start: actualStart, end: actualEnd },
-        source: src,
+        chars: formatted.length,
+        actualStart,
+        actualEnd,
+        title: row.title,
+        source: 'source_content',
+        content: formatted,
       };
       yield final;
       return final;
     }
 
-    const row = await repository.findSourceSummaryByBlockMountId(
+    const requestedLang = args?.summaryLanguage?.trim() || undefined;
+    let row = await repository.findSourceSummaryByBlockMountId(
       blockMountIdVO,
       pageIdVO,
-      args?.summaryLanguage?.trim() || undefined
+      requestedLang
     );
+    if (!row && requestedLang && requestedLang.toLowerCase() !== 'en') {
+      row = await repository.findSourceSummaryByBlockMountId(
+        blockMountIdVO,
+        pageIdVO,
+        'en'
+      );
+    }
     if (!row) {
+      const contentRow = await repository.findContentByBlockMountId(blockMountIdVO, pageIdVO);
       const notFound = buildErrorFinal(
         blockMountIdStr,
-        'unknown',
-        'Block not found or no source summary (try summaryLanguage?)',
-        startLine,
-        endLine ?? 0,
-        src
+        contentRow?.title,
+        'source_summary'
       );
       yield notFound;
       return notFound;
     }
-    const { formatted, totalLines, actualStart, actualEnd } = formatLineRange(row.summary, startLine, endLine);
+    const { formatted, totalLines, actualStart, actualEnd } = formatContextContentWithLineNumbers(
+      row.summary,
+      startLine,
+      endLine,
+      { maxLines: MAX_LINES_PER_READ, maxChars: MAX_CHARS_PER_READ }
+    );
     const final: ReadBlockLinesFinal = {
       blockMountId: blockMountIdStr,
-      blockType: row.blockType,
-      title: row.title,
-      content: formatted,
+      status: 'done',
       totalLines,
-      requestedRange: { start: startLine, end: endLine ?? totalLines },
-      actualRange: { start: actualStart, end: actualEnd },
-      source: src,
-      summaryLanguage: row.language,
+      chars: formatted.length,
+      actualStart,
+      actualEnd,
+      title: row.title,
+      source: 'source_summary',
+      content: formatted,
     };
     yield final;
     return final;
   } catch (error) {
     console.error('[readBlockLines] Error:', error);
-    const errResult = buildErrorFinal(blockMountIdStr, 'unknown', 'Error reading block', startLine, endLine ?? 0, src);
+    const errResult = buildErrorFinal(blockMountIdStr);
     yield errResult;
     return errResult;
   }

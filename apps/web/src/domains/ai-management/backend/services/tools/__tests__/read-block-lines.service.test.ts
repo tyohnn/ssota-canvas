@@ -55,7 +55,6 @@ describe('read-block-lines.service', () => {
     );
     expect(mockRepo.findContentByBlockMountId).not.toHaveBeenCalled();
     expect(final.source).toBe('source_content');
-    expect(final.blockType).toBe('youtube');
     expect(final.title).toBe('Video');
     expect(final.totalLines).toBe(3);
     expect(final.content).toContain('1| Line one');
@@ -82,13 +81,12 @@ describe('read-block-lines.service', () => {
     );
     expect(mockRepo.findContentByBlockMountId).not.toHaveBeenCalled();
     expect(final.source).toBe('source_summary');
-    expect(final.summaryLanguage).toBe('ko');
     expect(final.totalLines).toBe(2);
     expect(final.content).toContain('1| 요약 첫 줄');
     expect(final.content).toContain('2| 요약 둘째 줄');
   });
 
-  it('defaults to content_raw and calls findContentByBlockMountId', async () => {
+  it('defaults to note_content and calls findContentByBlockMountId', async () => {
     vi.mocked(mockRepo.findContentByBlockMountId).mockResolvedValue({
       blockMountId,
       blockType: 'markdown',
@@ -99,7 +97,7 @@ describe('read-block-lines.service', () => {
     expect(mockRepo.findContentByBlockMountId).toHaveBeenCalledTimes(1);
     expect(mockRepo.findSourceContentByBlockMountId).not.toHaveBeenCalled();
     expect(mockRepo.findSourceSummaryByBlockMountId).not.toHaveBeenCalled();
-    expect(final.source).toBe('content_raw');
+    expect(final.source).toBe('note_content');
     expect(final.totalLines).toBe(2);
   });
 });

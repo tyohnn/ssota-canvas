@@ -5,17 +5,23 @@
  * part.output receives that payload; shape matches ReadToolOutput.
  */
 
+/** Source type for read tool display labels */
+export type ReadToolSourceType = 'note_content' | 'source_content' | 'source_summary';
+
 /** Output from read (readBlockLines) tool. */
 export interface ReadToolOutput {
   blockMountId: string;
-  blockType: string;
-  title: string;
-  content: string;
+  status: 'done' | 'error';
   totalLines: number;
-  requestedRange: { start: number; end: number };
-  actualRange: { start: number; end: number };
-  source?: 'content_raw' | 'source_content' | 'source_summary';
-  summaryLanguage?: string;
+  chars: number;
+  actualStart?: number;
+  actualEnd?: number;
+  /** Block title for display */
+  title?: string;
+  /** Source type: note_content→Note, source_summary→Summary, source_content→Raw Content */
+  source?: ReadToolSourceType;
+  /** Formatted content with line numbers (same format as context builder) */
+  content?: string;
 }
 
 interface PartWithToolIdentity {

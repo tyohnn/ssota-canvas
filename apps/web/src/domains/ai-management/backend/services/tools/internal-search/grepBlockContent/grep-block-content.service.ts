@@ -1,7 +1,7 @@
 /**
  * grepBlockContent Tool Service
  *
- * 블록 content_raw에서 패턴 검색. DB 레벨 ILIKE 필터링 후 서버 사이드 라인 파싱.
+ * 블록 note_content에서 패턴 검색. (DB: content_raw) DB 레벨 ILIKE 필터링 후 서버 사이드 라인 파싱.
  */
 
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
@@ -11,7 +11,7 @@ import type { BlockSearchRepository, BlockSearchScope } from '@/domains/ai-manag
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
-export type GrepMatchSource = 'content_raw' | 'source_content' | 'source_summary';
+export type GrepMatchSource = 'note_content' | 'source_content' | 'source_summary';
 
 export interface GrepMatch {
   lineNumber: number;
@@ -116,7 +116,7 @@ export async function* executeGrepBlockContent(
     return noScope;
   }
 
-  const sourceList: GrepMatchSource[] = ['content_raw', 'source_content', 'source_summary'];
+  const sourceList: GrepMatchSource[] = ['note_content', 'source_content', 'source_summary'];
 
   yield { message: 'Searching block content...' };
 
@@ -175,12 +175,12 @@ export async function* executeGrepBlockContent(
   }
 
   try {
-    if (sourceList.includes('content_raw')) {
+    if (sourceList.includes('note_content')) {
       const rows = await repository.findByContentPattern(patterns, scope);
       for (const row of rows) {
         if (!row.contentRaw) continue;
         const lines = row.contentRaw.split('\n');
-        const blockMatches = buildMatchesFromLines(lines, 'content_raw');
+        const blockMatches = buildMatchesFromLines(lines, 'note_content');
         addToMap(row.blockMountId, row.blockType, row.title, blockMatches);
       }
     }

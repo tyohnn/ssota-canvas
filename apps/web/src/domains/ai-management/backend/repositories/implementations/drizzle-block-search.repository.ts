@@ -132,6 +132,25 @@ export class DrizzleBlockSearchRepository implements BlockSearchRepository {
     return rows[0] ?? null;
   }
 
+  async findBlockMountIdBySlugAndPageId(
+    slug: string,
+    pageId: PageId
+  ): Promise<string | null> {
+    const normalizedSlug = slug.trim().toLowerCase();
+    const rows = await adminDb
+      .select({ id: blockMounts.id })
+      .from(blockMounts)
+      .where(
+        and(
+          eq(blockMounts.slug, normalizedSlug),
+          eq(blockMounts.page_id, pageId.value),
+          isNull(blockMounts.deleted_at)
+        )
+      )
+      .limit(1);
+    return rows[0]?.id ?? null;
+  }
+
   /**
    * blockMountId로 단일 블록의 sources.raw_content 조회
    */

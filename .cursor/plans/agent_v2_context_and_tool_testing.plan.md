@@ -22,10 +22,10 @@ todos:
     status: completed
   - id: phase2-tools
     content: "Phase 2: 툴 테스팅 — 한 툴만 남기고 나머지 주석, 순차 검증"
-    status: pending
-  - id: todo-1771315052955-t02cwww1w
-    content: ""
-    status: pending
+    status: in_progress
+  - id: phase2-read
+    content: "Phase 2: read 툴 테스팅"
+    status: completed
 isProject: false
 ---
 
@@ -47,7 +47,7 @@ isProject: false
 | 1   | 빈 컨텍스트 (스킵)   | —                               | 테스트 안 함 (기본은 작업공간 메타데이터)                                                                                                                        |
 | 2   | 페이지 정보만       | pageId, workspaceId, orgId만     | `**Current Page**:` + Page/Workspace/Org ID + 서버 주입(Page/Workspace/Org name, User) → **검증 통과**                                                  |
 | 3   | 선택 블록만        | selectedBlocks                  | `**Selected Blocks**:` + 목록 + 엣지 + content_raw·요약 미리보기 (노트 20줄/2,500자, 소스형 content+요약) → **검증 통과** (markdown: Content+엣지 / 유튜브: Summary만 노출 확인) |
-| 4   | Visible 블록만   | visibleBlocks                   | `**Visible Blocks`** + 블록 메타 + 엣지(dedupe) + 가까운 5개 content/요약 미리보기 각 500자 → **검증 통과**                                                           |
+| 4   | Visible 블록만   | visibleBlocks                   | `**Visible Blocks`** + 블록 메타 + 엣지(dedupe) + 가까운 5개 content/요약 미리보기 각 2,000자 → **검증 통과**                                                         |
 | 5   | Recent Events | pageId 있음 → 서버가 recentEvents 주입 | `**Recent Events`** + 이벤트 줄들 → **검증 통과** (debug.log: 7개 이벤트)                                                                                    |
 | 6   | 전체            | 위 항목 모두 유효                      | 4개 섹션 모두 포함 → **검증 통과** (debug.log: Current Page, Selected 1, Visible 6, Recent 7)                                                              |
 
@@ -343,8 +343,8 @@ isProject: false
 - **일반 노트 블록** (소스 없음):
   - **content_raw만** 사용. 라인 상한 **앞 20줄**, 글자수 상한 **selected 2,500자 / visible 500자**.
 - **소스형 블록** (source_id 있음, 요약 등):
-  - **Selected인 경우**: **content_raw** 20줄 2,500자 + **요약** 20줄 2,500자 (각각 상한 적용). 추출은 넣지 않음.
-  - **Visible인 경우** (뷰포트에서 가까운 5개 안에 들어갈 때만): **요약** 500자 + **content_raw** 500자. 추출은 넣지 않음.
+  - **Selected인 경우**: **content_raw** 20줄 2,500자 상한 + **요약** 전체(제한 없음). 추출은 넣지 않음.
+  - **Visible인 경우** (뷰포트에서 가까운 5개 안에 들어갈 때만): **요약** 2,000자 + **content_raw** 2,000자. 추출은 넣지 않음.
 - **공통 규칙**:
   1. **Selected / Visible 겹침**: 같은 블록이 선택이면서 동시에 visible 목록에 있으면 **content 미리보기는 한 번만** 넣는다 (중복 제거 — selected에 넣고 visible 쪽은 비움).
   2. **Visible 중 content 넣는 개수**: visible 블록 최대 20개 중 **뷰포트에서 가까운 5개만** 위 content/요약 미리보기를 넣고, 나머지 15개는 메타만 (Mount Id, Type, Title, Block ID, Connected from/to).
@@ -358,7 +358,7 @@ isProject: false
 - **Current Page**: debug.log **Current Page**에 Page title, Workspace title, Organization name, User (profile name)이 포함되는지 확인.
 - **일반 노트 selected**: content_raw만 20줄·2,500자 상한으로 들어가는지 확인.
 - **소스형 selected**: content_raw 20줄 2,500자 + 요약 20줄 2,500자 들어가고, 추출은 없는지 확인.
-- **소스형 visible (5개)**: 요약 500자 + content_raw 500자 들어가고, 추출은 없는지 확인.
+- **소스형 visible (5개)**: 요약 2,000자 + content_raw 2,000자 들어가고, 추출은 없는지 확인.
 - **Visible 5개 / 겹침**: 뷰포트 가까운 5개만 content/요약 포함, 나머지 메타만. selected와 겹치면 한 번만 포함되는지 확인.
 - **서버 처리**: content·요약 조회·자르기가 모두 서버에서 이루어지는지 확인.
 
@@ -382,14 +382,34 @@ isProject: false
 
 ---
 
-## read 테스트 환경 확인
+## read 테스트 — 완료
 
-**결과: read 테스트 가능.**
+**결과: read 툴 검증 통과.**
 
-- **route.ts**: `read: createReadBlockLinesTool(blockSearchRepo, { pageId })` 등록됨 (343행).
+- **route.ts**: `read: createReadBlockLinesTool(blockSearchRepo, { pageId })` 등록됨.
 - **전제 조건**: 블록 1개 선택, 해당 블록에 content_raw(또는 source_content/source_summary)가 DB에 존재.
 - **테스트 절차**: 1) 마크다운 블록 생성 후 내용 입력. 2) 해당 블록 선택. 3) "선택한 블록 내용 처음 10줄 읽어줘" 입력. 4) read만 활성화한 상태에서 에이전트가 read 호출 → 서버 execute 반환 → 채팅에 라인 번호 붙은 텍스트 노출 확인.
-- **주의**: read 단독 테스트 시 webSearch 등 다른 툴은 주석 처리. blockSearchRepo·pageId는 route에서 이미 주입됨.
+
+### read 관련 수정 사항 (테스트 완료 후 반영)
+
+
+| 항목                        | 이전                   | 변경                                                     |
+| ------------------------- | -------------------- | ------------------------------------------------------ |
+| read 툴 limit (서비스)        | 20 lines, 2000 chars | **50 lines, 5000 chars** (read-block-lines.service.ts) |
+| read 툴 schema/description | 20 lines, 2000 chars | **50 lines, 5000 chars** (readBlockLines/index.ts)     |
+| prompt read 안내            | (없음)                 | "up to 50 lines, 5000 chars per call" 추가               |
+
+
+### 컨텍스트·프롬프트 관련 수정 (동일 기간)
+
+
+| 항목                   | 변경                                                                 |
+| -------------------- | ------------------------------------------------------------------ |
+| Visible block chars  | 500 → **2,000** (CONTEXT_VISIBLE_MAX_CHARS, block-content-preview) |
+| Selected summary     | note_content만 20줄/2,500자; **summary는 전체** (99_999/999_999, 변경 없음)  |
+| Conversation context | 합침·간소화, 지시대명사 해결(Selected→Visible 우선순위), 맥락에 맞는 소개만                |
+| Personality          | 5개 불릿 축약                                                           |
+
 
 ---
 
@@ -444,7 +464,7 @@ isProject: false
 
 | #   | 툴 이름                 | 테스트 조건 (입력 · 캔버스 · 페이지 상태)                                                               | 기대 결과                                                                                     | 검증 방법                                                                                                    |
 | --- | -------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 1   | **read**             | 입력: "선택한 블록 내용 처음 10줄 읽어줘". 캔버스: 블록 1개 선택, content_raw 10줄 이상.                           | 에이전트가 read만 호출(blockMountId, startLine/endLine). 라인 번호 붙은 텍스트가 채팅에 노출.                    | 이벤트 로그 `toolName: 'read'`, 결과에 lines/content. createReadBlockLinesTool execute 정상 반환.                    |
+| 1   | **read**             | 입력: "선택한 블록 내용 처음 10줄 읽어줘". 캔버스: 블록 1개 선택, content_raw 10줄 이상.                           | 에이전트가 read만 호출(blockMountId, startLine/endLine). 라인 번호 붙은 텍스트가 채팅에 노출.                    | ✅ **완료** (50 lines, 5000 chars per call)                                                                 |
 | 2   | **edit**             | 입력: "선택한 블록 1번 줄 내용을 '수정된 첫 줄'로 바꿔줘". 캔버스: 블록 1개 선택, content_raw 1줄 이상.                  | 에이전트가 edit만 호출(operation: replace, startLine: 1, newContent). 클라이언트에서 편집 실행, 블록 내용 변경.    | edit 툴 호출 1회. 클라이언트 처리 후 해당 블록 content_raw 1줄 변경 확인. 이벤트 로그 tool_call (edit).                            |
 | 3   | **glob**             | 입력: "이 페이지에 마크다운 블록이 몇 개 있어? 목록 알려줘". 캔버스: 마크다운 블록 2개 이상.                                | 에이전트가 glob만 호출. blockTypes 또는 query로 검색, blockMountId·blockType·title 목록 반환.              | 이벤트 로그 `toolName: 'glob'`, 결과에 blocks 목록. createGlobBlocksTool 정상 반환.                                    |
 | 4   | **grep**             | 입력: "이 페이지 블록 내용 중 'TODO' 들어간 곳 찾아줘". 캔버스: 마크다운 등 content_raw에 "TODO"가 포함된 블록이 최소 1개 있음. | 에이전트가 grep만 호출. blockMountId, 라인 번호, 매칭 줄+주변 컨텍스트가 반환되어 채팅에 요약.                           | debug.log/이벤트 로그에 `toolName: 'grep'`, 결과에 matches 배열. createGrepBlockContentTool 정상 반환.                  |

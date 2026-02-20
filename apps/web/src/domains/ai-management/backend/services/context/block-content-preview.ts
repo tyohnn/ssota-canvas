@@ -1,16 +1,32 @@
 import type { BlockSearchRepository } from '@/domains/ai-management/backend/repositories/interfaces/block-search.repository.interface';
 import type { BlockMountRepository } from '@/domains/canvas-management/backend/repositories/interfaces/block-mount.repository.interface';
+import { formatContextContentWithLineNumbers } from '@/domains/ai-management/shared/format-context-content-with-lines';
 import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 
-/** Per-block content preview for agent context. Only content_raw and summary (no source_content). */
+/** Per-block content preview for agent context. note_content, summary, and line counts. */
 export interface BlockContentPreview {
-  contentRaw?: string;
+  noteContent?: string;
   summary?: string;
+  /** Line count of note_content (0 when empty). Enables AI to skip read when 0. */
+  noteContentLines?: number;
+  /** Lines actually included in note_content preview (for "L1-N of M" display). */
+  noteContentLinesIncluded?: number;
+  /** Line count of source_summary (total). */
+  summaryLines?: number;
+  /** Lines actually included in summary preview (for "lines 1-N of M" display). */
+  summaryLinesIncluded?: number;
+  /** Line count of source raw_content. */
+  sourceContentLines?: number;
 }
 
 export interface BlockMetaRef {
   blockMountId: string;
+}
+
+export interface BlockContentPreviewLimits {
+  selected: { maxLines: number; maxChars: number };
+  visible: { maxChars: number };
 }
 
 export interface BlockContentPreviewInput {
@@ -18,6 +34,8 @@ export interface BlockContentPreviewInput {
   selectedBlocks: BlockMetaRef[];
   /** Visible blocks in nearness order; first 5 (excluding selected) get content. */
   visibleBlocks: BlockMetaRef[];
+  /** Limits for note_content formatting. Required. */
+  noteContentLimits: BlockContentPreviewLimits;
 }
 
 export interface BlockContentPreviewDeps {
@@ -25,10 +43,6 @@ export interface BlockContentPreviewDeps {
   /** Required when client sends blockMountId as 8-char slug (page-scoped); used to resolve slug → UUID. */
   blockMountRepository: BlockMountRepository;
 }
-
-const SELECTED_MAX_LINES = 20;
-const SELECTED_MAX_CHARS = 2_500;
-const VISIBLE_MAX_CHARS = 500;
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -53,9 +67,9 @@ export function truncateTextForPreview(
 }
 
 /**
- * Fetches content_raw and (for source blocks) source_summary for selected and nearest visible blocks.
- * Selected: 20 lines + 2,500 chars each for content_raw and summary.
- * Visible (first 5 not in selected): 500 chars each; no source_content.
+ * Fetches note_content and (for source blocks) source_summary for selected and nearest visible blocks.
+ * Selected: 20 lines + 2,500 chars each for note_content and summary.
+ * Visible (first 5 not in selected): 2,000 chars each; no source_content.
  * Overlap: blocks that are both selected and visible get content only once (selected limits).
  */
 export async function getBlockContentPreviews(
@@ -89,38 +103,84 @@ export async function getBlockContentPreviews(
     return null;
   };
 
+  const { noteContentLimits } = input;
+
   const addPreview = async (
     blockMountIdStr: string,
     isSelected: boolean
   ): Promise<void> => {
-    const maxLines = isSelected ? SELECTED_MAX_LINES : 0;
-    const maxChars = isSelected ? SELECTED_MAX_CHARS : VISIBLE_MAX_CHARS;
-    let contentRaw: string | undefined;
+    const noteContentOpts = isSelected
+      ? { maxLines: noteContentLimits.selected.maxLines, maxChars: noteContentLimits.selected.maxChars }
+      : { maxLines: 999, maxChars: noteContentLimits.visible.maxChars };
+    let noteContent: string | undefined;
     let summary: string | undefined;
+    let noteContentLines = 0;
+    let noteContentLinesIncluded: number | undefined;
+    let summaryLines = 0;
+    let summaryLinesIncluded: number | undefined;
+    let sourceContentLines = 0;
     const mountId = await resolveMountId(blockMountIdStr);
     if (!mountId) return;
     try {
-      const [contentRow, summaryRow] = await Promise.all([
+      const [contentRow, summaryRow, sourceContentRow] = await Promise.all([
         blockSearchRepository.findContentByBlockMountId(mountId, pageIdVo),
         blockSearchRepository.findSourceSummaryByBlockMountId(mountId, pageIdVo),
+        blockSearchRepository.findSourceContentByBlockMountId(mountId, pageIdVo),
       ]);
       if (contentRow?.contentRaw != null && contentRow.contentRaw !== '') {
-        contentRaw =
-          maxLines > 0
-            ? truncateTextForPreview(contentRow.contentRaw, maxLines, maxChars)
-            : truncateTextForPreview(contentRow.contentRaw, 999, maxChars);
+        noteContentLines = contentRow.contentRaw.split('\n').length;
+        const { formatted, actualEnd, totalLines } = formatContextContentWithLineNumbers(
+          contentRow.contentRaw,
+          1,
+          undefined,
+          noteContentOpts
+        );
+        noteContentLinesIncluded = actualEnd;
+        noteContent =
+          actualEnd < totalLines
+            ? `${formatted}\n  (... L1-${actualEnd} of ${totalLines})`
+            : formatted;
       }
       if (summaryRow?.summary != null && summaryRow.summary !== '') {
+        summaryLines = summaryRow.summary.split('\n').length;
+        // Selected blocks: always include full summary; visible: truncated. Both use line-number format (1| xxx).
+        const summaryOpts = isSelected
+          ? { maxLines: 99_999, maxChars: 999_999 }
+          : { maxLines: 999, maxChars: noteContentLimits.visible.maxChars };
+        const { formatted: summaryFormatted, actualEnd: summaryEnd } = formatContextContentWithLineNumbers(
+          summaryRow.summary,
+          1,
+          undefined,
+          summaryOpts
+        );
+        summaryLinesIncluded = summaryEnd;
         summary =
-          maxLines > 0
-            ? truncateTextForPreview(summaryRow.summary, maxLines, maxChars)
-            : truncateTextForPreview(summaryRow.summary, 999, maxChars);
+          summaryEnd < summaryLines
+            ? `${summaryFormatted}\n  (... L1-${summaryEnd} of ${summaryLines})`
+            : summaryFormatted;
+      }
+      if (sourceContentRow?.rawContent != null && sourceContentRow.rawContent !== '') {
+        sourceContentLines = sourceContentRow.rawContent.split('\n').length;
       }
     } catch {
       // skip block on repo error
     }
-    if (contentRaw !== undefined || summary !== undefined) {
-      result[blockMountIdStr] = { contentRaw, summary };
+    // Include block when we have content or line counts (even all zeros, so AI can skip read for empty note_content)
+    const hasContent = noteContent !== undefined || summary !== undefined;
+    const hasLineInfo =
+      noteContentLines !== undefined ||
+      summaryLines !== undefined ||
+      sourceContentLines !== undefined;
+    if (hasContent || hasLineInfo) {
+      result[blockMountIdStr] = {
+        noteContent,
+        summary,
+        noteContentLines,
+        noteContentLinesIncluded,
+        summaryLines,
+        summaryLinesIncluded,
+        sourceContentLines,
+      };
     }
   };
 

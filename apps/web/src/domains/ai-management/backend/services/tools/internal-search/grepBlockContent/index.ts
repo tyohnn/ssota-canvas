@@ -34,7 +34,7 @@ export function createGrepBlockContentTool(
   return {
     description: `Search for text patterns inside block content. Like terminal grep, but for canvas blocks.
 
-Searches block content_raw, linked source extracted content (e.g. YouTube transcript, PDF text), and linked source AI summary. Returns matching lines with context (5 lines). Use read to fetch more context if needed.
+Searches block note_content, linked source extracted content (e.g. YouTube transcript, PDF text), and linked source AI summary. Returns matching lines with context (5 lines). Use read to fetch more context if needed.
 
 Use when:
 - User asks: "Where does this keyword appear?", "Find all blocks mentioning X", "Search for a phrase in content".

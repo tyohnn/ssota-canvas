@@ -108,7 +108,7 @@ export interface BlockSearchRepository {
   /**
    * blockMountId로 단일 블록의 content_raw 조회
    *
-   * @param blockMountId - 블록 마운트 ID (VO)
+   * @param blockMountId - 블록 마운트 ID (VO, UUID)
    * @param pageId - 페이지 스코프 (보안 검증, optional, VO)
    * @returns 블록 행 또는 null
    */
@@ -116,6 +116,15 @@ export interface BlockSearchRepository {
     blockMountId: BlockMountId,
     pageId?: PageId
   ): Promise<ReadBlockRow | null>;
+
+  /**
+   * slug + pageId로 block_mounts.id (UUID) 조회
+   * AI는 항상 slug를 전달하므로, 서비스에서 이 메서드로 UUID를 먼저 조회한 뒤 findContentByBlockMountId 등 호출
+   */
+  findBlockMountIdBySlugAndPageId(
+    slug: string,
+    pageId: PageId
+  ): Promise<string | null>;
 
   /**
    * blockMountId로 단일 블록의 sources.raw_content 조회

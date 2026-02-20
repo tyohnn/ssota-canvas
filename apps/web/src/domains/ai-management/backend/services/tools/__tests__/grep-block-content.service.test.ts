@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto';
 
 /**
  * grepBlockContent service unit tests.
- * Verifies content_raw, source_content, and source_summary branches and result merging.
+ * Verifies note_content, source_content, and source_summary branches and result merging.
  */
 describe('grep-block-content.service', () => {
   const pageId = randomUUID();
@@ -42,7 +42,7 @@ describe('grep-block-content.service', () => {
   }
 
   describe('default behavior', () => {
-    it('calls content_raw, source_content, and source_summary and merges results by block', async () => {
+    it('calls note_content, source_content, and source_summary and merges results by block', async () => {
       vi.mocked(mockRepo.findByContentPattern).mockResolvedValue([
         {
           blockMountId: 'bm1',
@@ -86,7 +86,7 @@ describe('grep-block-content.service', () => {
       const block = final.matches[0]!;
       expect(block.blockMountId).toBe('bm1');
       const sources = block.matches.map((m: GrepMatch) => m.source);
-      expect(sources).toContain('content_raw');
+      expect(sources).toContain('note_content');
       expect(sources).toContain('source_content');
       expect(sources).toContain('source_summary');
       expect(final.totalMatches).toBe(block.matches.length);
