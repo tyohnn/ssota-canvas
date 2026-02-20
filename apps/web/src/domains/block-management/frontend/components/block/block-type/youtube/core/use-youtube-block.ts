@@ -8,6 +8,7 @@ import { useAIActionContext } from '@/domains/ai-actions/frontend/contexts/ai-ac
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/block-property/use-block-title-update';
 import { YoutubeBlockPropertiesVO } from '@/domains/block-management/shared/value-objects/block-properties/youtube.vo';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 
 import type {
@@ -49,6 +50,7 @@ export function useYoutubeBlock(
       },
     },
   });
+  const { workspaceId } = useCanvasMetadata();
   const canvasMode = useCanvasModeContext();
   const { setAutoSummaryBlockId } = useAIActionContext();
 
@@ -82,6 +84,7 @@ export function useYoutubeBlock(
   const defaultBusiness = useYoutubeBlockBusiness(
     nodeData,
     vo,
+    workspaceId,
     updateProperties,
     updateBlockTitle,
     updateSourceId
@@ -132,7 +135,11 @@ export function useYoutubeBlock(
             const result = await fetchMetadata(vo.url);
 
             if (result.success) {
-              if (nodeData.blockId) setAutoSummaryBlockId(nodeData.blockId);
+              if (result.blockUuid) {
+                setAutoSummaryBlockId(result.blockUuid);
+              } else if (nodeData.blockId) {
+                setAutoSummaryBlockId(nodeData.blockId);
+              }
               // 비즈니스 훅에서 이미 updateProperties 호출됨 (URL + 메타데이터)
               setIsLoading(false);
             } else {
@@ -159,7 +166,15 @@ export function useYoutubeBlock(
       fetchedUrlRef.current = null;
       setIsLoading(false);
     }
-  }, [vo.url, vo.youtubeTitle, fetchMetadata, setIsLoading, setHasError]);
+  }, [
+    vo.url,
+    vo.youtubeTitle,
+    fetchMetadata,
+    setIsLoading,
+    setHasError,
+    nodeData.blockId,
+    setAutoSummaryBlockId,
+  ]);
 
   // URL 제출 핸들러
   const handleUrlSubmit = useCallback(
@@ -190,7 +205,11 @@ export function useYoutubeBlock(
         const result = await fetchMetadata(trimmedUrl);
 
         if (result.success) {
-          if (nodeData.blockId) setAutoSummaryBlockId(nodeData.blockId);
+          if (result.blockUuid) {
+            setAutoSummaryBlockId(result.blockUuid);
+          } else if (nodeData.blockId) {
+            setAutoSummaryBlockId(nodeData.blockId);
+          }
           // 비즈니스 훅에서 이미 updateProperties 호출됨 (URL + 메타데이터)
           uiState.setIsLoading(false);
         } else {

@@ -212,14 +212,15 @@ export function useUpdateBlockProperty(
     mutationFn: async ({
       blockId,
       properties,
-      // blockMountId, blockData는 onMutate에서만 사용
     }: UpdatePropertiesVariables) => {
       if (!workspaceId) throw new Error('Workspace context required');
-      // Validation
+      // sourceId는 block 최상위 필드이므로 properties에서 제외 (서버는 block.properties만 업데이트)
+      const { sourceId: _sourceId, ...propertyFields } =
+        properties as Record<string, unknown>;
       const request: UpdateBlockPropertiesRequestInput = {
         workspaceId,
         blockId,
-        properties,
+        properties: propertyFields,
       };
 
       const parseResult = UpdateBlockPropertiesRequestSchema.safeParse(request);
@@ -245,23 +246,24 @@ export function useUpdateBlockProperty(
       blockMountId,
       blockData,
     }: UpdatePropertiesVariables) => {
-      // React Flow node id는 blockMountId (blockId와 다를 수 있음)
       const nodeId = blockMountId;
-
-      // Backup original data
       const previousData = blockData;
 
-      // Apply optimistic update (merge properties)
+      // sourceId는 block 최상위 필드로 분리 (서버에는 properties만 전송)
+      const { sourceId, ...propertyFields } = properties as Record<
+        string,
+        unknown
+      >;
       const updatedData: BlockNodeData = {
         ...blockData,
+        ...(sourceId !== undefined && { sourceId: sourceId as string }),
         properties: {
           ...(blockData.properties as any),
-          ...properties,
+          ...propertyFields,
         } as any,
       };
       updateNode(nodeId, { data: updatedData });
 
-      // Return context for rollback
       return { previousData, nodeId };
     },
 

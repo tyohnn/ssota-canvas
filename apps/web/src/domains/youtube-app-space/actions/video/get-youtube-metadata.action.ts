@@ -132,6 +132,7 @@ async function getYoutubeMetadataInternal(
         ytCtx.block
       );
       if (sourceId) response.sourceId = sourceId;
+      response.blockUuid = ytCtx.block.id.value;
 
       await Promise.allSettled([
         publishYoutubeMetadataFetched({
@@ -259,6 +260,7 @@ async function getYoutubeMetadataInternal(
       ytCtx.block
     );
     if (sourceId) response.sourceId = sourceId;
+    response.blockUuid = ytCtx.block.id.value;
 
     await Promise.allSettled([
       publishYoutubeMetadataFetched({
