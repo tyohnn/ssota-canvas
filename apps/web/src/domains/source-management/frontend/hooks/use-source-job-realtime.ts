@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 import { useSupabaseRealtime } from '@/domains/realtime-management/frontend/hooks/use-supabase-realtime';
@@ -27,14 +27,30 @@ export interface SourceJob {
 /** Fetch로 받은 진행 중 job (새로고침 직후 Realtime 전 초기 상태) */
 export type InitialSourceJob = SourceJob | null;
 
+/**
+ * useSourceJobRealtime
+ *
+ * 블록의 source job 상태 (Realtime 구독 + 완료 시 invalidation, tabOptions clear)
+ * 단일 책임: "이 블록의 job 상태와 Realtime 연동"
+ */
 export function useSourceJobRealtime(
   blockId: string,
   initialJob: InitialSourceJob = null
 ) {
   const [job, setJob] = useState<SourceJob | null>(null);
 
-  // Fetch에서 받은 job을 즉시 반영 (Realtime은 구독 후 이벤트만 오므로 초기 상태 필요)
-  // initialJob이 null이어도 이미 completed인 job은 유지 (invalidate 후 refetch가 null을 주어 completed 상태를 덮어쓰지 않음, Issue 2)
+  /**
+   * initialJob(Fetch)과 job(Realtime) 동기화
+   *
+   * - initialJob: getInProgressSourceJobByBlockId API 결과. pending/processing job만 반환.
+   * - Realtime: source_jobs INSERT/UPDATE 이벤트. 구독 후에만 수신하므로 초기 상태는 initialJob 필요.
+   *
+   * 타이밍 이슈: Realtime으로 job 완료 → 상위에서 invalidate(source-job-in-progress) →
+   * refetch → API는 in-progress만 반환하므로 null 반환 → initialJob이 null로 바뀜.
+   * 이때 initialJob == null을 단순히 setJob(null)로 처리하면, Realtime에서 받은 completed
+   * 상태가 지워져 UI가 "완료"에서 빈 상태로 깜빡임. 따라서 initialJob이 null이어도
+   * prev가 completed이고 block_id가 같으면 유지함.
+   */
   useEffect(() => {
     if (!blockId) {
       setJob(null);
@@ -51,19 +67,22 @@ export function useSourceJobRealtime(
     }
   }, [blockId, initialJob?.id, initialJob?.block_id, initialJob?.status]);
 
+  const onEvent = useCallback((payload: { eventType?: string; new?: SourceJob }) => {
+    if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+      if (payload.new) {
+        setJob(payload.new as SourceJob);
+      }
+    }
+  }, []);
+
   useSupabaseRealtime({
     table: 'source_jobs',
     schema: 'public',
     event: '*',
     filter: `block_id=eq.${blockId}`,
-    onEvent: (payload: { eventType?: string; new?: SourceJob }) => {
-      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-        if (payload.new) {
-          setJob(payload.new as SourceJob);
-        }
-      }
-    },
+    onEvent,
     enabled: !!blockId,
+    channelName: blockId ? `source_jobs-${blockId}` : undefined,
   });
 
   const isProcessing =
@@ -105,7 +124,6 @@ export function useMultiSourceJobRealtime(
     const setup = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
       blockIds.forEach(blockId => {
         const channel = supabase
           .channel(`source_jobs-${blockId}`)
@@ -117,13 +135,13 @@ export function useMultiSourceJobRealtime(
               table: 'source_jobs',
               filter: `block_id=eq.${blockId}`,
             },
-            (payload: { eventType?: string; new?: SourceJob }) => {
+            (payload: { eventType?: string; new?: SourceJob;[k: string]: unknown }) => {
               if ((payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') && payload.new) {
                 onJobUpdateRef.current(blockId, payload.new as SourceJob);
               }
             }
           )
-          .subscribe();
+          .subscribe(() => {});
         channels.push(channel);
       });
     };

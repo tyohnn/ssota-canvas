@@ -25,6 +25,7 @@ export interface VisualSummaryActionBusinessReturn {
 
 interface UseVisualSummaryActionBusinessProps {
   pageId: string;
+  workspaceId: string | undefined;
   blockId: string;
   sourceBlockPosition: { x: number; y: number };
   sourceBlockSize: { width: number; height: number };
@@ -42,6 +43,7 @@ export function useVisualSummaryActionBusiness(
 ): VisualSummaryActionBusinessReturn {
   const {
     blockId,
+    workspaceId,
     sourceBlockPosition,
     sourceBlockSize,
     youtubeId,
@@ -58,12 +60,10 @@ export function useVisualSummaryActionBusiness(
     isLoading: isLoadingLanguages,
   } = useSourceSummaryLanguages({
     blockId,
-    ...(readonly && publishToken && sourceId
-      ? { sourceId, publishToken, readonly: true as const }
-      : sourceId
-        ? { sourceId }
-        : {}),
-    enabled: !!blockId && !!sourceId,
+    workspaceId,
+    sourceId,
+    publishToken,
+    readonly,
   });
 
   const languageToFetch = useMemo(() => {
@@ -82,12 +82,10 @@ export function useVisualSummaryActionBusiness(
   } = useSourceSummary({
     blockId,
     language: languageToFetch,
-    ...(readonly && publishToken && sourceId
-      ? { sourceId, publishToken, readonly: true as const }
-      : sourceId
-        ? { sourceId }
-        : {}),
-    enabled: !!sourceId && hasAnySummary,
+    sourceId,
+    publishToken,
+    readonly,
+    hasAvailableLanguages: hasAnySummary,
   });
 
   const videoSummary = sourceSummaryDto?.summary

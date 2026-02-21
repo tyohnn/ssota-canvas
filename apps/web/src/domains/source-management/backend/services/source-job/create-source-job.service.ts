@@ -42,8 +42,10 @@ export async function createSourceJobService(
     );
 
     let jobId: string;
+    let shouldEnqueue: boolean;
 
     if (existingJob) {
+      const prevStatus = existingJob.getJob().status;
       const agg = SourceJobAggregate.reconstituteForReplace({
         id: existingJob.getJob().id,
         blockId: blockIdVo,
@@ -54,6 +56,8 @@ export async function createSourceJobService(
       });
       await sourceJobRepository.update(agg);
       jobId = existingJob.getJob().id.value;
+      // 이미 pending이면 중복 enqueue 방지 (ensureSourceJob이 여러 번 호출될 때). failed/completed면 재시도이므로 enqueue
+      shouldEnqueue = prevStatus !== 'pending' && prevStatus !== 'processing';
     } else {
       const aggregate = SourceJobAggregate.createSourceJob({
         blockId: blockIdVo,
@@ -67,6 +71,11 @@ export async function createSourceJobService(
       const events = aggregate.getUncommittedEvents();
       await Promise.allSettled(events.map(e => e.handle()));
       aggregate.markEventsAsCommitted();
+      shouldEnqueue = true;
+    }
+
+    if (!shouldEnqueue) {
+      return Result.success({ jobId });
     }
 
     const msgId = await queueAdapter.send(

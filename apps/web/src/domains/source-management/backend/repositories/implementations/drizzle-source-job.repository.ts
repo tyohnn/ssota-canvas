@@ -169,6 +169,19 @@ export class DrizzleSourceJobRepository implements ISourceJobRepository {
     return this.toDomain(row);
   }
 
+  async findLatestByBlockId(
+    blockId: string
+  ): Promise<SourceJobAggregate | null> {
+    const [row] = await adminDb
+      .select()
+      .from(sourceJobs)
+      .where(eq(sourceJobs.block_id, blockId))
+      .orderBy(desc(sourceJobs.created_at))
+      .limit(1);
+    if (!row) return null;
+    return this.toDomain(row);
+  }
+
   async findAllInProgressJobsByPageId(
     pageId: string
   ): Promise<

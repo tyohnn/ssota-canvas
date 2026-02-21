@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
+import { useAIActionContext } from '@/domains/ai-actions/frontend/contexts/ai-action-context';
 import { fetchLinkMetadataAction } from '@/domains/link-app-space/actions/metadata/fetch-link-metadata.action';
 import type { OpenGraphMetadata } from '@/domains/link-app-space/shared/types/open-graph-metadata';
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
@@ -85,11 +86,14 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const prevUrlRef = useRef<string>(url);
+  const fetchedForUrlRef = useRef<string | null>(null);
+  const summaryReportedForBlockRef = useRef<string | null>(null);
 
   const { workspaceId, orgId } = useCanvasMetadata();
+  const { setAutoSummaryBlockId } = useAIActionContext();
   const { getNode, updateNode } = useReactFlow();
-  const { updateProperty } = useUpdateBlockProperty({
-    reactFlow: { getNode, updateNode: (id, opt) => updateNode(id, opt) },
+  const { updateProperty, updateProperties } = useUpdateBlockProperty({
+    reactFlow: { getNode, updateNode },
   });
 
   const normalizedDomain = useMemo(() => {
@@ -133,27 +137,36 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
         });
         if (actionResult.success && actionResult.data) {
           resultMetadata = actionResult.data.metadata;
-          if (actionResult.data.sourceId) {
-            updateNode(nodeId, {
-              data: { ...nodeData, sourceId: actionResult.data.sourceId },
-            });
-            if (updateBlockTitle) {
-              const titlePart = (resultMetadata.title || '').trim();
-              const sitePart = (resultMetadata.siteName || '').trim();
-              const titleToSet =
-                sitePart && titlePart
-                  ? `${sitePart} | ${titlePart}`
-                  : titlePart || sitePart;
-              if (titleToSet) {
-                await updateBlockTitle({
-                  nodeId,
-                  title: titleToSet,
-                  blockData: {
-                    ...nodeData,
-                    sourceId: actionResult.data.sourceId,
-                  },
-                });
-              }
+          const { sourceId, blockUuid } = actionResult.data;
+          // updateProperties: onMutate에서 updateNode 동기 실행 → Editor Panel 탭 데이터 동기화 (YouTube 패턴)
+          await updateProperties(
+            nodeData.blockId!,
+            {
+              ogTitle: resultMetadata.title,
+              ogDescription: resultMetadata.description,
+              ogImage: resultMetadata.imageUrl,
+              siteName: resultMetadata.siteName,
+              domain: resultMetadata.domain,
+              faviconUrl: resultMetadata.faviconUrl,
+              author: resultMetadata.author,
+              publishedAt: resultMetadata.publishedAt,
+              pageType: resultMetadata.type,
+              ...(sourceId && { sourceId }),
+            },
+            nodeData
+          );
+          if (sourceId && blockUuid && summaryReportedForBlockRef.current !== blockUuid) {
+            summaryReportedForBlockRef.current = blockUuid;
+            setAutoSummaryBlockId(blockUuid);
+          }
+          if (sourceId && updateBlockTitle) {
+            const titleToSet = (resultMetadata.title || '').trim();
+            if (titleToSet) {
+              await updateBlockTitle({
+                nodeId,
+                title: titleToSet,
+                blockData: { ...nodeData, sourceId },
+              });
             }
           }
         } else {
@@ -168,6 +181,7 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
 
       setHasError(hasErr);
       setMetadata(resultMetadata);
+      fetchedForUrlRef.current = urlString;
       setIsLoading(false);
     },
     [
@@ -175,9 +189,9 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
       workspaceId,
       orgId,
       nodeData,
-      nodeId,
       updateBlockTitle,
-      updateNode,
+      updateProperties,
+      setAutoSummaryBlockId,
     ]
   );
 
@@ -211,7 +225,16 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
     if (url) {
       const hasUrlChanged = prevUrlRef.current !== url;
       const hasNoMetadata = !ogTitle && !ogDescription && !ogImage;
-      if (hasValidBlockId && (hasUrlChanged || hasNoMetadata)) {
+      const alreadyFetched = fetchedForUrlRef.current === url;
+      const willFetch =
+        hasValidBlockId &&
+        (hasUrlChanged || hasNoMetadata) &&
+        !alreadyFetched;
+      if (hasUrlChanged) {
+        fetchedForUrlRef.current = null;
+        summaryReportedForBlockRef.current = null;
+      }
+      if (willFetch) {
         fetchMetadata(url);
         prevUrlRef.current = url;
       } else {
@@ -220,6 +243,8 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
     } else {
       setMetadata(null);
       prevUrlRef.current = '';
+      fetchedForUrlRef.current = null;
+      summaryReportedForBlockRef.current = null;
     }
   }, [url, hasValidBlockId, fetchMetadata, ogTitle, ogDescription, ogImage]);
 

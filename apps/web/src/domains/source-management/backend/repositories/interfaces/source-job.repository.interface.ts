@@ -33,6 +33,12 @@ export interface ISourceJobRepository {
   findInProgressByBlockId(blockId: string): Promise<SourceJobAggregate | null>;
 
   /**
+   * block_id 기준 최신 job 조회 (status 무관, completed 포함)
+   * Realtime 구독 전 초기 상태 폴백용
+   */
+  findLatestByBlockId(blockId: string): Promise<SourceJobAggregate | null>;
+
+  /**
    * 페이지 내 진행 중(pending/processing)인 source job 전체 조회 (created_at 내림차순).
    * 새로고침 시 다중 job 복원용.
    */

@@ -63,7 +63,7 @@ export function useVisualSummaryAction(
   const { getNode } = useReactFlow();
 
   // Domain Dependencies
-  const { pageId } = useCanvasMetadata();
+  const { pageId, workspaceId } = useCanvasMetadata();
   const { readonly, publishToken } = useCanvasReadOnly();
   const {
     isGenerating: isGeneratingFromContext,
@@ -108,6 +108,7 @@ export function useVisualSummaryAction(
 
   const business = useVisualSummaryActionBusiness({
     pageId,
+    workspaceId,
     blockId,
     sourceBlockPosition: position,
     sourceBlockSize: size,

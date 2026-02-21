@@ -23,3 +23,13 @@ export const GetInProgressSourceJobByBlockIdRequestSchema = z.object({
 export type GetInProgressSourceJobByBlockIdRequest = z.output<
   typeof GetInProgressSourceJobByBlockIdRequestSchema
 >;
+
+/** AI status 초기 상태 폴백용: pageId + block_id(uuid) */
+export const GetSourceJobByBlockIdRequestSchema = z.object({
+  pageId: z.uuid(),
+  blockId: z.uuid(),
+});
+
+export type GetSourceJobByBlockIdRequest = z.output<
+  typeof GetSourceJobByBlockIdRequestSchema
+>;

@@ -19,3 +19,7 @@ export {
   type GetInProgressSourceJobDeps,
   type InProgressSourceJobView,
 } from './get-in-progress-source-job.service';
+export {
+  getLatestSourceJobByBlockIdService,
+  type GetLatestSourceJobByBlockIdDeps,
+} from './get-latest-source-job-by-block-id.service';

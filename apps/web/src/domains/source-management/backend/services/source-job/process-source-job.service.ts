@@ -121,17 +121,27 @@ export async function processSourceJobService(
         throw new Error(extractResult.error.message);
       }
 
-      const txResult = await createSourceActionTransaction(
-        {
-          orgId,
-          sourceId,
-          actionType: 'extract_content',
-          language: null,
-        },
-        sourceActionTransactionRepository
-      );
-      if (txResult.isError()) {
-        throw new Error(txResult.error.message);
+      try {
+        const txResult = await createSourceActionTransaction(
+          {
+            orgId,
+            sourceId,
+            actionType: 'extract_content',
+            language: null,
+          },
+          sourceActionTransactionRepository
+        );
+        if (txResult.isError()) {
+          throw new Error(txResult.error.message);
+        }
+      } catch (e) {
+        // unique constraint violation (job 재시도 등) 시 무시하고 진행
+        const msg = e instanceof Error ? e.message : String(e);
+        const isUniqueConflict =
+          msg.includes('unique') ||
+          msg.includes('duplicate') ||
+          msg.includes('23505');
+        if (!isUniqueConflict) throw e;
       }
 
       const blockAggregate = BlockAggregate.reconstitute(block);

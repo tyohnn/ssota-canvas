@@ -124,14 +124,12 @@ export function useCanvasMode(): CanvasModeContextValue {
         }
 
         // tabOptions 병합
+        const nextTabOptions = { ...prevMode.initialTab.tabOptions, ...partial };
         return {
           ...prevMode,
           initialTab: {
             ...prevMode.initialTab,
-            tabOptions: {
-              ...prevMode.initialTab.tabOptions,
-              ...partial,
-            },
+            tabOptions: nextTabOptions,
           },
         };
       });

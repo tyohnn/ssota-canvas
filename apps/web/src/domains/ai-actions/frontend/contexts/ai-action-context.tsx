@@ -12,16 +12,20 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useVisualSummary } from '../hooks/use-visual-summary';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import {
   useMultiSourceJobRealtime,
   type SourceJob,
 } from '@/domains/source-management/frontend/hooks';
+import { createOnSummaryJobCompleted } from '@/domains/source-management/frontend/handlers/handle-summary-job-completion';
 import { getInProgressSourceJobAction } from '@/domains/source-management/actions/summary/get-in-progress-source-job.action';
+import { getLatestSourceJobByBlockIdAction } from '@/domains/source-management/actions/summary/get-latest-source-job-by-block-id.action';
 import { isSuccess } from '@/lib';
 import { isTempPageId } from '@/domains/workspace-management/shared/utils/temp-page-id.utils';
 import type { VisualTemplate } from '../../shared/types/template.types';
@@ -85,9 +89,23 @@ interface AIActionProviderProps {
   children: React.ReactNode;
 }
 
+/** blockId가 UUID(36자)이면 slug(앞 8자)로 변환 */
+function toBlockSlug(blockId: string): string {
+  if (blockId.length >= 36 && blockId.includes('-')) {
+    return blockId.slice(0, 8);
+  }
+  return blockId;
+}
+
 export function AIActionProvider({ children }: AIActionProviderProps) {
-  const { pageId } = useCanvasMetadata();
+  const queryClient = useQueryClient();
+  const { pageId, workspaceId } = useCanvasMetadata();
   const [jobs, setJobs] = useState<StatusJob[]>([]);
+
+  const onSummaryJobCompleted = useMemo(
+    () => createOnSummaryJobCompleted(queryClient),
+    [queryClient]
+  );
   const [expandedJobIds, setExpandedJobIds] = useState<string[]>([]);
 
   const pushJob = useCallback(
@@ -134,6 +152,9 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
 
   const onJobUpdate = useCallback(
     (blockId: string, raw: SourceJob) => {
+      if (raw.status === 'completed') {
+        onSummaryJobCompleted(blockId, raw);
+      }
       setJobs(prev => {
         const idx = prev.findIndex(
           j => j.type === 'summary' && j.sourceBlockId === blockId
@@ -180,7 +201,7 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
         return next;
       });
     },
-    []
+    [onSummaryJobCompleted]
   );
 
   useMultiSourceJobRealtime(summaryBlockIds, onJobUpdate);
@@ -259,9 +280,22 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
           });
         }
         visualSummaryHook.showStatusWindow();
+
+        // 요약이 이미 있으면 Realtime 이벤트 없이 completed 상태 즉시 동기화
+        if (workspaceId) {
+          const blockSlug = toBlockSlug(blockId);
+          getLatestSourceJobByBlockIdAction({ workspaceId, blockId: blockSlug })
+            .then(result => {
+              if (result.success && result.data?.job) {
+                const job = result.data.job as SourceJob;
+                onJobUpdate(job.block_id, job);
+              }
+            })
+            .catch(() => {});
+        }
       }
     },
-    [jobs, pushJob, updateJob, visualSummaryHook.showStatusWindow]
+    [jobs, pushJob, updateJob, visualSummaryHook.showStatusWindow, workspaceId, onJobUpdate]
   );
 
   const initialNoContentDismissedRef = useRef(false);

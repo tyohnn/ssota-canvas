@@ -12,16 +12,17 @@ import { getSourceSummaryAction } from '../../actions/summary/get-source-summary
 import { getSourceSummaryForPublishedPageAction } from '../../actions/published-page/get-source-summary-for-published-page.action';
 import type { SourceSummaryDTO } from '../../shared/dtos/responses/source-summary.responses';
 
-export type UseSourceSummaryParams =
-  | { blockId: string; language: string; enabled?: boolean }
-  | {
-      blockId: string;
-      sourceId: string;
-      publishToken: string;
-      language: string;
-      readonly: true;
-      enabled?: boolean;
-    };
+export type UseSourceSummaryParams = {
+  blockId: string;
+  language: string;
+  sourceId?: string;
+  publishToken?: string;
+  readonly?: boolean;
+  /** 이미 추출된 언어일 때만 fetch (미추출 언어 404 방지). 기본 true */
+  isAlreadyExtracted?: boolean;
+  /** 사용 가능한 요약 언어가 있을 때만 fetch. 기본 true */
+  hasAvailableLanguages?: boolean;
+};
 
 export type UseSourceSummaryResult = {
   summary: SourceSummaryDTO | null | undefined;
@@ -34,17 +35,17 @@ export function useSourceSummary(
   params: UseSourceSummaryParams
 ): UseSourceSummaryResult {
   const isPublished =
-    'readonly' in params && params.readonly && 'publishToken' in params;
+    !!params.readonly && !!params.sourceId && !!params.publishToken;
 
   const queryKey = isPublished
     ? [
         'source-summary-published',
         params.blockId,
-        (params as { sourceId: string }).sourceId,
-        (params as { publishToken: string }).publishToken,
+        params.sourceId!,
+        params.publishToken!,
         params.language,
       ]
-    : ['source-summary', (params as { blockId: string }).blockId, params.language];
+    : ['source-summary', params.blockId, params.language];
 
   const { workspaceId } = useCanvasMetadata();
 
@@ -56,38 +57,31 @@ export function useSourceSummary(
   } = useQuery<SourceSummaryDTO | null>({
     queryKey,
     queryFn: async () => {
-      if (isPublished) {
-        const { blockId, sourceId, publishToken, language } = params as {
-          blockId: string;
-          sourceId: string;
-          publishToken: string;
-          language: string;
-        };
+      if (isPublished && params.sourceId && params.publishToken) {
         const result = await getSourceSummaryForPublishedPageAction({
-          publishToken,
-          blockId,
-          sourceId,
-          language,
+          publishToken: params.publishToken,
+          blockId: params.blockId,
+          sourceId: params.sourceId,
+          language: params.language,
         });
         if (!result.success) throw new Error(result.error);
         return result.data;
       }
       const result = await getSourceSummaryAction({
         workspaceId: workspaceId ?? '',
-        blockId: (params as { blockId: string }).blockId,
+        blockId: params.blockId,
         language: params.language,
       });
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
     enabled:
-      (params.enabled ?? true) &&
+      (params.isAlreadyExtracted ?? true) &&
+      (params.hasAvailableLanguages ?? true) &&
+      !!params.sourceId && // 블록에 소스 연결됐을 때만 fetch
       !!params.blockId &&
       !!params.language &&
-      (isPublished
-        ? !!(params as { sourceId?: string }).sourceId &&
-          !!(params as { publishToken?: string }).publishToken
-        : !!workspaceId),
+      (isPublished ? !!params.sourceId && !!params.publishToken : !!workspaceId),
     staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });

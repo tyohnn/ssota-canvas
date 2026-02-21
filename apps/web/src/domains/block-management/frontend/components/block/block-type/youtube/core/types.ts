@@ -70,6 +70,7 @@ export interface YoutubeBlockBusinessLogic {
   fetchMetadata: (urlString: string) => Promise<{
     success: boolean;
     metadata?: YoutubeMetadata;
+    blockUuid?: string;
     error?: string;
   }>;
 }

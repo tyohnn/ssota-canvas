@@ -1,24 +1,20 @@
 /**
- * Source summary 사용 가능 언어 목록 조회 훅
+ * 특정 Source의 사용 가능한 summary들의 언어 목록 조회 훅
  */
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
 
-import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
-
 import { getSourceSummaryLanguagesAction } from '../../actions/summary/get-source-summary-languages.action';
 import { getSourceSummaryLanguagesForPublishedPageAction } from '../../actions/published-page/get-source-summary-languages-for-published-page.action';
 
-export type UseSourceSummaryLanguagesParams =
-  | { blockId: string; enabled?: boolean }
-  | {
-      blockId: string;
-      sourceId: string;
-      publishToken: string;
-      readonly: true;
-      enabled?: boolean;
-    };
+export type UseSourceSummaryLanguagesParams = {
+  blockId: string;
+  workspaceId?: string;
+  sourceId?: string;
+  publishToken?: string;
+  readonly?: boolean;
+};
 
 export type UseSourceSummaryLanguagesResult = {
   languages: string[];
@@ -30,19 +26,18 @@ export type UseSourceSummaryLanguagesResult = {
 export function useSourceSummaryLanguages(
   params: UseSourceSummaryLanguagesParams
 ): UseSourceSummaryLanguagesResult {
-  const isPublished =
-    'readonly' in params && params.readonly && 'publishToken' in params;
+  const isPublished = Boolean(
+    params.readonly && params.sourceId && params.publishToken
+  );
+  const isEditableReady = !!params.workspaceId && !!params.sourceId;
 
   const queryKey = isPublished
     ? [
         'source-summary-languages-published',
-        params.blockId,
-        (params as { sourceId: string }).sourceId,
-        (params as { publishToken: string }).publishToken,
+        params.publishToken,
+        params.sourceId,
       ]
-    : ['source-summary-languages', (params as { blockId: string }).blockId];
-
-  const { workspaceId } = useCanvasMetadata();
+    : ['source-summary-languages', params.sourceId];
 
   const {
     data,
@@ -53,34 +48,23 @@ export function useSourceSummaryLanguages(
     queryKey,
     queryFn: async () => {
       if (isPublished) {
-        const { blockId, sourceId, publishToken } = params as {
-          blockId: string;
-          sourceId: string;
-          publishToken: string;
-        };
         const result =
           await getSourceSummaryLanguagesForPublishedPageAction({
-            publishToken,
-            blockId,
-            sourceId,
+            publishToken: params.publishToken!,
+            blockId: params.blockId,
+            sourceId: params.sourceId!,
           });
         if (!result.success) throw new Error(result.error);
         return result.data.languages;
       }
       const result = await getSourceSummaryLanguagesAction({
-        workspaceId: workspaceId ?? '',
-        blockId: (params as { blockId: string }).blockId,
+        workspaceId: params.workspaceId ?? '',
+        blockId: params.blockId,
       });
       if (!result.success) throw new Error(result.error);
       return result.data.languages;
     },
-    enabled:
-      (params.enabled ?? true) &&
-      !!params.blockId &&
-      (isPublished
-        ? !!(params as { sourceId?: string }).sourceId &&
-          !!(params as { publishToken?: string }).publishToken
-        : !!workspaceId),
+    enabled: !!params.blockId && (isPublished || isEditableReady),
     staleTime: 60 * 60 * 1000,
     retry: 1,
   });

@@ -11,7 +11,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
@@ -19,7 +19,9 @@ import {
   YoutubeBlockPropertiesVO,
 } from '@/domains/block-management/shared/value-objects/block-properties';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { getInProgressSourceJobByBlockIdAction } from '@/domains/source-management/actions/summary/get-in-progress-source-job-by-block-id.action';
 import { extractSourceContentAction } from '@/domains/source-management/actions/source/extract-source-content.action';
+import type { SourceJob } from '@/domains/source-management/frontend/hooks';
 import { useSourceJobRealtime } from '@/domains/source-management/frontend/hooks';
 import { useVideoScript } from '@/domains/youtube-app-space/frontend/hooks';
 
@@ -54,6 +56,25 @@ export function useScriptSectionBusiness(
 
   const sourceId = blockData?.sourceId;
 
+  const { data: inProgressJobData } = useQuery({
+    queryKey: ['source-job-in-progress', blockId],
+    queryFn: async () => {
+      if (!workspaceId || !blockId || !sourceId) return null;
+      const result = await getInProgressSourceJobByBlockIdAction({
+        workspaceId,
+        blockId,
+      });
+      return result.success ? result.data : null;
+    },
+    enabled: !!workspaceId && !!blockId && !!sourceId,
+    staleTime: 5000,
+  });
+
+  const initialJob: SourceJob | null =
+    inProgressJobData?.job != null
+      ? (inProgressJobData.job as SourceJob)
+      : null;
+
   // youtube_app_space.videos.script 조회 (구조화 transcript, 타임스탬프/TOC/인용용)
   const videoScript = useVideoScript({
     blockId,
@@ -65,7 +86,10 @@ export function useScriptSectionBusiness(
   const scriptError = youtubeId ? videoScript.error : null;
 
   const queryClient = useQueryClient();
-  const { isCompleted } = useSourceJobRealtime(blockId ?? '', null);
+  const { isCompleted } = useSourceJobRealtime(
+    initialJob?.block_id ?? blockId ?? '',
+    initialJob
+  );
   const prevCompletedRef = useRef(false);
 
   // Realtime: source job 완료 시 video-script 캐시 무효화
@@ -90,9 +114,14 @@ export function useScriptSectionBusiness(
     },
     onSuccess: async () => {
       if (blockId) {
-        await queryClient.invalidateQueries({
-          queryKey: ['video-script', blockId],
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ['video-script', blockId],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ['source-job-in-progress', blockId],
+          }),
+        ]);
       }
     },
   });

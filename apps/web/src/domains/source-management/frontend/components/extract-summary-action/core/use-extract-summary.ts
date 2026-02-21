@@ -18,13 +18,18 @@ import { extractSummaryAction } from './extract-summary-action.business';
 
 async function invalidateSummaryQueries(
   queryClient: ReturnType<typeof useQueryClient>,
-  blockId: string
+  blockId: string,
+  sourceId: string | undefined
 ) {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: ['source-summary', blockId] }),
-    queryClient.invalidateQueries({
-      queryKey: ['source-summary-languages', blockId],
-    }),
+    ...(sourceId
+      ? [
+          queryClient.invalidateQueries({
+            queryKey: ['source-summary-languages', sourceId],
+          }),
+        ]
+      : []),
   ]);
 }
 
@@ -51,8 +56,12 @@ export function useExtractSummary({
   const waitingForJobRef = useRef(false);
   const clearExtractingRef = useRef<(() => void) | null>(null);
 
+  const sourceId = blockData?.sourceId;
+
+  // source_jobs.block_id는 UUID. blockId(slug)로 구독하면 이벤트를 받지 못함.
+  // blockUuid가 있을 때만 구독 (enabled via empty string when null)
   const { isCompleted, isFailed } = useSourceJobRealtime(
-    blockUuidForRealtime ?? blockId,
+    blockUuidForRealtime ?? '',
     null
   );
 
@@ -64,7 +73,7 @@ export function useExtractSummary({
     if (!waitingForJobRef.current) return;
     if (isCompleted) {
       waitingForJobRef.current = false;
-      invalidateSummaryQueries(queryClient, blockId);
+      invalidateSummaryQueries(queryClient, blockId, sourceId);
       setIsSuccess(true);
       setTimeout(() => setIsSuccess(false), 2000);
       setIsLoading(false);
@@ -77,9 +86,7 @@ export function useExtractSummary({
       setIsLoading(false);
       clearExtractingRef.current?.();
     }
-  }, [isCompleted, isFailed, queryClient, blockId]);
-
-  const sourceId = blockData?.sourceId;
+  }, [isCompleted, isFailed, queryClient, blockId, sourceId]);
 
   const extractSummary = useCallback(
     async (language: string) => {
@@ -117,9 +124,7 @@ export function useExtractSummary({
 
         if (result.success) {
           if (result.alreadyExists) {
-            if (sourceId) {
-              await invalidateSummaryQueries(queryClient, blockId);
-            }
+            await invalidateSummaryQueries(queryClient, blockId, sourceId);
             setIsSuccess(true);
             setTimeout(() => setIsSuccess(false), 2000);
             clearExtracting();

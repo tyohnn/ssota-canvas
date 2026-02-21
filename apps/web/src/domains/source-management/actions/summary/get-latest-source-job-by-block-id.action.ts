@@ -1,8 +1,8 @@
 /**
- * 진행 중인 Source Job 조회 Action (Block 기준)
+ * Latest Source Job 조회 Action (Block 기준, status 무관)
  *
- * 에디터 패널 재오픈 시 useSourceJobRealtime의 initialJob으로 사용.
- * Realtime 구독 전 현재 job 상태를 즉시 반영.
+ * AI status 패널 초기 동기화용. 요약이 이미 있으면 Realtime 이벤트 없이
+ * completed/failed 상태를 즉시 반영하기 위해 호출.
  */
 
 'use server';
@@ -10,7 +10,7 @@
 import { ActionResult, err, ok } from '@/lib';
 
 import { DrizzleSourceJobRepository } from '../../backend/repositories/implementations/drizzle-source-job.repository';
-import { getInProgressSourceJobByBlockIdService } from '../../backend/services/source-job';
+import { getLatestSourceJobByBlockIdService } from '../../backend/services/source-job';
 import { withSourceBlockSecureAction } from '../secure-action';
 import {
   GetInProgressSourceJobByBlockIdRequestSchema,
@@ -19,19 +19,18 @@ import {
 import type { GetInProgressSourceJobByBlockIdDTO } from '../../shared/dtos/responses';
 import type { SourceBlockActionContext } from '../secure-action';
 
-export const getInProgressSourceJobByBlockIdAction =
-  withSourceBlockSecureAction(
-    GetInProgressSourceJobByBlockIdRequestSchema,
-    'getInProgressSourceJobByBlockId',
-    getInProgressSourceJobByBlockIdInternal
-  );
+export const getLatestSourceJobByBlockIdAction = withSourceBlockSecureAction(
+  GetInProgressSourceJobByBlockIdRequestSchema,
+  'getLatestSourceJobByBlockId',
+  getLatestSourceJobByBlockIdInternal
+);
 
-async function getInProgressSourceJobByBlockIdInternal(
+async function getLatestSourceJobByBlockIdInternal(
   _safeDto: GetInProgressSourceJobByBlockIdRequest,
   ctx: SourceBlockActionContext
 ): Promise<ActionResult<GetInProgressSourceJobByBlockIdDTO>> {
   const sourceJobRepository = new DrizzleSourceJobRepository();
-  const result = await getInProgressSourceJobByBlockIdService(ctx.blockUuid, {
+  const result = await getLatestSourceJobByBlockIdService(ctx.blockUuid, {
     sourceJobRepository,
   });
 

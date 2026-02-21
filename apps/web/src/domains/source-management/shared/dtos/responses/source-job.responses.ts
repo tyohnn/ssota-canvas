@@ -10,4 +10,6 @@ export interface GetInProgressSourceJobDTO {
 
 export interface GetInProgressSourceJobByBlockIdDTO {
   job: InProgressSourceJobView | null;
+  /** Block UUID for Realtime filter (source_jobs.block_id) */
+  blockUuid: string;
 }

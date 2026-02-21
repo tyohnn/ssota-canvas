@@ -6,6 +6,7 @@ import { Check, Loader2, Sparkles } from 'lucide-react';
 
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { BlockType } from '@/domains/block-management/shared/types/block-types';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useSourceSummaryLanguages } from '@/domains/source-management/frontend/hooks';
 import { getLanguageName } from '@/domains/source-management/frontend/components/summary-tab';
 import { SUPPORTED_LANGUAGES } from '@/domains/source-management/shared/value-objects/language-code.vo';
@@ -36,11 +37,12 @@ export function ExtractSummaryAction({
     });
 
   const sourceId = blockData?.sourceId;
+  const { workspaceId } = useCanvasMetadata();
 
   const { languages: availableLanguages } = useSourceSummaryLanguages({
     blockId: blockSlug,
-    ...(sourceId ? { sourceId } : {}),
-    enabled: !!blockSlug && !!sourceId,
+    workspaceId,
+    sourceId,
   });
 
   const handleLanguageSelect = (language: string) => {
