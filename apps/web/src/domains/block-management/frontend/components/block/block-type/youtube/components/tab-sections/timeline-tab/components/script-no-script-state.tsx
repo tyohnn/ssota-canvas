@@ -9,7 +9,7 @@
 import { Info } from 'lucide-react';
 
 import { Box } from '@/components/ui/box';
-import type { ProcessVideoScriptDTO } from '@/domains/youtube-app-space/shared/dtos/responses/video.responses';
+import type { YoutubeScript } from '@/domains/youtube-app-space/shared/types/transcript.types';
 
 import { ScriptContent } from './script-content';
 
@@ -21,7 +21,7 @@ interface ScriptNoScriptStateProps {
 /**
  * 예시 스크립트 데이터 생성
  */
-function createExampleScript(): ProcessVideoScriptDTO['youtube']['script'] {
+function createExampleScript(): YoutubeScript {
   return {
     transcript: [
       {

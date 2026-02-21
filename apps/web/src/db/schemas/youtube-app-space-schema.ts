@@ -5,8 +5,8 @@
  *
  * 이 스키마는 YouTube 블록과 관련된 확장 기능들을 포함합니다:
  * - YouTube 영상 메타데이터 관리
- * - 스크립트 데이터 저장 및 재사용
  * - 채널 정보 관리
+ * (스크립트는 sources.raw_content 사용)
  *
  * 접근: Drizzle(서버)로만 사용. PostgREST에 노출하지 않음 (config.toml schemas에 포함하지 않음).
  */
@@ -14,7 +14,6 @@ import { relations, sql } from 'drizzle-orm';
 import {
   index,
   integer,
-  jsonb,
   pgPolicy,
   pgSchema,
   text,
@@ -110,13 +109,6 @@ export const videos = youtubeAppSpaceSchema
       thumbnail_url: text('thumbnail_url'),
       thumbnail_high_url: text('thumbnail_high_url'),
 
-      // Script (JSONB - 최대 ~300KB, 대부분 100KB 이하)
-      script: jsonb('script'), // { transcript: [...], metadata: {...} }
-      script_language: text('script_language'), // 'en', 'ko', etc.
-      script_extracted_at: timestamp('script_extracted_at', {
-        withTimezone: true,
-      }),
-
       // YouTube Statistics (Cron 업데이트 예정)
       view_count: integer('view_count').default(0),
       like_count: integer('like_count').default(0),
@@ -134,7 +126,6 @@ export const videos = youtubeAppSpaceSchema
       // Indexes
       slugIdx: index('idx_videos_slug').on(table.slug),
       channelIdIdx: index('idx_videos_channel_id').on(table.channel_id),
-      scriptIdx: index('idx_videos_script').using('gin', sql`${table.script}`), // GIN index for JSONB
 
       // RLS: 최후의 방어선 (Defense in Depth)
       // 모든 직접 접근 차단 - 서버를 통하지 않은 DB 직접 접근 방지

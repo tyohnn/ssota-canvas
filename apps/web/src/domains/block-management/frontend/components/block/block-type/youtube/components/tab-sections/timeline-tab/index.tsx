@@ -39,6 +39,7 @@ export default function TimelineTab({
       youtubeId={business.youtubeId}
       youtubeTitle={business.youtubeTitle}
       script={business.script}
+      extractedAt={business.extractedAt}
       isLoading={business.isLoading}
       error={business.error}
       onExtractScript={business.handleExtractScript}

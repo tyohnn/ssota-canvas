@@ -18,7 +18,7 @@ export async function findOrCreateSource(
 ): Promise<Result<SourceAggregate, Error>> {
   try {
     const url = new SourceUrl(safeDto.url);
-    const existing = await sourceRepository.findByUrl(url.value);
+    const existing = await sourceRepository.findNonExpiredByUrl(url.value);
     if (existing) {
       return Result.success(SourceAggregate.reconstitute(existing));
     }

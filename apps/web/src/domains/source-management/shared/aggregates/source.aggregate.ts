@@ -31,7 +31,7 @@ export class SourceAggregate {
       command.url,
       command.sourceType,
       command.metadata ?? {},
-      command.contentLanguage ?? null
+      command.contentLanguage?.value ?? null
     );
     const aggregate = new SourceAggregate(source);
     const event = new SourceCreatedEvent(
@@ -53,7 +53,11 @@ export class SourceAggregate {
   }
 
   updateRawContent(command: UpdateSourceRawContentCommand): void {
-    this._source.updateRawContent(command.rawContent, command.extractedAt);
+    this._source.updateRawContent(
+      command.rawContent,
+      command.extractedAt,
+      command.expiresAt
+    );
     const event = new SourceRawContentUpdatedEvent(
       this._source.id,
       {

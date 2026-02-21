@@ -7,4 +7,5 @@ export interface ISourceRepository {
   findById(id: SourceId): Promise<Source | null>;
   findByUrl(url: string): Promise<Source | null>;
   findByUrlHash(urlHash: string): Promise<Source | null>;
+  findNonExpiredByUrl(url: string): Promise<Source | null>;
 }

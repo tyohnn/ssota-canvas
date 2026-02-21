@@ -1,7 +1,7 @@
 /**
  * Script Section Business Logic Hook
  *
- * 스크립트 표시: youtube_app_space.videos.script (구조화 transcript)
+ * 스크립트 표시: sources.raw_content (JSON or legacy [MM:SS] format)
  * - 타임스탬프 클릭, TOC, 인용 등 UI 기능용
  * 스크립트 추출: extractSourceContentAction → sources.raw_content + videos.script dual-write
  *
@@ -19,18 +19,19 @@ import {
   YoutubeBlockPropertiesVO,
 } from '@/domains/block-management/shared/value-objects/block-properties';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { parseTimelineRawContent } from '@/domains/source-management/shared/parse-timeline-raw-content';
 import { getInProgressSourceJobByBlockIdAction } from '@/domains/source-management/actions/summary/get-in-progress-source-job-by-block-id.action';
 import { extractSourceContentAction } from '@/domains/source-management/actions/source/extract-source-content.action';
+import { useSourceContent } from '@/domains/source-management/frontend/hooks';
 import type { SourceJob } from '@/domains/source-management/frontend/hooks';
 import { useSourceJobRealtime } from '@/domains/source-management/frontend/hooks';
-import { useVideoScript } from '@/domains/youtube-app-space/frontend/hooks';
 
 import type { ScriptSectionBusinessLogic } from './types';
 
 /**
  * Script Section Business Logic Hook
  *
- * useVideoScript: youtube_app_space.videos.script 조회 (구조화 transcript)
+ * useSourceContent: sources.raw_content 조회 → parseTimelineRawContent로 구조화
  * extractSourceContentAction: 추출 요청 (source + video dual-write)
  */
 export function useScriptSectionBusiness(
@@ -75,15 +76,18 @@ export function useScriptSectionBusiness(
       ? (inProgressJobData.job as SourceJob)
       : null;
 
-  // youtube_app_space.videos.script 조회 (구조화 transcript, 타임스탬프/TOC/인용용)
-  const videoScript = useVideoScript({
+  // sources.raw_content 조회 → parseTimelineRawContent로 구조화
+  const sourceContent = useSourceContent({
     blockId,
-    enabled: !!blockId && !!youtubeId,
+    enabled: !!blockId && !!sourceId && !!youtubeId,
   });
 
-  const script = videoScript.script ?? undefined;
-  const isLoadingScript = !!youtubeId && videoScript.isLoading;
-  const scriptError = youtubeId ? videoScript.error : null;
+  const script = sourceContent.content?.rawContent
+    ? parseTimelineRawContent(sourceContent.content.rawContent) ?? undefined
+    : undefined;
+  const extractedAt = sourceContent.content?.extractedAt ?? undefined;
+  const isLoadingScript = !!youtubeId && !!sourceId && sourceContent.isLoading;
+  const scriptError = youtubeId && sourceId ? sourceContent.error : null;
 
   const queryClient = useQueryClient();
   const { isCompleted } = useSourceJobRealtime(
@@ -92,12 +96,12 @@ export function useScriptSectionBusiness(
   );
   const prevCompletedRef = useRef(false);
 
-  // Realtime: source job 완료 시 video-script 캐시 무효화
+  // Realtime: source job 완료 시 source-content 캐시 무효화
   useEffect(() => {
     if (!blockId || !sourceId) return;
     if (isCompleted && !prevCompletedRef.current) {
       prevCompletedRef.current = true;
-      queryClient.invalidateQueries({ queryKey: ['video-script', blockId] });
+      queryClient.invalidateQueries({ queryKey: ['source-content', blockId] });
     }
     if (!isCompleted) prevCompletedRef.current = false;
   }, [blockId, sourceId, isCompleted, queryClient]);
@@ -116,7 +120,7 @@ export function useScriptSectionBusiness(
       if (blockId) {
         await Promise.all([
           queryClient.invalidateQueries({
-            queryKey: ['video-script', blockId],
+            queryKey: ['source-content', blockId],
           }),
           queryClient.invalidateQueries({
             queryKey: ['source-job-in-progress', blockId],
@@ -142,6 +146,7 @@ export function useScriptSectionBusiness(
     youtubeId,
     youtubeTitle,
     script,
+    extractedAt,
     isLoading: isLoadingScript,
     error,
     handleExtractScript,

@@ -65,6 +65,7 @@ export const sources = pgTable(
     metadata: jsonb('metadata').default({}),
     content_language: text('content_language'),
     extracted_at: timestamp('extracted_at', { withTimezone: true }),
+    expires_at: timestamp('expires_at', { withTimezone: true }),
     created_at: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -73,7 +74,6 @@ export const sources = pgTable(
       .defaultNow(),
   },
   table => ({
-    urlHashUnique: unique('sources_url_hash_unique').on(table.url_hash),
     urlHashIdx: index('idx_sources_url_hash').on(table.url_hash),
     sourceTypeIdx: index('idx_sources_source_type').on(table.source_type),
     blockDirectAccessPolicy: pgPolicy('sources_block_direct_access', {

@@ -12,7 +12,6 @@ import { type Video, videos } from '@/db/schemas/youtube-app-space-schema';
 
 import { VideoAggregate } from '../../../shared/aggregates/video.aggregate';
 import { VideoEntity } from '../../../shared/entities/video.entity';
-import type { YoutubeScript } from '../../../shared/types/transcript.types';
 import { VideoId } from '../../../shared/value-objects/video-id.vo';
 import { VideoSlug } from '../../../shared/value-objects/video-slug.vo';
 import type { IVideoRepository } from '../interfaces/video.repository.interface';
@@ -45,9 +44,6 @@ export class DrizzleVideoRepository implements IVideoRepository {
           duration_seconds: video.durationSeconds ?? null,
           thumbnail_url: video.thumbnailUrl ?? null,
           thumbnail_high_url: video.thumbnailHighUrl ?? null,
-          script: video.script as any,
-          script_language: video.scriptLanguage ?? null,
-          script_extracted_at: video.scriptExtractedAt ?? null,
           view_count: video.viewCount,
           like_count: video.likeCount,
           comment_count: video.commentCount,
@@ -83,9 +79,6 @@ export class DrizzleVideoRepository implements IVideoRepository {
               durationSeconds: video.durationSeconds,
               thumbnailUrl: video.thumbnailUrl,
               thumbnailHighUrl: video.thumbnailHighUrl,
-              script: video.script,
-              scriptLanguage: video.scriptLanguage,
-              scriptExtractedAt: video.scriptExtractedAt,
               viewCount: video.viewCount,
               likeCount: video.likeCount,
               commentCount: video.commentCount,
@@ -163,9 +156,6 @@ export class DrizzleVideoRepository implements IVideoRepository {
         duration_seconds: video.durationSeconds ?? null,
         thumbnail_url: video.thumbnailUrl ?? null,
         thumbnail_high_url: video.thumbnailHighUrl ?? null,
-        script: video.script as any,
-        script_language: video.scriptLanguage ?? null,
-        script_extracted_at: video.scriptExtractedAt ?? null,
         view_count: video.viewCount,
         like_count: video.likeCount,
         comment_count: video.commentCount,
@@ -188,11 +178,6 @@ export class DrizzleVideoRepository implements IVideoRepository {
       durationSeconds: data.duration_seconds ?? undefined,
       thumbnailUrl: data.thumbnail_url ?? undefined,
       thumbnailHighUrl: data.thumbnail_high_url ?? undefined,
-      script: data.script ? (data.script as YoutubeScript) : undefined,
-      scriptLanguage: data.script_language ?? undefined,
-      scriptExtractedAt: data.script_extracted_at
-        ? new Date(data.script_extracted_at)
-        : undefined,
       viewCount: data.view_count ?? 0,
       likeCount: data.like_count ?? 0,
       commentCount: data.comment_count ?? 0,

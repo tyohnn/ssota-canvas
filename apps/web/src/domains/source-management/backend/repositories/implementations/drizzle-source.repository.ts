@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, gt, isNull, or, sql } from 'drizzle-orm';
 import { adminDb } from '@/db';
 import { sources as sourcesTable } from '@/db/schema';
 
@@ -24,6 +24,7 @@ export class DrizzleSourceRepository implements ISourceRepository {
         metadata: (source.metadata || {}) as Record<string, unknown>,
         content_language: source.contentLanguage ?? null,
         extracted_at: source.extractedAt,
+        expires_at: source.expiresAt,
         created_at: source.createdAt,
         updated_at: source.updatedAt,
       });
@@ -44,6 +45,7 @@ export class DrizzleSourceRepository implements ISourceRepository {
           metadata: (source.metadata || {}) as Record<string, unknown>,
           content_language: source.contentLanguage ?? null,
           extracted_at: source.extractedAt,
+          expires_at: source.expiresAt,
           updated_at: source.updatedAt,
         })
         .where(eq(sourcesTable.id, source.id.value));
@@ -85,6 +87,25 @@ export class DrizzleSourceRepository implements ISourceRepository {
     return this.mapToSource(rows[0]!);
   }
 
+  async findNonExpiredByUrl(url: string): Promise<Source | null> {
+    const rows = await adminDb
+      .select()
+      .from(sourcesTable)
+      .where(
+        and(
+          eq(sourcesTable.url, url),
+          or(
+            isNull(sourcesTable.expires_at),
+            gt(sourcesTable.expires_at, sql`now()`)
+          )
+        )
+      )
+      .orderBy(sql`${sourcesTable.extracted_at} DESC NULLS LAST`)
+      .limit(1);
+    if (rows.length === 0) return null;
+    return this.mapToSource(rows[0]!);
+  }
+
   private mapToSource(row: Row): Source {
     const id = new SourceId(row.id);
     const url = new SourceUrl(row.url);
@@ -97,6 +118,7 @@ export class DrizzleSourceRepository implements ISourceRepository {
       (row.metadata as SourceMetadata) || {},
       row.content_language,
       row.extracted_at,
+      row.expires_at,
       row.created_at,
       row.updated_at,
       row.url_hash

@@ -15,6 +15,7 @@ export interface UseMarkdownTabParams {
 
 export interface UseMarkdownTabResult {
   content: string | null | undefined;
+  extractedAt: Date | null | undefined;
   isLoading: boolean;
   error: string | null;
   hasSourceId: boolean;
@@ -33,6 +34,7 @@ export function useMarkdownTab({
 
   return {
     content: content?.rawContent ?? null,
+    extractedAt: content?.extractedAt ?? null,
     isLoading,
     error: error ? String(error.message ?? 'Failed to load') : null,
     hasSourceId: !!sourceId,

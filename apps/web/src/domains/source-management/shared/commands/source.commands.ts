@@ -15,6 +15,7 @@ export interface CreateSourceCommand {
 export interface UpdateSourceRawContentCommand {
   rawContent: string;
   extractedAt: Date;
+  expiresAt: Date | null;
 }
 
 export interface UpdateSourceMetadataCommand {

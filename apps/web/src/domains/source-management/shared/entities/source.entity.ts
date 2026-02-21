@@ -11,6 +11,7 @@ export class Source {
     public metadata: Record<string, unknown>,
     public contentLanguage: string | null,
     public extractedAt: Date | null,
+    public expiresAt: Date | null,
     public readonly createdAt: Date,
     public updatedAt: Date,
     public readonly urlHash: string | null
@@ -32,6 +33,7 @@ export class Source {
       metadata,
       contentLanguage,
       null,
+      null,
       now,
       now,
       url.urlHash
@@ -46,6 +48,7 @@ export class Source {
     metadata: Record<string, unknown>,
     contentLanguage: string | null,
     extractedAt: Date | null,
+    expiresAt: Date | null,
     createdAt: Date,
     updatedAt: Date,
     urlHash: string | null
@@ -58,15 +61,21 @@ export class Source {
       metadata,
       contentLanguage,
       extractedAt,
+      expiresAt,
       createdAt,
       updatedAt,
       urlHash
     );
   }
 
-  updateRawContent(rawContent: string, extractedAt: Date): void {
+  updateRawContent(
+    rawContent: string,
+    extractedAt: Date,
+    expiresAt: Date | null
+  ): void {
     this.rawContent = rawContent;
     this.extractedAt = extractedAt;
+    this.expiresAt = expiresAt;
     this.updatedAt = new Date();
   }
 

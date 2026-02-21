@@ -1,8 +1,8 @@
 /**
- * YouTube extract adapter: URL → transcript as rawContent + YoutubeScript as structuredPayload
+ * YouTube extract adapter: URL → transcript as rawContent (JSON)
+ * raw_content: JSON.stringify(script) for Timeline 탭 (useSourceContent + parseTimelineRawContent)
  */
 import { extractYoutubeTranscript } from './youtube/extract-transcript';
-import type { YoutubeScript } from './youtube/transcript.types';
 
 import type { ExtractResult, IExtractAdapter } from './types';
 
@@ -21,17 +21,6 @@ function getVideoIdFromUrl(url: string): string | null {
   }
 }
 
-/** Format transcript with timestamps for context (matches previous youtube-app-space format). */
-function scriptToRawContent(script: YoutubeScript): string {
-  return script.transcript
-    .map(seg => {
-      const minutes = Math.floor(seg.start / 60);
-      const seconds = Math.floor(seg.start % 60);
-      return `[${minutes}:${seconds.toString().padStart(2, '0')}] ${seg.text}`;
-    })
-    .join('\n');
-}
-
 export class YoutubeExtractAdapter implements IExtractAdapter {
   async extract(
     url: string,
@@ -43,12 +32,11 @@ export class YoutubeExtractAdapter implements IExtractAdapter {
     }
 
     const script = await extractYoutubeTranscript(videoId);
-    const rawContent = scriptToRawContent(script);
+    const rawContent = JSON.stringify(script);
     const contentLanguage = script.metadata?.language ?? null;
 
     return {
       rawContent,
-      structuredPayload: script,
       contentLanguage,
     };
   }

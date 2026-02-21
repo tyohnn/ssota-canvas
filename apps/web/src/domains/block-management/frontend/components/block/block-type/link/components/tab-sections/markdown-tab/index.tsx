@@ -21,7 +21,7 @@ export default function MarkdownTab({
   blockId,
   blockData,
 }: MarkdownTabProps) {
-  const { content, isLoading, error, hasSourceId } = useMarkdownTab({
+  const { content, extractedAt, isLoading, error, hasSourceId } = useMarkdownTab({
     blockId,
     blockData,
   });
@@ -29,6 +29,7 @@ export default function MarkdownTab({
   return (
     <MarkdownTabView
       content={content}
+      extractedAt={extractedAt}
       isLoading={isLoading}
       error={error}
       hasSourceId={hasSourceId}

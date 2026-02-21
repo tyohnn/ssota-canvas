@@ -1,6 +1,7 @@
 /**
  * Source 생성 서비스
  * SafeDTO → Command → Aggregate → Repository, 도메인 이벤트 처리
+ * expires_at: createSource에서는 항상 null. Job 추출 후 updateSourceRawContent에서 설정.
  */
 import { Result } from '@/utils/result';
 
@@ -33,9 +34,11 @@ export async function createSource(
 
     const aggregate = SourceAggregate.create(command);
     if (safeDto.rawContent) {
+      const extractedAt = new Date();
       aggregate.updateRawContent({
         rawContent: safeDto.rawContent,
-        extractedAt: new Date(),
+        extractedAt,
+        expiresAt: null,
       });
     }
     await sourceRepository.create(aggregate.getSource());

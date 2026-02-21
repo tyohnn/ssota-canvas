@@ -7,7 +7,7 @@
 
 'use client';
 
-import type { ProcessVideoScriptDTO } from '@/domains/youtube-app-space/shared/dtos/responses/video.responses';
+import type { YoutubeScript } from '@/domains/youtube-app-space/shared/types/transcript.types';
 
 import { ScriptContent } from './script-content';
 import { ScriptErrorState } from './script-error-state';
@@ -18,7 +18,8 @@ import { ScriptSectionContainer } from './script-section-container';
 interface ScriptSectionViewProps {
   youtubeId: string | undefined;
   youtubeTitle: string | undefined;
-  script: ProcessVideoScriptDTO['youtube']['script'] | undefined;
+  script: YoutubeScript | undefined;
+  extractedAt?: Date | string | null;
   isLoading: boolean;
   error: string | null;
   onExtractScript: () => Promise<void>;
@@ -34,6 +35,7 @@ export function ScriptSectionView({
   youtubeId,
   youtubeTitle,
   script,
+  extractedAt,
   isLoading,
   error,
   onExtractScript,
@@ -78,6 +80,7 @@ export function ScriptSectionView({
       <ScriptContent
         script={script}
         youtubeTitle={youtubeTitle}
+        extractedAt={extractedAt}
         onRefresh={onExtractScript}
       />
     </ScriptSectionContainer>

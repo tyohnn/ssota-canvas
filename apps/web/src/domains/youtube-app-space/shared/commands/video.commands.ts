@@ -5,7 +5,6 @@
  */
 import type { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 
-import type { YoutubeScript } from '../types/transcript.types';
 import type { ChannelId } from '../value-objects/channel-id.vo';
 import type { VideoId } from '../value-objects/video-id.vo';
 import type { VideoSlug } from '../value-objects/video-slug.vo';
@@ -30,15 +29,4 @@ export interface CreateVideoCommand {
   likeCount?: number;
   commentCount?: number;
   userId: UserId; // User ID - Value Object
-}
-
-/**
- * 스크립트 업데이트 Command
- *
- * Video의 스크립트를 업데이트하여 저장
- */
-export interface UpdateScriptCommand {
-  videoId: string;
-  script: YoutubeScript;
-  scriptLanguage: string;
 }

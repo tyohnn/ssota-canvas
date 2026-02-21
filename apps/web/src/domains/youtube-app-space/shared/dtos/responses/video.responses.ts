@@ -23,13 +23,6 @@ export interface GetYoutubeMetadataDTO {
 
 
 /**
- * process-video-script.action.ts용 Response DTO
- */
-export interface ProcessVideoScriptDTO {
-  youtube: YoutubeView;
-}
-
-/**
  * smart-summary.action.ts용 Response DTO
  */
 export interface SmartSummaryDTO {
