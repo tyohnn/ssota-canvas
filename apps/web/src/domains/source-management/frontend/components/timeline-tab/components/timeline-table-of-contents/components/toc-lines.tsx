@@ -1,18 +1,9 @@
-/**
- * TOC Lines Component
- *
- * 목차 수평선 영역을 표시하는 컴포넌트
- */
-
 'use client';
 
 import { Box } from '@/components/ui/box';
 
 import { type TOCItem, formatTime } from '../../../core/utils';
 
-/**
- * TOC Lines Props
- */
 interface TOCLinesProps {
   tocItems: TOCItem[];
   isHovered: boolean;
@@ -20,9 +11,6 @@ interface TOCLinesProps {
   onItemClick: (item: TOCItem) => void;
 }
 
-/**
- * TOC Lines Component
- */
 export function TOCLines({
   tocItems,
   isHovered,
@@ -35,7 +23,7 @@ export function TOCLines({
         isHovered ? 'bg-background/95' : 'bg-transparent'
       }`}
     >
-      {tocItems.map((item, index) => {
+      {tocItems.map((item) => {
         const isActive = getActiveTOCItem(item);
         return (
           <button
@@ -44,7 +32,6 @@ export function TOCLines({
             className="group relative flex items-center justify-end cursor-pointer py-0.5 w-full"
             aria-label={`Go to ${formatTime(item.startTime)}`}
           >
-            {/* 가로 대시 - 5분은 짧게, 10분은 길게, 활성화 시 primary 색상 */}
             <Box
               className={`h-px transition-all ${
                 isActive

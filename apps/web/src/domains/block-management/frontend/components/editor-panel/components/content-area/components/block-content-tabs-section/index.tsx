@@ -29,6 +29,9 @@ export function BlockContentTabsSection({
   const blockType = blockData?.blockType;
 
   if (!blockType) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c4aa21'},body:JSON.stringify({sessionId:'c4aa21',location:'block-content-tabs-section:no-blockType',message:'blockType is undefined - returning null',data:{blockId,hasBlockData:!!blockData},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     return null;
   }
 

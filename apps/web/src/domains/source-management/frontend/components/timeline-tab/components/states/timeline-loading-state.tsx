@@ -1,7 +1,7 @@
 /**
- * Script Loading State
+ * Timeline Loading State
  *
- * 스크립트 로딩 중일 때 표시하는 컴포넌트 (Skeleton 사용)
+ * 타임라인 스크립트 로딩 중일 때 표시하는 컴포넌트 (Skeleton 사용)
  */
 
 'use client';
@@ -10,22 +10,15 @@ import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 
 import { Box } from '@/components/ui/box';
 
-/**
- * Script Loading State Props
- */
-interface ScriptLoadingStateProps {
+interface TimelineLoadingStateProps {
   isExtracting?: boolean;
 }
 
-/**
- * Script Loading State Component
- */
-export function ScriptLoadingState({
+export function TimelineLoadingState({
   isExtracting = false,
-}: ScriptLoadingStateProps) {
+}: TimelineLoadingStateProps) {
   return (
     <Box className="space-y-4">
-      {/* 안내 텍스트 (Banner) */}
       <Box className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">
           {isExtracting
@@ -39,7 +32,6 @@ export function ScriptLoadingState({
         )}
       </Box>
 
-      {/* Skeleton 콘텐츠 */}
       <Box className="flex items-center justify-between">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-4 w-16" />

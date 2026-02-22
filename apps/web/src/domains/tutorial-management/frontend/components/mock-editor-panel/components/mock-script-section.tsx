@@ -2,9 +2,11 @@
 
 import { useCallback } from 'react';
 import { Box } from '@workspace/ui/components/ui/box';
-import { ScriptSectionContainer } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/tab-sections/timeline-tab/components/script-section-container';
-import { ScriptTranscriptItemView } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/tab-sections/timeline-tab/components/script-transcript-item.view';
-import { ScriptTableOfContents } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/tab-sections/timeline-tab/components/script-table-of-contents';
+import {
+  TimelineTabContainer,
+  TimelineTranscriptItemView,
+  TimelineTableOfContents,
+} from '@/domains/source-management/frontend/components/timeline-tab';
 import { useBlockInteraction } from '@/domains/canvas-management/frontend/contexts/block-interaction-context';
 import { useTutorialDialogContext } from '@/domains/tutorial-management/frontend/components/tutorial-dialog/core/context';
 import { InteractionGuard } from '../../common/interaction-guard';
@@ -462,12 +464,12 @@ export function MockScriptSection() {
   );
 
   return (
-    <ScriptSectionContainer>
+    <TimelineTabContainer>
       <Box className="space-y-4 relative">
         <Box className="space-y-2">
           {MOCK_TRANSCRIPT.map((segment, index) => {
             const item = (
-              <ScriptTranscriptItemView
+              <TimelineTranscriptItemView
                 key={index}
                 segment={{ start: segment.start, text: segment.text }}
                 onTimeClick={handleTimeClick}
@@ -485,11 +487,11 @@ export function MockScriptSection() {
             );
           })}
         </Box>
-        <ScriptTableOfContents
+        <TimelineTableOfContents
           transcript={MOCK_TRANSCRIPT}
           showTOC={true}
         />
       </Box>
-    </ScriptSectionContainer>
+    </TimelineTabContainer>
   );
 }

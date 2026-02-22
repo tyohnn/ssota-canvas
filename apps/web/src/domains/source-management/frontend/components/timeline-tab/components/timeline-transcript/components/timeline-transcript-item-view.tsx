@@ -1,10 +1,7 @@
 /**
- * Script Transcript Item View
+ * Timeline Transcript Item View
  *
  * Presentational component: 렌더링만 담당
- * - Props만 받음
- * - Hook 사용 없음
- * - Context 사용 없음
  */
 
 'use client';
@@ -22,28 +19,28 @@ import {
 
 import { Box } from '@/components/ui/box';
 
-import { formatTime } from '../core/utils';
+import { formatTime } from '../../../core/utils';
 
-export interface ScriptTranscriptSegment {
+export interface TimelineTranscriptSegment {
   start: number;
   text: string;
 }
 
-export interface ScriptTranscriptItemViewProps {
-  segment: ScriptTranscriptSegment;
+export interface TimelineTranscriptItemViewProps {
+  segment: TimelineTranscriptSegment;
   onTimeClick: (seconds: number) => void;
   onAddQuote: (text: string) => void;
   isLoading?: boolean;
   readonly?: boolean;
 }
 
-export function ScriptTranscriptItemView({
+export function TimelineTranscriptItemView({
   segment,
   onTimeClick,
   onAddQuote,
   isLoading = false,
   readonly = false,
-}: ScriptTranscriptItemViewProps) {
+}: TimelineTranscriptItemViewProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (

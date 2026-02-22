@@ -1,18 +1,17 @@
 /**
- * Script Content
+ * Timeline Content
  *
- * 스크립트 콘텐츠를 표시하는 컴포넌트 (헤더, 트랜스크립트, 목차)
+ * 타임라인 스크립트 콘텐츠를 표시하는 컴포넌트 (트랜스크립트, 목차)
  */
 
 'use client';
 
 import { Box } from '@/components/ui/box';
-import type { YoutubeScript } from '@/domains/youtube-app-space/shared/types/transcript.types';
+import type { TimelineScript } from '@/domains/source-management/shared/types/timeline-script.types';
 
-import { ScriptTableOfContents } from './script-table-of-contents';
-import { ScriptTranscript } from './script-transcript';
+import { TimelineTableOfContents } from './timeline-table-of-contents';
+import { TimelineTranscript } from './timeline-transcript';
 
-/** Format extracted timestamp as relative time (e.g. "2 days ago"), matching event-log pattern */
 function formatTimeAgo(date: Date | string): string {
   const d = date instanceof Date ? date : new Date(date);
   const now = new Date();
@@ -29,25 +28,25 @@ function formatTimeAgo(date: Date | string): string {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-interface ScriptContentProps {
-  script: YoutubeScript;
-  youtubeTitle: string | undefined;
+interface TimelineContentProps {
+  script: TimelineScript;
+  sourceTitle: string | undefined;
   extractedAt?: Date | string | null;
   onRefresh: () => Promise<void>;
 }
 
-export function ScriptContent({
+export function TimelineContent({
   script,
-  youtubeTitle,
+  sourceTitle,
   extractedAt,
-}: ScriptContentProps) {
+}: TimelineContentProps) {
   return (
     <Box className="space-y-4 relative">
-      <ScriptTranscript
+      <TimelineTranscript
         transcript={script?.transcript}
-        youtubeTitle={youtubeTitle}
+        sourceTitle={sourceTitle}
       />
-      <ScriptTableOfContents
+      <TimelineTableOfContents
         transcript={script?.transcript}
         showTOC={true}
       />

@@ -1,49 +1,42 @@
 /**
- * Timeline tab
- *
- * Editor Panel의 Timeline 탭 - source raw_content 표시 (타임스탬프, TOC)
- * YouTube 블록의 스크립트를 표시하고 편집
- *
- * ✅ TanStack Query를 사용하여:
- * - 컴포넌트가 렌더링될 때만 스크립트 로드
- * - 자동 캐싱으로 중복 요청 방지
- * - 로딩/에러 상태 자동 관리
- *
- * 구조:
- * - Container (index.tsx): Hook → Props 변환
- * - Business Logic (core/): TanStack Query로 데이터 로드
- * - View (components/): Presentational 컴포넌트
+ * Timeline tab for YouTube block.
+ * Uses TimelineTab (source-management) with props only.
  */
 
 'use client';
 
-import { ScriptSectionView } from './components/script-section-view';
-import type { ScriptSectionProps } from './core/types';
-import { useScriptSectionBusiness } from './core/use-script-section.business';
+import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import {
+  YoutubeBlockPropertiesVO,
+  type YoutubeBlockProperties,
+} from '@/domains/block-management/shared/value-objects/block-properties';
 
-/**
- * Timeline Tab Component
- *
- * Container 컴포넌트: Hook으로 데이터를 가져와서 Props로 View에 전달
- */
-export default function TimelineTab({
+import { TimelineTab } from '@/domains/source-management/frontend/components/timeline-tab';
+
+export interface YouTubeTimelineTabProps {
+  blockId: string;
+  blockData: BlockNodeData | undefined;
+}
+
+export default function YouTubeTimelineTab({
   blockId,
   blockData,
-}: ScriptSectionProps) {
-  // Business Logic Hook
-  const business = useScriptSectionBusiness(blockId, blockData);
+}: YouTubeTimelineTabProps) {
+  let sourceTitle: string | undefined;
+  try {
+    const props = blockData?.properties as YoutubeBlockProperties | undefined;
+    if (props) {
+      sourceTitle = YoutubeBlockPropertiesVO.fromJSON(props).youtubeTitle;
+    }
+  } catch {
+    // ignore
+  }
 
-  // Props로 View에 전달
   return (
-    <ScriptSectionView
-      youtubeId={business.youtubeId}
-      youtubeTitle={business.youtubeTitle}
-      script={business.script}
-      extractedAt={business.extractedAt}
-      isLoading={business.isLoading}
-      error={business.error}
-      onExtractScript={business.handleExtractScript}
-      isExtracting={business.isExtracting}
+    <TimelineTab
+      blockSlug={blockId}
+      sourceId={blockData?.sourceId}
+      sourceTitle={sourceTitle}
     />
   );
 }

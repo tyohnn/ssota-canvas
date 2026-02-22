@@ -68,11 +68,19 @@ export function BlockContentTabsSectionView({
   }, []);
 
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c4aa21'},body:JSON.stringify({sessionId:'c4aa21',location:'block-content-tabs-section.view.tsx:loadTabsConfig-effect',message:'loadTabsConfig effect RUN',data:{blockType},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     loadTabsConfig(blockType).then(config => {
+      const initialTabId = config
+        ? config.defaultTabId || config.tabs[0]?.id || null
+        : 'note';
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c4aa21'},body:JSON.stringify({sessionId:'c4aa21',location:'block-content-tabs-section.view.tsx:loadTabsConfig-then',message:'loadTabsConfig callback SET selectedTabId',data:{initialTabId,blockType},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       setTabsConfig(config);
       // tabsConfig가 null이면 기본 노트뷰 탭 설정 사용
       if (config) {
-        const initialTabId = config.defaultTabId || config.tabs[0]?.id || null;
         setSelectedTabId(initialTabId);
         previousTabIdRef.current = initialTabId;
       } else {
@@ -195,9 +203,22 @@ export function BlockContentTabsSectionView({
       selectedTabId &&
       !visibleTabs.some(t => t.id === selectedTabId)
     ) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c4aa21'},body:JSON.stringify({sessionId:'c4aa21',location:'block-content-tabs-section.view.tsx:visibleTabs-effect',message:'visibleTabs effect: selectedTabId not in visibleTabs, switching to effectiveDefaultTabId',data:{selectedTabId,effectiveDefaultTabId,visibleTabIds:visibleTabs.map(t=>t.id)},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       setSelectedTabId(effectiveDefaultTabId);
     }
   }, [readonly, selectedTabId, visibleTabs, effectiveDefaultTabId]);
+
+  // #region agent log - selectedTabId 변경 추적 (특히 'note'로 바뀔 때)
+  const prevSelectedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (selectedTabId === 'note' && prevSelectedRef.current !== 'note') {
+      fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c4aa21'},body:JSON.stringify({sessionId:'c4aa21',location:'block-content-tabs-section.view:selectedTabId-to-note',message:'selectedTabId changed TO note',data:{blockType,prevTab:prevSelectedRef.current},timestamp:Date.now(),hypothesisId:'ALL'})}).catch(()=>{});
+    }
+    prevSelectedRef.current = selectedTabId;
+  }, [selectedTabId, blockType]);
+  // #endregion
 
   // 탭 스크롤 영역 마운트/리사이즈 시 페이드 갱신
   useEffect(() => {

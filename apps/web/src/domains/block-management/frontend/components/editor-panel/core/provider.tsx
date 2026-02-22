@@ -56,6 +56,9 @@ export function EditorPanelProvider({
 
   // Tab 전환 함수 (Context에 제공)
   const switchToTab = useCallback((tabId: string) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c4aa21'},body:JSON.stringify({sessionId:'c4aa21',location:'provider.tsx:switchToTab',message:'switchToTab called',data:{tabId,blockId},timestamp:Date.now(),hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
     // ref를 통해 최신 callback 사용
     if (tabSwitchCallbackRef.current) {
       tabSwitchCallbackRef.current(tabId);

@@ -1,10 +1,7 @@
 /**
- * Script Transcript View
+ * Timeline Transcript View
  *
  * Presentational component: 렌더링만 담당
- * - Props만 받음
- * - Hook 사용 없음
- * - Context 사용 없음
  */
 
 'use client';
@@ -12,27 +9,27 @@
 import { Box } from '@/components/ui/box';
 
 import {
-  ScriptTranscriptItemView,
-  type ScriptTranscriptSegment,
-} from './script-transcript-item.view';
+  TimelineTranscriptItemView,
+  type TimelineTranscriptSegment,
+} from './timeline-transcript-item-view';
 
-export interface ScriptTranscriptViewProps {
-  transcript: ScriptTranscriptSegment[] | undefined;
-  youtubeTitle: string | undefined;
+export interface TimelineTranscriptViewProps {
+  transcript: TimelineTranscriptSegment[] | undefined;
+  sourceTitle: string | undefined;
   onTimeClick: (seconds: number) => void;
   onAddQuote: (text: string, timestamp: number, segmentIndex: number) => void | Promise<void>;
   loadingSegmentIndex: number | null;
   readonly?: boolean;
 }
 
-export function ScriptTranscriptView({
+export function TimelineTranscriptView({
   transcript,
-  youtubeTitle,
+  sourceTitle,
   onTimeClick,
   onAddQuote,
   loadingSegmentIndex,
   readonly = false,
-}: ScriptTranscriptViewProps) {
+}: TimelineTranscriptViewProps) {
   if (!transcript || transcript.length === 0) {
     return null;
   }
@@ -40,7 +37,7 @@ export function ScriptTranscriptView({
   return (
     <Box className="space-y-2">
       {transcript.map((segment, index) => (
-        <ScriptTranscriptItemView
+        <TimelineTranscriptItemView
           key={index}
           segment={segment}
           onTimeClick={onTimeClick}

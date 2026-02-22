@@ -1,5 +1,10 @@
 export type { SourceTypeValue } from './source.types';
 export type {
+  TimelineScript,
+  TimelineTranscriptMetadata,
+  TimelineTranscriptSegment,
+} from './timeline-script.types';
+export type {
   SourceMetadata,
   YoutubeSourceMetadata,
   PdfSourceMetadata,

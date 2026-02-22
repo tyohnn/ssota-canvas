@@ -10,9 +10,11 @@
 
 import { Box } from '@/components/ui/box';
 import { LANDING_YOUTUBE_PROPERTIES } from '../../landing-youtube-mock-data';
-import { ScriptSectionContainer } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/tab-sections/timeline-tab/components/script-section-container';
-import { ScriptTranscriptView } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/tab-sections/timeline-tab/components/script-transcript.view';
-import { ScriptTableOfContents } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/tab-sections/timeline-tab/components/script-table-of-contents';
+import {
+  TimelineTabContainer,
+  TimelineTranscriptView,
+  TimelineTableOfContents,
+} from '@/domains/source-management/frontend/components/timeline-tab';
 
 /** "How To Get Your First Users" 기반 가상 스크립트 (약 6분) */
 const MOCK_TRANSCRIPT = [
@@ -80,21 +82,21 @@ const NOOP_HANDLERS = {
 
 export function LandingScriptSection() {
   return (
-    <ScriptSectionContainer>
+    <TimelineTabContainer>
       <Box className="space-y-4 relative">
-        <ScriptTranscriptView
+        <TimelineTranscriptView
           transcript={MOCK_TRANSCRIPT}
-          youtubeTitle={LANDING_YOUTUBE_PROPERTIES.youtubeTitle}
+          sourceTitle={LANDING_YOUTUBE_PROPERTIES.youtubeTitle}
           onTimeClick={NOOP_HANDLERS.onTimeClick}
           onAddQuote={NOOP_HANDLERS.onAddQuote}
           loadingSegmentIndex={null}
           readonly={true}
         />
-        <ScriptTableOfContents
+        <TimelineTableOfContents
           transcript={MOCK_TRANSCRIPT}
           showTOC={true}
         />
       </Box>
-    </ScriptSectionContainer>
+    </TimelineTabContainer>
   );
 }

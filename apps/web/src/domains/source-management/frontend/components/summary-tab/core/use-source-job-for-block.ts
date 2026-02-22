@@ -8,12 +8,14 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 
-import { getInProgressSourceJobByBlockIdAction } from '@/domains/source-management/actions/summary/get-in-progress-source-job-by-block-id.action';
 import { getLatestSourceJobByBlockIdAction } from '@/domains/source-management/actions/summary/get-latest-source-job-by-block-id.action';
 import type { SourceJob } from '@/domains/source-management/frontend/hooks';
-import { useSourceJobRealtime } from '@/domains/source-management/frontend/hooks';
+import {
+  useInProgressSourceJob,
+  useSourceJobRealtime,
+} from '@/domains/source-management/frontend/hooks';
 
 export interface UseSourceJobForBlockParams {
   blockSlug: string;
@@ -47,18 +49,11 @@ export function useSourceJobForBlock({
   const {
     data: inProgressJobData,
     isFetching: isFetchingInProgressJob,
-  } = useQuery({
-    queryKey: ['source-job-in-progress', blockSlug],
-    queryFn: async () => {
-      if (!workspaceId) return null;
-      const result = await getInProgressSourceJobByBlockIdAction({
-        workspaceId,
-        blockId: blockSlug,
-      });
-      return result.success ? result.data : null;
-    },
-    enabled: !!workspaceId && !!blockSlug && !!sourceId && !readonly,
-    staleTime: 5000,
+  } = useInProgressSourceJob({
+    blockSlug,
+    sourceId,
+    workspaceId,
+    enabled: !readonly,
   });
 
   // 2. 조회된 job을 Realtime 초기값으로 사용

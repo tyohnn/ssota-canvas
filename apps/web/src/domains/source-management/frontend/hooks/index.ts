@@ -1,3 +1,10 @@
+export { useExtractSourceContent } from './use-extract-source-content';
+export type {
+  UseExtractSourceContentParams,
+  UseExtractSourceContentResult,
+} from './use-extract-source-content';
+export { useInProgressSourceJob } from './use-in-progress-source-job';
+export type { UseInProgressSourceJobParams } from './use-in-progress-source-job';
 export { useSourceContent } from './use-source-content';
 export type { UseSourceContentParams, UseSourceContentResult } from './use-source-content';
 export { useSourceSummary } from './use-source-summary';
