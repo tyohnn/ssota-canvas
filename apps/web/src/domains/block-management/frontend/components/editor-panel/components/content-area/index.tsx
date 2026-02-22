@@ -18,14 +18,6 @@ import { TitleInput } from './components/title-input';
 export function ContentArea() {
   const { blockId, blockData } = useEditorPanelContext();
 
-  // #region agent log
-  useEffect(() => {
-    if (!blockData) {
-      fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c4aa21'},body:JSON.stringify({sessionId:'c4aa21',location:'content-area:blockData-falsy',message:'blockData is falsy',data:{blockId},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-    }
-  }, [blockData, blockId]);
-  // #endregion
-
   // Editor Panel이 열릴 때 탭 prefetch
   useEffect(() => {
     if (blockData?.blockType) {

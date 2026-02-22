@@ -56,9 +56,6 @@ export function EditorPanelProvider({
 
   // Tab 전환 함수 (Context에 제공)
   const switchToTab = useCallback((tabId: string) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c4aa21'},body:JSON.stringify({sessionId:'c4aa21',location:'provider.tsx:switchToTab',message:'switchToTab called',data:{tabId,blockId},timestamp:Date.now(),hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     // ref를 통해 최신 callback 사용
     if (tabSwitchCallbackRef.current) {
       tabSwitchCallbackRef.current(tabId);
@@ -76,6 +73,8 @@ export function EditorPanelProvider({
   }, [tabSwitchCallback]);
 
   // initialTab 옵션 처리 (Canvas Mode에서 전달된 탭 전환 요청)
+  // tab이 빈 문자열이면 스킵 (updateBlockEditingTabOptions로 tabOptions만 업데이트할 때
+  // initialTab이 tab:''로 생성되어 의도치 않게 note 탭으로 전환되는 것 방지)
   useEffect(() => {
     if (
       isOpen &&
@@ -84,6 +83,7 @@ export function EditorPanelProvider({
       canvasMode.mode.initialTab
     ) {
       const { tab } = canvasMode.mode.initialTab;
+      if (!tab) return;
 
       // 약간의 지연 후 탭 전환 (탭이 mount될 시간 확보)
       const timeoutId = setTimeout(() => {
