@@ -19,6 +19,7 @@ import type { Editor } from '@tiptap/react';
 import { useEditor } from '@tiptap/react';
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { SlashCommandExtension } from '@/domains/block-management/frontend/components/tiptap-editor/extensions/slash-command.extension';
 import {
   EMPTY_TIPTAP_DOC,
   extractPlainText,
@@ -135,6 +136,7 @@ export function useTipTapEditor(
   const editor = useEditor({
     extensions: [
       ...MARKDOWN_EXTENSIONS,
+      SlashCommandExtension,
       Placeholder.configure({
         placeholder,
         emptyEditorClass: 'is-editor-empty',
