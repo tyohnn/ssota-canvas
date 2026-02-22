@@ -7,12 +7,16 @@
  * @see docs/patterns/backend/policy-and-event-types-guide.md
  */
 
+import type { OpenGraphMetadata } from '../types/open-graph-metadata';
+
 export interface LinkMetadataFetchedEventData {
   workspaceId: string;
   blockId: string; // 8-char slug
   orgId: string;
   url: string;
   language: string;
+  /** OG 메타데이터 - sources.metadata 저장용 (캐시) */
+  metadata?: OpenGraphMetadata;
 }
 
 /**

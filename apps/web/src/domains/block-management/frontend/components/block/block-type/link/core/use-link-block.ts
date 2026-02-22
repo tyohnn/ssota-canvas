@@ -138,7 +138,13 @@ export function useLinkBlock(props: LinkBlockHookProps): UseLinkBlockReturn {
         if (actionResult.success && actionResult.data) {
           resultMetadata = actionResult.data.metadata;
           const { sourceId, blockUuid } = actionResult.data;
-          // updateProperties: onMutate에서 updateNode 동기 실행 → Editor Panel 탭 데이터 동기화 (YouTube 패턴)
+
+          // UI 즉시 반영 (persistence 완료 기다리지 않음)
+          setMetadata(resultMetadata);
+          fetchedForUrlRef.current = urlString;
+          setIsLoading(false);
+
+          // Persistence: updateProperties (onMutate로 optimistic) + updateBlockTitle
           await updateProperties(
             nodeData.blockId!,
             {

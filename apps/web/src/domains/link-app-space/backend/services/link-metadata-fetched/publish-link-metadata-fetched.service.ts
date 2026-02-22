@@ -6,7 +6,8 @@
  * - Domain Event와 동일하게 "이벤트 생성 → handle() 호출" 흐름을 유지한다.
  * - 발행 주체는 Aggregate가 아니라 이 서비스(Application 레이어)이다.
  *
- * Policy: (1) findOrCreateSource(url, 'link') (2) block.sourceId (3) ensureSourceJob
+ * Policy: (1) findOrCreateSource(url, 'link', metadata) (2) block.sourceId (3) ensureSourceJob
+ * - sources.metadata에 OG 메타데이터 저장 (캐시)
  *
  * @see docs/patterns/backend/policy-and-event-types-guide.md
  */
@@ -18,6 +19,7 @@ import { DrizzleSourceRepository } from '@/domains/source-management/backend/rep
 import { DrizzleSourceSummaryRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source-summary.repository';
 import { ensureSourceJobService } from '@/domains/source-management/backend/services/source-job';
 import { findOrCreateSource } from '@/domains/source-management/backend/services/source';
+import type { LinkSourceMetadata } from '@/domains/source-management/shared/types/source-metadata.types';
 import { supabaseAdmin } from '@/utils/supabase/server';
 
 import type { LinkMetadataFetchedEventData } from '../../../shared/events/link-metadata.events';
@@ -25,13 +27,29 @@ import { LinkMetadataFetchedEvent } from '../../../shared/events/link-metadata.e
 
 export type PublishLinkMetadataFetchedPayload = LinkMetadataFetchedEventData;
 
+function ogToLinkMetadata(og: LinkMetadataFetchedEventData['metadata']): LinkSourceMetadata {
+  if (!og) return {};
+  return {
+    ogTitle: og.title,
+    ogDescription: og.description,
+    ogImage: og.imageUrl,
+    siteName: og.siteName,
+    domain: og.domain,
+    faviconUrl: og.faviconUrl,
+    type: og.type,
+    author: og.author,
+    publishedAt: og.publishedAt,
+  };
+}
+
 /**
  * LinkMetadataFetched Policy 실행
  *
- * 1. findOrCreateSource: URL로 source 조회/생성
- * 2. block 조회 (workspaceId + blockId slug)
- * 3. block.sourceId 업데이트
- * 4. ensureSourceJobService: source_summary/job 생성, extract 큐 enqueue
+ * 1. findOrCreateSource: URL로 source 조회/생성 (metadata 포함)
+ * 2. 기존 source에 metadata 비어있으면 업데이트
+ * 3. block 조회 (workspaceId + blockId slug)
+ * 4. block.sourceId 업데이트
+ * 5. ensureSourceJobService: source_summary/job 생성, extract 큐 enqueue
  */
 async function runLinkMetadataFetchedPolicy(
   payload: LinkMetadataFetchedEventData
@@ -44,12 +62,14 @@ async function runLinkMetadataFetchedPolicy(
     supabase: supabaseAdmin,
   });
 
-  // 1. findOrCreateSource(url, 'link')
+  const linkMetadata = ogToLinkMetadata(payload.metadata);
+
+  // 1. findOrCreateSource(url, 'link', metadata)
   const sourceResult = await findOrCreateSource(
     {
       url: payload.url,
       sourceType: 'link',
-      metadata: {},
+      metadata: linkMetadata,
       rawContent: undefined,
     },
     sourceRepository
@@ -63,7 +83,14 @@ async function runLinkMetadataFetchedPolicy(
     return undefined;
   }
 
-  const sourceId = sourceResult.value.getSource().id.value;
+  const source = sourceResult.value.getSource();
+  const sourceId = source.id.value;
+
+  // 2. 기존 source에 metadata 비어있고 전달받은 metadata 있으면 업데이트
+  if (linkMetadata.ogTitle && !(source.metadata as LinkSourceMetadata).ogTitle) {
+    source.updateMetadata(linkMetadata);
+    await sourceRepository.update(source);
+  }
 
   // 2. block 조회 (workspaceId + blockId slug)
   const block = await blockRepository.findByWorkspaceIdAndSlug(

@@ -26,6 +26,15 @@ export interface AudioSourceMetadata {
 }
 
 export interface LinkSourceMetadata {
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  siteName?: string;
+  domain?: string;
+  faviconUrl?: string;
+  type?: string;
+  author?: string;
+  publishedAt?: string;
   [key: string]: unknown;
 }
 
