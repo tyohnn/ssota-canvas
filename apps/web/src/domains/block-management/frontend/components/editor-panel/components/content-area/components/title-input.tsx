@@ -10,13 +10,9 @@ import { useEditorPanelContext } from '../../../core/context';
 import { TitleInputView } from './title-input.view';
 
 export function TitleInput() {
-  const { title, setTitle, inputRef, handleKeyDown, handleTitleSave, blockData } =
+  const { title, setTitle, inputRef, handleKeyDown, handleTitleSave } =
     useEditorPanelContext();
   const { readonly } = useCanvasReadOnly();
-
-  // note view일 때는 title 변경 불가
-  const isNoteView = blockData?.viewMode === 'note';
-  const isReadOnly = readonly || isNoteView;
 
   return (
     <TitleInputView
@@ -24,7 +20,7 @@ export function TitleInput() {
       onChange={e => setTitle(e.target.value)}
       onKeyDown={handleKeyDown}
       onBlur={handleTitleSave}
-      readOnly={isReadOnly}
+      readOnly={readonly}
       inputRef={inputRef}
     />
   );
