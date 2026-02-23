@@ -438,13 +438,42 @@ export const SlashCommandExtension = Extension.create({
       });
     };
 
+    const VIEWPORT_MARGIN = 8;
+
     const positionPopup = () => {
       if (!popup || !currentProps?.clientRect) return;
       const rect = currentProps.clientRect();
-      if (rect) {
-        popup.style.top = `${rect.bottom + 4}px`;
-        popup.style.left = `${rect.left}px`;
+      if (!rect) return;
+
+      const gap = 4;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const popupRect = popup.getBoundingClientRect();
+      const popupWidth = popupRect.width;
+      const popupHeight = popupRect.height;
+
+      const spaceBelow = viewportHeight - VIEWPORT_MARGIN - rect.bottom;
+      const spaceAbove = rect.top - VIEWPORT_MARGIN;
+
+      // 세로: 아래 공간 부족하고 위가 더 넓으면 위로 표시
+      const showAbove =
+        spaceBelow < popupHeight + gap && spaceAbove > spaceBelow;
+
+      if (showAbove) {
+        popup.style.top = `${rect.top - popupHeight - gap}px`;
+      } else {
+        popup.style.top = `${rect.bottom + gap}px`;
       }
+
+      // 가로: 오른쪽으로 넘치면 왼쪽 정렬, 왼쪽으로 넘치면 오른쪽 정렬
+      let left = rect.left;
+      if (left + popupWidth > viewportWidth - VIEWPORT_MARGIN) {
+        left = Math.max(VIEWPORT_MARGIN, viewportWidth - popupWidth - VIEWPORT_MARGIN);
+      }
+      if (left < VIEWPORT_MARGIN) {
+        left = VIEWPORT_MARGIN;
+      }
+      popup.style.left = `${left}px`;
     };
 
     return [
@@ -480,8 +509,10 @@ export const SlashCommandExtension = Extension.create({
             listEl.style.cssText = 'margin:0;padding:0;';
             popup.appendChild(listEl);
             document.body.appendChild(popup);
-            positionPopup();
             renderList();
+            requestAnimationFrame(() => {
+              positionPopup();
+            });
           },
           onUpdate: (props: SuggestionProps<SlashCommandItem>) => {
             // 아이템이 실제로 바뀔 때만(필터 입력 시) selectedIndex 초기화.
@@ -489,8 +520,10 @@ export const SlashCommandExtension = Extension.create({
             const itemsChanged = props.items !== currentProps?.items;
             currentProps = props;
             if (itemsChanged) selectedIndex = 0;
-            positionPopup();
             renderList();
+            requestAnimationFrame(() => {
+              positionPopup();
+            });
           },
           onKeyDown: (ctx: SuggestionKeyDownProps) => {
             if (!currentProps) return false;
