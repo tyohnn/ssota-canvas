@@ -17,6 +17,7 @@ import type { GroupBlockProperties } from '@/domains/block-management/shared/val
 
 import { DataBlock } from '../../data-block';
 import { CardView } from '../../data-block/components/card-view';
+import { GroupBlockTitleBadge } from '../../data-block/components/group-block-toolbar/group-block-title-badge';
 import { Box } from '@workspace/ui/components/ui/box';
 
 /**
@@ -104,6 +105,10 @@ export const GroupBlock = memo(function GroupBlock({
 
         {/* Content Area - 자식 노드들이 여기에 렌더링됨 */}
         <Box className="flex-1 p-4 relative">
+          {/* 제목 배지: 항상 표시 (색상 토큰 매칭) */}
+          <Box className="absolute top-2 left-2 z-10">
+            <GroupBlockTitleBadge data={nodeData} selected={selected} />
+          </Box>
           {/* 빈 공간 표시 (자식 노드가 없을 때만) */}
           {!hasChildren && (
             <Box

@@ -51,8 +51,29 @@ export async function createGroupFromNodes(
   } = params;
 
   try {
+    // 0. 그룹 블록은 다른 그룹의 자식이 될 수 없음 — GROUP 타입 노드 제외
+    const blockIds = nodeAggregates.map(agg =>
+      agg.getBlockMount().blockId
+    );
+    const blocks = await Promise.all(
+      blockIds.map(id => blockRepository.findById(id))
+    );
+    const nonGroupAggregates = nodeAggregates.filter((agg, i) => {
+      const block = blocks[i];
+      return block && block.blockType.value !== BlockType.GROUP;
+    });
+    if (nonGroupAggregates.length === 0) {
+      return Result.error(
+        new CanvasManagementError(
+          'NESTED_GROUP_NOT_ALLOWED',
+          'Group blocks cannot be nested. Select non-group blocks to create a group.'
+        )
+      );
+    }
+    const effectiveNodeAggregates = nonGroupAggregates;
+
     // 1. 부모 노드들의 위치 정보 조회 (상대→절대 좌표 변환용)
-    const nodesWithParent = nodeAggregates.filter(
+    const nodesWithParent = effectiveNodeAggregates.filter(
       agg => agg.getBlockMount().parentBlockMountId !== null
     );
 
@@ -77,7 +98,7 @@ export async function createGroupFromNodes(
 
     // 2. 모든 노드의 절대 좌표 계산 (바운딩 박스 계산 전에!)
     const absolutePositions = new Map<string, { x: number; y: number }>();
-    nodeAggregates.forEach(agg => {
+    effectiveNodeAggregates.forEach(agg => {
       const mount = agg.getBlockMount();
       const parentId = mount.parentBlockMountId?.value;
       const parentPos = parentId ? parentPositions.get(parentId) : null;
@@ -110,7 +131,7 @@ export async function createGroupFromNodes(
     }
 
     // 4. 모든 노드를 포함하는 바운딩 박스 계산 (절대 좌표 사용!)
-    const positions = nodeAggregates.map(agg => {
+    const positions = effectiveNodeAggregates.map(agg => {
       const mount = agg.getBlockMount();
       const absPos = absolutePositions.get(mount.id.value)!;
       return {
@@ -164,7 +185,7 @@ export async function createGroupFromNodes(
     const groupBlockId = groupBlockMount.blockId.value;
 
     // 6. 각 노드를 그룹의 자식으로 설정 (절대좌표 → 상대좌표 변환, 배치 업데이트)
-    const attachToGroupItems = nodeAggregates.map(agg => {
+    const attachToGroupItems = effectiveNodeAggregates.map(agg => {
       const mount = agg.getBlockMount();
       const absPos = absolutePositions.get(mount.id.value)!;
       return {

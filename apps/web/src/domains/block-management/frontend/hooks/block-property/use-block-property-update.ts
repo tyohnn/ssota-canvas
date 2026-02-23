@@ -9,7 +9,7 @@ import type { CanvasMetadata } from '@/domains/canvas-management/frontend/contex
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { toast } from '@workspace/ui/components/ui/sonner';
 
-import { isFailure } from '@/lib';
+import { isFailure, uuidToSlug } from '@/lib';
 
 import { updateBlockPropertiesAction } from '../../../actions/block/update-block-properties.action';
 import { updateBlockPropertyAction } from '../../../actions/block/update-block-property.action';
@@ -133,10 +133,14 @@ export function useUpdateBlockProperty(
       // blockMountId, blockData는 onMutate에서만 사용
     }: UpdatePropertyVariables) => {
       if (!workspaceId) throw new Error('Workspace context required');
-      // Validation
+      // Normalize blockId: API expects 8-10 char slug, node data may have UUID from legacy/optimistic paths
+      const blockIdSlug =
+        blockId.length > 10 || blockId.includes('-')
+          ? uuidToSlug(blockId)
+          : blockId;
       const request: UpdateBlockPropertyRequestInput = {
         workspaceId,
-        blockId,
+        blockId: blockIdSlug,
         propertyPath,
         value,
       };
@@ -214,12 +218,16 @@ export function useUpdateBlockProperty(
       properties,
     }: UpdatePropertiesVariables) => {
       if (!workspaceId) throw new Error('Workspace context required');
-      // sourceId는 block 최상위 필드이므로 properties에서 제외 (서버는 block.properties만 업데이트)
+      // Normalize blockId: API expects 8-10 char slug
+      const blockIdSlug =
+        blockId.length > 10 || blockId.includes('-')
+          ? uuidToSlug(blockId)
+          : blockId;
       const { sourceId: _sourceId, ...propertyFields } =
         properties as Record<string, unknown>;
       const request: UpdateBlockPropertiesRequestInput = {
         workspaceId,
-        blockId,
+        blockId: blockIdSlug,
         properties: propertyFields,
       };
 

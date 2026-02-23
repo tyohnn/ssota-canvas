@@ -1,5 +1,6 @@
 'use server';
 
+import { uuidToSlug } from '@/lib/utils';
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
 import {
   DrizzleEventLogRepository,
@@ -102,11 +103,8 @@ async function createGroupFromNodesInternal(
     }
 
     return ok({
-      groupBlockMountId: result.value.groupBlockMountId
-        .replace(/-/g, '')
-        .toLowerCase()
-        .slice(0, 8),
-      groupBlockId: result.value.groupBlockId,
+      groupBlockMountId: uuidToSlug(result.value.groupBlockMountId),
+      groupBlockId: uuidToSlug(result.value.groupBlockId),
     });
   } catch (error) {
     console.error('[createGroupFromNodesInternal] Internal error:', error);

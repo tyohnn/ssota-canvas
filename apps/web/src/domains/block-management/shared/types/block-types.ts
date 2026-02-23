@@ -117,6 +117,7 @@ export const BLOCK_TYPES_NO_CONTAINER_BOUNDARY: Partial<
   Record<BlockType, boolean>
 > = {
   [BlockType.SHAPE]: true,
+  [BlockType.GROUP]: true, // 그룹 블록은 자체 색상 테두리 사용
 };
 
 export function hasNoContainerBoundary(blockType: BlockType): boolean {

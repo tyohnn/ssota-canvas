@@ -1,5 +1,7 @@
 'use server';
 
+import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import {
   DrizzleEventLogRepository,
   EventLogService,
@@ -48,6 +50,16 @@ async function addNodeToGroupInternal(
   context: AddNodeToGroupActionContext
 ): Promise<ActionResult<{ success: true }>> {
   try {
+    const blockRepository = new DrizzleBlockRepository();
+    const childBlock = await blockRepository.findById(
+      context.childBlockMountAggregate.getBlockMount().blockId
+    );
+    if (childBlock?.blockType.value === BlockType.GROUP) {
+      return err('Cannot nest a group inside another group', {
+        code: 'NESTED_GROUP_NOT_ALLOWED',
+      });
+    }
+
     const blockMountRepository = new DrizzleBlockMountRepository();
 
     const result = await addNodeToGroup({

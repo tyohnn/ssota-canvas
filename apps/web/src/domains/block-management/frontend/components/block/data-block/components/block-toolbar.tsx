@@ -80,7 +80,6 @@ export function BlockToolbar({
         className={className}
         zoom={zoom}
         isMultiSelection={isMultiSelection}
-        onEdit={onEdit}
         showBlockToolbarMapper={showBlockToolbarMapper}
       />
     );

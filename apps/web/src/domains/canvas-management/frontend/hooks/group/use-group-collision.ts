@@ -134,6 +134,9 @@ export function useGroupCollision(params: UseGroupCollisionParams) {
     async (draggedNodes: Node[]): Promise<boolean> => {
       if (draggedNodes.length === 0) return false;
 
+      // 그룹 블록을 다른 그룹에 넣는 중첩은 허용하지 않음
+      if (draggedNodes.some(n => n.type === 'group')) return false;
+
       const allNodes = reactFlow.getNodes();
       const groupNodes = allNodes.filter(
         n => n.type === 'group' && !draggedNodes.some(d => d.id === n.id)

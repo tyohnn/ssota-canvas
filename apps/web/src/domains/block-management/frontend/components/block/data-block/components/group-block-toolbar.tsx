@@ -2,11 +2,12 @@
  * Group Block Toolbar Component
  *
  * 그룹 블록 전용 툴바 레이아웃
- * - 제목 인풋: 툴바 바와 같은 위계(형제), 좌측 absolute
- * - 툴바 바: 전체 너비, 내부 버튼만 콘텐츠 크기로 중앙 배치
+ * - 제목 배지: 그룹 내부 좌측 상단 (색상 토큰에 맞춘 배경/텍스트)
+ * - 툴바 바: 블록 상단 중앙
  */
 
 'use client';
+import { Fragment } from 'react';
 import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
 
@@ -16,9 +17,7 @@ import type { BlockNodeData } from '@/domains/block-management/shared/types/bloc
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
-import { BlockHeader } from './block-header';
 import {
-  EditorToolbarButton,
   MoreMenuToolbarItem,
   ViewModeToolbarItem,
 } from '../../common-toolbar-items';
@@ -34,7 +33,6 @@ export interface GroupBlockToolbarProps {
   className?: string;
   zoom: number;
   isMultiSelection: boolean;
-  onEdit: () => void;
   showBlockToolbarMapper?: boolean;
 }
 
@@ -48,48 +46,32 @@ export function GroupBlockToolbar({
   className,
   zoom,
   isMultiSelection,
-  onEdit,
   showBlockToolbarMapper = false,
 }: GroupBlockToolbarProps) {
   const { readonly } = useCanvasReadOnly();
 
   return (
-    <Box
-      className={cn(
-        'absolute top-[-47px] left-0 z-50 w-full',
-        'pointer-events-auto',
-        className
-      )}
-    >
-      {/* 제목 인풋: 툴바 바와 같은 위계(형제), 좌측 absolute */}
-      <Box className="absolute left-0 top-0 bottom-0 flex items-center pl-1 max-w-[200px] z-10">
-        <BlockHeader
-          data={data}
-          selected={selected}
-          width={width}
-          showBadge={false}
-        />
-      </Box>
-
-      {/* 툴바 바: 전체 너비, 버튼은 콘텐츠 크기만 갖고 중앙 배치 */}
-      <Box className="flex justify-center items-center bg-transparent py-0.5 min-h-[40px]">
+    <Fragment>
+      {/* 툴바 바: 블록 상단 중앙 (제목 배지는 GroupBlock 콘텐츠에 항상 표시) */}
+      <Box
+        className={cn(
+          'absolute top-[-47px] left-0 right-0 z-50 flex justify-center items-center',
+          'pointer-events-auto',
+          'py-0.5 min-h-[40px]'
+        )}
+      >
         <Box className="shrink-0 flex items-center gap-0.5 px-1.5 py-1 bg-background/70 backdrop-blur-md rounded-md shadow-xl border border-border/40">
           <TooltipProvider>
             {showBlockToolbarMapper && (
-              <>
-                <BlockToolbarMapper
-                  blockId={data.blockId}
-                  blockType={data.blockType || 'basic'}
-                  blockData={data}
-                  width={width}
-                  height={height}
-                  zoom={zoom}
-                  readonly={readonly}
-                />
-                {!readonly && (
-                  <Separator orientation="vertical" className="h-4!" />
-                )}
-              </>
+              <BlockToolbarMapper
+                blockId={data.blockId}
+                blockType={data.blockType || 'basic'}
+                blockData={data}
+                width={width}
+                height={height}
+                zoom={zoom}
+                readonly={readonly}
+              />
             )}
 
             {!readonly && onViewModeChange && (
@@ -100,11 +82,6 @@ export function GroupBlockToolbar({
                 zoom={zoom}
               />
             )}
-
-            <EditorToolbarButton
-              onClick={() => onEdit()}
-              onMouseDown={e => e.stopPropagation()}
-            />
 
             {!readonly && (
               <>
@@ -121,6 +98,6 @@ export function GroupBlockToolbar({
           </TooltipProvider>
         </Box>
       </Box>
-    </Box>
+    </Fragment>
   );
 }
