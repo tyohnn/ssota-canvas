@@ -235,10 +235,19 @@ export function useReactFlowWrapperBusiness(
    *
    * 주의: React Flow가 이미 노드를 제거한 후 이 콜백을 호출하므로,
    * UI는 이미 제거된 상태이고 서버 액션만 호출하면 됨
+   *
+   * Phantom router nodes (link-router, file-router) are never persisted to DB,
+   * so we must not attempt to sync their deletion.
    */
   const onNodesDelete = useCallback(
     async (deletedNodes: Node[]) => {
-      await syncNodeDelete(deletedNodes);
+      const realNodes = deletedNodes.filter(
+        node => !node.id.startsWith('phantom-router-')
+      );
+      if (realNodes.length === 0) {
+        return;
+      }
+      await syncNodeDelete(realNodes);
     },
     [syncNodeDelete]
   );

@@ -67,7 +67,7 @@ export interface DomainDependencies {
   getCurrentMode: () => CanvasMode;
   exitToDefaultMode: () => void;
 
-  // Block Lifecycle
+  // Block Lifecycle (or add phantom router node for link/file)
   createAndMountBlock: (
     blockType: BlockType,
     position: { x: number; y: number }

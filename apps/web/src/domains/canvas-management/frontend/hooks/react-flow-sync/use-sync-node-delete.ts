@@ -36,7 +36,7 @@ export function useSyncNodeDelete(
 
   const syncNodeDelete = useCallback(
     async (deletedNodes: Node[]) => {
-      // 삭제할 노드 ID들 추출
+      // 삭제할 노드 ID들 추출 (phantom 노드는 호출 전에 필터링되어 있어야 함)
       const blockMountIds = deletedNodes.map(node => node.id);
 
       if (blockMountIds.length === 0) {

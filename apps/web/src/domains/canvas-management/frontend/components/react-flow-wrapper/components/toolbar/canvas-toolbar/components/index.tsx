@@ -64,6 +64,8 @@ export function CanvasToolbarView({
           {/* Fit to View Button */}
           <FitToViewButton onClick={onFitToViewClick} />
 
+          <Separator orientation="vertical" className="h-4!" />
+
           {/* Block Type Buttons - readonly일 때 숨김 */}
           {!readonly &&
             TOOLBAR_BLOCK_TYPES.map(({ blockType, label, icon: Icon }) => (

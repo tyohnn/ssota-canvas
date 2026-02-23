@@ -295,6 +295,48 @@ export function useReactFlowWrapper(
         }
 
         const blockType = currentMode.blockType;
+
+        // Link and File use phantom router blocks (not persisted until URL/file is provided)
+        const ROUTER_BLOCK_TYPES = ['link', 'file'] as const;
+        if (
+          ROUTER_BLOCK_TYPES.includes(
+            blockType as (typeof ROUTER_BLOCK_TYPES)[number]
+          )
+        ) {
+          const phantomId = `phantom-router-${crypto.randomUUID()}`;
+          const routerNodeType =
+            blockType === 'link' ? 'link-router' : 'file-router';
+          const blockSize =
+            BLOCK_TYPE_SIZES[blockType] ?? BLOCK_TYPE_SIZES['text'];
+
+          const mouseFlowPosition =
+            reactFlowInstance.screenToFlowPosition({
+              x: event.clientX,
+              y: event.clientY,
+            });
+
+          const adjustedPosition = {
+            x: mouseFlowPosition.x - (blockSize?.width ?? 200) / 2,
+            y: mouseFlowPosition.y - (blockSize?.height ?? 150) / 2,
+          };
+
+          reactFlowInstance.addNodes([
+            {
+              id: phantomId,
+              type: routerNodeType,
+              position: adjustedPosition,
+              data: {
+                isPhantom: true,
+                routerType: blockType,
+              },
+              width: blockSize?.width ?? 200,
+              height: blockSize?.height ?? 150,
+            },
+          ]);
+          canvasMode.exitToDefaultMode();
+          return;
+        }
+
         const blockSize =
           BLOCK_TYPE_SIZES[blockType] ?? BLOCK_TYPE_SIZES['text'];
 
@@ -342,6 +384,48 @@ export function useReactFlowWrapper(
         }
 
         const blockType = currentMode.blockType;
+
+        // Link and File use phantom router blocks
+        const ROUTER_BLOCK_TYPES = ['link', 'file'] as const;
+        if (
+          ROUTER_BLOCK_TYPES.includes(
+            blockType as (typeof ROUTER_BLOCK_TYPES)[number]
+          )
+        ) {
+          const phantomId = `phantom-router-${crypto.randomUUID()}`;
+          const routerNodeType =
+            blockType === 'link' ? 'link-router' : 'file-router';
+          const blockSize =
+            BLOCK_TYPE_SIZES[blockType] ?? BLOCK_TYPE_SIZES['text'];
+
+          const mouseFlowPosition =
+            reactFlowInstance.screenToFlowPosition({
+              x: event.clientX,
+              y: event.clientY,
+            });
+
+          const adjustedPosition = {
+            x: mouseFlowPosition.x - (blockSize?.width ?? 200) / 2,
+            y: mouseFlowPosition.y - (blockSize?.height ?? 150) / 2,
+          };
+
+          reactFlowInstance.addNodes([
+            {
+              id: phantomId,
+              type: routerNodeType,
+              position: adjustedPosition,
+              data: {
+                isPhantom: true,
+                routerType: blockType,
+              },
+              width: blockSize?.width ?? 200,
+              height: blockSize?.height ?? 150,
+            },
+          ]);
+          canvasMode.exitToDefaultMode();
+          return;
+        }
+
         const blockSize =
           BLOCK_TYPE_SIZES[blockType] ?? BLOCK_TYPE_SIZES['text'];
 

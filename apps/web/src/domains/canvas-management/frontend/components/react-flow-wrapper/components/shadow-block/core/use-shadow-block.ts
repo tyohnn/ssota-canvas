@@ -39,6 +39,36 @@ export function useShadowBlock(
     getCurrentMode: () => canvasMode.getCurrentMode(),
     exitToDefaultMode: () => canvasMode.exitToDefaultMode(),
     createAndMountBlock: async (blockType, position) => {
+      // Link and File use phantom router blocks (not persisted until URL/file is provided)
+      const ROUTER_BLOCK_TYPES = ['link', 'file'] as const;
+      if (
+        ROUTER_BLOCK_TYPES.includes(
+          blockType as (typeof ROUTER_BLOCK_TYPES)[number]
+        )
+      ) {
+        const phantomId = `phantom-router-${crypto.randomUUID()}`;
+        const routerNodeType =
+          blockType === 'link' ? 'link-router' : 'file-router';
+        const blockSize =
+          BLOCK_TYPE_SIZES[blockType] ?? BLOCK_TYPE_SIZES['text'];
+
+        reactFlow.addNodes([
+          {
+            id: phantomId,
+            type: routerNodeType,
+            position,
+            data: {
+              isPhantom: true,
+              routerType: blockType,
+            },
+            width: blockSize?.width ?? 200,
+            height: blockSize?.height ?? 150,
+          },
+        ]);
+        canvasMode.exitToDefaultMode();
+        return;
+      }
+
       await blockLifecycle.createAndMountBlock(blockType, position);
     },
     screenToFlowPosition: position => reactFlow.screenToFlowPosition(position),

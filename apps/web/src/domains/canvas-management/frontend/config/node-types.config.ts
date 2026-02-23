@@ -29,6 +29,8 @@ import {
   GroupBlock,
 } from '@/domains/block-management/frontend/components/block/block-type';
 
+import { LinkRouterBlock } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/router-block/link-router-block';
+import { FileRouterBlock } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/router-block/file-router-block';
 
 // PDF: dynamic import to avoid SSR/worker issues with pdfjs-dist
 const PdfBlock = dynamic(
@@ -60,4 +62,7 @@ export const CANVAS_NODE_TYPES: NodeTypes = {
   [BlockType.VERCEL_DEPLOYMENT]: VercelDeploymentBlock,
   [BlockType.GROUP]: GroupBlock,
 
+  // Phantom router blocks (not persisted to DB)
+  'link-router': LinkRouterBlock,
+  'file-router': FileRouterBlock,
 };
