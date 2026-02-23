@@ -38,9 +38,22 @@ export interface LinkTabOptions {
 }
 
 /**
+ * PDF 블록의 탭별 옵션
+ */
+export interface PdfTabOptions {
+  summary: {
+    language?: string;
+    isExtracting?: boolean;
+  };
+  note: Record<string, never>;
+  extract: Record<string, never>;
+}
+
+/**
  * 블록 타입별 탭 옵션 맵
  */
 export interface BlockTabOptionsMap {
   [BlockType.YOUTUBE]: YoutubeTabOptions;
   [BlockType.LINK]: LinkTabOptions;
+  [BlockType.PDF]: PdfTabOptions;
 }

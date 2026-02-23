@@ -98,7 +98,7 @@ export function useExtractSummary({
         canvasMode.enterBlockEditingMode(
           blockId,
           blockMountId,
-          createTabOptions(blockType as 'youtube' | 'link', 'summary', {
+          createTabOptions(blockType as 'youtube' | 'link' | 'pdf', 'summary', {
             language,
             isExtracting: true,
           })
@@ -172,7 +172,7 @@ export function useExtractSummary({
         canvasMode.enterBlockEditingMode(
           blockId,
           blockMountId,
-          createTabOptions(blockType as 'youtube' | 'link', 'summary', { language })
+          createTabOptions(blockType as 'youtube' | 'link' | 'pdf', 'summary', { language })
         );
       }
     },

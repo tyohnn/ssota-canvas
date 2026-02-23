@@ -31,6 +31,7 @@ export const UpdateSourceRawContentRequestSchema = z.object({
   sourceId: z.uuid({ message: 'Invalid source ID' }),
   rawContent: z.string(),
   extractedAt: z.coerce.date(),
+  structuredPayload: z.unknown().optional(),
 });
 
 export type UpdateSourceRawContentRequest = z.output<

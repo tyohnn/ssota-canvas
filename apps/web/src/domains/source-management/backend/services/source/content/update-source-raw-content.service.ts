@@ -13,6 +13,7 @@ import type { ISourceRepository } from '../../../repositories/interfaces/source.
 
 const TTL_LINK_DAYS = 2;
 const TTL_YOUTUBE_MONTHS = 3;
+const TTL_PDF_MONTHS = 6;
 
 export function computeExpiresAt(
   sourceType: string,
@@ -26,6 +27,11 @@ export function computeExpiresAt(
   if (sourceType === 'youtube') {
     const expires = new Date(extractedAt);
     expires.setMonth(expires.getMonth() + TTL_YOUTUBE_MONTHS);
+    return expires;
+  }
+  if (sourceType === 'pdf') {
+    const expires = new Date(extractedAt);
+    expires.setMonth(expires.getMonth() + TTL_PDF_MONTHS);
     return expires;
   }
   return null;
@@ -48,6 +54,24 @@ export async function updateSourceRawContent(
       source.sourceType.value,
       safeDto.extractedAt
     );
+
+    // Merge pdfExtraction state into source metadata if present
+    if (
+      safeDto.structuredPayload &&
+      typeof safeDto.structuredPayload === 'object' &&
+      'pdfExtraction' in (safeDto.structuredPayload as object)
+    ) {
+      const payload = safeDto.structuredPayload as Record<string, unknown>;
+      const existingMetadata =
+        typeof source.metadata === 'object' && source.metadata !== null
+          ? (source.metadata as Record<string, unknown>)
+          : {};
+      source.updateMetadata({
+        ...existingMetadata,
+        pdfExtraction: payload.pdfExtraction,
+      });
+      await sourceRepository.update(source);
+    }
 
     const aggregate = SourceAggregate.reconstitute(source);
     aggregate.updateRawContent({

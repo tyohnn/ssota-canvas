@@ -46,6 +46,7 @@ export async function extractSourceContent(
         sourceId: safeDto.sourceId,
         rawContent: extracted.rawContent,
         extractedAt: new Date(),
+        structuredPayload: extracted.structuredPayload,
       },
       sourceRepository
     );

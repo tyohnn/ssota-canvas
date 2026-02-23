@@ -19,6 +19,7 @@ import type { ISourceSummaryRepository } from '@/domains/source-management/backe
 import type { ISourceActionTransactionRepository } from '@/domains/source-management/backend/repositories/interfaces/source-action-transaction.repository.interface';
 import type { IExtractAdapter } from '@/domains/source-management/backend/services/extract/adapters/types';
 import { LinkExtractAdapter } from '@/domains/source-management/backend/services/extract/adapters/link-extract.adapter';
+import { PdfExtractAdapter } from '@/domains/source-management/backend/services/extract/adapters/pdf-extract.adapter';
 import { YoutubeExtractAdapter } from '@/domains/source-management/backend/services/extract/adapters/youtube-extract.adapter';
 import { extractSourceContent } from '@/domains/source-management/backend/services/extract';
 import { runSourceContentExtractedPolicy } from '@/domains/source-management/backend/services/source-content-extracted/source-content-extracted-policy.runner';
@@ -85,7 +86,7 @@ export async function processSourceJobService(
     }
 
     const block = await blockRepository.findById(new BlockId(blockId));
-    const supportedBlockTypes = ['youtube', 'link'];
+    const supportedBlockTypes = ['youtube', 'link', 'pdf'];
     if (
       !block ||
       !supportedBlockTypes.includes(block.blockType.value)
@@ -104,6 +105,7 @@ export async function processSourceJobService(
       const adapters: Record<SourceTypeValue, IExtractAdapter> = {
         youtube: new YoutubeExtractAdapter(),
         link: new LinkExtractAdapter(),
+        pdf: new PdfExtractAdapter(),
       } as Record<SourceTypeValue, IExtractAdapter>;
 
       const extractResult = await extractSourceContent(

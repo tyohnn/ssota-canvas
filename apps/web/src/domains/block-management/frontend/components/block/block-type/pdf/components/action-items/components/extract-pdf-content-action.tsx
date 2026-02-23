@@ -41,7 +41,7 @@ export function ExtractPdfContentAction({
         </Button>
       </TooltipTrigger>
       <TooltipContent side="left" hasArrow={false} sideOffset={10}>
-        <p>내용 추출</p>
+        <p>Extract content</p>
       </TooltipContent>
     </Tooltip>
   );

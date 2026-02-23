@@ -41,7 +41,7 @@ export function SummarizePdfAction({
         </Button>
       </TooltipTrigger>
       <TooltipContent side="left" hasArrow={false} sideOffset={10}>
-        <p>AI 요약 (LLM)</p>
+        <p>AI Summary (LLM)</p>
       </TooltipContent>
     </Tooltip>
   );

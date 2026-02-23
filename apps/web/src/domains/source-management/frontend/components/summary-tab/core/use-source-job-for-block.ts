@@ -78,11 +78,72 @@ export function useSourceJobForBlock({
     initialJob
   );
 
+  // #region agent log
+  useEffect(() => {
+    const skipReason = !realtimeBlockId
+      ? 'noRealtimeBlockId'
+      : initialJob != null
+        ? 'hasInitialJob'
+        : isCompleted
+          ? 'alreadyCompleted'
+          : fallbackCheckedRef.current
+            ? 'fallbackAlreadyChecked'
+            : isFetchingInProgressJob
+              ? 'fetchingInProgress'
+              : null;
+    fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '7f6321',
+      },
+      body: JSON.stringify({
+        sessionId: '7f6321',
+        hypothesisId: 'H1',
+        location: 'use-source-job-for-block.ts:useEffect-log',
+        message: 'useSourceJobForBlock state',
+        data: {
+          blockSlug,
+          realtimeBlockId: realtimeBlockId || '(empty)',
+          hasInitialJob: !!initialJob,
+          isCompleted,
+          isFetchingInProgressJob,
+          fallbackSkipReason: skipReason,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => { });
+  }, [
+    blockSlug,
+    realtimeBlockId,
+    initialJob,
+    isCompleted,
+    isFetchingInProgressJob,
+  ]);
+  // #endregion
+
   // 5. Job 완료 시: 관련 query invalidate + onJobCompleted (tabOptions.isExtracting 해제)
   useEffect(() => {
     if (!blockSlug || !sourceId) return;
     if (isCompleted && !prevCompletedRef.current) {
       prevCompletedRef.current = true;
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Debug-Session-Id': '7f6321',
+        },
+        body: JSON.stringify({
+          sessionId: '7f6321',
+          hypothesisId: 'H1',
+          location: 'use-source-job-for-block.ts:onJobCompleted',
+          message: 'onJobCompleted called (Realtime)',
+          data: { blockSlug, sourceId },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => { });
+      // #endregion
       queryClient.invalidateQueries({ queryKey: ['source-summary', blockSlug] });
       queryClient.invalidateQueries({
         queryKey: ['source-summary-languages', sourceId],
@@ -112,6 +173,23 @@ export function useSourceJobForBlock({
     ) {
       return;
     }
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '7f6321',
+      },
+      body: JSON.stringify({
+        sessionId: '7f6321',
+        hypothesisId: 'H1',
+        location: 'use-source-job-for-block.ts:fallback-run',
+        message: 'Fallback running (getLatestSourceJobByBlockId)',
+        data: { blockSlug },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => { });
+    // #endregion
     fallbackCheckedRef.current = true;
     const timer = setTimeout(() => {
       getLatestSourceJobByBlockIdAction({ workspaceId, blockId: blockSlug })
@@ -125,6 +203,23 @@ export function useSourceJobForBlock({
           const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
           if (completedAt < twoMinutesAgo) return;
           prevCompletedRef.current = true;
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Debug-Session-Id': '7f6321',
+            },
+            body: JSON.stringify({
+              sessionId: '7f6321',
+              hypothesisId: 'H1',
+              location: 'use-source-job-for-block.ts:fallback-onJobCompleted',
+              message: 'Fallback onJobCompleted (API found completed job)',
+              data: { blockSlug, sourceId },
+              timestamp: Date.now(),
+            }),
+          }).catch(() => { });
+          // #endregion
           queryClient.invalidateQueries({ queryKey: ['source-summary', blockSlug] });
           queryClient.invalidateQueries({
             queryKey: ['source-summary-languages', sourceId],
@@ -134,7 +229,7 @@ export function useSourceJobForBlock({
           });
           onJobCompleted?.();
         })
-        .catch(() => {});
+        .catch(() => { });
     }, 500);
     return () => clearTimeout(timer);
   }, [
