@@ -12,15 +12,11 @@ import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { Box } from '@/components/ui/box';
-import { Separator } from '@/components/ui/separator';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
-import {
-  MoreMenuToolbarItem,
-  ViewModeToolbarItem,
-} from '../../common-toolbar-items';
+import { ViewModeToolbarItem } from '../../common-toolbar-items';
 import { BlockToolbarMapper } from '../../block-original-toolbar/components/block-toolbar-mapper';
 
 export interface GroupBlockToolbarProps {
@@ -81,19 +77,6 @@ export function GroupBlockToolbar({
                 onViewModeChange={onViewModeChange}
                 zoom={zoom}
               />
-            )}
-
-            {!readonly && (
-              <>
-                <Separator orientation="vertical" className="h-4!" />
-                <MoreMenuToolbarItem
-                  blockId={data.blockId}
-                  blockMountId={data.blockMountId}
-                  width={width}
-                  height={height}
-                  parentBlockMountId={data.parentBlockMountId}
-                />
-              </>
             )}
           </TooltipProvider>
         </Box>

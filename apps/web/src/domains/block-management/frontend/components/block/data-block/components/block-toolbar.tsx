@@ -3,7 +3,7 @@
  *
  * 블록 상단에 표시되는 통합 툴바 (모든 view mode에서 사용)
  * - 좌측: BlockHeader (제목 + Badge)
- * - 우측: Toolbar buttons (ViewMode + Details + More + BlockToolbarMapper)
+ * - 우측: Toolbar buttons (ViewMode + Details + BlockToolbarMapper)
  */
 
 'use client';
@@ -17,7 +17,6 @@ import { GroupBlockToolbar } from './group-block-toolbar';
 import { BlockHeader } from './block-header';
 import {
   EditorToolbarButton,
-  MoreMenuToolbarItem,
   ViewModeToolbarItem,
 } from '../../common-toolbar-items';
 import { BlockToolbarMapper } from '../../block-original-toolbar/components/block-toolbar-mapper';
@@ -115,18 +114,6 @@ export function BlockToolbar({
         onClick={() => onEdit()}
         onMouseDown={e => e.stopPropagation()}
       />
-      {!readonly && (
-        <>
-          <Separator orientation="vertical" className="h-4!" />
-          <MoreMenuToolbarItem
-            blockId={data.blockId}
-            blockMountId={data.blockMountId}
-            width={width}
-            height={height}
-            parentBlockMountId={data.parentBlockMountId}
-          />
-        </>
-      )}
     </>
   ) : (
     <>
@@ -163,20 +150,6 @@ export function BlockToolbar({
         onClick={() => onEdit()}
         onMouseDown={e => e.stopPropagation()}
       />
-
-      {/* 더보기 메뉴 - readonly일 때 숨김 */}
-      {!readonly && (
-        <>
-          <Separator orientation="vertical" className="h-4!" />
-          <MoreMenuToolbarItem
-            blockId={data.blockId}
-            blockMountId={data.blockMountId}
-            width={width}
-            height={height}
-            parentBlockMountId={data.parentBlockMountId}
-          />
-        </>
-      )}
     </>
   );
 

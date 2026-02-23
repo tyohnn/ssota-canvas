@@ -29,6 +29,7 @@ export interface BaseBlockViewProps {
   onMouseEnter: () => void;
   onMouseMove: (event: React.MouseEvent<HTMLDivElement>) => void;
   onMouseLeave: () => void;
+  onContextMenu?: React.MouseEventHandler<HTMLDivElement>;
   showAddButtonZones: boolean;
   setHoverDirection: (direction: HoverDirection | null) => void;
 }
@@ -49,6 +50,7 @@ export const BaseBlockView = forwardRef<HTMLDivElement, BaseBlockViewProps>(
       onMouseEnter,
       onMouseMove,
       onMouseLeave,
+      onContextMenu,
       showAddButtonZones,
       setHoverDirection,
     },
@@ -68,6 +70,7 @@ export const BaseBlockView = forwardRef<HTMLDivElement, BaseBlockViewProps>(
         onMouseEnter={onMouseEnter}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
+        onContextMenu={onContextMenu}
       >
         {children}
         {showAddButtonZones && (
