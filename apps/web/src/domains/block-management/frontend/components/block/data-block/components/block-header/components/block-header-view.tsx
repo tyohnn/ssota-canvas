@@ -70,7 +70,7 @@ export function BlockHeaderView({
       {/* 블록 타입 배지 */}
       {shouldShowBadge && blockType && (
         <Badge variant="secondary" className="shrink-0">
-          {blockType}
+          {blockType === 'markdown' ? 'note' : blockType}
         </Badge>
       )}
 
@@ -87,7 +87,7 @@ export function BlockHeaderView({
         placeholder="New Block"
         className={cn(
           'h-7 px-1 text-sm font-medium',
-          'flex-1 min-w-0',
+          'flex-1 min-w-0 max-w-48',
           'bg-transparent',
           'border-0 border-b',
           'outline-none',
