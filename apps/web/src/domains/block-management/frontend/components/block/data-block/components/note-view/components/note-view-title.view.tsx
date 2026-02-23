@@ -45,7 +45,7 @@ export function NoteViewTitleView({
         readOnly={readOnly}
         tabIndex={interactive ? 0 : -1}
         className={cn(
-          'nodrag h-10 px-0 text-2xl md:text-3xl font-semibold border-none bg-transparent focus-visible:ring-0 shadow-none',
+          'nodrag h-10 px-0 text-2xl md:text-3xl font-semibold border-none bg-transparent dark:bg-transparent focus-visible:ring-0 shadow-none',
           !interactive && 'pointer-events-none select-none'
         )}
         placeholder="New Block"
