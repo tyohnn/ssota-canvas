@@ -54,9 +54,9 @@ export function BlockHeaderView({
     onBlur();
   };
 
-  // showBadge가 false이거나 width가 400px 이하일 때 배지 숨김
+  // showBadge가 false이거나 width가 280px 이하일 때 배지 숨김
   const shouldShowBadge =
-    showBadge !== false && !!blockType && width !== undefined && width > 400;
+    showBadge !== false && !!blockType && width !== undefined && width > 300;
 
   return (
     <Box
