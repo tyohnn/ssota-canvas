@@ -95,13 +95,9 @@ export function TipTapEditor({
         .${styleTarget} [data-admonition][data-type="danger"]::before { content: "🚨 Danger"; color: #dc2626; }
 
         /* ── Table ── */
-        .${styleTarget} table { border-collapse: collapse; width: 100%; margin: 0.5rem 0; }
-        .${styleTarget} td, .${styleTarget} th { border: 1px solid #d1d5db; padding: 6px 10px; text-align: left; }
-        .${styleTarget} th { background: #f3f4f6; font-weight: 600; }
-        @media (prefers-color-scheme: dark) {
-          .${styleTarget} td, .${styleTarget} th { border-color: #374151; }
-          .${styleTarget} th { background: #1f2937; }
-        }
+        .${styleTarget} table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
+        .${styleTarget} td, .${styleTarget} th { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+        .${styleTarget} th { background: var(--secondary); color: var(--secondary-foreground); font-weight: 600; }
 
         /* ── Blockquote (Quote) ── */
         .${styleTarget} .ProseMirror blockquote {
@@ -133,11 +129,11 @@ export function TipTapEditor({
         }
 
         /* ── Task List ── */
-        .${styleTarget} ul[data-type="taskList"] { list-style: none !important; padding-left: 0 !important; margin: 0.25rem 0; margin-left: 0 !important; }
-        .${styleTarget} ul[data-type="taskList"] > li { list-style: none !important; display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: flex-start; gap: 0.5rem; padding: 0.1rem 0; }
-        .${styleTarget} ul[data-type="taskList"] > li > label { display: inline-flex !important; flex-shrink: 0 !important; width: auto !important; margin-top: 0.25em; align-items: center; cursor: pointer; }
+        .${styleTarget} ul[data-type="taskList"] { list-style: none !important; padding-left: 0 !important; margin: 0 !important; margin-left: 0 !important; }
+        .${styleTarget} ul[data-type="taskList"] > li { list-style: none !important; display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: flex-start; gap: 0.5rem; padding: 0; margin: 0 0 4px 0; }
+        .${styleTarget} ul[data-type="taskList"] > li > label { display: inline-flex !important; flex-shrink: 0 !important; width: auto !important; margin: 0 !important; padding-top: calc((1.5 - 1) / 2 * 1em); align-items: center; cursor: pointer; }
         .${styleTarget} ul[data-type="taskList"] > li > div { flex: 1 1 0% !important; min-width: 0 !important; }
-        .${styleTarget} ul[data-type="taskList"] > li[data-checked="true"] > div { text-decoration: line-through; opacity: 0.7; }
+        .${styleTarget} ul[data-type="taskList"] > li > div p { margin-top: 0 !important; margin-bottom: 0 !important; }
 
         /* ── Slash Command (진행 중인 트리거 영역 배지) ── */
         .${styleTarget} .slash-command-trigger {
@@ -159,7 +155,7 @@ export function TipTapEditor({
 
         /* ── 토글 (Collapsible) ── */
         .${styleTarget} [data-type="details"] {
-          margin: 0.5rem 0;
+          margin: 0.25rem 0;
           display: grid;
           grid-template-columns: auto 1fr;
           grid-template-rows: auto 1fr;

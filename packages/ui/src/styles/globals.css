@@ -264,7 +264,7 @@ body {
   }
   .prose p,
   .prose .ProseMirror p {
-    @apply leading-snug my-3;
+    @apply leading-snug my-2;
   }
   .prose ul,
   .prose .ProseMirror ul {
@@ -283,8 +283,52 @@ body {
   .prose .ProseMirror ul {
     @apply list-disc ml-4;
   }
+  /* Nested bullets: disc → circle → square → repeat (levels 5–8 for deeper nesting) */
+  .prose .ProseMirror ul ul {
+    list-style-type: circle;
+  }
+  .prose .ProseMirror ul ul ul {
+    list-style-type: square;
+  }
+  .prose .ProseMirror ul ul ul ul {
+    list-style-type: disc;
+  }
+  .prose .ProseMirror ul ul ul ul ul {
+    list-style-type: circle;
+  }
+  .prose .ProseMirror ul ul ul ul ul ul {
+    list-style-type: square;
+  }
+  .prose .ProseMirror ul ul ul ul ul ul ul {
+    list-style-type: disc;
+  }
+  .prose .ProseMirror ul ul ul ul ul ul ul ul {
+    list-style-type: circle;
+  }
   .prose .ProseMirror ol {
     @apply list-decimal ml-4 my-1;
+  }
+  /* Nested ordered: decimal → lower-alpha → lower-roman → repeat (levels 5–8 for deeper nesting) */
+  .prose .ProseMirror ol ol {
+    list-style-type: lower-alpha;
+  }
+  .prose .ProseMirror ol ol ol {
+    list-style-type: lower-roman;
+  }
+  .prose .ProseMirror ol ol ol ol {
+    list-style-type: decimal;
+  }
+  .prose .ProseMirror ol ol ol ol ol {
+    list-style-type: lower-alpha;
+  }
+  .prose .ProseMirror ol ol ol ol ol ol {
+    list-style-type: lower-roman;
+  }
+  .prose .ProseMirror ol ol ol ol ol ol ol {
+    list-style-type: decimal;
+  }
+  .prose .ProseMirror ol ol ol ol ol ol ol ol {
+    list-style-type: lower-alpha;
   }
   .prose .ProseMirror code {
     @apply bg-muted px-1 rounded;
@@ -309,7 +353,7 @@ body {
     border-radius: 0;
   }
   .prose .ProseMirror pre {
-    @apply bg-muted p-3 rounded;
+    @apply bg-muted p-3 rounded m-1;
   }
   .prose .ProseMirror blockquote {
     @apply border-l-4 border-border pl-4 italic;
