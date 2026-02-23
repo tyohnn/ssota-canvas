@@ -84,7 +84,7 @@ export function BlockHeaderView({
         onBlur={handleBlur}
         disabled={isUpdating}
         readOnly={readonly}
-        placeholder="Click to edit"
+        placeholder="New Block"
         className={cn(
           'h-7 px-1 text-sm font-medium',
           'flex-1 min-w-0',

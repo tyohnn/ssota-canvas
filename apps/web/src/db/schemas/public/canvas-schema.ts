@@ -37,7 +37,7 @@ export const blocks = pgTable(
       .references(() => workspaces.id, { onDelete: 'cascade' }),
     slug: text('slug').notNull(), // 8~10자 hex, workspace 내 유일 (UNIQUE(workspace_id, slug))
     block_type: blockTypeEnum('block_type').notNull().default('text'),
-    title: text('title').notNull().default('새 블럭'),
+    title: text('title').notNull().default('New Block'),
     metadata: jsonb('metadata').default({}),
     properties: jsonb('properties').default({}),
     content: jsonb('content'),

@@ -37,7 +37,7 @@ export function TitleInputView({
         onBlur={onBlur}
         readOnly={readOnly}
         className="h-10 px-0 text-2xl md:text-3xl font-semibold border-none bg-transparent focus-visible:ring-0 shadow-none"
-        placeholder="Untitled"
+        placeholder="New Block"
         maxLength={100}
       />
     </Box>

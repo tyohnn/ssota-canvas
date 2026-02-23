@@ -69,7 +69,7 @@ export class Block {
     workspaceId: WorkspaceId,
     userId: UserId,
     blockType: BlockType,
-    title: string = '새 블럭',
+    title: string = 'New Block',
     properties?: BlockPropertiesVO,
     content?: unknown // ✨ 초기 content 추가 (JSONB)
   ): Block {

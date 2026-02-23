@@ -123,9 +123,9 @@ export function ChatSessionPopover({
                 <Box
                   key={session.id}
                   className={`
-                    px-2.5 py-1.5 hover:bg-accent/50 cursor-pointer
+                    px-2.5 py-1.5 cursor-pointer
                     flex items-center gap-1.5 group
-                    ${currentSessionId === session.id ? 'bg-accent' : ''}
+                    ${currentSessionId === session.id ? 'bg-accent' : 'hover:bg-accent/50'}
                   `}
                   onClick={() => {
                     if (editingId !== session.id) {

@@ -26,7 +26,7 @@ export function useBlockHeader(
   const canvasMode = useCanvasModeContext();
 
   // 2. UI State Hook (Designer area)
-  const initialTitle = props.data.title || '새 블럭';
+  const initialTitle = props.data.title ?? '';
   const uiState = useBlockHeaderUI(initialTitle);
 
   // 3. Business Logic Hook (Engineer area)
@@ -39,17 +39,14 @@ export function useBlockHeader(
 
   // 5. Compose Handlers
   const handleSave = useCallback(async () => {
-    if (!uiState.title.trim()) {
-      uiState.setTitle(initialTitle);
-      return;
-    }
-
     const trimmedTitle = uiState.title.trim();
     const success = await business.updateTitle(trimmedTitle);
 
     if (!success) {
       // 실패 시 원래 값으로 복원
       uiState.setTitle(initialTitle);
+    } else {
+      uiState.setTitle(trimmedTitle);
     }
   }, [uiState, business, initialTitle]);
 

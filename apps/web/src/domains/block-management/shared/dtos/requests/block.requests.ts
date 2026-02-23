@@ -95,7 +95,7 @@ export const UpdateBlockPropertiesRequestSchema = z.object({
 export const UpdateBlockTitleRequestSchema = z.object({
   workspaceId: z.uuid('Invalid workspace ID'),
   blockId: BlockSlugSchema,
-  title: z.string().min(1, 'Title is required'),
+  title: z.string(), // 빈 문자열 허용
 });
 
 /**
