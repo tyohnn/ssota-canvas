@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useTheme } from 'next-themes';
 
@@ -121,10 +121,12 @@ export function useReactFlowWrapper(
 
 
   // =========================================================================
-  // 3. Theme
+  // 3. Theme (mounted pattern to avoid hydration mismatch: server has no theme)
   // =========================================================================
-  const { theme } = useTheme();
-  const colorMode = theme === 'dark' ? 'dark' : 'light';
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const colorMode = !mounted ? 'light' : (resolvedTheme === 'dark' ? 'dark' : 'light');
 
   // =========================================================================
   // 4. Domain / Service Hooks (External Dependencies)

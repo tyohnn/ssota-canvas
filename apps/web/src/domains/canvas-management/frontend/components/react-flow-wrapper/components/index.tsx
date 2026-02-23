@@ -209,7 +209,7 @@ export function ReactFlowView({
           onMove={onMove}
           // onKeyDown은 전역 리스너로 처리 (포커스 문제 우회)
           deleteKeyCode={['Delete', 'Backspace']}
-          className={`bg-muted/30 ${panOnDragEnabled ? 'panning-mode' : ''} ${isBlockCreationMode ? 'block-creation-mode' : ''}`}
+          className={`bg-background ${panOnDragEnabled ? 'panning-mode' : ''} ${isBlockCreationMode ? 'block-creation-mode' : ''}`}
         >
           <Background />
 
