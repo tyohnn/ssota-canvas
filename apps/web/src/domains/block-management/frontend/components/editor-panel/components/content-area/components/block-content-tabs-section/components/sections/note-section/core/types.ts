@@ -6,6 +6,7 @@
 import type { RefObject } from 'react';
 import type { Editor } from '@tiptap/react';
 
+import type { MathEditingState } from '@/domains/block-management/frontend/components/tiptap-editor/core/types';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
 export interface MarkdownContentSectionProps {
@@ -31,4 +32,6 @@ export interface UseMarkdownContentSectionOptions {
 export interface UseMarkdownContentSectionReturn {
   editor: Editor | null;
   handleEditorClick: () => void;
+  mathEditing: MathEditingState | null;
+  setMathEditing: (state: MathEditingState | null) => void;
 }

@@ -64,7 +64,7 @@ export function useNoteView(
       updateNode(nodeId, opts);
     },
   };
-  const { editor, state: editorState } = useBlockNoteTiptap({
+  const { editor, state: editorState, mathEditing, setMathEditing } = useBlockNoteTiptap({
     blockData: data,
     reactFlow,
     editable: isEditable,
@@ -117,5 +117,7 @@ export function useNoteView(
     editor,
     uiState: fullUIState,
     business,
+    mathEditing,
+    setMathEditing,
   };
 }

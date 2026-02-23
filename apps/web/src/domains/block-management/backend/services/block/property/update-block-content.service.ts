@@ -11,7 +11,7 @@ import { Result } from '@/utils/result';
 
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
 import type { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
-import { EMPTY_TIPTAP_DOC } from '../../../../shared/utils/tiptap-markdown.utils';
+import { EMPTY_TIPTAP_DOC } from '../../../../shared/utils/tiptap-json.utils';
 import { pmSchema } from '../../../../shared/utils/prosemirror-schema';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
 import { applyBlockContentSteps } from './apply-block-content-steps.service';

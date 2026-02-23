@@ -30,7 +30,7 @@ export default function NoteSection({
   const { readonly } = useCanvasReadOnly();
   const contentVersionRef = useRef<number>(blockData.contentVersion ?? 0);
 
-  const { editor, handleEditorClick } = useMarkdownContentSection({
+  const { editor, handleEditorClick, mathEditing, setMathEditing } = useMarkdownContentSection({
     blockData,
     readonly,
     dependencies: {
@@ -49,6 +49,8 @@ export default function NoteSection({
       editor={editor}
       readonly={readonly}
       onEditorClick={handleEditorClick}
+      mathEditing={mathEditing}
+      onMathEditingChange={setMathEditing}
     />
   );
 }

@@ -60,6 +60,20 @@ export interface TipTapEditorOptions {
   onVersionMismatchRef?: RefObject<
     ((content: unknown, version: number) => void) | null
   >;
+  /**
+   * 이미지 업로드 콜백 (paste/drop 시)
+   * File → Supabase 업로드 후 URL 반환
+   */
+  uploadImage?: (file: File) => Promise<string>;
+}
+
+/**
+ * Math (LaTeX) 편집 중인 노드 상태
+ */
+export interface MathEditingState {
+  pos: number;
+  latex: string;
+  nodeType: 'blockMath' | 'inlineMath';
 }
 
 /**
@@ -74,5 +88,9 @@ export interface UseTipTapEditorReturn {
    * 에디터 클릭 핸들러 (포커스 처리)
    */
   handleEditorClick: () => void;
+  /** LaTeX 수식 편집 중인 노드 (null이면 편집 중 아님) */
+  mathEditing: MathEditingState | null;
+  /** LaTeX 편집 상태 설정 */
+  setMathEditing: (state: MathEditingState | null) => void;
 }
 

@@ -7,6 +7,7 @@ import type { RefObject } from 'react';
 
 import type { Editor } from '@tiptap/react';
 
+import type { MathEditingState } from '@/domains/block-management/frontend/components/tiptap-editor/core/types';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import type { CanvasMode } from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
@@ -105,4 +106,6 @@ export interface UseNoteViewReturn {
   editor: Editor | null;
   uiState: NoteViewUIState;
   business: NoteViewBusinessLogic;
+  mathEditing: MathEditingState | null;
+  setMathEditing: (state: MathEditingState | null) => void;
 }

@@ -264,11 +264,11 @@ body {
   }
   .prose p,
   .prose .ProseMirror p {
-    @apply leading-relaxed my-3;
+    @apply leading-snug my-3;
   }
   .prose ul,
   .prose .ProseMirror ul {
-    @apply my-4;
+    @apply my-1;
   }
   .prose li,
   .prose .ProseMirror li {
@@ -284,10 +284,29 @@ body {
     @apply list-disc ml-4;
   }
   .prose .ProseMirror ol {
-    @apply list-decimal ml-4 my-4;
+    @apply list-decimal ml-4 my-1;
   }
   .prose .ProseMirror code {
     @apply bg-muted px-1 rounded;
+  }
+  /* Code + custom background: apply bg as badge (rounded) and remove default gray */
+  .prose .ProseMirror code:has(span[style*='background-color']) {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+  }
+  .prose .ProseMirror code span[style*='background-color'] {
+    padding: 0 0.25rem;
+    border-radius: 0.25rem;
+  }
+  .prose .ProseMirror span[style*='background-color']:has(code) {
+    padding: 0 0.25rem;
+    border-radius: 0.25rem;
+  }
+  .prose .ProseMirror span[style*='background-color']:has(code) code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
   }
   .prose .ProseMirror pre {
     @apply bg-muted p-3 rounded;

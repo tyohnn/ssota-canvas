@@ -15,6 +15,7 @@ import type { Editor } from '@tiptap/react';
 import { TipTapEditor } from '@/domains/block-management/frontend/components/tiptap-editor';
 import { cn } from '@workspace/ui/lib/utils';
 
+import type { MathEditingState } from '@/domains/block-management/frontend/components/tiptap-editor/core/types';
 import type { NoteViewBusinessLogic, NoteViewUIState } from '../core/types';
 
 export interface NoteViewViewProps {
@@ -24,6 +25,8 @@ export interface NoteViewViewProps {
   editor: Editor | null;
   uiState: NoteViewUIState;
   business: NoteViewBusinessLogic;
+  mathEditing?: MathEditingState | null;
+  onMathEditingChange?: (state: MathEditingState | null) => void;
 }
 
 /**
@@ -38,6 +41,8 @@ export function NoteViewView({
   editor,
   uiState,
   business,
+  mathEditing,
+  onMathEditingChange,
 }: NoteViewViewProps) {
   if (!editor) {
     return null;
@@ -78,6 +83,8 @@ export function NoteViewView({
           editable={uiState.isEditing}
           onClick={uiState.isEditing ? uiState.handleEditorClick : undefined}
           onDoubleClick={uiState.handleBlockDoubleClick}
+          mathEditing={mathEditing}
+          onMathEditingChange={onMathEditingChange}
           placeholderClassName={
             selected && uiState.isDoubleClickMode
               ? 'tiptap-markdown-block'

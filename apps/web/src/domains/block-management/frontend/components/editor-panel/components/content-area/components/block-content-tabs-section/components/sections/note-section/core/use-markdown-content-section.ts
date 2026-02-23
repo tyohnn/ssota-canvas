@@ -25,7 +25,7 @@ export function useMarkdownContentSection(
   const { blockData, dependencies, readonly = false } = options;
   const { reactFlow, contentVersionRef } = dependencies;
 
-  const { editor, handleEditorClick } = useBlockNoteTiptap({
+  const { editor, handleEditorClick, mathEditing, setMathEditing } = useBlockNoteTiptap({
     blockData,
     reactFlow,
     editable: !readonly,
@@ -36,5 +36,7 @@ export function useMarkdownContentSection(
   return {
     editor,
     handleEditorClick,
+    mathEditing,
+    setMathEditing,
   };
 }

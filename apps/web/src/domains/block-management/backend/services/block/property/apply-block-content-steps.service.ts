@@ -14,7 +14,7 @@ import { BlockManagementError } from '../../../../shared/errors/block-management
 import {
   EMPTY_TIPTAP_DOC,
   extractPlainText,
-} from '../../../../shared/utils/tiptap-markdown.utils';
+} from '../../../../shared/utils/tiptap-json.utils';
 import { pmSchema } from '../../../../shared/utils/prosemirror-schema';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
 
@@ -61,9 +61,11 @@ export async function applyBlockContentSteps(
 
     const currentContent =
       (block.content as object) || EMPTY_TIPTAP_DOC;
+
     let doc = Node.fromJSON(pmSchema, currentContent);
 
-    for (const stepJSON of steps) {
+    for (let i = 0; i < steps.length; i++) {
+      const stepJSON = steps[i];
       const step = Step.fromJSON(pmSchema, stepJSON as Record<string, unknown>);
       const result = step.apply(doc);
       if (result.failed) {

@@ -1,13 +1,21 @@
 'use client';
 
 import type { RefObject } from 'react';
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 import { logBlockUpdatedAuditAction } from '@/domains/block-management/actions/block/log-block-updated-audit.action';
+import { uploadImageAction } from '@/domains/image-app-space/actions/image-upload.actions';
+import {
+  extractImageMetadata,
+  fileToBase64,
+} from '@/domains/block-management/frontend/components/block/block-type/image/utils/image-file.utils';
 import { useTipTapEditor } from '@/domains/block-management/frontend/components/tiptap-editor/core/use-tiptap-editor';
 import type { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
-import type { TipTapEditorState } from '@/domains/block-management/frontend/components/tiptap-editor/core/types';
+import type {
+  MathEditingState,
+  TipTapEditorState,
+} from '@/domains/block-management/frontend/components/tiptap-editor/core/types';
 import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { Node } from '@xyflow/react';
@@ -33,6 +41,8 @@ export interface UseBlockNoteTiptapReturn {
   editor: ReturnType<typeof useTipTapEditor>['editor'];
   state: TipTapEditorState;
   handleEditorClick: () => void;
+  mathEditing: MathEditingState | null;
+  setMathEditing: (state: MathEditingState | null) => void;
 }
 
 /**
@@ -64,6 +74,27 @@ export function useBlockNoteTiptap(
     contentVersionRef,
   });
 
+  const uploadImage = useMemo(() => {
+    if (!workspaceId) return undefined;
+    return async (file: File): Promise<string> => {
+      const metadata = await extractImageMetadata(file);
+      const base64 = await fileToBase64(file);
+      const result = await uploadImageAction({
+        fileBase64: base64,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+        workspaceId,
+        width: metadata.width,
+        height: metadata.height,
+      });
+      if (!result.success) {
+        throw new Error(result.error || 'Upload failed');
+      }
+      return result.data.image_url;
+    };
+  }, [workspaceId]);
+
   const saveStepsToServer = useCallback(
     async (steps: unknown[], baseVersion: number) => {
       if (!applyBlockContentSteps || !blockData.blockId) return;
@@ -80,13 +111,20 @@ export function useBlockNoteTiptap(
           blockData: latestBlockData,
         });
 
-        if (
-          !result.ok &&
-          result.code === 'CONTENT_VERSION_MISMATCH' &&
-          typeof result.serverVersion === 'number' &&
-          contentVersionRef?.current !== undefined
-        ) {
-          contentVersionRef.current = result.serverVersion;
+        if (!result.ok) {
+          if (
+            result.code === 'CONTENT_VERSION_MISMATCH' &&
+            typeof result.serverVersion === 'number' &&
+            contentVersionRef?.current !== undefined
+          ) {
+            contentVersionRef.current = result.serverVersion;
+          } else {
+            console.error(
+              '[BlockNoteTiptap] Step apply failed on server:',
+              result.code,
+              result
+            );
+          }
         }
       } catch (error) {
         console.error('[BlockNoteTiptap] Failed to apply steps:', error);
@@ -95,7 +133,7 @@ export function useBlockNoteTiptap(
     [blockData, reactFlow, applyBlockContentSteps, contentVersionRef]
   );
 
-  const { editor, state, handleEditorClick } = useTipTapEditor({
+  const { editor, state, handleEditorClick, mathEditing, setMathEditing } = useTipTapEditor({
     blockData,
     placeholder,
     editable,
@@ -113,11 +151,14 @@ export function useBlockNoteTiptap(
     initialVersion:
       contentVersionRef?.current ?? blockData.contentVersion ?? 0,
     contentVersionRef,
+    uploadImage,
   });
 
   return {
     editor,
     state,
     handleEditorClick,
+    mathEditing,
+    setMathEditing,
   };
 }
