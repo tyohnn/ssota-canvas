@@ -44,21 +44,12 @@ export const youtubeBlockTutorial: Tutorial = {
   steps: [
     {
       id: 'add-block',
-      title: 'Add a Block',
-      description: 'Click the "Add Block" button to open the block menu.',
-      targetSelector: 'add-block-button',
-      action: 'click',
-      onComplete: (state) => ({ ...state, showBlockMenu: true }),
-    },
-    {
-      id: 'select-youtube',
-      title: 'Choose YouTube Block',
-      description: 'Select the YouTube block type from the menu.',
+      title: 'Add a YouTube Block',
+      description: 'Click the YouTube button to add a YouTube block to your canvas.',
       targetSelector: 'block-type-youtube',
       action: 'click',
       onComplete: (state) => ({
         ...state,
-        showBlockMenu: false,
         blockCreationMode: true,
         selectedBlockType: 'youtube',
       }),
@@ -197,7 +188,6 @@ export const youtubeBlockTutorial: Tutorial = {
   ],
   content: {
     initialState: {
-      showBlockMenu: false,
       hasBlock: false,
       blockCreationMode: false,
       blockSelected: false,

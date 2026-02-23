@@ -69,12 +69,8 @@ export function CanvasReactFlowWrapper({
       onWheel={hook.handleWheel}
       onWheelCapture={hook.handleWheelCapture}
       guidelines={hook.guidelines}
-      showAddDialog={hook.showAddDialog}
-      onAddBlockClick={() => hook.setShowAddDialog(true)}
-      onCloseAddDialog={() => hook.setShowAddDialog(false)}
-      onSelectBlockType={hook.handleSelectBlockType}
+      onAddBlockTypeClick={hook.handleSelectBlockType}
       showAIAgent={hook.showAIAgent}
-      showBlockCreation={hook.showBlockCreation}
     />
   );
 }

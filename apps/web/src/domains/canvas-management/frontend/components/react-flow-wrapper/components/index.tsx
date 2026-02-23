@@ -19,7 +19,6 @@ import { SelectionBoundingBox } from './multi-select/selection-bounding-box';
 import { ReactFlowStyles } from './react-flow-styles';
 import { ShadowBlockContainer } from './shadow-block';
 import { SnapGuidelines } from './snap/snap-guidelines';
-import { BlockAddDialog } from './toolbar/block-add-dialog';
 import { CanvasToolbar } from './toolbar/canvas-toolbar';
 import { ViewportControlToolbar } from './toolbar/viewport-control-toolbar';
 
@@ -94,15 +93,11 @@ export interface ReactFlowViewProps {
   // Guidelines
   guidelines: any[];
 
-  // Block Add Dialog
-  showAddDialog: boolean;
-  onAddBlockClick: () => void;
-  onCloseAddDialog: () => void;
-  onSelectBlockType: (blockType: BlockType) => void;
+  // Block creation (toolbar buttons)
+  onAddBlockTypeClick: (blockType: BlockType) => void;
 
   // Feature flags
   showAIAgent?: boolean;
-  showBlockCreation?: boolean;
 
   // Pan Sensitivity
   panOnScrollSpeed?: number;
@@ -143,12 +138,8 @@ export function ReactFlowView({
   onWheel,
   onWheelCapture,
   guidelines,
-  showAddDialog,
-  onAddBlockClick,
-  onCloseAddDialog,
-  onSelectBlockType,
+  onAddBlockTypeClick,
   showAIAgent = true,
-  showBlockCreation = true,
   panOnScrollSpeed = 0.5, // Default for React Flow
 }: ReactFlowViewProps) {
 
@@ -219,7 +210,7 @@ export function ReactFlowView({
             position="top-center"
             className="mt-4! pointer-events-auto! z-10"
           >
-            <CanvasToolbar onAddBlockClick={onAddBlockClick} />
+            <CanvasToolbar onAddBlockTypeClick={onAddBlockTypeClick} />
           </Panel>
 
           {/* 모드별 컴포넌트 렌더링 */}
@@ -258,15 +249,6 @@ export function ReactFlowView({
             <StatusWindowPanel />
           </Panel>
         </ReactFlow>
-
-        {/* Block Add Dialog (캔버스 밖에 위치) */}
-        {showBlockCreation && (
-          <BlockAddDialog
-            isOpen={showAddDialog}
-            onClose={onCloseAddDialog}
-            onSelectBlockType={onSelectBlockType}
-          />
-        )}
       </div>
     </main>
   );

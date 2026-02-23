@@ -97,7 +97,6 @@ export interface UseReactFlowWrapperReturn
 
   // Feature flags (readonly에 따라 자동 처리)
   showAIAgent: boolean;
-  showBlockCreation: boolean;
 }
 
 export function useReactFlowWrapper(
@@ -272,15 +271,12 @@ export function useReactFlowWrapper(
   // =========================================================================
   // 10. Custom Handlers (Block Creation Mode Override)
   // =========================================================================
-  // 블럭 타입 선택 핸들러 (다이얼로그 닫기 + 블록 생성 모드 진입)
+  // 블럭 타입 선택 핸들러 (바로 블록 생성 모드 진입)
   const handleSelectBlockType = useCallback(
     (blockType: BlockType) => {
-      // UI 상태: 다이얼로그 닫기
-      uiState.setShowAddDialog(false);
-      // 비즈니스 로직: 블록 생성 모드 진입
       canvasMode.enterBlockCreationMode(blockType);
     },
-    [uiState, canvasMode]
+    [canvasMode]
   );
 
   // ✅ 블록 생성 모드용 onPaneClick override
@@ -594,7 +590,6 @@ export function useReactFlowWrapper(
   // =========================================================================
   // readonly일 때 편집 전용 기능 비활성화
   const showAIAgent = false; // !readonly;
-  const showBlockCreation = !readonly;
 
   // =========================================================================
   // 14. 노드 표시용 (부모가 선택된 자식은 z-index 상승용 className 추가)
@@ -638,7 +633,6 @@ export function useReactFlowWrapper(
     defaultViewport,
 
     // UI State
-    showAddDialog: uiState.showAddDialog,
     guidelines: snapGuides.guidelines,
 
     // =========================================================================
@@ -688,13 +682,11 @@ export function useReactFlowWrapper(
     handleSelectBlockType,
     handleWheel: uiState.onWheel,
     handleWheelCapture: uiState.onWheelCapture,
-    setShowAddDialog: uiState.setShowAddDialog,
     handlePaste: businessLogic.handlePaste,
     handleDuplicate: businessLogic.handleDuplicate,
     handleNodeResize: businessLogic.handleNodeResize,
 
     // Feature flags
     showAIAgent,
-    showBlockCreation,
   };
 }

@@ -230,7 +230,7 @@ export function LandingCanvasWrapper({
             className="m-0! pointer-events-none! z-10"
           >
             <CanvasToolbar
-              onAddBlockClick={() => {}} // 비활성화
+              onAddBlockTypeClick={() => {}} // 비활성화
             />
           </Panel>
 

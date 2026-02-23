@@ -8,6 +8,8 @@ import {
   usePreventPinchZoom,
 } from '@/domains/canvas-management/frontend/hooks';
 
+import type { BlockType } from '@/domains/block-management/shared/types/block-types';
+
 import type {
   CanvasToolbarProps,
   ModeDependencies,
@@ -64,9 +66,12 @@ export function useCanvasToolbar(
     reactFlowDependencies.fitView({ duration: 200, padding: 0.1 });
   }, [reactFlowDependencies]);
 
-  const onAddBlockClick = useCallback(() => {
-    props.onAddBlockClick?.();
-  }, [props]);
+  const onAddBlockTypeClick = useCallback(
+    (blockType: BlockType) => {
+      props.onAddBlockTypeClick?.(blockType);
+    },
+    [props]
+  );
 
   // 6. Keyboard event handlers
   const handleKeyDown = useCallback(
@@ -170,7 +175,7 @@ export function useCanvasToolbar(
     onSelectClick,
     onHandClick,
     onFitToViewClick,
-    onAddBlockClick,
+    onAddBlockTypeClick,
     readonly,
   };
 }

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 import type { Node } from '@xyflow/react';
 
@@ -15,10 +15,6 @@ import type {
  * UI 상태 관리 및 UI 관련 callbacks 핸들러
  */
 export interface ReactFlowWrapperUIState {
-  // UI 상태
-  showAddDialog: boolean;
-  setShowAddDialog: (show: boolean) => void;
-
   // Callbacks - Drag 관련
   onNodeDragStart: (
     event: React.MouseEvent,
@@ -57,9 +53,6 @@ export function useReactFlowWrapperUI(
   dependencies: ReactFlowWrapperUIDependencies
 ): ReactFlowWrapperUIState {
   const { canvasMode, reactFlow, snapGuides } = dependencies;
-
-  // UI 상태
-  const [showAddDialog, setShowAddDialog] = useState(false);
 
   // 이전 선택 상태 추적 (무한 루프 방지)
   const previousSelectionRef = useRef<{
@@ -354,8 +347,6 @@ export function useReactFlowWrapperUI(
   );
 
   return {
-    showAddDialog,
-    setShowAddDialog,
     onNodeDragStart,
     onNodeDrag,
     handleNodeDragStopUI,

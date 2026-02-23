@@ -5,9 +5,11 @@ import { Separator } from '@workspace/ui/components/ui/separator';
 import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 
 import { Box } from '@/components/ui/box';
+import type { BlockType } from '@/domains/block-management/shared/types/block-types';
 
 import type { CanvasMode } from '../../../../../../hooks/mode/canvas-mode-context';
-import { AddBlockButton } from './add-block-button';
+import { TOOLBAR_BLOCK_TYPES } from '../core/toolbar-block-types';
+import { BlockTypeToolbarButton } from './block-type-toolbar-button';
 import { FitToViewButton } from './fit-to-view-button';
 import { HandButton } from './hand-button';
 import { SelectButton } from './select-button';
@@ -20,7 +22,7 @@ export interface CanvasToolbarViewProps {
   onSelectClick: () => void;
   onHandClick: () => void;
   onFitToViewClick: () => void;
-  onAddBlockClick: () => void;
+  onAddBlockTypeClick: (blockType: BlockType) => void;
   readonly?: boolean;
 }
 
@@ -40,7 +42,7 @@ export function CanvasToolbarView({
   onSelectClick,
   onHandClick,
   onFitToViewClick,
-  onAddBlockClick,
+  onAddBlockTypeClick,
   readonly = false,
 }: CanvasToolbarViewProps) {
   const isSelectActive =
@@ -62,14 +64,19 @@ export function CanvasToolbarView({
           {/* Fit to View Button */}
           <FitToViewButton onClick={onFitToViewClick} />
 
-          {/* Add Block Button - readonly일 때 숨김 */}
-          {!readonly && (
-            <AddBlockButton
-              isActive={isBlockCreationMode}
-              disabled={isBlockCreationMode}
-              onClick={onAddBlockClick}
-            />
-          )}
+          {/* Block Type Buttons - readonly일 때 숨김 */}
+          {!readonly &&
+            TOOLBAR_BLOCK_TYPES.map(({ blockType, label, icon: Icon }) => (
+              <BlockTypeToolbarButton
+                key={blockType}
+                blockType={blockType}
+                icon={<Icon className="h-4 w-4" />}
+                label={label}
+                onClick={onAddBlockTypeClick}
+                isActive={isBlockCreationMode}
+                disabled={isBlockCreationMode}
+              />
+            ))}
         </TooltipProvider>
       </ToolbarContainer>
     </Box>

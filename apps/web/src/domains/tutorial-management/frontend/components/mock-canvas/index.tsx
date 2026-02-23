@@ -34,7 +34,6 @@ import {
 import { useMockCanvas } from './core/use-mock-canvas';
 import { MockCanvasToolbar } from '../mock-canvas-toolbar';
 import { MockViewportControlToolbarConnected } from '../mock-viewport-control-toolbar';
-import { MockBlockAddDialog } from '../mock-block-add-dialog';
 import { MockShadowBlock } from './components/mock-shadow-block';
 import { MockViewportNavigationProvider } from './core/mock-viewport-navigation-context';
 import { TutorialStartOverlay } from '../common/tutorial-start-overlay';
@@ -128,14 +127,7 @@ function MockCanvasInnerWithFlow({
   initialNodes = [],
   initialEdges = [],
 }: MockCanvasInnerProps) {
-  const {
-    showBlockMenu,
-    hasBlock,
-    handleAddBlockClick,
-    handleCloseDialog,
-    handleSelectBlockType,
-    handleBlockPlaced,
-  } = useMockCanvas();
+  const { hasBlock, handleBlockPlaced } = useMockCanvas();
 
   const {
     currentTutorial,
@@ -390,7 +382,10 @@ function MockCanvasInnerWithFlow({
 
         {/* Canvas Toolbar - Top Center (above step overlay so it stays clickable) */}
         <Panel position="top-center" className="mt-4! pointer-events-auto! z-50">
-          <MockCanvasToolbar onAddBlockClick={handleAddBlockClick} />
+          <MockCanvasToolbar
+            onAddBlockTypeClick={enterBlockCreationMode}
+            includeYoutube={isYoutubeBlockTutorial}
+          />
         </Panel>
 
         {/* Viewport Control Toolbar - Bottom Right (above step overlay so it stays clickable) */}
@@ -398,14 +393,6 @@ function MockCanvasInnerWithFlow({
           <MockViewportControlToolbarConnected />
         </Panel>
       </ReactFlow>
-
-      {/* Block Add Dialog (outside ReactFlow, same as real app) */}
-      <MockBlockAddDialog
-        isOpen={showBlockMenu}
-        onClose={handleCloseDialog}
-        onSelectBlockType={handleSelectBlockType}
-        enterBlockCreationMode={enterBlockCreationMode}
-      />
     </div>
   );
 }
