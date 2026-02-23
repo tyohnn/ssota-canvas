@@ -232,10 +232,10 @@ function createSlashItems(options: SlashCommandOptions): SlashCommandItem[] {
     },
   },
   {
-    title: 'Details',
+    title: 'Toggle',
     icon: iconSvg(ChevronsDownUp),
     description: 'Collapsible section',
-    searchTerms: ['details', 'collapse'],
+    searchTerms: ['toggle', 'details', 'collapse'],
     command: ({ editor, range }) => {
       editor
         .chain()
