@@ -2,7 +2,6 @@
 
 import React from 'react';
 
-import { Separator } from '@/components/ui/separator';
 import { ColorToolbarItem } from '@/domains/block-management/frontend/components/block/common-toolbar-items/color-toolbar-item';
 import { ColorToken } from '@/domains/block-management/shared/types/style-tokens.types';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
@@ -45,7 +44,6 @@ export function GroupToolbarItems({
         }}
         zoom={zoom}
       />
-      <Separator orientation="vertical" className="h-6!" />
     </>
   );
 }
