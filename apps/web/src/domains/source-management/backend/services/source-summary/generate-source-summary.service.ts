@@ -248,7 +248,6 @@ export async function generateSourceSummary(
     const keywordResult = await generateText({
       model: xaiKeywords('grok-4-1-fast-non-reasoning'),
       prompt: buildKeywordsPrompt(summaryText, language),
-      temperature: 0.2,
     });
     const keywords = keywordResult.text
       .trim()

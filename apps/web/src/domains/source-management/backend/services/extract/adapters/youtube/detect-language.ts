@@ -74,7 +74,6 @@ Return the language code now:`;
     const result = await generateText({
       model: xai('grok-4-1-fast-non-reasoning'),
       prompt,
-      temperature: 0.1,
     });
 
     const detectedCode = result.text.trim().toLowerCase();
