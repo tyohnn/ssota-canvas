@@ -8,6 +8,7 @@ import type { GetChatSessionRequest } from '../../shared/dtos/requests/chat-sess
 import type { ChatSessionResponse } from '../../shared/dtos/responses/chat-session.responses';
 import { getChatSession as getChatSessionService } from '../../backend/services/chat-session/get-chat-session.service';
 import { DrizzleChatSessionRepository } from '../../backend/repositories/implementations/drizzle-chat-session.repository';
+import { DrizzleChatMessageRepository } from '../../backend/repositories/implementations/drizzle-chat-message.repository';
 import { withChatSessionSecureAction } from './secure-action';
 
 export const getChatSession = withChatSessionSecureAction(
@@ -23,30 +24,20 @@ async function getChatSessionInternal(
   req: GetChatSessionRequest,
   context: WorkspaceActionContext
 ): Promise<ActionResult<ChatSessionResponse | null>> {
-  const repository = new DrizzleChatSessionRepository();
+  const sessionRepository = new DrizzleChatSessionRepository();
+  const messageRepository = new DrizzleChatMessageRepository();
   const result = await getChatSessionService(
     {
       sessionId: req.sessionId,
       userId: context.authenticatedUser.id,
     },
-    repository
+    sessionRepository,
+    messageRepository
   );
 
   if (result.isError()) {
     return err(result.error.message);
   }
 
-  const session = result.value;
-  if (!session) {
-    return ok(null);
-  }
-  return ok({
-    id: session.id.value,
-    workspaceId: session.workspaceId.value,
-    userId: session.userId.value,
-    title: session.title,
-    messages: session.messages,
-    createdAt: session.createdAt,
-    updatedAt: session.updatedAt,
-  });
+  return ok(result.value);
 }

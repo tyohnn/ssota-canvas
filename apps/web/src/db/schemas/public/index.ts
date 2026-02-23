@@ -116,6 +116,8 @@ export type NewEventLog = typeof eventManagement.eventLogs.$inferInsert;
 
 export type ChatSession = typeof ai.chatSessions.$inferSelect;
 export type NewChatSession = typeof ai.chatSessions.$inferInsert;
+export type ChatMessage = typeof ai.chatMessages.$inferSelect;
+export type NewChatMessage = typeof ai.chatMessages.$inferInsert;
 
 export type PublishedPageRow = typeof share.publishedPages.$inferSelect;
 export type NewPublishedPageRow = typeof share.publishedPages.$inferInsert;

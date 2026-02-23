@@ -7,6 +7,7 @@ import { SaveChatSessionMessagesRequestSchema } from '../../shared/dtos/requests
 import type { SaveChatSessionMessagesRequest } from '../../shared/dtos/requests/chat-session.requests';
 import { saveChatSessionMessages as saveChatSessionMessagesService } from '../../backend/services/chat-session/save-chat-session-messages.service';
 import { DrizzleChatSessionRepository } from '../../backend/repositories/implementations/drizzle-chat-session.repository';
+import { DrizzleChatMessageRepository } from '../../backend/repositories/implementations/drizzle-chat-message.repository';
 import { withChatSessionSecureAction } from './secure-action';
 
 export const saveChatSessionMessages = withChatSessionSecureAction(
@@ -26,14 +27,16 @@ async function saveChatSessionMessagesInternal(
   req: SaveChatSessionMessagesRequest,
   context: WorkspaceActionContext
 ): Promise<ActionResult<boolean>> {
-  const repository = new DrizzleChatSessionRepository();
+  const sessionRepository = new DrizzleChatSessionRepository();
+  const messageRepository = new DrizzleChatMessageRepository();
   const result = await saveChatSessionMessagesService(
     {
       sessionId: req.sessionId,
       userId: context.authenticatedUser.id,
       appendMessages: req.appendMessages,
     },
-    repository
+    sessionRepository,
+    messageRepository
   );
 
   if (result.isError()) {

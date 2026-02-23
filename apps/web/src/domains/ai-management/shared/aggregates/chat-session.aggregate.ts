@@ -2,13 +2,11 @@ import { ChatSession } from '../entities/chat-session.entity';
 import {
   CreateChatSessionCommand,
   UpdateChatSessionTitleCommand,
-  UpdateChatSessionMessagesCommand,
   DeleteChatSessionCommand,
 } from '../commands/chat-session.commands';
 import {
   ChatSessionCreatedEvent,
   ChatSessionTitleUpdatedEvent,
-  ChatSessionMessagesUpdatedEvent,
   ChatSessionDeletedEvent,
 } from '../events/chat-session/chat-session.events';
 import type { DomainEvent } from '../events/domain-event';
@@ -38,15 +36,15 @@ export class ChatSessionAggregate {
    */
   static create(command: CreateChatSessionCommand): ChatSessionAggregate {
     const title = command.title ?? 'New Chat';
+    const now = new Date();
 
     const chatSession = new ChatSession(
       command.chatSessionId,
       command.workspaceId,
       command.userId,
       title,
-      [], // Empty messages initially
-      new Date(),
-      new Date()
+      now,
+      now
     );
 
     const event = new ChatSessionCreatedEvent(
@@ -89,25 +87,6 @@ export class ChatSessionAggregate {
         chatSessionId: this._chatSession.id,
         previousTitle,
         newTitle: command.newTitle,
-      },
-      this._chatSession.updatedAt
-    );
-    this._uncommittedEvents.push(event);
-  }
-
-  /**
-   * Update chat session messages
-   */
-  updateMessages(command: UpdateChatSessionMessagesCommand): void {
-    // Business logic in entity
-    this._chatSession.updateMessages(command.newMessages);
-
-    // Emit domain event
-    const event = new ChatSessionMessagesUpdatedEvent(
-      this._chatSession.id,
-      {
-        chatSessionId: this._chatSession.id,
-        messageCount: command.newMessages.length,
       },
       this._chatSession.updatedAt
     );

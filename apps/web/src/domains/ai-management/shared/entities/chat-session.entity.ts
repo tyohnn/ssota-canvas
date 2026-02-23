@@ -8,7 +8,6 @@ export class ChatSession {
     public readonly workspaceId: WorkspaceId,
     public readonly userId: UserId,
     public title: string,
-    public messages: unknown[],
     public readonly createdAt: Date = new Date(),
     public updatedAt: Date = new Date()
   ) {}
@@ -25,22 +24,13 @@ export class ChatSession {
   }
 
   /**
-   * Update chat session messages
-   */
-  updateMessages(newMessages: unknown[]): void {
-    this.messages = newMessages;
-    this.updatedAt = new Date();
-  }
-
-  /**
-   * Reconstitute ChatSession from database
+   * Reconstitute ChatSession from database (metadata only; messages loaded separately)
    */
   static reconstitute(params: {
     id: ChatSessionId;
     workspaceId: WorkspaceId;
     userId: UserId;
     title: string;
-    messages: unknown[];
     createdAt: Date;
     updatedAt: Date;
   }): ChatSession {
@@ -49,7 +39,6 @@ export class ChatSession {
       params.workspaceId,
       params.userId,
       params.title,
-      params.messages,
       params.createdAt,
       params.updatedAt
     );

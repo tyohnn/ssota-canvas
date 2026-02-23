@@ -1,10 +1,11 @@
 /**
- * AI Management schema – chat_sessions table.
+ * AI Management schema – chat_sessions and chat_messages tables.
  * event_logs table has been moved to event-management-schema.ts.
  */
 import { relations, sql } from 'drizzle-orm';
 import {
   index,
+  integer,
   jsonb,
   pgPolicy,
   pgTable,
@@ -28,7 +29,6 @@ export const chatSessions = pgTable(
       .notNull()
       .references(() => profiles.id, { onDelete: 'cascade' }),
     title: text('title').notNull().default('New Chat'),
-    messages: jsonb('messages').notNull().default('[]'),
     created_at: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -69,7 +69,29 @@ export const chatSessions = pgTable(
   })
 ).enableRLS();
 
-export const chatSessionsRelations = relations(chatSessions, ({ one }) => ({
+export const chatMessages = pgTable(
+  'chat_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    session_id: uuid('session_id')
+      .notNull()
+      .references(() => chatSessions.id, { onDelete: 'cascade' }),
+    index: integer('index').notNull(),
+    role: text('role').notNull(),
+    parts: jsonb('parts').notNull().default([]),
+    created_at: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  table => ({
+    sessionIndexIdx: index('idx_chat_messages_session_index').on(
+      table.session_id,
+      table.index
+    ),
+  })
+);
+
+export const chatSessionsRelations = relations(chatSessions, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [chatSessions.workspace_id],
     references: [workspaces.id],
@@ -77,5 +99,13 @@ export const chatSessionsRelations = relations(chatSessions, ({ one }) => ({
   user: one(profiles, {
     fields: [chatSessions.user_id],
     references: [profiles.id],
+  }),
+  messages: many(chatMessages),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  session: one(chatSessions, {
+    fields: [chatMessages.session_id],
+    references: [chatSessions.id],
   }),
 }));

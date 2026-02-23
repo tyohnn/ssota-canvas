@@ -27,7 +27,6 @@ export class DrizzleChatSessionRepository implements IChatSessionRepository {
           workspace_id: chatSession.workspaceId.value,
           user_id: chatSession.userId.value,
           title: chatSession.title,
-          messages: chatSession.messages,
           created_at: chatSession.createdAt,
           updated_at: chatSession.updatedAt,
         };
@@ -67,7 +66,6 @@ export class DrizzleChatSessionRepository implements IChatSessionRepository {
       .update(chatSessions)
       .set({
         title: chatSession.title,
-        messages: chatSession.messages,
         updated_at: chatSession.updatedAt,
       })
       .where(
@@ -100,7 +98,6 @@ export class DrizzleChatSessionRepository implements IChatSessionRepository {
       workspaceId: new WorkspaceId(row.workspace_id),
       userId: new UserId(row.user_id),
       title: row.title,
-      messages: row.messages as unknown[],
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     });
@@ -121,13 +118,12 @@ export class DrizzleChatSessionRepository implements IChatSessionRepository {
       )
       .orderBy(desc(chatSessions.updated_at));
 
-    return rows.map(row =>
+    return rows.map((row) =>
       ChatSession.reconstitute({
         id: new ChatSessionId(row.id),
         workspaceId: new WorkspaceId(row.workspace_id),
         userId: new UserId(row.user_id),
         title: row.title,
-        messages: row.messages as unknown[],
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       })
