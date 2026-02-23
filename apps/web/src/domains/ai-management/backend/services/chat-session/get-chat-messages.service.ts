@@ -3,29 +3,29 @@ import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ChatSessionId } from '../../../shared/value-objects/chat-session-id.vo';
 import type { IChatSessionRepository } from '../../repositories/interfaces/chat-session.repository.interface';
 import type { IChatMessageRepository } from '../../repositories/interfaces/chat-message.repository.interface';
-import type { ChatSessionResponse } from '../../../shared/dtos/responses/chat-session.responses';
-import type { GetChatSessionParams } from './types';
+import type { GetChatMessagesResponse } from '../../../shared/dtos/responses/chat-session.responses';
+import type { GetChatMessagesParams } from './types';
 
-const DEFAULT_LIMIT = 20;
-
-export async function getChatSession(
-  params: GetChatSessionParams,
+export async function getChatMessages(
+  params: GetChatMessagesParams,
   sessionRepository: IChatSessionRepository,
   messageRepository: IChatMessageRepository
-): Promise<Result<ChatSessionResponse | null, Error>> {
+): Promise<Result<GetChatMessagesResponse, Error>> {
   try {
     const sessionId = new ChatSessionId(params.sessionId);
     const userId = new UserId(params.userId);
 
     const session = await sessionRepository.findById(sessionId, userId);
     if (!session) {
-      return Result.success(null);
+      return Result.error(new Error('Chat session not found'));
     }
 
-    const limit = params.limit ?? DEFAULT_LIMIT;
     const paginated = await messageRepository.findBySessionIdPaginated(
       sessionId,
-      { limit, beforeIndex: params.beforeIndex }
+      {
+        limit: params.limit,
+        beforeIndex: params.beforeIndex,
+      }
     );
     const uiMessages = paginated.messages.map((m) => ({
       id: m.id.value,
@@ -37,23 +37,14 @@ export async function getChatSession(
         ? Math.min(...paginated.messages.map((m) => m.index))
         : undefined;
 
-    const response: ChatSessionResponse = {
-      id: session.id.value,
-      workspaceId: session.workspaceId.value,
-      userId: session.userId.value,
-      title: session.title,
+    return Result.success({
       messages: uiMessages,
-      createdAt: session.createdAt,
-      updatedAt: session.updatedAt,
-      totalCount: paginated.totalCount,
       hasMore: paginated.hasMore,
       minLoadedIndex,
-    };
-
-    return Result.success(response);
+    });
   } catch (error) {
     return Result.error(
-      error instanceof Error ? error : new Error('Failed to get chat session')
+      error instanceof Error ? error : new Error('Failed to get chat messages')
     );
   }
 }

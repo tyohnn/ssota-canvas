@@ -23,6 +23,15 @@ export interface ListChatSessionsParams {
 export interface GetChatSessionParams {
   sessionId: string;
   userId: string;
+  limit?: number;
+  beforeIndex?: number;
+}
+
+export interface GetChatMessagesParams {
+  sessionId: string;
+  userId: string;
+  limit: number;
+  beforeIndex: number;
 }
 
 export interface DeleteChatSessionParams {

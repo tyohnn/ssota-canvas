@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, count, desc, eq, lt } from 'drizzle-orm';
 import { adminDb } from '@/db';
 import { chatMessages } from '@/db/schemas/public';
 import type { NewChatMessage } from '@/db/schemas/public';
@@ -59,5 +59,65 @@ export class DrizzleChatMessageRepository implements IChatMessageRepository {
         createdAt: row.created_at,
       })
     );
+  }
+
+  async findBySessionIdPaginated(
+    sessionId: ChatSessionId,
+    options: { limit: number; beforeIndex?: number }
+  ): Promise<{
+    messages: ChatMessage[];
+    totalCount: number;
+    hasMore: boolean;
+  }> {
+    const { limit, beforeIndex } = options;
+    const sessionIdVal = sessionId.value;
+
+    const baseConditions = eq(chatMessages.session_id, sessionIdVal);
+
+    const [countResult] = await adminDb
+      .select({ count: count() })
+      .from(chatMessages)
+      .where(baseConditions);
+    const totalCount = countResult?.count ?? 0;
+
+    let rows: typeof chatMessages.$inferSelect[];
+    if (beforeIndex === undefined) {
+      rows = await adminDb
+        .select()
+        .from(chatMessages)
+        .where(baseConditions)
+        .orderBy(desc(chatMessages.index))
+        .limit(limit);
+      rows.reverse();
+    } else {
+      rows = await adminDb
+        .select()
+        .from(chatMessages)
+        .where(
+          and(
+            eq(chatMessages.session_id, sessionIdVal),
+            lt(chatMessages.index, beforeIndex)
+          )
+        )
+        .orderBy(desc(chatMessages.index))
+        .limit(limit);
+      rows.reverse();
+    }
+
+    const messages = rows.map((row) =>
+      ChatMessage.reconstitute({
+        id: new ChatMessageId(row.id),
+        sessionId: new ChatSessionId(row.session_id),
+        index: row.index,
+        role: row.role,
+        parts: (row.parts ?? []) as unknown[],
+        createdAt: row.created_at,
+      })
+    );
+
+    const minIndex = rows.length > 0 ? Math.min(...rows.map((r) => r.index)) : 0;
+    const hasMore = minIndex > 0;
+
+    return { messages, totalCount, hasMore };
   }
 }

@@ -188,10 +188,13 @@ export function useChatV2() {
     sessionTitle,
     setSessionTitle,
     isLoadingSession,
+    isLoadingMoreOlder,
+    hasMoreOlder,
     lastSavedMessageCount,
     hasGeneratedTitle,
     createSession,
     loadSession,
+    loadMoreOlder,
     startNewSession,
     saveMessages,
     updateTitle,
@@ -276,7 +279,7 @@ export function useChatV2() {
   }, [startNewSession]);
 
   useEffect(() => {
-    if (status !== 'ready') return;
+    if (status !== 'ready' && status !== 'submitted') return;
     if (!currentSessionId || messages.length === 0) return;
 
     const fromIndex = lastSavedMessageCount.current;
@@ -337,6 +340,9 @@ export function useChatV2() {
     sessionTitle,
     setSessionTitle,
     isLoadingSession,
+    loadMoreOlder,
+    hasMoreOlder,
+    isLoadingMoreOlder,
     startNewSession: wrappedStartNewSession,
     loadSession,
     optimisticText,

@@ -8,9 +8,20 @@ export const ChatSessionResponseSchema = z.object({
   messages: z.array(z.unknown()),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
+  totalCount: z.number().optional(),
+  hasMore: z.boolean().optional(),
+  minLoadedIndex: z.number().optional(),
 });
 
 export type ChatSessionResponse = z.output<typeof ChatSessionResponseSchema>;
+
+export const GetChatMessagesResponseSchema = z.object({
+  messages: z.array(z.unknown()),
+  hasMore: z.boolean(),
+  minLoadedIndex: z.number().optional(),
+});
+
+export type GetChatMessagesResponse = z.output<typeof GetChatMessagesResponseSchema>;
 
 export const ChatSessionListItemSchema = z.object({
   id: z.uuid(),

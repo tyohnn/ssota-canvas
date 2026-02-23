@@ -306,13 +306,27 @@ export const MessageBranchPage = ({
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
+/**
+ * Use div for paragraphs to avoid hydration error: in HTML, <div> cannot be a
+ * descendant of <p>. Streamdown's image component renders a div wrapper, which
+ * causes invalid nesting when inside markdown paragraphs.
+ */
+const messageResponseComponents = {
+  p: ({ children, className, ...props }: HTMLAttributes<HTMLParagraphElement>) => (
+    <div className={className} {...props}>
+      {children}
+    </div>
+  ),
+};
+
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
+  ({ className, components, ...props }: MessageResponseProps) => (
     <Streamdown
       className={cn(
         "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
         className
       )}
+      components={{ ...messageResponseComponents, ...components }}
       {...props}
     />
   ),

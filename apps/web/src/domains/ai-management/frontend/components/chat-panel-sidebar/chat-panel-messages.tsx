@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton,
+  useStickToBottomContext,
 } from '@workspace/ui/components/ai-elements/conversation';
 import {
   Message,
@@ -139,6 +141,55 @@ export interface ChatPanelMessagesProps {
   optimisticText?: string | null;
   /** Error message shown when session creation (or send) fails */
   sendError?: string | null;
+  /** Load older messages when scrolling to top */
+  onLoadMoreOlder?: () => void;
+  /** Whether there are older messages to load */
+  hasMoreOlder?: boolean;
+  /** Whether older messages are currently loading */
+  isLoadingMoreOlder?: boolean;
+}
+
+function LoadMoreSentinel({
+  onLoadMoreOlder,
+  isLoadingMoreOlder,
+}: {
+  onLoadMoreOlder?: () => void;
+  isLoadingMoreOlder: boolean;
+}) {
+  const { isAtBottom } = useStickToBottomContext();
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const onLoadMoreOlderRef = useRef(onLoadMoreOlder);
+  onLoadMoreOlderRef.current = onLoadMoreOlder;
+  const isAtBottomRef = useRef(isAtBottom);
+  isAtBottomRef.current = isAtBottom;
+
+  useEffect(() => {
+    if (isLoadingMoreOlder || !onLoadMoreOlderRef.current) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry?.isIntersecting && !isAtBottomRef.current && onLoadMoreOlderRef.current) {
+          onLoadMoreOlderRef.current();
+        }
+      },
+      { root: null, rootMargin: '100px', threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [isLoadingMoreOlder]);
+
+  return (
+    <div
+      ref={sentinelRef}
+      className="flex min-h-8 items-center justify-center py-2 text-muted-foreground text-sm"
+      aria-hidden
+    >
+      {isLoadingMoreOlder ? 'Loading older messages...' : '\u00A0'}
+    </div>
+  );
 }
 
 export function ChatPanelMessages({
@@ -147,7 +198,11 @@ export function ChatPanelMessages({
   className,
   optimisticText,
   sendError,
+  onLoadMoreOlder,
+  hasMoreOlder = false,
+  isLoadingMoreOlder = false,
 }: ChatPanelMessagesProps) {
+
   const hasOptimistic = !!optimisticText;
   const isEmpty = messages.length === 0 && !hasOptimistic;
 
@@ -159,9 +214,17 @@ export function ChatPanelMessages({
   const lastIsUser = lastMessage?.role === 'user';
   const showThinkingPlaceholder = isStreaming && lastIsUser;
 
+  const showLoadMoreSentinel = hasMoreOlder || isLoadingMoreOlder;
+
   return (
     <Conversation className={cn('flex-1 min-h-0', className)}>
       <ConversationContent>
+        {showLoadMoreSentinel && (
+          <LoadMoreSentinel
+            onLoadMoreOlder={onLoadMoreOlder}
+            isLoadingMoreOlder={isLoadingMoreOlder}
+          />
+        )}
         {messages.map((message) => (
           <Message key={message.id} from={message.role}>
             <MessageContent>

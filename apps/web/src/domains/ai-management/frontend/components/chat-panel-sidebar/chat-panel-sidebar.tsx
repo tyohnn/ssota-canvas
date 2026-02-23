@@ -39,6 +39,9 @@ export function ChatPanelSidebar({ className }: ChatPanelSidebarProps) {
     setSessionTitle,
     startNewSession,
     loadSession,
+    loadMoreOlder,
+    hasMoreOlder,
+    isLoadingMoreOlder,
     currentSessionId,
     isLoadingSession,
     optimisticText,
@@ -72,7 +75,7 @@ export function ChatPanelSidebar({ className }: ChatPanelSidebarProps) {
   return (
     <Box
       className={cn(
-        'flex flex-col h-full border-l border-border bg-background shrink-0',
+        'flex flex-col h-full min-h-0 overflow-hidden border-l border-border bg-background shrink-0',
         className
       )}
       style={{ width: CHAT_PANEL_WIDTH }}
@@ -150,6 +153,9 @@ export function ChatPanelSidebar({ className }: ChatPanelSidebarProps) {
             isStreaming={isRunning}
             optimisticText={optimisticText}
             sendError={sendError}
+            onLoadMoreOlder={loadMoreOlder}
+            hasMoreOlder={hasMoreOlder}
+            isLoadingMoreOlder={isLoadingMoreOlder}
           />
         )}
       </div>

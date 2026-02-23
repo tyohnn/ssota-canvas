@@ -19,4 +19,18 @@ export interface IChatMessageRepository {
    * Find all messages for a session, ordered by index.
    */
   findBySessionId(sessionId: ChatSessionId): Promise<ChatMessage[]>;
+
+  /**
+   * Find messages with pagination (for lazy loading).
+   * - No beforeIndex: returns the latest `limit` messages (by index), in ascending order.
+   * - With beforeIndex: returns up to `limit` messages where index < beforeIndex, in ascending order.
+   */
+  findBySessionIdPaginated(
+    sessionId: ChatSessionId,
+    options: { limit: number; beforeIndex?: number }
+  ): Promise<{
+    messages: ChatMessage[];
+    totalCount: number;
+    hasMore: boolean;
+  }>;
 }

@@ -15,9 +15,20 @@ export type ListChatSessionsRequest = z.output<typeof ListChatSessionsRequestSch
 export const GetChatSessionRequestSchema = z.object({
   workspaceId: z.uuid({ message: 'Invalid workspace ID' }),
   sessionId: z.uuid({ message: 'Invalid session ID' }),
+  limit: z.number().int().positive().optional(),
+  beforeIndex: z.number().int().nonnegative().optional(),
 });
 
 export type GetChatSessionRequest = z.output<typeof GetChatSessionRequestSchema>;
+
+export const GetChatMessagesRequestSchema = z.object({
+  workspaceId: z.uuid({ message: 'Invalid workspace ID' }),
+  sessionId: z.uuid({ message: 'Invalid session ID' }),
+  limit: z.number().int().positive().default(20),
+  beforeIndex: z.number().int().nonnegative(),
+});
+
+export type GetChatMessagesRequest = z.output<typeof GetChatMessagesRequestSchema>;
 
 export const UpdateChatSessionTitleRequestSchema = z.object({
   workspaceId: z.uuid({ message: 'Invalid workspace ID' }),

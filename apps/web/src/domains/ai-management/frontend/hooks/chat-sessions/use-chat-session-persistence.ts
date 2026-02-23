@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getChatSession } from '@/domains/ai-management/actions/chat-sessions/get-chat-session.action';
+import { getChatMessages } from '@/domains/ai-management/actions/chat-sessions/get-chat-messages.action';
 import { useCreateChatSessionMutation } from './use-create-chat-session-mutation';
 import { useSaveChatSessionMessagesMutation } from './use-save-chat-session-messages-mutation';
 import { useUpdateChatSessionTitleMutation } from './use-update-chat-session-title-mutation';
@@ -23,8 +24,11 @@ export function useChatSessionPersistence({
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sessionTitle, setSessionTitle] = useState<string>('New Chat');
   const [isLoadingSession, setIsLoadingSession] = useState(false);
+  const [isLoadingMoreOlder, setIsLoadingMoreOlder] = useState(false);
   const lastSavedMessageCount = useRef(0);
   const hasGeneratedTitle = useRef(false);
+  const minLoadedIndexRef = useRef<number | null>(null);
+  const [hasMoreOlder, setHasMoreOlder] = useState(false);
 
   const createMutation = useCreateChatSessionMutation(workspaceId);
   const saveMessagesMutation = useSaveChatSessionMessagesMutation();
@@ -40,12 +44,18 @@ export function useChatSessionPersistence({
       setMessages([]);
       lastSavedMessageCount.current = 0;
       hasGeneratedTitle.current = false;
+      minLoadedIndexRef.current = null;
+      setHasMoreOlder(false);
       setIsLoadingSession(true);
       try {
         const data = await queryClient.fetchQuery({
           queryKey: chatSessionQueryKeys.detail(sessionId),
           queryFn: async () => {
-            const result = await getChatSession({ workspaceId, sessionId });
+            const result = await getChatSession({
+              workspaceId,
+              sessionId,
+              limit: 20,
+            });
             if (!result.success) throw new Error(result.error);
             return result.data;
           },
@@ -53,7 +63,6 @@ export function useChatSessionPersistence({
         if (data) {
           setSessionTitle(data.title);
           const rawMessages = (data.messages ?? []) as any[];
-          // Deduplicate by id to handle any previously corrupted data
           const seen = new Set<string>();
           const loadedMessages = rawMessages.filter((m: any) => {
             if (!m?.id || seen.has(m.id)) return false;
@@ -63,6 +72,8 @@ export function useChatSessionPersistence({
           setMessages(loadedMessages);
           lastSavedMessageCount.current = loadedMessages.length;
           hasGeneratedTitle.current = data.title !== 'New Chat';
+          minLoadedIndexRef.current = data.minLoadedIndex ?? null;
+          setHasMoreOlder(data.hasMore ?? false);
         }
       } catch (error) {
         console.error('[useChatSessionPersistence] Failed to load session:', error);
@@ -94,7 +105,47 @@ export function useChatSessionPersistence({
     setMessages([]);
     lastSavedMessageCount.current = 0;
     hasGeneratedTitle.current = false;
+    minLoadedIndexRef.current = null;
+    setHasMoreOlder(false);
   }, [setMessages]);
+
+  const loadMoreOlder = useCallback(async () => {
+    if (
+      !workspaceId ||
+      !currentSessionId ||
+      !hasMoreOlder ||
+      minLoadedIndexRef.current === null ||
+      isLoadingMoreOlder
+    )
+      return;
+    setIsLoadingMoreOlder(true);
+    try {
+      const result = await getChatMessages({
+        workspaceId,
+        sessionId: currentSessionId,
+        limit: 20,
+        beforeIndex: minLoadedIndexRef.current,
+      });
+      if (!result.success) return;
+      const { messages: olderMessages, hasMore, minLoadedIndex } = result.data;
+      const seen = new Set<string>();
+      const deduped = (olderMessages as any[]).filter((m: any) => {
+        if (!m?.id || seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+      });
+      if (deduped.length > 0) {
+        setMessages((prev: any[]) => [...deduped, ...prev]);
+        lastSavedMessageCount.current += deduped.length;
+      }
+      setHasMoreOlder(hasMore);
+      minLoadedIndexRef.current = minLoadedIndex ?? null;
+    } catch (error) {
+      console.error('[useChatSessionPersistence] Failed to load older messages:', error);
+    } finally {
+      setIsLoadingMoreOlder(false);
+    }
+  }, [workspaceId, currentSessionId, hasMoreOlder, isLoadingMoreOlder, setMessages]);
 
   const saveMessages = useCallback(
     async (sessionId: string, messages: unknown[], fromIndex: number) => {
@@ -134,10 +185,13 @@ export function useChatSessionPersistence({
     sessionTitle,
     setSessionTitle,
     isLoadingSession,
+    isLoadingMoreOlder,
+    hasMoreOlder,
     lastSavedMessageCount,
     hasGeneratedTitle,
     createSession,
     loadSession,
+    loadMoreOlder,
     startNewSession,
     saveMessages,
     updateTitle,
