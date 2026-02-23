@@ -207,9 +207,27 @@ export function TipTapEditor({
           cursor: pointer;
           border-radius: 4px;
           padding: 2px 4px;
+          min-height: 1.8em;
+          margin-top: 0.5rem;
+          margin-bottom: 0.5rem;
         }
         .${styleTarget} .tiptap-mathematics-render:hover {
           background: rgba(99, 102, 241, 0.08);
+        }
+        .${styleTarget} .tiptap-mathematics-render[data-latex=""]::after,
+        .${styleTarget} .tiptap-mathematics-render:empty::after {
+          content: 'Click to edit equation';
+          color: hsl(var(--muted-foreground));
+          font-style: italic;
+          font-size: 0.875rem;
+        }
+        /* 선택된 노드: React Flow block과 동일한 링 색상 (math, image, table 등 모든 NodeSelection 대상) */
+        .${styleTarget} .ProseMirror-selectednode {
+          box-shadow: 0 0 0 2px rgb(96 165 250);
+          border-radius: 4px;
+        }
+        .dark .${styleTarget} .ProseMirror-selectednode {
+          box-shadow: 0 0 0 2px rgb(59 130 246);
         }
       `}</style>
 

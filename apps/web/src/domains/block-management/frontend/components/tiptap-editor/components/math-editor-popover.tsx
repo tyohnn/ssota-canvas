@@ -11,6 +11,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 
 import katex from 'katex';
+import { Trash2 } from 'lucide-react';
 import type { Editor } from '@tiptap/react';
 
 import type { MathEditingState } from '../core/types';
@@ -45,17 +46,13 @@ export function MathEditorPopover({
   const updateNode = useCallback(
     (newLatex: string) => {
       if (newLatex.trim() === '') {
-        if (nodeType === 'blockMath') {
-          editor.chain().focus().deleteBlockMath({ pos }).run();
-        } else {
-          editor.chain().focus().deleteInlineMath({ pos }).run();
-        }
+        // 빈 상태면 노드를 삭제하지 않고 그대로 유지 (placeholder 표시)
+        return;
+      }
+      if (nodeType === 'blockMath') {
+        editor.chain().focus().updateBlockMath({ latex: newLatex, pos }).run();
       } else {
-        if (nodeType === 'blockMath') {
-          editor.chain().focus().updateBlockMath({ latex: newLatex, pos }).run();
-        } else {
-          editor.chain().focus().updateInlineMath({ latex: newLatex, pos }).run();
-        }
+        editor.chain().focus().updateInlineMath({ latex: newLatex, pos }).run();
       }
     },
     [editor, pos, nodeType]
@@ -66,6 +63,16 @@ export function MathEditorPopover({
     onClose();
     editor.commands.focus();
   }, [value, updateNode, onClose, editor]);
+
+  const handleDelete = useCallback(() => {
+    if (nodeType === 'blockMath') {
+      editor.chain().focus().deleteBlockMath({ pos }).run();
+    } else {
+      editor.chain().focus().deleteInlineMath({ pos }).run();
+    }
+    onClose();
+    editor.commands.focus();
+  }, [editor, pos, nodeType, onClose]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -101,7 +108,7 @@ export function MathEditorPopover({
       const { state, view } = editor;
       const node = state.doc.nodeAt(pos);
       const nodeSize = node?.nodeSize ?? 2;
-      const GAP = 24;
+      const GAP = 28;
       const maxPos = Math.min(pos + nodeSize - 1, state.doc.content.size - 1);
       const selector =
         '[data-type="block-math"], [data-type="inline-math"], .tiptap-mathematics-render';
@@ -133,20 +140,19 @@ export function MathEditorPopover({
     } catch {
       try {
         const coords = editor.view.coordsAtPos(pos);
-        setPosition({ top: coords.bottom + 24, left: coords.left });
+        setPosition({ top: coords.bottom + 32, left: coords.left });
       } catch {
         setPosition({ top: 100, left: 100 });
       }
     }
   }, [editor, pos]);
 
-  // Click outside to close (ignore clicks inside popover or editor)
+  // Click outside popover to close (including clicks inside editor)
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
         popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
-        !editor.view.dom.contains(e.target as Node)
+        !popoverRef.current.contains(e.target as Node)
       ) {
         handleClose();
       }
@@ -180,15 +186,25 @@ export function MathEditorPopover({
         left: position.left,
       }}
     >
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
         <span className="text-xs font-medium text-muted-foreground">Equation</span>
-        <button
-          type="button"
-          onClick={handleClose}
-          className="rounded px-2.5 py-0.5 text-xs font-medium text-primary hover:bg-primary/10"
-        >
-          Done
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="rounded border border-input bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground hover:bg-secondary/80"
+          >
+            Done
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="rounded p-0.5 text-destructive hover:bg-destructive/10"
+            aria-label="Delete equation"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </div>
       </div>
       <div className="p-2">
         <textarea

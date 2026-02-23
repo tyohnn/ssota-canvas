@@ -252,20 +252,12 @@ function createSlashItems(options: SlashCommandOptions): SlashCommandItem[] {
     searchTerms: ['latex', 'math', 'formula'],
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).run();
-      // insertBlockMath({ latex: '' }) silently fails because the extension
-      // rejects empty strings. Use the transaction API directly instead.
       const { state, dispatch } = editor.view;
       const blockMathType = state.schema.nodes.blockMath;
-      const insertPos = state.selection.from;
       if (blockMathType) {
         const node = blockMathType.create({ latex: '' });
         const tr = state.tr.replaceSelectionWith(node);
         dispatch(tr);
-      }
-      if (openMathEditor) {
-        requestAnimationFrame(() => {
-          openMathEditor({ pos: insertPos, latex: '', nodeType: 'blockMath' });
-        });
       }
     },
   },
