@@ -34,6 +34,8 @@ export interface TipTapEditorState {
 export interface TipTapEditorOptions {
   blockData: BlockNodeData;
   placeholder?: string;
+  /** When true, placeholder is shown even when editor is read-only (e.g. canvas note block before double-click) */
+  placeholderShowWhenReadOnly?: boolean;
   editable?: boolean;
   /**
    * Content 변경 시 호출되는 콜백

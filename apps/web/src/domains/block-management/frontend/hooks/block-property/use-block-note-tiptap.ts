@@ -30,6 +30,7 @@ export interface UseBlockNoteTiptapParams {
   reactFlow: BlockNoteTiptapReactFlow;
   editable: boolean;
   placeholder?: string;
+  placeholderShowWhenReadOnly?: boolean;
   contentVersionRef?: RefObject<number>;
   /** Optional callback after optimistic update (e.g. blockContentChange for Note View). */
   onContentChangeSideEffect?: () => void;
@@ -57,6 +58,7 @@ export function useBlockNoteTiptap(
     reactFlow,
     editable,
     placeholder = 'Click to add note...',
+    placeholderShowWhenReadOnly = false,
     contentVersionRef: contentVersionRefParam,
     onContentChangeSideEffect,
     canvasMetadata: canvasMetadataOverride,
@@ -136,6 +138,7 @@ export function useBlockNoteTiptap(
   const { editor, state, handleEditorClick, mathEditing, setMathEditing } = useTipTapEditor({
     blockData,
     placeholder,
+    placeholderShowWhenReadOnly,
     editable,
     onContentChange: content => {
       const updatedData = { ...blockData, content };

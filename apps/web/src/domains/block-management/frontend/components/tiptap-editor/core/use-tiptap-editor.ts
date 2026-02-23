@@ -58,6 +58,7 @@ export function useTipTapEditor(
   const {
     blockData,
     placeholder = '클릭해서 내용을 추가하세요.',
+    placeholderShowWhenReadOnly = false,
     editable = true,
     onContentChange,
     onSaveSteps,
@@ -207,7 +208,7 @@ export function useTipTapEditor(
 
   // TipTap Editor 초기화
   const editor = useEditor({
-    onCreate: () => {},
+    onCreate: () => { },
     extensions: [
       ...BASE_EXTENSIONS_WITHOUT_MATH,
       Mathematics.configure({
@@ -257,6 +258,14 @@ export function useTipTapEditor(
       // "removeChild: not a child" 에러를 유발하므로 사용하지 않음.
       DragHandle.configure({
         nested: { edgeDetection: { edges: ['top'], threshold: -16 } },
+        // #region agent log
+        onNodeChange: ({ node, pos }: { node: any; pos: number }) => {
+          fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bc5b12'},body:JSON.stringify({sessionId:'bc5b12',location:'DragHandle:onNodeChange',message:'node changed',data:{hasNode:!!node,nodeType:node?.type?.name,pos},timestamp:Date.now(),hypothesisId:'H9',runId:'iter5'})}).catch(()=>{});
+        },
+        onElementDragStart: (e: DragEvent) => {
+          fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bc5b12'},body:JSON.stringify({sessionId:'bc5b12',location:'DragHandle:onElementDragStart',message:'drag start fired on DragHandle element',data:{hasDataTransfer:!!e.dataTransfer,clientX:e.clientX,clientY:e.clientY},timestamp:Date.now(),hypothesisId:'H9b',runId:'iter5'})}).catch(()=>{});
+        },
+        // #endregion
         computePositionConfig: {
           placement: 'left' as const,
           middleware: [
@@ -338,6 +347,7 @@ export function useTipTapEditor(
       Placeholder.configure({
         placeholder,
         emptyEditorClass: 'is-editor-empty',
+        showOnlyWhenEditable: !placeholderShowWhenReadOnly,
       }),
     ],
     content: blockData.content ?? EMPTY_TIPTAP_DOC,
@@ -570,7 +580,7 @@ export function useTipTapEditor(
       get() { return _dragging; },
       set(val: any) {
         const stack = new Error().stack?.split('\n').slice(1, 4).map((s: string) => s.trim()).join(' | ') ?? '';
-        fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'bc5b12' }, body: JSON.stringify({ sessionId: 'bc5b12', location: 'use-tiptap-editor:dragging-setter', message: val ? 'view.dragging SET' : 'view.dragging CLEARED', data: { hasSlice: !!val?.slice, stack: stack.substring(0, 400) }, timestamp: Date.now(), hypothesisId: 'H7b', runId: 'iter4' }) }).catch(() => {});
+        fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'bc5b12' }, body: JSON.stringify({ sessionId: 'bc5b12', location: 'use-tiptap-editor:dragging-setter', message: val ? 'view.dragging SET' : 'view.dragging CLEARED', data: { hasSlice: !!val?.slice, stack: stack.substring(0, 400) }, timestamp: Date.now(), hypothesisId: 'H7b', runId: 'iter4' }) }).catch(() => { });
         _dragging = val;
       },
       configurable: true,

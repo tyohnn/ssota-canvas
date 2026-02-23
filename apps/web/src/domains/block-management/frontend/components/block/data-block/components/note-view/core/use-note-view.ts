@@ -68,7 +68,8 @@ export function useNoteView(
     blockData: data,
     reactFlow,
     editable: isEditable,
-    placeholder: 'Click to add note...',
+    placeholder: 'Double-click to edit content',
+    placeholderShowWhenReadOnly: true,
     contentVersionRef,
     onContentChangeSideEffect: blockContentChange?.onContentChange,
   });
