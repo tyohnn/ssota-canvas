@@ -37,6 +37,7 @@ export function NoteView(props: NoteViewComponentProps) {
   return (
     <NoteViewView
       className={restProps.className}
+      data={restProps.data}
       selected={restProps.selected || false}
       readonly={readonly}
       uiState={uiState}

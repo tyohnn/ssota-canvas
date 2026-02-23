@@ -79,7 +79,7 @@ export async function createAndMountBlock(
     const createBlockRequest: CreateBlockRequest = {
       workspaceId: safeWorkspaceId.value,
       blockType: safeDto.blockType,
-      title: safeDto.title || '새 블럭', // 전달받은 title 사용, 없으면 기본 제목
+      title: safeDto.title || 'New Block', // 전달받은 title 사용, 없으면 기본 제목
       initialProperties: safeDto.initialProperties, // 초기 properties 전달
       initialContent: safeDto.initialContent, // ✨ 초기 content 전달
     };
@@ -206,7 +206,7 @@ export async function createBlocksAndMounts(
     block => ({
       workspaceId: safeWorkspaceId.value,
       blockType: block.blockType,
-      title: block.title || '새 블럭',
+      title: block.title || 'New Block',
       initialProperties: block.initialProperties,
       initialContent: block.initialContent,
     })

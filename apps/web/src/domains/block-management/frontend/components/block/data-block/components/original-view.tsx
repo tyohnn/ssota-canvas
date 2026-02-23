@@ -14,14 +14,23 @@ import { getOriginalViewContainerClasses } from '../utils/original-view-containe
 export interface OriginalViewProps {
   children: React.ReactNode;
   selected?: boolean;
+  /** 컨테이너 테두리/배경 생략 (도형 등 자체 시각 경계가 있는 블록) */
+  noContainerBoundary?: boolean;
 }
 
-export function OriginalView({ children, selected = false }: OriginalViewProps) {
+export function OriginalView({
+  children,
+  selected = false,
+  noContainerBoundary = false,
+}: OriginalViewProps) {
   return (
     <Box
       className={getOriginalViewContainerClasses(
         selected,
-        'flex flex-col overflow-hidden'
+        noContainerBoundary
+          ? 'flex flex-col overflow-visible'
+          : 'flex flex-col overflow-hidden',
+        noContainerBoundary
       )}
     >
       {children}

@@ -31,7 +31,7 @@ import {
 import { BlockPropertiesFactory } from '../value-objects/block-properties';
 import { CustomPropertyDefinition } from '../value-objects/block-properties/common-types';
 import { BlockType as BlockTypeVO } from '../value-objects/block-type.vo';
-import { BlockType } from './block-types';
+import { hasNoContainerBoundary, BlockType } from './block-types';
 
 // CustomPropertyDefinition은 block-properties.types.ts에서 import
 
@@ -87,6 +87,12 @@ export interface BaseNodeData extends Record<string, unknown> {
   parentBlockMountId?: string;
   /** 그룹 collision 시각 피드백용 (UI only, not persisted) */
   isCollisionTarget?: boolean;
+  /**
+   * Original view에서 컨테이너 테두리/배경을 생략할지 여부.
+   * SVG 등 자체 시각 경계가 있는 블록(도형 등)에 사용.
+   * block-types.ts BLOCK_TYPES_NO_CONTAINER_BOUNDARY 기반으로 설정됨.
+   */
+  noContainerBoundary?: boolean;
   /** 링크된 소스 ID (source-management sources.id, optional) */
   sourceId?: string;
   // 메타데이터
@@ -270,6 +276,7 @@ export function buildBlockNodeData<T extends BlockType>(
     blockType,
     title: baseData.title || '',
     viewMode: baseData.viewMode,
+    noContainerBoundary: hasNoContainerBoundary(blockType),
     sizes: baseData.sizes, // 뷰 모드별 크기 정보
     properties: properties,
     customProperties: baseData.customProperties || [],

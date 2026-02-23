@@ -167,7 +167,7 @@ export function ShapeTypeToolbarItem({
       currentValue={currentShapeType}
       options={SHAPE_OPTIONS}
       onValueChange={handleShapeTypeChange}
-      tooltip="도형 타입"
+      tooltip="Shape type"
       tooltipSide="top"
       tooltipOffset={5}
       popoverSide="top"

@@ -89,7 +89,10 @@ export function BlockToolbar({
     );
   }
 
-  const headerContent = (
+  // 도형 블록: 도형·색상만 표시 (제목, 배지, view mode, details, more 메뉴 없음)
+  const isShapeBlock = data.blockType === 'shape';
+
+  const headerContent = isShapeBlock ? null : (
     <BlockHeader
       data={data}
       selected={selected}
@@ -97,7 +100,45 @@ export function BlockToolbar({
     />
   );
 
-  const toolbarItems = (
+  const toolbarItems = isShapeBlock ? (
+    /* 도형 블록: BlockToolbarMapper + Separator + Details + More */
+    <>
+      {showBlockToolbarMapper && (
+        <BlockToolbarMapper
+          blockId={data.blockId}
+          blockType={data.blockType || 'basic'}
+          blockData={data}
+          width={width}
+          height={height}
+          zoom={zoom}
+          readonly={readonly}
+        />
+      )}
+      <Separator orientation="vertical" className="h-4!" />
+      <ToolbarIconButton
+        icon={<ChevronRight />}
+        tooltip="Details"
+        tooltipSide="top"
+        tooltipOffset={5}
+        onClick={() => onEdit()}
+        onMouseDown={e => e.stopPropagation()}
+        className="h-6 w-6 p-0 rounded-sm"
+        iconClassName="size-3.5"
+      />
+      {!readonly && (
+        <>
+          <Separator orientation="vertical" className="h-4!" />
+          <MoreMenuToolbarItem
+            blockId={data.blockId}
+            blockMountId={data.blockMountId}
+            width={width}
+            height={height}
+            parentBlockMountId={data.parentBlockMountId}
+          />
+        </>
+      )}
+    </>
+  ) : (
     <>
       {/* Original view: BlockToolbarMapper */}
       {showBlockToolbarMapper && (
@@ -162,6 +203,8 @@ export function BlockToolbar({
       className={className}
       headerContent={headerContent}
       toolbarItems={toolbarItems}
+      hideHeader={isShapeBlock}
+      hideToolbarContainer={isShapeBlock}
     />
   );
 }

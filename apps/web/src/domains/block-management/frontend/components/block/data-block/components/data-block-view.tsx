@@ -38,7 +38,12 @@ export function DataBlockView({
         );
       }
       return (
-        <OriginalView selected={selected}>{renderOriginalView()}</OriginalView>
+        <OriginalView
+          selected={selected}
+          noContainerBoundary={data.noContainerBoundary}
+        >
+          {renderOriginalView()}
+        </OriginalView>
       );
     case 'card':
       if (!renderCardView) {
@@ -55,7 +60,12 @@ export function DataBlockView({
         );
       }
       return (
-        <OriginalView selected={selected}>{renderOriginalView()}</OriginalView>
+        <OriginalView
+          selected={selected}
+          noContainerBoundary={data.noContainerBoundary}
+        >
+          {renderOriginalView()}
+        </OriginalView>
       );
   }
 }

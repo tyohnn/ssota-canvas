@@ -110,6 +110,20 @@ export function getBlockSizeForViewMode(
 }
 
 /**
+ * Original view 컨테이너 테두리/배경을 생략할 블록 타입.
+ * SVG 등 자체 시각 경계가 있는 블록(도형 등)에 사용.
+ */
+export const BLOCK_TYPES_NO_CONTAINER_BOUNDARY: Partial<
+  Record<BlockType, boolean>
+> = {
+  [BlockType.SHAPE]: true,
+};
+
+export function hasNoContainerBoundary(blockType: BlockType): boolean {
+  return BLOCK_TYPES_NO_CONTAINER_BOUNDARY[blockType] ?? false;
+}
+
+/**
  * 블록 타입 검증 (데이터베이스 스키마 기반)
  * @param blockType - 검증할 블록 타입
  * @returns 유효한 블록 타입인지 여부

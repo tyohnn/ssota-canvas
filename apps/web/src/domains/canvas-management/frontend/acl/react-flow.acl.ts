@@ -5,7 +5,10 @@ import {
   BaseNodeData,
   BlockNodeData,
 } from '@/domains/block-management/shared/types/block-data.types';
-import type { BlockType } from '@/domains/block-management/shared/types/block-types';
+import {
+  hasNoContainerBoundary,
+  type BlockType,
+} from '@/domains/block-management/shared/types/block-types';
 
 import type {
   BlockMountView,
@@ -54,6 +57,7 @@ export function transformBlockViewToNodeData(
     blockId: blockView.blockId,
     blockType: blockView.blockType,
     title: blockView.title,
+    noContainerBoundary: hasNoContainerBoundary(blockView.blockType),
     properties: cleanNestedProperties(blockView.properties),
     customProperties: blockView.customProperties,
     content: blockView.content, // JSONB content
