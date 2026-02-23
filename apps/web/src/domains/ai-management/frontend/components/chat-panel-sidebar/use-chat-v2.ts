@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import { useReactFlow, type Node, type Edge } from '@xyflow/react';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
@@ -24,6 +24,7 @@ import {
   useOrganizeLayoutTool,
 } from '@/domains/ai-management/frontend/hooks/tools';
 import { useUpdateBlockPosition } from '@/domains/canvas-management/frontend/hooks/block/use-update-block-position';
+import { useChatSessionPersistence } from '@/domains/ai-management/frontend/hooks/chat-sessions';
 
 /**
  * Client context interface sent to the agent
@@ -41,12 +42,15 @@ interface ClientContext {
 }
 
 /**
- * useChat for Agent v2 (/api/agent/v2) with context collection.
- * 
+ * useChat for Agent v2 (/api/agent/v2) with context collection and session persistence.
+ *
  * Collects canvas context (selected blocks, visible blocks) and sends it with each message.
+ * Manages session persistence: creates new sessions, saves messages, loads existing sessions.
  */
 export function useChatV2() {
-  // Get React Flow instance for canvas state
+  const [optimisticText, setOptimisticText] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+
   const {
     getNodes,
     getEdges,
@@ -75,7 +79,6 @@ export function useChatV2() {
     reactFlow: { getNode, updateNode },
   });
 
-  // Canvas metadata (pageId, orgId, workspaceId) from CanvasMetadataProvider (layout/page already provide these)
   const { pageId, workspaceId, orgId } = useCanvasMetadata();
 
   const transport = useMemo(
@@ -86,7 +89,6 @@ export function useChatV2() {
     []
   );
 
-  // Get canvasdown executor from context
   const { renderCanvasdown: renderCanvasdownFromContext } = useCanvasdownContext();
 
   const getNodeOrNull = useCallback(
@@ -130,6 +132,7 @@ export function useChatV2() {
     addToolOutput,
     messages,
     status,
+    setMessages,
     ...chat
   } = useChat({
     transport,
@@ -168,7 +171,10 @@ export function useChatV2() {
         return;
       }
       if (toolName === 'webSearch') {
-        console.log('[useChatV2] webSearch: server-executed (streaming tool result to client)', { toolCallId: toolCall.toolCallId, args });
+        console.log('[useChatV2] webSearch: server-executed (streaming tool result to client)', {
+          toolCallId: toolCall.toolCallId,
+          args,
+        });
         return;
       }
 
@@ -176,19 +182,26 @@ export function useChatV2() {
     },
   });
 
-  /**
-   * Collect client context from canvas state.
-   * Selected blocks: prefer React Flow selection (useCanvasSelection), fallback to canvas mode
-   * when nothing is selected in the store but user is in single-selection or block-editing mode.
-   */
+  const {
+    currentSessionId,
+    setCurrentSessionId,
+    sessionTitle,
+    setSessionTitle,
+    isLoadingSession,
+    lastSavedMessageCount,
+    hasGeneratedTitle,
+    createSession,
+    loadSession,
+    startNewSession,
+    saveMessages,
+    updateTitle,
+  } = useChatSessionPersistence({ workspaceId, setMessages });
+
   const collectClientContext = useCallback((): { clientContext: ClientContext } => {
     const nodes = getNodes();
     const edges = getEdges();
 
-    // Get selected blocks from the same source as multi-select toolbar (React Flow store)
     let selectedBlockIds = getSelectedBlocks();
-    // Fallback: when store has no selection but UI is in single-selection or block-editing mode,
-    // include the current block so the agent still receives "focused" block context
     if (selectedBlockIds.length === 0) {
       const mode = canvasMode.getCurrentMode();
       if (mode.type === 'single-selection' && mode.blockMountId) {
@@ -198,7 +211,6 @@ export function useChatV2() {
       }
     }
 
-    // Selected blocks with full meta (blockMountId, type, title) — same shape as visibleBlocks
     const selectedBlocks: VisibleBlockMeta[] = selectedBlockIds.map((id) => {
       const node = nodes.find((n) => n.id === id);
       return node
@@ -206,7 +218,6 @@ export function useChatV2() {
         : { blockMountId: id, blockType: 'unknown', title: 'Untitled' };
     });
 
-    // Visible blocks (viewport bounds + center-distance cap) from context-builder hook
     const visibleResult = getVisibleBlocks();
 
     return {
@@ -231,11 +242,24 @@ export function useChatV2() {
     getVisibleBlocks,
   ]);
 
-  /**
-   * Send message with client context
-   */
   const sendMessage = useCallback(
-    (payload: { text: string }) => {
+    async (payload: { text: string }) => {
+      setOptimisticText(payload.text);
+      setSendError(null);
+
+      let sessionId = currentSessionId;
+      if (!sessionId) {
+        try {
+          sessionId = await createSession();
+          if (sessionId) setCurrentSessionId(sessionId);
+        } catch (error) {
+          console.error('[useChatV2] Failed to create session:', error);
+          setSendError('세션을 만들지 못했습니다. 다시 시도해 주세요.');
+          return;
+        }
+      }
+
+      setOptimisticText(null);
       const { clientContext } = collectClientContext();
       chat.sendMessage({
         text: payload.text,
@@ -244,13 +268,79 @@ export function useChatV2() {
         },
       });
     },
-    [chat, collectClientContext]
+    [chat, collectClientContext, currentSessionId, createSession, setCurrentSessionId]
   );
+
+  const wrappedStartNewSession = useCallback(() => {
+    startNewSession();
+  }, [startNewSession]);
+
+  useEffect(() => {
+    if (status !== 'ready') return;
+    if (!currentSessionId || messages.length === 0) return;
+
+    const fromIndex = lastSavedMessageCount.current;
+    if (messages.length <= fromIndex) return;
+
+    // Immediately guard to prevent duplicate saves when mutation state changes
+    // cause saveMessages reference to change and re-fire this effect
+    lastSavedMessageCount.current = messages.length;
+
+    const run = async () => {
+      const ok = await saveMessages(currentSessionId, messages, fromIndex);
+      if (!ok) {
+        // Rollback so a retry is possible
+        lastSavedMessageCount.current = fromIndex;
+      }
+    };
+    run();
+  }, [status, messages, currentSessionId, saveMessages]);
+
+  useEffect(() => {
+    const generateTitle = async () => {
+      if (!currentSessionId || hasGeneratedTitle.current) return;
+      if (messages.length < 2) return;
+      if (sessionTitle !== 'New Chat') return;
+
+      const hasUserMessage = messages.some((m) => m.role === 'user');
+      const hasAssistantMessage = messages.some((m) => m.role === 'assistant');
+      if (!hasUserMessage || !hasAssistantMessage) return;
+
+      hasGeneratedTitle.current = true;
+
+      try {
+        const response = await fetch('/api/agent/v2/generate-title', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages }),
+        });
+
+        if (response.ok) {
+          const { title } = await response.json();
+          setSessionTitle(title);
+          await updateTitle(currentSessionId, title);
+        }
+      } catch (error) {
+        console.error('[useChatV2] Failed to generate title:', error);
+      }
+    };
+
+    generateTitle();
+  }, [messages, currentSessionId, sessionTitle, setSessionTitle, updateTitle]);
 
   return {
     ...chat,
     messages,
     status,
     sendMessage,
+    currentSessionId,
+    sessionTitle,
+    setSessionTitle,
+    isLoadingSession,
+    startNewSession: wrappedStartNewSession,
+    loadSession,
+    optimisticText,
+    sendError,
+    dismissSendError: useCallback(() => setSendError(null), []),
   };
 }

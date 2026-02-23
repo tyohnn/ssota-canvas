@@ -17,6 +17,7 @@ import {
 } from '@workspace/ui/components/ai-elements/reasoning';
 import { Shimmer } from '@workspace/ui/components/ai-elements/shimmer';
 import type { UIMessage } from 'ai';
+import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   type ChatPanelMessagePart,
@@ -134,14 +135,23 @@ export interface ChatPanelMessagesProps {
   messages: UIMessage[];
   isStreaming?: boolean;
   className?: string;
+  /** Optimistic user message text shown immediately before session creation completes */
+  optimisticText?: string | null;
+  /** Error message shown when session creation (or send) fails */
+  sendError?: string | null;
 }
 
 export function ChatPanelMessages({
   messages,
   isStreaming = false,
   className,
+  optimisticText,
+  sendError,
 }: ChatPanelMessagesProps) {
-  if (messages.length === 0) {
+  const hasOptimistic = !!optimisticText;
+  const isEmpty = messages.length === 0 && !hasOptimistic;
+
+  if (isEmpty) {
     return null;
   }
 
@@ -176,12 +186,46 @@ export function ChatPanelMessages({
             </MessageContent>
           </Message>
         ))}
-        {showThinkingPlaceholder && (
+
+        {/* Optimistic user bubble: shown before session creation completes */}
+        {hasOptimistic && (
+          <Message key="__optimistic_user__" from="user">
+            <MessageContent>
+              <div className="whitespace-pre-wrap">{optimisticText}</div>
+            </MessageContent>
+          </Message>
+        )}
+
+        {/* Thinking placeholder: shown while streaming after real send */}
+        {showThinkingPlaceholder && !hasOptimistic && (
           <Message key="thinking-placeholder" from="assistant">
             <MessageContent>
               <Shimmer as="span" className="text-muted-foreground text-sm">
                 Thinking...
               </Shimmer>
+            </MessageContent>
+          </Message>
+        )}
+
+        {/* Thinking placeholder during optimistic phase */}
+        {hasOptimistic && (
+          <Message key="__optimistic_thinking__" from="assistant">
+            <MessageContent>
+              <Shimmer as="span" className="text-muted-foreground text-sm">
+                Thinking...
+              </Shimmer>
+            </MessageContent>
+          </Message>
+        )}
+
+        {/* Error bubble: optimistic user message stays, error shown below */}
+        {sendError && (
+          <Message key="__send_error__" from="assistant">
+            <MessageContent>
+              <div className="flex items-start gap-2 text-destructive text-sm">
+                <AlertCircle className="size-4 mt-0.5 shrink-0" />
+                <span>{sendError}</span>
+              </div>
             </MessageContent>
           </Message>
         )}

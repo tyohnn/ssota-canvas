@@ -10,11 +10,14 @@ import {
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { MessageSquareIcon, PanelRightCloseIcon } from 'lucide-react';
+import { MessageSquareIcon, PanelRightCloseIcon, Plus, History } from 'lucide-react';
+import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { useCanvasLayout } from '@/app/(dashboard)/contexts/canvas-layout-context';
+import { useState } from 'react';
 import { ChatPanelMessages } from './chat-panel-messages';
 import { useChatV2 } from './use-chat-v2';
 import { ConversationEmptyState } from '@workspace/ui/components/ai-elements/conversation';
+import { ChatSessionPopover } from './chat-session-popover';
 
 const CHAT_PANEL_WIDTH = 320;
 
@@ -32,8 +35,16 @@ export function ChatPanelSidebar({ className }: ChatPanelSidebarProps) {
     messages,
     sendMessage,
     status,
+    sessionTitle,
+    setSessionTitle,
+    startNewSession,
+    loadSession,
+    currentSessionId,
+    isLoadingSession,
+    optimisticText,
+    sendError,
   } = useChatV2();
-  console.log('messages', messages);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const isRunning = status === 'submitted' || status === 'streaming';
 
@@ -66,22 +77,69 @@ export function ChatPanelSidebar({ className }: ChatPanelSidebarProps) {
       )}
       style={{ width: CHAT_PANEL_WIDTH }}
     >
-      {/* Header: title + close */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border shrink-0">
-        <span className="font-medium text-sm">Sophi</span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setRightSidebarOpen(false)}
-          title="Close chat panel"
-        >
-          <PanelRightCloseIcon className="size-4" />
-        </Button>
+      {/* Header: session title + actions */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border shrink-0">
+        <span className="font-medium text-sm truncate flex-1" title={sessionTitle}>
+          {sessionTitle}
+        </span>
+        <Box className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={startNewSession}
+            title="New chat"
+          >
+            <Plus className="size-4" />
+          </Button>
+          <ChatSessionPopover
+            open={isHistoryOpen}
+            onOpenChange={setIsHistoryOpen}
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title="Chat history"
+              >
+                <History className="size-4" />
+              </Button>
+            }
+            onSessionSelect={(sessionId, sessionTitle) => loadSession(sessionId, sessionTitle)}
+            currentSessionId={currentSessionId}
+            onTitleUpdate={(sessionId, title) => {
+              if (sessionId === currentSessionId) {
+                setSessionTitle(title);
+              }
+            }}
+          />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setRightSidebarOpen(false)}
+            title="Close chat panel"
+          >
+            <PanelRightCloseIcon className="size-4" />
+          </Button>
+        </Box>
       </div>
 
       {/* Message list */}
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        {messages.length === 0 ? (
+        {isLoadingSession ? (
+          <div className="flex flex-col gap-4 p-4 flex-1">
+            <div className="flex justify-end">
+              <Skeleton className="h-8 w-3/5 rounded-2xl" />
+            </div>
+            <div className="flex justify-start">
+              <Skeleton className="h-16 w-4/5 rounded-2xl" />
+            </div>
+            <div className="flex justify-end">
+              <Skeleton className="h-8 w-2/5 rounded-2xl" />
+            </div>
+            <div className="flex justify-start">
+              <Skeleton className="h-12 w-3/4 rounded-2xl" />
+            </div>
+          </div>
+        ) : messages.length === 0 && !optimisticText ? (
           <ConversationEmptyState
             title="Start a conversation"
             description="Search or ask a question and Sophi will help."
@@ -90,6 +148,8 @@ export function ChatPanelSidebar({ className }: ChatPanelSidebarProps) {
           <ChatPanelMessages
             messages={messages}
             isStreaming={isRunning}
+            optimisticText={optimisticText}
+            sendError={sendError}
           />
         )}
       </div>

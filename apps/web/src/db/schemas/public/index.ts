@@ -114,6 +114,9 @@ export type NewViewport = typeof canvas.viewports.$inferInsert;
 export type EventLog = typeof eventManagement.eventLogs.$inferSelect;
 export type NewEventLog = typeof eventManagement.eventLogs.$inferInsert;
 
+export type ChatSession = typeof ai.chatSessions.$inferSelect;
+export type NewChatSession = typeof ai.chatSessions.$inferInsert;
+
 export type PublishedPageRow = typeof share.publishedPages.$inferSelect;
 export type NewPublishedPageRow = typeof share.publishedPages.$inferInsert;
 
