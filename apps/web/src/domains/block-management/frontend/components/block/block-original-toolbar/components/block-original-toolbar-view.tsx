@@ -78,7 +78,7 @@ export function BlockOriginalToolbarView({
         className="gap-0.5"
       >
         <TooltipProvider>
-          {/* 블럭 타입별 기본 속성 툴바 아이템 (좌측부터) */}
+          {/* 블럭 타입별 기본 속성 툴바 아이템 (좌측부터, 아이템 있으면 trailing Separator) */}
           <BlockToolbarMapper
             blockId={blockId}
             blockType={blockType}
@@ -89,10 +89,6 @@ export function BlockOriginalToolbarView({
             zoom={zoom}
             readonly={readonly}
           />
-          {/* readonly일 때는 Separator 숨김 */}
-          {!readonly && (
-            <Separator orientation="vertical" className="h-6!" />
-          )}
           {/* 보기 방식 변경 - readonly일 때 숨김 */}
           {!readonly && pageId && (
             <ViewModeToolbarItem

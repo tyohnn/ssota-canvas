@@ -6,6 +6,7 @@
  */
 import React from 'react';
 
+import { Separator } from '@/components/ui/separator';
 import { ImageChangeToolbarItem } from './components/image-change-toolbar-item';
 import { ImageToolbarProvider } from './core/provider';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
@@ -30,17 +31,19 @@ export function ImageToolbarItems(props: ImageToolbarItemsProps) {
   const { readonly } = useCanvasReadOnly();
 
   return (
-    <ImageToolbarProvider {...props}>
-      {/* <ImageSpaceContainer blockId={blockId} blockData={blockData}>
-        <ImageSpaceExploreTrigger />
-        <ImageSpaceEditorTrigger />
-      </ImageSpaceContainer> */}
-      {/* readonly 모드에서는 ImageChangeToolbarItem 숨김 */}
-      {!readonly && <ImageChangeToolbarItem />}
-      {/* <ObjectFitToolbarItem /> */}
-      {/* <Separator orientation="vertical" className="h-6" /> */}
-      {/* <CaptionVisibilityToolbarItem /> */}
-      {/* <ExpandImageToolbarItem /> */}
-    </ImageToolbarProvider>
+    <>
+      <ImageToolbarProvider {...props}>
+        {/* <ImageSpaceContainer blockId={blockId} blockData={blockData}>
+          <ImageSpaceExploreTrigger />
+          <ImageSpaceEditorTrigger />
+        </ImageSpaceContainer> */}
+        {/* readonly 모드에서는 ImageChangeToolbarItem 숨김 */}
+        {!readonly && <ImageChangeToolbarItem />}
+        {/* <ObjectFitToolbarItem /> */}
+        {/* <CaptionVisibilityToolbarItem /> */}
+        {/* <ExpandImageToolbarItem /> */}
+      </ImageToolbarProvider>
+      {!readonly && <Separator orientation="vertical" className="h-6!" />}
+    </>
   );
 }

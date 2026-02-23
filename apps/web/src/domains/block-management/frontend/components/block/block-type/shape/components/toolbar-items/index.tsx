@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { Separator } from '@/components/ui/separator';
 import { ColorToolbarItem } from '@/domains/block-management/frontend/components/block/common-toolbar-items/color-toolbar-item';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
@@ -54,6 +55,7 @@ export function ShapeToolbarItems({
         }}
         zoom={zoom}
       />
+      <Separator orientation="vertical" className="h-6!" />
     </>
   );
 }

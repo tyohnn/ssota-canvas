@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { Separator } from '@/components/ui/separator';
 import { ColorToolbarItem } from '../../../../common-toolbar-items/color-toolbar-item';
 
 // Lazy Loading을 위한 Wrapper 컴포넌트
@@ -10,12 +11,14 @@ export function MarkdownToolbarItems({
   blockData,
   disabled,
   onPropertyUpdate,
+  readonly = false,
 }: {
   blockId: string;
   blockMountId?: string;
   blockData: any;
   disabled: boolean;
   onPropertyUpdate: (path: string, value: any) => Promise<void>;
+  readonly?: boolean;
 }) {
   const markdownProperties = blockData.properties;
 
@@ -30,6 +33,7 @@ export function MarkdownToolbarItems({
           await onPropertyUpdate('properties.color', color);
         }}
       />
+      {!readonly && <Separator orientation="vertical" className="h-6!" />}
     </>
   );
 }

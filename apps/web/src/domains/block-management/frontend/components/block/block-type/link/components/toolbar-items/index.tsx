@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { Separator } from '@/components/ui/separator';
 import { LinkToolbarItemsView } from './link-toolbar-items.view';
 
 // Lazy Loading을 위한 Wrapper 컴포넌트
@@ -22,11 +23,14 @@ export function LinkToolbarItems({
   const linkProperties = blockData.properties;
 
   return (
-    <LinkToolbarItemsView
-      blockId={blockId}
-      blockMountId={blockMountId}
-      url={linkProperties?.url ?? ''}
-      disabled={disabled}
-    />
+    <>
+      <LinkToolbarItemsView
+        blockId={blockId}
+        blockMountId={blockMountId}
+        url={linkProperties?.url ?? ''}
+        disabled={disabled}
+      />
+      {!readonly && <Separator orientation="vertical" className="h-6!" />}
+    </>
   );
 }

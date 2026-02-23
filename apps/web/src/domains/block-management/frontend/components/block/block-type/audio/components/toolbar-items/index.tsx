@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { Separator } from '@/components/ui/separator';
 import { AudioDownloadToolbarItem } from './audio-download-toolbar-item';
 import { AudioRecordToolbarItem } from './audio-record-toolbar-item';
 import { AudioUploadToolbarItem } from './audio-upload-toolbar-item';
@@ -11,11 +12,13 @@ export function AudioToolbarItems({
   blockData,
   disabled,
   onPropertyUpdate,
+  readonly = false,
 }: {
   blockId: string;
   blockData: any;
   disabled: boolean;
   onPropertyUpdate: (path: string, value: any) => Promise<void>;
+  readonly?: boolean;
 }) {
   const audioProperties = blockData.properties;
 
@@ -40,6 +43,7 @@ export function AudioToolbarItems({
         title={audioProperties.title}
         disabled={disabled || !audioProperties.audioUrl}
       />
+      {!readonly && <Separator orientation="vertical" className="h-6!" />}
     </>
   );
 }
