@@ -30,7 +30,7 @@ export function LinkToolbarItems({
         url={linkProperties?.url ?? ''}
         disabled={disabled}
       />
-      {!readonly && <Separator orientation="vertical" className="h-6!" />}
+      {!readonly && <Separator orientation="vertical" className="h-4!" />}
     </>
   );
 }

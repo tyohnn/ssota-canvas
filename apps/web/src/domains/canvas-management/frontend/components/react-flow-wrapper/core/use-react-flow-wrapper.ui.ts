@@ -297,7 +297,7 @@ export function useReactFlowWrapperUI(
       let newZoom: number;
       if (deltaY < 0) {
         // 줌인: zoomDelta를 플랫폼별 감도로 조절
-        newZoom = Math.min(currentZoom + zoomMultiplier, 2); // maxZoom
+        newZoom = Math.min(currentZoom + zoomMultiplier, 5.0); // maxZoom (250%)
       } else {
         // 줌아웃: zoomDelta를 플랫폼별 감도로 조절
         newZoom = Math.max(currentZoom - zoomMultiplier, 0.1); // minZoom

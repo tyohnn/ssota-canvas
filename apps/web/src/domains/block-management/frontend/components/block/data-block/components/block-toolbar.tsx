@@ -96,7 +96,7 @@ export function BlockToolbar({
   );
 
   const toolbarItems = isShapeBlock ? (
-    /* 도형 블록: BlockToolbarMapper + Separator + Details + More */
+    /* 도형 블록: BlockToolbarMapper + Editor (Separator는 ShapeToolbarItems 내부에 있음) */
     <>
       {showBlockToolbarMapper && (
         <BlockToolbarMapper
@@ -109,7 +109,6 @@ export function BlockToolbar({
           readonly={readonly}
         />
       )}
-      <Separator orientation="vertical" className="h-4!" />
       <EditorToolbarButton
         onClick={() => onEdit()}
         onMouseDown={e => e.stopPropagation()}
@@ -129,9 +128,6 @@ export function BlockToolbar({
             zoom={zoom}
             readonly={readonly}
           />
-          {!readonly && (
-            <Separator orientation="vertical" className="h-4!" />
-          )}
         </>
       )}
 

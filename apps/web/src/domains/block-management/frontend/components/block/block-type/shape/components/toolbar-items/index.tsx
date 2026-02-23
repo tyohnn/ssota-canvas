@@ -55,7 +55,7 @@ export function ShapeToolbarItems({
         }}
         zoom={zoom}
       />
-      <Separator orientation="vertical" className="h-6!" />
+      <Separator orientation="vertical" className="h-4!" />
     </>
   );
 }

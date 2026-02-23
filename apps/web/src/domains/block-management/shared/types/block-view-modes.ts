@@ -14,9 +14,9 @@ import { BlockType } from './block-types';
  */
 export const BLOCK_VIEW_MODES: Record<BlockType, BlockViewModeValue[]> = {
   // DataBlocks - 여러 View Mode 지원
-  markdown: ['note', 'card'],
+  markdown: ['note'],
   shape: ['original', 'note', 'card'],
-  image: ['original', 'note', 'card'],
+  image: ['original'],
   youtube: ['original', 'note', 'card'],
 
   // BasicBlocks - 단일 View Mode만 지원

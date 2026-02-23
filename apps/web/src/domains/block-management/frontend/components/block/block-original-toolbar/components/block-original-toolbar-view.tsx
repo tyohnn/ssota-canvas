@@ -20,11 +20,7 @@ import type { BlockNodeData } from '@/domains/block-management/shared/types/bloc
 import type { BlockType } from '@/domains/block-management/shared/types/block-types';
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
 
-import {
-  EditorToolbarButton,
-  MoreMenuToolbarItem,
-  ViewModeToolbarItem,
-} from '../../common-toolbar-items';
+import { EditorToolbarButton, MoreMenuToolbarItem } from '../../common-toolbar-items';
 import { BlockToolbarMapper } from './block-toolbar-mapper';
 
 export interface BlockOriginalToolbarViewProps {
@@ -90,14 +86,14 @@ export function BlockOriginalToolbarView({
             readonly={readonly}
           />
           {/* 보기 방식 변경 - readonly일 때 숨김 */}
-          {!readonly && pageId && (
+          {/* {!readonly && pageId && (
             <ViewModeToolbarItem
               blockType={blockData.blockType}
               currentViewMode={viewMode}
               onViewModeChange={onViewModeChange}
               zoom={zoom}
             />
-          )}
+          )} */}
 
           {/* Editor 버튼 */}
           <EditorToolbarButton

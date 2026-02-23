@@ -192,9 +192,6 @@ class SafeDropCursorView {
   }
 
   drop(event: DragEvent) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bc5b12'},body:JSON.stringify({sessionId:'bc5b12',location:'safe-dropcursor:drop',message:'drop in SafeDropcursor DOM listener',data:{hasDragging:!!this.editorView.dragging,defaultPrevented:event.defaultPrevented,eventPhase:event.eventPhase},timestamp:Date.now(),hypothesisId:'H6',runId:'iter3'})}).catch(()=>{});
-    // #endregion
     this.scheduleRemoval(20);
   }
 
