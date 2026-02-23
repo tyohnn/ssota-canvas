@@ -81,7 +81,7 @@ export function WebSearchAccordion({ part, partKey }: WebSearchAccordionProps) {
   if (!isDone) return null;
 
   return (
-    <Collapsible defaultOpen={true} className="border-muted border-l-2 pl-4">
+    <Collapsible defaultOpen={false} className="border-muted border-l-2 pl-4">
       <CollapsibleTrigger asChild>
         <div
           className={cn(
