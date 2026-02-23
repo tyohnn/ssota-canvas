@@ -56,7 +56,7 @@ export function CardViewView({
       {blockType && (
         <Box>
           <Badge variant="secondary" className="shrink-0 cursor-default">
-            {blockType}
+            {blockType === 'markdown' ? 'note' : blockType}
           </Badge>
         </Box>
       )}
