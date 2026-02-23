@@ -8,10 +8,6 @@
 
 'use client';
 
-import { ChevronRight } from 'lucide-react';
-
-import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
-
 import { Separator } from '@/components/ui/separator';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
@@ -20,6 +16,7 @@ import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts
 import { GroupBlockToolbar } from './group-block-toolbar';
 import { BlockHeader } from './block-header';
 import {
+  EditorToolbarButton,
   MoreMenuToolbarItem,
   ViewModeToolbarItem,
 } from '../../common-toolbar-items';
@@ -115,15 +112,9 @@ export function BlockToolbar({
         />
       )}
       <Separator orientation="vertical" className="h-4!" />
-      <ToolbarIconButton
-        icon={<ChevronRight />}
-        tooltip="Details"
-        tooltipSide="top"
-        tooltipOffset={5}
+      <EditorToolbarButton
         onClick={() => onEdit()}
         onMouseDown={e => e.stopPropagation()}
-        className="h-6 w-6 p-0 rounded-sm"
-        iconClassName="size-3.5"
       />
       {!readonly && (
         <>
@@ -169,17 +160,9 @@ export function BlockToolbar({
       )}
 
       {/* 에디터 열기 */}
-      <ToolbarIconButton
-        icon={<ChevronRight />}
-        tooltip="Details"
-        tooltipSide="top"
-        tooltipOffset={5}
-        onClick={() => {
-          onEdit();
-        }}
+      <EditorToolbarButton
+        onClick={() => onEdit()}
         onMouseDown={e => e.stopPropagation()}
-        className="h-6 w-6 p-0 rounded-sm"
-        iconClassName="size-3.5"
       />
 
       {/* 더보기 메뉴 - readonly일 때 숨김 */}

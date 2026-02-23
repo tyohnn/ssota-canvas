@@ -4,6 +4,7 @@ export { FontSizeToolbarItem } from './font-size-toolbar-item';
 export { TextAlignToolbarItem } from './text-align-toolbar-item';
 export { RichStyleToolbarItem } from './rich-style-toolbar-item';
 export { BorderStyleToolbarItem } from './border-style-toolbar-item';
+export { EditorToolbarButton } from './editor-toolbar-button';
 export { MoreMenuToolbarItem } from './more-menu-toolbar-item';
 export { ViewModeToolbarItem } from './view-mode-toolbar-item';
 

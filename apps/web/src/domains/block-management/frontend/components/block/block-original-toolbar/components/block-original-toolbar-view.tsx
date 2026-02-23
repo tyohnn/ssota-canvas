@@ -10,10 +10,7 @@
 
 'use client';
 
-import { ChevronRight } from 'lucide-react';
-
 import { ToolbarContainer } from '@workspace/ui/components/ssota-ui/toolbar-container';
-import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
 import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
 
@@ -24,6 +21,7 @@ import type { BlockType } from '@/domains/block-management/shared/types/block-ty
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
 
 import {
+  EditorToolbarButton,
   MoreMenuToolbarItem,
   ViewModeToolbarItem,
 } from '../../common-toolbar-items';
@@ -105,16 +103,12 @@ export function BlockOriginalToolbarView({
             />
           )}
 
-          {/* Details 버튼 */}
-          <ToolbarIconButton
-            icon={<ChevronRight />}
-            tooltip="Details"
-            tooltipSide="top"
-            tooltipOffset={5}
+          {/* Editor 버튼 */}
+          <EditorToolbarButton
             onClick={onDetails}
             onMouseDown={e => e.stopPropagation()}
-            className="h-7 w-7 p-0"
-            iconClassName="size-3"
+            className="h-7 gap-1 px-2 rounded-sm"
+            iconClassName="size-3 shrink-0"
           />
           {/* 더보기 메뉴 - readonly일 때 Separator와 함께 숨김 */}
           {!readonly && (

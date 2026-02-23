@@ -7,10 +7,6 @@
  */
 
 'use client';
-
-import { ChevronRight } from 'lucide-react';
-
-import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
 import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
 
@@ -22,6 +18,7 @@ import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts
 
 import { BlockHeader } from './block-header';
 import {
+  EditorToolbarButton,
   MoreMenuToolbarItem,
   ViewModeToolbarItem,
 } from '../../common-toolbar-items';
@@ -104,17 +101,9 @@ export function GroupBlockToolbar({
               />
             )}
 
-            <ToolbarIconButton
-              icon={<ChevronRight />}
-              tooltip="Details"
-              tooltipSide="top"
-              tooltipOffset={5}
-              onClick={() => {
-                onEdit();
-              }}
+            <EditorToolbarButton
+              onClick={() => onEdit()}
               onMouseDown={e => e.stopPropagation()}
-              className="h-6 w-6 p-0 rounded-sm"
-              iconClassName="size-3.5"
             />
 
             {!readonly && (
