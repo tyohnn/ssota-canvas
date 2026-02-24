@@ -26,10 +26,6 @@ export default async function OrgIdLayout({
   const selectedOrganization = organizations.find(org => org.id === orgId);
 
   if (!selectedOrganization) {
-    console.error('[/r/[orgId]/layout] Organization access denied:', {
-      requestedOrgId: orgId,
-      availableOrgIds: organizations.map(o => o.id),
-    });
     redirect('/unauthorized');
   }
 

@@ -33,10 +33,6 @@ export default async function OrgPageIdLayout({
   const accessResult = await verifyAccessByPageId(pageId, user.id);
 
   if (!accessResult.success) {
-    console.error('[/r/[orgId]/[pageId]/layout] Page access denied:', {
-      pageId,
-      error: accessResult.error,
-    });
     redirect('/unauthorized');
   }
 
@@ -44,10 +40,6 @@ export default async function OrgPageIdLayout({
   const workspaceId = accessResult.page!.workspaceId.value;
 
   if (pageOrgId !== orgId) {
-    console.error('[/r/[orgId]/[pageId]/layout] Page org mismatch:', {
-      urlOrgId: orgId,
-      pageOrgId,
-    });
     redirect('/unauthorized');
   }
 
