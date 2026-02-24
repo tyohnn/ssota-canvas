@@ -47,13 +47,14 @@ export const Waveform = ({
     if (!canvas || !container) return;
 
     const resizeObserver = new ResizeObserver(() => {
-      const rect = container.getBoundingClientRect();
+      const w = container.offsetWidth;
+      const h = container.offsetHeight;
       const dpr = window.devicePixelRatio || 1;
 
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
 
       const ctx = canvas.getContext('2d');
       if (ctx) {
@@ -64,23 +65,25 @@ export const Waveform = ({
 
     const renderWaveform = () => {
       const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      const cont = containerRef.current;
+      if (!ctx || !cont) return;
 
-      const rect = canvas.getBoundingClientRect();
-      ctx.clearRect(0, 0, rect.width, rect.height);
+      const w = cont.offsetWidth;
+      const h = cont.offsetHeight;
+      ctx.clearRect(0, 0, w, h);
 
       const computedBarColor =
         barColor ||
         getComputedStyle(canvas).getPropertyValue('--foreground') ||
         '#000';
 
-      const barCount = Math.floor(rect.width / (barWidth + barGap));
-      const centerY = rect.height / 2;
+      const barCount = Math.floor(w / (barWidth + barGap));
+      const centerY = h / 2;
 
       for (let i = 0; i < barCount; i++) {
         const dataIndex = Math.floor((i / barCount) * data.length);
         const value = data[dataIndex] || 0;
-        const barHeight = Math.max(4, value * rect.height * 0.8);
+        const barHeight = Math.max(4, value * h * 0.8);
         const x = i * (barWidth + barGap);
         const y = centerY - barHeight / 2;
 
@@ -96,9 +99,9 @@ export const Waveform = ({
         }
       }
 
-      if (fadeEdges && fadeWidth > 0 && rect.width > 0) {
-        const gradient = ctx.createLinearGradient(0, 0, rect.width, 0);
-        const fadePercent = Math.min(0.2, fadeWidth / rect.width);
+      if (fadeEdges && fadeWidth > 0 && w > 0) {
+        const gradient = ctx.createLinearGradient(0, 0, w, 0);
+        const fadePercent = Math.min(0.2, fadeWidth / w);
 
         gradient.addColorStop(0, 'rgba(255,255,255,1)');
         gradient.addColorStop(fadePercent, 'rgba(255,255,255,0)');
@@ -107,7 +110,7 @@ export const Waveform = ({
 
         ctx.globalCompositeOperation = 'destination-out';
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, rect.width, rect.height);
+        ctx.fillRect(0, 0, w, h);
         ctx.globalCompositeOperation = 'source-over';
       }
 
@@ -123,14 +126,16 @@ export const Waveform = ({
   const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onBarClick) return;
 
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    const canvas = canvasRef.current;
+    const rect = canvas?.getBoundingClientRect();
+    if (!rect || !canvas || rect.width <= 0) return;
 
-    const x = e.clientX - rect.left;
+    const screenX = e.clientX - rect.left;
+    const layoutWidth = canvas.offsetWidth;
+    const x = (screenX / rect.width) * layoutWidth;
+    const barCount = Math.floor(layoutWidth / (barWidth + barGap));
     const barIndex = Math.floor(x / (barWidth + barGap));
-    const dataIndex = Math.floor(
-      (barIndex * data.length) / Math.floor(rect.width / (barWidth + barGap))
-    );
+    const dataIndex = Math.floor((barIndex * data.length) / barCount);
 
     if (dataIndex >= 0 && dataIndex < data.length) {
       const value = data[dataIndex];
@@ -194,13 +199,14 @@ export const ScrollingWaveform = ({
     if (!canvas || !container) return;
 
     const resizeObserver = new ResizeObserver(() => {
-      const rect = container.getBoundingClientRect();
+      const w = container.offsetWidth;
+      const h = container.offsetHeight;
       const dpr = window.devicePixelRatio || 1;
 
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
 
       const ctx = canvas.getContext('2d');
       if (ctx) {
@@ -209,7 +215,7 @@ export const ScrollingWaveform = ({
 
       if (barsRef.current.length === 0) {
         const step = barWidth + barGap;
-        let currentX = rect.width;
+        let currentX = w;
         let index = 0;
         const seededRandom = (i: number) => {
           const x = Math.sin(seedRef.current * 10000 + i) * 10000;
@@ -242,8 +248,9 @@ export const ScrollingWaveform = ({
         : 0;
       lastTimeRef.current = currentTime;
 
-      const rect = canvas.getBoundingClientRect();
-      ctx.clearRect(0, 0, rect.width, rect.height);
+      const w = canvas.offsetWidth;
+      const h = canvas.offsetHeight;
+      ctx.clearRect(0, 0, w, h);
 
       const computedBarColor =
         barColor ||
@@ -262,10 +269,10 @@ export const ScrollingWaveform = ({
 
       while (
         barsRef.current.length === 0 ||
-        (barsRef.current[barsRef.current.length - 1]?.x ?? 0) < rect.width
+        (barsRef.current[barsRef.current.length - 1]?.x ?? 0) < w
       ) {
         const lastBar = barsRef.current[barsRef.current.length - 1];
-        const nextX = lastBar ? lastBar.x + step : rect.width;
+        const nextX = lastBar ? lastBar.x + step : w;
 
         let newHeight: number;
         if (data && data.length > 0) {
@@ -294,10 +301,10 @@ export const ScrollingWaveform = ({
         if (barsRef.current.length > barCount * 2) break;
       }
 
-      const centerY = rect.height / 2;
+      const centerY = h / 2;
       for (const bar of barsRef.current) {
-        if (bar.x < rect.width && bar.x + barWidth > 0) {
-          const barHeight = Math.max(4, bar.height * rect.height * 0.6);
+        if (bar.x < w && bar.x + barWidth > 0) {
+          const barHeight = Math.max(4, bar.height * h * 0.6);
           const y = centerY - barHeight / 2;
 
           ctx.fillStyle = computedBarColor;
@@ -314,8 +321,8 @@ export const ScrollingWaveform = ({
       }
 
       if (fadeEdges && fadeWidth > 0) {
-        const gradient = ctx.createLinearGradient(0, 0, rect.width, 0);
-        const fadePercent = Math.min(0.2, fadeWidth / rect.width);
+        const gradient = ctx.createLinearGradient(0, 0, w, 0);
+        const fadePercent = Math.min(0.2, fadeWidth / w);
 
         gradient.addColorStop(0, 'rgba(255,255,255,1)');
         gradient.addColorStop(fadePercent, 'rgba(255,255,255,0)');
@@ -324,7 +331,7 @@ export const ScrollingWaveform = ({
 
         ctx.globalCompositeOperation = 'destination-out';
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, rect.width, rect.height);
+        ctx.fillRect(0, 0, w, h);
         ctx.globalCompositeOperation = 'source-over';
       }
 
@@ -783,13 +790,14 @@ export const LiveMicrophoneWaveform = ({
     if (!canvas || !container) return;
 
     const resizeObserver = new ResizeObserver(() => {
-      const rect = container.getBoundingClientRect();
+      const w = container.offsetWidth;
+      const h = container.offsetHeight;
       const dpr = window.devicePixelRatio || 1;
 
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
 
       const ctx = canvas.getContext('2d');
       if (ctx) {
@@ -1013,8 +1021,7 @@ export const LiveMicrophoneWaveform = ({
           );
           const step = barWidth + barGap;
 
-          const containerWidth =
-            containerRef.current?.getBoundingClientRect().width || 0;
+          const containerWidth = containerRef.current?.offsetWidth ?? 0;
           const viewBars = Math.floor(containerWidth / step);
           const targetOffset =
             -(currentBarIndex - (historyRef.current.length - viewBars)) * step;
@@ -1028,8 +1035,7 @@ export const LiveMicrophoneWaveform = ({
         } else {
           setPlaybackPosition(null);
           const step = barWidth + barGap;
-          const containerWidth =
-            containerRef.current?.getBoundingClientRect().width || 0;
+          const containerWidth = containerRef.current?.offsetWidth ?? 0;
           const viewBars = Math.floor(containerWidth / step);
           setDragOffset?.(-(historyRef.current.length - viewBars) * step);
         }
@@ -1083,8 +1089,9 @@ export const LiveMicrophoneWaveform = ({
         }
       }
 
-      const rect = canvas.getBoundingClientRect();
-      ctx.clearRect(0, 0, rect.width, rect.height);
+      const w = canvas.offsetWidth;
+      const h = canvas.offsetHeight;
+      ctx.clearRect(0, 0, w, h);
 
       const computedBarColor =
         barColor ||
@@ -1092,8 +1099,8 @@ export const LiveMicrophoneWaveform = ({
         '#000';
 
       const step = barWidth + barGap;
-      const barCount = Math.floor(rect.width / step);
-      const centerY = rect.height / 2;
+      const barCount = Math.floor(w / step);
+      const centerY = h / 2;
 
       const dataToRender = historyRef.current;
 
@@ -1118,8 +1125,8 @@ export const LiveMicrophoneWaveform = ({
           if (dataIndex >= 0 && dataIndex < dataToRender.length) {
             const value = dataToRender[dataIndex];
             if (value !== undefined) {
-              const x = rect.width - (i + 1) * step;
-              const barHeight = Math.max(4, value * rect.height * 0.7);
+              const x = w - (i + 1) * step;
+              const barHeight = Math.max(4, value * h * 0.7);
               const y = centerY - barHeight / 2;
 
               ctx.fillStyle = computedBarColor;
@@ -1138,8 +1145,8 @@ export const LiveMicrophoneWaveform = ({
       }
 
       if (fadeEdges && fadeWidth > 0) {
-        const gradient = ctx.createLinearGradient(0, 0, rect.width, 0);
-        const fadePercent = Math.min(0.2, fadeWidth / rect.width);
+        const gradient = ctx.createLinearGradient(0, 0, w, 0);
+        const fadePercent = Math.min(0.2, fadeWidth / w);
 
         gradient.addColorStop(0, 'rgba(255,255,255,1)');
         gradient.addColorStop(fadePercent, 'rgba(255,255,255,0)');
@@ -1148,7 +1155,7 @@ export const LiveMicrophoneWaveform = ({
 
         ctx.globalCompositeOperation = 'destination-out';
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, rect.width, rect.height);
+        ctx.fillRect(0, 0, w, h);
         ctx.globalCompositeOperation = 'source-over';
       }
 
@@ -1202,7 +1209,7 @@ export const LiveMicrophoneWaveform = ({
 
       const step = barWidth + barGap;
       const maxBars = historyRef.current.length;
-      const viewWidth = canvasRef.current?.getBoundingClientRect().width || 0;
+      const viewWidth = canvasRef.current?.offsetWidth ?? 0;
       const viewBars = Math.floor(viewWidth / step);
 
       const maxOffset = Math.max(0, (maxBars - viewBars) * step);
@@ -1374,13 +1381,14 @@ export const RecordingWaveform = ({
     if (!canvas || !container) return;
 
     const resizeObserver = new ResizeObserver(() => {
-      const rect = container.getBoundingClientRect();
+      const w = container.offsetWidth;
+      const h = container.offsetHeight;
       const dpr = window.devicePixelRatio || 1;
 
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
 
       const ctx = canvas.getContext('2d');
       if (ctx) {
@@ -1483,8 +1491,9 @@ export const RecordingWaveform = ({
         }
       }
 
-      const rect = canvas.getBoundingClientRect();
-      ctx.clearRect(0, 0, rect.width, rect.height);
+      const w = canvas.offsetWidth;
+      const h = canvas.offsetHeight;
+      ctx.clearRect(0, 0, w, h);
 
       const computedBarColor =
         barColor ||
@@ -1495,8 +1504,8 @@ export const RecordingWaveform = ({
 
       if (dataToRender.length > 0) {
         const step = barWidth + barGap;
-        const barsVisible = Math.floor(rect.width / step);
-        const centerY = rect.height / 2;
+        const barsVisible = Math.floor(w / step);
+        const centerY = h / 2;
 
         let startIndex = 0;
         if (!recording && isRecordingComplete) {
@@ -1515,7 +1524,7 @@ export const RecordingWaveform = ({
         ) {
           const value = dataToRender[startIndex + i] || 0.1;
           const x = i * step;
-          const barHeight = Math.max(4, value * rect.height * 0.7);
+          const barHeight = Math.max(4, value * h * 0.7);
           const y = centerY - barHeight / 2;
 
           ctx.fillStyle = computedBarColor;
@@ -1531,14 +1540,14 @@ export const RecordingWaveform = ({
         }
 
         if (!recording && isRecordingComplete && showHandle) {
-          const indicatorX = rect.width * viewPosition;
+          const indicatorX = w * viewPosition;
 
           ctx.strokeStyle = computedBarColor;
           ctx.globalAlpha = 0.5;
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.moveTo(indicatorX, 0);
-          ctx.lineTo(indicatorX, rect.height);
+          ctx.lineTo(indicatorX, h);
           ctx.stroke();
           ctx.fillStyle = computedBarColor;
           ctx.globalAlpha = 1;
