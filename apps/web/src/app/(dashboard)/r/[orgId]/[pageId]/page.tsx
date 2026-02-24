@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
 import type { Edge } from '@xyflow/react';
 
@@ -111,6 +112,18 @@ async function PageContent({
   const canvasViewResult = await getCanvasViewAction({ pageId });
 
   if (!canvasViewResult.success) {
+    const isUnauthenticated =
+      canvasViewResult.code === 'UNAUTHORIZED' ||
+      String(canvasViewResult.error ?? '').includes('UNAUTHORIZED');
+    const isAccessDenied = canvasViewResult.code === 'ACCESS_DENIED';
+
+    if (isUnauthenticated) {
+      redirect('/login?message=Please%20log%20in%20to%20continue.');
+    }
+    if (isAccessDenied) {
+      redirect('/unauthorized');
+    }
+
     console.error('[PageContent] Canvas load failed:', canvasViewResult.error);
     return (
       <CanvasLoadErrorCanvas
