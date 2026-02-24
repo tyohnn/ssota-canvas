@@ -59,7 +59,7 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
     null
   );
 
-  const fetchedForUrlRef = useRef<string | null>(null);
+  const hasSourceJobAttemptedRef = useRef(false);
   const summaryReportedForBlockRef = useRef<string | null>(null);
   const hasTriedRefreshRef = useRef(false);
 
@@ -140,21 +140,27 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
 
   const isOptimisticBlock = nodeId.startsWith('optimistic-');
 
+  // Source 연동: 블록 추가 직후(메타 없음) 1회만. PDF URL/파일은 한번 설정되면 바뀌지 않음.
   useEffect(() => {
-    if (!accessUrl || !hasValidBlockId || isOptimisticBlock) return;
-    if (fetchedForUrlRef.current === accessUrl) return;
+    if (!accessUrl || !hasValidBlockId || !workspaceId || !orgId || isOptimisticBlock) return;
     if (readonly && publishToken) return;
+    if (nodeData.sourceId) return; // 이미 메타 있음
+    if (hasSourceJobAttemptedRef.current) return; // 이미 시도함(또는 인플라이트)
 
-    fetchedForUrlRef.current = accessUrl;
+    hasSourceJobAttemptedRef.current = true;
     ensureSourceAndJob(accessUrl, filename);
   }, [
     accessUrl,
     hasValidBlockId,
+    workspaceId,
+    orgId,
     isOptimisticBlock,
-    filename,
-    ensureSourceAndJob,
     readonly,
     publishToken,
+    nodeData.sourceId,
+    nodeData,
+    filename,
+    ensureSourceAndJob,
   ]);
 
   const [

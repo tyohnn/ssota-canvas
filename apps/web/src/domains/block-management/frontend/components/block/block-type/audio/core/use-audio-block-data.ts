@@ -21,6 +21,7 @@ import {
 } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { AudioBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
@@ -78,6 +79,7 @@ export function useAudioBlockData({
   const hasValidBlockId =
     nodeData.blockId && VALID_BLOCK_ID_REGEX.test(nodeData.blockId);
 
+  const { readonly } = useCanvasReadOnly();
   const { workspaceId, orgId } = useCanvasMetadata();
   const { setAutoSummaryBlockId } = useAIActionContext();
   const { updateProperties } = useUpdateBlockProperty({ reactFlow });
@@ -89,22 +91,23 @@ export function useAudioBlockData({
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const hasInitialFetchDoneRef = useRef(false);
+  const hasFetchedAttemptedRef = useRef(false);
   const summaryReportedForBlockRef = useRef<string | null>(null);
 
-  // 초기 세팅: audioUrl이 설정된 후 메타데이터 페치 (1회만, url 변경 로직 없음)
+  // 메타데이터 페치: 블록 추가 직후(메타 없음) 1회만. 오디오 URL/파일은 한번 설정되면 바뀌지 않음.
   useEffect(() => {
-    if (!audioUrl || !hasValidBlockId || !workspaceId || !orgId) return;
-    if (hasInitialFetchDoneRef.current) return;
+    if (!audioUrl || !hasValidBlockId || !workspaceId || !orgId || readonly) return;
+    if (nodeData.sourceId) return; // 이미 메타 있음
+    if (hasFetchedAttemptedRef.current) return; // 이미 시도함(또는 인플라이트)
 
-    hasInitialFetchDoneRef.current = true;
+    hasFetchedAttemptedRef.current = true;
 
     (async () => {
       try {
         const result = await fetchAudioMetadataAction({
           workspaceId,
           blockId: nodeData.blockId!,
-          url: audioUrl
+          url: audioUrl,
         });
 
         if (!result.success || !result.data) return;
@@ -129,12 +132,16 @@ export function useAudioBlockData({
             await updateBlockTitle({
               nodeId,
               title: properties.filename.trim(),
-              blockData: { ...nodeData, sourceId: newSourceId } as BlockNodeData,
+              blockData: {
+                ...nodeData,
+                sourceId: newSourceId,
+              } as BlockNodeData,
             });
           }
         }
       } catch (err) {
         console.error('[useAudioBlockData] fetchMetadata failed:', err);
+        hasFetchedAttemptedRef.current = false;
       }
     })();
   }, [
@@ -142,6 +149,9 @@ export function useAudioBlockData({
     hasValidBlockId,
     workspaceId,
     orgId,
+    readonly,
+    nodeData.sourceId,
+    nodeData.blockId,
     nodeData,
     nodeId,
     updateProperties,
