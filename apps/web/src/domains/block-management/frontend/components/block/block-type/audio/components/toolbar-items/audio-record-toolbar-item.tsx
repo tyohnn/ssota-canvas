@@ -21,6 +21,7 @@ import {
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
 
@@ -43,6 +44,7 @@ export function AudioRecordToolbarItem({
   disabled = false,
   onValueChange,
 }: AudioRecordToolbarItemProps) {
+  const { orgId, workspaceId } = useCanvasMetadata();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
@@ -106,6 +108,8 @@ export function AudioRecordToolbarItem({
         bucket: StorageBucket.CANVAS_ASSETS,
         file,
         blockId,
+        orgId,
+        workspaceId,
       });
 
       await onValueChange(result.url);
@@ -115,7 +119,7 @@ export function AudioRecordToolbarItem({
       console.error('Failed to upload recorded audio:', error);
       // TODO: Show error toast
     }
-  }, [recordedBlob, onValueChange, upload, blockId]);
+  }, [recordedBlob, onValueChange, upload, blockId, orgId, workspaceId]);
 
   const handleCancel = useCallback(() => {
     if (isRecording) {

@@ -79,7 +79,7 @@ export async function updateSourceRawContent(
       await sourceRepository.update(source);
     }
 
-    // Merge script (YoutubeScript format) into source metadata for audio
+    // Merge script (TimelineScript format) into source metadata for audio
     if (
       source.sourceType.value === 'audio' &&
       safeDto.structuredPayload &&

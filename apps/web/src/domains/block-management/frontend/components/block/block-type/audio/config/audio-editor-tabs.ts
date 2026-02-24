@@ -26,6 +26,11 @@ const audioEditorTabsConfig: BlockEditorTabsConfig = {
       componentPath: 'audio/components/tab-sections/timeline-tab',
       hideInReadonly: true,
     },
+    {
+      id: 'metadata',
+      label: 'Metadata',
+      componentPath: 'audio/components/tab-sections/metadata-tab',
+    },
   ],
   defaultTabId: 'note',
 };

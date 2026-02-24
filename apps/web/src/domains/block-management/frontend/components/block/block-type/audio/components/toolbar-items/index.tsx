@@ -40,7 +40,7 @@ export function AudioToolbarItems({
       />
       <AudioDownloadToolbarItem
         audioUrl={audioProperties.audioUrl}
-        title={audioProperties.title}
+        filename={audioProperties.filename}
         disabled={disabled || !audioProperties.audioUrl}
       />
       {!readonly && <Separator orientation="vertical" className="h-6!" />}

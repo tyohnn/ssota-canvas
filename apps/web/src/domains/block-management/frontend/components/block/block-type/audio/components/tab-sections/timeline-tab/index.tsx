@@ -29,7 +29,7 @@ export default function AudioTimelineTab({
     if (props) {
       const vo = AudioBlockPropertiesVO.fromJSON(props);
       sourceTitle =
-        vo.getTitle() || vo.getFilename() || vo.getAudioUrl() || undefined;
+        vo.getFilename() || vo.getAudioUrl() || undefined;
     }
   } catch {
     // ignore

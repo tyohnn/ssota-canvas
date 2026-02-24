@@ -2,4 +2,11 @@
  * YouTube transcript extraction
  */
 export { extractYoutubeTranscript } from './extract-transcript';
-export type { YoutubeScript, TranscriptSegment, TranscriptMetadata } from './transcript.types';
+export type {
+  TimelineScript,
+  TimelineTranscriptSegment,
+  TimelineTranscriptMetadata,
+  TranscriptSegment,
+  TranscriptMetadata,
+  YoutubeScript,
+} from './transcript.types';

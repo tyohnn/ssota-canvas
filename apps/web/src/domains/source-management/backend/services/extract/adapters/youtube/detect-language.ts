@@ -11,7 +11,7 @@ import { Result } from '@/utils/result';
 import { SourceManagementError } from '../../../../../shared/errors/source-management.error';
 import { SUPPORTED_LANGUAGES } from '../../../../../shared/value-objects/language-code.vo';
 
-import type { TranscriptSegment } from './transcript.types';
+import type { TimelineTranscriptSegment } from '@/domains/source-management/shared/types/timeline-script.types';
 
 /**
  * 스크립트에서 언어 감지
@@ -24,7 +24,7 @@ import type { TranscriptSegment } from './transcript.types';
  * @returns 감지된 언어 코드 또는 에러
  */
 export async function detectLanguageFromScript(
-  segments: TranscriptSegment[],
+  segments: TimelineTranscriptSegment[],
   videoId: string
 ): Promise<Result<string, SourceManagementError>> {
   try {

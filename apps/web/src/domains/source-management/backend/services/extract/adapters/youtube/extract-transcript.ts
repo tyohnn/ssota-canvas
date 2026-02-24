@@ -7,22 +7,23 @@ import { SourceManagementError } from '../../../../../shared/errors/source-manag
 
 import { YoutubeCaptionExtractorAdapter } from './caption-adapters/youtube-caption-extractor.adapter';
 import { ZenRowsCaptionAdapter } from './caption-adapters/zenrows-caption.adapter';
+import type { TimelineScript } from '@/domains/source-management/shared/types/timeline-script.types';
+
 import { buildYoutubeScript } from './build-script';
 import { detectLanguageFromScript } from './detect-language';
-import type { YoutubeScript } from './transcript.types';
 
 /**
  * YouTube 영상 스크립트 추출
  *
  * @param videoId - YouTube Video ID
  * @param language - 언어 코드 (선택적, 예: 'en', 'ko', 'auto')
- * @returns YouTube 스크립트 데이터
+ * @returns TimelineScript (YouTube는 speakerId 없음)
  * @throws SourceManagementError - 자막 추출 실패 시
  */
 export async function extractYoutubeTranscript(
   videoId: string,
   language?: string
-): Promise<YoutubeScript> {
+): Promise<TimelineScript> {
   const adapters = [
     new YoutubeCaptionExtractorAdapter(), // 1차: 무료
     new ZenRowsCaptionAdapter(), // 2차: 유료, ZenRows bot detection 우회

@@ -1,21 +1,24 @@
 /**
- * YoutubeScript 객체 생성 및 세그먼트 병합
+ * TimelineScript 객체 생성 및 세그먼트 병합
  */
-import type { TranscriptSegment, YoutubeScript } from './transcript.types';
+import type {
+  TimelineScript,
+  TimelineTranscriptSegment,
+} from '@/domains/source-management/shared/types/timeline-script.types';
 
 /**
- * YoutubeScript 객체 생성
+ * TimelineScript 객체 생성 (YouTube용)
  *
  * @param segments - 자막 세그먼트 배열
  * @param videoId - YouTube Video ID
  * @param language - 언어 코드
- * @returns YoutubeScript 객체
+ * @returns TimelineScript 객체
  */
 export function buildYoutubeScript(
-  segments: TranscriptSegment[],
+  segments: TimelineTranscriptSegment[],
   _videoId: string,
   language: string
-): YoutubeScript {
+): TimelineScript {
   const mergedSegments = mergeSegmentsByPeriod(segments);
 
   const lastSegment = mergedSegments[mergedSegments.length - 1];
@@ -46,13 +49,13 @@ export function buildYoutubeScript(
  * @returns 병합된 세그먼트 배열
  */
 export function mergeSegmentsByPeriod(
-  segments: TranscriptSegment[]
-): TranscriptSegment[] {
+  segments: TimelineTranscriptSegment[]
+): TimelineTranscriptSegment[] {
   if (segments.length === 0) {
     return [];
   }
 
-  const merged: TranscriptSegment[] = [];
+  const merged: TimelineTranscriptSegment[] = [];
   let sentenceStartIndex = 0;
   let accumulatedText = '';
 

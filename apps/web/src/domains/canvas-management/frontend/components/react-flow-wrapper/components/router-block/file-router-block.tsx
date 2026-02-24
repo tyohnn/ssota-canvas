@@ -13,6 +13,7 @@ import { cn } from '@workspace/ui/lib/utils';
 
 import { Box } from '@/components/ui/box';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
 
@@ -39,6 +40,7 @@ export const FileRouterBlock = memo(function FileRouterBlock({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { orgId, workspaceId, pageId } = useCanvasMetadata();
   const { resolveAndCreateBlock, cancel } = useRouterBlock({
     nodeId: id,
     nodeData,
@@ -59,6 +61,9 @@ export const FileRouterBlock = memo(function FileRouterBlock({
         const result = await upload({
           bucket: StorageBucket.CANVAS_ASSETS,
           file,
+          orgId,
+          workspaceId,
+          pageId,
         });
 
         const { blockType } = resolveFileToBlockConfig(file);
@@ -99,7 +104,7 @@ export const FileRouterBlock = memo(function FileRouterBlock({
         setIsUploading(false);
       }
     },
-    [isUploading, upload, resolveAndCreateBlock]
+    [isUploading, upload, resolveAndCreateBlock, orgId, workspaceId, pageId]
   );
 
   const [

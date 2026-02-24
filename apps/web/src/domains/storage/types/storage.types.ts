@@ -25,8 +25,11 @@ export interface UploadOptions {
   path?: string; // Optional: auto-generated if not provided
   onProgress?: (progress: number) => void;
   compress?: boolean; // For images
-  // Context for path generation
+  // Context for canvas-assets path: orgId/workspaceId/{blockId|pageId}/
   blockId?: string;
+  orgId?: string;
+  workspaceId?: string;
+  pageId?: string;
 }
 
 export interface UploadResult {

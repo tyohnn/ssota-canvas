@@ -150,6 +150,8 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
           bucket: StorageBucket.CANVAS_ASSETS,
           file: fileWithPreview.file,
           blockId: nodeData.blockId,
+          orgId,
+          workspaceId,
         });
 
         await updateProperty(

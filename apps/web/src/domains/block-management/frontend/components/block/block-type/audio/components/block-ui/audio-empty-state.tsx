@@ -13,7 +13,7 @@ export interface AudioEmptyStateProps {
   uploadErrors: string[];
   maxSizeMB: number;
   openFileDialog: () => void;
-  getInputProps: () => Record<string, unknown>;
+  getInputProps: () => object;
   onDragEnter: (e: React.DragEvent<HTMLElement>) => void;
   onDragLeave: (e: React.DragEvent<HTMLElement>) => void;
   onDragOver: (e: React.DragEvent<HTMLElement>) => void;

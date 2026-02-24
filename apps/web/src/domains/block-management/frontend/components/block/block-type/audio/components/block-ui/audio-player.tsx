@@ -9,8 +9,7 @@ import { Box } from '@/components/ui/box';
 
 export interface AudioPlayerProps {
   audioUrl: string;
-  title: string;
-  artist: string;
+  filename: string;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
@@ -25,8 +24,7 @@ export interface AudioPlayerProps {
 
 export function AudioPlayer({
   audioUrl,
-  title,
-  artist,
+  filename,
   isPlaying,
   currentTime,
   duration,
@@ -75,18 +73,13 @@ export function AudioPlayer({
             </button>
 
             <Box className="flex-1 min-w-0">
-              {title ? (
+              {filename ? (
                 <Box className="text-sm font-medium text-foreground truncate">
-                  {title}
+                  {filename}
                 </Box>
               ) : (
                 <Box className="text-sm font-medium text-muted-foreground truncate">
                   Untitled Audio
-                </Box>
-              )}
-              {artist && (
-                <Box className="text-xs text-muted-foreground truncate mt-0.5">
-                  {artist}
                 </Box>
               )}
             </Box>
@@ -97,7 +90,7 @@ export function AudioPlayer({
           </Box>
         </Box>
 
-        <Box className="px-4 pb-4 flex-1 flex items-center">
+        <Box className="px-4 pb-4 flex-1 flex items-stretch min-h-0 min-w-0">
           <AudioScrubber
             data={waveformData}
             currentTime={currentTime}
@@ -107,7 +100,7 @@ export function AudioPlayer({
             barWidth={2}
             barGap={1}
             barRadius={1}
-            height={80}
+            height="100%"
             className="w-full"
           />
         </Box>

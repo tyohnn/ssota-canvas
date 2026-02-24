@@ -9,11 +9,14 @@
  * Timeline Transcript Segment
  *
  * 자막의 한 세그먼트 (문장 단위)
+ * speakerId: diarization 사용 시 발화자 식별자 (오디오 등)
  */
 export interface TimelineTranscriptSegment {
   text: string;
   start: number;
   duration: number;
+  /** 발화자 ID (diarization 사용 시, ElevenLabs 등) */
+  speakerId?: string;
 }
 
 /**

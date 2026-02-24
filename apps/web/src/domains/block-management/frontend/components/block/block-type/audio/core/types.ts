@@ -13,10 +13,7 @@ export interface UseAudioBlockProps {
 export interface UseAudioBlockReturn {
   // State
   audioUrl: string;
-  title: string;
-  artist: string;
-  playbackRate: number;
-  volume: number;
+  filename: string;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
@@ -42,7 +39,7 @@ export interface UseAudioBlockReturn {
   handleDragOver: (e: React.DragEvent<HTMLElement>) => void;
   handleDrop: (e: React.DragEvent<HTMLElement>) => void;
   openFileDialog: () => void;
-  getInputProps: () => Record<string, unknown>;
+  getInputProps: () => object;
 
   // Playback
   togglePlay: () => void;

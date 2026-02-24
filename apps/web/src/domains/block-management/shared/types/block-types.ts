@@ -118,7 +118,6 @@ export const BLOCK_TYPES_NO_CONTAINER_BOUNDARY: Partial<
 > = {
   [BlockType.SHAPE]: true,
   [BlockType.GROUP]: true,
-  [BlockType.AUDIO]: true, // Audio block has its own border/background in AudioView
 };
 
 export function hasNoContainerBoundary(blockType: BlockType): boolean {

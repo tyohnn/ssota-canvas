@@ -3,7 +3,7 @@
  *
  * 공통 인터페이스 정의
  */
-import type { TranscriptSegment } from '../transcript.types';
+import type { TimelineTranscriptSegment } from '@/domains/source-management/shared/types/timeline-script.types';
 
 /**
  * Transcript Adapter Interface
@@ -21,10 +21,10 @@ export interface TranscriptAdapter {
    *
    * @param videoId - YouTube Video ID
    * @param language - 언어 코드 (선택적, 예: 'en', 'ko')
-   * @returns 자막 세그먼트 배열
+   * @returns 자막 세그먼트 배열 (TimelineTranscriptSegment)
    */
   getTranscript(
     videoId: string,
     language?: string
-  ): Promise<TranscriptSegment[]>;
+  ): Promise<TimelineTranscriptSegment[]>;
 }

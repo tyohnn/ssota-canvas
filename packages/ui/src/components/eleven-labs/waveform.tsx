@@ -465,6 +465,8 @@ export const AudioScrubber = ({
         barWidth={barWidth}
         data={waveformData}
         fadeEdges={false}
+        height={height}
+        className="w-full h-full"
       />
 
       <div

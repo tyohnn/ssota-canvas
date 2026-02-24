@@ -36,7 +36,7 @@ const BLOCK_TOOLBAR_MODULES: Record<string, boolean> = {
   pdf: true,
   image: true,
   link: true,
-  audio: true,
+  audio: false, // 툴바 없음 (업로드/녹음/다운로드는 block UI에서 처리)
   python: false, // 툴바 없음
   basic: false, // 툴바 없음
 };

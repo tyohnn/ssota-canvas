@@ -21,8 +21,7 @@ import { AudioRecordDialog } from './audio-record-dialog';
  */
 export function AudioView({
   audioUrl,
-  title,
-  artist,
+  filename,
   isPlaying,
   currentTime,
   duration,
@@ -107,8 +106,7 @@ export function AudioView({
             <>
               <AudioPlayer
                 audioUrl={audioUrl}
-                title={title}
-                artist={artist}
+                filename={filename}
                 isPlaying={isPlaying}
                 currentTime={currentTime}
                 duration={duration}

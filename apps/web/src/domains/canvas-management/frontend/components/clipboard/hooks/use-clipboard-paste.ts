@@ -17,6 +17,7 @@ import { generateJSON } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useReactFlow } from '@xyflow/react';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
@@ -54,7 +55,7 @@ export function useClipboardPaste({
   const [isPasting, setIsPasting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Supabase Storage 훅
+  const { orgId, workspaceId } = useCanvasMetadata();
   const { upload } = useSupabaseStorage();
 
   /**
@@ -97,11 +98,13 @@ export function useClipboardPaste({
         // Blob을 File로 변환
         const file = new File([blob], fileName, { type: blob.type });
 
-        // Supabase Storage에 업로드 (temp 폴더 사용)
+        // Supabase Storage에 업로드 (orgId/workspaceId/pageId 경로 구조)
         const result = await upload({
           bucket: StorageBucket.CANVAS_ASSETS,
           file,
-          // Context가 없으므로 temp 폴더에 저장 (자동 처리됨)
+          orgId,
+          workspaceId,
+          pageId,
         });
 
         console.log('[Clipboard] Image uploaded successfully:', result.url);
@@ -117,7 +120,7 @@ export function useClipboardPaste({
         return blobUrl;
       }
     },
-    [upload]
+    [upload, orgId, workspaceId, pageId]
   );
 
   /**
