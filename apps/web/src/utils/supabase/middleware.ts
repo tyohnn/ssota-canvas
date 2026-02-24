@@ -69,16 +69,24 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // if (
-  //   !user &&
-  //   !request.nextUrl.pathname.startsWith("/login") &&
-  //   !request.nextUrl.pathname.startsWith("/auth")
-  // ) {
-  //   // no user, potentially respond by redirecting the user to the login page
-  //   const url = request.nextUrl.clone();
-  //   url.pathname = "/login";
-  //   return NextResponse.redirect(url);
-  // }
+  // /r 대시보드 경로: 미인증 시 로그인으로 리다이렉트 (레이아웃/페이지 실행 전 처리)
+  const pathname = request.nextUrl.pathname;
+  if (
+    !user &&
+    pathname.startsWith('/r') &&
+    !pathname.startsWith('/login') &&
+    !pathname.startsWith('/auth')
+  ) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    loginUrl.searchParams.set('message', 'Please log in to continue.');
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    // NextResponse.cookies에는 setAll 없음 - 각 쿠키를 set으로 복사
+    supabaseResponse.cookies.getAll().forEach((cookie) =>
+      redirectResponse.cookies.set(cookie.name, cookie.value)
+    );
+    return redirectResponse;
+  }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:

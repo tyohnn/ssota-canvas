@@ -12,9 +12,9 @@ import {
 } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 import { CanvasClient } from '@/domains/canvas-management/frontend/components';
 import {
-  getAuthenticatedUser,
   verifyAccessByPageId,
 } from '@/domains/common/auth/helpers';
+import { getCurrentUser } from '@/domains/common/auth/server-auth.helpers';
 import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-navigation.actions';
 
 import { CanvasLoadErrorCanvas } from '@/app/(main)/_components/not-found/CanvasLoadErrorCanvas';
@@ -52,7 +52,12 @@ export async function generateMetadata({
 }: OrgPageIdRouteProps): Promise<Metadata> {
   const { orgId, pageId } = await params;
 
-  const user = await getAuthenticatedUser();
+  // getCurrentUser 사용: 미인증 시 null 반환, throw 없음 (콘솔 에러 방지)
+  const user = await getCurrentUser();
+  if (!user) {
+    return SHARED_LINK_FALLBACK_METADATA;
+  }
+
   const accessResult = await verifyAccessByPageId(pageId, user.id);
   if (!accessResult.success) {
     return SHARED_LINK_FALLBACK_METADATA;
