@@ -306,6 +306,35 @@ export class DefaultWorkspaceCrudService implements WorkspaceCrudService {
   }
 
   /**
+   * 조직의 Default Workspace에 멤버 추가
+   *
+   * Policy: InvitationAccepted 시 호출 (Event.handle()에서 사용)
+   */
+  async addMemberToDefaultWorkspace(
+    orgId: OrganizationId,
+    userId: string
+  ): Promise<Result<void>> {
+    try {
+      const workspaces = await this.workspaceRepo.findByOrganizationId(orgId);
+      const defaultWorkspace = workspaces.find(ws => ws.isDefault);
+      if (!defaultWorkspace) {
+        return R.err('DEFAULT_WORKSPACE_NOT_FOUND');
+      }
+
+      await this.workspaceMemberRepo.addMember(
+        defaultWorkspace.workspaceId,
+        userId
+      );
+      return R.ok(undefined);
+    } catch (error) {
+      if (error instanceof Error) {
+        return R.err(error.message);
+      }
+      return R.err('UNKNOWN_ERROR');
+    }
+  }
+
+  /**
    * Workspace 정보 수정 (Scenario 2)
    *
    * @param workspaceId - Workspace ID
