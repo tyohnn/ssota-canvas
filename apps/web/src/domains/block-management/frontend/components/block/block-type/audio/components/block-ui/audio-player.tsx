@@ -1,8 +1,16 @@
 'use client';
 
-import { AudioLines, Pause, Play } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Pause, Play } from 'lucide-react';
 
 import { AudioScrubber } from '@workspace/ui/components/eleven-labs/waveform';
+import { Button } from '@workspace/ui/components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@workspace/ui/components/ui/popover';
+import { Slider } from '@workspace/ui/components/ui/slider';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { Box } from '@/components/ui/box';
@@ -22,6 +30,12 @@ export interface AudioPlayerProps {
   formatTime: (seconds: number) => string;
 }
 
+const SPEED_OPTIONS = [1, 1.25, 1.5, 1.75, 2] as const;
+
+function speedToLabel(rate: number): string {
+  return rate === 1 ? '1x' : `${Number(rate.toFixed(2))}x`;
+}
+
 export function AudioPlayer({
   audioUrl,
   filename,
@@ -36,6 +50,34 @@ export function AudioPlayer({
   onSeek,
   formatTime,
 }: AudioPlayerProps) {
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [speedPopoverOpen, setSpeedPopoverOpen] = useState(false);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackRate;
+    }
+  }, [audioRef, playbackRate]);
+
+  const progressPercent =
+    duration > 0 && isFinite(duration) ? (currentTime / duration) * 100 : 0;
+
+  const handleProgressChange = useCallback(
+    (value: number[]) => {
+      const v = value[0];
+      if (v !== undefined && duration > 0 && isFinite(duration)) {
+        const time = (v / 100) * duration;
+        onSeek(time);
+      }
+    },
+    [duration, onSeek]
+  );
+
+  const handleSelectSpeed = useCallback((rate: number) => {
+    setPlaybackRate(rate);
+    setSpeedPopoverOpen(false);
+  }, []);
+
   return (
     <>
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
@@ -51,46 +93,82 @@ export function AudioPlayer({
           'transition-opacity duration-300'
         )}
       >
-        <Box className="px-4 pt-4 pb-2">
-          <Box className="flex items-start gap-3">
-            <button
+        <Box className="nodrag px-4 pt-4 pb-2 shrink-0">
+          <Box className="mb-4">
+            <h3 className="text-base font-semibold sm:text-lg">
+              {filename || 'No track selected'}
+            </h3>
+          </Box>
+          <Box className="flex items-center gap-3 sm:gap-4">
+            <Button
               type="button"
-              onClick={onTogglePlay}
+              variant="outline"
+              size="default"
+              className="h-12 w-12 shrink-0 sm:h-10 sm:w-10"
               disabled={!audioUrl || hasError || isLoading}
-              className={cn(
-                'shrink-0 w-12 h-12 rounded-full flex items-center justify-center',
-                'bg-primary hover:bg-primary/90 text-primary-foreground',
-                'transition-colors duration-200',
-                'disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed',
-                'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
-              )}
+              onClick={onTogglePlay}
+              aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
                 <Pause className="h-5 w-5" />
               ) : (
                 <Play className="h-5 w-5 ml-0.5" />
               )}
-            </button>
-
-            <Box className="flex-1 min-w-0">
-              {filename ? (
-                <Box className="text-sm font-medium text-foreground truncate">
-                  {filename}
-                </Box>
-              ) : (
-                <Box className="text-sm font-medium text-muted-foreground truncate">
-                  Untitled Audio
-                </Box>
-              )}
-            </Box>
-
-            <Box className="text-xs text-muted-foreground tabular-nums">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </Box>
+            </Button>
+            <div className="flex flex-1 items-center gap-2 sm:gap-3">
+              <span className="text-muted-foreground text-xs tabular-nums min-w-10">
+                {formatTime(currentTime)}
+              </span>
+              <Slider
+                className="flex-1 cursor-pointer"
+                value={[progressPercent]}
+                onValueChange={handleProgressChange}
+                max={100}
+                step={0.1}
+                disabled={!audioUrl || hasError || isLoading}
+                aria-label="Seek"
+              />
+              <span className="text-muted-foreground text-xs tabular-nums min-w-10">
+                {formatTime(duration)}
+              </span>
+              <Popover open={speedPopoverOpen} onOpenChange={setSpeedPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 h-9 w-9"
+                    disabled={!audioUrl || hasError || isLoading}
+                    aria-label={`Playback speed: ${speedToLabel(playbackRate)}`}
+                  >
+                    {speedToLabel(playbackRate)}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-1" align="end">
+                  <div className="flex flex-col">
+                    {SPEED_OPTIONS.map(rate => (
+                      <Button
+                        key={rate}
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          'justify-center font-normal',
+                          playbackRate === rate && 'bg-accent'
+                        )}
+                        onClick={() => handleSelectSpeed(rate)}
+                      >
+                        {speedToLabel(rate)}
+                      </Button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </Box>
         </Box>
 
-        <Box className="px-4 pb-4 flex-1 flex items-stretch min-h-0 min-w-0">
+        <Box className="nodrag px-4 pb-4 flex-1 flex items-stretch min-h-0 min-w-0">
           <AudioScrubber
             data={waveformData}
             currentTime={currentTime}
@@ -108,7 +186,6 @@ export function AudioPlayer({
 
       {hasError && (
         <Box className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-muted/50 backdrop-blur-sm">
-          <AudioLines className="h-12 w-12 mb-2" />
           <span className="text-sm font-medium">Failed to load audio</span>
         </Box>
       )}
