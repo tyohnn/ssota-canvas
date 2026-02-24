@@ -64,21 +64,23 @@ export function CanvasToolbarView({
           {/* Fit to View Button */}
           <FitToViewButton onClick={onFitToViewClick} />
 
-          <Separator orientation="vertical" className="h-4!" />
-
-          {/* Block Type Buttons - readonly일 때 숨김 */}
-          {!readonly &&
-            TOOLBAR_BLOCK_TYPES.map(({ blockType, label, icon: Icon }) => (
-              <BlockTypeToolbarButton
-                key={blockType}
-                blockType={blockType}
-                icon={<Icon className="h-4 w-4" />}
-                label={label}
-                onClick={onAddBlockTypeClick}
-                isActive={isBlockCreationMode}
-                disabled={isBlockCreationMode}
-              />
-            ))}
+          {/* Separator + Block Type Buttons - readonly일 때 숨김 */}
+          {!readonly && (
+            <>
+              <Separator orientation="vertical" className="h-4!" />
+              {TOOLBAR_BLOCK_TYPES.map(({ blockType, label, icon: Icon }) => (
+                <BlockTypeToolbarButton
+                  key={blockType}
+                  blockType={blockType}
+                  icon={<Icon className="h-4 w-4" />}
+                  label={label}
+                  onClick={onAddBlockTypeClick}
+                  isActive={isBlockCreationMode}
+                  disabled={isBlockCreationMode}
+                />
+              ))}
+            </>
+          )}
         </TooltipProvider>
       </ToolbarContainer>
     </Box>
