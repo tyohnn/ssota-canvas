@@ -90,8 +90,8 @@ openssl rand -hex 32 | gh secret set PRODUCTION_INTERNAL_API_SECRET
 ## 📦 Step 4: Edge Functions 준비
 
 - [ ] Edge Function 코드 확인
-  - 위치: `apps/web/supabase/functions/process-summary-queue/`
-  - 파일: `index.ts`, `deno.json`, `deno.lock`
+  - 위치: `apps/web/supabase/functions/process-source-job-queue/`
+  - 파일: `index.ts`, `deno.json`
 
 - [ ] 로컬에서 테스트
   ```bash
@@ -101,10 +101,10 @@ openssl rand -hex 32 | gh secret set PRODUCTION_INTERNAL_API_SECRET
 
 - [ ] 함수 정상 작동 확인
   ```bash
-  curl -X POST http://127.0.0.1:54321/functions/v1/process-summary-queue \
+  curl -X POST http://127.0.0.1:54321/functions/v1/process-source-job-queue \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer YOUR_ANON_KEY" \
-    -d '{"test": "data"}'
+    -d '{}'
   ```
 
 ## 🚀 Step 5: GitHub Actions Workflows 확인
@@ -122,7 +122,7 @@ openssl rand -hex 32 | gh secret set PRODUCTION_INTERNAL_API_SECRET
 - [ ] Feature 브랜치에서 테스트 커밋
   ```bash
   git checkout -b test/edge-function-deployment
-  echo "# Test" >> apps/web/supabase/functions/process-summary-queue/README.md
+  echo "# Test" >> apps/web/supabase/functions/process-source-job-queue/README.md 2>/dev/null || true
   git add .
   git commit -m "test: edge function deployment"
   git push origin test/edge-function-deployment
@@ -136,14 +136,14 @@ openssl rand -hex 32 | gh secret set PRODUCTION_INTERNAL_API_SECRET
 
 - [ ] Supabase Dashboard에서 배포 확인
   - Staging Project → Edge Functions
-  - `process-summary-queue` 함수 확인
+  - `process-source-job-queue` 함수 확인
 
 - [ ] 배포된 함수 테스트
   ```bash
-  curl -X POST https://xtknhwadrjyosghqseoe.supabase.co/functions/v1/process-summary-queue \
+  curl -X POST https://xtknhwadrjyosghqseoe.supabase.co/functions/v1/process-source-job-queue \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer YOUR_STAGING_ANON_KEY" \
-    -d '{"test": "data"}'
+    -d '{}'
   ```
 
 ## 📝 Step 7: Documentation 확인

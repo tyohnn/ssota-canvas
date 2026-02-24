@@ -56,6 +56,7 @@ describe('DefaultOrganizationInvitationService', () => {
       createWorkspace: vi.fn(),
       createPersonalWorkspace: vi.fn(), // v1.2
       updateWorkspaceInfo: vi.fn(),
+      addMemberToDefaultWorkspace: vi.fn().mockResolvedValue({ success: true }),
     } as Mocked<WorkspaceCrudService>;
 
     service = new DefaultOrganizationInvitationService(
@@ -226,6 +227,10 @@ describe('DefaultOrganizationInvitationService', () => {
         orgId,
         inviteeUserId.value,
         inviteeName
+      );
+      expect(mockWorkspaceCrudService.addMemberToDefaultWorkspace).toHaveBeenCalledWith(
+        orgId,
+        inviteeUserId.value
       );
     });
 

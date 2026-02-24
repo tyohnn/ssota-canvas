@@ -11,13 +11,14 @@ import { duplicateBlock } from '../block/lifecycle/duplicate-block.service';
 import { restoreBlock } from '../block/lifecycle/restore-block.service';
 import { softDeleteBlock } from '../block/lifecycle/soft-delete-block.service';
 
-// Mock Repository
+// Mock Repository (slug 기반 조회)
 const mockRepository = {
   create: vi.fn(),
   createMany: vi.fn().mockResolvedValue([]),
   update: vi.fn(),
   findById: vi.fn(),
-  findByIds: vi.fn(),
+  findByWorkspaceIdAndSlug: vi.fn(),
+  findByWorkspaceIdAndSlugs: vi.fn(),
   findByWorkspaceId: vi.fn(),
   findByBlockType: vi.fn(),
   delete: vi.fn(),
@@ -84,30 +85,33 @@ describe('Block Management Service Functions', () => {
 
   describe('softDeleteBlock', () => {
     it('should delete block successfully', async () => {
-      mockRepository.findById.mockResolvedValue(block);
+      mockRepository.findByWorkspaceIdAndSlug.mockResolvedValue(block);
       mockRepository.update.mockResolvedValue(undefined);
 
-      const safeDto = {
-        workspaceId: workspaceId.value,
-        blockId: blockId.value,
-      };
-
-      const result = await softDeleteBlock(safeDto, userId, mockRepository);
+      const result = await softDeleteBlock({
+        safeWorkspaceId: workspaceId,
+        safeBlockSlug: block.getSlug(),
+        safeUserId: userId,
+        blockRepository: mockRepository,
+      });
 
       expect(result.isError()).toBe(false);
-      expect(mockRepository.findById).toHaveBeenCalled();
+      expect(mockRepository.findByWorkspaceIdAndSlug).toHaveBeenCalledWith(
+        workspaceId,
+        block.getSlug()
+      );
       expect(mockRepository.update).toHaveBeenCalled();
     });
 
     it('should return error when block not found', async () => {
-      mockRepository.findById.mockResolvedValue(null);
+      mockRepository.findByWorkspaceIdAndSlug.mockResolvedValue(null);
 
-      const safeDto = {
-        workspaceId: workspaceId.value,
-        blockId: blockId.value,
-      };
-
-      const result = await softDeleteBlock(safeDto, userId, mockRepository);
+      const result = await softDeleteBlock({
+        safeWorkspaceId: workspaceId,
+        safeBlockSlug: block.getSlug(),
+        safeUserId: userId,
+        blockRepository: mockRepository,
+      });
 
       expect(result.isError()).toBe(true);
       if (result.isError()) {
@@ -121,30 +125,34 @@ describe('Block Management Service Functions', () => {
       const deletedBlock = Block.create(blockId, workspaceId, userId, blockType);
       deletedBlock.markAsDeleted();
 
-      mockRepository.findById.mockResolvedValue(deletedBlock);
+      mockRepository.findByWorkspaceIdAndSlug.mockResolvedValue(deletedBlock);
       mockRepository.update.mockResolvedValue(undefined);
 
-      const safeDto = {
-        workspaceId: workspaceId.value,
-        blockId: blockId.value,
-      };
-
-      const result = await restoreBlock(safeDto, userId, mockRepository);
+      const result = await restoreBlock({
+        safeWorkspaceId: workspaceId,
+        safeBlockSlug: block.getSlug(),
+        safeUserId: userId,
+        blockRepository: mockRepository,
+      });
 
       expect(result.isError()).toBe(false);
-      expect(mockRepository.findById).toHaveBeenCalled();
+      expect(mockRepository.findByWorkspaceIdAndSlug).toHaveBeenCalledWith(
+        workspaceId,
+        block.getSlug(),
+        true
+      );
       expect(mockRepository.update).toHaveBeenCalled();
     });
 
     it('should return error when block not found', async () => {
-      mockRepository.findById.mockResolvedValue(null);
+      mockRepository.findByWorkspaceIdAndSlug.mockResolvedValue(null);
 
-      const safeDto = {
-        workspaceId: workspaceId.value,
-        blockId: blockId.value,
-      };
-
-      const result = await restoreBlock(safeDto, userId, mockRepository);
+      const result = await restoreBlock({
+        safeWorkspaceId: workspaceId,
+        safeBlockSlug: block.getSlug(),
+        safeUserId: userId,
+        blockRepository: mockRepository,
+      });
 
       expect(result.isError()).toBe(true);
       if (result.isError()) {
@@ -155,33 +163,36 @@ describe('Block Management Service Functions', () => {
 
   describe('duplicateBlock', () => {
     it('should duplicate block successfully', async () => {
-      mockRepository.findById.mockResolvedValue(block);
+      mockRepository.findByWorkspaceIdAndSlug.mockResolvedValue(block);
       mockRepository.create.mockResolvedValue(undefined);
 
-      const safeDto = {
-        workspaceId: workspaceId.value,
-        blockId: blockId.value,
-      };
-
-      const result = await duplicateBlock(safeDto, userId, mockRepository);
+      const result = await duplicateBlock({
+        safeWorkspaceId: workspaceId,
+        safeBlockSlug: block.getSlug(),
+        safeUserId: userId,
+        blockRepository: mockRepository,
+      });
 
       expect(result.isError()).toBe(false);
       if (!result.isError()) {
         expect(result.value).toBeInstanceOf(Block);
       }
-      expect(mockRepository.findById).toHaveBeenCalled();
+      expect(mockRepository.findByWorkspaceIdAndSlug).toHaveBeenCalledWith(
+        workspaceId,
+        block.getSlug()
+      );
       expect(mockRepository.create).toHaveBeenCalled();
     });
 
     it('should return error when original block not found', async () => {
-      mockRepository.findById.mockResolvedValue(null);
+      mockRepository.findByWorkspaceIdAndSlug.mockResolvedValue(null);
 
-      const safeDto = {
-        workspaceId: workspaceId.value,
-        blockId: blockId.value,
-      };
-
-      const result = await duplicateBlock(safeDto, userId, mockRepository);
+      const result = await duplicateBlock({
+        safeWorkspaceId: workspaceId,
+        safeBlockSlug: block.getSlug(),
+        safeUserId: userId,
+        blockRepository: mockRepository,
+      });
 
       expect(result.isError()).toBe(true);
       if (result.isError()) {
@@ -190,15 +201,15 @@ describe('Block Management Service Functions', () => {
     });
 
     it('should return error when save fails', async () => {
-      mockRepository.findById.mockResolvedValue(block);
+      mockRepository.findByWorkspaceIdAndSlug.mockResolvedValue(block);
       mockRepository.create.mockRejectedValue(new Error('Database error'));
 
-      const safeDto = {
-        workspaceId: workspaceId.value,
-        blockId: blockId.value,
-      };
-
-      const result = await duplicateBlock(safeDto, userId, mockRepository);
+      const result = await duplicateBlock({
+        safeWorkspaceId: workspaceId,
+        safeBlockSlug: block.getSlug(),
+        safeUserId: userId,
+        blockRepository: mockRepository,
+      });
 
       expect(result.isError()).toBe(true);
       if (result.isError()) {

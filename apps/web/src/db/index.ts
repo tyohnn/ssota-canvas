@@ -126,11 +126,19 @@ if (isDevelopment) globalForDb.rlsClient = rlsClient;
 // Include image_app_space and youtube_app_space schemas for both dev and prod
 // ⚠️ adminClient = postgres.js client (SQL only)
 export const adminDb = drizzle(adminClient, {
-  schema: { ...schema, ...imageAppSpaceSchema, ...youtubeAppSpaceSchema },
+  schema: {
+    ...schema,
+    ...imageAppSpaceSchema,
+    ...youtubeAppSpaceSchema,
+  },
 });
 
 export const rlsDb = drizzle(rlsClient, {
-  schema: { ...schema, ...imageAppSpaceSchema, ...youtubeAppSpaceSchema },
+  schema: {
+    ...schema,
+    ...imageAppSpaceSchema,
+    ...youtubeAppSpaceSchema,
+  },
 });
 
 type SupabaseToken = {

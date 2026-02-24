@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment } from 'react';
+import { Fragment, useMemo } from 'react';
 import {
   Command,
   CommandEmpty,
@@ -18,8 +18,8 @@ import {
 } from '@workspace/ui/components/ui/dialog';
 import type { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { BlockTypeItem } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/toolbar/block-add-dialog/components/block-group-list/block-type-item';
+import { DEFAULT_BLOCK_TYPES } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/toolbar/block-add-dialog/core/block-types';
 import type { BlockTypeInfo } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/toolbar/block-add-dialog/core/types';
-import { TUTORIAL_BLOCK_TYPES_BY_CATEGORY } from '../../config/tutorial-mock-data';
 import { InteractionGuard } from '../common/interaction-guard';
 import { useTutorialDialogContext } from '../tutorial-dialog/core/context';
 
@@ -64,8 +64,20 @@ export function MockBlockAddDialog({
     onSelectBlockType?.(blockType);
   };
 
-  const blockTypesByCategory =
-    TUTORIAL_BLOCK_TYPES_BY_CATEGORY as Record<string, BlockTypeInfo[]>;
+  const blockTypesByCategory = useMemo(() => {
+    const grouped = DEFAULT_BLOCK_TYPES.reduce<Record<string, BlockTypeInfo[]>>(
+      (acc, blockTypeInfo) => {
+        const category = blockTypeInfo.category;
+        if (!category) return acc;
+        if (!acc[category]) acc[category] = [];
+        acc[category].push(blockTypeInfo);
+        return acc;
+      },
+      {}
+    );
+    const { Code, ...filtered } = grouped;
+    return filtered;
+  }, []);
   const categoryEntries = Object.entries(blockTypesByCategory);
   const totalCategories = categoryEntries.length;
 

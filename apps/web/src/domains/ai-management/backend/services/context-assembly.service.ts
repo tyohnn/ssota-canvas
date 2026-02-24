@@ -1,5 +1,7 @@
-import { EventLogRepository } from '../repositories/interfaces/event-log.repository.interface';
-import { MemorySearchService } from './memory-search.service';
+import {
+  EventLogRepository,
+  EventSearchService,
+} from '@/domains/event-management';
 import {
   ContextAssemblyService as IContextAssemblyService,
   AssembledContext,
@@ -31,7 +33,7 @@ import { SSOTA_SYSTEM_PROMPT } from './prompt/prompt';
 export class ContextAssemblyService implements IContextAssemblyService {
   constructor(
     private readonly eventLogRepository: EventLogRepository,
-    private readonly memorySearchService: MemorySearchService
+    private readonly eventSearchService: EventSearchService
     // TODO: CanvasManagementService 주입 (Canvas Context 조립용)
   ) {}
 
@@ -110,7 +112,7 @@ export class ContextAssemblyService implements IContextAssemblyService {
     timeWeightFactor: number = 7
   ): Promise<EventLogSummary[]> {
     try {
-      const result = await this.memorySearchService.searchLongTermMemory(
+      const result = await this.eventSearchService.searchLongTermMemory(
         queryText,
         pageId,
         topK,

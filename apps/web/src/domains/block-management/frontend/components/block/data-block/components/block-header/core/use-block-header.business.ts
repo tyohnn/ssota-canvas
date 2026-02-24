@@ -26,10 +26,6 @@ export function useBlockHeaderBusiness(
 
   const updateTitle = useCallback(
     async (title: string): Promise<boolean> => {
-      if (!title.trim()) {
-        return false;
-      }
-
       const trimmedTitle = title.trim();
       const blockId = data.blockMountId;
 

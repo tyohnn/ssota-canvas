@@ -59,6 +59,7 @@ export function useUpdateBlockViewMode({
   >({
     mutationFn: async (viewMode: BlockViewModeValue) => {
       const result = await updateBlockMountViewModeAction({
+        pageId,
         blockMountId,
         viewMode,
       });

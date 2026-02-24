@@ -1,53 +1,43 @@
 /**
  * Block 제목 업데이트 서비스 로직
+ *
+ * ⚠️ blockAggregate는 secure action에서 조회해 전달 (서비스 내부에서 findByWorkspaceIdAndSlug 사용 안 함)
  */
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
-import { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
+import type { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
 import type { UpdateBlockTitleCommand } from '../../../../shared/commands';
-import type { UpdateBlockTitleRequest } from '../../../../shared/dtos/requests/block.requests';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
-import { BlockId } from '../../../../shared/value-objects/block-id.vo';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
+
+export type UpdateBlockTitleParams = {
+  title: string;
+  safeBlockAggregate: BlockAggregate;
+  safeUserId: UserId;
+  blockRepository: IBlockRepository;
+  eventLogPolicyContext?: EventLogPolicyContext;
+};
 
 /**
  * 블록 제목 업데이트
  *
- * ✅ Event Storming + DDD 패턴:
- * - SafeDTO를 입력으로 받음
- * - SafeDTO → Command 변환
- * - Aggregate에 Command 전달
- *
- * @param safeDto - 검증된 블록 제목 업데이트 요청 (SafeDTO)
- * @param blockRepository - Block Repository
- * @returns 업데이트된 블록 Aggregate
+ * ✅ 권한·aggregate 조회는 secure action에서 완료. 서비스는 전달된 safeBlockAggregate 사용.
  */
 export async function updateBlockTitle(
-  safeDto: UpdateBlockTitleRequest,
-  safeUserId: UserId,
-  blockRepository: IBlockRepository
+  params: UpdateBlockTitleParams
 ): Promise<Result<BlockAggregate, Error>> {
+  const {
+    title,
+    safeBlockAggregate: aggregate,
+    safeUserId,
+    blockRepository,
+    eventLogPolicyContext,
+  } = params;
   try {
-    // 1. SafeDTO → Value Objects 생성
-    const blockId = new BlockId(safeDto.blockId);
-
-    // 2. 블록 조회
-    // Note: Block ownership is already verified by authorizeBlockInWorkspace
-    // in the action layer. This service should only be called from authorized actions.
-    const block = await blockRepository.findById(blockId);
-    if (!block) {
-      return Result.error(
-        new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found')
-      );
-    }
-
-    // 3. Aggregate 재구성
-    const aggregate = BlockAggregate.reconstitute(block);
-
-    // 4. SafeDTO → Command 변환
     const command: UpdateBlockTitleCommand = {
-      title: safeDto.title,
+      title,
       userId: safeUserId,
     };
 
@@ -57,9 +47,11 @@ export async function updateBlockTitle(
     // 6. 블록 업데이트
     await blockRepository.update(aggregate.getBlock());
 
-    // 7. 도메인 이벤트 처리
+    // 7. 도메인 이벤트 처리 (context 있으면 block_updated 로깅)
     const events = aggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map(event => event.handle(eventLogPolicyContext))
+    );
 
     // 8. 이벤트 커밋
     aggregate.markEventsAsCommitted();

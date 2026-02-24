@@ -6,6 +6,7 @@ import { EdgeId } from '../../../../shared/value-objects/edge-id.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { BlockMountId } from '../../../../shared/value-objects/block-mount-id.vo';
 import { EdgeHandle } from '../../../../shared/value-objects/edge-handle.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 
 // Mock Drizzle DB
 vi.mock('@/db', () => ({
@@ -40,6 +41,7 @@ vi.mock('@/db/schema-dev', () => ({
   edges: {
     id: 'id',
     page_id: 'page_id',
+    slug: 'slug',
     source_block_mount_id: 'source_block_mount_id',
     target_block_mount_id: 'target_block_mount_id',
     source_handle: 'source_handle',
@@ -59,13 +61,14 @@ describe('DrizzleEdgeRepository', () => {
   let mockPageId: PageId;
   let mockSourceBlockMountId: BlockMountId;
   let mockTargetBlockMountId: BlockMountId;
+  let mockUserId: UserId;
 
   beforeEach(() => {
     repository = new DrizzleEdgeRepository();
     mockPageId = new PageId('550e8400-e29b-41d4-a716-446655440000');
     mockSourceBlockMountId = new BlockMountId('550e8400-e29b-41d4-a716-446655440001');
     mockTargetBlockMountId = new BlockMountId('550e8400-e29b-41d4-a716-446655440002');
-    
+    mockUserId = new UserId('550e8400-e29b-41d4-a716-446655440020');
     vi.clearAllMocks();
   });
 
@@ -78,6 +81,7 @@ describe('DrizzleEdgeRepository', () => {
         targetBlockMountId: mockTargetBlockMountId,
         sourceHandle: EdgeHandle.right(),
         targetHandle: EdgeHandle.left(),
+        userId: mockUserId,
       };
       const aggregate = EdgeAggregate.createEdge(command);
 
@@ -99,6 +103,7 @@ describe('DrizzleEdgeRepository', () => {
         targetBlockMountId: mockTargetBlockMountId,
         sourceHandle: EdgeHandle.right(),
         targetHandle: EdgeHandle.left(),
+        userId: mockUserId,
       };
       const aggregate = EdgeAggregate.createEdge(command);
 
@@ -111,26 +116,21 @@ describe('DrizzleEdgeRepository', () => {
     });
   });
 
-  describe('findById', () => {
-    it('Edge ID로 EdgeAggregate를 조회할 수 있어야 한다', async () => {
-      // Given
-      const edgeId = new EdgeId('550e8400-e29b-41d4-a716-446655440003');
+  describe('findByPageIdAndSlug', () => {
+    it('(pageId, slug)로 EdgeAggregate를 조회할 수 있어야 한다', async () => {
+      const slug = '550e8400';
 
-      // When
-      const result = await repository.findById(edgeId);
+      const result = await repository.findByPageIdAndSlug(mockPageId, slug);
 
-      // Then
       expect(result).toBeNull(); // Mock에서는 빈 배열 반환
     });
 
-    it('존재하지 않는 Edge ID로 null을 반환해야 한다', async () => {
-      // Given
-      const nonExistentEdgeId = new EdgeId('550e8400-e29b-41d4-a716-446655440999');
+    it('존재하지 않는 slug로 null을 반환해야 한다', async () => {
+      const result = await repository.findByPageIdAndSlug(
+        mockPageId,
+        'deadbeef'
+      );
 
-      // When
-      const result = await repository.findById(nonExistentEdgeId);
-
-      // Then
       expect(result).toBeNull();
     });
   });

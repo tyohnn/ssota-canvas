@@ -1,8 +1,10 @@
 import { streamText, UIMessage, convertToModelMessages, stepCountIs } from 'ai';
 import { createClient } from '@/utils/supabase/server';
 import { config } from '@/config';
-import { DrizzleEventLogRepository } from '@/domains/ai-management/backend/repositories/implementations/drizzle-event-log.repository';
-import { MemorySearchService } from '@/domains/ai-management/backend/services/memory-search.service';
+import {
+  DrizzleEventLogRepository,
+  EventSearchService,
+} from '@/domains/event-management';
 import { ContextAssemblyService } from '@/domains/ai-management/backend/services/context-assembly.service';
 import { ToolExecutionService } from '@/domains/ai-management/backend/services/tool-execution.service';
 import { AssembledContext } from '@/domains/ai-management/backend/services/interfaces/context-assembly.service.interface';
@@ -121,10 +123,10 @@ export async function POST(req: Request) {
 
     // 5. System Prompt 빌드 및 서비스 초기화
     const eventLogRepository = new DrizzleEventLogRepository();
-    const memorySearchService = new MemorySearchService(eventLogRepository);
+    const eventSearchService = new EventSearchService(eventLogRepository);
     const contextAssemblyService = new ContextAssemblyService(
       eventLogRepository,
-      memorySearchService
+      eventSearchService
     );
     const toolExecutionService = new ToolExecutionService(eventLogRepository);
     const systemPrompt = contextAssemblyService.buildSystemPrompt(context);
@@ -236,10 +238,10 @@ async function assembleServerContext(
 ): Promise<AssembledContext> {
   // 의존성 주입
   const eventLogRepository = new DrizzleEventLogRepository();
-  const memorySearchService = new MemorySearchService(eventLogRepository);
+  const eventSearchService = new EventSearchService(eventLogRepository);
   const contextAssemblyService = new ContextAssemblyService(
     eventLogRepository,
-    memorySearchService
+    eventSearchService
   );
 
   const pageId = frontendContext.pageId || '';

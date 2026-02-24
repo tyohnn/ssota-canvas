@@ -94,10 +94,10 @@ export function useSoftDeleteBlock(
       node => !node.id.startsWith('optimistic-')
     );
 
-    // pageId는 첫 번째 실제 노드에서 가져오기 (모든 노드는 같은 페이지에 있어야 함)
+    // pageId: 노드 데이터에서 추출, 없으면 params.pageId 사용 (router block 등)
     const firstRealNode = realNodes[0] || nodesToDelete[0];
-    const pageId =
-      (firstRealNode?.data as BlockNodeData | undefined)?.pageId || '';
+    const nodePageId = (firstRealNode?.data as BlockNodeData | undefined)?.pageId;
+    const resolvedPageId = nodePageId || pageId;
 
     return {
       shouldReturn: false,
@@ -106,7 +106,7 @@ export function useSoftDeleteBlock(
       optimisticNodes,
       realNodes,
       realBlockMountIds: realNodes.map(node => node.id),
-      pageId,
+      pageId: resolvedPageId,
     };
   };
 

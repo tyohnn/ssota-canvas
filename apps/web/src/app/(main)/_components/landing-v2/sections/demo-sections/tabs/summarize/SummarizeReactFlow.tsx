@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useMemo } from "react";
+import { useTheme } from "next-themes";
 import {
   Background,
   type Node,
@@ -45,6 +46,7 @@ function ViewportAdjustmentEffect({ isOpen }: { isOpen: boolean }) {
 }
 
 function SummarizeReactFlowInner({ step }: SummarizeReactFlowProps) {
+  const { resolvedTheme } = useTheme();
   const initialNodes: Node[] = useMemo(
     () => [
       {
@@ -86,12 +88,25 @@ function SummarizeReactFlowInner({ step }: SummarizeReactFlowProps) {
 
   return (
     <div className="w-full h-full">
+      <style jsx global>{`
+        /* Override xyflow dark mode: use theme background via --xy-background-color */
+        .summarize-react-flow.react-flow,
+        .summarize-react-flow.react-flow.dark {
+          --xy-background-color-default: var(--background) !important;
+          --xy-background-color: var(--background) !important;
+          background-color: var(--background) !important;
+        }
+        .summarize-react-flow .react-flow__background {
+          background-color: var(--background) !important;
+        }
+      `}</style>
       <ReactFlow
         nodes={nodes}
         edges={[]}
         onNodesChange={onNodesChange}
         nodeTypes={nodeTypes}
         defaultViewport={defaultViewport}
+        colorMode={resolvedTheme === "dark" ? "dark" : "light"}
         minZoom={0.5}
         maxZoom={1.5}
         nodesDraggable={false}
@@ -102,7 +117,8 @@ function SummarizeReactFlowInner({ step }: SummarizeReactFlowProps) {
         zoomOnScroll={false}
         zoomOnPinch={true}
         proOptions={{ hideAttribution: true }}
-        className="bg-muted/30"
+        className="summarize-react-flow bg-background h-full w-full"
+        style={{ backgroundColor: "var(--background)" }}
       >
         <Background gap={20} size={1} />
         <FitViewEffect step={step} />

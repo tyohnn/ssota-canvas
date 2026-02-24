@@ -17,6 +17,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseUpdateEdgeStyleParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
 };
 
@@ -41,7 +42,7 @@ export type UseUpdateEdgeStyleResult = {
 export function useUpdateEdgeStyle(
   params: UseUpdateEdgeStyleParams
 ): UseUpdateEdgeStyleResult {
-  const { reactFlow } = params;
+  const { pageId, reactFlow } = params;
   const { getEdges, setEdges } = reactFlow;
 
   const mutation = useMutation({
@@ -52,8 +53,8 @@ export function useUpdateEdgeStyle(
       edgeId: string;
       style: { stroke?: string; strokeWidth?: number };
     }) => {
-      // Validation
       const rawRequest: UpdateEdgeStyleRequestInput = {
+        pageId,
         edgeId,
         style,
       };

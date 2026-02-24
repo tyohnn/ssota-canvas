@@ -2,4 +2,4 @@
  * Mock Editor Panel Types
  */
 
-export type MockEditorPanelTabId = 'summary' | 'script' | 'note' | 'metadata';
+export type MockEditorPanelTabId = 'summary' | 'timeline' | 'note' | 'metadata';

@@ -20,7 +20,7 @@ export function ExtractPdfContentAction({
   blockData,
 }: ExtractPdfContentActionProps) {
   const properties = blockData.properties as PdfBlockProperties;
-  const url = properties.url;
+  const url = properties.accessUrl ?? (properties as { url?: string }).url;
 
   // TODO: Implement PDF content extraction functionality
   const handleExtractContent = () => {
@@ -41,7 +41,7 @@ export function ExtractPdfContentAction({
         </Button>
       </TooltipTrigger>
       <TooltipContent side="left" hasArrow={false} sideOffset={10}>
-        <p>내용 추출</p>
+        <p>Extract content</p>
       </TooltipContent>
     </Tooltip>
   );

@@ -18,6 +18,7 @@ import { BlockNodeData } from '@/domains/block-management/shared/types/block-dat
 
 import type { HoverDirection } from '../core/types';
 import { AddButtonZonesContainer } from './add-button-zones';
+import { Box } from '@/components/ui/box';
 
 export interface BaseBlockViewProps {
   children?: React.ReactNode;
@@ -28,6 +29,7 @@ export interface BaseBlockViewProps {
   onMouseEnter: () => void;
   onMouseMove: (event: React.MouseEvent<HTMLDivElement>) => void;
   onMouseLeave: () => void;
+  onContextMenu?: React.MouseEventHandler<HTMLDivElement>;
   showAddButtonZones: boolean;
   setHoverDirection: (direction: HoverDirection | null) => void;
 }
@@ -48,13 +50,14 @@ export const BaseBlockView = forwardRef<HTMLDivElement, BaseBlockViewProps>(
       onMouseEnter,
       onMouseMove,
       onMouseLeave,
+      onContextMenu,
       showAddButtonZones,
       setHoverDirection,
     },
     ref
   ) => {
     return (
-      <div
+      <Box
         ref={ref}
         className={cn(
           'relative w-full h-full min-w-[100px] min-h-[70px] overflow-visible',
@@ -67,6 +70,7 @@ export const BaseBlockView = forwardRef<HTMLDivElement, BaseBlockViewProps>(
         onMouseEnter={onMouseEnter}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
+        onContextMenu={onContextMenu}
       >
         {children}
         {showAddButtonZones && (
@@ -78,7 +82,7 @@ export const BaseBlockView = forwardRef<HTMLDivElement, BaseBlockViewProps>(
             setHoverDirection={setHoverDirection}
           />
         )}
-      </div>
+      </Box>
     );
   }
 );

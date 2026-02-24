@@ -40,7 +40,15 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
     CreateGroupContext | undefined
   >({
     mutationFn: async (request: Omit<CreateGroupFromNodesRequest, 'pageId'>) => {
-      const result = await createGroupFromNodesAction({ ...request, pageId });
+      const nodes = getNodes();
+      const filteredNodeIds = request.nodeIds.filter(id => {
+        const n = nodes.find(x => x.id === id);
+        return n && n.type !== 'group';
+      });
+      if (filteredNodeIds.length === 0) {
+        throw new Error('Group blocks cannot be nested. Select non-group blocks to create a group.');
+      }
+      const result = await createGroupFromNodesAction({ ...request, pageId, nodeIds: filteredNodeIds });
       if (isFailure(result)) {
         throw new Error(result.error || 'Failed to create group from nodes');
       }
@@ -50,7 +58,7 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
       const nodes = getNodes();
       let toGroup = variables.nodeIds
         .map(id => nodes.find(n => n.id === id))
-        .filter((n): n is Node => !!n);
+        .filter((n): n is Node => !!n && n.type !== 'group');
       if (toGroup.length === 0) return undefined;
 
       const tempGroupId = `group-optimistic-${Date.now()}`;
@@ -125,12 +133,14 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
         draggable: false,
       };
 
+      const toGroupIds = new Set(toGroup.map(t => t.id));
+
       // Step 1: Update nodes with new positions/parentIds AND deselect them
       // This forces React Flow to refresh its selection cache
       // IMPORTANT: React Flow requires parent nodes to come BEFORE their children in the nodes array!
       setNodes(prev => {
         const childNodes = prev.map(n => {
-          if (!variables.nodeIds.includes(n.id)) return n;
+          if (!toGroupIds.has(n.id)) return n;
           const toGroupIdx = toGroup.findIndex(tn => tn.id === n.id);
           const abs = absPositions[toGroupIdx]!;
           const rel = { x: abs.x - minX, y: abs.y - minY };
@@ -145,8 +155,8 @@ export function useCreateGroupFromNodes(params: UseCreateGroupFromNodesParams) {
 
         // 부모(그룹) 노드를 자식들보다 먼저 배열에 배치해야 함
         // 다른 노드들 중 그룹화되지 않은 것들을 분리
-        const nonGroupedNodes = childNodes.filter(n => !variables.nodeIds.includes(n.id));
-        const groupedNodes = childNodes.filter(n => variables.nodeIds.includes(n.id));
+        const nonGroupedNodes = childNodes.filter(n => !toGroupIds.has(n.id));
+        const groupedNodes = childNodes.filter(n => toGroupIds.has(n.id));
 
         // 그룹 노드들을 앞에, 비그룹 노드들을 뒤에 배치
         // 순서: [기존 그룹 노드들] + [새 그룹 노드] + [비그룹 노드들] + [그룹의 자식 노드들]

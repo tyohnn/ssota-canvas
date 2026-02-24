@@ -262,10 +262,16 @@ function OnboardingCanvasInner({ nodes }: OnboardingCanvasContentProps) {
   return (
     <>
       <style jsx global>{`
-        .react-flow {
-          background-color: hsl(var(--background)) !important;
+        /* Override xyflow dark mode: use theme background via --xy-background-color */
+        .react-flow,
+        .react-flow.dark {
+          --xy-background-color-default: var(--background) !important;
+          --xy-background-color: var(--background) !important;
+          background-color: var(--background) !important;
         }
-
+        .react-flow__background {
+          background-color: var(--background) !important;
+        }
         .react-flow__pane {
           background-color: transparent !important;
         }
@@ -315,7 +321,8 @@ function OnboardingCanvasInner({ nodes }: OnboardingCanvasContentProps) {
         preventScrolling={false}
         minZoom={0.1}
         maxZoom={2}
-        className="bg-muted/30 h-full w-full"
+        className="bg-background h-full w-full"
+        style={{ backgroundColor: 'var(--background)' }}
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={20} size={1} />

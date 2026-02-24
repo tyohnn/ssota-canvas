@@ -17,6 +17,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseUpdateEdgeLabelParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
 };
 
@@ -41,7 +42,7 @@ export type UseUpdateEdgeLabelResult = {
 export function useUpdateEdgeLabel(
   params: UseUpdateEdgeLabelParams
 ): UseUpdateEdgeLabelResult {
-  const { reactFlow } = params;
+  const { pageId, reactFlow } = params;
   const { getEdges, setEdges } = reactFlow;
 
   const mutation = useMutation({
@@ -52,8 +53,8 @@ export function useUpdateEdgeLabel(
       edgeId: string;
       newLabel: string;
     }) => {
-      // Validation
       const rawRequest: UpdateEdgeLabelRequestInput = {
+        pageId,
         edgeId,
         newLabel,
       };

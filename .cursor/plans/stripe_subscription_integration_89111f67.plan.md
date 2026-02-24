@@ -41,6 +41,7 @@ todos:
   - id: testing
     content: 전체 플로우 테스트 (Test Mode) 및 에러 핸들링
     status: pending
+isProject: false
 ---
 
 # Stripe 구독 시스템 통합 계획
@@ -67,6 +68,8 @@ graph TB
     HardLimit -->|Yes| BlockFeature[기능 차단]
     HardLimit -->|No| AllowFeature[기능 실행]
 ```
+
+
 
 ## 데이터베이스 스키마 설계
 
@@ -228,72 +231,72 @@ export const CREDIT_COSTS = {
 
 ### Phase 1: 데이터베이스 마이그레이션
 
-- [ ] Drizzle 스키마에 subscription 관련 테이블 추가
-- [ ] credit 관련 테이블 추가
-- [ ] 마이그레이션 파일 생성 및 실행
-- [ ] RLS 정책 설정
+- Drizzle 스키마에 subscription 관련 테이블 추가
+- credit 관련 테이블 추가
+- 마이그레이션 파일 생성 및 실행
+- RLS 정책 설정
 
 ### Phase 2: Stripe 설정
 
-- [ ] Stripe Dashboard에서 Products/Prices 생성
-- [ ] Webhook endpoint 설정 (`/api/webhooks/stripe`)
-- [ ] 환경변수 설정 (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET)
+- Stripe Dashboard에서 Products/Prices 생성
+- Webhook endpoint 설정 (`/api/webhooks/stripe`)
+- 환경변수 설정 (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET)
 
 ### Phase 3: Stripe Checkout 통합
 
-- [ ] Checkout Session 생성 API (`/api/subscriptions/create-checkout-session`)
-- [ ] 구독 플랜 선택 UI 컴포넌트
-- [ ] 연간/월간 토글 UI
-- [ ] Pro 플랜 크레딧 팩 수량 선택 UI
-- [ ] 성공/취소 리다이렉트 페이지
+- Checkout Session 생성 API (`/api/subscriptions/create-checkout-session`)
+- 구독 플랜 선택 UI 컴포넌트
+- 연간/월간 토글 UI
+- Pro 플랜 크레딧 팩 수량 선택 UI
+- 성공/취소 리다이렉트 페이지
 
 ### Phase 4: Webhook 처리
 
-- [ ] `checkout.session.completed` - 구독 생성 및 초기 크레딧 지급
-- [ ] `customer.subscription.updated` - 구독 정보 업데이트
-- [ ] `customer.subscription.deleted` - 구독 취소 처리
-- [ ] `invoice.payment_succeeded` - 결제 성공 시 크레딧 지급
-- [ ] `invoice.payment_failed` - 결제 실패 처리
+- `checkout.session.completed` - 구독 생성 및 초기 크레딧 지급
+- `customer.subscription.updated` - 구독 정보 업데이트
+- `customer.subscription.deleted` - 구독 취소 처리
+- `invoice.payment_succeeded` - 결제 성공 시 크레딧 지급
+- `invoice.payment_failed` - 결제 실패 처리
 
 ### Phase 5: 크레딧 관리 시스템
 
-- [ ] Credit Service 구현
+- Credit Service 구현
   - `grantCredits()` - 크레딧 지급
   - `deductCredits()` - 크레딧 차감
   - `checkBalance()` - 잔액 확인
   - `resetMonthlyCredits()` - 월간 초기화
-- [ ] Credit Transaction 로깅
-- [ ] 크레딧 부족 시 에러 처리
+- Credit Transaction 로깅
+- 크레딧 부족 시 에러 처리
 
 ### Phase 6: 구독 관리 기능
 
-- [ ] 구독 업그레이드 API (즉시 적용 + proration)
-- [ ] 구독 다운그레이드 API (다음 기간부터 적용)
-- [ ] 구독 취소 API (기간 종료 시 취소)
-- [ ] Pro 플랜 크레딧 팩 추가/제거 API
-- [ ] 구독 정보 조회 API
+- 구독 업그레이드 API (즉시 적용 + proration)
+- 구독 다운그레이드 API (다음 기간부터 적용)
+- 구독 취소 API (기간 종료 시 취소)
+- Pro 플랜 크레딧 팩 추가/제거 API
+- 구독 정보 조회 API
 
 ### Phase 7: 프론트엔드 통합
 
-- [ ] 크레딧 잔액 표시 컴포넌트
-- [ ] 구독 관리 대시보드
-- [ ] 결제 내역 페이지
-- [ ] 크레딧 사용 내역 페이지
-- [ ] 업그레이드/다운그레이드 플로우
+- 크레딧 잔액 표시 컴포넌트
+- 구독 관리 대시보드
+- 결제 내역 페이지
+- 크레딧 사용 내역 페이지
+- 업그레이드/다운그레이드 플로우
 
 ### Phase 8: AI/Block Action 통합
 
-- [ ] AI Agent에 크레딧 차감 로직 추가
-- [ ] Block Action에 크레딧 차감 로직 추가
-- [ ] 크레딧 부족 시 UI 피드백
-- [ ] event_logs와 credit_transactions 연결
+- AI Agent에 크레딧 차감 로직 추가
+- Block Action에 크레딧 차감 로직 추가
+- 크레딧 부족 시 UI 피드백
+- event_logs와 credit_transactions 연결
 
 ### Phase 9: 테스트 및 모니터링
 
-- [ ] Stripe Test Mode로 전체 플로우 테스트
-- [ ] Webhook 재시도 로직 테스트
-- [ ] 크레딧 동시성 처리 테스트
-- [ ] 에러 알림 설정 (Sentry, Slack 등)
+- Stripe Test Mode로 전체 플로우 테스트
+- Webhook 재시도 로직 테스트
+- 크레딧 동시성 처리 테스트
+- 에러 알림 설정 (Sentry, Slack 등)
 
 ## 핵심 구현 파일 구조
 
@@ -432,36 +435,25 @@ if (invoice.billing_reason === "subscription_cycle") {
 ## 테스트 시나리오
 
 1. **신규 구독**
-
-   - Basic 월간 구독 → 500 크레딧 지급 확인
-   - Pro 월간 + 크레딧 팩 2개 → 4000 크레딧 지급 확인
-
+  - Basic 월간 구독 → 500 크레딧 지급 확인
+  - Pro 월간 + 크레딧 팩 2개 → 4000 크레딧 지급 확인
 2. **업그레이드**
-
-   - Basic → Pro (즉시 적용)
-   - 크레딧 비례 배분 확인
-   - Stripe proration invoice 생성 확인
-
+  - Basic → Pro (즉시 적용)
+  - 크레딧 비례 배분 확인
+  - Stripe proration invoice 생성 확인
 3. **다운그레이드**
-
-   - Pro → Basic
-   - 다음 청구 주기까지 Pro 유지 확인
-   - 기간 종료 후 Basic으로 전환 확인
-
+  - Pro → Basic
+  - 다음 청구 주기까지 Pro 유지 확인
+  - 기간 종료 후 Basic으로 전환 확인
 4. **크레딧 사용**
-
-   - AI 호출 10회 → 100 크레딧 차감
-   - 잔액 부족 시 기능 차단 확인
-
+  - AI 호출 10회 → 100 크레딧 차감
+  - 잔액 부족 시 기능 차단 확인
 5. **구독 취소**
-
-   - 취소 시 기간 종료까지 유지 확인
-   - 기간 종료 후 크레딧 0으로 초기화 확인
-
+  - 취소 시 기간 종료까지 유지 확인
+  - 기간 종료 후 크레딧 0으로 초기화 확인
 6. **결제 실패**
-
-   - past_due 상태로 전환 확인
-   - 재시도 성공 시 정상 복구 확인
+  - past_due 상태로 전환 확인
+  - 재시도 성공 시 정상 복구 확인
 
 ## 환경변수 설정
 
@@ -502,3 +494,4 @@ STRIPE_CANCEL_URL=${NEXT_PUBLIC_APP_URL}/pricing
 2. 30일 전환 기간 제공
 3. 이메일 공지 발송
 4. 크레딧 사용량 통계 제공하여 적정 플랜 추천
+

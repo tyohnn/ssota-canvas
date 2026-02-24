@@ -4,7 +4,10 @@ import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 
 import { BlockManagementError } from '../errors/block-management.error';
-import { tiptapToMarkdown } from '../utils/tiptap-markdown.utils';
+import {
+  extractPlainText,
+  tiptapToMarkdown,
+} from '../utils/tiptap-markdown.utils';
 import { BlockId } from '../value-objects/block-id.vo';
 import {
   BlockPropertiesFactory,
@@ -16,7 +19,11 @@ import { CustomPropertyDefinitionVO } from '../value-objects/custom-property-def
 /**
  * Block Entity
  *
- * 블록의 핵심 정보와 비즈니스 로직을 캡슐화
+ * 블록의 핵심 정보와 비즈니스 로직을 캡슐화.
+ *
+ * 블록 데이터 변경 원칙:
+ * - 본문(content): blocks.content로 관리되며 항상 사용자 수정 가능.
+ * - 블록 데이터(properties 등): properties 필드와 Block Tool(및 시스템)으로만 변경.
  */
 export class Block {
   private constructor(
@@ -31,8 +38,18 @@ export class Block {
     public updatedAt: Date,
     public deletedAt: Date | null,
     public content: unknown = null, // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
-    public readonly createdByProfile?: UserProfile
+    public readonly createdByProfile?: UserProfile,
+    public sourceId: string | null = null, // 링크된 소스 (sources.id, nullable)
+    public contentVersion: number = 0, // ProseMirror step-based sync (optimistic locking)
+    public readonly slug?: string // 8자 hex, DB에서 조회 시 설정. 없으면 id에서 유도
   ) {}
+
+  /** API/응답용 slug (DB 값 또는 id 기반 8자 hex) */
+  getSlug(): string {
+    return (
+      this.slug ?? this.id.value.replace(/-/g, '').toLowerCase().slice(0, 8)
+    );
+  }
 
   /**
    * Block 생성
@@ -52,7 +69,7 @@ export class Block {
     workspaceId: WorkspaceId,
     userId: UserId,
     blockType: BlockType,
-    title: string = '새 블럭',
+    title: string = 'New Block',
     properties?: BlockPropertiesVO,
     content?: unknown // ✨ 초기 content 추가 (JSONB)
   ): Block {
@@ -74,12 +91,22 @@ export class Block {
       now,
       now,
       null,
-      content ?? null // ✨ content: 전달받은 값 또는 null
+      content ?? null, // ✨ content: 전달받은 값 또는 null
+      undefined, // createdByProfile
+      null, // sourceId
+      0, // contentVersion
+      undefined // slug (create 시 repo에서 id로부터 계산해 insert)
     );
 
-    // 마크다운 블록인 경우 content_raw 자동 생성 (AI 컨텍스트용)
-    if (blockType.value === 'markdown' && content) {
-      const contentRaw = tiptapToMarkdown(content as any);
+    // content_raw 자동 생성 (AI 컨텍스트용). 마크다운은 tiptapToMarkdown, 그 외/실패 시 extractPlainText
+    if (content && typeof content === 'object') {
+      let contentRaw =
+        blockType.value === 'markdown'
+          ? tiptapToMarkdown(content as any)
+          : '';
+      if (!contentRaw) {
+        contentRaw = extractPlainText(content as any);
+      }
       if (contentRaw) {
         (block as any).contentRaw = contentRaw;
       }
@@ -117,7 +144,10 @@ export class Block {
     updatedAt: Date,
     deletedAt: Date | null,
     content: unknown = null,
-    createdByProfile?: UserProfile
+    createdByProfile?: UserProfile,
+    sourceId: string | null = null,
+    contentVersion: number = 0,
+    slug?: string
   ): Block {
     return new Block(
       id,
@@ -131,7 +161,10 @@ export class Block {
       updatedAt,
       deletedAt,
       content,
-      createdByProfile
+      createdByProfile,
+      sourceId,
+      contentVersion,
+      slug
     );
   }
 
@@ -153,8 +186,26 @@ export class Block {
       this.createdAt,
       this.updatedAt,
       this.deletedAt,
-      this.content // 콘텐츠도 복제
+      this.content, // 콘텐츠도 복제
+      undefined,
+      this.sourceId,
+      this.contentVersion,
+      undefined // slug (복제본은 새 id이므로 repo insert 시 계산)
     );
+  }
+
+  /**
+   * 소스 링크 설정 (source-management sources.id)
+   */
+  updateSourceId(sourceId: string | null): void {
+    if (this.isDeleted()) {
+      throw new BlockManagementError(
+        'BLOCK_ALREADY_DELETED',
+        'Cannot modify deleted block'
+      );
+    }
+    this.sourceId = sourceId;
+    this.updatedAt = new Date();
   }
 
   /**
@@ -176,6 +227,7 @@ export class Block {
 
   /**
    * 블록 콘텐츠 업데이트
+   * - content, contentRaw 설정 시 contentVersion을 1 증가시킴 (한 번의 변경당 한 번만 증가)
    *
    * @param content - JSONB 콘텐츠 (TipTap JSON, 기타 구조화된 콘텐츠)
    * @param contentRaw - Markdown 텍스트 (AI context용, 선택적)
@@ -192,6 +244,22 @@ export class Block {
     if (contentRaw !== undefined) {
       (this as any).contentRaw = contentRaw;
     }
+    this.contentVersion += 1;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * content_version만 증가 (콘텐츠는 변경하지 않을 때 사용)
+   * - updateContent()는 이미 content 변경 시 version을 증가시키므로, 별도 호출 시에만 사용
+   */
+  incrementContentVersion(): void {
+    if (this.isDeleted()) {
+      throw new BlockManagementError(
+        'BLOCK_ALREADY_DELETED',
+        'Cannot modify deleted block'
+      );
+    }
+    this.contentVersion += 1;
     this.updatedAt = new Date();
   }
 

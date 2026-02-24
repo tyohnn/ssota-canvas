@@ -29,6 +29,8 @@ describe('ImageAssetService', () => {
     height: 768,
     file_size: 204800,
     mime_type: 'image/jpeg',
+    signed_url: null,
+    signed_url_expires_at: null,
     prompt: 'test prompt',
     negative_prompt: null,
     metadata: {},
@@ -58,10 +60,14 @@ describe('ImageAssetService', () => {
       findByIdWithStats: vi.fn(),
       findPublicImages: vi.fn(),
       findFollowingUserImages: vi.fn(),
+      findWorkspaceImages: vi.fn(),
       updateMetadata: vi.fn(),
       updateVisibility: vi.fn(),
+      updateSignedUrl: vi.fn(),
       softDelete: vi.fn(),
       restore: vi.fn(),
+      findByUnsplashPhotoId: vi.fn(),
+      incrementUseCount: vi.fn(),
     };
 
     service = new ImageAssetService(mockRepository);

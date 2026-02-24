@@ -1,4 +1,4 @@
-import { EventLog } from '../../../shared/entities/event-log.entity';
+import type { EventLog } from '@/domains/event-management';
 
 /**
  * Event Log Summary

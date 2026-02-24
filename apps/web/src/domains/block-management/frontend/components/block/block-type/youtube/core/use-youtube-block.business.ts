@@ -19,6 +19,7 @@ import type { YoutubeBlockBusinessLogic, YoutubeMetadata } from './types';
 export function useYoutubeBlockBusiness(
   nodeData: YoutubeBlockNodeData,
   vo: YoutubeBlockPropertiesVO,
+  workspaceId: string | undefined,
   updateProperties: (
     nodeId: string,
     properties: Record<string, unknown>,
@@ -28,7 +29,8 @@ export function useYoutubeBlockBusiness(
     nodeId: string;
     title: string;
     blockData: YoutubeBlockNodeData;
-  }) => Promise<boolean>
+  }) => Promise<boolean>,
+  updateSourceId?: (sourceId: string) => void
 ): YoutubeBlockBusinessLogic {
   // 메타데이터 fetch 실행 여부 추적 (중복 방지)
   const isFetchingRef = useRef(false);
@@ -79,6 +81,7 @@ export function useYoutubeBlockBusiness(
     ): Promise<{
       success: boolean;
       metadata?: YoutubeMetadata;
+      blockUuid?: string;
       error?: string;
     }> => {
       // Block ID 확인
@@ -90,6 +93,10 @@ export function useYoutubeBlockBusiness(
 
       if (!blockId) {
         return { success: false, error: 'No block ID' };
+      }
+
+      if (!workspaceId) {
+        return { success: false, error: 'Workspace context required' };
       }
 
       // 중복 호출 방지
@@ -109,6 +116,7 @@ export function useYoutubeBlockBusiness(
 
       try {
         const result = await getYoutubeMetadataAction({
+          workspaceId,
           blockId,
           slug: videoId,
           language: 'en',
@@ -126,7 +134,7 @@ export function useYoutubeBlockBusiness(
           youtubeTitle: video.title,
           youtubeDescription: video.description,
           youtubeThumbnail:
-            video.thumbnailHighUrl || video.thumbnailUrl || undefined,
+            video.thumbnailUrl || video.thumbnailHighUrl || undefined,
           channelName: dto.channelName,
           channelThumbnail: dto.channelThumbnail,
           youtubeChannelId: dto.youtubeChannelId,
@@ -158,7 +166,16 @@ export function useYoutubeBlockBusiness(
           });
         }
 
-        return { success: true, metadata };
+        // source-management sourceId를 노드 데이터에 반영 (스크립트/요약 훅에서 사용)
+        if (dto.sourceId) {
+          updateSourceId?.(dto.sourceId);
+        }
+
+        return {
+          success: true,
+          metadata,
+          blockUuid: dto.blockUuid,
+        };
       } catch (error) {
         return {
           success: false,
@@ -168,7 +185,7 @@ export function useYoutubeBlockBusiness(
         isFetchingRef.current = false;
       }
     },
-    [nodeData, updateProperties, updateBlockTitle]
+    [nodeData, workspaceId, updateProperties, updateBlockTitle, updateSourceId]
   );
 
   return {

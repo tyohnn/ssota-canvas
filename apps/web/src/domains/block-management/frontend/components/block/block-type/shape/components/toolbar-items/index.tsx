@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { BorderStyleToolbarItem } from '@/domains/block-management/frontend/components/block/common-toolbar-items/border-style-toolbar-item';
+import { Separator } from '@/components/ui/separator';
 import { ColorToolbarItem } from '@/domains/block-management/frontend/components/block/common-toolbar-items/color-toolbar-item';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
@@ -8,6 +8,7 @@ import { ShapeTypeToolbarItem } from './shape-type-toolbar-item';
 
 // Lazy Loading을 위한 Wrapper 컴포넌트
 // 이 컴포넌트 전체가 lazy()로 로드되므로 내부 import도 함께 lazy됨
+// Mount toolbar: 도형·색상만 표시 (BorderStyle 제외)
 export function ShapeToolbarItems({
   blockId,
   blockMountId,
@@ -54,16 +55,7 @@ export function ShapeToolbarItems({
         }}
         zoom={zoom}
       />
-      <BorderStyleToolbarItem
-        blockId={blockId}
-        blockMountId={blockMountId}
-        currentBorderStyle={shapeProperties.borderStyle}
-        disabled={disabled}
-        onBorderStyleChange={async (borderStyle: any) => {
-          await onPropertyUpdate('properties.borderStyle', borderStyle);
-        }}
-        zoom={zoom}
-      />
+      <Separator orientation="vertical" className="h-4!" />
     </>
   );
 }

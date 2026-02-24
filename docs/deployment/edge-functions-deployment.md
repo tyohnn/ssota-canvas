@@ -106,7 +106,7 @@ inspector_port = 8083
 deno_version = 2
 
 # 함수별 설정 (예시)
-# [functions.process-summary-queue]
+# [functions.process-source-job-queue]
 # verify_jwt = false  # JWT 검증 비활성화 (필요한 경우)
 ```
 
@@ -170,11 +170,10 @@ gh secret set PRODUCTION_INTERNAL_API_SECRET
 
 ```
 apps/web/supabase/functions/
-├── process-summary-queue/
+├── process-source-job-queue/
 │   ├── index.ts           # Main function handler
-│   ├── deno.json          # Deno configuration
-│   └── deno.lock          # Dependencies lock file
-└── [other-functions]/
+│   └── deno.json          # Deno configuration
+└── README.md
 ```
 
 ### Function Configuration
@@ -182,7 +181,7 @@ apps/web/supabase/functions/
 각 Edge Function은 `config.toml`에서 개별 설정 가능:
 
 ```toml
-[functions.process-summary-queue]
+[functions.process-source-job-queue]
 # JWT 검증 비활성화 (webhook 등에 필요)
 verify_jwt = false
 
@@ -236,7 +235,7 @@ cd apps/web
 pnpm supabase:dev
 
 # 2. Edge Function 테스트
-curl -X POST http://127.0.0.1:54321/functions/v1/process-summary-queue \
+curl -X POST http://127.0.0.1:54321/functions/v1/process-source-job-queue \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ANON_KEY" \
   -d '{"test": "data"}'
@@ -248,7 +247,7 @@ Staging 배포 후:
 
 ```bash
 # Staging Edge Function 호출
-curl -X POST https://xtknhwadrjyosghqseoe.supabase.co/functions/v1/process-summary-queue \
+curl -X POST https://xtknhwadrjyosghqseoe.supabase.co/functions/v1/process-source-job-queue \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_STAGING_ANON_KEY" \
   -d '{"test": "data"}'
@@ -347,7 +346,7 @@ supabase secrets set \
 
 ```bash
 # 특정 함수만 배포
-supabase functions deploy process-summary-queue \
+supabase functions deploy process-source-job-queue \
   --project-ref PROJECT_ID
 ```
 
@@ -412,7 +411,7 @@ supabase secrets list --project-ref PROJECT_ID
 
 ```bash
 # 함수 로그 확인 (로컬)
-supabase functions serve process-summary-queue --debug
+supabase functions serve process-source-job-queue --debug
 
 # 원격 로그는 Dashboard에서 확인
 ```

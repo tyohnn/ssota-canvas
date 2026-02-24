@@ -34,7 +34,7 @@ import { useCanvasToolbar } from './core/use-canvas-toolbar';
  * All side effects and business logic are handled in the hook.
  */
 export const CanvasToolbar = memo(function CanvasToolbar({
-  onAddBlockClick,
+  onAddBlockTypeClick,
 }: CanvasToolbarProps) {
   const {
     toolbarRef,
@@ -44,10 +44,10 @@ export const CanvasToolbar = memo(function CanvasToolbar({
     onSelectClick,
     onHandClick,
     onFitToViewClick,
-    onAddBlockClick: handleAddBlockClick,
+    onAddBlockTypeClick: handleAddBlockTypeClick,
     readonly,
   } = useCanvasToolbar({
-    onAddBlockClick,
+    onAddBlockTypeClick,
   });
 
   return (
@@ -59,7 +59,7 @@ export const CanvasToolbar = memo(function CanvasToolbar({
       onSelectClick={onSelectClick}
       onHandClick={onHandClick}
       onFitToViewClick={onFitToViewClick}
-      onAddBlockClick={handleAddBlockClick}
+      onAddBlockTypeClick={handleAddBlockTypeClick}
       readonly={readonly}
     />
   );

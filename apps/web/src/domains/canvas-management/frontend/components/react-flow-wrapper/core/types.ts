@@ -15,6 +15,7 @@ import type { EdgeView } from '@/domains/canvas-management/shared/dtos';
 
 export interface BlockNodeData {
   blockId: string;
+  blockMountId: string;
   blockType: string;
   // ... other properties
 }
@@ -28,9 +29,9 @@ export interface BlockNodeData {
  * Used to reduce coupling with internal service hooks
  */
 export interface CanvasModeDependencies {
-  enterDraggingMode: (draggedIds: string[]) => void;
-  enterSingleSelectionMode: (nodeId: string) => void;
-  enterMultiSelectionMode: (nodeIds: string[]) => void;
+  enterDraggingMode: (blockMountIds: string[]) => void;
+  enterSingleSelectionMode: (blockMountId: string) => void;
+  enterMultiSelectionMode: (blockMountIds: string[]) => void;
   enterBlockCreationMode: (blockType: BlockType) => void;
   enterBlockEditingMode: (blockId: string, blockMountId: string) => void;
   exitToDefaultMode: () => void;

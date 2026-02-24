@@ -27,7 +27,8 @@
   "packageManager": "pnpm@10.28.0",
   "pnpm": {
     "overrides": {
-      "@types/minimatch": "5.1.2"
+      "@types/minimatch": "5.1.2",
+      "yjs": "^13.6.22"
     },
     "onlyBuiltDependencies": [
       "@swc/core",

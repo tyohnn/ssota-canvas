@@ -75,7 +75,6 @@ export function useSupabaseRealtime({
     const supabase = supabaseRef.current;
 
     const setupRealtimeSubscription = async () => {
-      // 인증된 사용자 확인
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -116,7 +115,6 @@ export function useSupabaseRealtime({
 
     setupRealtimeSubscription();
 
-    // 클린업: 컴포넌트 언마운트 시 또는 의존성 변경 시 구독 해제
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);

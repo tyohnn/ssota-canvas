@@ -17,6 +17,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseUpdateEdgeShapeParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
 };
 
@@ -41,7 +42,7 @@ export type UseUpdateEdgeShapeResult = {
 export function useUpdateEdgeShape(
   params: UseUpdateEdgeShapeParams
 ): UseUpdateEdgeShapeResult {
-  const { reactFlow } = params;
+  const { pageId, reactFlow } = params;
   const { getEdges, setEdges } = reactFlow;
 
   const mutation = useMutation({
@@ -52,8 +53,8 @@ export function useUpdateEdgeShape(
       edgeId: string;
       newShape: string;
     }) => {
-      // Validation
       const rawRequest: UpdateEdgeShapeRequestInput = {
+        pageId,
         edgeId,
         newShape,
       };

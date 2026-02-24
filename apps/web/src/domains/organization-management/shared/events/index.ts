@@ -1,5 +1,7 @@
 // apps/web/src/domains/organization-management/shared/events/index.ts
 
+import type { DomainEvent } from '@/domains/canvas-management/shared/events/domain-event';
+import type { InvitationAcceptedPolicyContext } from '../contexts/invitation-accepted-policy.context';
 import {
   OrganizationId,
   UserId,
@@ -56,7 +58,7 @@ export class MemberInvitationRequestedEvent {
   ) {}
 }
 
-export class InvitationAcceptedEvent {
+export class InvitationAcceptedEvent implements DomainEvent {
   readonly type = 'InvitationAccepted';
 
   constructor(
@@ -65,6 +67,38 @@ export class InvitationAcceptedEvent {
     public readonly inviteeUserId: UserId,
     public readonly timestamp: Date = new Date()
   ) {}
+
+  get aggregateId(): InvitationId {
+    return this.invitationId;
+  }
+
+  get data() {
+    return {
+      organizationId: this.organizationId,
+      inviteeUserId: this.inviteeUserId,
+      timestamp: this.timestamp,
+    };
+  }
+
+  /**
+   * Policy: When InvitationAccepted → add member to default workspace.
+   */
+  private async applyAddToDefaultWorkspacePolicy(
+    context?: unknown
+  ): Promise<void> {
+    const ctx = context as InvitationAcceptedPolicyContext | undefined;
+    if (!ctx?.workspaceCrudService) return;
+    await ctx.workspaceCrudService
+      .addMemberToDefaultWorkspace(
+        this.organizationId,
+        this.inviteeUserId.value
+      )
+      .catch(() => {});
+  }
+
+  async handle(context?: unknown): Promise<void> {
+    await Promise.allSettled([this.applyAddToDefaultWorkspacePolicy(context)]);
+  }
 }
 
 export class InvitationRejectedEvent {

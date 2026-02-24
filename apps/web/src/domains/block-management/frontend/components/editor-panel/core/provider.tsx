@@ -73,6 +73,8 @@ export function EditorPanelProvider({
   }, [tabSwitchCallback]);
 
   // initialTab 옵션 처리 (Canvas Mode에서 전달된 탭 전환 요청)
+  // tab이 빈 문자열이면 스킵 (updateBlockEditingTabOptions로 tabOptions만 업데이트할 때
+  // initialTab이 tab:''로 생성되어 의도치 않게 note 탭으로 전환되는 것 방지)
   useEffect(() => {
     if (
       isOpen &&
@@ -81,6 +83,7 @@ export function EditorPanelProvider({
       canvasMode.mode.initialTab
     ) {
       const { tab } = canvasMode.mode.initialTab;
+      if (!tab) return;
 
       // 약간의 지연 후 탭 전환 (탭이 mount될 시간 확보)
       const timeoutId = setTimeout(() => {

@@ -54,9 +54,9 @@ export function BlockHeaderView({
     onBlur();
   };
 
-  // showBadge가 false이거나 width가 400px 이하일 때 배지 숨김
+  // showBadge가 false이거나 width가 280px 이하일 때 배지 숨김
   const shouldShowBadge =
-    showBadge !== false && !!blockType && width !== undefined && width > 400;
+    showBadge !== false && !!blockType && width !== undefined && width > 300;
 
   return (
     <Box
@@ -70,7 +70,7 @@ export function BlockHeaderView({
       {/* 블록 타입 배지 */}
       {shouldShowBadge && blockType && (
         <Badge variant="secondary" className="shrink-0">
-          {blockType}
+          {blockType === 'markdown' ? 'note' : blockType}
         </Badge>
       )}
 
@@ -84,10 +84,10 @@ export function BlockHeaderView({
         onBlur={handleBlur}
         disabled={isUpdating}
         readOnly={readonly}
-        placeholder="Click to edit"
+        placeholder="New Block"
         className={cn(
           'h-7 px-1 text-sm font-medium',
-          'flex-1 min-w-0',
+          'flex-1 min-w-0 max-w-48',
           'bg-transparent',
           'border-0 border-b',
           'outline-none',

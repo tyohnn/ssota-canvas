@@ -23,7 +23,7 @@ type PrefetchStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 /**
  * 탭 컴포넌트 레지스트리
- * - key: componentPath (예: "youtube/components/section-tabs/script-section")
+ * - key: componentPath (예: "youtube/components/tab-sections/timeline-tab")
  * - value: React 컴포넌트
  */
 const componentRegistry = new Map<
@@ -48,7 +48,7 @@ const prefetchPromises = new Map<string, Promise<void>>();
 /**
  * 탭 컴포넌트를 prefetch하고 레지스트리에 저장
  *
- * @param componentPath - 컴포넌트 경로 (예: "youtube/components/section-tabs/script-section")
+ * @param componentPath - 컴포넌트 경로 (예: "youtube/components/tab-sections/timeline-tab")
  * @returns Promise<void>
  */
 export async function prefetchTabComponent(
@@ -68,8 +68,8 @@ export async function prefetchTabComponent(
   prefetchCache.set(componentPath, 'loading');
 
   // 블록 타입별 컴포넌트 경로를 절대 경로로 변환
-  // 예: "youtube/components/section-tabs/script-section"
-  //  -> "@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/script-section"
+  // 예: "youtube/components/tab-sections/timeline-tab"
+  //  -> "@/domains/block-management/frontend/components/block/block-type/youtube/components/tab-sections/timeline-tab"
   const promise = import(
     /* webpackPrefetch: true */
     /* webpackChunkName: "editor-tabs-[request]" */

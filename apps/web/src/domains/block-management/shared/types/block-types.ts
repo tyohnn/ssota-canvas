@@ -39,6 +39,8 @@ export const BlockType = {
   REACT_PREVIEW: 'react_preview' as const,
   VERCEL_DEPLOYMENT: 'vercel_deployment' as const,
   GROUP: 'group' as const,
+  LINK_ROUTER: 'link_router' as const,
+  FILE_ROUTER: 'file_router' as const,
 } as const;
 
 /**
@@ -54,11 +56,11 @@ export const BLOCK_TYPE_SIZES: Record<
   [BlockType.YOUTUBE]: { width: 410, height: 288 }, // YouTube iframe (222px) + 하단 정보 섹션
   [BlockType.IMAGE]: { width: 300, height: 200 },
   [BlockType.PDF]: { width: 300, height: 400 }, // PDF 문서
-  [BlockType.AUDIO]: { width: 300, height: 120 }, // 오디오 플레이어
+  [BlockType.AUDIO]: { width: 350, height: 160 }, // Audio player
   [BlockType.VIDEO]: { width: 400, height: 225 }, // 비디오 플레이어
   [BlockType.FILE]: { width: 250, height: 150 },
   [BlockType.PYTHON]: { width: 350, height: 250 },
-  [BlockType.LINK]: { width: 316, height: 288 }, // 링크 블록 (16:9 비율에 가까운 크기)
+  [BlockType.LINK]: { width: 310, height: 280 }, // 링크 블록
   [BlockType.PAGE_MENTION]: { width: 250, height: 120 },
   [BlockType.LATEX]: { width: 300, height: 180 },
   [BlockType.GITHUB_PR]: { width: 400, height: 200 },
@@ -68,6 +70,8 @@ export const BLOCK_TYPE_SIZES: Record<
   [BlockType.REACT_PREVIEW]: { width: 500, height: 400 }, // React 프리뷰 블록
   [BlockType.VERCEL_DEPLOYMENT]: { width: 350, height: 200 }, // Vercel 배포 블록
   [BlockType.GROUP]: { width: 500, height: 400 }, // 그룹 블록 (Parent-Child 컨테이너)
+  [BlockType.LINK_ROUTER]: { width: 310, height: 280 }, // 링크 라우터 (link와 동일)
+  [BlockType.FILE_ROUTER]: { width: 250, height: 150 }, // 파일 라우터 (file와 동일)
 } as const;
 
 /**
@@ -107,6 +111,21 @@ export function getBlockSizeForViewMode(
     return getBlockSize(blockType);
   }
   return VIEW_MODE_DEFAULT_SIZES[viewMode];
+}
+
+/**
+ * Original view 컨테이너 테두리/배경을 생략할 블록 타입.
+ * SVG 등 자체 시각 경계가 있는 블록(도형 등)에 사용.
+ */
+export const BLOCK_TYPES_NO_CONTAINER_BOUNDARY: Partial<
+  Record<BlockType, boolean>
+> = {
+  [BlockType.SHAPE]: true,
+  [BlockType.GROUP]: true,
+};
+
+export function hasNoContainerBoundary(blockType: BlockType): boolean {
+  return BLOCK_TYPES_NO_CONTAINER_BOUNDARY[blockType] ?? false;
 }
 
 /**

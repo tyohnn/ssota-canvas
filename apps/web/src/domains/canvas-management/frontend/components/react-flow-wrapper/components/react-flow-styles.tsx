@@ -7,8 +7,16 @@ export function ReactFlowStyles() {
   return (
     <style jsx global>{`
       /* ===== 기본 배경 및 Pane ===== */
-      .react-flow {
-        background-color: hsl(var(--background)) !important;
+      /* Override xyflow dark mode: use theme background via --xy-background-color */
+      .react-flow,
+      .react-flow.dark {
+        --xy-background-color-default: var(--background) !important;
+        --xy-background-color: var(--background) !important;
+        background-color: var(--background) !important;
+      }
+
+      .react-flow__background {
+        background-color: var(--background) !important;
       }
 
       .react-flow__pane {

@@ -54,7 +54,9 @@ export function useImageBlockBusiness(
       },
     },
   });
+  const { pageId } = useCanvasMetadata();
   const { updateBlockSize } = useUpdateBlockSize({
+    pageId,
     reactFlow: {
       getNodes,
       setNodes,

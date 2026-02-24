@@ -356,13 +356,19 @@ export const ToolHandlers = {
       throw new Error('blockType is required');
     }
 
+    // Link 블록의 on-demand 액션은 workspaceId 필요 (서버 액션 호출)
+    const params =
+      blockType === 'link'
+        ? { ...(actionParams ?? {}), workspaceId: context.workspaceId }
+        : actionParams ?? {};
+
     // 🎯 Layer 1 (AI Agent): Tool 실행만 담당
     // Properties 업데이트 등 실제 동작은 Layer 2 (Executor)에서 처리
     const result = await context.blockActionExecutor.executeAction({
       blockId: blockMountId,
       action,
       blockType,
-      params: actionParams ?? {},
+      params,
     });
 
     // result.data에서 이미지 리스트 등 액션 결과 데이터 추출

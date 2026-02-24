@@ -25,7 +25,7 @@ export function OAuthButtons({
   const oAuthProviders: OAuthProvider[] = [
     {
       name: 'google',
-      displayName: '구글',
+      displayName: 'Google',
       icon: <GoogleIcon />,
     },
   ];

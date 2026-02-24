@@ -119,6 +119,19 @@
 
 ---
 
+### F) 문서 URL (PDF / Excel / Word via Firecrawl Document Parsing)
+
+Firecrawl Document Parsing: URL이 `.pdf`, `.xlsx`, `.docx` 등 문서 파일을 가리키면 자동 파싱. [문서](https://docs.firecrawl.dev/features/document-parsing).
+
+* Firecrawl: 1 credit/page (PDF) 또는 1 credit/file (Excel/Word) → $0.00083
+* LLM 요약: $0.00091 (Text PDF 1p급)
+* 총 원가 ≈ $0.00174 → **2 credits**
+
+✅ **문서 URL 1페이지(또는 1파일) = 2 credits** (Link와 동일)
+* 업로드 후 처리(Text PDF)는 Firecrawl 미사용 → 1 credit 유지.
+
+---
+
 ## ✅ 최종 차감표(원가 일치형, 오버헤드 포함)
 
 | 타입             |     단위 |                     차감(credits) |
@@ -129,6 +142,7 @@
 | Text PDF       | 1 page |                           **1** |
 | Image PDF(OCR) | 1 page |                           **4** |
 | Link           | 1 page | **2** *(Firecrawl $83/100k 가정)* |
+| 문서 URL(PDF/Excel/Word) | 1 page 또는 1 file | **2** *(Firecrawl Document Parsing)* |
 
 ---
 
@@ -247,6 +261,18 @@
 * 이 표는 “포함량을 고객이 매달 꽉 채워 쓴다”는 **최악에 가까운 보수적 계산**이라 실제는 보통 마진이 더 좋아져.
 * Plus는 Stripe 고정수수료($0.50)의 영향이 커서 마진이 상대적으로 눌리는 구조.
 
+### 마진 요약 (보수적 가정: 100% 사용 시)
+
+| Plan    | 순매출   | 변동비   | 공헌이익 | **마진** |
+| ------- | -------: | ------: | -------: | -------: |
+| Free    |   $0.00 |   $0.16 |   -$0.16 |       — |
+| Starter |   $9.09 |   $4.01 |    $5.08 | **55.9%** |
+| Plus    |  $27.27 |  $10.97 |   $16.30 | **59.8%** |
+| Pro     |  $54.55 |  $19.44 |   $35.11 | **64.4%** |
+| Ultra   | $181.82 |  $72.20 |  $109.62 | **60.3%** |
+
+> 유료 플랜 기준 **55~64%** 공헌마진. 실제 사용량이 100% 미만이면 마진은 더 올라간다.
+
 ---
 
 ## 3) 블록 타입별 “최대 인덱싱 가능량” (Indexing credits만 쓴다고 가정)
@@ -261,6 +287,7 @@
 * Text PDF: **1 page = 1 credit**
 * Image PDF(OCR): **1 page = 4 credits**
 * Link(Web page): **1 page = 2 credits**
+* 문서 URL(PDF/Excel/Word): **1 page 또는 1 file = 2 credits**
 
 ### 플랜별 Indexing credits
 
@@ -389,6 +416,7 @@ Audio 5 min = 29 credits / Video 5 min = 29 credits
 Text PDF 1 page = 1 credit
 Image PDF / Slides 1 page(or slide) = 4 credits
 Link 1 page = 2 credits
+문서 URL(PDF/Excel/Word) 1 page 또는 1 file = 2 credits
 
 Free ($0)
 - Indexing credits 50 →

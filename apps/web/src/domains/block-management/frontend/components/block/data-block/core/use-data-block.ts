@@ -74,7 +74,7 @@ export function useDataBlock(
         canvasMode.mode.blockId === data.blockId) ||
       (canvasMode.isDraggingMode() &&
         canvasMode.mode.type === 'dragging' &&
-        canvasMode.mode.blockIds.includes(data.blockMountId)));
+        canvasMode.mode.blockMountIds.includes(data.blockMountId)));
 
   // 멀티셀렉트 여부 확인
   const isMultiSelection = canvasMode.isMultiSelectionMode();

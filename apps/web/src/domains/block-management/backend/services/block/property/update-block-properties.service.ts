@@ -1,52 +1,39 @@
 /**
  * Block 속성 일괄 업데이트 서비스 로직
+ *
+ * ⚠️ blockAggregate는 secure action에서 조회해 전달 (서비스 내부에서 findByWorkspaceIdAndSlug 사용 안 함)
  */
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
-import { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
+import type { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
 import type { UpdateBlockPropertyCommand } from '../../../../shared/commands';
-import type { UpdateBlockPropertiesRequest } from '../../../../shared/dtos/requests/block.requests';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
-import { BlockId } from '../../../../shared/value-objects/block-id.vo';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
+
+export type UpdateBlockPropertiesParams = {
+  properties: Record<string, unknown>;
+  safeBlockAggregate: BlockAggregate;
+  safeUserId: UserId;
+  blockRepository: IBlockRepository;
+};
 
 /**
  * 블록 속성 일괄 업데이트
  *
- * ✅ Event Storming + DDD 패턴:
- * - SafeDTO를 입력으로 받음
- * - SafeDTO → Command 변환
- * - Aggregate에 여러 Command 전달 (한 번에 처리)
- *
- * @param safeDto - 검증된 블록 속성 일괄 업데이트 요청 (SafeDTO)
- * @param blockRepository - Block Repository
- * @returns 업데이트된 시간 정보
+ * ✅ 권한·aggregate 조회는 secure action에서 완료. 서비스는 전달된 safeBlockAggregate 사용.
  */
 export async function updateBlockProperties(
-  safeDto: UpdateBlockPropertiesRequest,
-  safeUserId: UserId,
-  blockRepository: IBlockRepository
+  params: UpdateBlockPropertiesParams
 ): Promise<Result<{ updatedAt: Date }, Error>> {
+  const {
+    properties,
+    safeBlockAggregate: aggregate,
+    safeUserId,
+    blockRepository,
+  } = params;
   try {
-    // 1. SafeDTO → Value Objects 생성
-    const blockId = new BlockId(safeDto.blockId);
-
-    // 2. 블록 조회 (한 번만)
-    // Note: Block ownership is already verified by authorizeBlockInWorkspace
-    // in the action layer. This service should only be called from authorized actions.
-    const block = await blockRepository.findById(blockId);
-    if (!block) {
-      return Result.error(
-        new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found')
-      );
-    }
-
-    // 3. Aggregate 재구성
-    const aggregate = BlockAggregate.reconstitute(block);
-
-    // 4. 모든 속성을 한 번에 업데이트
-    for (const [key, value] of Object.entries(safeDto.properties)) {
+    for (const [key, value] of Object.entries(properties)) {
       const command: UpdateBlockPropertyCommand = {
         propertyPath: `properties.${key}`,
         value,

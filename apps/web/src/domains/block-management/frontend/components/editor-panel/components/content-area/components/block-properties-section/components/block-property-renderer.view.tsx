@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 
 import type { PropertyUIDefinition } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
+import { formatShortDisplayUrl } from '@/domains/block-management/shared/utils/format-display-url';
 
 import {
   CheckboxProperty,
@@ -151,6 +152,26 @@ export function BlockPropertyRendererView({
               <User className={`h-2.5 w-2.5 ${avatarUrl ? 'hidden' : ''}`} />
             </div>
             {displayName}
+          </div>
+        );
+
+      case 'url':
+        if (!value || typeof value !== 'string') {
+          return (
+            <div className="text-xs py-1 px-2 text-muted-foreground">-</div>
+          );
+        }
+        return (
+          <div className="text-xs py-1 px-2 text-muted-foreground">
+            <a
+              href={value}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline truncate block"
+              title={value}
+            >
+              {formatShortDisplayUrl(value)}
+            </a>
           </div>
         );
 

@@ -15,6 +15,7 @@ import {
   StorageError,
 } from '../types/storage.types';
 import { validateFile } from '../lib/validation';
+import { generateCanvasAssetPath } from '../lib/path-generator';
 
 export function useSupabaseStorage() {
   const [isUploading, setIsUploading] = useState(false);
@@ -25,7 +26,14 @@ export function useSupabaseStorage() {
 
   const upload = useCallback(
     async (options: UploadOptions): Promise<UploadResult> => {
-      const { bucket, file, path: providedPath, onProgress } = options;
+      const {
+        bucket,
+        file,
+        path: providedPath,
+        onProgress,
+        orgId,
+        workspaceId,
+      } = options;
 
       setIsUploading(true);
       setError(null);
@@ -39,14 +47,24 @@ export function useSupabaseStorage() {
         // 2. Generate path (if not provided)
         let path = providedPath;
         if (!path) {
-          // Fallback: use temp folder
-          // Note: 레거시 경로 구조는 제거되었습니다.
-          // 이미지 업로드는 image-upload.actions.ts를 통해 ImageUploadService를 사용해야 합니다.
-          const timestamp = Date.now();
-          const uuid = crypto.randomUUID();
-          const ext = file.name.split('.').pop() || '';
-          path = `temp/${timestamp}-${uuid}.${ext}`;
-          console.warn('Path not provided, using temp path:', path);
+          if (
+            bucket === StorageBucket.CANVAS_ASSETS &&
+            orgId &&
+            workspaceId
+          ) {
+            path = generateCanvasAssetPath({
+              orgId,
+              workspaceId,
+              fileName: file.name,
+            });
+          } else {
+            // Fallback: temp folder (e.g. clipboard paste without context)
+            const timestamp = Date.now();
+            const uuid = crypto.randomUUID();
+            const ext = file.name.split('.').pop() || '';
+            path = `temp/${timestamp}-${uuid}.${ext}`;
+            console.warn('Path not provided, using temp path:', path);
+          }
         }
 
         setProgress(30);
@@ -79,12 +97,12 @@ export function useSupabaseStorage() {
           url = publicUrlData.publicUrl;
           publicUrl = publicUrlData.publicUrl;
         } else {
-          // Private bucket - generate signed URL with 1 year expiry
-          const ONE_YEAR_IN_SECONDS = 31536000; // 365 days
+          // Private bucket - 1 day expiry (보안·워크스페이스 권한 회수 대응)
+          const ONE_DAY_IN_SECONDS = 86400;
           const { data: signedUrlData, error: signedUrlError } =
             await supabase.storage
               .from(bucket)
-              .createSignedUrl(path, ONE_YEAR_IN_SECONDS);
+              .createSignedUrl(path, ONE_DAY_IN_SECONDS);
 
           if (signedUrlError) {
             throw signedUrlError;

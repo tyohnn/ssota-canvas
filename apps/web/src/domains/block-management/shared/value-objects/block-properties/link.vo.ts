@@ -13,21 +13,51 @@ import { BlockPropertiesVO } from './base.vo';
  * Link Block Properties Interface
  *
  * 사용자가 입력한 URL과 자동으로 fetch된 오픈그래프 메타데이터
+ * properties는 flat 유지 (tabs 래퍼 없음)
  */
 export interface LinkBlockProperties {
   // 기본 정보
   url: string; // 사용자가 입력하는 URL
 
   // 오픈그래프 메타데이터 (자동 fetch, 에디터 패널에서 렌더링 안 함)
-  ogTitle?: string; // 오픈그래프 제목
-  ogDescription?: string; // 오픈그래프 설명
-  ogImage?: string; // 오픈그래프 이미지 URL
-  siteName?: string; // 사이트 이름 (예: 'GitHub', 'Medium')
-  domain?: string; // 도메인 (예: 'github.com')
-  faviconUrl?: string; // 파비콘 URL
-  author?: string; // 작성자 (article만)
-  publishedAt?: string; // 게시일 ISO string (article만)
-  pageType?: string; // 페이지 타입 (예: 'article', 'website', 'video')
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  siteName?: string;
+  domain?: string;
+  faviconUrl?: string;
+  author?: string;
+  publishedAt?: string;
+  pageType?: string;
+
+  /** 스크린샷 (배열) */
+  screenshot?: Array<{
+    url: string;
+    fullPage: boolean;
+    capturedAt: string;
+  }>;
+  /** 이미지 목록 */
+  images?: Array<{
+    url: string;
+    alt?: string;
+    width?: number;
+    height?: number;
+  }>;
+  /** 디자인 메타데이터 */
+  design?: {
+    colors: string[];
+    fonts: string[];
+    metadata: Record<string, unknown>;
+  };
+
+  /** 요약 (언어별, Source 도메인 또는 캐시) */
+  summary?: Record<string, string>;
+  /** 추출 마크다운 (Source 도메인 또는 캐시) */
+  extract?: { markdown: string; extractedAt?: string };
+  /** 이 블록에서 요약 접근 가능한 언어 목록 (source job 완료 시 업데이트) */
+  sourceSummaryAccessLanguages?: string[];
+  /** 이 블록에서 원문/스크립트 접근 가능 여부 (source-management, org 기반) */
+  sourceRawContentAccessGranted?: boolean;
 }
 
 /**
@@ -46,7 +76,14 @@ export class LinkBlockPropertiesVO extends BlockPropertiesVO {
     public readonly faviconUrl?: string,
     public readonly author?: string,
     public readonly publishedAt?: string,
-    public readonly pageType?: string
+    public readonly pageType?: string,
+    public readonly screenshot?: LinkBlockProperties['screenshot'],
+    public readonly images?: LinkBlockProperties['images'],
+    public readonly design?: LinkBlockProperties['design'],
+    public readonly summary?: LinkBlockProperties['summary'],
+    public readonly extract?: LinkBlockProperties['extract'],
+    public readonly sourceSummaryAccessLanguages?: string[],
+    public readonly sourceRawContentAccessGranted?: boolean,
   ) {
     super();
     this.validate();
@@ -76,7 +113,14 @@ export class LinkBlockPropertiesVO extends BlockPropertiesVO {
       data.faviconUrl,
       data.author,
       data.publishedAt,
-      data.pageType
+      data.pageType,
+      data.screenshot,
+      data.images,
+      data.design,
+      data.summary,
+      data.extract,
+      data.sourceSummaryAccessLanguages,
+      data.sourceRawContentAccessGranted,
     );
   }
 
@@ -125,6 +169,17 @@ export class LinkBlockPropertiesVO extends BlockPropertiesVO {
       author: this.author,
       publishedAt: this.publishedAt,
       pageType: this.pageType,
+      ...(this.screenshot && { screenshot: this.screenshot }),
+      ...(this.images && { images: this.images }),
+      ...(this.design && { design: this.design }),
+      ...(this.summary && { summary: this.summary }),
+      ...(this.extract && { extract: this.extract }),
+      ...(this.sourceSummaryAccessLanguages && {
+        sourceSummaryAccessLanguages: this.sourceSummaryAccessLanguages,
+      }),
+      ...(this.sourceRawContentAccessGranted !== undefined && {
+        sourceRawContentAccessGranted: this.sourceRawContentAccessGranted,
+      }),
     };
   }
 
@@ -144,7 +199,16 @@ export class LinkBlockPropertiesVO extends BlockPropertiesVO {
       this.faviconUrl === other.faviconUrl &&
       this.author === other.author &&
       this.publishedAt === other.publishedAt &&
-      this.pageType === other.pageType
+      this.pageType === other.pageType &&
+      JSON.stringify(this.screenshot ?? []) ===
+        JSON.stringify(other.screenshot ?? []) &&
+      JSON.stringify(this.images ?? []) === JSON.stringify(other.images ?? []) &&
+      JSON.stringify(this.design ?? {}) === JSON.stringify(other.design ?? {}) &&
+      JSON.stringify(this.summary ?? {}) === JSON.stringify(other.summary ?? {}) &&
+      JSON.stringify(this.extract ?? {}) === JSON.stringify(other.extract ?? {}) &&
+      JSON.stringify(this.sourceSummaryAccessLanguages ?? []) ===
+        JSON.stringify(other.sourceSummaryAccessLanguages ?? []) &&
+      this.sourceRawContentAccessGranted === other.sourceRawContentAccessGranted
     );
   }
 
@@ -164,7 +228,14 @@ export class LinkBlockPropertiesVO extends BlockPropertiesVO {
       this.faviconUrl,
       this.author,
       this.publishedAt,
-      this.pageType
+      this.pageType,
+      this.screenshot,
+      this.images,
+      this.design,
+      this.summary,
+      this.extract,
+      this.sourceSummaryAccessLanguages,
+      this.sourceRawContentAccessGranted,
     );
   }
 
@@ -194,7 +265,14 @@ export class LinkBlockPropertiesVO extends BlockPropertiesVO {
       metadata.faviconUrl ?? this.faviconUrl,
       metadata.author ?? this.author,
       metadata.publishedAt ?? this.publishedAt,
-      metadata.pageType ?? this.pageType
+      metadata.pageType ?? this.pageType,
+      this.screenshot,
+      this.images,
+      this.design,
+      this.summary,
+      this.extract,
+      this.sourceSummaryAccessLanguages,
+      this.sourceRawContentAccessGranted,
     );
   }
 

@@ -8,7 +8,12 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { UseCanvasBlockLifecycleResult } from '@/domains/canvas-management/frontend/hooks/use-canvas-block-lifecycle';
 import type { useCanvasEdgeLifecycle } from '@/domains/canvas-management/frontend/hooks/use-canvas-edge-lifecycle';
-import { calculateOffset, adjustPosition, type Position } from '../utils/position-adjuster';
+import {
+  calculateOffset,
+  adjustPosition,
+  computeNonOverlappingRootPositions,
+  type Position,
+} from '../utils/position-adjuster';
 import { createNodeFromCanvasdown } from '../services/node-creation.service';
 import {
   addChildToGroup,
@@ -24,6 +29,11 @@ export interface FullRendererParams {
   blockLifecycle: UseCanvasBlockLifecycleResult;
   edgeLifecycle: ReturnType<typeof useCanvasEdgeLifecycle>;
   nodeIdMap: Map<string, string>;
+  /** 그룹 자식 배치 후 그룹 크기를 자식 bbox 기준으로 갱신할 때 호출 */
+  onGroupExtentComputed?: (
+    blockMountId: string,
+    size: { width: number; height: number }
+  ) => Promise<void>;
 }
 
 export interface FullRendererResult {
@@ -49,6 +59,7 @@ export async function renderFullCanvasdown(
     blockLifecycle,
     edgeLifecycle,
     nodeIdMap,
+    onGroupExtentComputed,
   } = params;
 
   const errors: Error[] = [];
@@ -72,13 +83,19 @@ export async function renderFullCanvasdown(
       return 0;
     });
 
+    // 루트 노드 겹침 방지: 오프셋 적용 후 겹치지 않도록 재배치
+    const rootPositionMap = computeNonOverlappingRootPositions(
+      parentNodes,
+      startPosition,
+      offset
+    );
+
     // 3. 부모 노드들을 먼저 생성
     const parentNodeCreationPromises = sortedParentNodes.map(
       async (canvasdownNode) => {
-        const adjustedPosition = adjustPosition(
-          canvasdownNode.position,
-          offset
-        );
+        const adjustedPosition =
+          rootPositionMap.get(canvasdownNode.id) ??
+          adjustPosition(canvasdownNode.position, offset);
 
         const result = await createNodeFromCanvasdown({
           canvasdownNode,
@@ -97,6 +114,12 @@ export async function renderFullCanvasdown(
 
     // 부모 노드 생성 완료 대기
     const parentNodeResults = await Promise.all(parentNodeCreationPromises);
+
+    // 그룹별 자식 bbox 수집 (자식 추가 후 그룹 크기 갱신용)
+    const groupChildrenRects = new Map<
+      string,
+      Array<{ rel: Position; width: number; height: number }>
+    >();
 
     // 4. 자식 노드들을 생성 (부모 노드 생성 완료 후)
     const childNodeCreationPromises = childNodes.map(
@@ -130,15 +153,27 @@ export async function renderFullCanvasdown(
           return { blockMountId: null, success: false };
         }
 
-        // 자식 노드의 위치 조정
+        // 부모 위치: 루트 맵이 있으면 그걸 쓰고 없으면 오프셋만 적용
+        const parentAdjustedPosition =
+          rootPositionMap.get(parentNode.id) ??
+          adjustPosition(parentNode.position, offset);
         const childAdjustedPosition = adjustPosition(
           canvasdownNode.position,
           offset
         );
-        const parentAdjustedPosition = adjustPosition(
-          parentNode.position,
-          offset
-        );
+        const relativePosition: Position = {
+          x: childAdjustedPosition.x - parentAdjustedPosition.x,
+          y: childAdjustedPosition.y - parentAdjustedPosition.y,
+        };
+
+        const childWidth =
+          (canvasdownNode.width as number) ??
+          (canvasdownNode.measured?.width as number) ??
+          200;
+        const childHeight =
+          (canvasdownNode.height as number) ??
+          (canvasdownNode.measured?.height as number) ??
+          150;
 
         // 자식 노드 생성
         const createResult = await createNodeFromCanvasdown({
@@ -169,12 +204,64 @@ export async function renderFullCanvasdown(
           errors.push(groupResult.error);
         }
 
+        // 그룹 자식 bbox 수집 (zone/group만)
+        if (
+          parentNode.type === 'group' ||
+          parentNode.type === 'zone'
+        ) {
+          const list =
+            groupChildrenRects.get(parentBlockMountId) ?? [];
+          list.push({
+            rel: relativePosition,
+            width: childWidth,
+            height: childHeight,
+          });
+          groupChildrenRects.set(parentBlockMountId, list);
+        }
+
         return createResult;
       }
     );
 
     // 자식 노드 생성 완료 대기
-    const childNodeResults = await Promise.all(childNodeCreationPromises);
+    await Promise.all(childNodeCreationPromises);
+
+    // 4-2. 그룹 extent 계산 후 onGroupExtentComputed 호출
+    const GROUP_PADDING = 20;
+    const MIN_GROUP_WIDTH = 120;
+    const MIN_GROUP_HEIGHT = 80;
+    if (onGroupExtentComputed && groupChildrenRects.size > 0) {
+      for (const [blockMountId, rects] of groupChildrenRects) {
+        if (rects.length === 0) continue;
+        let minX = 0;
+        let minY = 0;
+        let maxX = 0;
+        let maxY = 0;
+        for (const r of rects) {
+          minX = Math.min(minX, r.rel.x);
+          minY = Math.min(minY, r.rel.y);
+          maxX = Math.max(maxX, r.rel.x + r.width);
+          maxY = Math.max(maxY, r.rel.y + r.height);
+        }
+        const width = Math.max(
+          maxX - minX + GROUP_PADDING * 2,
+          MIN_GROUP_WIDTH
+        );
+        const height = Math.max(
+          maxY - minY + GROUP_PADDING * 2,
+          MIN_GROUP_HEIGHT
+        );
+        try {
+          await onGroupExtentComputed(blockMountId, { width, height });
+        } catch (e) {
+          console.warn(
+            '[FullRenderer] onGroupExtentComputed failed for',
+            blockMountId,
+            e
+          );
+        }
+      }
+    }
 
     // 5. 엣지 추가 (노드가 모두 생성된 후)
     let createdEdgesCount = 0;

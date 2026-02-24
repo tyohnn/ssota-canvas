@@ -20,6 +20,10 @@ export interface TipTapEditorState {
   isInitialMountRef: RefObject<boolean>;
   debounceTimerRef: RefObject<NodeJS.Timeout | null>;
   isComposingRef: RefObject<boolean>; // 한글 입력 조합 중 플래그
+  /** Buffered ProseMirror step JSONs between flushes (debounce/blur). Cleared after onSaveSteps. */
+  stepsBufferRef: RefObject<unknown[]>;
+  /** Server-synced content_version for optimistic locking. Updated on applyBlockContentSteps success. */
+  contentVersionRef: RefObject<number>;
 }
 
 /**
@@ -30,6 +34,8 @@ export interface TipTapEditorState {
 export interface TipTapEditorOptions {
   blockData: BlockNodeData;
   placeholder?: string;
+  /** When true, placeholder is shown even when editor is read-only (e.g. canvas note block before double-click) */
+  placeholderShowWhenReadOnly?: boolean;
   editable?: boolean;
   /**
    * Content 변경 시 호출되는 콜백
@@ -37,10 +43,39 @@ export interface TipTapEditorOptions {
    */
   onContentChange?: (content: any) => void;
   /**
-   * 저장이 필요한 시점에 호출되는 콜백
-   * debounce 후 또는 blur 시 호출됨
+   * Step 기반 저장 (ProseMirror steps)
+   * debounce(500ms)·blur·compositionend 시 steps가 있으면 steps + baseVersion으로 전송.
    */
-  onSave?: (content: any, contentRaw?: string) => void | Promise<void>;
+  onSaveSteps?: (steps: unknown[], baseVersion: number) => void | Promise<void>;
+  /**
+   * Blur 시 감사 로그만 기록 (저장과 분리). focus→blur 구간 contentRaw diff의 patch를 전달.
+   */
+  onBlurAudit?: (params: {
+    blockId: string;
+    patch: string;
+  }) => void | Promise<void>;
+  /** 서버와 동기화된 content_version (step 기반 저장 시 사용) */
+  initialVersion?: number;
+  /** step 적용 성공 시 newVersion으로 갱신할 ref (제공 시 내부 ref 대신 사용) */
+  contentVersionRef?: RefObject<number>;
+  /** version mismatch 시 서버 content/version으로 동기화할 핸들러 (ref로 설정) */
+  onVersionMismatchRef?: RefObject<
+    ((content: unknown, version: number) => void) | null
+  >;
+  /**
+   * 이미지 업로드 콜백 (paste/drop 시)
+   * File → Supabase 업로드 후 URL 반환
+   */
+  uploadImage?: (file: File) => Promise<string>;
+}
+
+/**
+ * Math (LaTeX) 편집 중인 노드 상태
+ */
+export interface MathEditingState {
+  pos: number;
+  latex: string;
+  nodeType: 'blockMath' | 'inlineMath';
 }
 
 /**
@@ -55,5 +90,9 @@ export interface UseTipTapEditorReturn {
    * 에디터 클릭 핸들러 (포커스 처리)
    */
   handleEditorClick: () => void;
+  /** LaTeX 수식 편집 중인 노드 (null이면 편집 중 아님) */
+  mathEditing: MathEditingState | null;
+  /** LaTeX 편집 상태 설정 */
+  setMathEditing: (state: MathEditingState | null) => void;
 }
 

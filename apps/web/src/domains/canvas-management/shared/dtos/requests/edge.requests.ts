@@ -8,6 +8,15 @@
  */
 import { z } from 'zod';
 
+import { BlockMountSlugSchema } from './block.requests';
+
+/** Edge slug (8~10자 hex, API의 edgeId. migration 충돌 시 10자 확장) */
+export const EdgeSlugSchema = z
+  .string()
+  .min(8, 'Edge ID must be at least 8 characters')
+  .max(10, 'Edge ID must be at most 10 characters')
+  .regex(/^[a-f0-9]{8,10}$/i, 'Edge ID must be 8-10 hex characters');
+
 /**
  * 엣지 스타일 (생성/업데이트 공통)
  */
@@ -51,8 +60,8 @@ const edgeShapeEnum = [
  */
 export const CreateEdgeRequestSchema = z.object({
   pageId: z.uuid('Invalid page ID'),
-  sourceBlockMountId: z.uuid('Invalid source block mount ID'),
-  targetBlockMountId: z.uuid('Invalid target block mount ID'),
+  sourceBlockMountId: BlockMountSlugSchema,
+  targetBlockMountId: BlockMountSlugSchema,
   sourceHandle: z.enum(['left', 'right', 'top', 'bottom']),
   targetHandle: z.enum(['left', 'right', 'top', 'bottom']),
   label: z.string().optional(),
@@ -66,7 +75,8 @@ export const CreateEdgeRequestSchema = z.object({
  * 엣지 모양 업데이트 요청 스키마
  */
 export const UpdateEdgeShapeRequestSchema = z.object({
-  edgeId: z.uuid('Invalid edge ID'),
+  pageId: z.uuid('Invalid page ID'),
+  edgeId: EdgeSlugSchema,
   newShape: z.string(),
 });
 
@@ -74,7 +84,8 @@ export const UpdateEdgeShapeRequestSchema = z.object({
  * 엣지 라벨 업데이트 요청 스키마
  */
 export const UpdateEdgeLabelRequestSchema = z.object({
-  edgeId: z.uuid('Invalid edge ID'),
+  pageId: z.uuid('Invalid page ID'),
+  edgeId: EdgeSlugSchema,
   newLabel: z.string(),
 });
 
@@ -82,14 +93,16 @@ export const UpdateEdgeLabelRequestSchema = z.object({
  * 엣지 삭제 요청 스키마
  */
 export const DeleteEdgeRequestSchema = z.object({
-  edgeId: z.uuid('Invalid edge ID'),
+  pageId: z.uuid('Invalid page ID'),
+  edgeId: EdgeSlugSchema,
 });
 
 /**
  * 엣지 스타일 업데이트 요청 스키마
  */
 export const UpdateEdgeStyleRequestSchema = z.object({
-  edgeId: z.uuid('Invalid edge ID'),
+  pageId: z.uuid('Invalid page ID'),
+  edgeId: EdgeSlugSchema,
   style: z.object({
     stroke: z.string().optional(),
     strokeWidth: z.number().optional(),
@@ -102,7 +115,8 @@ export const UpdateEdgeStyleRequestSchema = z.object({
  * - value: MarkerType (none | arrow | arrow-open | circle | circle-open | diamond | diamond-open)
  */
 export const UpdateEdgeMarkerRequestSchema = z.object({
-  edgeId: z.uuid('Invalid edge ID'),
+  pageId: z.uuid('Invalid page ID'),
+  edgeId: EdgeSlugSchema,
   marker: z.enum(['start', 'end']),
   value: z.enum(markerTypeEnum),
 });

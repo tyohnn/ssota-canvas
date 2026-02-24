@@ -31,7 +31,15 @@ export {
   PythonBlockPropertiesVO,
   type PythonBlockProperties,
 } from './python.vo';
-export { LinkBlockPropertiesVO, type LinkBlockProperties } from './link.vo';
+export {
+  LinkBlockPropertiesVO,
+  type LinkBlockProperties,
+} from './link.vo';
+export {
+  RouterBlockPropertiesVO,
+  type RouterBlockProperties,
+  type RouterType,
+} from './router.vo';
 export {
   PageMentionBlockPropertiesVO,
   type PageMentionBlockProperties,

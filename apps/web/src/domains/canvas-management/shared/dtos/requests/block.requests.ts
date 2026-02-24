@@ -58,6 +58,17 @@ export const SizeSchema = z.object({
  */
 export const ViewModeSchema = z.enum(['note', 'original', 'card']);
 
+/**
+ * BlockMount slug (8~10자 hex, API의 blockMountId)
+ * - DB: block_mounts.slug, UNIQUE(page_id, slug)
+ * - migration 충돌 시 10자 확장
+ */
+export const BlockMountSlugSchema = z
+  .string()
+  .min(8, 'Block mount ID must be at least 8 characters')
+  .max(10, 'Block mount ID must be at most 10 characters')
+  .regex(/^[a-f0-9]{8,10}$/i, 'Block mount ID must be 8-10 hex characters');
+
 export const CreateAndMountBlockRequestSchema = z.object({
   pageId: z.uuid('Invalid page ID'),
   blockType: BlockTypeSchema,
@@ -102,7 +113,7 @@ export const CreateAndMountBlocksRequestSchema = z.object({
 export const UpdateBlockPositionRequestSchema = z.object({
   blockPositions: z.array(
     z.object({
-      blockMountId: z.uuid('Invalid block mount ID'),
+      blockMountId: BlockMountSlugSchema,
       position: PositionSchema,
     })
   ),
@@ -113,7 +124,8 @@ export const UpdateBlockPositionRequestSchema = z.object({
  * 블럭 크기 업데이트 요청 스키마
  */
 export const UpdateBlockSizeRequestSchema = z.object({
-  blockMountId: z.uuid('Invalid block mount ID'),
+  pageId: z.uuid('Invalid page ID'),
+  blockMountId: BlockMountSlugSchema,
   newSize: SizeSchema,
   viewMode: ViewModeSchema.optional(), // 어떤 뷰 모드의 크기를 업데이트할지 (기본값: 현재 viewMode)
 });
@@ -122,31 +134,29 @@ export const UpdateBlockSizeRequestSchema = z.object({
  * 블럭 마운트 삭제 요청 스키마 (단일 또는 다중)
  */
 export const SoftDeleteBlockMountRequestSchema = z.object({
-  blockMountIds: z.array(z.uuid('Invalid block mount ID')),
   pageId: z.uuid('Invalid page ID'),
+  blockMountIds: z.array(BlockMountSlugSchema),
 });
 
 /**
  * 블럭 복제 요청 스키마 (단일)
- *
- * ⚠️ Zero Trust: pageId는 서버에서 blockMount 조회 후 자동 추출
  */
 export const DuplicateBlockAndMountRequestSchema = z.object({
-  blockMountId: z.uuid('Invalid block mount ID'),
+  pageId: z.uuid('Invalid page ID'),
+  blockMountId: BlockMountSlugSchema,
   offsetX: z.number().optional(),
   offsetY: z.number().optional(),
 });
 
 /**
  * 블럭 복제 요청 스키마 (다중, 배치)
- *
- * ⚠️ Zero Trust: pageId는 서버에서 blockMount 조회 후 자동 추출
  */
 export const DuplicateBlocksAndMountRequestSchema = z.object({
+  pageId: z.uuid('Invalid page ID'),
   blocks: z
     .array(
       z.object({
-        blockMountId: z.uuid('Invalid block mount ID'),
+        blockMountId: BlockMountSlugSchema,
         offsetX: z.number().optional(),
         offsetY: z.number().optional(),
       })
@@ -158,7 +168,8 @@ export const DuplicateBlocksAndMountRequestSchema = z.object({
  * 블럭 페이지 이동 요청 스키마
  */
 export const MoveBlockToPageRequestSchema = z.object({
-  blockMountId: z.uuid('Invalid block mount ID'),
+  pageId: z.uuid('Invalid page ID'),
+  blockMountId: BlockMountSlugSchema,
   targetPageId: z.uuid('Invalid target page ID'),
 });
 
@@ -166,7 +177,8 @@ export const MoveBlockToPageRequestSchema = z.object({
  * 블럭 View Mode 업데이트 요청 스키마
  */
 export const UpdateBlockMountViewModeRequestSchema = z.object({
-  blockMountId: z.uuid('Invalid block mount ID'),
+  pageId: z.uuid('Invalid page ID'),
+  blockMountId: BlockMountSlugSchema,
   viewMode: ViewModeSchema,
 });
 
@@ -175,8 +187,8 @@ export const UpdateBlockMountViewModeRequestSchema = z.object({
  */
 export const AddNodeToGroupRequestSchema = z.object({
   pageId: z.uuid('Invalid page ID'),
-  childBlockMountId: z.uuid('Invalid child block mount ID'),
-  parentBlockMountId: z.uuid('Invalid parent block mount ID'),
+  childBlockMountId: BlockMountSlugSchema,
+  parentBlockMountId: BlockMountSlugSchema,
   childAbsolutePosition: PositionSchema,
   parentPosition: PositionSchema,
 });
@@ -186,17 +198,20 @@ export const AddNodeToGroupRequestSchema = z.object({
  */
 export const RemoveNodeFromGroupRequestSchema = z.object({
   pageId: z.uuid('Invalid page ID'),
-  childBlockMountId: z.uuid('Invalid child block mount ID'),
+  childBlockMountId: BlockMountSlugSchema,
   parentPosition: PositionSchema,
   childRelativePosition: PositionSchema,
 });
 
 /**
  * 선택된 노드들로 그룹 생성 요청 스키마
+ * nodeIds = blockMount slugs (React Flow node ID = blockMountId)
  */
 export const CreateGroupFromNodesRequestSchema = z.object({
   pageId: z.uuid('Invalid page ID'),
-  nodeIds: z.array(z.uuid('Invalid node ID')).min(1, 'At least one node is required'),
+  nodeIds: z
+    .array(BlockMountSlugSchema)
+    .min(1, 'At least one node is required'),
   groupTitle: z.string().optional(),
   groupColor: z.string().optional(),
 });

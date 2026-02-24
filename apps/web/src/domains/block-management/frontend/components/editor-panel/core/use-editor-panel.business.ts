@@ -10,6 +10,7 @@ import { useCallback } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { updateBlockTitleAction } from '@/domains/block-management/actions/block/update-block-title.action';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
@@ -29,6 +30,7 @@ export function useEditorPanelBusiness(
   onClose: () => void
 ): EditorPanelBusinessLogic {
   const { updateNode, getNode } = useReactFlow();
+  const { workspaceId } = useCanvasMetadata();
 
   const onTitleSave = useCallback(
     async ({
@@ -53,38 +55,39 @@ export function useEditorPanelBusiness(
       }
 
       const blockIdValue = (blockData.blockId as string) || blockId;
+      const blockMountId = blockData.blockMountId;
 
       try {
         // Optimistic update
         const originalTitle = blockData.title;
-        const blockNode = getNode(blockId);
+        const blockNode = getNode(blockMountId);
 
-        // React Flow Store 즉시 업데이트
+        // React Flow Store 즉시 업데이트 (node.id === blockMountId)
         const updatedData = {
           ...blockData,
           title: trimmedTitle,
         };
 
         if (blockNode) {
-          updateNode(blockId, { data: updatedData });
+          updateNode(blockMountId, { data: updatedData });
         } else {
           console.warn(
             '[EditorPanel] Block node not found, skipping React Flow update'
           );
         }
 
-        // Server action 호출
+        // Server action 호출 (UpdateBlockTitleRequestSchema: workspaceId, blockId, title)
         const result = await updateBlockTitleAction({
+          workspaceId,
           blockId: blockIdValue,
           title: trimmedTitle,
-          pageId: blockData.pageId, // ✅ 추가
         });
 
         if (!result.success) {
           // 실패 시 롤백
           console.error('[EditorPanel] Failed to update title:', result.error);
           if (blockNode) {
-            updateNode(blockId, {
+            updateNode(blockMountId, {
               data: { ...blockData, title: originalTitle },
             });
           }
@@ -95,7 +98,7 @@ export function useEditorPanelBusiness(
         throw error;
       }
     },
-    [updateNode, getNode]
+    [updateNode, getNode, workspaceId]
   );
 
   return {

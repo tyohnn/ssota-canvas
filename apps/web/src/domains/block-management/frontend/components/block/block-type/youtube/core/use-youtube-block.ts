@@ -8,6 +8,7 @@ import { useAIActionContext } from '@/domains/ai-actions/frontend/contexts/ai-ac
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/block-property/use-block-title-update';
 import { YoutubeBlockPropertiesVO } from '@/domains/block-management/shared/value-objects/block-properties/youtube.vo';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 
 import type {
@@ -49,6 +50,7 @@ export function useYoutubeBlock(
       },
     },
   });
+  const { workspaceId } = useCanvasMetadata();
   const canvasMode = useCanvasModeContext();
   const { setAutoSummaryBlockId } = useAIActionContext();
 
@@ -67,11 +69,25 @@ export function useYoutubeBlock(
   );
 
   // Business Hook (또는 주입된 로직)
+  const updateSourceId = useCallback(
+    (sourceId: string) => {
+      const node = getNode(nodeData.blockMountId);
+      if (node?.data) {
+        updateNode(nodeData.blockMountId, {
+          data: { ...node.data, sourceId },
+        });
+      }
+    },
+    [getNode, updateNode, nodeData.blockMountId]
+  );
+
   const defaultBusiness = useYoutubeBlockBusiness(
     nodeData,
     vo,
+    workspaceId,
     updateProperties,
-    updateBlockTitle
+    updateBlockTitle,
+    updateSourceId
   );
   const business = businessLogicOverride ?? defaultBusiness;
 
@@ -119,7 +135,11 @@ export function useYoutubeBlock(
             const result = await fetchMetadata(vo.url);
 
             if (result.success) {
-              if (nodeData.blockId) setAutoSummaryBlockId(nodeData.blockId);
+              if (result.blockUuid) {
+                setAutoSummaryBlockId(result.blockUuid);
+              } else if (nodeData.blockId) {
+                setAutoSummaryBlockId(nodeData.blockId);
+              }
               // 비즈니스 훅에서 이미 updateProperties 호출됨 (URL + 메타데이터)
               setIsLoading(false);
             } else {
@@ -146,13 +166,23 @@ export function useYoutubeBlock(
       fetchedUrlRef.current = null;
       setIsLoading(false);
     }
-  }, [vo.url, vo.youtubeTitle, fetchMetadata, setIsLoading, setHasError]);
+  }, [
+    vo.url,
+    vo.youtubeTitle,
+    fetchMetadata,
+    setIsLoading,
+    setHasError,
+    nodeData.blockId,
+    setAutoSummaryBlockId,
+  ]);
 
-  // URL 제출 핸들러
+  // URL 제출 핸들러 (e는 optional - youtube.view의 onUrlSubmit 시그니처와 맞춤)
   const handleUrlSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
+    async (e?: React.FormEvent | { preventDefault(): void }) => {
+      e?.preventDefault();
+      if (e && 'stopPropagation' in e && typeof e.stopPropagation === 'function') {
+        e.stopPropagation();
+      }
 
       // draftUrl은 항상 string으로 초기화되지만, 안전을 위해 체크
       const trimmedUrl = (uiState.draftUrl || '').trim();
@@ -177,7 +207,11 @@ export function useYoutubeBlock(
         const result = await fetchMetadata(trimmedUrl);
 
         if (result.success) {
-          if (nodeData.blockId) setAutoSummaryBlockId(nodeData.blockId);
+          if (result.blockUuid) {
+            setAutoSummaryBlockId(result.blockUuid);
+          } else if (nodeData.blockId) {
+            setAutoSummaryBlockId(nodeData.blockId);
+          }
           // 비즈니스 훅에서 이미 updateProperties 호출됨 (URL + 메타데이터)
           uiState.setIsLoading(false);
         } else {

@@ -7,9 +7,10 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
-// Mock repositories and services
+// Mock repositories and services (slug 기반 조회)
 const mockBlockRepository = {
   findById: vi.fn(),
+  findByWorkspaceIdAndSlug: vi.fn(),
   save: vi.fn(),
 };
 
@@ -31,7 +32,8 @@ vi.mock('../../backend/services/blocks', () => ({
 }));
 
 describe('Block Actions', () => {
-  const blockId = '550e8400-e29b-41d4-a716-446655440000';
+  const workspaceId = '550e8400-e29b-41d4-a716-446655440000';
+  const blockSlug = '550e8400';
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,28 +42,29 @@ describe('Block Actions', () => {
   describe('updateBlockPropertyAction', () => {
     it('should update a block property successfully', async () => {
       const mockBlock = {
-        id: { value: blockId },
+        id: { value: '123e4567-e89b-12d3-a456-426614174000' },
+        getSlug: () => blockSlug,
         properties: { toJSON: () => ({ title: 'Updated Title' }) },
         customProperties: [],
-        workspaceId: 'workspace-123',
+        workspaceId: { value: workspaceId },
         blockType: { value: 'text' },
         createdAt: new Date(),
         updatedAt: new Date(),
         createdBy: undefined,
       };
-      
-      mockBlockRepository.findById.mockResolvedValue(mockBlock);
+
+      mockBlockRepository.findByWorkspaceIdAndSlug.mockResolvedValue(mockBlock);
 
       const result = await updateBlockPropertyAction({
-        blockId,
+        workspaceId,
+        blockId: blockSlug,
         propertyPath: 'title',
         value: 'Updated Title',
-        pageId: '550e8400-e29b-41d4-a716-446655440001',
       });
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.blockId).toBe(blockId);
+        expect(result.data.blockId).toBe(blockSlug);
         expect(result.data.propertyPath).toBe('title');
         expect(result.data.value).toBe('Updated Title');
       }
@@ -69,23 +72,23 @@ describe('Block Actions', () => {
 
     it('should return error when validation fails', async () => {
       const result = await updateBlockPropertyAction({
-        blockId: 'invalid-uuid',
+        workspaceId,
+        blockId: 'invalid-slug',
         propertyPath: 'title',
         value: 'Updated Title',
-        pageId: '550e8400-e29b-41d4-a716-446655440001',
       });
 
       expect(result.success).toBe(false);
     });
 
     it('should return error when block not found', async () => {
-      mockBlockRepository.findById.mockResolvedValue(null);
+      mockBlockRepository.findByWorkspaceIdAndSlug.mockResolvedValue(null);
 
       const result = await updateBlockPropertyAction({
-        blockId,
+        workspaceId,
+        blockId: blockSlug,
         propertyPath: 'title',
         value: 'Updated Title',
-        pageId: '550e8400-e29b-41d4-a716-446655440001',
       });
 
       expect(result.success).toBe(false);
@@ -95,43 +98,44 @@ describe('Block Actions', () => {
   describe('updateBlockTitleAction', () => {
     it('should update a block title successfully', async () => {
       const mockBlock = {
-        id: { value: blockId },
+        id: { value: '123e4567-e89b-12d3-a456-426614174000' },
+        getSlug: () => blockSlug,
         title: 'Updated Title',
         updatedAt: new Date(),
       };
 
-      mockBlockRepository.findById.mockResolvedValue(mockBlock);
+      mockBlockRepository.findByWorkspaceIdAndSlug.mockResolvedValue(mockBlock);
 
       const result = await updateBlockTitleAction({
-        blockId,
+        workspaceId,
+        blockId: blockSlug,
         title: 'Updated Title',
-        pageId: '550e8400-e29b-41d4-a716-446655440001',
       });
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.blockId).toBe(blockId);
+        expect(result.data.blockId).toBe(blockSlug);
         expect(result.data.title).toBe('Updated Title');
       }
     });
 
     it('should return error when validation fails', async () => {
       const result = await updateBlockTitleAction({
-        blockId: 'invalid-uuid',
+        workspaceId,
+        blockId: 'x',
         title: 'Updated Title',
-        pageId: '550e8400-e29b-41d4-a716-446655440001',
       });
 
       expect(result.success).toBe(false);
     });
 
     it('should return error when block not found', async () => {
-      mockBlockRepository.findById.mockResolvedValue(null);
+      mockBlockRepository.findByWorkspaceIdAndSlug.mockResolvedValue(null);
 
       const result = await updateBlockTitleAction({
-        blockId,
+        workspaceId,
+        blockId: blockSlug,
         title: 'Updated Title',
-        pageId: '550e8400-e29b-41d4-a716-446655440001',
       });
 
       expect(result.success).toBe(false);

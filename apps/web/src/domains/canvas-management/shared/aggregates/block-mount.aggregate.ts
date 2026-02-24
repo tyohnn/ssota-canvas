@@ -72,9 +72,9 @@ export class BlockMountAggregate {
     const viewModeSizes = command.viewModeSizes
       ? command.viewModeSizes
       : ViewModeSizes.empty().updateSizeForViewMode(
-          viewMode.value,
-          command.size
-        );
+        viewMode.value,
+        command.size
+      );
 
     // 4. BlockMount Entity 생성
     // viewMode 명시적으로 전달
@@ -100,6 +100,7 @@ export class BlockMountAggregate {
         size: blockMount.size, // 하위 호환성을 위해 유지
         viewMode: blockMount.viewMode,
         zOrder: zOrder,
+        blockType: command.blockType,
       },
       new Date()
     );
@@ -245,6 +246,7 @@ export class BlockMountAggregate {
         duplicatedBlockMountId: duplicatedBlockMount.id.value,
         originalBlockId: this._blockMount.blockId.value,
         duplicatedBlockId: command.newBlockId.value,
+        duplicatedBlockType: command.blockType,
       },
       new Date()
     );
@@ -358,9 +360,15 @@ export class BlockMountAggregate {
     const blockMount = this._blockMount;
     const block = blockAggregate.getBlock();
 
+    // API 노출용 blockMountId = 8자 hex slug (DB block_mounts.slug와 동일 규칙)
+    const blockMountSlug = blockMount.id.value
+      .replace(/-/g, '')
+      .toLowerCase()
+      .slice(0, 8);
+
     return {
       // Mount 정보 (Canvas Management Domain)
-      blockMountId: blockMount.id.value,
+      blockMountId: blockMountSlug,
       position: {
         x: blockMount.position.x,
         y: blockMount.position.y,
@@ -373,13 +381,15 @@ export class BlockMountAggregate {
       viewMode: blockMount.viewMode.value,
       viewModeSizes: blockMount.viewModeSizes.toJSON(),
 
-      // Block 정보 (Block Management Domain)
-      blockId: block.id.value,
+      // Block 정보 (Block Management Domain) — API는 slug(8~10자 hex)로 블록 식별
+      blockId: block.getSlug(),
       blockType: block.blockType.value,
       title: block.title,
       properties: block.properties.toJSON(),
       customProperties: block.customProperties.map(cp => cp.toJSON()) || [],
       content: block.content,
+      contentVersion: block.contentVersion,
+      sourceId: block.sourceId ?? undefined,
 
       // 메타데이터 (Block Management Domain)
       createdAt: block.createdAt.toISOString(),

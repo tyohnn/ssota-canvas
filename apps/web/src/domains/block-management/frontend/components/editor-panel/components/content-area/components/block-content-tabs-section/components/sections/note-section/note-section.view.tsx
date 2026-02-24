@@ -8,18 +8,23 @@
 
 import { Box } from '@/components/ui/box';
 import { TipTapEditor } from '@/domains/block-management/frontend/components/tiptap-editor';
+import type { MathEditingState } from '@/domains/block-management/frontend/components/tiptap-editor/core/types';
 import type { Editor } from '@tiptap/react';
 
 export interface NoteSectionViewProps {
   editor: Editor | null;
   readonly: boolean;
   onEditorClick?: () => void;
+  mathEditing?: MathEditingState | null;
+  onMathEditingChange?: (state: MathEditingState | null) => void;
 }
 
 export function NoteSectionView({
   editor,
   readonly,
   onEditorClick,
+  mathEditing,
+  onMathEditingChange,
 }: NoteSectionViewProps) {
   if (!editor) {
     return null;
@@ -36,6 +41,8 @@ export function NoteSectionView({
           editor={editor}
           editable={!readonly}
           onClick={onEditorClick}
+          mathEditing={mathEditing}
+          onMathEditingChange={onMathEditingChange}
           placeholderClassName="tiptap-editor-panel"
           placeholderStyleTarget="tiptap-editor-panel"
           className={`

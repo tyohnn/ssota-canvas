@@ -16,10 +16,12 @@ import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts
 import type { ResizeData } from '../core/types';
 import { ResizeControlView } from './resize-control.view';
 
-// 종횡비 유지가 필요한 블록 타입들
+// Blocks that keep aspect ratio when resizing
 const ASPECT_RATIO_LOCKED_BLOCK_TYPES = [
   BlockType.IMAGE,
   BlockType.YOUTUBE,
+  BlockType.LINK,
+  BlockType.AUDIO,
 ] as const;
 
 export interface ResizeControlProps {
@@ -42,7 +44,7 @@ export function ResizeControl({
   // readonly 모드에서는 resize 핸들을 숨김
   const show = !readonly && selected && isSingleSelection && !!data.blockMountId;
 
-  // 이미지/YouTube 블록이고 오리지널 뷰일 때만 가로세로비 고정
+  // 이미지/YouTube/링크 블록이고 오리지널 뷰일 때만 가로세로비 고정
   const isAspectRatioLockedBlock = ASPECT_RATIO_LOCKED_BLOCK_TYPES.includes(
     data.blockType as (typeof ASPECT_RATIO_LOCKED_BLOCK_TYPES)[number]
   );

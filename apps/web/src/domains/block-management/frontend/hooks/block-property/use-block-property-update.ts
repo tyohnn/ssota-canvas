@@ -5,9 +5,11 @@ import { useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import type { Node } from '@xyflow/react';
 
+import type { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { toast } from '@workspace/ui/components/ui/sonner';
 
-import { isFailure } from '@/lib';
+import { isFailure, uuidToSlug } from '@/lib';
 
 import { updateBlockPropertiesAction } from '../../../actions/block/update-block-properties.action';
 import { updateBlockPropertyAction } from '../../../actions/block/update-block-property.action';
@@ -26,6 +28,8 @@ export type ReactFlowDependencies = {
 
 export type UseUpdateBlockPropertyParams = {
   reactFlow: ReactFlowDependencies;
+  /** 테스트 시 mock 주입용. 미제공 시 useCanvasMetadata() 사용 */
+  canvasMetadata?: CanvasMetadata;
 };
 
 export interface UseBlockPropertyUpdateResult {
@@ -104,8 +108,10 @@ function updateNestedProperty<T>(
 export function useUpdateBlockProperty(
   params: UseUpdateBlockPropertyParams
 ): UseBlockPropertyUpdateResult {
-  const { reactFlow } = params;
+  const { reactFlow, canvasMetadata: canvasMetadataOverride } = params;
   const { updateNode, getNode } = reactFlow;
+  const canvasMetadata = canvasMetadataOverride ?? useCanvasMetadata();
+  const { workspaceId } = canvasMetadata;
 
   // ============================================================================
   // Mutation: Update Single Property
@@ -126,9 +132,15 @@ export function useUpdateBlockProperty(
       value,
       // blockMountId, blockData는 onMutate에서만 사용
     }: UpdatePropertyVariables) => {
-      // Validation
+      if (!workspaceId) throw new Error('Workspace context required');
+      // Normalize blockId: API expects 8-10 char slug, node data may have UUID from legacy/optimistic paths
+      const blockIdSlug =
+        blockId.length > 10 || blockId.includes('-')
+          ? uuidToSlug(blockId)
+          : blockId;
       const request: UpdateBlockPropertyRequestInput = {
-        blockId: blockId,
+        workspaceId,
+        blockId: blockIdSlug,
         propertyPath,
         value,
       };
@@ -204,12 +216,19 @@ export function useUpdateBlockProperty(
     mutationFn: async ({
       blockId,
       properties,
-      // blockMountId, blockData는 onMutate에서만 사용
     }: UpdatePropertiesVariables) => {
-      // Validation
+      if (!workspaceId) throw new Error('Workspace context required');
+      // Normalize blockId: API expects 8-10 char slug
+      const blockIdSlug =
+        blockId.length > 10 || blockId.includes('-')
+          ? uuidToSlug(blockId)
+          : blockId;
+      const { sourceId: _sourceId, ...propertyFields } =
+        properties as Record<string, unknown>;
       const request: UpdateBlockPropertiesRequestInput = {
-        blockId: blockId,
-        properties,
+        workspaceId,
+        blockId: blockIdSlug,
+        properties: propertyFields,
       };
 
       const parseResult = UpdateBlockPropertiesRequestSchema.safeParse(request);
@@ -235,23 +254,24 @@ export function useUpdateBlockProperty(
       blockMountId,
       blockData,
     }: UpdatePropertiesVariables) => {
-      // React Flow node id는 blockMountId (blockId와 다를 수 있음)
       const nodeId = blockMountId;
-
-      // Backup original data
       const previousData = blockData;
 
-      // Apply optimistic update (merge properties)
+      // sourceId는 block 최상위 필드로 분리 (서버에는 properties만 전송)
+      const { sourceId, ...propertyFields } = properties as Record<
+        string,
+        unknown
+      >;
       const updatedData: BlockNodeData = {
         ...blockData,
+        ...(sourceId !== undefined && { sourceId: sourceId as string }),
         properties: {
           ...(blockData.properties as any),
-          ...properties,
+          ...propertyFields,
         } as any,
       };
       updateNode(nodeId, { data: updatedData });
 
-      // Return context for rollback
       return { previousData, nodeId };
     },
 
@@ -334,7 +354,9 @@ export function useUpdateBlockProperty(
       }
       const currentBlockData = (latestNode?.data as BlockNodeData) || blockData;
 
+      if (!workspaceId) return;
       const request: UpdateBlockPropertyRequestInput = {
+        workspaceId,
         blockId: currentBlockData.blockId,
         propertyPath,
         value,
@@ -361,7 +383,7 @@ export function useUpdateBlockProperty(
       );
       updateNode(nodeId, { data: updatedData });
     },
-    [updateNode, getNode]
+    [updateNode, getNode, workspaceId]
   );
 
   return {

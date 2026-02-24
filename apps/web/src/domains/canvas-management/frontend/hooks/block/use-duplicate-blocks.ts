@@ -24,6 +24,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseDuplicateBlocksParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
   onSuccess?: (blockMountIds: string[]) => void;
   onError?: () => void;
@@ -60,7 +61,7 @@ export type UseDuplicateBlocksResult = {
 export function useDuplicateBlocks(
   params: UseDuplicateBlocksParams
 ): UseDuplicateBlocksResult {
-  const { reactFlow, onSuccess, onError } = params;
+  const { pageId, reactFlow, onSuccess, onError } = params;
   const { getNodes, setNodes, addNodes, deleteElements } = reactFlow;
 
   /**
@@ -97,6 +98,7 @@ export function useDuplicateBlocks(
         customProperties: originalNodeData.customProperties,
         content: originalNodeData.content,
         viewMode: originalNodeData.viewMode,
+        sourceId: originalNodeData.sourceId,
       }
     );
 
@@ -173,6 +175,7 @@ export function useDuplicateBlocks(
         }
 
         const rawRequest: DuplicateBlockAndMountRequestInput = {
+          pageId,
           blockMountId: block.blockMountId,
           offsetX: block.offsetX || 20,
           offsetY: block.offsetY || 20,
@@ -197,6 +200,7 @@ export function useDuplicateBlocks(
       }
 
       const actionResult = await duplicateBlocksAndMountAction({
+        pageId,
         blocks: duplicateRequests.map(({ request }) => ({
           blockMountId: request.blockMountId,
           offsetX: request.offsetX,
@@ -346,7 +350,7 @@ export function useDuplicateBlocks(
             | BlockNodeData
             | undefined;
 
-          // 실제 블럭 데이터 생성 (parentBlockMountId 유지)
+          // 실제 블럭 데이터 생성 (parentBlockMountId 유지, sourceId는 서버 응답 우선)
           const realNodeData: BlockNodeData = buildBlockNodeData(
             duplicateRequest.originalBlockType,
             {
@@ -357,6 +361,7 @@ export function useDuplicateBlocks(
               customProperties: optimisticNodeData?.customProperties,
               content: optimisticNodeData?.content,
               viewMode: optimisticNodeData?.viewMode || 'original',
+              sourceId: blockResult.sourceId ?? optimisticNodeData?.sourceId,
             }
           );
           const parentId = optimisticNode?.parentId;

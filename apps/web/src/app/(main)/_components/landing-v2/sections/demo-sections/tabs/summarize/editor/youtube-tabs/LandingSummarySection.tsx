@@ -7,8 +7,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LANDING_YOUTUBE_PROPERTIES } from '../../../../../../../mocks/landing-youtube-mock-data';
-import { SummarySectionView } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/section-tabs/summary-section/components/summary-section-view';
+import { SummarySectionView } from '@/domains/source-management/frontend/components/summary-tab';
 import type { VideoSummaryView } from '@/domains/youtube-app-space/shared/dtos/views/video-summary.views';
 import { StepHighlight } from '../../../../../../../mocks/components/StepHighlight';
 
@@ -158,8 +157,6 @@ export function LandingSummarySection({ step }: LandingSummarySectionProps) {
       cursorUseFixed={step === 6}
     >
       <SummarySectionView
-        youtubeId={LANDING_YOUTUBE_PROPERTIES.youtubeId ?? "mock-id"}
-        youtubeTitle={LANDING_YOUTUBE_PROPERTIES.youtubeTitle}
         summaries={summaries}
         availableLanguages={['en']}
         selectedLanguage={selectedLanguage}
@@ -170,7 +167,7 @@ export function LandingSummarySection({ step }: LandingSummarySectionProps) {
         onExtractSummary={async (_language: string) => { }}
         isExtracting={isExtracting}
         hasAccessForSelectedLanguage={true}
-        summaryAccessGrantedLanguages={['en']}
+        sourceSummaryAccessLanguages={['en']}
         readonly={false}
       />
     </StepHighlight>

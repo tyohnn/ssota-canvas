@@ -5,9 +5,8 @@ import { VideoId } from '../../value-objects/video-id.vo';
 import { VideoSlug } from '../../value-objects/video-slug.vo';
 import { ChannelId } from '../../value-objects/channel-id.vo';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import type { CreateVideoCommand, UpdateScriptCommand } from '../../commands/video.commands';
-import { VideoCreatedEvent, ScriptUpdatedEvent } from '../../events/video.events';
-import type { YoutubeScript } from '../../types/transcript.types';
+import type { CreateVideoCommand } from '../../commands/video.commands';
+import { VideoCreatedEvent } from '../../events/video.events';
 
 describe('VideoAggregate', () => {
   let videoId: VideoId;
@@ -135,132 +134,6 @@ describe('VideoAggregate', () => {
     });
   });
 
-  describe('updateScript', () => {
-    it('스크립트가 없을 때 스크립트를 추출해야 한다', () => {
-      // Given
-      const command: CreateVideoCommand = {
-        videoId: videoId,
-        slug: videoSlug,
-        title: 'Test Video',
-        userId: userId,
-      };
-      const aggregate = VideoAggregate.createVideo(command);
-      aggregate.markEventsAsCommitted(); // 이전 이벤트 클리어
-
-      const script: YoutubeScript = {
-        transcript: [
-          {
-            text: 'Hello World',
-            start: 0,
-            duration: 2,
-          },
-          {
-            text: 'This is a test',
-            start: 2,
-            duration: 3,
-          },
-        ],
-        metadata: {
-          extractedAt: new Date().toISOString(),
-          totalDuration: 100,
-          totalSegments: 2,
-          language: 'en',
-        },
-      };
-
-      const updateScriptCommand: UpdateScriptCommand = {
-        videoId: aggregate.getVideo().id.value,
-        script,
-        scriptLanguage: 'en',
-      };
-
-      // When
-      aggregate.updateScript(updateScriptCommand);
-      const events = aggregate.getUncommittedEvents();
-
-      // Then
-      const video = aggregate.getVideo();
-      expect(video.hasScript()).toBe(true);
-      expect(video.script).toBe(script);
-      expect(video.scriptLanguage).toBe('en');
-      expect(video.scriptExtractedAt).toBeInstanceOf(Date);
-
-      expect(events).toHaveLength(1);
-      expect(events[0]!).toBeInstanceOf(ScriptUpdatedEvent);
-      expect(events[0]!.type).toBe('ScriptUpdated');
-      const event = events[0] as ScriptUpdatedEvent;
-      expect(event.data.videoId).toBe(video.id.value);
-      expect(event.data.slug).toBe(video.slug.value);
-      expect(event.data.scriptLanguage).toBe('en');
-      expect(event.data.totalSegments).toBe(2);
-    });
-
-    it('이미 스크립트가 있으면 추출하지 않아야 한다', () => {
-      // Given
-      const command: CreateVideoCommand = {
-        videoId: videoId,
-        slug: videoSlug,
-        title: 'Test Video',
-        userId: userId,
-      };
-      const aggregate = VideoAggregate.createVideo(command);
-
-      const existingScript: YoutubeScript = {
-        transcript: [
-          {
-            text: 'Existing',
-            start: 0,
-            duration: 1,
-          },
-        ],
-        metadata: {
-          extractedAt: new Date().toISOString(),
-          totalDuration: 100,
-          totalSegments: 1,
-          language: 'en',
-        },
-      };
-
-      // 첫 번째 스크립트 업데이트
-      aggregate.updateScript({
-        videoId: aggregate.getVideo().id.value,
-        script: existingScript,
-        scriptLanguage: 'en',
-      });
-      aggregate.markEventsAsCommitted(); // 이전 이벤트 클리어
-
-      const newScript: YoutubeScript = {
-        transcript: [
-          {
-            text: 'New Script',
-            start: 0,
-            duration: 1,
-          },
-        ],
-        metadata: {
-          extractedAt: new Date().toISOString(),
-          totalDuration: 100,
-          totalSegments: 1,
-          language: 'ko',
-        },
-      };
-
-      // When
-      aggregate.updateScript({
-        videoId: aggregate.getVideo().id.value,
-        script: newScript,
-        scriptLanguage: 'ko',
-      });
-      const events = aggregate.getUncommittedEvents();
-
-      // Then
-      const video = aggregate.getVideo();
-      expect(video.script).toBe(existingScript); // 변경되지 않음
-      expect(video.scriptLanguage).toBe('en'); // 변경되지 않음
-      expect(events).toHaveLength(0); // 이벤트가 발행되지 않음
-    });
-  });
-
   describe('getUncommittedEvents', () => {
     it('발행된 이벤트 목록을 반환해야 한다', () => {
       // Given
@@ -335,9 +208,6 @@ describe('VideoAggregate', () => {
         durationSeconds: 300,
         thumbnailUrl: 'https://example.com/thumb.jpg',
         thumbnailHighUrl: 'https://example.com/thumb-high.jpg',
-        script: undefined,
-        scriptLanguage: undefined,
-        scriptExtractedAt: undefined,
         viewCount: 1000,
         likeCount: 50,
         commentCount: 10,
@@ -412,9 +282,6 @@ describe('VideoAggregate', () => {
       expect(view.durationSeconds).toBeUndefined();
       expect(view.thumbnailUrl).toBeUndefined();
       expect(view.thumbnailHighUrl).toBeUndefined();
-      expect(view.script).toBeUndefined();
-      expect(view.scriptLanguage).toBeUndefined();
-      expect(view.scriptExtractedAt).toBeUndefined();
     });
   });
 });

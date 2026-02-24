@@ -12,12 +12,12 @@ import { useTutorialDialogContext } from '../tutorial-dialog/core/context';
 const CARD_GAP = 12;
 const CARD_ESTIMATED_HEIGHT = 180;
 
-/** Steps where the Add Block dialog is open; overlay must render in portal with higher z-index so it appears above the dialog. */
-const STEPS_WITH_ADD_DIALOG = ['add-block', 'select-block-type', 'select-youtube'];
+/** Steps where a dialog/popover is open; overlay must render in portal with higher z-index. */
+const STEPS_WITH_ADD_DIALOG: string[] = [];
 /** Steps where a Select (language) popover is open; overlay must be above the popover. */
 const STEPS_WITH_SELECT_POPOVER = ['click-language', 'select-english'];
 /** Steps right after editor panel opens; re-measure after panel slide-in so highlight/card position is correct. */
-const STEPS_AFTER_PANEL_OPEN = ['click-script'];
+const STEPS_AFTER_PANEL_OPEN = ['click-timeline'];
 const PANEL_OPEN_MEASURE_DELAY_MS = 420;
 const OVERLAY_ABOVE_DIALOG_Z = 60;
 

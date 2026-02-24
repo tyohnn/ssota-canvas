@@ -37,7 +37,8 @@ export function TutorialContentArea() {
         : () => {
           if (didCompleteFromContentChangeRef.current) return;
           contentChangeCallCountRef.current += 1;
-          if (contentChangeCallCountRef.current < 2) return;
+          // 1회 이상 타이핑 감지 시 스텝 완료 (2회 요구 시 일부 환경에서 미감지 가능)
+          if (contentChangeCallCountRef.current < 1) return;
           didCompleteFromContentChangeRef.current = true;
           completeCurrentStep();
         },

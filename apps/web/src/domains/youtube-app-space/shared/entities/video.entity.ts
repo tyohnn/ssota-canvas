@@ -2,8 +2,8 @@
  * Video Entity
  *
  * Video 정보를 나타내는 도메인 엔티티
+ * (스크립트는 sources.raw_content 사용)
  */
-import type { YoutubeScript } from '../types/transcript.types';
 import { VideoId } from '../value-objects/video-id.vo';
 import { VideoSlug } from '../value-objects/video-slug.vo';
 
@@ -18,15 +18,12 @@ export class VideoEntity {
     public readonly durationSeconds: number | undefined,
     public readonly thumbnailUrl: string | undefined,
     public readonly thumbnailHighUrl: string | undefined,
-    public script: YoutubeScript | undefined,
-    public scriptLanguage: string | undefined,
-    public scriptExtractedAt: Date | undefined,
     public readonly viewCount: number,
     public readonly likeCount: number,
     public readonly commentCount: number,
     public readonly createdAt: Date,
     public updatedAt: Date
-  ) {}
+  ) { }
 
   /**
    * 기존 데이터로 Video 재구성 (Repository에서 사용)
@@ -42,11 +39,8 @@ export class VideoEntity {
     channelId: string;
     publishedAt?: Date;
     durationSeconds?: number;
-      thumbnailUrl?: string;
-      thumbnailHighUrl?: string;
-      script?: YoutubeScript;
-      scriptLanguage?: string;
-    scriptExtractedAt?: Date;
+    thumbnailUrl?: string;
+    thumbnailHighUrl?: string;
     viewCount: number;
     likeCount: number;
     commentCount: number;
@@ -63,40 +57,11 @@ export class VideoEntity {
       params.durationSeconds,
       params.thumbnailUrl,
       params.thumbnailHighUrl,
-      params.script,
-      params.scriptLanguage,
-      params.scriptExtractedAt,
       params.viewCount,
       params.likeCount,
       params.commentCount,
       params.createdAt,
       params.updatedAt
     );
-  }
-
-  /**
-   * 스크립트가 있는지 확인
-   */
-  hasScript(): boolean {
-    return !!this.script;
-  }
-
-  /**
-   * 스크립트 업데이트 (데이터 변환)
-   *
-   * @param script - 업데이트할 스크립트
-   * @param scriptLanguage - 스크립트 언어
-   */
-  updateScript(script: YoutubeScript, scriptLanguage: string): void {
-    // 이미 스크립트가 있으면 스킵
-    if (this.hasScript()) {
-      return;
-    }
-
-    // 필드 직접 업데이트
-    this.script = script;
-    this.scriptLanguage = scriptLanguage;
-    this.scriptExtractedAt = new Date();
-    this.updatedAt = new Date();
   }
 }

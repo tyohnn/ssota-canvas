@@ -13,42 +13,34 @@ export interface MockViewportControlToolbarProps {
   zoomLevel?: number;
   onZoomIn?: () => void;
   onZoomOut?: () => void;
-  onFitToScreen?: () => void;
 }
 
 /**
  * Mock Viewport Control Toolbar
  *
  * Tutorial-specific mock using real ViewportControlToolbarView.
- * Accepts optional zoom/ handlers; when not provided uses defaults (static 100%, no-ops).
+ * Accepts optional zoom handlers; when not provided uses defaults (static 100%, no-ops).
  */
 export function MockViewportControlToolbar({
   zoomLevel: zoomLevelProp,
   onZoomIn: onZoomInProp,
   onZoomOut: onZoomOutProp,
-  onFitToScreen: onFitToScreenProp,
 }: MockViewportControlToolbarProps = {}) {
   const toolbarRef = useRef<HTMLDivElement | null>(null);
-  const minimapRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const zoomLevel = zoomLevelProp ?? 1;
   const onZoomIn = onZoomInProp ?? (() => {});
   const onZoomOut = onZoomOutProp ?? (() => {});
-  const onFitToScreen = onFitToScreenProp ?? (() => {});
 
   return (
     <InteractionGuard selector="viewport-toolbar">
       <ViewportControlToolbarView
         zoomLevel={zoomLevel}
-        showMiniMap={false}
         toolbarRef={toolbarRef}
-        minimapRef={minimapRef}
         containerRef={containerRef}
         onZoomIn={onZoomIn}
         onZoomOut={onZoomOut}
-        onFitToScreen={onFitToScreen}
-        onToggleMiniMap={() => {}}
       />
     </InteractionGuard>
   );
@@ -78,20 +70,11 @@ export function MockViewportControlToolbarConnected() {
     }
   };
 
-  const onFitToScreen = () => {
-    try {
-      reactFlow.fitView({ duration: 500, padding: 0.1 });
-    } catch {
-      // no-op
-    }
-  };
-
   return (
     <MockViewportControlToolbar
       zoomLevel={zoom}
       onZoomIn={onZoomIn}
       onZoomOut={onZoomOut}
-      onFitToScreen={onFitToScreen}
     />
   );
 }

@@ -2,7 +2,7 @@
  * YouTube 영상 메타데이터 조회 서비스
  *
  * YouTube Data API v3를 사용하여 영상 메타데이터를 가져옵니다.
- * 기존 youtube.actions.ts의 fetchYouTubeMetadataFromAPI 로직을 활용합니다.
+ * YouTube Data API v3를 사용해 영상 메타데이터를 조회합니다.
  */
 import { config } from '@/config';
 

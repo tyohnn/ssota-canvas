@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
 import type { Edge } from '@xyflow/react';
 
@@ -11,9 +12,9 @@ import {
 } from '@/domains/canvas-management/frontend/acl/react-flow.acl';
 import { CanvasClient } from '@/domains/canvas-management/frontend/components';
 import {
-  getAuthenticatedUser,
   verifyAccessByPageId,
 } from '@/domains/common/auth/helpers';
+import { getCurrentUser } from '@/domains/common/auth/server-auth.helpers';
 import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-navigation.actions';
 
 import { CanvasLoadErrorCanvas } from '@/app/(main)/_components/not-found/CanvasLoadErrorCanvas';
@@ -51,7 +52,12 @@ export async function generateMetadata({
 }: OrgPageIdRouteProps): Promise<Metadata> {
   const { orgId, pageId } = await params;
 
-  const user = await getAuthenticatedUser();
+  // getCurrentUser 사용: 미인증 시 null 반환, throw 없음 (콘솔 에러 방지)
+  const user = await getCurrentUser();
+  if (!user) {
+    return SHARED_LINK_FALLBACK_METADATA;
+  }
+
   const accessResult = await verifyAccessByPageId(pageId, user.id);
   if (!accessResult.success) {
     return SHARED_LINK_FALLBACK_METADATA;
@@ -111,6 +117,18 @@ async function PageContent({
   const canvasViewResult = await getCanvasViewAction({ pageId });
 
   if (!canvasViewResult.success) {
+    const isUnauthenticated =
+      canvasViewResult.code === 'UNAUTHORIZED' ||
+      String(canvasViewResult.error ?? '').includes('UNAUTHORIZED');
+    const isAccessDenied = canvasViewResult.code === 'ACCESS_DENIED';
+
+    if (isUnauthenticated) {
+      redirect('/login?message=Please%20log%20in%20to%20continue.');
+    }
+    if (isAccessDenied) {
+      redirect('/unauthorized');
+    }
+
     console.error('[PageContent] Canvas load failed:', canvasViewResult.error);
     return (
       <CanvasLoadErrorCanvas

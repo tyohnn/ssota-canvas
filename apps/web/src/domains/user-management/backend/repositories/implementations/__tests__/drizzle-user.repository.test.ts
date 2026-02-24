@@ -62,6 +62,7 @@ describe('DrizzleUserRepository Real DB Tests', () => {
       userEmail,
       'Test User',
       'https://example.com/avatar.jpg',
+      'en',
       new Date('2024-01-01T00:00:00Z'),
       new Date('2024-01-01T00:00:00Z')
     );
@@ -339,6 +340,7 @@ describe('DrizzleUserRepository Real DB Tests', () => {
         userEmail,
         'Test User',
         null, // null avatar
+        'en',
         new Date('2024-01-01T00:00:00Z'),
         new Date('2024-01-01T00:00:00Z')
       );
@@ -384,6 +386,7 @@ describe('DrizzleUserRepository Real DB Tests', () => {
         userEmail,
         longName,
         null,
+        'en',
         new Date('2024-01-01T00:00:00Z'),
         new Date('2024-01-01T00:00:00Z')
       );
@@ -421,6 +424,7 @@ describe('DrizzleUserRepository Real DB Tests', () => {
         userEmail,
         specialName,
         'https://example.com/avatar.jpg?param=value&other=123',
+        'en',
         new Date('2024-01-01T00:00:00Z'),
         new Date('2024-01-01T00:00:00Z')
       );

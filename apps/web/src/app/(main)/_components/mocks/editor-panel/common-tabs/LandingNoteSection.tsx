@@ -26,7 +26,7 @@ interface LandingNoteSectionProps {
 }
 
 export function LandingNoteSection({ content }: LandingNoteSectionProps) {
-  const { editor, handleEditorClick } = useTipTapEditor({
+  const { editor, handleEditorClick, mathEditing, setMathEditing } = useTipTapEditor({
     blockData: { content: content ?? DEFAULT_NOTE_CONTENT } as any,
     placeholder: 'Click to add note...',
     editable: false,
@@ -37,6 +37,8 @@ export function LandingNoteSection({ content }: LandingNoteSectionProps) {
       editor={editor}
       readonly={true}
       onEditorClick={handleEditorClick}
+      mathEditing={mathEditing}
+      onMathEditingChange={setMathEditing}
     />
   );
 }

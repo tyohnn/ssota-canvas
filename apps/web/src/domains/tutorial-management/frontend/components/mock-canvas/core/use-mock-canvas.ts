@@ -15,34 +15,10 @@ export function useMockCanvas() {
 
   // Sync with tutorial state
   useEffect(() => {
-    if (tutorialState.showBlockMenu !== undefined) {
-      ui.setShowBlockMenu(tutorialState.showBlockMenu as boolean);
-    }
     if (tutorialState.hasBlock !== undefined) {
       ui.setHasBlock(tutorialState.hasBlock as boolean);
     }
-  }, [tutorialState.showBlockMenu, tutorialState.hasBlock]);
-
-  const handleAddBlockClick = useCallback(() => {
-    updateTutorialState({ showBlockMenu: true });
-    ui.setShowBlockMenu(true);
-  }, [updateTutorialState, ui]);
-
-  const handleCloseDialog = useCallback(() => {
-    ui.setShowBlockMenu(false);
-    updateTutorialState({ showBlockMenu: false });
-  }, [ui, updateTutorialState]);
-
-  const handleSelectBlockType = useCallback(
-    (blockType: string) => {
-      updateTutorialState({
-        showBlockMenu: false,
-        selectedBlockType: blockType,
-      });
-      ui.setShowBlockMenu(false);
-    },
-    [updateTutorialState, ui]
-  );
+  }, [tutorialState.hasBlock]);
 
   const handleBlockPlaced = useCallback(() => {
     updateTutorialState({ hasBlock: true });
@@ -50,11 +26,7 @@ export function useMockCanvas() {
   }, [updateTutorialState, ui]);
 
   return {
-    showBlockMenu: ui.showBlockMenu,
     hasBlock: ui.hasBlock,
-    handleAddBlockClick,
-    handleCloseDialog,
-    handleSelectBlockType,
     handleBlockPlaced,
   };
 }

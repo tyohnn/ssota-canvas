@@ -79,7 +79,7 @@ export function SelectionPanel({
           {isApplying ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            '새 블록'
+            'New Block'
           )}
         </Button>
       </Box>

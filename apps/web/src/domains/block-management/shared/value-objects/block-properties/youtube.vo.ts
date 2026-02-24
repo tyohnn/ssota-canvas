@@ -20,11 +20,11 @@ export interface YoutubeBlockProperties {
   // YouTube App Space 참조
   youtubeId?: string; // YouTube App Space의 YouTube ID (UUID)
 
-  // 스크립트 접근 권한 (org 기반 권한 관리)
-  scriptAccessGranted?: boolean; // 이 블록에서 스크립트 접근 가능 여부
+  // 소스 원문 접근 권한 (source-management, org 기반)
+  sourceRawContentAccessGranted?: boolean; // 이 블록에서 스크립트/원문 접근 가능 여부
 
-  // 요약 접근 권한 (org 기반 권한 관리, 언어별)
-  summaryAccessGrantedLanguages?: string[]; // 이 블록에서 요약 접근 가능한 언어 목록 (ISO 639-1 코드 배열, 예: ['ko', 'en'])
+  // 소스 요약 접근 권한 (source-management, 언어별)
+  sourceSummaryAccessLanguages?: string[]; // 이 블록에서 요약 접근 가능한 언어 목록 (ISO 639-1 코드 배열, 예: ['ko', 'en'])
 
   // YouTube 메타데이터 (자동 fetch, 수정 가능)
   youtubeTitle?: string; // 영상 제목 (fetch 후 수정 가능)
@@ -51,8 +51,8 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
   constructor(
     public readonly url: string,
     public readonly youtubeId?: string,
-    public readonly scriptAccessGranted?: boolean,
-    public readonly summaryAccessGrantedLanguages?: string[],
+    public readonly sourceRawContentAccessGranted?: boolean,
+    public readonly sourceSummaryAccessLanguages?: string[],
     public readonly youtubeTitle?: string,
     public readonly youtubeDescription?: string,
     public readonly youtubeThumbnail?: string,
@@ -86,8 +86,8 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       data.url || '',
       data.youtubeId,
-      data.scriptAccessGranted,
-      data.summaryAccessGrantedLanguages,
+      data.sourceRawContentAccessGranted,
+      data.sourceSummaryAccessLanguages,
       data.youtubeTitle,
       data.youtubeDescription,
       data.youtubeThumbnail,
@@ -172,8 +172,8 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return {
       url: this.url,
       youtubeId: this.youtubeId,
-      scriptAccessGranted: this.scriptAccessGranted,
-      summaryAccessGrantedLanguages: this.summaryAccessGrantedLanguages,
+      sourceRawContentAccessGranted: this.sourceRawContentAccessGranted,
+      sourceSummaryAccessLanguages: this.sourceSummaryAccessLanguages,
       youtubeTitle: this.youtubeTitle,
       youtubeDescription: this.youtubeDescription,
       youtubeThumbnail: this.youtubeThumbnail,
@@ -197,10 +197,10 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return (
       this.url === other.url &&
       this.youtubeId === other.youtubeId &&
-      this.scriptAccessGranted === other.scriptAccessGranted &&
+      this.sourceRawContentAccessGranted === other.sourceRawContentAccessGranted &&
       this.arraysEqual(
-        this.summaryAccessGrantedLanguages,
-        other.summaryAccessGrantedLanguages
+        this.sourceSummaryAccessLanguages,
+        other.sourceSummaryAccessLanguages
       ) &&
       this.youtubeTitle === other.youtubeTitle &&
       this.youtubeDescription === other.youtubeDescription &&
@@ -225,8 +225,8 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       url,
       this.youtubeId,
-      this.scriptAccessGranted,
-      this.summaryAccessGrantedLanguages,
+      this.sourceRawContentAccessGranted,
+      this.sourceSummaryAccessLanguages,
       this.youtubeTitle,
       this.youtubeDescription,
       this.youtubeThumbnail,
@@ -262,8 +262,8 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       this.url,
       this.youtubeId,
-      this.scriptAccessGranted,
-      this.summaryAccessGrantedLanguages,
+      this.sourceRawContentAccessGranted,
+      this.sourceSummaryAccessLanguages,
       metadata.youtubeTitle ?? this.youtubeTitle,
       metadata.youtubeDescription ?? this.youtubeDescription,
       metadata.youtubeThumbnail ?? this.youtubeThumbnail,
@@ -289,8 +289,8 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
     return new YoutubeBlockPropertiesVO(
       this.url,
       youtubeId,
-      this.scriptAccessGranted,
-      this.summaryAccessGrantedLanguages,
+      this.sourceRawContentAccessGranted,
+      this.sourceSummaryAccessLanguages,
       this.youtubeTitle,
       this.youtubeDescription,
       this.youtubeThumbnail,
@@ -322,7 +322,7 @@ export class YoutubeBlockPropertiesVO extends BlockPropertiesVO {
    */
   hasSummaryAccessForLanguage(language: string): boolean {
     return (
-      this.summaryAccessGrantedLanguages?.includes(language) ?? false
+      this.sourceSummaryAccessLanguages?.includes(language) ?? false
     );
   }
 

@@ -13,13 +13,13 @@ import { cn } from '@workspace/ui/lib/utils';
 
 interface AudioDownloadToolbarItemProps {
   audioUrl: string;
-  title?: string;
+  filename?: string;
   disabled?: boolean;
 }
 
 export function AudioDownloadToolbarItem({
   audioUrl,
-  title,
+  filename,
   disabled = false,
 }: AudioDownloadToolbarItemProps) {
   const handleDownload = useCallback(async () => {
@@ -31,7 +31,7 @@ export function AudioDownloadToolbarItem({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = title || 'audio-file.mp3';
+      a.download = filename || 'audio-file.mp3';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -39,7 +39,7 @@ export function AudioDownloadToolbarItem({
     } catch (error) {
       console.error('Failed to download audio:', error);
     }
-  }, [audioUrl, title]);
+  }, [audioUrl, filename]);
 
   return (
     <Tooltip>
@@ -56,13 +56,13 @@ export function AudioDownloadToolbarItem({
             handleDownload();
           }}
           disabled={disabled || !audioUrl}
-          aria-label="다운로드"
+          aria-label="Download"
         >
           <Download className="h-4 w-4" />
         </button>
       </TooltipTrigger>
       <TooltipContent side="top">
-        <p>다운로드</p>
+        <p>Download</p>
       </TooltipContent>
     </Tooltip>
   );

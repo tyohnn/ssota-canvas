@@ -16,6 +16,7 @@ import {
   getBlockSize,
   getBlockSizeForViewMode,
 } from '@/domains/block-management/shared/types/block-types';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import type { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
@@ -49,6 +50,7 @@ import type { BlockMountRepository } from '../../repositories/interfaces/block-m
  * @param safeWorkspaceId - 검증된 워크스페이스 ID (권한 검증됨)
  * @param blockRepository - Block Repository
  * @param blockMountRepository - BlockMount Repository
+ * @param eventLogPolicyContext - 선택: 제공 시 BlockMountedEvent에서 block_created 로깅
  * @returns 생성된 BlockMountAggregate와 BlockAggregate
  */
 export async function createAndMountBlock(
@@ -56,7 +58,8 @@ export async function createAndMountBlock(
   safeUserId: UserId,
   safeWorkspaceId: WorkspaceId,
   blockRepository: IBlockRepository,
-  blockMountRepository: BlockMountRepository
+  blockMountRepository: BlockMountRepository,
+  eventLogPolicyContext?: EventLogPolicyContext
 ): Promise<
   Result<
     {
@@ -76,7 +79,7 @@ export async function createAndMountBlock(
     const createBlockRequest: CreateBlockRequest = {
       workspaceId: safeWorkspaceId.value,
       blockType: safeDto.blockType,
-      title: safeDto.title || '새 블럭', // 전달받은 title 사용, 없으면 기본 제목
+      title: safeDto.title || 'New Block', // 전달받은 title 사용, 없으면 기본 제목
       initialProperties: safeDto.initialProperties, // 초기 properties 전달
       initialContent: safeDto.initialContent, // ✨ 초기 content 전달
     };
@@ -123,6 +126,7 @@ export async function createAndMountBlock(
       viewMode, // viewMode 전달
       viewModeSizes, // 모든 viewMode의 크기 전달
       userId: safeUserId,
+      blockType: blockAggregate.getBlock().blockType.value,
     };
     const blockMountAggregate =
       BlockMountAggregate.mountBlock(mountBlockCommand);
@@ -140,9 +144,11 @@ export async function createAndMountBlock(
       );
     }
 
-    // 5. 도메인 이벤트 처리
+    // 5. 도메인 이벤트 처리 (context 있으면 block_created 로깅)
     const events = blockMountAggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map(event => event.handle(eventLogPolicyContext))
+    );
 
     // 6. 이벤트 커밋
     blockMountAggregate.markEventsAsCommitted();
@@ -166,6 +172,8 @@ export type CreateBlocksAndMountParams = {
   safeWorkspaceId: WorkspaceId;
   blockRepository: IBlockRepository;
   blockMountRepository: BlockMountRepository;
+  /** 선택: 제공 시 각 BlockMountedEvent에서 block_created 로깅 */
+  eventLogPolicyContext?: EventLogPolicyContext;
 };
 
 /**
@@ -191,13 +199,14 @@ export async function createBlocksAndMounts(
     safeWorkspaceId,
     blockRepository,
     blockMountRepository,
+    eventLogPolicyContext,
   } = params;
 
   const createBlockRequests: CreateBlockRequest[] = safeDto.blocks.map(
     block => ({
       workspaceId: safeWorkspaceId.value,
       blockType: block.blockType,
-      title: block.title || '새 블럭',
+      title: block.title || 'New Block',
       initialProperties: block.initialProperties,
       initialContent: block.initialContent,
     })
@@ -233,13 +242,33 @@ export async function createBlocksAndMounts(
       ? BlockViewMode.create(block.viewMode)
       : BlockViewMode.create(getDefaultViewMode(blockType));
 
-    const originalSize = sizeVO;
-    const cardSize = getBlockSizeForViewMode(blockType, 'card');
-    const noteSize = getBlockSizeForViewMode(blockType, 'note');
+    // block.viewMode가 지정된 경우 해당 뷰 모드에 block.size 사용 (Welcome 시드 등)
+    const effectiveViewMode = block.viewMode ?? getDefaultViewMode(blockType);
+    const originalSize =
+      effectiveViewMode === 'original'
+        ? sizeVO
+        : new Size(
+            getBlockSizeForViewMode(blockType, 'original').width,
+            getBlockSizeForViewMode(blockType, 'original').height
+          );
+    const cardSize =
+      effectiveViewMode === 'card'
+        ? sizeVO
+        : new Size(
+            getBlockSizeForViewMode(blockType, 'card').width,
+            getBlockSizeForViewMode(blockType, 'card').height
+          );
+    const noteSize =
+      effectiveViewMode === 'note'
+        ? sizeVO
+        : new Size(
+            getBlockSizeForViewMode(blockType, 'note').width,
+            getBlockSizeForViewMode(blockType, 'note').height
+          );
     const viewModeSizes = ViewModeSizes.empty()
       .updateSizeForViewMode('original', originalSize)
-      .updateSizeForViewMode('card', new Size(cardSize.width, cardSize.height))
-      .updateSizeForViewMode('note', new Size(noteSize.width, noteSize.height));
+      .updateSizeForViewMode('card', cardSize)
+      .updateSizeForViewMode('note', noteSize);
 
     const mountBlockCommand: MountBlockCommand = {
       blockMountId,
@@ -250,6 +279,7 @@ export async function createBlocksAndMounts(
       viewMode,
       viewModeSizes,
       userId: safeUserId,
+      blockType: blockAggregate.getBlock().blockType.value,
     };
     const blockMountAggregate = BlockMountAggregate.mountBlock(mountBlockCommand);
     blockMountsToCreate.push(blockMountAggregate.getBlockMount());
@@ -281,7 +311,9 @@ export async function createBlocksAndMounts(
 
   for (const { blockMountAggregate } of results) {
     const events = blockMountAggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map(event => event.handle(eventLogPolicyContext))
+    );
     blockMountAggregate.markEventsAsCommitted();
   }
 

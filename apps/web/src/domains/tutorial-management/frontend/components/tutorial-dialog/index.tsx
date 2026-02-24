@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { TutorialDialogContext } from './core/context';
 import { useTutorialDialog } from './core/use-tutorial-dialog';
 import { TutorialDialogView } from './components/tutorial-dialog-view';
@@ -39,15 +39,31 @@ export function TutorialDialogStandalone({
       if (initialTutorialId) {
         dialogState.selectTutorial(initialTutorialId);
       } else {
-        const progress = dialogState.progress;
-        if (Object.keys(progress).length === 0) {
-          dialogState.selectTutorial(GETTING_STARTED_TUTORIAL_ID);
-        }
+        // Always select a default when reopening from navbar (even with non-empty progress)
+        dialogState.selectTutorial(GETTING_STARTED_TUTORIAL_ID);
       }
     } else if (!open && dialogState.isOpen) {
       dialogState.closeDialog();
     }
   }, [open, initialTutorialId]);
+
+  // Sync parent when internal dialog closes programmatically (e.g. on tutorial complete).
+  // Radix Dialog does not call onOpenChange when close is driven by controlled prop change,
+  // so we must notify the parent to keep isTutorialOpen in sync.
+  // Only sync on transition open→closed (not when reopening: openDialog just called, isOpen still false).
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
+  const prevIsOpenRef = useRef(dialogState.isOpen);
+  useEffect(() => {
+    const prevIsOpen = prevIsOpenRef.current;
+    const currIsOpen = dialogState.isOpen;
+    const transitionedToClosed = prevIsOpen && !currIsOpen;
+    const willSyncClose = transitionedToClosed && open;
+    prevIsOpenRef.current = currIsOpen;
+    if (willSyncClose) {
+      onOpenChangeRef.current(false);
+    }
+  }, [dialogState.isOpen, open]);
 
   // Sync internal state with external callback
   const handleOpenChange = (isOpen: boolean) => {

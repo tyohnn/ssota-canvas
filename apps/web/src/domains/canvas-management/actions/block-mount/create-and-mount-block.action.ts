@@ -3,6 +3,11 @@
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
 import type { PageActionContext } from '@/domains/common/auth/types';
 import { withPageSecureAction } from '@/domains/common/server-actions';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import { ActionResult, err, ok } from '@/lib';
@@ -54,7 +59,7 @@ async function createAndMountBlockInternal(
 ): Promise<ActionResult<BlockCreatedAndMountedDTO>> {
   try {
     // ✅ 이미 검증된 데이터 사용 (중복 조회 제거)
-    const { authenticatedUser, workspace } = context;
+    const { authenticatedUser, workspace, page } = context;
 
     const userId: UserId = new UserId(authenticatedUser.id);
     const workspaceId: WorkspaceId = workspace.workspaceId;
@@ -62,13 +67,23 @@ async function createAndMountBlockInternal(
     const blockMountRepository = new DrizzleBlockMountRepository();
     const blockRepository = new DrizzleBlockRepository();
 
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: authenticatedUser.id,
+      pageId: page.pageId.value,
+      blockType: safeDto.blockType,
+    };
+
     // Service 함수 직접 호출
     const result = await createAndMountBlock(
       safeDto,
       userId,
       workspaceId,
       blockRepository,
-      blockMountRepository
+      blockMountRepository,
+      eventLogPolicyContext
     );
 
     if (result.isError()) {
@@ -122,11 +137,19 @@ async function createBlocksAndMountsInternal(
   context: PageActionContext
 ): Promise<ActionResult<BlockCreatedAndMountedDTO[]>> {
   try {
-    const { authenticatedUser, workspace } = context;
+    const { authenticatedUser, workspace, page } = context;
     const userId = new UserId(authenticatedUser.id);
     const workspaceId: WorkspaceId = workspace.workspaceId;
     const blockMountRepository = new DrizzleBlockMountRepository();
     const blockRepository = new DrizzleBlockRepository();
+
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: authenticatedUser.id,
+      pageId: page.pageId.value,
+    };
 
     const result = await createBlocksAndMounts({
       safeDto,
@@ -134,6 +157,7 @@ async function createBlocksAndMountsInternal(
       safeWorkspaceId: workspaceId,
       blockRepository,
       blockMountRepository,
+      eventLogPolicyContext,
     });
 
     if (result.isError()) {
