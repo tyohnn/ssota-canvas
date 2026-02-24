@@ -134,7 +134,7 @@ export function useYoutubeBlockBusiness(
           youtubeTitle: video.title,
           youtubeDescription: video.description,
           youtubeThumbnail:
-            video.thumbnailHighUrl || video.thumbnailUrl || undefined,
+            video.thumbnailUrl || video.thumbnailHighUrl || undefined,
           channelName: dto.channelName,
           channelThumbnail: dto.channelThumbnail,
           youtubeChannelId: dto.youtubeChannelId,

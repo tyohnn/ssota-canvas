@@ -6,6 +6,8 @@
 export interface YoutubeSourceMetadata {
   appSpaceId?: string;
   videoSlug?: string;
+  /** YouTube Data API 고화질 썸네일 URL (maxres > high > default) */
+  thumbnailUrl?: string;
   [key: string]: unknown;
 }
 

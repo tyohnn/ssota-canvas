@@ -288,6 +288,7 @@ async function getYoutubeMetadataInternal(
 /**
  * Find or create Source for the YouTube video and link it to the block (block.source_id).
  * Returns sourceId when successful, undefined on failure (logged).
+ * sources.metadata에 고화질 썸네일 URL(thumbnailUrl)을 저장합니다.
  */
 async function linkSourceToBlock(
   video: VideoAggregate,
@@ -295,6 +296,7 @@ async function linkSourceToBlock(
   block: Block
 ): Promise<string | undefined> {
   const youtubeUrl = `https://www.youtube.com/watch?v=${slug}`;
+  const thumbnailUrl = video.getVideo().thumbnailUrl ?? undefined;
   const sourceRepository = new DrizzleSourceRepository();
   const result = await findOrCreateSource(
     {
@@ -303,6 +305,7 @@ async function linkSourceToBlock(
       metadata: {
         appSpaceId: video.getVideo().id.value,
         videoSlug: slug,
+        ...(thumbnailUrl && { thumbnailUrl }),
       },
     },
     sourceRepository
@@ -314,7 +317,15 @@ async function linkSourceToBlock(
     );
     return undefined;
   }
-  const sourceId = result.value.getSource().id.value;
+  const aggregate = result.value;
+  const source = aggregate.getSource();
+  // 기존 source인 경우 metadata에 thumbnailUrl이 없으면 업데이트
+  const meta = (source.metadata || {}) as Record<string, unknown>;
+  if (thumbnailUrl && !meta.thumbnailUrl) {
+    aggregate.updateMetadata({ metadata: { thumbnailUrl } });
+    await sourceRepository.update(aggregate.getSource());
+  }
+  const sourceId = source.id.value;
   block.updateSourceId(sourceId);
   const blockRepository = new DrizzleBlockRepository();
   await blockRepository.update(block);
