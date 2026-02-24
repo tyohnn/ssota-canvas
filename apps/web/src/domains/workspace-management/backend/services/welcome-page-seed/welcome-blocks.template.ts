@@ -4,16 +4,14 @@
  * 초기 가이드용 블록 정의 (마크다운 블록)
  */
 
-import {
-  BlockType,
-  VIEW_MODE_DEFAULT_SIZES,
-} from '@/domains/block-management/shared/types/block-types';
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { markdownToTiptapServerSafe } from '@/domains/block-management/shared/utils/tiptap-markdown.utils';
 
 const GAP_X = 24;
 const START_X = 80;
 const START_Y = 100;
-const MARKDOWN_NOTE_SIZE = VIEW_MODE_DEFAULT_SIZES.note;
+/** Welcome 블록 노드 크기 (415x730) */
+const MARKDOWN_NOTE_SIZE = { width: 415, height: 730 };
 
 /** Welcome 블록 1: 환영 메시지 (제목은 블록 title로 표시되므로 h1 제외) */
 const WELCOME_MARKDOWN = `SSOTA is your AI-powered workspace. Think of it as a canvas where your ideas, links, and files become **blocks** — and the AI helps you read, summarize, and talk about them.

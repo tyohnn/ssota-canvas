@@ -242,13 +242,33 @@ export async function createBlocksAndMounts(
       ? BlockViewMode.create(block.viewMode)
       : BlockViewMode.create(getDefaultViewMode(blockType));
 
-    const originalSize = sizeVO;
-    const cardSize = getBlockSizeForViewMode(blockType, 'card');
-    const noteSize = getBlockSizeForViewMode(blockType, 'note');
+    // block.viewMode가 지정된 경우 해당 뷰 모드에 block.size 사용 (Welcome 시드 등)
+    const effectiveViewMode = block.viewMode ?? getDefaultViewMode(blockType);
+    const originalSize =
+      effectiveViewMode === 'original'
+        ? sizeVO
+        : new Size(
+            getBlockSizeForViewMode(blockType, 'original').width,
+            getBlockSizeForViewMode(blockType, 'original').height
+          );
+    const cardSize =
+      effectiveViewMode === 'card'
+        ? sizeVO
+        : new Size(
+            getBlockSizeForViewMode(blockType, 'card').width,
+            getBlockSizeForViewMode(blockType, 'card').height
+          );
+    const noteSize =
+      effectiveViewMode === 'note'
+        ? sizeVO
+        : new Size(
+            getBlockSizeForViewMode(blockType, 'note').width,
+            getBlockSizeForViewMode(blockType, 'note').height
+          );
     const viewModeSizes = ViewModeSizes.empty()
       .updateSizeForViewMode('original', originalSize)
-      .updateSizeForViewMode('card', new Size(cardSize.width, cardSize.height))
-      .updateSizeForViewMode('note', new Size(noteSize.width, noteSize.height));
+      .updateSizeForViewMode('card', cardSize)
+      .updateSizeForViewMode('note', noteSize);
 
     const mountBlockCommand: MountBlockCommand = {
       blockMountId,
