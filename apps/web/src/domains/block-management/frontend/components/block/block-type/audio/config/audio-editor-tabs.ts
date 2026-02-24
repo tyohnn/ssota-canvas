@@ -24,7 +24,6 @@ const audioEditorTabsConfig: BlockEditorTabsConfig = {
       id: 'timeline',
       label: 'Timeline',
       componentPath: 'audio/components/tab-sections/timeline-tab',
-      hideInReadonly: true,
     },
     {
       id: 'metadata',

@@ -20,7 +20,7 @@ import type { RefObject } from 'react';
  */
 export const AudioBlockInteractions = {
   /**
-   * 오디오 재생 위치를 특정 시간(초)으로 이동
+   * 오디오 재생 위치를 특정 시간(초)로 이동하고 재생 시작
    *
    * @param audioRef - HTMLAudioElement ref
    * @param seconds - 이동할 시간 (초)
@@ -30,6 +30,12 @@ export const AudioBlockInteractions = {
     if (!el || !isFinite(seconds)) return;
     try {
       el.currentTime = seconds;
+      const playPromise = el.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn('[Audio Block] seekTo play failed (e.g. autoplay policy):', err);
+        });
+      }
     } catch (error) {
       console.warn(
         '[Audio Block] seekTo failed (element may be unmounted):',

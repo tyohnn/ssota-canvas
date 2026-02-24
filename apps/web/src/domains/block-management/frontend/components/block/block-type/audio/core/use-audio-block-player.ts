@@ -92,6 +92,8 @@ export function useAudioBlockPlayer({
     };
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
     const handleEnded = () => setIsPlaying(false);
     const handleError = async () => {
       if (hasTriedRefreshRef.current || !pathUrl || !nodeData.blockId) {
@@ -154,12 +156,16 @@ export function useAudioBlockPlayer({
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
     };
@@ -182,7 +188,7 @@ export function useAudioBlockPlayer({
         console.error('Failed to play audio:', err)
       );
     }
-    setIsPlaying(prev => !prev);
+    // isPlaying은 audio의 play/pause 이벤트로 동기화됨 (타임라인 seekTo+play 포함)
   }, [isPlaying]);
 
   const handleSeek = useCallback((time: number) => {
