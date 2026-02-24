@@ -17,7 +17,7 @@ export const pdfEditorPanelSchema: BlockEditorSchema = {
       description: 'PDF file information',
       defaultCollapsed: false,
       order: 1,
-      properties: ['url', 'filename', 'pageCount'],
+      properties: ['accessUrl'],
     },
     {
       id: 'metadata',
@@ -30,34 +30,15 @@ export const pdfEditorPanelSchema: BlockEditorSchema = {
   ],
 
   properties: {
-    // Basic Information
-    url: {
+    // Basic Information (accessUrl = stored URL; schema key must match block properties)
+    accessUrl: {
       label: 'PDF URL',
       inputType: 'url',
       icon: 'Link',
       description: 'PDF file URL',
       placeholder: 'https://example.com/document.pdf',
       order: 1,
-    },
-    filename: {
-      label: 'Filename',
-      inputType: 'text',
-      icon: 'FileText',
-      description: 'PDF filename',
-      placeholder: 'document.pdf',
-      order: 2,
-    },
-    pageCount: {
-      label: 'Page Count',
-      inputType: 'readonly-text',
-      icon: 'Hash',
-      description: 'Total number of pages',
-      order: 3,
       readonly: true,
-      defaultDisplay: (value: any) => {
-        if (!value) return '-';
-        return `${value} pages`;
-      },
     },
 
     // Display Options

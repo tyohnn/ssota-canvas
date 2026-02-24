@@ -26,6 +26,11 @@ const pdfEditorTabsConfig: BlockEditorTabsConfig = {
       label: 'Extract',
       componentPath: 'pdf/components/tab-sections/markdown-tab',
     },
+    {
+      id: 'metadata',
+      label: 'Metadata',
+      componentPath: 'pdf/components/tab-sections/metadata-tab',
+    },
   ],
   defaultTabId: 'note',
 };

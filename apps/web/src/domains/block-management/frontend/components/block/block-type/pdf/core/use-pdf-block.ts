@@ -39,6 +39,7 @@ type PdfProperties = {
   accessUrlExpiresAt?: string | null;
   url?: string;
   filename?: string;
+  pageCount?: number;
 };
 
 export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
@@ -223,10 +224,26 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
     },
   });
 
-  const onDocumentLoadSuccess = useCallback(() => {
-    setHasError(false);
-    setErrorMessage(null);
-  }, []);
+  const onDocumentLoadSuccess = useCallback(
+    async (params: { numPages: number }) => {
+      setHasError(false);
+      setErrorMessage(null);
+      const currentPageCount = (nodeData.properties as PdfProperties)?.pageCount;
+      if (
+        nodeData.blockId &&
+        params.numPages != null &&
+        params.numPages !== currentPageCount
+      ) {
+        await updateProperty(
+          nodeData.blockId,
+          'properties.pageCount',
+          params.numPages,
+          nodeData
+        );
+      }
+    },
+    [nodeData.blockId, nodeData.properties, updateProperty, nodeData]
+  );
 
   const onDocumentLoadError = useCallback(
     async (error: Error) => {

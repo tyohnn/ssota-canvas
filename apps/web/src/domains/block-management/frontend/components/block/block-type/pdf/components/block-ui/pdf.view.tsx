@@ -19,6 +19,7 @@ export function PdfView({
   selected,
   hasError,
   errorMessage,
+  isLoading,
   isUploading,
   uploadErrors,
   isDragging,
@@ -33,8 +34,9 @@ export function PdfView({
   onDocumentLoadSuccess,
   onDocumentLoadError,
 }: PdfViewProps) {
-  const shouldShowEmptyState = !url && !isUploading;
-  const shouldShowViewer = url && !isUploading;
+  const isInLoadingState = isLoading || isUploading;
+  const shouldShowEmptyState = !url && !isInLoadingState;
+  const shouldShowViewer = url && !isInLoadingState;
 
   return (
     <Box className="relative flex-1 overflow-hidden bg-muted/30 min-h-[200px]">
@@ -52,9 +54,12 @@ export function PdfView({
         />
       )}
 
-      {isUploading && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Skeleton className="w-full h-full" />
+      {isInLoadingState && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <Skeleton className="w-full h-full rounded-none" />
+          <span className="absolute inset-0 flex items-center justify-center text-sm font-medium text-muted-foreground pointer-events-none">
+            Loading...
+          </span>
         </div>
       )}
 
