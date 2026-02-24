@@ -9,7 +9,7 @@
  * @module tiptap-markdown.utils
  */
 
-import { generateHTML, generateJSON } from '@tiptap/core';
+import { generateHTML, generateJSON, getSchema } from '@tiptap/core';
 import type { JSONContent } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Code from '@tiptap/extension-code';
@@ -27,6 +27,9 @@ import {
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 
+import { DOMParser } from '@tiptap/pm/model';
+import { parseHTML } from 'linkedom';
+
 import { AdmonitionServerSafe } from './admonition-server.extension';
 
 /**
@@ -34,7 +37,7 @@ import { AdmonitionServerSafe } from './admonition-server.extension';
  *
  * 클라이언트 useTipTapEditor에서 Mathematics를 onClick 핸들러와 함께 별도 추가할 때 사용.
  */
-/** Code with excludes: '' so it can coexist with bold, italic, color, etc. */
+// excludes: '' → Bold, Italic, TextStyle(Color) 등 다른 마크와 공존 가능하도록 배제 목록 비움
 const CodeAllowOtherMarks = Code.extend({ excludes: '' });
 
 export const BASE_EXTENSIONS_WITHOUT_MATH = [
@@ -212,6 +215,57 @@ function preprocessAdmonition(md: string): string {
   });
 }
 
+/**
+ * Node.js에서 linkedom + ProseMirror DOMParser로 HTML→JSON 변환
+ * TipTap generateJSON은 elementFromString에서 window를 요구해 Node에서 실패함.
+ * ProseMirror DOMParser는 DOM 노드를 순회만 하므로 linkedom 노드로 동작함.
+ */
+function htmlToTiptapJsonServer(html: string): JSONContent {
+  if (typeof window !== 'undefined') {
+    return generateJSON(html, BASE_EXTENSIONS_WITHOUT_MATH);
+  }
+  const { document: doc } = parseHTML(
+    '<!DOCTYPE html><html><body></body></html>'
+  );
+  const div = doc.createElement('div');
+  div.innerHTML = html;
+  const schema = getSchema(BASE_EXTENSIONS_WITHOUT_MATH);
+  const parser = DOMParser.fromSchema(schema);
+  const pmDoc = parser.parse(div);
+  return pmDoc.toJSON() as JSONContent;
+}
+
+/**
+ * Markdown → TipTap JSON (서버 전용)
+ *
+ * Welcome 페이지 시딩 등 서버에서 실행 시 사용.
+ * Node.js에서는 linkedom으로 DOM 폴리필 후 generateJSON 호출.
+ */
+export function markdownToTiptapServerSafe(markdown: string): JSONContent {
+  try {
+    if (!markdown || markdown.trim() === '') {
+      return EMPTY_TIPTAP_DOC;
+    }
+    // Preprocessing: **bold** → <strong> (CJK/괄호 조합 시 marked 파싱 이슈 회피)
+    let preprocessed = markdown.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    preprocessed = preprocessAdmonition(preprocessed);
+    const html = marked.parse(preprocessed, { gfm: true, breaks: true }) as string;
+    const json = htmlToTiptapJsonServer(html);
+    return json;
+  } catch (error: unknown) {
+    console.error('[markdownToTiptapServerSafe] Parsing error:', error);
+    return {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: markdown }],
+        },
+      ],
+    };
+  }
+}
+
 export function markdownToTiptap(markdown: string): JSONContent {
   try {
     if (!markdown || markdown.trim() === '') {
@@ -264,11 +318,11 @@ export function extractPlainText(json: JSONContent): string {
     if (node.content) {
       const separator =
         node.type === 'paragraph' ||
-        node.type === 'heading' ||
-        node.type === 'blockquote' ||
-        node.type === 'admonition' ||
-        node.type === 'details' ||
-        node.type === 'detailsContent'
+          node.type === 'heading' ||
+          node.type === 'blockquote' ||
+          node.type === 'admonition' ||
+          node.type === 'details' ||
+          node.type === 'detailsContent'
           ? '\n\n'
           : node.type === 'listItem' || node.type === 'taskItem'
             ? '\n'
