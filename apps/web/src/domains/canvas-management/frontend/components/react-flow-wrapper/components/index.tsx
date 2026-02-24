@@ -167,7 +167,7 @@ export function ReactFlowView({
           // 기본 설정
           defaultViewport={defaultViewport}
           minZoom={0.1}
-          maxZoom={2}
+          maxZoom={5.0}
           // 테마 설정
           colorMode={colorMode}
           // 상호작용 설정
