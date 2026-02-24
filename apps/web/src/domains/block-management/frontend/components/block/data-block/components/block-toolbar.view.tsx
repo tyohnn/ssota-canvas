@@ -15,12 +15,18 @@ export interface BlockToolbarViewProps {
   className?: string;
   headerContent: React.ReactNode;
   toolbarItems: React.ReactNode;
+  /** 도형 블록 등 헤더(제목, 배지) 없이 툴바만 표시할 때 사용 */
+  hideHeader?: boolean;
+  /** 도형 블록 등 바깥 컨테이너(제목+배지+아이콘 전체) 배경/테두리/그림자 숨김. 내부(아이콘 버튼들) 컨테이너는 유지 */
+  hideToolbarContainer?: boolean;
 }
 
 export function BlockToolbarView({
   className,
   headerContent,
   toolbarItems,
+  hideHeader = false,
+  hideToolbarContainer = false,
 }: BlockToolbarViewProps) {
   return (
     <Box
@@ -30,24 +36,28 @@ export function BlockToolbarView({
         className
       )}
     >
-      <Box className="w-full flex items-center gap-2 bg-background/60 backdrop-blur-md border border-border/75 rounded-md shadow-lg px-1.5 py-0.5">
-        {/* 좌측: BlockHeader (flex-1으로 나머지 공간 사용) */}
-        <Box className="flex-1 min-w-0">
-          {headerContent}
-        </Box>
+      {/* 바깥 컨테이너: 제목+배지+아이콘 전체 감쌈. hideToolbarContainer면 스타일 없음 */}
+      <Box
+        className={cn(
+          'w-full flex items-center gap-2 px-1.5 py-0.5',
+          hideHeader && 'justify-center',
+          !hideToolbarContainer &&
+            'bg-background/60 backdrop-blur-md border border-border/75 rounded-md shadow-lg'
+        )}
+      >
+        {!hideHeader && (
+          <Box className="flex-1 min-w-0">{headerContent}</Box>
+        )}
 
-        {/* 우측: Toolbar Buttons (고정 너비) - 버튼 영역은 드래그 방지 */}
+        {/* 내부 컨테이너: 아이콘 버튼들만 감쌈. 항상 배경/테두리/그림자 유지 */}
         <Box
           className={cn(
-            'bg-background/70 backdrop-blur-md rounded-md shadow-xl border-border/40 border',
             'px-1.5 py-1 flex items-center justify-center gap-0.5',
             'shrink-0',
-            // 'nodrag'
+            'bg-background/70 backdrop-blur-md rounded-md shadow-xl border-border/40 border'
           )}
         >
-          <TooltipProvider>
-            {toolbarItems}
-          </TooltipProvider>
+          <TooltipProvider>{toolbarItems}</TooltipProvider>
         </Box>
       </Box>
     </Box>

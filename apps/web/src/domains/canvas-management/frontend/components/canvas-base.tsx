@@ -15,6 +15,7 @@ import {
 import { CanvasModeProvider } from '@/domains/canvas-management/frontend/hooks/mode/canvas-mode-context';
 import { CanvasdownProvider } from '@/domains/canvasdown/frontend/contexts/canvasdown-context';
 import { AIActionProvider } from '@/domains/ai-actions/frontend/contexts/ai-action-context';
+import { ChatPanelSidebar } from '@/domains/ai-management/frontend/components/chat-panel-sidebar';
 
 import { EditorPanelWrapper } from './editor-panel-wrapper';
 import { CanvasReactFlowWrapper } from './react-flow-wrapper';
@@ -56,16 +57,20 @@ export function CanvasBase({
             <CanvasReadOnlyProvider readonly={readonly} publishToken={publishToken}>
               <CanvasdownProvider pageId={pageId}>
                 <AIActionProvider>
-                  <Box className="h-full flex flex-col bg-background">
-                    {/* 메인 캔버스 영역 */}
-                    <CanvasReactFlowWrapper
-                      initialNodes={initialNodes}
-                      initialEdges={initialEdges}
-                    />
-                    {/* Editor Panel (React Flow 바깥에서 렌더링) */}
-                    <EditorPanelWrapper />
-                    {/* Children (e.g., PublishedPageHeader) */}
-                    {children}
+                  <Box className="h-full w-full flex flex-row bg-background">
+                    {/* Main canvas area (relative: 에디터 패널이 캔버스 기준 absolute 배치) */}
+                    <Box className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
+                      <CanvasReactFlowWrapper
+                        initialNodes={initialNodes}
+                        initialEdges={initialEdges}
+                      />
+                      {/* Editor Panel (React Flow 바깥에서 렌더링) */}
+                      <EditorPanelWrapper />
+                      {/* Children (e.g., PublishedPageHeader) */}
+                      {children}
+                    </Box>
+                    {/* Right sidebar: Chat Panel (inside ReactFlowProvider) */}
+                    {!readonly && <ChatPanelSidebar />}
                   </Box>
                 </AIActionProvider>
               </CanvasdownProvider>

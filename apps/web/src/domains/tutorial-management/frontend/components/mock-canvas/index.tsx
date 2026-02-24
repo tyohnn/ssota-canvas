@@ -2,6 +2,7 @@
 
 import type { ComponentType } from 'react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useTheme } from 'next-themes';
 import {
   Background,
   type Edge,
@@ -34,7 +35,6 @@ import {
 import { useMockCanvas } from './core/use-mock-canvas';
 import { MockCanvasToolbar } from '../mock-canvas-toolbar';
 import { MockViewportControlToolbarConnected } from '../mock-viewport-control-toolbar';
-import { MockBlockAddDialog } from '../mock-block-add-dialog';
 import { MockShadowBlock } from './components/mock-shadow-block';
 import { MockViewportNavigationProvider } from './core/mock-viewport-navigation-context';
 import { TutorialStartOverlay } from '../common/tutorial-start-overlay';
@@ -128,14 +128,8 @@ function MockCanvasInnerWithFlow({
   initialNodes = [],
   initialEdges = [],
 }: MockCanvasInnerProps) {
-  const {
-    showBlockMenu,
-    hasBlock,
-    handleAddBlockClick,
-    handleCloseDialog,
-    handleSelectBlockType,
-    handleBlockPlaced,
-  } = useMockCanvas();
+  const { resolvedTheme } = useTheme();
+  const { hasBlock, handleBlockPlaced } = useMockCanvas();
 
   const {
     currentTutorial,
@@ -327,6 +321,18 @@ function MockCanvasInnerWithFlow({
         <TutorialStepOverlay containerRef={canvasWrapperRef} />
       )}
 
+      {/* React Flow background - dark mode uses theme bg */}
+      <style jsx global>{`
+        .react-flow.mock-canvas-tutorial,
+        .react-flow.mock-canvas-tutorial.dark {
+          --xy-background-color-default: var(--background) !important;
+          --xy-background-color: var(--background) !important;
+          background-color: var(--background) !important;
+        }
+        .react-flow.mock-canvas-tutorial .react-flow__background {
+          background-color: var(--background) !important;
+        }
+      `}</style>
       {/* Block-creation mode styles (match real app) */}
       {isBlockCreation && (
         <style>{`
@@ -360,6 +366,7 @@ function MockCanvasInnerWithFlow({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultViewport={defaultViewport}
+        colorMode={resolvedTheme === 'dark' ? 'dark' : 'light'}
         minZoom={0.5}
         maxZoom={1.5}
         nodesDraggable={false}
@@ -372,9 +379,10 @@ function MockCanvasInnerWithFlow({
         zoomOnDoubleClick={false}
         proOptions={{ hideAttribution: true }}
         className={cn(
-          'bg-muted/30',
+          'mock-canvas-tutorial bg-background h-full w-full',
           isBlockCreation && 'mock-canvas-block-creation'
         )}
+        style={{ backgroundColor: 'var(--background)' }}
       >
         <Background gap={20} size={1} />
         <FitViewEffect
@@ -390,7 +398,10 @@ function MockCanvasInnerWithFlow({
 
         {/* Canvas Toolbar - Top Center (above step overlay so it stays clickable) */}
         <Panel position="top-center" className="mt-4! pointer-events-auto! z-50">
-          <MockCanvasToolbar onAddBlockClick={handleAddBlockClick} />
+          <MockCanvasToolbar
+            onAddBlockTypeClick={enterBlockCreationMode}
+            includeYoutube={isYoutubeBlockTutorial}
+          />
         </Panel>
 
         {/* Viewport Control Toolbar - Bottom Right (above step overlay so it stays clickable) */}
@@ -398,14 +409,6 @@ function MockCanvasInnerWithFlow({
           <MockViewportControlToolbarConnected />
         </Panel>
       </ReactFlow>
-
-      {/* Block Add Dialog (outside ReactFlow, same as real app) */}
-      <MockBlockAddDialog
-        isOpen={showBlockMenu}
-        onClose={handleCloseDialog}
-        onSelectBlockType={handleSelectBlockType}
-        enterBlockCreationMode={enterBlockCreationMode}
-      />
     </div>
   );
 }

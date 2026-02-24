@@ -11,6 +11,7 @@ import {
   TooltipTrigger,
 } from '@workspace/ui/components/ui/tooltip';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
 
@@ -32,6 +33,7 @@ export function AudioUploadToolbarItem({
   disabled = false,
   onValueChange,
 }: AudioUploadToolbarItemProps) {
+  const { orgId, workspaceId } = useCanvasMetadata();
   const { upload, isUploading } = useSupabaseStorage();
 
   const handleAudioUpload = useCallback(() => {
@@ -51,6 +53,8 @@ export function AudioUploadToolbarItem({
             bucket: StorageBucket.CANVAS_ASSETS,
             file,
             blockId,
+            orgId,
+            workspaceId,
           });
 
           await onValueChange(result.url);
@@ -62,7 +66,7 @@ export function AudioUploadToolbarItem({
     };
 
     input.click();
-  }, [disabled, onValueChange, upload, isUploading, blockId]);
+  }, [disabled, onValueChange, upload, isUploading, blockId, orgId, workspaceId]);
 
   return (
     <Tooltip>

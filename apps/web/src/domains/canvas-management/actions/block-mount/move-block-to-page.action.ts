@@ -1,6 +1,11 @@
 'use server';
 
-import type { PageActionContext } from '@/domains/common/auth/types';
+import type { MoveBlockActionContext } from './secure-action';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -38,25 +43,33 @@ export const moveBlockToPageAction = withMoveBlockSecureAction(
 /**
  * 내부 구현 (검증된 데이터만 처리)
  *
- * ⚠️ 이 함수는 이미 검증된 요청만 받습니다
- *
  * @param safeDto - 검증된 SafeDTO
- * @param context - 검증된 사용자, 워크스페이스, 페이지 정보 + targetPage
+ * @param context - MoveBlockActionContext (targetPage, blockMountAggregate 포함)
  */
 async function moveBlockToPageInternal(
-  safeDto: MoveBlockToPageRequest, // ✅ 이미 검증됨 (SafeDTO)
-  context: PageActionContext // ✅ 검증된 context (targetPage 포함)
+  safeDto: MoveBlockToPageRequest,
+  context: MoveBlockActionContext
 ): Promise<ActionResult<BlockMovedToPageDTO>> {
   try {
-    // ✅ 이미 검증된 사용자 정보 사용 (중복 조회 제거)
-    const { authenticatedUser } = context;
+    const { authenticatedUser, targetPage, blockMountAggregate } = context;
     const userId: UserId = new UserId(authenticatedUser.id);
-
-    // Repository 인스턴스 생성
     const blockMountRepository = new DrizzleBlockMountRepository();
 
-    // Service 함수 직접 호출
-    const result = await moveBlockToPage(safeDto, userId, blockMountRepository);
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: authenticatedUser.id,
+      pageId: targetPage.pageId.value,
+    };
+
+    const result = await moveBlockToPage({
+      safeDto,
+      safeUserId: userId,
+      safeBlockMountAggregate: blockMountAggregate,
+      blockMountRepository,
+      eventLogPolicyContext,
+    });
 
     if (result.isError()) {
       console.error(
@@ -69,11 +82,11 @@ async function moveBlockToPageInternal(
       });
     }
 
-    // 6. Aggregate → DTO 변환
-    const blockMountAggregate = result.value;
-    const blockMount = blockMountAggregate.getBlockMount();
+    // Aggregate → DTO 변환
+    const movedAggregate = result.value;
+    const blockMount = movedAggregate.getBlockMount();
     const dto: BlockMovedToPageDTO = {
-      blockMountId: blockMount.id.value,
+      blockMountId: safeDto.blockMountId,
       newPageId: blockMount.pageId.value,
       newPosition: {
         x: blockMount.position.x,

@@ -34,7 +34,7 @@ export function LinkUrlToolbarItem({
       disabled={disabled}
       onValueChange={onValueChange}
       icon={Link2}
-      label="링크 편집"
+      label="Edit URL"
       placeholder="https://..."
     />
   );

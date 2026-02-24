@@ -5,9 +5,6 @@
  * Pattern based on landing page mock data.
  */
 
-import { DEFAULT_BLOCK_TYPES } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/toolbar/block-add-dialog/core/block-types';
-import type { BlockTypeInfo } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/components/toolbar/block-add-dialog/core/types';
-
 // =============================================================================
 // YouTube Mock Data
 // =============================================================================
@@ -38,32 +35,3 @@ export const TUTORIAL_MOCK_BLOCK_DATA = {
   properties: TUTORIAL_YOUTUBE_PROPERTIES,
 };
 
-// =============================================================================
-// Block Types Mock Data (for BlockAddDialog)
-// =============================================================================
-
-/**
- * Use the same block types as the real app
- */
-export const TUTORIAL_BLOCK_TYPES = DEFAULT_BLOCK_TYPES;
-
-/**
- * Block types grouped by category for BlockAddDialog
- * Filters out 'Code' category and preparing blocks for tutorials
- */
-export const TUTORIAL_BLOCK_TYPES_BY_CATEGORY: Record<
-  string,
-  BlockTypeInfo[]
-> = TUTORIAL_BLOCK_TYPES.filter(
-  (blockType) => !blockType.isPreparing && blockType.category !== 'Code'
-).reduce(
-  (acc, blockType) => {
-    const category = blockType.category || 'Other';
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(blockType);
-    return acc;
-  },
-  {} as Record<string, BlockTypeInfo[]>
-);

@@ -27,43 +27,6 @@ import { cn } from '@workspace/ui/lib/utils';
 
 import { ColorToken, getGlowColor } from '@/domains/block-management/shared/types/style-tokens.types';
 
-// 스켈레톤 블록 노드 컴포넌트
-const SkeletonBlockNode = memo(function SkeletonBlockNode({ data }: NodeProps) {
-  const [isVisible, setIsVisible] = useState(false);
-
-  // Staggered 애니메이션
-  useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 200);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const nodeData = data as { blockId?: string };
-  // 각 블록마다 다른 딜레이
-  const blockIndex = parseInt(nodeData?.blockId?.split('-')[1] || '0', 10);
-  const animationDelay = blockIndex * 100;
-
-  return (
-    <div
-      className={cn(
-        'w-full h-full rounded-lg border border-border bg-card/50 shadow-sm',
-        'transition-all duration-500 ease-out',
-        isVisible ? 'opacity-40' : 'opacity-0'
-      )}
-      style={{
-        animationDelay: `${animationDelay}ms`,
-      }}
-    >
-      {/* 블록 내부 콘텐츠 스켈레톤 */}
-      <div className="p-4 space-y-3 h-full animate-pulse">
-        <div className="h-4 bg-muted rounded w-3/4" />
-        <div className="h-3 bg-muted/60 rounded w-full" />
-        <div className="h-3 bg-muted/60 rounded w-5/6" />
-        <div className="h-3 bg-muted/40 rounded w-4/6" />
-      </div>
-    </div>
-  );
-});
-
 // 404 육각형 노드 컴포넌트 (ShapeBlock 디자인 참고)
 const NotFoundHexagonNode = memo(function NotFoundHexagonNode({
   width = 280,
@@ -172,7 +135,6 @@ const NotFoundHexagonNode = memo(function NotFoundHexagonNode({
 
 // 노드 타입 정의
 const NODE_TYPES: NodeTypes = {
-  skeleton: SkeletonBlockNode,
   'not-found-hexagon': NotFoundHexagonNode,
 };
 
@@ -230,8 +192,16 @@ function NotFoundCanvasInner({ nodes }: NotFoundCanvasContentProps) {
     <>
       {/* React Flow 스타일 오버라이드 */}
       <style jsx global>{`
-        .react-flow {
-          background-color: hsl(var(--background)) !important;
+        /* Override xyflow dark mode: use theme background via --xy-background-color */
+        .react-flow,
+        .react-flow.dark {
+          --xy-background-color-default: var(--background) !important;
+          --xy-background-color: var(--background) !important;
+          background-color: var(--background) !important;
+        }
+
+        .react-flow__background {
+          background-color: var(--background) !important;
         }
 
         .react-flow__pane {
@@ -250,11 +220,6 @@ function NotFoundCanvasInner({ nodes }: NotFoundCanvasContentProps) {
 
         .react-flow__background-pattern {
           stroke: rgba(0, 0, 0, 0.08) !important;
-        }
-
-        /* 스켈레톤 블록 페이드 효과 */
-        .react-flow__node[data-id^='skeleton-'] {
-          opacity: 0.4;
         }
 
         /* 펄스 애니메이션 */

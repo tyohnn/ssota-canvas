@@ -3,14 +3,10 @@
  *
  * 블록 상단에 표시되는 통합 툴바 (모든 view mode에서 사용)
  * - 좌측: BlockHeader (제목 + Badge)
- * - 우측: Toolbar buttons (ViewMode + Details + More + BlockToolbarMapper)
+ * - 우측: Toolbar buttons (ViewMode + Details + BlockToolbarMapper)
  */
 
 'use client';
-
-import { ChevronRight } from 'lucide-react';
-
-import { ToolbarIconButton } from '@workspace/ui/components/ssota-ui/toolbar-icon-button';
 
 import { Separator } from '@/components/ui/separator';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
@@ -20,7 +16,7 @@ import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts
 import { GroupBlockToolbar } from './group-block-toolbar';
 import { BlockHeader } from './block-header';
 import {
-  MoreMenuToolbarItem,
+  EditorToolbarButton,
   ViewModeToolbarItem,
 } from '../../common-toolbar-items';
 import { BlockToolbarMapper } from '../../block-original-toolbar/components/block-toolbar-mapper';
@@ -83,13 +79,15 @@ export function BlockToolbar({
         className={className}
         zoom={zoom}
         isMultiSelection={isMultiSelection}
-        onEdit={onEdit}
         showBlockToolbarMapper={showBlockToolbarMapper}
       />
     );
   }
 
-  const headerContent = (
+  // 도형 블록: 도형·색상만 표시 (제목, 배지, view mode, details, more 메뉴 없음)
+  const isShapeBlock = data.blockType === 'shape';
+
+  const headerContent = isShapeBlock ? null : (
     <BlockHeader
       data={data}
       selected={selected}
@@ -97,7 +95,26 @@ export function BlockToolbar({
     />
   );
 
-  const toolbarItems = (
+  const toolbarItems = isShapeBlock ? (
+    /* 도형 블록: BlockToolbarMapper + Editor (Separator는 ShapeToolbarItems 내부에 있음) */
+    <>
+      {showBlockToolbarMapper && (
+        <BlockToolbarMapper
+          blockId={data.blockId}
+          blockType={data.blockType || 'basic'}
+          blockData={data}
+          width={width}
+          height={height}
+          zoom={zoom}
+          readonly={readonly}
+        />
+      )}
+      <EditorToolbarButton
+        onClick={() => onEdit()}
+        onMouseDown={e => e.stopPropagation()}
+      />
+    </>
+  ) : (
     <>
       {/* Original view: BlockToolbarMapper */}
       {showBlockToolbarMapper && (
@@ -111,9 +128,6 @@ export function BlockToolbar({
             zoom={zoom}
             readonly={readonly}
           />
-          {!readonly && (
-            <Separator orientation="vertical" className="h-4!" />
-          )}
         </>
       )}
 
@@ -128,32 +142,10 @@ export function BlockToolbar({
       )}
 
       {/* 에디터 열기 */}
-      <ToolbarIconButton
-        icon={<ChevronRight />}
-        tooltip="Details"
-        tooltipSide="top"
-        tooltipOffset={5}
-        onClick={() => {
-          onEdit();
-        }}
+      <EditorToolbarButton
+        onClick={() => onEdit()}
         onMouseDown={e => e.stopPropagation()}
-        className="h-6 w-6 p-0 rounded-sm"
-        iconClassName="size-3.5"
       />
-
-      {/* 더보기 메뉴 - readonly일 때 숨김 */}
-      {!readonly && (
-        <>
-          <Separator orientation="vertical" className="h-4!" />
-          <MoreMenuToolbarItem
-            blockId={data.blockId}
-            blockMountId={data.blockMountId}
-            width={width}
-            height={height}
-            parentBlockMountId={data.parentBlockMountId}
-          />
-        </>
-      )}
     </>
   );
 
@@ -162,6 +154,8 @@ export function BlockToolbar({
       className={className}
       headerContent={headerContent}
       toolbarItems={toolbarItems}
+      hideHeader={isShapeBlock}
+      hideToolbarContainer={isShapeBlock}
     />
   );
 }

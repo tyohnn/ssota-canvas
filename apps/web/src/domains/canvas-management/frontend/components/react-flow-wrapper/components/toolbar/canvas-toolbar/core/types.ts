@@ -40,11 +40,13 @@ export interface ModeDependencies {
 // 5. Public Entry Point (Props)
 // =============================================================================
 
+import type { BlockType } from '@/domains/block-management/shared/types/block-types';
+
 /**
  * CanvasToolbar Component Props
  */
 export interface CanvasToolbarProps {
-  onAddBlockClick?: () => void;
+  onAddBlockTypeClick?: (blockType: BlockType) => void;
 }
 
 /**
@@ -58,6 +60,6 @@ export interface UseCanvasToolbarReturn {
   onSelectClick: () => void;
   onHandClick: () => void;
   onFitToViewClick: () => void;
-  onAddBlockClick: () => void;
+  onAddBlockTypeClick: (blockType: BlockType) => void;
   readonly: boolean;
 }

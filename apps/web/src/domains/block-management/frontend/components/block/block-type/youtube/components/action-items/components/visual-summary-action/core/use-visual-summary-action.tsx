@@ -63,7 +63,7 @@ export function useVisualSummaryAction(
   const { getNode } = useReactFlow();
 
   // Domain Dependencies
-  const { pageId } = useCanvasMetadata();
+  const { pageId, workspaceId } = useCanvasMetadata();
   const { readonly, publishToken } = useCanvasReadOnly();
   const {
     isGenerating: isGeneratingFromContext,
@@ -104,12 +104,16 @@ export function useVisualSummaryAction(
   // 4. Business Hook (도메인 훅 조합)
   // ============================================================================
 
+  const sourceId = blockData?.sourceId;
+
   const business = useVisualSummaryActionBusiness({
     pageId,
+    workspaceId,
     blockId,
     sourceBlockPosition: position,
     sourceBlockSize: size,
     youtubeId,
+    sourceId,
     selectedLanguage: uiState.selectedLanguage,
     readonly,
     publishToken,

@@ -27,6 +27,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseDuplicateBlockParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
   onSuccess?: (block: BlockDuplicatedAndMountedDTO) => void;
   onError?: () => void;
@@ -55,7 +56,7 @@ export type UseDuplicateBlockResult = {
 export function useDuplicateBlock(
   params: UseDuplicateBlockParams
 ): UseDuplicateBlockResult {
-  const { reactFlow, onSuccess, onError } = params;
+  const { pageId, reactFlow, onSuccess, onError } = params;
   const { getNodes, setNodes, addNodes, deleteElements } = reactFlow;
 
   /**
@@ -92,6 +93,7 @@ export function useDuplicateBlock(
         customProperties: originalNodeData.customProperties,
         content: originalNodeData.content,
         viewMode: originalNodeData.viewMode,
+        sourceId: originalNodeData.sourceId,
       }
     );
 
@@ -130,6 +132,7 @@ export function useDuplicateBlock(
 
       // Validation
       const rawRequest: DuplicateBlockAndMountRequestInput = {
+        pageId,
         blockMountId: input.blockMountId,
         offsetX: input.offsetX || 20,
         offsetY: input.offsetY || 20,
@@ -241,7 +244,7 @@ export function useDuplicateBlock(
         | BlockNodeData
         | undefined;
 
-      // 실제 블럭 데이터 생성
+      // 실제 블럭 데이터 생성 (서버 응답의 sourceId 우선, 없으면 낙관적 노드 값 사용)
       const realNodeData: BlockNodeData = buildBlockNodeData(
         originalBlockType,
         {
@@ -252,6 +255,7 @@ export function useDuplicateBlock(
           customProperties: optimisticNodeData?.customProperties,
           content: optimisticNodeData?.content,
           viewMode: optimisticNodeData?.viewMode || 'original',
+          sourceId: result.sourceId ?? optimisticNodeData?.sourceId,
         }
       );
 

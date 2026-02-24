@@ -1,3 +1,10 @@
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['@workspace/ui'],
@@ -38,14 +45,20 @@ const nextConfig = {
       },
     },
   },
-  // ✅ Webpack 설정 - .md 파일 처리 (프로덕션 빌드)
-  webpack: (config, { isServer }) => {
+  // ✅ Webpack 설정 - .md 파일 처리 (프로덕션 빌드) + Yjs 단일 인스턴스
+  webpack: config => {
     // .md 파일을 문자열로 처리
     config.module.rules.push({
       test: /\.md$/,
       type: 'asset/source',
     });
-    
+    // Yjs 중복 import 방지 (https://github.com/yjs/yjs/issues/438)
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      yjs: require.resolve('yjs'),
+      // linkedom optional native dep; stub so webpack doesn't fail (we don't use canvas APIs)
+      canvas: path.join(__dirname, 'src/stubs/canvas.js'),
+    };
     return config;
   },
 };

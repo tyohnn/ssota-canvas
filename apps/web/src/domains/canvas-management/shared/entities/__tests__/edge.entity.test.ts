@@ -29,9 +29,12 @@ describe('Edge Entity', () => {
       const edgeLabel = 'test edge';
       const edgeStyle = new EdgeStyle('#FF0000', 3);
 
+      const slug = edgeId.value.replace(/-/g, '').slice(0, 8);
+
       // When
       const edge = new Edge(
         edgeId,
+        slug,
         pageId,
         sourceBlockMountId,
         targetBlockMountId,
@@ -53,9 +56,11 @@ describe('Edge Entity', () => {
     });
 
     it('기본값으로 Edge를 생성할 수 있어야 한다', () => {
+      const slug = edgeId.value.replace(/-/g, '').slice(0, 8);
       // When
       const edge = new Edge(
         edgeId,
+        slug,
         pageId,
         sourceBlockMountId,
         targetBlockMountId,
@@ -72,12 +77,12 @@ describe('Edge Entity', () => {
     });
 
     it('self-loop를 허용해야 한다 (같은 블럭 마운트 간 연결)', () => {
-      // Given
       const sameBlockMountId = new BlockMountId('550e8400-e29b-41d4-a716-446655440002');
-
+      const slug = edgeId.value.replace(/-/g, '').slice(0, 8);
       // When
       const edge = new Edge(
         edgeId,
+        slug,
         pageId,
         sameBlockMountId,
         sameBlockMountId,
@@ -92,9 +97,11 @@ describe('Edge Entity', () => {
     });
 
     it('다른 블럭 마운트 간 연결은 self-loop가 아니어야 한다', () => {
+      const slug = edgeId.value.replace(/-/g, '').slice(0, 8);
       // When
       const edge = new Edge(
         edgeId,
+        slug,
         pageId,
         sourceBlockMountId,
         targetBlockMountId,
@@ -109,9 +116,11 @@ describe('Edge Entity', () => {
 
   describe('updateShape', () => {
     it('엣지 모양을 업데이트할 수 있어야 한다', () => {
+      const slug = edgeId.value.replace(/-/g, '').slice(0, 8);
       // Given
       const edge = new Edge(
         edgeId,
+        slug,
         pageId,
         sourceBlockMountId,
         targetBlockMountId,
@@ -133,9 +142,11 @@ describe('Edge Entity', () => {
 
   describe('updateLabel', () => {
     it('엣지 레이블을 업데이트할 수 있어야 한다', () => {
+      const slug = edgeId.value.replace(/-/g, '').slice(0, 8);
       // Given
       const edge = new Edge(
         edgeId,
+        slug,
         pageId,
         sourceBlockMountId,
         targetBlockMountId,
@@ -155,9 +166,11 @@ describe('Edge Entity', () => {
 
   describe('updateStyle', () => {
     it('엣지 색상을 업데이트할 수 있어야 한다', () => {
+      const slug = edgeId.value.replace(/-/g, '').slice(0, 8);
       // Given
       const edge = new Edge(
         edgeId,
+        slug,
         pageId,
         sourceBlockMountId,
         targetBlockMountId,
@@ -176,9 +189,11 @@ describe('Edge Entity', () => {
     });
 
     it('엣지 두께를 업데이트할 수 있어야 한다', () => {
+      const slug = edgeId.value.replace(/-/g, '').slice(0, 8);
       // Given (EdgeStyle thickness 허용 범위: 1–3)
       const edge = new Edge(
         edgeId,
+        slug,
         pageId,
         sourceBlockMountId,
         targetBlockMountId,
@@ -197,9 +212,11 @@ describe('Edge Entity', () => {
     });
 
     it('색상과 두께를 동시에 업데이트할 수 있어야 한다', () => {
+      const slug = edgeId.value.replace(/-/g, '').slice(0, 8);
       // Given (EdgeStyle thickness 허용 범위: 1–3)
       const edge = new Edge(
         edgeId,
+        slug,
         pageId,
         sourceBlockMountId,
         targetBlockMountId,
@@ -220,9 +237,11 @@ describe('Edge Entity', () => {
 
   describe('isConnectedTo', () => {
     it('소스 블록 마운트와 연결되어 있는지 확인할 수 있어야 한다', () => {
+      const slug = edgeId.value.replace(/-/g, '').slice(0, 8);
       // Given
       const edge = new Edge(
         edgeId,
+        slug,
         pageId,
         sourceBlockMountId,
         targetBlockMountId,

@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 import type { Node } from '@xyflow/react';
 
+import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type {
-  BlockNodeData,
   CanvasModeDependencies,
   ReactFlowDependencies,
   SnapGuidesDependencies,
@@ -15,10 +15,6 @@ import type {
  * UI 상태 관리 및 UI 관련 callbacks 핸들러
  */
 export interface ReactFlowWrapperUIState {
-  // UI 상태
-  showAddDialog: boolean;
-  setShowAddDialog: (show: boolean) => void;
-
   // Callbacks - Drag 관련
   onNodeDragStart: (
     event: React.MouseEvent,
@@ -58,13 +54,10 @@ export function useReactFlowWrapperUI(
 ): ReactFlowWrapperUIState {
   const { canvasMode, reactFlow, snapGuides } = dependencies;
 
-  // UI 상태
-  const [showAddDialog, setShowAddDialog] = useState(false);
-
   // 이전 선택 상태 추적 (무한 루프 방지)
   const previousSelectionRef = useRef<{
     count: number;
-    blockId?: string;
+    blockMountId?: string;
   }>({ count: 0 });
 
   /**
@@ -183,16 +176,16 @@ export function useReactFlowWrapperUI(
           canvasMode.enterMultiSelectionMode(selectedNodes.map(n => n.id));
         }
       } else if (currentCount === 1) {
-        // 단일 선택: blockId가 변경된 경우에만 업데이트
+        // 단일 선택: blockMountId(캔버스 노드 ID)가 변경된 경우에만 업데이트
         const node = selectedNodes[0]!;
-        const nodeData = node.data as unknown as BlockNodeData;
-        const blockId = nodeData?.blockId || node.id;
+        const nodeData = node.data as BlockNodeData | undefined;
+        const blockMountId = nodeData?.blockMountId ?? node.id;
 
-        // 이전 선택과 같은 blockId면 스킵
-        if (previousSelection.blockId !== blockId) {
-          previousSelectionRef.current = { count: 1, blockId };
+        // 이전 선택과 같은 blockMountId면 스킵
+        if (previousSelection.blockMountId !== blockMountId) {
+          previousSelectionRef.current = { count: 1, blockMountId };
           // 선택 시에는 single-selection 모드로 진입 (에디터 패널은 별도로 열림)
-          canvasMode.enterSingleSelectionMode(blockId);
+          canvasMode.enterSingleSelectionMode(blockMountId);
         }
       } else {
         // 선택 해제: 이전에 선택이 있었던 경우에만 업데이트
@@ -304,7 +297,7 @@ export function useReactFlowWrapperUI(
       let newZoom: number;
       if (deltaY < 0) {
         // 줌인: zoomDelta를 플랫폼별 감도로 조절
-        newZoom = Math.min(currentZoom + zoomMultiplier, 2); // maxZoom
+        newZoom = Math.min(currentZoom + zoomMultiplier, 5.0); // maxZoom (250%)
       } else {
         // 줌아웃: zoomDelta를 플랫폼별 감도로 조절
         newZoom = Math.max(currentZoom - zoomMultiplier, 0.1); // minZoom
@@ -354,8 +347,6 @@ export function useReactFlowWrapperUI(
   );
 
   return {
-    showAddDialog,
-    setShowAddDialog,
     onNodeDragStart,
     onNodeDrag,
     handleNodeDragStopUI,

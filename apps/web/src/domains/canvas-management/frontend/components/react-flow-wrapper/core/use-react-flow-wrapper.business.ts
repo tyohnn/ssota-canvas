@@ -235,10 +235,16 @@ export function useReactFlowWrapperBusiness(
    *
    * 주의: React Flow가 이미 노드를 제거한 후 이 콜백을 호출하므로,
    * UI는 이미 제거된 상태이고 서버 액션만 호출하면 됨
+   *
+   * Filter out optimistic nodes (not yet persisted) - only sync real block mounts.
    */
   const onNodesDelete = useCallback(
     async (deletedNodes: Node[]) => {
-      await syncNodeDelete(deletedNodes);
+      const realNodes = deletedNodes.filter(
+        node => !node.id.startsWith('optimistic-')
+      );
+      if (realNodes.length === 0) return;
+      await syncNodeDelete(realNodes);
     },
     [syncNodeDelete]
   );
@@ -290,7 +296,7 @@ export function useReactFlowWrapperBusiness(
           // 블럭 너비 + 50px 오프셋 계산
           const blockWidth = selectedNode?.width || 200; // 기본 너비 200px
           const offsetX = blockWidth + 50;
-          const offsetY = 20; // Y축은 기본 20px
+          const offsetY = 0;
 
           await blockLifecycle.duplicateBlockAndMount(
             blockMountId,

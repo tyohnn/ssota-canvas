@@ -1,4 +1,6 @@
 import React from 'react';
+
+import { Separator } from '@/components/ui/separator';
 import { YoutubeToolbarItemsView } from './youtube-toolbar-items.view';
 
 // Lazy Loading을 위한 Wrapper 컴포넌트
@@ -21,11 +23,14 @@ export function YoutubeToolbarItems({
   const youtubeProperties = blockData.properties;
 
   return (
-    <YoutubeToolbarItemsView
-      blockId={blockId}
-      blockMountId={blockMountId}
-      url={youtubeProperties?.url || ''}
-      disabled={disabled || !youtubeProperties?.url}
-    />
+    <>
+      <YoutubeToolbarItemsView
+        blockId={blockId}
+        blockMountId={blockMountId}
+        url={youtubeProperties?.url || ''}
+        disabled={disabled || !youtubeProperties?.url}
+      />
+      {!readonly && <Separator orientation="vertical" className="h-6!" />}
+    </>
   );
 }

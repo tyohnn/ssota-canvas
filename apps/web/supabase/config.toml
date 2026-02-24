@@ -4,13 +4,6 @@
 # working directory name when running `supabase init`.
 project_id = "web"
 
-# Configure remote Supabase projects for linking and deployment
-[remotes.staging]
-project_id = "xtknhwadrjyosghqseoe"
-
-# Production remote (update with your production project ID)
-[remotes.production]
-project_id = "uqffxkleuwgeqivimpck"
 
 [api]
 enabled = true

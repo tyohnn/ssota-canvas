@@ -52,17 +52,7 @@ export function MarkdownBlockView({
       <div
         className={cn(
           "flex-1 p-4 overflow-auto",
-          "prose prose-sm dark:prose-invert max-w-none",
-          // TipTap 스타일과 유사하게
-          "[&>h1]:text-xl [&>h1]:font-bold [&>h1]:mb-3",
-          "[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:mb-2",
-          "[&>h3]:text-base [&>h3]:font-medium [&>h3]:mb-1.5",
-          "[&>p]:text-sm [&>p]:leading-relaxed [&>p]:mb-2",
-          "[&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2",
-          "[&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:mb-2",
-          "[&>li]:text-sm [&>li]:mb-1",
-          "[&>strong]:font-semibold",
-          "[&>em]:italic"
+          "prose prose-neutral dark:prose-invert prose-sm max-w-none"
         )}
         dangerouslySetInnerHTML={{ __html: htmlContent }}
       />

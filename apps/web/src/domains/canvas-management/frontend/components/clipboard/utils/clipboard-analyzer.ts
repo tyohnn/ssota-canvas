@@ -133,10 +133,32 @@ export async function analyzeClipboard(): Promise<ClipboardAnalysisResult> {
       };
     }
 
+    // 3-2.5. PDF URL 감지 (일반 링크보다 우선)
+    if (isPdfUrl(trimmedText)) {
+      return {
+        type: 'pdf-url',
+        data: {
+          url: trimmedText,
+          text: trimmedText,
+        },
+        confidence: 1.0,
+      };
+    }
+
+    // 3-2.6. 오디오 URL 감지 (.mp3, .wav, .m4a 등)
+    if (isAudioUrl(trimmedText)) {
+      return {
+        type: 'audio-url',
+        data: {
+          url: trimmedText,
+          text: trimmedText,
+        },
+        confidence: 1.0,
+      };
+    }
+
     // 3-3. 일반 URL 감지
-    console.log('[Clipboard Analyzer] Checking general URL...');
     if (isValidUrl(trimmedText)) {
-      console.log('[Clipboard Analyzer] Detected general URL');
       return {
         type: 'link-url',
         data: {
@@ -216,6 +238,50 @@ export function isYouTubeUrl(url: string): boolean {
   ];
 
   return youtubePatterns.some(pattern => pattern.test(url));
+}
+
+/**
+ * PDF URL 감지
+ * - 확장자 기반: pathname이 .pdf로 끝남
+ */
+export function isPdfUrl(url: string): boolean {
+  if (!isValidUrl(url)) {
+    return false;
+  }
+  try {
+    const urlObj = new URL(url);
+    return urlObj.pathname.toLowerCase().endsWith('.pdf');
+  } catch {
+    return url.toLowerCase().split('?')[0]?.endsWith('.pdf') ?? false;
+  }
+}
+
+/**
+ * 오디오 URL 감지
+ * - 확장자 기반: .mp3, .wav, .m4a, .ogg, .aac, .flac, .webm
+ */
+export function isAudioUrl(url: string): boolean {
+  if (!isValidUrl(url)) {
+    return false;
+  }
+  const audioExtensions = [
+    '.mp3',
+    '.wav',
+    '.m4a',
+    '.ogg',
+    '.aac',
+    '.flac',
+    '.webm',
+    '.opus',
+  ];
+  try {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname.toLowerCase();
+    return audioExtensions.some(ext => pathname.endsWith(ext));
+  } catch {
+    const lowerUrl = url.toLowerCase().split('?')[0] ?? '';
+    return audioExtensions.some(ext => lowerUrl.endsWith(ext));
+  }
 }
 
 /**

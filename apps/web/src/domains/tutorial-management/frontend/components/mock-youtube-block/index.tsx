@@ -60,12 +60,12 @@ export function MockYoutubeBlock() {
       inputRef={inputRef}
       onUrlChange={(e) => onUrlChange(e.target.value)}
       onUrlSubmit={async (e) => {
-        e.preventDefault();
+        e?.preventDefault?.();
         onUrlSubmit();
       }}
       onUrlKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
+        if (e?.key === 'Enter') {
+          e?.preventDefault?.();
           onUrlSubmit();
         }
       }}

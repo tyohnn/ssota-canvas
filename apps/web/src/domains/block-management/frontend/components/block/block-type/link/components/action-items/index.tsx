@@ -1,6 +1,7 @@
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
-import { SummarizeLinkAction } from './components/summarize-link-action';
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import { ExtractSummaryAction } from '@/domains/source-management/frontend/components/extract-summary-action';
 
 export function LinkActionItems({
   blockId,
@@ -10,8 +11,10 @@ export function LinkActionItems({
   blockData: BlockNodeData;
 }) {
   return (
-    <>
-      <SummarizeLinkAction blockId={blockId} blockData={blockData} />
-    </>
+    <ExtractSummaryAction
+        blockType={BlockType.LINK}
+      blockId={blockId}
+      blockData={blockData}
+    />
   );
 }

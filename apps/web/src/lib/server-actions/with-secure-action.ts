@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { isRedirectError } from '@/utils/next-redirect';
+
 import { ActionResult, err } from './result';
 import type { SecureAction, SecureActionOptions } from './types';
 
@@ -97,14 +99,23 @@ export function withSecureAction<
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       return await handler(validatedRequest, context);
     } catch (error) {
-      console.error(`[${options.actionName}] Authentication error:`, error);
+      // redirect()/notFound()는 로깅 없이 rethrow (예상된 동작)
+      if (isRedirectError(error)) {
+        throw error;
+      }
 
-      return err(
-        error instanceof Error ? error.message : 'Authentication failed',
-        {
-          code: 'UNAUTHORIZED',
-        }
-      );
+      // UNAUTHORIZED는 예상된 동작(미로그인)이므로 로깅 생략
+      const message = error instanceof Error ? error.message : 'Authentication failed';
+      const isExpectedAuthError =
+        message?.includes('UNAUTHORIZED') || message?.includes('not authenticated');
+
+      if (!isExpectedAuthError) {
+        console.error(`[${options.actionName}] Authentication error:`, error);
+      }
+
+      return err(message, {
+        code: 'UNAUTHORIZED',
+      });
     }
   };
 }

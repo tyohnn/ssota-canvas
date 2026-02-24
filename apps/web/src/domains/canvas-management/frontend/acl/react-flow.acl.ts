@@ -5,7 +5,10 @@ import {
   BaseNodeData,
   BlockNodeData,
 } from '@/domains/block-management/shared/types/block-data.types';
-import type { BlockType } from '@/domains/block-management/shared/types/block-types';
+import {
+  hasNoContainerBoundary,
+  type BlockType,
+} from '@/domains/block-management/shared/types/block-types';
 
 import type {
   BlockMountView,
@@ -44,23 +47,28 @@ function cleanNestedProperties(properties: any): any {
 
 /**
  * BlockView를 BaseNodeData로 변환 (ACL에서 직접 처리)
+ * Router blocks: routerType을 blockType에서 유도하여 data에 포함
  */
 export function transformBlockViewToNodeData(
   blockView: BlockView,
   blockMountId: string
 ): BaseNodeData {
-  return {
+  const properties = cleanNestedProperties(blockView.properties);
+  const base: BaseNodeData = {
     blockMountId,
     blockId: blockView.blockId,
     blockType: blockView.blockType,
     title: blockView.title,
-    properties: cleanNestedProperties(blockView.properties),
+    noContainerBoundary: hasNoContainerBoundary(blockView.blockType),
+    properties,
     customProperties: blockView.customProperties,
     content: blockView.content, // JSONB content
+    contentVersion: blockView.contentVersion,
     viewMode: blockView.viewMode, // BlockMount의 viewMode
     sizes: blockView.viewModeSizes, // 뷰 모드별 크기 정보 (GroupBlock 등에서 사용)
     size: blockView.size, // 현재 크기 (TextBlock, ShapeBlock 등에서 사용, 레거시)
     parentBlockMountId: blockView.parentBlockMountId,
+    sourceId: blockView.sourceId,
     createdAt: blockView.createdAt,
     updatedAt: blockView.updatedAt,
     createdByProfile: blockView.createdByProfile || {
@@ -70,6 +78,16 @@ export function transformBlockViewToNodeData(
       profileImageUrl: null,
     },
   };
+
+  // Router blocks: routerType을 blockType에서 유도 (link_router → 'link', file_router → 'file')
+  if (blockView.blockType === 'link_router' || blockView.blockType === 'file_router') {
+    return {
+      ...base,
+      routerType: blockView.blockType === 'link_router' ? 'link' : 'file',
+    } as BaseNodeData & { routerType: 'link' | 'file' };
+  }
+
+  return base;
 }
 
 /**
@@ -186,6 +204,8 @@ export function isCustomNodeType(
       'pdf',
       'audio',
       'group',
+      'link_router',
+      'file_router',
     ];
     return validBlockTypes.includes(node.data.blockType as string);
   }

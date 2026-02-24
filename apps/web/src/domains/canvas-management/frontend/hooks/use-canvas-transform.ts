@@ -105,6 +105,7 @@ export function useCanvasTransform(
     });
 
   const { updateBlockSize, isUpdating: isUpdatingSize } = useUpdateBlockSize({
+    pageId,
     reactFlow: reactFlowDependencies,
   });
 

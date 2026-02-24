@@ -15,6 +15,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseUpdateEdgeMarkersParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
 };
 
@@ -37,12 +38,13 @@ export type UseUpdateEdgeMarkersResult = {
 export function useUpdateEdgeMarkers(
   params: UseUpdateEdgeMarkersParams
 ): UseUpdateEdgeMarkersResult {
-  const { reactFlow } = params;
+  const { pageId, reactFlow } = params;
   const { getEdges, setEdges } = reactFlow;
 
   const mutation = useMutation({
     mutationFn: async (input: UpdateEdgeMarkerInput) => {
-      const parseResult = UpdateEdgeMarkerRequestSchema.safeParse(input);
+      const request = { ...input, pageId };
+      const parseResult = UpdateEdgeMarkerRequestSchema.safeParse(request);
       if (!parseResult.success) {
         const first = parseResult.error.issues[0];
         throw new Error(first?.message ?? 'Invalid edge marker update data');

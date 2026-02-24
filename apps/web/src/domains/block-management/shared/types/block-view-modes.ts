@@ -14,10 +14,10 @@ import { BlockType } from './block-types';
  */
 export const BLOCK_VIEW_MODES: Record<BlockType, BlockViewModeValue[]> = {
   // DataBlocks - 여러 View Mode 지원
-  markdown: ['note', 'card'],
+  markdown: ['note'],
   shape: ['original', 'note', 'card'],
-  image: ['original', 'note', 'card'],
-  youtube: ['original', 'note', 'card'],
+  image: ['original'],
+  youtube: ['original'],
 
   // BasicBlocks - 단일 View Mode만 지원
   text: ['original'],
@@ -36,6 +36,8 @@ export const BLOCK_VIEW_MODES: Record<BlockType, BlockViewModeValue[]> = {
   react_preview: ['original'],
   vercel_deployment: ['original'],
   group: ['original'],
+  link_router: ['original'],
+  file_router: ['original'],
 };
 
 /**

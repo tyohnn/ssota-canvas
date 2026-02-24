@@ -1,6 +1,12 @@
 'use server';
 
+import { uuidToSlug } from '@/lib/utils';
 import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -63,15 +69,24 @@ async function createGroupFromNodesInternal(
     const safeUserId = new UserId(context.authenticatedUser.id);
     const safeWorkspaceId = context.workspace.workspaceId;
 
-    // 3. ✅ Service에 검증된 Aggregates 전달 (withGroupSecureAction에서 이미 검증됨)
-    const result = await createGroupFromNodes(
-      context.nodeAggregates, // ✅ 이미 검증된 nodeAggregates
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: context.authenticatedUser.id,
+      pageId: context.page.pageId.value,
+    };
+
+    // 3. ✅ Service에 검증된 Aggregates + 감사 로그 context 전달 (params 객체)
+    const result = await createGroupFromNodes({
+      nodeAggregates: context.nodeAggregates,
       safeDto,
       safeUserId,
       safeWorkspaceId,
       blockRepository,
-      blockMountRepository
-    );
+      blockMountRepository,
+      eventLogPolicyContext,
+    });
 
     if (result.isError()) {
       console.error(
@@ -87,9 +102,9 @@ async function createGroupFromNodesInternal(
       });
     }
 
-    return ok({ 
-      groupBlockMountId: result.value.groupBlockMountId,
-      groupBlockId: result.value.groupBlockId,
+    return ok({
+      groupBlockMountId: uuidToSlug(result.value.groupBlockMountId),
+      groupBlockId: uuidToSlug(result.value.groupBlockId),
     });
   } catch (error) {
     console.error('[createGroupFromNodesInternal] Internal error:', error);

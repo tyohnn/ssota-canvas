@@ -144,7 +144,9 @@ export async function createBlocks(
         block.updatedAt,
         block.deletedAt,
         block.content,
-        block.createdByProfile
+        block.createdByProfile,
+        block.sourceId,
+        block.contentVersion
       );
       aggregates[i] = BlockAggregate.reconstitute(newBlock);
     }

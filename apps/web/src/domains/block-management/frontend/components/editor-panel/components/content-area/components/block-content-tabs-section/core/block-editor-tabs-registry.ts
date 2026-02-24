@@ -23,7 +23,9 @@ export type { BlockEditorTabsConfig, BlockEditorTab };
  */
 export const BLOCKS_WITH_TABS: Record<string, boolean> = {
   youtube: true,
-  // 향후 추가: pdf, audio, link 등
+  link: true,
+  pdf: true,
+  audio: true,
 };
 
 /**

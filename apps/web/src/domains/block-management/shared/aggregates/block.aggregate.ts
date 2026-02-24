@@ -2,6 +2,7 @@ import {
   CreateBlockCommand,
   DeleteBlockCommand,
   DuplicateBlockCommand,
+  ApplyContentStepsCommand,
   RestoreBlockCommand,
   UpdateBlockContentCommand,
   UpdateBlockPropertyCommand,
@@ -212,7 +213,8 @@ export class BlockAggregate {
   }
 
   /**
-   * 블록 콘텐츠 업데이트
+   * 블록 콘텐츠 업데이트 (내부/레거시: 서비스는 step 경로만 사용)
+   * Event에는 content, contentRaw + steps/baseVersion/newVersion 항상 포함.
    */
   updateContent(command: UpdateBlockContentCommand): void {
     if (this._block.isDeleted()) {
@@ -222,16 +224,49 @@ export class BlockAggregate {
       );
     }
 
-    // content 및 contentRaw 필드 업데이트
+    const baseVersion = this._block.contentVersion;
     this._block.updateContent(command.content, command.contentRaw);
+    const newVersion = this._block.contentVersion;
 
-    // 도메인 이벤트 발생
     const event = new BlockContentUpdatedEvent(
       this._block.id,
       {
         blockId: this._block.id,
         content: command.content,
         contentRaw: command.contentRaw,
+        steps: [],
+        baseVersion,
+        newVersion,
+      },
+      this._block.updatedAt
+    );
+
+    this._uncommittedEvents.push(event);
+  }
+
+  /**
+   * 블록 콘텐츠 Step 적용 결과 반영 (ProseMirror steps 적용 후 호출)
+   * Event에는 content, contentRaw + steps, baseVersion, newVersion 항상 포함.
+   */
+  applyContentSteps(command: ApplyContentStepsCommand): void {
+    if (this._block.isDeleted()) {
+      throw new BlockManagementError(
+        'BLOCK_ALREADY_DELETED',
+        'Cannot update content of deleted block'
+      );
+    }
+
+    this._block.updateContent(command.content, command.contentRaw);
+
+    const event = new BlockContentUpdatedEvent(
+      this._block.id,
+      {
+        blockId: this._block.id,
+        content: command.content,
+        contentRaw: command.contentRaw,
+        steps: command.steps ?? [],
+        baseVersion: command.baseVersion ?? 0,
+        newVersion: command.newVersion ?? this._block.contentVersion,
       },
       this._block.updatedAt
     );

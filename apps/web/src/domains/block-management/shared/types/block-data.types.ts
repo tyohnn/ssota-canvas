@@ -22,6 +22,7 @@ import {
   PdfBlockProperties,
   PythonBlockProperties,
   ReactComponentBlockProperties,
+  RouterBlockProperties,
   ShapeBlockProperties,
   TextBlockProperties,
   VercelDeploymentBlockProperties,
@@ -31,7 +32,7 @@ import {
 import { BlockPropertiesFactory } from '../value-objects/block-properties';
 import { CustomPropertyDefinition } from '../value-objects/block-properties/common-types';
 import { BlockType as BlockTypeVO } from '../value-objects/block-type.vo';
-import { BlockType } from './block-types';
+import { hasNoContainerBoundary, BlockType } from './block-types';
 
 // CustomPropertyDefinition은 block-properties.types.ts에서 import
 
@@ -63,6 +64,8 @@ type BlockPropertiesMap = {
   github_commit: GithubCommitBlockProperties;
   vercel_deployment: VercelDeploymentBlockProperties;
   group: GroupBlockProperties;
+  link_router: RouterBlockProperties;
+  file_router: RouterBlockProperties;
 };
 
 export type BlockProperties<T extends BlockType> =
@@ -81,10 +84,20 @@ export interface BaseNodeData extends Record<string, unknown> {
   properties: BlockProperties<BlockType>;
   customProperties: CustomPropertyDefinition[];
   content?: unknown; // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
+  /** ProseMirror step sync: server content_version for optimistic locking (optional) */
+  contentVersion?: number;
   /** Parent-Child: 부모 그룹의 blockMountId (DB: block_mounts.parent_block_mount_id) */
   parentBlockMountId?: string;
   /** 그룹 collision 시각 피드백용 (UI only, not persisted) */
   isCollisionTarget?: boolean;
+  /**
+   * Original view에서 컨테이너 테두리/배경을 생략할지 여부.
+   * SVG 등 자체 시각 경계가 있는 블록(도형 등)에 사용.
+   * block-types.ts BLOCK_TYPES_NO_CONTAINER_BOUNDARY 기반으로 설정됨.
+   */
+  noContainerBoundary?: boolean;
+  /** 링크된 소스 ID (source-management sources.id, optional) */
+  sourceId?: string;
   // 메타데이터
   createdAt?: string;
   updatedAt?: string;
@@ -205,6 +218,18 @@ export interface GroupBlockNodeData extends BaseNodeData {
   [key: string]: any; // React Flow Node data constraint
 }
 
+export interface LinkRouterBlockNodeData extends BaseNodeData {
+  blockType: 'link_router';
+  properties: RouterBlockProperties;
+  [key: string]: any;
+}
+
+export interface FileRouterBlockNodeData extends BaseNodeData {
+  blockType: 'file_router';
+  properties: RouterBlockProperties;
+  [key: string]: any;
+}
+
 /**
  * 모든 블록 노드 데이터 타입 유니온
  */
@@ -227,7 +252,9 @@ export type BlockNodeData =
   | GithubBranchBlockNodeData
   | GithubCommitBlockNodeData
   | VercelDeploymentBlockNodeData
-  | GroupBlockNodeData;
+  | GroupBlockNodeData
+  | LinkRouterBlockNodeData
+  | FileRouterBlockNodeData;
 
 /**
  * 타입 안전한 블록 노드 데이터 빌드 함수
@@ -249,6 +276,7 @@ export function buildBlockNodeData<T extends BlockType>(
     createdByProfile?: UserProfile;
     createdAt?: string;
     updatedAt?: string;
+    sourceId?: string;
   }
 ): BlockNodeData {
   // BlockPropertiesFactory에서 이미 올바른 타입의 properties를 반환하므로
@@ -265,6 +293,7 @@ export function buildBlockNodeData<T extends BlockType>(
     blockType,
     title: baseData.title || '',
     viewMode: baseData.viewMode,
+    noContainerBoundary: hasNoContainerBoundary(blockType),
     sizes: baseData.sizes, // 뷰 모드별 크기 정보
     properties: properties,
     customProperties: baseData.customProperties || [],
@@ -277,5 +306,6 @@ export function buildBlockNodeData<T extends BlockType>(
     },
     createdAt: baseData.createdAt,
     updatedAt: baseData.updatedAt,
+    sourceId: baseData.sourceId,
   } as BlockNodeData;
 }

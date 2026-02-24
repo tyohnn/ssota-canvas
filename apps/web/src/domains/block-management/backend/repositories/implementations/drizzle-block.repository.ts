@@ -26,6 +26,11 @@ import { IBlockRepository } from '../interfaces/block.repository.interface';
 // 데이터베이스 스키마에서 추출한 블록 타입 (SSOT)
 type DatabaseBlockType = (typeof blockTypeEnum.enumValues)[number];
 
+/** UUID에서 8자 hex slug 생성 (workspace 내 유일 키) */
+function slugFromUuid(uuid: string): string {
+  return uuid.replace(/-/g, '').toLowerCase().slice(0, 8);
+}
+
 /**
  * DrizzleBlockRepository
  *
@@ -56,6 +61,7 @@ export class DrizzleBlockRepository implements IBlockRepository {
 
         const blockData = {
           id: currentId,
+          slug: slugFromUuid(currentId),
           workspace_id: block.workspaceId.value,
           created_by: block.userId.value,
           block_type: block.blockType.value,
@@ -64,25 +70,29 @@ export class DrizzleBlockRepository implements IBlockRepository {
           custom_properties: block.customProperties.map(vo => vo.toJSON()),
           content: block.content as any, // JSONB content (e.g., TipTap JSON)
           content_raw: contentRaw, // Markdown content for context
+          content_version: block.contentVersion,
           created_at: block.createdAt,
           updated_at: block.updatedAt,
           deleted_at: block.deletedAt,
+          source_id: block.sourceId,
         };
 
         await adminDb.insert(blocks).values(blockData);
 
         return;
       } catch (error) {
-        // UUID 충돌인지 확인 (PostgreSQL unique constraint violation)
-        if (
-          (error as any).code === '23505' &&
-          (error as any).constraint === 'blocks_pkey'
-        ) {
+        const code = (error as any).code;
+        const constraint = (error as any).constraint;
+        const isRetryable =
+          code === '23505' &&
+          (constraint === 'blocks_pkey' ||
+            constraint === 'blocks_workspace_id_slug_key');
+        if (isRetryable) {
           attempts++;
           if (attempts < maxAttempts) {
             const newId = BlockId.generate().value;
             console.warn(
-              `[DrizzleBlockRepository] ID collision detected (attempt ${attempts}), retrying with new ID: ${newId}`
+              `[DrizzleBlockRepository] ID/slug collision (attempt ${attempts}), retrying with new ID: ${newId}`
             );
             currentId = newId;
           } else {
@@ -118,6 +128,7 @@ export class DrizzleBlockRepository implements IBlockRepository {
       const contentRaw: string | null = (block as any).contentRaw || null;
       return {
         id: block.id.value,
+        slug: slugFromUuid(block.id.value),
         workspace_id: block.workspaceId.value,
         created_by: block.userId.value,
         block_type: block.blockType.value,
@@ -126,6 +137,7 @@ export class DrizzleBlockRepository implements IBlockRepository {
         custom_properties: block.customProperties.map(vo => vo.toJSON()),
         content: block.content as any,
         content_raw: contentRaw,
+        content_version: block.contentVersion,
         created_at: block.createdAt,
         updated_at: block.updatedAt,
         deleted_at: block.deletedAt,
@@ -140,18 +152,21 @@ export class DrizzleBlockRepository implements IBlockRepository {
         await adminDb.insert(blocks).values(values);
         return values.map(v => v.id);
       } catch (error) {
-        if (
-          (error as any).code === '23505' &&
-          (error as any).constraint === 'blocks_pkey'
-        ) {
+        const code = (error as any).code;
+        const constraint = (error as any).constraint;
+        const isRetryable =
+          code === '23505' &&
+          (constraint === 'blocks_pkey' ||
+            constraint === 'blocks_workspace_id_slug_key');
+        if (isRetryable) {
           attempts++;
           if (attempts < maxAttempts) {
-            values = values.map(v => ({
-              ...v,
-              id: BlockId.generate().value,
-            }));
+            values = values.map(v => {
+              const newId = BlockId.generate().value;
+              return { ...v, id: newId, slug: slugFromUuid(newId) };
+            });
             console.warn(
-              `[DrizzleBlockRepository] createMany ID collision (attempt ${attempts}), retrying with new IDs`
+              `[DrizzleBlockRepository] createMany ID/slug collision (attempt ${attempts}), retrying with new IDs`
             );
           } else {
             throw new BlockManagementError(
@@ -193,9 +208,11 @@ export class DrizzleBlockRepository implements IBlockRepository {
         custom_properties: block.customProperties.map(vo => vo.toJSON()),
         content: block.content as any, // JSONB content (e.g., TipTap JSON)
         content_raw: contentRaw, // Markdown content for context
+        content_version: block.contentVersion,
         created_at: block.createdAt,
         updated_at: block.updatedAt,
         deleted_at: block.deletedAt,
+        source_id: block.sourceId,
       };
 
       await adminDb
@@ -211,10 +228,11 @@ export class DrizzleBlockRepository implements IBlockRepository {
   }
 
   /**
-   * 블록 ID로 조회
+   * 블록 ID(UUID)로 조회 (내부/레거시 전용, 예: source_job 처리)
    */
   async findById(id: BlockId): Promise<Block | null> {
     try {
+      const conditions = [eq(blocks.id, id.value)];
       const result = await adminDb
         .select({
           block: blocks,
@@ -222,18 +240,12 @@ export class DrizzleBlockRepository implements IBlockRepository {
         })
         .from(blocks)
         .leftJoin(profiles, eq(blocks.created_by, profiles.id))
-        .where(eq(blocks.id, id.value))
+        .where(and(...conditions))
         .limit(1);
 
-      if (result.length === 0) {
-        return null;
-      }
-
+      if (result.length === 0) return null;
       const row = result[0];
-      if (!row) {
-        return null;
-      }
-
+      if (!row) return null;
       return this.mapToBlock(row.block, row.profile);
     } catch (error) {
       throw new BlockManagementError(
@@ -244,12 +256,52 @@ export class DrizzleBlockRepository implements IBlockRepository {
   }
 
   /**
-   * 여러 블록 ID로 조회 (입력 ID 순서대로 반환, 없으면 null)
+   * 워크스페이스 ID + slug로 블록 조회
    */
-  async findByIds(ids: BlockId[]): Promise<(Block | null)[]> {
-    if (ids.length === 0) return [];
+  async findByWorkspaceIdAndSlug(
+    workspaceId: WorkspaceId,
+    slug: string,
+    includeDeleted: boolean = false
+  ): Promise<Block | null> {
+    try {
+      const conditions = [
+        eq(blocks.workspace_id, workspaceId.value),
+        eq(blocks.slug, slug),
+      ];
+      if (!includeDeleted) {
+        conditions.push(isNull(blocks.deleted_at));
+      }
+      const result = await adminDb
+        .select({
+          block: blocks,
+          profile: profiles,
+        })
+        .from(blocks)
+        .leftJoin(profiles, eq(blocks.created_by, profiles.id))
+        .where(and(...conditions))
+        .limit(1);
 
-    const idValues = ids.map(id => id.value);
+      if (result.length === 0) return null;
+      const row = result[0];
+      if (!row) return null;
+      return this.mapToBlock(row.block, row.profile);
+    } catch (error) {
+      throw new BlockManagementError(
+        'BLOCK_FETCH_FAILED',
+        `Failed to fetch block: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * 워크스페이스 ID + slug 배열로 블록 조회 (입력 slug 순서대로 반환)
+   */
+  async findByWorkspaceIdAndSlugs(
+    workspaceId: WorkspaceId,
+    slugs: string[]
+  ): Promise<(Block | null)[]> {
+    if (slugs.length === 0) return [];
+
     const results = await adminDb
       .select({
         block: blocks,
@@ -257,15 +309,21 @@ export class DrizzleBlockRepository implements IBlockRepository {
       })
       .from(blocks)
       .leftJoin(profiles, eq(blocks.created_by, profiles.id))
-      .where(and(inArray(blocks.id, idValues), isNull(blocks.deleted_at)));
+      .where(
+        and(
+          eq(blocks.workspace_id, workspaceId.value),
+          inArray(blocks.slug, slugs),
+          isNull(blocks.deleted_at)
+        )
+      );
 
-    const byId = new Map(
+    const bySlug = new Map(
       results.map(row => [
-        row.block.id,
+        row.block.slug,
         this.mapToBlock(row.block, row.profile),
       ])
     );
-    return ids.map(id => byId.get(id.value) ?? null);
+    return slugs.map(s => bySlug.get(s) ?? null);
   }
 
   /**
@@ -371,7 +429,7 @@ export class DrizzleBlockRepository implements IBlockRepository {
   }
 
   /**
-   * 삭제된 블록 복원
+   * 삭제된 블록 복원 (호출 전 서비스에서 findByWorkspaceIdAndSlug로 존재 여부 확인)
    */
   async restore(blockId: BlockId): Promise<void> {
     if (!blockId) {
@@ -382,12 +440,6 @@ export class DrizzleBlockRepository implements IBlockRepository {
     }
 
     try {
-      // 기존 블록 조회
-      const existingBlock = await this.findById(blockId);
-      if (!existingBlock) {
-        throw new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found');
-      }
-
       await adminDb
         .update(blocks)
         .set({
@@ -513,7 +565,10 @@ export class DrizzleBlockRepository implements IBlockRepository {
       blockData.updated_at,
       blockData.deleted_at,
       blockData.content, // JSONB content
-      createdByProfile
+      createdByProfile,
+      blockData.source_id ?? null,
+      blockData.content_version ?? 0,
+      blockData.slug
     );
   }
 }

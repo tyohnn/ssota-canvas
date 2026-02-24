@@ -10,7 +10,8 @@
 
 'use client';
 
-import { Plus } from 'lucide-react';
+// Plus - Add Property 버튼 주석 처리로 미사용
+// import { Plus } from 'lucide-react';
 
 import { Badge } from '@workspace/ui/components/ui/badge';
 import { cn } from '@workspace/ui/lib/utils';
@@ -55,7 +56,7 @@ export function CardViewView({
       {blockType && (
         <Box>
           <Badge variant="secondary" className="shrink-0 cursor-default">
-            {blockType}
+            {blockType === 'markdown' ? 'note' : blockType}
           </Badge>
         </Box>
       )}
@@ -66,33 +67,34 @@ export function CardViewView({
       {/* 커스텀 속성들 */}
       <Box className="flex-1">
         {customProperties.length === 0 ? (
-          // readonly일 때는 add property 버튼 숨김
-          !readonly && (
-            <Box
-              className="py-2"
-              onClick={
-                selected
-                  ? e => {
-                    e.stopPropagation();
-                    onOpenEditorPanel();
-                  }
-                  : undefined
-              }
-              onMouseDown={selected ? e => e.stopPropagation() : undefined}
-            >
-              <Box
-                className={cn(
-                  'w-fit flex items-center justify-start text-xs pl-1 pr-2 py-1 gap-1 rounded-md transition-colors',
-                  selected
-                    ? 'cursor-pointer text-muted-foreground hover:bg-accent/50 hover:text-foreground dark:hover:bg-accent/50'
-                    : 'hidden opacity-50'
-                )}
-              >
-                <Plus className="w-3 h-3" />
-                Add Property
-              </Box>
-            </Box>
-          )
+          // Add Property 버튼 주석 처리
+          // !readonly && (
+          //   <Box
+          //     className="py-2"
+          //     onClick={
+          //       selected
+          //         ? e => {
+          //           e.stopPropagation();
+          //           onOpenEditorPanel();
+          //         }
+          //         : undefined
+          //     }
+          //     onMouseDown={selected ? e => e.stopPropagation() : undefined}
+          //   >
+          //     <Box
+          //       className={cn(
+          //         'w-fit flex items-center justify-start text-xs pl-1 pr-2 py-1 gap-1 rounded-md transition-colors',
+          //         selected
+          //           ? 'cursor-pointer text-muted-foreground hover:bg-accent/50 hover:text-foreground dark:hover:bg-accent/50'
+          //           : 'hidden opacity-50'
+          //       )}
+          //     >
+          //       <Plus className="w-3 h-3" />
+          //       Add Property
+          //     </Box>
+          //   </Box>
+          // )
+          null
         ) : (
           <Box className="space-y-0">
             {customProperties.map(({ property, value }) => (

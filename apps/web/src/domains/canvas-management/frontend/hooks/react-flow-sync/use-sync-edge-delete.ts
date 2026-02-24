@@ -9,6 +9,7 @@ import {
   type DeleteEdgeRequestInput,
   DeleteEdgeRequestSchema,
 } from '@/domains/canvas-management/shared/dtos/requests';
+import type { EdgeData } from '@/domains/canvas-management/shared/types/common.types';
 import { isFailure } from '@/lib';
 
 export type UseSyncEdgeDeleteResult = {
@@ -23,32 +24,31 @@ export type UseSyncEdgeDeleteResult = {
  *
  * - Server Action 백그라운드 동기화
  * - 병렬 처리로 여러 엣지 삭제 지원
+ * - pageId는 각 엣지의 data.pageId에서 추출
  */
 export function useSyncEdgeDelete(): UseSyncEdgeDeleteResult {
   const syncEdgeDelete = useCallback(async (deletedEdges: Edge[]) => {
-    // 삭제할 엣지 ID들 추출
-    const edgeIds = deletedEdges.map(edge => edge.id);
-
-    if (edgeIds.length === 0) {
+    if (deletedEdges.length === 0) {
       return;
     }
 
-    // 각 엣지를 삭제 (병렬 처리)
     await Promise.all(
-      edgeIds.map(async edgeId => {
-        // Validation
+      deletedEdges.map(async edge => {
+        const pageId = (edge.data as EdgeData)?.pageId;
+        if (!pageId) {
+          console.error('Failed to sync edge delete: edge missing pageId');
+          return;
+        }
         const rawRequest: DeleteEdgeRequestInput = {
-          edgeId,
+          pageId,
+          edgeId: edge.id,
         };
-
         const parseResult = DeleteEdgeRequestSchema.safeParse(rawRequest);
         if (!parseResult.success) {
           const firstError = parseResult.error.issues[0];
           console.error('Failed to sync edge delete:', firstError?.message);
           return;
         }
-
-        // Server Action
         const result = await deleteEdgeAction(parseResult.data);
         if (isFailure(result)) {
           console.error('Failed to sync edge delete:', result.error);

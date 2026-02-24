@@ -1,7 +1,8 @@
 /**
  * Viewport Adjustment Hook
  *
- * 에디터 패널 열림 시 블록을 적절한 위치로 이동
+ * 에디터 패널 열림 시 블록을 적절한 위치로 이동.
+ * 좌측 사이드바·우측 채팅 패널 열림/닫힘 시에도 포커스 위치를 다시 계산.
  */
 
 'use client';
@@ -12,24 +13,51 @@ import { useReactFlow } from '@xyflow/react';
 
 import { useSidebar } from '@workspace/ui/components/ui/sidebar';
 
+import { useCanvasLayoutOptional } from '@/app/(dashboard)/contexts/canvas-layout-context';
 import { getAbsoluteNodePosition } from '@/domains/canvas-management/frontend/hooks/group/utils/get-absolute-node-position';
 
 import type { LayoutConfig } from './types';
 
+const LAYOUT_TRANSITION_DURATION = 350;
+
 export function useViewportAdjustment(blockMountId: string, isOpen: boolean) {
   const { setCenter, getNode, getNodes } = useReactFlow();
   const { state: sidebarState } = useSidebar();
+  const canvasLayout = useCanvasLayoutOptional();
+  const rightSidebarOpen = canvasLayout?.rightSidebarOpen ?? false;
   const prevSidebarStateRef = useRef(sidebarState);
+  const prevRightSidebarOpenRef = useRef(rightSidebarOpen);
 
-  // 사이드바 상태별 레이아웃 설정
+  // 좌측 사이드바·우측 채팅 패널 상태별 레이아웃 설정
   const layoutConfig = useMemo<LayoutConfig>(() => {
-    if (sidebarState === 'collapsed') {
+    const leftCollapsed = sidebarState === 'collapsed';
+    const rightOpen = rightSidebarOpen;
+
+    if (leftCollapsed && !rightOpen) {
       return {
         editorRatio: 0.37,
         leftPaddingRatio: 0.03,
         rightPaddingRatio: 0.1,
         centerRatio: 0.45,
         preferredZoom: 2.0,
+      };
+    }
+    if (leftCollapsed && rightOpen) {
+      return {
+        editorRatio: 0.36,
+        leftPaddingRatio: 0.03,
+        rightPaddingRatio: 0.08,
+        centerRatio: 0.42,
+        preferredZoom: 1.9,
+      };
+    }
+    if (!leftCollapsed && rightOpen) {
+      return {
+        editorRatio: 0.36,
+        leftPaddingRatio: 0.07,
+        rightPaddingRatio: 0.06,
+        centerRatio: 0.34,
+        preferredZoom: 1.7,
       };
     }
 
@@ -40,25 +68,26 @@ export function useViewportAdjustment(blockMountId: string, isOpen: boolean) {
       centerRatio: 0.35,
       preferredZoom: 1.7,
     };
-  }, [sidebarState]);
+  }, [sidebarState, rightSidebarOpen]);
 
-  // Viewport 조정 (에디터 열림 또는 사이드바 상태 변경 시)
+  // Viewport 조정 (에디터 열림 또는 좌/우 패널 상태 변경 시)
   useEffect(() => {
     if (!isOpen) return;
 
-    // 사이드바 상태가 변경됐는지 확인
     const sidebarStateChanged = prevSidebarStateRef.current !== sidebarState;
+    const rightSidebarChanged =
+      prevRightSidebarOpenRef.current !== rightSidebarOpen;
     prevSidebarStateRef.current = sidebarState;
+    prevRightSidebarOpenRef.current = rightSidebarOpen;
 
-    // 사이드바 변경 시에만 transition 대기, 에디터만 열 때는 즉시 실행
-    const SIDEBAR_TRANSITION_DURATION = sidebarStateChanged ? 350 : 0;
+    const layoutChanged = sidebarStateChanged || rightSidebarChanged;
+    const delay = layoutChanged ? LAYOUT_TRANSITION_DURATION : 0;
 
     const timer = setTimeout(() => {
       const node = getNode(blockMountId);
       if (!node) return;
 
       const allNodes = getNodes();
-      // 그룹 자식이면 상대좌표 → 절대좌표로 변환 후 뷰포트 계산
       const position = getAbsoluteNodePosition(node, allNodes);
 
       const viewportElement = document.querySelector(
@@ -101,8 +130,17 @@ export function useViewportAdjustment(blockMountId: string, isOpen: boolean) {
         zoom: targetZoom,
         duration: 500,
       });
-    }, SIDEBAR_TRANSITION_DURATION);
+    }, delay);
 
     return () => clearTimeout(timer);
-  }, [isOpen, sidebarState, blockMountId, getNode, getNodes, setCenter, layoutConfig]);
+  }, [
+    isOpen,
+    sidebarState,
+    rightSidebarOpen,
+    blockMountId,
+    getNode,
+    getNodes,
+    setCenter,
+    layoutConfig,
+  ]);
 }

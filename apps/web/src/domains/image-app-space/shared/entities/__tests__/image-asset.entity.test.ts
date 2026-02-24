@@ -20,6 +20,8 @@ describe('ImageAssetEntity', () => {
     height: null,
     file_size: null,
     mime_type: null,
+    signed_url: null,
+    signed_url_expires_at: null,
     prompt: 'test prompt',
     negative_prompt: null,
     metadata: {},

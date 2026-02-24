@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ToolExecutionService } from '../tool-execution.service';
-import { EventLogRepository } from '../../repositories/interfaces/event-log.repository.interface';
+import type { EventLogRepository } from '@/domains/event-management';
 import { AIManagementError } from '../../../shared/errors/ai-management.error';
 import { randomUUID } from 'crypto';
 
@@ -26,6 +26,10 @@ describe('ToolExecutionService', () => {
       save: vi.fn(),
       findById: vi.fn(),
       findRecentByPageId: vi.fn(),
+      recentContextForAgent: vi.fn(),
+      findRecentByPageIdAndUserId: vi.fn(),
+      findByBlockMountId: vi.fn(),
+      findByFilters: vi.fn(),
       searchByBM25: vi.fn(),
       searchByMetadata: vi.fn(),
       searchHybrid: vi.fn(),

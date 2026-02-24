@@ -20,6 +20,7 @@ import type {
 import type { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
 import type { WorkspaceCrudService } from '@/domains/workspace-management/backend/services/interfaces/workspace-crud.service.interface';
 import type { OrganizationInvitationService } from './interfaces/organization-invitation.service.interface';
+import type { InvitationAcceptedPolicyContext } from '../../shared/contexts/invitation-accepted-policy.context';
 import { devLog, eventLog } from '@/utils/dev-logger';
 
 /**
@@ -220,7 +221,7 @@ export class DefaultOrganizationInvitationService
 
       // 3. 초대 승낙
       const inviteeUserId = new UserId(command.inviteeUserId);
-      invitation.acceptInvitation(inviteeUserId);
+      const acceptedEvent = invitation.acceptInvitation(inviteeUserId);
 
       // 4. 초대 업데이트
       await this.invitationRepository.save(invitation);
@@ -232,6 +233,12 @@ export class DefaultOrganizationInvitationService
         role: invitation.entity.role,
         joinedAt: new Date(),
       });
+
+      // 5.5. Policy: InvitationAccepted → add member to default workspace
+      const policyContext: InvitationAcceptedPolicyContext = {
+        workspaceCrudService: this.workspaceCrudService,
+      };
+      await Promise.allSettled([acceptedEvent.handle(policyContext)]);
 
       // 6. 초대받은 사용자 프로필 조회 (개인 워크스페이스 이름 생성용)
       const inviteeProfiles =

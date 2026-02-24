@@ -64,6 +64,22 @@ export async function createBlockFromClipboard(
         createAndMountBlock
       );
 
+    case 'pdf-url':
+      return await createPdfBlock(
+        data.url!,
+        position,
+        context,
+        createAndMountBlock
+      );
+
+    case 'audio-url':
+      return await createAudioBlock(
+        data.url!,
+        position,
+        context,
+        createAndMountBlock
+      );
+
     case 'link-url':
       return await createLinkBlock(
         data.url!,
@@ -197,6 +213,50 @@ async function createYoutubeBlock(
     return BlockType.YOUTUBE;
   } catch (error) {
     console.error('[Clipboard] Failed to create YouTube block:', error);
+    return null;
+  }
+}
+
+/**
+ * PDF 블록 생성
+ */
+async function createPdfBlock(
+  url: string,
+  position: PastePosition,
+  context: CreateBlockContext,
+  createAndMountBlock: (
+    blockType: BlockType,
+    position: PastePosition
+  ) => Promise<void>
+): Promise<BlockType | null> {
+  try {
+    console.log('[Clipboard] Creating PDF block:', url);
+    await createAndMountBlock(BlockType.PDF, position);
+    return BlockType.PDF;
+  } catch (error) {
+    console.error('[Clipboard] Failed to create PDF block:', error);
+    return null;
+  }
+}
+
+/**
+ * 오디오 블록 생성
+ */
+async function createAudioBlock(
+  url: string,
+  position: PastePosition,
+  context: CreateBlockContext,
+  createAndMountBlock: (
+    blockType: BlockType,
+    position: PastePosition
+  ) => Promise<void>
+): Promise<BlockType | null> {
+  try {
+    console.log('[Clipboard] Creating audio block:', url);
+    await createAndMountBlock(BlockType.AUDIO, position);
+    return BlockType.AUDIO;
+  } catch (error) {
+    console.error('[Clipboard] Failed to create audio block:', error);
     return null;
   }
 }

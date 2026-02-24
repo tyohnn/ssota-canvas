@@ -25,6 +25,7 @@ import { EdgeStyle } from '../value-objects/edge-style.vo';
 export class Edge {
   constructor(
     public readonly id: EdgeId,
+    public readonly slug: string, // 8자 hex, page 내 유일 (API 식별자)
     public readonly pageId: PageId,
     public readonly sourceBlockMountId: BlockMountId,
     public readonly targetBlockMountId: BlockMountId,
@@ -47,6 +48,7 @@ export class Edge {
    */
   static reconstitute(params: {
     id: EdgeId;
+    slug: string;
     pageId: PageId;
     sourceBlockMountId: BlockMountId;
     targetBlockMountId: BlockMountId;
@@ -62,6 +64,7 @@ export class Edge {
   }): Edge {
     return new Edge(
       params.id,
+      params.slug,
       params.pageId,
       params.sourceBlockMountId,
       params.targetBlockMountId,

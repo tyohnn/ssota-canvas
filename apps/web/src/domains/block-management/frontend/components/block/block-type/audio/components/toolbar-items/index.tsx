@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { Separator } from '@/components/ui/separator';
 import { AudioDownloadToolbarItem } from './audio-download-toolbar-item';
 import { AudioRecordToolbarItem } from './audio-record-toolbar-item';
 import { AudioUploadToolbarItem } from './audio-upload-toolbar-item';
@@ -11,11 +12,13 @@ export function AudioToolbarItems({
   blockData,
   disabled,
   onPropertyUpdate,
+  readonly = false,
 }: {
   blockId: string;
   blockData: any;
   disabled: boolean;
   onPropertyUpdate: (path: string, value: any) => Promise<void>;
+  readonly?: boolean;
 }) {
   const audioProperties = blockData.properties;
 
@@ -25,21 +28,31 @@ export function AudioToolbarItems({
         blockId={blockId}
         disabled={disabled}
         onValueChange={async (url: string) => {
-          await onPropertyUpdate('properties.audioUrl', url);
+          await onPropertyUpdate('properties.accessUrl', url);
         }}
       />
       <AudioRecordToolbarItem
         blockId={blockId}
         disabled={disabled}
         onValueChange={async (url: string) => {
-          await onPropertyUpdate('properties.audioUrl', url);
+          await onPropertyUpdate('properties.accessUrl', url);
         }}
       />
       <AudioDownloadToolbarItem
-        audioUrl={audioProperties.audioUrl}
-        title={audioProperties.title}
-        disabled={disabled || !audioProperties.audioUrl}
+        audioUrl={
+          audioProperties.accessUrl ??
+          (audioProperties as { audioUrl?: string }).audioUrl
+        }
+        filename={audioProperties.filename}
+        disabled={
+          disabled ||
+          !(
+            audioProperties.accessUrl ??
+            (audioProperties as { audioUrl?: string }).audioUrl
+          )
+        }
       />
+      {!readonly && <Separator orientation="vertical" className="h-6!" />}
     </>
   );
 }

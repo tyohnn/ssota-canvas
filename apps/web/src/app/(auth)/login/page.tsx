@@ -86,7 +86,7 @@ export default async function login(props: {
                 {/* <Separator className="my-2" />
                 <form id="login-form" className="grid gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="email">이메일</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       name="email"
@@ -97,7 +97,7 @@ export default async function login(props: {
                   </div>
                   <div className="grid gap-2">
                     <div className="flex items-center">
-                      <Label htmlFor="password">비밀번호</Label>
+                      <Label htmlFor="password">Password</Label>
                     </div>
                     <Input
                       minLength={8}
@@ -113,20 +113,20 @@ export default async function login(props: {
                     className="relative w-full"
                     variant="default"
                   >
-                    로그인
+                    Sign in
                     {lastSignedInMethod === "email" && (
                       <div className="absolute top-1/2 -translate-y-1/2 left-full whitespace-nowrap ml-8 bg-accent px-4 py-1 rounded-md text-xs text-foreground/80">
                         <div className="absolute -left-5 top-0 border-background border-[12px] border-r-accent" />
-                        최근 로그인
+                        Recent sign-in
                       </div>
                     )}
                   </Button>
                 </form>
                 <Separator className="my-2" />
                 <div className="text-center text-sm">
-                  처음이신가요?{" "}
+                  New here?{" "}
                   <Link href="/register" passHref>
-                    <Button variant="link">회원가입</Button>
+                    <Button variant="link">Sign up</Button>
                   </Link>
                 </div> */}
               </CardContent>

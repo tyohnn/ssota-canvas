@@ -8,6 +8,8 @@
  */
 import { z } from 'zod';
 
+import { BlockSlugSchema } from '@/domains/block-management/shared/dtos/requests/block.requests';
+
 /**
  * Video 조회 요청 스키마
  * slug로 Video 조회
@@ -42,10 +44,11 @@ export const CreateVideoRequestSchema = z.object({
 
 /**
  * get-youtube-metadata.action.ts용 Request Schema
- * blockId와 slug를 받음
+ * blockId(slug), workspaceId, slug(video ID)를 받음
  */
 export const GetYoutubeMetadataRequestSchema = z.object({
-  blockId: z.uuid('Invalid block ID'),
+  workspaceId: z.uuid('Invalid workspace ID'),
+  blockId: BlockSlugSchema,
   slug: z
     .string()
     .min(11, { message: 'Video slug must be at least 11 characters' })

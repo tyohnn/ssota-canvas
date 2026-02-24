@@ -43,7 +43,7 @@ type EdgeManagementEvents =
 export class EdgeAggregate {
   private _uncommittedEvents: Array<EdgeManagementEvents> = [];
 
-  constructor(public readonly edge: Edge) {}
+  constructor(public readonly edge: Edge) { }
 
   /**
    * 새로운 엣지 생성 (Command Handler)
@@ -57,16 +57,17 @@ export class EdgeAggregate {
    * @returns EdgeAggregate
    */
   static createEdge(command: CreateEdgeCommand): EdgeAggregate {
-    // 1. EdgeId 생성
+    // 1. EdgeId 생성 및 slug (8자 hex, page 내 유일)
     const edgeId = EdgeId.generate();
+    const slug = edgeId.value.replace(/-/g, '').slice(0, 8).toLowerCase();
 
     // 2. 선택 필드: 라벨, 스타일, shape, 마커 (없으면 기본값)
     const defaultStyle = EdgeStyle.default();
     const edgeStyle = command.style
       ? EdgeStyle.fromObject({
-          color: command.style.stroke ?? defaultStyle.color,
-          thickness: command.style.strokeWidth ?? defaultStyle.thickness,
-        })
+        color: command.style.stroke ?? defaultStyle.color,
+        thickness: command.style.strokeWidth ?? defaultStyle.thickness,
+      })
       : defaultStyle;
     const edgeShape = command.shape
       ? new EdgeShape(command.shape)
@@ -75,6 +76,7 @@ export class EdgeAggregate {
     // 3. Edge Entity 생성 (self-loop 허용)
     const edge = new Edge(
       edgeId,
+      slug,
       command.pageId,
       command.sourceBlockMountId,
       command.targetBlockMountId,
@@ -118,6 +120,7 @@ export class EdgeAggregate {
    * @param command - UpdateEdgeShapeCommand
    */
   updateEdgeShape(command: UpdateEdgeShapeCommand): void {
+    const oldShape = this.edge.edgeShape;
     this.edge.updateShape(command.newShape);
 
     // Domain Event 발생 (Command → Event 1:1 대응)
@@ -125,6 +128,7 @@ export class EdgeAggregate {
       this.edge.id,
       {
         edgeId: this.edge.id,
+        oldShape,
         newShape: command.newShape,
       },
       this.edge.updatedAt
@@ -142,6 +146,7 @@ export class EdgeAggregate {
    * @param command - UpdateEdgeLabelCommand
    */
   updateEdgeLabel(command: UpdateEdgeLabelCommand): void {
+    const oldLabel = this.edge.edgeLabel;
     this.edge.updateLabel(command.newLabel);
 
     // Domain Event 발생 (Command → Event 1:1 대응)
@@ -149,6 +154,7 @@ export class EdgeAggregate {
       this.edge.id,
       {
         edgeId: this.edge.id,
+        oldLabel,
         newLabel: command.newLabel,
       },
       this.edge.updatedAt
@@ -166,6 +172,7 @@ export class EdgeAggregate {
    * @param command - UpdateEdgeStyleCommand
    */
   updateEdgeStyle(command: UpdateEdgeStyleCommand): void {
+    const oldStyle = this.edge.edgeStyle;
     this.edge.updateStyle(command.style);
 
     // Domain Event 발생 (Command → Event 1:1 대응)
@@ -173,7 +180,8 @@ export class EdgeAggregate {
       this.edge.id,
       {
         edgeId: this.edge.id,
-        style: command.style,
+        oldStyle,
+        newStyle: this.edge.edgeStyle,
       },
       this.edge.updatedAt
     );
@@ -187,24 +195,37 @@ export class EdgeAggregate {
    * @param command - UpdateEdgeMarkerCommand
    */
   updateEdgeMarker(command: UpdateEdgeMarkerCommand): void {
+    const oldMarkerEnd = this.edge.markerEnd;
+    const oldMarkerStart = this.edge.markerStart;
+
     if (command.marker === 'start') {
       this.edge.changeMarkerStart(
         command.value === 'none' ? null : command.value
       );
+      const event = new EdgeMarkersChangedEvent(
+        this.edge.id,
+        {
+          edgeId: this.edge.id,
+          markerStart: {
+            previous: oldMarkerStart,
+            current: this.edge.markerStart,
+          },
+        },
+        this.edge.updatedAt
+      );
+      this._uncommittedEvents.push(event);
     } else {
       this.edge.changeMarkerEnd(command.value);
+      const event = new EdgeMarkersChangedEvent(
+        this.edge.id,
+        {
+          edgeId: this.edge.id,
+          markerEnd: { previous: oldMarkerEnd, current: this.edge.markerEnd },
+        },
+        this.edge.updatedAt
+      );
+      this._uncommittedEvents.push(event);
     }
-
-    const event = new EdgeMarkersChangedEvent(
-      this.edge.id,
-      {
-        edgeId: this.edge.id,
-        markerEnd: this.edge.markerEnd,
-        markerStart: this.edge.markerStart,
-      },
-      this.edge.updatedAt
-    );
-    this._uncommittedEvents.push(event);
   }
 
   /**
@@ -252,7 +273,7 @@ export class EdgeAggregate {
    */
   toView(): EdgeView {
     return {
-      edgeId: this.edge.id.value,
+      edgeId: this.edge.slug,
       pageId: this.edge.pageId.value,
       sourceBlockMountId: this.edge.sourceBlockMountId.value,
       targetBlockMountId: this.edge.targetBlockMountId.value,

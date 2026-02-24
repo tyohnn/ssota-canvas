@@ -7,7 +7,7 @@ import {
   duplicateBlocks,
 } from '@/domains/block-management/backend/services/block';
 import { BlockAggregate } from '@/domains/block-management/shared/aggregates/block.aggregate';
-import type { DuplicateBlockRequest } from '@/domains/block-management/shared/dtos/requests/block.requests';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import { Result } from '@/utils/result';
@@ -19,32 +19,27 @@ import type {
   DuplicateBlocksAndMountRequest,
 } from '../../../shared/dtos/requests';
 import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
-import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
 import type { BlockMountRepository } from '../../repositories/interfaces/block-mount.repository.interface';
+import { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
+
+export type DuplicateBlockAndMountParams = {
+  safeDto: DuplicateBlockAndMountRequest;
+  safeUserId: UserId;
+  safeWorkspaceId: WorkspaceId;
+  safeBlockMountAggregate: BlockMountAggregate;
+  blockRepository: IBlockRepository;
+  blockMountRepository: BlockMountRepository;
+  eventLogPolicyContext?: EventLogPolicyContext;
+};
 
 /**
- * 블럭 복제 (Block Management Service와 연동)
- * Story CM-010 구현
+ * 블럭 복제 (단일) — Secure action에서 조회한 aggregate 사용 (재조회 없음)
  *
- * ✅ Event Storming + DDD 패턴:
- * - SafeDTO를 입력으로 받음 (Trust Boundary 통과)
- * - SafeDTO → Command 변환 (Value Objects 생성)
- * - Aggregate에 Command 전달
- * - Domain Event 처리
- *
- * @param safeDto - 검증된 블럭 복제 요청 (SafeDTO)
- * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
- * @param safeWorkspaceId - 검증된 워크스페이스 ID (권한 검증됨)
- * @param blockRepository - Block Repository
- * @param blockMountRepository - BlockMount Repository
+ * @param params - safeDto, safeUserId, safeWorkspaceId, safeBlockMountAggregate, blockRepository, blockMountRepository, eventLogPolicyContext
  * @returns 복제된 BlockMountAggregate와 BlockAggregate
  */
 export async function duplicateBlockAndMount(
-  safeDto: DuplicateBlockAndMountRequest,
-  safeUserId: UserId,
-  safeWorkspaceId: WorkspaceId,
-  blockRepository: IBlockRepository,
-  blockMountRepository: BlockMountRepository
+  params: DuplicateBlockAndMountParams
 ): Promise<
   Result<
     {
@@ -54,29 +49,27 @@ export async function duplicateBlockAndMount(
     Error
   >
 > {
+  const {
+    safeDto,
+    safeUserId,
+    safeWorkspaceId,
+    safeBlockMountAggregate: originalAggregate,
+    blockRepository,
+    blockMountRepository,
+    eventLogPolicyContext,
+  } = params;
   try {
-    const blockMountIdVO = new BlockMountId(safeDto.blockMountId);
-    const originalAggregate =
-      await blockMountRepository.findById(blockMountIdVO);
-
-    if (!originalAggregate) {
-      return Result.error(
-        new CanvasManagementError(
-          'BLOCK_MOUNT_NOT_FOUND',
-          'Block mount not found'
-        )
-      );
-    }
-
-    const duplicateBlockRequest: DuplicateBlockRequest = {
-      workspaceId: safeWorkspaceId.value,
-      blockId: originalAggregate.getBlockMount().blockId.value,
-    };
-    const duplicateResult = await duplicateBlock(
-      duplicateBlockRequest,
+    const safeBlockSlug = originalAggregate
+      .getBlockMount()
+      .blockId.value.replace(/-/g, '')
+      .toLowerCase()
+      .slice(0, 8);
+    const duplicateResult = await duplicateBlock({
+      safeWorkspaceId,
+      safeBlockSlug,
       safeUserId,
-      blockRepository
-    );
+      blockRepository,
+    });
     if (duplicateResult.isError()) {
       return Result.error(duplicateResult.error);
     }
@@ -93,6 +86,7 @@ export async function duplicateBlockAndMount(
       offsetX: safeDto.offsetX || 20,
       offsetY: safeDto.offsetY || 20,
       userId: safeUserId,
+      blockType: duplicatedBlock.blockType.value,
     };
     const duplicatedAggregate = originalAggregate.duplicateBlockMount(
       duplicateBlockMountCommand
@@ -111,7 +105,9 @@ export async function duplicateBlockAndMount(
     }
 
     const mountEvents = duplicatedAggregate.getUncommittedEvents();
-    await Promise.allSettled(mountEvents.map(event => event.handle()));
+    await Promise.allSettled(
+      mountEvents.map(event => event.handle(eventLogPolicyContext))
+    );
     duplicatedAggregate.markEventsAsCommitted();
 
     return Result.success({
@@ -133,8 +129,12 @@ export type DuplicateBlocksAndMountParams = {
   safeDto: DuplicateBlocksAndMountRequest;
   safeUserId: UserId;
   safeWorkspaceId: WorkspaceId;
+  /** Secure action에서 이미 조회한 aggregates (request blocks 순서와 동일, 재조회 방지) */
+  safeBlockMountAggregates: BlockMountAggregate[];
   blockRepository: IBlockRepository;
   blockMountRepository: BlockMountRepository;
+  /** 선택: 제공 시 각 BlockMountDuplicatedEvent에서 block_created 로깅 */
+  eventLogPolicyContext?: EventLogPolicyContext;
 };
 
 /**
@@ -160,37 +160,26 @@ export async function duplicateBlocksAndMount(
     safeDto,
     safeUserId,
     safeWorkspaceId,
+    safeBlockMountAggregates: originalBMs,
     blockRepository,
     blockMountRepository,
+    eventLogPolicyContext,
   } = params;
 
-  const blockMountIds = safeDto.blocks.map(
-    b => new BlockMountId(b.blockMountId)
+  const safeBlockSlugs = originalBMs.map(bm =>
+    bm
+      .getBlockMount()
+      .blockId.value.replace(/-/g, '')
+      .toLowerCase()
+      .slice(0, 8)
   );
-  const originalBMs = await blockMountRepository.findByIds(blockMountIds);
 
-  const firstMissing = originalBMs.findIndex(bm => bm === null);
-  if (firstMissing !== -1) {
-    return Result.error(
-      new CanvasManagementError(
-        'BLOCK_MOUNT_NOT_FOUND',
-        `Block mount not found: ${safeDto.blocks[firstMissing]!.blockMountId}`
-      )
-    );
-  }
-
-  const duplicateRequests: DuplicateBlockRequest[] = (
-    originalBMs as BlockMountAggregate[]
-  ).map(bm => ({
-    workspaceId: safeWorkspaceId.value,
-    blockId: bm.getBlockMount().blockId.value,
-  }));
-
-  const blockResult = await duplicateBlocks(
-    duplicateRequests,
+  const blockResult = await duplicateBlocks({
+    safeWorkspaceId,
+    safeBlockSlugs,
     safeUserId,
-    blockRepository
-  );
+    blockRepository,
+  });
   if (blockResult.isError()) {
     return Result.error(blockResult.error);
   }
@@ -205,7 +194,7 @@ export async function duplicateBlocksAndMount(
   >[] = [];
 
   for (let i = 0; i < safeDto.blocks.length; i++) {
-    const originalAggregate = originalBMs[i] as BlockMountAggregate;
+    const originalAggregate = originalBMs[i]!;
     const duplicatedBlock = duplicatedBlocks[i]!;
     const blockOpts = safeDto.blocks[i]!;
 
@@ -216,6 +205,7 @@ export async function duplicateBlocksAndMount(
       offsetX: blockOpts.offsetX ?? 20,
       offsetY: blockOpts.offsetY ?? 20,
       userId: safeUserId,
+      blockType: duplicatedBlock.blockType.value,
     };
     const duplicatedAggregate = originalAggregate.duplicateBlockMount(
       duplicateBlockMountCommand
@@ -247,9 +237,13 @@ export async function duplicateBlocksAndMount(
     }
   }
 
+  // 멀티플 복제: 블록별로 BlockMountDuplicatedEvent 발생 → 각각 block_created 1건씩 감사 로그 (N건).
+  // 배치 삭제처럼 한 건으로 묶지 않고, 복제 단위로 로깅함.
   for (const { blockMountAggregate } of results) {
     const events = blockMountAggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map(event => event.handle(eventLogPolicyContext))
+    );
     blockMountAggregate.markEventsAsCommitted();
   }
 

@@ -5,35 +5,32 @@ import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { Result } from '@/utils/result';
 
 import { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
-import type { RestoreBlockRequest } from '../../../../shared/dtos/requests/block.requests';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
-import { BlockId } from '../../../../shared/value-objects/block-id.vo';
+import type { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
+
+export type RestoreBlockParams = {
+  safeWorkspaceId: WorkspaceId;
+  safeBlockSlug: string;
+  safeUserId: UserId;
+  blockRepository: IBlockRepository;
+};
 
 /**
  * 블록 복원
  *
- * ✅ Event Storming + DDD 패턴:
- * - SafeDTO를 입력으로 받음
- * - Aggregate에 Command 전달
- *
- * @param safeDto - 검증된 블록 복원 요청 (SafeDTO)
- * @param blockRepository - Block Repository
- * @returns void
+ * ✅ 권한 검증은 액션에서 완료. 서비스는 context에서 전달된 safeWorkspaceId 사용.
  */
 export async function restoreBlock(
-  safeDto: RestoreBlockRequest,
-  safeUserId: UserId,
-  blockRepository: IBlockRepository
+  params: RestoreBlockParams
 ): Promise<Result<void, Error>> {
+  const { safeWorkspaceId, safeBlockSlug, safeUserId, blockRepository } = params;
   try {
-    // 1. SafeDTO → Value Objects 생성
-    const blockId = new BlockId(safeDto.blockId);
-
-    // 2. 블록 조회 (삭제된 블록도 포함)
-    // Note: Block ownership is already verified by authorizeBlockInWorkspace
-    // in the action layer. This service should only be called from authorized actions.
-    const block = await blockRepository.findById(blockId);
+    const block = await blockRepository.findByWorkspaceIdAndSlug(
+      safeWorkspaceId,
+      safeBlockSlug,
+      true
+    );
     if (!block) {
       return Result.error(
         new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found')

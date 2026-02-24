@@ -42,6 +42,8 @@
         "NEXT_PUBLIC_SENTRY_DSN",
         "NEXT_PUBLIC_APP_URL",
         "ZENROWS_API_KEY",
+        "FIRECRAWL_API_KEY",
+        "ELEVENLABS_API_KEY",
         "INTERNAL_API_SECRET",
         "CI",
         "RUN_YOUTUBE_CAPTION_TESTS",

@@ -53,11 +53,10 @@ export function PublishPopover(props: PublishPopoverProps) {
         sideOffset={8}
         className="w-[360px] p-0 overflow-hidden rounded-xl border border-border/70 shadow-xl"
       >
-        <Box className="border-b border-border/60 px-4 pt-3">
+        <Box className="px-4 pt-3">
           <Box className="flex items-center gap-4 text-sm font-medium">
-            <span className="relative pb-2 text-foreground">
+            <span className="relative pb-2 text-foreground border-b-2 border-foreground">
               Publish
-              <span className="absolute left-0 right-0 -bottom-1px h-[2px] bg-foreground" />
             </span>
           </Box>
         </Box>

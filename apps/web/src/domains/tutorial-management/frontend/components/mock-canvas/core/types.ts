@@ -3,9 +3,7 @@
  */
 
 export interface MockCanvasUIState {
-  showBlockMenu: boolean;
   hasBlock: boolean;
-  setShowBlockMenu: (show: boolean) => void;
   setHasBlock: (has: boolean) => void;
 }
 

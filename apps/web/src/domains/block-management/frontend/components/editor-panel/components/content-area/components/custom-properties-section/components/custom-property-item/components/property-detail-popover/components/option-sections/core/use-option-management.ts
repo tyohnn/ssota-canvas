@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useCustomProperty } from '@/domains/block-management/frontend/hooks/use-custom-property';
+import { useCustomProperty } from '@/domains/block-management/frontend/hooks';
 import { useDetailPopoverContext } from '../../../core/context';
 import type { PropertyOption } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
 import type { StatusGroup } from '../components/status-option/types';

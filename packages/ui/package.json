@@ -84,6 +84,7 @@
   "devDependencies": {
     "@ai-sdk/react": "^3.0.71",
     "@tailwindcss/postcss": "^4.0.8",
+    "@tailwindcss/typography": "^0.5.19",
     "@turbo/gen": "^2.8.3",
     "@types/color": "^4.2.0",
     "@types/node": "^22",

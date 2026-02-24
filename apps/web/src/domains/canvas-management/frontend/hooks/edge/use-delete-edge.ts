@@ -17,6 +17,7 @@ export type ReactFlowDependencies = {
 };
 
 export type UseDeleteEdgeParams = {
+  pageId: string;
   reactFlow: ReactFlowDependencies;
 };
 
@@ -40,13 +41,13 @@ export type UseDeleteEdgeResult = {
 export function useDeleteEdge(
   params: UseDeleteEdgeParams
 ): UseDeleteEdgeResult {
-  const { reactFlow } = params;
+  const { pageId, reactFlow } = params;
   const { getEdges, setEdges } = reactFlow;
 
   const mutation = useMutation({
     mutationFn: async (edgeId: string) => {
-      // Validation
       const rawRequest: DeleteEdgeRequestInput = {
+        pageId,
         edgeId,
       };
 

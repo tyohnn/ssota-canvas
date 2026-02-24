@@ -32,21 +32,32 @@ export interface BlockMountRepository {
   update(blockMount: BlockMount): Promise<void>;
 
   /**
-   * BlockMount ID로 조회
+   * 페이지 ID + slug로 BlockMount 1건 조회 (요청/API용)
    *
-   * @param blockMountId - BlockMount ID
-   * @returns Promise<BlockMount | null>
+   * @param pageId - 페이지 ID
+   * @param slug - block_mount slug (8자 hex, API의 blockMountId)
+   * @returns Promise<BlockMountAggregate | null>
+   */
+  findByPageIdAndSlug(
+    pageId: PageId,
+    slug: string
+  ): Promise<BlockMountAggregate | null>;
+
+  /**
+   * ID로 1건 조회 (내부용: parent_block_mount_id 등 참조 해결 시에만 사용)
    */
   findById(blockMountId: BlockMountId): Promise<BlockMountAggregate | null>;
 
   /**
-   * 여러 BlockMount ID로 조회 (입력 ID 순서대로 반환, 없으면 null)
+   * 페이지 ID + slug 목록으로 BlockMount 조회 (입력 slug 순서대로 반환, 없으면 null)
    *
-   * @param blockMountIds - BlockMount ID 배열
+   * @param pageId - 페이지 ID
+   * @param slugs - block_mount slug 배열
    * @returns Promise<(BlockMountAggregate | null)[]>
    */
-  findByIds(
-    blockMountIds: BlockMountId[]
+  findByPageIdAndSlugs(
+    pageId: PageId,
+    slugs: string[]
   ): Promise<(BlockMountAggregate | null)[]>;
 
   /**
@@ -56,6 +67,27 @@ export interface BlockMountRepository {
    * @returns Promise<BlockMount[]>
    */
   findByPageId(pageId: PageId): Promise<BlockMountAggregate[]>;
+
+  /**
+   * blockId로 마운트된 페이지 ID 1건 조회 (삭제되지 않은 마운트 기준, event-log 등에서 사용)
+   *
+   * @param blockId - 블록 ID
+   * @returns Promise<string | null> - page_id 또는 없으면 null
+   */
+  findOnePageIdByBlockId(blockId: string): Promise<string | null>;
+
+  /**
+   * 페이지 ID + block slug로 해당 페이지에 마운트된 블록의 pathUrl 조회
+   * (공개 페이지 Access URL 갱신 등에서 사용, block_mounts ⋈ blocks)
+   *
+   * @param pageId - 페이지 ID
+   * @param blockSlug - blocks.slug (8~10자 hex)
+   * @returns Promise<string | null> - properties.pathUrl 또는 없으면 null
+   */
+  findPathUrlByPageIdAndBlockSlug(
+    pageId: PageId,
+    blockSlug: string
+  ): Promise<string | null>;
 
   /**
    * BlockMount 삭제
@@ -76,12 +108,13 @@ export interface BlockMountRepository {
   /**
    * 페이지의 BlockMount들과 함께 Block 정보를 JOIN해서 조회
    * @param pageId - 페이지 ID
-   * @returns BlockMount와 Block 정보가 포함된 배열
+   * @returns BlockMount와 Block 정보가 포함된 배열 (blockMountSlug = API용 blockMountId)
    * @note parentBlockMountId는 blockMountAggregate.getBlockMount().parentBlockMountId로 접근
    */
   findByPageIdWithBlocks(pageId: PageId): Promise<
     Array<{
       blockMountAggregate: BlockMountAggregate;
+      blockMountSlug: string;
       blockAggregate: BlockAggregate;
     }>
   >;
@@ -95,5 +128,18 @@ export interface BlockMountRepository {
       parentBlockMountId: string | null;
       position: { x: number; y: number };
     }
+  ): Promise<void>;
+
+  /**
+   * Parent-Child: 여러 BlockMount의 parent_block_mount_id·position 일괄 업데이트 (Group 생성/해제 배치용)
+   *
+   * @param items - [{ blockMountId, parentBlockMountId, position }] (빈 배열이면 no-op)
+   */
+  updateParentAndPositionMany(
+    items: Array<{
+      blockMountId: BlockMountId;
+      parentBlockMountId: string | null;
+      position: { x: number; y: number };
+    }>
   ): Promise<void>;
 }

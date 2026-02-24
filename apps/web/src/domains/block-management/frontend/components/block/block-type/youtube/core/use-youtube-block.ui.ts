@@ -48,7 +48,7 @@ export function useYoutubeBlockUI(
     // 현재 블록이 드래그 중인 블록 목록에 포함되어 있는지 확인
     const mode = canvasMode.getCurrentMode();
     if (mode.type === 'dragging') {
-      return mode.blockIds.includes(blockMountId);
+      return mode.blockMountIds.includes(blockMountId);
     }
     return false;
   }, [canvasMode, blockMountId]);

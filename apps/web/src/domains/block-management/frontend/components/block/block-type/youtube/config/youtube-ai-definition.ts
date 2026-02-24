@@ -24,7 +24,8 @@ export const youtubeAIDefinition: BlockTypeDefinition = {
     },
     {
       name: 'summarize',
-      description: 'Summarize the video content using transcript',
+      description:
+        'Extract summary for the video in a specific language. Pass language (e.g. en, ko, ja). Default: en',
     },
   ],
   examples: ['https://www.youtube.com/watch?v=dQw4w9WgXcQ'],

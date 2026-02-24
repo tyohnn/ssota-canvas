@@ -19,7 +19,6 @@ import { SelectionBoundingBox } from './multi-select/selection-bounding-box';
 import { ReactFlowStyles } from './react-flow-styles';
 import { ShadowBlockContainer } from './shadow-block';
 import { SnapGuidelines } from './snap/snap-guidelines';
-import { BlockAddDialog } from './toolbar/block-add-dialog';
 import { CanvasToolbar } from './toolbar/canvas-toolbar';
 import { ViewportControlToolbar } from './toolbar/viewport-control-toolbar';
 
@@ -94,15 +93,11 @@ export interface ReactFlowViewProps {
   // Guidelines
   guidelines: any[];
 
-  // Block Add Dialog
-  showAddDialog: boolean;
-  onAddBlockClick: () => void;
-  onCloseAddDialog: () => void;
-  onSelectBlockType: (blockType: BlockType) => void;
+  // Block creation (toolbar buttons)
+  onAddBlockTypeClick: (blockType: BlockType) => void;
 
   // Feature flags
   showAIAgent?: boolean;
-  showBlockCreation?: boolean;
 
   // Pan Sensitivity
   panOnScrollSpeed?: number;
@@ -143,12 +138,8 @@ export function ReactFlowView({
   onWheel,
   onWheelCapture,
   guidelines,
-  showAddDialog,
-  onAddBlockClick,
-  onCloseAddDialog,
-  onSelectBlockType,
+  onAddBlockTypeClick,
   showAIAgent = true,
-  showBlockCreation = true,
   panOnScrollSpeed = 0.5, // Default for React Flow
 }: ReactFlowViewProps) {
 
@@ -166,6 +157,7 @@ export function ReactFlowView({
           // key prop으로 panOnDrag 변경 시 강제 리렌더링 (React Flow 내부 상태 초기화)
           // panOnDrag가 동적으로 변경될 때 내부 이벤트 핸들러가 즉시 반영되지 않는 React Flow 이슈 해결
           key={isPanningMode ? 'panning-mode' : 'default-mode'}
+          proOptions={{ hideAttribution: true }}
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
@@ -175,14 +167,14 @@ export function ReactFlowView({
           // 기본 설정
           defaultViewport={defaultViewport}
           minZoom={0.1}
-          maxZoom={2}
+          maxZoom={5.0}
           // 테마 설정
           colorMode={colorMode}
           // 상호작용 설정
           nodesDraggable={!panOnDragEnabled && !isBlockCreationMode} // readonly일 때 panOnDragEnabled=true이므로 드래그 비활성화
           nodesConnectable={!panOnDragEnabled && !isBlockCreationMode} // readonly일 때 연결 비활성화
-          elementsSelectable={!isBlockCreationMode} // 블록 생성 모드에서는 선택 비활성화 (readonly 모드에서는 isBlockCreationMode가 항상 false이므로 선택 가능)
-          selectionOnDrag={!isBlockCreationMode} // readonly 모드와 일반 모드에서 드래그 선택 가능 (panOnDrag와 함께 사용 가능)
+          elementsSelectable={!isBlockCreationMode} // 블록 생성 모드에서는 선택 비활성화
+          selectionOnDrag={!isBlockCreationMode}
           selectionMode={SelectionMode.Partial}
           connectionMode={ConnectionMode.Loose} // source/target 구분 없이 양방향 연결 허용
           // 트랙패드 제스처 설정 (피그마 스타일)
@@ -208,7 +200,7 @@ export function ReactFlowView({
           onMove={onMove}
           // onKeyDown은 전역 리스너로 처리 (포커스 문제 우회)
           deleteKeyCode={['Delete', 'Backspace']}
-          className={`bg-muted/30 ${panOnDragEnabled ? 'panning-mode' : ''} ${isBlockCreationMode ? 'block-creation-mode' : ''}`}
+          className={`bg-background ${panOnDragEnabled ? 'panning-mode' : ''} ${isBlockCreationMode ? 'block-creation-mode' : ''}`}
         >
           <Background />
 
@@ -218,7 +210,7 @@ export function ReactFlowView({
             position="top-center"
             className="mt-4! pointer-events-auto! z-10"
           >
-            <CanvasToolbar onAddBlockClick={onAddBlockClick} />
+            <CanvasToolbar onAddBlockTypeClick={onAddBlockTypeClick} />
           </Panel>
 
           {/* 모드별 컴포넌트 렌더링 */}
@@ -257,15 +249,6 @@ export function ReactFlowView({
             <StatusWindowPanel />
           </Panel>
         </ReactFlow>
-
-        {/* Block Add Dialog (캔버스 밖에 위치) */}
-        {showBlockCreation && (
-          <BlockAddDialog
-            isOpen={showAddDialog}
-            onClose={onCloseAddDialog}
-            onSelectBlockType={onSelectBlockType}
-          />
-        )}
       </div>
     </main>
   );

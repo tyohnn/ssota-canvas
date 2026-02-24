@@ -27,11 +27,11 @@ main branch ──────► Production Environment
 cd apps/web
 pnpm supabase:dev
 
-# Edge Function 테스트
-curl -X POST http://127.0.0.1:54321/functions/v1/process-summary-queue \
+# Edge Function 테스트 (source job queue)
+curl -X POST http://127.0.0.1:54321/functions/v1/process-source-job-queue \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ANON_KEY" \
-  -d '{"test": "data"}'
+  -d '{}'
 ```
 
 ### 2. Staging 배포 (자동)
@@ -55,15 +55,16 @@ git push
 
 ## 📦 Available Functions
 
-### process-summary-queue
+### process-source-job-queue
 
-YouTube 동영상 요약을 백그라운드로 처리하는 Edge Function
+Source 요약 파이프라인(스크립트 추출 + 요약)을 백그라운드로 처리하는 Edge Function.
 
-- **위치**: `functions/process-summary-queue/`
-- **Trigger**: pgmq queue
-- **Environment**:
-  - `NEXT_PUBLIC_APP_URL` - 앱 API URL
-  - `INTERNAL_API_SECRET` - 내부 API 인증
+- **위치**: `functions/process-source-job-queue/`
+- **Trigger**: pgmq `source_job_queue`
+- **API**: `POST {APP_URL}/api/source/process-job`
+- **Environment**: `NEXT_PUBLIC_APP_URL`, `INTERNAL_API_SECRET`
+
+(Legacy `process-summary-queue` / `summary_queue` 는 제거됨.)
 
 ## ⚙️ Configuration
 

@@ -15,6 +15,7 @@ import type {
 } from '../../shared/commands';
 import type { OrganizationSummary } from '../../shared/dtos';
 import type { WorkspaceCrudService } from '@/domains/workspace-management/backend/services/interfaces/workspace-crud.service.interface';
+import { seedWelcomePageBlocks } from '@/domains/workspace-management/backend/services/welcome-page-seed';
 import type { OrganizationCrudService } from './interfaces/organization-crud.service.interface';
 import type {
   CreateDefaultOrganizationResult,
@@ -116,6 +117,18 @@ export class DefaultOrganizationCrudService implements OrganizationCrudService {
         firstPageTitle,
         firstPageIcon,
       } = workspaceResult.data;
+
+      // 6-1. Welcome 페이지에 초기 가이드 블록 시딩 (실패 시 조직 생성에는 영향 없음)
+      const seeded = await seedWelcomePageBlocks(
+        firstPageId,
+        workspaceId,
+        command.userId
+      );
+      if (!seeded) {
+        console.warn(
+          '[OrganizationCrudService] Welcome page block seeding failed (non-fatal)'
+        );
+      }
 
       // 7. 개인 워크스페이스 생성 (v1.2)
       const personalWorkspaceResult =

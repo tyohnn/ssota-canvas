@@ -2,7 +2,8 @@ import React from 'react';
 
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
-import { ExtractSummaryAction } from './components/extract-summary-action';
+import { BlockType } from '@/domains/block-management/shared/types/block-types';
+import { ExtractSummaryAction } from '@/domains/source-management/frontend/components/extract-summary-action';
 import { VisualSummaryAction } from './components/visual-summary-action';
 
 // Lazy Loading을 위한 Wrapper 컴포넌트
@@ -16,7 +17,11 @@ export function YoutubeActionItems({
 }) {
   return (
     <>
-      <ExtractSummaryAction blockId={blockId} blockData={blockData} />
+      <ExtractSummaryAction
+        blockType={BlockType.YOUTUBE}
+        blockId={blockId}
+        blockData={blockData}
+      />
       <VisualSummaryAction blockId={blockId} blockData={blockData} />
     </>
   );

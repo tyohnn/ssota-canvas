@@ -1,7 +1,7 @@
 'use server';
 
-import type { PageActionContext } from '@/domains/common/auth/types';
-import { withBlockMountSecureAction } from '@/domains/common/server-actions';
+import type { BlockMountActionContext } from './secure-action';
+import { withSingleBlockMountSecureAction } from './secure-action';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -21,7 +21,7 @@ import { BlockViewModeUpdatedDTO } from '../../shared/dtos/responses/block.respo
  * 2. 사용자 인증 확인
  * 3. Page 기반 권한 확인 (blockMountId → pageId → 권한 검증)
  */
-export const updateBlockMountViewModeAction = withBlockMountSecureAction(
+export const updateBlockMountViewModeAction = withSingleBlockMountSecureAction(
   UpdateBlockMountViewModeRequestSchema,
   'updateBlockMountViewModeAction',
   updateBlockViewModeInternal,
@@ -33,28 +33,23 @@ export const updateBlockMountViewModeAction = withBlockMountSecureAction(
 /**
  * 내부 구현 (검증된 데이터만 처리)
  *
- * ⚠️ 이 함수는 이미 검증된 요청만 받습니다
- *
  * @param safeDto - 검증된 SafeDTO
- * @param context - 검증된 사용자, 워크스페이스, 페이지 정보
+ * @param context - 검증된 context (blockMountAggregate 포함, 서비스 재조회 없음)
  */
 async function updateBlockViewModeInternal(
-  safeDto: UpdateBlockMountViewModeRequest, // ✅ 이미 검증됨 (SafeDTO)
-  context: PageActionContext // ✅ 검증된 context
+  safeDto: UpdateBlockMountViewModeRequest,
+  context: BlockMountActionContext
 ): Promise<ActionResult<BlockViewModeUpdatedDTO>> {
   try {
-    // ✅ 이미 검증된 사용자 정보 사용 (중복 조회 제거)
-    const { authenticatedUser } = context;
-    const userId: UserId = new UserId(authenticatedUser.id);
-    // Repository 인스턴스 생성
+    const userId: UserId = new UserId(context.authenticatedUser.id);
     const blockMountRepository = new DrizzleBlockMountRepository();
 
-    // Service 함수 직접 호출
-    const result = await updateBlockViewMode(
+    const result = await updateBlockViewMode({
       safeDto,
-      userId,
-      blockMountRepository
-    );
+      safeUserId: userId,
+      safeBlockMountAggregate: context.blockMountAggregate,
+      blockMountRepository,
+    });
 
     if (result.isError()) {
       console.error(
@@ -75,7 +70,7 @@ async function updateBlockViewModeInternal(
     const currentSize = blockMount.size;
 
     const dto: BlockViewModeUpdatedDTO = {
-      blockMountId: blockMount.id.value,
+      blockMountId: safeDto.blockMountId,
       viewMode: blockMount.viewMode.value,
       size: {
         width: currentSize.width,

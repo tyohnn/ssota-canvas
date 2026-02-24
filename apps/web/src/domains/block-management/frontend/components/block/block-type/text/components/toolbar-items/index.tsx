@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { Separator } from '@/components/ui/separator';
 import { ColorToolbarItem } from '@/domains/block-management/frontend/components/block/common-toolbar-items/color-toolbar-item';
 import { FontSizeToolbarItem } from '@/domains/block-management/frontend/components/block/common-toolbar-items/font-size-toolbar-item';
 import { RichStyleToolbarItem } from '@/domains/block-management/frontend/components/block/common-toolbar-items/rich-style-toolbar-item';
@@ -13,12 +14,14 @@ export function TextToolbarItems({
   blockData,
   disabled,
   onPropertyUpdate,
+  readonly = false,
 }: {
   blockId: string;
   blockMountId?: string;
   blockData: any;
   disabled: boolean;
   onPropertyUpdate: (path: string, value: any) => Promise<void>;
+  readonly?: boolean;
 }) {
   const textProperties = blockData.properties;
 
@@ -60,6 +63,7 @@ export function TextToolbarItems({
           await onPropertyUpdate('properties.richStyle', richStyle);
         }}
       />
+      {!readonly && <Separator orientation="vertical" className="h-6!" />}
     </>
   );
 }

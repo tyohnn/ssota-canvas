@@ -1,6 +1,7 @@
 /**
  * 블럭 페이지 이동 서비스 로직
  */
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import { Result } from '@/utils/result';
@@ -9,49 +10,37 @@ import { BlockMountAggregate } from '../../../shared/aggregates/block-mount.aggr
 import { MoveBlockToPageCommand } from '../../../shared/commands';
 import type { MoveBlockToPageRequest } from '../../../shared/dtos/requests';
 import { CanvasManagementError } from '../../../shared/errors/canvas-management.error';
-import { BlockMountId } from '../../../shared/value-objects/block-mount-id.vo';
 import { Position } from '../../../shared/value-objects/position.vo';
 import type { BlockMountRepository } from '../../repositories/interfaces/block-mount.repository.interface';
 
+export type MoveBlockToPageParams = {
+  safeDto: MoveBlockToPageRequest;
+  safeUserId: UserId;
+  safeBlockMountAggregate: BlockMountAggregate;
+  blockMountRepository: BlockMountRepository;
+  eventLogPolicyContext?: EventLogPolicyContext;
+};
+
 /**
  * 블럭 페이지 이동
- * Story E010-009 구현
  *
- * ✅ Event Storming + DDD 패턴:
- * - SafeDTO를 입력으로 받음 (Trust Boundary 통과)
- * - SafeDTO → Command 변환 (Value Objects 생성)
- * - Aggregate에 Command 전달
- * - Domain Event 처리
- *
- * @param safeDto - 검증된 블럭 페이지 이동 요청 (SafeDTO)
- * @param safeUserId - 검증된 사용자 ID (인증된 사용자)
- * @param blockMountRepository - BlockMount Repository
+ * @param params - safeDto, safeUserId, safeBlockMountAggregate, blockMountRepository, eventLogPolicyContext
  * @returns 이동된 BlockMountAggregate
  */
 export async function moveBlockToPage(
-  safeDto: MoveBlockToPageRequest,
-  safeUserId: UserId,
-  blockMountRepository: BlockMountRepository
+  params: MoveBlockToPageParams
 ): Promise<Result<BlockMountAggregate, Error>> {
+  const {
+    safeDto,
+    safeUserId,
+    safeBlockMountAggregate: originalAggregate,
+    blockMountRepository,
+    eventLogPolicyContext,
+  } = params;
   try {
-    // 1. SafeDTO → Value Objects 생성
-    const blockMountIdVO = new BlockMountId(safeDto.blockMountId);
     const targetPageIdVO = new PageId(safeDto.targetPageId);
 
-    // 2. 원본 BlockMount 조회
-    const originalAggregate =
-      await blockMountRepository.findById(blockMountIdVO);
-
-    if (!originalAggregate) {
-      return Result.error(
-        new CanvasManagementError(
-          'BLOCK_MOUNT_NOT_FOUND',
-          'Block mount not found'
-        )
-      );
-    }
-
-    // 3. 대상 페이지의 모든 블록 조회
+    // 대상 페이지의 모든 블록 조회
     const targetPageBlocks =
       await blockMountRepository.findByPageId(targetPageIdVO);
 
@@ -78,6 +67,8 @@ export async function moveBlockToPage(
       );
     }
 
+    const blockMountIdVO = originalAggregate.getBlockMount().id;
+
     // 5. BlockMount 이동 (Command 생성 및 실행)
     const moveCommand: MoveBlockToPageCommand = {
       blockMountId: blockMountIdVO,
@@ -92,7 +83,9 @@ export async function moveBlockToPage(
 
     // 7. 도메인 이벤트 처리
     const events = originalAggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
+    await Promise.allSettled(
+      events.map((event) => event.handle(eventLogPolicyContext))
+    );
 
     // 8. 이벤트 커밋
     originalAggregate.markEventsAsCommitted();
@@ -102,7 +95,7 @@ export async function moveBlockToPage(
     return Result.error(
       new CanvasManagementError(
         'BLOCK_MOVE_FAILED',
-        `Failed to move block to page: ${error}`
+        `Failed to move block to page: ${error instanceof Error ? error.message : error}`
       )
     );
   }

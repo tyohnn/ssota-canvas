@@ -12,18 +12,25 @@
 
 import type { Editor } from '@tiptap/react';
 
+import { Box } from '@/components/ui/box';
 import { TipTapEditor } from '@/domains/block-management/frontend/components/tiptap-editor';
 import { cn } from '@workspace/ui/lib/utils';
+import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
+import type { MathEditingState } from '@/domains/block-management/frontend/components/tiptap-editor/core/types';
 import type { NoteViewBusinessLogic, NoteViewUIState } from '../core/types';
+import { NoteViewTitle } from './note-view-title';
 
 export interface NoteViewViewProps {
   className?: string;
+  data: BlockNodeData;
   selected: boolean;
   readonly?: boolean;
   editor: Editor | null;
   uiState: NoteViewUIState;
   business: NoteViewBusinessLogic;
+  mathEditing?: MathEditingState | null;
+  onMathEditingChange?: (state: MathEditingState | null) => void;
 }
 
 /**
@@ -33,11 +40,14 @@ export interface NoteViewViewProps {
  */
 export function NoteViewView({
   className,
+  data,
   selected,
   readonly,
   editor,
   uiState,
   business,
+  mathEditing,
+  onMathEditingChange,
 }: NoteViewViewProps) {
   if (!editor) {
     return null;
@@ -46,7 +56,7 @@ export function NoteViewView({
   const canScroll = readonly || uiState.isEditing;
 
   return (
-    <div
+    <Box
       className={cn(
         'w-full h-full flex flex-col rounded-lg overflow-hidden',
         'bg-background border-2 border-border',
@@ -61,8 +71,17 @@ export function NoteViewView({
         className
       )}
     >
+      {/* Title Section: selected일 때만 nodrag (편집 시 드래그 방지, 비선택 시 드래그 허용) */}
+      <Box
+        className={cn(
+          'shrink-0 border-b border-border/50 px-4 pt-4 pb-2',
+          selected && 'nodrag'
+        )}
+      >
+        <NoteViewTitle data={data} selected={selected} readonly={readonly} />
+      </Box>
       {/* Editor Content */}
-      <div
+      <Box
         ref={uiState.editorContainerRef}
         className={cn(
           'flex-1 p-4',
@@ -78,6 +97,8 @@ export function NoteViewView({
           editable={uiState.isEditing}
           onClick={uiState.isEditing ? uiState.handleEditorClick : undefined}
           onDoubleClick={uiState.handleBlockDoubleClick}
+          mathEditing={mathEditing}
+          onMathEditingChange={onMathEditingChange}
           placeholderClassName={
             selected && uiState.isDoubleClickMode
               ? 'tiptap-markdown-block'
@@ -89,7 +110,7 @@ export function NoteViewView({
               : 'tiptap-markdown-readonly'
           }
         />
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }

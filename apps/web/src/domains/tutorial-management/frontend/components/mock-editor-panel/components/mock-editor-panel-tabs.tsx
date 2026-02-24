@@ -15,7 +15,7 @@ import { MockScriptSection } from './mock-script-section';
 
 const TABS: { id: MockEditorPanelTabId; label: string }[] = [
   { id: 'summary', label: 'Summary' },
-  { id: 'script', label: 'Script' },
+  { id: 'timeline', label: 'Timeline' },
   { id: 'note', label: 'Note' },
   { id: 'metadata', label: 'Metadata' },
 ];
@@ -25,7 +25,7 @@ interface MockEditorPanelTabsProps {
 }
 
 /**
- * Editor panel tabs with InteractionGuards for tutorial steps (script-tab, summary-tab).
+ * Editor panel tabs with InteractionGuards for tutorial steps (timeline-tab, summary-tab).
  */
 export function MockEditorPanelTabs({
   currentStepIndex,
@@ -47,8 +47,8 @@ export function MockEditorPanelTabs({
                 </TabsTrigger>
               );
               const guardSelector =
-                tab.id === 'script'
-                  ? 'script-tab'
+                tab.id === 'timeline'
+                  ? 'timeline-tab'
                   : tab.id === 'summary'
                     ? 'summary-tab'
                     : tab.id === 'note'
@@ -67,7 +67,7 @@ export function MockEditorPanelTabs({
           <TabsContent value="summary" className="mt-0 h-full">
             <MockSummarySection currentStepIndex={currentStepIndex} />
           </TabsContent>
-          <TabsContent value="script" className="mt-0 h-full">
+          <TabsContent value="timeline" className="mt-0 h-full">
             <MockScriptSection />
           </TabsContent>
           <TabsContent value="note" className="mt-0">

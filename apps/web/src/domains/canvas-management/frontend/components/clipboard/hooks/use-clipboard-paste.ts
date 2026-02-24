@@ -17,6 +17,7 @@ import { generateJSON } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useReactFlow } from '@xyflow/react';
 
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
@@ -54,21 +55,31 @@ export function useClipboardPaste({
   const [isPasting, setIsPasting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Supabase Storage 훅
+  const { orgId, workspaceId } = useCanvasMetadata();
   const { upload } = useSupabaseStorage();
 
   /**
    * 캔버스 중앙 좌표 계산
+   * - .react-flow DOM 요소 기준으로 실제 캔버스 영역의 정중앙 사용 (좌우 패널 제외)
+   * - screenToFlowPosition으로 viewport 좌표를 flow 좌표로 변환
    */
   const getCanvasCenterPosition = useCallback((): PastePosition => {
-    const { x, y, zoom } = reactFlowInstance.getViewport();
-    const canvasWidth = window.innerWidth;
-    const canvasHeight = window.innerHeight;
-
-    return {
-      x: (canvasWidth / 2 - x) / zoom,
-      y: (canvasHeight / 2 - y) / zoom,
-    };
+    const { screenToFlowPosition } = reactFlowInstance;
+    const pane = document.querySelector('.react-flow');
+    if (pane instanceof HTMLElement) {
+      const rect = pane.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const flowCenter = screenToFlowPosition({ x: centerX, y: centerY });
+      // 블록 top-left를 center에 맞추기 위해 절반 오프셋 (기본 200x150)
+      return {
+        x: flowCenter.x - 100,
+        y: flowCenter.y - 75,
+      };
+    }
+    // Fallback: viewport 좌상단
+    const { x, y } = reactFlowInstance.getViewport();
+    return { x, y };
   }, [reactFlowInstance]);
 
   /**
@@ -87,11 +98,13 @@ export function useClipboardPaste({
         // Blob을 File로 변환
         const file = new File([blob], fileName, { type: blob.type });
 
-        // Supabase Storage에 업로드 (temp 폴더 사용)
+        // Supabase Storage에 업로드 (orgId/workspaceId/pageId 경로 구조)
         const result = await upload({
           bucket: StorageBucket.CANVAS_ASSETS,
           file,
-          // Context가 없으므로 temp 폴더에 저장 (자동 처리됨)
+          orgId,
+          workspaceId,
+          pageId,
         });
 
         console.log('[Clipboard] Image uploaded successfully:', result.url);
@@ -107,7 +120,7 @@ export function useClipboardPaste({
         return blobUrl;
       }
     },
-    [upload]
+    [upload, orgId, workspaceId, pageId]
   );
 
   /**
@@ -221,6 +234,24 @@ export function useClipboardPaste({
           break;
         }
 
+        case 'pdf-url': {
+          blockType = BlockType.PDF;
+          initialProperties = {
+            pathUrl: '',
+            accessUrl: analysisResult.data.url,
+          };
+          break;
+        }
+
+        case 'audio-url': {
+          blockType = BlockType.AUDIO;
+          initialProperties = {
+            pathUrl: '',
+            accessUrl: analysisResult.data.url,
+          };
+          break;
+        }
+
         case 'link-url': {
           blockType = BlockType.LINK;
           initialProperties = {
@@ -275,11 +306,11 @@ export function useClipboardPaste({
                 type: 'paragraph',
                 content: text
                   ? [
-                      {
-                        type: 'text',
-                        text: text,
-                      },
-                    ]
+                    {
+                      type: 'text',
+                      text: text,
+                    },
+                  ]
                   : [],
               },
             ],

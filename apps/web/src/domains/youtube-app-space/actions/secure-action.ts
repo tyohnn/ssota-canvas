@@ -16,7 +16,7 @@ import { AuthorizeResult } from '@/lib/server-actions/types';
 
 import { DrizzleBlockRepository } from '../../block-management/backend/repositories/implementations/drizzle-block.repository';
 import { Block } from '../../block-management/shared/entities/block.entity';
-import { BlockId } from '../../block-management/shared/value-objects/block-id.vo';
+import { WorkspaceId } from '../../workspace-management/shared/value-objects/workspace-id.vo';
 import {
   type YoutubeBlockProperties,
   YoutubeBlockPropertiesVO,
@@ -28,8 +28,6 @@ import { DrizzlePublishedPageRepository } from '../../share/backend/repositories
 import { DrizzlePageRepository } from '../../workspace-management/backend/repositories/implementations/drizzle-page.repository';
 import { DrizzleWorkspaceRepository } from '../../workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
 import { PageId } from '../../workspace-management/shared/value-objects/page-id.vo';
-import { DrizzleActionTransactionRepository } from '../backend/repositories/implementations/drizzle-action-transaction.repository';
-
 /**
  * YouTube 전용 Secure Action Builder
  */
@@ -50,8 +48,8 @@ export interface YoutubeBlockActionContext extends WorkspaceActionContext {
 /**
  * Block-based authorization for YouTube actions
  *
- * blockId로 YouTube 블록 권한 검증
- * 1. Block 조회 (권한 검증)
+ * workspaceId + blockId(slug)로 YouTube 블록 권한 검증
+ * 1. Block 조회 (findByWorkspaceIdAndSlug)
  * 2. 블록 타입 검증 (YouTube 전용)
  * 3. Workspace 권한 검증
  * 4. youtubeId 검증 (요청에 youtubeId가 있는 경우)
@@ -59,12 +57,15 @@ export interface YoutubeBlockActionContext extends WorkspaceActionContext {
  * Returns YoutubeBlockActionContext (Block 정보 포함)
  */
 async function authorizeYoutubeBlockById(
-  req: { blockId: string; youtubeId?: string },
+  req: { workspaceId: string; blockId: string; youtubeId?: string },
   userId: string
 ): Promise<AuthorizeResult<YoutubeBlockActionContext>> {
-  // 1. Block 조회 (권한 검증)
+  // 1. Block 조회 (workspaceId + slug)
   const blockRepository = new DrizzleBlockRepository();
-  const block = await blockRepository.findById(new BlockId(req.blockId));
+  const block = await blockRepository.findByWorkspaceIdAndSlug(
+    new WorkspaceId(req.workspaceId),
+    req.blockId
+  );
 
   if (!block) {
     return { success: false, error: 'Block not found' };
@@ -159,124 +160,15 @@ export const withYoutubeBlockSecureAction = youtubeSecureActionBuilder
   .forContext<YoutubeBlockActionContext>()
   .withAuth(
     (
-      req: { blockId: string; youtubeId?: string },
+      req: { workspaceId: string; blockId: string; youtubeId?: string },
       user: AuthenticatedUser
     ) => authorizeYoutubeBlockById(req, user.id)
   )
   .build();
 
-/**
- * Action Transaction based authorization (Org-based)
- *
- * actionTransactionId + blockId 이중 보안 검증
- * 1. Transaction 조회
- * 2. Block 조회하여 workspace 추출
- * 3. Transaction-Org 일치 확인 (org 기반)
- * 4. Transaction 상태 확인 (중복 실행 방지)
- * 5. Org 멤버십 확인
- *
- * Returns WorkspaceActionContext
- */
-async function authorizeByActionTransaction(
-  req: { actionTransactionId: string; blockId: string },
-  userId: string
-): Promise<AuthorizeResult<WorkspaceActionContext>> {
-  // 1. Transaction Aggregate 조회 (Repository 사용)
-  const transactionRepository = new DrizzleActionTransactionRepository();
-  const transactionAggregate = await transactionRepository.findById(
-    req.actionTransactionId
-  );
-
-  if (!transactionAggregate) {
-    return { success: false, error: 'Transaction not found' };
-  }
-
-  const transaction = transactionAggregate.getTransaction();
-
-  // 2. Block 조회하여 workspace 추출
-  const blockRepository = new DrizzleBlockRepository();
-  const block = await blockRepository.findById(new BlockId(req.blockId));
-
-  if (!block) {
-    return { success: false, error: 'Block not found' };
-  }
-
-  // 3. Org 기반 검증: Transaction의 orgId와 Block의 workspace의 orgId 일치 확인
-  // Block의 workspace를 통해 org를 찾고, transaction의 orgId와 비교
-  const workspace = await verifyWorkspaceAccess(
-    block.workspaceId.value,
-    userId
-  );
-
-  if (!workspace) {
-    return { success: false, error: 'NOT_WORKSPACE_MEMBER' };
-  }
-
-  const blockOrgId = workspace.organizationId.value;
-
-  // Transaction의 orgId와 Block의 orgId 일치 확인
-  if (transaction.orgId !== blockOrgId) {
-    return { success: false, error: 'Transaction-Org mismatch' };
-  }
-
-  // 4. Transaction 상태 확인 (중복 실행 방지)
-  if (transaction.isCompleted()) {
-    return { success: false, error: 'Transaction already completed' };
-  }
-
-  // 5. Org 멤버십 확인 및 WorkspaceActionContext 반환
-  const orgMembership = await verifyOrganizationMembership(
-    transaction.orgId,
-    userId
-  );
-
-  if (!orgMembership.isMember || !orgMembership.role) {
-    return { success: false, error: 'NOT_ORG_MEMBER' };
-  }
-
-  return {
-    success: true,
-    context: {
-      workspace,
-      organization: { id: transaction.orgId, role: orgMembership.role },
-    } as WorkspaceActionContext,
-  };
-}
-
-/**
- * Action Transaction 전용 secure action wrapper
- *
- * actionTransactionId + blockId 이중 보안으로 유료 액션에 사용합니다.
- * 자동으로 다음을 검증합니다:
- * 1. 사용자 인증
- * 2. Transaction 존재 확인
- * 3. Transaction-Org 일치 확인 (org 기반)
- * 4. Transaction 상태 확인 (중복 실행 방지)
- * 5. Org 멤버십 확인
- *
- * @example
- * ```ts
- * export const smartSummaryAction = withActionTransactionAuth(
- *   SmartSummaryRequestSchema,
- *   'smartSummaryAction',
- *   async (req, ctx) => {
- *     // ctx는 WorkspaceActionContext
- *     // req.actionTransactionId와 req.blockId가 모두 검증됨
- *     // Transaction의 orgId와 Block의 orgId가 일치하는지 확인됨
- *     return ok(result);
- *   }
- * );
- * ```
- */
-export const withActionTransactionAuth = youtubeSecureActionBuilder
-  .forContext<WorkspaceActionContext>()
-  .withAuth(
-    (
-      req: { actionTransactionId: string; blockId: string },
-      user: AuthenticatedUser
-    ) => authorizeByActionTransaction(req, user.id)
-  )
-  .build();
+// authorizeByActionTransaction and withActionTransactionAuth removed:
+// youtube_app_space.action_transactions table dropped in migration cleanup.
+// Use source-management source_action_transactions for new flows.
 
 /**
  * Published Page Context
@@ -337,26 +229,25 @@ async function authorizeByPublishedPage(
     };
   }
 
-  // Layer 2: Block 소속 확인
-  const blockMountRepo = new DrizzleBlockMountRepository();
+  // Layer 2: Page 조회 → workspaceId 확보 후 Block 조회 (req.blockId = slug)
+  const pageRepo = new DrizzlePageRepository();
   const pageId = new PageId(publishedPage.pageId);
-  const blockMounts = await blockMountRepo.findByPageId(pageId);
+  const page = await pageRepo.findById(pageId);
 
-  const blockInPage = blockMounts.some(
-    mount => mount.getBlockMount().blockId.value === req.blockId
-  );
-
-  if (!blockInPage) {
+  if (!page) {
     return {
       success: false,
-      error: 'Block not in published page',
+      error: 'Page not found',
     };
   }
 
-  // Block 조회 및 검증
+  const workspaceIdValue = page.workspaceId.value;
+
   const blockRepository = new DrizzleBlockRepository();
-  const blockId = new BlockId(req.blockId);
-  const block = await blockRepository.findById(blockId);
+  const block = await blockRepository.findByWorkspaceIdAndSlug(
+    new WorkspaceId(workspaceIdValue),
+    req.blockId
+  );
 
   if (!block) {
     return {
@@ -369,6 +260,20 @@ async function authorizeByPublishedPage(
     return {
       success: false,
       error: 'Block is not a YouTube block',
+    };
+  }
+
+  // Block 소속 확인 (mount의 block_id는 UUID)
+  const blockMountRepo = new DrizzleBlockMountRepository();
+  const blockMounts = await blockMountRepo.findByPageId(pageId);
+  const blockInPage = blockMounts.some(
+    mount => mount.getBlockMount().blockId.value === block.id.value
+  );
+
+  if (!blockInPage) {
+    return {
+      success: false,
+      error: 'Block not in published page',
     };
   }
 
@@ -402,18 +307,8 @@ async function authorizeByPublishedPage(
   }
 
   // Org ID 조회 (Layer 4에서 사용)
-  const pageRepo = new DrizzlePageRepository();
-  const page = await pageRepo.findById(pageId);
-
-  if (!page) {
-    return {
-      success: false,
-      error: 'Page not found',
-    };
-  }
-
   const workspaceRepo = new DrizzleWorkspaceRepository();
-  const workspace = await workspaceRepo.findById(page.workspaceId);
+  const workspace = await workspaceRepo.findById(new WorkspaceId(workspaceIdValue));
 
   if (!workspace) {
     return {

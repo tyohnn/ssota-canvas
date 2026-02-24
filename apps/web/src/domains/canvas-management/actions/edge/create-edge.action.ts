@@ -2,6 +2,11 @@
 
 import type { PageActionContext } from '@/domains/common/auth/types';
 import { withPageSecureAction } from '@/domains/common/server-actions';
+import {
+  DrizzleEventLogRepository,
+  EventLogService,
+} from '@/domains/event-management';
+import type { EventLogPolicyContext } from '@/domains/event-management';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
@@ -52,37 +57,69 @@ async function createEdgeInternal(
 ): Promise<ActionResult<EdgeView>> {
   try {
     const userId: UserId = new UserId(context.authenticatedUser.id);
-    // 1. Service 의존성 생성
     const blockMountRepository = new DrizzleBlockMountRepository();
     const edgeRepository = new DrizzleEdgeRepository();
 
-    // 2. ✅ Service에 SafeDTO와 검증된 userId 전달 (Value Objects 생성은 Service에서 수행)
+    const eventLogRepo = new DrizzleEventLogRepository();
+    const eventLogService = new EventLogService(eventLogRepo);
+    const eventLogPolicyContext: EventLogPolicyContext = {
+      eventLogService,
+      userId: context.authenticatedUser.id,
+      pageId: context.page.pageId.value,
+    };
+
     const result = await createEdge(
       safeDto,
       userId,
       blockMountRepository,
-      edgeRepository
+      edgeRepository,
+      eventLogPolicyContext
     );
 
     if (result.isError()) {
+      const errorMessage =
+        result.error instanceof Error
+          ? result.error.message
+          : String(result.error);
       console.error(
         '❌ [createEdgeInternal] EdgeService failed:',
-        result.error
+        errorMessage
       );
-      return err(String(result.error), {
+      return err(errorMessage, {
         code: 'EDGE_CREATION_FAILED',
         meta: {
-          originalError: result.error,
+          originalError: errorMessage,
           request: safeDto,
         },
       });
     }
 
-    // 3. Aggregate → DTO 변환
+    // 3. Aggregate → DTO 변환 (클라이언트는 slug 기준 node id 사용 → source/target은 요청의 slug 그대로 반환)
     const aggregate = result.value;
-    const edgeView = aggregate.toView();
+    let edgeView;
+    try {
+      edgeView = aggregate.toView();
+    } catch (toViewError) {
+      console.error('[createEdgeInternal] toView() failed:', toViewError);
+      return err('Failed to build edge response', {
+        code: 'INTERNAL_SERVER_ERROR',
+        meta: {
+          originalError:
+            toViewError instanceof Error
+              ? toViewError.message
+              : String(toViewError),
+        },
+      });
+    }
 
-    return ok(edgeView);
+    // 클라이언트(React Flow)는 node id = blockMount slug 사용 → 응답에 slug 전달
+    const edgeViewWithSlugs: typeof edgeView = {
+      ...edgeView,
+      sourceBlockMountId: safeDto.sourceBlockMountId,
+      targetBlockMountId: safeDto.targetBlockMountId,
+    };
+
+    return ok(edgeViewWithSlugs);
   } catch (error) {
     console.error('[createEdgeInternal] Internal error:', error);
     return err('Internal server error', {

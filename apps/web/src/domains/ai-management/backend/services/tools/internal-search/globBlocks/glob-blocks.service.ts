@@ -1,0 +1,153 @@
+/**
+ * globBlocks Tool Service
+ *
+ * 블록 메타데이터(title, type) 검색. content 내부는 검색하지 않음.
+ */
+
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+import type { BlockSearchRepository, BlockSearchScope } from '@/domains/ai-management/backend/repositories/interfaces/block-search.repository.interface';
+
+// ─── Types ────────────────────────────────────────────────────────────────
+
+export interface GlobBlockEntry {
+  blockMountId: string;
+  blockType: string;
+  title: string;
+  parentBlockMountId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type GlobBlocksIntermediate = { message?: string; step?: string };
+
+export type GlobBlocksFinal = {
+  blocks: GlobBlockEntry[];
+  totalBlocks: number;
+  filteredBy?: {
+    query?: string[];
+    queryMatchMode?: 'any' | 'all';
+    blockTypes?: string[];
+    scope?: string;
+  };
+};
+
+export type GlobBlocksYield = GlobBlocksIntermediate | GlobBlocksFinal;
+
+export interface GlobBlocksArgs {
+  query?: string | string[];
+  queryMatchMode?: 'any' | 'all';
+  blockTypes?: string[];
+  pageId?: string;
+  workspaceId?: string;
+  limit?: number;
+}
+
+// ─── Service ──────────────────────────────────────────────────────────────
+
+function buildScopeFromArgs(
+  args: GlobBlocksArgs,
+  options?: { pageId?: string }
+): BlockSearchScope | null {
+  const pageIdStr = args?.pageId ?? options?.pageId;
+  const workspaceIdStr = args?.workspaceId;
+
+  try {
+    const pageId =
+      pageIdStr && pageIdStr.trim() ? new PageId(pageIdStr.trim()) : undefined;
+    const workspaceId =
+      workspaceIdStr && workspaceIdStr.trim()
+        ? new WorkspaceId(workspaceIdStr.trim())
+        : undefined;
+
+    if (!pageId && !workspaceId) return null;
+
+    return {
+      pageId,
+      workspaceId,
+      blockTypes: args?.blockTypes?.length ? args.blockTypes : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function normalizeTitlePatterns(
+  query: string | string[] | undefined | null
+): string[] | undefined {
+  if (query === undefined || query === null) return undefined;
+  if (typeof query === 'string') {
+    const trimmed = query.trim();
+    return trimmed ? [trimmed] : undefined;
+  }
+  const list = query.map(q => (typeof q === 'string' ? q.trim() : '')).filter(Boolean);
+  return list.length ? list : undefined;
+}
+
+export async function* executeGlobBlocks(
+  repository: BlockSearchRepository,
+  args: GlobBlocksArgs,
+  options?: { pageId?: string }
+): AsyncGenerator<GlobBlocksYield, GlobBlocksFinal, void> {
+  const titlePatterns = normalizeTitlePatterns(args?.query);
+  const queryMatchMode = args?.queryMatchMode ?? 'any';
+  const limit = Math.max(1, Math.min(100, args?.limit ?? 50));
+
+  const scope = buildScopeFromArgs(args, options);
+  if (!scope) {
+    const noScope: GlobBlocksFinal = { blocks: [], totalBlocks: 0 };
+    yield noScope;
+    return noScope;
+  }
+
+  const filters: string[] = [];
+  if (titlePatterns?.length) {
+    if (titlePatterns.length === 1) {
+      filters.push(`title: "${titlePatterns[0]}"`);
+    } else {
+      filters.push(
+        `title: [${titlePatterns.map(p => `"${p}"`).join(', ')}] (match: ${queryMatchMode})`
+      );
+    }
+  }
+  if (scope.blockTypes?.length) filters.push(`types: [${scope.blockTypes.join(', ')}]`);
+  const scopeLabel = scope.pageId ? 'page' : 'workspace';
+  yield {
+    message: `Searching blocks (${scopeLabel}${filters.length ? ', ' + filters.join(', ') : ''})...`,
+  };
+
+  try {
+    const rows = await repository.findByMetadata(
+      titlePatterns,
+      queryMatchMode,
+      scope,
+      limit
+    );
+
+    const blockEntries: GlobBlockEntry[] = rows.map(row => ({
+      blockMountId: row.blockMountId,
+      blockType: row.blockType,
+      title: row.title,
+      parentBlockMountId: row.parentBlockMountId,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    }));
+
+    const final: GlobBlocksFinal = {
+      blocks: blockEntries,
+      totalBlocks: blockEntries.length,
+      filteredBy: {
+        ...(titlePatterns?.length && { query: titlePatterns, queryMatchMode }),
+        ...(scope.blockTypes?.length && { blockTypes: scope.blockTypes }),
+        scope: scopeLabel,
+      },
+    };
+    yield final;
+    return final;
+  } catch (error) {
+    console.error('[globBlocks] Error:', error);
+    const errResult: GlobBlocksFinal = { blocks: [], totalBlocks: 0 };
+    yield errResult;
+    return errResult;
+  }
+}

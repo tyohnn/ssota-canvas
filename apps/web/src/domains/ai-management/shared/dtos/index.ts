@@ -1,3 +1,5 @@
+import type { EventLogSummaryDTO } from '@/domains/event-management';
+
 /**
  * AI Management Domain DTOs
  *
@@ -6,6 +8,8 @@
  * - Next.js Server Actions 호환
  * - Vercel AI SDK 호환
  */
+
+export type { EventLogSummaryDTO } from '@/domains/event-management';
 
 /**
  * Client Context DTO
@@ -34,18 +38,6 @@ export interface ServerContextDTO {
   selectedBlocks: BlockInfoDTO[]; // 선택된 블럭 전체 정보
   nearbyBlocks: BlockInfoDTO[]; // 주변 블럭 정보
   semanticBlocks: BlockInfoDTO[]; // 의미적 블럭 정보
-}
-
-/**
- * Event Log Summary DTO
- * 이벤트 로그 요약 정보
- */
-export interface EventLogSummaryDTO {
-  id: string;
-  type: string;
-  timestamp: string; // ISO 8601 string
-  content: string; // 요약된 내용 (최대 200자)
-  timeAgo?: string; // "2일 전", "1시간 전"
 }
 
 /**

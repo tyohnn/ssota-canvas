@@ -76,13 +76,8 @@ export const ImageBlock = memo(function ImageBlock({
       <TooltipProvider>
         <Box
           className={cn(
-            'w-full h-full flex flex-col relative',
-            'bg-background border-2 border-border rounded-lg overflow-hidden',
-            'shadow-md',
-            !selected && 'hover:shadow-xl',
-            selected && 'ring-2 ring-blue-400 dark:ring-blue-500',
-            selected && 'shadow-xl',
-            'transition-all duration-300 ease-out'
+            'w-full h-full flex flex-col relative overflow-hidden'
+            // OriginalView가 이미 border-2, ring-2, shadow를 적용하므로 여기서는 생략 (중복 테두리 방지)
           )}
           onMouseEnter={() => imageBlock.setIsHovered(true)}
           onMouseLeave={() => imageBlock.setIsHovered(false)}

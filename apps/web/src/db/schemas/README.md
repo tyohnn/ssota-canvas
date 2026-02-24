@@ -4,12 +4,17 @@
 
 ## 스키마 구조
 
-### `public` 스키마 (schema-dev.ts)
-핵심 도메인 테이블들:
-- User Management: profiles, organizations, organization_members
-- Workspace Management: workspaces, pages, workspace_members
-- Block Management: blocks, block_mounts, edges
-- AI Management: event_logs
+### `public` 스키마 (`schemas/public/`)
+핵심 도메인 테이블들은 `schemas/public/` 아래 도메인별 파일로 분리되어 있으며, `schema.ts`에서 re-export 합니다.
+- **enums.ts**: 공용/도메인 pgEnum
+- **profiles-schema.ts**: profiles
+- **organization-schema.ts**: organizations, organization_members, invitations, notifications
+- **workspace-schema.ts**: workspaces, pages, workspace_members, page_favorites, workspace_invitations
+- **canvas-schema.ts**: blocks, block_mounts, edges, viewports
+- **ai-management-schema.ts**: event_logs
+- **share-schema.ts**: published_pages
+- **source-management-schema.ts**: sources, source_summaries, source_action_transactions
+- **index.ts**: barrel + cross-domain relations (profilesRelations, organizationsRelations, pagesRelations)
 
 ### `image_app_space` 스키마 (image-app-space-schema.ts)
 이미지 블록 앱스페이스 테이블들:
@@ -33,7 +38,7 @@ export const newSchema = pgSchema('new_schema');
 2. `drizzle.config.ts`에 추가:
 ```typescript
 schema: [
-  './src/db/schema-dev.ts',
+  './src/db/schema.ts',
   './src/db/schemas/image-app-space-schema.ts',
   './src/db/schemas/new-schema.ts', // 추가
 ]
@@ -81,7 +86,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA new_schema
 스키마 간 FK 참조 시:
 ```typescript
 // ✅ 올바른 방법: import해서 참조
-import { profiles } from '../schema-dev';
+import { profiles } from '../schemas/public';
 
 created_by: uuid('created_by')
   .notNull()

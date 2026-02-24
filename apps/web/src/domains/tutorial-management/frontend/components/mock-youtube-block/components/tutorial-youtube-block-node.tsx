@@ -79,7 +79,7 @@ export function TutorialYoutubeBlockNode(props: NodeProps) {
     }
   }, [updateTutorialState, currentStep, completeCurrentStep]);
 
-  // Register seekTo when block is selected or is the last-placed block so script tab can seek.
+  // Register seekTo when block is selected or is the last-placed block so timeline tab can seek.
   // (Panel open/close or focus can leave selected false; lastPlacedNodeId is the source of truth for which block the panel targets.)
   useEffect(() => {
     const shouldRegister = selected || isLastPlacedBlock;
@@ -131,7 +131,7 @@ export function TutorialYoutubeBlockNode(props: NodeProps) {
       inputRef={inputRef}
       onUrlChange={(e) => onUrlChange(e.target.value)}
       onUrlSubmit={async (e) => {
-        e.preventDefault();
+        e?.preventDefault();
         onUrlSubmit();
       }}
       onUrlKeyDown={(e) => {

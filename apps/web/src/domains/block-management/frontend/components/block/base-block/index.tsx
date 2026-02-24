@@ -29,6 +29,7 @@ import { forwardRef, memo } from 'react';
 
 import type { BlockViewModeValue } from '@/domains/canvas-management/shared/value-objects/block-view-mode.vo';
 
+import { BlockContextMenu } from '@/domains/block-management/frontend/components/block/data-block/components/block-context-menu';
 import { ActionBar } from './components/action-bar';
 import { BaseBlockView } from './components/base-block-view';
 import { Content } from './components/content';
@@ -66,22 +67,28 @@ const BaseBlockContainer = memo(
       const { readonly } = useCanvasReadOnly();
 
       return (
-        <BaseBlockView
-          ref={ref}
+        <BlockContextMenu
           data={contextValue.data}
+          readonly={readonly}
           width={contextValue.width}
           height={contextValue.height}
-          draggable={props.draggable}
-          onMouseEnter={contextValue.handleMouseEnter}
-          onMouseMove={contextValue.handleMouseMove}
-          onMouseLeave={contextValue.handleMouseLeave}
-          showAddButtonZones={
-            !readonly &&
-            contextValue.isCurrentBlockSelected &&
-            contextValue.isSingleSelection
-          }
-          setHoverDirection={contextValue.setHoverDirection}
         >
+          <BaseBlockView
+            ref={ref}
+            data={contextValue.data}
+            width={contextValue.width}
+            height={contextValue.height}
+            draggable={props.draggable}
+            onMouseEnter={contextValue.handleMouseEnter}
+            onMouseMove={contextValue.handleMouseMove}
+            onMouseLeave={contextValue.handleMouseLeave}
+            showAddButtonZones={
+              !readonly &&
+              contextValue.isCurrentBlockSelected &&
+              contextValue.isSingleSelection
+            }
+            setHoverDirection={contextValue.setHoverDirection}
+          >
           {/* 상단 툴바 - BaseBlock 내부에서 직접 렌더링 (ActionBar처럼) */}
           <Toolbar
             data={contextValue.data}
@@ -121,6 +128,7 @@ const BaseBlockContainer = memo(
             {children}
           </Content>
         </BaseBlockView>
+        </BlockContextMenu>
       );
     }
   )

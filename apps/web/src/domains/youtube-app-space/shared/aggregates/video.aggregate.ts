@@ -6,14 +6,11 @@
  * - Domain Event 발생 (1 Command : 1 Event)
  * - 불변성 보장
  */
-import type {
-  CreateVideoCommand,
-  UpdateScriptCommand,
-} from '../commands/video.commands';
+import type { CreateVideoCommand } from '../commands/video.commands';
 import type { YoutubeView } from '../dtos/views';
 import { VideoEntity } from '../entities/video.entity';
 import type { DomainEvent } from '../events/domain-event';
-import { ScriptUpdatedEvent, VideoCreatedEvent } from '../events/video.events';
+import { VideoCreatedEvent } from '../events/video.events';
 
 export class VideoAggregate {
   private _uncommittedEvents: DomainEvent[] = [];
@@ -61,9 +58,6 @@ export class VideoAggregate {
       durationSeconds: command.durationSeconds,
       thumbnailUrl: command.thumbnailUrl,
       thumbnailHighUrl: command.thumbnailHighUrl,
-      script: undefined,
-      scriptLanguage: undefined,
-      scriptExtractedAt: undefined,
       viewCount: command.viewCount ?? 0,
       likeCount: command.likeCount ?? 0,
       commentCount: command.commentCount ?? 0,
@@ -88,40 +82,6 @@ export class VideoAggregate {
     aggregate._uncommittedEvents.push(event);
 
     return aggregate;
-  }
-
-  /**
-   * 스크립트 업데이트 (Command Handler)
-   *
-   * ✅ Event Storming + DDD 패턴:
-   * - Command를 입력으로 받음
-   * - Entity 상태 변경
-   * - Domain Event 발생 (1 Command : 1 Event)
-   *
-   * @param command - 스크립트 업데이트 Command
-   */
-  updateScript(command: UpdateScriptCommand): void {
-    // 비즈니스 규칙: 이미 스크립트가 있으면 스킵
-    if (this._video.hasScript()) {
-      return;
-    }
-
-    // Entity 데이터 변환
-    this._video.updateScript(command.script, command.scriptLanguage);
-
-    // ScriptUpdatedEvent 생성
-    const event = new ScriptUpdatedEvent(
-      this._video.id.value,
-      {
-        videoId: this._video.id.value,
-        slug: this._video.slug.value,
-        scriptLanguage: command.scriptLanguage,
-        totalSegments: command.script.transcript.length,
-      },
-      new Date()
-    );
-
-    this._uncommittedEvents.push(event);
   }
 
   /**
@@ -170,9 +130,6 @@ export class VideoAggregate {
       durationSeconds: video.durationSeconds,
       thumbnailUrl: video.thumbnailUrl,
       thumbnailHighUrl: video.thumbnailHighUrl,
-      script: video.script,
-      scriptLanguage: video.scriptLanguage,
-      scriptExtractedAt: video.scriptExtractedAt?.toISOString(),
       viewCount: video.viewCount,
       likeCount: video.likeCount,
       commentCount: video.commentCount,

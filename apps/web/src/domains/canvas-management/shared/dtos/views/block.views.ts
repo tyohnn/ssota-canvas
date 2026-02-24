@@ -35,6 +35,10 @@ export interface BlockView {
   properties: BlockProperties<BlockType>;
   customProperties: CustomPropertyDefinition[];
   content?: unknown; // JSONB content (TipTap JSON, 기타 구조화된 콘텐츠)
+  /** ProseMirror step sync: server content_version for optimistic locking */
+  contentVersion?: number;
+  /** 링크된 소스 ID (source-management sources.id, optional) */
+  sourceId?: string;
 
   // 메타데이터 (Block Management Domain)
   createdAt: string;

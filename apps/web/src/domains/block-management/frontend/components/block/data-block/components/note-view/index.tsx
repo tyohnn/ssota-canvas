@@ -29,7 +29,7 @@ export interface NoteViewComponentProps extends NoteViewProps {
 export function NoteView(props: NoteViewComponentProps) {
   const { businessLogic, canvasMetadataOverride, ...restProps } = props;
   const { readonly } = useCanvasReadOnly();
-  const { uiState, business, editor } = useNoteView(restProps, {
+  const { uiState, business, editor, mathEditing, setMathEditing } = useNoteView(restProps, {
     businessLogic,
     canvasMetadataOverride,
   });
@@ -37,11 +37,14 @@ export function NoteView(props: NoteViewComponentProps) {
   return (
     <NoteViewView
       className={restProps.className}
+      data={restProps.data}
       selected={restProps.selected || false}
       readonly={readonly}
       uiState={uiState}
       business={business}
       editor={editor}
+      mathEditing={mathEditing}
+      onMathEditingChange={setMathEditing}
     />
   );
 }

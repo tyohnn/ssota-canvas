@@ -35,7 +35,7 @@ export function useEditorPanel(
   // Title 상태 동기화 (blockData.title이 변경되었을 때만)
   useEffect(() => {
     if (blockData) {
-      const newTitle = (blockData.title as string) || '새 블럭';
+      const newTitle = (blockData.title as string) ?? '';
       setTitle(newTitle);
     }
   }, [blockData?.title, setTitle]);
@@ -71,7 +71,7 @@ export function useEditorPanel(
       });
     } catch (error) {
       // 에러 발생 시 원래 title로 되돌림
-      setTitle((blockData.title as string) || '새 블럭');
+      setTitle((blockData.title as string) ?? '');
     }
   }, [blockId, title, blockData, businessOnTitleSave, setTitle]);
 
@@ -82,7 +82,7 @@ export function useEditorPanel(
         handleTitleSave();
         inputRef.current?.blur();
       } else if (e.key === 'Escape') {
-        setTitle((blockData?.title as string) || '새 블럭');
+        setTitle((blockData?.title as string) ?? '');
         inputRef.current?.blur();
       }
     },

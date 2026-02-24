@@ -33,15 +33,17 @@ export function GroupToolbarItems({
   const currentColor = groupProperties.color ?? ColorToken.BLUE;
 
   return (
-    <ColorToolbarItem
-      blockId={blockId}
-      blockMountId={blockMountId}
-      currentColor={currentColor}
-      disabled={disabled}
-      onColorChange={async color => {
-        await onPropertyUpdate('properties.color', color);
-      }}
-      zoom={zoom}
-    />
+    <>
+      <ColorToolbarItem
+        blockId={blockId}
+        blockMountId={blockMountId}
+        currentColor={currentColor}
+        disabled={disabled}
+        onColorChange={async color => {
+          await onPropertyUpdate('properties.color', color);
+        }}
+        zoom={zoom}
+      />
+    </>
   );
 }

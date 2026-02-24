@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TutorialDialogStandalone } from '@/domains/tutorial-management/frontend/components/tutorial-dialog/tutorial-dialog-dynamic';
 
 const SSOTA_OPEN_TUTORIAL_KEY = 'ssota-open-tutorial';
@@ -55,6 +55,7 @@ export function DashboardSidebar() {
   const HELP_CENTER_URL = 'https://helpcenter.ssota.ai/';
   const UPDATES_URL = 'https://feedback.ssota.ai/changelog';
   const [tutorialPrefetched, setTutorialPrefetched] = useState(false);
+  const tutorialModulePrefetchedRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -83,9 +84,9 @@ export function DashboardSidebar() {
   };
 
   const handleTutorialHover = () => {
-    if (!tutorialPrefetched) {
-      setTutorialPrefetched(true);
-      // Prefetch tutorial dialog on hover for instant loading
+    if (!tutorialModulePrefetchedRef.current) {
+      tutorialModulePrefetchedRef.current = true;
+      // Prefetch module only (no mount) - component mounts only on click
       import(
         '@/domains/tutorial-management/frontend/components/tutorial-dialog'
       );
@@ -153,6 +154,7 @@ export function DashboardSidebar() {
               className="text-sidebar-foreground"
               tooltip="Tutorials"
               onClick={() => {
+                setTutorialPrefetched(true); // Keep component mounted after first open to avoid remount issues
                 setInitialTutorialId(undefined);
                 setIsTutorialOpen(true);
               }}
@@ -178,8 +180,8 @@ export function DashboardSidebar() {
 
       <SidebarRail />
 
-      {/* Tutorial Dialog */}
-      {isTutorialOpen && (
+      {/* Tutorial Dialog - keep mounted when prefetched to avoid remount/reopen issues */}
+      {(isTutorialOpen || tutorialPrefetched) && (
         <TutorialDialogStandalone
           open={isTutorialOpen}
           onOpenChange={(open) => {

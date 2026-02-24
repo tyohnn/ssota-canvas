@@ -1,30 +1,23 @@
 /**
  * Note View Hook
  *
- * UI 훅과 비즈니스 훅을 오케스트레이션하여 통합 로직 제공
- * 공통 TipTap 로직은 useTipTapEditor를 사용하고, 비즈니스 로직은 onSave로 전달
+ * UI 훅과 공통 블록 노트 Tiptap 훅(useBlockNoteTiptap)을 오케스트레이션
  */
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
 import { useBlockContentChangeContext } from '@/domains/block-management/frontend/contexts/block-content-change-context';
-import { useTipTapEditor } from '@/domains/block-management/frontend/components/tiptap-editor/core/use-tiptap-editor';
-import { useUpdateBlockContent } from '@/domains/block-management/frontend/hooks/block-property/use-block-content-update';
+import { useBlockNoteTiptap } from '@/domains/block-management/frontend/hooks/block-property/use-block-note-tiptap';
 import { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import type { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
 
-import type {
-  DomainDependencies,
-  UseNoteViewOptions,
-  UseNoteViewReturn,
-} from './types';
-import { useNoteViewBusiness } from './use-note-view.business';
+import type { UseNoteViewOptions, UseNoteViewReturn } from './types';
 import { useNoteViewUI } from './use-note-view.ui';
 
 export interface UseNoteViewProps {
@@ -36,7 +29,7 @@ export interface UseNoteViewProps {
  * Note View Hook
  *
  * UI 훅과 비즈니스 훅을 오케스트레이션하여 통합 로직 제공
- * 공통 TipTap 로직은 useTipTapEditor를 사용하고, 비즈니스 로직은 onSave로 전달
+ * 공통 TipTap 로직은 useTipTapEditor를 사용하고, 비즈니스 로직은 onSaveSteps로 전달
  */
 export function useNoteView(
   props: UseNoteViewProps,
@@ -52,21 +45,7 @@ export function useNoteView(
   const canvasMode = useCanvasModeContext();
   const blockContentChange = useBlockContentChangeContext();
 
-  // 2. 의존성을 의미 있는 객체로 번들링
-  const domainDependencies: DomainDependencies = {
-    reactFlow: {
-      getNode,
-      updateNode: (nodeId: string, options: { data: BlockNodeData }) => {
-        updateNode(nodeId, options);
-      },
-    },
-    canvasMetadata: {
-      pageId: canvasMetadata.pageId,
-    },
-    canvasMode: {
-      setTextareaEditing: canvasMode.setTextareaEditing,
-    },
-  };
+  const contentVersionRef = useRef<number>(data.contentVersion ?? 0);
 
   // 3. UI 상태 훅
   const uiState = useNoteViewUI(selected, {
@@ -76,48 +55,37 @@ export function useNoteView(
     },
   });
 
-  // 4. 블록 콘텐츠 업데이트 훅
-  const { updateBlockContent } = useUpdateBlockContent({
-    reactFlow: {
-      getNode,
-      updateNode: (nodeId: string, options: { data: BlockNodeData }) => {
-        updateNode(nodeId, options);
-      },
-    },
-  });
-
-  // 5. 비즈니스 로직 훅 (onSave에서 사용하기 위해 먼저 정의)
-  const defaultBusiness = useNoteViewBusiness({
-    data,
-    dependencies: domainDependencies,
-    updateBlockContent,
-  });
-  const business = options?.businessLogic ?? defaultBusiness;
-
-  // 6. 공통 TipTap Editor 훅
+  // 4. 공통 블록 노트 Tiptap 훅 (저장·감사·버전 불일치 ref 갱신 포함)
   const isEditable =
     uiState.isEditing && canvasMode.mode?.type !== 'block-editing';
-  const { editor, state: editorState } = useTipTapEditor({
+  const reactFlow = {
+    getNode,
+    updateNode: (nodeId: string, opts: { data: BlockNodeData }) => {
+      updateNode(nodeId, opts);
+    },
+  };
+  const { editor, state: editorState, mathEditing, setMathEditing } = useBlockNoteTiptap({
     blockData: data,
-    placeholder: 'Click to add note...',
+    reactFlow,
     editable: isEditable,
-    onContentChange: content => {
-      const updatedData = { ...data, content };
-      updateNode(data.blockMountId, { data: updatedData });
-      blockContentChange?.onContentChange?.();
-    },
-    onSave: (content, contentRaw) => {
-      business.saveContentToServer(content, contentRaw);
-    },
+    placeholder: 'Double-click to edit content',
+    placeholderShowWhenReadOnly: true,
+    contentVersionRef,
+    onContentChangeSideEffect: blockContentChange?.onContentChange,
   });
 
-  // 7. uiState에 editorState의 ref들 병합
+  // 5. 하위 호환: business는 공통 훅으로 이전됨, 스텁만 반환
+  const business = options?.businessLogic ?? {
+    saveStepsToServer: async () => {},
+  };
+
+  // 6. uiState에 editorState의 ref들 병합
   const fullUIState = {
     ...uiState,
     ...editorState,
   };
 
-  // 8. 선택 시 편집 모드 진입 (더블클릭 모드가 활성화된 경우에만)
+  // 7. 선택 시 편집 모드 진입 (더블클릭 모드가 활성화된 경우에만)
   useEffect(() => {
     if (canvasMode.mode?.type === 'block-editing') {
       return;
@@ -135,7 +103,7 @@ export function useNoteView(
     canvasMode.mode?.type,
   ]);
 
-  // 9. 선택 해제 시 편집 종료 및 더블클릭 모드 리셋
+  // 8. 선택 해제 시 편집 종료 및 더블클릭 모드 리셋
   useEffect(() => {
     if (uiState.isEditing && !selected) {
       uiState.handleExitEditing();
@@ -150,5 +118,7 @@ export function useNoteView(
     editor,
     uiState: fullUIState,
     business,
+    mathEditing,
+    setMathEditing,
   };
 }

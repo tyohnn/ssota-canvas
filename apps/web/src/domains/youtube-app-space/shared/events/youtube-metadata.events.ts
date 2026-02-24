@@ -9,7 +9,8 @@
 import type { ApplicationEvent } from './application-event';
 
 export interface YoutubeMetadataFetchedEventData {
-  blockId: string;
+  workspaceId: string;
+  blockId: string; // 8-char slug
   orgId: string;
   youtubeId: string; // slug (11-char)
   language: string;
@@ -30,7 +31,7 @@ export class YoutubeMetadataFetchedEvent implements ApplicationEvent {
     public readonly data: YoutubeMetadataFetchedEventData,
     public readonly occurredAt: Date,
     private readonly runPolicy?: () => Promise<void>
-  ) {}
+  ) { }
 
   /**
    * Application Event Policy 실행 (ensure video summary 등)

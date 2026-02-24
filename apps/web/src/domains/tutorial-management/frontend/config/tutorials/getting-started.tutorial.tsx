@@ -30,20 +30,11 @@ export const gettingStartedTutorial: Tutorial = {
     {
       id: 'add-block',
       title: 'Add Your First Block',
-      description: 'Click the "Add Block" button to open the block menu.',
-      targetSelector: 'add-block-button',
-      action: 'click',
-      onComplete: (state) => ({ ...state, showBlockMenu: true }),
-    },
-    {
-      id: 'select-block-type',
-      title: 'Choose a Block Type',
-      description: 'Select the Markdown block to add it to your canvas.',
+      description: 'Click the Note button to add a markdown block to your canvas.',
       targetSelector: 'block-type-markdown',
       action: 'click',
       onComplete: (state) => ({
         ...state,
-        showBlockMenu: false,
         blockCreationMode: true,
         selectedBlockType: 'markdown',
       }),
@@ -87,7 +78,6 @@ export const gettingStartedTutorial: Tutorial = {
   ],
   content: {
     initialState: {
-      showBlockMenu: false,
       hasBlock: false,
       blockCreationMode: false,
       blockSelected: false,

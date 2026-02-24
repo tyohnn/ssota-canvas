@@ -12,27 +12,20 @@ export const audioAIDefinition: BlockTypeDefinition = {
       description: 'URL of the audio file',
       required: true,
     },
-    title: {
+    filename: {
       type: PropertyType.TEXT,
-      description: 'Audio title',
+      description: 'Uploaded filename',
       default: '',
     },
-    artist: {
-      type: PropertyType.TEXT,
-      description: 'Artist or speaker name',
-      default: '',
-    },
-    playbackRate: {
+    duration: {
       type: PropertyType.NUMBER,
-      description: 'Playback speed (0.5 to 2.0)',
-      default: 1.0,
-      validation: { min: 0.5, max: 2.0 },
+      description: 'Playback duration in seconds',
+      default: 0,
     },
-    volume: {
+    fileSize: {
       type: PropertyType.NUMBER,
-      description: 'Volume (0.0 to 1.0)',
-      default: 0.8,
-      validation: { min: 0.0, max: 1.0 },
+      description: 'File size in bytes',
+      default: 0,
     },
   },
   actions: [

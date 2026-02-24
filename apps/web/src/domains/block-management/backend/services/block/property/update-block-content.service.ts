@@ -1,73 +1,67 @@
 /**
  * Block 콘텐츠 업데이트 서비스 로직
+ *
+ * 항상 step 저장 경로만 사용: full doc을 ReplaceStep 하나로 변환 후 applyBlockContentSteps 호출.
+ * ⚠️ blockAggregate는 secure action에서 조회해 전달 (서비스 내부에서 findByWorkspaceIdAndSlug 사용 안 함)
  */
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
+import { Node, Slice } from '@tiptap/pm/model';
+import { ReplaceStep } from '@tiptap/pm/transform';
 import { Result } from '@/utils/result';
 
-import { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
-import type { UpdateBlockContentCommand } from '../../../../shared/commands';
-import type { UpdateBlockContentRequest } from '../../../../shared/dtos/requests/block.requests';
 import { BlockManagementError } from '../../../../shared/errors/block-management.error';
-import { BlockId } from '../../../../shared/value-objects/block-id.vo';
+import type { BlockAggregate } from '../../../../shared/aggregates/block.aggregate';
+import { EMPTY_TIPTAP_DOC } from '../../../../shared/utils/tiptap-json.utils';
+import { pmSchema } from '../../../../shared/utils/prosemirror-schema';
 import type { IBlockRepository } from '../../../repositories/interfaces/block.repository.interface';
+import { applyBlockContentSteps } from './apply-block-content-steps.service';
+
+export type UpdateBlockContentParams = {
+  content: unknown;
+  contentRaw?: string;
+  safeBlockAggregate: BlockAggregate;
+  safeUserId: UserId;
+  blockRepository: IBlockRepository;
+};
 
 /**
- * 블록 콘텐츠 업데이트
+ * 블록 콘텐츠 업데이트 (step 경로만 사용)
  *
- * ✅ Event Storming + DDD 패턴:
- * - SafeDTO를 입력으로 받음
- * - SafeDTO → Command 변환
- * - Aggregate에 Command 전달
- *
- * @param safeDto - 검증된 블록 콘텐츠 업데이트 요청 (SafeDTO)
- * @param blockRepository - Block Repository
- * @returns 업데이트된 시간 정보
+ * full doc을 전체 교체용 ReplaceStep 하나로 변환한 뒤 applyBlockContentSteps 호출.
+ * ✅ 권한·aggregate 조회는 secure action에서 완료. 서비스는 전달된 safeBlockAggregate 사용.
  */
 export async function updateBlockContent(
-  safeDto: UpdateBlockContentRequest,
-  safeUserId: UserId,
-  blockRepository: IBlockRepository
+  params: UpdateBlockContentParams
 ): Promise<Result<{ updatedAt: Date }, Error>> {
+  const {
+    content,
+    safeBlockAggregate,
+    safeUserId,
+    blockRepository,
+  } = params;
   try {
-    // 1. SafeDTO → Value Objects 생성
-    const blockId = new BlockId(safeDto.blockId);
+    const block = safeBlockAggregate.getBlock();
+    const currentContent =
+      (block.content as object) || EMPTY_TIPTAP_DOC;
+    const currentDoc = Node.fromJSON(pmSchema, currentContent);
+    const newDoc = Node.fromJSON(pmSchema, content as object);
+    const slice = new Slice(newDoc.content, 0, 0);
+    const step = new ReplaceStep(1, currentDoc.content.size, slice);
+    const stepJSON = step.toJSON();
 
-    // 2. 블록 조회
-    // Note: Block ownership is already verified by authorizeBlockInWorkspace
-    // in the action layer. This service should only be called from authorized actions.
-    const block = await blockRepository.findById(blockId);
-    if (!block) {
-      return Result.error(
-        new BlockManagementError('BLOCK_NOT_FOUND', 'Block not found')
-      );
+    const stepsResult = await applyBlockContentSteps({
+      steps: [stepJSON],
+      baseVersion: block.contentVersion,
+      safeBlockAggregate,
+      safeUserId,
+      blockRepository,
+    });
+
+    if (stepsResult.isError()) {
+      return Result.error(stepsResult.error);
     }
 
-    // 3. Aggregate 재구성
-    const aggregate = BlockAggregate.reconstitute(block);
-
-    // 4. SafeDTO → Command 변환
-    const command: UpdateBlockContentCommand = {
-      content: safeDto.content,
-      contentRaw: safeDto.contentRaw,
-      userId: safeUserId,
-    };
-
-    // 5. 블록 콘텐츠 업데이트
-    aggregate.updateContent(command);
-
-    // 6. 블록 업데이트
-    const updatedBlock = aggregate.getBlock();
-    await blockRepository.update(updatedBlock);
-
-    // 7. 도메인 이벤트 처리
-    const events = aggregate.getUncommittedEvents();
-    await Promise.allSettled(events.map(event => event.handle()));
-
-    // 8. 이벤트 커밋
-    aggregate.markEventsAsCommitted();
-
-    // 9. 업데이트된 시간 반환
-    return Result.success({ updatedAt: updatedBlock.updatedAt });
+    return Result.success({ updatedAt: stepsResult.value.updatedAt });
   } catch (error) {
     if (error instanceof BlockManagementError) {
       return Result.error(error);

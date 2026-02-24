@@ -1,5 +1,7 @@
-import { BlockId } from '../../../shared/value-objects/block-id.vo';
+import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects/workspace-id.vo';
+
 import { Block } from '../../../shared/entities/block.entity';
+import { BlockId } from '../../../shared/value-objects/block-id.vo';
 
 /**
  * BlockRepository Interface
@@ -33,20 +35,36 @@ export interface IBlockRepository {
   update(block: Block): Promise<void>;
 
   /**
-   * 블록 ID로 조회
-   *
-   * @param id - 블록 ID
-   * @returns Promise<Block | null>
+   * ID(UUID)로 블록 조회 (내부/레거시 전용, 예: source_job 처리)
+   * 신규 코드는 findByWorkspaceIdAndSlug 사용.
    */
   findById(id: BlockId): Promise<Block | null>;
 
   /**
-   * 여러 블록 ID로 조회 (입력 ID 순서대로 반환, 없으면 null)
+   * 워크스페이스 ID + slug로 블록 조회
    *
-   * @param ids - Block ID 배열
+   * @param workspaceId - 워크스페이스 ID
+   * @param slug - 8자 hex slug
+   * @param includeDeleted - 삭제된 블록 포함 (복원 시 true)
+   * @returns Promise<Block | null>
+   */
+  findByWorkspaceIdAndSlug(
+    workspaceId: WorkspaceId,
+    slug: string,
+    includeDeleted?: boolean
+  ): Promise<Block | null>;
+
+  /**
+   * 워크스페이스 ID + slug 배열로 블록 조회 (입력 slug 순서대로 반환, 없으면 null)
+   *
+   * @param workspaceId - 워크스페이스 ID
+   * @param slugs - slug 배열
    * @returns Promise<(Block | null)[]>
    */
-  findByIds(ids: BlockId[]): Promise<(Block | null)[]>;
+  findByWorkspaceIdAndSlugs(
+    workspaceId: WorkspaceId,
+    slugs: string[]
+  ): Promise<(Block | null)[]>;
 
   /**
    * 워크스페이스 ID로 블록 목록 조회

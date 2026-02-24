@@ -2,10 +2,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
 import { z } from 'zod';
 
+import { getAuthenticatedUserOrRedirect } from '@/domains/common/auth/server-auth.helpers';
 import { DrizzleNotificationRepository } from '@/domains/notification-management/backend/repositories/implementations/drizzle-notification.repository';
 import { NotificationService } from '@/domains/notification-management/backend/services/notification.service';
 import { DrizzlePageRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-page.repository';
@@ -13,6 +13,7 @@ import { DrizzleWorkspaceMemberRepository } from '@/domains/workspace-management
 import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backend/repositories/implementations/drizzle-workspace.repository';
 import { DefaultWorkspaceCrudService } from '@/domains/workspace-management/backend/services/workspace-crud.service';
 import { createClient } from '@/utils/supabase/server';
+import { isRedirectError } from '@/utils/next-redirect';
 
 import { DrizzleInvitationRepository } from '../backend/repositories/implementations/drizzle-invitation.repository';
 import { DrizzleOrganizationMemberRepository } from '../backend/repositories/implementations/drizzle-organization-member.repository';
@@ -42,20 +43,12 @@ import {
 export async function getUserOrganizationsAction(): Promise<
   OrganizationSummary[]
 > {
+  // 1. 인증 확인 (미인증 시 로그인으로 리다이렉트 - server-auth.helpers 사용)
+  const user = await getAuthenticatedUserOrRedirect(
+    'Please log in to continue.'
+  );
+
   try {
-    // 1. Supabase Auth 인증 확인
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-
-    if (error || !user) {
-      // 인증 오류 발생 - 로그인 페이지로 리다이렉트 (조용히 처리)
-      // 참고: timebox=0, inactivity_timeout=0 설정으로 실제 세션 만료는 발생하지 않음
-      redirect('/login?message=Please%20log%20in%20to%20continue.');
-    }
-
     // 2. Repository 인스턴스 생성
     const organizationRepository = new DrizzleOrganizationRepository();
     const organizationMemberRepository =
@@ -86,6 +79,10 @@ export async function getUserOrganizationsAction(): Promise<
 
     return result.value;
   } catch (error) {
+    // NEXT_REDIRECT는 예상된 동작이므로 로깅하지 않고 그대로 rethrow
+    if (isRedirectError(error)) {
+      throw error;
+    }
     console.error('[getUserOrganizationsAction] Error:', error);
     throw error;
   }

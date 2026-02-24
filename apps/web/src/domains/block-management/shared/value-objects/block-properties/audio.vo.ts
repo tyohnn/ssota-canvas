@@ -1,150 +1,167 @@
 /**
  * Audio Block Properties Value Object
  *
- * 오디오 블록의 속성을 정의하고 관리하는 Value Object
+ * - pathUrl: Supabase 스토리지 경로 (만료 없음). 외부 URL일 땐 ''.
+ * - accessUrl: 뷰어/추출에 사용하는 URL (Signed URL 또는 외부 URL).
  */
 
 import { BlockPropertiesVO } from './base.vo';
 
-/**
- * Audio Block Properties Interface
- */
 export interface AudioBlockProperties {
-  // 오디오 정보
-  audioUrl: string; // Supabase Storage URL
+  pathUrl: string;
+  accessUrl: string;
+  accessUrlExpiresAt?: string | null;
+  filename?: string;
+  duration?: number;
+  fileSize?: number;
 
-  // 표시 옵션
-  title: string; // 오디오 제목
-  artist: string; // 아티스트/화자
-
-  // 재생 옵션
-  playbackRate: number; // 재생 속도 (0.5 ~ 2.0)
-  volume: number; // 볼륨 (0.0 ~ 1.0)
-
-  // 접근성
-  transcript: string; // 음성 텍스트 변환 결과 (STT)
+  sourceSummaryAccessLanguages?: string[];
+  sourceRawContentAccessGranted?: boolean;
 }
 
-/**
- * Audio Block Properties Value Object
- */
 export class AudioBlockPropertiesVO extends BlockPropertiesVO {
   constructor(
-    private readonly audioUrl: string,
-    private readonly title: string,
-    private readonly artist: string,
-    private readonly playbackRate: number,
-    private readonly volume: number,
-    private readonly transcript: string
+    private readonly pathUrl: string,
+    private readonly accessUrl: string,
+    private readonly accessUrlExpiresAt: string | null | undefined,
+    private readonly filename: string | undefined,
+    private readonly duration: number | undefined,
+    private readonly fileSize: number | undefined,
+    private readonly sourceSummaryAccessLanguages: string[] | undefined,
+    private readonly sourceRawContentAccessGranted: boolean | undefined,
   ) {
     super();
   }
 
-  /**
-   * 기본값으로 AudioBlockPropertiesVO 생성
-   */
   static createDefault(): AudioBlockPropertiesVO {
     return new AudioBlockPropertiesVO(
-      '', // audioUrl
-      '', // title
-      '', // artist
-      1.0, // playbackRate
-      0.8, // volume
-      '' // transcript
+      '',
+      '',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
     );
   }
 
-  /**
-   * JSON 데이터로부터 AudioBlockPropertiesVO 생성
-   * @param data - JSON 데이터
-   */
   static fromJSON(data: unknown): AudioBlockPropertiesVO {
     const safeData = (data as Partial<AudioBlockProperties>) ?? {};
+    const pathUrl = safeData.pathUrl ?? '';
+    const accessUrl =
+      safeData.accessUrl ??
+      (safeData as { audioUrl?: string }).audioUrl ??
+      (safeData as { url?: string }).url ??
+      '';
     return new AudioBlockPropertiesVO(
-      safeData.audioUrl ?? '',
-      safeData.title ?? '',
-      safeData.artist ?? '',
-      safeData.playbackRate ?? 1.0,
-      safeData.volume ?? 0.8,
-      safeData.transcript ?? ''
+      pathUrl,
+      accessUrl,
+      safeData.accessUrlExpiresAt,
+      safeData.filename,
+      safeData.duration,
+      safeData.fileSize,
+      safeData.sourceSummaryAccessLanguages,
+      safeData.sourceRawContentAccessGranted,
     );
   }
 
-  /**
-   * 속성 유효성 검증
-   */
   protected validate(): boolean {
-    // audioUrl은 필수 (빈 문자열 허용 - 초기 생성 시)
-    if (this.audioUrl === undefined) {
-      return false;
-    }
-
-    // playbackRate 범위 검증
-    if (this.playbackRate < 0.5 || this.playbackRate > 2.0) {
-      return false;
-    }
-
-    // volume 범위 검증
-    if (this.volume < 0 || this.volume > 1.0) {
-      return false;
-    }
-
     return true;
   }
 
-  /**
-   * JSON으로 직렬화
-   */
   toJSON(): AudioBlockProperties {
     return {
-      audioUrl: this.audioUrl,
-      title: this.title,
-      artist: this.artist,
-      playbackRate: this.playbackRate,
-      volume: this.volume,
-      transcript: this.transcript,
+      pathUrl: this.pathUrl,
+      accessUrl: this.accessUrl,
+      ...(this.accessUrlExpiresAt != null && {
+        accessUrlExpiresAt: this.accessUrlExpiresAt,
+      }),
+      ...(this.filename !== undefined && { filename: this.filename }),
+      ...(this.duration !== undefined && { duration: this.duration }),
+      ...(this.fileSize !== undefined && { fileSize: this.fileSize }),
+      ...(this.sourceSummaryAccessLanguages !== undefined && {
+        sourceSummaryAccessLanguages: this.sourceSummaryAccessLanguages,
+      }),
+      ...(this.sourceRawContentAccessGranted !== undefined && {
+        sourceRawContentAccessGranted: this.sourceRawContentAccessGranted,
+      }),
     };
   }
 
-  /**
-   * 다른 BlockPropertiesVO와 비교
-   */
   equals(other: BlockPropertiesVO): boolean {
     if (!(other instanceof AudioBlockPropertiesVO)) {
       return false;
     }
     return (
-      this.audioUrl === other.audioUrl &&
-      this.title === other.title &&
-      this.artist === other.artist &&
-      this.playbackRate === other.playbackRate &&
-      this.volume === other.volume &&
-      this.transcript === other.transcript
+      this.pathUrl === other.pathUrl &&
+      this.accessUrl === other.accessUrl &&
+      this.filename === other.filename &&
+      this.duration === other.duration &&
+      this.fileSize === other.fileSize &&
+      JSON.stringify(this.sourceSummaryAccessLanguages ?? []) ===
+        JSON.stringify(other.sourceSummaryAccessLanguages ?? []) &&
+      this.sourceRawContentAccessGranted === other.sourceRawContentAccessGranted
     );
   }
 
-  // Getter 메서드들
+  getPathUrl(): string {
+    return this.pathUrl;
+  }
+
+  getAccessUrl(): string {
+    return this.accessUrl;
+  }
+
+  /** 호환용: accessUrl과 동일 */
   getAudioUrl(): string {
-    return this.audioUrl;
+    return this.accessUrl;
   }
 
-  getTitle(): string {
-    return this.title;
+  getUrl(): string {
+    return this.accessUrl;
   }
 
-  getArtist(): string {
-    return this.artist;
+  getFilename(): string | undefined {
+    return this.filename;
   }
 
-  getPlaybackRate(): number {
-    return this.playbackRate;
+  getDuration(): number | undefined {
+    return this.duration;
   }
 
-  getVolume(): number {
-    return this.volume;
+  getFileSize(): number | undefined {
+    return this.fileSize;
   }
 
-  getTranscript(): string {
-    return this.transcript;
+  getSourceSummaryAccessLanguages(): string[] | undefined {
+    return this.sourceSummaryAccessLanguages;
+  }
+
+  getSourceRawContentAccessGranted(): boolean | undefined {
+    return this.sourceRawContentAccessGranted;
+  }
+
+  getFormattedDuration(): string {
+    if (this.duration == null || this.duration < 0) return '—';
+    const h = Math.floor(this.duration / 3600);
+    const m = Math.floor((this.duration % 3600) / 60);
+    const s = Math.floor(this.duration % 60);
+    if (h > 0) {
+      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  getFormattedFileSize(): string {
+    if (this.fileSize == null || this.fileSize < 0) return '—';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = this.fileSize;
+    let i = 0;
+    while (size >= 1024 && i < units.length - 1) {
+      size /= 1024;
+      i += 1;
+    }
+    return `${size.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
   }
 }

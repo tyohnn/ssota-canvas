@@ -70,6 +70,20 @@ export interface WorkspaceCrudService {
   ): Promise<Result<CreateWorkspaceResult>>;
 
   /**
+   * 조직의 Default Workspace에 멤버 추가
+   *
+   * Policy: InvitationAccepted 시 호출 (Event.handle()에서 사용)
+   *
+   * @param orgId - 조직 ID
+   * @param userId - 추가할 사용자 ID
+   * @returns void (성공) | Error code (실패)
+   */
+  addMemberToDefaultWorkspace(
+    orgId: OrganizationId,
+    userId: string
+  ): Promise<Result<void>>;
+
+  /**
    * Workspace 정보 수정 (Scenario 2)
    *
    * @param workspaceId - Workspace ID
