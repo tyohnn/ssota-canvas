@@ -17,7 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Placeholder from '@tiptap/extension-placeholder';
 import 'katex/dist/katex.min.css';
 import Image from '@tiptap/extension-image';
-import DragHandle from '@tiptap/extension-drag-handle';
+// import DragHandle from '@tiptap/extension-drag-handle'; // node drag 비활성화 (동작 이슈)
 import type { Editor } from '@tiptap/react';
 import { useEditor } from '@tiptap/react';
 
@@ -73,6 +73,8 @@ export function useTipTapEditor(
   useEffect(() => {
     uploadImageRef.current = uploadImage;
   }, [uploadImage]);
+
+  // const dragHandleElRef = useRef<HTMLElement | null>(null); // node drag 비활성화
 
   // State Refs
   const previousContentRef = useRef<string>('');
@@ -252,98 +254,91 @@ export function useTipTapEditor(
           setMathEditingRef.current?.(null);
         },
       }),
-      // DragHandle Extension (non-React): render()로 순수 DOM 엘리먼트를 생성하므로
+      // [node drag 비활성화] DragHandle Extension (non-React): render()로 순수 DOM 엘리먼트를 생성하므로
       // React 트리와 충돌 없이 wrapper.appendChild(element)가 안전하게 동작함.
       // DragHandle React 컴포넌트는 React가 관리하는 엘리먼트를 plugin이 가로채
       // "removeChild: not a child" 에러를 유발하므로 사용하지 않음.
-      DragHandle.configure({
-        nested: { edgeDetection: { edges: ['top'], threshold: -16 } },
-        // #region agent log
-        onNodeChange: ({ node, pos }: { node: any; pos: number }) => {
-          fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bc5b12'},body:JSON.stringify({sessionId:'bc5b12',location:'DragHandle:onNodeChange',message:'node changed',data:{hasNode:!!node,nodeType:node?.type?.name,pos},timestamp:Date.now(),hypothesisId:'H9',runId:'iter5'})}).catch(()=>{});
-        },
-        onElementDragStart: (e: DragEvent) => {
-          fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bc5b12'},body:JSON.stringify({sessionId:'bc5b12',location:'DragHandle:onElementDragStart',message:'drag start fired on DragHandle element',data:{hasDataTransfer:!!e.dataTransfer,clientX:e.clientX,clientY:e.clientY},timestamp:Date.now(),hypothesisId:'H9b',runId:'iter5'})}).catch(()=>{});
-        },
-        // #endregion
-        computePositionConfig: {
-          placement: 'left' as const,
-          middleware: [
-            {
-              name: 'dragHandlePositionFix',
-              fn(state: {
-                x: number;
-                y: number;
-                rects: { reference: { height: number }; floating: { width: number; height: number } };
-                elements: { floating: HTMLElement };
-              }) {
-                const floatW = state.rects.floating.width;
-                const floatH = state.rects.floating.height;
+      // DragHandle.configure({
+      //   nested: { edgeDetection: { edges: ['top'], threshold: -16 } },
+      //   computePositionConfig: {
+      //     placement: 'left' as const,
+      //     middleware: [
+      //       {
+      //         name: 'dragHandlePositionFix',
+      //         fn(state: {
+      //           x: number;
+      //           y: number;
+      //           rects: { reference: { height: number }; floating: { width: number; height: number } };
+      //           elements: { floating: HTMLElement };
+      //         }) {
+      //           const floatW = state.rects.floating.width;
+      //           const floatH = state.rects.floating.height;
 
-                const proseMirror = state.elements.floating
-                  .closest?.('.ProseMirror')
-                  ?? state.elements.floating.parentElement?.parentElement?.querySelector('.ProseMirror');
-                let scaleX = 1;
-                let scaleY = 1;
-                if (proseMirror instanceof HTMLElement) {
-                  const r = proseMirror.getBoundingClientRect();
-                  scaleX = r.width / proseMirror.offsetWidth || 1;
-                  scaleY = r.height / proseMirror.offsetHeight || 1;
-                }
+      //           const proseMirror = state.elements.floating
+      //             .closest?.('.ProseMirror')
+      //             ?? state.elements.floating.parentElement?.parentElement?.querySelector('.ProseMirror');
+      //           let scaleX = 1;
+      //           let scaleY = 1;
+      //           if (proseMirror instanceof HTMLElement) {
+      //             const r = proseMirror.getBoundingClientRect();
+      //             scaleX = r.width / proseMirror.offsetWidth || 1;
+      //             scaleY = r.height / proseMirror.offsetHeight || 1;
+      //           }
 
-                // Fix x: pin to ProseMirror left edge for top-level nodes.
-                // For nodes nested inside an admonition (callout), position the handle
-                // inside the admonition's left padding area so the user can reach it
-                // without the cursor leaving the admonition and dismissing the handle.
-                const wrapperEl = state.elements.floating.parentElement;
-                // floating-ui's ReferenceElement may be VirtualElement; access via cast.
-                const referenceEl = (state.elements as unknown as { reference?: Element }).reference;
-                const admonitionEl = referenceEl?.closest?.('[data-admonition]');
-                let x: number;
-                if (admonitionEl instanceof HTMLElement && wrapperEl) {
-                  // Place handle 4px inside the admonition's left border edge,
-                  // within the extra 1.5rem left padding reserved for the handle.
-                  const admonVpLeft = admonitionEl.getBoundingClientRect().left;
-                  const wrapperVpLeft = wrapperEl.getBoundingClientRect().left;
-                  x = (admonVpLeft - wrapperVpLeft) / scaleX + 4;
-                } else if (proseMirror instanceof HTMLElement && wrapperEl) {
-                  const editorVpLeft = proseMirror.getBoundingClientRect().left;
-                  const wrapperVpLeft = wrapperEl.getBoundingClientRect().left;
-                  x = (editorVpLeft - wrapperVpLeft) / scaleX - floatW + 2;
-                } else {
-                  x = (state.x + floatW) / scaleX - floatW + 2;
-                }
+      //           // Fix x: pin to ProseMirror left edge for top-level nodes.
+      //           // For nodes nested inside an admonition (callout), position the handle
+      //           // inside the admonition's left padding area so the user can reach it
+      //           // without the cursor leaving the admonition and dismissing the handle.
+      //           const wrapperEl = state.elements.floating.parentElement;
+      //           // floating-ui's ReferenceElement may be VirtualElement; access via cast.
+      //           const referenceEl = (state.elements as unknown as { reference?: Element }).reference;
+      //           const admonitionEl = referenceEl?.closest?.('[data-admonition]');
+      //           let x: number;
+      //           if (admonitionEl instanceof HTMLElement && wrapperEl) {
+      //             // Place handle 4px inside the admonition's left border edge,
+      //             // within the extra 1.5rem left padding reserved for the handle.
+      //             const admonVpLeft = admonitionEl.getBoundingClientRect().left;
+      //             const wrapperVpLeft = wrapperEl.getBoundingClientRect().left;
+      //             x = (admonVpLeft - wrapperVpLeft) / scaleX + 4;
+      //           } else if (proseMirror instanceof HTMLElement && wrapperEl) {
+      //             const editorVpLeft = proseMirror.getBoundingClientRect().left;
+      //             const wrapperVpLeft = wrapperEl.getBoundingClientRect().left;
+      //             x = (editorVpLeft - wrapperVpLeft) / scaleX - floatW + 2;
+      //           } else {
+      //             x = (state.x + floatW) / scaleX - floatW + 2;
+      //           }
 
-                // Fix y: isolate viewport-pixel reference part from CSS-pixel float
-                // dimensions so the float size doesn't shrink/grow with zoom.
-                let y = (state.y + floatH / 2) / scaleY - floatH / 2;
+      //           // Fix y: isolate viewport-pixel reference part from CSS-pixel float
+      //           // dimensions so the float size doesn't shrink/grow with zoom.
+      //           let y = (state.y + floatH / 2) / scaleY - floatH / 2;
 
-                // For tall blocks (nested lists etc.) re-align to first line center
-                const refH = state.rects.reference.height / scaleY;
-                const firstLineApprox = 28;
-                if (refH > floatH * 2.5) {
-                  y += (firstLineApprox - refH) / 2;
-                }
+      //           // For tall blocks (nested lists etc.) re-align to first line center
+      //           const refH = state.rects.reference.height / scaleY;
+      //           const firstLineApprox = 28;
+      //           if (refH > floatH * 2.5) {
+      //             y += (firstLineApprox - refH) / 2;
+      //           }
 
-                return { x, y };
-              },
-            },
-          ],
-        },
-        render() {
-          const el = document.createElement('div');
-          el.className =
-            'flex cursor-grab items-center justify-center size-5 rounded ' +
-            'bg-foreground/[0.06] hover:bg-foreground/10 text-foreground/40 hover:text-foreground/60 ' +
-            'transition-colors';
-          el.innerHTML =
-            '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-            '<circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/>' +
-            '<circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/>' +
-            '<circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>';
-          return el;
-        },
-      }),
+      //           return { x, y };
+      //         },
+      //       },
+      //     ],
+      //   },
+      //   render() {
+      //     const el = document.createElement('div');
+      //     el.className =
+      //       'flex cursor-grab items-center justify-center size-5 rounded ' +
+      //       'bg-foreground/[0.06] hover:bg-foreground/10 text-foreground/40 hover:text-foreground/60 ' +
+      //       'transition-colors';
+      //     el.innerHTML =
+      //       '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+      //       '<circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/>' +
+      //       '<circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/>' +
+      //       '<circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>';
+      //     dragHandleElRef.current = el;
+      //     return el;
+      //   },
+      // }),
       Placeholder.configure({
         placeholder,
         emptyEditorClass: 'is-editor-empty',
@@ -392,7 +387,7 @@ export function useTipTapEditor(
         }, 500);
       }
     },
-  });
+  }, [(blockData as BlockNodeData).blockId]);
 
   const flushRef = useRef(flushPendingSave);
   flushRef.current = flushPendingSave;
@@ -571,43 +566,37 @@ export function useTipTapEditor(
     }
   }, [editor, handleEditorBlur]);
 
-  // #region agent log
-  useEffect(() => {
-    if (!editor) return;
-    const view = editor.view as any;
-    let _dragging = view.dragging;
-    Object.defineProperty(view, 'dragging', {
-      get() { return _dragging; },
-      set(val: any) {
-        const stack = new Error().stack?.split('\n').slice(1, 4).map((s: string) => s.trim()).join(' | ') ?? '';
-        fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'bc5b12' }, body: JSON.stringify({ sessionId: 'bc5b12', location: 'use-tiptap-editor:dragging-setter', message: val ? 'view.dragging SET' : 'view.dragging CLEARED', data: { hasSlice: !!val?.slice, stack: stack.substring(0, 400) }, timestamp: Date.now(), hypothesisId: 'H7b', runId: 'iter4' }) }).catch(() => { });
-        _dragging = val;
-      },
-      configurable: true,
-    });
-    return () => {
-      Object.defineProperty(view, 'dragging', { value: _dragging, writable: true, configurable: true });
-    };
-  }, [editor]);
-  // #endregion
+  // [node drag 비활성화] With immediatelyRender:false, plugins initialize before React mounts
+  // EditorContent, so view.dom.parentElement is null when DragHandle's plugin
+  // tries to appendChild its wrapper. Re-mount the wrapper once the DOM is ready.
+  // useEffect(() => {
+  //   if (!editor) return;
+  //   const el = dragHandleElRef.current;
+  //   if (!el) return;
+  //   const wrapper = el.parentElement;
+  //   if (!wrapper) return;
+  //   const parent = editor.view.dom.parentElement;
+  //   if (!parent || wrapper.parentElement === parent) return;
+  //   parent.appendChild(wrapper);
+  // }, [editor]);
 
-  // 스크롤 시 drag handle 즉시 숨기기
-  useEffect(() => {
-    if (!editor) return;
-    const scrollParent = editor.view.dom.closest('[class*="overflow"]')
-      ?? editor.view.dom.parentElement;
-    if (!scrollParent) return;
+  // [node drag 비활성화] 스크롤 시 drag handle 즉시 숨기기
+  // useEffect(() => {
+  //   if (!editor) return;
+  //   const scrollParent = editor.view.dom.closest('[class*="overflow"]')
+  //     ?? editor.view.dom.parentElement;
+  //   if (!scrollParent) return;
 
-    const hideOnScroll = () => {
-      editor.view.dispatch(
-        editor.view.state.tr.setMeta('hideDragHandle', true)
-      );
-    };
-    scrollParent.addEventListener('scroll', hideOnScroll, { passive: true });
-    return () => {
-      scrollParent.removeEventListener('scroll', hideOnScroll);
-    };
-  }, [editor]);
+  //   const hideOnScroll = () => {
+  //     editor.view.dispatch(
+  //       editor.view.state.tr.setMeta('hideDragHandle', true)
+  //     );
+  //   };
+  //   scrollParent.addEventListener('scroll', hideOnScroll, { passive: true });
+  //   return () => {
+  //     scrollParent.removeEventListener('scroll', hideOnScroll);
+  //   };
+  // }, [editor]);
 
   // Cleanup: 타이머 정리. blur 100ms 타이머가 아직 대기 중이면 unmount 시 동기적으로 flush + 감사 실행 (패널 닫기/ESC 시 로그 누락 방지)
   useEffect(() => {

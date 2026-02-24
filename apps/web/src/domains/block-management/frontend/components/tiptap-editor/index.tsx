@@ -87,7 +87,7 @@ export function TipTapEditor({
           'prose prose-neutral dark:prose-invert max-w-none',
           'prose-editor',
           'tiptap-block-editor',
-          editable && 'nodrag',
+          // editable && 'nodrag', // node drag 비활성화
           editable && 'focus:outline-none',
           className
         )}
