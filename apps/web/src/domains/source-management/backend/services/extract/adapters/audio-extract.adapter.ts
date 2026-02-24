@@ -144,10 +144,13 @@ export class AudioExtractAdapter implements IExtractAdapter {
     });
 
     const data = transcription as {
-      languageCode: string;
+      languageCode?: string;
+      language?: string;
       text: string;
       words: ElevenLabsWord[];
     };
+    const detectedLanguage =
+      data.languageCode ?? data.language ?? 'en';
 
     if (!data.words?.length) {
       const script: TimelineScript = {
@@ -156,26 +159,23 @@ export class AudioExtractAdapter implements IExtractAdapter {
           extractedAt: new Date().toISOString(),
           totalDuration: 0,
           totalSegments: 0,
-          language: data.languageCode || 'en',
+          language: detectedLanguage,
         },
       };
       return {
         rawContent: JSON.stringify(script),
         structuredPayload: script,
-        contentLanguage: data.languageCode || null,
+        contentLanguage: detectedLanguage,
       };
     }
 
-    const script = wordsToTimelineScript(
-      data.words,
-      data.languageCode || 'en'
-    );
+    const script = wordsToTimelineScript(data.words, detectedLanguage);
     const rawContent = JSON.stringify(script);
 
     return {
       rawContent,
       structuredPayload: script,
-      contentLanguage: data.languageCode || null,
+      contentLanguage: detectedLanguage,
     };
   }
 }

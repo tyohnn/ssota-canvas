@@ -32,6 +32,8 @@ export const UpdateSourceRawContentRequestSchema = z.object({
   rawContent: z.string(),
   extractedAt: z.coerce.date(),
   structuredPayload: z.unknown().optional(),
+  /** e.g. from ElevenLabs STT metadata.language → sources.content_language */
+  contentLanguage: z.string().min(2).optional().nullable(),
 });
 
 export type UpdateSourceRawContentRequest = z.output<

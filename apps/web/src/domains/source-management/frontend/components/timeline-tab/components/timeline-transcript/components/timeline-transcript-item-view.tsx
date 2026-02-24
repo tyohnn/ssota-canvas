@@ -19,12 +19,11 @@ import {
 
 import { Box } from '@/components/ui/box';
 
+import type { TimelineTranscriptSegment } from '@/domains/source-management/shared/types/timeline-script.types';
+
 import { formatTime } from '../../../core/utils';
 
-export interface TimelineTranscriptSegment {
-  start: number;
-  text: string;
-}
+export type { TimelineTranscriptSegment };
 
 export interface TimelineTranscriptItemViewProps {
   segment: TimelineTranscriptSegment;
@@ -55,7 +54,16 @@ export function TimelineTranscriptItemView({
         onClick={() => onTimeClick(segment.start)}
         className="w-full text-left text-muted-foreground hover:text-primary hover:underline cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded px-1 py-0.5 -my-0.5"
       >
-        <span className="font-medium tabular-nums">[{formatTime(segment.start)}]</span>{' '}
+        <span className="font-medium tabular-nums">[{formatTime(segment.start)}]</span>
+        {segment.speakerId != null && (
+          <>
+            {' '}
+            <span className="text-muted-foreground/80 font-normal" title="Speaker">
+              {segment.speakerId}:
+            </span>
+          </>
+        )}
+        {' '}
         <span className="transition-colors duration-200">{segment.text}</span>
       </button>
       {isHovered && !readonly && (

@@ -56,7 +56,8 @@ export class SourceAggregate {
     this._source.updateRawContent(
       command.rawContent,
       command.extractedAt,
-      command.expiresAt
+      command.expiresAt,
+      command.contentLanguage
     );
     const event = new SourceRawContentUpdatedEvent(
       this._source.id,

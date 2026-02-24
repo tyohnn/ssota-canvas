@@ -16,6 +16,8 @@ export interface UpdateSourceRawContentCommand {
   rawContent: string;
   extractedAt: Date;
   expiresAt: Date | null;
+  /** e.g. from ElevenLabs STT → sources.content_language */
+  contentLanguage?: string | null;
 }
 
 export interface UpdateSourceMetadataCommand {

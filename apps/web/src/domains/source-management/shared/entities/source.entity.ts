@@ -71,11 +71,15 @@ export class Source {
   updateRawContent(
     rawContent: string,
     extractedAt: Date,
-    expiresAt: Date | null
+    expiresAt: Date | null,
+    contentLanguage?: string | null
   ): void {
     this.rawContent = rawContent;
     this.extractedAt = extractedAt;
     this.expiresAt = expiresAt;
+    if (contentLanguage !== undefined) {
+      this.contentLanguage = contentLanguage;
+    }
     this.updatedAt = new Date();
   }
 

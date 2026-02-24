@@ -102,6 +102,7 @@ export async function updateSourceRawContent(
       rawContent: safeDto.rawContent,
       extractedAt: safeDto.extractedAt,
       expiresAt,
+      contentLanguage: safeDto.contentLanguage,
     });
 
     await sourceRepository.update(aggregate.getSource());

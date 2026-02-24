@@ -47,6 +47,7 @@ export async function extractSourceContent(
         rawContent: extracted.rawContent,
         extractedAt: new Date(),
         structuredPayload: extracted.structuredPayload,
+        contentLanguage: extracted.contentLanguage ?? undefined,
       },
       sourceRepository
     );
