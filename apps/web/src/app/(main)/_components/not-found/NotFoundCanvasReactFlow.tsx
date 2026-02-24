@@ -3,13 +3,12 @@
  *
  * ReactFlow를 활용한 캔버스 스타일 404 페이지
  * - 실제 캔버스와 동일한 블록 시스템 사용
- * - 스켈레톤 블록 배경 (로딩 상태처럼 흐릿한 블록들)
  * - 중앙에 404 육각형 블록
  */
 
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import Link from 'next/link';
 
@@ -37,140 +36,8 @@ const NOT_FOUND_HEXAGON_BLOCK: Node = {
   height: 180,
 };
 
-// 스켈레톤 블록들 - 흐릿하게 표시될 배경 블록들 (실제 블록 타입 사용)
-const SKELETON_BLOCKS: Node[] = [
-  // 왼쪽 상단
-  {
-    id: 'skeleton-1',
-    type: 'skeleton',
-    position: { x: 50, y: 80 },
-    data: {
-      blockId: 'skeleton-1',
-      blockMountId: 'skeleton-1',
-      blockType: 'skeleton',
-      title: '',
-      properties: {},
-      customProperties: [],
-    },
-    width: 220,
-    height: 140,
-  },
-  {
-    id: 'skeleton-2',
-    type: 'skeleton',
-    position: { x: 80, y: 260 },
-    data: {
-      blockId: 'skeleton-2',
-      blockMountId: 'skeleton-2',
-      blockType: 'skeleton',
-      title: '',
-      properties: {},
-      customProperties: [],
-    },
-    width: 180,
-    height: 100,
-  },
-  // 오른쪽 상단
-  {
-    id: 'skeleton-3',
-    type: 'skeleton',
-    position: { x: 700, y: 60 },
-    data: {
-      blockId: 'skeleton-3',
-      blockMountId: 'skeleton-3',
-      blockType: 'skeleton',
-      title: '',
-      properties: {},
-      customProperties: [],
-    },
-    width: 240,
-    height: 160,
-  },
-  {
-    id: 'skeleton-4',
-    type: 'skeleton',
-    position: { x: 750, y: 260 },
-    data: {
-      blockId: 'skeleton-4',
-      blockMountId: 'skeleton-4',
-      blockType: 'skeleton',
-      title: '',
-      properties: {},
-      customProperties: [],
-    },
-    width: 200,
-    height: 120,
-  },
-  // 왼쪽 하단
-  {
-    id: 'skeleton-5',
-    type: 'skeleton',
-    position: { x: 30, y: 500 },
-    data: {
-      blockId: 'skeleton-5',
-      blockMountId: 'skeleton-5',
-      blockType: 'skeleton',
-      title: '',
-      properties: {},
-      customProperties: [],
-    },
-    width: 260,
-    height: 150,
-  },
-  {
-    id: 'skeleton-6',
-    type: 'skeleton',
-    position: { x: 120, y: 700 },
-    data: {
-      blockId: 'skeleton-6',
-      blockMountId: 'skeleton-6',
-      blockType: 'skeleton',
-      title: '',
-      properties: {},
-      customProperties: [],
-    },
-    width: 180,
-    height: 100,
-  },
-  // 오른쪽 하단
-  {
-    id: 'skeleton-7',
-    type: 'skeleton',
-    position: { x: 680, y: 520 },
-    data: {
-      blockId: 'skeleton-7',
-      blockMountId: 'skeleton-7',
-      blockType: 'skeleton',
-      title: '',
-      properties: {},
-      customProperties: [],
-    },
-    width: 230,
-    height: 140,
-  },
-  {
-    id: 'skeleton-8',
-    type: 'skeleton',
-    position: { x: 720, y: 700 },
-    data: {
-      blockId: 'skeleton-8',
-      blockMountId: 'skeleton-8',
-      blockType: 'skeleton',
-      title: '',
-      properties: {},
-      customProperties: [],
-    },
-    width: 190,
-    height: 110,
-  },
-];
-
 export function NotFoundCanvasReactFlow() {
-  // 모든 노드 합치기 (스켈레톤 블록들 + 404 육각형)
-  const nodes = useMemo(
-    () => [...SKELETON_BLOCKS, NOT_FOUND_HEXAGON_BLOCK],
-    []
-  );
+  const nodes = useMemo(() => [NOT_FOUND_HEXAGON_BLOCK], []);
 
   // 애니메이션 상태 관리 (서버와 클라이언트에서 동일한 초기값)
   const [mounted, setMounted] = useState(false);

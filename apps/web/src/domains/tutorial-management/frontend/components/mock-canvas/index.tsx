@@ -2,6 +2,7 @@
 
 import type { ComponentType } from 'react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useTheme } from 'next-themes';
 import {
   Background,
   type Edge,
@@ -127,6 +128,7 @@ function MockCanvasInnerWithFlow({
   initialNodes = [],
   initialEdges = [],
 }: MockCanvasInnerProps) {
+  const { resolvedTheme } = useTheme();
   const { hasBlock, handleBlockPlaced } = useMockCanvas();
 
   const {
@@ -319,6 +321,18 @@ function MockCanvasInnerWithFlow({
         <TutorialStepOverlay containerRef={canvasWrapperRef} />
       )}
 
+      {/* React Flow background - dark mode uses theme bg */}
+      <style jsx global>{`
+        .react-flow.mock-canvas-tutorial,
+        .react-flow.mock-canvas-tutorial.dark {
+          --xy-background-color-default: var(--background) !important;
+          --xy-background-color: var(--background) !important;
+          background-color: var(--background) !important;
+        }
+        .react-flow.mock-canvas-tutorial .react-flow__background {
+          background-color: var(--background) !important;
+        }
+      `}</style>
       {/* Block-creation mode styles (match real app) */}
       {isBlockCreation && (
         <style>{`
@@ -352,6 +366,7 @@ function MockCanvasInnerWithFlow({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultViewport={defaultViewport}
+        colorMode={resolvedTheme === 'dark' ? 'dark' : 'light'}
         minZoom={0.5}
         maxZoom={1.5}
         nodesDraggable={false}
@@ -364,9 +379,10 @@ function MockCanvasInnerWithFlow({
         zoomOnDoubleClick={false}
         proOptions={{ hideAttribution: true }}
         className={cn(
-          'bg-muted/30',
+          'mock-canvas-tutorial bg-background h-full w-full',
           isBlockCreation && 'mock-canvas-block-creation'
         )}
+        style={{ backgroundColor: 'var(--background)' }}
       >
         <Background gap={20} size={1} />
         <FitViewEffect

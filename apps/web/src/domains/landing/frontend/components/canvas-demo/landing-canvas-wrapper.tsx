@@ -176,10 +176,16 @@ export function LandingCanvasWrapper({
       <div className="flex-1 relative">
         {/* React Flow styles */}
         <style jsx global>{`
-          .react-flow {
-            background-color: hsl(var(--background)) !important;
+          /* Override xyflow dark mode: use theme background via --xy-background-color */
+          .react-flow,
+          .react-flow.dark {
+            --xy-background-color-default: var(--background) !important;
+            --xy-background-color: var(--background) !important;
+            background-color: var(--background) !important;
           }
-
+          .react-flow__background {
+            background-color: var(--background) !important;
+          }
           .react-flow__pane {
             background-color: transparent !important;
           }
@@ -220,7 +226,8 @@ export function LandingCanvasWrapper({
           // No event handlers (read-only mode)
           minZoom={0.1}
           maxZoom={2}
-          className="bg-muted/30"
+          className="bg-background h-full w-full"
+          style={{ backgroundColor: 'var(--background)' }}
         >
           <Background />
 
