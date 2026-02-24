@@ -7,6 +7,7 @@
 'use client';
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { formatShortDisplayUrl } from '@/domains/block-management/shared/utils/format-display-url';
 import {
   AudioBlockPropertiesVO,
   type AudioBlockProperties,
@@ -75,8 +76,9 @@ export default function MetadataTab({
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-primary hover:underline break-all"
+              title={audioUrl}
             >
-              {audioUrl}
+              {formatShortDisplayUrl(audioUrl)}
             </a>
           </Box>
         )}

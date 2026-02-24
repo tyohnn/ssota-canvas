@@ -7,6 +7,7 @@ import { Copy, Check } from 'lucide-react';
 import { toast } from '@workspace/ui/components/ui/sonner';
 import { cn } from '@workspace/ui/lib/utils';
 import type { PropertyUIDefinition } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
+import { formatShortDisplayUrl } from '@/domains/block-management/shared/utils/format-display-url';
 
 export interface UrlPropertyProps {
   value: string | undefined;
@@ -118,8 +119,9 @@ export function UrlProperty({
           rel="noopener noreferrer"
           className="text-foreground hover:underline truncate block"
           onClick={e => e.stopPropagation()}
+          title={currentValue}
         >
-          {currentValue}
+          {formatShortDisplayUrl(currentValue)}
         </a>
       ) : (
         <span className="text-muted-foreground">{propertyDef.placeholder}</span>
