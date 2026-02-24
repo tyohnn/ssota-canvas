@@ -17,7 +17,7 @@ export const BLOCK_VIEW_MODES: Record<BlockType, BlockViewModeValue[]> = {
   markdown: ['note'],
   shape: ['original', 'note', 'card'],
   image: ['original'],
-  youtube: ['original', 'note', 'card'],
+  youtube: ['original'],
 
   // BasicBlocks - 단일 View Mode만 지원
   text: ['original'],
@@ -36,6 +36,8 @@ export const BLOCK_VIEW_MODES: Record<BlockType, BlockViewModeValue[]> = {
   react_preview: ['original'],
   vercel_deployment: ['original'],
   group: ['original'],
+  link_router: ['original'],
+  file_router: ['original'],
 };
 
 /**
