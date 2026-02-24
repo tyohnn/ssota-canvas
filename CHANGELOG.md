@@ -1,3 +1,158 @@
+## [0.18.0] - 2026-02-24
+
+### Dev
+
+- Add cursor ignore
+
+### Hotfix
+
+- Remove remote config to not apply config.toml at remote branching
+
+### ♻️ Refactoring
+
+- Clean blockId and blockMountId naming
+- Add block slug to blocks and find with workspaceId with slugs
+- Custom proeprty logic
+- Add slug at blocks, block mounts and edges
+- Save slug at event logs and add more events
+- Add slug logic to sources
+- Link block and block container
+- Agent tools more structured with compact prompt
+- Refactor: link block and youtube block's tab
+- combine one summary tab
+- Clean logic useLinkBlock
+
+### ✨ Features
+
+- Add xai websearch tool server
+- Add web search tool and greb, glob, read tools
+- Add source domain
+- Integrate source domain and youtube app space summary into source domain
+- Add search tools (grep, glob, read line, edit line, hop, semantic, group search)
+- Add todo generation tool and canvas manipulation to
+- Add layout organization tool and refactor tools
+- Add event log tools
+- Test agent context building
+- Step update block content and log block updated
+- Edit recent context filtering logic (exclude edge updated without label update)
+- Add page, workspace, org, profile name into context
+- Add detailed context for agent and verify
+- Xai search tool check
+- Add app system domain
+- Add block tool system combined with app system
+- Add link block action and sections
+- Add read part component and rename web search component
+- Add TTL cache to source and replace vidoes.script to sources.coutent_raw at youtube domain
+- Add timeline tab
+- Add slash command extension at tiptap editor and add drag and drop
+- Add link metadata cache
+- Add chat sessions
+- Add title header above tiptap editor at note view block
+- Add chat messages
+- Pagination and scrolling lazy loading chat messages
+- Add block addition shortcut at canvas top toolbar
+- Add context memu to block & remove more menu
+- Add pdf block and extraction logic
+- Seperate add dialog into multiple toolbar items at canvas top toolbar
+- Flip popover
+- Add seed welcome data & login test
+- Add unauthorized page
+- Add audio block and auto extraction
+- Edit transcript & summary logic of audio block
+- Add audio move interaction at timeline tab
+- Limit 6mb & 1day accessUrl / also add refresh access url logic
+- Add get signed url at published page
+- Add langsmith trace
+- Shorten url at pdf, audio
+
+### 🐛 Bug Fixes
+
+- Catch typescript error
+- Youtube block action button not connected with realtime status window
+- Optimistic error when connecting edges
+- Editor panel ui and auto adjustment
+- Remove unnecessary buttons at viewport toolbar
+- Add link block tabs
+- Canvasdown location bug
+- Omit content raw update
+- Test read line block tools and refine context building
+- Exclude user_utterance, ai_response, tool_call in recentContextForAgent & Prevent few-shot effect that degrades dialogue quality
+- Restore fast metadata extraction and move mardown scraping to extractor
+- Youtube block metadata not updating
+- Source summary logic bug
+- Auto switch tab bug
+- Note view blur error and add new tiptap node at tiptap editor
+- Shape toolbar and block ui
+- Editor panel title update bug
+- Markdown badge to note
+- More availability of editor open button at block mount toolbar
+- Remove bg at note view title
+- Remove custom property add logic temporary
+- Change badge text to note at markdown block card view mode
+- Avoid nested group & group ui design
+- React flow canvas background color
+- Default webearch tool part closed
+- Latex popover and ux
+- Warning temperature
+- Block toolbar badge ui
+- Add tiptap placeholder when tiptap not editable
+- Move seperator inside toolbar items mapper
+- Clean block mount toolbar
+- Suggestion slash item details to toggle
+- Remove seperator at group toolbar
+- Styling tiptap prose
+- Clipboard duplication postion
+- /onboarding auto redirection to login when user not found
+- Add member automatically to default workspcae after org invitation
+- Save max resolution thumbnail
+- Add globals.css
+- React flow canvas dark mode bg
+- Youtube tutorial fit to new toolbar
+- React flow canvas bg backgorund when dark mode
+- Tutorial does not open again
+- Welcome seed size bug & not rendering markdown
+- Redirection error
+- Need for server side html to json tiptap
+- Welcome seed block size and template content
+- Remove error message when redirection
+- Prose css 통합하기
+- Remove youtube block view mode change toolbar items
+- Tutorial error at tiptap
+- Add zoom to 5x
+- Router block to be stored at db
+- Add speaker at timeline tab & save source content lang
+- Audio block ui
+- Remove tiptap editor drag node
+- Build error
+- Published page ui
+- Audio block waveform with zoom
+- Remove seperator at canvas toolbar when readonly
+- Pdf pixel scale up
+- File router upload error
+- Readonly file router block
+- Auto play when seekto
+- Add readonly source fetching
+- Move extracted at info (timeline tab)
+- Metadata fetch action called every time
+- Pdf block ui edit
+- Remove public page audio update property try
+
+### 📚 Documentation
+
+- Add sprint-021 plan
+- Add docs
+- Plan sophie agent architecture
+- Architecturing system
+- Source and app update
+- Update plan
+- Add resumable upload plan
+
+### 🔧 Maintenance
+
+- Clean docs
+- Cleanup docs
+- Lint
+- Version update
 ## [0.17.0] - 2026-02-07
 
 ### Hotfix
