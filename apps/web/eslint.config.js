@@ -63,6 +63,18 @@ export default [
     },
   },
   {
+    files: ['src/config.ts'],
+    rules: {
+      'turbo/no-undeclared-env-vars': 'off',
+    },
+  },
+  {
+    files: ['src/stubs/**/*.js'],
+    rules: {
+      'no-undef': 'off', // CommonJS stub; module/exports are Node globals
+    },
+  },
+  {
     files: ['**/__tests__/**/*', '**/*.test.*', '**/*.spec.*'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',

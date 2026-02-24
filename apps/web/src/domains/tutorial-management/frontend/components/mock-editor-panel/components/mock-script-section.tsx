@@ -471,7 +471,7 @@ export function MockScriptSection() {
             const item = (
               <TimelineTranscriptItemView
                 key={index}
-                segment={{ start: segment.start, text: segment.text }}
+                segment={{ start: segment.start, text: segment.text, duration: segment.duration }}
                 onTimeClick={handleTimeClick}
                 onAddQuote={() => { void NOOP_ADD_QUOTE(); }}
                 isLoading={false}

@@ -95,7 +95,7 @@ export interface UseYoutubeBlockReturn {
   // Handlers
   handleIframeLoad: () => void;
   handlePlayerReady: (event: { target: YouTubePlayer }) => void;
-  handleUrlSubmit: (e: React.FormEvent) => Promise<void>;
+  handleUrlSubmit: (e?: React.FormEvent<Element> | { preventDefault(): void } | undefined) => Promise<void>;
   handleUrlChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleUrlKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   handleImageLoad: () => void;

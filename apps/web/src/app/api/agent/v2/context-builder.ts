@@ -1,5 +1,4 @@
 import type { RecentEvent } from '@/domains/event-management';
-import { debugLog } from './debug-log';
 
 /** Block content preview limits (used by getBlockContentPreviews) */
 export const CONTEXT_SELECTED_MAX_LINES = 20;
@@ -207,19 +206,6 @@ function parseBlockContentPreviews(raw: unknown): DynamicContext['blockContentPr
  */
 function formatContextBlock(ctx: DynamicContext): string {
   const sections: string[] = [];
-  const LOC = 'context-builder.ts:formatContextBlock';
-
-  // #region agent log
-  debugLog(LOC, 'context build: input summary', {
-    hasPage: Boolean(ctx.pageId || ctx.workspaceId || ctx.orgId),
-    pageId: ctx.pageId ?? null,
-    selectedBlocksCount: ctx.selectedBlocks?.length ?? 0,
-    visibleBlocksCount: ctx.visibleBlocks?.length ?? 0,
-    visibleBlocksTotalInView: ctx.visibleBlocksTotalInView ?? null,
-    visibleBlocksInContext: ctx.visibleBlocksInContext ?? null,
-    recentEventsCount: ctx.recentEvents?.length ?? 0,
-  });
-  // #endregion
 
   // Page info
   if (ctx.pageId || ctx.workspaceId || ctx.orgId || ctx.pageTitle || ctx.workspaceTitle || ctx.organizationName || ctx.userProfileName) {
@@ -232,13 +218,6 @@ function formatContextBlock(ctx: DynamicContext): string {
     if (ctx.workspaceId) sections.push(`- Workspace ID: \`${ctx.workspaceId}\``);
     if (ctx.orgId) sections.push(`- Organization ID: \`${ctx.orgId}\``);
   }
-
-  // #region agent log
-  debugLog(LOC, 'context build: after Current Page', {
-    linesAdded: sections.length,
-    content: sections.join('\n'),
-  });
-  // #endregion
 
   const previews = ctx.blockContentPreviews ?? {};
   const selectedMountIds = new Set((ctx.selectedBlocks ?? []).map((b) => b.blockMountId));
@@ -288,12 +267,6 @@ function formatContextBlock(ctx: DynamicContext): string {
       }
       sections.push(parts.join('\n  '));
     });
-    // #region agent log
-    debugLog(LOC, 'context build: after Selected Blocks', {
-      linesAdded: 2 + selectedBlocks.length,
-      content: sections.slice(-(2 + selectedBlocks.length)).join('\n'),
-    });
-    // #endregion
   }
 
   // Visible blocks (with total/in-context counts when provided for zoom-out cap)
@@ -359,14 +332,6 @@ function formatContextBlock(ctx: DynamicContext): string {
     });
   }
 
-  // #region agent log
-  const visibleStart = sections.findIndex((s) => s.startsWith('**Visible Blocks'));
-  debugLog(LOC, 'context build: after Visible Blocks', {
-    linesAdded: visibleStart >= 0 ? sections.length - visibleStart : 0,
-    content: visibleStart >= 0 ? sections.slice(visibleStart).join('\n') : '',
-  });
-  // #endregion
-
   // Recent events (time-ordered activity log)
   if (ctx.recentEvents && ctx.recentEvents.length > 0) {
     sections.push('');
@@ -377,19 +342,5 @@ function formatContextBlock(ctx: DynamicContext): string {
     });
   }
 
-  // #region agent log
-  const recentStart = sections.findIndex((s) => s.startsWith('**Recent Events'));
-  debugLog(LOC, 'context build: after Recent Events', {
-    linesAdded: recentStart >= 0 ? sections.length - recentStart : 0,
-    content: recentStart >= 0 ? sections.slice(recentStart).join('\n') : '',
-  });
-  const fullOutput = sections.length > 0 ? sections.join('\n') : '';
-  debugLog(LOC, 'context build: final output', {
-    totalLines: sections.length,
-    fullLength: fullOutput.length,
-    fullOutput,
-  });
-  // #endregion
-
-  return fullOutput;
+  return sections.length > 0 ? sections.join('\n') : '';
 }

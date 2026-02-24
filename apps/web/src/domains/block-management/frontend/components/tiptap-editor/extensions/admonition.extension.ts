@@ -94,7 +94,6 @@ export const Admonition = Node.create({
     },
   },
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseMarkdown: (token: any, helpers: any) => {
     const type =
       token.admonitionType && isValidType(token.admonitionType)

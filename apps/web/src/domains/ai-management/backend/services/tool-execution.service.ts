@@ -9,7 +9,10 @@ import {
   EventLogRepository,
   EventLogAggregate,
   LogToolCallCommand,
+  AgentExecutionId,
 } from '@/domains/event-management';
+import { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
+import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import {
   AIManagementError,
   AIManagementErrorCode,
@@ -297,15 +300,16 @@ export class ToolExecutionService implements IToolExecutionService {
         toolName,
         params,
         result: result.result || {},
-        pageId,
-        userId,
-        agentExecutionId,
+        pageId: new PageId(pageId),
+        userId: new UserId(userId),
+        agentExecutionId: new AgentExecutionId(agentExecutionId),
         executionTime,
         success: result.success,
         errorMessage: result.errorMessage,
       };
 
-      const events = aggregate.logToolCall(command);
+      aggregate.logToolCall(command);
+      const events = aggregate.getUncommittedEvents();
 
       // Event Log 저장 (비동기, 실패해도 툴 실행은 성공으로 처리)
       for (const event of events) {

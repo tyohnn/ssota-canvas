@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
     if (!parsed.success) {
       return Response.json(
-        { error: 'Invalid request', details: parsed.error.errors },
+        { error: 'Invalid request', details: parsed.error.issues },
         { status: 400 }
       );
     }
@@ -56,9 +56,9 @@ export async function POST(request: Request) {
           typeof msg.content === 'string'
             ? msg.content
             : msg.parts
-                ?.filter((p: any) => p.type === 'text')
-                .map((p: any) => p.text)
-                .join(' ') || '';
+              ?.filter((p: any) => p.type === 'text')
+              .map((p: any) => p.text)
+              .join(' ') || '';
         return `${role}: ${content}`;
       })
       .join('\n\n');
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       model: xai('grok-3-mini'),
       system: GENERATE_TITLE_SYSTEM_PROMPT,
       prompt: `Generate a concise title for this conversation:\n\n${conversationText}`,
-      maxTokens: 50,
+      maxOutputTokens: 50,
       temperature: 0.7,
     });
 

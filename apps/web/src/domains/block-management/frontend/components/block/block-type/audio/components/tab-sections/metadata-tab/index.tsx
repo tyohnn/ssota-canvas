@@ -25,7 +25,8 @@ export default function MetadataTab({
 }: MetadataTabProps) {
   const props = blockData?.properties as AudioBlockProperties | undefined;
   const vo = props ? AudioBlockPropertiesVO.fromJSON(props) : null;
-  const audioUrl = props?.audioUrl ?? '';
+  const audioUrl =
+    props?.accessUrl ?? (props as { audioUrl?: string }).audioUrl ?? '';
   const filename = props?.filename ?? '';
   const hasDuration = (vo?.getDuration() ?? -1) >= 0;
   const hasFileSize = (vo?.getFileSize() ?? 0) > 0;

@@ -176,11 +176,13 @@ export function useYoutubeBlock(
     setAutoSummaryBlockId,
   ]);
 
-  // URL 제출 핸들러
+  // URL 제출 핸들러 (e는 optional - youtube.view의 onUrlSubmit 시그니처와 맞춤)
   const handleUrlSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
+    async (e?: React.FormEvent | { preventDefault(): void }) => {
+      e?.preventDefault();
+      if (e && 'stopPropagation' in e && typeof e.stopPropagation === 'function') {
+        e.stopPropagation();
+      }
 
       // draftUrl은 항상 string으로 초기화되지만, 안전을 위해 체크
       const trimmedUrl = (uiState.draftUrl || '').trim();

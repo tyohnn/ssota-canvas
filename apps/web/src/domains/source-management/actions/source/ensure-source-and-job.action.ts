@@ -76,7 +76,9 @@ async function ensureSourceAndJobInternal(
   );
 
   if (sourceResult.isError()) {
-    return err('Failed to create source', { cause: sourceResult.error.message });
+    return err('Failed to create source', {
+      meta: { cause: sourceResult.error.message },
+    });
   }
 
   const source = sourceResult.value.getSource();
@@ -112,7 +114,9 @@ async function ensureSourceAndJobInternal(
   );
 
   if (jobResult.isError()) {
-    return err('Failed to enqueue source job', { cause: jobResult.error.message });
+    return err('Failed to enqueue source job', {
+      meta: { cause: jobResult.error.message },
+    });
   }
 
   return ok({

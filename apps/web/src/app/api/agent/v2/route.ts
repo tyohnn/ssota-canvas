@@ -54,7 +54,6 @@ import { DrizzleWorkspaceRepository } from '@/domains/workspace-management/backe
 import { DrizzleOrganizationRepository } from '@/domains/organization-management/backend/repositories/implementations/drizzle-organization.repository';
 import { DrizzleUserRepository } from '@/domains/user-management/backend/repositories/implementations/drizzle-user.repository';
 import { AGENT_MODEL } from './constants';
-import { debugLog } from './debug-log';
 
 export const maxDuration = 300;
 
@@ -304,16 +303,6 @@ export async function POST(req: Request) {
       new DrizzleBlockMountRepository()
     );
 
-    // #region agent log
-    const ROUTE_LOC = 'route.ts';
-    debugLog(ROUTE_LOC, 'AgentV2 request', {
-      messageCount: enrichedMessages.length,
-      contextLength: dynamicContextString.length,
-      pageId: pageId ?? null,
-      userId,
-    });
-    // #endregion
-
     // Main agent uses Responses API for stateful conversation, caching, and full reasoning support.
     let stepIndex = 0;
     const result = streamText({
@@ -342,17 +331,6 @@ export async function POST(req: Request) {
         stepIndex += 1;
         const calls = (toolCalls ?? []) as Array<{ toolCallId?: string; toolName?: string; input?: unknown }>;
         const results = (toolResults ?? []) as Array<{ toolCallId?: string; toolName?: string; result?: unknown }>;
-        // #region agent log
-        debugLog(ROUTE_LOC, `AgentV2 step ${stepIndex} (toolCalls)`, {
-          stepIndex,
-          toolNames: calls.map((c) => c.toolName),
-          toolCallIds: calls.map((c) => c.toolCallId),
-          resultsCount: results.length,
-          inputsPreview: calls.map((c) =>
-            c.toolName === 'webSearch' ? { query: (c.input as { query?: string })?.query } : c.toolName === 'read' ? { blockMountId: (c.input as { blockMountId?: string })?.blockMountId } : {}
-          ),
-        });
-        // #endregion
         if (!pageId || !userId) return;
         for (let i = 0; i < calls.length; i++) {
           const tc = calls[i];
@@ -373,21 +351,6 @@ export async function POST(req: Request) {
       },
       onFinish: async (finishArg) => {
         const text = (finishArg as { text?: string }).text;
-        const usage = (finishArg as { usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number } }).usage;
-        // #region agent log
-        debugLog(ROUTE_LOC, 'AgentV2 finish', {
-          textLength: text?.length ?? 0,
-          textPreview: text ? text.slice(0, 200) : null,
-          totalSteps: stepIndex,
-        });
-        if (usage) {
-          debugLog(ROUTE_LOC, 'AgentV2 tokens', {
-            promptTokens: usage.promptTokens ?? null,
-            completionTokens: usage.completionTokens ?? null,
-            totalTokens: usage.totalTokens ?? null,
-          });
-        }
-        // #endregion
         if (pageId && userId && text && text.length > 0) {
           eventLogService
             .logAIResponse({
