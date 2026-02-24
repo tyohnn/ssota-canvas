@@ -13,6 +13,7 @@ import { cn } from '@workspace/ui/lib/utils';
 
 import { Box } from '@/components/ui/box';
 
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
@@ -44,6 +45,7 @@ export const FileRouterBlock = memo(function FileRouterBlock({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { readonly } = useCanvasReadOnly();
   const { orgId, workspaceId, pageId } = useCanvasMetadata();
   const { resolveAndCreateBlock, cancel } = useRouterBlock({
     nodeId: id,
@@ -169,6 +171,14 @@ export const FileRouterBlock = memo(function FileRouterBlock({
 
   const displayError = error || uploadErrors[0];
 
+  // published page(readonly): 마우스 이벤트가 React Flow로 전달되지 않도록 전파 차단
+  const stopMousePropagation = readonly
+    ? {
+        onClick: (e: React.MouseEvent) => e.stopPropagation(),
+        onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
+      }
+    : undefined;
+
   return (
     <>
       <Box
@@ -179,19 +189,23 @@ export const FileRouterBlock = memo(function FileRouterBlock({
           width: FILE_ROUTER_SIZE.width,
           height: FILE_ROUTER_SIZE.height,
         }}
+        {...stopMousePropagation}
       >
-        {/* 드롭존만 nodrag: 테두리 쪽을 잡으면 노드 드래그·클릭하면 선택 가능 */}
+        {/* 드롭존만 nodrag: 테두리 쪽을 잡으면 노드 드래그·클릭하면 선택 가능. readonly에서는 파일 추가 비활성화 */}
         <div
-          role="button"
-          onClick={openFileDialog}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          data-dragging={isDragging || undefined}
+          role={readonly ? undefined : 'button'}
+          onClick={readonly ? undefined : openFileDialog}
+          onDragEnter={readonly ? undefined : handleDragEnter}
+          onDragLeave={readonly ? undefined : handleDragLeave}
+          onDragOver={readonly ? undefined : handleDragOver}
+          onDrop={readonly ? undefined : handleDrop}
+          data-dragging={!readonly && isDragging ? true : undefined}
           className={cn(
-            'nodrag nopan absolute inset-2 rounded-md flex flex-col items-center justify-center transition-colors cursor-pointer hover:bg-accent/50',
+            'nodrag nopan absolute inset-2 rounded-md flex flex-col items-center justify-center transition-colors',
+            !readonly && 'cursor-pointer hover:bg-accent/50',
+            readonly && 'cursor-default',
             isDragging &&
+              !readonly &&
               'bg-blue-50 dark:bg-blue-950/30 border-2 border-dashed border-blue-400 dark:border-blue-500'
           )}
         >
@@ -199,6 +213,7 @@ export const FileRouterBlock = memo(function FileRouterBlock({
             {...getInputProps()}
             className="sr-only"
             aria-label="Upload file"
+            disabled={readonly}
           />
           <div className="flex flex-col items-center justify-center text-center px-4">
             <div
@@ -208,11 +223,13 @@ export const FileRouterBlock = memo(function FileRouterBlock({
               <Paperclip className="h-5 w-5 text-muted-foreground" />
             </div>
             <p className="mb-1 text-sm font-medium text-foreground">
-              {isUploading
-                ? 'Uploading...'
-                : 'Drop file or click to upload'}
+              {readonly
+                ? 'File upload (view only)'
+                : isUploading
+                  ? 'Uploading...'
+                  : 'Drop file or click to upload'}
             </p>
-            {!isUploading && (
+            {!readonly && !isUploading && (
               <p className="text-xs text-muted-foreground">
                 Max {maxSizeMB}MB · Image, PDF, Audio, or any file
               </p>

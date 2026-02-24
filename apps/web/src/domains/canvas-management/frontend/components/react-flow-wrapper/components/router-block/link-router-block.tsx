@@ -9,6 +9,8 @@ import { Link as LinkIcon } from 'lucide-react';
 import { Box } from '@/components/ui/box';
 import { Input } from '@/components/ui/input';
 
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
+
 import { LinkLoadingState } from '@/domains/block-management/frontend/components/block/block-type/link/components/block-ui/link-loading-state';
 
 import { resolveUrlToBlockConfig } from './utils/url-block-resolver';
@@ -38,10 +40,19 @@ export const LinkRouterBlock = memo(function LinkRouterBlock({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const { readonly } = useCanvasReadOnly();
   const { resolveAndCreateBlock, cancel } = useRouterBlock({
     nodeId: id,
     nodeData,
   });
+
+  // published page(readonly): 마우스 이벤트가 React Flow로 전달되지 않도록 전파 차단
+  const stopMousePropagation = readonly
+    ? {
+        onClick: (e: React.MouseEvent) => e.stopPropagation(),
+        onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
+      }
+    : undefined;
 
   // Auto-focus when selected
   useEffect(() => {
@@ -121,6 +132,7 @@ export const LinkRouterBlock = memo(function LinkRouterBlock({
           width: LINK_ROUTER_SIZE.width,
           height: LINK_ROUTER_SIZE.height,
         }}
+        {...stopMousePropagation}
       >
         <Box className="relative w-full h-full flex flex-col">
           <LinkLoadingState />

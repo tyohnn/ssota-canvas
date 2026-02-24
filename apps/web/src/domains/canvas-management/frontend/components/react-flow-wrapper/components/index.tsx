@@ -173,8 +173,8 @@ export function ReactFlowView({
           // 상호작용 설정
           nodesDraggable={!panOnDragEnabled && !isBlockCreationMode} // readonly일 때 panOnDragEnabled=true이므로 드래그 비활성화
           nodesConnectable={!panOnDragEnabled && !isBlockCreationMode} // readonly일 때 연결 비활성화
-          elementsSelectable={!isBlockCreationMode} // 블록 생성 모드에서는 선택 비활성화 (readonly 모드에서는 isBlockCreationMode가 항상 false이므로 선택 가능)
-          selectionOnDrag={!isBlockCreationMode} // readonly 모드와 일반 모드에서 드래그 선택 가능 (panOnDrag와 함께 사용 가능)
+          elementsSelectable={!isBlockCreationMode} // 블록 생성 모드에서는 선택 비활성화
+          selectionOnDrag={!isBlockCreationMode}
           selectionMode={SelectionMode.Partial}
           connectionMode={ConnectionMode.Loose} // source/target 구분 없이 양방향 연결 허용
           // 트랙패드 제스처 설정 (피그마 스타일)
