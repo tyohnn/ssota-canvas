@@ -1,5 +1,5 @@
 import { xai } from '@ai-sdk/xai';
-import { generateText } from 'ai';
+import { generateText, traceable } from '@/lib/ai/langsmith';
 import { z } from 'zod';
 import { requireAuth } from '@/domains/auth/server/auth-guard';
 
@@ -63,13 +63,17 @@ export async function POST(request: Request) {
       })
       .join('\n\n');
 
-    const { text } = await generateText({
-      model: xai('grok-3-mini'),
-      system: GENERATE_TITLE_SYSTEM_PROMPT,
-      prompt: `Generate a concise title for this conversation:\n\n${conversationText}`,
-      maxOutputTokens: 50,
-      temperature: 0.7,
-    });
+    const { text } = await traceable(
+      () =>
+        generateText({
+          model: xai('grok-4-1-fast-non-reasoning'),
+          system: GENERATE_TITLE_SYSTEM_PROMPT,
+          prompt: `Generate a concise title for this conversation:\n\n${conversationText}`,
+          maxOutputTokens: 50,
+          temperature: 0.7,
+        }),
+      { name: 'generate-title', tags: ['generate-title'] }
+    )();
 
     const title = text.trim().replace(/^["']|["']$/g, '');
 

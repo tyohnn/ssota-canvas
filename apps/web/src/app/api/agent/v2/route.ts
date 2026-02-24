@@ -1,5 +1,6 @@
 import { xai } from '@ai-sdk/xai';
-import { streamText, convertToModelMessages, stepCountIs } from 'ai';
+import { convertToModelMessages, stepCountIs } from 'ai';
+import { streamText, traceable } from '@/lib/ai/langsmith';
 import { randomUUID } from 'crypto';
 import type {
   SystemModelMessage,
@@ -305,7 +306,9 @@ export async function POST(req: Request) {
 
     // Main agent uses Responses API for stateful conversation, caching, and full reasoning support.
     let stepIndex = 0;
-    const result = streamText({
+    const resultPromise = traceable(
+      () =>
+        streamText({
       model: xai(AGENT_MODEL),
       system: SOPHI_V2_SYSTEM_PROMPT,
       messages: enrichedMessages,
@@ -362,8 +365,11 @@ export async function POST(req: Request) {
             .catch(console.error);
         }
       },
-    });
+    }),
+      { name: 'main-agent', tags: ['main-agent'] }
+    )();
 
+    const result = await resultPromise;
     const response = result.toUIMessageStreamResponse({
       sendSources: true,
       sendReasoning: true,

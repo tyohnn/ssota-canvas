@@ -6,7 +6,7 @@
  */
 
 import { xai } from '@ai-sdk/xai';
-import { streamText } from 'ai';
+import { streamText, traceable } from '@/lib/ai/langsmith';
 /**
  * Model ID — xaiSearch 내부에서 사용하는 모델.
  * route.ts의 AGENT_MODEL과 동일하게 유지한다.
@@ -74,9 +74,11 @@ export async function* executeXaiSearch(
 
   yield { sources: [], summary: undefined };
 
-  const result = streamText({
-    model: xai.responses(XAI_SEARCH_MODEL),
-    system: `You are a search tool executed by the main agent. The main agent delegated this search to you based on the user's query.
+  const result = await traceable(
+    () =>
+      streamText({
+        model: xai.responses(XAI_SEARCH_MODEL),
+        system: `You are a search tool executed by the main agent. The main agent delegated this search to you based on the user's query.
 
 Your role: Use the search results to investigate the query, then write a summary for the main agent—not for the end user. The main agent will use your summary to respond to the user.
 
@@ -85,14 +87,16 @@ Requirements:
 - Write a concise summary: key facts, findings, and notable sources.
 - Include which sources support which points so the main agent can cite them.
 - Use clear, neutral language. Do not address the user directly (e.g. avoid "you asked..."); the main agent will handle the reply.`,
-    messages: [{ role: 'user', content: query }],
-    tools: {
-      web_search: xai.tools.webSearch(),
-      x_search: xai.tools.xSearch(),
-    },
-    maxOutputTokens: 2048,
-    abortSignal: options?.abortSignal,
-  });
+        messages: [{ role: 'user', content: query }],
+        tools: {
+          web_search: xai.tools.webSearch(),
+          x_search: xai.tools.xSearch(),
+        },
+        maxOutputTokens: 2048,
+        abortSignal: options?.abortSignal,
+      }),
+    { name: 'web-search-tool', tags: ['web-search-tool'] }
+  )();
 
   let content = '';
   const citations: Array<{ url: string; title?: string }> = [];

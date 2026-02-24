@@ -100,6 +100,7 @@
     "fractional-indexing": "^3.2.0",
     "framer-motion": "^12.31.0",
     "katex": "^0.16.27",
+    "langsmith": "^0.3.63",
     "linkedom": "^0.18.12",
     "lucide-react": "^0.475.0",
     "marked": "^15.0.6",
