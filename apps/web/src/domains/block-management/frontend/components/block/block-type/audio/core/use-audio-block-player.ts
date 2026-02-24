@@ -78,7 +78,16 @@ export function useAudioBlockPlayer({
       setDuration(durationSec);
       setIsLoading(false);
       setHasError(false);
-      if (isFinite(durationSec) && durationSec >= 0 && nodeData.blockId) {
+      const isPublishedView = readonly && publishToken;
+      const existingDuration = (nodeData.properties as { duration?: number })
+        ?.duration;
+      const shouldPersistDuration =
+        !isPublishedView &&
+        isFinite(durationSec) &&
+        durationSec >= 0 &&
+        nodeData.blockId &&
+        existingDuration === undefined;
+      if (shouldPersistDuration) {
         updateProperty(
           nodeData.blockId,
           'properties.duration',
