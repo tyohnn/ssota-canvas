@@ -282,6 +282,31 @@ export class DrizzleBlockMountRepository implements BlockMountRepository {
     return rows[0]?.page_id ?? null;
   }
 
+  async findPathUrlByPageIdAndBlockSlug(
+    pageId: PageId,
+    blockSlug: string
+  ): Promise<string | null> {
+    const rows = await adminDb
+      .select({ properties: blocks.properties })
+      .from(blockMounts)
+      .innerJoin(blocks, eq(blockMounts.block_id, blocks.id))
+      .where(
+        and(
+          eq(blockMounts.page_id, pageId.value),
+          eq(blocks.slug, blockSlug),
+          isNull(blockMounts.deleted_at),
+          isNull(blocks.deleted_at)
+        )
+      )
+      .limit(1);
+    const properties = rows[0]?.properties as Record<string, unknown> | null;
+    if (!properties || typeof properties !== 'object') return null;
+    const pathUrl = properties.pathUrl;
+    return typeof pathUrl === 'string' && pathUrl.trim() !== ''
+      ? pathUrl
+      : null;
+  }
+
   async softDelete(blockMountId: BlockMountId): Promise<void> {
     await adminDb
       .update(blockMounts)

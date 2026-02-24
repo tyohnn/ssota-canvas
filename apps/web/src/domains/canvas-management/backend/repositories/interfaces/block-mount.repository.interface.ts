@@ -77,6 +77,19 @@ export interface BlockMountRepository {
   findOnePageIdByBlockId(blockId: string): Promise<string | null>;
 
   /**
+   * 페이지 ID + block slug로 해당 페이지에 마운트된 블록의 pathUrl 조회
+   * (공개 페이지 Access URL 갱신 등에서 사용, block_mounts ⋈ blocks)
+   *
+   * @param pageId - 페이지 ID
+   * @param blockSlug - blocks.slug (8~10자 hex)
+   * @returns Promise<string | null> - properties.pathUrl 또는 없으면 null
+   */
+  findPathUrlByPageIdAndBlockSlug(
+    pageId: PageId,
+    blockSlug: string
+  ): Promise<string | null>;
+
+  /**
    * BlockMount 삭제
    *
    * @param blockMountId - BlockMount ID

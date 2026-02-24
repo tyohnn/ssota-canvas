@@ -13,10 +13,10 @@ import {
   useUpdateBlockProperty,
 } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
-import {
-  refreshCanvasAssetAccessUrlAction,
-  type CanvasAssetBlockType,
-} from '@/domains/storage/actions/storage.actions';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
+import { refreshCanvasAssetAccessUrlAction } from '@/domains/storage/actions/storage.actions';
+import { refreshPublishedCanvasAssetAccessUrlAction } from '@/domains/storage/actions/refresh-published-canvas-asset-access-url.action';
+import type { CanvasAssetBlockType } from '@/domains/storage/actions/storage.actions';
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
@@ -34,6 +34,8 @@ export interface UseAudioBlockPlayerReturn {
   hasError: boolean;
   waveformData: number[];
   audioRef: React.RefObject<HTMLAudioElement | null>;
+  /** 공개 페이지 refresh 시 일회성 URL 포함. 뷰에서는 이 값을 audio src로 사용 */
+  effectiveAudioUrl: string;
   togglePlay: () => void;
   handleSeek: (time: number) => void;
   formatTime: (seconds: number) => string;
@@ -46,6 +48,7 @@ export function useAudioBlockPlayer({
 }: UseAudioBlockPlayerProps): UseAudioBlockPlayerReturn {
   const { updateProperty } = useUpdateBlockProperty({ reactFlow });
   const { workspaceId } = useCanvasMetadata();
+  const { readonly, publishToken } = useCanvasReadOnly();
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -53,9 +56,15 @@ export function useAudioBlockPlayer({
   const [isLoading, setIsLoading] = useState(!!audioUrl);
   const [hasError, setHasError] = useState(false);
   const [waveformData, setWaveformData] = useState<number[]>([]);
+  /** 공개 페이지 뷰에서 refresh 시 받은 일회성 URL (DB 미갱신) */
+  const [ephemeralAccessUrl, setEphemeralAccessUrl] = useState<string | null>(
+    null
+  );
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const hasTriedRefreshRef = useRef(false);
+
+  const effectiveAudioUrl = ephemeralAccessUrl ?? audioUrl;
 
   const pathUrl = (nodeData.properties as { pathUrl?: string })?.pathUrl ?? '';
 
@@ -85,12 +94,34 @@ export function useAudioBlockPlayer({
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleEnded = () => setIsPlaying(false);
     const handleError = async () => {
-      if (
-        hasTriedRefreshRef.current ||
-        !pathUrl ||
-        !nodeData.blockId ||
-        !workspaceId
-      ) {
+      if (hasTriedRefreshRef.current || !pathUrl || !nodeData.blockId) {
+        setHasError(true);
+        setIsLoading(false);
+        return;
+      }
+      const isPublishedView = readonly && publishToken;
+      if (isPublishedView) {
+        hasTriedRefreshRef.current = true;
+        try {
+          const result = await refreshPublishedCanvasAssetAccessUrlAction({
+            publishToken,
+            blockId: nodeData.blockId,
+          });
+          if (result.success && result.url) {
+            setEphemeralAccessUrl(result.url);
+            setHasError(false);
+            setIsLoading(true);
+          } else {
+            setHasError(true);
+            setIsLoading(false);
+          }
+        } catch {
+          setHasError(true);
+          setIsLoading(false);
+        }
+        return;
+      }
+      if (!workspaceId) {
         setHasError(true);
         setIsLoading(false);
         return;
@@ -138,6 +169,8 @@ export function useAudioBlockPlayer({
     updateProperty,
     pathUrl,
     workspaceId,
+    readonly,
+    publishToken,
   ]);
 
   const togglePlay = useCallback(() => {
@@ -174,6 +207,7 @@ export function useAudioBlockPlayer({
     hasError,
     waveformData,
     audioRef,
+    effectiveAudioUrl,
     togglePlay,
     handleSeek,
     formatTime,

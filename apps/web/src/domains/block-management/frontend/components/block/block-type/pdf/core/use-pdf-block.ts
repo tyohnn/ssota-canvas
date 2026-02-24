@@ -10,11 +10,11 @@ import {
 import { useAIActionContext } from '@/domains/ai-actions/frontend/contexts/ai-action-context';
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { useReactFlow } from '@xyflow/react';
-import {
-  refreshCanvasAssetAccessUrlAction,
-  type CanvasAssetBlockType,
-} from '@/domains/storage/actions/storage.actions';
+import { refreshCanvasAssetAccessUrlAction } from '@/domains/storage/actions/storage.actions';
+import { refreshPublishedCanvasAssetAccessUrlAction } from '@/domains/storage/actions/refresh-published-canvas-asset-access-url.action';
+import type { CanvasAssetBlockType } from '@/domains/storage/actions/storage.actions';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
 
@@ -54,12 +54,17 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  /** 공개 페이지 뷰에서 refresh 시 받은 일회성 URL (DB 미갱신) */
+  const [ephemeralAccessUrl, setEphemeralAccessUrl] = useState<string | null>(
+    null
+  );
 
   const fetchedForUrlRef = useRef<string | null>(null);
   const summaryReportedForBlockRef = useRef<string | null>(null);
   const hasTriedRefreshRef = useRef(false);
 
   const { workspaceId, orgId } = useCanvasMetadata();
+  const { readonly, publishToken } = useCanvasReadOnly();
   const { setAutoSummaryBlockId } = useAIActionContext();
   const { getNode, updateNode } = useReactFlow();
   const { updateProperty, updateProperties } = useUpdateBlockProperty({
@@ -138,10 +143,19 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
   useEffect(() => {
     if (!accessUrl || !hasValidBlockId || isOptimisticBlock) return;
     if (fetchedForUrlRef.current === accessUrl) return;
+    if (readonly && publishToken) return;
 
     fetchedForUrlRef.current = accessUrl;
     ensureSourceAndJob(accessUrl, filename);
-  }, [accessUrl, hasValidBlockId, isOptimisticBlock, filename, ensureSourceAndJob]);
+  }, [
+    accessUrl,
+    hasValidBlockId,
+    isOptimisticBlock,
+    filename,
+    ensureSourceAndJob,
+    readonly,
+    publishToken,
+  ]);
 
   const [
     { files, isDragging, errors: uploadErrors },
@@ -218,6 +232,24 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
       }
       hasTriedRefreshRef.current = true;
       try {
+        const isPublishedView = readonly && publishToken;
+
+        if (isPublishedView) {
+          const result = await refreshPublishedCanvasAssetAccessUrlAction({
+            publishToken,
+            blockId: nodeData.blockId,
+          });
+          if (result.success && result.url) {
+            setEphemeralAccessUrl(result.url);
+            setHasError(false);
+            setErrorMessage(null);
+          } else {
+            setHasError(true);
+            setErrorMessage('Failed to load PDF');
+          }
+          return;
+        }
+
         if (!workspaceId) {
           setHasError(true);
           setErrorMessage('Failed to load PDF');
@@ -246,11 +278,21 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
         setErrorMessage('Failed to load PDF');
       }
     },
-    [nodeData.blockId, pathUrl, updateProperty, nodeData, workspaceId]
+    [
+      nodeData.blockId,
+      pathUrl,
+      updateProperty,
+      nodeData,
+      workspaceId,
+      readonly,
+      publishToken,
+    ]
   );
 
+  const displayUrl = ephemeralAccessUrl ?? accessUrl;
+
   return {
-    url: accessUrl,
+    url: displayUrl,
     filename,
     isLoading,
     hasError,

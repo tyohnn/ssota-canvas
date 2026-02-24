@@ -83,6 +83,7 @@ export function useAudioBlock(props: UseAudioBlockProps): UseAudioBlockReturn {
     (): UseAudioBlockReturn => ({
       ...data,
       ...player,
+      audioUrl: player.effectiveAudioUrl,
     }),
     [data, player]
   );

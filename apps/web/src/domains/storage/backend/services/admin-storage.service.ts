@@ -61,6 +61,37 @@ export class AdminStorageService {
   }
 
   /**
+   * canvas-assets 버킷 Signed URL 생성 (공개 페이지 등 서버 전용)
+   *
+   * ⚠️ 주의: 권한 체크는 호출하는 Action에서 수행해야 합니다.
+   *
+   * @param storagePath - Storage 경로 (pathUrl)
+   * @param expiresInSeconds - 유효 기간(초), 기본 1일
+   */
+  async createCanvasAssetSignedUrl(
+    storagePath: string,
+    expiresInSeconds: number = 86400
+  ): Promise<string> {
+    const { data, error } = await supabaseAdmin.storage
+      .from('canvas-assets')
+      .createSignedUrl(storagePath, expiresInSeconds);
+
+    if (error) {
+      console.error(
+        '[AdminStorageService] Error creating canvas-assets signed URL:',
+        error
+      );
+      throw new Error(`Failed to create signed URL: ${error.message}`);
+    }
+
+    if (!data?.signedUrl) {
+      throw new Error('No signed URL returned from Supabase');
+    }
+
+    return data.signedUrl;
+  }
+
+  /**
    * 파일 삭제 (Admin 권한)
    *
    * @param bucket - 버킷 이름
