@@ -299,7 +299,7 @@ export function useReactFlowWrapperBusiness(
           // 블럭 너비 + 50px 오프셋 계산
           const blockWidth = selectedNode?.width || 200; // 기본 너비 200px
           const offsetX = blockWidth + 50;
-          const offsetY = 20; // Y축은 기본 20px
+          const offsetY = 0;
 
           await blockLifecycle.duplicateBlockAndMount(
             blockMountId,

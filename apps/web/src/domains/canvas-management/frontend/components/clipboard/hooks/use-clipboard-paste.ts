@@ -59,16 +59,26 @@ export function useClipboardPaste({
 
   /**
    * 캔버스 중앙 좌표 계산
+   * - .react-flow DOM 요소 기준으로 실제 캔버스 영역의 정중앙 사용 (좌우 패널 제외)
+   * - screenToFlowPosition으로 viewport 좌표를 flow 좌표로 변환
    */
   const getCanvasCenterPosition = useCallback((): PastePosition => {
-    const { x, y, zoom } = reactFlowInstance.getViewport();
-    const canvasWidth = window.innerWidth;
-    const canvasHeight = window.innerHeight;
-
-    return {
-      x: (canvasWidth / 2 - x) / zoom,
-      y: (canvasHeight / 2 - y) / zoom,
-    };
+    const { screenToFlowPosition } = reactFlowInstance;
+    const pane = document.querySelector('.react-flow');
+    if (pane instanceof HTMLElement) {
+      const rect = pane.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const flowCenter = screenToFlowPosition({ x: centerX, y: centerY });
+      // 블록 top-left를 center에 맞추기 위해 절반 오프셋 (기본 200x150)
+      return {
+        x: flowCenter.x - 100,
+        y: flowCenter.y - 75,
+      };
+    }
+    // Fallback: viewport 좌상단
+    const { x, y } = reactFlowInstance.getViewport();
+    return { x, y };
   }, [reactFlowInstance]);
 
   /**
@@ -229,6 +239,7 @@ export function useClipboardPaste({
           break;
         }
 
+
         case 'link-url': {
           blockType = BlockType.LINK;
           initialProperties = {
@@ -283,11 +294,11 @@ export function useClipboardPaste({
                 type: 'paragraph',
                 content: text
                   ? [
-                      {
-                        type: 'text',
-                        text: text,
-                      },
-                    ]
+                    {
+                      type: 'text',
+                      text: text,
+                    },
+                  ]
                   : [],
               },
             ],
