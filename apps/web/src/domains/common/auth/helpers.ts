@@ -52,10 +52,10 @@ export interface OrganizationMembership {
 export interface AccessVerificationResult {
   success: boolean;
   error?:
-    | 'UNAUTHORIZED'
-    | 'NOT_ORG_MEMBER'
-    | 'NOT_WORKSPACE_MEMBER'
-    | 'PAGE_NOT_FOUND';
+  | 'UNAUTHORIZED'
+  | 'NOT_ORG_MEMBER'
+  | 'NOT_WORKSPACE_MEMBER'
+  | 'PAGE_NOT_FOUND';
   orgRole?: MemberRole;
   workspace?: Workspace; // 검증된 워크스페이스 entity
   page?: Page; // 검증된 페이지 entity
