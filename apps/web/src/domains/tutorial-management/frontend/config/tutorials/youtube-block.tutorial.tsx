@@ -102,9 +102,9 @@ export const youtubeBlockTutorial: Tutorial = {
       onComplete: (state) => ({ ...state, editorPanelOpen: true }),
     },
     {
-      id: 'click-script',
-      title: 'Open Script Tab',
-      description: 'Click the Script tab to view the video transcript.',
+      id: 'click-timeline',
+      title: 'Open Timeline Tab',
+      description: 'Click the Timeline tab to view the video transcript.',
       targetSelector: 'timeline-tab',
       action: 'click',
       onComplete: (state) => ({ ...state, activeEditorTab: 'timeline' }),

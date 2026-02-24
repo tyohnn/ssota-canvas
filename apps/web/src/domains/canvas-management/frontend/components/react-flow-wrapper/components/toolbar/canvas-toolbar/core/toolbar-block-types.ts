@@ -20,13 +20,12 @@ export interface ToolbarBlockTypeConfig {
 export const TOOLBAR_BLOCK_TYPES: ToolbarBlockTypeConfig[] = [
   { blockType: 'markdown', label: 'Note', icon: NotebookText },
   { blockType: 'shape', label: 'Shape', icon: Shapes },
+  { blockType: 'youtube', label: 'YouTube', icon: Video },
   { blockType: 'link', label: 'Link', icon: Link2 },
   { blockType: 'file', label: 'File', icon: Paperclip },
   { blockType: 'audio', label: 'Audio', icon: AudioLines },
 ];
 
-/** Extended set including YouTube (for tutorial) */
-export const TOOLBAR_BLOCK_TYPES_WITH_YOUTUBE: ToolbarBlockTypeConfig[] = [
-  ...TOOLBAR_BLOCK_TYPES,
-  { blockType: 'youtube', label: 'YouTube', icon: Video },
-];
+/** Same as TOOLBAR_BLOCK_TYPES (YouTube included). Kept for tutorial mock compatibility. */
+export const TOOLBAR_BLOCK_TYPES_WITH_YOUTUBE: ToolbarBlockTypeConfig[] =
+  TOOLBAR_BLOCK_TYPES;
