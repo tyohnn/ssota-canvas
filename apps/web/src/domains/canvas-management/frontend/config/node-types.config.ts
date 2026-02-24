@@ -62,7 +62,7 @@ export const CANVAS_NODE_TYPES: NodeTypes = {
   [BlockType.VERCEL_DEPLOYMENT]: VercelDeploymentBlock,
   [BlockType.GROUP]: GroupBlock,
 
-  // Phantom router blocks (not persisted to DB)
-  'link-router': LinkRouterBlock,
-  'file-router': FileRouterBlock,
+  // Router blocks (persisted to DB, soft-deleted on resolve/cancel)
+  [BlockType.LINK_ROUTER]: LinkRouterBlock,
+  [BlockType.FILE_ROUTER]: FileRouterBlock,
 };

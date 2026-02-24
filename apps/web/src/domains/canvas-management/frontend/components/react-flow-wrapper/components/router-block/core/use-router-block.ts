@@ -9,7 +9,8 @@ import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts
 import { useReactFlow } from '@xyflow/react';
 
 export interface RouterNodeData {
-  isPhantom: true;
+  /** @deprecated Router blocks are now persisted; kept for compatibility */
+  isPhantom?: true;
   routerType: 'link' | 'file';
 }
 
@@ -19,28 +20,31 @@ export interface UseRouterBlockParams {
 }
 
 export interface UseRouterBlockReturn {
-  /** Remove phantom node and create the real block with resolved type and properties */
+  /** Soft-delete router block and create the real block with resolved type and properties */
   resolveAndCreateBlock: (
     blockType: BlockType,
     initialProperties: Record<string, unknown>,
     initialContent?: unknown
   ) => Promise<void>;
 
-  /** Remove phantom node only (cancel/ESC) */
+  /** Soft-delete router block (cancel/ESC) */
   cancel: () => void;
 }
 
 /**
  * Shared hook for Link Router and File Router blocks.
- * Manages phantom node removal and real block creation.
+ * Router blocks are persisted to DB; cancel and resolve trigger block_mount soft delete.
  */
 export function useRouterBlock({
   nodeId,
   nodeData,
 }: UseRouterBlockParams): UseRouterBlockReturn {
   const { pageId } = useCanvasMetadata();
-  const { createAndMountBlock } = useCanvasBlockLifecycle({ pageId });
-  const { deleteElements, getNode } = useReactFlow();
+  const {
+    createAndMountBlock,
+    softDeleteBlockMounts,
+  } = useCanvasBlockLifecycle({ pageId });
+  const { getNode } = useReactFlow();
 
   const resolveAndCreateBlock = useCallback(
     async (
@@ -53,9 +57,10 @@ export function useRouterBlock({
 
       const position = node.position;
 
-      // Remove phantom node first (order matters for clean UI transition)
-      deleteElements({ nodes: [{ id: nodeId }] });
+      // 1. Soft-delete router block (removes from canvas, persists deletion)
+      await softDeleteBlockMounts(nodeId);
 
+      // 2. Create real block at same position
       await createAndMountBlock(
         blockType,
         position,
@@ -63,12 +68,12 @@ export function useRouterBlock({
         initialContent
       );
     },
-    [nodeId, getNode, deleteElements, createAndMountBlock]
+    [nodeId, getNode, softDeleteBlockMounts, createAndMountBlock]
   );
 
   const cancel = useCallback(() => {
-    deleteElements({ nodes: [{ id: nodeId }] });
-  }, [nodeId, deleteElements]);
+    softDeleteBlockMounts(nodeId);
+  }, [nodeId, softDeleteBlockMounts]);
 
   return {
     resolveAndCreateBlock,

@@ -26,6 +26,7 @@ import { LatexBlockPropertiesVO } from './latex.vo';
 import { GithubPrBlockPropertiesVO } from './github-pr.vo';
 import { ReactComponentBlockPropertiesVO } from './react-component.vo';
 import { GroupBlockPropertiesVO } from './group.vo';
+import { RouterBlockPropertiesVO } from './router.vo';
 
 /**
  * Block Properties Factory
@@ -119,6 +120,14 @@ export class BlockPropertiesFactory {
     this.registry.set(BlockType.GROUP, () =>
       GroupBlockPropertiesVO.createDefault()
     );
+
+    // Router Blocks (link_router, file_router)
+    this.registry.set(BlockType.LINK_ROUTER, () =>
+      RouterBlockPropertiesVO.createDefault('link')
+    );
+    this.registry.set(BlockType.FILE_ROUTER, () =>
+      RouterBlockPropertiesVO.createDefault('file')
+    );
   }
 
   /**
@@ -193,6 +202,9 @@ export class BlockPropertiesFactory {
         return ReactComponentBlockPropertiesVO.fromJSON(jsonData as any);
       case BlockType.GROUP:
         return GroupBlockPropertiesVO.fromJSON(jsonData as any);
+      case BlockType.LINK_ROUTER:
+      case BlockType.FILE_ROUTER:
+        return RouterBlockPropertiesVO.fromJSON(jsonData as any);
       default:
         throw new Error(
           `Unsupported block type for JSON conversion: ${blockTypeVO.value}`

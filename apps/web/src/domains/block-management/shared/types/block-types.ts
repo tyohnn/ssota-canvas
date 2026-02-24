@@ -39,6 +39,8 @@ export const BlockType = {
   REACT_PREVIEW: 'react_preview' as const,
   VERCEL_DEPLOYMENT: 'vercel_deployment' as const,
   GROUP: 'group' as const,
+  LINK_ROUTER: 'link_router' as const,
+  FILE_ROUTER: 'file_router' as const,
 } as const;
 
 /**
@@ -68,6 +70,8 @@ export const BLOCK_TYPE_SIZES: Record<
   [BlockType.REACT_PREVIEW]: { width: 500, height: 400 }, // React 프리뷰 블록
   [BlockType.VERCEL_DEPLOYMENT]: { width: 350, height: 200 }, // Vercel 배포 블록
   [BlockType.GROUP]: { width: 500, height: 400 }, // 그룹 블록 (Parent-Child 컨테이너)
+  [BlockType.LINK_ROUTER]: { width: 310, height: 280 }, // 링크 라우터 (link와 동일)
+  [BlockType.FILE_ROUTER]: { width: 250, height: 150 }, // 파일 라우터 (file와 동일)
 } as const;
 
 /**

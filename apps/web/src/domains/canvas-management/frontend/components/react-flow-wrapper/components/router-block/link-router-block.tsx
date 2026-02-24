@@ -20,15 +20,19 @@ const LINK_ROUTER_SIZE = { width: 310, height: 280 };
 /**
  * Link Router Block
  *
- * Phantom node that accepts a URL, resolves the block type (YouTube, Link, PDF, Audio, Image),
- * then replaces itself with the real block.
+ * Persisted router block that accepts a URL, resolves the block type (YouTube, Link, PDF, Audio, Image),
+ * then soft-deletes itself and creates the real block.
  */
 export const LinkRouterBlock = memo(function LinkRouterBlock({
   id,
   data,
   selected,
 }: NodeProps) {
-  const nodeData = data as unknown as RouterNodeData;
+  const rawData = data as unknown as RouterNodeData & { blockType?: string };
+  const nodeData: RouterNodeData = {
+    routerType: rawData.routerType ?? 'link',
+    ...(rawData.isPhantom != null && { isPhantom: rawData.isPhantom }),
+  };
   const [draftUrl, setDraftUrl] = useState('');
   const [isResolving, setIsResolving] = useState(false);
   const [error, setError] = useState<string | null>(null);

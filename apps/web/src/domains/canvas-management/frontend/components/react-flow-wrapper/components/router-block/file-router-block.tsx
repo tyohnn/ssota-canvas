@@ -28,15 +28,19 @@ const FILE_ROUTER_SIZE = { width: 250, height: 150 };
 /**
  * File Router Block
  *
- * Phantom node that accepts a file (drop or click), uploads to Supabase,
- * resolves the block type (Image, PDF, Audio, File), then replaces itself
- * with the real block.
+ * Persisted router block that accepts a file (drop or click), uploads to Supabase,
+ * resolves the block type (Image, PDF, Audio, File), then soft-deletes itself
+ * and creates the real block.
  */
 export const FileRouterBlock = memo(function FileRouterBlock({
   id,
   data,
 }: NodeProps) {
-  const nodeData = data as unknown as RouterNodeData;
+  const rawData = data as unknown as RouterNodeData & { blockType?: string };
+  const nodeData: RouterNodeData = {
+    routerType: rawData.routerType ?? 'file',
+    ...(rawData.isPhantom != null && { isPhantom: rawData.isPhantom }),
+  };
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -2,7 +2,10 @@ import { useEffect } from 'react';
 
 import { useReactFlow } from '@xyflow/react';
 
-import { BLOCK_TYPE_SIZES } from '@/domains/block-management/shared/types/block-types';
+import {
+  BLOCK_TYPE_SIZES,
+  BlockType,
+} from '@/domains/block-management/shared/types/block-types';
 import {
   CanvasMetadata,
   useCanvasMetadata,
@@ -39,32 +42,16 @@ export function useShadowBlock(
     getCurrentMode: () => canvasMode.getCurrentMode(),
     exitToDefaultMode: () => canvasMode.exitToDefaultMode(),
     createAndMountBlock: async (blockType, position) => {
-      // Link and File use phantom router blocks (not persisted until URL/file is provided)
+      // Link and File use router blocks (persisted to DB, soft-deleted on resolve/cancel)
       const ROUTER_BLOCK_TYPES = ['link', 'file'] as const;
       if (
         ROUTER_BLOCK_TYPES.includes(
           blockType as (typeof ROUTER_BLOCK_TYPES)[number]
         )
       ) {
-        const phantomId = `phantom-router-${crypto.randomUUID()}`;
-        const routerNodeType =
-          blockType === 'link' ? 'link-router' : 'file-router';
-        const blockSize =
-          BLOCK_TYPE_SIZES[blockType] ?? BLOCK_TYPE_SIZES['text'];
-
-        reactFlow.addNodes([
-          {
-            id: phantomId,
-            type: routerNodeType,
-            position,
-            data: {
-              isPhantom: true,
-              routerType: blockType,
-            },
-            width: blockSize?.width ?? 200,
-            height: blockSize?.height ?? 150,
-          },
-        ]);
+        const routerBlockType =
+          blockType === 'link' ? BlockType.LINK_ROUTER : BlockType.FILE_ROUTER;
+        await blockLifecycle.createAndMountBlock(routerBlockType, position);
         canvasMode.exitToDefaultMode();
         return;
       }

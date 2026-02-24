@@ -47,18 +47,20 @@ function cleanNestedProperties(properties: any): any {
 
 /**
  * BlockView를 BaseNodeData로 변환 (ACL에서 직접 처리)
+ * Router blocks: routerType을 blockType에서 유도하여 data에 포함
  */
 export function transformBlockViewToNodeData(
   blockView: BlockView,
   blockMountId: string
 ): BaseNodeData {
-  return {
+  const properties = cleanNestedProperties(blockView.properties);
+  const base: BaseNodeData = {
     blockMountId,
     blockId: blockView.blockId,
     blockType: blockView.blockType,
     title: blockView.title,
     noContainerBoundary: hasNoContainerBoundary(blockView.blockType),
-    properties: cleanNestedProperties(blockView.properties),
+    properties,
     customProperties: blockView.customProperties,
     content: blockView.content, // JSONB content
     contentVersion: blockView.contentVersion,
@@ -76,6 +78,16 @@ export function transformBlockViewToNodeData(
       profileImageUrl: null,
     },
   };
+
+  // Router blocks: routerType을 blockType에서 유도 (link_router → 'link', file_router → 'file')
+  if (blockView.blockType === 'link_router' || blockView.blockType === 'file_router') {
+    return {
+      ...base,
+      routerType: blockView.blockType === 'link_router' ? 'link' : 'file',
+    } as BaseNodeData & { routerType: 'link' | 'file' };
+  }
+
+  return base;
 }
 
 /**
@@ -192,6 +204,8 @@ export function isCustomNodeType(
       'pdf',
       'audio',
       'group',
+      'link_router',
+      'file_router',
     ];
     return validBlockTypes.includes(node.data.blockType as string);
   }

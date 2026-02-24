@@ -36,6 +36,11 @@ export {
   type LinkBlockProperties,
 } from './link.vo';
 export {
+  RouterBlockPropertiesVO,
+  type RouterBlockProperties,
+  type RouterType,
+} from './router.vo';
+export {
   PageMentionBlockPropertiesVO,
   type PageMentionBlockProperties,
 } from './page-mention.vo';

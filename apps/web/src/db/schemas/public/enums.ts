@@ -89,6 +89,8 @@ export const blockTypeEnum = pgEnum('block_type', [
   'react_preview', // 리액트 프리뷰 블록 (Sandbox)
   'vercel_deployment', // Vercel 배포 블록
   'group', // 그룹 블록 (Parent-Child 컨테이너)
+  'link_router', // 링크 라우터 블록 (URL 입력 대기, DB 저장 후 soft delete)
+  'file_router', // 파일 라우터 블록 (파일 드롭 대기, DB 저장 후 soft delete)
 ]);
 
 export const propertyTypeEnum = pgEnum('property_type', [

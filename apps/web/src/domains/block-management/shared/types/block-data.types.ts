@@ -22,6 +22,7 @@ import {
   PdfBlockProperties,
   PythonBlockProperties,
   ReactComponentBlockProperties,
+  RouterBlockProperties,
   ShapeBlockProperties,
   TextBlockProperties,
   VercelDeploymentBlockProperties,
@@ -63,6 +64,8 @@ type BlockPropertiesMap = {
   github_commit: GithubCommitBlockProperties;
   vercel_deployment: VercelDeploymentBlockProperties;
   group: GroupBlockProperties;
+  link_router: RouterBlockProperties;
+  file_router: RouterBlockProperties;
 };
 
 export type BlockProperties<T extends BlockType> =
@@ -215,6 +218,18 @@ export interface GroupBlockNodeData extends BaseNodeData {
   [key: string]: any; // React Flow Node data constraint
 }
 
+export interface LinkRouterBlockNodeData extends BaseNodeData {
+  blockType: 'link_router';
+  properties: RouterBlockProperties;
+  [key: string]: any;
+}
+
+export interface FileRouterBlockNodeData extends BaseNodeData {
+  blockType: 'file_router';
+  properties: RouterBlockProperties;
+  [key: string]: any;
+}
+
 /**
  * 모든 블록 노드 데이터 타입 유니온
  */
@@ -237,7 +252,9 @@ export type BlockNodeData =
   | GithubBranchBlockNodeData
   | GithubCommitBlockNodeData
   | VercelDeploymentBlockNodeData
-  | GroupBlockNodeData;
+  | GroupBlockNodeData
+  | LinkRouterBlockNodeData
+  | FileRouterBlockNodeData;
 
 /**
  * 타입 안전한 블록 노드 데이터 빌드 함수
