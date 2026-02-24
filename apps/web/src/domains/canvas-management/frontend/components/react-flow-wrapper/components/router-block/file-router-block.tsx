@@ -103,6 +103,12 @@ export const FileRouterBlock = memo(function FileRouterBlock({
               fileSize: file.size,
             };
             break;
+          case BlockType.VIDEO:
+            initialProperties = {
+              url: result.url,
+              title: file.name || 'Video',
+            };
+            break;
           case BlockType.FILE:
           default:
             initialProperties = {
@@ -114,8 +120,14 @@ export const FileRouterBlock = memo(function FileRouterBlock({
 
         await resolveAndCreateBlock(blockType, initialProperties);
       } catch (err) {
-        console.error('[FileRouterBlock] Upload or create failed:', err);
-        setError('Upload failed');
+        const message =
+          err instanceof Error
+            ? err.message
+            : typeof err === 'object' && err !== null && 'message' in err
+              ? String((err as { message?: unknown }).message)
+              : String(err);
+        console.error('[FileRouterBlock] Upload or create failed:', message, err);
+        setError(message || 'Upload failed');
         setIsUploading(false);
       }
     },
@@ -167,8 +179,8 @@ export const FileRouterBlock = memo(function FileRouterBlock({
           width: FILE_ROUTER_SIZE.width,
           height: FILE_ROUTER_SIZE.height,
         }}
-        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
+        {/* 드롭존만 nodrag: 테두리 쪽을 잡으면 노드 드래그·클릭하면 선택 가능 */}
         <div
           role="button"
           onClick={openFileDialog}
@@ -178,7 +190,7 @@ export const FileRouterBlock = memo(function FileRouterBlock({
           onDrop={handleDrop}
           data-dragging={isDragging || undefined}
           className={cn(
-            'nodrag nopan absolute inset-0 flex flex-col items-center justify-center transition-colors cursor-pointer hover:bg-accent/50',
+            'nodrag nopan absolute inset-2 rounded-md flex flex-col items-center justify-center transition-colors cursor-pointer hover:bg-accent/50',
             isDragging &&
               'bg-blue-50 dark:bg-blue-950/30 border-2 border-dashed border-blue-400 dark:border-blue-500'
           )}

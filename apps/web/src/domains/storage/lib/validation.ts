@@ -41,6 +41,18 @@ const ALLOWED_DOCUMENT_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
 
+/** Extensions allowed when MIME is missing or generic — audio (webm can be audio/webm) */
+const AUDIO_EXTENSIONS = new Set([
+  'mp3', 'wav', 'ogg', 'webm', 'm4a', 'aac', 'flac', 'opus',
+]);
+/** Video extensions for same fallback (webm/mp4 etc.; resolver uses MIME to pick video vs audio) */
+const VIDEO_EXTENSIONS = new Set(['webm', 'mp4', 'mov', 'avi', 'mkv']);
+
+function getFileExtension(name: string): string {
+  const parts = name.split('.');
+  return parts.length > 1 ? (parts.pop() ?? '').toLowerCase() : '';
+}
+
 export function validateFile(file: File): void {
   // Check file size
   if (file.size > MAX_FILE_SIZE) {
@@ -49,6 +61,12 @@ export function validateFile(file: File): void {
     );
   }
 
+  const ext = getFileExtension(file.name);
+  const looksLikeAudioByExt = ext && AUDIO_EXTENSIONS.has(ext);
+  const looksLikeVideoByExt = ext && VIDEO_EXTENSIONS.has(ext);
+  const isAudioMime = file.type.startsWith('audio/');
+  const isVideoMime = file.type.startsWith('video/');
+
   // Check image size
   if (file.type.startsWith('image/') && file.size > MAX_IMAGE_SIZE) {
     throw new Error(
@@ -56,10 +74,18 @@ export function validateFile(file: File): void {
     );
   }
 
-  // Check audio size
-  if (file.type.startsWith('audio/') && file.size > MAX_AUDIO_SIZE) {
+  // Check audio size (by MIME or by extension when MIME is generic/missing)
+  if ((isAudioMime || looksLikeAudioByExt) && file.size > MAX_AUDIO_SIZE) {
     throw new Error(
       `오디오 크기가 ${MAX_AUDIO_SIZE / 1024 / 1024}MB를 초과합니다.`
+    );
+  }
+
+  // Check video size (by MIME or by extension when MIME is generic/missing)
+  const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+  if ((isVideoMime || looksLikeVideoByExt) && file.size > MAX_VIDEO_SIZE) {
+    throw new Error(
+      `비디오 크기가 ${MAX_VIDEO_SIZE / 1024 / 1024}MB를 초과합니다.`
     );
   }
 
@@ -70,7 +96,7 @@ export function validateFile(file: File): void {
     );
   }
 
-  // Check MIME type
+  // Check MIME type (allow by extension when MIME is empty or generic)
   const allowedTypes = [
     ...ALLOWED_IMAGE_TYPES,
     ...ALLOWED_VIDEO_TYPES,
@@ -78,9 +104,14 @@ export function validateFile(file: File): void {
     ...ALLOWED_DOCUMENT_TYPES,
   ];
 
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error(`지원하지 않는 파일 형식입니다: ${file.type}`);
+  if (allowedTypes.includes(file.type)) {
+    return;
   }
+  if ((!file.type || file.type === 'application/octet-stream') && (looksLikeAudioByExt || looksLikeVideoByExt)) {
+    return;
+  }
+
+  throw new Error(`지원하지 않는 파일 형식입니다: ${file.type || '(없음)'}`);
 }
 
 export function isImage(file: File): boolean {

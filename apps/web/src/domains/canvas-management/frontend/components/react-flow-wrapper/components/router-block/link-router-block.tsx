@@ -121,7 +121,6 @@ export const LinkRouterBlock = memo(function LinkRouterBlock({
           width: LINK_ROUTER_SIZE.width,
           height: LINK_ROUTER_SIZE.height,
         }}
-        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <Box className="relative w-full h-full flex flex-col">
           <LinkLoadingState />
