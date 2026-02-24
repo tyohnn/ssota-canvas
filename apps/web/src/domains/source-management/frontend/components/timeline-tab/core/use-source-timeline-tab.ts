@@ -11,6 +11,7 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { parseTimelineRawContent } from '@/domains/source-management/shared/parse-timeline-raw-content';
 import {
   useExtractSourceContent,
@@ -31,6 +32,8 @@ export function useSourceTimelineTab({
   sourceTitle,
 }: UseSourceTimelineTabParams): UseSourceTimelineTabResult {
   const { workspaceId } = useCanvasMetadata();
+  const { readonly, publishToken } = useCanvasReadOnly();
+  const isPublished = readonly && !!publishToken;
 
   const { data: inProgressJobData } = useInProgressSourceJob({
     blockSlug,
@@ -43,10 +46,20 @@ export function useSourceTimelineTab({
       ? (inProgressJobData.job as SourceJob)
       : null;
 
-  const sourceContent = useSourceContent({
-    blockId: blockSlug,
-    enabled: !!blockSlug && !!sourceId,
-  });
+  const sourceContent = useSourceContent(
+    isPublished && sourceId && publishToken
+      ? {
+          blockId: blockSlug ?? '',
+          sourceId,
+          publishToken,
+          readonly: true,
+          enabled: !!blockSlug && !!sourceId,
+        }
+      : {
+          blockId: blockSlug ?? '',
+          enabled: !!blockSlug && !!sourceId,
+        }
+  );
 
   const rawContent = sourceContent.content?.rawContent;
   const script = rawContent

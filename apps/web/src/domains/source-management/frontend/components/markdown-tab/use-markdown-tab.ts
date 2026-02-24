@@ -6,6 +6,7 @@
 'use client';
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { useSourceContent } from '@/domains/source-management/frontend/hooks';
 
 export interface UseMarkdownTabParams {
@@ -27,10 +28,23 @@ export function useMarkdownTab({
 }: UseMarkdownTabParams): UseMarkdownTabResult {
   const sourceId = blockData?.sourceId;
   const blockSlug = blockData?.blockId ?? blockId;
-  const { content, isLoading, error } = useSourceContent({
-    blockId: blockSlug,
-    enabled: !!blockSlug && !!sourceId,
-  });
+  const { readonly, publishToken } = useCanvasReadOnly();
+  const isPublished = readonly && !!publishToken;
+
+  const { content, isLoading, error } = useSourceContent(
+    isPublished && sourceId && publishToken
+      ? {
+          blockId: blockSlug,
+          sourceId,
+          publishToken,
+          readonly: true,
+          enabled: !!blockSlug && !!sourceId,
+        }
+      : {
+          blockId: blockSlug,
+          enabled: !!blockSlug && !!sourceId,
+        }
+  );
 
   return {
     content: content?.rawContent ?? null,
