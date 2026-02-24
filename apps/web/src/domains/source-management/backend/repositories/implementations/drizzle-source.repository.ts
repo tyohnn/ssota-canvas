@@ -44,6 +44,8 @@ export class DrizzleSourceRepository implements ISourceRepository {
       await adminDb
         .update(sourcesTable)
         .set({
+          url: source.url.value,
+          url_hash: source.urlHash,
           raw_content: source.rawContent,
           metadata: (source.metadata || {}) as Record<string, unknown>,
           content_language: source.contentLanguage ?? null,
@@ -129,7 +131,6 @@ export class DrizzleSourceRepository implements ISourceRepository {
       row.expires_at,
       row.created_at,
       row.updated_at,
-      row.url_hash
     );
   }
 }

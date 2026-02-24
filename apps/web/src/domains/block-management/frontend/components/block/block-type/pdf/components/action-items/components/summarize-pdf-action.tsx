@@ -20,7 +20,7 @@ export function SummarizePdfAction({
   blockData,
 }: SummarizePdfActionProps) {
   const properties = blockData.properties as PdfBlockProperties;
-  const url = properties.url;
+  const url = properties.accessUrl ?? (properties as { url?: string }).url;
 
   // TODO: Implement PDF summarization functionality
   const handleSummarize = () => {

@@ -2,25 +2,29 @@
  * PDF Block Properties Value Object
  *
  * PDF 문서를 표시하는 블록의 속성을 관리하는 Value Object
+ * - pathUrl: Supabase 스토리지 경로 (만료 없음). 외부 URL일 땐 ''.
+ * - accessUrl: 뷰어/추출에 사용하는 URL (Signed URL 또는 외부 URL).
  */
 
 import { BlockManagementError } from '../../errors/block-management.error';
 import { BlockPropertiesVO } from './base.vo';
 
 export interface PdfBlockProperties {
-  // 기본 정보
-  url: string;
+  pathUrl: string;
+  accessUrl: string;
+  accessUrlExpiresAt?: string | null;
   filename?: string;
   pageCount?: number;
 
-  // Source 연동 (link/youtube와 동일)
   sourceSummaryAccessLanguages?: string[];
   sourceRawContentAccessGranted?: boolean;
 }
 
 export class PdfBlockPropertiesVO extends BlockPropertiesVO {
   constructor(
-    public readonly url: string,
+    public readonly pathUrl: string,
+    public readonly accessUrl: string,
+    public readonly accessUrlExpiresAt: string | null | undefined,
     public readonly filename: string | undefined,
     public readonly pageCount: number | undefined,
     public readonly sourceSummaryAccessLanguages: string[] | undefined,
@@ -33,6 +37,8 @@ export class PdfBlockPropertiesVO extends BlockPropertiesVO {
   static createDefault(): PdfBlockPropertiesVO {
     return new PdfBlockPropertiesVO(
       '',
+      '',
+      undefined,
       undefined,
       undefined,
       undefined,
@@ -42,8 +48,13 @@ export class PdfBlockPropertiesVO extends BlockPropertiesVO {
 
   static fromJSON(data: unknown): PdfBlockPropertiesVO {
     const safeData = (data as Partial<PdfBlockProperties>) ?? {};
+    const pathUrl = safeData.pathUrl ?? '';
+    const accessUrl =
+      safeData.accessUrl ?? (safeData as { url?: string }).url ?? '';
     return new PdfBlockPropertiesVO(
-      safeData.url || '',
+      pathUrl,
+      accessUrl,
+      safeData.accessUrlExpiresAt,
       safeData.filename,
       safeData.pageCount,
       safeData.sourceSummaryAccessLanguages,
@@ -52,7 +63,7 @@ export class PdfBlockPropertiesVO extends BlockPropertiesVO {
   }
 
   protected validate(): boolean {
-    if (this.url && !this.isValidPdfUrl(this.url)) {
+    if (this.accessUrl && !this.isValidPdfUrl(this.accessUrl)) {
       throw new BlockManagementError(
         'INVALID_MEDIA_URL',
         'Invalid PDF URL format'
@@ -76,7 +87,6 @@ export class PdfBlockPropertiesVO extends BlockPropertiesVO {
     const pdfRegex = /\.pdf(\?.*)?$/i;
     const blobRegex = /^blob:/;
     const dataRegex = /^data:application\/pdf/;
-    // Supabase storage URLs may not end in .pdf
     const supabaseRegex = /supabase/i;
     return (
       pdfRegex.test(url) ||
@@ -86,16 +96,33 @@ export class PdfBlockPropertiesVO extends BlockPropertiesVO {
     );
   }
 
+  getPathUrl(): string {
+    return this.pathUrl;
+  }
+
+  getAccessUrl(): string {
+    return this.accessUrl;
+  }
+
+  /** 뷰어/추출용 URL (accessUrl과 동일, 호환용) */
+  getUrl(): string {
+    return this.accessUrl;
+  }
+
   getFilename(): string {
     if (this.filename) return this.filename;
-    const urlParts = this.url.split('/');
+    const urlParts = this.accessUrl.split('/');
     const lastPart = urlParts[urlParts.length - 1] || 'document.pdf';
     return lastPart.split('?')[0] || 'document.pdf';
   }
 
   toJSON(): PdfBlockProperties {
     return {
-      url: this.url,
+      pathUrl: this.pathUrl,
+      accessUrl: this.accessUrl,
+      ...(this.accessUrlExpiresAt != null && {
+        accessUrlExpiresAt: this.accessUrlExpiresAt,
+      }),
       filename: this.filename,
       pageCount: this.pageCount,
       sourceSummaryAccessLanguages: this.sourceSummaryAccessLanguages,
@@ -105,7 +132,8 @@ export class PdfBlockPropertiesVO extends BlockPropertiesVO {
 
   equals(other: PdfBlockPropertiesVO): boolean {
     return (
-      this.url === other.url &&
+      this.pathUrl === other.pathUrl &&
+      this.accessUrl === other.accessUrl &&
       this.filename === other.filename &&
       this.pageCount === other.pageCount &&
       JSON.stringify(this.sourceSummaryAccessLanguages ?? []) ===
@@ -114,9 +142,14 @@ export class PdfBlockPropertiesVO extends BlockPropertiesVO {
     );
   }
 
-  updateUrl(url: string): PdfBlockPropertiesVO {
+  updateAccessUrl(
+    accessUrl: string,
+    accessUrlExpiresAt?: string | null
+  ): PdfBlockPropertiesVO {
     return new PdfBlockPropertiesVO(
-      url,
+      this.pathUrl,
+      accessUrl,
+      accessUrlExpiresAt ?? this.accessUrlExpiresAt,
       this.filename,
       this.pageCount,
       this.sourceSummaryAccessLanguages,
@@ -126,7 +159,9 @@ export class PdfBlockPropertiesVO extends BlockPropertiesVO {
 
   updateFilename(filename: string): PdfBlockPropertiesVO {
     return new PdfBlockPropertiesVO(
-      this.url,
+      this.pathUrl,
+      this.accessUrl,
+      this.accessUrlExpiresAt,
       filename,
       this.pageCount,
       this.sourceSummaryAccessLanguages,
@@ -136,7 +171,9 @@ export class PdfBlockPropertiesVO extends BlockPropertiesVO {
 
   updatePageCount(pageCount: number): PdfBlockPropertiesVO {
     return new PdfBlockPropertiesVO(
-      this.url,
+      this.pathUrl,
+      this.accessUrl,
+      this.accessUrlExpiresAt,
       this.filename,
       pageCount,
       this.sourceSummaryAccessLanguages,
@@ -145,7 +182,7 @@ export class PdfBlockPropertiesVO extends BlockPropertiesVO {
   }
 
   isEmpty(): boolean {
-    return this.url.trim().length === 0;
+    return this.accessUrl.trim().length === 0;
   }
 
   toString(): string {

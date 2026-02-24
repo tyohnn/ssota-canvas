@@ -51,7 +51,7 @@ export const FileRouterBlock = memo(function FileRouterBlock({
   });
   const { upload } = useSupabaseStorage();
 
-  const maxSizeMB = 50;
+  const maxSizeMB = 6;
   const maxSize = maxSizeMB * 1024 * 1024;
 
   const handleFileProcessed = useCallback(
@@ -72,6 +72,10 @@ export const FileRouterBlock = memo(function FileRouterBlock({
 
         const { blockType } = resolveFileToBlockConfig(file);
 
+        const accessUrlExpiresAt = new Date(
+          Date.now() + 24 * 60 * 60 * 1000
+        ).toISOString();
+
         let initialProperties: Record<string, unknown>;
 
         switch (blockType) {
@@ -84,12 +88,19 @@ export const FileRouterBlock = memo(function FileRouterBlock({
             break;
           case BlockType.PDF:
             initialProperties = {
-              url: result.url,
+              pathUrl: result.path,
+              accessUrl: result.url,
+              accessUrlExpiresAt,
+              filename: file.name,
             };
             break;
           case BlockType.AUDIO:
             initialProperties = {
-              audioUrl: result.url,
+              pathUrl: result.path,
+              accessUrl: result.url,
+              accessUrlExpiresAt,
+              filename: file.name,
+              fileSize: file.size,
             };
             break;
           case BlockType.FILE:

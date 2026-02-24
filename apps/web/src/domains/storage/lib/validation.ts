@@ -4,9 +4,10 @@
  * 파일 검증 로직
  */
 
-const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB (global cap)
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
-const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_AUDIO_SIZE = 6 * 1024 * 1024; // 6MB (single upload; use resumable for larger)
+const MAX_DOCUMENT_SIZE = 6 * 1024 * 1024; // 6MB (PDF etc.; use resumable for larger)
 
 const ALLOWED_IMAGE_TYPES = [
   'image/jpeg',
@@ -59,6 +60,13 @@ export function validateFile(file: File): void {
   if (file.type.startsWith('audio/') && file.size > MAX_AUDIO_SIZE) {
     throw new Error(
       `오디오 크기가 ${MAX_AUDIO_SIZE / 1024 / 1024}MB를 초과합니다.`
+    );
+  }
+
+  // Check document size (PDF etc.)
+  if (ALLOWED_DOCUMENT_TYPES.includes(file.type) && file.size > MAX_DOCUMENT_SIZE) {
+    throw new Error(
+      `문서 크기가 ${MAX_DOCUMENT_SIZE / 1024 / 1024}MB를 초과합니다.`
     );
   }
 

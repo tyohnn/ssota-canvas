@@ -3,9 +3,11 @@ import { SourceType } from '../value-objects/source-type.vo';
 import { SourceUrl } from '../value-objects/source-url.vo';
 
 export class Source {
+  private _url: SourceUrl;
+
   private constructor(
     public readonly id: SourceId,
-    public readonly url: SourceUrl,
+    url: SourceUrl,
     public readonly sourceType: SourceType,
     public rawContent: string | null,
     public metadata: Record<string, unknown>,
@@ -14,8 +16,22 @@ export class Source {
     public expiresAt: Date | null,
     public readonly createdAt: Date,
     public updatedAt: Date,
-    public readonly urlHash: string | null
-  ) { }
+  ) {
+    this._url = url;
+  }
+
+  get url(): SourceUrl {
+    return this._url;
+  }
+
+  get urlHash(): string {
+    return this._url.urlHash;
+  }
+
+  updateUrl(newUrl: SourceUrl): void {
+    this._url = newUrl;
+    this.updatedAt = new Date();
+  }
 
   static create(
     id: SourceId,
@@ -36,7 +52,6 @@ export class Source {
       null,
       now,
       now,
-      url.urlHash
     );
   }
 
@@ -51,7 +66,6 @@ export class Source {
     expiresAt: Date | null,
     createdAt: Date,
     updatedAt: Date,
-    urlHash: string | null
   ): Source {
     return new Source(
       id,
@@ -64,7 +78,6 @@ export class Source {
       expiresAt,
       createdAt,
       updatedAt,
-      urlHash
     );
   }
 

@@ -11,6 +11,10 @@ import { useAIActionContext } from '@/domains/ai-actions/frontend/contexts/ai-ac
 import { useUpdateBlockProperty } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
 import { useReactFlow } from '@xyflow/react';
+import {
+  refreshCanvasAssetAccessUrlAction,
+  type CanvasAssetBlockType,
+} from '@/domains/storage/actions/storage.actions';
 import { useSupabaseStorage } from '@/domains/storage/hooks/use-supabase-storage';
 import { StorageBucket } from '@/domains/storage/types/storage.types';
 
@@ -19,7 +23,9 @@ import { ensureSourceAndJobAction } from '@/domains/source-management/actions/so
 import type { UsePdfBlockProps, UsePdfBlockReturn } from './types';
 
 const VALID_BLOCK_ID_REGEX = /^[0-9a-f]{8,10}$/i;
-const MAX_SIZE_MB = 50;
+const MAX_SIZE_MB = 6;
+/** 1일. Signed URL 유효기간·워크스페이스 권한 회수 대응 */
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * PDF Block Main Hook
@@ -27,10 +33,20 @@ const MAX_SIZE_MB = 50;
  * - URL 변경 시 ensureSourceAndJobAction 호출 (Source + Job 연동)
  * - 파일 업로드 → Supabase Storage → properties 업데이트
  */
+type PdfProperties = {
+  pathUrl?: string;
+  accessUrl?: string;
+  accessUrlExpiresAt?: string | null;
+  url?: string;
+  filename?: string;
+};
+
 export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
   const { nodeData, selected, nodeId, updateBlockTitle } = props;
-  const properties = nodeData.properties as { url?: string; filename?: string };
-  const { url, filename } = properties;
+  const properties = nodeData.properties as PdfProperties;
+  const accessUrl = properties.accessUrl ?? properties.url ?? '';
+  const pathUrl = properties.pathUrl ?? '';
+  const filename = properties.filename;
 
   const hasValidBlockId =
     nodeData.blockId && VALID_BLOCK_ID_REGEX.test(nodeData.blockId);
@@ -41,6 +57,7 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
 
   const fetchedForUrlRef = useRef<string | null>(null);
   const summaryReportedForBlockRef = useRef<string | null>(null);
+  const hasTriedRefreshRef = useRef(false);
 
   const { workspaceId, orgId } = useCanvasMetadata();
   const { setAutoSummaryBlockId } = useAIActionContext();
@@ -119,12 +136,12 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
   const isOptimisticBlock = nodeId.startsWith('optimistic-');
 
   useEffect(() => {
-    if (!url || !hasValidBlockId || isOptimisticBlock) return;
-    if (fetchedForUrlRef.current === url) return;
+    if (!accessUrl || !hasValidBlockId || isOptimisticBlock) return;
+    if (fetchedForUrlRef.current === accessUrl) return;
 
-    fetchedForUrlRef.current = url;
-    ensureSourceAndJob(url, filename);
-  }, [url, hasValidBlockId, isOptimisticBlock, filename, ensureSourceAndJob]);
+    fetchedForUrlRef.current = accessUrl;
+    ensureSourceAndJob(accessUrl, filename);
+  }, [accessUrl, hasValidBlockId, isOptimisticBlock, filename, ensureSourceAndJob]);
 
   const [
     { files, isDragging, errors: uploadErrors },
@@ -154,16 +171,17 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
           workspaceId,
         });
 
-        await updateProperty(
+        const accessUrlExpiresAt = new Date(
+          Date.now() + ONE_DAY_MS
+        ).toISOString();
+        await updateProperties(
           nodeData.blockId,
-          'properties.url',
-          result.url,
-          nodeData
-        );
-        await updateProperty(
-          nodeData.blockId,
-          'properties.filename',
-          fileWithPreview.file.name,
+          {
+            pathUrl: result.path,
+            accessUrl: result.url,
+            accessUrlExpiresAt,
+            filename: fileWithPreview.file.name,
+          },
           nodeData
         );
       } catch (err) {
@@ -171,16 +189,13 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
         setHasError(true);
         setErrorMessage('PDF upload failed');
         if (fileWithPreview.preview) {
-          await updateProperty(
+          await updateProperties(
             nodeData.blockId,
-            'properties.url',
-            fileWithPreview.preview,
-            nodeData
-          );
-          await updateProperty(
-            nodeData.blockId,
-            'properties.filename',
-            fileWithPreview.file.name,
+            {
+              pathUrl: '',
+              accessUrl: fileWithPreview.preview,
+              filename: fileWithPreview.file.name,
+            },
             nodeData
           );
         }
@@ -193,14 +208,49 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
     setErrorMessage(null);
   }, []);
 
-  const onDocumentLoadError = useCallback((error: Error) => {
-    console.error('PDF load error:', error);
-    setHasError(true);
-    setErrorMessage('Failed to load PDF');
-  }, []);
+  const onDocumentLoadError = useCallback(
+    async (error: Error) => {
+      console.error('PDF load error:', error);
+      if (hasTriedRefreshRef.current || !pathUrl || !nodeData.blockId) {
+        setHasError(true);
+        setErrorMessage('Failed to load PDF');
+        return;
+      }
+      hasTriedRefreshRef.current = true;
+      try {
+        if (!workspaceId) {
+          setHasError(true);
+          setErrorMessage('Failed to load PDF');
+          return;
+        }
+        const result = await refreshCanvasAssetAccessUrlAction(
+          workspaceId,
+          nodeData.blockId,
+          'pdf' as CanvasAssetBlockType
+        );
+        if (result.success && result.url) {
+          await updateProperty(
+            nodeData.blockId,
+            'properties.accessUrl',
+            result.url,
+            nodeData
+          );
+          setHasError(false);
+          setErrorMessage(null);
+        } else {
+          setHasError(true);
+          setErrorMessage('Failed to load PDF');
+        }
+      } catch {
+        setHasError(true);
+        setErrorMessage('Failed to load PDF');
+      }
+    },
+    [nodeData.blockId, pathUrl, updateProperty, nodeData, workspaceId]
+  );
 
   return {
-    url: url ?? '',
+    url: accessUrl,
     filename,
     isLoading,
     hasError,

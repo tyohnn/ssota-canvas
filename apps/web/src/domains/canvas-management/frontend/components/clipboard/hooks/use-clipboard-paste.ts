@@ -237,7 +237,8 @@ export function useClipboardPaste({
         case 'pdf-url': {
           blockType = BlockType.PDF;
           initialProperties = {
-            url: analysisResult.data.url,
+            pathUrl: '',
+            accessUrl: analysisResult.data.url,
           };
           break;
         }
@@ -245,7 +246,8 @@ export function useClipboardPaste({
         case 'audio-url': {
           blockType = BlockType.AUDIO;
           initialProperties = {
-            audioUrl: analysisResult.data.url,
+            pathUrl: '',
+            accessUrl: analysisResult.data.url,
           };
           break;
         }

@@ -28,8 +28,10 @@ import { StorageBucket } from '@/domains/storage/types/storage.types';
 import type { UpdateBlockTitleFn } from './types';
 
 const VALID_BLOCK_ID_REGEX = /^[0-9a-f]{8,10}$/i;
-const MAX_SIZE_MB = 50;
+const MAX_SIZE_MB = 6;
 const MAX_SIZE = MAX_SIZE_MB * 1024 * 1024;
+/** 1일. Signed URL 유효기간·워크스페이스 권한 회수 대응 */
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface UseAudioBlockDataProps {
   nodeData: BlockNodeData;
@@ -69,7 +71,8 @@ export function useAudioBlockData({
   reactFlow,
 }: UseAudioBlockDataProps): UseAudioBlockDataReturn {
   const properties = nodeData.properties as AudioBlockProperties;
-  const audioUrl = properties?.audioUrl ?? '';
+  const audioUrl =
+    properties?.accessUrl ?? (properties as { audioUrl?: string }).audioUrl ?? '';
   const filename = properties?.filename ?? '';
 
   const hasValidBlockId =
@@ -172,10 +175,15 @@ export function useAudioBlockData({
             orgId,
             workspaceId,
           });
+          const accessUrlExpiresAt = new Date(
+            Date.now() + ONE_DAY_MS
+          ).toISOString();
           await updateProperties(
             nodeData.blockId,
             {
-              audioUrl: result.url,
+              pathUrl: result.path,
+              accessUrl: result.url,
+              accessUrlExpiresAt,
               filename: fileWithPreview.file.name,
               fileSize: fileWithPreview.file.size,
             },
@@ -236,10 +244,15 @@ export function useAudioBlockData({
         workspaceId,
       });
 
+      const accessUrlExpiresAt = new Date(
+        Date.now() + ONE_DAY_MS
+      ).toISOString();
       await updateProperties(
         nodeData.blockId,
         {
-          audioUrl: result.url,
+          pathUrl: result.path,
+          accessUrl: result.url,
+          accessUrlExpiresAt,
           filename: file.name,
           fileSize: recordedBlob.size,
         },

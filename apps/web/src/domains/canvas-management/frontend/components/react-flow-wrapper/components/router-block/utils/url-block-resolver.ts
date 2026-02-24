@@ -83,14 +83,14 @@ export function resolveUrlToBlockConfig(url: string): UrlBlockResolution | null 
   if (isPdfUrl(trimmed)) {
     return {
       blockType: BlockType.PDF,
-      initialProperties: { url: trimmed },
+      initialProperties: { pathUrl: '', accessUrl: trimmed },
     };
   }
 
   if (isAudioUrl(trimmed)) {
     return {
       blockType: BlockType.AUDIO,
-      initialProperties: { audioUrl: trimmed },
+      initialProperties: { pathUrl: '', accessUrl: trimmed },
     };
   }
 

@@ -17,7 +17,7 @@ export interface PdfEmptyStateProps {
   onDrop: (e: React.DragEvent<HTMLElement>) => void;
 }
 
-const MAX_SIZE_MB = 50;
+const MAX_SIZE_MB = 6;
 
 export function PdfEmptyState({
   selected,

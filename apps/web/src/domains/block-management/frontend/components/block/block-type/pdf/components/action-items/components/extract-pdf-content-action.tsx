@@ -20,7 +20,7 @@ export function ExtractPdfContentAction({
   blockData,
 }: ExtractPdfContentActionProps) {
   const properties = blockData.properties as PdfBlockProperties;
-  const url = properties.url;
+  const url = properties.accessUrl ?? (properties as { url?: string }).url;
 
   // TODO: Implement PDF content extraction functionality
   const handleExtractContent = () => {

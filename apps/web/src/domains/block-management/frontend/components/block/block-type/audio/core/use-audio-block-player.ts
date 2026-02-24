@@ -12,6 +12,11 @@ import {
   type ReactFlowDependencies,
   useUpdateBlockProperty,
 } from '@/domains/block-management/frontend/hooks/block-property/use-block-property-update';
+import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
+import {
+  refreshCanvasAssetAccessUrlAction,
+  type CanvasAssetBlockType,
+} from '@/domains/storage/actions/storage.actions';
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
@@ -40,6 +45,7 @@ export function useAudioBlockPlayer({
   reactFlow,
 }: UseAudioBlockPlayerProps): UseAudioBlockPlayerReturn {
   const { updateProperty } = useUpdateBlockProperty({ reactFlow });
+  const { workspaceId } = useCanvasMetadata();
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -49,8 +55,10 @@ export function useAudioBlockPlayer({
   const [waveformData, setWaveformData] = useState<number[]>([]);
 
   const audioRef = useRef<HTMLAudioElement>(null);
+  const hasTriedRefreshRef = useRef(false);
 
-  // Audio element 이벤트 바인딩 (audioUrl 기준, url 변경 추적 없음)
+  const pathUrl = (nodeData.properties as { pathUrl?: string })?.pathUrl ?? '';
+
   useEffect(() => {
     if (!audioUrl || !audioRef.current) return;
 
@@ -76,9 +84,41 @@ export function useAudioBlockPlayer({
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleEnded = () => setIsPlaying(false);
-    const handleError = () => {
-      setHasError(true);
-      setIsLoading(false);
+    const handleError = async () => {
+      if (
+        hasTriedRefreshRef.current ||
+        !pathUrl ||
+        !nodeData.blockId ||
+        !workspaceId
+      ) {
+        setHasError(true);
+        setIsLoading(false);
+        return;
+      }
+      hasTriedRefreshRef.current = true;
+      try {
+        const result = await refreshCanvasAssetAccessUrlAction(
+          workspaceId,
+          nodeData.blockId,
+          'audio' as CanvasAssetBlockType
+        );
+        if (result.success && result.url) {
+          await updateProperty(
+            nodeData.blockId,
+            'properties.accessUrl',
+            result.url,
+            nodeData
+          );
+          setHasError(false);
+          setIsLoading(true);
+        } else {
+          setHasError(true);
+          setIsLoading(false);
+        }
+      } catch {
+        setHasError(true);
+        setIsLoading(false);
+      }
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -92,7 +132,13 @@ export function useAudioBlockPlayer({
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
     };
-  }, [audioUrl, nodeData, updateProperty]);
+  }, [
+    audioUrl,
+    nodeData,
+    updateProperty,
+    pathUrl,
+    workspaceId,
+  ]);
 
   const togglePlay = useCallback(() => {
     if (!audioRef.current) return;

@@ -97,12 +97,12 @@ export function useSupabaseStorage() {
           url = publicUrlData.publicUrl;
           publicUrl = publicUrlData.publicUrl;
         } else {
-          // Private bucket - generate signed URL with 1 year expiry
-          const ONE_YEAR_IN_SECONDS = 31536000; // 365 days
+          // Private bucket - 1 day expiry (보안·워크스페이스 권한 회수 대응)
+          const ONE_DAY_IN_SECONDS = 86400;
           const { data: signedUrlData, error: signedUrlError } =
             await supabase.storage
               .from(bucket)
-              .createSignedUrl(path, ONE_YEAR_IN_SECONDS);
+              .createSignedUrl(path, ONE_DAY_IN_SECONDS);
 
           if (signedUrlError) {
             throw signedUrlError;

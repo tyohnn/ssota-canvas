@@ -28,20 +28,29 @@ export function AudioToolbarItems({
         blockId={blockId}
         disabled={disabled}
         onValueChange={async (url: string) => {
-          await onPropertyUpdate('properties.audioUrl', url);
+          await onPropertyUpdate('properties.accessUrl', url);
         }}
       />
       <AudioRecordToolbarItem
         blockId={blockId}
         disabled={disabled}
         onValueChange={async (url: string) => {
-          await onPropertyUpdate('properties.audioUrl', url);
+          await onPropertyUpdate('properties.accessUrl', url);
         }}
       />
       <AudioDownloadToolbarItem
-        audioUrl={audioProperties.audioUrl}
+        audioUrl={
+          audioProperties.accessUrl ??
+          (audioProperties as { audioUrl?: string }).audioUrl
+        }
         filename={audioProperties.filename}
-        disabled={disabled || !audioProperties.audioUrl}
+        disabled={
+          disabled ||
+          !(
+            audioProperties.accessUrl ??
+            (audioProperties as { audioUrl?: string }).audioUrl
+          )
+        }
       />
       {!readonly && <Separator orientation="vertical" className="h-6!" />}
     </>

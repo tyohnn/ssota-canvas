@@ -1,49 +1,42 @@
 /**
  * Audio Block Properties Value Object
  *
- * 오디오 블록의 속성을 정의하고 관리하는 Value Object
+ * - pathUrl: Supabase 스토리지 경로 (만료 없음). 외부 URL일 땐 ''.
+ * - accessUrl: 뷰어/추출에 사용하는 URL (Signed URL 또는 외부 URL).
  */
 
 import { BlockPropertiesVO } from './base.vo';
 
-/**
- * Audio Block Properties Interface
- */
 export interface AudioBlockProperties {
-  // 오디오 정보
-  audioUrl: string; // Supabase Storage URL 또는 외부 URL
-  url?: string; // source용 canonical URL (audioUrl과 동일, signed URL 분리 시 사용)
-  filename?: string; // 업로드 파일명
-  duration?: number; // 재생 시간 (초)
-  fileSize?: number; // 파일 용량 (바이트)
+  pathUrl: string;
+  accessUrl: string;
+  accessUrlExpiresAt?: string | null;
+  filename?: string;
+  duration?: number;
+  fileSize?: number;
 
-  // Source 연동 (link/PDF와 동일)
   sourceSummaryAccessLanguages?: string[];
   sourceRawContentAccessGranted?: boolean;
 }
 
-/**
- * Audio Block Properties Value Object
- */
 export class AudioBlockPropertiesVO extends BlockPropertiesVO {
   constructor(
-    private readonly audioUrl: string,
-    private readonly url?: string,
-    private readonly filename?: string,
-    private readonly duration?: number,
-    private readonly fileSize?: number,
-    private readonly sourceSummaryAccessLanguages?: string[],
-    private readonly sourceRawContentAccessGranted?: boolean,
+    private readonly pathUrl: string,
+    private readonly accessUrl: string,
+    private readonly accessUrlExpiresAt: string | null | undefined,
+    private readonly filename: string | undefined,
+    private readonly duration: number | undefined,
+    private readonly fileSize: number | undefined,
+    private readonly sourceSummaryAccessLanguages: string[] | undefined,
+    private readonly sourceRawContentAccessGranted: boolean | undefined,
   ) {
     super();
   }
 
-  /**
-   * 기본값으로 AudioBlockPropertiesVO 생성
-   */
   static createDefault(): AudioBlockPropertiesVO {
     return new AudioBlockPropertiesVO(
-      '', // audioUrl
+      '',
+      '',
       undefined,
       undefined,
       undefined,
@@ -53,15 +46,18 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
     );
   }
 
-  /**
-   * JSON 데이터로부터 AudioBlockPropertiesVO 생성
-   * @param data - JSON 데이터
-   */
   static fromJSON(data: unknown): AudioBlockPropertiesVO {
     const safeData = (data as Partial<AudioBlockProperties>) ?? {};
+    const pathUrl = safeData.pathUrl ?? '';
+    const accessUrl =
+      safeData.accessUrl ??
+      (safeData as { audioUrl?: string }).audioUrl ??
+      (safeData as { url?: string }).url ??
+      '';
     return new AudioBlockPropertiesVO(
-      safeData.audioUrl ?? '',
-      safeData.url,
+      pathUrl,
+      accessUrl,
+      safeData.accessUrlExpiresAt,
       safeData.filename,
       safeData.duration,
       safeData.fileSize,
@@ -70,23 +66,17 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
     );
   }
 
-  /**
-   * 속성 유효성 검증
-   */
   protected validate(): boolean {
-    if (this.audioUrl === undefined) {
-      return false;
-    }
     return true;
   }
 
-  /**
-   * JSON으로 직렬화
-   */
   toJSON(): AudioBlockProperties {
     return {
-      audioUrl: this.audioUrl,
-      ...(this.url !== undefined && { url: this.url }),
+      pathUrl: this.pathUrl,
+      accessUrl: this.accessUrl,
+      ...(this.accessUrlExpiresAt != null && {
+        accessUrlExpiresAt: this.accessUrlExpiresAt,
+      }),
       ...(this.filename !== undefined && { filename: this.filename }),
       ...(this.duration !== undefined && { duration: this.duration }),
       ...(this.fileSize !== undefined && { fileSize: this.fileSize }),
@@ -99,16 +89,13 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
     };
   }
 
-  /**
-   * 다른 BlockPropertiesVO와 비교
-   */
   equals(other: BlockPropertiesVO): boolean {
     if (!(other instanceof AudioBlockPropertiesVO)) {
       return false;
     }
     return (
-      this.audioUrl === other.audioUrl &&
-      this.url === other.url &&
+      this.pathUrl === other.pathUrl &&
+      this.accessUrl === other.accessUrl &&
       this.filename === other.filename &&
       this.duration === other.duration &&
       this.fileSize === other.fileSize &&
@@ -118,12 +105,21 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
     );
   }
 
-  getAudioUrl(): string {
-    return this.audioUrl;
+  getPathUrl(): string {
+    return this.pathUrl;
   }
 
-  getUrl(): string | undefined {
-    return this.url;
+  getAccessUrl(): string {
+    return this.accessUrl;
+  }
+
+  /** 호환용: accessUrl과 동일 */
+  getAudioUrl(): string {
+    return this.accessUrl;
+  }
+
+  getUrl(): string {
+    return this.accessUrl;
   }
 
   getFilename(): string | undefined {
@@ -138,9 +134,14 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
     return this.fileSize;
   }
 
-  /**
-   * 재생 시간을 시:분:초 형식으로 변환
-   */
+  getSourceSummaryAccessLanguages(): string[] | undefined {
+    return this.sourceSummaryAccessLanguages;
+  }
+
+  getSourceRawContentAccessGranted(): boolean | undefined {
+    return this.sourceRawContentAccessGranted;
+  }
+
   getFormattedDuration(): string {
     if (this.duration == null || this.duration < 0) return '—';
     const h = Math.floor(this.duration / 3600);
@@ -152,9 +153,6 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
     return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
-  /**
-   * 파일 용량을 사람이 읽기 쉬운 형식으로 변환
-   */
   getFormattedFileSize(): string {
     if (this.fileSize == null || this.fileSize < 0) return '—';
     const units = ['B', 'KB', 'MB', 'GB'];
@@ -165,13 +163,5 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
       i += 1;
     }
     return `${size.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-  }
-
-  getSourceSummaryAccessLanguages(): string[] | undefined {
-    return this.sourceSummaryAccessLanguages;
-  }
-
-  getSourceRawContentAccessGranted(): boolean | undefined {
-    return this.sourceRawContentAccessGranted;
   }
 }
