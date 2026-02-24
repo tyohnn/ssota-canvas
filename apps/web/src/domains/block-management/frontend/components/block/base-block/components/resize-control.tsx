@@ -16,11 +16,12 @@ import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts
 import type { ResizeData } from '../core/types';
 import { ResizeControlView } from './resize-control.view';
 
-// 종횡비 유지가 필요한 블록 타입들
+// Blocks that keep aspect ratio when resizing
 const ASPECT_RATIO_LOCKED_BLOCK_TYPES = [
   BlockType.IMAGE,
   BlockType.YOUTUBE,
   BlockType.LINK,
+  BlockType.AUDIO,
 ] as const;
 
 export interface ResizeControlProps {

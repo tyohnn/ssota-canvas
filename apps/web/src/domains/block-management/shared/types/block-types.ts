@@ -54,7 +54,7 @@ export const BLOCK_TYPE_SIZES: Record<
   [BlockType.YOUTUBE]: { width: 410, height: 288 }, // YouTube iframe (222px) + 하단 정보 섹션
   [BlockType.IMAGE]: { width: 300, height: 200 },
   [BlockType.PDF]: { width: 300, height: 400 }, // PDF 문서
-  [BlockType.AUDIO]: { width: 300, height: 120 }, // 오디오 플레이어
+  [BlockType.AUDIO]: { width: 350, height: 160 }, // Audio player
   [BlockType.VIDEO]: { width: 400, height: 225 }, // 비디오 플레이어
   [BlockType.FILE]: { width: 250, height: 150 },
   [BlockType.PYTHON]: { width: 350, height: 250 },
@@ -117,7 +117,8 @@ export const BLOCK_TYPES_NO_CONTAINER_BOUNDARY: Partial<
   Record<BlockType, boolean>
 > = {
   [BlockType.SHAPE]: true,
-  [BlockType.GROUP]: true, // 그룹 블록은 자체 색상 테두리 사용
+  [BlockType.GROUP]: true,
+  [BlockType.AUDIO]: true, // Audio block has its own border/background in AudioView
 };
 
 export function hasNoContainerBoundary(blockType: BlockType): boolean {

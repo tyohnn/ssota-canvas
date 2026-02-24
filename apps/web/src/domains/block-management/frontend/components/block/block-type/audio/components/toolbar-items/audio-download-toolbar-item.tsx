@@ -56,13 +56,13 @@ export function AudioDownloadToolbarItem({
             handleDownload();
           }}
           disabled={disabled || !audioUrl}
-          aria-label="다운로드"
+          aria-label="Download"
         >
           <Download className="h-4 w-4" />
         </button>
       </TooltipTrigger>
       <TooltipContent side="top">
-        <p>다운로드</p>
+        <p>Download</p>
       </TooltipContent>
     </Tooltip>
   );

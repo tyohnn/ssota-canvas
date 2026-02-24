@@ -41,6 +41,7 @@ export const config = {
     youtube: process.env.YOUTUBE_API_KEY || '',
     zenrows: process.env.ZENROWS_API_KEY || '',
     firecrawl: process.env.FIRECRAWL_API_KEY || '',
+    elevenlabs: process.env.ELEVENLABS_API_KEY || '',
   },
   analytics: {
     mixpanel: process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || '',

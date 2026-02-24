@@ -14,6 +14,7 @@ import type { ISourceRepository } from '../../../repositories/interfaces/source.
 const TTL_LINK_DAYS = 2;
 const TTL_YOUTUBE_MONTHS = 3;
 const TTL_PDF_MONTHS = 6;
+const TTL_AUDIO_MONTHS = 6;
 
 export function computeExpiresAt(
   sourceType: string,
@@ -32,6 +33,11 @@ export function computeExpiresAt(
   if (sourceType === 'pdf') {
     const expires = new Date(extractedAt);
     expires.setMonth(expires.getMonth() + TTL_PDF_MONTHS);
+    return expires;
+  }
+  if (sourceType === 'audio') {
+    const expires = new Date(extractedAt);
+    expires.setMonth(expires.getMonth() + TTL_AUDIO_MONTHS);
     return expires;
   }
   return null;
@@ -69,6 +75,24 @@ export async function updateSourceRawContent(
       source.updateMetadata({
         ...existingMetadata,
         pdfExtraction: payload.pdfExtraction,
+      });
+      await sourceRepository.update(source);
+    }
+
+    // Merge script (YoutubeScript format) into source metadata for audio
+    if (
+      source.sourceType.value === 'audio' &&
+      safeDto.structuredPayload &&
+      typeof safeDto.structuredPayload === 'object' &&
+      Array.isArray((safeDto.structuredPayload as { transcript?: unknown[] }).transcript)
+    ) {
+      const existingMetadata =
+        typeof source.metadata === 'object' && source.metadata !== null
+          ? (source.metadata as Record<string, unknown>)
+          : {};
+      source.updateMetadata({
+        ...existingMetadata,
+        script: safeDto.structuredPayload,
       });
       await sourceRepository.update(source);
     }

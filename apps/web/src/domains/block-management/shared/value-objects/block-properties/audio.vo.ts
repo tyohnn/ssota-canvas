@@ -11,7 +11,9 @@ import { BlockPropertiesVO } from './base.vo';
  */
 export interface AudioBlockProperties {
   // 오디오 정보
-  audioUrl: string; // Supabase Storage URL
+  audioUrl: string; // Supabase Storage URL 또는 외부 URL
+  url?: string; // source용 canonical URL (audioUrl과 동일 값)
+  filename?: string; // 업로드 파일명
 
   // 표시 옵션
   title: string; // 오디오 제목
@@ -21,8 +23,12 @@ export interface AudioBlockProperties {
   playbackRate: number; // 재생 속도 (0.5 ~ 2.0)
   volume: number; // 볼륨 (0.0 ~ 1.0)
 
-  // 접근성
+  // 접근성 (deprecated - raw_content에서 가져옴)
   transcript: string; // 음성 텍스트 변환 결과 (STT)
+
+  // Source 연동 (link/PDF와 동일)
+  sourceSummaryAccessLanguages?: string[];
+  sourceRawContentAccessGranted?: boolean;
 }
 
 /**
@@ -35,7 +41,11 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
     private readonly artist: string,
     private readonly playbackRate: number,
     private readonly volume: number,
-    private readonly transcript: string
+    private readonly transcript: string,
+    private readonly url?: string,
+    private readonly filename?: string,
+    private readonly sourceSummaryAccessLanguages?: string[],
+    private readonly sourceRawContentAccessGranted?: boolean,
   ) {
     super();
   }
@@ -50,7 +60,11 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
       '', // artist
       1.0, // playbackRate
       0.8, // volume
-      '' // transcript
+      '', // transcript
+      undefined,
+      undefined,
+      undefined,
+      undefined,
     );
   }
 
@@ -66,7 +80,11 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
       safeData.artist ?? '',
       safeData.playbackRate ?? 1.0,
       safeData.volume ?? 0.8,
-      safeData.transcript ?? ''
+      safeData.transcript ?? '',
+      safeData.url,
+      safeData.filename,
+      safeData.sourceSummaryAccessLanguages,
+      safeData.sourceRawContentAccessGranted,
     );
   }
 
@@ -103,6 +121,14 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
       playbackRate: this.playbackRate,
       volume: this.volume,
       transcript: this.transcript,
+      ...(this.url !== undefined && { url: this.url }),
+      ...(this.filename !== undefined && { filename: this.filename }),
+      ...(this.sourceSummaryAccessLanguages !== undefined && {
+        sourceSummaryAccessLanguages: this.sourceSummaryAccessLanguages,
+      }),
+      ...(this.sourceRawContentAccessGranted !== undefined && {
+        sourceRawContentAccessGranted: this.sourceRawContentAccessGranted,
+      }),
     };
   }
 
@@ -119,7 +145,12 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
       this.artist === other.artist &&
       this.playbackRate === other.playbackRate &&
       this.volume === other.volume &&
-      this.transcript === other.transcript
+      this.transcript === other.transcript &&
+      this.url === other.url &&
+      this.filename === other.filename &&
+      JSON.stringify(this.sourceSummaryAccessLanguages ?? []) ===
+        JSON.stringify(other.sourceSummaryAccessLanguages ?? []) &&
+      this.sourceRawContentAccessGranted === other.sourceRawContentAccessGranted
     );
   }
 
@@ -146,5 +177,21 @@ export class AudioBlockPropertiesVO extends BlockPropertiesVO {
 
   getTranscript(): string {
     return this.transcript;
+  }
+
+  getUrl(): string | undefined {
+    return this.url;
+  }
+
+  getFilename(): string | undefined {
+    return this.filename;
+  }
+
+  getSourceSummaryAccessLanguages(): string[] | undefined {
+    return this.sourceSummaryAccessLanguages;
+  }
+
+  getSourceRawContentAccessGranted(): boolean | undefined {
+    return this.sourceRawContentAccessGranted;
   }
 }

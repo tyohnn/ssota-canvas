@@ -25,6 +25,7 @@ export const BLOCKS_WITH_TABS: Record<string, boolean> = {
   youtube: true,
   link: true,
   pdf: true,
+  audio: true,
 };
 
 /**

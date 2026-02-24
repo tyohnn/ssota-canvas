@@ -12,6 +12,7 @@ export type ClipboardContentType =
   | 'image-url' // 이미지 URL (.jpg, .png 등으로 끝나는 URL)
   | 'youtube-url' // YouTube URL
   | 'pdf-url' // PDF URL (.pdf로 끝나는 URL)
+  | 'audio-url' // 오디오 URL (.mp3, .wav 등으로 끝나는 URL)
   | 'link-url' // 일반 링크 URL
   | 'rich-text-html' // Rich Text HTML (TipTap에서 복사한 포맷된 텍스트)
   | 'markdown-text' // 마크다운 텍스트 (Tiptap 스타일 감지)

@@ -137,29 +137,29 @@ export function AudioRecordToolbarItem({
               setIsDialogOpen(true);
             }}
             disabled={disabled}
-            aria-label="오디오 녹음"
+            aria-label="Record audio"
           >
             <Mic className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
         <TooltipContent side="top">
-          <p>오디오 녹음</p>
+          <p>Record audio</p>
         </TooltipContent>
       </Tooltip>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>오디오 녹음</DialogTitle>
+            <DialogTitle>Record audio</DialogTitle>
             <DialogDescription>
-              마이크를 선택하고 녹음을 시작하세요
+              Select a microphone and start recording
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             {/* Mic Selector */}
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">마이크</span>
+              <span className="text-sm font-medium">Microphone</span>
               <MicSelector
                 value={selectedDeviceId}
                 onValueChange={setSelectedDeviceId}
@@ -182,36 +182,36 @@ export function AudioRecordToolbarItem({
             {isRecording && (
               <div className="flex items-center justify-center gap-2 text-sm text-destructive">
                 <span className="animate-pulse">●</span>
-                녹음 중...
+                Recording...
               </div>
             )}
 
             {recordedBlob && !isRecording && (
               <div className="flex items-center justify-center text-sm text-muted-foreground">
-                녹음 완료 ({(recordedBlob.size / 1024).toFixed(2)} KB)
+                Recording complete ({(recordedBlob.size / 1024).toFixed(2)} KB)
               </div>
             )}
           </div>
 
           <DialogFooter>
             <Button variant="ghost" onClick={handleCancel}>
-              취소
+              Cancel
             </Button>
             {!isRecording ? (
               <>
                 {recordedBlob && (
                   <Button onClick={handleSave} disabled={isUploading}>
-                    {isUploading ? '저장 중...' : '저장'}
+                    {isUploading ? 'Saving...' : 'Save'}
                   </Button>
                 )}
                 {!recordedBlob && (
-                  <Button onClick={startRecording}>녹음 시작</Button>
+                  <Button onClick={startRecording}>Start recording</Button>
                 )}
               </>
             ) : (
               <Button variant="destructive" onClick={stopRecording}>
                 <Square className="h-4 w-4 mr-2" />
-                녹음 중지
+                Stop recording
               </Button>
             )}
           </DialogFooter>

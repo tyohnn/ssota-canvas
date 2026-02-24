@@ -40,6 +40,7 @@
     "@ai-sdk/openai": "^2.0.89",
     "@ai-sdk/react": "^3.0.71",
     "@ai-sdk/xai": "^3.0.46",
+    "@elevenlabs/elevenlabs-js": "^2.36.0",
     "@headless-tree/core": "^1.6.3",
     "@headless-tree/react": "^1.6.3",
     "@hookform/resolvers": "^5.2.2",

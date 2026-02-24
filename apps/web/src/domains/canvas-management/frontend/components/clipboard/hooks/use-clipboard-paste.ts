@@ -239,6 +239,13 @@ export function useClipboardPaste({
           break;
         }
 
+        case 'audio-url': {
+          blockType = BlockType.AUDIO;
+          initialProperties = {
+            audioUrl: analysisResult.data.url,
+          };
+          break;
+        }
 
         case 'link-url': {
           blockType = BlockType.LINK;
