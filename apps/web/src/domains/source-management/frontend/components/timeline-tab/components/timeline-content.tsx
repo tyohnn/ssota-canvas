@@ -42,6 +42,11 @@ export function TimelineContent({
 }: TimelineContentProps) {
   return (
     <Box className="space-y-4 relative">
+      {extractedAt && (
+        <Box className="text-xs text-muted-foreground mb-2">
+          Extracted {formatTimeAgo(extractedAt)}
+        </Box>
+      )}
       <TimelineTranscript
         transcript={script?.transcript}
         sourceTitle={sourceTitle}
@@ -50,11 +55,6 @@ export function TimelineContent({
         transcript={script?.transcript}
         showTOC={true}
       />
-      {extractedAt && (
-        <Box className="text-xs text-muted-foreground pt-2">
-          Extracted {formatTimeAgo(extractedAt)}
-        </Box>
-      )}
     </Box>
   );
 }
