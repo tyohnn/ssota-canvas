@@ -100,6 +100,8 @@ export function useBlockNoteTiptap(
   const saveStepsToServer = useCallback(
     async (steps: unknown[], baseVersion: number) => {
       if (!applyBlockContentSteps || !blockData.blockId) return;
+      // Tutorial mode: mock blocks have synthetic IDs, skip server sync
+      if (workspaceId === 'tutorial') return;
 
       try {
         const latestNode = reactFlow.getNode(blockData.blockMountId);
@@ -132,7 +134,7 @@ export function useBlockNoteTiptap(
         console.error('[BlockNoteTiptap] Failed to apply steps:', error);
       }
     },
-    [blockData, reactFlow, applyBlockContentSteps, contentVersionRef]
+      [blockData, reactFlow, applyBlockContentSteps, contentVersionRef, workspaceId]
   );
 
   const { editor, state, handleEditorClick, mathEditing, setMathEditing } = useTipTapEditor({
@@ -147,7 +149,7 @@ export function useBlockNoteTiptap(
     },
     onSaveSteps: saveStepsToServer,
     onBlurAudit: async ({ blockId, patch }) => {
-      if (workspaceId) {
+      if (workspaceId && workspaceId !== 'tutorial') {
         await logBlockUpdatedAuditAction({ workspaceId, blockId, patch });
       }
     },
