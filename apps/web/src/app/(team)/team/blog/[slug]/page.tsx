@@ -74,7 +74,7 @@ export default async function PostPage({
         </p>
       </header>
 
-      <div className="prose prose-slate dark:prose-invert max-w-none">
+      <div className="prose prose-neutral dark:prose-invert max-w-none">
         {Array.isArray(post.body) && <PortableText value={post.body} />}
       </div>
     </article>

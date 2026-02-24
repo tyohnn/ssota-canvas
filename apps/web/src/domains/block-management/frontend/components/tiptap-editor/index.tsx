@@ -256,11 +256,10 @@ export function TipTapEditor({
         className={cn(
           placeholderClassName,
           'prose prose-neutral dark:prose-invert max-w-none',
+          'prose-editor',
           'tiptap-block-editor',
           editable && 'nodrag',
           editable && 'focus:outline-none',
-          '[&_.ProseMirror>*]:rounded-md [&_.ProseMirror>*]:px-2 [&_.ProseMirror>*]:py-1 [&_.ProseMirror>*]:min-h-[1.5em]',
-          '[&_.ProseMirror>p]:my-0.5 [&_.ProseMirror>h1]:my-2 [&_.ProseMirror>h2]:my-1.5 [&_.ProseMirror>h3]:my-1',
           className
         )}
       />
