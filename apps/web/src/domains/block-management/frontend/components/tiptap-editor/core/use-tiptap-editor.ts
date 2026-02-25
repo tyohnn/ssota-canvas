@@ -598,7 +598,7 @@ export function useTipTapEditor(
   //   };
   // }, [editor]);
 
-  // Cleanup: 타이머 정리. blur 100ms 타이머가 아직 대기 중이면 unmount 시 동기적으로 flush + 감사 실행 (패널 닫기/ESC 시 로그 누락 방지)
+  // Cleanup: 타이머 정리. blur 없이 unmount되는 경우에도 pending steps flush (debounce 대기 중 데이터 손실 방지)
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
@@ -608,8 +608,8 @@ export function useTipTapEditor(
       if (blurFlushTimerRef.current) {
         clearTimeout(blurFlushTimerRef.current);
         blurFlushTimerRef.current = null;
-        runPendingBlurFlushAndAudit();
       }
+      runPendingBlurFlushAndAudit();
     };
   }, [editor, runPendingBlurFlushAndAudit]);
 

@@ -113,6 +113,14 @@ export function ChatPanelSidebar({ className }: ChatPanelSidebarProps) {
                 setSessionTitle(title);
               }
             }}
+            onCurrentSessionDeleted={(remaining) => {
+              if (remaining.length > 0) {
+                const next = remaining[0]!;
+                loadSession(next.id, next.title);
+              } else {
+                startNewSession();
+              }
+            }}
           />
           <Button
             variant="ghost"
