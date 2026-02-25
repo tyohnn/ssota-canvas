@@ -152,11 +152,6 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
 
   const onJobUpdate = useCallback(
     (blockId: string, raw: SourceJob) => {
-      console.log('[AIActionContext] onJobUpdate called', {
-        blockId,
-        status: raw.status,
-        current_step: raw.current_step,
-      });
       if (raw.status === 'completed') {
         onSummaryJobCompleted(blockId, raw);
       }
@@ -210,6 +205,28 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
   );
 
   useMultiSourceJobRealtime(summaryBlockIds, onJobUpdate);
+
+  // Polling fallback: Realtime이 등록된 block에 대해서만 주기적으로 최신 상태 동기화 (main 등 Realtime 미전달 환경 대응)
+  useEffect(() => {
+    if (!workspaceId || summaryBlockIds.length === 0) return;
+
+    const POLL_INTERVAL_MS = 3000;
+    const intervalId = setInterval(() => {
+      summaryBlockIds.forEach(blockId => {
+        const blockSlug = toBlockSlug(blockId);
+        getLatestSourceJobByBlockIdAction({ workspaceId, blockId: blockSlug })
+          .then(result => {
+            if (result.success && result.data?.job) {
+              const job = result.data.job as SourceJob;
+              onJobUpdate(job.block_id, job);
+            }
+          })
+          .catch(() => {});
+      });
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [workspaceId, summaryBlockIds.join(','), onJobUpdate]);
 
   useEffect(() => {
     if (!pageId || isTempPageId(pageId)) return;

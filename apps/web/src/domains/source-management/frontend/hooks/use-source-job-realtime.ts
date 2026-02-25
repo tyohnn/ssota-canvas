@@ -70,17 +70,10 @@ export function useSourceJobRealtime(
   const onEvent = useCallback((payload: { eventType?: string; new?: SourceJob }) => {
     if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
       if (payload.new) {
-        const job = payload.new as SourceJob;
-        console.log('[useSourceJobRealtime] postgres_changes event', {
-          blockId,
-          eventType: payload.eventType,
-          status: job.status,
-          current_step: job.current_step,
-        });
-        setJob(job);
+        setJob(payload.new as SourceJob);
       }
     }
-  }, [blockId]);
+  }, []);
 
   useSupabaseRealtime({
     table: 'source_jobs',
@@ -129,12 +122,8 @@ export function useMultiSourceJobRealtime(
     const channels: RealtimeChannel[] = [];
 
     const setup = async () => {
-      console.log('[useMultiSourceJobRealtime] setup start', { blockIds });
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.warn('[useMultiSourceJobRealtime] User not authenticated, skipping subscription');
-        return;
-      }
+      if (!user) return;
       blockIds.forEach(blockId => {
         const channel = supabase
           .channel(`source_jobs-${blockId}`)
@@ -147,26 +136,12 @@ export function useMultiSourceJobRealtime(
               filter: `block_id=eq.${blockId}`,
             },
             (payload: { eventType?: string; new?: SourceJob;[k: string]: unknown }) => {
-              const job = payload.new as SourceJob | undefined;
-              console.log('[useMultiSourceJobRealtime] postgres_changes event received', {
-                blockId,
-                eventType: payload.eventType,
-                status: job?.status,
-                current_step: job?.current_step,
-                hasNew: !!payload.new,
-              });
               if ((payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') && payload.new) {
                 onJobUpdateRef.current(blockId, payload.new as SourceJob);
               }
             }
           )
-          .subscribe((status, err) => {
-            console.log('[useMultiSourceJobRealtime] channel subscribe status', {
-              blockId,
-              status,
-              err: err?.message ?? err,
-            });
-          });
+          .subscribe(() => {});
         channels.push(channel);
       });
     };

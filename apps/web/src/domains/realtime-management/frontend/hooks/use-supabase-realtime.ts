@@ -105,23 +105,10 @@ export function useSupabaseRealtime({
             ...(appliedFilter && { filter: appliedFilter }),
           },
           (payload: any) => {
-            if (table === 'source_jobs') {
-              console.log('[useSupabaseRealtime] source_jobs event', {
-                eventType: payload.eventType,
-                status: payload.new?.status,
-              });
-            }
             onEvent(payload);
           }
         )
-        .subscribe((status, err) => {
-          if (table === 'source_jobs') {
-            console.log('[useSupabaseRealtime] source_jobs channel status', {
-              status,
-              err: err?.message ?? err,
-            });
-          }
-        });
+        .subscribe();
 
       channelRef.current = realtimeChannel;
     };
