@@ -22,28 +22,16 @@ import type {
  * 클립보드 내용 분석
  */
 export async function analyzeClipboard(): Promise<ClipboardAnalysisResult> {
-  console.log('[Clipboard Analyzer] Starting analysis...');
-
   try {
-    // 1. 클립보드 아이템 읽기
-    console.log('[Clipboard Analyzer] Reading clipboard items...');
     const clipboardItems = await navigator.clipboard.read();
-    console.log('[Clipboard Analyzer] Found items:', clipboardItems.length);
 
     // 2. 이미지 파일 또는 HTML 확인
     for (const item of clipboardItems) {
-      console.log('[Clipboard Analyzer] Item types:', item.types);
-
       // HTML 타입 확인 (TipTap Rich Text)
       if (item.types.includes('text/html')) {
-        console.log('[Clipboard Analyzer] HTML content detected');
         try {
           const htmlBlob = await item.getType('text/html');
           const html = await htmlBlob.text();
-          console.log(
-            '[Clipboard Analyzer] HTML content:',
-            html.substring(0, 200)
-          );
 
           // HTML이 있으면 rich-text로 처리
           return {
@@ -53,25 +41,20 @@ export async function analyzeClipboard(): Promise<ClipboardAnalysisResult> {
             },
             confidence: 1.0,
           };
-        } catch (err) {
-          console.error('[Clipboard Analyzer] Failed to read HTML:', err);
+        } catch {
+          // ignore
         }
       }
 
       // 이미지 타입 우선 순위로 확인 (image/로 시작하는 모든 타입)
       const imageTypes = item.types.filter(type => type.startsWith('image/'));
-      console.log('[Clipboard Analyzer] Image types found:', imageTypes);
 
       if (imageTypes.length > 0) {
-        // 첫 번째 이미지 타입 사용
         const imageType = imageTypes[0];
-        if (!imageType) continue; // 타입 가드
-
-        console.log('[Clipboard Analyzer] Using image type:', imageType);
+        if (!imageType) continue;
 
         try {
           const blob = await item.getType(imageType);
-          console.log('[Clipboard Analyzer] Image blob size:', blob.size);
 
           return {
             type: 'image-file',
@@ -81,21 +64,16 @@ export async function analyzeClipboard(): Promise<ClipboardAnalysisResult> {
             },
             confidence: 1.0,
           };
-        } catch (err) {
-          console.error('[Clipboard Analyzer] Failed to get image blob:', err);
+        } catch {
           // 계속해서 다음 타입 시도
         }
       }
     }
 
     // 3. 텍스트 분석
-    console.log('[Clipboard Analyzer] No image found, trying text...');
     const text = await navigator.clipboard.readText();
-    console.log('[Clipboard Analyzer] Text length:', text?.length || 0);
-    console.log('[Clipboard Analyzer] Text preview:', text?.substring(0, 100));
 
     if (!text || text.trim().length === 0) {
-      console.log('[Clipboard Analyzer] No text found, unsupported');
       return {
         type: 'unsupported',
         data: {},
@@ -106,9 +84,7 @@ export async function analyzeClipboard(): Promise<ClipboardAnalysisResult> {
     const trimmedText = text.trim();
 
     // 3-1. YouTube URL 감지
-    console.log('[Clipboard Analyzer] Checking YouTube URL...');
     if (isYouTubeUrl(trimmedText)) {
-      console.log('[Clipboard Analyzer] Detected YouTube URL');
       return {
         type: 'youtube-url',
         data: {
@@ -120,9 +96,7 @@ export async function analyzeClipboard(): Promise<ClipboardAnalysisResult> {
     }
 
     // 3-2. 이미지 URL 감지
-    console.log('[Clipboard Analyzer] Checking image URL...');
     if (isImageUrl(trimmedText)) {
-      console.log('[Clipboard Analyzer] Detected image URL');
       return {
         type: 'image-url',
         data: {
@@ -170,17 +144,7 @@ export async function analyzeClipboard(): Promise<ClipboardAnalysisResult> {
     }
 
     // 3-4. 이미지 파일명 감지 (파일 이름만 복사된 경우)
-    console.log('[Clipboard Analyzer] Checking if text is image filename...');
     if (isImageFilename(trimmedText)) {
-      console.log(
-        '[Clipboard Analyzer] Detected image filename (file not copied, only filename)'
-      );
-      console.warn(
-        '[Clipboard Analyzer] WARNING: Only filename was copied, not the actual image data.'
-      );
-      console.warn(
-        '[Clipboard Analyzer] To copy image: Open the image file and copy the image content (Cmd+A, Cmd+C)'
-      );
       return {
         type: 'unsupported',
         data: {
@@ -191,9 +155,7 @@ export async function analyzeClipboard(): Promise<ClipboardAnalysisResult> {
     }
 
     // 3-5. 마크다운 문법 감지
-    console.log('[Clipboard Analyzer] Checking markdown syntax...');
     if (hasMarkdownSyntax(trimmedText)) {
-      console.log('[Clipboard Analyzer] Detected markdown text');
       return {
         type: 'markdown-text',
         data: {
@@ -204,7 +166,6 @@ export async function analyzeClipboard(): Promise<ClipboardAnalysisResult> {
     }
 
     // 3-6. 일반 텍스트 (기본값)
-    console.log('[Clipboard Analyzer] Defaulting to plain text');
     return {
       type: 'plain-text',
       data: {
@@ -212,9 +173,7 @@ export async function analyzeClipboard(): Promise<ClipboardAnalysisResult> {
       },
       confidence: 0.7,
     };
-  } catch (error) {
-    console.error('[Clipboard Analyzer] Error analyzing clipboard:', error);
-    console.error('[Clipboard Analyzer] Error details:', error);
+  } catch {
     return {
       type: 'unsupported',
       data: {},

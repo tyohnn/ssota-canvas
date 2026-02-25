@@ -40,6 +40,12 @@ function getDomain(url: string): string {
   }
 }
 
+/** Decode HTML entities in URL so img src loads (e.g. &amp; -> &). */
+function decodeUrlEntities(s: string): string {
+  if (!s) return s;
+  return s.replace(/&amp;/gi, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+}
+
 function linkMetadataToOg(
   m: LinkSourceMetadata,
   url: string
@@ -48,7 +54,7 @@ function linkMetadataToOg(
   return {
     title: m.ogTitle ?? domain ?? 'Unknown',
     description: m.ogDescription ?? '',
-    imageUrl: m.ogImage ?? '',
+    imageUrl: decodeUrlEntities(m.ogImage ?? ''),
     siteName: m.siteName ?? domain,
     domain,
     faviconUrl:
