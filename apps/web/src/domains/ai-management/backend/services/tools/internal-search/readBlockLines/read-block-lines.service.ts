@@ -83,8 +83,8 @@ export async function* executeReadBlockLines(
     return err;
   }
 
-  const isSlug = (s: string) => s.length === 8 && /^[0-9a-f]+$/i.test(s);
-  const isUuid = (s: string) =>
+  const isSlug = (s: string): boolean => s.length === 8 && /^[0-9a-f]+$/i.test(s);
+  const isUuid = (s: string): boolean =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.trim());
 
   let pageIdVO: PageId | undefined;
@@ -136,8 +136,9 @@ export async function* executeReadBlockLines(
     if (src === 'note_content') {
       const row = await repository.findContentByBlockMountId(blockMountIdVO, pageIdVO);
       if (!row) {
-        yield buildErrorFinal(blockMountIdStr);
-        return buildErrorFinal(blockMountIdStr);
+        const err = buildErrorFinal(blockMountIdStr);
+        yield err;
+        return err;
       }
       if (!row.contentRaw) {
         const final: ReadBlockLinesFinal = {

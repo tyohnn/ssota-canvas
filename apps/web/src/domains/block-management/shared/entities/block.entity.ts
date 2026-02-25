@@ -5,9 +5,10 @@ import { WorkspaceId } from '@/domains/workspace-management/shared/value-objects
 
 import { BlockManagementError } from '../errors/block-management.error';
 import {
-  extractPlainText,
+  extractPlainText as extractPlainTextFromMarkdown,
   tiptapToMarkdown,
 } from '../utils/tiptap-markdown.utils';
+import { extractPlainText as extractPlainTextFromJson } from '../utils/tiptap-json.utils';
 import { BlockId } from '../value-objects/block-id.vo';
 import {
   BlockPropertiesFactory,
@@ -98,14 +99,25 @@ export class Block {
       undefined // slug (create 시 repo에서 id로부터 계산해 insert)
     );
 
-    // content_raw 자동 생성 (AI 컨텍스트용). 마크다운은 tiptapToMarkdown, 그 외/실패 시 extractPlainText
+    // content_raw 자동 생성 (AI 컨텍스트용).
+    // 클립보드 붙여넣기 등으로 블록 생성 시 initialContent(JSONB)만 오고 content_raw는 없으므로 여기서 채움.
+    // 서버(SSR)에서는 tiptapToMarkdown이 window 없어서 곧바로 extractPlainText만 쓰므로,
+    // fallback으로 서버 안전한 tiptap-json.utils의 extractPlainText를 한 번 더 시도해 빈 content_raw 방지.
     if (content && typeof content === 'object') {
-      let contentRaw =
-        blockType.value === 'markdown'
-          ? tiptapToMarkdown(content as any)
-          : '';
+      let contentRaw = '';
+      try {
+        contentRaw =
+          blockType.value === 'markdown'
+            ? tiptapToMarkdown(content as any)
+            : '';
+      } catch {
+        // tiptapToMarkdown 실패 시(예: 서버에서 generateHTML 등 실패) 무시
+      }
       if (!contentRaw) {
-        contentRaw = extractPlainText(content as any);
+        contentRaw = extractPlainTextFromMarkdown(content as any);
+      }
+      if (!contentRaw) {
+        contentRaw = extractPlainTextFromJson(content as any);
       }
       if (contentRaw) {
         (block as any).contentRaw = contentRaw;
