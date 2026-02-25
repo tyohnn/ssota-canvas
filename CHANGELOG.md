@@ -1,3 +1,20 @@
+## [0.20.1] - 2026-02-25
+
+### Debug
+
+- Add logs
+
+### ♻️ Refactoring
+
+- Remove agent logging from useSourceJobForBlock and useSourceSummarySection components
+
+### ✨ Features
+
+- Add HTML entity decoding for image URLs in link metadata fetching
+
+### 🐛 Bug Fixes
+
+- Comment out VisualSummaryAction due to functionality issues
 ## [0.20.0] - 2026-02-25
 
 ### ✨ Features
