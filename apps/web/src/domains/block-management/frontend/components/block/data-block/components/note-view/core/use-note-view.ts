@@ -92,6 +92,12 @@ export function useNoteView(
     }
 
     if (selected && uiState.isDoubleClickMode && editor) {
+      // 타이틀 input에 포커스가 있으면 에디터로 포커스 이동하지 않음 (한글 조합 등으로 리렌더 시 커서 이탈 방지)
+      const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
+      if (activeEl?.tagName === 'INPUT') {
+        uiState.handleEnterEditing();
+        return;
+      }
       uiState.handleEnterEditing();
       editor.commands.focus();
     }
