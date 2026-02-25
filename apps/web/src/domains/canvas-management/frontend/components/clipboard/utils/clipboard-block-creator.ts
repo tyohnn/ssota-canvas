@@ -99,7 +99,6 @@ export async function createBlockFromClipboard(
 
     case 'unsupported':
     default:
-      console.warn('[Clipboard] Unsupported clipboard content type:', type);
       return null;
   }
 }
@@ -122,12 +121,7 @@ async function createImageBlockFromFile(
 ): Promise<BlockType | null> {
   try {
     // 이미지 업로드 함수가 제공되지 않은 경우
-    if (!uploadImageToSupabase) {
-      console.error(
-        '[Clipboard] Image upload function not provided. Cannot create image block from file.'
-      );
-      return null;
-    }
+    if (!uploadImageToSupabase) return null;
 
     // 파일명 생성 (timestamp + random)
     const timestamp = Date.now();
@@ -135,16 +129,8 @@ async function createImageBlockFromFile(
     const extension = blob.type.split('/')[1] || 'png';
     const fileName = `clipboard-${timestamp}-${randomId}.${extension}`;
 
-    console.log('[Clipboard] Uploading image to Supabase...', {
-      fileName,
-      size: blob.size,
-      type: blob.type,
-    });
-
     // Supabase Storage에 업로드
     const imageUrl = await uploadImageToSupabase(blob, fileName);
-
-    console.log('[Clipboard] Image uploaded successfully:', imageUrl);
 
     // 이미지 블록 생성
     await createAndMountBlock(BlockType.IMAGE, position);
@@ -153,8 +139,7 @@ async function createImageBlockFromFile(
     // 이는 use-clipboard-paste 훅에서 처리
 
     return BlockType.IMAGE;
-  } catch (error) {
-    console.error('[Clipboard] Failed to create image block from file:', error);
+  } catch {
     return null;
   }
 }
@@ -174,8 +159,6 @@ async function createImageBlockFromUrl(
   ) => Promise<void>
 ): Promise<BlockType | null> {
   try {
-    console.log('[Clipboard] Creating image block from URL:', url);
-
     // 이미지 블록 생성
     await createAndMountBlock(BlockType.IMAGE, position);
 
@@ -183,8 +166,7 @@ async function createImageBlockFromUrl(
     // 이는 use-clipboard-paste 훅에서 처리
 
     return BlockType.IMAGE;
-  } catch (error) {
-    console.error('[Clipboard] Failed to create image block from URL:', error);
+  } catch {
     return null;
   }
 }
@@ -202,8 +184,6 @@ async function createYoutubeBlock(
   ) => Promise<void>
 ): Promise<BlockType | null> {
   try {
-    console.log('[Clipboard] Creating YouTube block:', url);
-
     // YouTube 블록 생성
     await createAndMountBlock(BlockType.YOUTUBE, position);
 
@@ -211,8 +191,7 @@ async function createYoutubeBlock(
     // 이는 use-clipboard-paste 훅에서 처리
 
     return BlockType.YOUTUBE;
-  } catch (error) {
-    console.error('[Clipboard] Failed to create YouTube block:', error);
+  } catch {
     return null;
   }
 }
@@ -230,11 +209,9 @@ async function createPdfBlock(
   ) => Promise<void>
 ): Promise<BlockType | null> {
   try {
-    console.log('[Clipboard] Creating PDF block:', url);
     await createAndMountBlock(BlockType.PDF, position);
     return BlockType.PDF;
-  } catch (error) {
-    console.error('[Clipboard] Failed to create PDF block:', error);
+  } catch {
     return null;
   }
 }
@@ -252,11 +229,9 @@ async function createAudioBlock(
   ) => Promise<void>
 ): Promise<BlockType | null> {
   try {
-    console.log('[Clipboard] Creating audio block:', url);
     await createAndMountBlock(BlockType.AUDIO, position);
     return BlockType.AUDIO;
-  } catch (error) {
-    console.error('[Clipboard] Failed to create audio block:', error);
+  } catch {
     return null;
   }
 }
@@ -276,8 +251,6 @@ async function createLinkBlock(
   ) => Promise<void>
 ): Promise<BlockType | null> {
   try {
-    console.log('[Clipboard] Creating link block:', url);
-
     // 링크 블록 생성
     await createAndMountBlock(BlockType.LINK, position);
 
@@ -285,8 +258,7 @@ async function createLinkBlock(
     // 이는 use-clipboard-paste 훅에서 처리
 
     return BlockType.LINK;
-  } catch (error) {
-    console.error('[Clipboard] Failed to create link block:', error);
+  } catch {
     return null;
   }
 }
@@ -306,11 +278,6 @@ async function createMarkdownBlock(
   ) => Promise<void>
 ): Promise<BlockType | null> {
   try {
-    console.log('[Clipboard] Creating markdown block with text:', {
-      preview: text.substring(0, 100),
-      length: text.length,
-    });
-
     // 마크다운 블록 생성
     await createAndMountBlock(BlockType.MARKDOWN, position);
 
@@ -318,8 +285,7 @@ async function createMarkdownBlock(
     // 이는 use-clipboard-paste 훅에서 처리
 
     return BlockType.MARKDOWN;
-  } catch (error) {
-    console.error('[Clipboard] Failed to create markdown block:', error);
+  } catch {
     return null;
   }
 }

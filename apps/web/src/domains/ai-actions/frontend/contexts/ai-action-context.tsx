@@ -152,6 +152,11 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
 
   const onJobUpdate = useCallback(
     (blockId: string, raw: SourceJob) => {
+      console.log('[AIActionContext] onJobUpdate called', {
+        blockId,
+        status: raw.status,
+        current_step: raw.current_step,
+      });
       if (raw.status === 'completed') {
         onSummaryJobCompleted(blockId, raw);
       }
