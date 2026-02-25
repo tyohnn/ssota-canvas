@@ -368,46 +368,6 @@ export function useSourceSummarySection({
     isJobProcessingForSelectedLanguage ||
     isOptimisticExtractForSelectedLanguage;
 
-  // #region agent log
-  const wouldShowEmpty =
-    !isExtracting &&
-    !isLoading &&
-    (finalCurrentSummary === null || finalCurrentSummary === undefined);
-  if (wouldShowEmpty && blockSlug && sourceId) {
-    fetch('http://127.0.0.1:7242/ingest/5050391a-baab-4666-90cd-e84fd838086c', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '7f6321',
-      },
-      body: JSON.stringify({
-        sessionId: '7f6321',
-        hypothesisId: 'H2,H3',
-        location: 'use-source-summary-section.ts:wouldShowEmpty',
-        message: 'Would show empty state',
-        data: {
-          blockSlug,
-          selectedLanguage: languages.selectedLanguage,
-          availableLanguages: languages.availableLanguages,
-          isSelectedLanguageInList,
-          isCompletedJobForSelectedLanguage,
-          isAlreadyExtracted,
-          finalCurrentSummaryType:
-            finalCurrentSummary === null
-              ? 'null'
-              : finalCurrentSummary === undefined
-                ? 'undefined'
-                : 'defined',
-          isInitialFetchAfterPanelOpen,
-          languagesLoadingLanguages: languages.isLoadingLanguages,
-          contentLoading: content.isLoading,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => { });
-  }
-  // #endregion
-
   const sourceSummaryAccessLanguages = Array.from(
     new Set([
       ...(sourceSummaryAccessLanguagesFromProperties ?? []),
