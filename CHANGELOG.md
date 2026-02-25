@@ -1,3 +1,9 @@
+## [0.20.0] - 2026-02-25
+
+### ✨ Features
+
+- Enhance block content retrieval by extracting plain text from JSON when content_raw is empty
+- Prevent focus shift to editor when title input is active during double-click mode
 ## [0.19.0] - 2026-02-25
 
 ### ✨ Features
