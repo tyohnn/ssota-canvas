@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Gift } from 'lucide-react';
 
 import { Box } from '@/components/ui/box';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 
 const VERSION_STORAGE_KEY = 'ssota_app_version';
 const CHECK_INTERVAL_MS = 60_000;
+const STALE_TAB_AUTO_RELOAD_MS = 30 * 60 * 1000; // 30분
 
 function getClientVersion(): string {
   if (typeof window === 'undefined') return 'development';
@@ -43,6 +44,8 @@ export function VersionUpdateBanner() {
     }
   }, []);
 
+  const hiddenAtRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (typeof window === 'undefined' || isDevelopment) return;
 
@@ -52,7 +55,23 @@ export function VersionUpdateBanner() {
     checkVersion();
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      // 탭이 백그라운드로 갈 때: 복귀 시 경과 시간 계산을 위해 시각 저장
+      if (document.visibilityState === 'hidden') {
+        hiddenAtRef.current = Date.now();
+      }
+      // 탭이 포그라운드로 돌아올 때
+      else if (document.visibilityState === 'visible') {
+        const hiddenAt = hiddenAtRef.current;
+        if (hiddenAt != null) {
+          const awayMs = Date.now() - hiddenAt;
+          // 30분 이상 비활성 상태였으면 자동 새로고침 (stale tab, 연결 끊김 등 방지)
+          if (awayMs >= STALE_TAB_AUTO_RELOAD_MS) {
+            window.location.reload();
+            return;
+          }
+          hiddenAtRef.current = null; // 30분 미만이면 타이머 초기화
+        }
+        // 버전 체크 (새 배포 여부 확인)
         checkVersion();
       }
     };
