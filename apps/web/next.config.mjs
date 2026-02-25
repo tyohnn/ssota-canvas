@@ -8,6 +8,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['@workspace/ui'],
+  env: {
+    NEXT_PUBLIC_APP_VERSION:
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      process.env.NEXT_PUBLIC_APP_VERSION ||
+      'development',
+  },
   images: {
     remotePatterns: [
       {

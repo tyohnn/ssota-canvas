@@ -90,9 +90,15 @@ export function useChatSessionPersistence({
     if (!sessionList || didAutoLoad.current) return;
     const first = sessionList[0];
     if (!first) return;
+    // Skip if we're already in this session (e.g. just created it and sent first message)
+    // Prevents skeleton flash and duplicate message save when list refetches after save
+    if (first.id === currentSessionId) {
+      didAutoLoad.current = true;
+      return;
+    }
     didAutoLoad.current = true;
     loadSession(first.id, first.title);
-  }, [sessionList]);
+  }, [sessionList, currentSessionId, loadSession]);
 
   const createSession = useCallback(async (): Promise<string | null> => {
     const data = await createMutation.mutateAsync();

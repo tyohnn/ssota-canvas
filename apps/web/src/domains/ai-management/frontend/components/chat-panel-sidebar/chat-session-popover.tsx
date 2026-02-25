@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Pencil, Trash2, Check, X, Loader2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -17,6 +18,7 @@ import {
   useUpdateChatSessionTitleMutation,
   useDeleteChatSessionMutation,
 } from '@/domains/ai-management/frontend/hooks/chat-sessions';
+import { chatSessionQueryKeys } from '@/domains/ai-management/frontend/hooks/chat-sessions/query-keys';
 
 interface ChatSessionPopoverProps {
   open: boolean;
@@ -25,6 +27,8 @@ interface ChatSessionPopoverProps {
   onSessionSelect: (sessionId: string, sessionTitle?: string) => void;
   currentSessionId: string | null;
   onTitleUpdate?: (sessionId: string, title: string) => void;
+  /** Called when the currently active session is deleted; receives remaining sessions so caller can switch to next or new chat */
+  onCurrentSessionDeleted?: (remainingSessions: ChatSessionListItem[]) => void;
 }
 
 export function ChatSessionPopover({
@@ -34,8 +38,10 @@ export function ChatSessionPopover({
   onSessionSelect,
   currentSessionId,
   onTitleUpdate,
+  onCurrentSessionDeleted,
 }: ChatSessionPopoverProps) {
   const { workspaceId } = useCanvasMetadata();
+  const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -52,7 +58,20 @@ export function ChatSessionPopover({
   const handleDelete = (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!workspaceId) return;
-    deleteMutation.mutate({ workspaceId, sessionId });
+    deleteMutation.mutate(
+      { workspaceId, sessionId },
+      {
+        onSuccess: () => {
+          if (sessionId === currentSessionId && onCurrentSessionDeleted) {
+            const remaining =
+              queryClient.getQueryData<ChatSessionListItem[]>(
+                chatSessionQueryKeys.list(workspaceId)
+              ) ?? [];
+            onCurrentSessionDeleted(remaining);
+          }
+        },
+      }
+    );
   };
 
   const handleStartEdit = (session: ChatSessionListItem, e: React.MouseEvent) => {

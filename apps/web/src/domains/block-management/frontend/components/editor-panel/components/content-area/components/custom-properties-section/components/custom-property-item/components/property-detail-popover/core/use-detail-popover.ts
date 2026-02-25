@@ -46,7 +46,7 @@ export function useDetailPopover(
     [blockId, field.id, field.icon, saveIcon]
   );
 
-  // Auto-save label with debounce
+  // Auto-save label with debounce. Unmount 시 아직 저장 안 됐으면 즉시 저장 (팝오버 빨리 닫을 때 손실 방지)
   useEffect(() => {
     if (label !== field.name) {
       const timeoutId = setTimeout(() => {
@@ -56,7 +56,12 @@ export function useDetailPopover(
         });
       }, 500);
 
-      return () => clearTimeout(timeoutId);
+      return () => {
+        clearTimeout(timeoutId);
+        if (label !== field.name) {
+          saveLabel(blockId, field.id, label).catch(() => {});
+        }
+      };
     }
   }, [label, field.name, blockId, field.id, saveLabel]);
 
