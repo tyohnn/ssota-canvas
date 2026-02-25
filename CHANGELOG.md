@@ -1,3 +1,8 @@
+## [0.20.2] - 2026-02-25
+
+### ♻️ Refactoring
+
+- Remove console logs from AI action context and realtime hooks, add polling fallback for job updates
 ## [0.20.1] - 2026-02-25
 
 ### Debug
