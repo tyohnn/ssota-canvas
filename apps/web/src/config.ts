@@ -50,6 +50,7 @@ export const config = {
   app: {
     url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     internalApiSecret: process.env.INTERNAL_API_SECRET || '',
+    version: process.env.NEXT_PUBLIC_APP_VERSION || 'development',
   },
   environment: process.env.NODE_ENV || 'development',
 } as const;
