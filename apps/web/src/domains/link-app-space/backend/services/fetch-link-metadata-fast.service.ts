@@ -54,6 +54,15 @@ function extractMetaContent(
   return null;
 }
 
+/** Decode HTML entities in URL so img src loads correctly (e.g. &amp; -> &). */
+function decodeHtmlEntitiesInUrl(url: string): string {
+  return url
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"');
+}
+
 function extractTitle(html: string): string | null {
   const m = html.match(/<title[^>]*>([^<]*)<\/title>/i);
   return m?.[1]?.trim() ?? null;
@@ -95,7 +104,9 @@ export async function fetchLinkMetadataFast(
       domain;
     const ogDescription =
       extractMetaContent(html, 'description') ?? '';
-    const ogImage = extractMetaContent(html, 'image') ?? '';
+    const ogImageRaw = extractMetaContent(html, 'image') ?? '';
+    const ogImage = ogImageRaw ? decodeHtmlEntitiesInUrl(ogImageRaw) : '';
+
     const ogSiteName =
       extractMetaContent(html, 'site_name') ?? domain;
 
