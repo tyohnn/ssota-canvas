@@ -4,7 +4,7 @@ import { BlockNodeData } from '@/domains/block-management/shared/types/block-dat
 
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { ExtractSummaryAction } from '@/domains/source-management/frontend/components/extract-summary-action';
-import { VisualSummaryAction } from './components/visual-summary-action';
+// import { VisualSummaryAction } from './components/visual-summary-action'; // 잘 동작하지 않아 주석 처리
 
 // Lazy Loading을 위한 Wrapper 컴포넌트
 // 이 컴포넌트 전체가 lazy()로 로드되므로 내부 import도 함께 lazy됨
@@ -22,7 +22,9 @@ export function YoutubeActionItems({
         blockId={blockId}
         blockData={blockData}
       />
+      {/* 비주얼 요약 - 잘 동작하지 않아 주석 처리
       <VisualSummaryAction blockId={blockId} blockData={blockData} />
+      */}
     </>
   );
 }
