@@ -1,3 +1,14 @@
+## [0.19.0] - 2026-02-25
+
+### ✨ Features
+
+- Add session deletion handling in chat session popover
+- Add versioning support with update banner and API endpoint
+- Enhance version update banner with stale tab auto-reload and visibility handling
+
+### 🐛 Bug Fixes
+
+- Save user message twice
 ## [0.18.0] - 2026-02-24
 
 ### Dev
