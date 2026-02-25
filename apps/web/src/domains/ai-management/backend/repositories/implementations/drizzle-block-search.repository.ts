@@ -10,6 +10,7 @@ import { and, asc, eq, inArray, isNotNull, isNull, ilike, or } from 'drizzle-orm
 import type { SQL } from 'drizzle-orm';
 import { adminDb } from '@/db';
 import { blocks, blockMounts, sources, sourceSummaries } from '@/db/schema';
+import { extractPlainText } from '@/domains/block-management/shared/utils/tiptap-json.utils';
 import type { BlockMountId } from '@/domains/canvas-management/shared/value-objects/block-mount-id.vo';
 import type { PageId } from '@/domains/workspace-management/shared/value-objects/page-id.vo';
 import type {
@@ -101,7 +102,8 @@ export class DrizzleBlockSearchRepository implements BlockSearchRepository {
   }
 
   /**
-   * blockMountId로 단일 블록의 content_raw 조회
+   * blockMountId로 단일 블록의 content_raw 조회.
+   * content_raw가 비어 있고 content(JSONB)가 있으면(예: 클립보드 붙여넣기로 생성된 블록) content에서 플레인 텍스트를 추출해 반환.
    */
   async findContentByBlockMountId(
     blockMountId: BlockMountId,
@@ -123,13 +125,32 @@ export class DrizzleBlockSearchRepository implements BlockSearchRepository {
         blockType: blocks.block_type,
         title: blocks.title,
         contentRaw: blocks.content_raw,
+        content: blocks.content,
       })
       .from(blockMounts)
       .innerJoin(blocks, eq(blockMounts.block_id, blocks.id))
       .where(and(...conditions))
       .limit(1);
 
-    return rows[0] ?? null;
+    const row = rows[0];
+    if (!row) return null;
+
+    let contentRaw = row.contentRaw;
+    if ((!contentRaw || contentRaw.trim() === '') && row.content && typeof row.content === 'object') {
+      try {
+        const derived = extractPlainText(row.content as Record<string, unknown>);
+        if (derived) contentRaw = derived;
+      } catch {
+        // ignore
+      }
+    }
+
+    return {
+      blockMountId: row.blockMountId,
+      blockType: row.blockType,
+      title: row.title,
+      contentRaw: contentRaw ?? null,
+    };
   }
 
   async findBlockMountIdBySlugAndPageId(
