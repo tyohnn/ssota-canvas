@@ -2,7 +2,8 @@
 
 ## 개요
 
-이 문서는 **「테스트 통과를 넘어, 컴파일러가 보장하는 모듈화」** (flex 세미나)와 메모([memo.md](./memo.md))를 바탕으로, 다음을 정리한다.
+이 문서는 **「테스트 통과를 넘어, 컴파일러가 보장하는 모듈화」** (flex 세미나)와 메모([memo.md](./memo.md))를 바탕으로, 다음을 정리한다.  
+**모듈**은 여기서 **빌드 단위**로 정의한다(우리 스택에서는 패키지 하나 = 모듈 하나). [나누는 기준](./module-splitting-criteria.md)은 같은 정의를 쓴다.
 
 1. **단계 정의**: 아무것도 안 되어 있는 상태를 0단계로 두고, 빌드 단계에서의 하네스(컴파일러가 경계를 보장하는 구조)까지 몇 단계로 나아가는지
 2. **현재 프로덕트(SSOTA)의 패턴과 위치**: 지금 우리가 어떤 단계에 있는지
@@ -25,7 +26,7 @@
 | **1** | 모노레포 + 앱/패키지 분리만 | `apps/`, `packages/` 구조. 공용 코드만 패키지로 분리(예: ui, config). 앱 내부는 플랫 또는 자유 구조. | 앱 내부는 여전히 제한 없음 |
 | **2** | 앱 내 논리적 경계(도메인 폴더) | 앱 내부에 `domains/` 또는 레이어 폴더 구조. path alias(`@/domains/*`). Hexagonal/DDD **컨벤션**으로 의존성 방향 약속. | **컴파일 성공**. 리뷰/문서로만 검증 |
 | **3** | 린트/CI로 경계 강화 | 2 + ESLint(`no-restricted-imports` / `boundaries` 등)로 도메인·레이어 간 import 방향 제한. CI에서 위반 시 실패. | **CI 실패** (컴파일은 성공) |
-| **4** | 도메인/레이어를 패키지로 분리 | `packages/domain-*`, `application`, `infrastructure` 등. `package.json` dependencies로 허용 의존성만 선언. Next `transpilePackages`로 앱에서 사용. | 허용되지 않은 패키지 import 시 **빌드/타입 체크 실패** 가능 |
+| **4** | 도메인/레이어를 모듈(패키지)로 분리 | `packages/domain-*` 등. 패키지 하나 = 빌드 단위 하나. `package.json` dependencies로 허용 의존성만 선언. Next `transpilePackages`로 앱에서 사용. | 허용되지 않은 패키지 import 시 **빌드/타입 체크 실패** 가능 |
 | **5** | TypeScript Project References | 4 + `tsconfig` `references`, `composite: true`, `tsc -b`로 빌드 그래프·의존성 순서 강제. | 잘못된 참조·순환 시 **빌드 실패** |
 | **6** | 패키지 공개 API만 노출 (exports) | 각 패키지 `exports` 필드로 진입점만 노출. 내부 deep import 차단. | 내부 경로 import 시 **resolution 실패** |
 | **7** | 빌드 하네스 완성 | 5·6 + 아키텍처 체크 CI, 패키지 단위 테스트/버전 정책. 컴파일러·빌드가 “안전한 모듈화”를 보장. | 위반 시 **빌드/CI 전 단계에서 실패** |
