@@ -70,6 +70,9 @@ export interface CanvasModeContextValue {
   isBlockEditingMode: () => boolean;
   isDraggingMode: () => boolean;
   isEdgeCreationMode: () => boolean;
+
+  /** Space 키가 현재 눌려 있는지 (Space + 휠 시 캔버스 패닝용) */
+  spaceKeyHeldRef: { current: boolean };
 }
 
 const CanvasModeContext = createContext<CanvasModeContextValue | null>(null);

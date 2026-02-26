@@ -97,7 +97,8 @@ export function useCanvasToolbar(
           onFitToViewClick();
           break;
         case 'Space':
-          // Space를 누르면 패닝 모드로 전환 (임시)
+          // Space를 누르면 패닝 모드로 전환 (Space + 휠 시 캔버스 패닝을 위해 ref 설정)
+          canvasMode.spaceKeyHeldRef.current = true;
           if (!isPanningMode) {
             event.preventDefault();
             event.stopPropagation();
@@ -132,6 +133,7 @@ export function useCanvasToolbar(
       }
 
       if (event.code === 'Space') {
+        canvasMode.spaceKeyHeldRef.current = false;
         // 스페이스바를 떼면 무조건 default 모드로 (isPanningMode 체크 제거)
         // React Flow의 이벤트 핸들러가 남아있을 수 있으므로 강제로 모드 전환
         event.preventDefault();

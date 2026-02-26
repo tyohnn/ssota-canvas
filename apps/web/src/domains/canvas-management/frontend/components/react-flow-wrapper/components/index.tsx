@@ -154,9 +154,6 @@ export function ReactFlowView({
         <ReactFlowStyles />
 
         <ReactFlow
-          // key prop으로 panOnDrag 변경 시 강제 리렌더링 (React Flow 내부 상태 초기화)
-          // panOnDrag가 동적으로 변경될 때 내부 이벤트 핸들러가 즉시 반영되지 않는 React Flow 이슈 해결
-          key={isPanningMode ? 'panning-mode' : 'default-mode'}
           proOptions={{ hideAttribution: true }}
           nodes={nodes}
           edges={edges}
