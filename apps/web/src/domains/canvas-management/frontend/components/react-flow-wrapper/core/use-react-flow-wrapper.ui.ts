@@ -3,6 +3,7 @@ import { useCallback, useMemo, useRef } from 'react';
 import type { Node } from '@xyflow/react';
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import { CANVAS_SCROLL_CHAIN_SELECTOR } from './scroll-chain.constants';
 import type {
   CanvasModeDependencies,
   ReactFlowDependencies,
@@ -318,6 +319,7 @@ export function useReactFlowWrapperUI(
 
   /** Capture-phase: 휠 타깃이 스크롤 가능 overflow 컨테이너 내부면 전파 차단 후 해당 요소 수동 스크롤.
    *  스크롤 끝(상하좌우)에서 같은 방향으로 휠 시 전파 허용 → React Flow 캔버스 패닝(scroll chaining).
+   *  data-canvas-scroll-chain이 있는 스크롤 가능 요소를 우선 사용 (TipTap 등 contenteditable 내부에서도 동작).
    *  Space 키가 눌려 있으면 스크롤 소비하지 않음 → React Flow 휠 패닝 (Space + 휠).
    *  좌우 휠(deltaX)도 동일하게 수평 스크롤 경계에서 전파 허용. */
   const onWheelCapture = useCallback(
@@ -325,8 +327,89 @@ export function useReactFlowWrapperUI(
       if (canvasMode.spaceKeyHeldRef?.current) return;
       const target = event.target as HTMLElement;
       if (!target || typeof target.closest !== 'function') return;
-      let el: HTMLElement | null = target;
       const threshold = 1;
+      const designated = target.closest(CANVAS_SCROLL_CHAIN_SELECTOR);
+
+      const runScrollChainLogic = (el: HTMLElement): boolean => {
+        const style =
+          typeof getComputedStyle !== 'undefined' ? getComputedStyle(el) : null;
+        const oy = style?.overflowY ?? '';
+        const ox = style?.overflowX ?? '';
+        const canScrollY =
+          (oy === 'auto' || oy === 'scroll') &&
+          el.scrollHeight > el.clientHeight;
+        const canScrollX =
+          (ox === 'auto' || ox === 'scroll') &&
+          el.scrollWidth > el.clientWidth;
+        if (!canScrollY && !canScrollX) return false;
+        const maxScrollTop = el.scrollHeight - el.clientHeight;
+        const maxScrollLeft = el.scrollWidth - el.clientWidth;
+        const atTop = el.scrollTop <= threshold;
+        const atBottom =
+          maxScrollTop <= threshold ||
+          el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
+        const atLeft = el.scrollLeft <= threshold;
+        const atRight =
+          maxScrollLeft <= threshold ||
+          el.scrollLeft + el.clientWidth >= el.scrollWidth - threshold;
+        const wheelDown = event.deltaY > 0;
+        const wheelUp = event.deltaY < 0;
+        const wheelRight = event.deltaX > 0;
+        const wheelLeft = event.deltaX < 0;
+        const boundaryY =
+          canScrollY && ((atBottom && wheelDown) || (atTop && wheelUp));
+        const boundaryX =
+          canScrollX &&
+          ((atRight && wheelRight) || (atLeft && wheelLeft));
+        const absX = Math.abs(event.deltaX);
+        const absY = Math.abs(event.deltaY);
+        const primaryVertical = absY >= absX;
+        const wouldReturnAtBoundary = primaryVertical
+          ? boundaryY
+          : boundaryX;
+        const wouldConsume =
+          (canScrollY && (wheelDown || wheelUp)) ||
+          (canScrollX && (wheelLeft || wheelRight));
+        // At scroll boundary: manually pan viewport (ProseMirror stops propagation, so React Flow never receives the event).
+        if (wouldReturnAtBoundary) {
+          event.preventDefault();
+          event.stopPropagation();
+          const vp = reactFlow.getViewport();
+          const speed = 0.5; // Match React Flow panOnScrollSpeed default
+          reactFlow.setViewport(
+            {
+              x: vp.x - event.deltaX * speed,
+              y: vp.y - event.deltaY * speed,
+              zoom: vp.zoom,
+            },
+            { duration: 0 }
+          );
+          return true;
+        }
+        if (wouldConsume) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (canScrollY) {
+            el.scrollTop = Math.min(
+              Math.max(0, el.scrollTop + event.deltaY),
+              maxScrollTop
+            );
+          }
+          if (canScrollX) {
+            el.scrollLeft = Math.min(
+              Math.max(0, el.scrollLeft + event.deltaX),
+              maxScrollLeft
+            );
+          }
+        }
+        return true;
+      };
+
+      if (designated && designated instanceof HTMLElement && runScrollChainLogic(designated)) {
+        return;
+      }
+
+      let el: HTMLElement | null = target;
       while (el) {
         const style =
           typeof getComputedStyle !== 'undefined' ? getComputedStyle(el) : null;
@@ -339,60 +422,13 @@ export function useReactFlowWrapperUI(
           (ox === 'auto' || ox === 'scroll') &&
           el.scrollWidth > el.clientWidth;
         if (canScrollY || canScrollX) {
-          const maxScrollTop = el.scrollHeight - el.clientHeight;
-          const maxScrollLeft = el.scrollWidth - el.clientWidth;
-          const atTop = el.scrollTop <= threshold;
-          const atBottom =
-            maxScrollTop <= threshold ||
-            el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
-          const atLeft = el.scrollLeft <= threshold;
-          const atRight =
-            maxScrollLeft <= threshold ||
-            el.scrollLeft + el.clientWidth >= el.scrollWidth - threshold;
-          const wheelDown = event.deltaY > 0;
-          const wheelUp = event.deltaY < 0;
-          const wheelRight = event.deltaX > 0;
-          const wheelLeft = event.deltaX < 0;
-          const boundaryY =
-            canScrollY && ((atBottom && wheelDown) || (atTop && wheelUp));
-          const boundaryX =
-            canScrollX &&
-            ((atRight && wheelRight) || (atLeft && wheelLeft));
-          const absX = Math.abs(event.deltaX);
-          const absY = Math.abs(event.deltaY);
-          const primaryVertical = absY >= absX;
-          const wouldReturnAtBoundary = primaryVertical
-            ? boundaryY
-            : boundaryX;
-          const wouldConsume =
-            (canScrollY && (wheelDown || wheelUp)) ||
-            (canScrollX && (wheelLeft || wheelRight));
-          if (wouldReturnAtBoundary) {
-            event.preventDefault();
-            return;
-          }
-          if (wouldConsume) {
-            event.preventDefault();
-            event.stopPropagation();
-            if (canScrollY) {
-              el.scrollTop = Math.min(
-                Math.max(0, el.scrollTop + event.deltaY),
-                maxScrollTop
-              );
-            }
-            if (canScrollX) {
-              el.scrollLeft = Math.min(
-                Math.max(0, el.scrollLeft + event.deltaX),
-                maxScrollLeft
-              );
-            }
-          }
+          runScrollChainLogic(el);
           return;
         }
         el = el.parentElement;
       }
     },
-    [canvasMode.spaceKeyHeldRef]
+    [canvasMode.spaceKeyHeldRef, reactFlow]
   );
 
   return {

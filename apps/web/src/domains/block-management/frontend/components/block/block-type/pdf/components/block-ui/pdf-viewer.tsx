@@ -9,6 +9,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
+import { DATA_CANVAS_SCROLL_CHAIN } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/core/scroll-chain.constants';
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { cn } from '@workspace/ui/lib/utils';
 
@@ -138,6 +139,7 @@ export function PdfViewer({
             />
             <div
               ref={scrollContainerRef}
+              {...{ [DATA_CANVAS_SCROLL_CHAIN]: '' }}
               className="flex-1 overflow-auto pt-10 pb-4"
             >
               {/* 고정 크기 + shrink 방지로 스크롤 영역이 zoom 크기만큼 잡혀 좌우 스크롤 가능 */}
