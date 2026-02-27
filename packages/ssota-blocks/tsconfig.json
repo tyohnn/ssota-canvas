@@ -1,0 +1,19 @@
+{
+  "extends": "@workspace/typescript-config/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "rootDir": "..",
+    "paths": {
+      "@workspace/ui/components/ui/*": ["../ui/src/components/ui/*"],
+      "@workspace/ui/lib/*": ["../ui/src/lib/*"],
+      "@/*": ["../ui/src/*"]
+    },
+    "outDir": "dist",
+    "noEmit": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

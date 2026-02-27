@@ -2,14 +2,11 @@
 
 import React from 'react';
 
-import { YouTubePlayer } from 'react-youtube';
-
 import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
+import { Box } from '@workspace/ui/components/ui/box';
 
-import { Box } from '@/components/ui/box';
-import type { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-
+import type { YoutubeMetadata } from '../logic/types';
 import {
   YoutubeEmptyState,
   YoutubeErrorState,
@@ -18,37 +15,30 @@ import {
 import { YoutubePreviewCard } from './youtube-preview-card';
 
 export interface YoutubeViewProps {
-  // State
   url: string;
   isLoading: boolean;
   hasError: boolean;
   draftUrl: string;
   showPlayer: boolean;
   isIframeLoading: boolean;
-  selected: boolean;
+  isActive: boolean;
 
-  // Properties
-  properties: YoutubeBlockProperties;
+  properties: YoutubeMetadata;
   thumbnailUrl: string | null;
   videoId: string | null;
 
-  // Refs
   inputRef: React.RefObject<HTMLInputElement | null>;
 
-  // Handlers
   onUrlChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onUrlSubmit: (e?: { preventDefault(): void }) => Promise<void>;
   onUrlKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  onPlayerReady: (event: { target: YouTubePlayer }) => void;
+  onPlayerReady: (event: { target: import('../logic/types').YouTubePlayer }) => void;
   onImageLoad: () => void;
   onImageError: (e: React.SyntheticEvent<HTMLImageElement, Event>) => void;
 }
 
 /**
  * YouTube View Component (Presentational)
- *
- * 순수 Presentational 컴포넌트 - props만 받아서 렌더링
- * Container style (border, shadow, selected ring) is applied by OriginalView.
  */
 export function YoutubeView({
   url,
@@ -57,7 +47,7 @@ export function YoutubeView({
   draftUrl,
   showPlayer,
   isIframeLoading,
-  selected,
+  isActive,
   properties,
   thumbnailUrl,
   videoId,
@@ -79,7 +69,7 @@ export function YoutubeView({
 
   return (
     <TooltipProvider>
-      <div
+      <Box
         className={cn(
           'w-full h-full flex flex-col',
           'transition-[box-shadow,transform] duration-300 ease-out'
@@ -88,7 +78,7 @@ export function YoutubeView({
         {shouldShowEmptyState && (
           <YoutubeEmptyState
             draftUrl={draftUrl}
-            selected={selected}
+            isActive={isActive}
             inputRef={inputRef}
             onUrlChange={onUrlChange}
             onUrlSubmit={onUrlSubmit}
@@ -105,12 +95,12 @@ export function YoutubeView({
                 <YoutubeErrorState />
               </Box>
             ) : (
-              <div className="w-full h-full flex flex-col overflow-hidden group">
+              <Box className="w-full h-full flex flex-col overflow-hidden group">
                 <YoutubePreviewCard
                   properties={properties}
                   thumbnailUrl={thumbnailUrl}
                   videoId={videoId}
-                  selected={selected}
+                  isActive={isActive}
                   isLoading={isLoading}
                   hasError={hasError}
                   showPlayer={showPlayer}
@@ -119,11 +109,11 @@ export function YoutubeView({
                   onImageLoad={onImageLoad}
                   onImageError={onImageError}
                 />
-              </div>
+              </Box>
             )}
           </>
         )}
-      </div>
+      </Box>
     </TooltipProvider>
   );
 }

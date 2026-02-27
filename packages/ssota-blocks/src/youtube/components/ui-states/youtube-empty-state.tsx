@@ -4,14 +4,14 @@ import React, { useEffect } from 'react';
 
 import { Youtube } from 'lucide-react';
 
-import { Box } from '@/components/ui/box';
-import { Input } from '@/components/ui/input';
+import { Box } from '@workspace/ui/components/ui/box';
+import { Input } from '@workspace/ui/components/ui/input';
 
 import { YoutubeLoadingState } from './youtube-loading-state';
 
-interface YoutubeEmptyStateProps {
+export interface YoutubeEmptyStateProps {
   draftUrl: string;
-  selected: boolean;
+  isActive: boolean;
   inputRef: React.RefObject<HTMLInputElement | null>;
   onUrlChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onUrlSubmit: (e: React.FormEvent) => Promise<void>;
@@ -26,25 +26,22 @@ interface YoutubeEmptyStateProps {
  */
 export function YoutubeEmptyState({
   draftUrl,
-  selected,
+  isActive,
   inputRef,
   onUrlChange,
   onUrlSubmit,
   onUrlKeyDown,
 }: YoutubeEmptyStateProps) {
-  // Focus input when selected
   useEffect(() => {
-    if (selected && !draftUrl && inputRef.current) {
+    if (isActive && !draftUrl && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [selected, draftUrl, inputRef]);
+  }, [isActive, draftUrl, inputRef]);
 
   return (
     <Box className="relative w-full h-full flex flex-col">
-      {/* 배경: Loading State 스켈레톤 */}
       <YoutubeLoadingState />
 
-      {/* Overlay: blur + 입력창 */}
       <Box className="absolute inset-0 backdrop-blur-xs bg-white/5 dark:bg-black/40 flex flex-col items-center justify-center p-4 z-10">
         <Youtube className="h-12 w-12 shrink-0 text-red-500 mb-4" />
         <p className="text-sm font-medium text-foreground mb-3">

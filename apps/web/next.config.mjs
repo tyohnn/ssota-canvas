@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@workspace/ui'],
+  transpilePackages: ['@workspace/ui', '@workspace/ssota-blocks'],
   env: {
     NEXT_PUBLIC_APP_VERSION:
       process.env.VERCEL_GIT_COMMIT_SHA ||

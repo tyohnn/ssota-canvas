@@ -1,15 +1,9 @@
 /**
  * YouTube Block Utility Functions
- *
- * Note: getVideoId, getEmbedUrl, getThumbnailUrl는 이제
- * YoutubeBlockPropertiesVO의 메서드를 사용합니다.
  */
 
 /**
  * 상대적 시간 포맷팅
- *
- * @param dateIso - ISO 8601 형식의 날짜 문자열
- * @returns 상대적 시간 문자열 (예: "2개월 전", "5일 전")
  */
 export function formatRelativeTime(dateIso?: string): string {
   if (!dateIso) return '';
@@ -26,7 +20,6 @@ export function formatRelativeTime(dateIso?: string): string {
 
   const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
-  // 가장 적절한 단위 선택
   if (diffYear > 0) {
     return rtf.format(-diffYear, 'year');
   } else if (diffMonth > 0) {

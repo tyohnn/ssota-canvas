@@ -3,38 +3,34 @@
 import React from 'react';
 
 import { cn } from '@workspace/ui/lib/utils';
+import { Box } from '@workspace/ui/components/ui/box';
 
-import { Box } from '@/components/ui/box';
-import type { YoutubeBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
-
-import type { YouTubePlayer } from '../core/types';
-import { formatRelativeTime } from '../core/utils';
+import { formatRelativeTime } from '../logic/utils';
+import type { YoutubeMetadata } from '../logic/types';
 import { YoutubePlayerOverlay } from './youtube-player-overlay';
 
-interface YoutubePreviewCardProps {
-  properties: YoutubeBlockProperties;
+export interface YoutubePreviewCardProps {
+  properties: YoutubeMetadata;
   thumbnailUrl: string | null;
   videoId: string | null;
-  selected: boolean;
+  isActive: boolean;
   isLoading: boolean;
   hasError: boolean;
   showPlayer: boolean;
   isIframeLoading: boolean;
-  onPlayerReady: (event: { target: YouTubePlayer }) => void;
+  onPlayerReady: (event: { target: import('../logic/types').YouTubePlayer }) => void;
   onImageLoad: () => void;
   onImageError: (e: React.SyntheticEvent<HTMLImageElement, Event>) => void;
 }
 
 /**
  * YouTube Preview Card Component
- *
- * YouTube 영상 프리뷰 카드 컴포넌트
  */
 export function YoutubePreviewCard({
   properties,
   thumbnailUrl,
   videoId,
-  selected,
+  isActive,
   isLoading,
   hasError,
   showPlayer,
@@ -43,20 +39,17 @@ export function YoutubePreviewCard({
   onImageLoad,
   onImageError,
 }: YoutubePreviewCardProps) {
-  // Display metadata (url, youtubeId 제외)
   const { url: _, youtubeId: __, ...metadata } = properties;
+
   return (
     <>
-      {/* 플레이어 영역 */}
       <Box className="flex-1 relative min-h-0">
-        {/* URL 변경 중 로딩 오버레이 (플레이어 위에 표시) */}
         {isLoading && (
           <Box className="absolute inset-0 bg-black/50 flex items-center justify-center z-30 pointer-events-none">
             <Box className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
           </Box>
         )}
 
-        {/* react-youtube 플레이어 (항상 렌더링, 재생 상태 유지) */}
         {videoId && (
           <Box
             className={cn(
@@ -74,7 +67,6 @@ export function YoutubePreviewCard({
           </Box>
         )}
 
-        {/* 썸네일 overlay (플레이어가 숨겨졌을 때만 표시) */}
         {!showPlayer && thumbnailUrl && (
           <Box className="absolute inset-0 bg-black z-20 pointer-events-auto">
             <img
@@ -88,9 +80,7 @@ export function YoutubePreviewCard({
         )}
       </Box>
 
-      {/* 하단 메타 정보 (YouTube 썸네일 UX) */}
       <Box className="p-3 flex items-start gap-3 bg-background border-t border-border">
-        {/* 채널 아바타 */}
         {metadata.channelThumbnail ? (
           <img
             src={metadata.channelThumbnail}
