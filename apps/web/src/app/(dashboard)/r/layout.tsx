@@ -14,12 +14,14 @@ interface DashboardRootLayoutProps {
   children: React.ReactNode;
 }
 
-/** /r/orgId 또는 /r/orgId/pageId 경로에서 orgId, pageId 추출 */
+/** /r/orgId 또는 /r/orgId/pageId 경로에서 orgId, pageId 추출. Drive 경로(/r/orgId/drive/...)는 pageId 미반환 */
 function parseRouteParams(pathname: string): { orgId?: string; pageId?: string } {
   const segments = pathname.split('/').filter(Boolean);
   if (segments[0] !== 'r' || segments.length < 2) return {};
   const orgId = segments[1];
-  const pageId = segments[2];
+  const secondSegment = segments[2];
+  // Drive 경로(/r/orgId/drive, /r/orgId/drive/blockId 등)는 pageId가 아님
+  const pageId = secondSegment && secondSegment !== 'drive' ? secondSegment : undefined;
   return { orgId, pageId };
 }
 
