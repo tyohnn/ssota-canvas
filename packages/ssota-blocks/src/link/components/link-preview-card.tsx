@@ -3,14 +3,14 @@
 import React from 'react';
 
 import { ExternalLink } from 'lucide-react';
+import { Box } from '@workspace/ui/components/ui/box';
+import { cn } from '@workspace/ui/lib/utils';
 
-import { Box } from '@/components/ui/box';
-import type { OpenGraphMetadata } from '@/domains/link-app-space/shared/types/open-graph-metadata';
-import { cn } from '@/lib/utils';
+import type { LinkMetadata } from '../logic/types';
 
 export interface LinkPreviewCardProps {
-  metadata: OpenGraphMetadata;
-  selected: boolean;
+  metadata: LinkMetadata;
+  isActive: boolean;
   normalizedDomain: string;
   currentFaviconUrl: string | null;
   onDoubleClick: (e: React.MouseEvent) => void;
@@ -24,7 +24,7 @@ export interface LinkPreviewCardProps {
  */
 export function LinkPreviewCard({
   metadata,
-  selected,
+  isActive,
   normalizedDomain,
   currentFaviconUrl,
   onDoubleClick,
@@ -35,11 +35,11 @@ export function LinkPreviewCard({
     <Box
       className={cn(
         'w-full h-full flex flex-col overflow-hidden',
-        selected && 'cursor-pointer'
+        isActive && 'cursor-pointer'
       )}
       onDoubleClick={onDoubleClick}
-      role={selected ? 'button' : undefined}
-      aria-label={selected ? 'Double-click to open link' : undefined}
+      role={isActive ? 'button' : undefined}
+      aria-label={isActive ? 'Double-click to open link' : undefined}
     >
       {metadata.imageUrl && (
         <Box className="w-full aspect-2/1 bg-muted shrink-0 overflow-hidden relative">

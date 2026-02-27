@@ -5,7 +5,8 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
-    "./youtube": "./src/youtube/index.ts"
+    "./youtube": "./src/youtube/index.ts",
+    "./link": "./src/link/index.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

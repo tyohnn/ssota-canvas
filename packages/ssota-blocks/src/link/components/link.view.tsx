@@ -4,12 +4,12 @@ import React from 'react';
 
 import { TooltipProvider } from '@workspace/ui/components/ui/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
+import { Box } from '@workspace/ui/components/ui/box';
 
-import type { LinkViewProps } from '../../core/types';
-import { LinkEmptyState } from './link-empty-state';
-import { LinkLoadingState } from './link-loading-state';
+import type { LinkViewProps } from '../logic/types';
+import { LinkEmptyState } from './ui-states/link-empty-state';
+import { LinkLoadingState } from './ui-states/link-loading-state';
 import { LinkPreviewCard } from './link-preview-card';
-import { Box } from '@/components/ui/box';
 
 /**
  * Link View Component (Presentational)
@@ -22,7 +22,7 @@ export function LinkView({
   metadata,
   isLoading,
   draftUrl,
-  selected,
+  isActive,
   inputRef,
   normalizedDomain,
   currentFaviconUrl,
@@ -46,7 +46,7 @@ export function LinkView({
         {shouldShowEmptyState && (
           <LinkEmptyState
             draftUrl={draftUrl}
-            selected={selected}
+            isActive={isActive}
             inputRef={inputRef}
             onUrlChange={handleUrlChange}
             onUrlSubmit={handleUrlSubmit}
@@ -59,7 +59,7 @@ export function LinkView({
         {shouldShowPreviewCard && metadata && (
           <LinkPreviewCard
             metadata={metadata}
-            selected={selected}
+            isActive={isActive}
             normalizedDomain={normalizedDomain}
             currentFaviconUrl={currentFaviconUrl}
             onDoubleClick={handleDoubleClick}

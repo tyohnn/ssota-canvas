@@ -6,3 +6,4 @@
  */
 
 export * from './youtube';
+export * from './link';

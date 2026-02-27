@@ -3,15 +3,14 @@
 import React, { useEffect } from 'react';
 
 import { Link as LinkIcon } from 'lucide-react';
-
-import { Box } from '@/components/ui/box';
-import { Input } from '@/components/ui/input';
+import { Box } from '@workspace/ui/components/ui/box';
+import { Input } from '@workspace/ui/components/ui/input';
 
 import { LinkLoadingState } from './link-loading-state';
 
 export interface LinkEmptyStateProps {
   draftUrl: string;
-  selected: boolean;
+  isActive: boolean;
   inputRef: React.RefObject<HTMLInputElement | null>;
   onUrlChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onUrlSubmit: (e?: { preventDefault(): void }) => Promise<void>;
@@ -26,17 +25,17 @@ export interface LinkEmptyStateProps {
  */
 export function LinkEmptyState({
   draftUrl,
-  selected,
+  isActive,
   inputRef,
   onUrlChange,
   onUrlSubmit,
   onUrlKeyDown,
 }: LinkEmptyStateProps) {
   useEffect(() => {
-    if (selected && !draftUrl && inputRef.current) {
+    if (isActive && !draftUrl && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [selected, draftUrl, inputRef]);
+  }, [isActive, draftUrl, inputRef]);
 
   return (
     <Box className="relative w-full h-full flex flex-col">

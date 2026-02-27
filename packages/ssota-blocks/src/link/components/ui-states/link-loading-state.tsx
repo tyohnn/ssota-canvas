@@ -3,8 +3,7 @@
 import React from 'react';
 
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
-
-import { Box } from '@/components/ui/box';
+import { Box } from '@workspace/ui/components/ui/box';
 
 /**
  * Link Loading State Component
