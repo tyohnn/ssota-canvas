@@ -17,6 +17,7 @@ export interface DriveBlockPreviewCardViewProps {
     id: string;
     title: string | null;
     blockType: string;
+    workspaceId?: string;
     properties?: Record<string, unknown>;
     content?: unknown;
   };
@@ -54,6 +55,8 @@ export function DriveBlockPreviewCardView({
           <PdfPreviewCard
             title={block.title}
             properties={block.properties ?? {}}
+            blockId={block.id}
+            workspaceId={block.workspaceId}
           />
         );
       case 'image':
@@ -61,6 +64,7 @@ export function DriveBlockPreviewCardView({
           <ImagePreviewCard
             title={block.title}
             properties={block.properties ?? {}}
+            blockId={block.id}
           />
         );
       case 'audio':
