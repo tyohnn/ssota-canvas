@@ -35,7 +35,7 @@ export function AdvancedSettingsAccordionControlled({
   isLoadingWorkspaces,
 }: AdvancedSettingsAccordionControlledProps) {
   return (
-    <Collapsible defaultOpen={false} className="border border-border/50 rounded-md">
+    <Collapsible defaultOpen={false} className="border border-border rounded-md">
       <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-left text-xs text-muted-foreground hover:text-foreground transition-colors [&[data-state=open]>svg]:rotate-180">
         Advanced settings
         <ChevronDown className="size-3.5 shrink-0 transition-transform duration-200" />
@@ -68,19 +68,19 @@ export function AdvancedSettingsAccordionControlled({
               onValueChange={onWorkspaceIdChange}
               disabled={isLoadingWorkspaces}
             >
-              <SelectTrigger id="drive-workspace">
+              <SelectTrigger id="drive-workspace" className="min-w-0 [&>span]:truncate">
                 <SelectValue placeholder="Select workspace" />
               </SelectTrigger>
               <SelectContent>
                 {workspaces.map(w => (
                   <SelectItem key={w.workspaceId} value={w.workspaceId}>
-                    <Box className="flex gap-2 items-center">
+                    <Box className="flex gap-2 items-center min-w-0">
                       <WorkspaceIcon
                         icon={w.icon}
                         size={14}
                         className="shrink-0"
                       />
-                      <span>{w.name}</span>
+                      <span className="truncate">{w.name}</span>
                     </Box>
                   </SelectItem>
                 ))}
