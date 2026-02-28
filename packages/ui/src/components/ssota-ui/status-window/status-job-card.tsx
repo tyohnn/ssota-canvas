@@ -2,11 +2,12 @@
  * Status Job Card (아코디언 카드)
  *
  * 단일 Job: 헤더(타입 라벨, 상태 indicator, 접기/펼치기, X) + 본문(tasks, error)
+ * Parameterization: onOpenResource(resourceId) - 호출부가 리소스 열기 동작 정의
  */
 
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import {
   ChevronDown,
   ChevronRight,
@@ -16,6 +17,7 @@ import {
   X,
   CheckCircle2,
 } from 'lucide-react';
+
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,8 +26,8 @@ import {
   QueueItemIndicator,
   QueueItemContent,
   QueueItemDescription,
-} from '@workspace/ui/components/ai-elements/queue';
-import type { StatusJob } from '../../shared/types/status-job.types';
+} from '@/components/ai-elements/queue';
+import type { StatusJob } from './types';
 
 const OPERATION_TYPE_LABELS: Record<string, string> = {
   'visual-summary': 'Visual Summary',
@@ -37,7 +39,10 @@ export interface StatusJobCardProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onDismiss: () => void;
-  onOpenBlock?: (sourceBlockId: string) => void;
+  /** 호출부가 리소스 열기 동작 정의 (Parameterization) */
+  onOpenResource?: (resourceId: string) => void;
+  /** Result Injection: type별 라벨. 기본값 OPERATION_TYPE_LABELS 사용 */
+  getTypeLabel?: (type: string) => string;
 }
 
 export function StatusJobCard({
@@ -45,16 +50,17 @@ export function StatusJobCard({
   isExpanded,
   onToggleExpand,
   onDismiss,
-  onOpenBlock,
+  onOpenResource,
+  getTypeLabel = (type) => OPERATION_TYPE_LABELS[type] ?? type,
 }: StatusJobCardProps) {
   const isRunning = job.status === 'running' || job.status === 'pending';
   const hasTodos = job.tasks.length > 0;
-  const isLoadingTodos = hasTodos && job.tasks.some(t => t.status !== 'completed');
-  const label = OPERATION_TYPE_LABELS[job.type] ?? job.type;
+  const isLoadingTodos =
+    hasTodos && job.tasks.some((t) => t.status !== 'completed');
+  const label = getTypeLabel(job.type);
 
   return (
     <Box className="rounded-lg border border-border bg-muted/20 overflow-hidden flex flex-col max-h-[280px]">
-      {/* 헤더: 왼쪽~가운데 전체 클릭 시 접기/펼치기, X만 별도 */}
       <Box className="flex items-center min-w-0">
         <button
           type="button"
@@ -96,24 +102,24 @@ export function StatusJobCard({
             )}
           </Box>
         </button>
-        {onOpenBlock && (
+        {onOpenResource && (
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            onClick={e => {
+            onClick={(e) => {
               e.stopPropagation();
-              onOpenBlock(job.sourceBlockId);
+              onOpenResource(job.resourceId);
             }}
             className="shrink-0 text-muted-foreground hover:text-foreground"
-            aria-label="Open block editor"
+            aria-label="Open resource"
           >
             <ExternalLink className="h-4 w-4" />
           </Button>
         )}
         <button
           type="button"
-          onClick={e => {
+          onClick={(e) => {
             e.stopPropagation();
             onDismiss();
           }}
@@ -124,7 +130,6 @@ export function StatusJobCard({
         </button>
       </Box>
 
-      {/* 본문 (expanded): max-height + 내부 스크롤 */}
       {isExpanded && (
         <Box className="border-t border-border flex-1 min-h-0 overflow-hidden">
           <Box className="px-2.5 py-2 space-y-2 overflow-y-auto max-h-[180px]">
@@ -154,7 +159,7 @@ export function StatusJobCard({
                   Tasks ({job.tasks.length})
                 </Box>
                 <QueueList>
-                  {job.tasks.map(todo => {
+                  {job.tasks.map((todo) => {
                     const isCompleted = todo.status === 'completed';
                     return (
                       <QueueItem key={`${todo.id}-${todo.status}`}>

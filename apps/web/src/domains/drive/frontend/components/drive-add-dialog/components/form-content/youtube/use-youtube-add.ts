@@ -7,7 +7,9 @@ import type { GetYoutubeMetadataDTO } from '@/domains/youtube-app-space/shared/d
 import { fetchYoutubeMetadataPreviewAction } from '@/domains/youtube-app-space/actions/video/fetch-youtube-metadata-preview.action';
 import { isSuccess } from '@/lib';
 import { useDriveCreateBlock } from '@/domains/drive/frontend/hooks/use-drive-create-block';
+import { useDriveSourceJobStatusContext } from '@/domains/drive/frontend/contexts/drive-source-job-status-context';
 import { ensureSourceAndJobAction } from '@/domains/source-management/actions/source/ensure-source-and-job.action';
+import { useUserPreferredLanguage } from '@/domains/source-management/frontend/hooks';
 import { slugFromUuid } from '../../../core/utils';
 
 export function useYoutubeAdd(
@@ -16,6 +18,9 @@ export function useYoutubeAdd(
   onClose: () => void
 ) {
   const createBlock = useDriveCreateBlock(orgId);
+  const userPreferredLanguage = useUserPreferredLanguage();
+  const { pushSummaryJob, showStatusWindow } =
+    useDriveSourceJobStatusContext();
   const [metadata, setMetadata] = useState<GetYoutubeMetadataDTO | null>(null);
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -82,12 +87,19 @@ export function useYoutubeAdd(
       });
       if (result?.blockId && url) {
         const slug = slugFromUuid(result.blockId);
-        await ensureSourceAndJobAction({
+        const ensureResult = await ensureSourceAndJobAction({
           workspaceId: effectiveWorkspaceId,
           blockId: slug,
           url,
           sourceType: 'youtube',
         });
+        if (isSuccess(ensureResult)) {
+          pushSummaryJob(result.blockId, effectiveWorkspaceId, {
+            resourceTitle: video.title || title,
+            language: userPreferredLanguage ?? 'en',
+          });
+          showStatusWindow();
+        }
       }
       onClose();
     } catch (err) {
@@ -95,7 +107,18 @@ export function useYoutubeAdd(
     } finally {
       setIsFetching(false);
     }
-  }, [orgId, metadata, url, title, effectiveWorkspaceId, createBlock, onClose]);
+  }, [
+    orgId,
+    metadata,
+    url,
+    title,
+    effectiveWorkspaceId,
+    createBlock,
+    onClose,
+    pushSummaryJob,
+    showStatusWindow,
+    userPreferredLanguage,
+  ]);
 
   const isSubmitting = createBlock.isPending || isFetching;
 

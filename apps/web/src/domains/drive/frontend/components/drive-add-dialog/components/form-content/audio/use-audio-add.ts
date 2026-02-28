@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { useDriveCreateBlock } from '@/domains/drive/frontend/hooks/use-drive-create-block';
+import { useUserPreferredLanguage } from '@/domains/source-management/frontend/hooks';
+import { useDriveSourceJobStatusContext } from '@/domains/drive/frontend/contexts/drive-source-job-status-context';
+import { isSuccess } from '@/lib';
 import {
   type UploadContext,
   useDriveAssetUpload,
@@ -16,8 +19,11 @@ export function useAudioAdd(
   onClose: () => void
 ) {
   const createBlock = useDriveCreateBlock(orgId);
+  const userPreferredLanguage = useUserPreferredLanguage();
   const { uploadForAudio, isUploading } = useDriveAssetUpload({ orgId });
   const { ensureSourceJob } = useDriveSourceRegistration();
+  const { pushSummaryJob, showStatusWindow } =
+    useDriveSourceJobStatusContext();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -51,12 +57,19 @@ export function useAudioAdd(
     });
     if (result?.blockId) {
       const slug = slugFromUuid(result.blockId);
-      await ensureSourceJob({
+      const ensureResult = await ensureSourceJob({
         workspaceId: effectiveWorkspaceId,
         blockId: slug,
         url: asset.url,
         sourceType: 'audio',
       });
+      if (isSuccess(ensureResult)) {
+        pushSummaryJob(result.blockId, effectiveWorkspaceId, {
+          resourceTitle: title || selectedFile.name,
+          language: userPreferredLanguage ?? 'en',
+        });
+        showStatusWindow();
+      }
     }
     onClose();
   }, [
@@ -68,6 +81,9 @@ export function useAudioAdd(
     createBlock,
     ensureSourceJob,
     onClose,
+    pushSummaryJob,
+    showStatusWindow,
+    userPreferredLanguage,
   ]);
 
   const isSubmitting = createBlock.isPending || isUploading;

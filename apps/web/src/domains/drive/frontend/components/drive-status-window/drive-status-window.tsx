@@ -1,9 +1,8 @@
 /**
- * Status Window Component
+ * Drive Status Window
  *
- * 캔버스 우측 상단에 표시되는 진행 상태 창.
- * jobs[] 기반 아코디언 카드 스택 (Visual summary, Auto summary 등).
- * ssota-ui StatusWindowView 위임 (sourceBlockId -> resourceId 매핑).
+ * Drive에서 사용하는 Status 창. DriveSourceJobStatusContext 위임.
+ * ssota-ui StatusWindowView 사용 (sourceBlockId -> resourceId 매핑).
  */
 
 'use client';
@@ -14,13 +13,8 @@ import {
   StatusWindowView,
   type StatusJob as SsotaStatusJob,
 } from '@workspace/ui/components/ssota-ui/status-window';
-import type { StatusJob } from '../../shared/types/status-job.types';
-import { useAIActionContext } from '../contexts/ai-action-context';
-
-export interface StatusWindowProps {
-  /** 패널에서 닫기 애니메이션 후 context 반영을 위해 사용. 없으면 context dismiss 직접 호출 */
-  onDismiss?: () => void;
-}
+import type { StatusJob } from '@/domains/ai-actions/shared/types/status-job.types';
+import { useDriveSourceJobStatusContext } from '../../contexts/drive-source-job-status-context';
 
 function toSsotaJobs(jobs: StatusJob[]): SsotaStatusJob[] {
   return jobs.map((j) => ({
@@ -29,17 +23,21 @@ function toSsotaJobs(jobs: StatusJob[]): SsotaStatusJob[] {
   })) as SsotaStatusJob[];
 }
 
-export function StatusWindow({ onDismiss }: StatusWindowProps = {}) {
+export interface DriveStatusWindowProps {
+  onDismiss?: () => void;
+}
+
+export function DriveStatusWindow({ onDismiss }: DriveStatusWindowProps = {}) {
   const {
     jobs,
     expandedJobIds,
     dismissJob,
     toggleExpandedJobId,
-    openBlockEditor,
+    openResource,
     dismissStatusWindow,
     windowDismissed,
     reportInitialNoContent,
-  } = useAIActionContext();
+  } = useDriveSourceJobStatusContext();
 
   const handleDismiss = onDismiss ?? dismissStatusWindow;
   const hasContent = jobs.length > 0;
@@ -58,7 +56,7 @@ export function StatusWindow({ onDismiss }: StatusWindowProps = {}) {
       onDismissJob={dismissJob}
       onToggleExpand={toggleExpandedJobId}
       onDismiss={handleDismiss}
-      onOpenResource={openBlockEditor}
+      onOpenResource={openResource}
     />
   );
 }

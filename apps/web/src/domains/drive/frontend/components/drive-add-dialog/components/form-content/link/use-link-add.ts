@@ -5,8 +5,10 @@ import { useCallback, useEffect, useState } from 'react';
 import type { OpenGraphMetadata } from '@/domains/link-app-space/shared/types/open-graph-metadata';
 import { fetchLinkMetadataPreviewAction } from '@/domains/link-app-space/actions/metadata/fetch-link-metadata-preview.action';
 import { ensureSourceAndJobAction } from '@/domains/source-management/actions/source/ensure-source-and-job.action';
+import { useUserPreferredLanguage } from '@/domains/source-management/frontend/hooks';
 import { isSuccess } from '@/lib';
 import { useDriveCreateBlock } from '@/domains/drive/frontend/hooks/use-drive-create-block';
+import { useDriveSourceJobStatusContext } from '@/domains/drive/frontend/contexts/drive-source-job-status-context';
 import { slugFromUuid } from '../../../core/utils';
 
 export function useLinkAdd(
@@ -15,6 +17,9 @@ export function useLinkAdd(
   onClose: () => void
 ) {
   const createBlock = useDriveCreateBlock(orgId);
+  const userPreferredLanguage = useUserPreferredLanguage();
+  const { pushSummaryJob, showStatusWindow } =
+    useDriveSourceJobStatusContext();
   const [metadata, setMetadata] = useState<OpenGraphMetadata | null>(null);
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -75,12 +80,19 @@ export function useLinkAdd(
       });
       if (result?.blockId && url) {
         const slug = slugFromUuid(result.blockId);
-        await ensureSourceAndJobAction({
+        const ensureResult = await ensureSourceAndJobAction({
           workspaceId: effectiveWorkspaceId,
           blockId: slug,
           url,
           sourceType: 'link',
         });
+        if (isSuccess(ensureResult)) {
+          pushSummaryJob(result.blockId, effectiveWorkspaceId, {
+            resourceTitle: metadata.title || title || url,
+            language: userPreferredLanguage ?? 'en',
+          });
+          showStatusWindow();
+        }
       }
       onClose();
     } catch (err) {
@@ -88,7 +100,18 @@ export function useLinkAdd(
     } finally {
       setIsFetching(false);
     }
-  }, [orgId, metadata, url, title, effectiveWorkspaceId, createBlock, onClose]);
+  }, [
+    orgId,
+    metadata,
+    url,
+    title,
+    effectiveWorkspaceId,
+    createBlock,
+    onClose,
+    pushSummaryJob,
+    showStatusWindow,
+    userPreferredLanguage,
+  ]);
 
   const isSubmitting = createBlock.isPending || isFetching;
 

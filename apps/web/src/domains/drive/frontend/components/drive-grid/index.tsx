@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+
 import { DriveAddDialog } from '@/domains/drive/frontend/components/drive-add-dialog';
 import { DriveFilterBar } from '@/domains/drive/frontend/components/drive-grid/components/drive-filter-bar';
 import { DriveGridView } from '@/domains/drive/frontend/components/drive-grid/components/drive-grid-view';
 import { useDriveGrid } from '@/domains/drive/frontend/components/drive-grid/core/use-drive-grid';
 import { useDriveTypeFilterFromUrl } from '@/domains/drive/frontend/components/drive-grid/core/use-drive-type-filter-from-url';
 import { DriveHeader } from '@/domains/drive/frontend/components/drive-header';
+import { DriveSourceJobStatusProvider } from '@/domains/drive/frontend/contexts/drive-source-job-status-context';
+import { DriveStatusWindowPanel } from '@/domains/drive/frontend/components/drive-status-window';
 import { Box } from '@workspace/ui/components/ui/box';
-
 
 import type { DriveTypeFilter } from '@/domains/drive/frontend/hooks/drive-blocks-query';
 
@@ -65,25 +67,31 @@ export function DriveGridClient({
   }, [pathname, router, searchParams]);
 
   return (
-    <Box className="flex min-h-0 flex-1 flex-col h-full overflow-hidden">
-      <DriveHeader orgId={orgId} />
-      <DriveFilterBar
-        typeFilter={typeFilter}
-        onTypeFilterChange={setTypeFilter}
-        onAddClick={() => setIsAddDialogOpen(true)}
-      />
-      <DriveAddDialog
-        orgId={orgId}
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-      />
-      <DriveGridView
-        blocks={driveGrid.blocks}
-        hasNextPage={driveGrid.hasNextPage}
-        isLoadingMore={driveGrid.isFetchingNextPage}
-        onLoadMore={driveGrid.fetchNextPage}
-        isLoading={driveGrid.isLoading}
-      />
-    </Box>
+    <DriveSourceJobStatusProvider orgId={orgId}>
+      <Box className="flex min-h-0 flex-1 flex-col h-full overflow-hidden relative">
+        <DriveHeader orgId={orgId} />
+        <DriveFilterBar
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
+          onAddClick={() => setIsAddDialogOpen(true)}
+        />
+        <DriveAddDialog
+          orgId={orgId}
+          open={isAddDialogOpen}
+          onOpenChange={setIsAddDialogOpen}
+        />
+        <DriveGridView
+          blocks={driveGrid.blocks}
+          hasNextPage={driveGrid.hasNextPage}
+          isLoadingMore={driveGrid.isFetchingNextPage}
+          onLoadMore={driveGrid.fetchNextPage}
+          isLoading={driveGrid.isLoading}
+        />
+        {/* 우측 상단 Status Window */}
+        <Box className="absolute top-4 right-4 z-50 pointer-events-auto">
+          <DriveStatusWindowPanel />
+        </Box>
+      </Box>
+    </DriveSourceJobStatusProvider>
   );
 }

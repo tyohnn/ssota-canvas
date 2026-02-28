@@ -34,27 +34,11 @@ import { isTempPageId } from '@/domains/workspace-management/shared/utils/temp-p
 import type { VisualTemplate } from '../../shared/types/template.types';
 import type { StatusJob } from '../../shared/types/status-job.types';
 import type { UIMessage } from 'ai';
-
-const AUTO_SUMMARY_TODO_ID = 'auto-summary';
-
-function sourceJobStatusToStatusJobStatus(
-  s: string
-): StatusJob['status'] {
-  if (s === 'pending' || s === 'processing') return 'running';
-  if (s === 'completed') return 'completed';
-  if (s === 'failed') return 'failed';
-  return 'running';
-}
-
-function getTaskDescription(raw: SourceJob): string {
-  if ('current_step' in raw && raw.current_step === 'extracting') {
-    return 'Extracting script...';
-  }
-  if ('current_step' in raw && raw.current_step === 'summarizing') {
-    return 'Generating summary...';
-  }
-  return 'Generating summary...';
-}
+import {
+  AUTO_SUMMARY_TODO_ID,
+  createStatusJobPatchFromSourceJob,
+  getAutoSummaryTaskTitle,
+} from '../../shared/utils/source-job-to-status-job';
 
 interface AIActionContextValue {
   generateVisualSummary: (params: {
@@ -202,42 +186,20 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
         if (idx === -1) return prev;
         const job = prev[idx];
         if (!job) return prev;
-        const status = sourceJobStatusToStatusJobStatus(raw.status);
-        const taskDesc = getTaskDescription(raw);
+        const patch = createStatusJobPatchFromSourceJob({
+          raw,
+          existingJob: {
+            id: job.id,
+            type: job.type,
+            sourceBlockId: job.sourceBlockId,
+            templateName: job.templateName,
+            resourceTitle: job.resourceTitle,
+            language: job.language,
+            createdAt: job.createdAt,
+          },
+        });
         const next = [...prev];
-        next[idx] = {
-          id: job.id,
-          type: job.type,
-          status,
-          error:
-            raw.error_message && status === 'failed'
-              ? new Error(raw.error_message)
-              : null,
-          tasks:
-            status === 'running' || status === 'pending'
-              ? [
-                {
-                  id: AUTO_SUMMARY_TODO_ID,
-                  title: 'Auto Summary',
-                  description: taskDesc,
-                  status: 'pending' as const,
-                },
-              ]
-              : [
-                {
-                  id: AUTO_SUMMARY_TODO_ID,
-                  title: 'Auto Summary',
-                  description:
-                    status === 'failed'
-                      ? raw.error_message ?? 'Failed'
-                      : 'Summary ready',
-                  status: 'completed' as const,
-                },
-              ],
-          sourceBlockId: job.sourceBlockId,
-          templateName: job.templateName,
-          createdAt: job.createdAt,
-        };
+        next[idx] = { ...job, ...patch };
         return next;
       });
     },
@@ -273,27 +235,21 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
     getInProgressSourceJobAction({ pageId }).then(sourceResult => {
       const sourceJobs = isSuccess(sourceResult) ? sourceResult.data.jobs : [];
       if (!sourceJobs.length) return;
-      const initialJobs: StatusJob[] = sourceJobs.map(j => ({
-        id: `summary-${j.block_id}-${j.id}`,
-        type: 'summary' as const,
-        status: sourceJobStatusToStatusJobStatus(j.status),
-        tasks: [
-          {
-            id: AUTO_SUMMARY_TODO_ID,
-            title: 'Auto Summary',
-            description:
-              j.current_step === 'extracting'
-                ? 'Extracting script...'
-                : j.current_step === 'summarizing'
-                  ? 'Generating summary...'
-                  : 'Generating summary...',
-            status: 'pending' as const,
-          },
-        ],
-        error: j.error_message ? new Error(j.error_message) : null,
-        sourceBlockId: j.block_id,
-        createdAt: Date.now(),
-      }));
+      const initialJobs: StatusJob[] = sourceJobs.map(j => {
+        const base = {
+          id: `summary-${j.block_id}-${j.id}`,
+          type: 'summary' as const,
+          sourceBlockId: j.block_id,
+          resourceTitle: undefined as string | undefined,
+          language: (j as SourceJob).language,
+          createdAt: Date.now(),
+        };
+        const patch = createStatusJobPatchFromSourceJob({
+          raw: j as SourceJob,
+          existingJob: base,
+        });
+        return { ...base, ...patch } as StatusJob;
+      });
       setJobs(prev => {
         const visualJobs = prev.filter(j => j.type === 'visual-summary');
         return [...initialJobs, ...visualJobs];
@@ -316,7 +272,7 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
             tasks: [
               {
                 id: AUTO_SUMMARY_TODO_ID,
-                title: 'Auto Summary',
+                title: getAutoSummaryTaskTitle('en'),
                 description: 'Generating summary...',
                 status: 'pending',
               },
@@ -334,7 +290,7 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
             tasks: [
               {
                 id: AUTO_SUMMARY_TODO_ID,
-                title: 'Auto Summary',
+                title: getAutoSummaryTaskTitle(existingJob.language ?? 'en'),
                 description: 'Generating summary...',
                 status: 'pending',
               },

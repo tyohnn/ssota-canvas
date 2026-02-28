@@ -1,9 +1,10 @@
 /**
- * Status Window Job 타입 정의
+ * Status Window Job types
  *
- * Job 단위로 상태창에 표시. Visual summary(다중 task) / Auto summary(단일 task) 공통.
+ * Job 단위로 상태창에 표시. Visual summary / Auto summary 공통.
+ * resourceId: 도메인 중립 식별자 (Canvas: blockId, Drive: blockId 등)
  */
-import type { QueueTodo } from '@workspace/ui/components/ai-elements/queue';
+import type { QueueTodo } from '@/components/ai-elements/queue';
 
 export type StatusJobType = 'visual-summary' | 'summary';
 
@@ -15,9 +16,8 @@ export interface StatusJob {
   status: StatusJobStatus;
   tasks: QueueTodo[];
   error: Error | null;
-  sourceBlockId: string;
+  /** 도메인 중립 식별자 (block, resource 등) */
+  resourceId: string;
   templateName?: string;
-  resourceTitle?: string;
-  language?: string;
   createdAt: number;
 }

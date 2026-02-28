@@ -1,16 +1,17 @@
 /**
- * Status Window View Component
+ * Status Window View Component (ai-actions adapter)
  *
- * Status Window의 순수 view 컴포넌트.
- * jobs[] 기반 아코디언 카드 스택. Props로 데이터를 받아 렌더링만 담당합니다.
+ * ai-actions StatusJob (sourceBlockId) → ssota-ui StatusWindowView (resourceId) 호환 레이어.
+ * 기존 MockStatusWindow 등 sourceBlockId 사용처 호환용.
  */
 
 'use client';
 
-import { X } from 'lucide-react';
-import { Box } from '@/components/ui/box';
+import {
+  StatusWindowView as SsotaStatusWindowView,
+  type StatusJob as SsotaStatusJob,
+} from '@workspace/ui/components/ssota-ui/status-window';
 import type { StatusJob } from '../../shared/types/status-job.types';
-import { StatusJobCard } from './status-job-card';
 
 export interface StatusWindowViewProps {
   jobs: StatusJob[];
@@ -18,14 +19,17 @@ export interface StatusWindowViewProps {
   onDismissJob: (id: string) => void;
   onToggleExpand: (id: string) => void;
   onDismiss?: () => void;
+  /** 호출부가 리소스 열기 동작 정의 (sourceBlockId 전달) */
   onOpenBlock?: (sourceBlockId: string) => void;
 }
 
-/**
- * StatusWindowView
- *
- * jobs.map → StatusJobCard 아코디언 스택. 빈 상태 시 "No active tasks".
- */
+function toSsotaJobs(jobs: StatusJob[]): SsotaStatusJob[] {
+  return jobs.map((j) => ({
+    ...j,
+    resourceId: j.sourceBlockId,
+  })) as SsotaStatusJob[];
+}
+
 export function StatusWindowView({
   jobs,
   expandedJobIds,
@@ -34,44 +38,16 @@ export function StatusWindowView({
   onDismiss,
   onOpenBlock,
 }: StatusWindowViewProps) {
-  return (
-    <Box className="w-[320px] max-h-[400px] bg-background/95 backdrop-blur border border-border rounded-xl shadow-xl flex flex-col overflow-hidden">
-      {/* Header */}
-      <Box className="px-3 py-2.5 flex items-center justify-between border-b bg-muted/30">
-        <Box className="min-w-0 flex flex-col gap-0.5">
-          <Box className="text-sm font-semibold text-foreground">Status</Box>
-        </Box>
-        {onDismiss && (
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 shrink-0"
-            aria-label="Close status window"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-      </Box>
+  const ssotaJobs = toSsotaJobs(jobs);
 
-      {/* Card stack */}
-      <Box className="flex-1 overflow-y-auto p-3 space-y-2">
-        {jobs.length === 0 && (
-          <Box className="px-3 py-4 text-sm text-muted-foreground">
-            No active tasks
-          </Box>
-        )}
-        {jobs.map((job) => (
-          <Box key={job.id}>
-            <StatusJobCard
-              job={job}
-              isExpanded={expandedJobIds.includes(job.id)}
-              onToggleExpand={() => onToggleExpand(job.id)}
-              onDismiss={() => onDismissJob(job.id)}
-              onOpenBlock={onOpenBlock}
-            />
-          </Box>
-        ))}
-      </Box>
-    </Box>
+  return (
+    <SsotaStatusWindowView
+      jobs={ssotaJobs}
+      expandedJobIds={expandedJobIds}
+      onDismissJob={onDismissJob}
+      onToggleExpand={onToggleExpand}
+      onDismiss={onDismiss}
+      onOpenResource={onOpenBlock}
+    />
   );
 }
