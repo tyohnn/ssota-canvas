@@ -39,7 +39,7 @@ export function DriveAddFormHeader({
         disabled={isCreateDisabled || isSubmitting}
       >
         <Plus className="size-4" aria-hidden />
-        {isSubmitting ? 'Creating...' : 'Create'}
+        {isSubmitting ? 'Uploading...' : 'Upload'}
       </Button>
     </Box>
   );

@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FileText } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
+import { refreshCanvasAssetAccessUrlAction } from '@/domains/storage/actions/storage.actions';
+
 import { Box } from '@workspace/ui/components/ui/box';
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 
@@ -16,9 +18,16 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 const PAGE_WIDTH = 200;
 const PDF_DEVICE_PIXEL_RATIO = 2;
 
+/** UUID to 8-char hex slug (workspace scoped) */
+function uuidToSlug(uuid: string): string {
+  return uuid.replace(/-/g, '').toLowerCase().slice(0, 8);
+}
+
 export interface PdfPreviewCardProps {
   title: string | null;
   properties: Record<string, unknown>;
+  blockId?: string;
+  workspaceId?: string;
 }
 
 function PdfPreviewFallback({
@@ -43,17 +52,27 @@ function PdfPreviewFallback({
   );
 }
 
-export function PdfPreviewCard({ title, properties }: PdfPreviewCardProps) {
+export function PdfPreviewCard({
+  title,
+  properties,
+  blockId,
+  workspaceId,
+}: PdfPreviewCardProps) {
   const filename = properties.filename as string | undefined;
   const pageCount = properties.pageCount as number | undefined;
   const accessUrl = (properties.accessUrl ?? properties.url) as
     | string
     | undefined;
+  const pathUrl = (properties.pathUrl as string | undefined) ?? '';
   const displayTitle = filename || title || 'PDF';
 
   const [hasError, setHasError] = useState(false);
+  const [refreshedUrl, setRefreshedUrl] = useState<string | null>(null);
+  const hasTriedRefreshRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(PAGE_WIDTH);
+
+  const displayUrl = refreshedUrl ?? accessUrl;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -67,9 +86,36 @@ export function PdfPreviewCard({ title, properties }: PdfPreviewCardProps) {
     return () => ro.disconnect();
   }, []);
 
-  const handleLoadError = useCallback(() => setHasError(true), []);
+  const handleLoadError = useCallback(async () => {
+    if (
+      hasTriedRefreshRef.current ||
+      !pathUrl?.trim() ||
+      !blockId ||
+      !workspaceId
+    ) {
+      setHasError(true);
+      return;
+    }
+    hasTriedRefreshRef.current = true;
+    try {
+      const slug = uuidToSlug(blockId);
+      const result = await refreshCanvasAssetAccessUrlAction(
+        workspaceId,
+        slug,
+        'pdf'
+      );
+      if (result.success && result.url) {
+        setRefreshedUrl(result.url);
+        setHasError(false);
+      } else {
+        setHasError(true);
+      }
+    } catch {
+      setHasError(true);
+    }
+  }, [pathUrl, blockId, workspaceId]);
 
-  if (!accessUrl || hasError) {
+  if (!displayUrl || hasError) {
     return (
       <PdfPreviewFallback displayTitle={displayTitle} pageCount={pageCount} />
     );
@@ -82,7 +128,7 @@ export function PdfPreviewCard({ title, properties }: PdfPreviewCardProps) {
         className="relative flex-1 min-h-[80px] overflow-hidden bg-muted flex items-start justify-center"
       >
         <Document
-          file={accessUrl}
+          file={displayUrl}
           onLoadError={handleLoadError}
           loading={
             <Box className="flex flex-1 items-center justify-center min-h-[80px]">
@@ -106,7 +152,7 @@ export function PdfPreviewCard({ title, properties }: PdfPreviewCardProps) {
           />
         </Document>
         <Box
-          className="absolute bottom-0 left-0 right-0 h-10 bg-linear-to-t from-card/90 to-transparent backdrop-blur-sm pointer-events-none"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6 bg-linear-to-t from-card to-transparent"
           aria-hidden
         />
       </Box>

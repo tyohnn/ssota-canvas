@@ -35,7 +35,7 @@ export function ImageFormContent({
   isUploading = false,
 }: ImageFormContentProps) {
   const [
-    { isDragging, errors: uploadErrors },
+    { files, isDragging, errors: uploadErrors },
     {
       handleDragEnter,
       handleDragLeave,
@@ -60,9 +60,37 @@ export function ImageFormContent({
     onFileSelect(null);
   }, [clearFiles, onFileSelect]);
 
+  const previewUrl = files[0]?.preview;
+  const showPreview = selectedFile && previewUrl;
+
   return (
     <Box className="space-y-2">
       <p className="text-sm font-medium text-foreground">Image file</p>
+      {showPreview && (
+        <Box
+          className={cn(
+            'relative w-full aspect-video min-h-0 rounded-lg border border-border overflow-hidden bg-muted',
+            '[-webkit-mask:linear-gradient(#000_0_0)] [mask:linear-gradient(#000_0_0)]'
+          )}
+        >
+          <img
+            src={previewUrl}
+            alt={selectedFile.name}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <button
+            type="button"
+            onClick={e => {
+              e.stopPropagation();
+              handleRemove();
+            }}
+            className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-background/80 hover:bg-background border border-border"
+          >
+            Remove
+          </button>
+        </Box>
+      )}
+      {!showPreview && (
       <Box
         role="button"
         tabIndex={0}
@@ -74,7 +102,7 @@ export function ImageFormContent({
         onDrop={handleDrop}
         data-dragging={isDragging || undefined}
         className={cn(
-          'rounded-lg border border-dashed border-border bg-muted/30 flex flex-col items-center justify-center min-h-[120px] transition-colors',
+          'rounded-lg border border-dashed border-border bg-muted/30 flex flex-col items-center justify-center min-h-[120px] w-full min-w-0 transition-colors',
           !isUploading && 'cursor-pointer hover:bg-muted/50',
           isDragging && 'border-blue-400 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-950/30'
         )}
@@ -86,8 +114,8 @@ export function ImageFormContent({
           disabled={isUploading}
         />
         {selectedFile && !isUploading ? (
-          <Box className="flex flex-col items-center gap-2 p-4">
-            <p className="text-sm font-medium truncate max-w-full px-2">
+          <Box className="flex flex-col items-center gap-2 p-4 w-full min-w-0 overflow-hidden">
+            <p className="text-sm font-medium truncate w-full text-center px-2">
               {selectedFile.name}
             </p>
             <button
@@ -125,6 +153,7 @@ export function ImageFormContent({
           <p className="text-xs text-destructive mt-2 px-4">{uploadErrors[0]}</p>
         )}
       </Box>
+      )}
     </Box>
   );
 }
