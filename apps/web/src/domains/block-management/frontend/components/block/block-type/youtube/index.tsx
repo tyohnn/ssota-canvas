@@ -117,7 +117,6 @@ export const YoutubeBlock = memo(function YoutubeBlock({
         workspaceId,
         blockId,
         slug: videoId,
-        language: 'en',
       });
 
       if (isFailure(result)) {

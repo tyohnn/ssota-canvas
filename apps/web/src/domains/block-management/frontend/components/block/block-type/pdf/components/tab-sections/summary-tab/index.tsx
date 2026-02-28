@@ -51,6 +51,7 @@ export default function SummaryTab({ blockId, blockData }: SummaryTabProps) {
     hasAccessForSelectedLanguage: business.hasAccessForSelectedLanguage,
     sourceSummaryAccessLanguages: business.sourceSummaryAccessLanguages,
     readonly: business.readonly,
+    userPreferredLanguage: business.userPreferredLanguage,
   };
 
   return <SummarySectionView {...viewProps} />;

@@ -80,7 +80,6 @@ export function useLinkAdd(
           blockId: slug,
           url,
           sourceType: 'link',
-          language: 'en',
         });
       }
       onClose();

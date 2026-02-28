@@ -9,11 +9,24 @@ import type { BlockType } from '@/domains/block-management/shared/types/block-ty
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useSourceSummaryLanguages } from '@/domains/source-management/frontend/hooks';
 import { getLanguageName } from '@/domains/source-management/frontend/components/summary-tab';
-import { SUPPORTED_LANGUAGES } from '@/domains/source-management/shared/value-objects/language-code.vo';
+import {
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguage,
+} from '@/domains/source-management/shared/value-objects/language-code.vo';
+import { useMyProfile } from '@/domains/user-management/frontend/hooks/use-my-profile';
 
 import { useExtractSummary } from '../core/use-extract-summary';
-
 import { ExtractSummaryActionView } from './extract-summary-action.view';
+
+function orderLanguagesWithPreferenceFirst(
+  userPreferred: string | undefined
+): SupportedLanguage[] {
+  if (!userPreferred) return [...SUPPORTED_LANGUAGES];
+  const pref = userPreferred.toLowerCase();
+  if (!SUPPORTED_LANGUAGES.includes(pref as SupportedLanguage))
+    return [...SUPPORTED_LANGUAGES];
+  return [pref as SupportedLanguage, ...SUPPORTED_LANGUAGES.filter((l) => l !== pref)];
+}
 
 export interface ExtractSummaryActionProps {
   blockType: BlockType;
@@ -45,6 +58,25 @@ export function ExtractSummaryAction({
     sourceId,
   });
 
+  const { data: profile } = useMyProfile();
+  const userPreferredLanguage = (() => {
+    const raw = profile?.language?.toLowerCase().trim();
+    if (raw) {
+      const base = raw.slice(0, 2);
+      if (SUPPORTED_LANGUAGES.includes(base as SupportedLanguage)) return base;
+    }
+    if (typeof navigator !== 'undefined' && navigator.language) {
+      const nav = navigator.language.toLowerCase().slice(0, 2);
+      if (SUPPORTED_LANGUAGES.includes(nav as SupportedLanguage)) return nav;
+    }
+    return undefined;
+  })();
+  const orderedCodes = orderLanguagesWithPreferenceFirst(userPreferredLanguage);
+  const languages = orderedCodes.map((code) => ({
+    code,
+    label: getLanguageName(code),
+  }));
+
   const handleLanguageSelect = (language: string) => {
     setIsPopoverOpen(false);
     if (availableLanguages.includes(language)) {
@@ -63,11 +95,6 @@ export function ExtractSummaryAction({
     }
     return <Sparkles />;
   };
-
-  const languages = SUPPORTED_LANGUAGES.map((code) => ({
-    code,
-    label: getLanguageName(code),
-  }));
 
   return (
     <ExtractSummaryActionView

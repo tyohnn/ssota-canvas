@@ -86,7 +86,6 @@ export const LinkBlock = memo(function LinkBlock({
         workspaceId,
         blockId: nodeData.blockId,
         url: urlString,
-        language: 'en',
       });
 
       if (isFailure(result)) {

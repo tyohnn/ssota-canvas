@@ -36,6 +36,8 @@ export interface UseSummaryLanguagesParams {
   isJobProcessing: boolean;
   /** initialTab.tabOptions.language (Summary 탭 진입 시 언어) */
   initialTabLanguage?: string;
+  /** User profile preferred language (Summary 탭 열릴 때 기본 선택) */
+  userPreferredLanguage?: string;
 }
 
 export interface UseSummaryLanguagesResult {
@@ -56,6 +58,7 @@ export function useSummaryLanguages({
   initialJob,
   isJobProcessing,
   initialTabLanguage,
+  userPreferredLanguage,
 }: UseSummaryLanguagesParams): UseSummaryLanguagesResult {
   /**
    * 1. source_summaries 기반 사용 가능 언어 목록 API 조회
@@ -77,39 +80,53 @@ export function useSummaryLanguages({
 
   /**
    * 3. 초기 선택 언어 (useState 초기값)
-   * - 우선순위: languageStateMap 저장값 > API 첫 번째 > 'en'
+   * - 우선순위: languageStateMap > initialTabLanguage > userPreferredLanguage > availableLanguages[0] > 'en'
    * - 패널 재오픈 시 이전 선택 복원 (languageStateMap은 모듈 레벨이라 마운트 후에도 유지)
+   * - Summary 탭 열릴 때는 항상 사용자 설정 언어로 표시 (userPreferredLanguage가 맨 위)
    */
   const initialLanguage = useMemo(() => {
     const stored = languageStateMap.get(blockSlug);
     if (stored) return stored;
+    if (initialTabLanguage) return initialTabLanguage;
+    if (userPreferredLanguage) return userPreferredLanguage;
     const first = availableLanguages[0];
     return first ?? 'en';
-  }, [blockSlug, availableLanguages]);
+  }, [blockSlug, availableLanguages, initialTabLanguage, userPreferredLanguage]);
 
   const [selectedLanguage, setSelectedLanguage] =
     useState<string>(initialLanguage);
 
   /**
    * 4. useSourceSummaryLanguages API 로딩 완료 후 selectedLanguage ↔ languageStateMap 동기화
-   * - 저장값 없으면: availableLanguages 첫 번째로 설정 후 Map에 저장
+   * - 저장값 없으면: userPreferredLanguage 또는 availableLanguages 첫 번째로 설정
+   *   - userPreferredLanguage가 있을 때만 Map에 저장 (프로필 로드 전 race 방지)
+   *   - 프로필 로드 전에 availableLanguages[0]로 저장하면, 이후 userPreferred로 업데이트되지 않음
    * - 저장값 있으면: selectedLanguage가 다르면 저장값으로 덮어씀 (다른 탭에서 변경됐을 수 있음)
    */
   useEffect(() => {
     if (isLoadingLanguages) return;
     const stored = languageStateMap.get(blockSlug);
+    const fallback =
+      userPreferredLanguage ??
+      availableLanguages[0] ??
+      'en';
     if (!stored) {
-      if (availableLanguages.length > 0) {
-        const firstAvailable = availableLanguages[0];
-        if (firstAvailable && firstAvailable !== selectedLanguage) {
-          setSelectedLanguage(firstAvailable);
-          languageStateMap.set(blockSlug, firstAvailable);
-        }
+      if (fallback !== selectedLanguage) {
+        setSelectedLanguage(fallback);
+      }
+      if (userPreferredLanguage != null) {
+        languageStateMap.set(blockSlug, fallback);
       }
     } else if (stored !== selectedLanguage) {
       setSelectedLanguage(stored);
     }
-  }, [blockSlug, availableLanguages, isLoadingLanguages, selectedLanguage]);
+  }, [
+    blockSlug,
+    availableLanguages,
+    isLoadingLanguages,
+    selectedLanguage,
+    userPreferredLanguage,
+  ]);
 
   /**
    * 5. Job 처리 중일 때 선택 언어를 job 언어로 동기화

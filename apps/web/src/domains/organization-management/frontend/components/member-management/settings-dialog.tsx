@@ -49,8 +49,6 @@ import { useOrganization } from '../../hooks/use-organization';
 import { useOrganizationQuery } from '../../hooks/use-organization-query';
 import { useUpdateOrganization } from '../../hooks/use-update-organization';
 
-const PREFERRED_LANGUAGE_KEY = 'ssota_language';
-
 const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
   ko: '한국어',
@@ -90,7 +88,7 @@ export function SettingsDialog({
   const { canInviteMembers } = useMemberManagement();
   const { mouseSensitivity, setMouseSensitivity } = useUIPreferences();
 
-  const profileEnabled = open && activeTab === 'profile';
+  const profileEnabled = open && (activeTab === 'profile' || activeTab === 'preferences');
   const { data: profile, isLoading: profileLoading, isError: profileError, error: profileErrorDetail } = useMyProfile(profileEnabled);
   const { updateProfile, isUpdating: profileSaving } = useUpdateMyProfile({
     onSuccess: () => {
@@ -120,20 +118,19 @@ export function SettingsDialog({
     else if (profile && profile.name === null) setLocalProfileName('');
   }, [profile?.name, profile]);
 
-  // Sync preferred language from localStorage when dialog opens
+  // Sync preferred language from profile when profile loads (single source of truth)
   useEffect(() => {
-    if (open && typeof window !== 'undefined') {
-      const stored = localStorage.getItem(PREFERRED_LANGUAGE_KEY);
-      if (stored && SUPPORTED_LANGUAGES.includes(stored as SupportedLanguage)) {
-        setPreferredLanguage(stored as SupportedLanguage);
-      }
+    if (profile?.language && SUPPORTED_LANGUAGES.includes(profile.language as SupportedLanguage)) {
+      setPreferredLanguage(profile.language);
     }
-  }, [open]);
+  }, [profile?.language]);
 
-  const handlePreferredLanguageChange = (value: string) => {
+  const handlePreferredLanguageChange = async (value: string) => {
     setPreferredLanguage(value);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(PREFERRED_LANGUAGE_KEY, value);
+    try {
+      await updateProfile({ language: value });
+    } catch {
+      toast.error('Failed to update language');
     }
   };
 

@@ -9,12 +9,18 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import type { SummaryContentDisplay } from './types';
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
+import { useMyProfile } from '@/domains/user-management/frontend/hooks/use-my-profile';
+import {
+  LanguageCode,
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguage,
+} from '@/domains/source-management/shared/value-objects/language-code.vo';
 
 import { useSourceJobForBlock } from './use-source-job-for-block';
 import { useSummaryContent } from './use-summary-content';
@@ -154,6 +160,8 @@ export interface UseSourceSummarySectionResult {
   hasAccessForSelectedLanguage: boolean;
   sourceSummaryAccessLanguages: string[];
   readonly: boolean;
+  /** User profile preferred language (for selector ordering and default selection) */
+  userPreferredLanguage: string | undefined;
 }
 
 export function useSourceSummarySection({
@@ -176,6 +184,22 @@ export function useSourceSummarySection({
   const { workspaceId } = useCanvasMetadata();
   const canvasMode = useCanvasModeContext();
   const { readonly, publishToken } = useCanvasReadOnly();
+  const { data: profile } = useMyProfile();
+  /** Single source of truth: profile.language (Settings에서 변경 시 서버 저장) */
+  const userPreferredLanguage = useMemo(() => {
+    const raw = profile?.language?.toLowerCase().trim();
+    if (raw) {
+      if (LanguageCode.isSupported(raw)) return raw;
+      const base = raw.slice(0, 2);
+      if (SUPPORTED_LANGUAGES.includes(base as SupportedLanguage)) return base;
+    }
+    // 프로필 로드 전 fallback: navigator.language (예: ko-KR → ko)
+    if (typeof navigator !== 'undefined' && navigator.language) {
+      const nav = navigator.language.toLowerCase().slice(0, 2);
+      if (SUPPORTED_LANGUAGES.includes(nav as SupportedLanguage)) return nav;
+    }
+    return undefined;
+  }, [profile?.language]);
 
   // 2. Job 완료 시 tabOptions.isExtracting 해제 (AI status 패널 "Generating" 종료)
   const onJobCompleted = useCallback(() => {
@@ -221,6 +245,7 @@ export function useSourceSummarySection({
     initialJob,
     isJobProcessing,
     initialTabLanguage,
+    userPreferredLanguage,
   });
 
   // 6. 선택된 언어가 이미 추출되었는지 판단 (3가지 경로)
@@ -388,5 +413,6 @@ export function useSourceSummarySection({
     hasAccessForSelectedLanguage: shouldTreatAsEmpty ? false : isAlreadyExtracted,
     sourceSummaryAccessLanguages,
     readonly,
+    userPreferredLanguage,
   };
 }

@@ -87,7 +87,6 @@ export function usePdfBlock(props: UsePdfBlockProps): UsePdfBlockReturn {
           blockId: nodeData.blockId!,
           url: urlToFetch,
           sourceType: 'pdf',
-          language: 'en',
         });
 
         if (result.success && result.data) {

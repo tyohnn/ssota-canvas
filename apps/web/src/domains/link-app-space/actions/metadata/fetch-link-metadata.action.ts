@@ -17,6 +17,8 @@ import { BlockSlugSchema } from '@/domains/block-management/shared/dtos/requests
 import { DrizzleSourceRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source.repository';
 import type { LinkSourceMetadata } from '@/domains/source-management/shared/types/source-metadata.types';
 
+import { LanguageCode } from '@/domains/source-management/shared/value-objects/language-code.vo';
+
 import { fetchLinkMetadataFast } from '../../backend/services/fetch-link-metadata-fast.service';
 import type { OpenGraphMetadata } from '../../shared/types/open-graph-metadata';
 import { publishLinkMetadataFetched } from '../../backend/services/link-metadata-fetched/publish-link-metadata-fetched.service';
@@ -25,8 +27,18 @@ const FetchLinkMetadataRequestSchema = z.object({
   workspaceId: z.uuid(),
   blockId: BlockSlugSchema,
   url: z.url({ message: 'Invalid URL' }),
-  language: z.string().min(2).max(5).optional().default('en'),
+  language: z.string().min(2).max(5).optional(),
 });
+
+function resolveLanguage(
+  requestLanguage: string | undefined,
+  profileLanguage: string | undefined
+): string {
+  const code = LanguageCode.optional(
+    requestLanguage ?? profileLanguage ?? undefined
+  );
+  return code?.value ?? 'en';
+}
 
 export type FetchLinkMetadataRequest = z.output<
   typeof FetchLinkMetadataRequestSchema
@@ -107,6 +119,11 @@ async function fetchLinkMetadataInternal(
     'link'
   );
 
+  const language = resolveLanguage(
+    safeDto.language,
+    context.authenticatedUser.profile.language
+  );
+
   let metadata: OpenGraphMetadata;
   let sourceId: string | undefined;
 
@@ -122,7 +139,7 @@ async function fetchLinkMetadataInternal(
       blockId: safeDto.blockId,
       orgId: context.organization.id,
       url: safeDto.url,
-      language: safeDto.language,
+      language,
       metadata,
     });
     sourceId = resolvedSourceId ?? sourceId;
@@ -133,7 +150,7 @@ async function fetchLinkMetadataInternal(
       blockId: safeDto.blockId,
       orgId: context.organization.id,
       url: safeDto.url,
-      language: safeDto.language,
+      language,
       metadata,
     });
   }

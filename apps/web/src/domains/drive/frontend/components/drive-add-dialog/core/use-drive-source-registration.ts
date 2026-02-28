@@ -22,7 +22,6 @@ export function useDriveSourceRegistration() {
         blockId: params.blockId,
         url: params.url,
         sourceType: params.sourceType,
-        language: 'en',
       });
       return result;
     } finally {

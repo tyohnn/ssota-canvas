@@ -87,7 +87,6 @@ export function useYoutubeAdd(
           blockId: slug,
           url,
           sourceType: 'youtube',
-          language: 'en',
         });
       }
       onClose();

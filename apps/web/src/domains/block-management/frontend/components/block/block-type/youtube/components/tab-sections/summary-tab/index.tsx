@@ -57,6 +57,7 @@ export default function SummaryTab({
     hasAccessForSelectedLanguage: business.hasAccessForSelectedLanguage,
     sourceSummaryAccessLanguages: business.sourceSummaryAccessLanguages,
     readonly: business.readonly,
+    userPreferredLanguage: business.userPreferredLanguage,
   };
 
   return <SummarySectionView {...viewProps} />;

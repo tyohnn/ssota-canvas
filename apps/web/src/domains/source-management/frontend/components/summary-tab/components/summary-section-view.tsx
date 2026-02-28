@@ -31,15 +31,18 @@ export function SummarySectionView({
   hasAccessForSelectedLanguage,
   sourceSummaryAccessLanguages,
   readonly,
+  userPreferredLanguage,
 }: SummarySectionViewProps) {
+  const languageSelectorProps = {
+    availableLanguages: sourceSummaryAccessLanguages || [],
+    selectedLanguage,
+    onChange: setSelectedLanguage,
+    userPreferredLanguage,
+  };
   if (isExtracting) {
     return (
       <SummarySectionContainer>
-        <LanguageSelector
-          availableLanguages={sourceSummaryAccessLanguages || []}
-          selectedLanguage={selectedLanguage}
-          onChange={setSelectedLanguage}
-        />
+        <LanguageSelector {...languageSelectorProps} />
         <SummaryLoadingState isExtracting={isExtracting} />
       </SummarySectionContainer>
     );
@@ -48,11 +51,7 @@ export function SummarySectionView({
   if (isLoading && currentSummary === undefined) {
     return (
       <SummarySectionContainer>
-        <LanguageSelector
-          availableLanguages={sourceSummaryAccessLanguages || []}
-          selectedLanguage={selectedLanguage}
-          onChange={setSelectedLanguage}
-        />
+        <LanguageSelector {...languageSelectorProps} />
         <SummaryLoadingState isExtracting={false} />
       </SummarySectionContainer>
     );
@@ -61,11 +60,7 @@ export function SummarySectionView({
   if (error && !error.includes('Summary not extracted')) {
     return (
       <SummarySectionContainer>
-        <LanguageSelector
-          availableLanguages={sourceSummaryAccessLanguages || []}
-          selectedLanguage={selectedLanguage}
-          onChange={setSelectedLanguage}
-        />
+        <LanguageSelector {...languageSelectorProps} />
         <SummaryErrorState
           error={error}
           hasSummary={summaries.length > 0}
@@ -80,11 +75,7 @@ export function SummarySectionView({
 
   return (
     <SummarySectionContainer>
-      <LanguageSelector
-        availableLanguages={sourceSummaryAccessLanguages || []}
-        selectedLanguage={selectedLanguage}
-        onChange={setSelectedLanguage}
-      />
+      <LanguageSelector {...languageSelectorProps} />
 
       {currentSummary ? (
         <SummaryContent

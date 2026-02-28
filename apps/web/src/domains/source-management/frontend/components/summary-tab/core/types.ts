@@ -34,4 +34,6 @@ export interface SummarySectionViewProps {
   hasAccessForSelectedLanguage: boolean;
   sourceSummaryAccessLanguages: string[] | undefined;
   readonly: boolean;
+  /** User profile preferred language (select 상단에 표시) */
+  userPreferredLanguage?: string;
 }

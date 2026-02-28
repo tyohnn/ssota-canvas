@@ -19,6 +19,7 @@ import { ActionResult, err, ok } from '@/lib';
 
 import { DrizzleSourceRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source.repository';
 import { findOrCreateSource } from '@/domains/source-management/backend/services/source';
+import { LanguageCode } from '@/domains/source-management/shared/value-objects/language-code.vo';
 import { DrizzleVideoRepository } from '../../backend/repositories/implementations/drizzle-video.repository';
 import { fetchYoutubeMetadata } from '../../backend/services/fetch-youtube-metadata.service';
 import { publishYoutubeMetadataFetched } from '../../backend/services/youtube-metadata-fetched';
@@ -95,13 +96,20 @@ async function getYoutubeMetadataInternal(
     }
     response.blockUuid = ytCtx.block.id.value;
 
+    const language = (() => {
+      const code = LanguageCode.optional(
+        safeDto.language ?? context.authenticatedUser.profile.language
+      );
+      return code?.value ?? 'en';
+    })();
+
     await Promise.allSettled([
       publishYoutubeMetadataFetched({
         workspaceId: ytCtx.block.workspaceId.value,
         blockId: ytCtx.block.getSlug(),
         orgId: context.organization.id,
         youtubeId: safeDto.slug,
-        language: safeDto.language ?? 'en',
+        language,
       }),
     ]);
 

@@ -117,6 +117,7 @@ export class DrizzleUserRepository implements UserRepository {
           email: profiles.email,
           name: profiles.name,
           avatar_url: profiles.avatar_url,
+          language: profiles.language,
         })
         .from(profiles)
         .where(eq(profiles.id, userId.value))
@@ -131,6 +132,7 @@ export class DrizzleUserRepository implements UserRepository {
         email: profile.email,
         name: profile.name || '',
         profileImageUrl: profile.avatar_url || null,
+        language: profile.language || 'en',
       };
     } catch (error) {
       console.warn('Failed to fetch user profile:', error);

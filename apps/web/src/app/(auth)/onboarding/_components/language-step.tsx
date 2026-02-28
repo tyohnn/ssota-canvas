@@ -48,13 +48,6 @@ type LanguageStepProps = {
 export function LanguageStep({ initialLanguage, onComplete }: LanguageStepProps) {
   const [language, setLanguage] = useState(initialLanguage);
 
-  // Save to localStorage immediately on change
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('ssota_language', language);
-    }
-  }, [language]);
-
   const handleContinue = () => {
     onComplete(language);
   };

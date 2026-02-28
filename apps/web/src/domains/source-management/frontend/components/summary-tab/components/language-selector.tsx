@@ -16,13 +16,30 @@ import {
   SelectValue,
 } from '@workspace/ui/components/ui/select';
 
-import { SUPPORTED_LANGUAGES } from '@/domains/source-management/shared/value-objects/language-code.vo';
+import {
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguage,
+} from '@/domains/source-management/shared/value-objects/language-code.vo';
 import { Box } from '@/components/ui/box';
 
 interface LanguageSelectorProps {
   availableLanguages: string[];
   selectedLanguage: string;
   onChange: (language: string) => void;
+  /** User profile preferred language (드롭다운 상단에 표시) */
+  userPreferredLanguage?: string;
+}
+
+function orderLanguagesWithPreferenceFirst(
+  userPreferredLanguage: string | undefined
+): SupportedLanguage[] {
+  if (!userPreferredLanguage) return [...SUPPORTED_LANGUAGES];
+  const pref = userPreferredLanguage.toLowerCase();
+  if (!SUPPORTED_LANGUAGES.includes(pref as SupportedLanguage)) {
+    return [...SUPPORTED_LANGUAGES];
+  }
+  const rest = SUPPORTED_LANGUAGES.filter((l) => l !== pref);
+  return [pref as SupportedLanguage, ...rest];
 }
 
 export function getLanguageName(code: string): string {
@@ -45,7 +62,11 @@ export function LanguageSelector({
   availableLanguages,
   selectedLanguage,
   onChange,
+  userPreferredLanguage,
 }: LanguageSelectorProps) {
+  const orderedLanguages = orderLanguagesWithPreferenceFirst(
+    userPreferredLanguage
+  );
   return (
     <Box className="mb-8 flex items-center gap-2">
       <Globe className="h-4 w-4 text-muted-foreground" />
@@ -54,7 +75,7 @@ export function LanguageSelector({
           <SelectValue placeholder="Select language" />
         </SelectTrigger>
         <SelectContent>
-          {SUPPORTED_LANGUAGES.map(lang => {
+          {orderedLanguages.map((lang) => {
             const isAvailable = availableLanguages.includes(lang);
             return (
               <SelectItem key={lang} value={lang}>
