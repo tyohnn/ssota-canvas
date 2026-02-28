@@ -16,9 +16,12 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useReactFlow } from '@xyflow/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useVisualSummary } from '../hooks/use-visual-summary';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
+import { useCanvasModeContext } from '@/domains/canvas-management/frontend/hooks';
+import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
   useMultiSourceJobRealtime,
   type SourceJob,
@@ -73,6 +76,8 @@ interface AIActionContextValue {
   dismissJob: (id: string) => void;
   /** Toggle one job's accordion open/closed; multiple can be open. */
   toggleExpandedJobId: (id: string) => void;
+  /** Open the editor panel for the block identified by sourceBlockId (block UUID). */
+  openBlockEditor: (sourceBlockId: string) => void;
 
   jobs: StatusJob[];
   expandedJobIds: string[];
@@ -100,6 +105,8 @@ function toBlockSlug(blockId: string): string {
 export function AIActionProvider({ children }: AIActionProviderProps) {
   const queryClient = useQueryClient();
   const { pageId, workspaceId } = useCanvasMetadata();
+  const canvasMode = useCanvasModeContext();
+  const { getNodes } = useReactFlow();
   const [jobs, setJobs] = useState<StatusJob[]>([]);
 
   const onSummaryJobCompleted = useMemo(
@@ -140,6 +147,35 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
     );
   }, []);
 
+  const openBlockEditorRef = useRef<(sourceBlockId: string) => void>(() => {});
+  const canvasModeRef = useRef(canvasMode);
+  canvasModeRef.current = canvasMode;
+  const openBlockEditor = useCallback(
+    (sourceBlockId: string) => {
+      const sourceSlug = toBlockSlug(sourceBlockId);
+      const nodes = getNodes();
+      const node = nodes.find(n => {
+        const nodeBlockId = (n.data as BlockNodeData)?.blockId;
+        if (!nodeBlockId) return false;
+        return toBlockSlug(nodeBlockId) === sourceSlug;
+      });
+      if (node) {
+        const blockId = (node.data as BlockNodeData)?.blockId ?? sourceBlockId;
+        const blockType = (node.data as BlockNodeData)?.blockType;
+        const hasSummaryTab = blockType && [
+          'youtube',
+          'link',
+          'pdf',
+          'audio',
+        ].includes(blockType);
+        const initialTab = hasSummaryTab ? { tab: 'summary' } : undefined;
+        canvasMode.enterBlockEditingMode(blockId, node.id, initialTab);
+      }
+    },
+    [getNodes, canvasMode]
+  );
+  openBlockEditorRef.current = openBlockEditor;
+
   const visualSummaryHook = useVisualSummary({ pageId, pushJob, updateJob });
 
   const summaryBlockIds = jobs
@@ -154,6 +190,10 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
     (blockId: string, raw: SourceJob) => {
       if (raw.status === 'completed') {
         onSummaryJobCompleted(blockId, raw);
+        // 에디터가 이미 열려 있으면 자동으로 열지 않음
+        if (canvasModeRef.current.mode.type !== 'block-editing') {
+          openBlockEditorRef.current(blockId);
+        }
       }
       setJobs(prev => {
         const idx = prev.findIndex(
@@ -221,7 +261,7 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
               onJobUpdate(job.block_id, job);
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       });
     }, POLL_INTERVAL_MS);
 
@@ -313,7 +353,7 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
                 onJobUpdate(job.block_id, job);
               }
             })
-            .catch(() => {});
+            .catch(() => { });
         }
       }
     },
@@ -349,6 +389,7 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
     updateJob,
     dismissJob,
     toggleExpandedJobId,
+    openBlockEditor,
     jobs,
     expandedJobIds,
     isGenerating,

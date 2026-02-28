@@ -23,6 +23,7 @@ export function StatusWindow({ onDismiss }: StatusWindowProps = {}) {
     expandedJobIds,
     dismissJob,
     toggleExpandedJobId,
+    openBlockEditor,
     dismissStatusWindow,
     windowDismissed,
     reportInitialNoContent,
@@ -44,6 +45,7 @@ export function StatusWindow({ onDismiss }: StatusWindowProps = {}) {
       onDismissJob={dismissJob}
       onToggleExpand={toggleExpandedJobId}
       onDismiss={handleDismiss}
+      onOpenBlock={openBlockEditor}
     />
   );
 }

@@ -18,6 +18,7 @@ export interface StatusWindowViewProps {
   onDismissJob: (id: string) => void;
   onToggleExpand: (id: string) => void;
   onDismiss?: () => void;
+  onOpenBlock?: (sourceBlockId: string) => void;
 }
 
 /**
@@ -31,6 +32,7 @@ export function StatusWindowView({
   onDismissJob,
   onToggleExpand,
   onDismiss,
+  onOpenBlock,
 }: StatusWindowViewProps) {
   return (
     <Box className="w-[320px] max-h-[400px] bg-background/95 backdrop-blur border border-border rounded-xl shadow-xl flex flex-col overflow-hidden">
@@ -65,6 +67,7 @@ export function StatusWindowView({
               isExpanded={expandedJobIds.includes(job.id)}
               onToggleExpand={() => onToggleExpand(job.id)}
               onDismiss={() => onDismissJob(job.id)}
+              onOpenBlock={onOpenBlock}
             />
           </Box>
         ))}

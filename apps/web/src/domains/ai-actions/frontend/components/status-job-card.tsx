@@ -7,8 +7,17 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ChevronDown, ChevronRight, Loader2, AlertCircle, X, CheckCircle2 } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
+  Loader2,
+  AlertCircle,
+  X,
+  CheckCircle2,
+} from 'lucide-react';
 import { Box } from '@/components/ui/box';
+import { Button } from '@/components/ui/button';
 import {
   QueueList,
   QueueItem,
@@ -28,6 +37,7 @@ export interface StatusJobCardProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onDismiss: () => void;
+  onOpenBlock?: (sourceBlockId: string) => void;
 }
 
 export function StatusJobCard({
@@ -35,6 +45,7 @@ export function StatusJobCard({
   isExpanded,
   onToggleExpand,
   onDismiss,
+  onOpenBlock,
 }: StatusJobCardProps) {
   const isRunning = job.status === 'running' || job.status === 'pending';
   const hasTodos = job.tasks.length > 0;
@@ -85,6 +96,21 @@ export function StatusJobCard({
             )}
           </Box>
         </button>
+        {onOpenBlock && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={e => {
+              e.stopPropagation();
+              onOpenBlock(job.sourceBlockId);
+            }}
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+            aria-label="Open block editor"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        )}
         <button
           type="button"
           onClick={e => {
@@ -102,53 +128,53 @@ export function StatusJobCard({
       {isExpanded && (
         <Box className="border-t border-border flex-1 min-h-0 overflow-hidden">
           <Box className="px-2.5 py-2 space-y-2 overflow-y-auto max-h-[180px]">
-          {job.error && (
-            <Box className="rounded-md bg-destructive/10 border border-destructive/20 flex items-center gap-2 px-2 py-1.5 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span className="truncate">
-                {job.error.message || 'An error occurred'}
-              </span>
-            </Box>
-          )}
-          {!hasTodos && isRunning && !job.error && (
-            <Box className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-              <span>Starting...</span>
-            </Box>
-          )}
-          {hasTodos && (
-            <Box>
-              {isLoadingTodos && (
-                <Box className="flex items-center gap-2 text-sm text-muted-foreground mb-1.5">
-                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                  <span>Processing tasks...</span>
-                </Box>
-              )}
-              <Box className="text-xs font-medium text-muted-foreground mb-1">
-                Tasks ({job.tasks.length})
+            {job.error && (
+              <Box className="rounded-md bg-destructive/10 border border-destructive/20 flex items-center gap-2 px-2 py-1.5 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span className="truncate">
+                  {job.error.message || 'An error occurred'}
+                </span>
               </Box>
-              <QueueList>
-                {job.tasks.map(todo => {
-                  const isCompleted = todo.status === 'completed';
-                  return (
-                    <QueueItem key={`${todo.id}-${todo.status}`}>
-                      <div className="flex items-center gap-2">
-                        <QueueItemIndicator completed={isCompleted} />
-                        <QueueItemContent completed={isCompleted}>
-                          {todo.title}
-                        </QueueItemContent>
-                      </div>
-                      {todo.description && (
-                        <QueueItemDescription completed={isCompleted}>
-                          {todo.description}
-                        </QueueItemDescription>
-                      )}
-                    </QueueItem>
-                  );
-                })}
-              </QueueList>
-            </Box>
-          )}
+            )}
+            {!hasTodos && isRunning && !job.error && (
+              <Box className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                <span>Starting...</span>
+              </Box>
+            )}
+            {hasTodos && (
+              <Box>
+                {isLoadingTodos && (
+                  <Box className="flex items-center gap-2 text-sm text-muted-foreground mb-1.5">
+                    <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                    <span>Processing tasks...</span>
+                  </Box>
+                )}
+                <Box className="text-xs font-medium text-muted-foreground mb-1">
+                  Tasks ({job.tasks.length})
+                </Box>
+                <QueueList>
+                  {job.tasks.map(todo => {
+                    const isCompleted = todo.status === 'completed';
+                    return (
+                      <QueueItem key={`${todo.id}-${todo.status}`}>
+                        <div className="flex items-center gap-2">
+                          <QueueItemIndicator completed={isCompleted} />
+                          <QueueItemContent completed={isCompleted}>
+                            {todo.title}
+                          </QueueItemContent>
+                        </div>
+                        {todo.description && (
+                          <QueueItemDescription completed={isCompleted}>
+                            {todo.description}
+                          </QueueItemDescription>
+                        )}
+                      </QueueItem>
+                    );
+                  })}
+                </QueueList>
+              </Box>
+            )}
           </Box>
         </Box>
       )}
