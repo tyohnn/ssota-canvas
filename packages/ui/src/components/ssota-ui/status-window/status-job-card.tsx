@@ -34,6 +34,15 @@ const OPERATION_TYPE_LABELS: Record<string, string> = {
   summary: 'Summary',
 };
 
+function getSummaryHeaderLabel(
+  isRunning: boolean,
+  resourceTitle?: string
+): string {
+  const verb = isRunning ? 'Summarizing' : 'Summarized';
+  if (!resourceTitle?.trim()) return verb;
+  return `${verb} ${resourceTitle.trim()}`;
+}
+
 export interface StatusJobCardProps {
   job: StatusJob;
   isExpanded: boolean;
@@ -57,7 +66,10 @@ export function StatusJobCard({
   const hasTodos = job.tasks.length > 0;
   const isLoadingTodos =
     hasTodos && job.tasks.some((t) => t.status !== 'completed');
-  const label = getTypeLabel(job.type);
+  const label =
+    job.type === 'summary'
+      ? getSummaryHeaderLabel(isRunning, job.resourceTitle)
+      : getTypeLabel(job.type);
 
   return (
     <Box className="rounded-lg border border-border bg-muted/20 overflow-hidden flex flex-col max-h-[280px]">
@@ -92,7 +104,7 @@ export function StatusJobCard({
             </span>
           )}
           <Box className="min-w-0 flex-1 flex flex-col gap-0.5">
-            <span className="text-sm font-medium text-foreground truncate">
+            <span className="text-sm font-medium text-foreground truncate block">
               {label}
             </span>
             {job.type === 'visual-summary' && job.templateName && (
@@ -155,9 +167,6 @@ export function StatusJobCard({
                     <span>Processing tasks...</span>
                   </Box>
                 )}
-                <Box className="text-xs font-medium text-muted-foreground mb-1">
-                  Tasks ({job.tasks.length})
-                </Box>
                 <QueueList>
                   {job.tasks.map((todo) => {
                     const isCompleted = todo.status === 'completed';
