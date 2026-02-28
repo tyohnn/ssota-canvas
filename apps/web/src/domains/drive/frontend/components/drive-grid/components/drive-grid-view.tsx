@@ -45,7 +45,7 @@ export function DriveGridView({
 
   return (
     <Box className="flex flex-1 min-h-0 flex-col overflow-y-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <Box className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      <Box className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {blocks.map(block => (
           <DriveBlockPreviewCardView
             key={block.id}

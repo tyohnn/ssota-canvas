@@ -28,13 +28,13 @@ export function LinkPreviewCard({ title, properties }: LinkPreviewCardProps) {
   const displayTitle = ogTitle || title || 'Link';
 
   return (
-    <Box className="flex flex-col h-full min-h-0">
+    <Box className="flex flex-col h-full min-h-0 bg-card hover:bg-muted">
       {ogImage && (
         <Box className="w-full shrink-0 overflow-hidden aspect-[2/1] bg-muted">
           <img
             src={ogImage}
             alt={displayTitle}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             onError={e => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}

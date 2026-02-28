@@ -96,9 +96,9 @@ export function DriveBlockPreviewCardView({
   return (
     <Link
       href={href}
-      className="flex flex-col rounded-md border bg-card shadow-sm transition-colors hover:bg-accent overflow-hidden aspect-square min-h-[140px]"
+      className="group flex flex-col rounded-md border bg-card shadow-sm transition-colors hover:bg-muted overflow-hidden aspect-square min-h-[140px]"
     >
-      <Box className="p-2 flex shrink-0 border-b bg-muted/30 items-center gap-2 min-w-0">
+      <Box className="p-2 flex shrink-0 border-b items-center gap-2 min-w-0">
         <Badge variant="secondary" className="shrink-0">
           {getBlockTypeBadgeLabel(block.blockType)}
         </Badge>

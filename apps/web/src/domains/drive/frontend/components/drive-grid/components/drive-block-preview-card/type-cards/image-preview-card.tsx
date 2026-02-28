@@ -66,7 +66,7 @@ export function ImagePreviewCard({
         <img
           src={displayUrl}
           alt={displayTitle}
-          className="w-full h-full object-cover absolute inset-0"
+          className="w-full h-full object-cover absolute inset-0 transition-transform duration-300 group-hover:scale-105"
           onError={handleError}
         />
         <Box

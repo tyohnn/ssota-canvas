@@ -54,13 +54,13 @@ export function YoutubePreviewCard({
   const channelThumbnail = properties.channelThumbnail as string | undefined;
 
   return (
-    <Box className="flex flex-col h-full min-h-0">
+    <Box className="flex flex-col h-full min-h-0 bg-card hover:bg-muted">
       {thumbnailUrl && (
-        <Box className="w-full shrink-0 overflow-hidden aspect-video bg-black relative">
+        <Box className="w-full shrink-0 overflow-hidden aspect-video bg-backgroud relative">
           <img
             src={thumbnailUrl}
             alt={youtubeTitle}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             onError={e => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
@@ -68,7 +68,7 @@ export function YoutubePreviewCard({
         </Box>
       )}
 
-      <Box className="p-3 flex items-start gap-3 bg-background border-t border-border shrink-0">
+      <Box className="p-3 flex items-start gap-3 border-t border-border shrink-0">
         {channelThumbnail ? (
           <img
             src={channelThumbnail}

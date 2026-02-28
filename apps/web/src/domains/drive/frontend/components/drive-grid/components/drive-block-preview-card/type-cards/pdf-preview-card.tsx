@@ -127,6 +127,7 @@ export function PdfPreviewCard({
         ref={containerRef}
         className="relative flex-1 min-h-[80px] overflow-hidden bg-muted flex items-start justify-center"
       >
+        <Box className="transition-transform duration-300 origin-center group-hover:scale-105">
         <Document
           file={displayUrl}
           onLoadError={handleLoadError}
@@ -151,6 +152,7 @@ export function PdfPreviewCard({
             className="shadow-sm"
           />
         </Document>
+        </Box>
         <Box
           className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6 bg-linear-to-t from-card to-transparent"
           aria-hidden
