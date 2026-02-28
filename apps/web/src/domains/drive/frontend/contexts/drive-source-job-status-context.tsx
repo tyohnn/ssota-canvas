@@ -204,29 +204,37 @@ export function DriveSourceJobStatusProvider({
     )
     .map((j) => j.sourceBlockId);
 
-  const onJobUpdate = useCallback((blockId: string, raw: SourceJob) => {
-    setJobs((prev) => {
-      const idx = prev.findIndex(
-        (j) => j.type === 'summary' && j.sourceBlockId === blockId
-      );
-      if (idx === -1) return prev;
-      const job = prev[idx];
-      if (!job) return prev;
-      const patch = createStatusJobPatchFromSourceJob({
-        raw,
-        existingJob: {
-          id: job.id,
-          type: job.type,
-          sourceBlockId: job.sourceBlockId,
-          templateName: job.templateName,
-          createdAt: job.createdAt,
-        },
+  const onJobUpdate = useCallback(
+    (blockId: string, raw: SourceJob) => {
+      if (raw.status === 'completed') {
+        openResource(blockId);
+      }
+      setJobs((prev) => {
+        const idx = prev.findIndex(
+          (j) => j.type === 'summary' && j.sourceBlockId === blockId
+        );
+        if (idx === -1) return prev;
+        const job = prev[idx];
+        if (!job) return prev;
+        const patch = createStatusJobPatchFromSourceJob({
+          raw,
+          existingJob: {
+            id: job.id,
+            type: job.type,
+            sourceBlockId: job.sourceBlockId,
+            templateName: job.templateName,
+            resourceTitle: job.resourceTitle,
+            language: job.language,
+            createdAt: job.createdAt,
+          },
+        });
+        const next = [...prev];
+        next[idx] = { ...job, ...patch };
+        return next;
       });
-      const next = [...prev];
-      next[idx] = { ...job, ...patch };
-      return next;
-    });
-  }, []);
+    },
+    [openResource]
+  );
 
   onJobUpdateRef.current = onJobUpdate;
 

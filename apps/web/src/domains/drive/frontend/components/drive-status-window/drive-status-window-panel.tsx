@@ -14,11 +14,12 @@ import { useDriveSourceJobStatusContext } from '../../contexts/drive-source-job-
 import { DriveStatusWindow } from './drive-status-window';
 
 export function DriveStatusWindowPanel() {
-  const { windowDismissed, showStatusWindow, dismissStatusWindow } =
+  const { showStatusWindow, dismissStatusWindow } =
     useDriveSourceJobStatusContext();
   const [isExiting, setIsExiting] = useState(false);
 
-  const showTrigger = windowDismissed && !isExiting;
+  // Drive: 트리거 숨김. 새 소스 추가 시 pushSummaryJob에서 자동으로 창을 다시 띄움.
+  const showTrigger = false;
 
   const handleCloseAnimationComplete = () => {
     if (isExiting) {
