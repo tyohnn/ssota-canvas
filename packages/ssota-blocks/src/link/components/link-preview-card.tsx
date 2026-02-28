@@ -42,11 +42,14 @@ export function LinkPreviewCard({
       aria-label={isActive ? 'Double-click to open link' : undefined}
     >
       {metadata.imageUrl && (
-        <Box className="w-full aspect-2/1 bg-muted shrink-0 overflow-hidden relative">
+        <Box
+          className="relative w-full aspect-[2/1] shrink-0 overflow-hidden bg-muted"
+        >
           <img
             src={metadata.imageUrl}
             alt={metadata.title}
-            className="w-full h-full object-cover"
+            className="absolute inset-0 size-full object-cover"
+            style={{ objectPosition: '50% 33%' }}
             onError={e => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
@@ -91,7 +94,7 @@ export function LinkPreviewCard({
             <img
               src={currentFaviconUrl}
               alt=""
-              className="w-4 h-4 shrink-0"
+              className="w-3 h-3 shrink-0 md:w-4 md:h-4"
             />
           )}
           <span className="text-xs text-muted-foreground truncate">

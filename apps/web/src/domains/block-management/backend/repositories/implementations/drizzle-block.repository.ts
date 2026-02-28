@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, lt, or } from 'drizzle-orm';
 
 import { adminDb } from '@/db';
 import {
@@ -390,6 +390,97 @@ export class DrizzleBlockRepository implements IBlockRepository {
       throw new BlockManagementError(
         'BLOCK_FETCH_FAILED',
         `Failed to fetch blocks by type: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /** Drive 허용 블록 타입 (shape 제외) */
+  private static readonly DRIVE_BLOCK_TYPES: DatabaseBlockType[] = [
+    'link',
+    'audio',
+    'markdown',
+    'pdf',
+    'youtube',
+    'image',
+  ];
+
+  /**
+   * 여러 워크스페이스에 속한 블록 목록 조회 (Drive: cursor 기반 무한 스크롤).
+   */
+  async listByWorkspaceIds(
+    workspaceIds: string[],
+    options?: {
+      limit: number;
+      cursor?: string | null;
+      typeFilter?: string | null;
+    }
+  ): Promise<{ items: Block[]; nextCursor: string | null }> {
+    const limit = options?.limit ?? 24;
+    const cursorId = options?.cursor ?? null;
+    const typeFilter = options?.typeFilter ?? null;
+
+    if (workspaceIds.length === 0) {
+      return { items: [], nextCursor: null };
+    }
+
+    const allowedTypes: readonly DatabaseBlockType[] = typeFilter
+      ? DrizzleBlockRepository.DRIVE_BLOCK_TYPES.includes(
+          typeFilter as DatabaseBlockType
+        )
+        ? ([typeFilter] as DatabaseBlockType[])
+        : DrizzleBlockRepository.DRIVE_BLOCK_TYPES
+      : DrizzleBlockRepository.DRIVE_BLOCK_TYPES;
+
+    try {
+      const conditions = [
+        inArray(blocks.workspace_id, workspaceIds),
+        inArray(blocks.block_type, allowedTypes as DatabaseBlockType[]),
+        isNull(blocks.deleted_at),
+      ];
+
+      if (cursorId) {
+        const cursorRows = await adminDb
+          .select({ created_at: blocks.created_at })
+          .from(blocks)
+          .where(eq(blocks.id, cursorId))
+          .limit(1);
+        if (cursorRows.length > 0) {
+          const cursorCreatedAt = cursorRows[0]!.created_at;
+          conditions.push(
+            or(
+              lt(blocks.created_at, cursorCreatedAt),
+              and(
+                eq(blocks.created_at, cursorCreatedAt),
+                lt(blocks.id, cursorId)
+              )
+            )!
+          );
+        }
+      }
+
+      const fetchLimit = limit + 1;
+      const results = await adminDb
+        .select({
+          block: blocks,
+          profile: profiles,
+        })
+        .from(blocks)
+        .leftJoin(profiles, eq(blocks.created_by, profiles.id))
+        .where(and(...conditions))
+        .orderBy(desc(blocks.created_at), desc(blocks.id))
+        .limit(fetchLimit);
+
+      const items = results.slice(0, limit).map(({ block: blockData, profile }) =>
+        this.mapToBlock(blockData, profile)
+      );
+      const nextCursor =
+        results.length > limit ? results[limit - 1]!.block.id : null;
+
+      return { items, nextCursor };
+    } catch (error) {
+      throw new BlockManagementError(
+        'BLOCK_FETCH_FAILED',
+        `Failed to list blocks by workspace ids: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }

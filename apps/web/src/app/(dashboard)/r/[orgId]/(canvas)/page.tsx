@@ -1,6 +1,6 @@
-import { ContentAreaSkeleton } from '../../components/skeletons';
+import { ContentAreaSkeleton } from '../../../components/skeletons';
 
-import { RedirectToDefaultPageClient } from '../../components/redirect-client/redirect-client';
+import { RedirectToDefaultPageClient } from '../../../components/redirect-client/redirect-client';
 
 /**
  * /r/[orgId] 루트

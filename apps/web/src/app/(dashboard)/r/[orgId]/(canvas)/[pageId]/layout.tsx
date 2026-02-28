@@ -8,7 +8,7 @@ import {
 import { CanvasLoadingSkeleton } from '@/domains/workspace-management/frontend/components/page-viewer/canvas-loading-skeleton';
 import { WorkspacePageHeader } from '@/domains/workspace-management/frontend/components/page-viewer/workspace-page-header';
 
-import { PageSyncClient } from '../../../components/sync-client/page-sync-client';
+import { PageSyncClient } from '../../../../components/sync-client/page-sync-client';
 import { CanvasPageContent } from './components/canvas-page-content';
 import { Box } from '@/components/ui/box';
 

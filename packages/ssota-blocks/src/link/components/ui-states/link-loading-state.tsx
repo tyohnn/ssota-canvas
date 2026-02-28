@@ -15,7 +15,7 @@ export function LinkLoadingState() {
   return (
     <>
       {/* OG image area skeleton */}
-      <Box className="w-full aspect-2/1 bg-muted shrink-0 overflow-hidden">
+      <Box className="w-full aspect-[2/1] bg-muted shrink-0 overflow-hidden">
         <Skeleton className="w-full h-full" />
       </Box>
 

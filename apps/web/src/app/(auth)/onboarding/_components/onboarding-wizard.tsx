@@ -52,13 +52,15 @@ export function OnboardingWizard() {
       });
 
       if (result.success) {
-        const redirectUrl = result.data.createdNewOrganization
-          ? result.data.redirectUrl +
-            (result.data.redirectUrl.includes('?') ? '&' : '?') +
-            'tutorial=true'
-          : result.data.redirectUrl;
+        // const redirectUrl = result.data.createdNewOrganization
+        //   ? result.data.redirectUrl +
+        //   (result.data.redirectUrl.includes('?') ? '&' : '?') +
+        //   'tutorial=true'
+        //   : result.data.redirectUrl;
 
-        router.push(redirectUrl);
+        // router.push(redirectUrl);
+        const orgId = result.data.organization.id;
+        router.push(`/r/${orgId}/drive?onboarding`);
       } else {
         console.error('Onboarding failed:', result.error);
         setIsSubmitting(false);

@@ -71,7 +71,7 @@ export function YoutubeView({
     <TooltipProvider>
       <Box
         className={cn(
-          'w-full h-full flex flex-col',
+          'w-full h-full flex flex-col min-h-0 overflow-hidden',
           'transition-[box-shadow,transform] duration-300 ease-out'
         )}
       >

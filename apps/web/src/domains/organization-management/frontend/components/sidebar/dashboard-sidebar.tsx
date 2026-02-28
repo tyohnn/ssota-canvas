@@ -34,18 +34,13 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { TutorialDialogStandalone } from '@/domains/tutorial-management/frontend/components/tutorial-dialog/tutorial-dialog-dynamic';
 
-const SSOTA_OPEN_TUTORIAL_KEY = 'ssota-open-tutorial';
 const GETTING_STARTED_TUTORIAL_ID = 'getting-started';
 
 export function DashboardSidebar() {
   const { theme, setTheme } = useTheme();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isUpdatesOpen, setIsUpdatesOpen] = useState(false);
@@ -60,24 +55,6 @@ export function DashboardSidebar() {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // ?tutorial=true: first time from onboarding → set ssota-open-tutorial + auto-open; re-entry → only clean URL
-  useEffect(() => {
-    if (!mounted || searchParams.get('tutorial') !== 'true') return;
-    const existing = typeof window !== 'undefined' ? localStorage.getItem(SSOTA_OPEN_TUTORIAL_KEY) : null;
-    if (existing == null) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(SSOTA_OPEN_TUTORIAL_KEY, GETTING_STARTED_TUTORIAL_ID);
-      }
-      setInitialTutorialId(GETTING_STARTED_TUTORIAL_ID);
-      setIsTutorialOpen(true);
-    }
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('tutorial');
-    const search = params.toString();
-    const url = pathname + (search ? `?${search}` : '');
-    router.replace(url, { scroll: false });
-  }, [mounted, pathname, router, searchParams]);
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');

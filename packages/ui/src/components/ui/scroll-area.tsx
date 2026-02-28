@@ -10,11 +10,13 @@ function ScrollArea({
   children,
   ...props
 }: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
+  const { scrollbarGutter: _scrollbarGutter, scrollFade: _scrollFade, ...rest } =
+    props as typeof props & { scrollbarGutter?: unknown; scrollFade?: unknown };
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
       className={cn("relative", className)}
-      {...props}
+      {...rest}
     >
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"

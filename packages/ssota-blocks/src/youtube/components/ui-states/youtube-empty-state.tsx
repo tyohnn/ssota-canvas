@@ -39,7 +39,7 @@ export function YoutubeEmptyState({
   }, [isActive, draftUrl, inputRef]);
 
   return (
-    <Box className="relative w-full h-full flex flex-col">
+    <Box className="relative w-full h-full min-h-0 flex flex-col overflow-hidden">
       <YoutubeLoadingState />
 
       <Box className="absolute inset-0 backdrop-blur-xs bg-white/5 dark:bg-black/40 flex flex-col items-center justify-center p-4 z-10">

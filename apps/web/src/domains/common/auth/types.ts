@@ -5,6 +5,7 @@
  * For a project-agnostic version, see @/lib/server-actions/types
  */
 import type { MemberRole } from '@/domains/organization-management/shared/types';
+import type { OrganizationId } from '@/domains/organization-management/shared/value-objects/ids.vo';
 import type { Page } from '@/domains/workspace-management/shared/entities/page.entity';
 import type { Workspace } from '@/domains/workspace-management/shared/entities/workspace.entity';
 
@@ -48,8 +49,8 @@ export interface WorkspaceActionContext extends BaseActionContext {
 
 /**
  * Organization-based actions context (organization settings, etc.)
- * Includes organization id and role only (no workspace/page).
+ * Includes organization id (VO) and role only (no workspace/page).
  */
 export interface OrganizationActionContext extends BaseActionContext {
-  organization: { id: string; role: MemberRole };
+  organization: { id: OrganizationId; role: MemberRole };
 }

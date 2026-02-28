@@ -43,7 +43,7 @@ export function YoutubePreviewCard({
 
   return (
     <>
-      <Box className="flex-1 relative min-h-0">
+      <Box className="flex-1 relative min-h-0 overflow-hidden contain-[paint]">
         {isLoading && (
           <Box className="absolute inset-0 bg-black/50 flex items-center justify-center z-30 pointer-events-none">
             <Box className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
