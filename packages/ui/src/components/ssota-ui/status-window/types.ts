@@ -19,5 +19,9 @@ export interface StatusJob {
   /** 도메인 중립 식별자 (block, resource 등) */
   resourceId: string;
   templateName?: string;
+  /** 리소스 제목 (Summarizing/Summarized [제목] 표시용) */
+  resourceTitle?: string;
+  /** 언어 코드 (task 제목용, e.g. 'en' -> 'English') */
+  language?: string;
   createdAt: number;
 }
