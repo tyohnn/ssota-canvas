@@ -31,17 +31,25 @@ export function XPreviewCard({
   const authorProfileUrl =
     metadata.authorUsername && buildAuthorProfileUrl(metadata.authorUsername);
 
+  const openInNewTab = (url: string, e: React.MouseEvent | React.KeyboardEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const AuthorLink = ({ children }: { children: React.ReactNode }) =>
     authorProfileUrl ? (
-      <a
-        href={authorProfileUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-3 min-w-0 flex-1 hover:opacity-80 transition-opacity"
-        onClick={e => e.stopPropagation()}
+      <span
+        role="link"
+        tabIndex={0}
+        className="flex items-center gap-3 min-w-0 flex-1 hover:opacity-80 transition-opacity cursor-pointer"
+        onClick={e => openInNewTab(authorProfileUrl, e)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') openInNewTab(authorProfileUrl, e);
+        }}
       >
         {children}
-      </a>
+      </span>
     ) : (
       <Box className="flex items-center gap-3 min-w-0 flex-1">{children}</Box>
     );
@@ -130,19 +138,21 @@ export function XPreviewCard({
           )}
 
           {metadata.postedAt && (
-            <a
-              href={postPermalink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
-              onClick={e => e.stopPropagation()}
+            <span
+              role="link"
+              tabIndex={0}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors w-fit cursor-pointer"
+              onClick={e => openInNewTab(postPermalink, e)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') openInNewTab(postPermalink, e);
+              }}
             >
               {new Date(metadata.postedAt).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
               })}
-            </a>
+            </span>
           )}
         </Box>
       </Box>

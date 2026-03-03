@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import { Badge } from '@workspace/ui/components/ui/badge';
 import { Box } from '@workspace/ui/components/ui/box';
@@ -35,7 +35,27 @@ export function DriveBlockPreviewCardView({
   block,
   orgId,
 }: DriveBlockPreviewCardViewProps) {
+  const router = useRouter();
   const href = orgId ? `/r/${orgId}/drive/${block.id}` : '#';
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (href === '#') return;
+    const target = e.target as Node;
+    if (
+      target instanceof Element &&
+      (target.closest('a') || (target as HTMLElement).getAttribute?.('role') === 'link')
+    ) {
+      return;
+    }
+    e.preventDefault();
+    router.push(href);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (href === '#' || (e.key !== 'Enter' && e.key !== ' ')) return;
+    e.preventDefault();
+    router.push(href);
+  };
 
   const renderContent = () => {
     switch (block.blockType) {
@@ -104,9 +124,13 @@ export function DriveBlockPreviewCardView({
   };
 
   return (
-    <Link
-      href={href}
-      className="group flex flex-col rounded-md border bg-card shadow-sm transition-colors hover:bg-muted overflow-hidden aspect-square min-h-[140px]"
+    <Box
+      role="link"
+      tabIndex={0}
+      aria-label={block.title ? `Open ${block.title}` : 'Open block'}
+      className="group flex flex-col rounded-md border bg-card shadow-sm transition-colors hover:bg-muted overflow-hidden aspect-square min-h-[140px] cursor-pointer"
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
     >
       <Box className="p-2 flex shrink-0 border-b items-center gap-2 min-w-0">
         <Badge variant="secondary" className="shrink-0">
@@ -117,6 +141,6 @@ export function DriveBlockPreviewCardView({
         </span>
       </Box>
       <Box className="flex-1 min-h-0 overflow-hidden">{renderContent()}</Box>
-    </Link>
+    </Box>
   );
 }
