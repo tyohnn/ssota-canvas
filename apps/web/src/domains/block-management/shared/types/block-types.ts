@@ -23,6 +23,7 @@ export const BlockType = {
   SHAPE: 'shape' as const,
   MARKDOWN: 'markdown' as const,
   YOUTUBE: 'youtube' as const,
+  X: 'x' as const,
   IMAGE: 'image' as const,
   PDF: 'pdf' as const,
   AUDIO: 'audio' as const,
@@ -54,6 +55,7 @@ export const BLOCK_TYPE_SIZES: Record<
   [BlockType.SHAPE]: { width: 154, height: 70 }, // 도형 블록
   [BlockType.MARKDOWN]: { width: 342, height: 456 }, // 마크다운 블록 (3:4 비율)
   [BlockType.YOUTUBE]: { width: 410, height: 288 }, // YouTube iframe (222px) + 하단 정보 섹션
+  [BlockType.X]: { width: 340, height: 280 }, // X post card
   [BlockType.IMAGE]: { width: 300, height: 200 },
   [BlockType.PDF]: { width: 300, height: 400 }, // PDF 문서
   [BlockType.AUDIO]: { width: 350, height: 160 }, // Audio player

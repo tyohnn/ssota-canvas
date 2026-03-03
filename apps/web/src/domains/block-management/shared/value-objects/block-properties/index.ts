@@ -23,6 +23,7 @@ export {
   YoutubeBlockPropertiesVO,
   type YoutubeBlockProperties,
 } from './youtube.vo';
+export { XBlockPropertiesVO, type XBlockProperties } from './x.vo';
 export { PdfBlockPropertiesVO, type PdfBlockProperties } from './pdf.vo';
 export { AudioBlockPropertiesVO, type AudioBlockProperties } from './audio.vo';
 export { VideoBlockPropertiesVO, type VideoBlockProperties } from './video.vo';

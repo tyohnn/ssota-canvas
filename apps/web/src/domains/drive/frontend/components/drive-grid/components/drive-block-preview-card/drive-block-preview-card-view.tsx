@@ -7,6 +7,7 @@ import { Box } from '@workspace/ui/components/ui/box';
 
 import { LinkPreviewCard } from './type-cards/link-preview-card';
 import { YoutubePreviewCard } from './type-cards/youtube-preview-card';
+import { XPreviewCardAdapter } from './type-cards/x-preview-card';
 import { PdfPreviewCard } from './type-cards/pdf-preview-card';
 import { ImagePreviewCard } from './type-cards/image-preview-card';
 import { AudioPreviewCard } from './type-cards/audio-preview-card';
@@ -25,7 +26,9 @@ export interface DriveBlockPreviewCardViewProps {
 }
 
 function getBlockTypeBadgeLabel(blockType: string): string {
-  return blockType === 'markdown' ? 'note' : blockType;
+  if (blockType === 'markdown') return 'note';
+  if (blockType === 'x') return 'X';
+  return blockType;
 }
 
 export function DriveBlockPreviewCardView({
@@ -46,6 +49,13 @@ export function DriveBlockPreviewCardView({
       case 'youtube':
         return (
           <YoutubePreviewCard
+            title={block.title}
+            properties={block.properties ?? {}}
+          />
+        );
+      case 'x':
+        return (
+          <XPreviewCardAdapter
             title={block.title}
             properties={block.properties ?? {}}
           />

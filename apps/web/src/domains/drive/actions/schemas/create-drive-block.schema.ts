@@ -7,6 +7,7 @@ const DriveBlockTypeSchema = z.enum([
   'pdf',
   'youtube',
   'image',
+  'x',
 ]);
 
 export const CreateDriveBlockRequestSchema = z.object({

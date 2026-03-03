@@ -8,7 +8,7 @@ export interface EnsureSourceJobParams {
   workspaceId: string;
   blockId: string;
   url: string;
-  sourceType: 'pdf' | 'audio' | 'youtube' | 'link';
+  sourceType: 'pdf' | 'audio' | 'youtube' | 'link' | 'x';
 }
 
 export function useDriveSourceRegistration() {

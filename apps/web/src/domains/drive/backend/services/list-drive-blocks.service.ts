@@ -34,7 +34,7 @@ function blockToItem(block: Block): ListDriveBlocksResult['items'][0] {
 
 /**
  * List blocks for Drive (org scope): workspaces of org → block list with cursor.
- * Filters: block_type IN (link, audio, markdown, pdf, youtube, image); typeFilter narrows if provided.
+ * Filters: block_type IN (link, audio, markdown, pdf, youtube, image, x); typeFilter narrows if provided.
  */
 export async function listDriveBlocks(
   orgId: OrganizationId,

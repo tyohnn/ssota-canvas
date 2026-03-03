@@ -37,6 +37,7 @@ const BLOCK_ACTION_MODULES: Record<string, string> = {
   pdf: 'pdf',
   image: 'image',
   link: 'link',
+  x: 'x',
   python: 'python',
   audio: 'audio',
   text: 'text',

@@ -15,6 +15,7 @@ import { BlockType } from '@/domains/block-management/shared/types/block-types';
 // Block components
 import {
   MarkdownBlock,
+  XBlock,
   YoutubeBlock,
   PythonBlock,
   TextBlock,
@@ -52,6 +53,7 @@ export const CANVAS_NODE_TYPES: NodeTypes = {
   [BlockType.IMAGE]: ImageBlock,
   [BlockType.MARKDOWN]: MarkdownBlock,
   [BlockType.YOUTUBE]: YoutubeBlock,
+  [BlockType.X]: XBlock,
   [BlockType.PYTHON]: PythonBlock,
   [BlockType.LINK]: LinkBlock,
   [BlockType.PDF]: PdfBlock,

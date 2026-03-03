@@ -3,6 +3,7 @@
 import type { DriveBlockTypeTab } from '../../core/types';
 import { LinkAddSection } from './link';
 import { YoutubeAddSection } from './youtube';
+import { XAddSection } from './x';
 import { PdfAddSection } from './pdf';
 import { AudioAddSection } from './audio';
 import { ImageAddSection } from './image';
@@ -36,6 +37,15 @@ export function FormContent({
     case 'youtube':
       return (
         <YoutubeAddSection
+          orgId={orgId}
+          workspaces={workspaces}
+          isLoadingWorkspaces={isLoadingWorkspaces}
+          onClose={onClose}
+        />
+      );
+    case 'x':
+      return (
+        <XAddSection
           orgId={orgId}
           workspaces={workspaces}
           isLoadingWorkspaces={isLoadingWorkspaces}

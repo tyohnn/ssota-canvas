@@ -6,7 +6,7 @@ import { createDriveBlockAction } from '@/domains/drive/actions/create-drive-blo
 export interface CreateDriveBlockParams {
   organizationId: string;
   workspaceId: string;
-  blockType: 'link' | 'audio' | 'markdown' | 'pdf' | 'youtube' | 'image';
+  blockType: 'link' | 'audio' | 'markdown' | 'pdf' | 'youtube' | 'image' | 'x';
   title: string;
   initialProperties?: Record<string, unknown>;
   initialContent?: unknown;

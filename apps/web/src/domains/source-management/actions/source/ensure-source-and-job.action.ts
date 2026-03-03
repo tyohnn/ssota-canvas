@@ -30,7 +30,7 @@ const EnsureSourceAndJobRequestSchema = z.object({
   workspaceId: z.uuid(),
   blockId: BlockSlugSchema,
   url: z.url({ message: 'Invalid URL' }),
-  sourceType: z.enum(['pdf', 'link', 'audio', 'youtube']),
+  sourceType: z.enum(['pdf', 'link', 'audio', 'youtube', 'x']),
   language: z.string().min(2).max(5).optional(),
 });
 

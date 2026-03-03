@@ -402,6 +402,7 @@ export class DrizzleBlockRepository implements IBlockRepository {
     'pdf',
     'youtube',
     'image',
+    'x',
   ];
 
   /**

@@ -215,6 +215,14 @@ export function useClipboardPaste({
           break;
         }
 
+        case 'x-url': {
+          blockType = BlockType.X;
+          initialProperties = {
+            url: analysisResult.data.url,
+          };
+          break;
+        }
+
         case 'link-url': {
           blockType = BlockType.LINK;
           initialProperties = {

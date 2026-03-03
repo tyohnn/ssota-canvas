@@ -15,6 +15,7 @@ import { markdownEditorPanelSchema } from '../components/block/block-type/markdo
 import { pdfEditorPanelSchema } from '../components/block/block-type/pdf/config/pdf-editor-panel-schema';
 import { shapeEditorPanelSchema } from '../components/block/block-type/shape/config/shape-editor-panel-schema';
 import { textEditorPanelSchema } from '../components/block/block-type/text/config/text-editor-panel-schema';
+import { xEditorPanelSchema } from '../components/block/block-type/x/config/x-editor-panel-schema';
 import { youtubeEditorPanelSchema } from '../components/block/block-type/youtube/config/youtube-editor-panel-schema';
 
 class BlockEditorSchemaRegistryImpl implements BlockEditorSchemaRegistry {
@@ -34,6 +35,7 @@ class BlockEditorSchemaRegistryImpl implements BlockEditorSchemaRegistry {
     );
     this.register(linkEditorPanelSchema.blockType, linkEditorPanelSchema);
     this.register(youtubeEditorPanelSchema.blockType, youtubeEditorPanelSchema);
+    this.register(xEditorPanelSchema.blockType, xEditorPanelSchema);
     this.register(pdfEditorPanelSchema.blockType, pdfEditorPanelSchema);
     this.register(audioEditorPanelSchema.blockType, audioEditorPanelSchema);
   }

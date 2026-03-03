@@ -12,7 +12,8 @@ export type DriveTypeFilter =
   | 'markdown'
   | 'pdf'
   | 'youtube'
-  | 'image';
+  | 'image'
+  | 'x';
 
 const VALID_TYPE_STRINGS = [
   'link',
@@ -21,6 +22,7 @@ const VALID_TYPE_STRINGS = [
   'pdf',
   'youtube',
   'image',
+  'x',
 ] as const;
 
 export function parseTypeFilterFromSearch(

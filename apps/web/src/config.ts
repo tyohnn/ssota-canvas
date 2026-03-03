@@ -39,6 +39,7 @@ export const config = {
   providers: {
     unsplash: process.env.UNSPLASH_ACCESS_KEY || '',
     youtube: process.env.YOUTUBE_API_KEY || '',
+    xApiBearerToken: process.env.X_API_BEARER_TOKEN || '',
     zenrows: process.env.ZENROWS_API_KEY || '',
     firecrawl: process.env.FIRECRAWL_API_KEY || '',
     elevenlabs: process.env.ELEVENLABS_API_KEY || '',

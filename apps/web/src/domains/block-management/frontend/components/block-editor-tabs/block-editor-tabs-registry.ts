@@ -18,6 +18,7 @@ export const BLOCKS_WITH_TABS: Record<string, boolean> = {
   link: true,
   pdf: true,
   audio: true,
+  x: true,
 };
 
 const tabsCache = new Map<BlockType, BlockEditorTabsConfig>();

@@ -6,7 +6,8 @@ export type DriveBlockTypeTab =
   | 'markdown'
   | 'pdf'
   | 'youtube'
-  | 'image';
+  | 'image'
+  | 'x';
 
 export interface DriveAddDialogProps {
   orgId: string;

@@ -139,7 +139,7 @@ export function AIActionProvider({ children }: AIActionProviderProps) {
         const blockType = (node.data as BlockNodeData)?.blockType;
         const hasSummaryTab =
           blockType &&
-          ['youtube', 'link', 'pdf', 'audio'].includes(blockType);
+          ['youtube', 'link', 'pdf', 'audio', 'x'].includes(blockType);
         const initialTab = hasSummaryTab ? { tab: 'summary' } : undefined;
         canvasMode.enterBlockEditingMode(blockId, node.id, initialTab);
       }

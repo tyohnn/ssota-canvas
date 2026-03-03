@@ -22,6 +22,7 @@ export const BLOCK_VIEW_MODES: Record<BlockType, BlockViewModeValue[]> = {
   // BasicBlocks - 단일 View Mode만 지원
   text: ['original'],
   link: ['original'],
+  x: ['original'],
   pdf: ['original'],
   audio: ['original'],
   video: ['original'],

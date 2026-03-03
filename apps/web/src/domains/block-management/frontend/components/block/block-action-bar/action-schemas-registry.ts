@@ -22,6 +22,7 @@ import { MarkdownBlockActionSchemas } from '../block-type/markdown/config/markdo
 import { PdfBlockActionSchemas } from '../block-type/pdf/config/pdf-block-action-schemas';
 import { PythonBlockActionSchemas } from '../block-type/python/config/python-block-action-schemas';
 import { TextBlockActionSchemas } from '../block-type/text/config/text-block-action-schemas';
+import { XBlockActionSchemas } from '../block-type/x/config/x-block-action-schemas';
 import { YoutubeBlockActionSchemas } from '../block-type/youtube/config/youtube-block-action-schemas';
 
 /**
@@ -42,6 +43,7 @@ export const BLOCK_ACTION_SCHEMAS: Record<
   youtube: YoutubeBlockActionSchemas,
   pdf: PdfBlockActionSchemas,
   link: LinkBlockActionSchemas,
+  x: XBlockActionSchemas,
   audio: AudioBlockActionSchemas,
   text: TextBlockActionSchemas,
   python: PythonBlockActionSchemas,

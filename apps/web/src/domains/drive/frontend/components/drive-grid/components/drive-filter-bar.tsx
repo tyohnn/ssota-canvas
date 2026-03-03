@@ -26,6 +26,7 @@ const FILTER_ITEMS: { value: DriveTypeFilter; label: string }[] = [
   { value: 'pdf', label: 'PDF' },
   { value: 'youtube', label: 'YouTube' },
   { value: 'image', label: 'Image' },
+  { value: 'x', label: 'X' },
 ];
 
 interface DriveFilterBarProps {

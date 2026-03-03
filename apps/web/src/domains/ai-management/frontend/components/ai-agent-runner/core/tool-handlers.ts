@@ -356,9 +356,10 @@ export const ToolHandlers = {
       throw new Error('blockType is required');
     }
 
-    // Link 블록의 on-demand 액션은 workspaceId 필요 (서버 액션 호출)
+    // Link/X 블록의 summarize 액션은 workspaceId 필요 (서버 액션 호출)
+    const needsWorkspaceId = ['link', 'x', 'youtube'].includes(blockType);
     const params =
-      blockType === 'link'
+      needsWorkspaceId
         ? { ...(actionParams ?? {}), workspaceId: context.workspaceId }
         : actionParams ?? {};
 
