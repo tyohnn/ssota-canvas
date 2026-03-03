@@ -1,6 +1,6 @@
 'use client';
 
-import { TitleInputView } from '@/domains/block-management/frontend/components/editor-panel/components/content-area/components/title-input.view';
+import { TitleInputView } from '@workspace/editor-panel';
 import { TUTORIAL_YOUTUBE_PROPERTIES } from '@/domains/tutorial-management/frontend/config/tutorial-mock-data';
 
 /**
@@ -12,10 +12,8 @@ export function MockTitleInput() {
 
   return (
     <TitleInputView
-      value={displayTitle}
-      onChange={() => {}}
-      onKeyDown={() => {}}
-      onBlur={() => {}}
+      initialTitle={displayTitle}
+      onTitleSave={() => {}}
       readOnly={true}
     />
   );

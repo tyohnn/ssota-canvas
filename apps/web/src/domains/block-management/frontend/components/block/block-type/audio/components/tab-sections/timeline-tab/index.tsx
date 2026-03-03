@@ -17,11 +17,15 @@ import { TimelineTab } from '@/domains/source-management/frontend/components/tim
 export interface AudioTimelineTabProps {
   blockId: string;
   blockData: BlockNodeData | undefined;
+  blockMountId?: string;
+  switchToTab?: (tabId: string) => void;
 }
 
 export default function AudioTimelineTab({
   blockId,
   blockData,
+  blockMountId,
+  switchToTab,
 }: AudioTimelineTabProps) {
   let sourceTitle: string | undefined;
   try {
@@ -40,6 +44,9 @@ export default function AudioTimelineTab({
       blockSlug={blockId}
       sourceId={blockData?.sourceId}
       sourceTitle={sourceTitle}
+      blockMountId={blockMountId}
+      blockData={blockData}
+      switchToTab={switchToTab}
     />
   );
 }

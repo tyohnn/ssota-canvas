@@ -16,18 +16,29 @@ import {
 export interface TimelineTranscriptProps {
   transcript: TimelineTranscriptSegment[] | undefined;
   sourceTitle: string | undefined;
+  blockMountId?: string;
+  blockData?: unknown;
+  switchToTab?: (tabId: string) => void;
 }
 
 export function TimelineTranscript({
   transcript,
   sourceTitle,
+  blockMountId,
+  blockData,
+  switchToTab,
 }: TimelineTranscriptProps) {
   const {
     handleTimeClick,
     handleAddQuote,
     loadingSegmentIndex,
     readonly,
-  } = useTimelineTranscript({ sourceTitle });
+  } = useTimelineTranscript({
+    sourceTitle,
+    blockMountId,
+    blockData,
+    switchToTab,
+  });
 
   return (
     <TimelineTranscriptView

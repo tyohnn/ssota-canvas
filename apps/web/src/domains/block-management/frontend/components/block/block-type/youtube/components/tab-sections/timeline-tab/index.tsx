@@ -16,11 +16,15 @@ import { TimelineTab } from '@/domains/source-management/frontend/components/tim
 export interface YouTubeTimelineTabProps {
   blockId: string;
   blockData: BlockNodeData | undefined;
+  blockMountId?: string;
+  switchToTab?: (tabId: string) => void;
 }
 
 export default function YouTubeTimelineTab({
   blockId,
   blockData,
+  blockMountId,
+  switchToTab,
 }: YouTubeTimelineTabProps) {
   let sourceTitle: string | undefined;
   try {
@@ -37,6 +41,9 @@ export default function YouTubeTimelineTab({
       blockSlug={blockId}
       sourceId={blockData?.sourceId}
       sourceTitle={sourceTitle}
+      blockMountId={blockMountId}
+      blockData={blockData}
+      switchToTab={switchToTab}
     />
   );
 }

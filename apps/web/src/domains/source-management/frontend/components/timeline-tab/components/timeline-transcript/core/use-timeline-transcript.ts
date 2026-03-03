@@ -10,7 +10,7 @@ import { useState } from 'react';
 import type { JSONContent } from '@tiptap/core';
 import { useReactFlow } from '@xyflow/react';
 
-import { useEditorPanelContext } from '@/domains/block-management/frontend/components/editor-panel/core/context';
+import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
   appendToTiptapContent,
   createQuoteBlock,
@@ -31,6 +31,9 @@ function formatTimestamp(seconds: number): string {
 
 export interface UseTimelineTranscriptParams {
   sourceTitle: string | undefined;
+  blockMountId?: string;
+  blockData?: unknown;
+  switchToTab?: (tabId: string) => void;
 }
 
 export interface UseTimelineTranscriptResult {
@@ -46,9 +49,14 @@ export interface UseTimelineTranscriptResult {
 
 export function useTimelineTranscript({
   sourceTitle,
+  blockMountId: blockMountIdParam,
+  blockData: blockDataParam,
+  switchToTab: switchToTabParam,
 }: UseTimelineTranscriptParams): UseTimelineTranscriptResult {
   const [loadingSegmentIndex, setLoadingSegmentIndex] = useState<number | null>(null);
-  const { blockMountId, blockData, switchToTab } = useEditorPanelContext();
+  const typedBlockData = blockDataParam as BlockNodeData | undefined;
+  const blockMountId = blockMountIdParam ?? '';
+  const switchToTab = switchToTabParam ?? (() => {});
   const { readonly } = useCanvasReadOnly();
   const { getBlockInteractions } = useBlockInteraction();
   const { getNode, updateNode } = useReactFlow();
@@ -57,6 +65,7 @@ export function useTimelineTranscript({
   });
 
   const handleTimeClick = (seconds: number) => {
+    if (!blockMountId) return;
     const interactions = getBlockInteractions(blockMountId);
     if (interactions?.seekTo) {
       interactions.seekTo(seconds);
@@ -68,12 +77,12 @@ export function useTimelineTranscript({
     timestamp: number,
     segmentIndex: number
   ) => {
-    if (!blockData) return;
+    if (!typedBlockData || !blockMountId) return;
 
     setLoadingSegmentIndex(segmentIndex);
 
     try {
-      const currentContent = (blockData.content as JSONContent) || null;
+      const currentContent = (typedBlockData.content as JSONContent) || null;
 
       const quoteBlock = createQuoteBlock(text, {
         title: sourceTitle || 'Video',
@@ -86,7 +95,7 @@ export function useTimelineTranscript({
       await updateBlockContent({
         nodeId: blockMountId,
         content: updatedContent,
-        blockData,
+        blockData: typedBlockData,
       });
 
       switchToTab('note');

@@ -17,6 +17,9 @@ export function TimelineTab({
   blockSlug,
   sourceId,
   sourceTitle,
+  blockMountId,
+  blockData,
+  switchToTab,
 }: TimelineTabProps) {
   const business = useSourceTimelineTab({
     blockSlug,
@@ -33,6 +36,9 @@ export function TimelineTab({
       error={business.error}
       onExtractScript={business.handleExtractScript}
       isExtracting={business.isExtracting}
+      blockMountId={blockMountId}
+      blockData={blockData}
+      switchToTab={switchToTab}
     />
   );
 }

@@ -26,11 +26,27 @@ export type ReactFlowDependencies = {
   updateNode: (nodeId: string, options: { data: BlockNodeData }) => void;
 };
 
-export type UseUpdateBlockPropertyParams = {
+/** Canvas mode: uses React Flow for optimistic update. workspaceId from useCanvasMetadata. */
+export type UseUpdateBlockPropertyParamsCanvas = {
   reactFlow: ReactFlowDependencies;
   /** 테스트 시 mock 주입용. 미제공 시 useCanvasMetadata() 사용 */
   canvasMetadata?: CanvasMetadata;
 };
+
+/** Standalone mode (Drive): server-only, no React Flow. */
+export type UseUpdateBlockPropertyParamsStandalone = {
+  workspaceId: string;
+};
+
+export type UseUpdateBlockPropertyParams =
+  | UseUpdateBlockPropertyParamsCanvas
+  | UseUpdateBlockPropertyParamsStandalone;
+
+function isCanvasParams(
+  p: UseUpdateBlockPropertyParams
+): p is UseUpdateBlockPropertyParamsCanvas {
+  return 'reactFlow' in p;
+}
 
 export interface UseBlockPropertyUpdateResult {
   updateProperty: <T>(
@@ -98,20 +114,23 @@ function updateNestedProperty<T>(
 // ============================================================================
 
 /**
- * 블록 속성 업데이트 Hook (TanStack Query Optimistic Update)
+ * 블록 속성 업데이트 Hook (canvas/standalone 통합)
  *
- * - React Flow Store 즉시 업데이트 (onMutate)
- * - Server Action 백그라운드 동기화
- * - 실패 시 자동 롤백 (onError)
- * - 로딩 상태 자동 관리
+ * Canvas (reactFlow 제공): React Flow Store 즉시 업데이트 + Server Action, 실패 시 롤백
+ * Standalone (workspaceId만): Server Action만 호출, updatePropertyImmediate는 no-op
  */
 export function useUpdateBlockProperty(
   params: UseUpdateBlockPropertyParams
 ): UseBlockPropertyUpdateResult {
-  const { reactFlow, canvasMetadata: canvasMetadataOverride } = params;
-  const { updateNode, getNode } = reactFlow;
-  const canvasMetadata = canvasMetadataOverride ?? useCanvasMetadata();
-  const { workspaceId } = canvasMetadata;
+  const isCanvas = isCanvasParams(params);
+  const reactFlow = isCanvas ? params.reactFlow : undefined;
+  const { updateNode, getNode } = reactFlow ?? {
+    updateNode: (_: string, __: { data: BlockNodeData }) => {},
+    getNode: (_: string) => undefined,
+  };
+  const workspaceId = isCanvas
+    ? (params.canvasMetadata ?? useCanvasMetadata()).workspaceId
+    : params.workspaceId;
 
   // ============================================================================
   // Mutation: Update Single Property
@@ -160,38 +179,29 @@ export function useUpdateBlockProperty(
       return result;
     },
 
-    // Optimistic Update
+    // Optimistic Update (canvas only)
     onMutate: async ({
       propertyPath,
       value,
       blockMountId,
       blockData,
     }: UpdatePropertyVariables) => {
-      // React Flow node id는 blockMountId (blockId와 다를 수 있음)
+      if (!isCanvas) return undefined;
       const nodeId = blockMountId;
-
-      // blockData를 직접 사용 (onMutate는 mutationFn 직전에 실행되므로 매우 빠른 시점)
-      // 이 시점에는 다른 업데이트가 발생할 가능성이 거의 없으므로 전달받은 blockData를 신뢰
       const currentBlockData = blockData;
-
-      // Backup original data
       const previousData = currentBlockData;
-
-      // Apply optimistic update
       const updatedData = updateNestedProperty(
         currentBlockData,
         propertyPath,
         value
       );
       updateNode(nodeId, { data: updatedData });
-
-      // Return context for rollback
       return { previousData, nodeId };
     },
 
-    // Rollback on error
+    // Rollback on error (canvas only)
     onError: (error, variables, context) => {
-      if (context?.previousData && context?.nodeId) {
+      if (isCanvas && context?.previousData && context?.nodeId) {
         updateNode(context.nodeId, { data: context.previousData });
       }
       console.error('Failed to update property:', error);
@@ -248,16 +258,15 @@ export function useUpdateBlockProperty(
       return result;
     },
 
-    // Optimistic Update
+    // Optimistic Update (canvas only)
     onMutate: async ({
       properties,
       blockMountId,
       blockData,
     }: UpdatePropertiesVariables) => {
+      if (!isCanvas) return undefined;
       const nodeId = blockMountId;
       const previousData = blockData;
-
-      // sourceId는 block 최상위 필드로 분리 (서버에는 properties만 전송)
       const { sourceId, ...propertyFields } = properties as Record<
         string,
         unknown
@@ -271,13 +280,12 @@ export function useUpdateBlockProperty(
         } as any,
       };
       updateNode(nodeId, { data: updatedData });
-
       return { previousData, nodeId };
     },
 
-    // Rollback on error
+    // Rollback on error (canvas only)
     onError: (error, variables, context) => {
-      if (context?.previousData && context?.nodeId) {
+      if (isCanvas && context?.previousData && context?.nodeId) {
         updateNode(context.nodeId, { data: context.previousData });
       }
       console.error('Failed to update properties:', error);
@@ -329,8 +337,7 @@ export function useUpdateBlockProperty(
   );
 
   /**
-   * Immediate update (no server sync)
-   * For real-time UI updates without waiting for server response
+   * Immediate update (no server sync). Canvas only; no-op in standalone.
    */
   const updatePropertyImmediate = useCallback(
     <T>(
@@ -339,13 +346,8 @@ export function useUpdateBlockProperty(
       value: T,
       blockData: BlockNodeData
     ): void => {
-      // React Flow node id는 blockMountId (blockId와 다를 수 있음)
+      if (!isCanvas) return; // Standalone: no React Flow store to update
       const nodeId = blockData.blockMountId;
-
-      // Get latest data from React Flow Store (SSOT)
-      // ⚠️ 중요: updatePropertyImmediate는 서버 동기화 없이 즉시 업데이트하므로,
-      // 여러 번 빠르게 호출될 수 있습니다. 따라서 항상 Store에서 최신 데이터를
-      // 가져와야 동시성 문제를 방지할 수 있습니다.
       const latestNode = getNode(nodeId);
       if (!latestNode) {
         console.warn(

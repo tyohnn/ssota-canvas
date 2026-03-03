@@ -33,12 +33,18 @@ interface TimelineContentProps {
   sourceTitle: string | undefined;
   extractedAt?: Date | string | null;
   onRefresh: () => Promise<void>;
+  blockMountId?: string;
+  blockData?: unknown;
+  switchToTab?: (tabId: string) => void;
 }
 
 export function TimelineContent({
   script,
   sourceTitle,
   extractedAt,
+  blockMountId,
+  blockData,
+  switchToTab,
 }: TimelineContentProps) {
   return (
     <Box className="space-y-4 relative">
@@ -50,6 +56,9 @@ export function TimelineContent({
       <TimelineTranscript
         transcript={script?.transcript}
         sourceTitle={sourceTitle}
+        blockMountId={blockMountId}
+        blockData={blockData}
+        switchToTab={switchToTab}
       />
       <TimelineTableOfContents
         transcript={script?.transcript}

@@ -25,6 +25,9 @@ export function TimelineTabView({
   error,
   onExtractScript,
   isExtracting,
+  blockMountId,
+  blockData,
+  switchToTab,
 }: TimelineTabViewProps) {
   if (isLoading) {
     const isActuallyExtracting = isExtracting || (!script && isLoading);
@@ -66,6 +69,9 @@ export function TimelineTabView({
         sourceTitle={sourceTitle}
         extractedAt={extractedAt}
         onRefresh={onExtractScript}
+        blockMountId={blockMountId}
+        blockData={blockData}
+        switchToTab={switchToTab}
       />
     </TimelineTabContainer>
   );

@@ -13,6 +13,9 @@ export interface TimelineTabViewProps {
   error: string | null;
   onExtractScript: () => Promise<void>;
   isExtracting: boolean;
+  blockMountId?: string;
+  blockData?: unknown;
+  switchToTab?: (tabId: string) => void;
 }
 
 export interface UseSourceTimelineTabParams {
@@ -20,6 +23,10 @@ export interface UseSourceTimelineTabParams {
   sourceId: string | undefined;
   /** 블록에서 전달하는 제목 (표시용) */
   sourceTitle?: string;
+  /** 에디터 패널에서 인용 시 노트 탭 전환용 (optional) */
+  blockMountId?: string;
+  blockData?: unknown;
+  switchToTab?: (tabId: string) => void;
 }
 
 export interface UseSourceTimelineTabResult {

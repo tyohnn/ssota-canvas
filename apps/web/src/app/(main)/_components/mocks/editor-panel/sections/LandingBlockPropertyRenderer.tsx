@@ -9,7 +9,7 @@
 
 import React from 'react';
 import type { PropertyUIDefinition } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
-import { BlockPropertyRendererView } from '@/domains/block-management/frontend/components/editor-panel/components/content-area/components/block-properties-section/components/block-property-renderer.view';
+import { BlockPropertyRendererView } from '@workspace/editor-panel';
 
 interface LandingBlockPropertyRendererProps {
   propertyKey: string;

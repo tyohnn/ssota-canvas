@@ -9,8 +9,6 @@
 
 import { Badge } from '@workspace/ui/components/ui/badge';
 
-import { Box } from '@/components/ui/box';
-import { PropertyIcon } from '@/domains/block-management/frontend/components/editor-panel/components/content-area/components/custom-properties-section/components/custom-property-item/components/property-icon';
 import {
   CheckboxProperty,
   ColorProperty,
@@ -18,11 +16,13 @@ import {
   MultiSelectProperty,
   NumberProperty,
   PhoneProperty,
+  PropertyIcon,
   SelectProperty,
   StatusProperty,
   TextProperty,
   UrlProperty,
-} from '@/domains/block-management/frontend/components/editor-panel/components/content-area/components/property-input';
+} from '@workspace/editor-panel';
+import { Box } from '@/components/ui/box';
 import type { PropertyUIDefinition } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
 import { PropertyType } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
 
