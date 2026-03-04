@@ -12,7 +12,7 @@ import { memo, useState } from "react";
 import type { NodeProps } from "@xyflow/react";
 import { Check, Sparkles } from "lucide-react";
 import { DataBlockView } from "@/domains/block-management/frontend/components/block/data-block/components/data-block-view";
-import { YoutubeView } from "@/domains/block-management/frontend/components/block/block-type/youtube/components/youtube.view";
+import { YoutubeView } from "@workspace/ssota-blocks/youtube";
 import { BaseBlockView } from "@/domains/block-management/frontend/components/block/base-block/components/base-block-view";
 import { Content } from "@/domains/block-management/frontend/components/block/base-block/components/content";
 import { ResizeControlView } from "@/domains/block-management/frontend/components/block/base-block/components/resize-control.view";
@@ -91,7 +91,7 @@ function SummarizeYoutubeBlockComponent({
       draftUrl=""
       showPlayer={true}
       isIframeLoading={false}
-      selected={selected}
+      isActive={selected}
       properties={MOCK_YOUTUBE_PROPERTIES}
       thumbnailUrl={MOCK_YOUTUBE_PROPERTIES.youtubeThumbnail ?? null}
       videoId={YOUTUBE_VIDEO_ID}

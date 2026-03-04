@@ -23,6 +23,7 @@ const BLOCK_TOOLBAR_MODULES: Record<string, boolean> = {
   pdf: true,
   image: true,
   link: true,
+  x: true,
   audio: false, // 툴바 없음
   python: false, // 툴바 없음
   basic: false, // 툴바 없음

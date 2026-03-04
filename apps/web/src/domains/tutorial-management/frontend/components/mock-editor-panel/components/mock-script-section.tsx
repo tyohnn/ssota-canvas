@@ -6,7 +6,7 @@ import {
   TimelineTabContainer,
   TimelineTranscriptItemView,
   TimelineTableOfContents,
-} from '@/domains/source-management/frontend/components/timeline-tab';
+} from '@workspace/editor-panel';
 import { useBlockInteraction } from '@/domains/canvas-management/frontend/contexts/block-interaction-context';
 import { useTutorialDialogContext } from '@/domains/tutorial-management/frontend/components/tutorial-dialog/core/context';
 import { InteractionGuard } from '../../common/interaction-guard';

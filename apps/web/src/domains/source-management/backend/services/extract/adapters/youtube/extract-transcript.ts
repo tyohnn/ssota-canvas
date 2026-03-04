@@ -1,11 +1,10 @@
 /**
  * YouTube Transcript Extraction
  *
- * Fallback 메커니즘: 무료 어댑터를 먼저 시도하고, 실패 시 ZenRows 사용
+ * 1차: ZenRows (premium_proxy false) → 2차: ZenRows (premium_proxy true)
  */
 import { SourceManagementError } from '../../../../../shared/errors/source-management.error';
 
-import { YoutubeCaptionExtractorAdapter } from './caption-adapters/youtube-caption-extractor.adapter';
 import { ZenRowsCaptionAdapter } from './caption-adapters/zenrows-caption.adapter';
 import type { TimelineScript } from '@/domains/source-management/shared/types/timeline-script.types';
 
@@ -25,8 +24,8 @@ export async function extractYoutubeTranscript(
   language?: string
 ): Promise<TimelineScript> {
   const adapters = [
-    new YoutubeCaptionExtractorAdapter(), // 1차: 무료
-    new ZenRowsCaptionAdapter(), // 2차: 유료, ZenRows bot detection 우회
+    new ZenRowsCaptionAdapter({ premiumProxy: false }), // 1차
+    new ZenRowsCaptionAdapter({ premiumProxy: true }), // 2차
   ];
 
   let lastError: Error | null = null;
@@ -36,6 +35,11 @@ export async function extractYoutubeTranscript(
       const segments = await adapter.getTranscript(videoId, language);
 
       if (segments.length > 0) {
+        if (adapter.name === 'zenrows-caption-premium') {
+          console.warn(
+            `[extractYoutubeTranscript] videoId=${videoId} succeeded via fallback: ${adapter.name}`
+          );
+        }
         let detectedLanguage = language || 'auto';
         if (detectedLanguage === 'auto') {
           const languageResult = await detectLanguageFromScript(segments, videoId);
@@ -54,17 +58,21 @@ export async function extractYoutubeTranscript(
       lastError = new Error('No transcript segments found');
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
+      console.warn(
+        `[extractYoutubeTranscript] videoId=${videoId} adapter=${adapter.name} failed:`,
+        lastError.message
+      );
       continue;
     }
   }
 
   throw new SourceManagementError(
     'EXTRACT_TRANSCRIPT_FAILED',
-    `Failed to extract transcript: ${lastError?.message || 'All adapters failed'}`,
+    `Failed to extract transcript: ${lastError?.message ?? 'All adapters failed'}`,
     {
       videoId,
       language,
-      originalError: lastError?.message || 'All adapters failed',
+      originalError: lastError?.message ?? 'All adapters failed',
     }
   );
 }

@@ -23,6 +23,7 @@ export const BLOCK_ACTION_MODULES: Record<string, boolean> = {
   youtube: true,
   pdf: true,
   link: true,
+  x: true,
   audio: true,
   markdown: false, // TODO: 구현 예정
 };

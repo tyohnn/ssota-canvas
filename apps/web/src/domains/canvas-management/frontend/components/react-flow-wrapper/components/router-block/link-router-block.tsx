@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 
 import { useCanvasReadOnly } from '@/domains/canvas-management/frontend/contexts/canvas-readonly-context';
 
-import { LinkLoadingState } from '@/domains/block-management/frontend/components/block/block-type/link/components/block-ui/link-loading-state';
+import { cn } from '@workspace/ui/lib/utils';
+import { LinkLoadingState } from '@workspace/ssota-blocks/link';
 
 import { resolveUrlToBlockConfig } from './utils/url-block-resolver';
 import type { RouterNodeData } from './core/use-router-block';
@@ -115,6 +116,7 @@ export const LinkRouterBlock = memo(function LinkRouterBlock({
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       e.stopPropagation();
       if (e.key === 'Enter') {
+        e.preventDefault(); // form submit 중복 방지 (Enter → keydown + submit 둘 다 발생)
         handleUrlSubmit();
       }
     },
@@ -124,10 +126,13 @@ export const LinkRouterBlock = memo(function LinkRouterBlock({
   return (
     <>
       <Box
-        className={`
-          w-full h-full rounded-lg border border-border bg-background
-          overflow-hidden flex flex-col
-        `}
+        className={cn(
+          'w-full h-full rounded-lg border-2 border-border bg-background shadow-md',
+          'overflow-hidden flex flex-col',
+          'transition-all duration-300 ease-out',
+          !selected && 'hover:shadow-xl',
+          selected && 'ring-2 ring-blue-400 dark:ring-blue-500 shadow-xl'
+        )}
         style={{
           width: LINK_ROUTER_SIZE.width,
           height: LINK_ROUTER_SIZE.height,

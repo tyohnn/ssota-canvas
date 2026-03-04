@@ -10,13 +10,18 @@ import { SidebarSkeleton } from './sidebar';
  */
 export function DashboardLoadingSkeleton({
   loadingMessage,
+  contentVariant = 'canvas',
 }: {
   loadingMessage?: string;
+  contentVariant?: 'canvas' | 'drive';
 } = {}) {
   return (
     <SidebarProvider>
       <SidebarSkeleton />
-      <SidebarInsetSkeleton loadingMessage={loadingMessage} />
+      <SidebarInsetSkeleton
+        loadingMessage={loadingMessage}
+        contentVariant={contentVariant}
+      />
     </SidebarProvider>
   );
 }

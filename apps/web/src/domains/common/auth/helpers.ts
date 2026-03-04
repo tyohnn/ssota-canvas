@@ -493,7 +493,10 @@ export async function authorizeByOrganizationId(
   return {
     success: true,
     context: {
-      organization: { id: organizationId, role: orgMembership.role },
+      organization: {
+        id: new OrganizationId(organizationId),
+        role: orgMembership.role,
+      },
     } as OrganizationActionContext,
   };
 }

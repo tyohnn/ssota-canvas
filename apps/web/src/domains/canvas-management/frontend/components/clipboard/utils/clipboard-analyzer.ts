@@ -131,6 +131,18 @@ export async function analyzeClipboard(): Promise<ClipboardAnalysisResult> {
       };
     }
 
+    // 3-2.7. X (Twitter) 포스트 URL 감지
+    if (isXUrl(trimmedText)) {
+      return {
+        type: 'x-url',
+        data: {
+          url: trimmedText,
+          text: trimmedText,
+        },
+        confidence: 1.0,
+      };
+    }
+
     // 3-3. 일반 URL 감지
     if (isValidUrl(trimmedText)) {
       return {
@@ -180,6 +192,22 @@ export async function analyzeClipboard(): Promise<ClipboardAnalysisResult> {
       confidence: 0,
     };
   }
+}
+
+/**
+ * X (Twitter) 포스트 URL 감지
+ * - x.com/username/status/123
+ * - twitter.com/username/status/123
+ * - x.com/i/status/123
+ * - 쿼리스트링(?s=20 등) 포함 시에도 매칭
+ */
+export function isXUrl(url: string): boolean {
+  if (!isValidUrl(url)) {
+    return false;
+  }
+  return /(?:x\.com|twitter\.com)\/(?:\w+\/status\/|i\/status\/)(\d{10,25})/i.test(
+    url
+  );
 }
 
 /**

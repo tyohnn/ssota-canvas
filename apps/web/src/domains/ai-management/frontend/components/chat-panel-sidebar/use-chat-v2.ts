@@ -246,7 +246,10 @@ export function useChatV2() {
   ]);
 
   const sendMessage = useCallback(
-    async (payload: { text: string }) => {
+    async (
+      payload: { text: string },
+      options?: { body?: Record<string, unknown> }
+    ) => {
       setOptimisticText(payload.text);
       setSendError(null);
 
@@ -264,12 +267,15 @@ export function useChatV2() {
 
       setOptimisticText(null);
       const { clientContext } = collectClientContext();
-      chat.sendMessage({
-        text: payload.text,
-        metadata: {
-          clientContext,
+      chat.sendMessage(
+        {
+          text: payload.text,
+          metadata: {
+            clientContext,
+          },
         },
-      });
+        options
+      );
     },
     [chat, collectClientContext, currentSessionId, createSession, setCurrentSessionId]
   );

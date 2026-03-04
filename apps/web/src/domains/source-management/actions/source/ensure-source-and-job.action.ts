@@ -23,15 +23,26 @@ import { DrizzleSourceRepository } from '@/domains/source-management/backend/rep
 import { DrizzleSourceSummaryRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source-summary.repository';
 import { ensureSourceJobService } from '@/domains/source-management/backend/services/source-job';
 import { findOrCreateSource } from '@/domains/source-management/backend/services/source';
+import { LanguageCode } from '@/domains/source-management/shared/value-objects/language-code.vo';
 import { supabaseAdmin } from '@/utils/supabase/server';
 
 const EnsureSourceAndJobRequestSchema = z.object({
   workspaceId: z.uuid(),
   blockId: BlockSlugSchema,
   url: z.url({ message: 'Invalid URL' }),
-  sourceType: z.enum(['pdf', 'link', 'audio', 'youtube']),
-  language: z.string().min(2).max(5).optional().default('en'),
+  sourceType: z.enum(['pdf', 'link', 'audio', 'youtube', 'x']),
+  language: z.string().min(2).max(5).optional(),
 });
+
+function resolveLanguage(
+  requestLanguage: string | undefined,
+  profileLanguage: string | undefined
+): string {
+  const code = LanguageCode.optional(
+    requestLanguage ?? profileLanguage ?? undefined
+  );
+  return code?.value ?? 'en';
+}
 
 export type EnsureSourceAndJobRequest = z.output<
   typeof EnsureSourceAndJobRequestSchema
@@ -97,8 +108,11 @@ async function ensureSourceAndJobInternal(
   block.updateSourceId(sourceId);
   await blockRepository.update(block);
 
-  // 3. ensureSourceJobService
-  const language = safeDto.language ?? 'en';
+  // 3. ensureSourceJobService (use profile language when request omits it)
+  const language = resolveLanguage(
+    safeDto.language,
+    context.authenticatedUser.profile.language
+  );
   const jobResult = await ensureSourceJobService(
     {
       blockId: block.id.value,

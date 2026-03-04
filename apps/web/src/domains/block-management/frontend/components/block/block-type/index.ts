@@ -25,6 +25,9 @@ export * from './image';
 // Link Block Components
 export * from './link';
 
+// X Block Components
+export * from './x';
+
 // Audio Block Components
 export * from './audio';
 

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getUserOrganizationsAction } from '@/domains/organization-management/actions/organization-management.actions';
 import { getOrganizationWorkspacePageViewAction } from '@/domains/workspace-management/actions/workspace-navigation.actions';
 
+import { DriveRouteSyncClient } from '../../components/sync-client/drive-route-sync-client';
 import { OrgIdSyncClient } from '../../components/sync-client/org-id-sync-client';
 import { WorkspaceSyncClient } from '../../components/sync-client/workspace-sync-client';
 
@@ -41,6 +42,7 @@ export default async function OrgIdLayout({
     <>
       <OrgIdSyncClient orgId={orgId} />
       <WorkspaceSyncClient orgId={orgId} workspaces={workspaces} />
+      <DriveRouteSyncClient orgId={orgId} />
       {children}
     </>
   );

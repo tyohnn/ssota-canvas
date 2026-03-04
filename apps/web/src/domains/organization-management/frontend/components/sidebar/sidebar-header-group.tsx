@@ -1,20 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@workspace/ui/components/ui/dialog';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@workspace/ui/components/ui/sidebar';
-import { Home, Search, Settings2 } from 'lucide-react';
+import { FolderOpen, Home, Settings2 } from 'lucide-react';
 import { useOrganization } from '../../contexts/organization-context';
 import { InboxButton } from '@/domains/notification-management/frontend/components/inbox-button';
 import { InboxPanel } from '@/domains/notification-management/frontend/components/inbox-panel';
@@ -27,12 +21,18 @@ import { toast } from '@workspace/ui/components/ui/sonner';
 import { SettingsDialog } from '../member-management/settings-dialog';
 
 export function SidebarHeaderGroup() {
+  const pathname = usePathname();
   const { organizations, selectedOrganizationId, refreshOrganizations } =
     useOrganization();
   const activeOrganization = organizations.find(
     org => org.id === selectedOrganizationId
   );
-  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+  const orgId = activeOrganization?.id;
+  const isHomeActive =
+    orgId &&
+    (pathname === `/r/${orgId}` || pathname === `/r/${orgId}/`);
+  const isDriveActive =
+    orgId && pathname?.startsWith(`/r/${orgId}/drive`);
   const [isInboxOpen, setIsInboxOpen] = React.useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
@@ -106,6 +106,7 @@ export function SidebarHeaderGroup() {
           <SidebarMenuButton
             size="sm"
             asChild
+            isActive={!!isHomeActive}
             className="text-sidebar-foreground"
             tooltip="Home"
           >
@@ -116,33 +117,24 @@ export function SidebarHeaderGroup() {
           </SidebarMenuButton>
         </SidebarMenuItem>
         <SidebarMenuItem>
-          <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-            <DialogTrigger asChild>
-              <SidebarMenuButton
-                size="sm"
-                className="text-sidebar-foreground"
-                tooltip="Search"
-              >
-                <Search />
-                <span>Search</span>
-              </SidebarMenuButton>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Search</DialogTitle>
-                <DialogDescription>
-                  Search functionality is being prepared and will be available
-                  soon.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-6 text-center">
-                <p className="text-sm text-muted-foreground">🚧 Preparing...</p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  This feature is under development
-                </p>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <SidebarMenuButton
+            size="sm"
+            asChild
+            isActive={!!isDriveActive}
+            className="text-sidebar-foreground"
+            tooltip="Drive"
+          >
+            <Link
+              href={
+                activeOrganization?.id
+                  ? `/r/${activeOrganization.id}/drive`
+                  : '/r'
+              }
+            >
+              <FolderOpen />
+              <span>Drive</span>
+            </Link>
+          </SidebarMenuButton>
         </SidebarMenuItem>
         <SidebarMenuItem>
           <InboxButton onClick={() => setIsInboxOpen(true)} />

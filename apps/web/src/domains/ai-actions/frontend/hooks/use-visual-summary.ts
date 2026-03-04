@@ -26,7 +26,7 @@ import {
 import type { VisualTemplate } from '../../shared/types/template.types';
 import type { GenerateVisualSummaryRequest } from '../../shared/types/visual-summary.types';
 import type { QueueTodo } from '@workspace/ui/components/ai-elements/queue';
-import type { StatusJob } from '../../shared/types/status-job.types';
+import type { StatusJob } from '@workspace/ui/components/ssota-ui/status-window';
 
 // Tool Input 타입 정의 (Zod schema에서 추출)
 type RenderCanvasdownInput = z.infer<typeof renderCanvasdownTool.inputSchema>;
@@ -481,7 +481,7 @@ export function useVisualSummary(
         status: 'running',
         tasks: [],
         error: null,
-        sourceBlockId,
+        resourceId: sourceBlockId,
         templateName: template.name,
       });
       currentJobIdRef.current = jobId;

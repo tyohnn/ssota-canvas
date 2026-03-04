@@ -1,49 +1,55 @@
 /**
- * Editor Panel UI State Hook
+ * Editor Panel UI state
  *
- * 디자이너가 Framer에서 사용하는 순수 UI 상태
+ * Expanded, open/close animation, tab switch registration.
+ * Title lives in TitleInputView; no domain deps here.
  */
 
 'use client';
 
-import { useState, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-export interface EditorPanelUIState {
-  // Animation state
-  isAnimating: boolean;
-  shouldRender: boolean;
-  setIsAnimating: (value: boolean) => void;
-  setShouldRender: (value: boolean) => void;
-
-  // Title state
-  title: string;
-  setTitle: (value: string) => void;
-  inputRef: RefObject<HTMLInputElement | null>;
-
-  // Expand state
-  isExpanded: boolean;
-  setIsExpanded: (value: boolean) => void;
-}
-
-/**
- * UI 상태 관리 (로컬 상태만)
- */
-export function useEditorPanelUI(): EditorPanelUIState {
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [shouldRender, setShouldRender] = useState(false);
-  const [title, setTitle] = useState('');
+export function useEditorPanelUI(isOpen: boolean) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [shouldRender, setShouldRender] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const tabSwitchCallbackRef = useRef<((tabId: string) => void) | null>(null);
+  const [tabSwitchCallback, setTabSwitchCallbackState] = useState<
+    ((tabId: string) => void) | null
+  >(null);
+
+  const setTabSwitchCallback = useCallback(
+    (fn: ((tabId: string) => void) | null) => {
+      tabSwitchCallbackRef.current = fn;
+      setTabSwitchCallbackState(() => fn);
+    },
+    []
+  );
+
+  const switchToTab = useCallback((tabId: string) => {
+    tabSwitchCallbackRef.current?.(tabId);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      const t = setTimeout(() => setIsAnimating(true), 10);
+      return () => clearTimeout(t);
+    } else {
+      setIsAnimating(false);
+      const t = setTimeout(() => setShouldRender(false), 300);
+      return () => clearTimeout(t);
+    }
+  }, [isOpen]);
 
   return {
-    isAnimating,
-    shouldRender,
-    setIsAnimating,
-    setShouldRender,
-    title,
-    setTitle,
-    inputRef,
     isExpanded,
     setIsExpanded,
+    shouldRender,
+    isAnimating,
+    tabSwitchCallback,
+    setTabSwitchCallback,
+    switchToTab,
   };
 }

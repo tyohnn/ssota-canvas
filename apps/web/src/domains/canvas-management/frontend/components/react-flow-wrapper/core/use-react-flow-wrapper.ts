@@ -166,8 +166,9 @@ export function useReactFlowWrapper(
   // =========================================================================
   // 5. Interaction Settings
   // =========================================================================
-  // PanOnScroll 동적 제어: textarea 편집 중에는 비활성화
-  const panOnScrollEnabled = !canvasMode.isTextareaEditing;
+  // PanOnScroll: 항상 활성화. onWheelCapture가 블록 내부 휠을 처리하므로,
+  // pane 영역 휠만 React Flow에 도달하며 panOnScroll이 동작함.
+  const panOnScrollEnabled = true;
   // PanOnDrag 동적 제어: 패닝 모드에서는 드래그로 패닝 가능, readonly일 때는 항상 패닝 가능
   const panOnDragEnabled = readonly || canvasMode.isPanningMode();
   // 🎨 블록 생성 모드 확인 (readonly일 때는 항상 false)

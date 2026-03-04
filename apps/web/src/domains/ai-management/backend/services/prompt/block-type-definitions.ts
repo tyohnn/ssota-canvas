@@ -21,6 +21,7 @@ import { pdfAIDefinition } from '@/domains/block-management/frontend/components/
 import { pythonAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/python/config/python-ai-definition';
 import { shapeAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/shape/config/shape-ai-definition';
 import { textAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/text/config/text-ai-definition';
+import { xAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/x/config/x-ai-definition';
 import { youtubeAIDefinition } from '@/domains/block-management/frontend/components/block/block-type/youtube/config/youtube-ai-definition';
 import { PropertyType } from '@/domains/block-management/shared/value-objects/block-properties/common-types';
 
@@ -77,6 +78,7 @@ export const ALL_BLOCK_TYPES = [
   'image',
   'markdown',
   'link',
+  'x',
   'youtube',
   'pdf',
   'audio',
@@ -103,6 +105,7 @@ export const BLOCK_TYPE_DEFINITIONS: Record<string, BlockTypeDefinition> = {
   image: imageAIDefinition,
   youtube: youtubeAIDefinition,
   link: linkAIDefinition,
+  x: xAIDefinition,
   pdf: pdfAIDefinition,
   python: pythonAIDefinition,
   audio: audioAIDefinition,

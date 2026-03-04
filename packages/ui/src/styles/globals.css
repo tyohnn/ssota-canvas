@@ -2,6 +2,7 @@
 @plugin '@tailwindcss/typography';
 @source "../../apps/**/*.{ts,tsx}";
 @source "../../components/**/*.{ts,tsx}";
+@source "../../packages/ssota-blocks/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
 @source "../../node_modules/streamdown/dist/index.js";
 

@@ -6,6 +6,12 @@ import {
   PromptInputSubmit,
   PromptInputFooter,
   PromptInputBody,
+  PromptInputTools,
+  PromptInputSelect,
+  PromptInputSelectTrigger,
+  PromptInputSelectContent,
+  PromptInputSelectItem,
+  PromptInputSelectValue,
 } from '@workspace/ui/components/ai-elements/prompt-input';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
@@ -20,6 +26,10 @@ import { ConversationEmptyState } from '@workspace/ui/components/ai-elements/con
 import { ChatSessionPopover } from './chat-session-popover';
 
 const CHAT_PANEL_WIDTH = 320;
+
+const CHAT_MODELS = [
+  { id: 'grok-4-1-fast-reasoning', name: 'default' },
+] as const;
 
 export interface ChatPanelSidebarProps {
   className?: string;
@@ -48,6 +58,7 @@ export function ChatPanelSidebar({ className }: ChatPanelSidebarProps) {
     sendError,
   } = useChatV2();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [model, setModel] = useState<string>(CHAT_MODELS[0].id);
 
   const isRunning = status === 'submitted' || status === 'streaming';
 
@@ -173,7 +184,7 @@ export function ChatPanelSidebar({ className }: ChatPanelSidebarProps) {
         <PromptInput
           onSubmit={(payload) => {
             const text = typeof payload === 'object' && payload && 'text' in payload ? (payload as { text?: string }).text : undefined;
-            sendMessage({ text: text ?? '' });
+            sendMessage({ text: text ?? '' }, { body: { model } });
           }}
         >
           <PromptInputBody>
@@ -183,7 +194,21 @@ export function ChatPanelSidebar({ className }: ChatPanelSidebarProps) {
             />
           </PromptInputBody>
           <PromptInputFooter>
-            <PromptInputSubmit disabled={isRunning} />
+            <PromptInputTools>
+              <PromptInputSelect value={model} onValueChange={setModel}>
+                <PromptInputSelectTrigger>
+                  <PromptInputSelectValue />
+                </PromptInputSelectTrigger>
+                <PromptInputSelectContent>
+                  {CHAT_MODELS.map((m) => (
+                    <PromptInputSelectItem key={m.id} value={m.id}>
+                      {m.name}
+                    </PromptInputSelectItem>
+                  ))}
+                </PromptInputSelectContent>
+              </PromptInputSelect>
+            </PromptInputTools>
+            <PromptInputSubmit disabled={isRunning} status={status} />
           </PromptInputFooter>
         </PromptInput>
       </div>

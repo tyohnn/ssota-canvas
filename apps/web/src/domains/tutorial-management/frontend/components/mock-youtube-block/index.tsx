@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { Box } from '@workspace/ui/components/ui/box';
-import { YoutubeView } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/youtube.view';
+import { YoutubeView } from '@workspace/ssota-blocks/youtube';
 import { BaseBlockView } from '@/domains/block-management/frontend/components/block/base-block/components/base-block-view';
 import { DataBlockView } from '@/domains/block-management/frontend/components/block/data-block/components/data-block-view';
 import { Content } from '@/domains/block-management/frontend/components/block/base-block/components/content';
@@ -50,7 +50,7 @@ export function MockYoutubeBlock() {
       draftUrl={url}
       showPlayer={displayShowPlayer}
       isIframeLoading={false}
-      selected={false}
+      isActive={false}
       properties={{
         ...TUTORIAL_YOUTUBE_PROPERTIES,
         url: displayUrl,

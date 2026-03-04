@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/server';
 import { config } from '@/config';
 import * as schema from './schema';
 import * as imageAppSpaceSchema from './schemas/image-app-space-schema';
+import * as xAppSpaceSchema from './schemas/x-app-space-schema';
 import * as youtubeAppSpaceSchema from './schemas/youtube-app-space-schema';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
@@ -129,6 +130,7 @@ export const adminDb = drizzle(adminClient, {
   schema: {
     ...schema,
     ...imageAppSpaceSchema,
+    ...xAppSpaceSchema,
     ...youtubeAppSpaceSchema,
   },
 });
@@ -137,6 +139,7 @@ export const rlsDb = drizzle(rlsClient, {
   schema: {
     ...schema,
     ...imageAppSpaceSchema,
+    ...xAppSpaceSchema,
     ...youtubeAppSpaceSchema,
   },
 });

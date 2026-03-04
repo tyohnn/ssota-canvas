@@ -74,6 +74,7 @@ export function useBlockNoteTiptap(
   const { applyBlockContentSteps } = useUpdateBlockContent({
     reactFlow,
     contentVersionRef,
+    canvasMetadata: canvasMetadataOverride,
   });
 
   const uploadImage = useMemo(() => {
@@ -148,9 +149,16 @@ export function useBlockNoteTiptap(
       onContentChangeSideEffect?.();
     },
     onSaveSteps: saveStepsToServer,
-    onBlurAudit: async ({ blockId, patch }) => {
+    onBlurAudit: async ({ blockId: _editorBlockId, patch }) => {
       if (workspaceId && workspaceId !== 'tutorial') {
-        await logBlockUpdatedAuditAction({ workspaceId, blockId, patch });
+        // Audit API expects block slug (8–10 hex). Drive uses UUID in blockData.blockId; use blockSlug when present.
+        const blockIdForAudit =
+          (blockData as { blockSlug?: string }).blockSlug ?? blockData.blockId;
+        await logBlockUpdatedAuditAction({
+          workspaceId,
+          blockId: blockIdForAudit,
+          patch,
+        });
       }
     },
     initialVersion:

@@ -13,6 +13,7 @@ import { z } from 'zod';
 import type { BlockActionContext } from '@/domains/block-management/actions/block/secure-action';
 import { withBlockAggregateSecureAction } from '@/domains/block-management/actions/block/secure-action';
 import { BlockSlugSchema } from '@/domains/block-management/shared/dtos/requests/block.requests';
+import { LanguageCode } from '@/domains/source-management/shared/value-objects/language-code.vo';
 
 import { publishAudioMetadataFetched } from '../../backend/services/audio-metadata-fetched/publish-audio-metadata-fetched.service';
 
@@ -20,8 +21,18 @@ const FetchAudioMetadataRequestSchema = z.object({
   workspaceId: z.uuid(),
   blockId: BlockSlugSchema,
   url: z.url({ message: 'Invalid URL' }),
-  language: z.string().min(2).max(5).optional().default('en'),
+  language: z.string().min(2).max(5).optional(),
 });
+
+function resolveLanguage(
+  requestLanguage: string | undefined,
+  profileLanguage: string | undefined
+): string {
+  const code = LanguageCode.optional(
+    requestLanguage ?? profileLanguage ?? undefined
+  );
+  return code?.value ?? 'en';
+}
 
 export type FetchAudioMetadataRequest = z.output<
   typeof FetchAudioMetadataRequestSchema
@@ -51,12 +62,17 @@ async function fetchAudioMetadataInternal(
     return err('Block must be an audio block', { code: 'INVALID_BLOCK_TYPE' });
   }
 
+  const language = resolveLanguage(
+    safeDto.language,
+    context.authenticatedUser.profile.language
+  );
+
   const sourceId = await publishAudioMetadataFetched({
     workspaceId: safeDto.workspaceId,
     blockId: safeDto.blockId,
     orgId: context.organization.id,
     url: safeDto.url,
-    language: safeDto.language,
+    language,
   });
 
   return ok({

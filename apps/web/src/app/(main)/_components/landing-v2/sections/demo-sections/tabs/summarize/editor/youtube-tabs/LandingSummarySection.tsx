@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { SummarySectionView } from '@/domains/source-management/frontend/components/summary-tab';
+import { SummarySectionView } from '@workspace/editor-panel';
 import type { VideoSummaryView } from '@/domains/youtube-app-space/shared/dtos/views/video-summary.views';
 import { StepHighlight } from '../../../../../../../mocks/components/StepHighlight';
 

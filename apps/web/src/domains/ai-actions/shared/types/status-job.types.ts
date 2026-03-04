@@ -17,5 +17,7 @@ export interface StatusJob {
   error: Error | null;
   sourceBlockId: string;
   templateName?: string;
+  resourceTitle?: string;
+  language?: string;
   createdAt: number;
 }

@@ -14,6 +14,7 @@ export type {
   UseSourceSummaryLanguagesParams,
   UseSourceSummaryLanguagesResult,
 } from './use-source-summary-languages';
+export { useUserPreferredLanguage } from './use-user-preferred-language';
 export {
   useSourceJobRealtime,
   useMultiSourceJobRealtime,

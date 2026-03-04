@@ -14,6 +14,7 @@ import { TextBlockPropertiesVO } from './text.vo';
 import { ShapeBlockPropertiesVO } from './shape.vo';
 import { ImageBlockPropertiesVO } from './image.vo';
 import { MarkdownBlockPropertiesVO } from './markdown.vo';
+import { XBlockPropertiesVO } from './x.vo';
 import { YoutubeBlockPropertiesVO } from './youtube.vo';
 import { PdfBlockPropertiesVO } from './pdf.vo';
 import { AudioBlockPropertiesVO } from './audio.vo';
@@ -65,6 +66,9 @@ export class BlockPropertiesFactory {
     this.registry.set(BlockType.YOUTUBE, () =>
       YoutubeBlockPropertiesVO.createDefault()
     );
+
+    // X Block
+    this.registry.set(BlockType.X, () => XBlockPropertiesVO.createDefault());
 
     // PDF Block
     this.registry.set(BlockType.PDF, () =>
@@ -180,6 +184,8 @@ export class BlockPropertiesFactory {
         return MarkdownBlockPropertiesVO.fromJSON(jsonData as any);
       case BlockType.YOUTUBE:
         return YoutubeBlockPropertiesVO.fromJSON(jsonData as any);
+      case BlockType.X:
+        return XBlockPropertiesVO.fromJSON(jsonData as any);
       case BlockType.PDF:
         return PdfBlockPropertiesVO.fromJSON(jsonData as any);
       case BlockType.AUDIO:

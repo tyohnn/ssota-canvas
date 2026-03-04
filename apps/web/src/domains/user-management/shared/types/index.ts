@@ -25,6 +25,7 @@ export interface UserProfile {
   email: string | null;
   name: string | null;
   profileImageUrl: string | null;
+  language?: string;
 }
 
 /**
