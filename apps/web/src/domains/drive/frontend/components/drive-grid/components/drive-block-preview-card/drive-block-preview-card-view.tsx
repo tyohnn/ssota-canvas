@@ -41,9 +41,15 @@ export function DriveBlockPreviewCardView({
   const handleClick = (e: React.MouseEvent) => {
     if (href === '#') return;
     const target = e.target as Node;
+    if (!(target instanceof Element)) return;
+    if (target.closest('a') || (target as HTMLElement).getAttribute?.('role') === 'link') {
+      return;
+    }
     if (
-      target instanceof Element &&
-      (target.closest('a') || (target as HTMLElement).getAttribute?.('role') === 'link')
+      target.closest('button') ||
+      target.closest('[role="slider"]') ||
+      target.closest('input') ||
+      target.closest('.nodrag')
     ) {
       return;
     }

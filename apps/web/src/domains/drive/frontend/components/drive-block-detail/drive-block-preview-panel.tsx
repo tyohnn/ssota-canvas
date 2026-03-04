@@ -29,7 +29,13 @@ export function DriveBlockPreviewPanel({ block }: DriveBlockPreviewPanelProps) {
   const renderContent = () => {
     switch (block.blockType) {
       case 'youtube':
-        return <DriveYoutubePreviewAdapter title={title} properties={properties} />;
+        return (
+          <DriveYoutubePreviewAdapter
+            title={title}
+            properties={properties}
+            blockId={block.blockId}
+          />
+        );
       case 'link':
         return <DriveLinkPreviewAdapter title={title} properties={properties} />;
       case 'x':

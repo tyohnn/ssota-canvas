@@ -9,6 +9,7 @@ import {
   useAudioBlockPreview,
 } from '@workspace/ssota-blocks/audio';
 import { refreshCanvasAssetAccessUrlAction } from '@/domains/storage/actions/storage.actions';
+import { useDriveBlockInteraction } from '@/domains/drive/frontend/contexts/drive-block-interaction-context';
 
 /** UUID to 8-char hex slug (workspace scoped) */
 function uuidToSlug(uuid: string): string {
@@ -53,6 +54,25 @@ export function DriveAudioPreviewAdapter({
     audioUrl: effectiveUrl,
     filename,
   });
+
+  const driveInteraction = useDriveBlockInteraction();
+  const handleSeekRef = useRef(previewHook.handleSeek);
+  handleSeekRef.current = previewHook.handleSeek;
+  const audioRefRef = useRef(previewHook.audioRef);
+  audioRefRef.current = previewHook.audioRef;
+
+  useEffect(() => {
+    if (!blockId || !effectiveUrl || !driveInteraction) return;
+    driveInteraction.registerBlockInteractions(blockId, {
+      seekTo: (seconds: unknown) => {
+        const s = typeof seconds === 'number' ? seconds : Number(seconds);
+        if (!Number.isFinite(s)) return;
+        handleSeekRef.current(s);
+        audioRefRef.current?.current?.play().catch(() => {});
+      },
+    });
+    return () => driveInteraction.unregisterBlockInteractions(blockId);
+  }, [blockId, effectiveUrl, driveInteraction]);
 
   const handleRefreshUrl = useCallback(async () => {
     if (hasTriedRefreshRef.current || !blockId || !workspaceId) {

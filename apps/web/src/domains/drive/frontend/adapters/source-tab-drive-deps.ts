@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { isFailure } from '@/lib';
 
+import { useDriveBlockInteraction } from '@/domains/drive/frontend/contexts/drive-block-interaction-context';
 import { updateBlockContentAction } from '@/domains/block-management/actions/block/update-block-content.action';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import {
@@ -25,7 +26,7 @@ import type {
 } from '@/domains/source-management/frontend/adapters/contracts/runtime-deps';
 import type { DriveBlockData } from '@/domains/drive/frontend/hooks/use-drive-block';
 
-const noop = () => {};
+const noop = () => { };
 
 export function useSourceSummarySectionDriveDeps(
   blockData: DriveBlockData | undefined
@@ -66,6 +67,7 @@ export function useTimelineTranscriptDriveDeps(
   blockData: DriveBlockData | undefined
 ): TimelineTranscriptRuntimeDeps {
   const queryClient = useQueryClient();
+  const driveInteraction = useDriveBlockInteraction();
 
   const updateBlockContent = useCallback(
     async (input: UpdateBlockContentInput): Promise<boolean> => {
@@ -107,10 +109,11 @@ export function useTimelineTranscriptDriveDeps(
   return useMemo(
     () => ({
       readonly: false,
-      getBlockInteractions: () => undefined,
+      getBlockInteractions:
+        driveInteraction?.getBlockInteractions ?? (() => undefined),
       updateBlockContent,
     }),
-    [updateBlockContent]
+    [driveInteraction, updateBlockContent]
   );
 }
 

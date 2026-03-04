@@ -15,6 +15,7 @@ import { useDriveBlock } from '@/domains/drive/frontend/hooks/use-drive-block';
 import type { DriveBlockData } from '@/domains/drive/frontend/hooks/use-drive-block';
 import { DriveHeader } from '@/domains/drive/frontend/components/drive-header';
 
+import { DriveBlockInteractionProvider } from '@/domains/drive/frontend/contexts/drive-block-interaction-context';
 import { DriveBlockDetailContent } from './drive-block-detail-content';
 import { DriveBlockPreviewPanel } from './drive-block-preview-panel';
 import { DriveEditorPanelDrawer } from './drive-editor-panel-drawer';
@@ -51,9 +52,9 @@ export function DriveBlockDetailClient({
 
   if (error || !blockData) {
     return (
-      <div className="flex flex-col h-full">
+      <Box className="flex flex-col h-full">
         <DriveHeader orgId={orgId} />
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+        <Box className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
           <p className="text-muted-foreground">
             {error instanceof Error ? error.message : 'Block not found'}
           </p>
@@ -63,8 +64,8 @@ export function DriveBlockDetailClient({
           >
             Back to Drive
           </Link>
-        </div>
-      </div>
+        </Box>
+      </Box>
     );
   }
 
@@ -72,75 +73,79 @@ export function DriveBlockDetailClient({
 
   if (isMobile) {
     return (
-      <div className="flex flex-col h-full">
-        <DriveHeader orgId={orgId} blockTitle={blockTitle} />
-        <Box className="flex flex-1 min-h-0 flex-col overflow-auto">
-          <DriveBlockPreviewPanel block={blockData} />
-          <Box className="shrink-0 p-3">
-            <Button
-              variant="outline"
-              className="w-full rounded-md py-3"
-              onClick={() => setDrawerOpen(true)}
-            >
-              View Summary / Notes
-            </Button>
+      <DriveBlockInteractionProvider>
+        <Box className="flex flex-col h-full">
+          <DriveHeader orgId={orgId} blockTitle={blockTitle} />
+          <Box className="flex flex-1 min-h-0 flex-col overflow-auto">
+            <DriveBlockPreviewPanel block={blockData} />
+            <Box className="shrink-0 p-3">
+              <Button
+                variant="outline"
+                className="w-full rounded-md py-3"
+                onClick={() => setDrawerOpen(true)}
+              >
+                View Summary / Notes
+              </Button>
+            </Box>
           </Box>
+          <DriveEditorPanelDrawer
+            open={drawerOpen}
+            onOpenChange={setDrawerOpen}
+            blockData={blockData}
+            orgId={orgId}
+            onClose={() => setDrawerOpen(false)}
+          />
         </Box>
-        <DriveEditorPanelDrawer
-          open={drawerOpen}
-          onOpenChange={setDrawerOpen}
-          blockData={blockData}
-          orgId={orgId}
-          onClose={() => setDrawerOpen(false)}
-        />
-      </div>
+      </DriveBlockInteractionProvider>
     );
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <DriveHeader orgId={orgId} blockTitle={blockTitle} />
-      <div className="flex flex-1 min-h-0">
-        {isExpanded ? (
-          <div className="flex-1 min-w-0 w-full">
-            <DriveBlockDetailContent
-              orgId={orgId}
-              blockData={blockData}
-              slot="right"
-              onClose={handleClose}
-              isExpanded={isExpanded}
-              onToggleExpand={() => setIsExpanded(false)}
-            />
-          </div>
-        ) : (
-          <ResizablePanelGroup direction="horizontal" className="w-full">
-            <ResizablePanel
-              defaultSize={40}
-              minSize={30}
-              maxSize={50}
-              className="flex flex-col min-h-0"
-            >
-              <DriveBlockDetailContent
-                orgId={orgId}
-                blockData={blockData}
-                slot="left"
-                onClose={handleClose}
-              />
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={60} minSize={50}>
+    <DriveBlockInteractionProvider>
+      <Box className="flex flex-col h-full">
+        <DriveHeader orgId={orgId} blockTitle={blockTitle} />
+        <Box className="flex flex-1 min-h-0">
+          {isExpanded ? (
+            <Box className="flex-1 min-w-0 w-full">
               <DriveBlockDetailContent
                 orgId={orgId}
                 blockData={blockData}
                 slot="right"
                 onClose={handleClose}
                 isExpanded={isExpanded}
-                onToggleExpand={() => setIsExpanded(true)}
+                onToggleExpand={() => setIsExpanded(false)}
               />
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        )}
-      </div>
-    </div>
+            </Box>
+          ) : (
+            <ResizablePanelGroup direction="horizontal" className="w-full">
+              <ResizablePanel
+                defaultSize={40}
+                minSize={30}
+                maxSize={50}
+                className="flex flex-col min-h-0"
+              >
+                <DriveBlockDetailContent
+                  orgId={orgId}
+                  blockData={blockData}
+                  slot="left"
+                  onClose={handleClose}
+                />
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={60} minSize={50}>
+                <DriveBlockDetailContent
+                  orgId={orgId}
+                  blockData={blockData}
+                  slot="right"
+                  onClose={handleClose}
+                  isExpanded={isExpanded}
+                  onToggleExpand={() => setIsExpanded(true)}
+                />
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          )}
+        </Box>
+      </Box>
+    </DriveBlockInteractionProvider>
   );
 }

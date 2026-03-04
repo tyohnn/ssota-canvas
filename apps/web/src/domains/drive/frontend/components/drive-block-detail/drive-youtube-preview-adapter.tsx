@@ -1,16 +1,21 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { Box } from '@workspace/ui/components/ui/box';
 import {
   YoutubePreviewCard,
   type YoutubeMetadata,
+  type YouTubePlayer,
 } from '@workspace/ssota-blocks/youtube';
+import { YoutubeBlockInteractions } from '@/domains/block-management/frontend/components/block/block-type/youtube/config/youtube-block-interactions';
+import { useDriveBlockInteraction } from '@/domains/drive/frontend/contexts/drive-block-interaction-context';
 
 export interface DriveYoutubePreviewAdapterProps {
   title: string | null;
   properties: Record<string, unknown>;
+  /** Drive block id. When set, player is shown and seekTo is registered for timeline tab clicks. */
+  blockId?: string;
 }
 
 function getVideoIdFromUrl(url: string): string | undefined {
@@ -20,9 +25,19 @@ function getVideoIdFromUrl(url: string): string | undefined {
   return match ? match[1] : undefined;
 }
 
+/** YouTube embed expects 11-char id; properties.youtubeId can be YouTube App Space UUID. */
+function getEmbedVideoId(properties: Record<string, unknown>): string | undefined {
+  const url = properties.url as string | undefined;
+  const fromUrl = url ? getVideoIdFromUrl(url) : undefined;
+  if (fromUrl) return fromUrl;
+  const id = properties.youtubeId as string | undefined;
+  if (id && id.length === 11 && /^[a-zA-Z0-9_-]+$/.test(id)) return id;
+  return undefined;
+}
+
 function propertiesToMetadata(properties: Record<string, unknown>): YoutubeMetadata {
   const url = properties.url as string | undefined;
-  const videoId = (properties.youtubeId as string) ?? (url ? getVideoIdFromUrl(url) : undefined);
+  const videoId = getEmbedVideoId(properties);
 
   return {
     url,
@@ -50,20 +65,49 @@ function getThumbnailUrl(properties: Record<string, unknown>, videoId: string | 
 
 /**
  * Adapter for Drive detail left preview: renders ssota-blocks YoutubePreviewCard.
- * Converts drive block properties to YoutubeMetadata. Read-only (showPlayer=false).
- * Does not modify existing YoutubePreviewCard.
+ * When blockId is set, shows player and registers seekTo so timeline tab can seek.
  */
 export function DriveYoutubePreviewAdapter({
   title,
   properties,
+  blockId,
 }: DriveYoutubePreviewAdapterProps) {
   const metadata = propertiesToMetadata(properties);
-  const url = properties.url as string | undefined;
-  const videoId = metadata.youtubeId ?? (url ? getVideoIdFromUrl(url) : undefined) ?? null;
+  const videoId = getEmbedVideoId(properties) ?? null;
   const thumbnailUrl = getThumbnailUrl(properties, videoId ?? undefined);
 
-  const noop = useCallback(() => {}, []);
-  const noopImageError = useCallback((_e: React.SyntheticEvent<HTMLImageElement, Event>) => {}, []);
+  const driveInteraction = useDriveBlockInteraction();
+  const playerRef = useRef<YouTubePlayer | null>(null);
+
+  const showPlayer = Boolean(blockId && videoId);
+
+  const onPlayerReady = useCallback(
+    (event: { target: YouTubePlayer }) => {
+      playerRef.current = event.target;
+      if (!blockId || !driveInteraction) return;
+      driveInteraction.registerBlockInteractions(blockId, {
+        seekTo: (seconds: unknown) => {
+          const s = typeof seconds === 'number' ? seconds : Number(seconds);
+          if (!Number.isFinite(s)) return;
+          YoutubeBlockInteractions.seekTo(
+            { current: playerRef.current },
+            s
+          );
+        },
+      });
+    },
+    [blockId, driveInteraction]
+  );
+
+  useEffect(() => {
+    if (!blockId || !driveInteraction) return;
+    return () => {
+      driveInteraction.unregisterBlockInteractions(blockId);
+    };
+  }, [blockId, driveInteraction]);
+
+  const noop = useCallback(() => { }, []);
+  const noopImageError = useCallback((_e: React.SyntheticEvent<HTMLImageElement, Event>) => { }, []);
 
   if (!videoId && !thumbnailUrl) {
     return (
@@ -83,9 +127,9 @@ export function DriveYoutubePreviewAdapter({
         isActive={false}
         isLoading={false}
         hasError={false}
-        showPlayer={false}
+        showPlayer={showPlayer}
         isIframeLoading={false}
-        onPlayerReady={noop}
+        onPlayerReady={onPlayerReady}
         onImageLoad={noop}
         onImageError={noopImageError}
       />
