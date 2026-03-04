@@ -26,6 +26,7 @@ export function extractPlainText(json: JsonNode | null | undefined): string {
 
     if (node.content) {
       const separator =
+        node.type === 'doc' ||
         node.type === 'paragraph' ||
         node.type === 'heading' ||
         node.type === 'blockquote' ||
