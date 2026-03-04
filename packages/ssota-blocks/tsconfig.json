@@ -9,6 +9,7 @@
     "paths": {
       "@workspace/ui/components/ui/*": ["../ui/src/components/ui/*"],
       "@workspace/ui/components/ssota-ui/*": ["../ui/src/components/ssota-ui/*"],
+      "@workspace/ui/components/eleven-labs/*": ["../ui/src/components/eleven-labs/*"],
       "@workspace/ui/lib/*": ["../ui/src/lib/*"],
       "@/*": ["../ui/src/*"]
     },

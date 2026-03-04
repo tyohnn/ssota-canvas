@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@workspace/ui/components/ui/badge';
 import { Box } from '@workspace/ui/components/ui/box';
 
+import { DriveAudioPreviewAdapter } from '@/domains/drive/frontend/components/drive-block-detail/drive-audio-preview-adapter';
 import { LinkPreviewCard } from './type-cards/link-preview-card';
 import { YoutubePreviewCard } from './type-cards/youtube-preview-card';
 import { XPreviewCardAdapter } from './type-cards/x-preview-card';
 import { PdfPreviewCard } from './type-cards/pdf-preview-card';
 import { ImagePreviewCard } from './type-cards/image-preview-card';
-import { AudioPreviewCard } from './type-cards/audio-preview-card';
 import { MarkdownPreviewCard } from './type-cards/markdown-preview-card';
 
 export interface DriveBlockPreviewCardViewProps {
@@ -99,10 +99,19 @@ export function DriveBlockPreviewCardView({
         );
       case 'audio':
         return (
-          <AudioPreviewCard
-            title={block.title}
-            properties={block.properties ?? {}}
-          />
+          <Box
+            className="h-full min-h-0 flex flex-col"
+            onClick={e => e.stopPropagation()}
+            onKeyDown={e => e.stopPropagation()}
+          >
+            <DriveAudioPreviewAdapter
+              title={block.title}
+              properties={block.properties ?? {}}
+              blockId={block.id}
+              workspaceId={block.workspaceId}
+              compact
+            />
+          </Box>
         );
       case 'markdown':
         return (

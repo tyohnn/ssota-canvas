@@ -4,10 +4,7 @@ import { Music } from 'lucide-react';
 
 import { Box } from '@workspace/ui/components/ui/box';
 
-export interface AudioPreviewCardProps {
-  title: string | null;
-  properties: Record<string, unknown>;
-}
+import type { AudioPreviewCardProps } from '../logic/types';
 
 function formatDuration(seconds?: number): string {
   if (seconds == null || !Number.isFinite(seconds)) return '';
@@ -16,6 +13,10 @@ function formatDuration(seconds?: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+/**
+ * Compact audio preview card (icon + title + duration).
+ * Used in drive grid, detail panel, and add dialog preview.
+ */
 export function AudioPreviewCard({ title, properties }: AudioPreviewCardProps) {
   const filename = properties.filename as string | undefined;
   const duration = properties.duration as number | undefined;

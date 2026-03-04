@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./youtube": "./src/youtube/index.ts",
     "./link": "./src/link/index.ts",
-    "./x": "./src/x/index.ts"
+    "./x": "./src/x/index.ts",
+    "./audio": "./src/audio/index.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

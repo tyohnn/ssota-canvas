@@ -4,6 +4,7 @@ import { Badge } from '@workspace/ui/components/ui/badge';
 import { Box } from '@workspace/ui/components/ui/box';
 import { cn } from '@workspace/ui/lib/utils';
 
+import { DriveAudioPreviewAdapter } from '@/domains/drive/frontend/components/drive-block-detail/drive-audio-preview-adapter';
 import { DriveLinkPreviewAdapter } from '@/domains/drive/frontend/components/drive-block-detail/drive-link-preview-adapter';
 import { DrivePdfPreviewAdapter } from '@/domains/drive/frontend/components/drive-block-detail/drive-pdf-preview-adapter';
 import { DriveYoutubePreviewAdapter } from '@/domains/drive/frontend/components/drive-block-detail/drive-youtube-preview-adapter';
@@ -42,6 +43,15 @@ export function DriveBlockPreviewPanel({ block }: DriveBlockPreviewPanelProps) {
             workspaceId={block.workspaceId}
           />
         );
+      case 'audio':
+        return (
+          <DriveAudioPreviewAdapter
+            title={title}
+            properties={properties}
+            blockId={block.blockId}
+            workspaceId={block.workspaceId}
+          />
+        );
       default:
         return (
           <Box className="flex flex-col justify-center p-4">
@@ -55,11 +65,16 @@ export function DriveBlockPreviewPanel({ block }: DriveBlockPreviewPanelProps) {
   };
 
   const isYoutube = block.blockType === 'youtube';
-  const cardAspect = isYoutube ? 'aspect-[410/288]' : 'aspect-[310/280]';
+  const isAudio = block.blockType === 'audio';
+  const cardAspect = isYoutube
+    ? 'aspect-[410/288]'
+    : isAudio
+      ? 'aspect-[350/200]'
+      : 'aspect-[310/280]';
 
   return (
-    <div className="h-full overflow-auto bg-muted/20 p-2">
-      <Box className="flex flex-col max-w-lg w-full">
+    <div className="flex-1 min-h-0 flex flex-col overflow-auto bg-muted/20 p-2">
+      <Box className="flex flex-col max-w-lg w-full min-h-0 shrink-0">
         <Box
           className={cn(
             'relative flex flex-col min-h-0 w-full rounded-md border border-border overflow-hidden bg-background shadow-md',
@@ -75,7 +90,9 @@ export function DriveBlockPreviewPanel({ block }: DriveBlockPreviewPanelProps) {
               {title}
             </span>
           </Box>
-          <Box className="flex-1 min-h-0 overflow-hidden">{renderContent()}</Box>
+          <Box className="flex-1 min-h-0 overflow-hidden flex flex-col">
+            {renderContent()}
+          </Box>
         </Box>
       </Box>
     </div>

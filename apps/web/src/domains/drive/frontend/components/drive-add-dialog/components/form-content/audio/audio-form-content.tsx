@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { FileWithPreview } from '@workspace/ui/hooks/use-file-upload';
 import { useFileUpload } from '@workspace/ui/hooks/use-file-upload';
@@ -9,7 +9,12 @@ import { cn } from '@workspace/ui/lib/utils';
 import { Mic, Music, Upload } from 'lucide-react';
 
 import { Box } from '@/components/ui/box';
-import { AudioRecordDialog } from '@/domains/block-management/frontend/components/block/block-type/audio/components/block-ui/audio-record-dialog';
+import {
+  AudioView,
+  AudioRecordDialog,
+  useAudioBlockPreview,
+} from '@workspace/ssota-blocks/audio';
+
 const MAX_SIZE_MB = 6;
 const MAX_SIZE = MAX_SIZE_MB * 1024 * 1024;
 
@@ -123,22 +128,84 @@ export function AudioFormContent({
     onFileSelect(null);
   }, [clearFiles, onFileSelect]);
 
+  const previewObjectUrl = useMemo(() => {
+    if (!selectedFile) return '';
+    try {
+      return URL.createObjectURL(selectedFile);
+    } catch {
+      return '';
+    }
+  }, [selectedFile]);
+
+  useEffect(() => {
+    return () => {
+      if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+    };
+  }, [previewObjectUrl]);
+
+  const previewHook = useAudioBlockPreview({
+    audioUrl: previewObjectUrl,
+    filename: selectedFile?.name ?? '',
+  });
+
+  const audioViewProps = useMemo(() => {
+    const noop = () => {};
+    const noopAsync = async () => {};
+    return {
+      audioUrl: previewObjectUrl,
+      filename: selectedFile?.name ?? '',
+      ...previewHook,
+      isUploading: false,
+      uploadErrors: [] as string[],
+      isDragging: false,
+      maxSizeMB: MAX_SIZE_MB,
+      isRecordDialogOpen: false,
+      isRecording: false,
+      recordedBlob: null as Blob | null,
+      selected: true,
+      handleDragEnter: noop,
+      handleDragLeave: noop,
+      handleDragOver: noop,
+      handleDrop: noop,
+      openFileDialog: noop,
+      getInputProps: () => ({}),
+      handleOpenRecordDialog: noop,
+      handleCloseRecordDialog: noop,
+      handleRecordAgain: noop,
+      startRecording: noopAsync,
+      stopRecording: noop,
+      handleSaveRecording: noopAsync,
+    };
+  }, [
+    previewObjectUrl,
+    selectedFile?.name,
+    previewHook,
+  ]);
+
   return (
     <>
+      {selectedFile && previewObjectUrl && (
+        <Box
+          className={cn(
+            'w-full rounded-lg border border-border overflow-hidden bg-muted/30',
+            '[-webkit-mask:linear-gradient(#000_0_0)] [mask:linear-gradient(#000_0_0)]'
+          )}
+          style={{ width: 350, height: 160 }}
+        >
+          <AudioView {...audioViewProps} />
+        </Box>
+      )}
       <Box className="space-y-2">
         <p className="text-sm font-medium text-foreground">Add audio</p>
         {selectedFile ? (
-          <Box className="flex flex-col items-center gap-2 p-6 rounded-lg border border-border bg-muted/30">
-            <p className="text-sm truncate max-w-full">{selectedFile.name}</p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleRemove}
-            >
-              Remove
-            </Button>
-          </Box>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleRemove}
+          >
+            Remove file
+          </Button>
         ) : (
           <Box
             onDragEnter={handleDragEnter}

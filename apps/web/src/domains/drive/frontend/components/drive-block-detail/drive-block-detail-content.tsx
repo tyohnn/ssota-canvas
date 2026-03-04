@@ -25,7 +25,11 @@ export function DriveBlockDetailContent({
   onToggleExpand = () => {},
 }: DriveBlockDetailContentProps) {
   if (slot === 'left') {
-    return <DriveBlockPreviewPanel block={blockData} />;
+    return (
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <DriveBlockPreviewPanel block={blockData} />
+      </div>
+    );
   }
 
   return (

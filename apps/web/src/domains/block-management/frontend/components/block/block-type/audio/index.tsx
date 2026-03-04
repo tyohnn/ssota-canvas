@@ -8,9 +8,9 @@ import { useReactFlow } from '@xyflow/react';
 import type { AudioBlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import { useUpdateBlockTitle } from '@/domains/block-management/frontend/hooks/block-property/use-block-title-update';
 
+import { AudioView } from '@workspace/ssota-blocks/audio';
 import { DataBlock } from '../../data-block';
 import { CardView } from '../../data-block/components/card-view';
-import { AudioView } from './components/block-ui/audio.view';
 import { useAudioBlock } from './core/use-audio-block';
 
 /**
