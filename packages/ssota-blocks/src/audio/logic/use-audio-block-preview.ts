@@ -55,6 +55,11 @@ export function useAudioBlockPreview({
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
 
+    // If metadata was loaded before listeners were attached, initialize state immediately.
+    if (audio.readyState >= 1 && isFinite(audio.duration) && audio.duration > 0) {
+      handleLoadedMetadata();
+    }
+
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('timeupdate', handleTimeUpdate);

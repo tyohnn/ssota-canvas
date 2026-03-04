@@ -40,6 +40,8 @@ export interface AudioPlayerProps {
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
   formatTime: (seconds: number) => string;
+  /** When true, hide title row (e.g. grid card already has header) */
+  compact?: boolean;
 }
 
 export interface AudioViewProps {
@@ -63,6 +65,8 @@ export interface AudioViewProps {
   /** Optional; used by canvas block for layout */
   width?: number;
   height?: number;
+  /** When true, hide title in player (e.g. grid card) */
+  compact?: boolean;
   handleDragEnter: (e: React.DragEvent<HTMLElement>) => void;
   handleDragLeave: (e: React.DragEvent<HTMLElement>) => void;
   handleDragOver: (e: React.DragEvent<HTMLElement>) => void;

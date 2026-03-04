@@ -50,6 +50,7 @@ export function AudioView({
   startRecording,
   stopRecording,
   handleSaveRecording,
+  compact,
 }: AudioViewProps) {
   const shouldShowEmptyState = !audioUrl && !isUploading;
   const shouldShowLoadingState = !audioUrl && isUploading;
@@ -115,6 +116,7 @@ export function AudioView({
                 onTogglePlay={togglePlay}
                 onSeek={handleSeek}
                 formatTime={formatTime}
+                compact={compact}
               />
 
               {isUploading && (

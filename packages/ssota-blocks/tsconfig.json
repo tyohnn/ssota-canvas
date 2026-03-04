@@ -11,7 +11,8 @@
       "@workspace/ui/components/ssota-ui/*": ["../ui/src/components/ssota-ui/*"],
       "@workspace/ui/components/eleven-labs/*": ["../ui/src/components/eleven-labs/*"],
       "@workspace/ui/lib/*": ["../ui/src/lib/*"],
-      "@/*": ["../ui/src/*"]
+      "@/*": ["../ui/src/*"],
+      "lucide-react": ["./node_modules/lucide-react/dist/lucide-react.d.ts"]
     },
     "outDir": "dist",
     "noEmit": true

@@ -20,7 +20,7 @@ export interface DriveAudioPreviewAdapterProps {
   properties: Record<string, unknown>;
   blockId?: string;
   workspaceId?: string;
-  /** Compact layout for grid card (fixed height) */
+  /** When true, hide title row in player (e.g. grid card has its own header) */
   compact?: boolean;
 }
 
@@ -55,12 +55,7 @@ export function DriveAudioPreviewAdapter({
   });
 
   const handleRefreshUrl = useCallback(async () => {
-    if (
-      hasTriedRefreshRef.current ||
-      !blockId ||
-      !workspaceId ||
-      !(properties.pathUrl as string)?.trim()
-    ) {
+    if (hasTriedRefreshRef.current || !blockId || !workspaceId) {
       return;
     }
     hasTriedRefreshRef.current = true;
@@ -77,13 +72,29 @@ export function DriveAudioPreviewAdapter({
     } catch {
       // leave hasError as is
     }
-  }, [blockId, workspaceId, properties.pathUrl]);
+  }, [blockId, workspaceId]);
 
+  // On load error: try refresh (e.g. expired signed URL)
   useEffect(() => {
     if (previewHook.hasError && effectiveUrl) {
       handleRefreshUrl();
     }
   }, [previewHook.hasError, effectiveUrl, handleRefreshUrl]);
+
+  // Grid/list often has no accessUrl; fetch once on mount when we have blockId + workspaceId
+  const hasFetchedOnMountRef = useRef(false);
+  useEffect(() => {
+    if (
+      hasFetchedOnMountRef.current ||
+      effectiveUrl ||
+      !blockId ||
+      !workspaceId
+    ) {
+      return;
+    }
+    hasFetchedOnMountRef.current = true;
+    handleRefreshUrl();
+  }, [effectiveUrl, blockId, workspaceId, handleRefreshUrl]);
 
   const audioViewProps = useMemo(
     () => ({
@@ -98,6 +109,7 @@ export function DriveAudioPreviewAdapter({
       isRecording: false,
       recordedBlob: null as Blob | null,
       selected: true,
+      compact,
       handleDragEnter: noop,
       handleDragLeave: noop,
       handleDragOver: noop,
@@ -111,16 +123,19 @@ export function DriveAudioPreviewAdapter({
       stopRecording: noop,
       handleSaveRecording: noopAsync,
     }),
-    [effectiveUrl, filename, previewHook]
+    [effectiveUrl, filename, previewHook, compact]
   );
 
-  if (!effectiveUrl) {
-    return <AudioPreviewCard title={title} properties={properties} />;
-  }
+  const containerClassName =
+    'w-full h-full min-h-0 flex-1 flex flex-col overflow-hidden [&_.nodrag]:pointer-events-auto';
 
-  const containerClassName = compact
-    ? 'w-full h-full min-h-0 overflow-hidden [&_.nodrag]:pointer-events-auto'
-    : 'w-full min-h-0 flex-1 flex flex-col overflow-hidden [&_.nodrag]:pointer-events-auto';
+  if (!effectiveUrl) {
+    return (
+      <Box className={containerClassName}>
+        <AudioPreviewCard title={title} properties={properties} />
+      </Box>
+    );
+  }
 
   return (
     <Box className={containerClassName}>

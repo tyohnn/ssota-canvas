@@ -114,7 +114,12 @@ export function DriveBlockDetailClient({
           </div>
         ) : (
           <ResizablePanelGroup direction="horizontal" className="w-full">
-            <ResizablePanel defaultSize={40} minSize={30} maxSize={50}>
+            <ResizablePanel
+              defaultSize={40}
+              minSize={30}
+              maxSize={50}
+              className="flex flex-col min-h-0"
+            >
               <DriveBlockDetailContent
                 orgId={orgId}
                 blockData={blockData}

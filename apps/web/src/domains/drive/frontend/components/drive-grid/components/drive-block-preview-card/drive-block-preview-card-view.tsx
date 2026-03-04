@@ -100,7 +100,7 @@ export function DriveBlockPreviewCardView({
       case 'audio':
         return (
           <Box
-            className="h-full min-h-0 flex flex-col"
+            className="flex-1 min-h-0 flex flex-col overflow-hidden w-full"
             onClick={e => e.stopPropagation()}
             onKeyDown={e => e.stopPropagation()}
           >
@@ -149,7 +149,9 @@ export function DriveBlockPreviewCardView({
           {block.title || 'Untitled'}
         </span>
       </Box>
-      <Box className="flex-1 min-h-0 overflow-hidden">{renderContent()}</Box>
+      <Box className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        {renderContent()}
+      </Box>
     </Box>
   );
 }
