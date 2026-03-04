@@ -35,7 +35,7 @@ export function DriveAddFormHeader({
   );
 
   return (
-    <Box className="sticky top-0 z-50 flex flex-col gap-3 px-6 pt-12 pb-4 bg-background border-b border-border/30 md:flex-row md:justify-between md:items-start md:gap-3">
+    <Box className="sticky top-0 z-50 flex flex-col gap-3 px-6 pt-4 pb-4 bg-background border-b border-border/30 md:flex-row md:justify-between md:items-start md:gap-3">
       <Box className="flex flex-col gap-3 md:gap-1 md:flex-1 min-w-0">
         <Box className="flex items-center justify-between gap-3 md:block">
           <h2 className="text-base font-semibold text-foreground">{title}</h2>
