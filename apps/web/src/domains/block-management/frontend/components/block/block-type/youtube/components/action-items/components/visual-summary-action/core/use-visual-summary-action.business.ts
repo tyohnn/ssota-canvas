@@ -103,7 +103,7 @@ export function useVisualSummaryActionBusiness(
   const visualSummaryJob = useMemo(
     () =>
       jobs.find(
-        (j) => j.type === 'visual-summary' && j.sourceBlockId === blockId
+        (j) => j.type === 'visual-summary' && j.resourceId === blockId
       ),
     [jobs, blockId]
   );

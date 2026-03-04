@@ -62,7 +62,7 @@ export function useXAdd(
       setMetadata(data);
       const post = data.post;
       const fromText = contentTitleFromText(post.text);
-      setTitle(fromText || post.authorName ?? post.authorUsername ?? 'X Post');
+      setTitle(fromText || (post.authorName ?? post.authorUsername ?? 'X Post'));
     },
     []
   );
@@ -90,10 +90,7 @@ export function useXAdd(
 
       const blockTitle =
         contentTitleFromText(post.text) ||
-        post.authorName ??
-        post.authorUsername ??
-        title ??
-        'X Post';
+        (post.authorName ?? post.authorUsername ?? title ?? 'X Post');
 
       const result = await createBlock.mutateAsync({
         organizationId: orgId,

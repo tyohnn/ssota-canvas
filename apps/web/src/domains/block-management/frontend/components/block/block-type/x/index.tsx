@@ -130,9 +130,7 @@ export const XBlock = memo(function XBlock({
 
       const title =
         contentTitleFromText(post.text) ||
-        post.authorName ??
-        post.authorUsername ??
-        'X Post';
+        (post.authorName ?? post.authorUsername ?? 'X Post');
       if (updateBlockTitle) {
         await updateBlockTitle({
           nodeId: id,
