@@ -68,34 +68,34 @@ export function XPreviewCard({
       role={isActive ? 'button' : undefined}
       aria-label={isActive ? 'Double-click to open post' : undefined}
     >
-      {/* Header: fixed; no scroll */}
-      <Box className="shrink-0 p-4 pb-0">
-        <Box className="flex items-center gap-3">
+      {/* Header: fixed; no scroll — smaller on mobile */}
+      <Box className="shrink-0 p-2 pb-0 md:p-4 md:pb-0">
+        <Box className="flex items-center gap-2 md:gap-3">
           <AuthorLink>
             {metadata.authorProfileImageUrl && (
               <img
                 src={metadata.authorProfileImageUrl}
                 alt=""
-                className="w-10 h-10 rounded-full shrink-0"
+                className="w-8 h-8 md:w-10 md:h-10 rounded-full shrink-0"
               />
             )}
             <Box className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground truncate">
+              <p className="text-xs font-semibold md:text-sm text-foreground truncate">
                 {displayName}
               </p>
               {metadata.authorUsername && (
-                <p className="text-xs text-muted-foreground truncate">
+                <p className="text-[10px] md:text-xs text-muted-foreground truncate">
                   @{metadata.authorUsername}
                 </p>
               )}
             </Box>
           </AuthorLink>
-          <XIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+          <XIcon className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground shrink-0" />
         </Box>
       </Box>
 
-      {/* Content area: fixed height so only this part scrolls; footer stays visible */}
-      <Box className="flex-1 flex flex-col min-h-0 p-4 pt-3">
+      {/* Content area: fixed height so only this part scrolls; footer stays visible — content + footer hidden on mobile */}
+      <Box className="flex-1 flex flex-col min-h-0 p-4 pt-3 hidden md:flex">
         {/* Scrollable body when selected (react flow) or scrollableContent (drive grid/detail) */}
         <Box
           className={cn(
@@ -114,7 +114,7 @@ export function XPreviewCard({
           </p>
         </Box>
 
-        {/* Footer: always visible (likes, retweets, reply, date) */}
+        {/* Footer: always visible on desktop (likes, retweets, reply, date); hidden on mobile */}
         <Box className="shrink-0 flex flex-col gap-2 pt-3 mt-auto">
           {(metadata.likeCount != null ||
             metadata.retweetCount != null ||

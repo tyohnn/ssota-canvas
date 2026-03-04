@@ -86,7 +86,7 @@ export function LinkFormContent({
     <Box className="flex flex-col gap-4">
         <Box
           className={cn(
-            'relative w-4/5 aspect-310/280 min-h-0 rounded-lg border border-border overflow-hidden bg-background mx-auto',
+            'relative w-full md:w-4/5 aspect-310/280 min-h-0 rounded-lg border border-border overflow-hidden bg-background mx-auto',
           '[-webkit-mask:linear-gradient(#000_0_0)] [mask:linear-gradient(#000_0_0)]'
         )}
       >
