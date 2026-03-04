@@ -6,7 +6,7 @@ import type { Node } from '@xyflow/react';
 
 import type { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/hooks';
-import { isFailure } from '@/lib';
+import { isFailure, uuidToSlug } from '@/lib';
 
 import { applyBlockContentStepsAction } from '../../../actions/block/apply-block-content-steps.action';
 import { updateBlockContentAction } from '../../../actions/block/update-block-content.action';
@@ -80,6 +80,11 @@ export function useUpdateBlockContent(
   const canvasMetadata = canvasMetadataOverride ?? useCanvasMetadata();
   const { workspaceId } = canvasMetadata;
 
+  const normalizeBlockId = (blockId: string): string =>
+    blockId.length > 10 || blockId.includes('-')
+      ? uuidToSlug(blockId)
+      : blockId;
+
   const fullDocMutation = useMutation({
     mutationFn: async ({
       nodeId: _nodeId,
@@ -90,7 +95,7 @@ export function useUpdateBlockContent(
       if (!workspaceId) throw new Error('Workspace context required');
       const rawRequest: UpdateBlockContentRequestInput = {
         workspaceId,
-        blockId: blockData.blockId,
+        blockId: normalizeBlockId(blockData.blockId),
         content,
         contentRaw,
       };
@@ -138,7 +143,7 @@ export function useUpdateBlockContent(
       if (!workspaceId) throw new Error('Workspace context required');
       const rawRequest: ApplyBlockContentStepsRequestInput = {
         workspaceId,
-        blockId: blockData.blockId,
+        blockId: normalizeBlockId(blockData.blockId),
         steps,
         baseVersion,
       };

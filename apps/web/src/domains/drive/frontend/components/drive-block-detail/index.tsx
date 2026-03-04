@@ -9,6 +9,7 @@ import {
   ResizablePanelGroup,
 } from '@workspace/ui/components/ui/resizable';
 import { useDriveBlock } from '@/domains/drive/frontend/hooks/use-drive-block';
+import type { DriveBlockData } from '@/domains/drive/frontend/hooks/use-drive-block';
 import { DriveHeader } from '@/domains/drive/frontend/components/drive-header';
 
 import { DriveBlockDetailContent } from './drive-block-detail-content';
@@ -16,34 +17,29 @@ import { DriveBlockDetailContent } from './drive-block-detail-content';
 interface DriveBlockDetailClientProps {
   orgId: string;
   blockId: string;
+  /** Server-fetched block data; loading state is handled by loading.tsx */
+  initialBlockData: DriveBlockData;
 }
 
 /**
  * Drive block detail page container.
  * Resizable layout: Left = block preview. Right = Editor Panel (no animation, no radius).
+ * Expects initialBlockData from server; loading.tsx shows skeleton during navigation.
  */
 export function DriveBlockDetailClient({
   orgId,
   blockId,
+  initialBlockData,
 }: DriveBlockDetailClientProps) {
   const router = useRouter();
-  const { data: blockData, isLoading, error } = useDriveBlock(orgId, blockId);
+  const { data: blockData, error } = useDriveBlock(orgId, blockId, {
+    initialData: initialBlockData,
+  });
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleClose = () => {
     router.push(`/r/${orgId}/drive`);
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col h-full">
-        <DriveHeader orgId={orgId} />
-        <div className="flex flex-1 items-center justify-center p-8">
-          <p className="text-muted-foreground">Loading block...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (error || !blockData) {
     return (
