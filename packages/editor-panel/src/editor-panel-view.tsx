@@ -43,6 +43,7 @@ export function EditorPanelView({
         onClose={headerActions.onClose}
         isExpanded={headerActions.isExpanded}
         onToggleExpand={headerActions.onToggleExpand}
+        hideExpand={headerActions.hideExpand}
       />
       <Box
         className="flex-1 min-h-0 overflow-y-auto"

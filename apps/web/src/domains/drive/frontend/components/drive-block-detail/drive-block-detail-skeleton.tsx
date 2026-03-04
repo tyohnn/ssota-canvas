@@ -7,13 +7,45 @@ import {
 } from '@workspace/ui/components/ui/resizable';
 import { Box } from '@workspace/ui/components/ui/box';
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
+import { useIsMobile } from '@workspace/ui/hooks/use-mobile';
 import { DriveHeader } from '@/domains/drive/frontend/components/drive-header';
 
 /**
  * Drive block detail loading skeleton.
- * Matches the actual layout: Header + Left preview panel + Right editor panel.
+ * Desktop: Header + Left preview panel + Right editor panel.
+ * Mobile: Header + Preview area + Bottom "자세히 보기" button area (margin, rounded-md).
  */
 export function DriveBlockDetailSkeleton({ orgId }: { orgId: string }) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <Box className="flex flex-col h-full">
+        <DriveHeader orgId={orgId} />
+        <Box className="flex flex-1 min-h-0 flex-col overflow-auto">
+          <Box className="h-full overflow-auto bg-muted/20 p-2">
+            <Box className="flex flex-col max-w-lg w-full">
+              <Box className="relative flex flex-col min-h-0 w-full rounded-lg border border-border overflow-hidden bg-background shadow-md aspect-310/280">
+                <Box className="p-2 flex shrink-0 border-b border-border items-center gap-2 min-w-0">
+                  <Skeleton className="h-5 w-12 rounded-md shrink-0" />
+                  <Skeleton className="h-4 flex-1 max-w-[180px] rounded-md" />
+                </Box>
+                <Box className="flex-1 min-h-0 p-4 space-y-3">
+                  <Skeleton className="h-4 w-3/4 rounded-md" />
+                  <Skeleton className="h-3 w-1/2 rounded-md" />
+                  <Skeleton className="h-3 w-full rounded-md" />
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+          <Box className="shrink-0 p-3">
+            <Skeleton className="h-12 w-full rounded-md" />
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box className="flex flex-col h-full">
       <DriveHeader orgId={orgId} />

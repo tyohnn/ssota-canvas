@@ -52,7 +52,7 @@ export function DriveBlockPreviewPanel({ block }: DriveBlockPreviewPanelProps) {
       <Box className="flex flex-col max-w-lg w-full">
         <Box
           className={cn(
-            'relative flex flex-col min-h-0 w-full rounded-lg border border-border overflow-hidden bg-background shadow-sm',
+            'relative flex flex-col min-h-0 w-full rounded-md border border-border overflow-hidden bg-background shadow-md',
             cardAspect,
             '[-webkit-mask:linear-gradient(#000_0_0)] [mask:linear-gradient(#000_0_0)]'
           )}

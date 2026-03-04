@@ -29,6 +29,8 @@ export interface UseDriveEditorPanelParams {
   onClose: () => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  /** When true, expand/collapse button is hidden (e.g. drawer mode). */
+  hideExpand?: boolean;
 }
 
 export function useDriveEditorPanel({
@@ -37,6 +39,7 @@ export function useDriveEditorPanel({
   onClose,
   isExpanded,
   onToggleExpand,
+  hideExpand = false,
 }: UseDriveEditorPanelParams) {
   const { tabsSectionNode } = useDriveEditorPanelTabs({
     blockId: blockData.blockId,
@@ -82,9 +85,10 @@ export function useDriveEditorPanel({
 
   const contract = useEditorPanelContract({
     headerActions: {
-      onClose: undefined,
+      onClose,
       isExpanded,
       onToggleExpand,
+      hideExpand,
     },
     titleInput: {
       initialTitle: (blockData.title as string) ?? '',

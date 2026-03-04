@@ -15,7 +15,7 @@ export function DriveGridSkeleton({
 } = {}) {
   return (
     <div className="relative flex flex-1 min-h-0 flex-col overflow-y-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 min-[470px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {Array.from({ length: CARD_COUNT }).map((_, i) => (
           <div
             key={i}

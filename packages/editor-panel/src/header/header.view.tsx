@@ -32,6 +32,8 @@ export interface EditorPanelHeaderActions {
   onClose?: () => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  /** When true, expand/collapse button is hidden (e.g. drawer mode). */
+  hideExpand?: boolean;
 }
 
 export type HeaderViewProps = EditorPanelHeaderActions;
@@ -40,6 +42,7 @@ export function HeaderView({
   onClose,
   isExpanded,
   onToggleExpand,
+  hideExpand = false,
 }: HeaderViewProps) {
   const [isShareOpen, setIsShareOpen] = useState(false);
 
@@ -64,37 +67,39 @@ export function HeaderView({
             </Tooltip>
           )}
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6 transition-all duration-200 hover:bg-accent/50 hover:scale-105 active:scale-95"
-                onClick={onToggleExpand}
-                aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}
-              >
-                <Box className="relative w-4 h-4">
-                  <Expand
-                    className={`absolute inset-0 w-4 h-4 transition-all duration-300 ${
-                      isExpanded
-                        ? 'opacity-0 rotate-90 scale-50'
-                        : 'opacity-100 rotate-0 scale-100'
-                    }`}
-                  />
-                  <Minimize2
-                    className={`absolute inset-0 w-4 h-4 transition-all duration-300 ${
-                      isExpanded
-                        ? 'opacity-100 rotate-0 scale-100'
-                        : 'opacity-0 -rotate-90 scale-50'
-                    }`}
-                  />
-                </Box>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {isExpanded ? 'Collapse panel (ESC)' : 'Expand panel'}
-            </TooltipContent>
-          </Tooltip>
+          {!hideExpand && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 transition-all duration-200 hover:bg-accent/50 hover:scale-105 active:scale-95"
+                  onClick={onToggleExpand}
+                  aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}
+                >
+                  <Box className="relative w-4 h-4">
+                    <Expand
+                      className={`absolute inset-0 w-4 h-4 transition-all duration-300 ${
+                        isExpanded
+                          ? 'opacity-0 rotate-90 scale-50'
+                          : 'opacity-100 rotate-0 scale-100'
+                      }`}
+                    />
+                    <Minimize2
+                      className={`absolute inset-0 w-4 h-4 transition-all duration-300 ${
+                        isExpanded
+                          ? 'opacity-100 rotate-0 scale-100'
+                          : 'opacity-0 -rotate-90 scale-50'
+                      }`}
+                    />
+                  </Box>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isExpanded ? 'Collapse panel (ESC)' : 'Expand panel'}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </Box>
 
         <Box className="flex items-center gap-2">

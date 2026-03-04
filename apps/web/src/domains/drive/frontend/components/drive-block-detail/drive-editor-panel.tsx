@@ -19,6 +19,8 @@ export interface DriveEditorPanelProps {
   onClose: () => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  /** When true, expand/collapse button is hidden (e.g. drawer mode). */
+  hideExpand?: boolean;
 }
 
 export function DriveEditorPanel({
@@ -27,6 +29,7 @@ export function DriveEditorPanel({
   onClose,
   isExpanded,
   onToggleExpand,
+  hideExpand = false,
 }: DriveEditorPanelProps) {
   const { contract } = useDriveEditorPanel({
     blockData,
@@ -34,6 +37,7 @@ export function DriveEditorPanel({
     onClose,
     isExpanded,
     onToggleExpand,
+    hideExpand,
   });
 
   return (
