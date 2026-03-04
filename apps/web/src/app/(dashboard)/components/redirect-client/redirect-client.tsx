@@ -72,10 +72,13 @@ export function RedirectToDefaultPageClient({
     if (orgIdFromUrl != null && selectedOrganization?.id !== orgIdFromUrl) {
       return null;
     }
-    const pageId = getFirstPageId(workspaces, selectedPageId);
-    if (pageId) return `/r/${orgId}/${pageId}`;
-    return null;
-  }, [orgIdFromUrl, selectedOrganization?.id, workspaces, selectedPageId]);
+    // 조직이 있으면 drive로 리다이렉트
+    return `/r/${orgId}/drive`;
+    // 기존: 캔버스 첫 페이지로 리다이렉트
+    // const pageId = getFirstPageId(workspaces, selectedPageId);
+    // if (pageId) return `/r/${orgId}/${pageId}`;
+    // return null;
+  }, [orgIdFromUrl, selectedOrganization?.id]);
 
   if (redirectUrl) {
     return (
