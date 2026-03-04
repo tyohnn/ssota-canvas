@@ -25,7 +25,7 @@ export function DriveBlockDetailSkeleton({ orgId }: { orgId: string }) {
         <Box className="flex flex-1 min-h-0 flex-col overflow-auto">
           <Box className="h-full overflow-auto bg-muted/20 p-2">
             <Box className="flex flex-col max-w-lg w-full">
-              <Box className="relative flex flex-col min-h-0 w-full rounded-lg border border-border overflow-hidden bg-background shadow-md aspect-310/280">
+              <Box className="relative flex flex-col min-h-0 w-full rounded-md border border-border overflow-hidden bg-background shadow-md aspect-310/280">
                 <Box className="p-2 flex shrink-0 border-b border-border items-center gap-2 min-w-0">
                   <Skeleton className="h-5 w-12 rounded-md shrink-0" />
                   <Skeleton className="h-4 flex-1 max-w-[180px] rounded-md" />
@@ -55,7 +55,7 @@ export function DriveBlockDetailSkeleton({ orgId }: { orgId: string }) {
             {/* Left: Preview panel skeleton */}
             <Box className="h-full overflow-auto bg-muted/20 p-2">
               <Box className="flex flex-col max-w-lg w-full">
-                <Box className="relative flex flex-col min-h-0 w-full rounded-lg border border-border overflow-hidden bg-background shadow-sm aspect-310/280">
+                <Box className="relative flex flex-col min-h-0 w-full rounded-md border border-border overflow-hidden bg-background shadow-md aspect-310/280">
                   <Box className="p-2 flex shrink-0 border-b border-border items-center gap-2 min-w-0">
                     <Skeleton className="h-5 w-12 rounded-md shrink-0" />
                     <Skeleton className="h-4 flex-1 max-w-[180px] rounded-md" />

@@ -5,6 +5,7 @@ import { Box } from '@workspace/ui/components/ui/box';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { DriveLinkPreviewAdapter } from '@/domains/drive/frontend/components/drive-block-detail/drive-link-preview-adapter';
+import { DrivePdfPreviewAdapter } from '@/domains/drive/frontend/components/drive-block-detail/drive-pdf-preview-adapter';
 import { DriveYoutubePreviewAdapter } from '@/domains/drive/frontend/components/drive-block-detail/drive-youtube-preview-adapter';
 import { XPreviewCardAdapter } from '@/domains/drive/frontend/components/drive-grid/components/drive-block-preview-card/type-cards/x-preview-card';
 
@@ -32,6 +33,15 @@ export function DriveBlockPreviewPanel({ block }: DriveBlockPreviewPanelProps) {
         return <DriveLinkPreviewAdapter title={title} properties={properties} />;
       case 'x':
         return <XPreviewCardAdapter title={title} properties={properties} />;
+      case 'pdf':
+        return (
+          <DrivePdfPreviewAdapter
+            title={title}
+            properties={properties}
+            blockId={block.blockId}
+            workspaceId={block.workspaceId}
+          />
+        );
       default:
         return (
           <Box className="flex flex-col justify-center p-4">
