@@ -2,7 +2,7 @@
  * Drive Source Job Status Context
  *
  * Drive에서 소스 추가 시 source job Realtime 추적 및 AI status 창 표시.
- * useStatusJob (packages/ui) 사용, Drive 전용 openResource(router.push).
+ * useStatusJob (packages/ui) 사용. 완료 시 자동 이동 없음; openResource는 상태 창에서 수동 열기용.
  */
 
 'use client';
@@ -72,7 +72,7 @@ export function DriveSourceJobStatusProvider({
 
   const summaryJobStatus = useStatusJob({
     deps,
-    onJobCompleted: (blockId) => openResource(blockId),
+    onJobCompleted: () => {}, // Drive: no auto-navigation on completion; user stays on grid
     onShowStatusWindow: showStatusWindow,
   });
 
