@@ -1,3 +1,74 @@
+## [0.21.0] - 2026-03-04
+
+### Dev
+
+- Add block modularization
+- Add frontend adapter skills
+
+### ♻️ Refactoring
+
+- Extract youtube block to ssota-blocks package
+- Extract link block to ssota-blocks package
+- Seperate editor panel package
+- Seperate status windwo package to ssota-ui
+
+### ✨ Features
+
+- Scroll chaining at canvas block
+- Add model selector
+- Implement data-canvas-scroll-chain for improved scroll chaining in PDF and NoteView components
+- Add drive page route
+- Add drive page
+- Add editor panel auto open after auto summarization
+- Auto summary with user preferred language
+- Add preview at image & pdf tab of drive add dialog
+- Add refresh expired source url
+- Add ai status at drive
+- Add x block
+- Add drive detail page & refactor editor panel tabs
+- Add drive detail loading page and server side rendering
+- Mobile optimization
+- Add pdf preview block at drive detail
+- Add audio
+
+### 🐛 Bug Fixes
+
+- Add youtube block at canvas after refactoring
+- Border more solid
+- Preview card ui edit
+- Remove ai status window trigger
+- Edit ai status message
+- Add missing logic of ai status component
+- Add missing logic of x block
+-  fix: remove onclose
+- Drive timeline tab add quote work
+- Drive x card preview scrollable
+- Event audit log not working
+- Add border to login panel
+- Add border at onboarding
+- Redirect to drive after onboarding
+- Handle zindex
+- Event audit log miss line breaking
+- Remove auto redirection after summary success
+- Drive dialog header of mobile
+- Drive card of mobile
+- Build error
+- Audio block
+- Drive timeline tab interaction work
+- Youtube extraction adapter
+
+### 📚 Documentation
+
+- Add harness phase
+- Feature inbox page
+- Add build time modular plan
+- Add drive domain plan
+
+### 🔧 Maintenance
+
+- Add skills
+- Add software design skills
+- Remove docs
 ## [0.20.2] - 2026-02-25
 
 ### ♻️ Refactoring
