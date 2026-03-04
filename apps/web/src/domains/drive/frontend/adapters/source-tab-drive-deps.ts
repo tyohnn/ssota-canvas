@@ -5,6 +5,7 @@
 
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { isFailure } from '@/lib';
 
@@ -64,13 +65,19 @@ export function useSourceTimelineTabDriveDeps(
 export function useTimelineTranscriptDriveDeps(
   blockData: DriveBlockData | undefined
 ): TimelineTranscriptRuntimeDeps {
+  const queryClient = useQueryClient();
+
   const updateBlockContent = useCallback(
     async (input: UpdateBlockContentInput): Promise<boolean> => {
       const data = input.blockData as DriveBlockData | undefined;
-      if (!data?.workspaceId) return false;
+      if (!data?.workspaceId) {
+        throw new Error('Drive add-quote: missing workspaceId');
+      }
       /** API expects 8–10 hex slug; Drive uses blockId=UUID, blockSlug=slug */
       const blockSlug = data.blockSlug ?? (data as BlockNodeData).blockId;
-      if (!blockSlug) return false;
+      if (!blockSlug) {
+        throw new Error('Drive add-quote: missing blockSlug');
+      }
 
       const rawRequest: UpdateBlockContentRequestInput = {
         workspaceId: data.workspaceId,
@@ -79,12 +86,22 @@ export function useTimelineTranscriptDriveDeps(
       };
 
       const parseResult = UpdateBlockContentRequestSchema.safeParse(rawRequest);
-      if (!parseResult.success) return false;
+      if (!parseResult.success) {
+        const msg = parseResult.error.issues
+          .map(i => `${i.path.join('.')}: ${i.message}`)
+          .join('; ');
+        throw new Error(`Drive add-quote validation: ${msg}`);
+      }
 
       const result = await updateBlockContentAction(parseResult.data);
-      return !isFailure(result);
+      if (isFailure(result)) {
+        throw new Error(result.error ?? 'Drive add-quote: update failed');
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['drive', 'block'] });
+      return true;
     },
-    []
+    [queryClient]
   );
 
   return useMemo(
