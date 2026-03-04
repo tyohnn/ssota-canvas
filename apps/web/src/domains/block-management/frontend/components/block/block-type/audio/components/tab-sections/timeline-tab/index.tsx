@@ -12,7 +12,11 @@ import {
   type AudioBlockProperties,
 } from '@/domains/block-management/shared/value-objects/block-properties';
 
-import { TimelineTab } from '@/domains/source-management/frontend/components/timeline-tab';
+import { TimelineTab } from '@/domains/source-management/frontend/adapters/source-timeline';
+import {
+  useSourceTimelineTabCanvasDeps,
+  useTimelineTranscriptCanvasDeps,
+} from '@/domains/block-management/frontend/adapters/source-tab-canvas-deps';
 
 export interface AudioTimelineTabProps {
   blockId: string;
@@ -27,6 +31,9 @@ export default function AudioTimelineTab({
   blockMountId,
   switchToTab,
 }: AudioTimelineTabProps) {
+  const timelineTabDeps = useSourceTimelineTabCanvasDeps();
+  const transcriptDeps = useTimelineTranscriptCanvasDeps();
+
   let sourceTitle: string | undefined;
   try {
     const props = blockData?.properties as AudioBlockProperties | undefined;
@@ -47,6 +54,8 @@ export default function AudioTimelineTab({
       blockMountId={blockMountId}
       blockData={blockData}
       switchToTab={switchToTab}
+      timelineTabDeps={timelineTabDeps}
+      transcriptDeps={transcriptDeps}
     />
   );
 }

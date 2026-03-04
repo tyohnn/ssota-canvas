@@ -10,7 +10,7 @@ export interface BlockEditorTabLike {
   id: string;
   label: string;
   componentPath?: string;
-  component?: ComponentType<{ blockId: string; blockData: unknown }>;
+  component?: ComponentType<{ resourceId: string; data: unknown }>;
   isDefault?: boolean;
   hideInReadonly?: boolean;
 }
@@ -28,9 +28,9 @@ export interface BlockContentTabsSectionDeps {
   renderTabContent: (
     tab: BlockEditorTabLike,
     ctx: {
-      blockId: string;
-      blockData: unknown;
-      blockMountId: string;
+      resourceId: string;
+      data: unknown;
+      instanceId: string;
       switchToTab: (tabId: string) => void;
     }
   ) => React.ReactNode;

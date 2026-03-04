@@ -2,14 +2,12 @@
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 import type { PdfBlockProperties } from '@/domains/block-management/shared/value-objects/block-properties';
+import { SourceSummaryTab } from '@/domains/block-management/frontend/components/block/block-type/shared/source-summary-tab';
 
-import {
-  SummarySectionView,
-  type SummarySectionViewProps,
-  useSourceSummarySection,
-} from '@/domains/source-management/frontend/components/summary-tab';
-
-import { TabEmptyState } from '../tab-empty-state';
+const getSourceSummaryAccessLanguagesFromPdfProperties = (
+  properties: unknown
+): string[] | undefined =>
+  (properties as PdfBlockProperties | undefined)?.sourceSummaryAccessLanguages;
 
 export interface SummaryTabProps {
   blockId: string;
@@ -17,42 +15,14 @@ export interface SummaryTabProps {
 }
 
 export default function SummaryTab({ blockId, blockData }: SummaryTabProps) {
-  const blockSlug = blockData?.blockId ?? blockId;
-  const sourceId = blockData?.sourceId;
-  const props = blockData?.properties as PdfBlockProperties | undefined;
-  const sourceSummaryAccessLanguagesFromProperties =
-    props?.sourceSummaryAccessLanguages;
-
-  const business = useSourceSummarySection({
-    blockSlug,
-    sourceId,
-    sourceSummaryAccessLanguagesFromProperties,
-  });
-
-  if (!sourceId) {
-    return (
-      <TabEmptyState
-        message="Add a PDF file or URL to enable summarization."
-        actionLabel=""
-      />
-    );
-  }
-
-  const viewProps: SummarySectionViewProps = {
-    summaries: business.summaries,
-    availableLanguages: business.availableLanguages,
-    selectedLanguage: business.selectedLanguage,
-    setSelectedLanguage: business.setSelectedLanguage,
-    currentSummary: business.currentSummary,
-    isLoading: business.isLoading,
-    error: business.error,
-    onExtractSummary: business.handleExtractSummary,
-    isExtracting: business.isExtracting,
-    hasAccessForSelectedLanguage: business.hasAccessForSelectedLanguage,
-    sourceSummaryAccessLanguages: business.sourceSummaryAccessLanguages,
-    readonly: business.readonly,
-    userPreferredLanguage: business.userPreferredLanguage,
-  };
-
-  return <SummarySectionView {...viewProps} />;
+  return (
+    <SourceSummaryTab
+      blockId={blockId}
+      blockData={blockData}
+      emptyMessage="Add a PDF file or URL to enable summarization."
+      getSourceSummaryAccessLanguagesFromProperties={
+        getSourceSummaryAccessLanguagesFromPdfProperties
+      }
+    />
+  );
 }

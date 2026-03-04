@@ -80,7 +80,7 @@ export function YoutubePreviewCard({
         )}
       </Box>
 
-      <Box className="p-3 flex items-start gap-3 bg-background border-t border-border">
+      <Box className="p-3 flex items-start gap-3 border-t border-border">
         {metadata.channelThumbnail ? (
           <img
             src={metadata.channelThumbnail}

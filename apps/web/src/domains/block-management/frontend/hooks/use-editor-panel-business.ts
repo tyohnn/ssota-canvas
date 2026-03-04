@@ -27,37 +27,37 @@ export function useEditorPanelBusiness(
 
   const onTitleSave = useCallback(
     async ({
-      blockId,
+      resourceId,
       title,
-      blockData,
+      data,
     }: {
-      blockId: string;
+      resourceId: string;
       title: string;
-      blockData: BlockNodeData;
+      data: BlockNodeData;
     }) => {
       if (!title.trim()) {
         return;
       }
 
       const trimmedTitle = title.trim();
-      const currentTitle = (blockData.title as string) || '';
+      const currentTitle = (data.title as string) || '';
 
       // 변화가 없으면 업데이트하지 않음
       if (currentTitle.trim() === trimmedTitle) {
         return;
       }
 
-      const blockIdValue = (blockData.blockId as string) || blockId;
-      const blockMountId = blockData.blockMountId;
+      const blockIdValue = (data.blockId as string) || resourceId;
+      const blockMountId = data.blockMountId;
 
       try {
         // Optimistic update
-        const originalTitle = blockData.title;
+        const originalTitle = data.title;
         const blockNode = getNode(blockMountId);
 
         // React Flow Store 즉시 업데이트 (node.id === blockMountId)
         const updatedData = {
-          ...blockData,
+          ...data,
           title: trimmedTitle,
         };
 
@@ -81,7 +81,7 @@ export function useEditorPanelBusiness(
           console.error('[EditorPanel] Failed to update title:', result.error);
           if (blockNode) {
             updateNode(blockMountId, {
-              data: { ...blockData, title: originalTitle },
+              data: { ...data, title: originalTitle },
             });
           }
           throw new Error(result.error || 'Failed to update title');
@@ -108,26 +108,26 @@ export function useStandaloneEditorPanelBusiness(
 ): EditorPanelBusinessLogic {
   const onTitleSave = useCallback(
     async ({
-      blockId,
+      resourceId,
       title,
-      blockData,
+      data,
     }: {
-      blockId: string;
+      resourceId: string;
       title: string;
-      blockData: BlockNodeData;
+      data: BlockNodeData;
     }) => {
       if (!title.trim()) {
         return;
       }
 
       const trimmedTitle = title.trim();
-      const currentTitle = (blockData.title as string) || '';
+      const currentTitle = (data.title as string) || '';
 
       if (currentTitle.trim() === trimmedTitle) {
         return;
       }
 
-      const blockIdValue = (blockData.blockId as string) || blockId;
+      const blockIdValue = (data.blockId as string) || resourceId;
 
       const result = await updateBlockTitleAction({
         workspaceId,
@@ -152,7 +152,11 @@ export function useMockEditorPanelBusiness(
   onClose: () => void
 ): EditorPanelBusinessLogic {
   const onTitleSave = useCallback(
-    async (_params: { blockId: string; title: string; blockData: unknown }) => {
+    async (_params: {
+      resourceId: string;
+      title: string;
+      data: unknown;
+    }) => {
       await new Promise(resolve => setTimeout(resolve, 300));
     },
     []

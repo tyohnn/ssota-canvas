@@ -8,7 +8,7 @@ import { BlockNodeData } from '@/domains/block-management/shared/types/block-dat
 import type { BlockType } from '@/domains/block-management/shared/types/block-types';
 import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 import { useSourceSummaryLanguages } from '@/domains/source-management/frontend/hooks';
-import { getLanguageName } from '@/domains/source-management/frontend/components/summary-tab';
+import { getLanguageName } from '@/domains/editor-panel/frontend/adapters/summary-content-deps';
 import {
   SUPPORTED_LANGUAGES,
   type SupportedLanguage,

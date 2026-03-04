@@ -28,9 +28,9 @@ export function LinkPreviewCard({ title, properties }: LinkPreviewCardProps) {
   const displayTitle = ogTitle || title || 'Link';
 
   return (
-    <Box className="flex flex-col h-full min-h-0 bg-card hover:bg-muted">
+    <Box className="flex flex-col h-full min-h-0">
       {ogImage && (
-        <Box className="w-full shrink-0 overflow-hidden aspect-[2/1] bg-muted">
+        <Box className="w-full shrink-0 overflow-hidden aspect-2/1 bg-muted">
           <img
             src={ogImage}
             alt={displayTitle}

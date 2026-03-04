@@ -54,7 +54,7 @@ export function YoutubePreviewCard({
   const channelThumbnail = properties.channelThumbnail as string | undefined;
 
   return (
-    <Box className="flex flex-col h-full min-h-0 bg-card hover:bg-muted">
+    <Box className="flex flex-col h-full min-h-0">
       {thumbnailUrl && (
         <Box className="w-full shrink-0 overflow-hidden aspect-video bg-backgroud relative">
           <img

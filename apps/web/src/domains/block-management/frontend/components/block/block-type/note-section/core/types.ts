@@ -7,6 +7,7 @@ import type { Editor } from '@tiptap/react';
 
 import type { MathEditingState } from '@/domains/block-management/frontend/components/tiptap-editor/core/types';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
+import type { CanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 
 export interface MarkdownContentSectionProps {
   blockId: string;
@@ -19,6 +20,8 @@ export interface UseMarkdownContentSectionDependencies {
     updateNode: (nodeId: string, options: { data: BlockNodeData }) => void;
   };
   contentVersionRef?: RefObject<number>;
+  /** For standalone (Drive) context - omit to use useCanvasMetadata() */
+  canvasMetadata?: CanvasMetadata;
 }
 
 export interface UseMarkdownContentSectionOptions {

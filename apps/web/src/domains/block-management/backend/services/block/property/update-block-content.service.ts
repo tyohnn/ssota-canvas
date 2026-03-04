@@ -5,7 +5,7 @@
  * ⚠️ blockAggregate는 secure action에서 조회해 전달 (서비스 내부에서 findByWorkspaceIdAndSlug 사용 안 함)
  */
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
-import { Node, Slice } from '@tiptap/pm/model';
+import { Node } from '@tiptap/pm/model';
 import { ReplaceStep } from '@tiptap/pm/transform';
 import { Result } from '@/utils/result';
 
@@ -45,8 +45,9 @@ export async function updateBlockContent(
       (block.content as object) || EMPTY_TIPTAP_DOC;
     const currentDoc = Node.fromJSON(pmSchema, currentContent);
     const newDoc = Node.fromJSON(pmSchema, content as object);
-    const slice = new Slice(newDoc.content, 0, 0);
-    const step = new ReplaceStep(1, currentDoc.content.size, slice);
+    // Replace at top-level doc boundaries to avoid invalid node joins.
+    const slice = newDoc.slice(0, newDoc.content.size);
+    const step = new ReplaceStep(0, currentDoc.content.size, slice);
     const stepJSON = step.toJSON();
 
     const stepsResult = await applyBlockContentSteps({

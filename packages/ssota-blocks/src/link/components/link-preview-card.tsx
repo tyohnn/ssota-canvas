@@ -43,13 +43,14 @@ export function LinkPreviewCard({
     >
       {metadata.imageUrl && (
         <Box
-          className="relative w-full aspect-[2/1] shrink-0 overflow-hidden bg-muted"
+          className="relative w-full aspect-2/1 shrink-0 overflow-hidden bg-muted"
         >
           <img
             src={metadata.imageUrl}
             alt={metadata.title}
             className="absolute inset-0 size-full object-cover"
             style={{ objectPosition: '50% 33%' }}
+            // referrerPolicy="no-referrer"
             onError={e => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}

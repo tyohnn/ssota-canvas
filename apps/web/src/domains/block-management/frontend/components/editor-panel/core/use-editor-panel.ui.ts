@@ -15,19 +15,21 @@ export function useEditorPanelUI(isOpen: boolean) {
   const [isAnimating, setIsAnimating] = useState(false);
 
   const tabSwitchCallbackRef = useRef<((tabId: string) => void) | null>(null);
-  const [tabSwitchCallback, setTabSwitchCallback] = useState<
+  const [tabSwitchCallback, setTabSwitchCallbackState] = useState<
     ((tabId: string) => void) | null
   >(null);
 
-  const switchToTab = useCallback((tabId: string) => {
-    if (tabSwitchCallbackRef.current) {
-      tabSwitchCallbackRef.current(tabId);
-    }
-  }, []);
+  const setTabSwitchCallback = useCallback(
+    (fn: ((tabId: string) => void) | null) => {
+      tabSwitchCallbackRef.current = fn;
+      setTabSwitchCallbackState(() => fn);
+    },
+    []
+  );
 
-  useEffect(() => {
-    tabSwitchCallbackRef.current = tabSwitchCallback;
-  }, [tabSwitchCallback]);
+  const switchToTab = useCallback((tabId: string) => {
+    tabSwitchCallbackRef.current?.(tabId);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {

@@ -6,9 +6,9 @@
  */
 export interface EditorPanelBusinessLogic {
   onTitleSave: (params: {
-    blockId: string;
+    resourceId: string;
     title: string;
-    blockData: unknown;
+    data: unknown;
   }) => Promise<void>;
   onClose: () => void;
 }

@@ -13,10 +13,13 @@ import {
 import { SUPPORTED_LANGUAGES } from '@/domains/youtube-app-space/shared/value-objects/language-code.vo';
 import {
   ExtractSummaryButton,
-  getLanguageName,
   SummaryContent,
   SummarySectionContainer,
-} from '@/domains/source-management/frontend/components/summary-tab';
+} from '@workspace/editor-panel';
+import {
+  getLanguageName,
+  useSummaryContentDeps,
+} from '@/domains/editor-panel/frontend/adapters/summary-content-deps';
 import type { VideoSummaryView } from '@/domains/youtube-app-space/shared/dtos/views/video-summary.views';
 import { TUTORIAL_YOUTUBE_PROPERTIES } from '@/domains/tutorial-management/frontend/config/tutorial-mock-data';
 import { InteractionGuard } from '../../common/interaction-guard';
@@ -123,6 +126,7 @@ interface MockSummarySectionProps {
 export function MockSummarySection({
   currentStepIndex,
 }: MockSummarySectionProps) {
+  const summaryContentDeps = useSummaryContentDeps();
   const {
     tutorialState,
     updateTutorialState,
@@ -190,6 +194,7 @@ export function MockSummarySection({
             <SummaryContent
               summary={MOCK_VIDEO_SUMMARY.summary}
               keywords={MOCK_VIDEO_SUMMARY.keywords}
+              deps={summaryContentDeps}
             />
           </Box>
         </InteractionGuard>

@@ -74,6 +74,7 @@ export function useBlockNoteTiptap(
   const { applyBlockContentSteps } = useUpdateBlockContent({
     reactFlow,
     contentVersionRef,
+    canvasMetadata: canvasMetadataOverride,
   });
 
   const uploadImage = useMemo(() => {

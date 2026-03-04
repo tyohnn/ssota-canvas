@@ -13,6 +13,8 @@ export {
 } from './components/ui-states';
 
 export { useLinkBlock } from './logic/use-link-block';
+export { hasLinkMetadata } from './logic/types';
+export { getDomain } from './logic/utils';
 
 export type {
   LinkMetadata,

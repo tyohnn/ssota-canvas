@@ -1,9 +1,17 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@workspace/ui/components/ui/resizable';
 import { useDriveBlock } from '@/domains/drive/frontend/hooks/use-drive-block';
 import { DriveHeader } from '@/domains/drive/frontend/components/drive-header';
+
+import { DriveBlockDetailContent } from './drive-block-detail-content';
 
 interface DriveBlockDetailClientProps {
   orgId: string;
@@ -12,7 +20,7 @@ interface DriveBlockDetailClientProps {
 
 /**
  * Drive block detail page container.
- * Left: block preview placeholder. Right: Editor Panel (standalone).
+ * Resizable layout: Left = block preview. Right = Editor Panel (no animation, no radius).
  */
 export function DriveBlockDetailClient({
   orgId,
@@ -20,6 +28,7 @@ export function DriveBlockDetailClient({
 }: DriveBlockDetailClientProps) {
   const router = useRouter();
   const { data: blockData, isLoading, error } = useDriveBlock(orgId, blockId);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleClose = () => {
     router.push(`/r/${orgId}/drive`);
@@ -55,29 +64,46 @@ export function DriveBlockDetailClient({
     );
   }
 
+  const blockTitle = (blockData.title as string) ?? 'Untitled';
+
   return (
     <div className="flex flex-col h-full">
-      <DriveHeader orgId={orgId} />
+      <DriveHeader orgId={orgId} blockTitle={blockTitle} />
       <div className="flex flex-1 min-h-0">
-        <div className="flex-1 flex items-center justify-center p-8 bg-muted/20">
-          <div className="rounded-lg border bg-card p-4 shadow-sm max-w-md w-full">
-            <p className="text-sm font-medium truncate">
-              {blockData.title || 'Untitled'}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {blockData.blockType}
-            </p>
-            <p className="text-xs text-muted-foreground mt-3">
-              Drive standalone editor panel has been removed.
-            </p>
-            <Link
-              href={`/r/${orgId}/drive`}
-              className="mt-3 inline-block text-sm text-primary hover:underline"
-            >
-              Back to Drive
-            </Link>
+        {isExpanded ? (
+          <div className="flex-1 min-w-0 w-full">
+            <DriveBlockDetailContent
+              orgId={orgId}
+              blockData={blockData}
+              slot="right"
+              onClose={handleClose}
+              isExpanded={isExpanded}
+              onToggleExpand={() => setIsExpanded(false)}
+            />
           </div>
-        </div>
+        ) : (
+          <ResizablePanelGroup direction="horizontal" className="w-full">
+            <ResizablePanel defaultSize={40} minSize={30}>
+              <DriveBlockDetailContent
+                orgId={orgId}
+                blockData={blockData}
+                slot="left"
+                onClose={handleClose}
+              />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={60} minSize={30}>
+              <DriveBlockDetailContent
+                orgId={orgId}
+                blockData={blockData}
+                slot="right"
+                onClose={handleClose}
+                isExpanded={isExpanded}
+                onToggleExpand={() => setIsExpanded(true)}
+              />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        )}
       </div>
     </div>
   );

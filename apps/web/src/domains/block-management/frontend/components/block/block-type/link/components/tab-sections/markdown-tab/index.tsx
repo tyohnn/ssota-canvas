@@ -7,10 +7,10 @@
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
 
-import {
-  MarkdownTabView,
-  useMarkdownTab,
-} from '@/domains/source-management/frontend/components/markdown-tab';
+import { MarkdownTabView } from '@workspace/editor-panel';
+import { useMarkdownTab } from '@/domains/source-management/frontend/adapters/source-markdown';
+import { useSummaryContentDeps } from '@/domains/editor-panel/frontend/adapters/summary-content-deps';
+import { useMarkdownTabCanvasDeps } from '@/domains/block-management/frontend/adapters/source-tab-canvas-deps';
 
 export interface MarkdownTabProps {
   blockId: string;
@@ -21,10 +21,12 @@ export default function MarkdownTab({
   blockId,
   blockData,
 }: MarkdownTabProps) {
-  const { content, extractedAt, isLoading, error, hasSourceId } = useMarkdownTab({
-    blockId,
-    blockData,
-  });
+  const markdownDeps = useMarkdownTabCanvasDeps();
+  const { content, extractedAt, isLoading, error, hasSourceId } = useMarkdownTab(
+    { blockId, blockData },
+    markdownDeps
+  );
+  const summaryContentDeps = useSummaryContentDeps();
 
   return (
     <MarkdownTabView
@@ -34,6 +36,7 @@ export default function MarkdownTab({
       error={error}
       hasSourceId={hasSourceId}
       emptyMessage="Extraction runs automatically when you add a URL."
+      summaryContentDeps={summaryContentDeps}
     />
   );
 }

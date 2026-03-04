@@ -28,7 +28,10 @@ import { getBlockEditorSchema } from '@/domains/block-management/frontend/regist
 import { useViewportAdjustment } from '@/domains/block-management/frontend/hooks/use-viewport-adjustment';
 
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
-import type { EditorPanelBusinessLogic } from '@workspace/editor-panel';
+import type {
+  EditorPanelBusinessLogic,
+  PropertyUpdateDepsLike,
+} from '@workspace/editor-panel';
 
 import { useEditorPanelTabs } from './use-editor-panel-tabs';
 import { useEditorPanelUI } from './use-editor-panel.ui';
@@ -93,9 +96,9 @@ export function useEditorPanel({
       if (!blockData || !title.trim()) return;
       try {
         await businessLogic.onTitleSave({
-          blockId,
+          resourceId: blockId,
           title,
-          blockData,
+          data: blockData,
         });
       } catch {
         // View keeps local state; next initialTitle from blockData will sync
@@ -176,7 +179,7 @@ export function useEditorPanel({
       entityId: blockId,
       entityData: blockData!,
       propertyUpdateDeps:
-        propertyUpdateDeps as import('@workspace/editor-panel').PropertyUpdateDepsLike,
+        propertyUpdateDeps as PropertyUpdateDepsLike,
       deps: { getEditorSchema: getBlockEditorSchema },
       readonly: canvasReadonly,
       onImageUpload,
@@ -186,7 +189,7 @@ export function useEditorPanel({
       deps: {
         resolveEntityData: () => blockData,
         propertyUpdateDeps:
-          propertyUpdateDeps as import('@workspace/editor-panel').PropertyUpdateDepsLike,
+          propertyUpdateDeps as PropertyUpdateDepsLike,
       },
       readonly: canvasReadonly,
     },

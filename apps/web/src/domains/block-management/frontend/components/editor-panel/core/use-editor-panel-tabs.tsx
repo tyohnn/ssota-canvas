@@ -8,7 +8,10 @@
 
 import React, { useCallback, useEffect, useMemo } from 'react';
 
-import { BlockContentTabsSection } from '@workspace/editor-panel';
+import {
+  BlockContentTabsSection,
+  type BlockEditorTabLike,
+} from '@workspace/editor-panel';
 
 import {
   loadTabsConfig,
@@ -37,25 +40,25 @@ export function useEditorPanelTabs({
 }: UseEditorPanelTabsParams) {
   const renderTabContent = useCallback(
     (
-      tab: import('@workspace/editor-panel').BlockEditorTabLike,
+      tab: BlockEditorTabLike,
       ctx: {
-        blockId: string;
-        blockData: unknown;
-        blockMountId: string;
+        resourceId: string;
+        data: unknown;
+        instanceId: string;
         switchToTab: (tabId: string) => void;
       }
     ) => {
-      const data = ctx.blockData as BlockNodeData | undefined;
+      const data = ctx.data as BlockNodeData | undefined;
       if (!data) return null;
       if (tab.id === 'note') {
-        return <NoteSection blockId={ctx.blockId} blockData={data} />;
+        return <NoteSection blockId={ctx.resourceId} blockData={data} />;
       }
       return (
         <TabMapper
           tab={tab as BlockEditorTab}
-          blockId={ctx.blockId}
+          blockId={ctx.resourceId}
           blockData={data}
-          blockMountId={ctx.blockMountId}
+          blockMountId={ctx.instanceId}
           switchToTab={ctx.switchToTab}
         />
       );
@@ -82,8 +85,8 @@ export function useEditorPanelTabs({
 
   const tabsSectionNode: React.ReactNode = blockData ? (
     <BlockContentTabsSection
-      blockId={blockId}
-      blockData={blockData}
+      resourceId={blockId}
+      data={blockData}
       deps={tabsSectionDeps}
     />
   ) : null;

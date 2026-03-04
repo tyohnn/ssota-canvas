@@ -48,7 +48,7 @@ export function XPreviewCardAdapter({
 
   if (!metadata) {
     return (
-      <Box className="flex flex-col h-full min-h-0 bg-card hover:bg-muted p-4">
+      <Box className="flex flex-col h-full min-h-0 p-4">
         <p className="text-sm font-medium truncate">{title || 'X Post'}</p>
         <p className="text-xs text-muted-foreground mt-1">No metadata</p>
       </Box>
@@ -56,7 +56,7 @@ export function XPreviewCardAdapter({
   }
 
   return (
-    <Box className="flex flex-col h-full min-h-0 bg-card hover:bg-muted">
+    <Box className="flex flex-col h-full min-h-0">
       <XPreviewCard
         metadata={metadata}
         isActive={false}

@@ -18,7 +18,7 @@ import {
   SummaryTableOfContents,
   SummaryTOCSlotProvider,
   useSummaryTOCSlot,
-} from '@/domains/source-management/frontend/components/summary-tab';
+} from '@workspace/editor-panel';
 import { LANDING_YOUTUBE_PROPERTIES } from '../../../../../../../mocks/landing-youtube-mock-data';
 import { LandingMetadataSection } from '../../../../../../../mocks/editor-panel/common-tabs/LandingMetadataSection';
 import { LandingSummarySection as BaseLandingSummarySection } from '../../../../../../../mocks/editor-panel/youtube-tabs/LandingSummarySection';

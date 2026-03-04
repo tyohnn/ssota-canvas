@@ -2,9 +2,10 @@
 
 import { Badge } from '@workspace/ui/components/ui/badge';
 import { Box } from '@workspace/ui/components/ui/box';
+import { cn } from '@workspace/ui/lib/utils';
 
-import { LinkPreviewCard } from '@/domains/drive/frontend/components/drive-grid/components/drive-block-preview-card/type-cards/link-preview-card';
-import { YoutubePreviewCard } from '@/domains/drive/frontend/components/drive-grid/components/drive-block-preview-card/type-cards/youtube-preview-card';
+import { DriveLinkPreviewAdapter } from '@/domains/drive/frontend/components/drive-block-detail/drive-link-preview-adapter';
+import { DriveYoutubePreviewAdapter } from '@/domains/drive/frontend/components/drive-block-detail/drive-youtube-preview-adapter';
 import { XPreviewCardAdapter } from '@/domains/drive/frontend/components/drive-grid/components/drive-block-preview-card/type-cards/x-preview-card';
 
 import type { DriveBlockData } from '@/domains/drive/frontend/hooks/use-drive-block';
@@ -26,14 +27,14 @@ export function DriveBlockPreviewPanel({ block }: DriveBlockPreviewPanelProps) {
   const renderContent = () => {
     switch (block.blockType) {
       case 'youtube':
-        return <YoutubePreviewCard title={title} properties={properties} />;
+        return <DriveYoutubePreviewAdapter title={title} properties={properties} />;
       case 'link':
-        return <LinkPreviewCard title={title} properties={properties} />;
+        return <DriveLinkPreviewAdapter title={title} properties={properties} />;
       case 'x':
         return <XPreviewCardAdapter title={title} properties={properties} />;
       default:
         return (
-          <Box className="rounded-lg border bg-card p-4 shadow-sm max-w-md w-full">
+          <Box className="flex flex-col justify-center p-4">
             <p className="text-sm font-medium truncate">{title}</p>
             <p className="text-xs text-muted-foreground mt-1">
               {block.blockType}
@@ -43,16 +44,29 @@ export function DriveBlockPreviewPanel({ block }: DriveBlockPreviewPanelProps) {
     }
   };
 
+  const isYoutube = block.blockType === 'youtube';
+  const cardAspect = isYoutube ? 'aspect-[410/288]' : 'aspect-[310/280]';
+
   return (
-    <div className="h-full overflow-auto bg-muted/20 p-6">
-      <Box className="flex flex-col gap-3 max-w-lg">
-        <Box className="flex items-center gap-2 shrink-0">
-          <Badge variant="secondary">{getBlockTypeBadgeLabel(block.blockType)}</Badge>
-          <span className="text-sm font-medium text-foreground truncate">
-            {title}
-          </span>
+    <div className="h-full overflow-auto bg-muted/20 p-2">
+      <Box className="flex flex-col max-w-lg w-full">
+        <Box
+          className={cn(
+            'relative flex flex-col min-h-0 w-full rounded-lg border border-border overflow-hidden bg-background shadow-sm',
+            cardAspect,
+            '[-webkit-mask:linear-gradient(#000_0_0)] [mask:linear-gradient(#000_0_0)]'
+          )}
+        >
+          <Box className="p-2 flex shrink-0 border-b border-border items-center gap-2 min-w-0">
+            <Badge variant="secondary" className="shrink-0">
+              {getBlockTypeBadgeLabel(block.blockType)}
+            </Badge>
+            <span className="text-sm font-medium text-foreground truncate flex-1">
+              {title}
+            </span>
+          </Box>
+          <Box className="flex-1 min-h-0 overflow-hidden">{renderContent()}</Box>
         </Box>
-        <Box className="min-h-0 flex-1">{renderContent()}</Box>
       </Box>
     </div>
   );

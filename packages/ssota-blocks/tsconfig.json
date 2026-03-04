@@ -8,6 +8,7 @@
     "rootDir": "..",
     "paths": {
       "@workspace/ui/components/ui/*": ["../ui/src/components/ui/*"],
+      "@workspace/ui/components/ssota-ui/*": ["../ui/src/components/ssota-ui/*"],
       "@workspace/ui/lib/*": ["../ui/src/lib/*"],
       "@/*": ["../ui/src/*"]
     },

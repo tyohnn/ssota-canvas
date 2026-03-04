@@ -25,15 +25,15 @@ import type {
 import { TabsLoadingSkeleton } from './tabs-loading-skeleton';
 
 export interface BlockContentTabsSectionViewProps {
-  blockId: string;
-  blockData: unknown;
+  resourceId: string;
+  data: unknown;
   blockType: string;
   deps: BlockContentTabsSectionDeps;
 }
 
 export function BlockContentTabsSectionView({
-  blockId,
-  blockData,
+  resourceId,
+  data,
   blockType,
   deps,
 }: BlockContentTabsSectionViewProps) {
@@ -45,7 +45,7 @@ export function BlockContentTabsSectionView({
     readonly = false,
   } = deps;
 
-  const blockMountId = (blockData as { blockMountId?: string })?.blockMountId ?? blockId;
+  const instanceId = (data as { blockMountId?: string })?.blockMountId ?? resourceId;
 
   const [tabsConfig, setTabsConfig] =
     useState<BlockEditorTabsConfigLike | null>(null);
@@ -235,11 +235,11 @@ export function BlockContentTabsSectionView({
 
         {visibleTabs.map(tab => (
           <ShadcnTabsContent key={tab.id} value={tab.id}>
-            {blockData
+            {data
               ? (renderTabContent(tab, {
-                  blockId,
-                  blockData,
-                  blockMountId,
+                  resourceId,
+                  data,
+                  instanceId,
                   switchToTab,
                 }) as React.ReactNode)
               : null}

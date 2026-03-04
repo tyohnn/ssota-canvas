@@ -6,7 +6,11 @@ import type { BlockType } from '@/domains/block-management/shared/types/block-ty
 import type { GetDriveBlockResult } from '@/domains/drive/actions/get-drive-block.action';
 import { getDriveBlockAction } from '@/domains/drive/actions/get-drive-block.action';
 
-export type DriveBlockData = BlockNodeData & { workspaceId: string };
+export type DriveBlockData = BlockNodeData & {
+  workspaceId: string;
+  /** 8-10 hex slug for source-management APIs */
+  blockSlug?: string;
+};
 
 function mapToBlockNodeData(data: GetDriveBlockResult): DriveBlockData {
   return {
@@ -19,6 +23,8 @@ function mapToBlockNodeData(data: GetDriveBlockResult): DriveBlockData {
     customProperties: data.customProperties as unknown as BlockNodeData['customProperties'],
     content: data.content,
     contentVersion: data.contentVersion,
+    sourceId: data.sourceId ?? undefined,
+    blockSlug: data.blockSlug,
     createdByProfile: data.createdByProfile,
     workspaceId: data.workspaceId,
   } as DriveBlockData;

@@ -15,6 +15,7 @@ export {
 } from './components/ui-states';
 
 export { useYoutubeBlock } from './logic/use-youtube-block';
+export { hasYoutubeMetadata } from './logic/types';
 
 export type {
   YoutubeMetadata,

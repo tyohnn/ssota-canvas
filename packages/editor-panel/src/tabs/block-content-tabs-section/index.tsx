@@ -11,17 +11,19 @@ import type { BlockContentTabsSectionDeps } from '../types';
 import { BlockContentTabsSectionView } from './components/block-content-tabs-section.view';
 
 export interface BlockContentTabsSectionProps {
-  blockId: string;
-  blockData: unknown;
+  /** Block/resource identifier. */
+  resourceId: string;
+  /** Block payload (e.g. node data). Used for tab config and instanceId derivation. */
+  data: unknown;
   deps: BlockContentTabsSectionDeps;
 }
 
 export function BlockContentTabsSection({
-  blockId,
-  blockData,
+  resourceId,
+  data,
   deps,
 }: BlockContentTabsSectionProps) {
-  const blockType = (blockData as { blockType?: string })?.blockType;
+  const blockType = (data as { blockType?: string })?.blockType;
 
   if (!blockType) {
     return null;
@@ -29,8 +31,8 @@ export function BlockContentTabsSection({
 
   return (
     <BlockContentTabsSectionView
-      blockId={blockId}
-      blockData={blockData}
+      resourceId={resourceId}
+      data={data}
       blockType={blockType}
       deps={deps}
     />

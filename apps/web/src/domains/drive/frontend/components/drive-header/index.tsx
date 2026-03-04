@@ -16,12 +16,14 @@ import { useOrganization } from '@/domains/organization-management/frontend/hook
 
 interface DriveHeaderProps {
   orgId: string;
+  /** When provided, shows Org > Drive > block title (Drive links to list). */
+  blockTitle?: string | null;
 }
 
 /**
- * Drive page header: Org > Drive (breadcrumb). Canvas header style.
+ * Drive page header: Org > Drive (breadcrumb). On detail: Org > Drive > block title.
  */
-export function DriveHeader({ orgId }: DriveHeaderProps) {
+export function DriveHeader({ orgId, blockTitle }: DriveHeaderProps) {
   const { organizations } = useOrganization();
   const organization = organizations.find(org => org.id === orgId);
   const displayName = organization?.name ?? 'Organization';
@@ -58,8 +60,29 @@ export function DriveHeader({ orgId }: DriveHeaderProps) {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Drive</BreadcrumbPage>
+              {blockTitle != null ? (
+                <BreadcrumbLink asChild>
+                  <Link
+                    href={orgId ? `/r/${orgId}/drive` : '/r/drive'}
+                    className="truncate text-sm font-medium"
+                  >
+                    Drive
+                  </Link>
+                </BreadcrumbLink>
+              ) : (
+                <BreadcrumbPage>Drive</BreadcrumbPage>
+              )}
             </BreadcrumbItem>
+            {blockTitle != null && (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="truncate">
+                    {blockTitle || 'Untitled'}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </>
+            )}
           </BreadcrumbList>
         </Breadcrumb>
       </div>

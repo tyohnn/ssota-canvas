@@ -85,6 +85,7 @@ export function useVisualSummaryActionBusiness(
     sourceId,
     publishToken,
     readonly,
+    workspaceId,
     hasAvailableLanguages: hasAnySummary,
   });
 

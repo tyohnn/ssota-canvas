@@ -13,7 +13,7 @@ import {
   TimelineTabContainer,
   TimelineTranscriptView,
   TimelineTableOfContents,
-} from '@/domains/source-management/frontend/components/timeline-tab';
+} from '@workspace/editor-panel';
 
 /** "How To Get Your First Users" 기반 가상 스크립트 (약 6분) */
 const MOCK_TRANSCRIPT = [

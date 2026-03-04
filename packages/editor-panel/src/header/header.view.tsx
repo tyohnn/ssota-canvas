@@ -47,20 +47,22 @@ export function HeaderView({
     <TooltipProvider delayDuration={300}>
       <Box className="shrink-0 flex items-center justify-between p-4">
         <Box className="flex items-center gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6 transition-all duration-200 hover:bg-accent/50 hover:scale-105 active:scale-95 group"
-                onClick={onClose}
-                aria-label="Close editor panel"
-              >
-                <ChevronsRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Close panel</TooltipContent>
-          </Tooltip>
+          {onClose != null && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 transition-all duration-200 hover:bg-accent/50 hover:scale-105 active:scale-95 group"
+                  onClick={onClose}
+                  aria-label="Close editor panel"
+                >
+                  <ChevronsRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Close panel</TooltipContent>
+            </Tooltip>
+          )}
 
           <Tooltip>
             <TooltipTrigger asChild>

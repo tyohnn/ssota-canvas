@@ -29,6 +29,10 @@ export interface GetDriveBlockResult {
   customProperties: Array<Record<string, unknown>>;
   content: unknown;
   contentVersion: number;
+  /** Linked source ID (sources.id). Required for summary/timeline/extract tabs */
+  sourceId: string | null;
+  /** 8-10 hex slug for source-management APIs (getSourceSummary, etc.) */
+  blockSlug: string;
   createdByProfile: {
     userId: string;
     email: string | null;
@@ -84,6 +88,8 @@ async function getDriveBlockInternal(
       customProperties: block.customProperties.map(c => c.toJSON()),
       content: block.content,
       contentVersion: block.contentVersion,
+      sourceId: block.sourceId,
+      blockSlug: block.getSlug(),
       createdByProfile,
     });
   } catch (e) {
