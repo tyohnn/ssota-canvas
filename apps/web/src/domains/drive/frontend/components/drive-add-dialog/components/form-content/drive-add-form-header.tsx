@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 export interface DriveAddFormHeaderProps {
   title: string;
   description: string;
-  onCancel: () => void;
   onCreate: () => void;
   isCreateDisabled: boolean;
   isSubmitting: boolean;
@@ -16,21 +15,12 @@ export interface DriveAddFormHeaderProps {
 export function DriveAddFormHeader({
   title,
   description,
-  onCancel,
   onCreate,
   isCreateDisabled,
   isSubmitting,
 }: DriveAddFormHeaderProps) {
   const renderButtons = () => (
     <Box className="flex gap-2 shrink-0">
-      <Button
-        type="button"
-        variant="outline"
-        onClick={onCancel}
-        className="hidden md:inline-flex"
-      >
-        Cancel
-      </Button>
       <Button
         type="button"
         variant="outline"

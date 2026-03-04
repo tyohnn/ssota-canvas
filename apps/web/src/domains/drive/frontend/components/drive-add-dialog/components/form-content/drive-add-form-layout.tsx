@@ -6,7 +6,6 @@ import { DriveAddFormHeader } from './drive-add-form-header';
 
 export interface DriveAddFormLayoutProps {
   header: { title: string; description: string };
-  onCancel: () => void;
   onCreate: () => void;
   isCreateDisabled: boolean;
   isSubmitting: boolean;
@@ -21,7 +20,6 @@ export interface DriveAddFormLayoutProps {
 
 export function DriveAddFormLayout({
   header,
-  onCancel,
   onCreate,
   isCreateDisabled,
   isSubmitting,
@@ -38,7 +36,6 @@ export function DriveAddFormLayout({
       <DriveAddFormHeader
         title={header.title}
         description={header.description}
-        onCancel={onCancel}
         onCreate={onCreate}
         isCreateDisabled={isCreateDisabled}
         isSubmitting={isSubmitting}

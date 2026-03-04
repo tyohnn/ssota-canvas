@@ -64,7 +64,6 @@ export function XAddSection({
         title: 'X',
         description: 'Add an X (Twitter) post with metadata.',
       }}
-      onCancel={onClose}
       onCreate={submit}
       isCreateDisabled={!metadata || isLoadingWorkspaces}
       isSubmitting={isSubmitting}

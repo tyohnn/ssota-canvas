@@ -60,7 +60,6 @@ export function LinkAddSection({
   return (
     <DriveAddFormLayout
       header={{ title: 'Link', description: 'Save a web link with preview.' }}
-      onCancel={onClose}
       onCreate={submit}
       isCreateDisabled={!metadata || isLoadingWorkspaces}
       isSubmitting={isSubmitting}

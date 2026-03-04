@@ -66,7 +66,6 @@ export function YoutubeAddSection({
         title: 'YouTube',
         description: 'Add a YouTube video with metadata.',
       }}
-      onCancel={onClose}
       onCreate={submit}
       isCreateDisabled={!metadata || isLoadingWorkspaces}
       isSubmitting={isSubmitting}

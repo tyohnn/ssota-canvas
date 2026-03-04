@@ -31,7 +31,6 @@ export function AudioAddSection({
   return (
     <DriveAddFormLayout
       header={{ title: 'Audio', description: 'Upload or add an audio file.' }}
-      onCancel={onClose}
       onCreate={submit}
       isCreateDisabled={isLoadingWorkspaces || !selectedFile}
       isSubmitting={isSubmitting}

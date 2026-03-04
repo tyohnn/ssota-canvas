@@ -31,7 +31,6 @@ export function PdfAddSection({
   return (
     <DriveAddFormLayout
       header={{ title: 'PDF', description: 'Upload or add a PDF document.' }}
-      onCancel={onClose}
       onCreate={submit}
       isCreateDisabled={isLoadingWorkspaces || !selectedFile}
       isSubmitting={isSubmitting}

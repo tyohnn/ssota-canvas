@@ -31,7 +31,6 @@ export function ImageAddSection({
   return (
     <DriveAddFormLayout
       header={{ title: 'Image', description: 'Upload or add an image.' }}
-      onCancel={onClose}
       onCreate={submit}
       isCreateDisabled={isLoadingWorkspaces || !selectedFile}
       isSubmitting={isSubmitting}

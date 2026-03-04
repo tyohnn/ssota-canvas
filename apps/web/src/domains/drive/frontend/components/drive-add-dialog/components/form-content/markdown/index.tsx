@@ -35,7 +35,6 @@ export function MarkdownAddSection({
         title: 'Note',
         description: 'Create a note or document with rich text.',
       }}
-      onCancel={onClose}
       onCreate={submit}
       isCreateDisabled={isLoadingWorkspaces || !hasContent}
       isSubmitting={isSubmitting}
