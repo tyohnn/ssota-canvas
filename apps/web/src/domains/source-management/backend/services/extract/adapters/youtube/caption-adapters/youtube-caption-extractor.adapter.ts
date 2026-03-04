@@ -1,12 +1,12 @@
 /**
  * YouTube Caption Extractor Adapter (1차)
  *
- * youtube-caption-extractor 라이브러리를 사용하여 자막을 추출합니다.
- * Serverless/Edge 환경에 최적화되어 있으며, bot detection bypass를 지원합니다.
+ * youtube-transcript-plus로 자막을 추출합니다 (직접 요청, 프록시 없음).
+ * 실패 시 ZenRowsCaptionAdapter(youtube-transcript-plus + ZenRows)가 사용됩니다.
  */
-import { type Subtitle, getSubtitles } from 'youtube-caption-extractor';
+import { fetchTranscript } from 'youtube-transcript-plus';
 
-import type { TranscriptSegment } from '../transcript.types';
+import type { TimelineTranscriptSegment } from '../transcript.types';
 import type { TranscriptAdapter } from './types';
 
 export class YoutubeCaptionExtractorAdapter implements TranscriptAdapter {
@@ -15,16 +15,15 @@ export class YoutubeCaptionExtractorAdapter implements TranscriptAdapter {
   async getTranscript(
     videoId: string,
     language?: string
-  ): Promise<TranscriptSegment[]> {
-    const subtitles: Subtitle[] = await getSubtitles({
-      videoID: videoId,
-      lang: language || 'en',
+  ): Promise<TimelineTranscriptSegment[]> {
+    const segments = await fetchTranscript(videoId, {
+      lang: language || undefined,
     });
 
-    return subtitles.map((subtitle) => ({
-      text: subtitle.text,
-      start: parseFloat(subtitle.start),
-      duration: parseFloat(subtitle.dur),
+    return segments.map((s) => ({
+      text: s.text,
+      start: s.offset,
+      duration: s.duration,
     }));
   }
 }
