@@ -19,13 +19,17 @@ export interface XPreviewCardProps {
   metadata: XMetadata;
   isActive: boolean;
   onDoubleClick: (e: React.MouseEvent) => void;
+  /** When true, content area is scrollable (e.g. drive grid/detail). When false, follows isActive (react flow block). */
+  scrollableContent?: boolean;
 }
 
 export function XPreviewCard({
   metadata,
   isActive,
   onDoubleClick,
+  scrollableContent = false,
 }: XPreviewCardProps) {
+  const contentScrollable = isActive || scrollableContent;
   const displayName = metadata.authorName ?? metadata.authorUsername ?? 'X User';
   const postPermalink = buildPostPermalink(metadata.postId);
   const authorProfileUrl =
@@ -92,18 +96,18 @@ export function XPreviewCard({
 
       {/* Content area: fixed height so only this part scrolls; footer stays visible */}
       <Box className="flex-1 flex flex-col min-h-0 p-4 pt-3">
-        {/* Scrollable body only when selected */}
+        {/* Scrollable body when selected (react flow) or scrollableContent (drive grid/detail) */}
         <Box
           className={cn(
             'flex-1 min-h-0',
-            isActive ? 'overflow-auto' : 'overflow-hidden'
+            contentScrollable ? 'overflow-auto' : 'overflow-hidden'
           )}
           {...(isActive ? { [DATA_CANVAS_SCROLL_CHAIN]: '' } : {})}
         >
           <p
             className={cn(
               'text-sm text-foreground whitespace-pre-wrap wrap-break-word',
-              !isActive && 'line-clamp-6'
+              !contentScrollable && 'line-clamp-6'
             )}
           >
             {renderTextWithEntities(metadata.text, metadata.entities)}

@@ -61,6 +61,7 @@ export function XPreviewCardAdapter({
         metadata={metadata}
         isActive={false}
         onDoubleClick={handleDoubleClick}
+        scrollableContent
       />
     </Box>
   );
