@@ -139,6 +139,9 @@
       "components/ui/*": [
         "src/components/ui/*"
       ],
+      "components/ssota-ui/*": [
+        "src/components/ssota-ui/*"
+      ],
       "hooks/*": [
         "src/hooks/*"
       ],

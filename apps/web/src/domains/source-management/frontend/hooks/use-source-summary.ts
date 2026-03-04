@@ -1,12 +1,12 @@
 /**
  * Source summary 조회 훅
  * Block 기반 또는 Published Page 기반 (language 필수)
+ *
+ * workspaceId: Canvas/Drive deps에서 주입. Published page(readonly+publishToken)일 때는 미사용.
  */
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-
-import { useCanvasMetadata } from '@/domains/canvas-management/frontend/contexts/canvas-metadata-context';
 
 import { getSourceSummaryAction } from '../../actions/summary/get-source-summary.action';
 import { getSourceSummaryForPublishedPageAction } from '../../actions/published-page/get-source-summary-for-published-page.action';
@@ -18,6 +18,8 @@ export type UseSourceSummaryParams = {
   sourceId?: string;
   publishToken?: string;
   readonly?: boolean;
+  /** Block 기반 조회 시 필요 (Published page일 때는 미사용). Canvas/Drive deps에서 주입 */
+  workspaceId?: string;
   /** 이미 추출된 언어일 때만 fetch (미추출 언어 404 방지). 기본 true */
   isAlreadyExtracted?: boolean;
   /** 사용 가능한 요약 언어가 있을 때만 fetch. 기본 true */
@@ -39,15 +41,15 @@ export function useSourceSummary(
 
   const queryKey = isPublished
     ? [
-        'source-summary-published',
-        params.blockId,
-        params.sourceId!,
-        params.publishToken!,
-        params.language,
-      ]
+      'source-summary-published',
+      params.blockId,
+      params.sourceId!,
+      params.publishToken!,
+      params.language,
+    ]
     : ['source-summary', params.blockId, params.language];
 
-  const { workspaceId } = useCanvasMetadata();
+  const workspaceId = params.workspaceId ?? '';
 
   const {
     data,

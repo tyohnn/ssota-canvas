@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { BlockType } from '@/domains/block-management/shared/types/block-types';
 
@@ -21,6 +21,7 @@ import type { CanvasModeContextValue } from './canvas-mode-context';
 export function useCanvasMode(): CanvasModeContextValue {
   const [mode, setMode] = useState<CanvasMode>({ type: 'default' });
   const [isTextareaEditing, setIsTextareaEditing] = useState(false);
+  const spaceKeyHeldRef = useRef(false);
 
   // 모드 전환
   const enterPanningMode = useCallback(() => {
@@ -193,6 +194,7 @@ export function useCanvasMode(): CanvasModeContextValue {
       isBlockEditingMode,
       isDraggingMode,
       isEdgeCreationMode,
+      spaceKeyHeldRef,
     }),
     [
       mode,
@@ -215,6 +217,7 @@ export function useCanvasMode(): CanvasModeContextValue {
       isBlockEditingMode,
       isDraggingMode,
       isEdgeCreationMode,
+      spaceKeyHeldRef,
     ]
   );
 

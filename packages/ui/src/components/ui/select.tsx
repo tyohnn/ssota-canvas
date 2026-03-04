@@ -172,8 +172,38 @@ function SelectScrollDownButton({
   );
 }
 
+/**
+ * Compact button for Combobox/Select trigger.
+ * Used with ComboboxTrigger: <ComboboxTrigger render={<SelectButton />}>
+ */
+function SelectButton({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"button">) {
+  return (
+    <button
+      type="button"
+      data-slot="select-button"
+      className={cn(
+        "border-border text-foreground data-[placeholder]:text-muted-foreground flex h-7 w-fit items-center justify-between gap-1.5 rounded-md border bg-transparent px-2.5 py-0 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&>span]:line-clamp-1",
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <ChevronDownIcon
+        size={14}
+        className="text-muted-foreground/80 shrink-0"
+        aria-hidden
+      />
+    </button>
+  );
+}
+
 export {
   Select,
+  SelectButton,
   SelectContent,
   SelectGroup,
   SelectItem,

@@ -93,6 +93,24 @@ export interface IBlockRepository {
   ): Promise<Block[]>;
 
   /**
+   * 여러 워크스페이스에 속한 블록 목록 조회 (Drive: cursor 기반 무한 스크롤).
+   * block_type IN (link, audio, markdown, pdf, youtube, image), deleted_at IS NULL.
+   * 정렬: created_at DESC, id DESC.
+   *
+   * @param workspaceIds - 워크스페이스 ID 배열
+   * @param options - limit, cursor (마지막 항목 id), typeFilter (optional)
+   * @returns Promise<{ items: Block[]; nextCursor: string | null }>
+   */
+  listByWorkspaceIds(
+    workspaceIds: string[],
+    options?: {
+      limit: number;
+      cursor?: string | null;
+      typeFilter?: string | null;
+    }
+  ): Promise<{ items: Block[]; nextCursor: string | null }>;
+
+  /**
    * 블록 삭제 (소프트 삭제)
    *
    * @param id - 블록 ID

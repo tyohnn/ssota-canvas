@@ -75,6 +75,7 @@ export const blockTypeEnum = pgEnum('block_type', [
   'markdown', // 마크다운 블록
   'link', // 링크 블록
   'youtube', // 유튜브 블록
+  'x', // X (Twitter) 포스트 블록
   'pdf', // PDF 문서 블록
   'audio', // 오디오 블록
   'video', // 비디오 블록

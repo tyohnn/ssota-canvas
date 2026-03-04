@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@workspace/ui/lib/utils';
-import { BlockPropertyRendererView } from '@/domains/block-management/frontend/components/editor-panel/components/content-area/components/block-properties-section/components/block-property-renderer.view';
+import { BlockPropertyRendererView } from '@workspace/editor-panel';
 import type { PropertyUIDefinition } from '@/domains/block-management/frontend/types/block-editor-schema.interface';
 import { TUTORIAL_YOUTUBE_PROPERTIES } from '@/domains/tutorial-management/frontend/config/tutorial-mock-data';
 

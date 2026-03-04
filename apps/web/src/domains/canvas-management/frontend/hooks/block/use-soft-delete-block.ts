@@ -202,6 +202,21 @@ export function useSoftDeleteBlock(
 
     // 자동 복원
     onError: (error, variables, context) => {
+      // "Block mount not found" = 서버에 이미 없음 → 복원하지 않음
+      // (router block resolve 등 레이스 시 삭제된 블록이 다시 나타나는 것 방지)
+      const isNotFound =
+        error instanceof Error &&
+        error.message.toLowerCase().includes('block mount not found');
+      if (isNotFound) {
+        if (context?.normalizedIds) {
+          context.normalizedIds.forEach(id =>
+            deletingBlockMountsRef.current.delete(id)
+          );
+        }
+        onError?.();
+        return;
+      }
+
       if (context?.previousNodes && !context.shouldSkipServerCall) {
         // Real 노드들만 복원 (optimistic 노드는 복원하지 않음)
         if (context.realNodes) {

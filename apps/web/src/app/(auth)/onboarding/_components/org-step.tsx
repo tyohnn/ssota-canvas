@@ -69,7 +69,7 @@ export function OrgStep({ language, name, onComplete, onBack }: OrgStepProps) {
   return (
     <>
       {/* Left Panel - Form */}
-      <div className="flex flex-col gap-4 p-6 md:p-10 w-full lg:w-2/5">
+      <div className="flex flex-col gap-4 border-r border-border p-6 md:p-10 w-full lg:w-2/5">
         <div className="flex justify-center gap-2 md:justify-start">
           <span className="font-medium">ssota</span>
         </div>

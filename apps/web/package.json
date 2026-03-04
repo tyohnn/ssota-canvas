@@ -87,6 +87,7 @@
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
     "@vidstack/react": "^1.12.13",
+    "@workspace/ssota-blocks": "workspace:*",
     "@workspace/ui": "workspace:*",
     "@xyflow/react": "^12.8.2",
     "ai": "^6.0.69",
@@ -125,8 +126,7 @@
     "vite": "^7.1.9",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.22",
-    "youtube-caption-extractor": "^1.9.1",
-    "youtubei.js": "^16.0.1",
+    "youtube-transcript-plus": "^1.0.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {

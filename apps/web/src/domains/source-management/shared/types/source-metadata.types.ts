@@ -16,6 +16,8 @@ export interface PdfSourceMetadata {
 }
 
 export interface XSourceMetadata {
+  appSpaceId?: string;
+  postId?: string;
   [key: string]: unknown;
 }
 

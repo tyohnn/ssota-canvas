@@ -9,7 +9,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { SummarySectionView } from '@/domains/source-management/frontend/components/summary-tab';
+import { SummarySectionView } from '@workspace/editor-panel';
+import { useSummaryContentDeps } from '@/domains/editor-panel/frontend/adapters/summary-content-deps';
 import type { VideoSummaryView } from '@/domains/youtube-app-space/shared/dtos/views/video-summary.views';
 
 interface LandingSummarySectionProps {
@@ -108,6 +109,7 @@ const SCROLL_TO_HEADING_TEXT = 'Phylogenetic Tree';
 
 export function LandingSummarySection({ step }: LandingSummarySectionProps) {
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const summaryContentDeps = useSummaryContentDeps();
 
   // step 4: English 클릭 → 에디터 패널 열림 + 로딩, step 5+: summary 완료
   // structure 탭에서는 이미 summary가 있는 상태로 시작하므로 항상 표시
@@ -163,6 +165,7 @@ export function LandingSummarySection({ step }: LandingSummarySectionProps) {
       hasAccessForSelectedLanguage={true}
       sourceSummaryAccessLanguages={['en']}
       readonly={false}
+      summaryContentDeps={summaryContentDeps}
     />
   );
 }

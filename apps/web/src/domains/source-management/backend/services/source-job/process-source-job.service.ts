@@ -21,6 +21,7 @@ import type { IExtractAdapter } from '@/domains/source-management/backend/servic
 import { AudioExtractAdapter } from '@/domains/source-management/backend/services/extract/adapters/audio-extract.adapter';
 import { LinkExtractAdapter } from '@/domains/source-management/backend/services/extract/adapters/link-extract.adapter';
 import { PdfExtractAdapter } from '@/domains/source-management/backend/services/extract/adapters/pdf-extract.adapter';
+import { XExtractAdapter } from '@/domains/source-management/backend/services/extract/adapters/x-extract.adapter';
 import { YoutubeExtractAdapter } from '@/domains/source-management/backend/services/extract/adapters/youtube-extract.adapter';
 import { extractSourceContent } from '@/domains/source-management/backend/services/extract';
 import { runSourceContentExtractedPolicy } from '@/domains/source-management/backend/services/source-content-extracted/source-content-extracted-policy.runner';
@@ -33,6 +34,12 @@ import type { ISourceJobRepository } from '../../repositories/interfaces/source-
 
 /** Route(내부 호출)에서 블록 속성 업데이트 시 사용하는 시스템 사용자 ID */
 const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
+
+/**
+ * X 포스트: 이 문자수 이하면 요약 생략 (짧은 포스트는 원문이 이미 충분히 간결함)
+ * 280 = X 전 트윗 1개 한도
+ */
+const X_MIN_CHARS_FOR_SUMMARY = 280;
 
 export interface ProcessSourceJobInput {
   jobId: string;
@@ -87,7 +94,7 @@ export async function processSourceJobService(
     }
 
     const block = await blockRepository.findById(new BlockId(blockId));
-    const supportedBlockTypes = ['youtube', 'link', 'pdf', 'audio'];
+    const supportedBlockTypes = ['youtube', 'link', 'pdf', 'audio', 'x'];
     if (
       !block ||
       !supportedBlockTypes.includes(block.blockType.value)
@@ -108,6 +115,7 @@ export async function processSourceJobService(
         link: new LinkExtractAdapter(),
         pdf: new PdfExtractAdapter(),
         audio: new AudioExtractAdapter(),
+        x: new XExtractAdapter(),
       } as Record<SourceTypeValue, IExtractAdapter>;
 
       const extractResult = await extractSourceContent(
@@ -160,50 +168,59 @@ export async function processSourceJobService(
       }
     }
 
-    // 3) startSummarizing → repo.update (Realtime: "요약 중...")
-    jobAggregate.startSummarizing();
-    await sourceJobRepository.update(jobAggregate);
+    // 2.5) X 블록: raw_content가 짧으면 요약 생략 (원문이 이미 간결함)
+    const sourceAfterExtract = await sourceRepository.findById(sourceIdVo);
+    const shouldSkipSummary =
+      block.blockType.value === 'x' &&
+      sourceAfterExtract?.hasRawContent() &&
+      (sourceAfterExtract.rawContent?.length ?? 0) < X_MIN_CHARS_FOR_SUMMARY;
 
-    // 4) ensureSourceSummary
-    await ensureSourceSummary(
-      { sourceId, orgId, language },
-      sourceRepository,
-      sourceSummaryRepository
-    );
+    if (!shouldSkipSummary) {
+      // 3) startSummarizing → repo.update (Realtime: "요약 중...")
+      jobAggregate.startSummarizing();
+      await sourceJobRepository.update(jobAggregate);
 
-    // 5) source_action_transaction(extract_summary) + block.sourceSummaryAccessLanguages
-    try {
-      const txSummaryResult = await createSourceActionTransaction(
-        {
-          orgId,
-          sourceId,
-          actionType: 'extract_summary',
-          language,
-        },
-        sourceActionTransactionRepository
+      // 4) ensureSourceSummary
+      await ensureSourceSummary(
+        { sourceId, orgId, language },
+        sourceRepository,
+        sourceSummaryRepository
       );
-      if (txSummaryResult.isError()) {
-        // unique conflict 등은 무시하고 block 업데이트 진행
-      }
-    } catch {
-      // 이미 존재하는 transaction 등 - 무시
-    }
 
-    const currentLanguages =
-      (block.properties as { sourceSummaryAccessLanguages?: string[] })
-        ?.sourceSummaryAccessLanguages ?? [];
-    if (!currentLanguages.includes(language)) {
-      const blockAggregate = BlockAggregate.reconstitute(block);
-      const updateBlockResult = await updateBlockProperties({
-        safeBlockAggregate: blockAggregate,
-        properties: {
-          sourceSummaryAccessLanguages: [...currentLanguages, language],
-        },
-        safeUserId: new UserId(SYSTEM_USER_ID),
-        blockRepository,
-      });
-      if (updateBlockResult.isError()) {
-        throw new Error(updateBlockResult.error.message);
+      // 5) source_action_transaction(extract_summary) + block.sourceSummaryAccessLanguages
+      try {
+        const txSummaryResult = await createSourceActionTransaction(
+          {
+            orgId,
+            sourceId,
+            actionType: 'extract_summary',
+            language,
+          },
+          sourceActionTransactionRepository
+        );
+        if (txSummaryResult.isError()) {
+          // unique conflict 등은 무시하고 block 업데이트 진행
+        }
+      } catch {
+        // 이미 존재하는 transaction 등 - 무시
+      }
+
+      const currentLanguages =
+        (block.properties as { sourceSummaryAccessLanguages?: string[] })
+          ?.sourceSummaryAccessLanguages ?? [];
+      if (!currentLanguages.includes(language)) {
+        const blockAggregate = BlockAggregate.reconstitute(block);
+        const updateBlockResult = await updateBlockProperties({
+          safeBlockAggregate: blockAggregate,
+          properties: {
+            sourceSummaryAccessLanguages: [...currentLanguages, language],
+          },
+          safeUserId: new UserId(SYSTEM_USER_ID),
+          blockRepository,
+        });
+        if (updateBlockResult.isError()) {
+          throw new Error(updateBlockResult.error.message);
+        }
       }
     }
 

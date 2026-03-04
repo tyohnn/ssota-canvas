@@ -55,6 +55,18 @@ export const GetYoutubeMetadataRequestSchema = z.object({
     .max(11, { message: 'Video slug must be at most 11 characters' }),
   language: z.string().length(2).optional(), // ISO 639-1 for ensure summary policy
 });
+
+/**
+ * fetch-youtube-metadata-preview.action.ts용 Request Schema
+ * 블록 없이 workspaceId + slug만으로 메타데이터 조회 (Drive 미리보기 등)
+ */
+export const FetchYoutubeMetadataPreviewRequestSchema = z.object({
+  workspaceId: z.uuid('Invalid workspace ID'),
+  slug: z
+    .string()
+    .min(11, { message: 'Video slug must be at least 11 characters' })
+    .max(11, { message: 'Video slug must be at most 11 characters' }),
+});
 /**
  * process-video-script.action.ts용 Request Schema
  */
@@ -86,6 +98,9 @@ export type CreateVideoRequestInput = z.input<typeof CreateVideoRequestSchema>;
 export type GetYoutubeMetadataRequestInput = z.input<
   typeof GetYoutubeMetadataRequestSchema
 >;
+export type FetchYoutubeMetadataPreviewRequestInput = z.input<
+  typeof FetchYoutubeMetadataPreviewRequestSchema
+>;
 export type ProcessVideoScriptRequestInput = z.input<
   typeof ProcessVideoScriptRequestSchema
 >;
@@ -101,6 +116,9 @@ export type GetVideoRequest = z.output<typeof GetVideoRequestSchema>;
 export type CreateVideoRequest = z.output<typeof CreateVideoRequestSchema>;
 export type GetYoutubeMetadataRequest = z.output<
   typeof GetYoutubeMetadataRequestSchema
+>;
+export type FetchYoutubeMetadataPreviewRequest = z.output<
+  typeof FetchYoutubeMetadataPreviewRequestSchema
 >;
 
 export type ProcessVideoScriptRequest = z.output<

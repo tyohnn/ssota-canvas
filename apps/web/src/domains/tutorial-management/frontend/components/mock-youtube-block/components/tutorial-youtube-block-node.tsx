@@ -4,8 +4,8 @@ import { useRef, useEffect, useCallback } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import { Box } from '@workspace/ui/components/ui/box';
 import { YoutubeBlockInteractions } from '@/domains/block-management/frontend/components/block/block-type/youtube/config/youtube-block-interactions';
-import { YoutubeView } from '@/domains/block-management/frontend/components/block/block-type/youtube/components/youtube.view';
-import type { YouTubePlayer } from '@/domains/block-management/frontend/components/block/block-type/youtube/core/types';
+import { YoutubeView } from '@workspace/ssota-blocks/youtube';
+import type { YouTubePlayer } from '@workspace/ssota-blocks/youtube';
 import { useBlockInteraction } from '@/domains/canvas-management/frontend/contexts/block-interaction-context';
 import { BaseBlockView } from '@/domains/block-management/frontend/components/block/base-block/components/base-block-view';
 import { DataBlockView } from '@/domains/block-management/frontend/components/block/data-block/components/data-block-view';
@@ -121,7 +121,7 @@ export function TutorialYoutubeBlockNode(props: NodeProps) {
       draftUrl={youtubeUrl}
       showPlayer={showPlayer}
       isIframeLoading={false}
-      selected={selected}
+      isActive={selected}
       properties={{
         ...TUTORIAL_YOUTUBE_PROPERTIES,
         url: showPlayer ? youtubeUrl : '',

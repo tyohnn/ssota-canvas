@@ -8,7 +8,7 @@
 'use client';
 
 import { JSONContent } from '@tiptap/react';
-import { NoteSectionView } from '@/domains/block-management/frontend/components/editor-panel/components/content-area/components/block-content-tabs-section/components/sections/note-section/note-section.view';
+import { NoteSectionView } from '@/domains/block-management/frontend/components/block/block-type/note-section/note-section.view';
 import { useTipTapEditor } from '@/domains/block-management/frontend/components/tiptap-editor/core/use-tiptap-editor';
 
 const DEFAULT_NOTE_CONTENT: JSONContent = {

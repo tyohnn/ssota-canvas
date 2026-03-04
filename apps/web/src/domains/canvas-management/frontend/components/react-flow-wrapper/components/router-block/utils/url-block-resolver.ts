@@ -11,6 +11,7 @@ import {
   isImageUrl,
   isPdfUrl,
   isValidUrl,
+  isXUrl,
   isYouTubeUrl,
 } from '@/domains/canvas-management/frontend/components/clipboard/utils/clipboard-analyzer';
 
@@ -47,7 +48,8 @@ function isAudioUrl(url: string): boolean {
  * 2. Image URL -> image block
  * 3. PDF URL -> pdf block
  * 4. Audio URL -> audio block
- * 5. Any other valid URL -> link block
+ * 5. X (Twitter) post URL -> x block
+ * 6. Any other valid URL -> link block
  *
  * @param url - The URL string to resolve
  * @returns Block type and initial properties, or null if not a valid URL
@@ -91,6 +93,13 @@ export function resolveUrlToBlockConfig(url: string): UrlBlockResolution | null 
     return {
       blockType: BlockType.AUDIO,
       initialProperties: { pathUrl: '', accessUrl: trimmed },
+    };
+  }
+
+  if (isXUrl(trimmed)) {
+    return {
+      blockType: BlockType.X,
+      initialProperties: { url: trimmed },
     };
   }
 

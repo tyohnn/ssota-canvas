@@ -8,7 +8,7 @@
 'use client';
 
 import React from 'react';
-import { HeaderView } from '@/domains/block-management/frontend/components/editor-panel/components/header.view';
+import { HeaderView } from '@workspace/editor-panel';
 
 interface LandingEditorPanelHeaderProps {
   onClose?: () => void;

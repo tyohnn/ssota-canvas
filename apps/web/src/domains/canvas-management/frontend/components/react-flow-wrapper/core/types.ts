@@ -42,6 +42,8 @@ export interface CanvasModeDependencies {
   isTextareaEditing: boolean;
   isPanningMode: () => boolean;
   getCurrentMode: () => any;
+  /** Space 키가 눌려 있는지 (Space + 휠 시 캔버스 패닝용) */
+  spaceKeyHeldRef?: { current: boolean };
 }
 
 /**

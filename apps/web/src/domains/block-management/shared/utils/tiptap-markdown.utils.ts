@@ -317,7 +317,8 @@ export function extractPlainText(json: JSONContent): string {
 
     if (node.content) {
       const separator =
-        node.type === 'paragraph' ||
+        node.type === 'doc' ||
+          node.type === 'paragraph' ||
           node.type === 'heading' ||
           node.type === 'blockquote' ||
           node.type === 'admonition' ||

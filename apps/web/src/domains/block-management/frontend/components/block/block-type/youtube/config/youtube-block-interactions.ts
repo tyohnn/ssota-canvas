@@ -9,7 +9,7 @@
  * - Export: {BlockType}BlockInteractions (예: YoutubeBlockInteractions)
  * - 각 인터랙션은 함수 팩토리 형태로 정의 (블록 인스턴스 상태를 받음)
  */
-import type { YouTubePlayer } from '../core/types';
+import type { YouTubePlayer } from '@workspace/ssota-blocks/youtube';
 
 /**
  * YouTube Block Interactions

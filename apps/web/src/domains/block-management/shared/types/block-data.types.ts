@@ -27,6 +27,7 @@ import {
   TextBlockProperties,
   VercelDeploymentBlockProperties,
   VideoBlockProperties,
+  XBlockProperties,
   YoutubeBlockProperties,
 } from '../value-objects/block-properties';
 import { BlockPropertiesFactory } from '../value-objects/block-properties';
@@ -50,6 +51,7 @@ type BlockPropertiesMap = {
   image: ImageBlockProperties;
   markdown: MarkdownBlockProperties;
   youtube: YoutubeBlockProperties;
+  x: XBlockProperties;
   pdf: PdfBlockProperties;
   audio: AudioBlockProperties;
   video: VideoBlockProperties;
@@ -137,6 +139,12 @@ export interface LinkBlockNodeData extends BaseNodeData {
 export interface YoutubeBlockNodeData extends BaseNodeData {
   blockType: 'youtube';
   properties: YoutubeBlockProperties;
+  [key: string]: any; // React Flow Node data constraint
+}
+
+export interface XBlockNodeData extends BaseNodeData {
+  blockType: 'x';
+  properties: XBlockProperties;
   [key: string]: any; // React Flow Node data constraint
 }
 
@@ -240,6 +248,7 @@ export type BlockNodeData =
   | MarkdownBlockNodeData
   | LinkBlockNodeData
   | YoutubeBlockNodeData
+  | XBlockNodeData
   | PdfBlockNodeData
   | AudioBlockNodeData
   | VideoBlockNodeData

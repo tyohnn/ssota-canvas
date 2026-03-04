@@ -13,6 +13,7 @@
 import type { Editor } from '@tiptap/react';
 
 import { Box } from '@/components/ui/box';
+import { DATA_CANVAS_SCROLL_CHAIN } from '@/domains/canvas-management/frontend/components/react-flow-wrapper/core/scroll-chain.constants';
 import { TipTapEditor } from '@/domains/block-management/frontend/components/tiptap-editor';
 import { cn } from '@workspace/ui/lib/utils';
 import type { BlockNodeData } from '@/domains/block-management/shared/types/block-data.types';
@@ -53,7 +54,7 @@ export function NoteViewView({
     return null;
   }
 
-  const canScroll = readonly || uiState.isEditing;
+  const canScroll = readonly || uiState.isEditing || selected;
 
   return (
     <Box
@@ -80,9 +81,10 @@ export function NoteViewView({
       >
         <NoteViewTitle data={data} selected={selected} readonly={readonly} />
       </Box>
-      {/* Editor Content */}
+      {/* Editor Content: data-canvas-scroll-chain so canvas wheel capture uses this as scroll container (scroll chaining at edge). */}
       <Box
         ref={uiState.editorContainerRef}
+        {...{ [DATA_CANVAS_SCROLL_CHAIN]: '' }}
         className={cn(
           'flex-1 p-4',
           canScroll ? 'overflow-auto' : 'overflow-hidden',

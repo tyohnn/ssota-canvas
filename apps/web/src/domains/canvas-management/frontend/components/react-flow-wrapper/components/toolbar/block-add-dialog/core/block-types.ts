@@ -9,6 +9,7 @@ import {
   Map,
   MessageSquare,
   Music,
+  Share2,
   Square,
   Video,
   Zap,
@@ -83,6 +84,13 @@ export const DEFAULT_BLOCK_TYPES: BlockTypeInfo[] = [
     displayName: 'Link',
     icon: Link,
     description: 'Link preview with metadata',
+    category: 'Content',
+  },
+  {
+    type: BlockType.X,
+    displayName: 'X Post',
+    icon: Share2,
+    description: 'X (Twitter) post embed',
     category: 'Content',
   },
   // Code

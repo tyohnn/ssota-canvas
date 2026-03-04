@@ -12,32 +12,22 @@
 'use server';
 
 import type { WorkspaceActionContext } from '@/domains/common/auth/types';
+import type { Block } from '@/domains/block-management/shared/entities/block.entity';
+import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
 import { UserId } from '@/domains/user-management/shared/value-objects/ids.vo';
 import { ActionResult, err, ok } from '@/lib';
 
-import type { Block } from '@/domains/block-management/shared/entities/block.entity';
-import { DrizzleBlockRepository } from '@/domains/block-management/backend/repositories/implementations/drizzle-block.repository';
-import { DrizzleChannelRepository } from '../../backend/repositories/implementations/drizzle-channel.repository';
+import { DrizzleSourceRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source.repository';
+import { findOrCreateSource } from '@/domains/source-management/backend/services/source';
+import { LanguageCode } from '@/domains/source-management/shared/value-objects/language-code.vo';
 import { DrizzleVideoRepository } from '../../backend/repositories/implementations/drizzle-video.repository';
-import {
-  createChannel,
-  getChannel,
-  getChannelById,
-} from '../../backend/services/channel';
+import { fetchYoutubeMetadata } from '../../backend/services/fetch-youtube-metadata.service';
 import { publishYoutubeMetadataFetched } from '../../backend/services/youtube-metadata-fetched';
-import { createVideo, getVideo } from '../../backend/services/video';
-import {
-  getChannelMetadata,
-  getVideoMetadata,
-} from '../../backend/services/youtube-api';
-import { ChannelAggregate } from '../../shared/aggregates/channel.aggregate';
-import type { VideoAggregate } from '../../shared/aggregates/video.aggregate';
+import { getVideo } from '../../backend/services/video';
 import { GetYoutubeMetadataRequestSchema } from '../../shared/dtos/requests/video.requests';
 import type { GetYoutubeMetadataRequest } from '../../shared/dtos/requests/video.requests';
 import type { GetYoutubeMetadataDTO } from '../../shared/dtos/responses/video.responses';
-import { ChannelId } from '../../shared/value-objects/channel-id.vo';
-import { DrizzleSourceRepository } from '@/domains/source-management/backend/repositories/implementations/drizzle-source.repository';
-import { findOrCreateSource } from '@/domains/source-management/backend/services/source';
+import type { VideoAggregate } from '../../shared/aggregates/video.aggregate';
 import { withYoutubeBlockSecureAction } from '../secure-action';
 import type { YoutubeBlockActionContext } from '../secure-action';
 
@@ -61,206 +51,57 @@ export const getYoutubeMetadataAction = withYoutubeBlockSecureAction(
 /**
  * 내부 구현 (검증된 데이터만 처리)
  *
- * ✅ 서버 액션에서 서비스들을 조합해서 사용하는 방식
- * 1. getVideo 호출 (slug로 조회)
- * 2. 없으면 getVideoMetadata 호출 (YouTube API)
- * 3. getChannel 호출하고 없으면 createChannel 호출
- * 4. createVideo 호출
- *
- * ⚠️ 이 함수는 이미 검증된 요청과 인증된 사용자만 받습니다
- * - Block 권한 및 타입 검증 완료
- *
- * @param safeDto - 검증된 SafeDTO
- * @param context - 검증된 사용자, 워크스페이스 정보
+ * fetchYoutubeMetadata 서비스를 사용해 메타데이터 조회 후,
+ * linkSourceToBlock + publishYoutubeMetadataFetched로 source job 등록.
  */
 async function getYoutubeMetadataInternal(
   safeDto: GetYoutubeMetadataRequest,
   context: WorkspaceActionContext
 ): Promise<ActionResult<GetYoutubeMetadataDTO>> {
   try {
-    const userId: UserId = new UserId(context.authenticatedUser.id);
-    const youtubeContext = context as YoutubeBlockActionContext;
+    const userId = new UserId(context.authenticatedUser.id);
+    const ytCtx = context as YoutubeBlockActionContext;
 
-    // 1. Repository 생성
-    const videoRepository = new DrizzleVideoRepository();
-    const channelRepository = new DrizzleChannelRepository();
+    const metadataResult = await fetchYoutubeMetadata(safeDto.slug, userId);
 
-    // 2. getVideo 호출 (slug로 조회)
-    const videoResult = await getVideo({ slug: safeDto.slug }, videoRepository);
-
-    if (videoResult.isError()) {
-      return err(String(videoResult.error), {
-        code: 'VIDEO_QUERY_FAILED',
-        meta: { originalError: videoResult.error },
+    if (metadataResult.isError()) {
+      return err(String(metadataResult.error), {
+        code: 'METADATA_FETCH_FAILED',
+        meta: { originalError: metadataResult.error },
       });
     }
 
-    // 4. Video가 있으면 반환
-    if (videoResult.value) {
-      const video = videoResult.value;
-      let channel: ChannelAggregate | undefined = undefined;
+    const data = metadataResult.value;
+    const response: GetYoutubeMetadataDTO = {
+      video: data.video,
+      channelName: data.channelName,
+      channelThumbnail: data.channelThumbnail,
+      youtubeChannelId: data.youtubeChannelId,
+    };
 
-      // 채널 정보도 함께 조회 (서비스 사용)
-      const videoEntity = video.getVideo();
-      if (videoEntity.channelId) {
-        const channelResult = await getChannelById(
-          { channelId: videoEntity.channelId },
-          channelRepository
-        );
-        if (channelResult.isError()) {
-          return err(String(channelResult.error), {
-            code: 'CHANNEL_QUERY_FAILED',
-            meta: { originalError: channelResult.error },
-          });
-        }
-        if (channelResult.value) {
-          channel = channelResult.value;
-        }
-      }
-
-      const response: GetYoutubeMetadataDTO = {
-        video: video.toView(),
-        channelName: channel?.toView().channelName,
-        channelThumbnail: channel?.toView().channelThumbnailUrl,
-        youtubeChannelId: channel?.toView().channelId,
-      };
-
-      const ytCtx = context as YoutubeBlockActionContext;
+    const videoForLinkResult = await getVideo(
+      { slug: safeDto.slug },
+      new DrizzleVideoRepository()
+    );
+    const videoForLink = videoForLinkResult.isError()
+      ? undefined
+      : videoForLinkResult.value;
+    if (videoForLink) {
       const sourceId = await linkSourceToBlock(
-        video,
+        videoForLink,
         safeDto.slug,
         ytCtx.block
       );
       if (sourceId) response.sourceId = sourceId;
-      response.blockUuid = ytCtx.block.id.value;
-
-      await Promise.allSettled([
-        publishYoutubeMetadataFetched({
-          workspaceId: ytCtx.block.workspaceId.value,
-          blockId: ytCtx.block.getSlug(),
-          orgId: context.organization.id,
-          youtubeId: safeDto.slug,
-          language: safeDto.language ?? 'en',
-        }),
-      ]);
-
-      return ok(response);
     }
-
-    // 5. Video가 없으면 getVideoMetadata 호출 (YouTube API)
-    const metadata = await getVideoMetadata(safeDto.slug);
-
-    // 6. getChannel 호출하고 없으면 createChannel 호출
-    let channelAggregate: ChannelAggregate | undefined = undefined;
-    let channelId: ChannelId | undefined = undefined;
-
-    if (metadata.channelId && metadata.channelTitle) {
-      // getChannel 호출
-      const channelResult = await getChannel(
-        { youtubeChannelId: metadata.channelId },
-        channelRepository
-      );
-
-      if (channelResult.isError()) {
-        return err(String(channelResult.error), {
-          code: 'CHANNEL_QUERY_FAILED',
-          meta: { originalError: channelResult.error },
-        });
-      }
-
-      if (channelResult.value) {
-        // 기존 Channel이 있으면 사용
-        channelAggregate = channelResult.value;
-        channelId = new ChannelId(channelAggregate.getChannel().id);
-      } else {
-        // Channel이 없으면 getChannelMetadata 호출 후 createChannel 호출
-        let channelMetadata;
-        try {
-          channelMetadata = await getChannelMetadata(metadata.channelId);
-        } catch (error) {
-          // 채널 메타데이터 조회 실패 시 기본값으로 계속 진행
-          console.warn(
-            `[getYoutubeMetadataInternal] Failed to fetch channel metadata for ${metadata.channelId}:`,
-            error
-          );
-          channelMetadata = {
-            channelName: metadata.channelTitle,
-            channelDescription: undefined,
-            channelThumbnailUrl: undefined,
-            subscriberCount: undefined,
-            videoCount: undefined,
-          };
-        }
-
-        const createChannelResult = await createChannel(
-          {
-            youtubeChannelId: metadata.channelId,
-            channelName: channelMetadata.channelName,
-            channelDescription: channelMetadata.channelDescription,
-            channelThumbnailUrl: channelMetadata.channelThumbnailUrl,
-            subscriberCount: channelMetadata.subscriberCount,
-            videoCount: channelMetadata.videoCount,
-          },
-          channelRepository
-        );
-
-        if (createChannelResult.isError()) {
-          return err(String(createChannelResult.error), {
-            code: 'CHANNEL_CREATION_FAILED',
-            meta: { originalError: createChannelResult.error },
-          });
-        }
-
-        channelAggregate = createChannelResult.value;
-        channelId = new ChannelId(channelAggregate.getChannel().id);
-      }
-    }
-
-    // 7. createVideo 호출
-    const createVideoRequest = {
-      slug: safeDto.slug,
-      title: metadata.title,
-      description: metadata.description,
-      channelId: channelId?.value,
-      publishedAt: metadata.publishedAt,
-      durationSeconds: metadata.durationSeconds,
-      thumbnailUrl: metadata.thumbnailUrl,
-      thumbnailHighUrl: metadata.thumbnailHighUrl,
-      viewCount: metadata.viewCount,
-      likeCount: metadata.likeCount,
-      commentCount: metadata.commentCount,
-    };
-
-    const createVideoResult = await createVideo(
-      createVideoRequest,
-      userId,
-      videoRepository
-    );
-
-    if (createVideoResult.isError()) {
-      return err(String(createVideoResult.error), {
-        code: 'VIDEO_CREATION_FAILED',
-        meta: { originalError: createVideoResult.error },
-      });
-    }
-
-    // 8. Response DTO 생성
-    const video = createVideoResult.value;
-    const response: GetYoutubeMetadataDTO = {
-      video: video.toView(),
-      channelName: channelAggregate?.toView().channelName,
-      channelThumbnail: channelAggregate?.toView().channelThumbnailUrl,
-      youtubeChannelId: channelAggregate?.toView().channelId,
-    };
-
-    const ytCtx = context as YoutubeBlockActionContext;
-    const sourceId = await linkSourceToBlock(
-      video,
-      safeDto.slug,
-      ytCtx.block
-    );
-    if (sourceId) response.sourceId = sourceId;
     response.blockUuid = ytCtx.block.id.value;
+
+    const language = (() => {
+      const code = LanguageCode.optional(
+        safeDto.language ?? context.authenticatedUser.profile.language
+      );
+      return code?.value ?? 'en';
+    })();
 
     await Promise.allSettled([
       publishYoutubeMetadataFetched({
@@ -268,7 +109,7 @@ async function getYoutubeMetadataInternal(
         blockId: ytCtx.block.getSlug(),
         orgId: context.organization.id,
         youtubeId: safeDto.slug,
-        language: safeDto.language ?? 'en',
+        language,
       }),
     ]);
 

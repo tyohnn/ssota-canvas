@@ -93,6 +93,7 @@ export function useTipTapEditor(
   const contentVersionRef =
     contentVersionRefProp ?? internalContentVersionRef;
   const editorRef = useRef<Editor | null>(null);
+  const blockIdRef = useRef((blockData as BlockNodeData).blockId);
   const lastSyncedContentRef = useRef<object>(
     (blockData.content as object) ?? EMPTY_TIPTAP_DOC
   );
@@ -116,6 +117,10 @@ export function useTipTapEditor(
   useEffect(() => {
     onSaveStepsRef.current = onSaveSteps;
   }, [onSaveSteps]);
+
+  useEffect(() => {
+    blockIdRef.current = (blockData as BlockNodeData).blockId;
+  }, [(blockData as BlockNodeData).blockId]);
 
   useEffect(() => {
     onBlurAuditRef.current = onBlurAudit;
@@ -394,31 +399,37 @@ export function useTipTapEditor(
 
   /** Run flush + blur audit (same as 100ms timeout). Used on blur timeout and on unmount when timer was pending. */
   const runPendingBlurFlushAndAudit = useCallback(() => {
+    const currentBlockId = blockIdRef.current;
     if (onSaveStepsRef.current && stepsBufferRef.current.length > 0) {
       void flushRef.current();
     }
     const beforeRaw = contentRawAtFocusRef.current;
-    const blockId = (blockData as BlockNodeData).blockId;
+    const blockId = currentBlockId;
     if (beforeRaw !== null && onBlurAuditRef.current && blockId) {
       contentRawAtFocusRef.current = null;
-      const afterRaw = extractPlainText(
-        editorRef.current?.getJSON() as JSONContent
-      );
-      const dmp = new DiffMatchPatch();
-      const patches = dmp.patch_make(beforeRaw, afterRaw);
-      if (patches.length > 0) {
-        let patchStr = dmp.patch_toText(patches);
-        try {
-          patchStr = decodeURIComponent(patchStr);
-        } catch {
-          // keep original if decode fails
+      const auditCb = onBlurAuditRef.current;
+      // Yield one tick so IME composition can commit (cf. compositionend handler).
+      const runAudit = () => {
+        const afterRaw = extractPlainText(
+          editorRef.current?.getJSON() as JSONContent
+        );
+        const dmp = new DiffMatchPatch();
+        const patches = dmp.patch_make(beforeRaw, afterRaw);
+        if (patches.length > 0 && auditCb) {
+          let patchStr = dmp.patch_toText(patches);
+          try {
+            patchStr = decodeURIComponent(patchStr);
+          } catch {
+            // keep original if decode fails
+          }
+          void Promise.resolve(auditCb({ blockId, patch: patchStr })).catch(
+            () => {}
+          );
         }
-        void Promise.resolve(
-          onBlurAuditRef.current({ blockId, patch: patchStr })
-        ).catch(() => { });
-      }
+      };
+      setTimeout(runAudit, 0);
     }
-  }, [blockData]);
+  }, []);
 
   useEffect(() => {
     editorRef.current = editor;
@@ -491,7 +502,7 @@ export function useTipTapEditor(
       blurFlushTimerRef.current = null;
       runPendingBlurFlushAndAudit();
     }, 100);
-  }, [editor, blockData, runPendingBlurFlushAndAudit]);
+  }, [editor, runPendingBlurFlushAndAudit]);
 
   // 한글 입력 조합(composition) 이벤트 리스너
   useEffect(() => {

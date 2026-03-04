@@ -57,16 +57,16 @@ export function useRouterBlock({
 
       const position = node.position;
 
-      // 1. Soft-delete router block (removes from canvas, persists deletion)
-      await softDeleteBlockMounts(nodeId);
-
-      // 2. Create real block at same position
+      // 1. Create real block first (user sees new block appear)
       await createAndMountBlock(
         blockType,
         position,
         initialProperties as Record<string, any>,
         initialContent
       );
+
+      // 2. Then soft-delete router block (removes placeholder)
+      await softDeleteBlockMounts(nodeId);
     },
     [nodeId, getNode, softDeleteBlockMounts, createAndMountBlock]
   );

@@ -19,7 +19,7 @@ import {
   SummaryTableOfContents,
   SummaryTOCSlotProvider,
   useSummaryTOCSlot,
-} from '@/domains/source-management/frontend/components/summary-tab';
+} from '@workspace/editor-panel';
 import { LANDING_YOUTUBE_PROPERTIES } from '../../landing-youtube-mock-data';
 import { LandingMetadataSection } from '../common-tabs/LandingMetadataSection';
 import { LandingSummarySection } from '../youtube-tabs/LandingSummarySection';
